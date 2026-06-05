@@ -1,0 +1,61 @@
+{
+  "name": "marine.safety.manager",
+  "version": "1.0.0",
+  "description": "Ship LSA & FFE safety-equipment inventory and inspection manager",
+  "main": "index.tsx",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "node scripts/patch-rn.js"
+  },
+  "keywords": [
+    "maritime",
+    "safety",
+    "LSA",
+    "FFE",
+    "FIFI",
+    "lifesaving",
+    "firefighting",
+    "inventory",
+    "inspection",
+    "vessel",
+    "ship"
+  ],
+  "author": "Mykhaylo Osypov <kukalab@icloud.com>",
+  "license": "PROPRIETARY",
+  "private": true,
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-picker/picker": "2.11.1",
+    "@react-navigation/bottom-tabs": "^6.5.11",
+    "@react-navigation/native": "^6.1.9",
+    "@react-navigation/stack": "^6.3.20",
+    "expo": "^54.0.0",
+    "expo-av": "~16.0.8",
+    "expo-document-picker": "~14.0.8",
+    "expo-file-system": "~19.0.21",
+    "expo-image-picker": "~17.0.11",
+    "expo-linear-gradient": "~15.0.8",
+    "expo-print": "~15.0.8",
+    "expo-sharing": "~14.0.8",
+    "expo-status-bar": "~3.0.9",
+    "firebase": "^12.12.1",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-gesture-handler": "~2.28.0",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "react-native-svg": "15.12.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@types/react": "~19.1.10",
+    "babel-preset-expo": "~54.0.10",
+    "typescript": "~5.9.2"
+  }
+}
