@@ -3,6 +3,7 @@ node_modules/
 dist/
 web-build/
 *.log
+*.swp
 .DS_Store
 ios/
 android/

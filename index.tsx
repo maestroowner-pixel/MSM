@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { COLORS, SIZES } from './theme';
 import { DataProvider } from './contexts/DataContext';
+import { applyOrientationPolicy } from './utils/orientation';
 
 import SplashSc from './screens/SplashSc';
 import ConsentSc from './screens/ConsentSc';
@@ -111,6 +112,8 @@ function App() {
     AsyncStorage.getItem(LEGAL_ACCEPTED_KEY)
       .then((v) => setLegalAccepted(v === '1'))
       .catch(() => setLegalAccepted(false));
+    // Phones: portrait only. Tablets (iPad / large Android): allow rotation.
+    applyOrientationPolicy();
   }, []);
 
   const acceptLegal = async () => {
