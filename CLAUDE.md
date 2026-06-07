@@ -172,8 +172,13 @@ is the validated path.
    (Square44/71/150/310, Wide310x150, StoreLogo, SplashScreen, LockScreenLogo, target-size
    variants) — drop into `windows/<App>/Assets/` after prebuild. Regenerate via the Pillow
    scripts (crop cube by alpha bbox, composite at scale on white/transparent).
-3. **Windows track** — `npx expo prebuild` + react-native-windows + AsyncStorage native shim
-   (mirror MHM's Windows branch); built on the Windows dev machine. Use `assets/windows/` tiles.
+3. **Windows track** — scaffolding IN PLACE (see `WINDOWS.md`): `mocks/` JS stubs +
+   `metro.config.js` (swaps native-less modules on `win32`) + `react-native.config.js`
+   (guarded `@react-native-windows/cli`, autolink disables) + `assets/windows/` tiles. All
+   gated to Windows — iOS/Android unaffected. Use **react-native-windows 0.81.26** (RN 0.81).
+   Mirror the working MHM project at `/Volumes/Turbo/MHMWin 1205` (RNW_OVERRIDES, SoundModule).
+   Generate `windows/` (gitignored) + build on the Windows machine. Big TODO: real storage +
+   file I/O (AsyncStorage/expo-file-system are in-memory stubs → no persistence on Windows yet).
 4. **Importer polish** — minor cosmetic mappings (e.g. Hydrants `type` = "Yes", FIFI BA-set
    `position` = fire-station number). Items are editable, so acceptable for v1.
 ```

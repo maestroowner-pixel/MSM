@@ -7,6 +7,9 @@ web-build/
 .DS_Store
 ios/
 android/
+# react-native-windows project is generated on the Windows dev machine (see WINDOWS.md)
+windows/
+*.binlog
 .env*.local
 
 # Android signing — NEVER commit the upload keystore or its passwords
