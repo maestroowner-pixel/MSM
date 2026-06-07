@@ -12,6 +12,7 @@ import { CategoryKey, EquipmentItem } from '../types/equipment';
 import { Certificate } from '../types/certificate';
 import { CATEGORIES, CATEGORY_MAP, CategoryMeta } from '../constants/categories';
 import { complianceDate, computeStatus, formatDate, fileDateStamp } from '../utils/dates';
+import { deliverFile, onWindows } from '../utils/fileShare';
 import { VesselInfo } from './storage';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -132,6 +133,7 @@ export async function exportPdf(
   vessel: VesselInfo | null,
   only?: CategoryKey[]
 ): Promise<void> {
+  if (onWindows) throw new Error('PDF export is not available on Windows — use XLSX or a .msm backup.');
   const groups = selectedCategories(byCategory, only);
   if (!groups.length) throw new Error('No items to export.');
   const title = only && only.length === 1 ? CATEGORY_MAP[only[0]].label : 'Safety Equipment Register';
@@ -155,6 +157,7 @@ export async function printReport(
   vessel: VesselInfo | null,
   only?: CategoryKey[]
 ): Promise<void> {
+  if (onWindows) throw new Error('Printing is not available on Windows.');
   const groups = selectedCategories(byCategory, only);
   if (!groups.length) throw new Error('No items to print.');
   const title = only && only.length === 1 ? CATEGORY_MAP[only[0]].label : 'Safety Equipment Register';
@@ -182,9 +185,7 @@ export async function exportXlsx(
   }
   const b64 = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
   const fileName = `MSM_report_${fileDateStamp()}.xlsx`;
-  const uri = `${FileSystem.cacheDirectory}${fileName}`;
-  await FileSystem.writeAsStringAsync(uri, b64, { encoding: 'base64' });
-  await share(uri, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', fileName);
+  await deliverFile(fileName, b64, true, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
 /** Short human label for an item, used in the ZIP manifest. */
@@ -208,6 +209,7 @@ export async function exportZip(
   certificates: Certificate[],
   only?: CategoryKey[]
 ): Promise<{ files: number; certificates: number }> {
+  if (onWindows) throw new Error('ZIP export is not available on Windows — use XLSX or a .msm backup.');
   const groups = selectedCategories(byCategory, only);
   if (!groups.length) throw new Error('No items to export.');
 
@@ -378,9 +380,7 @@ export async function exportTemplate(): Promise<void> {
   }
   const b64 = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
   const fileName = `MSM_Import_Template.xlsx`;
-  const uri = `${FileSystem.cacheDirectory}${fileName}`;
-  await FileSystem.writeAsStringAsync(uri, b64, { encoding: 'base64' });
-  await share(uri, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', fileName);
+  await deliverFile(fileName, b64, true, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
 async function share(uri: string, mimeType: string, title: string): Promise<void> {

@@ -11,6 +11,7 @@ import { Screen, ScreenTitle, Card } from '../components/ui';
 import { COLORS, SIZES, GLASS } from '../theme';
 import { parseWorkbookBase64, ImportPreview } from '../services/excelImport';
 import { exportTemplate } from '../services/export';
+import { pickFileBase64, onWindows } from '../utils/fileShare';
 import { CATEGORY_MAP } from '../constants/categories';
 import * as storage from '../services/storage';
 import { useData } from '../contexts/DataContext';
@@ -29,6 +30,15 @@ export default function ImportSc() {
 
   const pick = async () => {
     try {
+      // Windows uses the native Open dialog (returns base64); mobile uses the picker.
+      if (onWindows) {
+        const picked = await pickFileBase64(['xlsx', 'xls']);
+        if (!picked) return;
+        setBusy(true);
+        setFileName(picked.name);
+        setPreview(parseWorkbookBase64(picked.base64));
+        return;
+      }
       const res = await DocumentPicker.getDocumentAsync({
         type: [
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

@@ -176,9 +176,13 @@ is the validated path.
    `metro.config.js` (swaps native-less modules on `win32`) + `react-native.config.js`
    (guarded `@react-native-windows/cli`, autolink disables) + `assets/windows/` tiles. All
    gated to Windows — iOS/Android unaffected. Use **react-native-windows 0.81.26** (RN 0.81).
-   Mirror the working MHM project at `/Volumes/Turbo/MHMWin 1205` (RNW_OVERRIDES, SoundModule).
-   Generate `windows/` (gitignored) + build on the Windows machine. Big TODO: real storage +
-   file I/O (AsyncStorage/expo-file-system are in-memory stubs → no persistence on Windows yet).
+   Mirror the working MHM project at `/Volumes/Turbo/MHMWin 1205`. Native modules ported (repo
+   root `.h`): **StorageModule.h** (persistent KV via registry → `mocks/async-storage.js` bridge),
+   **FileManagerModule.h** (`RNCWindowsFileManager` Save/Open dialogs → `utils/WindowsFileManager.ts`
+   + `utils/fileShare.ts`; wired into export.ts/backup.ts/ImportSc), **SoundModule.h** (ship bell).
+   So on Windows: persistent data + XLSX export + .msm backup/restore + Excel import work; PDF/ZIP/
+   print/attachments are guarded off (`onWindows`). Generate `windows/` (gitignored), copy the 3
+   `.h` into `windows/<App>/` + register, build on the Windows machine.
 4. **Importer polish** — minor cosmetic mappings (e.g. Hydrants `type` = "Yes", FIFI BA-set
    `position` = fire-station number). Items are editable, so acceptable for v1.
 ```

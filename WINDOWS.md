@@ -47,6 +47,25 @@ npx react-native run-windows            # debug
 # or open windows/*.sln in VS2022 → x64 / Release → Build
 ```
 
+## Native storage & file modules (ported from MHM) — REQUIRED for real data
+Three native modules (repo root `.h` files) provide persistence and file I/O.
+Copy them into `windows/<App>/` and register in the app's `ReactPackageProvider`:
+- **`StorageModule.h`** → persistent key-value store in the registry
+  (`HKCU\Software\MSMWindows\Storage`). `mocks/async-storage.js` bridges
+  AsyncStorage to it, so **all app data persists across restarts** on Windows.
+  Without it, the mock falls back to in-memory (data lost on restart).
+- **`FileManagerModule.h`** (`RNCWindowsFileManager`) → Windows Save/Open dialogs
+  (`saveFile`, `saveFileBase64`, `openFilePicker`) + `httpRequest` (for a future
+  Firebase REST auth path). `utils/WindowsFileManager.ts` + `utils/fileShare.ts`
+  route exports/imports through it: **XLSX export, .msm backup export & restore,
+  and Excel import** work via native dialogs.
+- **`SoundModule.h`** → ship-bell / cues (below).
+
+Wiring: place the three `.h` files in the windows app project, then in
+`ReactPackageProvider.cpp` add `packageBuilder.AddModule(...)` (the rnw template
+auto-registers `REACT_MODULE`s if the headers are compiled into the project).
+Compare with MHM at `/Volumes/Turbo/MHMWin 1205/windows/MHMWindows/`.
+
 ## Native sound module (ported from MHM)
 `SoundModule.h` (repo root) is a WinRT module that plays
 `Bundle\assets\sounds\<name>.mp3`. `utils/sound.ts` calls
@@ -73,18 +92,22 @@ and null them in `metro.config.js`'s `WINDOWS_MOCKS` — then in `index.tsx` wra
 swipe `Gesture` / `GestureHandlerRootView` in a `Platform.OS !== 'windows'` guard
 (safe-area-context degrades to zero insets; navigation works without native screens).
 
-## Reduced functionality on Windows v1 (mocked — needs native/WinRT work later)
-- **No persistence** — AsyncStorage is in-memory (`mocks/async-storage.js`); data is
-  lost on restart. Replace with a file-backed or community Windows storage shim.
-- **expo-file-system** stubbed → backup/restore, XLSX/ZIP export, attachments file I/O
-  are no-ops. Needs a WinRT/file implementation.
-- **No** camera / image / document picking (expo-image-picker, expo-document-picker).
-- **No** native print / share (expo-print, expo-sharing).
-- **Audio**: handled via the native `SoundModule.h` (see above) — wire it into the
-  windows project; otherwise the bell/cues are silent.
+## Windows v1 capabilities (with the native modules wired)
+Works:
+- **Persistent data** — items, certificates, compressor logs, vessel info (via
+  StorageModule + the AsyncStorage bridge).
+- **XLSX export**, **.msm backup export & restore**, **Excel import** — via native
+  Save/Open dialogs (FileManagerModule + `utils/fileShare.ts`).
+- **Cloud sync** (Firebase RTDB over JS), **ship bell / cues** (SoundModule).
+
+Not available on Windows v1 (guarded with a clear message or flattened):
+- **PDF export & Print** — no Windows print engine (expo-print). XLSX / .msm cover export.
+- **ZIP export** — needs the PDF + attachment files; disabled (use XLSX or .msm).
+- **Attachments** — camera / image / document picking (expo-image-picker) and the
+  per-item file store are not available; the `.msm` backup carries register data only.
 - Gradients render flat (`expo-linear-gradient` → plain View).
-- **Firebase auth**: `getReactNativePersistence` does not run on rnw — use a REST
-  auth path or `getAuth` without persistence (see firebaseService.ts note).
+- **Firebase auth**: `getReactNativePersistence` does not run on rnw — use the
+  `RNCWindowsFileManager.httpRequest` REST path or `getAuth` without persistence.
 
 ## What's done vs TODO
 - Done: cross-platform scaffolding (mocks, metro, react-native.config), tiles.

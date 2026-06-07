@@ -8,7 +8,7 @@
 
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
+import { deliverFile, pickFileBase64, base64ToUtf8, onWindows } from '../utils/fileShare';
 import { CategoryKey, EquipmentItem } from '../types/equipment';
 import { Certificate } from '../types/certificate';
 import { CompressorState, normalizeCompressorState } from '../types/compressor';
@@ -113,11 +113,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   };
 
   const fileName = `MSM_backup_${fileDateStamp()}.msm`;
-  const uri = `${FileSystem.cacheDirectory}${fileName}`;
-  await FileSystem.writeAsStringAsync(uri, JSON.stringify(backup), { encoding: 'utf8' });
-  if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(uri, { mimeType: 'application/json', dialogTitle: fileName });
-  }
+  await deliverFile(fileName, JSON.stringify(backup), false, 'application/json');
   return summarize(backup);
 }
 
@@ -137,6 +133,12 @@ export function parseBackup(text: string): BackupFile {
 
 /** Let the user pick a .msm file and return its parsed contents + a summary. */
 export async function pickBackup(): Promise<{ backup: BackupFile; summary: BackupSummary } | null> {
+  if (onWindows) {
+    const picked = await pickFileBase64(['msm']);
+    if (!picked) return null;
+    const backup = parseBackup(base64ToUtf8(picked.base64));
+    return { backup, summary: summarize(backup) };
+  }
   const res = await DocumentPicker.getDocumentAsync({
     type: ['application/json', 'application/octet-stream', '*/*'],
     copyToCacheDirectory: true,
