@@ -98,7 +98,11 @@ Works:
   StorageModule + the AsyncStorage bridge).
 - **XLSX export**, **.msm backup export & restore**, **Excel import** — via native
   Save/Open dialogs (FileManagerModule + `utils/fileShare.ts`).
-- **Cloud sync** (Firebase RTDB over JS), **ship bell / cues** (SoundModule).
+- **Cloud sync** — full: Firebase Auth + Realtime Database over **REST** via
+  `RNCWindowsFileManager.httpRequest` (firebaseService.ts branches on `onWindows`;
+  the JS SDK's RN persistence/transport don't run on rnw). Tokens are saved in the
+  persistent AsyncStorage (StorageModule), so sessions survive restarts.
+- **Ship bell / cues** (SoundModule).
 
 Not available on Windows v1 (guarded with a clear message or flattened):
 - **PDF export & Print** — no Windows print engine (expo-print). XLSX / .msm cover export.
@@ -106,8 +110,6 @@ Not available on Windows v1 (guarded with a clear message or flattened):
 - **Attachments** — camera / image / document picking (expo-image-picker) and the
   per-item file store are not available; the `.msm` backup carries register data only.
 - Gradients render flat (`expo-linear-gradient` → plain View).
-- **Firebase auth**: `getReactNativePersistence` does not run on rnw — use the
-  `RNCWindowsFileManager.httpRequest` REST path or `getAuth` without persistence.
 
 ## What's done vs TODO
 - Done: cross-platform scaffolding (mocks, metro, react-native.config), tiles.

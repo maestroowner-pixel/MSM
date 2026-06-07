@@ -12,10 +12,18 @@
 // resolves the browser ESM build (references DOMException/PerformanceEntry that Hermes
 // lacks → "Property 'DOMException' doesn't exist"). @firebase/auth exposes a
 // `react-native` export condition → clean RN build. (Same approach as MHM.)
-import { Platform } from 'react-native';
+import { Platform, NativeModules } from 'react-native';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, initializeAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, Auth } from '@firebase/auth';
-import { getDatabase, ref, get, set, update, remove, Database } from 'firebase/database';
+import {
+  getDatabase,
+  ref as fbRef,
+  get as fbGet,
+  set as fbSet,
+  update as fbUpdate,
+  remove as fbRemove,
+  Database,
+} from 'firebase/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CategoryKey, EquipmentItem } from '../types/equipment';
 import { Certificate } from '../types/certificate';
@@ -54,15 +62,17 @@ let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Database | null = null;
 
-function ensureInit(): { auth: Auth; db: Database } {
+function ensureInit(): { auth: Auth | null; db: Database | null } {
   if (!isConfigured()) throw new Error('Firebase is not configured. Add your apiKey in firebaseService.ts.');
+  // Windows talks to Firebase over REST (see below) — no JS SDK auth/db init.
+  if (onWindows) return { auth: null, db: null };
   if (!app) {
     app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
     try {
       // Persist the auth session across app restarts (RN has no default persistence).
       auth = initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
     } catch {
-      // Already initialized (fast refresh) or persistence unavailable (e.g. Windows) -> fall back.
+      // Already initialized (fast refresh) or persistence unavailable -> fall back.
       auth = getAuth(app);
     }
     db = getDatabase(app);
@@ -72,6 +82,142 @@ function ensureInit(): { auth: Auth; db: Database } {
 
 function imoEmail(imo: string): string {
   return `imo.${imo.replace(/\D/g, '')}@marinesafety.app`;
+}
+
+// ============================================================================
+// Windows REST path (react-native-windows)
+// firebase/auth's RN persistence and the JS DB transport don't run on rnw, so on
+// Windows we talk to Firebase Auth + Realtime Database over REST via the native
+// RNCWindowsFileManager.httpRequest module. The local ref/get/set/update/remove
+// wrappers below branch on platform, so the rest of this file is unchanged.
+// ============================================================================
+const onWindows = Platform.OS === 'windows';
+const AUTH_URL = 'https://identitytoolkit.googleapis.com/v1/accounts';
+const SECURETOKEN_URL = 'https://securetoken.googleapis.com/v1/token';
+const FB_ID_TOKEN_KEY = 'msm:fb_id_token';
+const FB_REFRESH_TOKEN_KEY = 'msm:fb_refresh_token';
+const FB_UID_KEY = 'msm:fb_uid';
+
+let _idToken: string | null = null;
+
+async function nativeHttp(method: string, url: string, body?: object): Promise<any> {
+  const fn = (NativeModules as any).RNCWindowsFileManager?.httpRequest;
+  if (typeof fn !== 'function') {
+    throw new Error('Native HTTP module (RNCWindowsFileManager) is not available.');
+  }
+  const text: string = await fn(method, url, body ? JSON.stringify(body) : '', 'application/json');
+  if (!text) return null;
+  let parsed: any;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error('Invalid JSON response from Firebase.');
+  }
+  if (parsed?.error) {
+    const msg = typeof parsed.error === 'string' ? parsed.error : parsed.error?.message ?? 'Firebase error';
+    throw new Error(msg);
+  }
+  return parsed;
+}
+
+/** POST to the Identity Toolkit (REST auth). Maps the error to an auth/* code. */
+async function authRest(endpoint: string, body: object): Promise<any> {
+  const data = await nativeHttp('POST', `${AUTH_URL}:${endpoint}?key=${FIREBASE_CONFIG.apiKey}`, body);
+  if (data?.error) {
+    const code = data.error.message ?? 'UNKNOWN_ERROR';
+    const err: any = new Error(code);
+    err.code = 'auth/' + String(code).toLowerCase().replace(/[_\s:.]+/g, '-');
+    throw err;
+  }
+  return data;
+}
+
+async function persistWindowsAuth(data: any): Promise<void> {
+  _idToken = data.idToken;
+  await AsyncStorage.multiSet([
+    [FB_ID_TOKEN_KEY, data.idToken],
+    [FB_REFRESH_TOKEN_KEY, data.refreshToken],
+    [FB_UID_KEY, data.localId],
+  ]);
+}
+
+async function refreshWindowsToken(): Promise<boolean> {
+  try {
+    const refreshToken = await AsyncStorage.getItem(FB_REFRESH_TOKEN_KEY);
+    if (!refreshToken) return false;
+    const data = await nativeHttp('POST', `${SECURETOKEN_URL}?key=${FIREBASE_CONFIG.apiKey}`, {
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+    });
+    if (!data?.id_token) return false;
+    _idToken = data.id_token;
+    await AsyncStorage.multiSet([
+      [FB_ID_TOKEN_KEY, data.id_token],
+      [FB_REFRESH_TOKEN_KEY, data.refresh_token ?? refreshToken],
+    ]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Load a saved token so RTDB calls work after an app restart on Windows. */
+async function restoreWindowsToken(): Promise<void> {
+  if (_idToken) return;
+  _idToken = await AsyncStorage.getItem(FB_ID_TOKEN_KEY);
+  if (_idToken) refreshWindowsToken().catch(() => {});
+}
+
+function dbUrl(path: string): string {
+  return `${FIREBASE_CONFIG.databaseURL}/${path}.json?auth=${_idToken}`;
+}
+
+/** RTDB over REST (Windows), with one transparent token refresh on auth failure. */
+async function winDb(method: string, path: string, body?: object): Promise<any> {
+  if (!_idToken) await restoreWindowsToken();
+  if (!_idToken) throw new Error('Not signed in.');
+  try {
+    return await nativeHttp(method, dbUrl(path), body);
+  } catch (e: any) {
+    const msg: string = e?.message ?? '';
+    if (/expired|invalid|INVALID_ID_TOKEN|401|403|permission/i.test(msg)) {
+      if (await refreshWindowsToken()) return await nativeHttp(method, dbUrl(path), body);
+    }
+    throw e;
+  }
+}
+
+// ---- Platform-branching DB ops (drop-in for firebase/database) --------------
+function ref(db: any, path: string): any {
+  return onWindows ? { __path: path } : fbRef(db, path);
+}
+async function get(r: any): Promise<{ val: () => any }> {
+  if (onWindows) {
+    const v = await winDb('GET', r.__path);
+    return { val: () => v ?? null };
+  }
+  return fbGet(r);
+}
+async function set(r: any, data: any): Promise<void> {
+  if (onWindows) {
+    await winDb('PUT', r.__path, data);
+    return;
+  }
+  await fbSet(r, data);
+}
+async function update(r: any, data: any): Promise<void> {
+  if (onWindows) {
+    await winDb('PATCH', r.__path, data);
+    return;
+  }
+  await fbUpdate(r, data);
+}
+async function remove(r: any): Promise<void> {
+  if (onWindows) {
+    await winDb('DELETE', r.__path);
+    return;
+  }
+  await fbRemove(r);
 }
 
 // ---- Connection password ---------------------------------------------------
@@ -131,12 +277,40 @@ async function deviceMeta() {
  * password. A wrong password for an existing vessel is rejected by Firebase.
  */
 export async function signInVessel(imo: string, password: string): Promise<string> {
-  const { auth } = ensureInit();
   const email = imoEmail(imo);
   const pass = (password ?? '').trim();
   if (pass.length < MIN_PASSWORD_LENGTH) {
     throw new Error(`Connection password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
   }
+
+  // Windows: REST auth (sign in; if the account doesn't exist, provision it).
+  if (onWindows) {
+    if (!isConfigured()) throw new Error('Firebase is not configured. Add your apiKey in firebaseService.ts.');
+    try {
+      const data = await authRest('signInWithPassword', { email, password: pass, returnSecureToken: true });
+      await persistWindowsAuth(data);
+      return data.localId;
+    } catch (e: any) {
+      const code: string = e?.code ?? '';
+      if (/invalid-credential|invalid-login|email-not-found|invalid-password|user-not-found|wrong-password/.test(code)) {
+        try {
+          const data = await authRest('signUp', { email, password: pass, returnSecureToken: true });
+          await persistWindowsAuth(data);
+          return data.localId;
+        } catch (e2: any) {
+          const c2: string = e2?.code ?? '';
+          if (c2.includes('email-exists')) throw new Error('Wrong connection password for this vessel.');
+          if (c2.includes('weak-password')) {
+            throw new Error(`Connection password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+          }
+          throw e2;
+        }
+      }
+      throw e;
+    }
+  }
+
+  const auth = ensureInit().auth!;
   try {
     const cred = await signInWithEmailAndPassword(auth, email, pass);
     return cred.user.uid;
