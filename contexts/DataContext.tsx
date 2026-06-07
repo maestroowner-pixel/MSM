@@ -7,6 +7,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { CategoryKey, EquipmentItem } from '../types/equipment';
 import { Certificate } from '../types/certificate';
+import { CompressorState } from '../types/compressor';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from '../services/storage';
 
@@ -16,11 +17,15 @@ interface DataContextType {
   flat: EquipmentItem[];
   certificates: Certificate[];
   vessel: storage.VesselInfo | null;
+  compressor: CompressorState;
+  prefs: storage.Prefs;
   reload: () => Promise<void>;
   saveItem: (item: EquipmentItem) => Promise<void>;
   removeItem: (category: CategoryKey, id: string) => Promise<void>;
   saveCertificate: (cert: Certificate) => Promise<void>;
   removeCertificate: (id: string) => Promise<void>;
+  saveCompressor: (state: CompressorState) => Promise<void>;
+  setPrefs: (patch: Partial<storage.Prefs>) => Promise<void>;
   setVessel: (info: storage.VesselInfo) => Promise<void>;
   countFor: (category: CategoryKey) => number;
 }
@@ -39,6 +44,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [flat, setFlat] = useState<EquipmentItem[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [vessel, setVesselState] = useState<storage.VesselInfo | null>(null);
+  const [compressor, setCompressorState] = useState<CompressorState>({ compressors: [] });
+  const [prefs, setPrefsState] = useState<storage.Prefs>({});
 
   const reload = useCallback(async () => {
     const all = await storage.loadAll();
@@ -46,6 +53,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setFlat(CATEGORIES.flatMap((c) => all[c.key]));
     setCertificates(await storage.loadCertificates());
     setVesselState(await storage.loadVessel());
+    setCompressorState(await storage.loadCompressor());
+    setPrefsState(await storage.loadPrefs());
     setLoading(false);
   }, []);
 
@@ -85,6 +94,25 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     [reload]
   );
 
+  const saveCompressor = useCallback(
+    async (state: CompressorState) => {
+      await storage.saveCompressor(state);
+      setCompressorState(state);
+    },
+    []
+  );
+
+  const setPrefs = useCallback(
+    async (patch: Partial<storage.Prefs>) => {
+      setPrefsState((prev) => {
+        const next = { ...prev, ...patch };
+        storage.savePrefs(next);
+        return next;
+      });
+    },
+    []
+  );
+
   const setVessel = useCallback(
     async (info: storage.VesselInfo) => {
       await storage.saveVessel(info);
@@ -103,11 +131,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         flat,
         certificates,
         vessel,
+        compressor,
+        prefs,
         reload,
         saveItem,
         removeItem,
         saveCertificate,
         removeCertificate,
+        saveCompressor,
+        setPrefs,
         setVessel,
         countFor,
       }}

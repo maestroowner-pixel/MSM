@@ -8,3 +8,10 @@ web-build/
 ios/
 android/
 .env*.local
+
+# Android signing — NEVER commit the upload keystore or its passwords
+credentials/
+*.jks
+*.keystore
+!android/app/debug.keystore
+keystore.properties

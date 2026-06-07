@@ -1,99 +1,168 @@
 // ===================================
 // Dashboard — inspection / expiry overview
-// Flattens all items, sorts soonest-first, colour-codes by status.
+// Flattens all items; filter by group + status (tap a counter), sort by expiry
+// date or by position (grouped with location headers).
 // ===================================
 
 import React, { useMemo, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Screen, ScreenTitle, StatusPill, Empty, statusColor } from '../components/ui';
+import { Screen, ScreenTitle, Empty, statusColor } from '../components/ui';
 import { COLORS, SIZES, GLASS } from '../theme';
 import { useData } from '../contexts/DataContext';
 import { CATEGORY_MAP } from '../constants/categories';
 import { complianceDate, computeStatus, daysUntil, formatDate } from '../utils/dates';
 import { ComplianceStatus, EquipmentItem, Group } from '../types/equipment';
 
-type Filter = 'ALL' | Group | 'attention';
+type GroupFilter = 'ALL' | Group;
+type StatusFilter = 'expired' | 'due' | 'ok' | null;
+type SortBy = 'date' | 'position';
+
+const NO_POSITION = '— No position';
+
+const GROUP_ORDER: GroupFilter[] = ['ALL', 'LSA', 'FFE', 'OTHER'];
+const GROUP_LABEL: Record<GroupFilter, string> = { ALL: 'All groups', LSA: 'LSA', FFE: 'FFE', OTHER: 'Other' };
+const SORT_ORDER: SortBy[] = ['date', 'position'];
+const SORT_LABEL: Record<SortBy, string> = { date: 'Expiry date', position: 'Position' };
+
+interface Scored {
+  it: EquipmentItem;
+  status: ComplianceStatus;
+  date?: string;
+  days?: number;
+}
+type ListEntry =
+  | { kind: 'header'; key: string; position: string; count: number }
+  | ({ kind: 'row'; key: string } & Scored);
 
 export default function DashboardSc() {
   const { flat, loading } = useData();
   const nav = useNavigation<any>();
-  const [filter, setFilter] = useState<Filter>('ALL');
+  const [group, setGroup] = useState<GroupFilter>('ALL');
+  const [status, setStatus] = useState<StatusFilter>(null);
+  const [sortBy, setSortBy] = useState<SortBy>('date');
 
-  const { rows, stats } = useMemo(() => {
-    const withDates = flat
+  const { listData, stats, total } = useMemo(() => {
+    const withDates: Scored[] = flat
       .map((it) => ({ it, status: computeStatus(it), date: complianceDate(it), days: daysUntil(complianceDate(it)) }))
       .filter((r) => r.date != null);
 
-    withDates.sort((a, b) => (a.days ?? 1e9) - (b.days ?? 1e9));
-
+    // Group scope drives the counters; the status filter then narrows the list.
+    const scoped = group === 'ALL' ? withDates : withDates.filter((r) => CATEGORY_MAP[r.it.category].group === group);
     const stats = {
-      expired: withDates.filter((r) => r.status === 'expired').length,
-      due: withDates.filter((r) => r.status === 'due').length,
-      ok: withDates.filter((r) => r.status === 'ok').length,
+      expired: scoped.filter((r) => r.status === 'expired').length,
+      due: scoped.filter((r) => r.status === 'due').length,
+      ok: scoped.filter((r) => r.status === 'ok').length,
     };
 
-    let rows = withDates;
-    if (filter === 'attention') rows = withDates.filter((r) => r.status === 'expired' || r.status === 'due');
-    else if (filter !== 'ALL') rows = withDates.filter((r) => CATEGORY_MAP[r.it.category].group === filter);
+    let rows = status ? scoped.filter((r) => r.status === status) : scoped;
+    const byDays = (a: Scored, b: Scored) => (a.days ?? 1e9) - (b.days ?? 1e9);
 
-    return { rows, stats };
-  }, [flat, filter]);
+    let listData: ListEntry[];
+    if (sortBy === 'date') {
+      rows = [...rows].sort(byDays);
+      listData = rows.map((r) => ({ kind: 'row', key: r.it.id, ...r }));
+    } else {
+      // Group by position, alphabetical, with a header per location.
+      const byPos = new Map<string, Scored[]>();
+      for (const r of rows) {
+        const pos = (r.it.position ?? '').trim() || NO_POSITION;
+        const arr = byPos.get(pos);
+        if (arr) arr.push(r);
+        else byPos.set(pos, [r]);
+      }
+      const positions = [...byPos.keys()].sort((a, b) => {
+        if (a === NO_POSITION) return 1;
+        if (b === NO_POSITION) return -1;
+        return a.localeCompare(b);
+      });
+      listData = [];
+      for (const pos of positions) {
+        const items = byPos.get(pos)!.sort(byDays);
+        listData.push({ kind: 'header', key: `h:${pos}`, position: pos, count: items.length });
+        for (const r of items) listData.push({ kind: 'row', key: r.it.id, ...r });
+      }
+    }
+
+    return { listData, stats, total: rows.length };
+  }, [flat, group, status, sortBy]);
+
+  const toggleStatus = (s: Exclude<StatusFilter, null>) => setStatus((cur) => (cur === s ? null : s));
+  const cycleGroup = () => setGroup((g) => GROUP_ORDER[(GROUP_ORDER.indexOf(g) + 1) % GROUP_ORDER.length]);
+  const cycleSort = () => setSortBy((s) => SORT_ORDER[(SORT_ORDER.indexOf(s) + 1) % SORT_ORDER.length]);
 
   return (
     <Screen contentStyle={{ paddingBottom: 0 }}>
       <ScreenTitle title="Dashboard" subtitle="Inspections & expiries, soonest first" />
 
       <View style={styles.statsRow}>
-        <StatBox label="Expired" value={stats.expired} color={COLORS.danger} />
-        <StatBox label="Due soon" value={stats.due} color={COLORS.warning} />
-        <StatBox label="Valid" value={stats.ok} color={COLORS.success} />
+        <StatBox label="Expired" value={stats.expired} color={COLORS.danger} active={status === 'expired'} onPress={() => toggleStatus('expired')} />
+        <StatBox label="Due soon" value={stats.due} color={COLORS.warning} active={status === 'due'} onPress={() => toggleStatus('due')} />
+        <StatBox label="Valid" value={stats.ok} color={COLORS.success} active={status === 'ok'} onPress={() => toggleStatus('ok')} />
       </View>
 
-      <View style={styles.filterRow}>
-        {(['ALL', 'attention', 'LSA', 'FFE', 'OTHER'] as Filter[]).map((f) => (
-          <TouchableOpacity
-            key={f}
-            style={[styles.chip, filter === f && styles.chipActive]}
-            onPress={() => setFilter(f)}
-          >
-            <Text style={[styles.chipText, filter === f && styles.chipTextActive]}>
-              {f === 'attention' ? 'Needs attention' : f === 'ALL' ? 'All' : f}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      <View style={styles.controlRow}>
+        <TouchableOpacity style={styles.cycleBtn} onPress={cycleGroup} activeOpacity={0.8}>
+          <Text style={styles.cycleCaption}>GROUP</Text>
+          <Text style={styles.cycleValue} numberOfLines={1}>{GROUP_LABEL[group]} ⟳</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.cycleBtn} onPress={cycleSort} activeOpacity={0.8}>
+          <Text style={styles.cycleCaption}>SORT</Text>
+          <Text style={styles.cycleValue} numberOfLines={1}>⟳ {SORT_LABEL[sortBy]}</Text>
+        </TouchableOpacity>
       </View>
 
-      {loading ? null : rows.length === 0 ? (
-        <Empty text="No items with dates yet. Import the LSA/FFE workbook from Settings." />
+      {loading ? null : total === 0 ? (
+        <Empty text={status || group !== 'ALL' ? 'No items match the current filters.' : 'No items with dates yet. Import the LSA/FFE workbook from Settings.'} />
       ) : (
         <FlatList
-          data={rows}
-          keyExtractor={(r) => r.it.id}
+          data={listData}
+          keyExtractor={(e) => e.key}
           contentContainerStyle={{ paddingBottom: SIZES.xxxl }}
-          renderItem={({ item: r }) => (
-            <DashRow
-              item={r.it}
-              status={r.status}
-              date={r.date}
-              days={r.days}
-              onPress={() =>
-                nav.navigate('ItemDetail', { category: r.it.category, id: r.it.id })
-              }
-            />
-          )}
+          renderItem={({ item: e }) =>
+            e.kind === 'header' ? (
+              <View style={styles.posHeader}>
+                <Text style={styles.posHeaderText} numberOfLines={1}>📍 {e.position}</Text>
+                <Text style={styles.posHeaderCount}>{e.count}</Text>
+              </View>
+            ) : (
+              <DashRow
+                item={e.it}
+                status={e.status}
+                date={e.date}
+                days={e.days}
+                onPress={() => nav.navigate('ItemDetail', { category: e.it.category, id: e.it.id })}
+              />
+            )
+          }
         />
       )}
     </Screen>
   );
 }
 
-function StatBox({ label, value, color }: { label: string; value: number; color: string }) {
+function StatBox({
+  label,
+  value,
+  color,
+  active,
+  onPress,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  active: boolean;
+  onPress: () => void;
+}) {
   return (
-    <View style={[styles.statBox, { borderColor: color }]}>
-      <Text style={[styles.statValue, { color }]}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
+    <TouchableOpacity
+      style={[styles.statBox, { borderColor: color }, active && { backgroundColor: color, borderColor: color }]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <Text style={[styles.statValue, { color: active ? COLORS.textWhite : color }]}>{value}</Text>
+      <Text style={[styles.statLabel, active && { color: COLORS.textWhite }]}>{label}</Text>
+    </TouchableOpacity>
   );
 }
 
@@ -136,29 +205,48 @@ function DashRow({
 }
 
 const styles = StyleSheet.create({
-  statsRow: { flexDirection: 'row', gap: SIZES.sm, marginBottom: SIZES.md },
+  statsRow: { flexDirection: 'row', gap: SIZES.sm, marginBottom: SIZES.sm },
   statBox: {
     flex: 1,
-    ...GLASS.card,
-    borderRadius: SIZES.radiusMd,
-    borderLeftWidth: 4,
-    paddingVertical: SIZES.md,
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  statValue: { fontSize: SIZES.h2, fontWeight: '800' },
-  statLabel: { fontSize: SIZES.small, color: COLORS.textLight, fontWeight: '600' },
-  filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.xs, marginBottom: SIZES.md },
-  chip: {
-    paddingHorizontal: SIZES.md,
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: SIZES.radiusMd,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.55)',
     paddingVertical: 6,
-    borderRadius: SIZES.radiusRound,
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    paddingHorizontal: SIZES.sm,
+  },
+  statValue: { fontSize: SIZES.h5, fontWeight: '800' },
+  statLabel: { fontSize: SIZES.tiny, color: COLORS.textLight, fontWeight: '600' },
+  controlRow: { flexDirection: 'row', gap: SIZES.sm, marginBottom: SIZES.md },
+  cycleBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SIZES.sm,
+    paddingHorizontal: SIZES.md,
+    paddingVertical: SIZES.sm,
+    borderRadius: SIZES.radiusMd,
     borderWidth: 1,
     borderColor: COLORS.border,
+    backgroundColor: 'rgba(255,255,255,0.6)',
   },
-  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipText: { fontSize: SIZES.small, color: COLORS.text, fontWeight: '600' },
-  chipTextActive: { color: COLORS.textWhite },
+  cycleCaption: { fontSize: SIZES.tiny, color: COLORS.textLight, fontWeight: '800', letterSpacing: 0.5 },
+  cycleValue: { fontSize: SIZES.small, color: COLORS.primaryDark, fontWeight: '700', flexShrink: 1 },
+  posHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SIZES.sm,
+    paddingVertical: 6,
+    marginBottom: SIZES.xs,
+    marginTop: SIZES.xs,
+  },
+  posHeaderText: { fontSize: SIZES.small, fontWeight: '800', color: COLORS.primaryDark, flex: 1 },
+  posHeaderCount: { fontSize: SIZES.tiny, fontWeight: '700', color: COLORS.textLight, marginLeft: SIZES.sm },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

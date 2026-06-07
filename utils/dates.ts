@@ -119,15 +119,41 @@ export function computeStatus(item: EquipmentItem): ComplianceStatus {
   return statusFromDate(complianceDate(item));
 }
 
-/** Human-friendly date for display. */
+// Fixed English month names — the app's UI is English, so dates must not follow
+// the device locale (e.g. Android set to Russian rendered "01 апр. 2025 г.").
+export const MONTHS_SHORT = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+/** Human-friendly date for display, e.g. "01 Apr 2025" (locale-independent). */
 export function formatDate(iso?: string): string {
   if (!iso) return '—';
   const d = new Date(iso + 'T00:00:00');
   if (isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${dd} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/** Date + 24h time for logs/device lists, e.g. "01 Apr 14:30". */
+export function formatDateTime(ts?: number): string {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return '—';
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  return `${dd} ${MONTHS_SHORT[d.getMonth()]} ${hh}:${mi}`;
 }
 
 export function currentMonthKey(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** Compact date stamp for file names: DDMMYY (e.g. 060626). */
+export function fileDateStamp(d: Date = new Date()): string {
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${dd}${mm}${yy}`;
 }

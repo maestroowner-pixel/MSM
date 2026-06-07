@@ -10,12 +10,16 @@ import * as Sharing from 'expo-sharing';
 import { Alert } from 'react-native';
 import { uid } from '../utils/id';
 
-const DIR = `${FileSystem.documentDirectory}attachments/`;
+// All item attachments AND certificate files live here. Exported for the
+// backup service, which bundles/restores these binaries.
+export const ATTACHMENTS_DIR = `${FileSystem.documentDirectory}attachments/`;
+const DIR = ATTACHMENTS_DIR;
 
-async function ensureDir(): Promise<void> {
+export async function ensureAttachmentsDir(): Promise<void> {
   const info = await FileSystem.getInfoAsync(DIR);
   if (!info.exists) await FileSystem.makeDirectoryAsync(DIR, { intermediates: true });
 }
+const ensureDir = ensureAttachmentsDir;
 
 function extOf(name?: string | null, fallback = 'dat'): string {
   const m = (name || '').match(/\.([a-zA-Z0-9]+)$/);
@@ -83,6 +87,16 @@ export async function openFile(uri: string): Promise<void> {
     if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri);
   } catch (e: any) {
     Alert.alert('Cannot open file', String(e?.message ?? e));
+  }
+}
+
+/** Delete every stored attachment/certificate file (best-effort). */
+export async function clearAttachmentsDir(): Promise<void> {
+  try {
+    const info = await FileSystem.getInfoAsync(DIR);
+    if (info.exists) await FileSystem.deleteAsync(DIR, { idempotent: true });
+  } catch {
+    /* ignore */
   }
 }
 

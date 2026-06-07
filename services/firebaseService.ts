@@ -18,6 +18,8 @@ import { getAuth, initializeAuth, signInWithEmailAndPassword, createUserWithEmai
 import { getDatabase, ref, get, set, update, remove, Database } from 'firebase/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CategoryKey, EquipmentItem } from '../types/equipment';
+import { Certificate } from '../types/certificate';
+import { normalizeCompressorState } from '../types/compressor';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from './storage';
 
@@ -316,6 +318,66 @@ export async function renameDevice(uid: string, targetId: string, customName: st
   await update(ref(db, `${ROOT}/${uid}/devices/${targetId}`), { customName: customName.trim() || null });
 }
 
+/**
+ * Master action: hand the Master role to another approved device. The current
+ * Master is demoted to a regular member.
+ */
+export async function transferMaster(uid: string, targetId: string): Promise<void> {
+  const { db } = ensureInit();
+  const target = (await get(ref(db, `${ROOT}/${uid}/devices/${targetId}`))).val();
+  if (!target) throw new Error('That device is no longer connected.');
+  const prevMaster = (await get(ref(db, `${ROOT}/${uid}/master_device_id`))).val() as string | null;
+  await set(ref(db, `${ROOT}/${uid}/master_device_id`), targetId);
+  await update(ref(db, `${ROOT}/${uid}/devices/${targetId}`), { role: 'master' });
+  if (prevMaster && prevMaster !== targetId) {
+    await update(ref(db, `${ROOT}/${uid}/devices/${prevMaster}`), { role: 'member' });
+  }
+}
+
+/**
+ * Make THIS device the Master, taking over from whoever currently holds it
+ * (use when the old Master device is lost/unavailable). The previous Master, if
+ * any, is demoted to a member but kept in the list.
+ */
+export async function resetMaster(uid: string): Promise<void> {
+  const { db } = ensureInit();
+  const id = await deviceId();
+  const meta = await deviceMeta();
+  const prevMaster = (await get(ref(db, `${ROOT}/${uid}/master_device_id`))).val() as string | null;
+  // Ensure this device is an approved device, then claim master.
+  await set(ref(db, `${ROOT}/${uid}/devices/${id}`), { deviceId: id, role: 'master', ...meta });
+  await set(ref(db, `${ROOT}/${uid}/master_device_id`), id);
+  if (prevMaster && prevMaster !== id) {
+    await update(ref(db, `${ROOT}/${uid}/devices/${prevMaster}`), { role: 'member' });
+  }
+  // No longer pending if it ever was.
+  await remove(ref(db, `${ROOT}/${uid}/pending_devices/${id}`));
+}
+
+// ---- RTDB key safety -------------------------------------------------------
+// Realtime Database forbids these characters in keys: . # $ / [ ] (plus ASCII
+// control chars). Item `extra` keys come from Excel column headers (e.g.
+// "PLB (Ser.#)"), which can contain them. We reversibly encode every object key
+// to a `~xx` hex escape on push and decode it on pull, so the data round-trips
+// exactly while staying RTDB-legal. (Values are never touched — only keys.)
+function encodeKey(k: string): string {
+  // Single pass over the original string (matches are not re-scanned), so
+  // encoding '~' itself to '~7e' first is unnecessary — it's handled here too.
+  return k.replace(/[~.#$/[\]\x00-\x1f\x7f]/g, (c) => '~' + c.charCodeAt(0).toString(16).padStart(2, '0'));
+}
+function decodeKey(k: string): string {
+  return k.replace(/~([0-9a-f]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+}
+function transformKeys(value: any, fn: (k: string) => string): any {
+  if (Array.isArray(value)) return value.map((v) => transformKeys(v, fn));
+  if (value && typeof value === 'object') {
+    const out: Record<string, any> = {};
+    for (const [k, v] of Object.entries(value)) out[fn(k)] = transformKeys(v, fn);
+    return out;
+  }
+  return value;
+}
+
 /** Push all local categories + vessel info to the cloud. */
 export async function pushAll(uid: string): Promise<number> {
   const { db } = ensureInit();
@@ -323,11 +385,14 @@ export async function pushAll(uid: string): Promise<number> {
   const payload: Record<string, any> = { updatedAt: Date.now() };
   let total = 0;
   for (const c of CATEGORIES) {
-    payload[c.key] = byCategory[c.key];
+    payload[c.key] = transformKeys(byCategory[c.key], encodeKey);
     total += byCategory[c.key].length;
   }
   const vessel = await storage.loadVessel();
   if (vessel) payload.vessel_info = vessel;
+  // Certificates + BA compressor logs (encode keys for symmetry with the rest).
+  payload.certificates = transformKeys(await storage.loadCertificates(), encodeKey);
+  payload.compressor = transformKeys(await storage.loadCompressor(), encodeKey);
   await update(ref(db, `${ROOT}/${uid}/inventory`), payload);
   return total;
 }
@@ -340,10 +405,16 @@ export async function pullAll(uid: string): Promise<number> {
   if (!data) return 0;
   let total = 0;
   for (const c of CATEGORIES) {
-    const items = (data[c.key] as EquipmentItem[]) ?? [];
+    const items = (data[c.key] ? transformKeys(data[c.key], decodeKey) : []) as EquipmentItem[];
     await storage.replaceCategory(c.key as CategoryKey, items);
     total += items.length;
   }
   if (data.vessel_info) await storage.saveVessel(data.vessel_info);
+  if (data.certificates) {
+    await storage.saveCertificates(transformKeys(data.certificates, decodeKey) as Certificate[]);
+  }
+  if (data.compressor) {
+    await storage.saveCompressor(normalizeCompressorState(transformKeys(data.compressor, decodeKey)));
+  }
   return total;
 }

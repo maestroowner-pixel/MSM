@@ -3,18 +3,28 @@
 // ===================================
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, Switch, Modal, TouchableWithoutFeedback, Keyboard, Linking, Image, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Screen, ScreenTitle, Card, Label } from '../components/ui';
 import { COLORS, SIZES, GLASS, APP_CONFIG } from '../theme';
 import { useData } from '../contexts/DataContext';
-import { VesselInfo } from '../services/storage';
+import { VesselInfo, resetAllData } from '../services/storage';
 import * as fb from '../services/firebaseService';
+import { clearAttachmentsDir } from '../services/attachments';
+import { exportTemplate } from '../services/export';
+import { exportBackup, pickBackup, restoreBackup } from '../services/backup';
 import { playSuccessSound, playErrorSound } from '../utils/sound';
+import { formatDateTime } from '../utils/dates';
+
+const RESET_PASSWORD = 'Reset all data';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export default function SettingsSc() {
   const nav = useNavigation<any>();
-  const { vessel, setVessel, reload, flat } = useData();
+  const { vessel, setVessel, reload, flat, prefs, setPrefs } = useData();
   const [form, setForm] = useState<VesselInfo>({});
   const [busy, setBusy] = useState(false);
 
@@ -25,6 +35,17 @@ export default function SettingsSc() {
   const [pending, setPending] = useState<fb.PendingDevice[]>([]);
   const [devBusy, setDevBusy] = useState(false);
   const [connPassword, setConnPassword] = useState('');
+
+  // Reset-all-data (password gated)
+  const [resetVisible, setResetVisible] = useState(false);
+  const [resetPw, setResetPw] = useState('');
+
+  // Collapsible sections (open on tap).
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const toggleSection = (k: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setOpen((o) => ({ ...o, [k]: !o[k] }));
+  };
 
   useEffect(() => {
     if (vessel) setForm(vessel);
@@ -134,6 +155,162 @@ export default function SettingsSc() {
     ]);
   };
 
+  // Master action: hand the Master role to another approved device.
+  const makeMaster = (d: fb.ConnectedDevice) => {
+    if (!uid) return;
+    Alert.alert(
+      'Transfer Master',
+      `Make "${d.customName || d.platformLabel}" the Master? This device becomes a regular member.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Make Master',
+          onPress: async () => {
+            setDevBusy(true);
+            try {
+              await fb.transferMaster(uid, d.deviceId);
+              setMyStatus('approved');
+              await refreshDevices(uid);
+              playSuccessSound();
+            } catch (e: any) {
+              playErrorSound();
+              Alert.alert('Transfer failed', String(e?.message ?? e));
+            } finally {
+              setDevBusy(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Take over the Master role on THIS device (e.g. the old Master is gone).
+  const takeOverMaster = () => {
+    if (!uid) return;
+    Alert.alert(
+      'Take over as Master',
+      'Make THIS device the Master? Use this if the current Master device is lost or unavailable — it will be demoted to a member.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Take over',
+          style: 'destructive',
+          onPress: async () => {
+            setDevBusy(true);
+            try {
+              await fb.resetMaster(uid);
+              setMyStatus('master');
+              await refreshDevices(uid);
+              playSuccessSound();
+            } catch (e: any) {
+              playErrorSound();
+              Alert.alert('Take over failed', String(e?.message ?? e));
+            } finally {
+              setDevBusy(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const downloadTemplate = async () => {
+    try {
+      await exportTemplate();
+    } catch (e: any) {
+      playErrorSound();
+      Alert.alert('Template failed', String(e?.message ?? e));
+    }
+  };
+
+  const backupExport = async () => {
+    setBusy(true);
+    try {
+      const s = await exportBackup(vessel ?? form);
+      playSuccessSound();
+      Alert.alert(
+        'Backup created',
+        `${s.items} items, ${s.certificates} certificates and ${s.files} file${s.files === 1 ? '' : 's'} saved to a .msm file.`
+      );
+    } catch (e: any) {
+      playErrorSound();
+      Alert.alert('Backup failed', String(e?.message ?? e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const backupImport = async () => {
+    try {
+      const picked = await pickBackup();
+      if (!picked) return;
+      const { backup, summary } = picked;
+      Alert.alert(
+        'Restore backup?',
+        `This replaces ALL data on this device with:\n\n` +
+          `• ${summary.items} items in ${summary.categories} categories\n` +
+          `• ${summary.certificates} certificates\n` +
+          `• ${summary.files} attached file${summary.files === 1 ? '' : 's'}\n` +
+          (summary.vessel ? `• Vessel: ${summary.vessel}\n` : '') +
+          `\nThis cannot be undone.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Restore',
+            style: 'destructive',
+            onPress: async () => {
+              setBusy(true);
+              try {
+                await restoreBackup(backup);
+                await reload();
+                playSuccessSound();
+                Alert.alert('Restored', `${summary.items} items restored from backup.`);
+              } catch (e: any) {
+                playErrorSound();
+                Alert.alert('Restore failed', String(e?.message ?? e));
+              } finally {
+                setBusy(false);
+              }
+            },
+          },
+        ]
+      );
+    } catch (e: any) {
+      playErrorSound();
+      Alert.alert('Restore failed', String(e?.message ?? e));
+    }
+  };
+
+  const closeReset = () => {
+    Keyboard.dismiss();
+    setResetVisible(false);
+    setResetPw('');
+  };
+
+  const doReset = async () => {
+    if (resetPw.trim() !== RESET_PASSWORD) {
+      playErrorSound();
+      Alert.alert('Incorrect password', 'The data was NOT reset.');
+      return;
+    }
+    setResetVisible(false);
+    setResetPw('');
+    setBusy(true);
+    try {
+      await resetAllData();
+      await clearAttachmentsDir();
+      await reload();
+      setForm({});
+      playSuccessSound();
+      Alert.alert('Data reset', 'All equipment, certificates, compressor logs, attached files and vessel info were removed.');
+    } catch (e: any) {
+      playErrorSound();
+      Alert.alert('Reset failed', String(e?.message ?? e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const saveVesselInfo = async () => {
     await setVessel(form);
     playSuccessSound();
@@ -204,7 +381,20 @@ export default function SettingsSc() {
       </Card>
 
       <Card>
-        <Label>Data</Label>
+        <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('data')} activeOpacity={0.7}>
+          <Label>Data</Label>
+          <Text style={styles.sectionChev}>{open.data ? '▾' : '▸'}</Text>
+        </TouchableOpacity>
+        {open.data ? (
+          <>
+        <TouchableOpacity style={styles.linkRow} onPress={downloadTemplate}>
+          <Text style={styles.linkEmoji}>⬇️</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkTitle}>Download import template</Text>
+            <Text style={styles.linkSub}>Blank .xlsx — one sheet per category</Text>
+          </View>
+          <Text style={styles.chev}>›</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Import')}>
           <Text style={styles.linkEmoji}>📥</Text>
           <View style={{ flex: 1 }}>
@@ -213,18 +403,66 @@ export default function SettingsSc() {
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Reports')}>
-          <Text style={styles.linkEmoji}>📤</Text>
+        <TouchableOpacity style={styles.linkRow} onPress={backupExport} disabled={busy}>
+          <Text style={styles.linkEmoji}>💾</Text>
           <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Export reports</Text>
-            <Text style={styles.linkSub}>PDF / XLSX register</Text>
+            <Text style={styles.linkTitle}>Export backup (.msm)</Text>
+            <Text style={styles.linkSub}>Items, certificates, vessel & attached files</Text>
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.linkRow} onPress={backupImport} disabled={busy}>
+          <Text style={styles.linkEmoji}>♻️</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkTitle}>Restore backup (.msm)</Text>
+            <Text style={styles.linkSub}>Replace all data from a .msm file</Text>
+          </View>
+          <Text style={styles.chev}>›</Text>
+        </TouchableOpacity>
+          </>
+        ) : null}
       </Card>
 
       <Card>
-        <Label>Help</Label>
+        <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('modules')} activeOpacity={0.7}>
+          <Label>Modules</Label>
+          <Text style={styles.sectionChev}>{open.modules ? '▾' : '▸'}</Text>
+        </TouchableOpacity>
+        {open.modules ? (
+          <>
+        <View style={styles.toggleRow}>
+          <Text style={styles.linkEmoji}>⏱️</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkTitle}>BA Compressor log</Text>
+            <Text style={styles.linkSub}>Running-time counter & maintenance (FIFI outfit)</Text>
+          </View>
+          <Switch
+            value={!!prefs.compressorEnabled}
+            onValueChange={(v) => setPrefs({ compressorEnabled: v })}
+            trackColor={{ true: COLORS.primary, false: COLORS.border }}
+          />
+        </View>
+        {prefs.compressorEnabled ? (
+          <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Compressor')}>
+            <Text style={styles.linkEmoji}>📈</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkTitle}>Open compressor log</Text>
+              <Text style={styles.linkSub}>Also available from the FIFI / BA category</Text>
+            </View>
+            <Text style={styles.chev}>›</Text>
+          </TouchableOpacity>
+        ) : null}
+          </>
+        ) : null}
+      </Card>
+
+      <Card>
+        <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('help')} activeOpacity={0.7}>
+          <Label>Help</Label>
+          <Text style={styles.sectionChev}>{open.help ? '▾' : '▸'}</Text>
+        </TouchableOpacity>
+        {open.help ? (
+          <>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Manual')}>
           <Text style={styles.linkEmoji}>📖</Text>
           <View style={{ flex: 1 }}>
@@ -247,10 +485,17 @@ export default function SettingsSc() {
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
+          </>
+        ) : null}
       </Card>
 
       <Card>
-        <Label>Cloud sync</Label>
+        <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('cloud')} activeOpacity={0.7}>
+          <Label>Cloud sync</Label>
+          <Text style={styles.sectionChev}>{open.cloud ? '▾' : '▸'}</Text>
+        </TouchableOpacity>
+        {open.cloud ? (
+          <>
         <Text style={styles.syncStatus}>
           {!fb.isConfigured()
             ? '⚠️ Firebase not configured (local-only)'
@@ -327,12 +572,23 @@ export default function SettingsSc() {
                   </Text>
                 </View>
                 {isMaster && !d.isThisDevice && d.role !== 'master' ? (
-                  <TouchableOpacity style={styles.devRemove} onPress={() => revoke(d)} hitSlop={8}>
-                    <Text style={styles.devRemoveText}>✕</Text>
-                  </TouchableOpacity>
+                  <>
+                    <TouchableOpacity style={styles.devMaster} onPress={() => makeMaster(d)} hitSlop={6}>
+                      <Text style={styles.devMasterText}>👑 Make master</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.devRemove} onPress={() => revoke(d)} hitSlop={8}>
+                      <Text style={styles.devRemoveText}>✕</Text>
+                    </TouchableOpacity>
+                  </>
                 ) : null}
               </View>
             ))}
+            {/* Take over Master from this device (e.g. the old Master is gone). */}
+            {myStatus === 'approved' ? (
+              <TouchableOpacity style={styles.takeoverBtn} onPress={takeOverMaster}>
+                <Text style={styles.takeoverText}>👑 Take over as Master on this device</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         ) : null}
 
@@ -349,22 +605,72 @@ export default function SettingsSc() {
             </TouchableOpacity>
           </View>
         )}
+          </>
+        ) : null}
       </Card>
 
-      <Text style={styles.about}>
-        {APP_CONFIG.name} v{APP_CONFIG.version} · {APP_CONFIG.company} · {APP_CONFIG.year}
-      </Text>
+      <TouchableOpacity style={styles.resetBtn} onPress={() => { setResetPw(''); setResetVisible(true); }} disabled={busy}>
+        <Text style={styles.resetBtnText}>Reset all data</Text>
+      </TouchableOpacity>
+
+      <View style={styles.aboutBox}>
+        <Image source={require('../assets/octopus.png')} style={styles.octopus} resizeMode="contain" />
+        <Text style={styles.about}>
+          {APP_CONFIG.name} v{APP_CONFIG.version} · {APP_CONFIG.company} · {APP_CONFIG.year}
+        </Text>
+        <TouchableOpacity onPress={() => Linking.openURL(`https://${APP_CONFIG.website}`)} hitSlop={8}>
+          <Text style={styles.website}>{APP_CONFIG.website}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Password-gated reset confirmation */}
+      <Modal visible={resetVisible} transparent animationType="fade" onRequestClose={closeReset}>
+        <TouchableWithoutFeedback onPress={closeReset}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Reset all data</Text>
+            <Text style={styles.modalText}>
+              This permanently deletes every equipment item, certificate, compressor log, attached file and the
+              vessel info on this device. This cannot be undone.
+            </Text>
+            <Text style={styles.modalText}>
+              Type the password <Text style={{ fontWeight: '800' }}>Reset all data</Text> to confirm.
+            </Text>
+            <TextInput
+              style={styles.input}
+              value={resetPw}
+              onChangeText={setResetPw}
+              placeholder="Password"
+              placeholderTextColor={COLORS.textLight}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <View style={styles.modalBtnRow}>
+              <TouchableOpacity
+                style={[styles.modalBtn, { borderWidth: 1, borderColor: COLORS.border }]}
+                onPress={closeReset}
+              >
+                <Text style={styles.modalBtnCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: COLORS.danger, opacity: resetPw.trim() === RESET_PASSWORD ? 1 : 0.5 }]}
+                onPress={doReset}
+                disabled={resetPw.trim() !== RESET_PASSWORD}
+              >
+                <Text style={styles.modalBtnConfirm}>Delete everything</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </Screen>
   );
 }
 
-function fmtWhen(ts?: number): string {
-  if (!ts) return '—';
-  const d = new Date(ts);
-  if (isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short' }) + ' ' +
-    d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-}
+const fmtWhen = formatDateTime;
 
 function FormField({
   label,
@@ -410,7 +716,10 @@ const styles = StyleSheet.create({
     marginTop: SIZES.sm,
   },
   primaryBtnText: { color: COLORS.textWhite, fontWeight: '700', fontSize: SIZES.body },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sectionChev: { fontSize: SIZES.h5, color: COLORS.textLight, fontWeight: '700' },
   linkRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: SIZES.sm, gap: SIZES.sm },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: SIZES.sm, gap: SIZES.sm },
   linkEmoji: { fontSize: 22 },
   linkTitle: { fontSize: SIZES.h5, color: COLORS.textDark, fontWeight: '600' },
   linkSub: { fontSize: SIZES.small, color: COLORS.textLight },
@@ -441,6 +750,23 @@ const styles = StyleSheet.create({
   devSub: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 1 },
   devAction: { paddingHorizontal: SIZES.sm, paddingVertical: 6, borderRadius: SIZES.radiusSm },
   devActionText: { color: COLORS.textWhite, fontWeight: '700', fontSize: SIZES.tiny },
+  devMaster: {
+    paddingHorizontal: SIZES.sm,
+    paddingVertical: 5,
+    borderRadius: SIZES.radiusSm,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  devMasterText: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.tiny },
+  takeoverBtn: {
+    marginTop: SIZES.sm,
+    paddingVertical: SIZES.sm,
+    borderRadius: SIZES.radiusMd,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    alignItems: 'center',
+  },
+  takeoverText: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
   devRemove: {
     width: 26,
     height: 26,
@@ -453,5 +779,33 @@ const styles = StyleSheet.create({
   btnRow: { flexDirection: 'row', gap: SIZES.sm },
   syncBtn: { flex: 1, paddingVertical: SIZES.md, borderRadius: SIZES.radiusMd, alignItems: 'center' },
   syncBtnText: { color: COLORS.textWhite, fontWeight: '700', fontSize: SIZES.body },
-  about: { textAlign: 'center', color: COLORS.textLight, fontSize: SIZES.tiny, marginTop: SIZES.lg },
+  aboutBox: { alignItems: 'center', marginTop: SIZES.lg },
+  octopus: { width: 96, height: 96, opacity: 0.18, marginBottom: SIZES.xs },
+  about: { textAlign: 'center', color: COLORS.textLight, fontSize: SIZES.tiny },
+  website: { textAlign: 'center', color: COLORS.primary, fontSize: SIZES.small, fontWeight: '700', marginTop: 4 },
+  resetBtn: {
+    marginTop: SIZES.xl,
+    paddingVertical: SIZES.md,
+    borderRadius: SIZES.radiusMd,
+    borderWidth: 1,
+    borderColor: COLORS.danger,
+    alignItems: 'center',
+  },
+  resetBtnText: { color: COLORS.danger, fontWeight: '700', fontSize: SIZES.body },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: SIZES.lg },
+  modalBox: {
+    width: '100%',
+    maxWidth: 460,
+    backgroundColor: COLORS.cardSolid ?? '#fff',
+    borderRadius: SIZES.radiusLg,
+    padding: SIZES.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  modalTitle: { fontSize: SIZES.h4, fontWeight: '800', color: COLORS.danger, marginBottom: SIZES.sm },
+  modalText: { fontSize: SIZES.small, color: COLORS.text, lineHeight: 19, marginBottom: SIZES.sm },
+  modalBtnRow: { flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.sm },
+  modalBtn: { flex: 1, paddingVertical: SIZES.md, borderRadius: SIZES.radiusMd, alignItems: 'center' },
+  modalBtnCancel: { color: COLORS.text, fontWeight: '600', fontSize: SIZES.body },
+  modalBtnConfirm: { color: COLORS.textWhite, fontWeight: '700', fontSize: SIZES.body },
 });

@@ -10,7 +10,8 @@
     "web": "expo start --web",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "typecheck": "tsc --noEmit",
-    "postinstall": "node scripts/patch-rn.js"
+    "aab": "node scripts/patch-android-signing.js && node scripts/patch-android-minify.js && cd android && ./gradlew bundleRelease",
+    "postinstall": "node scripts/patch-rn.js && node scripts/patch-android-signing.js && node scripts/patch-android-minify.js"
   },
   "keywords": [
     "maritime",
@@ -45,6 +46,7 @@
     "expo-sharing": "~14.0.8",
     "expo-status-bar": "~3.0.9",
     "firebase": "^12.12.1",
+    "jszip": "^3.10.1",
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-gesture-handler": "~2.28.0",

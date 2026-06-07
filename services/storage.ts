@@ -7,10 +7,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CategoryKey, EquipmentItem } from '../types/equipment';
 import { Certificate } from '../types/certificate';
+import { CompressorState, normalizeCompressorState } from '../types/compressor';
 import { CATEGORIES } from '../constants/categories';
 
 const PREFIX = 'msm:';
 export const CERTIFICATES_KEY = `${PREFIX}certificates`;
+export const COMPRESSOR_KEY = `${PREFIX}compressor`;
+export const PREFS_KEY = `${PREFIX}prefs`;
 
 export interface VesselInfo {
   vessel_name?: string;
@@ -130,4 +133,54 @@ export async function upsertCertificate(cert: Certificate): Promise<void> {
 export async function deleteCertificate(id: string): Promise<void> {
   const list = await loadCertificates();
   await saveCertificates(list.filter((c) => c.id !== id));
+}
+
+// ---- BA compressor logs (up to MAX_COMPRESSORS) ----------------------------
+
+export async function loadCompressor(): Promise<CompressorState> {
+  try {
+    const raw = await AsyncStorage.getItem(COMPRESSOR_KEY);
+    return normalizeCompressorState(raw ? JSON.parse(raw) : null);
+  } catch {
+    return { compressors: [] };
+  }
+}
+
+export async function saveCompressor(state: CompressorState): Promise<void> {
+  await AsyncStorage.setItem(COMPRESSOR_KEY, JSON.stringify(state));
+}
+
+// ---- Device preferences (local-only, not synced/backed up) -----------------
+
+export interface Prefs {
+  compressorEnabled?: boolean; // show the BA compressor log (FIFI outfit)
+}
+
+export async function loadPrefs(): Promise<Prefs> {
+  try {
+    const raw = await AsyncStorage.getItem(PREFS_KEY);
+    return raw ? (JSON.parse(raw) as Prefs) : {};
+  } catch {
+    return {};
+  }
+}
+
+export async function savePrefs(prefs: Prefs): Promise<void> {
+  await AsyncStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+}
+
+// ---- Reset -----------------------------------------------------------------
+
+/**
+ * Wipe all user data: every category, certificates, compressor logs and vessel
+ * info. Keeps device preferences (`msm:prefs`) and legal consent.
+ */
+export async function resetAllData(): Promise<void> {
+  const keys = [
+    ...CATEGORIES.map((c) => catKey(c.key)),
+    CERTIFICATES_KEY,
+    COMPRESSOR_KEY,
+    VESSEL_KEY,
+  ];
+  await AsyncStorage.multiRemove(keys);
 }

@@ -47,6 +47,9 @@ export default function ItemDetailSc() {
   );
   const isNew = !existing;
   const [preview, setPreview] = useState<Attachment | null>(null);
+  // Attachment slot size is computed from the grid width so the 4 slots fill
+  // the row evenly (no fixed width → no empty gap on the right).
+  const [slot, setSlot] = useState(78);
 
   const set = (patch: Partial<EquipmentItem>) => setDraft((d) => ({ ...d, ...patch }));
 
@@ -193,10 +196,18 @@ export default function ItemDetailSc() {
           {/* Photos & documents — up to 4 files, fixed 4-slot grid */}
           <View style={styles.card}>
             <Label>Photos &amp; documents</Label>
-            <View style={styles.attGrid}>
+            <View
+              style={styles.attGrid}
+              onLayout={(e) => {
+                const w = e.nativeEvent.layout.width;
+                const s = Math.floor((w - SIZES.sm * (MAX_ATTACHMENTS - 1)) / MAX_ATTACHMENTS);
+                if (s > 0 && s !== slot) setSlot(s);
+              }}
+            >
               {Array.from({ length: MAX_ATTACHMENTS }).map((_, i) => {
                 const list = draft.attachments ?? [];
                 const a = list[i];
+                const box = { width: slot, height: slot };
                 if (a) {
                   return (
                     <View key={a.id} style={styles.attItem}>
@@ -205,9 +216,9 @@ export default function ItemDetailSc() {
                         activeOpacity={0.8}
                       >
                         {a.kind === 'photo' ? (
-                          <Image source={{ uri: a.uri }} style={styles.attThumb} resizeMode="cover" />
+                          <Image source={{ uri: a.uri }} style={[styles.attThumb, box]} resizeMode="cover" />
                         ) : (
-                          <View style={[styles.attThumb, styles.attDoc]}>
+                          <View style={[styles.attThumb, box, styles.attDoc]}>
                             <Text style={{ fontSize: 24 }}>📄</Text>
                             <Text style={styles.attDocName} numberOfLines={1}>
                               {a.name ?? 'Doc'}
@@ -224,13 +235,13 @@ export default function ItemDetailSc() {
                 // first empty slot = Add button; the rest = dashed placeholders
                 if (i === list.length) {
                   return (
-                    <TouchableOpacity key={`add${i}`} style={styles.attAdd} onPress={chooseAttachment}>
+                    <TouchableOpacity key={`add${i}`} style={[styles.attAdd, box]} onPress={chooseAttachment}>
                       <Text style={styles.attAddPlus}>＋</Text>
                       <Text style={styles.attAddText}>Add</Text>
                     </TouchableOpacity>
                   );
                 }
-                return <View key={`empty${i}`} style={styles.attEmpty} />;
+                return <View key={`empty${i}`} style={[styles.attEmpty, box]} />;
               })}
             </View>
             <Text style={styles.attHint}>Up to {MAX_ATTACHMENTS} files</Text>
@@ -401,7 +412,7 @@ const styles = StyleSheet.create({
   extraVal: { fontSize: SIZES.small, color: COLORS.text, flex: 1, textAlign: 'right' },
   attGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.sm, marginTop: SIZES.sm },
   attItem: { position: 'relative' },
-  attThumb: { width: 78, height: 78, borderRadius: SIZES.radiusSm, backgroundColor: COLORS.borderLight, borderWidth: 1, borderStyle: 'dashed', borderColor: COLORS.border },
+  attThumb: { borderRadius: SIZES.radiusSm, backgroundColor: COLORS.borderLight, borderWidth: 1, borderStyle: 'dashed', borderColor: COLORS.border },
   attDoc: { alignItems: 'center', justifyContent: 'center', padding: 4 },
   attDocName: { fontSize: 8, color: COLORS.textLight, marginTop: 2, maxWidth: 70 },
   lbBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.94)', alignItems: 'center', justifyContent: 'center' },
@@ -425,8 +436,6 @@ const styles = StyleSheet.create({
   },
   attRemoveText: { color: COLORS.textWhite, fontSize: 12, fontWeight: '800' },
   attAdd: {
-    width: 78,
-    height: 78,
     borderRadius: SIZES.radiusSm,
     borderWidth: 1,
     borderStyle: 'dashed',
@@ -437,8 +446,6 @@ const styles = StyleSheet.create({
   attAddPlus: { fontSize: 24, color: COLORS.primary, lineHeight: 26 },
   attAddText: { fontSize: SIZES.tiny, color: COLORS.primary, fontWeight: '600' },
   attEmpty: {
-    width: 78,
-    height: 78,
     borderRadius: SIZES.radiusSm,
     borderWidth: 1.5,
     borderStyle: 'dashed',

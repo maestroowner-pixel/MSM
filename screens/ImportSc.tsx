@@ -10,6 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Screen, ScreenTitle, Card } from '../components/ui';
 import { COLORS, SIZES, GLASS } from '../theme';
 import { parseWorkbookBase64, ImportPreview } from '../services/excelImport';
+import { exportTemplate } from '../services/export';
 import { CATEGORY_MAP } from '../constants/categories';
 import * as storage from '../services/storage';
 import { useData } from '../contexts/DataContext';
@@ -52,6 +53,15 @@ export default function ImportSc() {
     }
   };
 
+  const downloadTemplate = async () => {
+    try {
+      await exportTemplate();
+    } catch (e: any) {
+      playErrorSound();
+      Alert.alert('Template failed', String(e?.message ?? e));
+    }
+  };
+
   const apply = async () => {
     if (!preview) return;
     setBusy(true);
@@ -85,6 +95,10 @@ export default function ImportSc() {
 
       <TouchableOpacity style={styles.pickBtn} onPress={pick} disabled={busy}>
         <Text style={styles.pickBtnText}>{fileName ? 'Choose a different file' : 'Choose .xlsx file'}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.templateBtn} onPress={downloadTemplate} disabled={busy}>
+        <Text style={styles.templateBtnText}>⬇︎ Download blank template (.xlsx)</Text>
       </TouchableOpacity>
 
       {busy ? (
@@ -141,8 +155,9 @@ export default function ImportSc() {
         </>
       ) : (
         <Text style={styles.help}>
-          Select your “LSA FFE Inventories.xlsx”. Each worksheet maps to an equipment category. Dates are
-          converted automatically; you can edit any item afterwards.
+          Select your “LSA FFE Inventories.xlsx”, or download the blank template above, fill it in (one
+          worksheet per category) and import it back. Each worksheet maps to an equipment category. Dates
+          are converted automatically; you can edit any item afterwards.
         </Text>
       )}
     </Screen>
@@ -157,6 +172,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pickBtnText: { color: COLORS.textWhite, fontWeight: '700', fontSize: SIZES.h5 },
+  templateBtn: {
+    marginTop: SIZES.sm,
+    paddingVertical: SIZES.sm,
+    borderRadius: SIZES.radiusMd,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    alignItems: 'center',
+  },
+  templateBtnText: { color: COLORS.primary, fontWeight: '600', fontSize: SIZES.body },
   fileName: { marginTop: SIZES.md, color: COLORS.text, fontSize: SIZES.small },
   total: { fontSize: SIZES.h2, fontWeight: '800', color: COLORS.primaryDark },
   totalSub: { fontSize: SIZES.small, color: COLORS.textLight },

@@ -14,6 +14,14 @@ app mirrors. Bundle id `com.kukalab.msm`.
 - React Native 0.81.5 + React 19.1.0 + TypeScript + Expo SDK 54 (managed)
 - Navigation: `@react-navigation` v6 (bottom-tabs + stack), gesture-handler swipe (no reanimated)
 - Storage: AsyncStorage (local-first), one key per category `msm:<category>` + `msm:vessel_info`
+  + `msm:certificates` + `msm:compressor` (up to 3 BA compressors, each a running-time +
+  maintenance log; `types/compressor.ts` `normalizeCompressorState` migrates the old single-log shape)
+- Backup: `services/backup.ts` — full self-contained `.msm` snapshot (JSON: all categories +
+  vessel + certificates + compressor, with attachment/cert binaries embedded as base64). Export/
+  restore from Settings → Data. Restore re-creates files in `attachments/` and relinks every uri.
+  Backup file name: `MSM_backup_DDMMYY.msm` (`fileDateStamp()` in utils/dates).
+- ZIP export: `export.ts` `exportZip` (Reports tab) — bundles the PDF register of the selected
+  categories + every attached photo/document (jszip, base64 round-trip) into `MSM_backup_DDMMYY.zip`.
 - Import/Export: SheetJS (`xlsx`), `expo-document-picker`, `expo-print`, `expo-sharing`,
   `expo-file-system/legacy` (base64 read/write)
 - Attachments: `expo-image-picker` (camera/library) + `expo-document-picker` (PDF/docs),
@@ -42,9 +50,12 @@ services/firebaseService.ts  Auth-by-IMO, RTDB push/pull, device approval — NE
 contexts/DataContext.tsx     in-memory items + vessel, reload()/saveItem()/removeItem()
 components/ui.tsx            Screen, Card, StatusPill/Dot, ScreenTitle, Empty, Label
 screens/                    Dashboard, Categories, CategoryItems, ItemDetail(modal),
-                             Import(modal), Reports, Settings, Manual (accordion help),
-                             Splash, Consent (first-launch Privacy + Terms gate), Legal
-                             (Privacy/Terms viewer, route.params.doc)
+                             Import(modal), Reports (multi-select category panels →
+                             PDF/XLSX), Settings, Manual (accordion help), Compressor
+                             (BA compressor running-time + maintenance log; opt-in module —
+                             toggle in Settings → Modules, stored in `msm:prefs`; entry point on
+                             the FIFI/BA category screen + a Settings link), Splash, Consent (first-launch Privacy +
+                             Terms gate), Legal (Privacy/Terms viewer, route.params.doc)
 constants/legal.ts           Privacy Policy + Terms of Use + disclaimer points; LEGAL_VERSION
                              drives the consent key `msm:legal_accepted_v{n}` (gated in index.tsx).
                              Bump LEGAL_VERSION to force re-consent after material changes.
@@ -98,6 +109,34 @@ do not regress them:
    fixed it. `babel.config.js` is plain (`presets: ['babel-preset-expo']`) — do NOT add
    `@babel/plugin-transform-private-*` plugins: with the correct preset they're unnecessary and
    break RN's FlatList/VirtualizedList ("property is not configurable" when a list renders items).
+
+### Android release signing / AAB (Play Store)
+The release build is signed with an **upload keystore** kept at repo-root
+`credentials/msm-upload.jks` (+ `credentials/keystore.properties` with the passwords).
+`credentials/` is **gitignored — never commit it**, and the password is unrecoverable: if it's
+lost you can no longer update the app on Play. Back up the keystore + password offline.
+- Keystore lives OUTSIDE `android/` so `expo prebuild` (CNG, android/ is gitignored) doesn't wipe it.
+- `scripts/patch-android-signing.js` re-injects the release `signingConfig` into
+  `android/app/build.gradle` (reads `../credentials/keystore.properties`, falls back to the debug
+  key if absent). Idempotent; runs from `postinstall`. **Re-run after every `expo prebuild -p android`.**
+- **R8 minify + obfuscation + resource shrinking** are ON for release (gradle.properties
+  `android.enableMinifyInReleaseBuilds=true` + `…ShrinkResourcesInReleaseBuilds=true`; keep rules in
+  `android/app/proguard-rules.pro`). Re-applied after prebuild by `scripts/patch-android-minify.js`
+  (postinstall). App logic is JS→Hermes bytecode (R8 only shrinks/obfuscates the native layer).
+  Keep `android/app/build/outputs/mapping/release/mapping.txt` per release → upload to Play to
+  de-obfuscate crash stacks. **Smoke-test the release build on a device** (R8 breakage shows at runtime).
+- Build the bundle: `npm run aab` → `android/app/build/outputs/bundle/release/app-release.aab`.
+- Verify signer: `keytool -printcert -jarfile <aab>` SHA-256 must match the keystore's.
+- Bump `expo.android.versionCode` in app.json for each Play upload (and `version` for the name).
+- Regenerate the keystore only with: `keytool -genkeypair -keystore credentials/msm-upload.jks
+  -alias msm-upload -keyalg RSA -keysize 2048 -validity 10000` (changing it breaks updates once published).
+
+### Firebase RTDB key encoding (keep this)
+RTDB forbids `. # $ / [ ]` (and control chars) in keys. Item `extra` keys come from Excel column
+headers (e.g. `PLB (Ser.#)`) and broke `pushAll` ("invalid key … in property … .extra"). `pushAll`/
+`pullAll` (firebaseService.ts) reversibly `~xx`-hex-encode every object key on push and decode on
+pull (`encodeKey`/`decodeKey`/`transformKeys`) so data round-trips while staying RTDB-legal. Values
+are never touched. Local AsyncStorage keeps the original (unencoded) keys.
 
 Also: `newArchEnabled` is `false` in app.json (re-prebuild after changing). Verified on the
 iPhone 17 Pro simulator: Dashboard/Settings render, 627 imported items, export works.

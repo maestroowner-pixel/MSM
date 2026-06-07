@@ -18,7 +18,7 @@ export default function CategoryItemsSc() {
   const nav = useNavigation<any>();
   const category: CategoryKey = route.params.category;
   const meta = CATEGORY_MAP[category];
-  const { byCategory, certificates } = useData();
+  const { byCategory, certificates, prefs } = useData();
   const certItemIds = useMemo(() => {
     const s = new Set<string>();
     certificates.forEach((c) => c.itemIds.forEach((id) => s.add(id)));
@@ -52,6 +52,17 @@ export default function CategoryItemsSc() {
           <Text style={styles.addBtnText}>＋</Text>
         </TouchableOpacity>
       </View>
+
+      {category === 'fifi_ba' && prefs.compressorEnabled ? (
+        <TouchableOpacity style={styles.compressorBtn} onPress={() => nav.navigate('Compressor')}>
+          <Text style={styles.compressorEmoji}>⏱️</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.compressorTitle}>BA Compressor log</Text>
+            <Text style={styles.compressorSub}>Running-time counter · maintenance / service / inspection</Text>
+          </View>
+          <Text style={styles.compressorChev}>›</Text>
+        </TouchableOpacity>
+      ) : null}
 
       <TextInput
         style={styles.search}
@@ -134,6 +145,22 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: SIZES.md,
   },
+  compressorBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SIZES.sm,
+    ...GLASS.card,
+    borderRadius: SIZES.radiusMd,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    paddingVertical: SIZES.sm,
+    paddingHorizontal: SIZES.md,
+    marginBottom: SIZES.md,
+  },
+  compressorEmoji: { fontSize: 22 },
+  compressorTitle: { fontSize: SIZES.h5, fontWeight: '700', color: COLORS.primaryDark },
+  compressorSub: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 1 },
+  compressorChev: { fontSize: SIZES.h3, color: COLORS.primary },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

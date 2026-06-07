@@ -5,14 +5,14 @@
 
 import 'react-native-gesture-handler';
 import React, { useRef, useState } from 'react';
-import { Text, View, StyleSheet, Platform } from 'react-native';
+import { Text, View, StyleSheet } from 'react-native';
 import { registerRootComponent } from 'expo';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, DefaultTheme, useNavigation } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { GestureHandlerRootView, Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { COLORS, SIZES } from './theme';
@@ -33,6 +33,7 @@ import ManualSc from './screens/ManualSc';
 import LegalSc from './screens/LegalSc';
 import CertificatesSc from './screens/CertificatesSc';
 import CertificateDetailSc from './screens/CertificateDetailSc';
+import CompressorSc from './screens/CompressorSc';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -60,6 +61,16 @@ function TabIcon({ route, focused }: { route: string; focused: boolean }) {
 function MainTabs() {
   const navigation = useNavigation<any>();
   const currentIdx = useRef(0);
+  const insets = useSafeAreaInsets();
+
+  // Edge-to-edge is enabled, so the tab bar draws behind the Android system
+  // navigation (3-button or gesture). Pad the bar by the bottom inset so the
+  // tabs are never hidden under the navigation buttons.
+  const tabBarStyle = {
+    ...styles.tabBar,
+    height: styles.tabBar.height + insets.bottom,
+    paddingBottom: insets.bottom + 6,
+  };
 
   // Swipe left/right to move between tabs (gesture-handler, no reanimated needed).
   const swipe = Gesture.Pan()
@@ -87,7 +98,7 @@ function MainTabs() {
             headerShown: false,
             tabBarActiveTintColor: COLORS.tabActive,
             tabBarInactiveTintColor: COLORS.tabInactive,
-            tabBarStyle: styles.tabBar,
+            tabBarStyle,
             tabBarLabelStyle: { fontSize: SIZES.tiny, fontWeight: '600' },
             tabBarIcon: ({ focused }) => <TabIcon route={route.name} focused={focused} />,
           })}
@@ -144,6 +155,7 @@ function App() {
               <Stack.Screen name="Import" component={ImportSc} options={{ presentation: 'modal' }} />
               <Stack.Screen name="Manual" component={ManualSc} />
               <Stack.Screen name="Legal" component={LegalSc} />
+              <Stack.Screen name="Compressor" component={CompressorSc} />
               <Stack.Screen
                 name="CertificateDetail"
                 component={CertificateDetailSc}
@@ -170,7 +182,9 @@ const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: COLORS.tabBackground,
     borderTopColor: COLORS.borderLight,
-    height: Platform.OS === 'ios' ? 84 : 64,
+    // Base content height; the bottom safe-area inset is added at runtime so the
+    // bar clears the iOS home indicator and the Android system navigation.
+    height: 60,
     paddingTop: 6,
   },
 });
