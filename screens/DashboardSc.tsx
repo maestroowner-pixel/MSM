@@ -7,7 +7,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Screen, ScreenTitle, Empty, statusColor } from '../components/ui';
+import { Screen, ScreenTitle, Empty, statusColor, CategoryBadge } from '../components/ui';
 import { COLORS, SIZES, GLASS } from '../theme';
 import { useData } from '../contexts/DataContext';
 import { CATEGORY_MAP } from '../constants/categories';
@@ -186,7 +186,7 @@ function DashRow({
   return (
     <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
       <View style={[styles.rowBar, { backgroundColor: statusColor(status) }]} />
-      <Text style={styles.rowEmoji}>{meta.emoji}</Text>
+      <View style={styles.rowEmoji}><CategoryBadge category={item.category} size={20} /></View>
       <View style={{ flex: 1 }}>
         <Text style={styles.rowTitle} numberOfLines={1}>
           {title}
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   rowBar: { width: 5, alignSelf: 'stretch', marginRight: SIZES.md },
-  rowEmoji: { fontSize: 22, marginRight: SIZES.sm },
+  rowEmoji: { marginRight: SIZES.sm, alignItems: 'center', justifyContent: 'center' },
   rowTitle: { fontSize: SIZES.h5, fontWeight: '600', color: COLORS.textDark },
   rowSub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 1 },
   rowDate: { fontSize: SIZES.body, fontWeight: '700' },

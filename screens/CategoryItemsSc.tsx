@@ -5,13 +5,28 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { Screen, StatusPill, Empty, statusColor } from '../components/ui';
+import { Screen, StatusPill, Empty, statusColor, CategoryBadge } from '../components/ui';
 import { COLORS, SIZES, GLASS } from '../theme';
 import { useData } from '../contexts/DataContext';
 import { CATEGORY_MAP } from '../constants/categories';
-import { complianceDate, computeStatus, formatDate } from '../utils/dates';
-import { CategoryKey } from '../types/equipment';
+import { complianceDate, computeStatus, daysUntil, formatDate } from '../utils/dates';
+import { CategoryKey, ComplianceStatus, EquipmentItem } from '../types/equipment';
 import { uid } from '../utils/id';
+
+type SortBy = 'date' | 'position';
+const SORT_ORDER: SortBy[] = ['date', 'position'];
+const SORT_LABEL: Record<SortBy, string> = { date: 'Expiry date', position: 'Position' };
+const NO_POSITION = '— No position';
+
+interface Scored {
+  it: EquipmentItem;
+  status: ComplianceStatus;
+  date?: string;
+  days?: number;
+}
+type ListEntry =
+  | { kind: 'header'; key: string; position: string; count: number }
+  | ({ kind: 'row'; key: string } & Scored);
 
 export default function CategoryItemsSc() {
   const route = useRoute<any>();
@@ -25,8 +40,9 @@ export default function CategoryItemsSc() {
     return s;
   }, [certificates]);
   const [q, setQ] = useState('');
+  const [sortBy, setSortBy] = useState<SortBy>('date');
 
-  const items = useMemo(() => {
+  const filtered = useMemo(() => {
     const list = byCategory[category] ?? [];
     const needle = q.trim().toLowerCase();
     if (!needle) return list;
@@ -35,10 +51,45 @@ export default function CategoryItemsSc() {
     );
   }, [byCategory, category, q]);
 
+  // Sort by soonest expiry/inspection, or group by position with location headers.
+  const listData = useMemo<ListEntry[]>(() => {
+    const scored: Scored[] = filtered.map((it) => {
+      const date = complianceDate(it);
+      return { it, status: computeStatus(it), date, days: daysUntil(date) };
+    });
+    const byDays = (a: Scored, b: Scored) => (a.days ?? 1e9) - (b.days ?? 1e9);
+
+    if (sortBy === 'date') {
+      return [...scored].sort(byDays).map((r) => ({ kind: 'row', key: r.it.id, ...r }));
+    }
+    // Group by position, alphabetical, with a header per location.
+    const byPos = new Map<string, Scored[]>();
+    for (const r of scored) {
+      const pos = (r.it.position ?? '').trim() || NO_POSITION;
+      const arr = byPos.get(pos);
+      if (arr) arr.push(r);
+      else byPos.set(pos, [r]);
+    }
+    const positions = [...byPos.keys()].sort((a, b) => {
+      if (a === NO_POSITION) return 1;
+      if (b === NO_POSITION) return -1;
+      return a.localeCompare(b);
+    });
+    const out: ListEntry[] = [];
+    for (const pos of positions) {
+      const group = byPos.get(pos)!.sort(byDays);
+      out.push({ kind: 'header', key: `h:${pos}`, position: pos, count: group.length });
+      for (const r of group) out.push({ kind: 'row', key: r.it.id, ...r });
+    }
+    return out;
+  }, [filtered, sortBy]);
+
+  const cycleSort = () => setSortBy((s) => SORT_ORDER[(SORT_ORDER.indexOf(s) + 1) % SORT_ORDER.length]);
+
   return (
     <Screen contentStyle={{ paddingBottom: 0 }}>
       <View style={styles.head}>
-        <Text style={styles.emoji}>{meta.emoji}</Text>
+        <CategoryBadge category={category} size={28} />
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{meta.label}</Text>
           <Text style={styles.sub}>{meta.group} · {(byCategory[category] ?? []).length} items</Text>
@@ -64,58 +115,67 @@ export default function CategoryItemsSc() {
         </TouchableOpacity>
       ) : null}
 
-      <TextInput
-        style={styles.search}
-        placeholder="Search type, serial, position…"
-        placeholderTextColor={COLORS.textLight}
-        value={q}
-        onChangeText={setQ}
-      />
+      <View style={styles.controlRow}>
+        <TextInput
+          style={[styles.search, { flex: 1, marginBottom: 0 }]}
+          placeholder="Search type, serial, position…"
+          placeholderTextColor={COLORS.textLight}
+          value={q}
+          onChangeText={setQ}
+        />
+        <TouchableOpacity style={styles.cycleBtn} onPress={cycleSort} activeOpacity={0.8}>
+          <Text style={styles.cycleCaption}>SORT</Text>
+          <Text style={styles.cycleValue} numberOfLines={1}>⟳ {SORT_LABEL[sortBy]}</Text>
+        </TouchableOpacity>
+      </View>
 
-      {items.length === 0 ? (
+      {filtered.length === 0 ? (
         <Empty text="No items. Tap ＋ to add one, or import the workbook from Settings." />
       ) : (
         <FlatList
-          data={items}
-          keyExtractor={(it) => it.id}
+          data={listData}
+          keyExtractor={(e) => e.key}
           contentContainerStyle={{ paddingBottom: SIZES.xxxl }}
-          renderItem={({ item }) => {
-            const status = computeStatus(item);
-            const date = complianceDate(item);
-            return (
+          renderItem={({ item: e }) =>
+            e.kind === 'header' ? (
+              <View style={styles.posHeader}>
+                <Text style={styles.posHeaderText} numberOfLines={1}>📍 {e.position}</Text>
+                <Text style={styles.posHeaderCount}>{e.count}</Text>
+              </View>
+            ) : (
               <TouchableOpacity
                 style={styles.row}
                 activeOpacity={0.7}
-                onPress={() => nav.navigate('ItemDetail', { category, id: item.id })}
+                onPress={() => nav.navigate('ItemDetail', { category, id: e.it.id })}
               >
-                <View style={[styles.bar, { backgroundColor: statusColor(status) }]} />
+                <View style={[styles.bar, { backgroundColor: statusColor(e.status) }]} />
                 <View style={{ flex: 1 }}>
                   <View style={styles.titleRow}>
                     <Text style={styles.rowTitle} numberOfLines={1}>
-                      {item.type || (item.no != null ? `#${item.no}` : 'Item')}
+                      {e.it.type || (e.it.no != null ? `#${e.it.no}` : 'Item')}
                     </Text>
-                    {item.attachments && item.attachments.length > 0 ? (
+                    {e.it.attachments && e.it.attachments.length > 0 ? (
                       <View style={styles.badge}>
-                        <Text style={styles.badgeText}>📎 {item.attachments.length}</Text>
+                        <Text style={styles.badgeText}>📎 {e.it.attachments.length}</Text>
                       </View>
                     ) : null}
-                    {certItemIds.has(item.id) ? (
+                    {certItemIds.has(e.it.id) ? (
                       <View style={styles.badge}>
                         <Text style={styles.badgeText}>📜</Text>
                       </View>
                     ) : null}
                   </View>
                   <Text style={styles.rowSub} numberOfLines={1}>
-                    {[item.serial && `S/N ${item.serial}`, item.position].filter(Boolean).join(' · ') || '—'}
+                    {[e.it.serial && `S/N ${e.it.serial}`, e.it.position].filter(Boolean).join(' · ') || '—'}
                   </Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
-                  {date ? <Text style={styles.rowDate}>{formatDate(date)}</Text> : null}
-                  <StatusPill status={status} />
+                  {e.date ? <Text style={styles.rowDate}>{formatDate(e.date)}</Text> : null}
+                  <StatusPill status={e.status} />
                 </View>
               </TouchableOpacity>
-            );
-          }}
+            )
+          }
         />
       )}
     </Screen>
@@ -145,6 +205,31 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: SIZES.md,
   },
+  controlRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginBottom: SIZES.md },
+  cycleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SIZES.sm,
+    paddingHorizontal: SIZES.md,
+    paddingVertical: SIZES.sm,
+    borderRadius: SIZES.radiusMd,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.cardSolid,
+  },
+  cycleCaption: { fontSize: SIZES.tiny, color: COLORS.textLight, fontWeight: '800', letterSpacing: 0.5 },
+  cycleValue: { fontSize: SIZES.small, color: COLORS.primaryDark, fontWeight: '700' },
+  posHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SIZES.sm,
+    paddingVertical: 6,
+    marginBottom: SIZES.xs,
+    marginTop: SIZES.xs,
+  },
+  posHeaderText: { fontSize: SIZES.small, fontWeight: '800', color: COLORS.primaryDark, flex: 1 },
+  posHeaderCount: { fontSize: SIZES.tiny, fontWeight: '700', color: COLORS.textLight, marginLeft: SIZES.sm },
   compressorBtn: {
     flexDirection: 'row',
     alignItems: 'center',

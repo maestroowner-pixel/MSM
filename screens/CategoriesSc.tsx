@@ -6,7 +6,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Screen, ScreenTitle, statusColor } from '../components/ui';
+import { Screen, ScreenTitle, statusColor, CategoryBadge } from '../components/ui';
 import { COLORS, SIZES, GLASS } from '../theme';
 import { useData } from '../contexts/DataContext';
 import { CATEGORIES } from '../constants/categories';
@@ -58,7 +58,7 @@ export default function CategoriesSc() {
                   onPress={() => nav.navigate('CategoryItems', { category: c.key })}
                 >
                   <View style={styles.tileTop}>
-                    <Text style={styles.emoji}>{c.emoji}</Text>
+                    <CategoryBadge category={c.key} size={24} />
                     {ws !== 'none' && ws !== 'ok' ? (
                       <View style={[styles.badge, { backgroundColor: statusColor(ws) }]} />
                     ) : null}

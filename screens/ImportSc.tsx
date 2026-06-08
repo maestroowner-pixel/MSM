@@ -7,7 +7,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useNavigation } from '@react-navigation/native';
-import { Screen, ScreenTitle, Card } from '../components/ui';
+import { Screen, ScreenTitle, Card, CategoryBadge } from '../components/ui';
 import { COLORS, SIZES, GLASS } from '../theme';
 import { parseWorkbookBase64, ImportPreview } from '../services/excelImport';
 import { exportTemplate } from '../services/export';
@@ -148,7 +148,7 @@ export default function ImportSc() {
           <Card>
             {preview.counts.map((c) => (
               <View key={c.category} style={styles.row}>
-                <Text style={styles.rowEmoji}>{CATEGORY_MAP[c.category].emoji}</Text>
+                <View style={styles.rowEmoji}><CategoryBadge category={c.category} size={18} /></View>
                 <Text style={styles.rowLabel}>{c.label}</Text>
                 <Text style={[styles.rowCount, c.count === 0 && { color: COLORS.textLight }]}>{c.count}</Text>
               </View>
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   modeTextActive: { color: COLORS.textWhite },
   modeHint: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 4, marginBottom: SIZES.sm },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 5 },
-  rowEmoji: { fontSize: 18, width: 28 },
+  rowEmoji: { width: 28, alignItems: 'center' },
   rowLabel: { flex: 1, fontSize: SIZES.body, color: COLORS.text },
   rowCount: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.primaryDark },
   missing: { fontSize: SIZES.tiny, color: COLORS.warning, marginBottom: SIZES.sm },

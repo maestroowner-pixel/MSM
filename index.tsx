@@ -13,6 +13,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { GestureHandlerRootView, Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { COLORS, SIZES } from './theme';
@@ -44,17 +45,21 @@ const NavTheme = {
 };
 
 const TAB_ORDER = ['Dashboard', 'Equipment', 'Certificates', 'Reports', 'Settings'];
-const TAB_ICONS: Record<string, string> = {
-  Dashboard: '📊',
-  Equipment: '🧰',
-  Certificates: '📜',
-  Reports: '📄',
-  Settings: '⚙️',
+const TAB_ICONS: Record<string, React.ComponentProps<typeof MaterialCommunityIcons>['name']> = {
+  Dashboard: 'view-dashboard',
+  Equipment: 'toolbox',
+  Certificates: 'certificate',
+  Reports: 'file-document',
+  Settings: 'cog',
 };
 
 function TabIcon({ route, focused }: { route: string; focused: boolean }) {
   return (
-    <Text style={{ fontSize: focused ? 22 : 19, opacity: focused ? 1 : 0.6 }}>{TAB_ICONS[route]}</Text>
+    <MaterialCommunityIcons
+      name={TAB_ICONS[route]}
+      size={focused ? 26 : 23}
+      color={focused ? COLORS.tabActive : COLORS.tabInactive}
+    />
   );
 }
 

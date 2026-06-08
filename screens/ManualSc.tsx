@@ -6,7 +6,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, LayoutAnimation, Platform, UIManager, Linking, Image } from 'react-native';
-import { Screen, ScreenTitle } from '../components/ui';
+import { Screen, ScreenTitle, GlyphBadge } from '../components/ui';
 import { COLORS, SIZES, GLASS } from '../theme';
 import { MANUAL } from '../constants/manual';
 import { manualLang } from '../utils/locale';
@@ -63,7 +63,7 @@ export default function ManualSc() {
         return (
           <View key={s.title} style={styles.card}>
             <TouchableOpacity style={styles.header} activeOpacity={0.7} onPress={() => toggle(i)}>
-              <Text style={styles.emoji}>{s.emoji}</Text>
+              <GlyphBadge emoji={s.emoji} size={20} />
               <Text style={styles.title}>{s.title}</Text>
               <Text style={styles.chevron}>{expanded ? '▾' : '▸'}</Text>
             </TouchableOpacity>

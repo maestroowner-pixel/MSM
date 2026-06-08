@@ -14,8 +14,92 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, SIZES, GLASS, SCREEN_BG } from '../theme';
-import { ComplianceStatus } from '../types/equipment';
+import { ComplianceStatus, CategoryKey } from '../types/equipment';
+import { CATEGORY_MAP } from '../constants/categories';
+
+type GlyphName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+// Monochrome category glyph — single colour, used where a bare icon is wanted.
+export function CategoryIcon({
+  category,
+  size = 24,
+  color = COLORS.primaryDark,
+}: {
+  category: CategoryKey;
+  size?: number;
+  color?: string;
+}) {
+  return <MaterialCommunityIcons name={CATEGORY_MAP[category].icon as GlyphName} size={size} color={color} />;
+}
+
+// Teal rounded chip with a white glyph inside — the standard icon container.
+export function IconChip({ name, size = 24 }: { name: GlyphName; size?: number }) {
+  const box = Math.round(size * 1.55);
+  return (
+    <View
+      style={{
+        width: box,
+        height: box,
+        borderRadius: Math.round(box * 0.3),
+        backgroundColor: COLORS.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <MaterialCommunityIcons name={name} size={size} color={COLORS.textWhite} />
+    </View>
+  );
+}
+
+// Category icon on a teal chip — used across lists, tiles and headers.
+export function CategoryBadge({ category, size = 24 }: { category: CategoryKey; size?: number }) {
+  return <IconChip name={CATEGORY_MAP[category].icon as GlyphName} size={size} />;
+}
+
+// Maps the legacy section/row emojis to a monochrome glyph (Manual, Settings, tabs).
+const EMOJI_GLYPH: Record<string, GlyphName> = {
+  'ℹ️': 'information',
+  '⏱️': 'timer-outline',
+  '☁️': 'cloud',
+  '⚓': 'anchor',
+  '💾': 'content-save',
+  '📊': 'chart-box',
+  '📎': 'paperclip',
+  '📜': 'certificate',
+  '📤': 'tray-arrow-up',
+  '📥': 'tray-arrow-down',
+  '⬇️': 'tray-arrow-down',
+  '🗑️': 'delete',
+  '🛟': 'lifebuoy',
+  '🧪': 'test-tube',
+  '🧯': 'fire-extinguisher',
+  '🧰': 'toolbox',
+  '♻️': 'backup-restore',
+  '📈': 'chart-line',
+  '📖': 'book-open-variant',
+  '🔒': 'lock',
+  '⚠️': 'alert',
+  '👑': 'crown',
+  '📱': 'cellphone',
+  '📄': 'file-document',
+  '⚙️': 'cog',
+};
+
+export function emojiGlyph(emoji: string): GlyphName {
+  return EMOJI_GLYPH[emoji] ?? 'help-circle-outline';
+}
+
+// Bare mapped glyph (single colour).
+export function Glyph({ emoji, size = 22, color = COLORS.primaryDark }: { emoji: string; size?: number; color?: string }) {
+  return <MaterialCommunityIcons name={emojiGlyph(emoji)} size={size} color={color} />;
+}
+
+// Mapped glyph on a teal chip.
+export function GlyphBadge({ emoji, size = 22 }: { emoji: string; size?: number }) {
+  return <IconChip name={emojiGlyph(emoji)} size={size} />;
+}
 
 export function Screen({
   children,

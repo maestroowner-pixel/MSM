@@ -10,7 +10,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SIZES, GLASS, SCREEN_BG } from '../theme';
-import { StatusPill, Label, statusColor } from '../components/ui';
+import { StatusPill, Label, statusColor, CategoryBadge } from '../components/ui';
 import { useData } from '../contexts/DataContext';
 import { CATEGORY_MAP } from '../constants/categories';
 import { Attachment, CategoryKey, EquipmentItem } from '../types/equipment';
@@ -125,7 +125,7 @@ export default function ItemDetailSc() {
 
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
           <View style={styles.titleRow}>
-            <Text style={styles.emoji}>{meta.emoji}</Text>
+            <CategoryBadge category={meta.key} size={26} />
             <View style={{ flex: 1 }}>
               <Text style={styles.catLabel}>{meta.label}</Text>
               {!isNew ? <StatusPill status={computeStatus(draft)} /> : null}

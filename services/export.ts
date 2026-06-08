@@ -47,7 +47,13 @@ function rowsFor(items: EquipmentItem[]) {
 
 function vesselHeader(vessel: VesselInfo | null): string {
   if (!vessel) return 'Marine Safety Manager';
-  const parts = [vessel.vessel_name, vessel.imo ? `IMO ${vessel.imo}` : null, vessel.flag].filter(Boolean);
+  const parts = [
+    vessel.vessel_name,
+    vessel.imo ? `IMO ${vessel.imo}` : null,
+    vessel.flag,
+    vessel.call_sign ? `Call sign ${vessel.call_sign}` : null,
+    vessel.mmsi ? `MMSI ${vessel.mmsi}` : null,
+  ].filter(Boolean);
   return parts.join(' · ') || 'Marine Safety Manager';
 }
 
@@ -172,9 +178,16 @@ export async function exportXlsx(
 ): Promise<void> {
   const groups = selectedCategories(byCategory, only);
   if (!groups.length) throw new Error('No items to export.');
+  const today = formatDate(new Date().toISOString().slice(0, 10));
+  const header = vesselHeader(vessel);
   const wb = XLSX.utils.book_new();
   for (const g of groups) {
     const aoa = [
+      // Vessel header block (kept above the real column header so re-import still
+      // detects the header row — these rows classify as data, not headers).
+      [header],
+      [`Generated ${today}`],
+      [],
       ['No', 'Type', 'Serial', 'Position', 'Qty', 'Manufacture', 'Due', 'Status', 'Remarks'],
       ...rowsFor(g.items).map((r) => [
         r.no, r.type, r.serial, r.position, r.qty, r.mfg, r.due, STATUS_LABEL[r.status], r.remarks,

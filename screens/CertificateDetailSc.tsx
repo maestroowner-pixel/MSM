@@ -18,7 +18,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SIZES, GLASS, SCREEN_BG } from '../theme';
-import { Label, StatusPill } from '../components/ui';
+import { Label, StatusPill, CategoryBadge } from '../components/ui';
 import { useData } from '../contexts/DataContext';
 import { Certificate } from '../types/certificate';
 import { CATEGORY_MAP } from '../constants/categories';
@@ -146,7 +146,7 @@ export default function CertificateDetailSc() {
                 return (
                   <TouchableOpacity style={styles.pickRow} onPress={() => toggleItem(item.id)} activeOpacity={0.7}>
                     <View style={[styles.check, on && styles.checkOn]}>{on ? <Text style={styles.checkMark}>✓</Text> : null}</View>
-                    <Text style={styles.pickEmoji}>{meta.emoji}</Text>
+                    <CategoryBadge category={item.category} size={18} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.pickTitle} numberOfLines={1}>
                         {item.type || (item.no != null ? `#${item.no}` : meta.short)}
@@ -230,7 +230,7 @@ export default function CertificateDetailSc() {
                   const meta = CATEGORY_MAP[it.category];
                   return (
                     <View key={it.id} style={styles.linkedRow}>
-                      <Text style={{ fontSize: 18 }}>{meta.emoji}</Text>
+                      <CategoryBadge category={it.category} size={18} />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.linkedTitle} numberOfLines={1}>
                           {it.type || (it.no != null ? `#${it.no}` : meta.short)}
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
   check: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
   checkOn: { backgroundColor: COLORS.primary },
   checkMark: { color: COLORS.textWhite, fontWeight: '800', fontSize: SIZES.small },
-  pickEmoji: { fontSize: 20 },
+  pickEmoji: { width: 22, alignItems: 'center' },
   pickTitle: { fontSize: SIZES.body, fontWeight: '600', color: COLORS.textDark },
   pickSub: { fontSize: SIZES.tiny, color: COLORS.textLight },
 });

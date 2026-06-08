@@ -5,11 +5,11 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import { Screen, ScreenTitle, Card } from '../components/ui';
+import { Screen, ScreenTitle, Card, CategoryBadge } from '../components/ui';
 import { COLORS, SIZES } from '../theme';
 import { useData } from '../contexts/DataContext';
 import { CATEGORIES } from '../constants/categories';
-import { exportPdf, exportXlsx, exportZip, printReport } from '../services/export';
+import { exportPdf, exportXlsx, exportZip } from '../services/export';
 import { CategoryKey } from '../types/equipment';
 
 export default function ReportsSc() {
@@ -49,7 +49,7 @@ export default function ReportsSc() {
     setSelected(allOn ? new Set() : new Set(nonEmpty.map((c) => c.key)));
   };
 
-  const run = async (kind: 'pdf' | 'xlsx' | 'zip' | 'print') => {
+  const run = async (kind: 'pdf' | 'xlsx' | 'zip') => {
     const only = Array.from(selected);
     if (!only.length) {
       Alert.alert('Nothing selected', 'Tap at least one category to include in the report.');
@@ -59,7 +59,6 @@ export default function ReportsSc() {
     try {
       if (kind === 'pdf') await exportPdf(byCategory, vessel, only);
       else if (kind === 'xlsx') await exportXlsx(byCategory, vessel, only);
-      else if (kind === 'print') await printReport(byCategory, vessel, only);
       else {
         const { files, certificates: certCount } = await exportZip(byCategory, vessel, certificates, only);
         const parts = [
@@ -109,7 +108,7 @@ export default function ReportsSc() {
             onPress={() => toggle(c.key)}
             style={[styles.panel, on && styles.panelOn]}
           >
-            <Text style={styles.panelEmoji}>{c.emoji}</Text>
+            <CategoryBadge category={c.key} size={22} />
             <View style={{ flex: 1 }}>
               <Text style={styles.panelTitle}>{c.label}</Text>
               <Text style={styles.panelSub}>{count} item{count === 1 ? '' : 's'}</Text>
@@ -126,18 +125,15 @@ export default function ReportsSc() {
       ) : (
         <>
           <View style={styles.btnRow}>
-            <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.danger }]} onPress={() => run('pdf')}>
-              <Text style={styles.btnText}>Export PDF</Text>
+            <TouchableOpacity style={[styles.btn, styles.outlineBtn]} onPress={() => run('pdf')}>
+              <Text style={[styles.btnText, styles.outlineText]}>Export PDF</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.success }]} onPress={() => run('xlsx')}>
-              <Text style={styles.btnText}>Export XLSX</Text>
+            <TouchableOpacity style={[styles.btn, styles.outlineBtn]} onPress={() => run('xlsx')}>
+              <Text style={[styles.btnText, styles.outlineText]}>Export XLSX</Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={[styles.btn, styles.zipBtn]} onPress={() => run('zip')}>
             <Text style={styles.btnText}>📦 Export ZIP (PDF + photos)</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.btn, styles.printBtn]} onPress={() => run('print')}>
-            <Text style={[styles.btnText, { color: COLORS.primary }]}>🖨️ Print</Text>
           </TouchableOpacity>
         </>
       )}
@@ -167,7 +163,7 @@ const styles = StyleSheet.create({
     marginBottom: SIZES.sm,
   },
   panelOn: { borderColor: COLORS.primary, backgroundColor: 'rgba(255,255,255,0.9)' },
-  panelEmoji: { fontSize: 22 },
+  panelEmoji: { width: 24, alignItems: 'center' },
   panelTitle: { fontSize: SIZES.h5, color: COLORS.textDark, fontWeight: '600' },
   panelSub: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 1 },
   check: {
@@ -185,7 +181,8 @@ const styles = StyleSheet.create({
   btnRow: { flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.md },
   btn: { flex: 1, paddingVertical: SIZES.md, borderRadius: SIZES.radiusMd, alignItems: 'center' },
   zipBtn: { backgroundColor: COLORS.primary, marginTop: SIZES.sm },
-  printBtn: { backgroundColor: 'transparent', borderWidth: 1, borderColor: COLORS.primary, marginTop: SIZES.sm },
+  outlineBtn: { backgroundColor: COLORS.cardSolid, borderWidth: 1.5, borderColor: COLORS.primary },
+  outlineText: { color: COLORS.primary },
   btnText: { color: COLORS.textWhite, fontWeight: '700', fontSize: SIZES.h5 },
   help: { marginTop: SIZES.lg, color: COLORS.textLight, fontSize: SIZES.body, lineHeight: 20 },
   empty: { fontSize: SIZES.body, color: COLORS.textLight, lineHeight: 20 },

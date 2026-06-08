@@ -21,17 +21,17 @@ export const COLORS = {
   danger: '#E74C3C',
   info: '#00BCD4',
 
-  // Background Colors
-  background: '#DAEEF7',
-  backgroundTop: '#B8D9ED',
-  backgroundDark: '#A5C8E0',
-  card: 'rgba(255, 255, 255, 0.70)',
+  // Background Colors — flat, faint teal tint (minimalist)
+  background: '#E6EFF1',
+  backgroundTop: '#E6EFF1',
+  backgroundDark: '#DCE8EA',
+  card: '#FFFFFF',
   cardSolid: '#FFFFFF',
   overlay: 'rgba(0, 0, 0, 0.4)',
 
-  // Gradient
-  gradientStart: '#B8D9ED',
-  gradientEnd: '#DAEEF7',
+  // Gradient (kept flat for token compatibility)
+  gradientStart: '#E6EFF1',
+  gradientEnd: '#E6EFF1',
 
   // Text Colors
   text: '#2C3E50',
@@ -40,9 +40,9 @@ export const COLORS = {
   textWhite: '#FFFFFF',
 
   // Border Colors
-  border: '#E0E6ED',
-  borderLight: '#F0F3F5',
-  borderDark: '#BDC3C7',
+  border: '#E2E6EA',
+  borderLight: '#EDF0F2',
+  borderDark: '#C7CDD3',
 
   // Tab Bar Colors
   tabActive: '#2E7D99',
@@ -104,54 +104,54 @@ export const FONTS = {
 
 export const SHADOWS = {
   small: {
-    shadowColor: '#2E7D99',
+    shadowColor: '#1A252F',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
   },
   medium: {
-    shadowColor: '#1F5670',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowColor: '#1A252F',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   large: {
-    shadowColor: '#1F5670',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowColor: '#1A252F',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
+    elevation: 3,
   },
 };
 
-// Glassmorphism cards
+// Cards — flat white with a thin neutral border (minimalist, solid)
 export const GLASS = {
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.70)',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.90)',
-    shadowColor: '#1F5670',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 4,
+    borderColor: '#E2E6EA',
+    shadowColor: '#1A252F',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
   },
   cardStrong: {
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.95)',
-    shadowColor: '#1F5670',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 5,
+    borderColor: '#DCE1E6',
+    shadowColor: '#1A252F',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.60)',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.80)',
+    borderColor: '#E2E6EA',
   },
 };
 
@@ -166,7 +166,7 @@ export const APP_CONFIG = {
 };
 
 export const SCREEN_BG = {
-  gradient: ['#B8D9ED', '#DAEEF7'] as const,
-  gradientDiagonal: ['#C2E0F0', '#DAEEF7', '#EAF5FB'] as const,
-  solid: '#DAEEF7',
+  gradient: ['#E6EFF1', '#E6EFF1'] as const,
+  gradientDiagonal: ['#E6EFF1', '#E6EFF1', '#E6EFF1'] as const,
+  solid: '#E6EFF1',
 };

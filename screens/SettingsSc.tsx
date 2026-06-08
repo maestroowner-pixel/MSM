@@ -5,7 +5,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, Switch, Modal, TouchableWithoutFeedback, Keyboard, Linking, Image, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Screen, ScreenTitle, Card, Label } from '../components/ui';
+import { Screen, ScreenTitle, Card, Label, GlyphBadge } from '../components/ui';
 import { COLORS, SIZES, GLASS, APP_CONFIG } from '../theme';
 import { useData } from '../contexts/DataContext';
 import { VesselInfo, resetAllData } from '../services/storage';
@@ -41,7 +41,7 @@ export default function SettingsSc() {
   const [resetPw, setResetPw] = useState('');
 
   // Collapsible sections (open on tap).
-  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [open, setOpen] = useState<Record<string, boolean>>({ vessel: true });
   const toggleSection = (k: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setOpen((o) => ({ ...o, [k]: !o[k] }));
@@ -312,8 +312,27 @@ export default function SettingsSc() {
   };
 
   const saveVesselInfo = async () => {
+    const required: (keyof VesselInfo)[] = ['vessel_name', 'imo', 'flag', 'call_sign', 'mmsi'];
+    if (required.some((k) => !String(form[k] ?? '').trim())) {
+      playErrorSound();
+      Alert.alert('All fields required', 'Please fill in every vessel field before saving.');
+      return;
+    }
+    if (!/^\d{7}$/.test(String(form.imo).trim())) {
+      playErrorSound();
+      Alert.alert('Invalid IMO', 'IMO number must be exactly 7 digits.');
+      return;
+    }
+    if (!/^\d{9}$/.test(String(form.mmsi).trim())) {
+      playErrorSound();
+      Alert.alert('Invalid MMSI', 'MMSI must be exactly 9 digits.');
+      return;
+    }
     await setVessel(form);
     playSuccessSound();
+    // Collapse the card like the other sections once saved.
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setOpen((o) => ({ ...o, vessel: false }));
     Alert.alert('Saved', 'Vessel info updated.');
   };
 
@@ -369,7 +388,12 @@ export default function SettingsSc() {
       <ScreenTitle title="Settings" subtitle={`${flat.length} items on this device`} />
 
       <Card>
-        <Label>Vessel</Label>
+        <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('vessel')} activeOpacity={0.7}>
+          <Label>Vessel</Label>
+          <Text style={styles.sectionChev}>{open.vessel ? '▾' : '▸'}</Text>
+        </TouchableOpacity>
+        {open.vessel ? (
+          <>
         <FormField label="Vessel name" value={form.vessel_name} onChange={(v) => setForm({ ...form, vessel_name: v })} />
         <FormField label="IMO number" value={form.imo} onChange={(v) => setForm({ ...form, imo: v })} keyboard="number-pad" />
         <FormField label="Flag" value={form.flag} onChange={(v) => setForm({ ...form, flag: v })} />
@@ -378,6 +402,8 @@ export default function SettingsSc() {
         <TouchableOpacity style={styles.primaryBtn} onPress={saveVesselInfo}>
           <Text style={styles.primaryBtnText}>Save vessel info</Text>
         </TouchableOpacity>
+          </>
+        ) : null}
       </Card>
 
       <Card>
@@ -388,7 +414,7 @@ export default function SettingsSc() {
         {open.data ? (
           <>
         <TouchableOpacity style={styles.linkRow} onPress={downloadTemplate}>
-          <Text style={styles.linkEmoji}>⬇️</Text>
+          <GlyphBadge emoji="⬇️" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Download import template</Text>
             <Text style={styles.linkSub}>Blank .xlsx — one sheet per category</Text>
@@ -396,7 +422,7 @@ export default function SettingsSc() {
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Import')}>
-          <Text style={styles.linkEmoji}>📥</Text>
+          <GlyphBadge emoji="📥" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Import from Excel</Text>
             <Text style={styles.linkSub}>Load the LSA / FFE Inventories workbook</Text>
@@ -404,7 +430,7 @@ export default function SettingsSc() {
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={backupExport} disabled={busy}>
-          <Text style={styles.linkEmoji}>💾</Text>
+          <GlyphBadge emoji="💾" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Export backup (.msm)</Text>
             <Text style={styles.linkSub}>Items, certificates, vessel & attached files</Text>
@@ -412,7 +438,7 @@ export default function SettingsSc() {
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={backupImport} disabled={busy}>
-          <Text style={styles.linkEmoji}>♻️</Text>
+          <GlyphBadge emoji="♻️" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Restore backup (.msm)</Text>
             <Text style={styles.linkSub}>Replace all data from a .msm file</Text>
@@ -431,7 +457,7 @@ export default function SettingsSc() {
         {open.modules ? (
           <>
         <View style={styles.toggleRow}>
-          <Text style={styles.linkEmoji}>⏱️</Text>
+          <GlyphBadge emoji="⏱️" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>BA Compressor log</Text>
             <Text style={styles.linkSub}>Running-time counter & maintenance (FIFI outfit)</Text>
@@ -444,7 +470,7 @@ export default function SettingsSc() {
         </View>
         {prefs.compressorEnabled ? (
           <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Compressor')}>
-            <Text style={styles.linkEmoji}>📈</Text>
+            <GlyphBadge emoji="📈" size={18} />
             <View style={{ flex: 1 }}>
               <Text style={styles.linkTitle}>Open compressor log</Text>
               <Text style={styles.linkSub}>Also available from the FIFI / BA category</Text>
@@ -464,7 +490,7 @@ export default function SettingsSc() {
         {open.help ? (
           <>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Manual')}>
-          <Text style={styles.linkEmoji}>📖</Text>
+          <GlyphBadge emoji="📖" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>User Manual</Text>
             <Text style={styles.linkSub}>How to use the app</Text>
@@ -472,14 +498,14 @@ export default function SettingsSc() {
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Legal', { doc: 'privacy' })}>
-          <Text style={styles.linkEmoji}>🔒</Text>
+          <GlyphBadge emoji="🔒" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Privacy Policy</Text>
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Legal', { doc: 'terms' })}>
-          <Text style={styles.linkEmoji}>📜</Text>
+          <GlyphBadge emoji="📜" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Terms of Use</Text>
           </View>
@@ -562,7 +588,7 @@ export default function SettingsSc() {
             <Text style={styles.devSectionTitle}>Connected devices ({devices.length})</Text>
             {devices.map((d) => (
               <View key={d.deviceId} style={styles.devRow}>
-                <Text style={styles.devEmoji}>{d.role === 'master' ? '👑' : '📱'}</Text>
+                <GlyphBadge emoji={d.role === 'master' ? '👑' : '📱'} size={16} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.devName}>
                     {d.customName || d.platformLabel}{d.isThisDevice ? ' (this device)' : ''}
