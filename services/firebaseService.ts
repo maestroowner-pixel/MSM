@@ -258,13 +258,19 @@ function genDeviceId(): string {
 let _secureStore: any | null | undefined;
 function getSecureStore(): any | null {
   if (_secureStore !== undefined) return _secureStore;
+  _secureStore = null;
+  if (Platform.OS === 'windows') return _secureStore;
   try {
-    if (Platform.OS === 'windows') {
-      _secureStore = null;
-    } else {
+    // Check the native module is actually present FIRST (returns null, never
+    // throws). Only then load the expo-secure-store JS wrapper — requiring it
+    // when the native module is missing throws "Cannot find native module
+    // 'ExpoSecureStore'", which surfaces as a redbox even inside try/catch.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { requireOptionalNativeModule } = require('expo-modules-core');
+    if (requireOptionalNativeModule && requireOptionalNativeModule('ExpoSecureStore')) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const ss = require('expo-secure-store');
-      _secureStore = ss && typeof ss.getItemAsync === 'function' ? ss : null;
+      if (ss && typeof ss.getItemAsync === 'function') _secureStore = ss;
     }
   } catch {
     _secureStore = null;
