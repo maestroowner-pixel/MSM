@@ -25,7 +25,6 @@ import {
   Database,
 } from 'firebase/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
 import { CategoryKey, EquipmentItem } from '../types/equipment';
 import { Certificate } from '../types/certificate';
 import { normalizeCompressorState } from '../types/compressor';
@@ -246,46 +245,61 @@ const PLATFORM_LABELS: Record<string, string> = {
   windows: 'Windows',
 };
 
-const LEGACY_DEVICE_KEY = 'msm:device_id'; // AsyncStorage (legacy; still used on Windows)
+const LEGACY_DEVICE_KEY = 'msm:device_id'; // AsyncStorage (legacy; used on Windows / as fallback)
 const SECURE_DEVICE_KEY = 'msm_device_id'; // SecureStore key (only [A-Za-z0-9._-] allowed)
 
 function genDeviceId(): string {
   return `dev_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// Lazily + defensively load expo-secure-store. If the native module isn't built
+// into the current binary (e.g. JS updated but native not rebuilt), this returns
+// null instead of crashing the app, and device_id falls back to AsyncStorage.
+let _secureStore: any | null | undefined;
+function getSecureStore(): any | null {
+  if (_secureStore !== undefined) return _secureStore;
+  try {
+    if (Platform.OS === 'windows') {
+      _secureStore = null;
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const ss = require('expo-secure-store');
+      _secureStore = ss && typeof ss.getItemAsync === 'function' ? ss : null;
+    }
+  } catch {
+    _secureStore = null;
+  }
+  return _secureStore;
+}
+
+async function asyncStorageDeviceId(): Promise<string> {
+  let id = await AsyncStorage.getItem(LEGACY_DEVICE_KEY);
+  if (!id) {
+    id = genDeviceId();
+    await AsyncStorage.setItem(LEGACY_DEVICE_KEY, id);
+  }
+  return id;
+}
+
 /**
  * Stable per-device id used as the cloud device identity (and the Master id).
- * On iOS/Android it lives in the Keychain/Keystore via expo-secure-store, so it
+ * Stored in the Keychain/Keystore via expo-secure-store when available, so it
  * SURVIVES an app reinstall (on iOS) → the Master keeps its identity instead of
- * becoming a new pending device. Windows has no SecureStore, but its AsyncStorage
- * is registry-backed (persistent), so it uses that. An existing AsyncStorage id
- * is migrated into SecureStore once so current installs keep their identity.
+ * becoming a new pending device. Existing AsyncStorage ids are migrated once.
+ * Falls back to AsyncStorage on Windows / when the native module isn't present.
  */
 async function deviceId(): Promise<string> {
-  if (Platform.OS === 'windows') {
-    let id = await AsyncStorage.getItem(LEGACY_DEVICE_KEY);
-    if (!id) {
-      id = genDeviceId();
-      await AsyncStorage.setItem(LEGACY_DEVICE_KEY, id);
-    }
-    return id;
-  }
+  const SS = getSecureStore();
+  if (!SS) return asyncStorageDeviceId();
   try {
-    let id = await SecureStore.getItemAsync(SECURE_DEVICE_KEY);
+    let id = await SS.getItemAsync(SECURE_DEVICE_KEY);
     if (!id) {
-      // Migrate an existing AsyncStorage id (don't change identity for current installs).
       id = (await AsyncStorage.getItem(LEGACY_DEVICE_KEY)) || genDeviceId();
-      await SecureStore.setItemAsync(SECURE_DEVICE_KEY, id);
+      await SS.setItemAsync(SECURE_DEVICE_KEY, id);
     }
     return id;
   } catch {
-    // SecureStore unavailable → fall back to AsyncStorage.
-    let id = await AsyncStorage.getItem(LEGACY_DEVICE_KEY);
-    if (!id) {
-      id = genDeviceId();
-      await AsyncStorage.setItem(LEGACY_DEVICE_KEY, id);
-    }
-    return id;
+    return asyncStorageDeviceId();
   }
 }
 
