@@ -9,7 +9,8 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView,
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, SIZES, GLASS, SCREEN_BG } from '../theme';
+import { SIZES, Palette } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 import { StatusPill, Label, statusColor, CategoryBadge } from '../components/ui';
 import { useData } from '../contexts/DataContext';
 import { CATEGORY_MAP } from '../constants/categories';
@@ -27,6 +28,8 @@ const MAX_ATTACHMENTS = 4;
 export default function ItemDetailSc() {
   const route = useRoute<any>();
   const nav = useNavigation<any>();
+  const COLORS = useTheme();
+  const styles = useS();
   const { byCategory, saveItem, removeItem, certificates } = useData();
 
   const category: CategoryKey = route.params.category;
@@ -109,7 +112,7 @@ export default function ItemDetailSc() {
   };
 
   return (
-    <LinearGradient colors={SCREEN_BG.gradient} style={{ flex: 1 }}>
+    <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => nav.goBack()} hitSlop={12}>
@@ -326,6 +329,8 @@ function Field({
   onChange: (v: string) => void;
   multiline?: boolean;
 }) {
+  const COLORS = useTheme();
+  const styles = useS();
   return (
     <View style={styles.fieldWrap}>
       <Label>{label}</Label>
@@ -342,6 +347,8 @@ function Field({
 }
 
 function NumField({ label, value, onChange }: { label: string; value?: number; onChange: (n?: number) => void }) {
+  const COLORS = useTheme();
+  const styles = useS();
   return (
     <View style={styles.fieldWrap}>
       <Label>{label}</Label>
@@ -361,6 +368,7 @@ function NumField({ label, value, onChange }: { label: string; value?: number; o
 }
 
 function DateField({ label, value, onChange }: { label: string; value?: string; onChange: (v: string) => void }) {
+  const styles = useS();
   return (
     <View style={styles.fieldWrap}>
       <SimpleDatePicker label={label} value={value} onChange={onChange} />
@@ -368,7 +376,7 @@ function DateField({ label, value, onChange }: { label: string; value?: string; 
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: Palette) => StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -383,7 +391,7 @@ const styles = StyleSheet.create({
   catLabel: { fontSize: SIZES.h4, fontWeight: '700', color: COLORS.textDark, marginBottom: 4 },
   fieldWrap: { marginBottom: SIZES.md },
   input: {
-    ...GLASS.input,
+    ...COLORS.glassInput,
     borderRadius: SIZES.radiusMd,
     paddingHorizontal: SIZES.md,
     paddingVertical: SIZES.sm,
@@ -393,13 +401,13 @@ const styles = StyleSheet.create({
   },
   dateHint: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 2, marginLeft: 4 },
   twoCol: { flexDirection: 'row', gap: SIZES.sm },
-  card: { ...GLASS.card, borderRadius: SIZES.radiusMd, padding: SIZES.md, marginVertical: SIZES.sm },
+  card: { ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.md, marginVertical: SIZES.sm },
   months: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.xs, marginTop: SIZES.sm },
   month: {
     width: '15%',
     paddingVertical: 6,
     borderRadius: SIZES.radiusSm,
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: COLORS.cardSolid,
     borderWidth: 1,
     borderColor: COLORS.border,
     alignItems: 'center',
@@ -470,3 +478,8 @@ const styles = StyleSheet.create({
   },
   deleteText: { color: COLORS.danger, fontWeight: '700', fontSize: SIZES.body },
 });
+
+function useS() {
+  const c = useTheme();
+  return useMemo(() => makeStyles(c), [c]);
+}

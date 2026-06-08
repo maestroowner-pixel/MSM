@@ -3,12 +3,15 @@
 // Shared by the consent gate and the Settings-accessible legal screens.
 // ===================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS, SIZES } from '../theme';
+import { SIZES, Palette } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 import { LegalDoc } from '../constants/legal';
 
 export default function LegalBody({ doc, showTitle = true }: { doc: LegalDoc; showTitle?: boolean }) {
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   return (
     <View>
       {showTitle ? <Text style={styles.title}>{doc.title}</Text> : null}
@@ -27,7 +30,7 @@ export default function LegalBody({ doc, showTitle = true }: { doc: LegalDoc; sh
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: Palette) => StyleSheet.create({
   title: { fontSize: SIZES.h3, fontWeight: '800', color: COLORS.textDark, marginBottom: 2 },
   effective: { fontSize: SIZES.small, color: COLORS.textLight, marginBottom: SIZES.md },
   section: { marginBottom: SIZES.md },

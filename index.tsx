@@ -5,7 +5,7 @@
 
 import 'react-native-gesture-handler';
 import React, { useRef, useState } from 'react';
-import { Text, View, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { registerRootComponent } from 'expo';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, DefaultTheme, useNavigation } from '@react-navigation/native';
@@ -16,7 +16,8 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { COLORS, SIZES } from './theme';
+import { SIZES } from './theme';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { DataProvider } from './contexts/DataContext';
 import { applyOrientationPolicy } from './utils/orientation';
 
@@ -39,11 +40,6 @@ import CompressorSc from './screens/CompressorSc';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-const NavTheme = {
-  ...DefaultTheme,
-  colors: { ...DefaultTheme.colors, background: 'transparent', card: COLORS.tabBackground, primary: COLORS.primary },
-};
-
 const TAB_ORDER = ['Dashboard', 'Equipment', 'Certificates', 'Reports', 'Settings'];
 const TAB_ICONS: Record<string, React.ComponentProps<typeof MaterialCommunityIcons>['name']> = {
   Dashboard: 'view-dashboard',
@@ -54,6 +50,7 @@ const TAB_ICONS: Record<string, React.ComponentProps<typeof MaterialCommunityIco
 };
 
 function TabIcon({ route, focused }: { route: string; focused: boolean }) {
+  const COLORS = useTheme();
   return (
     <MaterialCommunityIcons
       name={TAB_ICONS[route]}
@@ -67,13 +64,16 @@ function MainTabs() {
   const navigation = useNavigation<any>();
   const currentIdx = useRef(0);
   const insets = useSafeAreaInsets();
+  const COLORS = useTheme();
 
   // Edge-to-edge is enabled, so the tab bar draws behind the Android system
   // navigation (3-button or gesture). Pad the bar by the bottom inset so the
   // tabs are never hidden under the navigation buttons.
   const tabBarStyle = {
-    ...styles.tabBar,
-    height: styles.tabBar.height + insets.bottom,
+    backgroundColor: COLORS.tabBackground,
+    borderTopColor: COLORS.borderLight,
+    height: 60 + insets.bottom,
+    paddingTop: 6,
     paddingBottom: insets.bottom + 6,
   };
 
@@ -103,7 +103,7 @@ function MainTabs() {
             headerShown: false,
             tabBarActiveTintColor: COLORS.tabActive,
             tabBarInactiveTintColor: COLORS.tabInactive,
-            tabBarStyle,
+            tabBarStyle: tabBarStyle as any,
             tabBarLabelStyle: { fontSize: SIZES.tiny, fontWeight: '600' },
             tabBarIcon: ({ focused }) => <TabIcon route={route.name} focused={focused} />,
           })}
@@ -119,7 +119,8 @@ function MainTabs() {
   );
 }
 
-function App() {
+function Root() {
+  const COLORS = useTheme();
   const [showSplash, setShowSplash] = useState(true);
   // null = still loading the stored flag; false = must show; true = accepted
   const [legalAccepted, setLegalAccepted] = useState<boolean | null>(null);
@@ -141,58 +142,59 @@ function App() {
     }
   };
 
+  const navTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      background: COLORS.background,
+      card: COLORS.tabBackground,
+      primary: COLORS.primary,
+      text: COLORS.text,
+      border: COLORS.border,
+    },
+  };
+
   const showConsent = !showSplash && legalAccepted === false;
 
   return (
+    <NavigationContainer theme={navTheme}>
+      <StatusBar style={showSplash ? 'light' : COLORS.statusBar} />
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Main" component={MainTabs} />
+        <Stack.Screen name="CategoryItems" component={CategoryItemsSc} />
+        <Stack.Screen name="ItemDetail" component={ItemDetailSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Import" component={ImportSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Manual" component={ManualSc} />
+        <Stack.Screen name="Legal" component={LegalSc} />
+        <Stack.Screen name="Compressor" component={CompressorSc} />
+        <Stack.Screen name="CertificateDetail" component={CertificateDetailSc} options={{ presentation: 'modal' }} />
+      </Stack.Navigator>
+      {showSplash ? (
+        <View style={StyleSheet.absoluteFill}>
+          <SplashSc onDone={() => setShowSplash(false)} />
+        </View>
+      ) : showConsent ? (
+        <View style={StyleSheet.absoluteFill}>
+          <ConsentSc onAccept={acceptLegal} />
+        </View>
+      ) : null}
+    </NavigationContainer>
+  );
+}
+
+function App() {
+  return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <DataProvider>
-          <NavigationContainer theme={NavTheme}>
-            <StatusBar style={showSplash ? 'light' : 'dark'} />
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="Main" component={MainTabs} />
-              <Stack.Screen name="CategoryItems" component={CategoryItemsSc} />
-              <Stack.Screen
-                name="ItemDetail"
-                component={ItemDetailSc}
-                options={{ presentation: 'modal' }}
-              />
-              <Stack.Screen name="Import" component={ImportSc} options={{ presentation: 'modal' }} />
-              <Stack.Screen name="Manual" component={ManualSc} />
-              <Stack.Screen name="Legal" component={LegalSc} />
-              <Stack.Screen name="Compressor" component={CompressorSc} />
-              <Stack.Screen
-                name="CertificateDetail"
-                component={CertificateDetailSc}
-                options={{ presentation: 'modal' }}
-              />
-            </Stack.Navigator>
-          </NavigationContainer>
-          {showSplash ? (
-            <View style={StyleSheet.absoluteFill}>
-              <SplashSc onDone={() => setShowSplash(false)} />
-            </View>
-          ) : showConsent ? (
-            <View style={StyleSheet.absoluteFill}>
-              <ConsentSc onAccept={acceptLegal} />
-            </View>
-          ) : null}
-        </DataProvider>
+        <ThemeProvider>
+          <DataProvider>
+            <Root />
+          </DataProvider>
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
-
-const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: COLORS.tabBackground,
-    borderTopColor: COLORS.borderLight,
-    // Base content height; the bottom safe-area inset is added at runtime so the
-    // bar clears the iOS home indicator and the Android system navigation.
-    height: 60,
-    paddingTop: 6,
-  },
-});
 
 registerRootComponent(App);
 

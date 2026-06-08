@@ -6,7 +6,8 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Screen, StatusPill, Empty, statusColor, CategoryBadge } from '../components/ui';
-import { COLORS, SIZES, GLASS } from '../theme';
+import { SIZES, Palette } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { CATEGORY_MAP } from '../constants/categories';
 import { complianceDate, computeStatus, daysUntil, formatDate } from '../utils/dates';
@@ -33,6 +34,8 @@ export default function CategoryItemsSc() {
   const nav = useNavigation<any>();
   const category: CategoryKey = route.params.category;
   const meta = CATEGORY_MAP[category];
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { byCategory, certificates, prefs } = useData();
   const certItemIds = useMemo(() => {
     const s = new Set<string>();
@@ -182,7 +185,7 @@ export default function CategoryItemsSc() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: Palette) => StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', marginBottom: SIZES.md, gap: SIZES.sm },
   emoji: { fontSize: 30 },
   title: { fontSize: SIZES.h3, fontWeight: '700', color: COLORS.textDark },
@@ -197,7 +200,7 @@ const styles = StyleSheet.create({
   },
   addBtnText: { color: COLORS.textWhite, fontSize: 26, lineHeight: 28, fontWeight: '600' },
   search: {
-    ...GLASS.input,
+    ...COLORS.glassInput,
     borderRadius: SIZES.radiusMd,
     paddingHorizontal: SIZES.md,
     paddingVertical: SIZES.sm,
@@ -234,7 +237,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SIZES.sm,
-    ...GLASS.card,
+    ...COLORS.glassCard,
     borderRadius: SIZES.radiusMd,
     borderWidth: 1,
     borderColor: COLORS.primary,
@@ -249,7 +252,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    ...GLASS.card,
+    ...COLORS.glassCard,
     borderRadius: SIZES.radiusMd,
     paddingVertical: SIZES.md,
     paddingRight: SIZES.md,

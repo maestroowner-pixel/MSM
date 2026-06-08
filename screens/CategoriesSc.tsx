@@ -7,7 +7,8 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Screen, ScreenTitle, statusColor, CategoryBadge } from '../components/ui';
-import { COLORS, SIZES, GLASS } from '../theme';
+import { SIZES, Palette } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { CATEGORIES } from '../constants/categories';
 import { computeStatus } from '../utils/dates';
@@ -31,6 +32,8 @@ const GROUP_LABEL: Record<Group, string> = {
 export default function CategoriesSc() {
   const { byCategory } = useData();
   const nav = useNavigation<any>();
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
   const sections = useMemo(() => {
     const groups: Group[] = ['LSA', 'FFE', 'OTHER'];
@@ -45,7 +48,7 @@ export default function CategoriesSc() {
       <ScreenTitle title="Equipment" subtitle="Browse safety equipment by category" />
       {sections.map((sec) => (
         <View key={sec.group} style={{ marginBottom: SIZES.lg }}>
-          <Text style={styles.groupTitle}>{GROUP_LABEL[sec.group]}</Text>
+          <Text style={[styles.groupTitle, { color: COLORS.groupColors[sec.group] }]}>{GROUP_LABEL[sec.group]}</Text>
           <View style={styles.grid}>
             {sec.items.map((c) => {
               const items = byCategory[c.key] ?? [];
@@ -77,7 +80,7 @@ export default function CategoriesSc() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: Palette) => StyleSheet.create({
   groupTitle: {
     fontSize: SIZES.h5,
     fontWeight: '700',
@@ -87,7 +90,7 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.sm },
   tile: {
     width: '31%',
-    ...GLASS.card,
+    ...COLORS.glassCard,
     borderRadius: SIZES.radiusMd,
     padding: SIZES.md,
     minHeight: 104,

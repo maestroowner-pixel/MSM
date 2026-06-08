@@ -2,7 +2,7 @@
 // Shared UI building blocks
 // ===================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS, SIZES, GLASS, SCREEN_BG } from '../theme';
+import { COLORS, SIZES, Palette } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 import { ComplianceStatus, CategoryKey } from '../types/equipment';
 import { CATEGORY_MAP } from '../constants/categories';
 
@@ -25,17 +26,25 @@ type GlyphName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 export function CategoryIcon({
   category,
   size = 24,
-  color = COLORS.primaryDark,
+  color,
 }: {
   category: CategoryKey;
   size?: number;
   color?: string;
 }) {
-  return <MaterialCommunityIcons name={CATEGORY_MAP[category].icon as GlyphName} size={size} color={color} />;
+  const c = useTheme();
+  return (
+    <MaterialCommunityIcons
+      name={CATEGORY_MAP[category].icon as GlyphName}
+      size={size}
+      color={color ?? c.primaryDark}
+    />
+  );
 }
 
-// Teal rounded chip with a white glyph inside — the standard icon container.
-export function IconChip({ name, size = 24 }: { name: GlyphName; size?: number }) {
+// Rounded chip with a white glyph inside — the standard icon container.
+export function IconChip({ name, size = 24, color }: { name: GlyphName; size?: number; color?: string }) {
+  const c = useTheme();
   const box = Math.round(size * 1.55);
   return (
     <View
@@ -43,19 +52,22 @@ export function IconChip({ name, size = 24 }: { name: GlyphName; size?: number }
         width: box,
         height: box,
         borderRadius: Math.round(box * 0.3),
-        backgroundColor: COLORS.primary,
+        backgroundColor: color ?? c.primary,
         alignItems: 'center',
         justifyContent: 'center',
       }}
     >
-      <MaterialCommunityIcons name={name} size={size} color={COLORS.textWhite} />
+      <MaterialCommunityIcons name={name} size={size} color={c.textWhite} />
     </View>
   );
 }
 
-// Category icon on a teal chip — used across lists, tiles and headers.
+// Category icon on a chip — teal everywhere except the colorful theme, where it
+// takes the category's group colour (LSA green / FFE red / OTHER teal).
 export function CategoryBadge({ category, size = 24 }: { category: CategoryKey; size?: number }) {
-  return <IconChip name={CATEGORY_MAP[category].icon as GlyphName} size={size} />;
+  const c = useTheme();
+  const group = CATEGORY_MAP[category].group;
+  return <IconChip name={CATEGORY_MAP[category].icon as GlyphName} size={size} color={c.groupColors[group]} />;
 }
 
 // Maps the legacy section/row emojis to a monochrome glyph (Manual, Settings, tabs).
@@ -92,8 +104,9 @@ export function emojiGlyph(emoji: string): GlyphName {
 }
 
 // Bare mapped glyph (single colour).
-export function Glyph({ emoji, size = 22, color = COLORS.primaryDark }: { emoji: string; size?: number; color?: string }) {
-  return <MaterialCommunityIcons name={emojiGlyph(emoji)} size={size} color={color} />;
+export function Glyph({ emoji, size = 22, color }: { emoji: string; size?: number; color?: string }) {
+  const c = useTheme();
+  return <MaterialCommunityIcons name={emojiGlyph(emoji)} size={size} color={color ?? c.primaryDark} />;
 }
 
 // Mapped glyph on a teal chip.
@@ -110,8 +123,9 @@ export function Screen({
   scroll?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
 }) {
+  const c = useTheme();
   return (
-    <LinearGradient colors={SCREEN_BG.gradient} style={{ flex: 1 }}>
+    <LinearGradient colors={c.bgGradient} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         {scroll ? (
           <ScrollView
@@ -129,6 +143,7 @@ export function Screen({
 }
 
 export function ScreenTitle({ title, subtitle }: { title: string; subtitle?: string }) {
+  const styles = useStyles();
   return (
     <View style={{ marginBottom: SIZES.lg }}>
       <Text style={styles.title}>{title}</Text>
@@ -140,16 +155,16 @@ export function ScreenTitle({ title, subtitle }: { title: string; subtitle?: str
 export function Card({
   children,
   style,
-  onPress,
 }: {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
 }) {
-  const content = <View style={[styles.card, style]}>{children}</View>;
-  return content;
+  const styles = useStyles();
+  return <View style={[styles.card, style]}>{children}</View>;
 }
 
+// Status hues are identical across themes, so this stays a plain map/function.
 const STATUS_META: Record<ComplianceStatus, { label: string; color: string }> = {
   expired: { label: 'Expired', color: COLORS.danger },
   due: { label: 'Due soon', color: COLORS.warning },
@@ -158,6 +173,7 @@ const STATUS_META: Record<ComplianceStatus, { label: string; color: string }> = 
 };
 
 export function StatusPill({ status, text }: { status: ComplianceStatus; text?: string }) {
+  const styles = useStyles();
   const meta = STATUS_META[status];
   return (
     <View style={[styles.pill, { backgroundColor: meta.color }]}>
@@ -167,6 +183,7 @@ export function StatusPill({ status, text }: { status: ComplianceStatus; text?: 
 }
 
 export function StatusDot({ status }: { status: ComplianceStatus }) {
+  const styles = useStyles();
   return <View style={[styles.dot, { backgroundColor: STATUS_META[status].color }]} />;
 }
 
@@ -175,6 +192,7 @@ export function statusColor(status: ComplianceStatus): string {
 }
 
 export function Empty({ text }: { text: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.empty}>
       <Text style={styles.emptyText}>{text}</Text>
@@ -183,27 +201,34 @@ export function Empty({ text }: { text: string }) {
 }
 
 export function Label({ children, style }: { children: React.ReactNode; style?: StyleProp<TextStyle> }) {
+  const styles = useStyles();
   return <Text style={[styles.label, style]}>{children}</Text>;
 }
 
-const styles = StyleSheet.create({
-  title: { fontSize: SIZES.h2, fontWeight: '700', color: COLORS.textDark },
-  subtitle: { fontSize: SIZES.body, color: COLORS.textLight, marginTop: 2 },
-  card: {
-    ...GLASS.card,
-    borderRadius: SIZES.radiusLg,
-    padding: SIZES.lg,
-    marginBottom: SIZES.md,
-  },
-  pill: {
-    borderRadius: SIZES.radiusRound,
-    paddingHorizontal: SIZES.md,
-    paddingVertical: 3,
-    alignSelf: 'flex-start',
-  },
-  pillText: { color: COLORS.textWhite, fontSize: SIZES.small, fontWeight: '700' },
-  dot: { width: 12, height: 12, borderRadius: 6 },
-  empty: { alignItems: 'center', justifyContent: 'center', padding: SIZES.xxxl },
-  emptyText: { color: COLORS.textLight, fontSize: SIZES.h5, textAlign: 'center' },
-  label: { fontSize: SIZES.small, color: COLORS.textLight, fontWeight: '600' },
-});
+const makeStyles = (COLORS: Palette) =>
+  StyleSheet.create({
+    title: { fontSize: SIZES.h2, fontWeight: '700', color: COLORS.textDark },
+    subtitle: { fontSize: SIZES.body, color: COLORS.textLight, marginTop: 2 },
+    card: {
+      ...COLORS.glassCard,
+      borderRadius: SIZES.radiusLg,
+      padding: SIZES.lg,
+      marginBottom: SIZES.md,
+    },
+    pill: {
+      borderRadius: SIZES.radiusRound,
+      paddingHorizontal: SIZES.md,
+      paddingVertical: 3,
+      alignSelf: 'flex-start',
+    },
+    pillText: { color: COLORS.textWhite, fontSize: SIZES.small, fontWeight: '700' },
+    dot: { width: 12, height: 12, borderRadius: 6 },
+    empty: { alignItems: 'center', justifyContent: 'center', padding: SIZES.xxxl },
+    emptyText: { color: COLORS.textLight, fontSize: SIZES.h5, textAlign: 'center' },
+    label: { fontSize: SIZES.small, color: COLORS.textLight, fontWeight: '600' },
+  });
+
+function useStyles() {
+  const c = useTheme();
+  return useMemo(() => makeStyles(c), [c]);
+}

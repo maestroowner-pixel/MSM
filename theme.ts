@@ -4,6 +4,9 @@
 // Mirrors Marine Hospital Manager tokens
 // ===================================
 
+import type { ViewStyle } from 'react-native';
+import type { Group } from './types/equipment';
+
 export const COLORS = {
   // Primary Colors
   primary: '#2E7D99',
@@ -170,3 +173,82 @@ export const SCREEN_BG = {
   gradientDiagonal: ['#E6EFF1', '#E6EFF1', '#E6EFF1'] as const,
   solid: '#E6EFF1',
 };
+
+// ===================================
+// RUNTIME THEMES
+// A Palette carries every colour token plus the composed card/input/shadow
+// styles and the per-group badge colours, so screens can switch at runtime.
+// `useTheme()` returns the active Palette (consumed as `COLORS` in screens).
+// ===================================
+
+export type ThemeName = 'light' | 'dark' | 'colorful';
+
+export interface Palette {
+  primary: string; primaryDark: string; primaryLight: string;
+  secondary: string; secondaryDark: string; secondaryLight: string;
+  success: string; warning: string; danger: string; info: string;
+  background: string; backgroundTop: string; backgroundDark: string;
+  card: string; cardSolid: string; overlay: string;
+  gradientStart: string; gradientEnd: string;
+  text: string; textLight: string; textDark: string; textWhite: string;
+  border: string; borderLight: string; borderDark: string;
+  tabActive: string; tabInactive: string; tabBackground: string;
+  lsa: string; ffe: string; other: string;
+  splashBackground: string; splashText: string; splashAccent: string;
+  // Composed style objects (replace the GLASS / SHADOWS helpers per theme).
+  glassCard: ViewStyle; glassCardStrong: ViewStyle; glassInput: ViewStyle;
+  shadowSm: ViewStyle; shadowMd: ViewStyle; shadowLg: ViewStyle;
+  bgGradient: readonly [string, string];
+  // Category badge colour per group (teal everywhere except the colorful theme).
+  groupColors: Record<Group, string>;
+  // 'light' for dark backgrounds, 'dark' otherwise — drives the status bar.
+  statusBar: 'light' | 'dark';
+}
+
+const LIGHT: Palette = {
+  ...COLORS,
+  glassCard: GLASS.card,
+  glassCardStrong: GLASS.cardStrong,
+  glassInput: GLASS.input,
+  shadowSm: SHADOWS.small,
+  shadowMd: SHADOWS.medium,
+  shadowLg: SHADOWS.large,
+  bgGradient: SCREEN_BG.gradient,
+  groupColors: { LSA: COLORS.primary, FFE: COLORS.primary, OTHER: COLORS.primary },
+  statusBar: 'dark',
+};
+
+const DARK: Palette = {
+  ...LIGHT,
+  primary: '#4A9BB8', primaryDark: '#7FC4DC', primaryLight: '#5DADE2',
+  background: '#0E1618', backgroundTop: '#0E1618', backgroundDark: '#0A1012',
+  card: '#172226', cardSolid: '#172226', overlay: 'rgba(0, 0, 0, 0.6)',
+  gradientStart: '#0E1618', gradientEnd: '#0E1618',
+  text: '#E6EDEF', textLight: '#93A4A8', textDark: '#F2F6F7', textWhite: '#FFFFFF',
+  border: '#2A383C', borderLight: '#233034', borderDark: '#3A4A4F',
+  tabActive: '#4A9BB8', tabInactive: '#7F9296', tabBackground: '#11191B',
+  glassCard: {
+    backgroundColor: '#172226', borderWidth: 1, borderColor: '#2A383C',
+    shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.4, shadowRadius: 3, elevation: 2,
+  },
+  glassCardStrong: {
+    backgroundColor: '#1B282C', borderWidth: 1, borderColor: '#33444A',
+    shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.45, shadowRadius: 4, elevation: 3,
+  },
+  glassInput: { backgroundColor: '#11191B', borderWidth: 1, borderColor: '#2A383C' },
+  shadowSm: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.35, shadowRadius: 2, elevation: 1 },
+  shadowMd: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.4, shadowRadius: 3, elevation: 2 },
+  shadowLg: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.5, shadowRadius: 6, elevation: 3 },
+  bgGradient: ['#0E1618', '#0E1618'] as const,
+  groupColors: { LSA: '#4A9BB8', FFE: '#4A9BB8', OTHER: '#4A9BB8' },
+  statusBar: 'light',
+};
+
+const COLORFUL: Palette = {
+  ...LIGHT,
+  groupColors: { LSA: '#2E7D32', FFE: '#D32F2F', OTHER: '#2E7D99' },
+};
+
+export const THEMES: Record<ThemeName, Palette> = { light: LIGHT, dark: DARK, colorful: COLORFUL };
+export const THEME_LABELS: Record<ThemeName, string> = { light: 'Light', dark: 'Dark', colorful: 'Colorful' };
+export const THEME_ORDER: ThemeName[] = ['light', 'dark', 'colorful'];

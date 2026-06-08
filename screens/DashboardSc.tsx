@@ -8,7 +8,8 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Screen, ScreenTitle, Empty, statusColor, CategoryBadge } from '../components/ui';
-import { COLORS, SIZES, GLASS } from '../theme';
+import { SIZES, Palette } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { CATEGORY_MAP } from '../constants/categories';
 import { complianceDate, computeStatus, daysUntil, formatDate } from '../utils/dates';
@@ -38,6 +39,8 @@ type ListEntry =
 export default function DashboardSc() {
   const { flat, loading } = useData();
   const nav = useNavigation<any>();
+  const COLORS = useTheme();
+  const styles = useS();
   const [group, setGroup] = useState<GroupFilter>('ALL');
   const [status, setStatus] = useState<StatusFilter>(null);
   const [sortBy, setSortBy] = useState<SortBy>('date');
@@ -154,6 +157,8 @@ function StatBox({
   active: boolean;
   onPress: () => void;
 }) {
+  const COLORS = useTheme();
+  const styles = useS();
   return (
     <TouchableOpacity
       style={[styles.statBox, { borderColor: color }, active && { backgroundColor: color, borderColor: color }]}
@@ -179,6 +184,7 @@ function DashRow({
   days?: number;
   onPress: () => void;
 }) {
+  const styles = useS();
   const meta = CATEGORY_MAP[item.category];
   const title = item.type || (item.no != null ? `#${item.no}` : meta.short);
   const daysText =
@@ -204,7 +210,7 @@ function DashRow({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: Palette) => StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: SIZES.sm, marginBottom: SIZES.sm },
   statBox: {
     flex: 1,
@@ -214,7 +220,7 @@ const styles = StyleSheet.create({
     gap: 6,
     borderRadius: SIZES.radiusMd,
     borderWidth: 1,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: COLORS.cardSolid,
     paddingVertical: 6,
     paddingHorizontal: SIZES.sm,
   },
@@ -232,7 +238,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.radiusMd,
     borderWidth: 1,
     borderColor: COLORS.border,
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: COLORS.cardSolid,
   },
   cycleCaption: { fontSize: SIZES.tiny, color: COLORS.textLight, fontWeight: '800', letterSpacing: 0.5 },
   cycleValue: { fontSize: SIZES.small, color: COLORS.primaryDark, fontWeight: '700', flexShrink: 1 },
@@ -250,7 +256,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    ...GLASS.card,
+    ...COLORS.glassCard,
     borderRadius: SIZES.radiusMd,
     paddingVertical: SIZES.md,
     paddingRight: SIZES.md,
@@ -265,3 +271,8 @@ const styles = StyleSheet.create({
   rowDate: { fontSize: SIZES.body, fontWeight: '700' },
   rowDays: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 1 },
 });
+
+function useS() {
+  const c = useTheme();
+  return useMemo(() => makeStyles(c), [c]);
+}

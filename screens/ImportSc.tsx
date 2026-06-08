@@ -2,13 +2,14 @@
 // Import — pick the LSA/FFE .xlsx, preview parsed counts, apply.
 // ===================================
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useNavigation } from '@react-navigation/native';
 import { Screen, ScreenTitle, Card, CategoryBadge } from '../components/ui';
-import { COLORS, SIZES, GLASS } from '../theme';
+import { SIZES, Palette } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 import { parseWorkbookBase64, ImportPreview } from '../services/excelImport';
 import { exportTemplate } from '../services/export';
 import { pickFileBase64, onWindows } from '../utils/fileShare';
@@ -23,6 +24,8 @@ type Mode = 'replace' | 'append';
 export default function ImportSc() {
   const nav = useNavigation<any>();
   const { reload } = useData();
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const [busy, setBusy] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
@@ -174,7 +177,7 @@ export default function ImportSc() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: Palette) => StyleSheet.create({
   pickBtn: {
     backgroundColor: COLORS.primary,
     borderRadius: SIZES.radiusMd,
@@ -199,7 +202,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: SIZES.sm,
     borderRadius: SIZES.radiusMd,
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: COLORS.cardSolid,
     borderWidth: 1,
     borderColor: COLORS.border,
     alignItems: 'center',

@@ -109,6 +109,14 @@ do not regress them:
    fixed it. `babel.config.js` is plain (`presets: ['babel-preset-expo']`) — do NOT add
    `@babel/plugin-transform-private-*` plugins: with the correct preset they're unnecessary and
    break RN's FlatList/VirtualizedList ("property is not configurable" when a list renders items).
+3. **Keep every Expo native module on its SDK-54 version — esp. transitive ones like
+   `expo-font` (`~14.0.12`).** A stray latest `expo-font` (56.x, for SDK 56) was pulled in via
+   `@expo/vector-icons`/`npm audit fix` → at startup `FontLoaderModule` called
+   `getDirectConverter` on the older `expo-modules-core` (3.0.30) → `java.lang.NoSuchMethodError`
+   in `create_react_context` → Android **release** crashed right after the splash (debug/sim
+   fine; not R8). `expo install --check` misses it because `expo-font` isn't a direct dep. Fix:
+   `npx expo install expo-font` (pins SDK-54 version), then clean-rebuild. Mismatched native Expo
+   modules show up only at runtime in a built APK, never in tsc or the JS bundle.
 
 ### Android release signing / AAB (Play Store)
 The release build is signed with an **upload keystore** kept at repo-root

@@ -7,7 +7,8 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, LayoutAnimation, Platform, UIManager, Linking, Image } from 'react-native';
 import { Screen, ScreenTitle, GlyphBadge } from '../components/ui';
-import { COLORS, SIZES, GLASS } from '../theme';
+import { SIZES, Palette } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 import { MANUAL } from '../constants/manual';
 import { manualLang } from '../utils/locale';
 
@@ -28,6 +29,7 @@ function refUrl(token: string): string | null {
 
 /** Render a `ref` string as tappable links per standard, separated by " · ". */
 function RefLinks({ refStr }: { refStr: string }) {
+  const styles = useS();
   const tokens = refStr.split(';').map((t) => t.trim()).filter(Boolean);
   return (
     <View style={styles.refRow}>
@@ -47,6 +49,7 @@ function RefLinks({ refStr }: { refStr: string }) {
 }
 
 export default function ManualSc() {
+  const styles = useS();
   const content = useMemo(() => MANUAL[manualLang()], []);
   const [open, setOpen] = useState<number | null>(0);
 
@@ -103,8 +106,8 @@ export default function ManualSc() {
   );
 }
 
-const styles = StyleSheet.create({
-  card: { ...GLASS.card, borderRadius: SIZES.radiusMd, marginBottom: SIZES.sm, overflow: 'hidden' },
+const makeStyles = (COLORS: Palette) => StyleSheet.create({
+  card: { ...COLORS.glassCard, borderRadius: SIZES.radiusMd, marginBottom: SIZES.sm, overflow: 'hidden' },
   header: { flexDirection: 'row', alignItems: 'center', padding: SIZES.md, gap: SIZES.sm },
   emoji: { fontSize: 22 },
   title: { flex: 1, fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark },
@@ -130,3 +133,8 @@ const styles = StyleSheet.create({
   refPlain: { fontSize: SIZES.tiny, color: COLORS.textLight, fontWeight: '600' },
   link: { fontSize: SIZES.body, color: COLORS.primary, fontWeight: '700', marginTop: SIZES.xs },
 });
+
+function useS() {
+  const c = useTheme();
+  return useMemo(() => makeStyles(c), [c]);
+}

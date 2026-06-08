@@ -6,7 +6,8 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Screen, StatusPill, Empty, statusColor } from '../components/ui';
-import { COLORS, SIZES, GLASS } from '../theme';
+import { SIZES, Palette } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { statusFromDate, formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
@@ -15,6 +16,8 @@ import { Certificate } from '../types/certificate';
 export default function CertificatesSc() {
   const { certificates } = useData();
   const nav = useNavigation<any>();
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const [q, setQ] = useState('');
 
   const list = useMemo(() => {
@@ -104,14 +107,14 @@ export default function CertificatesSc() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: Palette) => StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', marginBottom: SIZES.md, gap: SIZES.sm },
   title: { fontSize: SIZES.h2, fontWeight: '700', color: COLORS.textDark },
   sub: { fontSize: SIZES.small, color: COLORS.textLight },
   addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
   addBtnText: { color: COLORS.textWhite, fontSize: 26, lineHeight: 28, fontWeight: '600' },
   search: {
-    ...GLASS.input,
+    ...COLORS.glassInput,
     borderRadius: SIZES.radiusMd,
     paddingHorizontal: SIZES.md,
     paddingVertical: SIZES.sm,
@@ -122,7 +125,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    ...GLASS.card,
+    ...COLORS.glassCard,
     borderRadius: SIZES.radiusMd,
     paddingVertical: SIZES.md,
     paddingRight: SIZES.md,

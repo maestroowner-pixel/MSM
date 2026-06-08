@@ -2,11 +2,12 @@
 // Settings — vessel info, import, Firebase sync, about.
 // ===================================
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, Switch, Modal, TouchableWithoutFeedback, Keyboard, Linking, Image, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Screen, ScreenTitle, Card, Label, GlyphBadge } from '../components/ui';
-import { COLORS, SIZES, GLASS, APP_CONFIG } from '../theme';
+import { SIZES, Palette, APP_CONFIG, THEME_ORDER, THEME_LABELS } from '../theme';
+import { useTheme, useThemeName } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { VesselInfo, resetAllData } from '../services/storage';
 import * as fb from '../services/firebaseService';
@@ -24,6 +25,9 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export default function SettingsSc() {
   const nav = useNavigation<any>();
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+  const { name: themeName, setTheme } = useThemeName();
   const { vessel, setVessel, reload, flat, prefs, setPrefs } = useData();
   const [form, setForm] = useState<VesselInfo>({});
   const [busy, setBusy] = useState(false);
@@ -42,9 +46,28 @@ export default function SettingsSc() {
 
   // Collapsible sections (open on tap).
   const [open, setOpen] = useState<Record<string, boolean>>({ vessel: true });
+
+  // Auto-hide: collapse the info panels after 4s of inactivity (the Vessel form
+  // is left open — it collapses on Save instead). Any tap/scroll resets the timer.
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bumpActivity = () => {
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    idleTimer.current = setTimeout(() => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setOpen((o) => ({ vessel: o.vessel }));
+    }, 4000);
+  };
+  useEffect(() => {
+    bumpActivity();
+    return () => {
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+    };
+  }, []);
+
   const toggleSection = (k: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setOpen((o) => ({ ...o, [k]: !o[k] }));
+    bumpActivity();
   };
 
   useEffect(() => {
@@ -385,7 +408,24 @@ export default function SettingsSc() {
 
   return (
     <Screen scroll>
+      <View onTouchStart={bumpActivity}>
       <ScreenTitle title="Settings" subtitle={`${flat.length} items on this device`} />
+
+      <Card>
+        <Label>Appearance</Label>
+        <View style={styles.themeRow}>
+          {THEME_ORDER.map((t) => (
+            <TouchableOpacity
+              key={t}
+              style={[styles.themeChip, themeName === t && styles.themeChipOn]}
+              onPress={() => setTheme(t)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.themeChipText, themeName === t && styles.themeChipTextOn]}>{THEME_LABELS[t]}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </Card>
 
       <Card>
         <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('vessel')} activeOpacity={0.7}>
@@ -692,6 +732,7 @@ export default function SettingsSc() {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+      </View>
     </Screen>
   );
 }
@@ -709,6 +750,8 @@ function FormField({
   onChange: (v: string) => void;
   keyboard?: 'default' | 'number-pad';
 }) {
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   return (
     <View style={{ marginBottom: SIZES.sm }}>
       <Label>{label}</Label>
@@ -724,9 +767,22 @@ function FormField({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: Palette) => StyleSheet.create({
+  themeRow: { flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.sm },
+  themeChip: {
+    flex: 1,
+    paddingVertical: SIZES.sm,
+    borderRadius: SIZES.radiusMd,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.cardSolid,
+    alignItems: 'center',
+  },
+  themeChipOn: { borderColor: COLORS.primary, backgroundColor: COLORS.primary },
+  themeChipText: { fontSize: SIZES.small, fontWeight: '700', color: COLORS.text },
+  themeChipTextOn: { color: COLORS.textWhite },
   input: {
-    ...GLASS.input,
+    ...COLORS.glassInput,
     borderRadius: SIZES.radiusMd,
     paddingHorizontal: SIZES.md,
     paddingVertical: SIZES.sm,

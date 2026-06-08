@@ -3,24 +3,27 @@
 // User must agree to the Privacy Policy and Terms of Use to continue.
 // ===================================
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, SIZES, GLASS, SHADOWS, SCREEN_BG, APP_CONFIG } from '../theme';
+import { SIZES, Palette, APP_CONFIG } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 import { DISCLAIMER_POINTS, PRIVACY_POLICY, TERMS_OF_USE } from '../constants/legal';
 import LegalBody from '../components/LegalBody';
 
 type View2 = 'main' | 'privacy' | 'terms';
 
 export default function ConsentSc({ onAccept }: { onAccept: () => void }) {
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const [view, setView] = useState<View2>('main');
   const [agreed, setAgreed] = useState(false);
 
   if (view !== 'main') {
     const doc = view === 'privacy' ? PRIVACY_POLICY : TERMS_OF_USE;
     return (
-      <LinearGradient colors={SCREEN_BG.gradient} style={{ flex: 1 }}>
+      <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
           <TouchableOpacity style={styles.back} onPress={() => setView('main')} hitSlop={12}>
             <Text style={styles.backText}>‹ Back</Text>
@@ -36,7 +39,7 @@ export default function ConsentSc({ onAccept }: { onAccept: () => void }) {
   }
 
   return (
-    <LinearGradient colors={SCREEN_BG.gradient} style={{ flex: 1 }}>
+    <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
         <View style={styles.headerRow}>
           <Text style={styles.icon}>⚓</Text>
@@ -94,7 +97,7 @@ export default function ConsentSc({ onAccept }: { onAccept: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: Palette) => StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -108,7 +111,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: SIZES.body, color: COLORS.textLight },
   scroll: { paddingHorizontal: SIZES.lg, paddingBottom: SIZES.lg },
   docScroll: { padding: SIZES.lg },
-  card: { ...GLASS.card, borderRadius: SIZES.radiusLg, padding: SIZES.lg },
+  card: { ...COLORS.glassCard, borderRadius: SIZES.radiusLg, padding: SIZES.lg },
   cardTitle: { fontSize: SIZES.h5, fontWeight: '700', color: COLORS.primaryDark, marginBottom: SIZES.sm },
   point: { flexDirection: 'row', gap: SIZES.sm, marginBottom: SIZES.sm },
   bullet: { fontSize: SIZES.h5, color: COLORS.primary, lineHeight: 21 },
@@ -126,7 +129,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.radiusSm,
     borderWidth: 2,
     borderColor: COLORS.primary,
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: COLORS.cardSolid,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 1,
@@ -143,8 +146,8 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.radiusMd,
     paddingVertical: SIZES.lg,
     alignItems: 'center',
-    ...SHADOWS.medium,
+    ...COLORS.shadowMd,
   },
-  acceptBtnDisabled: { backgroundColor: COLORS.borderDark, ...SHADOWS.small },
+  acceptBtnDisabled: { backgroundColor: COLORS.borderDark, ...COLORS.shadowSm },
   acceptText: { color: COLORS.textWhite, fontSize: SIZES.h5, fontWeight: '700' },
 });

@@ -6,7 +6,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { Screen, ScreenTitle, Card, CategoryBadge } from '../components/ui';
-import { COLORS, SIZES } from '../theme';
+import { SIZES, Palette } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { CATEGORIES } from '../constants/categories';
 import { exportPdf, exportXlsx, exportZip } from '../services/export';
@@ -14,6 +15,8 @@ import { CategoryKey } from '../types/equipment';
 
 export default function ReportsSc() {
   const { byCategory, vessel, certificates } = useData();
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const [busy, setBusy] = useState(false);
 
   const nonEmpty = useMemo(
@@ -146,7 +149,7 @@ export default function ReportsSc() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: Palette) => StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: SIZES.sm },
   sectionLabel: { fontSize: SIZES.small, color: COLORS.textLight, fontWeight: '700' },
   selectAll: { fontSize: SIZES.small, color: COLORS.primary, fontWeight: '700' },
@@ -157,12 +160,12 @@ const styles = StyleSheet.create({
     paddingVertical: SIZES.sm,
     paddingHorizontal: SIZES.md,
     borderRadius: SIZES.radiusMd,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: COLORS.cardSolid,
     borderWidth: 1.5,
     borderColor: COLORS.border,
     marginBottom: SIZES.sm,
   },
-  panelOn: { borderColor: COLORS.primary, backgroundColor: 'rgba(255,255,255,0.9)' },
+  panelOn: { borderColor: COLORS.primary, backgroundColor: COLORS.cardSolid },
   panelEmoji: { width: 24, alignItems: 'center' },
   panelTitle: { fontSize: SIZES.h5, color: COLORS.textDark, fontWeight: '600' },
   panelSub: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 1 },
@@ -174,7 +177,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: COLORS.cardSolid,
   },
   checkOn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   checkMark: { color: COLORS.textWhite, fontSize: 14, fontWeight: '800' },

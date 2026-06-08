@@ -7,7 +7,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Dimensions, TouchableWithoutFeedback } from 'react-native';
-import { COLORS, SIZES, GLASS } from '../theme';
+import { SIZES, Palette } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 import { formatDate } from '../utils/dates';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -26,6 +27,8 @@ const parseISODate = (iso: string): Date => {
 };
 
 const SimpleDatePicker: React.FC<Props> = ({ label, value, onChange, defaultYear, disabled }) => {
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const [visible, setVisible] = useState(false);
 
   const initialDate = value ? parseISODate(value) : new Date();
@@ -163,11 +166,11 @@ const SimpleDatePicker: React.FC<Props> = ({ label, value, onChange, defaultYear
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: Palette) => StyleSheet.create({
   label: { fontSize: SIZES.small, color: COLORS.textLight, marginBottom: 6, marginTop: 6 },
 
   inputTrigger: {
-    ...GLASS.input,
+    ...COLORS.glassInput,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Marine Safety Manager",
     "slug": "marine-safety-manager",
-    "version": "1.3",
+    "version": "1.8",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "msm",
@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.kukalab.msm",
-      "buildNumber": "106",
+      "buildNumber": "108",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UISupportedInterfaceOrientations": [
@@ -35,7 +35,7 @@
     },
     "android": {
       "package": "com.kukalab.msm",
-      "versionCode": 107,
+      "versionCode": 108,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
@@ -60,7 +60,8 @@
           "cameraPermission": "Allow Marine Safety Manager to photograph equipment and certificates."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font"
     ]
   }
 }

@@ -17,7 +17,8 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, SIZES, GLASS, SCREEN_BG } from '../theme';
+import { SIZES, Palette } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 import { Label, StatusPill, CategoryBadge } from '../components/ui';
 import { useData } from '../contexts/DataContext';
 import { Certificate } from '../types/certificate';
@@ -29,6 +30,8 @@ import { playSuccessSound } from '../utils/sound';
 export default function CertificateDetailSc() {
   const route = useRoute<any>();
   const nav = useNavigation<any>();
+  const COLORS = useTheme();
+  const styles = useS();
   const { certificates, flat, saveCertificate, removeCertificate } = useData();
 
   const id: string | null = route.params?.id ?? null;
@@ -107,7 +110,7 @@ export default function CertificateDetailSc() {
   const status = statusFromDate(draft.expiryDate);
 
   return (
-    <LinearGradient colors={SCREEN_BG.gradient} style={{ flex: 1 }}>
+    <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => (picking ? setPicking(false) : nav.goBack())} hitSlop={12}>
@@ -260,6 +263,8 @@ export default function CertificateDetailSc() {
 }
 
 function Field({ label, value, onChange }: { label: string; value?: string; onChange: (v: string) => void }) {
+  const COLORS = useTheme();
+  const styles = useS();
   return (
     <View style={styles.fieldWrap}>
       <Label>{label}</Label>
@@ -269,6 +274,8 @@ function Field({ label, value, onChange }: { label: string; value?: string; onCh
 }
 
 function DateField({ label, value, onChange }: { label: string; value?: string; onChange: (v: string) => void }) {
+  const COLORS = useTheme();
+  const styles = useS();
   return (
     <View style={styles.fieldWrap}>
       <Label>{label} (YYYY-MM-DD)</Label>
@@ -285,7 +292,7 @@ function DateField({ label, value, onChange }: { label: string; value?: string; 
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: Palette) => StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -299,7 +306,7 @@ const styles = StyleSheet.create({
   emoji: { fontSize: 34 },
   fieldWrap: { marginBottom: SIZES.md },
   input: {
-    ...GLASS.input,
+    ...COLORS.glassInput,
     borderRadius: SIZES.radiusMd,
     paddingHorizontal: SIZES.md,
     paddingVertical: SIZES.sm,
@@ -308,7 +315,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   dateHint: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 2, marginLeft: 4 },
-  card: { ...GLASS.card, borderRadius: SIZES.radiusMd, padding: SIZES.md, marginVertical: SIZES.sm },
+  card: { ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.md, marginVertical: SIZES.sm },
   preview: { width: '100%', height: 200, borderRadius: SIZES.radiusSm, backgroundColor: COLORS.borderLight },
   docRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, paddingVertical: SIZES.sm },
   docName: { flex: 1, fontSize: SIZES.body, color: COLORS.text },
@@ -335,7 +342,7 @@ const styles = StyleSheet.create({
   deleteBtn: { marginTop: SIZES.lg, paddingVertical: SIZES.md, borderRadius: SIZES.radiusMd, borderWidth: 1, borderColor: COLORS.danger, alignItems: 'center' },
   deleteText: { color: COLORS.danger, fontWeight: '700', fontSize: SIZES.body },
   // picker
-  pickRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, ...GLASS.card, borderRadius: SIZES.radiusMd, padding: SIZES.sm, marginBottom: SIZES.xs },
+  pickRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.sm, marginBottom: SIZES.xs },
   check: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
   checkOn: { backgroundColor: COLORS.primary },
   checkMark: { color: COLORS.textWhite, fontWeight: '800', fontSize: SIZES.small },
@@ -343,3 +350,8 @@ const styles = StyleSheet.create({
   pickTitle: { fontSize: SIZES.body, fontWeight: '600', color: COLORS.textDark },
   pickSub: { fontSize: SIZES.tiny, color: COLORS.textLight },
 });
+
+function useS() {
+  const c = useTheme();
+  return useMemo(() => makeStyles(c), [c]);
+}

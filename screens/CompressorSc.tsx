@@ -9,7 +9,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Screen, Card, Label } from '../components/ui';
-import { COLORS, SIZES, GLASS } from '../theme';
+import { SIZES, Palette, COLORS } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
@@ -46,6 +47,8 @@ function fmtDuration(min: number): string {
 
 export default function CompressorSc() {
   const nav = useNavigation<any>();
+  const COLORS = useTheme();
+  const styles = useS();
   const { compressor, saveCompressor } = useData();
   const compressors = compressor.compressors;
 
@@ -384,6 +387,8 @@ function HM({
   onChange: (t: string) => void;
   wide?: boolean;
 }) {
+  const COLORS = useTheme();
+  const styles = useS();
   return (
     <TextInput
       style={[styles.input, styles.hm, wide && { width: 84 }]}
@@ -396,7 +401,7 @@ function HM({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: Palette) => StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: SIZES.md },
   back: { fontSize: SIZES.h5, color: COLORS.primary, fontWeight: '600', width: 48 },
   headerTitle: { fontSize: SIZES.h4, fontWeight: '700', color: COLORS.textDark },
@@ -405,7 +410,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SIZES.md,
     paddingVertical: 7,
     borderRadius: SIZES.radiusRound,
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: COLORS.cardSolid,
     borderWidth: 1,
     borderColor: COLORS.border,
     maxWidth: 160,
@@ -425,7 +430,7 @@ const styles = StyleSheet.create({
   totalCard: { alignItems: 'center' },
   nameRow: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', gap: SIZES.sm, marginBottom: SIZES.sm },
   nameInput: {
-    ...GLASS.input,
+    ...COLORS.glassInput,
     flex: 1,
     borderRadius: SIZES.radiusMd,
     paddingHorizontal: SIZES.md,
@@ -451,7 +456,7 @@ const styles = StyleSheet.create({
   baselineRow: { width: '100%', marginTop: SIZES.sm, alignItems: 'center' },
   baselineHint: { fontSize: SIZES.tiny, color: COLORS.textLight, marginBottom: 4 },
   input: {
-    ...GLASS.input,
+    ...COLORS.glassInput,
     borderRadius: SIZES.radiusMd,
     paddingHorizontal: SIZES.md,
     paddingVertical: SIZES.sm,
@@ -467,7 +472,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SIZES.md,
     paddingVertical: 6,
     borderRadius: SIZES.radiusRound,
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: COLORS.cardSolid,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
@@ -482,7 +487,7 @@ const styles = StyleSheet.create({
   entry: {
     flexDirection: 'row',
     alignItems: 'center',
-    ...GLASS.card,
+    ...COLORS.glassCard,
     borderRadius: SIZES.radiusMd,
     paddingVertical: SIZES.sm,
     paddingRight: SIZES.sm,
@@ -509,3 +514,8 @@ const styles = StyleSheet.create({
   },
   entryDelText: { color: COLORS.textWhite, fontSize: 12, fontWeight: '800' },
 });
+
+function useS() {
+  const c = useTheme();
+  return useMemo(() => makeStyles(c), [c]);
+}
