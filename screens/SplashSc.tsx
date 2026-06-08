@@ -60,7 +60,7 @@ export default function SplashSc({ onDone }: { onDone: () => void }) {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: SIZES.xl },
-  logo: { width: 180, height: 180, marginBottom: SIZES.xl },
+  logo: { width: 243, height: 243, marginBottom: SIZES.xl },
   title: { fontSize: SIZES.h1, fontWeight: '800', color: COLORS.textWhite, textAlign: 'center', letterSpacing: 0.5 },
   subtitle: { fontSize: SIZES.h5, color: 'rgba(255,255,255,0.85)', marginTop: SIZES.xs, letterSpacing: 2 },
   footer: {
