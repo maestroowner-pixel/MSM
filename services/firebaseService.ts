@@ -379,11 +379,20 @@ export async function registerDevice(uid: string): Promise<ApprovalStatus> {
     return 'master';
   }
 
+  // This device IS the Master (per master_device_id) → always recognized, even
+  // if its devices/ record was lost after a dropped connection. Re-assert the
+  // record and clear any stale pending request so it never gets stuck pending.
+  if (masterId === id) {
+    await set(ref(db, `${ROOT}/${uid}/devices/${id}`), { deviceId: id, role: 'master', ...meta });
+    await remove(ref(db, `${ROOT}/${uid}/pending_devices/${id}`));
+    return 'master';
+  }
+
   // Already an approved device → just refresh its lastSeen / vessel name.
   const existing = (await get(ref(db, `${ROOT}/${uid}/devices/${id}`))).val();
   if (existing) {
     await update(ref(db, `${ROOT}/${uid}/devices/${id}`), { vesselName: meta.vesselName, lastSeen: meta.lastSeen });
-    return masterId === id ? 'master' : 'approved';
+    return 'approved';
   }
 
   // Otherwise it's pending — (re)write the request so the Master can approve it.
@@ -401,11 +410,11 @@ export async function registerDevice(uid: string): Promise<ApprovalStatus> {
 export async function checkApprovalStatus(uid: string): Promise<ApprovalStatus | 'unknown'> {
   const { db } = ensureInit();
   const id = await deviceId();
+  // The Master is recognized by master_device_id even if its devices/ record is missing.
+  const masterId = (await get(ref(db, `${ROOT}/${uid}/master_device_id`))).val();
+  if (masterId === id) return 'master';
   const approved = (await get(ref(db, `${ROOT}/${uid}/devices/${id}`))).val();
-  if (approved) {
-    const masterId = (await get(ref(db, `${ROOT}/${uid}/master_device_id`))).val();
-    return masterId === id ? 'master' : 'approved';
-  }
+  if (approved) return 'approved';
   const pending = (await get(ref(db, `${ROOT}/${uid}/pending_devices/${id}`))).val();
   if (pending) return 'pending';
   return 'unknown';
