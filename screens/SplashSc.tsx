@@ -41,7 +41,7 @@ export default function SplashSc({ onDone }: { onDone: () => void }) {
     <LinearGradient colors={[COLORS.primaryDark, COLORS.primary]} style={styles.fill}>
       <Animated.View style={[styles.center, { opacity }]}>
         <Animated.Image
-          source={require('../assets/msm-logo.png')}
+          source={require('../assets/octopus-icon.png')}
           style={[styles.logo, { transform: [{ scale }] }]}
           resizeMode="contain"
         />
