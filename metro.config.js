@@ -30,6 +30,7 @@ if (isWindows) {
     'expo-sharing': m('expo-sharing.js'),
     'expo-linear-gradient': m('expo-linear-gradient.js'),
     'expo-screen-orientation': m('expo-screen-orientation.js'),
+    'expo-secure-store': m('expo-secure-store.js'),
     'expo-modules-core': m('expo-modules-core.js'),
     '@react-native-async-storage/async-storage': m('async-storage.js'),
     'react-native-svg': m('react-native-svg.js'),
