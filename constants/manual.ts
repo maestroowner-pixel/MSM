@@ -45,7 +45,7 @@ const en: ManualContent = {
       body: [
         `${APP_CONFIG.name} keeps your vessel's Life-Saving Appliances (LSA) and Fire-Fighting Equipment (FFE/FIFI) in one place, with inspection and expiry tracking.`,
         'Equipment is grouped into 23 categories under three groups: LSA, FFE and Other. Each item has a type, serial/ID, position on the vessel, and the dates that drive compliance.',
-        'Fastest way to begin: open Settings → Import from Excel and load your LSA / FFE Inventories workbook. All data stays on the device and can optionally sync to the cloud.',
+        'Fastest way to begin: Settings → Import from Excel → Download blank template, then copy your existing register into it WITHOUT changing the column order, and import that file. The importer reads by column headers, so an arbitrary workbook with different or rearranged columns may not map correctly — the template guarantees a clean import. All data stays on the device and can optionally sync to the cloud.',
       ],
     },
     {
@@ -218,7 +218,7 @@ const ru: ManualContent = {
       body: [
         `${APP_CONFIG.name} хранит спасательное (LSA) и противопожарное (FFE/FIFI) снабжение судна в одном месте, с контролем проверок и сроков годности.`,
         'Оборудование сгруппировано в 23 категории под тремя группами: LSA, FFE и Other. У каждой позиции есть тип, серийный номер/ID, расположение на судне и даты, определяющие соответствие.',
-        'Быстрее всего начать: откройте Settings → Import from Excel и загрузите ваш файл LSA / FFE Inventories. Все данные хранятся на устройстве и при желании синхронизируются с облаком.',
+        'Быстрее всего начать: Settings → Import from Excel → Download blank template, затем скопируйте в него вашу имеющуюся базу, НЕ меняя порядок столбцов, и импортируйте этот файл. Импортёр читает по заголовкам столбцов, поэтому произвольный файл с другими или переставленными столбцами может не распознаться — шаблон гарантирует чистый импорт. Все данные хранятся на устройстве и при желании синхронизируются с облаком.',
       ],
     },
     {
@@ -391,7 +391,7 @@ const es: ManualContent = {
       body: [
         `${APP_CONFIG.name} reúne los dispositivos de salvamento (LSA) y los equipos contra incendios (FFE/FIFI) del buque en un solo lugar, con seguimiento de inspecciones y caducidades.`,
         'El equipo se agrupa en 23 categorías bajo tres grupos: LSA, FFE y Other. Cada elemento tiene tipo, número de serie/ID, ubicación a bordo y las fechas que rigen el cumplimiento.',
-        'Lo más rápido para empezar: abra Settings → Import from Excel y cargue su libro LSA / FFE Inventories. Los datos quedan en el dispositivo y, opcionalmente, se sincronizan con la nube.',
+        'Lo más rápido para empezar: Settings → Import from Excel → Download blank template, luego copie su registro existente en ella SIN cambiar el orden de las columnas e importe ese archivo. El importador lee por las cabeceras de columna, así que un libro cualquiera con columnas distintas o reordenadas puede no asignarse bien — la plantilla garantiza una importación limpia. Los datos quedan en el dispositivo y, opcionalmente, se sincronizan con la nube.',
       ],
     },
     {
@@ -564,7 +564,7 @@ const uk: ManualContent = {
       body: [
         `${APP_CONFIG.name} зберігає рятувальне (LSA) та протипожежне (FFE/FIFI) майно судна в одному місці, з контролем перевірок і термінів придатності.`,
         'Обладнання згруповане у 23 категорії в межах трьох груп: LSA, FFE та Other. Кожна позиція має тип, серійний номер/ID, розташування на судні та дати, що визначають відповідність.',
-        'Найшвидший старт: відкрийте Settings → Import from Excel і завантажте файл LSA / FFE Inventories. Усі дані лишаються на пристрої та за бажанням синхронізуються з хмарою.',
+        'Найшвидший старт: Settings → Import from Excel → Download blank template, потім скопіюйте у нього вашу наявну базу, НЕ змінюючи порядок стовпців, та імпортуйте цей файл. Імпортер читає за заголовками стовпців, тож довільний файл з іншими або переставленими стовпцями може не розпізнатися — шаблон гарантує чистий імпорт. Усі дані лишаються на пристрої та за бажанням синхронізуються з хмарою.',
       ],
     },
     {
