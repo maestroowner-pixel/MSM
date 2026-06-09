@@ -162,7 +162,7 @@ const en: ManualContent = {
         'Open the Reports tab and tap the category panels to choose which ones to include ("Select all" / "Clear all" toggles all). The counter shows how many items will be exported.',
         'Export as PDF or XLSX (named MSM_report_DDMMYY): type, serial, position, dates and status. The PDF is landscape with each item on a single line.',
         'Export ZIP (PDF + photos) bundles the PDF, every attached photo/document, and the certificate files covering the items (with a certificates/INDEX.txt mapping each certificate to its items) into MSM_backup_DDMMYY.zip.',
-        'Print sends the report to a printer via the system print dialog (AirPrint / Android print) — or "Save to PDF". Exports open the device share sheet.',
+        'Print sends the report to a printer via the system print dialog — or "Save to PDF". Exports open the device share sheet.',
       ],
     },
     {
@@ -192,7 +192,8 @@ const en: ManualContent = {
         'Set a Connection password in Settings → Cloud sync. The first device sets it; every other device must enter the same password to join.',
         'Tap Connect this device. The first device becomes the Master; others appear as pending until the Master approves them. Push uploads, Pull downloads.',
         'Push / Pull sync the equipment register, certificates and compressor logs. Attached files (photos, certificate documents) are not uploaded — use an .msm backup to move files between devices.',
-        'The Master can disconnect a device or hand over the role with "👑 Make master"; if the Master is lost, any approved device can "👑 Take over as Master". Each vessel only sees its own data.',
+        'The Master can disconnect a device, hand over the role with "👑 Make master", and change the connection password (Settings → Cloud sync → Change connection password: current, then the new one twice — other devices must then re-enter it).',
+        'If the Master device is permanently lost, tap the version line in Manual → About nine times to make THIS device the Master. Each vessel only sees its own data.',
       ],
     },
     {
@@ -218,7 +219,7 @@ const en: ManualContent = {
       title: 'MSM Pro subscription',
       body: [
         'Settings → Marine Safety Manager Pro opens the plan: a 1-month free trial, then a yearly subscription. The price shown is your store\'s local price for your region.',
-        'Start the trial from that screen. "Restore purchase" re-activates a subscription on a new device; "Manage subscription" opens your App Store / Google Play subscription settings.',
+        'Start the trial from that screen. "Restore purchase" re-activates a subscription on a new device; "Manage subscription" opens the subscription settings in your store account.',
       ],
     },
     {
@@ -362,7 +363,7 @@ const ru: ManualContent = {
         'Откройте вкладку Reports и нажатием панелей категорий выберите, что включить ("Select all" / "Clear all" — все сразу). Счётчик показывает, сколько позиций будет выгружено.',
         'Экспорт в PDF или XLSX (имя MSM_report_DDMMYY): тип, серийный номер, расположение, даты и статус. PDF — альбомный, каждая позиция в одну строку.',
         'Export ZIP (PDF + photos) кладёт в MSM_backup_DDMMYY.zip сам PDF, все прикреплённые фото/документы и файлы сертификатов, покрывающих позиции (с certificates/INDEX.txt, где указано, какой сертификат к каким позициям относится).',
-        'Print отправляет отчёт на принтер через системный диалог печати (AirPrint / Android print) — или "Save to PDF". Экспорт открывает системное окно «Поделиться».',
+        'Print отправляет отчёт на принтер через системный диалог печати — или "Save to PDF". Экспорт открывает системное окно «Поделиться».',
       ],
     },
     {
@@ -392,7 +393,8 @@ const ru: ManualContent = {
         'Задайте Connection password в Settings → Cloud sync. Первое устройство задаёт его; остальные должны ввести тот же пароль.',
         'Нажмите Connect this device. Первое устройство становится Master; остальные ждут одобрения. Push выгружает, Pull загружает.',
         'Push / Pull синхронизируют реестр оборудования, сертификаты и журналы компрессоров. Прикреплённые файлы (фото, документы сертификатов) в облако не загружаются — для переноса файлов используйте бэкап .msm.',
-        'Master может отключить устройство или передать роль через "👑 Make master"; если Master утерян, любое одобренное устройство может "👑 Take over as Master". Каждое судно видит только свои данные.',
+        'Master может отключить устройство, передать роль через "👑 Make master" и сменить connection password (Settings → Cloud sync → Change connection password: текущий, затем новый дважды — остальным устройствам придётся ввести его заново).',
+        'Если мастер-устройство безвозвратно утеряно — девять раз нажмите строку версии в Manual → About, и ЭТО устройство станет мастером. Каждое судно видит только свои данные.',
       ],
     },
     {
@@ -418,7 +420,7 @@ const ru: ManualContent = {
       title: 'Подписка MSM Pro',
       body: [
         'Settings → Marine Safety Manager Pro открывает план: 1 месяц бесплатно, затем годовая подписка. Цена показывается локальная — из вашего магазина для вашего региона.',
-        'Триал запускается с этого экрана. "Restore purchase" восстанавливает подписку на новом устройстве; "Manage subscription" открывает настройки подписок App Store / Google Play.',
+        'Триал запускается с этого экрана. "Restore purchase" восстанавливает подписку на новом устройстве; "Manage subscription" открывает настройки подписок вашего магазина.',
       ],
     },
     {
@@ -562,7 +564,7 @@ const es: ManualContent = {
         'Abra la pestaña Reports y pulse los paneles de categoría para elegir cuáles incluir ("Select all" / "Clear all" alterna todos). El contador indica cuántos elementos se exportarán.',
         'Exporte como PDF o XLSX (nombre MSM_report_DDMMYY): tipo, serie, ubicación, fechas y estado. El PDF es apaisado, con cada elemento en una sola línea.',
         'Export ZIP (PDF + photos) agrupa en MSM_backup_DDMMYY.zip el PDF, todas las fotos/documentos adjuntos y los archivos de certificados que cubren los elementos (con un certificates/INDEX.txt que asocia cada certificado con sus elementos).',
-        'Print envía el informe a una impresora por el diálogo del sistema (AirPrint / Android print) — o "Save to PDF". Las exportaciones abren el menú de compartir del dispositivo.',
+        'Print envía el informe a una impresora por el diálogo del sistema — o "Save to PDF". Las exportaciones abren el menú de compartir del dispositivo.',
       ],
     },
     {
@@ -592,7 +594,8 @@ const es: ManualContent = {
         'Defina una Connection password en Settings → Cloud sync. El primer dispositivo la fija; los demás deben introducir la misma.',
         'Pulse Connect this device. El primer dispositivo es el Master; los demás quedan pendientes hasta su aprobación. Push sube, Pull baja.',
         'Push / Pull sincronizan el registro de equipos, los certificados y los registros del compresor. Los archivos adjuntos (fotos, documentos de certificados) no se suben — use una copia .msm para mover archivos entre dispositivos.',
-        'El Master puede desconectar un dispositivo o ceder el rol con "👑 Make master"; si se pierde el Master, cualquier dispositivo aprobado puede "👑 Take over as Master". Cada buque solo ve sus datos.',
+        'El Master puede desconectar un dispositivo, ceder el rol con "👑 Make master" y cambiar la contraseña de conexión (Settings → Cloud sync → Change connection password: la actual y luego la nueva dos veces — los demás dispositivos deberán volver a introducirla).',
+        'Si el dispositivo Master se pierde de forma permanente, pulse nueve veces la línea de versión en Manual → About para convertir ESTE dispositivo en Master. Cada buque solo ve sus datos.',
       ],
     },
     {
@@ -618,7 +621,7 @@ const es: ManualContent = {
       title: 'Suscripción MSM Pro',
       body: [
         'Settings → Marine Safety Manager Pro abre el plan: 1 mes gratis y luego una suscripción anual. El precio mostrado es el local de su tienda para su región.',
-        'Inicie la prueba desde esa pantalla. "Restore purchase" reactiva una suscripción en un dispositivo nuevo; "Manage subscription" abre los ajustes de suscripciones de App Store / Google Play.',
+        'Inicie la prueba desde esa pantalla. "Restore purchase" reactiva una suscripción en un dispositivo nuevo; "Manage subscription" abre los ajustes de suscripciones de su tienda.',
       ],
     },
     {
@@ -762,7 +765,7 @@ const uk: ManualContent = {
         'Відкрийте вкладку Reports і натисканням панелей категорій виберіть, що включити ("Select all" / "Clear all" — усі одразу). Лічильник показує, скільки позицій буде вивантажено.',
         'Експорт у PDF або XLSX (ім’я MSM_report_DDMMYY): тип, серійний номер, розташування, дати та статус. PDF — альбомний, кожна позиція в один рядок.',
         'Export ZIP (PDF + photos) кладе в MSM_backup_DDMMYY.zip сам PDF, усі прикріплені фото/документи та файли сертифікатів, що покривають позиції (з certificates/INDEX.txt, де вказано, який сертифікат до яких позицій належить).',
-        'Print надсилає звіт на принтер через системний діалог друку (AirPrint / Android print) — або "Save to PDF". Експорт відкриває системне вікно «Поділитися».',
+        'Print надсилає звіт на принтер через системний діалог друку — або "Save to PDF". Експорт відкриває системне вікно «Поділитися».',
       ],
     },
     {
@@ -792,7 +795,8 @@ const uk: ManualContent = {
         'Задайте Connection password у Settings → Cloud sync. Перший пристрій задає його; решта мають ввести той самий пароль.',
         'Натисніть Connect this device. Перший пристрій стає Master; решта очікують схвалення. Push вивантажує, Pull завантажує.',
         'Push / Pull синхронізують реєстр обладнання, сертифікати та журнали компресорів. Прикріплені файли (фото, документи сертифікатів) до хмари не завантажуються — для перенесення файлів використовуйте бекап .msm.',
-        'Master може відключити пристрій або передати роль через "👑 Make master"; якщо Master втрачено, будь-який схвалений пристрій може "👑 Take over as Master". Кожне судно бачить лише свої дані.',
+        'Master може відключити пристрій, передати роль через "👑 Make master" і змінити connection password (Settings → Cloud sync → Change connection password: поточний, потім новий двічі — решта пристроїв муситиме ввести його заново).',
+        'Якщо майстер-пристрій безповоротно втрачено — дев’ять разів натисніть рядок версії в Manual → About, і ЦЕЙ пристрій стане майстром. Кожне судно бачить лише свої дані.',
       ],
     },
     {
@@ -818,7 +822,7 @@ const uk: ManualContent = {
       title: 'Підписка MSM Pro',
       body: [
         'Settings → Marine Safety Manager Pro відкриває план: 1 місяць безкоштовно, далі річна підписка. Ціна показується локальна — з вашого магазину для вашого регіону.',
-        'Тріал запускається з цього екрана. "Restore purchase" відновлює підписку на новому пристрої; "Manage subscription" відкриває налаштування підписок App Store / Google Play.',
+        'Тріал запускається з цього екрана. "Restore purchase" відновлює підписку на новому пристрої; "Manage subscription" відкриває налаштування підписок вашого магазину.',
       ],
     },
     {

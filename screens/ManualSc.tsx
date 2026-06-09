@@ -4,13 +4,15 @@
 // Content lives in constants/manual.ts; language is picked by utils/locale.
 // ===================================
 
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, LayoutAnimation, Platform, UIManager, Linking, Image } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, LayoutAnimation, Platform, UIManager, Linking, Image, Alert } from 'react-native';
 import { Screen, ScreenTitle, GlyphBadge } from '../components/ui';
-import { SIZES, Palette } from '../theme';
+import { SIZES, Palette, APP_CONFIG } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { MANUAL } from '../constants/manual';
 import { manualLang } from '../utils/locale';
+import * as fb from '../services/firebaseService';
+import * as storage from '../services/storage';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -58,6 +60,54 @@ export default function ManualSc() {
     setOpen((cur) => (cur === i ? null : i));
   };
 
+  // Hidden Master recovery: tap the version line 9× to claim Master on this
+  // device. Works only if this device was connected to cloud sync before
+  // (saved IMO + connection password). Use if the Master device is lost.
+  const taps = useRef(0);
+  const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const claimMaster = async () => {
+    if (!fb.isConfigured()) {
+      Alert.alert('Cloud sync not configured', 'Cloud sync is not available in this build.');
+      return;
+    }
+    const vessel = await storage.loadVessel().catch(() => null);
+    const pw = await fb.getSavedPassword();
+    if (!vessel?.imo || !pw) {
+      Alert.alert('Not connected', 'Connect this device to Cloud sync first (Settings → Cloud sync), then try again.');
+      return;
+    }
+    Alert.alert(
+      'Take over as Master',
+      'Make THIS device the Master for the vessel? The previous Master becomes a regular member.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Take over',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const uid = await fb.signInVessel(vessel.imo!, pw);
+              await fb.resetMaster(uid);
+              Alert.alert('Done', 'This device is now the Master for the vessel.');
+            } catch (e: any) {
+              Alert.alert('Failed', String(e?.message ?? e));
+            }
+          },
+        },
+      ]
+    );
+  };
+  const onVersionTap = () => {
+    taps.current += 1;
+    if (tapTimer.current) clearTimeout(tapTimer.current);
+    tapTimer.current = setTimeout(() => { taps.current = 0; }, 1500);
+    if (taps.current >= 9) {
+      taps.current = 0;
+      if (tapTimer.current) clearTimeout(tapTimer.current);
+      claimMaster();
+    }
+  };
+
   return (
     <Screen scroll>
       <ScreenTitle title={content.screenTitle} subtitle={content.screenSubtitle} />
@@ -80,11 +130,18 @@ export default function ManualSc() {
                     <Text style={styles.noteText}>⚠️ {s.note}</Text>
                   </View>
                 ) : null}
-                {s.body?.map((p, j) => (
-                  <Text key={`p${j}`} style={[styles.para, s.octopus && styles.paraCenter]}>
-                    {p}
-                  </Text>
-                ))}
+                {s.body?.map((p, j) =>
+                  p.startsWith(APP_CONFIG.name) ? (
+                    // Version line — secret 9-tap Master recovery.
+                    <TouchableOpacity key={`p${j}`} activeOpacity={1} onPress={onVersionTap}>
+                      <Text style={[styles.para, s.octopus && styles.paraCenter]}>{p}</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <Text key={`p${j}`} style={[styles.para, s.octopus && styles.paraCenter]}>
+                      {p}
+                    </Text>
+                  )
+                )}
                 {s.rows?.map((r, j) => (
                   <View key={`r${j}`} style={[styles.intRow, j > 0 && styles.intRowDivider]}>
                     <Text style={styles.intK}>{r.k}</Text>

@@ -2,7 +2,7 @@
 // Settings — vessel info, import, Firebase sync, about.
 // ===================================
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, Switch, Modal, TouchableWithoutFeedback, Keyboard, Linking, Image, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Screen, ScreenTitle, Card, Label, GlyphBadge } from '../components/ui';
@@ -51,47 +51,11 @@ export default function SettingsSc() {
   const [resetVisible, setResetVisible] = useState(false);
   const [resetPw, setResetPw] = useState('');
 
-  // Collapsible sections (open on tap).
+  // Collapsible sections (open on tap; they stay open until tapped again).
   const [open, setOpen] = useState<Record<string, boolean>>({ vessel: true });
-
-  // Auto-hide: collapse the info panels after 4s of inactivity (the Vessel form
-  // is left open — it collapses on Save instead). Any tap/scroll resets the timer,
-  // and while the keyboard is up (user typing in a field) auto-hide is paused.
-  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const keyboardOpen = useRef(false);
-  const clearIdle = () => {
-    if (idleTimer.current) clearTimeout(idleTimer.current);
-    idleTimer.current = null;
-  };
-  const bumpActivity = () => {
-    clearIdle();
-    if (keyboardOpen.current) return; // don't collapse while the user is entering data
-    idleTimer.current = setTimeout(() => {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setOpen((o) => ({ vessel: o.vessel }));
-    }, 4000);
-  };
-  useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', () => {
-      keyboardOpen.current = true;
-      clearIdle(); // pause while a field is focused
-    });
-    const hide = Keyboard.addListener('keyboardDidHide', () => {
-      keyboardOpen.current = false;
-      bumpActivity(); // restart the 4s countdown once the field is dismissed
-    });
-    bumpActivity();
-    return () => {
-      show.remove();
-      hide.remove();
-      clearIdle();
-    };
-  }, []);
-
   const toggleSection = (k: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setOpen((o) => ({ ...o, [k]: !o[k] }));
-    bumpActivity();
   };
 
   const toggleNotifications = async (v: boolean) => {
@@ -290,35 +254,6 @@ export default function SettingsSc() {
     );
   };
 
-  // Take over the Master role on THIS device (e.g. the old Master is gone).
-  const takeOverMaster = () => {
-    if (!uid) return;
-    Alert.alert(
-      'Take over as Master',
-      'Make THIS device the Master? Use this if the current Master device is lost or unavailable — it will be demoted to a member.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Take over',
-          style: 'destructive',
-          onPress: async () => {
-            setDevBusy(true);
-            try {
-              await fb.resetMaster(uid);
-              setMyStatus('master');
-              await refreshDevices(uid);
-              playSuccessSound();
-            } catch (e: any) {
-              playErrorSound();
-              Alert.alert('Take over failed', String(e?.message ?? e));
-            } finally {
-              setDevBusy(false);
-            }
-          },
-        },
-      ]
-    );
-  };
 
   const downloadTemplate = async () => {
     try {
@@ -491,7 +426,6 @@ export default function SettingsSc() {
 
   return (
     <Screen scroll>
-      <View onTouchStart={bumpActivity}>
       <ScreenTitle title="Settings" subtitle={`${flat.length} items on this device`} />
 
       <Card>
@@ -805,12 +739,8 @@ export default function SettingsSc() {
                 ) : null}
               </View>
             ))}
-            {/* Take over Master from this device (e.g. the old Master is gone). */}
-            {myStatus === 'approved' ? (
-              <TouchableOpacity style={styles.takeoverBtn} onPress={takeOverMaster}>
-                <Text style={styles.takeoverText}>👑 Take over as Master on this device</Text>
-              </TouchableOpacity>
-            ) : null}
+            {/* Master recovery moved to a hidden gesture: tap the version line in
+                the Manual (About) 9× to claim Master if the Master device is lost. */}
           </View>
         ) : null}
 
@@ -888,7 +818,6 @@ export default function SettingsSc() {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-      </View>
     </Screen>
   );
 }
