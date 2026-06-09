@@ -15,6 +15,7 @@ import { clearAttachmentsDir } from '../services/attachments';
 import { exportTemplate } from '../services/export';
 import { exportBackup, pickBackup, restoreBackup } from '../services/backup';
 import { playSuccessSound, playErrorSound } from '../utils/sound';
+import { requestPermission, rescheduleExpiryReminders, cancelAll, notificationsSupported } from '../services/notifications';
 import { formatDateTime } from '../utils/dates';
 
 const RESET_PASSWORD = 'Reset all data';
@@ -85,6 +86,32 @@ export default function SettingsSc() {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setOpen((o) => ({ ...o, [k]: !o[k] }));
     bumpActivity();
+  };
+
+  const toggleNotifications = async (v: boolean) => {
+    if (!v) {
+      await setPrefs({ notificationsEnabled: false });
+      await cancelAll();
+      return;
+    }
+    if (!notificationsSupported()) {
+      Alert.alert('Not available', 'Reminders need a development or production build (not available in Expo Go).');
+      return;
+    }
+    const ok = await requestPermission();
+    if (!ok) {
+      Alert.alert('Permission needed', 'Allow notifications for Marine Safety Manager in system settings to receive expiry reminders.');
+      return;
+    }
+    await setPrefs({ notificationsEnabled: true });
+    const n = await rescheduleExpiryReminders(flat);
+    playSuccessSound();
+    Alert.alert(
+      'Reminders on',
+      n > 0
+        ? `Scheduled ${n} upcoming reminder${n === 1 ? '' : 's'} (60 / 30 / 7 days before each date).`
+        : 'Reminders enabled — they will be scheduled as items with dates are added.'
+    );
   };
 
   useEffect(() => {
@@ -526,6 +553,18 @@ export default function SettingsSc() {
         </TouchableOpacity>
         {open.modules ? (
           <>
+        <View style={styles.toggleRow}>
+          <GlyphBadge emoji="🔔" size={18} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkTitle}>Expiry reminders</Text>
+            <Text style={styles.linkSub}>Notify 60 / 30 / 7 days before inspection or expiry</Text>
+          </View>
+          <Switch
+            value={!!prefs.notificationsEnabled}
+            onValueChange={toggleNotifications}
+            trackColor={{ true: COLORS.primary, false: COLORS.border }}
+          />
+        </View>
         <View style={styles.toggleRow}>
           <GlyphBadge emoji="⏱️" size={18} />
           <View style={{ flex: 1 }}>

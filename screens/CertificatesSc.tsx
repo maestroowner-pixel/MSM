@@ -12,6 +12,7 @@ import { useData } from '../contexts/DataContext';
 import { statusFromDate, formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { Certificate } from '../types/certificate';
+import { canAddCertificate } from '../services/trial';
 
 export default function CertificatesSc() {
   const { certificates } = useData();
@@ -36,12 +37,19 @@ export default function CertificatesSc() {
     });
   }, [certificates, q]);
 
-  const newCert: Certificate = {
-    id: uid('cert'),
-    name: '',
-    itemIds: [],
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+  const addCertificate = async () => {
+    if (!(await canAddCertificate(certificates.length))) {
+      nav.navigate('Paywall');
+      return;
+    }
+    const newCert: Certificate = {
+      id: uid('cert'),
+      name: '',
+      itemIds: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    nav.navigate('CertificateDetail', { id: null, draft: newCert });
   };
 
   return (
@@ -51,10 +59,7 @@ export default function CertificatesSc() {
           <Text style={styles.title}>Certificates</Text>
           <Text style={styles.sub}>{certificates.length} certificates · link items to a group certificate</Text>
         </View>
-        <TouchableOpacity
-          style={styles.addBtn}
-          onPress={() => nav.navigate('CertificateDetail', { id: null, draft: newCert })}
-        >
+        <TouchableOpacity style={styles.addBtn} onPress={addCertificate}>
           <Text style={styles.addBtnText}>＋</Text>
         </TouchableOpacity>
       </View>

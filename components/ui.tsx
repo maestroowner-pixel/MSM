@@ -93,6 +93,8 @@ const EMOJI_GLYPH: Record<string, GlyphName> = {
   '📖': 'book-open-variant',
   '🔒': 'lock',
   '⚠️': 'alert',
+  '🔔': 'bell-ring',
+  '🎨': 'palette',
   '👑': 'crown',
   '📱': 'cellphone',
   '📄': 'file-document',

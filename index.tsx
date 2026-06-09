@@ -20,6 +20,7 @@ import { SIZES } from './theme';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { DataProvider } from './contexts/DataContext';
 import { applyOrientationPolicy } from './utils/orientation';
+import { ensureTrialStarted } from './services/trial';
 
 import SplashSc from './screens/SplashSc';
 import ConsentSc from './screens/ConsentSc';
@@ -132,6 +133,9 @@ function Root() {
       .catch(() => setLegalAccepted(false));
     // Phones: portrait only. Tablets (iPad / large Android): allow rotation.
     applyOrientationPolicy();
+    // Start the free-trial counter on first launch (records the date only;
+    // limits stay OFF until services/trial ENFORCE_LIMITS is enabled).
+    ensureTrialStarted();
   }, []);
 
   const acceptLegal = async () => {

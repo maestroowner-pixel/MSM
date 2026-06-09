@@ -154,6 +154,7 @@ export async function saveCompressor(state: CompressorState): Promise<void> {
 
 export interface Prefs {
   compressorEnabled?: boolean; // show the BA compressor log (FIFI outfit)
+  notificationsEnabled?: boolean; // schedule expiry reminders (60/30/7 days)
 }
 
 export async function loadPrefs(): Promise<Prefs> {

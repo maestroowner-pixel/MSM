@@ -13,6 +13,7 @@ import { CATEGORY_MAP } from '../constants/categories';
 import { complianceDate, computeStatus, daysUntil, formatDate } from '../utils/dates';
 import { CategoryKey, ComplianceStatus, EquipmentItem } from '../types/equipment';
 import { uid } from '../utils/id';
+import { canAddItem } from '../services/trial';
 
 type SortBy = 'date' | 'position';
 const SORT_ORDER: SortBy[] = ['date', 'position'];
@@ -89,6 +90,17 @@ export default function CategoryItemsSc() {
 
   const cycleSort = () => setSortBy((s) => SORT_ORDER[(SORT_ORDER.indexOf(s) + 1) % SORT_ORDER.length]);
 
+  // Add a new item — gated by the free-tier list limit (a no-op until the trial
+  // counter expires AND limits are enabled in services/trial; routes to paywall otherwise).
+  const addItem = async () => {
+    const count = byCategory[category]?.length ?? 0;
+    if (!(await canAddItem(count))) {
+      nav.navigate('Paywall');
+      return;
+    }
+    nav.navigate('ItemDetail', { category, id: null, newId: uid(category.slice(0, 3)) });
+  };
+
   // Tablets: lay item cards out two-per-row (location headers stay full-width).
   const { width } = useWindowDimensions();
   const twoCol = width >= 600;
@@ -147,12 +159,7 @@ export default function CategoryItemsSc() {
           <Text style={styles.title}>{meta.label}</Text>
           <Text style={styles.sub}>{meta.group} · {(byCategory[category] ?? []).length} items</Text>
         </View>
-        <TouchableOpacity
-          style={styles.addBtn}
-          onPress={() =>
-            nav.navigate('ItemDetail', { category, id: null, newId: uid(category.slice(0, 3)) })
-          }
-        >
+        <TouchableOpacity style={styles.addBtn} onPress={addItem}>
           <Text style={styles.addBtnText}>＋</Text>
         </TouchableOpacity>
       </View>

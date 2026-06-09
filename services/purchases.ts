@@ -12,6 +12,8 @@
 // purchasing isn't live yet.
 // ===================================
 
+import { Linking, Platform } from 'react-native';
+
 export const TRIAL_DAYS = 30;
 
 // Identifiers to configure in RevenueCat + App Store Connect / Play Console.
@@ -58,6 +60,21 @@ export async function restore(): Promise<boolean> {
   // TODO(revenuecat): const info = await Purchases.restorePurchases();
   //   return info.entitlements.active[ENTITLEMENT_ID] != null;
   return false;
+}
+
+/** Open the platform's subscription-management screen (App Store / Google Play). */
+export async function openManageSubscriptions(): Promise<void> {
+  const url = Platform.select({
+    ios: 'itms-apps://apps.apple.com/account/subscriptions',
+    android: 'https://play.google.com/store/account/subscriptions?package=com.kukalab.msm',
+    default: 'https://apps.apple.com/account/subscriptions',
+  })!;
+  try {
+    await Linking.openURL(url);
+  } catch {
+    // Fallback to the web URL if the store deep-link can't be opened.
+    if (Platform.OS === 'ios') await Linking.openURL('https://apps.apple.com/account/subscriptions').catch(() => {});
+  }
 }
 
 /** Whether the user currently has an active subscription. */

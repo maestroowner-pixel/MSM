@@ -68,6 +68,7 @@ const en: ManualContent = {
         'Dates are set with a calendar picker — tap the field, then choose year, month and day.',
         'Badges next to an item show 📎 N (attached files) and 📜 (covered by a certificate).',
         'Checklist categories (Hydrants, BA Bottle Pressure, Fire Detectors) have monthly check toggles in the item screen.',
+        'Inside a category, sort by Expiry date or by Position (grouped under location headers). On tablets the list shows two columns.',
       ],
     },
     {
@@ -195,6 +196,32 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🔔',
+      title: 'Expiry reminders',
+      body: [
+        'Settings → Modules → Expiry reminders schedules local notifications 60, 30 and 7 days before each item\'s inspection or expiry date.',
+        'The first time you turn it on, allow notifications when asked. Reminders stay in sync automatically as you add, edit or import items.',
+        'They are on-device only (no internet needed). With a large register the soonest reminders are scheduled first and the list refills as dates pass.',
+      ],
+    },
+    {
+      emoji: '🎨',
+      title: 'Appearance (themes)',
+      body: [
+        'Settings → Appearance switches the colour theme: Light (default), Dark and Colorful.',
+        'Colorful tints equipment icons by group — LSA green, FFE red, Other teal. Your choice is saved and applies across the whole app.',
+        'On tablets the Dashboard, Equipment, Certificates and Reports lists show two columns automatically.',
+      ],
+    },
+    {
+      emoji: '👑',
+      title: 'MSM Pro subscription',
+      body: [
+        'Settings → Marine Safety Manager Pro opens the plan: a 1-month free trial, then a yearly subscription. The price shown is your store\'s local price for your region.',
+        'Start the trial from that screen. "Restore purchase" re-activates a subscription on a new device; "Manage subscription" opens your App Store / Google Play subscription settings.',
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'About',
       body: [
@@ -241,6 +268,7 @@ const ru: ManualContent = {
         'Даты задаются календарём — нажмите поле и выберите год, месяц и день.',
         'Значки у позиции: 📎 N (прикреплённые файлы) и 📜 (покрыта сертификатом).',
         'У чек-лист категорий (Hydrants, BA Bottle Pressure, Fire Detectors) в карточке есть помесячные отметки проверок.',
+        'Внутри категории — сортировка по Expiry date или Position (с заголовками по расположению). На планшетах список показывается в две колонки.',
       ],
     },
     {
@@ -368,6 +396,32 @@ const ru: ManualContent = {
       ],
     },
     {
+      emoji: '🔔',
+      title: 'Напоминания о сроках',
+      body: [
+        'Settings → Modules → Expiry reminders планирует локальные уведомления за 60, 30 и 7 дней до даты проверки или истечения каждой позиции.',
+        'При первом включении разрешите уведомления. Напоминания автоматически синхронизируются при добавлении, изменении или импорте позиций.',
+        'Работают только на устройстве (интернет не нужен). При большом реестре сначала планируются ближайшие напоминания, список дозаполняется по мере прохождения дат.',
+      ],
+    },
+    {
+      emoji: '🎨',
+      title: 'Оформление (темы)',
+      body: [
+        'Settings → Appearance переключает тему: Light (по умолчанию), Dark и Colorful.',
+        'Colorful красит иконки оборудования по группам — LSA зелёный, FFE красный, Other бирюзовый. Выбор сохраняется и применяется во всём приложении.',
+        'На планшетах списки Dashboard, Equipment, Certificates и Reports автоматически показываются в две колонки.',
+      ],
+    },
+    {
+      emoji: '👑',
+      title: 'Подписка MSM Pro',
+      body: [
+        'Settings → Marine Safety Manager Pro открывает план: 1 месяц бесплатно, затем годовая подписка. Цена показывается локальная — из вашего магазина для вашего региона.',
+        'Триал запускается с этого экрана. "Restore purchase" восстанавливает подписку на новом устройстве; "Manage subscription" открывает настройки подписок App Store / Google Play.',
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'О приложении',
       body: [
@@ -414,6 +468,7 @@ const es: ManualContent = {
         'Las fechas se fijan con un calendario — pulse el campo y elija año, mes y día.',
         'Las insignias junto a un elemento muestran 📎 N (archivos adjuntos) y 📜 (cubierto por un certificado).',
         'Las categorías de lista de control (Hydrants, BA Bottle Pressure, Fire Detectors) tienen casillas mensuales en la ficha del elemento.',
+        'Dentro de una categoría, ordene por Expiry date o por Position (con encabezados por ubicación). En tabletas la lista se muestra en dos columnas.',
       ],
     },
     {
@@ -541,6 +596,32 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🔔',
+      title: 'Recordatorios de caducidad',
+      body: [
+        'Settings → Modules → Expiry reminders programa notificaciones locales 60, 30 y 7 días antes de la fecha de inspección o caducidad de cada elemento.',
+        'La primera vez que lo active, permita las notificaciones cuando se le pida. Los recordatorios se sincronizan automáticamente al añadir, editar o importar elementos.',
+        'Son solo en el dispositivo (sin internet). Con un registro grande se programan primero los recordatorios más próximos y la lista se rellena a medida que pasan las fechas.',
+      ],
+    },
+    {
+      emoji: '🎨',
+      title: 'Apariencia (temas)',
+      body: [
+        'Settings → Appearance cambia el tema de color: Light (por defecto), Dark y Colorful.',
+        'Colorful colorea los iconos de equipo por grupo — LSA verde, FFE rojo, Other turquesa. Su elección se guarda y se aplica en toda la app.',
+        'En tabletas, las listas de Dashboard, Equipment, Certificates y Reports se muestran en dos columnas automáticamente.',
+      ],
+    },
+    {
+      emoji: '👑',
+      title: 'Suscripción MSM Pro',
+      body: [
+        'Settings → Marine Safety Manager Pro abre el plan: 1 mes gratis y luego una suscripción anual. El precio mostrado es el local de su tienda para su región.',
+        'Inicie la prueba desde esa pantalla. "Restore purchase" reactiva una suscripción en un dispositivo nuevo; "Manage subscription" abre los ajustes de suscripciones de App Store / Google Play.',
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Acerca de',
       body: [
@@ -587,6 +668,7 @@ const uk: ManualContent = {
         'Дати задаються календарем — натисніть поле та виберіть рік, місяць і день.',
         'Значки біля позиції: 📎 N (прикріплені файли) та 📜 (покрита сертифікатом).',
         'У чек-лист категорій (Hydrants, BA Bottle Pressure, Fire Detectors) у картці є щомісячні позначки перевірок.',
+        'Усередині категорії — сортування за Expiry date або Position (із заголовками за розташуванням). На планшетах список показується у дві колонки.',
       ],
     },
     {
@@ -711,6 +793,32 @@ const uk: ManualContent = {
         'Натисніть Connect this device. Перший пристрій стає Master; решта очікують схвалення. Push вивантажує, Pull завантажує.',
         'Push / Pull синхронізують реєстр обладнання, сертифікати та журнали компресорів. Прикріплені файли (фото, документи сертифікатів) до хмари не завантажуються — для перенесення файлів використовуйте бекап .msm.',
         'Master може відключити пристрій або передати роль через "👑 Make master"; якщо Master втрачено, будь-який схвалений пристрій може "👑 Take over as Master". Кожне судно бачить лише свої дані.',
+      ],
+    },
+    {
+      emoji: '🔔',
+      title: 'Нагадування про терміни',
+      body: [
+        'Settings → Modules → Expiry reminders планує локальні сповіщення за 60, 30 і 7 днів до дати перевірки або закінчення кожної позиції.',
+        'Під час першого ввімкнення дозвольте сповіщення. Нагадування автоматично синхронізуються при додаванні, зміні чи імпорті позицій.',
+        'Працюють лише на пристрої (інтернет не потрібен). За великого реєстру спершу плануються найближчі нагадування, список дозаповнюється у міру проходження дат.',
+      ],
+    },
+    {
+      emoji: '🎨',
+      title: 'Оформлення (теми)',
+      body: [
+        'Settings → Appearance перемикає тему: Light (за замовчуванням), Dark і Colorful.',
+        'Colorful фарбує іконки обладнання за групами — LSA зелений, FFE червоний, Other бірюзовий. Вибір зберігається і діє в усьому застосунку.',
+        'На планшетах списки Dashboard, Equipment, Certificates і Reports автоматично показуються у дві колонки.',
+      ],
+    },
+    {
+      emoji: '👑',
+      title: 'Підписка MSM Pro',
+      body: [
+        'Settings → Marine Safety Manager Pro відкриває план: 1 місяць безкоштовно, далі річна підписка. Ціна показується локальна — з вашого магазину для вашого регіону.',
+        'Тріал запускається з цього екрана. "Restore purchase" відновлює підписку на новому пристрої; "Manage subscription" відкриває налаштування підписок App Store / Google Play.',
       ],
     },
     {

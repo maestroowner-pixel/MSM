@@ -12,8 +12,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SIZES, Palette, APP_CONFIG } from '../theme';
-import { useTheme } from '../contexts/ThemeContext';
-import { getOffer, purchaseYearly, restore, Offer } from '../services/purchases';
+import { useTheme, useThemeName } from '../contexts/ThemeContext';
+import { getOffer, purchaseYearly, restore, openManageSubscriptions, Offer } from '../services/purchases';
 
 type Feature = { icon: React.ComponentProps<typeof MaterialCommunityIcons>['name']; text: string };
 const FEATURES: Feature[] = [
@@ -27,7 +27,16 @@ const FEATURES: Feature[] = [
 export default function PaywallSc() {
   const nav = useNavigation<any>();
   const COLORS = useTheme();
+  const { name: themeName } = useThemeName();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+
+  // Colorful theme: tint each feature icon with a group colour (green/red/teal);
+  // in light/dark they're all the teal primary, so the paywall stays monochrome.
+  const accents =
+    themeName === 'colorful'
+      ? [COLORS.groupColors.LSA, COLORS.groupColors.FFE, COLORS.groupColors.OTHER]
+      : null;
+  const featureColor = (i: number) => (accents ? accents[i % accents.length] : COLORS.primary);
   const [offer, setOffer] = useState<Offer | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -88,9 +97,9 @@ export default function PaywallSc() {
           <Text style={styles.subtitle}>Everything you need to keep the ship's LSA & FFE register in order.</Text>
 
           <View style={styles.card}>
-            {FEATURES.map((f) => (
+            {FEATURES.map((f, i) => (
               <View key={f.text} style={styles.featureRow}>
-                <MaterialCommunityIcons name={f.icon} size={22} color={COLORS.primary} style={{ width: 28 }} />
+                <MaterialCommunityIcons name={f.icon} size={22} color={featureColor(i)} style={{ width: 28 }} />
                 <Text style={styles.featureText}>{f.text}</Text>
               </View>
             ))}
@@ -114,9 +123,15 @@ export default function PaywallSc() {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={onRestore} hitSlop={8} disabled={busy}>
-            <Text style={styles.restore}>Restore purchase</Text>
-          </TouchableOpacity>
+          <View style={styles.linksRow}>
+            <TouchableOpacity onPress={onRestore} hitSlop={8} disabled={busy}>
+              <Text style={styles.restore}>Restore purchase</Text>
+            </TouchableOpacity>
+            <Text style={styles.legalDot}>·</Text>
+            <TouchableOpacity onPress={() => openManageSubscriptions()} hitSlop={8}>
+              <Text style={styles.restore}>Manage subscription</Text>
+            </TouchableOpacity>
+          </View>
 
           <Text style={styles.fine}>
             Payment is charged to your store account at confirmation. The subscription renews automatically
@@ -189,6 +204,7 @@ const makeStyles = (COLORS: Palette) =>
       ...COLORS.shadowMd,
     },
     ctaText: { color: COLORS.textWhite, fontSize: SIZES.h5, fontWeight: '700' },
+    linksRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: SIZES.sm },
     restore: { color: COLORS.primary, fontSize: SIZES.body, fontWeight: '700', textAlign: 'center', paddingVertical: SIZES.xs },
     fine: { fontSize: SIZES.tiny, color: COLORS.textLight, textAlign: 'center', lineHeight: 15 },
     legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: SIZES.xs, paddingBottom: SIZES.xs },

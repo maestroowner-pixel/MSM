@@ -47,6 +47,7 @@
     },
     "plugins": [
       "expo-document-picker",
+      "expo-notifications",
       [
         "expo-av",
         {

@@ -10,6 +10,7 @@ import { Certificate } from '../types/certificate';
 import { CompressorState } from '../types/compressor';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from '../services/storage';
+import { rescheduleExpiryReminders } from '../services/notifications';
 
 interface DataContextType {
   loading: boolean;
@@ -49,13 +50,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const reload = useCallback(async () => {
     const all = await storage.loadAll();
+    const flatArr = CATEGORIES.flatMap((c) => all[c.key]);
     setByCategory(all);
-    setFlat(CATEGORIES.flatMap((c) => all[c.key]));
+    setFlat(flatArr);
     setCertificates(await storage.loadCertificates());
     setVesselState(await storage.loadVessel());
     setCompressorState(await storage.loadCompressor());
-    setPrefsState(await storage.loadPrefs());
+    const p = await storage.loadPrefs();
+    setPrefsState(p);
     setLoading(false);
+    // Keep expiry reminders in sync with the data (no-op unless enabled/supported).
+    if (p.notificationsEnabled) rescheduleExpiryReminders(flatArr);
   }, []);
 
   useEffect(() => {
