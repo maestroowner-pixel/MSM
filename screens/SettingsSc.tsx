@@ -41,6 +41,12 @@ export default function SettingsSc() {
   const [devBusy, setDevBusy] = useState(false);
   const [connPassword, setConnPassword] = useState('');
 
+  // Master-only: change the shared connection password (old → new ×2).
+  const [pwOpen, setPwOpen] = useState(false);
+  const [pwOld, setPwOld] = useState('');
+  const [pwNew, setPwNew] = useState('');
+  const [pwRep, setPwRep] = useState('');
+
   // Reset-all-data (password gated)
   const [resetVisible, setResetVisible] = useState(false);
   const [resetPw, setResetPw] = useState('');
@@ -167,6 +173,39 @@ export default function SettingsSc() {
     } catch (e: any) {
       playErrorSound();
       Alert.alert('Connection failed', String(e?.message ?? e));
+    } finally {
+      setDevBusy(false);
+    }
+  };
+
+  // Master-only: change the vessel connection password (current → new ×2).
+  const changePassword = async () => {
+    if (!isMaster) return;
+    if (!form.imo) {
+      Alert.alert('IMO required', 'Save the vessel IMO number first.');
+      return;
+    }
+    if (pwNew.trim().length < fb.MIN_PASSWORD_LENGTH) {
+      Alert.alert('Password too short', `New password must be at least ${fb.MIN_PASSWORD_LENGTH} characters.`);
+      return;
+    }
+    if (pwNew !== pwRep) {
+      Alert.alert('Passwords do not match', 'Re-enter the new password identically in both fields.');
+      return;
+    }
+    setDevBusy(true);
+    try {
+      await fb.changeConnectionPassword(form.imo, pwOld, pwNew);
+      setConnPassword(pwNew.trim());
+      setPwOld('');
+      setPwNew('');
+      setPwRep('');
+      setPwOpen(false);
+      playSuccessSound();
+      Alert.alert('Password changed', 'The connection password was updated. Other devices must enter the new password to keep syncing.');
+    } catch (e: any) {
+      playErrorSound();
+      Alert.alert('Change failed', String(e?.message ?? e));
     } finally {
       setDevBusy(false);
     }
@@ -670,6 +709,54 @@ export default function SettingsSc() {
           </TouchableOpacity>
         )}
 
+        {/* Master-only: change the connection password (current → new ×2) */}
+        {isMaster && fb.isConfigured() ? (
+          <View style={styles.devSection}>
+            <TouchableOpacity style={styles.changePwHead} onPress={() => setPwOpen((o) => !o)} activeOpacity={0.7}>
+              <Text style={styles.changePwTitle}>🔑 Change connection password</Text>
+              <Text style={styles.sectionChev}>{pwOpen ? '▾' : '▸'}</Text>
+            </TouchableOpacity>
+            {pwOpen ? (
+              <>
+                <TextInput
+                  style={styles.input}
+                  value={pwOld}
+                  onChangeText={setPwOld}
+                  placeholder="Current password"
+                  placeholderTextColor={COLORS.textLight}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <TextInput
+                  style={styles.input}
+                  value={pwNew}
+                  onChangeText={setPwNew}
+                  placeholder={`New password (at least ${fb.MIN_PASSWORD_LENGTH})`}
+                  placeholderTextColor={COLORS.textLight}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <TextInput
+                  style={styles.input}
+                  value={pwRep}
+                  onChangeText={setPwRep}
+                  placeholder="Repeat new password"
+                  placeholderTextColor={COLORS.textLight}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity style={[styles.connectBtn, { marginTop: SIZES.sm }]} onPress={changePassword} disabled={devBusy}>
+                  <Text style={styles.connectBtnText}>Update password</Text>
+                </TouchableOpacity>
+                <Text style={styles.pwHint}>Only the Master can change it. Other devices will need the new password to keep syncing.</Text>
+              </>
+            ) : null}
+          </View>
+        ) : null}
+
         {/* Pending approvals — only the Master can act */}
         {isMaster && pending.length > 0 ? (
           <View style={styles.devSection}>
@@ -880,6 +967,8 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   chev: { fontSize: SIZES.h3, color: COLORS.textLight },
   syncStatus: { fontSize: SIZES.small, color: COLORS.textLight, marginVertical: SIZES.sm },
   pwHint: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 4 },
+  changePwHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: SIZES.sm },
+  changePwTitle: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.primaryDark },
   connectBtn: {
     borderWidth: 1,
     borderColor: COLORS.primary,

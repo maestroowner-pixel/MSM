@@ -14,7 +14,7 @@
 // `react-native` export condition → clean RN build. (Same approach as MHM.)
 import { Platform, NativeModules } from 'react-native';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, initializeAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, Auth } from '@firebase/auth';
+import { getAuth, initializeAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updatePassword, Auth } from '@firebase/auth';
 import {
   getDatabase,
   ref as fbRef,
@@ -390,6 +390,46 @@ export async function signInVessel(imo: string, password: string): Promise<strin
     }
     throw e;
   }
+}
+
+/**
+ * Change the vessel's connection password (the shared Firebase Auth password).
+ * Verifies the OLD password first, then sets the new one. After this, other
+ * devices that stored the old password must re-enter the new one to sync.
+ * Master-only is enforced by the caller (UI). Returns nothing on success.
+ */
+export async function changeConnectionPassword(imo: string, oldPw: string, newPw: string): Promise<void> {
+  const email = imoEmail(imo);
+  const oldPass = (oldPw ?? '').trim();
+  const newPass = (newPw ?? '').trim();
+  if (newPass.length < MIN_PASSWORD_LENGTH) {
+    throw new Error(`New password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+  }
+  if (newPass === oldPass) throw new Error('New password must be different from the current one.');
+
+  if (onWindows) {
+    if (!isConfigured()) throw new Error('Firebase is not configured.');
+    // Verify the old password (and get a fresh idToken), then update it.
+    let idToken: string;
+    try {
+      const data = await authRest('signInWithPassword', { email, password: oldPass, returnSecureToken: true });
+      idToken = data.idToken;
+    } catch {
+      throw new Error('Wrong current password.');
+    }
+    const updated = await authRest('update', { idToken, password: newPass, returnSecureToken: true });
+    await persistWindowsAuth(updated);
+    await savePassword(newPass);
+    return;
+  }
+
+  // Re-authenticate by signing in with the OLD password (recent login lets
+  // updatePassword succeed), then set the new password on the current user.
+  await signInVessel(imo, oldPass); // throws "Wrong connection password…" if old is wrong
+  const auth = ensureInit().auth!;
+  if (!auth.currentUser) throw new Error('Not signed in.');
+  await updatePassword(auth.currentUser, newPass);
+  await savePassword(newPass);
 }
 
 export type ApprovalStatus = 'master' | 'approved' | 'pending';

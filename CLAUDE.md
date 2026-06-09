@@ -160,6 +160,13 @@ iPhone 17 Pro simulator: Dashboard/Settings render, 627 imported items, export w
 3. **Codegen** — don't `rm -rf ios/build` between `pod install` and the build; the React
    codegen specs (`ios/build/generated/...`) are produced at pod-install time. If you see
    "Build input file cannot be found … States.cpp", just re-run `pod install` and rebuild.
+4. **After ANY npm install / package add/remove/version change → `cd ios && pod install`.**
+   npm re-hoists `node_modules`, so an Expo module can move between `node_modules/expo/node_modules/<pkg>`
+   and top-level `node_modules/<pkg>`. The Pods project caches the old absolute path, so the iOS
+   build then fails with `lstat(... expo/node_modules/<pkg>/ios/...): No such file` (seen with
+   expo-font, expo-constants' PrivacyInfo.xcprivacy, …). `pod install` regenerates the paths; then
+   Clean Build Folder (⇧⌘K) / clear DerivedData and rebuild. (Mirrors the expo-font SDK-version
+   hazard above — node/native mismatches only surface in a real build, never in tsc or the JS bundle.)
 
 Note: `npx expo export` AOT-compiles with `hermesc`; the dev workflow (`expo start` / `run:ios`)
 is the validated path.
