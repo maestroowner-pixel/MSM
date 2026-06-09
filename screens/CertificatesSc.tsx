@@ -3,7 +3,7 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Screen, StatusPill, Empty, statusColor } from '../components/ui';
 import { SIZES, Palette } from '../theme';
@@ -19,6 +19,8 @@ export default function CertificatesSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const [q, setQ] = useState('');
+  const { width } = useWindowDimensions();
+  const cols = width >= 600 ? 2 : 1;
 
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -72,13 +74,16 @@ export default function CertificatesSc() {
       ) : (
         <FlatList
           data={list}
+          key={cols}
+          numColumns={cols}
+          columnWrapperStyle={cols > 1 ? { gap: SIZES.sm } : undefined}
           keyExtractor={(c) => c.id}
           contentContainerStyle={{ paddingBottom: SIZES.xxxl }}
           renderItem={({ item }) => {
             const status = statusFromDate(item.expiryDate);
             return (
               <TouchableOpacity
-                style={styles.row}
+                style={[styles.row, cols > 1 && { flex: 1 }]}
                 activeOpacity={0.7}
                 onPress={() => nav.navigate('CertificateDetail', { id: item.id })}
               >

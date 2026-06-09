@@ -5,7 +5,7 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Screen, ScreenTitle, Empty, statusColor, CategoryBadge } from '../components/ui';
 import { SIZES, Palette } from '../theme';
@@ -94,6 +94,33 @@ export default function DashboardSc() {
   const cycleGroup = () => setGroup((g) => GROUP_ORDER[(GROUP_ORDER.indexOf(g) + 1) % GROUP_ORDER.length]);
   const cycleSort = () => setSortBy((s) => SORT_ORDER[(SORT_ORDER.indexOf(s) + 1) % SORT_ORDER.length]);
 
+  // Tablets: two cards per row (location headers stay full-width).
+  const { width } = useWindowDimensions();
+  const twoCol = width >= 600;
+  const renderData = useMemo<(ListEntry | { kind: 'pair'; key: string; left: ListEntry; right?: ListEntry })[]>(() => {
+    if (!twoCol) return listData;
+    const out: (ListEntry | { kind: 'pair'; key: string; left: ListEntry; right?: ListEntry })[] = [];
+    for (let i = 0; i < listData.length; ) {
+      const e = listData[i];
+      if (e.kind === 'header') { out.push(e); i++; continue; }
+      const right = listData[i + 1]?.kind === 'row' ? listData[i + 1] : undefined;
+      out.push({ kind: 'pair', key: 'p:' + e.key, left: e, right });
+      i += right ? 2 : 1;
+    }
+    return out;
+  }, [listData, twoCol]);
+
+  const rowOf = (e: Extract<ListEntry, { kind: 'row' }>, fill?: boolean) => (
+    <DashRow
+      item={e.it}
+      status={e.status}
+      date={e.date}
+      days={e.days}
+      fill={fill}
+      onPress={() => nav.navigate('ItemDetail', { category: e.it.category, id: e.it.id })}
+    />
+  );
+
   return (
     <Screen contentStyle={{ paddingBottom: 0 }}>
       <ScreenTitle title="Dashboard" subtitle="Inspections & expiries, soonest first" />
@@ -119,7 +146,7 @@ export default function DashboardSc() {
         <Empty text={status || group !== 'ALL' ? 'No items match the current filters.' : 'No items with dates yet. Import the LSA/FFE workbook from Settings.'} />
       ) : (
         <FlatList
-          data={listData}
+          data={renderData}
           keyExtractor={(e) => e.key}
           contentContainerStyle={{ paddingBottom: SIZES.xxxl }}
           renderItem={({ item: e }) =>
@@ -128,14 +155,13 @@ export default function DashboardSc() {
                 <Text style={styles.posHeaderText} numberOfLines={1}>📍 {e.position}</Text>
                 <Text style={styles.posHeaderCount}>{e.count}</Text>
               </View>
+            ) : e.kind === 'pair' ? (
+              <View style={styles.pairRow}>
+                {rowOf(e.left as Extract<ListEntry, { kind: 'row' }>, true)}
+                {e.right ? rowOf(e.right as Extract<ListEntry, { kind: 'row' }>, true) : <View style={{ flex: 1 }} />}
+              </View>
             ) : (
-              <DashRow
-                item={e.it}
-                status={e.status}
-                date={e.date}
-                days={e.days}
-                onPress={() => nav.navigate('ItemDetail', { category: e.it.category, id: e.it.id })}
-              />
+              rowOf(e)
             )
           }
         />
@@ -177,12 +203,14 @@ function DashRow({
   date,
   days,
   onPress,
+  fill,
 }: {
   item: EquipmentItem;
   status: ComplianceStatus;
   date?: string;
   days?: number;
   onPress: () => void;
+  fill?: boolean;
 }) {
   const styles = useS();
   const meta = CATEGORY_MAP[item.category];
@@ -190,7 +218,7 @@ function DashRow({
   const daysText =
     days == null ? '' : days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? 'today' : `in ${days}d`;
   return (
-    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity style={[styles.row, fill && { flex: 1 }]} onPress={onPress} activeOpacity={0.7}>
       <View style={[styles.rowBar, { backgroundColor: statusColor(status) }]} />
       <View style={styles.rowEmoji}><CategoryBadge category={item.category} size={20} /></View>
       <View style={{ flex: 1 }}>
@@ -253,6 +281,7 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   },
   posHeaderText: { fontSize: SIZES.small, fontWeight: '800', color: COLORS.primaryDark, flex: 1 },
   posHeaderCount: { fontSize: SIZES.tiny, fontWeight: '700', color: COLORS.textLight, marginLeft: SIZES.sm },
+  pairRow: { flexDirection: 'row', gap: SIZES.sm, alignItems: 'stretch' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

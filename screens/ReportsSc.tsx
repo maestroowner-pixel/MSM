@@ -4,7 +4,7 @@
 // ===================================
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { Screen, ScreenTitle, Card, CategoryBadge } from '../components/ui';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
@@ -17,6 +17,8 @@ export default function ReportsSc() {
   const { byCategory, vessel, certificates } = useData();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+  const { width } = useWindowDimensions();
+  const twoCol = width >= 600;
   const [busy, setBusy] = useState(false);
 
   const nonEmpty = useMemo(
@@ -101,27 +103,29 @@ export default function ReportsSc() {
         </TouchableOpacity>
       </View>
 
-      {nonEmpty.map((c) => {
-        const on = selected.has(c.key);
-        const count = byCategory[c.key]?.length ?? 0;
-        return (
-          <TouchableOpacity
-            key={c.key}
-            activeOpacity={0.8}
-            onPress={() => toggle(c.key)}
-            style={[styles.panel, on && styles.panelOn]}
-          >
-            <CategoryBadge category={c.key} size={22} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.panelTitle}>{c.label}</Text>
-              <Text style={styles.panelSub}>{count} item{count === 1 ? '' : 's'}</Text>
-            </View>
-            <View style={[styles.check, on && styles.checkOn]}>
-              {on ? <Text style={styles.checkMark}>✓</Text> : null}
-            </View>
-          </TouchableOpacity>
-        );
-      })}
+      <View style={twoCol ? styles.gridWrap : undefined}>
+        {nonEmpty.map((c) => {
+          const on = selected.has(c.key);
+          const count = byCategory[c.key]?.length ?? 0;
+          return (
+            <TouchableOpacity
+              key={c.key}
+              activeOpacity={0.8}
+              onPress={() => toggle(c.key)}
+              style={[styles.panel, on && styles.panelOn, twoCol && styles.panelTablet]}
+            >
+              <CategoryBadge category={c.key} size={22} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.panelTitle} numberOfLines={1}>{c.label}</Text>
+                <Text style={styles.panelSub}>{count} item{count === 1 ? '' : 's'}</Text>
+              </View>
+              <View style={[styles.check, on && styles.checkOn]}>
+                {on ? <Text style={styles.checkMark}>✓</Text> : null}
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
       {busy ? (
         <ActivityIndicator color={COLORS.primary} style={{ marginVertical: SIZES.lg }} />
@@ -166,6 +170,8 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
     marginBottom: SIZES.sm,
   },
   panelOn: { borderColor: COLORS.primary, backgroundColor: COLORS.cardSolid },
+  gridWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.sm },
+  panelTablet: { flexBasis: '48%', flexGrow: 1, marginBottom: 0 },
   panelEmoji: { width: 24, alignItems: 'center' },
   panelTitle: { fontSize: SIZES.h5, color: COLORS.textDark, fontWeight: '600' },
   panelSub: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 1 },
