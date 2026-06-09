@@ -48,19 +48,36 @@ export default function SettingsSc() {
   const [open, setOpen] = useState<Record<string, boolean>>({ vessel: true });
 
   // Auto-hide: collapse the info panels after 4s of inactivity (the Vessel form
-  // is left open — it collapses on Save instead). Any tap/scroll resets the timer.
+  // is left open — it collapses on Save instead). Any tap/scroll resets the timer,
+  // and while the keyboard is up (user typing in a field) auto-hide is paused.
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const bumpActivity = () => {
+  const keyboardOpen = useRef(false);
+  const clearIdle = () => {
     if (idleTimer.current) clearTimeout(idleTimer.current);
+    idleTimer.current = null;
+  };
+  const bumpActivity = () => {
+    clearIdle();
+    if (keyboardOpen.current) return; // don't collapse while the user is entering data
     idleTimer.current = setTimeout(() => {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setOpen((o) => ({ vessel: o.vessel }));
     }, 4000);
   };
   useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => {
+      keyboardOpen.current = true;
+      clearIdle(); // pause while a field is focused
+    });
+    const hide = Keyboard.addListener('keyboardDidHide', () => {
+      keyboardOpen.current = false;
+      bumpActivity(); // restart the 4s countdown once the field is dismissed
+    });
     bumpActivity();
     return () => {
-      if (idleTimer.current) clearTimeout(idleTimer.current);
+      show.remove();
+      hide.remove();
+      clearIdle();
     };
   }, []);
 
@@ -427,6 +444,19 @@ export default function SettingsSc() {
         </View>
       </Card>
 
+      <TouchableOpacity activeOpacity={0.85} onPress={() => nav.navigate('Paywall')}>
+        <Card>
+          <View style={styles.proRow}>
+            <GlyphBadge emoji="⚓" size={20} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.proTitle}>{APP_CONFIG.name} Pro</Text>
+              <Text style={styles.proSub}>1 month free, then yearly — unlock everything</Text>
+            </View>
+            <Text style={styles.chev}>›</Text>
+          </View>
+        </Card>
+      </TouchableOpacity>
+
       <Card>
         <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('vessel')} activeOpacity={0.7}>
           <Label>Vessel</Label>
@@ -781,6 +811,9 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   themeChipOn: { borderColor: COLORS.primary, backgroundColor: COLORS.primary },
   themeChipText: { fontSize: SIZES.small, fontWeight: '700', color: COLORS.text },
   themeChipTextOn: { color: COLORS.textWhite },
+  proRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm },
+  proTitle: { fontSize: SIZES.h5, fontWeight: '800', color: COLORS.primaryDark },
+  proSub: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 1 },
   input: {
     ...COLORS.glassInput,
     borderRadius: SIZES.radiusMd,

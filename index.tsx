@@ -36,6 +36,7 @@ import LegalSc from './screens/LegalSc';
 import CertificatesSc from './screens/CertificatesSc';
 import CertificateDetailSc from './screens/CertificateDetailSc';
 import CompressorSc from './screens/CompressorSc';
+import PaywallSc from './screens/PaywallSc';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -167,6 +168,7 @@ function Root() {
         <Stack.Screen name="Manual" component={ManualSc} />
         <Stack.Screen name="Legal" component={LegalSc} />
         <Stack.Screen name="Compressor" component={CompressorSc} />
+        <Stack.Screen name="Paywall" component={PaywallSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="CertificateDetail" component={CertificateDetailSc} options={{ presentation: 'modal' }} />
       </Stack.Navigator>
       {showSplash ? (
