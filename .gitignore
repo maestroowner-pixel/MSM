@@ -1,0 +1,30 @@
+node_modules/
+.expo/
+dist/
+web-build/
+*.log
+*.swp
+.DS_Store
+ios/
+android/
+# react-native-windows project is generated on the Windows dev machine (see WINDOWS.md)
+windows/
+# macOS (react-native-macos) — keep the macos/ project, ignore generated output (see MACOS.md)
+macos/Pods/
+macos/build/
+macos/build-rel/
+macos/build*/
+macos/DerivedData/
+macos/.xcode.env.local
+*.binlog
+.env*.local
+
+# Android signing — NEVER commit the upload keystore or its passwords
+credentials/
+*.jks
+*.keystore
+!android/app/debug.keystore
+keystore.properties
+
+# JetBrains IDE
+.idea/
