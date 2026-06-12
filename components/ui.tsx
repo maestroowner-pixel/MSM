@@ -11,6 +11,8 @@ import {
   StyleProp,
   TextStyle,
   ScrollView,
+  Image,
+  ImageSourcePropType,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,6 +23,18 @@ import { ComplianceStatus, CategoryKey } from '../types/equipment';
 import { CATEGORY_MAP } from '../constants/categories';
 
 type GlyphName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+// Categories whose standard IMO/ISO safety pictogram is rendered from a white
+// silhouette PNG (the icon font has no matching glyph). Tinted to the icon colour.
+const CATEGORY_IMAGE_ICONS: Partial<Record<CategoryKey, ImageSourcePropType>> = {
+  liferafts: require('../assets/cat-icons/liferaft.png'),
+  lifejackets: require('../assets/cat-icons/lifejacket.png'),
+  immersion_suits: require('../assets/cat-icons/immersion-suit.png'),
+  inflatable_lifejackets: require('../assets/cat-icons/inflatable-lifejacket.png'),
+  eebd: require('../assets/cat-icons/eebd.png'),
+  fixed_co2: require('../assets/cat-icons/fixed-co2.png'),
+  fire_detectors: require('../assets/cat-icons/fire-detector.png'),
+};
 
 // Monochrome category glyph — single colour, used where a bare icon is wanted.
 export function CategoryIcon({
@@ -33,6 +47,10 @@ export function CategoryIcon({
   color?: string;
 }) {
   const c = useTheme();
+  const img = CATEGORY_IMAGE_ICONS[category];
+  if (img) {
+    return <Image source={img} style={{ width: size, height: size, tintColor: color ?? c.primaryDark }} />;
+  }
   return (
     <MaterialCommunityIcons
       name={CATEGORY_MAP[category].icon as GlyphName}
@@ -42,8 +60,18 @@ export function CategoryIcon({
   );
 }
 
-// Rounded chip with a white glyph inside — the standard icon container.
-export function IconChip({ name, size = 24, color }: { name: GlyphName; size?: number; color?: string }) {
+// Rounded chip with a white glyph (or silhouette image) inside — the standard icon container.
+export function IconChip({
+  name,
+  size = 24,
+  color,
+  image,
+}: {
+  name?: GlyphName;
+  size?: number;
+  color?: string;
+  image?: ImageSourcePropType;
+}) {
   const c = useTheme();
   const box = Math.round(size * 1.55);
   return (
@@ -57,7 +85,11 @@ export function IconChip({ name, size = 24, color }: { name: GlyphName; size?: n
         justifyContent: 'center',
       }}
     >
-      <MaterialCommunityIcons name={name} size={size} color={c.textWhite} />
+      {image ? (
+        <Image source={image} style={{ width: size, height: size, tintColor: c.textWhite }} />
+      ) : (
+        <MaterialCommunityIcons name={name} size={size} color={c.textWhite} />
+      )}
     </View>
   );
 }
@@ -67,7 +99,15 @@ export function IconChip({ name, size = 24, color }: { name: GlyphName; size?: n
 export function CategoryBadge({ category, size = 24 }: { category: CategoryKey; size?: number }) {
   const c = useTheme();
   const group = CATEGORY_MAP[category].group;
-  return <IconChip name={CATEGORY_MAP[category].icon as GlyphName} size={size} color={c.groupColors[group]} />;
+  const img = CATEGORY_IMAGE_ICONS[category];
+  return (
+    <IconChip
+      name={CATEGORY_MAP[category].icon as GlyphName}
+      image={img}
+      size={size}
+      color={c.groupColors[group]}
+    />
+  );
 }
 
 // Maps the legacy section/row emojis to a monochrome glyph (Manual, Settings, tabs).
