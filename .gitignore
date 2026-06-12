@@ -28,3 +28,7 @@ keystore.properties
 
 # JetBrains IDE
 .idea/
+
+# Xcode per-user state
+macos/**/xcuserdata/
+*.xcuserstate
