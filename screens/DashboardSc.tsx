@@ -17,14 +17,16 @@ import { ComplianceStatus, EquipmentItem, Group } from '../types/equipment';
 
 type GroupFilter = 'ALL' | Group;
 type StatusFilter = 'expired' | 'due' | 'ok' | null;
-type SortBy = 'date' | 'position';
+type SortBy = 'date' | 'position' | 'name' | 'type';
 
 const NO_POSITION = '— No position';
 
 const GROUP_ORDER: GroupFilter[] = ['ALL', 'LSA', 'FFE', 'OTHER'];
 const GROUP_LABEL: Record<GroupFilter, string> = { ALL: 'All groups', LSA: 'LSA', FFE: 'FFE', OTHER: 'Other' };
-const SORT_ORDER: SortBy[] = ['date', 'position'];
-const SORT_LABEL: Record<SortBy, string> = { date: 'Expiry date', position: 'Position' };
+const SORT_ORDER: SortBy[] = ['date', 'position', 'name', 'type'];
+const SORT_LABEL: Record<SortBy, string> = { date: 'Expiry date', position: 'Position', name: 'Name', type: 'Type' };
+
+const titleOf = (it: EquipmentItem) => (it.type || (it.no != null ? `#${it.no}` : '')).toLowerCase();
 
 interface Scored {
   it: EquipmentItem;
@@ -33,14 +35,19 @@ interface Scored {
   days?: number;
 }
 type ListEntry =
-  | { kind: 'header'; key: string; position: string; count: number }
+  | { kind: 'header'; key: string; position: string; count: number; icon: string }
   | ({ kind: 'row'; key: string } & Scored);
 
 export default function DashboardSc() {
-  const { flat, loading } = useData();
+  const { flat, loading, certificates } = useData();
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useS();
+  const certItemIds = useMemo(() => {
+    const s = new Set<string>();
+    certificates.forEach((c) => c.itemIds.forEach((id) => s.add(id)));
+    return s;
+  }, [certificates]);
   const [group, setGroup] = useState<GroupFilter>('ALL');
   const [status, setStatus] = useState<StatusFilter>(null);
   const [sortBy, setSortBy] = useState<SortBy>('date');
@@ -65,24 +72,31 @@ export default function DashboardSc() {
     if (sortBy === 'date') {
       rows = [...rows].sort(byDays);
       listData = rows.map((r) => ({ kind: 'row', key: r.it.id, ...r }));
+    } else if (sortBy === 'name') {
+      rows = [...rows].sort((a, b) => titleOf(a.it).localeCompare(titleOf(b.it)));
+      listData = rows.map((r) => ({ kind: 'row', key: r.it.id, ...r }));
     } else {
-      // Group by position, alphabetical, with a header per location.
-      const byPos = new Map<string, Scored[]>();
+      // Group with a header per location (position) or per equipment category (type).
+      const byType = sortBy === 'type';
+      const NONE = byType ? '— Other' : NO_POSITION;
+      const keyOf = (r: Scored) =>
+        byType ? CATEGORY_MAP[r.it.category].label : (r.it.position ?? '').trim() || NO_POSITION;
+      const groups = new Map<string, Scored[]>();
       for (const r of rows) {
-        const pos = (r.it.position ?? '').trim() || NO_POSITION;
-        const arr = byPos.get(pos);
+        const k = keyOf(r) || NONE;
+        const arr = groups.get(k);
         if (arr) arr.push(r);
-        else byPos.set(pos, [r]);
+        else groups.set(k, [r]);
       }
-      const positions = [...byPos.keys()].sort((a, b) => {
-        if (a === NO_POSITION) return 1;
-        if (b === NO_POSITION) return -1;
+      const keys = [...groups.keys()].sort((a, b) => {
+        if (a === NONE) return 1;
+        if (b === NONE) return -1;
         return a.localeCompare(b);
       });
       listData = [];
-      for (const pos of positions) {
-        const items = byPos.get(pos)!.sort(byDays);
-        listData.push({ kind: 'header', key: `h:${pos}`, position: pos, count: items.length });
+      for (const k of keys) {
+        const items = groups.get(k)!.sort(byDays);
+        listData.push({ kind: 'header', key: `h:${k}`, position: k, count: items.length, icon: byType ? '🏷️' : '📍' });
         for (const r of items) listData.push({ kind: 'row', key: r.it.id, ...r });
       }
     }
@@ -117,6 +131,7 @@ export default function DashboardSc() {
       date={e.date}
       days={e.days}
       fill={fill}
+      hasCert={certItemIds.has(e.it.id)}
       onPress={() => nav.navigate('ItemDetail', { category: e.it.category, id: e.it.id })}
     />
   );
@@ -152,7 +167,7 @@ export default function DashboardSc() {
           renderItem={({ item: e }) =>
             e.kind === 'header' ? (
               <View style={styles.posHeader}>
-                <Text style={styles.posHeaderText} numberOfLines={1}>📍 {e.position}</Text>
+                <Text style={styles.posHeaderText} numberOfLines={1}>{e.icon} {e.position}</Text>
                 <Text style={styles.posHeaderCount}>{e.count}</Text>
               </View>
             ) : e.kind === 'pair' ? (
@@ -204,6 +219,7 @@ function DashRow({
   days,
   onPress,
   fill,
+  hasCert,
 }: {
   item: EquipmentItem;
   status: ComplianceStatus;
@@ -211,20 +227,34 @@ function DashRow({
   days?: number;
   onPress: () => void;
   fill?: boolean;
+  hasCert?: boolean;
 }) {
   const styles = useS();
   const meta = CATEGORY_MAP[item.category];
   const title = item.type || (item.no != null ? `#${item.no}` : meta.short);
   const daysText =
     days == null ? '' : days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? 'today' : `in ${days}d`;
+  const attCount = item.attachments?.length ?? 0;
   return (
     <TouchableOpacity style={[styles.row, fill && { flex: 1 }]} onPress={onPress} activeOpacity={0.7}>
       <View style={[styles.rowBar, { backgroundColor: statusColor(status) }]} />
       <View style={styles.rowEmoji}><CategoryBadge category={item.category} size={20} /></View>
       <View style={{ flex: 1 }}>
-        <Text style={styles.rowTitle} numberOfLines={1}>
-          {title}
-        </Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.rowTitle} numberOfLines={1}>
+            {title}
+          </Text>
+          {attCount > 0 ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{'📎'.repeat(attCount)}</Text>
+            </View>
+          ) : null}
+          {hasCert ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>📜</Text>
+            </View>
+          ) : null}
+        </View>
         <Text style={styles.rowSub} numberOfLines={1}>
           {meta.short}
           {item.position ? ` · ${item.position}` : ''}
@@ -295,7 +325,10 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   },
   rowBar: { width: 5, alignSelf: 'stretch', marginRight: SIZES.md },
   rowEmoji: { marginRight: SIZES.sm, alignItems: 'center', justifyContent: 'center' },
-  rowTitle: { fontSize: SIZES.h5, fontWeight: '600', color: COLORS.textDark },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.xs },
+  rowTitle: { fontSize: SIZES.h5, fontWeight: '600', color: COLORS.textDark, flexShrink: 1 },
+  badge: { backgroundColor: 'rgba(46,125,153,0.12)', borderRadius: SIZES.radiusSm, paddingHorizontal: 6, paddingVertical: 1 },
+  badgeText: { fontSize: SIZES.tiny, color: COLORS.primaryDark, fontWeight: '700' },
   rowSub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 1 },
   rowDate: { fontSize: SIZES.body, fontWeight: '700' },
   rowDays: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 1 },

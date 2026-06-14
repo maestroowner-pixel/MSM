@@ -24,8 +24,9 @@ import { useData } from '../contexts/DataContext';
 import { Certificate } from '../types/certificate';
 import { CATEGORY_MAP } from '../constants/categories';
 import { statusFromDate, formatDate } from '../utils/dates';
-import { pickDocument, pickFromLibrary, pickFromCamera, openFile, deleteFile, PickedFile } from '../services/attachments';
+import { pickDocument, pickFromLibrary, pickFromCamera, openFile, deleteFile, resolveUri, PickedFile } from '../services/attachments';
 import { playSuccessSound } from '../utils/sound';
+import SimpleDatePicker from '../components/SimpleDatePicker';
 
 export default function CertificateDetailSc() {
   const route = useRoute<any>();
@@ -168,7 +169,7 @@ export default function CertificateDetailSc() {
         ) : (
           <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
             <View style={styles.titleRow}>
-              <Text style={styles.emoji}>{draft.fileKind === 'photo' ? '🖼️' : '📜'}</Text>
+              <Text style={styles.emoji}>📜</Text>
               {!isNew ? <StatusPill status={status} /> : null}
             </View>
 
@@ -176,7 +177,7 @@ export default function CertificateDetailSc() {
             <Field label="Number" value={draft.number} onChange={(v) => set({ number: v })} />
             <Field label="Issuer / station" value={draft.issuer} onChange={(v) => set({ issuer: v })} />
             <DateField label="Issue date" value={draft.issueDate} onChange={(v) => set({ issueDate: v })} />
-            <DateField label="Expiry date ★" value={draft.expiryDate} onChange={(v) => set({ expiryDate: v })} />
+            <DateField label="Expiry date ★" value={draft.expiryDate} onChange={(v) => set({ expiryDate: v })} defaultYear={new Date().getFullYear() + 5} />
 
             {/* File */}
             <View style={styles.card}>
@@ -184,7 +185,7 @@ export default function CertificateDetailSc() {
               {draft.fileUri ? (
                 <View style={{ marginTop: SIZES.sm }}>
                   {draft.fileKind === 'photo' ? (
-                    <Image source={{ uri: draft.fileUri }} style={styles.preview} resizeMode="cover" />
+                    <Image source={{ uri: resolveUri(draft.fileUri) }} style={styles.preview} resizeMode="cover" />
                   ) : (
                     <View style={styles.docRow}>
                       <Text style={{ fontSize: 28 }}>📄</Text>
@@ -273,21 +274,21 @@ function Field({ label, value, onChange }: { label: string; value?: string; onCh
   );
 }
 
-function DateField({ label, value, onChange }: { label: string; value?: string; onChange: (v: string) => void }) {
-  const COLORS = useTheme();
+function DateField({
+  label,
+  value,
+  onChange,
+  defaultYear,
+}: {
+  label: string;
+  value?: string;
+  onChange: (v: string) => void;
+  defaultYear?: number;
+}) {
   const styles = useS();
   return (
     <View style={styles.fieldWrap}>
-      <Label>{label} (YYYY-MM-DD)</Label>
-      <TextInput
-        style={styles.input}
-        value={value ?? ''}
-        onChangeText={onChange}
-        placeholder="YYYY-MM-DD"
-        placeholderTextColor={COLORS.textLight}
-        autoCapitalize="none"
-      />
-      {value ? <Text style={styles.dateHint}>{formatDate(value)}</Text> : null}
+      <SimpleDatePicker label={label} value={value} onChange={onChange} defaultYear={defaultYear} />
     </View>
   );
 }

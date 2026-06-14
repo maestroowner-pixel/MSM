@@ -66,9 +66,9 @@ const en: ManualContent = {
         'The Equipment tab shows a grid of all categories with item counts and a coloured dot for the worst status inside.',
         'Tap a category to see its items; use the search box to filter by type, serial or position. Tap ＋ to add a new item by hand.',
         'Dates are set with a calendar picker — tap the field, then choose year, month and day.',
-        'Badges next to an item show 📎 N (attached files) and 📜 (covered by a certificate).',
+        'Badges next to an item show one paperclip per attached file (📎) and 📜 when a certificate covers it.',
         'Checklist categories (Hydrants, BA Bottle Pressure, Fire Detectors) have monthly check toggles in the item screen.',
-        'Inside a category, sort by Expiry date or by Position (grouped under location headers). On tablets the list shows two columns.',
+        'Inside a category, sort by Expiry date, Position, Name (A–Z) or Type — Position and Type group items under headers. On tablets the list shows two columns.',
       ],
     },
     {
@@ -77,7 +77,8 @@ const en: ManualContent = {
       body: [
         'Each item can hold up to 4 attachments — photos or documents (PDF, etc.) — in the "Photos & documents" block of the item screen.',
         'Tap the dashed ＋ Add slot to take a photo, pick from the library, or choose a document.',
-        'Tap a photo to open it full-screen (Open / Share); tap a document to open it in the system viewer. Remove with the ✕ on its thumbnail.',
+        'Tap a photo to open it full-screen (Open / Share); tap a document to open it in the system viewer.',
+        'Long-press any attachment for its edit menu — Download / Share, Rename, Replace or Delete.',
       ],
     },
     {
@@ -85,9 +86,9 @@ const en: ManualContent = {
       title: 'Certificates',
       body: [
         'The Certificates tab holds documents that cover many items at once — e.g. a single liferaft service certificate applying to several rafts (a "group certificate").',
-        'Open a certificate to set its number, issue/expiry dates and attached file, and to link the items it covers.',
+        'Open a certificate to set its number, issue/expiry dates (calendar picker) and attached file, and to link the items it covers.',
         'A certificate carries its own expiry status (red / amber / green), so it appears in your due-soon view.',
-        'On an item screen, covering certificates are listed; items covered show a 📜 badge.',
+        'On an item screen, covering certificates are listed — tap ＋ Link to attach an existing certificate to that item (it is saved straight away). Items covered show a 📜 badge.',
       ],
     },
     {
@@ -108,7 +109,7 @@ const en: ManualContent = {
         'The Dashboard lists every item that has a date, sorted soonest-first, so the most urgent work is on top.',
         `Status colours: red = Expired (date in the past), amber = Due soon (within ${DUE_SOON_DAYS} days), green = Valid.`,
         'Tap a counter (Expired / Due soon / Valid) to filter the list to that status; tap again to clear.',
-        'Filter by group (All · LSA · FFE · Other) and sort by Expiry date or by Position — the Position view groups items under their location with a count.',
+        'Filter by group (All · LSA · FFE · Other) and sort by Expiry date, Position, Name or Type — Position groups items by location and Type groups them by equipment category, each with a count.',
       ],
     },
     {
@@ -267,9 +268,9 @@ const ru: ManualContent = {
         'Вкладка Equipment показывает сетку всех категорий с количеством позиций и цветной точкой худшего статуса внутри.',
         'Нажмите категорию, чтобы увидеть позиции; поиском фильтруйте по типу, серийному номеру или расположению. ＋ добавляет новую позицию вручную.',
         'Даты задаются календарём — нажмите поле и выберите год, месяц и день.',
-        'Значки у позиции: 📎 N (прикреплённые файлы) и 📜 (покрыта сертификатом).',
+        'Значки у позиции: по одной скрепке на каждый прикреплённый файл (📎) и 📜, если её покрывает сертификат.',
         'У чек-лист категорий (Hydrants, BA Bottle Pressure, Fire Detectors) в карточке есть помесячные отметки проверок.',
-        'Внутри категории — сортировка по Expiry date или Position (с заголовками по расположению). На планшетах список показывается в две колонки.',
+        'Внутри категории — сортировка по Expiry date, Position, Name (А–Я) или Type; в режимах Position и Type позиции группируются под заголовками. На планшетах список показывается в две колонки.',
       ],
     },
     {
@@ -278,7 +279,8 @@ const ru: ManualContent = {
       body: [
         'К каждой позиции можно прикрепить до 4 вложений — фото или документы (PDF и т. п.) — в блоке "Photos & documents" карточки.',
         'Нажмите пунктирный слот ＋ Add: снять фото, выбрать из галереи или выбрать документ.',
-        'Тап по фото открывает его на весь экран (Open / Share); тап по документу — в системном просмотрщике. Удаление — крестиком ✕ на миниатюре.',
+        'Тап по фото открывает его на весь экран (Open / Share); тап по документу — в системном просмотрщике.',
+        'Долгий тап по вложению открывает меню редактирования — Download / Share, Rename, Replace или Delete.',
       ],
     },
     {
@@ -286,9 +288,9 @@ const ru: ManualContent = {
       title: 'Сертификаты',
       body: [
         'Вкладка Certificates хранит документы, покрывающие сразу много позиций — например, один сервисный сертификат на несколько плотов ("групповой сертификат").',
-        'Откройте сертификат, чтобы задать номер, даты выдачи/окончания, прикреплённый файл и связать покрываемые позиции.',
+        'Откройте сертификат, чтобы задать номер, даты выдачи/окончания (через календарь), прикреплённый файл и связать покрываемые позиции.',
         'У сертификата свой статус срока (красный / жёлтый / зелёный), поэтому он попадает в список «скоро истекает».',
-        'В карточке позиции перечислены покрывающие её сертификаты; покрытые позиции отмечены значком 📜.',
+        'В карточке позиции перечислены покрывающие её сертификаты — нажмите ＋ Link, чтобы привязать к позиции существующий сертификат (сохраняется сразу). Покрытые позиции отмечены значком 📜.',
       ],
     },
     {
@@ -309,7 +311,7 @@ const ru: ManualContent = {
         'Дашборд перечисляет все позиции с датой, по возрастанию срока — самое срочное сверху.',
         `Цвета статуса: красный = Expired (дата в прошлом), жёлтый = Due soon (в пределах ${DUE_SOON_DAYS} дней), зелёный = Valid.`,
         'Нажмите счётчик (Expired / Due soon / Valid), чтобы отфильтровать список по статусу; повторный тап снимает фильтр.',
-        'Фильтр по группе (All · LSA · FFE · Other) и сортировка по Expiry date или Position — в режиме Position позиции группируются по расположению с количеством.',
+        'Фильтр по группе (All · LSA · FFE · Other) и сортировка по Expiry date, Position, Name или Type — Position группирует по расположению, а Type — по категории оборудования, каждая с количеством.',
       ],
     },
     {
@@ -468,9 +470,9 @@ const es: ManualContent = {
         'La pestaña Equipment muestra una cuadrícula de todas las categorías con el recuento de elementos y un punto de color con el peor estado del interior.',
         'Pulse una categoría para ver sus elementos; filtre por tipo, serie o ubicación con el buscador. ＋ añade un elemento a mano.',
         'Las fechas se fijan con un calendario — pulse el campo y elija año, mes y día.',
-        'Las insignias junto a un elemento muestran 📎 N (archivos adjuntos) y 📜 (cubierto por un certificado).',
+        'Las insignias junto a un elemento muestran un clip por cada archivo adjunto (📎) y 📜 cuando lo cubre un certificado.',
         'Las categorías de lista de control (Hydrants, BA Bottle Pressure, Fire Detectors) tienen casillas mensuales en la ficha del elemento.',
-        'Dentro de una categoría, ordene por Expiry date o por Position (con encabezados por ubicación). En tabletas la lista se muestra en dos columnas.',
+        'Dentro de una categoría, ordene por Expiry date, Position, Name (A–Z) o Type — Position y Type agrupan los elementos bajo encabezados. En tabletas la lista se muestra en dos columnas.',
       ],
     },
     {
@@ -479,7 +481,8 @@ const es: ManualContent = {
       body: [
         'Cada elemento admite hasta 4 adjuntos — fotos o documentos (PDF, etc.) — en el bloque "Photos & documents" de la ficha.',
         'Pulse la casilla punteada ＋ Add para tomar una foto, elegir de la galería o seleccionar un documento.',
-        'Pulse una foto para abrirla a pantalla completa (Open / Share); pulse un documento para abrirlo en el visor del sistema. Quítelo con la ✕ de su miniatura.',
+        'Pulse una foto para abrirla a pantalla completa (Open / Share); pulse un documento para abrirlo en el visor del sistema.',
+        'Mantenga pulsado un adjunto para su menú de edición — Download / Share, Rename, Replace o Delete.',
       ],
     },
     {
@@ -487,9 +490,9 @@ const es: ManualContent = {
       title: 'Certificados',
       body: [
         'La pestaña Certificates guarda documentos que cubren varios elementos a la vez — p. ej. un único certificado de servicio de balsas para varias balsas ("certificado de grupo").',
-        'Abra un certificado para fijar su número, fechas de emisión/caducidad y archivo adjunto, y vincular los elementos que cubre.',
+        'Abra un certificado para fijar su número, fechas de emisión/caducidad (con el calendario) y archivo adjunto, y vincular los elementos que cubre.',
         'El certificado tiene su propio estado de caducidad (rojo / ámbar / verde), por lo que aparece en su vista de «próximos a vencer».',
-        'En la ficha de un elemento se listan los certificados que lo cubren; los elementos cubiertos muestran una insignia 📜.',
+        'En la ficha de un elemento se listan los certificados que lo cubren — pulse ＋ Link para vincular un certificado existente a ese elemento (se guarda al instante). Los elementos cubiertos muestran una insignia 📜.',
       ],
     },
     {
@@ -510,7 +513,7 @@ const es: ManualContent = {
         'El panel lista todo elemento con fecha, ordenado por vencimiento más próximo primero.',
         `Colores de estado: rojo = Expired (fecha pasada), ámbar = Due soon (dentro de ${DUE_SOON_DAYS} días), verde = Valid.`,
         'Pulse un contador (Expired / Due soon / Valid) para filtrar la lista por ese estado; púlselo de nuevo para quitarlo.',
-        'Filtre por grupo (All · LSA · FFE · Other) y ordene por Expiry date o por Position — la vista Position agrupa por ubicación con recuento.',
+        'Filtre por grupo (All · LSA · FFE · Other) y ordene por Expiry date, Position, Name o Type — Position agrupa por ubicación y Type por categoría de equipo, cada una con recuento.',
       ],
     },
     {
@@ -669,9 +672,9 @@ const uk: ManualContent = {
         'Вкладка Equipment показує сітку всіх категорій з кількістю позицій і кольоровою точкою найгіршого статусу всередині.',
         'Натисніть категорію, щоб побачити позиції; пошуком фільтруйте за типом, серійним номером або розташуванням. ＋ додає нову позицію вручну.',
         'Дати задаються календарем — натисніть поле та виберіть рік, місяць і день.',
-        'Значки біля позиції: 📎 N (прикріплені файли) та 📜 (покрита сертифікатом).',
+        'Значки біля позиції: по одній скріпці на кожен прикріплений файл (📎) та 📜, якщо її покриває сертифікат.',
         'У чек-лист категорій (Hydrants, BA Bottle Pressure, Fire Detectors) у картці є щомісячні позначки перевірок.',
-        'Усередині категорії — сортування за Expiry date або Position (із заголовками за розташуванням). На планшетах список показується у дві колонки.',
+        'Усередині категорії — сортування за Expiry date, Position, Name (А–Я) або Type; у режимах Position і Type позиції групуються під заголовками. На планшетах список показується у дві колонки.',
       ],
     },
     {
@@ -680,7 +683,8 @@ const uk: ManualContent = {
       body: [
         'До кожної позиції можна прикріпити до 4 вкладень — фото або документи (PDF тощо) — у блоці "Photos & documents" картки.',
         'Натисніть пунктирний слот ＋ Add: зробити фото, вибрати з галереї або обрати документ.',
-        'Тап по фото відкриває його на весь екран (Open / Share); тап по документу — у системному перегляді. Видалення — хрестиком ✕ на мініатюрі.',
+        'Тап по фото відкриває його на весь екран (Open / Share); тап по документу — у системному перегляді.',
+        'Довгий тап по вкладенні відкриває меню редагування — Download / Share, Rename, Replace або Delete.',
       ],
     },
     {
@@ -688,9 +692,9 @@ const uk: ManualContent = {
       title: 'Сертифікати',
       body: [
         'Вкладка Certificates зберігає документи, що покривають одразу багато позицій — наприклад, один сервісний сертифікат на кілька плотів ("груповий сертифікат").',
-        'Відкрийте сертифікат, щоб задати номер, дати видачі/закінчення, прикріплений файл і пов’язати позиції, які він покриває.',
+        'Відкрийте сертифікат, щоб задати номер, дати видачі/закінчення (через календар), прикріплений файл і пов’язати позиції, які він покриває.',
         'Сертифікат має власний статус терміну (червоний / жовтий / зелений), тож потрапляє у список «скоро спливає».',
-        'У картці позиції перелічені сертифікати, що її покривають; покриті позиції позначені значком 📜.',
+        'У картці позиції перелічені сертифікати, що її покривають — натисніть ＋ Link, щоб прив’язати до позиції наявний сертифікат (зберігається одразу). Покриті позиції позначені значком 📜.',
       ],
     },
     {
@@ -711,7 +715,7 @@ const uk: ManualContent = {
         'Панель перелічує всі позиції з датою, за зростанням терміну — найтерміновіше зверху.',
         `Кольори статусу: червоний = Expired (дата в минулому), жовтий = Due soon (у межах ${DUE_SOON_DAYS} днів), зелений = Valid.`,
         'Натисніть лічильник (Expired / Due soon / Valid), щоб відфільтрувати список за статусом; повторний тап знімає фільтр.',
-        'Фільтр за групою (All · LSA · FFE · Other) і сортування за Expiry date або Position — у режимі Position позиції групуються за розташуванням із кількістю.',
+        'Фільтр за групою (All · LSA · FFE · Other) і сортування за Expiry date, Position, Name або Type — Position групує за розташуванням, а Type — за категорією обладнання, кожна з кількістю.',
       ],
     },
     {

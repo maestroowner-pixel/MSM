@@ -93,7 +93,7 @@ export default function CertificatesSc() {
                 onPress={() => nav.navigate('CertificateDetail', { id: item.id })}
               >
                 <View style={[styles.bar, { backgroundColor: statusColor(status) }]} />
-                <Text style={styles.rowEmoji}>{item.fileKind === 'photo' ? '🖼️' : '📜'}</Text>
+                <Text style={styles.rowEmoji}>📜</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowTitle} numberOfLines={1}>
                     {item.name || 'Untitled certificate'}

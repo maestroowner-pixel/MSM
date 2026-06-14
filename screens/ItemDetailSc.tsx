@@ -18,7 +18,7 @@ import { Attachment, CategoryKey, EquipmentItem } from '../types/equipment';
 import { computeStatus, statusFromDate, formatDate } from '../utils/dates';
 import { playSuccessSound } from '../utils/sound';
 import { uid } from '../utils/id';
-import { pickDocument, pickFromLibrary, pickFromCamera, openFile, deleteFile, PickedFile } from '../services/attachments';
+import { pickDocument, pickFromLibrary, pickFromCamera, openFile, deleteFile, resolveUri, PickedFile } from '../services/attachments';
 import SimpleDatePicker from '../components/SimpleDatePicker';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -30,7 +30,7 @@ export default function ItemDetailSc() {
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useS();
-  const { byCategory, saveItem, removeItem, certificates } = useData();
+  const { byCategory, saveItem, removeItem, certificates, saveCertificate } = useData();
 
   const category: CategoryKey = route.params.category;
   const id: string | null = route.params.id ?? null;
@@ -50,6 +50,9 @@ export default function ItemDetailSc() {
   );
   const isNew = !existing;
   const [preview, setPreview] = useState<Attachment | null>(null);
+  const [renaming, setRenaming] = useState<Attachment | null>(null);
+  const [renameText, setRenameText] = useState('');
+  const [certPicker, setCertPicker] = useState(false);
   // Attachment slot size is computed from the grid width so the 4 slots fill
   // the row evenly (no fixed width → no empty gap on the right).
   const [slot, setSlot] = useState(78);
@@ -60,6 +63,31 @@ export default function ItemDetailSc() {
     () => certificates.filter((c) => c.itemIds.includes(draft.id)),
     [certificates, draft.id]
   );
+
+  // The item↔certificate link is stored on the certificate (itemIds), so we
+  // persist it straight to the certificate — independent of this item's Save
+  // button — otherwise linking from here would be lost on save.
+  const toggleCert = async (certId: string) => {
+    const cert = certificates.find((c) => c.id === certId);
+    if (!cert) return;
+    const has = cert.itemIds.includes(draft.id);
+    const itemIds = has ? cert.itemIds.filter((x) => x !== draft.id) : [...cert.itemIds, draft.id];
+    await saveCertificate({ ...cert, itemIds, updatedAt: Date.now() });
+  };
+
+  // Row tap previews the certificate's file (image full-screen, document via the
+  // OS viewer); the chevron opens the full certificate screen. No file → open it.
+  const previewCert = (c: (typeof certificates)[number]) => {
+    if (!c.fileUri) {
+      nav.navigate('CertificateDetail', { id: c.id });
+      return;
+    }
+    if (c.fileKind === 'photo') {
+      setPreview({ id: c.id, kind: 'photo', uri: c.fileUri, name: c.fileName ?? c.name, addedAt: 0 });
+    } else {
+      openFile(c.fileUri);
+    }
+  };
 
   const addAttachment = (picker: () => Promise<PickedFile | null>) => async () => {
     const f = await picker();
@@ -80,6 +108,52 @@ export default function ItemDetailSc() {
   const removeAttachment = async (att: Attachment) => {
     await deleteFile(att.uri);
     set({ attachments: (draft.attachments ?? []).filter((a) => a.id !== att.id) });
+  };
+
+  // Replace a file in place (keeps its slot/order); deletes the old binary.
+  const replaceWith = (att: Attachment, picker: () => Promise<PickedFile | null>) => async () => {
+    const f = await picker();
+    if (!f) return;
+    await deleteFile(att.uri);
+    set({
+      attachments: (draft.attachments ?? []).map((a) =>
+        a.id === att.id ? { ...a, kind: f.kind, uri: f.uri, name: f.name, addedAt: Date.now() } : a
+      ),
+    });
+  };
+
+  const chooseReplace = (att: Attachment) => {
+    Alert.alert('Replace file', 'Choose a source', [
+      { text: 'Camera', onPress: replaceWith(att, pickFromCamera) },
+      { text: 'Photo Library', onPress: replaceWith(att, pickFromLibrary) },
+      { text: 'Document (PDF…)', onPress: replaceWith(att, pickDocument) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const renameAttachment = (att: Attachment, newName: string) => {
+    const name = newName.trim();
+    if (!name) return;
+    set({
+      attachments: (draft.attachments ?? []).map((a) => (a.id === att.id ? { ...a, name } : a)),
+    });
+  };
+
+  // Long-press menu on a saved attachment: edit actions, replacing the red ✕.
+  const attachmentMenu = (att: Attachment) => {
+    Alert.alert(att.name ?? 'File', undefined, [
+      { text: 'Download / Share', onPress: () => openFile(att.uri) },
+      {
+        text: 'Rename',
+        onPress: () => {
+          setRenameText(att.name ?? '');
+          setRenaming(att);
+        },
+      },
+      { text: 'Replace', onPress: () => chooseReplace(att) },
+      { text: 'Delete', style: 'destructive', onPress: () => removeAttachment(att) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const onSave = async () => {
@@ -216,10 +290,12 @@ export default function ItemDetailSc() {
                     <View key={a.id} style={styles.attItem}>
                       <TouchableOpacity
                         onPress={() => (a.kind === 'photo' ? setPreview(a) : openFile(a.uri))}
+                        onLongPress={() => attachmentMenu(a)}
+                        delayLongPress={300}
                         activeOpacity={0.8}
                       >
                         {a.kind === 'photo' ? (
-                          <Image source={{ uri: a.uri }} style={[styles.attThumb, box]} resizeMode="cover" />
+                          <Image source={{ uri: resolveUri(a.uri) }} style={[styles.attThumb, box]} resizeMode="cover" />
                         ) : (
                           <View style={[styles.attThumb, box, styles.attDoc]}>
                             <Text style={{ fontSize: 24 }}>📄</Text>
@@ -228,9 +304,6 @@ export default function ItemDetailSc() {
                             </Text>
                           </View>
                         )}
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.attRemove} onPress={() => removeAttachment(a)} hitSlop={8}>
-                        <Text style={styles.attRemoveText}>✕</Text>
                       </TouchableOpacity>
                     </View>
                   );
@@ -247,19 +320,27 @@ export default function ItemDetailSc() {
                 return <View key={`empty${i}`} style={[styles.attEmpty, box]} />;
               })}
             </View>
-            <Text style={styles.attHint}>Up to {MAX_ATTACHMENTS} files</Text>
+            <Text style={styles.attHint}>Up to {MAX_ATTACHMENTS} files · long-press a file to edit</Text>
           </View>
 
           {/* Linked certificates */}
           <View style={styles.card}>
             <View style={styles.certHead}>
               <Label>Certificates ({linkedCerts.length})</Label>
-              <TouchableOpacity onPress={() => nav.navigate('Certificates')}>
-                <Text style={styles.certManage}>Manage ›</Text>
-              </TouchableOpacity>
+              {isNew ? (
+                <TouchableOpacity onPress={() => nav.navigate('Certificates')}>
+                  <Text style={styles.certManage}>Manage ›</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity onPress={() => setCertPicker(true)}>
+                  <Text style={styles.certManage}>＋ Link</Text>
+                </TouchableOpacity>
+              )}
             </View>
-            {linkedCerts.length === 0 ? (
-              <Text style={styles.certEmpty}>No certificates cover this item. Add one in the Certificates tab and link this item to it.</Text>
+            {isNew ? (
+              <Text style={styles.certEmpty}>Save this item first, then link the certificates that cover it.</Text>
+            ) : linkedCerts.length === 0 ? (
+              <Text style={styles.certEmpty}>No certificates cover this item. Tap “＋ Link” to attach one.</Text>
             ) : (
               linkedCerts.map((c) => {
                 const st = statusFromDate(c.expiryDate);
@@ -267,17 +348,23 @@ export default function ItemDetailSc() {
                   <TouchableOpacity
                     key={c.id}
                     style={styles.certRow}
-                    onPress={() => nav.navigate('CertificateDetail', { id: c.id })}
+                    activeOpacity={0.7}
+                    onPress={() => previewCert(c)}
                   >
                     <View style={[styles.certDot, { backgroundColor: statusColor(st) }]} />
-                    <Text style={{ fontSize: 18 }}>{c.fileKind === 'photo' ? '🖼️' : '📜'}</Text>
+                    <Text style={{ fontSize: 18 }}>📜</Text>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.certName} numberOfLines={1}>{c.name || 'Certificate'}</Text>
                       <Text style={styles.certSub} numberOfLines={1}>
                         {[c.number && `№ ${c.number}`, c.expiryDate && formatDate(c.expiryDate)].filter(Boolean).join(' · ')}
                       </Text>
                     </View>
-                    <Text style={styles.certChev}>›</Text>
+                    <TouchableOpacity
+                      onPress={() => nav.navigate('CertificateDetail', { id: c.id })}
+                      hitSlop={12}
+                    >
+                      <Text style={styles.certChev}>›</Text>
+                    </TouchableOpacity>
                   </TouchableOpacity>
                 );
               })
@@ -294,7 +381,7 @@ export default function ItemDetailSc() {
             <TouchableOpacity style={styles.lbClose} onPress={() => setPreview(null)} hitSlop={12}>
               <Text style={styles.lbCloseText}>✕</Text>
             </TouchableOpacity>
-            {preview ? <Image source={{ uri: preview.uri }} style={styles.lbImage} resizeMode="contain" /> : null}
+            {preview ? <Image source={{ uri: resolveUri(preview.uri) }} style={styles.lbImage} resizeMode="contain" /> : null}
             <View style={styles.lbBar}>
               {preview?.name ? (
                 <Text style={styles.lbName} numberOfLines={1}>
@@ -304,6 +391,72 @@ export default function ItemDetailSc() {
               <TouchableOpacity style={styles.lbOpen} onPress={() => preview && openFile(preview.uri)}>
                 <Text style={styles.lbOpenText}>Open / Share</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal visible={!!renaming} transparent animationType="fade" onRequestClose={() => setRenaming(null)}>
+          <View style={styles.rnBackdrop}>
+            <View style={styles.rnCard}>
+              <Text style={styles.rnTitle}>Rename file</Text>
+              <TextInput
+                style={styles.input}
+                value={renameText}
+                onChangeText={setRenameText}
+                placeholder="File name"
+                placeholderTextColor={COLORS.textLight}
+                autoFocus
+              />
+              <View style={styles.rnRow}>
+                <TouchableOpacity style={styles.rnBtn} onPress={() => setRenaming(null)}>
+                  <Text style={styles.rnBtnText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.rnBtn, styles.rnBtnPrimary]}
+                  onPress={() => {
+                    if (renaming) renameAttachment(renaming, renameText);
+                    setRenaming(null);
+                  }}
+                >
+                  <Text style={[styles.rnBtnText, styles.rnBtnTextPrimary]}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal visible={certPicker} transparent animationType="fade" onRequestClose={() => setCertPicker(false)}>
+          <View style={styles.rnBackdrop}>
+            <View style={[styles.rnCard, { maxHeight: '80%' }]}>
+              <Text style={styles.rnTitle}>Link certificates</Text>
+              {certificates.length === 0 ? (
+                <Text style={styles.certEmpty}>No certificates yet. Create one in the Certificates tab first.</Text>
+              ) : (
+                <ScrollView style={{ marginTop: SIZES.xs }}>
+                  {certificates.map((c) => {
+                    const on = c.itemIds.includes(draft.id);
+                    return (
+                      <TouchableOpacity key={c.id} style={styles.cpRow} onPress={() => toggleCert(c.id)} activeOpacity={0.7}>
+                        <View style={[styles.cpCheck, on && styles.cpCheckOn]}>
+                          {on ? <Text style={styles.cpCheckMark}>✓</Text> : null}
+                        </View>
+                        <Text style={{ fontSize: 18 }}>📜</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.certName} numberOfLines={1}>{c.name || 'Certificate'}</Text>
+                          <Text style={styles.certSub} numberOfLines={1}>
+                            {[c.number && `№ ${c.number}`, c.expiryDate && formatDate(c.expiryDate)].filter(Boolean).join(' · ')}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              )}
+              <View style={styles.rnRow}>
+                <TouchableOpacity style={[styles.rnBtn, styles.rnBtnPrimary]} onPress={() => setCertPicker(false)}>
+                  <Text style={[styles.rnBtnText, styles.rnBtnTextPrimary]}>Done</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>
@@ -431,18 +584,14 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   lbName: { color: 'rgba(255,255,255,0.8)', fontSize: SIZES.small, paddingHorizontal: SIZES.lg },
   lbOpen: { backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: SIZES.radiusMd, paddingVertical: SIZES.sm, paddingHorizontal: SIZES.xl },
   lbOpenText: { color: '#fff', fontWeight: '700', fontSize: SIZES.body },
-  attRemove: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: COLORS.danger,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  attRemoveText: { color: COLORS.textWhite, fontSize: 12, fontWeight: '800' },
+  rnBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', padding: SIZES.lg },
+  rnCard: { ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.lg, width: '100%', maxWidth: 420 },
+  rnTitle: { fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark, marginBottom: SIZES.sm },
+  rnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: SIZES.sm, marginTop: SIZES.md },
+  rnBtn: { paddingVertical: SIZES.sm, paddingHorizontal: SIZES.lg, borderRadius: SIZES.radiusMd },
+  rnBtnPrimary: { backgroundColor: COLORS.primary },
+  rnBtnText: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.text },
+  rnBtnTextPrimary: { color: COLORS.textWhite },
   attAdd: {
     borderRadius: SIZES.radiusSm,
     borderWidth: 1,
@@ -468,6 +617,10 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   certName: { fontSize: SIZES.body, fontWeight: '600', color: COLORS.textDark },
   certSub: { fontSize: SIZES.tiny, color: COLORS.textLight },
   certChev: { fontSize: SIZES.h4, color: COLORS.textLight },
+  cpRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, paddingVertical: SIZES.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.border },
+  cpCheck: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
+  cpCheckOn: { backgroundColor: COLORS.primary },
+  cpCheckMark: { color: COLORS.textWhite, fontWeight: '800', fontSize: SIZES.small },
   deleteBtn: {
     marginTop: SIZES.lg,
     paddingVertical: SIZES.md,
