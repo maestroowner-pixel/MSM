@@ -15,7 +15,7 @@ import { CompressorState, normalizeCompressorState } from '../types/compressor';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from '../services/storage';
 import { VesselInfo } from '../services/storage';
-import { ATTACHMENTS_DIR, ensureAttachmentsDir } from '../services/attachments';
+import { ATTACHMENTS_DIR, ensureAttachmentsDir, resolveUri } from '../services/attachments';
 import { fileDateStamp } from '../utils/dates';
 
 const BACKUP_MAGIC = 'MarineSafetyManager';
@@ -69,16 +69,19 @@ function collectFileUris(
   certificates: Certificate[]
 ): string[] {
   const uris = new Set<string>();
+  // Re-base onto the current document dir first: iOS container UUIDs change on
+  // reinstall, so a saved uri may carry a stale prefix that no longer matches
+  // ATTACHMENTS_DIR — without this, such files would be silently dropped.
+  const add = (uri?: string) => {
+    const r = resolveUri(uri);
+    if (r?.startsWith(ATTACHMENTS_DIR)) uris.add(r);
+  };
   for (const c of CATEGORIES) {
     for (const it of categories[c.key] ?? []) {
-      for (const att of it.attachments ?? []) {
-        if (att.uri?.startsWith(ATTACHMENTS_DIR)) uris.add(att.uri);
-      }
+      for (const att of it.attachments ?? []) add(att.uri);
     }
   }
-  for (const cert of certificates) {
-    if (cert.fileUri?.startsWith(ATTACHMENTS_DIR)) uris.add(cert.fileUri);
-  }
+  for (const cert of certificates) add(cert.fileUri);
   return Array.from(uris);
 }
 

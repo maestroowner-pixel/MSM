@@ -95,7 +95,7 @@ export default function CertificatesSc() {
               >
                 <View style={[styles.bar, { backgroundColor: statusColor(status) }]} />
                 <MaterialCommunityIcons
-                  name={item.fileKind === 'photo' ? 'image' : 'certificate'}
+                  name="certificate"
                   size={22}
                   color={COLORS.primary}
                   style={{ marginRight: SIZES.sm }}

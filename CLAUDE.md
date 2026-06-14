@@ -33,9 +33,21 @@ app mirrors. Bundle id `com.kukalab.msm`.
   `expo-file-system/legacy` (base64 read/write)
 - Attachments: `expo-image-picker` (camera/library) + `expo-document-picker` (PDF/docs),
   persisted to `documentDirectory/attachments/` via `services/attachments.ts`. Items carry
-  `attachments: Attachment[]`. **Certificates** (`types/certificate.ts`, key `msm:certificates`)
-  are documents that link to many items (group certificate) — managed in the Certificates tab
-  (`CertificatesSc` + `CertificateDetailSc`); item detail shows/links covering certificates.
+  `attachments: Attachment[]` (up to 4; long-press a thumbnail for the edit menu —
+  Download/Share, Rename, Replace, Delete). **Certificates** (`types/certificate.ts`, key
+  `msm:certificates`) are documents that link to many items (group certificate) — managed in the
+  Certificates tab (`CertificatesSc` + `CertificateDetailSc`); item detail shows covering
+  certificates (row tap = preview the file, chevron = open the cert screen) and can link an
+  existing certificate via "＋ Link" (writes to the cert's `itemIds` + `saveCertificate`, since the
+  link lives on the certificate — the item's own Save never persists it). Cert dates use
+  `SimpleDatePicker`; the cert icon is always the `certificate`/📜 glyph (never the photo variant).
+- **`resolveUri(uri)` in `attachments.ts` — IMPORTANT.** iOS app-container UUIDs change on
+  reinstall (and simulator rebuilds), so the absolute `file://…/Application/<UUID>/…` path saved
+  in an `Attachment.uri`/`cert.fileUri` goes stale and the image/file vanishes. The file *name*
+  under `attachments/` is stable, so `resolveUri` re-bases any stored uri onto the CURRENT
+  `documentDirectory`. Always render/open/read attachment files through it: `<Image>` sources,
+  `openFile`/`deleteFile` (resolve internally), `export.ts` (ZIP reads) and `backup.ts`
+  (`collectFileUris` — without it, stale-prefixed files were silently dropped from the backup).
 - Audio: `expo-av` — ship's bell on app start (`utils/sound.ts` → `playShipBellSound`,
   asset `assets/sounds/ship-bell.mp3`), mirrors MHM. Shown via `screens/SplashSc.tsx`, an
   overlay in `index.tsx` (`showSplash` state) that animates the logo and calls `onDone` after ~2.2s.

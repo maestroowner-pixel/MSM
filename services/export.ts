@@ -14,6 +14,7 @@ import { CATEGORIES, CATEGORY_MAP, CategoryMeta } from '../constants/categories'
 import { complianceDate, computeStatus, formatDate, fileDateStamp } from '../utils/dates';
 import { deliverFile, onWindows, onMacOS, onDesktop } from '../utils/fileShare';
 import { macHtmlToPdfBase64 } from '../utils/MacFileManager';
+import { resolveUri } from './attachments';
 import { VesselInfo } from './storage';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -259,9 +260,10 @@ export async function exportZip(
     for (const it of g.items) {
       for (const att of it.attachments ?? []) {
         try {
-          const info = await FileSystem.getInfoAsync(att.uri);
+          const uri = resolveUri(att.uri) ?? att.uri;
+          const info = await FileSystem.getInfoAsync(uri);
           if (!info.exists) continue;
-          const b64 = await FileSystem.readAsStringAsync(att.uri, { encoding: 'base64' });
+          const b64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
           photos?.file(zipEntryName(g.key, it, att.name, att.uri, usedNames), b64, { base64: true });
           fileCount++;
         } catch {
@@ -283,9 +285,10 @@ export async function exportZip(
     let storedAs = '(no file attached)';
     if (cert.fileUri) {
       try {
-        const info = await FileSystem.getInfoAsync(cert.fileUri);
+        const certUri = resolveUri(cert.fileUri) ?? cert.fileUri;
+        const info = await FileSystem.getInfoAsync(certUri);
         if (info.exists) {
-          const b64 = await FileSystem.readAsStringAsync(cert.fileUri, { encoding: 'base64' });
+          const b64 = await FileSystem.readAsStringAsync(certUri, { encoding: 'base64' });
           storedAs = `certificates/${certEntryName(cert, certNames)}`;
           certFolder?.file(storedAs.replace('certificates/', ''), b64, { base64: true });
         }

@@ -17,14 +17,16 @@ import { ComplianceStatus, EquipmentItem, Group } from '../types/equipment';
 
 type GroupFilter = 'ALL' | Group;
 type StatusFilter = 'expired' | 'due' | 'ok' | null;
-type SortBy = 'date' | 'position';
+type SortBy = 'date' | 'position' | 'name' | 'type';
 
 const NO_POSITION = '— No position';
 
 const GROUP_ORDER: GroupFilter[] = ['ALL', 'LSA', 'FFE', 'OTHER'];
 const GROUP_LABEL: Record<GroupFilter, string> = { ALL: 'All groups', LSA: 'LSA', FFE: 'FFE', OTHER: 'Other' };
-const SORT_ORDER: SortBy[] = ['date', 'position'];
-const SORT_LABEL: Record<SortBy, string> = { date: 'Expiry date', position: 'Position' };
+const SORT_ORDER: SortBy[] = ['date', 'position', 'name', 'type'];
+const SORT_LABEL: Record<SortBy, string> = { date: 'Expiry date', position: 'Position', name: 'Name', type: 'Type' };
+
+const titleOf = (it: EquipmentItem) => (it.type || (it.no != null ? `#${it.no}` : '')).toLowerCase();
 
 interface Scored {
   it: EquipmentItem;
@@ -33,7 +35,7 @@ interface Scored {
   days?: number;
 }
 type ListEntry =
-  | { kind: 'header'; key: string; position: string; count: number }
+  | { kind: 'header'; key: string; position: string; count: number; icon: string }
   | ({ kind: 'row'; key: string } & Scored);
 
 export default function DashboardSc() {
@@ -65,24 +67,31 @@ export default function DashboardSc() {
     if (sortBy === 'date') {
       rows = [...rows].sort(byDays);
       listData = rows.map((r) => ({ kind: 'row', key: r.it.id, ...r }));
+    } else if (sortBy === 'name') {
+      rows = [...rows].sort((a, b) => titleOf(a.it).localeCompare(titleOf(b.it)));
+      listData = rows.map((r) => ({ kind: 'row', key: r.it.id, ...r }));
     } else {
-      // Group by position, alphabetical, with a header per location.
-      const byPos = new Map<string, Scored[]>();
+      // Group with a header per location (position) or per equipment category (type).
+      const byType = sortBy === 'type';
+      const NONE = byType ? '— Other' : NO_POSITION;
+      const keyOf = (r: Scored) =>
+        byType ? CATEGORY_MAP[r.it.category].label : (r.it.position ?? '').trim() || NO_POSITION;
+      const groups = new Map<string, Scored[]>();
       for (const r of rows) {
-        const pos = (r.it.position ?? '').trim() || NO_POSITION;
-        const arr = byPos.get(pos);
+        const k = keyOf(r) || NONE;
+        const arr = groups.get(k);
         if (arr) arr.push(r);
-        else byPos.set(pos, [r]);
+        else groups.set(k, [r]);
       }
-      const positions = [...byPos.keys()].sort((a, b) => {
-        if (a === NO_POSITION) return 1;
-        if (b === NO_POSITION) return -1;
+      const keys = [...groups.keys()].sort((a, b) => {
+        if (a === NONE) return 1;
+        if (b === NONE) return -1;
         return a.localeCompare(b);
       });
       listData = [];
-      for (const pos of positions) {
-        const items = byPos.get(pos)!.sort(byDays);
-        listData.push({ kind: 'header', key: `h:${pos}`, position: pos, count: items.length });
+      for (const k of keys) {
+        const items = groups.get(k)!.sort(byDays);
+        listData.push({ kind: 'header', key: `h:${k}`, position: k, count: items.length, icon: byType ? '🏷️' : '📍' });
         for (const r of items) listData.push({ kind: 'row', key: r.it.id, ...r });
       }
     }
@@ -152,7 +161,7 @@ export default function DashboardSc() {
           renderItem={({ item: e }) =>
             e.kind === 'header' ? (
               <View style={styles.posHeader}>
-                <Text style={styles.posHeaderText} numberOfLines={1}>📍 {e.position}</Text>
+                <Text style={styles.posHeaderText} numberOfLines={1}>{e.icon} {e.position}</Text>
                 <Text style={styles.posHeaderCount}>{e.count}</Text>
               </View>
             ) : e.kind === 'pair' ? (

@@ -15,10 +15,13 @@ import { CategoryKey, ComplianceStatus, EquipmentItem } from '../types/equipment
 import { uid } from '../utils/id';
 import { canAddItem } from '../services/trial';
 
-type SortBy = 'date' | 'position';
-const SORT_ORDER: SortBy[] = ['date', 'position'];
-const SORT_LABEL: Record<SortBy, string> = { date: 'Expiry date', position: 'Position' };
+type SortBy = 'date' | 'position' | 'name' | 'type';
+const SORT_ORDER: SortBy[] = ['date', 'position', 'name', 'type'];
+const SORT_LABEL: Record<SortBy, string> = { date: 'Expiry date', position: 'Position', name: 'Name', type: 'Type' };
+
+const titleOf = (it: EquipmentItem) => (it.type || (it.no != null ? `#${it.no}` : '')).toLowerCase();
 const NO_POSITION = '— No position';
+const NO_TYPE = '— No type';
 
 interface Scored {
   it: EquipmentItem;
@@ -27,7 +30,7 @@ interface Scored {
   days?: number;
 }
 type ListEntry =
-  | { kind: 'header'; key: string; position: string; count: number }
+  | { kind: 'header'; key: string; position: string; count: number; icon: string }
   | ({ kind: 'row'; key: string } & Scored);
 
 export default function CategoryItemsSc() {
@@ -66,23 +69,31 @@ export default function CategoryItemsSc() {
     if (sortBy === 'date') {
       return [...scored].sort(byDays).map((r) => ({ kind: 'row', key: r.it.id, ...r }));
     }
-    // Group by position, alphabetical, with a header per location.
-    const byPos = new Map<string, Scored[]>();
-    for (const r of scored) {
-      const pos = (r.it.position ?? '').trim() || NO_POSITION;
-      const arr = byPos.get(pos);
-      if (arr) arr.push(r);
-      else byPos.set(pos, [r]);
+    if (sortBy === 'name') {
+      return [...scored]
+        .sort((a, b) => titleOf(a.it).localeCompare(titleOf(b.it)))
+        .map((r) => ({ kind: 'row', key: r.it.id, ...r }));
     }
-    const positions = [...byPos.keys()].sort((a, b) => {
-      if (a === NO_POSITION) return 1;
-      if (b === NO_POSITION) return -1;
+    // Group by position (location) or by the item's type/description, with a
+    // header per group. Items with no value land in a trailing "—" group.
+    const groupBy = sortBy === 'type' ? 'type' : 'position';
+    const NONE = groupBy === 'type' ? NO_TYPE : NO_POSITION;
+    const groups = new Map<string, Scored[]>();
+    for (const r of scored) {
+      const k = (r.it[groupBy] ?? '').toString().trim() || NONE;
+      const arr = groups.get(k);
+      if (arr) arr.push(r);
+      else groups.set(k, [r]);
+    }
+    const keys = [...groups.keys()].sort((a, b) => {
+      if (a === NONE) return 1;
+      if (b === NONE) return -1;
       return a.localeCompare(b);
     });
     const out: ListEntry[] = [];
-    for (const pos of positions) {
-      const group = byPos.get(pos)!.sort(byDays);
-      out.push({ kind: 'header', key: `h:${pos}`, position: pos, count: group.length });
+    for (const k of keys) {
+      const group = groups.get(k)!.sort(byDays);
+      out.push({ kind: 'header', key: `h:${k}`, position: k, count: group.length, icon: groupBy === 'type' ? '🏷️' : '📍' });
       for (const r of group) out.push({ kind: 'row', key: r.it.id, ...r });
     }
     return out;
@@ -131,7 +142,7 @@ export default function CategoryItemsSc() {
           </Text>
           {e.it.attachments && e.it.attachments.length > 0 ? (
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>📎 {e.it.attachments.length}</Text>
+              <Text style={styles.badgeText}>{'📎'.repeat(e.it.attachments.length)}</Text>
             </View>
           ) : null}
           {certItemIds.has(e.it.id) ? (
@@ -199,7 +210,7 @@ export default function CategoryItemsSc() {
           renderItem={({ item: e }) =>
             e.kind === 'header' ? (
               <View style={styles.posHeader}>
-                <Text style={styles.posHeaderText} numberOfLines={1}>📍 {e.position}</Text>
+                <Text style={styles.posHeaderText} numberOfLines={1}>{e.icon} {e.position}</Text>
                 <Text style={styles.posHeaderCount}>{e.count}</Text>
               </View>
             ) : e.kind === 'pair' ? (

@@ -29,6 +29,21 @@ export async function ensureAttachmentsDir(): Promise<void> {
 }
 const ensureDir = ensureAttachmentsDir;
 
+/**
+ * Re-base a stored attachment/certificate uri onto the CURRENT document
+ * directory. App-container paths can change on reinstall (iOS UUIDs, simulator
+ * rebuilds), which invalidates the absolute path saved earlier — the file's
+ * name inside `attachments/` is stable, so we recompute the prefix. No-op for
+ * uris that aren't under `attachments/`.
+ */
+export function resolveUri(uri?: string): string | undefined {
+  if (!uri) return uri;
+  const marker = 'attachments/';
+  const idx = uri.lastIndexOf(marker);
+  if (idx === -1) return uri;
+  return ATTACHMENTS_DIR + uri.slice(idx + marker.length);
+}
+
 function extOf(name?: string | null, fallback = 'dat'): string {
   const m = (name || '').match(/\.([a-zA-Z0-9]+)$/);
   return m ? m[1].toLowerCase() : fallback;
@@ -102,12 +117,13 @@ export async function pickDocument(): Promise<PickedFile | null> {
 
 /** Open / preview a stored file via the OS share/quick-look sheet. */
 export async function openFile(uri: string): Promise<void> {
+  const target = resolveUri(uri) ?? uri;
   if (onMacOS) {
-    await macOpenPath(uri);
+    await macOpenPath(target);
     return;
   }
   try {
-    if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri);
+    if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(target);
   } catch (e: any) {
     Alert.alert('Cannot open file', String(e?.message ?? e));
   }
@@ -125,14 +141,15 @@ export async function clearAttachmentsDir(): Promise<void> {
 
 /** Delete a stored file (best-effort). */
 export async function deleteFile(uri?: string): Promise<void> {
-  if (!uri) return;
+  const target = resolveUri(uri);
+  if (!target) return;
   if (onMacOS) {
-    await macDeletePath(uri);
+    await macDeletePath(target);
     return;
   }
-  if (!uri.startsWith(DIR)) return;
+  if (!target.startsWith(DIR)) return;
   try {
-    await FileSystem.deleteAsync(uri, { idempotent: true });
+    await FileSystem.deleteAsync(target, { idempotent: true });
   } catch {
     /* ignore */
   }
