@@ -3,7 +3,7 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Image, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Screen, StatusPill, Empty, statusColor } from '../components/ui';
 import { SIZES, Palette } from '../theme';
@@ -54,6 +54,11 @@ export default function CertificatesSc() {
 
   return (
     <Screen contentStyle={{ paddingBottom: 0 }}>
+      {/* Faint centered octopus watermark behind the list. */}
+      <View pointerEvents="none" style={styles.watermark}>
+        <Image source={require('../assets/octopus.png')} style={styles.watermarkImg} resizeMode="contain" />
+      </View>
+
       <View style={styles.head}>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>Certificates</Text>
@@ -118,6 +123,8 @@ export default function CertificatesSc() {
 }
 
 const makeStyles = (COLORS: Palette) => StyleSheet.create({
+  watermark: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  watermarkImg: { width: 280, height: 280, opacity: 0.1 },
   head: { flexDirection: 'row', alignItems: 'center', marginBottom: SIZES.md, gap: SIZES.sm },
   title: { fontSize: SIZES.h2, fontWeight: '700', color: COLORS.textDark },
   sub: { fontSize: SIZES.small, color: COLORS.textLight },
