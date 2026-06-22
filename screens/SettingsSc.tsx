@@ -51,6 +51,10 @@ export default function SettingsSc() {
   const [resetVisible, setResetVisible] = useState(false);
   const [resetPw, setResetPw] = useState('');
 
+  // Rename a connected device (friendly name shown in the list).
+  const [renameTarget, setRenameTarget] = useState<fb.ConnectedDevice | null>(null);
+  const [renameText, setRenameText] = useState('');
+
   // Collapsible sections (open on tap; they stay open until tapped again).
   const [open, setOpen] = useState<Record<string, boolean>>({ vessel: true });
   const toggleSection = (k: string) => {
@@ -252,6 +256,31 @@ export default function SettingsSc() {
         },
       ]
     );
+  };
+
+  // Give a device a friendly name. The Master can rename any device; every
+  // device can always rename itself.
+  const openRename = (d: fb.ConnectedDevice) => {
+    setRenameTarget(d);
+    setRenameText(d.customName || '');
+  };
+  const closeRename = () => {
+    setRenameTarget(null);
+    setRenameText('');
+  };
+  const doRename = async () => {
+    if (!uid || !renameTarget) return;
+    const target = renameTarget;
+    setDevBusy(true);
+    try {
+      await fb.renameDevice(uid, target.deviceId, renameText.trim());
+      closeRename();
+      await refreshDevices(uid);
+    } catch (e: any) {
+      Alert.alert('Rename failed', String(e?.message ?? e));
+    } finally {
+      setDevBusy(false);
+    }
   };
 
 
@@ -717,7 +746,7 @@ export default function SettingsSc() {
           <View style={styles.devSection}>
             <Text style={styles.devSectionTitle}>Connected devices ({devices.length})</Text>
             {devices.map((d) => (
-              <View key={d.deviceId} style={styles.devRow}>
+              <View key={d.deviceId} style={[styles.devRow, d.isThisDevice && styles.devRowMe, d.role === 'master' && styles.devRowMaster]}>
                 <GlyphBadge emoji={d.role === 'master' ? '👑' : '📱'} size={16} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.devName}>
@@ -727,6 +756,11 @@ export default function SettingsSc() {
                     {d.role === 'master' ? 'Master' : 'Member'} · {fmtWhen(d.lastSeen)}
                   </Text>
                 </View>
+                {isMaster || d.isThisDevice ? (
+                  <TouchableOpacity style={styles.devRename} onPress={() => openRename(d)} hitSlop={6}>
+                    <Text style={styles.devRenameText}>✎</Text>
+                  </TouchableOpacity>
+                ) : null}
                 {isMaster && !d.isThisDevice && d.role !== 'master' ? (
                   <>
                     <TouchableOpacity style={styles.devMaster} onPress={() => makeMaster(d)} hitSlop={6}>
@@ -814,6 +848,49 @@ export default function SettingsSc() {
               </TouchableOpacity>
             </View>
           </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* Rename a connected device */}
+      <Modal visible={!!renameTarget} transparent animationType="fade" onRequestClose={closeRename}>
+        <TouchableWithoutFeedback onPress={closeRename}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <View style={styles.modalBox}>
+                <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Rename device</Text>
+                <Text style={styles.modalText}>
+                  A friendly name shown in the device list. Leave empty to fall back to the platform name
+                  {renameTarget ? ` (${renameTarget.platformLabel})` : ''}.
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  value={renameText}
+                  onChangeText={setRenameText}
+                  placeholder={renameTarget?.platformLabel ?? 'Device name'}
+                  placeholderTextColor={COLORS.textLight}
+                  autoFocus
+                  maxLength={40}
+                  returnKeyType="done"
+                  onSubmitEditing={doRename}
+                />
+                <View style={styles.modalBtnRow}>
+                  <TouchableOpacity
+                    style={[styles.modalBtn, { borderWidth: 1, borderColor: COLORS.border }]}
+                    onPress={closeRename}
+                  >
+                    <Text style={styles.modalBtnCancel}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalBtn, { backgroundColor: COLORS.primary, opacity: devBusy ? 0.5 : 1 }]}
+                    onPress={doRename}
+                    disabled={devBusy}
+                  >
+                    <Text style={styles.modalBtnConfirm}>Save</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
@@ -917,7 +994,33 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: COLORS.border,
   },
+  devRowMe: {
+    borderTopWidth: 0,
+    borderWidth: 1.5,
+    borderColor: COLORS.info,
+    borderRadius: SIZES.radiusMd,
+    paddingHorizontal: SIZES.sm,
+    marginVertical: 2,
+  },
+  devRowMaster: {
+    borderTopWidth: 0,
+    borderWidth: 1.5,
+    borderColor: '#D4AF37',
+    borderRadius: SIZES.radiusMd,
+    paddingHorizontal: SIZES.sm,
+    marginVertical: 2,
+  },
   devEmoji: { fontSize: 18 },
+  devRename: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  devRenameText: { color: COLORS.text, fontSize: 13, fontWeight: '700' },
   devName: { fontSize: SIZES.body, color: COLORS.textDark, fontWeight: '600' },
   devSub: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 1 },
   devAction: { paddingHorizontal: SIZES.sm, paddingVertical: 6, borderRadius: SIZES.radiusSm },

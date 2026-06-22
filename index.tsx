@@ -5,12 +5,12 @@
 
 import 'react-native-gesture-handler';
 import React, { useRef, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Animated } from 'react-native';
 import { registerRootComponent } from 'expo';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer, DefaultTheme, useNavigation } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, useNavigation, useIsFocused } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createStackNavigator, TransitionPresets } from '@react-navigation/stack';
 import { GestureHandlerRootView, Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -53,12 +53,56 @@ const TAB_ICONS: Record<string, React.ComponentProps<typeof MaterialCommunityIco
 
 function TabIcon({ route, focused }: { route: string; focused: boolean }) {
   const COLORS = useTheme();
+  // The active tab gently "breathes" (pulsing scale); inactive tabs settle a
+  // touch smaller. Plain RN Animated — no reanimated (matches the swipe gesture).
+  const scale = useRef(new Animated.Value(focused ? 1 : 0.9)).current;
+
+  React.useEffect(() => {
+    if (focused) {
+      scale.setValue(1);
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(scale, { toValue: 1.18, duration: 700, useNativeDriver: true }),
+          Animated.timing(scale, { toValue: 1.0, duration: 700, useNativeDriver: true }),
+        ])
+      );
+      pulse.start();
+      return () => pulse.stop();
+    }
+    Animated.timing(scale, { toValue: 0.9, duration: 200, useNativeDriver: true }).start();
+  }, [focused, scale]);
+
   return (
-    <MaterialCommunityIcons
-      name={TAB_ICONS[route]}
-      size={focused ? 26 : 23}
-      color={focused ? COLORS.tabActive : COLORS.tabInactive}
-    />
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <MaterialCommunityIcons
+        name={TAB_ICONS[route]}
+        size={24}
+        color={focused ? COLORS.tabActive : COLORS.tabInactive}
+      />
+    </Animated.View>
+  );
+}
+
+// bottom-tabs v6 has no built-in scene transition, so each tab screen fades +
+// slides in whenever it gains focus (tap or swipe). Plain RN Animated.
+function TabFade({ children }: { children: React.ReactNode }) {
+  const focused = useIsFocused();
+  const a = useRef(new Animated.Value(focused ? 1 : 0)).current;
+  React.useEffect(() => {
+    if (!focused) return;
+    a.setValue(0);
+    Animated.timing(a, { toValue: 1, duration: 260, useNativeDriver: true }).start();
+  }, [focused, a]);
+  return (
+    <Animated.View
+      style={{
+        flex: 1,
+        opacity: a,
+        transform: [{ translateX: a.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
+      }}
+    >
+      {children}
+    </Animated.View>
   );
 }
 
@@ -110,11 +154,21 @@ function MainTabs() {
             tabBarIcon: ({ focused }) => <TabIcon route={route.name} focused={focused} />,
           })}
         >
-          <Tab.Screen name="Dashboard" component={DashboardSc} />
-          <Tab.Screen name="Equipment" component={CategoriesSc} />
-          <Tab.Screen name="Certificates" component={CertificatesSc} />
-          <Tab.Screen name="Reports" component={ReportsSc} />
-          <Tab.Screen name="Settings" component={SettingsSc} />
+          <Tab.Screen name="Dashboard">
+            {() => <TabFade><DashboardSc /></TabFade>}
+          </Tab.Screen>
+          <Tab.Screen name="Equipment">
+            {() => <TabFade><CategoriesSc /></TabFade>}
+          </Tab.Screen>
+          <Tab.Screen name="Certificates">
+            {() => <TabFade><CertificatesSc /></TabFade>}
+          </Tab.Screen>
+          <Tab.Screen name="Reports">
+            {() => <TabFade><ReportsSc /></TabFade>}
+          </Tab.Screen>
+          <Tab.Screen name="Settings">
+            {() => <TabFade><SettingsSc /></TabFade>}
+          </Tab.Screen>
         </Tab.Navigator>
       </View>
     </GestureDetector>
@@ -164,7 +218,15 @@ function Root() {
   return (
     <NavigationContainer theme={navTheme}>
       <StatusBar style={showSplash ? 'light' : COLORS.statusBar} />
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          gestureEnabled: true,
+          // Smooth horizontal slide between pushed screens (modals keep their
+          // own slide-up via presentation: 'modal').
+          ...TransitionPresets.SlideFromRightIOS,
+        }}
+      >
         <Stack.Screen name="Main" component={MainTabs} />
         <Stack.Screen name="CategoryItems" component={CategoryItemsSc} />
         <Stack.Screen name="ItemDetail" component={ItemDetailSc} options={{ presentation: 'modal' }} />
