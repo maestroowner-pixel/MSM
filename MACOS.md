@@ -1,7 +1,7 @@
 # Marine Safety Manager — macOS (react-native-macos) build
 
 This is the **macOS desktop** track of MSM, kept in a sibling folder
-`/Users/Inspector/MMM_Mac` (moulded from the iOS/Android MSM project at
+`/Users/Inspector/MSM_Mac` (moulded from the iOS/Android MSM project at
 `/Users/Inspector/MarineSafetyManager`). It reuses the **same JS/TS app** (index.tsx,
 screens/, services/, …) and adds a native **react-native-macos 0.81.5** shell —
 the macOS analogue of the Windows (`react-native-windows`) track in `WINDOWS.md`.
@@ -44,7 +44,7 @@ The `macos/` native project itself is **generated** (see below); its build outpu
 The `macos/` Xcode project is generated and **compiles cleanly** (`** BUILD SUCCEEDED **`,
 validated headless). To run:
 ```bash
-cd /Users/Inspector/MMM_Mac
+cd /Users/Inspector/MSM_Mac
 npm install                                   # if node_modules absent (legacy-peer-deps via .npmrc)
 RCT_NEW_ARCH_ENABLED=0 pod install --project-directory=macos   # if macos/Pods absent
 npm run macos                                 # RN_PLATFORM=macos react-native run-macos (starts Metro + launches)
@@ -76,7 +76,7 @@ Built app (Debug): `macos/build/Build/Products/Debug/marine.safety.manager.mac.a
    copy that never builds iOS). Without this, the `expo` pod fails: `'ExpoModulesCore/Platform.h' file not found`.
 7. **`react-native-svg` REMOVED** — unused by the app (no imports) and its pod fails to compile on
    the macOS 26.x SDK. Dropped from package.json entirely.
-8. **Folder has NO space** (`MMM_Mac`, not `MMM Mac`) — RN/Xcode build-phase scripts break on a
+8. **Folder has NO space** (`MSM_Mac`, not `MSM Mac`) — RN/Xcode build-phase scripts break on a
    space in the path (a `find` in pod install already choked on it).
 9. **`react` bumped to `19.1.4`** (was Expo's `19.1.0`) — `react-native-macos`'s bundled
    `react-native-renderer` is `19.1.4` and **enforces an EXACT match at runtime**: with 19.1.0 the

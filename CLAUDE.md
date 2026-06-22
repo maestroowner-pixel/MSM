@@ -1,6 +1,6 @@
 # Marine Safety Manager (MSM) — Claude Code Context
 
-> **This folder (`MMM_Mac`) is the macOS desktop sibling** of the main app at
+> **This folder (`MSM_Mac`) is the macOS desktop sibling** of the main app at
 > `/Users/Inspector/MarineSafetyManager`, moulded from it (same JS/TS app) with a
 > **react-native-macos 0.81.5** native shell added. macOS specifics live in `MACOS.md`;
 > everything below is the shared app, unchanged. The macOS track is gated by the

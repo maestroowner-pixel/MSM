@@ -55,6 +55,10 @@ module.exports = {
   dependencies: {
     // No Windows native build → don't autolink (mocked in JS on Windows).
     '@react-native-async-storage/async-storage': { platforms: { windows: null } },
+    // @react-native-picker/picker has no macOS pod (RNCPicker doesn't support
+    // macOS) and is unused in this copy → keep it out of the Apple autolink.
+    // Excluded via the `ios` key (RN-macOS shares the iOS autolink config).
+    '@react-native-picker/picker': { platforms: { ios: null } },
     // NOTE: react-native-svg was REMOVED from this macOS copy (unused by the app, and
     // its pod fails to compile on the macOS 26.x SDK). See MACOS.md.
     // No macOS pod → don't autolink on Apple (mocked in JS on macOS).
