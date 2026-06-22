@@ -314,13 +314,42 @@ export async function getLocalDeviceId(): Promise<string> {
   return deviceId();
 }
 
+// Stable per-PHONE identity (survives an app reinstall), used to collapse the
+// duplicate cloud records a single physical device accumulates when it
+// re-registers with a fresh deviceId. iOS → identifierForVendor, Android → SSAID.
+// macOS/Windows have no such id → null (the list dedups on peers' hwIds instead).
+// Defensive lazy-load (mirrors getSecureStore): safe when the native module is
+// absent, so callers degrade to no-dedup.
+let _hwId: string | null | undefined;
+async function hardwareId(): Promise<string | null> {
+  if (_hwId !== undefined) return _hwId;
+  let val: string | null = null;
+  if (Platform.OS === 'ios' || Platform.OS === 'android') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const App = require('expo-application');
+      val =
+        Platform.OS === 'ios'
+          ? (await App.getIosIdForVendorAsync()) || null
+          : App.getAndroidId?.() || null;
+    } catch {
+      val = null;
+    }
+  }
+  _hwId = val;
+  return val;
+}
+
 /** Metadata stored for a device record (vessel name read from local storage). */
 async function deviceMeta() {
   const vessel = await storage.loadVessel().catch(() => null);
+  const hwId = await hardwareId();
   return {
     platform: Platform.OS,
     platformLabel: PLATFORM_LABELS[Platform.OS] ?? Platform.OS,
     vesselName: vessel?.vessel_name ?? '',
+    // Only set when known — never write `hwId: null` into the record.
+    ...(hwId ? { hwId } : {}),
     lastSeen: Date.now(),
   };
 }
@@ -440,6 +469,7 @@ export interface ConnectedDevice {
   platformLabel: string;
   vesselName?: string;
   customName?: string;
+  hwId?: string;
   lastSeen: number;
   role: 'master' | 'member';
   isThisDevice: boolean;
@@ -463,6 +493,7 @@ export async function registerDevice(uid: string): Promise<ApprovalStatus> {
   const { db } = ensureInit();
   const id = await deviceId();
   const meta = await deviceMeta();
+  const hwId = (meta as { hwId?: string }).hwId;
 
   const masterId = (await get(ref(db, `${ROOT}/${uid}/master_device_id`))).val() as string | null;
 
@@ -479,13 +510,20 @@ export async function registerDevice(uid: string): Promise<ApprovalStatus> {
   if (masterId === id) {
     await set(ref(db, `${ROOT}/${uid}/devices/${id}`), { deviceId: id, role: 'master', ...meta });
     await remove(ref(db, `${ROOT}/${uid}/pending_devices/${id}`));
+    await pruneDeviceGhosts(db, uid, id, hwId);
     return 'master';
   }
 
-  // Already an approved device → just refresh its lastSeen / vessel name.
+  // Already an approved device → refresh its lastSeen / vessel name (and backfill
+  // hwId on older records that predate hardware-id tracking).
   const existing = (await get(ref(db, `${ROOT}/${uid}/devices/${id}`))).val();
   if (existing) {
-    await update(ref(db, `${ROOT}/${uid}/devices/${id}`), { vesselName: meta.vesselName, lastSeen: meta.lastSeen });
+    await update(ref(db, `${ROOT}/${uid}/devices/${id}`), {
+      vesselName: meta.vesselName,
+      lastSeen: meta.lastSeen,
+      ...(hwId ? { hwId } : {}),
+    });
+    await pruneDeviceGhosts(db, uid, id, hwId);
     return 'approved';
   }
 
@@ -495,9 +533,32 @@ export async function registerDevice(uid: string): Promise<ApprovalStatus> {
     platform: meta.platform,
     platformLabel: meta.platformLabel,
     vesselName: meta.vesselName,
+    ...(hwId ? { hwId } : {}),
     requestedAt: meta.lastSeen,
   });
   return 'pending';
+}
+
+/**
+ * Remove other `devices/` records that belong to the SAME physical device as
+ * `keepId` (matched by hardware id) — the duplicates a phone leaves behind when
+ * it re-registers with a fresh deviceId after a reinstall. Never deletes the
+ * record we keep, nor the Master record (so the Master is never orphaned).
+ */
+async function pruneDeviceGhosts(db: Database | null, uid: string, keepId: string, hwId?: string | null): Promise<void> {
+  if (!hwId) return;
+  const masterId = (await get(ref(db, `${ROOT}/${uid}/master_device_id`))).val() as string | null;
+  const data = (await get(ref(db, `${ROOT}/${uid}/devices`))).val() as Record<string, any> | null;
+  if (!data) return;
+  await Promise.all(
+    Object.entries(data).map(async ([key, v]) => {
+      const otherId = v.deviceId ?? key;
+      if (otherId === keepId || otherId === masterId) return;
+      if (v.hwId && v.hwId === hwId) {
+        await remove(ref(db, `${ROOT}/${uid}/devices/${otherId}`));
+      }
+    })
+  );
 }
 
 /** Where does this device currently stand? (cheap re-check after registration). */
@@ -529,18 +590,42 @@ export async function getConnectedDevices(uid: string): Promise<ConnectedDevice[
   const masterId = (await get(ref(db, `${ROOT}/${uid}/master_device_id`))).val() as string | null;
   const data = (await get(ref(db, `${ROOT}/${uid}/devices`))).val() as Record<string, any> | null;
   if (!data) return [];
-  return Object.entries(data)
-    .map(([key, v]) => ({
-      deviceId: v.deviceId ?? key,
-      platform: v.platform ?? 'unknown',
-      platformLabel: v.platformLabel ?? v.platform ?? 'Device',
-      vesselName: v.vesselName,
-      customName: v.customName,
-      lastSeen: v.lastSeen ?? 0,
-      role: (v.role === 'master' || (v.deviceId ?? key) === masterId ? 'master' : 'member') as 'master' | 'member',
-      isThisDevice: (v.deviceId ?? key) === id,
-    }))
-    .sort((a, b) => (a.role === 'master' ? -1 : b.role === 'master' ? 1 : b.lastSeen - a.lastSeen));
+  const all: ConnectedDevice[] = Object.entries(data).map(([key, v]) => ({
+    deviceId: v.deviceId ?? key,
+    platform: v.platform ?? 'unknown',
+    platformLabel: v.platformLabel ?? v.platform ?? 'Device',
+    vesselName: v.vesselName,
+    customName: v.customName,
+    hwId: typeof v.hwId === 'string' ? v.hwId : undefined,
+    lastSeen: v.lastSeen ?? 0,
+    role: (v.role === 'master' || (v.deviceId ?? key) === masterId ? 'master' : 'member') as 'master' | 'member',
+    isThisDevice: (v.deviceId ?? key) === id,
+  }));
+
+  // Collapse records that share a hardware id — the same physical device that
+  // re-registered with a new deviceId (a reinstall) — so it never shows twice.
+  // Keep the best of each pair: Master beats member, then this device, then the
+  // most recently seen. Records without an hwId can't be matched → left as-is.
+  // (pruneDeviceGhosts removes the losers from the cloud on the next connect;
+  //  this is the immediate display-side guard.)
+  const better = (a: ConnectedDevice, b: ConnectedDevice): ConnectedDevice => {
+    if ((a.role === 'master') !== (b.role === 'master')) return a.role === 'master' ? a : b;
+    if (a.isThisDevice !== b.isThisDevice) return a.isThisDevice ? a : b;
+    return a.lastSeen >= b.lastSeen ? a : b;
+  };
+  const byHw = new Map<string, ConnectedDevice>();
+  const deduped: ConnectedDevice[] = [];
+  for (const dev of all) {
+    if (!dev.hwId) { deduped.push(dev); continue; }
+    const prev = byHw.get(dev.hwId);
+    if (!prev) { byHw.set(dev.hwId, dev); deduped.push(dev); continue; }
+    const win = better(prev, dev);
+    if (win !== prev) {
+      deduped[deduped.indexOf(prev)] = win;
+      byHw.set(dev.hwId, win);
+    }
+  }
+  return deduped.sort((a, b) => (a.role === 'master' ? -1 : b.role === 'master' ? 1 : b.lastSeen - a.lastSeen));
 }
 
 /** Devices waiting for the Master to approve them. */
@@ -564,15 +649,20 @@ export async function approveDevice(uid: string, targetId: string): Promise<void
   const { db } = ensureInit();
   const pending = (await get(ref(db, `${ROOT}/${uid}/pending_devices/${targetId}`))).val();
   if (!pending) throw new Error('Request not found (it may have been withdrawn).');
+  const hwId = typeof pending.hwId === 'string' ? pending.hwId : undefined;
   await set(ref(db, `${ROOT}/${uid}/devices/${targetId}`), {
     deviceId: targetId,
     platform: pending.platform ?? 'unknown',
     platformLabel: pending.platformLabel ?? 'Device',
     vesselName: pending.vesselName ?? '',
+    ...(hwId ? { hwId } : {}),
     lastSeen: Date.now(),
     role: 'member',
   });
   await remove(ref(db, `${ROOT}/${uid}/pending_devices/${targetId}`));
+  // A reinstalled member leaves its old approved record behind — drop it now
+  // that the new one (same hardware) is approved.
+  await pruneDeviceGhosts(db, uid, targetId, hwId);
 }
 
 /** Master action: reject (delete) a pending request. */

@@ -39,7 +39,12 @@ type ListEntry =
   | ({ kind: 'row'; key: string } & Scored);
 
 export default function DashboardSc() {
-  const { flat, loading } = useData();
+  const { flat, loading, certificates } = useData();
+  const certItemIds = useMemo(() => {
+    const s = new Set<string>();
+    certificates.forEach((c) => c.itemIds.forEach((id) => s.add(id)));
+    return s;
+  }, [certificates]);
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useS();
@@ -126,6 +131,7 @@ export default function DashboardSc() {
       date={e.date}
       days={e.days}
       fill={fill}
+      hasCert={certItemIds.has(e.it.id)}
       onPress={() => nav.navigate('ItemDetail', { category: e.it.category, id: e.it.id })}
     />
   );
@@ -213,6 +219,7 @@ function DashRow({
   days,
   onPress,
   fill,
+  hasCert,
 }: {
   item: EquipmentItem;
   status: ComplianceStatus;
@@ -220,20 +227,34 @@ function DashRow({
   days?: number;
   onPress: () => void;
   fill?: boolean;
+  hasCert?: boolean;
 }) {
   const styles = useS();
   const meta = CATEGORY_MAP[item.category];
   const title = item.type || (item.no != null ? `#${item.no}` : meta.short);
   const daysText =
     days == null ? '' : days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? 'today' : `in ${days}d`;
+  const attCount = item.attachments?.length ?? 0;
   return (
     <TouchableOpacity style={[styles.row, fill && { flex: 1 }]} onPress={onPress} activeOpacity={0.7}>
       <View style={[styles.rowBar, { backgroundColor: statusColor(status) }]} />
       <View style={styles.rowEmoji}><CategoryBadge category={item.category} size={20} /></View>
       <View style={{ flex: 1 }}>
-        <Text style={styles.rowTitle} numberOfLines={1}>
-          {title}
-        </Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.rowTitle} numberOfLines={1}>
+            {title}
+          </Text>
+          {attCount > 0 ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{'📎'.repeat(attCount)}</Text>
+            </View>
+          ) : null}
+          {hasCert ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>📜</Text>
+            </View>
+          ) : null}
+        </View>
         <Text style={styles.rowSub} numberOfLines={1}>
           {meta.short}
           {item.position ? ` · ${item.position}` : ''}
@@ -304,7 +325,10 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   },
   rowBar: { width: 5, alignSelf: 'stretch', marginRight: SIZES.md },
   rowEmoji: { marginRight: SIZES.sm, alignItems: 'center', justifyContent: 'center' },
-  rowTitle: { fontSize: SIZES.h5, fontWeight: '600', color: COLORS.textDark },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.xs },
+  rowTitle: { fontSize: SIZES.h5, fontWeight: '600', color: COLORS.textDark, flexShrink: 1 },
+  badge: { backgroundColor: 'rgba(46,125,153,0.12)', borderRadius: SIZES.radiusSm, paddingHorizontal: 6, paddingVertical: 1 },
+  badgeText: { fontSize: SIZES.tiny, color: COLORS.primaryDark, fontWeight: '700' },
   rowSub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 1 },
   rowDate: { fontSize: SIZES.body, fontWeight: '700' },
   rowDays: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 1 },

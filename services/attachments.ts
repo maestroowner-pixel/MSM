@@ -38,6 +38,11 @@ const ensureDir = ensureAttachmentsDir;
  */
 export function resolveUri(uri?: string): string | undefined {
   if (!uri) return uri;
+  // Only iOS app-container paths go stale (UUID changes on reinstall). On macOS/
+  // Windows `expo-file-system` is mocked (documentDirectory = /tmp/) and files
+  // live in the native file-manager's real dir, so rebasing onto ATTACHMENTS_DIR
+  // would point at a non-existent /tmp path. Keep the saved uri as-is elsewhere.
+  if (Platform.OS !== 'ios') return uri;
   const marker = 'attachments/';
   const idx = uri.lastIndexOf(marker);
   if (idx === -1) return uri;

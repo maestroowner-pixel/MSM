@@ -5,8 +5,9 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Image, Platform, useWindowDimensions } from 'react-native';
 import PlatformModal from '../components/PlatformModal';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -31,6 +32,8 @@ export default function ItemDetailSc() {
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useS();
+  const { width } = useWindowDimensions();
+  const twoCol = width >= 700; // wide windows (macOS / tablet): fields | cards
   const { byCategory, saveItem, removeItem, certificates, saveCertificate } = useData();
 
   const category: CategoryKey = route.params.category;
@@ -53,6 +56,10 @@ export default function ItemDetailSc() {
   const [preview, setPreview] = useState<Attachment | null>(null);
   const [renaming, setRenaming] = useState<Attachment | null>(null);
   const [renameText, setRenameText] = useState('');
+  // macOS: long-press doesn't fire with a mouse and Alert (NSAlert) caps at 3
+  // buttons, so the edit menu is a custom modal opened from a visible ⋯ button.
+  const onMacOS = Platform.OS === 'macos';
+  const [menuFor, setMenuFor] = useState<Attachment | null>(null);
   const [certPicker, setCertPicker] = useState(false);
   // Attachment slot size is computed from the grid width so the 4 slots fill
   // the row evenly (no fixed width → no empty gap on the right).
@@ -76,14 +83,16 @@ export default function ItemDetailSc() {
     await saveCertificate({ ...cert, itemIds, updatedAt: Date.now() });
   };
 
-  // Row tap previews the certificate's file (image full-screen, document via the
-  // OS viewer); the chevron opens the full certificate screen. No file → open it.
+  // Row tap previews the certificate's file; the chevron opens the full cert
+  // screen. No file → open the cert screen. On macOS the in-app <Image> lightbox
+  // can't render local file:// images, so preview = open in the system viewer
+  // (Preview.app) for both photos and documents.
   const previewCert = (c: (typeof certificates)[number]) => {
     if (!c.fileUri) {
       nav.navigate('CertificateDetail', { id: c.id });
       return;
     }
-    if (c.fileKind === 'photo') {
+    if (!onMacOS && c.fileKind === 'photo') {
       setPreview({ id: c.id, kind: 'photo', uri: c.fileUri, name: c.fileName ?? c.name, addedAt: 0 });
     } else {
       openFile(c.fileUri);
@@ -144,6 +153,10 @@ export default function ItemDetailSc() {
 
   // Long-press menu on a saved attachment: edit actions, replacing the red ✕.
   const attachmentMenu = (att: Attachment) => {
+    if (onMacOS) {
+      setMenuFor(att);
+      return;
+    }
     Alert.alert(att.name ?? 'File', undefined, [
       { text: 'Download / Share', onPress: () => openFile(att.uri) },
       {
@@ -212,6 +225,8 @@ export default function ItemDetailSc() {
             </View>
           </View>
 
+          <View style={twoCol ? styles.cols : undefined}>
+          <View style={twoCol ? styles.col : undefined}>
           <Field label="Type / Description" value={draft.type} onChange={(v) => set({ type: v })} />
           <Field label="No." value={draft.no != null ? String(draft.no) : ''} onChange={(v) => set({ no: v })} />
           <Field label="Serial / ID" value={draft.serial} onChange={(v) => set({ serial: v })} />
@@ -239,7 +254,9 @@ export default function ItemDetailSc() {
           />
 
           <Field label="Remarks" value={draft.remarks} onChange={(v) => set({ remarks: v })} multiline />
+          </View>
 
+          <View style={twoCol ? styles.col : undefined}>
           {meta.monthly ? (
             <View style={styles.card}>
               <Label>Monthly checks · {year}</Label>
@@ -292,22 +309,33 @@ export default function ItemDetailSc() {
                   return (
                     <View key={a.id} style={styles.attItem}>
                       <TouchableOpacity
-                        onPress={() => (a.kind === 'photo' ? setPreview(a) : openFile(a.uri))}
+                        onPress={() => (!onMacOS && a.kind === 'photo' ? setPreview(a) : openFile(a.uri))}
                         onLongPress={() => attachmentMenu(a)}
                         delayLongPress={300}
                         activeOpacity={0.8}
                       >
-                        {a.kind === 'photo' ? (
+                        {a.kind === 'photo' && !onMacOS ? (
                           <Image source={{ uri: resolveUri(a.uri) }} style={[styles.attThumb, box]} resizeMode="cover" />
                         ) : (
+                          // macOS can't render local file:// images inline → show a file
+                          // tile (tap opens it in the system viewer via onPress above).
                           <View style={[styles.attThumb, box, styles.attDoc]}>
-                            <Text style={{ fontSize: 24 }}>📄</Text>
+                            <MaterialCommunityIcons
+                              name={a.kind === 'photo' ? 'file-image-outline' : 'file-document-outline'}
+                              size={24}
+                              color={COLORS.primary}
+                            />
                             <Text style={styles.attDocName} numberOfLines={1}>
-                              {a.name ?? 'Doc'}
+                              {a.name ?? (a.kind === 'photo' ? 'Photo' : 'Doc')}
                             </Text>
                           </View>
                         )}
                       </TouchableOpacity>
+                      {onMacOS ? (
+                        <TouchableOpacity style={styles.attMenuBtn} onPress={() => attachmentMenu(a)} hitSlop={8}>
+                          <Text style={styles.attMenuText}>⋯</Text>
+                        </TouchableOpacity>
+                      ) : null}
                     </View>
                   );
                 }
@@ -323,7 +351,9 @@ export default function ItemDetailSc() {
                 return <View key={`empty${i}`} style={[styles.attEmpty, box]} />;
               })}
             </View>
-            <Text style={styles.attHint}>Up to {MAX_ATTACHMENTS} files · long-press a file to edit</Text>
+            <Text style={styles.attHint}>
+              Up to {MAX_ATTACHMENTS} files · {onMacOS ? 'tap ⋯ to edit a file' : 'long-press a file to edit'}
+            </Text>
           </View>
 
           {/* Linked certificates */}
@@ -372,6 +402,8 @@ export default function ItemDetailSc() {
                 );
               })
             )}
+          </View>
+          </View>
           </View>
 
           <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
@@ -422,6 +454,43 @@ export default function ItemDetailSc() {
                   }}
                 >
                   <Text style={[styles.rnBtnText, styles.rnBtnTextPrimary]}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </PlatformModal>
+
+        <PlatformModal visible={!!menuFor} transparent animationType="fade" onRequestClose={() => setMenuFor(null)}>
+          <View style={styles.rnBackdrop}>
+            <View style={styles.rnCard}>
+              <Text style={styles.rnTitle} numberOfLines={1}>{menuFor?.name ?? 'File'}</Text>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => { const a = menuFor; setMenuFor(null); if (a) openFile(a.uri); }}
+              >
+                <Text style={styles.menuItemText}>Download / Share</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => { const a = menuFor; setMenuFor(null); if (a) { setRenameText(a.name ?? ''); setRenaming(a); } }}
+              >
+                <Text style={styles.menuItemText}>Rename</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => { const a = menuFor; setMenuFor(null); if (a) chooseReplace(a); }}
+              >
+                <Text style={styles.menuItemText}>Replace</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => { const a = menuFor; setMenuFor(null); if (a) removeAttachment(a); }}
+              >
+                <Text style={[styles.menuItemText, { color: COLORS.danger }]}>Delete</Text>
+              </TouchableOpacity>
+              <View style={styles.rnRow}>
+                <TouchableOpacity style={styles.rnBtn} onPress={() => setMenuFor(null)}>
+                  <Text style={styles.rnBtnText}>Cancel</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -557,6 +626,8 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   },
   dateHint: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 2, marginLeft: 4 },
   twoCol: { flexDirection: 'row', gap: SIZES.sm },
+  cols: { flexDirection: 'row', gap: SIZES.lg, alignItems: 'flex-start' },
+  col: { flex: 1 },
   card: { ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.md, marginVertical: SIZES.sm },
   months: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.xs, marginTop: SIZES.sm },
   month: {
@@ -576,6 +647,20 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   extraVal: { fontSize: SIZES.small, color: COLORS.text, flex: 1, textAlign: 'right' },
   attGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.sm, marginTop: SIZES.sm },
   attItem: { position: 'relative' },
+  attMenuBtn: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attMenuText: { color: COLORS.textWhite, fontSize: 14, fontWeight: '800', lineHeight: 16 },
+  menuItem: { paddingVertical: SIZES.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.border },
+  menuItemText: { fontSize: SIZES.body, color: COLORS.text, fontWeight: '600' },
   attThumb: { borderRadius: SIZES.radiusSm, backgroundColor: COLORS.borderLight, borderWidth: 1, borderStyle: 'dashed', borderColor: COLORS.border },
   attDoc: { alignItems: 'center', justifyContent: 'center', padding: 4 },
   attDocName: { fontSize: 8, color: COLORS.textLight, marginTop: 2, maxWidth: 70 },

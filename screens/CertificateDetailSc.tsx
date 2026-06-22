@@ -14,6 +14,7 @@ import {
   Image,
   FlatList,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -35,6 +36,8 @@ export default function CertificateDetailSc() {
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useS();
+  const { width } = useWindowDimensions();
+  const twoCol = width >= 700; // wide windows (macOS / tablet): fields | file+items
   const { certificates, flat, saveCertificate, removeCertificate } = useData();
 
   const id: string | null = route.params?.id ?? null;
@@ -180,26 +183,36 @@ export default function CertificateDetailSc() {
               {!isNew ? <StatusPill status={status} /> : null}
             </View>
 
+            <View style={twoCol ? styles.cols : undefined}>
+            <View style={twoCol ? styles.col : undefined}>
             <Field label="Certificate name ★" value={draft.name} onChange={(v) => set({ name: v })} />
             <Field label="Number" value={draft.number} onChange={(v) => set({ number: v })} />
             <Field label="Issuer / station" value={draft.issuer} onChange={(v) => set({ issuer: v })} />
             <DateField label="Issue date" value={draft.issueDate} onChange={(v) => set({ issueDate: v })} />
             <DateField label="Expiry date ★" value={draft.expiryDate} onChange={(v) => set({ expiryDate: v })} defaultYear={new Date().getFullYear() + 5} />
+            </View>
 
+            <View style={twoCol ? styles.col : undefined}>
             {/* File */}
             <View style={styles.card}>
               <Label>Certificate file</Label>
               {draft.fileUri ? (
                 <View style={{ marginTop: SIZES.sm }}>
-                  {draft.fileKind === 'photo' ? (
+                  {draft.fileKind === 'photo' && Platform.OS !== 'macos' ? (
                     <Image source={{ uri: resolveUri(draft.fileUri) }} style={styles.preview} resizeMode="cover" />
                   ) : (
-                    <View style={styles.docRow}>
-                      <Text style={{ fontSize: 28 }}>📄</Text>
+                    // macOS can't render local file:// images inline → show a tappable
+                    // file row that opens the file in the system viewer (Preview.app).
+                    <TouchableOpacity style={styles.docRow} onPress={() => openFile(draft.fileUri!)} activeOpacity={0.7}>
+                      <MaterialCommunityIcons
+                        name={draft.fileKind === 'photo' ? 'file-image-outline' : 'file-document-outline'}
+                        size={28}
+                        color={COLORS.primary}
+                      />
                       <Text style={styles.docName} numberOfLines={1}>
-                        {draft.fileName ?? 'Document'}
+                        {draft.fileName ?? (draft.fileKind === 'photo' ? 'Image — tap to open' : 'Document')}
                       </Text>
-                    </View>
+                    </TouchableOpacity>
                   )}
                   <View style={styles.fileBtns}>
                     <TouchableOpacity style={styles.smallBtn} onPress={() => openFile(draft.fileUri!)}>
@@ -259,6 +272,8 @@ export default function CertificateDetailSc() {
                 })
               )}
             </View>
+            </View>
+            </View>
 
             <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
               <Text style={styles.deleteText}>{isNew ? 'Discard' : 'Delete certificate'}</Text>
@@ -311,6 +326,8 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   headerBtn: { fontSize: SIZES.h5, color: COLORS.text },
   headerTitle: { fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginBottom: SIZES.md },
+  cols: { flexDirection: 'row', gap: SIZES.lg, alignItems: 'flex-start' },
+  col: { flex: 1 },
   emoji: { fontSize: 34 },
   fieldWrap: { marginBottom: SIZES.md },
   input: {

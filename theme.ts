@@ -160,7 +160,8 @@ export const GLASS = {
 
 export const APP_CONFIG = {
   name: 'Marine Safety Manager',
-  version: '1.8',
+  version: '1.9',
+  build: '1090',
   developer: 'Mykhaylo Osypov',
   company: 'KukaLab',
   year: '2026',

@@ -32,7 +32,7 @@ export interface ManualContent {
 }
 
 const aboutLine = (lang: string) =>
-  `${APP_CONFIG.name} v${APP_CONFIG.version} — ${APP_CONFIG.company}, ${APP_CONFIG.year}.`;
+  `${APP_CONFIG.name} v${APP_CONFIG.version} (build ${APP_CONFIG.build}) — ${APP_CONFIG.company}, ${APP_CONFIG.year}.`;
 
 // ---------------------------------------------------------------- English ----
 const en: ManualContent = {
