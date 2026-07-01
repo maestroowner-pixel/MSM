@@ -10,8 +10,8 @@
     "web": "expo start --web",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "typecheck": "tsc --noEmit",
-    "aab": "node scripts/patch-android-signing.js && node scripts/patch-android-minify.js && cd android && ./gradlew bundleRelease",
-    "postinstall": "node scripts/patch-rn.js && node scripts/patch-android-signing.js && node scripts/patch-android-minify.js"
+    "aab": "node scripts/patch-android-signing.js && node scripts/patch-android-minify.js && node scripts/patch-android-edge-to-edge.js && cd android && ./gradlew bundleRelease",
+    "postinstall": "node scripts/patch-rn.js && node scripts/patch-android-signing.js && node scripts/patch-android-minify.js && node scripts/patch-android-edge-to-edge.js"
   },
   "keywords": [
     "maritime",

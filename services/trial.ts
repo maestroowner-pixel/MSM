@@ -4,7 +4,7 @@
 // `ENFORCE_LIMITS` is the master switch. While it is `false` (current state)
 // NOTHING is limited: `limitsActive()` always resolves false and the counter
 // merely records how many days have elapsed since first launch. Flip the switch
-// to `true` later to turn the gate on (after the 31-day counter, non-subscribers
+// to `true` later to turn the gate on (after the 60-day counter, non-subscribers
 // hit the free-tier caps and are routed to the paywall).
 // ===================================
 
@@ -14,8 +14,8 @@ import { isSubscribed } from './purchases';
 /** MASTER SWITCH — keep false until we decide to enforce limits. */
 export const ENFORCE_LIMITS = false;
 
-/** Length of the free period before limits kick in. */
-export const TRIAL_DAYS = 31;
+/** Length of the free period before limits kick in (2 months). */
+export const TRIAL_DAYS = 60;
 
 /** Free-tier caps, applied only once ENFORCE_LIMITS is true and the trial ended. */
 export const FREE_ITEMS_PER_CATEGORY = 15; // tune later

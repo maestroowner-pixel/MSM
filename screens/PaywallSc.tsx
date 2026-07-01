@@ -1,5 +1,5 @@
 // ===================================
-// Paywall — MSM Pro upsell. 1-month free trial, then a yearly subscription.
+// Paywall — MSM Pro upsell. 2-month free trial, then a yearly subscription.
 // Talks only to services/purchases (RevenueCat plugs in there later); prices
 // shown here are the store-localized ones once RevenueCat is wired.
 // Opened from Settings (does not gate the app yet).
@@ -45,6 +45,9 @@ export default function PaywallSc() {
   }, []);
 
   const priceLine = offer ? `${offer.priceString} / year` : '…';
+  const trialDays = offer?.trialDays ?? 60;
+  const trialLabel =
+    trialDays % 30 === 0 ? `${trialDays / 30} month${trialDays / 30 > 1 ? 's' : ''}` : `${trialDays} days`;
 
   const onSubscribe = async () => {
     if (!offer?.available) {
@@ -107,10 +110,10 @@ export default function PaywallSc() {
 
           <View style={styles.planCard}>
             <View style={styles.trialPill}>
-              <Text style={styles.trialPillText}>{offer?.trialDays ?? 30} days free</Text>
+              <Text style={styles.trialPillText}>{trialLabel} free</Text>
             </View>
             <Text style={styles.planPrice}>{priceLine}</Text>
-            <Text style={styles.planNote}>Free for the first month, then billed yearly. Auto-renews — cancel anytime.</Text>
+            <Text style={styles.planNote}>Free for the first {trialLabel}, then billed yearly. Auto-renews — cancel anytime.</Text>
           </View>
         </ScrollView>
 
@@ -119,7 +122,7 @@ export default function PaywallSc() {
             {busy ? (
               <ActivityIndicator color={COLORS.textWhite} />
             ) : (
-              <Text style={styles.ctaText}>Start {offer?.trialDays ?? 30}-day free trial</Text>
+              <Text style={styles.ctaText}>Start {trialLabel} free trial</Text>
             )}
           </TouchableOpacity>
 

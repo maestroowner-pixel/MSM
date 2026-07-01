@@ -5,8 +5,8 @@
 // drop-in: implement the four functions with `react-native-purchases`
 // (RevenueCat) and the screen keeps working unchanged.
 //
-// Offer: 1-month free trial, then a yearly subscription. Real, per-store
-// localized prices (e.g. "$9.99", "€9,99", "₴399,00") come from RevenueCat's
+// Offer: 2-month free trial, then a yearly subscription. Real, per-store
+// localized prices (e.g. "€10,00", "$10.99", "₴399,00") come from RevenueCat's
 // annual package once configured; until then `getOffer()` returns FALLBACK
 // (available:false) so the screen shows a price but the buttons explain that
 // purchasing isn't live yet.
@@ -14,7 +14,7 @@
 
 import { Linking, Platform } from 'react-native';
 
-export const TRIAL_DAYS = 30;
+export const TRIAL_DAYS = 60;
 
 // Identifiers to configure in RevenueCat + App Store Connect / Play Console.
 export const ENTITLEMENT_ID = 'pro';
@@ -33,7 +33,7 @@ export interface Offer {
 
 // Placeholder shown until RevenueCat returns the real localized store price.
 const FALLBACK: Offer = {
-  priceString: '$10.00',
+  priceString: '€10.00',
   period: 'year',
   trialDays: TRIAL_DAYS,
   available: false,
