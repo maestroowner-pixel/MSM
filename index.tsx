@@ -33,6 +33,7 @@ import ImportSc from './screens/ImportSc';
 import ReportsSc from './screens/ReportsSc';
 import SettingsSc from './screens/SettingsSc';
 import ManualSc from './screens/ManualSc';
+import GettingStartedSc from './screens/GettingStartedSc';
 import LegalSc from './screens/LegalSc';
 import CertificatesSc from './screens/CertificatesSc';
 import CertificateDetailSc from './screens/CertificateDetailSc';
@@ -232,6 +233,7 @@ function Root() {
         <Stack.Screen name="ItemDetail" component={ItemDetailSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Import" component={ImportSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Manual" component={ManualSc} />
+        <Stack.Screen name="GettingStarted" component={GettingStartedSc} />
         <Stack.Screen name="Legal" component={LegalSc} />
         <Stack.Screen name="Compressor" component={CompressorSc} />
         <Stack.Screen name="Paywall" component={PaywallSc} options={{ presentation: 'modal' }} />

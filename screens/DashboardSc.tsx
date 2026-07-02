@@ -12,6 +12,7 @@ import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { CATEGORY_MAP } from '../constants/categories';
+import { gettingStarted } from '../constants/gettingStarted';
 import { complianceDate, computeStatus, daysUntil, formatDate } from '../utils/dates';
 import { ComplianceStatus, EquipmentItem, Group } from '../types/equipment';
 
@@ -157,7 +158,9 @@ export default function DashboardSc() {
         </TouchableOpacity>
       </View>
 
-      {loading ? null : total === 0 ? (
+      {loading ? null : flat.length === 0 ? (
+        <GetStarted onStart={() => nav.navigate('GettingStarted')} />
+      ) : total === 0 ? (
         <Empty text={status || group !== 'ALL' ? 'No items match the current filters.' : 'No items with dates yet. Import the LSA/FFE workbook from Settings.'} />
       ) : (
         <FlatList
@@ -182,6 +185,23 @@ export default function DashboardSc() {
         />
       )}
     </Screen>
+  );
+}
+
+// Shown when the register is completely empty: a friendly welcome + a prominent
+// "How to start?" button that opens the import guide.
+function GetStarted({ onStart }: { onStart: () => void }) {
+  const styles = useS();
+  const content = useMemo(() => gettingStarted(), []);
+  return (
+    <View style={styles.getStarted}>
+      <Text style={styles.getStartedEmoji}>🚢</Text>
+      <Text style={styles.getStartedTitle}>{content.emptyTitle}</Text>
+      <Text style={styles.getStartedBody}>{content.emptyBody}</Text>
+      <TouchableOpacity style={styles.getStartedBtn} onPress={onStart} activeOpacity={0.85}>
+        <Text style={styles.getStartedBtnText}>{content.ctaLabel}</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -269,6 +289,18 @@ function DashRow({
 }
 
 const makeStyles = (COLORS: Palette) => StyleSheet.create({
+  getStarted: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: SIZES.lg, paddingTop: SIZES.xxxl },
+  getStartedEmoji: { fontSize: 52, marginBottom: SIZES.md },
+  getStartedTitle: { fontSize: SIZES.h3, fontWeight: '800', color: COLORS.textDark, textAlign: 'center' },
+  getStartedBody: { fontSize: SIZES.body, color: COLORS.textLight, textAlign: 'center', lineHeight: 21, marginTop: SIZES.sm, marginBottom: SIZES.xl },
+  getStartedBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: SIZES.radiusRound,
+    paddingVertical: SIZES.md,
+    paddingHorizontal: SIZES.xxl,
+    alignItems: 'center',
+  },
+  getStartedBtnText: { color: COLORS.textWhite, fontWeight: '700', fontSize: SIZES.h5 },
   statsRow: { flexDirection: 'row', gap: SIZES.sm, marginBottom: SIZES.sm },
   statBox: {
     flex: 1,
