@@ -45,7 +45,7 @@ export default function CategoriesSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Equipment" subtitle="Browse safety equipment by category" />
+      <ScreenTitle title="Equipment" subtitle="Browse safety equipment by category" help={2} />
       {sections.map((sec) => (
         <View key={sec.group} style={{ marginBottom: SIZES.lg }}>
           <Text style={[styles.groupTitle, { color: COLORS.groupColors[sec.group] }]}>{GROUP_LABEL[sec.group]}</Text>

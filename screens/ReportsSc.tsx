@@ -82,7 +82,7 @@ export default function ReportsSc() {
   if (!nonEmpty.length) {
     return (
       <Screen scroll>
-        <ScreenTitle title="Reports" subtitle="Export the safety register" />
+        <ScreenTitle title="Reports" subtitle="Export the safety register" help={10} />
         <Card>
           <Text style={styles.empty}>No equipment yet. Import or add items first, then export a report.</Text>
         </Card>
@@ -92,7 +92,7 @@ export default function ReportsSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Reports" subtitle="Choose what to include, then export" />
+      <ScreenTitle title="Reports" subtitle="Choose what to include, then export" help={10} />
 
       <View style={styles.headRow}>
         <Text style={styles.sectionLabel}>

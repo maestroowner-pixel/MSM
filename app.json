@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.kukalab.msm",
-      "buildNumber": "1091",
+      "buildNumber": "1094",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UISupportedInterfaceOrientations": [
@@ -35,7 +35,7 @@
     },
     "android": {
       "package": "com.kukalab.msm",
-      "versionCode": 1093,
+      "versionCode": 1094,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",

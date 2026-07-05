@@ -5,7 +5,8 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Image, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Screen, StatusPill, Empty, statusColor } from '../components/ui';
+import { Screen, StatusPill, Empty, statusColor, Glyph } from '../components/ui'
+import { HelpButton } from '../components/HelpButton';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
@@ -64,8 +65,9 @@ export default function CertificatesSc() {
           <Text style={styles.title}>Certificates</Text>
           <Text style={styles.sub}>{certificates.length} certificates · link items to a group certificate</Text>
         </View>
-        <TouchableOpacity style={styles.addBtn} onPress={addCertificate}>
-          <Text style={styles.addBtnText}>＋</Text>
+        <HelpButton section={4} />
+        <TouchableOpacity style={[styles.addBtn, { marginLeft: SIZES.sm }]} onPress={addCertificate}>
+          <Text style={styles.addBtnText}>+</Text>
         </TouchableOpacity>
       </View>
 
@@ -80,7 +82,7 @@ export default function CertificatesSc() {
       ) : null}
 
       {list.length === 0 ? (
-        <Empty text="No certificates yet. Tap ＋ to add one and link the items it covers." />
+        <Empty text="No certificates yet. Tap + to add one and link the items it covers." />
       ) : (
         <FlatList
           data={list}
@@ -98,7 +100,7 @@ export default function CertificatesSc() {
                 onPress={() => nav.navigate('CertificateDetail', { id: item.id })}
               >
                 <View style={[styles.bar, { backgroundColor: statusColor(status) }]} />
-                <Text style={styles.rowEmoji}>📜</Text>
+                <View style={{ marginRight: SIZES.sm }}><Glyph emoji="📜" size={22} /></View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowTitle} numberOfLines={1}>
                     {item.name || 'Untitled certificate'}

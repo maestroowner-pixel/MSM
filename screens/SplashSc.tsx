@@ -7,13 +7,19 @@
 // ===================================
 
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Image, Easing } from 'react-native';
+import { View, Text, StyleSheet, Animated, Image, Easing, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SIZES, APP_CONFIG } from '../theme';
 import { playShipBellSound } from '../utils/sound';
 
 const OCTOPUS_MS = 1800; // octopus visible before the logo cross-fades in
 const HOLD_MS = 1500;    // logo visible before finishing
+
+// react-native-web has no native animation driver; using it there can leave the
+// final fade's completion callback unfired, so the splash would never hand off
+// (the app appears stuck on the dark teal logo screen). Drive on the JS thread
+// on web, and never rely solely on the animation callback for onDone (below).
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 export default function SplashSc({ onDone }: { onDone: () => void }) {
   const container = useRef(new Animated.Value(1)).current; // whole-screen fade-out
@@ -24,33 +30,47 @@ export default function SplashSc({ onDone }: { onDone: () => void }) {
   const textOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    let done = false;
+    const handoff = () => {
+      if (done) return;
+      done = true;
+      onDone();
+    };
+
     // Octopus fades/scales in (continues seamlessly from the native splash).
     Animated.parallel([
-      Animated.timing(octoOpacity, { toValue: 1, duration: 450, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.spring(octoScale, { toValue: 1, friction: 7, tension: 40, useNativeDriver: true }),
+      Animated.timing(octoOpacity, { toValue: 1, duration: 450, easing: Easing.out(Easing.cubic), useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.spring(octoScale, { toValue: 1, friction: 7, tension: 40, useNativeDriver: USE_NATIVE_DRIVER }),
     ]).start();
 
     // After the hold, cross-fade to the MSM logo layer (octopus stays underneath,
     // so there's no white flash) and ring the bell.
     const toLogo = setTimeout(() => {
+      // Ring the ship's bell as the logo arrives. On the desktop (Electron) build
+      // this plays on the splash; a real browser may block it until first
+      // interaction (autoplay policy) — best-effort.
       playShipBellSound();
       Animated.parallel([
-        Animated.timing(logoLayer, { toValue: 1, duration: 600, easing: Easing.inOut(Easing.cubic), useNativeDriver: true }),
-        Animated.spring(logoScale, { toValue: 1, friction: 6, tension: 40, useNativeDriver: true }),
-        Animated.timing(textOpacity, { toValue: 1, duration: 700, delay: 200, useNativeDriver: true }),
+        Animated.timing(logoLayer, { toValue: 1, duration: 600, easing: Easing.inOut(Easing.cubic), useNativeDriver: USE_NATIVE_DRIVER }),
+        Animated.spring(logoScale, { toValue: 1, friction: 6, tension: 40, useNativeDriver: USE_NATIVE_DRIVER }),
+        Animated.timing(textOpacity, { toValue: 1, duration: 700, delay: 200, useNativeDriver: USE_NATIVE_DRIVER }),
       ]).start();
     }, OCTOPUS_MS);
 
     // Finish: fade the whole splash out, then hand off.
     const finish = setTimeout(() => {
-      Animated.timing(container, { toValue: 0, duration: 400, useNativeDriver: true }).start(({ finished }) => {
-        if (finished) onDone();
-      });
+      Animated.timing(container, { toValue: 0, duration: 400, useNativeDriver: USE_NATIVE_DRIVER }).start(handoff);
     }, OCTOPUS_MS + HOLD_MS);
+
+    // Safety net: never let the app get stuck on the splash if the animation's
+    // completion callback doesn't fire (a real hazard on web). Hand off after the
+    // full sequence + fade regardless.
+    const guarantee = setTimeout(handoff, OCTOPUS_MS + HOLD_MS + 600);
 
     return () => {
       clearTimeout(toLogo);
       clearTimeout(finish);
+      clearTimeout(guarantee);
     };
   }, [container, octoOpacity, octoScale, logoLayer, logoScale, textOpacity, onDone]);
 

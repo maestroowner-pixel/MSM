@@ -218,7 +218,7 @@ export default function CompressorSc() {
         ))}
         {compressors.length < MAX_COMPRESSORS ? (
           <TouchableOpacity style={styles.addChip} onPress={addCompressor}>
-            <Text style={styles.addChipText}>＋ Add compressor</Text>
+            <Text style={styles.addChipText}>+ Add compressor</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -226,7 +226,7 @@ export default function CompressorSc() {
       {!active ? (
         <Card>
           <Text style={styles.empty}>
-            No compressors yet. Tap “＋ Add compressor” to create one (up to {MAX_COMPRESSORS}).
+            No compressors yet. Tap “+ Add compressor” to create one (up to {MAX_COMPRESSORS}).
           </Text>
         </Card>
       ) : (

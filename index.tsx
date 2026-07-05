@@ -4,8 +4,9 @@
 // ===================================
 
 import 'react-native-gesture-handler';
+import './utils/webAlert'; // web: make Alert.alert use the browser dialog (no-op on native)
 import React, { useRef, useState } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import { View, StyleSheet, Animated, Platform } from 'react-native';
 import { registerRootComponent } from 'expo';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, DefaultTheme, useNavigation, useIsFocused } from '@react-navigation/native';
@@ -14,6 +15,7 @@ import { createStackNavigator, TransitionPresets } from '@react-navigation/stack
 import { GestureHandlerRootView, Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Font from 'expo-font';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { SIZES } from './theme';
@@ -191,6 +193,13 @@ function Root() {
     // Start the free-trial counter on first launch (records the date only;
     // limits stay OFF until services/trial ENFORCE_LIMITS is enabled).
     ensureTrialStarted();
+    // On web the icon font's @font-face isn't always injected by the static
+    // bundle, so tab/glyph icons render as empty squares (tofu). Load it
+    // explicitly during the splash so glyphs are ready by the time the UI shows.
+    // (Native loads its vector-icon fonts itself — web only.)
+    if (Platform.OS === 'web') {
+      Font.loadAsync({ ...(MaterialCommunityIcons as any).font }).catch(() => {});
+    }
   }, []);
 
   const acceptLegal = async () => {
@@ -216,6 +225,22 @@ function Root() {
 
   const showConsent = !showSplash && legalAccepted === false;
 
+  // Web has no swipe-back gesture, and these pushed screens draw no back button
+  // of their own, so on web they'd be a dead end. Show a native stack header
+  // (with the automatic back arrow) for them on web only. Modals keep their own
+  // close controls, and the tab host (Main) stays header-less. On native this is
+  // null → unchanged (swipe-back as before).
+  const webHeader = (title: string) =>
+    Platform.OS === 'web'
+      ? {
+          headerShown: true,
+          title,
+          headerStyle: { backgroundColor: COLORS.tabBackground },
+          headerTintColor: COLORS.primary,
+          headerTitleStyle: { color: COLORS.text },
+        }
+      : undefined;
+
   return (
     <NavigationContainer theme={navTheme}>
       <StatusBar style={showSplash ? 'light' : COLORS.statusBar} />
@@ -223,19 +248,24 @@ function Root() {
         screenOptions={{
           headerShown: false,
           gestureEnabled: true,
+          // On web a pushed card's height otherwise collapses to its content, so
+          // a Screen's ScrollView has no bounded height to scroll within (the
+          // body itself is overflow:hidden). flex:1 makes each card fill the
+          // viewport → inner ScrollViews scroll (e.g. the Manual). No-op on native.
+          cardStyle: Platform.OS === 'web' ? { flex: 1 } : undefined,
           // Smooth horizontal slide between pushed screens (modals keep their
           // own slide-up via presentation: 'modal').
           ...TransitionPresets.SlideFromRightIOS,
         }}
       >
         <Stack.Screen name="Main" component={MainTabs} />
-        <Stack.Screen name="CategoryItems" component={CategoryItemsSc} />
+        <Stack.Screen name="CategoryItems" component={CategoryItemsSc} options={webHeader('Equipment')} />
         <Stack.Screen name="ItemDetail" component={ItemDetailSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Import" component={ImportSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Manual" component={ManualSc} />
-        <Stack.Screen name="GettingStarted" component={GettingStartedSc} />
-        <Stack.Screen name="Legal" component={LegalSc} />
-        <Stack.Screen name="Compressor" component={CompressorSc} />
+        <Stack.Screen name="Manual" component={ManualSc} options={webHeader('Manual')} />
+        <Stack.Screen name="GettingStarted" component={GettingStartedSc} options={webHeader('Getting Started')} />
+        <Stack.Screen name="Legal" component={LegalSc} options={webHeader('Legal')} />
+        <Stack.Screen name="Compressor" component={CompressorSc} options={webHeader('BA Compressor')} />
         <Stack.Screen name="Paywall" component={PaywallSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="CertificateDetail" component={CertificateDetailSc} options={{ presentation: 'modal' }} />
       </Stack.Navigator>

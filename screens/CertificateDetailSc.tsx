@@ -19,7 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
-import { Label, StatusPill, CategoryBadge } from '../components/ui';
+import { Label, StatusPill, CategoryBadge, Glyph } from '../components/ui';
 import { useData } from '../contexts/DataContext';
 import { Certificate } from '../types/certificate';
 import { CATEGORY_MAP } from '../constants/categories';
@@ -169,7 +169,7 @@ export default function CertificateDetailSc() {
         ) : (
           <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
             <View style={styles.titleRow}>
-              <Text style={styles.emoji}>📜</Text>
+              <Glyph emoji="📜" size={32} />
               {!isNew ? <StatusPill status={status} /> : null}
             </View>
 
@@ -214,7 +214,7 @@ export default function CertificateDetailSc() {
                 </View>
               ) : (
                 <TouchableOpacity style={styles.attachBtn} onPress={chooseFile}>
-                  <Text style={styles.attachText}>＋ Attach document or photo</Text>
+                  <Text style={styles.attachText}>+ Attach document or photo</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -224,7 +224,7 @@ export default function CertificateDetailSc() {
               <View style={styles.linkHead}>
                 <Label>Covered items ({draft.itemIds.length})</Label>
                 <TouchableOpacity onPress={() => setPicking(true)}>
-                  <Text style={styles.linkAdd}>＋ Link items</Text>
+                  <Text style={styles.linkAdd}>+ Link items</Text>
                 </TouchableOpacity>
               </View>
               {linkedItems.length === 0 ? (

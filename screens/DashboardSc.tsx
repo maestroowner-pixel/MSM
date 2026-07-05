@@ -7,7 +7,8 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Screen, ScreenTitle, Empty, statusColor, CategoryBadge } from '../components/ui';
+import { Screen, ScreenTitle, Empty, statusColor, CategoryBadge, Glyph } from '../components/ui';
+import { TrialBanner } from '../components/TrialBanner';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
@@ -139,7 +140,9 @@ export default function DashboardSc() {
 
   return (
     <Screen contentStyle={{ paddingBottom: 0 }}>
-      <ScreenTitle title="Dashboard" subtitle="Inspections & expiries, soonest first" />
+      <ScreenTitle title="Dashboard" subtitle="Inspections & expiries, soonest first" help={6} />
+
+      <TrialBanner />
 
       <View style={styles.statsRow}>
         <StatBox label="Expired" value={stats.expired} color={COLORS.danger} active={status === 'expired'} onPress={() => toggleStatus('expired')} />
@@ -150,11 +153,11 @@ export default function DashboardSc() {
       <View style={styles.controlRow}>
         <TouchableOpacity style={styles.cycleBtn} onPress={cycleGroup} activeOpacity={0.8}>
           <Text style={styles.cycleCaption}>GROUP</Text>
-          <Text style={styles.cycleValue} numberOfLines={1}>{GROUP_LABEL[group]} ⟳</Text>
+          <Text style={styles.cycleValue} numberOfLines={1}>{GROUP_LABEL[group]}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.cycleBtn} onPress={cycleSort} activeOpacity={0.8}>
           <Text style={styles.cycleCaption}>SORT</Text>
-          <Text style={styles.cycleValue} numberOfLines={1}>⟳ {SORT_LABEL[sortBy]}</Text>
+          <Text style={styles.cycleValue} numberOfLines={1}>{SORT_LABEL[sortBy]}</Text>
         </TouchableOpacity>
       </View>
 
@@ -195,7 +198,8 @@ function GetStarted({ onStart }: { onStart: () => void }) {
   const content = useMemo(() => gettingStarted(), []);
   return (
     <View style={styles.getStarted}>
-      <Text style={styles.getStartedEmoji}>🚢</Text>
+      <Glyph emoji="🚢" size={56} />
+      <View style={{ height: SIZES.md }} />
       <Text style={styles.getStartedTitle}>{content.emptyTitle}</Text>
       <Text style={styles.getStartedBody}>{content.emptyBody}</Text>
       <TouchableOpacity style={styles.getStartedBtn} onPress={onStart} activeOpacity={0.85}>

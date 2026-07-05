@@ -785,3 +785,56 @@ export async function pullAll(uid: string): Promise<number> {
   }
   return total;
 }
+
+// ---- Entitlement (web subscription / license) ------------------------------
+// The web build stores the vessel's MSM Pro entitlement (a validated
+// LemonSqueezy license) under the account, so it follows the vessel across
+// browsers/devices and can't be reset by clearing local storage. Not used on
+// Windows (no JS SDK path here) — web/mobile only.
+
+export interface Entitlement {
+  active: boolean;
+  provider?: 'lemonsqueezy';
+  licenseKey?: string;
+  instanceId?: string;
+  activatedAt?: number;
+  /** ms epoch, or null for a perpetual/non-expiring license. */
+  expiresAt?: number | null;
+}
+
+/** uid of the currently signed-in vessel, or null if not signed in. */
+export function currentUid(): string | null {
+  if (onWindows) return null;
+  try {
+    return ensureInit().auth?.currentUser?.uid ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Read the account's stored entitlement (null if none / not signed in). */
+export async function getEntitlement(uid: string): Promise<Entitlement | null> {
+  const { db } = ensureInit();
+  const snap = await get(ref(db, `${ROOT}/${uid}/entitlement`));
+  return (snap.val() as Entitlement) ?? null;
+}
+
+/** Persist the account's entitlement. */
+export async function saveEntitlement(uid: string, ent: Entitlement): Promise<void> {
+  const { db } = ensureInit();
+  await set(ref(db, `${ROOT}/${uid}/entitlement`), ent);
+}
+
+/** The vessel account's recorded trial-start (ms epoch), or null if none. */
+export async function getAccountTrialStart(uid: string): Promise<number | null> {
+  const { db } = ensureInit();
+  const snap = await get(ref(db, `${ROOT}/${uid}/trial/firstLaunch`));
+  const v = snap.val();
+  return typeof v === 'number' && v > 0 ? v : null;
+}
+
+/** Record the vessel account's trial-start. */
+export async function setAccountTrialStart(uid: string, ts: number): Promise<void> {
+  const { db } = ensureInit();
+  await set(ref(db, `${ROOT}/${uid}/trial/firstLaunch`), ts);
+}

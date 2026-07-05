@@ -9,16 +9,23 @@ import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { saveFileViaSavePanel, openFileViaPicker } from './WindowsFileManager';
+import { downloadFileWeb } from './webFile';
 
 export const onWindows = Platform.OS === 'windows';
+export const onWeb = Platform.OS === 'web';
 
-/** Deliver generated content to the user (share sheet on mobile, Save dialog on Windows). */
+/** Deliver generated content to the user (browser download on web, share sheet on mobile, Save dialog on Windows). */
 export async function deliverFile(
   fileName: string,
   data: string,
   isBase64: boolean,
   mimeType: string
 ): Promise<void> {
+  if (onWeb) {
+    // No native share sheet / file system in a browser → trigger a download.
+    downloadFileWeb(fileName, data, isBase64, mimeType);
+    return;
+  }
   if (onWindows) {
     await saveFileViaSavePanel(fileName, data, isBase64);
     return;

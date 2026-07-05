@@ -104,14 +104,14 @@ export default function ImportSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Import from Excel" subtitle="LSA / FFE Inventories workbook (.xlsx)" />
+      <ScreenTitle title="Import from Excel" subtitle="LSA / FFE Inventories workbook (.xlsx)" help={1} />
 
       <TouchableOpacity style={styles.pickBtn} onPress={pick} disabled={busy}>
         <Text style={styles.pickBtnText}>{fileName ? 'Choose a different file' : 'Choose .xlsx file'}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.templateBtn} onPress={downloadTemplate} disabled={busy}>
-        <Text style={styles.templateBtnText}>⬇︎ Download blank template (.xlsx)</Text>
+        <Text style={styles.templateBtnText}>Download blank template (.xlsx)</Text>
       </TouchableOpacity>
 
       {busy ? (
@@ -120,7 +120,7 @@ export default function ImportSc() {
         </View>
       ) : null}
 
-      {fileName ? <Text style={styles.fileName}>📄 {fileName}</Text> : null}
+      {fileName ? <Text style={styles.fileName}>{fileName}</Text> : null}
 
       {preview ? (
         <>

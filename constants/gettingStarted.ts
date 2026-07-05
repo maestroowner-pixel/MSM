@@ -62,9 +62,9 @@ const en: GettingStartedContent = {
     },
   ],
   tip: 'You can also import your own workbook directly — but a file with different or rearranged columns may not map correctly. The template is the safe choice.',
-  templateBtn: '⬇︎ Download blank template (.xlsx)',
+  templateBtn: 'Download blank template (.xlsx)',
   importBtn: 'Import from Excel',
-  manualLink: '📖 Open the full User Manual',
+  manualLink: 'Open the full User Manual',
 };
 
 const ru: GettingStartedContent = {
@@ -98,9 +98,9 @@ const ru: GettingStartedContent = {
     },
   ],
   tip: 'Можно импортировать и свой файл напрямую — но файл с другими или переставленными столбцами может не распознаться. Шаблон — надёжный вариант.',
-  templateBtn: '⬇︎ Download blank template (.xlsx)',
+  templateBtn: 'Download blank template (.xlsx)',
   importBtn: 'Import from Excel',
-  manualLink: '📖 Открыть полное руководство пользователя',
+  manualLink: 'Открыть полное руководство пользователя',
 };
 
 const es: GettingStartedContent = {
@@ -134,9 +134,9 @@ const es: GettingStartedContent = {
     },
   ],
   tip: 'También puede importar su propio libro directamente — pero un archivo con columnas distintas o reordenadas puede no asignarse bien. La plantilla es la opción segura.',
-  templateBtn: '⬇︎ Download blank template (.xlsx)',
+  templateBtn: 'Download blank template (.xlsx)',
   importBtn: 'Import from Excel',
-  manualLink: '📖 Abrir el manual de usuario completo',
+  manualLink: 'Abrir el manual de usuario completo',
 };
 
 const uk: GettingStartedContent = {
@@ -170,9 +170,9 @@ const uk: GettingStartedContent = {
     },
   ],
   tip: 'Можна імпортувати й свій файл напряму — але файл з іншими або переставленими стовпцями може не розпізнатися. Шаблон — надійний варіант.',
-  templateBtn: '⬇︎ Download blank template (.xlsx)',
+  templateBtn: 'Download blank template (.xlsx)',
   importBtn: 'Import from Excel',
-  manualLink: '📖 Відкрити повний посібник користувача',
+  manualLink: 'Відкрити повний посібник користувача',
 };
 
 export const GETTING_STARTED: Record<Lang, GettingStartedContent> = { en, ru, es, uk };

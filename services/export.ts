@@ -12,7 +12,9 @@ import { CategoryKey, EquipmentItem } from '../types/equipment';
 import { Certificate } from '../types/certificate';
 import { CATEGORIES, CATEGORY_MAP, CategoryMeta } from '../constants/categories';
 import { complianceDate, computeStatus, formatDate, fileDateStamp } from '../utils/dates';
-import { deliverFile, onWindows } from '../utils/fileShare';
+import { deliverFile, onWindows, onWeb } from '../utils/fileShare';
+import { printHtmlWeb } from '../utils/webFile';
+import { downloadPdfWeb } from '../utils/webPdf';
 import { resolveUri } from './attachments';
 import { VesselInfo } from './storage';
 
@@ -144,6 +146,20 @@ export async function exportPdf(
   const groups = selectedCategories(byCategory, only);
   if (!groups.length) throw new Error('No items to export.');
   const title = only && only.length === 1 ? CATEGORY_MAP[only[0]].label : 'Safety Equipment Register';
+  if (onWeb) {
+    // Generate a real .pdf file client-side (jsPDF) and download it — no print
+    // dialog. (printHtmlWeb / buildHtml remain for printReport.)
+    downloadPdfWeb({
+      title,
+      vesselHeader: vesselHeader(vessel),
+      today: formatDate(new Date().toISOString().slice(0, 10)),
+      fileName: `MSM_report_${fileDateStamp()}.pdf`,
+      statusLabel: STATUS_LABEL,
+      statusHex: STATUS_HEX,
+      groups: groups.map((g) => ({ label: g.label, rows: rowsFor(g.items) })),
+    });
+    return;
+  }
   const html = buildHtml(groups, vessel, title);
   const { uri } = await Print.printToFileAsync({ html });
   // printToFileAsync names the file with a random id — copy it to a friendly name.
@@ -169,6 +185,10 @@ export async function printReport(
   if (!groups.length) throw new Error('No items to print.');
   const title = only && only.length === 1 ? CATEGORY_MAP[only[0]].label : 'Safety Equipment Register';
   const html = buildHtml(groups, vessel, title);
+  if (onWeb) {
+    printHtmlWeb(html);
+    return;
+  }
   await Print.printAsync({ html });
 }
 
@@ -227,14 +247,19 @@ export async function exportZip(
   const groups = selectedCategories(byCategory, only);
   if (!groups.length) throw new Error('No items to export.');
 
-  // 1) PDF report.
+  // 1) Register report.
   const title = only && only.length === 1 ? CATEGORY_MAP[only[0]].label : 'Safety Equipment Register';
   const html = buildHtml(groups, vessel, title);
-  const { uri: pdfUri } = await Print.printToFileAsync({ html });
-  const pdfB64 = await FileSystem.readAsStringAsync(pdfUri, { encoding: 'base64' });
-
   const zip = new JSZip();
-  zip.file('Safety_Register.pdf', pdfB64, { base64: true });
+  if (onWeb) {
+    // Browsers can't render HTML→PDF without a print dialog, so bundle the
+    // register as a self-contained, printable HTML file instead of a PDF.
+    zip.file('Safety_Register.html', html);
+  } else {
+    const { uri: pdfUri } = await Print.printToFileAsync({ html });
+    const pdfB64 = await FileSystem.readAsStringAsync(pdfUri, { encoding: 'base64' });
+    zip.file('Safety_Register.pdf', pdfB64, { base64: true });
+  }
 
   // In-scope items: id -> label (so certificates can be tied back to them).
   const itemLabels = new Map<string, string>();
@@ -310,9 +335,13 @@ export async function exportZip(
 
   const zipB64 = await zip.generateAsync({ type: 'base64' });
   const fileName = `MSM_backup_${fileDateStamp()}.zip`;
-  const outUri = `${FileSystem.cacheDirectory}${fileName}`;
-  await FileSystem.writeAsStringAsync(outUri, zipB64, { encoding: 'base64' });
-  await share(outUri, 'application/zip', fileName);
+  if (onWeb) {
+    await deliverFile(fileName, zipB64, true, 'application/zip'); // browser download
+  } else {
+    const outUri = `${FileSystem.cacheDirectory}${fileName}`;
+    await FileSystem.writeAsStringAsync(outUri, zipB64, { encoding: 'base64' });
+    await share(outUri, 'application/zip', fileName);
+  }
   return { files: fileCount, certificates: certCount };
 }
 

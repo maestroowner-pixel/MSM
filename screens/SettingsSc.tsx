@@ -5,12 +5,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, Switch, Modal, TouchableWithoutFeedback, Keyboard, Linking, Image, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Screen, ScreenTitle, Card, Label, GlyphBadge } from '../components/ui';
+import { Screen, ScreenTitle, Card, Label, GlyphBadge, Glyph } from '../components/ui';
 import { SIZES, Palette, APP_CONFIG, THEME_ORDER, THEME_LABELS } from '../theme';
 import { useTheme, useThemeName } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { VesselInfo, resetAllData } from '../services/storage';
 import * as fb from '../services/firebaseService';
+import * as trial from '../services/trial';
 import { clearAttachmentsDir } from '../services/attachments';
 import { exportTemplate } from '../services/export';
 import { exportBackup, pickBackup, restoreBackup } from '../services/backup';
@@ -126,6 +127,9 @@ export default function SettingsSc() {
       const vesselUid = await fb.signInVessel(form.imo, connPassword);
       await fb.savePassword(connPassword.trim());
       const status = await fb.registerDevice(vesselUid);
+      // Bind the trial to the account (earliest start wins; survives reinstall /
+      // new machine once the vessel has logged in).
+      trial.syncTrialWithAccount(vesselUid).catch(() => {});
       setUid(vesselUid);
       setMyStatus(status);
       await refreshDevices(vesselUid);
@@ -427,6 +431,7 @@ export default function SettingsSc() {
       const vesselUid = uid ?? (await fb.signInVessel(form.imo, connPassword));
       await fb.savePassword(connPassword.trim());
       const status = myStatus ?? (await fb.registerDevice(vesselUid));
+      trial.syncTrialWithAccount(vesselUid).catch(() => {});
       setUid(vesselUid);
       setMyStatus(status);
       if (status === 'pending') {
@@ -455,7 +460,7 @@ export default function SettingsSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Settings" subtitle={`${flat.length} items on this device`} />
+      <ScreenTitle title="Settings" subtitle={`${flat.length} items on this device`} help={0} />
 
       <Card>
         <Label>Appearance</Label>
@@ -784,10 +789,12 @@ export default function SettingsSc() {
         ) : (
           <View style={styles.btnRow}>
             <TouchableOpacity style={[styles.syncBtn, { backgroundColor: COLORS.primary }]} onPress={() => sync('push')}>
-              <Text style={styles.syncBtnText}>⬆ Push</Text>
+              <Glyph emoji="📤" size={18} color={COLORS.textWhite} />
+              <Text style={styles.syncBtnText}>Push</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.syncBtn, { backgroundColor: COLORS.secondary }]} onPress={() => sync('pull')}>
-              <Text style={styles.syncBtnText}>⬇ Pull</Text>
+              <Glyph emoji="📥" size={18} color={COLORS.textWhite} />
+              <Text style={styles.syncBtnText}>Pull</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -1052,7 +1059,7 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   },
   devRemoveText: { color: COLORS.textWhite, fontSize: 13, fontWeight: '800' },
   btnRow: { flexDirection: 'row', gap: SIZES.sm },
-  syncBtn: { flex: 1, paddingVertical: SIZES.md, borderRadius: SIZES.radiusMd, alignItems: 'center' },
+  syncBtn: { flex: 1, flexDirection: 'row', gap: SIZES.xs, paddingVertical: SIZES.md, borderRadius: SIZES.radiusMd, alignItems: 'center', justifyContent: 'center' },
   syncBtnText: { color: COLORS.textWhite, fontWeight: '700', fontSize: SIZES.body },
   aboutBox: { alignItems: 'center', marginTop: SIZES.lg },
   octopus: { width: 96, height: 96, opacity: 0.18, marginBottom: SIZES.xs },

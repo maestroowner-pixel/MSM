@@ -46,7 +46,7 @@ export default function GettingStartedSc() {
       ))}
 
       <View style={styles.note}>
-        <Text style={styles.noteText}>💡 {content.tip}</Text>
+        <Text style={styles.noteText}>{content.tip}</Text>
       </View>
 
       <TouchableOpacity style={styles.primaryBtn} onPress={() => nav.navigate('Import')} activeOpacity={0.85}>

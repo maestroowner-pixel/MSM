@@ -5,13 +5,13 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Image, Modal } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Image, Modal, Platform } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
-import { StatusPill, Label, statusColor, CategoryBadge } from '../components/ui';
+import { StatusPill, Label, statusColor, CategoryBadge, Glyph } from '../components/ui';
 import { useData } from '../contexts/DataContext';
 import { CATEGORY_MAP } from '../constants/categories';
 import { Attachment, CategoryKey, EquipmentItem } from '../types/equipment';
@@ -51,6 +51,9 @@ export default function ItemDetailSc() {
   const isNew = !existing;
   const [preview, setPreview] = useState<Attachment | null>(null);
   const [renaming, setRenaming] = useState<Attachment | null>(null);
+  // Web action-sheet (Alert with many buttons doesn't render on react-native-web).
+  const [sheet, setSheet] = useState<null | { title: string; options: { text: string; destructive?: boolean; onPress?: () => void }[] }>(null);
+  const onWeb = Platform.OS === 'web';
   const [renameText, setRenameText] = useState('');
   const [certPicker, setCertPicker] = useState(false);
   // Attachment slot size is computed from the grid width so the 4 slots fill
@@ -97,6 +100,9 @@ export default function ItemDetailSc() {
   };
 
   const chooseAttachment = () => {
+    // Web: the browser file dialog already lets the user pick a photo or PDF, so
+    // skip the Camera/Library/Document sub-menu and open it directly.
+    if (onWeb) { addAttachment(pickDocument)(); return; }
     Alert.alert('Add attachment', 'Choose a source', [
       { text: 'Camera', onPress: addAttachment(pickFromCamera) },
       { text: 'Photo Library', onPress: addAttachment(pickFromLibrary) },
@@ -123,6 +129,7 @@ export default function ItemDetailSc() {
   };
 
   const chooseReplace = (att: Attachment) => {
+    if (onWeb) { replaceWith(att, pickDocument)(); return; }
     Alert.alert('Replace file', 'Choose a source', [
       { text: 'Camera', onPress: replaceWith(att, pickFromCamera) },
       { text: 'Photo Library', onPress: replaceWith(att, pickFromLibrary) },
@@ -139,20 +146,22 @@ export default function ItemDetailSc() {
     });
   };
 
-  // Long-press menu on a saved attachment: edit actions, replacing the red ✕.
+  // Menu on a saved attachment: edit actions. Web uses an in-app sheet (a
+  // multi-button Alert doesn't render on react-native-web); native uses Alert.
   const attachmentMenu = (att: Attachment) => {
-    Alert.alert(att.name ?? 'File', undefined, [
-      { text: 'Download / Share', onPress: () => openFile(att.uri) },
-      {
-        text: 'Rename',
-        onPress: () => {
-          setRenameText(att.name ?? '');
-          setRenaming(att);
-        },
-      },
+    const options = [
+      { text: onWeb ? 'Open / Download' : 'Download / Share', onPress: () => openFile(att.uri) },
+      { text: 'Rename', onPress: () => { setRenameText(att.name ?? ''); setRenaming(att); } },
       { text: 'Replace', onPress: () => chooseReplace(att) },
-      { text: 'Delete', style: 'destructive', onPress: () => removeAttachment(att) },
-      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', destructive: true, onPress: () => removeAttachment(att) },
+    ];
+    if (onWeb) {
+      setSheet({ title: att.name ?? 'File', options });
+      return;
+    }
+    Alert.alert(att.name ?? 'File', undefined, [
+      ...options.map((o) => ({ text: o.text, style: o.destructive ? ('destructive' as const) : undefined, onPress: o.onPress })),
+      { text: 'Cancel', style: 'cancel' as const },
     ]);
   };
 
@@ -312,7 +321,7 @@ export default function ItemDetailSc() {
                 if (i === list.length) {
                   return (
                     <TouchableOpacity key={`add${i}`} style={[styles.attAdd, box]} onPress={chooseAttachment}>
-                      <Text style={styles.attAddPlus}>＋</Text>
+                      <Text style={styles.attAddPlus}>+</Text>
                       <Text style={styles.attAddText}>Add</Text>
                     </TouchableOpacity>
                   );
@@ -333,14 +342,14 @@ export default function ItemDetailSc() {
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity onPress={() => setCertPicker(true)}>
-                  <Text style={styles.certManage}>＋ Link</Text>
+                  <Text style={styles.certManage}>+ Link</Text>
                 </TouchableOpacity>
               )}
             </View>
             {isNew ? (
               <Text style={styles.certEmpty}>Save this item first, then link the certificates that cover it.</Text>
             ) : linkedCerts.length === 0 ? (
-              <Text style={styles.certEmpty}>No certificates cover this item. Tap “＋ Link” to attach one.</Text>
+              <Text style={styles.certEmpty}>No certificates cover this item. Tap “+ Link” to attach one.</Text>
             ) : (
               linkedCerts.map((c) => {
                 const st = statusFromDate(c.expiryDate);
@@ -352,7 +361,7 @@ export default function ItemDetailSc() {
                     onPress={() => previewCert(c)}
                   >
                     <View style={[styles.certDot, { backgroundColor: statusColor(st) }]} />
-                    <Text style={{ fontSize: 18 }}>📜</Text>
+                    <Glyph emoji="📜" size={18} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.certName} numberOfLines={1}>{c.name || 'Certificate'}</Text>
                       <Text style={styles.certSub} numberOfLines={1}>
@@ -425,6 +434,22 @@ export default function ItemDetailSc() {
           </View>
         </Modal>
 
+        <Modal visible={!!sheet} transparent animationType="fade" onRequestClose={() => setSheet(null)}>
+          <TouchableOpacity style={styles.rnBackdrop} activeOpacity={1} onPress={() => setSheet(null)}>
+            <View style={styles.rnCard}>
+              <Text style={styles.rnTitle}>{sheet?.title}</Text>
+              {sheet?.options.map((o, i) => (
+                <TouchableOpacity key={i} style={styles.sheetRow} onPress={() => { setSheet(null); o.onPress?.(); }}>
+                  <Text style={[styles.sheetText, o.destructive ? { color: COLORS.danger } : null]}>{o.text}</Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity style={styles.sheetRow} onPress={() => setSheet(null)}>
+                <Text style={[styles.sheetText, { color: COLORS.textLight }]}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
         <Modal visible={certPicker} transparent animationType="fade" onRequestClose={() => setCertPicker(false)}>
           <View style={styles.rnBackdrop}>
             <View style={[styles.rnCard, { maxHeight: '80%' }]}>
@@ -440,7 +465,7 @@ export default function ItemDetailSc() {
                         <View style={[styles.cpCheck, on && styles.cpCheckOn]}>
                           {on ? <Text style={styles.cpCheckMark}>✓</Text> : null}
                         </View>
-                        <Text style={{ fontSize: 18 }}>📜</Text>
+                        <Glyph emoji="📜" size={18} />
                         <View style={{ flex: 1 }}>
                           <Text style={styles.certName} numberOfLines={1}>{c.name || 'Certificate'}</Text>
                           <Text style={styles.certSub} numberOfLines={1}>
@@ -587,6 +612,8 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   rnBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', padding: SIZES.lg },
   rnCard: { ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.lg, width: '100%', maxWidth: 420 },
   rnTitle: { fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark, marginBottom: SIZES.sm },
+  sheetRow: { paddingVertical: SIZES.md, borderTopWidth: 1, borderTopColor: COLORS.borderLight },
+  sheetText: { fontSize: SIZES.h5, color: COLORS.primary, fontWeight: '600', textAlign: 'center' },
   rnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: SIZES.sm, marginTop: SIZES.md },
   rnBtn: { paddingVertical: SIZES.sm, paddingHorizontal: SIZES.lg, borderRadius: SIZES.radiusMd },
   rnBtnPrimary: { backgroundColor: COLORS.primary },

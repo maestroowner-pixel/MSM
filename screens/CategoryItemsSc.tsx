@@ -6,6 +6,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, useWindowDimensions } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Screen, StatusPill, Empty, statusColor, CategoryBadge } from '../components/ui';
+import { HelpButton } from '../components/HelpButton';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
@@ -170,8 +171,9 @@ export default function CategoryItemsSc() {
           <Text style={styles.title}>{meta.label}</Text>
           <Text style={styles.sub}>{meta.group} · {(byCategory[category] ?? []).length} items</Text>
         </View>
-        <TouchableOpacity style={styles.addBtn} onPress={addItem}>
-          <Text style={styles.addBtnText}>＋</Text>
+        <HelpButton section={2} />
+        <TouchableOpacity style={[styles.addBtn, { marginLeft: SIZES.sm }]} onPress={addItem}>
+          <Text style={styles.addBtnText}>+</Text>
         </TouchableOpacity>
       </View>
 
@@ -196,12 +198,12 @@ export default function CategoryItemsSc() {
         />
         <TouchableOpacity style={styles.cycleBtn} onPress={cycleSort} activeOpacity={0.8}>
           <Text style={styles.cycleCaption}>SORT</Text>
-          <Text style={styles.cycleValue} numberOfLines={1}>⟳ {SORT_LABEL[sortBy]}</Text>
+          <Text style={styles.cycleValue} numberOfLines={1}>{SORT_LABEL[sortBy]}</Text>
         </TouchableOpacity>
       </View>
 
       {filtered.length === 0 ? (
-        <Empty text="No items. Tap ＋ to add one, or import the workbook from Settings." />
+        <Empty text="No items. Tap + to add one, or import the workbook from Settings." />
       ) : (
         <FlatList
           data={renderData}

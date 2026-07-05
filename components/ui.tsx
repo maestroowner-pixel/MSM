@@ -21,6 +21,7 @@ import { COLORS, SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { ComplianceStatus, CategoryKey } from '../types/equipment';
 import { CATEGORY_MAP } from '../constants/categories';
+import { HelpButton } from './HelpButton';
 
 type GlyphName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -139,6 +140,15 @@ const EMOJI_GLYPH: Record<string, GlyphName> = {
   '📱': 'cellphone',
   '📄': 'file-document',
   '⚙️': 'cog',
+  '🚢': 'ferry',
+  '📦': 'package-variant',
+  '📅': 'calendar',
+  '🔗': 'link-variant',
+  '🔑': 'key',
+  '💡': 'lightbulb-outline',
+  '⏱': 'timer-outline',
+  '⚠': 'alert',
+  '⬇': 'tray-arrow-down',
 };
 
 export function emojiGlyph(emoji: string): GlyphName {
@@ -171,6 +181,11 @@ export function Screen({
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         {scroll ? (
           <ScrollView
+            // On react-native-web a ScrollView only scrolls when it's itself
+            // height-bounded (flex:1) within a bounded parent; without this the
+            // content just overflows and the page can't scroll (esp. on pushed
+            // stack screens like the Manual). Harmless on native.
+            style={{ flex: 1 }}
             contentContainerStyle={[{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }, contentStyle]}
             keyboardShouldPersistTaps="handled"
           >
@@ -184,12 +199,15 @@ export function Screen({
   );
 }
 
-export function ScreenTitle({ title, subtitle }: { title: string; subtitle?: string }) {
+export function ScreenTitle({ title, subtitle, help }: { title: string; subtitle?: string; help?: number }) {
   const styles = useStyles();
   return (
-    <View style={{ marginBottom: SIZES.lg }}>
-      <Text style={styles.title}>{title}</Text>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+    <View style={{ marginBottom: SIZES.lg, flexDirection: 'row', alignItems: 'flex-start' }}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.title}>{title}</Text>
+        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      </View>
+      {help !== undefined ? <HelpButton section={help} /> : null}
     </View>
   );
 }
