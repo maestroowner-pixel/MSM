@@ -56,23 +56,33 @@ async function play(asset: number, name: string, volume: number): Promise<void> 
   }
 }
 
-// Web audio via preloaded HTMLAudioElements. expo-av's createAsync loads the
-// file asynchronously and often fails to actually play on web, so on web we play
-// a cached <audio> element directly. On the desktop (Electron) build autoplay is
-// allowed, so the splash bell rings immediately; a real browser may block it
-// until the first interaction (autoplay policy) — nothing we can override.
+// Web audio via preloaded HTMLAudioElements. expo-av's createAsync loads the file
+// asynchronously and often fails to actually play on web, so on web we play a
+// cached <audio> element directly. On the desktop (Electron) build autoplay is
+// allowed, so the splash bell rings immediately; in a real browser autoplay may
+// be blocked until the first interaction — if so, we retry on the first
+// pointer/touch gesture (NEVER keydown — a global keydown listener would sit
+// between the user and text fields).
 const webAudioCache: Record<string, any> = {};
+
 function playWeb(mod: any, volume: number): void {
   if (soundDisabled()) return;
   const g: any = globalThis as any;
   try {
-    let uri: string | undefined;
-    try { uri = require('expo-asset').Asset.fromModule(mod).uri; } catch { /* ignore */ }
-    if (!uri) uri = typeof mod === 'string' ? mod : mod?.uri;
+    // A string is a direct URL (stable /sounds/*.mp3 from the web public dir);
+    // otherwise resolve the bundled asset module.
+    let uri: string | undefined = typeof mod === 'string' ? mod : undefined;
+    if (!uri) {
+      try { uri = require('expo-asset').Asset.fromModule(mod).uri; } catch { /* ignore */ }
+      if (!uri) uri = mod?.uri;
+    }
     if (!uri) return;
     let a = webAudioCache[uri];
     if (!a) { a = new g.Audio(uri); a.volume = volume; webAudioCache[uri] = a; }
     a.currentTime = 0;
+    // The desktop (Electron) build allows autoplay, so the splash bell rings.
+    // A plain browser may block it until the user interacts (autoplay policy);
+    // that's a browser rule we can't override, so we just let it fail silently.
     const p = a.play?.();
     if (p && typeof p.catch === 'function') p.catch(() => {});
   } catch {
@@ -80,14 +90,18 @@ function playWeb(mod: any, volume: number): void {
   }
 }
 
+// On web the sounds are served from the web project's public/ dir at a stable,
+// unhashed path (see MSM Win Web/public/sounds) — more reliable than the hashed
+// bundled-asset URL, which didn't play in the packaged build.
+
 /** Soft ship's bell — used on the splash / app start. */
 export const playShipBellSound = () =>
-  onWeb ? playWeb(require('../assets/sounds/ship-bell.mp3'), 0.6) : play(require('../assets/sounds/ship-bell.mp3'), 'ship-bell', 0.6);
+  onWeb ? playWeb('/sounds/ship-bell.mp3', 0.6) : play(require('../assets/sounds/ship-bell.mp3'), 'ship-bell', 0.6);
 
 /** Short positive cue — import / save / sync success. */
 export const playSuccessSound = () =>
-  onWeb ? playWeb(require('../assets/sounds/success.mp3'), 0.5) : play(require('../assets/sounds/success.mp3'), 'success', 0.5);
+  onWeb ? playWeb('/sounds/success.mp3', 0.5) : play(require('../assets/sounds/success.mp3'), 'success', 0.5);
 
 /** Error cue — failed import / sync. */
 export const playErrorSound = () =>
-  onWeb ? playWeb(require('../assets/sounds/error.mp3'), 0.4) : play(require('../assets/sounds/error.mp3'), 'error', 0.4);
+  onWeb ? playWeb('/sounds/error.mp3', 0.4) : play(require('../assets/sounds/error.mp3'), 'error', 0.4);
