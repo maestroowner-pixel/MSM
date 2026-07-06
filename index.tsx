@@ -45,6 +45,41 @@ import PaywallSc from './screens/PaywallSc';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
+/**
+ * Load the MaterialCommunityIcons font on web robustly. @expo/vector-icons renders
+ * a glyph only once `Font.isLoaded('material-community')` is true, using
+ * fontFamily 'material-community' — but expo-font's web @font-face src URL can be
+ * wrong in the packaged desktop build, so the family exists with no glyphs (empty
+ * squares). We ALSO fetch the .ttf bytes and register a guaranteed-usable FontFace
+ * from the ArrayBuffer, so CSS can actually paint the glyphs. Best-effort.
+ */
+async function loadIconFontWeb(): Promise<void> {
+  const g: any = globalThis as any;
+  const fontMap: Record<string, any> = (MaterialCommunityIcons as any).font || {};
+  const family = Object.keys(fontMap)[0] || 'material-community';
+  try {
+    // Mark it loaded in expo-font's registry so the icon components render.
+    await Font.loadAsync(fontMap).catch(() => {});
+    // Install a definitely-working @font-face from the raw font bytes.
+    if (g.FontFace && g.document && g.document.fonts && g.fetch) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { Asset } = require('expo-asset');
+      const uri: string | undefined = Asset.fromModule(fontMap[family]).uri;
+      if (uri) {
+        const res = await g.fetch(uri);
+        if (res && res.ok) {
+          const buf = await res.arrayBuffer();
+          const face = new g.FontFace(family, buf, { display: 'block' });
+          await face.load();
+          g.document.fonts.add(face);
+        }
+      }
+    }
+  } catch {
+    /* best-effort — icons fall back to expo-font's own loading */
+  }
+}
+
 const TAB_ORDER = ['Dashboard', 'Equipment', 'Certificates', 'Reports', 'Settings'];
 const TAB_ICONS: Record<string, React.ComponentProps<typeof MaterialCommunityIcons>['name']> = {
   Dashboard: 'view-dashboard',
@@ -201,9 +236,7 @@ function Root() {
     // it arrives (seen on the Windows desktop build). Gating on load fixes it.
     // (Native loads its vector-icon fonts itself.)
     if (Platform.OS === 'web') {
-      Font.loadAsync({ ...(MaterialCommunityIcons as any).font })
-        .then(() => setFontsReady(true))
-        .catch(() => setFontsReady(true));
+      loadIconFontWeb().finally(() => setFontsReady(true));
     }
   }, []);
 
