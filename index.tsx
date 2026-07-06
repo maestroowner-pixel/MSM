@@ -181,6 +181,9 @@ function MainTabs() {
 function Root() {
   const COLORS = useTheme();
   const [showSplash, setShowSplash] = useState(true);
+  // On web the app is not mounted until the icon font is loaded (below): glyphs
+  // painted before the font arrives stay empty squares and don't repaint.
+  const [fontsReady, setFontsReady] = useState(Platform.OS !== 'web');
   // null = still loading the stored flag; false = must show; true = accepted
   const [legalAccepted, setLegalAccepted] = useState<boolean | null>(null);
 
@@ -193,12 +196,14 @@ function Root() {
     // Start the free-trial counter on first launch (records the date only;
     // limits stay OFF until services/trial ENFORCE_LIMITS is enabled).
     ensureTrialStarted();
-    // On web the icon font's @font-face isn't always injected by the static
-    // bundle, so tab/glyph icons render as empty squares (tofu). Load it
-    // explicitly during the splash so glyphs are ready by the time the UI shows.
-    // (Native loads its vector-icon fonts itself — web only.)
+    // On web, LOAD the icon font before mounting the app. If icons render before
+    // the @font-face is ready they show as empty squares and won't repaint when
+    // it arrives (seen on the Windows desktop build). Gating on load fixes it.
+    // (Native loads its vector-icon fonts itself.)
     if (Platform.OS === 'web') {
-      Font.loadAsync({ ...(MaterialCommunityIcons as any).font }).catch(() => {});
+      Font.loadAsync({ ...(MaterialCommunityIcons as any).font })
+        .then(() => setFontsReady(true))
+        .catch(() => setFontsReady(true));
     }
   }, []);
 
@@ -240,6 +245,16 @@ function Root() {
           headerTitleStyle: { color: COLORS.text },
         }
       : undefined;
+
+  // Web: hold on the splash until the icon font is loaded, so the app's glyph
+  // icons never paint as empty squares. Loads in well under a second locally.
+  if (!fontsReady) {
+    return (
+      <View style={StyleSheet.absoluteFill}>
+        <SplashSc onDone={() => {}} />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer theme={navTheme}>

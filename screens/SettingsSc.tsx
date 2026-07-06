@@ -660,7 +660,7 @@ export default function SettingsSc() {
               onChangeText={setConnPassword}
               placeholder={`At least ${fb.MIN_PASSWORD_LENGTH} characters`}
               placeholderTextColor={COLORS.textLight}
-              secureTextEntry
+              secureTextEntry={Platform.OS !== 'web'}
               autoCapitalize="none"
               autoCorrect={false}
             />
@@ -692,7 +692,7 @@ export default function SettingsSc() {
                   onChangeText={setPwOld}
                   placeholder="Current password"
                   placeholderTextColor={COLORS.textLight}
-                  secureTextEntry
+                  secureTextEntry={Platform.OS !== 'web'}
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
@@ -702,7 +702,7 @@ export default function SettingsSc() {
                   onChangeText={setPwNew}
                   placeholder={`New password (at least ${fb.MIN_PASSWORD_LENGTH})`}
                   placeholderTextColor={COLORS.textLight}
-                  secureTextEntry
+                  secureTextEntry={Platform.OS !== 'web'}
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
@@ -712,7 +712,7 @@ export default function SettingsSc() {
                   onChangeText={setPwRep}
                   placeholder="Repeat new password"
                   placeholderTextColor={COLORS.textLight}
-                  secureTextEntry
+                  secureTextEntry={Platform.OS !== 'web'}
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
