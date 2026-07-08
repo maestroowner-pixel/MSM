@@ -6,7 +6,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MciIcon } from './MciIcon';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { MANUAL } from '../constants/manual';
@@ -22,7 +22,7 @@ export function HelpButton({ section }: { section: number }) {
   return (
     <>
       <TouchableOpacity style={styles.btn} onPress={() => setOpen(true)} hitSlop={10} accessibilityLabel="Help">
-        <MaterialCommunityIcons name="help-circle-outline" size={24} color={COLORS.primary} />
+        <MciIcon name="help-circle-outline" size={24} color={COLORS.primary} />
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -31,7 +31,7 @@ export function HelpButton({ section }: { section: number }) {
             <View style={styles.head}>
               <Text style={styles.title}>{s.title}</Text>
               <TouchableOpacity onPress={() => setOpen(false)} hitSlop={10}>
-                <MaterialCommunityIcons name="close" size={24} color={COLORS.textLight} />
+                <MciIcon name="close" size={24} color={COLORS.textLight} />
               </TouchableOpacity>
             </View>
             <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={{ paddingBottom: SIZES.sm }}>

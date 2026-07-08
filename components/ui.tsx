@@ -16,14 +16,14 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MciIcon } from './MciIcon';
 import { COLORS, SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { ComplianceStatus, CategoryKey } from '../types/equipment';
 import { CATEGORY_MAP } from '../constants/categories';
 import { HelpButton } from './HelpButton';
 
-type GlyphName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+type GlyphName = React.ComponentProps<typeof MciIcon>['name'];
 
 // Categories whose standard IMO/ISO safety pictogram is rendered from a white
 // silhouette PNG (the icon font has no matching glyph). Tinted to the icon colour.
@@ -53,7 +53,7 @@ export function CategoryIcon({
     return <Image source={img} style={{ width: size, height: size, tintColor: color ?? c.primaryDark }} />;
   }
   return (
-    <MaterialCommunityIcons
+    <MciIcon
       name={CATEGORY_MAP[category].icon as GlyphName}
       size={size}
       color={color ?? c.primaryDark}
@@ -89,7 +89,7 @@ export function IconChip({
       {image ? (
         <Image source={image} style={{ width: size, height: size, tintColor: c.textWhite }} />
       ) : (
-        <MaterialCommunityIcons name={name} size={size} color={c.textWhite} />
+        <MciIcon name={name} size={size} color={c.textWhite} />
       )}
     </View>
   );
@@ -158,7 +158,7 @@ export function emojiGlyph(emoji: string): GlyphName {
 // Bare mapped glyph (single colour).
 export function Glyph({ emoji, size = 22, color }: { emoji: string; size?: number; color?: string }) {
   const c = useTheme();
-  return <MaterialCommunityIcons name={emojiGlyph(emoji)} size={size} color={color ?? c.primaryDark} />;
+  return <MciIcon name={emojiGlyph(emoji)} size={size} color={color ?? c.primaryDark} />;
 }
 
 // Mapped glyph on a teal chip.

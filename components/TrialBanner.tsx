@@ -9,7 +9,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MciIcon } from './MciIcon';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { getTrialInfo } from '../services/trial';
@@ -59,7 +59,7 @@ export function TrialBanner() {
   if (state.kind === 'pro') {
     return (
       <View style={styles.wrap}>
-        <MaterialCommunityIcons name="check-decagram" size={20} color={COLORS.success} />
+        <MciIcon name="check-decagram" size={20} color={COLORS.success} />
         <Text style={styles.title}>MSM Pro is active — thank you!</Text>
       </View>
     );
@@ -68,7 +68,7 @@ export function TrialBanner() {
   const expired = state.kind === 'expired';
   return (
     <TouchableOpacity style={styles.wrap} onPress={go} activeOpacity={0.85}>
-      <MaterialCommunityIcons
+      <MciIcon
         name={expired ? 'lock-alert' : 'clock-outline'}
         size={20}
         color={expired ? COLORS.danger : COLORS.primary}

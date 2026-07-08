@@ -10,14 +10,14 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Act
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MciIcon } from '../components/MciIcon';
 import { SIZES, Palette, APP_CONFIG } from '../theme';
 import { useTheme, useThemeName } from '../contexts/ThemeContext';
 import { getOffer, purchaseYearly, restore, openManageSubscriptions, activateLicenseWeb, isSignedIn, Offer } from '../services/purchases';
 
 const onWeb = Platform.OS === 'web';
 
-type Feature = { icon: React.ComponentProps<typeof MaterialCommunityIcons>['name']; text: string };
+type Feature = { icon: React.ComponentProps<typeof MciIcon>['name']; text: string };
 const FEATURES: Feature[] = [
   { icon: 'clipboard-list-outline', text: 'Unlimited equipment & certificates' },
   { icon: 'cloud-sync-outline', text: 'Cloud sync across all your devices' },
@@ -129,7 +129,7 @@ export default function PaywallSc() {
     <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
         <TouchableOpacity style={styles.close} onPress={() => nav.goBack()} hitSlop={12}>
-          <MaterialCommunityIcons name="close" size={26} color={COLORS.textLight} />
+          <MciIcon name="close" size={26} color={COLORS.textLight} />
         </TouchableOpacity>
 
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -140,7 +140,7 @@ export default function PaywallSc() {
           <View style={styles.card}>
             {FEATURES.map((f, i) => (
               <View key={f.text} style={styles.featureRow}>
-                <MaterialCommunityIcons name={f.icon} size={22} color={featureColor(i)} style={{ width: 28 }} />
+                <MciIcon name={f.icon} size={22} color={featureColor(i)} style={{ width: 28 }} />
                 <Text style={styles.featureText}>{f.text}</Text>
               </View>
             ))}
