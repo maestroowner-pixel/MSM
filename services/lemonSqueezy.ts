@@ -22,8 +22,10 @@ const LS_API = 'https://api.lemonsqueezy.com/v1';
 export const LS_CHECKOUT_URL = 'https://kuka-lab.lemonsqueezy.com/checkout/buy/43d5ae44-87a1-4fd9-8eea-1253c2224651';
 /** Numeric store id — a key whose meta.store_id differs is rejected (0 = skip). */
 export const LS_STORE_ID = 0;
-/** Numeric product id — a key whose meta.product_id differs is rejected (0 = skip). */
-export const LS_PRODUCT_ID = 1197509;
+/** Numeric product id — a key whose meta.product_id differs is rejected (0 = skip).
+ *  Left at 0: the dashboard URL id (1197509) is NOT necessarily the API product_id,
+ *  so checking it can reject valid keys. A key only exists for this store anyway. */
+export const LS_PRODUCT_ID = 0;
 /** Displayed fallback price until you localize it (LemonSqueezy has no price API here). */
 export const LS_PRICE_STRING = '€9.99';
 
@@ -81,14 +83,17 @@ export async function activateLicense(key: string): Promise<LicenseResult> {
   try {
     const instance_name = `MSM Web ${new Date().toISOString().slice(0, 10)}`;
     const data = await lsPost('/licenses/activate', { license_key, instance_name });
-    if (data?.activated !== true && data?.valid !== true) {
-      return { ok: false, message: humanError(data) };
+    if (data?.activated === true || data?.valid === true) {
+      const bad = checkProduct(data?.meta);
+      if (bad) return { ok: false, message: bad };
+      const parsed = readStatus(data);
+      if (parsed && parsed.ok) return { ...parsed, licenseKey: license_key };
     }
-    const bad = checkProduct(data?.meta);
-    if (bad) return { ok: false, message: bad };
-    const parsed = readStatus(data);
-    if (!parsed || !parsed.ok) return parsed ?? { ok: false, message: 'Invalid license key.' };
-    return { ...parsed, licenseKey: license_key };
+    // Activate can fail even for a valid key (e.g. activation limit reached from
+    // earlier testing). Fall back to validate — the customer still owns the key.
+    const v = await validateLicense(license_key);
+    if (v.ok) return { ...v, licenseKey: license_key };
+    return { ok: false, message: v.message || humanError(data) };
   } catch (e: any) {
     return { ok: false, message: `Could not reach LemonSqueezy: ${String(e?.message ?? e)}` };
   }
