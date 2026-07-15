@@ -40,6 +40,8 @@ import CertificatesSc from './screens/CertificatesSc';
 import CertificateDetailSc from './screens/CertificateDetailSc';
 import CompressorSc from './screens/CompressorSc';
 import PaywallSc from './screens/PaywallSc';
+import LabelSc from './screens/LabelSc';
+import ScanSc from './screens/ScanSc';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -260,6 +262,8 @@ function Root() {
         <Stack.Screen name="Compressor" component={CompressorSc} options={webHeader('BA Compressor')} />
         <Stack.Screen name="Paywall" component={PaywallSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="CertificateDetail" component={CertificateDetailSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Label" component={LabelSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Scan" component={ScanSc} options={{ presentation: 'modal' }} />
       </Stack.Navigator>
       {showSplash ? (
         <View style={StyleSheet.absoluteFill}>

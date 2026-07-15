@@ -62,6 +62,12 @@
           "cameraPermission": "Allow Marine Safety Manager to photograph equipment and certificates."
         }
       ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Marine Safety Manager to scan QR labels and barcodes on equipment."
+        }
+      ],
       "expo-secure-store",
       "expo-font"
     ]

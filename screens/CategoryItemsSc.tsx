@@ -6,6 +6,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, useWindowDimensions } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Screen, StatusPill, Empty, statusColor, CategoryBadge } from '../components/ui';
+import { MciIcon } from '../components/MciIcon';
 import { HelpButton } from '../components/HelpButton';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
@@ -49,6 +50,13 @@ export default function CategoryItemsSc() {
   }, [certificates]);
   const [q, setQ] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('date');
+
+  // Label select-mode. Entered by long-pressing a row or via the tag button —
+  // never on by default, because tapping a row to open it is what this screen is
+  // for, and a permanent row of checkboxes would tax every visit for the sake of
+  // the occasional label run.
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const filtered = useMemo(() => {
     const list = byCategory[category] ?? [];
@@ -129,13 +137,51 @@ export default function CategoryItemsSc() {
     return out;
   }, [listData, twoCol]);
 
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const stopSelecting = () => {
+    setSelecting(false);
+    setSelected(new Set());
+  };
+
+  const printSelected = () => {
+    // Hand the ids over in the list's own order, so what comes off the roll is
+    // stacked the way the screen reads.
+    const ids = filtered.filter((it) => selected.has(it.id)).map((it) => it.id);
+    stopSelecting();
+    nav.navigate('Label', { ids });
+  };
+
   const ItemCard = (e: Extract<ListEntry, { kind: 'row' }>, fill?: boolean) => (
     <TouchableOpacity
-      style={[styles.row, fill && { flex: 1 }]}
+      style={[styles.row, fill && { flex: 1 }, selecting && selected.has(e.it.id) && styles.rowPicked]}
       activeOpacity={0.7}
-      onPress={() => nav.navigate('ItemDetail', { category, id: e.it.id })}
+      onPress={() =>
+        selecting ? toggle(e.it.id) : nav.navigate('ItemDetail', { category, id: e.it.id })
+      }
+      onLongPress={() => {
+        if (selecting) toggle(e.it.id);
+        else {
+          setSelecting(true);
+          setSelected(new Set([e.it.id]));
+        }
+      }}
     >
       <View style={[styles.bar, { backgroundColor: statusColor(e.status) }]} />
+      {selecting ? (
+        <MciIcon
+          name={selected.has(e.it.id) ? 'checkbox-marked' : 'checkbox-blank-outline'}
+          size={20}
+          color={selected.has(e.it.id) ? COLORS.primary : COLORS.textLight}
+          style={{ marginRight: SIZES.sm }}
+        />
+      ) : null}
       <View style={{ flex: 1 }}>
         <View style={styles.titleRow}>
           <Text style={styles.rowTitle} numberOfLines={1}>
@@ -168,13 +214,49 @@ export default function CategoryItemsSc() {
       <View style={styles.head}>
         <CategoryBadge category={category} size={28} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>{meta.label}</Text>
-          <Text style={styles.sub}>{meta.group} · {(byCategory[category] ?? []).length} items</Text>
+          <Text style={styles.title}>{selecting ? `${selected.size} selected` : meta.label}</Text>
+          <Text style={styles.sub}>
+            {selecting
+              ? 'Tap items to select the labels to print'
+              : `${meta.group} · ${(byCategory[category] ?? []).length} items`}
+          </Text>
         </View>
-        <HelpButton section={2} />
-        <TouchableOpacity style={[styles.addBtn, { marginLeft: SIZES.sm }]} onPress={addItem}>
-          <Text style={styles.addBtnText}>+</Text>
-        </TouchableOpacity>
+        {selecting ? (
+          <>
+            <TouchableOpacity
+              style={styles.ghostBtn}
+              onPress={() =>
+                setSelected(
+                  selected.size === filtered.length
+                    ? new Set()
+                    : new Set(filtered.map((it) => it.id))
+                )
+              }
+            >
+              <Text style={styles.ghostBtnText}>
+                {selected.size === filtered.length && filtered.length > 0 ? 'None' : 'All'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.ghostBtn} onPress={stopSelecting}>
+              <Text style={styles.ghostBtnText}>Cancel</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <HelpButton section={2} />
+            <TouchableOpacity style={styles.iconBtn} onPress={() => nav.navigate('Scan')}>
+              <MciIcon name="qrcode-scan" size={18} color={COLORS.primary} />
+            </TouchableOpacity>
+            {filtered.length > 0 ? (
+              <TouchableOpacity style={styles.iconBtn} onPress={() => setSelecting(true)}>
+                <MciIcon name="tag-multiple" size={18} color={COLORS.primary} />
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity style={[styles.addBtn, { marginLeft: SIZES.sm }]} onPress={addItem}>
+              <Text style={styles.addBtnText}>+</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       {category === 'fifi_ba' && prefs.compressorEnabled ? (
@@ -226,12 +308,48 @@ export default function CategoryItemsSc() {
           }
         />
       )}
+
+      {selecting ? (
+        <TouchableOpacity
+          style={[styles.printBtn, selected.size === 0 && { opacity: 0.4 }]}
+          disabled={selected.size === 0}
+          onPress={printSelected}
+        >
+          <MciIcon name="printer" size={18} color={COLORS.textWhite} />
+          <Text style={styles.printBtnText}>
+            {selected.size === 0
+              ? 'Select items to label'
+              : `Print ${selected.size} label${selected.size === 1 ? '' : 's'}`}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
     </Screen>
   );
 }
 
 const makeStyles = (COLORS: Palette) => StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', marginBottom: SIZES.md, gap: SIZES.sm },
+  iconBtn: {
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    borderRadius: SIZES.radiusRound,
+    padding: SIZES.sm,
+  },
+  ghostBtn: { paddingHorizontal: SIZES.sm, paddingVertical: SIZES.sm },
+  ghostBtnText: { color: COLORS.primary, fontWeight: '700' },
+  rowPicked: { borderWidth: 1, borderColor: COLORS.primary },
+  printBtn: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: SIZES.sm,
+    backgroundColor: COLORS.primary,
+    borderRadius: SIZES.radiusMd,
+    padding: SIZES.md,
+    marginTop: SIZES.sm,
+    marginBottom: SIZES.md,
+  },
+  printBtnText: { color: COLORS.textWhite, fontWeight: '700', fontSize: SIZES.h5 },
   emoji: { fontSize: 30 },
   title: { fontSize: SIZES.h3, fontWeight: '700', color: COLORS.textDark },
   sub: { fontSize: SIZES.small, color: COLORS.textLight },

@@ -23,6 +23,7 @@ if (isWindows) {
   // Modules with no Windows native build → JS stub. `null` means "empty module".
   const WINDOWS_MOCKS = {
     'expo-av': m('expo-av.js'),
+    'expo-camera': m('expo-camera.js'),
     'expo-image-picker': m('expo-image-picker.js'),
     'expo-document-picker': m('expo-document-picker.js'),
     'expo-file-system': m('expo-file-system.js'),

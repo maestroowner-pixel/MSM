@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { StatusPill, Label, statusColor, CategoryBadge, Glyph } from '../components/ui';
+import { MciIcon } from '../components/MciIcon';
 import { useData } from '../contexts/DataContext';
 import { CATEGORY_MAP } from '../constants/categories';
 import { Attachment, CategoryKey, EquipmentItem } from '../types/equipment';
@@ -380,6 +381,16 @@ export default function ItemDetailSc() {
             )}
           </View>
 
+          {/* Only once the item exists: the QR payload is its id, and a brand-new
+              draft has an id that Save has not yet committed to the register — a
+              sticker printed from it would scan to nothing if the user backs out. */}
+          {!isNew ? (
+            <TouchableOpacity style={styles.labelBtn} onPress={() => nav.navigate('Label', { id: draft.id })}>
+              <MciIcon name="qrcode" size={18} color={COLORS.primary} />
+              <Text style={styles.labelBtnText}>Print label</Text>
+            </TouchableOpacity>
+          ) : null}
+
           <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
             <Text style={styles.deleteText}>{isNew ? 'Discard' : 'Delete item'}</Text>
           </TouchableOpacity>
@@ -648,6 +659,18 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   cpCheck: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
   cpCheckOn: { backgroundColor: COLORS.primary },
   cpCheckMark: { color: COLORS.textWhite, fontWeight: '800', fontSize: SIZES.small },
+  labelBtn: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: SIZES.sm,
+    marginTop: SIZES.lg,
+    paddingVertical: SIZES.md,
+    borderRadius: SIZES.radiusMd,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  labelBtnText: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.body },
   deleteBtn: {
     marginTop: SIZES.lg,
     paddingVertical: SIZES.md,

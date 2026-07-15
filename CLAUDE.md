@@ -24,6 +24,18 @@ app mirrors. Bundle id `com.kukalab.msm`.
   categories + every attached photo/document (jszip, base64 round-trip) into `MSM_backup_DDMMYY.zip`.
 - Import/Export: SheetJS (`xlsx`), `expo-document-picker`, `expo-print`, `expo-sharing`,
   `expo-file-system/legacy` (base64 read/write)
+- **QR labels + scanning** (`services/qrLabel.ts`, `services/barcode.ts`): every item is labelable
+  from the moment it exists, because the payload is its own `id` — `msm://item/<id>` (a private
+  scheme matching app.json's, not an https URL). A reprint is therefore never a new code and can't
+  fork one item into two. The sticker deliberately does NOT encode the category: ItemDetail needs
+  `{category, id}`, and the category is recovered from the register (`flat`) at scan time, so a
+  re-categorised item's printed label can't point at the wrong screen. Two thermal stocks
+  (100×50 / 50×30 mm), one label per page, `@page`-sized. `qrcode` (pure JS) builds the matrix →
+  inline SVG string for print, and the same encoder at the same ECL (Q) backs the on-screen preview
+  via `react-native-qrcode-svg` — deliberately, so what is approved is what prints. **The printed QR
+  does not depend on react-native-svg** (which is a Windows mock). Scanning: `expo-camera`
+  BarcodeScanning, lookup order `msm://` id → `serial` (there is no factory-barcode field on
+  EquipmentItem, so no third route is pretended).
 - Attachments: `expo-image-picker` (camera/library) + `expo-document-picker` (PDF/docs),
   persisted to `documentDirectory/attachments/` via `services/attachments.ts`. Items carry
   `attachments: Attachment[]` (up to 4; long-press a thumbnail for the edit menu —
@@ -58,6 +70,11 @@ utils/id.ts                  uid()
 services/storage.ts          AsyncStorage CRUD per category + vessel info
 services/excelImport.ts      header-driven generic mapper (see below) + First Aid special case
 services/export.ts           PDF (expo-print HTML) + XLSX (SheetJS) + expo-sharing
+services/qrLabel.ts          msm://item/<id> payload + QR→inline-SVG + printable label HTML
+                             (100×50 / 50×30 mm, one label per page). Print: expo-print native,
+                             printHtmlWeb on web (@page is honoured there), off on Windows. A PDF
+                             file is native-only (printToFileAsync has no web impl) → deliverFile.
+services/barcode.ts          lookupScan(code, flat) -> item+category | stale | unknown
 services/firebaseService.ts  Auth-by-IMO, RTDB push/pull, device approval — NEEDS CONFIG
 contexts/DataContext.tsx     in-memory items + vessel, reload()/saveItem()/removeItem()
 components/ui.tsx            Screen, Card, StatusPill/Dot, ScreenTitle, Empty, Label
@@ -67,7 +84,11 @@ screens/                    Dashboard, Categories, CategoryItems, ItemDetail(mod
                              (BA compressor running-time + maintenance log; opt-in module —
                              toggle in Settings → Modules, stored in `msm:prefs`; entry point on
                              the FIFI/BA category screen + a Settings link), Splash, Consent (first-launch Privacy +
-                             Terms gate), Legal (Privacy/Terms viewer, route.params.doc)
+                             Terms gate), Legal (Privacy/Terms viewer, route.params.doc),
+                             Label (modal — QR preview + stock toggle + print; one item via
+                             ItemDetail's "Print label", or a batch via CategoryItems' long-press
+                             multi-select), Scan (modal — camera + manual entry; a match REPLACES
+                             the screen with ItemDetail so back returns to the list)
 constants/legal.ts           Privacy Policy + Terms of Use + disclaimer points; LEGAL_VERSION
                              drives the consent key `msm:legal_accepted_v{n}` (gated in index.tsx).
                              Bump LEGAL_VERSION to force re-consent after material changes.
@@ -208,7 +229,11 @@ is the validated path.
    **FileManagerModule.h** (`RNCWindowsFileManager` Save/Open dialogs → `utils/WindowsFileManager.ts`
    + `utils/fileShare.ts`; wired into export.ts/backup.ts/ImportSc), **SoundModule.h** (ship bell).
    So on Windows: persistent data + XLSX export + .msm backup/restore + Excel import work; PDF/ZIP/
-   print/attachments are guarded off (`onWindows`). Generate `windows/` (gitignored), copy the 3
+   print/attachments are guarded off (`onWindows`). **`mocks/expo-camera.js` is not optional
+   politeness** — expo-camera resolves its native module at IMPORT time, so without the mock a
+   Windows bundle throws "Cannot find native module 'ExpoCamera'" the moment ScanSc is imported,
+   before any Platform check inside the screen could run. (Scan degrades to manual entry there, and
+   the lookup is pure JS so it still works; the Label screen guards printing off.) Generate `windows/` (gitignored), copy the 3
    `.h` into `windows/<App>/` + register, build on the Windows machine.
 4. **Importer polish** — minor cosmetic mappings (e.g. Hydrants `type` = "Yes", FIFI BA-set
    `position` = fire-station number). Items are editable, so acceptable for v1.
