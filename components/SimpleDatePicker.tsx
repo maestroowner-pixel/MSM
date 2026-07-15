@@ -2,13 +2,23 @@
 // SimpleDatePicker — tap-to-open calendar field
 // Mirrors the picker used in the frontend DocumentsScreen:
 // decade → year grid, month grid, day grid. Emits ISO `YYYY-MM-DD`.
-// Themed with MSM tokens; no @expo/vector-icons dependency (text glyphs).
+//
+// The field's calendar is drawn from the MaterialCommunityIcons set the tab bar
+// uses (via MciIcon), in the same grey as the app's other affordance glyphs. It
+// used to be the 📅 emoji, which is full-colour and whose shape belongs to the
+// platform's emoji font rather than to the app — so it looked pasted in, and
+// looked different on iOS and Android. MciIcon also carries the web/Electron SVG
+// path (MciIcon.web.tsx), where an icon FONT does not paint at all on Windows.
+//
+// The '‹' '›' decade arrows stay as text: typographic characters, not emoji —
+// already monochrome, already themed.
 // ===================================
 
 import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Dimensions, TouchableWithoutFeedback } from 'react-native';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
+import { MciIcon } from './MciIcon';
 import { formatDate } from '../utils/dates';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -69,7 +79,7 @@ const SimpleDatePicker: React.FC<Props> = ({ label, value, onChange, defaultYear
         <Text style={[styles.triggerText, !value && styles.triggerPlaceholder]}>
           {value ? formatDate(value) : 'Select date'}
         </Text>
-        <Text style={styles.triggerIcon}>📅</Text>
+        <MciIcon name="calendar" size={18} color={COLORS.textLight} />
       </TouchableOpacity>
 
       <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
@@ -182,7 +192,6 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   },
   triggerText: { fontSize: SIZES.body, color: COLORS.text },
   triggerPlaceholder: { color: COLORS.textLight },
-  triggerIcon: { fontSize: 18 },
 
   modalOverlay: { flex: 1, backgroundColor: COLORS.overlay ?? 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
   pickerBox: {
