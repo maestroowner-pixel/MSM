@@ -68,13 +68,20 @@ const DP_PER_MM = 160 / 25.4;
 function LabelPreview({ item, size, width }: { item: EquipmentItem; size: LabelSize; width: number }) {
   const COLORS = useTheme();
   const stock = LABEL_STOCKS[size];
-  const small = size === '50x30';
+  const isQr = stock.layout === 'qr';
+  const compact = stock.layout === 'compact';
+  const tight = stock.layout === 'full' && stock.widthMm < 80;
 
   // Everything below is expressed in millimetres and scaled once, exactly as the
-  // print stylesheet does.
+  // print stylesheet does — same pad/gap/font rules as services/qrLabel.ts labelCss.
   const scale = width / stock.widthMm;
   const mm = (v: number) => v * scale;
   const pt = (v: number) => v * PT_MM * scale;
+
+  const pad = isQr ? 2 : compact ? 1.5 : tight ? 2.5 : 3;
+  const gap = isQr ? 1 : compact ? 1.5 : tight ? 2 : 3;
+  const nameSize = isQr ? 7 : compact ? 7.5 : tight ? 9 : 11;
+  const idSize = compact || isQr ? 6 : tight ? 7.5 : 8.5;
 
   const payload = itemQrPayload(item.id);
   const qrPx = mm(stock.qrMm);
@@ -85,10 +92,11 @@ function LabelPreview({ item, size, width }: { item: EquipmentItem; size: LabelS
       style={{
         width,
         height: mm(stock.heightMm),
-        padding: mm(small ? 1.5 : 3),
-        flexDirection: 'row',
+        padding: mm(pad),
+        flexDirection: isQr ? 'column' : 'row',
         alignItems: 'center',
-        gap: mm(small ? 1.5 : 3),
+        justifyContent: 'center',
+        gap: mm(gap),
         backgroundColor: '#FFFFFF',
         borderRadius: 2,
         borderWidth: 1,
@@ -106,22 +114,27 @@ function LabelPreview({ item, size, width }: { item: EquipmentItem; size: LabelS
         // draws noticeably fatter modules than the printer does.
         quietZone={(QUIET_ZONE * qrPx) / qrModuleCount(payload)}
       />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={2} style={{ color: '#000', fontSize: pt(small ? 7.5 : 11), fontWeight: 'bold' }}>
+      <View style={{ flex: isQr ? 0 : 1, minWidth: 0, width: isQr ? '100%' : undefined }}>
+        <Text
+          numberOfLines={isQr ? 1 : 2}
+          style={{ color: '#000', fontSize: pt(nameSize), fontWeight: 'bold', textAlign: isQr ? 'center' : 'left' }}
+        >
           {labelTitle(item)}
         </Text>
-        <Text
-          numberOfLines={1}
-          style={{ color: '#000', fontSize: pt(small ? 6 : 8.5), marginTop: mm(small ? 0.5 : 1) }}
-        >
-          {humanId(item)}
-        </Text>
-        {!small && strong.length ? (
-          <Text style={{ color: '#000', fontSize: pt(9), fontWeight: 'bold', marginTop: mm(1.2) }}>
+        {!isQr ? (
+          <Text
+            numberOfLines={1}
+            style={{ color: '#000', fontSize: pt(idSize), marginTop: mm(compact ? 0.5 : 1) }}
+          >
+            {humanId(item)}
+          </Text>
+        ) : null}
+        {stock.layout === 'full' && strong.length ? (
+          <Text style={{ color: '#000', fontSize: pt(tight ? 7.5 : 9), fontWeight: 'bold', marginTop: mm(tight ? 0.8 : 1.2) }}>
             {strong.join('  ·  ')}
           </Text>
         ) : null}
-        {!small && weak.length ? (
+        {stock.layout === 'full' && weak.length ? (
           <Text numberOfLines={2} style={{ color: '#000', fontSize: pt(6.5), marginTop: mm(1) }}>
             {weak.join('  ·  ')}
           </Text>
@@ -213,8 +226,12 @@ export default function LabelSc() {
               style={[styles.toggleBtn, size === s && { backgroundColor: COLORS.primary, borderColor: COLORS.primary }]}
               onPress={() => setSize(s)}
             >
-              <Text style={[styles.toggleText, size === s && { color: COLORS.textWhite }]}>
-                {LABEL_STOCKS[s].label}
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                style={[styles.toggleText, size === s && { color: COLORS.textWhite }]}
+              >
+                {s.replace('x', '×')}
               </Text>
             </TouchableOpacity>
           ))}
@@ -281,16 +298,19 @@ export default function LabelSc() {
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
     head: { flexDirection: 'row', alignItems: 'flex-start' },
-    toggle: { flexDirection: 'row', gap: SIZES.sm, paddingTop: SIZES.sm },
+    toggle: { flexDirection: 'row', gap: SIZES.xs, paddingTop: SIZES.sm },
     toggleBtn: {
+      // Five chips share ONE row: equal width, minimal horizontal padding so the
+      // dimension text ("40×30") stays legible without wrapping.
       flex: 1,
       borderWidth: 1,
       borderColor: COLORS.border,
       borderRadius: SIZES.radiusRound,
-      paddingVertical: SIZES.sm,
+      paddingVertical: SIZES.md,
+      paddingHorizontal: SIZES.xs,
       alignItems: 'center',
     },
-    toggleText: { color: COLORS.text, fontWeight: '700', fontSize: SIZES.small },
+    toggleText: { color: COLORS.text, fontWeight: '700', fontSize: SIZES.body, textAlign: 'center' },
     previewWrap: { alignItems: 'center', paddingVertical: SIZES.lg },
     note: { color: COLORS.textLight, fontSize: SIZES.small, paddingTop: SIZES.sm, lineHeight: 16 },
     primaryBtn: {

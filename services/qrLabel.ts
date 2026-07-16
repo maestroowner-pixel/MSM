@@ -62,7 +62,16 @@ export function parseItemQr(payload: string): string | null {
 
 // ---- sizes -----------------------------------------------------------------
 
-export type LabelSize = '100x50' | '50x30';
+export type LabelSize = '100x50' | '60x40' | '50x30' | '40x30' | '40x40';
+
+/**
+ * How much text a stock carries:
+ *   • full    — QR beside the type, serial, the compliance line and the category/position line.
+ *   • compact — QR beside the type and the one identifier a person can act on.
+ *   • qr      — QR on top, a one-line type under it. The code IS the label; the
+ *               type is only there so a person can tell two stickers apart.
+ */
+export type LabelLayout = 'full' | 'compact' | 'qr';
 
 export interface LabelStock {
   label: string;
@@ -72,11 +81,14 @@ export interface LabelStock {
   /** The QR's footprint on the label, quiet zone INCLUDED — i.e. how much of the
    *  sticker the code costs, which is the only number the layout cares about. */
   qrMm: number;
+  layout: LabelLayout;
 }
 
 /**
- * The two thermal stocks. Not a free-form size picker: a label that does not match
- * the roll in the printer is a wasted roll.
+ * The stocks the Xprinter XP-365B takes — a 4-inch (≤104 mm) direct-thermal roll
+ * printer, one label per page. Not a free-form size picker: a label that does not
+ * match the roll loaded in the printer is a wasted roll, so these are fixed
+ * die-cut sizes, largest to smallest.
  */
 export const LABEL_STOCKS: Record<LabelSize, LabelStock> = {
   '100x50': {
@@ -85,6 +97,15 @@ export const LABEL_STOCKS: Record<LabelSize, LabelStock> = {
     widthMm: 100,
     heightMm: 50,
     qrMm: 34,
+    layout: 'full',
+  },
+  '60x40': {
+    label: '60 × 40 mm',
+    hint: 'Medium — type, serial, the compliance date and category. For most gear.',
+    widthMm: 60,
+    heightMm: 40,
+    qrMm: 26,
+    layout: 'full',
   },
   '50x30': {
     label: '50 × 30 mm',
@@ -92,6 +113,23 @@ export const LABEL_STOCKS: Record<LabelSize, LabelStock> = {
     widthMm: 50,
     heightMm: 30,
     qrMm: 20,
+    layout: 'compact',
+  },
+  '40x30': {
+    label: '40 × 30 mm',
+    hint: 'Small — QR, type and serial. For crowded racks.',
+    widthMm: 40,
+    heightMm: 30,
+    qrMm: 18,
+    layout: 'compact',
+  },
+  '40x40': {
+    label: '40 × 40 mm (QR)',
+    hint: 'QR + a short type, nothing else. The smallest gear — a pin, a clip.',
+    widthMm: 40,
+    heightMm: 40,
+    qrMm: 30,
+    layout: 'qr',
   },
 };
 
@@ -228,8 +266,18 @@ export function labelLines(item: EquipmentItem): { strong: string[]; weak: strin
 
 // ---- label HTML ------------------------------------------------------------
 
-function labelCss(stock: LabelStock, size: LabelSize): string {
-  const small = size === '50x30';
+function labelCss(stock: LabelStock): string {
+  const qr = stock.layout === 'qr';
+  const compact = stock.layout === 'compact';
+  // The two smaller full stocks (60×40) run their type a notch down from 100×50.
+  const tight = stock.layout === 'full' && stock.widthMm < 80;
+
+  const pad = qr ? 2 : compact ? 1.5 : tight ? 2.5 : 3;
+  const gap = qr ? 1 : compact ? 1.5 : tight ? 2 : 3;
+  const nameSize = qr ? 7 : compact ? 7.5 : tight ? 9 : 11;
+  const idSize = compact || qr ? 6 : tight ? 7.5 : 8.5;
+  const strongSize = tight ? 7.5 : 9;
+
   return `
     @page { size: ${stock.widthMm}mm ${stock.heightMm}mm; margin: 0; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -238,8 +286,11 @@ function labelCss(stock: LabelStock, size: LabelSize): string {
 
     .label {
       width: ${stock.widthMm}mm; height: ${stock.heightMm}mm;
-      padding: ${small ? 1.5 : 3}mm;
-      display: flex; align-items: center; gap: ${small ? 1.5 : 3}mm;
+      padding: ${pad}mm;
+      display: flex;
+      flex-direction: ${qr ? 'column' : 'row'};
+      align-items: center; justify-content: center;
+      gap: ${gap}mm;
       overflow: hidden;
       page-break-after: always;
     }
@@ -250,20 +301,20 @@ function labelCss(stock: LabelStock, size: LabelSize): string {
     .qr { flex: 0 0 auto; width: ${stock.qrMm}mm; height: ${stock.qrMm}mm; }
     .qr svg { display: block; width: 100%; height: 100%; }
 
-    .text { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+    .text { flex: 1 1 auto; min-width: 0; overflow: hidden; ${qr ? 'width: 100%; text-align: center;' : ''} }
 
     /* Thermal print is 1-bit: weight and size carry the hierarchy, since there is
        no grey to fall back on. This is also why the category's emoji, which the
        rest of the UI uses, is NOT on the sticker — its colour is the whole point
        of it, and a thermal head has none. The category is spelled out instead. */
     .name {
-      font-size: ${small ? 7.5 : 11}pt; font-weight: bold; line-height: 1.15;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      font-size: ${nameSize}pt; font-weight: bold; line-height: 1.15;
+      display: -webkit-box; -webkit-line-clamp: ${qr ? 1 : 2}; -webkit-box-orient: vertical;
       overflow: hidden;
     }
-    .id { font-size: ${small ? 6 : 8.5}pt; margin-top: ${small ? 0.5 : 1}mm; white-space: nowrap;
+    .id { font-size: ${idSize}pt; margin-top: ${compact || qr ? 0.5 : 1}mm; white-space: nowrap;
           overflow: hidden; text-overflow: ellipsis; }
-    .strong { font-size: ${small ? 6.5 : 9}pt; font-weight: bold; margin-top: ${small ? 0.5 : 1.2}mm;
+    .strong { font-size: ${strongSize}pt; font-weight: bold; margin-top: ${tight ? 0.8 : 1.2}mm;
               line-height: 1.25; }
     .weak { font-size: 6.5pt; margin-top: 1mm; line-height: 1.25;
             display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
@@ -275,10 +326,19 @@ function labelBody(item: EquipmentItem, size: LabelSize): string {
   const stock = LABEL_STOCKS[size];
   const qr = qrSvg(itemQrPayload(item.id), stock.qrMm);
 
-  // The small stock carries the QR, the name and the one identifier a person can
-  // act on. Squeezing the category and dates onto 50×30 mm produces 5pt type that
-  // nobody reads in a dim locker — the QR is the route to that detail here.
-  if (size === '50x30') {
+  // QR-only stock: the code on top, a one-line type under it — enough to tell two
+  // stickers apart by eye, the scan does the rest.
+  if (stock.layout === 'qr') {
+    return `<div class="label">
+      <div class="qr">${qr}</div>
+      <div class="text"><div class="name">${esc(labelTitle(item))}</div></div>
+    </div>`;
+  }
+
+  // Compact: QR, the type and the one identifier a person can act on. Squeezing the
+  // category and dates onto a 30 mm-tall label produces type nobody reads in a dim
+  // locker — the QR is the route to that detail on these sizes.
+  if (stock.layout === 'compact') {
     return `<div class="label">
       <div class="qr">${qr}</div>
       <div class="text">
@@ -304,7 +364,7 @@ function labelBody(item: EquipmentItem, size: LabelSize): string {
 export function buildLabelsHtml(items: EquipmentItem[], size: LabelSize): string {
   const stock = LABEL_STOCKS[size];
   return `<!doctype html><html><head><meta charset="utf-8">
-    <style>${labelCss(stock, size)}</style></head><body>
+    <style>${labelCss(stock)}</style></head><body>
     ${items.map((i) => labelBody(i, size)).join('')}
   </body></html>`;
 }
