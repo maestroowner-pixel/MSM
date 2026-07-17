@@ -139,6 +139,101 @@ export const LABEL_SIZES = Object.keys(LABEL_STOCKS) as LabelSize[];
 const PT_PER_MM = 72 / 25.4;
 const mmToPt = (mm: number) => Math.round(mm * PT_PER_MM);
 
+// ---- editable style --------------------------------------------------------
+//
+// Each stock's `layout` sets sensible defaults, but a keeper can fine-tune the
+// printed sticker on the Label screen — the QR's size, the two visible font sizes,
+// and whether the QR sits to the LEFT of the text or ON TOP of it. The overrides are
+// sparse: a field left undefined falls back to the layout default, so an untouched
+// label prints exactly as before this existed.
+//
+// `layout` still decides WHICH fields appear (qr = type only; compact = type + id;
+// full = everything) — the editor changes size and position, not the field set.
+
+export interface LabelOverrides {
+  /** QR footprint in mm (quiet zone included). */
+  qrMm?: number;
+  /** Type/name font size in pt. */
+  nameSize?: number;
+  /** Human-id (serial) font size in pt. */
+  idSize?: number;
+  /** QR on top of the text (column) instead of beside it (row). */
+  vertical?: boolean;
+}
+
+/** Per-item printed-text override — a custom sticker name and/or an extra line,
+ *  kept OUT of the register (item.type is untouched). */
+export interface LabelText {
+  name?: string;
+  note?: string;
+}
+
+/** The concrete numbers a resolved label is drawn from — no more `undefined`s. */
+export interface LabelStyle {
+  qrMm: number;
+  nameSize: number;
+  idSize: number;
+  strongSize: number;
+  padMm: number;
+  gapMm: number;
+  vertical: boolean;
+  /** How many lines the name may wrap to (1 on the QR-only stock, 2 otherwise). */
+  nameLines: number;
+}
+
+/** Editable-range limits, shared by the service and the on-screen editor so the two
+ *  never disagree about a legal value. `max` for the QR is per-stock (it may not
+ *  exceed the sticker), so it is a function. */
+export const LABEL_STYLE_LIMITS = {
+  qrMm: {
+    step: 1,
+    min: 10,
+    max: (stock: LabelStock) => Math.min(stock.widthMm, stock.heightMm) - 4,
+  },
+  nameSize: { step: 0.5, min: 5, max: 16 },
+  idSize: { step: 0.5, min: 4, max: 12 },
+} as const;
+
+const clampNum = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+/** The layout's defaults for a stock, before any override. */
+export function defaultLabelStyle(stock: LabelStock): LabelStyle {
+  const qr = stock.layout === 'qr';
+  const compact = stock.layout === 'compact';
+  const tight = stock.layout === 'full' && stock.widthMm < 80;
+  return {
+    qrMm: stock.qrMm,
+    nameSize: qr ? 7 : compact ? 7.5 : tight ? 9 : 11,
+    idSize: compact || qr ? 6 : tight ? 7.5 : 8.5,
+    strongSize: tight ? 7.5 : 9,
+    padMm: qr ? 2 : compact ? 1.5 : tight ? 2.5 : 3,
+    gapMm: qr ? 1 : compact ? 1.5 : tight ? 2 : 3,
+    vertical: qr,
+    nameLines: qr ? 1 : 2,
+  };
+}
+
+/** The layout defaults with the keeper's overrides applied and clamped to legal ranges. */
+export function resolveLabelStyle(stock: LabelStock, overrides?: LabelOverrides): LabelStyle {
+  const d = defaultLabelStyle(stock);
+  if (!overrides) return d;
+  const L = LABEL_STYLE_LIMITS;
+  return {
+    ...d,
+    qrMm: overrides.qrMm != null ? clampNum(overrides.qrMm, L.qrMm.min, L.qrMm.max(stock)) : d.qrMm,
+    nameSize: overrides.nameSize != null ? clampNum(overrides.nameSize, L.nameSize.min, L.nameSize.max) : d.nameSize,
+    idSize: overrides.idSize != null ? clampNum(overrides.idSize, L.idSize.min, L.idSize.max) : d.idSize,
+    vertical: overrides.vertical ?? d.vertical,
+  };
+}
+
+/** The text actually printed as the sticker's name — the keeper's override if set,
+ *  otherwise the item's own type/name. */
+export function printedTitle(item: EquipmentItem, text?: LabelText): string {
+  const override = text?.name?.trim();
+  return override && override.length ? override : labelTitle(item);
+}
+
 // ---- QR rendering ----------------------------------------------------------
 
 /**
@@ -266,17 +361,10 @@ export function labelLines(item: EquipmentItem): { strong: string[]; weak: strin
 
 // ---- label HTML ------------------------------------------------------------
 
-function labelCss(stock: LabelStock): string {
-  const qr = stock.layout === 'qr';
+function labelCss(stock: LabelStock, style: LabelStyle): string {
   const compact = stock.layout === 'compact';
-  // The two smaller full stocks (60×40) run their type a notch down from 100×50.
   const tight = stock.layout === 'full' && stock.widthMm < 80;
-
-  const pad = qr ? 2 : compact ? 1.5 : tight ? 2.5 : 3;
-  const gap = qr ? 1 : compact ? 1.5 : tight ? 2 : 3;
-  const nameSize = qr ? 7 : compact ? 7.5 : tight ? 9 : 11;
-  const idSize = compact || qr ? 6 : tight ? 7.5 : 8.5;
-  const strongSize = tight ? 7.5 : 9;
+  const v = style.vertical;
 
   return `
     @page { size: ${stock.widthMm}mm ${stock.heightMm}mm; margin: 0; }
@@ -286,11 +374,11 @@ function labelCss(stock: LabelStock): string {
 
     .label {
       width: ${stock.widthMm}mm; height: ${stock.heightMm}mm;
-      padding: ${pad}mm;
+      padding: ${style.padMm}mm;
       display: flex;
-      flex-direction: ${qr ? 'column' : 'row'};
+      flex-direction: ${v ? 'column' : 'row'};
       align-items: center; justify-content: center;
-      gap: ${gap}mm;
+      gap: ${style.gapMm}mm;
       overflow: hidden;
       page-break-after: always;
     }
@@ -298,40 +386,46 @@ function labelCss(stock: LabelStock): string {
        per print, every print. */
     .label:last-child { page-break-after: auto; }
 
-    .qr { flex: 0 0 auto; width: ${stock.qrMm}mm; height: ${stock.qrMm}mm; }
+    .qr { flex: 0 0 auto; width: ${style.qrMm}mm; height: ${style.qrMm}mm; }
     .qr svg { display: block; width: 100%; height: 100%; }
 
-    .text { flex: 1 1 auto; min-width: 0; overflow: hidden; ${qr ? 'width: 100%; text-align: center;' : ''} }
+    .text { flex: 1 1 auto; min-width: 0; overflow: hidden; ${v ? 'width: 100%; text-align: center;' : ''} }
 
     /* Thermal print is 1-bit: weight and size carry the hierarchy, since there is
        no grey to fall back on. This is also why the category's emoji, which the
        rest of the UI uses, is NOT on the sticker — its colour is the whole point
        of it, and a thermal head has none. The category is spelled out instead. */
     .name {
-      font-size: ${nameSize}pt; font-weight: bold; line-height: 1.15;
-      display: -webkit-box; -webkit-line-clamp: ${qr ? 1 : 2}; -webkit-box-orient: vertical;
+      font-size: ${style.nameSize}pt; font-weight: bold; line-height: 1.15;
+      display: -webkit-box; -webkit-line-clamp: ${style.nameLines}; -webkit-box-orient: vertical;
       overflow: hidden;
     }
-    .id { font-size: ${idSize}pt; margin-top: ${compact || qr ? 0.5 : 1}mm; white-space: nowrap;
+    .id { font-size: ${style.idSize}pt; margin-top: ${compact ? 0.5 : 1}mm; white-space: nowrap;
           overflow: hidden; text-overflow: ellipsis; }
-    .strong { font-size: ${strongSize}pt; font-weight: bold; margin-top: ${tight ? 0.8 : 1.2}mm;
+    .strong { font-size: ${style.strongSize}pt; font-weight: bold; margin-top: ${tight ? 0.8 : 1.2}mm;
               line-height: 1.25; }
     .weak { font-size: 6.5pt; margin-top: 1mm; line-height: 1.25;
             display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
             overflow: hidden; }
+    /* The keeper's free-text extra line, just under the name. */
+    .extra { font-size: ${style.idSize}pt; margin-top: ${compact ? 0.4 : 0.8}mm; line-height: 1.2;
+             display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+             overflow: hidden; }
   `;
 }
 
-function labelBody(item: EquipmentItem, size: LabelSize): string {
-  const stock = LABEL_STOCKS[size];
-  const qr = qrSvg(itemQrPayload(item.id), stock.qrMm);
+function labelBody(item: EquipmentItem, stock: LabelStock, style: LabelStyle, text?: LabelText): string {
+  const qr = qrSvg(itemQrPayload(item.id), style.qrMm);
+  const name = esc(printedTitle(item, text));
+  const note = text?.note?.trim();
+  const extra = note ? `<div class="extra">${esc(note)}</div>` : '';
 
-  // QR-only stock: the code on top, a one-line type under it — enough to tell two
-  // stickers apart by eye, the scan does the rest.
+  // QR-only stock: the code and a one-line type — enough to tell two stickers apart
+  // by eye, the scan does the rest. No room for the extra line here.
   if (stock.layout === 'qr') {
     return `<div class="label">
       <div class="qr">${qr}</div>
-      <div class="text"><div class="name">${esc(labelTitle(item))}</div></div>
+      <div class="text"><div class="name">${name}</div></div>
     </div>`;
   }
 
@@ -342,7 +436,8 @@ function labelBody(item: EquipmentItem, size: LabelSize): string {
     return `<div class="label">
       <div class="qr">${qr}</div>
       <div class="text">
-        <div class="name">${esc(labelTitle(item))}</div>
+        <div class="name">${name}</div>
+        ${extra}
         <div class="id">${esc(humanId(item))}</div>
       </div>
     </div>`;
@@ -352,7 +447,8 @@ function labelBody(item: EquipmentItem, size: LabelSize): string {
   return `<div class="label">
     <div class="qr">${qr}</div>
     <div class="text">
-      <div class="name">${esc(labelTitle(item))}</div>
+      <div class="name">${name}</div>
+      ${extra}
       <div class="id">${esc(humanId(item))}</div>
       ${strong.length ? `<div class="strong">${esc(strong.join('  ·  '))}</div>` : ''}
       ${weak.length ? `<div class="weak">${esc(weak.join('  ·  '))}</div>` : ''}
@@ -360,12 +456,19 @@ function labelBody(item: EquipmentItem, size: LabelSize): string {
   </div>`;
 }
 
-/** One print job, one label per item, sequenced for a roll-fed thermal printer. */
-export function buildLabelsHtml(items: EquipmentItem[], size: LabelSize): string {
+/** One print job, one label per item, sequenced for a roll-fed thermal printer.
+ *  `texts` carries per-item printed-text overrides, keyed by item id. */
+export function buildLabelsHtml(
+  items: EquipmentItem[],
+  size: LabelSize,
+  overrides?: LabelOverrides,
+  texts?: Record<string, LabelText>
+): string {
   const stock = LABEL_STOCKS[size];
+  const style = resolveLabelStyle(stock, overrides);
   return `<!doctype html><html><head><meta charset="utf-8">
-    <style>${labelCss(stock)}</style></head><body>
-    ${items.map((i) => labelBody(i, size)).join('')}
+    <style>${labelCss(stock, style)}</style></head><body>
+    ${items.map((i) => labelBody(i, stock, style, texts?.[i.id])).join('')}
   </body></html>`;
 }
 
@@ -386,9 +489,14 @@ function pageOptions(size: LabelSize) {
 }
 
 /** Hand the labels to the print dialog, at the stock's exact dimensions. */
-export async function printLabels(items: EquipmentItem[], size: LabelSize): Promise<void> {
+export async function printLabels(
+  items: EquipmentItem[],
+  size: LabelSize,
+  overrides?: LabelOverrides,
+  texts?: Record<string, LabelText>
+): Promise<void> {
   if (onWindows) throw new Error('Printing is not available on Windows.');
-  const html = buildLabelsHtml(items, size);
+  const html = buildLabelsHtml(items, size, overrides, texts);
   if (onWeb) {
     // The browser honours the @page size in the HTML, so the same document that
     // drives the thermal printer on a phone drives it from a laptop too.
@@ -403,9 +511,14 @@ export async function printLabels(items: EquipmentItem[], size: LabelSize): Prom
  * printer this phone cannot see. Goes through deliverFile so the file arrives
  * named, the same way every other MSM export does.
  */
-export async function saveLabelsPdf(items: EquipmentItem[], size: LabelSize): Promise<void> {
+export async function saveLabelsPdf(
+  items: EquipmentItem[],
+  size: LabelSize,
+  overrides?: LabelOverrides,
+  texts?: Record<string, LabelText>
+): Promise<void> {
   if (!canSaveLabelsPdf) throw new Error('Saving labels as a PDF is only available on iOS/Android.');
-  const html = buildLabelsHtml(items, size);
+  const html = buildLabelsHtml(items, size, overrides, texts);
   const { base64 } = await Print.printToFileAsync({ html, ...pageOptions(size), base64: true });
   if (!base64) throw new Error('Could not render the labels to a PDF.');
   await deliverFile(`MSM_labels_${size}_${fileDateStamp()}.pdf`, base64, true, 'application/pdf');

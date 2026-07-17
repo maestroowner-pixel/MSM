@@ -155,6 +155,12 @@ export async function saveCompressor(state: CompressorState): Promise<void> {
 export interface Prefs {
   compressorEnabled?: boolean; // show the BA compressor log (FIFI outfit)
   notificationsEnabled?: boolean; // schedule expiry reminders (60/30/7 days)
+  /** Per-stock-size label fine-tuning from the Label screen (QR size, fonts, QR
+   *  position), keyed by LabelSize. Missing = that stock prints at layout defaults. */
+  labelStyles?: Record<string, import('./qrLabel').LabelOverrides>;
+  /** Per-ITEM printed-text overrides (custom sticker name + extra line), keyed by
+   *  item id. Kept out of the register; local to this device. */
+  labelText?: Record<string, import('./qrLabel').LabelText>;
 }
 
 export async function loadPrefs(): Promise<Prefs> {
