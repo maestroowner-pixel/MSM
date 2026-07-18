@@ -187,6 +187,11 @@ export default function CategoryItemsSc() {
           <Text style={styles.rowTitle} numberOfLines={1}>
             {e.it.type || (e.it.no != null ? `#${e.it.no}` : 'Item')}
           </Text>
+          {e.it.flagged ? (
+            <View style={styles.flagBadge}>
+              <Text style={styles.flagBadgeText}>🚩</Text>
+            </View>
+          ) : null}
           {e.it.attachments && e.it.attachments.length > 0 ? (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{'📎'.repeat(e.it.attachments.length)}</Text>
@@ -429,6 +434,10 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   rowTitle: { fontSize: SIZES.h5, fontWeight: '600', color: COLORS.textDark, flexShrink: 1 },
   badge: { backgroundColor: 'rgba(46,125,153,0.12)', borderRadius: SIZES.radiusSm, paddingHorizontal: 6, paddingVertical: 1 },
   badgeText: { fontSize: SIZES.tiny, color: COLORS.primaryDark, fontWeight: '700' },
+  // Flag gets a warning-tinted chip (not the teal one) — it means "a human wants a
+  // second look", a different signal from the neutral attachment/cert badges.
+  flagBadge: { backgroundColor: 'rgba(214,158,46,0.16)', borderRadius: SIZES.radiusSm, paddingHorizontal: 6, paddingVertical: 1 },
+  flagBadgeText: { fontSize: SIZES.tiny, fontWeight: '700' },
   rowSub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 1 },
   rowDate: { fontSize: SIZES.small, color: COLORS.text, marginBottom: 2 },
 });
