@@ -135,6 +135,40 @@ export const LABEL_STOCKS: Record<LabelSize, LabelStock> = {
 
 export const LABEL_SIZES = Object.keys(LABEL_STOCKS) as LabelSize[];
 
+// ---- page mode -------------------------------------------------------------
+//
+// Two ways to put the SAME sticker on paper:
+//   • roll — one label per page, the page sized to the label. This is the Xprinter
+//     XP-365B roll printer: the sheet IS the sticker, edge to edge.
+//   • a4   — many labels tiled into a grid on a plain A4 sheet, with cut guides.
+//     This is the ship's office inkjet/laser: printing a 50 mm sticker on it in
+//     `roll` mode blows one tiny label up to fill a whole A4 page — a giant QR and
+//     a wasted sheet. The grid keeps every label at its true size (so the QR still
+//     scans and the text still fits) and fits dozens per page.
+//
+// The label's own layout/size/text are identical in both modes — page mode only
+// changes the framing around the labels, never the labels themselves.
+
+export type PageMode = 'roll' | 'a4';
+
+/** A4 in millimetres, and the margin the office printer needs to not clip edges. */
+const A4 = { widthMm: 210, heightMm: 297 };
+const A4_MARGIN_MM = 8;
+
+/**
+ * How many labels of a given stock fit on one A4 page, and the grid shape.
+ * Each cell is the label's TRUE size — the whole point of the A4 mode is that the
+ * sticker prints at the same dimensions it would on the roll, just many to a sheet.
+ * Floored, and never below 1×1, so an oversized stock still yields one per page.
+ */
+export function a4Grid(stock: LabelStock): { cols: number; rows: number; perPage: number } {
+  const usableW = A4.widthMm - A4_MARGIN_MM * 2;
+  const usableH = A4.heightMm - A4_MARGIN_MM * 2;
+  const cols = Math.max(1, Math.floor(usableW / stock.widthMm));
+  const rows = Math.max(1, Math.floor(usableH / stock.heightMm));
+  return { cols, rows, perPage: cols * rows };
+}
+
 /** expo-print measures pages in points (72 per inch); the stocks are in mm. */
 const PT_PER_MM = 72 / 25.4;
 const mmToPt = (mm: number) => Math.round(mm * PT_PER_MM);
@@ -361,16 +395,29 @@ export function labelLines(item: EquipmentItem): { strong: string[]; weak: strin
 
 // ---- label HTML ------------------------------------------------------------
 
-function labelCss(stock: LabelStock, style: LabelStyle): string {
+function labelCss(stock: LabelStock, style: LabelStyle, pageMode: PageMode): string {
   const compact = stock.layout === 'compact';
   const tight = stock.layout === 'full' && stock.widthMm < 80;
   const v = style.vertical;
+  const roll = pageMode === 'roll';
 
   return `
-    @page { size: ${stock.widthMm}mm ${stock.heightMm}mm; margin: 0; }
+    ${roll
+      ? `@page { size: ${stock.widthMm}mm ${stock.heightMm}mm; margin: 0; }`
+      : `@page { size: A4; margin: ${A4_MARGIN_MM}mm; }`}
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { background: #fff; }
     body { font-family: Helvetica, Arial, sans-serif; color: #000; -webkit-font-smoothing: none; }
+
+    /* A4 mode: one .page per sheet, labels wrapped left-to-right, top-aligned.
+       Chunked so a page holds exactly the grid that fits — the browser never has
+       to break a label across the page boundary. */
+    .page {
+      display: flex; flex-wrap: wrap; align-content: flex-start;
+      width: ${A4.widthMm - A4_MARGIN_MM * 2}mm;
+      page-break-after: always;
+    }
+    .page:last-child { page-break-after: auto; }
 
     .label {
       width: ${stock.widthMm}mm; height: ${stock.heightMm}mm;
@@ -380,11 +427,16 @@ function labelCss(stock: LabelStock, style: LabelStyle): string {
       align-items: center; justify-content: center;
       gap: ${style.gapMm}mm;
       overflow: hidden;
-      page-break-after: always;
+      ${roll
+        ? `page-break-after: always;`
+        : // A hairline round every cell: adjacent cells share the line, giving a
+          // cut guide for scissors/guillotine. box-sizing keeps the footprint at
+          // the true stock size so the a4Grid maths still fits.
+          `border: 0.2mm solid #000;`}
     }
-    /* Without this the job ends on a trailing blank label — one wasted sticker
-       per print, every print. */
-    .label:last-child { page-break-after: auto; }
+    /* Without this the roll job ends on a trailing blank label — one wasted sticker
+       per print, every print. (No-op in A4 mode, where .page owns the break.) */
+    .label:last-child { page-break-after: ${roll ? 'auto' : 'inherit'}; }
 
     .qr { flex: 0 0 auto; width: ${style.qrMm}mm; height: ${style.qrMm}mm; }
     .qr svg { display: block; width: 100%; height: 100%; }
@@ -456,19 +508,35 @@ function labelBody(item: EquipmentItem, stock: LabelStock, style: LabelStyle, te
   </div>`;
 }
 
-/** One print job, one label per item, sequenced for a roll-fed thermal printer.
- *  `texts` carries per-item printed-text overrides, keyed by item id. */
+/** One print job. In `roll` mode: one label per page for a roll-fed thermal
+ *  printer. In `a4` mode: labels tiled into a grid on plain A4 sheets, cut guides
+ *  round each. `texts` carries per-item printed-text overrides, keyed by item id. */
 export function buildLabelsHtml(
   items: EquipmentItem[],
   size: LabelSize,
+  pageMode: PageMode = 'roll',
   overrides?: LabelOverrides,
   texts?: Record<string, LabelText>
 ): string {
   const stock = LABEL_STOCKS[size];
   const style = resolveLabelStyle(stock, overrides);
+  const label = (i: EquipmentItem) => labelBody(i, stock, style, texts?.[i.id]);
+
+  let body: string;
+  if (pageMode === 'a4') {
+    const { perPage } = a4Grid(stock);
+    const pages: string[] = [];
+    for (let i = 0; i < items.length; i += perPage) {
+      pages.push(`<div class="page">${items.slice(i, i + perPage).map(label).join('')}</div>`);
+    }
+    body = pages.join('');
+  } else {
+    body = items.map(label).join('');
+  }
+
   return `<!doctype html><html><head><meta charset="utf-8">
-    <style>${labelCss(stock, style)}</style></head><body>
-    ${items.map((i) => labelBody(i, stock, style, texts?.[i.id])).join('')}
+    <style>${labelCss(stock, style, pageMode)}</style></head><body>
+    ${body}
   </body></html>`;
 }
 
@@ -483,27 +551,30 @@ export const canPrintLabels = !onWindows;
  *  honest equivalent rather than a second, half-working button. */
 export const canSaveLabelsPdf = !onWindows && !onWeb;
 
-function pageOptions(size: LabelSize) {
+function pageOptions(size: LabelSize, pageMode: PageMode) {
+  if (pageMode === 'a4') return { width: mmToPt(A4.widthMm), height: mmToPt(A4.heightMm) };
   const stock = LABEL_STOCKS[size];
   return { width: mmToPt(stock.widthMm), height: mmToPt(stock.heightMm) };
 }
 
-/** Hand the labels to the print dialog, at the stock's exact dimensions. */
+/** Hand the labels to the print dialog — at the stock's exact dimensions in `roll`
+ *  mode, or on A4 sheets (a grid of labels) in `a4` mode for an office printer. */
 export async function printLabels(
   items: EquipmentItem[],
   size: LabelSize,
+  pageMode: PageMode = 'roll',
   overrides?: LabelOverrides,
   texts?: Record<string, LabelText>
 ): Promise<void> {
   if (onWindows) throw new Error('Printing is not available on Windows.');
-  const html = buildLabelsHtml(items, size, overrides, texts);
+  const html = buildLabelsHtml(items, size, pageMode, overrides, texts);
   if (onWeb) {
     // The browser honours the @page size in the HTML, so the same document that
     // drives the thermal printer on a phone drives it from a laptop too.
     printHtmlWeb(html);
     return;
   }
-  await Print.printAsync({ html, ...pageOptions(size) });
+  await Print.printAsync({ html, ...pageOptions(size, pageMode) });
 }
 
 /**
@@ -514,12 +585,14 @@ export async function printLabels(
 export async function saveLabelsPdf(
   items: EquipmentItem[],
   size: LabelSize,
+  pageMode: PageMode = 'roll',
   overrides?: LabelOverrides,
   texts?: Record<string, LabelText>
 ): Promise<void> {
   if (!canSaveLabelsPdf) throw new Error('Saving labels as a PDF is only available on iOS/Android.');
-  const html = buildLabelsHtml(items, size, overrides, texts);
-  const { base64 } = await Print.printToFileAsync({ html, ...pageOptions(size), base64: true });
+  const html = buildLabelsHtml(items, size, pageMode, overrides, texts);
+  const { base64 } = await Print.printToFileAsync({ html, ...pageOptions(size, pageMode), base64: true });
   if (!base64) throw new Error('Could not render the labels to a PDF.');
-  await deliverFile(`MSM_labels_${size}_${fileDateStamp()}.pdf`, base64, true, 'application/pdf');
+  const tag = pageMode === 'a4' ? `a4_${size}` : size;
+  await deliverFile(`MSM_labels_${tag}_${fileDateStamp()}.pdf`, base64, true, 'application/pdf');
 }

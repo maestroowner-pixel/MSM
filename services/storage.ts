@@ -161,6 +161,9 @@ export interface Prefs {
   /** Per-ITEM printed-text overrides (custom sticker name + extra line), keyed by
    *  item id. Kept out of the register; local to this device. */
   labelText?: Record<string, import('./qrLabel').LabelText>;
+  /** Where labels print: 'roll' (thermal, one per page) or 'a4' (grid on a plain
+   *  A4 sheet for an office printer). Remembered so a keeper picks it once. */
+  labelPageMode?: import('./qrLabel').PageMode;
 }
 
 export async function loadPrefs(): Promise<Prefs> {

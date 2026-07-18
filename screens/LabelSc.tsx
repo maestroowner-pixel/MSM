@@ -39,8 +39,10 @@ import {
   LabelSize,
   LabelStyle,
   LabelText,
+  PageMode,
   QR_ECL,
   QUIET_ZONE,
+  a4Grid,
   canPrintLabels,
   canSaveLabelsPdf,
   defaultLabelStyle,
@@ -214,6 +216,7 @@ export default function LabelSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
   const [size, setSize] = useState<LabelSize>('100x50');
+  const [pageMode, setPageMode] = useState<PageMode>('roll');
   const [busy, setBusy] = useState<null | 'print' | 'pdf'>(null);
 
   // Per-stock-size fine-tuning and per-item printed-text overrides, both persisted in
@@ -226,6 +229,7 @@ export default function LabelSc() {
       if (!alive) return;
       if (p.labelStyles) setLabelStyles(p.labelStyles);
       if (p.labelText) setLabelText(p.labelText);
+      if (p.labelPageMode) setPageMode(p.labelPageMode);
     });
     return () => {
       alive = false;
@@ -240,6 +244,11 @@ export default function LabelSc() {
       void loadPrefs().then((p) => savePrefs({ ...p, labelStyles: next }));
       return next;
     });
+  };
+
+  const applyPageMode = (mode: PageMode) => {
+    setPageMode(mode);
+    void loadPrefs().then((p) => savePrefs({ ...p, labelPageMode: mode }));
   };
 
   const applyText = (itemId: string, patch: LabelText) => {
@@ -277,6 +286,10 @@ export default function LabelSc() {
   const style = resolveLabelStyle(stock, overrides);
   const defaults = defaultLabelStyle(stock);
   const isQr = stock.layout === 'qr';
+  // A4 mode: how the chosen stock tiles onto a plain sheet, and how many sheets
+  // the current batch needs — the number a keeper wants before hitting print.
+  const grid = a4Grid(stock);
+  const sheets = Math.max(1, Math.ceil(items.length / grid.perPage));
   const tuned = overrides != null && Object.keys(overrides).length > 0;
   // Life size where it fits, screen-bounded where it does not — never larger. A
   // 50×30 sticker blown up to fill a phone teaches the wrong lesson about whether
@@ -287,8 +300,8 @@ export default function LabelSc() {
   const run = async (mode: 'print' | 'pdf') => {
     setBusy(mode);
     try {
-      if (mode === 'print') await printLabels(items, size, overrides, labelText);
-      else await saveLabelsPdf(items, size, overrides, labelText);
+      if (mode === 'print') await printLabels(items, size, pageMode, overrides, labelText);
+      else await saveLabelsPdf(items, size, pageMode, overrides, labelText);
     } catch (e: any) {
       // A cancelled print dialog is not a failure; anything else the user needs to
       // know about, because a silent no-op looks exactly like a printed label.
@@ -316,6 +329,32 @@ export default function LabelSc() {
           <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Close</Text>
         </TouchableOpacity>
       </View>
+
+      <Card>
+        <Label>Print to</Label>
+        <View style={styles.toggle}>
+          {([['roll', 'Thermal roll'], ['a4', 'A4 sheet']] as const).map(([mode, lbl]) => (
+            <TouchableOpacity
+              key={mode}
+              style={[styles.toggleBtn, pageMode === mode && { backgroundColor: COLORS.primary, borderColor: COLORS.primary }]}
+              onPress={() => applyPageMode(mode)}
+            >
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                style={[styles.toggleText, pageMode === mode && { color: COLORS.textWhite }]}
+              >
+                {lbl}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <Text style={styles.note}>
+          {pageMode === 'roll'
+            ? 'Label printer (e.g. Xprinter) — one sticker per page, page sized to the label.'
+            : `Plain paper on an office printer — ${grid.cols} × ${grid.rows} = ${grid.perPage} labels per A4 sheet, with cut lines. ${items.length === 1 ? 'One label on the sheet.' : `${items.length} labels → ${sheets} sheet${sheets > 1 ? 's' : ''}.`}`}
+        </Text>
+      </Card>
 
       <Card>
         <Label>Label stock</Label>
@@ -471,7 +510,9 @@ export default function LabelSc() {
           ) : null}
 
           <Text style={styles.note}>
-            Print goes to the printer's dialog at {stock.label}.
+            {pageMode === 'roll'
+              ? `Print goes to the printer's dialog at ${stock.label}.`
+              : `Print goes to the printer's dialog as A4 sheets — ${grid.perPage} labels of ${stock.label} per sheet.`}
             {canSaveLabelsPdf
               ? ' Save as PDF is the route to a printer this phone cannot see — the ship’s office, or the label stock’s own driver on a laptop.'
               : ' In the browser, use the print dialog’s own “Save as PDF” if you need a file.'}
