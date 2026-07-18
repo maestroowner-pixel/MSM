@@ -5,11 +5,11 @@
 
 import 'react-native-gesture-handler';
 import './utils/webAlert'; // web: make Alert.alert use the browser dialog (no-op on native)
-import React, { useRef, useState } from 'react';
-import { View, StyleSheet, Animated, Platform } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, Animated, Platform, Linking } from 'react-native';
 import { registerRootComponent } from 'expo';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer, DefaultTheme, useNavigation, useIsFocused } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, useNavigation, useIsFocused, useNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator, TransitionPresets } from '@react-navigation/stack';
 import { GestureHandlerRootView, Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -19,9 +19,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { SIZES } from './theme';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
-import { DataProvider } from './contexts/DataContext';
+import { DataProvider, useData } from './contexts/DataContext';
 import { applyOrientationPolicy } from './utils/orientation';
 import { ensureTrialStarted } from './services/trial';
+import { parseDeepLink, DeepLink } from './services/qrLabel';
 
 import SplashSc from './screens/SplashSc';
 import ConsentSc from './screens/ConsentSc';
@@ -42,6 +43,8 @@ import CompressorSc from './screens/CompressorSc';
 import PaywallSc from './screens/PaywallSc';
 import LabelSc from './screens/LabelSc';
 import ScanSc from './screens/ScanSc';
+import FlaggedSc from './screens/FlaggedSc';
+import RecentScansSc from './screens/RecentScansSc';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -181,9 +184,28 @@ function MainTabs() {
 
 function Root() {
   const COLORS = useTheme();
+  const navigationRef = useNavigationContainerRef<any>();
+  const { flat } = useData();
   const [showSplash, setShowSplash] = useState(true);
   // null = still loading the stored flag; false = must show; true = accepted
   const [legalAccepted, setLegalAccepted] = useState<boolean | null>(null);
+
+  // A MSM sticker's QR is `msm://item/<id>`, and `msm` is this app's URL scheme
+  // (app.json), so scanning it with the PHONE'S camera opens the app. The home-
+  // screen widgets speak the same scheme with two extra verbs — `msm://scan` and
+  // `msm://flagged` — so a tap on a widget lands in the app the same way a scanned
+  // label does. Capture whichever link brought us here, both on a cold start
+  // (getInitialURL) and while the app is already open (the 'url' event).
+  const [pendingLink, setPendingLink] = useState<DeepLink | null>(null);
+  useEffect(() => {
+    const take = (url: string | null) => {
+      const link = url ? parseDeepLink(url) : null;
+      if (link) setPendingLink(link);
+    };
+    Linking.getInitialURL().then(take).catch(() => {});
+    const sub = Linking.addEventListener('url', (e) => take(e.url));
+    return () => sub.remove();
+  }, []);
 
   React.useEffect(() => {
     AsyncStorage.getItem(LEGAL_ACCEPTED_KEY)
@@ -235,8 +257,37 @@ function Root() {
         }
       : undefined;
 
+  // Follow the pending link once the app is usable (splash gone, consent given)
+  // and the navigator is ready. A link that arrives earlier waits here rather than
+  // being lost. An item link needs a {category, id}: the sticker carries only the
+  // id, so the category is recovered from the register (same as a scanned code) —
+  // if the id is unknown, fall back to the scanner so the user can look manually.
+  useEffect(() => {
+    if (showSplash || legalAccepted !== true || !pendingLink) return;
+    let cancelled = false;
+    const open = () => {
+      if (cancelled) return;
+      if (!navigationRef.isReady()) {
+        setTimeout(open, 100);
+        return;
+      }
+      if (pendingLink.type === 'scan') navigationRef.navigate('Scan');
+      else if (pendingLink.type === 'flagged') navigationRef.navigate('Flagged');
+      else {
+        const found = flat.find((i) => i.id === pendingLink.id);
+        if (found) navigationRef.navigate('ItemDetail', { category: found.category, id: found.id });
+        else navigationRef.navigate('Scan');
+      }
+      setPendingLink(null);
+    };
+    open();
+    return () => {
+      cancelled = true;
+    };
+  }, [showSplash, legalAccepted, pendingLink, flat]);
+
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer ref={navigationRef} theme={navTheme}>
       <StatusBar style={showSplash ? 'light' : COLORS.statusBar} />
       <Stack.Navigator
         screenOptions={{
@@ -264,6 +315,8 @@ function Root() {
         <Stack.Screen name="CertificateDetail" component={CertificateDetailSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Label" component={LabelSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Scan" component={ScanSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Flagged" component={FlaggedSc} options={webHeader('Flagged')} />
+        <Stack.Screen name="RecentScans" component={RecentScansSc} options={webHeader('Recently scanned')} />
       </Stack.Navigator>
       {showSplash ? (
         <View style={StyleSheet.absoluteFill}>
@@ -290,6 +343,14 @@ function App() {
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
+}
+
+// Android home-screen widgets run their render in a headless JS task; the handler
+// has to be registered at the top of the entry file so both the app process and
+// that task pick it up. Required lazily so react-native-android-widget (an
+// Android-only module) is never even imported on iOS or web.
+if (Platform.OS === 'android') {
+  require('./widgets/widget-task-handler').registerMsmWidgets();
 }
 
 registerRootComponent(App);

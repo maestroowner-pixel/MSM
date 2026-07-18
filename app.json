@@ -19,7 +19,13 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.kukalab.msm",
+      "appleTeamId": "LAGTN99698",
       "buildNumber": "1094",
+      "entitlements": {
+        "com.apple.security.application-groups": [
+          "group.com.kukalab.msm"
+        ]
+      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UISupportedInterfaceOrientations": [
@@ -69,7 +75,36 @@
         }
       ],
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      "@bacons/apple-targets",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "Scan",
+              "label": "MSM · Scan",
+              "description": "Open the scanner",
+              "minWidth": "80dp",
+              "minHeight": "80dp",
+              "targetCellWidth": 1,
+              "targetCellHeight": 1,
+              "resizeMode": "none"
+            },
+            {
+              "name": "Flagged",
+              "label": "MSM · Scan + Flagged",
+              "description": "Scanner and the latest flagged items",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ]
     ]
   }
 }

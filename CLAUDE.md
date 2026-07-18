@@ -57,6 +57,20 @@ app mirrors. Bundle id `com.kukalab.msm`.
   asset `assets/sounds/ship-bell.mp3`), mirrors MHM. Shown via `screens/SplashSc.tsx`, an
   overlay in `index.tsx` (`showSplash` state) that animates the logo and calls `onDone` after ~2.2s.
 - Cloud (optional): Firebase JS SDK (`firebase`) — Auth + Realtime DB, **config is a placeholder**
+- **Home-screen widgets** (ported from DEM) — a small **Scan** widget (one tap → in-app scanner)
+  and a medium **Scan + Flagged** widget (scanner button + the latest flagged items as deep-linked
+  rows). iOS: WidgetKit/SwiftUI via `@bacons/apple-targets` (`targets/widget/` — `MSMWidgets.swift`
+  + `Shared.swift` + `expo-target.config.js`, a real widget-extension target linked on prebuild).
+  Android: `react-native-android-widget` JSX (`widgets/ScanWidget.tsx`, `widgets/FlaggedWidget.tsx`,
+  headless `widgets/widget-task-handler.tsx` → `registerMsmWidgets()` at the top of `index.tsx`).
+  The widget process can't see live data, so the app pushes a tiny flagged snapshot through a shared
+  container — an **App Group** (`group.com.kukalab.msm`) on iOS, an AsyncStorage key on Android —
+  from `services/widgetBridge.ts` (`syncFlaggedWidget`, debounced in DataContext on every `flat`
+  change). Shape + keys live in `widgets/shared.ts` and MUST match `Shared.swift`. Widgets open the
+  app via the same `msm://` scheme as labels, with two extra verbs `msm://scan` / `msm://flagged`
+  (see `parseDeepLink` in `qrLabel.ts`); `index.tsx` captures the link (getInitialURL + 'url' event)
+  and, for `msm://item/<id>`, recovers the item's category from the register before navigating
+  ItemDetail. No-op on web/Windows/Expo Go (native modules absent, wrapped in try/catch).
 
 ## Architecture
 ```
@@ -129,6 +143,14 @@ via the `expo-av` plugin config in `app.json` (playback only).
 npx expo run:ios                       # build & launch on a simulator
 # or open ios/MarineSafetyManager.xcworkspace in Xcode (set a signing team for a device build)
 ```
+**Widget target (`@bacons/apple-targets`).** `expo prebuild -p ios` reads `targets/widget/` and
+adds a real **MSMWidgets** WidgetKit extension to the Xcode project, sharing the App Group
+`group.com.kukalab.msm` with the app (both declared in `app.json` `ios.entitlements` +
+`expo-target.config.js`). Needs `ios.appleTeamId` set (LAGTN99698) so the extension can be signed;
+on a device build confirm BOTH targets have the App Groups capability with that identifier. The
+Swift editor shows false "cannot find FlaggedItem / @main in top-level code" errors when a file is
+opened in isolation — they resolve once the target is linked at prebuild. Android's widgets need no
+extra native work beyond the `react-native-android-widget` plugin block in `app.json`.
 ### Hermes compatibility fixes (hard-won — keep these)
 The app runs on Hermes (RN 0.81). Two real fixes were needed to boot on a real iOS build —
 do not regress them:

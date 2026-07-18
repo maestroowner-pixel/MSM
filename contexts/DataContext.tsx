@@ -11,6 +11,7 @@ import { CompressorState } from '../types/compressor';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from '../services/storage';
 import { rescheduleExpiryReminders } from '../services/notifications';
+import { syncFlaggedWidget } from '../services/widgetBridge';
 
 interface DataContextType {
   loading: boolean;
@@ -66,6 +67,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     reload();
   }, [reload]);
+
+  // Keep the home-screen widgets' flagged snapshot in step with the register.
+  // Debounced because a burst of edits (an import, clearing several flags) would
+  // otherwise reload the widget timelines repeatedly for no visible gain. Waits
+  // for the first load so the widget is never blanked by an empty pre-load state.
+  useEffect(() => {
+    if (loading) return;
+    const t = setTimeout(() => {
+      void syncFlaggedWidget(flat);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [flat, loading]);
 
   const saveItem = useCallback(
     async (item: EquipmentItem) => {

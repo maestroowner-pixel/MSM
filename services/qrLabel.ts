@@ -60,6 +60,34 @@ export function parseItemQr(payload: string): string | null {
   return id || null;
 }
 
+/**
+ * A `msm://` link that arrives from OUTSIDE a printed sticker — a home-screen
+ * widget, or a Shortcut. Same private scheme as the labels, but where the QR only
+ * ever carries `msm://item/<id>`, these also carry action verbs the widget uses:
+ *
+ *   • `msm://scan`      — open the in-app scanner.
+ *   • `msm://flagged`   — open the Flagged list.
+ *   • `msm://item/<id>` — open one item (the same payload a sticker carries, so a
+ *                         widget row and a scanned label land in one place).
+ *
+ * Returns null for anything that is not one of ours, so the caller can ignore
+ * links meant for someone else. The scheme/verb match is case-insensitive to
+ * match parseItemQr; an item id is returned verbatim (its case is significant).
+ */
+export type DeepLink =
+  | { type: 'scan' }
+  | { type: 'flagged' }
+  | { type: 'item'; id: string };
+
+export function parseDeepLink(url: string): DeepLink | null {
+  const s = url.trim();
+  const lower = s.toLowerCase();
+  if (lower === 'msm://scan' || lower === 'msm://scan/') return { type: 'scan' };
+  if (lower === 'msm://flagged' || lower === 'msm://flagged/') return { type: 'flagged' };
+  const id = parseItemQr(s);
+  return id ? { type: 'item', id } : null;
+}
+
 // ---- sizes -----------------------------------------------------------------
 
 export type LabelSize = '100x50' | '60x40' | '50x30' | '40x30' | '40x40';
