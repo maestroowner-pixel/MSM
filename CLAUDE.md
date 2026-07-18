@@ -201,8 +201,14 @@ headers (e.g. `PLB (Ser.#)`) and broke `pushAll` ("invalid key … in property �
 pull (`encodeKey`/`decodeKey`/`transformKeys`) so data round-trips while staying RTDB-legal. Values
 are never touched. Local AsyncStorage keeps the original (unencoded) keys.
 
-Also: `newArchEnabled` is `false` in app.json (re-prebuild after changing). Verified on the
-iPhone 17 Pro simulator: Dashboard/Settings render, 627 imported items, export works.
+Also: `newArchEnabled` is **`true`** in app.json (re-prebuild after changing — it also gets written
+to `android/gradle.properties` + `ios/Podfile.properties.json`). **It MUST stay on:**
+`react-native-android-widget`'s headless renderer uses the bridgeless `ReactHost`, and with New Arch
+OFF (RN 0.81 / SDK 54) placing a home-screen widget hard-crashes the task
+(`TurboModuleRegistry.getEnforcing('PlatformConstants') could not be found`) — the widget appears in
+the picker but won't drop onto the home screen. Turning New Arch on affects the WHOLE app (iOS +
+Android), so **re-test every screen** after a rebuild. (Was `false` originally; flipped to add the
+home-screen widgets. Earlier sim check: Dashboard/Settings render, 627 imported items, export works.)
 
 ### Native-build gotchas (iOS) — needed after `prebuild`/reinstall
 1. **RN FuseboxTracer patch** — this RN 0.81.5 copy ships a malformed

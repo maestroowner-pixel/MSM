@@ -7,9 +7,9 @@
 // ===================================
 
 import React from 'react';
-import { FlexWidget, TextWidget } from 'react-native-android-widget';
+import { FlexWidget, SvgWidget, TextWidget } from 'react-native-android-widget';
 
-import { SCAN_DEEP_LINK, WIDGET_COLORS as C } from './shared';
+import { SCAN_DEEP_LINK, SCAN_ICON_SVG, WIDGET_COLORS as C } from './shared';
 
 export function ScanWidget() {
   return (
@@ -28,7 +28,7 @@ export function ScanWidget() {
         padding: 12,
       }}
     >
-      <TextWidget text="⛶" style={{ fontSize: 40, color: '#FFFFFF' }} />
+      <SvgWidget svg={SCAN_ICON_SVG} style={{ width: 46, height: 46 }} />
       <TextWidget
         text="Scan"
         style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF', marginTop: 4 }}

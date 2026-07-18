@@ -9,13 +9,14 @@
 // ===================================
 
 import React from 'react';
-import { FlexWidget, TextWidget } from 'react-native-android-widget';
+import { FlexWidget, SvgWidget, TextWidget } from 'react-native-android-widget';
 
 import {
   FLAGGED_WINDOW,
   FlaggedEntry,
   itemDeepLink,
   SCAN_DEEP_LINK,
+  SCAN_ICON_SVG,
   WIDGET_COLORS as C,
 } from './shared';
 
@@ -36,7 +37,7 @@ function ScanButton() {
         marginRight: 12,
       }}
     >
-      <TextWidget text="⛶" style={{ fontSize: 34, color: '#FFFFFF' }} />
+      <SvgWidget svg={SCAN_ICON_SVG} style={{ width: 38, height: 38 }} />
       <TextWidget
         text="Scan"
         style={{ fontSize: 13, fontWeight: '700', color: '#FFFFFF', marginTop: 2 }}

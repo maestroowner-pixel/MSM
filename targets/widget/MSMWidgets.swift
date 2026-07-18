@@ -54,9 +54,16 @@ struct ScanButtonLabel: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            Image(systemName: "qrcode.viewfinder")
-                .font(.system(size: iconSize, weight: .semibold))
-                .foregroundColor(.white)
+            // A viewfinder frame with a life-buoy in its centre — "marine safety",
+            // the mark that tells MSM's scanner apart from the sibling apps' bare
+            // frame. Mirrors widgets/shared.ts SCAN_ICON_SVG (Android/preview).
+            ZStack {
+                Image(systemName: "viewfinder")
+                    .font(.system(size: iconSize, weight: .semibold))
+                Image(systemName: "lifepreserver.fill")
+                    .font(.system(size: iconSize * 0.42, weight: .semibold))
+            }
+            .foregroundColor(.white)
             Text("Scan")
                 .font(.system(size: textSize, weight: .bold))
                 .foregroundColor(.white)
