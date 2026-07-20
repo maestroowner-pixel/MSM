@@ -12,6 +12,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -48,6 +49,7 @@ import {
   defaultLabelStyle,
   humanId,
   itemQrPayload,
+  itemToTsplSpec,
   labelLines,
   labelTitle,
   printLabels,
@@ -56,6 +58,9 @@ import {
   resolveLabelStyle,
   saveLabelsPdf,
 } from '../services/qrLabel';
+import { labelsToTspl } from '../services/tspl';
+import { getSavedPrinter, printTspl, SavedPrinter } from '../services/blePrinter';
+import { PrinterModal } from '../components/PrinterModal';
 import { loadPrefs, savePrefs } from '../services/storage';
 
 /** pt → mm, so the preview's type scales by the same rule as the printed sheet. */
@@ -217,7 +222,8 @@ export default function LabelSc() {
 
   const [size, setSize] = useState<LabelSize>('100x50');
   const [pageMode, setPageMode] = useState<PageMode>('roll');
-  const [busy, setBusy] = useState<null | 'print' | 'pdf'>(null);
+  const [busy, setBusy] = useState<null | 'print' | 'pdf' | 'bt'>(null);
+  const [printerOpen, setPrinterOpen] = useState(false);
 
   // Per-stock-size fine-tuning and per-item printed-text overrides, both persisted in
   // Prefs (local to the device) so a keeper's tweaks survive between prints.
@@ -312,8 +318,38 @@ export default function LabelSc() {
     }
   };
 
+  const sendToPrinter = async (printer: SavedPrinter) => {
+    setBusy('bt');
+    try {
+      const tspl = labelsToTspl(items.map((it) => itemToTsplSpec(it, size, labelText[it.id], overrides)));
+      await printTspl(printer.id, tspl);
+      Alert.alert(
+        'Sent to printer',
+        `${items.length} label${items.length === 1 ? '' : 's'} sent to ${printer.name}.`
+      );
+    } catch (e: any) {
+      Alert.alert('Could not print to the Xprinter', String(e?.message ?? e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const printBt = async () => {
+    const printer = await getSavedPrinter();
+    if (!printer) {
+      setPrinterOpen(true);
+      return;
+    }
+    await sendToPrinter(printer);
+  };
+
   return (
     <Screen scroll>
+      <PrinterModal
+        visible={printerOpen}
+        onClose={() => setPrinterOpen(false)}
+        onPicked={(p) => void sendToPrinter(p)}
+      />
       <View style={styles.head}>
         <View style={{ flex: 1 }}>
           <ScreenTitle
@@ -498,6 +534,19 @@ export default function LabelSc() {
               </>
             )}
           </TouchableOpacity>
+
+          {Platform.OS === 'ios' || Platform.OS === 'android' ? (
+            <TouchableOpacity style={styles.secondaryBtn} disabled={!!busy} onPress={() => void printBt()}>
+              {busy === 'bt' ? (
+                <ActivityIndicator color={COLORS.primary} />
+              ) : (
+                <>
+                  <MciIcon name="bluetooth" size={18} color={COLORS.primary} />
+                  <Text style={styles.secondaryBtnText}>Print to Xprinter</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          ) : null}
 
           {canSaveLabelsPdf ? (
             <TouchableOpacity style={styles.secondaryBtn} disabled={!!busy} onPress={() => void run('pdf')}>

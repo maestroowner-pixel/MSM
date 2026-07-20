@@ -34,6 +34,7 @@ import { CATEGORY_MAP } from '../constants/categories';
 import { complianceDate, fileDateStamp, formatDate } from '../utils/dates';
 import { deliverFile, onWeb, onWindows } from '../utils/fileShare';
 import { printHtmlWeb } from '../utils/webFile';
+import { TsplLabelSpec } from './tspl';
 
 // ---- payload ---------------------------------------------------------------
 
@@ -422,6 +423,33 @@ export function labelLines(item: EquipmentItem): { strong: string[]; weak: strin
 }
 
 // ---- label HTML ------------------------------------------------------------
+
+/**
+ * Map an item to the neutral TSPL spec (services/tspl.ts) for direct Bluetooth
+ * printing on the Xprinter — the same content the HTML sticker carries (QR payload,
+ * title, human id, compliance and category/position lines), flattened to text lines
+ * the printer draws itself. MSM's adapter; DEM/MHM supply their own from their fields.
+ */
+export function itemToTsplSpec(
+  item: EquipmentItem,
+  size: LabelSize,
+  text?: LabelText,
+  overrides?: LabelOverrides
+): TsplLabelSpec {
+  const stock = LABEL_STOCKS[size];
+  const style = resolveLabelStyle(stock, overrides);
+  const { strong, weak } = labelLines(item);
+  const note = text?.note?.trim();
+  const lines = [note, humanId(item), ...strong, ...weak].filter(Boolean) as string[];
+  return {
+    widthMm: stock.widthMm,
+    heightMm: stock.heightMm,
+    qrPayload: itemQrPayload(item.id),
+    name: printedTitle(item, text),
+    lines,
+    qrMm: style.qrMm,
+  };
+}
 
 function labelCss(stock: LabelStock, style: LabelStyle, pageMode: PageMode): string {
   const compact = stock.layout === 'compact';

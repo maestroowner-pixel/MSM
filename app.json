@@ -41,7 +41,7 @@
     },
     "android": {
       "package": "com.kukalab.msm",
-      "versionCode": 1094,
+      "versionCode": 1095,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -105,6 +105,16 @@
               "updatePeriodMillis": 1800000
             }
           ]
+        }
+      ],
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "modes": [
+            "central"
+          ],
+          "bluetoothAlwaysPermission": "Marine Safety Manager connects to the label printer over Bluetooth."
         }
       ]
     ]
