@@ -113,6 +113,15 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🔎',
+      title: 'Scan, flag & recently scanned',
+      body: [
+        'Scan a QR label or a serial from the QR button in the header of the Dashboard or the Categories tab. A match opens the item straight away; a maker\'s barcode or a recorded serial finds it too. Use the in-app button rather than the phone\'s own camera — an MSM QR is a private link the camera app cannot open by itself. If a code is too damaged to scan and you can still read the digits, type them in — same lookup.',
+        'Flag "come back to this": open an item and tap the Flag button by the status. A flag is not a compliance state — an item can be perfectly in date and still need a second look (rust, a sticky pin, a doubt). Add a short note on why, if it helps the next person.',
+        'The Dashboard shows two quick-access strips. Flagged lists what the crew marked for a second look; Recently scanned lists the labels you last opened on this device, newest first. Tap either heading to open its full screen — and on the Flagged screen you can clear a flag once the item is dealt with.',
+      ],
+    },
+    {
       emoji: '🛟',
       title: 'Inspection intervals — LSA',
       note: "Indicative only. Always verify against the vessel's flag State, classification society, the maker's instructions and the current SOLAS / LSA Code / MSC circulars. The app records dates — it does not enforce intervals.",
@@ -157,6 +166,26 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '✅',
+      title: "Inspections — the audit trail",
+      body: [
+        "Open an item — scan its QR label or find it in a category — and tap Weekly or Monthly. Only the periods that category actually has a checklist for are offered.",
+        "Every line is PASS / FAIL / N/A. \"All pass\" fills the list in one tap and you downgrade what is actually wrong; nothing is pre-filled until you tap it, because an untouched checklist must never look like an inspected one.",
+        "Choose who is signing from the vessel's crew list before you start — that name goes on the record. Add comments and up to four evidence photographs; they belong to that inspection, not to the item's general photos.",
+        "Signing stamps the exact date and time, the crew member and the checklist version. A signed record cannot be edited or deleted by anyone, including the Master: a mistake is corrected by inspecting the item again, and both records stay on file. That is what makes the trail worth showing to a surveyor.",
+        "Any FAIL raises a defect against that item, and it stays outstanding until somebody records the rectification.",
+      ],
+    },
+    {
+      emoji: '🛠️',
+      title: "Defects",
+      body: [
+        "Settings → Defects, or the Dashboard strip, lists everything still owed work — filterable by LSA / FFE, newest first, with the age of each one.",
+        "A defect is not a flag on the item; it IS the failed inspection that raised it, so it always answers what is wrong, who found it and when.",
+        "Open one and tap \"Record rectification\" when the work is done — that is signed and stamped in its turn. Rectified defects stay reachable behind a toggle: at an audit, \"we found it and fixed it\" is a better story than silence.",
+      ],
+    },
+    {
       emoji: '📤',
       title: 'Reports & export',
       body: [
@@ -186,15 +215,25 @@ const en: ManualContent = {
       ],
     },
     {
-      emoji: '☁️',
-      title: 'Cloud sync',
+      emoji: '🔑',
+      title: "Joining a vessel, accounts & roles",
       body: [
-        'Enter your vessel IMO number in Settings → Save vessel info — the IMO is the cloud account for the vessel.',
-        'Set a Connection password in Settings → Cloud sync. The first device sets it; every other device must enter the same password to join.',
-        'Tap Connect this device. The first device becomes the Master; others appear as pending until the Master approves them. Push uploads, Pull downloads.',
-        'Push / Pull sync the equipment register, certificates and compressor logs. Attached files (photos, certificate documents) are not uploaded — use an .msm backup to move files between devices.',
-        'The Master can disconnect a device, hand over the role with "👑 Make master", and change the connection password (Settings → Cloud sync → Change connection password: current, then the new one twice — other devices must then re-enter it).',
-        'If the Master device is permanently lost, tap the version line in Manual → About nine times to make THIS device the Master. Each vessel only sees its own data.',
+        "The vessel is identified by its IMO number (Settings → Vessel). Everything else follows from it, and the card at the top of Settings always names the next step.",
+        "The FIRST device joins with the bootstrap code supplied with your licence and becomes the Master.",
+        "The Master then issues each crew member an account in Settings → Accounts: a name and an 8-digit PIN. The PIN stays readable in that list so it can be read out again, and can be re-issued or revoked one person at a time.",
+        "Everyone else enters the IMO, then Settings → Join this vessel with their name and PIN. Their device waits in a queue; the Master approves it in Accounts → Devices, and the waiting device notices by itself within seconds — no restart and nothing to re-enter.",
+        "Three roles: Crew records inspections, Officer also clears defects, Master also issues accounts and sets roles. Roles are enforced by the server, not merely by the app.",
+        "Lost a handset? The Master switches that device off in Accounts → Devices. Nobody else is disturbed and no password changes.",
+      ],
+    },
+    {
+      emoji: '☁️',
+      title: "Cloud sync & inspection photos",
+      body: [
+        "Once a device has joined, sync keeps itself in step — there are no Push / Pull buttons. Sign a record and it is on the vessel's other devices in seconds; the app stays fully usable offline and catches up when the connection returns.",
+        "Inspection records are append-only, so two officers working a round on two phones cannot overwrite each other. The equipment register is one shared document: if two people edit the SAME item at once, the later edit wins.",
+        "Evidence photographs are downscaled on capture and then queued. Settings → Inspection photos chooses Wi-Fi only (the default), any connection, or never — at sea the airtime bill is the vessel's, so the record travels at once and the pictures follow in port.",
+        "Attached files still travel in an .msm backup, which remains the way to move everything between devices without a connection.",
       ],
     },
     {
@@ -217,10 +256,12 @@ const en: ManualContent = {
     },
     {
       emoji: '👑',
-      title: 'MSM Pro subscription',
+      title: "Vessel licence",
       body: [
-        'Settings → Marine Safety Manager Pro opens the plan: a 1-month free trial, then a yearly subscription. The price shown is your store\'s local price for your region.',
-        'Start the trial from that screen. "Restore purchase" re-activates a subscription on a new device; "Manage subscription" opens the subscription settings in your store account.',
+        "MSM Pro is €99 per year for the VESSEL — licensed to the ship by its IMO number, not per person and not per device. Every officer and every handset that has joined the vessel is covered by the one licence.",
+        "Every install has 60 days free, with no key and no card — long enough to run a full monthly cycle before deciding.",
+        "The licence is bought once by whoever manages the vessel and activated on the ship's account: Settings → Marine Safety Manager Pro → Activate the vessel licence. From that moment every enrolled device has full access; a crew member buys nothing and needs no store account.",
+        "Without a licence after the free period the app keeps working, but the register is capped at 15 items per category — enough to try it, not enough to run a ship.",
       ],
     },
     {
@@ -315,6 +356,15 @@ const ru: ManualContent = {
       ],
     },
     {
+      emoji: '🔎',
+      title: 'Сканирование, флаги и недавно отсканированные',
+      body: [
+        'Сканируйте QR-этикетку или серийный номер кнопкой QR в шапке экрана Dashboard или вкладки Categories. Совпадение сразу открывает позицию; заводской штрихкод или записанный серийный номер тоже её найдут. Пользуйтесь кнопкой в приложении, а не системной камерой — QR формата MSM это приватная ссылка, которую камера сама открыть не может. Если код повреждён, а цифры ещё читаются, введите их вручную — поиск тот же.',
+        'Флаг «вернуться к этому»: откройте позицию и нажмите кнопку Flag рядом со статусом. Флаг — не статус соответствия: позиция может быть полностью в сроке и всё равно требовать второго взгляда (ржавчина, залипающий палец, сомнение). При желании добавьте короткую заметку почему.',
+        'На Dashboard есть две полосы быстрого доступа. Flagged показывает то, что команда отметила для второго взгляда; Recently scanned — этикетки, которые вы последними открывали на этом устройстве, новое сверху. Нажмите на заголовок любой, чтобы открыть полный экран; на экране Flagged флаг можно снять, когда с позицией разобрались.',
+      ],
+    },
+    {
       emoji: '🛟',
       title: 'Интервалы проверок — LSA',
       note: 'Только ориентировочно. Всегда сверяйтесь с флагом судна, классификационным обществом, инструкциями изготовителя и действующими SOLAS / LSA Code / циркулярами MSC. Приложение фиксирует даты — оно не навязывает интервалы.',
@@ -359,6 +409,26 @@ const ru: ManualContent = {
       ],
     },
     {
+      emoji: '✅',
+      title: "Инспекции — журнал проверок",
+      body: [
+        "Откройте позицию — отсканируйте её QR-этикетку или найдите в категории — и нажмите Weekly или Monthly. Предлагаются только те периоды, для которых у категории есть чек-лист.",
+        "Каждый пункт — PASS / FAIL / N/A. Кнопка «All pass» заполняет весь список одним нажатием, а вы понижаете то, что действительно неисправно. Ничего не проставляется заранее: незаполненный чек-лист не должен выглядеть как пройденный.",
+        "Перед началом выберите, кто подписывает, из списка экипажа судна — это имя попадёт в запись. Добавьте комментарий и до четырёх фотографий-доказательств: они принадлежат этой инспекции, а не общим фото позиции.",
+        "Подпись фиксирует точные дату и время, члена экипажа и версию чек-листа. Подписанную запись не может изменить или удалить никто, включая Мастера: ошибка исправляется новой инспекцией, и обе записи остаются в деле. Именно это делает журнал пригодным для предъявления инспектору.",
+        "Любой FAIL поднимает дефект на этой позиции, и он остаётся открытым, пока кто-нибудь не зафиксирует устранение.",
+      ],
+    },
+    {
+      emoji: '🛠️',
+      title: "Дефекты",
+      body: [
+        "Настройки → Defects или полоса на дашборде показывают всё, по чему ещё есть работа: фильтр LSA / FFE, новые сверху, с возрастом каждого дефекта.",
+        "Дефект — это не флаг на позиции, а сама проваленная инспекция. Поэтому он всегда отвечает, что именно не так, кто это нашёл и когда.",
+        "Откройте дефект и нажмите «Record rectification», когда работа сделана — устранение тоже подписывается и штампуется. Устранённые дефекты остаются доступны по переключателю: на аудите «нашли и исправили» звучит лучше, чем молчание.",
+      ],
+    },
+    {
       emoji: '📤',
       title: 'Отчёты и экспорт',
       body: [
@@ -388,15 +458,25 @@ const ru: ManualContent = {
       ],
     },
     {
-      emoji: '☁️',
-      title: 'Облачная синхронизация',
+      emoji: '🔑',
+      title: "Вступление на судно, аккаунты и роли",
       body: [
-        'Введите номер IMO судна в Settings → Save vessel info — IMO служит облачным аккаунтом судна.',
-        'Задайте Connection password в Settings → Cloud sync. Первое устройство задаёт его; остальные должны ввести тот же пароль.',
-        'Нажмите Connect this device. Первое устройство становится Master; остальные ждут одобрения. Push выгружает, Pull загружает.',
-        'Push / Pull синхронизируют реестр оборудования, сертификаты и журналы компрессоров. Прикреплённые файлы (фото, документы сертификатов) в облако не загружаются — для переноса файлов используйте бэкап .msm.',
-        'Master может отключить устройство, передать роль через "👑 Make master" и сменить connection password (Settings → Cloud sync → Change connection password: текущий, затем новый дважды — остальным устройствам придётся ввести его заново).',
-        'Если мастер-устройство безвозвратно утеряно — девять раз нажмите строку версии в Manual → About, и ЭТО устройство станет мастером. Каждое судно видит только свои данные.',
+        "Судно определяется номером IMO (Настройки → Vessel). Всё остальное следует из него, а карточка вверху настроек всегда называет следующий шаг.",
+        "ПЕРВОЕ устройство вступает по стартовому коду, который поставляется с лицензией, и становится Мастером.",
+        "Дальше Мастер выдаёт каждому члену экипажа аккаунт в Настройки → Accounts: имя и восьмизначный PIN. PIN остаётся видимым в списке, чтобы его можно было продиктовать повторно, и его можно перевыпустить или отозвать по одному человеку.",
+        "Остальные вводят IMO, затем Настройки → Join this vessel со своим именем и PIN. Устройство попадает в очередь; Мастер одобряет его в Accounts → Devices, и ожидающее устройство само замечает это за несколько секунд — без перезапуска и без повторного ввода.",
+        "Три роли: Crew проводит инспекции, Officer вдобавок закрывает дефекты, Master вдобавок выдаёт аккаунты и меняет роли. Роли проверяются сервером, а не только приложением.",
+        "Потеряли телефон? Мастер выключает это устройство в Accounts → Devices. Остальных это не касается, пароли менять не нужно.",
+      ],
+    },
+    {
+      emoji: '☁️',
+      title: "Синхронизация и фото инспекций",
+      body: [
+        "После вступления синхронизация идёт сама — кнопок Push / Pull больше нет. Подписали запись — через секунды она на других устройствах судна; приложение полностью работает офлайн и догоняет, когда связь вернётся.",
+        "Записи инспекций только дополняются, поэтому два офицера на двух телефонах не затрут работу друг друга. Реестр оборудования — один общий документ: если двое правят ОДНУ позицию одновременно, побеждает более поздняя правка.",
+        "Фотографии уменьшаются при съёмке и ставятся в очередь. Настройки → Inspection photos: только Wi-Fi (по умолчанию), любое соединение или никогда. В море за трафик платит судно, поэтому запись уходит сразу, а снимки догоняют в порту.",
+        "Вложенные файлы по-прежнему переносятся в .msm-бэкапе — это способ перенести всё между устройствами без связи.",
       ],
     },
     {
@@ -419,10 +499,12 @@ const ru: ManualContent = {
     },
     {
       emoji: '👑',
-      title: 'Подписка MSM Pro',
+      title: "Лицензия на судно",
       body: [
-        'Settings → Marine Safety Manager Pro открывает план: 1 месяц бесплатно, затем годовая подписка. Цена показывается локальная — из вашего магазина для вашего региона.',
-        'Триал запускается с этого экрана. "Restore purchase" восстанавливает подписку на новом устройстве; "Manage subscription" открывает настройки подписок вашего магазина.',
+        "MSM Pro — €99 в год за СУДНО. Лицензия привязана к кораблю по номеру IMO, не к человеку и не к устройству. Все офицеры и все телефоны, вступившие на судно, покрыты одной лицензией.",
+        "У каждой установки есть 60 бесплатных дней — без ключа и без карты. Этого хватает, чтобы пройти полный месячный цикл и решить.",
+        "Лицензию покупает один раз тот, кто ведёт судно, и активирует её на аккаунте корабля: Настройки → Marine Safety Manager Pro → Activate the vessel licence. С этого момента полный доступ есть у всех вступивших устройств; члену экипажа покупать нечего.",
+        "Без лицензии после бесплатного периода приложение продолжает работать, но реестр ограничен 15 позициями на категорию — этого хватает попробовать, но не хватает вести судно.",
       ],
     },
     {
@@ -517,6 +599,15 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🔎',
+      title: 'Escaneo, marcas y escaneados recientes',
+      body: [
+        'Escanee una etiqueta QR o un número de serie con el botón QR en la cabecera del Panel o de la pestaña Categories. Una coincidencia abre el equipo de inmediato; un código de barras del fabricante o un número de serie registrado también lo encuentran. Use el botón de la app y no la cámara del teléfono: un QR de MSM es un enlace privado que la cámara no puede abrir por sí sola. Si el código está muy dañado y aún puede leer los dígitos, escríbalos — la misma búsqueda.',
+        'Marque «volver a esto»: abra un equipo y pulse el botón Flag junto al estado. Una marca no es un estado de cumplimiento: un equipo puede estar en fecha y aun así necesitar una segunda mirada (óxido, un pasador duro, una duda). Añada una nota breve del motivo si ayuda.',
+        'El Panel muestra dos tiras de acceso rápido. Flagged enumera lo que la tripulación marcó para revisar; Recently scanned enumera las etiquetas que abrió por última vez en este dispositivo, la más reciente primero. Pulse cualquier encabezado para abrir su pantalla completa; en la pantalla Flagged puede quitar la marca cuando el equipo ya esté atendido.',
+      ],
+    },
+    {
       emoji: '🛟',
       title: 'Intervalos de inspección — LSA',
       note: 'Solo orientativo. Verifique siempre con el Estado de abanderamiento, la sociedad de clasificación, las instrucciones del fabricante y los vigentes SOLAS / Código IDS / circulares MSC. La app registra fechas — no impone intervalos.',
@@ -561,6 +652,26 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '✅',
+      title: "Inspecciones — el registro de auditoría",
+      body: [
+        "Abra un equipo — escanee su etiqueta QR o búsquelo en una categoría — y pulse Weekly o Monthly. Solo se ofrecen los periodos para los que esa categoría tiene lista de comprobación.",
+        "Cada línea es PASS / FAIL / N/A. «All pass» rellena la lista de una vez y usted baja lo que realmente falla; nada se marca solo, porque una lista sin tocar nunca debe parecer inspeccionada.",
+        "Elija quién firma desde la lista de tripulación antes de empezar: ese nombre queda en el registro. Añada comentarios y hasta cuatro fotografías de prueba; pertenecen a esa inspección, no a las fotos generales del equipo.",
+        "Al firmar se sella la fecha y hora exactas, el tripulante y la versión de la lista. Un registro firmado no puede editarse ni borrarse por nadie, ni siquiera por el Master: un error se corrige inspeccionando otra vez, y ambos registros quedan archivados.",
+        "Cualquier FAIL genera un defecto sobre ese equipo, y queda pendiente hasta que alguien registre la subsanación.",
+      ],
+    },
+    {
+      emoji: '🛠️',
+      title: "Defectos",
+      body: [
+        "Ajustes → Defects, o la franja del panel, lista todo lo que queda por hacer: filtrable por LSA / FFE, lo más reciente primero y con la antigüedad de cada uno.",
+        "Un defecto no es una marca sobre el equipo: ES la inspección fallida que lo generó, así que siempre responde qué falla, quién lo encontró y cuándo.",
+        "Ábralo y pulse «Record rectification» cuando el trabajo esté hecho — eso también se firma y se sella. Los defectos subsanados siguen accesibles.",
+      ],
+    },
+    {
       emoji: '📤',
       title: 'Informes y exportación',
       body: [
@@ -590,15 +701,25 @@ const es: ManualContent = {
       ],
     },
     {
-      emoji: '☁️',
-      title: 'Sincronización en la nube',
+      emoji: '🔑',
+      title: "Unirse al buque, cuentas y roles",
       body: [
-        'Introduzca el número IMO del buque en Settings → Save vessel info — el IMO es la cuenta en la nube del buque.',
-        'Defina una Connection password en Settings → Cloud sync. El primer dispositivo la fija; los demás deben introducir la misma.',
-        'Pulse Connect this device. El primer dispositivo es el Master; los demás quedan pendientes hasta su aprobación. Push sube, Pull baja.',
-        'Push / Pull sincronizan el registro de equipos, los certificados y los registros del compresor. Los archivos adjuntos (fotos, documentos de certificados) no se suben — use una copia .msm para mover archivos entre dispositivos.',
-        'El Master puede desconectar un dispositivo, ceder el rol con "👑 Make master" y cambiar la contraseña de conexión (Settings → Cloud sync → Change connection password: la actual y luego la nueva dos veces — los demás dispositivos deberán volver a introducirla).',
-        'Si el dispositivo Master se pierde de forma permanente, pulse nueve veces la línea de versión en Manual → About para convertir ESTE dispositivo en Master. Cada buque solo ve sus datos.',
+        "El buque se identifica por su número IMO (Ajustes → Vessel). Todo lo demás se deriva de ahí, y la tarjeta superior de Ajustes siempre indica el siguiente paso.",
+        "El PRIMER dispositivo se une con el código de arranque que acompaña a su licencia y pasa a ser el Master.",
+        "Después el Master emite una cuenta a cada tripulante en Ajustes → Accounts: un nombre y un PIN de 8 dígitos. El PIN permanece visible en esa lista para poder dictarlo de nuevo, y puede reemitirse o revocarse persona a persona.",
+        "Los demás introducen el IMO y luego Ajustes → Join this vessel con su nombre y PIN. Su dispositivo queda en cola; el Master lo aprueba en Accounts → Devices y el dispositivo en espera lo detecta solo en unos segundos, sin reiniciar nada.",
+        "Tres roles: Crew registra inspecciones, Officer además cierra defectos, Master además emite cuentas y asigna roles. Los roles los aplica el servidor, no solo la aplicación.",
+        "¿Móvil perdido? El Master desactiva ese dispositivo en Accounts → Devices. Nadie más se ve afectado y no cambia ninguna contraseña.",
+      ],
+    },
+    {
+      emoji: '☁️',
+      title: "Sincronización y fotos de inspección",
+      body: [
+        "Una vez unido el dispositivo, la sincronización se mantiene sola: ya no hay botones Push / Pull. Firme un registro y estará en los demás dispositivos del buque en segundos; la aplicación funciona sin conexión y se pone al día cuando vuelve.",
+        "Los registros de inspección solo se añaden, así que dos oficiales trabajando en dos móviles no se pisan. El registro de equipos es un único documento compartido: si dos personas editan el MISMO equipo a la vez, gana la edición posterior.",
+        "Las fotografías se reducen al capturarlas y se ponen en cola. Ajustes → Inspection photos: solo Wi-Fi (por defecto), cualquier conexión o nunca. En el mar el tráfico lo paga el buque.",
+        "Los archivos adjuntos siguen viajando en una copia .msm.",
       ],
     },
     {
@@ -621,10 +742,12 @@ const es: ManualContent = {
     },
     {
       emoji: '👑',
-      title: 'Suscripción MSM Pro',
+      title: "Licencia por buque",
       body: [
-        'Settings → Marine Safety Manager Pro abre el plan: 1 mes gratis y luego una suscripción anual. El precio mostrado es el local de su tienda para su región.',
-        'Inicie la prueba desde esa pantalla. "Restore purchase" reactiva una suscripción en un dispositivo nuevo; "Manage subscription" abre los ajustes de suscripciones de su tienda.',
+        "MSM Pro cuesta 99 € al año por BUQUE — con licencia ligada al barco por su número IMO, no por persona ni por dispositivo. Todos los oficiales y todos los móviles unidos al buque quedan cubiertos por la misma licencia.",
+        "Cada instalación tiene 60 días gratis, sin clave y sin tarjeta.",
+        "La licencia la compra una vez quien gestiona el buque y se activa en la cuenta del barco: Ajustes → Marine Safety Manager Pro → Activate the vessel licence. Desde ese momento todos los dispositivos inscritos tienen acceso completo.",
+        "Sin licencia tras el periodo gratuito la aplicación sigue funcionando, pero el registro se limita a 15 elementos por categoría.",
       ],
     },
     {
@@ -719,6 +842,15 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🔎',
+      title: 'Сканування, позначки та нещодавно відскановані',
+      body: [
+        'Скануйте QR-етикетку або серійний номер кнопкою QR у шапці екрана Dashboard або вкладки Categories. Збіг одразу відкриває позицію; заводський штрихкод або записаний серійний номер теж її знайдуть. Користуйтеся кнопкою в застосунку, а не системною камерою — QR формату MSM це приватне посилання, яке камера сама відкрити не може. Якщо код пошкоджено, а цифри ще читаються, введіть їх вручну — той самий пошук.',
+        'Позначка «повернутися до цього»: відкрийте позицію та натисніть кнопку Flag поряд зі статусом. Позначка — не статус відповідності: позиція може бути повністю в терміні й усе одно потребувати другого погляду (іржа, тугий палець, сумнів). За бажанням додайте коротку нотатку чому.',
+        'На Dashboard є дві смуги швидкого доступу. Flagged показує те, що екіпаж позначив для перегляду; Recently scanned — етикетки, які ви востаннє відкривали на цьому пристрої, нове згори. Натисніть на заголовок будь-якої, щоб відкрити повний екран; на екрані Flagged позначку можна зняти, коли з позицією розібралися.',
+      ],
+    },
+    {
       emoji: '🛟',
       title: 'Інтервали перевірок — LSA',
       note: 'Лише орієнтовно. Завжди звіряйтеся з прапором судна, класифікаційним товариством, інструкціями виробника та чинними SOLAS / LSA Code / циркулярами MSC. Застосунок фіксує дати — він не нав’язує інтервали.',
@@ -763,6 +895,26 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '✅',
+      title: "Інспекції — журнал перевірок",
+      body: [
+        "Відкрийте позицію — відскануйте її QR-етикетку або знайдіть у категорії — і натисніть Weekly чи Monthly. Пропонуються лише ті періоди, для яких у категорії є чек-лист.",
+        "Кожен пункт — PASS / FAIL / N/A. Кнопка «All pass» заповнює список одним дотиком, а ви знижуєте те, що справді несправне. Нічого не проставляється заздалегідь.",
+        "Перед початком оберіть, хто підписує, зі списку екіпажу — це ім'я потрапить у запис. Додайте коментар і до чотирьох фотографій-доказів: вони належать цій інспекції, а не загальним фото позиції.",
+        "Підпис фіксує точні дату й час, члена екіпажу та версію чек-листа. Підписаний запис не може змінити або видалити ніхто, включно з Майстром: помилка виправляється новою інспекцією, і обидва записи лишаються у справі.",
+        "Будь-який FAIL піднімає дефект на цій позиції, і він лишається відкритим, доки хтось не зафіксує усунення.",
+      ],
+    },
+    {
+      emoji: '🛠️',
+      title: "Дефекти",
+      body: [
+        "Налаштування → Defects або смуга на дашборді показують усе, за чим ще є робота: фільтр LSA / FFE, новіші зверху, з віком кожного дефекту.",
+        "Дефект — це не позначка на позиції, а сама провалена інспекція. Тому він завжди відповідає, що саме не так, хто це знайшов і коли.",
+        "Відкрийте дефект і натисніть «Record rectification», коли роботу виконано — усунення теж підписується та штампується.",
+      ],
+    },
+    {
       emoji: '📤',
       title: 'Звіти та експорт',
       body: [
@@ -792,15 +944,25 @@ const uk: ManualContent = {
       ],
     },
     {
-      emoji: '☁️',
-      title: 'Хмарна синхронізація',
+      emoji: '🔑',
+      title: "Приєднання до судна, акаунти та ролі",
       body: [
-        'Введіть номер IMO судна в Settings → Save vessel info — IMO слугує хмарним акаунтом судна.',
-        'Задайте Connection password у Settings → Cloud sync. Перший пристрій задає його; решта мають ввести той самий пароль.',
-        'Натисніть Connect this device. Перший пристрій стає Master; решта очікують схвалення. Push вивантажує, Pull завантажує.',
-        'Push / Pull синхронізують реєстр обладнання, сертифікати та журнали компресорів. Прикріплені файли (фото, документи сертифікатів) до хмари не завантажуються — для перенесення файлів використовуйте бекап .msm.',
-        'Master може відключити пристрій, передати роль через "👑 Make master" і змінити connection password (Settings → Cloud sync → Change connection password: поточний, потім новий двічі — решта пристроїв муситиме ввести його заново).',
-        'Якщо майстер-пристрій безповоротно втрачено — дев’ять разів натисніть рядок версії в Manual → About, і ЦЕЙ пристрій стане майстром. Кожне судно бачить лише свої дані.',
+        "Судно визначається номером IMO (Налаштування → Vessel). Усе інше випливає з нього, а картка вгорі налаштувань завжди називає наступний крок.",
+        "ПЕРШИЙ пристрій приєднується за стартовим кодом, що постачається з ліцензією, і стає Майстром.",
+        "Далі Майстер видає кожному члену екіпажу акаунт у Налаштування → Accounts: ім'я та восьмизначний PIN. PIN лишається видимим у списку, і його можна перевипустити або відкликати для однієї людини.",
+        "Решта вводять IMO, потім Налаштування → Join this vessel зі своїм ім'ям і PIN. Пристрій потрапляє в чергу; Майстер схвалює його в Accounts → Devices, і пристрій сам помічає це за кілька секунд — без перезапуску.",
+        "Три ролі: Crew проводить інспекції, Officer додатково закриває дефекти, Master додатково видає акаунти та змінює ролі. Ролі перевіряє сервер, а не лише застосунок.",
+        "Загубили телефон? Майстер вимикає цей пристрій у Accounts → Devices. Інших це не стосується.",
+      ],
+    },
+    {
+      emoji: '☁️',
+      title: "Синхронізація та фото інспекцій",
+      body: [
+        "Після приєднання синхронізація йде сама — кнопок Push / Pull більше немає. Підписали запис — за секунди він на інших пристроях судна; застосунок повністю працює офлайн.",
+        "Записи інспекцій лише додаються, тому двоє офіцерів на двох телефонах не затруть роботу одне одного. Реєстр обладнання — один спільний документ: якщо двоє правлять ОДНУ позицію одночасно, перемагає пізніша правка.",
+        "Фотографії зменшуються під час зйомки та стають у чергу. Налаштування → Inspection photos: лише Wi-Fi (типово), будь-яке з'єднання або ніколи.",
+        "Вкладені файли й далі переносяться в .msm-резервній копії.",
       ],
     },
     {
@@ -823,10 +985,12 @@ const uk: ManualContent = {
     },
     {
       emoji: '👑',
-      title: 'Підписка MSM Pro',
+      title: "Ліцензія на судно",
       body: [
-        'Settings → Marine Safety Manager Pro відкриває план: 1 місяць безкоштовно, далі річна підписка. Ціна показується локальна — з вашого магазину для вашого регіону.',
-        'Тріал запускається з цього екрана. "Restore purchase" відновлює підписку на новому пристрої; "Manage subscription" відкриває налаштування підписок вашого магазину.',
+        "MSM Pro — €99 на рік за СУДНО. Ліцензія прив'язана до корабля за номером IMO, не до людини й не до пристрою. Усі офіцери та всі телефони, що приєдналися до судна, покриті однією ліцензією.",
+        "Кожне встановлення має 60 безкоштовних днів — без ключа й без картки.",
+        "Ліцензію купує один раз той, хто веде судно, і активує її на акаунті корабля: Налаштування → Marine Safety Manager Pro → Activate the vessel licence. Відтоді повний доступ мають усі приєднані пристрої.",
+        "Без ліцензії після безкоштовного періоду застосунок працює далі, але реєстр обмежений 15 позиціями на категорію.",
       ],
     },
     {

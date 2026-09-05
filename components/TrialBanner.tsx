@@ -1,29 +1,41 @@
 // ===================================
-// Trial reminder banner (web only).
-// Shows the current MSM Pro trial state — days left + the exact end date — and
-// routes to the paywall. Web-only because the trial is only enforced on web
-// (see services/trial.ts ENFORCE_LIMITS); on native it renders nothing.
-// Re-checks on focus so it disappears right after a license is activated.
+// Trial reminder banner. Shows the MSM Pro trial state — days left and the exact
+// end date — and routes to the paywall. Re-checks on focus so it disappears right
+// after a licence is activated.
+//
+// IT SHOWS WHEREVER THE TRIAL IS ENFORCED, and that condition is READ FROM
+// `ENFORCE_LIMITS` rather than restated here. It used to be a local
+// `Platform.OS === 'web'`, written when web was the only enforced platform; iOS
+// was switched on later and this copy was not, so an iPhone silently hit the
+// free-tier caps on day 61 with no warning at any point — the equipment simply
+// stopped being addable. Duplicating the condition is what allowed the two to
+// drift, so the duplicate is gone.
+//
+// On Android it still renders nothing, correctly: limits are not enforced there
+// (no Play product yet), and warning about an expiry that will not happen would
+// be worse than saying nothing.
 // ===================================
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MciIcon } from './MciIcon';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
-import { getTrialInfo } from '../services/trial';
-import { isSubscribed } from '../services/purchases';
-import { LS_PRICE_STRING } from '../services/lemonSqueezy';
+import { ENFORCE_LIMITS, getTrialInfo } from '../services/trial';
+import { getOffer, isSubscribed, onEntitlementChange } from '../services/purchases';
 import { formatDate } from '../utils/dates';
 
-const onWeb = Platform.OS === 'web';
+/** The one condition — see the header. */
+const showBanner = ENFORCE_LIMITS;
 
-type Kind = 'pro' | 'trial' | 'expired';
+type Kind = 'trial' | 'expired';
 interface State {
   kind: Kind;
   daysLeft: number;
   endsAt: string; // formatted date
+  /** Localized, PER PLATFORM — see the load() note. */
+  priceString: string;
 }
 
 export function TrialBanner() {
@@ -33,15 +45,30 @@ export function TrialBanner() {
   const [state, setState] = useState<State | null>(null);
 
   const load = useCallback(async () => {
-    if (!onWeb) return;
+    if (!showBanner) return;
     try {
+      // Paid up: show NOTHING. A banner is a call to act, and there is nothing
+      // left to do — thanking the crew for the purchase on every launch of the
+      // Dashboard just takes a strip of the screen away from the expiries the
+      // screen exists to show.
       if (await isSubscribed()) {
-        setState({ kind: 'pro', daysLeft: 0, endsAt: '' });
+        setState(null);
         return;
       }
       const t = await getTrialInfo();
+      // The price comes from services/purchases, which answers per platform — the
+      // App Store's localized string on iOS, LemonSqueezy's on web. This banner
+      // used to import the LemonSqueezy string directly, which was right while it
+      // was web-only and became wrong the moment it started showing on iOS: it
+      // quoted the web price (€9.99) beside a paywall charging the store price.
+      const offer = await getOffer();
       const endsAt = t.endsAt ? formatDate(new Date(t.endsAt).toISOString().slice(0, 10)) : '';
-      setState({ kind: t.expired ? 'expired' : 'trial', daysLeft: t.daysLeft, endsAt });
+      setState({
+        kind: t.expired ? 'expired' : 'trial',
+        daysLeft: t.daysLeft,
+        endsAt,
+        priceString: offer.priceString,
+      });
     } catch {
       setState(null);
     }
@@ -51,19 +78,15 @@ export function TrialBanner() {
     if (focused) load();
   }, [focused, load]);
 
-  if (!onWeb || !state) return null;
+  // Focus is not enough: a licence is activated on the paywall, which sits over
+  // this screen, so the Dashboard may never lose and regain focus and the banner
+  // would keep showing a trial that has just been paid for.
+  useEffect(() => onEntitlementChange(() => void load()), [load]);
+
+  if (!showBanner || !state) return null;
 
   const styles = makeStyles(COLORS, state.kind);
   const go = () => nav.navigate('Paywall');
-
-  if (state.kind === 'pro') {
-    return (
-      <View style={styles.wrap}>
-        <MciIcon name="check-decagram" size={20} color={COLORS.success} />
-        <Text style={styles.title}>MSM Pro is active — thank you!</Text>
-      </View>
-    );
-  }
 
   const expired = state.kind === 'expired';
   return (
@@ -80,7 +103,7 @@ export function TrialBanner() {
         <Text style={styles.sub}>
           {expired
             ? `Trial ended ${state.endsAt}. Subscribe to keep adding items & certificates.`
-            : `Ends ${state.endsAt} · then ${LS_PRICE_STRING}/year. Tap to upgrade to Pro.`}
+            : `Ends ${state.endsAt} · then ${state.priceString}/year per vessel. Tap to upgrade to Pro.`}
         </Text>
       </View>
       <Text style={styles.cta}>{expired ? 'Upgrade' : '›'}</Text>
@@ -96,7 +119,7 @@ const makeStyles = (COLORS: Palette, kind: Kind) =>
       gap: SIZES.sm,
       backgroundColor: COLORS.card,
       borderWidth: 1,
-      borderColor: kind === 'expired' ? COLORS.danger : kind === 'pro' ? COLORS.success : COLORS.primary,
+      borderColor: kind === 'expired' ? COLORS.danger : COLORS.primary,
       borderRadius: SIZES.radiusMd,
       paddingHorizontal: SIZES.md,
       paddingVertical: SIZES.sm,

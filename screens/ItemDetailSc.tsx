@@ -1,7 +1,13 @@
 // ===================================
 // Item detail / edit
-// View + manual edit of a single equipment item.
-// Monthly-check toggles for checklist categories.
+// View + manual edit of a single equipment item, and the head of its inspection
+// trail: what has been signed off against it, what is outstanding, and the way
+// in to the next round.
+//
+// The inspection card sits ABOVE the edit fields on purpose. Scanning a label
+// lands here, and the overwhelmingly common reason for scanning something is to
+// inspect it — not to correct its serial number. The register fields stay where
+// they were, one scroll further down, for the times it really is an edit.
 // ===================================
 
 import React, { useMemo, useState } from 'react';
@@ -16,7 +22,11 @@ import { MciIcon } from '../components/MciIcon';
 import { useData } from '../contexts/DataContext';
 import { CATEGORY_MAP } from '../constants/categories';
 import { Attachment, CategoryKey, EquipmentItem } from '../types/equipment';
-import { computeStatus, statusFromDate, formatDate } from '../utils/dates';
+import { Inspection, PERIOD_LABEL } from '../types/inspection';
+import { signatureLine } from '../types/crew';
+import { periodsFor } from '../constants/checklists';
+import * as inspections from '../services/inspections';
+import { computeStatus, statusFromDate, formatDate, formatDateTime } from '../utils/dates';
 import { playSuccessSound } from '../utils/sound';
 import { uid } from '../utils/id';
 import { pickDocument, pickFromLibrary, pickFromCamera, openFile, deleteFile, resolveUri, PickedFile } from '../services/attachments';
@@ -31,11 +41,20 @@ export default function ItemDetailSc() {
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useS();
-  const { byCategory, saveItem, removeItem, certificates, saveCertificate } = useData();
+  const { byCategory, saveItem, removeItem, certificates, saveCertificate, isLocked, inspections: trail } = useData();
 
   const category: CategoryKey = route.params.category;
   const id: string | null = route.params.id ?? null;
   const meta = CATEGORY_MAP[category];
+
+  // Defence in depth: a free-tier locked item is read-only, so if one is reached
+  // directly (deep link, scan, an un-guarded list) bounce to the paywall.
+  React.useEffect(() => {
+    if (id && isLocked(id)) {
+      nav.goBack();
+      nav.navigate('Paywall');
+    }
+  }, [id, isLocked, nav]);
 
   const existing = useMemo(
     () => (id ? (byCategory[category] ?? []).find((x) => x.id === id) : undefined),
@@ -217,7 +236,43 @@ export default function ItemDetailSc() {
               <Text style={styles.catLabel}>{meta.label}</Text>
               {!isNew ? <StatusPill status={computeStatus(draft)} /> : null}
             </View>
+            {/* Flag "come back to this" — a human judgement, not a compliance state.
+                Feeds the Dashboard's Flagged strip; persists with the rest on Save.
+                (Ported from DEM.) */}
+            {!isNew ? (
+              <TouchableOpacity
+                style={[styles.flagBtn, draft.flagged && { backgroundColor: COLORS.warning, borderColor: COLORS.warning }]}
+                onPress={() => set({ flagged: !draft.flagged })}
+                accessibilityRole="button"
+                accessibilityLabel={draft.flagged ? 'Remove flag' : 'Flag for a second look'}
+              >
+                <MciIcon
+                  name={draft.flagged ? 'flag' : 'flag-outline'}
+                  size={16}
+                  color={draft.flagged ? COLORS.textWhite : COLORS.textLight}
+                />
+                <Text style={[styles.flagText, draft.flagged && { color: COLORS.textWhite }]}>
+                  {draft.flagged ? 'Flagged' : 'Flag'}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
+
+          {draft.flagged ? (
+            <View style={{ marginBottom: SIZES.md }}>
+              <Field
+                label="Why it is flagged (note for the crew)"
+                value={draft.flagNote}
+                onChange={(v) => set({ flagNote: v })}
+                multiline
+              />
+            </View>
+          ) : null}
+
+          {/* ---- Inspection trail (existing items only) --------------------
+              A new item has no history and cannot be inspected until it is
+              saved, so the whole block is hidden until then. */}
+          {!isNew ? <InspectionCard item={draft} trail={trail} /> : null}
 
           <Field label="Type / Description" value={draft.type} onChange={(v) => set({ type: v })} />
           <Field label="No." value={draft.no != null ? String(draft.no) : ''} onChange={(v) => set({ no: v })} />
@@ -565,6 +620,112 @@ function DateField({ label, value, onChange }: { label: string; value?: string; 
   );
 }
 
+
+/**
+ * Inspection state for one item: what is owed this period, when it was last
+ * signed off, what is still open, and the button that starts the next round.
+ *
+ * Read-only by construction — it renders the trail and navigates, and never
+ * writes. Signed records are immutable (types/inspection.ts), so there is
+ * nothing here for the edit screen's draft/Save cycle to collide with.
+ */
+function InspectionCard({ item, trail }: { item: EquipmentItem; trail: Inspection[] }) {
+  const COLORS = useTheme();
+  const nav = useNavigation<any>();
+  const styles = useS();
+
+  const periods = useMemo(() => periodsFor(item.category), [item.category]);
+  const history = useMemo(() => inspections.forItem(trail, item.id), [trail, item.id]);
+  const open = useMemo(() => inspections.openDefectsForItem(trail, item.id), [trail, item.id]);
+  const [showAll, setShowAll] = useState(false);
+  const shown = showAll ? history : history.slice(0, 3);
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.inspHead}>
+        <View style={{ flex: 1 }}>
+          <Label>Inspections</Label>
+          <Text style={styles.inspSub}>
+            {history.length
+              ? `${history.length} on record`
+              : 'Nothing recorded against this item yet'}
+          </Text>
+        </View>
+      </View>
+
+      {/* One button per period the category actually has a checklist for. */}
+      <View style={styles.inspBtnRow}>
+        {periods.map((p) => {
+          const status = inspections.roundStatus(trail, item.id, p);
+          const done = status === 'done';
+          return (
+            <TouchableOpacity
+              key={p}
+              style={[styles.inspBtn, done && styles.inspBtnDone]}
+              onPress={() => nav.navigate('Inspection', { itemId: item.id, period: p })}
+            >
+              <MciIcon
+                name={done ? 'check-circle' : 'clipboard-check-outline'}
+                size={18}
+                color={done ? COLORS.success : COLORS.textWhite}
+              />
+              <Text style={[styles.inspBtnText, done && { color: COLORS.success }]}>
+                {PERIOD_LABEL[p]}
+                {done ? ' done' : ''}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {open.length ? (
+        <TouchableOpacity
+          style={styles.defectBanner}
+          onPress={() => nav.navigate('InspectionDetail', { id: open[0].id })}
+        >
+          <MciIcon name="alert-circle" size={18} color={COLORS.textWhite} />
+          <Text style={styles.defectBannerText} numberOfLines={2}>
+            {open.length === 1
+              ? open[0].defect?.note
+              : `${open.length} outstanding defects on this item`}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
+
+      {shown.map((insp) => (
+        <TouchableOpacity
+          key={insp.id}
+          style={styles.histRow}
+          onPress={() => nav.navigate('InspectionDetail', { id: insp.id })}
+        >
+          <MciIcon
+            name={insp.outcome === 'fail' ? 'close-circle' : 'check-circle'}
+            size={18}
+            color={insp.outcome === 'fail' ? COLORS.danger : COLORS.success}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.histTitle} numberOfLines={1}>
+              {PERIOD_LABEL[insp.period]} · {formatDateTime(insp.at)}
+            </Text>
+            <Text style={styles.histMeta} numberOfLines={1}>
+              {signatureLine(insp.by, insp.byRank)}
+            </Text>
+          </View>
+          <MciIcon name="chevron-right" size={20} color={COLORS.textLight} />
+        </TouchableOpacity>
+      ))}
+
+      {history.length > 3 ? (
+        <TouchableOpacity onPress={() => setShowAll((v) => !v)} style={styles.moreBtn}>
+          <Text style={styles.moreBtnText}>
+            {showAll ? 'Show less' : `Show all ${history.length}`}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+}
+
 const makeStyles = (COLORS: Palette) => StyleSheet.create({
   header: {
     flexDirection: 'row',
@@ -576,6 +737,16 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   headerBtn: { fontSize: SIZES.h4, color: COLORS.text },
   headerTitle: { fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginBottom: SIZES.md },
+  flagBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: SIZES.radiusRound,
+    paddingHorizontal: SIZES.md,
+    paddingVertical: 3,
+  },
+  flagText: { color: COLORS.textLight, fontSize: SIZES.small, fontWeight: '700', marginLeft: 4 },
   emoji: { fontSize: 34 },
   catLabel: { fontSize: SIZES.h4, fontWeight: '700', color: COLORS.textDark, marginBottom: 4 },
   fieldWrap: { marginBottom: SIZES.md },
@@ -680,6 +851,50 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
     alignItems: 'center',
   },
   deleteText: { color: COLORS.danger, fontWeight: '700', fontSize: SIZES.body },
+
+  // ---- Inspection trail ----
+  inspHead: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md },
+  inspSub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },
+  inspBtnRow: { flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.md },
+  inspBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SIZES.xs,
+    backgroundColor: COLORS.primary,
+    borderRadius: SIZES.radiusMd,
+    paddingVertical: SIZES.md,
+  },
+  inspBtnDone: {
+    backgroundColor: COLORS.cardSolid,
+    borderWidth: 1,
+    borderColor: COLORS.success,
+  },
+  inspBtnText: { color: COLORS.textWhite, fontWeight: '700', fontSize: SIZES.small },
+  defectBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SIZES.sm,
+    backgroundColor: COLORS.danger,
+    borderRadius: SIZES.radiusMd,
+    padding: SIZES.md,
+    marginTop: SIZES.md,
+  },
+  defectBannerText: { flex: 1, color: COLORS.textWhite, fontSize: SIZES.small, fontWeight: '600' },
+  histRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SIZES.sm,
+    paddingTop: SIZES.md,
+    marginTop: SIZES.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: COLORS.border,
+  },
+  histTitle: { fontSize: SIZES.body, color: COLORS.text, fontWeight: '600' },
+  histMeta: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },
+  moreBtn: { alignItems: 'center', paddingTop: SIZES.md },
+  moreBtnText: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
 });
 
 function useS() {

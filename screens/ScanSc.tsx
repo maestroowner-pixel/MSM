@@ -35,14 +35,27 @@ import { SIZES, Palette } from '../theme';
 /** No expo-camera on Windows — see the module header. */
 const HAS_CAMERA = Platform.OS !== 'windows';
 
+/**
+ * On a PHONE the camera IS this screen — it opens looking, because the officer is
+ * standing at the equipment with a sticker in front of them. In a BROWSER it is
+ * not: the machine is usually a desk computer, the label is somewhere else on the
+ * ship, and reaching for the camera unasked makes the browser sit there waiting
+ * for a device that may not exist — which is what a user on Opera saw, and reads
+ * as the app hanging. So on web the camera waits to be asked for.
+ */
+const CAMERA_ON_OPEN = Platform.OS !== 'web';
+
 export default function ScanSc() {
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { flat } = useData();
+  const { flat, recordScan } = useData();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
   const [permission, requestPermission] = useCameraPermissions();
+  const [wantCamera, setWantCamera] = useState(CAMERA_ON_OPEN);
+  /** Why the camera cannot be used, when we know before the browser hangs on it. */
+  const [camError, setCamError] = useState<string | null>(null);
   const [result, setResult] = useState<ScanMatch | null>(null);
   const [manual, setManual] = useState('');
 
@@ -58,6 +71,11 @@ export default function ScanSc() {
 
       const match = lookupScan(code, flat);
       if (match.kind === 'item') {
+        // Remember that this label was just scanned on this device — the Dashboard's
+        // "Recently scanned" strip reads this trail. Fire-and-forget, and kept off
+        // the item itself so it neither bumps updatedAt (which would reorder the
+        // other lists) nor gets wiped by the very screen opened on the next line.
+        void recordScan(match.item.id);
         // ItemDetail is keyed by {category, id}; the category came back from the
         // register, not from the sticker.
         nav.replace('ItemDetail', { category: match.category, id: match.item.id });
@@ -65,7 +83,7 @@ export default function ScanSc() {
       }
       setResult(match);
     },
-    [flat, nav]
+    [flat, nav, recordScan]
   );
 
   const again = () => {
@@ -79,7 +97,55 @@ export default function ScanSc() {
     if (code) handle(code);
   };
 
-  const cameraReady = HAS_CAMERA && permission?.granted && !result;
+  const cameraReady = HAS_CAMERA && wantCamera && permission?.granted && !result;
+
+  /**
+   * Web only: the user has asked for the camera, so now we may go and get it —
+   * but ASK THE MACHINE FIRST whether it has one.
+   *
+   * A browser handed a camera request it cannot satisfy does not fail: it sits in
+   * a "connecting a device" state indefinitely, and on Opera that is worded as
+   * waiting for a scanner to be plugged in. The page looks stuck and nothing ever
+   * says why. `enumerateDevices` answers without any prompt, so a machine with no
+   * camera is told so in one line instead of being left waiting.
+   */
+  const useCamera = async () => {
+    setCamError(null);
+    if (Platform.OS === 'web') {
+      const md: any = (globalThis as any).navigator?.mediaDevices;
+      if (!md?.getUserMedia) {
+        setCamError('This browser does not give web pages a camera. Type the code below instead.');
+        return;
+      }
+      try {
+        const devices = await md.enumerateDevices?.();
+        // An empty list means the browser is withholding it until permission is
+        // granted, which is not the same as "no camera" — only a populated list
+        // with no video input is proof there is nothing to open.
+        if (Array.isArray(devices) && devices.length && !devices.some((d: any) => d.kind === 'videoinput')) {
+          setCamError('No camera is connected to this computer. Type the code below instead.');
+          return;
+        }
+      } catch {
+        /* enumerateDevices is not essential — fall through and just ask */
+      }
+    }
+    setWantCamera(true);
+    try {
+      const res = await requestPermission();
+      if (res && !res.granted) {
+        setCamError(
+          res.canAskAgain === false
+            ? 'The camera is blocked for this site. Allow it in the address bar, then try again.'
+            : 'Camera access was refused. Type the code below instead.'
+        );
+        setWantCamera(false);
+      }
+    } catch {
+      setCamError('The camera could not be opened. Type the code below instead.');
+      setWantCamera(false);
+    }
+  };
 
   return (
     <Screen scroll>
@@ -100,12 +166,27 @@ export default function ScanSc() {
             instead; the lookup is exactly the one the scanner uses.
           </Text>
         </Card>
+      ) : !wantCamera ? (
+        <Card>
+          <Label>Camera</Label>
+          <Text style={styles.note}>
+            {camError ??
+              "This computer's camera can read a label held up to it. On a desk machine the code is " +
+                'usually easier to type — the box below runs exactly the same lookup.'}
+          </Text>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => void useCamera()}>
+            <Text style={styles.primaryBtnText}>{camError ? 'Try the camera again' : 'Use the camera'}</Text>
+          </TouchableOpacity>
+        </Card>
       ) : !permission ? null : !permission.granted ? (
         <Card>
           <Label>Camera access</Label>
           <Text style={styles.note}>
             MSM needs the camera to read QR labels and barcodes off equipment. Nothing is recorded —
             the frame is decoded and discarded.
+            {permission.canAskAgain === false
+              ? ' Your browser has blocked it for this site — allow the camera in the address bar, then try again.'
+              : ''}
           </Text>
           <TouchableOpacity style={styles.primaryBtn} onPress={() => void requestPermission()}>
             <Text style={styles.primaryBtnText}>Allow camera</Text>

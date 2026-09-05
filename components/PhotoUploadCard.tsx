@@ -1,0 +1,131 @@
+// ===================================
+// Photo upload — the policy, and what is still waiting.
+//
+// Shown in Settings because it is a standing decision about the vessel's
+// airtime, not a per-round choice. The pending count is the part that matters
+// operationally: "3 photos waiting for Wi-Fi" is the difference between a crew
+// that trusts the feature and one that quietly assumes it is broken.
+// ===================================
+
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+import { Card, Label } from './ui';
+import { MciIcon } from './MciIcon';
+import { useTheme } from '../contexts/ThemeContext';
+import { useData } from '../contexts/DataContext';
+import { SIZES, Palette } from '../theme';
+import * as photoQueue from '../services/photoQueue';
+
+const POLICIES: photoQueue.UploadPolicy[] = ['wifi', 'always', 'never'];
+
+export function PhotoUploadCard() {
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+  const { prefs, setPrefs } = useData();
+  const policy = prefs.photoUpload ?? 'wifi';
+
+  const [waiting, setWaiting] = useState(0);
+  const [busy, setBusy] = useState(false);
+
+  const refresh = useCallback(async () => {
+    setWaiting(await photoQueue.pendingCount());
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const uploadNow = async () => {
+    setBusy(true);
+    try {
+      // 'always' on purpose: the user has just pressed a button that says do it
+      // now, which is a clearer instruction than the standing policy.
+      const res = await photoQueue.flush('always');
+      await refresh();
+      if (res.skipped === 'empty') Alert.alert('Nothing waiting', 'Every photo has been uploaded.');
+      else if (res.skipped === 'offline') Alert.alert('No connection', 'Try again once the vessel is online.');
+      else {
+        Alert.alert(
+          'Upload finished',
+          `${res.uploaded} sent${res.remaining ? `, ${res.remaining} still waiting` : ''}.`
+        );
+      }
+    } catch (e: any) {
+      Alert.alert('Upload failed', String(e?.message ?? e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card>
+      <Label>Inspection photos</Label>
+      <Text style={styles.note}>
+        Records sync the moment they are signed. Photographs are larger, so they wait for a
+        connection worth spending — at sea that bill is the vessel's, not ours.
+      </Text>
+
+      <View style={styles.row}>
+        {POLICIES.map((p) => (
+          <TouchableOpacity
+            key={p}
+            style={[styles.chip, policy === p && styles.chipOn]}
+            onPress={() => void setPrefs({ photoUpload: p })}
+          >
+            <Text style={[styles.chipText, policy === p && styles.chipTextOn]}>
+              {photoQueue.POLICY_LABEL[p]}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <Text style={styles.hint}>{photoQueue.POLICY_HINT[policy]}</Text>
+
+      <View style={styles.statusRow}>
+        <MciIcon
+          name={waiting ? 'cloud-upload-outline' : 'cloud-check-outline'}
+          size={18}
+          color={waiting ? COLORS.warning : COLORS.success}
+        />
+        <Text style={styles.status}>
+          {waiting ? `${waiting} photo${waiting === 1 ? '' : 's'} waiting` : 'Nothing waiting'}
+        </Text>
+        {waiting ? (
+          <TouchableOpacity onPress={uploadNow} disabled={busy} hitSlop={8}>
+            <Text style={[styles.action, busy && { opacity: 0.4 }]}>Upload now</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    </Card>
+  );
+}
+
+const makeStyles = (COLORS: Palette) =>
+  StyleSheet.create({
+    note: { color: COLORS.textLight, fontSize: SIZES.small, paddingTop: SIZES.sm, lineHeight: 16 },
+    row: { flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.md },
+    chip: {
+      flex: 1,
+      paddingVertical: SIZES.sm,
+      borderRadius: SIZES.radiusMd,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      backgroundColor: COLORS.cardSolid,
+    },
+    chipOn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    chipText: { fontSize: SIZES.tiny, fontWeight: '700', color: COLORS.text },
+    chipTextOn: { color: COLORS.textWhite },
+    hint: { color: COLORS.textLight, fontSize: SIZES.tiny, paddingTop: SIZES.sm, lineHeight: 15 },
+    statusRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SIZES.sm,
+      paddingTop: SIZES.md,
+      marginTop: SIZES.md,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: COLORS.border,
+    },
+    status: { flex: 1, fontSize: SIZES.small, color: COLORS.text },
+    action: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
+  });

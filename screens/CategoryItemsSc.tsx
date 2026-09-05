@@ -42,7 +42,7 @@ export default function CategoryItemsSc() {
   const meta = CATEGORY_MAP[category];
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { byCategory, certificates, prefs } = useData();
+  const { byCategory, certificates, prefs, isLocked } = useData();
   const certItemIds = useMemo(() => {
     const s = new Set<string>();
     certificates.forEach((c) => c.itemIds.forEach((id) => s.add(id)));
@@ -158,14 +158,23 @@ export default function CategoryItemsSc() {
     nav.navigate('Label', { ids });
   };
 
-  const ItemCard = (e: Extract<ListEntry, { kind: 'row' }>, fill?: boolean) => (
+  const ItemCard = (e: Extract<ListEntry, { kind: 'row' }>, fill?: boolean) => {
+    // Free-tier overflow: locked items are read-only — tap routes to the paywall
+    // instead of opening, and they can't be selected for bulk actions.
+    const locked = isLocked(e.it.id);
+    return (
     <TouchableOpacity
-      style={[styles.row, fill && { flex: 1 }, selecting && selected.has(e.it.id) && styles.rowPicked]}
+      style={[styles.row, fill && { flex: 1 }, selecting && selected.has(e.it.id) && styles.rowPicked, locked && styles.rowLocked]}
       activeOpacity={0.7}
       onPress={() =>
-        selecting ? toggle(e.it.id) : nav.navigate('ItemDetail', { category, id: e.it.id })
+        locked
+          ? nav.navigate('Paywall')
+          : selecting
+          ? toggle(e.it.id)
+          : nav.navigate('ItemDetail', { category, id: e.it.id })
       }
       onLongPress={() => {
+        if (locked) { nav.navigate('Paywall'); return; }
         if (selecting) toggle(e.it.id);
         else {
           setSelecting(true);
@@ -208,11 +217,18 @@ export default function CategoryItemsSc() {
         </Text>
       </View>
       <View style={{ alignItems: 'flex-end' }}>
-        {e.date ? <Text style={styles.rowDate}>{formatDate(e.date)}</Text> : null}
-        <StatusPill status={e.status} />
+        {locked ? (
+          <MciIcon name="lock" size={20} color={COLORS.textLight} />
+        ) : (
+          <>
+            {e.date ? <Text style={styles.rowDate}>{formatDate(e.date)}</Text> : null}
+            <StatusPill status={e.status} />
+          </>
+        )}
       </View>
     </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <Screen contentStyle={{ paddingBottom: 0 }}>
@@ -343,6 +359,7 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   ghostBtn: { paddingHorizontal: SIZES.sm, paddingVertical: SIZES.sm },
   ghostBtnText: { color: COLORS.primary, fontWeight: '700' },
   rowPicked: { borderWidth: 1, borderColor: COLORS.primary },
+  rowLocked: { opacity: 0.55 },
   printBtn: {
     flexDirection: 'row',
     justifyContent: 'center',

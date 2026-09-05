@@ -1,0 +1,126 @@
+rules_version = '2';
+
+// ===================================
+// Access is decided by the CLAIMS in a token, not by "the uid matches".
+//
+// Every device used to sign in as the one shared vessel account, so
+// `request.auth.uid == uid` was the whole model — and with it the rules could not
+// tell an approved phone from a revoked one, a deckhand from the Master, or the
+// app from a script written by somebody who had been told the connection password
+// once. Roles and approvals were honest arrangements between colleagues.
+//
+// Now a device gets its own token from functions/index.js, carrying:
+//
+//     vessel      the IMO digits whose register it may touch
+//     role        user | admin | superadmin
+//     approved    only ever true — an unapproved device is given no token at all
+//     deviceId    which install it is
+//
+// Everything below is written against those claims, so a promotion means a NEW
+// token and a client cannot edit its way up. The Admin SDK ignores these rules,
+// which is why the function can write what they deny to everyone: roles,
+// approvals, the activation journal and the attempt counters.
+//
+// THE INSPECTION TRAIL IS APPEND-ONLY IN THE RULES TOO. That is the point of the
+// whole feature: a record that a device could quietly rewrite afterwards is worth
+// nothing at an audit, and enforcing it only in the app would leave the guarantee
+// resting on the app being the only writer. Create is allowed to any member;
+// update is allowed ONLY to the defect fields, and only to an officer; delete is
+// allowed to nobody at all, including the Master.
+// ===================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function claims() {
+      return request.auth.token;
+    }
+
+    /** A device of this vessel, approved, holding a token the function issued. */
+    function member(v) {
+      return request.auth != null
+             && claims().vessel == v
+             && claims().approved == true;
+    }
+
+    function isSuper(v) {
+      return member(v) && claims().role == 'superadmin';
+    }
+
+    function isAdmin(v) {
+      return member(v) && (claims().role == 'admin' || claims().role == 'superadmin');
+    }
+
+    match /safety_vessels/{v} {
+      // The register itself — one document holding the whole snapshot. Everyone
+      // who is in may read and write it: that is the data model.
+      allow read: if member(v);
+      allow create: if member(v);
+
+      // …but NOT the licence. `entitlement` sits on this same document, and MSM
+      // Pro is now licensed per vessel and read from it — so leaving it writable
+      // by any member would let any crew phone grant the whole ship Pro by
+      // writing one field. Only a Master may touch it. Everything else on the
+      // document (the register blob, masterDeviceId, the trial stamp) stays open
+      // to members, because that IS the shared data.
+      allow update: if member(v)
+                    && (isSuper(v)
+                        || !request.resource.data.diff(resource.data)
+                              .affectedKeys().hasAny(['entitlement']));
+      allow delete: if false;
+
+      // ---- devices ---------------------------------------------------------
+      match /devices/{deviceId} {
+        allow read: if member(v);
+
+        // A device may keep its OWN record current — name, platform, heartbeat.
+        // It may not touch what decides its powers.
+        allow update: if member(v)
+                      && deviceId == claims().deviceId
+                      && !request.resource.data.diff(resource.data).affectedKeys()
+                            .hasAny(['role', 'approved', 'disabled', 'secretHash', 'secretSalt']);
+
+        // Approving, demoting and switching off are the Master's, and are the
+        // reason a Master exists.
+        allow write: if isSuper(v);
+      }
+
+      // ---- invitations (the accounts a Master issues) -----------------------
+      // Readable only by the Master: the PIN is stored readable so it can be read
+      // out again to the person it was issued to, which means anyone who can read
+      // this collection can enrol as anyone in it.
+      match /invites/{inviteId} {
+        allow read, write: if isSuper(v);
+      }
+
+      // ---- the audit trail -------------------------------------------------
+      match /inspections/{id} {
+        allow read: if member(v);
+        allow create: if member(v);
+        // Only the defect may change, and only an officer may change it. The
+        // signature, the time, the results and the outcome are frozen.
+        allow update: if isAdmin(v)
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                            .hasOnly(['defect', 'updatedAt']);
+        allow delete: if false;
+      }
+
+      match /crew/{id} {
+        allow read: if member(v);
+        allow write: if isAdmin(v);
+      }
+
+      // ---- server-only ------------------------------------------------------
+      // The bootstrap marker and the guess counters are written by the Admin SDK
+      // and must be unreachable from a client — a counter the guesser can clear
+      // is not a rate limit.
+      match /meta/{doc} {
+        allow read: if member(v);
+        allow write: if false;
+      }
+      match /enrolAttempts/{doc} {
+        allow read, write: if false;
+      }
+    }
+  }
+}

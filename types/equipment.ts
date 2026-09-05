@@ -56,6 +56,20 @@ export interface EquipmentItem {
   extra?: Record<string, any>; // category-specific columns
   monthlyChecks?: Record<string, boolean>; // e.g. { "2025-07": true } for checklist sheets
   attachments?: Attachment[]; // photos / documents attached to this item
+
+  /**
+   * Flagged by the crew — "come back to this". Deliberately NOT a compliance
+   * status: an item can be perfectly in date and still need a second look. The
+   * flag answers "does a human need to look at it", and gets its own strip on the
+   * Dashboard. (Ported from DEM.)
+   */
+  flagged?: boolean;
+  flagNote?: string;
+
+  // NB: when an item was last scanned is deliberately NOT stored here — it is a
+  // property of this device, not of the equipment, and living on the item it
+  // would be wiped by the next Save. See services/scanHistory.ts.
+
   updatedAt: number;
 }
 

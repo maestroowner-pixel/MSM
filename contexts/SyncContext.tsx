@@ -1,0 +1,374 @@
+// ===================================
+// Live sync — the vessel's register and inspection trail, kept in step across
+// every approved device without anybody pressing a button.
+//
+// Modelled on DEM/NSeaStoreManager's SyncContext (`/Users/DEM`), with its two
+// hard-won fixes kept:
+//
+//   1. **Forced re-push on start and on foreground.** Firestore's offline write
+//      queue does NOT survive the process being killed. An officer who signs an
+//      inspection at sea, locks the phone and has iOS reap the app has a record
+//      that exists locally and nowhere else. Pushing unconditionally when the
+//      app comes up closes that hole; it is cheap, because the push is skipped
+//      when nothing changed.
+//   2. **A size guard on the register blob.** Firestore caps a document at
+//      1 MiB and the register only grows.
+//
+// What is deliberately DIFFERENT from DEM: DEM syncs one person's own devices,
+// so whole-document last-write-wins is fine there. A vessel is several people at
+// once, so the inspection trail is not in the blob — it is one document per
+// signed record (see services/firebaseService.ts), and those cannot collide.
+//
+// Auto-connect: if the vessel has an IMO and this device has the connection
+// password saved, sync signs in by itself at launch. Anything that fails here —
+// no config, no password, no signal, device not yet approved — leaves the app
+// exactly as it was: local-first, fully usable, no error in the user's face.
+// ===================================
+
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
+
+import * as fb from '../services/firebaseService';
+import * as storage from '../services/storage';
+import { mergeCrew, mergeInspections } from '../services/inspections';
+import * as photoQueue from '../services/photoQueue';
+import * as enrolment from '../services/enrolment';
+import * as trial from '../services/trial';
+import { revalidateLicence } from '../services/purchases';
+import { Role } from '../types/role';
+import { useData } from './DataContext';
+
+export type SyncStatus = 'off' | 'connecting' | 'synced' | 'error' | 'pending';
+
+interface SyncContextType {
+  status: SyncStatus;
+  /** This device's role once it holds a token — null until then. */
+  role: Role | null;
+  /** Has this device ever enrolled (i.e. does it hold a device secret)? */
+  enrolled: boolean;
+  lastSyncAt: number | null;
+  /** Size of the register blob, so Settings can show it before it is a problem. */
+  registerBytes: number;
+  /** Sign in + attach listeners now (Settings calls this after a manual connect). */
+  connect: () => Promise<void>;
+  /** Detach and stop syncing (used on sign-out / reset). */
+  disconnect: () => void;
+  /**
+   * Push what this device holds to the vessel NOW, and say whether it landed.
+   *
+   * For the one case where local must beat the cloud: restoring a `.msm`. The
+   * restore replaces the register locally, but the vessel's copy is untouched,
+   * and the listener re-applies it on the next launch — the restore then appears
+   * to have been ignored, hours later and with nothing to connect it to. The
+   * user asked for THIS data, so the vessel adopts it. Returns false when there
+   * is no session to push through, so the caller can say the restore is local
+   * only rather than implying the ship has it.
+   */
+  pushLocalNow: () => Promise<boolean>;
+}
+
+const SyncContext = createContext<SyncContextType | undefined>(undefined);
+
+/** How long a deliberate local restore outranks the vessel's copy. */
+const REMOTE_HOLD_MS = 30_000;
+
+/** Debounce local edits so a burst of typing is one write, not thirty. */
+const PUSH_DEBOUNCE_MS = 1500;
+/** How much of the trail the live listener holds open. */
+const TRAIL_WINDOW_DAYS = 400;
+
+export function SyncProvider({ children }: { children: React.ReactNode }) {
+  const { flat, certificates, vessel, compressor, prefs, reload } = useData();
+
+  const [status, setStatus] = useState<SyncStatus>('off');
+  const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
+  const [registerBytes, setRegisterBytes] = useState(0);
+  const [role, setRole] = useState<Role | null>(null);
+  const [enrolled, setEnrolled] = useState(false);
+
+  const uidRef = useRef<string | null>(null);
+  const unsubs = useRef<Array<() => void>>([]);
+  const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // What we last sent. Also what stops our own echo coming back as "news".
+  const lastPushed = useRef<string | null>(null);
+  /**
+   * Until this moment, an incoming register is ignored because THIS device has
+   * just been given data deliberately (a `.msm` restore). Long enough for the
+   * write and its echo to settle, short enough that a device cannot drift.
+   */
+  const holdRemoteUntil = useRef(0);
+  const applyingRemote = useRef(false);
+  const warnedSize = useRef(false);
+
+  // Held in a ref so the AppState listener and the pending poll always reach the
+  // current `connect` without tearing themselves down on every render.
+  const connectRef = useRef<(() => Promise<void>) | null>(null);
+
+  const detach = useCallback(() => {
+    unsubs.current.forEach((u) => {
+      try { u(); } catch { /* already gone */ }
+    });
+    unsubs.current = [];
+  }, []);
+
+  const pushNow = useCallback(async () => {
+    const uid = uidRef.current;
+    if (!uid || applyingRemote.current) return;
+    try {
+      const n = await fb.pushAll(uid);
+      setLastSyncAt(Date.now());
+      setStatus('synced');
+      return n;
+    } catch (e: any) {
+      console.warn('[sync] push failed:', e?.message ?? e);
+      setStatus('error');
+    }
+  }, []);
+
+  /** See `pushLocalNow` in SyncContextType — local deliberately beats the cloud. */
+  const pushLocalNow = useCallback(async (): Promise<boolean> => {
+    if (!uidRef.current) return false;
+    // Shut the incoming door FIRST. Restoring a backup and syncing are a genuine
+    // race: the restore rewrites the register locally while the listener is live,
+    // so a snapshot arriving in that second — including the echo of our own push
+    // — would pull the vessel's old register straight back over it. Whoever won
+    // was down to timing, which is no way to decide whose data survives. For this
+    // window local is simply authoritative.
+    holdRemoteUntil.current = Date.now() + REMOTE_HOLD_MS;
+    if (pushTimer.current) clearTimeout(pushTimer.current);
+    lastPushed.current = null;
+    // A pull may be halfway through. Let it finish rather than pushing underneath
+    // it, or we would write a register we are about to overwrite ourselves.
+    for (let i = 0; applyingRemote.current && i < 40; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    const n = await pushNow();
+    if (n === undefined) {
+      holdRemoteUntil.current = 0; // push failed — do not keep the vessel out
+      return false;
+    }
+    return true;
+  }, [pushNow]);
+
+  const schedulePush = useCallback((immediate = false) => {
+    if (!uidRef.current) return;
+    if (pushTimer.current) clearTimeout(pushTimer.current);
+    pushTimer.current = setTimeout(() => void pushNow(), immediate ? 0 : PUSH_DEBOUNCE_MS);
+  }, [pushNow]);
+
+  /** Attach the three listeners. Remote changes land in storage, then reload(). */
+  const attach = useCallback(
+    (uid: string) => {
+      detach();
+      const since = Date.now() - TRAIL_WINDOW_DAYS * 86_400_000;
+
+      unsubs.current.push(
+        fb.subscribeRegister(uid, async (snap) => {
+          if (!snap.json || snap.json === lastPushed.current) return;
+          if (Date.now() < holdRemoteUntil.current) {
+            // A restore is landing. Keeping what the user just chose is the whole
+            // point; the push that follows makes the vessel agree.
+            console.warn('[sync] ignoring an incoming register — a local restore holds priority');
+            return;
+          }
+          setRegisterBytes(snap.json.length);
+          if (snap.json.length > 700 * 1024 && !warnedSize.current) {
+            warnedSize.current = true;
+            console.warn('[sync] register blob is approaching Firestore\'s 1 MiB document cap.');
+          }
+          // Our own write, echoed back — nothing to apply.
+          if (snap.deviceId && snap.deviceId === (await fb.getLocalDeviceId())) return;
+          applyingRemote.current = true;
+          try {
+            await fb.pullAll(uid);
+            lastPushed.current = snap.json;
+            await reload();
+            setLastSyncAt(Date.now());
+            setStatus('synced');
+          } catch (e: any) {
+            console.warn('[sync] applying remote register failed:', e?.message ?? e);
+          } finally {
+            applyingRemote.current = false;
+          }
+        })
+      );
+
+      unsubs.current.push(
+        fb.subscribeInspections(uid, since, async (rows) => {
+          if (!rows.length) return;
+          const merged = mergeInspections(await storage.loadInspections(), rows);
+          await storage.saveInspections(merged);
+          applyingRemote.current = true;
+          try { await reload(); } finally { applyingRemote.current = false; }
+        })
+      );
+
+      unsubs.current.push(
+        fb.subscribeCrew(uid, async (rows) => {
+          if (!rows.length) return;
+          await storage.saveCrew(mergeCrew(await storage.loadCrew(), rows));
+          applyingRemote.current = true;
+          try { await reload(); } finally { applyingRemote.current = false; }
+        })
+      );
+    },
+    [detach, reload]
+  );
+
+  const connect = useCallback(async () => {
+    if (!fb.syncSupported() || !fb.isConfigured()) {
+      setStatus('off');
+      return;
+    }
+    const imo = vessel?.imo?.trim();
+    if (!imo) {
+      setStatus('off');
+      return;
+    }
+
+    setStatus('connecting');
+    try {
+      // ---- enrolled devices: ask the server for a token -------------------
+      //
+      // This runs on EVERY launch, not only the first, and that is the point.
+      // Claims are baked into a token when it is minted, so a device that was
+      // left pending cannot notice it has been approved, and a promotion cannot
+      // reach a device, except by minting a new one. `refresh` is that call, and
+      // it needs no PIN — only the secret issued at enrolment.
+      const secret = await fb.getDeviceSecret();
+      setEnrolled(!!secret);
+      if (secret) {
+        const res = await enrolment.refresh(imo);
+        if (res.status === 'pending') {
+          uidRef.current = null;
+          setRole(res.role);
+          setStatus('pending');
+          return;
+        }
+        if (res.status === 'ok') {
+          setRole(res.role);
+          // The register is keyed by the vessel's IMO under the new model, not
+          // by a Firebase uid — the token says which vessel this device may
+          // touch, and firestore.rules checks that claim.
+          uidRef.current = imo.replace(/\D/g, '');
+          attach(uidRef.current);
+          // Mirror the trial start to the vessel. On Android the local stamp is
+          // wiped by an uninstall, so this account copy is the only thing that
+          // stops a reinstall handing out a fresh 60 days — and the trial belongs
+          // to the ship now, not to the handset. Best-effort: a failure here must
+          // never stop the device syncing.
+          void trial.syncTrialWithAccount(uidRef.current).catch(() => {});
+          await pushNow();
+          return;
+        }
+        // 'reenrol' or 'refused'.
+        setStatus(res.status === 'reenrol' ? 'off' : 'error');
+        return;
+      }
+
+      // No device secret — this device has never joined the vessel. There is
+      // nothing to fall back on: the shared-connection-password path was removed
+      // in Sep 2026. It keyed the register by the Firebase uid, and since
+      // enrolment that uid is per-device (`<imo>__<deviceId>`), so a device that
+      // fell through wrote the vessel's register to
+      // `safety_vessels/9876543__dev_x` beside the real `safety_vessels/9876543`
+      // — one vessel, two registers, neither complete. Settings → Join this
+      // vessel is the only way in.
+      setStatus('off');
+    } catch (e: any) {
+      console.warn('[sync] connect failed:', e?.message ?? e);
+      setStatus('error');
+    }
+  }, [vessel?.imo, attach, pushNow]);
+
+  const disconnect = useCallback(() => {
+    detach();
+    uidRef.current = null;
+    lastPushed.current = null;
+    setRole(null);
+    setStatus('off');
+  }, [detach]);
+
+  connectRef.current = connect;
+
+  // Connect once the vessel's IMO is known (it arrives with the first data load).
+  useEffect(() => {
+    if (vessel?.imo) void connect();
+    return detach;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vessel?.imo]);
+
+  // Local edits → debounced push. Skipped while we are applying a remote change,
+  // or every incoming update would bounce straight back out again.
+  useEffect(() => {
+    if (!uidRef.current || applyingRemote.current) return;
+    schedulePush();
+  }, [flat, certificates, vessel, compressor, schedulePush]);
+
+  // Fix 1, second half: re-push when the app comes back to the foreground.
+  //
+  // The photo queue is drained on the same signal, and that is the right hook:
+  // coming to the foreground is when the phone has just been picked up, which is
+  // when it is most likely to have found the Wi-Fi in port. The queue decides for
+  // itself whether the connection is worth spending — see services/photoQueue.ts
+  // — so calling it here costs nothing at sea.
+  useEffect(() => {
+    const drainPhotos = () => {
+      void photoQueue.flush(prefs.photoUpload ?? 'wifi').catch(() => {});
+    };
+    // Confirm the yearly subscription is still live. Rate-limited to once a day
+    // inside, and it refuses to revoke anything when LemonSqueezy is unreachable
+    // — a ship at sea must not lose Pro for being at sea.
+    const checkLicence = () => {
+      void revalidateLicence().catch(() => {});
+    };
+
+    const onChange = (state: AppStateStatus) => {
+      if (state !== 'active') return;
+      if (uidRef.current) {
+        schedulePush(true);
+      } else {
+        // Not connected? Ask again. A device left waiting for approval has no
+        // other way to find out it was let in: its claims are baked into a token
+        // it does not have, so nothing arrives to tell it. Before this, the
+        // officer whose Master had just approved them saw no change at all until
+        // a full cold restart — and "reopen the app" is a poor thing to have to know.
+        void connectRef.current?.();
+      }
+      checkLicence();
+      drainPhotos();
+    };
+
+    checkLicence();
+    drainPhotos(); // and once on mount, for the launch after a round at sea
+    const sub = AppState.addEventListener('change', onChange);
+    return () => sub.remove();
+  }, [schedulePush, prefs.photoUpload]);
+
+  // While waiting, keep asking. One callable every 20s costs nothing and only
+  // runs while the device is actually pending — approval usually happens with
+  // both people standing together, and neither should have to restart anything.
+  useEffect(() => {
+    if (status !== 'pending') return;
+    const t = setInterval(() => void connectRef.current?.(), 20_000);
+    return () => clearInterval(t);
+  }, [status]);
+
+  useEffect(() => () => {
+    if (pushTimer.current) clearTimeout(pushTimer.current);
+  }, []);
+
+  return (
+    <SyncContext.Provider
+      value={{ status, role, enrolled, lastSyncAt, registerBytes, connect, disconnect, pushLocalNow }}
+    >
+      {children}
+    </SyncContext.Provider>
+  );
+}
+
+export function useSync(): SyncContextType {
+  const ctx = useContext(SyncContext);
+  if (!ctx) throw new Error('useSync must be used within SyncProvider');
+  return ctx;
+}

@@ -1,0 +1,64 @@
+rules_version = '2';
+
+// ===================================
+// Inspection photographs, guarded by the same claims as everything else.
+//
+// A device gets its token from functions/index.js carrying { vessel, role,
+// approved, deviceId }, so these rules can be written the same way
+// firestore.rules is: you may touch a vessel's files if you are an approved
+// device OF THAT VESSEL, and not otherwise. Without this, the default rules
+// would either refuse every upload or — if someone loosened them to make the
+// feature work — expose one operator's evidence photographs to another's crew.
+//
+// WRITE-ONCE, like the records the photos belong to. A photo is evidence for a
+// signed inspection, so replacing one after the fact would quietly rewrite that
+// evidence.
+//
+// **`resource == null` is what actually enforces that, and it is not optional.**
+// In Cloud Storage rules — unlike Firestore — uploading object DATA over an
+// existing path is evaluated as `create`, not `update`; `update` covers metadata
+// changes. So `allow update: if false` does NOT stop an overwrite. Verified
+// against the live bucket on 3 Sep 2026: with only the update rule in place, a
+// second upload to the same path returned 200 and the object's generation and
+// size changed. The explicit `resource == null` is the check that refuses it.
+//
+// The path is derived from the record's own ids (services/photoStorage.ts), so a
+// device cannot smuggle a file in under a name that means something else.
+//
+// The 12 MB ceiling is a backstop, not a target: the app downscales to 1600px
+// before anything reaches here (services/images.ts), which lands photos between
+// 200 and 450 KB. The limit exists to stop an un-resized original — or a video
+// picked by accident — from being pushed up somebody's satellite link.
+// ===================================
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function claims() {
+      return request.auth.token;
+    }
+
+    function member(v) {
+      return request.auth != null
+             && claims().vessel == v
+             && claims().approved == true;
+    }
+
+    match /safety_vessels/{vessel}/inspections/{inspectionId}/{photo} {
+      allow read: if member(vessel);
+
+      allow create: if member(vessel)
+                    && resource == null   // write-once — see the header
+                    && request.resource.size < 12 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+
+      // Evidence is not editable and not deletable.
+      allow update, delete: if false;
+    }
+
+    // Anything outside that shape is nobody's business.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

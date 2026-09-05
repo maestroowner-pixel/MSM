@@ -160,7 +160,12 @@ export const GLASS = {
 
 export const APP_CONFIG = {
   name: 'Marine Safety Manager',
-  version: '1.9',
+  // Read from app.json rather than repeated here. The version used to live in
+  // four places — app.json, this file, android/build.gradle, ios/Info.plist —
+  // and they drifted: the app showed 1.9 while app.json said 2.1, and an AAB
+  // came out as 1.9/1095. app.json is the source; scripts/patch-native-version.js
+  // carries it into the two native projects.
+  version: String(require('./app.json').expo.version),
   developer: 'Mykhaylo Osypov',
   company: 'KukaLab',
   year: '2026',

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Marine Safety Manager",
     "slug": "marine-safety-manager",
-    "version": "1.9",
+    "version": "2.2",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "msm",
@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF"
+      "backgroundColor": "#E6EFF1"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -20,7 +20,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.kukalab.msm",
       "appleTeamId": "LAGTN99698",
-      "buildNumber": "1094",
+      "buildNumber": "20201",
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.kukalab.msm"
@@ -41,7 +41,7 @@
     },
     "android": {
       "package": "com.kukalab.msm",
-      "versionCode": 1095,
+      "versionCode": 20201,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -50,7 +50,9 @@
     },
     "web": {
       "bundler": "metro",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "backgroundColor": "#E6EFF1",
+      "themeColor": "#2E7D99"
     },
     "plugins": [
       [

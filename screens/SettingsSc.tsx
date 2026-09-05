@@ -1,17 +1,24 @@
 // ===================================
-// Settings — vessel info, import, Firebase sync, about.
+// Settings — vessel info, import, data, about.
+//
+// Joining a vessel and managing devices live on their OWN screens (Enrol,
+// Accounts). This screen used to carry the whole of it — an IMO + connection
+// password field, Connect, Push and Pull — and that path is gone: a device is
+// enrolled by name + PIN and sync then runs by itself.
 // ===================================
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, Switch, Modal, TouchableWithoutFeedback, Keyboard, Linking, Image, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Switch, Modal, TouchableWithoutFeedback, Keyboard, Linking, Image, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Screen, ScreenTitle, Card, Label, GlyphBadge, Glyph } from '../components/ui';
+import { PhotoUploadCard } from '../components/PhotoUploadCard';
+import { ConnectionCard } from '../components/ConnectionCard';
 import { SIZES, Palette, APP_CONFIG, THEME_ORDER, THEME_LABELS } from '../theme';
 import { useTheme, useThemeName } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
+import { useSync } from '../contexts/SyncContext';
 import { VesselInfo, resetAllData } from '../services/storage';
 import * as fb from '../services/firebaseService';
-import * as trial from '../services/trial';
 import { clearAttachmentsDir } from '../services/attachments';
 import { exportTemplate } from '../services/export';
 import { exportBackup, pickBackup, restoreBackup } from '../services/backup';
@@ -31,30 +38,14 @@ export default function SettingsSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { name: themeName, setTheme } = useThemeName();
   const { vessel, setVessel, reload, flat, prefs, setPrefs } = useData();
+  const sync = useSync();
   const [form, setForm] = useState<VesselInfo>({});
   const [busy, setBusy] = useState(false);
-
-  // Cloud device state
-  const [uid, setUid] = useState<string | null>(null);
-  const [myStatus, setMyStatus] = useState<fb.ApprovalStatus | null>(null);
-  const [devices, setDevices] = useState<fb.ConnectedDevice[]>([]);
-  const [pending, setPending] = useState<fb.PendingDevice[]>([]);
-  const [devBusy, setDevBusy] = useState(false);
-  const [connPassword, setConnPassword] = useState('');
-
-  // Master-only: change the shared connection password (old → new ×2).
-  const [pwOpen, setPwOpen] = useState(false);
-  const [pwOld, setPwOld] = useState('');
-  const [pwNew, setPwNew] = useState('');
-  const [pwRep, setPwRep] = useState('');
 
   // Reset-all-data (password gated)
   const [resetVisible, setResetVisible] = useState(false);
   const [resetPw, setResetPw] = useState('');
 
-  // Rename a connected device (friendly name shown in the list).
-  const [renameTarget, setRenameTarget] = useState<fb.ConnectedDevice | null>(null);
-  const [renameText, setRenameText] = useState('');
 
   // Collapsible sections (open on tap; they stay open until tapped again).
   const [open, setOpen] = useState<Record<string, boolean>>({ vessel: true });
@@ -93,201 +84,6 @@ export default function SettingsSc() {
     if (vessel) setForm(vessel);
   }, [vessel]);
 
-  useEffect(() => {
-    fb.getSavedPassword().then((pw) => { if (pw) setConnPassword(pw); });
-  }, []);
-
-  const isMaster = myStatus === 'master';
-
-  const refreshDevices = async (vesselUid: string) => {
-    const [devs, pend] = await Promise.all([
-      fb.getConnectedDevices(vesselUid),
-      fb.getPendingDevices(vesselUid),
-    ]);
-    setDevices(devs);
-    setPending(pend);
-  };
-
-  /** Sign in by IMO, register this device, and load the device lists. */
-  const connect = async () => {
-    if (!fb.isConfigured()) {
-      Alert.alert('Firebase not configured', 'Add your Firebase web config in services/firebaseService.ts to enable cloud sync.');
-      return;
-    }
-    if (!form.imo) {
-      Alert.alert('IMO required', 'Enter the vessel IMO number first (used as the cloud account).');
-      return;
-    }
-    if (connPassword.trim().length < fb.MIN_PASSWORD_LENGTH) {
-      Alert.alert('Connection password required', `Enter a connection password of at least ${fb.MIN_PASSWORD_LENGTH} characters. The first device sets it; other devices must enter the same password.`);
-      return;
-    }
-    setDevBusy(true);
-    try {
-      const vesselUid = await fb.signInVessel(form.imo, connPassword);
-      await fb.savePassword(connPassword.trim());
-      const status = await fb.registerDevice(vesselUid);
-      // Bind the trial to the account (earliest start wins; survives reinstall /
-      // new machine once the vessel has logged in).
-      trial.syncTrialWithAccount(vesselUid).catch(() => {});
-      setUid(vesselUid);
-      setMyStatus(status);
-      await refreshDevices(vesselUid);
-      if (status === 'pending') {
-        Alert.alert('Awaiting approval', 'This device is pending approval by the Master device. Ask the Master to approve it in Settings → Cloud sync.');
-      } else if (status === 'master') {
-        playSuccessSound();
-        Alert.alert('Connected', 'This device is the Master for this vessel. You can approve other devices here.');
-      } else {
-        playSuccessSound();
-        Alert.alert('Connected', 'This device is approved and can sync.');
-      }
-    } catch (e: any) {
-      playErrorSound();
-      Alert.alert('Connection failed', String(e?.message ?? e));
-    } finally {
-      setDevBusy(false);
-    }
-  };
-
-  // Master-only: change the vessel connection password (current → new ×2).
-  const changePassword = async () => {
-    if (!isMaster) return;
-    if (!form.imo) {
-      Alert.alert('IMO required', 'Save the vessel IMO number first.');
-      return;
-    }
-    if (pwNew.trim().length < fb.MIN_PASSWORD_LENGTH) {
-      Alert.alert('Password too short', `New password must be at least ${fb.MIN_PASSWORD_LENGTH} characters.`);
-      return;
-    }
-    if (pwNew !== pwRep) {
-      Alert.alert('Passwords do not match', 'Re-enter the new password identically in both fields.');
-      return;
-    }
-    setDevBusy(true);
-    try {
-      await fb.changeConnectionPassword(form.imo, pwOld, pwNew);
-      setConnPassword(pwNew.trim());
-      setPwOld('');
-      setPwNew('');
-      setPwRep('');
-      setPwOpen(false);
-      playSuccessSound();
-      Alert.alert('Password changed', 'The connection password was updated. Other devices must enter the new password to keep syncing.');
-    } catch (e: any) {
-      playErrorSound();
-      Alert.alert('Change failed', String(e?.message ?? e));
-    } finally {
-      setDevBusy(false);
-    }
-  };
-
-  const approve = async (deviceId: string) => {
-    if (!uid) return;
-    setDevBusy(true);
-    try {
-      await fb.approveDevice(uid, deviceId);
-      playSuccessSound();
-      await refreshDevices(uid);
-    } catch (e: any) {
-      playErrorSound();
-      Alert.alert('Approve failed', String(e?.message ?? e));
-    } finally {
-      setDevBusy(false);
-    }
-  };
-
-  const reject = async (deviceId: string) => {
-    if (!uid) return;
-    setDevBusy(true);
-    try {
-      await fb.rejectDevice(uid, deviceId);
-      await refreshDevices(uid);
-    } catch (e: any) {
-      Alert.alert('Reject failed', String(e?.message ?? e));
-    } finally {
-      setDevBusy(false);
-    }
-  };
-
-  const revoke = (d: fb.ConnectedDevice) => {
-    if (!uid) return;
-    Alert.alert('Remove device', `Disconnect "${d.customName || d.platformLabel}"? It will need re-approval to reconnect.`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: async () => {
-          setDevBusy(true);
-          try {
-            await fb.removeDevice(uid, d.deviceId);
-            await refreshDevices(uid);
-          } catch (e: any) {
-            Alert.alert('Remove failed', String(e?.message ?? e));
-          } finally {
-            setDevBusy(false);
-          }
-        },
-      },
-    ]);
-  };
-
-  // Master action: hand the Master role to another approved device.
-  const makeMaster = (d: fb.ConnectedDevice) => {
-    if (!uid) return;
-    Alert.alert(
-      'Transfer Master',
-      `Make "${d.customName || d.platformLabel}" the Master? This device becomes a regular member.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Make Master',
-          onPress: async () => {
-            setDevBusy(true);
-            try {
-              await fb.transferMaster(uid, d.deviceId);
-              setMyStatus('approved');
-              await refreshDevices(uid);
-              playSuccessSound();
-            } catch (e: any) {
-              playErrorSound();
-              Alert.alert('Transfer failed', String(e?.message ?? e));
-            } finally {
-              setDevBusy(false);
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  // Give a device a friendly name. The Master can rename any device; every
-  // device can always rename itself.
-  const openRename = (d: fb.ConnectedDevice) => {
-    setRenameTarget(d);
-    setRenameText(d.customName || '');
-  };
-  const closeRename = () => {
-    setRenameTarget(null);
-    setRenameText('');
-  };
-  const doRename = async () => {
-    if (!uid || !renameTarget) return;
-    const target = renameTarget;
-    setDevBusy(true);
-    try {
-      await fb.renameDevice(uid, target.deviceId, renameText.trim());
-      closeRename();
-      await refreshDevices(uid);
-    } catch (e: any) {
-      Alert.alert('Rename failed', String(e?.message ?? e));
-    } finally {
-      setDevBusy(false);
-    }
-  };
-
-
   const downloadTemplate = async () => {
     try {
       await exportTemplate();
@@ -317,13 +113,16 @@ export default function SettingsSc() {
   const backupImport = async () => {
     try {
       const picked = await pickBackup();
-      if (!picked) return;
+      if (!picked) return; // cancelled — the picker only reports a real cancel now
       const { backup, summary } = picked;
       Alert.alert(
         'Restore backup?',
-        `This replaces ALL data on this device with:\n\n` +
+        (summary.fileName ? `Read ${summary.fileName}.\n\n` : '') +
+          `This replaces ALL data on this device with:\n\n` +
           `• ${summary.items} items in ${summary.categories} categories\n` +
           `• ${summary.certificates} certificates\n` +
+          `• ${summary.inspections} signed inspection${summary.inspections === 1 ? '' : 's'}\n` +
+          `• ${summary.crew} crew member${summary.crew === 1 ? '' : 's'}\n` +
           `• ${summary.files} attached file${summary.files === 1 ? '' : 's'}\n` +
           (summary.vessel ? `• Vessel: ${summary.vessel}\n` : '') +
           `\nThis cannot be undone.`,
@@ -337,8 +136,19 @@ export default function SettingsSc() {
               try {
                 await restoreBackup(backup);
                 await reload();
+                // Hand the restored register to the vessel straight away. Without
+                // this the cloud copy is untouched and the listener puts it back
+                // on the next launch, so the restore looks like it worked and
+                // then quietly undoes itself.
+                const shared = await sync.pushLocalNow().catch(() => false);
                 playSuccessSound();
-                Alert.alert('Restored', `${summary.items} items restored from backup.`);
+                Alert.alert(
+                  'Restored',
+                  `${summary.items} items restored from backup.\n\n` +
+                    (shared
+                      ? 'The vessel now holds this register — the other devices on board will pick it up.'
+                      : 'This device only: it is not currently syncing, so the vessel still holds its own copy.')
+                );
               } catch (e: any) {
                 playErrorSound();
                 Alert.alert('Restore failed', String(e?.message ?? e));
@@ -410,54 +220,6 @@ export default function SettingsSc() {
     Alert.alert('Saved', 'Vessel info updated.');
   };
 
-  const sync = async (dir: 'push' | 'pull') => {
-    if (!fb.isConfigured()) {
-      Alert.alert(
-        'Firebase not configured',
-        'Add your Firebase web config in services/firebaseService.ts to enable cloud sync.'
-      );
-      return;
-    }
-    if (!form.imo) {
-      Alert.alert('IMO required', 'Enter the vessel IMO number first (used as the cloud account).');
-      return;
-    }
-    if (connPassword.trim().length < fb.MIN_PASSWORD_LENGTH) {
-      Alert.alert('Connection password required', `Enter the vessel's connection password (at least ${fb.MIN_PASSWORD_LENGTH} characters) before syncing.`);
-      return;
-    }
-    setBusy(true);
-    try {
-      const vesselUid = uid ?? (await fb.signInVessel(form.imo, connPassword));
-      await fb.savePassword(connPassword.trim());
-      const status = myStatus ?? (await fb.registerDevice(vesselUid));
-      trial.syncTrialWithAccount(vesselUid).catch(() => {});
-      setUid(vesselUid);
-      setMyStatus(status);
-      if (status === 'pending') {
-        await refreshDevices(vesselUid);
-        Alert.alert('Awaiting approval', 'This device is pending approval by the Master device.');
-        return;
-      }
-      if (dir === 'push') {
-        const n = await fb.pushAll(vesselUid);
-        playSuccessSound();
-        Alert.alert('Synced', `Pushed ${n} items to the cloud.`);
-      } else {
-        const n = await fb.pullAll(vesselUid);
-        await reload();
-        playSuccessSound();
-        Alert.alert('Synced', `Pulled ${n} items from the cloud.`);
-      }
-      await refreshDevices(vesselUid);
-    } catch (e: any) {
-      playErrorSound();
-      Alert.alert('Sync failed', String(e?.message ?? e));
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
     <Screen scroll>
       <ScreenTitle title="Settings" subtitle={`${flat.length} items on this device`} help={0} />
@@ -484,12 +246,14 @@ export default function SettingsSc() {
             <GlyphBadge emoji="⚓" size={20} />
             <View style={{ flex: 1 }}>
               <Text style={styles.proTitle}>{APP_CONFIG.name} Pro</Text>
-              <Text style={styles.proSub}>1 month free, then yearly — unlock everything</Text>
+              <Text style={styles.proSub}>2 months free, then yearly — unlock everything</Text>
             </View>
             <Text style={styles.chev}>›</Text>
           </View>
         </Card>
       </TouchableOpacity>
+
+      <ConnectionCard />
 
       <Card>
         <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('vessel')} activeOpacity={0.7}>
@@ -508,6 +272,46 @@ export default function SettingsSc() {
         </TouchableOpacity>
           </>
         ) : null}
+      </Card>
+
+      <PhotoUploadCard />
+
+      {/* Inspections — the crew list and the defect log. Above Data because
+          these are used weekly; an import or a backup is a once-a-voyage job. */}
+      <Card>
+        <Label>Inspections</Label>
+        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Crew')}>
+          <GlyphBadge emoji="👥" size={18} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkTitle}>Crew</Text>
+            <Text style={styles.linkSub}>Who can sign an inspection</Text>
+          </View>
+          <Text style={styles.chev}>›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Accounts')}>
+          <GlyphBadge emoji="🔑" size={18} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkTitle}>Accounts</Text>
+            <Text style={styles.linkSub}>Issue a name + PIN; approve devices (Master only)</Text>
+          </View>
+          <Text style={styles.chev}>›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Enrol')}>
+          <GlyphBadge emoji="📱" size={18} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkTitle}>Join this vessel</Text>
+            <Text style={styles.linkSub}>Enrol this device with the name and PIN you were given</Text>
+          </View>
+          <Text style={styles.chev}>›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Defects')}>
+          <GlyphBadge emoji="🛠️" size={18} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkTitle}>Defects</Text>
+            <Text style={styles.linkSub}>Everything raised and still outstanding</Text>
+          </View>
+          <Text style={styles.chev}>›</Text>
+        </TouchableOpacity>
       </Card>
 
       <Card>
@@ -537,7 +341,7 @@ export default function SettingsSc() {
           <GlyphBadge emoji="💾" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Export backup (.msm)</Text>
-            <Text style={styles.linkSub}>Items, certificates, vessel & attached files</Text>
+            <Text style={styles.linkSub}>Items, certificates, inspections, crew & attached files</Text>
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
@@ -631,175 +435,28 @@ export default function SettingsSc() {
         ) : null}
       </Card>
 
+      {/* The old "Cloud sync" panel — connection password, Connect, Push and Pull
+          — is gone. It described a model the app no longer has, and it was worse
+          than clutter: the field invited people to paste the vessel SETUP CODE
+          into a password box that means something else entirely, and Push/Pull
+          implied sync waits to be asked when it has been continuous since the
+          move to Firestore.
+          What replaced it: the card at the top of Settings says where this device
+          stands, and Accounts holds devices, approvals and roles. */}
       <Card>
-        <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('cloud')} activeOpacity={0.7}>
-          <Label>Cloud sync</Label>
-          <Text style={styles.sectionChev}>{open.cloud ? '▾' : '▸'}</Text>
-        </TouchableOpacity>
-        {open.cloud ? (
-          <>
+        <Label>Cloud sync</Label>
         <Text style={styles.syncStatus}>
-          {!fb.isConfigured()
-            ? '⚠️ Firebase not configured (local-only)'
-            : myStatus === 'master'
-            ? '👑 This device is the Master'
-            : myStatus === 'approved'
-            ? '✅ This device is approved'
-            : myStatus === 'pending'
-            ? '⏳ Pending approval by the Master'
-            : '☁️ Firebase configured — tap Connect'}
+          Sync runs by itself once this device has joined the vessel — records reach the crew's
+          other devices within seconds. There is nothing to push or pull.
         </Text>
-
-        {/* Connection password — gates who can join the vessel */}
-        {fb.isConfigured() ? (
-          <View style={{ marginBottom: SIZES.sm }}>
-            <Label>Connection password</Label>
-            <TextInput
-              style={styles.input}
-              value={connPassword}
-              onChangeText={setConnPassword}
-              placeholder={`At least ${fb.MIN_PASSWORD_LENGTH} characters`}
-              placeholderTextColor={COLORS.textLight}
-              secureTextEntry={Platform.OS !== 'web'}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <Text style={styles.pwHint}>The first device sets this. Other devices must enter the same password to join.</Text>
+        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Accounts')}>
+          <GlyphBadge emoji="🔑" size={18} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkTitle}>Devices &amp; approvals</Text>
+            <Text style={styles.linkSub}>Who is connected, and who is waiting</Text>
           </View>
-        ) : null}
-
-        {/* Connect / refresh */}
-        {devBusy ? (
-          <ActivityIndicator color={COLORS.primary} style={{ marginVertical: SIZES.sm }} />
-        ) : (
-          <TouchableOpacity style={styles.connectBtn} onPress={connect}>
-            <Text style={styles.connectBtnText}>{uid ? '↻ Refresh devices' : '🔗 Connect this device'}</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Master-only: change the connection password (current → new ×2) */}
-        {isMaster && fb.isConfigured() ? (
-          <View style={styles.devSection}>
-            <TouchableOpacity style={styles.changePwHead} onPress={() => setPwOpen((o) => !o)} activeOpacity={0.7}>
-              <Text style={styles.changePwTitle}>🔑 Change connection password</Text>
-              <Text style={styles.sectionChev}>{pwOpen ? '▾' : '▸'}</Text>
-            </TouchableOpacity>
-            {pwOpen ? (
-              <>
-                <TextInput
-                  style={styles.input}
-                  value={pwOld}
-                  onChangeText={setPwOld}
-                  placeholder="Current password"
-                  placeholderTextColor={COLORS.textLight}
-                  secureTextEntry={Platform.OS !== 'web'}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                <TextInput
-                  style={styles.input}
-                  value={pwNew}
-                  onChangeText={setPwNew}
-                  placeholder={`New password (at least ${fb.MIN_PASSWORD_LENGTH})`}
-                  placeholderTextColor={COLORS.textLight}
-                  secureTextEntry={Platform.OS !== 'web'}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                <TextInput
-                  style={styles.input}
-                  value={pwRep}
-                  onChangeText={setPwRep}
-                  placeholder="Repeat new password"
-                  placeholderTextColor={COLORS.textLight}
-                  secureTextEntry={Platform.OS !== 'web'}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                <TouchableOpacity style={[styles.connectBtn, { marginTop: SIZES.sm }]} onPress={changePassword} disabled={devBusy}>
-                  <Text style={styles.connectBtnText}>Update password</Text>
-                </TouchableOpacity>
-                <Text style={styles.pwHint}>Only the Master can change it. Other devices will need the new password to keep syncing.</Text>
-              </>
-            ) : null}
-          </View>
-        ) : null}
-
-        {/* Pending approvals — only the Master can act */}
-        {isMaster && pending.length > 0 ? (
-          <View style={styles.devSection}>
-            <Text style={styles.devSectionTitle}>Pending approval ({pending.length})</Text>
-            {pending.map((p) => (
-              <View key={p.deviceId} style={styles.devRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.devName}>{p.platformLabel}{p.isThisDevice ? ' (this device)' : ''}</Text>
-                  <Text style={styles.devSub}>{p.vesselName || '—'} · {fmtWhen(p.requestedAt)}</Text>
-                </View>
-                <TouchableOpacity style={[styles.devAction, { backgroundColor: COLORS.success }]} onPress={() => approve(p.deviceId)}>
-                  <Text style={styles.devActionText}>Approve</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.devAction, { backgroundColor: COLORS.danger }]} onPress={() => reject(p.deviceId)}>
-                  <Text style={styles.devActionText}>Reject</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-        ) : null}
-
-        {/* Connected devices */}
-        {devices.length > 0 ? (
-          <View style={styles.devSection}>
-            <Text style={styles.devSectionTitle}>Connected devices ({devices.length})</Text>
-            {devices.map((d) => (
-              <View key={d.deviceId} style={[styles.devRow, d.isThisDevice && styles.devRowMe, d.role === 'master' && styles.devRowMaster]}>
-                <GlyphBadge emoji={d.role === 'master' ? '👑' : '📱'} size={16} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.devName}>
-                    {d.customName || d.platformLabel}{d.isThisDevice ? ' (this device)' : ''}
-                  </Text>
-                  <Text style={styles.devSub}>
-                    {d.role === 'master' ? 'Master' : 'Member'} · {fmtWhen(d.lastSeen)}
-                  </Text>
-                </View>
-                {isMaster || d.isThisDevice ? (
-                  <TouchableOpacity style={styles.devRename} onPress={() => openRename(d)} hitSlop={6}>
-                    <Text style={styles.devRenameText}>✎</Text>
-                  </TouchableOpacity>
-                ) : null}
-                {isMaster && !d.isThisDevice && d.role !== 'master' ? (
-                  <>
-                    <TouchableOpacity style={styles.devMaster} onPress={() => makeMaster(d)} hitSlop={6}>
-                      <Text style={styles.devMasterText}>👑 Make master</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.devRemove} onPress={() => revoke(d)} hitSlop={8}>
-                      <Text style={styles.devRemoveText}>✕</Text>
-                    </TouchableOpacity>
-                  </>
-                ) : null}
-              </View>
-            ))}
-            {/* Master recovery moved to a hidden gesture: tap the version line in
-                the Manual (About) 9× to claim Master if the Master device is lost. */}
-          </View>
-        ) : null}
-
-        {/* Push / Pull */}
-        {busy ? (
-          <ActivityIndicator color={COLORS.primary} style={{ marginVertical: SIZES.md }} />
-        ) : (
-          <View style={styles.btnRow}>
-            <TouchableOpacity style={[styles.syncBtn, { backgroundColor: COLORS.primary }]} onPress={() => sync('push')}>
-              <Glyph emoji="📤" size={18} color={COLORS.textWhite} />
-              <Text style={styles.syncBtnText}>Push</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.syncBtn, { backgroundColor: COLORS.secondary }]} onPress={() => sync('pull')}>
-              <Glyph emoji="📥" size={18} color={COLORS.textWhite} />
-              <Text style={styles.syncBtnText}>Pull</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-          </>
-        ) : null}
+          <Text style={styles.chev}>›</Text>
+        </TouchableOpacity>
       </Card>
 
       <TouchableOpacity style={styles.resetBtn} onPress={() => { setResetPw(''); setResetVisible(true); }} disabled={busy}>
@@ -860,48 +517,6 @@ export default function SettingsSc() {
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* Rename a connected device */}
-      <Modal visible={!!renameTarget} transparent animationType="fade" onRequestClose={closeRename}>
-        <TouchableWithoutFeedback onPress={closeRename}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-              <View style={styles.modalBox}>
-                <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Rename device</Text>
-                <Text style={styles.modalText}>
-                  A friendly name shown in the device list. Leave empty to fall back to the platform name
-                  {renameTarget ? ` (${renameTarget.platformLabel})` : ''}.
-                </Text>
-                <TextInput
-                  style={styles.input}
-                  value={renameText}
-                  onChangeText={setRenameText}
-                  placeholder={renameTarget?.platformLabel ?? 'Device name'}
-                  placeholderTextColor={COLORS.textLight}
-                  autoFocus
-                  maxLength={40}
-                  returnKeyType="done"
-                  onSubmitEditing={doRename}
-                />
-                <View style={styles.modalBtnRow}>
-                  <TouchableOpacity
-                    style={[styles.modalBtn, { borderWidth: 1, borderColor: COLORS.border }]}
-                    onPress={closeRename}
-                  >
-                    <Text style={styles.modalBtnCancel}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.modalBtn, { backgroundColor: COLORS.primary, opacity: devBusy ? 0.5 : 1 }]}
-                    onPress={doRename}
-                    disabled={devBusy}
-                  >
-                    <Text style={styles.modalBtnConfirm}>Save</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
     </Screen>
   );
 }

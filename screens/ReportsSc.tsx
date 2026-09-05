@@ -1,6 +1,13 @@
 // ===================================
-// Reports — pick which categories to include, then export PDF / XLSX.
-// Each category is a tappable panel; the export bundles every selected one.
+// Reports — two different questions, kept apart because they have two different
+// answers and mixing them produces a document that answers neither:
+//
+//   Register     — what the vessel HAS and what is falling due. A snapshot.
+//   Inspections  — what the crew DID in a period, who did it, and what is still
+//                  outstanding. The audit trail (services/inspectionReport.ts).
+//
+// A surveyor asks for both, so both are one tap apart rather than one being
+// buried in the other's options.
 // ===================================
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -11,15 +18,49 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { CATEGORIES } from '../constants/categories';
 import { exportPdf, exportXlsx, exportZip } from '../services/export';
+import {
+  ReportScope,
+  buildReport,
+  exportReportPdf,
+  exportReportXlsx,
+  printReport as printInspectionReport,
+} from '../services/inspectionReport';
+import { InspectionPeriod, PERIOD_LABEL } from '../types/inspection';
 import { CategoryKey } from '../types/equipment';
 
 export default function ReportsSc() {
-  const { byCategory, vessel, certificates } = useData();
+  const { byCategory, vessel, certificates, flat, inspections: trail } = useData();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { width } = useWindowDimensions();
   const twoCol = width >= 600;
   const [busy, setBusy] = useState(false);
+
+  // Which of the two reports is on screen (see the module header).
+  const [mode, setMode] = useState<'register' | 'inspections'>('register');
+  const [scope, setScope] = useState<ReportScope>('LSA');
+  const [period, setPeriod] = useState<InspectionPeriod>('monthly');
+
+  // Live preview of the numbers that will be printed. Built from the same
+  // function the export uses, so what is on screen cannot drift from the file.
+  const preview = useMemo(
+    () => buildReport(flat, trail, { scope, period }),
+    [flat, trail, scope, period]
+  );
+
+  const runInspectionReport = async (kind: 'pdf' | 'xlsx' | 'print') => {
+    setBusy(true);
+    try {
+      const opts = { scope, period };
+      if (kind === 'pdf') await exportReportPdf(flat, trail, vessel, opts);
+      else if (kind === 'xlsx') await exportReportXlsx(flat, trail, vessel, opts);
+      else await printInspectionReport(flat, trail, vessel, opts);
+    } catch (e: any) {
+      Alert.alert('Export failed', String(e?.message ?? e));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const nonEmpty = useMemo(
     () => CATEGORIES.filter((c) => (byCategory[c.key] ?? []).length > 0),
@@ -90,9 +131,110 @@ export default function ReportsSc() {
     );
   }
 
+  const modeSwitch = (
+    <View style={styles.modeRow}>
+      {(['register', 'inspections'] as const).map((m) => (
+        <TouchableOpacity
+          key={m}
+          style={[styles.modeBtn, mode === m && styles.modeBtnOn]}
+          onPress={() => setMode(m)}
+        >
+          <Text style={[styles.modeText, mode === m && styles.modeTextOn]}>
+            {m === 'register' ? 'Register' : 'Inspections'}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
+  if (mode === 'inspections') {
+    return (
+      <Screen scroll>
+        <ScreenTitle title="Reports" subtitle="What was inspected, by whom, and when" help={10} />
+        {modeSwitch}
+
+        <Text style={styles.sectionLabel}>Equipment group</Text>
+        <View style={styles.chipRow}>
+          {(['LSA', 'FFE', 'ALL'] as ReportScope[]).map((g) => (
+            <TouchableOpacity
+              key={g}
+              style={[styles.chip, scope === g && styles.chipOn]}
+              onPress={() => setScope(g)}
+            >
+              <Text style={[styles.chipText, scope === g && styles.chipTextOn]}>
+                {g === 'ALL' ? 'LSA & FFE' : g}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={styles.sectionLabel}>Period</Text>
+        <View style={styles.chipRow}>
+          {(['weekly', 'monthly'] as InspectionPeriod[]).map((p) => (
+            <TouchableOpacity
+              key={p}
+              style={[styles.chip, period === p && styles.chipOn]}
+              onPress={() => setPeriod(p)}
+            >
+              <Text style={[styles.chipText, period === p && styles.chipTextOn]}>
+                {PERIOD_LABEL[p]}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* The numbers, before anything is generated — including the ones a
+            vessel would rather not see. That is the point of showing them. */}
+        <Card>
+          <Text style={styles.windowLabel}>{preview.windowLabel}</Text>
+          <View style={styles.statRow}>
+            <Stat label="In scope" value={preview.inScope.length} />
+            <Stat label="Inspected" value={preview.done.length} />
+            <Stat label="Outstanding" value={preview.missed.length} bad={preview.missed.length > 0} />
+            <Stat label="Defects" value={preview.defects.length} bad={preview.defects.length > 0} />
+          </View>
+        </Card>
+
+        {busy ? (
+          <ActivityIndicator color={COLORS.primary} style={{ marginVertical: SIZES.lg }} />
+        ) : (
+          <>
+            <View style={styles.btnRow}>
+              <TouchableOpacity
+                style={[styles.btn, styles.outlineBtn]}
+                onPress={() => runInspectionReport('pdf')}
+              >
+                <Text style={[styles.btnText, styles.outlineText]}>Export PDF</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.btn, styles.outlineBtn]}
+                onPress={() => runInspectionReport('xlsx')}
+              >
+                <Text style={[styles.btnText, styles.outlineText]}>Export XLSX</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={[styles.btn, styles.zipBtn]}
+              onPress={() => runInspectionReport('print')}
+            >
+              <Text style={styles.btnText}>Print</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        <Text style={styles.help}>
+          The report lists every inspection signed in this period with its date, exact time and the
+          crew member who carried it out — followed by the items still outstanding, and every defect
+          left open.
+        </Text>
+      </Screen>
+    );
+  }
+
   return (
     <Screen scroll>
       <ScreenTitle title="Reports" subtitle="Choose what to include, then export" help={10} />
+      {modeSwitch}
 
       <View style={styles.headRow}>
         <Text style={styles.sectionLabel}>
@@ -153,7 +295,49 @@ export default function ReportsSc() {
   );
 }
 
+function Stat({ label, value, bad }: { label: string; value: number; bad?: boolean }) {
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+  return (
+    <View style={styles.stat}>
+      <Text style={[styles.statValue, bad && { color: COLORS.danger }]}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
 const makeStyles = (COLORS: Palette) => StyleSheet.create({
+  modeRow: { flexDirection: 'row', gap: SIZES.sm, marginBottom: SIZES.lg },
+  modeBtn: {
+    flex: 1,
+    paddingVertical: SIZES.md,
+    borderRadius: SIZES.radiusMd,
+    alignItems: 'center',
+    backgroundColor: COLORS.cardSolid,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+  },
+  modeBtnOn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  modeText: { fontWeight: '700', color: COLORS.text },
+  modeTextOn: { color: COLORS.textWhite },
+  chipRow: { flexDirection: 'row', gap: SIZES.sm, marginBottom: SIZES.md, marginTop: SIZES.sm },
+  chip: {
+    flex: 1,
+    paddingVertical: SIZES.md,
+    borderRadius: SIZES.radiusMd,
+    alignItems: 'center',
+    backgroundColor: COLORS.cardSolid,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+  },
+  chipOn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  chipText: { fontWeight: '600', color: COLORS.text, fontSize: SIZES.small },
+  chipTextOn: { color: COLORS.textWhite },
+  windowLabel: { fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark },
+  statRow: { flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.md },
+  stat: { flex: 1, alignItems: 'center' },
+  statValue: { fontSize: SIZES.h3, fontWeight: '800', color: COLORS.primaryDark },
+  statLabel: { fontSize: SIZES.tiny, color: COLORS.textLight, textTransform: 'uppercase', marginTop: 2 },
   headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: SIZES.sm },
   sectionLabel: { fontSize: SIZES.small, color: COLORS.textLight, fontWeight: '700' },
   selectAll: { fontSize: SIZES.small, color: COLORS.primary, fontWeight: '700' },

@@ -76,7 +76,12 @@ export default function SplashSc({ onDone }: { onDone: () => void }) {
 
   return (
     <Animated.View style={[styles.fill, { opacity: container }]}>
-      {/* Base layer — octopus on white (matches the native splash). */}
+      {/* Base layer — octopus on the APP's background, which the native splash,
+          the web page and the app itself all use too. It was a hardcoded white,
+          which agreed with nothing: on web the browser paints its own canvas
+          before React runs (near-black in a dark system theme), so the splash
+          arrived as a white card on a dark page. One colour everywhere removes
+          both the mismatch and the flash. */}
       <View style={styles.octoFill}>
         <Animated.Image
           source={require('../assets/splash.png')}
@@ -109,8 +114,8 @@ export default function SplashSc({ onDone }: { onDone: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  fill: { flex: 1 },
-  octoFill: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  fill: { flex: 1, backgroundColor: COLORS.background },
+  octoFill: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background },
   octopus: { width: 260, height: 260 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: SIZES.xl },
   logo: { width: 243, height: 243, marginBottom: SIZES.xl },

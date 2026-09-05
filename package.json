@@ -10,8 +10,11 @@
     "web": "expo start --web",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "typecheck": "tsc --noEmit",
-    "aab": "node scripts/patch-android-signing.js && node scripts/patch-android-minify.js && node scripts/patch-android-edge-to-edge.js && cd android && ./gradlew bundleRelease",
-    "postinstall": "node scripts/patch-rn.js && node scripts/patch-android-signing.js && node scripts/patch-android-minify.js && node scripts/patch-android-edge-to-edge.js"
+    "aab": "node scripts/patch-native-version.js && node scripts/patch-android-signing.js && node scripts/patch-android-minify.js && node scripts/patch-android-edge-to-edge.js && cd android && ./gradlew bundleRelease",
+    "check:inspections": "tsc scripts/check-inspections.ts --outDir .check-tmp --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-tmp/ && node .check-tmp/scripts/check-inspections.js; rm -rf .check-tmp",
+    "postinstall": "node scripts/patch-rn.js && node scripts/patch-android-signing.js && node scripts/patch-android-minify.js && node scripts/patch-android-edge-to-edge.js && node scripts/patch-android-storage.js && node scripts/patch-android-memory.js && node scripts/patch-native-version.js",
+    "deploy:rules": "npx firebase-tools deploy --only firestore:rules --project marine-safety-manager",
+    "deploy:hosting": "npx firebase-tools deploy --only hosting --project marine-safety-manager"
   },
   "keywords": [
     "maritime",
@@ -34,6 +37,7 @@
     "@expo/vector-icons": "^15.0.3",
     "@mdi/js": "^7.4.47",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/netinfo": "11.4.1",
     "@react-native-picker/picker": "2.11.1",
     "@react-navigation/bottom-tabs": "^6.5.11",
     "@react-navigation/native": "^6.1.9",
@@ -46,6 +50,7 @@
     "expo-document-picker": "~14.0.8",
     "expo-file-system": "~19.0.21",
     "expo-font": "~14.0.12",
+    "expo-image-manipulator": "~14.0.8",
     "expo-image-picker": "~17.0.11",
     "expo-linear-gradient": "~15.0.8",
     "expo-notifications": "~0.32.17",

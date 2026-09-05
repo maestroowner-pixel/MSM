@@ -21,13 +21,21 @@ const LS_API = 'https://api.lemonsqueezy.com/v1';
 /** LemonSqueezy hosted checkout link for the yearly MSM Pro product. */
 export const LS_CHECKOUT_URL = 'https://kuka-lab.lemonsqueezy.com/checkout/buy/43d5ae44-87a1-4fd9-8eea-1253c2224651';
 /** Numeric store id — a key whose meta.store_id differs is rejected (0 = skip). */
-export const LS_STORE_ID = 0;
+export const LS_STORE_ID = 374407;
 /** Numeric product id — a key whose meta.product_id differs is rejected (0 = skip).
  *  Left at 0: the dashboard URL id (1197509) is NOT necessarily the API product_id,
  *  so checking it can reject valid keys. A key only exists for this store anyway. */
-export const LS_PRODUCT_ID = 0;
-/** Displayed fallback price until you localize it (LemonSqueezy has no price API here). */
-export const LS_PRICE_STRING = '€9.99';
+export const LS_PRODUCT_ID = 1205672;
+/**
+ * The vessel licence price, shown in the app. LemonSqueezy exposes no price API
+ * on this path, so it is written here and MUST be kept in step with the product
+ * in the LemonSqueezy dashboard — if they disagree, the customer sees one figure
+ * and is charged another.
+ *
+ * Per VESSEL (one IMO), per year — not per person and not per device. Every
+ * enrolled device on that vessel inherits the licence from the account.
+ */
+export const LS_PRICE_STRING = '€99';
 
 export function isLemonConfigured(): boolean {
   return !LS_CHECKOUT_URL.startsWith('PASTE');
@@ -36,6 +44,13 @@ export function isLemonConfigured(): boolean {
 export interface LicenseResult {
   ok: boolean;
   message?: string;
+  /**
+   * True when LemonSqueezy actually ANSWERED. A vessel at sea gets `ok:false`
+   * because the request never left the ship, and that must never be mistaken for
+   * "this licence is no longer valid" — the difference decides whether Pro is
+   * switched off. Only a definitive answer may revoke.
+   */
+  reachable?: boolean;
   /** Subscription expiry (ms epoch) if the key carries one, else null (perpetual). */
   expiresAt?: number | null;
   /** LemonSqueezy activation instance id (needed to deactivate later). */
@@ -63,8 +78,13 @@ function checkProduct(meta: any): string | null {
 }
 
 function readStatus(data: any): LicenseResult | null {
+  // For a yearly SUBSCRIPTION the key stays active and `expires_at` is null while
+  // the subscription runs; LemonSqueezy flips this STATUS when it ends. So status
+  // is the authority, not the date — a null expiry does not mean perpetual.
   const status = data?.license_key?.status; // active | expired | disabled | inactive
-  if (status && status !== 'active') return { ok: false, message: `License key is ${status}.` };
+  if (status && status !== 'active') {
+    return { ok: false, reachable: true, message: `License key is ${status}.` };
+  }
   const exp = data?.license_key?.expires_at;
   return {
     ok: true,
@@ -107,13 +127,15 @@ export async function validateLicense(key: string, instanceId?: string): Promise
     const params: Record<string, string> = { license_key };
     if (instanceId) params.instance_id = instanceId;
     const data = await lsPost('/licenses/validate', params);
-    if (data?.valid !== true) return { ok: false, message: humanError(data) };
+    if (data?.valid !== true) return { ok: false, reachable: true, message: humanError(data) };
     const bad = checkProduct(data?.meta);
-    if (bad) return { ok: false, message: bad };
+    if (bad) return { ok: false, reachable: true, message: bad };
     const parsed = readStatus(data);
-    return parsed ? { ...parsed, licenseKey: license_key } : { ok: false, message: 'Invalid license key.' };
+    return parsed
+      ? { ...parsed, reachable: true, licenseKey: license_key }
+      : { ok: false, reachable: true, message: 'Invalid license key.' };
   } catch (e: any) {
-    return { ok: false, message: `Could not reach LemonSqueezy: ${String(e?.message ?? e)}` };
+    return { ok: false, reachable: false, message: `Could not reach LemonSqueezy: ${String(e?.message ?? e)}` };
   }
 }
 

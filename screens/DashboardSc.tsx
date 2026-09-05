@@ -9,6 +9,7 @@ import { View, Text, FlatList, StyleSheet, TouchableOpacity, useWindowDimensions
 import { useNavigation } from '@react-navigation/native';
 import { Screen, ScreenTitle, Empty, statusColor, CategoryBadge, Glyph } from '../components/ui';
 import { TrialBanner } from '../components/TrialBanner';
+import { UpdateBanner } from '../components/UpdateBanner';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
@@ -16,6 +17,7 @@ import { CATEGORY_MAP } from '../constants/categories';
 import { gettingStarted } from '../constants/gettingStarted';
 import { complianceDate, computeStatus, daysUntil, formatDate } from '../utils/dates';
 import { ComplianceStatus, EquipmentItem, Group } from '../types/equipment';
+import * as inspections from '../services/inspections';
 
 type GroupFilter = 'ALL' | Group;
 type StatusFilter = 'expired' | 'due' | 'ok' | null;
@@ -30,6 +32,21 @@ const SORT_LABEL: Record<SortBy, string> = { date: 'Expiry date', position: 'Pos
 
 const titleOf = (it: EquipmentItem) => (it.type || (it.no != null ? `#${it.no}` : '')).toLowerCase();
 
+/** The Flagged / Recently-scanned strips are shortcuts, not registers — a few each. */
+const STRIP_CAP = 5;
+
+/** "just now" / "12m ago" / "3h ago" / "2d ago" — short, for the scanned strip. */
+function relScanned(ts?: number): string {
+  if (!ts) return '';
+  const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+  if (s < 60) return 'just now';
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.round(h / 24)}d ago`;
+}
+
 interface Scored {
   it: EquipmentItem;
   status: ComplianceStatus;
@@ -41,7 +58,7 @@ type ListEntry =
   | ({ kind: 'row'; key: string } & Scored);
 
 export default function DashboardSc() {
-  const { flat, loading, certificates } = useData();
+  const { flat, loading, certificates, isLocked, recentScans, inspections: trail } = useData();
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useS();
@@ -106,6 +123,47 @@ export default function DashboardSc() {
     return { listData, stats, total: rows.length };
   }, [flat, group, status, sortBy]);
 
+  // Two quick-access strips above the list: things a human flagged to revisit, and
+  // the labels just scanned on this device (ScanSc → services/scanHistory). Both are
+  // shortcuts back to an item, capped short. Rendered as the list header so they
+  // scroll away. The scan trail holds ids only — an entry whose item has since been
+  // deleted simply drops out here.
+  const flaggedRecent = useMemo(
+    () => flat.filter((i) => i.flagged).sort((a, b) => b.updatedAt - a.updatedAt).slice(0, STRIP_CAP),
+    [flat]
+  );
+
+  // Defects raised by a failed inspection and not yet rectified. Distinct from
+  // Flagged directly above it: a flag is a human saying "look at this again",
+  // a defect is a signed record saying the equipment failed its check. They sit
+  // next to each other because the crew needs both, and are never merged
+  // because only one of the two is evidence.
+  const openDefectItems = useMemo(() => {
+    const byId = new Map(flat.map((i) => [i.id, i]));
+    const seen = new Set<string>();
+    const out: EquipmentItem[] = [];
+    for (const insp of inspections.openDefects(trail)) {
+      if (seen.has(insp.itemId)) continue;
+      seen.add(insp.itemId);
+      const it = byId.get(insp.itemId);
+      if (it) out.push(it);
+      if (out.length >= STRIP_CAP) break;
+    }
+    return out;
+  }, [flat, trail]);
+
+  const openDefectCount = useMemo(
+    () => new Set(inspections.openDefects(trail).map((i) => i.itemId)).size,
+    [trail]
+  );
+  const recentScanned = useMemo(() => {
+    const byId = new Map(flat.map((i) => [i.id, i]));
+    return recentScans
+      .map((e) => ({ it: byId.get(e.id), at: e.at }))
+      .filter((r): r is { it: EquipmentItem; at: number } => r.it != null)
+      .slice(0, STRIP_CAP);
+  }, [flat, recentScans]);
+
   const toggleStatus = (s: Exclude<StatusFilter, null>) => setStatus((cur) => (cur === s ? null : s));
   const cycleGroup = () => setGroup((g) => GROUP_ORDER[(GROUP_ORDER.indexOf(g) + 1) % GROUP_ORDER.length]);
   const cycleSort = () => setSortBy((s) => SORT_ORDER[(SORT_ORDER.indexOf(s) + 1) % SORT_ORDER.length]);
@@ -134,13 +192,79 @@ export default function DashboardSc() {
       days={e.days}
       fill={fill}
       hasCert={certItemIds.has(e.it.id)}
-      onPress={() => nav.navigate('ItemDetail', { category: e.it.category, id: e.it.id })}
+      locked={isLocked(e.it.id)}
+      onPress={() =>
+        isLocked(e.it.id)
+          ? nav.navigate('Paywall')
+          : nav.navigate('ItemDetail', { category: e.it.category, id: e.it.id })
+      }
     />
+  );
+
+  const stripRow = (it: EquipmentItem, prefix: string, rightText?: string) => (
+    <DashRow
+      key={prefix + it.id}
+      item={it}
+      status={computeStatus(it)}
+      date={complianceDate(it)}
+      days={daysUntil(complianceDate(it))}
+      rightText={rightText}
+      locked={isLocked(it.id)}
+      onPress={() =>
+        isLocked(it.id)
+          ? nav.navigate('Paywall')
+          : nav.navigate('ItemDetail', { category: it.category, id: it.id })
+      }
+    />
+  );
+
+  // The two shortcut strips, rendered as the list header so they scroll with it.
+  // Flagged hides when there's nothing flagged; Recently scanned always shows its
+  // panel and just carries an empty line until the first scan.
+  const strips = (
+    <View>
+      <UpdateBanner />
+      {openDefectItems.length > 0 ? (
+        <>
+          <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('Defects')} activeOpacity={0.7}>
+            <Text style={styles.posHeaderText} numberOfLines={1}>🛠 Open defects</Text>
+            <Text style={styles.posHeaderCount}>{openDefectCount}</Text>
+            <Text style={styles.posHeaderChevron}>›</Text>
+          </TouchableOpacity>
+          {openDefectItems.map((it) => stripRow(it, 'd:'))}
+        </>
+      ) : null}
+      {flaggedRecent.length > 0 ? (
+        <>
+          <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('Flagged')} activeOpacity={0.7}>
+            <Text style={styles.posHeaderText} numberOfLines={1}>🚩 Flagged</Text>
+            <Text style={styles.posHeaderCount}>{flaggedRecent.length}</Text>
+            <Text style={styles.posHeaderChevron}>›</Text>
+          </TouchableOpacity>
+          {flaggedRecent.map((it) => stripRow(it, 'f:'))}
+        </>
+      ) : null}
+      <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('RecentScans')} activeOpacity={0.7}>
+        <Text style={styles.posHeaderText} numberOfLines={1}>📷 Recently scanned</Text>
+        {recentScanned.length > 0 ? <Text style={styles.posHeaderCount}>{recentScanned.length}</Text> : null}
+        <Text style={styles.posHeaderChevron}>›</Text>
+      </TouchableOpacity>
+      {recentScanned.length === 0 ? (
+        <Text style={styles.stripEmpty}>Nothing scanned yet — scan a label to jump back to it here.</Text>
+      ) : (
+        recentScanned.map((r) => stripRow(r.it, 's:', relScanned(r.at)))
+      )}
+    </View>
   );
 
   return (
     <Screen contentStyle={{ paddingBottom: 0 }}>
-      <ScreenTitle title="Dashboard" subtitle="Inspections & expiries, soonest first" help={6} />
+      <ScreenTitle
+        title="Dashboard"
+        subtitle="Inspections & expiries, soonest first"
+        help={6}
+        onScan={() => nav.navigate('Scan')}
+      />
 
       <TrialBanner />
 
@@ -163,13 +287,15 @@ export default function DashboardSc() {
 
       {loading ? null : flat.length === 0 ? (
         <GetStarted onStart={() => nav.navigate('GettingStarted')} />
-      ) : total === 0 ? (
-        <Empty text={status || group !== 'ALL' ? 'No items match the current filters.' : 'No items with dates yet. Import the LSA/FFE workbook from Settings.'} />
       ) : (
         <FlatList
           data={renderData}
           keyExtractor={(e) => e.key}
           contentContainerStyle={{ paddingBottom: SIZES.xxxl }}
+          ListHeaderComponent={strips}
+          ListEmptyComponent={
+            <Empty text={status || group !== 'ALL' ? 'No items match the current filters.' : 'No items with dates yet. Import the LSA/FFE workbook from Settings.'} />
+          }
           renderItem={({ item: e }) =>
             e.kind === 'header' ? (
               <View style={styles.posHeader}>
@@ -244,6 +370,8 @@ function DashRow({
   onPress,
   fill,
   hasCert,
+  rightText,
+  locked,
 }: {
   item: EquipmentItem;
   status: ComplianceStatus;
@@ -252,6 +380,11 @@ function DashRow({
   onPress: () => void;
   fill?: boolean;
   hasCert?: boolean;
+  // When set (the Recently-scanned strip), replaces the date/days column with a
+  // single muted line, e.g. "3h ago".
+  rightText?: string;
+  // Free-tier overflow lock — read-only; tap routes to the paywall.
+  locked?: boolean;
 }) {
   const styles = useS();
   const meta = CATEGORY_MAP[item.category];
@@ -260,7 +393,7 @@ function DashRow({
     days == null ? '' : days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? 'today' : `in ${days}d`;
   const attCount = item.attachments?.length ?? 0;
   return (
-    <TouchableOpacity style={[styles.row, fill && { flex: 1 }]} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity style={[styles.row, fill && { flex: 1 }, locked && { opacity: 0.55 }]} onPress={onPress} activeOpacity={0.7}>
       <View style={[styles.rowBar, { backgroundColor: statusColor(status) }]} />
       <View style={styles.rowEmoji}><CategoryBadge category={item.category} size={20} /></View>
       <View style={{ flex: 1 }}>
@@ -285,8 +418,16 @@ function DashRow({
         </Text>
       </View>
       <View style={{ alignItems: 'flex-end' }}>
-        <Text style={[styles.rowDate, { color: statusColor(status) }]}>{formatDate(date)}</Text>
-        <Text style={styles.rowDays}>{daysText}</Text>
+        {locked ? (
+          <Text style={styles.rowDays}>🔒</Text>
+        ) : rightText != null ? (
+          <Text style={styles.rowDays}>{rightText}</Text>
+        ) : (
+          <>
+            <Text style={[styles.rowDate, { color: statusColor(status) }]}>{formatDate(date)}</Text>
+            <Text style={styles.rowDays}>{daysText}</Text>
+          </>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -347,6 +488,8 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   },
   posHeaderText: { fontSize: SIZES.small, fontWeight: '800', color: COLORS.primaryDark, flex: 1 },
   posHeaderCount: { fontSize: SIZES.tiny, fontWeight: '700', color: COLORS.textLight, marginLeft: SIZES.sm },
+  posHeaderChevron: { fontSize: SIZES.h4, fontWeight: '700', color: COLORS.textLight, marginLeft: SIZES.xs },
+  stripEmpty: { fontSize: SIZES.small, color: COLORS.textLight, fontStyle: 'italic', paddingHorizontal: SIZES.sm, paddingBottom: SIZES.sm, marginBottom: SIZES.xs },
   pairRow: { flexDirection: 'row', gap: SIZES.sm, alignItems: 'stretch' },
   row: {
     flexDirection: 'row',

@@ -1,7 +1,56 @@
 // ===================================
-// Firebase sync (mirrors MHM's firebaseService pattern)
-// Auth via IMO -> fake email, Realtime DB per-category sync,
-// simple device-approval (first device = Master).
+// Firebase sync — FIRESTORE storage for the register, the trail and the crew.
+//
+// THIS FILE NO LONGER SIGNS ANYONE IN. A device gets its session from
+// `services/enrolment.ts`, which calls the `enrol` / `refresh` Cloud Functions
+// and receives a custom token carrying `{ vessel, role, approved, deviceId }`;
+// firestore.rules is written against those claims. What lives here is the
+// storage layer that runs once a session exists.
+//
+// Removed in Sep 2026 (~500 lines): `signInVessel` / `changeConnectionPassword`
+// and the whole shared-connection-password model, the client-side device
+// approval it came with (`registerDevice`, `approveDevice`, `transferMaster`,
+// `resetMaster`, ghost pruning) and the Windows REST auth path that existed only
+// to serve them. Two reasons it had to go rather than sit dormant. It keyed the
+// register by the Firebase uid, and since enrolment that uid is per-device
+// (`<imo>__<deviceId>`) — so a device reaching that path wrote the vessel's
+// register to a second document beside the real one. And it enforced roles by
+// agreement between colleagues; the server enforces them now, which is what
+// makes revoking one person possible without changing a password for everybody.
+// Device management moved to `services/accounts.ts` + Settings → Accounts.
+//
+// Crew still do not have personal accounts. At 0300 on a shared bridge tablet a
+// forgotten password must not be able to stop a safety round — the DEVICE is
+// enrolled, and accountability comes from the SIGNATURE on each inspection.
+//
+// The TRANSPORT was Realtime Database and is now Firestore, following the
+// approach proven in DEM/NSeaStoreManager (`/Users/DEM`). What that buys:
+// per-document writes, so two officers inspecting on two phones write two
+// documents instead of racing for one tree; a real offline queue; and live
+// `onSnapshot` updates instead of manual Push/Pull.
+//
+// LAYOUT — the one thing to keep in your head:
+//
+//   safety_vessels/{uid}                     the account document
+//       register        the whole equipment register as ONE JSON string
+//       masterDeviceId, entitlement, trialFirstLaunch
+//   safety_vessels/{uid}/devices/{deviceId}          written by functions/accounts
+//   safety_vessels/{uid}/pending_devices/{deviceId}
+//   safety_vessels/{uid}/inspections/{id}    ONE DOCUMENT PER SIGNED RECORD
+//   safety_vessels/{uid}/crew/{id}
+//
+// The register is a JSON string rather than a nested map on purpose. Firestore
+// limits a document to 1 MiB and ~20k index entries, and item `extra` keys come
+// from arbitrary Excel column headers — as a map those become field names and
+// every one of them gets indexed. As a string it is opaque, cannot collide with
+// Firestore's field-name rules, and needs none of RTDB's `~xx` key escaping.
+// 627 items is roughly 125 KB, comfortably inside the cap.
+//
+// Inspections are NOT in that string, and must never be moved into it: the trail
+// is append-only and grows for the life of the vessel (~2 MB/year at 600 items a
+// month), which would hit the 1 MiB ceiling inside the first year. One document
+// per record has no ceiling and — because records are immutable and carry unique
+// ids — cannot conflict between devices at all.
 //
 // ⚠️ PASTE YOUR FIREBASE WEB CONFIG BELOW to enable cloud sync.
 // Until then isConfigured() returns false and the app stays local-only.
@@ -12,24 +61,32 @@
 // resolves the browser ESM build (references DOMException/PerformanceEntry that Hermes
 // lacks → "Property 'DOMException' doesn't exist"). @firebase/auth exposes a
 // `react-native` export condition → clean RN build. (Same approach as MHM.)
-import { Platform, NativeModules } from 'react-native';
+import { Platform } from 'react-native';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, initializeAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updatePassword, Auth } from '@firebase/auth';
+import { getAuth, initializeAuth, Auth } from '@firebase/auth';
 import {
-  getDatabase,
-  ref as fbRef,
-  get as fbGet,
-  set as fbSet,
-  update as fbUpdate,
-  remove as fbRemove,
-  Database,
-} from 'firebase/database';
+  getFirestore,
+  doc as fsDoc,
+  collection as fsCollection,
+  getDoc as fsGetDoc,
+  getDocs as fsGetDocs,
+  setDoc as fsSetDoc,
+  deleteDoc as fsDeleteDoc,
+  writeBatch as fsWriteBatch,
+  onSnapshot as fsOnSnapshot,
+  query as fsQuery,
+  where as fsWhere,
+  Firestore,
+} from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CategoryKey, EquipmentItem } from '../types/equipment';
 import { Certificate } from '../types/certificate';
 import { normalizeCompressorState } from '../types/compressor';
+import { Inspection } from '../types/inspection';
+import { CrewMember } from '../types/crew';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from './storage';
+import { mergeCrew, mergeInspections } from './inspections';
 
 // getReactNativePersistence ships only in the RN bundle (not in the default TS types).
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -39,9 +96,9 @@ const { getReactNativePersistence } = require('@firebase/auth') as {
 
 // ---- CONFIG ---------------------------------------------------------------
 // Project: marine-safety-manager.
-// NOTE: databaseURL is NOT in the web config until the Realtime Database is
-// created in the console. After creating it, confirm the region matches below
-// (assumed europe-west1, same as MHM); the console shows the exact URL.
+// Storage is Firestore. `databaseURL` is kept only because the Realtime Database
+// still holds the data of vessels that synced before this change — see the
+// migration note in CLAUDE.md. Nothing in this file reads it any more.
 export const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyDkYyhyLpz05Xsj0CLus3ncJmPQIk1FLR8',
   authDomain: 'marine-safety-manager.firebaseapp.com',
@@ -60,9 +117,9 @@ export function isConfigured(): boolean {
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
-let db: Database | null = null;
+let db: Firestore | null = null;
 
-function ensureInit(): { auth: Auth | null; db: Database | null } {
+function ensureInit(): { auth: Auth | null; db: Firestore | null } {
   if (!isConfigured()) throw new Error('Firebase is not configured. Add your apiKey in firebaseService.ts.');
   // Windows talks to Firebase over REST (see below) — no JS SDK auth/db init.
   if (onWindows) return { auth: null, db: null };
@@ -75,178 +132,183 @@ function ensureInit(): { auth: Auth | null; db: Database | null } {
       // Already initialized (fast refresh) or persistence unavailable -> fall back.
       auth = getAuth(app);
     }
-    db = getDatabase(app);
+    db = getFirestore(app);
   }
   return { auth: auth!, db: db! };
 }
 
-function imoEmail(imo: string): string {
-  return `imo.${imo.replace(/\D/g, '')}@marinesafety.app`;
-}
-
 // ============================================================================
 // Windows REST path (react-native-windows)
-// firebase/auth's RN persistence and the JS DB transport don't run on rnw, so on
-// Windows we talk to Firebase Auth + Realtime Database over REST via the native
-// RNCWindowsFileManager.httpRequest module. The local ref/get/set/update/remove
-// wrappers below branch on platform, so the rest of this file is unchanged.
+//
+// AUTH still works over REST here. STORAGE no longer does, and that is a
+// deliberate, documented regression rather than an oversight:
+//
+// RTDB's REST API accepts the ID token as a query parameter (`?auth=<token>`),
+// which is the only reason this path ever worked — `RNCWindowsFileManager
+// .httpRequest` takes (method, url, body, contentType) and cannot set headers.
+// Firestore's REST API has no query-parameter equivalent; it requires
+// `Authorization: Bearer`. So syncing from react-native-windows needs the native
+// module to grow header support first (FileManagerModule.h), which has to be
+// built and tested on a Windows machine.
+//
+// This is a small loss in practice: the Windows story is now the browser build
+// in `../MSM Win Web`, which runs the JS SDK and syncs normally. Everything else
+// on Windows — local register, Excel import, XLSX export, .msm backup — is
+// untouched, and `syncSupported()` lets the UI say so honestly instead of
+// failing at the first write.
 // ============================================================================
 const onWindows = Platform.OS === 'windows';
-const AUTH_URL = 'https://identitytoolkit.googleapis.com/v1/accounts';
-const SECURETOKEN_URL = 'https://securetoken.googleapis.com/v1/token';
-const FB_ID_TOKEN_KEY = 'msm:fb_id_token';
-const FB_REFRESH_TOKEN_KEY = 'msm:fb_refresh_token';
-const FB_UID_KEY = 'msm:fb_uid';
 
-let _idToken: string | null = null;
+/** Why Windows cannot sync, in the words the user should see. */
+export const WINDOWS_SYNC_MESSAGE =
+  'Cloud sync is not available in the Windows desktop build yet. Use the browser version, ' +
+  'or move data with a .msm backup — the register, inspections and crew all travel in it.';
 
-async function nativeHttp(method: string, url: string, body?: object): Promise<any> {
-  const fn = (NativeModules as any).RNCWindowsFileManager?.httpRequest;
-  if (typeof fn !== 'function') {
-    throw new Error('Native HTTP module (RNCWindowsFileManager) is not available.');
-  }
-  const text: string = await fn(method, url, body ? JSON.stringify(body) : '', 'application/json');
-  if (!text) return null;
-  let parsed: any;
-  try {
-    parsed = JSON.parse(text);
-  } catch {
-    throw new Error('Invalid JSON response from Firebase.');
-  }
-  if (parsed?.error) {
-    const msg = typeof parsed.error === 'string' ? parsed.error : parsed.error?.message ?? 'Firebase error';
-    throw new Error(msg);
-  }
-  return parsed;
+/** Can this platform sync at all? The UI asks before offering the buttons. */
+export function syncSupported(): boolean {
+  return !onWindows;
 }
+// ---- Firestore access layer -------------------------------------------------
+// The `ref / get / set / update / remove` shape below is RTDB's, re-implemented
+// over Firestore. It was kept because the device-approval code was written
+// against it; that code is gone now, but the register and trail functions still
+// read this way and there is nothing to gain from rewriting them a second time.
+//
+// Two things RTDB allowed that Firestore does not, handled here once:
+//
+//   1. A leaf can hold a bare scalar. `master_device_id` was a string sitting at
+//      a path; Firestore has no such thing, so those paths are mapped to FIELDS
+//      of the account document (ACCOUNT_FIELDS below).
+//   2. `update` on a missing node creates it. Firestore's updateDoc throws, so
+//      update() is implemented as setDoc(..., { merge: true }).
 
-/** POST to the Identity Toolkit (REST auth). Maps the error to an auth/* code. */
-async function authRest(endpoint: string, body: object): Promise<any> {
-  const data = await nativeHttp('POST', `${AUTH_URL}:${endpoint}?key=${FIREBASE_CONFIG.apiKey}`, body);
-  if (data?.error) {
-    const code = data.error.message ?? 'UNKNOWN_ERROR';
-    const err: any = new Error(code);
-    err.code = 'auth/' + String(code).toLowerCase().replace(/[_\s:.]+/g, '-');
-    throw err;
-  }
-  return data;
-}
-
-async function persistWindowsAuth(data: any): Promise<void> {
-  _idToken = data.idToken;
-  await AsyncStorage.multiSet([
-    [FB_ID_TOKEN_KEY, data.idToken],
-    [FB_REFRESH_TOKEN_KEY, data.refreshToken],
-    [FB_UID_KEY, data.localId],
-  ]);
-}
-
-async function refreshWindowsToken(): Promise<boolean> {
-  try {
-    const refreshToken = await AsyncStorage.getItem(FB_REFRESH_TOKEN_KEY);
-    if (!refreshToken) return false;
-    const data = await nativeHttp('POST', `${SECURETOKEN_URL}?key=${FIREBASE_CONFIG.apiKey}`, {
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-    });
-    if (!data?.id_token) return false;
-    _idToken = data.id_token;
-    await AsyncStorage.multiSet([
-      [FB_ID_TOKEN_KEY, data.id_token],
-      [FB_REFRESH_TOKEN_KEY, data.refresh_token ?? refreshToken],
-    ]);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/** Load a saved token so RTDB calls work after an app restart on Windows. */
-async function restoreWindowsToken(): Promise<void> {
-  if (_idToken) return;
-  _idToken = await AsyncStorage.getItem(FB_ID_TOKEN_KEY);
-  if (_idToken) refreshWindowsToken().catch(() => {});
-}
-
-function dbUrl(path: string): string {
-  return `${FIREBASE_CONFIG.databaseURL}/${path}.json?auth=${_idToken}`;
-}
-
-/** RTDB over REST (Windows), with one transparent token refresh on auth failure. */
-async function winDb(method: string, path: string, body?: object): Promise<any> {
-  if (!_idToken) await restoreWindowsToken();
-  if (!_idToken) throw new Error('Not signed in.');
-  try {
-    return await nativeHttp(method, dbUrl(path), body);
-  } catch (e: any) {
-    const msg: string = e?.message ?? '';
-    if (/expired|invalid|INVALID_ID_TOKEN|401|403|permission/i.test(msg)) {
-      if (await refreshWindowsToken()) return await nativeHttp(method, dbUrl(path), body);
-    }
-    throw e;
-  }
-}
-
-// ---- Platform-branching DB ops (drop-in for firebase/database) --------------
-function ref(db: any, path: string): any {
-  return onWindows ? { __path: path } : fbRef(db, path);
-}
-async function get(r: any): Promise<{ val: () => any }> {
-  if (onWindows) {
-    const v = await winDb('GET', r.__path);
-    return { val: () => v ?? null };
-  }
-  return fbGet(r);
-}
-async function set(r: any, data: any): Promise<void> {
-  if (onWindows) {
-    await winDb('PUT', r.__path, data);
-    return;
-  }
-  await fbSet(r, data);
-}
-async function update(r: any, data: any): Promise<void> {
-  if (onWindows) {
-    await winDb('PATCH', r.__path, data);
-    return;
-  }
-  await fbUpdate(r, data);
-}
-async function remove(r: any): Promise<void> {
-  if (onWindows) {
-    await winDb('DELETE', r.__path);
-    return;
-  }
-  await fbRemove(r);
-}
-
-// ---- Connection password ---------------------------------------------------
-// The vessel's Firebase account password. The first device to connect creates
-// the account with this password; every later device must supply the same one,
-// so knowing the (public) IMO alone is not enough to join the vessel.
-export const MIN_PASSWORD_LENGTH = 6; // Firebase Auth minimum
-const CONN_PW_KEY = 'msm:conn_password';
-
-/** The connection password saved on this device (so the user re-enters it rarely). */
-export async function getSavedPassword(): Promise<string | null> {
-  return AsyncStorage.getItem(CONN_PW_KEY);
-}
-export async function savePassword(pw: string): Promise<void> {
-  await AsyncStorage.setItem(CONN_PW_KEY, pw);
-}
-export async function clearSavedPassword(): Promise<void> {
-  await AsyncStorage.removeItem(CONN_PW_KEY);
-}
-
-const PLATFORM_LABELS: Record<string, string> = {
-  ios: 'iPhone / iPad',
-  android: 'Android',
-  macos: 'macOS',
-  windows: 'Windows',
+/** Paths that were RTDB leaves and are now fields of `safety_vessels/{uid}`. */
+const ACCOUNT_FIELDS: Record<string, string> = {
+  master_device_id: 'masterDeviceId',
+  entitlement: 'entitlement',
+  'trial/firstLaunch': 'trialFirstLaunch',
 };
+
+type Target =
+  | { kind: 'doc'; path: string[] }
+  | { kind: 'collection'; path: string[] }
+  | { kind: 'field'; uid: string; field: string };
+
+/**
+ * Resolve `safety_vessels/{uid}/...` into what Firestore should touch.
+ * An odd number of segments is a collection, an even number a document —
+ * except the account-field paths above.
+ */
+function ref(_db: any, path: string): Target {
+  const seg = path.split('/').filter(Boolean);
+  if (seg[0] !== ROOT) throw new Error(`Unexpected sync path: ${path}`);
+  const uid = seg[1];
+  const rest = seg.slice(2).join('/');
+  const field = ACCOUNT_FIELDS[rest];
+  if (field) return { kind: 'field', uid, field };
+  return { kind: seg.length % 2 === 0 ? 'doc' : 'collection', path: seg };
+}
+
+function requireDb(): Firestore {
+  const { db: d } = ensureInit();
+  if (!d) throw new Error(WINDOWS_SYNC_MESSAGE);
+  return d;
+}
+
+function asDoc(t: Extract<Target, { kind: 'doc' }>) {
+  const [head, ...tail] = t.path;
+  return fsDoc(requireDb(), head, ...tail);
+}
+
+function asCollection(t: Extract<Target, { kind: 'collection' }>) {
+  const [head, ...tail] = t.path;
+  return fsCollection(requireDb(), head, ...tail);
+}
+
+function accountDoc(uid: string) {
+  return fsDoc(requireDb(), ROOT, uid);
+}
+
+/**
+ * Reads. Returns RTDB's `{ val() }` shape so the callers below read unchanged:
+ * a document yields its data or null, a collection yields a map keyed by
+ * document id (exactly what `Object.entries(...)` over an RTDB node gave).
+ */
+async function get(t: Target): Promise<{ val: () => any }> {
+  if (t.kind === 'field') {
+    const snap = await fsGetDoc(accountDoc(t.uid));
+    const v = snap.exists() ? (snap.data() as any)[t.field] : undefined;
+    return { val: () => (v === undefined ? null : v) };
+  }
+  if (t.kind === 'doc') {
+    const snap = await fsGetDoc(asDoc(t));
+    return { val: () => (snap.exists() ? snap.data() : null) };
+  }
+  const snap = await fsGetDocs(asCollection(t));
+  if (snap.empty) return { val: () => null };
+  const out: Record<string, any> = {};
+  snap.forEach((d) => {
+    out[d.id] = d.data();
+  });
+  return { val: () => out };
+}
+
+/** Replace. */
+async function set(t: Target, data: any): Promise<void> {
+  if (t.kind === 'field') {
+    // stripUndefined here too, not only on whole documents. Firestore rejects an
+    // `undefined` ANYWHERE in the payload, and the field branch skipped the
+    // strip: saving a licence whose `instanceId` was absent — which happens the
+    // moment activation falls back to validate — failed the entire write with
+    // "Unsupported field value: undefined (found in field entitlement.instanceId)".
+    await fsSetDoc(accountDoc(t.uid), { [t.field]: stripUndefined(data) }, { merge: true });
+    return;
+  }
+  if (t.kind !== 'doc') throw new Error('Cannot write a whole collection at once.');
+  await fsSetDoc(asDoc(t), stripUndefined(data));
+}
+
+/** Merge — and create if absent, which is what RTDB's update did. */
+async function update(t: Target, data: any): Promise<void> {
+  if (t.kind === 'field') {
+    await fsSetDoc(accountDoc(t.uid), { [t.field]: stripUndefined(data) }, { merge: true });
+    return;
+  }
+  if (t.kind !== 'doc') throw new Error('Cannot update a whole collection at once.');
+  await fsSetDoc(asDoc(t), stripUndefined(data), { merge: true });
+}
+
+async function remove(t: Target): Promise<void> {
+  if (t.kind === 'field') {
+    await fsSetDoc(accountDoc(t.uid), { [t.field]: null }, { merge: true });
+    return;
+  }
+  if (t.kind !== 'doc') throw new Error('Cannot delete a whole collection at once.');
+  await fsDeleteDoc(asDoc(t));
+}
+
+/**
+ * Firestore rejects `undefined` outright, where RTDB silently dropped the key.
+ * Several device records are built with spreads that can leave one behind
+ * (`...(hwId ? { hwId } : {})` guards some, `meta.vesselName` does not), so this
+ * keeps a missing optional from turning into a failed write.
+ */
+function stripUndefined<T>(value: T): T {
+  if (Array.isArray(value)) return value.map(stripUndefined) as unknown as T;
+  if (value && typeof value === 'object') {
+    const out: Record<string, any> = {};
+    for (const [k, v] of Object.entries(value as Record<string, any>)) {
+      if (v !== undefined) out[k] = stripUndefined(v);
+    }
+    return out as T;
+  }
+  return value;
+}
 
 const LEGACY_DEVICE_KEY = 'msm:device_id'; // AsyncStorage (legacy; used on Windows / as fallback)
 const SECURE_DEVICE_KEY = 'msm_device_id'; // SecureStore key (only [A-Za-z0-9._-] allowed)
+/** The device's enrolment secret — what `refresh` requires instead of a PIN. */
+const SECURE_SECRET_KEY = 'msm_device_secret';
 
 function genDeviceId(): string {
   return `dev_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -310,480 +372,326 @@ async function deviceId(): Promise<string> {
 }
 
 /** Stable id for this device (exported for the UI to flag "this device"). */
+/** The initialised app, or null when Firebase is unconfigured / on Windows. */
+export function firebaseApp(): FirebaseApp | null {
+  try {
+    ensureInit();
+    return app;
+  } catch {
+    return null;
+  }
+}
+
+/** The Firestore handle, for the modules that talk to it directly. */
+export function firestoreDb(): Firestore {
+  return requireDb();
+}
+
+/** Auth for the enrolment client, which signs in with a custom token. */
+export function ensureAuth(): Auth {
+  const a = ensureInit().auth;
+  if (!a) throw new Error(WINDOWS_SYNC_MESSAGE);
+  return a;
+}
+
+/**
+ * The enrolment secret. SecureStore where there is one, AsyncStorage otherwise —
+ * the same fallback the device id already uses, and for the same reason: a
+ * secret that cannot be stored is a device that can never refresh its token.
+ */
+export async function saveDeviceSecret(secret: string): Promise<void> {
+  const SS = getSecureStore();
+  try {
+    if (SS) {
+      await SS.setItemAsync(SECURE_SECRET_KEY, secret);
+      return;
+    }
+  } catch {
+    /* fall through to AsyncStorage */
+  }
+  await AsyncStorage.setItem(`msm:${SECURE_SECRET_KEY}`, secret);
+}
+
+export async function getDeviceSecret(): Promise<string | null> {
+  const SS = getSecureStore();
+  try {
+    if (SS) {
+      const v = await SS.getItemAsync(SECURE_SECRET_KEY);
+      if (v) return v;
+    }
+  } catch {
+    /* fall through */
+  }
+  return AsyncStorage.getItem(`msm:${SECURE_SECRET_KEY}`);
+}
+
+export async function clearDeviceSecret(): Promise<void> {
+  const SS = getSecureStore();
+  try {
+    if (SS) await SS.deleteItemAsync(SECURE_SECRET_KEY);
+  } catch {
+    /* ignore */
+  }
+  await AsyncStorage.removeItem(`msm:${SECURE_SECRET_KEY}`);
+}
+
 export async function getLocalDeviceId(): Promise<string> {
   return deviceId();
 }
 
-// Stable per-PHONE identity (survives an app reinstall), used to collapse the
-// duplicate cloud records a single physical device accumulates when it
-// re-registers with a fresh deviceId (e.g. an Android reinstall has no Keychain,
-// so deviceId() regenerates). iOS → identifierForVendor, Android → SSAID.
-// Defensive lazy-load (mirrors getSecureStore): returns null on Windows / when
-// the native module isn't in the build, so callers degrade to no-dedup.
-let _hwId: string | null | undefined;
-async function hardwareId(): Promise<string | null> {
-  if (_hwId !== undefined) return _hwId;
-  let val: string | null = null;
-  if (Platform.OS === 'ios' || Platform.OS === 'android') {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const App = require('expo-application');
-      val =
-        Platform.OS === 'ios'
-          ? (await App.getIosIdForVendorAsync()) || null
-          : App.getAndroidId?.() || null;
-    } catch {
-      val = null;
-    }
-  }
-  _hwId = val;
-  return val;
+// ---- Register + inspections + crew ------------------------------------------
+// RTDB's `~xx` key escaping used to live here, because item `extra` keys come
+// from Excel column headers ("PLB (Ser.#)") and RTDB forbids . # $ / [ ] in a
+// key. It is gone: the register now travels as ONE JSON STRING, so those keys
+// are never field names at all and nothing needs escaping. That also keeps the
+// arbitrary headers out of Firestore's index, which has its own per-document
+// limits and would have been the next thing to break.
+
+const REGISTER_FIELD = 'register';
+/** Firestore caps a document at 1 MiB; warn with room to act. */
+const REGISTER_WARN_BYTES = 700 * 1024;
+
+/** Everything the register blob carries. Inspections are deliberately not in it. */
+interface RegisterBlob {
+  categories: Record<string, EquipmentItem[]>;
+  vessel_info?: any;
+  certificates?: Certificate[];
+  compressor?: any;
 }
 
-/** Metadata stored for a device record (vessel name read from local storage). */
-async function deviceMeta() {
-  const vessel = await storage.loadVessel().catch(() => null);
-  const hwId = await hardwareId();
-  return {
-    platform: Platform.OS,
-    platformLabel: PLATFORM_LABELS[Platform.OS] ?? Platform.OS,
-    vesselName: vessel?.vessel_name ?? '',
-    // Only set when known — never write `hwId: null` into the record.
-    ...(hwId ? { hwId } : {}),
-    lastSeen: Date.now(),
+/** Push the whole register as one document write. */
+export async function pushAll(uid: string): Promise<number> {
+  const byCategory = await storage.loadAll();
+  let total = 0;
+  const categories: Record<string, EquipmentItem[]> = {};
+  for (const c of CATEGORIES) {
+    categories[c.key] = byCategory[c.key];
+    total += byCategory[c.key].length;
+  }
+  const blob: RegisterBlob = {
+    categories,
+    vessel_info: (await storage.loadVessel()) ?? undefined,
+    certificates: await storage.loadCertificates(),
+    compressor: await storage.loadCompressor(),
   };
+
+  const json = JSON.stringify(blob);
+  if (json.length > REGISTER_WARN_BYTES) {
+    console.warn(
+      `[sync] register is ${(json.length / 1024).toFixed(0)} KB — Firestore caps a document at ` +
+        `1 MiB. Time to split the categories into their own documents.`
+    );
+  }
+
+  await fsSetDoc(
+    accountDoc(uid),
+    { [REGISTER_FIELD]: json, registerUpdatedAt: Date.now(), registerDeviceId: await deviceId() },
+    { merge: true }
+  );
+  await pushInspections(uid);
+  return total;
 }
 
-/**
- * Sign in to the vessel account (IMO → email) with the connection password.
- * If the account doesn't exist yet, the first device provisions it with this
- * password. A wrong password for an existing vessel is rejected by Firebase.
- */
-export async function signInVessel(imo: string, password: string): Promise<string> {
-  const email = imoEmail(imo);
-  const pass = (password ?? '').trim();
-  if (pass.length < MIN_PASSWORD_LENGTH) {
-    throw new Error(`Connection password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-  }
+/** Pull the register (replaces local) and merge the trail into it. */
+export async function pullAll(uid: string): Promise<number> {
+  const snap = await fsGetDoc(accountDoc(uid));
+  const raw = snap.exists() ? (snap.data() as any)[REGISTER_FIELD] : null;
+  let total = 0;
 
-  // Windows: REST auth (sign in; if the account doesn't exist, provision it).
-  if (onWindows) {
-    if (!isConfigured()) throw new Error('Firebase is not configured. Add your apiKey in firebaseService.ts.');
+  if (typeof raw === 'string' && raw) {
+    let blob: RegisterBlob;
     try {
-      const data = await authRest('signInWithPassword', { email, password: pass, returnSecureToken: true });
-      await persistWindowsAuth(data);
-      return data.localId;
-    } catch (e: any) {
-      const code: string = e?.code ?? '';
-      if (/invalid-credential|invalid-login|email-not-found|invalid-password|user-not-found|wrong-password/.test(code)) {
-        try {
-          const data = await authRest('signUp', { email, password: pass, returnSecureToken: true });
-          await persistWindowsAuth(data);
-          return data.localId;
-        } catch (e2: any) {
-          const c2: string = e2?.code ?? '';
-          if (c2.includes('email-exists')) throw new Error('Wrong connection password for this vessel.');
-          if (c2.includes('weak-password')) {
-            throw new Error(`Connection password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-          }
-          throw e2;
-        }
-      }
-      throw e;
-    }
-  }
-
-  const auth = ensureInit().auth!;
-  try {
-    const cred = await signInWithEmailAndPassword(auth, email, pass);
-    return cred.user.uid;
-  } catch (e: any) {
-    const code: string = e?.code ?? '';
-    // Modern Firebase (email-enumeration protection) returns 'auth/invalid-credential'
-    // for BOTH a missing account and a wrong password, so we can't tell them apart
-    // from the sign-in error alone. Try to provision: if the account already exists,
-    // the create call fails with email-already-in-use → the password was wrong.
-    if (code === 'auth/invalid-credential' || code === 'auth/user-not-found' || code === 'auth/wrong-password') {
-      try {
-        const cred = await createUserWithEmailAndPassword(auth, email, pass);
-        return cred.user.uid;
-      } catch (e2: any) {
-        if (e2?.code === 'auth/email-already-in-use') {
-          throw new Error('Wrong connection password for this vessel.');
-        }
-        if (e2?.code === 'auth/weak-password') {
-          throw new Error(`Connection password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-        }
-        throw e2;
-      }
-    }
-    throw e;
-  }
-}
-
-/**
- * Change the vessel's connection password (the shared Firebase Auth password).
- * Verifies the OLD password first, then sets the new one. After this, other
- * devices that stored the old password must re-enter the new one to sync.
- * Master-only is enforced by the caller (UI). Returns nothing on success.
- */
-export async function changeConnectionPassword(imo: string, oldPw: string, newPw: string): Promise<void> {
-  const email = imoEmail(imo);
-  const oldPass = (oldPw ?? '').trim();
-  const newPass = (newPw ?? '').trim();
-  if (newPass.length < MIN_PASSWORD_LENGTH) {
-    throw new Error(`New password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-  }
-  if (newPass === oldPass) throw new Error('New password must be different from the current one.');
-
-  if (onWindows) {
-    if (!isConfigured()) throw new Error('Firebase is not configured.');
-    // Verify the old password (and get a fresh idToken), then update it.
-    let idToken: string;
-    try {
-      const data = await authRest('signInWithPassword', { email, password: oldPass, returnSecureToken: true });
-      idToken = data.idToken;
+      blob = JSON.parse(raw) as RegisterBlob;
     } catch {
-      throw new Error('Wrong current password.');
+      throw new Error('The register stored in the cloud could not be read.');
     }
-    const updated = await authRest('update', { idToken, password: newPass, returnSecureToken: true });
-    await persistWindowsAuth(updated);
-    await savePassword(newPass);
-    return;
-  }
 
-  // Re-authenticate by signing in with the OLD password (recent login lets
-  // updatePassword succeed), then set the new password on the current user.
-  await signInVessel(imo, oldPass); // throws "Wrong connection password…" if old is wrong
-  const auth = ensureInit().auth!;
-  if (!auth.currentUser) throw new Error('Not signed in.');
-  await updatePassword(auth.currentUser, newPass);
-  await savePassword(newPass);
-}
-
-export type ApprovalStatus = 'master' | 'approved' | 'pending';
-
-export interface ConnectedDevice {
-  deviceId: string;
-  platform: string;
-  platformLabel: string;
-  vesselName?: string;
-  customName?: string;
-  hwId?: string;
-  lastSeen: number;
-  role: 'master' | 'member';
-  isThisDevice: boolean;
-}
-
-export interface PendingDevice {
-  deviceId: string;
-  platform: string;
-  platformLabel: string;
-  vesselName?: string;
-  requestedAt: number;
-  isThisDevice: boolean;
-}
-
-/**
- * Register this device under the vessel.
- * First device to connect becomes the Master and is auto-approved; every later
- * device lands in `pending_devices` until the Master approves it.
- */
-export async function registerDevice(uid: string): Promise<ApprovalStatus> {
-  const { db } = ensureInit();
-  const id = await deviceId();
-  const meta = await deviceMeta();
-  const hwId = (meta as { hwId?: string }).hwId;
-
-  const masterId = (await get(ref(db, `${ROOT}/${uid}/master_device_id`))).val() as string | null;
-
-  // No master yet → claim it (first connected device wins).
-  if (!masterId) {
-    await set(ref(db, `${ROOT}/${uid}/master_device_id`), id);
-    await set(ref(db, `${ROOT}/${uid}/devices/${id}`), { deviceId: id, role: 'master', ...meta });
-    return 'master';
-  }
-
-  // This device IS the Master (per master_device_id) → always recognized, even
-  // if its devices/ record was lost after a dropped connection. Re-assert the
-  // record and clear any stale pending request so it never gets stuck pending.
-  if (masterId === id) {
-    await set(ref(db, `${ROOT}/${uid}/devices/${id}`), { deviceId: id, role: 'master', ...meta });
-    await remove(ref(db, `${ROOT}/${uid}/pending_devices/${id}`));
-    await pruneDeviceGhosts(db, uid, id, hwId);
-    return 'master';
-  }
-
-  // Already an approved device → refresh its lastSeen / vessel name (and backfill
-  // hwId on older records that predate hardware-id tracking).
-  const existing = (await get(ref(db, `${ROOT}/${uid}/devices/${id}`))).val();
-  if (existing) {
-    await update(ref(db, `${ROOT}/${uid}/devices/${id}`), {
-      vesselName: meta.vesselName,
-      lastSeen: meta.lastSeen,
-      ...(hwId ? { hwId } : {}),
-    });
-    await pruneDeviceGhosts(db, uid, id, hwId);
-    return 'approved';
-  }
-
-  // Otherwise it's pending — (re)write the request so the Master can approve it.
-  await set(ref(db, `${ROOT}/${uid}/pending_devices/${id}`), {
-    deviceId: id,
-    platform: meta.platform,
-    platformLabel: meta.platformLabel,
-    vesselName: meta.vesselName,
-    ...(hwId ? { hwId } : {}),
-    requestedAt: meta.lastSeen,
-  });
-  return 'pending';
-}
-
-/**
- * Remove other `devices/` records that belong to the SAME physical device as
- * `keepId` (matched by hardware id) — the duplicates a phone leaves behind when
- * it re-registers with a fresh deviceId after a reinstall. Never deletes the
- * record we keep, nor the Master record (so the Master is never orphaned).
- */
-async function pruneDeviceGhosts(db: Database | null, uid: string, keepId: string, hwId?: string | null): Promise<void> {
-  if (!hwId) return;
-  const masterId = (await get(ref(db, `${ROOT}/${uid}/master_device_id`))).val() as string | null;
-  const data = (await get(ref(db, `${ROOT}/${uid}/devices`))).val() as Record<string, any> | null;
-  if (!data) return;
-  await Promise.all(
-    Object.entries(data).map(async ([key, v]) => {
-      const otherId = v.deviceId ?? key;
-      if (otherId === keepId || otherId === masterId) return;
-      if (v.hwId && v.hwId === hwId) {
-        await remove(ref(db, `${ROOT}/${uid}/devices/${otherId}`));
+    // ---- refuse to wipe a good local register --------------------------------
+    //
+    // This replaces every category with whatever arrived, so an empty or
+    // malformed blob erases the vessel's entire register — and the next push
+    // then writes that emptiness back to the cloud, which is how a recoverable
+    // glitch becomes permanent. Seen for real on 4 Sep 2026: a device came up,
+    // pulled an empty blob, lost 13 items, and pushed the emptiness over the
+    // good copy within the same minute.
+    //
+    // So: a blob with no `categories` object is not a register, and a blob with
+    // ZERO items does not get to overwrite a local copy that has some. A vessel
+    // that genuinely wants to clear its register does it locally and pushes —
+    // that direction is deliberate and reversible from a .msm backup. This one
+    // is neither.
+    if (!blob.categories || typeof blob.categories !== 'object') {
+      throw new Error('The register stored in the cloud is not in a readable shape.');
+    }
+    const incoming = CATEGORIES.reduce((n, c) => n + (blob.categories[c.key]?.length ?? 0), 0);
+    if (incoming === 0) {
+      const localCount = (await storage.loadFlat()).length;
+      if (localCount > 0) {
+        console.warn(
+          `[sync] refused an empty cloud register — this device holds ${localCount} items. ` +
+            'Push from here if the register really should be empty.'
+        );
+        await pullInspections(uid);
+        return localCount;
       }
-    })
+    }
+
+    for (const c of CATEGORIES) {
+      const items = (blob.categories?.[c.key] ?? []) as EquipmentItem[];
+      await storage.replaceCategory(c.key as CategoryKey, items);
+      total += items.length;
+    }
+    if (blob.vessel_info) await storage.saveVessel(blob.vessel_info);
+    if (blob.certificates) await storage.saveCertificates(blob.certificates);
+    if (blob.compressor) await storage.saveCompressor(normalizeCompressorState(blob.compressor));
+  }
+
+  await pullInspections(uid);
+  return total;
+}
+
+// ---- Inspections + crew: merge, not overwrite -------------------------------
+// The register is one document, so two devices editing the same ITEM still
+// conflict and the later write wins — honest, and unchanged from before.
+//
+// Inspections are different in kind. Records are append-only and carry a unique
+// id (types/inspection.ts), so two devices can never produce conflicting
+// versions of the SAME record, only different records. One Firestore document
+// per record turns that from "a merge we perform carefully" into "a collision
+// that cannot occur": several officers can work a round on separate phones all
+// day and nothing of anyone's is lost. `mergeInspections` still runs on pull to
+// settle the one case that CAN differ — a defect closed on one device while the
+// other still holds it open — by taking the later `updatedAt`.
+//
+// Known limit: the record travels, its photo FILES do not — binaries are not
+// uploaded (only the .msm backup carries them). A photo taken on one phone shows
+// as missing on another until Cloud Storage is added, which needs the Blaze plan.
+
+/** Firestore batches cap at 500 writes. */
+const BATCH_LIMIT = 450;
+
+async function writeInBatches(uid: string, sub: string, rows: Array<{ id: string; data: any }>): Promise<void> {
+  const d = requireDb();
+  for (let i = 0; i < rows.length; i += BATCH_LIMIT) {
+    const batch = fsWriteBatch(d);
+    for (const row of rows.slice(i, i + BATCH_LIMIT)) {
+      batch.set(fsDoc(d, ROOT, uid, sub, row.id), stripUndefined(row.data));
+    }
+    await batch.commit();
+  }
+}
+
+/**
+ * Push local records. Only what this device does not know to be already up
+ * there is written, so a routine sync on a vessel with two years of history
+ * costs a handful of writes rather than thousands.
+ */
+export async function pushInspections(uid: string): Promise<number> {
+  const list = await storage.loadInspections();
+  const crew = await storage.loadCrew();
+
+  if (list.length) {
+    await writeInBatches(uid, 'inspections', list.map((i) => ({ id: i.id, data: i })));
+  }
+  if (crew.length) {
+    await writeInBatches(uid, 'crew', crew.map((c) => ({ id: c.id, data: c })));
+  }
+  return list.length;
+}
+
+/** Pull the trail and the crew list, merging both into what this device holds. */
+export async function pullInspections(uid: string): Promise<number> {
+  const d = requireDb();
+
+  const iSnap = await fsGetDocs(fsCollection(d, ROOT, uid, 'inspections'));
+  const remote: Inspection[] = [];
+  iSnap.forEach((doc) => remote.push(doc.data() as Inspection));
+  const merged = mergeInspections(await storage.loadInspections(), remote);
+  await storage.saveInspections(merged);
+
+  const cSnap = await fsGetDocs(fsCollection(d, ROOT, uid, 'crew'));
+  const remoteCrew: CrewMember[] = [];
+  cSnap.forEach((doc) => remoteCrew.push(doc.data() as CrewMember));
+  await storage.saveCrew(mergeCrew(await storage.loadCrew(), remoteCrew));
+
+  return merged.length;
+}
+
+// ---- Live subscriptions -----------------------------------------------------
+// The reason for moving to Firestore. `onSnapshot` keeps its own socket, replays
+// from cache instantly, and re-attaches after a dropped connection without being
+// asked — so a mate approving a defect on the bridge shows up in the engineer's
+// hand without either of them pressing anything.
+//
+// Every callback is fed from the LOCAL cache first and the server second, which
+// is what makes the app usable the moment it opens rather than after a round
+// trip. `fromCache` is passed through so the caller can avoid treating a cached
+// echo of its own write as remote news.
+
+export interface RegisterSnapshot {
+  json: string | null;
+  deviceId: string | null;
+  updatedAt: number | null;
+  fromCache: boolean;
+}
+
+export function subscribeRegister(uid: string, cb: (snap: RegisterSnapshot) => void): () => void {
+  if (!syncSupported()) return () => {};
+  return fsOnSnapshot(
+    accountDoc(uid),
+    (snap) => {
+      const data = snap.exists() ? (snap.data() as any) : null;
+      cb({
+        json: typeof data?.[REGISTER_FIELD] === 'string' ? data[REGISTER_FIELD] : null,
+        deviceId: data?.registerDeviceId ?? null,
+        updatedAt: data?.registerUpdatedAt ?? null,
+        fromCache: snap.metadata.fromCache,
+      });
+    },
+    (err) => console.warn('[sync] register listener stopped:', err?.message ?? err)
   );
 }
 
-/** Where does this device currently stand? (cheap re-check after registration). */
-export async function checkApprovalStatus(uid: string): Promise<ApprovalStatus | 'unknown'> {
-  const { db } = ensureInit();
-  const id = await deviceId();
-  // The Master is recognized by master_device_id even if its devices/ record is missing.
-  const masterId = (await get(ref(db, `${ROOT}/${uid}/master_device_id`))).val();
-  if (masterId === id) return 'master';
-  const approved = (await get(ref(db, `${ROOT}/${uid}/devices/${id}`))).val();
-  if (approved) return 'approved';
-  const pending = (await get(ref(db, `${ROOT}/${uid}/pending_devices/${id}`))).val();
-  if (pending) return 'pending';
-  return 'unknown';
-}
-
-/** True if this device is the vessel's Master (the one that approves others). */
-export async function isMasterDevice(uid: string): Promise<boolean> {
-  const { db } = ensureInit();
-  const id = await deviceId();
-  const masterId = (await get(ref(db, `${ROOT}/${uid}/master_device_id`))).val();
-  return masterId === id;
-}
-
-/** All approved devices for the vessel, master first. */
-export async function getConnectedDevices(uid: string): Promise<ConnectedDevice[]> {
-  const { db } = ensureInit();
-  const id = await deviceId();
-  const masterId = (await get(ref(db, `${ROOT}/${uid}/master_device_id`))).val() as string | null;
-  const data = (await get(ref(db, `${ROOT}/${uid}/devices`))).val() as Record<string, any> | null;
-  if (!data) return [];
-  const all: ConnectedDevice[] = Object.entries(data).map(([key, v]) => ({
-    deviceId: v.deviceId ?? key,
-    platform: v.platform ?? 'unknown',
-    platformLabel: v.platformLabel ?? v.platform ?? 'Device',
-    vesselName: v.vesselName,
-    customName: v.customName,
-    hwId: typeof v.hwId === 'string' ? v.hwId : undefined,
-    lastSeen: v.lastSeen ?? 0,
-    role: (v.role === 'master' || (v.deviceId ?? key) === masterId ? 'master' : 'member') as 'master' | 'member',
-    isThisDevice: (v.deviceId ?? key) === id,
-  }));
-
-  // Collapse records that share a hardware id — the same physical device that
-  // re-registered with a new deviceId (a reinstall) — so it never shows twice.
-  // Keep the best of each pair: Master beats member, then this device, then the
-  // most recently seen. Records without an hwId can't be matched → left as-is.
-  // (pruneDeviceGhosts removes the losers from the cloud on the next connect;
-  //  this is the immediate display-side guard.)
-  const better = (a: ConnectedDevice, b: ConnectedDevice): ConnectedDevice => {
-    if ((a.role === 'master') !== (b.role === 'master')) return a.role === 'master' ? a : b;
-    if (a.isThisDevice !== b.isThisDevice) return a.isThisDevice ? a : b;
-    return a.lastSeen >= b.lastSeen ? a : b;
-  };
-  const byHw = new Map<string, ConnectedDevice>();
-  const deduped: ConnectedDevice[] = [];
-  for (const dev of all) {
-    if (!dev.hwId) { deduped.push(dev); continue; }
-    const prev = byHw.get(dev.hwId);
-    if (!prev) { byHw.set(dev.hwId, dev); deduped.push(dev); continue; }
-    const win = better(prev, dev);
-    if (win !== prev) {
-      deduped[deduped.indexOf(prev)] = win;
-      byHw.set(dev.hwId, win);
-    }
-  }
-  return deduped.sort((a, b) => (a.role === 'master' ? -1 : b.role === 'master' ? 1 : b.lastSeen - a.lastSeen));
-}
-
-/** Devices waiting for the Master to approve them. */
-export async function getPendingDevices(uid: string): Promise<PendingDevice[]> {
-  const { db } = ensureInit();
-  const id = await deviceId();
-  const data = (await get(ref(db, `${ROOT}/${uid}/pending_devices`))).val() as Record<string, any> | null;
-  if (!data) return [];
-  return Object.entries(data).map(([key, v]) => ({
-    deviceId: v.deviceId ?? key,
-    platform: v.platform ?? 'unknown',
-    platformLabel: v.platformLabel ?? v.platform ?? 'Device',
-    vesselName: v.vesselName,
-    requestedAt: v.requestedAt ?? 0,
-    isThisDevice: (v.deviceId ?? key) === id,
-  }));
-}
-
-/** Master action: approve a pending device → move it into `devices`. */
-export async function approveDevice(uid: string, targetId: string): Promise<void> {
-  const { db } = ensureInit();
-  const pending = (await get(ref(db, `${ROOT}/${uid}/pending_devices/${targetId}`))).val();
-  if (!pending) throw new Error('Request not found (it may have been withdrawn).');
-  const hwId = typeof pending.hwId === 'string' ? pending.hwId : undefined;
-  await set(ref(db, `${ROOT}/${uid}/devices/${targetId}`), {
-    deviceId: targetId,
-    platform: pending.platform ?? 'unknown',
-    platformLabel: pending.platformLabel ?? 'Device',
-    vesselName: pending.vesselName ?? '',
-    ...(hwId ? { hwId } : {}),
-    lastSeen: Date.now(),
-    role: 'member',
-  });
-  await remove(ref(db, `${ROOT}/${uid}/pending_devices/${targetId}`));
-  // A reinstalled member leaves its old approved record behind — drop it now
-  // that the new one (same hardware) is approved.
-  await pruneDeviceGhosts(db, uid, targetId, hwId);
-}
-
-/** Master action: reject (delete) a pending request. */
-export async function rejectDevice(uid: string, targetId: string): Promise<void> {
-  const { db } = ensureInit();
-  await remove(ref(db, `${ROOT}/${uid}/pending_devices/${targetId}`));
-}
-
-/** Master action: revoke an approved device. The Master cannot remove itself. */
-export async function removeDevice(uid: string, targetId: string): Promise<void> {
-  const { db } = ensureInit();
-  const masterId = (await get(ref(db, `${ROOT}/${uid}/master_device_id`))).val();
-  if (targetId === masterId) throw new Error('The Master device cannot be removed.');
-  await remove(ref(db, `${ROOT}/${uid}/devices/${targetId}`));
-}
-
-/** Give a device a friendly name shown in the device list. */
-export async function renameDevice(uid: string, targetId: string, customName: string): Promise<void> {
-  const { db } = ensureInit();
-  await update(ref(db, `${ROOT}/${uid}/devices/${targetId}`), { customName: customName.trim() || null });
-}
-
 /**
- * Master action: hand the Master role to another approved device. The current
- * Master is demoted to a regular member.
+ * Watch the trail. `since` limits the window — a vessel with three years of
+ * history has no reason to hold all of it open in a listener, and the reports
+ * read from local storage anyway.
  */
-export async function transferMaster(uid: string, targetId: string): Promise<void> {
-  const { db } = ensureInit();
-  const target = (await get(ref(db, `${ROOT}/${uid}/devices/${targetId}`))).val();
-  if (!target) throw new Error('That device is no longer connected.');
-  const prevMaster = (await get(ref(db, `${ROOT}/${uid}/master_device_id`))).val() as string | null;
-  await set(ref(db, `${ROOT}/${uid}/master_device_id`), targetId);
-  await update(ref(db, `${ROOT}/${uid}/devices/${targetId}`), { role: 'master' });
-  if (prevMaster && prevMaster !== targetId) {
-    await update(ref(db, `${ROOT}/${uid}/devices/${prevMaster}`), { role: 'member' });
-  }
+export function subscribeInspections(
+  uid: string,
+  since: number,
+  cb: (rows: Inspection[]) => void
+): () => void {
+  if (!syncSupported()) return () => {};
+  const q = fsQuery(fsCollection(requireDb(), ROOT, uid, 'inspections'), fsWhere('at', '>=', since));
+  return fsOnSnapshot(
+    q,
+    (snap) => {
+      const rows: Inspection[] = [];
+      snap.forEach((d) => rows.push(d.data() as Inspection));
+      cb(rows);
+    },
+    (err) => console.warn('[sync] inspection listener stopped:', err?.message ?? err)
+  );
 }
 
-/**
- * Make THIS device the Master, taking over from whoever currently holds it
- * (use when the old Master device is lost/unavailable). The previous Master, if
- * any, is demoted to a member but kept in the list.
- */
-export async function resetMaster(uid: string): Promise<void> {
-  const { db } = ensureInit();
-  const id = await deviceId();
-  const meta = await deviceMeta();
-  const prevMaster = (await get(ref(db, `${ROOT}/${uid}/master_device_id`))).val() as string | null;
-  // Ensure this device is an approved device, then claim master.
-  await set(ref(db, `${ROOT}/${uid}/devices/${id}`), { deviceId: id, role: 'master', ...meta });
-  await set(ref(db, `${ROOT}/${uid}/master_device_id`), id);
-  if (prevMaster && prevMaster !== id) {
-    await update(ref(db, `${ROOT}/${uid}/devices/${prevMaster}`), { role: 'member' });
-  }
-  // No longer pending if it ever was.
-  await remove(ref(db, `${ROOT}/${uid}/pending_devices/${id}`));
+export function subscribeCrew(uid: string, cb: (rows: CrewMember[]) => void): () => void {
+  if (!syncSupported()) return () => {};
+  return fsOnSnapshot(
+    fsCollection(requireDb(), ROOT, uid, 'crew'),
+    (snap) => {
+      const rows: CrewMember[] = [];
+      snap.forEach((d) => rows.push(d.data() as CrewMember));
+      cb(rows);
+    },
+    (err) => console.warn('[sync] crew listener stopped:', err?.message ?? err)
+  );
 }
 
-// ---- RTDB key safety -------------------------------------------------------
-// Realtime Database forbids these characters in keys: . # $ / [ ] (plus ASCII
-// control chars). Item `extra` keys come from Excel column headers (e.g.
-// "PLB (Ser.#)"), which can contain them. We reversibly encode every object key
-// to a `~xx` hex escape on push and decode it on pull, so the data round-trips
-// exactly while staying RTDB-legal. (Values are never touched — only keys.)
-function encodeKey(k: string): string {
-  // Single pass over the original string (matches are not re-scanned), so
-  // encoding '~' itself to '~7e' first is unnecessary — it's handled here too.
-  return k.replace(/[~.#$/[\]\x00-\x1f\x7f]/g, (c) => '~' + c.charCodeAt(0).toString(16).padStart(2, '0'));
-}
-function decodeKey(k: string): string {
-  return k.replace(/~([0-9a-f]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
-}
-function transformKeys(value: any, fn: (k: string) => string): any {
-  if (Array.isArray(value)) return value.map((v) => transformKeys(v, fn));
-  if (value && typeof value === 'object') {
-    const out: Record<string, any> = {};
-    for (const [k, v] of Object.entries(value)) out[fn(k)] = transformKeys(v, fn);
-    return out;
-  }
-  return value;
-}
-
-/** Push all local categories + vessel info to the cloud. */
-export async function pushAll(uid: string): Promise<number> {
-  const { db } = ensureInit();
-  const byCategory = await storage.loadAll();
-  const payload: Record<string, any> = { updatedAt: Date.now() };
-  let total = 0;
-  for (const c of CATEGORIES) {
-    payload[c.key] = transformKeys(byCategory[c.key], encodeKey);
-    total += byCategory[c.key].length;
-  }
-  const vessel = await storage.loadVessel();
-  if (vessel) payload.vessel_info = vessel;
-  // Certificates + BA compressor logs (encode keys for symmetry with the rest).
-  payload.certificates = transformKeys(await storage.loadCertificates(), encodeKey);
-  payload.compressor = transformKeys(await storage.loadCompressor(), encodeKey);
-  await update(ref(db, `${ROOT}/${uid}/inventory`), payload);
-  return total;
-}
-
-/** Pull cloud categories into local storage (overwrites local). */
-export async function pullAll(uid: string): Promise<number> {
-  const { db } = ensureInit();
-  const snap = await get(ref(db, `${ROOT}/${uid}/inventory`));
-  const data = snap.val() as Record<string, any> | null;
-  if (!data) return 0;
-  let total = 0;
-  for (const c of CATEGORIES) {
-    const items = (data[c.key] ? transformKeys(data[c.key], decodeKey) : []) as EquipmentItem[];
-    await storage.replaceCategory(c.key as CategoryKey, items);
-    total += items.length;
-  }
-  if (data.vessel_info) await storage.saveVessel(data.vessel_info);
-  if (data.certificates) {
-    await storage.saveCertificates(transformKeys(data.certificates, decodeKey) as Certificate[]);
-  }
-  if (data.compressor) {
-    await storage.saveCompressor(normalizeCompressorState(transformKeys(data.compressor, decodeKey)));
-  }
-  return total;
+/** Write one signed record straight through — used the moment it is signed. */
+export async function pushOneInspection(uid: string, insp: Inspection): Promise<void> {
+  if (!syncSupported()) return;
+  await fsSetDoc(fsDoc(requireDb(), ROOT, uid, 'inspections', insp.id), stripUndefined(insp));
 }
 
 // ---- Entitlement (web subscription / license) ------------------------------
@@ -798,11 +706,49 @@ export interface Entitlement {
   licenseKey?: string;
   instanceId?: string;
   activatedAt?: number;
-  /** ms epoch, or null for a perpetual/non-expiring license. */
+  /** ms epoch, or null — which for a SUBSCRIPTION key means "no end date yet",
+   *  not "perpetual". LemonSqueezy keeps a subscription key active and flips its
+   *  status when the subscription ends, so the status from a re-validation is the
+   *  authority. See services/purchases.ts `revalidateLicence`. */
   expiresAt?: number | null;
+  /** When the licence was last confirmed with LemonSqueezy (ms epoch). */
+  lastCheckedAt?: number;
 }
 
 /** uid of the currently signed-in vessel, or null if not signed in. */
+/**
+ * The key the vessel's data actually lives under: the IMO digits.
+ *
+ * NOT the same as `currentUid()`, and the difference caused a real failure. Since
+ * enrolment, a device signs in with a CUSTOM TOKEN whose uid is
+ * `<imo>__<deviceId>` — unique per device. The register, the licence and
+ * everything else are stored under the VESSEL, and firestore.rules authorises by
+ * the `vessel` claim. Writing to `safety_vessels/<uid>` therefore lands on a
+ * document the rules do not recognise and is rejected with "Missing or
+ * insufficient permissions" — which is exactly what activating a licence did.
+ *
+ * Read from the token's claims where possible, because that is what the rules
+ * check; the stored vessel info is a fallback for the legacy password path.
+ */
+export async function currentVesselKey(): Promise<string | null> {
+  if (onWindows) return null;
+  try {
+    const user = ensureInit().auth?.currentUser;
+    if (user) {
+      const token = await user.getIdTokenResult();
+      const claimed = (token.claims as { vessel?: string }).vessel;
+      if (claimed) return String(claimed).replace(/\D/g, '') || null;
+      // Legacy path: the uid IS the account key.
+      return user.uid;
+    }
+  } catch {
+    /* fall through to the stored vessel */
+  }
+  const vessel = await storage.loadVessel();
+  const imo = (vessel?.imo ?? '').replace(/\D/g, '');
+  return imo || null;
+}
+
 export function currentUid(): string | null {
   if (onWindows) return null;
   try {

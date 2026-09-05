@@ -9,6 +9,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { Alert } from 'react-native';
 import { uid } from '../utils/id';
+import { downscale } from './images';
 
 // All item attachments AND certificate files live here. Exported for the
 // backup service, which bundles/restores these binaries.
@@ -49,6 +50,24 @@ async function persist(srcUri: string, ext: string): Promise<string> {
   return dest;
 }
 
+/**
+ * Photos are downscaled on the way in, not on the way out.
+ *
+ * Doing it here means every consumer benefits — inspection evidence, item
+ * attachments, the `.msm` backup that embeds them as base64 — and, more to the
+ * point, means the big original never reaches `attachments/` at all. Shrinking
+ * at upload time instead would leave a 3 MB file on a phone with 200 items on
+ * it, and would have to be repeated by every other path that moves the file.
+ *
+ * See services/images.ts for why 1600px, and why the real cost is the vessel's
+ * satellite airtime rather than cloud storage.
+ */
+async function persistPhoto(srcUri: string, ext: string): Promise<string> {
+  const smaller = await downscale(srcUri);
+  // downscale() re-encodes to JPEG, so the extension follows it.
+  return persist(smaller, smaller === srcUri ? ext : 'jpg');
+}
+
 export interface PickedFile {
   uri: string;
   name?: string;
@@ -65,7 +84,7 @@ export async function pickFromCamera(): Promise<PickedFile | null> {
   const res = await ImagePicker.launchCameraAsync({ quality: 0.7 });
   if (res.canceled || !res.assets?.length) return null;
   const a = res.assets[0];
-  const uriOut = await persist(a.uri, extOf(a.fileName, 'jpg'));
+  const uriOut = await persistPhoto(a.uri, extOf(a.fileName, 'jpg'));
   return { uri: uriOut, name: a.fileName ?? 'Photo', kind: 'photo' };
 }
 
@@ -79,7 +98,7 @@ export async function pickFromLibrary(): Promise<PickedFile | null> {
   const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'] });
   if (res.canceled || !res.assets?.length) return null;
   const a = res.assets[0];
-  const uriOut = await persist(a.uri, extOf(a.fileName, 'jpg'));
+  const uriOut = await persistPhoto(a.uri, extOf(a.fileName, 'jpg'));
   return { uri: uriOut, name: a.fileName ?? 'Photo', kind: 'photo' };
 }
 
@@ -92,7 +111,9 @@ export async function pickDocument(): Promise<PickedFile | null> {
   if (res.canceled || !res.assets?.length) return null;
   const a = res.assets[0];
   const isImage = (a.mimeType || '').startsWith('image/');
-  const uriOut = await persist(a.uri, extOf(a.name, isImage ? 'jpg' : 'pdf'));
+  const uriOut = isImage
+    ? await persistPhoto(a.uri, extOf(a.name, 'jpg'))
+    : await persist(a.uri, extOf(a.name, 'pdf'));
   return { uri: uriOut, name: a.name ?? 'Document', kind: isImage ? 'photo' : 'document' };
 }
 

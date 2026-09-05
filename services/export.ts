@@ -48,7 +48,7 @@ function rowsFor(items: EquipmentItem[]) {
   });
 }
 
-function vesselHeader(vessel: VesselInfo | null): string {
+export function vesselHeader(vessel: VesselInfo | null): string {
   if (!vessel) return 'Marine Safety Manager';
   const parts = [
     vessel.vessel_name,
@@ -130,7 +130,7 @@ function buildHtml(
     </body></html>`;
 }
 
-function esc(s: any): string {
+export function esc(s: any): string {
   return String(s ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -428,7 +428,7 @@ export async function exportTemplate(): Promise<void> {
   await deliverFile(fileName, b64, true, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
-async function share(uri: string, mimeType: string, title: string): Promise<void> {
+export async function share(uri: string, mimeType: string, title: string): Promise<void> {
   if (await Sharing.isAvailableAsync()) {
     await Sharing.shareAsync(uri, { mimeType, dialogTitle: title });
   }

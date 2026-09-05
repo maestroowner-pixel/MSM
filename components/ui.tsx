@@ -11,6 +11,7 @@ import {
   StyleProp,
   TextStyle,
   ScrollView,
+  TouchableOpacity,
   Image,
   ImageSourcePropType,
 } from 'react-native';
@@ -146,6 +147,9 @@ const EMOJI_GLYPH: Record<string, GlyphName> = {
   '🔗': 'link-variant',
   '🔑': 'key',
   '💡': 'lightbulb-outline',
+  '👥': 'account-multiple',
+  '🛠️': 'wrench',
+  '✅': 'clipboard-check-outline',
   '⏱': 'timer-outline',
   '⚠': 'alert',
   '⬇': 'tray-arrow-down',
@@ -199,7 +203,18 @@ export function Screen({
   );
 }
 
-export function ScreenTitle({ title, subtitle, help }: { title: string; subtitle?: string; help?: number }) {
+export function ScreenTitle({
+  title,
+  subtitle,
+  help,
+  onScan,
+}: {
+  title: string;
+  subtitle?: string;
+  help?: number;
+  onScan?: () => void;
+}) {
+  const c = useTheme();
   const styles = useStyles();
   return (
     <View style={{ marginBottom: SIZES.lg, flexDirection: 'row', alignItems: 'flex-start' }}>
@@ -208,6 +223,16 @@ export function ScreenTitle({ title, subtitle, help }: { title: string; subtitle
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>
       {help !== undefined ? <HelpButton section={help} /> : null}
+      {onScan ? (
+        <TouchableOpacity
+          style={styles.scanBtn}
+          onPress={onScan}
+          hitSlop={10}
+          accessibilityLabel="Scan QR label"
+        >
+          <MciIcon name="qrcode-scan" size={44} color={c.primary} />
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }
@@ -269,6 +294,17 @@ const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
     title: { fontSize: SIZES.h2, fontWeight: '700', color: COLORS.textDark },
     subtitle: { fontSize: SIZES.body, color: COLORS.textLight, marginTop: 2 },
+    scanBtn: {
+      width: 76,
+      height: 76,
+      borderRadius: SIZES.radiusMd,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: COLORS.cardSolid,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      marginLeft: SIZES.sm,
+    },
     card: {
       ...COLORS.glassCard,
       borderRadius: SIZES.radiusLg,

@@ -20,6 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SIZES } from './theme';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { DataProvider, useData } from './contexts/DataContext';
+import { SyncProvider } from './contexts/SyncContext';
 import { applyOrientationPolicy } from './utils/orientation';
 import { ensureTrialStarted } from './services/trial';
 import { parseDeepLink, DeepLink } from './services/qrLabel';
@@ -45,6 +46,12 @@ import LabelSc from './screens/LabelSc';
 import ScanSc from './screens/ScanSc';
 import FlaggedSc from './screens/FlaggedSc';
 import RecentScansSc from './screens/RecentScansSc';
+import InspectionSc from './screens/InspectionSc';
+import CrewSc from './screens/CrewSc';
+import DefectsSc from './screens/DefectsSc';
+import InspectionDetailSc from './screens/InspectionDetailSc';
+import AccountsSc from './screens/AccountsSc';
+import EnrolSc from './screens/EnrolSc';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -182,6 +189,60 @@ function MainTabs() {
   );
 }
 
+
+/**
+ * URL map — WEB ONLY.
+ *
+ * Without this the app never touches browser history: every screen lives at the
+ * same URL, the browser's Back button leaves the site instead of going back a
+ * screen, and a reload always lands on the Dashboard. Giving each screen a path
+ * fixes all three at once and makes a screen linkable — "open this defect" can be
+ * pasted into a message.
+ *
+ * DISABLED ON NATIVE on purpose. iOS and Android already handle `msm://` by hand
+ * further up this file (getInitialURL + the 'url' event), because a scanned label
+ * has to be resolved against the register before it can be navigated to — the
+ * sticker carries an item id and NOT its category. Handing the same scheme to
+ * React Navigation as well would mean two things racing to consume one link.
+ */
+const linking = {
+  enabled: Platform.OS === 'web',
+  prefixes: [],
+  config: {
+    screens: {
+      Main: {
+        screens: {
+          Dashboard: '',
+          Equipment: 'equipment',
+          Certificates: 'certificates',
+          Reports: 'reports',
+          Settings: 'settings',
+        },
+      },
+      CategoryItems: 'category/:category',
+      ItemDetail: 'item/:category/:id',
+      Import: 'import',
+      Manual: 'manual',
+      GettingStarted: 'getting-started',
+      Legal: 'legal/:doc',
+      Compressor: 'compressor',
+      Paywall: 'pro',
+      CertificateDetail: 'certificate/:id',
+      Label: 'label',
+      Scan: 'scan',
+      Flagged: 'flagged',
+      RecentScans: 'recent-scans',
+      Inspection: 'inspect/:itemId',
+      InspectionDetail: 'inspection/:id',
+      Crew: 'crew',
+      Defects: 'defects',
+      Accounts: 'accounts',
+      Enrol: 'join',
+    },
+  },
+} as const;
+
+
 function Root() {
   const COLORS = useTheme();
   const navigationRef = useNavigationContainerRef<any>();
@@ -287,7 +348,7 @@ function Root() {
   }, [showSplash, legalAccepted, pendingLink, flat]);
 
   return (
-    <NavigationContainer ref={navigationRef} theme={navTheme}>
+    <NavigationContainer ref={navigationRef} theme={navTheme} linking={linking as any}>
       <StatusBar style={showSplash ? 'light' : COLORS.statusBar} />
       <Stack.Navigator
         screenOptions={{
@@ -317,6 +378,12 @@ function Root() {
         <Stack.Screen name="Scan" component={ScanSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Flagged" component={FlaggedSc} options={webHeader('Flagged')} />
         <Stack.Screen name="RecentScans" component={RecentScansSc} options={webHeader('Recently scanned')} />
+        <Stack.Screen name="Inspection" component={InspectionSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="InspectionDetail" component={InspectionDetailSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Crew" component={CrewSc} options={webHeader('Crew')} />
+        <Stack.Screen name="Defects" component={DefectsSc} options={webHeader('Open defects')} />
+        <Stack.Screen name="Accounts" component={AccountsSc} options={webHeader('Accounts')} />
+        <Stack.Screen name="Enrol" component={EnrolSc} options={webHeader('Join this vessel')} />
       </Stack.Navigator>
       {showSplash ? (
         <View style={StyleSheet.absoluteFill}>
@@ -337,7 +404,11 @@ function App() {
       <SafeAreaProvider>
         <ThemeProvider>
           <DataProvider>
-            <Root />
+            {/* Inside DataProvider: sync reads the register from it and writes
+                remote changes back through reload(). */}
+            <SyncProvider>
+              <Root />
+            </SyncProvider>
           </DataProvider>
         </ThemeProvider>
       </SafeAreaProvider>

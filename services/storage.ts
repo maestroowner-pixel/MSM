@@ -8,12 +8,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CategoryKey, EquipmentItem } from '../types/equipment';
 import { Certificate } from '../types/certificate';
 import { CompressorState, normalizeCompressorState } from '../types/compressor';
+import { Inspection } from '../types/inspection';
+import { CrewMember } from '../types/crew';
 import { CATEGORIES } from '../constants/categories';
 
 const PREFIX = 'msm:';
 export const CERTIFICATES_KEY = `${PREFIX}certificates`;
 export const COMPRESSOR_KEY = `${PREFIX}compressor`;
 export const PREFS_KEY = `${PREFIX}prefs`;
+export const INSPECTIONS_KEY = `${PREFIX}inspections`;
+export const CREW_KEY = `${PREFIX}crew`;
 
 export interface VesselInfo {
   vessel_name?: string;
@@ -164,6 +168,14 @@ export interface Prefs {
   /** Where labels print: 'roll' (thermal, one per page) or 'a4' (grid on a plain
    *  A4 sheet for an office printer). Remembered so a keeper picks it once. */
   labelPageMode?: import('./qrLabel').PageMode;
+  /** How inspection photos may leave the vessel — see services/photoQueue.ts.
+   *  Device-local, and defaults to Wi-Fi-only: the safe answer for a ship, where
+   *  the alternative is somebody discovering the airtime bill after the fact. */
+  photoUpload?: import('./photoQueue').UploadPolicy;
+  /** Crew member who signed the last inspection ON THIS DEVICE — the default
+   *  signer next time. Device-local on purpose: the bridge tablet and an
+   *  engineer's phone should each default to whoever actually uses them. */
+  lastCrewId?: string;
 }
 
 export async function loadPrefs(): Promise<Prefs> {
@@ -179,17 +191,96 @@ export async function savePrefs(prefs: Prefs): Promise<void> {
   await AsyncStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
 }
 
+// ---- Inspections (append-only audit trail) ---------------------------------
+// Records are added and never rewritten (see types/inspection.ts), so the only
+// mutating call besides `append` is the one that closes a defect. Kept newest
+// first in storage so the common reads — an item's history, this month's round —
+// don't have to sort the whole trail.
+
+export async function loadInspections(): Promise<Inspection[]> {
+  try {
+    const raw = await AsyncStorage.getItem(INSPECTIONS_KEY);
+    const list = raw ? (JSON.parse(raw) as Inspection[]) : [];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveInspections(list: Inspection[]): Promise<void> {
+  await AsyncStorage.setItem(INSPECTIONS_KEY, JSON.stringify(list));
+}
+
+/** Add one signed record. Ignores a duplicate id (a double-tapped Save). */
+export async function appendInspection(insp: Inspection): Promise<void> {
+  const list = await loadInspections();
+  if (list.some((i) => i.id === insp.id)) return;
+  await saveInspections([insp, ...list]);
+}
+
+/**
+ * Write back one record. The ONLY legitimate use is closing (or re-opening) a
+ * defect — everything else about a signed record is immutable, and a correction
+ * is a new inspection.
+ */
+export async function updateInspection(insp: Inspection): Promise<void> {
+  const list = await loadInspections();
+  const idx = list.findIndex((i) => i.id === insp.id);
+  if (idx < 0) return;
+  list[idx] = { ...insp, updatedAt: Date.now() };
+  await saveInspections(list);
+}
+
+// ---- Crew (who signs) ------------------------------------------------------
+
+export async function loadCrew(): Promise<CrewMember[]> {
+  try {
+    const raw = await AsyncStorage.getItem(CREW_KEY);
+    const list = raw ? (JSON.parse(raw) as CrewMember[]) : [];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveCrew(list: CrewMember[]): Promise<void> {
+  await AsyncStorage.setItem(CREW_KEY, JSON.stringify(list));
+}
+
+export async function upsertCrewMember(member: CrewMember): Promise<void> {
+  const list = await loadCrew();
+  const idx = list.findIndex((c) => c.id === member.id);
+  const next = { ...member, updatedAt: Date.now() };
+  if (idx >= 0) list[idx] = next;
+  else list.push(next);
+  await saveCrew(list);
+}
+
+/**
+ * Remove someone from the crew list. Their past signatures are unaffected —
+ * those hold a name snapshot, not a reference (see types/crew.ts) — but
+ * retiring with `active: false` is usually the better move, since it keeps the
+ * link live for the history screens.
+ */
+export async function deleteCrewMember(id: string): Promise<void> {
+  const list = await loadCrew();
+  await saveCrew(list.filter((c) => c.id !== id));
+}
+
 // ---- Reset -----------------------------------------------------------------
 
 /**
- * Wipe all user data: every category, certificates, compressor logs and vessel
- * info. Keeps device preferences (`msm:prefs`) and legal consent.
+ * Wipe all user data: every category, certificates, compressor logs, the
+ * inspection trail, the crew list and vessel info. Keeps device preferences
+ * (`msm:prefs`) and legal consent.
  */
 export async function resetAllData(): Promise<void> {
   const keys = [
     ...CATEGORIES.map((c) => catKey(c.key)),
     CERTIFICATES_KEY,
     COMPRESSOR_KEY,
+    INSPECTIONS_KEY,
+    CREW_KEY,
     VESSEL_KEY,
   ];
   await AsyncStorage.multiRemove(keys);
