@@ -76,6 +76,9 @@ export default function CrewSc() {
     await saveCrewMember({
       id: uid('crew'),
       name: personName(d),
+      // The rank came with the invitation, so the signature line is filled in
+      // without anyone retyping it — and it reads the same on every device.
+      ...(d.position ? { rank: d.position } : {}),
       active: true,
       addedAt: now,
       updatedAt: now,
@@ -208,12 +211,14 @@ export default function CrewSc() {
         </Card>
       ) : null}
 
+      {/* Reachable by URL even though Settings no longer offers it to a member. */}
       {rankKnown && !isMaster ? (
         <Card>
-          <Label>Read only</Label>
+          <Label>The Master keeps this list</Label>
           <Text style={styles.meta}>
-            You are already on this list — your name came from the account you were issued. Ranks
-            and additions are the Master's; ask them to change anything here.
+            You are already on it — your name and rank came from the account you were issued, and
+            you can sign an inspection without doing anything here. Additions and changes are the
+            Master's.
           </Text>
         </Card>
       ) : null}
@@ -228,7 +233,10 @@ export default function CrewSc() {
           {missing.map((d) => (
             <TouchableOpacity key={d.id} style={styles.enrolRow} onPress={() => void addEnrolled(d)}>
               <MciIcon name="account-plus" size={20} color={COLORS.primary} />
-              <Text style={styles.name}>{personName(d)}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name}>{personName(d)}</Text>
+                {d.position ? <Text style={styles.meta}>{d.position}</Text> : null}
+              </View>
               <Text style={styles.meta}>Add</Text>
             </TouchableOpacity>
           ))}
@@ -277,7 +285,13 @@ export default function CrewSc() {
         keyExtractor={(c) => c.id}
         renderItem={renderRow}
         ListEmptyComponent={
-          <Empty text={'No crew yet.\nAdd the people who will be carrying out the rounds.'} />
+          <Empty
+            text={
+              isMaster
+                ? 'No crew yet.\nAdd the people who will be carrying out the rounds.'
+                : 'The Master has not named any signers yet.'
+            }
+          />
         }
         contentContainerStyle={{ paddingBottom: SIZES.xxxl }}
         keyboardShouldPersistTaps="handled"

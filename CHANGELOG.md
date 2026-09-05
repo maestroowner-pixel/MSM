@@ -85,6 +85,25 @@ the user something untrue about their own authority**.
   signs off, wipes and rejoins finds the clock where it left it — and rejoining needs a new
   invitation and a Master's approval, because the device can no longer let itself back in.
 
+### Rank aboard, and where joining lives
+
+- **Invitations carry a `position`** — Third Officer, Bosun, Chief Engineer — kept deliberately
+  apart from `role`, which is what the app permits (Crew / Officer / Master). A Second Engineer
+  may hold a Crew account and a cadet an Officer one; conflating them would make every promotion
+  aboard a permissions change and every permissions change look like a promotion. Free text,
+  because ranks differ by flag, company and trade.
+- The rank travels invitation → device record → the join screen, and is what fills the signing
+  list when a Master adds an enrolled person. **A device cannot name its own rank**: `enrol`
+  reads it only from the invitation, or the signature line would be self-declared. Devices that
+  enrolled before this have no rank until they rejoin.
+- **Joining moved to the bottom of the Vessel section.** The IMO above it is what a device
+  joins, so the two questions now read as one sequence. Among the inspection links it looked
+  like another weekly task rather than the last step of naming the ship. Once aboard, the row
+  reports instead of inviting — "This device · Who it signs as, and how to sign off".
+- **The Crew screen is offered to the Master only.** For anyone else it is a management page
+  with nothing to do on it and usually nothing on it. Signing is unaffected: the picker inside
+  an inspection reads the same list, and every rank still signs.
+
 ### Transport: Realtime Database → Firestore
 
 - Per-document writes, so two officers inspecting at once write two documents instead of racing

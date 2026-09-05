@@ -66,6 +66,7 @@ export async function issueInvite(
   firstName: string,
   lastName: string,
   role: Role,
+  position?: string,
   issuedBy?: string
 ): Promise<Invite> {
   const invite: Invite = {
@@ -74,6 +75,7 @@ export async function issueInvite(
     lastName: lastName.trim(),
     pin: generatePin(),
     role,
+    ...(position?.trim() ? { position: position.trim() } : {}),
     createdAt: Date.now(),
     ...(issuedBy ? { createdBy: issuedBy } : {}),
     activations: [],

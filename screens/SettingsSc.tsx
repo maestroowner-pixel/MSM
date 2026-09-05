@@ -270,6 +270,29 @@ export default function SettingsSc() {
         <TouchableOpacity style={styles.primaryBtn} onPress={saveVesselInfo}>
           <Text style={styles.primaryBtnText}>Save vessel info</Text>
         </TouchableOpacity>
+
+        {/* Joining belongs HERE, under the ship's own details and last in them:
+            the IMO above is what a device joins, so the two questions are one
+            sequence read top to bottom. It used to sit among the inspection
+            links, where it read as another weekly task rather than as the last
+            step of naming the vessel.
+
+            Once the device is aboard the same row stops inviting and starts
+            reporting — the screen behind it does the same. */}
+        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Enrol')}>
+          <GlyphBadge emoji="📱" size={18} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkTitle}>
+              {sync.enrolled ? 'This device' : 'Join this vessel'}
+            </Text>
+            <Text style={styles.linkSub}>
+              {sync.enrolled
+                ? 'Who it signs as, and how to sign off'
+                : 'Enrol this device with the name and PIN you were given'}
+            </Text>
+          </View>
+          <Text style={styles.chev}>›</Text>
+        </TouchableOpacity>
           </>
         ) : null}
       </Card>
@@ -280,14 +303,21 @@ export default function SettingsSc() {
           these are used weekly; an import or a backup is a once-a-voyage job. */}
       <Card>
         <Label>Inspections</Label>
-        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Crew')}>
-          <GlyphBadge emoji="👥" size={18} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Crew</Text>
-            <Text style={styles.linkSub}>Who can sign an inspection</Text>
-          </View>
-          <Text style={styles.chev}>›</Text>
-        </TouchableOpacity>
+        {/* Master only. The crew list is a MANAGEMENT screen — for anyone else it
+            is a page with nothing to do on it, and often nothing on it at all,
+            since a vessel that adds its signers from enrolled people keeps the
+            list short. Signing does not go through here: the picker inside an
+            inspection reads the same list, and every rank still signs. */}
+        {sync.role === 'superadmin' ? (
+          <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Crew')}>
+            <GlyphBadge emoji="👥" size={18} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkTitle}>Crew</Text>
+              <Text style={styles.linkSub}>Who can sign an inspection</Text>
+            </View>
+            <Text style={styles.chev}>›</Text>
+          </TouchableOpacity>
+        ) : null}
         {/* Issuing accounts is the Master's, so only a Master is offered it. The
             row used to be shown to everyone with "(Master only)" in the subtitle,
             which put a door in front of the crew and a notice on it saying the
@@ -303,14 +333,6 @@ export default function SettingsSc() {
             <Text style={styles.chev}>›</Text>
           </TouchableOpacity>
         ) : null}
-        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Enrol')}>
-          <GlyphBadge emoji="📱" size={18} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Join this vessel</Text>
-            <Text style={styles.linkSub}>Enrol this device with the name and PIN you were given</Text>
-          </View>
-          <Text style={styles.chev}>›</Text>
-        </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Defects')}>
           <GlyphBadge emoji="🛠️" size={18} />
           <View style={{ flex: 1 }}>

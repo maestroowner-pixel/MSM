@@ -94,6 +94,17 @@ export interface Invite {
   /** Readable, so a Master can look it up and read it out again. */
   pin: string;
   role: Role;
+  /**
+   * The person's RANK ABOARD — Third Officer, Bosun, Chief Engineer.
+   *
+   * Deliberately separate from `role`, which is what the app lets them do
+   * (Crew / Officer / Master). A Second Engineer may hold a Crew account and a
+   * cadet may be trusted with an Officer one; conflating the two would make
+   * every promotion aboard a permissions change, and every permissions change
+   * look like a promotion. This one is free text because ranks differ by flag,
+   * company and trade, and it is what appears beside a signature.
+   */
+  position?: string;
   revoked?: boolean;
   createdAt: number;
   createdBy?: string;
@@ -106,6 +117,8 @@ export interface EnrolledDevice {
   id: string;
   firstName?: string;
   lastName?: string;
+  /** Rank aboard, copied from the invitation — see `Invite.position`. */
+  position?: string;
   role: Role;
   approved: boolean;
   disabled?: boolean;

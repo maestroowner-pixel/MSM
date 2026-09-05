@@ -279,6 +279,11 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
       secretHash: secretHash(secret, secretSalt),
       firstName: invite?.firstName ?? firstName ?? '',
       lastName: invite?.lastName ?? lastName ?? '',
+      // Rank aboard, from the invitation only — a device does not get to name
+      // its own rank, or the signature line would be self-declared. Bootstrap
+      // has no invitation, hence the empty string rather than undefined
+      // (Firestore rejects undefined outright).
+      position: invite?.position ?? device?.position ?? '',
       role,
       approved,
       platform: platform ?? device?.platform ?? null,
@@ -329,6 +334,7 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
     // rather than as whatever was typed to get in.
     firstName: invite?.firstName ?? firstName ?? '',
     lastName: invite?.lastName ?? lastName ?? '',
+    position: invite?.position ?? '',
   };
 });
 
@@ -383,5 +389,6 @@ exports.refresh = onCall({ region: REGION }, async (req) => {
     role: device.role ?? 'user',
     firstName: device.firstName ?? '',
     lastName: device.lastName ?? '',
+    position: device.position ?? '',
   };
 });

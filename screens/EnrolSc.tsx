@@ -190,6 +190,7 @@ export default function EnrolSc() {
         <Card>
           <Label>This device</Label>
           <Text style={styles.who}>{personName(me) || 'Name not recorded'}</Text>
+          {me.position ? <Text style={styles.position}>{me.position}</Text> : null}
           <Text style={styles.note}>
             {ROLE_LABEL[me.role]}
             {me.disabled
@@ -290,7 +291,8 @@ export default function EnrolSc() {
           <Label>You are in</Label>
           <Text style={styles.note}>
             This device is enrolled as {ROLE_LABEL[result.role]}
-            {result.firstName ? ` for ${result.firstName} ${result.lastName ?? ''}`.trimEnd() : ''}.
+            {result.firstName ? ` for ${result.firstName} ${result.lastName ?? ''}`.trimEnd() : ''}
+            {result.position ? `, ${result.position}` : ''}.
           </Text>
           <TouchableOpacity style={styles.primaryBtn} onPress={() => nav.goBack()}>
             <Text style={styles.primaryBtnText}>Done</Text>
@@ -403,5 +405,6 @@ const makeStyles = (COLORS: Palette) =>
     },
     recoverText: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
     who: { fontSize: SIZES.h4, fontWeight: '700', color: COLORS.text, marginTop: SIZES.xs },
+    position: { fontSize: SIZES.body, fontWeight: '600', color: COLORS.primary, marginTop: 2 },
     note: { color: COLORS.textLight, fontSize: SIZES.small, paddingTop: SIZES.sm, lineHeight: 17 },
   });

@@ -38,6 +38,7 @@ export type EnrolResult =
       /** From the INVITATION, not from what was typed. */
       firstName?: string;
       lastName?: string;
+      position?: string;
     }
   | { status: 'pending'; role: Role }
   | { status: 'reenrol'; role: Role }
@@ -50,6 +51,7 @@ interface ServerReply {
   role?: Role;
   firstName?: string;
   lastName?: string;
+  position?: string;
   deviceSecret?: string;
 }
 
@@ -125,7 +127,13 @@ async function applyReply(reply: ServerReply, _deviceId: string): Promise<EnrolR
   if (reply.status === 'ok' && reply.token) {
     const auth = fb.ensureAuth();
     await signInWithCustomToken(auth, reply.token);
-    return { status: 'ok', role, firstName: reply.firstName, lastName: reply.lastName };
+    return {
+      status: 'ok',
+      role,
+      firstName: reply.firstName,
+      lastName: reply.lastName,
+      position: reply.position,
+    };
   }
   if (reply.status === 'reenrol') return { status: 'reenrol', role };
   return { status: 'pending', role };

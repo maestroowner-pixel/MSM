@@ -68,6 +68,8 @@ export default function AccountsSc() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [role, setRole] = useState<Role>('user');
+  /** Rank aboard — free text, separate from the app role. See types/role.ts. */
+  const [position, setPosition] = useState('');
 
   useEffect(() => {
     void fb.getLocalDeviceId().then(setMyDeviceId).catch(() => {});
@@ -95,9 +97,10 @@ export default function AccountsSc() {
   const issue = useCallback(async () => {
     if (!firstName.trim() || !lastName.trim()) return;
     try {
-      const inv = await accounts.issueInvite(imo, firstName, lastName, role);
+      const inv = await accounts.issueInvite(imo, firstName, lastName, role, position);
       setFirstName('');
       setLastName('');
+      setPosition('');
       setRole('user');
       // Shown rather than merely written, because the next thing that happens is
       // the Master reading it out to somebody standing in front of them.
@@ -109,7 +112,7 @@ export default function AccountsSc() {
     } catch (e: any) {
       Alert.alert('Could not issue', e?.message ?? String(e));
     }
-  }, [firstName, lastName, role, imo]);
+  }, [firstName, lastName, role, position, imo]);
 
   const inviteActions = (inv: Invite) => {
     if (!isMaster) return; // unreachable — the tab is Master-only — but cheap insurance
@@ -252,7 +255,7 @@ export default function AccountsSc() {
           <Label>Working out what this device may do</Label>
           <Text style={styles.note}>
             Accounts open once the vessel has confirmed this device's rank. If it stays like this,
-            the device has not joined yet — Settings → Join this vessel.
+            the device has not joined yet — Settings → Vessel → Join this vessel.
           </Text>
         </Card>
       ) : null}
@@ -297,6 +300,19 @@ export default function AccountsSc() {
               placeholderTextColor={COLORS.textLight}
               autoCapitalize="words"
             />
+            <TextInput
+              style={styles.input}
+              value={position}
+              onChangeText={setPosition}
+              placeholder="Rank aboard (Third Officer, Bosun…) — optional"
+              placeholderTextColor={COLORS.textLight}
+              autoCapitalize="words"
+            />
+            {/* The rank the person holds ON THE SHIP, which is not what the app
+                lets them do. A Second Engineer may hold a Crew account and a
+                cadet an Officer one; keeping them apart stops every promotion
+                aboard from being a permissions change. This is what appears
+                beside their signature. */}
             <View style={styles.roleRow}>
               {ROLE_ORDER.map((r) => (
                 <TouchableOpacity
@@ -338,6 +354,7 @@ export default function AccountsSc() {
                       </Text>
                       <Text style={styles.meta}>
                         {[
+                          item.position || null,
                           ROLE_LABEL[item.role],
                           item.revoked ? 'Revoked' : null,
                           item.activations?.length
@@ -374,6 +391,7 @@ export default function AccountsSc() {
                     <Text style={styles.name}>{personName(item) || item.id}</Text>
                     <Text style={styles.meta}>
                       {[
+                        item.position || null,
                         ROLE_LABEL[item.role],
                         item.disabled ? 'Switched off' : item.approved ? 'Approved' : 'Waiting',
                         item.platform,
