@@ -70,6 +70,21 @@ the user something untrue about their own authority**.
   spellings of one person. Manual entry stays, because a bosun with no phone still has to be
   able to sign.
 
+### Joining, and leaving
+
+- **A device that has joined is shown who it is, not a form.** Three empty boxes asking for a
+  name and a PIN read as "you are not in", which is the opposite of the truth. The screen now
+  carries the name, the rank and the approval state, read live from the vessel — so a rank the
+  Master changes an hour later appears without anyone reinstalling anything.
+- **Sign off** ends the session AND clears the device secret. The second half is the load-bearing
+  one: without it `refresh` mints a new session on the next launch and signing off lasts only
+  until the app is reopened. Erasing the local register is offered as a separate choice, because
+  it is a different decision — that one matters when the handset is handed on or sold.
+- **Neither buys a fresh trial**, and the dialog says so with the actual number of days. The 60
+  days run from the vessel's first launch, mirrored to the account, earliest wins. A device that
+  signs off, wipes and rejoins finds the clock where it left it — and rejoining needs a new
+  invitation and a Master's approval, because the device can no longer let itself back in.
+
 ### Transport: Realtime Database → Firestore
 
 - Per-document writes, so two officers inspecting at once write two documents instead of racing

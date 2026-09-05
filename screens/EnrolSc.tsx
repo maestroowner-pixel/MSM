@@ -11,7 +11,7 @@
 // refusal (check the spelling — it is nearly always the name, not the PIN).
 // ===================================
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
@@ -23,6 +23,12 @@ import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { BOOTSTRAP_MAX, PIN_LENGTH, ROLE_LABEL, isEnterableCode } from '../types/role';
 import * as enrolment from '../services/enrolment';
+import * as accounts from '../services/accounts';
+import * as fb from '../services/firebaseService';
+import * as trial from '../services/trial';
+import { EnrolledDevice, personName } from '../types/role';
+import { resetAllData } from '../services/storage';
+import { clearAttachmentsDir } from '../services/attachments';
 import { playErrorSound, playSuccessSound } from '../utils/sound';
 
 export default function EnrolSc() {
@@ -30,7 +36,7 @@ export default function EnrolSc() {
   const nav = useNavigation<any>();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { vessel } = useData();
-  const { connect, status } = useSync();
+  const { connect, disconnect, status, role, enrolled } = useSync();
   const imo = (vessel?.imo ?? '').replace(/\D/g, '');
 
   const [firstName, setFirstName] = useState('');
@@ -38,6 +44,103 @@ export default function EnrolSc() {
   const [pin, setPin] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<enrolment.EnrolResult | null>(null);
+
+  /**
+   * Who this device already is.
+   *
+   * Once a device has joined, three empty boxes asking for a name and a PIN are
+   * not just useless — they read as "you are not in", which is the opposite of
+   * the truth. What the officer wants here is confirmation: their name, their
+   * rank, and the way out. The record is read live from the vessel rather than
+   * remembered locally, so a rank the Master changes an hour later shows up
+   * without anyone reinstalling anything.
+   */
+  const [me, setMe] = useState<EnrolledDevice | null>(null);
+  const [signingOff, setSigningOff] = useState(false);
+
+  useEffect(() => {
+    if (!imo || !enrolled) {
+      setMe(null);
+      return;
+    }
+    let live = true;
+    let stop = () => {};
+    void fb.getLocalDeviceId().then((myId) => {
+      if (!live) return;
+      try {
+        stop = accounts.watchDevices(imo, (rows) => setMe(rows.find((d) => d.id === myId) ?? null));
+      } catch {
+        /* not a member yet — the form below is the right thing to show */
+      }
+    });
+    return () => {
+      live = false;
+      stop();
+    };
+  }, [imo, enrolled, status]);
+
+  /**
+   * Leave the vessel from this device.
+   *
+   * Two separate questions, asked separately, because they have different
+   * consequences and only one of them is reversible by walking to the Master.
+   * Signing off ends the session and clears the secret, so the device stops
+   * syncing and cannot let itself back in. Erasing is about the copy of the
+   * register sitting on THIS handset, which is what matters when it is being
+   * handed to somebody else or sold.
+   *
+   * Neither buys a fresh trial. The 60 days are counted from the vessel's own
+   * first launch, mirrored to the account, so a device that signs off, wipes and
+   * rejoins finds the clock exactly where it left it — and rejoining needs a new
+   * invitation and a Master's approval regardless.
+   */
+  const signOff = async (wipe: boolean) => {
+    setSigningOff(true);
+    try {
+      await fb.signOutDevice();
+      disconnect();
+      if (wipe) {
+        await resetAllData();
+        await clearAttachmentsDir().catch(() => {});
+      }
+      setResult(null);
+      setMe(null);
+      playSuccessSound();
+      Alert.alert(
+        'Signed off',
+        wipe
+          ? 'This device has left the vessel and its local copy of the register has been erased.'
+          : 'This device has left the vessel. The register it already holds stays on it, but it ' +
+            'will not receive anything further.'
+      );
+    } catch (e: any) {
+      playErrorSound();
+      Alert.alert('Could not sign off', e?.message ?? String(e));
+    } finally {
+      setSigningOff(false);
+    }
+  };
+
+  const confirmSignOff = async () => {
+    const t = await trial.getTrialInfo().catch(() => null);
+    const trialLine = !t
+      ? ''
+      : t.expired
+        ? '\n\nThe free trial on this vessel has ended, so rejoining will not start another one.'
+        : `\n\nThe vessel's trial has ${t.daysLeft} day${t.daysLeft === 1 ? '' : 's'} left. Signing ` +
+          'off does not pause or restart it.';
+    Alert.alert(
+      'Sign off this device?',
+      'It will stop syncing at once and will not be able to let itself back in — rejoining needs ' +
+        'a fresh invitation from the Master and their approval.' +
+        trialLine,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign off', style: 'destructive', onPress: () => void signOff(false) },
+        { text: 'Sign off & erase', style: 'destructive', onPress: () => void signOff(true) },
+      ]
+    );
+  };
 
   // Accepts BOTH an issued 8-digit PIN and the longer bootstrap code the very
   // first device uses — both are digits, so the number pad still stands (see
@@ -67,7 +170,10 @@ export default function EnrolSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Join this vessel" subtitle="With the name and PIN the Master gave you" />
+      <ScreenTitle
+        title={enrolled ? 'This vessel' : 'Join this vessel'}
+        subtitle={enrolled ? 'Who this device signs as' : 'With the name and PIN the Master gave you'}
+      />
 
       {!imo ? (
         <Card>
@@ -79,6 +185,57 @@ export default function EnrolSc() {
         </Card>
       ) : null}
 
+      {/* Already aboard: identity, not a form. */}
+      {enrolled && me ? (
+        <Card>
+          <Label>This device</Label>
+          <Text style={styles.who}>{personName(me) || 'Name not recorded'}</Text>
+          <Text style={styles.note}>
+            {ROLE_LABEL[me.role]}
+            {me.disabled
+              ? ' · switched off by the Master'
+              : me.approved
+                ? ' · approved'
+                : ' · waiting for the Master to approve'}
+            {status === 'synced' ? ' · syncing' : ''}
+          </Text>
+          <Text style={styles.note}>
+            The name and rank come from the account you were issued — the Master changes them, not
+            this screen.
+          </Text>
+          <TouchableOpacity
+            style={[styles.recoverBtn, signingOff && { opacity: 0.5 }]}
+            disabled={signingOff}
+            onPress={() => void confirmSignOff()}
+          >
+            <MciIcon name="logout" size={18} color={COLORS.danger} />
+            <Text style={styles.recoverText}>Sign off this device</Text>
+          </TouchableOpacity>
+        </Card>
+      ) : null}
+
+      {/* Enrolled, but the vessel has no record we can read yet (still pending, or
+          offline). Say so rather than showing a form that would enrol twice. */}
+      {enrolled && !me ? (
+        <Card>
+          <Label>This device has joined</Label>
+          <Text style={styles.note}>
+            {role ? `Enrolled as ${ROLE_LABEL[role]}. ` : ''}
+            Its record has not come back from the vessel yet — that is normal while a device is
+            waiting for approval, or while it is offline.
+          </Text>
+          <TouchableOpacity
+            style={[styles.recoverBtn, signingOff && { opacity: 0.5 }]}
+            disabled={signingOff}
+            onPress={() => void confirmSignOff()}
+          >
+            <MciIcon name="logout" size={18} color={COLORS.danger} />
+            <Text style={styles.recoverText}>Sign off this device</Text>
+          </TouchableOpacity>
+        </Card>
+      ) : null}
+
+      {!enrolled ? (
       <Card>
         <Label>Your details</Label>
         <Text style={styles.note}>
@@ -126,6 +283,7 @@ export default function EnrolSc() {
           </TouchableOpacity>
         )}
       </Card>
+      ) : null}
 
       {result?.status === 'ok' ? (
         <Card>
@@ -244,5 +402,6 @@ const makeStyles = (COLORS: Palette) =>
       alignItems: 'center',
     },
     recoverText: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
+    who: { fontSize: SIZES.h4, fontWeight: '700', color: COLORS.text, marginTop: SIZES.xs },
     note: { color: COLORS.textLight, fontSize: SIZES.small, paddingTop: SIZES.sm, lineHeight: 17 },
   });

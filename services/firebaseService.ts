@@ -63,7 +63,7 @@
 // `react-native` export condition → clean RN build. (Same approach as MHM.)
 import { Platform } from 'react-native';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, initializeAuth, Auth } from '@firebase/auth';
+import { getAuth, initializeAuth, signOut as fbSignOut, Auth } from '@firebase/auth';
 import {
   getFirestore,
   doc as fsDoc,
@@ -423,6 +423,24 @@ export async function getDeviceSecret(): Promise<string | null> {
     /* fall through */
   }
   return AsyncStorage.getItem(`msm:${SECURE_SECRET_KEY}`);
+}
+
+/**
+ * Give up this device's session and its right to come back on its own.
+ *
+ * Both halves matter. Signing out of Firebase ends the CURRENT session; clearing
+ * the device secret is what stops `refresh` silently minting a new one on the
+ * next launch — without it the device would sign itself back in and "sign off"
+ * would last until the app was reopened. Deliberately does NOT touch local data:
+ * erasing the register is a separate decision, and the caller asks it separately.
+ */
+export async function signOutDevice(): Promise<void> {
+  await clearDeviceSecret();
+  try {
+    await fbSignOut(ensureAuth());
+  } catch {
+    /* no session to end — clearing the secret was the part that mattered */
+  }
 }
 
 export async function clearDeviceSecret(): Promise<void> {
