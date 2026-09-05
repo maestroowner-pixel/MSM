@@ -2,6 +2,9 @@ node_modules/
 .expo/
 dist/
 web-build/
+# Web build output. Produced by ../MSM Win Web and exported INTO this repo because
+# `firebase deploy` refuses a hosting public path outside the project directory.
+web-dist/
 *.log
 *.swp
 .DS_Store
@@ -21,3 +24,8 @@ keystore.properties
 
 # JetBrains IDE
 .idea/
+
+# Firebase CLI deploy cache — regenerated on every deploy
+.firebase/
+# Cloud Functions dependencies (installed with `cd functions && npm i`)
+functions/node_modules/
