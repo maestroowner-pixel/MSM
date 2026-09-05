@@ -19,6 +19,7 @@ import { Card, Empty, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
+import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import {
   EnrolledDevice,
@@ -40,7 +41,24 @@ export default function AccountsSc() {
   const { vessel } = useData();
   const imo = (vessel?.imo ?? '').replace(/\D/g, '');
 
+  /**
+   * What THIS device may do here — not what it is looking at.
+   *
+   * `role` is null until the token comes back from `refresh`, and that gap is the
+   * reason this is a state and not a boolean: showing the Master's controls while
+   * we do not yet know beats showing them to a deck hand, but only just. Until the
+   * rank is known the screen offers nothing, then opens to what the rank allows.
+   * The server refuses the writes either way — firestore.rules gates invites and
+   * device records on the `superadmin` claim — but an interface that offers a
+   * button which always fails is telling the user something untrue about their
+   * own authority.
+   */
+  const { role: myRole } = useSync();
+  const isMaster = myRole === 'superadmin';
+  const rankKnown = myRole !== null;
+
   const [tab, setTab] = useState<Tab>('invites');
+  const shownTab: Tab = isMaster ? tab : 'devices';
   const [invites, setInvites] = useState<Invite[]>([]);
   const [devices, setDevices] = useState<EnrolledDevice[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +78,10 @@ export default function AccountsSc() {
     let un1 = () => {};
     let un2 = () => {};
     try {
-      un1 = accounts.watchInvites(imo, setInvites);
+      // Invitations carry PINs and are Master-only in firestore.rules. Subscribing
+      // as anyone else is a guaranteed permission error, which would land on the
+      // screen as a red card for doing nothing wrong.
+      if (isMaster) un1 = accounts.watchInvites(imo, setInvites);
       un2 = accounts.watchDevices(imo, setDevices);
     } catch (e: any) {
       setError(e?.message ?? String(e));
@@ -69,7 +90,7 @@ export default function AccountsSc() {
       un1();
       un2();
     };
-  }, [imo]);
+  }, [imo, isMaster]);
 
   const issue = useCallback(async () => {
     if (!firstName.trim() || !lastName.trim()) return;
@@ -91,6 +112,7 @@ export default function AccountsSc() {
   }, [firstName, lastName, role, imo]);
 
   const inviteActions = (inv: Invite) => {
+    if (!isMaster) return; // unreachable — the tab is Master-only — but cheap insurance
     const used = inv.activations?.length ?? 0;
     Alert.alert(
       personName(inv),
@@ -157,6 +179,19 @@ export default function AccountsSc() {
   };
 
   const deviceActions = (d: EnrolledDevice) => {
+    // A member may LOOK at the crew list — that is useful and the rules allow the
+    // read. What it must not get is a menu of actions the server will refuse.
+    if (!isMaster) {
+      Alert.alert(
+        personName(d) || d.id,
+        `${ROLE_LABEL[d.role]} · ${d.approved ? 'approved' : 'waiting for approval'}` +
+          (d.disabled ? ' · switched off' : '') +
+          (d.id === myDeviceId ? '\n\nThis is the device you are using.' : '') +
+          '\n\nOnly the Master can approve, re-rank or remove a device.',
+        [{ text: 'Close', style: 'cancel' }]
+      );
+      return;
+    }
     const buttons: any[] = [{ text: 'Close', style: 'cancel' }];
     if (!d.approved) buttons.push({ text: 'Approve', onPress: () => void accounts.approveDevice(imo, d.id) });
     for (const r of ROLE_ORDER) {
@@ -200,7 +235,10 @@ export default function AccountsSc() {
 
   return (
     <Screen>
-      <ScreenTitle title="Accounts" subtitle="Issue, revoke and approve" />
+      <ScreenTitle
+        title="Accounts"
+        subtitle={isMaster ? 'Issue, revoke and approve' : 'Who is aboard this vessel'}
+      />
 
       {error ? (
         <Card>
@@ -209,17 +247,37 @@ export default function AccountsSc() {
         </Card>
       ) : null}
 
+      {!rankKnown ? (
+        <Card>
+          <Label>Working out what this device may do</Label>
+          <Text style={styles.note}>
+            Accounts open once the vessel has confirmed this device's rank. If it stays like this,
+            the device has not joined yet — Settings → Join this vessel.
+          </Text>
+        </Card>
+      ) : null}
+
+      {rankKnown && !isMaster ? (
+        <Card>
+          <Label>{ROLE_LABEL[myRole]} — read only</Label>
+          <Text style={styles.note}>
+            Issuing accounts, approving devices and changing ranks belong to the Master. You can
+            see who is aboard; ask the Master to make a change.
+          </Text>
+        </Card>
+      ) : null}
+
       <View style={styles.tabs}>
-        {(['invites', 'devices'] as Tab[]).map((t) => (
-          <TouchableOpacity key={t} style={[styles.tab, tab === t && styles.tabOn]} onPress={() => setTab(t)}>
-            <Text style={[styles.tabText, tab === t && styles.tabTextOn]}>
+        {(isMaster ? (['invites', 'devices'] as Tab[]) : (['devices'] as Tab[])).map((t) => (
+          <TouchableOpacity key={t} style={[styles.tab, shownTab === t && styles.tabOn]} onPress={() => setTab(t)}>
+            <Text style={[styles.tabText, shownTab === t && styles.tabTextOn]}>
               {t === 'invites' ? `Invitations (${invites.length})` : `Devices (${devices.length})`}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {tab === 'invites' ? (
+      {shownTab === 'invites' ? (
         <>
           <Card>
             <Label>Issue an account</Label>

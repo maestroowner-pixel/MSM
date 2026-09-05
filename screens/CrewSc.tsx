@@ -12,7 +12,7 @@
 // because a signature stores the NAME, not a reference to this row.
 // ===================================
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
@@ -23,12 +23,64 @@ import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
 import { CrewMember } from '../types/crew';
 import { uid } from '../utils/id';
+import { useSync } from '../contexts/SyncContext';
+import * as accounts from '../services/accounts';
+import { EnrolledDevice, personName } from '../types/role';
 
 export default function CrewSc() {
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { crew, inspections: trail, saveCrewMember, removeCrewMember } = useData();
+  const { crew, vessel, inspections: trail, saveCrewMember, removeCrewMember } = useData();
+
+  /**
+   * Only a Master edits this list.
+   *
+   * Everyone else already IS on it: a device is bound to a named person when it
+   * enrols, so asking an officer to type their own name again is asking the same
+   * question twice and inviting two spellings of it. What the Master adds on top
+   * is the RANK, and people who sign but carry no device — a bosun without a
+   * phone still has to be a signer, which is why this list is not simply the
+   * device list.
+   */
+  const { role: myRole } = useSync();
+  const isMaster = myRole === 'superadmin';
+  const rankKnown = myRole !== null;
+
+  const imo = (vessel?.imo ?? '').replace(/\D/g, '');
+  const [enrolled, setEnrolled] = useState<EnrolledDevice[]>([]);
+
+  useEffect(() => {
+    if (!imo || !isMaster) return;
+    try {
+      return accounts.watchDevices(imo, setEnrolled);
+    } catch {
+      return;
+    }
+  }, [imo, isMaster]);
+
+  /** Enrolled people who are not on the signing list yet — one tap, no typing. */
+  const missing = useMemo(() => {
+    const have = new Set(crew.map((c) => c.name.trim().toLowerCase()));
+    const seen = new Set<string>();
+    return enrolled.filter((d) => {
+      const n = personName(d).trim();
+      if (!n || have.has(n.toLowerCase()) || seen.has(n.toLowerCase())) return false;
+      seen.add(n.toLowerCase());
+      return true;
+    });
+  }, [enrolled, crew]);
+
+  const addEnrolled = async (d: EnrolledDevice) => {
+    const now = Date.now();
+    await saveCrewMember({
+      id: uid('crew'),
+      name: personName(d),
+      active: true,
+      addedAt: now,
+      updatedAt: now,
+    });
+  };
 
   const [name, setName] = useState('');
   const [rank, setRank] = useState('');
@@ -114,19 +166,23 @@ export default function CrewSc() {
                 'No rank set'}
             </Text>
           </View>
-          <TouchableOpacity onPress={() => startEdit(c)} hitSlop={10} style={styles.rowBtn}>
-            <MciIcon name="pencil" size={20} color={COLORS.textLight} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => toggleActive(c)} hitSlop={10} style={styles.rowBtn}>
-            <MciIcon
-              name={c.active ? 'account-arrow-right' : 'account-arrow-left'}
-              size={20}
-              color={COLORS.textLight}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => confirmDelete(c)} hitSlop={10} style={styles.rowBtn}>
-            <MciIcon name="delete" size={20} color={COLORS.danger} />
-          </TouchableOpacity>
+          {isMaster ? (
+            <>
+              <TouchableOpacity onPress={() => startEdit(c)} hitSlop={10} style={styles.rowBtn}>
+                <MciIcon name="pencil" size={20} color={COLORS.textLight} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => toggleActive(c)} hitSlop={10} style={styles.rowBtn}>
+                <MciIcon
+                  name={c.active ? 'account-arrow-right' : 'account-arrow-left'}
+                  size={20}
+                  color={COLORS.textLight}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => confirmDelete(c)} hitSlop={10} style={styles.rowBtn}>
+                <MciIcon name="delete" size={20} color={COLORS.danger} />
+              </TouchableOpacity>
+            </>
+          ) : null}
         </View>
       </Card>
     );
@@ -136,9 +192,50 @@ export default function CrewSc() {
     <Screen>
       <ScreenTitle
         title="Crew"
-        subtitle="Who can sign an inspection. Names go on the record."
+        subtitle={
+          isMaster
+            ? 'Who can sign an inspection. Names go on the record.'
+            : 'Who can sign an inspection on this vessel.'
+        }
       />
 
+      {!rankKnown ? (
+        <Card>
+          <Label>Working out what this device may do</Label>
+          <Text style={styles.meta}>
+            The list opens once the vessel has confirmed this device's rank.
+          </Text>
+        </Card>
+      ) : null}
+
+      {rankKnown && !isMaster ? (
+        <Card>
+          <Label>Read only</Label>
+          <Text style={styles.meta}>
+            You are already on this list — your name came from the account you were issued. Ranks
+            and additions are the Master's; ask them to change anything here.
+          </Text>
+        </Card>
+      ) : null}
+
+      {isMaster && missing.length ? (
+        <Card>
+          <Label>Already enrolled, not yet a signer</Label>
+          <Text style={styles.meta}>
+            These people have a device on this vessel. Adding them here takes the name from their
+            account, so it cannot be spelled two ways.
+          </Text>
+          {missing.map((d) => (
+            <TouchableOpacity key={d.id} style={styles.enrolRow} onPress={() => void addEnrolled(d)}>
+              <MciIcon name="account-plus" size={20} color={COLORS.primary} />
+              <Text style={styles.name}>{personName(d)}</Text>
+              <Text style={styles.meta}>Add</Text>
+            </TouchableOpacity>
+          ))}
+        </Card>
+      ) : null}
+
+      {isMaster ? (
       <Card>
         <Label>{editing ? 'Edit crew member' : 'Add crew member'}</Label>
         <TextInput
@@ -173,6 +270,7 @@ export default function CrewSc() {
           </TouchableOpacity>
         </View>
       </Card>
+      ) : null}
 
       <FlatList
         data={sorted}
@@ -192,6 +290,12 @@ const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
     row: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md },
     rowBtn: { padding: SIZES.xs },
+    enrolRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SIZES.sm,
+      paddingVertical: SIZES.sm,
+    },
     name: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.textDark },
     meta: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },
     input: {

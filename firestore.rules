@@ -105,9 +105,14 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // The signing vocabulary. Any member READS it — the picker needs it to sign
+      // — but only a Master writes it. It was `isAdmin` (Officer and above) and
+      // that was one rank too generous: the list decides whose name may appear on
+      // a signed record, so adding to it is closer to issuing an account than to
+      // doing a round. Officers ask the Master, as they do for accounts.
       match /crew/{id} {
         allow read: if member(v);
-        allow write: if isAdmin(v);
+        allow write: if isSuper(v);
       }
 
       // ---- server-only ------------------------------------------------------

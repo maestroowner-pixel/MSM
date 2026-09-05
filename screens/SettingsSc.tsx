@@ -288,14 +288,21 @@ export default function SettingsSc() {
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Accounts')}>
-          <GlyphBadge emoji="🔑" size={18} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Accounts</Text>
-            <Text style={styles.linkSub}>Issue a name + PIN; approve devices (Master only)</Text>
-          </View>
-          <Text style={styles.chev}>›</Text>
-        </TouchableOpacity>
+        {/* Issuing accounts is the Master's, so only a Master is offered it. The
+            row used to be shown to everyone with "(Master only)" in the subtitle,
+            which put a door in front of the crew and a notice on it saying the
+            door is not theirs. The read-only view of who is aboard stays
+            available to all, lower down under Cloud sync. */}
+        {sync.role === 'superadmin' ? (
+          <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Accounts')}>
+            <GlyphBadge emoji="🔑" size={18} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkTitle}>Accounts</Text>
+              <Text style={styles.linkSub}>Issue a name + PIN; approve devices and set ranks</Text>
+            </View>
+            <Text style={styles.chev}>›</Text>
+          </TouchableOpacity>
+        ) : null}
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Enrol')}>
           <GlyphBadge emoji="📱" size={18} />
           <View style={{ flex: 1 }}>

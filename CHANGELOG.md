@@ -48,6 +48,28 @@ to change to make those signatures mean anything.
   gloves — so a base64 secret could not be entered at all and the first device on a vessel could
   never enrol. Found by walking the flow on a device, not by any typecheck.
 
+### The interface matches the rank
+
+Every enrolled device was shown the Master's controls — issuing accounts, approving devices,
+editing the signing list. The server refused those writes (`firestore.rules` gates them on the
+`superadmin` claim), so nothing could actually be done, but **a button that always fails tells
+the user something untrue about their own authority**.
+
+- Accounts, Crew and the Settings entry to Accounts now open according to what the device's own
+  token says it is. Until the rank comes back from `refresh` the screens offer nothing at all
+  rather than guessing.
+- A member sees the crew and device lists read-only. That read is legitimate and the rules allow
+  it — knowing who is aboard is not the same as changing it.
+- Only a Master subscribes to invitations. They carry PINs and are Master-only in the rules, so
+  subscribing as anyone else was a guaranteed permission error landing on screen as a red card
+  for doing nothing wrong.
+- **The crew list tightened from `isAdmin` to `isSuper`.** It decides whose name may appear on a
+  signed record, which is closer to issuing an account than to doing a round.
+- The Master can add an already-enrolled person to the signing list in one tap, taking the name
+  from their account. Asking an officer to type a name the vessel already holds invites two
+  spellings of one person. Manual entry stays, because a bosun with no phone still has to be
+  able to sign.
+
 ### Transport: Realtime Database → Firestore
 
 - Per-document writes, so two officers inspecting at once write two documents instead of racing
