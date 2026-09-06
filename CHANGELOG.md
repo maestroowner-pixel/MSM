@@ -48,6 +48,25 @@ to change to make those signatures mean anything.
   gloves — so a base64 secret could not be entered at all and the first device on a vessel could
   never enrol. Found by walking the flow on a device, not by any typecheck.
 
+### Labels for printers that are not ours
+
+- **A custom label size, in millimetres.** The five presets match the printer MSM ships with, and
+  for that one a free size picker is a way to waste a roll. But a file handed to another make's
+  driver app has to match THEIR roll, and nobody can be told to buy ours. The QR footprint and the
+  layout are DERIVED from the two numbers, not asked for: nobody knows what "24 mm of QR" means on
+  a roll they have just bought, and getting it wrong prints a code that will not scan in a dark
+  engine room. Three limits — the short edge less a margin, 40% of the long edge, half the width.
+  The third earns its place on PORTRAIT stock: without it a 40 × 60 label gave the code 24 mm of
+  its 40 mm width and the layout dropped the type and serial for want of room.
+- **Save as image (600 dpi)** in the browser build. The PDF page is the better carrier because it
+  has a physical size, but expo-print cannot make one on web — and a desk machine is exactly where
+  somebody sits with another maker's thermal printer and its own app. An image is the one format
+  every such app takes. Rendered from the SAME html the print path uses, so there is no second
+  renderer to keep in step. Verified end to end in a browser: 2362 × 1181 px, which is 100 × 50 mm
+  at 600 dpi exactly.
+- The millimetres are in the PNG's file name on purpose: an image carries no page size, so the
+  receiving app has to be told what to print it at — and told not to "fit to page".
+
 ### Small things that make the work read
 
 - **An officer can roll their own device back, and it stays there.** Restoring from a file is

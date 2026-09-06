@@ -34,6 +34,10 @@ import { CATEGORY_MAP } from '../constants/categories';
 import { complianceDate, fileDateStamp, formatDate } from '../utils/dates';
 import { deliverFile, onWeb, onWindows } from '../utils/fileShare';
 import { printHtmlWeb } from '../utils/webFile';
+import { canSaveLabelsPng, saveLabelsPng } from '../utils/labelImage';
+
+/** Can this build write a label image? Browser only — see utils/labelImage. */
+export { canSaveLabelsPng };
 import { TsplLabelSpec } from './tspl';
 
 // ---- payload ---------------------------------------------------------------
@@ -91,7 +95,7 @@ export function parseDeepLink(url: string): DeepLink | null {
 
 // ---- sizes -----------------------------------------------------------------
 
-export type LabelSize = '100x50' | '60x40' | '50x30' | '40x30' | '40x40';
+export type LabelSize = '100x50' | '60x40' | '50x30' | '40x30' | '40x40' | 'custom';
 
 /**
  * How much text a stock carries:
@@ -160,9 +164,74 @@ export const LABEL_STOCKS: Record<LabelSize, LabelStock> = {
     qrMm: 30,
     layout: 'qr',
   },
+  // A placeholder so the Record stays total. The real dimensions come from the
+  // user — see `stockFor` — and this is only what "custom" looks like before
+  // anyone has said otherwise.
+  custom: {
+    label: 'Custom size',
+    hint: 'Match the roll loaded in your printer, in millimetres.',
+    widthMm: 50,
+    heightMm: 40,
+    qrMm: 24,
+    layout: 'full',
+  },
 };
 
 export const LABEL_SIZES = Object.keys(LABEL_STOCKS) as LabelSize[];
+
+/** The dimensions a user typed for the custom stock. Millimetres, as printed. */
+export interface CustomStock {
+  widthMm: number;
+  heightMm: number;
+}
+
+/** What a label smaller than this cannot carry; below it, text is dropped. */
+const MIN_MM = 15;
+const MAX_MM = 210;
+
+export function clampCustom(c: CustomStock): CustomStock {
+  const fix = (v: number) => Math.min(MAX_MM, Math.max(MIN_MM, Math.round(v || 0)));
+  return { widthMm: fix(c.widthMm), heightMm: fix(c.heightMm) };
+}
+
+/**
+ * The stock to print on — a preset, or whatever size the user's roll actually is.
+ *
+ * The five presets exist because a label that does not match the loaded roll is a
+ * wasted roll, and for the printer we ship with that is a real risk. But the app
+ * now has to produce a PDF that OTHER makes of thermal printer will accept
+ * through their own apps, and those take whatever roll their owner bought. A
+ * fixed list cannot answer that; a size in millimetres can.
+ *
+ * The QR footprint and the layout are DERIVED rather than asked for. Nobody knows
+ * what "qrMm" should be for a 57 × 40 roll, and getting it wrong prints a code
+ * too small to scan across a dark engine room. The rules are the ones the presets
+ * already follow: the code takes the short edge minus a margin, never more than
+ * 40% of the long edge and never more than half the width; and how much text fits
+ * follows from how much room is left beside it.
+ */
+export function stockFor(size: LabelSize, custom?: CustomStock | null): LabelStock {
+  if (size !== 'custom') return LABEL_STOCKS[size];
+  const { widthMm, heightMm } = clampCustom(custom ?? LABEL_STOCKS.custom);
+  const short = Math.min(widthMm, heightMm);
+  const long = Math.max(widthMm, heightMm);
+  // Three limits, and the third earns its place on PORTRAIT rolls: without a cap
+  // on the WIDTH, a 40 × 60 label gave the code 24 mm of its 40 mm width, left
+  // 16 mm beside it, and the layout then dropped the type and serial for want of
+  // room. Half the width keeps text on a tall sticker.
+  const qrMm = Math.max(12, Math.min(short - 6, long * 0.4, widthMm * 0.5));
+  // Room left beside the code decides what may be written on it.
+  const layout: LabelLayout =
+    widthMm - qrMm < 18 ? 'qr' : widthMm >= 55 && heightMm >= 35 ? 'full' : 'compact';
+  return {
+    label: `${widthMm} × ${heightMm} mm`,
+    hint: 'Your own size — the PDF page is exactly this, so any printer app prints it 1:1.',
+    widthMm,
+    heightMm,
+    qrMm,
+    layout,
+  };
+}
 
 // ---- page mode -------------------------------------------------------------
 //
@@ -434,9 +503,10 @@ export function itemToTsplSpec(
   item: EquipmentItem,
   size: LabelSize,
   text?: LabelText,
-  overrides?: LabelOverrides
+  overrides?: LabelOverrides,
+  custom?: CustomStock | null
 ): TsplLabelSpec {
-  const stock = LABEL_STOCKS[size];
+  const stock = stockFor(size, custom);
   const style = resolveLabelStyle(stock, overrides);
   const { strong, weak } = labelLines(item);
   const note = text?.note?.trim();
@@ -572,9 +642,10 @@ export function buildLabelsHtml(
   size: LabelSize,
   pageMode: PageMode = 'roll',
   overrides?: LabelOverrides,
-  texts?: Record<string, LabelText>
+  texts?: Record<string, LabelText>,
+  custom?: CustomStock | null
 ): string {
-  const stock = LABEL_STOCKS[size];
+  const stock = stockFor(size, custom);
   const style = resolveLabelStyle(stock, overrides);
   const label = (i: EquipmentItem) => labelBody(i, stock, style, texts?.[i.id]);
 
@@ -607,9 +678,11 @@ export const canPrintLabels = !onWindows;
  *  honest equivalent rather than a second, half-working button. */
 export const canSaveLabelsPdf = !onWindows && !onWeb;
 
-function pageOptions(size: LabelSize, pageMode: PageMode) {
+function pageOptions(size: LabelSize, pageMode: PageMode, custom?: CustomStock | null) {
   if (pageMode === 'a4') return { width: mmToPt(A4.widthMm), height: mmToPt(A4.heightMm) };
-  const stock = LABEL_STOCKS[size];
+  const stock = stockFor(size, custom);
+  // The page IS the sticker: no margin, exact millimetres. That is what lets a
+  // third-party printer app lay it on the roll 1:1 instead of scaling it to fit.
   return { width: mmToPt(stock.widthMm), height: mmToPt(stock.heightMm) };
 }
 
@@ -620,17 +693,47 @@ export async function printLabels(
   size: LabelSize,
   pageMode: PageMode = 'roll',
   overrides?: LabelOverrides,
-  texts?: Record<string, LabelText>
+  texts?: Record<string, LabelText>,
+  custom?: CustomStock | null
 ): Promise<void> {
   if (onWindows) throw new Error('Printing is not available on Windows.');
-  const html = buildLabelsHtml(items, size, pageMode, overrides, texts);
+  const html = buildLabelsHtml(items, size, pageMode, overrides, texts, custom);
   if (onWeb) {
     // The browser honours the @page size in the HTML, so the same document that
     // drives the thermal printer on a phone drives it from a laptop too.
     printHtmlWeb(html);
     return;
   }
-  await Print.printAsync({ html, ...pageOptions(size, pageMode) });
+  await Print.printAsync({ html, ...pageOptions(size, pageMode, custom) });
+}
+
+/**
+ * Render the labels to a PNG at print resolution.
+ *
+ * The browser's answer to "a printer this machine cannot see". A PDF page is the
+ * better carrier because it has a physical size, but the web build cannot make
+ * one for labels — so an image, which every third-party printer app accepts, and
+ * at a resolution a thermal head can actually use. The millimetres go in the file
+ * name: a PNG has no page size, so the receiving app must be told.
+ *
+ * ROLL MODE ONLY. An A4 sheet of labels as a single image would be printed by
+ * such an app as one giant sticker; the grid exists for an office printer, and
+ * that one takes the print dialog.
+ */
+export async function saveLabelsPngFile(
+  items: EquipmentItem[],
+  size: LabelSize,
+  overrides?: LabelOverrides,
+  texts?: Record<string, LabelText>,
+  custom?: CustomStock | null,
+  dpi = 600
+): Promise<void> {
+  if (!canSaveLabelsPng) throw new Error('Saving a label image is available in the browser build.');
+  const stock = stockFor(size, custom);
+  const html = buildLabelsHtml(items, size, 'roll', overrides, texts, custom);
+  const name =
+    `MSM_label_${stock.widthMm}x${stock.heightMm}mm_${dpi}dpi_${fileDateStamp()}.png`;
+  await saveLabelsPng(html, stock.widthMm, stock.heightMm, name, dpi);
 }
 
 /**
@@ -643,12 +746,14 @@ export async function saveLabelsPdf(
   size: LabelSize,
   pageMode: PageMode = 'roll',
   overrides?: LabelOverrides,
-  texts?: Record<string, LabelText>
+  texts?: Record<string, LabelText>,
+  custom?: CustomStock | null
 ): Promise<void> {
   if (!canSaveLabelsPdf) throw new Error('Saving labels as a PDF is only available on iOS/Android.');
-  const html = buildLabelsHtml(items, size, pageMode, overrides, texts);
-  const { base64 } = await Print.printToFileAsync({ html, ...pageOptions(size, pageMode), base64: true });
+  const html = buildLabelsHtml(items, size, pageMode, overrides, texts, custom);
+  const { base64 } = await Print.printToFileAsync({ html, ...pageOptions(size, pageMode, custom), base64: true });
   if (!base64) throw new Error('Could not render the labels to a PDF.');
-  const tag = pageMode === 'a4' ? `a4_${size}` : size;
+  const st = stockFor(size, custom);
+  const tag = pageMode === 'a4' ? `a4_${size}` : `${st.widthMm}x${st.heightMm}`;
   await deliverFile(`MSM_labels_${tag}_${fileDateStamp()}.pdf`, base64, true, 'application/pdf');
 }

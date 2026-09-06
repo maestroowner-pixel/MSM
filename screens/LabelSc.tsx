@@ -35,6 +35,9 @@ import { SIZES, Palette } from '../theme';
 import {
   LABEL_SIZES,
   LABEL_STOCKS,
+  stockFor,
+  clampCustom,
+  CustomStock,
   LABEL_STYLE_LIMITS,
   LabelOverrides,
   LabelSize,
@@ -46,6 +49,8 @@ import {
   a4Grid,
   canPrintLabels,
   canSaveLabelsPdf,
+  canSaveLabelsPng,
+  saveLabelsPngFile,
   defaultLabelStyle,
   humanId,
   itemQrPayload,
@@ -84,18 +89,20 @@ const DP_PER_MM = 160 / 25.4;
 function LabelPreview({
   item,
   size,
+  custom,
   width,
   style,
   text,
 }: {
   item: EquipmentItem;
   size: LabelSize;
+  custom?: CustomStock | null;
   width: number;
   style: LabelStyle;
   text?: LabelText;
 }) {
   const COLORS = useTheme();
-  const stock = LABEL_STOCKS[size];
+  const stock = stockFor(size, custom);
   const isQr = stock.layout === 'qr';
   const compact = stock.layout === 'compact';
   const tight = stock.layout === 'full' && stock.widthMm < 80;
@@ -221,8 +228,18 @@ export default function LabelSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
   const [size, setSize] = useState<LabelSize>('100x50');
+  /**
+   * The roll loaded in whatever printer this user actually owns.
+   *
+   * The five presets match the printer MSM ships with, and for that one a free
+   * size picker is a way to waste a roll. But a PDF handed to another make's app
+   * has to match THEIR roll, and nobody can be asked to buy ours — so a size in
+   * millimetres is the only honest answer. Device-local: it describes hardware on
+   * a desk, not the vessel.
+   */
+  const [custom, setCustom] = useState<CustomStock>({ widthMm: 50, heightMm: 40 });
   const [pageMode, setPageMode] = useState<PageMode>('roll');
-  const [busy, setBusy] = useState<null | 'print' | 'pdf' | 'bt'>(null);
+  const [busy, setBusy] = useState<null | 'print' | 'pdf' | 'png' | 'bt'>(null);
   const [printerOpen, setPrinterOpen] = useState(false);
 
   // Per-stock-size fine-tuning and per-item printed-text overrides, both persisted in
@@ -236,11 +253,19 @@ export default function LabelSc() {
       if (p.labelStyles) setLabelStyles(p.labelStyles);
       if (p.labelText) setLabelText(p.labelText);
       if (p.labelPageMode) setPageMode(p.labelPageMode);
+      if (p.labelCustom) setCustom(clampCustom(p.labelCustom));
     });
     return () => {
       alive = false;
     };
   }, []);
+
+  /** Remember the roll size — it describes the printer on this desk, so it is
+   *  worth keeping between prints and is never worth syncing. */
+  const saveCustom = (next: CustomStock) => {
+    setCustom(next);
+    void savePrefs({ labelCustom: next });
+  };
 
   const applyOverride = (patch: LabelOverrides | null) => {
     setLabelStyles((prev) => {
@@ -287,7 +312,7 @@ export default function LabelSc() {
     );
   }
 
-  const stock = LABEL_STOCKS[size];
+  const stock = stockFor(size, custom);
   const overrides = labelStyles[size];
   const style = resolveLabelStyle(stock, overrides);
   const defaults = defaultLabelStyle(stock);
@@ -303,11 +328,12 @@ export default function LabelSc() {
   // proportions can be judged.
   const previewW = Math.min(screenW - SIZES.lg * 4, stock.widthMm * DP_PER_MM);
 
-  const run = async (mode: 'print' | 'pdf') => {
+  const run = async (mode: 'print' | 'pdf' | 'png') => {
     setBusy(mode);
     try {
-      if (mode === 'print') await printLabels(items, size, pageMode, overrides, labelText);
-      else await saveLabelsPdf(items, size, pageMode, overrides, labelText);
+      if (mode === 'print') await printLabels(items, size, pageMode, overrides, labelText, custom);
+      else if (mode === 'png') await saveLabelsPngFile(items, size, overrides, labelText, custom);
+      else await saveLabelsPdf(items, size, pageMode, overrides, labelText, custom);
     } catch (e: any) {
       // A cancelled print dialog is not a failure; anything else the user needs to
       // know about, because a silent no-op looks exactly like a printed label.
@@ -321,7 +347,7 @@ export default function LabelSc() {
   const sendToPrinter = async (printer: SavedPrinter) => {
     setBusy('bt');
     try {
-      const tspl = labelsToTspl(items.map((it) => itemToTsplSpec(it, size, labelText[it.id], overrides)));
+      const tspl = labelsToTspl(items.map((it) => itemToTsplSpec(it, size, labelText[it.id], overrides, custom)));
       await printTspl(printer.id, tspl);
       Alert.alert(
         'Sent to printer',
@@ -406,18 +432,49 @@ export default function LabelSc() {
                 adjustsFontSizeToFit
                 style={[styles.toggleText, size === s && { color: COLORS.textWhite }]}
               >
-                {s.replace('x', '×')}
+                {s === 'custom' ? 'Custom' : s.replace('x', '×')}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
+        {/* The roll in someone else's printer. Two numbers, because that is all
+            the information there is — the QR footprint and how much text fits are
+            derived from them (see stockFor), since nobody can be expected to know
+            what "24 mm of QR" means on a roll they just bought. */}
+        {size === 'custom' ? (
+          <View style={styles.customRow}>
+            <View style={styles.customField}>
+              <Text style={styles.customCaption}>Width, mm</Text>
+              <TextInput
+                style={styles.customInput}
+                value={String(custom.widthMm)}
+                onChangeText={(v) => setCustom({ ...custom, widthMm: Number(v.replace(/\D/g, '')) || 0 })}
+                onEndEditing={() => saveCustom(clampCustom(custom))}
+                keyboardType="number-pad"
+                maxLength={3}
+              />
+            </View>
+            <Text style={styles.customTimes}>×</Text>
+            <View style={styles.customField}>
+              <Text style={styles.customCaption}>Height, mm</Text>
+              <TextInput
+                style={styles.customInput}
+                value={String(custom.heightMm)}
+                onChangeText={(v) => setCustom({ ...custom, heightMm: Number(v.replace(/\D/g, '')) || 0 })}
+                onEndEditing={() => saveCustom(clampCustom(custom))}
+                keyboardType="number-pad"
+                maxLength={3}
+              />
+            </View>
+          </View>
+        ) : null}
         <Text style={styles.note}>{stock.hint}</Text>
       </Card>
 
       <Card>
         <Label>Preview — actual proportions</Label>
         <View style={styles.previewWrap}>
-          <LabelPreview item={items[0]} size={size} width={previewW} style={style} text={labelText[items[0].id]} />
+          <LabelPreview item={items[0]} size={size} custom={custom} width={previewW} style={style} text={labelText[items[0].id]} />
         </View>
         <Text style={styles.note}>
           The QR carries {itemQrPayload(items[0].id)} — the item's permanent id. Reprint it as often
@@ -548,6 +605,19 @@ export default function LabelSc() {
             </TouchableOpacity>
           ) : null}
 
+          {/* Roll mode only: an A4 grid saved as ONE image would be printed by a
+              label app as one giant sticker. The sheet is for an office printer,
+              and that route is the print dialog. */}
+          {canSaveLabelsPng && pageMode === 'roll' ? (
+            <TouchableOpacity style={styles.secondaryBtn} disabled={!!busy} onPress={() => void run('png')}>
+              {busy === 'png' ? (
+                <ActivityIndicator color={COLORS.primary} />
+              ) : (
+                <Text style={styles.secondaryBtnText}>Save as image (600 dpi)</Text>
+              )}
+            </TouchableOpacity>
+          ) : null}
+
           {canSaveLabelsPdf ? (
             <TouchableOpacity style={styles.secondaryBtn} disabled={!!busy} onPress={() => void run('pdf')}>
               {busy === 'pdf' ? (
@@ -564,7 +634,9 @@ export default function LabelSc() {
               : `Print goes to the printer's dialog as A4 sheets — ${grid.perPage} labels of ${stock.label} per sheet.`}
             {canSaveLabelsPdf
               ? ' Save as PDF is the route to a printer this phone cannot see — the ship’s office, or the label stock’s own driver on a laptop.'
-              : ' In the browser, use the print dialog’s own “Save as PDF” if you need a file.'}
+              : canSaveLabelsPng
+                ? ` Save as image writes a ${stock.widthMm} × ${stock.heightMm} mm PNG at 600 dpi — the file to load into another make of thermal printer's own app. Its size is in the file name, because an image carries no page size: set that app to print it at ${stock.widthMm} × ${stock.heightMm} mm, not "fit to page".`
+                : ' In the browser, use the print dialog’s own “Save as PDF” if you need a file.'}
           </Text>
         </>
       ) : (
@@ -582,6 +654,21 @@ export default function LabelSc() {
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
     head: { flexDirection: 'row', alignItems: 'flex-start' },
+    customRow: { flexDirection: 'row', alignItems: 'flex-end', gap: SIZES.sm, marginTop: SIZES.md },
+    customField: { flex: 1 },
+    customCaption: { fontSize: SIZES.small, color: COLORS.textLight, marginBottom: 4 },
+    customTimes: { fontSize: SIZES.h4, color: COLORS.textLight, paddingBottom: SIZES.sm },
+    customInput: {
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      borderRadius: SIZES.radiusSm,
+      paddingHorizontal: SIZES.md,
+      paddingVertical: SIZES.sm,
+      color: COLORS.text,
+      backgroundColor: COLORS.card,
+      fontSize: SIZES.body,
+      textAlign: 'center',
+    },
     toggle: { flexDirection: 'row', gap: SIZES.xs, paddingTop: SIZES.sm },
     toggleBtn: {
       // Five chips share ONE row: equal width, minimal horizontal padding so the
