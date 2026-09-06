@@ -12,7 +12,7 @@
  *
  *   npm run check:inspections
  */
-import { create, closeDefect, mergeInspections, mergeCrew, roundStatus, monthWindow, weekWindow, forItem, openDefects, failedLines, defectReason } from '../services/inspections';
+import { create, closeDefect, mergeInspections, mergeCrew, roundStatus, roundMark, monthWindow, weekWindow, forItem, openDefects, failedLines, defectReason } from '../services/inspections';
 import { templateFor, periodsFor, templateById } from '../constants/checklists';
 import { CHECKLISTS } from '../constants/checklists';
 import { CATEGORIES } from '../constants/categories';
@@ -138,6 +138,22 @@ const withNote = create({ item: ext, template: tpl, results: oneFail, by: 'Jez D
 ok('a note is added to the reason, not instead of it',
    defectReason(withNote).includes('Gauge in the red') && defectReason(withNote).includes(failedLines(withNote)[0]));
 ok('a passed inspection has no reason', defectReason(p) === '');
+
+// ---- the round mark: what the dot beside an item means ----------------------
+// Blue not yet, green signed and clear, amber the period is closing, red a
+// defect still outstanding. The two that matter: "not yet, with time" must not
+// look like a problem, and a failure must not be cleared by the calendar.
+const early = new Date(new Date().getFullYear(), new Date().getMonth(), 3, 12);
+const late = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 12); // last day
+ok('inspected and clear reads done', roundMark([p], ext.id, 'monthly') === 'done');
+ok('untouched early in the month is not a warning', roundMark([], ext.id, 'monthly', early) === 'open');
+ok('untouched at the end of the month warns', roundMark([], ext.id, 'monthly', late) === 'due');
+ok('an open defect shows as failed', roundMark([f], ext.id, 'monthly') === 'fail');
+ok('a rectified defect stops showing as failed',
+   roundMark([closeDefect(f, 'Bosun')], ext.id, 'monthly') !== 'fail');
+// A defect raised in a previous period is still outstanding today.
+const oldFail = { ...f, at: Date.now() - 90 * 86400000 };
+ok('a defect from an earlier period is still failed', roundMark([oldFail], ext.id, 'monthly') === 'fail');
 
 const c1 = { id: 'c1', name: 'Jez', active: true, addedAt: 1, updatedAt: 10 };
 const c2 = { id: 'c1', name: 'Jez Dodd', rank: 'Third Officer', active: true, addedAt: 1, updatedAt: 20 };

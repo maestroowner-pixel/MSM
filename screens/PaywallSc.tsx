@@ -84,8 +84,8 @@ export default function PaywallSc() {
       Alert.alert(
         'Join the vessel first',
         'The licence attaches to the ship, not to this device, so this device has to be on the ' +
-          'vessel before it can carry one.\n\nSettings → Vessel → Join this vessel, then ' +
-          'come back here.',
+          'vessel before it can carry one.\n\nJoin it from the “This device” card at the top of ' +
+          'Settings, then come back here.',
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Open Settings', onPress: () => nav.navigate('Enrol') },
@@ -240,7 +240,7 @@ export default function PaywallSc() {
               {!signedIn && (
                 <TouchableOpacity onPress={() => nav.navigate('Main', { screen: 'Settings' })}>
                   <Text style={styles.signinHint}>
-                    Join this vessel first (Settings → Vessel → Join this vessel) so the licence attaches to
+                    Join the vessel first — the “This device” card at the top of Settings — so the licence attaches to
                     the ship rather than to this handset. Tap to open Settings.
                   </Text>
                 </TouchableOpacity>

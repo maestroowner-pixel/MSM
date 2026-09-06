@@ -11,6 +11,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Switch, Modal, TouchableWithoutFeedback, Keyboard, Linking, Image, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { Screen, ScreenTitle, Card, Label, GlyphBadge, Glyph } from '../components/ui';
+import { MciIcon } from '../components/MciIcon';
 import { PhotoUploadCard } from '../components/PhotoUploadCard';
 import { ConnectionCard } from '../components/ConnectionCard';
 import { SIZES, Palette, APP_CONFIG, THEME_ORDER, THEME_LABELS } from '../theme';
@@ -23,11 +24,19 @@ import { clearAttachmentsDir } from '../services/attachments';
 import { exportTemplate } from '../services/export';
 import { exportBackup, pickBackup, restoreBackup } from '../services/backup';
 import * as snapshot from '../services/snapshot';
+import { isSubscribed, onEntitlementChange } from '../services/purchases';
 import { playSuccessSound, playErrorSound } from '../utils/sound';
 import { requestPermission, rescheduleExpiryReminders, cancelAll, notificationsSupported } from '../services/notifications';
 import { formatDateTime } from '../utils/dates';
 
 const RESET_PASSWORD = 'Reset all data';
+
+/** Sun, moon, star — one mark per theme, in THEME_ORDER. */
+const THEME_ICON: Record<string, string> = {
+  light: 'white-balance-sunny',
+  dark: 'moon-waning-crescent',
+  colorful: 'star',
+};
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -63,6 +72,13 @@ export default function SettingsSc() {
   const [form, setForm] = useState<VesselInfo>({});
   const [busy, setBusy] = useState(false);
   const [snaps, setSnaps] = useState<snapshot.SnapshotInfo[]>([]);
+  /**
+   * Is the vessel licensed? Only for the colour of the PRO badge in the header.
+   * Re-read when the entitlement changes, because activating a key happens on
+   * the paywall — a screen that sits OVER this one, so Settings may never lose
+   * and regain focus and the badge would go on saying "not paid" after it was.
+   */
+  const [pro, setPro] = useState(false);
 
   // Reset-all-data (password gated)
   const [resetVisible, setResetVisible] = useState(false);
@@ -105,6 +121,12 @@ export default function SettingsSc() {
   useEffect(() => {
     if (vessel) setForm(vessel);
   }, [vessel]);
+
+  useEffect(() => {
+    const read = () => void isSubscribed().then(setPro).catch(() => setPro(false));
+    read();
+    return onEntitlementChange(read);
+  }, []);
 
   /**
    * Re-read the snapshot list on focus, and once more shortly after mount.
@@ -311,7 +333,7 @@ export default function SettingsSc() {
           'This erases the whole vessel',
           'This device is syncing, so clearing it here clears the register on the vessel and on ' +
             "every other device aboard — not just this one.\n\nTo clear only this handset, " +
-            'leave the vessel first: Vessel → This device → Sign off & erase.',
+            'leave the vessel first: the “This device” card in Settings → Sign off & erase.',
           [
             { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
             { text: 'Erase everywhere', style: 'destructive', onPress: () => resolve(true) },
@@ -367,36 +389,48 @@ export default function SettingsSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Settings" subtitle={`${flat.length} items on this device`} help={0} />
-
-      <Card>
-        <Label>Appearance</Label>
-        <View style={styles.themeRow}>
-          {THEME_ORDER.map((t) => (
+      {/* The theme lives in the header now, not in a card of its own. It was a
+          panel at the top of Settings that a person reads once and never again —
+          the appearance of the app is not a setting you go looking for, it is one
+          you flick. Three marks say it without a word: sun, moon, star. */}
+      <ScreenTitle
+        title="Settings"
+        subtitle={`${flat.length} items on this device`}
+        help={0}
+        actions={
+          <View style={styles.headerActions}>
+            {/* PRO, as a badge rather than a card. Green when the vessel is
+                licensed, blue when it is not — the state is the whole message,
+                and a card three lines long was spending the top of the screen to
+                say it. Still opens the same screen. */}
             <TouchableOpacity
-              key={t}
-              style={[styles.themeChip, themeName === t && styles.themeChipOn]}
-              onPress={() => setTheme(t)}
-              activeOpacity={0.8}
+              onPress={() => nav.navigate('Paywall')}
+              hitSlop={8}
+              accessibilityLabel={pro ? 'MSM Pro is active' : 'Get MSM Pro'}
+              style={[styles.proPill, { backgroundColor: pro ? COLORS.success : COLORS.primary }]}
             >
-              <Text style={[styles.themeChipText, themeName === t && styles.themeChipTextOn]}>{THEME_LABELS[t]}</Text>
+              <Text style={styles.proPillText}>PRO</Text>
             </TouchableOpacity>
-          ))}
-        </View>
-      </Card>
-
-      <TouchableOpacity activeOpacity={0.85} onPress={() => nav.navigate('Paywall')}>
-        <Card>
-          <View style={styles.proRow}>
-            <GlyphBadge emoji="⚓" size={20} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.proTitle}>{APP_CONFIG.name} Pro</Text>
-              <Text style={styles.proSub}>2 months free, then yearly — unlock everything</Text>
-            </View>
-            <Text style={styles.chev}>›</Text>
+          <View style={styles.themeIcons}>
+            {THEME_ORDER.map((t) => (
+              <TouchableOpacity
+                key={t}
+                onPress={() => setTheme(t)}
+                hitSlop={8}
+                accessibilityLabel={THEME_LABELS[t]}
+                style={[styles.themeIcon, themeName === t && styles.themeIconOn]}
+              >
+                <MciIcon
+                  name={THEME_ICON[t]}
+                  size={20}
+                  color={themeName === t ? COLORS.textWhite : COLORS.textLight}
+                />
+              </TouchableOpacity>
+            ))}
           </View>
-        </Card>
-      </TouchableOpacity>
+          </View>
+        }
+      />
 
       <ConnectionCard />
 
@@ -416,28 +450,6 @@ export default function SettingsSc() {
           <Text style={styles.primaryBtnText}>Save vessel info</Text>
         </TouchableOpacity>
 
-        {/* Joining belongs HERE, under the ship's own details and last in them:
-            the IMO above is what a device joins, so the two questions are one
-            sequence read top to bottom. It used to sit among the inspection
-            links, where it read as another weekly task rather than as the last
-            step of naming the vessel.
-
-            Once the device is aboard the same row stops inviting and starts
-            reporting — the screen behind it does the same. */}
-        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Enrol')}>
-          <GlyphBadge emoji="📱" size={18} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>
-              {sync.enrolled ? 'This device' : 'Join this vessel'}
-            </Text>
-            <Text style={styles.linkSub}>
-              {sync.enrolled
-                ? 'Who it signs as, and how to sign off'
-                : 'Enrol this device with the name and PIN you were given'}
-            </Text>
-          </View>
-          <Text style={styles.chev}>›</Text>
-        </TouchableOpacity>
           </>
         ) : null}
       </Card>
@@ -469,8 +481,8 @@ export default function SettingsSc() {
         {/* Issuing accounts is the Master's, so only a Master is offered it. The
             row used to be shown to everyone with "(Master only)" in the subtitle,
             which put a door in front of the crew and a notice on it saying the
-            door is not theirs. The read-only view of who is aboard stays
-            available to all, lower down under Cloud sync. */}
+            door is not theirs. A member who wants the read-only roster can still
+            reach /accounts by URL, where the screen explains itself. */}
         {sync.role === 'superadmin' ? (
           <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Accounts')}>
             <GlyphBadge emoji="🔑" size={18} />
@@ -484,24 +496,6 @@ export default function SettingsSc() {
       </Card>
       ) : null}
 
-      {/* The old "Cloud sync" panel — connection password, Connect, Push and Pull
-          — is gone. It described a model the app no longer has, and it was worse
-          than clutter: the field invited people to paste the vessel SETUP CODE
-          into a password box that means something else entirely, and Push/Pull
-          implied sync waits to be asked when it has been continuous since the
-          move to Firestore.
-          What replaced it: the card at the top of Settings says where this device
-          stands, and Accounts — directly above this one — holds devices,
-          approvals and roles. It sits here, under Accounts, rather than at the
-          foot of the screen: sync and who may sync are one subject, and a person
-          wondering about one is a scroll away from the other. */}
-      <Card>
-        <Label>Cloud sync</Label>
-        <Text style={styles.syncStatus}>
-          Sync runs by itself once this device has joined the vessel — records reach the crew's
-          other devices within seconds. There is nothing to push or pull.
-        </Text>
-      </Card>
 
       {canHandleData ? (
       <Card>
@@ -760,22 +754,17 @@ function FormField({
 }
 
 const makeStyles = (COLORS: Palette) => StyleSheet.create({
-  themeRow: { flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.sm },
-  themeChip: {
-    flex: 1,
-    paddingVertical: SIZES.sm,
-    borderRadius: SIZES.radiusMd,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.cardSolid,
-    alignItems: 'center',
+  headerActions: { flexDirection: 'row', alignItems: 'center' },
+  proPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    marginRight: SIZES.sm,
   },
-  themeChipOn: { borderColor: COLORS.primary, backgroundColor: COLORS.primary },
-  themeChipText: { fontSize: SIZES.small, fontWeight: '700', color: COLORS.text },
-  themeChipTextOn: { color: COLORS.textWhite },
-  proRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm },
-  proTitle: { fontSize: SIZES.h5, fontWeight: '800', color: COLORS.primaryDark },
-  proSub: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 1 },
+  proPillText: { color: '#FFFFFF', fontSize: SIZES.tiny, fontWeight: '800', letterSpacing: 0.8 },
+  themeIcons: { flexDirection: 'row', alignItems: 'center', gap: 2, marginRight: SIZES.xs },
+  themeIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  themeIconOn: { backgroundColor: COLORS.primary },
   input: {
     ...COLORS.glassInput,
     borderRadius: SIZES.radiusMd,
@@ -801,7 +790,6 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   linkTitle: { fontSize: SIZES.h5, color: COLORS.textDark, fontWeight: '600' },
   linkSub: { fontSize: SIZES.small, color: COLORS.textLight },
   chev: { fontSize: SIZES.h3, color: COLORS.textLight },
-  syncStatus: { fontSize: SIZES.small, color: COLORS.textLight, marginVertical: SIZES.sm },
   pwHint: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 4 },
   changePwHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: SIZES.sm },
   changePwTitle: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.primaryDark },

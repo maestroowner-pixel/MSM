@@ -3,23 +3,46 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, useWindowDimensions, Platform } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Screen, StatusPill, Empty, statusColor, CategoryBadge } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { HelpButton } from '../components/HelpButton';
-import { SIZES, Palette } from '../theme';
+import { SIZES, Palette, SCROLLBAR_GUTTER } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { CATEGORY_MAP } from '../constants/categories';
+import { periodsFor } from '../constants/checklists';
+import { worstRoundMark, RoundMark } from '../services/inspections';
 import { complianceDate, computeStatus, daysUntil, formatDate } from '../utils/dates';
 import { CategoryKey, ComplianceStatus, EquipmentItem } from '../types/equipment';
 import { uid } from '../utils/id';
 import { canAddItem } from '../services/trial';
 
-type SortBy = 'date' | 'position' | 'name' | 'type';
-const SORT_ORDER: SortBy[] = ['date', 'position', 'name', 'type'];
-const SORT_LABEL: Record<SortBy, string> = { date: 'Expiry date', position: 'Position', name: 'Name', type: 'Type' };
+type SortBy = 'date' | 'position' | 'name' | 'type' | 'round';
+const SORT_ORDER: SortBy[] = ['date', 'position', 'name', 'type', 'round'];
+const SORT_LABEL: Record<SortBy, string> = {
+  date: 'Expiry date',
+  position: 'Position',
+  name: 'Name',
+  type: 'Type',
+  round: 'This period',
+};
+
+/**
+ * The round mark's colour. Red something is wrong, green signed and clear, amber
+ * the period is closing, blue not inspected yet — blue rather than grey because
+ * "not yet" is a normal state on a fresh month, not a disabled one.
+ */
+const ROUND_COLOR = (m: RoundMark, C: Palette) =>
+  m === 'fail' ? C.danger : m === 'done' ? C.success : m === 'due' ? C.warning : C.primary;
+
+const ROUND_GROUP: Record<RoundMark, string> = {
+  fail: 'Failed — defect outstanding',
+  due: 'Period closing — not inspected',
+  open: 'Not inspected yet',
+  done: 'Inspected this period',
+};
 
 const titleOf = (it: EquipmentItem) => (it.type || (it.no != null ? `#${it.no}` : '')).toLowerCase();
 const NO_POSITION = '— No position';
@@ -30,6 +53,8 @@ interface Scored {
   status: ComplianceStatus;
   date?: string;
   days?: number;
+  /** Where this item stands in the CURRENT round — see services/inspections. */
+  round: RoundMark;
 }
 type ListEntry =
   | { kind: 'header'; key: string; position: string; count: number; icon: string }
@@ -42,7 +67,7 @@ export default function CategoryItemsSc() {
   const meta = CATEGORY_MAP[category];
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { byCategory, certificates, prefs, isLocked } = useData();
+  const { byCategory, certificates, prefs, isLocked, inspections: trail } = useData();
   const certItemIds = useMemo(() => {
     const s = new Set<string>();
     certificates.forEach((c) => c.itemIds.forEach((id) => s.add(id)));
@@ -69,9 +94,16 @@ export default function CategoryItemsSc() {
 
   // Sort by soonest expiry/inspection, or group by position with location headers.
   const listData = useMemo<ListEntry[]>(() => {
+    const periods = periodsFor(category);
     const scored: Scored[] = filtered.map((it) => {
       const date = complianceDate(it);
-      return { it, status: computeStatus(it), date, days: daysUntil(date) };
+      return {
+        it,
+        status: computeStatus(it),
+        date,
+        days: daysUntil(date),
+        round: worstRoundMark(trail, it.id, periods),
+      };
     });
     const byDays = (a: Scored, b: Scored) => (a.days ?? 1e9) - (b.days ?? 1e9);
 
@@ -82,6 +114,20 @@ export default function CategoryItemsSc() {
       return [...scored]
         .sort((a, b) => titleOf(a.it).localeCompare(titleOf(b.it)))
         .map((r) => ({ kind: 'row', key: r.it.id, ...r }));
+    }
+    // By the current round. Worst first, because this list is read to find what
+    // still needs doing before the period closes — the ones already signed are
+    // the least interesting thing on the screen.
+    if (sortBy === 'round') {
+      const order: RoundMark[] = ['fail', 'due', 'open', 'done'];
+      const out: ListEntry[] = [];
+      for (const mark of order) {
+        const rows = scored.filter((r) => r.round === mark).sort(byDays);
+        if (!rows.length) continue;
+        out.push({ kind: 'header', key: `h_${mark}`, position: ROUND_GROUP[mark], count: rows.length, icon: '🧾' });
+        rows.forEach((r) => out.push({ kind: 'row', key: r.it.id, ...r }));
+      }
+      return out;
     }
     // Group by position (location) or by the item's type/description, with a
     // header per group. Items with no value land in a trailing "—" group.
@@ -226,6 +272,15 @@ export default function CategoryItemsSc() {
           </>
         )}
       </View>
+      {/* The round, on the RIGHT, mirroring the expiry bar on the left. Two
+          different questions asked of the same item: the left says whether its
+          certificate or service is still in date, this one whether the crew has
+          walked up to it this month. An item can be perfectly in date and
+          uninspected, which is exactly the case a mate needs to see. */}
+      <View
+        style={[styles.roundBar, { backgroundColor: ROUND_COLOR(e.round, COLORS) }]}
+        accessibilityLabel={ROUND_GROUP[e.round]}
+      />
     </TouchableOpacity>
     );
   };
@@ -311,7 +366,10 @@ export default function CategoryItemsSc() {
         <FlatList
           data={renderData}
           keyExtractor={(e) => e.key}
-          contentContainerStyle={{ paddingBottom: SIZES.xxxl }}
+          contentContainerStyle={{ paddingBottom: SIZES.xxxl, paddingRight: SCROLLBAR_GUTTER }}
+          // No permanent stripe down the right of the list: on web the bar is
+          // drawn inside the list's own box and covered the right-hand column.
+          showsVerticalScrollIndicator={Platform.OS !== 'web'}
           renderItem={({ item: e }) =>
             e.kind === 'header' ? (
               <View style={styles.posHeader}>
@@ -441,12 +499,16 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
     ...COLORS.glassCard,
     borderRadius: SIZES.radiusMd,
     paddingVertical: SIZES.md,
-    paddingRight: SIZES.md,
+    // Both edges flush: the expiry bar on the left and the round bar on the
+    // right are the same object seen twice, so neither may be inset. The gap
+    // between the bars and the text is the bars' own margin.
+    paddingRight: 0,
     paddingLeft: 0,
     marginBottom: SIZES.sm,
     overflow: 'hidden',
   },
   bar: { width: 5, alignSelf: 'stretch', marginRight: SIZES.md },
+  roundBar: { width: 5, alignSelf: 'stretch', marginLeft: SIZES.md },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.xs },
   rowTitle: { fontSize: SIZES.h5, fontWeight: '600', color: COLORS.textDark, flexShrink: 1 },
   badge: { backgroundColor: 'rgba(46,125,153,0.12)', borderRadius: SIZES.radiusSm, paddingHorizontal: 6, paddingVertical: 1 },

@@ -4,6 +4,7 @@
 // Mirrors Marine Hospital Manager tokens
 // ===================================
 
+import { Platform } from 'react-native';
 import type { ViewStyle } from 'react-native';
 import type { Group } from './types/equipment';
 
@@ -255,5 +256,20 @@ const COLORFUL: Palette = {
 };
 
 export const THEMES: Record<ThemeName, Palette> = { light: LIGHT, dark: DARK, colorful: COLORFUL };
+/**
+ * Room left for a scrollbar on the web build — none, because there is no bar.
+ *
+ * react-native-web draws the bar INSIDE the scrolling element's box, over its
+ * right edge, and a permanently visible one both covered the right column of a
+ * two-column list and sat there doing nothing most of the time. Reserving a
+ * gutter for it fixed the covering and kept the stripe. Hiding the bar fixes
+ * both: the content gets the full width back and nothing protrudes.
+ *
+ * The cost is real and worth naming: on a desktop there is then no visual
+ * indication of scroll position. Wheel, trackpad and keyboard all still scroll,
+ * and the lists are short enough that position is rarely the question.
+ */
+export const SCROLLBAR_GUTTER = 0;
+
 export const THEME_LABELS: Record<ThemeName, string> = { light: 'Light', dark: 'Dark', colorful: 'Colorful' };
 export const THEME_ORDER: ThemeName[] = ['light', 'dark', 'colorful'];

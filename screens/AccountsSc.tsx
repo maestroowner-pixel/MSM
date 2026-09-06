@@ -255,7 +255,7 @@ export default function AccountsSc() {
           <Label>Working out what this device may do</Label>
           <Text style={styles.note}>
             Accounts open once the vessel has confirmed this device's rank. If it stays like this,
-            the device has not joined yet — Settings → Vessel → Join this vessel.
+            the device has not joined yet — the “This device” card at the top of Settings.
           </Text>
         </Card>
       ) : null}
@@ -269,7 +269,7 @@ export default function AccountsSc() {
           <Label>{ROLE_LABEL[myRole]} — read only</Label>
           <Text style={styles.note}>
             Accounts, approvals and ranks are the Master's. Your own device — its name, rank and
-            whether it is approved — is under Settings → Vessel → This device.
+            whether it is approved — is under Settings → This device.
           </Text>
         </Card>
       ) : null}

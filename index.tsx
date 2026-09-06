@@ -129,13 +129,39 @@ function MainTabs() {
   // Edge-to-edge is enabled, so the tab bar draws behind the Android system
   // navigation (3-button or gesture). Pad the bar by the bottom inset so the
   // tabs are never hidden under the navigation buttons.
-  const tabBarStyle = {
-    backgroundColor: COLORS.tabBackground,
-    borderTopColor: COLORS.borderLight,
-    height: 60 + insets.bottom,
-    paddingTop: 6,
-    paddingBottom: insets.bottom + 6,
-  };
+  //
+  // ON WEB THE BAR GOES ON TOP. A browser window is wide and shallow, the pointer
+  // lives at the top of the page, and a row of tabs pinned to the bottom edge of
+  // a laptop screen is a phone habit carried where it does not belong. On a phone
+  // it stays where a thumb reaches it.
+  //
+  // bottom-tabs v6 has no `tabBarPosition` (that is v7), so this is done with the
+  // two props it does have: the bar is drawn absolutely at the top, and the scene
+  // is padded by its height so nothing hides underneath.
+  const onWeb = Platform.OS === 'web';
+  const barHeight = 60 + (onWeb ? insets.top : insets.bottom);
+
+  const tabBarStyle = onWeb
+    ? {
+        backgroundColor: COLORS.tabBackground,
+        borderTopWidth: 0,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: COLORS.borderLight,
+        position: 'absolute' as const,
+        top: 0,
+        left: 0,
+        right: 0,
+        height: barHeight,
+        paddingTop: insets.top + 6,
+        paddingBottom: 6,
+      }
+    : {
+        backgroundColor: COLORS.tabBackground,
+        borderTopColor: COLORS.borderLight,
+        height: barHeight,
+        paddingTop: 6,
+        paddingBottom: insets.bottom + 6,
+      };
 
   // Swipe left/right to move between tabs (gesture-handler, no reanimated needed).
   const swipe = Gesture.Pan()
@@ -153,6 +179,7 @@ function MainTabs() {
     <GestureDetector gesture={swipe}>
       <View style={{ flex: 1 }}>
         <Tab.Navigator
+          sceneContainerStyle={onWeb ? { paddingTop: barHeight } : undefined}
           screenListeners={{
             state: (e: any) => {
               const idx = e.data?.state?.index;

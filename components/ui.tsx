@@ -208,11 +208,14 @@ export function ScreenTitle({
   subtitle,
   help,
   onScan,
+  actions,
 }: {
   title: string;
   subtitle?: string;
   help?: number;
   onScan?: () => void;
+  /** Small controls placed BEFORE the help button — see Settings' theme picker. */
+  actions?: React.ReactNode;
 }) {
   const c = useTheme();
   const styles = useStyles();
@@ -222,6 +225,7 @@ export function ScreenTitle({
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>
+      {actions}
       {help !== undefined ? <HelpButton section={help} /> : null}
       {onScan ? (
         <TouchableOpacity

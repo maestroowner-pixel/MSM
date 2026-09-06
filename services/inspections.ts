@@ -19,6 +19,7 @@ import {
   InspectionPeriod,
   PERIOD_DAYS,
   outcomeOf,
+  hasOpenDefect as recordHasOpenDefect,
 } from '../types/inspection';
 import { ChecklistTemplate, lineText, templateById } from '../constants/checklists';
 import { CrewMember } from '../types/crew';
@@ -193,6 +194,68 @@ export function roundStatus(
   const done = list.some((i) => i.itemId === itemId && i.period === period && i.at >= from && i.at < to);
   if (done) return 'done';
   return list.some((i) => i.itemId === itemId && i.period === period) ? 'overdue' : 'never';
+}
+
+/**
+ * How this item stands against the CURRENT round — the mark shown beside it.
+ *
+ *   fail   something is wrong and still outstanding
+ *   done   inspected inside the current window and nothing outstanding
+ *   due    not inspected, and the window is nearly over
+ *   open   not inspected, with time still in hand
+ *
+ * FAIL OUTRANKS EVERYTHING, and it is not tied to the window. A defect raised in
+ * March is still a defect in June, so an item carrying an open one is marked as
+ * failed whatever else has happened since; it goes green only when the
+ * rectification is signed. Anything else would let a red mark be cleared by the
+ * calendar turning over, which is exactly the fact an audit is looking for.
+ *
+ * The distinction between `due` and `open` is the other half of the value. A
+ * monthly item untouched on the 3rd is not a problem and must not look like one,
+ * or the colour stops meaning anything and gets ignored; the same item untouched
+ * on the 27th is the one a mate needs to see before the month closes. So the
+ * warning is tied to the END of the calendar window, not to "30 days since last".
+ */
+export type RoundMark = 'fail' | 'done' | 'due' | 'open';
+
+/** How close to the end of a window counts as "due" — a fifth of it, min 1 day. */
+function warnMs(from: number, to: number): number {
+  return Math.max(86_400_000, (to - from) * 0.2);
+}
+
+export function roundMark(
+  list: Inspection[],
+  itemId: string,
+  period: InspectionPeriod,
+  ref: Date = new Date()
+): RoundMark {
+  // An unrectified defect is the loudest thing this item has to say, whenever it
+  // was raised — see the note above.
+  if (list.some((i) => i.itemId === itemId && recordHasOpenDefect(i))) return 'fail';
+
+  const { from, to } = windowFor(period, ref);
+  const done = list.some(
+    (i) => i.itemId === itemId && i.period === period && i.at >= from && i.at < to
+  );
+  if (done) return 'done';
+
+  return ref.getTime() >= to - warnMs(from, to) ? 'due' : 'open';
+}
+
+/** The worst mark across every round the category owes — what a single dot shows. */
+export function worstRoundMark(
+  list: Inspection[],
+  itemId: string,
+  periods: InspectionPeriod[],
+  ref: Date = new Date()
+): RoundMark {
+  const rank: Record<RoundMark, number> = { fail: 3, due: 2, open: 1, done: 0 };
+  let worst: RoundMark = 'done';
+  for (const p of periods) {
+    const m = roundMark(list, itemId, p, ref);
+    if (rank[m] > rank[worst]) worst = m;
+  }
+  return worst;
 }
 
 /** Days since the last check of this period; undefined when never checked. */

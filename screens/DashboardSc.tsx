@@ -5,12 +5,12 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, useWindowDimensions, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Screen, ScreenTitle, Empty, statusColor, CategoryBadge, Glyph } from '../components/ui';
 import { TrialBanner } from '../components/TrialBanner';
 import { UpdateBanner } from '../components/UpdateBanner';
-import { SIZES, Palette } from '../theme';
+import { SIZES, Palette, SCROLLBAR_GUTTER } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { CATEGORY_MAP } from '../constants/categories';
@@ -18,17 +18,38 @@ import { gettingStarted } from '../constants/gettingStarted';
 import { complianceDate, computeStatus, daysUntil, formatDate } from '../utils/dates';
 import { ComplianceStatus, EquipmentItem, Group } from '../types/equipment';
 import * as inspections from '../services/inspections';
+import { worstRoundMark, RoundMark } from '../services/inspections';
+import { periodsFor } from '../constants/checklists';
+
+/** Same four states as the category list — see services/inspections.roundMark. */
+const ROUND_COLOR = (m: RoundMark, C: Palette) =>
+  m === 'fail' ? C.danger : m === 'done' ? C.success : m === 'due' ? C.warning : C.primary;
 
 type GroupFilter = 'ALL' | Group;
 type StatusFilter = 'expired' | 'due' | 'ok' | null;
-type SortBy = 'date' | 'position' | 'name' | 'type';
+type SortBy = 'date' | 'position' | 'name' | 'type' | 'round';
 
 const NO_POSITION = '— No position';
 
 const GROUP_ORDER: GroupFilter[] = ['ALL', 'LSA', 'FFE', 'OTHER'];
 const GROUP_LABEL: Record<GroupFilter, string> = { ALL: 'All groups', LSA: 'LSA', FFE: 'FFE', OTHER: 'Other' };
-const SORT_ORDER: SortBy[] = ['date', 'position', 'name', 'type'];
-const SORT_LABEL: Record<SortBy, string> = { date: 'Expiry date', position: 'Position', name: 'Name', type: 'Type' };
+const SORT_ORDER: SortBy[] = ['date', 'position', 'name', 'type', 'round'];
+const SORT_LABEL: Record<SortBy, string> = {
+  date: 'Expiry date',
+  position: 'Position',
+  name: 'Name',
+  type: 'Type',
+  round: 'This period',
+};
+
+/** Worst first — the list is read to find what still needs doing. */
+const ROUND_ORDER: RoundMark[] = ['fail', 'due', 'open', 'done'];
+const ROUND_GROUP: Record<RoundMark, string> = {
+  fail: 'Failed — defect outstanding',
+  due: 'Period closing — not inspected',
+  open: 'Not inspected yet',
+  done: 'Inspected this period',
+};
 
 const titleOf = (it: EquipmentItem) => (it.type || (it.no != null ? `#${it.no}` : '')).toLowerCase();
 
@@ -94,6 +115,18 @@ export default function DashboardSc() {
     } else if (sortBy === 'name') {
       rows = [...rows].sort((a, b) => titleOf(a.it).localeCompare(titleOf(b.it)));
       listData = rows.map((r) => ({ kind: 'row', key: r.it.id, ...r }));
+    } else if (sortBy === 'round') {
+      // By the current round, worst first — the same grouping the category list
+      // offers, so the two screens answer "what is still owed" the same way.
+      listData = [];
+      for (const mark of ROUND_ORDER) {
+        const group = rows
+          .filter((r) => worstRoundMark(trail, r.it.id, periodsFor(r.it.category)) === mark)
+          .sort(byDays);
+        if (!group.length) continue;
+        listData.push({ kind: 'header', key: `h:${mark}`, position: ROUND_GROUP[mark], count: group.length, icon: '🧾' });
+        for (const r of group) listData.push({ kind: 'row', key: r.it.id, ...r });
+      }
     } else {
       // Group with a header per location (position) or per equipment category (type).
       const byType = sortBy === 'type';
@@ -121,7 +154,9 @@ export default function DashboardSc() {
     }
 
     return { listData, stats, total: rows.length };
-  }, [flat, group, status, sortBy]);
+    // `trail` is in here because the round grouping reads it — without it the
+    // list would keep yesterday's marks after an inspection is signed.
+  }, [flat, group, status, sortBy, trail]);
 
   // Two quick-access strips above the list: things a human flagged to revisit, and
   // the labels just scanned on this device (ScanSc → services/scanHistory). Both are
@@ -150,6 +185,21 @@ export default function DashboardSc() {
       if (out.length >= STRIP_CAP) break;
     }
     return out;
+  }, [flat, trail]);
+
+  /**
+   * The round mark for every item on screen — the right-hand bar.
+   *
+   * Built once for the whole register rather than per row: `worstRoundMark`
+   * walks the trail, and doing that inside a list row would walk it again for
+   * every row on every render.
+   */
+  const roundMarks = useMemo(() => {
+    const m = new Map<string, RoundMark>();
+    for (const it of flat) {
+      m.set(it.id, worstRoundMark(trail, it.id, periodsFor(it.category)));
+    }
+    return m;
   }, [flat, trail]);
 
   /** itemId -> why it is on the defect list, built with the list itself. */
@@ -200,6 +250,7 @@ export default function DashboardSc() {
       date={e.date}
       days={e.days}
       fill={fill}
+      round={roundMarks.get(e.it.id)}
       hasCert={certItemIds.has(e.it.id)}
       locked={isLocked(e.it.id)}
       onPress={() =>
@@ -214,6 +265,7 @@ export default function DashboardSc() {
     <DashRow
       key={prefix + it.id}
       item={it}
+      round={roundMarks.get(it.id)}
       status={computeStatus(it)}
       date={complianceDate(it)}
       days={daysUntil(complianceDate(it))}
@@ -283,15 +335,15 @@ export default function DashboardSc() {
         onScan={() => nav.navigate('Scan')}
       />
 
-      <TrialBanner />
-
-      <View style={styles.statsRow}>
+      {/* One row, five controls, directly under the title. The counts and the two
+          pickers were two stacked rows below the trial banner, which put the
+          thing a mate actually steers with — how many are overdue, and what the
+          list is showing — below an advert. They are the same act (choose what
+          this list contains), so they belong side by side and first. */}
+      <View style={styles.controlsRow}>
         <StatBox label="Expired" value={stats.expired} color={COLORS.danger} active={status === 'expired'} onPress={() => toggleStatus('expired')} />
         <StatBox label="Due soon" value={stats.due} color={COLORS.warning} active={status === 'due'} onPress={() => toggleStatus('due')} />
         <StatBox label="Valid" value={stats.ok} color={COLORS.success} active={status === 'ok'} onPress={() => toggleStatus('ok')} />
-      </View>
-
-      <View style={styles.controlRow}>
         <TouchableOpacity style={styles.cycleBtn} onPress={cycleGroup} activeOpacity={0.8}>
           <Text style={styles.cycleCaption}>GROUP</Text>
           <Text style={styles.cycleValue} numberOfLines={1}>{GROUP_LABEL[group]}</Text>
@@ -302,13 +354,18 @@ export default function DashboardSc() {
         </TouchableOpacity>
       </View>
 
+      <TrialBanner />
+
       {loading ? null : flat.length === 0 ? (
         <GetStarted onStart={() => nav.navigate('GettingStarted')} />
       ) : (
         <FlatList
           data={renderData}
           keyExtractor={(e) => e.key}
-          contentContainerStyle={{ paddingBottom: SIZES.xxxl }}
+          contentContainerStyle={{ paddingBottom: SIZES.xxxl, paddingRight: SCROLLBAR_GUTTER }}
+          // No permanent stripe down the right of the list: on web the bar is
+          // drawn inside the list's own box and covered the right-hand column.
+          showsVerticalScrollIndicator={Platform.OS !== 'web'}
           ListHeaderComponent={strips}
           ListEmptyComponent={
             <Empty text={status || group !== 'ALL' ? 'No items match the current filters.' : 'No items with dates yet. Import the LSA/FFE workbook from Settings.'} />
@@ -389,6 +446,7 @@ function DashRow({
   hasCert,
   rightText,
   subText,
+  round,
   locked,
 }: {
   item: EquipmentItem;
@@ -406,10 +464,13 @@ function DashRow({
   // badge already naming the category, repeating the category there says nothing
   // while the reason for the defect says everything.
   subText?: string;
+  /** Where this item stands in the current round — the bar on the RIGHT. */
+  round?: RoundMark;
   // Free-tier overflow lock — read-only; tap routes to the paywall.
   locked?: boolean;
 }) {
   const styles = useS();
+  const COLORS = useTheme();
   const meta = CATEGORY_MAP[item.category];
   const title = item.type || (item.no != null ? `#${item.no}` : meta.short);
   const daysText =
@@ -451,6 +512,11 @@ function DashRow({
           </>
         )}
       </View>
+      {/* Mirrors the expiry bar on the left: that one says whether the item is in
+          date, this one whether the crew has been to it this period. */}
+      {round ? (
+        <View style={[styles.roundBar, { backgroundColor: ROUND_COLOR(round, COLORS) }]} />
+      ) : null}
     </TouchableOpacity>
   );
 }
@@ -468,9 +534,13 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
     alignItems: 'center',
   },
   getStartedBtnText: { color: COLORS.textWhite, fontWeight: '700', fontSize: SIZES.h5 },
+  // Five across on a wide screen; wraps to two rows on a phone rather than
+  // squeezing five buttons into 390 points, where the labels would be unreadable.
+  controlsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.sm, marginBottom: SIZES.md },
   statsRow: { flexDirection: 'row', gap: SIZES.sm, marginBottom: SIZES.sm },
   statBox: {
     flex: 1,
+    minWidth: 110,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -486,6 +556,7 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   controlRow: { flexDirection: 'row', gap: SIZES.sm, marginBottom: SIZES.md },
   cycleBtn: {
     flex: 1,
+    minWidth: 150,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -519,11 +590,13 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
     ...COLORS.glassCard,
     borderRadius: SIZES.radiusMd,
     paddingVertical: SIZES.md,
-    paddingRight: SIZES.md,
+    // Flush on both edges — the two bars are a pair and neither may be inset.
+    paddingRight: 0,
     paddingLeft: 0,
     marginBottom: SIZES.sm,
     overflow: 'hidden',
   },
+  roundBar: { width: 5, alignSelf: 'stretch', marginLeft: SIZES.md },
   rowBar: { width: 5, alignSelf: 'stretch', marginRight: SIZES.md },
   rowEmoji: { marginRight: SIZES.sm, alignItems: 'center', justifyContent: 'center' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.xs },

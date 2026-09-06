@@ -52,6 +52,38 @@ to change to make those signatures mean anything.
 
 Android versionCode 20301 · iOS build 20301.
 
+- **Two photographs broke syncing for a whole vessel.** In a browser an attachment IS a base64
+  `data:` URI inside the item, and the register travels as ONE Firestore document with a 1 MiB
+  ceiling: `The value of property "register" is longer than 1048487 bytes`. Files now go to Cloud
+  Storage and the register carries a reference. The reference is a download URL rather than a
+  path so every existing render site keeps working unchanged — the cost, stated plainly, is that
+  such a URL carries its own token, and it lives only inside a register that only members can
+  read. An upload that fails is not fatal: the records still go up whole and the file waits.
+- **Inspection photographs signed in a browser never uploaded at all.** `uploadPhoto` was written
+  around expo-file-system, which reports a `data:` URI as a missing file — so the queue retried
+  six times and parked it. On a phone the same URI made `getInfoAsync` THROW, the throw escaped
+  the effect, and neither the image nor the "not uploaded" state was ever set: the spinner turned
+  for ever. And opening one failed with "You don't have access to the provided file", which was
+  true — there was no file; a data URI is now written to one before it is shared.
+- **An upload allowance for unlicensed vessels: 25 files.** Unlike the other free-tier caps this
+  applies DURING the trial, because it limits what we pay for rather than what the app will do.
+  Nothing is refused locally — photographs are taken, kept and backed up as before; what waits is
+  the copy for the other devices, and everything held back goes up on the first sync after the
+  vessel is licensed. Counted on the vessel document so five phones cannot each spend it.
+- **A round mark beside every item**, mirroring the expiry bar: blue not inspected, green signed
+  and clear, amber the period is closing, red a defect still outstanding. Red is deliberately not
+  tied to the window — a defect raised in March is still a defect in June, and letting the
+  calendar clear a red mark would hide exactly what an audit looks for. "This period" joins the
+  sort options on both the dashboard and the category list.
+- **A device removed from the vessel could not rejoin.** `refresh` refused it with "This device is
+  not in the register", but the stale secret kept `enrolled` true — so the app believed it was
+  aboard, never offered to join, and showed a "Try again" that could not succeed. The server now
+  answers `reenrol`, the client forgets the secret, and "Join this vessel" comes back with the
+  reason why.
+- Settings rearranged: theme as sun/moon/star and PRO as a badge in the header, joining moved
+  behind the "This device" card that already carried its name, the Cloud sync panel removed once
+  it had nothing left to say. On web the tab bar moved to the top, and the counters and pickers
+  became one row of five under the title.
 - **Close worked only when there was something behind it.** `navigation.goBack()` is a no-op on a
   one-entry stack and fails SILENTLY, so the button looked dead. It never showed while people
   tapped their way through the app, and started the moment screens got URLs: open /label directly
