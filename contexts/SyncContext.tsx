@@ -54,6 +54,16 @@ interface SyncContextType {
   /** Detach and stop syncing (used on sign-out / reset). */
   disconnect: () => void;
   /**
+   * Why the last attempt failed, in the server's or the SDK's own words.
+   *
+   * The message existed all along — `refresh` returns it — and was thrown away,
+   * so every failure looked identical from the outside: "Could not connect",
+   * whatever the cause. A device refused for a real reason (switched off by the
+   * Master, a wrong secret) and one that simply has no signal need different
+   * things from the user, and only the message can tell them apart.
+   */
+  lastError: string | null;
+  /**
    * Push what this device holds to the vessel NOW, and say whether it landed.
    *
    * For the one case where local must beat the cloud: restoring a `.msm`. The
@@ -78,13 +88,14 @@ const PUSH_DEBOUNCE_MS = 1500;
 const TRAIL_WINDOW_DAYS = 400;
 
 export function SyncProvider({ children }: { children: React.ReactNode }) {
-  const { flat, certificates, vessel, compressor, prefs, reload } = useData();
+  const { flat, certificates, vessel, compressor, inspections: trail, crew, prefs, reload } = useData();
 
   const [status, setStatus] = useState<SyncStatus>('off');
   const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
   const [registerBytes, setRegisterBytes] = useState(0);
   const [role, setRole] = useState<Role | null>(null);
   const [enrolled, setEnrolled] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
 
   const uidRef = useRef<string | null>(null);
   const unsubs = useRef<Array<() => void>>([]);
@@ -120,7 +131,26 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       setStatus('synced');
       return n;
     } catch (e: any) {
-      console.warn('[sync] push failed:', e?.message ?? e);
+      // This was the silent one. `refresh` records why it failed and so does the
+      // catch around connect, but a failing WRITE only set the status — so the
+      // card said "Could not connect" while the session was fine and it was the
+      // register push being refused. Every path to 'error' now carries its
+      // reason, or the card is a light with no label on it.
+      let msg = e?.message ?? String(e);
+      // The refusal we actually expect: the token was issued for one vessel and
+      // the app is writing to another, because the IMO was changed after this
+      // device enrolled. "Missing or insufficient permissions" tells nobody
+      // that; the two numbers side by side tell them exactly what to do.
+      if (/permission/i.test(msg)) {
+        const claimed = await fb.claimedVessel();
+        if (claimed && uid && claimed !== uid) {
+          msg =
+            `This device is enrolled on vessel ${claimed}, but the app is set to ${uid}. ` +
+            `Set the IMO back to ${claimed}, or join ${uid} again from Settings → Vessel → This device.`;
+        }
+      }
+      console.warn('[sync] push failed:', msg);
+      setLastError(msg);
       setStatus('error');
     }
   }, []);
@@ -186,7 +216,9 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
             setLastSyncAt(Date.now());
             setStatus('synced');
           } catch (e: any) {
-            console.warn('[sync] applying remote register failed:', e?.message ?? e);
+            const msg = e?.message ?? String(e);
+            console.warn('[sync] applying remote register failed:', msg);
+            setLastError(msg);
           } finally {
             applyingRemote.current = false;
           }
@@ -237,16 +269,26 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       // it needs no PIN — only the secret issued at enrolment.
       const secret = await fb.getDeviceSecret();
       setEnrolled(!!secret);
+      // Show the rank we last knew while the network is being asked. Without
+      // this a launch with no signal renders the whole app as "rank unknown"
+      // until (or unless) the call comes back.
+      if (secret) {
+        const known = await fb.getKnownRole();
+        if (known) setRole(known as Role);
+      }
       if (secret) {
         const res = await enrolment.refresh(imo);
         if (res.status === 'pending') {
           uidRef.current = null;
           setRole(res.role);
+          void fb.saveKnownRole(res.role);
           setStatus('pending');
           return;
         }
         if (res.status === 'ok') {
           setRole(res.role);
+          setLastError(null);
+          void fb.saveKnownRole(res.role);
           // The register is keyed by the vessel's IMO under the new model, not
           // by a Firebase uid — the token says which vessel this device may
           // touch, and firestore.rules checks that claim.
@@ -262,6 +304,10 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         // 'reenrol' or 'refused'.
+        if (res.status === 'refused') {
+          console.warn('[sync] refused:', res.message);
+          setLastError(res.message);
+        }
         setStatus(res.status === 'reenrol' ? 'off' : 'error');
         return;
       }
@@ -276,16 +322,32 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       // vessel is the only way in.
       setStatus('off');
     } catch (e: any) {
-      console.warn('[sync] connect failed:', e?.message ?? e);
+      const msg = e?.message ?? String(e);
+      console.warn('[sync] connect failed:', msg);
+      setLastError(msg);
       setStatus('error');
     }
   }, [vessel?.imo, attach, pushNow]);
 
+  /**
+   * Leave the vessel. Called by Sign off, and by nothing else.
+   *
+   * `enrolled` has to go with it. It mirrors "this device holds a secret", which
+   * sign-off has just destroyed — and it is what the screens read to decide
+   * whether they are looking at a device aboard a ship. Left standing, the join
+   * screen went on showing the identity of a device that had just left, and
+   * Settings went on hiding the controls a standalone device is entitled to,
+   * until the app was restarted and the secret re-read from disk. State that
+   * mirrors storage must be corrected by whoever changes the storage.
+   */
   const disconnect = useCallback(() => {
     detach();
     uidRef.current = null;
     lastPushed.current = null;
     setRole(null);
+    setEnrolled(false);
+    setLastError(null);
+    setLastSyncAt(null);
     setStatus('off');
   }, [detach]);
 
@@ -300,10 +362,18 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
 
   // Local edits → debounced push. Skipped while we are applying a remote change,
   // or every incoming update would bounce straight back out again.
+  //
+  // THE TRAIL BELONGS IN HERE. It was watching the register, the certificates,
+  // the vessel and the compressor — everything except the one thing the app
+  // exists to record. Signing an inspection changes `inspections` and nothing
+  // else, so the push was never scheduled: the record sat on the phone until the
+  // next launch or until somebody happened to edit an item. On a round worked by
+  // two officers on two phones that is the difference between "reaches the crew
+  // in seconds" and "reaches them tomorrow".
   useEffect(() => {
     if (!uidRef.current || applyingRemote.current) return;
     schedulePush();
-  }, [flat, certificates, vessel, compressor, schedulePush]);
+  }, [flat, certificates, vessel, compressor, trail, crew, schedulePush]);
 
   // Fix 1, second half: re-push when the app comes back to the foreground.
   //
@@ -360,7 +430,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <SyncContext.Provider
-      value={{ status, role, enrolled, lastSyncAt, registerBytes, connect, disconnect, pushLocalNow }}
+      value={{ status, role, enrolled, lastSyncAt, registerBytes, connect, disconnect, pushLocalNow, lastError }}
     >
       {children}
     </SyncContext.Provider>

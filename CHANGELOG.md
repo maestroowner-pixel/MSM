@@ -48,6 +48,41 @@ to change to make those signatures mean anything.
   gloves — so a base64 secret could not be entered at all and the first device on a vessel could
   never enrol. Found by walking the flow on a device, not by any typecheck.
 
+### Sync: what it was actually refusing
+
+"Could not connect" was covering a perfectly good connection. The session was fine and the
+FUNCTION calls were succeeding — the server logs showed `auth: VALID` throughout — and the
+register WRITE was being refused. Three separate causes, none of which could be seen because
+every path to `error` set the status and threw the reason away.
+
+- **The crew list was pushed by every device on every sync**, and the rules gate it on `isSuper`.
+  On any device but the Master that is a guaranteed refusal, and it took the whole push down with
+  it. A device that may not write the list no longer tries: only a Master can have changed it.
+- **The whole inspection trail was re-pushed every time.** By the rules that is an UPDATE, and an
+  inspection may be updated only by an officer and only in its `defect` — so a crew device was
+  refused for re-sending a record that had not changed at all. It also cost real money: the trail
+  grows for the life of the vessel and every launch pushed all of it up a metered VSAT link.
+  Devices now track what is already up there; a signed record is immutable, so that knowledge is
+  permanent.
+- **Signing an inspection scheduled no push at all.** The effect watched the register, the
+  certificates, the vessel and the compressor — everything except the one thing the app exists to
+  record. A signature reached the vessel on the next launch, or when somebody happened to edit an
+  item. On a round worked from two phones that is the difference between seconds and tomorrow.
+
+Every path to `error` now carries its reason, each write names itself (`register:`,
+`inspections:`, `crew:`), and a permission refusal on the wrong vessel prints the two IMO numbers
+side by side instead of "Missing or insufficient permissions".
+
+- **The rank is remembered locally.** It arrives in a token, so a device with no signal had no
+  rank — and gating the interface on that left a Master who lost signal without the backup or the
+  roll-back, at exactly the moment those matter. For the INTERFACE only; every write is still
+  checked against the claim.
+- **Sign off now updates the screens.** `disconnect()` left `enrolled` standing, so the join
+  screen went on showing the identity of a device that had just left, and Settings went on hiding
+  controls a standalone device is entitled to, until the app was restarted. State that mirrors
+  storage must be corrected by whoever changes the storage. "Sign off & erase" also reloads and
+  drops the snapshots.
+
 ### A net under the trapeze, and who may pull it
 
 - **Automatic snapshots.** The app copies the RECORDS on every launch and keeps the last three

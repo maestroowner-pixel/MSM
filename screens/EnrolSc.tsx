@@ -29,13 +29,14 @@ import * as trial from '../services/trial';
 import { EnrolledDevice, personName } from '../types/role';
 import { resetAllData } from '../services/storage';
 import { clearAttachmentsDir } from '../services/attachments';
+import * as snapshot from '../services/snapshot';
 import { playErrorSound, playSuccessSound } from '../utils/sound';
 
 export default function EnrolSc() {
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { vessel } = useData();
+  const { vessel, reload } = useData();
   const { connect, disconnect, status, role, enrolled } = useSync();
   const imo = (vessel?.imo ?? '').replace(/\D/g, '');
 
@@ -102,6 +103,14 @@ export default function EnrolSc() {
       if (wipe) {
         await resetAllData();
         await clearAttachmentsDir().catch(() => {});
+        // The snapshots hold the register that was just erased — leaving them
+        // would make "erase" untrue, exactly as it would after Reset all data.
+        await snapshot.clearSnapshots().catch(() => {});
+        // And the screens have to be told. Wiping storage does not re-render
+        // anything by itself; without this the register stayed on screen until
+        // the app was restarted, which is what made sign-off look like it had
+        // done nothing.
+        await reload();
       }
       setResult(null);
       setMe(null);

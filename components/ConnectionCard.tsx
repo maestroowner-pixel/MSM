@@ -42,7 +42,7 @@ export function ConnectionCard() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const { vessel } = useData();
-  const { status, role, enrolled, lastSyncAt, connect } = useSync();
+  const { status, role, enrolled, lastSyncAt, connect, lastError } = useSync();
 
   const imo = (vessel?.imo ?? '').replace(/\D/g, '');
 
@@ -110,7 +110,10 @@ export function ConnectionCard() {
         title: 'Could not connect',
         body:
           'The register still works and nothing is lost — everything is stored on this device and ' +
-          'will sync when the connection comes back.',
+          'will sync when the connection comes back.' +
+          // The actual reason, when there is one. Without it every failure reads
+          // the same and there is nothing for the user — or us — to act on.
+          (lastError ? `\n\n${lastError}` : ''),
         action: { label: 'Try again', go: () => void connect() },
       };
     }

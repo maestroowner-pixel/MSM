@@ -399,6 +399,38 @@ export function ensureAuth(): Auth {
  * the same fallback the device id already uses, and for the same reason: a
  * secret that cannot be stored is a device that can never refresh its token.
  */
+/**
+ * The last rank the vessel confirmed for this device, kept locally.
+ *
+ * The rank arrives in a token, so a device with no connection has no rank — and
+ * gating the interface on that meant a Master who lost signal lost every data
+ * control, including the backup and the roll-back, at exactly the moment those
+ * matter most. The remembered rank is for the INTERFACE only; every write is
+ * still checked against the claim in the token by firestore.rules, so a stale
+ * copy here grants nothing. It is corrected on the next successful refresh.
+ */
+const ROLE_KEY = 'msm:device_role';
+
+export async function saveKnownRole(role: string): Promise<void> {
+  try {
+    await AsyncStorage.setItem(ROLE_KEY, role);
+  } catch {
+    /* remembering the rank is a convenience, never a requirement */
+  }
+}
+
+export async function getKnownRole(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(ROLE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export async function clearKnownRole(): Promise<void> {
+  await AsyncStorage.removeItem(ROLE_KEY).catch(() => {});
+}
+
 export async function saveDeviceSecret(secret: string): Promise<void> {
   const SS = getSecureStore();
   try {
@@ -436,6 +468,7 @@ export async function getDeviceSecret(): Promise<string | null> {
  */
 export async function signOutDevice(): Promise<void> {
   await clearDeviceSecret();
+  await clearKnownRole();
   try {
     await fbSignOut(ensureAuth());
   } catch {
@@ -501,11 +534,18 @@ export async function pushAll(uid: string): Promise<number> {
     );
   }
 
-  await fsSetDoc(
-    accountDoc(uid),
-    { [REGISTER_FIELD]: json, registerUpdatedAt: Date.now(), registerDeviceId: await deviceId() },
-    { merge: true }
-  );
+  // Named separately so a refusal says WHICH write was refused. One catch around
+  // three different documents with three different rules told us only that
+  // something, somewhere, was not allowed.
+  try {
+    await fsSetDoc(
+      accountDoc(uid),
+      { [REGISTER_FIELD]: json, registerUpdatedAt: Date.now(), registerDeviceId: await deviceId() },
+      { merge: true }
+    );
+  } catch (e: any) {
+    throw new Error(`register: ${e?.message ?? e}`);
+  }
   await pushInspections(uid);
   return total;
 }
@@ -604,15 +644,70 @@ async function writeInBatches(uid: string, sub: string, rows: Array<{ id: string
  * there is written, so a routine sync on a vessel with two years of history
  * costs a handful of writes rather than thousands.
  */
+/**
+ * Ids this device knows are already in the vessel's trail.
+ *
+ * Re-writing the whole trail on every sync was wrong twice over. By the rules it
+ * is an UPDATE, and an inspection may only be updated by an officer and only in
+ * its `defect` — so a crew device was refused for re-sending a record that had
+ * not changed at all, and the refusal read as "Could not connect". And on a ship
+ * it is paid for: the trail grows for the life of the vessel and every launch
+ * was pushing all of it back up a VSAT link that charges by the megabyte.
+ *
+ * A record is immutable once signed, so "already up there" is permanent
+ * knowledge — the only later change is a defect closing, which goes up on its own
+ * through pushOneInspection.
+ */
+const PUSHED_KEY = 'msm:pushed_inspections';
+
+async function knownPushed(): Promise<Set<string>> {
+  try {
+    const raw = await AsyncStorage.getItem(PUSHED_KEY);
+    const list = raw ? (JSON.parse(raw) as string[]) : [];
+    return new Set(Array.isArray(list) ? list : []);
+  } catch {
+    return new Set();
+  }
+}
+
+async function rememberPushed(ids: string[]): Promise<void> {
+  if (!ids.length) return;
+  try {
+    const set = await knownPushed();
+    ids.forEach((id) => set.add(id));
+    await AsyncStorage.setItem(PUSHED_KEY, JSON.stringify([...set]));
+  } catch {
+    /* the worst case is pushing them again next time */
+  }
+}
+
 export async function pushInspections(uid: string): Promise<number> {
   const list = await storage.loadInspections();
   const crew = await storage.loadCrew();
 
-  if (list.length) {
-    await writeInBatches(uid, 'inspections', list.map((i) => ({ id: i.id, data: i })));
+  const already = await knownPushed();
+  const fresh = list.filter((i) => !already.has(i.id));
+  if (fresh.length) {
+    try {
+      await writeInBatches(uid, 'inspections', fresh.map((i) => ({ id: i.id, data: i })));
+      await rememberPushed(fresh.map((i) => i.id));
+    } catch (e: any) {
+      throw new Error(`inspections: ${e?.message ?? e}`);
+    }
   }
-  if (crew.length) {
-    await writeInBatches(uid, 'crew', crew.map((c) => ({ id: c.id, data: c })));
+
+  // THE CREW LIST IS THE MASTER'S. firestore.rules gates it on `isSuper`, and
+  // this function ran on every sync from every device — so on any other device
+  // the whole push failed, and the failure surfaced as "Could not connect" while
+  // the connection was perfectly good. A device that may not write it must not
+  // try: there is nothing for it to contribute, since only a Master can have
+  // changed the list in the first place.
+  if (crew.length && (await claimedRole()) === 'superadmin') {
+    try {
+      await writeInBatches(uid, 'crew', crew.map((c) => ({ id: c.id, data: c })));
+    } catch (e: any) {
+      throw new Error(`crew: ${e?.message ?? e}`);
+    }
   }
   return list.length;
 }
@@ -626,6 +721,8 @@ export async function pullInspections(uid: string): Promise<number> {
   iSnap.forEach((doc) => remote.push(doc.data() as Inspection));
   const merged = mergeInspections(await storage.loadInspections(), remote);
   await storage.saveInspections(merged);
+  // Anything the vessel just handed us is, by definition, already up there.
+  await rememberPushed(remote.map((r) => r.id));
 
   const cSnap = await fsGetDocs(fsCollection(d, ROOT, uid, 'crew'));
   const remoteCrew: CrewMember[] = [];
@@ -748,6 +845,40 @@ export interface Entitlement {
  * Read from the token's claims where possible, because that is what the rules
  * check; the stored vessel info is a fallback for the legacy password path.
  */
+/**
+ * The vessel this device's TOKEN says it may write to — no fallback.
+ *
+ * `currentVesselKey` falls back to the stored IMO, which is right for addressing
+ * a document and wrong for diagnosing a refusal: the fallback would hand back
+ * the very number that was rejected and the mismatch would stay invisible. This
+ * one answers only what the claim says, so a write refused for the wrong vessel
+ * can say which vessel it was actually issued for.
+ */
+/** The role this device's token carries — what the rules will actually allow. */
+export async function claimedRole(): Promise<string | null> {
+  try {
+    const user = ensureInit().auth?.currentUser;
+    if (!user) return null;
+    const token = await user.getIdTokenResult();
+    const role = (token.claims as { role?: string }).role;
+    return role ? String(role) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function claimedVessel(): Promise<string | null> {
+  try {
+    const user = ensureInit().auth?.currentUser;
+    if (!user) return null;
+    const token = await user.getIdTokenResult();
+    const claimed = (token.claims as { vessel?: string }).vessel;
+    return claimed ? String(claimed).replace(/\D/g, '') || null : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function currentVesselKey(): Promise<string | null> {
   if (onWindows) return null;
   try {
