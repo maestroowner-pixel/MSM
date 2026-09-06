@@ -313,7 +313,15 @@ function EvidencePhoto({
   useEffect(() => {
     let alive = true;
     (async () => {
-      const local = await ensureLocalPhoto(vessel, inspectionId, photo);
+      // Catch, always. Anything thrown in here leaves BOTH states unset, and the
+      // component's only remaining branch is the spinner — a failure that shows
+      // as "still loading" for ever instead of as "not here yet".
+      let local: string | null = null;
+      try {
+        local = await ensureLocalPhoto(vessel, inspectionId, photo);
+      } catch {
+        local = null;
+      }
       if (!alive) return;
       if (local) setUri(local);
       else setMissing(true);

@@ -50,6 +50,25 @@ export const TRIAL_DAYS = 60;
 
 /** Free-tier caps, applied only once ENFORCE_LIMITS is true and the trial ended. */
 export const FREE_ITEMS_PER_CATEGORY = 15; // tune later
+
+/**
+ * How many files an UNLICENSED vessel may put in Cloud Storage.
+ *
+ * This one is not like the caps above, and the difference is the point. Those
+ * limit what the app will do on the device, and they hold off until the trial
+ * has ended — a trial should feel like the product. This limits what we PAY FOR:
+ * every photograph uploaded is storage and egress on our bill, for a vessel that
+ * has not paid and may never. So it applies during the trial as well.
+ *
+ * Nothing is refused to the user's own device. Photographs are taken, attached,
+ * shown and kept exactly as before, and they travel in a .msm backup. What stops
+ * at the limit is the copy that goes to the other devices — and the moment the
+ * vessel is licensed, everything held back goes up on the next sync.
+ *
+ * 25 is enough to work a round with evidence and see what the feature is for,
+ * and far too few to keep a fleet's photo archive on someone else's account.
+ */
+export const FREE_UPLOADS_PER_VESSEL = 25;
 export const FREE_CERTIFICATES = 10; // tune later
 
 const FIRST_LAUNCH_KEY = 'msm:first_launch';
@@ -220,6 +239,19 @@ export async function limitsActive(): Promise<boolean> {
 export async function canAddItem(currentCount: number): Promise<boolean> {
   if (!(await limitsActive())) return true;
   return currentCount < FREE_ITEMS_PER_CATEGORY;
+}
+
+/**
+ * How many more files this vessel may upload. `Infinity` once licensed.
+ *
+ * Deliberately NOT gated on the trial: see FREE_UPLOADS_PER_VESSEL. A licensed
+ * vessel is unlimited; everyone else shares one allowance, counted on the vessel
+ * document so five phones cannot each spend it.
+ */
+export async function uploadAllowance(used: number): Promise<number> {
+  if (!ENFORCE_LIMITS) return Infinity;
+  if (await isSubscribed()) return Infinity;
+  return Math.max(0, FREE_UPLOADS_PER_VESSEL - (used || 0));
 }
 
 /** Gate for adding another certificate. */

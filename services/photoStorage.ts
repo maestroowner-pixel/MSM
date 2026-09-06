@@ -58,13 +58,24 @@ export async function uploadPhoto(
 ): Promise<void> {
   const uri = resolveUri(localUri);
   if (!uri) throw new Error('Photo file is missing on this device.');
+  const ref = storageRef(bucket(), photoPath(vessel, inspectionId, photoId));
+
+  // IN A BROWSER THE PHOTO IS NOT A FILE. `services/attachments.web.ts` keeps it
+  // as a base64 `data:` URI, because a browser has no writable files directory —
+  // so expo-file-system, which this function was written around, cannot see it:
+  // `getInfoAsync` on a data: URI reports "missing" and the queue then retried
+  // six times and parked the photo for good. Signed on the web, the picture
+  // never left the tab, and on a phone its place span for ever.
+  if (uri.startsWith('data:')) {
+    await uploadString(ref, uri, 'data_url', { contentType: 'image/jpeg' });
+    return;
+  }
+
   const info = await FileSystem.getInfoAsync(uri);
   if (!info.exists) throw new Error('Photo file is missing on this device.');
 
   const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
-  await uploadString(storageRef(bucket(), photoPath(vessel, inspectionId, photoId)), base64, 'base64', {
-    contentType: 'image/jpeg',
-  });
+  await uploadString(ref, base64, 'base64', { contentType: 'image/jpeg' });
 }
 
 /**
@@ -81,9 +92,22 @@ export async function ensureLocalPhoto(
   photo: Attachment
 ): Promise<string | null> {
   const local = resolveUri(photo.uri);
+
+  // A photo signed in a BROWSER carries its own bytes: attachments.web.ts has no
+  // files directory, so the uri is a base64 `data:` string. It is displayable as
+  // it stands — and it must be returned before expo-file-system sees it, because
+  // getInfoAsync THROWS on a data: URI rather than answering "no". That throw
+  // escaped the caller's effect, so neither the image nor the "not uploaded"
+  // state was ever set and the spinner turned for ever.
+  if (local?.startsWith('data:')) return local;
+
   if (local) {
-    const info = await FileSystem.getInfoAsync(local);
-    if (info.exists) return local;
+    try {
+      const info = await FileSystem.getInfoAsync(local);
+      if (info.exists) return local;
+    } catch {
+      /* not a path this platform can stat — fall through to the cache/fetch */
+    }
   }
 
   const cached = `${ATTACHMENTS_DIR}${cacheName(inspectionId, photo.id)}`;

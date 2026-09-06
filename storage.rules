@@ -56,6 +56,34 @@ service firebase.storage {
       allow update, delete: if false;
     }
 
+    // ---- item and certificate attachments ---------------------------------
+    //
+    // NOT write-once, and that is the difference from the block above. An
+    // inspection photograph is evidence attached to a signed record, so replacing
+    // it would rewrite that evidence. An attachment on an ITEM is a working
+    // document — a service report that arrived in a better scan, a photo taken
+    // again in better light, a file deleted because it was the wrong one. Those
+    // are ordinary edits and the rules must allow them.
+    //
+    // Why they are here at all: on web an attachment used to live as a base64
+    // data: URI INSIDE the item, and the register travels as one Firestore
+    // document with a 1 MiB ceiling. Two photographs broke syncing for an entire
+    // vessel on 6 Sep 2026. The bytes belong in a bucket; the register should
+    // carry a reference and nothing more.
+    //
+    // Documents are allowed as well as images — a certificate is usually a PDF.
+    match /safety_vessels/{vessel}/attachments/{ownerId}/{file} {
+      allow read: if member(vessel);
+
+      allow write: if member(vessel)
+                   && request.resource.size < 12 * 1024 * 1024
+                   && (request.resource.contentType.matches('image/.*')
+                       || request.resource.contentType.matches('application/.*')
+                       || request.resource.contentType.matches('text/.*'));
+
+      allow delete: if member(vessel);
+    }
+
     // Anything outside that shape is nobody's business.
     match /{allPaths=**} {
       allow read, write: if false;

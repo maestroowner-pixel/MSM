@@ -16,21 +16,38 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
 import * as photoQueue from '../services/photoQueue';
+import { uploadAllowance, FREE_UPLOADS_PER_VESSEL } from '../services/trial';
+import { uploadsUsedFor } from '../services/firebaseService';
 
 const POLICIES: photoQueue.UploadPolicy[] = ['wifi', 'always', 'never'];
 
 export function PhotoUploadCard() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { prefs, setPrefs } = useData();
+  const { prefs, setPrefs, vessel } = useData();
   const policy = prefs.photoUpload ?? 'wifi';
 
   const [waiting, setWaiting] = useState(0);
   const [busy, setBusy] = useState(false);
+  /**
+   * How much of the vessel's free upload allowance is left, or null once
+   * licensed. Shown because otherwise a crew member watches photographs sit in
+   * the queue and has no way to learn why — the cause is a limit, not a bad
+   * connection, and the two need completely different things from them.
+   */
+  const [left, setLeft] = useState<number | null>(null);
 
   const refresh = useCallback(async () => {
     setWaiting(await photoQueue.pendingCount());
-  }, []);
+    try {
+      const imo = (vessel?.imo ?? '').replace(/\D/g, '');
+      const used = imo ? await uploadsUsedFor(imo) : 0;
+      const allowance = await uploadAllowance(used);
+      setLeft(Number.isFinite(allowance) ? allowance : null);
+    } catch {
+      setLeft(null);
+    }
+  }, [vessel?.imo]);
 
   useEffect(() => {
     void refresh();
@@ -90,12 +107,24 @@ export function PhotoUploadCard() {
         <Text style={styles.status}>
           {waiting ? `${waiting} photo${waiting === 1 ? '' : 's'} waiting` : 'Nothing waiting'}
         </Text>
-        {waiting ? (
+        {waiting && left !== 0 ? (
           <TouchableOpacity onPress={uploadNow} disabled={busy} hitSlop={8}>
             <Text style={[styles.action, busy && { opacity: 0.4 }]}>Upload now</Text>
           </TouchableOpacity>
         ) : null}
       </View>
+
+      {/* The allowance, and only while there is one. A licensed vessel is not
+          told about a limit it does not have. */}
+      {left !== null ? (
+        <Text style={[styles.note, left === 0 && { color: COLORS.warning }]}>
+          {left > 0
+            ? `${left} of ${FREE_UPLOADS_PER_VESSEL} free uploads left on this vessel. Photographs are ` +
+              'kept on the device that took them either way — the licence is what sends them to the crew.'
+            : `This vessel has used all ${FREE_UPLOADS_PER_VESSEL} free uploads. Photographs are still ` +
+              'taken and kept here, and everything waiting goes up on the first sync after the vessel is licensed.'}
+        </Text>
+      ) : null}
     </Card>
   );
 }

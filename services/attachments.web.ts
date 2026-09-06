@@ -19,7 +19,18 @@ export async function clearAttachmentsDir(): Promise<void> {}
 export async function deleteFile(_uri?: string): Promise<void> {} // data lives in the record
 
 /** Data URIs are self-contained — nothing to re-base. */
+/**
+ * A uri fit to hand to <Image> or a link.
+ *
+ * On web an attachment is its own data, so there is normally nothing to resolve.
+ * The exception is the marker the sync layer leaves where an inline file could
+ * not be uploaded (firebaseService.stripInlineFiles): it names a file that lives
+ * on ANOTHER device, and feeding it to an <Image> draws a broken picture instead
+ * of nothing. Returning undefined lets the UI show its ordinary "no file" state,
+ * which is the truth here.
+ */
 export function resolveUri(uri?: string): string | undefined {
+  if (uri === 'msm:inline-not-synced') return undefined;
   return uri;
 }
 

@@ -30,6 +30,8 @@ import NetInfo from '@react-native-community/netinfo';
 import { Attachment } from '../types/equipment';
 import { Inspection } from '../types/inspection';
 import { uploadPhoto } from './photoStorage';
+import { uploadAllowance } from './trial';
+import { addUploadsUsed, uploadsUsedFor } from './firebaseService';
 
 export const PHOTO_QUEUE_KEY = 'msm:photo_queue';
 
@@ -143,6 +145,13 @@ export async function flush(policy: UploadPolicy): Promise<FlushResult> {
   const block = await allowed(policy);
   if (block) return { uploaded: 0, remaining: list.length, skipped: block };
 
+  // The vessel's shared upload allowance. An unlicensed vessel gets a fixed
+  // number of files in total, because every one of them is storage and egress on
+  // OUR bill for a ship that has not paid. Nothing is deleted and nothing is
+  // refused locally: photographs beyond the allowance stay queued, visible in
+  // Settings, and go up the moment the vessel is licensed.
+  let allowance = await uploadAllowance(await uploadsUsedFor(list[0].vessel));
+
   let uploaded = 0;
   const keep: QueueEntry[] = [];
 
@@ -151,15 +160,21 @@ export async function flush(policy: UploadPolicy): Promise<FlushResult> {
       keep.push(entry); // parked, visible in Settings, not retried
       continue;
     }
+    if (allowance <= 0) {
+      keep.push(entry); // waiting for a licence, not for a connection
+      continue;
+    }
     try {
       await uploadPhoto(entry.vessel, entry.inspectionId, entry.photoId, entry.localUri);
       uploaded++;
+      allowance--;
     } catch (e: any) {
       keep.push({ ...entry, attempts: entry.attempts + 1, lastError: String(e?.message ?? e) });
     }
   }
 
   await save(keep);
+  if (uploaded) await addUploadsUsed(list[0].vessel, uploaded);
   return { uploaded, remaining: keep.length };
 }
 

@@ -118,9 +118,41 @@ export async function pickDocument(): Promise<PickedFile | null> {
 }
 
 /** Open / preview a stored file via the OS share/quick-look sheet. */
+/** Extension for a data: URI, so the written file opens in the right app. */
+function extFor(dataUri: string): string {
+  const m = /^data:([^;,]+)/.exec(dataUri);
+  const mime = m ? m[1] : '';
+  if (mime === 'application/pdf') return 'pdf';
+  if (mime === 'image/png') return 'png';
+  if (mime === 'image/heic') return 'heic';
+  if (mime.startsWith('image/')) return 'jpg';
+  return 'bin';
+}
+
 export async function openFile(uri: string): Promise<void> {
   try {
-    if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(resolveUri(uri) ?? uri);
+    if (!(await Sharing.isAvailableAsync())) return;
+    let target = resolveUri(uri) ?? uri;
+
+    // A PHOTO TAKEN IN THE BROWSER IS NOT A FILE. It arrives as a base64 `data:`
+    // URI (attachments.web.ts), and iOS refuses to share one — "You don't have
+    // access to the provided file", which is true and unhelpful: there is no
+    // file. So it is written to a real one first. Cached under a name derived
+    // from the content length so opening the same photograph twice does not
+    // write it twice.
+    if (target.startsWith('data:')) {
+      const comma = target.indexOf(',');
+      const base64 = target.slice(comma + 1);
+      await ensureAttachmentsDir();
+      const path = `${DIR}shared_${base64.length}.${extFor(target)}`;
+      const info = await FileSystem.getInfoAsync(path);
+      if (!info.exists) {
+        await FileSystem.writeAsStringAsync(path, base64, { encoding: 'base64' });
+      }
+      target = path;
+    }
+
+    await Sharing.shareAsync(target);
   } catch (e: any) {
     Alert.alert('Cannot open file', String(e?.message ?? e));
   }

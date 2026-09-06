@@ -86,6 +86,8 @@ import { Inspection } from '../types/inspection';
 import { CrewMember } from '../types/crew';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from './storage';
+import * as attachmentStorage from './attachmentStorage';
+import * as trial from './trial';
 import { mergeCrew, mergeInspections } from './inspections';
 
 // getReactNativePersistence ships only in the RN bundle (not in the default TS types).
@@ -510,6 +512,168 @@ interface RegisterBlob {
   compressor?: any;
 }
 
+/**
+ * Marker left where an inline file used to be. Anything but empty, so a reader
+ * can tell "this attachment exists but its bytes are not in the register" from
+ * "this attachment has no file".
+ */
+const INLINE_ELSEWHERE = 'msm:inline-not-synced';
+
+/**
+ * Take the FILE PAYLOADS out of the register before it is written.
+ *
+ * On web an attachment IS a base64 `data:` URI stored inside the item (see
+ * services/attachments.web.ts — a browser has no writable attachments dir). The
+ * register travels as ONE Firestore document, and Firestore caps a document at
+ * 1 MiB. Two or three photos therefore break syncing for the whole vessel, with
+ * an error that names only the byte count:
+ *
+ *   The value of property "register" is longer than 1048487 bytes.
+ *
+ * Observed on a real vessel, 6 Sep 2026, right after photographs were added.
+ *
+ * The register is the thing the crew cannot lose — items, dates, positions — and
+ * it must not be held hostage by an image. So the payloads are stripped here and
+ * the records go up whole. The photographs stay on the device that took them and
+ * are NOT lost; what they are not, yet, is shared. Uploading them to Cloud
+ * Storage the way inspection photos already travel is the proper fix and is a
+ * separate piece of work.
+ */
+async function stripInlineFiles(
+  vessel: string,
+  blob: RegisterBlob,
+  allowance: number
+): Promise<{ blob: RegisterBlob; uploaded: number; stripped: number }> {
+  let stripped = 0;
+  let uploaded = 0;
+  const isInline = (u?: string) => typeof u === 'string' && u.startsWith('data:');
+
+  /**
+   * Try the bucket first; fall back to the marker.
+   *
+   * The upload is what makes a photograph reach the rest of the crew. When it
+   * cannot happen — no signal, a bucket not yet created — the file stays on this
+   * device and the RECORDS still go up, which is the part the ship is inspected
+   * on. A register that refuses to sync because of an image is the worse
+   * failure, and it is the one that actually happened.
+   */
+  const place = async (ownerId: string, fileId: string, dataUri: string): Promise<string> => {
+    // The allowance is spent here, not checked once at the top: a push may carry
+    // several files and the last of them must not slip through on a count taken
+    // before the first was sent.
+    if (allowance <= 0) {
+      stripped++;
+      return INLINE_ELSEWHERE;
+    }
+    try {
+      const url = await attachmentStorage.uploadInline(vessel, ownerId, fileId, dataUri);
+      uploaded++;
+      allowance--;
+      return url;
+    } catch (e: any) {
+      stripped++;
+      console.warn(`[sync] attachment ${fileId} stayed on this device: ${e?.message ?? e}`);
+      return INLINE_ELSEWHERE;
+    }
+  };
+  const categories: Record<string, EquipmentItem[]> = {};
+  for (const [key, items] of Object.entries(blob.categories ?? {})) {
+    const out: EquipmentItem[] = [];
+    for (const it of items ?? []) {
+      if (!it.attachments?.some((a) => isInline(a.uri))) {
+        out.push(it);
+        continue;
+      }
+      const attachments = [];
+      for (const a of it.attachments) {
+        attachments.push(isInline(a.uri) ? { ...a, uri: await place(it.id, a.id, a.uri!) } : a);
+      }
+      out.push({ ...it, attachments });
+    }
+    categories[key] = out;
+  }
+
+  const certificates: Certificate[] = [];
+  for (const c of blob.certificates ?? []) {
+    certificates.push(
+      isInline(c.fileUri) ? { ...c, fileUri: await place(c.id, `cert_${c.id}`, c.fileUri!) } : c
+    );
+  }
+  return { blob: { ...blob, categories, certificates }, uploaded, stripped };
+}
+
+/**
+ * Put local file payloads back over an incoming register.
+ *
+ * The mirror of the above, and it is what stops the strip from becoming a
+ * deletion: a device pulls a blob whose attachments carry the marker, and
+ * without this it would overwrite its own good `data:` URIs with it, losing the
+ * photographs for real. Matched by attachment id, so a genuinely removed
+ * attachment still disappears.
+ */
+async function keepLocalInlineFiles(blob: RegisterBlob): Promise<RegisterBlob> {
+  const local = await storage.loadAll();
+  const localCerts = await storage.loadCertificates();
+  const isMarker = (u?: string) => u === INLINE_ELSEWHERE;
+
+  const categories: Record<string, EquipmentItem[]> = {};
+  for (const [key, items] of Object.entries(blob.categories ?? {})) {
+    const mine = new Map((local[key as CategoryKey] ?? []).map((i) => [i.id, i]));
+    categories[key] = (items ?? []).map((it) => {
+      if (!it.attachments?.some((a) => isMarker(a.uri))) return it;
+      const was = mine.get(it.id);
+      const byId = new Map((was?.attachments ?? []).map((a) => [a.id, a]));
+      return {
+        ...it,
+        attachments: it.attachments.map((a) =>
+          isMarker(a.uri) && byId.get(a.id)?.uri ? { ...a, uri: byId.get(a.id)!.uri } : a
+        ),
+      };
+    });
+  }
+  const certById = new Map(localCerts.map((c) => [c.id, c]));
+  const certificates = (blob.certificates ?? []).map((c) =>
+    isMarker(c.fileUri) && certById.get(c.id)?.fileUri
+      ? { ...c, fileUri: certById.get(c.id)!.fileUri }
+      : c
+  );
+  return { ...blob, categories, certificates };
+}
+
+/**
+ * Files this vessel has already put in Storage — the shared allowance counter.
+ *
+ * On the vessel document rather than on each device, because the bill is the
+ * vessel's: five phones must not each get their own free quota. Members may
+ * write the document (firestore.rules carves out only `entitlement`), so this
+ * needs no special permission.
+ */
+const UPLOADS_FIELD = 'uploadedFiles';
+
+export async function uploadsUsedFor(uid: string): Promise<number> {
+  return uploadsUsed(uid);
+}
+
+/** Record files that have just gone up, so the allowance is shared, not per-device. */
+export async function addUploadsUsed(uid: string, n: number): Promise<void> {
+  if (n <= 0) return;
+  try {
+    await fsSetDoc(accountDoc(uid), { [UPLOADS_FIELD]: (await uploadsUsed(uid)) + n }, { merge: true });
+  } catch {
+    /* the counter is a budget, not a ledger — a lost increment is not worth failing a sync */
+  }
+}
+
+async function uploadsUsed(uid: string): Promise<number> {
+  try {
+    const snap = await fsGetDoc(accountDoc(uid));
+    const n = snap.exists() ? (snap.data() as any)[UPLOADS_FIELD] : 0;
+    return typeof n === 'number' && n > 0 ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
 /** Push the whole register as one document write. */
 export async function pushAll(uid: string): Promise<number> {
   const byCategory = await storage.loadAll();
@@ -526,7 +690,30 @@ export async function pushAll(uid: string): Promise<number> {
     compressor: await storage.loadCompressor(),
   };
 
-  const json = JSON.stringify(blob);
+  const allowance = await trial.uploadAllowance(await uploadsUsed(uid));
+  const { blob: lean, uploaded, stripped } = await stripInlineFiles(uid, blob, allowance);
+  if (uploaded || stripped) {
+    console.warn(
+      `[sync] attachments: ${uploaded} uploaded, ${stripped} left on this device` +
+        (allowance !== Infinity ? ` (allowance ${allowance} before this push)` : '') + '.'
+    );
+  }
+
+  // Write the references back locally, so a file is uploaded ONCE. Without this
+  // every push would re-upload every photograph, which on a metered link is the
+  // opposite of what the photo queue exists to avoid.
+  if (uploaded) {
+    for (const c of CATEGORIES) {
+      const before = categories[c.key];
+      const after = lean.categories[c.key];
+      if (after && before && JSON.stringify(before) !== JSON.stringify(after)) {
+        await storage.replaceCategory(c.key, after as EquipmentItem[]);
+      }
+    }
+    if (lean.certificates) await storage.saveCertificates(lean.certificates);
+  }
+
+  const json = JSON.stringify(lean);
   if (json.length > REGISTER_WARN_BYTES) {
     console.warn(
       `[sync] register is ${(json.length / 1024).toFixed(0)} KB — Firestore caps a document at ` +
@@ -546,6 +733,8 @@ export async function pushAll(uid: string): Promise<number> {
   } catch (e: any) {
     throw new Error(`register: ${e?.message ?? e}`);
   }
+  if (uploaded) await addUploadsUsed(uid, uploaded);
+
   await pushInspections(uid);
   return total;
 }
@@ -593,6 +782,11 @@ export async function pullAll(uid: string): Promise<number> {
         return localCount;
       }
     }
+
+    // Put this device's own file payloads back before writing. The register
+    // carries a marker where an inline file used to be (see stripInlineFiles),
+    // and applying it as-is would overwrite good photographs with that marker.
+    blob = await keepLocalInlineFiles(blob);
 
     for (const c of CATEGORIES) {
       const items = (blob.categories?.[c.key] ?? []) as EquipmentItem[];
