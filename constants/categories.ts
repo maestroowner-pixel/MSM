@@ -13,7 +13,16 @@ export interface CategoryMeta {
   label: string;
   short: string;
   group: Group;
-  sheet: string; // source worksheet name in the LSA/FFE xlsx
+  /**
+   * Source worksheet in the LSA/FFE workbook.
+   *
+   * OPTIONAL, because not every category comes from one. A hand-built list has
+   * no sheet to import from and none to offer in the blank template, and giving
+   * it an empty string instead made both places produce nonsense: the importer
+   * reported a missing sheet with no name, and the template builder asked Excel
+   * for a worksheet called "". Absent says it plainly; skip such categories.
+   */
+  sheet?: string;
   color: string;
   emoji: string;
   // Monochrome glyph (MaterialCommunityIcons) — shown across the UI instead of the emoji
@@ -59,6 +68,12 @@ export const CATEGORIES: CategoryMeta[] = [
   { key: 'chemical_suits', label: 'Chemical Suits', short: 'Chem. Suits', group: 'OTHER', sheet: 'Chemical Suits', color: COLORS.other, emoji: '🧪', icon: 'biohazard', dateField: 'nextInspection' },
   { key: 'gas_detection', label: 'Gas Detection Meters', short: 'Gas Det.', group: 'OTHER', sheet: 'Gas Detection ', color: COLORS.other, emoji: '🟢', icon: 'meter-gas', dateField: 'expiry' },
   { key: 'sopep', label: 'SOPEP Locker', short: 'SOPEP', group: 'OTHER', sheet: 'SOPEP', color: COLORS.other, emoji: '🛢️', icon: 'barrel', dateField: 'expiry' },
+  // The catch-all. Every register carries equipment the standard sheets do not
+  // name — a portable pump, a spare EEBD charge, a locker of gear nobody else
+  // counts — and with nowhere to put it that item stays on paper, which makes it
+  // the one that gets missed. No `sheet`: there is no worksheet to import from,
+  // so this list is only ever built by hand with the + button.
+  { key: 'other_safety', label: 'Other Safety Equipment', short: 'Other', group: 'OTHER', color: COLORS.other, emoji: '🧰', icon: 'toolbox', dateField: 'expiry' },
 ];
 
 export const CATEGORY_MAP: Record<CategoryKey, CategoryMeta> = CATEGORIES.reduce(

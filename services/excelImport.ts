@@ -230,6 +230,9 @@ function buildPreview(wb: XLSX.WorkBook): ImportPreview {
   wb.SheetNames.forEach((n) => sheetIndex.set(n.trim().toLowerCase(), n));
 
   for (const meta of CATEGORIES) {
+    // Hand-built categories have no source worksheet. Not finding one is not a
+    // gap in the workbook, so it must not be reported as a missing sheet.
+    if (!meta.sheet) continue;
     const realName = sheetIndex.get(meta.sheet.trim().toLowerCase());
     if (!realName) {
       missingSheets.push(meta.sheet);

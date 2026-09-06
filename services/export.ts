@@ -416,6 +416,9 @@ function templateColumns(meta: CategoryMeta): string[] {
 export async function exportTemplate(): Promise<void> {
   const wb = XLSX.utils.book_new();
   for (const meta of CATEGORIES) {
+    // No source worksheet, nothing to offer a blank sheet for — and Excel will
+    // not accept a worksheet with an empty name anyway.
+    if (!meta.sheet) continue;
     // First Aid has no header row in the importer — label in col A, expiry date.
     const cols =
       meta.key === 'first_aid' ? ['Location', 'Expiry'] : templateColumns(meta);

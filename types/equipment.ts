@@ -27,7 +27,8 @@ export type CategoryKey =
   | 'first_aid'
   | 'chemical_suits'
   | 'gas_detection'
-  | 'sopep';
+  | 'sopep'
+  | 'other_safety';
 
 export type Group = 'LSA' | 'FFE' | 'OTHER';
 

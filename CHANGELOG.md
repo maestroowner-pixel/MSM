@@ -48,6 +48,18 @@ to change to make those signatures mean anything.
   gloves — so a base64 secret could not be entered at all and the first device on a vessel could
   never enrol. Found by walking the flow on a device, not by any typecheck.
 
+### The register grows a catch-all
+
+- **Other Safety Equipment** — every register carries gear the standard sheets do not name, and
+  with nowhere to put it that item stays on paper, which makes it the one that gets missed. Built
+  by hand with ＋; it behaves like any other category (dates, QR labels, inspections, reports).
+- `CategoryMeta.sheet` became optional. An empty string made the importer report a missing
+  worksheet with no name, and asked Excel for a sheet called `""` — which it refuses, breaking
+  "Download import template". Absent says it plainly.
+- `check:inspections` now asserts EVERY category has a monthly round and builds a non-empty
+  template, instead of sampling one. A category added without a checklist can be scanned and
+  opened but not inspected, and nothing else would have said so.
+
 ### The interface matches the rank
 
 Every enrolled device was shown the Master's controls — issuing accounts, approving devices,
