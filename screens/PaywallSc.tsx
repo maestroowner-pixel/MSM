@@ -16,6 +16,7 @@ import { MciIcon } from '../components/MciIcon';
 import { SIZES, Palette, APP_CONFIG } from '../theme';
 import { useTheme, useThemeName } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
+import { goBackOr } from '../utils/nav';
 import {
   getOffer,
   purchaseYearly,
@@ -101,7 +102,7 @@ export default function PaywallSc() {
         await refreshLocks().catch(() => {});
         setLicenseKey('');
         Alert.alert('MSM Pro activated', 'The licence is active on this vessel. Every enrolled device now has full access.');
-        nav.goBack();
+        goBackOr(nav);
       } else {
         Alert.alert('Could not activate', res.message ?? 'Please check your license key.');
       }
@@ -138,7 +139,7 @@ export default function PaywallSc() {
       if (ok) {
         await refreshLocks(); // lift the free-tier overflow lock immediately
         Alert.alert('Welcome to MSM Pro', 'Your subscription is active. Thank you!');
-        nav.goBack();
+        goBackOr(nav);
       } else {
         Alert.alert('Not completed', 'The purchase was not completed.');
       }
@@ -159,7 +160,7 @@ export default function PaywallSc() {
       const ok = await restore();
       if (ok) await refreshLocks();
       Alert.alert(ok ? 'Restored' : 'Nothing to restore', ok ? 'Your subscription was restored.' : 'No active subscription found for this account.');
-      if (ok) nav.goBack();
+      if (ok) goBackOr(nav);
     } catch (e: any) {
       Alert.alert('Restore failed', String(e?.message ?? e));
     } finally {
@@ -170,7 +171,7 @@ export default function PaywallSc() {
   return (
     <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
-        <TouchableOpacity style={styles.close} onPress={() => nav.goBack()} hitSlop={12}>
+        <TouchableOpacity style={styles.close} onPress={() => goBackOr(nav)} hitSlop={12}>
           <MciIcon name="close" size={26} color={COLORS.textLight} />
         </TouchableOpacity>
 

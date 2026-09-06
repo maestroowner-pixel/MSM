@@ -53,20 +53,33 @@ struct ScanButtonLabel: View {
     var textSize: CGFloat
 
     var body: some View {
-        VStack(spacing: 4) {
-            // A viewfinder frame with a life-buoy in its centre — "marine safety",
-            // the mark that tells MSM's scanner apart from the sibling apps' bare
-            // frame. Mirrors widgets/shared.ts SCAN_ICON_SVG (Android/preview).
-            ZStack {
-                Image(systemName: "viewfinder")
-                    .font(.system(size: iconSize, weight: .semibold))
-                Image(systemName: "lifepreserver.fill")
-                    .font(.system(size: iconSize * 0.42, weight: .semibold))
-            }
-            .foregroundColor(.white)
+        VStack(spacing: 6) {
+            // The QR with the MSM cube in it (Assets.xcassets/WidgetScan), the same
+            // tile the Android widget shows. It replaced a viewfinder glyph drawn
+            // from SF Symbols: on a home screen among two dozen icons a line frame
+            // reads as "some utility", while this one says what it opens and whose
+            // it is without being read. The PNG's corners are already transparent,
+            // so the tile keeps its shape whatever sits behind it.
+            //
+            // `.unredacted()` is the load-bearing part. WidgetKit renders the
+            // PLACEHOLDER — the view it shows before the extension has handed it a
+            // timeline, and whenever it decides to redraw from a snapshot — with
+            // every Image and Text blanked into grey shapes. For a widget whose
+            // content is private data that is right; for a BUTTON it is nonsense:
+            // the thing showed a grey square and a grey bar on teal, which is what
+            // it looked like on a real phone. Nothing here is private — it is the
+            // same mark for every user, on every ship — so it opts out and the
+            // logo is visible in every state.
+            Image("WidgetScan")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: iconSize * 1.35, height: iconSize * 1.35)
+                .clipShape(RoundedRectangle(cornerRadius: iconSize * 0.30, style: .continuous))
+                .unredacted()
             Text("Scan")
                 .font(.system(size: textSize, weight: .bold))
                 .foregroundColor(.white)
+                .unredacted()
         }
     }
 }

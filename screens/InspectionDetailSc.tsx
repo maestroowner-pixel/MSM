@@ -44,6 +44,7 @@ import * as inspections from '../services/inspections';
 import { openFile, resolveUri } from '../services/attachments';
 import { ensureLocalPhoto } from '../services/photoStorage';
 import { formatDateTime } from '../utils/dates';
+import { goBackOr } from '../utils/nav';
 
 const RESULT_META: Record<CheckResult, { label: string; icon: string }> = {
   pass: { label: 'PASS', icon: 'check-circle' },
@@ -71,7 +72,7 @@ export default function InspectionDetailSc() {
     return (
       <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
-          <Header title="Inspection" onClose={() => nav.goBack()} />
+          <Header title="Inspection" onClose={() => goBackOr(nav)} />
           <View style={{ padding: SIZES.lg }}>
             <Card>
               <Label>Record not found</Label>
@@ -123,7 +124,7 @@ export default function InspectionDetailSc() {
   return (
     <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
-        <Header title={`${PERIOD_LABEL[insp.period]} inspection`} onClose={() => nav.goBack()} />
+        <Header title={`${PERIOD_LABEL[insp.period]} inspection`} onClose={() => goBackOr(nav)} />
 
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
           {/* Outcome first — it is the one thing a reader is looking for. */}

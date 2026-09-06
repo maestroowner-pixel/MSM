@@ -31,6 +31,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SCAN_BARCODE_TYPES, ScanMatch, lookupScan } from '../services/barcode';
 import { SIZES, Palette } from '../theme';
+import { goBackOr } from '../utils/nav';
 
 /** No expo-camera on Windows — see the module header. */
 const HAS_CAMERA = Platform.OS !== 'windows';
@@ -153,7 +154,7 @@ export default function ScanSc() {
         <View style={{ flex: 1 }}>
           <ScreenTitle title="Scan" subtitle="An MSM QR label, or a serial / asset tag." />
         </View>
-        <TouchableOpacity onPress={() => nav.goBack()}>
+        <TouchableOpacity onPress={() => goBackOr(nav)}>
           <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Close</Text>
         </TouchableOpacity>
       </View>

@@ -76,13 +76,14 @@ export default function SplashSc({ onDone }: { onDone: () => void }) {
 
   return (
     <Animated.View style={[styles.fill, { opacity: container }]}>
-      {/* Base layer — octopus on the APP's background, which the native splash,
-          the web page and the app itself all use too. It was a hardcoded white,
-          which agreed with nothing: on web the browser paints its own canvas
-          before React runs (near-black in a dark system theme), so the splash
-          arrived as a white card on a dark page. One colour everywhere removes
-          both the mismatch and the flash. */}
-      <View style={styles.octoFill}>
+      {/* Base layer — the octopus on the SAME teal as the MSM cube that follows.
+          It sat on the app's pale background, which made the sequence two
+          different screens: a pale one, then a teal one, with the cross-fade
+          reading as a change of scene rather than one screen resolving into the
+          next. One ground for both, and the fade does what it was written to do.
+          The native splash and the web page paint the same colour underneath, so
+          nothing flashes before React arrives. */}
+      <LinearGradient colors={[COLORS.primaryDark, COLORS.primary]} style={styles.octoFill}>
         {/* Clipped and rounded on purpose. splash.png is OPAQUE (no alpha) and
             carries ~19% white margin on every side, so drawn straight onto the
             app's pale background it read as a hard-edged white square with a
@@ -96,7 +97,7 @@ export default function SplashSc({ onDone }: { onDone: () => void }) {
             resizeMode="contain"
           />
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Overlay — MSM logo on teal, cross-fades in over the octopus. */}
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: logoLayer }]} pointerEvents="none">
@@ -123,7 +124,7 @@ export default function SplashSc({ onDone }: { onDone: () => void }) {
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: COLORS.background },
-  octoFill: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background },
+  octoFill: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   // The window: what the viewer sees. Rounded, and it clips.
   octoClip: {
     width: 260,

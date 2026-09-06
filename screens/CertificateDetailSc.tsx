@@ -27,6 +27,7 @@ import { statusFromDate, formatDate } from '../utils/dates';
 import { pickDocument, pickFromLibrary, pickFromCamera, openFile, deleteFile, resolveUri, PickedFile } from '../services/attachments';
 import { playSuccessSound } from '../utils/sound';
 import SimpleDatePicker from '../components/SimpleDatePicker';
+import { goBackOr } from '../utils/nav';
 
 export default function CertificateDetailSc() {
   const route = useRoute<any>();
@@ -56,11 +57,11 @@ export default function CertificateDetailSc() {
     }
     await saveCertificate({ ...draft, updatedAt: Date.now() });
     playSuccessSound();
-    nav.goBack();
+    goBackOr(nav);
   };
 
   const onDelete = () => {
-    if (isNew) return nav.goBack();
+    if (isNew) return goBackOr(nav);
     Alert.alert('Delete certificate', 'Remove this certificate? The items it covered are not deleted.', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -69,7 +70,7 @@ export default function CertificateDetailSc() {
         onPress: async () => {
           await deleteFile(draft.fileUri);
           await removeCertificate(draft.id);
-          nav.goBack();
+          goBackOr(nav);
         },
       },
     ]);
@@ -114,7 +115,7 @@ export default function CertificateDetailSc() {
     <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => (picking ? setPicking(false) : nav.goBack())} hitSlop={12}>
+          <TouchableOpacity onPress={() => (picking ? setPicking(false) : goBackOr(nav))} hitSlop={12}>
             <Text style={styles.headerBtn}>{picking ? '‹ Back' : '✕'}</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle} numberOfLines={1}>

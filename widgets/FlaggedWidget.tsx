@@ -9,14 +9,13 @@
 // ===================================
 
 import React from 'react';
-import { FlexWidget, SvgWidget, TextWidget } from 'react-native-android-widget';
+import { FlexWidget, ImageWidget, TextWidget } from 'react-native-android-widget';
 
 import {
   FLAGGED_WINDOW,
   FlaggedEntry,
   itemDeepLink,
   SCAN_DEEP_LINK,
-  SCAN_ICON_SVG,
   WIDGET_COLORS as C,
 } from './shared';
 
@@ -37,7 +36,14 @@ function ScanButton() {
         marginRight: 12,
       }}
     >
-      <SvgWidget svg={SCAN_ICON_SVG} style={{ width: 38, height: 38 }} />
+      {/* Same button as the small widget — one mark for one action, so the two
+          widgets are recognisably the same app. */}
+      <ImageWidget
+        image={require('../assets/widget-scan-256.png')}
+        imageWidth={44}
+        imageHeight={44}
+        radius={10}
+      />
       <TextWidget
         text="Scan"
         style={{ fontSize: 13, fontWeight: '700', color: '#FFFFFF', marginTop: 2 }}

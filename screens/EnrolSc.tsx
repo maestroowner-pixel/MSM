@@ -31,6 +31,7 @@ import { resetAllData } from '../services/storage';
 import { clearAttachmentsDir } from '../services/attachments';
 import * as snapshot from '../services/snapshot';
 import { playErrorSound, playSuccessSound } from '../utils/sound';
+import { goBackOr } from '../utils/nav';
 
 export default function EnrolSc() {
   const COLORS = useTheme();
@@ -303,7 +304,7 @@ export default function EnrolSc() {
             {result.firstName ? ` for ${result.firstName} ${result.lastName ?? ''}`.trimEnd() : ''}
             {result.position ? `, ${result.position}` : ''}.
           </Text>
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => nav.goBack()}>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => goBackOr(nav)}>
             <Text style={styles.primaryBtnText}>Done</Text>
           </TouchableOpacity>
         </Card>
@@ -320,7 +321,7 @@ export default function EnrolSc() {
             A Master has let this device in. It is syncing with the vessel now — nothing else is
             needed here.
           </Text>
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => nav.goBack()}>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => goBackOr(nav)}>
             <Text style={styles.primaryBtnText}>Done</Text>
           </TouchableOpacity>
         </Card>

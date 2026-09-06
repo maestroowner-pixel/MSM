@@ -16,6 +16,7 @@ import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import SimpleDatePicker from '../components/SimpleDatePicker';
+import { goBackOr } from '../utils/nav';
 import {
   Compressor,
   CompressorEntry,
@@ -196,7 +197,7 @@ export default function CompressorSc() {
   return (
     <Screen scroll>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => nav.goBack()} hitSlop={12}>
+        <TouchableOpacity onPress={() => goBackOr(nav)} hitSlop={12}>
           <Text style={styles.back}>‹ Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>BA Compressors</Text>

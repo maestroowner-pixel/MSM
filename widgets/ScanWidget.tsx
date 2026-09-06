@@ -7,9 +7,9 @@
 // ===================================
 
 import React from 'react';
-import { FlexWidget, SvgWidget, TextWidget } from 'react-native-android-widget';
+import { FlexWidget, ImageWidget, TextWidget } from 'react-native-android-widget';
 
-import { SCAN_DEEP_LINK, SCAN_ICON_SVG, WIDGET_COLORS as C } from './shared';
+import { SCAN_DEEP_LINK, WIDGET_COLORS as C } from './shared';
 
 export function ScanWidget() {
   return (
@@ -28,7 +28,17 @@ export function ScanWidget() {
         padding: 12,
       }}
     >
-      <SvgWidget svg={SCAN_ICON_SVG} style={{ width: 46, height: 46 }} />
+      {/* The QR with the MSM cube in it, on a white tile. A widget lives on the
+          user's own wallpaper among two dozen other icons, and a line-drawn
+          viewfinder there reads as "some utility"; this one says what it opens
+          and whose it is at a glance. The PNG's corners are already transparent
+          so the tile keeps its shape against any wallpaper. */}
+      <ImageWidget
+        image={require('../assets/widget-scan-256.png')}
+        imageWidth={54}
+        imageHeight={54}
+        radius={12}
+      />
       <TextWidget
         text="Scan"
         style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF', marginTop: 4 }}

@@ -73,8 +73,10 @@ export const SCAN_DEEP_LINK = 'msm://scan';
  * The scan-button icon: a viewfinder frame with a life-buoy in its centre. The
  * buoy is what distinguishes MSM's scanner from the sibling apps' (DEM's is a bare
  * frame) — "marine safety" at a glance. All white, so it reads on the teal button.
- * One source of truth: the Android widget draws it via SvgWidget and the picker
- * preview PNGs are rendered from the identical markup, so live and preview match.
+ * NO LONGER ON THE WIDGETS — both now show assets/widget-scan-256.png, the QR
+ * with the MSM cube in it. Kept because the widget-picker preview images are
+ * rendered from this markup, and because it is the mark used wherever the
+ * scanner needs a line icon rather than a tile.
  */
 export const SCAN_ICON_SVG =
   '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +

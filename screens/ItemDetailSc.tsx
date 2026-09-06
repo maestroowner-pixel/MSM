@@ -31,6 +31,7 @@ import { playSuccessSound } from '../utils/sound';
 import { uid } from '../utils/id';
 import { pickDocument, pickFromLibrary, pickFromCamera, openFile, deleteFile, resolveUri, PickedFile } from '../services/attachments';
 import SimpleDatePicker from '../components/SimpleDatePicker';
+import { goBackOr } from '../utils/nav';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -51,7 +52,7 @@ export default function ItemDetailSc() {
   // directly (deep link, scan, an un-guarded list) bounce to the paywall.
   React.useEffect(() => {
     if (id && isLocked(id)) {
-      nav.goBack();
+      goBackOr(nav);
       nav.navigate('Paywall');
     }
   }, [id, isLocked, nav]);
@@ -188,11 +189,11 @@ export default function ItemDetailSc() {
   const onSave = async () => {
     await saveItem({ ...draft, updatedAt: Date.now() });
     playSuccessSound();
-    nav.goBack();
+    goBackOr(nav);
   };
 
   const onDelete = () => {
-    if (isNew) return nav.goBack();
+    if (isNew) return goBackOr(nav);
     Alert.alert('Delete item', 'Remove this item permanently?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -200,7 +201,7 @@ export default function ItemDetailSc() {
         style: 'destructive',
         onPress: async () => {
           await removeItem(category, draft.id);
-          nav.goBack();
+          goBackOr(nav);
         },
       },
     ]);
@@ -218,7 +219,7 @@ export default function ItemDetailSc() {
     <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => nav.goBack()} hitSlop={12}>
+          <TouchableOpacity onPress={() => goBackOr(nav)} hitSlop={12}>
             <Text style={styles.headerBtn}>✕</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle} numberOfLines={1}>

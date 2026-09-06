@@ -18,6 +18,7 @@ import * as storage from '../services/storage';
 import { useData } from '../contexts/DataContext';
 import { CategoryKey } from '../types/equipment';
 import { playSuccessSound, playErrorSound } from '../utils/sound';
+import { goBackOr } from '../utils/nav';
 
 type Mode = 'replace' | 'append';
 
@@ -92,7 +93,7 @@ export default function ImportSc() {
       await reload();
       playSuccessSound();
       Alert.alert('Import complete', `${preview.total} items imported.`, [
-        { text: 'OK', onPress: () => nav.goBack() },
+        { text: 'OK', onPress: () => goBackOr(nav) },
       ]);
     } catch (e: any) {
       playErrorSound();

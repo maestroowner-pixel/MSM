@@ -48,6 +48,38 @@ to change to make those signatures mean anything.
   gloves — so a base64 secret could not be entered at all and the first device on a vessel could
   never enrol. Found by walking the flow on a device, not by any typecheck.
 
+## 2.3 — 6 September 2026
+
+Android versionCode 20301 · iOS build 20301.
+
+- **Close worked only when there was something behind it.** `navigation.goBack()` is a no-op on a
+  one-entry stack and fails SILENTLY, so the button looked dead. It never showed while people
+  tapped their way through the app, and started the moment screens got URLs: open /label directly
+  or reload the page on it and the stack has exactly one entry. `utils/nav.ts` goes back when it
+  can and to the Dashboard when it cannot — applied to all ten screens that could be reached that
+  way, not just the one that was reported.
+- **The first splash now shares the MSM cube's teal.** It sat on the app's pale background, which
+  made the sequence two screens rather than one resolving into the next.
+- **The widgets carry the QR-with-the-cube tile** instead of a line-drawn viewfinder — on a home
+  screen among two dozen icons a frame reads as "some utility". The art needed a quiet zone added:
+  it puts the code hard against the tile edge, so rounding the corners ate into the finder
+  squares, the three marks a scanner uses to find a code at all. Only NEUTRAL pixels were
+  whitened; a levels curve across all three channels turned the cube's red and blue into poster
+  paint. `.unredacted()` on iOS is load-bearing: WidgetKit blanks every Image and Text into grey
+  shapes while it has no timeline, which is right for private data and nonsense for a button —
+  that is what a real iPhone was showing.
+- **The picker previews were regenerated** from the same tile; they are native Android drawables,
+  so they reach the app only through `android/app/src/main/res` (or a prebuild).
+- **Version 2.3 / 20301 everywhere.** Two copies had drifted: the widget extension was still on
+  1.9 / 1096 in the Xcode project — Xcode warns and App Store Connect refuses an extension whose
+  version differs from its app — and the web shell has its own app.json, so the deploy stamp said
+  2.2 while the app said 2.3, which tells an open tab it is current when it is not.
+  `patch-native-version.js` now covers the project settings, and the stamp reads the app's version.
+- **Signing: the project was pointed at the wrong team.** `DEVELOPMENT_TEAM` was VL4B4R8D84, which
+  holds only a Developer ID (macOS) certificate — no iOS identity — so Xcode could not issue a
+  profile and none existed. app.json's LAGTN99698 has a valid one; with that, automatic signing
+  produced the profiles by itself and the app ran on a device.
+
 ### Labels for printers that are not ours
 
 - **A custom label size, in millimetres.** The five presets match the printer MSM ships with, and

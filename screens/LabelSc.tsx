@@ -67,6 +67,7 @@ import { labelsToTspl } from '../services/tspl';
 import { getSavedPrinter, printTspl, SavedPrinter } from '../services/blePrinter';
 import { PrinterModal } from '../components/PrinterModal';
 import { loadPrefs, savePrefs } from '../services/storage';
+import { goBackOr } from '../utils/nav';
 
 /** pt → mm, so the preview's type scales by the same rule as the printed sheet. */
 const PT_MM = 25.4 / 72;
@@ -305,7 +306,7 @@ export default function LabelSc() {
     return (
       <Screen>
         <ScreenTitle title="Nothing to label" subtitle="These items are no longer in the register." />
-        <TouchableOpacity onPress={() => nav.goBack()}>
+        <TouchableOpacity onPress={() => goBackOr(nav)}>
           <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Close</Text>
         </TouchableOpacity>
       </Screen>
@@ -387,7 +388,7 @@ export default function LabelSc() {
             }
           />
         </View>
-        <TouchableOpacity onPress={() => nav.goBack()}>
+        <TouchableOpacity onPress={() => goBackOr(nav)}>
           <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Close</Text>
         </TouchableOpacity>
       </View>
@@ -605,10 +606,13 @@ export default function LabelSc() {
             </TouchableOpacity>
           ) : null}
 
-          {/* Roll mode only: an A4 grid saved as ONE image would be printed by a
-              label app as one giant sticker. The sheet is for an office printer,
-              and that route is the print dialog. */}
-          {canSaveLabelsPng && pageMode === 'roll' ? (
+          {/* Always offered in the browser. It was hidden in A4 mode, on the
+              reasoning that a sheet of labels saved as one image would be printed
+              as one giant sticker — true, but the cure was a button that silently
+              disappears depending on a toggle chosen minutes earlier and
+              remembered between sessions. The image is simply always ONE sticker
+              at true size; the note below says so. */}
+          {canSaveLabelsPng ? (
             <TouchableOpacity style={styles.secondaryBtn} disabled={!!busy} onPress={() => void run('png')}>
               {busy === 'png' ? (
                 <ActivityIndicator color={COLORS.primary} />

@@ -63,6 +63,7 @@ import {
 import { onWeb } from '../utils/fileShare';
 import { uid } from '../utils/id';
 import { playErrorSound, playSuccessSound } from '../utils/sound';
+import { goBackOr } from '../utils/nav';
 
 const MAX_PHOTOS = 4;
 
@@ -194,7 +195,7 @@ export default function InspectionSc() {
       }
       await setPrefs({ lastCrewId: signer.id });
       playSuccessSound();
-      nav.goBack();
+      goBackOr(nav);
     } catch (e: any) {
       // Nothing was signed, so let them try again rather than stranding a
       // completed checklist behind a guard that will never lift.
@@ -246,7 +247,7 @@ export default function InspectionSc() {
       <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => nav.goBack()} hitSlop={12}>
+            <TouchableOpacity onPress={() => goBackOr(nav)} hitSlop={12}>
               <Text style={styles.headerBtn}>✕</Text>
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Inspection</Text>
@@ -272,7 +273,7 @@ export default function InspectionSc() {
     <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => nav.goBack()} hitSlop={12}>
+          <TouchableOpacity onPress={() => goBackOr(nav)} hitSlop={12}>
             <Text style={styles.headerBtn}>✕</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle} numberOfLines={1}>

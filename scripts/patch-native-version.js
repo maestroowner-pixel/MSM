@@ -101,4 +101,43 @@ if (fs.existsSync(plistDir) && iosBuild) {
   }
 }
 
+/*
+ * The Xcode PROJECT settings, not just Info.plist.
+ *
+ * The widget extension has no version of its own in a plist — it takes
+ * MARKETING_VERSION and CURRENT_PROJECT_VERSION from the build configuration, and
+ * those were left behind at 1.9 / 1096 while the app moved on. Xcode says so on
+ * every build ("The CFBundleVersion of an app extension must match that of its
+ * containing parent app") and App Store Connect refuses the upload outright — the
+ * third version trap in this project, after the two in the header above.
+ *
+ * Every occurrence is rewritten, app target and extension alike: they are
+ * REQUIRED to match, so there is nothing to be gained by treating them
+ * separately. The never-downgrade rule is applied to the highest value present,
+ * for the same reason it exists above.
+ */
+const pbx = path.join(ROOT, 'ios', 'MarineSafetyManager.xcodeproj', 'project.pbxproj');
+if (fs.existsSync(pbx) && iosBuild) {
+  let s = fs.readFileSync(pbx, 'utf8');
+  const builds = [...s.matchAll(/CURRENT_PROJECT_VERSION = ([0-9]+)/g)].map((m) => Number(m[1]));
+  const names = [...s.matchAll(/MARKETING_VERSION = ([0-9.]+)/g)].map((m) => m[1]);
+  const highestBuild = builds.length ? Math.max(...builds) : 0;
+  const highestName = names.sort(cmp).pop() ?? '0';
+  if (highestBuild > Number(iosBuild) || cmp(highestName, version) > 0) {
+    console.warn(
+      `[patch-native-version] xcodeproj ${highestName}/${highestBuild} is AHEAD of app.json ` +
+        `(${version}/${iosBuild}) — left alone.`
+    );
+  } else if (builds.some((b) => b !== Number(iosBuild)) || names.some((n) => n !== version)) {
+    s = s.replace(/CURRENT_PROJECT_VERSION = [0-9]+/g, `CURRENT_PROJECT_VERSION = ${iosBuild}`);
+    s = s.replace(/MARKETING_VERSION = [0-9.]+/g, `MARKETING_VERSION = ${version}`);
+    fs.writeFileSync(pbx, s);
+    console.log(
+      `[patch-native-version] xcodeproj (app + widget) -> ${version}/${iosBuild} ` +
+        `— was ${[...new Set(names)].join(',')}/${[...new Set(builds)].join(',')}`
+    );
+    changed = true;
+  }
+}
+
 if (!changed) console.log('[patch-native-version] native versions already match app.json');
