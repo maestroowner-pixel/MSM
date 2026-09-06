@@ -83,11 +83,19 @@ export default function SplashSc({ onDone }: { onDone: () => void }) {
           arrived as a white card on a dark page. One colour everywhere removes
           both the mismatch and the flash. */}
       <View style={styles.octoFill}>
-        <Animated.Image
-          source={require('../assets/splash.png')}
-          style={[styles.octopus, { opacity: octoOpacity, transform: [{ scale: octoScale }] }]}
-          resizeMode="contain"
-        />
+        {/* Clipped and rounded on purpose. splash.png is OPAQUE (no alpha) and
+            carries ~19% white margin on every side, so drawn straight onto the
+            app's pale background it read as a hard-edged white square with a
+            small octopus adrift in the middle. The image is rendered larger than
+            its window, so the window trims about half that margin; the radius
+            turns what is left into a card rather than a seam. */}
+        <View style={styles.octoClip}>
+          <Animated.Image
+            source={require('../assets/splash.png')}
+            style={[styles.octopus, { opacity: octoOpacity, transform: [{ scale: octoScale }] }]}
+            resizeMode="contain"
+          />
+        </View>
       </View>
 
       {/* Overlay — MSM logo on teal, cross-fades in over the octopus. */}
@@ -116,7 +124,18 @@ export default function SplashSc({ onDone }: { onDone: () => void }) {
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: COLORS.background },
   octoFill: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background },
-  octopus: { width: 260, height: 260 },
+  // The window: what the viewer sees. Rounded, and it clips.
+  octoClip: {
+    width: 260,
+    height: 260,
+    borderRadius: 56,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // The image, deliberately larger than the window above — the difference IS the
+  // crop. 328/260 leaves the octopus at ~78% of the frame instead of 62%.
+  octopus: { width: 328, height: 328 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: SIZES.xl },
   logo: { width: 243, height: 243, marginBottom: SIZES.xl },
   title: { fontSize: SIZES.h1, fontWeight: '800', color: COLORS.textWhite, textAlign: 'center', letterSpacing: 0.5 },

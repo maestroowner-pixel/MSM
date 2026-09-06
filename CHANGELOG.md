@@ -48,6 +48,17 @@ to change to make those signatures mean anything.
   gloves — so a base64 secret could not be entered at all and the first device on a vessel could
   never enrol. Found by walking the flow on a device, not by any typecheck.
 
+### Manual and splash
+
+- The manual gained 16 entries across six sections, in all four languages: the catch-all
+  category, the browser scanner's opt-in camera, the reason on every defect, snapshots and the
+  roll-back, what Reset really clears on a syncing device, and rank aboard / This device / Sign
+  off. Section counts are equal across languages (22 sections, 88 entries).
+- Splash: the octopus is cropped and the logo squared off. `splash.png` is OPAQUE and carries
+  ~19% white margin, so on the app's pale background it read as a hard-edged white square with a
+  small octopus adrift in it. The file is untouched (it is also the native splash, where the
+  margin is wanted) — the image is drawn larger than its window, and the difference is the crop.
+
 ### Sync: what it was actually refusing
 
 "Could not connect" was covering a perfectly good connection. The session was fine and the

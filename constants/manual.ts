@@ -69,6 +69,7 @@ const en: ManualContent = {
         'Badges next to an item show one paperclip per attached file (📎) and 📜 when a certificate covers it.',
         'Checklist categories (Hydrants, BA Bottle Pressure, Fire Detectors) have monthly check toggles in the item screen.',
         'Inside a category, sort by Expiry date, Position, Name (A–Z) or Type — Position and Type group items under headers. On tablets the list shows two columns.',
+        "\"Other Safety Equipment\" is the catch-all: anything the standard sheets do not name — a portable pump, a spare charge, a locker of gear nobody else counts. It is built by hand with ＋ (there is no worksheet to import it from) and behaves like any other category — due dates, QR labels, inspections, reports.",
       ],
     },
     {
@@ -119,6 +120,7 @@ const en: ManualContent = {
         'Scan a QR label or a serial from the QR button in the header of the Dashboard or the Categories tab. A match opens the item straight away; a maker\'s barcode or a recorded serial finds it too. Use the in-app button rather than the phone\'s own camera — an MSM QR is a private link the camera app cannot open by itself. If a code is too damaged to scan and you can still read the digits, type them in — same lookup.',
         'Flag "come back to this": open an item and tap the Flag button by the status. A flag is not a compliance state — an item can be perfectly in date and still need a second look (rust, a sticky pin, a doubt). Add a short note on why, if it helps the next person.',
         'The Dashboard shows two quick-access strips. Flagged lists what the crew marked for a second look; Recently scanned lists the labels you last opened on this device, newest first. Tap either heading to open its full screen — and on the Flagged screen you can clear a flag once the item is dealt with.',
+        "In a browser the scanner does not reach for the camera until you ask. On a desk machine the code is usually quicker to type, and a browser asked for a camera it cannot find simply waits with nothing to say — tap \"Use the camera\" when you do want it, and a machine without one says so instead of hanging. On a phone the scanner opens looking, as before.",
       ],
     },
     {
@@ -180,9 +182,10 @@ const en: ManualContent = {
       emoji: '🛠️',
       title: "Defects",
       body: [
-        "Settings → Defects, or the Dashboard strip, lists everything still owed work — filterable by LSA / FFE, newest first, with the age of each one.",
+        "The Open defects strip on the Dashboard lists everything still owed work — filterable by LSA / FFE, newest first, with the age of each one.",
         "A defect is not a flag on the item; it IS the failed inspection that raised it, so it always answers what is wrong, who found it and when.",
         "Open one and tap \"Record rectification\" when the work is done — that is signed and stamped in its turn. Rectified defects stay reachable behind a toggle: at an audit, \"we found it and fixed it\" is a better story than silence.",
+        "Every defect carries its reason: the checklist lines that failed. They are on the card, on the Dashboard strip and in the report's \"What failed\" column. The officer's note is added to them, never instead of them — so a defect raised without a note still says what was wrong.",
       ],
     },
     {
@@ -202,6 +205,10 @@ const en: ManualContent = {
         'Settings → Export backup (.msm) writes one file with everything on the device: items, certificates, compressor logs, vessel info and the attached files embedded inside (MSM_backup_DDMMYY.msm).',
         'Restore backup (.msm) recreates the data on another device or after a reinstall — it replaces all current data, so restore onto a fresh device.',
         'Backups work without the cloud. Device preferences (such as the compressor-module toggle) are not part of the backup.',
+        "The app also takes a SNAPSHOT of the records every time it opens and keeps the last three on the device. Settings → Data → \"Roll back to …\" names the moment it would take you back to. It is there for the accidents nobody plans for — a wrong file restored, a register emptied — and it is the copy that will actually exist, because nobody exports a backup the morning before the mistake.",
+        "A snapshot carries the RECORDS, not the files. Photographs and documents stay on the device under their own names and remain linked, so a roll-back is not a substitute for a real backup taken to another machine.",
+        "An empty register never overwrites a good snapshot: if the app opens onto nothing, the copies it already holds are kept.",
+        "Restore and Roll back belong to the Master — they replace the register and hand it to the vessel, so they overwrite what other officers have already worked against. Officers keep Import and Export. A device that has not joined a vessel keeps all of it: its register is its own.",
       ],
     },
     {
@@ -212,6 +219,9 @@ const en: ManualContent = {
         'At the bottom of Settings, "Reset all data" permanently deletes every item, certificate, compressor log, attached file and the vessel info on this device.',
         'It is password-gated: type the password "Reset all data" exactly to enable the confirm button. Tap outside the dialog or Cancel to back out.',
         'Device preferences and your acceptance of the Privacy Policy / Terms are kept; only the safety-register data is removed.',
+        "Reset is the Master's, and on a syncing device it does not clear a handset — it clears the SHIP. The confirmation says so and the button is named \"Erase everywhere\", because it reaches the vessel's register and every other device aboard within seconds.",
+        "To empty only this device, leave the vessel first: Settings → Vessel → This device → \"Sign off & erase\". The vessel's copy is untouched.",
+        "A reset also removes the automatic snapshots — otherwise \"delete everything\" would not be true.",
       ],
     },
     {
@@ -224,6 +234,10 @@ const en: ManualContent = {
         "Everyone else enters the IMO, then Settings → Vessel → Join this vessel with their name and PIN. Their device waits in a queue; the Master approves it in Accounts → Devices, and the waiting device notices by itself within seconds — no restart and nothing to re-enter.",
         "Three roles: Crew records inspections, Officer also clears defects, Master also issues accounts and sets roles. Roles are enforced by the server, not merely by the app.",
         "Lost a handset? The Master switches that device off in Accounts → Devices. Nobody else is disturbed and no password changes.",
+        "An invitation can also carry the person's RANK ABOARD — Third Officer, Bosun, Chief Engineer. That is deliberately not the same thing as the role: a Second Engineer may hold a Crew account and a cadet an Officer one, so a promotion aboard is not a permissions change. The rank travels with them onto the join screen and into the signing list, so no name and no rank is ever typed twice.",
+        "Once a device has joined, Settings → Vessel → This device shows who it signs as: name, rank, and whether it is approved. It is read live from the vessel, so a rank the Master changes an hour later appears by itself.",
+        "\"Sign off this device\" leaves the vessel from that handset. It stops syncing at once and cannot let itself back in, so rejoining needs a fresh invitation and the Master's approval. \"Sign off & erase\" also clears the register on that device — for one being handed on or sold. Neither starts a new trial: the 60 days belong to the vessel, not to the handset.",
+        "The interface follows the rank. Accounts, the crew list and the device list are the Master's and are not offered to anyone else. The server refused those writes in any case; a button that always fails only tells you something untrue about your own authority.",
       ],
     },
     {
@@ -312,6 +326,7 @@ const ru: ManualContent = {
         'Значки у позиции: по одной скрепке на каждый прикреплённый файл (📎) и 📜, если её покрывает сертификат.',
         'У чек-лист категорий (Hydrants, BA Bottle Pressure, Fire Detectors) в карточке есть помесячные отметки проверок.',
         'Внутри категории — сортировка по Expiry date, Position, Name (А–Я) или Type; в режимах Position и Type позиции группируются под заголовками. На планшетах список показывается в две колонки.',
+        "«Other Safety Equipment» — категория для всего остального: что не названо в стандартных листах — переносной насос, запасной заряд, шкаф со снаряжением, которое больше нигде не учтено. Заполняется вручную кнопкой ＋ (импортировать её неоткуда — такого листа в книге нет) и ведёт себя как любая другая категория: сроки, QR-этикетки, инспекции, отчёты.",
       ],
     },
     {
@@ -362,6 +377,7 @@ const ru: ManualContent = {
         'Сканируйте QR-этикетку или серийный номер кнопкой QR в шапке экрана Dashboard или вкладки Categories. Совпадение сразу открывает позицию; заводской штрихкод или записанный серийный номер тоже её найдут. Пользуйтесь кнопкой в приложении, а не системной камерой — QR формата MSM это приватная ссылка, которую камера сама открыть не может. Если код повреждён, а цифры ещё читаются, введите их вручную — поиск тот же.',
         'Флаг «вернуться к этому»: откройте позицию и нажмите кнопку Flag рядом со статусом. Флаг — не статус соответствия: позиция может быть полностью в сроке и всё равно требовать второго взгляда (ржавчина, залипающий палец, сомнение). При желании добавьте короткую заметку почему.',
         'На Dashboard есть две полосы быстрого доступа. Flagged показывает то, что команда отметила для второго взгляда; Recently scanned — этикетки, которые вы последними открывали на этом устройстве, новое сверху. Нажмите на заголовок любой, чтобы открыть полный экран; на экране Flagged флаг можно снять, когда с позицией разобрались.',
+        "В браузере сканер не трогает камеру, пока его не попросят. На настольной машине код обычно быстрее ввести, а браузер, у которого запросили камеру и не нашли её, просто ждёт и ничего не объясняет — нажмите «Use the camera», когда камера действительно нужна; машина без камеры так и скажет, вместо того чтобы висеть. На телефоне сканер по-прежнему открывается уже глядя.",
       ],
     },
     {
@@ -423,9 +439,10 @@ const ru: ManualContent = {
       emoji: '🛠️',
       title: "Дефекты",
       body: [
-        "Настройки → Defects или полоса на дашборде показывают всё, по чему ещё есть работа: фильтр LSA / FFE, новые сверху, с возрастом каждого дефекта.",
+        "Полоса Open defects на дашборде показывает всё, по чему ещё есть работа: фильтр LSA / FFE, новые сверху, с возрастом каждого дефекта.",
         "Дефект — это не флаг на позиции, а сама проваленная инспекция. Поэтому он всегда отвечает, что именно не так, кто это нашёл и когда.",
         "Откройте дефект и нажмите «Record rectification», когда работа сделана — устранение тоже подписывается и штампуется. Устранённые дефекты остаются доступны по переключателю: на аудите «нашли и исправили» звучит лучше, чем молчание.",
+        "У каждого дефекта есть причина — провалившиеся строки чек-листа. Они видны на карточке, в полосе на дашборде и в отчёте, в графе «What failed». Заметка офицера добавляется к ним, а не заменяет их: дефект, поднятый без заметки, всё равно говорит, что именно не так.",
       ],
     },
     {
@@ -445,6 +462,10 @@ const ru: ManualContent = {
         'Settings → Export backup (.msm) создаёт один файл со всем на устройстве: позиции, сертификаты, журналы компрессоров, данные судна и прикреплённые файлы внутри (MSM_backup_DDMMYY.msm).',
         'Restore backup (.msm) воссоздаёт данные на другом устройстве или после переустановки — заменяет все текущие данные, поэтому восстанавливайте на чистое устройство.',
         'Бэкап работает без облака. Настройки устройства (например, тумблер модуля компрессора) в бэкап не входят.',
+        "Кроме этого приложение при каждом открытии делает СЛЕПОК записей и хранит на устройстве три последних. Settings → Data → «Roll back to …» прямо называет момент, к которому вернёт. Он существует ради аварий, которых никто не планирует — восстановили не тот файл, опустошили регистр, — и это та копия, которая действительно окажется под рукой: никто не делает экспорт утром накануне ошибки.",
+        "Слепок несёт ЗАПИСИ, а не файлы. Фотографии и документы остаются на устройстве под своими именами и не теряют связи, поэтому откат не заменяет настоящую копию, унесённую на другую машину.",
+        "Пустой регистр никогда не затирает хороший слепок: если приложение открылось на пустоте, уже сохранённые копии сохраняются.",
+        "Восстановление и откат — права Мастера: они заменяют регистр и отдают его судну, то есть переписывают то, с чем уже работали другие офицеры. У офицера остаются импорт и экспорт. Устройство, не вступившее на судно, сохраняет всё: его регистр принадлежит только ему.",
       ],
     },
     {
@@ -455,6 +476,9 @@ const ru: ManualContent = {
         'Внизу Settings кнопка "Reset all data" безвозвратно удаляет все позиции, сертификаты, журналы компрессоров, прикреплённые файлы и данные судна на этом устройстве.',
         'Защищено паролем: введите пароль "Reset all data" в точности, чтобы активировать кнопку подтверждения. Тап вне окна или Cancel — отмена.',
         'Настройки устройства и согласие с Privacy Policy / Terms сохраняются; удаляются только данные реестра.',
+        "Сброс — право Мастера, и на синхронизированном устройстве он очищает не аппарат, а СУДНО. Подтверждение говорит об этом прямо, а кнопка называется «Erase everywhere»: за секунды это доходит до судового регистра и до всех остальных приборов на борту.",
+        "Чтобы очистить только это устройство, сначала выйдите с судна: Settings → Vessel → This device → «Sign off & erase». Судовая копия остаётся нетронутой.",
+        "Сброс стирает и автоматические слепки — иначе «удалить всё» было бы неправдой.",
       ],
     },
     {
@@ -467,6 +491,10 @@ const ru: ManualContent = {
         "Остальные вводят IMO, затем Настройки → Vessel → Join this vessel со своим именем и PIN. Устройство попадает в очередь; Мастер одобряет его в Accounts → Devices, и ожидающее устройство само замечает это за несколько секунд — без перезапуска и без повторного ввода.",
         "Три роли: Crew проводит инспекции, Officer вдобавок закрывает дефекты, Master вдобавок выдаёт аккаунты и меняет роли. Роли проверяются сервером, а не только приложением.",
         "Потеряли телефон? Мастер выключает это устройство в Accounts → Devices. Остальных это не касается, пароли менять не нужно.",
+        "В приглашении можно указать и ДОЛЖНОСТЬ на судне — Third Officer, Bosun, Chief Engineer. Это намеренно не то же самое, что роль: второй механик может иметь учётку Crew, а курсант — Officer, поэтому повышение на борту не превращается в изменение прав. Должность едет вместе с человеком на экран вступления и в список подписантов, так что ни имя, ни должность не набираются дважды.",
+        "После вступления Settings → Vessel → This device показывает, кем устройство подписывает: имя, должность и одобрено ли оно. Читается живьём с судна, поэтому должность, изменённая Мастером через час, появится сама.",
+        "«Sign off this device» — выход с судна с этого аппарата. Синхронизация прекращается сразу, и обратно устройство само себя не впустит: нужно новое приглашение и одобрение Мастера. «Sign off & erase» вдобавок стирает регистр на этом аппарате — для случая, когда его передают другому или продают. Ни то, ни другое не открывает новый пробный период: 60 дней принадлежат судну, а не устройству.",
+        "Интерфейс следует рангу. Аккаунты, список экипажа и список устройств — права Мастера, остальным они не предлагаются. Сервер такие записи всё равно отклонял; кнопка, которая всегда падает, лишь сообщает неправду о ваших собственных полномочиях.",
       ],
     },
     {
@@ -555,6 +583,7 @@ const es: ManualContent = {
         'Las insignias junto a un elemento muestran un clip por cada archivo adjunto (📎) y 📜 cuando lo cubre un certificado.',
         'Las categorías de lista de control (Hydrants, BA Bottle Pressure, Fire Detectors) tienen casillas mensuales en la ficha del elemento.',
         'Dentro de una categoría, ordene por Expiry date, Position, Name (A–Z) o Type — Position y Type agrupan los elementos bajo encabezados. En tabletas la lista se muestra en dos columnas.',
+        "«Other Safety Equipment» es el cajón de sastre: todo lo que las hojas estándar no nombran — una bomba portátil, una carga de repuesto, un pañol con equipo que nadie más cuenta. Se rellena a mano con ＋ (no hay hoja de la que importarlo) y se comporta como cualquier otra categoría: fechas, etiquetas QR, inspecciones e informes.",
       ],
     },
     {
@@ -605,6 +634,7 @@ const es: ManualContent = {
         'Escanee una etiqueta QR o un número de serie con el botón QR en la cabecera del Panel o de la pestaña Categories. Una coincidencia abre el equipo de inmediato; un código de barras del fabricante o un número de serie registrado también lo encuentran. Use el botón de la app y no la cámara del teléfono: un QR de MSM es un enlace privado que la cámara no puede abrir por sí sola. Si el código está muy dañado y aún puede leer los dígitos, escríbalos — la misma búsqueda.',
         'Marque «volver a esto»: abra un equipo y pulse el botón Flag junto al estado. Una marca no es un estado de cumplimiento: un equipo puede estar en fecha y aun así necesitar una segunda mirada (óxido, un pasador duro, una duda). Añada una nota breve del motivo si ayuda.',
         'El Panel muestra dos tiras de acceso rápido. Flagged enumera lo que la tripulación marcó para revisar; Recently scanned enumera las etiquetas que abrió por última vez en este dispositivo, la más reciente primero. Pulse cualquier encabezado para abrir su pantalla completa; en la pantalla Flagged puede quitar la marca cuando el equipo ya esté atendido.',
+        "En el navegador el escáner no toca la cámara hasta que se lo pida. En un ordenador de mesa suele ser más rápido teclear el código, y un navegador al que se le pide una cámara que no encuentra simplemente espera sin explicar nada — pulse «Use the camera» cuando de verdad la necesite; una máquina sin cámara lo dirá en lugar de quedarse colgada. En el teléfono el escáner se abre mirando, como antes.",
       ],
     },
     {
@@ -666,9 +696,10 @@ const es: ManualContent = {
       emoji: '🛠️',
       title: "Defectos",
       body: [
-        "Ajustes → Defects, o la franja del panel, lista todo lo que queda por hacer: filtrable por LSA / FFE, lo más reciente primero y con la antigüedad de cada uno.",
+        "La franja Open defects del panel lista todo lo que queda por hacer: filtrable por LSA / FFE, lo más reciente primero y con la antigüedad de cada uno.",
         "Un defecto no es una marca sobre el equipo: ES la inspección fallida que lo generó, así que siempre responde qué falla, quién lo encontró y cuándo.",
         "Ábralo y pulse «Record rectification» cuando el trabajo esté hecho — eso también se firma y se sella. Los defectos subsanados siguen accesibles.",
+        "Cada defecto lleva su motivo: las líneas de la lista de comprobación que fallaron. Aparecen en la ficha, en la franja del panel y en la columna «What failed» del informe. La nota del oficial se añade a ellas, nunca las sustituye — un defecto abierto sin nota sigue diciendo qué estaba mal.",
       ],
     },
     {
@@ -688,6 +719,10 @@ const es: ManualContent = {
         'Settings → Export backup (.msm) crea un archivo con todo lo del dispositivo: elementos, certificados, registros de compresor, datos del buque y los archivos adjuntos incrustados (MSM_backup_DDMMYY.msm).',
         'Restore backup (.msm) recrea los datos en otro dispositivo o tras reinstalar — reemplaza todos los datos actuales, así que restaure en un dispositivo limpio.',
         'Las copias funcionan sin la nube. Las preferencias del dispositivo (como el interruptor del módulo de compresor) no forman parte de la copia.',
+        "Además, la aplicación toma una INSTANTÁNEA de los registros cada vez que se abre y guarda las tres últimas en el dispositivo. Settings → Data → «Roll back to …» indica el momento al que le devolvería. Existe para los accidentes que nadie planea — un archivo equivocado restaurado, un registro vaciado — y es la copia que realmente estará ahí, porque nadie exporta una copia la mañana anterior al error.",
+        "Una instantánea lleva los REGISTROS, no los archivos. Las fotografías y los documentos permanecen en el dispositivo con sus nombres y siguen enlazados, así que una reversión no sustituye a una copia real llevada a otra máquina.",
+        "Un registro vacío nunca sobrescribe una buena instantánea: si la aplicación se abre sin nada, se conservan las copias que ya tiene.",
+        "Restaurar y revertir son del Master: reemplazan el registro y se lo entregan al buque, sobrescribiendo aquello con lo que otros oficiales ya han trabajado. Los oficiales conservan importar y exportar. Un dispositivo que no se ha unido a un buque lo conserva todo: su registro es suyo.",
       ],
     },
     {
@@ -698,6 +733,9 @@ const es: ManualContent = {
         'Al final de Settings, "Reset all data" elimina permanentemente todo elemento, certificado, registro de compresor, archivo adjunto y los datos del buque en este dispositivo.',
         'Está protegido por contraseña: escriba exactamente "Reset all data" para activar el botón de confirmar. Pulse fuera del diálogo o Cancel para salir.',
         'Se conservan las preferencias del dispositivo y su aceptación de la Privacy Policy / Terms; solo se borran los datos del registro de seguridad.',
+        "El restablecimiento es del Master y, en un dispositivo sincronizado, no borra un aparato: borra el BUQUE. La confirmación lo dice y el botón se llama «Erase everywhere», porque en segundos alcanza el registro del buque y todos los demás dispositivos a bordo.",
+        "Para vaciar solo este dispositivo, abandone primero el buque: Settings → Vessel → This device → «Sign off & erase». La copia del buque queda intacta.",
+        "El restablecimiento borra también las instantáneas automáticas — de lo contrario «borrarlo todo» no sería cierto.",
       ],
     },
     {
@@ -710,6 +748,10 @@ const es: ManualContent = {
         "Los demás introducen el IMO y luego Ajustes → Vessel → Join this vessel con su nombre y PIN. Su dispositivo queda en cola; el Master lo aprueba en Accounts → Devices y el dispositivo en espera lo detecta solo en unos segundos, sin reiniciar nada.",
         "Tres roles: Crew registra inspecciones, Officer además cierra defectos, Master además emite cuentas y asigna roles. Los roles los aplica el servidor, no solo la aplicación.",
         "¿Móvil perdido? El Master desactiva ese dispositivo en Accounts → Devices. Nadie más se ve afectado y no cambia ninguna contraseña.",
+        "La invitación puede llevar también el CARGO A BORDO — Third Officer, Bosun, Chief Engineer. No es lo mismo que el rol: un segundo maquinista puede tener una cuenta Crew y un cadete una de Officer, de modo que un ascenso a bordo no es un cambio de permisos. El cargo viaja con la persona a la pantalla de ingreso y a la lista de firmantes, así que ni el nombre ni el cargo se teclean dos veces.",
+        "Una vez unido el dispositivo, Settings → Vessel → This device muestra con qué identidad firma: nombre, cargo y si está aprobado. Se lee en vivo del buque, así que un cargo que el Master cambie una hora después aparece solo.",
+        "«Sign off this device» abandona el buque desde ese aparato. Deja de sincronizar de inmediato y no puede readmitirse solo: volver exige una nueva invitación y la aprobación del Master. «Sign off & erase» borra además el registro de ese dispositivo — para uno que se cede o se vende. Ninguno inicia una prueba nueva: los 60 días son del buque, no del aparato.",
+        "La interfaz sigue al rango. Cuentas, la lista de tripulación y la de dispositivos son del Master y no se ofrecen a nadie más. El servidor rechazaba esas escrituras de todos modos; un botón que siempre falla solo le dice algo falso sobre su propia autoridad.",
       ],
     },
     {
@@ -798,6 +840,7 @@ const uk: ManualContent = {
         'Значки біля позиції: по одній скріпці на кожен прикріплений файл (📎) та 📜, якщо її покриває сертифікат.',
         'У чек-лист категорій (Hydrants, BA Bottle Pressure, Fire Detectors) у картці є щомісячні позначки перевірок.',
         'Усередині категорії — сортування за Expiry date, Position, Name (А–Я) або Type; у режимах Position і Type позиції групуються під заголовками. На планшетах список показується у дві колонки.',
+        "«Other Safety Equipment» — категорія для решти: усе, чого немає у стандартних аркушах — переносна помпа, запасний заряд, шафа зі спорядженням, яке більше ніде не обліковане. Заповнюється вручну кнопкою ＋ (імпортувати нізвідки — такого аркуша немає) і поводиться як будь-яка інша категорія: строки, QR-етикетки, інспекції, звіти.",
       ],
     },
     {
@@ -848,6 +891,7 @@ const uk: ManualContent = {
         'Скануйте QR-етикетку або серійний номер кнопкою QR у шапці екрана Dashboard або вкладки Categories. Збіг одразу відкриває позицію; заводський штрихкод або записаний серійний номер теж її знайдуть. Користуйтеся кнопкою в застосунку, а не системною камерою — QR формату MSM це приватне посилання, яке камера сама відкрити не може. Якщо код пошкоджено, а цифри ще читаються, введіть їх вручну — той самий пошук.',
         'Позначка «повернутися до цього»: відкрийте позицію та натисніть кнопку Flag поряд зі статусом. Позначка — не статус відповідності: позиція може бути повністю в терміні й усе одно потребувати другого погляду (іржа, тугий палець, сумнів). За бажанням додайте коротку нотатку чому.',
         'На Dashboard є дві смуги швидкого доступу. Flagged показує те, що екіпаж позначив для перегляду; Recently scanned — етикетки, які ви востаннє відкривали на цьому пристрої, нове згори. Натисніть на заголовок будь-якої, щоб відкрити повний екран; на екрані Flagged позначку можна зняти, коли з позицією розібралися.',
+        "У браузері сканер не чіпає камеру, доки його не попросять. На настільній машині код зазвичай швидше ввести, а браузер, у якого попросили камеру й не знайшли її, просто чекає й нічого не пояснює — натисніть «Use the camera», коли камера справді потрібна; машина без камери так і скаже, замість того щоб зависнути. На телефоні сканер, як і раніше, відкривається вже дивлячись.",
       ],
     },
     {
@@ -909,9 +953,10 @@ const uk: ManualContent = {
       emoji: '🛠️',
       title: "Дефекти",
       body: [
-        "Налаштування → Defects або смуга на дашборді показують усе, за чим ще є робота: фільтр LSA / FFE, новіші зверху, з віком кожного дефекту.",
+        "Смуга Open defects на дашборді показує все, за чим ще є робота: фільтр LSA / FFE, новіші зверху, з віком кожного дефекту.",
         "Дефект — це не позначка на позиції, а сама провалена інспекція. Тому він завжди відповідає, що саме не так, хто це знайшов і коли.",
         "Відкрийте дефект і натисніть «Record rectification», коли роботу виконано — усунення теж підписується та штампується.",
+        "Кожен дефект несе свою причину — рядки чек-листа, що не пройшли. Вони видні на картці, у смузі на дашборді та у графі «What failed» у звіті. Нотатка офіцера додається до них, а не заміняє їх: дефект, відкритий без нотатки, все одно каже, що саме не так.",
       ],
     },
     {
@@ -931,6 +976,10 @@ const uk: ManualContent = {
         'Settings → Export backup (.msm) створює один файл з усім на пристрої: позиції, сертифікати, журнали компресорів, дані судна та прикріплені файли всередині (MSM_backup_DDMMYY.msm).',
         'Restore backup (.msm) відтворює дані на іншому пристрої або після перевстановлення — замінює всі поточні дані, тож відновлюйте на чистий пристрій.',
         'Бекап працює без хмари. Налаштування пристрою (наприклад, перемикач модуля компресора) до бекапу не входять.',
+        "Крім того, застосунок під час кожного відкриття робить ЗЛІПОК записів і зберігає на пристрої три останні. Settings → Data → «Roll back to …» прямо називає момент, до якого поверне. Він існує заради аварій, яких ніхто не планує — відновили не той файл, спорожнили реєстр, — і це та копія, яка справді буде під рукою: ніхто не робить експорт зранку напередодні помилки.",
+        "Зліпок несе ЗАПИСИ, а не файли. Світлини й документи лишаються на пристрої під своїми іменами й не втрачають зв'язку, тож відкат не замінює справжню копію, винесену на іншу машину.",
+        "Порожній реєстр ніколи не затирає добрий зліпок: якщо застосунок відкрився на порожнечі, вже збережені копії залишаються.",
+        "Відновлення та відкат — права Майстра: вони замінюють реєстр і віддають його судну, тобто переписують те, з чим уже працювали інші офіцери. В офіцера лишаються імпорт і експорт. Пристрій, що не приєднався до судна, зберігає все: його реєстр належить лише йому.",
       ],
     },
     {
@@ -941,6 +990,9 @@ const uk: ManualContent = {
         'Унизу Settings кнопка "Reset all data" безповоротно видаляє всі позиції, сертифікати, журнали компресорів, прикріплені файли та дані судна на цьому пристрої.',
         'Захищено паролем: введіть пароль "Reset all data" точно, щоб активувати кнопку підтвердження. Тап поза вікном або Cancel — скасування.',
         'Налаштування пристрою та згода з Privacy Policy / Terms зберігаються; видаляються лише дані реєстру.',
+        "Скидання — право Майстра, і на синхронізованому пристрої воно очищає не апарат, а СУДНО. Підтвердження каже про це прямо, а кнопка називається «Erase everywhere»: за секунди це доходить до суднового реєстру й до всіх інших приладів на борту.",
+        "Щоб очистити лише цей пристрій, спершу залиште судно: Settings → Vessel → This device → «Sign off & erase». Суднова копія лишається недоторканою.",
+        "Скидання стирає й автоматичні зліпки — інакше «видалити все» було б неправдою.",
       ],
     },
     {
@@ -953,6 +1005,10 @@ const uk: ManualContent = {
         "Решта вводять IMO, потім Налаштування → Vessel → Join this vessel зі своїм ім'ям і PIN. Пристрій потрапляє в чергу; Майстер схвалює його в Accounts → Devices, і пристрій сам помічає це за кілька секунд — без перезапуску.",
         "Три ролі: Crew проводить інспекції, Officer додатково закриває дефекти, Master додатково видає акаунти та змінює ролі. Ролі перевіряє сервер, а не лише застосунок.",
         "Загубили телефон? Майстер вимикає цей пристрій у Accounts → Devices. Інших це не стосується.",
+        "У запрошенні можна вказати й ПОСАДУ на судні — Third Officer, Bosun, Chief Engineer. Це навмисно не те саме, що роль: другий механік може мати обліковку Crew, а курсант — Officer, тож підвищення на борту не перетворюється на зміну прав. Посада їде разом із людиною на екран приєднання та у список підписантів, тож ані ім'я, ані посада не набираються двічі.",
+        "Після приєднання Settings → Vessel → This device показує, ким пристрій підписує: ім'я, посаду й чи схвалений він. Читається наживо з судна, тож посада, змінена Майстром за годину, з'явиться сама.",
+        "«Sign off this device» — вихід із судна з цього апарата. Синхронізація припиняється одразу, і назад пристрій сам себе не впустить: потрібне нове запрошення та схвалення Майстра. «Sign off & erase» на додачу стирає реєстр на цьому апараті — для випадку, коли його передають або продають. Ані те, ані інше не відкриває нового пробного періоду: 60 днів належать судну, а не пристрою.",
+        "Інтерфейс іде за рангом. Акаунти, список екіпажу та список пристроїв — права Майстра, іншим вони не пропонуються. Сервер такі записи все одно відхиляв; кнопка, що завжди падає, лише повідомляє неправду про ваші власні повноваження.",
       ],
     },
     {

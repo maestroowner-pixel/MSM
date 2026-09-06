@@ -260,12 +260,16 @@ export default function AccountsSc() {
         </Card>
       ) : null}
 
+      {/* Nothing in Settings points a member here any more — this is the URL
+          route. Read-only stays allowed rather than refused: the rules permit
+          the read, and someone who arrived deliberately should be told where
+          their own device stands instead of being shown a locked door. */}
       {rankKnown && !isMaster ? (
         <Card>
           <Label>{ROLE_LABEL[myRole]} — read only</Label>
           <Text style={styles.note}>
-            Issuing accounts, approving devices and changing ranks belong to the Master. You can
-            see who is aboard; ask the Master to make a change.
+            Accounts, approvals and ranks are the Master's. Your own device — its name, rank and
+            whether it is approved — is under Settings → Vessel → This device.
           </Text>
         </Card>
       ) : null}
