@@ -362,7 +362,12 @@ exports.refresh = onCall({ region: REGION }, async (req) => {
   const snap = await db.doc(`${ROOT}/${vessel}/devices/${deviceId}`).get();
   const device = snap.exists ? snap.data() : null;
 
-  if (!device) throw new HttpsError('not-found', 'This device is not in the register.');
+  // The vessel does not know this device: removed by a Master, or the register
+  // was reset. This is NOT an error to sit in — the device holds a secret, so the
+  // app would go on believing it is enrolled and would never offer to join
+  // again, which strands it with a "could not connect" it cannot act on. Say
+  // `reenrol` and let the client forget the secret and start over.
+  if (!device) return { status: 'reenrol', role: 'user' };
   if (device.disabled) throw new HttpsError('permission-denied', 'This device has been switched off.');
   if (!device.secretHash) return { status: 'reenrol', role: device.role ?? 'user' };
 

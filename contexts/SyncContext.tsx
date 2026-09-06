@@ -333,7 +333,19 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
           await pushNow();
           return;
         }
-        // 'reenrol' or 'refused'.
+        // 'reenrol' — the vessel does not know this device any more (a Master
+        // removed it, or the register was reset). The stale secret has to go, or
+        // `enrolled` stays true, the join screen keeps showing an identity that
+        // no longer exists, and the connection card offers "Try again" for a
+        // thing that will never succeed. Clearing it puts "Join this vessel"
+        // back in front of the user, which is the only move left.
+        if (res.status === 'reenrol') {
+          await fb.signOutDevice().catch(() => {});
+          setEnrolled(false);
+          setRole(null);
+          setLastError('This device is no longer on the vessel. Join it again to sync.');
+        }
+
         if (res.status === 'refused') {
           console.warn('[sync] refused:', res.message);
           setLastError(res.message);

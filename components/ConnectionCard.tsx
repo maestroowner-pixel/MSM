@@ -70,9 +70,14 @@ export function ConnectionCard() {
         icon: 'login',
         tone: 'todo',
         title: 'Step 2 — join the vessel',
+        // `lastError` here means the device was ON the vessel and is not any
+        // more — removed by a Master, or the register reset. Saying so is the
+        // difference between "you have not joined yet" and "you were taken off";
+        // the second explains why the register stopped moving.
         body:
-          'This device has not joined yet. The FIRST device uses the bootstrap code and becomes ' +
-          'Master; everyone after that uses the name and PIN the Master issues them.',
+          (lastError ? `${lastError}\n\n` : '') +
+          'The FIRST device uses the bootstrap code and becomes Master; everyone after that uses ' +
+          'the name and PIN the Master issues them.',
         action: { label: 'Join this vessel', go: () => nav.navigate('Enrol') },
       };
     }
@@ -98,6 +103,11 @@ export function ConnectionCard() {
         body: lastSyncAt
           ? `Last synced ${formatDateTime(lastSyncAt)}. Inspections travel to the vessel's other devices as they are signed.`
           : "Inspections travel to the vessel's other devices as they are signed.",
+        // The card is titled "This device", so the screen that says who this
+        // device signs as — and how to sign off — belongs behind it. It used to be
+        // a row at the foot of the Vessel section: the same words, in a second
+        // place, several sections down from the panel already carrying them.
+        action: { label: 'Who this device signs as', go: () => nav.navigate('Enrol') },
       };
     }
     if (status === 'connecting') {
@@ -124,7 +134,7 @@ export function ConnectionCard() {
       body: 'This device is working on its own copy. Join the vessel to share inspections with the crew.',
       action: { label: 'Join this vessel', go: () => nav.navigate('Enrol') },
     };
-  }, [imo, enrolled, status, role, lastSyncAt, nav, connect]);
+  }, [imo, enrolled, status, role, lastSyncAt, lastError, nav, connect]);
 
   const tint =
     step.tone === 'done' ? COLORS.success : step.tone === 'waiting' ? COLORS.warning : COLORS.primary;
