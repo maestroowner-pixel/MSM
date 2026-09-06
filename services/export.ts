@@ -10,7 +10,7 @@ import * as XLSX from 'xlsx';
 import JSZip from 'jszip';
 import { CategoryKey, EquipmentItem } from '../types/equipment';
 import { Certificate } from '../types/certificate';
-import { CATEGORIES, CATEGORY_MAP, CategoryMeta } from '../constants/categories';
+import { CATEGORIES, CATEGORY_MAP, CategoryMeta, GROUP_COLORS } from '../constants/categories';
 import { complianceDate, computeStatus, formatDate, fileDateStamp } from '../utils/dates';
 import { deliverFile, onWindows, onWeb } from '../utils/fileShare';
 import { printHtmlWeb } from '../utils/webFile';
@@ -202,6 +202,7 @@ export async function exportXlsx(
   const today = formatDate(new Date().toISOString().slice(0, 10));
   const header = vesselHeader(vessel);
   const wb = XLSX.utils.book_new();
+  const colours: string[] = [];
   for (const g of groups) {
     const aoa = [
       // Vessel header block (kept above the real column header so re-import still
@@ -216,8 +217,13 @@ export async function exportXlsx(
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     XLSX.utils.book_append_sheet(wb, ws, sheetName(g.label));
+    // Same grouping as the app and as the blank template: LSA blue, FFE red,
+    // the rest slate. With a sheet per category the tab strip is long, and the
+    // colour is what makes it scannable.
+    colours.push(GROUP_COLORS[CATEGORY_MAP[g.key]?.group ?? 'OTHER']);
   }
-  const b64 = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+  const plain = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+  const b64 = await paintTabs(plain, colours);
   const fileName = `MSM_report_${fileDateStamp()}.xlsx`;
   await deliverFile(fileName, b64, true, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
@@ -412,13 +418,59 @@ function templateColumns(meta: CategoryMeta): string[] {
   return cols;
 }
 
+/**
+ * Paint each worksheet tab with its group's colour.
+ *
+ * SheetJS 0.18 READS a tab colour and does not write one — the property goes in,
+ * nothing comes out, and the file is silently plain (verified before writing
+ * this). Cell styling is the same story: it belongs to the Pro build. So the
+ * colour is written into the file afterwards, which is easy because an .xlsx IS
+ * a zip and jszip is already here for the ZIP export.
+ *
+ * `<sheetPr>` must be the FIRST child of `<worksheet>` — the schema fixes the
+ * order — so it is inserted immediately after the opening tag. Sheets are
+ * written as sheet1.xml…sheetN.xml in the order they were appended, which is the
+ * order of `names` below.
+ *
+ * Why bother: two dozen identically grey tabs is a wall. Blue for LSA, red for
+ * FFE, slate for the rest matches the app's own grouping, so whoever is filling
+ * the blank template in — or reading an exported register — knows which family
+ * a sheet belongs to without reading its name. Used by both workbooks.
+ */
+async function paintTabs(b64: string, colours: string[]): Promise<string> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const JSZip = require('jszip');
+    const zip = await JSZip.loadAsync(b64, { base64: true });
+    for (let i = 0; i < colours.length; i++) {
+      const path = `xl/worksheets/sheet${i + 1}.xml`;
+      const file = zip.file(path);
+      if (!file) continue;
+      const xml: string = await file.async('string');
+      if (xml.includes('<sheetPr')) continue;
+      const argb = 'FF' + colours[i].replace('#', '').toUpperCase();
+      const painted = xml.replace(
+        /(<worksheet[^>]*>)/,
+        `$1<sheetPr><tabColor rgb="${argb}"/></sheetPr>`
+      );
+      zip.file(path, painted);
+    }
+    return await zip.generateAsync({ type: 'base64' });
+  } catch {
+    // A colourless template is still a perfectly good template.
+    return b64;
+  }
+}
+
 /** Build and share a blank .xlsx import template (one sheet per category). */
 export async function exportTemplate(): Promise<void> {
   const wb = XLSX.utils.book_new();
+  const colours: string[] = [];
   for (const meta of CATEGORIES) {
     // No source worksheet, nothing to offer a blank sheet for — and Excel will
     // not accept a worksheet with an empty name anyway.
     if (!meta.sheet) continue;
+    colours.push(GROUP_COLORS[meta.group]);
     // First Aid has no header row in the importer — label in col A, expiry date.
     const cols =
       meta.key === 'first_aid' ? ['Location', 'Expiry'] : templateColumns(meta);
@@ -426,7 +478,8 @@ export async function exportTemplate(): Promise<void> {
     ws['!cols'] = cols.map((c) => ({ wch: Math.max(12, c.length + 2) }));
     XLSX.utils.book_append_sheet(wb, ws, sheetName(meta.sheet.trim()));
   }
-  const b64 = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+  const plain = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+  const b64 = await paintTabs(plain, colours);
   const fileName = `MSM_Import_Template.xlsx`;
   await deliverFile(fileName, b64, true, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }

@@ -75,6 +75,20 @@ interface SyncContextType {
    * only rather than implying the ship has it.
    */
   pushLocalNow: () => Promise<boolean>;
+  /**
+   * Change local data WITHOUT sending it to the vessel.
+   *
+   * For an officer rolling their own device back: they are repairing the handset
+   * in front of them, not rewriting the ship's register. Without this the change
+   * would go up by itself — any local edit schedules a push — and a private
+   * recovery would silently become everyone's.
+   *
+   * The suppression covers the write and the render that follows it. It does not
+   * and cannot make the change permanent against the vessel: the register is one
+   * document and the vessel's copy is the shared truth, so the next sync
+   * reconciles. That is the correct outcome, and the caller says so plainly.
+   */
+  applyLocally: (change: () => Promise<void>) => Promise<void>;
 }
 
 const SyncContext = createContext<SyncContextType | undefined>(undefined);
@@ -179,6 +193,22 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     }
     return true;
   }, [pushNow]);
+
+  /** See `applyLocally` in SyncContextType. */
+  const applyLocally = useCallback(async (change: () => Promise<void>) => {
+    applyingRemote.current = true;
+    if (pushTimer.current) clearTimeout(pushTimer.current);
+    try {
+      await change();
+    } finally {
+      // Held past the render the change triggers: the push effect runs after
+      // state settles, and releasing on the same tick would let it through —
+      // which is the whole thing this exists to prevent.
+      setTimeout(() => {
+        applyingRemote.current = false;
+      }, 2500);
+    }
+  }, []);
 
   const schedulePush = useCallback((immediate = false) => {
     if (!uidRef.current) return;
@@ -430,7 +460,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <SyncContext.Provider
-      value={{ status, role, enrolled, lastSyncAt, registerBytes, connect, disconnect, pushLocalNow, lastError }}
+      value={{ status, role, enrolled, lastSyncAt, registerBytes, connect, disconnect, pushLocalNow, applyLocally, lastError }}
     >
       {children}
     </SyncContext.Provider>

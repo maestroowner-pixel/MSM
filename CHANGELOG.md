@@ -48,6 +48,22 @@ to change to make those signatures mean anything.
   gloves — so a base64 secret could not be entered at all and the first device on a vessel could
   never enrol. Found by walking the flow on a device, not by any typecheck.
 
+### Small things that make the work read
+
+- **An officer can roll their own device back, and it stays there.** Restoring from a file is
+  the Master's because it replaces the register and hands it to the vessel; rolling THIS handset
+  back to how it was an hour ago is repairing what is in your hand. To keep that promise the push
+  has to be actively suppressed — every local edit schedules one — so a private recovery cannot
+  quietly become everyone's. What it cannot do is outrank the ship: the register is one shared
+  document, so the next sync reconciles, and the dialog says so instead of implying otherwise.
+- **Worksheet tabs are coloured by group** in both the blank import template and the exported
+  register: LSA blue, FFE red, the rest slate, matching the app. SheetJS 0.18 READS a tab colour
+  and does not write one (verified before relying on it — the property goes in and nothing comes
+  out), and cell styling is a Pro feature, so the colour is written into the file afterwards with
+  jszip, which is already here for the ZIP export. `<sheetPr>` must be the first child of
+  `<worksheet>`; anywhere else and Excel calls the file corrupt. A failure to paint returns the
+  plain workbook — a colourless template is still a template.
+
 ### Manual and splash
 
 - The manual gained 16 entries across six sections, in all four languages: the catch-all

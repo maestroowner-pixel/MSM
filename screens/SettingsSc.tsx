@@ -225,12 +225,17 @@ export default function SettingsSc() {
       return;
     }
     const newest = snaps[0];
+    const reaches = isMaster
+      ? 'Anything entered since is lost, and on a syncing device the roll-back reaches the vessel too.'
+      : "Anything entered since is lost ON THIS DEVICE. The vessel's register is not changed — " +
+        'this repairs the handset in your hand, and the next sync reconciles it with the ship. ' +
+        'Ask the Master if the vessel\'s own copy is the problem.';
     Alert.alert(
       `Roll back to ${formatDateTime(newest.at)}?`,
       `Everything on this device goes back to how it was then: ${newest.items} items, ` +
         `${newest.certificates} certificates, ${newest.inspections} inspections, ${newest.crew} crew.\n\n` +
-        'Anything entered since is lost, and on a syncing device the roll-back reaches the vessel ' +
-        'too.\n\nPhotographs and documents are not part of a snapshot — the files on this device ' +
+        reaches +
+        '\n\nPhotographs and documents are not part of a snapshot — the files on this device ' +
         'stay where they are and remain linked.',
       [
         { text: 'Cancel', style: 'cancel' },
@@ -240,17 +245,34 @@ export default function SettingsSc() {
           onPress: async () => {
             setBusy(true);
             try {
-              const done = await snapshot.restoreSnapshot(s.slot);
-              await reload();
-              const shared = await sync.pushLocalNow().catch(() => false);
+              let done: snapshot.SnapshotInfo;
+              let shared = false;
+              if (isMaster) {
+                done = await snapshot.restoreSnapshot(s.slot);
+                await reload();
+                shared = await sync.pushLocalNow().catch(() => false);
+              } else {
+                // An officer repairs the device, not the ship. The write and the
+                // render it causes are wrapped so the change is not sent up —
+                // any local edit schedules a push, and without this a private
+                // recovery would quietly become everyone's.
+                let inner: snapshot.SnapshotInfo | null = null;
+                await sync.applyLocally(async () => {
+                  inner = await snapshot.restoreSnapshot(s.slot);
+                  await reload();
+                });
+                done = inner!;
+              }
               playSuccessSound();
               Alert.alert(
                 'Rolled back',
                 `${done.items} items, ${done.inspections} inspections and ${done.crew} crew from ` +
                   `${formatDateTime(done.at)}.\n\n` +
-                  (shared
-                    ? 'The vessel now holds this register.'
-                    : 'This device only — it is not currently syncing.')
+                  (isMaster
+                    ? shared
+                      ? 'The vessel now holds this register.'
+                      : 'This device only — it is not currently syncing.'
+                    : "This device only. The vessel's register is unchanged.")
               );
             } catch (e: any) {
               playErrorSound();
@@ -494,9 +516,12 @@ export default function SettingsSc() {
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
-        {/* The automatic net. Listed with the manual restore because it answers
-            the same question, and it is the one that will actually be there. */}
-        {isMaster ? (
+        {/* The automatic net, and unlike Restore it is NOT the Master's alone.
+            Rolling this device back to how it was an hour ago is repairing the
+            handset in your hand; replacing the register from a file somebody
+            carried aboard is a different act with a different blast radius. An
+            officer's roll-back therefore stays on the device — see the dialog. */}
+        {canHandleData ? (
           <TouchableOpacity
             style={[styles.linkRow, !snaps.length && { opacity: 0.45 }]}
             onPress={restoreSnapshot}
