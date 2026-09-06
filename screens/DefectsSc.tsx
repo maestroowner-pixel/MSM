@@ -25,6 +25,7 @@ import { Group } from '../types/equipment';
 import { Inspection, PERIOD_LABEL } from '../types/inspection';
 import { signatureLine } from '../types/crew';
 import { formatDateTime } from '../utils/dates';
+import { failedLines } from '../services/inspections';
 
 type Filter = 'open' | 'closed';
 const GROUPS: Array<Group | 'ALL'> = ['ALL', 'LSA', 'FFE'];
@@ -51,6 +52,11 @@ export default function DefectsSc() {
     const equip = flat.find((e) => e.id === insp.itemId);
     const meta = CATEGORY_MAP[insp.category];
     const age = Math.floor((Date.now() - insp.at) / 86_400_000);
+    // WHY this defect exists: the checklist lines that were marked fail. The card
+    // used to show only the officer's free-text note, which is optional — a
+    // defect raised without one showed a blank line and the reader had to open
+    // the record to learn what was actually wrong.
+    const failed = failedLines(insp);
     return (
       <TouchableOpacity onPress={() => nav.navigate('InspectionDetail', { id: insp.id })}>
         <Card>
@@ -73,7 +79,18 @@ export default function DefectsSc() {
             )}
           </View>
 
-          <Text style={styles.defect}>{insp.defect?.note}</Text>
+          {failed.length ? (
+            <View style={styles.reason}>
+              {failed.map((line: string, i: number) => (
+                <View key={i} style={styles.reasonRow}>
+                  <MciIcon name="close-circle" size={14} color={COLORS.danger} />
+                  <Text style={styles.reasonText}>{line}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          {insp.defect?.note ? <Text style={styles.defect}>{insp.defect.note}</Text> : null}
 
           <View style={styles.footer}>
             <MciIcon name="account-check" size={14} color={COLORS.textLight} />
@@ -176,6 +193,9 @@ const makeStyles = (COLORS: Palette) =>
     },
     agePillText: { color: COLORS.textWhite, fontSize: SIZES.small, fontWeight: '700' },
 
+    reason: { marginTop: SIZES.sm, gap: 4 },
+    reasonRow: { flexDirection: 'row', alignItems: 'flex-start', gap: SIZES.xs },
+    reasonText: { flex: 1, fontSize: SIZES.small, color: COLORS.text, lineHeight: 18 },
     defect: { fontSize: SIZES.body, color: COLORS.text, paddingTop: SIZES.md },
     footer: { flexDirection: 'row', alignItems: 'center', gap: SIZES.xs, paddingTop: SIZES.sm },
     footerText: { flex: 1, fontSize: SIZES.small, color: COLORS.textLight },

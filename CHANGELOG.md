@@ -48,6 +48,23 @@ to change to make those signatures mean anything.
   gloves — so a base64 secret could not be entered at all and the first device on a vessel could
   never enrol. Found by walking the flow on a device, not by any typecheck.
 
+### A signed record cannot be doubled, and a defect always says why
+
+- **Tapping Sign twice signed twice.** The guard was React state, which does not settle between
+  taps: three taps stacked three confirmations and all three closures read the flag as false.
+  A signed record cannot be edited or deleted, so the duplicate was a second signed statement
+  about one check — and on a failed round, a second open defect for somebody to close by hand.
+  Refs now guard both the confirmation and the signing, and the same guard covers recording a
+  rectification. Three checks in `check:inspections` pin down why the guard has to live in the
+  screen: two signings get different ids, merge is a union, and nothing downstream can undo it.
+- **Every defect carries its reason** — the checklist lines that failed — on the card, on the
+  Dashboard strip and in the report, where the column is now "What failed". The officer's note
+  is added to the reason, never instead of it: the note is optional, so a defect raised without
+  one used to print a blank where the finding should be, and an auditor reading a blank has to
+  come and ask. `defectReason` lives in the domain module, not the report: it is a statement
+  about a defect, and there it can be tested (the report module imports expo-print and will not
+  load under Node).
+
 ### The register grows a catch-all
 
 - **Other Safety Equipment** — every register carries gear the standard sheets do not name, and

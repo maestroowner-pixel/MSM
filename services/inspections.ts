@@ -297,6 +297,21 @@ export function failedLines(insp: Inspection): string[] {
     .map(([id]) => lineText(template, id));
 }
 
+/**
+ * What a defect IS, in words, for a reader who was not there.
+ *
+ * The failed checklist lines first, because they are the finding and they always
+ * exist; the officer's note after, because it is optional. A defect described by
+ * the note alone prints an empty reason whenever nobody typed one — on screen
+ * that is annoying, in a report handed to an inspector it is a blank where the
+ * finding should be, and the only way to fill it in is to come and ask.
+ */
+export function defectReason(insp: Inspection): string {
+  const lines = failedLines(insp);
+  const note = insp.defect?.note?.trim();
+  return [lines.join('; '), note].filter(Boolean).join(' — ');
+}
+
 /** Category label for a record, for report rows. */
 export function categoryLabel(category: CategoryKey): string {
   return CATEGORY_MAP[category]?.label ?? category;

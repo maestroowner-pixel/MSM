@@ -24,7 +24,7 @@
 //    the app, deliberately. A mistake is corrected by inspecting again.
 // ===================================
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Image,
@@ -62,7 +62,7 @@ import {
 } from '../services/attachments';
 import { onWeb } from '../utils/fileShare';
 import { uid } from '../utils/id';
-import { playSuccessSound } from '../utils/sound';
+import { playErrorSound, playSuccessSound } from '../utils/sound';
 
 const MAX_PHOTOS = 4;
 
@@ -101,6 +101,23 @@ export default function InspectionSc() {
   const [defectNote, setDefectNote] = useState('');
   const [photos, setPhotos] = useState<Attachment[]>([]);
   const [saving, setSaving] = useState(false);
+  /**
+   * Two refs, because `saving` is state and state is too slow to guard with.
+   *
+   * `signed` is the one that matters: this screen is ONE inspection, so once a
+   * record exists it must never make a second. A signed record cannot be edited
+   * or deleted, so a duplicate is not a cosmetic glitch — it is a second signed
+   * statement about the same check, and when the round failed it is a second
+   * open defect that somebody has to close by hand.
+   *
+   * `confirming` stops the confirmation being opened twice. That was the actual
+   * route in: tapping Sign three times stacked three dialogs, each with its own
+   * Sign button, and the `saving` flag they all tested had not been set by any
+   * of them yet — a re-render is not synchronous, so all three closures saw
+   * false and all three saved.
+   */
+  const signed = useRef(false);
+  const confirming = useRef(false);
 
   // Signer: whoever used this device last, if they are still on the crew list.
   const activeCrew = useMemo(() => crew.filter((c) => c.active), [crew]);
@@ -151,7 +168,9 @@ export default function InspectionSc() {
   };
 
   const save = useCallback(async () => {
-    if (!item || !template || !signer || saving) return;
+    if (!item || !template || !signer) return;
+    if (signed.current) return; // already signed from this screen — never twice
+    signed.current = true;
     setSaving(true);
     try {
       const record = inspections.create({
@@ -176,12 +195,19 @@ export default function InspectionSc() {
       await setPrefs({ lastCrewId: signer.id });
       playSuccessSound();
       nav.goBack();
+    } catch (e: any) {
+      // Nothing was signed, so let them try again rather than stranding a
+      // completed checklist behind a guard that will never lift.
+      signed.current = false;
+      playErrorSound();
+      Alert.alert('Could not sign', e?.message ?? String(e));
     } finally {
       setSaving(false);
     }
-  }, [item, template, signer, saving, results, comment, photos, defectNote, addInspection, setPrefs, nav]);
+  }, [item, template, signer, results, comment, photos, defectNote, addInspection, setPrefs, nav]);
 
   const confirmSave = () => {
+    if (signed.current || confirming.current) return;
     if (!signer) {
       Alert.alert('Who is signing?', 'Pick the crew member carrying out this inspection.');
       setPickingSigner(true);
@@ -201,10 +227,18 @@ export default function InspectionSc() {
         `signed by ${crewLabel(signer)} at ${new Date().toLocaleString()}.\n\n` +
         'A signed record cannot be edited or deleted. To correct a mistake, inspect the item again.',
       [
-        { text: 'Back', style: 'cancel' },
-        { text: 'Sign', style: anyFail ? 'destructive' : 'default', onPress: () => void save() },
+        { text: 'Back', style: 'cancel', onPress: () => { confirming.current = false; } },
+        {
+          text: 'Sign',
+          style: anyFail ? 'destructive' : 'default',
+          onPress: () => {
+            confirming.current = false;
+            void save();
+          },
+        },
       ]
     );
+    confirming.current = true;
   };
 
   if (!item || !template) {

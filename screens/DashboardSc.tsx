@@ -152,6 +152,15 @@ export default function DashboardSc() {
     return out;
   }, [flat, trail]);
 
+  /** itemId -> why it is on the defect list, built with the list itself. */
+  const defectReasons = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const insp of inspections.openDefects(trail)) {
+      if (!m.has(insp.itemId)) m.set(insp.itemId, inspections.defectReason(insp));
+    }
+    return m;
+  }, [trail]);
+
   const openDefectCount = useMemo(
     () => new Set(inspections.openDefects(trail).map((i) => i.itemId)).size,
     [trail]
@@ -201,7 +210,7 @@ export default function DashboardSc() {
     />
   );
 
-  const stripRow = (it: EquipmentItem, prefix: string, rightText?: string) => (
+  const stripRow = (it: EquipmentItem, prefix: string, rightText?: string, subText?: string) => (
     <DashRow
       key={prefix + it.id}
       item={it}
@@ -209,6 +218,7 @@ export default function DashboardSc() {
       date={complianceDate(it)}
       days={daysUntil(complianceDate(it))}
       rightText={rightText}
+      subText={subText}
       locked={isLocked(it.id)}
       onPress={() =>
         isLocked(it.id)
@@ -224,16 +234,23 @@ export default function DashboardSc() {
   const strips = (
     <View>
       <UpdateBanner />
+      {/* Always shown, the way Recently scanned is. It used to hide itself when
+          nothing was open, which was tidy right up until it became the ONLY way
+          in: the Settings link was removed, and a defect log that vanishes when
+          the list is empty takes the rectified history with it. An empty line
+          reads as "nothing outstanding", which is worth saying. */}
+      <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('Defects')} activeOpacity={0.7}>
+        <Text style={styles.posHeaderText} numberOfLines={1}>🛠 Open defects</Text>
+        {openDefectCount > 0 ? <Text style={styles.posHeaderCount}>{openDefectCount}</Text> : null}
+        <Text style={styles.posHeaderChevron}>›</Text>
+      </TouchableOpacity>
       {openDefectItems.length > 0 ? (
-        <>
-          <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('Defects')} activeOpacity={0.7}>
-            <Text style={styles.posHeaderText} numberOfLines={1}>🛠 Open defects</Text>
-            <Text style={styles.posHeaderCount}>{openDefectCount}</Text>
-            <Text style={styles.posHeaderChevron}>›</Text>
-          </TouchableOpacity>
-          {openDefectItems.map((it) => stripRow(it, 'd:'))}
-        </>
-      ) : null}
+        openDefectItems.map((it) => stripRow(it, 'd:', undefined, defectReasons.get(it.id) || undefined))
+      ) : (
+        <Text style={styles.stripEmpty}>
+          Nothing outstanding — a failed check raises a defect and it appears here.
+        </Text>
+      )}
       {flaggedRecent.length > 0 ? (
         <>
           <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('Flagged')} activeOpacity={0.7}>
@@ -371,6 +388,7 @@ function DashRow({
   fill,
   hasCert,
   rightText,
+  subText,
   locked,
 }: {
   item: EquipmentItem;
@@ -383,6 +401,11 @@ function DashRow({
   // When set (the Recently-scanned strip), replaces the date/days column with a
   // single muted line, e.g. "3h ago".
   rightText?: string;
+  // Replaces the "category · position" subtitle. Used by the Open defects strip
+  // to carry WHAT FAILED: under a header already naming the strip, and beside a
+  // badge already naming the category, repeating the category there says nothing
+  // while the reason for the defect says everything.
+  subText?: string;
   // Free-tier overflow lock — read-only; tap routes to the paywall.
   locked?: boolean;
 }) {
@@ -412,9 +435,8 @@ function DashRow({
             </View>
           ) : null}
         </View>
-        <Text style={styles.rowSub} numberOfLines={1}>
-          {meta.short}
-          {item.position ? ` · ${item.position}` : ''}
+        <Text style={styles.rowSub} numberOfLines={2}>
+          {subText ?? `${meta.short}${item.position ? ` · ${item.position}` : ''}`}
         </Text>
       </View>
       <View style={{ alignItems: 'flex-end' }}>

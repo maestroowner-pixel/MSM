@@ -29,6 +29,7 @@ import { signatureLine } from '../types/crew';
 import { CATEGORY_MAP } from '../constants/categories';
 import { periodsFor } from '../constants/checklists';
 import * as inspections from './inspections';
+import { defectReason } from './inspections';
 import { VesselInfo } from './storage';
 import { esc, share, vesselHeader } from './export';
 import { deliverFile, onWeb, onWindows } from '../utils/fileShare';
@@ -129,7 +130,7 @@ function doneRows(data: ReportData, flat: EquipmentItem[]) {
       by: signatureLine(insp.by, insp.byRank),
       result: insp.outcome === 'fail' ? 'FAIL' : 'PASS',
       detail: `${b.passed}/${b.passed + b.failed + b.na}`,
-      defect: insp.defect?.note ?? '',
+      defect: defectReason(insp),
       comment: insp.comment ?? '',
     };
   });
@@ -159,7 +160,7 @@ function defectRows(data: ReportData, flat: EquipmentItem[]) {
       category: CATEGORY_MAP[insp.category]?.label ?? insp.category,
       item: itemName(it),
       position: it?.position ?? '',
-      defect: insp.defect?.note ?? '',
+      defect: defectReason(insp),
       by: signatureLine(insp.by, insp.byRank),
     };
   });
@@ -283,7 +284,7 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
       ${section(
         'Outstanding defects',
         data.defects.length,
-        '<th class="nw">Raised</th><th class="c">Age</th><th>Category</th><th>Item</th><th>Position</th><th>Defect</th><th>Raised by</th>',
+        '<th class="nw">Raised</th><th class="c">Age</th><th>Category</th><th>Item</th><th>Position</th><th>What failed</th><th>Raised by</th>',
         defects,
         'No outstanding defects.'
       )}
@@ -387,7 +388,7 @@ export async function exportReportXlsx(
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(missed), 'Not inspected');
 
   const defects = [
-    ['Raised', 'Age', 'Category', 'Item', 'Position', 'Defect', 'Raised by'],
+    ['Raised', 'Age', 'Category', 'Item', 'Position', 'What failed', 'Raised by'],
     ...defectRows(data, flat).map((r) => [r.raised, r.age, r.category, r.item, r.position, r.defect, r.by]),
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(defects), 'Open defects');

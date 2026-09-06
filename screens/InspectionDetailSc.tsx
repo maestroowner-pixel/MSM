@@ -13,7 +13,7 @@
 // to showing the raw line ids — ugly, but honest.
 // ===================================
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -62,6 +62,7 @@ export default function InspectionDetailSc() {
   const item = useMemo(() => flat.find((i) => i.id === insp?.itemId), [flat, insp]);
 
   const [closing, setClosing] = useState(false);
+  const rectifying = useRef(false);
   const [closeNote, setCloseNote] = useState('');
   const [pickingSigner, setPickingSigner] = useState(false);
   const activeCrew = useMemo(() => crew.filter((c) => c.active), [crew]);
@@ -92,12 +93,18 @@ export default function InspectionDetailSc() {
   const rectify = (signerId: string) => {
     const signer = activeCrew.find((c) => c.id === signerId);
     if (!signer) return;
+    // Same guard as signing: a second dialog opened before the first is answered
+    // writes the rectification twice with two different timestamps, and the one
+    // that lands last is whichever the network felt like. A ref, because state
+    // does not update in time to stop the second tap.
+    if (rectifying.current) return;
+    rectifying.current = true;
     Alert.alert(
       'Record rectification',
       `Close this defect as rectified, signed by ${crewLabel(signer)} at ${new Date().toLocaleString()}?\n\n` +
         'The original failed inspection stays on file exactly as it is — this adds the rectification to it.',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel', onPress: () => { rectifying.current = false; } },
         {
           text: 'Confirm',
           onPress: () => {
@@ -106,6 +113,7 @@ export default function InspectionDetailSc() {
             );
             setClosing(false);
             setCloseNote('');
+            rectifying.current = false;
           },
         },
       ]
