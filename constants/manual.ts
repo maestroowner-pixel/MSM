@@ -111,6 +111,9 @@ const en: ManualContent = {
         `Status colours: red = Expired (date in the past), amber = Due soon (within ${DUE_SOON_DAYS} days), green = Valid.`,
         'Tap a counter (Expired / Due soon / Valid) to filter the list to that status; tap again to clear.',
         'Filter by group (All · LSA · FFE · Other) and sort by Expiry date, Position, Name or Type — Position groups items by location and Type groups them by equipment category, each with a count.',
+        "Every row carries TWO marks, one at each edge. The left bar is the date — expired, due soon, valid. The right bar is the current round: blue not inspected yet, green signed and clear, amber the period is closing, red a defect still outstanding. An item can be perfectly in date and uninspected, and that is exactly the case worth seeing.",
+        "Red on the right is not cleared by the calendar. A defect raised in March is still a defect in June, so the mark stays red until the rectification is signed — the month turning over must not hide what an audit looks for.",
+        "SORT has a «This period» setting on both the dashboard and the category lists: the list is then grouped worst first — failed, period closing, not inspected yet, inspected — because it is read to find what is still owed.",
       ],
     },
     {
@@ -238,6 +241,7 @@ const en: ManualContent = {
         "Once a device has joined, Settings → This device shows who it signs as: name, rank, and whether it is approved. It is read live from the vessel, so a rank the Master changes an hour later appears by itself.",
         "\"Sign off this device\" leaves the vessel from that handset. It stops syncing at once and cannot let itself back in, so rejoining needs a fresh invitation and the Master's approval. \"Sign off & erase\" also clears the register on that device — for one being handed on or sold. Neither starts a new trial: the 60 days belong to the vessel, not to the handset.",
         "The interface follows the rank. Accounts, the crew list and the device list are the Master's and are not offered to anyone else. The server refused those writes in any case; a button that always fails only tells you something untrue about your own authority.",
+        "If a Master removes a device, that device says so and offers to join again — it does not sit on a connection error it cannot act on. Rejoining needs a fresh invitation, as it did the first time.",
       ],
     },
     {
@@ -248,6 +252,8 @@ const en: ManualContent = {
         "Inspection records are append-only, so two officers working a round on two phones cannot overwrite each other. The equipment register is one shared document: if two people edit the SAME item at once, the later edit wins.",
         "Evidence photographs are downscaled on capture and then queued. Settings → Inspection photos chooses Wi-Fi only (the default), any connection, or never — at sea the airtime bill is the vessel's, so the record travels at once and the pictures follow in port.",
         "Attached files still travel in an .msm backup, which remains the way to move everything between devices without a connection.",
+        "Photographs and attached documents no longer travel inside the register — they go to secure storage and the record carries a reference. A Firestore document stops at 1 MiB, and two photographs used to be enough to stop an entire vessel syncing.",
+        "A vessel without a licence may upload 25 files in total. This is the one limit that applies during the trial too, because it is the vessel's photographs on our storage bill. Nothing is refused on the device: pictures are taken, kept, shown and included in a .msm backup as always — what waits is the copy for the other devices, and everything held back goes up on the first sync after the vessel is licensed. Settings → Inspection photos says how many are left.",
       ],
     },
     {
@@ -368,6 +374,9 @@ const ru: ManualContent = {
         `Цвета статуса: красный = Expired (дата в прошлом), жёлтый = Due soon (в пределах ${DUE_SOON_DAYS} дней), зелёный = Valid.`,
         'Нажмите счётчик (Expired / Due soon / Valid), чтобы отфильтровать список по статусу; повторный тап снимает фильтр.',
         'Фильтр по группе (All · LSA · FFE · Other) и сортировка по Expiry date, Position, Name или Type — Position группирует по расположению, а Type — по категории оборудования, каждая с количеством.',
+        "У каждой строки ДВЕ метки, по одной с каждого края. Левая полоса — про дату: просрочено, скоро, в силе. Правая — про текущий раунд: синяя ещё не проверялось, зелёная проверено и чисто, жёлтая период на исходе, красная дефект не устранён. Предмет может быть совершенно в дате и при этом не осмотрен — как раз этот случай и нужно видеть.",
+        "Красный справа не снимается календарём. Дефект, поднятый в марте, остаётся дефектом в июне: метка держится красной, пока не подписано устранение — смена месяца не должна прятать то, что ищет аудит.",
+        "В SORT появился пункт «This period» — и на дашборде, и в списках категорий. Список тогда группируется от худшего: провал, период на исходе, ещё не проверялось, проверено; его читают, чтобы найти несделанное.",
       ],
     },
     {
@@ -495,6 +504,7 @@ const ru: ManualContent = {
         "После вступления Settings → This device показывает, кем устройство подписывает: имя, должность и одобрено ли оно. Читается живьём с судна, поэтому должность, изменённая Мастером через час, появится сама.",
         "«Sign off this device» — выход с судна с этого аппарата. Синхронизация прекращается сразу, и обратно устройство само себя не впустит: нужно новое приглашение и одобрение Мастера. «Sign off & erase» вдобавок стирает регистр на этом аппарате — для случая, когда его передают другому или продают. Ни то, ни другое не открывает новый пробный период: 60 дней принадлежат судну, а не устройству.",
         "Интерфейс следует рангу. Аккаунты, список экипажа и список устройств — права Мастера, остальным они не предлагаются. Сервер такие записи всё равно отклонял; кнопка, которая всегда падает, лишь сообщает неправду о ваших собственных полномочиях.",
+        "Если Мастер удалил устройство, оно так и скажет и предложит вступить заново — а не будет висеть на ошибке связи, с которой ничего нельзя сделать. Для возврата нужно новое приглашение, как и в первый раз.",
       ],
     },
     {
@@ -505,6 +515,8 @@ const ru: ManualContent = {
         "Записи инспекций только дополняются, поэтому два офицера на двух телефонах не затрут работу друг друга. Реестр оборудования — один общий документ: если двое правят ОДНУ позицию одновременно, побеждает более поздняя правка.",
         "Фотографии уменьшаются при съёмке и ставятся в очередь. Настройки → Inspection photos: только Wi-Fi (по умолчанию), любое соединение или никогда. В море за трафик платит судно, поэтому запись уходит сразу, а снимки догоняют в порту.",
         "Вложенные файлы по-прежнему переносятся в .msm-бэкапе — это способ перенести всё между устройствами без связи.",
+        "Фотографии и прикреплённые документы больше не едут внутри регистра — они уходят в хранилище, а в записи остаётся ссылка. Документ Firestore ограничен 1 МиБ, и двух снимков хватало, чтобы остановить синхронизацию всего судна.",
+        "Судну без лицензии доступно 25 выгруженных файлов. Это единственное ограничение, которое действует и во время пробного периода: снимки судна лежат на нашем счёте за хранилище. На устройстве не запрещено ничего — снимки делаются, хранятся, показываются и попадают в .msm-бэкап как раньше; ждёт только копия для других устройств, и всё придержанное уходит первой же синхронизацией после оплаты. Остаток показан в Settings → Inspection photos.",
       ],
     },
     {
@@ -625,6 +637,9 @@ const es: ManualContent = {
         `Colores de estado: rojo = Expired (fecha pasada), ámbar = Due soon (dentro de ${DUE_SOON_DAYS} días), verde = Valid.`,
         'Pulse un contador (Expired / Due soon / Valid) para filtrar la lista por ese estado; púlselo de nuevo para quitarlo.',
         'Filtre por grupo (All · LSA · FFE · Other) y ordene por Expiry date, Position, Name o Type — Position agrupa por ubicación y Type por categoría de equipo, cada una con recuento.',
+        "Cada fila lleva DOS marcas, una en cada borde. La barra izquierda es la fecha: caducado, próximo, vigente. La derecha es la ronda actual: azul aún sin inspeccionar, verde firmada y limpia, ámbar el periodo se cierra, roja un defecto sin resolver. Un elemento puede estar perfectamente en fecha y sin inspeccionar, y ese es justo el caso que conviene ver.",
+        "El rojo de la derecha no lo borra el calendario. Un defecto abierto en marzo sigue siéndolo en junio: la marca permanece roja hasta que se firma la rectificación.",
+        "SORT incluye «This period» en el panel y en las listas de categoría: la lista se agrupa de peor a mejor — fallado, periodo cerrándose, sin inspeccionar, inspeccionado.",
       ],
     },
     {
@@ -752,6 +767,7 @@ const es: ManualContent = {
         "Una vez unido el dispositivo, Settings → This device muestra con qué identidad firma: nombre, cargo y si está aprobado. Se lee en vivo del buque, así que un cargo que el Master cambie una hora después aparece solo.",
         "«Sign off this device» abandona el buque desde ese aparato. Deja de sincronizar de inmediato y no puede readmitirse solo: volver exige una nueva invitación y la aprobación del Master. «Sign off & erase» borra además el registro de ese dispositivo — para uno que se cede o se vende. Ninguno inicia una prueba nueva: los 60 días son del buque, no del aparato.",
         "La interfaz sigue al rango. Cuentas, la lista de tripulación y la de dispositivos son del Master y no se ofrecen a nadie más. El servidor rechazaba esas escrituras de todos modos; un botón que siempre falla solo le dice algo falso sobre su propia autoridad.",
+        "Si el Master retira un dispositivo, este lo dice y ofrece unirse de nuevo, en lugar de quedarse en un error de conexión que no puede resolver. Volver exige una invitación nueva, como la primera vez.",
       ],
     },
     {
@@ -762,6 +778,8 @@ const es: ManualContent = {
         "Los registros de inspección solo se añaden, así que dos oficiales trabajando en dos móviles no se pisan. El registro de equipos es un único documento compartido: si dos personas editan el MISMO equipo a la vez, gana la edición posterior.",
         "Las fotografías se reducen al capturarlas y se ponen en cola. Ajustes → Inspection photos: solo Wi-Fi (por defecto), cualquier conexión o nunca. En el mar el tráfico lo paga el buque.",
         "Los archivos adjuntos siguen viajando en una copia .msm.",
+        "Las fotografías y los documentos adjuntos ya no viajan dentro del registro: van al almacenamiento y el registro guarda una referencia. Un documento de Firestore se detiene en 1 MiB, y dos fotografías bastaban para parar la sincronización de todo el buque.",
+        "Un buque sin licencia puede subir 25 archivos en total. Es el único límite que rige también durante la prueba, porque son fotografías del buque en nuestra factura de almacenamiento. En el dispositivo no se prohíbe nada: se toman, se guardan, se ven y entran en la copia .msm como siempre; lo que espera es la copia para los demás dispositivos, y todo lo retenido sube en la primera sincronización tras licenciar el buque.",
       ],
     },
     {
@@ -882,6 +900,9 @@ const uk: ManualContent = {
         `Кольори статусу: червоний = Expired (дата в минулому), жовтий = Due soon (у межах ${DUE_SOON_DAYS} днів), зелений = Valid.`,
         'Натисніть лічильник (Expired / Due soon / Valid), щоб відфільтрувати список за статусом; повторний тап знімає фільтр.',
         'Фільтр за групою (All · LSA · FFE · Other) і сортування за Expiry date, Position, Name або Type — Position групує за розташуванням, а Type — за категорією обладнання, кожна з кількістю.',
+        "У кожного рядка ДВІ позначки, по одній з кожного краю. Ліва смуга — про дату: прострочено, скоро, чинне. Права — про поточний раунд: синя ще не перевірялося, зелена перевірено й чисто, жовта період добігає кінця, червона дефект не усунуто. Предмет може бути цілком у даті й при цьому неоглянутий — саме цей випадок і треба бачити.",
+        "Червоний праворуч не знімається календарем. Дефект, відкритий у березні, лишається дефектом у червні: позначка тримається червоною, доки не підписано усунення.",
+        "У SORT з'явився пункт «This period» — і на дашборді, і в списках категорій. Список групується від гіршого: провал, період на виході, ще не перевірялося, перевірено.",
       ],
     },
     {
@@ -1009,6 +1030,7 @@ const uk: ManualContent = {
         "Після приєднання Settings → This device показує, ким пристрій підписує: ім'я, посаду й чи схвалений він. Читається наживо з судна, тож посада, змінена Майстром за годину, з'явиться сама.",
         "«Sign off this device» — вихід із судна з цього апарата. Синхронізація припиняється одразу, і назад пристрій сам себе не впустить: потрібне нове запрошення та схвалення Майстра. «Sign off & erase» на додачу стирає реєстр на цьому апараті — для випадку, коли його передають або продають. Ані те, ані інше не відкриває нового пробного періоду: 60 днів належать судну, а не пристрою.",
         "Інтерфейс іде за рангом. Акаунти, список екіпажу та список пристроїв — права Майстра, іншим вони не пропонуються. Сервер такі записи все одно відхиляв; кнопка, що завжди падає, лише повідомляє неправду про ваші власні повноваження.",
+        "Якщо Майстер вилучив пристрій, той так і скаже й запропонує приєднатися знову, а не висітиме на помилці зв'язку, з якою нічого не вдієш. Для повернення потрібне нове запрошення, як і першого разу.",
       ],
     },
     {
@@ -1019,6 +1041,8 @@ const uk: ManualContent = {
         "Записи інспекцій лише додаються, тому двоє офіцерів на двох телефонах не затруть роботу одне одного. Реєстр обладнання — один спільний документ: якщо двоє правлять ОДНУ позицію одночасно, перемагає пізніша правка.",
         "Фотографії зменшуються під час зйомки та стають у чергу. Налаштування → Inspection photos: лише Wi-Fi (типово), будь-яке з'єднання або ніколи.",
         "Вкладені файли й далі переносяться в .msm-резервній копії.",
+        "Світлини та прикріплені документи більше не їдуть усередині реєстру — вони йдуть у сховище, а в записі лишається посилання. Документ Firestore обмежений 1 МіБ, і двох знімків вистачало, щоб зупинити синхронізацію всього судна.",
+        "Судну без ліцензії доступно 25 вивантажених файлів. Це єдине обмеження, що діє й під час пробного періоду: знімки судна лежать на нашому рахунку за сховище. На пристрої не заборонено нічого — знімки робляться, зберігаються, показуються й потрапляють у .msm-резерв як раніше; чекає лише копія для інших пристроїв, і все притримане піде першою ж синхронізацією після оплати.",
       ],
     },
     {
