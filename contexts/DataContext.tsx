@@ -4,7 +4,7 @@
 // so screens refresh after import / edit. Backed by AsyncStorage.
 // ===================================
 
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { CategoryKey, EquipmentItem } from '../types/equipment';
 import { Certificate } from '../types/certificate';
 import { CompressorState } from '../types/compressor';
@@ -12,6 +12,7 @@ import { Inspection } from '../types/inspection';
 import { CrewMember } from '../types/crew';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from '../services/storage';
+import * as snapshot from '../services/snapshot';
 import { ScanEntry, loadScanHistory, recordScan as persistScan } from '../services/scanHistory';
 import { rescheduleExpiryReminders } from '../services/notifications';
 import { syncFlaggedWidget } from '../services/widgetBridge';
@@ -110,6 +111,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     reload();
   }, [reload]);
+
+  /**
+   * One automatic snapshot per launch, once the data is actually loaded.
+   *
+   * AFTER `loading` clears, never before: a snapshot taken mid-load would record
+   * a half-empty register and, three launches later, be the only copy left. It
+   * runs once per session (the ref), because the point is a picture of what the
+   * app opened with — not a running mirror of every edit, which is what sync is
+   * for. Failures are swallowed inside takeSnapshot: a safety net that can stop
+   * the app starting is worse than no safety net.
+   */
+  const snapshotDone = useRef(false);
+  useEffect(() => {
+    if (loading || snapshotDone.current) return;
+    snapshotDone.current = true;
+    void snapshot.takeSnapshot(vessel).then((r) => {
+      if (r !== 'unchanged' && r !== 'nothing-to-save') console.log('[snapshot]', r);
+    });
+    // vessel is read inside; re-running on its arrival would take a second
+    // snapshot of the same launch for no gain.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   // Keep the home-screen widgets' flagged snapshot in step with the register.
   // Debounced because a burst of edits (an import, clearing several flags) would

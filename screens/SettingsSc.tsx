@@ -9,7 +9,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Switch, Modal, TouchableWithoutFeedback, Keyboard, Linking, Image, LayoutAnimation, Platform, UIManager } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { Screen, ScreenTitle, Card, Label, GlyphBadge, Glyph } from '../components/ui';
 import { PhotoUploadCard } from '../components/PhotoUploadCard';
 import { ConnectionCard } from '../components/ConnectionCard';
@@ -22,6 +22,7 @@ import * as fb from '../services/firebaseService';
 import { clearAttachmentsDir } from '../services/attachments';
 import { exportTemplate } from '../services/export';
 import { exportBackup, pickBackup, restoreBackup } from '../services/backup';
+import * as snapshot from '../services/snapshot';
 import { playSuccessSound, playErrorSound } from '../utils/sound';
 import { requestPermission, rescheduleExpiryReminders, cancelAll, notificationsSupported } from '../services/notifications';
 import { formatDateTime } from '../utils/dates';
@@ -39,8 +40,29 @@ export default function SettingsSc() {
   const { name: themeName, setTheme } = useThemeName();
   const { vessel, setVessel, reload, flat, prefs, setPrefs } = useData();
   const sync = useSync();
+  /**
+   * Who may touch the register wholesale.
+   *
+   * Import and Restore REPLACE it, and on a syncing device the replacement
+   * reaches the whole vessel — so they are not personal settings, they are acts
+   * on the ship's records. Crew get neither. An Officer keeps import and export,
+   * because loading a workbook and taking a copy away is the work; Restore is
+   * the Master's, because it overwrites what everyone else has already signed
+   * against. Reset is the Master's for the same reason, only more so.
+   */
+  /**
+   * A device that has NOT joined a vessel answers to nobody: the register is its
+   * own, nothing it does reaches anyone else, and it still has to be able to
+   * import the workbook to be useful at all. Gating on rank alone took Import
+   * away from every new install — the rank is null until enrolment, so the first
+   * thing a new user must do became the one thing they could not.
+   */
+  const solo = !sync.enrolled;
+  const isMaster = solo || sync.role === 'superadmin';
+  const canHandleData = solo || isMaster || sync.role === 'admin';
   const [form, setForm] = useState<VesselInfo>({});
   const [busy, setBusy] = useState(false);
+  const [snaps, setSnaps] = useState<snapshot.SnapshotInfo[]>([]);
 
   // Reset-all-data (password gated)
   const [resetVisible, setResetVisible] = useState(false);
@@ -83,6 +105,24 @@ export default function SettingsSc() {
   useEffect(() => {
     if (vessel) setForm(vessel);
   }, [vessel]);
+
+  /**
+   * Re-read the snapshot list on focus, and once more shortly after mount.
+   *
+   * The launch snapshot is written when DataContext finishes loading, which can
+   * be AFTER this screen has already asked for the list — open Settings quickly
+   * enough and the row said "nothing to roll back to" while a snapshot was being
+   * written a moment later. Focus covers the normal case (you navigate here); the
+   * delayed re-read covers arriving straight at Settings, which is what a saved
+   * URL on the web does.
+   */
+  const focused = useIsFocused();
+  useEffect(() => {
+    const load = () => void snapshot.listSnapshots().then(setSnaps).catch(() => {});
+    load();
+    const t = setTimeout(load, 2000);
+    return () => clearTimeout(t);
+  }, [busy, focused]);
 
   const downloadTemplate = async () => {
     try {
@@ -165,6 +205,65 @@ export default function SettingsSc() {
     }
   };
 
+  /**
+   * Put back one of the automatic snapshots.
+   *
+   * Offered beside Restore because it answers the same question and is the one
+   * that will actually be there: nobody exports a `.msm` the morning before the
+   * accident, but the app took a copy on the way in. It restores RECORDS, not
+   * attached files — those were never copied (see services/snapshot.ts) and are
+   * still on disk under their own names, so the links survive. That distinction
+   * is spelled out rather than left for someone to discover afterwards.
+   */
+  const restoreSnapshot = () => {
+    if (!snaps.length) {
+      Alert.alert(
+        'Nothing to roll back to',
+        'A snapshot is saved automatically each time the app opens, once there is something to save. ' +
+          'The first one will be there next time you open the app.'
+      );
+      return;
+    }
+    const newest = snaps[0];
+    Alert.alert(
+      `Roll back to ${formatDateTime(newest.at)}?`,
+      `Everything on this device goes back to how it was then: ${newest.items} items, ` +
+        `${newest.certificates} certificates, ${newest.inspections} inspections, ${newest.crew} crew.\n\n` +
+        'Anything entered since is lost, and on a syncing device the roll-back reaches the vessel ' +
+        'too.\n\nPhotographs and documents are not part of a snapshot — the files on this device ' +
+        'stay where they are and remain linked.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        ...snaps.map((s, i) => ({
+          text: i === 0 ? 'Roll back' : `Older · ${formatDateTime(s.at)} (${s.items})`,
+          style: 'destructive' as const,
+          onPress: async () => {
+            setBusy(true);
+            try {
+              const done = await snapshot.restoreSnapshot(s.slot);
+              await reload();
+              const shared = await sync.pushLocalNow().catch(() => false);
+              playSuccessSound();
+              Alert.alert(
+                'Rolled back',
+                `${done.items} items, ${done.inspections} inspections and ${done.crew} crew from ` +
+                  `${formatDateTime(done.at)}.\n\n` +
+                  (shared
+                    ? 'The vessel now holds this register.'
+                    : 'This device only — it is not currently syncing.')
+              );
+            } catch (e: any) {
+              playErrorSound();
+              Alert.alert('Could not restore', e?.message ?? String(e));
+            } finally {
+              setBusy(false);
+            }
+          },
+        })),
+      ]
+    );
+  };
+
   const closeReset = () => {
     Keyboard.dismiss();
     setResetVisible(false);
@@ -179,10 +278,34 @@ export default function SettingsSc() {
     }
     setResetVisible(false);
     setResetPw('');
+    // On a syncing device this is NOT a local action. Wiping storage fires the
+    // data-change push, and pushAll sends whatever it finds — including nothing
+    // at all — so the vessel's register and every other device's copy go with
+    // it, within seconds and with no warning. That exact accident happened to a
+    // user on the sibling app. Say it plainly and make them choose it.
+    if (sync.status === 'synced' || sync.status === 'pending') {
+      const go = await new Promise<boolean>((resolve) => {
+        Alert.alert(
+          'This erases the whole vessel',
+          'This device is syncing, so clearing it here clears the register on the vessel and on ' +
+            "every other device aboard — not just this one.\n\nTo clear only this handset, " +
+            'leave the vessel first: Vessel → This device → Sign off & erase.',
+          [
+            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+            { text: 'Erase everywhere', style: 'destructive', onPress: () => resolve(true) },
+          ]
+        );
+      });
+      if (!go) return;
+    }
     setBusy(true);
     try {
       await resetAllData();
       await clearAttachmentsDir();
+      // The snapshots hold the register that was just erased. Leaving them would
+      // make "delete everything" untrue.
+      await snapshot.clearSnapshots();
+      setSnaps([]);
       await reload();
       setForm({});
       playSuccessSound();
@@ -299,10 +422,13 @@ export default function SettingsSc() {
 
       <PhotoUploadCard />
 
-      {/* Inspections — the crew list and the defect log. Above Data because
-          these are used weekly; an import or a backup is a once-a-voyage job. */}
+      {/* Crew and accounts — both Master-only, so the whole card is. Defects
+          moved to the Dashboard: an open defect is work waiting, and work
+          waiting belongs where the officer already looks, not filed under
+          Settings behind the crew list. */}
+      {sync.role === 'superadmin' ? (
       <Card>
-        <Label>Inspections</Label>
+        <Label>Crew &amp; accounts</Label>
         {/* Master only. The crew list is a MANAGEMENT screen — for anyone else it
             is a page with nothing to do on it, and often nothing on it at all,
             since a vessel that adds its signers from enrolled people keeps the
@@ -333,16 +459,10 @@ export default function SettingsSc() {
             <Text style={styles.chev}>›</Text>
           </TouchableOpacity>
         ) : null}
-        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Defects')}>
-          <GlyphBadge emoji="🛠️" size={18} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Defects</Text>
-            <Text style={styles.linkSub}>Everything raised and still outstanding</Text>
-          </View>
-          <Text style={styles.chev}>›</Text>
-        </TouchableOpacity>
       </Card>
+      ) : null}
 
+      {canHandleData ? (
       <Card>
         <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('data')} activeOpacity={0.7}>
           <Label>Data</Label>
@@ -374,17 +494,48 @@ export default function SettingsSc() {
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.linkRow} onPress={backupImport} disabled={busy}>
-          <GlyphBadge emoji="♻️" size={18} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Restore backup (.msm)</Text>
-            <Text style={styles.linkSub}>Replace all data from a .msm file</Text>
-          </View>
-          <Text style={styles.chev}>›</Text>
-        </TouchableOpacity>
+        {/* The automatic net. Listed with the manual restore because it answers
+            the same question, and it is the one that will actually be there. */}
+        {isMaster ? (
+          <TouchableOpacity
+            style={[styles.linkRow, !snaps.length && { opacity: 0.45 }]}
+            onPress={restoreSnapshot}
+            disabled={busy}
+          >
+            <GlyphBadge emoji="🕗" size={18} />
+            <View style={{ flex: 1 }}>
+              {/* The DATE is the offer. "Restore a snapshot" makes a person open
+                  the dialog to find out whether it is worth anything; the moment
+                  it would take them back to answers that on the row itself. */}
+              <Text style={styles.linkTitle}>
+                {snaps.length ? `Roll back to ${formatDateTime(snaps[0].at)}` : 'Nothing to roll back to yet'}
+              </Text>
+              <Text style={styles.linkSub}>
+                {snaps.length
+                  ? `${snaps[0].items} items, ${snaps[0].inspections} inspections · saved when the app opened`
+                  : 'A snapshot is saved automatically each time the app opens'}
+              </Text>
+            </View>
+            <Text style={styles.chev}>›</Text>
+          </TouchableOpacity>
+        ) : null}
+        {/* Master only. Restore replaces the register and then hands it to the
+            vessel, so it overwrites what other officers have already worked
+            against — the one button here that can undo somebody else's day. */}
+        {isMaster ? (
+          <TouchableOpacity style={styles.linkRow} onPress={backupImport} disabled={busy}>
+            <GlyphBadge emoji="♻️" size={18} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkTitle}>Restore backup (.msm)</Text>
+              <Text style={styles.linkSub}>Replace all data from a .msm file</Text>
+            </View>
+            <Text style={styles.chev}>›</Text>
+          </TouchableOpacity>
+        ) : null}
           </>
         ) : null}
       </Card>
+      ) : null}
 
       <Card>
         <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('modules')} activeOpacity={0.7}>
@@ -478,19 +629,32 @@ export default function SettingsSc() {
           Sync runs by itself once this device has joined the vessel — records reach the crew's
           other devices within seconds. There is nothing to push or pull.
         </Text>
-        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Accounts')}>
-          <GlyphBadge emoji="🔑" size={18} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Devices &amp; approvals</Text>
-            <Text style={styles.linkSub}>Who is connected, and who is waiting</Text>
-          </View>
-          <Text style={styles.chev}>›</Text>
-        </TouchableOpacity>
+        {/* Master only. A member could read this list, but reading was all it
+            offered — every action on it is the Master's. The one fact a crew
+            member actually wanted from it, "is my device approved", now sits in
+            Vessel → This device, about THEIR device rather than buried in a
+            roster of everyone else's with last-seen times beside them. */}
+        {sync.role === 'superadmin' ? (
+          <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Accounts')}>
+            <GlyphBadge emoji="🔑" size={18} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkTitle}>Devices &amp; approvals</Text>
+              <Text style={styles.linkSub}>Who is connected, and who is waiting</Text>
+            </View>
+            <Text style={styles.chev}>›</Text>
+          </TouchableOpacity>
+        ) : null}
       </Card>
 
-      <TouchableOpacity style={styles.resetBtn} onPress={() => { setResetPw(''); setResetVisible(true); }} disabled={busy}>
-        <Text style={styles.resetBtnText}>Reset all data</Text>
-      </TouchableOpacity>
+      {/* Master only, and it is the most destructive control in the app: on a
+          syncing device it does not clear a handset, it clears the ship. Anyone
+          who wants their own device empty has Sign off & erase, which leaves the
+          vessel's copy alone. */}
+      {isMaster ? (
+        <TouchableOpacity style={styles.resetBtn} onPress={() => { setResetPw(''); setResetVisible(true); }} disabled={busy}>
+          <Text style={styles.resetBtnText}>Reset all data</Text>
+        </TouchableOpacity>
+      ) : null}
 
       <View style={styles.aboutBox}>
         <Image source={require('../assets/octopus.png')} style={styles.octopus} resizeMode="contain" />
@@ -512,6 +676,7 @@ export default function SettingsSc() {
             <Text style={styles.modalText}>
               This permanently deletes every equipment item, certificate, compressor log, attached file and the
               vessel info on this device. This cannot be undone.
+              {sync.status === 'synced' ? ' While this device is syncing it clears the vessel and every other device aboard as well.' : ''}
             </Text>
             <Text style={styles.modalText}>
               Type the password <Text style={{ fontWeight: '800' }}>Reset all data</Text> to confirm.

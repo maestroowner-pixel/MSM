@@ -48,6 +48,30 @@ to change to make those signatures mean anything.
   gloves — so a base64 secret could not be entered at all and the first device on a vessel could
   never enrol. Found by walking the flow on a device, not by any typecheck.
 
+### A net under the trapeze, and who may pull it
+
+- **Automatic snapshots.** The app copies the RECORDS on every launch and keeps the last three
+  on the device. Settings → Data → "Roll back to <time>" names the moment it would return you
+  to — the date is on the row, because "Restore a snapshot" makes a person open a dialog to find
+  out whether it is worth anything. It exists for the accidents nobody plans for, and it is the
+  copy that will actually be there: nobody exports a backup the morning before the mistake.
+- No binaries in a snapshot: a register with a few hundred photos is tens of megabytes and would
+  be felt on every open. Attachment files stay on disk under their own names, so a roll-back
+  relinks to them — which is why the UI says a snapshot is not a substitute for a real backup.
+- **An empty register never overwrites a good snapshot.** Opening onto an emptied register would
+  otherwise record the emptiness and, across three launches, erase the last good copy — the very
+  accident the feature exists to survive. Same reasoning as the guard in `pullAll`.
+- **"Reset all data" was clearing the ship, silently.** Wiping storage fires the data-change
+  push, and `pushAll` sends what it finds, including nothing — so the vessel's register and every
+  other device went with it, within seconds. It now asks separately, the button is named "Erase
+  everywhere", and it points at Sign off & erase for anyone who wants only their own handset
+  cleared. A reset also drops the snapshots, or "delete everything" would be untrue.
+- **Data controls follow the rank.** Restore and Reset are the Master's — they replace the
+  register and hand it to the vessel, overwriting what other officers have worked against.
+  Officers keep Import and Export. A device that has NOT joined a vessel keeps all of it: gating
+  on rank alone took Import away from every new install, because the rank is null until
+  enrolment, and the first thing a new user must do became the one thing they could not.
+
 ### A signed record cannot be doubled, and a defect always says why
 
 - **Tapping Sign twice signed twice.** The guard was React state, which does not settle between
