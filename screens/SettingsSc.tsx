@@ -484,6 +484,25 @@ export default function SettingsSc() {
       </Card>
       ) : null}
 
+      {/* The old "Cloud sync" panel — connection password, Connect, Push and Pull
+          — is gone. It described a model the app no longer has, and it was worse
+          than clutter: the field invited people to paste the vessel SETUP CODE
+          into a password box that means something else entirely, and Push/Pull
+          implied sync waits to be asked when it has been continuous since the
+          move to Firestore.
+          What replaced it: the card at the top of Settings says where this device
+          stands, and Accounts — directly above this one — holds devices,
+          approvals and roles. It sits here, under Accounts, rather than at the
+          foot of the screen: sync and who may sync are one subject, and a person
+          wondering about one is a scroll away from the other. */}
+      <Card>
+        <Label>Cloud sync</Label>
+        <Text style={styles.syncStatus}>
+          Sync runs by itself once this device has joined the vessel — records reach the crew's
+          other devices within seconds. There is nothing to push or pull.
+        </Text>
+      </Card>
+
       {canHandleData ? (
       <Card>
         <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('data')} activeOpacity={0.7}>
@@ -640,36 +659,6 @@ export default function SettingsSc() {
         ) : null}
       </Card>
 
-      {/* The old "Cloud sync" panel — connection password, Connect, Push and Pull
-          — is gone. It described a model the app no longer has, and it was worse
-          than clutter: the field invited people to paste the vessel SETUP CODE
-          into a password box that means something else entirely, and Push/Pull
-          implied sync waits to be asked when it has been continuous since the
-          move to Firestore.
-          What replaced it: the card at the top of Settings says where this device
-          stands, and Accounts holds devices, approvals and roles. */}
-      <Card>
-        <Label>Cloud sync</Label>
-        <Text style={styles.syncStatus}>
-          Sync runs by itself once this device has joined the vessel — records reach the crew's
-          other devices within seconds. There is nothing to push or pull.
-        </Text>
-        {/* Master only. A member could read this list, but reading was all it
-            offered — every action on it is the Master's. The one fact a crew
-            member actually wanted from it, "is my device approved", now sits in
-            Vessel → This device, about THEIR device rather than buried in a
-            roster of everyone else's with last-seen times beside them. */}
-        {sync.role === 'superadmin' ? (
-          <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Accounts')}>
-            <GlyphBadge emoji="🔑" size={18} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.linkTitle}>Devices &amp; approvals</Text>
-              <Text style={styles.linkSub}>Who is connected, and who is waiting</Text>
-            </View>
-            <Text style={styles.chev}>›</Text>
-          </TouchableOpacity>
-        ) : null}
-      </Card>
 
       {/* Master only, and it is the most destructive control in the app: on a
           syncing device it does not clear a handset, it clears the ship. Anyone
