@@ -35,6 +35,12 @@ type Step = {
   title: string;
   body: string;
   action?: { label: string; go: () => void };
+  /**
+   * A step whose action is not the next thing to DO — it only opens a related
+   * screen. Those ride small, on the header line, so the card's big button
+   * stays reserved for the step it is actually asking for.
+   */
+  inlineAction?: boolean;
 };
 
 export function ConnectionCard() {
@@ -107,7 +113,8 @@ export function ConnectionCard() {
         // device signs as — and how to sign off — belongs behind it. It used to be
         // a row at the foot of the Vessel section: the same words, in a second
         // place, several sections down from the panel already carrying them.
-        action: { label: 'Who this device signs as', go: () => nav.navigate('Enrol') },
+        action: { label: 'Who it signs as', go: () => nav.navigate('Enrol') },
+        inlineAction: true,
       };
     }
     if (status === 'connecting') {
@@ -147,9 +154,14 @@ export function ConnectionCard() {
           <Label>This device</Label>
           <Text style={[styles.title, { color: tint }]}>{step.title}</Text>
         </View>
+        {step.action && step.inlineAction ? (
+          <TouchableOpacity style={[styles.linkBtn, { borderColor: tint }]} onPress={step.action.go}>
+            <Text style={[styles.linkBtnText, { color: tint }]}>{step.action.label}</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
       <Text style={styles.body}>{step.body}</Text>
-      {step.action ? (
+      {step.action && !step.inlineAction ? (
         <TouchableOpacity style={[styles.btn, { backgroundColor: tint }]} onPress={step.action.go}>
           <Text style={styles.btnText}>{step.action.label}</Text>
         </TouchableOpacity>
@@ -170,4 +182,11 @@ const makeStyles = (COLORS: Palette) =>
       marginTop: SIZES.md,
     },
     btnText: { color: COLORS.textWhite, fontWeight: '700' },
+    linkBtn: {
+      borderWidth: 1,
+      borderRadius: SIZES.radiusSm,
+      paddingHorizontal: SIZES.sm,
+      paddingVertical: SIZES.xs,
+    },
+    linkBtnText: { fontSize: SIZES.small, fontWeight: '700' },
   });
