@@ -182,6 +182,17 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '📋',
+      title: 'Your own categories and checklists',
+      body: [
+        "The 23 categories and the checklists behind them are a starting point, not a limit. A vessel whose SMS words a check differently — or that inspects things nobody else asks about — sets both up itself, in Settings.",
+        "Settings → Categories adds headings of your own: Emergency Lighting, Escape Routes, Alarm Systems, whatever you actually walk round. Each takes a group (LSA / FFE / Other), which decides the report it prints in, and an icon. A heading behaves like any built-in one: its own list, QR labels, checklists, reports, and its own sheet in the blank import template, so a hundred light fittings come in from Excel rather than one at a time.",
+        "Settings → Checklists words the questions. Open a round and you get the checklist already filled in — re-word a line, re-order them, delete what does not apply to your ship, add what your SMS asks. Save, and that is what the next round asks, on every device the vessel has enrolled.",
+        "An Officer or the Master may do both. Wording a check is the work of whoever runs the round; deciding whose signature counts stays with the Master.",
+        "Editing cannot reach into the past. Every signed inspection carries its own copy of the questions it was signed against, so re-wording a line today does not change a single record from last month — open one and it still reads exactly as it was signed. Removing a heading does not remove its equipment either: the items and their history stay, and adding the heading back brings them straight back.",
+      ],
+    },
+    {
       emoji: '🛠️',
       title: "Defects",
       body: [
@@ -442,6 +453,17 @@ const ru: ManualContent = {
         "Перед началом выберите, кто подписывает, из списка экипажа судна — это имя попадёт в запись. Добавьте комментарий и до четырёх фотографий-доказательств: они принадлежат этой инспекции, а не общим фото позиции.",
         "Подпись фиксирует точные дату и время, члена экипажа и версию чек-листа. Подписанную запись не может изменить или удалить никто, включая Мастера: ошибка исправляется новой инспекцией, и обе записи остаются в деле. Именно это делает журнал пригодным для предъявления инспектору.",
         "Любой FAIL поднимает дефект на этой позиции, и он остаётся открытым, пока кто-нибудь не зафиксирует устранение.",
+      ],
+    },
+    {
+      emoji: '📋',
+      title: 'Свои категории и чек-листы',
+      body: [
+        '23 категории и чек-листы за ними — отправная точка, а не предел. Судно, чья SMS формулирует проверку иначе — или которое осматривает то, о чём никто больше не спрашивает, — настраивает и то, и другое само, в Settings.',
+        'Settings → Categories добавляет свои рубрики: Emergency Lighting, Escape Routes, Alarm Systems — всё, что вы действительно обходите. У рубрики есть группа (LSA / FFE / Other), которая решает, в какой отчёт она попадёт, и иконка. Дальше рубрика ведёт себя как встроенная: свой список, QR-этикетки, чек-листы, отчёты и свой лист в пустом шаблоне импорта — то есть сотня светильников заводится из Excel, а не по одному.',
+        'Settings → Checklists задаёт сами вопросы. Открываете обход — чек-лист уже заполнен: переформулируйте строку, поменяйте порядок, уберите то, чего на вашем судне нет, добавьте то, что требует ваша SMS. Сохраняете — и следующий обход спросит именно это, на всех устройствах судна.',
+        'Делать это может Officer или Master. Сформулировать проверку — работа того, кто ведёт обход; решать, чья подпись действительна, остаётся за Master.',
+        'Правка не достаёт до прошлого. Каждая подписанная инспекция несёт свою копию вопросов, под которыми её подписали, поэтому переформулированная сегодня строка не меняет ни одной записи прошлого месяца — откройте её, и она читается ровно так, как её подписывали. Удаление рубрики тоже не удаляет оборудование: позиции и их история остаются, и возврат рубрики возвращает их.',
       ],
     },
     {
@@ -708,6 +730,17 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '📋',
+      title: 'Categorías y listas de comprobación propias',
+      body: [
+        'Las 23 categorías y sus listas de comprobación son un punto de partida, no un límite. Un buque cuyo SMS redacta una comprobación de otra manera — o que inspecciona cosas que nadie más pide — configura ambas cosas por su cuenta, en Settings.',
+        'Settings → Categories añade encabezados propios: Emergency Lighting, Escape Routes, Alarm Systems, lo que realmente se recorra. Cada uno lleva un grupo (LSA / FFE / Other), que decide en qué informe se imprime, y un icono. El encabezado se comporta como cualquiera de los integrados: su propia lista, etiquetas QR, listas de comprobación, informes y su propia hoja en la plantilla de importación, de modo que cien luminarias entran desde Excel y no una a una.',
+        'Settings → Checklists redacta las preguntas. Abra una ronda y la lista ya viene rellena: reescriba una línea, reordénelas, elimine lo que no aplica a su buque, añada lo que pida su SMS. Guarde, y eso es lo que preguntará la próxima ronda, en todos los dispositivos del buque.',
+        'Un Officer o el Master pueden hacer ambas cosas. Redactar una comprobación es trabajo de quien dirige la ronda; decidir qué firma es válida sigue siendo del Master.',
+        'La edición no alcanza al pasado. Cada inspección firmada lleva su propia copia de las preguntas con las que se firmó, así que reescribir una línea hoy no cambia ni un registro del mes pasado — ábralo y se lee exactamente como se firmó. Eliminar un encabezado tampoco elimina su equipo: los elementos y su historial permanecen, y volver a añadir el encabezado los recupera.',
+      ],
+    },
+    {
       emoji: '🛠️',
       title: "Defectos",
       body: [
@@ -968,6 +1001,17 @@ const uk: ManualContent = {
         "Перед початком оберіть, хто підписує, зі списку екіпажу — це ім'я потрапить у запис. Додайте коментар і до чотирьох фотографій-доказів: вони належать цій інспекції, а не загальним фото позиції.",
         "Підпис фіксує точні дату й час, члена екіпажу та версію чек-листа. Підписаний запис не може змінити або видалити ніхто, включно з Майстром: помилка виправляється новою інспекцією, і обидва записи лишаються у справі.",
         "Будь-який FAIL піднімає дефект на цій позиції, і він лишається відкритим, доки хтось не зафіксує усунення.",
+      ],
+    },
+    {
+      emoji: '📋',
+      title: 'Власні категорії та чек-листи',
+      body: [
+        '23 категорії й чек-листи за ними — відправна точка, а не межа. Судно, чия SMS формулює перевірку інакше — або яке оглядає те, про що більше ніхто не питає, — налаштовує і те, і те саме, у Settings.',
+        'Settings → Categories додає власні рубрики: Emergency Lighting, Escape Routes, Alarm Systems — усе, що ви справді обходите. Рубрика має групу (LSA / FFE / Other), яка вирішує, до якого звіту вона потрапить, і піктограму. Далі рубрика поводиться як вбудована: власний список, QR-етикетки, чек-листи, звіти та власний аркуш у порожньому шаблоні імпорту — тобто сотня світильників заводиться з Excel, а не по одному.',
+        'Settings → Checklists задає самі запитання. Відкриваєте обхід — чек-лист уже заповнений: переформулюйте рядок, змініть порядок, приберіть те, чого на вашому судні немає, додайте те, що вимагає ваша SMS. Зберігаєте — і наступний обхід запитає саме це, на всіх пристроях судна.',
+        'Робити це може Officer або Master. Сформулювати перевірку — робота того, хто веде обхід; вирішувати, чий підпис дійсний, лишається за Master.',
+        'Правка не дістає до минулого. Кожна підписана інспекція несе власну копію запитань, під якими її підписали, тож переформульований сьогодні рядок не змінює жодного запису минулого місяця — відкрийте його, і він читається рівно так, як його підписували. Видалення рубрики теж не видаляє обладнання: позиції та їхня історія лишаються, і повернення рубрики повертає їх.',
       ],
     },
     {
