@@ -4,7 +4,7 @@
 // instead of 25 rigid per-sheet schemas.
 // ===================================
 
-export type CategoryKey =
+export type BuiltInCategoryKey =
   | 'liferafts'
   | 'lifebuoys'
   | 'lifejackets'
@@ -29,6 +29,9 @@ export type CategoryKey =
   | 'gas_detection'
   | 'sopep'
   | 'other_safety';
+
+/** A built-in key, or one a vessel invented (`v_…`). */
+export type CategoryKey = BuiltInCategoryKey | (string & {});
 
 export type Group = 'LSA' | 'FFE' | 'OTHER';
 

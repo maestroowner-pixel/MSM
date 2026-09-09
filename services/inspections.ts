@@ -23,7 +23,7 @@ import {
 } from '../types/inspection';
 import { ChecklistTemplate, lineText, templateById } from '../constants/checklists';
 import { CrewMember } from '../types/crew';
-import { CATEGORY_MAP } from '../constants/categories';
+import { CATEGORY_MAP, CategoryMeta } from '../constants/categories';
 import { uid } from '../utils/id';
 
 // ---- Creating --------------------------------------------------------------
@@ -57,6 +57,9 @@ export interface NewInspectionInput {
 export function create(input: NewInspectionInput): Inspection {
   const at = input.at ?? Date.now();
   const outcome = outcomeOf(input.results);
+  // The questions as asked, in the order they were put. See `lines` in
+  // types/inspection.ts for why the text travels with the record.
+  const lines = input.template.lines.map((l) => ({ id: l.id, text: l.text }));
   const failed = Object.entries(input.results)
     .filter(([, r]) => r === 'fail')
     .map(([id]) => lineText(input.template, id));
@@ -76,6 +79,7 @@ export function create(input: NewInspectionInput): Inspection {
     templateId: input.template.id,
     templateVersion: input.template.version,
     results: input.results,
+    lines,
     outcome,
     comment: input.comment?.trim() || undefined,
     photos: input.photos?.length ? input.photos : undefined,
@@ -291,6 +295,37 @@ export function mergeInspections(local: Inspection[], remote: Inspection[]): Ins
   return Array.from(byId.values()).sort(byNewest);
 }
 
+/** And once more for the vessel's own categories. Same rule, same reasoning. */
+export function mergeCategories(local: CategoryMeta[], remote: CategoryMeta[]): CategoryMeta[] {
+  const byId = new Map<string, CategoryMeta>();
+  for (const c of [...local, ...remote]) {
+    if (!c?.key) continue;
+    const prev = byId.get(c.key);
+    if (!prev || (c.updatedAt ?? 0) > (prev.updatedAt ?? 0)) byId.set(c.key, c);
+  }
+  return Array.from(byId.values());
+}
+
+/**
+ * Same merge again for the vessel's own checklist templates.
+ *
+ * Safe for the same reason the crew merge is: losing an edit costs a re-type,
+ * whereas the records signed against any version of a template carry their own
+ * copy of the questions and cannot be affected by which side wins here.
+ */
+export function mergeTemplates(
+  local: ChecklistTemplate[],
+  remote: ChecklistTemplate[]
+): ChecklistTemplate[] {
+  const byId = new Map<string, ChecklistTemplate>();
+  for (const t of [...local, ...remote]) {
+    if (!t?.id) continue;
+    const prev = byId.get(t.id);
+    if (!prev || (t.updatedAt ?? 0) > (prev.updatedAt ?? 0)) byId.set(t.id, t);
+  }
+  return Array.from(byId.values());
+}
+
 /** Same shape of merge for the crew list, which is edited rather than appended. */
 export function mergeCrew(local: CrewMember[], remote: CrewMember[]): CrewMember[] {
   const byId = new Map<string, CrewMember>();
@@ -352,12 +387,43 @@ export function resultBreakdown(insp: Inspection): { passed: number; failed: num
   return { passed, failed, na };
 }
 
+/**
+ * Every line of the record, worded and ordered as the crew member saw it.
+ *
+ * The snapshot on the record is the truth when it is there. Records signed
+ * before snapshots existed fall back to the template, which is still correct for
+ * them: the only templates that could have produced those records live in code
+ * and have never changed under a signature.
+ *
+ * Anything in `results` that neither source names is still emitted, keyed by its
+ * own id — a result we cannot word is worth less than one we can, and worth far
+ * more than one silently dropped from an audit trail.
+ */
+export function checklistRows(
+  insp: Inspection
+): { id: string; text: string; result: CheckResult }[] {
+  const template = insp.lines?.length ? null : templateById(insp.templateId);
+  const order = insp.lines?.length ? insp.lines : template?.lines ?? [];
+
+  const rows: { id: string; text: string; result: CheckResult }[] = [];
+  const seen = new Set<string>();
+  for (const l of order) {
+    const result = insp.results[l.id];
+    if (!result) continue; // asked but not answered — not part of the record
+    rows.push({ id: l.id, text: l.text, result });
+    seen.add(l.id);
+  }
+  for (const [id, result] of Object.entries(insp.results)) {
+    if (!seen.has(id)) rows.push({ id, text: id, result });
+  }
+  return rows;
+}
+
 /** The failed lines, worded as the crew member saw them. */
 export function failedLines(insp: Inspection): string[] {
-  const template = templateById(insp.templateId);
-  return Object.entries(insp.results)
-    .filter(([, r]) => r === 'fail')
-    .map(([id]) => lineText(template, id));
+  return checklistRows(insp)
+    .filter((r) => r.result === 'fail')
+    .map((r) => r.text);
 }
 
 /**

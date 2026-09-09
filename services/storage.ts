@@ -10,7 +10,8 @@ import { Certificate } from '../types/certificate';
 import { CompressorState, normalizeCompressorState } from '../types/compressor';
 import { Inspection } from '../types/inspection';
 import { CrewMember } from '../types/crew';
-import { CATEGORIES } from '../constants/categories';
+import { ChecklistTemplate } from '../constants/checklists';
+import { CATEGORIES, CategoryMeta, setVesselCategories } from '../constants/categories';
 
 const PREFIX = 'msm:';
 export const CERTIFICATES_KEY = `${PREFIX}certificates`;
@@ -18,6 +19,8 @@ export const COMPRESSOR_KEY = `${PREFIX}compressor`;
 export const PREFS_KEY = `${PREFIX}prefs`;
 export const INSPECTIONS_KEY = `${PREFIX}inspections`;
 export const CREW_KEY = `${PREFIX}crew`;
+export const TEMPLATES_KEY = `${PREFIX}templates`;
+export const CATEGORIES_KEY = `${PREFIX}categories`;
 
 export interface VesselInfo {
   vessel_name?: string;
@@ -232,6 +235,88 @@ export async function updateInspection(insp: Inspection): Promise<void> {
   if (idx < 0) return;
   list[idx] = { ...insp, updatedAt: Date.now() };
   await saveInspections(list);
+}
+
+// ---- Categories the vessel invented ----------------------------------------
+// The app ships 23; a vessel that inspects emergency lighting or escape routes
+// needs headings nobody else asked for. These are stored, synced and installed
+// into the registry at load — see setVesselCategories for why the ORDER of that
+// matters more than it looks.
+
+export async function loadVesselCategories(): Promise<CategoryMeta[]> {
+  try {
+    const raw = await AsyncStorage.getItem(CATEGORIES_KEY);
+    const list = raw ? (JSON.parse(raw) as CategoryMeta[]) : [];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Save AND install, so no caller can leave the two out of step. */
+export async function saveVesselCategories(list: CategoryMeta[]): Promise<void> {
+  await AsyncStorage.setItem(CATEGORIES_KEY, JSON.stringify(list));
+  setVesselCategories(list);
+}
+
+export async function upsertVesselCategory(meta: CategoryMeta): Promise<void> {
+  const list = await loadVesselCategories();
+  const idx = list.findIndex((c) => c.key === meta.key);
+  const next = { ...meta, updatedAt: Date.now() };
+  if (idx >= 0) list[idx] = next;
+  else list.push(next);
+  await saveVesselCategories(list);
+}
+
+/**
+ * Forget a category. Its ITEMS are deliberately left in storage rather than
+ * deleted: removing a heading is a tidying-up decision, and it must not be a way
+ * to destroy a hundred inspected items — with their signed history still
+ * pointing at them — by tapping one button. Re-adding the heading brings them
+ * straight back.
+ */
+export async function deleteVesselCategory(key: CategoryKey): Promise<void> {
+  await saveVesselCategories((await loadVesselCategories()).filter((c) => c.key !== key));
+}
+
+// ---- Checklist templates the vessel wrote ----------------------------------
+// Built-in templates live in constants/checklists.ts and cannot change under a
+// signature. These are the vessel's own, edited aboard and synced like the crew
+// list, and they REPLACE the built-in for their category and period.
+
+export async function loadTemplates(): Promise<ChecklistTemplate[]> {
+  try {
+    const raw = await AsyncStorage.getItem(TEMPLATES_KEY);
+    const list = raw ? (JSON.parse(raw) as ChecklistTemplate[]) : [];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveTemplates(list: ChecklistTemplate[]): Promise<void> {
+  await AsyncStorage.setItem(TEMPLATES_KEY, JSON.stringify(list));
+}
+
+/** Write one template, stamping `updatedAt` — the key both merges settle on. */
+export async function upsertTemplate(template: ChecklistTemplate): Promise<void> {
+  const list = await loadTemplates();
+  const idx = list.findIndex((t) => t.id === template.id);
+  const next = { ...template, updatedAt: Date.now() };
+  if (idx >= 0) list[idx] = next;
+  else list.push(next);
+  await saveTemplates(list);
+}
+
+/**
+ * Drop a template, so the category falls back to its built-in checklist.
+ *
+ * Deleting is safe in a way that editing never was: every record signed against
+ * it carries its own copy of the questions, so nothing in the trail depends on
+ * this row still existing.
+ */
+export async function deleteTemplate(id: string): Promise<void> {
+  await saveTemplates((await loadTemplates()).filter((t) => t.id !== id));
 }
 
 // ---- Crew (who signs) ------------------------------------------------------

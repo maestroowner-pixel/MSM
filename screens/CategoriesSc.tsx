@@ -30,18 +30,21 @@ const GROUP_LABEL: Record<Group, string> = {
 };
 
 export default function CategoriesSc() {
-  const { byCategory } = useData();
+  const { byCategory, categories: ownCats } = useData();
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
+  // `ownCats` is in the deps for a reason that is invisible from here: CATEGORIES
+  // is a registry mutated in place when a vessel adds a heading, so nothing about
+  // reading it tells React that it changed. The context list is what does.
   const sections = useMemo(() => {
     const groups: Group[] = ['LSA', 'FFE', 'OTHER'];
     return groups.map((g) => ({
       group: g,
       items: CATEGORIES.filter((c) => c.group === g),
     }));
-  }, []);
+  }, [ownCats]);
 
   return (
     <Screen scroll>

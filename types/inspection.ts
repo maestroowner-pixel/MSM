@@ -78,6 +78,24 @@ export interface Inspection {
 
   /** checklist line id -> result. Lines the template no longer has are kept. */
   results: Record<string, CheckResult>;
+
+  /**
+   * THE QUESTIONS AS ASKED, in the order they were put, snapshotted at signing.
+   *
+   * `templateId` + `templateVersion` were enough only while every checklist lived
+   * in code and could not change under a record. Once a vessel can word its own
+   * checks, resolving the text at READ time means a line re-worded in June
+   * silently re-words what somebody signed in March — the exact retro-active edit
+   * the whole append-only design exists to prevent.
+   *
+   * So the text travels with the record, for the same reason `by` holds a name
+   * rather than only a crew id: the record has to still make sense when the thing
+   * it referenced is gone or has moved on.
+   *
+   * Optional because records signed before this existed do not have it; readers
+   * fall back to the template (see `checklistRows` in services/inspections).
+   */
+  lines?: InspectionLine[];
   /** Frozen at save time — never recomputed. */
   outcome: InspectionOutcome;
 
@@ -101,6 +119,12 @@ export interface Inspection {
   /** Set once, at creation. Present so the record shape matches the rest of the
    *  app's stored types; it never diverges from `at` except when a defect closes. */
   updatedAt: number;
+}
+
+/** One checklist question, frozen as the crew member read it. */
+export interface InspectionLine {
+  id: string;
+  text: string;
 }
 
 export interface InspectionDefect {

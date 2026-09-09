@@ -634,8 +634,12 @@ function InspectionCard({ item, trail }: { item: EquipmentItem; trail: Inspectio
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const styles = useS();
+  // Read here rather than through a prop: which periods this item owes depends on
+  // the vessel's own checklists, and this card is the only part of the screen
+  // that asks the question.
+  const { templates } = useData();
 
-  const periods = useMemo(() => periodsFor(item.category), [item.category]);
+  const periods = useMemo(() => periodsFor(item.category, templates), [item.category, templates]);
   const history = useMemo(() => inspections.forItem(trail, item.id), [trail, item.id]);
   const open = useMemo(() => inspections.openDefectsForItem(trail, item.id), [trail, item.id]);
   const [showAll, setShowAll] = useState(false);

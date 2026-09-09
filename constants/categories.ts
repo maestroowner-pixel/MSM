@@ -31,6 +31,8 @@ export interface CategoryMeta {
   dateField: 'nextInspection' | 'expiry';
   // Checklist-style categories get monthly check toggles
   monthly?: boolean;
+  /** Set only on a vessel's own category — the merge key when two devices differ. */
+  updatedAt?: number;
 }
 
 export const GROUP_COLORS: Record<Group, string> = {
@@ -39,7 +41,7 @@ export const GROUP_COLORS: Record<Group, string> = {
   OTHER: COLORS.other,
 };
 
-export const CATEGORIES: CategoryMeta[] = [
+const BUILT_IN: CategoryMeta[] = [
   // ----- LSA -----
   { key: 'liferafts', label: 'Liferafts / HRU', short: 'Liferafts', group: 'LSA', sheet: 'Liferafts', color: COLORS.lsa, emoji: '🛟', icon: 'lifebuoy', dateField: 'nextInspection' },
   { key: 'lifebuoys', label: 'Lifebuoys', short: 'Lifebuoys', group: 'LSA', sheet: 'Lifebuoys', color: COLORS.lsa, emoji: '🛟', icon: 'lifebuoy', dateField: 'expiry' },
@@ -76,6 +78,16 @@ export const CATEGORIES: CategoryMeta[] = [
   { key: 'other_safety', label: 'Other Safety Equipment', short: 'Other', group: 'OTHER', color: COLORS.other, emoji: '🧰', icon: 'toolbox', dateField: 'expiry' },
 ];
 
+/**
+ * Every category in force: the built-ins above, plus any this vessel invented.
+ *
+ * MUTATED IN PLACE, never reassigned. Two dozen modules hold a reference to this
+ * array and to the map below; handing them a new object would leave half the app
+ * looking at the registry as it was when it started, which is the sort of bug
+ * that shows up as one screen knowing about a category and the next one not.
+ */
+export const CATEGORIES: CategoryMeta[] = [...BUILT_IN];
+
 export const CATEGORY_MAP: Record<CategoryKey, CategoryMeta> = CATEGORIES.reduce(
   (acc, c) => {
     acc[c.key] = c;
@@ -83,6 +95,29 @@ export const CATEGORY_MAP: Record<CategoryKey, CategoryMeta> = CATEGORIES.reduce
   },
   {} as Record<CategoryKey, CategoryMeta>
 );
+
+/** A vessel's own category, as opposed to one the app ships. */
+export const VESSEL_CATEGORY_PREFIX = 'v_';
+
+export function isVesselCategory(key: CategoryKey): boolean {
+  return String(key).startsWith(VESSEL_CATEGORY_PREFIX);
+}
+
+/**
+ * Install this vessel's categories. Called once at load, before the register is
+ * read, and again whenever the list changes or arrives from another device.
+ *
+ * ORDER MATTERS at startup: `storage.loadAll` enumerates CATEGORIES to decide
+ * which buckets to read, so a register loaded before its categories were
+ * installed simply would not see those items.
+ */
+export function setVesselCategories(list: CategoryMeta[]): void {
+  const own = list.filter((c) => isVesselCategory(c.key));
+  CATEGORIES.length = 0;
+  CATEGORIES.push(...BUILT_IN, ...own);
+  for (const k of Object.keys(CATEGORY_MAP)) delete CATEGORY_MAP[k];
+  for (const c of CATEGORIES) CATEGORY_MAP[c.key] = c;
+}
 
 export function categoriesByGroup(group: Group): CategoryMeta[] {
   return CATEGORIES.filter((c) => c.group === group);

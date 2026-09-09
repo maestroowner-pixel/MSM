@@ -115,6 +115,32 @@ service cloud.firestore {
         allow write: if isSuper(v);
       }
 
+      // The vessel's own checklists. Any member reads them — a round cannot be
+      // carried out without the questions — and an OFFICER may write them. That
+      // is deliberately one rank below the crew list: wording a check is the work
+      // of whoever runs the round, while deciding whose name may appear on a
+      // signed record is not.
+      //
+      // Editing one cannot corrupt the trail. Every inspection carries its own
+      // copy of the questions it was signed against (types/inspection.ts), so
+      // what this collection says today has no power over what was signed
+      // yesterday — which is why an Officer can be trusted with it at all.
+      match /templates/{id} {
+        allow read: if member(v);
+        allow write: if isAdmin(v);
+      }
+
+      // Headings the vessel invented. Same rank as the checklists and for the same
+      // reason — this is how the round is organised, not who may sign it.
+      //
+      // Deleting one here does NOT delete its items: they stay in the register,
+      // which is a separate document, so a heading removed by mistake is undone
+      // by adding it back rather than by restoring a backup.
+      match /categories/{id} {
+        allow read: if member(v);
+        allow write: if isAdmin(v);
+      }
+
       // ---- server-only ------------------------------------------------------
       // The bootstrap marker and the guess counters are written by the Admin SDK
       // and must be unreachable from a client — a counter the guesser can clear

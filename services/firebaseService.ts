@@ -84,11 +84,12 @@ import { Certificate } from '../types/certificate';
 import { normalizeCompressorState } from '../types/compressor';
 import { Inspection } from '../types/inspection';
 import { CrewMember } from '../types/crew';
-import { CATEGORIES } from '../constants/categories';
+import { ChecklistTemplate } from '../constants/checklists';
+import { CATEGORIES, CategoryMeta } from '../constants/categories';
 import * as storage from './storage';
 import * as attachmentStorage from './attachmentStorage';
 import * as trial from './trial';
-import { mergeCrew, mergeInspections } from './inspections';
+import { mergeCategories, mergeCrew, mergeInspections, mergeTemplates } from './inspections';
 
 // getReactNativePersistence ships only in the RN bundle (not in the default TS types).
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -675,6 +676,25 @@ async function uploadsUsed(uid: string): Promise<number> {
 }
 
 /** Push the whole register as one document write. */
+/**
+ * The register as the cloud currently holds it, or null if unreadable.
+ *
+ * Read before a push purely so buckets this device has no heading for can be
+ * carried through rather than deleted — see pushAll.
+ */
+async function currentRegisterBlob(uid: string): Promise<RegisterBlob | null> {
+  try {
+    const snap = await fsGetDoc(accountDoc(uid));
+    const raw = snap.exists() ? (snap.data() as any)[REGISTER_FIELD] : null;
+    return typeof raw === 'string' && raw ? (JSON.parse(raw) as RegisterBlob) : null;
+  } catch {
+    // Offline, or a blob we cannot parse. Falling back to "carry nothing extra"
+    // is the same behaviour as before this guard existed; it is not worse, and
+    // failing the whole push here would be.
+    return null;
+  }
+}
+
 export async function pushAll(uid: string): Promise<number> {
   const byCategory = await storage.loadAll();
   let total = 0;
@@ -682,6 +702,18 @@ export async function pushAll(uid: string): Promise<number> {
   for (const c of CATEGORIES) {
     categories[c.key] = byCategory[c.key];
     total += byCategory[c.key].length;
+  }
+
+  // A category this device does not KNOW about still has to survive this push.
+  // The register is written as one blob that replaces what is up there, so a
+  // device that had not yet received the vessel's new "Emergency Lighting"
+  // heading would push a register with that bucket missing — silently deleting
+  // every item in it for the whole ship. Carry the cloud's own buckets through
+  // untouched; the categories collection will catch this device up separately.
+  const known = new Set(CATEGORIES.map((c) => c.key));
+  const cloudRaw = await currentRegisterBlob(uid);
+  for (const [key, items] of Object.entries(cloudRaw?.categories ?? {})) {
+    if (!known.has(key) && Array.isArray(items)) categories[key] = items as EquipmentItem[];
   }
   const blob: RegisterBlob = {
     categories,
@@ -770,7 +802,10 @@ export async function pullAll(uid: string): Promise<number> {
     if (!blob.categories || typeof blob.categories !== 'object') {
       throw new Error('The register stored in the cloud is not in a readable shape.');
     }
-    const incoming = CATEGORIES.reduce((n, c) => n + (blob.categories[c.key]?.length ?? 0), 0);
+    const incoming = Object.values(blob.categories).reduce(
+      (n, items) => n + (Array.isArray(items) ? items.length : 0),
+      0
+    );
     if (incoming === 0) {
       const localCount = (await storage.loadFlat()).length;
       if (localCount > 0) {
@@ -788,9 +823,18 @@ export async function pullAll(uid: string): Promise<number> {
     // and applying it as-is would overwrite good photographs with that marker.
     blob = await keepLocalInlineFiles(blob);
 
-    for (const c of CATEGORIES) {
-      const items = (blob.categories?.[c.key] ?? []) as EquipmentItem[];
-      await storage.replaceCategory(c.key as CategoryKey, items);
+    // Iterate the BLOB, not the registry: it is the register's own statement of
+    // which categories it contains. A bucket whose heading this device has not
+    // received yet is still written to storage, so nothing is lost while the
+    // categories collection catches up — and the built-ins are still cleared
+    // when the blob omits them, which is what makes a pull a true replace.
+    const keys = new Set<string>([
+      ...CATEGORIES.map((c) => String(c.key)),
+      ...Object.keys(blob.categories ?? {}),
+    ]);
+    for (const key of keys) {
+      const items = (blob.categories?.[key] ?? []) as EquipmentItem[];
+      await storage.replaceCategory(key as CategoryKey, items);
       total += items.length;
     }
     if (blob.vessel_info) await storage.saveVessel(blob.vessel_info);
@@ -903,6 +947,32 @@ export async function pushInspections(uid: string): Promise<number> {
       throw new Error(`crew: ${e?.message ?? e}`);
     }
   }
+
+  // The vessel's own checklists. An OFFICER may write these where only a Master
+  // may write the crew list: wording a check is the work of whoever runs the
+  // round, while deciding who may sign at all is not. Same guard as above for the
+  // same reason — a device that may not write must not try, or a push it was
+  // never meant to make surfaces to the user as a broken connection.
+  const role = await claimedRole();
+  if (role === 'superadmin' || role === 'admin') {
+    const templates = await storage.loadTemplates();
+    if (templates.length) {
+      try {
+        await writeInBatches(uid, 'templates', templates.map((t) => ({ id: t.id, data: t })));
+      } catch (e: any) {
+        throw new Error(`templates: ${e?.message ?? e}`);
+      }
+    }
+
+    const cats = await storage.loadVesselCategories();
+    if (cats.length) {
+      try {
+        await writeInBatches(uid, 'categories', cats.map((c) => ({ id: String(c.key), data: c })));
+      } catch (e: any) {
+        throw new Error(`categories: ${e?.message ?? e}`);
+      }
+    }
+  }
   return list.length;
 }
 
@@ -922,6 +992,18 @@ export async function pullInspections(uid: string): Promise<number> {
   const remoteCrew: CrewMember[] = [];
   cSnap.forEach((doc) => remoteCrew.push(doc.data() as CrewMember));
   await storage.saveCrew(mergeCrew(await storage.loadCrew(), remoteCrew));
+
+  const tSnap = await fsGetDocs(fsCollection(d, ROOT, uid, 'templates'));
+  const remoteTemplates: ChecklistTemplate[] = [];
+  tSnap.forEach((doc) => remoteTemplates.push(doc.data() as ChecklistTemplate));
+  await storage.saveTemplates(mergeTemplates(await storage.loadTemplates(), remoteTemplates));
+
+  const catSnap = await fsGetDocs(fsCollection(d, ROOT, uid, 'categories'));
+  const remoteCats: CategoryMeta[] = [];
+  catSnap.forEach((doc) => remoteCats.push(doc.data() as CategoryMeta));
+  await storage.saveVesselCategories(
+    mergeCategories(await storage.loadVesselCategories(), remoteCats)
+  );
 
   return merged.length;
 }
@@ -994,6 +1076,32 @@ export function subscribeCrew(uid: string, cb: (rows: CrewMember[]) => void): ()
       cb(rows);
     },
     (err) => console.warn('[sync] crew listener stopped:', err?.message ?? err)
+  );
+}
+
+export function subscribeTemplates(uid: string, cb: (rows: ChecklistTemplate[]) => void): () => void {
+  if (!syncSupported()) return () => {};
+  return fsOnSnapshot(
+    fsCollection(requireDb(), ROOT, uid, 'templates'),
+    (snap) => {
+      const rows: ChecklistTemplate[] = [];
+      snap.forEach((d) => rows.push(d.data() as ChecklistTemplate));
+      cb(rows);
+    },
+    (err) => console.warn('[sync] template listener stopped:', err?.message ?? err)
+  );
+}
+
+export function subscribeCategories(uid: string, cb: (rows: CategoryMeta[]) => void): () => void {
+  if (!syncSupported()) return () => {};
+  return fsOnSnapshot(
+    fsCollection(requireDb(), ROOT, uid, 'categories'),
+    (snap) => {
+      const rows: CategoryMeta[] = [];
+      snap.forEach((d) => rows.push(d.data() as CategoryMeta));
+      cb(rows);
+    },
+    (err) => console.warn('[sync] category listener stopped:', err?.message ?? err)
   );
 }
 

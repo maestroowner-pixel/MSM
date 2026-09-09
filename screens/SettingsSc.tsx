@@ -8,7 +8,7 @@
 // ===================================
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Switch, Modal, TouchableWithoutFeedback, Keyboard, Linking, Image, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Switch, Modal, TouchableWithoutFeedback, Keyboard, Linking, Image, LayoutAnimation, Platform, UIManager, useWindowDimensions } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { Screen, ScreenTitle, Card, Label, GlyphBadge, Glyph } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
@@ -47,6 +47,11 @@ export default function SettingsSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { name: themeName, setTheme } = useThemeName();
+  // A button that fills the line is right on a phone, where the line IS the
+  // button's natural size. On the web build the card is over a metre of pixels
+  // wide and the same rule turns "Save vessel info" into a banner, so past
+  // tablet width the two full-bleed buttons shrink to their own size.
+  const wide = useWindowDimensions().width >= 600;
   const { vessel, setVessel, reload, flat, prefs, setPrefs } = useData();
   const sync = useSync();
   /**
@@ -446,7 +451,7 @@ export default function SettingsSc() {
         <FormField label="Flag" value={form.flag} onChange={(v) => setForm({ ...form, flag: v })} />
         <FormField label="Call sign" value={form.call_sign} onChange={(v) => setForm({ ...form, call_sign: v })} />
         <FormField label="MMSI" value={form.mmsi} onChange={(v) => setForm({ ...form, mmsi: v })} keyboard="number-pad" />
-        <TouchableOpacity style={styles.primaryBtn} onPress={saveVesselInfo}>
+        <TouchableOpacity style={[styles.primaryBtn, wide && styles.btnCompact]} onPress={saveVesselInfo}>
           <Text style={styles.primaryBtnText}>Save vessel info</Text>
         </TouchableOpacity>
 
@@ -496,6 +501,33 @@ export default function SettingsSc() {
       </Card>
       ) : null}
 
+      {/* Shown to EVERY rank, unlike Crew and Accounts above. Those are management
+          screens with nothing on them for a crew member; this one answers a
+          question anybody about to do a round has — what am I going to be asked?
+          Editing is gated inside the screen (and by firestore.rules), so the door
+          is not being held open on something that will refuse them. */}
+      <Card>
+        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('CategoriesEdit')}>
+          <GlyphBadge emoji="🗂️" size={18} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkTitle}>Categories</Text>
+            <Text style={styles.linkSub}>Headings of your own, on top of the 23 built in</Text>
+          </View>
+          <Text style={styles.chev}>›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Checklists')}>
+          <GlyphBadge emoji="📋" size={18} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkTitle}>Checklists</Text>
+            <Text style={styles.linkSub}>
+              {sync.role === 'admin' || sync.role === 'superadmin'
+                ? 'What each round asks — word them for this vessel'
+                : 'What each round asks'}
+            </Text>
+          </View>
+          <Text style={styles.chev}>›</Text>
+        </TouchableOpacity>
+      </Card>
 
       {canHandleData ? (
       <Card>
@@ -659,7 +691,7 @@ export default function SettingsSc() {
           who wants their own device empty has Sign off & erase, which leaves the
           vessel's copy alone. */}
       {isMaster ? (
-        <TouchableOpacity style={styles.resetBtn} onPress={() => { setResetPw(''); setResetVisible(true); }} disabled={busy}>
+        <TouchableOpacity style={[styles.resetBtn, wide && styles.btnCompact, wide && { alignSelf: 'center' }]} onPress={() => { setResetPw(''); setResetVisible(true); }} disabled={busy}>
           <Text style={styles.resetBtnText}>Reset all data</Text>
         </TouchableOpacity>
       ) : null}
@@ -782,6 +814,8 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
     marginTop: SIZES.sm,
   },
   primaryBtnText: { color: COLORS.textWhite, fontWeight: '700', fontSize: SIZES.body },
+  // Roughly a quarter of a wide card, floored so the label never wraps.
+  btnCompact: { alignSelf: 'flex-start', maxWidth: '25%', minWidth: 180, paddingHorizontal: SIZES.xl },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionChev: { fontSize: SIZES.h5, color: COLORS.textLight, fontWeight: '700' },
   linkRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: SIZES.sm, gap: SIZES.sm },

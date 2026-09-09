@@ -27,7 +27,7 @@ import { EquipmentItem, Group } from '../types/equipment';
 import { Inspection, InspectionPeriod, PERIOD_LABEL } from '../types/inspection';
 import { signatureLine } from '../types/crew';
 import { CATEGORY_MAP } from '../constants/categories';
-import { periodsFor } from '../constants/checklists';
+import { ChecklistTemplate, periodsFor } from '../constants/checklists';
 import * as inspections from './inspections';
 import { defectReason } from './inspections';
 import { VesselInfo } from './storage';
@@ -43,6 +43,13 @@ export interface ReportOptions {
   period: InspectionPeriod;
   /** Any date inside the window to report on. Defaults to now. */
   ref?: Date;
+  /**
+   * The vessel's own checklists. They decide which categories owe THIS period's
+   * round, so a report built without them would leave out exactly the checks a
+   * vessel added for itself — and the "not inspected" section, the one that makes
+   * the report a worklist, would quietly under-report.
+   */
+  templates?: ChecklistTemplate[];
 }
 
 export interface ReportData {
@@ -61,7 +68,10 @@ export interface ReportData {
 }
 
 const SCOPE_LABEL: Record<ReportScope, string> = {
-  ALL: 'LSA & FFE',
+  // "All equipment", not "LSA & FFE": the ALL filter passes every group, Other
+  // included, and a title that names two of the three misdescribes its own
+  // contents — the one thing an inspection report may never do.
+  ALL: 'All equipment',
   LSA: 'LSA',
   FFE: 'FFE',
   OTHER: 'Other equipment',
@@ -85,7 +95,7 @@ export function buildReport(
     const meta = CATEGORY_MAP[it.category];
     if (!meta) return false;
     if (opts.scope !== 'ALL' && meta.group !== opts.scope) return false;
-    return periodsFor(it.category).includes(opts.period);
+    return periodsFor(it.category, opts.templates ?? []).includes(opts.period);
   });
 
   const scopeIds = new Set(inScope.map((i) => i.id));
@@ -297,7 +307,9 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
 
 /** Report title used for the file name — no spaces, no punctuation surprises. */
 function fileStem(data: ReportData): string {
-  const scope = data.scope === 'ALL' ? 'LSA-FFE' : data.scope;
+  // Matches SCOPE_LABEL: the file is named after what it actually contains, so
+  // a folder of exports can be read without opening them.
+  const scope = data.scope === 'ALL' ? 'ALL' : data.scope;
   return `MSM_${scope}_${data.period}_${fileDateStamp()}`;
 }
 

@@ -10,6 +10,8 @@ import { Certificate } from '../types/certificate';
 import { CompressorState } from '../types/compressor';
 import { Inspection } from '../types/inspection';
 import { CrewMember } from '../types/crew';
+import { ChecklistTemplate } from '../constants/checklists';
+import { CategoryMeta, setVesselCategories } from '../constants/categories';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from '../services/storage';
 import * as snapshot from '../services/snapshot';
@@ -30,6 +32,10 @@ interface DataContextType {
   inspections: Inspection[];
   /** Who can sign an inspection. */
   crew: CrewMember[];
+  /** The vessel's own checklists; they replace the built-in for their category. */
+  templates: ChecklistTemplate[];
+  /** Headings this vessel invented, on top of the 23 the app ships. */
+  categories: CategoryMeta[];
   /** Device-local scan trail, newest first (see services/scanHistory.ts). */
   recentScans: ScanEntry[];
   /** Note that this item was just scanned on this device. */
@@ -50,6 +56,10 @@ interface DataContextType {
   saveInspection: (insp: Inspection) => Promise<void>;
   saveCrewMember: (member: CrewMember) => Promise<void>;
   removeCrewMember: (id: string) => Promise<void>;
+  saveTemplate: (template: ChecklistTemplate) => Promise<void>;
+  removeTemplate: (id: string) => Promise<void>;
+  saveVesselCategory: (meta: CategoryMeta) => Promise<void>;
+  removeVesselCategory: (key: string) => Promise<void>;
   setPrefs: (patch: Partial<storage.Prefs>) => Promise<void>;
   setVessel: (info: storage.VesselInfo) => Promise<void>;
   countFor: (category: CategoryKey) => number;
@@ -73,6 +83,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [prefs, setPrefsState] = useState<storage.Prefs>({});
   const [inspections, setInspections] = useState<Inspection[]>([]);
   const [crew, setCrew] = useState<CrewMember[]>([]);
+  const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
+  const [categories, setCategories] = useState<CategoryMeta[]>([]);
   const [recentScans, setRecentScans] = useState<ScanEntry[]>([]);
   const [lockedIds, setLockedIds] = useState<Set<string>>(new Set());
 
@@ -84,6 +96,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const reload = useCallback(async () => {
+    // FIRST, before the register is read. `storage.loadAll` enumerates the
+    // registry to decide which buckets to open, so a vessel category installed
+    // after this line would leave its items in storage and off every screen.
+    const ownCats = await storage.loadVesselCategories();
+    setVesselCategories(ownCats);
+    setCategories(ownCats);
+
     const all = await storage.loadAll();
     const flatArr = CATEGORIES.flatMap((c) => all[c.key]);
     setByCategory(all);
@@ -93,6 +112,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setCompressorState(await storage.loadCompressor());
     setInspections(await storage.loadInspections());
     setCrew(await storage.loadCrew());
+    setTemplates(await storage.loadTemplates());
     setRecentScans(await loadScanHistory());
     const p = await storage.loadPrefs();
     setPrefsState(p);
@@ -213,6 +233,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setCrew(await storage.loadCrew());
   }, []);
 
+  const saveVesselCategory = useCallback(async (meta: CategoryMeta) => {
+    await storage.upsertVesselCategory(meta);
+    await reload();
+  }, [reload]);
+
+  const removeVesselCategory = useCallback(async (key: string) => {
+    await storage.deleteVesselCategory(key);
+    await reload();
+  }, [reload]);
+
+  const saveTemplate = useCallback(async (template: ChecklistTemplate) => {
+    await storage.upsertTemplate(template);
+    setTemplates(await storage.loadTemplates());
+  }, []);
+
+  const removeTemplate = useCallback(async (id: string) => {
+    await storage.deleteTemplate(id);
+    setTemplates(await storage.loadTemplates());
+  }, []);
+
   const removeCrewMember = useCallback(async (id: string) => {
     await storage.deleteCrewMember(id);
     setCrew(await storage.loadCrew());
@@ -251,6 +291,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         prefs,
         inspections,
         crew,
+        templates,
+        categories,
         recentScans,
         recordScan,
         isLocked,
@@ -265,6 +307,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         saveInspection,
         saveCrewMember,
         removeCrewMember,
+        saveTemplate,
+        removeTemplate,
+        saveVesselCategory,
+        removeVesselCategory,
         setPrefs,
         setVessel,
         countFor,

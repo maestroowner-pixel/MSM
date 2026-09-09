@@ -29,7 +29,7 @@ import { InspectionPeriod, PERIOD_LABEL } from '../types/inspection';
 import { CategoryKey } from '../types/equipment';
 
 export default function ReportsSc() {
-  const { byCategory, vessel, certificates, flat, inspections: trail } = useData();
+  const { byCategory, vessel, certificates, flat, templates, inspections: trail } = useData();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { width } = useWindowDimensions();
@@ -44,8 +44,8 @@ export default function ReportsSc() {
   // Live preview of the numbers that will be printed. Built from the same
   // function the export uses, so what is on screen cannot drift from the file.
   const preview = useMemo(
-    () => buildReport(flat, trail, { scope, period }),
-    [flat, trail, scope, period]
+    () => buildReport(flat, trail, { scope, period, templates }),
+    [flat, trail, scope, period, templates]
   );
 
   const runInspectionReport = async (kind: 'pdf' | 'xlsx' | 'print') => {
@@ -155,14 +155,21 @@ export default function ReportsSc() {
 
         <Text style={styles.sectionLabel}>Equipment group</Text>
         <View style={styles.chipRow}>
-          {(['LSA', 'FFE', 'ALL'] as ReportScope[]).map((g) => (
+          {/* OTHER belongs here. The report engine has always handled it — it is a
+              Group like any other, and SCOPE_LABEL names it — but this row offered
+              only LSA and FFE, so the routine checks a vessel keeps outside the
+              statutory rounds (escape routes, emergency lighting, alarms) could not
+              be printed on their own. Worse, "ALL" was LABELLED "LSA & FFE" while
+              the filter passed every group, so those items appeared in a report
+              that said it did not cover them. */}
+          {(['LSA', 'FFE', 'OTHER', 'ALL'] as ReportScope[]).map((g) => (
             <TouchableOpacity
               key={g}
               style={[styles.chip, scope === g && styles.chipOn]}
               onPress={() => setScope(g)}
             >
               <Text style={[styles.chipText, scope === g && styles.chipTextOn]}>
-                {g === 'ALL' ? 'LSA & FFE' : g}
+                {g === 'ALL' ? 'All' : g === 'OTHER' ? 'Other' : g}
               </Text>
             </TouchableOpacity>
           ))}

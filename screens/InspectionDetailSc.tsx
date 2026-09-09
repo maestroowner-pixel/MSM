@@ -7,10 +7,11 @@
 // that can still change is a defect going from open to rectified, and that is
 // itself a signed, stamped act rather than an edit.
 //
-// Results are rendered against the template VERSION the record was signed under
-// (templateById), so re-wording a checklist line later never changes what an old
-// record appears to say. A record from a build this one no longer has falls back
-// to showing the raw line ids — ugly, but honest.
+// Results are rendered from the wording SNAPSHOTTED onto the record when it was
+// signed, so re-wording a checklist line later — or letting a vessel word its own
+// — never changes what an old record appears to say. Records signed before
+// snapshots existed fall back to their template, and a line neither source can
+// word falls back to its raw id: ugly, but honest, and never silently dropped.
 // ===================================
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -182,16 +183,17 @@ export default function InspectionDetailSc() {
 
           <Card>
             <Label>Checklist</Label>
-            {Object.entries(insp.results).map(([lineId, result]) => {
+            {/* Read through `checklistRows`, which prefers the wording snapshotted
+                onto the record over anything the template says today, and keeps
+                the order the questions were actually put in. */}
+            {inspections.checklistRows(insp).map(({ id, text, result }) => {
               const meta = RESULT_META[result];
               const color =
                 result === 'pass' ? COLORS.success : result === 'fail' ? COLORS.danger : COLORS.textLight;
               return (
-                <View key={lineId} style={styles.resultRow}>
+                <View key={id} style={styles.resultRow}>
                   <MciIcon name={meta.icon as any} size={18} color={color} />
-                  <Text style={styles.resultText}>
-                    {template?.lines.find((l) => l.id === lineId)?.text ?? lineId}
-                  </Text>
+                  <Text style={styles.resultText}>{text}</Text>
                   <Text style={[styles.resultLabel, { color }]}>{meta.label}</Text>
                 </View>
               );

@@ -30,7 +30,7 @@ import { AppState, AppStateStatus } from 'react-native';
 
 import * as fb from '../services/firebaseService';
 import * as storage from '../services/storage';
-import { mergeCrew, mergeInspections } from '../services/inspections';
+import { mergeCategories, mergeCrew, mergeInspections, mergeTemplates } from '../services/inspections';
 import * as photoQueue from '../services/photoQueue';
 import * as enrolment from '../services/enrolment';
 import * as trial from '../services/trial';
@@ -269,6 +269,29 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         fb.subscribeCrew(uid, async (rows) => {
           if (!rows.length) return;
           await storage.saveCrew(mergeCrew(await storage.loadCrew(), rows));
+          applyingRemote.current = true;
+          try { await reload(); } finally { applyingRemote.current = false; }
+        })
+      );
+
+      // Categories BEFORE anything that reads the register: a heading that has not
+      // arrived yet means a bucket nothing enumerates, and items that exist in
+      // storage but appear nowhere on screen.
+      unsubs.current.push(
+        fb.subscribeCategories(uid, async (rows) => {
+          if (!rows.length) return;
+          await storage.saveVesselCategories(
+            mergeCategories(await storage.loadVesselCategories(), rows)
+          );
+          applyingRemote.current = true;
+          try { await reload(); } finally { applyingRemote.current = false; }
+        })
+      );
+
+      unsubs.current.push(
+        fb.subscribeTemplates(uid, async (rows) => {
+          if (!rows.length) return;
+          await storage.saveTemplates(mergeTemplates(await storage.loadTemplates(), rows));
           applyingRemote.current = true;
           try { await reload(); } finally { applyingRemote.current = false; }
         })

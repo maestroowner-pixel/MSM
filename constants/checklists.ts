@@ -31,13 +31,32 @@ export interface ChecklistLine {
 }
 
 export interface ChecklistTemplate {
-  /** `<category>.<period>` — stored on every inspection record. */
+  /** `<category>.<period>` for a built-in; `v.<category>.<period>.<uid>` for one
+   *  a vessel wrote. Stored on every inspection record. */
   id: string;
   version: number;
   category: CategoryKey;
   period: InspectionPeriod;
   title: string;
   lines: ChecklistLine[];
+  /** Set only on vessel templates — the merge key when two devices edited one. */
+  updatedAt?: number;
+}
+
+/**
+ * A vessel's own template NEVER reuses a built-in id, and that is not cosmetic.
+ *
+ * Records signed before line snapshots existed (see types/inspection.ts) still
+ * resolve their wording through `templateById`. Had a vessel's edited template
+ * taken the id `fire_extinguishers.monthly`, every one of those older records
+ * would silently start displaying the NEW wording under the OLD signature — the
+ * precise retro-active edit this app exists to make impossible. A separate id
+ * keeps the built-in reachable for ever, so history reads as it was signed.
+ */
+export const VESSEL_TEMPLATE_PREFIX = 'v.';
+
+export function isVesselTemplate(t: ChecklistTemplate): boolean {
+  return t.id.startsWith(VESSEL_TEMPLATE_PREFIX);
 }
 
 const t = (
@@ -310,28 +329,59 @@ export function genericTemplate(category: CategoryKey, period: InspectionPeriod)
 const BY_ID = new Map(CHECKLISTS.map((c) => [c.id, c]));
 
 /** Every period this category has a written checklist for, weekly first. */
-export function templatesFor(category: CategoryKey): ChecklistTemplate[] {
-  return CHECKLISTS.filter((c) => c.category === category);
+export function templatesFor(
+  category: CategoryKey,
+  vessel: ChecklistTemplate[] = []
+): ChecklistTemplate[] {
+  // A vessel template REPLACES the built-in for its category and period rather
+  // than sitting beside it: two checklists offered for one monthly round is a
+  // question about which one the round means, and the officer on deck is the
+  // worst placed person to answer it.
+  const own = vessel.filter((t) => t.category === category);
+  const overridden = new Set(own.map((t) => t.period));
+  return [...own, ...CHECKLISTS.filter((c) => c.category === category && !overridden.has(c.period))];
 }
 
 /** The periods offered for a category — always at least monthly, via the fallback. */
-export function periodsFor(category: CategoryKey): InspectionPeriod[] {
-  const own = templatesFor(category).map((c) => c.period);
+export function periodsFor(
+  category: CategoryKey,
+  vessel: ChecklistTemplate[] = []
+): InspectionPeriod[] {
+  const own = templatesFor(category, vessel).map((c) => c.period);
   return own.length ? own : ['monthly'];
 }
 
-/** The written template if there is one, else the generic fallback. Never null. */
-export function templateFor(category: CategoryKey, period: InspectionPeriod): ChecklistTemplate {
-  return BY_ID.get(`${category}.${period}`) ?? genericTemplate(category, period);
+/**
+ * The template a round should use: the vessel's own if it wrote one, else the
+ * built-in, else the generic fallback. Never null.
+ */
+export function templateFor(
+  category: CategoryKey,
+  period: InspectionPeriod,
+  vessel: ChecklistTemplate[] = []
+): ChecklistTemplate {
+  const own = vessel
+    .filter((t) => t.category === category && t.period === period)
+    // Two devices can each have written one before they ever met. Newest wins,
+    // which is the same rule the merge uses, so both sides settle the same way.
+    .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0];
+  return own ?? BY_ID.get(`${category}.${period}`) ?? genericTemplate(category, period);
 }
 
 /**
  * Look a stored record's template back up by its id — including a generic one,
  * which is rebuilt rather than stored. Returns null when the id is from a build
  * this one no longer has, so the reader can fall back to showing the raw results.
+ *
+ * Vessel templates are searched too, but only as a courtesy for records signed
+ * before line snapshots: a vessel template can be edited, so what it says today
+ * is not evidence of what was asked. The snapshot on the record always wins.
  */
-export function templateById(id: string): ChecklistTemplate | null {
-  const known = BY_ID.get(id);
+export function templateById(
+  id: string,
+  vessel: ChecklistTemplate[] = []
+): ChecklistTemplate | null {
+  const known = BY_ID.get(id) ?? vessel.find((t) => t.id === id);
   if (known) return known;
   const m = /^(.+)\.(weekly|monthly|quarterly|annual)\.generic$/.exec(id);
   if (m) return genericTemplate(m[1] as CategoryKey, m[2] as InspectionPeriod);

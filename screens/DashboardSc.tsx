@@ -79,7 +79,7 @@ type ListEntry =
   | ({ kind: 'row'; key: string } & Scored);
 
 export default function DashboardSc() {
-  const { flat, loading, certificates, isLocked, recentScans, inspections: trail } = useData();
+  const { flat, loading, certificates, isLocked, recentScans, templates, inspections: trail } = useData();
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useS();
@@ -121,7 +121,7 @@ export default function DashboardSc() {
       listData = [];
       for (const mark of ROUND_ORDER) {
         const group = rows
-          .filter((r) => worstRoundMark(trail, r.it.id, periodsFor(r.it.category)) === mark)
+          .filter((r) => worstRoundMark(trail, r.it.id, periodsFor(r.it.category, templates)) === mark)
           .sort(byDays);
         if (!group.length) continue;
         listData.push({ kind: 'header', key: `h:${mark}`, position: ROUND_GROUP[mark], count: group.length, icon: '🧾' });
@@ -197,7 +197,7 @@ export default function DashboardSc() {
   const roundMarks = useMemo(() => {
     const m = new Map<string, RoundMark>();
     for (const it of flat) {
-      m.set(it.id, worstRoundMark(trail, it.id, periodsFor(it.category)));
+      m.set(it.id, worstRoundMark(trail, it.id, periodsFor(it.category, templates)));
     }
     return m;
   }, [flat, trail]);

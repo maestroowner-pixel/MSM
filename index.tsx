@@ -48,6 +48,9 @@ import FlaggedSc from './screens/FlaggedSc';
 import RecentScansSc from './screens/RecentScansSc';
 import InspectionSc from './screens/InspectionSc';
 import CrewSc from './screens/CrewSc';
+import ChecklistsSc from './screens/ChecklistsSc';
+import CategoriesEditSc from './screens/CategoriesEditSc';
+import ChecklistEditSc from './screens/ChecklistEditSc';
 import DefectsSc from './screens/DefectsSc';
 import InspectionDetailSc from './screens/InspectionDetailSc';
 import AccountsSc from './screens/AccountsSc';
@@ -408,6 +411,9 @@ function Root() {
         <Stack.Screen name="Inspection" component={InspectionSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="InspectionDetail" component={InspectionDetailSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Crew" component={CrewSc} options={webHeader('Crew')} />
+        <Stack.Screen name="Checklists" component={ChecklistsSc} options={webHeader('Checklists')} />
+        <Stack.Screen name="CategoriesEdit" component={CategoriesEditSc} options={webHeader('Categories')} />
+        <Stack.Screen name="ChecklistEdit" component={ChecklistEditSc} options={webHeader('Checklist')} />
         <Stack.Screen name="Defects" component={DefectsSc} options={webHeader('Open defects')} />
         <Stack.Screen name="Accounts" component={AccountsSc} options={webHeader('Accounts')} />
         <Stack.Screen name="Enrol" component={EnrolSc} options={webHeader('Join this vessel')} />

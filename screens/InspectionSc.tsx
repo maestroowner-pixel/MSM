@@ -78,13 +78,13 @@ export default function InspectionSc() {
   const route = useRoute<any>();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
-  const { flat, crew, prefs, vessel, addInspection, setPrefs } = useData();
+  const { flat, crew, prefs, vessel, templates, addInspection, setPrefs } = useData();
 
   const itemId: string = route.params?.itemId;
   const item = useMemo(() => flat.find((i) => i.id === itemId), [flat, itemId]);
 
   const periods = useMemo<InspectionPeriod[]>(
-    () => (item ? periodsFor(item.category) : ['monthly']),
+    () => (item ? periodsFor(item.category, templates) : ['monthly']),
     [item]
   );
   const [period, setPeriod] = useState<InspectionPeriod>(
@@ -92,7 +92,7 @@ export default function InspectionSc() {
   );
 
   const template = useMemo(
-    () => (item ? templateFor(item.category, period) : null),
+    () => (item ? templateFor(item.category, period, templates) : null),
     [item, period]
   );
 

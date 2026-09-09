@@ -67,7 +67,7 @@ export default function CategoryItemsSc() {
   const meta = CATEGORY_MAP[category];
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { byCategory, certificates, prefs, isLocked, inspections: trail } = useData();
+  const { byCategory, certificates, prefs, isLocked, templates, inspections: trail } = useData();
   const certItemIds = useMemo(() => {
     const s = new Set<string>();
     certificates.forEach((c) => c.itemIds.forEach((id) => s.add(id)));
@@ -94,7 +94,7 @@ export default function CategoryItemsSc() {
 
   // Sort by soonest expiry/inspection, or group by position with location headers.
   const listData = useMemo<ListEntry[]>(() => {
-    const periods = periodsFor(category);
+    const periods = periodsFor(category, templates);
     const scored: Scored[] = filtered.map((it) => {
       const date = complianceDate(it);
       return {
