@@ -10,7 +10,7 @@ import * as XLSX from 'xlsx';
 import JSZip from 'jszip';
 import { CategoryKey, EquipmentItem } from '../types/equipment';
 import { Certificate } from '../types/certificate';
-import { CATEGORIES, CATEGORY_MAP, CategoryMeta, GROUP_COLORS } from '../constants/categories';
+import { CATEGORIES, CATEGORY_MAP, CategoryMeta, GROUP_COLORS, sheetSafeName } from '../constants/categories';
 import { complianceDate, computeStatus, formatDate, fileDateStamp } from '../utils/dates';
 import { deliverFile, onWindows, onWeb } from '../utils/fileShare';
 import { printHtmlWeb } from '../utils/webFile';
@@ -391,10 +391,9 @@ function certEntryName(cert: Certificate, used: Set<string>): string {
   return name;
 }
 
-function sheetName(label: string): string {
-  // Excel sheet names: max 31 chars, no : \ / ? * [ ]
-  return label.replace(/[:\\/?*[\]]/g, ' ').slice(0, 31);
-}
+// One definition of the rule, shared with the category registry — the importer
+// looks sheets up by the name stored there, so the two must not drift.
+const sheetName = sheetSafeName;
 
 // ===================================
 // Blank import template

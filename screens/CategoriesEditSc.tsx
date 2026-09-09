@@ -25,7 +25,12 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette, COLORS as THEME_COLORS } from '../theme';
-import { CategoryMeta, GROUP_COLORS, VESSEL_CATEGORY_PREFIX } from '../constants/categories';
+import {
+  CategoryMeta,
+  GROUP_COLORS,
+  VESSEL_CATEGORY_PREFIX,
+  uniqueSheetName,
+} from '../constants/categories';
 import { Group } from '../types/equipment';
 import { uid } from '../utils/id';
 
@@ -35,9 +40,41 @@ const GROUP_LABEL: Record<Group, string> = {
   OTHER: 'Other',
 };
 
-/** Kept deliberately short. A picker of 300 emoji is a decision nobody wants at
- *  0300; these cover the checks vessels actually asked us for. */
-const EMOJI = ['🧰', '💡', '🚪', '🔔', '🪜', '🚶', '🧭', '⚓', '🔌', '🛗', '🧗', '🧊'];
+/**
+ * The same glyph set the built-in categories draw from (MaterialCommunityIcons),
+ * NOT emoji: a heading a vessel added sits in the same grid as the twenty-three
+ * that ship with the app, and an emoji beside them reads as a different class of
+ * thing — which is precisely what it must not be.
+ *
+ * Every name here is checked to exist in @mdi/js, because the web build renders
+ * these as SVG paths and silently substitutes a question mark for a name it does
+ * not know. Add to this list only after checking the same way.
+ *
+ * Kept short on purpose. A picker of three hundred icons is a decision nobody
+ * wants at 0300; these cover the rounds vessels actually asked us for.
+ */
+const ICONS = [
+  'toolbox',
+  'lightbulb-on-outline',
+  'ceiling-light',
+  'exit-run',
+  'door-open',
+  'stairs',
+  'sign-direction',
+  'bell-ring-outline',
+  'alarm-light-outline',
+  'ladder',
+  'power-plug-outline',
+  'battery-charging',
+  'flashlight',
+  'hard-hat',
+  'engine-outline',
+  'water-pump',
+  'pipe-valve',
+  'gauge',
+  'anchor',
+  'shield-check-outline',
+];
 
 export default function CategoriesEditSc() {
   const COLORS = useTheme();
@@ -48,13 +85,13 @@ export default function CategoriesEditSc() {
 
   const [label, setLabel] = useState('');
   const [group, setGroup] = useState<Group>('OTHER');
-  const [emoji, setEmoji] = useState(EMOJI[0]);
+  const [icon, setIcon] = useState(ICONS[0]);
   const [editing, setEditing] = useState<string | null>(null);
 
   const reset = () => {
     setLabel('');
     setGroup('OTHER');
-    setEmoji(EMOJI[0]);
+    setIcon(ICONS[0]);
     setEditing(null);
   };
 
@@ -73,8 +110,16 @@ export default function CategoriesEditSc() {
       short: name.length > 12 ? `${name.slice(0, 11)}…` : name,
       group,
       color: GROUP_COLORS[group],
-      emoji,
-      icon: 'toolbox',
+      icon,
+      // A worksheet name, so the heading appears in the blank import template and
+      // the importer can find it — without one, the only way to fill a new
+      // heading is to add every item by hand. It follows the label rather than
+      // the key because it is what a person reads on an Excel tab; the key, which
+      // nothing may rename, is what the items actually point at.
+      sheet: uniqueSheetName(name, editing ?? undefined),
+      // Kept in step for the few places that still render the emoji form; the
+      // grid, the badges and the reports all use `icon`.
+      emoji: '🧰',
       // Routine vessel checks are driven by when they were last done, not by a
       // printed expiry — an escape route has no expiry date.
       dateField: 'nextInspection',
@@ -87,7 +132,7 @@ export default function CategoriesEditSc() {
     setEditing(String(c.key));
     setLabel(c.label);
     setGroup(c.group);
-    setEmoji(c.emoji);
+    setIcon(c.icon);
   };
 
   const onDelete = (c: CategoryMeta) => {
@@ -159,13 +204,17 @@ export default function CategoriesEditSc() {
 
           <Text style={styles.fieldLabel}>Icon</Text>
           <View style={styles.chipRow}>
-            {EMOJI.map((e) => (
+            {ICONS.map((n) => (
               <TouchableOpacity
-                key={e}
-                style={[styles.emojiChip, emoji === e && styles.emojiChipOn]}
-                onPress={() => setEmoji(e)}
+                key={n}
+                style={[styles.iconChip, icon === n && styles.iconChipOn]}
+                onPress={() => setIcon(n)}
               >
-                <Text style={styles.emojiText}>{e}</Text>
+                <MciIcon
+                  name={n}
+                  size={22}
+                  color={icon === n ? GROUP_COLORS[group] : COLORS.textLight}
+                />
               </TouchableOpacity>
             ))}
           </View>
@@ -192,7 +241,7 @@ export default function CategoriesEditSc() {
           const count = (byCategory as any)[item.key]?.length ?? 0;
           return (
             <View style={styles.row}>
-              <Text style={styles.rowEmoji}>{item.emoji}</Text>
+              <MciIcon name={item.icon} size={22} color={GROUP_COLORS[item.group]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle}>{item.label}</Text>
                 <Text style={styles.rowSub}>
@@ -246,15 +295,14 @@ const makeStyles = (COLORS: Palette) =>
       paddingVertical: SIZES.xs,
     },
     chipText: { color: COLORS.text, fontWeight: '700', fontSize: SIZES.small },
-    emojiChip: {
+    iconChip: {
       borderWidth: 1,
       borderColor: COLORS.border,
       borderRadius: SIZES.radiusMd,
       paddingHorizontal: SIZES.sm,
-      paddingVertical: SIZES.xs,
+      paddingVertical: SIZES.sm,
     },
-    emojiChipOn: { borderColor: COLORS.primary, borderWidth: 2 },
-    emojiText: { fontSize: 20 },
+    iconChipOn: { borderColor: COLORS.primary, borderWidth: 2 },
     formBtns: { flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.lg },
     saveBtn: {
       flex: 1,
@@ -282,7 +330,6 @@ const makeStyles = (COLORS: Palette) =>
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: COLORS.border,
     },
-    rowEmoji: { fontSize: 22 },
     rowTitle: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.text },
     rowSub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },
   });

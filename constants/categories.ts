@@ -96,6 +96,34 @@ export const CATEGORY_MAP: Record<CategoryKey, CategoryMeta> = CATEGORIES.reduce
   {} as Record<CategoryKey, CategoryMeta>
 );
 
+/**
+ * A label reduced to something Excel will accept as a worksheet name.
+ *
+ * The rule matters in two places that must agree: the blank template names its
+ * sheets with this, and the importer looks a category's sheet up by name. Let
+ * them disagree — by storing a raw label with a slash in it, say — and the
+ * template writes "Escape Routes   Walkways" while the importer hunts for
+ * "Escape Routes / Walkways" and reports the sheet as missing.
+ */
+export function sheetSafeName(label: string): string {
+  // Excel: max 31 chars, and none of : \ / ? * [ ]
+  return label.replace(/[:\\/?*[\]]/g, ' ').trim().slice(0, 31);
+}
+
+/** A sheet name no other category is already using (case-insensitive). */
+export function uniqueSheetName(label: string, exceptKey?: CategoryKey): string {
+  const base = sheetSafeName(label) || 'Category';
+  const taken = new Set(
+    CATEGORIES.filter((c) => c.key !== exceptKey && c.sheet).map((c) => c.sheet!.toLowerCase())
+  );
+  if (!taken.has(base.toLowerCase())) return base;
+  for (let n = 2; n < 100; n++) {
+    const tryName = `${base.slice(0, 28)} ${n}`;
+    if (!taken.has(tryName.toLowerCase())) return tryName;
+  }
+  return base.slice(0, 28) + ' ' + Date.now().toString().slice(-2);
+}
+
 /** A vessel's own category, as opposed to one the app ships. */
 export const VESSEL_CATEGORY_PREFIX = 'v_';
 

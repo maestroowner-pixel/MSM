@@ -20,7 +20,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.kukalab.msm",
       "appleTeamId": "LAGTN99698",
-      "buildNumber": "20306",
+      "buildNumber": "20307",
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.kukalab.msm"
@@ -41,7 +41,7 @@
     },
     "android": {
       "package": "com.kukalab.msm",
-      "versionCode": 20306,
+      "versionCode": 20307,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
