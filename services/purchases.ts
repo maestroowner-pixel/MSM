@@ -1,14 +1,28 @@
 // ===================================
-// Subscriptions. The PaywallSc screen talks ONLY to this module.
+// Licensing. The PaywallSc screen talks ONLY to this module.
 //
-//  • iOS / Android — RevenueCat (`react-native-purchases`), entitlement "pro".
-//  • Web           — LemonSqueezy checkout + license key (unchanged, see below).
+// MSM Pro is ONE LICENCE PER VESSEL (one IMO), bought by the operator on
+// LemonSqueezy and attached to the vessel's Firestore account. Every enrolled
+// device inherits it; a crew member buys nothing and enters at most a key.
+// It is not a per-handset subscription: a store purchase is tied to the Apple ID
+// that paid, so the mate who bought it had Pro and the second officer beside him
+// did not — though the licence was meant to cover the ship.
 //
-// Offer: 2-month free trial, then a yearly subscription. The price string and the
-// trial length are read from the STORE (RevenueCat's annual package), not from
-// the constants here — the store is the source of truth for what the user is
-// actually charged, and Apple only allows fixed intro periods (1/2/3/6 months…).
-// TRIAL_DAYS below is only the local free-period counter (services/trial.ts).
+//  • Every platform — `activateLicense()` validates the key with LemonSqueezy and
+//    writes the entitlement onto the vessel; `isSubscribed()` reads that FIRST.
+//  • iOS / Android   — no IAP product exists in either store and none should. The
+//    app is free there and the paywall shows no price, no buy button and no link
+//    out: sending a user from inside iOS to an outside checkout is what App Store
+//    review rejects (3.1.1). RevenueCat below is kept for ONE reason — vessels
+//    that bought a store subscription before licences existed keep working, which
+//    is why `isSubscribed()` still falls back to it. Do not remove it while any
+//    of those are alive, and do not add a new store product beside it.
+//
+// The price lives in `lemonSqueezy.ts` (`LS_PRICE_STRING`) — LemonSqueezy exposes
+// no price API here, so it is kept in step with the dashboard BY HAND, and it is
+// the only price string in the app. TRIAL_DAYS below is the local free-period
+// counter (services/trial.ts); the trial belongs to the vessel, not the handset,
+// and is reconciled with the account by `syncTrialWithAccount()`.
 // ===================================
 
 import { Linking, Platform } from 'react-native';

@@ -20,7 +20,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.kukalab.msm",
       "appleTeamId": "LAGTN99698",
-      "buildNumber": "20301",
+      "buildNumber": "20306",
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.kukalab.msm"
@@ -41,7 +41,7 @@
     },
     "android": {
       "package": "com.kukalab.msm",
-      "versionCode": 20301,
+      "versionCode": 20306,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -121,9 +121,6 @@
         "react-native-ble-plx",
         {
           "isBackgroundEnabled": false,
-          "modes": [
-            "central"
-          ],
           "bluetoothAlwaysPermission": "Marine Safety Manager connects to the label printer over Bluetooth."
         }
       ]

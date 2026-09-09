@@ -1,0 +1,29 @@
+Marine Safety Manager — com.kukalab.msm
+
+1. RECORDING. From launch: Dashboard → register → Excel import (in-app blank template) → attach a photo (Camera/Photos prompt) → print a QR label and scan it back → sign an inspection → Reports (PDF/XLSX) → Cloud sync.
+
+2. TESTED ON. iPhone 14 Pro, iOS 26.2 — physical device.
+
+3. WHAT IT IS, AND HOW TO REACH EVERYTHING. A record-keeping aid for merchant ships: one register of a vessel's Life-Saving Appliances (LSA) and Fire-Fighting Equipment (FFE/FIFI) — type, serial, position on board and the dates that drive compliance — plus certificates, a signed inspection trail, open defects and the crew entitled to sign. For officers preparing for Port State Control, flag and class inspections.
+
+No login is required and nothing is behind one: register, certificates, QR labels, scanning, inspections, defects, reports, Excel import/export and backup all work offline. To populate data fast: Settings → Import from Excel → "Download blank template (.xlsx)", fill it and import it — no external file needed.
+
+Cloud sync is optional and shares a vessel's register only between devices that vessel approved. To test it:
+• Settings → Vessel → IMO number: [DEMO_IMO]
+• Settings → the "This device" card → Join this vessel
+• Name: [DEMO_NAME] · PIN: [DEMO_PIN]
+This device is pre-approved, so it connects straight through. There is no password and no personal account: the vessel's Master issues a name and an 8-digit PIN, and the server mints a token for that device. Crew are identified by their signature on each inspection, not by a login.
+
+The reviewer buys nothing: a 60-day free period runs from first launch and covers the review.
+
+4. FREE APP, NO IN-APP PURCHASE — new in this version. There is NO in-app purchase product; the previous auto-renewable subscription is removed from sale. MSM Pro is a licence for ONE VESSEL (one IMO), sold by us directly to the shipowner for their crew and attached to that vessel's account; every device the vessel enrols inherits it and a crew member buys nothing. On iOS the paywall shows no price, no purchase button and no link to any outside checkout — only a field for the licence key the operator was issued. This is the arrangement in Guideline 3.1.3(b), Enterprise Services. After the free period an unlicensed vessel is capped at 15 items per category; the reviewer will not meet it.
+
+5. EXTERNAL SERVICES. Google Firebase — Firestore (register and inspection trail), Cloud Functions (per-device tokens) and Cloud Storage (inspection photos), used solely to sync a vessel's data between its approved devices. LemonSqueezy validates a licence key when one is entered; no payment is taken in the app. No analytics, advertising, data brokers, AI or tracking — hence no ATT prompt.
+
+6. PERMISSIONS. Camera — photographing equipment and certificates, and scanning the QR labels the app prints; both prompted in context. Photo Library — attaching an existing image. Bluetooth — only when printing a QR label to a label printer, never in the background. Notifications — local, no push: reminders 60/30/7 days before an inspection or expiry date. Microphone is disabled in the build. No location, contacts, health data or ad identifier.
+
+7. DATA REMOVAL. Settings → "This device" → Sign off & erase takes this device off the vessel and wipes its local copy, leaving the vessel's register alone. Settings → Reset all data (Master only, gated behind typing the phrase) erases everything on the device, and on a syncing device the vessel's cloud copy too. A vessel's cloud record is deleted on request at kukalab@icloud.com.
+
+8. REGIONAL AND REGULATORY. Identical in every region; interface English, in-app manual also RU/ES/UK by device language. The app certifies nothing and does not replace statutory inspections or class/flag approval, which its Terms state. It cites SOLAS, the FSS Code and IMO MSC circulars BY REFERENCE ONLY; no copyrighted text is reproduced.
+
+Contact: kukalab@icloud.com · https://kuka-lab.com

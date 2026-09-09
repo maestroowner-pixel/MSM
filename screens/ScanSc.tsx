@@ -189,8 +189,13 @@ export default function ScanSc() {
               ? ' Your browser has blocked it for this site — allow the camera in the address bar, then try again.'
               : ''}
           </Text>
+          {/* "Continue", NOT "Allow camera". App Review reads a custom screen whose
+              button uses the system dialog's own verb as pressuring the user
+              towards one answer, and rejected build 20302 under 5.1.1(iv) for it.
+              The card may explain WHY the camera is wanted; the choice itself
+              belongs to the system prompt, so this button only gets us there. */}
           <TouchableOpacity style={styles.primaryBtn} onPress={() => void requestPermission()}>
-            <Text style={styles.primaryBtnText}>Allow camera</Text>
+            <Text style={styles.primaryBtnText}>Continue</Text>
           </TouchableOpacity>
         </Card>
       ) : null}

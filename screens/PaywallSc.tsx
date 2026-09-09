@@ -151,15 +151,24 @@ export default function PaywallSc() {
   };
 
   const onRestore = async () => {
-    if (!offer?.available) {
-      Alert.alert('Coming soon', 'Purchases are not available yet.');
-      return;
-    }
+    // NO STORE GATE HERE. `offer.available` means "the store still sells a
+    // subscription product", and since the licence moved to LemonSqueezy it is
+    // false on iOS and Android — which silently killed the one button a crew
+    // member actually needs. Restoring reads the entitlement off the VESSEL and
+    // re-checks the key; the store is not involved, and `restore()` falls back
+    // to it only for the vessels that bought one before licences existed.
     setBusy(true);
     try {
       const ok = await restore();
       if (ok) await refreshLocks();
-      Alert.alert(ok ? 'Restored' : 'Nothing to restore', ok ? 'Your subscription was restored.' : 'No active subscription found for this account.');
+      Alert.alert(
+        ok ? 'Restored' : 'Nothing to restore',
+        ok
+          ? "This device now has MSM Pro through the vessel's licence."
+          : signedIn
+            ? 'No active licence is attached to this vessel. Enter the licence key it was issued.'
+            : 'Join the vessel first (Settings → the “This device” card), so its licence can reach this device.'
+      );
       if (ok) goBackOr(nav);
     } catch (e: any) {
       Alert.alert('Restore failed', String(e?.message ?? e));
