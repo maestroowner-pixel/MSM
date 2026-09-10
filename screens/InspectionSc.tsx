@@ -40,7 +40,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
-import { Card, CategoryBadge, Label } from '../components/ui';
+import { BackButton, Card, CategoryBadge, Label } from '../components/ui';
 import { SignerPicker } from '../components/SignerPicker';
 import { MciIcon } from '../components/MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
@@ -247,9 +247,7 @@ export default function InspectionSc() {
       <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => goBackOr(nav)} hitSlop={12}>
-              <Text style={styles.headerBtn}>✕</Text>
-            </TouchableOpacity>
+            <BackButton onPress={() => goBackOr(nav)} />
             <Text style={styles.headerTitle}>Inspection</Text>
             <View style={{ width: 24 }} />
           </View>
@@ -273,9 +271,7 @@ export default function InspectionSc() {
     <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => goBackOr(nav)} hitSlop={12}>
-            <Text style={styles.headerBtn}>✕</Text>
-          </TouchableOpacity>
+          <BackButton onPress={() => goBackOr(nav)} />
           <Text style={styles.headerTitle} numberOfLines={1}>
             {PERIOD_LABEL[period]} inspection
           </Text>

@@ -23,7 +23,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
 
-import { Card, Label, Screen, ScreenTitle } from '../components/ui';
+import { BackButton, Card, Label, Screen, ScreenTitle } from '../components/ui';
 // Direct MciIcon (as PaywallSc does) rather than ui.tsx's Glyph: Glyph maps the
 // app's LEGACY section emojis onto glyphs and answers "help-circle-outline" for
 // anything it has never heard of — a printer would come out as a question mark.
@@ -305,10 +305,8 @@ export default function LabelSc() {
   if (items.length === 0) {
     return (
       <Screen>
+        <BackButton onPress={() => goBackOr(nav)} />
         <ScreenTitle title="Nothing to label" subtitle="These items are no longer in the register." />
-        <TouchableOpacity onPress={() => goBackOr(nav)}>
-          <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Close</Text>
-        </TouchableOpacity>
       </Screen>
     );
   }
@@ -377,6 +375,7 @@ export default function LabelSc() {
         onClose={() => setPrinterOpen(false)}
         onPicked={(p) => void sendToPrinter(p)}
       />
+      <BackButton onPress={() => goBackOr(nav)} />
       <View style={styles.head}>
         <View style={{ flex: 1 }}>
           <ScreenTitle
@@ -388,9 +387,6 @@ export default function LabelSc() {
             }
           />
         </View>
-        <TouchableOpacity onPress={() => goBackOr(nav)}>
-          <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Close</Text>
-        </TouchableOpacity>
       </View>
 
       <Card>

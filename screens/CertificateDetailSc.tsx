@@ -19,7 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
-import { Label, StatusPill, CategoryBadge, Glyph } from '../components/ui';
+import { BackButton, CategoryBadge, Glyph, Label, StatusPill } from '../components/ui';
 import { useData } from '../contexts/DataContext';
 import { Certificate } from '../types/certificate';
 import { CATEGORY_MAP } from '../constants/categories';
@@ -115,9 +115,7 @@ export default function CertificateDetailSc() {
     <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => (picking ? setPicking(false) : goBackOr(nav))} hitSlop={12}>
-            <Text style={styles.headerBtn}>{picking ? '‹ Back' : '✕'}</Text>
-          </TouchableOpacity>
+          <BackButton onPress={() => (picking ? setPicking(false) : goBackOr(nav))} />
           <Text style={styles.headerTitle} numberOfLines={1}>
             {picking ? 'Link items' : isNew ? 'New certificate' : 'Edit certificate'}
           </Text>

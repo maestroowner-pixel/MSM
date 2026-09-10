@@ -30,7 +30,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
-import { Card, CategoryBadge, Label } from '../components/ui';
+import { BackButton, Card, CategoryBadge, Label } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { SignerPicker } from '../components/SignerPicker';
 import { useTheme } from '../contexts/ThemeContext';
@@ -369,9 +369,7 @@ function Header({ title, onClose }: { title: string; onClose: () => void }) {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   return (
     <View style={styles.header}>
-      <TouchableOpacity onPress={onClose} hitSlop={12}>
-        <Text style={styles.headerBtn}>✕</Text>
-      </TouchableOpacity>
+      <BackButton onPress={onClose} />
       <Text style={styles.headerTitle} numberOfLines={1}>
         {title}
       </Text>

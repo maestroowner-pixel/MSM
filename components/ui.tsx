@@ -241,6 +241,46 @@ export function ScreenTitle({
   );
 }
 
+/**
+ * Back — the control a browser makes necessary.
+ *
+ * On a phone a pushed screen is a card you swipe away, so the ✕ in its corner
+ * is a courtesy. In a browser there is no swipe: a modal that draws a bare ✕ —
+ * or, in two places, nothing at all — leaves the BROWSER's back button as the
+ * only way out, and that is a different app's furniture. A vessel a week into
+ * its trial put it plainly: "there is no back button, I have to just click top
+ * left to go back a page".
+ *
+ * An arrow with the word beside it, in the accent colour, is legible at a
+ * glance on a bridge in daylight; a lone glyph in body-text grey is a puzzle to
+ * be solved. It goes top-left on every screen that has one, because a control
+ * that moves is one that has to be found again each time.
+ */
+export function BackButton({
+  onPress,
+  label = 'Back',
+  style,
+}: {
+  onPress: () => void;
+  label?: string;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const c = useTheme();
+  const styles = useStyles();
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      hitSlop={12}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={[styles.backBtn, style]}
+    >
+      <MciIcon name="arrow-left" size={22} color={c.primary} />
+      <Text style={styles.backText}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
 export function Card({
   children,
   style,
@@ -326,6 +366,15 @@ const makeStyles = (COLORS: Palette) =>
     empty: { alignItems: 'center', justifyContent: 'center', padding: SIZES.xxxl },
     emptyText: { color: COLORS.textLight, fontSize: SIZES.h5, textAlign: 'center' },
     label: { fontSize: SIZES.small, color: COLORS.textLight, fontWeight: '600' },
+    backBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SIZES.xs,
+      alignSelf: 'flex-start',
+      paddingVertical: SIZES.xs,
+      paddingRight: SIZES.sm,
+    },
+    backText: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.body },
   });
 
 function useStyles() {

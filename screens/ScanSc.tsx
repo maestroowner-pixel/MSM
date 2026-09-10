@@ -25,7 +25,7 @@ import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'r
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 
-import { Card, Label, Screen, ScreenTitle } from '../components/ui';
+import { BackButton, Card, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
@@ -150,13 +150,11 @@ export default function ScanSc() {
 
   return (
     <Screen scroll>
+      <BackButton onPress={() => goBackOr(nav)} />
       <View style={styles.head}>
         <View style={{ flex: 1 }}>
           <ScreenTitle title="Scan" subtitle="An MSM QR label, or a serial / asset tag." />
         </View>
-        <TouchableOpacity onPress={() => goBackOr(nav)}>
-          <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Close</Text>
-        </TouchableOpacity>
       </View>
 
       {!HAS_CAMERA ? (

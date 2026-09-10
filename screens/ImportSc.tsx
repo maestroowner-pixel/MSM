@@ -7,7 +7,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useNavigation } from '@react-navigation/native';
-import { Screen, ScreenTitle, Card, CategoryBadge } from '../components/ui';
+import { BackButton, Card, CategoryBadge, Screen, ScreenTitle } from '../components/ui';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { parseWorkbookBase64, ImportPreview } from '../services/excelImport';
@@ -105,6 +105,9 @@ export default function ImportSc() {
 
   return (
     <Screen scroll>
+      {/* This screen had no way back at all: a modal, so no stack header, and
+          nothing of its own — the browser's back button was the only exit. */}
+      <BackButton onPress={() => goBackOr(nav)} />
       <ScreenTitle title="Import from Excel" subtitle="LSA / FFE Inventories workbook (.xlsx)" help={1} />
 
       <TouchableOpacity style={styles.pickBtn} onPress={pick} disabled={busy}>

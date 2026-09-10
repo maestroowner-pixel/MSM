@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MciIcon } from '../components/MciIcon';
+import { BackButton } from '../components/ui';
 import { SIZES, Palette, APP_CONFIG } from '../theme';
 import { useTheme, useThemeName } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
@@ -180,9 +181,7 @@ export default function PaywallSc() {
   return (
     <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
-        <TouchableOpacity style={styles.close} onPress={() => goBackOr(nav)} hitSlop={12}>
-          <MciIcon name="close" size={26} color={COLORS.textLight} />
-        </TouchableOpacity>
+        <BackButton onPress={() => goBackOr(nav)} style={styles.close} />
 
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <Image source={require('../assets/msm-logo.png')} style={styles.logo} resizeMode="contain" />
@@ -332,7 +331,7 @@ export default function PaywallSc() {
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
-    close: { alignSelf: 'flex-end', padding: SIZES.md },
+    close: { alignSelf: 'flex-start', paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm },
     scroll: { paddingHorizontal: SIZES.xl, paddingBottom: SIZES.lg, alignItems: 'center' },
     logo: { width: 96, height: 96, marginTop: SIZES.sm, marginBottom: SIZES.md },
     title: { fontSize: SIZES.h1, fontWeight: '800', color: COLORS.textDark, textAlign: 'center' },

@@ -17,7 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
-import { StatusPill, Label, statusColor, CategoryBadge, Glyph } from '../components/ui';
+import { BackButton, CategoryBadge, Glyph, Label, StatusPill, statusColor } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { useData } from '../contexts/DataContext';
 import { CATEGORY_MAP } from '../constants/categories';
@@ -219,9 +219,7 @@ export default function ItemDetailSc() {
     <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => goBackOr(nav)} hitSlop={12}>
-            <Text style={styles.headerBtn}>✕</Text>
-          </TouchableOpacity>
+          <BackButton onPress={() => goBackOr(nav)} />
           <Text style={styles.headerTitle} numberOfLines={1}>
             {isNew ? 'New item' : 'Edit item'}
           </Text>
