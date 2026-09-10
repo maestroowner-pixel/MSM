@@ -180,21 +180,36 @@ export default function ScanSc() {
       ) : !permission ? null : !permission.granted ? (
         <Card>
           <Label>Camera access</Label>
+          {/* THE ANSWER HAS ALREADY BEEN GIVEN — say so and move on.
+              `canAskAgain === false` means the person said no and the system will
+              not ask again. Repeating the offer here is the 5.1.1(iv) refusal in
+              its other form: on the web it was at least actionable (a browser's
+              site permissions live in the address bar), but on a phone the only
+              place to change it is the Settings app, and sending anyone there is
+              what got build 20304 rejected. So on native this card stops being a
+              request and becomes a signpost to the box below, which needs no
+              camera and runs the identical lookup. */}
           <Text style={styles.note}>
-            MSM needs the camera to read QR labels and barcodes off equipment. Nothing is recorded —
-            the frame is decoded and discarded.
             {permission.canAskAgain === false
-              ? ' Your browser has blocked it for this site — allow the camera in the address bar, then try again.'
-              : ''}
+              ? Platform.OS === 'web'
+                ? 'Your browser has blocked the camera for this site — it can be allowed from the ' +
+                  'address bar. Either way, typing the code below runs exactly the same lookup.'
+                : 'The camera is off for MSM, so a label cannot be read by holding it up. Typing ' +
+                  'the code or the serial below runs exactly the same lookup.'
+              : 'MSM needs the camera to read QR labels and barcodes off equipment. Nothing is ' +
+                'recorded — the frame is decoded and discarded.'}
           </Text>
           {/* "Continue", NOT "Allow camera". App Review reads a custom screen whose
               button uses the system dialog's own verb as pressuring the user
               towards one answer, and rejected build 20302 under 5.1.1(iv) for it.
               The card may explain WHY the camera is wanted; the choice itself
-              belongs to the system prompt, so this button only gets us there. */}
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => void requestPermission()}>
-            <Text style={styles.primaryBtnText}>Continue</Text>
-          </TouchableOpacity>
+              belongs to the system prompt, so this button only gets us there —
+              and only while the system will still show it. */}
+          {permission.canAskAgain === false ? null : (
+            <TouchableOpacity style={styles.primaryBtn} onPress={() => void requestPermission()}>
+              <Text style={styles.primaryBtnText}>Continue</Text>
+            </TouchableOpacity>
+          )}
         </Card>
       ) : null}
 

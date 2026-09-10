@@ -74,11 +74,33 @@ export interface PickedFile {
   kind: 'photo' | 'document';
 }
 
+/**
+ * WHAT AN APP MAY SAY AFTER A REFUSAL — this is the line App Review draws, and
+ * these two lines are where it was crossed.
+ *
+ * They used to read "Enable camera access in Settings to take photos". That is a
+ * polite instruction, and guideline 5.1.1(iv) forbids exactly that: pressing the
+ * user towards a decision they have already made. Build 20304 was rejected for
+ * it on 10 Sep 2026 — "the user is redirected to the Settings app to grant
+ * access after tapping Don't Allow" — after 20302 had been rejected for a button
+ * that borrowed the system prompt's own verb ("Allow camera").
+ *
+ * So the rule for anything on this path: state what cannot happen, name the
+ * route that still works, and stop. No Settings, no second prompt, no button
+ * that leads to either. Both other ways to attach a file need no camera and sit
+ * in the same menu, one tap away, so nothing is actually lost by saying yes to
+ * the user's no.
+ */
+
 /** Take a photo with the camera. Returns null if cancelled / denied. */
 export async function pickFromCamera(): Promise<PickedFile | null> {
   const perm = await ImagePicker.requestCameraPermissionsAsync();
   if (!perm.granted) {
-    Alert.alert('Camera permission needed', 'Enable camera access in Settings to take photos.');
+    Alert.alert(
+      'No camera access',
+      'MSM cannot open the camera, so a photo cannot be taken here. Attaching an existing photo ' +
+        'or a document works without it.'
+    );
     return null;
   }
   const res = await ImagePicker.launchCameraAsync({ quality: 0.7 });
@@ -92,7 +114,11 @@ export async function pickFromCamera(): Promise<PickedFile | null> {
 export async function pickFromLibrary(): Promise<PickedFile | null> {
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted) {
-    Alert.alert('Photos permission needed', 'Enable photo access in Settings to attach images.');
+    Alert.alert(
+      'No access to the photo library',
+      'MSM cannot open the library, so a photo cannot be chosen from it. Taking a new photo or ' +
+        'attaching a document works without it.'
+    );
     return null;
   }
   const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'] });
