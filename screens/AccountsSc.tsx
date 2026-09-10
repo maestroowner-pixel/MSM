@@ -13,7 +13,7 @@
 // ===================================
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { Card, Empty, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
@@ -70,6 +70,19 @@ export default function AccountsSc() {
   const [role, setRole] = useState<Role>('user');
   /** Rank aboard — free text, separate from the app role. See types/role.ts. */
   const [position, setPosition] = useState('');
+
+  /**
+   * The device being renamed, and the fields while it is.
+   *
+   * A sheet rather than a prompt: three fields, and `Alert.prompt` is iOS-only —
+   * on web and Android it does not exist at all, and this screen's whole reason
+   * for being is the browser on the bridge.
+   */
+  const [renaming, setRenaming] = useState<EnrolledDevice | null>(null);
+  const [rnFirst, setRnFirst] = useState('');
+  const [rnLast, setRnLast] = useState('');
+  const [rnPosition, setRnPosition] = useState('');
+  const [rnBusy, setRnBusy] = useState(false);
 
   useEffect(() => {
     void fb.getLocalDeviceId().then(setMyDeviceId).catch(() => {});
@@ -145,6 +158,33 @@ export default function AccountsSc() {
     );
   };
 
+  const startRename = (d: EnrolledDevice) => {
+    setRnFirst(d.firstName ?? '');
+    setRnLast(d.lastName ?? '');
+    setRnPosition(d.position ?? '');
+    setRenaming(d);
+  };
+
+  const saveRename = useCallback(async () => {
+    if (!renaming || !rnFirst.trim() || !rnLast.trim()) return;
+    setRnBusy(true);
+    try {
+      await accounts.setDeviceIdentity(imo, renaming.id, {
+        firstName: rnFirst,
+        lastName: rnLast,
+        position: rnPosition,
+      });
+      // No success alert. The list is a live subscription, so the row has
+      // already changed behind the sheet — saying so as well would be the app
+      // telling the user something they are looking at.
+      setRenaming(null);
+    } catch (e: any) {
+      Alert.alert('Could not rename', e?.message ?? String(e));
+    } finally {
+      setRnBusy(false);
+    }
+  }, [renaming, rnFirst, rnLast, rnPosition, imo]);
+
   /**
    * Delete a device record outright.
    *
@@ -197,6 +237,7 @@ export default function AccountsSc() {
     }
     const buttons: any[] = [{ text: 'Close', style: 'cancel' }];
     if (!d.approved) buttons.push({ text: 'Approve', onPress: () => void accounts.approveDevice(imo, d.id) });
+    buttons.push({ text: 'Rename', onPress: () => startRename(d) });
     for (const r of ROLE_ORDER) {
       if (r !== d.role) {
         buttons.push({ text: `Make ${ROLE_LABEL[r]}`, onPress: () => void accounts.setDeviceRole(imo, d.id, r) });
@@ -416,6 +457,85 @@ export default function AccountsSc() {
           )}
         />
       )}
+
+      {/* Rename. The bridge computer two officers rotate through is not called
+          by either of their names, and until this existed the name typed on the
+          day the vessel was set up was permanent. It renames the DEVICE only —
+          signatures come from the crew list, so no signed record moves. */}
+      <Modal
+        visible={!!renaming}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setRenaming(null)}
+      >
+        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setRenaming(null)}>
+          {/* Claims the touch so a tap on the sheet's own padding does not
+              close it — the backdrop above is a Touchable and would otherwise
+              catch it mid-edit. */}
+          <View style={styles.sheet} onStartShouldSetResponder={() => true}>
+            <Text style={styles.sheetTitle}>Rename this device</Text>
+            <Text style={styles.note}>
+              What this device is called in the list, and on its own “This device” card. Use a
+              rank — “Third Officer” — for a shared computer that changes hands at every crew
+              change.
+            </Text>
+            <TextInput
+              style={styles.input}
+              value={rnFirst}
+              onChangeText={setRnFirst}
+              placeholder="First name"
+              placeholderTextColor={COLORS.textLight}
+              autoCapitalize="words"
+              autoCorrect={false}
+            />
+            <TextInput
+              style={styles.input}
+              value={rnLast}
+              onChangeText={setRnLast}
+              placeholder="Last name"
+              placeholderTextColor={COLORS.textLight}
+              autoCapitalize="words"
+              autoCorrect={false}
+            />
+            <TextInput
+              style={styles.input}
+              value={rnPosition}
+              onChangeText={setRnPosition}
+              placeholder="Rank aboard (Third Officer, Bosun…) — optional"
+              placeholderTextColor={COLORS.textLight}
+              autoCapitalize="words"
+            />
+            {/* Said here rather than discovered later: renaming a device is not
+                renaming a signer, and the two lists are edited in different
+                places. */}
+            <Text style={styles.note}>
+              Signatures are not affected — those are chosen from the crew list when a round is
+              signed, and inspections already signed keep the name they carry.
+            </Text>
+            <View style={styles.sheetBtns}>
+              <TouchableOpacity
+                style={[styles.secondaryBtn, rnBusy && { opacity: 0.5 }]}
+                disabled={rnBusy}
+                onPress={() => setRenaming(null)}
+              >
+                <Text style={styles.secondaryBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.primaryBtn,
+                  { flex: 1, marginTop: 0 },
+                  (rnBusy || !rnFirst.trim() || !rnLast.trim()) && { opacity: 0.4 },
+                ]}
+                disabled={rnBusy || !rnFirst.trim() || !rnLast.trim()}
+                onPress={() => void saveRename()}
+              >
+                <MciIcon name="content-save" size={18} color={COLORS.textWhite} />
+                <Text style={styles.primaryBtnText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </Screen>
   );
 }
@@ -489,4 +609,24 @@ const makeStyles = (COLORS: Palette) =>
     },
     waitText: { color: COLORS.textWhite, fontSize: SIZES.tiny, fontWeight: '800' },
     note: { color: COLORS.textLight, fontSize: SIZES.small, paddingTop: SIZES.sm, lineHeight: 16 },
+
+    backdrop: { flex: 1, backgroundColor: '#0006', justifyContent: 'flex-end' },
+    sheet: {
+      backgroundColor: COLORS.cardSolid,
+      borderTopLeftRadius: SIZES.radiusLg,
+      borderTopRightRadius: SIZES.radiusLg,
+      padding: SIZES.lg,
+      paddingBottom: SIZES.xxxl,
+    },
+    sheetTitle: { fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark },
+    sheetBtns: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginTop: SIZES.lg },
+    secondaryBtn: {
+      paddingVertical: SIZES.md,
+      paddingHorizontal: SIZES.lg,
+      borderRadius: SIZES.radiusMd,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      backgroundColor: COLORS.cardSolid,
+    },
+    secondaryBtnText: { color: COLORS.text, fontWeight: '700', fontSize: SIZES.small },
   });

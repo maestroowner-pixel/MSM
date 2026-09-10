@@ -157,6 +157,48 @@ export async function setDeviceRole(vessel: string, deviceId: string, role: Role
 }
 
 /**
+ * Rename a device — the name and the rank aboard that this list, and the
+ * device's own "This device" card, show.
+ *
+ * A device is named ONCE, when it first joins, and until now that was final:
+ * the bootstrap device typed its own name and nothing could change it
+ * afterwards. That is wrong for the machine every ship has — the bridge
+ * computer that two officers rotate through, where "Third Officer" is the
+ * honest name and whoever typed theirs into it on delivery day is not.
+ *
+ * It renames the DEVICE, not the person. Signatures are drawn from the crew
+ * list (see CrewSc and SignerPicker), so nothing already signed changes and no
+ * inspection is re-attributed by this — which is exactly why it is safe to
+ * offer. Nor does it touch the invitation the device enrolled on: if that
+ * device ever signs off and joins again, the invitation's name wins once more
+ * (functions/index.js writes `invite?.firstName ?? firstName`). For a permanent
+ * change, rename here AND reissue the invitation under the new name.
+ *
+ * Master-only in the UI, though firestore.rules would also let a device correct
+ * its own record. Both are true and only one is worth a screen: the Master is
+ * the one who knows what the machine on the bridge should be called.
+ */
+export async function setDeviceIdentity(
+  vessel: string,
+  deviceId: string,
+  identity: { firstName: string; lastName: string; position?: string }
+): Promise<void> {
+  await setDoc(
+    doc(db(), ROOT, vessel, 'devices', deviceId),
+    {
+      firstName: identity.firstName.trim(),
+      lastName: identity.lastName.trim(),
+      // Firestore rejects `undefined` outright, and "no rank" is stored as an
+      // empty string everywhere else in this collection — see the enrol
+      // function, which writes `position: invite?.position ?? ''` for the same
+      // reason. Sending undefined here would fail the whole write.
+      position: identity.position?.trim() ?? '',
+    },
+    { merge: true }
+  );
+}
+
+/**
  * Switch a device off — a lost handset, or somebody who has left. Kept rather
  * than deleted so the record of what it did remains, and so re-enrolling on the
  * same install cannot quietly undo it.
