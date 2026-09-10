@@ -152,6 +152,42 @@ export default function EnrolSc() {
     );
   };
 
+  /**
+   * Take the vessel over with the setup code.
+   *
+   * Offered from BOTH outcomes a locked-out Master can land on, and that is the
+   * whole point of it being a function rather than a button in one card:
+   *
+   *   • pending  — the device is in a queue only a Master could empty;
+   *   • refused  — there IS no invitation in that name, which is what a Master
+   *                whose own device was demoted or removed will always hit.
+   *
+   * The second case used to have no way out inside the app. A vessel that lost
+   * its last Master (one tap on "Make Officer", on its own row) could not
+   * recover itself at all — the code accepted the setup code perfectly well,
+   * but nothing on screen would send it. Refusal is exactly when this has to be
+   * reachable.
+   */
+  const offerTakeover = () =>
+    Alert.alert(
+      'Take over as Master?',
+      'Only do this if you manage this vessel and it has no Master left — a cleared browser, a ' +
+        'lost or wiped phone, or a Master device that was demoted or removed by mistake.\n\n' +
+        'This device becomes the Master. Everything on the vessel is kept; the other devices stay ' +
+        'as they are and can be reviewed in Accounts → Devices.\n\nIt needs the vessel setup code ' +
+        'in the PIN field above.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Take over', style: 'destructive', onPress: () => void submit(true) },
+      ]
+    );
+
+  const takeoverButton = (
+    <TouchableOpacity style={styles.recoverBtn} onPress={offerTakeover}>
+      <Text style={styles.recoverText}>I am the Master and have the setup code</Text>
+    </TouchableOpacity>
+  );
+
   // Accepts BOTH an issued 8-digit PIN and the longer bootstrap code the very
   // first device uses — both are digits, so the number pad still stands (see
   // types/role.ts on why this field is digits-only).
@@ -337,24 +373,7 @@ export default function EnrolSc() {
           {/* The one case the queue cannot solve: this IS the vessel's Master,
               on a device that lost its identity, waiting for an approval only
               they could give. Offered only to somebody holding the setup code. */}
-          <TouchableOpacity
-            style={styles.recoverBtn}
-            onPress={() =>
-              Alert.alert(
-                'Take over as Master?',
-                'Only do this if you manage this vessel and its Master device is gone — a cleared ' +
-                  'browser, a lost or wiped phone.\n\nThis device becomes the Master. Everything on ' +
-                  'the vessel is kept; the other devices stay as they are and can be reviewed in ' +
-                  'Accounts → Devices.\n\nIt needs the vessel setup code in the PIN field above.',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Take over', style: 'destructive', onPress: () => void submit(true) },
-                ]
-              )
-            }
-          >
-            <Text style={styles.recoverText}>I am the Master and have the setup code</Text>
-          </TouchableOpacity>
+          {takeoverButton}
         </Card>
       ) : null}
 
@@ -376,6 +395,9 @@ export default function EnrolSc() {
             The usual cause is the spelling of the name rather than the PIN. Ask the Master to read
             the invitation back to you — they can see it in full.
           </Text>
+          {/* And the unusual cause, which no amount of re-typing will fix: there
+              is no Master left to ask. See `offerTakeover`. */}
+          {takeoverButton}
         </Card>
       ) : null}
     </Screen>

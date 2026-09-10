@@ -235,19 +235,40 @@ export default function AccountsSc() {
       );
       return;
     }
+    /**
+     * The vessel's only Master, and therefore the one row that must not be
+     * demoted or switched off.
+     *
+     * Every write on this screen is gated on the `superadmin` claim, so losing
+     * the last Master is not a change of mind — it is a lockout: nobody left
+     * aboard can promote anybody, approve a device, or issue an account, and
+     * the only way back is the setup code. A vessel did exactly this in its
+     * first week by tapping "Make Officer" on its own row, which read like an
+     * ordinary setting and was not one.
+     *
+     * The rule is deliberately about the LAST Master rather than about your own
+     * row: handing the ship over means promoting the relief first, and that
+     * order is the safe one whichever device is doing it.
+     */
+    const lastMaster =
+      d.role === 'superadmin' &&
+      devices.filter((x) => x.role === 'superadmin' && x.approved && !x.disabled).length <= 1;
+
     const buttons: any[] = [{ text: 'Close', style: 'cancel' }];
     if (!d.approved) buttons.push({ text: 'Approve', onPress: () => void accounts.approveDevice(imo, d.id) });
     buttons.push({ text: 'Rename', onPress: () => startRename(d) });
-    for (const r of ROLE_ORDER) {
-      if (r !== d.role) {
-        buttons.push({ text: `Make ${ROLE_LABEL[r]}`, onPress: () => void accounts.setDeviceRole(imo, d.id, r) });
+    if (!lastMaster) {
+      for (const r of ROLE_ORDER) {
+        if (r !== d.role) {
+          buttons.push({ text: `Make ${ROLE_LABEL[r]}`, onPress: () => void accounts.setDeviceRole(imo, d.id, r) });
+        }
       }
+      buttons.push({
+        text: d.disabled ? 'Switch on' : 'Switch off',
+        style: d.disabled ? 'default' : ('destructive' as const),
+        onPress: () => void accounts.disableDevice(imo, d.id, !d.disabled),
+      });
     }
-    buttons.push({
-      text: d.disabled ? 'Switch on' : 'Switch off',
-      style: d.disabled ? 'default' : ('destructive' as const),
-      onPress: () => void accounts.disableDevice(imo, d.id, !d.disabled),
-    });
     // Removing THIS device would revoke the session doing the removing — a Master
     // alone on board would lock the vessel out of its own accounts with one tap,
     // and no one left aboard could undo it.
@@ -257,7 +278,12 @@ export default function AccountsSc() {
     Alert.alert(
       personName(d) || d.id,
       `${ROLE_LABEL[d.role]} · ${d.approved ? 'approved' : 'waiting'}` +
-        (d.id === myDeviceId ? ' · this device' : ''),
+        (d.id === myDeviceId ? ' · this device' : '') +
+        (lastMaster
+          ? '\n\nThis is the vessel\'s only Master, so its rank cannot be changed and it cannot ' +
+            'be switched off here — there would be nobody left who could undo it. Make another ' +
+            'device a Master first, and this one is then free to change.'
+          : ''),
       buttons
     );
   };
