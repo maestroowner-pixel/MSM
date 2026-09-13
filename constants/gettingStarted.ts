@@ -48,7 +48,7 @@ const en: GettingStartedContent = {
     {
       emoji: '📝',
       title: '2 · Copy in your data',
-      body: 'Paste your existing register into the template WITHOUT changing the column order. The importer reads by column header, so keeping the layout guarantees a clean import.',
+      body: 'Paste your existing register into the template, keeping its column headings. The importer reads each column by its heading, so the headings — not their order — are what must stay.',
     },
     {
       emoji: '📥',
@@ -61,7 +61,7 @@ const en: GettingStartedContent = {
       body: 'Choose "Replace all" to overwrite, or "Append" to add to what is there, then confirm. Dates are converted automatically and every item stays editable afterwards.',
     },
   ],
-  tip: 'You can also import your own workbook directly — but a file with different or rearranged columns may not map correctly. The template is the safe choice.',
+  tip: 'Already have your own list? Import it directly. A sheet with columns such as #, Deck, Location, Description, Make, Type, Size, Serial and Exp / Inspc. is sorted into categories by each item\'s description, and the preview shows the result before anything is saved.',
   templateBtn: 'Download blank template (.xlsx)',
   importBtn: 'Import from Excel',
   manualLink: 'Open the full User Manual',
@@ -84,7 +84,7 @@ const ru: GettingStartedContent = {
     {
       emoji: '📝',
       title: '2 · Скопируйте свои данные',
-      body: 'Вставьте вашу имеющуюся базу в шаблон, НЕ меняя порядок столбцов. Импортёр читает по заголовкам столбцов, поэтому сохранение структуры гарантирует чистый импорт.',
+      body: 'Вставьте вашу имеющуюся базу в шаблон, сохранив заголовки столбцов. Импортёр читает каждый столбец по заголовку, поэтому важны именно заголовки, а не порядок столбцов.',
     },
     {
       emoji: '📥',
@@ -97,7 +97,7 @@ const ru: GettingStartedContent = {
       body: 'Выберите "Replace all", чтобы перезаписать, или "Append", чтобы добавить к имеющемуся, и подтвердите. Даты конвертируются автоматически, любую позицию можно отредактировать позже.',
     },
   ],
-  tip: 'Можно импортировать и свой файл напрямую — но файл с другими или переставленными столбцами может не распознаться. Шаблон — надёжный вариант.',
+  tip: 'Уже есть свой список? Импортируйте его напрямую. Лист со столбцами вроде #, Deck, Location, Description, Make, Type, Size, Serial и Exp / Inspc. раскладывается по категориям по описанию каждой позиции, а предпросмотр показывает результат до сохранения.',
   templateBtn: 'Download blank template (.xlsx)',
   importBtn: 'Import from Excel',
   manualLink: 'Открыть полное руководство пользователя',
@@ -120,7 +120,7 @@ const es: GettingStartedContent = {
     {
       emoji: '📝',
       title: '2 · Copie sus datos',
-      body: 'Pegue su registro existente en la plantilla SIN cambiar el orden de las columnas. El importador lee por la cabecera de columna, así que mantener el diseño garantiza una importación limpia.',
+      body: 'Pegue su registro existente en la plantilla conservando las cabeceras de columna. El importador lee cada columna por su cabecera, así que lo que debe mantenerse son las cabeceras, no su orden.',
     },
     {
       emoji: '📥',
@@ -133,7 +133,7 @@ const es: GettingStartedContent = {
       body: 'Elija "Replace all" para sobrescribir, o "Append" para añadir a lo existente, y confirme. Las fechas se convierten automáticamente y cada elemento queda editable después.',
     },
   ],
-  tip: 'También puede importar su propio libro directamente — pero un archivo con columnas distintas o reordenadas puede no asignarse bien. La plantilla es la opción segura.',
+  tip: '¿Ya tiene su propia lista? Impórtela directamente. Una hoja con columnas como #, Deck, Location, Description, Make, Type, Size, Serial y Exp / Inspc. se reparte en categorías según la descripción de cada elemento, y la vista previa muestra el resultado antes de guardar nada.',
   templateBtn: 'Download blank template (.xlsx)',
   importBtn: 'Import from Excel',
   manualLink: 'Abrir el manual de usuario completo',
@@ -156,7 +156,7 @@ const uk: GettingStartedContent = {
     {
       emoji: '📝',
       title: '2 · Скопіюйте свої дані',
-      body: 'Вставте вашу наявну базу в шаблон, НЕ змінюючи порядок стовпців. Імпортер читає за заголовками стовпців, тож збереження структури гарантує чистий імпорт.',
+      body: 'Вставте вашу наявну базу в шаблон, зберігши заголовки стовпців. Імпортер читає кожен стовпець за заголовком, тож важливі саме заголовки, а не порядок стовпців.',
     },
     {
       emoji: '📥',
@@ -169,7 +169,7 @@ const uk: GettingStartedContent = {
       body: 'Виберіть "Replace all", щоб перезаписати, або "Append", щоб додати до наявного, і підтвердьте. Дати конвертуються автоматично, будь-яку позицію можна відредагувати згодом.',
     },
   ],
-  tip: 'Можна імпортувати й свій файл напряму — але файл з іншими або переставленими стовпцями може не розпізнатися. Шаблон — надійний варіант.',
+  tip: 'Уже маєте свій список? Імпортуйте його напряму. Аркуш зі стовпцями на кшталт #, Deck, Location, Description, Make, Type, Size, Serial та Exp / Inspc. розкладається за категоріями за описом кожної позиції, а попередній перегляд показує результат до збереження.',
   templateBtn: 'Download blank template (.xlsx)',
   importBtn: 'Import from Excel',
   manualLink: 'Відкрити повний посібник користувача',
