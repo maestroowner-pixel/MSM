@@ -448,7 +448,11 @@ is the validated path.
    missing and the web bundle would not build at all). Native-only modules get a shim in
    `MSM Win Web/web/shims/` — `react-native-ble-plx`, `react-native-purchases`,
    `react-native-android-widget` and `expo-secure-store` are stubbed there.
-5. **Desktop is the web build; there is no installer (changed Sep 2026).** Firebase Hosting
+5. **`firebase.json` must NOT ignore `**/node_modules/**`** (the CLI's default). `expo export`
+   writes library images under `web-dist/assets/node_modules/…` — React Navigation's back arrow
+   is one — and Hosting then answers those URLs with index.html through the `**` rewrite: a 200
+   that is HTML, so the header button was there and its arrow invisible. Fixed 13 Sep 2026.
+   **Desktop is the web build; there is no installer (changed Sep 2026).** Firebase Hosting
    serves `../MSM Win Web/dist` (`firebase.json` here, `npm run deploy` there). A deploy stamps
    `dist/version.json`; an open tab compares it and offers a reload (`utils/webUpdate.ts` +
    `components/UpdateBanner.tsx`), and `npm run exe` wraps the same site into a single
