@@ -12,6 +12,8 @@ import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, DefaultTheme, useNavigation, useIsFocused, useNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator, TransitionPresets } from '@react-navigation/stack';
+// The stack's own back button, used directly so it can be shown when the stack cannot go back.
+import { HeaderBackButton } from '@react-navigation/elements';
 import { GestureHandlerRootView, Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MciIcon } from './components/MciIcon';
@@ -22,6 +24,7 @@ import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { DataProvider, useData } from './contexts/DataContext';
 import { SyncProvider } from './contexts/SyncContext';
 import { applyOrientationPolicy } from './utils/orientation';
+import { goBackOr } from './utils/nav';
 import { ensureTrialStarted } from './services/trial';
 import { parseDeepLink, DeepLink } from './services/qrLabel';
 
@@ -337,16 +340,29 @@ function Root() {
   // (with the automatic back arrow) for them on web only. Modals keep their own
   // close controls, and the tab host (Main) stays header-less. On native this is
   // null → unchanged (swipe-back as before).
-  const webHeader = (title: string) =>
+  // `back` is where the arrow goes when there is nothing behind the screen. The
+  // stack's own arrow only appears when it can go back, and a reloaded page — or
+  // a link opened straight to /category/fire_dampers — hands the stack exactly
+  // one screen: the header then had a title and no way out at all.
+  type Back = { screen: string; params?: object };
+  const webHeader = (title: string, back: Back = { screen: 'Main' }) =>
     Platform.OS === 'web'
-      ? {
+      ? ({ navigation }: { navigation: any }) => ({
           headerShown: true,
           title,
           headerStyle: { backgroundColor: COLORS.tabBackground },
           headerTintColor: COLORS.primary,
           headerTitleStyle: { color: COLORS.text },
-        }
+          headerLeft: (props: any) => (
+            <HeaderBackButton
+              {...props}
+              tintColor={COLORS.primary}
+              onPress={() => goBackOr(navigation, back.screen, back.params)}
+            />
+          ),
+        })
       : undefined;
+  const toTab = (screen: string): Back => ({ screen: 'Main', params: { screen } });
 
   // Follow the pending link once the app is usable (splash gone, consent given)
   // and the navigator is ready. A link that arrives earlier waits here rather than
@@ -395,13 +411,13 @@ function Root() {
         }}
       >
         <Stack.Screen name="Main" component={MainTabs} />
-        <Stack.Screen name="CategoryItems" component={CategoryItemsSc} options={webHeader('Equipment')} />
+        <Stack.Screen name="CategoryItems" component={CategoryItemsSc} options={webHeader('Equipment', toTab('Equipment'))} />
         <Stack.Screen name="ItemDetail" component={ItemDetailSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Import" component={ImportSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Manual" component={ManualSc} options={webHeader('Manual')} />
         <Stack.Screen name="GettingStarted" component={GettingStartedSc} options={webHeader('Getting Started')} />
         <Stack.Screen name="Legal" component={LegalSc} options={webHeader('Legal')} />
-        <Stack.Screen name="Compressor" component={CompressorSc} options={webHeader('BA Compressor')} />
+        <Stack.Screen name="Compressor" component={CompressorSc} options={webHeader('BA Compressor', toTab('Settings'))} />
         <Stack.Screen name="Paywall" component={PaywallSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="CertificateDetail" component={CertificateDetailSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Label" component={LabelSc} options={{ presentation: 'modal' }} />
@@ -410,13 +426,13 @@ function Root() {
         <Stack.Screen name="RecentScans" component={RecentScansSc} options={webHeader('Recently scanned')} />
         <Stack.Screen name="Inspection" component={InspectionSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="InspectionDetail" component={InspectionDetailSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Crew" component={CrewSc} options={webHeader('Crew')} />
-        <Stack.Screen name="Checklists" component={ChecklistsSc} options={webHeader('Checklists')} />
-        <Stack.Screen name="CategoriesEdit" component={CategoriesEditSc} options={webHeader('Categories')} />
-        <Stack.Screen name="ChecklistEdit" component={ChecklistEditSc} options={webHeader('Checklist')} />
+        <Stack.Screen name="Crew" component={CrewSc} options={webHeader('Crew', toTab('Settings'))} />
+        <Stack.Screen name="Checklists" component={ChecklistsSc} options={webHeader('Checklists', toTab('Settings'))} />
+        <Stack.Screen name="CategoriesEdit" component={CategoriesEditSc} options={webHeader('Categories', toTab('Settings'))} />
+        <Stack.Screen name="ChecklistEdit" component={ChecklistEditSc} options={webHeader('Checklist', { screen: 'Checklists' })} />
         <Stack.Screen name="Defects" component={DefectsSc} options={webHeader('Open defects')} />
-        <Stack.Screen name="Accounts" component={AccountsSc} options={webHeader('Accounts')} />
-        <Stack.Screen name="Enrol" component={EnrolSc} options={webHeader('Join this vessel')} />
+        <Stack.Screen name="Accounts" component={AccountsSc} options={webHeader('Accounts', toTab('Settings'))} />
+        <Stack.Screen name="Enrol" component={EnrolSc} options={webHeader('Join this vessel', toTab('Settings'))} />
       </Stack.Navigator>
       {showSplash ? (
         <View style={StyleSheet.absoluteFill}>

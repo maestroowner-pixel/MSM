@@ -16,13 +16,13 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-export function goBackOr(nav: any, fallback: string = 'Main'): void {
+export function goBackOr(nav: any, fallback: string = 'Main', params?: object): void {
   if (nav?.canGoBack?.()) {
     nav.goBack();
     return;
   }
   try {
-    nav?.navigate?.(fallback);
+    nav?.navigate?.(fallback, params);
   } catch {
     /* nothing to fall back to — better a dead button than a crash */
   }

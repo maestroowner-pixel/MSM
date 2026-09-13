@@ -14,6 +14,7 @@ import { statusFromDate, formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { Certificate } from '../types/certificate';
 import { canAddCertificate } from '../services/trial';
+import { MciIcon } from '../components/MciIcon';
 
 export default function CertificatesSc() {
   const { certificates } = useData();
@@ -67,7 +68,7 @@ export default function CertificatesSc() {
         </View>
         <HelpButton section={4} />
         <TouchableOpacity style={[styles.addBtn, { marginLeft: SIZES.sm }]} onPress={addCertificate}>
-          <Text style={styles.addBtnText}>+</Text>
+          <MciIcon name="plus" size={26} color={COLORS.textWhite} />
         </TouchableOpacity>
       </View>
 
@@ -131,7 +132,6 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   title: { fontSize: SIZES.h2, fontWeight: '700', color: COLORS.textDark },
   sub: { fontSize: SIZES.small, color: COLORS.textLight },
   addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
-  addBtnText: { color: COLORS.textWhite, fontSize: 26, lineHeight: 28, fontWeight: '600' },
   search: {
     ...COLORS.glassInput,
     borderRadius: SIZES.radiusMd,

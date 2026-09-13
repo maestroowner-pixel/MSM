@@ -330,7 +330,9 @@ export default function CategoryItemsSc() {
               </TouchableOpacity>
             ) : null}
             <TouchableOpacity style={[styles.addBtn, { marginLeft: SIZES.sm }]} onPress={addItem}>
-              <Text style={styles.addBtnText}>+</Text>
+              {/* An icon, not a "+" glyph: a font's plus sits on its baseline, not in the
+                  middle of its line box, so the text version rode low in the circle. */}
+              <MciIcon name="plus" size={26} color={COLORS.textWhite} />
             </TouchableOpacity>
           </>
         )}
@@ -442,7 +444,6 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addBtnText: { color: COLORS.textWhite, fontSize: 26, lineHeight: 28, fontWeight: '600' },
   search: {
     ...COLORS.glassInput,
     borderRadius: SIZES.radiusMd,

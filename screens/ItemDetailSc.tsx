@@ -404,7 +404,7 @@ export default function ItemDetailSc() {
                 if (i === list.length) {
                   return (
                     <TouchableOpacity key={`add${i}`} style={[styles.attAdd, box]} onPress={chooseAttachment}>
-                      <Text style={styles.attAddPlus}>+</Text>
+                      <MciIcon name="plus" size={24} color={COLORS.primary} />
                       <Text style={styles.attAddText}>Add</Text>
                     </TouchableOpacity>
                   );
@@ -842,7 +842,6 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  attAddPlus: { fontSize: 24, color: COLORS.primary, lineHeight: 26 },
   attAddText: { fontSize: SIZES.tiny, color: COLORS.primary, fontWeight: '600' },
   attEmpty: {
     borderRadius: SIZES.radiusSm,
