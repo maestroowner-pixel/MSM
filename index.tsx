@@ -357,6 +357,14 @@ function Root() {
             <HeaderBackButton
               {...props}
               tintColor={COLORS.primary}
+              // Drawn as an SVG icon, not the library's PNG. That PNG lives under
+              // assets/node_modules/, which Hosting once refused to deploy; the
+              // HTML it served instead was cached as "immutable" for a year, so a
+              // browser that saw it once keeps an invisible arrow whatever is
+              // deployed later. An inline icon has no file to go wrong.
+              backImage={({ tintColor }: { tintColor?: string }) => (
+                <MciIcon name="arrow-left" size={24} color={tintColor ?? COLORS.primary} style={{ marginHorizontal: 11 }} />
+              )}
               onPress={() => goBackOr(navigation, back.screen, back.params)}
             />
           ),
