@@ -46,6 +46,7 @@ import { openFile, resolveUri } from '../services/attachments';
 import { ensureLocalPhoto } from '../services/photoStorage';
 import { formatDateTime } from '../utils/dates';
 import { goBackOr } from '../utils/nav';
+import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
 
 const RESULT_META: Record<CheckResult, { label: string; icon: string }> = {
   pass: { label: 'PASS', icon: 'check-circle' },
@@ -155,11 +156,13 @@ export default function InspectionDetailSc() {
               <CategoryBadge category={insp.category} size={24} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.itemName}>
-                  {item?.type || item?.serial || CATEGORY_MAP[insp.category]?.label || 'Item'}
+                  {[itemNumber(item) && `No. ${itemNumber(item)}`, typeWithSize(item) || item?.serial]
+                    .filter(Boolean)
+                    .join(' — ') || CATEGORY_MAP[insp.category]?.label || 'Item'}
                 </Text>
                 <Text style={styles.meta}>
                   {item
-                    ? [CATEGORY_MAP[insp.category]?.label, item.position, item.serial ? `S/N ${item.serial}` : null]
+                    ? [CATEGORY_MAP[insp.category]?.label, itemLocation(item), item.serial ? `S/N ${item.serial}` : null]
                         .filter(Boolean)
                         .join(' · ')
                     : 'No longer in the register'}

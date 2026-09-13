@@ -57,14 +57,30 @@ export default function ChecklistEditSc() {
     [category, period, templates]
   );
   const isOwn = isVesselTemplate(current);
+  // No standard checklist exists for this period: the vessel is ADDING a round
+  // (a weekly EEBD check, say), not rewording one. Removing it removes the round.
+  const builtIn = templateFor(category, period);
+  const noStandard = builtIn.id.endsWith('.generic');
+  const adding = !isOwn && noStandard;
+  // Start a new round from the category's existing checks rather than from the
+  // generic lines — an EEBD weekly is the EEBD monthly with fewer questions.
+  const seed = useMemo(() => {
+    const from: InspectionPeriod | undefined = route.params?.seedFrom;
+    if (!adding || !from) return current;
+    const src = templateFor(category, from, templates);
+    const label = CATEGORY_MAP[category]?.label ?? src.title.split(' — ')[0];
+    return { ...current, title: `${label} — ${PERIOD_LABEL[period].toLowerCase()}`, lines: src.lines };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Seeded from whatever is in force — the vessel's own if it has one, the
   // built-in if not. Nobody starts from a blank page: in practice a vessel
   // changes three lines out of thirty, and typing the other twenty-seven back in
   // is how a good idea turns into a job nobody finishes.
-  const [title, setTitle] = useState(current.title);
-  const [lines, setLines] = useState<ChecklistLine[]>(current.lines.map((l) => ({ ...l })));
-  const [dirty, setDirty] = useState(false);
+  const [title, setTitle] = useState(seed.title);
+  const [lines, setLines] = useState<ChecklistLine[]>(seed.lines.map((l) => ({ ...l })));
+  // A round being added has nothing saved yet, so it is saveable as it stands.
+  const [dirty, setDirty] = useState(adding);
 
   const touch = () => setDirty(true);
 
@@ -117,13 +133,15 @@ export default function ChecklistEditSc() {
 
   const onReset = () => {
     Alert.alert(
-      'Use the standard checklist again?',
-      'This vessel’s wording is removed and the round goes back to the checklist the app ships. ' +
+      noStandard ? `Remove the ${PERIOD_LABEL[period].toLowerCase()} round?` : 'Use the standard checklist again?',
+      (noStandard
+        ? 'This vessel added this round; removing it means it is no longer asked or reported. '
+        : 'This vessel’s wording is removed and the round goes back to the checklist the app ships. ') +
         'Inspections already signed are untouched — each one carries the questions it was signed against.',
       [
         { text: 'Keep ours', style: 'cancel' },
         {
-          text: 'Use the standard',
+          text: noStandard ? 'Remove' : 'Use the standard',
           style: 'destructive',
           onPress: async () => {
             await removeTemplate(current.id);
@@ -157,7 +175,11 @@ export default function ChecklistEditSc() {
           placeholderTextColor={COLORS.textLight}
         />
         <Text style={styles.note}>
-          {isOwn
+          {adding
+            ? `A new ${PERIOD_LABEL[period].toLowerCase()} round for ${meta?.label ?? 'this category'}, ` +
+              'started from its existing checks. Remove or reword lines, then save — from then on it is ' +
+              'offered when inspecting and appears in the ' + PERIOD_LABEL[period].toLowerCase() + ' report.'
+            : isOwn
             ? 'This vessel wrote this checklist. Editing it changes what the next round asks; ' +
               'rounds already signed keep the questions they were signed against.'
             : 'This is the standard checklist. Saving any change makes a copy for this vessel — ' +
@@ -225,7 +247,9 @@ export default function ChecklistEditSc() {
 
         {canEdit && isOwn ? (
           <TouchableOpacity style={styles.resetBtn} onPress={onReset}>
-            <Text style={styles.resetBtnText}>Use the standard checklist again</Text>
+            <Text style={styles.resetBtnText}>
+              {noStandard ? `Remove this ${PERIOD_LABEL[period].toLowerCase()} round` : 'Use the standard checklist again'}
+            </Text>
           </TouchableOpacity>
         ) : null}
       </ScrollView>

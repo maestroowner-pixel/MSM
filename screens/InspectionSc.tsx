@@ -49,7 +49,7 @@ import { SIZES, Palette } from '../theme';
 import { CATEGORY_MAP } from '../constants/categories';
 import { periodsFor, templateFor } from '../constants/checklists';
 import { CheckResult, InspectionPeriod, PERIOD_LABEL } from '../types/inspection';
-import { Attachment } from '../types/equipment';
+import { Attachment, EquipmentItem } from '../types/equipment';
 import { crewLabel } from '../types/crew';
 import * as inspections from '../services/inspections';
 import * as photoQueue from '../services/photoQueue';
@@ -64,12 +64,16 @@ import { onWeb } from '../utils/fileShare';
 import { uid } from '../utils/id';
 import { playErrorSound, playSuccessSound } from '../utils/sound';
 import { goBackOr } from '../utils/nav';
+import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
 
 const MAX_PHOTOS = 4;
 
-/** Short label for the item, for the header and the confirmation. */
-function itemTitle(type?: string, serial?: string, no?: number | string): string {
-  return type || (serial ? `S/N ${serial}` : null) || (no != null ? `No. ${no}` : null) || 'Item';
+/** Short label for the item, for the header and the confirmation. The item
+ *  number leads — among identical items it is the only thing that tells which. */
+function itemTitle(item: EquipmentItem): string {
+  const no = itemNumber(item);
+  const name = typeWithSize(item) || (item.serial ? `S/N ${item.serial}` : '');
+  return [no && `No. ${no}`, name].filter(Boolean).join(' — ') || 'Item';
 }
 
 export default function InspectionSc() {
@@ -224,7 +228,7 @@ export default function InspectionSc() {
     // Spelled out, because it cannot be undone afterwards.
     Alert.alert(
       anyFail ? 'Sign as FAILED' : 'Sign as passed',
-      `${PERIOD_LABEL[period]} inspection of ${itemTitle(item?.type, item?.serial, item?.no)}, ` +
+      `${PERIOD_LABEL[period]} inspection of ${item ? itemTitle(item) : 'Item'}, ` +
         `signed by ${crewLabel(signer)} at ${new Date().toLocaleString()}.\n\n` +
         'A signed record cannot be edited or deleted. To correct a mistake, inspect the item again.',
       [
@@ -289,10 +293,10 @@ export default function InspectionSc() {
             <CategoryBadge category={item.category} size={26} />
             <View style={{ flex: 1 }}>
               <Text style={styles.itemName} numberOfLines={2}>
-                {itemTitle(item.type, item.serial, item.no)}
+                {itemTitle(item)}
               </Text>
               <Text style={styles.itemMeta}>
-                {[meta.label, item.position, item.serial ? `S/N ${item.serial}` : null]
+                {[meta.label, itemLocation(item), item.serial ? `S/N ${item.serial}` : null]
                   .filter(Boolean)
                   .join(' · ')}
               </Text>

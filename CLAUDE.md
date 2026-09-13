@@ -174,6 +174,17 @@ The source workbook (`LSA FFE Inventories.xlsx`, 25 sheets) is heterogeneous. Th
   (Liferafts+HRU, GMDSS radios+SART+EPIRB, FIFI sets+bottles) by rebuilding the column map per
   section, and carries forward merged `type` cells within a section.
 - First Aid sheet has no header row → `mapFirstAid` special case.
+- **Exact headings win before keywords** (`EXACT_PATTERNS`, Sep 2026): a vessel's own list
+  ("# · Deck · Location · Description · Make · Type · Size · Serial · Exp / Inspc.") imported
+  "Make" as the type by keyword order. Guards that keep the reference workbook identical: `make`
+  is exact only when a Type column exists; `type` is exact only beside an exact Make; `#` is the
+  item number when a Serial column exists, otherwise the serial (Harnesses); make/size/deck do
+  not count toward "is this row an item" (a stray number under "Volume" made a section title an item).
+- **Sheets with no category of their own** are sorted row by row (`sortRows`, `CATEGORY_WORDS`)
+  from description/type, then the sheet name, else `other_safety`. Re-check the reference file
+  after touching any of this: 627 items; the only intended differences are Volume→size, Brand→make.
+- **Web reads the file bytes itself** (`pickBinaryFileWeb` → `parseWorkbookBytes`):
+  `expo-file-system.readAsStringAsync` does not exist in a browser.
 - Validated against the real file: **627 items across all 23 sheets** (run `npx tsc --noEmit`
   to typecheck; counts e.g. liferafts 12, immersion 93, fire detectors 108).
 

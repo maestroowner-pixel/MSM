@@ -32,6 +32,7 @@ import QRCode from 'qrcode';
 import { EquipmentItem } from '../types/equipment';
 import { CATEGORY_MAP } from '../constants/categories';
 import { complianceDate, fileDateStamp, formatDate } from '../utils/dates';
+import { itemIdentifiers, itemLocation, typeWithSize } from '../utils/itemText';
 import { deliverFile, onWeb, onWindows } from '../utils/fileShare';
 import { printHtmlWeb } from '../utils/webFile';
 import { canSaveLabelsPng, saveLabelsPng } from '../utils/labelImage';
@@ -126,7 +127,7 @@ export interface LabelStock {
 export const LABEL_STOCKS: Record<LabelSize, LabelStock> = {
   '100x50': {
     label: '100 × 50 mm',
-    hint: 'Full detail — type, serial, category, position and the compliance date.',
+    hint: 'Full detail — item no., type and size, serial, category, location and the compliance date.',
     widthMm: 100,
     heightMm: 50,
     qrMm: 34,
@@ -134,7 +135,7 @@ export const LABEL_STOCKS: Record<LabelSize, LabelStock> = {
   },
   '60x40': {
     label: '60 × 40 mm',
-    hint: 'Medium — type, serial, the compliance date and category. For most gear.',
+    hint: 'Medium — item no., type and size, serial, the compliance date and location. For most gear.',
     widthMm: 60,
     heightMm: 40,
     qrMm: 26,
@@ -142,7 +143,7 @@ export const LABEL_STOCKS: Record<LabelSize, LabelStock> = {
   },
   '50x30': {
     label: '50 × 30 mm',
-    hint: 'Compact — QR, type and serial only. For small or crowded gear.',
+    hint: 'Compact — QR, type and size, item no. and serial only. For small or crowded gear.',
     widthMm: 50,
     heightMm: 30,
     qrMm: 20,
@@ -150,7 +151,7 @@ export const LABEL_STOCKS: Record<LabelSize, LabelStock> = {
   },
   '40x30': {
     label: '40 × 30 mm',
-    hint: 'Small — QR, type and serial. For crowded racks.',
+    hint: 'Small — QR, type and size, item no. and serial. For crowded racks.',
     widthMm: 40,
     heightMm: 30,
     qrMm: 18,
@@ -454,14 +455,15 @@ const esc = (v: unknown): string =>
  *  the chain of identifiers the register actually holds, and to the id only as a
  *  last resort — an id is stable but means nothing to a human. */
 export function humanId(item: EquipmentItem): string {
-  if (item.serial) return `S/N ${item.serial}`;
-  if (item.no != null && item.no !== '') return `No. ${item.no}`;
-  return item.id;
+  // Both, number first: on a rack of identical extinguishers the vessel's own
+  // number is what a person matches against the bulkhead, the serial what they
+  // match against a certificate. Showing only one left the other side guessing.
+  return itemIdentifiers(item) || item.id;
 }
 
-/** The item's own name, however this register happens to record it. */
+/** The item's own name with its size ("CO2 5kg"), however this register records it. */
 export function labelTitle(item: EquipmentItem): string {
-  return item.type || CATEGORY_MAP[item.category]?.label || 'Item';
+  return typeWithSize(item) || CATEGORY_MAP[item.category]?.label || 'Item';
 }
 
 /**
@@ -483,7 +485,8 @@ export function labelLines(item: EquipmentItem): { strong: string[]; weak: strin
 
   const weak: string[] = [];
   if (meta?.label) weak.push(meta.label);
-  if (item.position) weak.push(item.position);
+  const location = itemLocation(item);
+  if (location) weak.push(location);
   // Liferafts carry a capacity, and it is the one number a person wants off the
   // sticker in an emergency. Everything else quantity-ish stays off the label.
   if (item.persons != null) weak.push(`${item.persons} pers.`);

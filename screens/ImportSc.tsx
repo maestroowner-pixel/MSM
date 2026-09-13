@@ -10,9 +10,10 @@ import { useNavigation } from '@react-navigation/native';
 import { BackButton, Card, CategoryBadge, Screen, ScreenTitle } from '../components/ui';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
-import { parseWorkbookBase64, ImportPreview } from '../services/excelImport';
+import { parseWorkbookBase64, parseWorkbookBytes, ImportPreview } from '../services/excelImport';
 import { exportTemplate } from '../services/export';
-import { pickFileBase64, onWindows } from '../utils/fileShare';
+import { pickFileBase64, onWindows, onWeb } from '../utils/fileShare';
+import { pickBinaryFileWeb } from '../utils/webFile';
 import { CATEGORY_MAP } from '../constants/categories';
 import * as storage from '../services/storage';
 import { useData } from '../contexts/DataContext';
@@ -41,6 +42,19 @@ export default function ImportSc() {
         setBusy(true);
         setFileName(picked.name);
         setPreview(parseWorkbookBase64(picked.base64));
+        return;
+      }
+      // Browser: read the bytes ourselves. expo-file-system has no
+      // readAsStringAsync on web — the import died on exactly that call.
+      if (onWeb) {
+        const file = await pickBinaryFileWeb('.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel');
+        if (!file) return;
+        if (!file.bytes || !file.bytes.byteLength) {
+          throw new Error(`"${file.name}" is empty (0 of ${file.size} bytes could be read).`);
+        }
+        setBusy(true);
+        setFileName(file.name);
+        setPreview(parseWorkbookBytes(file.bytes));
         return;
       }
       const res = await DocumentPicker.getDocumentAsync({
@@ -162,6 +176,13 @@ export default function ImportSc() {
             ))}
           </Card>
 
+          {preview.sortedSheets.length ? (
+            <Text style={styles.sorted}>
+              Sorted by description from: {preview.sortedSheets.join(', ')}. Anything that could not be
+              recognised is under Other Safety Equipment.
+            </Text>
+          ) : null}
+
           {preview.missingSheets.length ? (
             <Text style={styles.missing}>Sheets not found: {preview.missingSheets.join(', ')}</Text>
           ) : null}
@@ -173,7 +194,9 @@ export default function ImportSc() {
       ) : (
         <Text style={styles.help}>
           Select your “LSA FFE Inventories.xlsx”, or download the blank template above, fill it in (one
-          worksheet per category) and import it back. Each worksheet maps to an equipment category. Dates
+          worksheet per category) and import it back. Your own list works too — one sheet with columns such
+          as #, Deck, Location, Description, Make, Type, Size, Serial and Exp / Inspc.; each row is sorted
+          into its category by its description. Each worksheet maps to an equipment category. Dates
           are converted automatically; you can edit any item afterwards.
         </Text>
       )}
@@ -220,6 +243,7 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   rowLabel: { flex: 1, fontSize: SIZES.body, color: COLORS.text },
   rowCount: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.primaryDark },
   missing: { fontSize: SIZES.tiny, color: COLORS.warning, marginBottom: SIZES.sm },
+  sorted: { fontSize: SIZES.tiny, color: COLORS.textLight, marginBottom: SIZES.sm, lineHeight: 16 },
   applyBtn: {
     backgroundColor: COLORS.success,
     borderRadius: SIZES.radiusMd,

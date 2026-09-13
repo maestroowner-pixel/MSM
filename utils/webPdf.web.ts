@@ -13,7 +13,7 @@ function hexToRgb(hex: string): [number, number, number] {
 }
 
 // r: { title, vesselHeader, today, fileName, statusLabel, statusHex,
-//      groups: [{ label, rows: [{no,type,serial,position,mfg,due,status,remarks}] }] }
+//      groups: [{ label, rows: [{no,type,size,serial,position,mfg,due,status,remarks}] }] }
 export function downloadPdfWeb(r: any): void {
   const { jsPDF } = require('jspdf');
   const autoTableMod = require('jspdf-autotable');
@@ -41,10 +41,11 @@ export function downloadPdfWeb(r: any): void {
 
     autoTable(doc, {
       startY: y + 2,
-      head: [['No', 'Type', 'Serial', 'Position', 'Mfg', 'Due', 'Status', 'Remarks']],
+      head: [['No', 'Type', 'Size', 'Serial', 'Location', 'Mfg', 'Due', 'Status', 'Comments']],
       body: g.rows.map((row: any) => [
         row.no ?? '',
         row.type ?? '',
+        row.size ?? '',
         row.serial ?? '',
         row.position ?? '',
         row.mfg ?? '',
@@ -54,11 +55,11 @@ export function downloadPdfWeb(r: any): void {
       ]),
       styles: { fontSize: 7, cellPadding: 1, overflow: 'linebreak' },
       headStyles: { fillColor: [218, 238, 247], textColor: 40, fontStyle: 'bold' },
-      columnStyles: { 7: { cellWidth: 55 } },
+      columnStyles: { 8: { cellWidth: 55 } },
       margin: { left: 12, right: 12 },
       theme: 'grid',
       didParseCell: (data: any) => {
-        if (data.section === 'body' && data.column.index === 6) {
+        if (data.section === 'body' && data.column.index === 7) {
           const st = g.rows[data.row.index]?.status;
           const hex = r.statusHex[st];
           if (hex) {

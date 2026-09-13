@@ -85,6 +85,8 @@ export interface PickedTextFile {
   name: string;
   size: number;
   text: string;
+  /** Present only from `pickBinaryFileWeb`. */
+  bytes?: ArrayBuffer;
 }
 
 /**
@@ -109,6 +111,20 @@ export interface PickedTextFile {
  * the caller can say which of the two happened instead of going quiet.
  */
 export function pickTextFileWeb(accept: string): Promise<PickedTextFile | null> {
+  return pickFileWeb(accept, false);
+}
+
+/**
+ * The same picker, returning the file's raw BYTES — for a spreadsheet, which is a
+ * zip and would be mangled by any text decoding. This is the browser's route for
+ * Excel import: `expo-file-system` has no `readAsStringAsync` on web, and the
+ * import used to fail on it with "not available on web" before reading a byte.
+ */
+export function pickBinaryFileWeb(accept: string): Promise<PickedTextFile | null> {
+  return pickFileWeb(accept, true);
+}
+
+function pickFileWeb(accept: string, binary: boolean): Promise<PickedTextFile | null> {
   return new Promise((resolve, reject) => {
     const doc: any = (globalThis as any).document;
     if (!doc) return resolve(null);
@@ -144,6 +160,28 @@ export function pickTextFileWeb(accept: string): Promise<PickedTextFile | null> 
 
     const read = (file: any) => {
       picked = true;
+      if (binary) {
+        // `arrayBuffer()` where it exists, FileReader where it does not — and a
+        // failure is reported, never swallowed, same as the text path.
+        const viaReader = () => {
+          try {
+            const fr = new (globalThis as any).FileReader();
+            fr.onload = () => finish({ name: file.name, size: file.size, text: '', bytes: fr.result as ArrayBuffer });
+            fr.onerror = () => fail(new Error(`Could not read "${file.name}" — the browser refused to open it.`));
+            fr.readAsArrayBuffer(file);
+          } catch (e) {
+            fail(e);
+          }
+        };
+        if (typeof file.arrayBuffer === 'function') {
+          file.arrayBuffer()
+            .then((bytes: ArrayBuffer) => finish({ name: file.name, size: file.size, text: '', bytes }))
+            .catch(viaReader);
+        } else {
+          viaReader();
+        }
+        return;
+      }
       // `File.text()` is the short road, but it is missing in older WebViews and
       // returns nothing useful when it is. FileReader is the one that works
       // everywhere, and a failure here must be reported, never swallowed.

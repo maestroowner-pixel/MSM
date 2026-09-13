@@ -18,6 +18,7 @@ import { complianceDate, computeStatus, daysUntil, formatDate } from '../utils/d
 import { CategoryKey, ComplianceStatus, EquipmentItem } from '../types/equipment';
 import { uid } from '../utils/id';
 import { canAddItem } from '../services/trial';
+import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
 
 type SortBy = 'date' | 'position' | 'name' | 'type' | 'round';
 const SORT_ORDER: SortBy[] = ['date', 'position', 'name', 'type', 'round'];
@@ -88,7 +89,7 @@ export default function CategoryItemsSc() {
     const needle = q.trim().toLowerCase();
     if (!needle) return list;
     return list.filter((it) =>
-      [it.type, it.serial, it.position, String(it.no)].some((v) => v?.toLowerCase().includes(needle))
+      [it.type, it.serial, it.position, it.deck, it.make, it.size, it.no != null ? String(it.no) : undefined].some((v) => v?.toLowerCase().includes(needle))
     );
   }, [byCategory, category, q]);
 
@@ -240,7 +241,7 @@ export default function CategoryItemsSc() {
       <View style={{ flex: 1 }}>
         <View style={styles.titleRow}>
           <Text style={styles.rowTitle} numberOfLines={1}>
-            {e.it.type || (e.it.no != null ? `#${e.it.no}` : 'Item')}
+            {[itemNumber(e.it) && `No. ${itemNumber(e.it)}`, typeWithSize(e.it)].filter(Boolean).join(' — ') || 'Item'}
           </Text>
           {e.it.flagged ? (
             <View style={styles.flagBadge}>
@@ -259,7 +260,7 @@ export default function CategoryItemsSc() {
           ) : null}
         </View>
         <Text style={styles.rowSub} numberOfLines={1}>
-          {[e.it.serial && `S/N ${e.it.serial}`, e.it.position].filter(Boolean).join(' · ') || '—'}
+          {[e.it.serial && `S/N ${e.it.serial}`, itemLocation(e.it)].filter(Boolean).join(' · ') || '—'}
         </Text>
       </View>
       <View style={{ alignItems: 'flex-end' }}>

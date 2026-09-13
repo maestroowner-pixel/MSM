@@ -49,14 +49,17 @@ export interface EquipmentItem {
   category: CategoryKey;
   no?: number | string; // sheet "No." column
   type?: string; // type / description / make+model
+  make?: string; // manufacturer (Viking, Dräger …)
+  size?: string; // free text on purpose: "5kg", "9L", "XL", "150N" — units differ per item
   serial?: string; // serial / ID number
+  deck?: string; // deck the item is on ("Sun Deck") — read together with `position`
   position?: string; // location on vessel
   quantity?: number;
   persons?: number; // liferaft capacity
   manufactureDate?: string; // ISO yyyy-mm-dd
   nextInspection?: string; // ISO — primary compliance date
   expiry?: string; // ISO — battery/light/pyro/bottle expiry
-  remarks?: string;
+  remarks?: string; // shown as "Comments" — the stored key is kept so no data migrates
   extra?: Record<string, any>; // category-specific columns
   monthlyChecks?: Record<string, boolean>; // e.g. { "2025-07": true } for checklist sheets
   attachments?: Attachment[]; // photos / documents attached to this item

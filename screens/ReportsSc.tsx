@@ -26,6 +26,7 @@ import {
   printReport as printInspectionReport,
 } from '../services/inspectionReport';
 import { InspectionPeriod, PERIOD_LABEL } from '../types/inspection';
+import { windowFor } from '../services/inspections';
 import { CategoryKey } from '../types/equipment';
 
 export default function ReportsSc() {
@@ -40,18 +41,34 @@ export default function ReportsSc() {
   const [mode, setMode] = useState<'register' | 'inspections'>('register');
   const [scope, setScope] = useState<ReportScope>('LSA');
   const [period, setPeriod] = useState<InspectionPeriod>('monthly');
+  // Which month or week — any past one, not only the current. A vessel files
+  // September's record in October, and needs to be able to print it then.
+  const [ref, setRef] = useState<Date>(() => new Date());
+  const win = useMemo(() => windowFor(period, ref), [period, ref]);
+  const isCurrent = Date.now() >= win.from && Date.now() < win.to;
+  const step = (by: -1 | 1) => {
+    if (by > 0 && isCurrent) return; // nothing to report on in the future
+    setRef((r) =>
+      period === 'weekly'
+        ? new Date(r.getFullYear(), r.getMonth(), r.getDate() + 7 * by)
+        : new Date(r.getFullYear(), r.getMonth() + by, 1)
+    );
+  };
 
   // Live preview of the numbers that will be printed. Built from the same
   // function the export uses, so what is on screen cannot drift from the file.
   const preview = useMemo(
-    () => buildReport(flat, trail, { scope, period, templates }),
-    [flat, trail, scope, period, templates]
+    () => buildReport(flat, trail, { scope, period, templates, ref }),
+    [flat, trail, scope, period, templates, ref]
   );
 
   const runInspectionReport = async (kind: 'pdf' | 'xlsx' | 'print') => {
     setBusy(true);
     try {
-      const opts = { scope, period };
+      // The same options as the preview — templates included. Without them the
+      // file left out the rounds a vessel wrote for itself, and disagreed with
+      // the numbers shown just above the button.
+      const opts = { scope, period, templates, ref };
       if (kind === 'pdf') await exportReportPdf(flat, trail, vessel, opts);
       else if (kind === 'xlsx') await exportReportXlsx(flat, trail, vessel, opts);
       else await printInspectionReport(flat, trail, vessel, opts);
@@ -192,8 +209,45 @@ export default function ReportsSc() {
 
         {/* The numbers, before anything is generated — including the ones a
             vessel would rather not see. That is the point of showing them. */}
+        <View style={styles.navRow}>
+          <TouchableOpacity style={styles.navBtn} onPress={() => step(-1)} hitSlop={8} accessibilityLabel="Previous period">
+            <Text style={styles.navBtnText}>‹</Text>
+          </TouchableOpacity>
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <Text style={styles.windowLabel} numberOfLines={1}>{preview.periodName}</Text>
+            {!isCurrent ? (
+              <TouchableOpacity onPress={() => setRef(new Date())} hitSlop={8}>
+                <Text style={styles.selectAll}>Back to current</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          <TouchableOpacity
+            style={[styles.navBtn, isCurrent && { opacity: 0.3 }]}
+            onPress={() => step(1)}
+            disabled={isCurrent}
+            hitSlop={8}
+            accessibilityLabel="Next period"
+          >
+            <Text style={styles.navBtnText}>›</Text>
+          </TouchableOpacity>
+        </View>
+
         <Card>
-          <Text style={styles.windowLabel}>{preview.windowLabel}</Text>
+          <Text
+            style={[
+              styles.headline,
+              {
+                color:
+                  preview.passed === false
+                    ? COLORS.danger
+                    : preview.completed && preview.passed
+                      ? COLORS.success
+                      : COLORS.warning,
+              },
+            ]}
+          >
+            {preview.headline}
+          </Text>
           <View style={styles.statRow}>
             <Stat label="In scope" value={preview.inScope.length} />
             <Stat label="Inspected" value={preview.done.length} />
@@ -230,9 +284,10 @@ export default function ReportsSc() {
         )}
 
         <Text style={styles.help}>
-          The report lists every inspection signed in this period with its date, exact time and the
-          crew member who carried it out — followed by the items still outstanding, and every defect
-          left open.
+          The report opens with the period's status — completed or not, passed or failed — then lists
+          every inspection signed in it: item number, location, type, size, serial, result, comments, the
+          inspector's initials, date and time. After that come the items still outstanding, and every
+          defect left open.
         </Text>
       </Screen>
     );
@@ -341,6 +396,19 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   chipText: { fontWeight: '600', color: COLORS.text, fontSize: SIZES.small },
   chipTextOn: { color: COLORS.textWhite },
   windowLabel: { fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark },
+  headline: { fontSize: SIZES.body, fontWeight: '800' },
+  navRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginBottom: SIZES.md },
+  navBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: SIZES.radiusMd,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.cardSolid,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+  },
+  navBtnText: { fontSize: 26, lineHeight: 28, fontWeight: '700', color: COLORS.primary },
   statRow: { flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.md },
   stat: { flex: 1, alignItems: 'center' },
   statValue: { fontSize: SIZES.h3, fontWeight: '800', color: COLORS.primaryDark },

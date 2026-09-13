@@ -32,6 +32,7 @@ import { uid } from '../utils/id';
 import { pickDocument, pickFromLibrary, pickFromCamera, openFile, deleteFile, resolveUri, PickedFile } from '../services/attachments';
 import SimpleDatePicker from '../components/SimpleDatePicker';
 import { goBackOr } from '../utils/nav';
+import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -232,7 +233,19 @@ export default function ItemDetailSc() {
           <View style={styles.titleRow}>
             <CategoryBadge category={meta.key} size={26} />
             <View style={{ flex: 1 }}>
+              {/* The item number leads: forty identical extinguishers differ only by
+                  it, and it is what is painted by the equipment. */}
+              {itemNumber(draft) ? (
+                <Text style={styles.itemNo} numberOfLines={1}>No. {itemNumber(draft)}</Text>
+              ) : null}
               <Text style={styles.catLabel}>{meta.label}</Text>
+              {!isNew && (typeWithSize(draft) || draft.serial || itemLocation(draft)) ? (
+                <Text style={styles.itemSub} numberOfLines={2}>
+                  {[typeWithSize(draft), draft.serial && `S/N ${draft.serial}`, itemLocation(draft)]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </Text>
+              ) : null}
               {!isNew ? <StatusPill status={computeStatus(draft)} /> : null}
             </View>
             {/* Flag "come back to this" — a human judgement, not a compliance state.
@@ -273,10 +286,25 @@ export default function ItemDetailSc() {
               saved, so the whole block is hidden until then. */}
           {!isNew ? <InspectionCard item={draft} trail={trail} /> : null}
 
+          <Field label="Item No." value={draft.no != null ? String(draft.no) : ''} onChange={(v) => set({ no: v })} />
           <Field label="Type / Description" value={draft.type} onChange={(v) => set({ type: v })} />
-          <Field label="No." value={draft.no != null ? String(draft.no) : ''} onChange={(v) => set({ no: v })} />
+          <View style={styles.twoCol}>
+            <View style={{ flex: 1 }}>
+              <Field label="Make" value={draft.make} onChange={(v) => set({ make: v })} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Field label="Size (e.g. 5kg, 9L)" value={draft.size} onChange={(v) => set({ size: v })} />
+            </View>
+          </View>
           <Field label="Serial / ID" value={draft.serial} onChange={(v) => set({ serial: v })} />
-          <Field label="Position on vessel" value={draft.position} onChange={(v) => set({ position: v })} />
+          <View style={styles.twoCol}>
+            <View style={{ flex: 1 }}>
+              <Field label="Deck" value={draft.deck} onChange={(v) => set({ deck: v })} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Field label="Location" value={draft.position} onChange={(v) => set({ position: v })} />
+            </View>
+          </View>
 
           <View style={styles.twoCol}>
             <View style={{ flex: 1 }}>
@@ -299,7 +327,7 @@ export default function ItemDetailSc() {
             onChange={(v) => set({ expiry: v })}
           />
 
-          <Field label="Remarks" value={draft.remarks} onChange={(v) => set({ remarks: v })} multiline />
+          <Field label="Comments" value={draft.remarks} onChange={(v) => set({ remarks: v })} multiline />
 
           {meta.monthly ? (
             <View style={styles.card}>
@@ -752,6 +780,8 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   flagText: { color: COLORS.textLight, fontSize: SIZES.small, fontWeight: '700', marginLeft: 4 },
   emoji: { fontSize: 34 },
   catLabel: { fontSize: SIZES.h4, fontWeight: '700', color: COLORS.textDark, marginBottom: 4 },
+  itemNo: { fontSize: SIZES.h3, fontWeight: '800', color: COLORS.primaryDark, marginBottom: 2 },
+  itemSub: { fontSize: SIZES.small, color: COLORS.textLight, marginBottom: 4 },
   fieldWrap: { marginBottom: SIZES.md },
   input: {
     ...COLORS.glassInput,

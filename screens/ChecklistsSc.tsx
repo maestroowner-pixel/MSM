@@ -39,7 +39,13 @@ type Row = {
   category: CategoryKey;
   period: InspectionPeriod;
   template: ChecklistTemplate;
+  /** A round this category does not have yet, offered on its last row. */
+  canAdd?: InspectionPeriod;
 };
+
+// The frequencies a vessel may add to a category. Quarterly and annual stay
+// shore-side jobs with their own certificates, not crew rounds.
+const ADDABLE: InspectionPeriod[] = ['weekly', 'monthly'];
 
 const GROUP_LABEL: Record<string, string> = {
   LSA: 'Life-Saving Appliances',
@@ -71,14 +77,19 @@ export default function ChecklistsSc() {
       if (!inGroup.length) continue;
       out.push({ key: `h:${group}`, header: GROUP_LABEL[group] });
       for (const meta of inGroup) {
-        for (const period of periodsFor(meta.key, templates)) {
+        const periods = periodsFor(meta.key, templates);
+        const missing = ADDABLE.find((p) => !periods.includes(p));
+        periods.forEach((period, i) => {
           out.push({
             key: `${meta.key}.${period}`,
             category: meta.key,
             period,
             template: templateFor(meta.key, period, templates),
+            // A vessel whose SMS asks for a weekly EEBD check adds it here; it is
+            // not built in, because every other vessel would then owe it too.
+            canAdd: i === periods.length - 1 ? missing : undefined,
           });
-        }
+        });
       }
     }
     return out;
@@ -139,6 +150,22 @@ export default function ChecklistsSc() {
                   <Text style={styles.ownPillText}>Edited</Text>
                 </View>
               ) : null}
+              {canEdit && item.canAdd ? (
+                <TouchableOpacity
+                  style={styles.addPill}
+                  hitSlop={6}
+                  accessibilityLabel={`Add a ${PERIOD_LABEL[item.canAdd].toLowerCase()} round`}
+                  onPress={() =>
+                    nav.navigate('ChecklistEdit', {
+                      category: item.category,
+                      period: item.canAdd,
+                      seedFrom: item.period,
+                    })
+                  }
+                >
+                  <Text style={styles.addPillText}>＋ {PERIOD_LABEL[item.canAdd]}</Text>
+                </TouchableOpacity>
+              ) : null}
               <MciIcon name="chevron-right" size={22} color={COLORS.textLight} />
             </TouchableOpacity>
           );
@@ -169,4 +196,12 @@ const makeStyles = (COLORS: Palette) =>
       paddingVertical: 2,
     },
     ownPillText: { color: COLORS.textWhite, fontSize: SIZES.tiny, fontWeight: '800' },
+    addPill: {
+      borderRadius: SIZES.radiusRound,
+      borderWidth: 1,
+      borderColor: COLORS.primary,
+      paddingHorizontal: SIZES.sm,
+      paddingVertical: 2,
+    },
+    addPillText: { color: COLORS.primary, fontSize: SIZES.tiny, fontWeight: '800' },
   });

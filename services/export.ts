@@ -13,6 +13,7 @@ import { Certificate } from '../types/certificate';
 import { CATEGORIES, CATEGORY_MAP, CategoryMeta, GROUP_COLORS, sheetSafeName } from '../constants/categories';
 import { complianceDate, computeStatus, formatDate, fileDateStamp } from '../utils/dates';
 import { deliverFile, onWindows, onWeb } from '../utils/fileShare';
+import { itemLocation } from '../utils/itemText';
 import { printHtmlWeb } from '../utils/webFile';
 import { downloadPdfWeb } from '../utils/webPdf';
 import { resolveUri } from './attachments';
@@ -37,8 +38,13 @@ function rowsFor(items: EquipmentItem[]) {
     return {
       no: it.no ?? '',
       type: it.type ?? '',
+      make: it.make ?? '',
+      size: it.size ?? '',
       serial: it.serial ?? '',
-      position: it.position ?? '',
+      // Deck and position together — the register reads as the vessel's own list does.
+      position: itemLocation(it),
+      deck: it.deck ?? '',
+      location: it.position ?? '',
       qty: it.quantity ?? '',
       mfg: it.manufactureDate ? formatDate(it.manufactureDate) : '',
       due: complianceDate(it) ? formatDate(complianceDate(it)) : '',
@@ -85,6 +91,7 @@ function buildHtml(
           (r) => `<tr>
             <td class="n">${r.no}</td>
             <td>${esc(r.type)}</td>
+            <td>${esc(r.size)}</td>
             <td>${esc(r.serial)}</td>
             <td>${esc(r.position)}</td>
             <td>${r.mfg}</td>
@@ -97,7 +104,7 @@ function buildHtml(
       return `<h2>${CATEGORY_MAP[g.key].emoji} ${esc(g.label)} <span class="count">(${g.items.length})</span></h2>
         <table>
           <thead><tr>
-            <th class="n">No</th><th>Type</th><th>Serial</th><th>Position</th><th>Mfg</th><th>Due</th><th>Status</th><th class="rm">Remarks</th>
+            <th class="n">No</th><th>Type</th><th>Size</th><th>Serial</th><th>Location</th><th>Mfg</th><th>Due</th><th>Status</th><th class="rm">Comments</th>
           </tr></thead>
           <tbody>${body}</tbody>
         </table>`;
@@ -120,7 +127,7 @@ function buildHtml(
       }
       th { background: #DAEEF7; }
       td.n, th.n { text-align: right; }
-      /* Remarks can be long — allow it (only it) to wrap so the rest stays tight. */
+      /* Comments can be long — allow it (only it) to wrap so the rest stays tight. */
       td.rm, th.rm { white-space: normal; word-break: break-word; }
     </style></head>
     <body>
@@ -210,9 +217,11 @@ export async function exportXlsx(
       [header],
       [`Generated ${today}`],
       [],
-      ['No', 'Type', 'Serial', 'Position', 'Qty', 'Manufacture', 'Due', 'Status', 'Remarks'],
+      // Deck and Location stay separate here (unlike the PDF): this sheet is also
+      // how a register goes back in, and the importer maps each to its own field.
+      ['No', 'Type', 'Make', 'Size', 'Serial', 'Deck', 'Location', 'Qty', 'Manufacture', 'Due', 'Status', 'Comments'],
       ...rowsFor(g.items).map((r) => [
-        r.no, r.type, r.serial, r.position, r.qty, r.mfg, r.due, STATUS_LABEL[r.status], r.remarks,
+        r.no, r.type, r.make, r.size, r.serial, r.deck, r.location, r.qty, r.mfg, r.due, STATUS_LABEL[r.status], r.remarks,
       ]),
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -409,11 +418,13 @@ const PERSONS_CATS = new Set<CategoryKey>([
 ]);
 
 function templateColumns(meta: CategoryMeta): string[] {
-  const cols = ['No', 'Type', 'Serial', 'Position'];
+  // The vessel's own list reads "# · Deck · Location · Description · Make · Type ·
+  // Size · Serial" — so does the template, and every heading maps back on import.
+  const cols = ['No', 'Type', 'Make', 'Size', 'Serial', 'Deck', 'Location'];
   cols.push(PERSONS_CATS.has(meta.key) ? 'Persons' : 'Quantity');
   cols.push('Manufacture Date');
   cols.push(meta.dateField === 'nextInspection' ? 'Next Inspection' : 'Expiry');
-  cols.push('Remarks');
+  cols.push('Comments');
   return cols;
 }
 

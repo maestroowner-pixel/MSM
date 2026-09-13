@@ -34,7 +34,8 @@ import { VesselInfo } from './storage';
 import { esc, share, vesselHeader } from './export';
 import { deliverFile, onWeb, onWindows } from '../utils/fileShare';
 import { printHtmlWeb } from '../utils/webFile';
-import { fileDateStamp, formatDate, formatDateTime } from '../utils/dates';
+import { fileDateStamp, formatDate } from '../utils/dates';
+import { initialsOf, itemLocation, itemNumber } from '../utils/itemText';
 
 export type ReportScope = Group | 'ALL';
 
@@ -65,6 +66,19 @@ export interface ReportData {
   missed: EquipmentItem[];
   /** Open defects on in-scope items, whenever they were raised. */
   defects: Inspection[];
+  /** Whether every in-scope item was inspected in the window. */
+  completed: boolean;
+  /** Pass/fail of the round: each item judged by its LATEST record in the window,
+   *  so an item that failed and was re-inspected clean is not held against it.
+   *  null while nothing has been signed. */
+  passed: boolean | null;
+  /** "September 2026 Monthly Inspection – Completed – Passed": the line a vessel
+   *  files as its evidence in the PMS, stated rather than left to be worked out. */
+  headline: string;
+  /** "September 2026" / "Week 37 · 07–13 Sep 2026" — English and locale-proof,
+   *  because a report handed to a surveyor should not change language with the
+   *  browser it was printed from. */
+  periodName: string;
 }
 
 const SCOPE_LABEL: Record<ReportScope, string> = {
@@ -108,6 +122,25 @@ export function buildReport(
 
   const defects = inspections.openDefects(trail).filter((i) => scopeIds.has(i.itemId));
 
+  // `done` is newest first, so the first record seen per item is its latest.
+  const latest = new Map<string, Inspection>();
+  for (const i of done) if (!latest.has(i.itemId)) latest.set(i.itemId, i);
+  const passed = latest.size ? ![...latest.values()].some((i) => i.outcome === 'fail') : null;
+  const completed = inScope.length > 0 && missed.length === 0;
+
+  const periodName = periodNameFor(opts.period, window.from, window.to);
+  const headline = [
+    `${periodName} ${PERIOD_LABEL[opts.period]} Inspection`,
+    !inScope.length
+      ? 'Nothing in scope'
+      : completed
+        ? 'Completed'
+        : `Incomplete (${inScope.length - missed.length} of ${inScope.length} inspected)`,
+    passed == null ? null : passed ? 'Passed' : 'Failed',
+  ]
+    .filter(Boolean)
+    .join(' – ');
+
   return {
     title: `${SCOPE_LABEL[opts.scope]} ${PERIOD_LABEL[opts.period]} Inspection Report`,
     windowLabel: window.label,
@@ -117,7 +150,48 @@ export function buildReport(
     done,
     missed,
     defects,
+    completed,
+    passed,
+    headline,
+    periodName,
   };
+}
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+const MON = MONTH_NAMES.map((m) => m.slice(0, 3));
+
+/** ISO-8601 week number of a local date. */
+function isoWeek(d: Date): number {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = (t.getUTCDay() + 6) % 7;
+  t.setUTCDate(t.getUTCDate() - day + 3);
+  const firstThursday = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+  return 1 + Math.round(((t.getTime() - firstThursday.getTime()) / 86_400_000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
+}
+
+export function periodNameFor(period: InspectionPeriod, from: number, to: number): string {
+  const a = new Date(from);
+  if (period !== 'weekly') return `${MONTH_NAMES[a.getMonth()]} ${a.getFullYear()}`;
+  const b = new Date(to - 1);
+  const dd = (x: Date) => String(x.getDate()).padStart(2, '0');
+  const range =
+    a.getMonth() === b.getMonth()
+      ? `${dd(a)}–${dd(b)} ${MON[b.getMonth()]} ${b.getFullYear()}`
+      : `${dd(a)} ${MON[a.getMonth()]} – ${dd(b)} ${MON[b.getMonth()]} ${b.getFullYear()}`;
+  return `Week ${isoWeek(a)} · ${range}`;
+}
+
+/** "13 Sep 2026" and "14:05" as separate cells — the vessel's own sheet has a Date column. */
+function dateOnly(ts: number): string {
+  const d = new Date(ts);
+  return `${String(d.getDate()).padStart(2, '0')} ${MON[d.getMonth()]} ${d.getFullYear()}`;
+}
+function timeOnly(ts: number): string {
+  const d = new Date(ts);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 // ---- Row shaping (shared by both formats) ----------------------------------
@@ -127,21 +201,40 @@ function itemName(it?: EquipmentItem): string {
   return it.type || (it.serial ? `S/N ${it.serial}` : '') || (it.no != null ? `No. ${it.no}` : '') || '—';
 }
 
+/** The item columns every section shares, in the order the vessel's own list uses. */
+function itemCells(it?: EquipmentItem) {
+  return {
+    no: itemNumber(it),
+    location: itemLocation(it),
+    item: itemName(it),
+    size: it?.size ?? '',
+    serial: it?.serial ?? '',
+  };
+}
+
+/** The inspection's comment and, after it, what failed — one "Comments" cell, so
+ *  a defect written up on deck reaches the filed report in the crew's own words. */
+function commentsOf(insp: Inspection): string {
+  const defect = insp.defect || insp.outcome === 'fail' ? defectReason(insp) : '';
+  return [insp.comment?.trim(), defect && `Defect: ${defect}`].filter(Boolean).join(' — ');
+}
+
 function doneRows(data: ReportData, flat: EquipmentItem[]) {
   return data.done.map((insp) => {
     const it = flat.find((e) => e.id === insp.itemId);
     const b = inspections.resultBreakdown(insp);
     return {
-      when: formatDateTime(insp.at),
+      ...itemCells(it),
+      date: dateOnly(insp.at),
+      time: timeOnly(insp.at),
       category: CATEGORY_MAP[insp.category]?.label ?? insp.category,
-      item: itemName(it),
-      serial: it?.serial ?? '',
-      position: it?.position ?? '',
+      initials: initialsOf(insp.by),
       by: signatureLine(insp.by, insp.byRank),
       result: insp.outcome === 'fail' ? 'FAIL' : 'PASS',
       detail: `${b.passed}/${b.passed + b.failed + b.na}`,
       defect: defectReason(insp),
       comment: insp.comment ?? '',
+      comments: commentsOf(insp),
     };
   });
 }
@@ -150,12 +243,11 @@ function missedRows(data: ReportData, trail: Inspection[]) {
   return data.missed.map((it) => {
     const last = inspections.lastForItem(trail, it.id, data.period);
     return {
+      ...itemCells(it),
       category: CATEGORY_MAP[it.category]?.label ?? it.category,
-      item: itemName(it),
-      serial: it.serial ?? '',
-      position: it.position ?? '',
-      last: last ? formatDateTime(last.at) : 'Never',
-      lastBy: last ? signatureLine(last.by, last.byRank) : '',
+      last: last ? `${dateOnly(last.at)} ${timeOnly(last.at)}` : 'Never',
+      lastBy: last ? initialsOf(last.by) : '',
+      lastByFull: last ? signatureLine(last.by, last.byRank) : '',
     };
   });
 }
@@ -165,15 +257,30 @@ function defectRows(data: ReportData, flat: EquipmentItem[]) {
     const it = flat.find((e) => e.id === insp.itemId);
     const days = Math.floor((Date.now() - insp.at) / 86_400_000);
     return {
-      raised: formatDateTime(insp.at),
+      ...itemCells(it),
+      raised: `${dateOnly(insp.at)} ${timeOnly(insp.at)}`,
       age: `${days}d`,
       category: CATEGORY_MAP[insp.category]?.label ?? insp.category,
-      item: itemName(it),
-      position: it?.position ?? '',
       defect: defectReason(insp),
+      comments: insp.comment?.trim() ?? '',
+      initials: initialsOf(insp.by),
       by: signatureLine(insp.by, insp.byRank),
     };
   });
+}
+
+/** Initials are what fit in a column; an audit still needs the names behind them. */
+function signatureKey(data: ReportData, trail: Inspection[]): Array<{ initials: string; name: string }> {
+  const seen = new Map<string, string>();
+  const note = (i?: Inspection | null) => {
+    if (!i) return;
+    const name = signatureLine(i.by, i.byRank);
+    if (!seen.has(name)) seen.set(name, initialsOf(i.by));
+  };
+  data.done.forEach(note);
+  data.defects.forEach(note);
+  data.missed.forEach((it) => note(inspections.lastForItem(trail, it.id, data.period)));
+  return [...seen.entries()].map(([name, initials]) => ({ initials, name }));
 }
 
 // ---- PDF -------------------------------------------------------------------
@@ -187,14 +294,17 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
   const done = doneRows(data, flat)
     .map(
       (r) => `<tr>
-        <td class="nw">${esc(r.when)}</td>
+        <td class="nw">${esc(r.no)}</td>
+        <td>${esc(r.location)}</td>
         <td>${esc(r.category)}</td>
         <td>${esc(r.item)}</td>
-        <td>${esc(r.serial)}</td>
-        <td>${esc(r.position)}</td>
-        <td>${esc(r.by)}</td>
+        <td class="nw">${esc(r.size)}</td>
+        <td class="nw">${esc(r.serial)}</td>
         <td class="c ${r.result === 'FAIL' ? 'fail' : 'pass'}">${r.result}</td>
-        <td class="wr">${esc([r.defect, r.comment].filter(Boolean).join(' — '))}</td>
+        <td class="wr">${esc(r.comments)}</td>
+        <td class="c">${esc(r.initials)}</td>
+        <td class="nw">${esc(r.date)}</td>
+        <td class="nw">${esc(r.time)}</td>
       </tr>`
     )
     .join('');
@@ -202,12 +312,14 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
   const missed = missedRows(data, trail)
     .map(
       (r) => `<tr>
+        <td class="nw">${esc(r.no)}</td>
+        <td>${esc(r.location)}</td>
         <td>${esc(r.category)}</td>
         <td>${esc(r.item)}</td>
-        <td>${esc(r.serial)}</td>
-        <td>${esc(r.position)}</td>
+        <td class="nw">${esc(r.size)}</td>
+        <td class="nw">${esc(r.serial)}</td>
         <td class="nw">${esc(r.last)}</td>
-        <td>${esc(r.lastBy)}</td>
+        <td class="c">${esc(r.lastBy)}</td>
       </tr>`
     )
     .join('');
@@ -217,14 +329,18 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
       (r) => `<tr>
         <td class="nw">${esc(r.raised)}</td>
         <td class="c">${esc(r.age)}</td>
-        <td>${esc(r.category)}</td>
+        <td class="nw">${esc(r.no)}</td>
+        <td>${esc(r.location)}</td>
         <td>${esc(r.item)}</td>
-        <td>${esc(r.position)}</td>
-        <td class="wr">${esc(r.defect)}</td>
-        <td>${esc(r.by)}</td>
+        <td class="nw">${esc(r.serial)}</td>
+        <td class="wr">${esc([r.defect, r.comments].filter(Boolean).join(' — '))}</td>
+        <td class="c">${esc(r.initials)}</td>
       </tr>`
     )
     .join('');
+
+  const key = signatureKey(data, trail);
+  const verdictClass = data.passed === false ? 'fail' : data.completed && data.passed ? 'pass' : 'open';
 
   const section = (title: string, count: number, head: string, body: string, emptyText: string) =>
     `<h2>${esc(title)} <span class="count">(${count})</span></h2>` +
@@ -233,8 +349,13 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
       : `<p class="empty">${esc(emptyText)}</p>`);
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8" />
+    <meta name="color-scheme" content="light" />
     <style>
       @page { size: A4 landscape; margin: 12mm; }
+      /* Paper is white whatever theme the browser is in — a dark-mode browser
+         otherwise renders this document grey-on-black in its preview. */
+      :root { color-scheme: light; }
+      html, body { background: #fff; }
       body { font-family: -apple-system, Helvetica, Arial, sans-serif; color: #2C3E50; }
       h1 { color: #1F5670; margin-bottom: 2px; font-size: 18px; }
       .meta { color: #7F8C8D; font-size: 11px; margin-bottom: 10px; }
@@ -260,12 +381,21 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
       td.wr { word-break: break-word; }
       .pass { color: #27AE60; font-weight: bold; }
       .fail { color: #E74C3C; font-weight: bold; }
+      .verdict {
+        margin: 8px 0 4px; padding: 7px 10px; border-radius: 4px; font-size: 13px; font-weight: bold;
+        border: 1.5px solid #E0E6ED;
+      }
+      .verdict.pass { color: #1E8449; border-color: #27AE60; background: #EAF7EE; }
+      .verdict.fail { color: #C0392B; border-color: #E74C3C; background: #FDEDEC; }
+      .verdict.open { color: #9A6A00; border-color: #F39C12; background: #FEF5E7; }
+      .key { margin-top: 10px; font-size: 9px; color: #7F8C8D; }
       .sign { margin-top: 22px; font-size: 10px; color: #2C3E50; }
       .sign .line { display: inline-block; border-bottom: 1px solid #2C3E50; width: 220px; margin: 0 24px 0 6px; }
     </style></head>
     <body>
       <h1>${esc(data.title)}</h1>
-      <div class="meta">${esc(vesselHeader(vessel))} — ${esc(data.windowLabel)} — generated ${today}</div>
+      <div class="meta">${esc(vesselHeader(vessel))} — ${esc(data.periodName)} — generated ${today}</div>
+      <div class="verdict ${verdictClass}">${esc(data.headline)}</div>
 
       <div class="summary">
         <div class="stat"><div class="v">${data.inScope.length}</div><div class="k">In scope</div></div>
@@ -278,7 +408,7 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
       ${section(
         'Inspections carried out',
         data.done.length,
-        '<th class="nw">Date &amp; time</th><th>Category</th><th>Item</th><th>Serial</th><th>Position</th><th>Inspected by</th><th class="c">Result</th><th>Defect / comment</th>',
+        '<th class="nw">No.</th><th>Location</th><th>Category</th><th>Type</th><th>Size</th><th>Serial</th><th class="c">Result</th><th>Comments</th><th class="c">Initials</th><th>Date</th><th>Time</th>',
         done,
         'No inspections were recorded in this period.'
       )}
@@ -286,7 +416,7 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
       ${section(
         'Not inspected in this period',
         data.missed.length,
-        '<th>Category</th><th>Item</th><th>Serial</th><th>Position</th><th class="nw">Last inspected</th><th>By</th>',
+        '<th class="nw">No.</th><th>Location</th><th>Category</th><th>Type</th><th>Size</th><th>Serial</th><th class="nw">Last inspected</th><th class="c">By</th>',
         missed,
         'Every item in scope was inspected.'
       )}
@@ -294,10 +424,14 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
       ${section(
         'Outstanding defects',
         data.defects.length,
-        '<th class="nw">Raised</th><th class="c">Age</th><th>Category</th><th>Item</th><th>Position</th><th>What failed</th><th>Raised by</th>',
+        '<th class="nw">Raised</th><th class="c">Age</th><th class="nw">No.</th><th>Location</th><th>Type</th><th>Serial</th><th>What failed / comments</th><th class="c">By</th>',
         defects,
         'No outstanding defects.'
       )}
+
+      ${key.length
+        ? `<div class="key">Initials: ${key.map((k) => `${esc(k.initials)} = ${esc(k.name)}`).join(' · ')}</div>`
+        : ''}
 
       <div class="sign">
         Checked by:<span class="line"></span>Rank:<span class="line"></span>Date:<span class="line"></span>
@@ -310,7 +444,10 @@ function fileStem(data: ReportData): string {
   // Matches SCOPE_LABEL: the file is named after what it actually contains, so
   // a folder of exports can be read without opening them.
   const scope = data.scope === 'ALL' ? 'ALL' : data.scope;
-  return `MSM_${scope}_${data.period}_${fileDateStamp()}`;
+  // The period REPORTED ON, not the day it was printed: September's report run on
+  // 2 October must not file as October's.
+  const w = data.periodName.replace(/^Week (\d+).*?(\d{4})$/, 'W$1_$2').replace(/\s+/g, '_').replace(/[^A-Za-z0-9_]/g, '');
+  return `MSM_${scope}_${data.period}_${w || fileDateStamp()}`;
 }
 
 export async function exportReportPdf(
@@ -375,33 +512,39 @@ export async function exportReportXlsx(
   const summary = [
     [header],
     [data.title],
-    [data.windowLabel],
+    [data.headline],
     [`Generated ${today}`],
     [],
+    ['Period', data.periodName],
+    ['Status', data.completed ? 'Completed' : 'Incomplete'],
+    ['Result', data.passed == null ? '—' : data.passed ? 'Passed' : 'Failed'],
     ['In scope', data.inScope.length],
     ['Inspected', data.done.length],
     ['Outstanding', data.missed.length],
     ['Open defects', data.defects.length],
+    [],
+    ['Initials', 'Signed by'],
+    ...signatureKey(data, trail).map((k) => [k.initials, k.name]),
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), 'Summary');
 
   const done = [
-    ['Date & time', 'Category', 'Item', 'Serial', 'Position', 'Inspected by', 'Result', 'Lines passed', 'Defect', 'Comment'],
+    ['No.', 'Location', 'Category', 'Type', 'Size', 'Serial', 'Result', 'Lines passed', 'Comments', 'Initials', 'Date', 'Time', 'Inspected by'],
     ...doneRows(data, flat).map((r) => [
-      r.when, r.category, r.item, r.serial, r.position, r.by, r.result, r.detail, r.defect, r.comment,
+      r.no, r.location, r.category, r.item, r.size, r.serial, r.result, r.detail, r.comments, r.initials, r.date, r.time, r.by,
     ]),
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(done), 'Inspections');
 
   const missed = [
-    ['Category', 'Item', 'Serial', 'Position', 'Last inspected', 'By'],
-    ...missedRows(data, trail).map((r) => [r.category, r.item, r.serial, r.position, r.last, r.lastBy]),
+    ['No.', 'Location', 'Category', 'Type', 'Size', 'Serial', 'Last inspected', 'By'],
+    ...missedRows(data, trail).map((r) => [r.no, r.location, r.category, r.item, r.size, r.serial, r.last, r.lastByFull]),
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(missed), 'Not inspected');
 
   const defects = [
-    ['Raised', 'Age', 'Category', 'Item', 'Position', 'What failed', 'Raised by'],
-    ...defectRows(data, flat).map((r) => [r.raised, r.age, r.category, r.item, r.position, r.defect, r.by]),
+    ['Raised', 'Age', 'No.', 'Location', 'Category', 'Type', 'Serial', 'What failed', 'Comments', 'Raised by'],
+    ...defectRows(data, flat).map((r) => [r.raised, r.age, r.no, r.location, r.category, r.item, r.serial, r.defect, r.comments, r.by]),
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(defects), 'Open defects');
 
