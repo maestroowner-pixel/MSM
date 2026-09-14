@@ -169,14 +169,28 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
   const invitesRef = db.collection(`${ROOT}/${vessel}/invites`);
   const invites = await invitesRef.get();
 
-  // Is there anybody left who could approve a new device? If a vessel has no
-  // APPROVED device at all, the bootstrap code is accepted again regardless of
-  // how many invitations exist. Without this a vessel locks itself out: the sole
-  // Master clears their browser data, comes back as a new device id, and lands in
-  // a queue that only they could have emptied. Recovery previously meant editing
+  // Is there anybody left who could issue an account or set a role? If a vessel
+  // has no approved MASTER, the bootstrap code is accepted again — and grants
+  // Master again — regardless of how many invitations or devices exist. Without
+  // this a vessel locks itself out: the sole Master clears their browser data and
+  // comes back as a new device id, or taps "Make Officer" on their own row, and
+  // nobody is left who could put it right. Recovery previously meant editing
   // Firestore by hand.
+  //
+  // It is the MASTER that counts, not "any approved device". This first read
+  // "any approved device", and a vessel found the gap on 10 Sep 2026: its only
+  // device had demoted itself to Officer, it had never issued an invitation, and
+  // the bootstrap code was then accepted (no invitations) but handed back the
+  // register's role — Officer, approved, status ok. Not pending, not refused, so
+  // the takeover button never appeared, and eight enrolments in two days each
+  // re-issued the same Officer. An Officer can approve devices but cannot issue
+  // an account or change a role, so a vessel with Officers and no Master is as
+  // locked out as an empty one. Nothing new is exposed by this: the holder of
+  // the setup code could already take such a vessel over explicitly.
   const devicesSnap = await db.collection(`${ROOT}/${vessel}/devices`).get();
-  const anyApproved = devicesSnap.docs.some((d) => d.data()?.approved === true && !d.data()?.disabled);
+  const anyMaster = devicesSnap.docs.some(
+    (d) => d.data()?.approved === true && !d.data()?.disabled && d.data()?.role === 'superadmin'
+  );
 
   // TAKEOVER. "No approved device left" is not the shape the real failure takes:
   // clearing a browser's data destroys the device's SECRET but leaves its record
@@ -192,7 +206,7 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
 
   let invite = null;
 
-  if (invites.empty || !anyApproved || wantsTakeover) {
+  if (invites.empty || !anyMaster || wantsTakeover) {
     // Nobody has set this vessel up. The bootstrap code stands in for an
     // invitation — and it never left the server.
     if (String(pin).trim() !== BOOTSTRAP_CODE.value()) {
@@ -251,9 +265,9 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
   const markerRef = db.doc(`${ROOT}/${vessel}/meta/bootstrap`);
   const claimed = await db.runTransaction(async (tx) => {
     const marker = await tx.get(markerRef);
-    // Re-claimable when the vessel has no approved device left — see the note
-    // above `anyApproved`. Otherwise the marker is claimed exactly once.
-    if (marker.exists && anyApproved && !wantsTakeover) return false;
+    // Re-claimable when the vessel has no approved Master left — see the note
+    // above `anyMaster`. Otherwise the marker is claimed exactly once.
+    if (marker.exists && anyMaster && !wantsTakeover) return false;
     tx.set(markerRef, { deviceId, at: Date.now() });
     return true;
   });
