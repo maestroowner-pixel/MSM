@@ -35,6 +35,7 @@ import * as photoQueue from '../services/photoQueue';
 import * as enrolment from '../services/enrolment';
 import * as trial from '../services/trial';
 import { adoptVesselLicence, revalidateLicence } from '../services/purchases';
+import { DEFAULT_POLICY, newerPolicy } from '../services/signingPolicy';
 import { Role } from '../types/role';
 import { useData } from './DataContext';
 
@@ -102,7 +103,7 @@ const PUSH_DEBOUNCE_MS = 1500;
 const TRAIL_WINDOW_DAYS = 400;
 
 export function SyncProvider({ children }: { children: React.ReactNode }) {
-  const { flat, certificates, vessel, compressor, inspections: trail, crew, prefs, reload } = useData();
+  const { flat, certificates, vessel, compressor, inspections: trail, crew, prefs, reload, setSigningPolicy } = useData();
 
   const [status, setStatus] = useState<SyncStatus>('off');
   const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
@@ -265,6 +266,27 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         })
       );
 
+      // The "scan before you sign" rule. For anyone but a Master the VESSEL's copy
+      // is the rule, full stop — including "none", which means off: a phone that
+      // set the rule for itself before joining must not keep a private version of
+      // it. A Master's device takes the newer copy, and sends its own up when it
+      // is the newer one (switched while offline).
+      unsubs.current.push(
+        fb.subscribeSigningPolicy(uid, async (remote) => {
+          const local = await storage.loadSigningPolicy();
+          const master = (await fb.claimedRole()) === 'superadmin';
+          const next = master ? newerPolicy(local, remote) : remote ?? DEFAULT_POLICY;
+          if (JSON.stringify(next) !== JSON.stringify(local ?? DEFAULT_POLICY)) await setSigningPolicy(next);
+          if (master && local && local.updatedAt > (remote?.updatedAt ?? 0)) {
+            try {
+              await fb.saveSigningPolicy(uid, local);
+            } catch (e: any) {
+              console.warn('[sync] signing policy not sent:', e?.message ?? e);
+            }
+          }
+        })
+      );
+
       unsubs.current.push(
         fb.subscribeCrew(uid, async (rows) => {
           if (!rows.length) return;
@@ -297,7 +319,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         })
       );
     },
-    [detach, reload]
+    [detach, reload, setSigningPolicy]
   );
 
   const connect = useCallback(async () => {

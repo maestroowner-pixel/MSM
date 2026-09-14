@@ -63,10 +63,14 @@ service cloud.firestore {
       // writing one field. Only a Master may touch it. Everything else on the
       // document (the register blob, masterDeviceId, the trial stamp) stays open
       // to members, because that IS the shared data.
+      //
+      // `signingPolicy` is the same kind of field: "Crew and Officers must scan
+      // the item's QR label before signing". A rule any crew phone could switch
+      // off with one write would be a suggestion, so only a Master sets it.
       allow update: if member(v)
                     && (isSuper(v)
                         || !request.resource.data.diff(resource.data)
-                              .affectedKeys().hasAny(['entitlement']));
+                              .affectedKeys().hasAny(['entitlement', 'signingPolicy']));
       allow delete: if false;
 
       // ---- devices ---------------------------------------------------------

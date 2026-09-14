@@ -24,7 +24,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as XLSX from 'xlsx';
 
 import { EquipmentItem, Group } from '../types/equipment';
-import { Inspection, InspectionPeriod, PERIOD_LABEL } from '../types/inspection';
+import { Inspection, InspectionPeriod, PERIOD_LABEL, verificationText } from '../types/inspection';
 import { signatureLine } from '../types/crew';
 import { CATEGORY_MAP } from '../constants/categories';
 import { ChecklistTemplate, periodsFor } from '../constants/checklists';
@@ -216,7 +216,17 @@ function itemCells(it?: EquipmentItem) {
  *  a defect written up on deck reaches the filed report in the crew's own words. */
 function commentsOf(insp: Inspection): string {
   const defect = insp.defect || insp.outcome === 'fail' ? defectReason(insp) : '';
-  return [insp.comment?.trim(), defect && `Defect: ${defect}`].filter(Boolean).join(' — ');
+  // A Master signing without a scan says why, and the why belongs where an
+  // auditor reads — not only in a column that says "No scan".
+  const override = insp.verification?.method === 'override' ? verificationText(insp.verification, timeOnly) : '';
+  return [insp.comment?.trim(), defect && `Defect: ${defect}`, override].filter(Boolean).join(' — ');
+}
+
+/** The short "Scan" cell: QR when the label was scanned, "No scan" for a Master's override. */
+function scanCell(insp: Inspection): string {
+  const v = insp.verification;
+  if (!v) return '';
+  return v.method === 'override' ? 'No scan' : 'QR';
 }
 
 function doneRows(data: ReportData, flat: EquipmentItem[]) {
@@ -235,6 +245,8 @@ function doneRows(data: ReportData, flat: EquipmentItem[]) {
       defect: defectReason(insp),
       comment: insp.comment ?? '',
       comments: commentsOf(insp),
+      scan: scanCell(insp),
+      scanFull: verificationText(insp.verification, timeOnly),
     };
   });
 }
@@ -305,6 +317,7 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
         <td class="c">${esc(r.initials)}</td>
         <td class="nw">${esc(r.date)}</td>
         <td class="nw">${esc(r.time)}</td>
+        <td class="c ${r.scan === 'No scan' ? 'fail' : ''}">${esc(r.scan)}</td>
       </tr>`
     )
     .join('');
@@ -408,7 +421,7 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
       ${section(
         'Inspections carried out',
         data.done.length,
-        '<th class="nw">No.</th><th>Location</th><th>Category</th><th>Type</th><th>Size</th><th>Serial</th><th class="c">Result</th><th>Comments</th><th class="c">Initials</th><th>Date</th><th>Time</th>',
+        '<th class="nw">No.</th><th>Location</th><th>Category</th><th>Type</th><th>Size</th><th>Serial</th><th class="c">Result</th><th>Comments</th><th class="c">Initials</th><th>Date</th><th>Time</th><th class="c">Scan</th>',
         done,
         'No inspections were recorded in this period.'
       )}
@@ -529,9 +542,9 @@ export async function exportReportXlsx(
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), 'Summary');
 
   const done = [
-    ['No.', 'Location', 'Category', 'Type', 'Size', 'Serial', 'Result', 'Lines passed', 'Comments', 'Initials', 'Date', 'Time', 'Inspected by'],
+    ['No.', 'Location', 'Category', 'Type', 'Size', 'Serial', 'Result', 'Lines passed', 'Comments', 'Initials', 'Date', 'Time', 'Inspected by', 'Scan'],
     ...doneRows(data, flat).map((r) => [
-      r.no, r.location, r.category, r.item, r.size, r.serial, r.result, r.detail, r.comments, r.initials, r.date, r.time, r.by,
+      r.no, r.location, r.category, r.item, r.size, r.serial, r.result, r.detail, r.comments, r.initials, r.date, r.time, r.by, r.scanFull,
     ]),
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(done), 'Inspections');

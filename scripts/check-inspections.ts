@@ -17,7 +17,8 @@ import { templateFor, periodsFor, templateById } from '../constants/checklists';
 import { CHECKLISTS } from '../constants/checklists';
 import { CATEGORIES } from '../constants/categories';
 import { EquipmentItem } from '../types/equipment';
-import { Inspection } from '../types/inspection';
+import { Inspection, verificationText } from '../types/inspection';
+import { SCAN_PROOF_MINUTES, clearScanProofs, newerPolicy, recordScanProof, scanProofFor, signingGate } from '../services/signingPolicy';
 
 let fails = 0;
 const ok = (name: string, cond: boolean, extra = '') => {
@@ -159,6 +160,44 @@ const c1 = { id: 'c1', name: 'Jez', active: true, addedAt: 1, updatedAt: 10 };
 const c2 = { id: 'c1', name: 'Jez Dodd', rank: 'Third Officer', active: true, addedAt: 1, updatedAt: 20 };
 ok('crew merge takes the newer edit', mergeCrew([c1], [c2])[0].name === 'Jez Dodd');
 ok('crew merge keeps one row per id', mergeCrew([c1], [c2]).length === 1);
+
+// --- scan before signing (services/signingPolicy.ts) ---
+{
+  clearScanProofs();
+  const on = { requireScan: true, updatedAt: 5 };
+  const off = { requireScan: false, updatedAt: 9 };
+  const t0 = 1_800_000_000_000;
+  ok('no proof before a scan', scanProofFor('x1', t0) === null);
+  recordScanProof('x1', 'qr-camera', t0);
+  ok('a scan is proof for that item', scanProofFor('x1', t0 + 60_000)?.method === 'qr-camera');
+  ok('…and not for another item', scanProofFor('x2', t0 + 60_000) === null);
+  ok(`a scan goes stale after ${SCAN_PROOF_MINUTES} minutes`, scanProofFor('x1', t0 + (SCAN_PROOF_MINUTES + 1) * 60_000) === null);
+  ok('a proof from the future is not proof', scanProofFor('x1', t0 - 1000) === null);
+  const proof = scanProofFor('x1', t0 + 1000);
+
+  ok('rule off: anyone signs', signingGate(off, 'user', true, null).kind === 'open');
+  ok('rule off: a scan is still carried', (signingGate(off, 'user', true, proof) as any).proof?.itemId === 'x1');
+  ok('rule on + scan: crew signs', signingGate(on, 'user', true, proof).kind === 'scanned');
+  ok('rule on, no scan: crew blocked', signingGate(on, 'user', true, null).kind === 'blocked');
+  ok('rule on, no scan: officer blocked', signingGate(on, 'admin', true, null).kind === 'blocked');
+  ok('rule on, no scan: role not known yet is blocked', signingGate(on, null, true, null).kind === 'blocked');
+  ok('rule on, no scan: Master may override', signingGate(on, 'superadmin', true, null).kind === 'override');
+  ok('rule on, no scan: a device on no vessel may override', signingGate(on, null, false, null).kind === 'override');
+  ok('no policy at all = off', signingGate(null, 'user', true, null).kind === 'open');
+
+  ok('newer policy wins', newerPolicy(on, off).requireScan === false && newerPolicy(off, on).requireScan === false);
+  ok('a missing copy yields the other', newerPolicy(null, on) === on && newerPolicy(on, null) === on);
+
+  const scanned = create({ item: ext, template: tpl, results: allPass, by: 'Jez Dodd', verification: { method: 'qr-camera', scannedAt: t0 } });
+  ok('a scan is written onto the record', scanned.verification?.method === 'qr-camera' && scanned.verification?.scannedAt === t0);
+  const overridden = create({ item: ext, template: tpl, results: allPass, by: 'Master', verification: { method: 'override', reason: '  label missing ' } });
+  ok('an override keeps its reason, trimmed', overridden.verification?.reason === 'label missing');
+  ok('no scan, no rule: nothing claimed', create({ item: ext, template: tpl, results: allPass, by: 'X' }).verification === undefined);
+  ok('report text for a scan', verificationText(scanned.verification, () => '14:02') === 'QR 14:02');
+  ok('report text for an override', verificationText(overridden.verification, () => '') === 'No scan (Master): label missing');
+  const synced = mergeInspections([], [scanned]);
+  ok('verification survives a merge', synced[0].verification?.method === 'qr-camera');
+}
 
 console.log(fails ? `\n${fails} FAILED` : '\nAll checks passed.');
 process.exit(fails ? 1 : 0);

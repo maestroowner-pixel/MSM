@@ -32,6 +32,7 @@ import { useData } from '../contexts/DataContext';
 import { SCAN_BARCODE_TYPES, ScanMatch, lookupScan } from '../services/barcode';
 import { SIZES, Palette } from '../theme';
 import { goBackOr } from '../utils/nav';
+import { recordScanProof } from '../services/signingPolicy';
 
 /** No expo-camera on Windows — see the module header. */
 const HAS_CAMERA = Platform.OS !== 'windows';
@@ -66,12 +67,17 @@ export default function ScanSc() {
   const locked = useRef(false);
 
   const handle = useCallback(
-    (code: string) => {
+    (code: string, via: 'camera' | 'typed') => {
       if (locked.current) return;
       locked.current = true;
 
       const match = lookupScan(code, flat);
       if (match.kind === 'item') {
+        // Proof that the label was in front of the camera — what lets a crew
+        // member sign on a vessel that requires a scan (services/signingPolicy).
+        // A TYPED code is deliberately not proof: the manual field exists for a
+        // damaged label, the one case the rule must not wave through.
+        if (via === 'camera') recordScanProof(match.item.id, 'qr-camera');
         // Remember that this label was just scanned on this device — the Dashboard's
         // "Recently scanned" strip reads this trail. Fire-and-forget, and kept off
         // the item itself so it neither bumps updatedAt (which would reorder the
@@ -95,7 +101,7 @@ export default function ScanSc() {
 
   const submitManual = () => {
     const code = manual.trim();
-    if (code) handle(code);
+    if (code) handle(code, 'typed');
   };
 
   const cameraReady = HAS_CAMERA && wantCamera && permission?.granted && !result;
@@ -219,7 +225,7 @@ export default function ScanSc() {
             style={StyleSheet.absoluteFill}
             facing="back"
             barcodeScannerSettings={{ barcodeTypes: SCAN_BARCODE_TYPES }}
-            onBarcodeScanned={({ data }) => handle(data)}
+            onBarcodeScanned={({ data }) => handle(data, 'camera')}
           />
           <View style={styles.reticle} pointerEvents="none" />
         </View>

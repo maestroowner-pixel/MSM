@@ -22,6 +22,10 @@
 //
 // 3. **Save is one-way.** There is no edit screen for a saved record anywhere in
 //    the app, deliberately. A mistake is corrected by inspecting again.
+//
+// 4. **On a vessel that requires it, no scan, no signature.** Checked here and not
+//    only on the button that leads here, because this screen has a URL on the
+//    web. The scan is read ONCE, when the screen opens (services/signingPolicy).
 // ===================================
 
 import React, { useCallback, useMemo, useRef, useState } from 'react';
@@ -45,6 +49,8 @@ import { SignerPicker } from '../components/SignerPicker';
 import { MciIcon } from '../components/MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
+import { useSync } from '../contexts/SyncContext';
+import { SCAN_PROOF_MINUTES, scanProofFor, signingGate } from '../services/signingPolicy';
 import { SIZES, Palette } from '../theme';
 import { CATEGORY_MAP } from '../constants/categories';
 import { periodsFor, templateFor } from '../constants/checklists';
@@ -82,9 +88,15 @@ export default function InspectionSc() {
   const route = useRoute<any>();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
-  const { flat, crew, prefs, vessel, templates, addInspection, setPrefs } = useData();
+  const { flat, crew, prefs, vessel, templates, addInspection, setPrefs, signingPolicy } = useData();
+  const sync = useSync();
 
   const itemId: string = route.params?.itemId;
+  // Read once: the scan that brought the inspector here. A proof that expires
+  // while they work down a long checklist must not take the signature away.
+  const [proof] = useState(() => (itemId ? scanProofFor(itemId) : null));
+  const gate = signingGate(signingPolicy, sync.role, sync.enrolled, proof);
+  const [overrideReason, setOverrideReason] = useState('');
   const item = useMemo(() => flat.find((i) => i.id === itemId), [flat, itemId]);
 
   const periods = useMemo<InspectionPeriod[]>(
@@ -188,6 +200,12 @@ export default function InspectionSc() {
         comment,
         photos,
         defectNote,
+        verification:
+          gate.kind === 'override'
+            ? { method: 'override', reason: overrideReason }
+            : proof
+              ? { method: proof.method, scannedAt: proof.at }
+              : undefined,
       });
       await addInspection(record);
       // The record is up in seconds; its photographs wait for a connection worth
@@ -209,10 +227,18 @@ export default function InspectionSc() {
     } finally {
       setSaving(false);
     }
-  }, [item, template, signer, results, comment, photos, defectNote, addInspection, setPrefs, nav]);
+  }, [item, template, signer, results, comment, photos, defectNote, addInspection, setPrefs, nav, gate.kind, overrideReason, proof]);
 
   const confirmSave = () => {
     if (signed.current || confirming.current) return;
+    if (gate.kind === 'blocked') return;
+    if (gate.kind === 'override' && !overrideReason.trim()) {
+      Alert.alert(
+        'Why was the label not scanned?',
+        'This vessel requires a QR scan before signing. A Master may sign without one, but the reason is printed in the report beside the signature.'
+      );
+      return;
+    }
     if (!signer) {
       Alert.alert('Who is signing?', 'Pick the crew member carrying out this inspection.');
       setPickingSigner(true);
@@ -229,7 +255,13 @@ export default function InspectionSc() {
     Alert.alert(
       anyFail ? 'Sign as FAILED' : 'Sign as passed',
       `${PERIOD_LABEL[period]} inspection of ${item ? itemTitle(item) : 'Item'}, ` +
-        `signed by ${crewLabel(signer)} at ${new Date().toLocaleString()}.\n\n` +
+        `signed by ${crewLabel(signer)} at ${new Date().toLocaleString()}.\n` +
+        (proof
+          ? `Label scanned at ${new Date(proof.at).toLocaleTimeString()}.\n`
+          : gate.kind === 'override'
+            ? `Signed WITHOUT a scan: ${overrideReason.trim()}\n`
+            : '') +
+        '\n' +
         'A signed record cannot be edited or deleted. To correct a mistake, inspect the item again.',
       [
         { text: 'Back', style: 'cancel', onPress: () => { confirming.current = false; } },
@@ -270,6 +302,41 @@ export default function InspectionSc() {
   }
 
   const meta = CATEGORY_MAP[item.category];
+
+  if (gate.kind === 'blocked') {
+    return (
+      <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
+          <View style={styles.header}>
+            <BackButton onPress={() => goBackOr(nav)} />
+            <Text style={styles.headerTitle}>Inspection</Text>
+            <View style={{ width: 24 }} />
+          </View>
+          <View style={{ padding: SIZES.lg }}>
+            <View style={styles.card}>
+              <View style={styles.gateHead}>
+                <MciIcon name="qrcode-scan" size={28} color={COLORS.primary} />
+                <Text style={styles.gateTitle}>Scan the label to inspect</Text>
+              </View>
+              <Text style={styles.itemName}>{itemTitle(item)}</Text>
+              <Text style={styles.itemMeta}>
+                {[meta.label, itemLocation(item)].filter(Boolean).join(' · ')}
+              </Text>
+              <Text style={styles.note}>
+                This vessel requires the item's QR label to be scanned before an inspection is signed — the
+                scan shows the inspection was done at the equipment. Go to the item and scan its label with
+                the app. A scan counts for {SCAN_PROOF_MINUTES} minutes; typing the code in does not count.
+              </Text>
+              <TouchableOpacity style={[styles.saveBtn, { marginTop: SIZES.lg }]} onPress={() => nav.replace('Scan')}>
+                <MciIcon name="qrcode-scan" size={20} color={COLORS.textWhite} />
+                <Text style={styles.saveBtnText}>Scan label</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
@@ -316,6 +383,31 @@ export default function InspectionSc() {
                   </Text>
                 </TouchableOpacity>
               ))}
+            </View>
+          ) : null}
+
+          {proof ? (
+            <View style={styles.verifiedRow}>
+              <MciIcon name="qrcode-scan" size={18} color={COLORS.success} />
+              <Text style={styles.verifiedText}>
+                Label scanned at {new Date(proof.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} — recorded
+                with this inspection
+              </Text>
+            </View>
+          ) : gate.kind === 'override' ? (
+            <View style={[styles.card, styles.overrideCard]}>
+              <Label style={{ color: COLORS.warning }}>Not scanned</Label>
+              <Text style={styles.note}>
+                This vessel requires a QR scan before signing. As Master you may sign without one — say why.
+                The reason is printed in the report beside the signature.
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={overrideReason}
+                onChangeText={setOverrideReason}
+                placeholder="e.g. label missing, item out of reach"
+                placeholderTextColor={COLORS.textLight}
+              />
             </View>
           ) : null}
 
@@ -532,6 +624,11 @@ const makeStyles = (COLORS: Palette) =>
       marginBottom: SIZES.md,
     },
     defectCard: { borderWidth: 1, borderColor: COLORS.danger },
+    overrideCard: { borderWidth: 1, borderColor: COLORS.warning },
+    verifiedRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginBottom: SIZES.md },
+    verifiedText: { flex: 1, fontSize: SIZES.small, color: COLORS.success, fontWeight: '600' },
+    gateHead: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md, marginBottom: SIZES.md },
+    gateTitle: { flex: 1, fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark },
     checklistHead: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md, marginBottom: SIZES.sm },
     progress: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },
     allPassBtn: {

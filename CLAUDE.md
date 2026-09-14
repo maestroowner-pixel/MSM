@@ -54,6 +54,15 @@ app mirrors. Bundle id `com.kukalab.msm`.
   several officers can work a round on separate phones and lose nothing. The ONE mutation allowed
   is a defect going open→closed, itself stamped and signed. `roundStatus` is calendar-window based
   (`monthWindow`/`weekWindow`), not "within 30 days": a monthly check is a calendar obligation.
+- **Scan before signing** (`services/signingPolicy.ts`, Sep 2026): a vessel rule (`signingPolicy`
+  field on the vessel document, Master-only in firestore.rules, mirrored to `msm:signing_policy`)
+  that Crew/Officers may sign only after scanning the item. Proof is IN MEMORY per item, 30 min,
+  recorded only by the in-app camera (`ScanSc`, not the typed code) or the `msm://item` deep link;
+  never route params (a web URL could carry them) or storage. Rank is the DEVICE's token role,
+  never the picked signer name. A Master (or a device on no vessel) may override with a reason.
+  The record carries `verification` {method, scannedAt, reason}; the report prints a Scan column
+  and the override reason in Comments. Enforced in the app, not in the inspection rules — older
+  app versions do not know the rule, so the report column is what makes a gap visible.
 - **Checklists** (`constants/checklists.ts`): 30 templates keyed `<category>.<period>`, weekly
   and/or monthly, plus a `genericTemplate` fallback so no category can refuse a round. **Line ids
   are permanent** — they are the keys of every stored `results` map, so re-word freely but never

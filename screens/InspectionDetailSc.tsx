@@ -38,7 +38,7 @@ import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
 import { CATEGORY_MAP } from '../constants/categories';
 import { templateById } from '../constants/checklists';
-import { CheckResult, PERIOD_LABEL } from '../types/inspection';
+import { CheckResult, PERIOD_LABEL, verificationText } from '../types/inspection';
 import { crewLabel, signatureLine } from '../types/crew';
 import { Attachment } from '../types/equipment';
 import * as inspections from '../services/inspections';
@@ -177,6 +177,17 @@ export default function InspectionDetailSc() {
             <Label>Signed</Label>
             <Row icon="account-check" text={signatureLine(insp.by, insp.byRank)} />
             <Row icon="clock-outline" text={formatDateTime(insp.at)} />
+            {insp.verification ? (
+              <Row
+                icon={insp.verification.method === 'override' ? 'qrcode-remove' : 'qrcode-scan'}
+                text={
+                  insp.verification.method === 'override'
+                    ? verificationText(insp.verification, formatDateTime)
+                    : `Label scanned ${insp.verification.method === 'qr-link' ? 'with the phone camera' : 'in the app'}` +
+                      (insp.verification.scannedAt ? ` · ${formatDateTime(insp.verification.scannedAt)}` : '')
+                }
+              />
+            ) : null}
             <Row
               icon="clipboard-list"
               text={`${template?.title ?? insp.templateId} · v${insp.templateVersion}`}

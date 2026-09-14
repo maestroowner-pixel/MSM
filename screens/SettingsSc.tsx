@@ -52,7 +52,7 @@ export default function SettingsSc() {
   // wide and the same rule turns "Save vessel info" into a banner, so past
   // tablet width the two full-bleed buttons shrink to their own size.
   const wide = useWindowDimensions().width >= 600;
-  const { vessel, setVessel, reload, flat, prefs, setPrefs } = useData();
+  const { vessel, setVessel, reload, flat, prefs, setPrefs, signingPolicy, setSigningPolicy } = useData();
   const sync = useSync();
   /**
    * Who may touch the register wholesale.
@@ -75,6 +75,25 @@ export default function SettingsSc() {
   const isMaster = solo || sync.role === 'superadmin';
   const canHandleData = solo || isMaster || sync.role === 'admin';
   const [form, setForm] = useState<VesselInfo>({});
+  /**
+   * Switch "scan before signing". Stored here first, so the rule holds on this
+   * device at once; then sent to the vessel, which every other device listens to.
+   * Offline, SyncContext sends it on the next connection (the newer copy wins).
+   */
+  const changeSigningPolicy = async (requireScan: boolean) => {
+    const policy = { requireScan, updatedAt: Date.now(), setBy: sync.role === 'superadmin' ? 'Master' : undefined };
+    await setSigningPolicy(policy);
+    if (sync.status !== 'synced') return;
+    try {
+      const uid = await fb.currentVesselKey();
+      if (uid) await fb.saveSigningPolicy(uid, policy);
+    } catch (e: any) {
+      Alert.alert(
+        'Saved on this device only',
+        `The vessel did not accept the change: ${e?.message ?? e}. It will be sent again when this device reconnects.`
+      );
+    }
+  };
   const [busy, setBusy] = useState(false);
   const [snaps, setSnaps] = useState<snapshot.SnapshotInfo[]>([]);
   /**
@@ -527,6 +546,28 @@ export default function SettingsSc() {
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
+        {/* The vessel's rule, shown to every rank so a crew member knows why the
+            Inspect button asks for a scan — but only a Master's switch moves. The
+            same is enforced for the vessel copy by firestore.rules. */}
+        <View style={styles.toggleRow}>
+          <GlyphBadge emoji="🔳" size={18} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkTitle}>Scan QR label before signing</Text>
+            <Text style={styles.linkSub}>
+              {isMaster
+                ? 'Crew and Officers can sign an inspection only after scanning the item. You can sign without a scan, with a reason.'
+                : signingPolicy.requireScan
+                  ? 'On for this vessel — scan the item\'s label, then inspect. Set by the Master.'
+                  : 'Off for this vessel. Set by the Master.'}
+            </Text>
+          </View>
+          <Switch
+            value={signingPolicy.requireScan}
+            disabled={!isMaster}
+            onValueChange={(v) => void changeSigningPolicy(v)}
+            trackColor={{ true: COLORS.primary, false: COLORS.border }}
+          />
+        </View>
       </Card>
 
       {canHandleData ? (

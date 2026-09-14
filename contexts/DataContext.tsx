@@ -20,6 +20,7 @@ import { rescheduleExpiryReminders } from '../services/notifications';
 import { syncFlaggedWidget } from '../services/widgetBridge';
 import { limitsActive, overflowLockedIds } from '../services/trial';
 import { onEntitlementChange } from '../services/purchases';
+import { DEFAULT_POLICY, SigningPolicy } from '../services/signingPolicy';
 
 interface DataContextType {
   loading: boolean;
@@ -29,6 +30,10 @@ interface DataContextType {
   vessel: storage.VesselInfo | null;
   compressor: CompressorState;
   prefs: storage.Prefs;
+  /** The vessel's "scan before you sign" rule (services/signingPolicy.ts). */
+  signingPolicy: SigningPolicy;
+  /** Store the rule on this device. Reaching the vessel is SyncContext's job. */
+  setSigningPolicy: (policy: SigningPolicy) => Promise<void>;
   /** The vessel's inspection trail, append-only (see types/inspection.ts). */
   inspections: Inspection[];
   /** Who can sign an inspection. */
@@ -88,6 +93,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [categories, setCategories] = useState<CategoryMeta[]>([]);
   const [recentScans, setRecentScans] = useState<ScanEntry[]>([]);
   const [lockedIds, setLockedIds] = useState<Set<string>>(new Set());
+  const [signingPolicy, setSigningPolicyState] = useState<SigningPolicy>(DEFAULT_POLICY);
 
   // Recompute the free-tier overflow lock from a category map: locked only when
   // limits are active (trial ended, not subscribed, enforced on this platform).
@@ -114,6 +120,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setInspections(await storage.loadInspections());
     setCrew(await storage.loadCrew());
     setTemplates(await storage.loadTemplates());
+    setSigningPolicyState((await storage.loadSigningPolicy()) ?? DEFAULT_POLICY);
     setRecentScans(await loadScanHistory());
     const p = await storage.loadPrefs();
     setPrefsState(p);
@@ -264,6 +271,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setCrew(await storage.loadCrew());
   }, []);
 
+  const setSigningPolicy = useCallback(async (policy: SigningPolicy) => {
+    await storage.saveSigningPolicy(policy);
+    setSigningPolicyState(policy);
+  }, []);
+
   const setPrefs = useCallback(
     async (patch: Partial<storage.Prefs>) => {
       setPrefsState((prev) => {
@@ -295,6 +307,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         vessel,
         compressor,
         prefs,
+        signingPolicy,
+        setSigningPolicy,
         inspections,
         crew,
         templates,

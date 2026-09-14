@@ -16,6 +16,7 @@ import { Attachment, CategoryKey, EquipmentItem } from '../types/equipment';
 import {
   CheckResult,
   Inspection,
+  InspectionVerification,
   InspectionPeriod,
   PERIOD_DAYS,
   outcomeOf,
@@ -41,6 +42,8 @@ export interface NewInspectionInput {
   /** Written up by hand. A failed line raises a defect on its own. */
   defectNote?: string;
   deviceId?: string;
+  /** How the item was reached — a scan, or a Master's override with a reason. */
+  verification?: InspectionVerification;
   /** Injectable for tests; production always stamps the real moment. */
   at?: number;
 }
@@ -85,6 +88,13 @@ export function create(input: NewInspectionInput): Inspection {
     photos: input.photos?.length ? input.photos : undefined,
     defect: raisesDefect
       ? { note: note || `Failed: ${failed.join('; ')}`, open: true }
+      : undefined,
+    verification: input.verification
+      ? {
+          method: input.verification.method,
+          scannedAt: input.verification.scannedAt,
+          reason: input.verification.reason?.trim() || undefined,
+        }
       : undefined,
     deviceId: input.deviceId,
     updatedAt: at,

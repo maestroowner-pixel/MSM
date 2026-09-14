@@ -185,6 +185,8 @@ const en: ManualContent = {
         "Choose who is signing from the vessel's crew list before you start — that name goes on the record. Add comments and up to four evidence photographs; they belong to that inspection, not to the item's general photos.",
         "Signing stamps the exact date and time, the crew member and the checklist version. A signed record cannot be edited or deleted by anyone, including the Master: a mistake is corrected by inspecting the item again, and both records stay on file. That is what makes the trail worth showing to a surveyor.",
         "Any FAIL raises a defect against that item, and it stays outstanding until somebody records the rectification.",
+        "Scan before signing (Settings → Scan QR label before signing, set by the Master). When it is on, Crew and Officers can sign an inspection only after scanning that item's QR label with the app's scanner, or with the phone's camera opening the app on the item. The scan counts for 30 minutes; typing the code in by hand does not count.",
+        "The scan is written onto the signed record and shown in the Scan column of the inspection report. A Master may sign without a scan (a missing label, an item out of reach) but must give a reason, which is printed in the report beside the signature.",
       ],
     },
     {
@@ -469,6 +471,8 @@ const ru: ManualContent = {
         "Перед началом выберите, кто подписывает, из списка экипажа судна — это имя попадёт в запись. Добавьте комментарий и до четырёх фотографий-доказательств: они принадлежат этой инспекции, а не общим фото позиции.",
         "Подпись фиксирует точные дату и время, члена экипажа и версию чек-листа. Подписанную запись не может изменить или удалить никто, включая Мастера: ошибка исправляется новой инспекцией, и обе записи остаются в деле. Именно это делает журнал пригодным для предъявления инспектору.",
         "Любой FAIL поднимает дефект на этой позиции, и он остаётся открытым, пока кто-нибудь не зафиксирует устранение.",
+        "Скан перед подписью (Settings → Scan QR label before signing, включает Master). Когда режим включён, Crew и Officer могут подписать проверку только после скана QR-наклейки этой позиции сканером приложения или камерой телефона, открывающей приложение на позиции. Скан действует 30 минут; ввод кода вручную не считается.",
+        "Скан записывается в подписанную запись и показывается в колонке Scan отчёта о проверках. Master может подписать без скана (наклейка утеряна, позиция недоступна), но обязан указать причину — она печатается в отчёте рядом с подписью.",
       ],
     },
     {
@@ -753,6 +757,8 @@ const es: ManualContent = {
         "Elija quién firma desde la lista de tripulación antes de empezar: ese nombre queda en el registro. Añada comentarios y hasta cuatro fotografías de prueba; pertenecen a esa inspección, no a las fotos generales del equipo.",
         "Al firmar se sella la fecha y hora exactas, el tripulante y la versión de la lista. Un registro firmado no puede editarse ni borrarse por nadie, ni siquiera por el Master: un error se corrige inspeccionando otra vez, y ambos registros quedan archivados.",
         "Cualquier FAIL genera un defecto sobre ese equipo, y queda pendiente hasta que alguien registre la subsanación.",
+        "Escanear antes de firmar (Settings → Scan QR label before signing, lo activa el Master). Cuando está activo, Crew y Officer solo pueden firmar una inspección después de escanear la etiqueta QR de ese elemento con el escáner de la app, o con la cámara del teléfono abriendo la app en el elemento. El escaneo vale 30 minutos; escribir el código a mano no cuenta.",
+        "El escaneo queda en el registro firmado y aparece en la columna Scan del informe de inspecciones. El Master puede firmar sin escanear (etiqueta perdida, elemento inaccesible), pero debe indicar el motivo, que se imprime en el informe junto a la firma.",
       ],
     },
     {
@@ -1037,6 +1043,8 @@ const uk: ManualContent = {
         "Перед початком оберіть, хто підписує, зі списку екіпажу — це ім'я потрапить у запис. Додайте коментар і до чотирьох фотографій-доказів: вони належать цій інспекції, а не загальним фото позиції.",
         "Підпис фіксує точні дату й час, члена екіпажу та версію чек-листа. Підписаний запис не може змінити або видалити ніхто, включно з Майстром: помилка виправляється новою інспекцією, і обидва записи лишаються у справі.",
         "Будь-який FAIL піднімає дефект на цій позиції, і він лишається відкритим, доки хтось не зафіксує усунення.",
+        "Скан перед підписом (Settings → Scan QR label before signing, вмикає Master). Коли режим увімкнено, Crew і Officer можуть підписати перевірку лише після скану QR-наклейки цієї позиції сканером застосунку або камерою телефона, що відкриває застосунок на позиції. Скан діє 30 хвилин; введення коду вручну не зараховується.",
+        "Скан записується в підписаний запис і показується в колонці Scan звіту про перевірки. Master може підписати без скану (наклейку втрачено, позиція недоступна), але мусить вказати причину — вона друкується у звіті поруч із підписом.",
       ],
     },
     {

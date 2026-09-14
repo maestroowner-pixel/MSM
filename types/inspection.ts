@@ -113,12 +113,44 @@ export interface Inspection {
    */
   defect?: InspectionDefect;
 
+  /**
+   * How the inspector reached the item — see services/signingPolicy.ts.
+   *
+   * Absent on records signed before this existed, and on records where nobody
+   * scanned and the vessel did not require it. Frozen like the signature: it is
+   * part of what was signed.
+   */
+  verification?: InspectionVerification;
+
   /** Which device recorded it — useful when reconciling a messy sync. */
   deviceId?: string;
 
   /** Set once, at creation. Present so the record shape matches the rest of the
    *  app's stored types; it never diverges from `at` except when a defect closes. */
   updatedAt: number;
+}
+
+/**
+ * `qr-camera` — the label was scanned with the app's own scanner.
+ * `qr-link`   — the phone's camera read the label and opened the app on the item.
+ * `override`  — the vessel requires a scan, there was none, and a Master signed
+ *               anyway with a reason.
+ */
+export type VerificationMethod = 'qr-camera' | 'qr-link' | 'override';
+
+export interface InspectionVerification {
+  method: VerificationMethod;
+  /** When the label was scanned (absent for an override). */
+  scannedAt?: number;
+  /** Why no scan — required for an override, printed in the report. */
+  reason?: string;
+}
+
+/** "QR 14:02" / "No scan — label missing" — one cell in a report, one line on screen. */
+export function verificationText(v: InspectionVerification | undefined, time: (ms: number) => string): string {
+  if (!v) return '';
+  if (v.method === 'override') return `No scan (Master): ${v.reason ?? ''}`.trim();
+  return v.scannedAt ? `QR ${time(v.scannedAt)}` : 'QR';
 }
 
 /** One checklist question, frozen as the crew member read it. */

@@ -33,6 +33,8 @@ import { pickDocument, pickFromLibrary, pickFromCamera, openFile, deleteFile, re
 import SimpleDatePicker from '../components/SimpleDatePicker';
 import { goBackOr } from '../utils/nav';
 import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
+import { useSync } from '../contexts/SyncContext';
+import { scanProofFor, signingGate } from '../services/signingPolicy';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -663,7 +665,11 @@ function InspectionCard({ item, trail }: { item: EquipmentItem; trail: Inspectio
   // Read here rather than through a prop: which periods this item owes depends on
   // the vessel's own checklists, and this card is the only part of the screen
   // that asks the question.
-  const { templates } = useData();
+  const { templates, signingPolicy } = useData();
+  const sync = useSync();
+  // Read at render: a proof is recorded by the scan BEFORE this screen opens, and
+  // one that has gone stale should turn the buttons back into "Scan to inspect".
+  const gate = signingGate(signingPolicy, sync.role, sync.enrolled, scanProofFor(item.id));
 
   const periods = useMemo(() => periodsFor(item.category, templates), [item.category, templates]);
   const history = useMemo(() => inspections.forItem(trail, item.id), [trail, item.id]);
@@ -684,7 +690,19 @@ function InspectionCard({ item, trail }: { item: EquipmentItem; trail: Inspectio
         </View>
       </View>
 
-      {/* One button per period the category actually has a checklist for. */}
+      {/* One button per period the category actually has a checklist for. On a
+          vessel that requires a scan and none has been made, the buttons send the
+          inspector to the scanner instead — the inspection screen refuses anyway,
+          but a button that opens a refusal is a worse way to say it. */}
+      {gate.kind === 'blocked' ? (
+        <>
+          <TouchableOpacity style={[styles.inspBtn, { flex: 0, marginTop: SIZES.md }]} onPress={() => nav.navigate('Scan')}>
+            <MciIcon name="qrcode-scan" size={18} color={COLORS.textWhite} />
+            <Text style={styles.inspBtnText}>Scan label to inspect</Text>
+          </TouchableOpacity>
+          <Text style={styles.inspSub}>This vessel requires the item's QR label to be scanned before signing.</Text>
+        </>
+      ) : (
       <View style={styles.inspBtnRow}>
         {periods.map((p) => {
           const status = inspections.roundStatus(trail, item.id, p);
@@ -708,6 +726,7 @@ function InspectionCard({ item, trail }: { item: EquipmentItem; trail: Inspectio
           );
         })}
       </View>
+      )}
 
       {open.length ? (
         <TouchableOpacity

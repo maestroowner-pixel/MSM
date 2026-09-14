@@ -90,6 +90,7 @@ import * as storage from './storage';
 import * as attachmentStorage from './attachmentStorage';
 import * as trial from './trial';
 import { mergeCategories, mergeCrew, mergeInspections, mergeTemplates } from './inspections';
+import type { SigningPolicy } from './signingPolicy';
 
 // getReactNativePersistence ships only in the RN bundle (not in the default TS types).
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -190,6 +191,7 @@ const ACCOUNT_FIELDS: Record<string, string> = {
   master_device_id: 'masterDeviceId',
   entitlement: 'entitlement',
   'trial/firstLaunch': 'trialFirstLaunch',
+  signing_policy: 'signingPolicy',
 };
 
 type Target =
@@ -1220,6 +1222,29 @@ export async function getEntitlement(uid: string): Promise<Entitlement | null> {
 export async function saveEntitlement(uid: string, ent: Entitlement): Promise<void> {
   const { db } = ensureInit();
   await set(ref(db, `${ROOT}/${uid}/entitlement`), ent);
+}
+
+/**
+ * The vessel's "scan before you sign" rule. A field of the vessel document, and
+ * — like `entitlement` — writable only by a Master (firestore.rules): a rule that
+ * any crew phone could switch off is not a rule.
+ */
+export async function saveSigningPolicy(uid: string, policy: SigningPolicy): Promise<void> {
+  const { db } = ensureInit();
+  await set(ref(db, `${ROOT}/${uid}/signing_policy`), policy);
+}
+
+/** Watch the rule, so a Master switching it on reaches every phone without a restart. */
+export function subscribeSigningPolicy(uid: string, cb: (policy: SigningPolicy | null) => void): () => void {
+  if (!syncSupported()) return () => {};
+  return fsOnSnapshot(
+    accountDoc(uid),
+    (snap) => {
+      const p = snap.exists() ? (snap.data() as any)?.signingPolicy : null;
+      cb(p && typeof p.requireScan === 'boolean' ? (p as SigningPolicy) : null);
+    },
+    (err) => console.warn('[sync] signing policy listener stopped:', err?.message ?? err)
+  );
 }
 
 /** The vessel account's recorded trial-start (ms epoch), or null if none. */

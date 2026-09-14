@@ -58,6 +58,7 @@ import DefectsSc from './screens/DefectsSc';
 import InspectionDetailSc from './screens/InspectionDetailSc';
 import AccountsSc from './screens/AccountsSc';
 import EnrolSc from './screens/EnrolSc';
+import { recordScanProof } from './services/signingPolicy';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -390,6 +391,9 @@ function Root() {
       else if (pendingLink.type === 'flagged') navigationRef.navigate('Flagged');
       else {
         const found = flat.find((i) => i.id === pendingLink.id);
+        // The phone's own camera read the label and opened this link — a scan,
+        // for "scan before you sign", recorded as such on the inspection.
+        if (found) recordScanProof(found.id, 'qr-link');
         if (found) navigationRef.navigate('ItemDetail', { category: found.category, id: found.id });
         else navigationRef.navigate('Scan');
       }

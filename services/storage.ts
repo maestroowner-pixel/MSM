@@ -19,6 +19,8 @@ export const COMPRESSOR_KEY = `${PREFIX}compressor`;
 export const PREFS_KEY = `${PREFIX}prefs`;
 export const INSPECTIONS_KEY = `${PREFIX}inspections`;
 export const CREW_KEY = `${PREFIX}crew`;
+/** The vessel's "scan before you sign" rule, as this device last knew it. */
+export const SIGNING_POLICY_KEY = `${PREFIX}signing_policy`;
 export const TEMPLATES_KEY = `${PREFIX}templates`;
 export const CATEGORIES_KEY = `${PREFIX}categories`;
 
@@ -362,6 +364,19 @@ export async function deleteCrewMember(id: string): Promise<void> {
  * inspection trail, the crew list and vessel info. Keeps device preferences
  * (`msm:prefs`) and legal consent.
  */
+export async function loadSigningPolicy(): Promise<import('./signingPolicy').SigningPolicy | null> {
+  try {
+    const raw = await AsyncStorage.getItem(SIGNING_POLICY_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveSigningPolicy(policy: import('./signingPolicy').SigningPolicy): Promise<void> {
+  await AsyncStorage.setItem(SIGNING_POLICY_KEY, JSON.stringify(policy));
+}
+
 export async function resetAllData(): Promise<void> {
   const keys = [
     ...CATEGORIES.map((c) => catKey(c.key)),
@@ -370,6 +385,7 @@ export async function resetAllData(): Promise<void> {
     INSPECTIONS_KEY,
     CREW_KEY,
     VESSEL_KEY,
+    SIGNING_POLICY_KEY,
   ];
   await AsyncStorage.multiRemove(keys);
 }
