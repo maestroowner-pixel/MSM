@@ -25,6 +25,23 @@ export interface CrewMember {
   active: boolean;
   addedAt: number;
   updatedAt: number;
+  /**
+   * A removal, kept as a record rather than done as a deletion.
+   *
+   * The list syncs as a union by id, newest `updatedAt` winning, and a Master
+   * pushes the whole of it — so an entry deleted outright came straight back
+   * from the vessel on the next pull, and an entry deleted in the vessel was
+   * re-created by the next push from any Master still holding it. Four test
+   * names walked from a demo vessel into a real one this way (11 Sep 2026) and
+   * could not be got rid of from inside the app. A tombstone travels like any
+   * other edit; `liveCrew` hides it everywhere the list is shown.
+   */
+  deleted?: boolean;
+}
+
+/** The list as the app shows it — without the removed. Storage keeps them. */
+export function liveCrew(list: CrewMember[]): CrewMember[] {
+  return list.filter((c) => !c.deleted);
 }
 
 /** "Jez Dodd · Third Officer" — one line for a picker row or a report cell. */

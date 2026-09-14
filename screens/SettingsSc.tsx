@@ -75,6 +75,7 @@ export default function SettingsSc() {
   const isMaster = solo || sync.role === 'superadmin';
   const canHandleData = solo || isMaster || sync.role === 'admin';
   const [form, setForm] = useState<VesselInfo>({});
+
   /**
    * Switch "scan before signing". Stored here first, so the rule holds on this
    * device at once; then sent to the vessel, which every other device listens to.
@@ -368,6 +369,13 @@ export default function SettingsSc() {
     }
     setBusy(true);
     try {
+      // The crew list has to be retired in the vessel BEFORE local storage goes:
+      // unlike the register it syncs as a union, so a plain wipe here was undone
+      // by the first pull after reconnecting — every name came straight back.
+      if (sync.status === 'synced') {
+        const uid = await fb.currentVesselKey();
+        if (uid) await fb.retireAllCrew(uid);
+      }
       await resetAllData();
       await clearAttachmentsDir();
       // The snapshots hold the register that was just erased. Leaving them would
@@ -751,7 +759,13 @@ export default function SettingsSc() {
       <Modal visible={resetVisible} transparent animationType="fade" onRequestClose={closeReset}>
         <TouchableWithoutFeedback onPress={closeReset}>
           <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            {/* The inner touchable exists so a tap inside the box does not reach the
+                overlay's close. On a phone it also hides the keyboard — but NOT on
+                web: there `Keyboard.dismiss()` blurs whatever has focus, and since
+                it fires on every click inside the box, it fired on the very click
+                that put the cursor in the password field. The field could never
+                hold focus, and Reset could not be typed at all. */}
+            <TouchableWithoutFeedback onPress={Platform.OS === 'web' ? () => {} : Keyboard.dismiss}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Reset all data</Text>
             <Text style={styles.modalText}>

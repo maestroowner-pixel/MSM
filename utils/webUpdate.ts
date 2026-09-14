@@ -1,5 +1,5 @@
 // ===================================
-// "A newer build is live" — for the browser and for the Windows executable.
+// "A newer build is live" — for the browser tab.
 //
 // Ported from DEM/NSeaStoreManager, cut to the one path MSM needs. DEM's version
 // also asks GitHub for a release tag; MSM ships no tagged releases, so that half
@@ -16,8 +16,8 @@
 // is running, because index.html and version.json are deployed together and both
 // are served no-cache. Every later reading is compared with that first one.
 //
-// A tab asks its OWN origin, so this works identically on the hosted site and
-// inside the .exe, which serves its own copy of the same file.
+// A tab asks its OWN origin, so nothing here knows or cares where the site is
+// served from.
 //
 // Native is a no-op: phones update through the App Store and Play.
 // ===================================

@@ -354,7 +354,18 @@ export async function upsertCrewMember(member: CrewMember): Promise<void> {
  */
 export async function deleteCrewMember(id: string): Promise<void> {
   const list = await loadCrew();
-  await saveCrew(list.filter((c) => c.id !== id));
+  // A tombstone, not a filter — see `CrewMember.deleted`. Filtering only ever
+  // removed the entry from THIS device; the vessel handed it straight back.
+  const now = Date.now();
+  await saveCrew(list.map((c) => (c.id === id ? { ...c, deleted: true, active: false, updatedAt: now } : c)));
+}
+
+/** Tombstone the whole list at once — what "Reset all data" needs on a syncing Master. */
+export async function tombstoneCrew(): Promise<CrewMember[]> {
+  const now = Date.now();
+  const list = (await loadCrew()).map((c) => ({ ...c, deleted: true, active: false, updatedAt: now }));
+  await saveCrew(list);
+  return list;
 }
 
 // ---- Reset -----------------------------------------------------------------

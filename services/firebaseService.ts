@@ -1048,6 +1048,23 @@ async function rememberPushed(ids: string[]): Promise<void> {
   }
 }
 
+/**
+ * "Reset all data" on a syncing Master, crew half. The register empties
+ * itself through the ordinary push; the crew list does not — its documents
+ * are merged as a union and a wipe of local storage simply pulls them back on
+ * reconnection, which is why the reset looked as if it had not worked. So the
+ * list is tombstoned (see `CrewMember.deleted`) and the tombstones written
+ * BEFORE local storage goes, while this device still has the Master token that
+ * `firestore.rules` demands for the crew collection.
+ */
+export async function retireAllCrew(uid: string): Promise<number> {
+  if ((await claimedRole()) !== 'superadmin') return 0;
+  const list = await storage.tombstoneCrew();
+  if (!list.length) return 0;
+  await writeInBatches(uid, 'crew', list.map((c) => ({ id: c.id, data: c })));
+  return list.length;
+}
+
 export async function pushInspections(uid: string): Promise<number> {
   const list = await storage.loadInspections();
   const crew = await storage.loadCrew();

@@ -9,7 +9,7 @@ import { CategoryKey, EquipmentItem } from '../types/equipment';
 import { Certificate } from '../types/certificate';
 import { CompressorState } from '../types/compressor';
 import { Inspection } from '../types/inspection';
-import { CrewMember } from '../types/crew';
+import { CrewMember, liveCrew } from '../types/crew';
 import { ChecklistTemplate } from '../constants/checklists';
 import { CategoryMeta, setVesselCategories } from '../constants/categories';
 import { CATEGORIES } from '../constants/categories';
@@ -118,7 +118,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setVesselState(await storage.loadVessel());
     setCompressorState(await storage.loadCompressor());
     setInspections(await storage.loadInspections());
-    setCrew(await storage.loadCrew());
+    setCrew(liveCrew(await storage.loadCrew()));
     setTemplates(await storage.loadTemplates());
     setSigningPolicyState((await storage.loadSigningPolicy()) ?? DEFAULT_POLICY);
     setRecentScans(await loadScanHistory());
@@ -243,7 +243,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const saveCrewMember = useCallback(async (member: CrewMember) => {
     await storage.upsertCrewMember(member);
-    setCrew(await storage.loadCrew());
+    setCrew(liveCrew(await storage.loadCrew()));
   }, []);
 
   const saveVesselCategory = useCallback(async (meta: CategoryMeta) => {
@@ -268,7 +268,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const removeCrewMember = useCallback(async (id: string) => {
     await storage.deleteCrewMember(id);
-    setCrew(await storage.loadCrew());
+    setCrew(liveCrew(await storage.loadCrew()));
   }, []);
 
   const setSigningPolicy = useCallback(async (policy: SigningPolicy) => {
