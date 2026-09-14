@@ -155,7 +155,50 @@ function extFor(dataUri: string): string {
   return 'bin';
 }
 
-export async function openFile(uri: string): Promise<void> {
+/**
+ * A file that can be read from THIS device: a local path as it is, a Storage
+ * download URL fetched into the cache first.
+ *
+ * Since attachments moved to Cloud Storage, a file added on another device is a
+ * link in the register, and every native reader of files — sharing, the ZIP
+ * export, the .msm backup — accepts only local paths. Sharing failed out loud
+ * (a customer's PDF on an MOB, 14 Sep 2026); the ZIP and the backup skipped such
+ * files in silence, which is worse. Cached per URL, so a second read costs no
+ * airtime. Stored objects are named by attachment id with no extension, so the
+ * name comes from the attachment, else from the response's Content-Type.
+ */
+export async function ensureLocalFile(uri: string, name?: string): Promise<{ uri: string; name: string }> {
+  const resolved = resolveUri(uri) ?? uri;
+  if (!/^https?:/i.test(resolved)) return { uri: resolved, name: safeName(name) || resolved.split('/').pop() || 'file' };
+  const dir = `${FileSystem.cacheDirectory}remote/`;
+  await FileSystem.makeDirectoryAsync(dir, { intermediates: true }).catch(() => {});
+  const key = urlKey(resolved);
+  const cached = (await FileSystem.readDirectoryAsync(dir).catch(() => [] as string[])).find((f) => f.startsWith(`${key}_`));
+  if (cached) return { uri: `${dir}${cached}`, name: cached.slice(key.length + 1) };
+
+  let fileName = safeName(name) || remoteFileName(resolved);
+  const tmp = `${dir}${key}.download`;
+  const res = await FileSystem.downloadAsync(resolved, tmp);
+  if (res.status < 200 || res.status >= 300) {
+    await FileSystem.deleteAsync(tmp, { idempotent: true }).catch(() => {});
+    throw new Error(
+      res.status === 403 || res.status === 404
+        ? 'This file is no longer available on the vessel.'
+        : `The file could not be downloaded (HTTP ${res.status}). Check the connection and try again.`
+    );
+  }
+  if (!/\.[a-z0-9]{2,5}$/i.test(fileName)) {
+    const type = String(res.headers?.['Content-Type'] ?? res.headers?.['content-type'] ?? '').split(';')[0].trim();
+    const ext = extForMime(type);
+    if (ext) fileName = `${fileName}.${ext}`;
+  }
+  const target = `${dir}${key}_${fileName}`;
+  await FileSystem.moveAsync({ from: tmp, to: target });
+  return { uri: target, name: fileName };
+}
+
+/** `name` — the attachment's own name, when known; it supplies the extension a Storage URL lacks. */
+export async function openFile(uri: string, name?: string): Promise<void> {
   try {
     if (!(await Sharing.isAvailableAsync())) return;
     let target = resolveUri(uri) ?? uri;
@@ -178,10 +221,95 @@ export async function openFile(uri: string): Promise<void> {
       target = path;
     }
 
-    await Sharing.shareAsync(target);
+    // A FILE ADDED ON ANOTHER DEVICE IS A LINK. Since attachments moved to Cloud
+    // Storage the register carries a download URL, and `shareAsync` accepts only
+    // local files: a PDF put on an MOB from the website opened on a phone as
+    // "Only local file URLs are supported (expected scheme to be 'file', got
+    // 'https')" (14 Sep 2026). So it is downloaded first, under its own name —
+    // the extension is what lets Android offer a PDF viewer rather than "open
+    // with…" — and kept in the cache, so a second open costs no airtime.
+    let mimeType: string | undefined;
+    if (/^https?:/i.test(target)) {
+      const local = await ensureLocalFile(target, name);
+      target = local.uri;
+      mimeType = mimeFor(local.name);
+    }
+
+    await Sharing.shareAsync(target, mimeType ? { mimeType, UTI: utiFor(mimeType) } : undefined);
   } catch (e: any) {
     Alert.alert('Cannot open file', String(e?.message ?? e));
   }
+}
+
+/**
+ * "MOB manual.pdf" out of a Storage download URL
+ * (…/o/safety_vessels%2F9967093%2Fattachments%2Fatt_x_MOB%20manual.pdf?alt=media&token=…).
+ * Anything that cannot be a file name falls back to "file".
+ */
+function remoteFileName(url: string): string {
+  let path = url.split('?')[0];
+  const o = path.indexOf('/o/');
+  if (o >= 0) path = path.slice(o + 3);
+  try {
+    path = decodeURIComponent(path);
+  } catch {
+    /* keep it encoded */
+  }
+  const base = path.split('/').pop() || 'file';
+  return base.replace(/[^\w.\- ]+/g, '_').slice(-80) || 'file';
+}
+
+function safeName(name?: string): string {
+  return (name ?? '').replace(/[^\w.\- ]+/g, '_').trim().slice(-80);
+}
+
+function extForMime(mime: string): string | undefined {
+  return (
+    {
+      'application/pdf': 'pdf',
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/heic': 'heic',
+      'application/msword': 'doc',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+      'application/vnd.ms-excel': 'xls',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+      'text/plain': 'txt',
+    } as Record<string, string>
+  )[mime];
+}
+
+/** A short stable key per URL, so two different files called "manual.pdf" do not collide. */
+function urlKey(url: string): string {
+  let h = 5381;
+  const s = url.split('&token=')[0];
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
+function mimeFor(name: string): string | undefined {
+  const ext = name.toLowerCase().split('.').pop() ?? '';
+  return (
+    {
+      pdf: 'application/pdf',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      heic: 'image/heic',
+      doc: 'application/msword',
+      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      xls: 'application/vnd.ms-excel',
+      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      txt: 'text/plain',
+    } as Record<string, string>
+  )[ext];
+}
+
+function utiFor(mime: string): string | undefined {
+  if (mime === 'application/pdf') return 'com.adobe.pdf';
+  if (mime === 'image/jpeg') return 'public.jpeg';
+  if (mime === 'image/png') return 'public.png';
+  return undefined;
 }
 
 /** Delete every stored attachment/certificate file (best-effort). */

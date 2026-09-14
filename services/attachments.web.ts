@@ -81,7 +81,16 @@ export async function pickDocument(): Promise<PickedFile | null> {
 }
 
 /** Preview/open a stored file: pop it into a new tab (image/PDF preview inline). */
-export async function openFile(uri: string): Promise<void> {
+/**
+ * Native reads files by local path and fetches Storage URLs into the cache first
+ * (attachments.ts). A browser reads a URL or a data: URI as it is, so this is a
+ * pass-through — present so the shared callers (the ZIP export) resolve here too.
+ */
+export async function ensureLocalFile(uri: string, name?: string): Promise<{ uri: string; name: string }> {
+  return { uri, name: name ?? 'file' };
+}
+
+export async function openFile(uri: string, _name?: string): Promise<void> {
   try {
     const win = g.window.open('', '_blank');
     if (win && win.document) {

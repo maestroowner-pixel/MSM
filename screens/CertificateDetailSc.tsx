@@ -194,7 +194,7 @@ export default function CertificateDetailSc() {
                     </View>
                   )}
                   <View style={styles.fileBtns}>
-                    <TouchableOpacity style={styles.smallBtn} onPress={() => openFile(draft.fileUri!)}>
+                    <TouchableOpacity style={styles.smallBtn} onPress={() => openFile(draft.fileUri!, draft.fileName)}>
                       <Text style={styles.smallBtnText}>Open</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.smallBtn} onPress={chooseFile}>

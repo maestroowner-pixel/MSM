@@ -16,7 +16,7 @@ import { deliverFile, onWindows, onWeb } from '../utils/fileShare';
 import { itemLocation } from '../utils/itemText';
 import { printHtmlWeb } from '../utils/webFile';
 import { downloadPdfWeb } from '../utils/webPdf';
-import { resolveUri } from './attachments';
+import { ensureLocalFile, resolveUri } from './attachments';
 import { VesselInfo } from './storage';
 import { registerSheetRows } from './registerSheet';
 
@@ -280,7 +280,7 @@ export async function exportZip(
     for (const it of g.items) {
       for (const att of it.attachments ?? []) {
         try {
-          const uri = resolveUri(att.uri) ?? att.uri;
+          const uri = (await ensureLocalFile(att.uri, att.name)).uri;
           const info = await FileSystem.getInfoAsync(uri);
           if (!info.exists) continue;
           const b64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
@@ -305,7 +305,7 @@ export async function exportZip(
     let storedAs = '(no file attached)';
     if (cert.fileUri) {
       try {
-        const certUri = resolveUri(cert.fileUri) ?? cert.fileUri;
+        const certUri = (await ensureLocalFile(cert.fileUri, cert.fileName)).uri;
         const info = await FileSystem.getInfoAsync(certUri);
         if (info.exists) {
           const b64 = await FileSystem.readAsStringAsync(certUri, { encoding: 'base64' });

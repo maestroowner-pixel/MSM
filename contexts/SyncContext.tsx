@@ -137,13 +137,64 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     unsubs.current = [];
   }, []);
 
-  const pushNow = useCallback(async () => {
+  /**
+   * One register sync at a time. The listener's pull and a scheduled push used to
+   * run whenever they fired, and two of them interleaving on local storage is a
+   * merge done twice against half-written data.
+   */
+  const syncing = useRef(false);
+  const syncAgain = useRef(false);
+
+  /**
+   * Sync the register: take the vessel's changes FIRST, then send ours if there
+   * are any (services/registerMerge.ts). It was push-only — on connect, on every
+   * return to the foreground, on every edit — and a device holding an old copy
+   * wrote it over the vessel's the moment it was opened: "the equipment keeps
+   * deleting itself" (14 Sep 2026). A conflict (the vessel moved between our read
+   * and our write) goes round again: pull, merge, push.
+   *
+   * `force` skips the pull: restoring a backup, where this device's data is meant
+   * to replace the vessel's.
+   */
+  const pushNow = useCallback(async (force = false) => {
     const uid = uidRef.current;
     if (!uid || applyingRemote.current) return;
+    if (syncing.current) {
+      syncAgain.current = true;
+      return;
+    }
+    syncing.current = true;
     try {
-      const n = await fb.pushAll(uid);
+      let n: number | undefined;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (!force) {
+          applyingRemote.current = true;
+          let pulled: fb.PullResult;
+          try {
+            pulled = await fb.pullRegister(uid);
+            if (pulled.changedLocal) await reload();
+          } finally {
+            applyingRemote.current = false;
+          }
+          if (!pulled.needsPush) {
+            // The register has nothing to send, but a signed inspection still
+            // does — pushAll used to carry the trail up on every call.
+            await fb.pushInspections(uid);
+            n = pulled.total;
+            break;
+          }
+        }
+        try {
+          n = await fb.pushAll(uid, { force });
+          break;
+        } catch (e) {
+          if (fb.isRegisterConflict(e) && attempt < 2) continue;
+          throw e;
+        }
+      }
       setLastSyncAt(Date.now());
       setStatus('synced');
+      setLastError(null);
       return n;
     } catch (e: any) {
       // This was the silent one. `refresh` records why it failed and so does the
@@ -167,8 +218,16 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       console.warn('[sync] push failed:', msg);
       setLastError(msg);
       setStatus('error');
+    } finally {
+      syncing.current = false;
+      if (syncAgain.current) {
+        syncAgain.current = false;
+        setTimeout(() => void pushNowRef.current?.(), 0);
+      }
     }
-  }, []);
+  }, [reload]);
+  const pushNowRef = useRef<typeof pushNow | null>(null);
+  pushNowRef.current = pushNow;
 
   /** See `pushLocalNow` in SyncContextType — local deliberately beats the cloud. */
   const pushLocalNow = useCallback(async (): Promise<boolean> => {
@@ -184,10 +243,10 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     lastPushed.current = null;
     // A pull may be halfway through. Let it finish rather than pushing underneath
     // it, or we would write a register we are about to overwrite ourselves.
-    for (let i = 0; applyingRemote.current && i < 40; i++) {
+    for (let i = 0; (applyingRemote.current || syncing.current) && i < 100; i++) {
       await new Promise((r) => setTimeout(r, 100));
     }
-    const n = await pushNow();
+    const n = await pushNow(true);
     if (n === undefined) {
       holdRemoteUntil.current = 0; // push failed — do not keep the vessel out
       return false;
@@ -239,20 +298,11 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
           }
           // Our own write, echoed back — nothing to apply.
           if (snap.deviceId && snap.deviceId === (await fb.getLocalDeviceId())) return;
-          applyingRemote.current = true;
-          try {
-            await fb.pullAll(uid);
-            lastPushed.current = snap.json;
-            await reload();
-            setLastSyncAt(Date.now());
-            setStatus('synced');
-          } catch (e: any) {
-            const msg = e?.message ?? String(e);
-            console.warn('[sync] applying remote register failed:', msg);
-            setLastError(msg);
-          } finally {
-            applyingRemote.current = false;
-          }
+          // Through the same sync as everything else: a device with unsent
+          // changes merges instead of losing them, and one mid-sync is asked to
+          // go round again rather than pulling underneath itself.
+          lastPushed.current = snap.json;
+          void pushNowRef.current?.();
         })
       );
 

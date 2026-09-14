@@ -112,7 +112,7 @@ export default function ItemDetailSc() {
     if (c.fileKind === 'photo') {
       setPreview({ id: c.id, kind: 'photo', uri: c.fileUri, name: c.fileName ?? c.name, addedAt: 0 });
     } else {
-      openFile(c.fileUri);
+      openFile(c.fileUri, c.fileName);
     }
   };
 
@@ -174,7 +174,7 @@ export default function ItemDetailSc() {
   // multi-button Alert doesn't render on react-native-web); native uses Alert.
   const attachmentMenu = (att: Attachment) => {
     const options = [
-      { text: onWeb ? 'Open / Download' : 'Download / Share', onPress: () => openFile(att.uri) },
+      { text: onWeb ? 'Open / Download' : 'Download / Share', onPress: () => openFile(att.uri, att.name) },
       { text: 'Rename', onPress: () => { setRenameText(att.name ?? ''); setRenaming(att); } },
       { text: 'Replace', onPress: () => chooseReplace(att) },
       { text: 'Delete', destructive: true, onPress: () => removeAttachment(att) },
@@ -383,7 +383,7 @@ export default function ItemDetailSc() {
                   return (
                     <View key={a.id} style={styles.attItem}>
                       <TouchableOpacity
-                        onPress={() => (a.kind === 'photo' ? setPreview(a) : openFile(a.uri))}
+                        onPress={() => (a.kind === 'photo' ? setPreview(a) : openFile(a.uri, a.name))}
                         onLongPress={() => attachmentMenu(a)}
                         delayLongPress={300}
                         activeOpacity={0.8}
@@ -492,7 +492,7 @@ export default function ItemDetailSc() {
                   {preview.name}
                 </Text>
               ) : null}
-              <TouchableOpacity style={styles.lbOpen} onPress={() => preview && openFile(preview.uri)}>
+              <TouchableOpacity style={styles.lbOpen} onPress={() => preview && openFile(preview.uri, preview.name)}>
                 <Text style={styles.lbOpenText}>Open / Share</Text>
               </TouchableOpacity>
             </View>

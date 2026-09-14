@@ -73,6 +73,7 @@ import {
   setDoc as fsSetDoc,
   deleteDoc as fsDeleteDoc,
   writeBatch as fsWriteBatch,
+  runTransaction as fsRunTransaction,
   onSnapshot as fsOnSnapshot,
   query as fsQuery,
   where as fsWhere,
@@ -91,6 +92,15 @@ import * as attachmentStorage from './attachmentStorage';
 import * as trial from './trial';
 import { mergeCategories, mergeCrew, mergeInspections, mergeTemplates } from './inspections';
 import type { SigningPolicy } from './signingPolicy';
+import {
+  RegisterParts,
+  SyncBase,
+  decidePull,
+  decidePush,
+  itemCount,
+  mergeRegister,
+  partHashes,
+} from './registerMerge';
 
 // getReactNativePersistence ships only in the RN bundle (not in the default TS types).
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -473,6 +483,8 @@ export async function getDeviceSecret(): Promise<string | null> {
  */
 export async function signOutDevice(): Promise<void> {
   await clearDeviceSecret();
+  // The base describes agreement with a vessel this device has just left.
+  await AsyncStorage.removeItem(SYNC_BASE_KEY).catch(() => {});
   await clearKnownRole();
   try {
     await fbSignOut(ensureAuth());
@@ -678,34 +690,122 @@ async function uploadsUsed(uid: string): Promise<number> {
 }
 
 /** Push the whole register as one document write. */
-/**
- * The register as the cloud currently holds it, or null if unreadable.
- *
- * Read before a push purely so buckets this device has no heading for can be
- * carried through rather than deleted — see pushAll.
- */
-async function currentRegisterBlob(uid: string): Promise<RegisterBlob | null> {
+
+// ---- The sync base (see services/registerMerge.ts) --------------------------
+
+const SYNC_BASE_KEY = 'msm:register_base';
+
+/** Thrown when the vessel copy moved between reading it and writing ours. Retry = pull, merge, push. */
+export class RegisterConflict extends Error {
+  constructor() {
+    super('The vessel register changed while this device was sending its own.');
+    this.name = 'RegisterConflict';
+  }
+}
+
+export function isRegisterConflict(e: unknown): boolean {
+  return (e as any)?.name === 'RegisterConflict';
+}
+
+async function loadBase(uid: string): Promise<SyncBase | null> {
   try {
-    const snap = await fsGetDoc(accountDoc(uid));
-    const raw = snap.exists() ? (snap.data() as any)[REGISTER_FIELD] : null;
-    return typeof raw === 'string' && raw ? (JSON.parse(raw) as RegisterBlob) : null;
+    const raw = await AsyncStorage.getItem(SYNC_BASE_KEY);
+    const b = raw ? (JSON.parse(raw) as SyncBase & { uid?: string }) : null;
+    return b && b.uid === uid && typeof b.cloudJson === 'string' ? b : null;
   } catch {
-    // Offline, or a blob we cannot parse. Falling back to "carry nothing extra"
-    // is the same behaviour as before this guard existed; it is not worse, and
-    // failing the whole push here would be.
     return null;
   }
 }
 
-export async function pushAll(uid: string): Promise<number> {
+async function saveBase(uid: string, cloudAt: number, cloudJson: string, localNow: RegisterParts): Promise<void> {
+  const base: SyncBase & { uid: string } = { uid, cloudAt, cloudJson, local: partHashes(localNow) };
+  try {
+    await AsyncStorage.setItem(SYNC_BASE_KEY, JSON.stringify(base));
+  } catch (e: any) {
+    // A browser's storage quota is the likely cause. Without a base the device
+    // behaves as if it had just joined — it unites rather than overwrites — so
+    // this costs a merge next time, never data. Drop any older base: a stale one
+    // would be worse than none.
+    console.warn('[sync] could not store the sync base:', e?.message ?? e);
+    await AsyncStorage.removeItem(SYNC_BASE_KEY).catch(() => {});
+  }
+}
+
+/** This device's register as the sync compares it. */
+async function localRegister(): Promise<RegisterParts> {
   const byCategory = await storage.loadAll();
-  let total = 0;
   const categories: Record<string, EquipmentItem[]> = {};
-  for (const c of CATEGORIES) {
-    categories[c.key] = byCategory[c.key];
-    total += byCategory[c.key].length;
+  for (const c of CATEGORIES) categories[c.key] = byCategory[c.key] ?? [];
+  return {
+    categories,
+    vessel_info: (await storage.loadVessel()) ?? undefined,
+    certificates: await storage.loadCertificates(),
+    compressor: await storage.loadCompressor(),
+  };
+}
+
+/** Replace local storage with a register (a pull, or the result of a merge). */
+async function writeLocalRegister(blob: RegisterParts): Promise<number> {
+  // Iterate the BLOB, not the registry: it is the register's own statement of
+  // which categories it contains. A bucket whose heading this device has not
+  // received yet is still written to storage, so nothing is lost while the
+  // categories collection catches up — and the built-ins are still cleared
+  // when the blob omits them, which is what makes a pull a true replace.
+  const keys = new Set<string>([...CATEGORIES.map((c) => String(c.key)), ...Object.keys(blob.categories ?? {})]);
+  let total = 0;
+  for (const key of keys) {
+    const items = (blob.categories?.[key] ?? []) as EquipmentItem[];
+    await storage.replaceCategory(key as CategoryKey, items);
+    total += items.length;
+  }
+  if (blob.vessel_info) await storage.saveVessel(blob.vessel_info);
+  if (blob.certificates) await storage.saveCertificates(blob.certificates);
+  if (blob.compressor) await storage.saveCompressor(normalizeCompressorState(blob.compressor));
+  return total;
+}
+
+/**
+ * Send this device's register to the vessel — only when there is something to
+ * send, and only over the copy it was based on.
+ *
+ * It used to write unconditionally, on every connect and every return to the
+ * foreground, and that was the bug behind "the equipment keeps deleting itself":
+ * a phone with an old register replaced the ship's the moment it was opened. Now:
+ *   - nothing changed here since the base → no register write at all;
+ *   - no base (just joined) → write only if the vessel has no register yet;
+ *   - the vessel moved on since the base → RegisterConflict; the caller pulls
+ *     (which merges) and tries again;
+ *   - the write is a transaction on `registerUpdatedAt`, so a device that read
+ *     the vessel a second ago cannot land on top of one that wrote since.
+ * `force` is for the one deliberate case — restoring a backup — where this
+ * device's data is meant to replace the vessel's.
+ */
+export async function pushAll(uid: string, opts: { force?: boolean } = {}): Promise<number> {
+  const force = !!opts.force;
+  const local = await localRegister();
+  const total = itemCount(local);
+
+  const snap = await fsGetDoc(accountDoc(uid));
+  const cloudData = snap.exists() ? (snap.data() as any) : null;
+  const cloudAt: number = cloudData?.registerUpdatedAt ?? 0;
+  let cloudBlob: RegisterBlob | null = null;
+  try {
+    const raw = cloudData?.[REGISTER_FIELD];
+    cloudBlob = typeof raw === 'string' && raw ? (JSON.parse(raw) as RegisterBlob) : null;
+  } catch {
+    cloudBlob = null;
   }
 
+  // Never met this vessel's register → take it, do not replace it. Nothing
+  // changed here → nothing to write. The vessel moved on → pull and merge first.
+  const decision = decidePush(await loadBase(uid), local, cloudAt, cloudBlob, force);
+  if (decision === 'conflict') throw new RegisterConflict();
+  if (decision === 'skip') {
+    await pushInspections(uid);
+    return total;
+  }
+
+  const categories: Record<string, EquipmentItem[]> = { ...local.categories };
   // A category this device does not KNOW about still has to survive this push.
   // The register is written as one blob that replaces what is up there, so a
   // device that had not yet received the vessel's new "Emergency Lighting"
@@ -713,15 +813,14 @@ export async function pushAll(uid: string): Promise<number> {
   // every item in it for the whole ship. Carry the cloud's own buckets through
   // untouched; the categories collection will catch this device up separately.
   const known = new Set(CATEGORIES.map((c) => c.key));
-  const cloudRaw = await currentRegisterBlob(uid);
-  for (const [key, items] of Object.entries(cloudRaw?.categories ?? {})) {
+  for (const [key, items] of Object.entries(cloudBlob?.categories ?? {})) {
     if (!known.has(key) && Array.isArray(items)) categories[key] = items as EquipmentItem[];
   }
   const blob: RegisterBlob = {
     categories,
-    vessel_info: (await storage.loadVessel()) ?? undefined,
-    certificates: await storage.loadCertificates(),
-    compressor: await storage.loadCompressor(),
+    vessel_info: local.vessel_info,
+    certificates: local.certificates,
+    compressor: local.compressor,
   };
 
   const allowance = await trial.uploadAllowance(await uploadsUsed(uid));
@@ -758,94 +857,122 @@ export async function pushAll(uid: string): Promise<number> {
   // Named separately so a refusal says WHICH write was refused. One catch around
   // three different documents with three different rules told us only that
   // something, somewhere, was not allowed.
+  const writtenAt = Date.now();
+  const me = await deviceId();
   try {
-    await fsSetDoc(
-      accountDoc(uid),
-      { [REGISTER_FIELD]: json, registerUpdatedAt: Date.now(), registerDeviceId: await deviceId() },
-      { merge: true }
-    );
+    await fsRunTransaction(requireDb(), async (tx) => {
+      const now = await tx.get(accountDoc(uid));
+      const at = now.exists() ? ((now.data() as any)?.registerUpdatedAt ?? 0) : 0;
+      if (!force && at !== cloudAt) throw new RegisterConflict();
+      tx.set(accountDoc(uid), { [REGISTER_FIELD]: json, registerUpdatedAt: writtenAt, registerDeviceId: me }, { merge: true });
+    });
   } catch (e: any) {
+    if (isRegisterConflict(e)) throw e;
     throw new Error(`register: ${e?.message ?? e}`);
   }
+  await saveBase(uid, writtenAt, json, await localRegister());
   if (uploaded) await addUploadsUsed(uid, uploaded);
 
   await pushInspections(uid);
   return total;
 }
 
+export interface PullResult {
+  total: number;
+  /** Local storage was rewritten — the screens need a reload. */
+  changedLocal: boolean;
+  /** This device holds changes the vessel does not have — push them. */
+  needsPush: boolean;
+}
+
 /** Pull the register (replaces local) and merge the trail into it. */
 export async function pullAll(uid: string): Promise<number> {
+  return (await pullRegister(uid)).total;
+}
+
+/**
+ * Bring this device up to the vessel's register without losing its own changes.
+ *
+ *  - the vessel copy is the one this device is based on → nothing to take;
+ *  - this device changed nothing since → take the vessel's copy as it is;
+ *  - both changed → three-way merge (services/registerMerge.ts), stored here and
+ *    reported as `needsPush` so the merged result goes up;
+ *  - no base yet → take the vessel's copy, except an EMPTY one over a device
+ *    that holds items (the 4 Sep 2026 guard below).
+ */
+export async function pullRegister(uid: string): Promise<PullResult> {
   const snap = await fsGetDoc(accountDoc(uid));
-  const raw = snap.exists() ? (snap.data() as any)[REGISTER_FIELD] : null;
-  let total = 0;
+  const data = snap.exists() ? (snap.data() as any) : null;
+  const raw = data?.[REGISTER_FIELD];
+  const cloudAt: number = data?.registerUpdatedAt ?? 0;
+  const local = await localRegister();
 
-  if (typeof raw === 'string' && raw) {
-    let blob: RegisterBlob;
-    try {
-      blob = JSON.parse(raw) as RegisterBlob;
-    } catch {
-      throw new Error('The register stored in the cloud could not be read.');
-    }
+  if (!(typeof raw === 'string' && raw)) {
+    await pullInspections(uid);
+    return { total: itemCount(local), changedLocal: false, needsPush: itemCount(local) > 0 };
+  }
 
-    // ---- refuse to wipe a good local register --------------------------------
-    //
-    // This replaces every category with whatever arrived, so an empty or
-    // malformed blob erases the vessel's entire register — and the next push
-    // then writes that emptiness back to the cloud, which is how a recoverable
-    // glitch becomes permanent. Seen for real on 4 Sep 2026: a device came up,
-    // pulled an empty blob, lost 13 items, and pushed the emptiness over the
-    // good copy within the same minute.
-    //
-    // So: a blob with no `categories` object is not a register, and a blob with
-    // ZERO items does not get to overwrite a local copy that has some. A vessel
-    // that genuinely wants to clear its register does it locally and pushes —
-    // that direction is deliberate and reversible from a .msm backup. This one
-    // is neither.
-    if (!blob.categories || typeof blob.categories !== 'object') {
-      throw new Error('The register stored in the cloud is not in a readable shape.');
-    }
-    const incoming = Object.values(blob.categories).reduce(
-      (n, items) => n + (Array.isArray(items) ? items.length : 0),
-      0
+  let blob: RegisterBlob;
+  try {
+    blob = JSON.parse(raw) as RegisterBlob;
+  } catch {
+    throw new Error('The register stored in the cloud could not be read.');
+  }
+  if (!blob.categories || typeof blob.categories !== 'object') {
+    throw new Error('The register stored in the cloud is not in a readable shape.');
+  }
+
+  const base = await loadBase(uid);
+  const decision = decidePull(base, local, cloudAt, blob);
+
+  if (decision.kind === 'current') {
+    await pullInspections(uid);
+    return { total: itemCount(local), changedLocal: false, needsPush: decision.needsPush };
+  }
+
+  // ---- refuse to wipe a good local register ----------------------------------
+  //
+  // Only for a device with no base. Seen for real on 4 Sep 2026: a device came
+  // up, pulled an empty blob, lost 13 items, and pushed the emptiness over the
+  // good copy within the same minute. A device WITH a base that changed nothing
+  // is looking at a vessel emptied on purpose by a device that knew what it was
+  // clearing, and follows it.
+  if (decision.kind === 'refuse-empty') {
+    console.warn(
+      `[sync] refused an empty cloud register — this device holds ${itemCount(local)} items and has never synced with this vessel.`
     );
-    if (incoming === 0) {
-      const localCount = (await storage.loadFlat()).length;
-      if (localCount > 0) {
-        console.warn(
-          `[sync] refused an empty cloud register — this device holds ${localCount} items. ` +
-            'Push from here if the register really should be empty.'
-        );
-        await pullInspections(uid);
-        return localCount;
-      }
-    }
+    await pullInspections(uid);
+    return { total: itemCount(local), changedLocal: false, needsPush: true };
+  }
 
+  if (decision.kind === 'take') {
     // Put this device's own file payloads back before writing. The register
     // carries a marker where an inline file used to be (see stripInlineFiles),
     // and applying it as-is would overwrite good photographs with that marker.
-    blob = await keepLocalInlineFiles(blob);
-
-    // Iterate the BLOB, not the registry: it is the register's own statement of
-    // which categories it contains. A bucket whose heading this device has not
-    // received yet is still written to storage, so nothing is lost while the
-    // categories collection catches up — and the built-ins are still cleared
-    // when the blob omits them, which is what makes a pull a true replace.
-    const keys = new Set<string>([
-      ...CATEGORIES.map((c) => String(c.key)),
-      ...Object.keys(blob.categories ?? {}),
-    ]);
-    for (const key of keys) {
-      const items = (blob.categories?.[key] ?? []) as EquipmentItem[];
-      await storage.replaceCategory(key as CategoryKey, items);
-      total += items.length;
-    }
-    if (blob.vessel_info) await storage.saveVessel(blob.vessel_info);
-    if (blob.certificates) await storage.saveCertificates(blob.certificates);
-    if (blob.compressor) await storage.saveCompressor(normalizeCompressorState(blob.compressor));
+    const applied = await keepLocalInlineFiles(blob);
+    const total = await writeLocalRegister(applied);
+    await saveBase(uid, cloudAt, raw, await localRegister());
+    await pullInspections(uid);
+    return { total, changedLocal: true, needsPush: false };
   }
 
+  // Both sides moved on since the base.
+  // No base (first sync on this device): an empty one, so the merge is a union.
+  let baseBlob: RegisterBlob = { categories: {} };
+  try {
+    if (base) baseBlob = JSON.parse(base.cloudJson) as RegisterBlob;
+  } catch {
+    /* unreadable base — treat as none */
+  }
+  const merged = await keepLocalInlineFiles(mergeRegister(baseBlob, local, blob, decision.changed) as RegisterBlob);
+  const theirsApplied = await keepLocalInlineFiles(blob);
+  const total = await writeLocalRegister(merged);
+  // The base is the VESSEL's copy as this device would hold it — so the merge
+  // still reads as a local change, and goes up on the push that follows.
+  await saveBase(uid, cloudAt, raw, theirsApplied);
+  console.warn('[sync] merged local changes with a newer vessel register.');
   await pullInspections(uid);
-  return total;
+  return { total, changedLocal: true, needsPush: true };
 }
 
 // ---- Inspections + crew: merge, not overwrite -------------------------------

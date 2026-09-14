@@ -79,6 +79,10 @@ app mirrors. Bundle id `com.kukalab.msm`.
   reads like a clean sheet, and this is what makes it usable as a worklist mid-month), and every
   open defect carried forward. Separate from the register export in `export.ts`, which answers the
   different question "what is falling due".
+- **Remote files on native** (`ensureLocalFile` in `services/attachments.ts`): a file added on
+  another device is a Cloud Storage download URL, and sharing / the ZIP export accept only local
+  paths — fetch into `cacheDirectory/remote/` first (named from the attachment, else Content-Type;
+  objects are stored by id with no extension). The `.msm` backup still keeps such files as links.
 - Attachments: `expo-image-picker` (camera/library) + `expo-document-picker` (PDF/docs),
   persisted to `documentDirectory/attachments/` via `services/attachments.ts`. Items carry
   `attachments: Attachment[]` (up to 4; long-press a thumbnail for the edit menu —
@@ -520,9 +524,20 @@ is the validated path.
    `defect`. `storage.rules` mirrors firestore.rules against the same claims, write-once, no
    delete. **The Storage bucket is not created yet** — Firebase console → Storage → Get started;
    uploads fail harmlessly until it exists (the queue simply keeps them).
-5. **The register still syncs as a whole-bucket replace** (`pushAll`/`pullAll`). Unlike
-   inspections, two devices editing one ITEM genuinely conflict, and today the later push wins.
-   Item-level merge on `updatedAt` is the natural next step.
+5. **The register syncs from a BASE, not by last-writer-wins (14 Sep 2026)** —
+   `services/registerMerge.ts`. It was a whole-document replace pushed on every connect and every
+   foreground, before pulling, so a phone with an old register wiped the vessel's the moment it was
+   opened ("the equipment keeps deleting itself"). Now each device stores `msm:register_base`
+   (the vessel copy it last agreed with + hashes of its own data then). Sync = pull first
+   (`pullRegister`: current / take / merge three-way by item id / refuse an empty vessel over a
+   base-less device), then `pushAll` only if something changed here, as a Firestore transaction
+   on `registerUpdatedAt` (a `RegisterConflict` goes round again). A device with NO base (just
+   joined, or first sync after this update) UNITES by id rather than taking either side — the
+   migration case is a website holding the good register while the vessel holds a phone's stale
+   one. `force` (restore a `.msm`) replaces on purpose. Decisions are pure (`decidePull`/
+   `decidePush`) and driven through two-device scenarios by `npm run check:sync`. The Firestore
+   glue itself was not exercised against a live vessel — only typechecked and reviewed.
+   Two devices editing the SAME item still resolve by later `updatedAt`.
 6. **Checklist templates are built in, not editable.** A vessel whose SMS words a check
    differently cannot yet change it; the version + line ids on every record are what will make a
    template editor safe to add later.
