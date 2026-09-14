@@ -58,7 +58,7 @@ const en: GettingStartedContent = {
     {
       emoji: '✅',
       title: '4 · Confirm',
-      body: 'Choose "Replace all" to overwrite, or "Append" to add to what is there, then confirm. Dates are converted automatically and every item stays editable afterwards.',
+      body: 'On a first import choose "Replace all". Later, import an edited copy with "Update" — items keep their QR labels and history — or "Add as new" to add rows, then confirm. Dates are converted automatically and every item stays editable afterwards.',
     },
   ],
   tip: 'Already have your own list? Import it directly. A sheet with columns such as #, Deck, Location, Description, Make, Type, Size, Serial and Exp / Inspc. is sorted into categories by each item\'s description, and the preview shows the result before anything is saved.',
@@ -94,7 +94,7 @@ const ru: GettingStartedContent = {
     {
       emoji: '✅',
       title: '4 · Подтвердите',
-      body: 'Выберите "Replace all", чтобы перезаписать, или "Append", чтобы добавить к имеющемуся, и подтвердите. Даты конвертируются автоматически, любую позицию можно отредактировать позже.',
+      body: 'При первом импорте выберите "Replace all". Позже импортируйте отредактированную копию через "Update" — позиции сохранят QR-наклейки и историю — или "Add as new", чтобы добавить строки, и подтвердите. Даты конвертируются автоматически, любую позицию можно отредактировать позже.',
     },
   ],
   tip: 'Уже есть свой список? Импортируйте его напрямую. Лист со столбцами вроде #, Deck, Location, Description, Make, Type, Size, Serial и Exp / Inspc. раскладывается по категориям по описанию каждой позиции, а предпросмотр показывает результат до сохранения.',
@@ -130,7 +130,7 @@ const es: GettingStartedContent = {
     {
       emoji: '✅',
       title: '4 · Confirme',
-      body: 'Elija "Replace all" para sobrescribir, o "Append" para añadir a lo existente, y confirme. Las fechas se convierten automáticamente y cada elemento queda editable después.',
+      body: 'En la primera importación elija "Replace all". Más adelante importe una copia editada con "Update" (los elementos conservan etiquetas QR e historial) o "Add as new" para añadir filas, y confirme. Las fechas se convierten automáticamente y cada elemento queda editable después.',
     },
   ],
   tip: '¿Ya tiene su propia lista? Impórtela directamente. Una hoja con columnas como #, Deck, Location, Description, Make, Type, Size, Serial y Exp / Inspc. se reparte en categorías según la descripción de cada elemento, y la vista previa muestra el resultado antes de guardar nada.',
@@ -166,7 +166,7 @@ const uk: GettingStartedContent = {
     {
       emoji: '✅',
       title: '4 · Підтвердьте',
-      body: 'Виберіть "Replace all", щоб перезаписати, або "Append", щоб додати до наявного, і підтвердьте. Дати конвертуються автоматично, будь-яку позицію можна відредагувати згодом.',
+      body: 'Під час першого імпорту виберіть "Replace all". Пізніше імпортуйте відредаговану копію через "Update" — позиції збережуть QR-наклейки та історію — або "Add as new", щоб додати рядки, і підтвердьте. Дати конвертуються автоматично, будь-яку позицію можна відредагувати згодом.',
     },
   ],
   tip: 'Уже маєте свій список? Імпортуйте його напряму. Аркуш зі стовпцями на кшталт #, Deck, Location, Description, Make, Type, Size, Serial та Exp / Inspc. розкладається за категоріями за описом кожної позиції, а попередній перегляд показує результат до збереження.',

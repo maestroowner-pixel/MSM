@@ -549,7 +549,7 @@ export default function SettingsSc() {
           <GlyphBadge emoji="📥" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Import from Excel</Text>
-            <Text style={styles.linkSub}>Load the LSA / FFE Inventories workbook</Text>
+            <Text style={styles.linkSub}>Load a workbook, or update the register from an edited copy</Text>
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>

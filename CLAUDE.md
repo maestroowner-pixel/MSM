@@ -187,6 +187,18 @@ The source workbook (`LSA FFE Inventories.xlsx`, 25 sheets) is heterogeneous. Th
   `expo-file-system.readAsStringAsync` does not exist in a browser.
 - Validated against the real file: **627 items across all 23 sheets** (run `npx tsc --noEmit`
   to typecheck; counts e.g. liferafts 12, immersion 93, fire detectors 108).
+- **Update from Excel** (`services/registerUpdate.ts`, Sep 2026) — the default import mode once a
+  register exists. "Replace all" re-issues every id, and the id IS the QR label, the inspection
+  link and the attachment owner, so a second import used to orphan all of them. Update matches
+  each row to its item — `MSM ID` column (written by the XLSX export, `services/registerSheet.ts`)
+  → unique serial → category+No+Type+Deck+Location (identical items paired in order) — applies
+  only columns the sheet HAS (an emptied cell clears, a missing column keeps), keeps the item's
+  category, and lists items not in the file; they are removed only if the user switches that on.
+  "Missing" is limited to categories the file has sheets for. The export's `Due`/`Status` headings
+  are read specially only in our own layout (`ourExport`), and dates it writes ("01 Mar 2027")
+  now parse — before this a register exported and re-imported lost every date.
+  `npm run check:register -- "/path/LSA FFE Inventories.xlsx"` checks the round trip (export →
+  import changes nothing, 627/627 matched by id) and that the reference import is unchanged.
 
 ## Running locally
 ```bash

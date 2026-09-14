@@ -18,6 +18,7 @@ import { printHtmlWeb } from '../utils/webFile';
 import { downloadPdfWeb } from '../utils/webPdf';
 import { resolveUri } from './attachments';
 import { VesselInfo } from './storage';
+import { registerSheetRows } from './registerSheet';
 
 const STATUS_LABEL: Record<string, string> = {
   expired: 'EXPIRED',
@@ -211,19 +212,7 @@ export async function exportXlsx(
   const wb = XLSX.utils.book_new();
   const colours: string[] = [];
   for (const g of groups) {
-    const aoa = [
-      // Vessel header block (kept above the real column header so re-import still
-      // detects the header row — these rows classify as data, not headers).
-      [header],
-      [`Generated ${today}`],
-      [],
-      // Deck and Location stay separate here (unlike the PDF): this sheet is also
-      // how a register goes back in, and the importer maps each to its own field.
-      ['No', 'Type', 'Make', 'Size', 'Serial', 'Deck', 'Location', 'Qty', 'Manufacture', 'Due', 'Status', 'Comments'],
-      ...rowsFor(g.items).map((r) => [
-        r.no, r.type, r.make, r.size, r.serial, r.deck, r.location, r.qty, r.mfg, r.due, STATUS_LABEL[r.status], r.remarks,
-      ]),
-    ];
+    const aoa = registerSheetRows(g.items, header, today);
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     XLSX.utils.book_append_sheet(wb, ws, sheetName(g.label));
     // Same grouping as the app and as the blank template: LSA blue, FFE red,

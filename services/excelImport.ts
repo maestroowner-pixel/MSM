@@ -7,7 +7,7 @@
 
 import * as XLSX from 'xlsx';
 import { CategoryKey, EquipmentItem } from '../types/equipment';
-import { CATEGORIES, CATEGORY_MAP } from '../constants/categories';
+import { CATEGORIES, CATEGORY_MAP, sheetSafeName } from '../constants/categories';
 import { parseDateCell } from '../utils/dates';
 import { uid } from '../utils/id';
 
@@ -26,7 +26,10 @@ type Field =
   | 'expiry'
   // "Exp / Inspc." — one column that holds whichever date the category runs on.
   | 'compliance'
-  | 'remarks';
+  | 'remarks'
+  // The item's own id, written by our register export ("MSM ID"). Not a data
+  // field: it never makes a row a header or an item, it only says WHICH item.
+  | 'msmId';
 
 /**
  * Headings that ARE a field's name, matched on the whole cell before any
@@ -41,6 +44,7 @@ type Field =
  * Type" is a type column in the reference workbook, and must stay one.
  */
 const EXACT_PATTERNS: Array<[Field, RegExp]> = [
+  ['msmId', /^msm id$/],
   ['no', /^(no|nr|n_|n°|item no|item nr|item number|item #|ref|ref no)$/],
   ['type', /^type$/],
   ['make', /^(make|maker|manufacturer|brand)$/],
@@ -70,6 +74,8 @@ type ColMap = Partial<Record<Field, number>> & {
   extras: Array<{ name: string; col: number }>;
   /** A "Description" column beside a real "Type" — kept, and read to sort rows. */
   description?: number;
+  /** The header row is our own register export (see `ourExport` below). */
+  ours?: boolean;
 };
 
 const DATA_FIELDS: Field[] = [
@@ -109,9 +115,26 @@ function classifyHeader(row: any[]): ColMap {
   // ("Flares, make" · "Type") the first column is the item and "Type" the maker,
   // and that sheet must read as it always has.
   const typeIsExact = hasTypeHeading && keys.some((k) => /^(make|maker|manufacturer|brand)$/.test(k));
+  // Our own register export. Two of its headings mean something only there:
+  // "Due" is the category's compliance date (the keyword pass would file it as
+  // EXPIRY, moving a liferaft's next inspection into the wrong field on every
+  // round trip), and "Status" is computed — importing it would plant a stale
+  // "OK" in every item's extras. Recognised by the id column, or, for files
+  // exported before that column existed, by its distinctive heading set.
+  const ourExport =
+    keys.includes('msm id') || (keys.includes('due') && keys.includes('status') && keys.includes('manufacture'));
+  map.ours = ourExport;
   row.forEach((cell, col) => {
     const key = headingKey(norm(cell));
     if (!key) return;
+    if (ourExport && key === 'due' && !used.has('compliance')) {
+      assign('compliance', col);
+      return;
+    }
+    if (ourExport && key === 'status') {
+      taken.add(col);
+      return;
+    }
     for (const [field, re] of EXACT_PATTERNS) {
       if (used.has(field)) continue;
       // With no Type column, "Make"/"Brand" IS what the sheet calls the item
@@ -215,6 +238,11 @@ function rowToItem(row: any[], cm: ColMap, category: CategoryKey, lastType: stri
     category,
     updatedAt: Date.now(),
   };
+  // Which fields this sheet HAS a column for — so an update can tell "the cell
+  // was emptied" (clear it) from "the file never had that column" (keep it).
+  (item as any)._fields = DATA_FIELDS.filter((f) => cm[f] != null);
+  const msmId = norm(get('msmId'));
+  if (msmId) (item as any)._msmId = msmId;
 
   const no = get('no');
   if (no != null && norm(no) !== '') item.no = typeof no === 'number' ? no : norm(no);
@@ -297,14 +325,20 @@ function mapFirstAid(category: CategoryKey, rows: any[][]): EquipmentItem[] {
       }
     }
     if (!expiry && !/kit|bridge|engine|galley|ecr|er\b|hospital/i.test(label)) continue;
-    items.push({ id: uid('fa'), category, type: label, expiry, updatedAt: Date.now() });
+    const item: EquipmentItem = { id: uid('fa'), category, type: label, expiry, updatedAt: Date.now() };
+    (item as any)._fields = ['type', 'expiry'];
+    items.push(item);
   }
   return items;
 }
 
 /** Map a single sheet's rows to equipment items. */
 export function mapSheet(category: CategoryKey, rows: any[][]): EquipmentItem[] {
-  if (category === 'first_aid') return mapFirstAid(category, rows);
+  // The reference First Aid sheet has no header row; our own export of it does,
+  // and read the headerless way its heading row became a "kit" called "No".
+  if (category === 'first_aid' && !rows.some((r) => r && isHeaderRow(classifyHeader(r)))) {
+    return mapFirstAid(category, rows);
+  }
 
   const items: EquipmentItem[] = [];
   let cm: ColMap | null = null;
@@ -323,7 +357,10 @@ export function mapSheet(category: CategoryKey, rows: any[][]): EquipmentItem[] 
     if (!cm) continue; // skip preamble before first header
     if (countRecognized(row, cm) < 2) continue; // section titles / notes
 
-    const item = rowToItem(row, cm, category, lastType);
+    // Carrying a type down into blank cells is for merged cells in a hand-made
+    // workbook. Our export writes every row in full, so a blank there means "no
+    // type" — carried forward, five untyped immersion suits came back typed.
+    const item = rowToItem(row, cm, category, cm.ours ? '' : lastType);
     if (item) {
       if (item.type) lastType = item.type;
       items.push(item);
@@ -437,12 +474,18 @@ function buildPreview(wb: XLSX.WorkBook): ImportPreview {
   const claimed = new Set<string>();
 
   for (const meta of CATEGORIES) {
-    // Hand-built categories have no source worksheet. Not finding one is not a
-    // gap in the workbook, so it must not be reported as a missing sheet.
-    if (!meta.sheet) continue;
-    const realName = sheetIndex.get(meta.sheet.trim().toLowerCase());
-    if (!realName) {
-      missingSheets.push(meta.sheet);
+    // Our register export names each worksheet after the category's LABEL
+    // ("Liferafts / HRU" → "Liferafts   HRU"), not its source sheet ("Liferafts"),
+    // and writes one for categories that have no source sheet at all (Other
+    // Safety Equipment, a vessel's own). Without the label lookup an exported
+    // register came back through the row-by-row sorter and could land its items
+    // in a neighbouring category.
+    const bySheet = meta.sheet ? sheetIndex.get(meta.sheet.trim().toLowerCase()) : undefined;
+    const realName = bySheet ?? sheetIndex.get(sheetSafeName(meta.label).toLowerCase());
+    if (!realName || claimed.has(realName)) {
+      // Hand-built categories have no source worksheet. Not finding one is not a
+      // gap in the workbook, so it must not be reported as a missing sheet.
+      if (!realName && meta.sheet) missingSheets.push(meta.sheet);
       continue;
     }
     claimed.add(realName);
@@ -477,7 +520,12 @@ function buildPreview(wb: XLSX.WorkBook): ImportPreview {
   return { byCategory, counts, total, missingSheets: ownLayout ? [] : missingSheets, sortedSheets };
 }
 
-/** Drop the importer's working notes (`_description`, `_complianceField`). */
+/**
+ * Drop the working notes only the parser needs (`_description`,
+ * `_complianceField`). `_msmId` and `_fields` survive into the preview, because
+ * the UPDATE is decided from them — see services/registerUpdate.ts, whose
+ * `storable` removes them before anything is saved.
+ */
 function stripInternal(it: EquipmentItem): EquipmentItem {
   const { _description, _complianceField, ...rest } = it as any;
   return rest;

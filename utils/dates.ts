@@ -68,6 +68,18 @@ export function parseDateCell(raw: any): string | undefined {
   }
 
   // Mon-YY or Mon-YYYY (e.g. "Mar-26", "Oct-2026")
+  // "01 Mar 2027" / "1-Mar-27" — what formatDate writes, and so what our own
+  // register export puts in every date cell. Without this a register exported and
+  // imported back lost every date it had.
+  m = s.match(/^(\d{1,2})[-/ ]([A-Za-z]{3})[A-Za-z]*\.?[-/ ](\d{2}|\d{4})$/);
+  if (m) {
+    const monthIdx = MONTHS.indexOf(m[2].toLowerCase());
+    if (monthIdx >= 0) {
+      const year = m[3].length === 2 ? `20${m[3]}` : m[3];
+      return `${year}-${String(monthIdx + 1).padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    }
+  }
+
   m = s.match(/^([A-Za-z]{3})[-/ ](\d{2,4})$/);
   if (m) {
     const monthIdx = MONTHS.indexOf(m[1].toLowerCase().slice(0, 3));
