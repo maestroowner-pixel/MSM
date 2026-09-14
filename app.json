@@ -2,7 +2,7 @@
   "expo": {
     "name": "Marine Safety Manager",
     "slug": "marine-safety-manager",
-    "version": "2.43",
+    "version": "2.44",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "msm",
@@ -20,7 +20,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.kukalab.msm",
       "appleTeamId": "LAGTN99698",
-      "buildNumber": "20403",
+      "buildNumber": "20404",
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.kukalab.msm"
@@ -41,7 +41,7 @@
     },
     "android": {
       "package": "com.kukalab.msm",
-      "versionCode": 20403,
+      "versionCode": 20404,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",

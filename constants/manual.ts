@@ -185,7 +185,7 @@ const en: ManualContent = {
         "Choose who is signing from the vessel's crew list before you start — that name goes on the record. Add comments and up to four evidence photographs; they belong to that inspection, not to the item's general photos.",
         "Signing stamps the exact date and time, the crew member and the checklist version. A signed record cannot be edited or deleted by anyone, including the Master: a mistake is corrected by inspecting the item again, and both records stay on file. That is what makes the trail worth showing to a surveyor.",
         "Any FAIL raises a defect against that item, and it stays outstanding until somebody records the rectification.",
-        "Scan before signing (Settings → Scan QR label before signing, set by the Master). When it is on, Crew and Officers can sign an inspection only after scanning that item's QR label with the app's scanner, or with the phone's camera opening the app on the item. The scan counts for 30 minutes; typing the code in by hand does not count.",
+        "Scan before signing (Settings → Scan QR label before signing, set by the Master). When it is on, Crew and Officers can sign an inspection only after scanning that item's QR label with the in-app scanner (the QR button). The scan counts for 30 minutes; typing the code in by hand does not count.",
         "The scan is written onto the signed record and shown in the Scan column of the inspection report. A Master may sign without a scan (a missing label, an item out of reach) but must give a reason, which is printed in the report beside the signature.",
       ],
     },
@@ -222,6 +222,7 @@ const en: ManualContent = {
         "Reports → Inspections is the record of what was done. Choose the group (LSA, FFE, Other or All) and Weekly or Monthly, then step back to any earlier month or week with ‹ ›; \"Back to current\" returns to this one. The figures on screen are the ones that will be printed.",
         "The report opens with its verdict — for example \"September 2026 Monthly Inspection – Completed – Passed\", or \"Incomplete (12 of 40 inspected)\" and \"Failed\" when that is the truth. It is the line to file as evidence in your planned maintenance system. Each item is judged by its latest inspection in the period, so a failure put right and re-inspected is not held against it.",
         "Inspections carried out are listed with No., Location, Category, Type, Size, Serial, Result, Comments, the inspector's Initials, Date and Time, with a key from initials to names under the table. What was written in Comments during the inspection — and what failed — is carried into the report. After that come the items not inspected in the period, and every defect still open.",
+        "The inspection report has a Scan column: QR when the label was scanned before signing, No scan when a Master signed without one (the reason is in Comments). The register XLSX carries an MSM ID column — keep it when you edit the file, and Import → Update finds every item again.",
       ],
     },
     {
@@ -305,6 +306,7 @@ const en: ManualContent = {
         "Every install has 60 days free, with no key and no card — long enough to run a full monthly cycle before deciding.",
         "The licence is bought once by whoever manages the vessel and activated on the ship's account: Settings → Marine Safety Manager Pro → Activate the vessel licence. From that moment every enrolled device has full access; a crew member buys nothing and needs no store account.",
         "Without a licence after the free period the app keeps working, but the register is capped at 15 items per category — enough to try it, not enough to run a ship.",
+        "A device that joins a licensed vessel picks the licence up by itself. If one still shows the activation page, open it and tap Restore the vessel licence.",
       ],
     },
     {
@@ -471,7 +473,7 @@ const ru: ManualContent = {
         "Перед началом выберите, кто подписывает, из списка экипажа судна — это имя попадёт в запись. Добавьте комментарий и до четырёх фотографий-доказательств: они принадлежат этой инспекции, а не общим фото позиции.",
         "Подпись фиксирует точные дату и время, члена экипажа и версию чек-листа. Подписанную запись не может изменить или удалить никто, включая Мастера: ошибка исправляется новой инспекцией, и обе записи остаются в деле. Именно это делает журнал пригодным для предъявления инспектору.",
         "Любой FAIL поднимает дефект на этой позиции, и он остаётся открытым, пока кто-нибудь не зафиксирует устранение.",
-        "Скан перед подписью (Settings → Scan QR label before signing, включает Master). Когда режим включён, Crew и Officer могут подписать проверку только после скана QR-наклейки этой позиции сканером приложения или камерой телефона, открывающей приложение на позиции. Скан действует 30 минут; ввод кода вручную не считается.",
+        "Скан перед подписью (Settings → Scan QR label before signing, включает Master). Когда режим включён, Crew и Officer могут подписать проверку только после скана QR-наклейки этой позиции сканером приложения (кнопка QR). Скан действует 30 минут; ввод кода вручную не считается.",
         "Скан записывается в подписанную запись и показывается в колонке Scan отчёта о проверках. Master может подписать без скана (наклейка утеряна, позиция недоступна), но обязан указать причину — она печатается в отчёте рядом с подписью.",
       ],
     },
@@ -508,6 +510,7 @@ const ru: ManualContent = {
         "Reports → Inspections — запись о том, что было сделано. Выберите группу (LSA, FFE, Other или All) и Weekly или Monthly, затем стрелками ‹ › перейдите к любому прошлому месяцу или неделе; \"Back to current\" возвращает к текущему. Цифры на экране — те же, что будут напечатаны.",
         "Отчёт начинается с итога — например, \"September 2026 Monthly Inspection – Completed – Passed\" или \"Incomplete (12 of 40 inspected)\" и \"Failed\", если так оно и есть. Эту строку и подшивают как подтверждение в систему планового обслуживания (PMS). Каждая позиция оценивается по последней инспекции за период, так что устранённое и повторно проверенное замечание не засчитывается против неё.",
         "Проведённые инспекции перечислены со столбцами No., Location, Category, Type, Size, Serial, Result, Comments, Initials инспектора, Date и Time; под таблицей — расшифровка инициалов. Написанное в Comments во время инспекции — и что не прошло проверку — переносится в отчёт. Далее идут позиции, не проверенные за период, и все незакрытые дефекты.",
+        "В отчёте о проверках есть колонка Scan: QR — наклейку отсканировали перед подписью, No scan — Master подписал без скана (причина в Comments). XLSX реестра содержит колонку MSM ID — сохраните её при редактировании файла, и Import → Update снова найдёт каждую позицию.",
       ],
     },
     {
@@ -591,6 +594,7 @@ const ru: ManualContent = {
         "У каждой установки есть 60 бесплатных дней — без ключа и без карты. Этого хватает, чтобы пройти полный месячный цикл и решить.",
         "Лицензию покупает один раз тот, кто ведёт судно, и активирует её на аккаунте корабля: Настройки → Marine Safety Manager Pro → Activate the vessel licence. С этого момента полный доступ есть у всех вступивших устройств; члену экипажа покупать нечего.",
         "Без лицензии после бесплатного периода приложение продолжает работать, но реестр ограничен 15 позициями на категорию — этого хватает попробовать, но не хватает вести судно.",
+        "Устройство, подключённое к судну с лицензией, получает её автоматически. Если оно всё же показывает страницу активации, откройте её и нажмите Restore the vessel licence.",
       ],
     },
     {
@@ -757,7 +761,7 @@ const es: ManualContent = {
         "Elija quién firma desde la lista de tripulación antes de empezar: ese nombre queda en el registro. Añada comentarios y hasta cuatro fotografías de prueba; pertenecen a esa inspección, no a las fotos generales del equipo.",
         "Al firmar se sella la fecha y hora exactas, el tripulante y la versión de la lista. Un registro firmado no puede editarse ni borrarse por nadie, ni siquiera por el Master: un error se corrige inspeccionando otra vez, y ambos registros quedan archivados.",
         "Cualquier FAIL genera un defecto sobre ese equipo, y queda pendiente hasta que alguien registre la subsanación.",
-        "Escanear antes de firmar (Settings → Scan QR label before signing, lo activa el Master). Cuando está activo, Crew y Officer solo pueden firmar una inspección después de escanear la etiqueta QR de ese elemento con el escáner de la app, o con la cámara del teléfono abriendo la app en el elemento. El escaneo vale 30 minutos; escribir el código a mano no cuenta.",
+        "Escanear antes de firmar (Settings → Scan QR label before signing, lo activa el Master). Cuando está activo, Crew y Officer solo pueden firmar una inspección después de escanear la etiqueta QR de ese elemento con el escáner de la app (el botón QR). El escaneo vale 30 minutos; escribir el código a mano no cuenta.",
         "El escaneo queda en el registro firmado y aparece en la columna Scan del informe de inspecciones. El Master puede firmar sin escanear (etiqueta perdida, elemento inaccesible), pero debe indicar el motivo, que se imprime en el informe junto a la firma.",
       ],
     },
@@ -794,6 +798,7 @@ const es: ManualContent = {
         "Reports → Inspections es el registro de lo que se hizo. Elija el grupo (LSA, FFE, Other o All) y Weekly o Monthly, y retroceda a cualquier mes o semana anterior con ‹ ›; \"Back to current\" vuelve al actual. Las cifras en pantalla son las que se imprimirán.",
         "El informe empieza con su veredicto — por ejemplo \"September 2026 Monthly Inspection – Completed – Passed\", o \"Incomplete (12 of 40 inspected)\" y \"Failed\" cuando esa es la verdad. Es la línea que se archiva como evidencia en el sistema de mantenimiento planificado (PMS). Cada elemento se juzga por su última inspección del periodo, así que un fallo corregido y reinspeccionado no cuenta en su contra.",
         "Las inspecciones realizadas aparecen con No., Location, Category, Type, Size, Serial, Result, Comments, las Initials del inspector, Date y Time, con una clave de iniciales a nombres bajo la tabla. Lo escrito en Comments durante la inspección — y lo que falló — pasa al informe. Después vienen los elementos no inspeccionados en el periodo y todos los defectos aún abiertos.",
+        "El informe de inspecciones tiene una columna Scan: QR cuando se escaneó la etiqueta antes de firmar, No scan cuando un Master firmó sin escanear (el motivo va en Comments). El XLSX del registro lleva una columna MSM ID: consérvela al editar el archivo e Import → Update volverá a encontrar cada elemento.",
       ],
     },
     {
@@ -877,6 +882,7 @@ const es: ManualContent = {
         "Cada instalación tiene 60 días gratis, sin clave y sin tarjeta.",
         "La licencia la compra una vez quien gestiona el buque y se activa en la cuenta del barco: Ajustes → Marine Safety Manager Pro → Activate the vessel licence. Desde ese momento todos los dispositivos inscritos tienen acceso completo.",
         "Sin licencia tras el periodo gratuito la aplicación sigue funcionando, pero el registro se limita a 15 elementos por categoría.",
+        "Un dispositivo que se une a un buque con licencia la recibe por sí solo. Si aún muestra la página de activación, ábrala y pulse Restore the vessel licence.",
       ],
     },
     {
@@ -1043,7 +1049,7 @@ const uk: ManualContent = {
         "Перед початком оберіть, хто підписує, зі списку екіпажу — це ім'я потрапить у запис. Додайте коментар і до чотирьох фотографій-доказів: вони належать цій інспекції, а не загальним фото позиції.",
         "Підпис фіксує точні дату й час, члена екіпажу та версію чек-листа. Підписаний запис не може змінити або видалити ніхто, включно з Майстром: помилка виправляється новою інспекцією, і обидва записи лишаються у справі.",
         "Будь-який FAIL піднімає дефект на цій позиції, і він лишається відкритим, доки хтось не зафіксує усунення.",
-        "Скан перед підписом (Settings → Scan QR label before signing, вмикає Master). Коли режим увімкнено, Crew і Officer можуть підписати перевірку лише після скану QR-наклейки цієї позиції сканером застосунку або камерою телефона, що відкриває застосунок на позиції. Скан діє 30 хвилин; введення коду вручну не зараховується.",
+        "Скан перед підписом (Settings → Scan QR label before signing, вмикає Master). Коли режим увімкнено, Crew і Officer можуть підписати перевірку лише після скану QR-наклейки цієї позиції сканером застосунку (кнопка QR). Скан діє 30 хвилин; введення коду вручну не зараховується.",
         "Скан записується в підписаний запис і показується в колонці Scan звіту про перевірки. Master може підписати без скану (наклейку втрачено, позиція недоступна), але мусить вказати причину — вона друкується у звіті поруч із підписом.",
       ],
     },
@@ -1080,6 +1086,7 @@ const uk: ManualContent = {
         "Reports → Inspections — запис того, що було зроблено. Виберіть групу (LSA, FFE, Other або All) і Weekly чи Monthly, потім стрілками ‹ › перейдіть до будь-якого минулого місяця чи тижня; \"Back to current\" повертає до поточного. Цифри на екрані — ті самі, що будуть надруковані.",
         "Звіт починається з підсумку — наприклад, \"September 2026 Monthly Inspection – Completed – Passed\" або \"Incomplete (12 of 40 inspected)\" і \"Failed\", якщо так і є. Саме цей рядок підшивають як підтвердження до системи планового обслуговування (PMS). Кожна позиція оцінюється за останньою інспекцією за період, тож усунене й повторно перевірене зауваження не зараховується проти неї.",
         "Проведені інспекції перелічено зі стовпцями No., Location, Category, Type, Size, Serial, Result, Comments, Initials інспектора, Date і Time; під таблицею — розшифровка ініціалів. Написане в Comments під час інспекції — і що не пройшло перевірку — переноситься до звіту. Далі йдуть позиції, не перевірені за період, і всі незакриті дефекти.",
+        "У звіті про перевірки є колонка Scan: QR — наклейку відскановано перед підписом, No scan — Master підписав без скану (причина в Comments). XLSX реєстру містить колонку MSM ID — збережіть її під час редагування файлу, і Import → Update знову знайде кожну позицію.",
       ],
     },
     {
@@ -1163,6 +1170,7 @@ const uk: ManualContent = {
         "Кожне встановлення має 60 безкоштовних днів — без ключа й без картки.",
         "Ліцензію купує один раз той, хто веде судно, і активує її на акаунті корабля: Налаштування → Marine Safety Manager Pro → Activate the vessel licence. Відтоді повний доступ мають усі приєднані пристрої.",
         "Без ліцензії після безкоштовного періоду застосунок працює далі, але реєстр обмежений 15 позиціями на категорію.",
+        "Пристрій, приєднаний до судна з ліцензією, отримує її автоматично. Якщо він усе ж показує сторінку активації, відкрийте її та натисніть Restore the vessel licence.",
       ],
     },
     {
