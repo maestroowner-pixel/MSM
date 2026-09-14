@@ -34,7 +34,7 @@ import { mergeCategories, mergeCrew, mergeInspections, mergeTemplates } from '..
 import * as photoQueue from '../services/photoQueue';
 import * as enrolment from '../services/enrolment';
 import * as trial from '../services/trial';
-import { revalidateLicence } from '../services/purchases';
+import { adoptVesselLicence, revalidateLicence } from '../services/purchases';
 import { Role } from '../types/role';
 import { useData } from './DataContext';
 
@@ -352,7 +352,16 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
           // stops a reinstall handing out a fresh 60 days — and the trial belongs
           // to the ship now, not to the handset. Best-effort: a failure here must
           // never stop the device syncing.
-          void trial.syncTrialWithAccount(uidRef.current).catch(() => {});
+          //
+          // The LICENCE comes first, and in the same breath. Mirroring only the
+          // trial handed a joining phone the vessel's expired trial and none of
+          // its paid licence, so joining a licensed ship locked it behind the
+          // paywall — see adoptVesselLicence.
+          const vesselKey = uidRef.current;
+          void (async () => {
+            await adoptVesselLicence(vesselKey).catch(() => {});
+            await trial.syncTrialWithAccount(vesselKey).catch(() => {});
+          })();
           await pushNow();
           return;
         }

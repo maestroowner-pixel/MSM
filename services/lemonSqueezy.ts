@@ -11,9 +11,9 @@
 // CONFIG: fill in the three constants below from your LemonSqueezy dashboard.
 //   - LS_CHECKOUT_URL: Store → Products → your product → "Share / Buy link"
 //       (e.g. https://kukalab.lemonsqueezy.com/buy/xxxxxxxx-xxxx-...).
-//   - LS_STORE_ID / LS_PRODUCT_ID: numeric ids (Settings → Stores, and the
-//       product's URL / API). Used to reject license keys from other products.
-//       Leave 0 to skip that check.
+//   - LS_STORE_ID / LS_PRODUCT_IDS: numeric ids (Settings → Stores, and the
+//       product's API id). Used to reject license keys from other products.
+//       Leave 0 / empty to skip that check.
 // ===================================
 
 const LS_API = 'https://api.lemonsqueezy.com/v1';
@@ -22,10 +22,19 @@ const LS_API = 'https://api.lemonsqueezy.com/v1';
 export const LS_CHECKOUT_URL = 'https://kuka-lab.lemonsqueezy.com/checkout/buy/43d5ae44-87a1-4fd9-8eea-1253c2224651';
 /** Numeric store id — a key whose meta.store_id differs is rejected (0 = skip). */
 export const LS_STORE_ID = 374407;
-/** Numeric product id — a key whose meta.product_id differs is rejected (0 = skip).
- *  Left at 0: the dashboard URL id (1197509) is NOT necessarily the API product_id,
- *  so checking it can reject valid keys. A key only exists for this store anyway. */
-export const LS_PRODUCT_ID = 1205672;
+/**
+ * Product ids a key may belong to — any other meta.product_id is rejected (empty = skip).
+ *
+ * 1197509 is what the live checkout above SELLS: its cart reads
+ * `"product_id":1197509, "variant_id":1872133` for "Marine Safety Manager" at
+ * €99 (checked against the checkout page, 14 Sep 2026). The 2.2 release set this
+ * to 1205672 alone, so every key a vessel actually bought was refused as "a
+ * different product" — a customer's first licence, on 14 Sep 2026. 1205672 is
+ * kept only because some key may have been issued against it; it is not what
+ * the checkout sells. Re-check the checkout before changing this list: a wrong
+ * id here fails silently for every buyer and loudly for none of us.
+ */
+export const LS_PRODUCT_IDS: number[] = [1197509, 1205672];
 /**
  * The vessel licence price, shown in the app. LemonSqueezy exposes no price API
  * on this path, so it is written here and MUST be kept in step with the product
@@ -72,9 +81,15 @@ async function lsPost(path: string, params: Record<string, string>): Promise<any
 }
 
 function checkProduct(meta: any): string | null {
-  if (LS_STORE_ID && Number(meta?.store_id) !== LS_STORE_ID) return 'This license key is for a different product.';
-  if (LS_PRODUCT_ID && Number(meta?.product_id) !== LS_PRODUCT_ID) return 'This license key is for a different product.';
-  return null;
+  const wrongStore = LS_STORE_ID && Number(meta?.store_id) !== LS_STORE_ID;
+  const wrongProduct = LS_PRODUCT_IDS.length && !LS_PRODUCT_IDS.includes(Number(meta?.product_id));
+  if (!wrongStore && !wrongProduct) return null;
+  // Name what the key IS for, so a key from another Kuka Lab app explains itself
+  // instead of sending the customer (and us) looking for a fault in this one.
+  const name = typeof meta?.product_name === 'string' && meta.product_name.trim();
+  return name
+    ? `This licence key is for "${name}", not Marine Safety Manager.`
+    : 'This license key is for a different product.';
 }
 
 function readStatus(data: any): LicenseResult | null {

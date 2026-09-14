@@ -19,6 +19,7 @@ import { ScanEntry, loadScanHistory, recordScan as persistScan } from '../servic
 import { rescheduleExpiryReminders } from '../services/notifications';
 import { syncFlaggedWidget } from '../services/widgetBridge';
 import { limitsActive, overflowLockedIds } from '../services/trial';
+import { onEntitlementChange } from '../services/purchases';
 
 interface DataContextType {
   loading: boolean;
@@ -125,6 +126,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const refreshLocks = useCallback(async () => {
     await computeLocks(byCategory);
   }, [computeLocks, byCategory]);
+
+  // A licence arriving (or lapsing) changes which items are locked, wherever it
+  // came from. Only the paywall used to recompute, so a licence adopted from the
+  // vessel on connect left every locked row locked until the app was restarted.
+  useEffect(() => onEntitlementChange(() => void computeLocks(byCategory)), [computeLocks, byCategory]);
 
   const isLocked = useCallback((id: string) => lockedIds.has(id), [lockedIds]);
 

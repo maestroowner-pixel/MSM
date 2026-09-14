@@ -350,6 +350,39 @@ export async function revalidateLicence(force = false): Promise<void> {
   }
 }
 
+/**
+ * Take the VESSEL's licence onto this device — called every time sync connects.
+ *
+ * `isSubscribed()` reads only the local cache, and until this existed only
+ * typing a key or tapping "Restore" on the paywall ever filled it. So a phone
+ * joining a licensed vessel did not inherit the licence — but it DID inherit the
+ * vessel's trial start (`syncTrialWithAccount`), which on a ship running the app
+ * for two months is already over. Joining therefore switched the paywall ON:
+ * items past the free cap locked, and a scanned label opened the activation
+ * page instead of the item (a customer, 14 Sep 2026, on a vessel whose licence
+ * was active). The vessel copy is trusted as-is; `revalidateLicence` confirms it
+ * with LemonSqueezy once a day from here on.
+ *
+ * Only a definitive answer changes anything: an unreadable vessel (offline)
+ * leaves the cache alone, exactly as `revalidateLicence` does.
+ */
+export async function adoptVesselLicence(uid: string): Promise<void> {
+  let ent: fb.Entitlement | null;
+  try {
+    ent = await fb.getEntitlement(uid);
+  } catch {
+    return; // offline — keep whatever this device already knows
+  }
+  const had = await cachedEntitlement();
+  if (entitlementActive(ent)) {
+    if (JSON.stringify(had) !== JSON.stringify(ent)) await cacheEntitlement(ent);
+  } else if (had) {
+    // The vessel holds no live licence, so this device must not keep one either —
+    // including a stale cache left behind by a vessel it has since left.
+    await cacheEntitlement(null);
+  }
+}
+
 /** @deprecated Use `activateLicense` — kept so existing callers keep compiling. */
 export const activateLicenseWeb = activateLicense;
 
