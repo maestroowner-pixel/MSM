@@ -17,7 +17,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
-import { BackButton, Card, CategoryBadge, Label, Screen, ScreenTitle } from '../components/ui';
+import { Card, CategoryBadge, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
@@ -25,7 +25,6 @@ import { CATEGORIES } from '../constants/categories';
 import { CategoryKey, Group } from '../types/equipment';
 import { SIZES, Palette } from '../theme';
 import { listDecks, selectLabelItems } from '../services/labelBatch';
-import { goBackOr } from '../utils/nav';
 
 type GroupPick = Group | 'ALL';
 
@@ -112,7 +111,6 @@ export default function LabelBatchSc() {
   if (!flat.length) {
     return (
       <Screen scroll>
-        <BackButton onPress={() => goBackOr(nav)} />
         <ScreenTitle title="QR labels" subtitle="Print stickers for many items at once" help={7} />
         <Card>
           <Text style={styles.empty}>No equipment yet. Import or add items first, then print their labels.</Text>
@@ -130,7 +128,6 @@ export default function LabelBatchSc() {
 
   return (
     <Screen scroll>
-      <BackButton onPress={() => goBackOr(nav)} />
       <ScreenTitle title="QR labels" subtitle="Print stickers for a category, a deck or a whole group at once" help={7} />
 
       <Text style={styles.sectionLabel}>Equipment group</Text>

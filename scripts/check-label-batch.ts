@@ -16,9 +16,9 @@ const it = (id: string, category: any, deck: string | undefined, no?: number | s
   ({ id, category, deck, no, type, updatedAt: 1 } as EquipmentItem);
 
 const reg: EquipmentItem[] = [
-  it('a', 'extinguishers', 'Sun Deck', 3, 'CO2'),
-  it('b', 'extinguishers', 'sun deck ', 1, 'Powder'),
-  it('c', 'extinguishers', 'Main Deck', 2, 'Foam'),
+  it('a', 'fire_extinguishers', 'Sun Deck', 3, 'CO2'),
+  it('b', 'fire_extinguishers', 'sun deck ', 1, 'Powder'),
+  it('c', 'fire_extinguishers', 'Main Deck', 2, 'Foam'),
   it('d', 'lifejackets', 'Main Deck', '01-MD'),
   it('e', 'lifejackets', undefined, 'x'),
   it('f', 'liferafts', 'Bridge Deck', 1),
@@ -29,7 +29,7 @@ ok('two spellings of one deck are one chip', decks.filter((d) => d.label.toLower
 ok('first spelling wins the label', decks.some((d) => d.label === 'Sun Deck'));
 ok('decks most-populated first', decks[0].label === 'Main Deck' && decks[0].count === 2);
 ok('no-deck bucket last', decks[decks.length - 1].key === NO_DECK && decks[decks.length - 1].count === 1);
-ok('no decks at all → no deck filter', listDecks([it('z', 'extinguishers', undefined)]).length === 0);
+ok('no decks at all → no deck filter', listDecks([it('z', 'fire_extinguishers', undefined)]).length === 0);
 
 const all = selectLabelItems(reg, {});
 ok('no filter = everything', all.length === reg.length);
@@ -39,7 +39,7 @@ ok('within a deck: category order (LSA before FFE) then item number',
 ok('numbers sort numerically within a category',
   selectLabelItems(reg, { decks: [deckKey('Sun Deck')] }).map((x) => x.id).join() === 'b,a');
 
-ok('group filter', selectLabelItems(reg, { group: 'LSA' }).every((x) => x.category !== 'extinguishers'));
+ok('group filter', selectLabelItems(reg, { group: 'LSA' }).every((x) => x.category !== 'fire_extinguishers'));
 ok('category filter', selectLabelItems(reg, { categories: ['liferafts'] }).map((x) => x.id).join() === 'f');
 ok('deck filter matches either spelling', selectLabelItems(reg, { decks: ['sun deck'] }).length === 2);
 ok('no-deck bucket is selectable', selectLabelItems(reg, { decks: [NO_DECK] }).map((x) => x.id).join() === 'e');
