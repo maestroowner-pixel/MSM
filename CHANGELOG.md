@@ -3,6 +3,29 @@
 Kept by hand. Each entry says what changed and, where it matters, **why** — the reasoning is
 the part that stops the next person undoing it.
 
+## 2.45 — 16 September 2026
+
+Android versionCode 20405 · iOS build 20405.
+
+### All the labels at once
+
+- **A batch picker for QR labels** (`screens/LabelBatchSc.tsx`, `services/labelBatch.ts`) — the tag
+  button beside the scanner on the Categories tab, and Settings → Print QR labels. A customer
+  fitting out a vessel asked for it in so many words: select a category, a deck or a group and get
+  every label in one go. The Label screen already knew how to print a batch to a roll, an A4 grid,
+  a PDF or the Xprinter; what it lacked was a way to be handed more than one category's items, and
+  the long-press multi-select is a thumb's worth of stickers, not a ship's.
+- **Decks are the vessel's own words**, read from the register rather than a list, and two
+  spellings of one deck ("Sun Deck", "sun deck ") are one chip. An item with no deck recorded is
+  still an item that needs a sticker, so it gets a bucket of its own instead of vanishing from every
+  filter.
+- **Labels come off deck by deck**, then by category and item number. The person sticking them walks
+  a deck, not a category, and a roll that follows the walk is the difference between an afternoon
+  and a day. Items with no deck print last — they are the ones somebody has to go and find.
+- Not gated on rank: printing writes nothing to the register, and the bosun holding the label
+  printer is exactly who prints them.
+- `npm run check:labels` — the selection and its order, 15 checks.
+
 ## 2.2 — 5 September 2026
 
 Android versionCode 20201 · iOS build 20201.

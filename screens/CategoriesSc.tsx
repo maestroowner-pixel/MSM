@@ -53,6 +53,7 @@ export default function CategoriesSc() {
         subtitle="Browse safety equipment by category"
         help={2}
         onScan={() => nav.navigate('Scan')}
+        onLabels={() => nav.navigate('LabelBatch')}
       />
       {sections.map((sec) => (
         <View key={sec.group} style={{ marginBottom: SIZES.lg }}>

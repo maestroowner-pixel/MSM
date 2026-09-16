@@ -208,12 +208,16 @@ export function ScreenTitle({
   subtitle,
   help,
   onScan,
+  onLabels,
   actions,
 }: {
   title: string;
   subtitle?: string;
   help?: number;
   onScan?: () => void;
+  /** Batch QR-label printing — the other half of the scan button, on the
+   *  Categories tab only: labels are printed a deck at a time, scanned one at a time. */
+  onLabels?: () => void;
   /** Small controls placed BEFORE the help button — see Settings' theme picker. */
   actions?: React.ReactNode;
 }) {
@@ -227,6 +231,16 @@ export function ScreenTitle({
       </View>
       {actions}
       {help !== undefined ? <HelpButton section={help} /> : null}
+      {onLabels ? (
+        <TouchableOpacity
+          style={styles.scanBtn}
+          onPress={onLabels}
+          hitSlop={10}
+          accessibilityLabel="Print QR labels"
+        >
+          <MciIcon name="tag-multiple-outline" size={36} color={c.primary} />
+        </TouchableOpacity>
+      ) : null}
       {onScan ? (
         <TouchableOpacity
           style={styles.scanBtn}

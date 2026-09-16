@@ -46,6 +46,7 @@ import CertificateDetailSc from './screens/CertificateDetailSc';
 import CompressorSc from './screens/CompressorSc';
 import PaywallSc from './screens/PaywallSc';
 import LabelSc from './screens/LabelSc';
+import LabelBatchSc from './screens/LabelBatchSc';
 import ScanSc from './screens/ScanSc';
 import FlaggedSc from './screens/FlaggedSc';
 import RecentScansSc from './screens/RecentScansSc';
@@ -263,6 +264,7 @@ const linking = {
       Paywall: 'pro',
       CertificateDetail: 'certificate/:id',
       Label: 'label',
+      LabelBatch: 'labels',
       Scan: 'scan',
       Flagged: 'flagged',
       RecentScans: 'recent-scans',
@@ -433,6 +435,7 @@ function Root() {
         <Stack.Screen name="Paywall" component={PaywallSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="CertificateDetail" component={CertificateDetailSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Label" component={LabelSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="LabelBatch" component={LabelBatchSc} options={webHeader('QR labels', toTab('Equipment'))} />
         <Stack.Screen name="Scan" component={ScanSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Flagged" component={FlaggedSc} options={webHeader('Flagged')} />
         <Stack.Screen name="RecentScans" component={RecentScansSc} options={webHeader('Recently scanned')} />

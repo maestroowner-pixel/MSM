@@ -164,8 +164,11 @@ screens/                    Dashboard, Categories, CategoryItems, ItemDetail(mod
                              is recording a rectification), Crew, Defects (open/rectified,
                              filterable by LSA/FFE),
                              Label (modal — QR preview + stock toggle + print; one item via
-                             ItemDetail's "Print label", or a batch via CategoryItems' long-press
-                             multi-select), Scan (modal — camera + manual entry; a match REPLACES
+                             ItemDetail's "Print label", a batch via CategoryItems' long-press
+                             multi-select, or a whole category/deck/group via LabelBatch — the
+                             tag button on the Categories tab + Settings → Print QR labels;
+                             `services/labelBatch.ts` picks and orders the items, deck by deck,
+                             `npm run check:labels`), Scan (modal — camera + manual entry; a match REPLACES
                              the screen with ItemDetail so back returns to the list)
 constants/legal.ts           Privacy Policy + Terms of Use + disclaimer points; LEGAL_VERSION
                              drives the consent key `msm:legal_accepted_v{n}` (gated in index.tsx).

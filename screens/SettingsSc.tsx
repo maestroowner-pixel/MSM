@@ -542,6 +542,14 @@ export default function SettingsSc() {
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('LabelBatch')}>
+          <GlyphBadge emoji="🏷️" size={18} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkTitle}>Print QR labels</Text>
+            <Text style={styles.linkSub}>All the stickers for a category, a deck or a group in one go</Text>
+          </View>
+          <Text style={styles.chev}>›</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Checklists')}>
           <GlyphBadge emoji="📋" size={18} />
           <View style={{ flex: 1 }}>
