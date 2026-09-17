@@ -27,6 +27,7 @@ import {
 } from '../services/inspectionReport';
 import { InspectionPeriod, PERIOD_LABEL } from '../types/inspection';
 import { windowFor } from '../services/inspections';
+import { periodsFor } from '../constants/checklists';
 import { CategoryKey } from '../types/equipment';
 
 export default function ReportsSc() {
@@ -55,12 +56,59 @@ export default function ReportsSc() {
     );
   };
 
+  // The categories this scope + period covers: right group, has items, and owes
+  // this period's round. What the category picker below offers.
+  const roundCats = useMemo(
+    () =>
+      CATEGORIES.filter(
+        (c) =>
+          (scope === 'ALL' || c.group === scope) &&
+          (byCategory[c.key] ?? []).length > 0 &&
+          periodsFor(c.key, templates).includes(period)
+      ),
+    [scope, period, byCategory, templates]
+  );
+
+  // Narrow the report to some of them. null = the whole group, which is the
+  // default and what the title then says. A customer asked for this in so many
+  // words: the lifebuoy round, finished, filed as its own page of evidence —
+  // not inside a group report that also lists what has not been done yet.
+  const [catSel, setCatSel] = useState<Set<CategoryKey> | null>(null);
+  useEffect(() => setCatSel(null), [scope, period]);
+  const catOn = (k: CategoryKey) => catSel === null || catSel.has(k);
+  const toggleRoundCat = (k: CategoryKey) => {
+    setCatSel((prev) => {
+      const next = new Set(prev ?? roundCats.map((c) => c.key));
+      next.has(k) ? next.delete(k) : next.add(k);
+      return next.size === roundCats.length ? null : next;
+    });
+  };
+  const onlyRoundCat = (k: CategoryKey) => setCatSel(new Set([k]));
+  const categories = catSel ? [...catSel] : undefined;
+
   // Live preview of the numbers that will be printed. Built from the same
   // function the export uses, so what is on screen cannot drift from the file.
   const preview = useMemo(
-    () => buildReport(flat, trail, { scope, period, templates, ref }),
-    [flat, trail, scope, period, templates, ref]
+    () => buildReport(flat, trail, { scope, period, templates, ref, categories }),
+    [flat, trail, scope, period, templates, ref, categories]
   );
+
+  // Per-category progress for the picker: "3 of 5" tells the officer which round
+  // is finished before any report is made — and which one to print.
+  const roundProgress = useMemo(() => {
+    const m = new Map<CategoryKey, { done: number; total: number; note: string | null }>();
+    for (const c of roundCats) {
+      const r = buildReport(byCategory[c.key] ?? [], trail, { scope, period, templates, ref, categories: [c.key] });
+      m.set(c.key, {
+        done: r.inScope.length - r.missed.length,
+        total: r.inScope.length,
+        // The words match the report's own: a round that failed, or a defect
+        // still open from any round. Both are red, but they are not one thing.
+        note: r.passed === false ? 'failed' : r.defects.length ? 'defect open' : null,
+      });
+    }
+    return m;
+  }, [roundCats, byCategory, trail, scope, period, templates, ref]);
 
   const runInspectionReport = async (kind: 'pdf' | 'xlsx' | 'print') => {
     setBusy(true);
@@ -68,7 +116,7 @@ export default function ReportsSc() {
       // The same options as the preview — templates included. Without them the
       // file left out the rounds a vessel wrote for itself, and disagreed with
       // the numbers shown just above the button.
-      const opts = { scope, period, templates, ref };
+      const opts = { scope, period, templates, ref, categories };
       if (kind === 'pdf') await exportReportPdf(flat, trail, vessel, opts);
       else if (kind === 'xlsx') await exportReportXlsx(flat, trail, vessel, opts);
       else await printInspectionReport(flat, trail, vessel, opts);
@@ -207,6 +255,53 @@ export default function ReportsSc() {
           ))}
         </View>
 
+        {roundCats.length ? (
+          <>
+            <View style={styles.headRow}>
+              <Text style={styles.sectionLabel}>
+                Categories ({catSel ? catSel.size : roundCats.length}/{roundCats.length})
+              </Text>
+              {catSel ? (
+                <TouchableOpacity onPress={() => setCatSel(null)} hitSlop={8}>
+                  <Text style={styles.selectAll}>Whole group</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            {/* Tap toggles a category in or out; long-press keeps ONLY that one —
+                the "print just the lifebuoys" gesture, one motion instead of
+                unticking nine others. */}
+            <View style={twoCol ? styles.gridWrap : undefined}>
+              {roundCats.map((c) => {
+                const on = catOn(c.key);
+                const p = roundProgress.get(c.key);
+                return (
+                  <TouchableOpacity
+                    key={c.key}
+                    activeOpacity={0.8}
+                    onPress={() => toggleRoundCat(c.key)}
+                    onLongPress={() => onlyRoundCat(c.key)}
+                    style={[styles.panel, on && styles.panelOn, twoCol && styles.panelTablet]}
+                  >
+                    <CategoryBadge category={c.key} size={22} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.panelTitle} numberOfLines={1}>{c.label}</Text>
+                      {p ? (
+                        <Text style={[styles.panelSub, p.note && { color: COLORS.danger }, p.done === p.total && !p.note && { color: COLORS.success }]}>
+                          {p.done} of {p.total} inspected{p.note ? ` · ${p.note}` : p.done === p.total ? ' · complete' : ''}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View style={[styles.check, on && styles.checkOn]}>
+                      {on ? <Text style={styles.checkMark}>✓</Text> : null}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <Text style={styles.pickerHint}>Tap to include or leave out; press and hold to report on that category alone.</Text>
+          </>
+        ) : null}
+
         {/* The numbers, before anything is generated — including the ones a
             vessel would rather not see. That is the point of showing them. */}
         <View style={styles.navRow}>
@@ -284,7 +379,8 @@ export default function ReportsSc() {
         )}
 
         <Text style={styles.help}>
-          The report opens with the period's status — completed or not, passed or failed — then lists
+          The report covers {categories ? (categories.length === 1 ? 'one category' : `${categories.length} categories`) : 'the whole group'} and
+          opens with the period's status — completed or not, passed or failed — then lists
           every inspection signed in it: item number, location, type, size, serial, result, comments, the
           inspector's initials, date and time. After that come the items still outstanding, and every
           defect left open.
@@ -453,5 +549,6 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   outlineText: { color: COLORS.primary },
   btnText: { color: COLORS.textWhite, fontWeight: '700', fontSize: SIZES.h5 },
   help: { marginTop: SIZES.lg, color: COLORS.textLight, fontSize: SIZES.body, lineHeight: 20 },
+  pickerHint: { color: COLORS.textLight, fontSize: SIZES.tiny, marginTop: SIZES.xs, marginBottom: SIZES.md },
   empty: { fontSize: SIZES.body, color: COLORS.textLight, lineHeight: 20 },
 });

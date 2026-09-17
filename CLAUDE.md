@@ -74,7 +74,10 @@ app mirrors. Bundle id `com.kukalab.msm`.
   onto the record so a crew member who leaves (and is deleted) doesn't blank two years of history.
   `prefs.lastCrewId` is device-local, so the bridge tablet and an engineer's phone each default well.
 - **Inspection reports** (`services/inspectionReport.ts`): LSA/FFE × weekly/monthly, PDF + XLSX,
-  built from one pure `buildReport` so the on-screen preview and the file can never disagree. Three
+  built from one pure `buildReport` so the on-screen preview and the file can never disagree.
+  `categories` narrows a report to some of the group (one round filed as its own page; the title
+  and file name then say so) — the picker in ReportsSc shows per-category progress from the same
+  function. Three
   sections: what was inspected, **what was not** (printed on purpose — a report that hides the gap
   reads like a clean sheet, and this is what makes it usable as a worklist mid-month), and every
   open defect carried forward. Separate from the register export in `export.ts`, which answers the

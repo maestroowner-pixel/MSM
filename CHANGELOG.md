@@ -7,6 +7,19 @@ the part that stops the next person undoing it.
 
 Android versionCode 20405 · iOS build 20405.
 
+### One round, one page
+
+- **The inspection report can be narrowed to a category** (`ReportOptions.categories`,
+  Reports → Inspections). Under the group, every category that owes the period's round is listed
+  with its progress — "5 of 5 inspected · complete", "3 of 12", "failed", "defect open" — tap to
+  include or leave out, press and hold to report on that one alone. Asked for by a customer: the
+  lifebuoy round, finished, filed in the PMS as its own evidence. The whole-group report answers
+  "is the month done"; this one answers "is THIS check done", and a report that also listed forty
+  extinguishers nobody had reached yet read as incomplete for a round that was in fact finished.
+- The title names what the report holds — "Lifebuoys Monthly Inspection Report", or the group
+  followed by the categories when there are several — and a single category names the file after
+  itself. A report must never claim more than it contains.
+
 ### All the labels at once
 
 - **A batch picker for QR labels** (`screens/LabelBatchSc.tsx`, `services/labelBatch.ts`) — the tag

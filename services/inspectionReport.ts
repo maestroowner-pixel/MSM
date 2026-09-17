@@ -23,7 +23,7 @@ import * as Print from 'expo-print';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as XLSX from 'xlsx';
 
-import { EquipmentItem, Group } from '../types/equipment';
+import { CategoryKey, EquipmentItem, Group } from '../types/equipment';
 import { Inspection, InspectionPeriod, PERIOD_LABEL, verificationText } from '../types/inspection';
 import { signatureLine } from '../types/crew';
 import { CATEGORY_MAP } from '../constants/categories';
@@ -42,6 +42,15 @@ export type ReportScope = Group | 'ALL';
 export interface ReportOptions {
   scope: ReportScope;
   period: InspectionPeriod;
+  /**
+   * Narrow the report to these categories within the scope. Undefined = every
+   * category in the group. A vessel files the lifebuoy round as ITS OWN evidence
+   * in the PMS, and a report that also lists forty extinguishers nobody has
+   * looked at yet reads as "incomplete" for a round that was in fact finished —
+   * the whole-group report answers "is the month done", this answers "is THIS
+   * check done". Same three sections; the title names the category.
+   */
+  categories?: CategoryKey[];
   /** Any date inside the window to report on. Defaults to now. */
   ref?: Date;
   /**
@@ -58,6 +67,8 @@ export interface ReportData {
   windowLabel: string;
   scope: ReportScope;
   period: InspectionPeriod;
+  /** The categories the report was narrowed to, if it was (see ReportOptions). */
+  categories?: CategoryKey[];
   /** Items the period's round applies to. */
   inScope: EquipmentItem[];
   /** Signed in the window, newest first. */
@@ -92,6 +103,19 @@ const SCOPE_LABEL: Record<ReportScope, string> = {
 };
 
 /**
+ * What the report is OF, for its title. One category is named outright
+ * ("Lifebuoys"); a few are listed after the group ("LSA: Lifebuoys, Lifejackets");
+ * none chosen means the group. A report must never claim more than it holds —
+ * "LSA Monthly Inspection Report" over a page of lifebuoys alone would.
+ */
+function scopeTitle(opts: ReportOptions): string {
+  const cats = (opts.categories ?? []).map((k) => CATEGORY_MAP[k]).filter(Boolean);
+  if (!cats.length) return SCOPE_LABEL[opts.scope];
+  if (cats.length === 1) return cats[0].label;
+  return `${SCOPE_LABEL[opts.scope]}: ${cats.map((c) => c.short).join(', ')}`;
+}
+
+/**
  * Assemble the report. Pure — takes the register and the trail, returns the
  * three sections — so the same data drives PDF, XLSX and anything added later,
  * and so the numbers can never disagree between formats.
@@ -104,11 +128,14 @@ export function buildReport(
   const ref = opts.ref ?? new Date();
   const window = inspections.windowFor(opts.period, ref);
 
-  // In scope = right group, and the category actually has this period's round.
+  // In scope = right group, one of the chosen categories if any were chosen,
+  // and the category actually has this period's round.
+  const only = opts.categories ? new Set(opts.categories) : null;
   const inScope = flat.filter((it) => {
     const meta = CATEGORY_MAP[it.category];
     if (!meta) return false;
     if (opts.scope !== 'ALL' && meta.group !== opts.scope) return false;
+    if (only && !only.has(it.category)) return false;
     return periodsFor(it.category, opts.templates ?? []).includes(opts.period);
   });
 
@@ -142,10 +169,11 @@ export function buildReport(
     .join(' – ');
 
   return {
-    title: `${SCOPE_LABEL[opts.scope]} ${PERIOD_LABEL[opts.period]} Inspection Report`,
+    title: `${scopeTitle(opts)} ${PERIOD_LABEL[opts.period]} Inspection Report`,
     windowLabel: window.label,
     scope: opts.scope,
     period: opts.period,
+    categories: opts.categories,
     inScope,
     done,
     missed,
@@ -456,7 +484,9 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
 function fileStem(data: ReportData): string {
   // Matches SCOPE_LABEL: the file is named after what it actually contains, so
   // a folder of exports can be read without opening them.
-  const scope = data.scope === 'ALL' ? 'ALL' : data.scope;
+  // A single category names the file after itself ("MSM_lifebuoys_monthly_…");
+  // a handful fall back to the group — the title inside lists them.
+  const scope = data.categories?.length === 1 ? data.categories[0] : data.scope;
   // The period REPORTED ON, not the day it was printed: September's report run on
   // 2 October must not file as October's.
   const w = data.periodName.replace(/^Week (\d+).*?(\d{4})$/, 'W$1_$2').replace(/\s+/g, '_').replace(/[^A-Za-z0-9_]/g, '');
