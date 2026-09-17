@@ -370,6 +370,11 @@ Android), so **re-test every screen** after a rebuild. (Was `false` originally; 
 home-screen widgets. Earlier sim check: Dashboard/Settings render, 627 imported items, export works.)
 
 ### Native-build gotchas (iOS) — needed after `prebuild`/reinstall
+0. **Xcode 27 refuses pods with a deployment target below 15.0** (SDWebImage 9.0, RNSVG 12.4,
+   RevenueCat 13.0, RNCAsyncStorage 13.4 … — "the range of supported deployment target versions
+   is 15.0 to 27.0.x"; older Xcodes only warned). `scripts/patch-ios-deployment-target.js`
+   (postinstall) adds a loop to the Podfile's `post_install` that lifts every pod to the app's
+   own 15.1; then `cd ios && pod install`. Found 17 Sep 2026 on the first archive under Xcode 27.
 1. **RN FuseboxTracer patch** — this RN 0.81.5 copy ships a malformed
    `ReactCommon/reactperflogger/fusebox/FuseboxTracer.h` (uses `BufferEvent` but doesn't define
    it → "use of undeclared identifier 'BufferEvent'"). Fixed by `scripts/patch-rn.js`, run via
