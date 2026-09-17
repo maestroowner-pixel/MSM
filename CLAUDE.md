@@ -375,6 +375,12 @@ home-screen widgets. Earlier sim check: Dashboard/Settings render, 627 imported 
    is 15.0 to 27.0.x"; older Xcodes only warned). `scripts/patch-ios-deployment-target.js`
    (postinstall) adds a loop to the Podfile's `post_install` that lifts every pod to the app's
    own 15.1; then `cd ios && pod install`. Found 17 Sep 2026 on the first archive under Xcode 27.
+   **Same Xcode, second trap: fmt 11.0.2 fails in its own format.cc** ("call to consteval function
+   … is not a constant expression"). It cannot be switched off — base.h #defines
+   FMT_USE_CONSTEVAL unconditionally — so `patch-rn.js` lifts `fmt.podspec` and RCT-Folly's pin
+   to **11.1.4** (what react-native main uses); apply with `pod update fmt RCT-Folly --no-repo-update`
+   the first time (plain `pod install` refuses a changed local podspec). Verified: an unsigned
+   Release `xcodebuild` of the whole workspace succeeds under Xcode 27.0.
 1. **RN FuseboxTracer patch** — this RN 0.81.5 copy ships a malformed
    `ReactCommon/reactperflogger/fusebox/FuseboxTracer.h` (uses `BufferEvent` but doesn't define
    it → "use of undeclared identifier 'BufferEvent'"). Fixed by `scripts/patch-rn.js`, run via

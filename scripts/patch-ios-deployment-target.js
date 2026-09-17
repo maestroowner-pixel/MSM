@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // ===================================
 // Raise every Pod's IPHONEOS_DEPLOYMENT_TARGET to the app's own (15.1).
+// (fmt's consteval failure under the same Xcode is a version matter — see patch-rn.js.)
 //
 // Xcode 27 refuses to build a target whose deployment target is below 15.0
 // ("the range of supported deployment target versions is 15.0 to 27.0.x"), and
