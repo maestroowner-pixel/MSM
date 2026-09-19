@@ -466,16 +466,19 @@ export async function exportTemplate(): Promise<void> {
   const wb = XLSX.utils.book_new();
   const colours: string[] = [];
   for (const meta of CATEGORIES) {
-    // No source worksheet, nothing to offer a blank sheet for — and Excel will
-    // not accept a worksheet with an empty name anyway.
-    if (!meta.sheet) continue;
+    // A category with no source worksheet (Other Safety Equipment) gets a sheet
+    // named after its label — the importer matches on the label as well as on
+    // the sheet name, which is how an exported register already comes back. It
+    // used to be skipped, so the one category a vessel fills by hand was the one
+    // it could not fill from Excel.
+    const tab = meta.sheet?.trim() || meta.label;
     colours.push(GROUP_COLORS[meta.group]);
     // First Aid has no header row in the importer — label in col A, expiry date.
     const cols =
       meta.key === 'first_aid' ? ['Location', 'Expiry'] : templateColumns(meta);
     const ws = XLSX.utils.aoa_to_sheet([cols]);
     ws['!cols'] = cols.map((c) => ({ wch: Math.max(12, c.length + 2) }));
-    XLSX.utils.book_append_sheet(wb, ws, sheetName(meta.sheet.trim()));
+    XLSX.utils.book_append_sheet(wb, ws, sheetName(tab));
   }
   const plain = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
   const b64 = await paintTabs(plain, colours);

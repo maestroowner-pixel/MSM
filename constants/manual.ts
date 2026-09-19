@@ -44,7 +44,7 @@ const en: ManualContent = {
       title: 'Getting started',
       body: [
         `${APP_CONFIG.name} keeps your vessel's Life-Saving Appliances (LSA) and Fire-Fighting Equipment (FFE/FIFI) in one place, with inspection and expiry tracking.`,
-        "Equipment is grouped into 23 categories under three groups: LSA, FFE and Other. Each item has its own number, a type and size, make, serial/ID, deck and location, and the dates that drive compliance.",
+        "Equipment is grouped into 24 categories under three groups: LSA, FFE and Other. Each item has its own number, a type and size, make, serial/ID, deck and location, and the dates that drive compliance.",
         "Fastest way to begin: Settings → Import from Excel. Bring your existing list as it is — one sheet with columns such as #, Deck, Location, Description, Make, Type, Size, Serial and Exp / Inspc. is sorted into categories by each item's description — or tap Download blank template (one sheet per category) and fill that in. Either way you see what was found before anything is saved. All data stays on the device and can optionally sync to the cloud.",
       ],
     },
@@ -149,6 +149,7 @@ const en: ManualContent = {
         { k: 'Rescue / MOB boat + davit', v: 'Weekly & monthly checks; annual thorough examination + operational test; 5-yearly winch-brake dynamic test and release-gear overhaul.', ref: 'SOLAS III/20; Res. MSC.402(96)' },
         { k: 'Launching appliances / davits', v: 'Annual thorough examination; 5-yearly load test of winch brake.', ref: 'SOLAS III/20; MSC.402(96)' },
         { k: 'Harnesses / fall arresters', v: "Inspected by a competent person at the maker's interval (commonly 6–12 months).", ref: 'maker / SMS' },
+        { k: 'Emergency escapes (hatches, routes)', v: 'Weekly: route clear, hatch opens freely, signs and emergency lighting; monthly: seals, ladders, associated equipment. Escape routes must be kept unobstructed at all times.', ref: 'SOLAS II-2/13; ISM / SMS' },
       ],
     },
     {
@@ -187,6 +188,7 @@ const en: ManualContent = {
         "Signing stamps the exact date and time, the crew member and the checklist version. A signed record cannot be edited or deleted by anyone, including the Master: a mistake is corrected by inspecting the item again, and both records stay on file. That is what makes the trail worth showing to a surveyor.",
         "Any FAIL raises a defect against that item, and it stays outstanding until somebody records the rectification.",
         "Scan before signing (Settings → Scan QR label before signing, set by the Master). When it is on, Crew and Officers can sign an inspection only after scanning that item's QR label with the in-app scanner (the QR button). The scan counts for 30 minutes; typing the code in by hand does not count.",
+        "Sign as the device's account (Settings → Sign as the device's account, set by the Master). When it is on, every enrolled phone, tablet or PC signs inspections as the person it was issued to — the name and rank on its account — and the signer list is not offered. An Officer can no longer scan an item on their own phone and put a colleague's name to it. The Master changes who a device belongs to in Settings → Accounts (rename); a device that has not joined the vessel still picks from the crew list, because it has no account to sign as.",
         "The scan is written onto the signed record and shown in the Scan column of the inspection report. A Master may sign without a scan (a missing label, an item out of reach) but must give a reason, which is printed in the report beside the signature.",
       ],
     },
@@ -194,7 +196,7 @@ const en: ManualContent = {
       emoji: '📋',
       title: 'Your own categories and checklists',
       body: [
-        "The 23 categories and the checklists behind them are a starting point, not a limit. A vessel whose SMS words a check differently — or that inspects things nobody else asks about — sets both up itself, in Settings.",
+        "The 24 categories and the checklists behind them are a starting point, not a limit. A vessel whose SMS words a check differently — or that inspects things nobody else asks about — sets both up itself, in Settings.",
         "Settings → Categories adds headings of your own: Emergency Lighting, Escape Routes, Alarm Systems, whatever you actually walk round. Each takes a group (LSA / FFE / Other), which decides the report it prints in, and an icon. A heading behaves like any built-in one: its own list, QR labels, checklists, reports, and its own sheet in the blank import template, so a hundred light fittings come in from Excel rather than one at a time.",
         "Settings → Checklists words the questions. Open a round and you get the checklist already filled in — re-word a line, re-order them, delete what does not apply to your ship, add what your SMS asks. Save, and that is what the next round asks, on every device the vessel has enrolled.",
         "A category can also be given a round it does not have yet. On the Checklists list, \"＋ Weekly\" (or \"＋ Monthly\") beside a category starts one from that category's existing checks — a weekly EEBD check, for example. Edit the lines and save: from then on the item screen offers the new round and the weekly or monthly report includes it. \"Remove this weekly round\" in the same editor takes it away again. It is not built in because a round added for one vessel would otherwise be owed by every vessel.",
@@ -296,6 +298,7 @@ const en: ManualContent = {
       title: 'Appearance (themes)',
       body: [
         'Settings → Appearance switches the colour theme: Light (default), Dark and Colorful.',
+        'Settings → Modules → Sounds switches every sound cue off or on — the ship\'s bell on launch and the chimes on save, sign and error. Off is remembered on this device; a long round of inspections is quieter for it.',
         'Colorful tints equipment icons by group — LSA green, FFE red, Other teal. Your choice is saved and applies across the whole app.',
         'On tablets the Dashboard, Equipment, Certificates and Reports lists show two columns automatically.',
       ],
@@ -334,7 +337,7 @@ const ru: ManualContent = {
       title: 'Начало работы',
       body: [
         `${APP_CONFIG.name} хранит спасательное (LSA) и противопожарное (FFE/FIFI) снабжение судна в одном месте, с контролем проверок и сроков годности.`,
-        "Оборудование сгруппировано в 23 категории под тремя группами: LSA, FFE и Other. У каждой позиции есть свой номер, тип и размер, производитель, серийный номер/ID, палуба и расположение, а также даты, определяющие соответствие.",
+        "Оборудование сгруппировано в 24 категории под тремя группами: LSA, FFE и Other. У каждой позиции есть свой номер, тип и размер, производитель, серийный номер/ID, палуба и расположение, а также даты, определяющие соответствие.",
         "Быстрее всего начать: Settings → Import from Excel. Загрузите ваш список как есть — лист со столбцами вроде #, Deck, Location, Description, Make, Type, Size, Serial и Exp / Inspc. раскладывается по категориям по описанию каждой позиции — или нажмите Download blank template (по листу на категорию) и заполните его. В обоих случаях до сохранения видно, что найдено. Все данные хранятся на устройстве и при желании синхронизируются с облаком.",
       ],
     },
@@ -439,6 +442,7 @@ const ru: ManualContent = {
         { k: 'Дежурная/спасательная шлюпка + шлюпбалка', v: 'Еженедельные и ежемесячные проверки; ежегодное освидетельствование + рабочий тест; раз в 5 лет динамический тест тормоза лебёдки и переборка разобщающего устройства.', ref: 'SOLAS III/20; Res. MSC.402(96)' },
         { k: 'Спусковые устройства / шлюпбалки', v: 'Ежегодное освидетельствование; раз в 5 лет нагрузочный тест тормоза лебёдки.', ref: 'SOLAS III/20; MSC.402(96)' },
         { k: 'Страховочные привязи / устройства защиты от падения', v: 'Проверка компетентным лицом с интервалом изготовителя (обычно 6–12 мес.).', ref: 'maker / SMS' },
+        { k: 'Аварийные выходы (люки, пути эвакуации)', v: 'Еженедельно: путь свободен, люк открывается свободно, знаки и аварийное освещение; ежемесячно: уплотнения, трапы, сопутствующее оборудование. Пути эвакуации должны быть свободны всегда.', ref: 'SOLAS II-2/13; ISM / SMS' },
       ],
     },
     {
@@ -477,6 +481,7 @@ const ru: ManualContent = {
         "Подпись фиксирует точные дату и время, члена экипажа и версию чек-листа. Подписанную запись не может изменить или удалить никто, включая Мастера: ошибка исправляется новой инспекцией, и обе записи остаются в деле. Именно это делает журнал пригодным для предъявления инспектору.",
         "Любой FAIL поднимает дефект на этой позиции, и он остаётся открытым, пока кто-нибудь не зафиксирует устранение.",
         "Скан перед подписью (Settings → Scan QR label before signing, включает Master). Когда режим включён, Crew и Officer могут подписать проверку только после скана QR-наклейки этой позиции сканером приложения (кнопка QR). Скан действует 30 минут; ввод кода вручную не считается.",
+        "Подпись аккаунтом устройства (Settings → Sign as the device's account, включает Master). Когда режим включён, каждый зарегистрированный телефон, планшет или ПК подписывает проверки от имени того, кому он выдан — имя и должность из его аккаунта, — а список подписантов не предлагается. Офицер больше не сможет отсканировать позицию своим телефоном и поставить имя коллеги. Кому принадлежит устройство, Master меняет в Settings → Accounts (переименование); устройство, не присоединённое к судну, по-прежнему выбирает из списка экипажа — у него нет аккаунта, которым подписывать.",
         "Скан записывается в подписанную запись и показывается в колонке Scan отчёта о проверках. Master может подписать без скана (наклейка утеряна, позиция недоступна), но обязан указать причину — она печатается в отчёте рядом с подписью.",
       ],
     },
@@ -484,7 +489,7 @@ const ru: ManualContent = {
       emoji: '📋',
       title: 'Свои категории и чек-листы',
       body: [
-        '23 категории и чек-листы за ними — отправная точка, а не предел. Судно, чья SMS формулирует проверку иначе — или которое осматривает то, о чём никто больше не спрашивает, — настраивает и то, и другое само, в Settings.',
+        '24 категории и чек-листы за ними — отправная точка, а не предел. Судно, чья SMS формулирует проверку иначе — или которое осматривает то, о чём никто больше не спрашивает, — настраивает и то, и другое само, в Settings.',
         'Settings → Categories добавляет свои рубрики: Emergency Lighting, Escape Routes, Alarm Systems — всё, что вы действительно обходите. У рубрики есть группа (LSA / FFE / Other), которая решает, в какой отчёт она попадёт, и иконка. Дальше рубрика ведёт себя как встроенная: свой список, QR-этикетки, чек-листы, отчёты и свой лист в пустом шаблоне импорта — то есть сотня светильников заводится из Excel, а не по одному.',
         'Settings → Checklists задаёт сами вопросы. Открываете обход — чек-лист уже заполнен: переформулируйте строку, поменяйте порядок, уберите то, чего на вашем судне нет, добавьте то, что требует ваша SMS. Сохраняете — и следующий обход спросит именно это, на всех устройствах судна.',
         "Категории можно добавить обход, которого у неё ещё нет. В списке Checklists кнопка \"＋ Weekly\" (или \"＋ Monthly\") рядом с категорией создаёт его на основе уже имеющихся проверок этой категории — например, недельную проверку EEBD. Поправьте пункты и сохраните: с этого момента экран позиции предлагает новый обход, а недельный или месячный отчёт его учитывает. \"Remove this weekly round\" в том же редакторе убирает его. Встроенным он не сделан, потому что иначе обход, добавленный для одного судна, стал бы обязательным для всех.",
@@ -586,6 +591,7 @@ const ru: ManualContent = {
       title: 'Оформление (темы)',
       body: [
         'Settings → Appearance переключает тему: Light (по умолчанию), Dark и Colorful.',
+        'Settings → Modules → Sounds выключает или включает все звуки — корабельный колокол при запуске и сигналы при сохранении, подписи и ошибке. Выбор запоминается на этом устройстве; длинный обход проходит тише.',
         'Colorful красит иконки оборудования по группам — LSA зелёный, FFE красный, Other бирюзовый. Выбор сохраняется и применяется во всём приложении.',
         'На планшетах списки Dashboard, Equipment, Certificates и Reports автоматически показываются в две колонки.',
       ],
@@ -624,7 +630,7 @@ const es: ManualContent = {
       title: 'Primeros pasos',
       body: [
         `${APP_CONFIG.name} reúne los dispositivos de salvamento (LSA) y los equipos contra incendios (FFE/FIFI) del buque en un solo lugar, con seguimiento de inspecciones y caducidades.`,
-        "Los equipos se agrupan en 23 categorías dentro de tres grupos: LSA, FFE y Other. Cada elemento tiene su propio número, tipo y tamaño, fabricante, número de serie/ID, cubierta y ubicación, y las fechas que determinan el cumplimiento.",
+        "Los equipos se agrupan en 24 categorías dentro de tres grupos: LSA, FFE y Other. Cada elemento tiene su propio número, tipo y tamaño, fabricante, número de serie/ID, cubierta y ubicación, y las fechas que determinan el cumplimiento.",
         "Lo más rápido para empezar: Settings → Import from Excel. Traiga su lista tal como está — una hoja con columnas como #, Deck, Location, Description, Make, Type, Size, Serial y Exp / Inspc. se reparte en categorías según la descripción de cada elemento — o pulse Download blank template (una hoja por categoría) y rellénela. En ambos casos verá lo encontrado antes de guardar nada. Los datos quedan en el dispositivo y, opcionalmente, se sincronizan con la nube.",
       ],
     },
@@ -729,6 +735,7 @@ const es: ManualContent = {
         { k: 'Bote de rescate / MOB + pescante', v: 'Comprobaciones semanales y mensuales; examen anual a fondo + prueba operativa; cada 5 años prueba dinámica del freno del chigre y revisión del mecanismo de suelta.', ref: 'SOLAS III/20; Res. MSC.402(96)' },
         { k: 'Dispositivos de puesta a flote / pescantes', v: 'Examen anual a fondo; cada 5 años prueba de carga del freno del chigre.', ref: 'SOLAS III/20; MSC.402(96)' },
         { k: 'Arneses / anticaídas', v: 'Inspección por persona competente al intervalo del fabricante (normalmente 6–12 meses).', ref: 'maker / SMS' },
+        { k: 'Escapes de emergencia (escotillas, vías)', v: 'Semanal: vía despejada, escotilla abre libremente, señales e iluminación de emergencia; mensual: juntas, escalas, equipo asociado. Las vías de evacuación deben mantenerse libres en todo momento.', ref: 'SOLAS II-2/13; ISM / SMS' },
       ],
     },
     {
@@ -767,6 +774,7 @@ const es: ManualContent = {
         "Al firmar se sella la fecha y hora exactas, el tripulante y la versión de la lista. Un registro firmado no puede editarse ni borrarse por nadie, ni siquiera por el Master: un error se corrige inspeccionando otra vez, y ambos registros quedan archivados.",
         "Cualquier FAIL genera un defecto sobre ese equipo, y queda pendiente hasta que alguien registre la subsanación.",
         "Escanear antes de firmar (Settings → Scan QR label before signing, lo activa el Master). Cuando está activo, Crew y Officer solo pueden firmar una inspección después de escanear la etiqueta QR de ese elemento con el escáner de la app (el botón QR). El escaneo vale 30 minutos; escribir el código a mano no cuenta.",
+        "Firmar con la cuenta del dispositivo (Settings → Sign as the device's account, lo activa el Master). Cuando está activo, cada teléfono, tableta o PC inscrito firma las inspecciones como la persona a la que se le asignó — el nombre y el rango de su cuenta — y no se ofrece la lista de firmantes. Un oficial ya no puede escanear un equipo con su propio teléfono y poner el nombre de un compañero. El Master cambia a quién pertenece un dispositivo en Settings → Accounts (renombrar); un dispositivo que no se ha unido al buque sigue eligiendo de la lista, porque no tiene cuenta con la que firmar.",
         "El escaneo queda en el registro firmado y aparece en la columna Scan del informe de inspecciones. El Master puede firmar sin escanear (etiqueta perdida, elemento inaccesible), pero debe indicar el motivo, que se imprime en el informe junto a la firma.",
       ],
     },
@@ -774,7 +782,7 @@ const es: ManualContent = {
       emoji: '📋',
       title: 'Categorías y listas de comprobación propias',
       body: [
-        'Las 23 categorías y sus listas de comprobación son un punto de partida, no un límite. Un buque cuyo SMS redacta una comprobación de otra manera — o que inspecciona cosas que nadie más pide — configura ambas cosas por su cuenta, en Settings.',
+        'Las 24 categorías y sus listas de comprobación son un punto de partida, no un límite. Un buque cuyo SMS redacta una comprobación de otra manera — o que inspecciona cosas que nadie más pide — configura ambas cosas por su cuenta, en Settings.',
         'Settings → Categories añade encabezados propios: Emergency Lighting, Escape Routes, Alarm Systems, lo que realmente se recorra. Cada uno lleva un grupo (LSA / FFE / Other), que decide en qué informe se imprime, y un icono. El encabezado se comporta como cualquiera de los integrados: su propia lista, etiquetas QR, listas de comprobación, informes y su propia hoja en la plantilla de importación, de modo que cien luminarias entran desde Excel y no una a una.',
         'Settings → Checklists redacta las preguntas. Abra una ronda y la lista ya viene rellena: reescriba una línea, reordénelas, elimine lo que no aplica a su buque, añada lo que pida su SMS. Guarde, y eso es lo que preguntará la próxima ronda, en todos los dispositivos del buque.',
         "A una categoría también se le puede añadir una ronda que aún no tiene. En la lista Checklists, \"＋ Weekly\" (o \"＋ Monthly\") junto a una categoría la crea a partir de las comprobaciones que ya tiene — por ejemplo, una comprobación semanal de EEBD. Edite las líneas y guarde: desde entonces la pantalla del elemento ofrece la nueva ronda y el informe semanal o mensual la incluye. \"Remove this weekly round\" en el mismo editor la elimina. No viene incorporada porque, de lo contrario, una ronda añadida para un buque sería obligatoria para todos.",
@@ -876,6 +884,7 @@ const es: ManualContent = {
       title: 'Apariencia (temas)',
       body: [
         'Settings → Appearance cambia el tema de color: Light (por defecto), Dark y Colorful.',
+        'Settings → Modules → Sounds apaga o enciende todas las señales sonoras: la campana del barco al iniciar y los avisos al guardar, firmar o ante un error. La elección se recuerda en este dispositivo; una ronda larga de inspecciones resulta más silenciosa.',
         'Colorful colorea los iconos de equipo por grupo — LSA verde, FFE rojo, Other turquesa. Su elección se guarda y se aplica en toda la app.',
         'En tabletas, las listas de Dashboard, Equipment, Certificates y Reports se muestran en dos columnas automáticamente.',
       ],
@@ -914,7 +923,7 @@ const uk: ManualContent = {
       title: 'Початок роботи',
       body: [
         `${APP_CONFIG.name} зберігає рятувальне (LSA) та протипожежне (FFE/FIFI) майно судна в одному місці, з контролем перевірок і термінів придатності.`,
-        "Обладнання згруповане у 23 категорії в межах трьох груп: LSA, FFE та Other. Кожна позиція має власний номер, тип і розмір, виробника, серійний номер/ID, палубу й розташування, а також дати, що визначають відповідність.",
+        "Обладнання згруповане у 24 категорії в межах трьох груп: LSA, FFE та Other. Кожна позиція має власний номер, тип і розмір, виробника, серійний номер/ID, палубу й розташування, а також дати, що визначають відповідність.",
         "Найшвидше почати: Settings → Import from Excel. Завантажте ваш список як є — аркуш зі стовпцями на кшталт #, Deck, Location, Description, Make, Type, Size, Serial та Exp / Inspc. розкладається за категоріями за описом кожної позиції — або натисніть Download blank template (по аркушу на категорію) і заповніть його. В обох випадках до збереження видно, що знайдено. Усі дані зберігаються на пристрої та за бажанням синхронізуються з хмарою.",
       ],
     },
@@ -1019,6 +1028,7 @@ const uk: ManualContent = {
         { k: 'Чергова/рятувальна шлюпка + шлюпбалка', v: 'Щотижневі та щомісячні перевірки; щорічне освідчення + робочий тест; раз на 5 років динамічний тест гальма лебідки та переборка роз’єднувального пристрою.', ref: 'SOLAS III/20; Res. MSC.402(96)' },
         { k: 'Спускові пристрої / шлюпбалки', v: 'Щорічне освідчення; раз на 5 років навантажувальний тест гальма лебідки.', ref: 'SOLAS III/20; MSC.402(96)' },
         { k: 'Запобіжні пояси / засоби захисту від падіння', v: 'Перевірка компетентною особою з інтервалом виробника (зазвичай 6–12 міс.).', ref: 'maker / SMS' },
+        { k: 'Аварійні виходи (люки, шляхи евакуації)', v: 'Щотижня: шлях вільний, люк відкривається вільно, знаки та аварійне освітлення; щомісяця: ущільнення, трапи, супутнє обладнання. Шляхи евакуації мають бути вільними завжди.', ref: 'SOLAS II-2/13; ISM / SMS' },
       ],
     },
     {
@@ -1057,6 +1067,7 @@ const uk: ManualContent = {
         "Підпис фіксує точні дату й час, члена екіпажу та версію чек-листа. Підписаний запис не може змінити або видалити ніхто, включно з Майстром: помилка виправляється новою інспекцією, і обидва записи лишаються у справі.",
         "Будь-який FAIL піднімає дефект на цій позиції, і він лишається відкритим, доки хтось не зафіксує усунення.",
         "Скан перед підписом (Settings → Scan QR label before signing, вмикає Master). Коли режим увімкнено, Crew і Officer можуть підписати перевірку лише після скану QR-наклейки цієї позиції сканером застосунку (кнопка QR). Скан діє 30 хвилин; введення коду вручну не зараховується.",
+        "Підпис обліковим записом пристрою (Settings → Sign as the device's account, вмикає Master). Коли режим увімкнено, кожен зареєстрований телефон, планшет чи ПК підписує перевірки від імені того, кому його видано — ім'я та посада з його облікового запису, — а список підписантів не пропонується. Офіцер більше не зможе відсканувати позицію своїм телефоном і поставити ім'я колеги. Кому належить пристрій, Master змінює в Settings → Accounts (перейменування); пристрій, не приєднаний до судна, як і раніше обирає зі списку екіпажу — він не має облікового запису, яким підписувати.",
         "Скан записується в підписаний запис і показується в колонці Scan звіту про перевірки. Master може підписати без скану (наклейку втрачено, позиція недоступна), але мусить вказати причину — вона друкується у звіті поруч із підписом.",
       ],
     },
@@ -1064,7 +1075,7 @@ const uk: ManualContent = {
       emoji: '📋',
       title: 'Власні категорії та чек-листи',
       body: [
-        '23 категорії й чек-листи за ними — відправна точка, а не межа. Судно, чия SMS формулює перевірку інакше — або яке оглядає те, про що більше ніхто не питає, — налаштовує і те, і те саме, у Settings.',
+        '24 категорії й чек-листи за ними — відправна точка, а не межа. Судно, чия SMS формулює перевірку інакше — або яке оглядає те, про що більше ніхто не питає, — налаштовує і те, і те саме, у Settings.',
         'Settings → Categories додає власні рубрики: Emergency Lighting, Escape Routes, Alarm Systems — усе, що ви справді обходите. Рубрика має групу (LSA / FFE / Other), яка вирішує, до якого звіту вона потрапить, і піктограму. Далі рубрика поводиться як вбудована: власний список, QR-етикетки, чек-листи, звіти та власний аркуш у порожньому шаблоні імпорту — тобто сотня світильників заводиться з Excel, а не по одному.',
         'Settings → Checklists задає самі запитання. Відкриваєте обхід — чек-лист уже заповнений: переформулюйте рядок, змініть порядок, приберіть те, чого на вашому судні немає, додайте те, що вимагає ваша SMS. Зберігаєте — і наступний обхід запитає саме це, на всіх пристроях судна.',
         "Категорії можна додати обхід, якого в неї ще немає. У списку Checklists кнопка \"＋ Weekly\" (або \"＋ Monthly\") біля категорії створює його на основі наявних перевірок цієї категорії — наприклад, тижневу перевірку EEBD. Виправте пункти й збережіть: відтепер екран позиції пропонує новий обхід, а тижневий чи місячний звіт його враховує. \"Remove this weekly round\" у тому ж редакторі прибирає його. Вбудованим його не зроблено, бо інакше обхід, доданий для одного судна, став би обов'язковим для всіх.",
@@ -1166,6 +1177,7 @@ const uk: ManualContent = {
       title: 'Оформлення (теми)',
       body: [
         'Settings → Appearance перемикає тему: Light (за замовчуванням), Dark і Colorful.',
+        'Settings → Modules → Sounds вимикає або вмикає всі звуки — корабельний дзвін під час запуску та сигнали при збереженні, підписі й помилці. Вибір запам\'ятовується на цьому пристрої; довгий обхід проходить тихіше.',
         'Colorful фарбує іконки обладнання за групами — LSA зелений, FFE червоний, Other бірюзовий. Вибір зберігається і діє в усьому застосунку.',
         'На планшетах списки Dashboard, Equipment, Certificates і Reports автоматично показуються у дві колонки.',
       ],

@@ -174,6 +174,20 @@ export const CHECKLISTS: ChecklistTemplate[] = [
     { id: 'quantity', text: 'Quantities correct against the outfit list' },
   ]),
 
+  t('emergency_escapes', 'weekly', 'Emergency escape — weekly', [
+    { id: 'clear', text: 'Escape route clear and unobstructed', hint: 'Nothing stowed in the route, on the ladder or against the hatch.' },
+    { id: 'hatch', text: 'Hatch / door opens freely from both sides', hint: 'Dogs, hinges and gas struts move without tools.' },
+    { id: 'signs', text: 'Escape signs and photoluminescent markings in place and visible' },
+    { id: 'lighting', text: 'Emergency lighting along the route working' },
+  ]),
+  t('emergency_escapes', 'monthly', 'Emergency escape — monthly', [
+    { id: 'seals', text: 'Hatch seals, gaskets and securing devices sound' },
+    { id: 'ladder', text: 'Ladders, handrails and steps secure and undamaged' },
+    { id: 'ventilation', text: 'Ventilation and fire-damper positions along the route correct' },
+    { id: 'equipment', text: 'Associated equipment at the escape in place and in date', hint: 'Torches, EEBDs, ropes, tools listed for this escape.' },
+    { id: 'drill', text: 'Route known to the crew and shown on the escape plan' },
+  ]),
+
   // ----- FFE ---------------------------------------------------------------
   t('fire_extinguishers', 'monthly', 'Fire extinguisher — monthly', [
     ...STOWAGE,
@@ -223,7 +237,7 @@ export const CHECKLISTS: ChecklistTemplate[] = [
     { id: 'instructions', text: 'Operating instructions posted and legible' },
   ]),
   t('fifi_ba', 'weekly', 'BA set / fireman’s outfit — weekly', [
-    { id: 'pressure', text: 'Cylinder pressure at or above 80% full' },
+    { id: 'pressure', text: 'Cylinder pressure ≥ 90% of rated (300 bar → ≥ 270 bar)', hint: 'Below 90%: recharge or change the cylinder before use. Record the reading in the comment.' },
     { id: 'mask', text: 'Face mask clean, visor and seal undamaged' },
     { id: 'harness', text: 'Harness, straps and buckles sound' },
     { id: 'demand', text: 'Demand valve operates correctly' },
@@ -240,7 +254,7 @@ export const CHECKLISTS: ChecklistTemplate[] = [
     { id: 'stowage', text: 'Stowage clean, dry and marked' },
   ]),
   t('bottle_pressure', 'monthly', 'BA bottle pressure — monthly', [
-    { id: 'pressure', text: 'Pressure at or above 80% of working pressure', hint: 'Record the actual reading in the comment.' },
+    { id: 'pressure', text: 'Pressure ≥ 90% of rated (300 bar → ≥ 270 bar)', hint: 'Below 90%: recharge or change the cylinder. Record the reading in the comment.' },
     { id: 'hydro', text: 'Hydrostatic test date in date' },
     { id: 'valve', text: 'Valve, threads and O-ring sound' },
     { id: 'body', text: 'Cylinder free of corrosion, dents and gouges' },

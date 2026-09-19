@@ -21,6 +21,7 @@ import { syncFlaggedWidget } from '../services/widgetBridge';
 import { limitsActive, overflowLockedIds } from '../services/trial';
 import { onEntitlementChange } from '../services/purchases';
 import { DEFAULT_POLICY, SigningPolicy } from '../services/signingPolicy';
+import { setSoundsMuted } from '../utils/sound';
 
 interface DataContextType {
   loading: boolean;
@@ -286,6 +287,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     },
     []
   );
+  useEffect(() => setSoundsMuted(!!prefs.soundsMuted), [prefs.soundsMuted]);
 
   const setVessel = useCallback(
     async (info: storage.VesselInfo) => {

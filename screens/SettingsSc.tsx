@@ -26,6 +26,7 @@ import { exportBackup, pickBackup, restoreBackup } from '../services/backup';
 import * as snapshot from '../services/snapshot';
 import { isSubscribed, onEntitlementChange } from '../services/purchases';
 import { playSuccessSound, playErrorSound } from '../utils/sound';
+import { SigningPolicy } from '../services/signingPolicy';
 import { requestPermission, rescheduleExpiryReminders, cancelAll, notificationsSupported } from '../services/notifications';
 import { formatDateTime } from '../utils/dates';
 
@@ -81,8 +82,14 @@ export default function SettingsSc() {
    * device at once; then sent to the vessel, which every other device listens to.
    * Offline, SyncContext sends it on the next connection (the newer copy wins).
    */
-  const changeSigningPolicy = async (requireScan: boolean) => {
-    const policy = { requireScan, updatedAt: Date.now(), setBy: sync.role === 'superadmin' ? 'Master' : undefined };
+  const changeSigningPolicy = async (patch: Partial<Pick<SigningPolicy, 'requireScan' | 'signAsDevice'>>) => {
+    const policy: SigningPolicy = {
+      requireScan: signingPolicy.requireScan,
+      signAsDevice: signingPolicy.signAsDevice,
+      ...patch,
+      updatedAt: Date.now(),
+      setBy: sync.role === 'superadmin' ? 'Master' : undefined,
+    };
     await setSigningPolicy(policy);
     if (sync.status !== 'synced') return;
     try {
@@ -538,7 +545,7 @@ export default function SettingsSc() {
           <GlyphBadge emoji="🗂️" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Categories</Text>
-            <Text style={styles.linkSub}>Headings of your own, on top of the 23 built in</Text>
+            <Text style={styles.linkSub}>Headings of your own, on top of the 24 built in</Text>
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
@@ -580,7 +587,30 @@ export default function SettingsSc() {
           <Switch
             value={signingPolicy.requireScan}
             disabled={!isMaster}
-            onValueChange={(v) => void changeSigningPolicy(v)}
+            onValueChange={(v) => void changeSigningPolicy({ requireScan: v })}
+            trackColor={{ true: COLORS.primary, false: COLORS.border }}
+          />
+        </View>
+        {/* The other half of the same rule: WHO signs. Off, the crew list is a
+            vocabulary anyone on the device may pick from; on, an enrolled device
+            signs as the person it was issued to and the picker is gone. Names are
+            managed where the devices are — Settings → Accounts (rename). */}
+        <View style={styles.toggleRow}>
+          <GlyphBadge emoji="📱" size={18} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkTitle}>Sign as the device's account</Text>
+            <Text style={styles.linkSub}>
+              {isMaster
+                ? 'Each enrolled device signs inspections as the person it was issued to — no picking a colleague\'s name. Rename a device in Accounts.'
+                : signingPolicy.signAsDevice
+                  ? 'On for this vessel — this device signs as its own account. Set by the Master.'
+                  : 'Off for this vessel — the signer is picked from the crew list. Set by the Master.'}
+            </Text>
+          </View>
+          <Switch
+            value={!!signingPolicy.signAsDevice}
+            disabled={!isMaster}
+            onValueChange={(v) => void changeSigningPolicy({ signAsDevice: v })}
             trackColor={{ true: COLORS.primary, false: COLORS.border }}
           />
         </View>
@@ -680,6 +710,18 @@ export default function SettingsSc() {
           <Switch
             value={!!prefs.notificationsEnabled}
             onValueChange={toggleNotifications}
+            trackColor={{ true: COLORS.primary, false: COLORS.border }}
+          />
+        </View>
+        <View style={styles.toggleRow}>
+          <GlyphBadge emoji="🔊" size={18} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkTitle}>Sounds</Text>
+            <Text style={styles.linkSub}>The ship's bell on launch and the chimes on save, sign and error</Text>
+          </View>
+          <Switch
+            value={!prefs.soundsMuted}
+            onValueChange={(v) => setPrefs({ soundsMuted: !v })}
             trackColor={{ true: COLORS.primary, false: COLORS.border }}
           />
         </View>

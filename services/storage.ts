@@ -184,6 +184,9 @@ export interface Prefs {
    *  signer next time. Device-local on purpose: the bridge tablet and an
    *  engineer's phone should each default to whoever actually uses them. */
   lastCrewId?: string;
+  /** Every sound cue off — the bell, the success and error chimes. A user working
+   *  through forty inspections asked for it. Device-local. */
+  soundsMuted?: boolean;
 }
 
 export async function loadPrefs(): Promise<Prefs> {

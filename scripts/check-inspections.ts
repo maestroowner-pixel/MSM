@@ -18,7 +18,7 @@ import { CHECKLISTS } from '../constants/checklists';
 import { CATEGORIES } from '../constants/categories';
 import { EquipmentItem } from '../types/equipment';
 import { Inspection, verificationText } from '../types/inspection';
-import { SCAN_PROOF_MINUTES, clearScanProofs, newerPolicy, recordScanProof, scanProofFor, signingGate } from '../services/signingPolicy';
+import { SCAN_PROOF_MINUTES, clearScanProofs, newerPolicy, recordScanProof, scanProofFor, signerRule, signingGate } from '../services/signingPolicy';
 
 let fails = 0;
 const ok = (name: string, cond: boolean, extra = '') => {
@@ -184,6 +184,19 @@ ok('crew merge keeps one row per id', mergeCrew([c1], [c2]).length === 1);
   ok('rule on, no scan: Master may override', signingGate(on, 'superadmin', true, null).kind === 'override');
   ok('rule on, no scan: a device on no vessel may override', signingGate(on, null, false, null).kind === 'override');
   ok('no policy at all = off', signingGate(null, 'user', true, null).kind === 'open');
+
+  // Who signs: the device's account, when the vessel says so.
+  const bind = { requireScan: false, signAsDevice: true, updatedAt: 2 };
+  const meDev = { id: 'd1', firstName: 'Jez', lastName: 'Dodd', position: 'Master' };
+  ok('sign-as-device off: pick from the list', signerRule(off, true, meDev).kind === 'pick');
+  ok('sign-as-device: an old policy without the field picks', signerRule({ requireScan: true, updatedAt: 1 }, true, meDev).kind === 'pick');
+  const bound = signerRule(bind, true, meDev);
+  ok('sign-as-device on: the account signs', bound.kind === 'device' && bound.signer.name === 'Jez Dodd' && bound.signer.rank === 'Master');
+  ok('sign-as-device: the id names the device, never a crew id', bound.kind === 'device' && bound.signer.id === 'device:d1');
+  ok('sign-as-device on, account not loaded: held, not let through', signerRule(bind, true, null).kind === 'waiting');
+  ok('sign-as-device on, account with no name: held', signerRule(bind, true, { id: 'd2' }).kind === 'waiting');
+  ok('sign-as-device on, device on no vessel: picks (it has no account)', signerRule(bind, false, null).kind === 'pick');
+  ok('sign-as-device: a blank rank is dropped', (signerRule(bind, true, { ...meDev, position: '  ' }) as any).signer.rank === undefined);
 
   ok('newer policy wins', newerPolicy(on, off).requireScan === false && newerPolicy(off, on).requireScan === false);
   ok('a missing copy yields the other', newerPolicy(null, on) === on && newerPolicy(on, null) === on);

@@ -50,7 +50,7 @@ import { MciIcon } from '../components/MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
-import { SCAN_PROOF_MINUTES, scanProofFor, signingGate } from '../services/signingPolicy';
+import { SCAN_PROOF_MINUTES, scanProofFor, signerRule, signingGate } from '../services/signingPolicy';
 import { SIZES, Palette } from '../theme';
 import { CATEGORY_MAP } from '../constants/categories';
 import { periodsFor, templateFor } from '../constants/checklists';
@@ -142,8 +142,15 @@ export default function InspectionSc() {
     const last = prefs.lastCrewId && activeCrew.find((c) => c.id === prefs.lastCrewId);
     return last ? last.id : activeCrew.length === 1 ? activeCrew[0].id : undefined;
   });
-  const signer = useMemo(() => activeCrew.find((c) => c.id === signerId), [activeCrew, signerId]);
+  const picked = useMemo(() => activeCrew.find((c) => c.id === signerId), [activeCrew, signerId]);
   const [pickingSigner, setPickingSigner] = useState(false);
+
+  // The vessel may bind the signature to the DEVICE's account instead of a
+  // picked name (services/signingPolicy `signerRule`). Then there is no picker:
+  // the row shows who this phone was issued to, and that is who signs.
+  const rule = signerRule(signingPolicy, sync.enrolled, sync.me);
+  const signer: { id: string; name: string; rank?: string } | undefined =
+    rule.kind === 'device' ? rule.signer : rule.kind === 'pick' ? picked : undefined;
 
   // Changing period swaps the template, and the old answers no longer mean
   // anything — a weekly "cradle" is not a monthly "cradle".
@@ -215,7 +222,7 @@ export default function InspectionSc() {
       if (record.photos?.length && vessel?.imo) {
         await photoQueue.enqueueInspection(vessel.imo, record);
       }
-      await setPrefs({ lastCrewId: signer.id });
+      if (rule.kind === 'pick') await setPrefs({ lastCrewId: signer.id });
       playSuccessSound();
       goBackOr(nav);
     } catch (e: any) {
@@ -227,7 +234,7 @@ export default function InspectionSc() {
     } finally {
       setSaving(false);
     }
-  }, [item, template, signer, results, comment, photos, defectNote, addInspection, setPrefs, nav, gate.kind, overrideReason, proof]);
+  }, [item, template, signer, results, comment, photos, defectNote, addInspection, setPrefs, nav, gate.kind, overrideReason, proof, rule.kind]);
 
   const confirmSave = () => {
     if (signed.current || confirming.current) return;
@@ -240,6 +247,13 @@ export default function InspectionSc() {
       return;
     }
     if (!signer) {
+      if (rule.kind === 'waiting') {
+        Alert.alert(
+          'Waiting for your account',
+          "This vessel signs inspections as the device's account, and this device's name has not loaded yet. Check the connection in Settings, or ask the Master to confirm this device is approved."
+        );
+        return;
+      }
       Alert.alert('Who is signing?', 'Pick the crew member carrying out this inspection.');
       setPickingSigner(true);
       return;
@@ -414,16 +428,31 @@ export default function InspectionSc() {
           {/* Signature. Sits ABOVE the checklist on purpose: the crew member
               should see whose name is going on this before they answer, not
               discover it at the save dialog. */}
-          <TouchableOpacity style={styles.signerRow} onPress={() => setPickingSigner(true)}>
-            <MciIcon name="account-check" size={22} color={COLORS.primary} />
-            <View style={{ flex: 1 }}>
-              <Label>Inspected by</Label>
-              <Text style={[styles.signerName, !signer && { color: COLORS.textLight }]}>
-                {signer ? crewLabel(signer) : 'Tap to choose…'}
-              </Text>
+          {rule.kind === 'pick' ? (
+            <TouchableOpacity style={styles.signerRow} onPress={() => setPickingSigner(true)}>
+              <MciIcon name="account-check" size={22} color={COLORS.primary} />
+              <View style={{ flex: 1 }}>
+                <Label>Inspected by</Label>
+                <Text style={[styles.signerName, !signer && { color: COLORS.textLight }]}>
+                  {signer ? crewLabel(signer) : 'Tap to choose…'}
+                </Text>
+              </View>
+              <MciIcon name="chevron-right" size={22} color={COLORS.textLight} />
+            </TouchableOpacity>
+          ) : (
+            // No chevron and no tap: the name is the device's account, set by
+            // the Master. Saying so on the row is what stops the question
+            // "why can't I pick?" from being asked at the save dialog.
+            <View style={styles.signerRow}>
+              <MciIcon name={rule.kind === 'device' ? 'cellphone-check' : 'cellphone-off'} size={22} color={rule.kind === 'device' ? COLORS.primary : COLORS.warning} />
+              <View style={{ flex: 1 }}>
+                <Label>Inspected by · this device's account</Label>
+                <Text style={[styles.signerName, !signer && { color: COLORS.textLight }]}>
+                  {signer ? crewLabel(signer) : 'Waiting for this device\'s name from the vessel…'}
+                </Text>
+              </View>
             </View>
-            <MciIcon name="chevron-right" size={22} color={COLORS.textLight} />
-          </TouchableOpacity>
+          )}
 
           <View style={styles.card}>
             <View style={styles.checklistHead}>

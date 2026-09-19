@@ -3,6 +3,45 @@
 Kept by hand. Each entry says what changed and, where it matters, **why** — the reasoning is
 the part that stops the next person undoing it.
 
+## 2.46 — 19 September 2026
+
+Android versionCode 20406 · iOS build 20406.
+
+A customer's second round of testing notes, answered in one release.
+
+### The signature is the device
+
+- **Sign as the device's account** (`SigningPolicy.signAsDevice`, Settings, Master-only like the scan
+  rule). An Officer could scan an item on their own phone and then pick a colleague's name from the
+  list, so a signature said nothing about whose hands the phone was in. With the rule on, an
+  enrolled device signs as the person it was issued to — the name and rank on its account, read
+  live from the vessel — and the picker is not offered. The Master changes who a device belongs to
+  where the devices are, Settings → Accounts (rename). `signerRule` is pure and checked: a device on
+  no vessel still picks (it has no account); an enrolled device whose account has not loaded is
+  HELD, not let through to the picker — a rule that quietly fell back whenever the network was slow
+  would not be one. The record's `byId` becomes `device:<id>`, which nothing looks up (it was always
+  allowed to dangle).
+- The Master's no-scan override and the report's Scan column already existed (2.44); the customer
+  had not found them. Both are now called out in the reply, not changed.
+
+### Smaller things asked for
+
+- **Sounds on/off** (Settings → Modules → Sounds, `prefs.soundsMuted`). Read straight from the
+  prefs key when `utils/sound` loads, because the ship's bell plays on the splash before DataContext
+  has anything — a mute that let the loudest sound through once per launch would not be a mute.
+- **Emergency Escapes** is a built-in LSA category (`emergency_escapes`) with weekly and monthly
+  checklists: hatches, routes, signs, lighting, seals, ladders, the gear along the route. Filed
+  under Other it was invisible in the LSA report. The importer sorts "escape hatch / route / door /
+  ladder", "means of escape" and "emergency exit" rows into it — but "emergency escape breathing
+  device" is still an EEBD, which is why the pattern names the things along a route rather than
+  the word "escape". 24 categories now.
+- **BA cylinder pressure: ≥ 90% of rated (300 bar → ≥ 270 bar)**, was 80%, in both the BA-set
+  weekly line and the bottle-pressure monthly line. Wording only; the line ids are unchanged, so
+  older records read back correctly. A vessel with a different figure words it in Settings → Checklists.
+- **The blank import template now has a sheet for Other Safety Equipment** (named after the label,
+  which the importer already matched). It used to be skipped for having no source worksheet — so
+  the one category a vessel fills by hand was the one it could not fill from Excel.
+
 ## 2.45 — 16 September 2026
 
 Android versionCode 20405 · iOS build 20405.

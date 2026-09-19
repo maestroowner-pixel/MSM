@@ -14,6 +14,7 @@ export type BuiltInCategoryKey =
   | 'plb'
   | 'harnesses'
   | 'gmdss_pyro'
+  | 'emergency_escapes'
   | 'fire_extinguishers'
   | 'fire_dampers'
   | 'fire_vents'

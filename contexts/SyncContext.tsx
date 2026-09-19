@@ -36,7 +36,8 @@ import * as enrolment from '../services/enrolment';
 import * as trial from '../services/trial';
 import { adoptVesselLicence, revalidateLicence } from '../services/purchases';
 import { DEFAULT_POLICY, newerPolicy } from '../services/signingPolicy';
-import { Role } from '../types/role';
+import { EnrolledDevice, Role } from '../types/role';
+import * as accounts from '../services/accounts';
 import { useData } from './DataContext';
 
 export type SyncStatus = 'off' | 'connecting' | 'synced' | 'error' | 'pending';
@@ -47,6 +48,13 @@ interface SyncContextType {
   role: Role | null;
   /** Has this device ever enrolled (i.e. does it hold a device secret)? */
   enrolled: boolean;
+  /**
+   * This device's own account on the vessel — name, rank, role, approval — read
+   * live from the vessel's device list, so a rename by the Master shows up
+   * without a restart. Null until enrolled and loaded. What the "sign as this
+   * device" rule signs with (services/signingPolicy `signerRule`).
+   */
+  me: EnrolledDevice | null;
   lastSyncAt: number | null;
   /** Size of the register blob, so Settings can show it before it is a problem. */
   registerBytes: number;
@@ -110,6 +118,32 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   const [registerBytes, setRegisterBytes] = useState(0);
   const [role, setRole] = useState<Role | null>(null);
   const [enrolled, setEnrolled] = useState(false);
+  const [me, setMe] = useState<EnrolledDevice | null>(null);
+
+  // Watch our own row in the vessel's device list. Members may read the list
+  // (firestore.rules), and Firestore serves it from cache offline, so the name
+  // is there on a round below decks too. Same watch EnrolSc keeps for its card.
+  useEffect(() => {
+    const imo = vessel?.imo?.trim();
+    if (!imo || !enrolled || status === 'off') {
+      setMe(null);
+      return;
+    }
+    let live = true;
+    let stop = () => {};
+    void fb.getLocalDeviceId().then((myId) => {
+      if (!live) return;
+      try {
+        stop = accounts.watchDevices(imo, (rows) => setMe(rows.find((d) => d.id === myId) ?? null));
+      } catch {
+        /* no session yet — the next status change re-runs this */
+      }
+    });
+    return () => {
+      live = false;
+      stop();
+    };
+  }, [vessel?.imo, enrolled, status]);
   const [lastError, setLastError] = useState<string | null>(null);
 
   const uidRef = useRef<string | null>(null);
@@ -576,7 +610,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <SyncContext.Provider
-      value={{ status, role, enrolled, lastSyncAt, registerBytes, connect, disconnect, pushLocalNow, applyLocally, lastError }}
+      value={{ status, role, enrolled, me, lastSyncAt, registerBytes, connect, disconnect, pushLocalNow, applyLocally, lastError }}
     >
       {children}
     </SyncContext.Provider>

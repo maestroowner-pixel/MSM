@@ -63,6 +63,10 @@ app mirrors. Bundle id `com.kukalab.msm`.
   The record carries `verification` {method, scannedAt, reason}; the report prints a Scan column
   and the override reason in Comments. Enforced in the app, not in the inspection rules — older
   app versions do not know the rule, so the report column is what makes a gap visible.
+  **`signAsDevice`** (19 Sep 2026) is the second half of the same policy: an enrolled device signs
+  as its own account (`SyncContext.me`, watched live from the vessel's device list) and the picker
+  is gone — `signerRule` in signingPolicy.ts, pure, checked in `check:inspections`. A device on no
+  vessel still picks; an account not yet loaded HOLDS the signature rather than falling back.
 - **Checklists** (`constants/checklists.ts`): 30 templates keyed `<category>.<period>`, weekly
   and/or monthly, plus a `genericTemplate` fallback so no category can refuse a round. **Line ids
   are permanent** — they are the keys of every stored `results` map, so re-word freely but never
@@ -127,7 +131,7 @@ app mirrors. Bundle id `com.kukalab.msm`.
 ```
 index.tsx                    entry: providers + nav (4 tabs + stack modals + swipe)
 theme.ts                     design tokens (copied from MHM, + LSA/FFE group colors)
-types/equipment.ts           EquipmentItem model + CategoryKey union (23 categories)
+types/equipment.ts           EquipmentItem model + CategoryKey union (24 categories)
 constants/categories.ts      CATEGORIES registry: label, group (LSA/FFE/OTHER), source sheet,
                              emoji, color, dateField (nextInspection|expiry), monthly flag
 utils/dates.ts               excelSerialToISO, parseDateCell, daysUntil, computeStatus, formatDate

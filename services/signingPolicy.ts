@@ -39,6 +39,17 @@ import { VerificationMethod } from '../types/inspection';
 export interface SigningPolicy {
   /** Crew and Officers must scan the item's label before signing an inspection. */
   requireScan: boolean;
+  /**
+   * An enrolled device signs as the person it was issued to — the name and rank
+   * on its account — and the signer picker is gone. Asked for by a vessel
+   * (19 Sep 2026): an Officer could scan an item on their own phone and then
+   * pick a colleague's name to sign, so the signature said nothing about whose
+   * hands the phone was in. With this on, the account IS the signature; the
+   * Master changes who a device belongs to in Settings → Accounts (rename).
+   * A device that has not joined a vessel still picks from the list — it has
+   * no account to sign as. Optional: older copies of the policy lack it.
+   */
+  signAsDevice?: boolean;
   /** Who set it, as a note for the next Master ("Jez Dodd · Master"). */
   setBy?: string;
   /** Epoch ms. The newer copy wins between a device and the vessel. */
@@ -113,4 +124,51 @@ export function newerPolicy(a: SigningPolicy | null | undefined, b: SigningPolic
   if (!a) return b ?? DEFAULT_POLICY;
   if (!b) return a;
   return (b.updatedAt ?? 0) > (a.updatedAt ?? 0) ? b : a;
+}
+
+// ---- who signs -------------------------------------------------------------
+
+/** The name and rank a signature carries, and where they came from. */
+export interface Signer {
+  id: string;
+  name: string;
+  rank?: string;
+  /** 'device' — the account this device was issued to; 'picked' — chosen from the list. */
+  source: 'device' | 'picked';
+}
+
+/** What the enrolled device knows about itself (types/role EnrolledDevice, narrowed). */
+export interface DeviceIdentity {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  position?: string;
+}
+
+export type SignerRule =
+  /** Pick from the crew list, as always. */
+  | { kind: 'pick' }
+  /** Sign as this device's account — no picker. */
+  | { kind: 'device'; signer: Signer }
+  /** The rule is on but the device's account has not loaded — nothing may be signed yet. */
+  | { kind: 'waiting' };
+
+/**
+ * Who this device signs as. Pure, so it can be checked.
+ *
+ * The rule binds ENROLLED devices only: one that has not joined the vessel has
+ * no account, and refusing it the picker would stop a standalone install from
+ * inspecting anything. An enrolled device whose account has not arrived yet is
+ * held ("waiting") rather than let through to the picker — a rule that quietly
+ * fell back to the old behaviour whenever the network was slow would not be one.
+ */
+export function signerRule(
+  policy: SigningPolicy | null | undefined,
+  enrolled: boolean,
+  me: DeviceIdentity | null | undefined
+): SignerRule {
+  if (!policy?.signAsDevice || !enrolled) return { kind: 'pick' };
+  const name = [me?.firstName, me?.lastName].filter(Boolean).join(' ').trim();
+  if (!me || !name) return { kind: 'waiting' };
+  return { kind: 'device', signer: { id: `device:${me.id}`, name, rank: me.position?.trim() || undefined, source: 'device' } };
 }

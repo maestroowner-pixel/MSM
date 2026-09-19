@@ -5,6 +5,7 @@
 
 import { Platform, NativeModules } from 'react-native';
 import { Audio } from 'expo-av';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const onWindows = Platform.OS === 'windows';
 const onWeb = Platform.OS === 'web';
@@ -13,8 +14,27 @@ const onWeb = Platform.OS === 'web';
 // where touching the audio device (mmdevapi.dll) throws a runtime assertion and
 // crashes the app. The Electron main process detects Wine and sets this global,
 // so real Windows keeps the ship's bell + cues while the Wine test stays quiet.
+// The user's own switch (Settings → Modules → Sounds). Read straight from the
+// prefs key at module load, because the ship's bell plays on the splash — before
+// DataContext has loaded anything — and a mute that let the loudest sound through
+// once per launch would not be a mute. DataContext keeps it current afterwards.
+let muted = false;
+const mutedReady: Promise<void> = (async () => {
+  try {
+    const raw = await AsyncStorage.getItem('msm:prefs');
+    muted = !!(raw && JSON.parse(raw)?.soundsMuted);
+  } catch {
+    /* default: sound on */
+  }
+})();
+
+/** Mute or unmute every cue. Called by DataContext whenever the pref changes. */
+export function setSoundsMuted(v: boolean): void {
+  muted = v;
+}
+
 function soundDisabled(): boolean {
-  return onWeb && (globalThis as any).__MSM_NO_SOUND__ === true;
+  return muted || (onWeb && (globalThis as any).__MSM_NO_SOUND__ === true);
 }
 
 // Audio mode: play even when the device is on silent (iOS), duck others on Android.
@@ -33,6 +53,7 @@ if (!onWindows && !onWeb) {
  * Bundle\assets\sounds\<name>.mp3 by name. See WINDOWS.md.
  */
 async function play(asset: number, name: string, volume: number): Promise<void> {
+  await mutedReady;
   if (soundDisabled()) return; // Wine: skip audio to avoid the mmdevapi crash
   if (onWindows) {
     try {
@@ -66,7 +87,12 @@ async function play(asset: number, name: string, volume: number): Promise<void> 
 const webAudioCache: Record<string, any> = {};
 
 function playWeb(mod: any, volume: number): void {
-  if (soundDisabled()) return;
+  void mutedReady.then(() => {
+    if (!soundDisabled()) playWebNow(mod, volume);
+  });
+}
+
+function playWebNow(mod: any, volume: number): void {
   const g: any = globalThis as any;
   try {
     // A string is a direct URL (stable /sounds/*.mp3 from the web public dir);

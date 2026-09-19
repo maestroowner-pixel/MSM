@@ -397,6 +397,9 @@ export function parseWorkbookBytes(bytes: ArrayBuffer | Uint8Array): ImportPrevi
  * specific come before the general ("inflatable lifejacket" before "lifejacket").
  */
 const CATEGORY_WORDS: Array<[CategoryKey, RegExp]> = [
+  // Before EEBD: "emergency escape breathing device" must still be an EEBD, so
+  // the escapes pattern names the things along a route, not the word "escape".
+  ['emergency_escapes', /escape\s*(hatch|route|door|ladder|trunk|way)|means\s+of\s+escape|emergency\s+(exit|hatch)/i],
   ['eebd', /\beebd|escape\s*breathing|emergency\s*escape/i],
   ['fire_extinguishers', /extinguish/i],
   ['inflatable_lifejackets', /inflatable/i],

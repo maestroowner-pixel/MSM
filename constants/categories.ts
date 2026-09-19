@@ -52,6 +52,11 @@ const BUILT_IN: CategoryMeta[] = [
   { key: 'plb', label: "PLB's", short: 'PLB', group: 'LSA', sheet: "PLB's", color: COLORS.lsa, emoji: '📡', icon: 'radio-tower', dateField: 'expiry' },
   { key: 'harnesses', label: 'Harnesses / Fall Arrest', short: 'Harnesses', group: 'LSA', sheet: 'Harnesses', color: COLORS.lsa, emoji: '🪢', icon: 'carabiner', dateField: 'nextInspection' },
   { key: 'gmdss_pyro', label: 'GMDSS / SART / EPIRB / Pyro', short: 'GMDSS', group: 'LSA', sheet: 'GMDSS + Pyrotechnics', color: COLORS.lsa, emoji: '📻', icon: 'radio', dateField: 'expiry' },
+  // Escape hatches, escape routes and the gear along them — a vessel's SMS
+  // inspects them on a round of their own, and filing them under "Other" made
+  // that round invisible in the LSA report. Added 19 Sep 2026 at a customer's
+  // request. No column in the reference workbook; the template offers a sheet.
+  { key: 'emergency_escapes', label: 'Emergency Escapes', short: 'Escapes', group: 'LSA', sheet: 'Emergency Escapes', color: COLORS.lsa, emoji: '🚪', icon: 'door-open', dateField: 'nextInspection' },
 
   // ----- FFE / FIFI -----
   { key: 'fire_extinguishers', label: 'Fire Extinguishers', short: 'Extinguishers', group: 'FFE', sheet: 'Fire extinguishers', color: COLORS.ffe, emoji: '🧯', icon: 'fire-extinguisher', dateField: 'nextInspection' },
