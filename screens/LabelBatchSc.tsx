@@ -21,7 +21,7 @@ import { Card, CategoryBadge, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
-import { CATEGORIES } from '../constants/categories';
+import { CATEGORIES, visibleCategories } from '../constants/categories';
 import { CategoryKey, Group } from '../types/equipment';
 import { SIZES, Palette } from '../theme';
 import { listDecks, selectLabelItems } from '../services/labelBatch';
@@ -56,7 +56,10 @@ export default function LabelBatchSc() {
   // deps for the same reason as CategoriesSc: CATEGORIES is mutated in place when
   // a vessel adds a heading of its own.
   const inGroup = useMemo(
-    () => CATEGORIES.filter((c) => (group === 'ALL' || c.group === group) && (byCategory[c.key] ?? []).length > 0),
+    () =>
+      visibleCategories().filter(
+        (c) => (group === 'ALL' || c.group === group) && (byCategory[c.key] ?? []).length > 0
+      ),
     [group, byCategory, ownCats]
   );
 

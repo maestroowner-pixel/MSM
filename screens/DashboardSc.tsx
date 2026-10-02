@@ -7,13 +7,14 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, useWindowDimensions, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Screen, ScreenTitle, Empty, statusColor, CategoryBadge, Glyph } from '../components/ui';
+import { MciIcon } from '../components/MciIcon';
+import { Screen, ScreenTitle, Empty, statusColor, CategoryBadge } from '../components/ui';
 import { TrialBanner } from '../components/TrialBanner';
 import { UpdateBanner } from '../components/UpdateBanner';
 import { SIZES, Palette, SCROLLBAR_GUTTER } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
-import { CATEGORY_MAP } from '../constants/categories';
+import { CATEGORY_MAP, GROUP_ORDER, GROUP_SHORT } from '../constants/categories';
 import { gettingStarted } from '../constants/gettingStarted';
 import { complianceDate, computeStatus, daysUntil, formatDate } from '../utils/dates';
 import { ComplianceStatus, EquipmentItem, Group } from '../types/equipment';
@@ -31,8 +32,10 @@ type SortBy = 'date' | 'position' | 'name' | 'type' | 'round';
 
 const NO_POSITION = '— No position';
 
-const GROUP_ORDER: GroupFilter[] = ['ALL', 'LSA', 'FFE', 'OTHER'];
-const GROUP_LABEL: Record<GroupFilter, string> = { ALL: 'All groups', LSA: 'LSA', FFE: 'FFE', OTHER: 'Other' };
+// Follows the registers this build has — a module switched on appears in the
+// filter without anybody remembering this line (constants/categories).
+const GROUP_FILTERS: GroupFilter[] = ['ALL', ...GROUP_ORDER];
+const GROUP_FILTER_LABEL: Record<GroupFilter, string> = { ALL: 'All groups', ...GROUP_SHORT };
 const SORT_ORDER: SortBy[] = ['date', 'position', 'name', 'type', 'round'];
 const SORT_LABEL: Record<SortBy, string> = {
   date: 'Expiry date',
@@ -124,7 +127,7 @@ export default function DashboardSc() {
           .filter((r) => worstRoundMark(trail, r.it.id, periodsFor(r.it.category, templates)) === mark)
           .sort(byDays);
         if (!group.length) continue;
-        listData.push({ kind: 'header', key: `h:${mark}`, position: ROUND_GROUP[mark], count: group.length, icon: '🧾' });
+        listData.push({ kind: 'header', key: `h:${mark}`, position: ROUND_GROUP[mark], count: group.length, icon: 'clipboard-text-outline' });
         for (const r of group) listData.push({ kind: 'row', key: r.it.id, ...r });
       }
     } else {
@@ -148,7 +151,7 @@ export default function DashboardSc() {
       listData = [];
       for (const k of keys) {
         const items = groups.get(k)!.sort(byDays);
-        listData.push({ kind: 'header', key: `h:${k}`, position: k, count: items.length, icon: byType ? '🏷️' : '📍' });
+        listData.push({ kind: 'header', key: `h:${k}`, position: k, count: items.length, icon: byType ? 'tag-outline' : 'map-marker-outline' });
         for (const r of items) listData.push({ kind: 'row', key: r.it.id, ...r });
       }
     }
@@ -224,7 +227,7 @@ export default function DashboardSc() {
   }, [flat, recentScans]);
 
   const toggleStatus = (s: Exclude<StatusFilter, null>) => setStatus((cur) => (cur === s ? null : s));
-  const cycleGroup = () => setGroup((g) => GROUP_ORDER[(GROUP_ORDER.indexOf(g) + 1) % GROUP_ORDER.length]);
+  const cycleGroup = () => setGroup((g) => GROUP_FILTERS[(GROUP_FILTERS.indexOf(g) + 1) % GROUP_FILTERS.length]);
   const cycleSort = () => setSortBy((s) => SORT_ORDER[(SORT_ORDER.indexOf(s) + 1) % SORT_ORDER.length]);
 
   // Tablets: two cards per row (location headers stay full-width).
@@ -292,7 +295,8 @@ export default function DashboardSc() {
           the list is empty takes the rectified history with it. An empty line
           reads as "nothing outstanding", which is worth saying. */}
       <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('Defects')} activeOpacity={0.7}>
-        <Text style={styles.posHeaderText} numberOfLines={1}>🛠 Open defects</Text>
+        <MciIcon name="wrench-outline" size={15} color={COLORS.textLight} />
+        <Text style={styles.posHeaderText} numberOfLines={1}>Open defects</Text>
         {openDefectCount > 0 ? <Text style={styles.posHeaderCount}>{openDefectCount}</Text> : null}
         <Text style={styles.posHeaderChevron}>›</Text>
       </TouchableOpacity>
@@ -306,7 +310,8 @@ export default function DashboardSc() {
       {flaggedRecent.length > 0 ? (
         <>
           <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('Flagged')} activeOpacity={0.7}>
-            <Text style={styles.posHeaderText} numberOfLines={1}>🚩 Flagged</Text>
+            <MciIcon name="flag-outline" size={15} color={COLORS.textLight} />
+            <Text style={styles.posHeaderText} numberOfLines={1}>Flagged</Text>
             <Text style={styles.posHeaderCount}>{flaggedRecent.length}</Text>
             <Text style={styles.posHeaderChevron}>›</Text>
           </TouchableOpacity>
@@ -314,7 +319,8 @@ export default function DashboardSc() {
         </>
       ) : null}
       <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('RecentScans')} activeOpacity={0.7}>
-        <Text style={styles.posHeaderText} numberOfLines={1}>📷 Recently scanned</Text>
+        <MciIcon name="camera-outline" size={15} color={COLORS.textLight} />
+        <Text style={styles.posHeaderText} numberOfLines={1}>Recently scanned</Text>
         {recentScanned.length > 0 ? <Text style={styles.posHeaderCount}>{recentScanned.length}</Text> : null}
         <Text style={styles.posHeaderChevron}>›</Text>
       </TouchableOpacity>
@@ -346,7 +352,7 @@ export default function DashboardSc() {
         <StatBox label="Valid" value={stats.ok} color={COLORS.success} active={status === 'ok'} onPress={() => toggleStatus('ok')} />
         <TouchableOpacity style={styles.cycleBtn} onPress={cycleGroup} activeOpacity={0.8}>
           <Text style={styles.cycleCaption}>GROUP</Text>
-          <Text style={styles.cycleValue} numberOfLines={1}>{GROUP_LABEL[group]}</Text>
+          <Text style={styles.cycleValue} numberOfLines={1}>{GROUP_FILTER_LABEL[group]}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.cycleBtn} onPress={cycleSort} activeOpacity={0.8}>
           <Text style={styles.cycleCaption}>SORT</Text>
@@ -373,7 +379,8 @@ export default function DashboardSc() {
           renderItem={({ item: e }) =>
             e.kind === 'header' ? (
               <View style={styles.posHeader}>
-                <Text style={styles.posHeaderText} numberOfLines={1}>{e.icon} {e.position}</Text>
+                <MciIcon name={e.icon} size={15} color={COLORS.textLight} />
+                <Text style={styles.posHeaderText} numberOfLines={1}>{e.position}</Text>
                 <Text style={styles.posHeaderCount}>{e.count}</Text>
               </View>
             ) : e.kind === 'pair' ? (
@@ -398,7 +405,7 @@ function GetStarted({ onStart }: { onStart: () => void }) {
   const content = useMemo(() => gettingStarted(), []);
   return (
     <View style={styles.getStarted}>
-      <Glyph emoji="🚢" size={56} />
+      <MciIcon name="ferry" size={56} />
       <View style={{ height: SIZES.md }} />
       <Text style={styles.getStartedTitle}>{content.emptyTitle}</Text>
       <Text style={styles.getStartedBody}>{content.emptyBody}</Text>
@@ -487,12 +494,13 @@ function DashRow({
           </Text>
           {attCount > 0 ? (
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>{'📎'.repeat(attCount)}</Text>
+              <MciIcon name="paperclip" size={12} color={COLORS.textLight} />
+              {attCount > 1 ? <Text style={styles.badgeText}>{attCount}</Text> : null}
             </View>
           ) : null}
           {hasCert ? (
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>📜</Text>
+              <MciIcon name="certificate" size={12} color={COLORS.textLight} />
             </View>
           ) : null}
         </View>
@@ -502,7 +510,7 @@ function DashRow({
       </View>
       <View style={{ alignItems: 'flex-end' }}>
         {locked ? (
-          <Text style={styles.rowDays}>🔒</Text>
+          <MciIcon name="lock" size={14} color={COLORS.textLight} />
         ) : rightText != null ? (
           <Text style={styles.rowDays}>{rightText}</Text>
         ) : (
@@ -574,6 +582,8 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    // The row now starts with a glyph rather than an emoji inside the text.
+    gap: SIZES.xs,
     paddingHorizontal: SIZES.sm,
     paddingVertical: 6,
     marginBottom: SIZES.xs,

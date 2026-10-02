@@ -44,6 +44,7 @@ import { Attachment } from '../types/equipment';
 import * as inspections from '../services/inspections';
 import { openFile, resolveUri } from '../services/attachments';
 import { ensureLocalPhoto } from '../services/photoStorage';
+import { RETENTION_DAYS, isArchived } from '../services/photoArchive';
 import { formatDateTime } from '../utils/dates';
 import { goBackOr } from '../utils/nav';
 import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
@@ -60,8 +61,10 @@ export default function InspectionDetailSc() {
   const route = useRoute<any>();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
-  const { inspections: trail, flat, crew, vessel, saveInspection } = useData();
+  const { inspections: trail, flat, crew, vessel, saveInspection, photoArchive } = useData();
   const insp = useMemo(() => trail.find((i) => i.id === route.params?.id), [trail, route.params?.id]);
+  /** Are this record's photographs past the cloud window and swept? */
+  const archived = useMemo(() => (insp ? isArchived(insp, photoArchive) : false), [insp, photoArchive]);
   const item = useMemo(() => flat.find((i) => i.id === insp?.itemId), [flat, insp]);
 
   const [closing, setClosing] = useState(false);
@@ -231,9 +234,21 @@ export default function InspectionDetailSc() {
                     vessel={vessel?.imo ?? ''}
                     inspectionId={insp.id}
                     photo={p}
+                    archived={archived}
                   />
                 ))}
               </View>
+              {/* An archived photo is not a missing one, and the difference has
+                  to be on the screen: "not uploaded yet" is somebody's phone
+                  waiting for Wi-Fi, while this is the vessel's own retention
+                  rule having done exactly what it was told to. */}
+              {archived ? (
+                <Text style={styles.archivedNote}>
+                  Older than the {RETENTION_DAYS}-day window: these photographs are in the vessel's
+                  own archive for {archiveMonthLabel(insp.at)}, and on the device that took them.
+                  Settings → Inspection photos → Photo archive.
+                </Text>
+              ) : null}
             </Card>
           ) : null}
 
@@ -301,6 +316,17 @@ export default function InspectionDetailSc() {
   );
 }
 
+const ARCHIVE_MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+/** "September 2026" — the archive is filed by month, so the note names one. */
+function archiveMonthLabel(at: number): string {
+  const d = new Date(at);
+  return `${ARCHIVE_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 /**
  * One evidence photo, wherever it happens to live.
  *
@@ -316,10 +342,13 @@ function EvidencePhoto({
   vessel,
   inspectionId,
   photo,
+  archived,
 }: {
   vessel: string;
   inspectionId: string;
   photo: Attachment;
+  /** The cloud copy has been swept — so "not here" means archived, not pending. */
+  archived?: boolean;
 }) {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -358,7 +387,11 @@ function EvidencePhoto({
   if (missing) {
     return (
       <View style={[styles.photo, { borderWidth: 1, borderColor: COLORS.border }]}>
-        <MciIcon name="cloud-upload-outline" size={20} color={COLORS.textLight} />
+        <MciIcon
+          name={archived ? 'archive-outline' : 'cloud-upload-outline'}
+          size={20}
+          color={COLORS.textLight}
+        />
       </View>
     );
   }
@@ -454,6 +487,12 @@ const makeStyles = (COLORS: Palette) =>
     resultLabel: { fontWeight: '700', fontSize: SIZES.small },
 
     photoRow: { flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.md, flexWrap: 'wrap' },
+    archivedNote: {
+      fontSize: SIZES.small,
+      color: COLORS.textLight,
+      lineHeight: 17,
+      marginTop: SIZES.sm,
+    },
     photo: {
       width: 64,
       height: 64,

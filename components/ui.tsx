@@ -36,6 +36,9 @@ const CATEGORY_IMAGE_ICONS: Partial<Record<CategoryKey, ImageSourcePropType>> = 
   eebd: require('../assets/cat-icons/eebd.png'),
   fixed_co2: require('../assets/cat-icons/fixed-co2.png'),
   fire_detectors: require('../assets/cat-icons/fire-detector.png'),
+  // Drawn rather than borrowed: neither icon set has a knot, and `anchor`
+  // belonged to the anchors category. A reef knot is what a mooring line is.
+  mooring: require('../assets/cat-icons/mooring-knot.png'),
 };
 
 // Monochrome category glyph — single colour, used where a bare icon is wanted.
@@ -153,6 +156,17 @@ const EMOJI_GLYPH: Record<string, GlyphName> = {
   '⏱': 'timer-outline',
   '⚠': 'alert',
   '⬇': 'tray-arrow-down',
+  // Rows that had no glyph and fell through to the question mark — Settings
+  // showed five "?" chips in a column, which reads as five broken features.
+  // `emojiGlyph` still falls back, but the fallback is for a new emoji nobody
+  // has mapped yet, not for the settings people use every day.
+  '🗂️': 'view-grid-outline',      // Categories
+  '🏷️': 'tag-outline',            // Print QR labels
+  '🔲': 'qrcode-edit',            // Scan by category
+  '📋': 'clipboard-text-outline', // Checklists
+  '🔳': 'qrcode-scan',            // Scan QR label before signing
+  '🔊': 'volume-high',            // Sounds
+  '🕗': 'history',                // Snapshots / roll back
 };
 
 export function emojiGlyph(emoji: string): GlyphName {
@@ -343,9 +357,22 @@ export function Empty({ text }: { text: string }) {
   );
 }
 
-export function Label({ children, style }: { children: React.ReactNode; style?: StyleProp<TextStyle> }) {
+export function Label({
+  children,
+  style,
+  numberOfLines,
+}: {
+  children: React.ReactNode;
+  style?: StyleProp<TextStyle>;
+  /** For a label sharing a row with buttons, where the label is what may shrink. */
+  numberOfLines?: number;
+}) {
   const styles = useStyles();
-  return <Text style={[styles.label, style]}>{children}</Text>;
+  return (
+    <Text style={[styles.label, style]} numberOfLines={numberOfLines}>
+      {children}
+    </Text>
+  );
 }
 
 const makeStyles = (COLORS: Palette) =>

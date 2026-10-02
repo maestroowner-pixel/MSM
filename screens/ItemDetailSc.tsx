@@ -10,17 +10,17 @@
 // they were, one scroll further down, for the times it really is an edit.
 // ===================================
 
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Image, Modal, Platform } from 'react-native';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Image, Modal, Platform, Pressable, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
-import { BackButton, CategoryBadge, Glyph, Label, StatusPill, statusColor } from '../components/ui';
+import { BackButton, CategoryBadge, Label, StatusPill, statusColor } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { useData } from '../contexts/DataContext';
-import { CATEGORY_MAP } from '../constants/categories';
+import { CATEGORY_MAP, GROUP_SHORT, visibleCategories } from '../constants/categories';
 import { Attachment, CategoryKey, EquipmentItem } from '../types/equipment';
 import { Inspection, PERIOD_LABEL } from '../types/inspection';
 import { signatureLine } from '../types/crew';
@@ -45,7 +45,7 @@ export default function ItemDetailSc() {
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useS();
-  const { byCategory, saveItem, removeItem, certificates, saveCertificate, isLocked, inspections: trail } = useData();
+  const { byCategory, saveItem, removeItem, moveItem, certificates, saveCertificate, isLocked, inspections: trail, loading } = useData();
 
   const category: CategoryKey = route.params.category;
   const id: string | null = route.params.id ?? null;
@@ -84,7 +84,31 @@ export default function ItemDetailSc() {
   // the row evenly (no fixed width → no empty gap on the right).
   const [slot, setSlot] = useState(78);
 
-  const set = (patch: Partial<EquipmentItem>) => setDraft((d) => ({ ...d, ...patch }));
+  /**
+   * THE REGISTER MAY ARRIVE AFTER THIS SCREEN DOES.
+   *
+   * `draft` is seeded once, from `existing` — and on a cold start reached by a
+   * deep link (a `msm://item/<id>` label scanned into the web app, a bookmarked
+   * URL, the app relaunched onto this screen) DataContext has not finished
+   * loading, so `existing` is undefined and the screen opens as a BLANK NEW ITEM
+   * for equipment that plainly exists. Saving it then wrote a second item under a
+   * made-up id. Found on 29 Sep 2026 while testing the category move, by opening
+   * /item/harnesses/h1 directly.
+   *
+   * So the item is adopted when it turns up — but only while nothing has been
+   * typed, because the other half of this screen's job is not to throw away an
+   * edit somebody is in the middle of.
+   */
+  const touched = useRef(false);
+  useEffect(() => {
+    if (!existing || touched.current) return;
+    setDraft((d) => (d.id === existing.id ? d : existing));
+  }, [existing]);
+
+  const set = (patch: Partial<EquipmentItem>) => {
+    touched.current = true;
+    setDraft((d) => ({ ...d, ...patch }));
+  };
 
   const linkedCerts = useMemo(
     () => certificates.filter((c) => c.itemIds.includes(draft.id)),
@@ -195,6 +219,51 @@ export default function ItemDetailSc() {
     goBackOr(nav);
   };
 
+  /**
+   * Move this item to another category.
+   *
+   * The confirmation says what survives and what does not, because this is the
+   * one action in the app that changes what an item IS. A vessel needed it for
+   * gear that had been parked in LSA for want of anywhere better (29 Sep 2026),
+   * and the thing they must not have to wonder about is whether the history and
+   * the sticker come with it. They do — see services/storage `moveItem`.
+   */
+  const [moving, setMoving] = useState(false);
+
+  const onMove = async (to: CategoryKey) => {
+    setMoving(false);
+    const target = CATEGORY_MAP[to];
+    if (!target || to === category) return;
+    const history = inspections.forItem(trail, draft.id).length;
+    // Categories are judged by different dates. Moving to one that reads the
+    // OTHER date, with that date empty, would quietly turn a compliant item into
+    // one with no date at all — so it is said before it happens, not after.
+    const needs = target.dateField;
+    const missing = !draft[needs];
+    Alert.alert(
+      `Move to ${target.label}?`,
+      `It keeps its QR label, its serial, its photos and documents, every certificate that covers ` +
+        `it${history ? `, and all ${history} inspection${history === 1 ? '' : 's'} on record` : ''}.\n\n` +
+        `From now on it is inspected as ${target.label} and owes that category's rounds. Rounds ` +
+        `already signed stay filed under ${meta.label} — that is where they were carried out.` +
+        (missing
+          ? `\n\n${target.label} is judged by its ${needs === 'expiry' ? 'expiry' : 'next inspection'} date, ` +
+            `which this item does not have yet. Set it after the move or it will show as having no date.`
+          : ''),
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Move',
+          onPress: async () => {
+            await moveItem(draft as EquipmentItem, to);
+            playSuccessSound();
+            goBackOr(nav);
+          },
+        },
+      ]
+    );
+  };
+
   const onDelete = () => {
     if (isNew) return goBackOr(nav);
     Alert.alert('Delete item', 'Remove this item permanently?', [
@@ -217,6 +286,42 @@ export default function ItemDetailSc() {
     mc[key] = !mc[key];
     set({ monthlyChecks: mc });
   };
+
+  /**
+   * NOTHING IS SHOWN UNTIL THE REGISTER IS IN.
+   *
+   * The deep-link adoption above repairs a draft seeded too early, but it cannot
+   * repair a person: on the deployed web build a vessel reached this screen cold
+   * (a scanned label, a reload, a pasted URL), saw an EMPTY form for equipment
+   * that plainly exists, and carried on from it — the label screen then opened on
+   * the unsaved draft's id (`label?id=liferafts_new`) and answered "Nothing to
+   * label", and the inspection screen answered "Item not found". Reported by the
+   * vessel on 30 Sep 2026 with the screenshots; reproduced against production the
+   * same morning by loading /item/liferafts/lr1 cold.
+   *
+   * So when this screen is opened FOR AN EXISTING ITEM, it waits. `loading`
+   * clears in well under a second; a blank form that looks authoritative is the
+   * expensive outcome, a held frame is not. A genuinely new item has no id and is
+   * not held.
+   */
+  if (id && loading) {
+    return (
+      <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
+          <View style={styles.header}>
+            <BackButton onPress={() => goBackOr(nav)} />
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {meta?.label ?? 'Item'}
+            </Text>
+            <View style={{ width: 24 }} />
+          </View>
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator color={COLORS.primary} />
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
@@ -292,7 +397,7 @@ export default function ItemDetailSc() {
           <Field label="Type / Description" value={draft.type} onChange={(v) => set({ type: v })} />
           <View style={styles.twoCol}>
             <View style={{ flex: 1 }}>
-              <Field label="Make" value={draft.make} onChange={(v) => set({ make: v })} />
+              <Field label="Make / Manufacturer" value={draft.make} onChange={(v) => set({ make: v })} />
             </View>
             <View style={{ flex: 1 }}>
               <Field label="Size (e.g. 5kg, 9L)" value={draft.size} onChange={(v) => set({ size: v })} />
@@ -308,16 +413,82 @@ export default function ItemDetailSc() {
             </View>
           </View>
 
-          <View style={styles.twoCol}>
-            <View style={{ flex: 1 }}>
-              <NumField label="Quantity" value={draft.quantity} onChange={(n) => set({ quantity: n })} />
+          {/* Lifting & Mooring. Shown for that register only: SWL means nothing on a
+              lifejacket, and a form of fields that never apply is how people stop
+              reading forms. The order follows the vessel's own register — the
+              identification first, then the rating, then the certificates. */}
+          {meta.group === 'LIFTING' ? (
+            <>
+              <Field
+                label="ID / markings / whipping"
+                value={draft.marking}
+                onChange={(v) => set({ marking: v })}
+              />
+              <View style={styles.twoCol}>
+                <View style={{ flex: 1 }}>
+                  <Field
+                    label="SWL / WLL"
+                    value={draft.swl}
+                    onChange={(v) => set({ swl: v })}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Field
+                    label="Min. breaking load"
+                    value={draft.mbl}
+                    onChange={(v) => set({ mbl: v })}
+                  />
+                </View>
+              </View>
+              <View style={styles.twoCol}>
+                <View style={{ flex: 1 }}>
+                  <Field label="Diameter" value={draft.diameter} onChange={(v) => set({ diameter: v })} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Field label="Material" value={draft.material} onChange={(v) => set({ material: v })} />
+                </View>
+              </View>
+              <Field
+                label="Maker's test certificate no."
+                value={draft.mfrCertNo}
+                onChange={(v) => set({ mfrCertNo: v })}
+              />
+              <Field
+                label="Annual test certificate no."
+                value={draft.testCertNo}
+                onChange={(v) => set({ testCertNo: v })}
+              />
+              <View style={styles.twoCol}>
+                <View style={{ flex: 1 }}>
+                  <DateField
+                    label="Installed / renewed"
+                    value={draft.installedDate}
+                    onChange={(v) => set({ installedDate: v })}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <DateField
+                    label="Last inspection"
+                    value={draft.lastInspection}
+                    onChange={(v) => set({ lastInspection: v })}
+                  />
+                </View>
+              </View>
+            </>
+          ) : (
+            <View style={styles.twoCol}>
+              <View style={{ flex: 1 }}>
+                <NumField label="Quantity" value={draft.quantity} onChange={(n) => set({ quantity: n })} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <NumField label="Persons" value={draft.persons} onChange={(n) => set({ persons: n })} />
+              </View>
             </View>
-            <View style={{ flex: 1 }}>
-              <NumField label="Persons" value={draft.persons} onChange={(n) => set({ persons: n })} />
-            </View>
-          </View>
+          )}
 
-          <DateField label="Manufacture date" value={draft.manufactureDate} onChange={(v) => set({ manufactureDate: v })} />
+          {meta.group === 'LIFTING' ? null : (
+            <DateField label="Manufacture date" value={draft.manufactureDate} onChange={(v) => set({ manufactureDate: v })} />
+          )}
           <DateField
             label={meta.dateField === 'nextInspection' ? 'Next inspection ★' : 'Next inspection'}
             value={draft.nextInspection}
@@ -392,7 +563,7 @@ export default function ItemDetailSc() {
                           <Image source={{ uri: resolveUri(a.uri) }} style={[styles.attThumb, box]} resizeMode="cover" />
                         ) : (
                           <View style={[styles.attThumb, box, styles.attDoc]}>
-                            <Text style={{ fontSize: 24 }}>📄</Text>
+                            <MciIcon name="file-document" size={24} color={COLORS.primaryDark} />
                             <Text style={styles.attDocName} numberOfLines={1}>
                               {a.name ?? 'Doc'}
                             </Text>
@@ -446,7 +617,7 @@ export default function ItemDetailSc() {
                     onPress={() => previewCert(c)}
                   >
                     <View style={[styles.certDot, { backgroundColor: statusColor(st) }]} />
-                    <Glyph emoji="📜" size={18} />
+                    <MciIcon name="certificate" size={18} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.certName} numberOfLines={1}>{c.name || 'Certificate'}</Text>
                       <Text style={styles.certSub} numberOfLines={1}>
@@ -475,10 +646,48 @@ export default function ItemDetailSc() {
             </TouchableOpacity>
           ) : null}
 
+          {!isNew ? (
+            <TouchableOpacity style={styles.moveBtn} onPress={() => setMoving(true)}>
+              <MciIcon name="folder-move-outline" size={18} color={COLORS.primary} />
+              <Text style={styles.moveBtnText}>Move to another category</Text>
+            </TouchableOpacity>
+          ) : null}
+
           <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
             <Text style={styles.deleteText}>{isNew ? 'Discard' : 'Delete item'}</Text>
           </TouchableOpacity>
         </ScrollView>
+
+        {/* The picker. A sheet rather than a dialog: twenty-odd categories do not
+            fit in an alert, and the backdrop is a SIBLING of the sheet so a tap
+            meant for the list cannot dismiss it (see AccountsSc for the bug that
+            taught us). */}
+        <Modal visible={moving} transparent animationType="slide" onRequestClose={() => setMoving(false)}>
+          <View style={styles.mvBackdrop}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setMoving(false)} accessibilityLabel="Close" />
+            <View style={styles.mvSheet}>
+              <Label>Move "{draft.type || draft.serial || 'this item'}" to</Label>
+              <Text style={styles.mvNote}>
+                Its label, history, photos and certificates go with it. Rounds already signed stay
+                filed under {meta.label}.
+              </Text>
+              <ScrollView style={{ maxHeight: 380 }}>
+                {visibleCategories()
+                  .filter((c) => c.key !== category)
+                  .map((c) => (
+                    <TouchableOpacity key={c.key} style={styles.mvRow} onPress={() => void onMove(c.key)}>
+                      <CategoryBadge category={c.key} size={26} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.mvRowTitle}>{c.label}</Text>
+                        <Text style={styles.mvRowSub}>{GROUP_SHORT[c.group]}</Text>
+                      </View>
+                      <MciIcon name="chevron-right" size={20} color={COLORS.textLight} />
+                    </TouchableOpacity>
+                  ))}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
 
         <Modal visible={!!preview} transparent animationType="fade" onRequestClose={() => setPreview(null)}>
           <View style={styles.lbBackdrop}>
@@ -560,7 +769,7 @@ export default function ItemDetailSc() {
                         <View style={[styles.cpCheck, on && styles.cpCheckOn]}>
                           {on ? <Text style={styles.cpCheckMark}>✓</Text> : null}
                         </View>
-                        <Glyph emoji="📜" size={18} />
+                        <MciIcon name="certificate" size={18} />
                         <View style={{ flex: 1 }}>
                           <Text style={styles.certName} numberOfLines={1}>{c.name || 'Certificate'}</Text>
                           <Text style={styles.certSub} numberOfLines={1}>
@@ -669,7 +878,7 @@ function InspectionCard({ item, trail }: { item: EquipmentItem; trail: Inspectio
   const sync = useSync();
   // Read at render: a proof is recorded by the scan BEFORE this screen opens, and
   // one that has gone stale should turn the buttons back into "Scan to inspect".
-  const gate = signingGate(signingPolicy, sync.role, sync.enrolled, scanProofFor(item.id));
+  const gate = signingGate(signingPolicy, sync.role, sync.enrolled, scanProofFor(item.id), item.category);
 
   const periods = useMemo(() => periodsFor(item.category, templates), [item.category, templates]);
   const history = useMemo(() => inspections.forItem(trail, item.id), [trail, item.id]);
@@ -704,6 +913,15 @@ function InspectionCard({ item, trail }: { item: EquipmentItem; trail: Inspectio
         </>
       ) : (
       <View style={styles.inspBtnRow}>
+        {/* A category whose rounds the vessel switched off (Settings → Checklists)
+            owes nothing, and an empty row would read as a bug. It is a real
+            answer: this is an inventory, checked off rather than scheduled. */}
+        {!periods.length ? (
+          <Text style={styles.inspSub}>
+            No round is scheduled for this category on this vessel — its items are kept as an
+            inventory. A Master or Officer can add one in Settings → Checklists.
+          </Text>
+        ) : null}
         {periods.map((p) => {
           const status = inspections.roundStatus(trail, item.id, p);
           const done = status === 'done';
@@ -835,6 +1053,37 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   attThumb: { borderRadius: SIZES.radiusSm, backgroundColor: COLORS.borderLight, borderWidth: 1, borderStyle: 'dashed', borderColor: COLORS.border },
   attDoc: { alignItems: 'center', justifyContent: 'center', padding: 4 },
   attDocName: { fontSize: 8, color: COLORS.textLight, marginTop: 2, maxWidth: 70 },
+  moveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SIZES.sm,
+    paddingVertical: SIZES.md,
+    marginTop: SIZES.lg,
+    borderRadius: SIZES.radiusMd,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  moveBtnText: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.body },
+  mvBackdrop: { flex: 1, backgroundColor: '#0006', justifyContent: 'flex-end' },
+  mvSheet: {
+    backgroundColor: COLORS.cardSolid,
+    borderTopLeftRadius: SIZES.radiusLg,
+    borderTopRightRadius: SIZES.radiusLg,
+    padding: SIZES.lg,
+    paddingBottom: SIZES.xxxl,
+  },
+  mvNote: { color: COLORS.textLight, fontSize: SIZES.small, lineHeight: 17, paddingVertical: SIZES.sm },
+  mvRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SIZES.md,
+    paddingVertical: SIZES.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.border,
+  },
+  mvRowTitle: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.textDark },
+  mvRowSub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },
   lbBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.94)', alignItems: 'center', justifyContent: 'center' },
   lbClose: { position: 'absolute', top: 56, right: 24, zIndex: 2 },
   lbCloseText: { color: '#fff', fontSize: 28, fontWeight: '700' },
@@ -906,9 +1155,12 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   // ---- Inspection trail ----
   inspHead: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md },
   inspSub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },
-  inspBtnRow: { flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.md },
+  // Wraps: a category can owe three rounds now (weekly, monthly, quarterly), and
+  // three buttons on one phone-width row would each be too narrow to read.
+  inspBtnRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.sm, marginTop: SIZES.md },
   inspBtn: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: 120,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

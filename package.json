@@ -15,9 +15,12 @@
     "check:register": "rm -rf .check-reg && tsc scripts/check-register-update.ts --outDir .check-reg --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-reg/ && node .check-reg/scripts/check-register-update.js",
     "check:sync": "rm -rf .check-sync && tsc scripts/check-register-sync.ts --outDir .check-sync --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-sync/scripts/check-register-sync.js; s=$?; rm -rf .check-sync; exit $s",
     "check:labels": "rm -rf .check-lab && tsc scripts/check-label-batch.ts --outDir .check-lab --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-lab/ && node .check-lab/scripts/check-label-batch.js; s=$?; rm -rf .check-lab; exit $s",
-    "postinstall": "node scripts/patch-rn.js && node scripts/patch-android-signing.js && node scripts/patch-android-minify.js && node scripts/patch-android-edge-to-edge.js && node scripts/patch-android-storage.js && node scripts/patch-android-memory.js && node scripts/patch-native-version.js && node scripts/patch-ios-deployment-target.js",
+    "postinstall": "node scripts/patch-rn.js && node scripts/patch-android-signing.js && node scripts/patch-android-minify.js && node scripts/patch-android-edge-to-edge.js && node scripts/patch-android-storage.js && node scripts/patch-android-memory.js && node scripts/patch-android-output-name.js && node scripts/patch-native-version.js && node scripts/patch-ios-deployment-target.js && node scripts/patch-ios-scene-lifecycle.js && node scripts/patch-ios-version-phase.js",
     "deploy:rules": "npx firebase-tools deploy --only firestore:rules --project marine-safety-manager",
-    "deploy:hosting": "npx firebase-tools deploy --only hosting --project marine-safety-manager"
+    "deploy:hosting": "npx firebase-tools deploy --only hosting --project marine-safety-manager",
+    "check:lifting": "rm -rf .check-lift && tsc scripts/check-lifting-import.ts --outDir .check-lift --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-lift/ && node .check-lift/scripts/check-lifting-import.js; s=$?; rm -rf .check-lift; exit $s",
+    "apk": "node scripts/patch-native-version.js && node scripts/patch-android-signing.js && node scripts/patch-android-minify.js && node scripts/patch-android-edge-to-edge.js && cd android && ./gradlew assembleRelease",
+    "check:icons": "rm -rf .check-ico && tsc scripts/check-icons.ts --outDir .check-ico --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck --resolveJsonModule && cp app.json .check-ico/ && node .check-ico/scripts/check-icons.js; s=$?; rm -rf .check-ico; exit $s"
   },
   "keywords": [
     "maritime",

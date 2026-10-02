@@ -132,13 +132,18 @@ const ids = (list: EquipmentItem[]) => list.map((i) => i.id).sort().join(',');
   ok('identical items: new expiry applied', plan.changed.length === 3 && plan.changed.every((c) => c.after.expiry === '2029-01-01'));
 }
 {
-  // a serial shared by two items matches neither
+  // a serial shared by two items is not matched by serial
   const dup = [
     { id: 'a', category: 'plb', serial: 'X1', updatedAt: 1 },
     { id: 'b', category: 'plb', serial: 'X1', updatedAt: 1 },
   ] as EquipmentItem[];
   const plan = planUpdate(dup, [{ id: 'r', category: 'plb', serial: 'X1', updatedAt: 2, _fields: ['serial'] } as any]);
-  ok('ambiguous serial: no guess', plan.matchedBy.serial === 0 && plan.added.length === 1);
+  // Still no guess BY SERIAL. But the two items are the same in every field the
+  // sheet has, so the row is one of them and the other is the copy — it used to
+  // be added as a third, which is how a register tripled (see 3b).
+  ok('ambiguous serial: no guess by serial, and no third copy',
+     plan.matchedBy.serial === 0 && plan.added.length === 0 && plan.missing.length === 1,
+     `${plan.added.length} added, ${plan.missing.length} missing`);
 }
 {
   // Replace all keeps MSM IDs, once each
@@ -147,6 +152,35 @@ const ids = (list: EquipmentItem[]) => list.map((i) => i.id).sort().join(',');
   const b = storable({ id: 'gen2', category: 'plb', updatedAt: 1, _msmId: 'plb_keep' } as any, seen);
   ok('replace: an MSM ID is kept', a.id === 'plb_keep');
   ok('replace: a pasted-twice row does not share the id', b.id === 'gen2');
+}
+
+// --- 3b. rows with no number and no location do not multiply ---
+{
+  // What a vessel's own list often is: a description, a make, sometimes a serial
+  // typed twice. Loading it again must change nothing, and the copies an older
+  // build made must come out as "not in the file" so one switch removes them.
+  const row = (i: number, over: Partial<EquipmentItem> = {}): EquipmentItem =>
+    ({ id: `row${i}`, category: 'lifejackets', type: 'Adult 150N', make: 'Crewsaver', updatedAt: 1, ...over } as EquipmentItem);
+  const held = [0, 1, 2].map((i) => row(i, { id: `held${i}` }));
+  const same = planUpdate(held, [0, 1, 2].map((i) => row(i)));
+  ok('no number, no location: the same file again adds nothing',
+     !same.added.length && !same.missing.length && same.unchanged.length === 3,
+     `${same.added.length} added, ${same.missing.length} missing`);
+  const tripled = [...held, ...[3, 4, 5, 6, 7, 8].map((i) => row(i, { id: `dup${i}` }))];
+  const fix = planUpdate(tripled, [0, 1, 2].map((i) => row(i)));
+  ok('tripled register: the copies are missing, nothing is added',
+     !fix.added.length && fix.missing.length === 6, `${fix.added.length} added, ${fix.missing.length} missing`);
+  ok('tripled register: the ORIGINALS are the ones kept',
+     ids(fix.unchanged) === 'held0,held1,held2', ids(fix.unchanged));
+  // A serial that the copies made non-unique still finds its item.
+  const sn = [row(0, { id: 'a', serial: 'X1' }), row(1, { id: 'b', serial: 'X1' })];
+  const snPlan = planUpdate(sn, [row(9, { serial: 'X1' })]);
+  ok('copied serial: one kept, one missing, none added',
+     !snPlan.added.length && snPlan.missing.length === 1 && ids(snPlan.unchanged) === 'a',
+     `${snPlan.added.length} added, ${snPlan.missing.length} missing`);
+  // A genuinely new, different item is still added.
+  const more = planUpdate(held, [...[0, 1, 2].map((i) => row(i)), row(3, { type: 'Child 100N' })]);
+  ok('a different un-numbered item is still new', more.added.length === 1 && !more.missing.length);
 }
 
 // --- 4. the reference workbook still imports as before ---

@@ -16,8 +16,10 @@ import {
   SyncBase,
   decidePull,
   decidePush,
+  foreignKeys,
   itemCount,
   mergeRegister,
+  outgoingRegister,
   partHashes,
 } from '../services/registerMerge';
 import { EquipmentItem } from '../types/equipment';
@@ -185,6 +187,141 @@ const restorer: Device = { name: 'restore', local: reg(item('r1', 'Restored'), i
 push(restorer, vessel.at, cloud(), true);
 sync(lone);
 ok('a forced restore replaces the vessel register, and others take it', vesselIds() === 'r1,r2' && ids(lone) === 'r1,r2');
+
+
+// --- an item that moved category (services/storage `moveItem`) ---------------
+//
+// A move is a delete from one bucket and an insert into another, and the merge
+// runs per bucket — so the case that matters is the OTHER device editing that
+// item in its old category before it hears about the move. Without the cross-
+// category pass the item survives in both and the grid shows it twice.
+{
+  const at = (n: number) => ({ updatedAt: n });
+  const item = (id: string, n: number, extra: any = {}) => ({ id, ...at(n), ...extra } as any);
+
+  const base = { categories: { lsa: [item('a', 100)], lifting: [] } } as any;
+  // here: moved a -> lifting at t=200
+  const mine = { categories: { lsa: [], lifting: [item('a', 200, { category: 'lifting' })] } } as any;
+  // there: edited a in place at t=150, never saw the move
+  const theirs = { categories: { lsa: [item('a', 150, { position: 'Locker' })], lifting: [] } } as any;
+
+  const merged = mergeRegister(base, mine, theirs, { categories: true } as any);
+  const where = Object.entries(merged.categories)
+    .filter(([, v]: any) => (v as any[]).some((x) => x.id === 'a'))
+    .map(([k]) => k);
+  ok('a moved item lands in exactly one category', where.length === 1, where.join(','));
+  ok('…and it is the one it moved to', where[0] === 'lifting', where[0]);
+
+  // and the other way round: an edit made AFTER the move wins the item back
+  const later = { categories: { lsa: [item('a', 300, { position: 'Locker' })], lifting: [] } } as any;
+  const merged2 = mergeRegister(base, mine, later, { categories: true } as any);
+  const where2 = Object.entries(merged2.categories)
+    .filter(([, v]: any) => (v as any[]).some((x) => x.id === 'a'))
+    .map(([k]) => k);
+  ok('a later edit keeps it where that device had it', where2.join() === 'lsa', where2.join());
+
+  // nothing else is disturbed
+  const plain = mergeRegister(
+    { categories: { lsa: [item('b', 1)] } } as any,
+    { categories: { lsa: [item('b', 2)] } } as any,
+    { categories: { lsa: [item('b', 1)] } } as any,
+    { categories: true } as any
+  );
+  ok('an ordinary edit still merges normally', (plain.categories as any).lsa[0].updatedAt === 2);
+}
+
+
+// --- A build that does not know every category (30 Sep 2026) ------------------
+//
+// The vessel runs devices that disagree about which categories exist: a module on
+// in one build and off in another (constants/modules.ts), or a vessel category
+// made an hour ago and not yet received. The device that cannot NAME a bucket
+// must still carry it — before this, its register said those categories did not
+// exist and the next pull deleted them for the whole ship. Modelled here with the
+// same glue firebaseService applies: `localRegister` (outgoingRegister) on the way
+// out, `writeLocalRegister` (foreignKeys) on the way in.
+{
+  const v0 = { at: vessel.at, json: vessel.json };
+  vessel.at = 0;
+  vessel.json = null;
+
+  const BUILTIN = ['fire_extinguishers'];
+  interface Build extends Device { knows: string[]; foreign: Record<string, EquipmentItem[]> }
+
+  /** storage.loadAll + storage.loadForeignBuckets, as localRegister joins them. */
+  const outgoing = (d: Build): RegisterParts => {
+    const own: Record<string, EquipmentItem[]> = {};
+    for (const k of d.knows) own[k] = d.local.categories?.[k] ?? [];
+    return outgoingRegister({ ...d.local, categories: own }, d.foreign);
+  };
+  /** writeLocalRegister: write every bucket, remember the ones it cannot name. */
+  const incoming = (d: Build, blob: RegisterParts) => {
+    d.local = clone(blob);
+    d.foreign = {};
+    for (const k of foreignKeys(d.knows, blob)) d.foreign[k] = clone(blob.categories[k]);
+  };
+
+  const syncBuild = (d: Build) => {
+    for (let i = 0; i < 3; i++) {
+      const c = cloud();
+      const mineOut = outgoing(d);
+      if (c) {
+        const dec = decidePull(d.base, mineOut, vessel.at, c);
+        if (dec.kind === 'take') { incoming(d, c); d.base = { cloudAt: vessel.at, cloudJson: vessel.json!, local: partHashes(outgoing(d)) }; return; }
+        if (dec.kind === 'merge') {
+          const merged = mergeRegister(d.base ? JSON.parse(d.base.cloudJson) : { categories: {} }, mineOut, c, dec.changed);
+          incoming(d, merged);
+          d.base = { cloudAt: vessel.at, cloudJson: vessel.json!, local: partHashes(c) };
+        } else if (dec.kind === 'current' && !dec.needsPush) return;
+      }
+      const out = outgoing(d);
+      const pd = decidePush(d.base, out, vessel.at, cloud(), false);
+      if (pd === 'skip') return;
+      if (pd === 'write') {
+        vessel.at = ++clock;
+        vessel.json = JSON.stringify(out);
+        d.base = { cloudAt: vessel.at, cloudJson: vessel.json, local: partHashes(out) };
+        return;
+      }
+    }
+    throw new Error('did not settle');
+  };
+
+  const li = (id: string): EquipmentItem => ({ id, category: 'mooring' as any, type: 'Mooring line', updatedAt: 1 });
+  const fe = (id: string, at = 1): EquipmentItem => ({ id, category: 'fire_extinguishers', type: 'Dry powder', updatedAt: at });
+
+  // the tester's build has the module; the website does not
+  const withModule: Build = {
+    name: 'module build', knows: [...BUILTIN, 'mooring'], base: null, foreign: {},
+    local: { categories: { fire_extinguishers: [fe('fe1')], mooring: [li('mo1'), li('mo2')] } },
+  };
+  const plain: Build = { name: 'plain build', knows: BUILTIN, base: null, foreign: {}, local: { categories: { fire_extinguishers: [] } } };
+
+  syncBuild(withModule);
+  ok('the module build sends its own categories to the vessel', (cloud()!.categories.mooring ?? []).length === 2);
+
+  syncBuild(plain);
+  ok('a build without the module still receives them', (cloud()!.categories.mooring ?? []).length === 2);
+  ok('…and files them as buckets it cannot name', Object.keys(plain.foreign).join() === 'mooring');
+
+  // the ordinary edit that used to wipe the lot
+  plain.local.categories.fire_extinguishers = [fe('fe1'), fe('fe2', 2)];
+  syncBuild(plain);
+  ok('an edit on that build does NOT delete them from the vessel', (cloud()!.categories.mooring ?? []).length === 2, JSON.stringify(Object.keys(cloud()!.categories)));
+
+  syncBuild(withModule);
+  ok('…and the module build still has all of its register', (withModule.local.categories.mooring ?? []).length === 2);
+  ok('…having received the other build\'s edit', (withModule.local.categories.fire_extinguishers ?? []).length === 2);
+
+  // a real deletion, made by a build that CAN see the category, still deletes
+  withModule.local.categories.mooring = [li('mo1')];
+  syncBuild(withModule);
+  syncBuild(plain);
+  ok('a deletion made where the category IS known still travels', (cloud()!.categories.mooring ?? []).length === 1);
+
+  vessel.at = v0.at;
+  vessel.json = v0.json;
+}
 
 console.log(fails ? `\n${fails} FAILED` : '\nall passed');
 process.exit(fails ? 1 : 0);

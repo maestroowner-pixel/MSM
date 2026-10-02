@@ -7,10 +7,10 @@
 // enrolled by name + PIN and sync then runs by itself.
 // ===================================
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Switch, Modal, TouchableWithoutFeedback, Keyboard, Linking, Image, LayoutAnimation, Platform, UIManager, useWindowDimensions } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
-import { Screen, ScreenTitle, Card, Label, GlyphBadge, Glyph } from '../components/ui';
+import { Screen, ScreenTitle, Card, Label, IconChip } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { PhotoUploadCard } from '../components/PhotoUploadCard';
 import { ConnectionCard } from '../components/ConnectionCard';
@@ -22,11 +22,13 @@ import { VesselInfo, resetAllData } from '../services/storage';
 import * as fb from '../services/firebaseService';
 import { clearAttachmentsDir } from '../services/attachments';
 import { exportTemplate } from '../services/export';
+import { GROUP_ORDER } from '../constants/categories';
+import { Group } from '../types/equipment';
 import { exportBackup, pickBackup, restoreBackup } from '../services/backup';
 import * as snapshot from '../services/snapshot';
 import { isSubscribed, onEntitlementChange } from '../services/purchases';
 import { playSuccessSound, playErrorSound } from '../utils/sound';
-import { SigningPolicy } from '../services/signingPolicy';
+import { PolicyPatch, writeSigningPolicy } from '../services/policy';
 import { requestPermission, rescheduleExpiryReminders, cancelAll, notificationsSupported } from '../services/notifications';
 import { formatDateTime } from '../utils/dates';
 
@@ -41,6 +43,18 @@ const THEME_ICON: Record<string, string> = {
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+/**
+ * Is the vessel identified? The same five fields `saveVesselInfo` insists on —
+ * they are what the register, the reports and the enrolment are filed under, so
+ * anything less than all five is still a form to finish.
+ */
+function vesselComplete(v: VesselInfo | null | undefined): boolean {
+  if (!v) return false;
+  return (['vessel_name', 'imo', 'flag', 'call_sign', 'mmsi'] as (keyof VesselInfo)[]).every((k) =>
+    String(v[k] ?? '').trim()
+  );
 }
 
 export default function SettingsSc() {
@@ -82,26 +96,20 @@ export default function SettingsSc() {
    * device at once; then sent to the vessel, which every other device listens to.
    * Offline, SyncContext sends it on the next connection (the newer copy wins).
    */
-  const changeSigningPolicy = async (patch: Partial<Pick<SigningPolicy, 'requireScan' | 'signAsDevice'>>) => {
-    const policy: SigningPolicy = {
-      requireScan: signingPolicy.requireScan,
-      signAsDevice: signingPolicy.signAsDevice,
-      ...patch,
-      updatedAt: Date.now(),
-      setBy: sync.role === 'superadmin' ? 'Master' : undefined,
-    };
-    await setSigningPolicy(policy);
-    if (sync.status !== 'synced') return;
-    try {
-      const uid = await fb.currentVesselKey();
-      if (uid) await fb.saveSigningPolicy(uid, policy);
-    } catch (e: any) {
+  const changeSigningPolicy = async (patch: PolicyPatch) => {
+    const { error } = await writeSigningPolicy(signingPolicy, patch, setSigningPolicy, {
+      synced: sync.status === 'synced',
+      isMaster: sync.role === 'superadmin',
+    });
+    if (error) {
       Alert.alert(
         'Saved on this device only',
-        `The vessel did not accept the change: ${e?.message ?? e}. It will be sent again when this device reconnects.`
+        `The vessel did not accept the change: ${error}. It will be sent again when this device reconnects.`
       );
     }
   };
+  /** How many categories the scan rule is waived for — the subtitle of its row. */
+  const scanExemptCount = (signingPolicy.scanExempt ?? []).length;
   const [busy, setBusy] = useState(false);
   const [snaps, setSnaps] = useState<snapshot.SnapshotInfo[]>([]);
   /**
@@ -118,11 +126,33 @@ export default function SettingsSc() {
 
 
   // Collapsible sections (open on tap; they stay open until tapped again).
-  const [open, setOpen] = useState<Record<string, boolean>>({ vessel: true });
+  /**
+   * Which cards are open. The Vessel card starts open only while the vessel
+   * information is still INCOMPLETE.
+   *
+   * A vessel reported this as a bug, and it was one: the card opened on every
+   * visit to Settings, showing five filled fields and a "Save vessel info"
+   * button, which reads as an unsaved form — the app asking again for something
+   * that was entered weeks ago. Once the five fields are in, the card is history:
+   * it collapses, and the details are one tap away when a call sign changes.
+   *
+   * `touched` is what keeps the rule honest. The vessel arrives from storage a
+   * moment after this screen mounts, so a card opened BY HAND has to survive that
+   * arrival; without it the effect below would shut it again under the user's
+   * finger.
+   */
+  const [open, setOpen] = useState<Record<string, boolean>>({ vessel: !vesselComplete(vessel) });
+  const touched = useRef(false);
   const toggleSection = (k: string) => {
+    if (k === 'vessel') touched.current = true;
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setOpen((o) => ({ ...o, [k]: !o[k] }));
   };
+
+  useEffect(() => {
+    if (touched.current) return;
+    setOpen((o) => (o.vessel === !vesselComplete(vessel) ? o : { ...o, vessel: !vesselComplete(vessel) }));
+  }, [vessel]);
 
   const toggleNotifications = async (v: boolean) => {
     if (!v) {
@@ -154,6 +184,15 @@ export default function SettingsSc() {
     if (vessel) setForm(vessel);
   }, [vessel]);
 
+  /** Does the form differ from what is stored? What makes Save mean something. */
+  const vesselDirty = useMemo(
+    () =>
+      (['vessel_name', 'imo', 'flag', 'call_sign', 'mmsi'] as (keyof VesselInfo)[]).some(
+        (k) => String(form[k] ?? '').trim() !== String(vessel?.[k] ?? '').trim()
+      ),
+    [form, vessel]
+  );
+
   useEffect(() => {
     const read = () => void isSubscribed().then(setPro).catch(() => setPro(false));
     read();
@@ -178,14 +217,21 @@ export default function SettingsSc() {
     return () => clearTimeout(t);
   }, [busy, focused]);
 
-  const downloadTemplate = async () => {
+  const downloadTemplate = async (group?: Group) => {
     try {
-      await exportTemplate();
+      await exportTemplate(group);
     } catch (e: any) {
       playErrorSound();
       Alert.alert('Template failed', String(e?.message ?? e));
     }
   };
+
+  /**
+   * A second template appears only when a second register exists. The lifting
+   * module has its own columns (SWL, breaking load, certificates), so it has its
+   * own workbook — see `templateColumns`.
+   */
+  const hasLifting = GROUP_ORDER.includes('LIFTING');
 
   const backupExport = async () => {
     setBusy(true);
@@ -476,6 +522,13 @@ export default function SettingsSc() {
       <Card>
         <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('vessel')} activeOpacity={0.7}>
           <Label>Vessel</Label>
+          {/* Collapsed, the card still has to say WHICH vessel — otherwise closing
+              it by default hides the one fact a person opens Settings to check. */}
+          {!open.vessel && vesselComplete(vessel) ? (
+            <Text style={styles.sectionSummary} numberOfLines={1}>
+              {vessel?.vessel_name} · IMO {vessel?.imo}
+            </Text>
+          ) : null}
           <Text style={styles.sectionChev}>{open.vessel ? '▾' : '▸'}</Text>
         </TouchableOpacity>
         {open.vessel ? (
@@ -485,8 +538,16 @@ export default function SettingsSc() {
         <FormField label="Flag" value={form.flag} onChange={(v) => setForm({ ...form, flag: v })} />
         <FormField label="Call sign" value={form.call_sign} onChange={(v) => setForm({ ...form, call_sign: v })} />
         <FormField label="MMSI" value={form.mmsi} onChange={(v) => setForm({ ...form, mmsi: v })} keyboard="number-pad" />
-        <TouchableOpacity style={[styles.primaryBtn, wide && styles.btnCompact]} onPress={saveVesselInfo}>
-          <Text style={styles.primaryBtnText}>Save vessel info</Text>
+        {/* Nothing to save is said by the button itself. A live "Save" beside five
+            filled fields is the app asking for something it already has. */}
+        <TouchableOpacity
+          style={[styles.primaryBtn, wide && styles.btnCompact, !vesselDirty && { opacity: 0.4 }]}
+          disabled={!vesselDirty}
+          onPress={saveVesselInfo}
+        >
+          <Text style={styles.primaryBtnText}>
+            {vesselComplete(vessel) ? (vesselDirty ? 'Save changes' : 'Saved') : 'Save vessel info'}
+          </Text>
         </TouchableOpacity>
 
           </>
@@ -509,10 +570,17 @@ export default function SettingsSc() {
             inspection reads the same list, and every rank still signs. */}
         {sync.role === 'superadmin' ? (
           <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Crew')}>
-            <GlyphBadge emoji="👥" size={18} />
+            <IconChip name="account-multiple" size={18} />
             <View style={{ flex: 1 }}>
               <Text style={styles.linkTitle}>Crew</Text>
-              <Text style={styles.linkSub}>Who can sign an inspection</Text>
+              {/* A vessel asked what this list is for (2 Oct 2026) — fairly: with
+                  "Sign as the device's account" on, the names it changes in
+                  Accounts ARE the signatures and this list is not consulted. */}
+              <Text style={styles.linkSub}>
+                {signingPolicy.signAsDevice
+                  ? 'Not in use — each device signs as its own account'
+                  : 'Who can sign an inspection'}
+              </Text>
             </View>
             <Text style={styles.chev}>›</Text>
           </TouchableOpacity>
@@ -524,7 +592,7 @@ export default function SettingsSc() {
             reach /accounts by URL, where the screen explains itself. */}
         {sync.role === 'superadmin' ? (
           <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Accounts')}>
-            <GlyphBadge emoji="🔑" size={18} />
+            <IconChip name="key" size={18} />
             <View style={{ flex: 1 }}>
               <Text style={styles.linkTitle}>Accounts</Text>
               <Text style={styles.linkSub}>Issue a name + PIN; approve devices and set ranks</Text>
@@ -542,7 +610,7 @@ export default function SettingsSc() {
           is not being held open on something that will refuse them. */}
       <Card>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('CategoriesEdit')}>
-          <GlyphBadge emoji="🗂️" size={18} />
+          <IconChip name="view-grid-outline" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Categories</Text>
             <Text style={styles.linkSub}>Headings of your own, on top of the 24 built in</Text>
@@ -550,7 +618,7 @@ export default function SettingsSc() {
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('LabelBatch')}>
-          <GlyphBadge emoji="🏷️" size={18} />
+          <IconChip name="tag-outline" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Print QR labels</Text>
             <Text style={styles.linkSub}>All the stickers for a category, a deck or a group in one go</Text>
@@ -558,7 +626,7 @@ export default function SettingsSc() {
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Checklists')}>
-          <GlyphBadge emoji="📋" size={18} />
+          <IconChip name="clipboard-text-outline" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Checklists</Text>
             <Text style={styles.linkSub}>
@@ -573,7 +641,7 @@ export default function SettingsSc() {
             Inspect button asks for a scan — but only a Master's switch moves. The
             same is enforced for the vessel copy by firestore.rules. */}
         <View style={styles.toggleRow}>
-          <GlyphBadge emoji="🔳" size={18} />
+          <IconChip name="qrcode-scan" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Scan QR label before signing</Text>
             <Text style={styles.linkSub}>
@@ -591,12 +659,32 @@ export default function SettingsSc() {
             trackColor={{ true: COLORS.primary, false: COLORS.border }}
           />
         </View>
+        {/* The exceptions to the rule above, per category — an inventory like the
+            rescue boat's equipment is checked off a list, not label by label
+            (screens/ScanRulesSc.tsx). Shown only while the rule is on: an
+            exception to a rule nobody is keeping is a row that explains nothing. */}
+        {signingPolicy.requireScan ? (
+          <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('ScanRules')}>
+            <IconChip name="qrcode-edit" size={18} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkTitle}>Scan by category</Text>
+              <Text style={styles.linkSub}>
+                {scanExemptCount
+                  ? `${scanExemptCount} ${
+                      scanExemptCount === 1 ? 'category is' : 'categories are'
+                    } signed from the list instead — rescue boat inventories and the like`
+                  : 'Every category needs the label scanned — name the inventories that do not'}
+              </Text>
+            </View>
+            <Text style={styles.chev}>›</Text>
+          </TouchableOpacity>
+        ) : null}
         {/* The other half of the same rule: WHO signs. Off, the crew list is a
             vocabulary anyone on the device may pick from; on, an enrolled device
             signs as the person it was issued to and the picker is gone. Names are
             managed where the devices are — Settings → Accounts (rename). */}
         <View style={styles.toggleRow}>
-          <GlyphBadge emoji="📱" size={18} />
+          <IconChip name="cellphone" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Sign as the device's account</Text>
             <Text style={styles.linkSub}>
@@ -624,16 +712,30 @@ export default function SettingsSc() {
         </TouchableOpacity>
         {open.data ? (
           <>
-        <TouchableOpacity style={styles.linkRow} onPress={downloadTemplate}>
-          <GlyphBadge emoji="⬇️" size={18} />
+        <TouchableOpacity style={styles.linkRow} onPress={() => void downloadTemplate()}>
+          <IconChip name="tray-arrow-down" size={18} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Download import template</Text>
+            <Text style={styles.linkTitle}>
+              {hasLifting ? 'Download LSA / FFE template' : 'Download import template'}
+            </Text>
             <Text style={styles.linkSub}>Blank .xlsx — one sheet per category</Text>
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
+        {hasLifting ? (
+          <TouchableOpacity style={styles.linkRow} onPress={() => void downloadTemplate('LIFTING')}>
+            <IconChip name="tray-arrow-down" size={18} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkTitle}>Download lifting & mooring template</Text>
+              <Text style={styles.linkSub}>
+                Blank .xlsx — SWL, breaking load, certificates and test dates
+              </Text>
+            </View>
+            <Text style={styles.chev}>›</Text>
+          </TouchableOpacity>
+        ) : null}
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Import')}>
-          <GlyphBadge emoji="📥" size={18} />
+          <IconChip name="tray-arrow-down" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Import from Excel</Text>
             <Text style={styles.linkSub}>Load a workbook, or update the register from an edited copy</Text>
@@ -641,7 +743,7 @@ export default function SettingsSc() {
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={backupExport} disabled={busy}>
-          <GlyphBadge emoji="💾" size={18} />
+          <IconChip name="content-save" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Export backup (.msm)</Text>
             <Text style={styles.linkSub}>Items, certificates, inspections, crew & attached files</Text>
@@ -659,7 +761,7 @@ export default function SettingsSc() {
             onPress={restoreSnapshot}
             disabled={busy}
           >
-            <GlyphBadge emoji="🕗" size={18} />
+            <IconChip name="history" size={18} />
             <View style={{ flex: 1 }}>
               {/* The DATE is the offer. "Restore a snapshot" makes a person open
                   the dialog to find out whether it is worth anything; the moment
@@ -681,7 +783,7 @@ export default function SettingsSc() {
             against — the one button here that can undo somebody else's day. */}
         {isMaster ? (
           <TouchableOpacity style={styles.linkRow} onPress={backupImport} disabled={busy}>
-            <GlyphBadge emoji="♻️" size={18} />
+            <IconChip name="backup-restore" size={18} />
             <View style={{ flex: 1 }}>
               <Text style={styles.linkTitle}>Restore backup (.msm)</Text>
               <Text style={styles.linkSub}>Replace all data from a .msm file</Text>
@@ -702,7 +804,7 @@ export default function SettingsSc() {
         {open.modules ? (
           <>
         <View style={styles.toggleRow}>
-          <GlyphBadge emoji="🔔" size={18} />
+          <IconChip name="bell-ring" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Expiry reminders</Text>
             <Text style={styles.linkSub}>Notify 60 / 30 / 7 days before inspection or expiry</Text>
@@ -714,7 +816,7 @@ export default function SettingsSc() {
           />
         </View>
         <View style={styles.toggleRow}>
-          <GlyphBadge emoji="🔊" size={18} />
+          <IconChip name="volume-high" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Sounds</Text>
             <Text style={styles.linkSub}>The ship's bell on launch and the chimes on save, sign and error</Text>
@@ -726,7 +828,7 @@ export default function SettingsSc() {
           />
         </View>
         <View style={styles.toggleRow}>
-          <GlyphBadge emoji="⏱️" size={18} />
+          <IconChip name="timer-outline" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>BA Compressor log</Text>
             <Text style={styles.linkSub}>Running-time counter & maintenance (FIFI outfit)</Text>
@@ -739,7 +841,7 @@ export default function SettingsSc() {
         </View>
         {prefs.compressorEnabled ? (
           <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Compressor')}>
-            <GlyphBadge emoji="📈" size={18} />
+            <IconChip name="chart-line" size={18} />
             <View style={{ flex: 1 }}>
               <Text style={styles.linkTitle}>Open compressor log</Text>
               <Text style={styles.linkSub}>Also available from the FIFI / BA category</Text>
@@ -759,7 +861,7 @@ export default function SettingsSc() {
         {open.help ? (
           <>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Manual')}>
-          <GlyphBadge emoji="📖" size={18} />
+          <IconChip name="book-open-variant" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>User Manual</Text>
             <Text style={styles.linkSub}>How to use the app</Text>
@@ -767,14 +869,14 @@ export default function SettingsSc() {
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Legal', { doc: 'privacy' })}>
-          <GlyphBadge emoji="🔒" size={18} />
+          <IconChip name="lock" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Privacy Policy</Text>
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Legal', { doc: 'terms' })}>
-          <GlyphBadge emoji="📜" size={18} />
+          <IconChip name="certificate" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>Terms of Use</Text>
           </View>
@@ -922,6 +1024,14 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   // Roughly a quarter of a wide card, floored so the label never wraps.
   btnCompact: { alignSelf: 'flex-start', maxWidth: '25%', minWidth: 180, paddingHorizontal: SIZES.xl },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  // What a collapsed card says about itself, on the right of its heading.
+  sectionSummary: {
+    flex: 1,
+    textAlign: 'right',
+    fontSize: SIZES.small,
+    color: COLORS.textLight,
+    marginRight: SIZES.sm,
+  },
   sectionChev: { fontSize: SIZES.h5, color: COLORS.textLight, fontWeight: '700' },
   linkRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: SIZES.sm, gap: SIZES.sm },
   toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: SIZES.sm, gap: SIZES.sm },

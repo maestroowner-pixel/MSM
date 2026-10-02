@@ -37,6 +37,7 @@
 // ===================================
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const crypto = require('crypto');
@@ -363,7 +364,7 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
  * was given at enrolment.
  */
 exports.refresh = onCall({ region: REGION }, async (req) => {
-  const { vessel: rawVessel, deviceId, deviceSecret } = req.data || {};
+  const { vessel: rawVessel, deviceId, deviceSecret, platform, appVersion } = req.data || {};
   const vessel = vesselKey(rawVessel);
   if (!vessel || !deviceId) {
     throw new HttpsError('invalid-argument', 'vessel and deviceId are required.');
@@ -393,7 +394,22 @@ exports.refresh = onCall({ region: REGION }, async (req) => {
 
   if (device.approved !== true) return { status: 'pending', role: device.role ?? 'user' };
 
-  await snap.ref.set({ lastSeenAt: Date.now() }, { merge: true });
+  // The heartbeat, and with it WHAT IS ACTUALLY INSTALLED.
+  //
+  // `appVersion` and `platform` used to be written once, at enrolment, and never
+  // again — so a device that enrolled on 2.3 and has updated four times since
+  // still read as 2.3 in Accounts and in the fleet console. That is worse than
+  // no version at all: it is the number a Master would use to decide whether
+  // somebody's phone has the round they cannot find. Written on every refresh,
+  // the record says what that install is running today.
+  //
+  // Older clients do not send them, so each is written only when present — an
+  // undefined would fail the whole write, and a null would erase what enrolment
+  // recorded in exchange for nothing.
+  const beat = { lastSeenAt: Date.now() };
+  if (typeof appVersion === 'string' && appVersion) beat.appVersion = appVersion;
+  if (typeof platform === 'string' && platform) beat.platform = platform;
+  await snap.ref.set(beat, { merge: true });
 
   const token = await admin.auth().createCustomToken(`${vessel}__${deviceId}`, {
     vessel,
@@ -411,3 +427,145 @@ exports.refresh = onCall({ region: REGION }, async (req) => {
     position: device.position ?? '',
   };
 });
+
+// ===================================
+// The photo sweep — 90 days in the cloud, then the vessel's own archive.
+//
+// WHAT IT DOES. Once a night, for each vessel, it deletes the Cloud Storage
+// objects belonging to inspections signed before a cutoff, and stamps what it
+// did onto the vessel document so the app can show it.
+//
+// THE CUTOFF IS THE WHOLE SAFETY ARGUMENT, so it is written out here as well as
+// in services/photoArchive.ts, where the app computes the same number:
+//
+//     cutoff = min(now - 90 days, photoArchive.archivedThrough)
+//
+// and NO archivedThrough means NO deletion at all — not "delete everything".
+// A photograph is evidence for a signed record; after this job runs, the only
+// copies are the vessel's archive ZIP and whatever devices hold locally. So the
+// job refuses to be the reason a vessel has neither: it deletes only inside a
+// period a Master has said, in the app, is archived.
+//
+// WHY IT DELETES BY THE RECORD'S DATE AND NOT THE OBJECT'S AGE. The queue holds
+// photographs until the ship has Wi-Fi (services/photoQueue.ts), so a round done
+// at sea in March can be uploaded in May. An age-based lifecycle rule on the
+// bucket — the obvious alternative to this function — would measure from the
+// upload and delete March's evidence two months early, or keep May's uploads two
+// months late. The record's `at` is the only date that means anything here, and
+// it lives in Firestore, which a lifecycle rule cannot read. That is why this is
+// a function.
+//
+// IT RUNS WITH ADMIN CREDENTIALS, so storage.rules (`delete: if false`) and
+// firestore.rules do not apply to it. That is deliberate and it is the design:
+// no device, not even the Master's, may delete evidence — only this job may,
+// only inside the archived period, and it says afterwards what it removed.
+// ===================================
+
+const RETENTION_DAYS = 90;
+const DAY_MS = 86400000;
+
+/** The same `min` the app computes (services/photoArchive.ts `sweepCutoff`). */
+function sweepCutoff(archive, now) {
+  const archivedThrough = Number(archive && archive.archivedThrough) || 0;
+  if (archivedThrough <= 0) return 0;
+  return Math.min(archivedThrough, now - RETENTION_DAYS * DAY_MS);
+}
+
+/**
+ * Delete every object under one inspection's folder.
+ *
+ * By prefix rather than by a listed file name, because the app derives the path
+ * from ids (services/photoStorage.ts) and a folder may hold up to four photos;
+ * whatever is in there belongs to that record and goes with it.
+ */
+async function deleteInspectionPhotos(bucket, vessel, inspectionId) {
+  const prefix = `${ROOT}/${vessel}/inspections/${inspectionId}/`;
+  const [files] = await bucket.getFiles({ prefix });
+  if (!files.length) return 0;
+  await Promise.all(files.map((f) => f.delete({ ignoreNotFound: true })));
+  return files.length;
+}
+
+exports.sweepPhotos = onSchedule(
+  {
+    // 03:00 UTC: ships are ships, but this is a background job and the hour only
+    // needs to be a quiet one for Firestore reads.
+    schedule: 'every day 03:00',
+    timeZone: 'UTC',
+    region: REGION,
+    timeoutSeconds: 540,
+    memory: '512MiB',
+  },
+  async () => {
+    const bucket = admin.storage().bucket();
+    const now = Date.now();
+    // `select` matters here: a vessel document carries the WHOLE register as one
+    // JSON string field (see firebaseService), so reading the collection plainly
+    // would pull megabytes per ship every night to look at one small map.
+    const vessels = await db.collection(ROOT).select('photoArchive').get();
+    let sweptVessels = 0;
+    let deletedTotal = 0;
+
+    for (const vesselDoc of vessels.docs) {
+      const vessel = vesselDoc.id;
+      // Enrolment keys the vessel by its IMO digits; a uid-shaped document is a
+      // leftover from the retired sign-in model and holds no photos.
+      if (!/^\d{5,9}$/.test(vessel)) continue;
+
+      const cutoff = sweepCutoff(vesselDoc.get('photoArchive'), now);
+      if (cutoff <= 0) continue; // nothing archived — nothing may be deleted
+
+      // ONLY THE NEW BAND. Without this the job re-reads every record ever
+      // signed before the cutoff, every night, for ever — and does a bucket
+      // listing for each one. `sweptThrough` is where the last pass got to, and
+      // the 30-day overlap covers the case this app is built around: a
+      // photograph queued at sea and uploaded weeks later, after the sweep had
+      // already passed its record's date (services/photoQueue.ts).
+      const prevArchive = vesselDoc.get('photoArchive') || {};
+      const from = Math.max(0, (Number(prevArchive.sweptThrough) || 0) - 30 * DAY_MS);
+      if (from >= cutoff) continue; // nothing new to look at tonight
+
+      // `at` is indexed by default, so this reads the band, not the trail.
+      const old = await vesselDoc.ref
+        .collection('inspections')
+        .where('at', '>=', from)
+        .where('at', '<', cutoff)
+        .select('at') // the ids are what we need; the payload is not
+        .get();
+
+      let deleted = 0;
+      for (const insp of old.docs) {
+        try {
+          deleted += await deleteInspectionPhotos(bucket, vessel, insp.id);
+        } catch (e) {
+          // One unreadable object must not stop the vessel's sweep, let alone
+          // the fleet's. It will be picked up again tomorrow.
+          console.warn(`[sweep] ${vessel}/${insp.id}: ${e && e.message ? e.message : e}`);
+        }
+      }
+
+      if (deleted > 0) {
+        sweptVessels++;
+        deletedTotal += deleted;
+      }
+      // Stamped even when nothing was deleted, because `sweptThrough` is how the
+      // next run knows where to start — a quiet night still moves the mark. The
+      // rest is what the app shows: "Last cleared: 12 Oct 2026 · 143 files",
+      // from the same field the devices already watch.
+      await vesselDoc.ref.set(
+        {
+          photoArchive: {
+            ...prevArchive,
+            sweptThrough: cutoff,
+            ...(deleted > 0 ? { lastSweepAt: now, lastSweepDeleted: deleted } : {}),
+            updatedAt: now,
+          },
+        },
+        { merge: true }
+      );
+      console.log(`[sweep] ${vessel}: cutoff ${new Date(cutoff).toISOString()}, ${old.size} records, ${deleted} files`);
+    }
+
+    console.log(`[sweep] done: ${deletedTotal} files across ${sweptVessels} vessels`);
+  }
+);

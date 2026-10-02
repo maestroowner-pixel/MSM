@@ -1,0 +1,28 @@
+Equipment Name	Location	Manufacturer	Equipment / Serial Number (EN/SN)	ID / Markings / Whipping	Safe Working Load (SWL)	Min. Breaking Load (kN)	Size / Length (m)	Diameter (mm)	Material	Manufacturer Test Certificate Number	Annual test certificate number	Date Installed / renewed	Last Annual inspection	Next Annual inspection	Expiry
+# Working Aloft Equipment
+Axis 11mm (Sewn Eye) 10m	Sundeck Wash locker	Petzl	25L0699660607	White Line	22 kN	22 kN	10mtr	11mm	N/A	N/A	Y726 -2026	Nov-25	Sep-26	Sep-27	23 April 2035
+Axis 11mm (Sewn Eye) 20m	Sundeck Wash locker	Petzl	25L0699658526	White Line	22 kN	22 kN	20mtr	11mm	N/A	N/A	Y726 -2027	Dec-25	Sep-26	Sep-27	24 April 2035
+Axis 11mm (Sewn Eye) 20m	Sundeck Wash locker	Petzl	25L0699658528	White Line	22 kN	22 kN	20mtr	11mm	N/A	N/A	Y726 -2028	Jan-26	Sep-26	Sep-27	25 April 2035
+Grillon	Sundeck Wash locker	Petzl	25J0683918361	White Line	140kg	140kg	3mtr	11mm	N/A	N/A	Y726 -2029	Feb-26	Sep-26	Sep-27	26 April 2035
+Grillon	Sundeck Wash locker	Petzl	25J0683918367	White Line	140kg	140kg	3mtr	11mm	N/A	N/A	Y726 -2030	Mar-26	Sep-26	Sep-27	27 April 2035
+Grillon	Sundeck Wash locker	Petzl	25J0683918363	White Line	140kg	140kg	3mtr	11mm	N/A	N/A	Y726 -2031	Apr-26	Sep-26	Sep-27	28 April 2035
+Grillon	Sundeck Wash locker	Petzl	25J0683918364	White Line	140kg	140kg	3mtr	11mm	N/A	N/A	Y726 -2032	May-26	Sep-26	Sep-27	29 April 2035
+Grillon	Sundeck Wash locker	Petzl	25K0689548103	White Line	140kg	140kg	15mtr	11mm	N/A	N/A	Y726 -2033	Jun-26	Sep-26	Sep-27	30 April 2035
+Energy Asorbers - Absorbica Y MGO European version	Sundeck Wash locker	Petzl	25E0633291625	Yellow	140kg	140kg	150	N/A	N/A	N/A	Y726 -2034	Jul-26	Sep-26	Sep-27	01 May 2035
+Energy Asorbers - Absorbica Y MGO European version	Sundeck Wash locker	Petzl	25E0633291643	Yellow	140kg	140kg	150	N/A	N/A	N/A	Y726 -2035	Aug-26	Sep-26	Sep-27	01 May 2035
+# Cranes
+PRT Rescue Boat Crane	PRT Rescue Boat Crane	Vandriel	DNV N1430TKB	N/A	2200kg	N/A	Max Reach 5100mm							
+PRT Rescue Tender HOOK	PRT Rescue Tender HOOK	T-ISS	W4513	N/A	35kN	N/A	31 -37 KN							
+STB Rescue Boat Crane	STB Rescue Boat Crane	Vandriel	DNV N1430TJN	N/A	2200kg	N/A	Max Reach 5200mm							
+STB Rescue Tender HOOK	STB Rescue Tender HOOK	T-ISS	W4513	N/A	35kN	N/A	31 -37 KN							
+Tender Garage STB FWD	Tender Garage STB FWD	Vandriel	OHD SB FWD	N/A	5000kg	N/A	N/A							
+Tender Garage STB FWD Hook	Tender Garage STB FWD Hook	Vandriel	ID 0100	N/A	3 T	N/A	N/A							
+# Mooring lines
+Mooring Line	MOORING DECK REEL		PWO_45646	BLUE	9.9 t	487.4 kN	80m		Polyester / nylon		From build				
+Mooring Line	MOORING DECK REEL		PWO_45646	BLUE	9.9 t	487.4 kN	80m	44	Polyester / nylon		From build				
+Mooring Line	MOORING DECK HOOK		PWO_45646	RED	9.9 t	487.4 kN	60m	44	Polyester / nylon		From build				
+Mooring Line	MOORING DECK HOOK		PWO_45646	RED	9.9 t	487.4 kN	60m	44	Polyester / nylon		From build				
+Mooring Line	AFT STEERING GEAR		PWO_45646	RED	9.9 t	487.4 kN	60m	44	Polyester / nylon		From build				
+Mooring Line	AFT STEERING GEAR		PWO_45646	RED	9.9 t	487.4 kN	60m	44	Polyester / nylon		From build				
+Mooring Line	AFT STEERING GEAR		PWO_45646	RED	9.9 t	487.4 kN	60m	44	Polyester / nylon		From build				
+Mooring Line	AFT STEERING GEAR		PWO_45646	RED	9.9 t	487.4 kN	60m	44	Polyester / nylon		From build				

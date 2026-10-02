@@ -86,19 +86,22 @@ import { normalizeCompressorState } from '../types/compressor';
 import { Inspection } from '../types/inspection';
 import { CrewMember } from '../types/crew';
 import { ChecklistTemplate } from '../constants/checklists';
+import { PhotoArchiveState } from './photoArchive';
 import { CATEGORIES, CategoryMeta } from '../constants/categories';
 import * as storage from './storage';
 import * as attachmentStorage from './attachmentStorage';
 import * as trial from './trial';
-import { mergeCategories, mergeCrew, mergeInspections, mergeTemplates } from './inspections';
+import { mergeCategories, mergeCrew, mergeInspections, mergeTemplates, unsentInspections } from './inspections';
 import type { SigningPolicy } from './signingPolicy';
 import {
   RegisterParts,
   SyncBase,
   decidePull,
   decidePush,
+  foreignKeys,
   itemCount,
   mergeRegister,
+  outgoingRegister,
   partHashes,
 } from './registerMerge';
 
@@ -202,6 +205,7 @@ const ACCOUNT_FIELDS: Record<string, string> = {
   entitlement: 'entitlement',
   'trial/firstLaunch': 'trialFirstLaunch',
   signing_policy: 'signingPolicy',
+  photo_archive: 'photoArchive',
 };
 
 type Target =
@@ -736,12 +740,17 @@ async function localRegister(): Promise<RegisterParts> {
   const byCategory = await storage.loadAll();
   const categories: Record<string, EquipmentItem[]> = {};
   for (const c of CATEGORIES) categories[c.key] = byCategory[c.key] ?? [];
-  return {
+  // Buckets this build has no heading for travel with the register, unread. Left
+  // out, this device's copy would say they do not exist and the next pull would
+  // delete them everywhere — see storage.FOREIGN_CATEGORIES_KEY and
+  // registerMerge.outgoingRegister.
+  const own: RegisterParts = {
     categories,
     vessel_info: (await storage.loadVessel()) ?? undefined,
     certificates: await storage.loadCertificates(),
     compressor: await storage.loadCompressor(),
   };
+  return outgoingRegister(own, await storage.loadForeignBuckets());
 }
 
 /** Replace local storage with a register (a pull, or the result of a merge). */
@@ -751,13 +760,17 @@ async function writeLocalRegister(blob: RegisterParts): Promise<number> {
   // received yet is still written to storage, so nothing is lost while the
   // categories collection catches up — and the built-ins are still cleared
   // when the blob omits them, which is what makes a pull a true replace.
-  const keys = new Set<string>([...CATEGORIES.map((c) => String(c.key)), ...Object.keys(blob.categories ?? {})]);
+  const known = CATEGORIES.map((c) => String(c.key));
+  const keys = new Set<string>([...known, ...Object.keys(blob.categories ?? {})]);
   let total = 0;
   for (const key of keys) {
     const items = (blob.categories?.[key] ?? []) as EquipmentItem[];
     await storage.replaceCategory(key as CategoryKey, items);
     total += items.length;
   }
+  // Remember which of them this build could not name, so the next push carries
+  // them back rather than declaring them gone.
+  await storage.saveForeignCategories(foreignKeys(known, blob));
   if (blob.vessel_info) await storage.saveVessel(blob.vessel_info);
   if (blob.certificates) await storage.saveCertificates(blob.certificates);
   if (blob.compressor) await storage.saveCompressor(normalizeCompressorState(blob.compressor));
@@ -1027,22 +1040,42 @@ async function writeInBatches(uid: string, sub: string, rows: Array<{ id: string
  */
 const PUSHED_KEY = 'msm:pushed_inspections';
 
-async function knownPushed(): Promise<Set<string>> {
+/**
+ * What this device has sent, and AT WHICH `updatedAt` — not merely which ids.
+ *
+ * It was a set of ids, and that quietly broke the one mutation the trail allows:
+ * closing a defect rewrites a record that had already been sent, so it was
+ * filtered out of every subsequent push and the rectification never left the
+ * device (see `unsentInspections`). Storing the stamp makes "has this moved since
+ * I sent it?" answerable.
+ *
+ * MIGRATION: the old shape was `string[]`. Read as a map of id -> 0, which means
+ * every record looks as if it were sent at the beginning of time and is pushed
+ * once more. That is the correct one-off cost — a vessel whose rectifications
+ * never arrived gets them all delivered on the first sync after the update, which
+ * is exactly the repair we want.
+ */
+async function knownPushed(): Promise<Record<string, number>> {
   try {
     const raw = await AsyncStorage.getItem(PUSHED_KEY);
-    const list = raw ? (JSON.parse(raw) as string[]) : [];
-    return new Set(Array.isArray(list) ? list : []);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (Array.isArray(parsed)) {
+      const migrated: Record<string, number> = {};
+      for (const id of parsed) if (typeof id === 'string') migrated[id] = 0;
+      return migrated;
+    }
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, number>) : {};
   } catch {
-    return new Set();
+    return {};
   }
 }
 
-async function rememberPushed(ids: string[]): Promise<void> {
-  if (!ids.length) return;
+async function rememberPushed(records: { id: string; updatedAt?: number }[]): Promise<void> {
+  if (!records.length) return;
   try {
-    const set = await knownPushed();
-    ids.forEach((id) => set.add(id));
-    await AsyncStorage.setItem(PUSHED_KEY, JSON.stringify([...set]));
+    const map = await knownPushed();
+    for (const r of records) map[r.id] = r.updatedAt ?? 0;
+    await AsyncStorage.setItem(PUSHED_KEY, JSON.stringify(map));
   } catch {
     /* the worst case is pushing them again next time */
   }
@@ -1070,11 +1103,12 @@ export async function pushInspections(uid: string): Promise<number> {
   const crew = await storage.loadCrew();
 
   const already = await knownPushed();
-  const fresh = list.filter((i) => !already.has(i.id));
+  // New records AND ones whose defect has been rectified since they went up.
+  const fresh = unsentInspections(list, already);
   if (fresh.length) {
     try {
       await writeInBatches(uid, 'inspections', fresh.map((i) => ({ id: i.id, data: i })));
-      await rememberPushed(fresh.map((i) => i.id));
+      await rememberPushed(fresh);
     } catch (e: any) {
       throw new Error(`inspections: ${e?.message ?? e}`);
     }
@@ -1132,7 +1166,7 @@ export async function pullInspections(uid: string): Promise<number> {
   const merged = mergeInspections(await storage.loadInspections(), remote);
   await storage.saveInspections(merged);
   // Anything the vessel just handed us is, by definition, already up there.
-  await rememberPushed(remote.map((r) => r.id));
+  await rememberPushed(remote);
 
   const cSnap = await fsGetDocs(fsCollection(d, ROOT, uid, 'crew'));
   const remoteCrew: CrewMember[] = [];
@@ -1376,6 +1410,30 @@ export async function saveEntitlement(uid: string, ent: Entitlement): Promise<vo
 export async function saveSigningPolicy(uid: string, policy: SigningPolicy): Promise<void> {
   const { db } = ensureInit();
   await set(ref(db, `${ROOT}/${uid}/signing_policy`), policy);
+}
+
+/**
+ * What the vessel has archived (services/photoArchive.ts) — the permission the
+ * scheduled sweep runs on. A field of the vessel document like `signingPolicy`,
+ * and Master-only for the same reason: it is what allows photographs to be
+ * deleted, so a crew device must not be able to claim an archive exists.
+ */
+export async function savePhotoArchive(uid: string, state: PhotoArchiveState): Promise<void> {
+  const { db } = ensureInit();
+  await set(ref(db, `${ROOT}/${uid}/photo_archive`), state);
+}
+
+/** Watch it, so the sweep's own stamp and another officer's mark arrive here. */
+export function subscribePhotoArchive(uid: string, cb: (state: PhotoArchiveState | null) => void): () => void {
+  if (!syncSupported()) return () => {};
+  return fsOnSnapshot(
+    accountDoc(uid),
+    (snap) => {
+      const a = snap.exists() ? (snap.data() as any)?.photoArchive : null;
+      cb(a && typeof a.updatedAt === 'number' ? (a as PhotoArchiveState) : null);
+    },
+    (err) => console.warn('[sync] photo archive listener stopped:', err?.message ?? err)
+  );
 }
 
 /** Watch the rule, so a Master switching it on reaches every phone without a restart. */

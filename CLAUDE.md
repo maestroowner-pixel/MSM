@@ -54,6 +54,18 @@ app mirrors. Bundle id `com.kukalab.msm`.
   several officers can work a round on separate phones and lose nothing. The ONE mutation allowed
   is a defect going open→closed, itself stamped and signed. `roundStatus` is calendar-window based
   (`monthWindow`/`weekWindow`), not "within 30 days": a monthly check is a calendar obligation.
+- **The schedule is per category** (`ChecklistTemplate.off` / `standard`, `roundsFor` in
+  `constants/checklists.ts`, 25 Sep 2026): a vessel says which frequencies a category owes —
+  **weekly / monthly / quarterly**, each a switch on its row in Settings → Checklists. A category
+  used to owe every round the app shipped a checklist for, so a ship that checks hydrants weekly and
+  escapes quarterly read as permanently behind. Off = not offered on the item, and not COUNTED as
+  due by the report; records already signed keep their period and still print. Both flags are
+  **tombstone rows, never deletions**: templates merge by union of ids and nothing deletes the
+  vessel's copy in Firestore, so a deleted row came back on the next pull (which is also why
+  "use the standard checklist again" used to last a minute — `standard: true` fixes it). `off` and
+  `standard` are separate because they are independent: word a round, stop it for a season, get your
+  own words back. Quarters are CALENDAR quarters (`quarterWindow`, `stepPeriod`), for the same
+  reason months are; annual is deliberately not offered (a shore service with a certificate).
 - **Scan before signing** (`services/signingPolicy.ts`, Sep 2026): a vessel rule (`signingPolicy`
   field on the vessel document, Master-only in firestore.rules, mirrored to `msm:signing_policy`)
   that Crew/Officers may sign only after scanning the item. Proof is IN MEMORY per item, 30 min,
@@ -63,6 +75,12 @@ app mirrors. Bundle id `com.kukalab.msm`.
   The record carries `verification` {method, scannedAt, reason}; the report prints a Scan column
   and the override reason in Comments. Enforced in the app, not in the inspection rules — older
   app versions do not know the rule, so the report column is what makes a gap visible.
+  **Per category** (`scanExempt`, 25 Sep 2026, Settings → Scan by category → `ScanRulesSc`):
+  an inventory — a rescue boat's gear, the loose kit in a fire locker — is checked off item by item
+  and nobody labels every bailer, so those categories are named as exceptions and signed from the
+  list. Stored as the EXEMPT list so a category added later is covered by default; `signingGate`
+  takes the item's category and `scanRequiredFor(policy)` with none answers for the vessel.
+  `services/policy.ts` `writeSigningPolicy` is the ONE path that stores the rule and pushes it.
   **`signAsDevice`** (19 Sep 2026) is the second half of the same policy: an enrolled device signs
   as its own account (`SyncContext.me`, watched live from the vessel's device list) and the picker
   is gone — `signerRule` in signingPolicy.ts, pure, checked in `check:inspections`. A device on no
@@ -214,7 +232,9 @@ The source workbook (`LSA FFE Inventories.xlsx`, 25 sheets) is heterogeneous. Th
   register exists. "Replace all" re-issues every id, and the id IS the QR label, the inspection
   link and the attachment owner, so a second import used to orphan all of them. Update matches
   each row to its item — `MSM ID` column (written by the XLSX export, `services/registerSheet.ts`)
-  → unique serial → category+No+Type+Deck+Location (identical items paired in order) — applies
+  → unique serial → category+No+Type+Deck+Location (identical items paired in order) → for a row
+  with neither number nor location, an item identical in type/make/size/serial/deck (`twinKey`,
+  2 Oct 2026 — without it such rows were re-added on every update and a register tripled) — applies
   only columns the sheet HAS (an emptied cell clears, a missing column keeps), keeps the item's
   category, and lists items not in the file; they are removed only if the user switches that on.
   "Missing" is limited to categories the file has sheets for. The export's `Due`/`Status` headings
@@ -274,6 +294,8 @@ do not regress them:
 ### Licensing — one licence per VESSEL, sold outside the stores (5 Sep 2026)
 
 MSM Pro is **€99/year per vessel (one IMO)**, bought by the operator on LemonSqueezy and attached
+(€169 is agreed and written up, but NOT live: the app says what the checkout charges, and the
+LemonSqueezy dashboard still sells at €99 — raise both in the same hour, see `LS_PRICE_STRING`)
 to the vessel's Firestore account. Every enrolled device inherits it; a crew member buys nothing.
 `services/purchases.ts` `activateLicense()` works on ALL platforms now (it was web-only), and
 `isSubscribed()` reads the vessel entitlement FIRST, falling back to a store subscription only for
@@ -461,6 +483,12 @@ is the validated path.
    tries in 15 minutes), and the field accepts 8–16 digits so one input serves both an issued PIN
    and the bootstrap code.
    Deploy: `cd functions && npm i && npm run secret && npm run deploy`, then `npm run deploy:rules`.
+   **Runtime: nodejs22** (`functions/package.json` engines + `firebase.json` runtime, bumped
+   25 Sep 2026 — Node 20 is decommissioned on 30 Oct 2026 and nothing deploys after that on it),
+   with **firebase-functions 7.4**. **firebase-admin stays on 12.7 on purpose**: v14 drops the
+   namespaced API (`admin.firestore()` / `auth()` / `storage()`) that `enrol`, `refresh` and
+   `sweepPhotos` use, and `createCustomToken` cannot be exercised without a real device secret —
+   migrate it deliberately, with a device to test on, not alongside a runtime bump.
    Run `npx firebase-tools functions:artifacts:setpolicy --force` once, or container images
    accumulate in Artifact Registry and quietly bill.
    **After the FIRST functions deploy, grant the runtime service account permission to sign
@@ -545,7 +573,24 @@ is the validated path.
    `defect`. `storage.rules` mirrors firestore.rules against the same claims, write-once, no
    delete. **The Storage bucket is not created yet** — Firebase console → Storage → Get started;
    uploads fail harmlessly until it exists (the queue simply keeps them).
-5. **The register syncs from a BASE, not by last-writer-wins (14 Sep 2026)** —
+5. **Photo retention: 90 days in the cloud, then the vessel's archive (25 Sep 2026)** —
+   `services/photoArchive.ts` (pure), `services/photoArchiveExport.ts` (the ZIP),
+   `screens/PhotoArchiveSc.tsx`, and `sweepPhotos` in `functions/index.js`. The nightly job
+   deletes Storage objects for records older than
+   `cutoff = min(now − 90d, photoArchive.archivedThrough)` — and **no `archivedThrough` means a
+   cutoff of 0, i.e. delete nothing**. That `Math.min` is the whole safety property: after a sweep
+   the only copies of a photograph are the vessel's monthly ZIP and whatever devices hold locally,
+   so the job never deletes inside a period the Master has not confirmed archived. The confirmation
+   is a separate step from saving the file because the app cannot see where the file went, and
+   months go in order (`canMarkArchived`) because `archivedThrough` is one watermark. It deletes by
+   the RECORD's `at`, not the object's age — the queue uploads a March round in May — which is why
+   it is a function and not a bucket lifecycle rule; it walks only the band since `sweptThrough`
+   (30-day overlap for late uploads) and lists vessels with `select('photoArchive')`, since a
+   vessel document holds the whole register as one string field. `photoArchive` is Master-only in
+   firestore.rules; **storage.rules still lets NO client delete a photo** — only the job, which runs
+   with admin credentials. Nothing clears local copies, ever: after a sweep they are evidence, not
+   cache. Deploy: `cd functions && npm run deploy` (enables Cloud Scheduler) + `npm run deploy:rules`.
+6. **The register syncs from a BASE, not by last-writer-wins (14 Sep 2026)** —
    `services/registerMerge.ts`. It was a whole-document replace pushed on every connect and every
    foreground, before pulling, so a phone with an old register wiped the vessel's the moment it was
    opened ("the equipment keeps deleting itself"). Now each device stores `msm:register_base`
@@ -559,9 +604,16 @@ is the validated path.
    `decidePush`) and driven through two-device scenarios by `npm run check:sync`. The Firestore
    glue itself was not exercised against a live vessel — only typechecked and reviewed.
    Two devices editing the SAME item still resolve by later `updatedAt`.
-6. **Checklist templates are built in, not editable.** A vessel whose SMS words a check
-   differently cannot yet change it; the version + line ids on every record are what will make a
-   template editor safe to add later.
-7. **Importer polish** — minor cosmetic mappings (e.g. Hydrants `type` = "Yes", FIFI BA-set
+7. **A device's name is the Master's** (firestore.rules, 25 Sep 2026): a device may keep its own
+   record current but may no longer change its `firstName` / `lastName` / `position`. With
+   `signAsDevice` on that name IS the signature it files, so self-renaming was a way to sign as the
+   Master. **Re-paste the rules after pulling this** (`npm run deploy:rules`).
+8. **Checklist templates ARE editable now** (Settings → Checklists, `ChecklistsSc` +
+   `ChecklistEditSc`, Officer and above) — the stale note here said otherwise. A vessel words its own
+   rounds, adds ones the app does not ship (weekly / monthly / quarterly) and switches off the ones
+   it does not owe; the version + line ids + the `lines` snapshot on every record are what make that
+   safe. Not editable: the built-in templates themselves, which stay reachable for ever so history
+   reads as it was signed.
+9. **Importer polish** — minor cosmetic mappings (e.g. Hydrants `type` = "Yes", FIFI BA-set
    `position` = fire-station number). Items are editable, so acceptable for v1.
 ```

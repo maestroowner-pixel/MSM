@@ -13,10 +13,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { Screen, ScreenTitle, Card, CategoryBadge } from '../components/ui';
+import { MciIcon } from '../components/MciIcon';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
-import { CATEGORIES } from '../constants/categories';
+import { GROUP_ORDER, GROUP_SHORT, visibleCategories } from '../constants/categories';
 import { exportPdf, exportXlsx, exportZip } from '../services/export';
 import {
   ReportScope,
@@ -26,9 +27,10 @@ import {
   printReport as printInspectionReport,
 } from '../services/inspectionReport';
 import { InspectionPeriod, PERIOD_LABEL } from '../types/inspection';
-import { windowFor } from '../services/inspections';
+import { stepPeriod, windowFor } from '../services/inspections';
 import { periodsFor } from '../constants/checklists';
-import { CategoryKey } from '../types/equipment';
+import { CategoryKey, EquipmentItem } from '../types/equipment';
+import { dueWithinDays } from '../utils/dates';
 
 export default function ReportsSc() {
   const { byCategory, vessel, certificates, flat, templates, inspections: trail } = useData();
@@ -49,18 +51,14 @@ export default function ReportsSc() {
   const isCurrent = Date.now() >= win.from && Date.now() < win.to;
   const step = (by: -1 | 1) => {
     if (by > 0 && isCurrent) return; // nothing to report on in the future
-    setRef((r) =>
-      period === 'weekly'
-        ? new Date(r.getFullYear(), r.getMonth(), r.getDate() + 7 * by)
-        : new Date(r.getFullYear(), r.getMonth() + by, 1)
-    );
+    setRef((r) => stepPeriod(period, r, by));
   };
 
   // The categories this scope + period covers: right group, has items, and owes
   // this period's round. What the category picker below offers.
   const roundCats = useMemo(
     () =>
-      CATEGORIES.filter(
+      visibleCategories().filter(
         (c) =>
           (scope === 'ALL' || c.group === scope) &&
           (byCategory[c.key] ?? []).length > 0 &&
@@ -127,9 +125,44 @@ export default function ReportsSc() {
     }
   };
 
+  /**
+   * THE REGISTER, NARROWED TO WHAT IS COMING DUE.
+   *
+   * The sheet a vessel walks round with before an annual inspection. Asked for
+   * on 30 Sep 2026: "a few days beforehand we begin collecting the relevant
+   * equipment and bringing it together ready for the inspector. Ideally MSM could
+   * generate the relevant equipment/register report sheets, which we could use to
+   * cross-check the physical equipment against the register" — and, separately,
+   * "see equipment coming due within our next annual inspection period, rather
+   * than only once it reaches its exact due date", so that certification can be
+   * harmonised by bringing items forward.
+   *
+   * One control answers both: the same filtered list is what you print to check
+   * against, and what tells you which items to pull forward. `null` is the whole
+   * register, which stays the default — this narrows a report, it does not hide
+   * equipment.
+   */
+  const [horizon, setHorizon] = useState<number | null>(null);
+  const HORIZONS: { days: number | null; label: string; note: string }[] = [
+    { days: null, label: 'All', note: '' },
+    { days: 60, label: '60 days', note: 'Due within 60 days' },
+    { days: 182, label: '6 months', note: 'Due within 6 months' },
+    { days: 365, label: '12 months', note: 'Due within 12 months' },
+  ];
+  const horizonNote = HORIZONS.find((h) => h.days === horizon)?.note || undefined;
+
+  const dueRegister = useMemo(() => {
+    if (horizon == null) return byCategory;
+    const out = {} as Record<CategoryKey, EquipmentItem[]>;
+    for (const [key, items] of Object.entries(byCategory)) {
+      out[key as CategoryKey] = (items ?? []).filter((it) => dueWithinDays(it, horizon));
+    }
+    return out;
+  }, [byCategory, horizon]);
+
   const nonEmpty = useMemo(
-    () => CATEGORIES.filter((c) => (byCategory[c.key] ?? []).length > 0),
-    [byCategory]
+    () => visibleCategories().filter((c) => (dueRegister[c.key] ?? []).length > 0),
+    [dueRegister]
   );
 
   // Default: everything selected. Auto-fill once, after data first loads, until
@@ -142,7 +175,7 @@ export default function ReportsSc() {
 
   const allOn = nonEmpty.length > 0 && nonEmpty.every((c) => selected.has(c.key));
   const totalItems = nonEmpty.reduce(
-    (n, c) => n + (selected.has(c.key) ? byCategory[c.key]?.length ?? 0 : 0),
+    (n, c) => n + (selected.has(c.key) ? dueRegister[c.key]?.length ?? 0 : 0),
     0
   );
 
@@ -168,10 +201,10 @@ export default function ReportsSc() {
     }
     setBusy(true);
     try {
-      if (kind === 'pdf') await exportPdf(byCategory, vessel, only);
-      else if (kind === 'xlsx') await exportXlsx(byCategory, vessel, only);
+      if (kind === 'pdf') await exportPdf(dueRegister, vessel, only, horizonNote);
+      else if (kind === 'xlsx') await exportXlsx(dueRegister, vessel, only, horizonNote);
       else {
-        const { files, certificates: certCount } = await exportZip(byCategory, vessel, certificates, only);
+        const { files, certificates: certCount } = await exportZip(dueRegister, vessel, certificates, only);
         const parts = [
           `${files} photo${files === 1 ? '' : 's'}`,
           `${certCount} certificate${certCount === 1 ? '' : 's'}`,
@@ -227,14 +260,14 @@ export default function ReportsSc() {
               be printed on their own. Worse, "ALL" was LABELLED "LSA & FFE" while
               the filter passed every group, so those items appeared in a report
               that said it did not cover them. */}
-          {(['LSA', 'FFE', 'OTHER', 'ALL'] as ReportScope[]).map((g) => (
+          {([...GROUP_ORDER, 'ALL'] as ReportScope[]).map((g) => (
             <TouchableOpacity
               key={g}
               style={[styles.chip, scope === g && styles.chipOn]}
               onPress={() => setScope(g)}
             >
               <Text style={[styles.chipText, scope === g && styles.chipTextOn]}>
-                {g === 'ALL' ? 'All' : g === 'OTHER' ? 'Other' : g}
+                {g === 'ALL' ? 'All' : GROUP_SHORT[g]}
               </Text>
             </TouchableOpacity>
           ))}
@@ -242,7 +275,13 @@ export default function ReportsSc() {
 
         <Text style={styles.sectionLabel}>Period</Text>
         <View style={styles.chipRow}>
-          {(['weekly', 'monthly'] as InspectionPeriod[]).map((p) => (
+          {/* Quarterly sits beside weekly and monthly because a vessel works to all
+              three, per category (Settings → Checklists). A period no category owes
+              is still offered: the answer "nothing in scope" is the useful one. */}
+          {/* Annual sits here too since the lifting register asked for it: most
+              lifting gear is examined and certified once a year, not monthly
+              (constants/lifting.ts). */}
+          {(['weekly', 'monthly', 'quarterly', 'annual'] as InspectionPeriod[]).map((p) => (
             <TouchableOpacity
               key={p}
               style={[styles.chip, period === p && styles.chipOn]}
@@ -394,6 +433,19 @@ export default function ReportsSc() {
       <ScreenTitle title="Reports" subtitle="Choose what to include, then export" help={10} />
       {modeSwitch}
 
+      <Text style={styles.sectionLabel}>Coming due</Text>
+      <View style={styles.chipRow}>
+        {HORIZONS.map((h) => (
+          <TouchableOpacity
+            key={h.label}
+            style={[styles.chip, horizon === h.days && styles.chipOn]}
+            onPress={() => setHorizon(h.days)}
+          >
+            <Text style={[styles.chipText, horizon === h.days && styles.chipTextOn]}>{h.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       <View style={styles.headRow}>
         <Text style={styles.sectionLabel}>
           Included categories ({selected.size}/{nonEmpty.length})
@@ -406,7 +458,7 @@ export default function ReportsSc() {
       <View style={twoCol ? styles.gridWrap : undefined}>
         {nonEmpty.map((c) => {
           const on = selected.has(c.key);
-          const count = byCategory[c.key]?.length ?? 0;
+          const count = dueRegister[c.key]?.length ?? 0;
           return (
             <TouchableOpacity
               key={c.key}
@@ -440,7 +492,8 @@ export default function ReportsSc() {
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={[styles.btn, styles.zipBtn]} onPress={() => run('zip')}>
-            <Text style={styles.btnText}>📦 Export ZIP (PDF + photos)</Text>
+            <MciIcon name="package-variant" size={16} color={COLORS.textWhite} />
+            <Text style={styles.btnText}>Export ZIP (PDF + photos)</Text>
           </TouchableOpacity>
         </>
       )}
@@ -448,6 +501,11 @@ export default function ReportsSc() {
       <Text style={styles.help}>
         {totalItems} item{totalItems === 1 ? '' : 's'} will be exported. Reports include each item's type, serial,
         position, dates and compliance status, and open your device's share sheet.
+        {horizon != null
+          ? ` Only equipment already overdue or falling due within ${
+              HORIZONS.find((h) => h.days === horizon)!.label
+            } is listed, and the report says so on its heading — the sheet to walk round with before an inspection.`
+          : ''}
       </Text>
     </Screen>
   );

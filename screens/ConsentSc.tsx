@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SIZES, Palette, APP_CONFIG } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
+import { MciIcon } from '../components/MciIcon';
 import { DISCLAIMER_POINTS, PRIVACY_POLICY, TERMS_OF_USE } from '../constants/legal';
 import LegalBody from '../components/LegalBody';
 
@@ -42,7 +43,7 @@ export default function ConsentSc({ onAccept }: { onAccept: () => void }) {
     <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
         <View style={styles.headerRow}>
-          <Text style={styles.icon}>⚓</Text>
+          <MciIcon name="anchor" size={34} color={COLORS.primaryDark} />
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>Welcome aboard</Text>
             <Text style={styles.subtitle}>{APP_CONFIG.name}</Text>

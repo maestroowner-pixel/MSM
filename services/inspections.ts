@@ -26,6 +26,7 @@ import { ChecklistTemplate, lineText, templateById } from '../constants/checklis
 import { CrewMember } from '../types/crew';
 import { CATEGORY_MAP, CategoryMeta } from '../constants/categories';
 import { uid } from '../utils/id';
+import { formatDate } from '../utils/dates';
 
 // ---- Creating --------------------------------------------------------------
 
@@ -184,8 +185,48 @@ export function weekWindow(ref: Date = new Date()): { from: number; to: number; 
   return { from: from.getTime(), to: to.getTime(), label: `${fmt(from)} – ${fmt(end)}` };
 }
 
+/**
+ * Calendar quarter containing `ref` — Jan–Mar, Apr–Jun, Jul–Sep, Oct–Dec.
+ *
+ * A quarter is a calendar obligation for the same reason a month is (see
+ * `roundStatus`): a round done on 30 September does not cover the quarter that
+ * starts the next day, so the window is the quarter itself and not "the last 91
+ * days". Fixed calendar quarters rather than ones counted from the first round:
+ * the vessel's SMS, the PMS and the superintendent's visit all mean Q3.
+ */
+export function quarterWindow(ref: Date = new Date()): { from: number; to: number; label: string } {
+  const q = Math.floor(ref.getMonth() / 3);
+  const from = new Date(ref.getFullYear(), q * 3, 1);
+  const to = new Date(ref.getFullYear(), q * 3 + 3, 1);
+  return { from: from.getTime(), to: to.getTime(), label: `Q${q + 1} ${from.getFullYear()}` };
+}
+
+/** Calendar year containing `ref`. */
+export function yearWindow(ref: Date = new Date()): { from: number; to: number; label: string } {
+  const from = new Date(ref.getFullYear(), 0, 1);
+  const to = new Date(ref.getFullYear() + 1, 0, 1);
+  return { from: from.getTime(), to: to.getTime(), label: String(from.getFullYear()) };
+}
+
 export function windowFor(period: InspectionPeriod, ref: Date = new Date()) {
-  return period === 'weekly' ? weekWindow(ref) : monthWindow(ref);
+  if (period === 'weekly') return weekWindow(ref);
+  if (period === 'quarterly') return quarterWindow(ref);
+  if (period === 'annual') return yearWindow(ref);
+  return monthWindow(ref);
+}
+
+/** Move `ref` one period back or forward — what the report's ‹ › buttons step by. */
+export function stepPeriod(period: InspectionPeriod, ref: Date, by: -1 | 1): Date {
+  switch (period) {
+    case 'weekly':
+      return new Date(ref.getFullYear(), ref.getMonth(), ref.getDate() + 7 * by);
+    case 'quarterly':
+      return new Date(ref.getFullYear(), ref.getMonth() + 3 * by, 1);
+    case 'annual':
+      return new Date(ref.getFullYear() + by, 0, 1);
+    default:
+      return new Date(ref.getFullYear(), ref.getMonth() + by, 1);
+  }
 }
 
 // ---- "Is it done?" ---------------------------------------------------------
@@ -454,4 +495,110 @@ export function defectReason(insp: Inspection): string {
 /** Category label for a record, for report rows. */
 export function categoryLabel(category: CategoryKey): string {
   return CATEGORY_MAP[category]?.label ?? category;
+}
+
+// ---- what still has to go up ------------------------------------------------
+
+/**
+ * Which records this device owes the vessel.
+ *
+ * A signed inspection never changes, so remembering "already sent" by id was
+ * right for everything except the ONE mutation the trail allows: a defect going
+ * open→closed (see types/inspection.ts). That closure rewrites a record whose id
+ * had of course already been sent, so it was filtered out and never left the
+ * device — the rectification lived on the Master's screen while every other
+ * device went on showing the defect as outstanding. Reported by a vessel on
+ * 29 Sep 2026; the record it complained about was still `open: true` in the
+ * vessel's own copy, eleven days after being closed.
+ *
+ * So what is remembered is the `updatedAt` that was sent, and a record goes up
+ * when it is new OR has moved on since. `updatedAt` is stamped on creation and
+ * again by `closeDefect`, which makes it exactly the right watermark.
+ *
+ * Pure, and checked in scripts/check-inspections.ts — the sync layer around it
+ * is Firebase glue that no test here can exercise.
+ */
+export function unsentInspections(
+  list: Inspection[],
+  pushed: Record<string, number>
+): Inspection[] {
+  return list.filter((i) => {
+    const sent = pushed[i.id];
+    if (sent === undefined) return true;
+    // `updatedAt` is optional on records written by older builds; treat a
+    // missing one as "never moved" rather than re-pushing the whole trail.
+    return (i.updatedAt ?? 0) > sent;
+  });
+}
+
+/**
+ * Who to print in the report's "Checked by / Rank / Date" line.
+ *
+ * Lives here rather than in services/inspectionReport so it can be checked:
+ * that file imports SheetJS and expo-print, which the check script cannot load.
+ *
+ * Asked for by a vessel (29 Sep 2026), and the reason is filing rather than
+ * ceremony: their reports are not printed, they are uploaded straight into the
+ * PMS, so a blank signature line means every export needs a human pass before it
+ * can be filed. Every record already carries who signed it and their rank — the
+ * footer was simply not reading them.
+ *
+ * ONE signer fills the line outright. SEVERAL are all named, because a monthly
+ * round shared between the mate and the bosun was signed by both and a footer
+ * that picked one would misattribute the other's work. Beyond three it says how
+ * many and leaves the table to carry the detail.
+ *
+ * The date is the LAST round in the report, not today: the document says when the
+ * work was done, and re-exporting it in November must not restamp September's
+ * inspections.
+ */
+export interface ReportSignoff {
+  names: string;
+  rank: string;
+  date: string;
+  /** Nothing was signed in this period — the blank line stays, to be filled by hand. */
+  blank: boolean;
+}
+
+/**
+ * `YYYY-MM-DD` in the SHIP's day, not in UTC.
+ *
+ * `toISOString().slice(0,10)` looks like the obvious way to do this and is wrong
+ * east of Greenwich: a round signed at 00:30 BST is 23:30 the previous day in
+ * UTC, so the report would date the night round to the day before — on a vessel
+ * where rounds genuinely happen at night, and in a document filed as evidence.
+ */
+function localISODate(ts: number): string {
+  const d = new Date(ts);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+export function signoffFor(data: { done: Inspection[] }): ReportSignoff {
+  const signed = data.done;
+  if (!signed.length) return { names: '', rank: '', date: '', blank: true };
+
+  // Newest first out of buildReport, so the first record is the last round done.
+  const last = signed[0];
+  const people = new Map<string, { name: string; rank?: string }>();
+  for (const i of signed) {
+    const key = `${i.by}|${i.byRank ?? ''}`;
+    if (!people.has(key)) people.set(key, { name: i.by, rank: i.byRank });
+  }
+  const list = [...people.values()];
+
+  const names =
+    list.length === 1
+      ? list[0].name
+      : list.length <= 3
+        ? list.map((p) => p.name).join(', ')
+        : `${list.slice(0, 3).map((p) => p.name).join(', ')} and ${list.length - 3} other${list.length - 3 === 1 ? '' : 's'}`;
+
+  // The rank is printed only when it is not in dispute: one person, or several
+  // who hold the same rank. Otherwise the ranks travel beside the names in the
+  // table, and a single rank in the footer would be wrong for somebody.
+  const ranks = new Set(list.map((p) => (p.rank ?? '').trim()).filter(Boolean));
+  const rank = ranks.size === 1 && list.every((p) => (p.rank ?? '').trim()) ? [...ranks][0] : '';
+
+  return { names, rank, date: formatDate(localISODate(last.at)), blank: false };
 }

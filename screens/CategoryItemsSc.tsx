@@ -3,7 +3,7 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, useWindowDimensions, Platform } from 'react-native';
+import { Alert, View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, useWindowDimensions, Platform } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Screen, StatusPill, Empty, statusColor, CategoryBadge } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
@@ -11,6 +11,9 @@ import { HelpButton } from '../components/HelpButton';
 import { SIZES, Palette, SCROLLBAR_GUTTER } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
+import { useSync } from '../contexts/SyncContext';
+import * as storage from '../services/storage';
+import * as snapshot from '../services/snapshot';
 import { CATEGORY_MAP } from '../constants/categories';
 import { periodsFor } from '../constants/checklists';
 import { worstRoundMark, RoundMark } from '../services/inspections';
@@ -21,7 +24,7 @@ import { canAddItem } from '../services/trial';
 import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
 
 type SortBy = 'date' | 'position' | 'name' | 'type' | 'round';
-const SORT_ORDER: SortBy[] = ['date', 'position', 'name', 'type', 'round'];
+const SORT_ORDER: SortBy[] = ['position', 'date', 'name', 'type', 'round'];
 const SORT_LABEL: Record<SortBy, string> = {
   date: 'Expiry date',
   position: 'Position',
@@ -68,14 +71,18 @@ export default function CategoryItemsSc() {
   const meta = CATEGORY_MAP[category];
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { byCategory, certificates, prefs, isLocked, templates, inspections: trail } = useData();
+  const { byCategory, certificates, prefs, isLocked, templates, inspections: trail, vessel, reload } = useData();
+  const sync = useSync();
   const certItemIds = useMemo(() => {
     const s = new Set<string>();
     certificates.forEach((c) => c.itemIds.forEach((id) => s.add(id)));
     return s;
   }, [certificates]);
   const [q, setQ] = useState('');
-  const [sortBy, setSortBy] = useState<SortBy>('date');
+  // Position first, not expiry. A vessel asked for it (2 Oct 2026) and the reason
+  // holds for every ship: this list is what a crew member walks a weekly round
+  // with, deck by deck, and what is falling due already has the Dashboard.
+  const [sortBy, setSortBy] = useState<SortBy>('position');
 
   // Label select-mode. Entered by long-pressing a row or via the tag button —
   // never on by default, because tapping a row to open it is what this screen is
@@ -125,7 +132,7 @@ export default function CategoryItemsSc() {
       for (const mark of order) {
         const rows = scored.filter((r) => r.round === mark).sort(byDays);
         if (!rows.length) continue;
-        out.push({ kind: 'header', key: `h_${mark}`, position: ROUND_GROUP[mark], count: rows.length, icon: '🧾' });
+        out.push({ kind: 'header', key: `h_${mark}`, position: ROUND_GROUP[mark], count: rows.length, icon: 'clipboard-text-outline' });
         rows.forEach((r) => out.push({ kind: 'row', key: r.it.id, ...r }));
       }
       return out;
@@ -149,7 +156,7 @@ export default function CategoryItemsSc() {
     const out: ListEntry[] = [];
     for (const k of keys) {
       const group = groups.get(k)!.sort(byDays);
-      out.push({ kind: 'header', key: `h:${k}`, position: k, count: group.length, icon: groupBy === 'type' ? '🏷️' : '📍' });
+      out.push({ kind: 'header', key: `h:${k}`, position: k, count: group.length, icon: groupBy === 'type' ? 'tag-outline' : 'map-marker-outline' });
       for (const r of group) out.push({ kind: 'row', key: r.it.id, ...r });
     }
     return out;
@@ -166,6 +173,51 @@ export default function CategoryItemsSc() {
       return;
     }
     nav.navigate('ItemDetail', { category, id: null, newId: uid(category.slice(0, 3)) });
+  };
+
+  /**
+   * Clear the category — every item in it, at once.
+   *
+   * Asked for by a vessel that had tripled a few lists during setup (2 Oct 2026)
+   * and did not want to delete ninety items one by one before loading the right
+   * workbook. The Master's, like Reset and Restore in Settings and for the same
+   * reason: on a syncing device it empties the category for the whole vessel. A
+   * device on no vessel answers to nobody and may clear its own.
+   *
+   * A snapshot is taken first, so it can be rolled back from Settings → Data like
+   * an import. Signed inspections are append-only and stay; what does NOT survive
+   * is the item ids, so the printed labels of this category stop resolving —
+   * said in the dialog, because that is the cost nobody thinks of.
+   */
+  const canClear = !sync.enrolled || sync.role === 'superadmin';
+  const clearCategory = () => {
+    const count = (byCategory[category] ?? []).length;
+    if (!count) return;
+    const syncing = sync.status === 'synced' || sync.status === 'pending';
+    Alert.alert(
+      `Clear ${meta.label}?`,
+      `All ${count} item${count === 1 ? '' : 's'} in this category will be deleted` +
+        (syncing ? ' — on the vessel and on every device aboard, not just this one' : '') +
+        '.\n\nTheir photos, certificate links and printed QR labels go with them. Signed ' +
+        'inspections stay on record. Other categories are not touched.\n\n' +
+        'A copy of the register as it is now is kept in Settings → Data, so this can be rolled back.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: `Delete ${count} item${count === 1 ? '' : 's'}`,
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await snapshot.takeSnapshot(vessel).catch(() => null);
+              await storage.replaceCategory(category, []);
+              await reload();
+            } catch (e: any) {
+              Alert.alert('Could not clear', String(e?.message ?? e));
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Tablets: lay item cards out two-per-row (location headers stay full-width).
@@ -245,17 +297,20 @@ export default function CategoryItemsSc() {
           </Text>
           {e.it.flagged ? (
             <View style={styles.flagBadge}>
-              <Text style={styles.flagBadgeText}>🚩</Text>
+              <MciIcon name="flag" size={12} color={COLORS.textWhite} />
             </View>
           ) : null}
           {e.it.attachments && e.it.attachments.length > 0 ? (
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>{'📎'.repeat(e.it.attachments.length)}</Text>
+              <MciIcon name="paperclip" size={12} color={COLORS.textLight} />
+              {e.it.attachments.length > 1 ? (
+                <Text style={styles.badgeText}>{e.it.attachments.length}</Text>
+              ) : null}
             </View>
           ) : null}
           {certItemIds.has(e.it.id) ? (
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>📜</Text>
+              <MciIcon name="certificate" size={12} color={COLORS.textLight} />
             </View>
           ) : null}
         </View>
@@ -329,6 +384,11 @@ export default function CategoryItemsSc() {
                 <MciIcon name="tag-multiple" size={18} color={COLORS.primary} />
               </TouchableOpacity>
             ) : null}
+            {canClear && (byCategory[category] ?? []).length > 0 ? (
+              <TouchableOpacity style={styles.iconBtn} onPress={clearCategory} accessibilityLabel={`Clear ${meta.label}`}>
+                <MciIcon name="delete-sweep-outline" size={18} color={COLORS.danger} />
+              </TouchableOpacity>
+            ) : null}
             <TouchableOpacity style={[styles.addBtn, { marginLeft: SIZES.sm }]} onPress={addItem}>
               {/* An icon, not a "+" glyph: a font's plus sits on its baseline, not in the
                   middle of its line box, so the text version rode low in the circle. */}
@@ -340,7 +400,7 @@ export default function CategoryItemsSc() {
 
       {category === 'fifi_ba' && prefs.compressorEnabled ? (
         <TouchableOpacity style={styles.compressorBtn} onPress={() => nav.navigate('Compressor')}>
-          <Text style={styles.compressorEmoji}>⏱️</Text>
+          <MciIcon name="timer-outline" size={22} color={COLORS.primaryDark} />
           <View style={{ flex: 1 }}>
             <Text style={styles.compressorTitle}>BA Compressor log</Text>
             <Text style={styles.compressorSub}>Running-time counter · maintenance / service / inspection</Text>
@@ -376,7 +436,8 @@ export default function CategoryItemsSc() {
           renderItem={({ item: e }) =>
             e.kind === 'header' ? (
               <View style={styles.posHeader}>
-                <Text style={styles.posHeaderText} numberOfLines={1}>{e.icon} {e.position}</Text>
+                <MciIcon name={e.icon} size={15} color={COLORS.textLight} />
+                <Text style={styles.posHeaderText} numberOfLines={1}>{e.position}</Text>
                 <Text style={styles.posHeaderCount}>{e.count}</Text>
               </View>
             ) : e.kind === 'pair' ? (
@@ -471,6 +532,8 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    // The row now starts with a glyph rather than an emoji inside the text.
+    gap: SIZES.xs,
     paddingHorizontal: SIZES.sm,
     paddingVertical: 6,
     marginBottom: SIZES.xs,

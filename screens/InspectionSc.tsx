@@ -28,7 +28,7 @@
 //    web. The scan is read ONCE, when the screen opens (services/signingPolicy).
 // ===================================
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Image,
@@ -95,17 +95,47 @@ export default function InspectionSc() {
   // Read once: the scan that brought the inspector here. A proof that expires
   // while they work down a long checklist must not take the signature away.
   const [proof] = useState(() => (itemId ? scanProofFor(itemId) : null));
-  const gate = signingGate(signingPolicy, sync.role, sync.enrolled, proof);
   const [overrideReason, setOverrideReason] = useState('');
   const item = useMemo(() => flat.find((i) => i.id === itemId), [flat, itemId]);
+  // The rule can be waived per category (services/signingPolicy `scanExempt`), so
+  // the gate is asked about THIS item's category, not about the vessel.
+  const gate = signingGate(signingPolicy, sync.role, sync.enrolled, proof, item?.category);
 
   const periods = useMemo<InspectionPeriod[]>(
     () => (item ? periodsFor(item.category, templates) : ['monthly']),
-    [item]
+    [item, templates]
   );
   const [period, setPeriod] = useState<InspectionPeriod>(
-    route.params?.period && periods.includes(route.params.period) ? route.params.period : periods[0]
+    // A category whose rounds the vessel switched off owes nothing, so there is
+    // no period to offer. This screen has a URL on the web and can be reached
+    // anyway; an inspection recorded off-schedule is still a true statement about
+    // what somebody checked, so it is allowed rather than refused.
+    route.params?.period && periods.includes(route.params.period)
+      ? route.params.period
+      : periods[0] ?? route.params?.period ?? 'monthly'
   );
+
+  /**
+   * THE ROUNDS ARRIVE AFTER THIS SCREEN DOES.
+   *
+   * `period` is seeded once, and on a cold start by URL (a scanned label, a
+   * reload, a pasted link) the register has not loaded yet: `item` is undefined,
+   * `periods` falls back to ['monthly'], and the screen opens a MONTHLY round on
+   * a category that has none — the generic "General check — monthly" wording,
+   * against a category whose real rounds are quarterly and annual. Found on
+   * 30 Sep 2026 on /inspect/<id>, after the lifting register moved to quarterly
+   * and annual rounds; before that every category had a monthly one and the
+   * wrong default happened to be a right one.
+   *
+   * So the period is corrected when the rounds turn up — but never after the
+   * inspector has chosen one, and never once anything has been answered.
+   */
+  const pickedPeriod = useRef(!!route.params?.period);
+  useEffect(() => {
+    if (pickedPeriod.current || !item) return;
+    if (periods.includes(period) || !periods.length) return;
+    setPeriod(periods[0]);
+  }, [item, periods, period]);
 
   const template = useMemo(
     () => (item ? templateFor(item.category, period, templates) : null),
@@ -156,6 +186,7 @@ export default function InspectionSc() {
   // anything — a weekly "cradle" is not a monthly "cradle".
   const changePeriod = (p: InspectionPeriod) => {
     if (p === period) return;
+    pickedPeriod.current = true;
     setPeriod(p);
     setResults({});
   };
@@ -166,6 +197,42 @@ export default function InspectionSc() {
   const markAllPass = () => {
     if (!template) return;
     setResults(Object.fromEntries(template.lines.map((l) => [l.id, 'pass' as CheckResult])));
+  };
+
+  /**
+   * Start the round again — asked for by a vessel (25 Sep 2026), which had it
+   * elsewhere in the app and reached for it here.
+   *
+   * It clears the ANSWERS, the comment and the defect note: everything typed on
+   * the way down a round that turns out to have been the wrong item or the wrong
+   * period. Evidence photos are left alone — a photograph was taken of something
+   * real, and deleting files on a "clear the form" tap is not what anybody means
+   * by it; the thumbnails have their own remove control.
+   *
+   * Confirmed, because on a thirty-line round beside a "All pass" button this is
+   * the one tap nobody can undo.
+   */
+  const clearAll = () => {
+    const filled = Object.keys(results).length + (comment.trim() ? 1 : 0) + (defectNote.trim() ? 1 : 0);
+    if (!filled) return;
+    Alert.alert(
+      'Clear this round?',
+      'Every answer, the comment and the defect note are cleared so you can start again. ' +
+        'Nothing has been signed yet, so nothing on file changes.' +
+        (photos.length ? ' Photos you have added stay — remove those individually.' : ''),
+      [
+        { text: 'Keep it', style: 'cancel' },
+        {
+          text: 'Clear all',
+          style: 'destructive',
+          onPress: () => {
+            setResults({});
+            setComment('');
+            setDefectNote('');
+          },
+        },
+      ]
+    );
   };
 
   const answered = template ? template.lines.filter((l) => results[l.id]).length : 0;
@@ -456,12 +523,18 @@ export default function InspectionSc() {
 
           <View style={styles.card}>
             <View style={styles.checklistHead}>
-              <View style={{ flex: 1 }}>
-                <Label>{template.title}</Label>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Label numberOfLines={1}>{template.title}</Label>
                 <Text style={styles.progress}>
                   {answered} of {template.lines.length} answered
                 </Text>
               </View>
+              {answered ? (
+                <TouchableOpacity style={styles.clearBtn} onPress={clearAll}>
+                  <MciIcon name="close" size={16} color={COLORS.textLight} />
+                  <Text style={styles.clearText}>Clear all</Text>
+                </TouchableOpacity>
+              ) : null}
               <TouchableOpacity style={styles.allPassBtn} onPress={markAllPass}>
                 <MciIcon name="check-all" size={16} color={COLORS.textWhite} />
                 <Text style={styles.allPassText}>All pass</Text>
@@ -658,7 +731,9 @@ const makeStyles = (COLORS: Palette) =>
     verifiedText: { flex: 1, fontSize: SIZES.small, color: COLORS.success, fontWeight: '600' },
     gateHead: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md, marginBottom: SIZES.md },
     gateTitle: { flex: 1, fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark },
-    checklistHead: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md, marginBottom: SIZES.sm },
+    // Two pills now sit beside the title on a phone-width row, so the gap is
+    // tighter and the title is the part allowed to shrink.
+    checklistHead: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginBottom: SIZES.sm },
     progress: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },
     allPassBtn: {
       flexDirection: 'row',
@@ -670,6 +745,17 @@ const makeStyles = (COLORS: Palette) =>
       paddingVertical: SIZES.sm,
     },
     allPassText: { color: COLORS.textWhite, fontWeight: '700', fontSize: SIZES.small },
+    clearBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SIZES.xs,
+      borderRadius: SIZES.radiusRound,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      paddingHorizontal: SIZES.sm,
+      paddingVertical: SIZES.sm,
+    },
+    clearText: { color: COLORS.textLight, fontWeight: '700', fontSize: SIZES.small },
 
     line: { paddingTop: SIZES.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.border, marginTop: SIZES.md },
     lineText: { fontSize: SIZES.body, color: COLORS.text },

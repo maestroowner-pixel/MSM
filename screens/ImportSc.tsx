@@ -18,10 +18,10 @@ import { parseWorkbookBase64, parseWorkbookBytes, ImportPreview } from '../servi
 import { exportTemplate } from '../services/export';
 import { pickFileBase64, onWindows, onWeb } from '../utils/fileShare';
 import { pickBinaryFileWeb } from '../utils/webFile';
-import { CATEGORY_MAP } from '../constants/categories';
+import { CATEGORY_MAP, GROUP_ORDER } from '../constants/categories';
 import * as storage from '../services/storage';
 import { useData } from '../contexts/DataContext';
-import { CategoryKey, EquipmentItem } from '../types/equipment';
+import { CategoryKey, EquipmentItem, Group } from '../types/equipment';
 import { applyPlan, planUpdate, storable } from '../services/registerUpdate';
 import * as snapshot from '../services/snapshot';
 import { itemIdentifiers, itemLocation } from '../utils/itemText';
@@ -116,9 +116,17 @@ export default function ImportSc() {
     }
   };
 
-  const downloadTemplate = async () => {
+  /**
+   * A second template appears only when a second register exists. The lifting
+   * module has its own columns (SWL, breaking load, certificates, test dates),
+   * so it has its own workbook — the same pair of buttons as Settings, because
+   * this is the screen a person is on when they go looking for one.
+   */
+  const hasLifting = GROUP_ORDER.includes('LIFTING');
+
+  const downloadTemplate = async (group?: Group) => {
     try {
-      await exportTemplate();
+      await exportTemplate(group);
     } catch (e: any) {
       playErrorSound();
       Alert.alert('Template failed', String(e?.message ?? e));
@@ -206,9 +214,17 @@ export default function ImportSc() {
         <Text style={styles.pickBtnText}>{fileName ? 'Choose a different file' : 'Choose .xlsx file'}</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.templateBtn} onPress={downloadTemplate} disabled={busy}>
-        <Text style={styles.templateBtnText}>Download blank template (.xlsx)</Text>
+      <TouchableOpacity style={styles.templateBtn} onPress={() => void downloadTemplate()} disabled={busy}>
+        <Text style={styles.templateBtnText}>
+          {hasLifting ? 'Download blank LSA / FFE template (.xlsx)' : 'Download blank template (.xlsx)'}
+        </Text>
       </TouchableOpacity>
+
+      {hasLifting ? (
+        <TouchableOpacity style={styles.templateBtn} onPress={() => void downloadTemplate('LIFTING')} disabled={busy}>
+          <Text style={styles.templateBtnText}>Download blank lifting &amp; mooring template (.xlsx)</Text>
+        </TouchableOpacity>
+      ) : null}
 
       {busy ? (
         <View style={{ padding: SIZES.xl, alignItems: 'center' }}>

@@ -37,6 +37,7 @@ import {
   VESSEL_TEMPLATE_PREFIX,
   isVesselTemplate,
   templateFor,
+  vesselRow,
 } from '../constants/checklists';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
@@ -57,6 +58,14 @@ export default function ChecklistEditSc() {
     [category, period, templates]
   );
   const isOwn = isVesselTemplate(current);
+  /**
+   * The vessel's row for this (category, period), in force or not.
+   *
+   * Saving reuses it rather than writing a second one, and that matters for more
+   * than tidiness: the row also carries whether the round is switched ON
+   * (`off`), so a fresh row would quietly restore a round the Master had stopped.
+   */
+  const row = useMemo(() => vesselRow(category, period, templates), [category, period, templates]);
   // No standard checklist exists for this period: the vessel is ADDING a round
   // (a weekly EEBD check, say), not rewording one. Removing it removes the round.
   const builtIn = templateFor(category, period);
@@ -120,12 +129,18 @@ export default function ChecklistEditSc() {
     const next: ChecklistTemplate = {
       // Keep the id once it exists: it is what already-signed records point at,
       // and what the other devices are merging against.
-      id: isOwn ? current.id : `${VESSEL_TEMPLATE_PREFIX}${category}.${period}.${uid()}`,
-      version: isOwn ? current.version + 1 : 1,
+      id: row?.id ?? `${VESSEL_TEMPLATE_PREFIX}${category}.${period}.${uid()}`,
+      // Never backwards, even when the row currently in force is the built-in:
+      // a record stores the version it was signed against, and re-using an
+      // earlier number for a later set of questions would make that a lie.
+      version: row ? Math.max(row.version ?? 1, current.version) + 1 : 1,
       category,
       period,
       title: title.trim() || current.title,
       lines: clean,
+      // Saving a wording puts it in force; whether the ship owes this round at
+      // all is the Checklists screen's switch, and is left exactly as it was.
+      off: row?.off,
     };
     await saveTemplate(next);
     goBackOr(nav);

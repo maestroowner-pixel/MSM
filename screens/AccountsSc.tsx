@@ -13,7 +13,7 @@
 // ===================================
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { Card, Empty, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
@@ -32,13 +32,15 @@ import {
 import * as accounts from '../services/accounts';
 import * as fb from '../services/firebaseService';
 import { formatDateTime } from '../utils/dates';
+import { newestVersion, versionLabel, versionStanding } from '../utils/version';
+import { APP_CONFIG } from '../theme';
 
 type Tab = 'invites' | 'devices';
 
 export default function AccountsSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { vessel } = useData();
+  const { vessel, signingPolicy } = useData();
   const imo = (vessel?.imo ?? '').replace(/\D/g, '');
 
   /**
@@ -78,6 +80,17 @@ export default function AccountsSc() {
    * on web and Android it does not exist at all, and this screen's whole reason
    * for being is the browser on the bridge.
    */
+  /**
+   * The newest version anybody aboard is running — including THIS device, which
+   * the list would otherwise not know about until its own next refresh. See
+   * utils/version.ts for why the fleet's own newest is the yardstick rather than
+   * some idea of what the stores have released.
+   */
+  const newest = useMemo(
+    () => newestVersion([...devices.map((d) => d.appVersion), APP_CONFIG.version]),
+    [devices]
+  );
+
   const [renaming, setRenaming] = useState<EnrolledDevice | null>(null);
   const [rnFirst, setRnFirst] = useState('');
   const [rnLast, setRnLast] = useState('');
@@ -127,6 +140,43 @@ export default function AccountsSc() {
     }
   }, [firstName, lastName, role, position, imo]);
 
+  /**
+   * Delete an invitation outright — offered only once it is revoked.
+   *
+   * Revoke is still the first step for somebody who has left, and for most
+   * vessels the last. But a list that only ever grows stops being readable as
+   * "who is aboard", and a vessel asked for exactly that after its first crew
+   * change. Two steps on purpose: nobody deletes a working account by a slip.
+   * It removes the invitation only — its devices are rows of their own under
+   * Devices, and the dialog says so rather than leaving half the tidy-up unsaid.
+   */
+  const confirmDeleteInvite = (inv: Invite) => {
+    const used = inv.activations?.length ?? 0;
+    Alert.alert(
+      'Delete this account?',
+      `${personName(inv)} will be taken off the list for good, and the PIN will never work again.\n\n` +
+        (used
+          ? `It was used on ${used} device${used === 1 ? '' : 's'}. Those stay under Devices until ` +
+            'you remove them there (Devices → the device → Remove from list).\n\n'
+          : '') +
+        'Signed inspections are untouched — they carry the name, not the account.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await accounts.deleteInvite(imo, inv.id);
+            } catch (e: any) {
+              Alert.alert('Could not delete', e?.message ?? String(e));
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const inviteActions = (inv: Invite) => {
     if (!isMaster) return; // unreachable — the tab is Master-only — but cheap insurance
     const used = inv.activations?.length ?? 0;
@@ -134,27 +184,34 @@ export default function AccountsSc() {
       personName(inv),
       `PIN ${inv.pin} · ${ROLE_LABEL[inv.role]}\n` +
         (used ? `Used on ${used} device${used === 1 ? '' : 's'}.` : 'Not used yet.'),
-      [
-        { text: 'Close', style: 'cancel' },
-        {
-          text: 'New PIN',
-          onPress: async () => {
-            try {
-              const pin = await accounts.reissuePin(imo, inv.id);
-              Alert.alert('New PIN', `${personName(inv)}: ${pin}`);
-            } catch (e: any) {
-              Alert.alert('Failed', e?.message ?? String(e));
-            }
-          },
-        },
-        inv.revoked
-          ? { text: 'Restore', onPress: () => void accounts.restoreInvite(imo, inv.id) }
-          : {
+      // Three buttons either way — Android's native dialog shows no more. A
+      // revoked account trades "New PIN" for "Delete": Restore brings the PIN
+      // options back, and a new PIN on an account being cleared out is no use.
+      inv.revoked
+        ? [
+            { text: 'Close', style: 'cancel' },
+            { text: 'Restore', onPress: () => void accounts.restoreInvite(imo, inv.id) },
+            { text: 'Delete', style: 'destructive' as const, onPress: () => confirmDeleteInvite(inv) },
+          ]
+        : [
+            { text: 'Close', style: 'cancel' },
+            {
+              text: 'New PIN',
+              onPress: async () => {
+                try {
+                  const pin = await accounts.reissuePin(imo, inv.id);
+                  Alert.alert('New PIN', `${personName(inv)}: ${pin}`);
+                } catch (e: any) {
+                  Alert.alert('Failed', e?.message ?? String(e));
+                }
+              },
+            },
+            {
               text: 'Revoke',
               style: 'destructive' as const,
               onPress: () => void accounts.revokeInvite(imo, inv.id),
             },
-      ]
+          ]
     );
   };
 
@@ -256,7 +313,9 @@ export default function AccountsSc() {
 
     const buttons: any[] = [{ text: 'Close', style: 'cancel' }];
     if (!d.approved) buttons.push({ text: 'Approve', onPress: () => void accounts.approveDevice(imo, d.id) });
-    buttons.push({ text: 'Rename', onPress: () => startRename(d) });
+    // The Master's, and only the Master's — with `signAsDevice` on, the name on a
+    // device IS the signature it files (firestore.rules says the same).
+    if (isMaster) buttons.push({ text: 'Rename', onPress: () => startRename(d) });
     if (!lastMaster) {
       for (const r of ROLE_ORDER) {
         if (r !== d.role) {
@@ -450,9 +509,13 @@ export default function AccountsSc() {
           contentContainerStyle={{ paddingBottom: SIZES.xxxl }}
           ListEmptyComponent={<Empty text={'No devices have enrolled yet.'} />}
           renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => deviceActions(item)}>
-              <Card>
-                <View style={styles.row}>
+            <Card>
+              {/* Two controls side by side, NOT one inside the other. A rename
+                  button nested in the row's own Touchable would fire both on web —
+                  the sheet opening under the action dialog — which is the same
+                  nesting mistake the rename backdrop used to make. */}
+              <View style={styles.row}>
+                <TouchableOpacity style={styles.rowMain} onPress={() => deviceActions(item)}>
                   <MciIcon
                     name={item.disabled ? 'cellphone-off' : item.approved ? 'cellphone-check' : 'cellphone-cog'}
                     size={22}
@@ -471,15 +534,38 @@ export default function AccountsSc() {
                         .filter(Boolean)
                         .join(' · ')}
                     </Text>
+                    {/* WHICH BUILD THAT PHONE IS ON. The version is re-recorded on
+                        every refresh (functions `refresh`), so it says what the
+                        device runs today rather than what it ran the day it
+                        joined — and it answers the question a Master actually
+                        has: is an old build why they cannot find the round I set
+                        up? Amber only when something is behind; a fleet that is
+                        current should look quiet. */}
+                    <Text style={[styles.meta, versionStanding(item.appVersion, newest).kind === 'behind' && styles.behind]}>
+                      {versionLabel(versionStanding(item.appVersion, newest))}
+                    </Text>
                   </View>
                   {!item.approved && !item.disabled ? (
                     <View style={styles.waitPill}>
                       <Text style={styles.waitText}>APPROVE</Text>
                     </View>
                   ) : null}
-                </View>
-              </Card>
-            </TouchableOpacity>
+                </TouchableOpacity>
+                {/* Renaming is what a Master comes to this list to do at every crew
+                    change, so it is a button and not the fourth option in a dialog.
+                    The row itself still opens the rest. */}
+                {isMaster ? (
+                  <TouchableOpacity
+                    style={styles.iconBtn}
+                    hitSlop={8}
+                    accessibilityLabel={`Rename ${personName(item) || item.id}`}
+                    onPress={() => startRename(item)}
+                  >
+                    <MciIcon name="account-edit" size={22} color={COLORS.primary} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            </Card>
           )}
         />
       )}
@@ -494,11 +580,24 @@ export default function AccountsSc() {
         animationType="slide"
         onRequestClose={() => setRenaming(null)}
       >
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setRenaming(null)}>
-          {/* Claims the touch so a tap on the sheet's own padding does not
-              close it — the backdrop above is a Touchable and would otherwise
-              catch it mid-edit. */}
-          <View style={styles.sheet} onStartShouldSetResponder={() => true}>
+        <View style={styles.backdrop}>
+          {/* THE BACKDROP IS A SIBLING, NOT A PARENT, and that is the fix for a
+              bug a vessel reported on 25 Sep 2026: "every time I select the name
+              to edit it, the box closes before I can complete the change".
+              The sheet used to sit INSIDE a full-screen Touchable, relying on an
+              `onStartShouldSetResponder` on the sheet to swallow taps meant for
+              the fields. On react-native-web — the bridge browser, where this
+              screen is mostly used — that claim does not stop the click reaching
+              the Touchable underneath, so tapping into a text field dismissed the
+              whole sheet. Absolutely positioned behind the sheet, the backdrop
+              cannot receive a tap that landed on the sheet at all, on any
+              platform, with nothing to get right. */}
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            accessibilityLabel="Close"
+            onPress={() => setRenaming(null)}
+          />
+          <View style={styles.sheet}>
             <Text style={styles.sheetTitle}>Rename this device</Text>
             <Text style={styles.note}>
               What this device is called in the list, and on its own “This device” card. Use a
@@ -531,12 +630,20 @@ export default function AccountsSc() {
               placeholderTextColor={COLORS.textLight}
               autoCapitalize="words"
             />
-            {/* Said here rather than discovered later: renaming a device is not
-                renaming a signer, and the two lists are edited in different
-                places. */}
+            {/* What renaming DOES depends on the vessel's rule, and saying the
+                wrong one here is worse than saying nothing. With "Sign as the
+                device's account" on, this name is the signature every inspection
+                from this device will carry — which is exactly why a vessel asked
+                to be able to change it at a crew change. With the rule off, the
+                signer is picked from the crew list and this is just a label. */}
             <Text style={styles.note}>
-              Signatures are not affected — those are chosen from the crew list when a round is
-              signed, and inspections already signed keep the name they carry.
+              {signingPolicy.signAsDevice
+                ? 'This vessel signs inspections as the device\'s account, so this name is what the ' +
+                  'next round signed on this device will carry — and what its report will print. ' +
+                  'Rename it at a crew change and the signature follows immediately. Inspections ' +
+                  'already signed keep the name they were signed with.'
+                : 'Signatures are not affected — those are chosen from the crew list when a round is ' +
+                  'signed, and inspections already signed keep the name they carry.'}
             </Text>
             <View style={styles.sheetBtns}>
               <TouchableOpacity
@@ -560,7 +667,7 @@ export default function AccountsSc() {
               </TouchableOpacity>
             </View>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
     </Screen>
   );
@@ -621,6 +728,7 @@ const makeStyles = (COLORS: Palette) =>
     row: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md },
     name: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.textDark },
     meta: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },
+    behind: { color: COLORS.warning, fontWeight: '700' },
     pin: {
       fontSize: SIZES.body,
       fontWeight: '800',
@@ -645,6 +753,9 @@ const makeStyles = (COLORS: Palette) =>
       paddingBottom: SIZES.xxxl,
     },
     sheetTitle: { fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark },
+    iconBtn: { paddingHorizontal: SIZES.xs, paddingVertical: SIZES.xs },
+    /** The tappable part of a device row: everything except the rename button. */
+    rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SIZES.md },
     sheetBtns: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginTop: SIZES.lg },
     secondaryBtn: {
       paddingVertical: SIZES.md,

@@ -7,6 +7,8 @@
 
 import { CategoryKey, Group } from '../types/equipment';
 import { COLORS } from '../theme';
+import { moduleOn } from './modules';
+import { LIFTING_CATEGORIES } from './lifting';
 
 export interface CategoryMeta {
   key: CategoryKey;
@@ -33,12 +35,25 @@ export interface CategoryMeta {
   monthly?: boolean;
   /** Set only on a vessel's own category — the merge key when two devices differ. */
   updatedAt?: number;
+  /**
+   * The vessel does not use this category, so it is not shown (29 Sep 2026).
+   *
+   * Asked for in these words: several categories are not carried at all, and a
+   * grid full of them buries the ones that are. Hiding is presentation and
+   * nothing else — **the items, their history, labels and certificates stay
+   * exactly where they are**, which is what makes it safe to hide something you
+   * are not sure about. `CATEGORIES` therefore still contains hidden entries,
+   * because `storage.loadAll` walks it to decide which buckets to read; it is the
+   * screens and the reports that ask for `visibleCategories()`.
+   */
+  hidden?: boolean;
 }
 
 export const GROUP_COLORS: Record<Group, string> = {
   LSA: COLORS.lsa,
   FFE: COLORS.ffe,
   OTHER: COLORS.other,
+  LIFTING: COLORS.lifting,
 };
 
 const BUILT_IN: CategoryMeta[] = [
@@ -91,7 +106,36 @@ const BUILT_IN: CategoryMeta[] = [
  * looking at the registry as it was when it started, which is the sort of bug
  * that shows up as one screen knowing about a category and the next one not.
  */
-export const CATEGORIES: CategoryMeta[] = [...BUILT_IN];
+/**
+ * The registers this build has, in the order they are shown.
+ *
+ * Every screen asks for this rather than writing the list out: a group added
+ * here appears in the grid, the checklists, the scan rules and the reports
+ * without anybody having to remember those four places. A module that is off
+ * (constants/modules.ts) is simply not in it.
+ */
+export const GROUP_ORDER: Group[] = ['LSA', 'FFE', 'OTHER', ...(moduleOn('lifting') ? (['LIFTING'] as Group[]) : [])];
+
+export const GROUP_LABEL: Record<Group, string> = {
+  LSA: 'Life-Saving Appliances',
+  FFE: 'Fire-Fighting Equipment',
+  OTHER: 'Other Safety Equipment',
+  LIFTING: 'Lifting & Mooring',
+};
+
+/** Short form, for chips and report titles where the full name will not fit. */
+export const GROUP_SHORT: Record<Group, string> = {
+  LSA: 'LSA',
+  FFE: 'FFE',
+  OTHER: 'Other',
+  LIFTING: 'Lifting',
+};
+
+export const CATEGORIES: CategoryMeta[] = [
+  ...BUILT_IN,
+  // Dark until the module is switched on — see constants/modules.ts.
+  ...(moduleOn('lifting') ? LIFTING_CATEGORIES : []),
+];
 
 export const CATEGORY_MAP: Record<CategoryKey, CategoryMeta> = CATEGORIES.reduce(
   (acc, c) => {
@@ -146,10 +190,53 @@ export function isVesselCategory(key: CategoryKey): boolean {
  */
 export function setVesselCategories(list: CategoryMeta[]): void {
   const own = list.filter((c) => isVesselCategory(c.key));
+  // Rows whose key is a BUILT-IN one are not new categories, they are the
+  // vessel's changes to a category the app ships: a name in the words the SMS
+  // uses, a different icon, or hidden because the ship does not carry it.
+  const changes = new Map(list.filter((c) => !isVesselCategory(c.key)).map((c) => [c.key, c]));
   CATEGORIES.length = 0;
-  CATEGORIES.push(...BUILT_IN, ...own);
+  const shipped = [...BUILT_IN, ...(moduleOn('lifting') ? LIFTING_CATEGORIES : [])];
+  CATEGORIES.push(...shipped.map((b) => applyVesselChange(b, changes.get(b.key))), ...own);
   for (const k of Object.keys(CATEGORY_MAP)) delete CATEGORY_MAP[k];
   for (const c of CATEGORIES) CATEGORY_MAP[c.key] = c;
+}
+
+/**
+ * A built-in category as this vessel has it.
+ *
+ * `sheet` is deliberately NOT taken from the change. The importer matches a
+ * workbook's tabs by that name and the blank template writes them from it, so
+ * renaming "Lifebuoys" to "Lifebuoys (port side)" would leave every existing
+ * spreadsheet importing into nothing. The vessel's name is what people read;
+ * the sheet name is a key, and keys do not get renamed.
+ */
+function applyVesselChange(builtIn: CategoryMeta, change?: CategoryMeta): CategoryMeta {
+  if (!change) return builtIn;
+  return {
+    ...builtIn,
+    label: change.label?.trim() || builtIn.label,
+    short: change.short?.trim() || change.label?.trim() || builtIn.short,
+    icon: change.icon || builtIn.icon,
+    group: change.group ?? builtIn.group,
+    hidden: change.hidden,
+    updatedAt: change.updatedAt,
+  };
+}
+
+/**
+ * The categories to SHOW — everything the vessel has not switched off.
+ *
+ * Every screen and every report asks for this; only storage walks `CATEGORIES`
+ * itself, because a hidden category still has items that must be loaded, synced
+ * and kept.
+ */
+export function visibleCategories(): CategoryMeta[] {
+  return CATEGORIES.filter((c) => !c.hidden);
+}
+
+/** Is this category switched off for this vessel? */
+export function isHiddenCategory(key: CategoryKey): boolean {
+  return !!CATEGORY_MAP[key]?.hidden;
 }
 
 export function categoriesByGroup(group: Group): CategoryMeta[] {

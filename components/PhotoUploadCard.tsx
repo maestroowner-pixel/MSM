@@ -9,6 +9,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 import { Card, Label } from './ui';
 import { MciIcon } from './MciIcon';
@@ -16,6 +17,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
 import * as photoQueue from '../services/photoQueue';
+import { RETENTION_DAYS, photosAwaitingArchive } from '../services/photoArchive';
 import { uploadAllowance, FREE_UPLOADS_PER_VESSEL } from '../services/trial';
 import { uploadsUsedFor } from '../services/firebaseService';
 
@@ -24,7 +26,18 @@ const POLICIES: photoQueue.UploadPolicy[] = ['wifi', 'always', 'never'];
 export function PhotoUploadCard() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { prefs, setPrefs, vessel } = useData();
+  const nav = useNavigation<any>();
+  const { prefs, setPrefs, vessel, inspections: trail, photoArchive } = useData();
+  /**
+   * Photographs past the 90-day window that the vessel has not archived — the
+   * ones whose only copies are the cloud and whichever handset took them. The
+   * number is the whole reason the row is here: the retention rule is easy to
+   * agree to and easy to forget, and forgetting it costs evidence.
+   */
+  const awaitingArchive = useMemo(
+    () => photosAwaitingArchive(trail, photoArchive),
+    [trail, photoArchive]
+  );
   const policy = prefs.photoUpload ?? 'wifi';
 
   const [waiting, setWaiting] = useState(0);
@@ -125,12 +138,45 @@ export function PhotoUploadCard() {
               'taken and kept here, and everything waiting goes up on the first sync after the vessel is licensed.'}
         </Text>
       ) : null}
+
+      {/* The archive, from where the photographs are. A row rather than a
+          separate card in Settings: "how photos leave the ship" and "how long
+          they stay off it" are one subject, and splitting them is how a vessel
+          ends up with a bucket nobody has ever archived. */}
+      <TouchableOpacity style={styles.archiveRow} onPress={() => nav.navigate('PhotoArchive')}>
+        <MciIcon
+          name={awaitingArchive ? 'archive-alert-outline' : 'archive-check-outline'}
+          size={18}
+          color={awaitingArchive ? COLORS.warning : COLORS.textLight}
+        />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.archiveTitle}>Photo archive</Text>
+          <Text style={styles.note}>
+            {awaitingArchive
+              ? `${awaitingArchive} photograph${awaitingArchive === 1 ? '' : 's'} older than ` +
+                `${RETENTION_DAYS} days are not archived yet`
+              : `Cloud storage keeps photographs for ${RETENTION_DAYS} days; older ones are kept by the vessel`}
+          </Text>
+        </View>
+        <Text style={styles.chev}>›</Text>
+      </TouchableOpacity>
     </Card>
   );
 }
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
+    archiveRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SIZES.sm,
+      marginTop: SIZES.md,
+      paddingTop: SIZES.md,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: COLORS.border,
+    },
+    archiveTitle: { fontSize: SIZES.h5, color: COLORS.textDark, fontWeight: '600' },
+    chev: { fontSize: SIZES.h5, color: COLORS.textLight, fontWeight: '700' },
     note: { color: COLORS.textLight, fontSize: SIZES.small, paddingTop: SIZES.sm, lineHeight: 16 },
     row: { flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.md },
     chip: {

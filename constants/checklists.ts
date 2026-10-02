@@ -21,6 +21,8 @@
 
 import { CategoryKey } from '../types/equipment';
 import { InspectionPeriod } from '../types/inspection';
+import { moduleOn } from './modules';
+import { LIFTING_CHECKLISTS } from './lifting';
 
 export interface ChecklistLine {
   /** Permanent within a template — see the header. */
@@ -41,6 +43,38 @@ export interface ChecklistTemplate {
   lines: ChecklistLine[];
   /** Set only on vessel templates — the merge key when two devices edited one. */
   updatedAt?: number;
+
+  /**
+   * THE ROUND IS SWITCHED OFF for this category (Sep 2026).
+   *
+   * Asked for by a vessel: some equipment is checked weekly, some monthly, some
+   * quarterly, and a schedule that owes every category every round it has a
+   * checklist for reads as a permanent backlog — the one thing that stops an
+   * officer trusting the colours. So a Master or Officer may say, per category,
+   * which frequencies this ship actually works to.
+   *
+   * A row rather than a deletion, and that is the whole reason it is a FIELD on
+   * the template instead of a separate list: templates sync by union of ids
+   * (`mergeTemplates`), so a row deleted on the bridge comes back from the vessel
+   * on the next pull. A tombstone carries the decision to the other devices and
+   * can be undone.
+   *
+   * It changes nothing that was signed. Records already on file keep their
+   * period and still print; what stops is the round being OFFERED and being
+   * EXPECTED — the report no longer counts those items as missed.
+   */
+  off?: boolean;
+
+  /**
+   * The vessel withdrew its own wording; the built-in checklist is in force again.
+   *
+   * Kept beside `off` rather than folded into it because the two are independent:
+   * a vessel can word a monthly round, switch the round off for a while, and
+   * switch it back on expecting its own words to return. Same tombstone reason as
+   * `off` — "use the standard again" used to delete the row and the next pull
+   * restored it.
+   */
+  standard?: boolean;
 }
 
 /**
@@ -330,7 +364,7 @@ export function genericTemplate(category: CategoryKey, period: InspectionPeriod)
     version: 1,
     category,
     period,
-    title: period === 'weekly' ? 'General check — weekly' : 'General check — monthly',
+    title: `General check — ${period}`,
     lines: [
       ...STOWAGE,
       { id: 'condition', text: 'Undamaged, clean and serviceable' },
@@ -340,9 +374,101 @@ export function genericTemplate(category: CategoryKey, period: InspectionPeriod)
   };
 }
 
-const BY_ID = new Map(CHECKLISTS.map((c) => [c.id, c]));
+/**
+ * Every template this build knows, the module's included when it is switched on
+ * (constants/modules.ts). `CHECKLISTS` stays the list the app ships for its own
+ * categories, so nothing that reads it has to care about modules.
+ */
+const ALL_CHECKLISTS: ChecklistTemplate[] = [
+  ...CHECKLISTS,
+  ...(moduleOn('lifting') ? LIFTING_CHECKLISTS : []),
+];
 
-/** Every period this category has a written checklist for, weekly first. */
+const BY_ID = new Map(ALL_CHECKLISTS.map((c) => [c.id, c]));
+
+/** The frequencies a category may owe, in the order they are offered. */
+export const PERIOD_ORDER: InspectionPeriod[] = ['weekly', 'monthly', 'quarterly', 'annual'];
+
+/**
+ * The vessel's newest row for one (category, period) — the one in force.
+ *
+ * Two devices can each have written one before they ever met, and the merge
+ * settles on the later `updatedAt`; reading the same way here means the screen
+ * and the merge never disagree about which row is current.
+ */
+export function vesselRow(
+  category: CategoryKey,
+  period: InspectionPeriod,
+  vessel: ChecklistTemplate[] = []
+): ChecklistTemplate | undefined {
+  return vessel
+    .filter((t) => t.category === category && t.period === period)
+    .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0];
+}
+
+/** What one frequency comes to for one category, once the vessel has had its say. */
+export interface Round {
+  period: InspectionPeriod;
+  /** The checklist a round of this period would use. */
+  template: ChecklistTemplate;
+  /** False when the vessel switched this frequency off (`ChecklistTemplate.off`). */
+  on: boolean;
+  /** True when this round exists only because the vessel added it. */
+  added: boolean;
+  /** True when the wording in force is the vessel's own. */
+  own: boolean;
+}
+
+/**
+ * Every frequency this category could owe, switched on or off — the model behind
+ * both the Checklists screen and "which rounds does this item have".
+ *
+ * A period appears at all when the app ships a checklist for it OR the vessel
+ * wrote one; `on` then says whether this ship works to it. Nothing here consults
+ * the trail: what a category owes is a decision, not a consequence of what has
+ * been done.
+ */
+export function roundsFor(category: CategoryKey, vessel: ChecklistTemplate[] = []): Round[] {
+  const out: Round[] = [];
+  for (const period of PERIOD_ORDER) {
+    const row = vesselRow(category, period, vessel);
+    const builtIn = BY_ID.get(`${category}.${period}`);
+    if (!row && !builtIn) continue;
+    // A withdrawn wording with no built-in underneath leaves nothing to offer —
+    // the round was the vessel's own and it took it away.
+    if (row?.standard && !builtIn) continue;
+    // A row written only to switch a round off carries no lines (see the Checklists
+    // screen), so it is a decision about the round and not a wording of it.
+    const own = !!row && !row.standard && !!row.lines?.length;
+    if (!own && !builtIn) continue;
+    out.push({
+      period,
+      template: (own ? row : builtIn) ?? genericTemplate(category, period),
+      on: !row?.off,
+      added: !builtIn,
+      own,
+    });
+  }
+  // A category nobody has written a checklist for — one the vessel added itself —
+  // still owes the generic monthly round, because a category that can hold
+  // equipment must be inspectable. Switching it off writes a row, and the loop
+  // above then finds it like any other.
+  if (!out.length) {
+    out.push({
+      period: 'monthly',
+      template: genericTemplate(category, 'monthly'),
+      on: true,
+      added: false,
+      own: false,
+    });
+  }
+  return out;
+}
+
+/**
+ * The checklists in force for a category, weekly first. Rounds the vessel
+ * switched off are NOT here — nothing should offer a round the ship does not owe.
+ */
 export function templatesFor(
   category: CategoryKey,
   vessel: ChecklistTemplate[] = []
@@ -351,18 +477,21 @@ export function templatesFor(
   // than sitting beside it: two checklists offered for one monthly round is a
   // question about which one the round means, and the officer on deck is the
   // worst placed person to answer it.
-  const own = vessel.filter((t) => t.category === category);
-  const overridden = new Set(own.map((t) => t.period));
-  return [...own, ...CHECKLISTS.filter((c) => c.category === category && !overridden.has(c.period))];
+  return roundsFor(category, vessel).filter((r) => r.on).map((r) => r.template);
 }
 
-/** The periods offered for a category — always at least monthly, via the fallback. */
+/**
+ * The periods a category owes.
+ *
+ * Empty is a legitimate answer since a vessel can switch its rounds off — an
+ * inventory it keeps and checks off by hand rather than on a schedule. It used to
+ * fall back to `['monthly']`, which would now silently overrule the Master.
+ */
 export function periodsFor(
   category: CategoryKey,
   vessel: ChecklistTemplate[] = []
 ): InspectionPeriod[] {
-  const own = templatesFor(category, vessel).map((c) => c.period);
-  return own.length ? own : ['monthly'];
+  return roundsFor(category, vessel).filter((r) => r.on).map((r) => r.period);
 }
 
 /**
@@ -374,11 +503,12 @@ export function templateFor(
   period: InspectionPeriod,
   vessel: ChecklistTemplate[] = []
 ): ChecklistTemplate {
-  const own = vessel
-    .filter((t) => t.category === category && t.period === period)
-    // Two devices can each have written one before they ever met. Newest wins,
-    // which is the same rule the merge uses, so both sides settle the same way.
-    .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0];
+  // Newest wins between two devices' rows — the same rule the merge uses, so both
+  // sides settle the same way. A row that only withdrew the vessel's wording
+  // (`standard`) or switched the round off is not a checklist: the words to ask
+  // then come from the built-in underneath.
+  const row = vesselRow(category, period, vessel);
+  const own = row && !row.standard && row.lines?.length ? row : undefined;
   return own ?? BY_ID.get(`${category}.${period}`) ?? genericTemplate(category, period);
 }
 

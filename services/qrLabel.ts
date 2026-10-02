@@ -483,8 +483,17 @@ export function labelLines(item: EquipmentItem): { strong: string[]; weak: strin
     strong.push(`${what}: ${formatDate(date)}`);
   }
 
+  // Lifting gear: the SWL is the number a person needs off the sticker before
+  // they use it, so it sits with the compliance date rather than below the fold,
+  // and the colour code goes with it because that is how the crew tells one
+  // strop from the next on deck. Asked for by a vessel (29 Sep 2026): the first
+  // few columns of their register are the identification, and those are what
+  // belongs on the label.
+  if (item.swl) strong.push(`SWL: ${item.swl}`);
+
   const weak: string[] = [];
   if (meta?.label) weak.push(meta.label);
+  if (item.marking) weak.push(item.marking);
   const location = itemLocation(item);
   if (location) weak.push(location);
   // Liferafts carry a capacity, and it is the one number a person wants off the

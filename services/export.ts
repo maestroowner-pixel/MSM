@@ -8,7 +8,7 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as XLSX from 'xlsx';
 import JSZip from 'jszip';
-import { CategoryKey, EquipmentItem } from '../types/equipment';
+import { CategoryKey, EquipmentItem, Group } from '../types/equipment';
 import { Certificate } from '../types/certificate';
 import { CATEGORIES, CATEGORY_MAP, CategoryMeta, GROUP_COLORS, sheetSafeName } from '../constants/categories';
 import { complianceDate, computeStatus, formatDate, fileDateStamp } from '../utils/dates';
@@ -148,12 +148,15 @@ export function esc(s: any): string {
 export async function exportPdf(
   byCategory: Record<CategoryKey, EquipmentItem[]>,
   vessel: VesselInfo | null,
-  only?: CategoryKey[]
+  only?: CategoryKey[],
+  /** Printed after the title — e.g. "Due within 12 months". */
+  note?: string
 ): Promise<void> {
   if (onWindows) throw new Error('PDF export is not available on Windows — use XLSX or a .msm backup.');
   const groups = selectedCategories(byCategory, only);
   if (!groups.length) throw new Error('No items to export.');
-  const title = only && only.length === 1 ? CATEGORY_MAP[only[0]].label : 'Safety Equipment Register';
+  const base = only && only.length === 1 ? CATEGORY_MAP[only[0]].label : 'Safety Equipment Register';
+  const title = note ? `${base} — ${note}` : base;
   if (onWeb) {
     // Generate a real .pdf file client-side (jsPDF) and download it — no print
     // dialog. (printHtmlWeb / buildHtml remain for printReport.)
@@ -186,12 +189,14 @@ export async function exportPdf(
 export async function printReport(
   byCategory: Record<CategoryKey, EquipmentItem[]>,
   vessel: VesselInfo | null,
-  only?: CategoryKey[]
+  only?: CategoryKey[],
+  note?: string
 ): Promise<void> {
   if (onWindows) throw new Error('Printing is not available on Windows.');
   const groups = selectedCategories(byCategory, only);
   if (!groups.length) throw new Error('No items to print.');
-  const title = only && only.length === 1 ? CATEGORY_MAP[only[0]].label : 'Safety Equipment Register';
+  const base = only && only.length === 1 ? CATEGORY_MAP[only[0]].label : 'Safety Equipment Register';
+  const title = note ? `${base} — ${note}` : base;
   const html = buildHtml(groups, vessel, title);
   if (onWeb) {
     printHtmlWeb(html);
@@ -203,12 +208,16 @@ export async function printReport(
 export async function exportXlsx(
   byCategory: Record<CategoryKey, EquipmentItem[]>,
   vessel: VesselInfo | null,
-  only?: CategoryKey[]
+  only?: CategoryKey[],
+  note?: string
 ): Promise<void> {
   const groups = selectedCategories(byCategory, only);
   if (!groups.length) throw new Error('No items to export.');
   const today = formatDate(new Date().toISOString().slice(0, 10));
-  const header = vesselHeader(vessel);
+  // The note rides in the vessel header line, which sits above the column
+  // headings — so a filtered sheet says on its face that it is filtered, and the
+  // importer still reads it as an update (those rows classify as data).
+  const header = note ? `${vesselHeader(vessel)} — ${note}` : vesselHeader(vessel);
   const wb = XLSX.utils.book_new();
   const colours: string[] = [];
   for (const g of groups) {
@@ -406,7 +415,48 @@ const PERSONS_CATS = new Set<CategoryKey>([
   'liferafts', 'lifejackets', 'immersion_suits', 'inflatable_lifejackets',
 ]);
 
+/**
+ * The Lifting & Mooring columns, in the order the vessel's own register has them
+ * (design/jez-lifting-register.tsv, sent 29 Sep 2026).
+ *
+ * THE FIRST FIVE ARE THE IDENTITY, and that is the vessel's decision, not a
+ * layout choice: "I have prioritised the first four or five columns as the key
+ * identification information". They are what the item screen leads with and what
+ * goes on the label. The rest is technical, certification and inspection detail.
+ *
+ * The headings are the vessel's own words, so the register they already keep
+ * imports without being retyped — every one of them is matched by
+ * excelImport's patterns.
+ */
+const LIFTING_COLUMNS = [
+  // identity
+  'Equipment Name',
+  'Location',
+  'Manufacturer',
+  'Equipment / Serial Number',
+  'ID / Markings / Whipping',
+  // rating
+  'Safe Working Load (SWL)',
+  'Min. Breaking Load (kN)',
+  'Size / Length (m)',
+  'Diameter (mm)',
+  'Material',
+  // certification
+  'Manufacturer Test Certificate Number',
+  'Annual test certificate number',
+  // dates
+  'Date Installed / renewed',
+  'Last Annual inspection',
+  'Next Annual inspection',
+  'Expiry',
+  'Comments',
+];
+
 function templateColumns(meta: CategoryMeta): string[] {
+  // A lifting register asks different questions from a lifejacket's, and a sheet
+  // where two thirds of the columns never apply is a sheet nobody fills in.
+  if (meta.group === 'LIFTING') return [...LIFTING_COLUMNS];
+
   // The vessel's own list reads "# · Deck · Location · Description · Make · Type ·
   // Size · Serial" — so does the template, and every heading maps back on import.
   const cols = ['No', 'Type', 'Make', 'Size', 'Serial', 'Deck', 'Location'];
@@ -461,11 +511,18 @@ async function paintTabs(b64: string, colours: string[]): Promise<string> {
   }
 }
 
-/** Build and share a blank .xlsx import template (one sheet per category). */
-export async function exportTemplate(): Promise<void> {
+/**
+ * Build and share a blank .xlsx import template (one sheet per category).
+ *
+ * `group` narrows it to one register. The vessel asked for the lifting module to
+ * have its own workbook rather than more columns bolted onto the LSA/FFE one,
+ * and was right: the two have almost no columns in common, so one book would be
+ * mostly blank whichever half you were filling in.
+ */
+export async function exportTemplate(group?: Group): Promise<void> {
   const wb = XLSX.utils.book_new();
   const colours: string[] = [];
-  for (const meta of CATEGORIES) {
+  for (const meta of CATEGORIES.filter((c) => (group ? c.group === group : c.group !== 'LIFTING'))) {
     // A category with no source worksheet (Other Safety Equipment) gets a sheet
     // named after its label — the importer matches on the label as well as on
     // the sheet name, which is how an exported register already comes back. It
@@ -482,7 +539,7 @@ export async function exportTemplate(): Promise<void> {
   }
   const plain = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
   const b64 = await paintTabs(plain, colours);
-  const fileName = `MSM_Import_Template.xlsx`;
+  const fileName = group === 'LIFTING' ? 'MSM_Lifting_Template.xlsx' : 'MSM_Import_Template.xlsx';
   await deliverFile(fileName, b64, true, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 

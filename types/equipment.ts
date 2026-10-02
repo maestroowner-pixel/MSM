@@ -34,7 +34,7 @@ export type BuiltInCategoryKey =
 /** A built-in key, or one a vessel invented (`v_…`). */
 export type CategoryKey = BuiltInCategoryKey | (string & {});
 
-export type Group = 'LSA' | 'FFE' | 'OTHER';
+export type Group = 'LSA' | 'FFE' | 'OTHER' | 'LIFTING';
 
 /** A photo or document attached directly to a single equipment item. */
 export interface Attachment {
@@ -61,6 +61,40 @@ export interface EquipmentItem {
   nextInspection?: string; // ISO — primary compliance date
   expiry?: string; // ISO — battery/light/pyro/bottle expiry
   remarks?: string; // shown as "Comments" — the stored key is kept so no data migrates
+
+  // ---- Lifting & Mooring ---------------------------------------------------
+  //
+  // Typed rather than left in `extra{}`, because a vessel asked for exactly that
+  // (29 Sep 2026) and was right to: a register kept in free-text columns cannot
+  // drive a reminder, cannot be printed on a label and cannot be searched. They
+  // are optional and mean nothing to a lifejacket, which costs a lifejacket
+  // nothing — the item model has always been one shape for every category
+  // rather than twenty-five rigid ones.
+  //
+  // Loads are STRINGS, deliberately. The vessel's own register reads "22 kN",
+  // "140kg", "9.9 t", "2200kg", "3 T" and "31 -37 KN" in one column, because
+  // that is how the gear is marked. Normalising to newtons would print a figure
+  // that is not on the sling, and an inspector compares the label with the
+  // marking, not with our arithmetic.
+
+  /** Safe working load, as marked: "22 kN", "9.9 t", "2200kg". */
+  swl?: string;
+  /** Minimum breaking load, as marked. Often the same as `swl` on rope. */
+  mbl?: string;
+  /** Rope or wire diameter, as marked: "11mm", "44". */
+  diameter?: string;
+  /** "Polyester / nylon", "Galvanised steel". */
+  material?: string;
+  /** Colour code, whipping or tag by which the crew identifies it on deck. */
+  marking?: string;
+  /** The maker's test certificate number. */
+  mfrCertNo?: string;
+  /** The current annual / periodic test certificate number. */
+  testCertNo?: string;
+  /** ISO — put into service or renewed. */
+  installedDate?: string;
+  /** ISO — the last annual inspection or thorough examination. */
+  lastInspection?: string;
   extra?: Record<string, any>; // category-specific columns
   monthlyChecks?: Record<string, boolean>; // e.g. { "2025-07": true } for checklist sheets
   attachments?: Attachment[]; // photos / documents attached to this item

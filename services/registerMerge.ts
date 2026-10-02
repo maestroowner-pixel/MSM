@@ -144,6 +144,36 @@ export function mergeById<T extends Keyed>(base: T[], mine: T[], theirs: T[]): T
 }
 
 /**
+ * One item, one category — after the buckets have been merged separately.
+ *
+ * `mergeById` runs per category, and cannot see across them. That is fine until
+ * an item MOVES (services/storage `moveItem`): the move is a deletion from one
+ * bucket and an insertion into another, and if the other device edited that item
+ * in its old category before hearing about the move, the deletion is out-voted by
+ * the edit and the item survives in both. Two rows, one id, two categories — the
+ * grid shows it twice and neither copy is wrong on its own.
+ *
+ * The newest `updatedAt` wins, which is the move: it stamps the item on its way
+ * across, so a move beats an edit made before it and loses to one made after.
+ */
+function dedupeAcrossCategories(
+  categories: Record<string, EquipmentItem[]>
+): Record<string, EquipmentItem[]> {
+  const best = new Map<string, { key: string; at: number }>();
+  for (const [key, items] of Object.entries(categories)) {
+    for (const it of items) {
+      const seen = best.get(it.id);
+      if (!seen || (it.updatedAt ?? 0) > seen.at) best.set(it.id, { key, at: it.updatedAt ?? 0 });
+    }
+  }
+  const out: Record<string, EquipmentItem[]> = {};
+  for (const [key, items] of Object.entries(categories)) {
+    out[key] = items.filter((it) => best.get(it.id)?.key === key);
+  }
+  return out;
+}
+
+/**
  * Merge the whole register. Items and certificates merge by id; the vessel
  * details and the compressor log are single records, so they are taken from
  * this device when it changed them and from the vessel otherwise.
@@ -166,7 +196,7 @@ export function mergeRegister(
       : theirs.categories?.[k] ?? [];
   }
   return {
-    categories,
+    categories: dedupeAcrossCategories(categories),
     vessel_info: changedHere.vessel_info ? mine.vessel_info : theirs.vessel_info ?? mine.vessel_info,
     certificates: changedHere.certificates
       ? mergeById(base.certificates ?? [], mine.certificates ?? [], theirs.certificates ?? [])
@@ -230,4 +260,40 @@ export function decidePush(
   if (!base) return itemCount(cloud) > 0 ? 'skip' : 'write';
   if (!anyChanged(changedParts(local, base.local))) return 'skip';
   return cloudAt === base.cloudAt ? 'write' : 'conflict';
+}
+
+// ---- Buckets this build cannot name ------------------------------------------
+//
+// A build knows a fixed set of categories: the built-ins, plus the vessel's own
+// once the categories collection has been read, plus a module's if that module is
+// switched on (constants/modules.ts). The REGISTER, though, is one document for
+// the whole vessel, and the other devices may know more categories than this one
+// does — a module on where this build has it off, a vessel category created an
+// hour ago and not yet received.
+//
+// Those buckets must survive a round trip through this device untouched. It never
+// draws them, never merges them item by item and never asks what is in them; it
+// only refuses to claim they do not exist. Leaving them out of an outgoing
+// register is indistinguishable from deleting them, and the next device to pull
+// deletes them for everybody.
+
+/** Bucket keys in a pulled register that this build has no heading for. */
+export function foreignKeys(known: string[], blob: RegisterParts): string[] {
+  const k = new Set(known);
+  return Object.keys(blob.categories ?? {})
+    .filter((key) => !k.has(key) && (blob.categories?.[key]?.length ?? 0) > 0)
+    .sort();
+}
+
+/**
+ * The register this device sends: its own buckets, with the unnameable ones
+ * carried through. `own` wins on any key it holds — a bucket this build CAN read
+ * is its own business, and a stale copy must never shadow it.
+ */
+export function outgoingRegister(own: RegisterParts, foreign: Record<string, EquipmentItem[]>): RegisterParts {
+  const categories: Record<string, EquipmentItem[]> = { ...(own.categories ?? {}) };
+  for (const [key, items] of Object.entries(foreign)) {
+    if (categories[key] === undefined) categories[key] = items;
+  }
+  return { ...own, categories };
 }

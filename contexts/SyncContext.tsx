@@ -36,6 +36,7 @@ import * as enrolment from '../services/enrolment';
 import * as trial from '../services/trial';
 import { adoptVesselLicence, revalidateLicence } from '../services/purchases';
 import { DEFAULT_POLICY, newerPolicy } from '../services/signingPolicy';
+import { DEFAULT_ARCHIVE, newerArchive } from '../services/photoArchive';
 import { EnrolledDevice, Role } from '../types/role';
 import * as accounts from '../services/accounts';
 import { useData } from './DataContext';
@@ -111,7 +112,7 @@ const PUSH_DEBOUNCE_MS = 1500;
 const TRAIL_WINDOW_DAYS = 400;
 
 export function SyncProvider({ children }: { children: React.ReactNode }) {
-  const { flat, certificates, vessel, compressor, inspections: trail, crew, prefs, reload, setSigningPolicy } = useData();
+  const { flat, certificates, vessel, compressor, inspections: trail, crew, prefs, reload, setSigningPolicy, setPhotoArchive } = useData();
 
   const [status, setStatus] = useState<SyncStatus>('off');
   const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
@@ -371,6 +372,27 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         })
       );
 
+      // What the vessel has archived, and what the nightly sweep last did
+      // (services/photoArchive.ts). Settled exactly like the rule above, with one
+      // difference: the SWEEP writes here too, from the server, so even a Master's
+      // device must take a remote copy that is newer than its own rather than
+      // pushing back over it — `newerArchive` does that for both sides.
+      unsubs.current.push(
+        fb.subscribePhotoArchive(uid, async (remote) => {
+          const local = await storage.loadPhotoArchive();
+          const next = newerArchive(local, remote);
+          if (JSON.stringify(next) !== JSON.stringify(local ?? DEFAULT_ARCHIVE)) await setPhotoArchive(next);
+          const master = (await fb.claimedRole()) === 'superadmin';
+          if (master && local && local.updatedAt > (remote?.updatedAt ?? 0)) {
+            try {
+              await fb.savePhotoArchive(uid, local);
+            } catch (e: any) {
+              console.warn('[sync] photo archive not sent:', e?.message ?? e);
+            }
+          }
+        })
+      );
+
       unsubs.current.push(
         fb.subscribeCrew(uid, async (rows) => {
           if (!rows.length) return;
@@ -403,7 +425,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         })
       );
     },
-    [detach, reload, setSigningPolicy]
+    [detach, reload, setSigningPolicy, setPhotoArchive]
   );
 
   const connect = useCallback(async () => {

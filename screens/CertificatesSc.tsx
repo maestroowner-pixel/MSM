@@ -5,7 +5,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Image, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Screen, StatusPill, Empty, statusColor, Glyph } from '../components/ui'
+import { Screen, StatusPill, Empty, statusColor } from '../components/ui'
 import { HelpButton } from '../components/HelpButton';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
@@ -101,7 +101,7 @@ export default function CertificatesSc() {
                 onPress={() => nav.navigate('CertificateDetail', { id: item.id })}
               >
                 <View style={[styles.bar, { backgroundColor: statusColor(status) }]} />
-                <View style={{ marginRight: SIZES.sm }}><Glyph emoji="📜" size={22} /></View>
+                <View style={{ marginRight: SIZES.sm }}><MciIcon name="certificate" size={22} /></View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowTitle} numberOfLines={1}>
                     {item.name || 'Untitled certificate'}

@@ -66,8 +66,8 @@ function basenameOf(uri?: string): string | null {
 function summarize(b: BackupFile): BackupSummary {
   let items = 0;
   let categories = 0;
-  for (const c of CATEGORIES) {
-    const n = b.categories[c.key]?.length ?? 0;
+  for (const list of Object.values(b.categories ?? {})) {
+    const n = list?.length ?? 0;
     items += n;
     if (n > 0) categories++;
   }
@@ -96,8 +96,8 @@ function collectFileUris(
     const r = resolveUri(uri);
     if (r?.startsWith(ATTACHMENTS_DIR)) uris.add(r);
   };
-  for (const c of CATEGORIES) {
-    for (const it of categories[c.key] ?? []) {
+  for (const items of Object.values(categories ?? {})) {
+    for (const it of items ?? []) {
       for (const att of it.attachments ?? []) add(att.uri);
     }
   }
@@ -110,7 +110,9 @@ function collectFileUris(
 
 /** Gather everything + embedded files, then write+share a .msm file. */
 export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSummary> {
-  const categories = await storage.loadAll();
+  // Every bucket, including any this build cannot name — a backup that drops a
+  // module's categories restores as a deletion. See storage.loadAllWithForeign.
+  const categories = await storage.loadAllWithForeign();
   const certificates = await storage.loadCertificates();
   const compressor = await storage.loadCompressor();
   const inspections = await storage.loadInspections();
@@ -256,14 +258,22 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     return (base && restored.get(base)) || uri;
   };
 
-  for (const c of CATEGORIES) {
-    const items = (backup.categories[c.key] ?? []).map((it) =>
+  // The registry AND whatever the file carries: a backup taken on a build that
+  // knew more categories than this one restores whole, and the extra buckets are
+  // recorded so this device forwards them instead of deleting them.
+  const known = CATEGORIES.map((c) => String(c.key));
+  const keys = new Set<string>([...known, ...Object.keys(backup.categories ?? {})]);
+  const foreign: string[] = [];
+  for (const key of keys) {
+    const items = ((backup.categories as Record<string, EquipmentItem[]>)[key] ?? []).map((it) =>
       it.attachments?.length
         ? { ...it, attachments: it.attachments.map((a) => ({ ...a, uri: relink(a.uri) ?? a.uri })) }
         : it
     );
-    await storage.replaceCategory(c.key, items);
+    await storage.replaceCategory(key as CategoryKey, items);
+    if (!known.includes(key) && items.length) foreign.push(key);
   }
+  await storage.saveForeignCategories(foreign);
 
   const certs = (backup.certificates ?? []).map((cert) =>
     cert.fileUri ? { ...cert, fileUri: relink(cert.fileUri) } : cert

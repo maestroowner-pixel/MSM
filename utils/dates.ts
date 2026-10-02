@@ -117,6 +117,24 @@ export function complianceDate(item: EquipmentItem): string | undefined {
   return item[primary] ?? item.nextInspection ?? item.expiry;
 }
 
+/**
+ * Is this item due within the next `days`, or already overdue?
+ *
+ * For the report a vessel prepares an annual inspection from. Asked for in these
+ * words (30 Sep 2026): "it would be useful to be able to see equipment coming due
+ * within our next annual inspection period, rather than only once it reaches its
+ * exact due date. This would help us bring equipment forward where appropriate
+ * and keep as much of the vessel's annual certification harmonised as possible."
+ *
+ * Overdue counts as due — it is the first thing that belongs on that list. An
+ * item with no date at all does not: it is not coming due, it is unrecorded, and
+ * putting it here would bury the ones that are.
+ */
+export function dueWithinDays(item: EquipmentItem, days: number): boolean {
+  const d = daysUntil(complianceDate(item));
+  return d != null && d <= days;
+}
+
 /** Compliance status from any expiry/inspection ISO date. */
 export function statusFromDate(iso?: string): ComplianceStatus {
   const d = daysUntil(iso);

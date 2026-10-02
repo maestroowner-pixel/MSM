@@ -29,6 +29,7 @@ import { signatureLine } from '../types/crew';
 import { CATEGORY_MAP } from '../constants/categories';
 import { ChecklistTemplate, periodsFor } from '../constants/checklists';
 import * as inspections from './inspections';
+import { signoffFor } from './inspections';
 import { defectReason } from './inspections';
 import { VesselInfo } from './storage';
 import { esc, share, vesselHeader } from './export';
@@ -100,6 +101,7 @@ const SCOPE_LABEL: Record<ReportScope, string> = {
   LSA: 'LSA',
   FFE: 'FFE',
   OTHER: 'Other equipment',
+  LIFTING: 'Lifting & Mooring',
 };
 
 /**
@@ -134,6 +136,10 @@ export function buildReport(
   const inScope = flat.filter((it) => {
     const meta = CATEGORY_MAP[it.category];
     if (!meta) return false;
+    // A category the vessel has switched off is not owed a round, so its items
+    // are neither counted nor listed as "not inspected" — otherwise hiding the
+    // clutter would leave the report reading as permanently incomplete.
+    if (meta.hidden) return false;
     if (opts.scope !== 'ALL' && meta.group !== opts.scope) return false;
     if (only && !only.has(it.category)) return false;
     return periodsFor(it.category, opts.templates ?? []).includes(opts.period);
@@ -202,6 +208,13 @@ function isoWeek(d: Date): number {
 
 export function periodNameFor(period: InspectionPeriod, from: number, to: number): string {
   const a = new Date(from);
+  if (period === 'annual') return String(a.getFullYear());
+  // "Q3 2026 · Jul–Sep": the quarter is what the SMS and the superintendent call
+  // it, the months are what anyone reading the file wants to see.
+  if (period === 'quarterly') {
+    const q = Math.floor(a.getMonth() / 3);
+    return `Q${q + 1} ${a.getFullYear()} · ${MON[q * 3]}–${MON[q * 3 + 2]}`;
+  }
   if (period !== 'weekly') return `${MONTH_NAMES[a.getMonth()]} ${a.getFullYear()}`;
   const b = new Date(to - 1);
   const dd = (x: Date) => String(x.getDate()).padStart(2, '0');
@@ -432,6 +445,9 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
       .key { margin-top: 10px; font-size: 9px; color: #7F8C8D; }
       .sign { margin-top: 22px; font-size: 10px; color: #2C3E50; }
       .sign .line { display: inline-block; border-bottom: 1px solid #2C3E50; width: 220px; margin: 0 24px 0 6px; }
+      /* A filled sign-off needs breathing room where the rule used to be. */
+      .sign .gap { display: inline-block; width: 34px; }
+      .signnote { margin-top: 3px; font-size: 8.5px; color: #7F8C8D; }
     </style></head>
     <body>
       <h1>${esc(data.title)}</h1>
@@ -474,9 +490,23 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
         ? `<div class="key">Initials: ${key.map((k) => `${esc(k.initials)} = ${esc(k.name)}`).join(' · ')}</div>`
         : ''}
 
-      <div class="sign">
+      ${(() => {
+        const so = signoffFor(data);
+        // Blank lines when nothing was signed — an empty report is filled in by
+        // hand or not at all, and a printed name with nothing behind it would be
+        // the one thing this report must never contain.
+        if (so.blank) {
+          return `<div class="sign">
         Checked by:<span class="line"></span>Rank:<span class="line"></span>Date:<span class="line"></span>
+      </div>`;
+        }
+        return `<div class="sign">
+        Checked by: <b>${esc(so.names)}</b>${
+          so.rank ? `<span class="gap"></span>Rank: <b>${esc(so.rank)}</b>` : ''
+        }<span class="gap"></span>Date: <b>${esc(so.date)}</b>
       </div>
+      <div class="signnote">Taken from the signatures on the inspections in this report.</div>`;
+      })()}
     </body></html>`;
 }
 
@@ -565,6 +595,15 @@ export async function exportReportXlsx(
     ['Inspected', data.done.length],
     ['Outstanding', data.missed.length],
     ['Open defects', data.defects.length],
+    [],
+    // The same sign-off the PDF prints, so a report filed as a spreadsheet says
+    // who carried it out without anybody adding it by hand.
+    ...(() => {
+      const so = signoffFor(data);
+      return so.blank
+        ? [['Checked by', ''], ['Rank', ''], ['Date', '']]
+        : [['Checked by', so.names], ['Rank', so.rank || '—'], ['Date', so.date]];
+    })(),
     [],
     ['Initials', 'Signed by'],
     ...signatureKey(data, trail).map((k) => [k.initials, k.name]),

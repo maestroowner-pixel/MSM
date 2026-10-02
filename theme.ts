@@ -57,6 +57,7 @@ export const COLORS = {
   lsa: '#1565C0',   // Life-Saving Appliances (blue)
   ffe: '#D84315',   // Fire-Fighting Equipment (deep orange/red)
   other: '#607D8B', // Other (slate)
+  lifting: '#6A4C93', // Lifting & Mooring (violet — a register of its own)
 
   // Splash Screen
   splashBackground: '#2E7D99',
@@ -199,7 +200,7 @@ export interface Palette {
   text: string; textLight: string; textDark: string; textWhite: string;
   border: string; borderLight: string; borderDark: string;
   tabActive: string; tabInactive: string; tabBackground: string;
-  lsa: string; ffe: string; other: string;
+  lsa: string; ffe: string; other: string; lifting: string;
   splashBackground: string; splashText: string; splashAccent: string;
   // Composed style objects (replace the GLASS / SHADOWS helpers per theme).
   glassCard: ViewStyle; glassCardStrong: ViewStyle; glassInput: ViewStyle;
@@ -220,7 +221,7 @@ const LIGHT: Palette = {
   shadowMd: SHADOWS.medium,
   shadowLg: SHADOWS.large,
   bgGradient: SCREEN_BG.gradient,
-  groupColors: { LSA: COLORS.primary, FFE: COLORS.primary, OTHER: COLORS.primary },
+  groupColors: { LSA: COLORS.primary, FFE: COLORS.primary, OTHER: COLORS.primary, LIFTING: COLORS.primary },
   statusBar: 'dark',
 };
 
@@ -246,13 +247,13 @@ const DARK: Palette = {
   shadowMd: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.4, shadowRadius: 3, elevation: 2 },
   shadowLg: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.5, shadowRadius: 6, elevation: 3 },
   bgGradient: ['#0E1618', '#0E1618'] as const,
-  groupColors: { LSA: '#4A9BB8', FFE: '#4A9BB8', OTHER: '#4A9BB8' },
+  groupColors: { LSA: '#4A9BB8', FFE: '#4A9BB8', OTHER: '#4A9BB8', LIFTING: '#4A9BB8' },
   statusBar: 'light',
 };
 
 const COLORFUL: Palette = {
   ...LIGHT,
-  groupColors: { LSA: '#2E7D32', FFE: '#D32F2F', OTHER: '#2E7D99' },
+  groupColors: { LSA: '#2E7D32', FFE: '#D32F2F', OTHER: '#2E7D99', LIFTING: '#6A4C93' },
 };
 
 export const THEMES: Record<ThemeName, Palette> = { light: LIGHT, dark: DARK, colorful: COLORFUL };

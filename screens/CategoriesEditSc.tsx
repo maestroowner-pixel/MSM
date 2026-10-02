@@ -28,17 +28,18 @@ import { SIZES, Palette, COLORS as THEME_COLORS } from '../theme';
 import {
   CategoryMeta,
   GROUP_COLORS,
+  GROUP_SHORT as GROUP_LABEL,
+  GROUP_ORDER,
   VESSEL_CATEGORY_PREFIX,
+  CATEGORIES,
+  CATEGORY_MAP,
+  isVesselCategory,
   uniqueSheetName,
 } from '../constants/categories';
 import { Group } from '../types/equipment';
 import { uid } from '../utils/id';
 
-const GROUP_LABEL: Record<Group, string> = {
-  LSA: 'Life-Saving',
-  FFE: 'Fire-Fighting',
-  OTHER: 'Other',
-};
+
 
 /**
  * The same glyph set the built-in categories draw from (MaterialCommunityIcons),
@@ -79,9 +80,25 @@ const ICONS = [
 export default function CategoriesEditSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { categories, byCategory, saveVesselCategory, removeVesselCategory } = useData();
-  const { role } = useSync();
-  const canEdit = role === 'admin' || role === 'superadmin';
+  const { categories, byCategory, saveVesselCategory, removeVesselCategory, setCategoryHidden } = useData();
+
+  /**
+   * EVERY category, not only the ones this vessel invented.
+   *
+   * The list used to show the vessel's own headings alone, so the twenty-four
+   * built-in ones could not be renamed — and a ship whose SMS calls them
+   * something else had nowhere to say so. A rename of a built-in is stored as a
+   * vessel row against the SAME key (see `applyVesselChange`), so the items,
+   * their history and their labels never move.
+   */
+  const allCategories = useMemo(() => {
+    return GROUP_ORDER.flatMap((g) => CATEGORIES.filter((c: CategoryMeta) => c.group === g));
+  }, [categories]);
+  const { role, enrolled } = useSync();
+  // A device that has not joined a vessel answers to nobody — the same stance
+  // Settings and Checklists take. Without it a standalone install could not
+  // name its own categories.
+  const canEdit = !enrolled || role === 'admin' || role === 'superadmin';
 
   const [label, setLabel] = useState('');
   const [group, setGroup] = useState<Group>('OTHER');
@@ -101,6 +118,10 @@ export default function CategoriesEditSc() {
       Alert.alert('Name it first', 'A heading needs a name — "Emergency Lighting", say.');
       return;
     }
+    // Editing a built-in one is a CHANGE to it, not a new heading: same key, and
+    // its worksheet name is left alone so existing workbooks keep importing.
+    const builtIn = editing ? !isVesselCategory(editing as any) : false;
+    const current = editing ? CATEGORY_MAP[editing as any] : undefined;
     const meta: CategoryMeta = {
       // Generated once and never derived from the name: the key is written onto
       // every item and every inspection in this category, so renaming the
@@ -116,7 +137,10 @@ export default function CategoriesEditSc() {
       // heading is to add every item by hand. It follows the label rather than
       // the key because it is what a person reads on an Excel tab; the key, which
       // nothing may rename, is what the items actually point at.
-      sheet: uniqueSheetName(name, editing ?? undefined),
+      sheet: builtIn ? current?.sheet : uniqueSheetName(name, editing ?? undefined),
+      // Whether the vessel shows it is a separate decision, taken on the
+      // Equipment screen; renaming must not quietly bring a hidden one back.
+      hidden: current?.hidden,
       // Kept in step for the few places that still render the emoji form; the
       // grid, the badges and the reports all use `icon`.
       emoji: '🧰',
@@ -186,7 +210,7 @@ export default function CategoriesEditSc() {
 
           <Text style={styles.fieldLabel}>Group</Text>
           <View style={styles.chipRow}>
-            {(['LSA', 'FFE', 'OTHER'] as Group[]).map((g) => (
+            {GROUP_ORDER.map((g) => (
               <TouchableOpacity
                 key={g}
                 style={[styles.chip, group === g && { backgroundColor: GROUP_COLORS[g] }]}
@@ -232,9 +256,9 @@ export default function CategoriesEditSc() {
         </Card>
       )}
 
-      <Label style={styles.listLabel}>This vessel's headings</Label>
+      <Label style={styles.listLabel}>All categories</Label>
       <FlatList
-        data={categories}
+        data={allCategories}
         keyExtractor={(c) => String(c.key)}
         ListEmptyComponent={<Empty text="None yet — the 23 built-in categories are all in use." />}
         renderItem={({ item }) => {
@@ -246,6 +270,8 @@ export default function CategoriesEditSc() {
                 <Text style={styles.rowTitle}>{item.label}</Text>
                 <Text style={styles.rowSub}>
                   {GROUP_LABEL[item.group]} · {count} item{count === 1 ? '' : 's'}
+                  {isVesselCategory(item.key) ? " · this vessel's" : ''}
+                  {item.hidden ? ' · hidden' : ''}
                 </Text>
               </View>
               {canEdit ? (
@@ -253,9 +279,25 @@ export default function CategoriesEditSc() {
                   <TouchableOpacity onPress={() => onEdit(item)} hitSlop={8}>
                     <MciIcon name="pencil" size={20} color={COLORS.textLight} />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => onDelete(item)} hitSlop={8}>
-                    <MciIcon name="close" size={20} color={COLORS.danger} />
+                  <TouchableOpacity
+                    onPress={() => void setCategoryHidden(item.key, !item.hidden)}
+                    hitSlop={8}
+                    accessibilityLabel={item.hidden ? `Show ${item.label}` : `Hide ${item.label}`}
+                  >
+                    <MciIcon
+                      name={item.hidden ? 'eye-off-outline' : 'eye-outline'}
+                      size={20}
+                      color={item.hidden ? COLORS.warning : COLORS.textLight}
+                    />
                   </TouchableOpacity>
+                  {/* Removing is only for headings the vessel added. A built-in
+                      one is hidden, never deleted — it belongs to the app, and
+                      the items under it are the vessel's. */}
+                  {isVesselCategory(item.key) ? (
+                    <TouchableOpacity onPress={() => onDelete(item)} hitSlop={8}>
+                      <MciIcon name="close" size={20} color={COLORS.danger} />
+                    </TouchableOpacity>
+                  ) : null}
                 </>
               ) : null}
             </View>

@@ -67,22 +67,40 @@ service cloud.firestore {
       // `signingPolicy` is the same kind of field: "Crew and Officers must scan
       // the item's QR label before signing". A rule any crew phone could switch
       // off with one write would be a suggestion, so only a Master sets it.
+      //
+      // `photoArchive` is the third, and the most consequential of them: its
+      // `archivedThrough` is what permits the scheduled sweep to DELETE evidence
+      // photographs older than 90 days (services/photoArchive.ts). A device that
+      // could claim "everything up to today is archived" could have the vessel's
+      // own evidence erased by a job running at 3 a.m. with nobody watching. The
+      // sweep itself writes here too — it runs with admin credentials and is not
+      // subject to these rules.
       allow update: if member(v)
                     && (isSuper(v)
                         || !request.resource.data.diff(resource.data)
-                              .affectedKeys().hasAny(['entitlement', 'signingPolicy']));
+                              .affectedKeys().hasAny(['entitlement', 'signingPolicy', 'photoArchive']));
       allow delete: if false;
 
       // ---- devices ---------------------------------------------------------
       match /devices/{deviceId} {
         allow read: if member(v);
 
-        // A device may keep its OWN record current — name, platform, heartbeat.
-        // It may not touch what decides its powers.
+        // A device may keep its OWN record current — platform, app version. It may
+        // not touch what decides its powers, and since 25 Sep 2026 it may not
+        // touch its own NAME either.
+        //
+        // The name stopped being cosmetic when "Sign as the device's account"
+        // arrived (services/signingPolicy `signAsDevice`): with that rule on, the
+        // name on the device record IS the signature on every inspection it
+        // files. A crew member who could rename their own handset could sign as
+        // the Master, which is the precise thing the rule exists to prevent. So
+        // who a device belongs to is the Master's to set, in Accounts → Rename,
+        // and a vessel asked for exactly that in those words.
         allow update: if member(v)
                       && deviceId == claims().deviceId
                       && !request.resource.data.diff(resource.data).affectedKeys()
-                            .hasAny(['role', 'approved', 'disabled', 'secretHash', 'secretSalt']);
+                            .hasAny(['role', 'approved', 'disabled', 'secretHash', 'secretSalt',
+                                     'firstName', 'lastName', 'position']);
 
         // Approving, demoting and switching off are the Master's, and are the
         // reason a Master exists.

@@ -116,7 +116,8 @@ export async function restoreInvite(vessel: string, inviteId: string): Promise<v
   await setDoc(doc(db(), ROOT, vessel, 'invites', inviteId), { revoked: false }, { merge: true });
 }
 
-/** For a mistyped name on an invitation nobody has used yet. */
+/** For a mistyped name nobody has used yet, or a revoked account being cleared
+ *  off the list after a crew change. The devices it let in are separate rows. */
 export async function deleteInvite(vessel: string, inviteId: string): Promise<void> {
   await deleteDoc(doc(db(), ROOT, vessel, 'invites', inviteId));
 }

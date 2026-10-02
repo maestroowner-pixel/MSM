@@ -8,10 +8,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CategoryKey, EquipmentItem } from '../types/equipment';
 import { Certificate } from '../types/certificate';
 import { CompressorState, normalizeCompressorState } from '../types/compressor';
-import { Inspection } from '../types/inspection';
+import { Inspection, InspectionPeriod } from '../types/inspection';
 import { CrewMember } from '../types/crew';
-import { ChecklistTemplate } from '../constants/checklists';
+import { ChecklistTemplate, VESSEL_TEMPLATE_PREFIX } from '../constants/checklists';
 import { CATEGORIES, CategoryMeta, setVesselCategories } from '../constants/categories';
+import { uid } from '../utils/id';
 
 const PREFIX = 'msm:';
 export const CERTIFICATES_KEY = `${PREFIX}certificates`;
@@ -21,8 +22,73 @@ export const INSPECTIONS_KEY = `${PREFIX}inspections`;
 export const CREW_KEY = `${PREFIX}crew`;
 /** The vessel's "scan before you sign" rule, as this device last knew it. */
 export const SIGNING_POLICY_KEY = `${PREFIX}signing_policy`;
+/** What this vessel has archived and what the last sweep did — services/photoArchive.ts. */
+export const PHOTO_ARCHIVE_KEY = `${PREFIX}photo_archive`;
 export const TEMPLATES_KEY = `${PREFIX}templates`;
 export const CATEGORIES_KEY = `${PREFIX}categories`;
+/**
+ * CATEGORY BUCKETS THIS BUILD DOES NOT KNOW ABOUT — the keys, not the items.
+ *
+ * `loadAll` opens the buckets named in the registry, which is the right answer
+ * for every screen: a category this build has no heading for cannot be drawn.
+ * It is the WRONG answer for the register that goes to the vessel, because a
+ * register assembled that way is a statement that those categories do not exist
+ * — and the next device to pull it deletes them.
+ *
+ * That is not hypothetical. A module switched off in one build and on in another
+ * (constants/modules.ts) makes the two disagree by eight whole categories, and a
+ * vessel category created on one device is unknown to every other until the
+ * categories collection catches up. Modelled on 30 Sep 2026: the website adds one
+ * extinguisher and the vessel's whole lifting register is gone.
+ *
+ * So a pull records the names of the buckets it wrote but could not name, and a
+ * push carries them through untouched. The items are never parsed, never shown
+ * and never merged by this device — it is a courier, not a reader.
+ */
+export const FOREIGN_CATEGORIES_KEY = `${PREFIX}foreign_categories`;
+
+/** Bucket keys held on this device that the registry has no heading for. */
+export async function loadForeignCategories(): Promise<string[]> {
+  try {
+    const raw = await AsyncStorage.getItem(FOREIGN_CATEGORIES_KEY);
+    const list = raw ? (JSON.parse(raw) as string[]) : [];
+    const known = new Set(CATEGORIES.map((c) => String(c.key)));
+    // A key that has since become known is no longer foreign — the module was
+    // switched on, or the category heading arrived.
+    return Array.isArray(list) ? list.filter((k) => typeof k === 'string' && !known.has(k)) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveForeignCategories(keys: string[]): Promise<void> {
+  const known = new Set(CATEGORIES.map((c) => String(c.key)));
+  const list = Array.from(new Set(keys.filter((k) => !known.has(k)))).sort();
+  try {
+    if (list.length) await AsyncStorage.setItem(FOREIGN_CATEGORIES_KEY, JSON.stringify(list));
+    else await AsyncStorage.removeItem(FOREIGN_CATEGORIES_KEY);
+  } catch {
+    /* a device that cannot remember them simply stops forwarding them */
+  }
+}
+
+/** The foreign buckets themselves, read straight through without interpretation. */
+export async function loadForeignBuckets(): Promise<Record<string, EquipmentItem[]>> {
+  const keys = await loadForeignCategories();
+  if (!keys.length) return {};
+  const pairs = await AsyncStorage.multiGet(keys.map((k) => `${PREFIX}${k}`));
+  const out: Record<string, EquipmentItem[]> = {};
+  keys.forEach((k, i) => {
+    const raw = pairs[i]?.[1];
+    try {
+      const items = raw ? (JSON.parse(raw) as EquipmentItem[]) : [];
+      if (items.length) out[k] = items;
+    } catch {
+      /* unreadable: forward nothing rather than something wrong */
+    }
+  });
+  return out;
+}
 
 export interface VesselInfo {
   vessel_name?: string;
@@ -67,6 +133,22 @@ export async function loadAll(): Promise<Record<CategoryKey, EquipmentItem[]>> {
   return result;
 }
 
+/**
+ * Every bucket on this device, including the ones the registry cannot name.
+ *
+ * For anything that COPIES the register whole — the sync payload, a .msm backup,
+ * a local snapshot — rather than anything that draws it. A copy taken through
+ * `loadAll` silently drops a module's or another device's categories, and
+ * restoring it later is a deletion nobody asked for.
+ */
+export async function loadAllWithForeign(): Promise<Record<string, EquipmentItem[]>> {
+  const own = (await loadAll()) as Record<string, EquipmentItem[]>;
+  const foreign = await loadForeignBuckets();
+  const out: Record<string, EquipmentItem[]> = { ...own };
+  for (const [k, items] of Object.entries(foreign)) if (out[k] === undefined) out[k] = items;
+  return out;
+}
+
 /** Flat list of every item across all categories. */
 export async function loadFlat(): Promise<EquipmentItem[]> {
   const all = await loadAll();
@@ -89,6 +171,36 @@ export async function deleteItem(category: CategoryKey, id: string): Promise<voi
     category,
     items.filter((x) => x.id !== id)
   );
+}
+
+/**
+ * Move an item to another category, keeping everything that is attached to it.
+ *
+ * WHAT TRAVELS, and why it is safe: the item keeps its **id**, so its QR label
+ * still resolves, its photos and documents come with it, every certificate that
+ * covers it still does (a certificate links by item id, not by category), and its
+ * inspection history is found by `forItem`, which asks by item id too.
+ *
+ * WHAT DOES NOT MOVE: the signed records' own `category`. They are append-only
+ * (types/inspection.ts) and a round WAS carried out under the category it was
+ * signed in, against that category's checklist — so an old round stays filed
+ * where it happened, and the category report for last month still reads as it did
+ * when it was printed. From the move on, the item owes the NEW category's rounds.
+ *
+ * Asked for by a vessel whose Working Aloft gear sat in LSA because there was
+ * nowhere better for it, on the day there finally was (29 Sep 2026).
+ *
+ * The write order is deliberate: add to the new bucket first, then remove from
+ * the old. Interrupted between the two the item exists twice, which the register
+ * merge settles and a person can see and fix; the other order loses it.
+ */
+export async function moveItem(item: EquipmentItem, to: CategoryKey): Promise<EquipmentItem> {
+  if (!to || to === item.category) return item;
+  const moved: EquipmentItem = { ...item, category: to, updatedAt: Date.now() };
+  const target = await loadCategory(to);
+  await saveCategory(to, [...target.filter((x) => x.id !== item.id), moved]);
+  await deleteItem(item.category, item.id);
+  return moved;
 }
 
 /** Replace a whole category bucket (used by the importer). */
@@ -314,14 +426,53 @@ export async function upsertTemplate(template: ChecklistTemplate): Promise<void>
 }
 
 /**
- * Drop a template, so the category falls back to its built-in checklist.
+ * Withdraw the vessel's wording, so the category falls back to its built-in
+ * checklist — as a TOMBSTONE, not a deletion.
  *
- * Deleting is safe in a way that editing never was: every record signed against
- * it carries its own copy of the questions, so nothing in the trail depends on
- * this row still existing.
+ * Dropping the row is safe as far as the trail goes: every record signed against
+ * it carries its own copy of the questions. It was never safe as far as SYNC goes.
+ * Templates merge by union of ids (`mergeInspections`'s sibling `mergeTemplates`)
+ * and nothing deletes the vessel's copy in Firestore, so a row deleted on the
+ * bridge came straight back on the next pull and the standard checklist was
+ * restored for about a minute. Keeping the row with `standard: true` carries the
+ * withdrawal to the other devices instead, and it can be undone.
  */
 export async function deleteTemplate(id: string): Promise<void> {
-  await saveTemplates((await loadTemplates()).filter((t) => t.id !== id));
+  const list = await loadTemplates();
+  const row = list.find((t) => t.id === id);
+  if (!row) return;
+  await upsertTemplate({ ...row, standard: true, lines: [] });
+}
+
+/**
+ * Switch a round on or off for a category — which frequencies this ship works to.
+ *
+ * Writes a row for the (category, period) even when the vessel never worded that
+ * checklist, because the decision has to reach the other devices; a row with no
+ * lines is a decision about the round, not a wording of it (see `roundsFor`).
+ */
+export async function setRoundEnabled(
+  category: CategoryKey,
+  period: InspectionPeriod,
+  on: boolean
+): Promise<void> {
+  const list = await loadTemplates();
+  const row = list
+    .filter((t) => t.category === category && t.period === period)
+    .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0];
+  if (row) {
+    await upsertTemplate({ ...row, off: !on });
+    return;
+  }
+  await upsertTemplate({
+    id: `${VESSEL_TEMPLATE_PREFIX}${category}.${period}.${uid()}`,
+    version: 1,
+    category,
+    period,
+    title: `${period} round`,
+    lines: [],
+    off: !on,
+  });
 }
 
 // ---- Crew (who signs) ------------------------------------------------------
@@ -391,15 +542,34 @@ export async function saveSigningPolicy(policy: import('./signingPolicy').Signin
   await AsyncStorage.setItem(SIGNING_POLICY_KEY, JSON.stringify(policy));
 }
 
+export async function loadPhotoArchive(): Promise<import('./photoArchive').PhotoArchiveState | null> {
+  try {
+    const raw = await AsyncStorage.getItem(PHOTO_ARCHIVE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function savePhotoArchive(state: import('./photoArchive').PhotoArchiveState): Promise<void> {
+  await AsyncStorage.setItem(PHOTO_ARCHIVE_KEY, JSON.stringify(state));
+}
+
 export async function resetAllData(): Promise<void> {
+  const foreign = await loadForeignCategories();
   const keys = [
     ...CATEGORIES.map((c) => catKey(c.key)),
+    // Including the buckets this build cannot name: leaving them behind would
+    // mean "wipe this device" quietly sent them back to the vessel afterwards.
+    ...foreign.map((k) => `${PREFIX}${k}`),
+    FOREIGN_CATEGORIES_KEY,
     CERTIFICATES_KEY,
     COMPRESSOR_KEY,
     INSPECTIONS_KEY,
     CREW_KEY,
     VESSEL_KEY,
     SIGNING_POLICY_KEY,
+    PHOTO_ARCHIVE_KEY,
   ];
   await AsyncStorage.multiRemove(keys);
 }

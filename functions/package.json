@@ -1,10 +1,10 @@
 {
   "name": "msm-functions",
-  "description": "Marine Safety Manager \u2014 enrolment (account issuance) on the server side.",
+  "description": "Marine Safety Manager — enrolment (account issuance) on the server side.",
   "private": true,
   "main": "index.js",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "scripts": {
     "secret": "npx firebase-tools functions:secrets:set BOOTSTRAP_CODE --project marine-safety-manager",
@@ -12,7 +12,7 @@
     "logs": "cd .. && npx firebase-tools functions:log --project marine-safety-manager"
   },
   "dependencies": {
-    "firebase-admin": "^12.6.0",
-    "firebase-functions": "^6.1.0"
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^7.4.0"
   }
 }

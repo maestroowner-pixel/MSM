@@ -3,6 +3,420 @@
 Kept by hand. Each entry says what changed and, where it matters, **why** — the reasoning is
 the part that stops the next person undoing it.
 
+## 2.52 — 2 October 2026
+
+Android versionCode 20521 · iOS build 20521.
+
+### Lifting & Mooring is switched on
+
+`MODULES.lifting` is now `true` (constants/modules.ts): the eight lifting and mooring categories,
+their checklists, the LIFTING group in reports and the second import template exist for every
+vessel on every platform. `check:inspections` was still asserting the first draft's schedule
+(monthly + quarterly everywhere); it now asserts the one agreed with the vessel — annual for all,
+quarterly as well for mooring and working aloft, nothing monthly — and the general invariant reads
+"every category offers at least one round" rather than "at least monthly".
+
+### Asked for by a vessel after its first weeks aboard (2 October 2026)
+
+- **A category opens sorted by Position, not Expiry date** (`CategoryItemsSc`). The list is what a
+  crew member walks a weekly or monthly round with, deck by deck; what is falling due already has
+  the Dashboard. Position is also first in the sort cycle now. The Dashboard itself still opens on
+  Expiry date — that is its job.
+- **A revoked account can be deleted** (Accounts → a revoked account → Delete). Revoke was the only
+  way to retire an invitation, so the list grew at every crew change and stopped reading as "who is
+  aboard". Offered only AFTER revoking, so a working account cannot be deleted by a slip, and it
+  replaces "New PIN" on that dialog to stay within Android's three buttons. It deletes the
+  invitation only; its devices are removed under Devices → Remove from list, and the dialog says so.
+- **The Crew row says when it is not in use.** With "Sign as the device's account" on, signatures
+  come from the device's account and the crew list is not consulted — the row's subtitle now says
+  that instead of "Who can sign an inspection".
+
+### A register that tripled, and a way to clear a category (2 October 2026)
+
+- **Update from Excel no longer re-adds rows that have neither a number nor a location**
+  (`twinKey` in `services/registerUpdate.ts`). Such a row matched nothing — `detailsKey` refuses it,
+  rightly, as an identity — so it was ADDED on every update while the copy already held was listed
+  as "not in this file". Load the same workbook three times and the category held three of
+  everything; and once copies existed, a serial stopped being unique and stopped matching too.
+  Those rows are now paired, in order, with an item that says exactly the same (type, make, size,
+  serial, deck) — the answer the ten identical lifejackets in one locker already got. The existing
+  check "a serial shared by two items matches neither" changed with it: still no match BY SERIAL,
+  but the row is no longer added as a third copy. `npm run check:register` has the tripled case.
+  The repair for a vessel already affected is the screen it already has: Update → "In the register,
+  not in this file" → Remove these N. The originals are the ones kept, so labels and history hold.
+- **Clear category** (the sweep icon on a category's list, Master only — or a device on no vessel).
+  Asked for by the same vessel, and useful during setup generally. Takes a snapshot first (Settings
+  → Data rolls it back), says how many items go and that on a syncing device they go for the whole
+  vessel, and says what nobody thinks of: the printed labels of that category stop resolving.
+  Signed inspections stay.
+
+## 2.50 — 29 September 2026
+
+Android versionCode 20410 · iOS build 20410.
+
+### The lifting register: its own template, its own fields on screen
+
+- **A separate import template** (Settings → Data). The vessel asked for one and the columns settle
+  it: the lifting book has SWL, breaking load, diameter, material, two certificate numbers and three
+  dates, and shares almost nothing with the LSA/FFE sheet. `exportTemplate(group)` builds either;
+  the lifting book is `MSM_Lifting_Template.xlsx`, one sheet per category, with the vessel's own
+  column names so the register they already keep imports without being retyped. The second download
+  row appears only when the module is on.
+- **The item screen shows the lifting fields for lifting categories only** — markings, SWL/WLL,
+  breaking load, diameter, material, both certificate numbers, installed and last-inspection dates —
+  in the order the vessel's register has them. Quantity, Persons and Manufacture date are not asked
+  there: a form full of fields that never apply is a form people stop reading.
+- **The label carries the SWL and the colour code.** The vessel said the first few columns of their
+  register are the identification, and on a sling that is what the sticker is for: the SWL joins the
+  compliance date as a prominent line, and the whipping colour sits with the category and location.
+
+### The lifting register reads the vessel's own spreadsheet
+
+The vessel sent its real lifting and mooring register — 16 columns, three sections, and the units a
+ship actually writes ("22 kN", "140kg", "9.9 t", "2200kg", "31 -37 KN"). It is kept at
+`design/jez-lifting-register.tsv` and `npm run check:lifting` imports it through the real importer,
+because a mapper proved against invented data is worth nothing.
+
+- **Nine typed fields** on `EquipmentItem`: `swl`, `mbl`, `diameter`, `material`, `marking`,
+  `mfrCertNo`, `testCertNo`, `installedDate`, `lastInspection`. Asked for by the vessel, and right:
+  a register kept in free text cannot drive a reminder, be printed on a label or be searched.
+  **Loads stay strings** — the gear is marked "22 kN" or "9.9 t", and a label that printed our
+  arithmetic instead of the marking would be the wrong number to compare against the sling.
+  "N/A" is read as "there is none", not as a value.
+- Three importer faults the real file exposed, all of which would have mangled it silently:
+  - **"Manufacturer" was read as the manufacture DATE.** `make` is only claimed outright when a
+    column is literally called "Type"; this register calls it "Equipment Name", so `make` fell
+    through to the keyword pass where `/manufactur/i` took it for `manufactureDate`. A bare
+    "Manufacturer" is now claimed first.
+  - **"Next Annual inspection" was not a next-inspection column** — the pattern wanted the noun
+    immediately after "next", so the word "Annual" broke it and the date went to extras.
+  - **"Size / Length (m)" had no keyword at all**; `size` was matched only as an exact heading.
+- The row-sorting vocabulary learned the lifting words (mooring, working aloft, cranes, hooks,
+  slings and shackles, chain blocks, lifting eyes), so a sheet named the vessel's way — "Mooring
+  lines", not "Mooring Equipment" — still lands in the right category.
+- `npm run check:register` still reports the reference workbook at 627 items with an unchanged
+  export → import round trip, module on and off.
+
+### Lifting & Mooring — built, and switched off
+
+A vessel asked for lifting and mooring gear to live inside MSM rather than in a second app: one
+account, one crew list, one set of labels, one place the evidence is kept. They are right, and the
+app was already shaped for it — MSM is a register of CATEGORIES grouped into LSA, FFE and Other, so a
+new register is another group.
+
+- `constants/lifting.ts` — the eight categories the vessel listed (mooring, working aloft, cranes,
+  hooks & cables, deck slings & shackles, engineering lifting, working aloft anchors, interior
+  lifting eyes & beams), each with a monthly check and a quarterly one. Every monthly check asks for
+  the SWL/WLL marking and the test certificate, because that is what the gear is inspected against.
+- `constants/modules.ts` — **the module ships dark.** Off, its categories are never registered, so no
+  screen, report, picker or import sheet knows it exists. Shipping it is one line, and
+  `npm run check:inspections` covers the register both ways: with the module off it asserts nothing
+  about it is reachable; with it on, that every category is registered, grouped and owes its rounds.
+- **Groups are now declared once** (`GROUP_ORDER`, `GROUP_LABEL`, `GROUP_SHORT` in
+  constants/categories). Six screens each kept their own copy of the three-group list, which is how a
+  fourth register would have appeared in the equipment grid and nowhere else. They all read the
+  shared one now, so the module needs no screen changes at all.
+- Not yet: typed fields for SWL/WLL, the last proof test and its certificate. `extra{}` carries them
+  today and `nextInspection` already drives the reminder; the labels are being settled with the
+  vessel's own register rather than invented here.
+
+### Glyphs everywhere, no emoji
+
+Settings showed five question marks in a column — Categories, Print QR labels, Checklists, Scan QR
+label before signing and Sounds — because `GlyphBadge` maps an emoji to a monochrome glyph and those
+five had never been added to the map, so they fell through to `help-circle-outline`. Five "?" in a
+row reads as five broken features.
+
+- The seven missing mappings are in, each checked against the MDI set — an invented name renders as
+  an empty square, which is worse than a question mark.
+- **The emoji indirection is gone from the screens.** Where the code said
+  `<GlyphBadge emoji="🗂️">` it now says `<IconChip name="view-grid-outline">`, which is how the rest
+  of the app has always worked. The map stays for the two places where the emoji is DATA (the manual
+  and getting-started sections), not a spelling of an icon.
+- **Raw emoji rendered as text are gone too**: the Dashboard strip headers (🛠 🚩 📷), the attachment
+  and certificate badges (📎 📜), the lock, the compressor's timer, the anchor on the consent screen,
+  the file placeholders, the ZIP button and the manual's warning note are all glyphs now. An
+  attachment count shows as a number beside one paperclip rather than as a row of them.
+- `✓`, `✕` and `★` stay — typographic marks, not emoji, and consistent with the rest.
+
+### The version can no longer be typed twice
+
+An archive went to the App Store carrying the previous build's numbers. `patch-native-version.js`
+has synced app.json into the native projects since September, but only when something runs it
+(`postinstall`, `npm run aab`) — and an archive made from Xcode runs neither.
+
+`scripts/patch-ios-version-phase.js` adds a Run Script build phase, **first** in the app target, that
+runs the sync before anything is compiled. Xcode can now no longer produce a build whose version
+disagrees with app.json, whoever presses Archive. `alwaysOutOfDate` is set because the phase has no
+inputs Xcode could reason about and would otherwise be skipped as up to date — which is the exact
+failure it exists to prevent. Re-applied by `postinstall`, since `ios/` is CNG and prebuild takes the
+phase with it; the target is looked up by name because its UUID is minted at prebuild.
+
+Verified by breaking it on purpose: the Info.plist was set to 0.1/1, an ordinary Xcode build was run,
+and both the source plist and the built app came out 2.50/20410.
+
+## 2.49 — 29 September 2026
+
+Android versionCode 20409 · iOS build 20409.
+
+### Rectified defects now reach the other devices
+
+A vessel closed its test defects on the Master and they stayed outstanding everywhere else — for
+eleven days, as its own cloud copy showed (`open: true`, no rectification, `updatedAt` never moved).
+
+`pushInspections` kept a list of record ids it had already sent and skipped them. That is right for
+the inspections themselves, which never change — and wrong for the ONE mutation the trail allows: a
+defect going open→closed rewrites a record that had of course already been sent. The closure was
+recorded, stamped and signed on the Master's device, and never left it.
+
+What is remembered is now the `updatedAt` that was sent, and `unsentInspections` (pure, checked)
+sends a record when it is new **or has moved since**. The old id-only list migrates to a stamp of 0,
+so every record goes up once more — which is exactly the repair wanted: **the vessel's stuck
+rectifications deliver themselves on the first sync after the update**, with no re-doing by hand.
+
+### The report signs itself off
+
+"Checked by / Rank / Date" at the foot of an inspection report was three blank rules. The vessel does
+not print these — they are uploaded straight into the PMS — so a blank line meant every export
+needed a human pass before it could be filed, while every record in it already carried who signed it
+and their rank.
+
+`signoffFor` (pure, in services/inspections so the check script can reach it) fills the line from the
+records themselves: one signer named outright, several all named, more than three named with a count
+of the rest. The rank is printed only when it is not in dispute — one person, or several holding the
+same rank — because a single rank over several names is wrong for somebody. The date is the LAST
+round in the report, not today, so re-exporting September's report in November does not restamp it.
+The XLSX summary carries the same three rows.
+
+**The date is built from local parts, not `toISOString`.** A round signed at 00:30 BST is 23:30 the
+previous day in UTC, and the report would have filed a night round under the day before — in a
+document kept as evidence, on a ship where rounds genuinely happen at night.
+
+### Categories: the vessel's names, and only the ones it carries
+
+- **The Equipment grid shows the full name**, the one saved in Settings. It showed a short form of
+  its own invention ("Imm. Suits"), and a heading the vessel added was cut at twelve characters — so
+  the two screens disagreed about what a category was called.
+- **Any category can be renamed, built-in ones included.** Settings → Categories listed only headings
+  the vessel had added, so the twenty-four the app ships could not be worded the way the SMS words
+  them. A rename is stored as a vessel row against the SAME key (`applyVesselChange`), so items,
+  history and labels never move. Its `sheet` is deliberately NOT renamed: the importer matches
+  workbook tabs by that name, and renaming it would leave every existing spreadsheet importing into
+  nothing.
+- **Hide what the ship does not carry** — a Master-only mode on the Equipment screen itself, where
+  you notice the clutter, not buried in Settings. Hidden categories drop out of the grid, the rounds,
+  the checklists, the scan rules, the label printing and the reports' "not inspected" lists. Nothing
+  is deleted: `CATEGORIES` still holds them, because storage walks it to decide which buckets to
+  read, and it is the screens that ask for `visibleCategories()`. Hiding a category that holds
+  equipment warns once and says plainly that the items stay on file — "where did my lifebuoys go" is
+  a bad five minutes.
+- Built-in categories can be hidden but not deleted; only a heading the vessel added can be removed.
+- A standalone device (never enrolled) may edit its own categories — it was refused along with the
+  crew, and there is no Master aboard to ask.
+
+### iOS 26/27: the app would not open at all
+
+Reported from a vessel: MSM 2.46 dies on launch on an iPhone updated to iOS 27, with
+`EXC_BREAKPOINT … UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption` and none of our own
+code in the trace — because none of it runs. An app LINKED AGAINST the iOS 26+ SDK (anything built
+with Xcode 26/27) that does not declare `UIApplicationSceneManifest` is stopped by UIKit during
+start-up, before `didFinishLaunchingWithOptions`. **2.47 and 2.48 have the same fault**; the version
+number is irrelevant, the SDK it was built with is what counts. Nothing on the phone can work around
+it — only a new build.
+
+- `app.json` now declares a single-scene `UIApplicationSceneManifest` pointing at
+  `$(PRODUCT_MODULE_NAME).SceneDelegate`.
+- **The manifest alone would have shipped a black screen**, which is the trap in every half-fix of
+  this going round: UIKit then expects a scene to own the window while Expo's AppDelegate is still
+  creating one from `UIScreen.main.bounds` and attaching it to nothing. So window creation and the
+  React Native start-up move into a `SceneDelegate`, which also replays the cold-start URLs and user
+  activities — otherwise opening the app by scanning a `msm://` label would land on the dashboard
+  instead of the item.
+- `scripts/patch-ios-scene-lifecycle.js` (postinstall, idempotent) applies it to the generated
+  AppDelegate, because `ios/` is CNG and a hand edit is deleted by the next prebuild. It refuses
+  loudly rather than silently if Expo changes the template.
+- Verified on an **iOS 27 simulator**, not by reading: the unfixed build is killed at launch; the
+  fixed one reaches the JS runtime with its window attached.
+- Expo adopts this itself from SDK 57.0.23. On the next SDK upgrade, check the generated AppDelegate
+  and delete the script rather than patching a file that no longer needs it.
+
+## 2.48 — 27 September 2026
+
+Android versionCode 20408 · iOS build 20408.
+
+Shipped after 2.47 was already in the stores, which is the reason for the number: the whole point
+of the change below is to say WHICH build a device is running, and two different builds both
+calling themselves 2.47 would have made the new line lie on its first day.
+
+### Which build a device is actually running
+
+- **`refresh` now re-records `appVersion` and `platform` on every connection** (`functions/index.js`,
+  `services/enrolment.ts` sends them). They were written once, at enrolment, and never again — so a
+  phone that joined on 2.3 and has updated four times since still read as 2.3. That is worse than no
+  version at all: it is the number a Master would use to decide whether an old build is why somebody
+  cannot find the round they set up. Written only when present, so an older client that does not send
+  them keeps what enrolment recorded rather than having it erased.
+- **Accounts shows it per device** — "v2.47 · up to date" or "v2.3 · update to 2.47", amber only when
+  something is behind. The yardstick is the newest version anybody aboard is running, including this
+  device (`utils/version.ts`), because the app cannot ask a store what the latest release is and a
+  hard-coded number would be a lie the day after it shipped. It understates rather than overstates:
+  nobody is nagged about a build that does not exist yet, and a whole vessel being behind shows the
+  moment one device updates.
+- Versions compare part by part as NUMBERS. As strings "2.3" sorts after "2.47", which is how a
+  version check ends up telling the newest phone on the ship to downgrade. Checked in
+  `npm run check:inspections`.
+
+## 2.47 — 25 September 2026
+
+Android versionCode 20407 · iOS build 20407.
+
+A customer's third round of notes from a month of real weekly and monthly rounds aboard,
+including their first full monthly fire-extinguisher inspection filed through the app.
+
+### The schedule is the vessel's, per category
+
+- **Quarterly rounds**, beside weekly and monthly (`ADDABLE` in ChecklistsSc, `quarterWindow` /
+  `stepPeriod` in services/inspections, a Quarterly chip on Reports). A quarter is a CALENDAR
+  quarter for the same reason a month is a calendar month: a round done on 30 September does not
+  cover the quarter that starts the next day. Annual is still out on purpose — an annual service is
+  a shore job with a certificate behind it, and the Certificates tab is where that evidence lives.
+- **Every frequency can be switched off per category** (`ChecklistTemplate.off`, `roundsFor`,
+  a switch on each row of Settings → Checklists). Until now a category owed every round the app
+  shipped a checklist for, so a ship that checks its hydrants weekly but its escapes quarterly
+  read as permanently behind — and a schedule nobody can complete is a schedule nobody trusts.
+  Switched off, the round is not offered on the item and the report stops COUNTING it as due;
+  records already signed keep their period and still print.
+- **It is a tombstone row, not a deletion, and that is the point.** Templates sync by union of
+  ids (`mergeTemplates`) and nothing deletes the vessel's copy in Firestore, so a row deleted on
+  the bridge came back on the next pull. Same bug, same fix for **"use the standard checklist
+  again"** (`standard: true`): withdrawing a vessel's own wording used to last about a minute
+  before the vessel handed it back. `off` and `standard` are separate fields because they are
+  independent — a vessel can word a round, stop it for a season, and expect its own words back.
+- `periodsFor` no longer falls back to `['monthly']` when a category has rounds but all of them
+  are off. The fallback existed for categories with no checklist at all, which is still honoured
+  (a vessel's own heading gets the generic monthly round); keeping it after this change would have
+  silently overruled the Master.
+
+### Scan before signing, per category
+
+- **`SigningPolicy.scanExempt`** + Settings → **Scan by category** (`screens/ScanRulesSc.tsx`).
+  Asked for in these words: a rescue boat's inventory and the loose gear in a fire locker are worth
+  keeping and checking off item by item, but nobody is going to label every bailer and spanner. One
+  switch for the whole register meant the honest choices were to label a hundred small items or to
+  turn the rule off for the extinguishers too — which is not a rule. `signingGate` now takes the
+  item's category, and `scanRequiredFor` answers for the vessel when no category is named.
+- Stored as the EXEMPT list, so a category added next month is covered by default: the rule must
+  not quietly stop applying to new equipment. Exempt is not "unverified" either — a scan made
+  anyway is still stamped on the record and still printed in the report's Scan column.
+
+### Renaming a device — the bug, and the rank
+
+- **The rename sheet closed the moment you touched a field.** The sheet sat INSIDE a full-screen
+  `TouchableOpacity` backdrop and relied on `onStartShouldSetResponder` to swallow taps meant for
+  the inputs; on react-native-web — the bridge browser, where this screen is mostly used — that
+  claim does not stop the click reaching the Touchable underneath. The backdrop is now an
+  absolutely-positioned SIBLING behind the sheet, so a tap that landed on the sheet cannot reach it
+  on any platform, with nothing to get right.
+- **Rename is a button on the device row**, not the fourth option in an action sheet. It is what a
+  Master comes to that list to do at every crew change.
+- **Renaming is Master-only, in the rules as well as the UI** (firestore.rules: a device may no
+  longer change its own `firstName` / `lastName` / `position`). The name stopped being cosmetic when
+  `signAsDevice` arrived — with that rule on, the name on the device record IS the signature on
+  every inspection it files, so a crew member who could rename their own handset could sign as the
+  Master. **The rules must be re-pasted into the Firestore console for this to bite**
+  (`npm run deploy:rules`).
+- The sheet's note now says what renaming actually DOES on this vessel: with `signAsDevice` on it
+  names who the next round will be signed by, which is exactly why the customer wanted it at a
+  crew change; with the rule off it is a label and signatures come from the crew list.
+
+### Cloud functions moved to Node 22
+
+Google decommissions the Node.js 20 runtime on **30 October 2026**, after which nothing deploys
+until it is bumped — including an urgent fix. Done now rather than then: `functions/package.json`
+`engines.node` and `firebase.json` `runtime` are **nodejs22**, and **firebase-functions is 7.4**
+(the CLI had been warning about 6.x). `enrol`, `refresh` and `sweepPhotos` all redeployed and were
+smoke-tested against the live endpoints afterwards — argument validation, a refused PIN and the
+`reenrol` success payload all answer as before, and the sweep ran a full pass on the new runtime.
+Minting a custom token is the one path that cannot be exercised without a real device secret.
+
+**firebase-admin deliberately stays on 12.7.** Version 14 removes the namespaced API
+(`admin.firestore()`, `admin.auth()`, `admin.storage()`) in favour of `firebase-admin/firestore`
+and friends — five call sites, three of them on the enrolment path that every device on every
+vessel depends on, and `createCustomToken` cannot be tested before a real enrolment. That belongs
+in its own change, made when a device is on hand to try it, not bundled into a deadline-driven
+runtime bump. 12.7 is not deprecated and runs on Node 22.
+
+### Photo retention — 90 days in the cloud, then the vessel's own archive
+
+Asked for on 25 September: keep inspection photographs in the cloud for two or three months and
+have the rest backed up locally.
+
+- **The window is 90 days** (`services/photoArchive.ts` `RETENTION_DAYS`). Older photographs are
+  deleted from Cloud Storage by a nightly scheduled function, `sweepPhotos` in `functions/`.
+- **Nothing is deleted from a period the vessel has not archived.** The cutoff is
+  `min(now − 90 days, photoArchive.archivedThrough)`, and no `archivedThrough` means a cutoff of
+  **0 — delete nothing**, never "delete everything". A photograph is evidence for a signed record,
+  and after a sweep the only copies are the vessel's archive and whatever the crew's own devices
+  hold; a job that deleted the last copy of evidence because a ship was slow to archive would be
+  indefensible. A vessel that never archives keeps paying for storage instead, which is a bill and
+  not a loss.
+- **Settings → Inspection photos → Photo archive** (`screens/PhotoArchiveSc.tsx`). One ZIP per
+  calendar month — `photos_2026-09/<date>_<category>_<item>.jpg`, `index.csv` (item, serial,
+  position, round, outcome, signer, status) and a README for whoever opens it in two years without
+  MSM to hand. Per month because a browser cannot hold a year of JPEGs in memory, and because
+  "where are September's photos" is the question that actually gets asked.
+- **Save, then confirm — two steps, deliberately.** The app cannot see where a saved file went, so
+  it does not pretend to: the Master confirms, and the confirmation is worded as what it authorises
+  (the originals may now be deleted). Months are archived in order — `archivedThrough` is a single
+  watermark, so marking October while September is unsaved would hand the sweep permission it must
+  not have (`canMarkArchived`).
+- **A missing photo does not fail the archive, it is recorded in it.** One unreadable file — never
+  uploaded from a handset since wiped — would otherwise keep a vessel from ever archiving anything,
+  and a sweep gated on archiving would then never run. `index.csv` carries a Status column and the
+  count comes back in the confirmation.
+- **The sweep deletes by the RECORD's date, not the object's age**, which is why it is a function
+  and not a bucket lifecycle rule: the queue holds photographs until the ship has Wi-Fi, so a round
+  done in March can upload in May. Each night it reads only the band since `sweptThrough` (with a
+  30-day overlap for exactly those late uploads) rather than every record ever signed, and it lists
+  the collection with `select('photoArchive')` because a vessel document carries the whole register
+  as one string field.
+- `photoArchive` is a Master-only field in **firestore.rules**, beside `entitlement` and
+  `signingPolicy` and for a sharper reason than either: a crew device that could claim "everything
+  up to today is archived" could have the vessel's evidence erased overnight. **storage.rules is
+  unchanged — no device may delete a photograph**; only the job may, with admin credentials.
+- Local copies are never touched, anywhere. After a sweep the original on the phone that took the
+  photo, and the copy another device fetched to view it, are real copies of evidence rather than a
+  cache.
+- An archived record says so instead of showing a pending-upload icon (`InspectionDetailSc`): "in
+  the vessel's own archive for September 2026" — "not uploaded yet" and "kept by the vessel" are
+  different facts and the screen now tells them apart.
+- `npm run check:inspections` covers the retention logic — the cutoff with and without an archive,
+  the window boundary (a month is offered only when it is COMPLETELY out of it), the watermark
+  never moving backwards, and the counts the screens show. 141 checks.
+
+**Deploy:** `cd functions && npm run deploy` (first deploy enables Cloud Scheduler), then
+`npm run deploy:rules` for the Firestore change.
+
+### Smaller things asked for
+
+- **"Clear all"** beside "All pass" on the inspection screen: one confirmation clears every answer,
+  the comment and the defect note. Evidence photos stay — a photograph was taken of something real,
+  and "clear the form" is not what anybody means by deleting it; the thumbnails have their own
+  remove control.
+- **The Vessel card in Settings stays collapsed once the vessel is identified.** It opened on every
+  visit showing five filled fields and a live "Save vessel info" button, which reads as an unsaved
+  form — the app asking again for what was entered weeks ago. It now opens only while the five
+  fields are incomplete, shows "Vessel name · IMO …" when collapsed, and the button is disabled and
+  reads "Saved" until something actually changes. A card opened by hand survives the vessel arriving
+  from storage a moment later (`touched`), or the effect would shut it under the user's finger.
+- `writeSigningPolicy` (services/policy.ts) is now the one path that stores the rule locally and
+  pushes it to the vessel. It was inline in SettingsSc, and the per-category screen would have been
+  a second copy of "store it, push it, explain a failed push" — with the error handling as the half
+  that drifted.
+- `npm run check:inspections` covers the new pure logic: round resolution with `off` / `standard`,
+  the tombstone surviving a merge against an older row, calendar quarters and stepping, and the
+  category-aware scan gate. 117 checks.
+
 ## 2.46 — 19 September 2026
 
 Android versionCode 20406 · iOS build 20406.

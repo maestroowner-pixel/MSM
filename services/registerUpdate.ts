@@ -142,6 +142,26 @@ function detailsKey(it: EquipmentItem): string | null {
 }
 
 /**
+ * The identity of last resort, for a row `detailsKey` refuses: no number and no
+ * location, so nothing says WHICH lifejacket — but everything it does say is the
+ * same as an item already held.
+ *
+ * Without this such a row matched nothing and was ADDED, on every update: a
+ * register of un-numbered, un-located items grew by its own length each time the
+ * same workbook was loaded, while the copies already held were listed as "not in
+ * the file". A vessel reached three times its real inventory that way (2 Oct
+ * 2026). Pairing in order is the same answer the ten identical lifejackets get
+ * above, and for the same reason — it keeps ten items ten. It also catches a
+ * serial that has stopped being unique BECAUSE of those copies, which is why the
+ * serial is part of the key rather than a reason to skip it.
+ */
+function twinKey(it: EquipmentItem): string | null {
+  const parts = [key(it.type), key(it.make), key(it.size), serialKey(it.serial), key(it.deck)];
+  if (!parts[0] && !parts[3]) return null;
+  return `${it.category}|${parts.join('|')}`;
+}
+
+/**
  * Decide, row by row, which existing item each row is.
  *
  * In order of certainty:
@@ -152,6 +172,8 @@ function detailsKey(it: EquipmentItem): string | null {
  *     identical lifejackets in one locker are paired in order: which physical
  *     jacket is "the third" cannot be known from the sheet, and pairing keeps
  *     ten items ten rather than ten new and ten missing.
+ *  4. **Everything else the row says**, for a row with neither a number nor a
+ *     location — see `twinKey`.
  * Each existing item is claimed at most once.
  *
  * `covers` limits what can be MISSING, not what can match: a workbook holding
@@ -209,9 +231,14 @@ export function planUpdate(
 
   // 3. Details, paired in order within each identical group
   const groups = new Map<string, EquipmentItem[]>();
+  const twins = new Map<string, EquipmentItem[]>();
   for (const it of free()) {
     const k = detailsKey(it);
     if (k) groups.set(k, [...(groups.get(k) ?? []), it]);
+    else {
+      const t = twinKey(it);
+      if (t) twins.set(t, [...(twins.get(t) ?? []), it]);
+    }
   }
   const added: EquipmentItem[] = [];
   // A row whose MSM ID names an item no longer in the register (deleted since the
@@ -220,7 +247,8 @@ export function planUpdate(
   const ids = new Set(existing.map((it) => it.id));
   for (const row of pending) {
     const k = detailsKey(row);
-    const hit = k ? groups.get(k)?.shift() : undefined;
+    const t = k ? null : twinKey(row);
+    const hit = k ? groups.get(k)?.shift() : t ? twins.get(t)?.shift() : undefined;
     if (hit) {
       claimed.add(hit.id);
       pairs.push([hit, row]);

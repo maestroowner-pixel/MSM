@@ -112,7 +112,11 @@ export async function refresh(vessel: string): Promise<EnrolResult> {
     const deviceId = await fb.getLocalDeviceId();
     const deviceSecret = await fb.getDeviceSecret();
     if (!deviceSecret) return { status: 'reenrol', role: 'user' };
-    const res = await callable('refresh')({ vessel, deviceId, deviceSecret });
+    // The same facts enrolment sends, every time: the server writes them onto the
+    // device record so Accounts and the fleet console show what this install is
+    // RUNNING, not what it was running the day it joined (functions `refresh`).
+    const { platform, appVersion } = await deviceFacts();
+    const res = await callable('refresh')({ vessel, deviceId, deviceSecret, platform, appVersion });
     return await applyReply(res.data, deviceId);
   } catch (e: any) {
     return refusal(e);

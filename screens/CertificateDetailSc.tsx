@@ -2,7 +2,7 @@
 // Certificate detail — edit, attach a file, link the items it covers, delete.
 // ===================================
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -13,13 +13,15 @@ import {
   Alert,
   Image,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
-import { BackButton, CategoryBadge, Glyph, Label, StatusPill } from '../components/ui';
+import { BackButton, CategoryBadge, Label, StatusPill } from '../components/ui';
+import { MciIcon } from '../components/MciIcon';
 import { useData } from '../contexts/DataContext';
 import { Certificate } from '../types/certificate';
 import { CATEGORY_MAP } from '../constants/categories';
@@ -34,16 +36,48 @@ export default function CertificateDetailSc() {
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useS();
-  const { certificates, flat, saveCertificate, removeCertificate } = useData();
+  const { certificates, flat, saveCertificate, removeCertificate, loading } = useData();
 
   const id: string | null = route.params?.id ?? null;
   const existing = useMemo(() => certificates.find((c) => c.id === id), [certificates, id]);
-  const [draft, setDraft] = useState<Certificate>(existing ?? route.params.draft);
+  /**
+   * A placeholder so that everything below can assume a certificate. It is never
+   * shown and never saved: while `missing` is true the screen renders the held
+   * frame below instead of the form.
+   */
+  const placeholder = (): Certificate => ({
+    // A blank id on purpose: it must never equal the real certificate's, or the
+    // adoption below would mistake the placeholder for an already-adopted draft.
+    id: '',
+    name: '',
+    itemIds: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  });
+  const seed: Certificate | undefined = existing ?? route.params?.draft;
+  const [draft, setDraft] = useState<Certificate>(seed ?? placeholder);
+  const missing = !seed && !existing;
   const [picking, setPicking] = useState(false);
   const [search, setSearch] = useState('');
   const isNew = !existing;
 
-  const set = (patch: Partial<Certificate>) => setDraft((d) => ({ ...d, ...patch }));
+  /**
+   * THE CERTIFICATE MAY ARRIVE AFTER THIS SCREEN DOES — same as ItemDetailSc, and
+   * worse here: `draft` was seeded from `existing ?? route.params.draft`, and on a
+   * cold start by URL (/certificate/<id> reloaded, bookmarked or pasted) BOTH are
+   * undefined, so the next line read `draft.itemIds` and the screen went white.
+   * Reproduced against production on 30 Sep 2026.
+   */
+  const touched = useRef(false);
+  useEffect(() => {
+    if (!existing || touched.current) return;
+    setDraft((d) => (d.id === existing.id ? d : existing));
+  }, [existing]);
+
+  const set = (patch: Partial<Certificate>) => {
+    touched.current = true;
+    setDraft((d) => ({ ...d, ...patch }));
+  };
 
   const linkedItems = useMemo(
     () => flat.filter((it) => draft.itemIds.includes(it.id)),
@@ -111,6 +145,30 @@ export default function CertificateDetailSc() {
 
   const status = statusFromDate(draft.expiryDate);
 
+  if (missing) {
+    return (
+      <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
+          <View style={styles.header}>
+            <BackButton onPress={() => goBackOr(nav)} />
+            <Text style={styles.headerTitle} numberOfLines={1}>Certificate</Text>
+            <View style={{ width: 24 }} />
+          </View>
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: SIZES.lg }}>
+            {loading ? (
+              <ActivityIndicator color={COLORS.primary} />
+            ) : (
+              <Text style={{ color: COLORS.textLight, textAlign: 'center' }}>
+                This certificate is no longer in the register — it may have been deleted, or this
+                device is holding an older copy than the vessel is.
+              </Text>
+            )}
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
+
   return (
     <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
@@ -168,7 +226,7 @@ export default function CertificateDetailSc() {
         ) : (
           <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
             <View style={styles.titleRow}>
-              <Glyph emoji="📜" size={32} />
+              <MciIcon name="certificate" size={32} />
               {!isNew ? <StatusPill status={status} /> : null}
             </View>
 
@@ -187,7 +245,7 @@ export default function CertificateDetailSc() {
                     <Image source={{ uri: resolveUri(draft.fileUri) }} style={styles.preview} resizeMode="cover" />
                   ) : (
                     <View style={styles.docRow}>
-                      <Text style={{ fontSize: 28 }}>📄</Text>
+                      <MciIcon name="file-document" size={28} color={COLORS.primaryDark} />
                       <Text style={styles.docName} numberOfLines={1}>
                         {draft.fileName ?? 'Document'}
                       </Text>

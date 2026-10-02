@@ -53,6 +53,8 @@ import RecentScansSc from './screens/RecentScansSc';
 import InspectionSc from './screens/InspectionSc';
 import CrewSc from './screens/CrewSc';
 import ChecklistsSc from './screens/ChecklistsSc';
+import ScanRulesSc from './screens/ScanRulesSc';
+import PhotoArchiveSc from './screens/PhotoArchiveSc';
 import CategoriesEditSc from './screens/CategoriesEditSc';
 import ChecklistEditSc from './screens/ChecklistEditSc';
 import DefectsSc from './screens/DefectsSc';
@@ -443,6 +445,8 @@ function Root() {
         <Stack.Screen name="InspectionDetail" component={InspectionDetailSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Crew" component={CrewSc} options={webHeader('Crew', toTab('Settings'))} />
         <Stack.Screen name="Checklists" component={ChecklistsSc} options={webHeader('Checklists', toTab('Settings'))} />
+        <Stack.Screen name="ScanRules" component={ScanRulesSc} options={webHeader('Scan by category', toTab('Settings'))} />
+        <Stack.Screen name="PhotoArchive" component={PhotoArchiveSc} options={webHeader('Photo archive', toTab('Settings'))} />
         <Stack.Screen name="CategoriesEdit" component={CategoriesEditSc} options={webHeader('Categories', toTab('Settings'))} />
         <Stack.Screen name="ChecklistEdit" component={ChecklistEditSc} options={webHeader('Checklist', { screen: 'Checklists' })} />
         <Stack.Screen name="Defects" component={DefectsSc} options={webHeader('Open defects')} />

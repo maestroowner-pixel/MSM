@@ -7,6 +7,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, LayoutAnimation, Platform, UIManager, Linking, Image } from 'react-native';
 import { Screen, ScreenTitle, GlyphBadge } from '../components/ui';
+import { MciIcon } from '../components/MciIcon';
 import { SIZES, Palette, APP_CONFIG } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { MANUAL } from '../constants/manual';
@@ -50,6 +51,7 @@ function RefLinks({ refStr }: { refStr: string }) {
 
 export default function ManualSc() {
   const styles = useS();
+  const COLORS = useTheme();
   const content = useMemo(() => MANUAL[manualLang()], []);
   const [open, setOpen] = useState<number | null>(0);
 
@@ -77,7 +79,8 @@ export default function ManualSc() {
                 ) : null}
                 {s.note ? (
                   <View style={styles.note}>
-                    <Text style={styles.noteText}>⚠️ {s.note}</Text>
+                    <MciIcon name="alert" size={14} color={COLORS.warning} />
+                    <Text style={styles.noteText}>{s.note}</Text>
                   </View>
                 ) : null}
                 {s.body?.map((p, j) => (

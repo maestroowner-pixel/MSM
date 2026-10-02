@@ -8,11 +8,11 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { CategoryKey, EquipmentItem } from '../types/equipment';
 import { Certificate } from '../types/certificate';
 import { CompressorState } from '../types/compressor';
-import { Inspection } from '../types/inspection';
+import { Inspection, InspectionPeriod } from '../types/inspection';
 import { CrewMember, liveCrew } from '../types/crew';
 import { ChecklistTemplate } from '../constants/checklists';
 import { CategoryMeta, setVesselCategories } from '../constants/categories';
-import { CATEGORIES } from '../constants/categories';
+import { CATEGORIES, CATEGORY_MAP } from '../constants/categories';
 import * as storage from '../services/storage';
 import * as snapshot from '../services/snapshot';
 import { ScanEntry, loadScanHistory, recordScan as persistScan } from '../services/scanHistory';
@@ -21,6 +21,7 @@ import { syncFlaggedWidget } from '../services/widgetBridge';
 import { limitsActive, overflowLockedIds } from '../services/trial';
 import { onEntitlementChange } from '../services/purchases';
 import { DEFAULT_POLICY, SigningPolicy } from '../services/signingPolicy';
+import { DEFAULT_ARCHIVE, PhotoArchiveState } from '../services/photoArchive';
 import { setSoundsMuted } from '../utils/sound';
 
 interface DataContextType {
@@ -35,6 +36,9 @@ interface DataContextType {
   signingPolicy: SigningPolicy;
   /** Store the rule on this device. Reaching the vessel is SyncContext's job. */
   setSigningPolicy: (policy: SigningPolicy) => Promise<void>;
+  /** What the vessel has archived, and what the last sweep did (services/photoArchive.ts). */
+  photoArchive: PhotoArchiveState;
+  setPhotoArchive: (state: PhotoArchiveState) => Promise<void>;
   /** The vessel's inspection trail, append-only (see types/inspection.ts). */
   inspections: Inspection[];
   /** Who can sign an inspection. */
@@ -54,6 +58,8 @@ interface DataContextType {
   reload: () => Promise<void>;
   saveItem: (item: EquipmentItem) => Promise<void>;
   removeItem: (category: CategoryKey, id: string) => Promise<void>;
+  /** Move an item to another category, keeping its id, history and certificates. */
+  moveItem: (item: EquipmentItem, to: CategoryKey) => Promise<void>;
   saveCertificate: (cert: Certificate) => Promise<void>;
   removeCertificate: (id: string) => Promise<void>;
   saveCompressor: (state: CompressorState) => Promise<void>;
@@ -65,7 +71,11 @@ interface DataContextType {
   removeCrewMember: (id: string) => Promise<void>;
   saveTemplate: (template: ChecklistTemplate) => Promise<void>;
   removeTemplate: (id: string) => Promise<void>;
+  /** Which frequencies this vessel works to for a category (constants/checklists `roundsFor`). */
+  setRoundEnabled: (category: CategoryKey, period: InspectionPeriod, on: boolean) => Promise<void>;
   saveVesselCategory: (meta: CategoryMeta) => Promise<void>;
+  /** Show or hide a category — built-in or the vessel's own (constants/categories). */
+  setCategoryHidden: (key: CategoryKey, hidden: boolean) => Promise<void>;
   removeVesselCategory: (key: string) => Promise<void>;
   setPrefs: (patch: Partial<storage.Prefs>) => Promise<void>;
   setVessel: (info: storage.VesselInfo) => Promise<void>;
@@ -95,6 +105,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [recentScans, setRecentScans] = useState<ScanEntry[]>([]);
   const [lockedIds, setLockedIds] = useState<Set<string>>(new Set());
   const [signingPolicy, setSigningPolicyState] = useState<SigningPolicy>(DEFAULT_POLICY);
+  const [photoArchive, setPhotoArchiveState] = useState<PhotoArchiveState>(DEFAULT_ARCHIVE);
 
   // Recompute the free-tier overflow lock from a category map: locked only when
   // limits are active (trial ended, not subscribed, enforced on this platform).
@@ -122,6 +133,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setCrew(liveCrew(await storage.loadCrew()));
     setTemplates(await storage.loadTemplates());
     setSigningPolicyState((await storage.loadSigningPolicy()) ?? DEFAULT_POLICY);
+    setPhotoArchiveState((await storage.loadPhotoArchive()) ?? DEFAULT_ARCHIVE);
     setRecentScans(await loadScanHistory());
     const p = await storage.loadPrefs();
     setPrefsState(p);
@@ -202,6 +214,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     [reload]
   );
 
+  const moveItem = useCallback(
+    async (item: EquipmentItem, to: CategoryKey) => {
+      await storage.moveItem(item, to);
+      await reload();
+    },
+    [reload]
+  );
+
   const saveCertificate = useCallback(
     async (cert: Certificate) => {
       await storage.upsertCertificate(cert);
@@ -252,6 +272,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await reload();
   }, [reload]);
 
+  /**
+   * Hiding writes a vessel row for the category — including for a BUILT-IN one,
+   * where the row carries nothing but the vessel's changes to it. That is why it
+   * travels: the categories collection already syncs, so hiding a category on the
+   * bridge hides it on every phone aboard.
+   */
+  const setCategoryHidden = useCallback(
+    async (key: CategoryKey, hidden: boolean) => {
+      const current = CATEGORY_MAP[key];
+      if (!current) return;
+      await storage.upsertVesselCategory({ ...current, key, hidden });
+      await reload();
+    },
+    [reload]
+  );
+
   const removeVesselCategory = useCallback(async (key: string) => {
     await storage.deleteVesselCategory(key);
     await reload();
@@ -267,6 +303,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setTemplates(await storage.loadTemplates());
   }, []);
 
+  const setRoundEnabled = useCallback(
+    async (category: CategoryKey, period: InspectionPeriod, on: boolean) => {
+      await storage.setRoundEnabled(category, period, on);
+      setTemplates(await storage.loadTemplates());
+    },
+    []
+  );
+
   const removeCrewMember = useCallback(async (id: string) => {
     await storage.deleteCrewMember(id);
     setCrew(liveCrew(await storage.loadCrew()));
@@ -275,6 +319,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const setSigningPolicy = useCallback(async (policy: SigningPolicy) => {
     await storage.saveSigningPolicy(policy);
     setSigningPolicyState(policy);
+  }, []);
+
+  const setPhotoArchive = useCallback(async (state: PhotoArchiveState) => {
+    await storage.savePhotoArchive(state);
+    setPhotoArchiveState(state);
   }, []);
 
   const setPrefs = useCallback(
@@ -311,6 +360,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         prefs,
         signingPolicy,
         setSigningPolicy,
+        photoArchive,
+        setPhotoArchive,
         inspections,
         crew,
         templates,
@@ -322,6 +373,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         reload,
         saveItem,
         removeItem,
+        moveItem,
         saveCertificate,
         removeCertificate,
         saveCompressor,
@@ -331,7 +383,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         removeCrewMember,
         saveTemplate,
         removeTemplate,
+        setRoundEnabled,
         saveVesselCategory,
+        setCategoryHidden,
         removeVesselCategory,
         setPrefs,
         setVessel,

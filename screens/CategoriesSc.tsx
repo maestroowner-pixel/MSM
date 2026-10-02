@@ -3,14 +3,16 @@
 // One card per category with item count + worst-status indicator.
 // ===================================
 
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Alert, View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Screen, ScreenTitle, statusColor, CategoryBadge } from '../components/ui';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
-import { CATEGORIES } from '../constants/categories';
+import { CATEGORIES, CategoryMeta, GROUP_LABEL, GROUP_ORDER } from '../constants/categories';
+import { useSync } from '../contexts/SyncContext';
+import { MciIcon } from '../components/MciIcon';
 import { computeStatus } from '../utils/dates';
 import { CategoryKey, ComplianceStatus, EquipmentItem, Group } from '../types/equipment';
 
@@ -23,14 +25,18 @@ function worstStatus(items: EquipmentItem[]): ComplianceStatus {
   }, 'none');
 }
 
-const GROUP_LABEL: Record<Group, string> = {
-  LSA: 'Life-Saving Appliances',
-  FFE: 'Fire-Fighting Equipment',
-  OTHER: 'Other Safety Equipment',
-};
+
 
 export default function CategoriesSc() {
-  const { byCategory, categories: ownCats } = useData();
+  const { byCategory, categories: ownCats, setCategoryHidden } = useData();
+  const sync = useSync();
+  /**
+   * A Master (or a device on no vessel, which answers to nobody) may tidy the
+   * grid from here. Asked for on this screen rather than in Settings because
+   * this is where you notice that half of it is equipment you do not carry.
+   */
+  const isMaster = !sync.enrolled || sync.role === 'superadmin';
+  const [tidying, setTidying] = useState(false);
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -39,12 +45,40 @@ export default function CategoriesSc() {
   // is a registry mutated in place when a vessel adds a heading, so nothing about
   // reading it tells React that it changed. The context list is what does.
   const sections = useMemo(() => {
-    const groups: Group[] = ['LSA', 'FFE', 'OTHER'];
-    return groups.map((g) => ({
+    return GROUP_ORDER.map((g) => ({
       group: g,
-      items: CATEGORIES.filter((c) => c.group === g),
+      // While tidying, the hidden ones come back — dimmed, with their switch —
+      // because a list you cannot see is a list you cannot turn back on.
+      items: CATEGORIES.filter((c) => c.group === g && (tidying || !c.hidden)),
     }));
-  }, [ownCats]);
+  }, [ownCats, tidying]);
+
+  const hiddenCount = useMemo(() => CATEGORIES.filter((c) => c.hidden).length, [ownCats, tidying]);
+
+  const toggleHidden = (c: CategoryMeta) => {
+    const count = (byCategory[c.key] ?? []).length;
+    if (c.hidden) {
+      void setCategoryHidden(c.key, false);
+      return;
+    }
+    // Warned once, and only when it matters: "where did my lifebuoys go" is a bad
+    // five minutes, and the answer — that nothing was deleted — has to be said
+    // BEFORE the tile disappears rather than found afterwards.
+    if (!count) {
+      void setCategoryHidden(c.key, true);
+      return;
+    }
+    Alert.alert(
+      `Hide ${c.label}?`,
+      `It holds ${count} item${count === 1 ? '' : 's'}. They stay on file with their history, ` +
+        'labels and certificates — the heading is simply not shown, and the rounds and reports ' +
+        'stop asking for it. You can bring it back here at any time.',
+      [
+        { text: 'Keep it', style: 'cancel' },
+        { text: 'Hide', onPress: () => void setCategoryHidden(c.key, true) },
+      ]
+    );
+  };
 
   return (
     <Screen scroll>
@@ -55,6 +89,19 @@ export default function CategoriesSc() {
         onScan={() => nav.navigate('Scan')}
         onLabels={() => nav.navigate('LabelBatch')}
       />
+      {isMaster ? (
+        <TouchableOpacity style={styles.tidyRow} onPress={() => setTidying((t) => !t)} activeOpacity={0.7}>
+          <MciIcon name={tidying ? 'check' : 'eye-settings-outline'} size={18} color={COLORS.primary} />
+          <Text style={styles.tidyText}>
+            {tidying
+              ? 'Done — tap a category to show or hide it'
+              : hiddenCount
+                ? `Show or hide categories · ${hiddenCount} hidden`
+                : 'Show or hide categories'}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
+
       {sections.map((sec) => (
         <View key={sec.group} style={{ marginBottom: SIZES.lg }}>
           <Text style={[styles.groupTitle, { color: COLORS.groupColors[sec.group] }]}>{GROUP_LABEL[sec.group]}</Text>
@@ -65,18 +112,29 @@ export default function CategoriesSc() {
               return (
                 <TouchableOpacity
                   key={c.key}
-                  style={styles.tile}
+                  style={[styles.tile, tidying && c.hidden && styles.tileHidden]}
                   activeOpacity={0.8}
-                  onPress={() => nav.navigate('CategoryItems', { category: c.key })}
+                  onPress={() =>
+                    tidying ? toggleHidden(c) : nav.navigate('CategoryItems', { category: c.key })
+                  }
                 >
                   <View style={styles.tileTop}>
                     <CategoryBadge category={c.key} size={24} />
-                    {ws !== 'none' && ws !== 'ok' ? (
+                    {tidying ? (
+                      <MciIcon
+                        name={c.hidden ? 'eye-off-outline' : 'eye-outline'}
+                        size={18}
+                        color={c.hidden ? COLORS.textLight : COLORS.primary}
+                      />
+                    ) : ws !== 'none' && ws !== 'ok' ? (
                       <View style={[styles.badge, { backgroundColor: statusColor(ws) }]} />
                     ) : null}
                   </View>
-                  <Text style={styles.tileLabel} numberOfLines={2}>
-                    {c.short}
+                  {/* The name the vessel gave it, in full. The tile used to show a
+                      short form of its own invention, so Settings and Equipment
+                      disagreed about what a category was called. */}
+                  <Text style={styles.tileLabel} numberOfLines={3}>
+                    {c.label}
                   </Text>
                   <Text style={styles.tileCount}>{items.length} items</Text>
                 </TouchableOpacity>
@@ -90,6 +148,15 @@ export default function CategoriesSc() {
 }
 
 const makeStyles = (COLORS: Palette) => StyleSheet.create({
+  tidyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SIZES.sm,
+    paddingVertical: SIZES.sm,
+    marginBottom: SIZES.xs,
+  },
+  tidyText: { color: COLORS.primary, fontSize: SIZES.small, fontWeight: '700' },
+  tileHidden: { opacity: 0.45 },
   groupTitle: {
     fontSize: SIZES.h5,
     fontWeight: '700',

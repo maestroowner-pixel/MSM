@@ -34,6 +34,8 @@
 // ===================================
 
 import { Role } from '../types/role';
+import { CategoryKey } from '../types/equipment';
+import { CATEGORY_MAP } from '../constants/categories';
 import { VerificationMethod } from '../types/inspection';
 
 export interface SigningPolicy {
@@ -50,6 +52,34 @@ export interface SigningPolicy {
    * no account to sign as. Optional: older copies of the policy lack it.
    */
   signAsDevice?: boolean;
+  /**
+   * Categories the scan rule does NOT apply to (25 Sep 2026).
+   *
+   * Asked for by a vessel: a rescue boat's own inventory, or the loose
+   * fire-fighting gear in a locker, is worth keeping and checking off item by
+   * item — but nobody is going to put a sticker on every spanner, drogue and
+   * bailer, and a rule that demands one turns a useful inventory into a round
+   * that cannot be signed. So the rule is kept, and the categories where a label
+   * makes no sense are named as exceptions.
+   *
+   * An EXEMPTION LIST rather than a list of categories the rule covers, so the
+   * rule keeps its meaning as the register grows: a category added next month is
+   * covered by default, and a vessel that has never opened this screen sees
+   * exactly what it set when it switched the rule on.
+   *
+   * Exempt is not "unverified": a scan made anyway is still recorded on the
+   * record and still prints in the Scan column, so the report says which items
+   * were reached by their label whatever the rule asked for.
+   */
+  scanExempt?: CategoryKey[];
+  /**
+   * The other direction: categories the rule DOES cover although it would not by
+   * default. Only lifting and mooring gear is exempt by default (see
+   * `scanRequiredByDefault`), and a vessel that does label its cranes says so
+   * here. Two lists rather than one because the default now differs by register,
+   * and a switch must be able to say "yes" as clearly as it says "no".
+   */
+  scanRequired?: CategoryKey[];
   /** Who set it, as a note for the next Master ("Jez Dodd · Master"). */
   setBy?: string;
   /** Epoch ms. The newer copy wins between a device and the vessel. */
@@ -111,12 +141,49 @@ export function signingGate(
   policy: SigningPolicy | null | undefined,
   role: Role | null | undefined,
   enrolled: boolean,
-  proof: ScanProof | null
+  proof: ScanProof | null,
+  /** The item's category. Omitted = ask about the vessel as a whole. */
+  category?: CategoryKey
 ): SigningGate {
-  if (!policy?.requireScan) return { kind: 'open', proof };
+  if (!scanRequiredFor(policy, category)) return { kind: 'open', proof };
   if (proof) return { kind: 'scanned', proof };
   const master = !enrolled || role === 'superadmin';
   return master ? { kind: 'override' } : { kind: 'blocked' };
+}
+
+/**
+ * Does the scan rule bite on this category?
+ *
+ * With no category named the answer is about the vessel — which is what the
+ * Settings switch shows and what a report footer means.
+ */
+/**
+ * Whether the rule covers a category when the vessel has said nothing about it.
+ *
+ * Everything except lifting and mooring gear. That register is identified by the
+ * maker's own numbers, and the vessel that asked for it was explicit (30 Sep
+ * 2026): "I don't think we would physically label or QR code probably 90% of the
+ * lifting gear and mooring equipment ... it would be useful if QR labelling
+ * remained completely optional within this module rather than being central to
+ * how the inspections work."
+ *
+ * A shackle carries a stamped ID and a certificate number; matching that to the
+ * record is the identification, and demanding an MSM sticker on top of it would
+ * be asking the ship to relabel gear that is already labelled.
+ */
+export function scanRequiredByDefault(category: CategoryKey): boolean {
+  return CATEGORY_MAP[category]?.group !== 'LIFTING';
+}
+
+export function scanRequiredFor(
+  policy: SigningPolicy | null | undefined,
+  category?: CategoryKey
+): boolean {
+  if (!policy?.requireScan) return false;
+  if (!category) return true;
+  if ((policy.scanRequired ?? []).includes(category)) return true;
+  if ((policy.scanExempt ?? []).includes(category)) return false;
+  return scanRequiredByDefault(category);
 }
 
 /** The newer of two copies of the policy — a device's and the vessel's. */

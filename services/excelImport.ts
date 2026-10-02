@@ -29,7 +29,10 @@ type Field =
   | 'remarks'
   // The item's own id, written by our register export ("MSM ID"). Not a data
   // field: it never makes a row a header or an item, it only says WHICH item.
-  | 'msmId';
+  | 'msmId'
+  // Lifting & Mooring (types/equipment.ts)
+  | 'swl' | 'mbl' | 'diameter' | 'material' | 'marking'
+  | 'mfrCertNo' | 'testCertNo' | 'installedDate' | 'lastInspection';
 
 /**
  * Headings that ARE a field's name, matched on the whole cell before any
@@ -54,20 +57,52 @@ const EXACT_PATTERNS: Array<[Field, RegExp]> = [
   ['position', /^(location|position)$/],
   ['compliance', /\bexp.*\binsp|\binsp.*\bexp/],
   ['remarks', /^(comments?|remarks?|notes?)$/],
+  // Lifting & Mooring, worded as the vessel's own register words them.
+  ['swl', /^(swl|wll|safe working load|safe working load \(swl\)|working load limit)$/],
+  ['mbl', /^(mbl|min\.? breaking load|minimum breaking load|min\.? breaking load \(kn\)|breaking load)$/],
+  ['diameter', /^(diameter|diameter \(mm\)|dia\.?)$/],
+  ['material', /^material$/],
+  ['marking', /^(id ?\/ ?markings ?\/ ?whipping|markings?|whipping|colour code|color code)$/],
+  ['mfrCertNo', /^(manufacturer test certificate number|manufacturer certificate|mfr\.? cert\.? no\.?)$/],
+  ['testCertNo', /^(annual test certificate number|test certificate number|certificate number|cert\.? no\.?)$/],
+  ['installedDate', /^(date installed ?\/ ?renewed|date installed|installed|in service)$/],
+  ['lastInspection', /^(last annual inspection|last inspection|last examination)$/],
 ];
 
 // Keyword pass. Order matters: more specific patterns first.
 const FIELD_PATTERNS: Array<[Field, RegExp]> = [
   ['no', /^(no|nr|n_|set)\.?$/i],
   ['remarks', /remark|comment|note/i],
+  // A bare "Manufacturer" is the MAKER, and it has to be claimed before the
+  // manufacture-DATE pattern below, whose `/manufactur/i` would otherwise
+  // swallow it. It bit on a vessel's lifting register, where the item column is
+  // called "Equipment Name": with no column literally named "Type", the exact
+  // pass leaves `make` unclaimed (see `typeIsExact`), and every manufacturer
+  // landed in the manufacture date.
+  ['make', /^(manufacturer|maker|brand)$/i],
   ['manufactureDate', /manufactur/i],
-  ['nextInspection', /next\s*(inspection|insp|pressure|test|3rd\s*party|shore|hydro)|^inspection$/i],
+  // "Next Annual inspection" — words between "next" and what is next, which the
+  // old pattern (next immediately followed by the noun) did not allow.
+  ['nextInspection', /next\b[^|]*\b(inspection|insp|pressure|test|3rd\s*party|shore|hydro|examination|service)|^inspection$/i],
   ['expiry', /expiry|exp\b|exp\.|life\s*date|due|bottle\s*exp/i],
   ['serial', /serial|id\s*number|^id$|suit\s*number|^#$/i],
   ['persons', /persons/i],
   ['quantity', /quantity|qty/i],
   ['position', /position|place|location|cabin|area\s*served|^space$|fire\s*station|stowage/i],
-  ['type', /type|brand|make|model|raft|^item$|co2\s*bottles|damper|vent|hydrant|firebox|detector|outfit/i],
+  // Keyword fallbacks for the lifting columns — before `type`, whose keyword list
+  // is broad enough to swallow "Equipment Name".
+  ['swl', /safe\s*working\s*load|\bswl\b|\bwll\b/i],
+  ['mbl', /breaking\s*load|\bmbl\b/i],
+  ['diameter', /diameter/i],
+  // "Size / Length (m)" — `size` had no keyword pattern at all, only the exact one.
+  ['size', /\bsize\b|\blength\b/i],
+  ['material', /material/i],
+  ['marking', /marking|whipping|colour|color/i],
+  ['mfrCertNo', /manufacturer.*certificate/i],
+  ['testCertNo', /certificate\s*number|test\s*certificate/i],
+  ['installedDate', /installed|renewed/i],
+  ['lastInspection', /last\s*(annual\s*)?(inspection|examination)/i],
+  ['type', /type|brand|make|model|raft|^item$|co2\s*bottles|damper|vent|hydrant|firebox|detector|outfit|equipment\s*name/i],
 ];
 
 type ColMap = Partial<Record<Field, number>> & {
@@ -81,6 +116,8 @@ type ColMap = Partial<Record<Field, number>> & {
 const DATA_FIELDS: Field[] = [
   'no', 'type', 'make', 'size', 'serial', 'deck', 'position', 'persons', 'quantity',
   'manufactureDate', 'nextInspection', 'expiry', 'compliance', 'remarks',
+  'swl', 'mbl', 'diameter', 'material', 'marking', 'mfrCertNo', 'testCertNo',
+  'installedDate', 'lastInspection',
 ];
 
 // Minimum number of columns that must classify into fields for a row to count
@@ -261,6 +298,31 @@ function rowToItem(row: any[], cm: ColMap, category: CategoryKey, lastType: stri
   const remarks = norm(get('remarks'));
   if (remarks) item.remarks = remarks;
 
+  // Lifting & Mooring. Text as marked (see types/equipment.ts on why loads are
+  // not normalised); "N/A" is a person writing "there is none", not a value.
+  const na = (v: any) => {
+    const t = norm(v);
+    return !t || /^n\/?a$/i.test(t) ? undefined : t;
+  };
+  const swl = na(get('swl'));
+  if (swl) item.swl = swl;
+  const mbl = na(get('mbl'));
+  if (mbl) item.mbl = mbl;
+  const diameter = na(get('diameter'));
+  if (diameter) item.diameter = diameter;
+  const material = na(get('material'));
+  if (material) item.material = material;
+  const marking = na(get('marking'));
+  if (marking) item.marking = marking;
+  const mfrCertNo = na(get('mfrCertNo'));
+  if (mfrCertNo) item.mfrCertNo = mfrCertNo;
+  const testCertNo = na(get('testCertNo'));
+  if (testCertNo) item.testCertNo = testCertNo;
+  const installed = parseDateCell(get('installedDate'));
+  if (installed) item.installedDate = installed;
+  const lastInsp = parseDateCell(get('lastInspection'));
+  if (lastInsp) item.lastInspection = lastInsp;
+
   const persons = toInt(get('persons'));
   if (persons != null) item.persons = persons;
   const quantity = toInt(get('quantity'));
@@ -397,6 +459,18 @@ export function parseWorkbookBytes(bytes: ArrayBuffer | Uint8Array): ImportPrevi
  * specific come before the general ("inflatable lifejacket" before "lifejacket").
  */
 const CATEGORY_WORDS: Array<[CategoryKey, RegExp]> = [
+  // Lifting & Mooring first: a vessel's own register names its sheets its own
+  // way ("Mooring lines", not "Mooring Equipment"), and the rows still have to
+  // land in the right category. Harmless when the module is off — those keys are
+  // simply not registered, and `sortRows` falls through to other_safety as before.
+  ['mooring', /mooring|moor\s*line|warp|spring\s*line|head\s*line|stern\s*line/i],
+  ['working_aloft', /working\s*aloft|aloft\s*(kit|equipment)|rope\s*access|abseil|\bgrillon\b|\babsorbica\b|energy\s*absorb/i],
+  ['aloft_anchors', /aloft\s*anchor|anchor\s*point|fall\s*arrest\s*anchor/i],
+  ['cranes', /\bcrane\b|davit\s*crane|deck\s*crane|hoist\s*crane/i],
+  ['hooks_cables', /\bhook\b|release\s*hook|wire\s*cable|\bcable\b/i],
+  ['deck_slings', /\bsling\b|\bshackle\b|strop|webbing\s*sling/i],
+  ['eng_lifting', /chain\s*block|chain\s*hoist|tirfor|come\s*along|engine\s*room\s*lift|engineering\s*lift/i],
+  ['lifting_eyes', /lifting\s*eye|pad\s*eye|lifting\s*beam|runway\s*beam/i],
   // Before EEBD: "emergency escape breathing device" must still be an EEBD, so
   // the escapes pattern names the things along a route, not the word "escape".
   ['emergency_escapes', /escape\s*(hatch|route|door|ladder|trunk|way)|means\s+of\s+escape|emergency\s+(exit|hatch)/i],

@@ -27,7 +27,7 @@ export const LS_STORE_ID = 374407;
  *
  * 1197509 is what the live checkout above SELLS: its cart reads
  * `"product_id":1197509, "variant_id":1872133` for "Marine Safety Manager" at
- * €99 (checked against the checkout page, 14 Sep 2026). The 2.2 release set this
+ * €99 at the time (checked against the checkout page, 14 Sep 2026; the price moved to €169 on 29 Sep 2026 — the product id did not). The 2.2 release set this
  * to 1205672 alone, so every key a vessel actually bought was refused as "a
  * different product" — a customer's first licence, on 14 Sep 2026. 1205672 is
  * kept only because some key may have been issued against it; it is not what
@@ -43,6 +43,13 @@ export const LS_PRODUCT_IDS: number[] = [1197509, 1205672];
  *
  * Per VESSEL (one IMO), per year — not per person and not per device. Every
  * enrolled device on that vessel inherits the licence from the account.
+ *
+ * €169 IS THE AGREED PRICE AND IS NOT LIVE YET. It was written here on 29 Sep
+ * 2026 and put back to €99 on 30 Sep 2026, because the web had to be deployed
+ * with a bug fix before the LemonSqueezy dashboard could be changed, and a price
+ * shown in the app that the checkout does not charge is worse than an old price.
+ * Raise it here — and in constants/manual.ts, four languages — in the same hour
+ * the dashboard changes.
  */
 export const LS_PRICE_STRING = '€99';
 
