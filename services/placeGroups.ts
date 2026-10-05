@@ -47,6 +47,19 @@ export function comparePlace(a: string, b: string): number {
   return pa.length - pb.length;
 }
 
+/**
+ * The vessel's item numbers in walking order: 1, 2, 10 — "01-SD", "02-SD" — with
+ * an unnumbered item last. Under a location this is the order the crew ticks
+ * the round off in (asked for, 5 Oct 2026: once the Expiry column was filled in,
+ * the soonest date led and the numbers came out shuffled).
+ */
+export function compareNumber(a?: number | string | null, b?: number | string | null): number {
+  const x = a == null ? '' : String(a).trim();
+  const y = b == null ? '' : String(b).trim();
+  if (!x || !y) return x ? -1 : y ? 1 : 0;
+  return comparePlace(x, y);
+}
+
 /** Does this list record decks at all? Decides which column the headings come from. */
 export function usesDecks(items: EquipmentItem[]): boolean {
   return items.some((it) => deckKey(it.deck) !== '');

@@ -27,6 +27,10 @@ Android versionCode 20531 · iOS build 20531.
   so a vessel can also just add those two columns to the workbook it already has. A row with only
   an Expiry is judged by it (`complianceDate` falls back); a row with both is still judged by its
   category's own date, and the other is kept on the item screen.
+- **Under a location, items run by their item number** (`compareNumber`, 5 Oct 2026): 1, 2, 10,
+  "01-SD" before "02-SD", unnumbered last; the soonest date only settles a tie. They were ordered
+  by soonest date, which looked numeric only while a sheet had no dates — once the vessel filled in
+  the new Expiry column, a round could no longer be walked and ticked off in number order.
 - `npm run check:places` covers both: the headings, and a Liferafts sheet built from the template
   (raft + HRU) through the real importer and through Update.
 

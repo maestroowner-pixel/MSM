@@ -5,7 +5,7 @@
  *   npm run check:places
  */
 import * as XLSX from 'xlsx';
-import { comparePlace, groupByPlace, usesDecks, NO_DECK_LABEL, NO_POSITION_LABEL } from '../services/placeGroups';
+import { compareNumber, comparePlace, groupByPlace, usesDecks, NO_DECK_LABEL, NO_POSITION_LABEL } from '../services/placeGroups';
 import { templateHeadings } from '../services/registerSheet';
 import { parseWorkbookBytes } from '../services/excelImport';
 import { planUpdate } from '../services/registerUpdate';
@@ -54,6 +54,17 @@ const tied = groupByPlace(
   [{ ...it('late', 'Main Deck', 'Aft'), no: 2 }, { ...it('soon', 'Main Deck', 'Aft'), no: 1 }],
   self, true, (a, b) => Number(a.no) - Number(b.no));
 ok('same deck and location: the caller decides the order', shape(tied) === 'Main Deck[soon,late]', shape(tied));
+const walk = groupByPlace(
+  [
+    { ...it('n10', 'Main Deck', 'Aft'), no: 10, expiry: '2026-11-01' },
+    { ...it('n2', 'Main Deck', 'Aft'), no: 2, expiry: '2028-01-01' },
+    { ...it('nx', 'Main Deck', 'Aft'), expiry: '2026-10-10' },
+    { ...it('n1', 'Main Deck', 'Aft'), no: '1', expiry: '2027-05-01' },
+  ],
+  self, true, (a, b) => compareNumber(a.no, b.no) || (a.expiry ?? '').localeCompare(b.expiry ?? ''));
+ok('under a location: item number order (1, 2, 10), unnumbered last — not the soonest date',
+  shape(walk) === 'Main Deck[n1,n2,n10,nx]', shape(walk));
+ok('vessel numbers like "01-SD" sort as numbers', ['10-SD', '02-SD', '01-SD'].sort(compareNumber).join() === '01-SD,02-SD,10-SD');
 ok('input not mutated', reg.map((x) => x.id).join() === 'a,b,c,d,e,f');
 
 // ---- template columns ------------------------------------------------------
