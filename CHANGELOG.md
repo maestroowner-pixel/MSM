@@ -3,6 +3,33 @@
 Kept by hand. Each entry says what changed and, where it matters, **why** — the reasoning is
 the part that stops the next person undoing it.
 
+## 2.53 — 5 October 2026
+
+Android versionCode 20531 · iOS build 20531.
+
+### Asked for by a vessel going through 2.52 (3 October 2026)
+
+- **Position headings are the DECKS** (`services/placeGroups.ts`, `CategoryItemsSc`). The vessel
+  keeps its equipment as Deck → Location → item ("Main Deck → Main Deck Aft → Lifebuoy No. 1"); the
+  list grouped by the Location column alone, so the Deck column it had filled in showed nowhere as
+  a heading. Sorted by Position, a category that records any deck is now headed deck by deck, the
+  rows under a deck run location by location, and the row's second line says the location only (the
+  heading has said the deck). Items with no deck go last under "— No deck". A category with no
+  decks at all — the reference workbook has no such column — keeps its location headings.
+  Headings are in natural order (`comparePlace`): "Deck 2" before "Deck 10", "01 Sun Deck" before
+  "02 Bridge Deck", so a vessel orders its decks by numbering them in Excel. Two spellings of one
+  deck are one heading (`deckKey`, the same rule the label batches use). The Dashboard's own
+  Position sort is unchanged.
+- **The blank template has Expiry AND Next Inspection, and a Quantity, on every sheet**
+  (`templateHeadings` in `services/registerSheet.ts`). It offered only the date its category is
+  judged by, and Persons instead of Quantity, so the Liferafts sheet had no column for an HRU's
+  expiry or how many there are. Nothing changed in the importer — it has always read both headings,
+  so a vessel can also just add those two columns to the workbook it already has. A row with only
+  an Expiry is judged by it (`complianceDate` falls back); a row with both is still judged by its
+  category's own date, and the other is kept on the item screen.
+- `npm run check:places` covers both: the headings, and a Liferafts sheet built from the template
+  (raft + HRU) through the real importer and through Update.
+
 ## 2.52 — 2 October 2026
 
 Android versionCode 20521 · iOS build 20521.

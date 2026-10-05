@@ -7,7 +7,7 @@
 // has to be able to build them without a phone.
 // ===================================
 
-import { EquipmentItem } from '../types/equipment';
+import { CategoryKey, EquipmentItem } from '../types/equipment';
 import { complianceDate, computeStatus, formatDate } from '../utils/dates';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -68,4 +68,29 @@ export function registerSheetRows(items: EquipmentItem[], header: string, genera
       ];
     }),
   ];
+}
+
+// Categories whose register tracks rated persons as well as a quantity.
+const PERSONS_CATS = new Set<CategoryKey>([
+  'liferafts', 'lifejackets', 'immersion_suits', 'inflatable_lifejackets',
+]);
+
+/**
+ * The blank template's headings for an LSA / FFE / Other category.
+ *
+ * The vessel's own list reads "# · Deck · Location · Description · Make · Type ·
+ * Size · Serial" — so does the template, and every heading maps back on import.
+ *
+ * BOTH dates and a Quantity on every sheet (3 Oct 2026). The template used to
+ * offer only the date its category is judged by, and Persons INSTEAD of a
+ * quantity, so the Liferafts sheet had nowhere to write an HRU's expiry or how
+ * many there are — and the same goes for anything whose own component runs out
+ * on a date of its own (a lifebuoy light, a battery) beside the item's service.
+ * A row with only an Expiry is judged by it; `complianceDate` falls back.
+ */
+export function templateHeadings(category: CategoryKey): string[] {
+  const cols = ['No', 'Type', 'Make', 'Size', 'Serial', 'Deck', 'Location'];
+  if (PERSONS_CATS.has(category)) cols.push('Persons');
+  cols.push('Quantity', 'Manufacture Date', 'Next Inspection', 'Expiry', 'Comments');
+  return cols;
 }

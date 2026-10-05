@@ -18,7 +18,7 @@ import { printHtmlWeb } from '../utils/webFile';
 import { downloadPdfWeb } from '../utils/webPdf';
 import { ensureLocalFile, resolveUri } from './attachments';
 import { VesselInfo } from './storage';
-import { registerSheetRows } from './registerSheet';
+import { registerSheetRows, templateHeadings } from './registerSheet';
 
 const STATUS_LABEL: Record<string, string> = {
   expired: 'EXPIRED',
@@ -410,11 +410,6 @@ const sheetName = sheetSafeName;
 // or an Excel date cell.
 // ===================================
 
-// Categories whose register tracks rated persons rather than a quantity.
-const PERSONS_CATS = new Set<CategoryKey>([
-  'liferafts', 'lifejackets', 'immersion_suits', 'inflatable_lifejackets',
-]);
-
 /**
  * The Lifting & Mooring columns, in the order the vessel's own register has them
  * (design/jez-lifting-register.tsv, sent 29 Sep 2026).
@@ -457,14 +452,7 @@ function templateColumns(meta: CategoryMeta): string[] {
   // where two thirds of the columns never apply is a sheet nobody fills in.
   if (meta.group === 'LIFTING') return [...LIFTING_COLUMNS];
 
-  // The vessel's own list reads "# · Deck · Location · Description · Make · Type ·
-  // Size · Serial" — so does the template, and every heading maps back on import.
-  const cols = ['No', 'Type', 'Make', 'Size', 'Serial', 'Deck', 'Location'];
-  cols.push(PERSONS_CATS.has(meta.key) ? 'Persons' : 'Quantity');
-  cols.push('Manufacture Date');
-  cols.push(meta.dateField === 'nextInspection' ? 'Next Inspection' : 'Expiry');
-  cols.push('Comments');
-  return cols;
+  return templateHeadings(meta.key);
 }
 
 /**

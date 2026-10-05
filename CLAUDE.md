@@ -224,6 +224,11 @@ The source workbook (`LSA FFE Inventories.xlsx`, 25 sheets) is heterogeneous. Th
 - **Sheets with no category of their own** are sorted row by row (`sortRows`, `CATEGORY_WORDS`)
   from description/type, then the sheet name, else `other_safety`. Re-check the reference file
   after touching any of this: 627 items; the only intended differences are Volume→size, Brand→make.
+- **The blank template's headings live in `registerSheet.ts` (`templateHeadings`)**, pure, so
+  `npm run check:places` can put a filled-in sheet through the importer. Every LSA/FFE sheet has
+  BOTH `Next Inspection` and `Expiry`, and a `Quantity` (3 Oct 2026 — the Liferafts sheet had no
+  column for an HRU's expiry). The category list's Position sort is headed by DECK when the
+  category records any (`services/placeGroups.ts`), by Location otherwise.
 - **Web reads the file bytes itself** (`pickBinaryFileWeb` → `parseWorkbookBytes`):
   `expo-file-system.readAsStringAsync` does not exist in a browser.
 - Validated against the real file: **627 items across all 23 sheets** (run `npx tsc --noEmit`

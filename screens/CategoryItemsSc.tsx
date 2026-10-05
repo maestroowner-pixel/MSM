@@ -22,6 +22,7 @@ import { CategoryKey, ComplianceStatus, EquipmentItem } from '../types/equipment
 import { uid } from '../utils/id';
 import { canAddItem } from '../services/trial';
 import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
+import { groupByPlace, usesDecks } from '../services/placeGroups';
 
 type SortBy = 'date' | 'position' | 'name' | 'type' | 'round';
 const SORT_ORDER: SortBy[] = ['position', 'date', 'name', 'type', 'round'];
@@ -49,7 +50,6 @@ const ROUND_GROUP: Record<RoundMark, string> = {
 };
 
 const titleOf = (it: EquipmentItem) => (it.type || (it.no != null ? `#${it.no}` : '')).toLowerCase();
-const NO_POSITION = '— No position';
 const NO_TYPE = '— No type';
 
 interface Scored {
@@ -100,7 +100,14 @@ export default function CategoryItemsSc() {
     );
   }, [byCategory, category, q]);
 
-  // Sort by soonest expiry/inspection, or group by position with location headers.
+  // Position headings are the vessel's DECKS when this category records any, with
+  // the location saying where on the deck; a list with no decks keeps its location
+  // headings. Asked from the whole category, not the search result, so the
+  // headings do not change kind while somebody is typing.
+  const byDeck = useMemo(() => usesDecks(byCategory[category] ?? []), [byCategory, category]);
+  const deckHeadings = sortBy === 'position' && byDeck;
+
+  // Sort by soonest expiry/inspection, or group by position with deck/location headers.
   const listData = useMemo<ListEntry[]>(() => {
     const periods = periodsFor(category, templates);
     const scored: Scored[] = filtered.map((it) => {
@@ -137,30 +144,37 @@ export default function CategoryItemsSc() {
       }
       return out;
     }
-    // Group by position (location) or by the item's type/description, with a
-    // header per group. Items with no value land in a trailing "—" group.
-    const groupBy = sortBy === 'type' ? 'type' : 'position';
-    const NONE = groupBy === 'type' ? NO_TYPE : NO_POSITION;
-    const groups = new Map<string, Scored[]>();
-    for (const r of scored) {
-      const k = (r.it[groupBy] ?? '').toString().trim() || NONE;
-      const arr = groups.get(k);
-      if (arr) arr.push(r);
-      else groups.set(k, [r]);
+    // Group by the item's type/description, with a header per group. Items with
+    // no value land in a trailing "—" group.
+    if (sortBy === 'type') {
+      const groups = new Map<string, Scored[]>();
+      for (const r of scored) {
+        const k = (r.it.type ?? '').toString().trim() || NO_TYPE;
+        const arr = groups.get(k);
+        if (arr) arr.push(r);
+        else groups.set(k, [r]);
+      }
+      const keys = [...groups.keys()].sort((a, b) => {
+        if (a === NO_TYPE) return 1;
+        if (b === NO_TYPE) return -1;
+        return a.localeCompare(b);
+      });
+      const out: ListEntry[] = [];
+      for (const k of keys) {
+        const group = groups.get(k)!.sort(byDays);
+        out.push({ kind: 'header', key: `h:${k}`, position: k, count: group.length, icon: 'tag-outline' });
+        for (const r of group) out.push({ kind: 'row', key: r.it.id, ...r });
+      }
+      return out;
     }
-    const keys = [...groups.keys()].sort((a, b) => {
-      if (a === NONE) return 1;
-      if (b === NONE) return -1;
-      return a.localeCompare(b);
-    });
+    // By position — see services/placeGroups.
     const out: ListEntry[] = [];
-    for (const k of keys) {
-      const group = groups.get(k)!.sort(byDays);
-      out.push({ kind: 'header', key: `h:${k}`, position: k, count: group.length, icon: groupBy === 'type' ? 'tag-outline' : 'map-marker-outline' });
-      for (const r of group) out.push({ kind: 'row', key: r.it.id, ...r });
+    for (const g of groupByPlace(scored, (r) => r.it, byDeck, byDays)) {
+      out.push({ kind: 'header', key: `h:${g.key}`, position: g.label, count: g.rows.length, icon: byDeck ? 'layers-outline' : 'map-marker-outline' });
+      for (const r of g.rows) out.push({ kind: 'row', key: r.it.id, ...r });
     }
     return out;
-  }, [filtered, sortBy]);
+  }, [filtered, sortBy, byDeck]);
 
   const cycleSort = () => setSortBy((s) => SORT_ORDER[(SORT_ORDER.indexOf(s) + 1) % SORT_ORDER.length]);
 
@@ -315,7 +329,8 @@ export default function CategoryItemsSc() {
           ) : null}
         </View>
         <Text style={styles.rowSub} numberOfLines={1}>
-          {[e.it.serial && `S/N ${e.it.serial}`, itemLocation(e.it)].filter(Boolean).join(' · ') || '—'}
+          {/* Under a deck heading the deck is already said; the location is what is left to say. */}
+          {[e.it.serial && `S/N ${e.it.serial}`, deckHeadings ? e.it.position?.trim() : itemLocation(e.it)].filter(Boolean).join(' · ') || '—'}
         </Text>
       </View>
       <View style={{ alignItems: 'flex-end' }}>
