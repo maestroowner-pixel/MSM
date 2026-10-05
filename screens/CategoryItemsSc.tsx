@@ -22,7 +22,7 @@ import { CategoryKey, ComplianceStatus, EquipmentItem } from '../types/equipment
 import { uid } from '../utils/id';
 import { canAddItem } from '../services/trial';
 import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
-import { compareNumber, groupByPlace, usesDecks } from '../services/placeGroups';
+import { groupByPlace, usesDecks } from '../services/placeGroups';
 
 type SortBy = 'date' | 'position' | 'name' | 'type' | 'round';
 const SORT_ORDER: SortBy[] = ['position', 'date', 'name', 'type', 'round'];
@@ -169,10 +169,9 @@ export default function CategoryItemsSc() {
     }
     // By position — see services/placeGroups.
     const out: ListEntry[] = [];
-    // Under a location, by item number — the order a round is walked and ticked
-    // off in; the soonest date only settles two items with the same number.
-    const byNumber = (a: Scored, b: Scored) => compareNumber(a.it.no, b.it.no) || byDays(a, b);
-    for (const g of groupByPlace(scored, (r) => r.it, byDeck, byNumber)) {
+    // Under a heading, by item number — the order a round is walked and ticked off
+    // in (see groupByPlace); the soonest date only settles what is left equal.
+    for (const g of groupByPlace(scored, (r) => r.it, byDeck, byDays)) {
       out.push({ kind: 'header', key: `h:${g.key}`, position: g.label, count: g.rows.length, icon: byDeck ? 'layers-outline' : 'map-marker-outline' });
       for (const r of g.rows) out.push({ kind: 'row', key: r.it.id, ...r });
     }

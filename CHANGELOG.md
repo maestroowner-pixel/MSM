@@ -7,10 +7,15 @@ the part that stops the next person undoing it.
 
 Android versionCode 20541 · iOS build 20541.
 
-- **Under a location, items run by their item number** (`compareNumber`, 5 Oct 2026): 1, 2, 10,
-  "01-SD" before "02-SD", unnumbered last; the soonest date only settles a tie. They were ordered
-  by soonest date, which looked numeric only while a sheet had no dates — once the vessel filled in
-  the new Expiry column, a round could no longer be walked and ticked off in number order.
+- **Under a deck, items run by their item number** (`compareNumber` inside `groupByPlace`, 5 Oct
+  2026). A vessel that numbers its gear numbers it in walking order ("14-BD … 18-BD" along the
+  Bridge Deck); under a deck the rows ran by location name A–Z and then by soonest date, so its own
+  screenshot read 17, 16, 15, 14, 18. Now: number first; location (under a deck) and date only for
+  what is left equal; unnumbered items after the numbered ones. A series code after the number
+  counts as the series — "17-BD" sorts as "BD 17" — so 01-BD … 18-BD run together and the fire
+  blankets 01-FB … follow as their own run instead of interleaving. Natural number order throughout
+  (2 before 10). The first attempt the same morning ordered by number only WITHIN one location,
+  which did not touch this case; it never reached the stores.
 
 ## 2.53 — 5 October 2026
 

@@ -53,11 +53,22 @@ export function comparePlace(a: string, b: string): number {
  * the round off in (asked for, 5 Oct 2026: once the Expiry column was filled in,
  * the soonest date led and the numbers came out shuffled).
  */
+/**
+ * "17-BD" compared as "BD 17": a series code written AFTER the number still names
+ * the series, so the Bridge Deck extinguishers run 01-BD … 18-BD together and the
+ * fire blankets 01-FB … follow as their own run, rather than interleaving by the
+ * number alone (01-BD, 01-FB, 02-BD …). "SD-01" and plain numbers are unchanged.
+ */
+function numberKey(no: string): string {
+  const m = no.match(/^(\d+)\s*[-/. ]\s*([A-Za-z].*)$/);
+  return m ? `${m[2]} ${m[1]}` : no;
+}
+
 export function compareNumber(a?: number | string | null, b?: number | string | null): number {
   const x = a == null ? '' : String(a).trim();
   const y = b == null ? '' : String(b).trim();
   if (!x || !y) return x ? -1 : y ? 1 : 0;
-  return comparePlace(x, y);
+  return comparePlace(numberKey(x), numberKey(y));
 }
 
 /** Does this list record decks at all? Decides which column the headings come from. */
@@ -74,9 +85,9 @@ export interface PlaceGroup<T> {
 
 /**
  * Rows under their headings: decks when `byDeck`, locations otherwise. Headings
- * in `comparePlace` order with the "none recorded" group last. Under a deck the
- * rows run location by location; `tie` settles the rest (and the whole order
- * under a location heading).
+ * in `comparePlace` order with the "none recorded" group last. Under a heading
+ * rows run by item number (`compareNumber`); unnumbered rows follow, location by
+ * location under a deck, and `tie` settles the rest.
  */
 export function groupByPlace<T>(
   rows: T[],
@@ -99,7 +110,15 @@ export function groupByPlace<T>(
     return comparePlace(a.label, b.label);
   });
   for (const g of out) {
+    // The vessel's item number first: on a vessel that numbers its gear, the
+    // number IS the walking order ("14-BD, 15-BD … 18-BD" along the Bridge Deck),
+    // and the location names sorted A–Z are not (5 Oct 2026, from a screenshot:
+    // 17, 16, 15, 14, 18 because Aft Tech Locker < Cinema < Guest Lift < Office).
+    // Location, then `tie`, order only what the numbers leave equal — unnumbered
+    // items, which come after the numbered ones.
     g.rows.sort((a, b) => {
+      const n = compareNumber(itemOf(a).no, itemOf(b).no);
+      if (n) return n;
       if (byDeck) {
         const pa = (itemOf(a).position ?? '').trim();
         const pb = (itemOf(b).position ?? '').trim();

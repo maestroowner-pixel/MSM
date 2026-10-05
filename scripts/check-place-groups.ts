@@ -65,6 +65,15 @@ const walk = groupByPlace(
 ok('under a location: item number order (1, 2, 10), unnumbered last — not the soonest date',
   shape(walk) === 'Main Deck[n1,n2,n10,nx]', shape(walk));
 ok('vessel numbers like "01-SD" sort as numbers', ['10-SD', '02-SD', '01-SD'].sort(compareNumber).join() === '01-SD,02-SD,10-SD');
+// Jez's Bridge Deck, as on his phone (5 Oct 2026): the numbers are the route.
+const N = (id: string, no: string, position: string): EquipmentItem => ({ ...it(id, 'Bridge Deck', position), no });
+const bd = groupByPlace([
+  N('17', '17-BD', 'Aft Tech Locker'), N('16', '16-BD', 'Cinema FWD Lobby'), N('15', '15-BD', 'Guest Lift Lobby'),
+  N('14', '14-BD', 'Office Corridor'), N('18', '18-BD', 'Port Aft Deck Sofa'), N('fb3', '03-FB', 'Port Aft Deck Sofa'),
+  N('08', '08-BD', 'Port FWD Fire Locker'), it('loose', 'Bridge Deck', 'Aft Tech Locker'),
+], self, true);
+ok('under a deck: item number order, not location A–Z; FB series after BD; unnumbered last',
+  shape(bd) === 'Bridge Deck[08,14,15,16,17,18,fb3,loose]', shape(bd));
 ok('input not mutated', reg.map((x) => x.id).join() === 'a,b,c,d,e,f');
 
 // ---- template columns ------------------------------------------------------
