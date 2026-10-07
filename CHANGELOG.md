@@ -3,6 +3,17 @@
 Kept by hand. Each entry says what changed and, where it matters, **why** — the reasoning is
 the part that stops the next person undoing it.
 
+## Unreleased — after 2.55
+
+- **Terms of Use, version 2** (`constants/legal.ts`, `LEGAL_VERSION` 1 → 2, so every user accepts
+  them again on the next launch — the consent screen is the explicit acceptance). Three additions:
+  who provides the app (KukaLab is the trading name of Mykhaylo Osypov, autónomo in Spain — a
+  trading name owns nothing, so the Terms must name the person); **Feedback** — suggestions and
+  ideas users send are assigned to him, with a perpetual licence as the fallback where assignment
+  is not possible, and a request not to send the vessel's or employer's confidential information;
+  **Governing law** — Spain, without taking away a consumer's mandatory home-country protection.
+  Terms dated 7 October 2026; the Privacy Policy is unchanged and keeps its date.
+
 ## 2.55 — 7 October 2026
 
 Android versionCode 20551 · iOS build 20551. Submitted to the App Store and Google Play 7 October 2026.

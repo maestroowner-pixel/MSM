@@ -5,9 +5,11 @@
 
 import { APP_CONFIG } from '../theme';
 
-export const LEGAL_VERSION = 1;
+// 2 (7 Oct 2026): who KukaLab is, Feedback, governing law — everyone accepts again.
+export const LEGAL_VERSION = 2;
 export const LEGAL_ACCEPTED_KEY = `msm:legal_accepted_v${LEGAL_VERSION}`;
 export const EFFECTIVE_DATE = '5 June 2026';
+export const TERMS_EFFECTIVE_DATE = '7 October 2026';
 
 export interface LegalSection {
   heading?: string;
@@ -78,11 +80,12 @@ export const PRIVACY_POLICY: LegalDoc = {
 
 export const TERMS_OF_USE: LegalDoc = {
   title: 'Terms of Use',
-  effectiveDate: EFFECTIVE_DATE,
+  effectiveDate: TERMS_EFFECTIVE_DATE,
   sections: [
     {
       paragraphs: [
         `These Terms govern your use of ${APP_CONFIG.name}. By installing or using the app you accept these Terms. If you do not agree, do not use the app.`,
+        `${APP_CONFIG.company} is the trading name of Mykhaylo Osypov, a self-employed developer (autónomo) registered in Spain, who provides the app. "${APP_CONFIG.company}", "we" and "us" in these Terms mean him.`,
       ],
     },
     {
@@ -116,13 +119,26 @@ export const TERMS_OF_USE: LegalDoc = {
       ],
     },
     {
-      heading: '6. Changes',
+      heading: '6. Feedback',
+      paragraphs: [
+        `If you send us suggestions, ideas, feature requests or other feedback about the app ("Feedback"), you assign to ${APP_CONFIG.company} all rights in that Feedback, and we may use, change and include it in the app or any other product without restriction, payment or attribution. Where such an assignment is not possible under applicable law, you grant us a perpetual, irrevocable, worldwide, royalty-free licence to do so.`,
+        'Please do not include in Feedback anything you are not free to share, such as confidential information of your vessel, its owner or your employer.',
+      ],
+    },
+    {
+      heading: '7. Governing law',
+      paragraphs: [
+        'These Terms are governed by the laws of Spain. If you use the app as a consumer, this does not take away the protection of the mandatory laws of the country where you live, and you may bring a claim in its courts.',
+      ],
+    },
+    {
+      heading: '8. Changes',
       paragraphs: [
         'We may update these Terms and the app. Continued use after an update constitutes acceptance of the revised Terms.',
       ],
     },
     {
-      heading: '7. Contact',
+      heading: '9. Contact',
       paragraphs: [`${APP_CONFIG.company} — ${APP_CONFIG.email} — ${APP_CONFIG.website}.`],
     },
   ],
