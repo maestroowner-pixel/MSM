@@ -19,7 +19,7 @@ export const PROVIDER = {
   name: 'Mykhaylo Osypov',
   status: 'self-employed (autónomo), Spain',
   nif: 'ESZ0095260E',
-  address: 'Calle Uruguai 8, 5, Ferrol, Spain',
+  address: 'Calle Uruguai 8, 5, 15404 Ferrol, Spain',
 };
 const PROVIDER_LINE = `${PROVIDER.name}, ${PROVIDER.status} — NIF ${PROVIDER.nif} — ${PROVIDER.address}`;
 
