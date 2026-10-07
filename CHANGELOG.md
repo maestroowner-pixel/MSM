@@ -3,7 +3,9 @@
 Kept by hand. Each entry says what changed and, where it matters, **why** — the reasoning is
 the part that stops the next person undoing it.
 
-## Unreleased — after 2.54
+## 2.55 — 7 October 2026
+
+Android versionCode 20551 · iOS build 20551.
 
 - **Two more icons for a vessel's own headings: dive equipment and cylinders** (Settings →
   Categories, `ICONS` in `CategoriesEditSc`). Asked for by a vessel adding its dive locker
