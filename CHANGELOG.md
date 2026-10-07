@@ -5,7 +5,7 @@ the part that stops the next person undoing it.
 
 ## 2.55 — 7 October 2026
 
-Android versionCode 20551 · iOS build 20551.
+Android versionCode 20551 · iOS build 20551. Submitted to the App Store and Google Play 7 October 2026.
 
 - **Two more icons for a vessel's own headings: dive equipment and cylinders** (Settings →
   Categories, `ICONS` in `CategoriesEditSc`). Asked for by a vessel adding its dive locker
@@ -18,7 +18,7 @@ Android versionCode 20551 · iOS build 20551.
 
 ## 2.54 — 5 October 2026
 
-Android versionCode 20541 · iOS build 20541.
+Android versionCode 20541 · iOS build 20541. Submitted to the App Store and Google Play 5 October 2026.
 
 - **Under a deck, items run by their item number** (`compareNumber` inside `groupByPlace`, 5 Oct
   2026). A vessel that numbers its gear numbers it in walking order ("14-BD … 18-BD" along the
@@ -32,7 +32,7 @@ Android versionCode 20541 · iOS build 20541.
 
 ## 2.53 — 5 October 2026
 
-Android versionCode 20531 · iOS build 20531.
+Android versionCode 20531 · iOS build 20531. Submitted to the App Store and Google Play 5 October 2026.
 
 ### Asked for by a vessel going through 2.52 (3 October 2026)
 
