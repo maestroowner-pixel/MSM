@@ -8,8 +8,20 @@ import { APP_CONFIG } from '../theme';
 // 2 (7 Oct 2026): who KukaLab is, Feedback, governing law — everyone accepts again.
 export const LEGAL_VERSION = 2;
 export const LEGAL_ACCEPTED_KEY = `msm:legal_accepted_v${LEGAL_VERSION}`;
-export const EFFECTIVE_DATE = '5 June 2026';
-export const TERMS_EFFECTIVE_DATE = '7 October 2026';
+export const EFFECTIVE_DATE = '7 October 2026';
+
+/**
+ * Who provides the app — required in both documents (Spain's LSSI art. 10 for
+ * the Terms, GDPR art. 13 for the Privacy Policy). One place, so moving to a
+ * business address later is a one-line change here.
+ */
+export const PROVIDER = {
+  name: 'Mykhaylo Osypov',
+  status: 'self-employed (autónomo), Spain',
+  nif: 'ESZ0095260E',
+  address: 'Calle Uruguai 8, 5, Ferrol, Spain',
+};
+const PROVIDER_LINE = `${PROVIDER.name}, ${PROVIDER.status} — NIF ${PROVIDER.nif} — ${PROVIDER.address}`;
 
 export interface LegalSection {
   heading?: string;
@@ -72,7 +84,7 @@ export const PRIVACY_POLICY: LegalDoc = {
     {
       heading: '6. Contact',
       paragraphs: [
-        `For privacy questions contact ${APP_CONFIG.company} at ${APP_CONFIG.email} (${APP_CONFIG.website}).`,
+        `The data controller is ${PROVIDER_LINE}, trading as ${APP_CONFIG.company}. For privacy questions write to ${APP_CONFIG.email} (${APP_CONFIG.website}).`,
       ],
     },
   ],
@@ -80,7 +92,7 @@ export const PRIVACY_POLICY: LegalDoc = {
 
 export const TERMS_OF_USE: LegalDoc = {
   title: 'Terms of Use',
-  effectiveDate: TERMS_EFFECTIVE_DATE,
+  effectiveDate: EFFECTIVE_DATE,
   sections: [
     {
       paragraphs: [
@@ -139,7 +151,7 @@ export const TERMS_OF_USE: LegalDoc = {
     },
     {
       heading: '9. Contact',
-      paragraphs: [`${APP_CONFIG.company} — ${APP_CONFIG.email} — ${APP_CONFIG.website}.`],
+      paragraphs: [`${APP_CONFIG.company} — ${PROVIDER_LINE} — ${APP_CONFIG.email} — ${APP_CONFIG.website}.`],
     },
   ],
 };

@@ -12,7 +12,9 @@ the part that stops the next person undoing it.
   ideas users send are assigned to him, with a perpetual licence as the fallback where assignment
   is not possible, and a request not to send the vessel's or employer's confidential information;
   **Governing law** — Spain, without taking away a consumer's mandatory home-country protection.
-  Terms dated 7 October 2026; the Privacy Policy is unchanged and keeps its date.
+  Both documents now name the provider in full — name, NIF and address (`PROVIDER`), as Spain's
+  LSSI art. 10 asks of the Terms and GDPR art. 13 of the Privacy Policy's controller. One constant,
+  so a move to a business address is a one-line change. Both dated 7 October 2026.
 
 ## 2.55 — 7 October 2026
 
