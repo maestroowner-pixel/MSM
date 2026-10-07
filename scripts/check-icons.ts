@@ -55,6 +55,15 @@ for (const m of ui.matchAll(/^\s*'[^']+':\s*'([a-z0-9-]+)',/gm)) {
   check(m[1], 'components/ui.tsx glyph map');
 }
 
+// The picker a vessel chooses its own heading's icon from (Settings → Categories).
+const picker = require('fs').readFileSync(
+  require('path').join(process.cwd(), 'screens/CategoriesEditSc.tsx'),
+  'utf8'
+);
+const block = picker.match(/const ICONS = \[([\s\S]*?)\];/);
+if (!block) { fails++; console.log('FAIL  ICONS list not found in screens/CategoriesEditSc.tsx'); }
+else for (const m of block[1].matchAll(/'([a-z0-9-]+)'/g)) check(m[1], 'category icon picker');
+
 console.log(
   fails
     ? `\n${fails} icon name(s) would draw a question mark.`

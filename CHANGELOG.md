@@ -3,6 +3,17 @@
 Kept by hand. Each entry says what changed and, where it matters, **why** — the reasoning is
 the part that stops the next person undoing it.
 
+## Unreleased — after 2.54
+
+- **Two more icons for a vessel's own headings: dive equipment and cylinders** (Settings →
+  Categories, `ICONS` in `CategoriesEditSc`). Asked for by a vessel adding its dive locker
+  (7 Oct 2026). `diving-snorkel` rather than `diving-scuba-mask`, which at picker size reads as a
+  box on a hose; `gas-cylinder` — a bottle with its valve, as the vessel drew it — rather than
+  `diving-scuba-tank`, whose regulator hose makes it a dive set only.
+- `npm run check:icons` now checks the picker list too. It used to cover the built-in categories
+  and the glyph map only, so a mistyped picker name would have shown as a question mark on the web
+  with nothing to say so.
+
 ## 2.54 — 5 October 2026
 
 Android versionCode 20541 · iOS build 20541.

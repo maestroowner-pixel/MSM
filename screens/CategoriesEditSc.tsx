@@ -47,9 +47,9 @@ import { uid } from '../utils/id';
  * that ship with the app, and an emoji beside them reads as a different class of
  * thing — which is precisely what it must not be.
  *
- * Every name here is checked to exist in @mdi/js, because the web build renders
+ * Every name here must exist in @mdi/js AND the phone font: the web build renders
  * these as SVG paths and silently substitutes a question mark for a name it does
- * not know. Add to this list only after checking the same way.
+ * not know. `npm run check:icons` reads this list and checks both.
  *
  * Kept short on purpose. A picker of three hundred icons is a decision nobody
  * wants at 0300; these cover the rounds vessels actually asked us for.
@@ -75,6 +75,9 @@ const ICONS = [
   'gauge',
   'anchor',
   'shield-check-outline',
+  // Dive equipment and cylinders — asked for by a vessel adding its dive locker (7 Oct 2026).
+  'diving-snorkel',
+  'gas-cylinder',
 ];
 
 export default function CategoriesEditSc() {
