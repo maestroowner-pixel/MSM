@@ -28,7 +28,7 @@ export function ScanWidget() {
         padding: 12,
       }}
     >
-      {/* The QR with the MSM cube in it, on a white tile. A widget lives on the
+      {/* The QR with the ISMpilot icon in it, on a white tile. A widget lives on the
           user's own wallpaper among two dozen other icons, and a line-drawn
           viewfinder there reads as "some utility"; this one says what it opens
           and whose it is at a glance. The PNG's corners are already transparent

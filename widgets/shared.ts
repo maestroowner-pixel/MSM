@@ -74,7 +74,7 @@ export const SCAN_DEEP_LINK = 'msm://scan';
  * buoy is what distinguishes MSM's scanner from the sibling apps' (DEM's is a bare
  * frame) — "marine safety" at a glance. All white, so it reads on the teal button.
  * NO LONGER ON THE WIDGETS — both now show assets/widget-scan-256.png, the QR
- * with the MSM cube in it. Kept because the widget-picker preview images are
+ * with the ISMpilot icon in it. Kept because the widget-picker preview images are
  * rendered from this markup, and because it is the mark used wherever the
  * scanner needs a line icon rather than a tile.
  */
@@ -92,8 +92,8 @@ export const SCAN_ICON_SVG =
  *  widget cannot import the live theme (it runs outside React), so the few
  *  colours it needs are pinned here. */
 export const WIDGET_COLORS = {
-  primary: '#2E7D99',
-  primaryDark: '#1F5670',
+  primary: '#0B2545',
+  primaryDark: '#071A31',
   warning: '#F39C12',
   card: '#FFFFFF',
   background: '#E6EFF1',

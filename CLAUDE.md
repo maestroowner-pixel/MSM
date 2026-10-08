@@ -560,7 +560,11 @@ is the validated path.
    before any Platform check inside the screen could run. (Scan degrades to manual entry there, and
    the lookup is pure JS so it still works; the Label screen guards printing off.) Generate `windows/` (gitignored), copy the 3
    `.h` into `windows/<App>/` + register, build on the Windows machine.
-7. **App icons** — DONE. Generated from `assets/MSM logo.png` (transparent isometric MSM cube):
+7. **App icons** — since 2.58 (ISMpilot): `icon.png` = `ismpilot-app-icon.png` (navy shield),
+   `adaptive-icon.png` = the shield keyed out of it on transparent (bg `#0B2545`), `splash.png`
+   plain navy (the JS SplashSc animates the logo). Native copies (Android mipmaps/splash drawables,
+   iOS AppIcon/SplashScreenLegacy/colour) were written by hand into the CNG folders — a prebuild
+   regenerates them from these assets. HISTORY (pre-2.58) — generated from `assets/MSM logo.png` (transparent isometric MSM cube):
    `icon.png` (iOS, white bg), `adaptive-icon.png` (Android foreground, transparent, white bg via
    app.json), `splash.png` (white bg), `favicon.png`. Windows/UWP tiles in `assets/windows/`
    (Square44/71/150/310, Wide310x150, StoreLogo, SplashScreen, LockScreenLogo, target-size

@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Marine Safety Manager",
+    "name": "ISMpilot",
     "slug": "marine-safety-manager",
-    "version": "2.57",
+    "version": "2.58",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "msm",
@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#E6EFF1"
+      "backgroundColor": "#0B2545"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -20,7 +20,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.kukalab.msm",
       "appleTeamId": "LAGTN99698",
-      "buildNumber": "20571",
+      "buildNumber": "20581",
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.kukalab.msm"
@@ -52,18 +52,18 @@
     },
     "android": {
       "package": "com.kukalab.msm",
-      "versionCode": 20571,
+      "versionCode": 20581,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF"
+        "backgroundColor": "#0B2545"
       }
     },
     "web": {
       "bundler": "metro",
       "favicon": "./assets/favicon.png",
-      "backgroundColor": "#E6EFF1",
-      "themeColor": "#2E7D99"
+      "backgroundColor": "#0B2545",
+      "themeColor": "#0B2545"
     },
     "plugins": [
       [
@@ -85,14 +85,14 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Marine Safety Manager to attach photos of equipment and certificates.",
-          "cameraPermission": "Allow Marine Safety Manager to photograph equipment and certificates."
+          "photosPermission": "Allow ISMpilot to attach photos of equipment and certificates.",
+          "cameraPermission": "Allow ISMpilot to photograph equipment and certificates."
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Marine Safety Manager to scan QR labels and barcodes on equipment."
+          "cameraPermission": "Allow ISMpilot to scan QR labels and barcodes on equipment."
         }
       ],
       "expo-secure-store",
@@ -104,7 +104,7 @@
           "widgets": [
             {
               "name": "Scan",
-              "label": "MSM · Scan",
+              "label": "ISMpilot · Scan",
               "description": "Open the scanner",
               "previewImage": "./assets/widgets/scan-preview.png",
               "minWidth": "80dp",
@@ -115,7 +115,7 @@
             },
             {
               "name": "Flagged",
-              "label": "MSM · Scan + Flagged",
+              "label": "ISMpilot · Scan + Flagged",
               "description": "Scanner and the latest flagged items",
               "previewImage": "./assets/widgets/flagged-preview.png",
               "minWidth": "250dp",
@@ -132,7 +132,7 @@
         "react-native-ble-plx",
         {
           "isBackgroundEnabled": false,
-          "bluetoothAlwaysPermission": "Marine Safety Manager connects to the label printer over Bluetooth."
+          "bluetoothAlwaysPermission": "ISMpilot connects to the label printer over Bluetooth."
         }
       ]
     ]

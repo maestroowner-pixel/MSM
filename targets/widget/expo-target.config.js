@@ -6,7 +6,7 @@
 module.exports = (config) => ({
   type: 'widget',
   name: 'MSMWidgets',
-  displayName: 'Marine Safety',
+  displayName: 'ISMpilot',
   // The widget reads the flagged snapshot from the SAME App Group the app writes
   // to (services/widgetBridge). Mirror whatever the app declares in app.json so
   // the two identifiers can never drift apart.
@@ -17,7 +17,7 @@ module.exports = (config) => ({
       ],
   },
   colors: {
-    $accent: '#2E7D99',
+    $accent: '#0B2545',
     $widgetBackground: '#FFFFFF',
   },
 });

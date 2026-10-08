@@ -3,6 +3,28 @@
 Kept by hand. Each entry says what changed and, where it matters, **why** — the reasoning is
 the part that stops the next person undoing it.
 
+## 2.58 — 8 October 2026
+
+Android versionCode 20581 · iOS build 20581.
+
+- **Marine Safety Manager is now ISMpilot** (tagline "Marine Safety Manager") — the same app,
+  renamed IN PLACE. Same bundle id `com.kukalab.msm`, same store listings, same Firebase project:
+  people get an ordinary update and keep their data, vessel enrolment, licence, ratings and
+  reviews. A new app under a new id would have meant reinstalling, re-enrolling every device and
+  starting the reviews from zero. Kept on purpose: the `msm://` QR scheme (printed labels), the
+  MSM ID Excel column, `msm:` storage keys and `.msm` backups.
+- Name under the icon "ISMpilot" (app.json `name`, Android `app_name`, iOS `CFBundleDisplayName`),
+  permission prompts reworded to match. NOTE: `expo.name` also drives the native PROJECT name on a
+  fresh `expo prebuild --clean` — the iOS project would come out as `ISMpilot.xcodeproj`, and
+  `scripts/patch-native-version.js`, `patch-ios-version-phase.js` and `patch-ios-scene-lifecycle.js`
+  hard-code `MarineSafetyManager`. Update those paths (and the archive name) if that ever happens.
+- New icon (navy shield with the orange tick, `assets/icon.png`; Android adaptive foreground on
+  navy `#0B2545`). The native splash is plain navy, so the animated ISMpilot logo (SplashSc) fades
+  in on the same colour with no flash of the old pale blue.
+- Home-screen widgets in ISMpilot navy; the Scan tile is a real QR (`msm://scan`, ECC H) with the
+  app icon in the middle, replacing the decorative one with the MSM cube; labels "ISMpilot · Scan".
+- Everything from the web rebrand of the same day (colours, logo, shield watermark, "ISMpilot Pro").
+
 ## 2.57 — 8 October 2026
 
 Android versionCode 20571 · iOS build 20571. Submitted to the App Store and Google Play 8 October 2026.

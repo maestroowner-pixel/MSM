@@ -16,7 +16,7 @@ import SwiftUI
 // MARK: - Brand palette (theme.ts, pinned — the widget runs outside React)
 
 extension Color {
-    static let msmPrimary = Color(red: 46 / 255, green: 125 / 255, blue: 153 / 255)   // #2E7D99
+    static let msmPrimary = Color(red: 11 / 255, green: 37 / 255, blue: 69 / 255)     // #0B2545 (ISMpilot navy)
     static let msmWarning = Color(red: 243 / 255, green: 156 / 255, blue: 18 / 255)    // #F39C12
     static let msmText = Color(red: 44 / 255, green: 62 / 255, blue: 80 / 255)         // #2C3E50
     static let msmTextLight = Color(red: 127 / 255, green: 140 / 255, blue: 141 / 255) // #7F8C8D
@@ -54,7 +54,7 @@ struct ScanButtonLabel: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            // The QR with the MSM cube in it (Assets.xcassets/WidgetScan), the same
+            // The QR with the ISMpilot icon in it (Assets.xcassets/WidgetScan), the same
             // tile the Android widget shows. It replaced a viewfinder glyph drawn
             // from SF Symbols: on a home screen among two dozen icons a line frame
             // reads as "some utility", while this one says what it opens and whose
