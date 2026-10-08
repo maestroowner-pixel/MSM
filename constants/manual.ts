@@ -71,6 +71,7 @@ const en: ManualContent = {
         "Tap a category to see its items — each row leads with the item number, e.g. \"No. 01-SD — CO2 5kg\". Search by number, type, make, size, serial, deck or location. Tap ＋ to add a new item by hand.",
         "An item records its Item No., Type / Description, Make, Size (free text — 5kg, 9L, XL, 150N), Serial / ID, Deck and Location, quantity or persons, its dates and Comments. The item number is shown large at the top of the item screen and of the inspection screen: among forty identical extinguishers it is the one thing that tells them apart.",
         'Dates are set with a calendar picker — tap the field, then choose year, month and day.',
+        'After a service, set the same dates on many items at once: long-press one item (or tap the tag button), tick the others or tap All, then Set dates. Fill in the next inspection, the expiry or both, and optionally a comment; a field left blank keeps each item\'s own value. The items stay the same items — their QR labels, photos, certificates and inspection history are untouched — and a copy of the register is kept in Settings → Data first.',
         'Badges next to an item show one paperclip per attached file (📎) and 📜 when a certificate covers it.',
         'Checklist categories (Hydrants, BA Bottle Pressure, Fire Detectors) have monthly check toggles in the item screen.',
         'Inside a category, sort by Expiry date, Position, Name (A–Z) or Type — Position and Type group items under headers. On tablets the list shows two columns.',

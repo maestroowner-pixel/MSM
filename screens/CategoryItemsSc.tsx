@@ -3,7 +3,7 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { Alert, View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, useWindowDimensions, Platform } from 'react-native';
+import { Alert, View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, useWindowDimensions, Platform, Modal } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Screen, StatusPill, Empty, statusColor, CategoryBadge } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
@@ -23,6 +23,8 @@ import { uid } from '../utils/id';
 import { canAddItem } from '../services/trial';
 import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
 import { groupByPlace, usesDecks } from '../services/placeGroups';
+import { applyBulk, BulkPatch, isEmptyPatch } from '../services/bulkEdit';
+import SimpleDatePicker from '../components/SimpleDatePicker';
 
 type SortBy = 'date' | 'position' | 'name' | 'type' | 'round';
 const SORT_ORDER: SortBy[] = ['position', 'date', 'name', 'type', 'round'];
@@ -90,6 +92,10 @@ export default function CategoryItemsSc() {
   // the occasional label run.
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // "Set dates" on the selection — after annual servicing, when thirty items come
+  // back with the same dates (asked for 8 Oct 2026). See services/bulkEdit.ts.
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulk, setBulk] = useState<BulkPatch>({});
 
   const filtered = useMemo(() => {
     const list = byCategory[category] ?? [];
@@ -273,6 +279,45 @@ export default function CategoryItemsSc() {
     nav.navigate('Label', { ids });
   };
 
+  const applyDates = () => {
+    const ids = new Set(filtered.filter((it) => selected.has(it.id)).map((it) => it.id));
+    const n = ids.size;
+    const dates = [
+      bulk.nextInspection && `next inspection ${formatDate(bulk.nextInspection)}`,
+      bulk.expiry && `expiry ${formatDate(bulk.expiry)}`,
+    ].filter(Boolean).join(' and ');
+    const note = bulk.note?.trim() ? 'adds your comment' : '';
+    const what = dates ? `Sets ${dates}${note ? ` and ${note}` : ''}` : note[0].toUpperCase() + note.slice(1);
+    Alert.alert(
+      `Update ${n} item${n === 1 ? '' : 's'}?`,
+      `${what} — on the ${n} selected item${n === 1 ? '' : 's'}. Nothing else changes: ` +
+        'the same items, the same QR labels, photos, certificates and inspection history.\n\n' +
+        'A copy of the register as it is now is kept in Settings → Data, so this can be rolled back.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Update',
+          onPress: async () => {
+            try {
+              await snapshot.takeSnapshot(vessel).catch(() => null);
+              // From storage, not the screen's copy: a sync may have landed since it rendered.
+              const fresh = await storage.loadCategory(category);
+              const { items, changed } = applyBulk(fresh, ids, bulk);
+              if (changed) await storage.saveCategory(category, items);
+              await reload();
+              setBulkOpen(false);
+              setBulk({});
+              stopSelecting();
+              Alert.alert('Done', changed ? `${changed} item${changed === 1 ? '' : 's'} updated.` : 'Those items already had these dates.');
+            } catch (e: any) {
+              Alert.alert('Could not update', String(e?.message ?? e));
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const ItemCard = (e: Extract<ListEntry, { kind: 'row' }>, fill?: boolean) => {
     // Free-tier overflow: locked items are read-only — tap routes to the paywall
     // instead of opening, and they can't be selected for bulk actions.
@@ -366,7 +411,7 @@ export default function CategoryItemsSc() {
           <Text style={styles.title}>{selecting ? `${selected.size} selected` : meta.label}</Text>
           <Text style={styles.sub}>
             {selecting
-              ? 'Tap items to select the labels to print'
+              ? 'Tap items to select — then print labels or set dates'
               : `${meta.group} · ${(byCategory[category] ?? []).length} items`}
           </Text>
         </View>
@@ -470,19 +515,73 @@ export default function CategoryItemsSc() {
       )}
 
       {selecting ? (
-        <TouchableOpacity
-          style={[styles.printBtn, selected.size === 0 && { opacity: 0.4 }]}
-          disabled={selected.size === 0}
-          onPress={printSelected}
-        >
-          <MciIcon name="printer" size={18} color={COLORS.textWhite} />
-          <Text style={styles.printBtnText}>
-            {selected.size === 0
-              ? 'Select items to label'
-              : `Print ${selected.size} label${selected.size === 1 ? '' : 's'}`}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            style={[styles.printBtn, styles.outlineBtn, { flex: 1 }, selected.size === 0 && { opacity: 0.4 }]}
+            disabled={selected.size === 0}
+            onPress={() => setBulkOpen(true)}
+          >
+            <MciIcon name="calendar-edit" size={18} color={COLORS.primary} />
+            <Text style={[styles.printBtnText, { color: COLORS.primary }]}>Set dates</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.printBtn, { flex: 1 }, selected.size === 0 && { opacity: 0.4 }]}
+            disabled={selected.size === 0}
+            onPress={printSelected}
+          >
+            <MciIcon name="printer" size={18} color={COLORS.textWhite} />
+            <Text style={styles.printBtnText} numberOfLines={1}>
+              {selected.size === 0
+                ? 'Select items'
+                : `Print ${selected.size} label${selected.size === 1 ? '' : 's'}`}
+            </Text>
+          </TouchableOpacity>
+        </View>
       ) : null}
+
+      <Modal visible={bulkOpen} transparent animationType="fade" onRequestClose={() => setBulkOpen(false)}>
+        <View style={styles.sheetBackdrop}>
+          <View style={styles.sheet}>
+            <Text style={styles.title}>Set dates</Text>
+            <Text style={[styles.sub, { marginBottom: SIZES.md }]}>
+              {selected.size} selected item{selected.size === 1 ? '' : 's'}. Fill in only what changes — a field left
+              blank keeps each item's own value.
+            </Text>
+            <SimpleDatePicker
+              label={meta.dateField === 'nextInspection' ? 'Next inspection ★' : 'Next inspection'}
+              value={bulk.nextInspection}
+              onChange={(v) => setBulk((p) => ({ ...p, nextInspection: v }))}
+            />
+            <SimpleDatePicker
+              label={meta.dateField === 'expiry' ? 'Expiry ★' : 'Expiry'}
+              value={bulk.expiry}
+              onChange={(v) => setBulk((p) => ({ ...p, expiry: v }))}
+            />
+            <TextInput
+              style={[styles.search, { marginTop: SIZES.sm }]}
+              placeholder="Add a comment (optional) — e.g. Serviced by … on …"
+              placeholderTextColor={COLORS.textLight}
+              value={bulk.note ?? ''}
+              onChangeText={(note) => setBulk((p) => ({ ...p, note }))}
+            />
+            <View style={styles.actionRow}>
+              <TouchableOpacity
+                style={[styles.printBtn, styles.outlineBtn, { flex: 1 }]}
+                onPress={() => { setBulkOpen(false); setBulk({}); }}
+              >
+                <Text style={[styles.printBtnText, { color: COLORS.primary }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.printBtn, { flex: 1 }, isEmptyPatch(bulk) && { opacity: 0.4 }]}
+                disabled={isEmptyPatch(bulk)}
+                onPress={applyDates}
+              >
+                <Text style={styles.printBtnText}>Apply to {selected.size}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 }
@@ -509,6 +608,17 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
     padding: SIZES.md,
     marginTop: SIZES.sm,
     marginBottom: SIZES.md,
+  },
+  actionRow: { flexDirection: 'row', gap: SIZES.sm },
+  outlineBtn: { backgroundColor: 'transparent', borderWidth: 1, borderColor: COLORS.primary },
+  sheetBackdrop: { flex: 1, backgroundColor: COLORS.overlay, justifyContent: 'center', padding: SIZES.lg },
+  sheet: {
+    backgroundColor: COLORS.cardSolid,
+    borderRadius: SIZES.radiusMd,
+    padding: SIZES.lg,
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
   },
   printBtnText: { color: COLORS.textWhite, fontWeight: '700', fontSize: SIZES.h5 },
   emoji: { fontSize: 30 },

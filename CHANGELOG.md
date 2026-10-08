@@ -3,8 +3,19 @@
 Kept by hand. Each entry says what changed and, where it matters, **why** — the reasoning is
 the part that stops the next person undoing it.
 
-## Unreleased — after 2.55
+## 2.56 — 8 October 2026
 
+Android versionCode 20561 · iOS build 20561.
+
+- **Set dates on several items at once** (`services/bulkEdit.ts`, the multi-select on a category
+  list — long-press an item or the tag button, then **Set dates** beside Print labels). Asked for by
+  a vessel (8 Oct 2026) for the weeks after annual servicing, when thirty or forty items come back
+  with the same inspection date. Sets next inspection and/or expiry and can add a comment under each
+  item's own; a field left blank keeps every item's value. Edits the items in place — same id, so
+  the printed QR labels, photos, certificate links and signed inspections stay exactly where they
+  were — and takes a snapshot first, like an import, so it can be rolled back from Settings → Data.
+  An item that already holds the date is not touched (no `updatedAt` bump, so sync sees no edit).
+  `npm run check:bulk`.
 - **Terms of Use, version 2** (`constants/legal.ts`, `LEGAL_VERSION` 1 → 2, so every user accepts
   them again on the next launch — the consent screen is the explicit acceptance). Three additions:
   who provides the app (KukaLab is the trading name of Mykhaylo Osypov, autónomo in Spain — a
