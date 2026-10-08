@@ -898,7 +898,7 @@ export default function SettingsSc() {
       ) : null}
 
       <View style={styles.aboutBox}>
-        <Image source={require('../assets/octopus.png')} style={styles.octopus} resizeMode="contain" />
+        <Image source={require('../assets/ismpilot-mark.png')} style={styles.footMark} resizeMode="contain" />
         <Text style={styles.about}>
           {APP_CONFIG.name} v{APP_CONFIG.version} · {APP_CONFIG.company} · {APP_CONFIG.year}
         </Text>
@@ -1122,7 +1122,7 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   syncBtn: { flex: 1, flexDirection: 'row', gap: SIZES.xs, paddingVertical: SIZES.md, borderRadius: SIZES.radiusMd, alignItems: 'center', justifyContent: 'center' },
   syncBtnText: { color: COLORS.textWhite, fontWeight: '700', fontSize: SIZES.body },
   aboutBox: { alignItems: 'center', marginTop: SIZES.lg },
-  octopus: { width: 96, height: 96, opacity: 0.18, marginBottom: SIZES.xs },
+  footMark: { width: 72, height: 73, opacity: 0.35, marginBottom: SIZES.xs },
   about: { textAlign: 'center', color: COLORS.textLight, fontSize: SIZES.tiny },
   website: { textAlign: 'center', color: COLORS.primary, fontSize: SIZES.small, fontWeight: '700', marginTop: 4 },
   resetBtn: {

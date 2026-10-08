@@ -174,7 +174,7 @@ export const APP_CONFIG = {
   company: 'KukaLab',
   year: '2026',
   email: 'kukalab@icloud.com',
-  website: 'kuka-lab.com',
+  website: 'ismpilot.com',
 };
 
 export const SCREEN_BG = {

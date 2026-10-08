@@ -74,8 +74,8 @@ export default function ManualSc() {
             </TouchableOpacity>
             {expanded ? (
               <View style={styles.body}>
-                {s.octopus ? (
-                  <Image source={require('../assets/octopus.png')} style={styles.octopus} resizeMode="contain" />
+                {s.watermark ? (
+                  <Image source={require('../assets/ismpilot-mark.png')} style={styles.watermark} resizeMode="contain" />
                 ) : null}
                 {s.note ? (
                   <View style={styles.note}>
@@ -84,7 +84,7 @@ export default function ManualSc() {
                   </View>
                 ) : null}
                 {s.body?.map((p, j) => (
-                  <Text key={`p${j}`} style={[styles.para, s.octopus && styles.paraCenter]}>
+                  <Text key={`p${j}`} style={[styles.para, s.watermark && styles.paraCenter]}>
                     {p}
                   </Text>
                 ))}
@@ -97,7 +97,7 @@ export default function ManualSc() {
                 ))}
                 {s.link ? (
                   <TouchableOpacity onPress={() => Linking.openURL(`https://${s.link}`)} hitSlop={8}>
-                    <Text style={[styles.link, s.octopus && styles.paraCenter]}>{s.link}</Text>
+                    <Text style={[styles.link, s.watermark && styles.paraCenter]}>{s.link}</Text>
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -116,7 +116,7 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   title: { flex: 1, fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark },
   chevron: { fontSize: SIZES.h5, color: COLORS.textLight },
   body: { paddingHorizontal: SIZES.md, paddingBottom: SIZES.md, gap: SIZES.sm, position: 'relative' },
-  octopus: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', opacity: 0.32 },
+  watermark: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', opacity: 0.12 },
   para: { fontSize: SIZES.body, color: COLORS.text, lineHeight: 20 },
   paraCenter: { textAlign: 'center' },
   note: {

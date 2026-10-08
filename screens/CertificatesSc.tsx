@@ -56,9 +56,9 @@ export default function CertificatesSc() {
 
   return (
     <Screen contentStyle={{ paddingBottom: 0 }}>
-      {/* Faint centered octopus watermark behind the list. */}
+      {/* Faint centred ISMpilot shield behind the list. */}
       <View pointerEvents="none" style={styles.watermark}>
-        <Image source={require('../assets/octopus.png')} style={styles.watermarkImg} resizeMode="contain" />
+        <Image source={require('../assets/ismpilot-mark.png')} style={styles.watermarkImg} resizeMode="contain" />
       </View>
 
       <View style={styles.head}>
@@ -127,7 +127,7 @@ export default function CertificatesSc() {
 
 const makeStyles = (COLORS: Palette) => StyleSheet.create({
   watermark: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  watermarkImg: { width: 280, height: 280, opacity: 0.1 },
+  watermarkImg: { width: 240, height: 243, opacity: 0.08 },
   head: { flexDirection: 'row', alignItems: 'center', marginBottom: SIZES.md, gap: SIZES.sm },
   title: { fontSize: SIZES.h2, fontWeight: '700', color: COLORS.textDark },
   sub: { fontSize: SIZES.small, color: COLORS.textLight },

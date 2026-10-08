@@ -22,7 +22,8 @@ export interface Section {
   note?: string;
   rows?: IntervalRow[];
   link?: string;
-  octopus?: boolean;
+  /** The ISMpilot shield, faint, behind the section (was the KukaLab octopus). */
+  watermark?: boolean;
 }
 
 export interface ManualContent {
@@ -329,7 +330,7 @@ const en: ManualContent = {
         "This app is a record-keeping aid. It does not replace the vessel's official safety documentation, statutory inspections or class/flag requirements. Always follow your company SMS and applicable regulations.",
       ],
       link: APP_CONFIG.website,
-      octopus: true,
+      watermark: true,
     },
   ],
 };
@@ -627,7 +628,7 @@ const ru: ManualContent = {
         'Приложение — вспомогательный инструмент учёта. Оно не заменяет официальную судовую документацию по безопасности, обязательные освидетельствования и требования класса/флага. Всегда следуйте СУБ компании и применимым правилам.',
       ],
       link: APP_CONFIG.website,
-      octopus: true,
+      watermark: true,
     },
   ],
 };
@@ -925,7 +926,7 @@ const es: ManualContent = {
         'La app es una ayuda de registro. No sustituye la documentación oficial de seguridad del buque, las inspecciones reglamentarias ni los requisitos de clase/abanderamiento. Siga siempre el SGS de su compañía y la normativa aplicable.',
       ],
       link: APP_CONFIG.website,
-      octopus: true,
+      watermark: true,
     },
   ],
 };
@@ -1223,7 +1224,7 @@ const uk: ManualContent = {
         'Застосунок — допоміжний інструмент обліку. Він не замінює офіційну суднову документацію з безпеки, обов’язкові освідчення та вимоги класу/прапора. Завжди дотримуйтесь СУБ компанії та чинних правил.',
       ],
       link: APP_CONFIG.website,
-      octopus: true,
+      watermark: true,
     },
   ],
 };
