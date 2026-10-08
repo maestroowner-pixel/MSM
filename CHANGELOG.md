@@ -5,7 +5,7 @@ the part that stops the next person undoing it.
 
 ## 2.57 — 8 October 2026
 
-Android versionCode 20571 · iOS build 20571.
+Android versionCode 20571 · iOS build 20571. Submitted to the App Store and Google Play 8 October 2026.
 
 - **Duplicate item** (bottom of the item screen, `services/duplicateItem.ts`). Asked for by a vessel
   adding dive cylinders one at a time (8 Oct 2026). Opens a NEW, unsaved item seeded from this one
@@ -28,7 +28,7 @@ Android versionCode 20571 · iOS build 20571.
 
 ## 2.56 — 8 October 2026
 
-Android versionCode 20561 · iOS build 20561.
+Android versionCode 20561 · iOS build 20561. Built but never submitted — everything in it shipped in 2.57.
 
 - **Set dates on several items at once** (`services/bulkEdit.ts`, the multi-select on a category
   list — long-press an item or the tag button, then **Set dates** beside Print labels). Asked for by
