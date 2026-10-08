@@ -1,7 +1,8 @@
 // ===================================
 // THEME CONFIGURATION
-// Marine Safety Manager (MSM)
-// Mirrors Marine Hospital Manager tokens
+// ISMpilot — Marine Safety Manager
+// Brand colours from the ISMpilot logo (8 Oct 2026): navy #0B2545, teal
+// #13A89E, orange #F26B1D. Layout and tokens unchanged; only the values moved.
 // ===================================
 
 import { Platform } from 'react-native';
@@ -10,9 +11,9 @@ import type { Group } from './types/equipment';
 
 export const COLORS = {
   // Primary Colors
-  primary: '#2E7D99',
-  primaryDark: '#1F5670',
-  primaryLight: '#4A9BB8',
+  primary: '#0B2545',      // ISMpilot navy — buttons, links, active tab
+  primaryDark: '#071A31',
+  primaryLight: '#13A89E', // ISMpilot teal
 
   // Secondary Colors
   secondary: '#3498DB',
@@ -49,7 +50,7 @@ export const COLORS = {
   borderDark: '#C7CDD3',
 
   // Tab Bar Colors
-  tabActive: '#2E7D99',
+  tabActive: '#0B2545',
   tabInactive: '#7F8C8D',
   tabBackground: '#FFFFFF',
 
@@ -60,9 +61,9 @@ export const COLORS = {
   lifting: '#6A4C93', // Lifting & Mooring (violet — a register of its own)
 
   // Splash Screen
-  splashBackground: '#2E7D99',
+  splashBackground: '#0B2545',
   splashText: '#FFFFFF',
-  splashAccent: '#F39C12',
+  splashAccent: '#F26B1D', // ISMpilot orange (the logo's tick)
 };
 
 export const SIZES = {
@@ -161,7 +162,8 @@ export const GLASS = {
 };
 
 export const APP_CONFIG = {
-  name: 'Marine Safety Manager',
+  name: 'ISMpilot',
+  tagline: 'Marine Safety Manager',
   // Read from app.json rather than repeated here. The version used to live in
   // four places — app.json, this file, android/build.gradle, ios/Info.plist —
   // and they drifted: the app showed 1.9 while app.json said 2.1, and an AAB
@@ -227,13 +229,13 @@ const LIGHT: Palette = {
 
 const DARK: Palette = {
   ...LIGHT,
-  primary: '#4A9BB8', primaryDark: '#7FC4DC', primaryLight: '#5DADE2',
+  primary: '#2BC4B8', primaryDark: '#7FDCD3', primaryLight: '#13A89E',
   background: '#0E1618', backgroundTop: '#0E1618', backgroundDark: '#0A1012',
   card: '#172226', cardSolid: '#172226', overlay: 'rgba(0, 0, 0, 0.6)',
   gradientStart: '#0E1618', gradientEnd: '#0E1618',
   text: '#E6EDEF', textLight: '#93A4A8', textDark: '#F2F6F7', textWhite: '#FFFFFF',
   border: '#2A383C', borderLight: '#233034', borderDark: '#3A4A4F',
-  tabActive: '#4A9BB8', tabInactive: '#7F9296', tabBackground: '#11191B',
+  tabActive: '#2BC4B8', tabInactive: '#7F9296', tabBackground: '#11191B',
   glassCard: {
     backgroundColor: '#172226', borderWidth: 1, borderColor: '#2A383C',
     shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.4, shadowRadius: 3, elevation: 2,
@@ -247,13 +249,13 @@ const DARK: Palette = {
   shadowMd: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.4, shadowRadius: 3, elevation: 2 },
   shadowLg: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.5, shadowRadius: 6, elevation: 3 },
   bgGradient: ['#0E1618', '#0E1618'] as const,
-  groupColors: { LSA: '#4A9BB8', FFE: '#4A9BB8', OTHER: '#4A9BB8', LIFTING: '#4A9BB8' },
+  groupColors: { LSA: '#13A89E', FFE: '#13A89E', OTHER: '#13A89E', LIFTING: '#13A89E' },
   statusBar: 'light',
 };
 
 const COLORFUL: Palette = {
   ...LIGHT,
-  groupColors: { LSA: '#2E7D32', FFE: '#D32F2F', OTHER: '#2E7D99', LIFTING: '#6A4C93' },
+  groupColors: { LSA: '#2E7D32', FFE: '#D32F2F', OTHER: '#0B2545', LIFTING: '#6A4C93' },
 };
 
 export const THEMES: Record<ThemeName, Palette> = { light: LIGHT, dark: DARK, colorful: COLORFUL };

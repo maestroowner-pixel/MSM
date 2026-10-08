@@ -1,5 +1,5 @@
 // ===================================
-// Paywall — MSM Pro upsell. The 2-month free trial is the app's own auto counter
+// Paywall — ISMpilot Pro upsell. The 2-month free trial is the app's own auto counter
 // (services/trial.ts, starts at install — no button); this screen sells the paid
 // yearly subscription that unlocks everything once that trial has ended.
 // Talks only to services/purchases (RevenueCat plugs in there later); prices
@@ -102,7 +102,7 @@ export default function PaywallSc() {
         // moment ago and must open up without a restart.
         await refreshLocks().catch(() => {});
         setLicenseKey('');
-        Alert.alert('MSM Pro activated', 'The licence is active on this vessel. Every enrolled device now has full access.');
+        Alert.alert('ISMpilot Pro activated', 'The licence is active on this vessel. Every enrolled device now has full access.');
         goBackOr(nav);
       } else {
         Alert.alert('Could not activate', res.message ?? 'Please check your license key.');
@@ -112,7 +112,7 @@ export default function PaywallSc() {
     }
   };
 
-  // The UNIT belongs in the price. MSM Pro is licensed per VESSEL — the account
+  // The UNIT belongs in the price. ISMpilot Pro is licensed per VESSEL — the account
   // is the ship, keyed by its IMO, and every enrolled device on board is
   // covered by the one subscription. A bare "/ year" beside a single figure reads
   // as a per-person price, which is what it used to be.
@@ -139,7 +139,7 @@ export default function PaywallSc() {
       const ok = await purchaseYearly();
       if (ok) {
         await refreshLocks(); // lift the free-tier overflow lock immediately
-        Alert.alert('Welcome to MSM Pro', 'Your subscription is active. Thank you!');
+        Alert.alert('Welcome to ISMpilot Pro', 'Your subscription is active. Thank you!');
         goBackOr(nav);
       } else {
         Alert.alert('Not completed', 'The purchase was not completed.');
@@ -165,7 +165,7 @@ export default function PaywallSc() {
       Alert.alert(
         ok ? 'Restored' : 'Nothing to restore',
         ok
-          ? "This device now has MSM Pro through the vessel's licence."
+          ? "This device now has ISMpilot Pro through the vessel's licence."
           : signedIn
             ? 'No active licence is attached to this vessel. Enter the licence key it was issued.'
             : 'Join the vessel first (Settings → the “This device” card), so its licence can reach this device.'
@@ -203,7 +203,7 @@ export default function PaywallSc() {
                 <Text style={styles.trialPillText}>Active</Text>
               </View>
               <Text style={styles.planUnit}>
-                MSM Pro is active on this vessel. Every enrolled device — this one included — has
+                ISMpilot Pro is active on this vessel. Every enrolled device — this one included — has
                 full access, and nothing further is needed here.
               </Text>
               <Text style={styles.planNote}>
@@ -227,7 +227,7 @@ export default function PaywallSc() {
                 <Text style={styles.trialPillText}>Vessel licence</Text>
               </View>
               <Text style={styles.planUnit}>
-                MSM Pro is licensed to the vessel. Once the licence is on this ship's account, every
+                ISMpilot Pro is licensed to the vessel. Once the licence is on this ship's account, every
                 enrolled device — this one included — has full access.
               </Text>
               <Text style={styles.planNote}>
@@ -237,7 +237,7 @@ export default function PaywallSc() {
             </View>
           )}
 
-          {/* Licence activation everywhere. MSM Pro is a per-vessel licence bought
+          {/* Licence activation everywhere. ISMpilot Pro is a per-vessel licence bought
               once by the operator; a crew phone does not buy anything, it enters
               the key (or simply inherits it from the vessel account). */}
           {licensed ? null : (
@@ -291,7 +291,7 @@ export default function PaywallSc() {
               {busy ? (
                 <ActivityIndicator color={COLORS.textWhite} />
               ) : (
-                <Text style={styles.ctaText}>{`Get MSM Pro — ${priceLine}`}</Text>
+                <Text style={styles.ctaText}>{`Get ISMpilot Pro — ${priceLine}`}</Text>
               )}
             </TouchableOpacity>
           ) : null}
@@ -306,11 +306,11 @@ export default function PaywallSc() {
 
           <Text style={styles.fine}>
             {onWeb
-              ? 'Purchase is handled securely by LemonSqueezy. Your license unlocks MSM Pro on your vessel account across devices.'
+              ? 'Purchase is handled securely by LemonSqueezy. Your license unlocks ISMpilot Pro on your vessel account across devices.'
               : // Apple's IAP disclosure belongs on a screen that SELLS through IAP.
                 // This one does not any more — nothing is charged to a store account
                 // here — so saying it would be plainly untrue to the person reading it.
-                'MSM Pro is licensed to the vessel, not to this device or to your store account. ' +
+                'ISMpilot Pro is licensed to the vessel, not to this device or to your store account. ' +
                 'Nothing is purchased here: enter the licence key the vessel was issued, or open ' +
                 'the app on a device already signed in to a licensed vessel.'}
           </Text>

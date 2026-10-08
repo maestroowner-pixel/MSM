@@ -101,7 +101,7 @@ if (Platform.OS === 'web') {
           ? 'background:#EEF3F5;color:#33454E;'
           : destructive
             ? 'background:#E74C3C;color:#fff;'
-            : 'background:#2E7D99;color:#fff;');
+            : 'background:#0B2545;color:#fff;');
       btn.onclick = () => {
         close();
         b.onPress?.();

@@ -176,7 +176,7 @@ export async function exportMonthArchive(
   zip.file(
     'README.txt',
     [
-      `Marine Safety Manager — inspection photographs`,
+      `ISMpilot — inspection photographs`,
       `Vessel: ${vessel?.vessel_name ?? '—'} (IMO ${imo})`,
       `Period: ${month.label}`,
       `Photographs: ${total - missing} of ${total}${missing ? ` (${missing} not found — see index.csv)` : ''}`,

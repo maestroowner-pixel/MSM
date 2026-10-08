@@ -98,7 +98,7 @@ export async function pickFromCamera(): Promise<PickedFile | null> {
   if (!perm.granted) {
     Alert.alert(
       'No camera access',
-      'MSM cannot open the camera, so a photo cannot be taken here. Attaching an existing photo ' +
+      'ISMpilot cannot open the camera, so a photo cannot be taken here. Attaching an existing photo ' +
         'or a document works without it.'
     );
     return null;
@@ -116,7 +116,7 @@ export async function pickFromLibrary(): Promise<PickedFile | null> {
   if (!perm.granted) {
     Alert.alert(
       'No access to the photo library',
-      'MSM cannot open the library, so a photo cannot be chosen from it. Taking a new photo or ' +
+      'ISMpilot cannot open the library, so a photo cannot be chosen from it. Taking a new photo or ' +
         'attaching a document works without it.'
     );
     return null;

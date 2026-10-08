@@ -159,7 +159,7 @@ export default function ScanSc() {
       <BackButton onPress={() => goBackOr(nav)} />
       <View style={styles.head}>
         <View style={{ flex: 1 }}>
-          <ScreenTitle title="Scan" subtitle="An MSM QR label, or a serial / asset tag." />
+          <ScreenTitle title="Scan" subtitle="An ISMpilot QR label, or a serial / asset tag." />
         </View>
       </View>
 
@@ -202,7 +202,7 @@ export default function ScanSc() {
                   'address bar. Either way, typing the code below runs exactly the same lookup.'
                 : 'The camera is off for MSM, so a label cannot be read by holding it up. Typing ' +
                   'the code or the serial below runs exactly the same lookup.'
-              : 'MSM needs the camera to read QR labels and barcodes off equipment. Nothing is ' +
+              : 'ISMpilot needs the camera to read QR labels and barcodes off equipment. Nothing is ' +
                 'recorded — the frame is decoded and discarded.'}
           </Text>
           {/* "Continue", NOT "Allow camera". App Review reads a custom screen whose

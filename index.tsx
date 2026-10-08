@@ -19,7 +19,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { MciIcon } from './components/MciIcon';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { SIZES } from './theme';
+import { SIZES, APP_CONFIG } from './theme';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { DataProvider, useData } from './contexts/DataContext';
 import { SyncProvider } from './contexts/SyncContext';
@@ -410,7 +410,13 @@ function Root() {
   }, [showSplash, legalAccepted, pendingLink, flat]);
 
   return (
-    <NavigationContainer ref={navigationRef} theme={navTheme} linking={linking as any}>
+    <NavigationContainer
+      ref={navigationRef}
+      theme={navTheme}
+      linking={linking as any}
+      // Browser tab: "Dashboard · ISMpilot" rather than the bare screen name.
+      documentTitle={{ formatter: (o, route) => `${o?.title ?? route?.name ?? 'Home'} · ${APP_CONFIG.name}` }}
+    >
       <StatusBar style={showSplash ? 'light' : COLORS.statusBar} />
       <Stack.Navigator
         screenOptions={{

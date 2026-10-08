@@ -166,7 +166,7 @@ export default function SettingsSc() {
     }
     const ok = await requestPermission();
     if (!ok) {
-      Alert.alert('Permission needed', 'Allow notifications for Marine Safety Manager in system settings to receive expiry reminders.');
+      Alert.alert('Permission needed', 'Allow notifications for ISMpilot in system settings to receive expiry reminders.');
       return;
     }
     await setPrefs({ notificationsEnabled: true });
@@ -491,7 +491,7 @@ export default function SettingsSc() {
             <TouchableOpacity
               onPress={() => nav.navigate('Paywall')}
               hitSlop={8}
-              accessibilityLabel={pro ? 'MSM Pro is active' : 'Get MSM Pro'}
+              accessibilityLabel={pro ? 'ISMpilot Pro is active' : 'Get ISMpilot Pro'}
               style={[styles.proPill, { backgroundColor: pro ? COLORS.success : COLORS.primary }]}
             >
               <Text style={styles.proPillText}>PRO</Text>

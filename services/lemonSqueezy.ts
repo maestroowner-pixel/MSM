@@ -1,7 +1,7 @@
 // ===================================
 // LemonSqueezy — web license activation / validation.
 //
-// The web build sells MSM Pro through LemonSqueezy (checkout + license keys).
+// The web build sells ISMpilot Pro through LemonSqueezy (checkout + license keys).
 // After buying, the customer gets a license key by email and pastes it into the
 // paywall; we activate it against the LemonSqueezy License API (no secret key
 // needed — the license key authenticates itself, so this is safe from the
@@ -18,7 +18,7 @@
 
 const LS_API = 'https://api.lemonsqueezy.com/v1';
 
-/** LemonSqueezy hosted checkout link for the yearly MSM Pro product. */
+/** LemonSqueezy hosted checkout link for the yearly ISMpilot Pro product. */
 export const LS_CHECKOUT_URL = 'https://kuka-lab.lemonsqueezy.com/checkout/buy/43d5ae44-87a1-4fd9-8eea-1253c2224651';
 /** Numeric store id — a key whose meta.store_id differs is rejected (0 = skip). */
 export const LS_STORE_ID = 374407;
@@ -95,7 +95,7 @@ function checkProduct(meta: any): string | null {
   // instead of sending the customer (and us) looking for a fault in this one.
   const name = typeof meta?.product_name === 'string' && meta.product_name.trim();
   return name
-    ? `This licence key is for "${name}", not Marine Safety Manager.`
+    ? `This licence key is for "${name}", not ISMpilot.`
     : 'This license key is for a different product.';
 }
 
@@ -123,7 +123,7 @@ export async function activateLicense(key: string): Promise<LicenseResult> {
   const license_key = key.trim();
   if (!license_key) return { ok: false, message: 'Enter your license key.' };
   try {
-    const instance_name = `MSM Web ${new Date().toISOString().slice(0, 10)}`;
+    const instance_name = `ISMpilot Web ${new Date().toISOString().slice(0, 10)}`;
     const data = await lsPost('/licenses/activate', { license_key, instance_name });
     if (data?.activated === true || data?.valid === true) {
       const bad = checkProduct(data?.meta);

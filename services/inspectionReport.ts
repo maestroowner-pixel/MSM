@@ -411,7 +411,7 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
       :root { color-scheme: light; }
       html, body { background: #fff; }
       body { font-family: -apple-system, Helvetica, Arial, sans-serif; color: #2C3E50; }
-      h1 { color: #1F5670; margin-bottom: 2px; font-size: 18px; }
+      h1 { color: #0B2545; margin-bottom: 2px; font-size: 18px; }
       .meta { color: #7F8C8D; font-size: 11px; margin-bottom: 10px; }
       .summary {
         display: flex; gap: 8px; margin: 10px 0 4px;
@@ -419,10 +419,10 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
       .stat {
         border: 1px solid #E0E6ED; border-radius: 4px; padding: 6px 10px; min-width: 90px;
       }
-      .stat .v { font-size: 16px; font-weight: bold; color: #1F5670; }
+      .stat .v { font-size: 16px; font-weight: bold; color: #0B2545; }
       .stat .k { font-size: 9px; color: #7F8C8D; text-transform: uppercase; letter-spacing: .4px; }
       .stat.bad .v { color: #E74C3C; }
-      h2 { color: #2E7D99; font-size: 13px; margin: 16px 0 5px; }
+      h2 { color: #13A89E; font-size: 13px; margin: 16px 0 5px; }
       .count { color: #7F8C8D; font-weight: normal; }
       .empty { color: #7F8C8D; font-size: 10px; font-style: italic; margin: 2px 0 0; }
       table { width: 100%; border-collapse: collapse; font-size: 9px; }

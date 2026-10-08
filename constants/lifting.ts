@@ -241,7 +241,7 @@ const CONDITION: Record<string, ChecklistLine[]> = {
 const EXAMINATION: ChecklistLine[] = [
   { id: 'register', text: 'Item matches the lifting register: id, SWL/WLL, location' },
   { id: 'cert_date', text: 'Thorough examination / proof test in date' },
-  { id: 'cert_copy', text: 'Certificate attached in MSM and readable' },
+  { id: 'cert_copy', text: 'Certificate attached in ISMpilot and readable' },
   { id: 'wear', text: 'Measured wear within the maker\'s limits' },
   { id: 'condition', text: 'Full visual examination: no cracks, deformation or corrosion' },
   { id: 'withdrawn', text: 'Anything doubtful withdrawn from service and tagged' },

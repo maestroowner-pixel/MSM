@@ -56,7 +56,7 @@ function rowsFor(items: EquipmentItem[]) {
 }
 
 export function vesselHeader(vessel: VesselInfo | null): string {
-  if (!vessel) return 'Marine Safety Manager';
+  if (!vessel) return 'ISMpilot';
   const parts = [
     vessel.vessel_name,
     vessel.imo ? `IMO ${vessel.imo}` : null,
@@ -64,7 +64,7 @@ export function vesselHeader(vessel: VesselInfo | null): string {
     vessel.call_sign ? `Call sign ${vessel.call_sign}` : null,
     vessel.mmsi ? `MMSI ${vessel.mmsi}` : null,
   ].filter(Boolean);
-  return parts.join(' · ') || 'Marine Safety Manager';
+  return parts.join(' · ') || 'ISMpilot';
 }
 
 /** Build the set of categories to include (a selection, or all when omitted). */
@@ -117,9 +117,9 @@ function buildHtml(
       /* Landscape gives each row room to stay on a single line. */
       @page { size: A4 landscape; margin: 12mm; }
       body { font-family: -apple-system, Helvetica, Arial, sans-serif; color: #2C3E50; }
-      h1 { color: #1F5670; margin-bottom: 2px; font-size: 18px; }
+      h1 { color: #0B2545; margin-bottom: 2px; font-size: 18px; }
       .meta { color: #7F8C8D; font-size: 11px; margin-bottom: 14px; }
-      h2 { color: #2E7D99; font-size: 13px; margin: 14px 0 5px; }
+      h2 { color: #13A89E; font-size: 13px; margin: 14px 0 5px; }
       .count { color: #7F8C8D; font-weight: normal; }
       table { width: 100%; border-collapse: collapse; font-size: 9px; table-layout: auto; }
       th, td {
@@ -527,7 +527,7 @@ export async function exportTemplate(group?: Group): Promise<void> {
   }
   const plain = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
   const b64 = await paintTabs(plain, colours);
-  const fileName = group === 'LIFTING' ? 'MSM_Lifting_Template.xlsx' : 'MSM_Import_Template.xlsx';
+  const fileName = group === 'LIFTING' ? 'ISMpilot_Lifting_Template.xlsx' : 'ISMpilot_Import_Template.xlsx';
   await deliverFile(fileName, b64, true, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
