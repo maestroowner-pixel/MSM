@@ -282,12 +282,14 @@ export default function CategoryItemsSc() {
   const applyDates = () => {
     const ids = new Set(filtered.filter((it) => selected.has(it.id)).map((it) => it.id));
     const n = ids.size;
-    const dates = [
-      bulk.nextInspection && `next inspection ${formatDate(bulk.nextInspection)}`,
-      bulk.expiry && `expiry ${formatDate(bulk.expiry)}`,
-    ].filter(Boolean).join(' and ');
-    const note = bulk.note?.trim() ? 'adds your comment' : '';
-    const what = dates ? `Sets ${dates}${note ? ` and ${note}` : ''}` : note[0].toUpperCase() + note.slice(1);
+    const said = (f: 'nextInspection' | 'expiry', name: string) => {
+      const v = bulk[f];
+      return v === null ? `clears the ${name} date` : v ? `sets the ${name} to ${formatDate(v)}` : '';
+    };
+    const acts = [said('nextInspection', 'next inspection'), said('expiry', 'expiry'), bulk.note?.trim() ? 'adds your comment' : '']
+      .filter(Boolean);
+    const joined = acts.length > 1 ? `${acts.slice(0, -1).join(', ')} and ${acts[acts.length - 1]}` : acts[0];
+    const what = joined[0].toUpperCase() + joined.slice(1);
     Alert.alert(
       `Update ${n} item${n === 1 ? '' : 's'}?`,
       `${what} — on the ${n} selected item${n === 1 ? '' : 's'}. Nothing else changes: ` +
@@ -547,16 +549,37 @@ export default function CategoryItemsSc() {
               {selected.size} selected item{selected.size === 1 ? '' : 's'}. Fill in only what changes — a field left
               blank keeps each item's own value.
             </Text>
-            <SimpleDatePicker
-              label={meta.dateField === 'nextInspection' ? 'Next inspection ★' : 'Next inspection'}
-              value={bulk.nextInspection}
-              onChange={(v) => setBulk((p) => ({ ...p, nextInspection: v }))}
-            />
-            <SimpleDatePicker
-              label={meta.dateField === 'expiry' ? 'Expiry ★' : 'Expiry'}
-              value={bulk.expiry}
-              onChange={(v) => setBulk((p) => ({ ...p, expiry: v }))}
-            />
+            {(['nextInspection', 'expiry'] as const).map((f) => {
+              const name = f === 'expiry' ? 'Expiry' : 'Next inspection';
+              const clearing = bulk[f] === null;
+              return (
+                <View key={f}>
+                  <SimpleDatePicker
+                    label={meta.dateField === f ? `${name} ★` : name}
+                    value={bulk[f] ?? undefined}
+                    disabled={clearing}
+                    placeholder={clearing ? 'Will be cleared on every selected item' : undefined}
+                    onChange={(v) => setBulk((p) => ({ ...p, [f]: v }))}
+                    onClear={() => setBulk((p) => ({ ...p, [f]: undefined }))}
+                  />
+                  {/* Removing a date entered in the wrong field, across the batch (8 Oct 2026). */}
+                  <TouchableOpacity
+                    style={styles.clearRow}
+                    onPress={() => setBulk((p) => ({ ...p, [f]: clearing ? undefined : null }))}
+                    accessibilityLabel={`Clear ${name} on all selected`}
+                  >
+                    <MciIcon
+                      name={clearing ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                      size={18}
+                      color={clearing ? COLORS.danger : COLORS.textLight}
+                    />
+                    <Text style={[styles.clearRowText, clearing && { color: COLORS.danger }]}>
+                      Clear this date on all selected
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
             <TextInput
               style={[styles.search, { marginTop: SIZES.sm }]}
               placeholder="Add a comment (optional) — e.g. Serviced by … on …"
@@ -610,6 +633,8 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
     marginBottom: SIZES.md,
   },
   actionRow: { flexDirection: 'row', gap: SIZES.sm },
+  clearRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.xs, paddingVertical: SIZES.xs, alignSelf: 'flex-start' },
+  clearRowText: { fontSize: SIZES.small, color: COLORS.textLight },
   outlineBtn: { backgroundColor: 'transparent', borderWidth: 1, borderColor: COLORS.primary },
   sheetBackdrop: { flex: 1, backgroundColor: COLORS.overlay, justifyContent: 'center', padding: SIZES.lg },
   sheet: {

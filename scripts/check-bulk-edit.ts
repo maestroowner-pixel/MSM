@@ -5,6 +5,7 @@
  */
 import { applyBulk, isEmptyPatch } from '../services/bulkEdit';
 import { EquipmentItem } from '../types/equipment';
+import { complianceDate } from '../utils/dates';
 
 let fails = 0;
 const ok = (name: string, cond: boolean, extra = '') => {
@@ -40,6 +41,15 @@ ok('…or becomes the comment', n.items[1].remarks === 'Serviced by Seafire 05 O
 const twice = applyBulk(n.items, new Set(['a']), { note: '  Serviced by Seafire 05 Oct 2026 ' }, 300);
 ok('the same note twice is one note', twice.changed === 0 && twice.items[0].remarks === n.items[0].remarks);
 
+const cl = applyBulk(items, new Set(['a', 'b']), { nextInspection: null, expiry: '2031-01-01' }, NOW);
+ok('null clears the next inspection — the key is gone, not an empty string',
+  !('nextInspection' in cl.items[0]) && !('nextInspection' in cl.items[1]), JSON.stringify(cl.items[0]));
+ok('…in the same apply as a new expiry', cl.items[0].expiry === '2031-01-01' && cl.items[1].expiry === '2031-01-01');
+ok('…and the item is then judged by the expiry', complianceDate(cl.items[1]) === '2031-01-01', String(complianceDate(cl.items[1])));
+ok('…an item not chosen keeps its date', cl.items[2].nextInspection === '2026-10-01');
+const none = applyBulk([items[1]], new Set(['b']), { expiry: null }, NOW);
+ok('clearing a date the item never had changes nothing', none.changed === 0);
+ok('a clear alone is not an empty patch', !isEmptyPatch({ expiry: null }));
 ok('nothing filled in is an empty patch', isEmptyPatch({}) && isEmptyPatch({ note: '   ' }) && !isEmptyPatch({ expiry: '2027-01-01' }));
 
 console.log(fails ? `\n${fails} FAILED` : '\nall passed');

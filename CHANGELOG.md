@@ -3,6 +3,19 @@
 Kept by hand. Each entry says what changed and, where it matters, **why** — the reasoning is
 the part that stops the next person undoing it.
 
+## 2.57 — 8 October 2026
+
+Android versionCode 20571 · iOS build 20571.
+
+- **A date can be cleared** — the × at the end of a set date field on the item screen
+  (`SimpleDatePicker` `onClear`, every `DateField` in ItemDetail), and **Clear this date on all
+  selected** in Set dates (`BulkPatch` field `null`). Asked for by a vessel (8 Oct 2026) that had
+  put next inspection dates where the expiry belonged and could only replace them, never remove
+  them. Cleared to a missing key, never `''`: `complianceDate` falls back with `??`, so an empty
+  string would have left the item judged by a date it no longer has. Open to every role that can
+  edit an item, not only the Master — anyone who can change a date to any other value can already
+  do more harm than removing it, and the snapshot taken before Set dates covers a slip.
+
 ## 2.56 — 8 October 2026
 
 Android versionCode 20561 · iOS build 20561.

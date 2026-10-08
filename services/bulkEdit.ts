@@ -17,14 +17,19 @@
 import { EquipmentItem } from '../types/equipment';
 
 export interface BulkPatch {
-  /** ISO YYYY-MM-DD; left out = each item keeps its own. */
-  nextInspection?: string;
-  expiry?: string;
+  /**
+   * ISO YYYY-MM-DD sets it; `null` CLEARS it on every chosen item (a date put in
+   * the wrong field across a batch — asked for 8 Oct 2026); left out = each item
+   * keeps its own.
+   */
+  nextInspection?: string | null;
+  expiry?: string | null;
   /** Added under the item's existing comments, never written over them. */
   note?: string;
 }
 
-export const isEmptyPatch = (p: BulkPatch) => !p.nextInspection && !p.expiry && !p.note?.trim();
+export const isEmptyPatch = (p: BulkPatch) =>
+  p.nextInspection === undefined && p.expiry === undefined && !p.note?.trim();
 
 /**
  * The category's items with the patch applied to the chosen ones, in the same
@@ -42,8 +47,12 @@ export function applyBulk(
   const out = items.map((it) => {
     if (!ids.has(it.id)) return it;
     const next: EquipmentItem = { ...it };
-    if (patch.nextInspection) next.nextInspection = patch.nextInspection;
-    if (patch.expiry) next.expiry = patch.expiry;
+    for (const f of ['nextInspection', 'expiry'] as const) {
+      const v = patch[f];
+      // Deleted, not set to '': complianceDate falls back with `??`.
+      if (v === null) delete next[f];
+      else if (v) next[f] = v;
+    }
     if (note) {
       const old = it.remarks?.trim();
       // The same note twice (a second tap of Apply) is one note.

@@ -22,7 +22,7 @@
     "check:lifting": "rm -rf .check-lift && tsc scripts/check-lifting-import.ts --outDir .check-lift --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-lift/ && node .check-lift/scripts/check-lifting-import.js; s=$?; rm -rf .check-lift; exit $s",
     "apk": "node scripts/patch-native-version.js && node scripts/patch-android-signing.js && node scripts/patch-android-minify.js && node scripts/patch-android-edge-to-edge.js && cd android && ./gradlew assembleRelease",
     "check:icons": "rm -rf .check-ico && tsc scripts/check-icons.ts --outDir .check-ico --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck --resolveJsonModule && cp app.json .check-ico/ && node .check-ico/scripts/check-icons.js; s=$?; rm -rf .check-ico; exit $s",
-    "check:bulk": "rm -rf .check-bulk && tsc scripts/check-bulk-edit.ts --outDir .check-bulk --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-bulk/scripts/check-bulk-edit.js; s=$?; rm -rf .check-bulk; exit $s"
+    "check:bulk": "rm -rf .check-bulk && tsc scripts/check-bulk-edit.ts --outDir .check-bulk --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-bulk/ && node .check-bulk/scripts/check-bulk-edit.js; s=$?; rm -rf .check-bulk; exit $s"
   },
   "keywords": [
     "maritime",

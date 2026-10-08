@@ -849,11 +849,13 @@ function NumField({ label, value, onChange }: { label: string; value?: number; o
   );
 }
 
-function DateField({ label, value, onChange }: { label: string; value?: string; onChange: (v: string) => void }) {
+function DateField({ label, value, onChange }: { label: string; value?: string; onChange: (v: string | undefined) => void }) {
   const styles = useS();
   return (
     <View style={styles.fieldWrap}>
-      <SimpleDatePicker label={label} value={value} onChange={onChange} />
+      {/* Cleared to undefined, never '': complianceDate falls back with `??`, so an
+          empty string would leave the item judged by a date it no longer has. */}
+      <SimpleDatePicker label={label} value={value} onChange={onChange} onClear={() => onChange(undefined)} />
     </View>
   );
 }

@@ -29,6 +29,14 @@ interface Props {
   onChange: (date: string) => void;
   defaultYear?: number;
   disabled?: boolean;
+  /**
+   * Offer a clear (×) button while a date is set. Without it a date entered in
+   * the wrong field could only be replaced, never removed (asked for 8 Oct 2026:
+   * a next inspection typed where the expiry belonged).
+   */
+  onClear?: () => void;
+  /** Shown instead of "Select date" when there is no value — e.g. "Will be cleared". */
+  placeholder?: string;
 }
 
 const parseISODate = (iso: string): Date => {
@@ -36,7 +44,7 @@ const parseISODate = (iso: string): Date => {
   return new Date(y, m - 1, d);
 };
 
-const SimpleDatePicker: React.FC<Props> = ({ label, value, onChange, defaultYear, disabled }) => {
+const SimpleDatePicker: React.FC<Props> = ({ label, value, onChange, defaultYear, disabled, onClear, placeholder }) => {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const [visible, setVisible] = useState(false);
@@ -77,9 +85,20 @@ const SimpleDatePicker: React.FC<Props> = ({ label, value, onChange, defaultYear
         activeOpacity={0.7}
       >
         <Text style={[styles.triggerText, !value && styles.triggerPlaceholder]}>
-          {value ? formatDate(value) : 'Select date'}
+          {value ? formatDate(value) : placeholder ?? 'Select date'}
         </Text>
-        <MciIcon name="calendar" size={18} color={COLORS.textLight} />
+        {value && onClear && !disabled ? (
+          <TouchableOpacity
+            onPress={onClear}
+            hitSlop={10}
+            style={styles.clearBtn}
+            accessibilityLabel={`Clear ${label}`}
+          >
+            <MciIcon name="close-circle" size={20} color={COLORS.textLight} />
+          </TouchableOpacity>
+        ) : (
+          <MciIcon name="calendar" size={18} color={COLORS.textLight} />
+        )}
       </TouchableOpacity>
 
       <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
@@ -192,6 +211,7 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   },
   triggerText: { fontSize: SIZES.body, color: COLORS.text },
   triggerPlaceholder: { color: COLORS.textLight },
+  clearBtn: { paddingLeft: SIZES.sm },
 
   modalOverlay: { flex: 1, backgroundColor: COLORS.overlay ?? 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
   pickerBox: {
