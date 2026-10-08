@@ -32,6 +32,8 @@ import { uid } from '../utils/id';
 import { pickDocument, pickFromLibrary, pickFromCamera, openFile, deleteFile, resolveUri, PickedFile } from '../services/attachments';
 import SimpleDatePicker from '../components/SimpleDatePicker';
 import { goBackOr } from '../utils/nav';
+import { duplicateItem } from '../services/duplicateItem';
+import { canAddItem } from '../services/trial';
 import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
 import { useSync } from '../contexts/SyncContext';
 import { scanProofFor, signingGate } from '../services/signingPolicy';
@@ -65,13 +67,18 @@ export default function ItemDetailSc() {
     [byCategory, category, id]
   );
 
-  const [draft, setDraft] = useState<EquipmentItem>(
-    existing ?? {
-      id: route.params.newId ?? `${category}_new`,
-      category,
-      updatedAt: Date.now(),
-    }
+  // "Duplicate" opens this screen as a NEW item seeded from another one — by id,
+  // not by passing the item, because on the web route params live in the URL.
+  const copyOf: string | undefined = route.params.copyOf;
+  const source = useMemo(
+    () => (copyOf ? (byCategory[category] ?? []).find((x) => x.id === copyOf) : undefined),
+    [byCategory, category, copyOf]
   );
+  const blank = (): EquipmentItem => {
+    const newId = route.params.newId ?? `${category}_new`;
+    return source ? duplicateItem(source, newId, byCategory[category] ?? []) : { id: newId, category, updatedAt: Date.now() };
+  };
+  const [draft, setDraft] = useState<EquipmentItem>(() => existing ?? blank());
   const isNew = !existing;
   const [preview, setPreview] = useState<Attachment | null>(null);
   const [renaming, setRenaming] = useState<Attachment | null>(null);
@@ -104,6 +111,12 @@ export default function ItemDetailSc() {
     if (!existing || touched.current) return;
     setDraft((d) => (d.id === existing.id ? d : existing));
   }, [existing]);
+  // The same for a copy whose source had not loaded yet.
+  useEffect(() => {
+    if (existing || !source || touched.current) return;
+    setDraft((d) => (d.type || d.no != null ? d : blank()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source]);
 
   const set = (patch: Partial<EquipmentItem>) => {
     touched.current = true;
@@ -264,6 +277,23 @@ export default function ItemDetailSc() {
     );
   };
 
+  /**
+   * A new item that starts as a copy of this one — see services/duplicateItem for
+   * what is and is not copied. From the SAVED item: an edit in progress here is
+   * not what the person means to copy until they have kept it.
+   */
+  const onDuplicate = async () => {
+    if (touched.current) {
+      Alert.alert('Save first', 'Save the changes to this item, then duplicate it.');
+      return;
+    }
+    if (!(await canAddItem((byCategory[category] ?? []).length))) {
+      nav.navigate('Paywall');
+      return;
+    }
+    nav.push('ItemDetail', { category, id: null, newId: uid(category.slice(0, 3)), copyOf: draft.id });
+  };
+
   const onDelete = () => {
     if (isNew) return goBackOr(nav);
     Alert.alert('Delete item', 'Remove this item permanently?', [
@@ -329,7 +359,7 @@ export default function ItemDetailSc() {
         <View style={styles.header}>
           <BackButton onPress={() => goBackOr(nav)} />
           <Text style={styles.headerTitle} numberOfLines={1}>
-            {isNew ? 'New item' : 'Edit item'}
+            {isNew ? (copyOf ? 'New item — copy' : 'New item') : 'Edit item'}
           </Text>
           <TouchableOpacity onPress={onSave} hitSlop={12}>
             <Text style={[styles.headerBtn, { color: COLORS.primary, fontWeight: '700' }]}>Save</Text>
@@ -337,6 +367,16 @@ export default function ItemDetailSc() {
         </View>
 
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
+          {isNew && source ? (
+            <View style={styles.copyNote}>
+              <MciIcon name="content-copy" size={16} color={COLORS.primary} />
+              <Text style={styles.copyNoteText}>
+                Copied from {itemNumber(source) ? `No. ${itemNumber(source)}` : typeWithSize(source) || 'an item'}. Enter
+                this one's serial number{draft.no == null ? ' and item number' : ''}, check the rest, then Save. Photos,
+                certificates and history are not copied.
+              </Text>
+            </View>
+          ) : null}
           <View style={styles.titleRow}>
             <CategoryBadge category={meta.key} size={26} />
             <View style={{ flex: 1 }}>
@@ -643,6 +683,13 @@ export default function ItemDetailSc() {
             <TouchableOpacity style={styles.labelBtn} onPress={() => nav.navigate('Label', { id: draft.id })}>
               <MciIcon name="qrcode" size={18} color={COLORS.primary} />
               <Text style={styles.labelBtnText}>Print label</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          {!isNew ? (
+            <TouchableOpacity style={styles.moveBtn} onPress={onDuplicate}>
+              <MciIcon name="content-copy" size={18} color={COLORS.primary} />
+              <Text style={styles.moveBtnText}>Duplicate item</Text>
             </TouchableOpacity>
           ) : null}
 
@@ -1066,6 +1113,17 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.primary,
   },
+  copyNote: {
+    flexDirection: 'row',
+    gap: SIZES.sm,
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    borderRadius: SIZES.radiusMd,
+    padding: SIZES.md,
+    marginBottom: SIZES.md,
+  },
+  copyNoteText: { flex: 1, color: COLORS.text, fontSize: SIZES.small },
   moveBtnText: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.body },
   mvBackdrop: { flex: 1, backgroundColor: '#0006', justifyContent: 'flex-end' },
   mvSheet: {

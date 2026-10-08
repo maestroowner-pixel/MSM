@@ -7,6 +7,16 @@ the part that stops the next person undoing it.
 
 Android versionCode 20571 · iOS build 20571.
 
+- **Duplicate item** (bottom of the item screen, `services/duplicateItem.ts`). Asked for by a vessel
+  adding dive cylinders one at a time (8 Oct 2026). Opens a NEW, unsaved item seeded from this one
+  — passed by id (`copyOf`), not as a param object, because on the web route params live in the
+  URL. Copied: what describes the kind of item and where it lives, dates, comments, extra columns.
+  Not copied: id (the QR label), serial, photos and documents, flag, monthly ticks — and so no
+  certificate links and no inspection history, which hang off the id. The item number steps to the
+  next one free in the category, keeping its padding ("01-DT" → "02-DT"); a number with no digits
+  is left empty. Duplicates the SAVED item: with unsaved edits it asks to Save first. Subject to the
+  same free-tier item limit as ＋. Checked in `npm run check:bulk`.
+
 - **A date can be cleared** — the × at the end of a set date field on the item screen
   (`SimpleDatePicker` `onClear`, every `DateField` in ItemDetail), and **Clear this date on all
   selected** in Set dates (`BulkPatch` field `null`). Asked for by a vessel (8 Oct 2026) that had

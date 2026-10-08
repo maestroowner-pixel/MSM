@@ -4,6 +4,7 @@
  *   npm run check:bulk
  */
 import { applyBulk, isEmptyPatch } from '../services/bulkEdit';
+import { duplicateItem, nextNumber } from '../services/duplicateItem';
 import { EquipmentItem } from '../types/equipment';
 import { complianceDate } from '../utils/dates';
 
@@ -51,6 +52,23 @@ const none = applyBulk([items[1]], new Set(['b']), { expiry: null }, NOW);
 ok('clearing a date the item never had changes nothing', none.changed === 0);
 ok('a clear alone is not an empty patch', !isEmptyPatch({ expiry: null }));
 ok('nothing filled in is an empty patch', isEmptyPatch({}) && isEmptyPatch({ note: '   ' }) && !isEmptyPatch({ expiry: '2027-01-01' }));
+
+// ---- Duplicate (services/duplicateItem.ts) ---------------------------------
+const tank = { id: 't1', category: 'other_safety', no: '01-DT', type: 'Dive cylinder', make: 'Faber', size: '12L', serial: 'FB-1001',
+  deck: 'Lower Deck', position: 'Dive locker', manufactureDate: '2024-03-01', nextInspection: '2027-03-01', remarks: 'Hydro tested',
+  attachments: att, flagged: true, flagNote: 'Valve stiff', monthlyChecks: { '2026-09': true }, extra: { Gas: 'Air' }, updatedAt: 1 } as EquipmentItem;
+const sibs = [tank, { ...tank, id: 't2', no: '02-DT', serial: 'FB-1002' } as EquipmentItem];
+const dup = duplicateItem(tank, 'oth_new', sibs, NOW);
+ok('copy gets the new id', dup.id === 'oth_new' && tank.id === 't1');
+ok('copy keeps what describes the kind of item', dup.type === 'Dive cylinder' && dup.make === 'Faber' && dup.size === '12L' && dup.deck === 'Lower Deck' && dup.position === 'Dive locker');
+ok('copy keeps dates and comments', dup.manufactureDate === '2024-03-01' && dup.nextInspection === '2027-03-01' && dup.remarks === 'Hydro tested');
+ok('copy has NO serial, photos, flag or monthly ticks', !('serial' in dup) && !('attachments' in dup) && !('flagged' in dup) && !('flagNote' in dup) && !('monthlyChecks' in dup), JSON.stringify(dup));
+ok('copy takes the next FREE number (02 is taken → 03)', dup.no === '03-DT', String(dup.no));
+ok('extra columns copied, not shared', dup.extra?.Gas === 'Air' && dup.extra !== tank.extra);
+ok('source untouched', tank.serial === 'FB-1001' && tank.attachments === att);
+ok('numbers: padding kept, numeric stays numeric', nextNumber('09-DT', []) === '10-DT' && nextNumber(5, [6]) === 7 && nextNumber('DT 7', []) === 'DT 8');
+ok('numbers: nothing to step → empty', nextNumber('Spare', []) === undefined && nextNumber(undefined, []) === undefined
+  && !('no' in duplicateItem({ ...tank, no: 'Spare' } as EquipmentItem, 'x', [], NOW)));
 
 console.log(fails ? `\n${fails} FAILED` : '\nall passed');
 process.exit(fails ? 1 : 0);
