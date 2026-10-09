@@ -8,6 +8,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, useWindowDimensions, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MciIcon } from '../components/MciIcon';
+import { jobDue } from '../services/pms';
 import { Screen, ScreenTitle, Empty, statusColor, CategoryBadge } from '../components/ui';
 import { TrialBanner } from '../components/TrialBanner';
 import { UpdateBanner } from '../components/UpdateBanner';
@@ -82,7 +83,23 @@ type ListEntry =
   | ({ kind: 'row'; key: string } & Scored);
 
 export default function DashboardSc() {
-  const { flat, loading, certificates, isLocked, recentScans, templates, inspections: trail } = useData();
+  const { flat, loading, certificates, isLocked, recentScans, templates, inspections: trail, machines, pmsJobs } = useData();
+
+  // Planned maintenance owed now. Shown only once the vessel has machinery in the
+  // plan: a strip that says "0" to a vessel that does not use the module is noise.
+  const pmsOwed = useMemo(() => {
+    const byId = new Map(machines.map((m) => [m.id, m]));
+    let overdue = 0;
+    let due = 0;
+    for (const j of pmsJobs) {
+      const m = byId.get(j.machineId);
+      if (!m) continue;
+      const st = jobDue(j, m).status;
+      if (st === 'expired') overdue += 1;
+      else if (st === 'due') due += 1;
+    }
+    return { overdue, due };
+  }, [machines, pmsJobs]);
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useS();
@@ -294,6 +311,18 @@ export default function DashboardSc() {
           in: the Settings link was removed, and a defect log that vanishes when
           the list is empty takes the rectified history with it. An empty line
           reads as "nothing outstanding", which is worth saying. */}
+      {machines.length > 0 ? (
+        <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('Maintenance')} activeOpacity={0.7}>
+          <MciIcon name="engine-outline" size={15} color={COLORS.textLight} />
+          <Text style={styles.posHeaderText} numberOfLines={1}>
+            {pmsOwed.overdue + pmsOwed.due
+              ? [pmsOwed.overdue ? `${pmsOwed.overdue} maintenance job${pmsOwed.overdue === 1 ? '' : 's'} overdue` : null, pmsOwed.due ? `${pmsOwed.due} due soon` : null].filter(Boolean).join(' · ')
+              : 'Maintenance — nothing owed'}
+          </Text>
+          {pmsOwed.overdue ? <Text style={[styles.posHeaderCount, { color: COLORS.danger }]}>{pmsOwed.overdue}</Text> : null}
+          <Text style={styles.posHeaderChevron}>›</Text>
+        </TouchableOpacity>
+      ) : null}
       <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('Defects')} activeOpacity={0.7}>
         <MciIcon name="wrench-outline" size={15} color={COLORS.textLight} />
         <Text style={styles.posHeaderText} numberOfLines={1}>Open defects</Text>

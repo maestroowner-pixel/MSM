@@ -560,6 +560,18 @@ export default function SettingsSc() {
           moved to the Dashboard: an open defect is work waiting, and work
           waiting belongs where the officer already looks, not filed under
           Settings behind the crew list. */}
+      <Card>
+        <Label>Planned maintenance</Label>
+        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Maintenance')}>
+          <IconChip name="engine" size={18} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkTitle}>Maintenance</Text>
+            <Text style={styles.linkSub}>Machinery, running hours, jobs due by hours or calendar</Text>
+          </View>
+          <Text style={styles.chev}>›</Text>
+        </TouchableOpacity>
+      </Card>
+
       {/* Everyone's, not the Master's: each seafarer records their own day. */}
       <Card>
         <Label>Hours of rest</Label>

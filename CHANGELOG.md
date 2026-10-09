@@ -5,6 +5,33 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Planned maintenance (PMS).** Settings → Maintenance, and a Maintenance strip on the Dashboard
+  once the vessel has machinery in the plan.
+  - Machine (name, location, maker, model, serial, running-hours counter with its date and the last
+    30 readings), PmsJob (interval in hours and/or days, last done date and counter), PmsDone (a
+    signed completion: date, counter, who, note) — `types/pms.ts`.
+  - A job falls due on WHICHEVER COMES FIRST, hours or calendar, compared as a fraction of each
+    interval. Hours are judged against the last counter reading; the readings give a running rate,
+    so an hours job also shows "≈ N d at the current rate". "Due soon" is the last 10 % of the
+    interval, not the register's 60 days, which would make a monthly job due from the day it was
+    done (`services/pms.ts`, `npm run check:pms`).
+  - A counter reading lower than the last is refused: a replaced counter is a new machine.
+  - "Record as done" signs a completion and moves the job's baseline in one step; a higher counter
+    entered there also becomes the machine's reading. Completions are append-only (rules: create
+    only), like inspections. Removing a machine or job is a tombstone; history stays.
+  - Typical jobs for six kinds of machinery (diesel engine, generator, watermaker, compressor, pump,
+    stabilisers), marked to be checked against the maker's manual.
+  - **Sync: three new collections `pms_machines`, `pms_jobs`, `pms_done`, on the same incremental
+    path as hours of rest** — `pushRest/pullRest` became `pushLists/pullLists` over a table of
+    collections (same storage keys, so nothing already sent is sent again). Pulled records are
+    marked as sent, and append-only records go one document at a time, so a completion re-sent
+    after a restore from backup is recognised as already there instead of failing its batch.
+    **firestore.rules gains the three collections — deploy before release.**
+  - In the .msm backup and in Reset all data. Manual section "Planned maintenance" in 4 languages.
+  - Machine and job screens adopt their record when it arrives after the screen (opened by URL on a
+    cold start), as CertificateDetailSc does — found on the first screenshot, where the fields of a
+    machine opened by link were empty.
+
 - **Hours of rest (MLC 2006 Reg. 2.3, STCW A-VIII/1).** Settings → Hours of rest.
   - One record per person per day: 48 half-hour cells, '1' work / '0' rest, ship's time
     (`types/rest.ts`). The day editor sets cells with a pen (Work / Rest) rather than toggling, so a

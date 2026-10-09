@@ -267,16 +267,6 @@ export function countWork(work: string): number {
   return n;
 }
 
-/** Newest `updatedAt` wins, by id — the same rule as the register. */
-export function mergeRest(local: RestDay[], remote: RestDay[]): RestDay[] {
-  const map = new Map<string, RestDay>();
-  for (const r of [...local, ...remote]) {
-    const have = map.get(r.id);
-    if (!have || (r.updatedAt ?? 0) > (have.updatedAt ?? 0)) map.set(r.id, r);
-  }
-  return [...map.values()];
-}
-
 export const RULE_LABEL: Record<RestRule, string> = {
   '24h': '10 h in 24 h',
   '7d': '77 h in 7 days',

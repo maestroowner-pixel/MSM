@@ -148,6 +148,27 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // Planned maintenance (types/pms.ts). Machines and their jobs are written
+      // by any member — the engineer who reads the counter is the one who updates
+      // it — and removed by tombstone, never deleted. A completed job is a
+      // signed record and is append-only, like an inspection: created once,
+      // never changed, never deleted.
+      match /pms_machines/{id} {
+        allow read: if member(v);
+        allow create, update: if member(v);
+        allow delete: if false;
+      }
+      match /pms_jobs/{id} {
+        allow read: if member(v);
+        allow create, update: if member(v);
+        allow delete: if false;
+      }
+      match /pms_done/{id} {
+        allow read: if member(v);
+        allow create: if member(v);
+        allow update, delete: if false;
+      }
+
       // The vessel's own checklists. Any member reads them — a round cannot be
       // carried out without the questions — and an OFFICER may write them. That
       // is deliberately one rank below the crew list: wording a check is the work

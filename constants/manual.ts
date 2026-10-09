@@ -307,6 +307,18 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '⚙️',
+      title: "Planned maintenance",
+      body: [
+        "Settings → Maintenance (or the Maintenance strip on the Dashboard) holds the machinery — main engines, generators, watermaker, compressors, pumps, stabilisers — each with its running-hours counter and its jobs.",
+        "A job has an interval in running hours, in days, or both, and falls due on whichever comes first, as makers write it (\"every 250 h or 12 months\"). Set when it was last done — date and counter — once; after that, Record as done moves it for you. A job never done has no start to count from and shows \"Never done\" instead of a date.",
+        "Enter the counter on the machine's screen (Save reading). The last readings give a running rate, so an hours-based job also shows roughly how many days it has left. A reading lower than the last is refused: a replaced counter is a new machine.",
+        "Due soon is the last 10 % of the interval — not the 60 days used for equipment, which would make a monthly job \"due\" from the day it was done.",
+        "Typical jobs adds the usual list for a kind of machine. The intervals are typical, not the maker's: check each against the manual and edit it.",
+        "Record as done signs a completion — date, counter, note, your name — into the machine's history. Like an inspection it cannot be edited or deleted afterwards; a mistake is corrected by recording the job again. Removing a machine or a job keeps the history.",
+      ],
+    },
+    {
       emoji: '☁️',
       title: "Cloud sync & inspection photos",
       body: [
@@ -630,6 +642,18 @@ const ru: ManualContent = {
         "Правила проверяются во время ввода, вместе с соседними днями: не менее 10 ч отдыха за любые 24 ч и 77 ч за любые 7 дней; отдых не более чем в двух периодах, один не короче 6 ч; не более 14 ч между периодами отдыха (MLC 2006 Reg. 2.3, STCW A-VIII/1). Окна скользящие, поэтому нарушение через полночь тоже видно. Проверка ориентировочная: исключения, допускаемые флагом (учения, аварии), решает Мастер — запишите их в Note дня.",
         "День без записи показан как «Not recorded» и никогда не считается отдыхом.",
         "Monthly record (PDF) печатает месяц в привычной форме — строка на день, работа закрашена, итоги, нарушения — с местами для подписи моряка и Мастера.",
+      ],
+    },
+    {
+      emoji: '⚙️',
+      title: "Планово-предупредительное ТО (Planned maintenance)",
+      body: [
+        "Settings → Maintenance (или полоска Maintenance на дашборде) — механизмы: главные двигатели, генераторы, опреснитель, компрессоры, насосы, стабилизаторы — у каждого счётчик моточасов и свои работы.",
+        "У работы интервал в моточасах, в днях или и то и другое; срок наступает по тому, что раньше, как пишут производители («каждые 250 ч или 12 месяцев»). Один раз укажите, когда она делалась последний раз — дата и счётчик; дальше Record as done сдвигает это сам. Работа, которая ни разу не делалась, показывает «Never done» вместо даты.",
+        "Показания счётчика вводятся на экране механизма (Save reading). По последним показаниям считается среднее в сутки, поэтому у работы по часам видно и примерно сколько дней осталось. Показание меньше прошлого не принимается: заменённый счётчик — это новый механизм.",
+        "«Скоро» — последние 10 % интервала, а не 60 дней, как у оборудования: иначе ежемесячная работа была бы «скоро» с первого же дня.",
+        "Typical jobs добавляет обычный список для типа механизма. Интервалы типовые, не от производителя: сверьте каждый с инструкцией и поправьте.",
+        "Record as done подписывает выполнение — дата, счётчик, примечание, ваше имя — в историю механизма. Как и проверку, её нельзя изменить или удалить; ошибка исправляется повторной записью. При удалении механизма или работы история сохраняется.",
       ],
     },
     {
@@ -959,6 +983,18 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '⚙️',
+      title: "Mantenimiento planificado (Planned maintenance)",
+      body: [
+        "Settings → Maintenance (o la franja Maintenance del Dashboard) contiene la maquinaria — motores principales, generadores, potabilizadora, compresores, bombas, estabilizadores — cada una con su contador de horas y sus trabajos.",
+        "Un trabajo tiene un intervalo en horas de funcionamiento, en días o ambos, y vence con lo que llegue antes, como lo escriben los fabricantes («cada 250 h o 12 meses»). Indique una vez cuándo se hizo por última vez — fecha y contador; después Record as done lo mueve solo. Un trabajo nunca hecho muestra «Never done» en vez de fecha.",
+        "Introduzca el contador en la pantalla de la máquina (Save reading). Las últimas lecturas dan un ritmo de uso, así que un trabajo por horas muestra también cuántos días le quedan aproximadamente. No se acepta una lectura menor que la anterior: un contador sustituido es una máquina nueva.",
+        "«Pronto» es el último 10 % del intervalo, no los 60 días de los equipos, que harían «pendiente» un trabajo mensual desde el primer día.",
+        "Typical jobs añade la lista habitual para un tipo de máquina. Los intervalos son típicos, no del fabricante: compruebe cada uno con el manual y ajústelo.",
+        "Record as done firma la realización — fecha, contador, nota, su nombre — en el historial de la máquina. Como una inspección, no se puede editar ni borrar; un error se corrige registrando el trabajo de nuevo. Al quitar una máquina o un trabajo el historial se conserva.",
+      ],
+    },
+    {
       emoji: '☁️',
       title: "Sincronización y fotos de inspección",
       body: [
@@ -1282,6 +1318,18 @@ const uk: ManualContent = {
         "Правила перевіряються під час введення разом із сусідніми днями: щонайменше 10 год відпочинку за будь-які 24 год і 77 год за будь-які 7 днів; відпочинок не більше ніж у двох періодах, один не коротший за 6 год; не більше 14 год між періодами відпочинку (MLC 2006 Reg. 2.3, STCW A-VIII/1). Вікна ковзні, тож порушення через північ теж видно. Перевірка орієнтовна: винятки, дозволені прапором (навчання, аварії), вирішує Майстер — запишіть їх у Note дня.",
         "День без запису показано як «Not recorded», і він ніколи не вважається відпочинком.",
         "Monthly record (PDF) друкує місяць у звичній формі — рядок на день, робота зафарбована, підсумки, порушення — з місцями для підпису моряка й Майстра.",
+      ],
+    },
+    {
+      emoji: '⚙️',
+      title: "Планове ТО (Planned maintenance)",
+      body: [
+        "Settings → Maintenance (або смуга Maintenance на дашборді) — механізми: головні двигуни, генератори, опріснювач, компресори, насоси, стабілізатори — у кожного лічильник мотогодин і свої роботи.",
+        "Робота має інтервал у мотогодинах, у днях або і те, і те; строк настає за тим, що раніше, як пишуть виробники («кожні 250 год або 12 місяців»). Один раз укажіть, коли її робили востаннє — дата й лічильник; далі Record as done зсуває це сам. Робота, яку ще не робили, показує «Never done» замість дати.",
+        "Показання лічильника вводяться на екрані механізму (Save reading). За останніми показаннями рахується середнє на добу, тож у роботи за годинами видно й приблизно скільки днів лишилося. Показання менше за попереднє не приймається: замінений лічильник — це новий механізм.",
+        "«Скоро» — останні 10 % інтервалу, а не 60 днів, як в обладнання: інакше щомісячна робота була б «скоро» з першого ж дня.",
+        "Typical jobs додає звичний перелік для типу механізму. Інтервали типові, не від виробника: звірте кожен з інструкцією й виправте.",
+        "Record as done підписує виконання — дата, лічильник, примітка, ваше ім'я — в історію механізму. Як і перевірку, її не можна змінити чи видалити; помилка виправляється повторним записом. Під час видалення механізму чи роботи історія зберігається.",
       ],
     },
     {

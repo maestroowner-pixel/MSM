@@ -45,6 +45,9 @@ import CertificatesSc from './screens/CertificatesSc';
 import CertificateDetailSc from './screens/CertificateDetailSc';
 import HoursOfRestSc from './screens/HoursOfRestSc';
 import RestDaySc from './screens/RestDaySc';
+import MaintenanceSc from './screens/MaintenanceSc';
+import MachineSc from './screens/MachineSc';
+import PmsJobSc from './screens/PmsJobSc';
 import CompressorSc from './screens/CompressorSc';
 import PaywallSc from './screens/PaywallSc';
 import LabelSc from './screens/LabelSc';
@@ -277,6 +280,9 @@ const linking = {
       Crew: 'crew',
       HoursOfRest: 'rest',
       RestDay: 'rest/:crewId/:date',
+      Maintenance: 'maintenance',
+      Machine: 'machine/:id',
+      PmsJob: 'pms-job/:id',
       Defects: 'defects',
       Accounts: 'accounts',
       Enrol: 'join',
@@ -456,6 +462,9 @@ function Root() {
         <Stack.Screen name="Crew" component={CrewSc} options={webHeader('Crew', toTab('Settings'))} />
         <Stack.Screen name="HoursOfRest" component={HoursOfRestSc} options={webHeader('Hours of rest', toTab('Settings'))} />
         <Stack.Screen name="RestDay" component={RestDaySc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Maintenance" component={MaintenanceSc} options={webHeader('Maintenance', toTab('Settings'))} />
+        <Stack.Screen name="Machine" component={MachineSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="PmsJob" component={PmsJobSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Checklists" component={ChecklistsSc} options={webHeader('Checklists', toTab('Settings'))} />
         <Stack.Screen name="ScanRules" component={ScanRulesSc} options={webHeader('Scan by category', toTab('Settings'))} />
         <Stack.Screen name="PhotoArchive" component={PhotoArchiveSc} options={webHeader('Photo archive', toTab('Settings'))} />

@@ -1,0 +1,272 @@
+// ===================================
+// One machine — its details, its counter, its jobs and their history.
+//
+// The counter reading is entered on its own, with its date, and saved straight
+// away: it is the thing an engineer updates every day or every watch, and it
+// should not wait behind an edit of the maker's name. A reading lower than the
+// last one is refused — a counter only goes back when it is replaced, and that
+// is a new machine record, not a correction.
+// ===================================
+
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { BackButton, Label, StatusPill, statusColor } from '../components/ui';
+import { useTheme } from '../contexts/ThemeContext';
+import { useData } from '../contexts/DataContext';
+import { SIZES, Palette } from '../theme';
+import { Machine, PmsJob } from '../types/pms';
+import { dueText, hoursPerDay, intervalText, jobDue, MACHINE_TYPES, sortJobsByDue, todayIso, withReading } from '../services/pms';
+import { formatDate } from '../utils/dates';
+import { uid } from '../utils/id';
+import { goBackOr } from '../utils/nav';
+import { playSuccessSound } from '../utils/sound';
+
+export default function MachineSc() {
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+  const nav = useNavigation<any>();
+  const route = useRoute<any>();
+  const { machines, pmsJobs, pmsDone, saveMachine, savePmsJob } = useData();
+  const id: string = route.params?.id;
+  const existing = machines.find((m) => m.id === id);
+  const isNew = !existing;
+
+  const [draft, setDraft] = useState<Machine>(existing ?? { id, name: '', updatedAt: Date.now() });
+  const [reading, setReading] = useState('');
+  const [showTypes, setShowTypes] = useState(false);
+  // The machine may arrive after the screen does (opened by URL on a cold start,
+  // or synced in a moment later): adopt it then, unless the officer has started
+  // typing — same as CertificateDetailSc.
+  const touched = useRef(false);
+  useEffect(() => {
+    if (existing && !touched.current) setDraft(existing);
+  }, [existing]);
+  const set = (p: Partial<Machine>) => {
+    touched.current = true;
+    setDraft((d) => ({ ...d, ...p }));
+  };
+  const today = todayIso();
+
+  const jobs = useMemo(() => {
+    const byId = new Map([[id, existing ?? draft]]);
+    return sortJobsByDue(pmsJobs.filter((j) => j.machineId === id), byId, today);
+  }, [pmsJobs, id, existing, draft, today]);
+  const history = useMemo(
+    () => pmsDone.filter((d) => d.machineId === id).sort((a, b) => b.at - a.at).slice(0, 10),
+    [pmsDone, id]
+  );
+  const rate = hoursPerDay(existing?.readings);
+
+  const saveDetails = async () => {
+    if (!draft.name.trim()) {
+      Alert.alert('Name required', 'Name the machine — "Main engine PS", "Generator 1".');
+      return false;
+    }
+    await saveMachine({ ...(existing ?? draft), ...draft, name: draft.name.trim(), updatedAt: Date.now() });
+    return true;
+  };
+
+  const onSave = async () => {
+    if (await saveDetails()) {
+      playSuccessSound();
+      goBackOr(nav);
+    }
+  };
+
+  const onReading = async () => {
+    const h = Number(reading.replace(',', '.'));
+    if (!Number.isFinite(h) || h < 0) return Alert.alert('Counter', 'Enter the hours shown on the counter.');
+    const base = existing ?? draft;
+    if (base.hours != null && h < base.hours) {
+      return Alert.alert('Counter', `The last reading was ${base.hours} h. A counter does not go back — if it was replaced, add it as a new machine.`);
+    }
+    if (!draft.name.trim()) return Alert.alert('Name required', 'Name the machine first.');
+    const next = withReading({ ...base, ...draft, name: draft.name.trim() }, today, h);
+    await saveMachine(next);
+    setDraft(next);
+    setReading('');
+    playSuccessSound();
+  };
+
+  const addTypical = async (key: string) => {
+    if (!(await saveDetails())) return;
+    const t = MACHINE_TYPES.find((x) => x.key === key);
+    const have = new Set(pmsJobs.filter((j) => j.machineId === id).map((j) => j.title.toLowerCase()));
+    for (const job of t?.jobs ?? []) {
+      if (have.has(job.title.toLowerCase())) continue;
+      const j: PmsJob = {
+        id: uid('job'),
+        machineId: id,
+        title: job.title,
+        intervalHours: job.hours,
+        intervalDays: job.days,
+        notes: 'Typical interval — check against the maker\'s manual.',
+        updatedAt: Date.now(),
+      };
+      await savePmsJob(j);
+    }
+    setShowTypes(false);
+  };
+
+  const onDelete = () => {
+    if (isNew) return goBackOr(nav);
+    Alert.alert('Remove machine', 'Remove this machine and its jobs from the plan? The history of work done is kept.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          for (const j of pmsJobs.filter((x) => x.machineId === id)) await savePmsJob({ ...j, deleted: true, updatedAt: Date.now() });
+          await saveMachine({ ...(existing as Machine), deleted: true, updatedAt: Date.now() });
+          goBackOr(nav);
+        },
+      },
+    ]);
+  };
+
+  return (
+    <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
+        <View style={styles.header}>
+          <BackButton onPress={() => goBackOr(nav)} />
+          <Text style={styles.headerTitle} numberOfLines={1}>{isNew ? 'New machine' : draft.name || 'Machine'}</Text>
+          <TouchableOpacity onPress={onSave} hitSlop={12}>
+            <Text style={styles.save}>Save</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
+          <Field label="Name ★" value={draft.name} onChange={(v) => set({ name: v })} placeholder="Main engine PS" />
+          <Field label="Location" value={draft.location} onChange={(v) => set({ location: v })} placeholder="Engine room" />
+          <View style={{ flexDirection: 'row', gap: SIZES.sm }}>
+            <View style={{ flex: 1 }}><Field label="Maker" value={draft.maker} onChange={(v) => set({ maker: v })} /></View>
+            <View style={{ flex: 1 }}><Field label="Model" value={draft.model} onChange={(v) => set({ model: v })} /></View>
+          </View>
+          <Field label="Serial" value={draft.serial} onChange={(v) => set({ serial: v })} />
+
+          <View style={styles.card}>
+            <Label>Running hours</Label>
+            <Text style={styles.hours}>
+              {(existing ?? draft).hours != null ? `${(existing ?? draft).hours} h` : 'No reading yet'}
+            </Text>
+            <Text style={styles.sub}>
+              {[
+                (existing ?? draft).hoursDate ? `read ${formatDate((existing ?? draft).hoursDate!)}` : null,
+                rate ? `≈ ${Math.round(rate * 10) / 10} h a day` : null,
+              ].filter(Boolean).join(' · ')}
+            </Text>
+            <View style={styles.readRow}>
+              <TextInput
+                style={[styles.input, { flex: 1, marginTop: 0 }]}
+                value={reading}
+                onChangeText={setReading}
+                placeholder="Today's counter"
+                placeholderTextColor={COLORS.textLight}
+                keyboardType="decimal-pad"
+              />
+              <TouchableOpacity style={styles.btn} onPress={onReading}>
+                <Text style={styles.btnText}>Save reading</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.jobsHead}>
+            <Label>{`Jobs (${jobs.length})`}</Label>
+            <View style={{ flexDirection: 'row', gap: SIZES.md }}>
+              <TouchableOpacity onPress={() => setShowTypes((v) => !v)} hitSlop={8}>
+                <Text style={styles.link}>Typical jobs</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={async () => {
+                  if (await saveDetails()) nav.navigate('PmsJob', { id: uid('job'), machineId: id, isNew: true });
+                }}
+                hitSlop={8}
+              >
+                <Text style={styles.link}>+ Add job</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          {showTypes ? (
+            <View style={styles.types}>
+              <Text style={styles.sub}>Adds the usual jobs for this kind of machine, without a last-done date. Check each interval against the maker's manual.</Text>
+              {MACHINE_TYPES.map((t) => (
+                <TouchableOpacity key={t.key} style={styles.type} onPress={() => addTypical(t.key)}>
+                  <Text style={styles.typeText}>{`${t.label} · ${t.jobs.length} jobs`}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : null}
+          {jobs.map((j) => {
+            const d = jobDue(j, existing ?? draft, today);
+            return (
+              <TouchableOpacity key={j.id} style={styles.row} onPress={() => nav.navigate('PmsJob', { id: j.id })} activeOpacity={0.7}>
+                <View style={[styles.bar, { backgroundColor: statusColor(d.status) }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowTitle} numberOfLines={1}>{j.title}</Text>
+                  <Text style={styles.sub} numberOfLines={2}>{`Every ${intervalText(j)} · ${dueText(d)}`}</Text>
+                </View>
+                {d.status !== 'none' ? <StatusPill status={d.status} /> : null}
+              </TouchableOpacity>
+            );
+          })}
+
+          {history.length ? <Label>Recent work</Label> : null}
+          {history.map((h) => (
+            <View key={h.id} style={styles.hist}>
+              <Text style={styles.rowTitle} numberOfLines={1}>{h.jobTitle}</Text>
+              <Text style={styles.sub}>
+                {[formatDate(h.date), h.hours != null ? `${h.hours} h` : null, h.byRank ? `${h.by} (${h.byRank})` : h.by].filter(Boolean).join(' · ')}
+              </Text>
+              {h.note ? <Text style={styles.note}>{h.note}</Text> : null}
+            </View>
+          ))}
+
+          <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
+            <Text style={styles.deleteText}>{isNew ? 'Discard' : 'Remove machine'}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    </LinearGradient>
+  );
+}
+
+function Field({ label, value, onChange, placeholder }: { label: string; value?: string; onChange: (v: string) => void; placeholder?: string }) {
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+  return (
+    <View style={{ marginBottom: SIZES.md }}>
+      <Label>{label}</Label>
+      <TextInput style={styles.input} value={value ?? ''} onChangeText={onChange} placeholder={placeholder ?? '—'} placeholderTextColor={COLORS.textLight} />
+    </View>
+  );
+}
+
+const makeStyles = (COLORS: Palette) =>
+  StyleSheet.create({
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SIZES.lg, paddingVertical: SIZES.md },
+    headerTitle: { flex: 1, textAlign: 'center', fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark },
+    save: { fontSize: SIZES.h5, fontWeight: '700', color: COLORS.primary },
+    input: { ...COLORS.glassInput, borderRadius: SIZES.radiusMd, paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm, fontSize: SIZES.body, color: COLORS.text, marginTop: 4 },
+    card: { ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.md, marginBottom: SIZES.md },
+    hours: { fontSize: SIZES.h2, fontWeight: '800', color: COLORS.textDark, marginTop: 2 },
+    sub: { fontSize: SIZES.small, color: COLORS.textLight },
+    readRow: { flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.sm, alignItems: 'center' },
+    btn: { backgroundColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm + 2 },
+    btnText: { color: COLORS.textWhite, fontWeight: '700' },
+    jobsHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: SIZES.sm, marginBottom: SIZES.xs },
+    link: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
+    types: { ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.md, marginBottom: SIZES.sm, gap: SIZES.xs },
+    type: { paddingVertical: SIZES.sm, paddingHorizontal: SIZES.md, borderRadius: SIZES.radiusSm, borderWidth: 1, borderColor: COLORS.primary },
+    typeText: { color: COLORS.primary, fontWeight: '600', fontSize: SIZES.small },
+    row: { flexDirection: 'row', alignItems: 'center', ...COLORS.glassCard, borderRadius: SIZES.radiusMd, paddingVertical: SIZES.md, paddingRight: SIZES.md, marginBottom: SIZES.sm, overflow: 'hidden', gap: SIZES.xs },
+    bar: { width: 5, alignSelf: 'stretch', marginRight: SIZES.sm },
+    rowTitle: { fontSize: SIZES.body, fontWeight: '600', color: COLORS.textDark },
+    hist: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.border, paddingVertical: SIZES.sm },
+    note: { fontSize: SIZES.small, color: COLORS.text, marginTop: 2 },
+    deleteBtn: { marginTop: SIZES.lg, paddingVertical: SIZES.md, borderRadius: SIZES.radiusMd, borderWidth: 1, borderColor: COLORS.danger, alignItems: 'center' },
+    deleteText: { color: COLORS.danger, fontWeight: '700', fontSize: SIZES.body },
+  });

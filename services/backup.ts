@@ -23,6 +23,7 @@ import { CompressorState, normalizeCompressorState } from '../types/compressor';
 import { Inspection } from '../types/inspection';
 import { CrewMember } from '../types/crew';
 import { RestDay } from '../types/rest';
+import { Machine, PmsDone, PmsJob } from '../types/pms';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from '../services/storage';
 import { VesselInfo } from '../services/storage';
@@ -45,6 +46,8 @@ export interface BackupFile {
   crew?: CrewMember[];
   /** Hours of rest, one record per person per day. Absent in backups made before it existed. */
   rest?: RestDay[];
+  /** Planned maintenance. Absent in backups made before it existed. */
+  pms?: { machines: Machine[]; jobs: PmsJob[]; done: PmsDone[] };
   files?: Record<string, string>; // basename -> base64 of the file contents
 }
 
@@ -58,6 +61,7 @@ export interface BackupSummary {
   inspections: number;
   crew: number;
   rest: number;
+  pmsJobs: number;
   vessel: string | null;
 }
 
@@ -83,6 +87,7 @@ function summarize(b: BackupFile): BackupSummary {
     inspections: b.inspections?.length ?? 0,
     crew: b.crew?.length ?? 0,
     rest: b.rest?.length ?? 0,
+    pmsJobs: b.pms?.jobs?.length ?? 0,
     vessel: b.vessel?.vessel_name || (b.vessel?.imo ? `IMO ${b.vessel.imo}` : null),
   };
 }
@@ -123,6 +128,11 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   const inspections = await storage.loadInspections();
   const crew = await storage.loadCrew();
   const rest = await storage.loadRest();
+  const pms = {
+    machines: await storage.loadList<Machine>(storage.PMS_MACHINES_KEY),
+    jobs: await storage.loadList<PmsJob>(storage.PMS_JOBS_KEY),
+    done: await storage.loadList<PmsDone>(storage.PMS_DONE_KEY),
+  };
 
   // Read each referenced binary into a basename -> base64 map.
   const files: Record<string, string> = {};
@@ -148,6 +158,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     inspections,
     crew,
     rest,
+    pms,
     files,
   };
 
@@ -300,6 +311,11 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
   }
   if (backup.crew) await storage.saveCrew(backup.crew);
   if (backup.rest) await storage.saveRest(backup.rest);
+  if (backup.pms) {
+    await storage.saveList(storage.PMS_MACHINES_KEY, backup.pms.machines ?? []);
+    await storage.saveList(storage.PMS_JOBS_KEY, backup.pms.jobs ?? []);
+    await storage.saveList(storage.PMS_DONE_KEY, backup.pms.done ?? []);
+  }
 
   if (backup.compressor) await storage.saveCompressor(normalizeCompressorState(backup.compressor));
   if (backup.vessel) await storage.saveVessel(backup.vessel);

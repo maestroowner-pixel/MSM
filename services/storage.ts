@@ -21,6 +21,9 @@ export const PREFS_KEY = `${PREFIX}prefs`;
 export const INSPECTIONS_KEY = `${PREFIX}inspections`;
 export const CREW_KEY = `${PREFIX}crew`;
 export const REST_KEY = `${PREFIX}rest`;
+export const PMS_MACHINES_KEY = `${PREFIX}pms_machines`;
+export const PMS_JOBS_KEY = `${PREFIX}pms_jobs`;
+export const PMS_DONE_KEY = `${PREFIX}pms_done`;
 /** The vessel's "scan before you sign" rule, as this device last knew it. */
 export const SIGNING_POLICY_KEY = `${PREFIX}signing_policy`;
 /** What this vessel has archived and what the last sweep did — services/photoArchive.ts. */
@@ -476,6 +479,30 @@ export async function setRoundEnabled(
   });
 }
 
+// ---- Lists of records (planned maintenance) ---------------------------------
+
+export async function loadList<T>(key: string): Promise<T[]> {
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveList<T>(key: string, list: T[]): Promise<void> {
+  await AsyncStorage.setItem(key, JSON.stringify(list));
+}
+
+export async function upsertInList<T extends { id: string }>(key: string, row: T): Promise<void> {
+  const list = await loadList<T>(key);
+  const i = list.findIndex((r) => r.id === row.id);
+  if (i >= 0) list[i] = row;
+  else list.push(row);
+  await saveList(key, list);
+}
+
 // ---- Hours of rest ----------------------------------------------------------
 
 export async function loadRest(): Promise<import('../types/rest').RestDay[]> {
@@ -593,6 +620,9 @@ export async function resetAllData(): Promise<void> {
     INSPECTIONS_KEY,
     CREW_KEY,
     REST_KEY,
+    PMS_MACHINES_KEY,
+    PMS_JOBS_KEY,
+    PMS_DONE_KEY,
     VESSEL_KEY,
     SIGNING_POLICY_KEY,
     PHOTO_ARCHIVE_KEY,

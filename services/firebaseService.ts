@@ -85,8 +85,7 @@ import { Certificate } from '../types/certificate';
 import { normalizeCompressorState } from '../types/compressor';
 import { Inspection } from '../types/inspection';
 import { CrewMember } from '../types/crew';
-import { RestDay } from '../types/rest';
-import { mergeRest } from './restHours';
+import { mergeById } from './pms';
 import { ChecklistTemplate } from '../constants/checklists';
 import { PhotoArchiveState } from './photoArchive';
 import { CATEGORIES, CategoryMeta } from '../constants/categories';
@@ -1156,62 +1155,124 @@ export async function pushInspections(uid: string): Promise<number> {
     }
   }
 
-  await pushRest(uid);
+  await pushLists(uid);
   return list.length;
 }
 
-// ---- Hours of rest ----------------------------------------------------------
-// One document per person per day in `rest/{crewId}_{date}`. Any approved member
-// may write one: a seafarer keeps their own record on their own phone, and the
-// Master corrects it. Newest `updatedAt` wins (types/rest.ts).
+// ---- Collections of records: hours of rest, planned maintenance --------------
+// One document per record, in a collection of its own:
 //
-// BOTH DIRECTIONS ARE INCREMENTAL. A year of a twenty-person crew is ~7 000
-// documents; reading them all on every sync would be paid for in reads and in
-// VSAT megabytes. Push sends only what changed since it was last sent; pull asks
-// only for what changed since the last pull.
+//   rest/{crewId}_{date}   hours of rest, one person-day       (types/rest.ts)
+//   pms_machines/{id}      machinery and its counter           (types/pms.ts)
+//   pms_jobs/{id}          recurring maintenance jobs
+//   pms_done/{id}          completed jobs — append-only
 //
-// A FAILURE HERE NEVER FAILS THE SYNC. The `rest` collection needs its rule in
-// firestore.rules deployed; until it is, the register, the trail and the crew must
-// go on syncing as before, so a refusal is logged and the records stay queued.
+// Any approved member may write them: a seafarer keeps their own rest record on
+// their own phone, an engineer signs off the job they did. Newest `updatedAt`
+// wins on merge.
+//
+// BOTH DIRECTIONS ARE INCREMENTAL. These grow for the life of the vessel (a year
+// of rest records for twenty people is ~7 000 documents), and reading them all
+// on every sync would be paid for in reads and in VSAT megabytes. Push sends what
+// changed since it was last sent; pull asks only for what changed since the last
+// pull.
+//
+// A FAILURE HERE NEVER FAILS THE SYNC. Each collection needs its rule in
+// firestore.rules deployed; until it is, the register, the trail and the crew go
+// on syncing as before, and these records stay queued on the device.
 
-const REST_PUSHED_KEY = 'msm:pushed_rest';
-const REST_PULLED_KEY = 'msm:pulled_rest_at';
+interface SyncedList {
+  sub: string;
+  key: string;
+  /**
+   * Created once and never changed (the rules allow create, not update). Sent one
+   * document at a time: a record that is already up there — re-sent after a
+   * restore from backup — is refused on its own instead of taking a whole batch
+   * of new ones down with it, and is then known to be there.
+   */
+  appendOnly?: boolean;
+}
 
-export async function pushRest(uid: string): Promise<number> {
+const SYNCED_LISTS: SyncedList[] = [
+  { sub: 'rest', key: storage.REST_KEY },
+  { sub: 'pms_machines', key: storage.PMS_MACHINES_KEY },
+  { sub: 'pms_jobs', key: storage.PMS_JOBS_KEY },
+  { sub: 'pms_done', key: storage.PMS_DONE_KEY, appendOnly: true },
+];
+
+async function pushList(uid: string, l: SyncedList): Promise<number> {
   try {
-    const list = await storage.loadRest();
-    const raw = await AsyncStorage.getItem(REST_PUSHED_KEY);
+    const list = await storage.loadList<{ id: string; updatedAt: number }>(l.key);
+    const pushedKey = `msm:pushed_${l.sub}`;
+    const raw = await AsyncStorage.getItem(pushedKey);
     const sent: Record<string, number> = raw ? JSON.parse(raw) : {};
     const fresh = list.filter((r) => (sent[r.id] ?? -1) < (r.updatedAt ?? 0));
     if (!fresh.length) return 0;
-    await writeInBatches(uid, 'rest', fresh.map((r) => ({ id: r.id, data: r })));
-    for (const r of fresh) sent[r.id] = r.updatedAt ?? 0;
-    await AsyncStorage.setItem(REST_PUSHED_KEY, JSON.stringify(sent));
+    if (l.appendOnly) {
+      const d = requireDb();
+      for (const r of fresh) {
+        try {
+          await fsSetDoc(fsDoc(d, ROOT, uid, l.sub, r.id), stripUndefined(r));
+        } catch (e: any) {
+          if (!String(e?.code ?? e?.message ?? '').includes('permission')) throw e;
+          // Refused. Either it is already in the vessel's record (an update the
+          // rules forbid) — then it counts as sent — or this collection's rule is
+          // not deployed yet, and it must stay queued. Only reading it tells which.
+          const there = await fsGetDoc(fsDoc(d, ROOT, uid, l.sub, r.id));
+          if (!there.exists()) throw e;
+        }
+        sent[r.id] = r.updatedAt ?? 0;
+      }
+    } else {
+      await writeInBatches(uid, l.sub, fresh.map((r) => ({ id: r.id, data: r })));
+      for (const r of fresh) sent[r.id] = r.updatedAt ?? 0;
+    }
+    await AsyncStorage.setItem(pushedKey, JSON.stringify(sent));
     return fresh.length;
   } catch (e: any) {
-    console.warn('[sync] hours of rest not pushed:', e?.message ?? e);
+    console.warn(`[sync] ${l.sub} not pushed:`, e?.message ?? e);
     return 0;
   }
 }
 
-export async function pullRest(uid: string): Promise<number> {
+async function pullList(uid: string, l: SyncedList): Promise<number> {
   try {
-    const since = Number((await AsyncStorage.getItem(REST_PULLED_KEY)) ?? 0) || 0;
+    const pulledKey = `msm:pulled_${l.sub}_at`;
+    const since = Number((await AsyncStorage.getItem(pulledKey)) ?? 0) || 0;
     const startedAt = Date.now();
     const snap = await fsGetDocs(
-      fsQuery(fsCollection(requireDb(), ROOT, uid, 'rest'), fsWhere('updatedAt', '>', since))
+      fsQuery(fsCollection(requireDb(), ROOT, uid, l.sub), fsWhere('updatedAt', '>', since))
     );
-    const remote: RestDay[] = [];
-    snap.forEach((doc) => remote.push(doc.data() as RestDay));
-    if (remote.length) await storage.saveRest(mergeRest(await storage.loadRest(), remote));
+    const remote: { id: string; updatedAt: number }[] = [];
+    snap.forEach((doc) => remote.push(doc.data() as any));
+    if (remote.length) {
+      await storage.saveList(l.key, mergeById(await storage.loadList<{ id: string; updatedAt: number }>(l.key), remote));
+      // What the vessel just handed us is, by definition, already up there. Without
+      // this a device that lost its pushed-map (a reinstall, a restore) re-sends
+      // everything it pulls — and for `pms_done`, where the rules allow create but
+      // not update, one such record fails the whole batch it travels in, for good.
+      const pushedKey = `msm:pushed_${l.sub}`;
+      const raw = await AsyncStorage.getItem(pushedKey);
+      const sent: Record<string, number> = raw ? JSON.parse(raw) : {};
+      for (const r of remote) sent[r.id] = Math.max(sent[r.id] ?? 0, r.updatedAt ?? 0);
+      await AsyncStorage.setItem(pushedKey, JSON.stringify(sent));
+    }
     // A little overlap, so a write that landed while this pull was running is
     // asked for again next time rather than missed.
-    await AsyncStorage.setItem(REST_PULLED_KEY, String(startedAt - 60_000));
+    await AsyncStorage.setItem(pulledKey, String(startedAt - 60_000));
     return remote.length;
   } catch (e: any) {
-    console.warn('[sync] hours of rest not pulled:', e?.message ?? e);
+    console.warn(`[sync] ${l.sub} not pulled:`, e?.message ?? e);
     return 0;
   }
+}
+
+export async function pushLists(uid: string): Promise<void> {
+  for (const l of SYNCED_LISTS) await pushList(uid, l);
+}
+
+export async function pullLists(uid: string): Promise<void> {
+  for (const l of SYNCED_LISTS) await pullList(uid, l);
 }
 
 /** Pull the trail and the crew list, merging both into what this device holds. */
@@ -1243,7 +1304,7 @@ export async function pullInspections(uid: string): Promise<number> {
     mergeCategories(await storage.loadVesselCategories(), remoteCats)
   );
 
-  await pullRest(uid);
+  await pullLists(uid);
 
   return merged.length;
 }

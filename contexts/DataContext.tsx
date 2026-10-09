@@ -11,6 +11,7 @@ import { CompressorState } from '../types/compressor';
 import { Inspection, InspectionPeriod } from '../types/inspection';
 import { CrewMember, liveCrew } from '../types/crew';
 import { RestDay } from '../types/rest';
+import { Machine, PmsDone, PmsJob } from '../types/pms';
 import { ChecklistTemplate } from '../constants/checklists';
 import { CategoryMeta, setVesselCategories } from '../constants/categories';
 import { CATEGORIES, CATEGORY_MAP } from '../constants/categories';
@@ -47,6 +48,14 @@ interface DataContextType {
   /** Hours of rest, every person, every recorded day. */
   rest: RestDay[];
   saveRestDay: (day: RestDay) => Promise<void>;
+  /** Planned maintenance — live records only (tombstones are kept in storage). */
+  machines: Machine[];
+  pmsJobs: PmsJob[];
+  pmsDone: PmsDone[];
+  saveMachine: (m: Machine) => Promise<void>;
+  savePmsJob: (j: PmsJob) => Promise<void>;
+  /** Record a completion and move its job's baseline, in one step. */
+  completePmsJob: (done: PmsDone, job: PmsJob) => Promise<void>;
   /** The vessel's own checklists; they replace the built-in for their category. */
   templates: ChecklistTemplate[];
   /** Headings this vessel invented, on top of the 23 the app ships. */
@@ -105,6 +114,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [inspections, setInspections] = useState<Inspection[]>([]);
   const [crew, setCrew] = useState<CrewMember[]>([]);
   const [rest, setRest] = useState<RestDay[]>([]);
+  const [machines, setMachines] = useState<Machine[]>([]);
+  const [pmsJobs, setPmsJobs] = useState<PmsJob[]>([]);
+  const [pmsDone, setPmsDone] = useState<PmsDone[]>([]);
   const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
   const [categories, setCategories] = useState<CategoryMeta[]>([]);
   const [recentScans, setRecentScans] = useState<ScanEntry[]>([]);
@@ -138,6 +150,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setInspections(await storage.loadInspections());
     setCrew(liveCrew(await storage.loadCrew()));
     setRest(await storage.loadRest());
+    setMachines((await storage.loadList<Machine>(storage.PMS_MACHINES_KEY)).filter((m) => !m.deleted));
+    setPmsJobs((await storage.loadList<PmsJob>(storage.PMS_JOBS_KEY)).filter((j) => !j.deleted));
+    setPmsDone(await storage.loadList<PmsDone>(storage.PMS_DONE_KEY));
     setTemplates(await storage.loadTemplates());
     setSigningPolicyState((await storage.loadSigningPolicy()) ?? DEFAULT_POLICY);
     setPhotoArchiveState((await storage.loadPhotoArchive()) ?? DEFAULT_ARCHIVE);
@@ -269,6 +284,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setInspections((prev) => prev.map((i) => (i.id === insp.id ? insp : i)));
   }, []);
 
+  const loadPms = useCallback(async () => {
+    setMachines((await storage.loadList<Machine>(storage.PMS_MACHINES_KEY)).filter((m) => !m.deleted));
+    setPmsJobs((await storage.loadList<PmsJob>(storage.PMS_JOBS_KEY)).filter((j) => !j.deleted));
+    setPmsDone(await storage.loadList<PmsDone>(storage.PMS_DONE_KEY));
+  }, []);
+
+  const saveMachine = useCallback(async (m: Machine) => {
+    await storage.upsertInList(storage.PMS_MACHINES_KEY, m);
+    await loadPms();
+  }, [loadPms]);
+
+  const savePmsJob = useCallback(async (j: PmsJob) => {
+    await storage.upsertInList(storage.PMS_JOBS_KEY, j);
+    await loadPms();
+  }, [loadPms]);
+
+  const completePmsJob = useCallback(async (done: PmsDone, job: PmsJob) => {
+    await storage.upsertInList(storage.PMS_DONE_KEY, done);
+    await storage.upsertInList(storage.PMS_JOBS_KEY, job);
+    await loadPms();
+  }, [loadPms]);
+
   const saveRestDay = useCallback(async (day: RestDay) => {
     await storage.upsertRestDay(day);
     setRest(await storage.loadRest());
@@ -378,6 +415,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         crew,
         rest,
         saveRestDay,
+        machines,
+        pmsJobs,
+        pmsDone,
+        saveMachine,
+        savePmsJob,
+        completePmsJob,
         templates,
         categories,
         recentScans,
