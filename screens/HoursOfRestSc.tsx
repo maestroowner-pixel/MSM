@@ -119,7 +119,9 @@ export default function HoursOfRestSc() {
     <Screen>
       <ScreenTitle title="Hours of rest" subtitle="MLC 2006 · STCW A-VIII/1 · ship's time" help="Hours of rest" />
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+      {/* flexShrink 0: in a browser a horizontal ScrollView inside the page's own
+          scroll is squeezed to less than its content, and the names were cut in half. */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, flexShrink: 0 }} contentContainerStyle={styles.chips}>
         {people.map((c) => {
           const on = c.id === personId;
           return (
@@ -217,7 +219,7 @@ function Stat({ label, value, danger }: { label: string; value: string; danger?:
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
-    chips: { gap: SIZES.xs, paddingBottom: SIZES.sm },
+    chips: { gap: SIZES.xs, paddingBottom: SIZES.sm, alignItems: 'center' },
     chip: { paddingVertical: 7, paddingHorizontal: SIZES.md, borderRadius: 999, borderWidth: 1, borderColor: COLORS.primary },
     chipOn: { backgroundColor: COLORS.primary },
     chipText: { color: COLORS.primary, fontWeight: '600', fontSize: SIZES.small },
