@@ -7,6 +7,18 @@ the part that stops the next person undoing it.
 
 ## 2.59 — 9 Oct 2026
 
+- **Crew list (IMO FAL Form 5)** as PDF from Settings → Crew — port and date of arrival/departure,
+  everyone on board, Master first; saved into the remembered folder on the web. Crew member gains
+  place of birth, passport expiry, port of embarkation; nationality is the ISO 3166-1 alpha-2 code
+  (names and adjectives converted on import). Next of kin: family and given names, phone, home
+  address, email optional.
+- **Load the crew from Excel** (template download + import; merged by name, empty cells never wipe,
+  everyone in the sheet signed on) **or from a seafarer's SDM backup (.sdm)** — personal details,
+  passport, seaman's book, next of kin and certificates in one go; a second import only updates.
+- **Warnings**: ⚠ by a name in Crew, the crew matrix and the person's screen when a certificate or
+  the passport is expired or due, or crew-list / next-of-kin details are missing (private-data checks
+  only on Officers' devices). `npm run check:crewlist` (28 cases).
+
 **Released in this version: crew list & certificate matrix (`crewCerts`) and Hours of rest
 (`rest`).** Everything else below stays dark behind its flag. Needs `npm run deploy:rules` BEFORE
 the app reaches users (crew written by Officers, `crew_private`, `rest`); rules tested in the

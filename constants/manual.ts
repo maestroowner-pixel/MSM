@@ -344,6 +344,7 @@ const en: ManualContent = {
         "Enter the crew once. Each person has a rank, on board or signed off with the dates, and — seen by Officers and the Master only — date of birth, nationality, passport and seaman's book numbers, contacts and next of kin.",
         "Crew matrix: everyone against every certificate, the expiry in each cell — red expired, amber within 60 days. Tap a date to open the certificate, a + to add one.",
         "At a crew change nobody is typed again: sign the leaver off (their row, certificates and next of kin stay on the vessel's records), and when they come back tap Sign on. Only those on board record hours of rest.",
+        "Crew list (IMO FAL Form 5): Settings → Crew → Crew list (PDF), with the port and date of arrival or departure — everyone on board, Master first. Load the crew from Excel (Excel template → fill on a computer → Import from Excel) or from a seafarer's SDM backup (.sdm): personal details, passport, next of kin and certificates come in at once; importing again only updates. Nationality is the 2-letter code (GB, ES, UA). A ⚠ beside a name means a document is expired or due, or crew-list or next-of-kin details are missing.",
       ],
     },
     {
@@ -744,6 +745,7 @@ const ru: ManualContent = {
         "Экипаж вносится один раз. У каждого — должность, на борту или списан с датами и — только для офицеров и Мастера — дата рождения, гражданство, номера паспорта и мореходной книжки, контакты и next of kin.",
         "Crew matrix: все люди против всех сертификатов, в ячейке срок — красный просрочен, жёлтый в пределах 60 дней. Нажмите дату, чтобы открыть сертификат, «+» — чтобы добавить.",
         "При смене экипажа никого не вводят заново: уходящего списывают (его строка, сертификаты и next of kin остаются в данных судна), а когда он вернётся — Sign on. Часы отдыха ведут только те, кто на борту.",
+        "Crew list (IMO FAL Form 5): Settings → Crew → Crew list (PDF), с портом и датой прихода или отхода — все на борту, Мастер первым. Экипаж загружается из Excel (Excel template → заполнить на компьютере → Import from Excel) или из бэкапа моряка SDM (.sdm): личные данные, паспорт, next of kin и сертификаты сразу; повторный импорт только обновляет. Гражданство — двухбуквенный код (GB, ES, UA). ⚠ у имени — документ просрочен или подходит срок, либо не заполнены данные для crew list или next of kin.",
       ],
     },
     {
@@ -1144,6 +1146,7 @@ const es: ManualContent = {
         "La tripulación se introduce una vez. Cada persona tiene cargo, a bordo o desembarcada con fechas y — solo para oficiales y el Master — fecha de nacimiento, nacionalidad, números de pasaporte y libreta, contactos y next of kin.",
         "Crew matrix: todas las personas frente a todos los certificados, con la caducidad en cada celda — rojo vencido, ámbar en 60 días. Toque una fecha para abrir el certificado, un + para añadirlo.",
         "En un relevo nadie se vuelve a escribir: se desembarca al que se va (su fila, certificados y next of kin quedan en los registros del buque) y, cuando vuelve, Sign on. Solo quienes están a bordo registran horas de descanso.",
+        "Crew list (IMO FAL Form 5): Settings → Crew → Crew list (PDF), con el puerto y la fecha de llegada o salida — todos a bordo, el Master primero. La tripulación se carga desde Excel (Excel template → rellenar en el ordenador → Import from Excel) o desde la copia SDM del marino (.sdm): datos personales, pasaporte, next of kin y certificados de una vez; importar de nuevo solo actualiza. La nacionalidad es el código de 2 letras (GB, ES, UA). ⚠ junto a un nombre: un documento vencido o próximo, o faltan datos de la lista o del next of kin.",
       ],
     },
     {
@@ -1544,6 +1547,7 @@ const uk: ManualContent = {
         "Екіпаж вноситься один раз. У кожного — посада, на борту чи списаний з датами і — лише для офіцерів і Майстра — дата народження, громадянство, номери паспорта й мореплавної книжки, контакти та next of kin.",
         "Crew matrix: усі люди проти всіх сертифікатів, у клітинці термін — червоний прострочений, жовтий у межах 60 днів. Натисніть дату, щоб відкрити сертифікат, «+» — щоб додати.",
         "Під час зміни екіпажу нікого не вводять заново: того, хто йде, списують (його рядок, сертифікати й next of kin лишаються в даних судна), а коли повернеться — Sign on. Години відпочинку ведуть лише ті, хто на борту.",
+        "Crew list (IMO FAL Form 5): Settings → Crew → Crew list (PDF), з портом і датою приходу чи відходу — усі на борту, Майстер першим. Екіпаж завантажується з Excel (Excel template → заповнити на комп'ютері → Import from Excel) або з бекапу моряка SDM (.sdm): особисті дані, паспорт, next of kin і сертифікати одразу; повторний імпорт лише оновлює. Громадянство — двобуквений код (GB, ES, UA). ⚠ біля імені — документ прострочений чи наближається строк, або не заповнені дані для crew list чи next of kin.",
       ],
     },
     {

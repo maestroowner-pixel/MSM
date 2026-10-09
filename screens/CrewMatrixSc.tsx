@@ -28,6 +28,7 @@ import { roleAtLeast } from '../types/role';
 import { statusFromDate } from '../utils/dates';
 import { todayIso } from '../services/pms';
 import { uid } from '../utils/id';
+import { crewIssues, worstIssue } from '../services/crewIssues';
 
 const NAME_W = 180;
 const COL_W = 104;
@@ -39,7 +40,7 @@ export default function CrewMatrixSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
-  const { crew, certificates, saveCrewMember } = useData();
+  const { crew, certificates, crewPrivate, saveCrewMember } = useData();
   const sync = useSync();
   const canEdit = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const [showOff, setShowOff] = useState(false);
@@ -51,6 +52,12 @@ export default function CrewMatrixSc() {
     return { on, off };
   }, [crew]);
   const rows = showOff ? [...people.on, ...people.off] : people.on;
+  // Who needs attention — expired, due, or details missing (services/crewIssues).
+  const issues = useMemo(
+    () => new Map(people.on.map((p) => [p.id, crewIssues(p, crewPrivate.find((x) => x.id === p.id), certificates, canEdit)])),
+    [people.on, crewPrivate, certificates, canEdit]
+  );
+  const attention = [...issues.values()].filter((l) => l.length).length;
 
   // Each person's certificates by normalised name, and the columns: every name
   // held by anyone shown, most common first.
@@ -90,6 +97,11 @@ export default function CrewMatrixSc() {
     <Screen scroll>
       <ScreenTitle title="Crew matrix" subtitle={`${people.on.length} on board${people.off.length ? ` · ${people.off.length} signed off` : ''} · certificates by person`} help="Crew list and certificate matrix" />
 
+      {attention ? (
+        <Text style={[styles.sub, { color: COLORS.warning, fontWeight: '700', fontSize: SIZES.small, marginBottom: SIZES.sm }]}>
+          {`⚠ ${attention} of ${people.on.length} on board need attention — documents expired or due, or details missing. Open a name to see what.`}
+        </Text>
+      ) : null}
       <View style={styles.tools}>
         {people.off.length ? (
           <TouchableOpacity onPress={() => setShowOff((v) => !v)} hitSlop={8}>
@@ -113,7 +125,13 @@ export default function CrewMatrixSc() {
               const off = !isAboard(p);
               return (
                 <TouchableOpacity key={p.id} style={[styles.cell, styles.nameCell]} onPress={() => nav.navigate('CrewMember', { id: p.id })}>
-                  <Text style={[styles.name, off && { color: COLORS.textLight }]} numberOfLines={1}>{p.name}</Text>
+                  <Text style={[styles.name, off && { color: COLORS.textLight }]} numberOfLines={1}>
+                    {(() => {
+                      const w = worstIssue(issues.get(p.id) ?? []);
+                      return w ? <Text style={{ color: w === 'expired' ? COLORS.danger : COLORS.warning }}>⚠ </Text> : null;
+                    })()}
+                    {p.name}
+                  </Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.xs }}>
                     <Text style={styles.sub} numberOfLines={1}>{off ? 'Signed off' : p.rank || '—'}</Text>
                     {off && canEdit ? (

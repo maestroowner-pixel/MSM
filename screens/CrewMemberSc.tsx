@@ -24,6 +24,9 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { CrewMember, CrewPrivate, NextOfKin } from '../types/crew';
+import { isCountryCode } from '../constants/countries';
+import { crewIssues, issueSummary } from '../services/crewIssues';
+import { useSdmImport } from '../components/useSdmImport';
 import { Certificate } from '../types/certificate';
 import { roleAtLeast } from '../types/role';
 import { formatDate, statusFromDate } from '../utils/dates';
@@ -66,6 +69,9 @@ export default function CrewMemberSc() {
     setP((v) => ({ ...v, ...x }));
   };
   const setKin = (x: Partial<NextOfKin>) => setPriv({ nextOfKin: { ...(p.nextOfKin ?? {}), ...x } });
+
+  const importSdm = useSdmImport();
+  const issues = useMemo(() => (existing ? crewIssues(existing, priv0, certificates, canEdit) : []), [existing, priv0, certificates, canEdit]);
 
   const mine = useMemo(
     () => certificates.filter((c) => c.scope === 'crew' && c.crewId === id).sort((a, b) => (a.expiryDate ?? '9').localeCompare(b.expiryDate ?? '9')),
@@ -119,6 +125,22 @@ export default function CrewMemberSc() {
         </View>
 
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
+          {issues.length ? (
+            <View style={[styles.warn, { borderColor: issues[0].level === 'expired' ? COLORS.danger : COLORS.warning }]}>
+              <Text style={[styles.title, { color: issues[0].level === 'expired' ? COLORS.danger : COLORS.warning }]}>{`⚠ ${issueSummary(issues)}`}</Text>
+              {issues.filter((i) => i.level !== 'missing').map((i) => (
+                <Text key={i.text} style={styles.sub}>{`• ${i.text}`}</Text>
+              ))}
+              {issues.some((i) => i.level === 'missing') ? (
+                <Text style={styles.sub}>{`• Not filled in: ${issues.filter((i) => i.level === 'missing').map((i) => i.text).join(', ')}`}</Text>
+              ) : null}
+            </View>
+          ) : null}
+          {canEdit && !isNew ? (
+            <TouchableOpacity onPress={() => void importSdm(id)} style={{ alignSelf: 'flex-end', marginBottom: SIZES.sm }} hitSlop={8}>
+              <Text style={styles.link}>Fill from the seafarer's SDM file (.sdm) ›</Text>
+            </TouchableOpacity>
+          ) : null}
           {F({ label: 'Full name ★', value: m.name, onChange: (v) => setMember({ name: v }), placeholder: 'As on the passport' })}
           {F({ label: 'Rank / position', value: m.rank, onChange: (v) => setMember({ rank: v }), placeholder: 'Chief Officer, Bosun, Deckhand…' })}
 
@@ -138,20 +160,33 @@ export default function CrewMemberSc() {
                 <SimpleDatePicker label="Signed off" value={m.signOff} onChange={(d) => setMember({ signOff: d })} onClear={() => setMember({ signOff: undefined })} disabled={!canEdit} />
               </View>
             </View>
+            {F({ label: 'Port of embarkation', value: m.signOnPort, onChange: (v) => setMember({ signOnPort: v }), placeholder: 'Palma de Mallorca' })}
           </View>
 
           {canEdit ? (
             <>
-              <Text style={styles.section}>Personal details</Text>
-              <Text style={styles.sub}>Seen by Officers and the Master only.</Text>
+              <Text style={styles.section}>Personal details (crew list)</Text>
+              <Text style={styles.sub}>Seen by Officers and the Master only. What the crew list (FAL Form 5) asks for.</Text>
               <View style={styles.pair}>
                 <View style={{ flex: 1 }}><SimpleDatePicker label="Date of birth" value={p.dateOfBirth} onChange={(d) => setPriv({ dateOfBirth: d })} defaultYear={1990} /></View>
-                {F({ label: 'Nationality', value: p.nationality, onChange: (v) => setPriv({ nationality: v }) })}
+                {F({ label: 'Place of birth', value: p.placeOfBirth, onChange: (v) => setPriv({ placeOfBirth: v }), placeholder: 'City, country' })}
               </View>
+              {F({ label: 'Nationality — 2-letter code (GB, ES, UA, PH…)', value: p.nationality, onChange: (v) => setPriv({ nationality: v.replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase() }), placeholder: 'GB' })}
+              {p.nationality && !isCountryCode(p.nationality) ? (
+                <Text style={[styles.sub, { color: COLORS.danger }]}>{`“${p.nationality}” is not an ISO country code.`}</Text>
+              ) : null}
               <View style={styles.pair}>
                 {F({ label: 'Passport no.', value: p.passportNo, onChange: (v) => setPriv({ passportNo: v }) })}
-                {F({ label: "Seaman's book no.", value: p.seamansBookNo, onChange: (v) => setPriv({ seamansBookNo: v }) })}
+                <View style={{ flex: 1 }}>
+                  <SimpleDatePicker label="Passport expiry" value={p.passportExpiry} onChange={(d) => setPriv({ passportExpiry: d })} onClear={() => setPriv({ passportExpiry: undefined })} />
+                </View>
               </View>
+              {p.passportExpiry && statusFromDate(p.passportExpiry) !== 'ok' ? (
+                <Text style={[styles.sub, { color: statusFromDate(p.passportExpiry) === 'expired' ? COLORS.danger : COLORS.warning, fontWeight: '700' }]}>
+                  {statusFromDate(p.passportExpiry) === 'expired' ? 'Passport expired' : 'Passport expires within 60 days'}
+                </Text>
+              ) : null}
+              {F({ label: "Seaman's book no.", value: p.seamansBookNo, onChange: (v) => setPriv({ seamansBookNo: v }) })}
               <View style={styles.pair}>
                 {F({ label: 'Phone', value: p.phone, onChange: (v) => setPriv({ phone: v }), kb: 'phone-pad' })}
                 {F({ label: 'Email', value: p.email, onChange: (v) => setPriv({ email: v }), kb: 'email-address' })}
@@ -160,14 +195,15 @@ export default function CrewMemberSc() {
 
               <Text style={styles.section}>Next of kin</Text>
               <View style={styles.pair}>
-                {F({ label: 'Name', value: p.nextOfKin?.name, onChange: (v) => setKin({ name: v }) })}
-                {F({ label: 'Relationship', value: p.nextOfKin?.relationship, onChange: (v) => setKin({ relationship: v }), placeholder: 'Wife, father…' })}
+                {F({ label: 'Family name ★', value: p.nextOfKin?.lastName ?? (p.nextOfKin?.firstName ? '' : p.nextOfKin?.name), onChange: (v) => setKin({ lastName: v }) })}
+                {F({ label: 'Given name(s) ★', value: p.nextOfKin?.firstName, onChange: (v) => setKin({ firstName: v }) })}
               </View>
               <View style={styles.pair}>
-                {F({ label: 'Phone', value: p.nextOfKin?.phone, onChange: (v) => setKin({ phone: v }), kb: 'phone-pad' })}
-                {F({ label: 'Email', value: p.nextOfKin?.email, onChange: (v) => setKin({ email: v }), kb: 'email-address' })}
+                {F({ label: 'Relationship', value: p.nextOfKin?.relationship, onChange: (v) => setKin({ relationship: v }), placeholder: 'Wife, father…' })}
+                {F({ label: 'Phone ★', value: p.nextOfKin?.phone, onChange: (v) => setKin({ phone: v }), kb: 'phone-pad' })}
               </View>
-              {F({ label: 'Address', value: p.nextOfKin?.address, onChange: (v) => setKin({ address: v }) })}
+              {F({ label: 'Home address ★', value: p.nextOfKin?.address, onChange: (v) => setKin({ address: v }) })}
+              {F({ label: 'Email (optional)', value: p.nextOfKin?.email, onChange: (v) => setKin({ email: v }), kb: 'email-address' })}
             </>
           ) : null}
 
@@ -209,5 +245,6 @@ const makeStyles = (COLORS: Palette) =>
     section: { fontSize: SIZES.h5, fontWeight: '800', color: COLORS.textDark, marginTop: SIZES.xl },
     certHead: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
     link: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
+    warn: { borderWidth: 1, borderRadius: SIZES.radiusMd, padding: SIZES.md, marginBottom: SIZES.md },
     certRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.md, marginTop: SIZES.sm },
   });

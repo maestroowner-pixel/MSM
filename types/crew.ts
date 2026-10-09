@@ -46,6 +46,8 @@ export interface CrewMember {
   onBoard?: boolean;
   /** yyyy-mm-dd joined the vessel for the current trip. */
   signOn?: string;
+  /** Port of embarkation for the current trip — the crew list (FAL Form 5) asks for it. */
+  signOnPort?: string;
   /** yyyy-mm-dd left the vessel. */
   signOff?: string;
 }
@@ -65,6 +67,10 @@ export function isAboard(c: Pick<CrewMember, 'active' | 'deleted' | 'onBoard'>):
  * member.
  */
 export interface NextOfKin {
+  /** Family name and given name(s), as the crew list and the company ask for them. */
+  lastName?: string;
+  firstName?: string;
+  /** One-field name from before the split (and from SDM files); shown when the two above are empty. */
   name?: string;
   relationship?: string;
   phone?: string;
@@ -75,8 +81,11 @@ export interface NextOfKin {
 export interface CrewPrivate {
   id: string;
   dateOfBirth?: string;
+  placeOfBirth?: string;
   nationality?: string;
   passportNo?: string;
+  /** yyyy-mm-dd */
+  passportExpiry?: string;
   seamansBookNo?: string;
   phone?: string;
   email?: string;
@@ -98,4 +107,11 @@ export function crewLabel(c: Pick<CrewMember, 'name' | 'rank'>): string {
 /** Signature line for a report: name first, rank in brackets. */
 export function signatureLine(name: string, rank?: string): string {
   return rank ? `${name} (${rank})` : name;
+}
+
+/** "Osypova, Maryna" — the next of kin's name however it was stored. */
+export function kinName(k: NextOfKin | undefined): string {
+  if (!k) return '';
+  const split = [k.lastName, k.firstName].filter(Boolean).join(', ');
+  return split || k.name || '';
 }

@@ -21,6 +21,11 @@ import { MciIcon } from '../components/MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { moduleOn } from '../constants/modules';
+import SimpleDatePicker from '../components/SimpleDatePicker';
+import { crewListGaps, crewListRows, planCrewImport } from '../services/crewList';
+import { exportCrewListPdf, exportCrewTemplate, pickCrewSheet } from '../services/crewListReport';
+import { crewIssues, issueSummary, worstIssue } from '../services/crewIssues';
+import { useSdmImport } from '../components/useSdmImport';
 import { SIZES, Palette } from '../theme';
 import { CrewMember } from '../types/crew';
 import { uid } from '../utils/id';
@@ -33,7 +38,7 @@ export default function CrewSc() {
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { crew, vessel, inspections: trail, certificates, saveCrewMember, removeCrewMember } = useData();
+  const { crew, vessel, inspections: trail, certificates, crewPrivate, saveCrewMember, saveCrewPrivate, removeCrewMember } = useData();
 
   /**
    * Only a Master edits this list.
@@ -88,6 +93,56 @@ export default function CrewSc() {
       addedAt: now,
       updatedAt: now,
     });
+  };
+
+  const importSdm = useSdmImport();
+  // What needs doing per person (expired / due / missing), for the row badge.
+  const issuesOf = (c: CrewMember) => (crewMgmt ? crewIssues(c, crewPrivate.find((p) => p.id === c.id), certificates, isMaster) : []);
+
+  // ---- Crew list (FAL Form 5) and Excel import ----
+  const [listing, setListing] = useState(false);
+  const [arrival, setArrival] = useState(true);
+  const [port, setPort] = useState('');
+  const [listDate, setListDate] = useState(new Date().toISOString().slice(0, 10));
+  const [listSaved, setListSaved] = useState<string | null>(null);
+  const listRows = useMemo(() => crewListRows(crew, crewPrivate), [crew, crewPrivate]);
+  const listGaps = useMemo(() => crewListGaps(listRows), [listRows]);
+
+  const makeList = async () => {
+    if (!listRows.length) return Alert.alert('Crew list', 'Nobody is on board in the crew list.');
+    try {
+      const where = await exportCrewListPdf({ vessel, arrival, port: port.trim(), date: listDate, rows: listRows });
+      if (typeof where === 'string') setListSaved(where === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${where}”`);
+    } catch (e: any) {
+      Alert.alert('Crew list', String(e?.message ?? e));
+    }
+  };
+
+  const importSheet = async () => {
+    try {
+      const picked = await pickCrewSheet();
+      if (!picked) return;
+      if (!picked.rows.length) return Alert.alert('Import', `No crew found in “${picked.name}”. Use the crew list template.`);
+      const plan = planCrewImport(picked.rows, crew, crewPrivate);
+      const unknown = picked.rows.filter((r) => r.nationalityUnknown).map((r) => `${r.name}: “${r.nationalityUnknown}”`);
+      const apply = async () => {
+        for (const m of plan.members) await saveCrewMember(m);
+        for (const p of plan.privates) await saveCrewPrivate(JSON.parse(JSON.stringify(p)));
+        Alert.alert('Crew imported', `${plan.added.length} added, ${plan.updated.length} updated — all signed on.`);
+      };
+      Alert.alert(
+        `Import ${picked.rows.length} from “${picked.name}”?`,
+        [
+          plan.added.length ? `New: ${plan.added.join(', ')}.` : null,
+          plan.updated.length ? `Updated (already on the list): ${plan.updated.join(', ')}.` : null,
+          'Everyone in the sheet is signed on. Empty cells leave what the app already has.',
+          unknown.length ? `Nationality not recognised — enter the 2-letter code: ${unknown.join('; ')}.` : null,
+        ].filter(Boolean).join('\n\n'),
+        [{ text: 'Cancel', style: 'cancel' }, { text: 'Import', onPress: () => void apply() }]
+      );
+    } catch (e: any) {
+      Alert.alert('Import failed', String(e?.message ?? e));
+    }
   };
 
   const [name, setName] = useState('');
@@ -189,6 +244,13 @@ export default function CrewSc() {
               {[c.rank, c.active ? null : 'Retired', crewMgmt && c.active && c.onBoard === false ? 'Signed off' : null, n ? `${n} signed` : null].filter(Boolean).join(' · ') ||
                 'No rank set'}
             </Text>
+            {(() => {
+              const iss = c.active && c.onBoard !== false ? issuesOf(c) : [];
+              const w = worstIssue(iss);
+              return w ? (
+                <Text style={[styles.meta, { fontWeight: '700', color: w === 'expired' ? COLORS.danger : COLORS.warning }]}>{`⚠ ${issueSummary(iss)}`}</Text>
+              ) : null;
+            })()}
             {moduleOn('crewCerts') ? (
             <TouchableOpacity onPress={() => nav.navigate('Main', { screen: 'Certificates', params: { tab: 'crew' } })} hitSlop={6}>
               <Text
@@ -238,6 +300,50 @@ export default function CrewSc() {
             : 'Who can sign an inspection on this vessel.'
         }
       />
+
+      {crewMgmt && isMaster ? (
+        <Card>
+          <Label>Crew list</Label>
+          <Text style={styles.meta}>The IMO FAL Form 5 for port, agent and immigration — everyone on board. Or load the crew from Excel: fill the template on a computer and import it.</Text>
+          <View style={styles.listBtns}>
+            <TouchableOpacity style={styles.listBtn} onPress={() => setListing((v) => !v)}>
+              <MciIcon name="file-pdf-box" size={18} color={COLORS.textWhite} />
+              <Text style={styles.listBtnText}>Crew list (PDF)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.listBtnOutline} onPress={() => void exportCrewTemplate().catch((e) => Alert.alert('Template', String(e?.message ?? e)))}>
+              <Text style={styles.listBtnOutlineText}>Excel template</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.listBtnOutline} onPress={() => void importSheet()}>
+              <Text style={styles.listBtnOutlineText}>Import from Excel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.listBtnOutline} onPress={() => void importSdm()}>
+              <Text style={styles.listBtnOutlineText}>Import SDM file (.sdm)</Text>
+            </TouchableOpacity>
+          </View>
+          {listing ? (
+            <View style={{ marginTop: SIZES.md }}>
+              <View style={styles.listBtns}>
+                {[true, false].map((a) => (
+                  <TouchableOpacity key={String(a)} style={[styles.chip, arrival === a && styles.chipOn]} onPress={() => setArrival(a)}>
+                    <Text style={[styles.chipText, arrival === a && styles.chipTextOn]}>{a ? 'Arrival' : 'Departure'}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TextInput style={styles.input} value={port} onChangeText={setPort} placeholder={`Port of ${arrival ? 'arrival' : 'departure'}`} placeholderTextColor={COLORS.textLight} />
+              <View style={{ marginTop: SIZES.sm }}>
+                <SimpleDatePicker label={`Date of ${arrival ? 'arrival' : 'departure'}`} value={listDate} onChange={setListDate} />
+              </View>
+              {listGaps.length ? (
+                <Text style={[styles.meta, { color: COLORS.warning, marginTop: SIZES.sm }]}>{`Missing — ${listGaps.slice(0, 6).join('; ')}${listGaps.length > 6 ? `; and ${listGaps.length - 6} more` : ''}`}</Text>
+              ) : null}
+              <TouchableOpacity style={[styles.primaryBtn, { marginTop: SIZES.md }]} onPress={() => void makeList()}>
+                <Text style={styles.primaryBtnText}>{`Create the crew list — ${listRows.length} on board`}</Text>
+              </TouchableOpacity>
+              {listSaved ? <Text style={[styles.meta, { color: COLORS.success, fontWeight: '700', textAlign: 'center' }]}>{`✓ ${listSaved}`}</Text> : null}
+            </View>
+          ) : null}
+        </Card>
+      ) : null}
 
       {crewMgmt ? (
         <TouchableOpacity style={styles.matrixLink} onPress={() => nav.navigate('CrewMatrix')}>
@@ -346,6 +452,15 @@ export default function CrewSc() {
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
     row: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md },
+    listBtns: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.sm, marginTop: SIZES.sm },
+    listBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: SIZES.sm, paddingHorizontal: SIZES.md },
+    listBtnText: { color: COLORS.textWhite, fontWeight: '700' },
+    listBtnOutline: { borderWidth: 1, borderColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: SIZES.sm, paddingHorizontal: SIZES.md },
+    listBtnOutlineText: { color: COLORS.primary, fontWeight: '700' },
+    chip: { paddingVertical: 6, paddingHorizontal: SIZES.md, borderRadius: 999, borderWidth: 1, borderColor: COLORS.primary },
+    chipOn: { backgroundColor: COLORS.primary },
+    chipText: { color: COLORS.primary, fontWeight: '600' },
+    chipTextOn: { color: COLORS.textWhite },
     matrixLink: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.md, marginBottom: SIZES.md },
     matrixText: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.body, flexShrink: 1 },
     rowBtn: { padding: SIZES.xs },
