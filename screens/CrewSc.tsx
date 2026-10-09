@@ -20,6 +20,7 @@ import { Card, Empty, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
+import { moduleOn } from '../constants/modules';
 import { SIZES, Palette } from '../theme';
 import { CrewMember } from '../types/crew';
 import { uid } from '../utils/id';
@@ -185,6 +186,7 @@ export default function CrewSc() {
               {[c.rank, c.active ? null : 'Retired', n ? `${n} signed` : null].filter(Boolean).join(' · ') ||
                 'No rank set'}
             </Text>
+            {moduleOn('crewCerts') ? (
             <TouchableOpacity onPress={() => nav.navigate('Main', { screen: 'Certificates', params: { tab: 'crew' } })} hitSlop={6}>
               <Text
                 style={[
@@ -199,6 +201,7 @@ export default function CrewSc() {
                   : 'No certificates recorded'}
               </Text>
             </TouchableOpacity>
+            ) : null}
           </View>
           {isMaster ? (
             <>

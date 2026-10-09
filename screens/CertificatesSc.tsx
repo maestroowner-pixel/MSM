@@ -21,15 +21,18 @@ import { crewLabel } from '../types/crew';
 import { ComplianceStatus } from '../types/equipment';
 import { canAddCertificate } from '../services/trial';
 import { MciIcon } from '../components/MciIcon';
+import { moduleOn } from '../constants/modules';
 
 export default function CertificatesSc() {
   const { certificates, crew } = useData();
   const route = useRoute<any>();
-  const [tab, setTab] = useState<CertificateScope>(route.params?.tab ?? 'equipment');
+  const [tab, setTab] = useState<CertificateScope>(
+    TABS.some((x) => x.key === route.params?.tab) ? route.params.tab : 'equipment'
+  );
   // Opened from a crew row ("3 certificates · 1 expired") with { tab: 'crew' }.
   useEffect(() => {
     const t = route.params?.tab;
-    if (t === 'equipment' || t === 'crew' || t === 'vessel') setTab(t);
+    if (TABS.some((x) => x.key === t)) setTab(t);
   }, [route.params?.tab]);
   const nav = useNavigation<any>();
   const COLORS = useTheme();
@@ -121,6 +124,7 @@ export default function CertificatesSc() {
         </TouchableOpacity>
       </View>
 
+      {TABS.length > 1 ? (
       <View style={styles.tabs}>
         {TABS.map((t) => (
           <TouchableOpacity
@@ -136,6 +140,7 @@ export default function CertificatesSc() {
           </TouchableOpacity>
         ))}
       </View>
+      ) : null}
 
       {counts[tab] > 0 ? (
         <TextInput
@@ -181,10 +186,16 @@ export default function CertificatesSc() {
   );
 }
 
+// Crew and Vessel ship dark until `crewCerts` is on (constants/modules.ts);
+// with Equipment alone there is nothing to switch between, so no tab row.
 const TABS: { key: CertificateScope; label: string }[] = [
   { key: 'equipment', label: 'Equipment' },
-  { key: 'crew', label: 'Crew' },
-  { key: 'vessel', label: 'Vessel' },
+  ...(moduleOn('crewCerts')
+    ? ([
+        { key: 'crew', label: 'Crew' },
+        { key: 'vessel', label: 'Vessel' },
+      ] as { key: CertificateScope; label: string }[])
+    : []),
 ];
 
 const SUBTITLE: Record<CertificateScope, (n: number) => string> = {

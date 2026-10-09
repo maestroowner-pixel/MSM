@@ -10,7 +10,7 @@ import { Screen, ScreenTitle, GlyphBadge } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { SIZES, Palette, APP_CONFIG } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
-import { MANUAL } from '../constants/manual';
+import { releasedManual } from '../constants/manual';
 import { manualLang } from '../utils/locale';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -52,7 +52,7 @@ function RefLinks({ refStr }: { refStr: string }) {
 export default function ManualSc() {
   const styles = useS();
   const COLORS = useTheme();
-  const content = useMemo(() => MANUAL[manualLang()], []);
+  const content = useMemo(() => releasedManual(manualLang()), []);
   const [open, setOpen] = useState<number | null>(0);
 
   const toggle = (i: number) => {

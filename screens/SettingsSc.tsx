@@ -18,6 +18,7 @@ import { SIZES, Palette, APP_CONFIG, THEME_ORDER, THEME_LABELS } from '../theme'
 import { useTheme, useThemeName } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
+import { moduleOn } from '../constants/modules';
 import { VesselInfo, resetAllData } from '../services/storage';
 import * as fb from '../services/firebaseService';
 import { clearAttachmentsDir } from '../services/attachments';
@@ -602,7 +603,7 @@ export default function SettingsSc() {
             <Text style={styles.chev}>›</Text>
           </TouchableOpacity>
         ) : null}
-        {sync.role === 'superadmin' ? (
+        {sync.role === 'superadmin' && moduleOn('access') ? (
           <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Access')}>
             <IconChip name="view-grid-outline" size={18} />
             <View style={{ flex: 1 }}>

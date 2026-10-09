@@ -41,7 +41,8 @@ import { DEFAULT_ARCHIVE, newerArchive } from '../services/photoArchive';
 import { EnrolledDevice, Role } from '../types/role';
 import * as accounts from '../services/accounts';
 import { useData } from './DataContext';
-import { TabKey, visibleTabs } from '../constants/access';
+import { TabKey, releasedTabs, visibleTabs } from '../constants/access';
+import { moduleOn } from '../constants/modules';
 
 /** The tabs the Master last set for this device, for a launch with no signal. */
 const MY_TABS_KEY = 'msm:my_tabs';
@@ -667,7 +668,13 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     if (pushTimer.current) clearTimeout(pushTimer.current);
   }, []);
 
-  const tabs = React.useMemo(() => visibleTabs(myTabs, role === 'superadmin'), [myTabs, role]);
+  // A tab whose module is off is never shown, and while Access itself is off the
+  // Master has no screen to set anything, so a stored setting is not obeyed.
+  const tabs = React.useMemo(() => {
+    const released = new Set(releasedTabs().map((t) => t.key));
+    const on = visibleTabs(moduleOn('access') ? myTabs : null, role === 'superadmin');
+    return new Set([...on].filter((k) => released.has(k)));
+  }, [myTabs, role]);
 
   return (
     <SyncContext.Provider

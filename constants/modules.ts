@@ -24,7 +24,7 @@
 // will follow the same way); whether the module exists at all is ours.
 // ===================================
 
-export type ModuleKey = 'lifting';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -34,6 +34,23 @@ export const MODULES: Record<ModuleKey, boolean> = {
    */
   // Switched on in 2.52 (2 Oct 2026).
   lifting: true,
+
+  // ---- Built 9 Oct 2026, shipped DARK -------------------------------------
+  // "Пока всё, что мы делаем, в приложении скрыто" — the owner, 9 Oct 2026.
+  // Everything below is finished and tested but not yet offered: off, a module
+  // shows no tab, no card, no link, no Settings row and no manual section. Its
+  // code, sync and storage stay in place, so a record made on a build where it
+  // was on is kept, not lost. To release one: set it true, deploy firestore.rules
+  // (`npm run deploy:rules`), and deploy the site manual's matching section.
+
+  /** Crew and vessel certificates — the Crew / Vessel tabs on Certificates. */
+  crewCerts: false,
+  /** Hours of rest (MLC / STCW) — the Rest tab. */
+  rest: false,
+  /** Planned maintenance by running hours — the PMS tab and Dashboard strip. */
+  pms: false,
+  /** Settings → Access: the Master's tabs-per-device matrix. */
+  access: false,
 };
 
 export function moduleOn(key: ModuleKey): boolean {

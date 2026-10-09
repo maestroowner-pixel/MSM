@@ -15,7 +15,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'rea
 import { MciIcon } from './MciIcon';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
-import { MANUAL } from '../constants/manual';
+import { releasedManual } from '../constants/manual';
 import { manualLang } from '../utils/locale';
 
 /** A manual section by its English title (preferred) or position. */
@@ -25,8 +25,11 @@ export function HelpButton({ section }: { section: HelpSection }) {
   const COLORS = useTheme();
   const [open, setOpen] = useState(false);
   const s = useMemo(() => {
-    const i = typeof section === 'number' ? section : MANUAL.en.sections.findIndex((x) => x.title === section);
-    return i >= 0 ? MANUAL[manualLang()].sections[i] : undefined;
+    // The released manual: a switched-off module's section is gone (no button),
+    // and a section a module extends is shown without that module's paragraphs.
+    const en = releasedManual('en');
+    const i = typeof section === 'number' ? section : en.sections.findIndex((x) => x.title === section);
+    return i >= 0 ? releasedManual(manualLang()).sections[i] : undefined;
   }, [section]);
   const styles = makeStyles(COLORS);
   if (!s) return null;

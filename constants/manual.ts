@@ -5,6 +5,7 @@
 // explanations are translated; regulatory reference codes are left unchanged.
 // ===================================
 
+import { ModuleKey, moduleOn } from './modules';
 import { APP_CONFIG } from '../theme';
 import { DUE_SOON_DAYS } from '../types/equipment';
 import { Lang } from '../utils/locale';
@@ -1430,3 +1431,28 @@ const uk: ManualContent = {
 };
 
 export const MANUAL: Record<Lang, ManualContent> = { en, ru, es, uk };
+
+// ---- Modules that ship dark --------------------------------------------------
+// A module that is off (constants/modules.ts) has no screen, so the manual must
+// not describe one. Keyed by the ENGLISH title, like the help buttons; `from`
+// hides only the paragraphs from that position on, for a module that extends an
+// existing section (crew certificates in Certificates). The order and length of
+// each section's body are the same in every language.
+const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
+  { title: 'Certificates', module: 'crewCerts', from: 4 },
+  { title: 'Access — which tabs each device shows', module: 'access' },
+  { title: 'Hours of rest', module: 'rest' },
+  { title: 'Planned maintenance', module: 'pms' },
+];
+
+/** The manual as this build should show it: sections of switched-off modules removed. */
+export function releasedManual(lang: Lang): ManualContent {
+  const content = MANUAL[lang];
+  const sections: Section[] = [];
+  content.sections.forEach((sec, i) => {
+    const part = MODULE_PARTS.find((p) => p.title === MANUAL.en.sections[i]?.title && !moduleOn(p.module));
+    if (!part) sections.push(sec);
+    else if (part.from != null) sections.push({ ...sec, body: sec.body?.slice(0, part.from) });
+  });
+  return { ...content, sections };
+}

@@ -28,10 +28,14 @@
 //     has nothing to open on and no way to scan a label.
 // ===================================
 
+import { ModuleKey, moduleOn } from './modules';
+
 export type TabKey = 'certificates' | 'reports' | 'maintenance' | 'rest';
 
 export interface OptionalTab {
   key: TabKey;
+  /** The module the tab belongs to; while it is off the tab does not exist. */
+  module?: ModuleKey;
   /** Route name in the tab navigator (index.tsx). */
   route: string;
   /** Tab bar label — short, seven tabs share a phone's width. */
@@ -44,12 +48,17 @@ export interface OptionalTab {
 /** In tab-bar order. A new module adds its line here and its screen in index.tsx. */
 export const OPTIONAL_TABS: OptionalTab[] = [
   { key: 'certificates', route: 'Certificates', label: 'Certificates', column: 'Certs', icon: 'certificate' },
-  { key: 'maintenance', route: 'Maintenance', label: 'PMS', column: 'PMS', icon: 'engine' },
-  { key: 'rest', route: 'HoursOfRest', label: 'Rest', column: 'Rest', icon: 'bed-clock' },
+  { key: 'maintenance', module: 'pms', route: 'Maintenance', label: 'PMS', column: 'PMS', icon: 'engine' },
+  { key: 'rest', module: 'rest', route: 'HoursOfRest', label: 'Rest', column: 'Rest', icon: 'bed-clock' },
   { key: 'reports', route: 'Reports', label: 'Reports', column: 'Reports', icon: 'file-document' },
 ];
 
 export const ALL_TABS: TabKey[] = OPTIONAL_TABS.map((t) => t.key);
+
+/** The optional tabs this build offers at all — those whose module is on. */
+export function releasedTabs(): OptionalTab[] {
+  return OPTIONAL_TABS.filter((t) => !t.module || moduleOn(t.module));
+}
 
 /**
  * What a device shows. `tabs` is the record's field, `isMaster` its role.

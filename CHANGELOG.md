@@ -5,6 +5,10 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Everything below ships dark** (owner's call, 9 Oct 2026): crew/vessel certificates, Hours of
+  rest, PMS and Access are behind `crewCerts`, `rest`, `pms`, `access` in constants/modules.ts, all
+  off. Off, a module has no tab, card, link, Settings row or manual section (`releasedManual`); its
+  code, sync and stored records stay. Release = flag on + `npm run deploy:rules` + site manual.
 - **Access — tabs per device.** Settings → Access (Master only): a table of the vessel's devices
   against the optional tabs (Certificates, PMS, Rest, Reports), a green or red dot in each cell; a tap
   switches the tab on that device, which follows on its next sync. Stored on the device record

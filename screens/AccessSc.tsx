@@ -27,10 +27,12 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { EnrolledDevice, ROLE_LABEL, personName } from '../types/role';
-import { OPTIONAL_TABS, TabKey, toggleTab, visibleTabs } from '../constants/access';
+import { TabKey, releasedTabs, toggleTab, visibleTabs } from '../constants/access';
+import { moduleOn } from '../constants/modules';
 import * as accounts from '../services/accounts';
 
 const ROW_H = 58;
+const COLUMNS = releasedTabs();
 const COL_W = 64;
 const NAME_W = 170;
 
@@ -92,7 +94,7 @@ export default function AccessSc() {
     }
   };
 
-  if (!isMaster) {
+  if (!isMaster || !moduleOn('access')) {
     return (
       <Screen scroll>
         <ScreenTitle title="Access" subtitle="Which tabs each device shows" />
@@ -144,7 +146,7 @@ export default function AccessSc() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
             <View>
               <View style={[styles.head, { flexDirection: 'row' }]}>
-                {OPTIONAL_TABS.map((t) => (
+                {COLUMNS.map((t) => (
                   <View key={t.key} style={styles.colHead}>
                     <MciIcon name={t.icon} size={18} color={COLORS.textLight} />
                     <Text style={styles.headText} numberOfLines={1}>{t.column}</Text>
@@ -156,7 +158,7 @@ export default function AccessSc() {
                 const on = visibleTabs(pending[d.id] ?? d.tabs, locked);
                 return (
                   <View key={d.id} style={[styles.cell, { flexDirection: 'row' }]}>
-                    {OPTIONAL_TABS.map((t) => {
+                    {COLUMNS.map((t) => {
                       const green = on.has(t.key);
                       return (
                         <TouchableOpacity
