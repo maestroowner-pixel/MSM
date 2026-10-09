@@ -5,6 +5,11 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- Hours of rest on a wide screen (≥ 900 px): the crew as a column on the left — rank, days recorded
+  this month, a red count of days with a breach — and the selected person's month on the right.
+  Phones keep the row of names.
+- Web: no swipe between screens (it fought text selection, sideways scrolling and scrollbars; the
+  menu does the job). Crew list scrolls with the page instead of a squeezed strip under the form.
 - **Crew list and crew certificate matrix (dark, `crewCerts`).** The crew list is kept by the Master
   AND the Officers (rules: crew write `isAdmin`; the client pushes it from an Officer only with the
   module on). A crew member has on board / signed off with sign-on and sign-off dates; Hours of rest

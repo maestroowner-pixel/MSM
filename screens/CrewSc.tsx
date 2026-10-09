@@ -13,7 +13,7 @@
 // ===================================
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import { Card, Empty, Label, Screen, ScreenTitle } from '../components/ui';
@@ -229,7 +229,7 @@ export default function CrewSc() {
   };
 
   return (
-    <Screen>
+    <Screen scroll>
       <ScreenTitle
         title="Crew"
         subtitle={
@@ -325,22 +325,20 @@ export default function CrewSc() {
       </Card>
       ) : null}
 
-      <FlatList
-        data={sorted}
-        keyExtractor={(c) => c.id}
-        renderItem={renderRow}
-        ListEmptyComponent={
-          <Empty
-            text={
-              isMaster
-                ? 'No crew yet.\nAdd the people who will be carrying out the rounds.'
-                : 'The Master has not named any signers yet.'
-            }
-          />
-        }
-        contentContainerStyle={{ paddingBottom: SIZES.xxxl }}
-        keyboardShouldPersistTaps="handled"
-      />
+      {/* Part of the page's own scroll. As a FlatList below the add form it got
+          whatever height was left — on a laptop a strip two rows tall that
+          could not be moved through (9 Oct 2026). A crew list is tens of rows. */}
+      {sorted.length ? (
+        sorted.map((c) => <React.Fragment key={c.id}>{renderRow({ item: c })}</React.Fragment>)
+      ) : (
+        <Empty
+          text={
+            isMaster
+              ? 'No crew yet.\nAdd the people who will be carrying out the rounds.'
+              : 'The Master has not named any signers yet.'
+          }
+        />
+      )}
     </Screen>
   );
 }

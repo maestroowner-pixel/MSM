@@ -12,7 +12,7 @@
 // ===================================
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { Card, Empty, Screen, ScreenTitle, StatusPill } from '../components/ui';
@@ -79,6 +79,25 @@ export default function HoursOfRestSc() {
 
   const today = todayIso();
   const [month, setMonth] = useState(today.slice(0, 7));
+  const { width } = useWindowDimensions();
+  const wide = width >= 900;
+
+  // Each person's month at a glance for the left column: recorded days and
+  // days with a breach.
+  const perPerson = useMemo(() => {
+    const out = new Map<string, { recorded: number; days: number; breaches: number }>();
+    if (!wide) return out;
+    const last = month === today.slice(0, 7) ? today : (() => {
+      const [y, m] = month.split('-').map(Number);
+      return `${month}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, '0')}`;
+    })();
+    if (`${month}-01` > today) return out;
+    for (const c of people) {
+      const sum = analyseRest(rest.filter((d) => d.crewId === c.id), `${month}-01`, last);
+      out.set(c.id, { recorded: sum.filter((x) => x.recorded).length, days: sum.length, breaches: sum.filter((x) => x.violations.length).length });
+    }
+    return out;
+  }, [wide, people, rest, month, today]);
 
   const mineDays = useMemo(() => rest.filter((d) => d.crewId === personId), [rest, personId]);
   const summary = useMemo(() => {
@@ -135,6 +154,39 @@ export default function HoursOfRestSc() {
         </TouchableOpacity>
       ) : null}
 
+      {/* Wide screens: the crew as a column on the left, the selected person's
+          month on the right (9 Oct 2026) — the Master runs down the list and
+          sees each one without hunting along a row of buttons. Phones keep
+          the row: there is no width for two columns. */}
+      <View style={wide ? styles.split : undefined}>
+      {wide ? (
+        <View style={styles.peopleCol}>
+          {people.map((c) => {
+            const on = c.id === personId;
+            const st = perPerson.get(c.id);
+            return (
+              <TouchableOpacity
+                key={c.id}
+                style={[styles.personRow, on && styles.personRowOn]}
+                onPress={() => setPersonId(c.id)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: on }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.personName, on && { color: COLORS.textWhite }]} numberOfLines={1}>
+                    {c.id === mine?.id ? `${c.name} (you)` : c.name}
+                  </Text>
+                  <Text style={[styles.personSub, on && { color: COLORS.textWhite }]} numberOfLines={1}>
+                    {[c.rank, st ? `${st.recorded}/${st.days} recorded` : null].filter(Boolean).join(' · ')}
+                  </Text>
+                </View>
+                {st?.breaches ? <Text style={styles.breachBadge}>{st.breaches}</Text> : null}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      ) : (
+      <>
       {/* flexShrink 0: in a browser a horizontal ScrollView inside the page's own
           scroll is squeezed to less than its content, and the names were cut in half. */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, flexShrink: 0 }} contentContainerStyle={styles.chips}>
@@ -155,6 +207,9 @@ export default function HoursOfRestSc() {
           );
         })}
       </ScrollView>
+      </>
+      )}
+      <View style={wide ? { flex: 1 } : undefined}>
 
       <View style={styles.monthRow}>
         <TouchableOpacity onPress={() => setMonth(shiftMonth(month, -1))} hitSlop={12} accessibilityLabel="Previous month">
@@ -219,6 +274,8 @@ export default function HoursOfRestSc() {
           );
         }}
       />
+      </View>
+      </View>
     </Screen>
   );
 }
@@ -236,6 +293,13 @@ function Stat({ label, value, danger }: { label: string; value: string; danger?:
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
     chips: { gap: SIZES.xs, paddingBottom: SIZES.sm, alignItems: 'center' },
+    split: { flexDirection: 'row', alignItems: 'flex-start', gap: SIZES.lg },
+    peopleCol: { width: 250, ...COLORS.glassCard, borderRadius: SIZES.radiusMd, paddingVertical: SIZES.xs, overflow: 'hidden' },
+    personRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, paddingVertical: SIZES.sm, paddingHorizontal: SIZES.md },
+    personRowOn: { backgroundColor: COLORS.primary },
+    personName: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.textDark },
+    personSub: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 1 },
+    breachBadge: { minWidth: 22, textAlign: 'center', color: '#fff', backgroundColor: COLORS.danger, borderRadius: 11, paddingHorizontal: 6, paddingVertical: 1, fontSize: SIZES.tiny, fontWeight: '800', overflow: 'hidden' },
     chip: { paddingVertical: 7, paddingHorizontal: SIZES.md, borderRadius: 999, borderWidth: 1, borderColor: COLORS.primary },
     chipOn: { backgroundColor: COLORS.primary },
     chipText: { color: COLORS.primary, fontWeight: '600', fontSize: SIZES.small },

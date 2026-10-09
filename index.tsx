@@ -230,7 +230,11 @@ function MainTabs() {
       };
 
   // Swipe left/right to move between tabs (gesture-handler, no reanimated needed).
+  // Phones only. In a browser the same drag is a mouse selecting text, a
+  // trackpad scrolling a wide table sideways, a scrollbar being pulled — and the
+  // page jumped to the next screen instead (9 Oct 2026). The web has the menu.
   const swipe = Gesture.Pan()
+    .enabled(Platform.OS !== 'web')
     .activeOffsetX([-25, 25])
     .failOffsetY([-15, 15])
     .minVelocityX(180)
