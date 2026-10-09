@@ -43,7 +43,15 @@ export function downloadFileWeb(
  * app screen). The browser print dialog lets the user "Save as PDF". Using an
  * iframe (not window.open) avoids popup blockers.
  */
-export function printHtmlWeb(html: string): void {
+/**
+ * Print an HTML document from the web build.
+ *
+ * `fileName` is what "Save as PDF" offers. The browser takes it from the TOP
+ * page's title, not the printed frame's, so a monthly rest record was saved as
+ * "Rest · ISMpilot.pdf" (9 Oct 2026). The title is swapped for the print and put
+ * back after — `print()` returns once the dialog is closed.
+ */
+export function printHtmlWeb(html: string, fileName?: string): void {
   const iframe = g.document.createElement('iframe');
   iframe.style.position = 'fixed';
   iframe.style.right = '0';
@@ -54,7 +62,13 @@ export function printHtmlWeb(html: string): void {
   iframe.onload = () => {
     try {
       iframe.contentWindow.focus();
-      iframe.contentWindow.print();
+      const before = g.document.title;
+      if (fileName) g.document.title = fileName.replace(/\.pdf$/i, '');
+      try {
+        iframe.contentWindow.print();
+      } finally {
+        if (fileName) g.document.title = before;
+      }
     } finally {
       // Keep the frame alive long enough for the print dialog to read it.
       g.setTimeout(() => iframe.remove(), 60000);

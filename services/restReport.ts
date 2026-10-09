@@ -34,6 +34,13 @@ function monthRange(month: string): { from: string; to: string; label: string } 
   return { from: `${month}-01`, to: `${month}-${String(last).padStart(2, '0')}`, label };
 }
 
+/**
+ * One-line codes for the Breach column; the full wording is in the numbered
+ * list under the table. The long labels wrapped letter by letter in a narrow
+ * column and stretched their rows three times over (9 Oct 2026).
+ */
+const RULE_CODE: Record<string, string> = { '24h': '10h/24h', '7d': '77h/7d', split: 'periods', gap: '14h gap' };
+
 export function buildRestHtml(input: RestReportInput): string {
   const { from, to, label } = monthRange(input.month);
   const summary = analyseRest(input.days, from, to);
@@ -51,8 +58,8 @@ export function buildRestHtml(input: RestReportInput): string {
       return `<tr${bad}><td class="d">${s.date.slice(8)}</td>${cells}
         <td class="n">${rec ? s.workHours : ''}</td><td class="n">${rec ? s.restHours : ''}</td>
         <td class="n">${s.minRest24h ?? ''}</td>
-        <td class="v">${s.violations.map((v) => esc(RULE_LABEL[v.rule])).join('<br>')}</td>
-        <td class="v">${rec?.note ? esc(rec.note) : ''}</td></tr>`;
+        <td class="b">${[...new Set(s.violations.map((v) => RULE_CODE[v.rule] ?? v.rule))].map(esc).join(' ')}</td>
+        <td class="note">${rec?.note ? esc(rec.note) : ''}</td></tr>`;
     })
     .join('');
 
@@ -61,18 +68,23 @@ export function buildRestHtml(input: RestReportInput): string {
     : '<p>No breach of the rest-hour rules is shown by this record.</p>';
 
   return `<!doctype html><html><head><meta charset="utf-8"><style>
-    @page { size: A4 landscape; margin: 10mm; }
-    body { font-family: -apple-system, Helvetica, Arial, sans-serif; font-size: 9px; color: #0B2545; }
+    /* Page margin 0 and the margin on the body instead: with any @page margin the
+       browser prints its own header and footer in it — the date, the tab title
+       and the localhost address were on the saved record. */
+    @page { size: A4 landscape; margin: 0; }
+    body { margin: 9mm 10mm; font-family: -apple-system, Helvetica, Arial, sans-serif; font-size: 9px; color: #0B2545;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     h1 { font-size: 15px; margin: 0 0 2px; } .sub { color: #5b6b7e; margin-bottom: 8px; }
     table { border-collapse: collapse; width: 100%; table-layout: fixed; }
-    td, th { border: 0.5px solid #c8d0db; padding: 0; height: 13px; }
-    th { font-size: 7.5px; font-weight: 600; background: #eef2f7; }
-    th.hh { width: auto; }
-    td.d { width: 18px; text-align: center; font-weight: 600; }
+    td, th { border: 0.5px solid #c8d0db; padding: 0; height: 14px; overflow: hidden; }
+    th { font-size: 7px; font-weight: 600; background: #eef2f7; line-height: 1.1; }
+    td.d { text-align: center; font-weight: 600; }
     td.w { background: #0B2545; } td.r { background: #fff; } td.h { border-left: 0.8px solid #8a96a8; }
     td.nr { color: #9aa6b5; text-align: center; font-style: italic; }
-    td.n { width: 30px; text-align: center; } td.v { width: 90px; padding: 0 3px; font-size: 7.5px; }
-    tr.bad td.d, tr.bad td.v { color: #c0392b; font-weight: 700; }
+    td.n { text-align: center; }
+    td.b { padding: 0 2px; font-size: 7px; white-space: nowrap; text-align: center; }
+    td.note { padding: 1px 3px; font-size: 7px; line-height: 1.15; }
+    tr.bad td.d, tr.bad td.b { color: #c0392b; font-weight: 700; }
     .rules { margin-top: 8px; color: #5b6b7e; } .sig { display: flex; gap: 40px; margin-top: 22px; }
     .sig div { flex: 1; border-top: 0.8px solid #0B2545; padding-top: 3px; }
     ol { margin: 4px 0 0 16px; padding: 0; }
@@ -81,7 +93,11 @@ export function buildRestHtml(input: RestReportInput): string {
     <div class="sub">${esc(vesselHeader(input.vessel))}<br>
       Seafarer: <b>${esc(input.holderName)}</b>${input.rank ? ` · ${esc(input.rank)}` : ''} · Ship's time · Shaded = work</div>
     <table>
-      <thead><tr><th class="d">Day</th>${hourHead}<th>Work h</th><th>Rest h</th><th>Min rest in 24 h</th><th>Breach</th><th>Note</th></tr></thead>
+      <colgroup>
+        <col style="width:20px">${'<col>'.repeat(SLOTS_PER_DAY)}
+        <col style="width:28px"><col style="width:28px"><col style="width:34px"><col style="width:52px"><col style="width:150px">
+      </colgroup>
+      <thead><tr><th class="d">Day</th>${hourHead}<th>Work<br>h</th><th>Rest<br>h</th><th>Min rest<br>24 h</th><th>Breach</th><th>Note</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
     <div class="rules">Rules applied (MLC 2006 Reg. 2.3, STCW A-VIII/1): at least ${RULES.minRest24h} h rest in any 24 h and ${RULES.minRest7d} h in any 7 days;
@@ -92,13 +108,26 @@ export function buildRestHtml(input: RestReportInput): string {
   </body></html>`;
 }
 
+/**
+ * "Jez Dodd-1026-MY Alpha_Hours of rest report.pdf" — Name-mmyy-vessel, as
+ * asked (9 Oct 2026): a month's records for a whole crew sort by person, then by
+ * month, and say which vessel they are from. Characters a file system refuses
+ * are dropped; the vessel part is left out when the vessel has no name or IMO.
+ */
+export function restReportFileName(input: Pick<RestReportInput, 'holderName' | 'month' | 'vessel'>): string {
+  const clean = (s: string) => s.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const name = clean(input.holderName) || 'Crew';
+  const mmyy = `${input.month.slice(5, 7)}${input.month.slice(2, 4)}`;
+  const v = input.vessel?.vessel_name?.trim() || (input.vessel?.imo ? `IMO ${input.vessel.imo}` : '');
+  return `${name}-${mmyy}${v ? `-${clean(v)}` : ''}_Hours of rest report.pdf`;
+}
+
 export async function exportRestPdf(input: RestReportInput): Promise<void> {
   if (onWindows) throw new Error('PDF export is not available on Windows.');
   const html = buildRestHtml(input);
-  const safe = input.holderName.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'crew';
-  const fileName = `Hours_of_rest_${safe}_${input.month}.pdf`;
+  const fileName = restReportFileName(input);
   if (onWeb) {
-    printHtmlWeb(html);
+    printHtmlWeb(html, fileName);
     return;
   }
   const { uri } = await Print.printToFileAsync({ html, width: 842, height: 595 });

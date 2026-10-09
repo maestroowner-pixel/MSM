@@ -5,6 +5,10 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- Hours of rest PDF: saved as "Name-mmyy-Vessel_Hours of rest report.pdf" (the browser's Save as PDF
+  takes the page title, which is set for the print); fixed column widths so rows no longer stretch;
+  breach codes on one line ("10h/24h"), full wording in the list below; a wide Note column; no
+  browser header/footer (date, tab title, address) on the page.
 - Hours of rest on a wide screen (≥ 900 px): the crew as a column on the left — rank, days recorded
   this month, a red count of days with a breach — and the selected person's month on the right.
   Phones keep the row of names.
