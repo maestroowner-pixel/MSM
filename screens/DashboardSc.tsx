@@ -15,6 +15,7 @@ import { UpdateBanner } from '../components/UpdateBanner';
 import { SIZES, Palette, SCROLLBAR_GUTTER } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
+import { useSync } from '../contexts/SyncContext';
 import { CATEGORY_MAP, GROUP_ORDER, GROUP_SHORT } from '../constants/categories';
 import { gettingStarted } from '../constants/gettingStarted';
 import { complianceDate, computeStatus, daysUntil, formatDate } from '../utils/dates';
@@ -84,6 +85,8 @@ type ListEntry =
 
 export default function DashboardSc() {
   const { flat, loading, certificates, isLocked, recentScans, templates, inspections: trail, machines, pmsJobs } = useData();
+  // The maintenance strip leads to the PMS tab, so it goes where the tab goes.
+  const { tabs } = useSync();
 
   // Planned maintenance owed now. Shown only once the vessel has machinery in the
   // plan: a strip that says "0" to a vessel that does not use the module is noise.
@@ -311,7 +314,7 @@ export default function DashboardSc() {
           in: the Settings link was removed, and a defect log that vanishes when
           the list is empty takes the rectified history with it. An empty line
           reads as "nothing outstanding", which is worth saying. */}
-      {machines.length > 0 ? (
+      {machines.length > 0 && tabs.has('maintenance') ? (
         <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('Maintenance')} activeOpacity={0.7}>
           <MciIcon name="engine-outline" size={15} color={COLORS.textLight} />
           <Text style={styles.posHeaderText} numberOfLines={1}>

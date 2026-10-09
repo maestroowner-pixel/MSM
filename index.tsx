@@ -22,7 +22,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SIZES, APP_CONFIG } from './theme';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { DataProvider, useData } from './contexts/DataContext';
-import { SyncProvider } from './contexts/SyncContext';
+import { SyncProvider, useSync } from './contexts/SyncContext';
 import { applyOrientationPolicy } from './utils/orientation';
 import { goBackOr } from './utils/nav';
 import { ensureTrialStarted } from './services/trial';
@@ -65,19 +65,28 @@ import ChecklistEditSc from './screens/ChecklistEditSc';
 import DefectsSc from './screens/DefectsSc';
 import InspectionDetailSc from './screens/InspectionDetailSc';
 import AccountsSc from './screens/AccountsSc';
+import AccessSc from './screens/AccessSc';
+import { OPTIONAL_TABS } from './constants/access';
 import EnrolSc from './screens/EnrolSc';
 import { recordScanProof } from './services/signingPolicy';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-const TAB_ORDER = ['Dashboard', 'Equipment', 'Certificates', 'Reports', 'Settings'];
+// Dashboard and Equipment first, Settings last; the optional tabs between them
+// in OPTIONAL_TABS order, each shown only if this device's access allows it
+// (constants/access.ts, set by the Master on the Access screen).
 const TAB_ICONS: Record<string, string> = {
   Dashboard: 'view-dashboard',
   Equipment: 'toolbox',
-  Certificates: 'certificate',
-  Reports: 'file-document',
   Settings: 'cog',
+  ...Object.fromEntries(OPTIONAL_TABS.map((t) => [t.route, t.icon])),
+};
+const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
+  Certificates: CertificatesSc,
+  Maintenance: MaintenanceSc,
+  HoursOfRest: HoursOfRestSc,
+  Reports: ReportsSc,
 };
 
 function TabIcon({ route, focused }: { route: string; focused: boolean }) {
@@ -140,6 +149,11 @@ function MainTabs() {
   const currentIdx = useRef(0);
   const insets = useSafeAreaInsets();
   const COLORS = useTheme();
+  const { tabs } = useSync();
+  const shown = OPTIONAL_TABS.filter((t) => tabs.has(t.key));
+  const tabOrder = ['Dashboard', 'Equipment', ...shown.map((t) => t.route), 'Settings'];
+  const orderRef = useRef(tabOrder);
+  orderRef.current = tabOrder;
 
   // Edge-to-edge is enabled, so the tab bar draws behind the Android system
   // navigation (3-button or gesture). Pad the bar by the bottom inset so the
@@ -185,8 +199,9 @@ function MainTabs() {
     .minVelocityX(180)
     .onEnd((e) => {
       const idx = currentIdx.current;
-      if (e.translationX < -45 && idx < TAB_ORDER.length - 1) navigation.navigate(TAB_ORDER[idx + 1]);
-      else if (e.translationX > 45 && idx > 0) navigation.navigate(TAB_ORDER[idx - 1]);
+      const order = orderRef.current;
+      if (e.translationX < -45 && idx < order.length - 1) navigation.navigate(order[idx + 1]);
+      else if (e.translationX > 45 && idx > 0) navigation.navigate(order[idx - 1]);
     })
     .runOnJS(true);
 
@@ -216,12 +231,14 @@ function MainTabs() {
           <Tab.Screen name="Equipment">
             {() => <TabFade><CategoriesSc /></TabFade>}
           </Tab.Screen>
-          <Tab.Screen name="Certificates">
-            {() => <TabFade><CertificatesSc /></TabFade>}
-          </Tab.Screen>
-          <Tab.Screen name="Reports">
-            {() => <TabFade><ReportsSc /></TabFade>}
-          </Tab.Screen>
+          {shown.map((t) => {
+            const Sc = OPTIONAL_SCREENS[t.route];
+            return (
+              <Tab.Screen key={t.route} name={t.route} options={{ tabBarLabel: t.label, title: t.label }}>
+                {() => <TabFade><Sc /></TabFade>}
+              </Tab.Screen>
+            );
+          })}
           <Tab.Screen name="Settings">
             {() => <TabFade><SettingsSc /></TabFade>}
           </Tab.Screen>
@@ -258,6 +275,8 @@ const linking = {
           Equipment: 'equipment',
           Certificates: 'certificates',
           Reports: 'reports',
+          Maintenance: 'maintenance',
+          HoursOfRest: 'rest',
           Settings: 'settings',
         },
       },
@@ -278,13 +297,12 @@ const linking = {
       Inspection: 'inspect/:itemId',
       InspectionDetail: 'inspection/:id',
       Crew: 'crew',
-      HoursOfRest: 'rest',
       RestDay: 'rest/:crewId/:date',
-      Maintenance: 'maintenance',
       Machine: 'machine/:id',
       PmsJob: 'pms-job/:id',
       Defects: 'defects',
       Accounts: 'accounts',
+      Access: 'access',
       Enrol: 'join',
     },
   },
@@ -460,9 +478,8 @@ function Root() {
         <Stack.Screen name="Inspection" component={InspectionSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="InspectionDetail" component={InspectionDetailSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Crew" component={CrewSc} options={webHeader('Crew', toTab('Settings'))} />
-        <Stack.Screen name="HoursOfRest" component={HoursOfRestSc} options={webHeader('Hours of rest', toTab('Settings'))} />
         <Stack.Screen name="RestDay" component={RestDaySc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Maintenance" component={MaintenanceSc} options={webHeader('Maintenance', toTab('Settings'))} />
+        <Stack.Screen name="Access" component={AccessSc} options={webHeader('Access', toTab('Settings'))} />
         <Stack.Screen name="Machine" component={MachineSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsJob" component={PmsJobSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Checklists" component={ChecklistsSc} options={webHeader('Checklists', toTab('Settings'))} />

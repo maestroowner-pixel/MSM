@@ -126,6 +126,11 @@ export interface EnrolledDevice {
   appVersion?: string | null;
   lastSeenAt?: number;
   createdAt?: number;
+  /**
+   * The optional tabs this device shows (constants/access.ts `TabKey`), set by
+   * the Master on the Access screen. Absent = all of them.
+   */
+  tabs?: string[];
 }
 
 export function personName(d: { firstName?: string; lastName?: string }): string {

@@ -296,10 +296,20 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🧭',
+      title: "Access — which tabs each device shows",
+      body: [
+        "Settings → Access (Master only) is a table: one row per device, one column per tab — Certificates, PMS, Rest, Reports. A green dot means the tab is on that device, red means it is not. Tap to switch; the device follows on its next sync.",
+        "Use it to keep each screen to what its holder needs: a deckhand's phone without the engine room's maintenance plan, an engineer's without the crew certificates.",
+        "Dashboard, Equipment and Settings are always on. A Master's device always shows every tab. A device the Master has never set shows every tab, so nothing disappears on an update.",
+        "This is tidiness, not a lock: what a device may change is still decided by its rank in Accounts, and enforced by the server.",
+      ],
+    },
+    {
       emoji: '🛏️',
       title: "Hours of rest",
       body: [
-        "Settings → Hours of rest records each person's work and rest, half hour by half hour, in ship's time. It opens on the person this device belongs to; the Master can switch to anyone to review or correct their month.",
+        "The Rest tab records each person's work and rest, half hour by half hour, in ship's time. It opens on the person this device belongs to; the Master can switch to anyone to review or correct their month.",
         "Tap a day, choose the pen (Tap marks WORK / Tap marks REST) and tap across the hours — or fill the day in one tap: Same as previous day, Day work 08–17, the three watch patterns, Day off. Moving to the next or previous day saves the one you leave.",
         "The rules are checked as you edit, against the days around it: at least 10 h rest in any 24 h and 77 h in any 7 days; rest in no more than two periods, one of at least 6 h; no more than 14 h between rest periods (MLC 2006 Reg. 2.3, STCW A-VIII/1). Windows are rolling, so a breach across midnight is caught. The check is indicative: exceptions the flag allows (drills, emergencies) are the Master's call — write them in the day's Note.",
         "A day with no record is shown as \"Not recorded\" and is never counted as rest.",
@@ -310,7 +320,7 @@ const en: ManualContent = {
       emoji: '⚙️',
       title: "Planned maintenance",
       body: [
-        "Settings → Maintenance (or the Maintenance strip on the Dashboard) holds the machinery — main engines, generators, watermaker, compressors, pumps, stabilisers — each with its running-hours counter and its jobs.",
+        "The PMS tab (or the Maintenance strip on the Dashboard) holds the machinery — main engines, generators, watermaker, compressors, pumps, stabilisers — each with its running-hours counter and its jobs.",
         "A job has an interval in running hours, in days, or both, and falls due on whichever comes first, as makers write it (\"every 250 h or 12 months\"). Set when it was last done — date and counter — once; after that, Record as done moves it for you. A job never done has no start to count from and shows \"Never done\" instead of a date.",
         "Enter the counter on the machine's screen (Save reading). The last readings give a running rate, so an hours-based job also shows roughly how many days it has left. A reading lower than the last is refused: a replaced counter is a new machine.",
         "Due soon is the last 10 % of the interval — not the 60 days used for equipment, which would make a monthly job \"due\" from the day it was done.",
@@ -634,10 +644,20 @@ const ru: ManualContent = {
       ],
     },
     {
+      emoji: '🧭',
+      title: "Доступ — какие вкладки видит устройство (Access)",
+      body: [
+        "Settings → Access (только Мастер) — таблица: строка на каждое устройство, столбец на каждую вкладку — Certificates, PMS, Rest, Reports. Зелёная точка — вкладка на этом устройстве есть, красная — нет. Нажмите, чтобы переключить; устройство подхватит при следующей синхронизации.",
+        "Так у каждого на экране только нужное: у матроса нет плана ТО машинного отделения, у механика — сертификатов экипажа.",
+        "Dashboard, Equipment и Settings включены всегда. На устройстве Мастера всегда все вкладки. Устройство, которое Мастер ещё не настраивал, показывает все вкладки — при обновлении ничего не пропадёт.",
+        "Это порядок, а не замок: что устройство может менять, по-прежнему решает его роль в Accounts, и это проверяет сервер.",
+      ],
+    },
+    {
       emoji: '🛏️',
       title: "Часы отдыха (Hours of rest)",
       body: [
-        "Settings → Hours of rest записывает работу и отдых каждого человека по получасам, по судовому времени. Экран открывается на человеке, которому принадлежит устройство; Мастер может переключиться на любого, чтобы проверить или поправить его месяц.",
+        "Вкладка Rest записывает работу и отдых каждого человека по получасам, по судовому времени. Экран открывается на человеке, которому принадлежит устройство; Мастер может переключиться на любого, чтобы проверить или поправить его месяц.",
         "Нажмите день, выберите «перо» (Tap marks WORK / Tap marks REST) и проведите нажатиями по часам — или заполните день одним нажатием: Same as previous day, Day work 08–17, три вахтенных графика, Day off. При переходе на соседний день текущий сохраняется.",
         "Правила проверяются во время ввода, вместе с соседними днями: не менее 10 ч отдыха за любые 24 ч и 77 ч за любые 7 дней; отдых не более чем в двух периодах, один не короче 6 ч; не более 14 ч между периодами отдыха (MLC 2006 Reg. 2.3, STCW A-VIII/1). Окна скользящие, поэтому нарушение через полночь тоже видно. Проверка ориентировочная: исключения, допускаемые флагом (учения, аварии), решает Мастер — запишите их в Note дня.",
         "День без записи показан как «Not recorded» и никогда не считается отдыхом.",
@@ -648,7 +668,7 @@ const ru: ManualContent = {
       emoji: '⚙️',
       title: "Планово-предупредительное ТО (Planned maintenance)",
       body: [
-        "Settings → Maintenance (или полоска Maintenance на дашборде) — механизмы: главные двигатели, генераторы, опреснитель, компрессоры, насосы, стабилизаторы — у каждого счётчик моточасов и свои работы.",
+        "Вкладка PMS (или полоска Maintenance на дашборде) — механизмы: главные двигатели, генераторы, опреснитель, компрессоры, насосы, стабилизаторы — у каждого счётчик моточасов и свои работы.",
         "У работы интервал в моточасах, в днях или и то и другое; срок наступает по тому, что раньше, как пишут производители («каждые 250 ч или 12 месяцев»). Один раз укажите, когда она делалась последний раз — дата и счётчик; дальше Record as done сдвигает это сам. Работа, которая ни разу не делалась, показывает «Never done» вместо даты.",
         "Показания счётчика вводятся на экране механизма (Save reading). По последним показаниям считается среднее в сутки, поэтому у работы по часам видно и примерно сколько дней осталось. Показание меньше прошлого не принимается: заменённый счётчик — это новый механизм.",
         "«Скоро» — последние 10 % интервала, а не 60 дней, как у оборудования: иначе ежемесячная работа была бы «скоро» с первого же дня.",
@@ -972,10 +992,20 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🧭',
+      title: "Acceso — qué pestañas muestra cada dispositivo (Access)",
+      body: [
+        "Settings → Access (solo el Master) es una tabla: una fila por dispositivo y una columna por pestaña — Certificates, PMS, Rest, Reports. Punto verde: la pestaña está en ese dispositivo; rojo: no está. Toque para cambiar; el dispositivo lo aplica en la siguiente sincronización.",
+        "Así cada pantalla muestra solo lo necesario: el teléfono de un marinero sin el plan de mantenimiento de máquinas, el de un maquinista sin los certificados de la tripulación.",
+        "Dashboard, Equipment y Settings están siempre activas. El dispositivo del Master muestra siempre todas las pestañas. Un dispositivo que el Master nunca configuró muestra todas, para que nada desaparezca con una actualización.",
+        "Es orden, no un cerrojo: lo que un dispositivo puede cambiar lo sigue decidiendo su rango en Accounts, y lo hace cumplir el servidor.",
+      ],
+    },
+    {
       emoji: '🛏️',
       title: "Horas de descanso (Hours of rest)",
       body: [
-        "Settings → Hours of rest registra el trabajo y el descanso de cada persona, media hora a media hora, en hora del buque. Se abre en la persona a la que pertenece el dispositivo; el Master puede cambiar a cualquiera para revisar o corregir su mes.",
+        "La pestaña Rest registra el trabajo y el descanso de cada persona, media hora a media hora, en hora del buque. Se abre en la persona a la que pertenece el dispositivo; el Master puede cambiar a cualquiera para revisar o corregir su mes.",
         "Pulse un día, elija el lápiz (Tap marks WORK / Tap marks REST) y pulse a lo largo de las horas — o rellene el día con un toque: Same as previous day, Day work 08–17, las tres guardias, Day off. Al pasar al día siguiente o anterior se guarda el actual.",
         "Las reglas se comprueban al editar, junto con los días vecinos: al menos 10 h de descanso en cualquier periodo de 24 h y 77 h en cualquier periodo de 7 días; descanso en no más de dos periodos, uno de al menos 6 h; no más de 14 h entre periodos de descanso (MLC 2006 Reg. 2.3, STCW A-VIII/1). Las ventanas son móviles, así que se detecta una infracción a través de la medianoche. Es orientativo: las excepciones que permite el pabellón (ejercicios, emergencias) las decide el Master — anótelas en Note.",
         "Un día sin registro aparece como «Not recorded» y nunca cuenta como descanso.",
@@ -986,7 +1016,7 @@ const es: ManualContent = {
       emoji: '⚙️',
       title: "Mantenimiento planificado (Planned maintenance)",
       body: [
-        "Settings → Maintenance (o la franja Maintenance del Dashboard) contiene la maquinaria — motores principales, generadores, potabilizadora, compresores, bombas, estabilizadores — cada una con su contador de horas y sus trabajos.",
+        "La pestaña PMS (o la franja Maintenance del Dashboard) contiene la maquinaria — motores principales, generadores, potabilizadora, compresores, bombas, estabilizadores — cada una con su contador de horas y sus trabajos.",
         "Un trabajo tiene un intervalo en horas de funcionamiento, en días o ambos, y vence con lo que llegue antes, como lo escriben los fabricantes («cada 250 h o 12 meses»). Indique una vez cuándo se hizo por última vez — fecha y contador; después Record as done lo mueve solo. Un trabajo nunca hecho muestra «Never done» en vez de fecha.",
         "Introduzca el contador en la pantalla de la máquina (Save reading). Las últimas lecturas dan un ritmo de uso, así que un trabajo por horas muestra también cuántos días le quedan aproximadamente. No se acepta una lectura menor que la anterior: un contador sustituido es una máquina nueva.",
         "«Pronto» es el último 10 % del intervalo, no los 60 días de los equipos, que harían «pendiente» un trabajo mensual desde el primer día.",
@@ -1310,10 +1340,20 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🧭',
+      title: "Доступ — які вкладки бачить пристрій (Access)",
+      body: [
+        "Settings → Access (лише Майстер) — таблиця: рядок на кожен пристрій, стовпець на кожну вкладку — Certificates, PMS, Rest, Reports. Зелена точка — вкладка на цьому пристрої є, червона — немає. Натисніть, щоб перемкнути; пристрій підхопить при наступній синхронізації.",
+        "Так у кожного на екрані лише потрібне: у матроса немає плану ТО машинного відділення, у механіка — сертифікатів екіпажу.",
+        "Dashboard, Equipment і Settings увімкнені завжди. На пристрої Майстра завжди всі вкладки. Пристрій, який Майстер ще не налаштовував, показує всі вкладки — після оновлення нічого не зникне.",
+        "Це порядок, а не замок: що пристрій може змінювати, як і раніше вирішує його роль в Accounts, і це перевіряє сервер.",
+      ],
+    },
+    {
       emoji: '🛏️',
       title: "Години відпочинку (Hours of rest)",
       body: [
-        "Settings → Hours of rest записує роботу й відпочинок кожної людини по півгодини, за судновим часом. Екран відкривається на людині, якій належить пристрій; Майстер може перемкнутися на будь-кого, щоб перевірити чи виправити його місяць.",
+        "Вкладка Rest записує роботу й відпочинок кожної людини по півгодини, за судновим часом. Екран відкривається на людині, якій належить пристрій; Майстер може перемкнутися на будь-кого, щоб перевірити чи виправити його місяць.",
         "Натисніть день, оберіть «перо» (Tap marks WORK / Tap marks REST) і пройдіться натисканнями по годинах — або заповніть день одним натисканням: Same as previous day, Day work 08–17, три вахтові графіки, Day off. Під час переходу на сусідній день поточний зберігається.",
         "Правила перевіряються під час введення разом із сусідніми днями: щонайменше 10 год відпочинку за будь-які 24 год і 77 год за будь-які 7 днів; відпочинок не більше ніж у двох періодах, один не коротший за 6 год; не більше 14 год між періодами відпочинку (MLC 2006 Reg. 2.3, STCW A-VIII/1). Вікна ковзні, тож порушення через північ теж видно. Перевірка орієнтовна: винятки, дозволені прапором (навчання, аварії), вирішує Майстер — запишіть їх у Note дня.",
         "День без запису показано як «Not recorded», і він ніколи не вважається відпочинком.",
@@ -1324,7 +1364,7 @@ const uk: ManualContent = {
       emoji: '⚙️',
       title: "Планове ТО (Planned maintenance)",
       body: [
-        "Settings → Maintenance (або смуга Maintenance на дашборді) — механізми: головні двигуни, генератори, опріснювач, компресори, насоси, стабілізатори — у кожного лічильник мотогодин і свої роботи.",
+        "Вкладка PMS (або смуга Maintenance на дашборді) — механізми: головні двигуни, генератори, опріснювач, компресори, насоси, стабілізатори — у кожного лічильник мотогодин і свої роботи.",
         "Робота має інтервал у мотогодинах, у днях або і те, і те; строк настає за тим, що раніше, як пишуть виробники («кожні 250 год або 12 місяців»). Один раз укажіть, коли її робили востаннє — дата й лічильник; далі Record as done зсуває це сам. Робота, яку ще не робили, показує «Never done» замість дати.",
         "Показання лічильника вводяться на екрані механізму (Save reading). За останніми показаннями рахується середнє на добу, тож у роботи за годинами видно й приблизно скільки днів лишилося. Показання менше за попереднє не приймається: замінений лічильник — це новий механізм.",
         "«Скоро» — останні 10 % інтервалу, а не 60 днів, як в обладнання: інакше щомісячна робота була б «скоро» з першого ж дня.",

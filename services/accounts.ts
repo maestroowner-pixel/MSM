@@ -199,6 +199,11 @@ export async function setDeviceIdentity(
   );
 }
 
+/** Which optional tabs a device shows — the Access screen's one write. */
+export async function setDeviceTabs(vessel: string, deviceId: string, tabs: string[]): Promise<void> {
+  await setDoc(doc(db(), ROOT, vessel, 'devices', deviceId), { tabs }, { merge: true });
+}
+
 /**
  * Switch a device off — a lost handset, or somebody who has left. Kept rather
  * than deleted so the record of what it did remains, and so re-enrolling on the

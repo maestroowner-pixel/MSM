@@ -560,31 +560,8 @@ export default function SettingsSc() {
           moved to the Dashboard: an open defect is work waiting, and work
           waiting belongs where the officer already looks, not filed under
           Settings behind the crew list. */}
-      <Card>
-        <Label>Planned maintenance</Label>
-        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Maintenance')}>
-          <IconChip name="engine" size={18} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Maintenance</Text>
-            <Text style={styles.linkSub}>Machinery, running hours, jobs due by hours or calendar</Text>
-          </View>
-          <Text style={styles.chev}>›</Text>
-        </TouchableOpacity>
-      </Card>
-
-      {/* Everyone's, not the Master's: each seafarer records their own day. */}
-      <Card>
-        <Label>Hours of rest</Label>
-        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('HoursOfRest')}>
-          <IconChip name="bed-clock" size={18} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Hours of rest</Text>
-            <Text style={styles.linkSub}>MLC / STCW · record work and rest, monthly sheet for signature</Text>
-          </View>
-          <Text style={styles.chev}>›</Text>
-        </TouchableOpacity>
-      </Card>
-
+      {/* Planned maintenance and Hours of rest were cards here; they are tabs now,
+          shown per device as the Master sets on Access (constants/access.ts). */}
       {sync.role === 'superadmin' ? (
       <Card>
         <Label>Crew &amp; accounts</Label>
@@ -621,6 +598,16 @@ export default function SettingsSc() {
             <View style={{ flex: 1 }}>
               <Text style={styles.linkTitle}>Accounts</Text>
               <Text style={styles.linkSub}>Issue a name + PIN; approve devices and set ranks</Text>
+            </View>
+            <Text style={styles.chev}>›</Text>
+          </TouchableOpacity>
+        ) : null}
+        {sync.role === 'superadmin' ? (
+          <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Access')}>
+            <IconChip name="view-grid-outline" size={18} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkTitle}>Access</Text>
+              <Text style={styles.linkSub}>Which tabs each device shows — certificates, PMS, rest, reports</Text>
             </View>
             <Text style={styles.chev}>›</Text>
           </TouchableOpacity>

@@ -27,6 +27,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import * as fb from '../services/firebaseService';
 import * as storage from '../services/storage';
@@ -40,6 +41,10 @@ import { DEFAULT_ARCHIVE, newerArchive } from '../services/photoArchive';
 import { EnrolledDevice, Role } from '../types/role';
 import * as accounts from '../services/accounts';
 import { useData } from './DataContext';
+import { TabKey, visibleTabs } from '../constants/access';
+
+/** The tabs the Master last set for this device, for a launch with no signal. */
+const MY_TABS_KEY = 'msm:my_tabs';
 
 export type SyncStatus = 'off' | 'connecting' | 'synced' | 'error' | 'pending';
 
@@ -56,6 +61,12 @@ interface SyncContextType {
    * device" rule signs with (services/signingPolicy `signerRule`).
    */
   me: EnrolledDevice | null;
+  /**
+   * The optional tabs this device shows (constants/access.ts). Every tab until
+   * the Master has set otherwise; remembered across launches so a restricted
+   * phone does not flash the full bar while the device list loads.
+   */
+  tabs: Set<TabKey>;
   lastSyncAt: number | null;
   /** Size of the register blob, so Settings can show it before it is a problem. */
   registerBytes: number;
@@ -120,6 +131,30 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<Role | null>(null);
   const [enrolled, setEnrolled] = useState(false);
   const [me, setMe] = useState<EnrolledDevice | null>(null);
+  const [myTabs, setMyTabs] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem(MY_TABS_KEY)
+      .then((v) => {
+        const parsed = v ? JSON.parse(v) : null;
+        if (Array.isArray(parsed)) setMyTabs((cur) => cur ?? parsed);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Follow the Master's setting as it arrives. Only a loaded record decides —
+  // `me` is null while connecting, and that must not reopen every tab.
+  useEffect(() => {
+    if (!me) return;
+    const next = Array.isArray(me.tabs) ? me.tabs : null;
+    setMyTabs(next);
+    (next ? AsyncStorage.setItem(MY_TABS_KEY, JSON.stringify(next)) : AsyncStorage.removeItem(MY_TABS_KEY)).catch(() => {});
+  }, [me]);
+
+  const forgetTabs = useCallback(() => {
+    setMyTabs(null);
+    AsyncStorage.removeItem(MY_TABS_KEY).catch(() => {});
+  }, []);
 
   // Watch our own row in the vessel's device list. Members may read the list
   // (firestore.rules), and Firestore serves it from cache offline, so the name
@@ -503,6 +538,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
           await fb.signOutDevice().catch(() => {});
           setEnrolled(false);
           setRole(null);
+          forgetTabs();
           setLastError('This device is no longer on the vessel. Join it again to sync.');
         }
 
@@ -548,10 +584,11 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     lastPushed.current = null;
     setRole(null);
     setEnrolled(false);
+    forgetTabs();
     setLastError(null);
     setLastSyncAt(null);
     setStatus('off');
-  }, [detach]);
+  }, [detach, forgetTabs]);
 
   connectRef.current = connect;
 
@@ -630,9 +667,11 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     if (pushTimer.current) clearTimeout(pushTimer.current);
   }, []);
 
+  const tabs = React.useMemo(() => visibleTabs(myTabs, role === 'superadmin'), [myTabs, role]);
+
   return (
     <SyncContext.Provider
-      value={{ status, role, enrolled, me, lastSyncAt, registerBytes, connect, disconnect, pushLocalNow, applyLocally, lastError }}
+      value={{ status, role, enrolled, me, tabs, lastSyncAt, registerBytes, connect, disconnect, pushLocalNow, applyLocally, lastError }}
     >
       {children}
     </SyncContext.Provider>

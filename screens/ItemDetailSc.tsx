@@ -44,6 +44,8 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 const MAX_ATTACHMENTS = 4;
 
 export default function ItemDetailSc() {
+  // "Manage ›" opens the Certificates tab, which this device may not show.
+  const certTabShown = useSync().tabs.has('certificates');
   const route = useRoute<any>();
   const nav = useNavigation<any>();
   const COLORS = useTheme();
@@ -637,9 +639,11 @@ export default function ItemDetailSc() {
             <View style={styles.certHead}>
               <Label>Certificates ({linkedCerts.length})</Label>
               {isNew ? (
-                <TouchableOpacity onPress={() => nav.navigate('Certificates')}>
-                  <Text style={styles.certManage}>Manage ›</Text>
-                </TouchableOpacity>
+                certTabShown ? (
+                  <TouchableOpacity onPress={() => nav.navigate('Certificates')}>
+                    <Text style={styles.certManage}>Manage ›</Text>
+                  </TouchableOpacity>
+                ) : null
               ) : (
                 <TouchableOpacity onPress={() => setCertPicker(true)}>
                   <Text style={styles.certManage}>+ Link</Text>

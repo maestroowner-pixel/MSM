@@ -5,6 +5,13 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Access — tabs per device.** Settings → Access (Master only): a table of the vessel's devices
+  against the optional tabs (Certificates, PMS, Rest, Reports), a green or red dot in each cell; a tap
+  switches the tab on that device, which follows on its next sync. Stored on the device record
+  (`tabs`), which a device may not edit on itself (firestore.rules). Dashboard, Equipment and
+  Settings are always on; a Master's device always shows everything; a device never set shows every
+  tab. Remembered on the device for a launch with no signal. `npm run check:access`.
+- **PMS and Hours of rest are tabs now**, not cards in Settings.
 - **Planned maintenance (PMS).** Settings → Maintenance, and a Maintenance strip on the Dashboard
   once the vessel has machinery in the plan.
   - Machine (name, location, maker, model, serial, running-hours counter with its date and the last
