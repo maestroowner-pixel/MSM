@@ -17,25 +17,33 @@
 // the role becomes a custom claim the rules can test". This is that step.
 // ===================================
 
-export type Role = 'user' | 'admin' | 'superadmin';
+/**
+ * `shore` is a superintendent in the office: not a device aboard, but a fleet
+ * console account a Master lets into this vessel (functions/index.js
+ * `enrolShore`). It never holds a vessel token, so it ranks below Crew for
+ * everything aboard; firestore.rules gives it read access and ISM documents.
+ */
+export type Role = 'user' | 'admin' | 'superadmin' | 'shore';
 
 export const ROLE_LABEL: Record<Role, string> = {
   user: 'Crew',
   admin: 'Officer',
   superadmin: 'Master',
+  shore: 'Superintendent (shore)',
 };
 
 export const ROLE_DESCRIPTION: Record<Role, string> = {
   user: 'Records inspections and raises defects.',
   admin: 'Also approves devices and rectifies defects.',
   superadmin: 'Also issues and revokes accounts, and sets roles.',
+  shore: 'From the office, in Fleet: sees this vessel, edits its documents and certificates.',
 };
 
 /** Highest first — the order the account list should read in. */
-export const ROLE_ORDER: Role[] = ['superadmin', 'admin', 'user'];
+export const ROLE_ORDER: Role[] = ['superadmin', 'admin', 'user', 'shore'];
 
 export function roleAtLeast(role: Role | null | undefined, min: Role): boolean {
-  const rank: Record<Role, number> = { user: 1, admin: 2, superadmin: 3 };
+  const rank: Record<Role, number> = { shore: 0, user: 1, admin: 2, superadmin: 3 };
   return !!role && rank[role] >= rank[min];
 }
 

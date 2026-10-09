@@ -44,8 +44,16 @@ service firebase.storage {
              && claims().approved == true;
     }
 
+    /** A superintendent's fleet token — see firestore.rules `shore`. */
+    function shore(v) {
+      return request.auth != null
+             && claims().shore == true
+             && claims().fleet is map
+             && claims().fleet[v] == true;
+    }
+
     match /safety_vessels/{vessel}/inspections/{inspectionId}/{photo} {
-      allow read: if member(vessel);
+      allow read: if member(vessel) || shore(vessel);
 
       allow create: if member(vessel)
                     && resource == null   // write-once — see the header
@@ -73,9 +81,10 @@ service firebase.storage {
     //
     // Documents are allowed as well as images — a certificate is usually a PDF.
     match /safety_vessels/{vessel}/attachments/{ownerId}/{file} {
-      allow read: if member(vessel);
+      allow read: if member(vessel) || shore(vessel);
 
-      allow write: if member(vessel)
+      // A superintendent uploads ISM document files and certificate scans.
+      allow write: if (member(vessel) || shore(vessel))
                    && request.resource.size < 12 * 1024 * 1024
                    && (request.resource.contentType.matches('image/.*')
                        || request.resource.contentType.matches('application/.*')

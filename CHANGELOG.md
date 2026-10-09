@@ -5,6 +5,19 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Fleet console for superintendents (dark, `fleet`; server NOT deployed).** New role `shore`
+  ("Superintendent (shore)") a Master issues in Accounts. functions/index.js: `enrolShore` (IMO +
+  name + PIN of a shore invitation; one browser account, its own secret, vessels added one by one
+  with that secret), `refreshShore` (token `shore: true, fleet: {imo: true}` for vessels whose
+  shore device is still approved), `shoreSaveCertificate` (one certificate merged into the register
+  in a transaction, new `registerUpdatedAt` → devices take it via the three-way merge). Shore
+  invitations are refused on the vessel `enrol` path. firestore.rules: `shore(v)`/`reader(v)` —
+  read every vessel collection, write `ism_docs`; storage.rules: read + upload attachments.
+  Client: a second Firebase app 'shore' (services/shore.ts) so a browser can be a vessel device and
+  a console at once; /fleet (vessels worst first: equipment, certificates by scope, PMS, spares,
+  unsigned documents) and /fleet/:imo (edit certificates incl. file, edit/re-issue documents,
+  equipment read-only). Shore rows hidden from Access. `npm run check:fleet`.
+  **Release needs:** `npm run deploy:rules`, storage rules, `cd functions && npm run deploy`.
 - **ISM documents with read-and-sign (dark, `docs`).** Docs tab: controlled documents (SMS manual,
   procedures, circulars, standing orders, policies, forms) with number, revision, issue and review
   dates; a PDF from the office, text written aboard, or both. "To read" for the person on the

@@ -234,6 +234,15 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
     }
   }
 
+  // A shore (superintendent) invitation opens the FLEET console, not a device
+  // aboard: it must not become a vessel token with a crew role. See enrolShore.
+  if (invite?.role === 'shore') {
+    throw new HttpsError(
+      'failed-precondition',
+      'This is a superintendent (shore) account. Sign in from Fleet in the web app: app.ismpilot.com → Fleet.'
+    );
+  }
+
   // ---- the device's standing ----------------------------------------------
   const deviceRef = db.doc(`${ROOT}/${vessel}/devices/${deviceId}`);
   const deviceSnap = await deviceRef.get();
@@ -426,6 +435,209 @@ exports.refresh = onCall({ region: REGION }, async (req) => {
     lastName: device.lastName ?? '',
     position: device.position ?? '',
   };
+});
+
+// ===================================
+// Shore accounts — the superintendent's fleet console.
+//
+// A device aboard holds a token for ONE vessel. A superintendent looks after
+// several, from the office, in a browser. So a shore account is one identity
+// (one browser, one secret) that each vessel's Master lets in separately:
+//
+//   1. The Master issues an invitation with role `shore` (Accounts), exactly
+//      like a crew account — name + PIN. Nobody reaches a vessel without its
+//      Master's say-so, and the Master sees the shore account in Devices and
+//      can switch it off there like any handset.
+//   2. The superintendent signs in on Fleet with IMO + name + PIN
+//      (`enrolShore`). The first vessel creates the account and its secret;
+//      each further vessel is added with the same secret, so a PIN alone cannot
+//      graft somebody else's vessel onto an account it does not hold.
+//   3. `refreshShore` mints a token whose claims list the vessels:
+//        shore: true, fleet: { "<imo>": true, … }, deviceId
+//      and firestore.rules lets such a token READ those vessels and write their
+//      ISM documents. Certificates live inside the register document, which a
+//      client may only replace whole, so they are changed through
+//      `shoreSaveCertificate` below — one certificate, merged on the server.
+//
+// A vessel whose Master switches the shore device off, or removes it, drops out
+// of the next token. Tokens last an hour; the console refreshes on open.
+// ===================================
+
+const SHORE = 'shore_accounts';
+
+/** The vessels this shore account is still let into, re-checked every time. */
+async function liveShoreVessels(deviceId, vessels) {
+  const live = [];
+  for (const v of vessels || []) {
+    const snap = await db.doc(`${ROOT}/${v}/devices/${deviceId}`).get();
+    const d = snap.exists ? snap.data() : null;
+    if (d && d.role === 'shore' && d.approved === true && !d.disabled) live.push(v);
+  }
+  return live;
+}
+
+async function shoreToken(deviceId, vessels) {
+  const fleet = {};
+  for (const v of vessels) fleet[v] = true;
+  return admin.auth().createCustomToken(`shore__${deviceId}`, { shore: true, fleet, deviceId });
+}
+
+exports.enrolShore = onCall({ region: REGION }, async (req) => {
+  const { vessel: rawVessel, firstName, lastName, pin, deviceId, deviceSecret } = req.data || {};
+  const vessel = vesselKey(rawVessel);
+  if (!vessel || !deviceId || !pin) {
+    throw new HttpsError('invalid-argument', 'vessel, deviceId and pin are required.');
+  }
+  const rate = await checkRate(vessel, deviceId);
+
+  const invitesRef = db.collection(`${ROOT}/${vessel}/invites`);
+  const invites = await invitesRef.get();
+  const invite = matchInvite(invites, firstName, lastName, pin);
+  if (!invite || invite.role !== 'shore') {
+    await rate.fail();
+    if (invite) {
+      throw new HttpsError('permission-denied', 'That account is for a device aboard, not for the fleet console.');
+    }
+    logRefusal(invites, deviceId, vessel, firstName, lastName);
+    throw new HttpsError('permission-denied', 'Those details are not recognised.');
+  }
+
+  const accountRef = db.doc(`${SHORE}/${deviceId}`);
+  const accountSnap = await accountRef.get();
+  const account = accountSnap.exists ? accountSnap.data() : null;
+  let secret = null;
+  if (account) {
+    if (!secretMatches(deviceSecret, account)) {
+      await rate.fail();
+      throw new HttpsError('permission-denied', 'This browser is not recognised for that fleet account.');
+    }
+  } else {
+    secret = newSecret();
+  }
+
+  const now = Date.now();
+  if (secret) {
+    const secretSalt = crypto.randomBytes(8).toString('hex');
+    await accountRef.set({
+      id: deviceId,
+      secretSalt,
+      secretHash: secretHash(secret, secretSalt),
+      firstName: invite.firstName ?? '',
+      lastName: invite.lastName ?? '',
+      vessels: [vessel],
+      createdAt: now,
+      lastSeenAt: now,
+    });
+  } else {
+    await accountRef.set(
+      { vessels: admin.firestore.FieldValue.arrayUnion(vessel), lastSeenAt: now },
+      { merge: true }
+    );
+  }
+
+  // The shore account as the vessel sees it: a row in Devices the Master can
+  // switch off. Approved at once — the Master decided when issuing the invitation.
+  const deviceRef = db.doc(`${ROOT}/${vessel}/devices/${deviceId}`);
+  const existing = (await deviceRef.get()).data();
+  if (existing?.disabled) throw new HttpsError('permission-denied', 'This account has been switched off by the Master.');
+  await deviceRef.set(
+    {
+      id: deviceId,
+      firstName: invite.firstName ?? '',
+      lastName: invite.lastName ?? '',
+      position: invite.position || 'Superintendent',
+      role: 'shore',
+      approved: true,
+      platform: 'web',
+      lastSeenAt: now,
+      createdAt: existing?.createdAt ?? now,
+    },
+    { merge: true }
+  );
+  const others = (invite.activations || []).filter((a) => a.deviceId !== deviceId);
+  await invitesRef.doc(invite.id).set({ activations: [...others, { deviceId, at: now, platform: 'web' }] }, { merge: true });
+  await rate.clear();
+
+  const vessels = await liveShoreVessels(deviceId, [...new Set([...(account?.vessels || []), vessel])]);
+  console.log(`[enrolShore] ${deviceId} joined ${vessel} — fleet of ${vessels.length}`);
+  return {
+    status: 'ok',
+    token: await shoreToken(deviceId, vessels),
+    vessels,
+    ...(secret ? { deviceSecret: secret } : {}),
+    firstName: invite.firstName ?? '',
+    lastName: invite.lastName ?? '',
+  };
+});
+
+exports.refreshShore = onCall({ region: REGION }, async (req) => {
+  const { deviceId, deviceSecret } = req.data || {};
+  if (!deviceId) throw new HttpsError('invalid-argument', 'deviceId is required.');
+  const rate = await checkRate('shore', deviceId);
+  const snap = await db.doc(`${SHORE}/${deviceId}`).get();
+  const account = snap.exists ? snap.data() : null;
+  if (!account) return { status: 'none', vessels: [] };
+  if (!secretMatches(deviceSecret, account)) {
+    await rate.fail();
+    throw new HttpsError('permission-denied', 'This browser is not recognised.');
+  }
+  await rate.clear();
+  const vessels = await liveShoreVessels(deviceId, account.vessels);
+  await snap.ref.set({ lastSeenAt: Date.now() }, { merge: true });
+  if (!vessels.length) return { status: 'none', vessels: [] };
+  return {
+    status: 'ok',
+    token: await shoreToken(deviceId, vessels),
+    vessels,
+    firstName: account.firstName ?? '',
+    lastName: account.lastName ?? '',
+  };
+});
+
+/**
+ * Change ONE certificate in a vessel's register, for a superintendent.
+ *
+ * The register is one JSON document that devices replace whole, guarded by
+ * `registerUpdatedAt` (services/firebaseService pushRegister). Writing it here
+ * in a transaction, with a new `registerUpdatedAt`, is the same move a device
+ * makes: devices aboard see a newer register and take this change through their
+ * three-way merge (services/registerMerge), keeping their own edits.
+ */
+exports.shoreSaveCertificate = onCall({ region: REGION }, async (req) => {
+  const t = req.auth?.token || {};
+  const vessel = vesselKey(req.data?.vessel);
+  if (!t.shore || !vessel || !(t.fleet && t.fleet[vessel] === true)) {
+    throw new HttpsError('permission-denied', 'Not a superintendent of that vessel.');
+  }
+  const cert = req.data?.certificate;
+  const remove = req.data?.remove === true;
+  if (!cert || typeof cert.id !== 'string' || !cert.id || (!remove && (typeof cert.name !== 'string' || !cert.name.trim()))) {
+    throw new HttpsError('invalid-argument', 'A certificate needs an id and a name.');
+  }
+  const clean = {};
+  for (const k of ['id', 'scope', 'crewId', 'holderName', 'name', 'number', 'issuer', 'issueDate', 'expiryDate', 'fileUri', 'fileName', 'fileKind']) {
+    if (typeof cert[k] === 'string' && cert[k] !== '') clean[k] = cert[k];
+  }
+  const ref = db.doc(`${ROOT}/${vessel}`);
+  const now = Date.now();
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const raw = snap.exists ? snap.data().register : null;
+    if (typeof raw !== 'string' || !raw) throw new HttpsError('failed-precondition', 'This vessel has not synced its register yet.');
+    const blob = JSON.parse(raw);
+    const list = Array.isArray(blob.certificates) ? blob.certificates : [];
+    const at = list.findIndex((c) => c && c.id === cert.id);
+    if (remove) {
+      if (at >= 0) list.splice(at, 1);
+    } else if (at >= 0) {
+      list[at] = { ...list[at], ...clean, updatedAt: now };
+    } else {
+      list.push({ itemIds: [], ...clean, createdAt: now, updatedAt: now });
+    }
+    blob.certificates = list;
+    tx.set(ref, { register: JSON.stringify(blob), registerUpdatedAt: now, registerDeviceId: `shore:${t.deviceId}` }, { merge: true });
+  });
+  return { status: 'ok', updatedAt: now };
 });
 
 // ===================================

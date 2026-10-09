@@ -71,6 +71,8 @@ import SparesSc from './screens/SparesSc';
 import SparePartSc from './screens/SparePartSc';
 import DocsSc from './screens/DocsSc';
 import DocSc from './screens/DocSc';
+import FleetSc from './screens/FleetSc';
+import FleetVesselSc from './screens/FleetVesselSc';
 import { OPTIONAL_TABS } from './constants/access';
 import EnrolSc from './screens/EnrolSc';
 import { recordScanProof } from './services/signingPolicy';
@@ -318,6 +320,8 @@ const linking = {
       PmsJob: 'pms-job/:id',
       SparePart: 'spare/:id',
       Doc: 'document/:id',
+      Fleet: 'fleet',
+      FleetVessel: 'fleet/:imo',
       Defects: 'defects',
       Accounts: 'accounts',
       Access: 'access',
@@ -502,6 +506,8 @@ function Root() {
         <Stack.Screen name="PmsJob" component={PmsJobSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="SparePart" component={SparePartSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Doc" component={DocSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Fleet" component={FleetSc} options={webHeader('Fleet')} />
+        <Stack.Screen name="FleetVessel" component={FleetVesselSc} options={webHeader('Vessel', { screen: 'Fleet' })} />
         <Stack.Screen name="Checklists" component={ChecklistsSc} options={webHeader('Checklists', toTab('Settings'))} />
         <Stack.Screen name="ScanRules" component={ScanRulesSc} options={webHeader('Scan by category', toTab('Settings'))} />
         <Stack.Screen name="PhotoArchive" component={PhotoArchiveSc} options={webHeader('Photo archive', toTab('Settings'))} />

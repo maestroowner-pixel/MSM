@@ -318,6 +318,15 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🏢',
+      title: "Fleet console (superintendent)",
+      body: [
+        "For a superintendent in the office: one console with every vessel they look after, worst first — expired and due equipment, certificates (vessel, crew, equipment), maintenance, spares, and ISM documents still to be signed.",
+        "Access is given by each vessel's Master: in Accounts, issue an account of the type Superintendent (shore). The superintendent opens Fleet (app.ismpilot.com/fleet), enters the IMO, name and PIN, and the vessel is added; further vessels are added the same way. The Master sees the account in Devices and can switch it off at any time.",
+        "Open a vessel to add and edit its certificates and ISM documents, issue a new revision, and see who has not signed. Changes reach the devices aboard on their next sync. Equipment is shown read-only — it is inspected aboard.",
+      ],
+    },
+    {
       emoji: '✍️',
       title: "Confirmed signatures",
       body: [
@@ -695,6 +704,15 @@ const ru: ManualContent = {
         "У каждого документа видно, сколько человек из списка экипажа подписали и кто ещё нет. Подписи никогда не удаляются.",
         "Офицеры и Мастер добавляют и правят документы. New revision переводит его в Rev N+1 и просит всех прочитать и подписать заново; подписи прошлых ревизий остаются в истории. Исправление опечатки в той же ревизии этого не делает.",
         "Файлы попадают на все устройства через судно. Если файл не удалось загрузить (нет связи), документ сохраняется, а файл остаётся на устройстве, которое его прикрепило, пока его не сохранят снова при связи.",
+      ],
+    },
+    {
+      emoji: '🏢',
+      title: "Береговая консоль (суперинтендант)",
+      body: [
+        "Для суперинтенданта в офисе: одна консоль со всеми его судами, сначала проблемные — просроченное и подходящее оборудование, сертификаты (судна, экипажа, оборудования), ТО, запчасти и ISM-документы, которые ещё не подписаны.",
+        "Доступ даёт Мастер каждого судна: в Accounts выдать аккаунт типа Superintendent (shore). Суперинтендант открывает Fleet (app.ismpilot.com/fleet), вводит IMO, имя и PIN — судно добавлено; следующие суда добавляются так же. Мастер видит этот аккаунт в Devices и может отключить его в любой момент.",
+        "Откройте судно, чтобы добавлять и править его сертификаты и ISM-документы, выпускать новую ревизию и видеть, кто не подписал. Изменения приходят на устройства на борту при следующей синхронизации. Оборудование — только для просмотра: его проверяют на борту.",
       ],
     },
     {
@@ -1078,6 +1096,15 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🏢',
+      title: "Consola de flota (superintendente)",
+      body: [
+        "Para un superintendente en la oficina: una consola con todos sus buques, primero los que tienen problemas — equipos vencidos y próximos, certificados (del buque, de la tripulación, de equipos), mantenimiento, repuestos y documentos ISM aún sin firmar.",
+        "El acceso lo da el Master de cada buque: en Accounts, emitir una cuenta del tipo Superintendent (shore). El superintendente abre Fleet (app.ismpilot.com/fleet), introduce el IMO, el nombre y el PIN, y el buque se añade; los demás buques, igual. El Master ve la cuenta en Devices y puede desactivarla en cualquier momento.",
+        "Abra un buque para añadir y editar sus certificados y documentos ISM, emitir una nueva revisión y ver quién no ha firmado. Los cambios llegan a los dispositivos a bordo en la siguiente sincronización. Los equipos solo se ven: se inspeccionan a bordo.",
+      ],
+    },
+    {
       emoji: '✍️',
       title: "Firmas confirmadas",
       body: [
@@ -1458,6 +1485,15 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🏢',
+      title: "Берегова консоль (суперінтендант)",
+      body: [
+        "Для суперінтенданта в офісі: одна консоль з усіма його суднами, спочатку проблемні — прострочене й найближче обладнання, сертифікати (судна, екіпажу, обладнання), ТО, запчастини та ISM-документи, які ще не підписані.",
+        "Доступ дає Майстер кожного судна: в Accounts видати акаунт типу Superintendent (shore). Суперінтендант відкриває Fleet (app.ismpilot.com/fleet), вводить IMO, ім'я та PIN — судно додано; наступні судна додаються так само. Майстер бачить цей акаунт у Devices і може вимкнути його будь-коли.",
+        "Відкрийте судно, щоб додавати й редагувати його сертифікати та ISM-документи, випускати нову ревізію й бачити, хто не підписав. Зміни приходять на пристрої на борту під час наступної синхронізації. Обладнання — лише для перегляду: його перевіряють на борту.",
+      ],
+    },
+    {
       emoji: '✍️',
       title: "Підтверджені підписи",
       body: [
@@ -1574,6 +1610,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
   { title: 'Spare parts', module: 'spares' },
   { title: 'Confirmed signatures', module: 'signConfirm' },
   { title: 'ISM documents', module: 'docs' },
+  { title: 'Fleet console (superintendent)', module: 'fleet' },
 ];
 
 /** The manual as this build should show it: sections of switched-off modules removed. */

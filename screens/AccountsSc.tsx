@@ -34,6 +34,7 @@ import * as fb from '../services/firebaseService';
 import { formatDateTime } from '../utils/dates';
 import { newestVersion, versionLabel, versionStanding } from '../utils/version';
 import { APP_CONFIG } from '../theme';
+import { moduleOn } from '../constants/modules';
 
 type Tab = 'invites' | 'devices';
 
@@ -317,8 +318,10 @@ export default function AccountsSc() {
     // device IS the signature it files (firestore.rules says the same).
     if (isMaster) buttons.push({ text: 'Rename', onPress: () => startRename(d) });
     if (!lastMaster) {
+      // A shore account is not a device aboard and a device aboard is not a shore
+      // account: neither is turned into the other here (functions/index.js).
       for (const r of ROLE_ORDER) {
-        if (r !== d.role) {
+        if (r !== d.role && r !== 'shore' && d.role !== 'shore') {
           buttons.push({ text: `Make ${ROLE_LABEL[r]}`, onPress: () => void accounts.setDeviceRole(imo, d.id, r) });
         }
       }
@@ -444,7 +447,7 @@ export default function AccountsSc() {
                 aboard from being a permissions change. This is what appears
                 beside their signature. */}
             <View style={styles.roleRow}>
-              {ROLE_ORDER.map((r) => (
+              {ROLE_ORDER.filter((r) => r !== 'shore' || moduleOn('fleet')).map((r) => (
                 <TouchableOpacity
                   key={r}
                   style={[styles.roleBtn, role === r && styles.roleBtnOn]}

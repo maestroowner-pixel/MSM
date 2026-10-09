@@ -567,6 +567,21 @@ export default function SettingsSc() {
           moved to the Dashboard: an open defect is work waiting, and work
           waiting belongs where the officer already looks, not filed under
           Settings behind the crew list. */}
+      {moduleOn('fleet') ? (
+        <Card>
+          <Label>Superintendent</Label>
+          {/* The office side: a shore account a Master lets into this vessel
+              (Accounts → Superintendent). Its own sign-in; see screens/FleetSc. */}
+          <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Fleet')}>
+            <IconChip name="ferry" size={18} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkTitle}>Fleet console</Text>
+              <Text style={styles.linkSub}>For superintendents: every vessel you look after, its documents and certificates</Text>
+            </View>
+            <Text style={styles.chev}>›</Text>
+          </TouchableOpacity>
+        </Card>
+      ) : null}
       {/* Planned maintenance and Hours of rest were cards here; they are tabs now,
           shown per device as the Master sets on Access (constants/access.ts). */}
       {sync.role === 'superadmin' ? (

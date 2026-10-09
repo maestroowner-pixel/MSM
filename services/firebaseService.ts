@@ -142,7 +142,9 @@ function ensureInit(): { auth: Auth | null; db: Firestore | null } {
   // Windows talks to Firebase over REST (see below) — no JS SDK auth/db init.
   if (onWindows) return { auth: null, db: null };
   if (!app) {
-    app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+    // The DEFAULT app by name: the fleet console starts a second one ('shore',
+    // services/shore.ts), and a bare getApp() would throw if that came first.
+    app = getApps().some((a) => a.name === '[DEFAULT]') ? getApp() : initializeApp(FIREBASE_CONFIG);
     try {
       // Persist the auth session across app restarts (RN has no default persistence).
       auth = initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });

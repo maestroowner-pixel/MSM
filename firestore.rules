@@ -51,10 +51,27 @@ service cloud.firestore {
       return member(v) && (claims().role == 'admin' || claims().role == 'superadmin');
     }
 
+    /**
+     * A superintendent's fleet token (functions/index.js `refreshShore`): the
+     * vessels its holder was let into, each by that vessel's Master. Reads those
+     * vessels; writes only their ISM documents. Certificates are changed through
+     * the `shoreSaveCertificate` function, never by writing the register.
+     */
+    function shore(v) {
+      return request.auth != null
+             && claims().shore == true
+             && claims().fleet is map
+             && claims().fleet[v] == true;
+    }
+
+    function reader(v) {
+      return member(v) || shore(v);
+    }
+
     match /safety_vessels/{v} {
       // The register itself — one document holding the whole snapshot. Everyone
       // who is in may read and write it: that is the data model.
-      allow read: if member(v);
+      allow read: if reader(v);
       allow create: if member(v);
 
       // …but NOT the licence. `entitlement` sits on this same document, and MSM
@@ -83,7 +100,7 @@ service cloud.firestore {
 
       // ---- devices ---------------------------------------------------------
       match /devices/{deviceId} {
-        allow read: if member(v);
+        allow read: if reader(v);
 
         // A device may keep its OWN record current — platform, app version. It may
         // not touch what decides its powers, and since 25 Sep 2026 it may not
@@ -118,7 +135,7 @@ service cloud.firestore {
 
       // ---- the audit trail -------------------------------------------------
       match /inspections/{id} {
-        allow read: if member(v);
+        allow read: if reader(v);
         allow create: if member(v);
         // Only the defect may change, and only an officer may change it. The
         // signature, the time, the results and the outcome are frozen.
@@ -134,7 +151,7 @@ service cloud.firestore {
       // a signed record, so adding to it is closer to issuing an account than to
       // doing a round. Officers ask the Master, as they do for accounts.
       match /crew/{id} {
-        allow read: if member(v);
+        allow read: if reader(v);
         allow write: if isSuper(v);
       }
 
@@ -144,7 +161,7 @@ service cloud.firestore {
       // month from the same data. Not deletable: a day corrected is overwritten,
       // never removed, so a breach cannot be made to disappear by deleting it.
       match /rest/{id} {
-        allow read: if member(v);
+        allow read: if reader(v);
         allow create, update: if member(v);
         allow delete: if false;
       }
@@ -155,41 +172,41 @@ service cloud.firestore {
       // signed record and is append-only, like an inspection: created once,
       // never changed, never deleted.
       match /pms_machines/{id} {
-        allow read: if member(v);
+        allow read: if reader(v);
         allow create, update: if member(v);
         allow delete: if false;
       }
       match /pms_jobs/{id} {
-        allow read: if member(v);
+        allow read: if reader(v);
         allow create, update: if member(v);
         allow delete: if false;
       }
       match /pms_done/{id} {
-        allow read: if member(v);
+        allow read: if reader(v);
         allow create: if member(v);
         allow update, delete: if false;
       }
       // Spare parts: the stocked lines are edited (tombstoned, never deleted);
       // their movements are append-only, because stock is their sum.
       match /spares/{id} {
-        allow read: if member(v);
+        allow read: if reader(v);
         allow create, update: if member(v);
         allow delete: if false;
       }
       match /spare_moves/{id} {
-        allow read: if member(v);
+        allow read: if reader(v);
         allow create: if member(v);
         allow update, delete: if false;
       }
       // ISM documents: issued and revised by Officers and the Master; signed
       // for ("read and understood") by everyone, once per person per revision.
       match /ism_docs/{id} {
-        allow read: if member(v);
-        allow create, update: if isAdmin(v);
+        allow read: if reader(v);
+        allow create, update: if isAdmin(v) || shore(v);
         allow delete: if false;
       }
       match /ism_doc_acks/{id} {
-        allow read: if member(v);
+        allow read: if reader(v);
         allow create: if member(v);
         allow update, delete: if false;
       }
@@ -205,7 +222,7 @@ service cloud.firestore {
       // what this collection says today has no power over what was signed
       // yesterday — which is why an Officer can be trusted with it at all.
       match /templates/{id} {
-        allow read: if member(v);
+        allow read: if reader(v);
         allow write: if isAdmin(v);
       }
 
@@ -216,7 +233,7 @@ service cloud.firestore {
       // which is a separate document, so a heading removed by mistake is undone
       // by adding it back rather than by restoring a backup.
       match /categories/{id} {
-        allow read: if member(v);
+        allow read: if reader(v);
         allow write: if isAdmin(v);
       }
 
@@ -225,7 +242,7 @@ service cloud.firestore {
       // and must be unreachable from a client — a counter the guesser can clear
       // is not a rate limit.
       match /meta/{doc} {
-        allow read: if member(v);
+        allow read: if reader(v);
         allow write: if false;
       }
       match /enrolAttempts/{doc} {

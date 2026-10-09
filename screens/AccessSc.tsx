@@ -73,7 +73,8 @@ export default function AccessSc() {
   const rows = useMemo(
     () =>
       devices
-        .filter((d) => d.approved && !d.disabled)
+        // Shore accounts are not devices aboard and have no tab bar here.
+        .filter((d) => d.approved && !d.disabled && d.role !== 'shore')
         .sort((a, b) => rank(a) - rank(b) || label(a).localeCompare(label(b))),
     [devices]
   );

@@ -24,7 +24,7 @@
 // will follow the same way); whether the module exists at all is ours.
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -60,6 +60,12 @@ export const MODULES: Record<ModuleKey, boolean> = {
   signConfirm: false,
   /** ISM documents with read-and-sign — the Docs tab. */
   docs: false,
+  /**
+   * Fleet console for superintendents (shore accounts) and the `shore` role in
+   * Accounts. Needs the functions and rules DEPLOYED (enrolShore, refreshShore,
+   * shoreSaveCertificate) before it can be switched on.
+   */
+  fleet: false,
 };
 
 export function moduleOn(key: ModuleKey): boolean {
