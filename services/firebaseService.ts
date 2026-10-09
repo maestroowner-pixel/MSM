@@ -90,6 +90,7 @@ import { ChecklistTemplate } from '../constants/checklists';
 import { PhotoArchiveState } from './photoArchive';
 import { CATEGORIES, CategoryMeta } from '../constants/categories';
 import * as storage from './storage';
+import { ModuleKey, moduleOn } from '../constants/modules';
 import * as attachmentStorage from './attachmentStorage';
 import * as trial from './trial';
 import { mergeCategories, mergeCrew, mergeInspections, mergeTemplates, unsentInspections } from './inspections';
@@ -1195,16 +1196,24 @@ interface SyncedList {
   appendOnly?: boolean;
 }
 
-const SYNCED_LISTS: SyncedList[] = [
-  { sub: 'rest', key: storage.REST_KEY },
-  { sub: 'pms_machines', key: storage.PMS_MACHINES_KEY },
-  { sub: 'pms_jobs', key: storage.PMS_JOBS_KEY },
-  { sub: 'pms_done', key: storage.PMS_DONE_KEY, appendOnly: true },
-  { sub: 'spares', key: storage.SPARES_KEY },
-  { sub: 'spare_moves', key: storage.SPARE_MOVES_KEY, appendOnly: true },
-  { sub: 'ism_docs', key: storage.DOCS_KEY },
-  { sub: 'ism_doc_acks', key: storage.DOC_ACKS_KEY, appendOnly: true },
+const SYNCED_LISTS: (SyncedList & { module: ModuleKey })[] = [
+  { sub: 'rest', key: storage.REST_KEY, module: 'rest' },
+  { sub: 'pms_machines', key: storage.PMS_MACHINES_KEY, module: 'pms' },
+  { sub: 'pms_jobs', key: storage.PMS_JOBS_KEY, module: 'pms' },
+  { sub: 'pms_done', key: storage.PMS_DONE_KEY, appendOnly: true, module: 'pms' },
+  { sub: 'spares', key: storage.SPARES_KEY, module: 'spares' },
+  { sub: 'spare_moves', key: storage.SPARE_MOVES_KEY, appendOnly: true, module: 'spares' },
+  { sub: 'ism_docs', key: storage.DOCS_KEY, module: 'docs' },
+  { sub: 'ism_doc_acks', key: storage.DOC_ACKS_KEY, appendOnly: true, module: 'docs' },
 ];
+
+/**
+ * Only the lists of modules that are switched on. A module shipped dark must not
+ * touch the vessel at all: its collections' rules are deployed with the module,
+ * and until then every read would be refused — eight refused reads per sync, on
+ * every device, for nothing.
+ */
+const liveLists = () => SYNCED_LISTS.filter((l) => moduleOn(l.module));
 
 async function pushList(uid: string, l: SyncedList): Promise<number> {
   try {
@@ -1274,11 +1283,11 @@ async function pullList(uid: string, l: SyncedList): Promise<number> {
 }
 
 export async function pushLists(uid: string): Promise<void> {
-  for (const l of SYNCED_LISTS) await pushList(uid, l);
+  for (const l of liveLists()) await pushList(uid, l);
 }
 
 export async function pullLists(uid: string): Promise<void> {
-  for (const l of SYNCED_LISTS) await pullList(uid, l);
+  for (const l of liveLists()) await pullList(uid, l);
 }
 
 /** Pull the trail and the crew list, merging both into what this device holds. */
