@@ -71,6 +71,8 @@ import SparesSc from './screens/SparesSc';
 import SparePartSc from './screens/SparePartSc';
 import DocsSc from './screens/DocsSc';
 import DocSc from './screens/DocSc';
+import CrewMemberSc from './screens/CrewMemberSc';
+import CrewMatrixSc from './screens/CrewMatrixSc';
 import FleetSc from './screens/FleetSc';
 import FleetVesselSc from './screens/FleetVesselSc';
 import { OPTIONAL_TABS } from './constants/access';
@@ -356,6 +358,8 @@ const linking = {
       PmsJob: 'pms-job/:id',
       SparePart: 'spare/:id',
       Doc: 'document/:id',
+      CrewMember: 'crew/:id',
+      CrewMatrix: 'crew-matrix',
       Fleet: 'fleet',
       FleetVessel: 'fleet/:imo',
       Defects: 'defects',
@@ -542,6 +546,8 @@ function Root() {
         <Stack.Screen name="PmsJob" component={PmsJobSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="SparePart" component={SparePartSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Doc" component={DocSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="CrewMember" component={CrewMemberSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="CrewMatrix" component={CrewMatrixSc} options={webHeader('Crew matrix')} />
         <Stack.Screen name="Fleet" component={FleetSc} options={webHeader('Fleet')} />
         <Stack.Screen name="FleetVessel" component={FleetVesselSc} options={webHeader('Vessel', { screen: 'Fleet' })} />
         <Stack.Screen name="Checklists" component={ChecklistsSc} options={webHeader('Checklists', toTab('Settings'))} />

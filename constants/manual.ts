@@ -337,6 +337,16 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '👥',
+      title: "Crew list and certificate matrix",
+      body: [
+        "Settings → Crew, or Crew matrix from Hours of rest and Certificates. The Master and the Officers (Chief Officer) keep it.",
+        "Enter the crew once. Each person has a rank, on board or signed off with the dates, and — seen by Officers and the Master only — date of birth, nationality, passport and seaman's book numbers, contacts and next of kin.",
+        "Crew matrix: everyone against every certificate, the expiry in each cell — red expired, amber within 60 days. Tap a date to open the certificate, a + to add one.",
+        "At a crew change nobody is typed again: sign the leaver off (their row, certificates and next of kin stay on the vessel's records), and when they come back tap Sign on. Only those on board record hours of rest.",
+      ],
+    },
+    {
       emoji: '🛏️',
       title: "Hours of rest",
       body: [
@@ -724,6 +734,16 @@ const ru: ManualContent = {
         "Отпечаток и лицо доступны, только когда устройство подписывает как свой аккаунт. Телефон знает, что приложен сохранённый палец, но не чей — поэтому на общем планшете каждый подписывает своим PIN.",
         "При первой подписи на устройстве вы выбираете PIN подписи из 4–6 цифр. Это не PIN аккаунта; он хранится только в виде хеша, и прочитать его не может никто, включая Мастера. Пять неверных попыток блокируют его на пять минут. Забыли — Мастер сбрасывает его в Settings, и вы выбираете новый.",
         "В отчёте рядом с именем указано, чем подтверждена подпись (PIN или биометрия).",
+      ],
+    },
+    {
+      emoji: '👥',
+      title: "Список экипажа и матрица сертификатов",
+      body: [
+        "Settings → Crew или Crew matrix из Hours of rest и Certificates. Ведут Мастер и офицеры (старпом).",
+        "Экипаж вносится один раз. У каждого — должность, на борту или списан с датами и — только для офицеров и Мастера — дата рождения, гражданство, номера паспорта и мореходной книжки, контакты и next of kin.",
+        "Crew matrix: все люди против всех сертификатов, в ячейке срок — красный просрочен, жёлтый в пределах 60 дней. Нажмите дату, чтобы открыть сертификат, «+» — чтобы добавить.",
+        "При смене экипажа никого не вводят заново: уходящего списывают (его строка, сертификаты и next of kin остаются в данных судна), а когда он вернётся — Sign on. Часы отдыха ведут только те, кто на борту.",
       ],
     },
     {
@@ -1117,6 +1137,16 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '👥',
+      title: "Lista de tripulación y matriz de certificados",
+      body: [
+        "Settings → Crew, o Crew matrix desde Hours of rest y Certificates. La llevan el Master y los oficiales (primer oficial).",
+        "La tripulación se introduce una vez. Cada persona tiene cargo, a bordo o desembarcada con fechas y — solo para oficiales y el Master — fecha de nacimiento, nacionalidad, números de pasaporte y libreta, contactos y next of kin.",
+        "Crew matrix: todas las personas frente a todos los certificados, con la caducidad en cada celda — rojo vencido, ámbar en 60 días. Toque una fecha para abrir el certificado, un + para añadirlo.",
+        "En un relevo nadie se vuelve a escribir: se desembarca al que se va (su fila, certificados y next of kin quedan en los registros del buque) y, cuando vuelve, Sign on. Solo quienes están a bordo registran horas de descanso.",
+      ],
+    },
+    {
       emoji: '🛏️',
       title: "Horas de descanso (Hours of rest)",
       body: [
@@ -1507,6 +1537,16 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '👥',
+      title: "Список екіпажу та матриця сертифікатів",
+      body: [
+        "Settings → Crew або Crew matrix з Hours of rest і Certificates. Ведуть Майстер і офіцери (старпом).",
+        "Екіпаж вноситься один раз. У кожного — посада, на борту чи списаний з датами і — лише для офіцерів і Майстра — дата народження, громадянство, номери паспорта й мореплавної книжки, контакти та next of kin.",
+        "Crew matrix: усі люди проти всіх сертифікатів, у клітинці термін — червоний прострочений, жовтий у межах 60 днів. Натисніть дату, щоб відкрити сертифікат, «+» — щоб додати.",
+        "Під час зміни екіпажу нікого не вводять заново: того, хто йде, списують (його рядок, сертифікати й next of kin лишаються в даних судна), а коли повернеться — Sign on. Години відпочинку ведуть лише ті, хто на борту.",
+      ],
+    },
+    {
       emoji: '🛏️',
       title: "Години відпочинку (Hours of rest)",
       body: [
@@ -1610,6 +1650,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
   { title: 'Certificates', module: 'crewCerts', from: 4 },
   { title: 'Access — which tabs each device shows', module: 'access' },
   { title: 'Hours of rest', module: 'rest' },
+  { title: 'Crew list and certificate matrix', module: 'crewCerts' },
   { title: 'Planned maintenance', module: 'pms' },
   { title: 'Spare parts', module: 'spares' },
   { title: 'Confirmed signatures', module: 'signConfirm' },

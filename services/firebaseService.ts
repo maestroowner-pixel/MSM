@@ -1124,7 +1124,10 @@ export async function pushInspections(uid: string): Promise<number> {
   // the connection was perfectly good. A device that may not write it must not
   // try: there is nothing for it to contribute, since only a Master can have
   // changed the list in the first place.
-  if (crew.length && (await claimedRole()) === 'superadmin') {
+  // With crew management on, an Officer (the Chief Officer) keeps the list too —
+  // the rule for `crew` says isAdmin once that module ships (firestore.rules).
+  const crewRole = await claimedRole();
+  if (crew.length && (crewRole === 'superadmin' || (crewRole === 'admin' && moduleOn('crewCerts')))) {
     try {
       await writeInBatches(uid, 'crew', crew.map((c) => ({ id: c.id, data: c })));
     } catch (e: any) {
@@ -1196,7 +1199,9 @@ interface SyncedList {
   appendOnly?: boolean;
 }
 
-const SYNCED_LISTS: (SyncedList & { module: ModuleKey })[] = [
+const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] = [
+  // Personal details and next of kin: Officers and the Master only (rules).
+  { sub: 'crew_private', key: storage.CREW_PRIVATE_KEY, module: 'crewCerts', officers: true },
   { sub: 'rest', key: storage.REST_KEY, module: 'rest' },
   { sub: 'pms_machines', key: storage.PMS_MACHINES_KEY, module: 'pms' },
   { sub: 'pms_jobs', key: storage.PMS_JOBS_KEY, module: 'pms' },
@@ -1213,7 +1218,11 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey })[] = [
  * and until then every read would be refused — eight refused reads per sync, on
  * every device, for nothing.
  */
-const liveLists = () => SYNCED_LISTS.filter((l) => moduleOn(l.module));
+const liveLists = async () => {
+  const role = await claimedRole();
+  const officer = role === 'admin' || role === 'superadmin';
+  return SYNCED_LISTS.filter((l) => moduleOn(l.module) && (!l.officers || officer));
+};
 
 async function pushList(uid: string, l: SyncedList): Promise<number> {
   try {
@@ -1283,11 +1292,11 @@ async function pullList(uid: string, l: SyncedList): Promise<number> {
 }
 
 export async function pushLists(uid: string): Promise<void> {
-  for (const l of liveLists()) await pushList(uid, l);
+  for (const l of await liveLists()) await pushList(uid, l);
 }
 
 export async function pullLists(uid: string): Promise<void> {
-  for (const l of liveLists()) await pullList(uid, l);
+  for (const l of await liveLists()) await pullList(uid, l);
 }
 
 /** Pull the trail and the crew list, merging both into what this device holds. */

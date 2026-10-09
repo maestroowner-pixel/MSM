@@ -45,9 +45,12 @@ export default function CrewSc() {
    * phone still has to be a signer, which is why this list is not simply the
    * device list.
    */
-  const { role: myRole } = useSync();
-  const isMaster = myRole === 'superadmin';
-  const rankKnown = myRole !== null;
+  const { role: myRole, enrolled: isEnrolled } = useSync();
+  // With crew management on (`crewCerts`), the Chief Officer keeps the list too,
+  // and a device not joined to any vessel is its owner's to fill in.
+  const crewMgmt = moduleOn('crewCerts');
+  const isMaster = myRole === 'superadmin' || (crewMgmt && (myRole === 'admin' || !isEnrolled));
+  const rankKnown = myRole !== null || (crewMgmt && !isEnrolled);
 
   const imo = (vessel?.imo ?? '').replace(/\D/g, '');
   const [enrolled, setEnrolled] = useState<EnrolledDevice[]>([]);
@@ -174,7 +177,7 @@ export default function CrewSc() {
     const p = papers.get(c.id);
     return (
       <Card>
-        <View style={styles.row}>
+        <TouchableOpacity style={styles.row} disabled={!crewMgmt} onPress={() => nav.navigate('CrewMember', { id: c.id })} activeOpacity={0.7}>
           <MciIcon
             name={c.active ? 'account' : 'account-off'}
             size={24}
@@ -183,7 +186,7 @@ export default function CrewSc() {
           <View style={{ flex: 1 }}>
             <Text style={[styles.name, !c.active && { color: COLORS.textLight }]}>{c.name}</Text>
             <Text style={styles.meta}>
-              {[c.rank, c.active ? null : 'Retired', n ? `${n} signed` : null].filter(Boolean).join(' · ') ||
+              {[c.rank, c.active ? null : 'Retired', crewMgmt && c.active && c.onBoard === false ? 'Signed off' : null, n ? `${n} signed` : null].filter(Boolean).join(' · ') ||
                 'No rank set'}
             </Text>
             {moduleOn('crewCerts') ? (
@@ -220,7 +223,7 @@ export default function CrewSc() {
               </TouchableOpacity>
             </>
           ) : null}
-        </View>
+        </TouchableOpacity>
       </Card>
     );
   };
@@ -235,6 +238,14 @@ export default function CrewSc() {
             : 'Who can sign an inspection on this vessel.'
         }
       />
+
+      {crewMgmt ? (
+        <TouchableOpacity style={styles.matrixLink} onPress={() => nav.navigate('CrewMatrix')}>
+          <MciIcon name="table-large" size={20} color={COLORS.primary} />
+          <Text style={styles.matrixText}>Crew matrix — certificates, on board, sign on / off</Text>
+          <Text style={styles.matrixText}>›</Text>
+        </TouchableOpacity>
+      ) : null}
 
       {!rankKnown ? (
         <Card>
@@ -337,6 +348,8 @@ export default function CrewSc() {
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
     row: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md },
+    matrixLink: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.md, marginBottom: SIZES.md },
+    matrixText: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.body, flexShrink: 1 },
     rowBtn: { padding: SIZES.xs },
     enrolRow: {
       flexDirection: 'row',

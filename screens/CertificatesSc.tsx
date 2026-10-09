@@ -152,6 +152,12 @@ export default function CertificatesSc() {
         />
       ) : null}
 
+      {tab === 'crew' ? (
+        <TouchableOpacity onPress={() => nav.navigate('CrewMatrix')} style={{ alignSelf: 'flex-end', marginBottom: SIZES.sm }} hitSlop={8}>
+          <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small }}>Crew matrix ›</Text>
+        </TouchableOpacity>
+      ) : null}
+
       {list.length === 0 ? (
         <Empty text={EMPTY[tab]} />
       ) : tab === 'crew' ? (

@@ -9,7 +9,7 @@ import { CategoryKey, EquipmentItem } from '../types/equipment';
 import { Certificate } from '../types/certificate';
 import { CompressorState } from '../types/compressor';
 import { Inspection, InspectionPeriod } from '../types/inspection';
-import { CrewMember, liveCrew } from '../types/crew';
+import { CrewMember, CrewPrivate, liveCrew } from '../types/crew';
 import { RestDay } from '../types/rest';
 import { Machine, PmsDone, PmsJob } from '../types/pms';
 import { SpareMove, SparePart } from '../types/spares';
@@ -71,6 +71,9 @@ interface DataContextType {
   docAcks: DocAck[];
   saveDoc: (d: IsmDoc) => Promise<void>;
   addDocAck: (a: DocAck) => Promise<void>;
+  /** Crew personal details and next of kin — present on Officers' and the Master's devices only. */
+  crewPrivate: CrewPrivate[];
+  saveCrewPrivate: (p: CrewPrivate) => Promise<void>;
   /** The vessel's own checklists; they replace the built-in for their category. */
   templates: ChecklistTemplate[];
   /** Headings this vessel invented, on top of the 23 the app ships. */
@@ -136,6 +139,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [spareMoves, setSpareMoves] = useState<SpareMove[]>([]);
   const [docs, setDocs] = useState<IsmDoc[]>([]);
   const [docAcks, setDocAcks] = useState<DocAck[]>([]);
+  const [crewPrivate, setCrewPrivate] = useState<CrewPrivate[]>([]);
   const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
   const [categories, setCategories] = useState<CategoryMeta[]>([]);
   const [recentScans, setRecentScans] = useState<ScanEntry[]>([]);
@@ -176,6 +180,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSpareMoves(await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY));
     setDocs((await storage.loadList<IsmDoc>(storage.DOCS_KEY)).filter((d) => !d.deleted));
     setDocAcks(await storage.loadList<DocAck>(storage.DOC_ACKS_KEY));
+    setCrewPrivate(await storage.loadList<CrewPrivate>(storage.CREW_PRIVATE_KEY));
     setTemplates(await storage.loadTemplates());
     setSigningPolicyState((await storage.loadSigningPolicy()) ?? DEFAULT_POLICY);
     setPhotoArchiveState((await storage.loadPhotoArchive()) ?? DEFAULT_ARCHIVE);
@@ -315,6 +320,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSpareMoves(await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY));
     setDocs((await storage.loadList<IsmDoc>(storage.DOCS_KEY)).filter((d) => !d.deleted));
     setDocAcks(await storage.loadList<DocAck>(storage.DOC_ACKS_KEY));
+    setCrewPrivate(await storage.loadList<CrewPrivate>(storage.CREW_PRIVATE_KEY));
   }, []);
 
   const saveMachine = useCallback(async (m: Machine) => {
@@ -341,6 +347,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const saveDoc = useCallback(async (d: IsmDoc) => {
     await storage.upsertInList(storage.DOCS_KEY, d);
+    await loadPms();
+  }, [loadPms]);
+
+  const saveCrewPrivate = useCallback(async (p: CrewPrivate) => {
+    await storage.upsertInList(storage.CREW_PRIVATE_KEY, p);
     await loadPms();
   }, [loadPms]);
 
@@ -480,6 +491,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         docAcks,
         saveDoc,
         addDocAck,
+        crewPrivate,
+        saveCrewPrivate,
         templates,
         categories,
         recentScans,

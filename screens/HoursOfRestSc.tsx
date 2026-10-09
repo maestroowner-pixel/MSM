@@ -21,8 +21,9 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { crewLabel, CrewMember } from '../types/crew';
-import { personName } from '../types/role';
+import { crewLabel, CrewMember, isAboard } from '../types/crew';
+import { personName, roleAtLeast } from '../types/role';
+import { moduleOn } from '../constants/modules';
 import { RestDay } from '../types/rest';
 import { analyseRest, RULE_LABEL } from '../services/restHours';
 import { exportRestPdf } from '../services/restReport';
@@ -52,10 +53,13 @@ export default function HoursOfRestSc() {
   const { crew, rest, vessel, prefs } = useData();
   const sync = useSync();
 
+  // Those on board (types/crew isAboard): someone on leave keeps their past
+  // months but is not asked for today's.
   const people = useMemo(
-    () => crew.filter((c) => c.active).sort((a, b) => a.name.localeCompare(b.name)),
+    () => crew.filter(isAboard).sort((a, b) => a.name.localeCompare(b.name)),
     [crew]
   );
+  const canEditCrew = moduleOn('crewCerts') && (!sync.enrolled || roleAtLeast(sync.role, 'admin'));
 
   /** This device's own person: its account, else the last signer here. */
   const mine = useMemo<CrewMember | undefined>(() => {
@@ -110,14 +114,26 @@ export default function HoursOfRestSc() {
     return (
       <Screen>
         <ScreenTitle title="Hours of rest" subtitle="MLC 2006 · STCW A-VIII/1" />
-        <Empty text="The crew list is empty. The Master adds people in Settings → Crew; each person then records their own hours here." />
+        <Empty text="Nobody is on board in the crew list. The Master or an officer adds people and signs them on; each person then records their own hours here." />
+        {canEditCrew ? (
+          <TouchableOpacity onPress={() => nav.navigate('CrewMatrix')} style={{ alignSelf: 'center', marginTop: SIZES.md }}>
+            <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Open the crew list</Text>
+          </TouchableOpacity>
+        ) : null}
       </Screen>
     );
   }
 
   return (
-    <Screen>
+    // The page scrolls; the day list inside it does not (scrollEnabled false) —
+    // without `scroll` here nothing moved at all, by wheel or by finger.
+    <Screen scroll>
       <ScreenTitle title="Hours of rest" subtitle="MLC 2006 · STCW A-VIII/1 · ship's time" help="Hours of rest" />
+      {canEditCrew ? (
+        <TouchableOpacity onPress={() => nav.navigate('CrewMatrix')} style={{ alignSelf: 'flex-end', marginTop: -SIZES.sm, marginBottom: SIZES.sm }} hitSlop={8}>
+          <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small }}>Crew on board — add / sign on / sign off ›</Text>
+        </TouchableOpacity>
+      ) : null}
 
       {/* flexShrink 0: in a browser a horizontal ScrollView inside the page's own
           scroll is squeezed to less than its content, and the names were cut in half. */}

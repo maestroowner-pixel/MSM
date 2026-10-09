@@ -584,7 +584,7 @@ export default function SettingsSc() {
       ) : null}
       {/* Planned maintenance and Hours of rest were cards here; they are tabs now,
           shown per device as the Master sets on Access (constants/access.ts). */}
-      {sync.role === 'superadmin' ? (
+      {sync.role === 'superadmin' || (moduleOn('crewCerts') && (sync.role === 'admin' || !sync.enrolled)) ? (
       <Card>
         <Label>Crew &amp; accounts</Label>
         {/* Master only. The crew list is a MANAGEMENT screen — for anyone else it
@@ -592,7 +592,7 @@ export default function SettingsSc() {
             since a vessel that adds its signers from enrolled people keeps the
             list short. Signing does not go through here: the picker inside an
             inspection reads the same list, and every rank still signs. */}
-        {sync.role === 'superadmin' ? (
+        {sync.role === 'superadmin' || (moduleOn('crewCerts') && (sync.role === 'admin' || !sync.enrolled)) ? (
           <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Crew')}>
             <IconChip name="account-multiple" size={18} />
             <View style={{ flex: 1 }}>

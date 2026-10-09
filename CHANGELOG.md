@@ -5,6 +5,15 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Crew list and crew certificate matrix (dark, `crewCerts`).** The crew list is kept by the Master
+  AND the Officers (rules: crew write `isAdmin`; the client pushes it from an Officer only with the
+  module on). A crew member has on board / signed off with sign-on and sign-off dates; Hours of rest
+  shows only those aboard, with a link to the crew list. Crew member screen: rank, aboard, personal
+  details and next of kin (date of birth, nationality, passport, seaman's book, contacts) stored
+  apart in `crew_private` — Officers and the Master only, in rules and in sync — and the person's
+  certificates. Crew matrix screen: people × certificates with the expiry in each cell, tap to open
+  or add; signed-off people keep their row and come back with "Sign on", nothing retyped.
+- Hours of rest page scrolls (it did not move at all in a browser); person chips no longer cut.
 - **Menu instead of a tab bar past five screens** (components/NavMenu). Web: top bar with ☰ and the
   current screen; the menu slides in from the left and closes on a choice; on windows ≥ 1100 px it
   can be pinned open beside the content. Phone: the first four screens of the person's order on the

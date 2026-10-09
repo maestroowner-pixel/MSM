@@ -37,6 +37,52 @@ export interface CrewMember {
    * other edit; `liveCrew` hides it everywhere the list is shown.
    */
   deleted?: boolean;
+  /**
+   * Aboard now. The Master or an officer signs people on and off (9 Oct 2026:
+   * "in rest hours the Master must be able to mark who is on board"); someone
+   * off on leave stays on the list, with their certificates, and comes back.
+   * Absent = aboard, so lists made before this keep everyone where they were.
+   */
+  onBoard?: boolean;
+  /** yyyy-mm-dd joined the vessel for the current trip. */
+  signOn?: string;
+  /** yyyy-mm-dd left the vessel. */
+  signOff?: string;
+}
+
+/** Aboard and current: who records hours of rest and appears in the matrix. */
+export function isAboard(c: Pick<CrewMember, 'active' | 'deleted' | 'onBoard'>): boolean {
+  return c.active && !c.deleted && c.onBoard !== false;
+}
+
+/**
+ * A crew member's personal details — kept APART from the crew list.
+ *
+ * The crew list is read by every device on the vessel (it is the signature
+ * picker). Next of kin, date of birth and passport numbers are not for every
+ * deckhand's phone, so they live in their own collection, `crew_private`, which
+ * firestore.rules opens to Officers and the Master only. Same id as the crew
+ * member.
+ */
+export interface NextOfKin {
+  name?: string;
+  relationship?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+}
+
+export interface CrewPrivate {
+  id: string;
+  dateOfBirth?: string;
+  nationality?: string;
+  passportNo?: string;
+  seamansBookNo?: string;
+  phone?: string;
+  email?: string;
+  homeAddress?: string;
+  nextOfKin?: NextOfKin;
+  updatedAt: number;
 }
 
 /** The list as the app shows it — without the removed. Storage keeps them. */
