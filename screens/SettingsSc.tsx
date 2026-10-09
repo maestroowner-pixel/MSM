@@ -19,6 +19,7 @@ import { useTheme, useThemeName } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { moduleOn } from '../constants/modules';
+import { canRememberFolder, chooseFolder, rememberedFolder } from '../utils/webSave';
 import { PinHolder, pinHolders, resetPin } from '../services/signature';
 import { VesselInfo, resetAllData } from '../services/storage';
 import * as fb from '../services/firebaseService';
@@ -71,6 +72,10 @@ export default function SettingsSc() {
   const wide = useWindowDimensions().width >= 600;
   const { vessel, setVessel, reload, flat, certificates, prefs, setPrefs, signingPolicy, setSigningPolicy } = useData();
   const sync = useSync();
+  const [reportsFolder, setReportsFolder] = useState<string | null>(null);
+  useEffect(() => {
+    void rememberedFolder('reports').then(setReportsFolder);
+  }, []);
   // Who has a signing PIN on this device, for the Master's reset list.
   const [pinHoldersHere, setPinHoldersHere] = useState<PinHolder[]>([]);
   useEffect(() => {
@@ -580,6 +585,24 @@ export default function SettingsSc() {
             </View>
             <Text style={styles.chev}>›</Text>
           </TouchableOpacity>
+        </Card>
+      ) : null}
+      {canRememberFolder() ? (
+        <Card>
+          <Label>Reports folder</Label>
+          {/* Where PDF reports are saved on this computer (utils/webSave). */}
+          <View style={styles.linkRow}>
+            <IconChip name="folder-outline" size={18} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkTitle}>{reportsFolder ?? 'Not chosen yet'}</Text>
+              <Text style={styles.linkSub}>
+                {reportsFolder ? 'Reports are saved straight into this folder.' : 'The first report you save asks for a folder and remembers it.'}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => void chooseFolder('reports').then((n) => n && setReportsFolder(n))} hitSlop={8}>
+              <Text style={{ color: COLORS.primary, fontWeight: '700' }}>{reportsFolder ? 'Change' : 'Choose'}</Text>
+            </TouchableOpacity>
+          </View>
         </Card>
       ) : null}
       {/* Planned maintenance and Hours of rest were cards here; they are tabs now,

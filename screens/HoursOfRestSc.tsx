@@ -77,6 +77,7 @@ export default function HoursOfRestSc() {
   }, [mine, personId]);
   const person = people.find((c) => c.id === personId) ?? crew.find((c) => c.id === personId);
 
+  const [savedTo, setSavedTo] = useState<string | null>(null);
   const today = todayIso();
   const [month, setMonth] = useState(today.slice(0, 7));
   const { width } = useWindowDimensions();
@@ -117,13 +118,17 @@ export default function HoursOfRestSc() {
   const onReport = async () => {
     if (!person) return;
     try {
-      await exportRestPdf({
+      const where = await exportRestPdf({
         holderName: person.name,
         rank: person.rank,
         month,
         days: mineDays,
         vessel,
       });
+      if (typeof where === 'string') {
+        setSavedTo(where === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${where}”`);
+        setTimeout(() => setSavedTo(null), 6000);
+      }
     } catch (e: any) {
       Alert.alert('Report', e?.message ?? 'Could not create the report.');
     }
@@ -236,6 +241,7 @@ export default function HoursOfRestSc() {
           <MciIcon name="file-pdf-box" size={18} color={COLORS.primary} />
           <Text style={styles.reportText}>Monthly record (PDF) for signature</Text>
         </TouchableOpacity>
+        {savedTo ? <Text style={styles.savedTo}>{`✓ ${savedTo}`}</Text> : null}
       </Card>
 
       <FlatList
@@ -293,6 +299,7 @@ function Stat({ label, value, danger }: { label: string; value: string; danger?:
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
     chips: { gap: SIZES.xs, paddingBottom: SIZES.sm, alignItems: 'center' },
+    savedTo: { color: COLORS.success, fontSize: SIZES.small, fontWeight: '700', textAlign: 'center', marginTop: SIZES.sm },
     split: { flexDirection: 'row', alignItems: 'flex-start', gap: SIZES.lg },
     peopleCol: { width: 250, ...COLORS.glassCard, borderRadius: SIZES.radiusMd, paddingVertical: SIZES.xs, overflow: 'hidden' },
     personRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, paddingVertical: SIZES.sm, paddingHorizontal: SIZES.md },

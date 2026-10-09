@@ -5,6 +5,13 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Reports saved into a remembered folder (web).** Chrome / Opera / Edge: the first save asks for a
+  folder, its handle is kept in IndexedDB, later saves write straight into it (the browser asks once
+  per session whether the site may still write there); Settings → Reports folder shows and changes
+  it. Safari / Firefox: the file goes to Downloads under its proper name (utils/webSave).
+- The web Hours of rest record is now drawn as a real PDF in the browser (jsPDF, utils/restPdf)
+  instead of being printed — no print dialog, no browser header, and "Saved to the folder …" below
+  the button. Phones keep expo-print and the share sheet.
 - Hours of rest PDF: saved as "Name-mmyy-Vessel_Hours of rest report.pdf" (the browser's Save as PDF
   takes the page title, which is set for the print); fixed column widths so rows no longer stretch;
   breach codes on one line ("10h/24h"), full wording in the list below; a wide Note column; no

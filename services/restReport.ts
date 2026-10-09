@@ -16,7 +16,8 @@ import { analyseRest, RULE_LABEL, RULES } from './restHours';
 import { VesselInfo } from './storage';
 import { esc, share, vesselHeader } from './export';
 import { onWeb, onWindows } from '../utils/fileShare';
-import { printHtmlWeb } from '../utils/webFile';
+import { restPdfBlob, RestPdfData } from '../utils/restPdf';
+import { saveFileWeb } from '../utils/webSave';
 
 export interface RestReportInput {
   holderName: string;
@@ -122,14 +123,49 @@ export function restReportFileName(input: Pick<RestReportInput, 'holderName' | '
   return `${name}-${mmyy}${v ? `-${clean(v)}` : ''}_Hours of rest report.pdf`;
 }
 
-export async function exportRestPdf(input: RestReportInput): Promise<void> {
+/** The record as data for the web's jsPDF drawing (utils/restPdf.web). */
+export function restPdfData(input: RestReportInput): RestPdfData {
+  const { from, to, label } = monthRange(input.month);
+  const summary = analyseRest(input.days, from, to);
+  const byDate = new Map(input.days.map((d) => [d.date, d]));
+  return {
+    title: `Record of hours of rest — ${label}`,
+    vesselLine: vesselHeader(input.vessel),
+    seafarerLine: `Seafarer: ${input.holderName}${input.rank ? ` · ${input.rank}` : ''} · Ship's time · Shaded = work`,
+    rows: summary.map((s) => {
+      const rec = byDate.get(s.date);
+      return {
+        day: s.date.slice(8),
+        work: rec ? rec.work : null,
+        workH: rec ? s.workHours : undefined,
+        restH: rec ? s.restHours : undefined,
+        minRest: s.minRest24h ?? undefined,
+        breach: [...new Set(s.violations.map((v) => RULE_CODE[v.rule] ?? v.rule))].join(' '),
+        note: rec?.note ?? '',
+        bad: s.violations.length > 0,
+      };
+    }),
+    rules:
+      `Rules applied (MLC 2006 Reg. 2.3, STCW A-VIII/1): at least ${RULES.minRest24h} h rest in any 24 h and ${RULES.minRest7d} h in any 7 days; ` +
+      `rest in no more than two periods, one of at least ${RULES.longestPeriod} h; no more than ${RULES.maxWorkStretch} h between periods of rest. ` +
+      'Indicative — exceptions permitted by the flag State (drills, emergencies, agreements) are judged by the Master.',
+    breaches: summary.flatMap((s) => s.violations).map((b) => `${b.date} — ${RULE_LABEL[b.rule]}: ${b.detail}`),
+  };
+}
+
+/**
+ * Make the record and hand it over. On the web it is drawn as a PDF and saved
+ * into the remembered folder (utils/webSave) — returns that folder's name, or
+ * null if the person cancelled. On a phone it goes to the share sheet.
+ */
+export async function exportRestPdf(input: RestReportInput): Promise<string | null | void> {
   if (onWindows) throw new Error('PDF export is not available on Windows.');
-  const html = buildRestHtml(input);
   const fileName = restReportFileName(input);
   if (onWeb) {
-    printHtmlWeb(html, fileName);
-    return;
+    // Drawn synchronously, then saved at once: asking for a folder needs the click.
+    return saveFileWeb(restPdfBlob(restPdfData(input)), fileName, 'reports');
   }
+  const html = buildRestHtml(input);
   const { uri } = await Print.printToFileAsync({ html, width: 842, height: 595 });
   const dest = `${FileSystem.cacheDirectory}${fileName}`;
   try {
