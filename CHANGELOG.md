@@ -5,6 +5,30 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Hours of rest (MLC 2006 Reg. 2.3, STCW A-VIII/1).** Settings → Hours of rest.
+  - One record per person per day: 48 half-hour cells, '1' work / '0' rest, ship's time
+    (`types/rest.ts`). The day editor sets cells with a pen (Work / Rest) rather than toggling, so a
+    slip of the finger is not the opposite of what was meant; patterns fill a day in one tap (day
+    work, the three watches, day off, same as previous day). Leaving a day for the next saves it.
+  - The rules (`services/restHours.ts`, `npm run check:rest`): 10 h rest in ANY 24 h and 77 h in
+    ANY 7 days, on rolling half-hour windows so a breach across midnight is caught; rest in at most
+    two periods with one of 6 h, read as "the two longest periods must reach 10 h" because window
+    edges cut every night's sleep in two; no more than 14 h between rest periods. An unrecorded day
+    is never rest — a window touching one is not judged and the day shows "Not recorded".
+  - Month view per person: recorded days, days with a breach, work total, each day's bar and
+    breaches. Monthly record PDF in the ILO/IMO layout with signature lines for seafarer and Master.
+  - **Sync is a new `rest` collection, one document per person-day, incremental both ways**
+    (pushed-since map, pulled-since timestamp) — a year of a 20-person crew is ~7 000 documents.
+    A refusal there never fails the sync: **`firestore.rules` gains `match /rest/{id}` and must be
+    deployed (`npm run deploy:rules`) before release**, until then records stay queued on the device.
+  - Included in the .msm backup and in Reset all data.
+- **The "?" buttons name their manual section by English title, not by position.** Inserting
+  "Lifting & Mooring" above "Certificates" (8f4b101) had shifted every index after it, so the ? on
+  Certificates opened Lifting, on Dashboard opened Certificates' neighbour, and so on.
+  `npm run check:help` fails if a ? names a section that does not exist or a language has a
+  different number of sections.
+- Manual (en / ru / es / uk): new section "Hours of rest".
+
 - **Crew and vessel certificates.** The Certificates tab has three tabs — Equipment, Crew, Vessel.
   - A crew certificate belongs to a PERSON (STCW, CoC, ENG1 / medical, passport, seaman's book,
     visa): the holder is picked from the crew list, or typed on a device that has no crew list yet.

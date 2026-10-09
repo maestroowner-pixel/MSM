@@ -114,7 +114,7 @@ export default function LabelBatchSc() {
   if (!flat.length) {
     return (
       <Screen scroll>
-        <ScreenTitle title="QR labels" subtitle="Print stickers for many items at once" help={7} />
+        <ScreenTitle title="QR labels" subtitle="Print stickers for many items at once" help="Scan, flag & recently scanned" />
         <Card>
           <Text style={styles.empty}>No equipment yet. Import or add items first, then print their labels.</Text>
         </Card>
@@ -131,7 +131,7 @@ export default function LabelBatchSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="QR labels" subtitle="Print stickers for a category, a deck or a whole group at once" help={7} />
+      <ScreenTitle title="QR labels" subtitle="Print stickers for a category, a deck or a whole group at once" help="Scan, flag & recently scanned" />
 
       <Text style={styles.sectionLabel}>Equipment group</Text>
       <View style={styles.chipRow}>

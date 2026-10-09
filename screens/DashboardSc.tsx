@@ -337,7 +337,7 @@ export default function DashboardSc() {
       <ScreenTitle
         title="Dashboard"
         subtitle="Inspections & expiries, soonest first"
-        help={6}
+        help="Dashboard & statuses"
         onScan={() => nav.navigate('Scan')}
       />
 

@@ -296,6 +296,17 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🛏️',
+      title: "Hours of rest",
+      body: [
+        "Settings → Hours of rest records each person's work and rest, half hour by half hour, in ship's time. It opens on the person this device belongs to; the Master can switch to anyone to review or correct their month.",
+        "Tap a day, choose the pen (Tap marks WORK / Tap marks REST) and tap across the hours — or fill the day in one tap: Same as previous day, Day work 08–17, the three watch patterns, Day off. Moving to the next or previous day saves the one you leave.",
+        "The rules are checked as you edit, against the days around it: at least 10 h rest in any 24 h and 77 h in any 7 days; rest in no more than two periods, one of at least 6 h; no more than 14 h between rest periods (MLC 2006 Reg. 2.3, STCW A-VIII/1). Windows are rolling, so a breach across midnight is caught. The check is indicative: exceptions the flag allows (drills, emergencies) are the Master's call — write them in the day's Note.",
+        "A day with no record is shown as \"Not recorded\" and is never counted as rest.",
+        "Monthly record (PDF) prints the month in the usual layout — one row per day, work shaded, totals, breaches — with signature lines for the seafarer and the Master.",
+      ],
+    },
+    {
       emoji: '☁️',
       title: "Cloud sync & inspection photos",
       body: [
@@ -608,6 +619,17 @@ const ru: ManualContent = {
         "«Sign off this device» — выход с судна с этого аппарата. Синхронизация прекращается сразу, и обратно устройство само себя не впустит: нужно новое приглашение и одобрение Мастера. «Sign off & erase» вдобавок стирает регистр на этом аппарате — для случая, когда его передают другому или продают. Ни то, ни другое не начинает бесплатный период заново: он принадлежит судну, а не устройству.",
         "Интерфейс следует рангу. Аккаунты, список экипажа и список устройств — права Мастера, остальным они не предлагаются. Сервер такие записи всё равно отклонял; кнопка, которая всегда падает, лишь сообщает неправду о ваших собственных полномочиях.",
         "Если Мастер удалил устройство, оно так и скажет и предложит вступить заново — а не будет висеть на ошибке связи, с которой ничего нельзя сделать. Для возврата нужно новое приглашение, как и в первый раз.",
+      ],
+    },
+    {
+      emoji: '🛏️',
+      title: "Часы отдыха (Hours of rest)",
+      body: [
+        "Settings → Hours of rest записывает работу и отдых каждого человека по получасам, по судовому времени. Экран открывается на человеке, которому принадлежит устройство; Мастер может переключиться на любого, чтобы проверить или поправить его месяц.",
+        "Нажмите день, выберите «перо» (Tap marks WORK / Tap marks REST) и проведите нажатиями по часам — или заполните день одним нажатием: Same as previous day, Day work 08–17, три вахтенных графика, Day off. При переходе на соседний день текущий сохраняется.",
+        "Правила проверяются во время ввода, вместе с соседними днями: не менее 10 ч отдыха за любые 24 ч и 77 ч за любые 7 дней; отдых не более чем в двух периодах, один не короче 6 ч; не более 14 ч между периодами отдыха (MLC 2006 Reg. 2.3, STCW A-VIII/1). Окна скользящие, поэтому нарушение через полночь тоже видно. Проверка ориентировочная: исключения, допускаемые флагом (учения, аварии), решает Мастер — запишите их в Note дня.",
+        "День без записи показан как «Not recorded» и никогда не считается отдыхом.",
+        "Monthly record (PDF) печатает месяц в привычной форме — строка на день, работа закрашена, итоги, нарушения — с местами для подписи моряка и Мастера.",
       ],
     },
     {
@@ -926,6 +948,17 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🛏️',
+      title: "Horas de descanso (Hours of rest)",
+      body: [
+        "Settings → Hours of rest registra el trabajo y el descanso de cada persona, media hora a media hora, en hora del buque. Se abre en la persona a la que pertenece el dispositivo; el Master puede cambiar a cualquiera para revisar o corregir su mes.",
+        "Pulse un día, elija el lápiz (Tap marks WORK / Tap marks REST) y pulse a lo largo de las horas — o rellene el día con un toque: Same as previous day, Day work 08–17, las tres guardias, Day off. Al pasar al día siguiente o anterior se guarda el actual.",
+        "Las reglas se comprueban al editar, junto con los días vecinos: al menos 10 h de descanso en cualquier periodo de 24 h y 77 h en cualquier periodo de 7 días; descanso en no más de dos periodos, uno de al menos 6 h; no más de 14 h entre periodos de descanso (MLC 2006 Reg. 2.3, STCW A-VIII/1). Las ventanas son móviles, así que se detecta una infracción a través de la medianoche. Es orientativo: las excepciones que permite el pabellón (ejercicios, emergencias) las decide el Master — anótelas en Note.",
+        "Un día sin registro aparece como «Not recorded» y nunca cuenta como descanso.",
+        "Monthly record (PDF) imprime el mes en el formato habitual — una fila por día, trabajo sombreado, totales, infracciones — con líneas de firma para el marino y el Master.",
+      ],
+    },
+    {
       emoji: '☁️',
       title: "Sincronización y fotos de inspección",
       body: [
@@ -1238,6 +1271,17 @@ const uk: ManualContent = {
         "«Sign off this device» — вихід із судна з цього апарата. Синхронізація припиняється одразу, і назад пристрій сам себе не впустить: потрібне нове запрошення та схвалення Майстра. «Sign off & erase» на додачу стирає реєстр на цьому апараті — для випадку, коли його передають або продають. Ані те, ані інше не починає безкоштовний період заново: він належить судну, а не пристрою.",
         "Інтерфейс іде за рангом. Акаунти, список екіпажу та список пристроїв — права Майстра, іншим вони не пропонуються. Сервер такі записи все одно відхиляв; кнопка, що завжди падає, лише повідомляє неправду про ваші власні повноваження.",
         "Якщо Майстер вилучив пристрій, той так і скаже й запропонує приєднатися знову, а не висітиме на помилці зв'язку, з якою нічого не вдієш. Для повернення потрібне нове запрошення, як і першого разу.",
+      ],
+    },
+    {
+      emoji: '🛏️',
+      title: "Години відпочинку (Hours of rest)",
+      body: [
+        "Settings → Hours of rest записує роботу й відпочинок кожної людини по півгодини, за судновим часом. Екран відкривається на людині, якій належить пристрій; Майстер може перемкнутися на будь-кого, щоб перевірити чи виправити його місяць.",
+        "Натисніть день, оберіть «перо» (Tap marks WORK / Tap marks REST) і пройдіться натисканнями по годинах — або заповніть день одним натисканням: Same as previous day, Day work 08–17, три вахтові графіки, Day off. Під час переходу на сусідній день поточний зберігається.",
+        "Правила перевіряються під час введення разом із сусідніми днями: щонайменше 10 год відпочинку за будь-які 24 год і 77 год за будь-які 7 днів; відпочинок не більше ніж у двох періодах, один не коротший за 6 год; не більше 14 год між періодами відпочинку (MLC 2006 Reg. 2.3, STCW A-VIII/1). Вікна ковзні, тож порушення через північ теж видно. Перевірка орієнтовна: винятки, дозволені прапором (навчання, аварії), вирішує Майстер — запишіть їх у Note дня.",
+        "День без запису показано як «Not recorded», і він ніколи не вважається відпочинком.",
+        "Monthly record (PDF) друкує місяць у звичній формі — рядок на день, робота зафарбована, підсумки, порушення — з місцями для підпису моряка й Майстра.",
       ],
     },
     {

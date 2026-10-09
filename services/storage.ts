@@ -20,6 +20,7 @@ export const COMPRESSOR_KEY = `${PREFIX}compressor`;
 export const PREFS_KEY = `${PREFIX}prefs`;
 export const INSPECTIONS_KEY = `${PREFIX}inspections`;
 export const CREW_KEY = `${PREFIX}crew`;
+export const REST_KEY = `${PREFIX}rest`;
 /** The vessel's "scan before you sign" rule, as this device last knew it. */
 export const SIGNING_POLICY_KEY = `${PREFIX}signing_policy`;
 /** What this vessel has archived and what the last sweep did — services/photoArchive.ts. */
@@ -475,6 +476,30 @@ export async function setRoundEnabled(
   });
 }
 
+// ---- Hours of rest ----------------------------------------------------------
+
+export async function loadRest(): Promise<import('../types/rest').RestDay[]> {
+  try {
+    const raw = await AsyncStorage.getItem(REST_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveRest(list: import('../types/rest').RestDay[]): Promise<void> {
+  await AsyncStorage.setItem(REST_KEY, JSON.stringify(list));
+}
+
+export async function upsertRestDay(day: import('../types/rest').RestDay): Promise<void> {
+  const list = await loadRest();
+  const i = list.findIndex((d) => d.id === day.id);
+  if (i >= 0) list[i] = day;
+  else list.push(day);
+  await saveRest(list);
+}
+
 // ---- Crew (who signs) ------------------------------------------------------
 
 export async function loadCrew(): Promise<CrewMember[]> {
@@ -567,6 +592,7 @@ export async function resetAllData(): Promise<void> {
     COMPRESSOR_KEY,
     INSPECTIONS_KEY,
     CREW_KEY,
+    REST_KEY,
     VESSEL_KEY,
     SIGNING_POLICY_KEY,
     PHOTO_ARCHIVE_KEY,

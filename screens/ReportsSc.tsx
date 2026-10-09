@@ -221,7 +221,7 @@ export default function ReportsSc() {
   if (!nonEmpty.length) {
     return (
       <Screen scroll>
-        <ScreenTitle title="Reports" subtitle="Export the safety register" help={10} />
+        <ScreenTitle title="Reports" subtitle="Export the safety register" help="Reports & export" />
         <Card>
           <Text style={styles.empty}>No equipment yet. Import or add items first, then export a report.</Text>
         </Card>
@@ -248,7 +248,7 @@ export default function ReportsSc() {
   if (mode === 'inspections') {
     return (
       <Screen scroll>
-        <ScreenTitle title="Reports" subtitle="What was inspected, by whom, and when" help={10} />
+        <ScreenTitle title="Reports" subtitle="What was inspected, by whom, and when" help="Reports & export" />
         {modeSwitch}
 
         <Text style={styles.sectionLabel}>Equipment group</Text>
@@ -430,7 +430,7 @@ export default function ReportsSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Reports" subtitle="Choose what to include, then export" help={10} />
+      <ScreenTitle title="Reports" subtitle="Choose what to include, then export" help="Reports & export" />
       {modeSwitch}
 
       <Text style={styles.sectionLabel}>Coming due</Text>

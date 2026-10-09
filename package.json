@@ -22,6 +22,8 @@
     "check:lifting": "rm -rf .check-lift && tsc scripts/check-lifting-import.ts --outDir .check-lift --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-lift/ && node .check-lift/scripts/check-lifting-import.js; s=$?; rm -rf .check-lift; exit $s",
     "apk": "node scripts/patch-native-version.js && node scripts/patch-android-signing.js && node scripts/patch-android-minify.js && node scripts/patch-android-edge-to-edge.js && cd android && ./gradlew assembleRelease",
     "check:icons": "rm -rf .check-ico && tsc scripts/check-icons.ts --outDir .check-ico --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck --resolveJsonModule && cp app.json .check-ico/ && node .check-ico/scripts/check-icons.js; s=$?; rm -rf .check-ico; exit $s",
+    "check:help": "rm -rf .check-help && tsc scripts/check-help-links.ts --outDir .check-help --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-help/ && node .check-help/scripts/check-help-links.js; s=$?; rm -rf .check-help; exit $s",
+    "check:rest": "rm -rf .check-rest && tsc scripts/check-rest-hours.ts --outDir .check-rest --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-rest/scripts/check-rest-hours.js; s=$?; rm -rf .check-rest; exit $s",
     "check:bulk": "rm -rf .check-bulk && tsc scripts/check-bulk-edit.ts --outDir .check-bulk --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-bulk/ && node .check-bulk/scripts/check-bulk-edit.js; s=$?; rm -rf .check-bulk; exit $s"
   },
   "keywords": [

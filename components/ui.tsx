@@ -227,7 +227,7 @@ export function ScreenTitle({
 }: {
   title: string;
   subtitle?: string;
-  help?: number;
+  help?: import("./HelpButton").HelpSection;
   onScan?: () => void;
   /** Batch QR-label printing — the other half of the scan button, on the
    *  Categories tab only: labels are printed a deck at a time, scanned one at a time. */

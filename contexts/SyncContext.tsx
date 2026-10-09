@@ -112,7 +112,7 @@ const PUSH_DEBOUNCE_MS = 1500;
 const TRAIL_WINDOW_DAYS = 400;
 
 export function SyncProvider({ children }: { children: React.ReactNode }) {
-  const { flat, certificates, vessel, compressor, inspections: trail, crew, prefs, reload, setSigningPolicy, setPhotoArchive } = useData();
+  const { flat, certificates, vessel, compressor, inspections: trail, crew, rest, prefs, reload, setSigningPolicy, setPhotoArchive } = useData();
 
   const [status, setStatus] = useState<SyncStatus>('off');
   const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
@@ -575,7 +575,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!uidRef.current || applyingRemote.current) return;
     schedulePush();
-  }, [flat, certificates, vessel, compressor, trail, crew, schedulePush]);
+  }, [flat, certificates, vessel, compressor, trail, crew, rest, schedulePush]);
 
   // Fix 1, second half: re-push when the app comes back to the foreground.
   //

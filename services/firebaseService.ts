@@ -85,6 +85,8 @@ import { Certificate } from '../types/certificate';
 import { normalizeCompressorState } from '../types/compressor';
 import { Inspection } from '../types/inspection';
 import { CrewMember } from '../types/crew';
+import { RestDay } from '../types/rest';
+import { mergeRest } from './restHours';
 import { ChecklistTemplate } from '../constants/checklists';
 import { PhotoArchiveState } from './photoArchive';
 import { CATEGORIES, CategoryMeta } from '../constants/categories';
@@ -1153,7 +1155,63 @@ export async function pushInspections(uid: string): Promise<number> {
       }
     }
   }
+
+  await pushRest(uid);
   return list.length;
+}
+
+// ---- Hours of rest ----------------------------------------------------------
+// One document per person per day in `rest/{crewId}_{date}`. Any approved member
+// may write one: a seafarer keeps their own record on their own phone, and the
+// Master corrects it. Newest `updatedAt` wins (types/rest.ts).
+//
+// BOTH DIRECTIONS ARE INCREMENTAL. A year of a twenty-person crew is ~7 000
+// documents; reading them all on every sync would be paid for in reads and in
+// VSAT megabytes. Push sends only what changed since it was last sent; pull asks
+// only for what changed since the last pull.
+//
+// A FAILURE HERE NEVER FAILS THE SYNC. The `rest` collection needs its rule in
+// firestore.rules deployed; until it is, the register, the trail and the crew must
+// go on syncing as before, so a refusal is logged and the records stay queued.
+
+const REST_PUSHED_KEY = 'msm:pushed_rest';
+const REST_PULLED_KEY = 'msm:pulled_rest_at';
+
+export async function pushRest(uid: string): Promise<number> {
+  try {
+    const list = await storage.loadRest();
+    const raw = await AsyncStorage.getItem(REST_PUSHED_KEY);
+    const sent: Record<string, number> = raw ? JSON.parse(raw) : {};
+    const fresh = list.filter((r) => (sent[r.id] ?? -1) < (r.updatedAt ?? 0));
+    if (!fresh.length) return 0;
+    await writeInBatches(uid, 'rest', fresh.map((r) => ({ id: r.id, data: r })));
+    for (const r of fresh) sent[r.id] = r.updatedAt ?? 0;
+    await AsyncStorage.setItem(REST_PUSHED_KEY, JSON.stringify(sent));
+    return fresh.length;
+  } catch (e: any) {
+    console.warn('[sync] hours of rest not pushed:', e?.message ?? e);
+    return 0;
+  }
+}
+
+export async function pullRest(uid: string): Promise<number> {
+  try {
+    const since = Number((await AsyncStorage.getItem(REST_PULLED_KEY)) ?? 0) || 0;
+    const startedAt = Date.now();
+    const snap = await fsGetDocs(
+      fsQuery(fsCollection(requireDb(), ROOT, uid, 'rest'), fsWhere('updatedAt', '>', since))
+    );
+    const remote: RestDay[] = [];
+    snap.forEach((doc) => remote.push(doc.data() as RestDay));
+    if (remote.length) await storage.saveRest(mergeRest(await storage.loadRest(), remote));
+    // A little overlap, so a write that landed while this pull was running is
+    // asked for again next time rather than missed.
+    await AsyncStorage.setItem(REST_PULLED_KEY, String(startedAt - 60_000));
+    return remote.length;
+  } catch (e: any) {
+    console.warn('[sync] hours of rest not pulled:', e?.message ?? e);
+    return 0;
+  }
 }
 
 /** Pull the trail and the crew list, merging both into what this device holds. */
@@ -1184,6 +1242,8 @@ export async function pullInspections(uid: string): Promise<number> {
   await storage.saveVesselCategories(
     mergeCategories(await storage.loadVesselCategories(), remoteCats)
   );
+
+  await pullRest(uid);
 
   return merged.length;
 }

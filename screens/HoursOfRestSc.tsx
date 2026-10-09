@@ -1,0 +1,237 @@
+// ===================================
+// Hours of rest — one person, one month.
+//
+// Opens on the person this device belongs to (its account, or whoever signed
+// on it last), because the commonest use is a seafarer filling in their own
+// day. Anyone may switch to another person: the Master reviews and corrects
+// everybody's month from the same screen.
+//
+// Every day of the month up to today is a row — a missing day is shown as
+// "not recorded" rather than skipped, because a gap in the record is the first
+// thing an inspector asks about.
+// ===================================
+
+import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+
+import { Card, Empty, Screen, ScreenTitle, StatusPill } from '../components/ui';
+import { MciIcon } from '../components/MciIcon';
+import { useTheme } from '../contexts/ThemeContext';
+import { useData } from '../contexts/DataContext';
+import { useSync } from '../contexts/SyncContext';
+import { SIZES, Palette } from '../theme';
+import { crewLabel, CrewMember } from '../types/crew';
+import { personName } from '../types/role';
+import { RestDay } from '../types/rest';
+import { analyseRest, RULE_LABEL } from '../services/restHours';
+import { exportRestPdf } from '../services/restReport';
+import { RestBar } from '../components/RestBar';
+
+function todayIso(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function shiftMonth(month: string, n: number): string {
+  const [y, m] = month.split('-').map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + n, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+function monthLabel(month: string): string {
+  const [y, m] = month.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+}
+
+export default function HoursOfRestSc() {
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+  const nav = useNavigation<any>();
+  const route = useRoute<any>();
+  const { crew, rest, vessel, prefs } = useData();
+  const sync = useSync();
+
+  const people = useMemo(
+    () => crew.filter((c) => c.active).sort((a, b) => a.name.localeCompare(b.name)),
+    [crew]
+  );
+
+  /** This device's own person: its account, else the last signer here. */
+  const mine = useMemo<CrewMember | undefined>(() => {
+    const own = sync.me ? personName(sync.me).trim().toLowerCase() : '';
+    return (
+      (own && people.find((c) => c.name.trim().toLowerCase() === own)) ||
+      people.find((c) => c.id === prefs.lastCrewId) ||
+      people[0]
+    );
+  }, [sync.me, people, prefs.lastCrewId]);
+
+  const [personId, setPersonId] = useState<string | undefined>(route.params?.crewId);
+  useEffect(() => {
+    if (!personId && mine) setPersonId(mine.id);
+  }, [mine, personId]);
+  const person = people.find((c) => c.id === personId) ?? crew.find((c) => c.id === personId);
+
+  const today = todayIso();
+  const [month, setMonth] = useState(today.slice(0, 7));
+
+  const mineDays = useMemo(() => rest.filter((d) => d.crewId === personId), [rest, personId]);
+  const summary = useMemo(() => {
+    const last = month === today.slice(0, 7) ? today : (() => {
+      const [y, m] = month.split('-').map(Number);
+      return `${month}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, '0')}`;
+    })();
+    if (`${month}-01` > today) return [];
+    return analyseRest(mineDays, `${month}-01`, last).reverse();
+  }, [mineDays, month, today]);
+
+  const recorded = summary.filter((s) => s.recorded).length;
+  const badDays = summary.filter((s) => s.violations.length).length;
+  const workTotal = summary.reduce((n, s) => n + s.workHours, 0);
+  const byDate = useMemo(() => new Map(mineDays.map((d) => [d.date, d])), [mineDays]);
+
+  const onReport = async () => {
+    if (!person) return;
+    try {
+      await exportRestPdf({
+        holderName: person.name,
+        rank: person.rank,
+        month,
+        days: mineDays,
+        vessel,
+      });
+    } catch (e: any) {
+      Alert.alert('Report', e?.message ?? 'Could not create the report.');
+    }
+  };
+
+  if (!people.length) {
+    return (
+      <Screen>
+        <ScreenTitle title="Hours of rest" subtitle="MLC 2006 · STCW A-VIII/1" />
+        <Empty text="The crew list is empty. The Master adds people in Settings → Crew; each person then records their own hours here." />
+      </Screen>
+    );
+  }
+
+  return (
+    <Screen>
+      <ScreenTitle title="Hours of rest" subtitle="MLC 2006 · STCW A-VIII/1 · ship's time" help="Hours of rest" />
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+        {people.map((c) => {
+          const on = c.id === personId;
+          return (
+            <TouchableOpacity
+              key={c.id}
+              style={[styles.chip, on && styles.chipOn]}
+              onPress={() => setPersonId(c.id)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: on }}
+            >
+              <Text style={[styles.chipText, on && styles.chipTextOn]} numberOfLines={1}>
+                {c.id === mine?.id ? `${crewLabel(c)} (you)` : crewLabel(c)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      <View style={styles.monthRow}>
+        <TouchableOpacity onPress={() => setMonth(shiftMonth(month, -1))} hitSlop={12} accessibilityLabel="Previous month">
+          <MciIcon name="chevron-left" size={28} color={COLORS.primary} />
+        </TouchableOpacity>
+        <Text style={styles.month}>{monthLabel(month)}</Text>
+        <TouchableOpacity
+          onPress={() => setMonth(shiftMonth(month, 1))}
+          hitSlop={12}
+          disabled={month >= today.slice(0, 7)}
+          accessibilityLabel="Next month"
+        >
+          <MciIcon name="chevron-right" size={28} color={month >= today.slice(0, 7) ? COLORS.border : COLORS.primary} />
+        </TouchableOpacity>
+      </View>
+
+      <Card>
+        <View style={styles.stats}>
+          <Stat label="Recorded" value={`${recorded}/${summary.length}`} />
+          <Stat label="Days with a breach" value={String(badDays)} danger={badDays > 0} />
+          <Stat label="Work this month" value={`${workTotal} h`} />
+        </View>
+        <TouchableOpacity style={styles.reportBtn} onPress={onReport}>
+          <MciIcon name="file-pdf-box" size={18} color={COLORS.primary} />
+          <Text style={styles.reportText}>Monthly record (PDF) for signature</Text>
+        </TouchableOpacity>
+      </Card>
+
+      <FlatList
+        data={summary}
+        keyExtractor={(s) => s.date}
+        scrollEnabled={false}
+        renderItem={({ item: s }) => {
+          const rec: RestDay | undefined = byDate.get(s.date);
+          const d = new Date(`${s.date}T00:00:00Z`);
+          return (
+            <TouchableOpacity
+              style={styles.row}
+              activeOpacity={0.7}
+              onPress={() => nav.navigate('RestDay', { crewId: personId, date: s.date })}
+            >
+              <View style={styles.dateCol}>
+                <Text style={styles.dow}>{d.toLocaleString('en-GB', { weekday: 'short', timeZone: 'UTC' })}</Text>
+                <Text style={[styles.dom, s.date === today && { color: COLORS.primary }]}>{s.date.slice(8)}</Text>
+              </View>
+              <View style={{ flex: 1, gap: 4 }}>
+                {rec ? <RestBar work={rec.work} height={12} /> : <Text style={styles.missing}>Not recorded — tap to fill in</Text>}
+                {rec ? (
+                  <Text style={styles.meta}>
+                    {`Rest ${s.restHours} h · work ${s.workHours} h`}
+                    {s.violations.length ? '' : ' · ✓'}
+                  </Text>
+                ) : null}
+                {s.violations.map((v) => (
+                  <Text key={v.rule} style={styles.breach} numberOfLines={2}>
+                    {`${RULE_LABEL[v.rule]}: ${v.detail}`}
+                  </Text>
+                ))}
+              </View>
+              {s.violations.length ? <StatusPill status="expired" text="Breach" /> : null}
+            </TouchableOpacity>
+          );
+        }}
+      />
+    </Screen>
+  );
+}
+
+function Stat({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
+  const COLORS = useTheme();
+  return (
+    <View style={{ flex: 1, alignItems: 'center' }}>
+      <Text style={{ fontSize: SIZES.h4, fontWeight: '800', color: danger ? COLORS.danger : COLORS.textDark }}>{value}</Text>
+      <Text style={{ fontSize: SIZES.tiny, color: COLORS.textLight, textAlign: 'center' }}>{label}</Text>
+    </View>
+  );
+}
+
+const makeStyles = (COLORS: Palette) =>
+  StyleSheet.create({
+    chips: { gap: SIZES.xs, paddingBottom: SIZES.sm },
+    chip: { paddingVertical: 7, paddingHorizontal: SIZES.md, borderRadius: 999, borderWidth: 1, borderColor: COLORS.primary },
+    chipOn: { backgroundColor: COLORS.primary },
+    chipText: { color: COLORS.primary, fontWeight: '600', fontSize: SIZES.small },
+    chipTextOn: { color: COLORS.textWhite },
+    monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: SIZES.sm },
+    month: { fontSize: SIZES.h4, fontWeight: '700', color: COLORS.textDark },
+    stats: { flexDirection: 'row', gap: SIZES.sm },
+    reportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SIZES.xs, marginTop: SIZES.md, paddingVertical: SIZES.sm, borderRadius: SIZES.radiusMd, borderWidth: 1, borderColor: COLORS.primary },
+    reportText: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
+    row: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.sm, marginBottom: SIZES.xs },
+    dateCol: { width: 36, alignItems: 'center' },
+    dow: { fontSize: SIZES.tiny, color: COLORS.textLight },
+    dom: { fontSize: SIZES.h5, fontWeight: '800', color: COLORS.textDark },
+    meta: { fontSize: SIZES.tiny, color: COLORS.textLight },
+    missing: { fontSize: SIZES.small, color: COLORS.textLight, fontStyle: 'italic' },
+    breach: { fontSize: SIZES.tiny, color: COLORS.danger, fontWeight: '600' },
+  });

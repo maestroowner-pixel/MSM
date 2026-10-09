@@ -43,6 +43,8 @@ import GettingStartedSc from './screens/GettingStartedSc';
 import LegalSc from './screens/LegalSc';
 import CertificatesSc from './screens/CertificatesSc';
 import CertificateDetailSc from './screens/CertificateDetailSc';
+import HoursOfRestSc from './screens/HoursOfRestSc';
+import RestDaySc from './screens/RestDaySc';
 import CompressorSc from './screens/CompressorSc';
 import PaywallSc from './screens/PaywallSc';
 import LabelSc from './screens/LabelSc';
@@ -273,6 +275,8 @@ const linking = {
       Inspection: 'inspect/:itemId',
       InspectionDetail: 'inspection/:id',
       Crew: 'crew',
+      HoursOfRest: 'rest',
+      RestDay: 'rest/:crewId/:date',
       Defects: 'defects',
       Accounts: 'accounts',
       Enrol: 'join',
@@ -450,6 +454,8 @@ function Root() {
         <Stack.Screen name="Inspection" component={InspectionSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="InspectionDetail" component={InspectionDetailSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Crew" component={CrewSc} options={webHeader('Crew', toTab('Settings'))} />
+        <Stack.Screen name="HoursOfRest" component={HoursOfRestSc} options={webHeader('Hours of rest', toTab('Settings'))} />
+        <Stack.Screen name="RestDay" component={RestDaySc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Checklists" component={ChecklistsSc} options={webHeader('Checklists', toTab('Settings'))} />
         <Stack.Screen name="ScanRules" component={ScanRulesSc} options={webHeader('Scan by category', toTab('Settings'))} />
         <Stack.Screen name="PhotoArchive" component={PhotoArchiveSc} options={webHeader('Photo archive', toTab('Settings'))} />

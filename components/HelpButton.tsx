@@ -1,7 +1,13 @@
 // ===================================
 // HelpButton — a "?" that opens the matching User-Manual section in a modal.
-// Each screen passes the index of its section in constants/manual (order is the
-// same across all languages, so an index maps cleanly to the localized section).
+// Each screen names its section by its ENGLISH title in constants/manual; the
+// order is the same across all languages, so the English position finds the
+// localized section.
+//
+// It used to be a bare index, and an index is silently wrong the day a section is
+// inserted above it: adding "Lifting & Mooring" before "Certificates" made the ?
+// on the Certificates tab open the Lifting section. A title cannot drift that way,
+// and one that no longer exists shows no button rather than the wrong page.
 // ===================================
 
 import React, { useMemo, useState } from 'react';
@@ -12,10 +18,16 @@ import { useTheme } from '../contexts/ThemeContext';
 import { MANUAL } from '../constants/manual';
 import { manualLang } from '../utils/locale';
 
-export function HelpButton({ section }: { section: number }) {
+/** A manual section by its English title (preferred) or position. */
+export type HelpSection = string | number;
+
+export function HelpButton({ section }: { section: HelpSection }) {
   const COLORS = useTheme();
   const [open, setOpen] = useState(false);
-  const s = useMemo(() => MANUAL[manualLang()].sections[section], [section]);
+  const s = useMemo(() => {
+    const i = typeof section === 'number' ? section : MANUAL.en.sections.findIndex((x) => x.title === section);
+    return i >= 0 ? MANUAL[manualLang()].sections[i] : undefined;
+  }, [section]);
   const styles = makeStyles(COLORS);
   if (!s) return null;
 

@@ -22,6 +22,7 @@ import { Certificate } from '../types/certificate';
 import { CompressorState, normalizeCompressorState } from '../types/compressor';
 import { Inspection } from '../types/inspection';
 import { CrewMember } from '../types/crew';
+import { RestDay } from '../types/rest';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from '../services/storage';
 import { VesselInfo } from '../services/storage';
@@ -42,6 +43,8 @@ export interface BackupFile {
   /** v3+. Absent in a v2 file — restored as empty, never as a failure. */
   inspections?: Inspection[];
   crew?: CrewMember[];
+  /** Hours of rest, one record per person per day. Absent in backups made before it existed. */
+  rest?: RestDay[];
   files?: Record<string, string>; // basename -> base64 of the file contents
 }
 
@@ -54,6 +57,7 @@ export interface BackupSummary {
   files: number;
   inspections: number;
   crew: number;
+  rest: number;
   vessel: string | null;
 }
 
@@ -78,6 +82,7 @@ function summarize(b: BackupFile): BackupSummary {
     files: b.files ? Object.keys(b.files).length : 0,
     inspections: b.inspections?.length ?? 0,
     crew: b.crew?.length ?? 0,
+    rest: b.rest?.length ?? 0,
     vessel: b.vessel?.vessel_name || (b.vessel?.imo ? `IMO ${b.vessel.imo}` : null),
   };
 }
@@ -117,6 +122,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   const compressor = await storage.loadCompressor();
   const inspections = await storage.loadInspections();
   const crew = await storage.loadCrew();
+  const rest = await storage.loadRest();
 
   // Read each referenced binary into a basename -> base64 map.
   const files: Record<string, string> = {};
@@ -141,6 +147,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     compressor,
     inspections,
     crew,
+    rest,
     files,
   };
 
@@ -292,6 +299,7 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     );
   }
   if (backup.crew) await storage.saveCrew(backup.crew);
+  if (backup.rest) await storage.saveRest(backup.rest);
 
   if (backup.compressor) await storage.saveCompressor(normalizeCompressorState(backup.compressor));
   if (backup.vessel) await storage.saveVessel(backup.vessel);

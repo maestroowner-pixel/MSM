@@ -208,7 +208,7 @@ export default function ImportSc() {
       {/* This screen had no way back at all: a modal, so no stack header, and
           nothing of its own — the browser's back button was the only exit. */}
       <BackButton onPress={() => goBackOr(nav)} />
-      <ScreenTitle title="Import from Excel" subtitle="LSA / FFE Inventories workbook (.xlsx)" help={1} />
+      <ScreenTitle title="Import from Excel" subtitle="LSA / FFE Inventories workbook (.xlsx)" help="Importing from Excel" />
 
       <TouchableOpacity style={styles.pickBtn} onPress={pick} disabled={busy}>
         <Text style={styles.pickBtnText}>{fileName ? 'Choose a different file' : 'Choose .xlsx file'}</Text>

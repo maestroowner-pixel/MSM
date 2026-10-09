@@ -439,7 +439,7 @@ export default function CategoryItemsSc() {
           </>
         ) : (
           <>
-            <HelpButton section={2} />
+            <HelpButton section="Equipment & categories" />
             <TouchableOpacity style={styles.iconBtn} onPress={() => nav.navigate('Scan')}>
               <MciIcon name="qrcode-scan" size={18} color={COLORS.primary} />
             </TouchableOpacity>

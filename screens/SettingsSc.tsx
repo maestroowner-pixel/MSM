@@ -481,7 +481,7 @@ export default function SettingsSc() {
       <ScreenTitle
         title="Settings"
         subtitle={`${flat.length} items on this device`}
-        help={0}
+        help="Getting started"
         actions={
           <View style={styles.headerActions}>
             {/* PRO, as a badge rather than a card. Green when the vessel is
@@ -560,6 +560,19 @@ export default function SettingsSc() {
           moved to the Dashboard: an open defect is work waiting, and work
           waiting belongs where the officer already looks, not filed under
           Settings behind the crew list. */}
+      {/* Everyone's, not the Master's: each seafarer records their own day. */}
+      <Card>
+        <Label>Hours of rest</Label>
+        <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('HoursOfRest')}>
+          <IconChip name="bed-clock" size={18} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkTitle}>Hours of rest</Text>
+            <Text style={styles.linkSub}>MLC / STCW · record work and rest, monthly sheet for signature</Text>
+          </View>
+          <Text style={styles.chev}>›</Text>
+        </TouchableOpacity>
+      </Card>
+
       {sync.role === 'superadmin' ? (
       <Card>
         <Label>Crew &amp; accounts</Label>

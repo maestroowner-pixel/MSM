@@ -115,7 +115,7 @@ export default function CertificatesSc() {
           <Text style={styles.title}>Certificates</Text>
           <Text style={styles.sub}>{SUBTITLE[tab](counts[tab])}</Text>
         </View>
-        <HelpButton section={4} />
+        <HelpButton section="Certificates" />
         <TouchableOpacity style={[styles.addBtn, { marginLeft: SIZES.sm }]} onPress={addCertificate}>
           <MciIcon name="plus" size={26} color={COLORS.textWhite} />
         </TouchableOpacity>

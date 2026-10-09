@@ -85,7 +85,7 @@ export default function CategoriesSc() {
       <ScreenTitle
         title="Equipment"
         subtitle="Browse safety equipment by category"
-        help={2}
+        help="Equipment & categories"
         onScan={() => nav.navigate('Scan')}
         onLabels={() => nav.navigate('LabelBatch')}
       />

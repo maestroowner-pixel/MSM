@@ -10,6 +10,7 @@ import { Certificate } from '../types/certificate';
 import { CompressorState } from '../types/compressor';
 import { Inspection, InspectionPeriod } from '../types/inspection';
 import { CrewMember, liveCrew } from '../types/crew';
+import { RestDay } from '../types/rest';
 import { ChecklistTemplate } from '../constants/checklists';
 import { CategoryMeta, setVesselCategories } from '../constants/categories';
 import { CATEGORIES, CATEGORY_MAP } from '../constants/categories';
@@ -43,6 +44,9 @@ interface DataContextType {
   inspections: Inspection[];
   /** Who can sign an inspection. */
   crew: CrewMember[];
+  /** Hours of rest, every person, every recorded day. */
+  rest: RestDay[];
+  saveRestDay: (day: RestDay) => Promise<void>;
   /** The vessel's own checklists; they replace the built-in for their category. */
   templates: ChecklistTemplate[];
   /** Headings this vessel invented, on top of the 23 the app ships. */
@@ -100,6 +104,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [prefs, setPrefsState] = useState<storage.Prefs>({});
   const [inspections, setInspections] = useState<Inspection[]>([]);
   const [crew, setCrew] = useState<CrewMember[]>([]);
+  const [rest, setRest] = useState<RestDay[]>([]);
   const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
   const [categories, setCategories] = useState<CategoryMeta[]>([]);
   const [recentScans, setRecentScans] = useState<ScanEntry[]>([]);
@@ -132,6 +137,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setCompressorState(await storage.loadCompressor());
     setInspections(await storage.loadInspections());
     setCrew(liveCrew(await storage.loadCrew()));
+    setRest(await storage.loadRest());
     setTemplates(await storage.loadTemplates());
     setSigningPolicyState((await storage.loadSigningPolicy()) ?? DEFAULT_POLICY);
     setPhotoArchiveState((await storage.loadPhotoArchive()) ?? DEFAULT_ARCHIVE);
@@ -263,6 +269,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setInspections((prev) => prev.map((i) => (i.id === insp.id ? insp : i)));
   }, []);
 
+  const saveRestDay = useCallback(async (day: RestDay) => {
+    await storage.upsertRestDay(day);
+    setRest(await storage.loadRest());
+  }, []);
+
   const saveCrewMember = useCallback(async (member: CrewMember) => {
     await storage.upsertCrewMember(member);
     setCrew(liveCrew(await storage.loadCrew()));
@@ -365,6 +376,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setPhotoArchive,
         inspections,
         crew,
+        rest,
+        saveRestDay,
         templates,
         categories,
         recentScans,

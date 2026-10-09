@@ -137,6 +137,17 @@ service cloud.firestore {
         allow write: if isSuper(v);
       }
 
+      // Hours of rest, one document per person per day (types/rest.ts). Any
+      // member reads and writes: a seafarer keeps their own record on their own
+      // phone, an officer or the Master corrects it, and the Master signs off the
+      // month from the same data. Not deletable: a day corrected is overwritten,
+      // never removed, so a breach cannot be made to disappear by deleting it.
+      match /rest/{id} {
+        allow read: if member(v);
+        allow create, update: if member(v);
+        allow delete: if false;
+      }
+
       // The vessel's own checklists. Any member reads them — a round cannot be
       // carried out without the questions — and an OFFICER may write them. That
       // is deliberately one rank below the crew list: wording a check is the work
