@@ -190,12 +190,35 @@ export const MACHINE_TYPES: { key: string; label: string; jobs: { title: string;
     ],
   },
   {
-    key: 'stabiliser',
-    label: 'Stabilisers / thrusters',
+    key: 'fin_stabiliser',
+    label: 'Fin stabilisers (hydraulic)',
     jobs: [
       { title: 'Hydraulic oil level and leaks', days: 30 },
       { title: 'Hydraulic filter change', hours: 1000, days: 365 },
       { title: 'Hydraulic oil sample / change', days: 730 },
+      { title: 'Fin shaft seals and bearings inspection', days: 365 },
+      { title: 'Fin anodes', days: 365 },
+    ],
+  },
+  {
+    key: 'gyro_stabiliser',
+    label: 'Gyro stabiliser',
+    jobs: [
+      { title: 'Glycol cooling level and pump check', days: 30 },
+      { title: 'Seawater strainer clean', days: 30 },
+      { title: 'Cooling-loop anode', days: 365 },
+      { title: 'Bearing service (maker\'s interval)', hours: 4000 },
+      { title: 'Vacuum check', days: 365 },
+    ],
+  },
+  {
+    key: 'thruster',
+    label: 'Bow / stern thruster',
+    jobs: [
+      { title: 'Run test both directions', days: 7 },
+      { title: 'Gear-leg oil level / change', hours: 200, days: 365 },
+      { title: 'Propeller and anode inspection (haul-out)', days: 365 },
+      { title: 'Motor brushes and contactors (electric)', hours: 200, days: 365 },
     ],
   },
 ];

@@ -5,6 +5,15 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Spare parts (dark, `spares`).** Spares tab: lines with part no., maker, location, unit,
+  re-order level and the machines they fit; grouped by location, out/low first, "To order" filter.
+  Stock is the SUM of signed, append-only movements (received / used / stocktake as a difference),
+  so concurrent devices never lose a booking. PMS jobs list the parts they take and "Record as done"
+  takes them from the stores (quantities editable, 0 = not used). Machine screen lists its spares;
+  Dashboard line when anything is out or low. Synced as `spares` + `spare_moves` (rules added);
+  in backups. `npm run check:spares` (13 cases).
+- Machine templates: "Stabilisers / thrusters" split into fin stabilisers, gyro stabiliser and
+  bow/stern thruster.
 - **Everything below ships dark** (owner's call, 9 Oct 2026): crew/vessel certificates, Hours of
   rest, PMS and Access are behind `crewCerts`, `rest`, `pms`, `access` in constants/modules.ts, all
   off. Off, a module has no tab, card, link, Settings row or manual section (`releasedManual`); its

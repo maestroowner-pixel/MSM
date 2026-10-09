@@ -169,6 +169,18 @@ service cloud.firestore {
         allow create: if member(v);
         allow update, delete: if false;
       }
+      // Spare parts: the stocked lines are edited (tombstoned, never deleted);
+      // their movements are append-only, because stock is their sum.
+      match /spares/{id} {
+        allow read: if member(v);
+        allow create, update: if member(v);
+        allow delete: if false;
+      }
+      match /spare_moves/{id} {
+        allow read: if member(v);
+        allow create: if member(v);
+        allow update, delete: if false;
+      }
 
       // The vessel's own checklists. Any member reads them — a round cannot be
       // carried out without the questions — and an OFFICER may write them. That

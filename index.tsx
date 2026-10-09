@@ -66,6 +66,8 @@ import DefectsSc from './screens/DefectsSc';
 import InspectionDetailSc from './screens/InspectionDetailSc';
 import AccountsSc from './screens/AccountsSc';
 import AccessSc from './screens/AccessSc';
+import SparesSc from './screens/SparesSc';
+import SparePartSc from './screens/SparePartSc';
 import { OPTIONAL_TABS } from './constants/access';
 import EnrolSc from './screens/EnrolSc';
 import { recordScanProof } from './services/signingPolicy';
@@ -86,6 +88,7 @@ const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Certificates: CertificatesSc,
   Maintenance: MaintenanceSc,
   HoursOfRest: HoursOfRestSc,
+  Spares: SparesSc,
   Reports: ReportsSc,
 };
 
@@ -277,6 +280,7 @@ const linking = {
           Reports: 'reports',
           Maintenance: 'maintenance',
           HoursOfRest: 'rest',
+          Spares: 'spares',
           Settings: 'settings',
         },
       },
@@ -300,6 +304,7 @@ const linking = {
       RestDay: 'rest/:crewId/:date',
       Machine: 'machine/:id',
       PmsJob: 'pms-job/:id',
+      SparePart: 'spare/:id',
       Defects: 'defects',
       Accounts: 'accounts',
       Access: 'access',
@@ -482,6 +487,7 @@ function Root() {
         <Stack.Screen name="Access" component={AccessSc} options={webHeader('Access', toTab('Settings'))} />
         <Stack.Screen name="Machine" component={MachineSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsJob" component={PmsJobSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="SparePart" component={SparePartSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Checklists" component={ChecklistsSc} options={webHeader('Checklists', toTab('Settings'))} />
         <Stack.Screen name="ScanRules" component={ScanRulesSc} options={webHeader('Scan by category', toTab('Settings'))} />
         <Stack.Screen name="PhotoArchive" component={PhotoArchiveSc} options={webHeader('Photo archive', toTab('Settings'))} />

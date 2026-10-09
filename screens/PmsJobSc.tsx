@@ -9,6 +9,10 @@
 // A counter reading entered here that is higher than the machine's last one
 // also becomes the machine's reading: the engineer has just read the counter,
 // and asking for it twice is how the two figures drift apart.
+//
+// With the Spares module on, a job lists the parts it takes each time, and
+// "Done" takes them out of the stores in the same step — the quantities can be
+// changed or zeroed on the day, because the impeller turned out to be fine.
 // ===================================
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -27,6 +31,9 @@ import { PmsDone, PmsJob } from '../types/pms';
 import { crewLabel } from '../types/crew';
 import { personName } from '../types/role';
 import { dueText, jobAfter, jobDue, todayIso, withReading } from '../services/pms';
+import { movesForJob, qtyText, stockByPart } from '../services/spares';
+import { JobPart } from '../types/spares';
+import { moduleOn } from '../constants/modules';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -45,7 +52,13 @@ export default function PmsJobSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { pmsJobs, machines, crew, savePmsJob, saveMachine, completePmsJob } = useData();
+  const { pmsJobs, machines, crew, spares, spareMoves, savePmsJob, saveMachine, completePmsJob } = useData();
+  const sparesOn = moduleOn('spares');
+  const partById = useMemo(() => new Map(spares.map((p) => [p.id, p])), [spares]);
+  const stock = useMemo(() => stockByPart(spareMoves), [spareMoves]);
+  const [pickPart, setPickPart] = useState(false);
+  /** Quantities to take on "Done", by part id; starts from the job's list. */
+  const [take, setTake] = useState<Record<string, number>>({});
   const sync = useSync();
 
   const id: string = route.params?.id;
@@ -93,6 +106,19 @@ export default function PmsJobSc() {
     goBackOr(nav);
   };
 
+  const startDoing = () => {
+    setTake(Object.fromEntries((existing?.parts ?? []).map((p) => [p.partId, p.qty])));
+    setDoing(true);
+  };
+
+  const setJobParts = (parts: JobPart[]) => set({ parts });
+  const bumpJobPart = (partId: string, by: number) => {
+    const parts = draft.parts ?? [];
+    const cur = parts.find((p) => p.partId === partId);
+    const qty = Math.max(0, (cur?.qty ?? 0) + by);
+    setJobParts(qty === 0 ? parts.filter((p) => p.partId !== partId) : cur ? parts.map((p) => (p.partId === partId ? { ...p, qty } : p)) : [...parts, { partId, qty }]);
+  };
+
   const onDone = async () => {
     if (!existing) return Alert.alert('Save first', 'Save the job, then record it as done.');
     if (!signer) return Alert.alert('Who did it?', 'Choose your name.');
@@ -113,7 +139,17 @@ export default function PmsJobSc() {
       at: Date.now(),
       updatedAt: Date.now(),
     };
-    await completePmsJob(done, jobAfter(existing, done));
+    const moves = sparesOn
+      ? movesForJob(
+          Object.entries(take).map(([partId, qty]) => ({ partId, qty })),
+          partById,
+          stock,
+          { by: signer.name, byRank: signer.rank },
+          doneDate,
+          { doneId: done.id, jobTitle: existing.title, machineName: machine?.name ?? '' }
+        )
+      : [];
+    await completePmsJob(done, jobAfter(existing, done), moves);
     if (machine && hours != null && (machine.hours == null || hours > machine.hours)) {
       await saveMachine(withReading(machine, doneDate, hours));
     }
@@ -191,6 +227,27 @@ export default function PmsJobSc() {
                   {people.length === 0 ? <Text style={styles.sub}>The crew list is empty — the Master adds people in Settings → Crew.</Text> : null}
                 </View>
               )}
+              {sparesOn && Object.keys(take).length ? (
+                <>
+                  <View style={{ height: SIZES.md }} />
+                  <Label>Taken from the stores</Label>
+                  {Object.entries(take).map(([partId, qty]) => {
+                    const p = partById.get(partId);
+                    if (!p) return null;
+                    const have = stock.get(partId) ?? 0;
+                    return (
+                      <View key={partId} style={styles.partRow}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.partName} numberOfLines={1}>{p.name}</Text>
+                          <Text style={[styles.sub, qty > have && { color: COLORS.warning }]}>{`On hand ${qtyText(have, p)}${qty > have ? ' — less than needed' : ''}`}</Text>
+                        </View>
+                        <Stepper value={qty} onChange={(v) => setTake((t) => ({ ...t, [partId]: v }))} styles={styles} />
+                      </View>
+                    );
+                  })}
+                  <Text style={styles.sub}>Set a part to 0 if it was not used this time.</Text>
+                </>
+              ) : null}
               <Text style={[styles.sub, { marginTop: SIZES.md }]}>Signing adds the record to the machine's history. It cannot be edited afterwards; a mistake is corrected by recording the job again.</Text>
             </>
           ) : (
@@ -246,8 +303,47 @@ export default function PmsJobSc() {
               <Label>Notes (parts, consumables, maker's reference)</Label>
               <TextInput style={[styles.input, { minHeight: 70 }]} value={draft.notes ?? ''} onChangeText={(v) => set({ notes: v })} multiline placeholder="—" placeholderTextColor={COLORS.textLight} />
 
+              {sparesOn ? (
+                <>
+                  <View style={styles.partsHead}>
+                    <Label>Parts used each time</Label>
+                    <TouchableOpacity onPress={() => setPickPart((v) => !v)} hitSlop={10}>
+                      <Text style={styles.addPart}>{pickPart ? 'Done' : '+ Add part'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {(draft.parts ?? []).map((jp) => {
+                    const p = partById.get(jp.partId);
+                    return (
+                      <View key={jp.partId} style={styles.partRow}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.partName} numberOfLines={1}>{p?.name ?? 'Removed from the stores'}</Text>
+                          {p ? <Text style={styles.sub}>{`On hand ${qtyText(stock.get(p.id) ?? 0, p)}${p.partNo ? ` · ${p.partNo}` : ''}`}</Text> : null}
+                        </View>
+                        <Stepper value={jp.qty} onChange={(v) => bumpJobPart(jp.partId, v - jp.qty)} styles={styles} />
+                      </View>
+                    );
+                  })}
+                  {!(draft.parts ?? []).length && !pickPart ? (
+                    <Text style={styles.sub}>Add the parts this job takes and "Record as done" will take them out of the stores.</Text>
+                  ) : null}
+                  {pickPart ? (
+                    <View style={styles.chips}>
+                      {[...spares]
+                        .filter((p) => !(draft.parts ?? []).some((jp) => jp.partId === p.id))
+                        .sort((a, b) => Number(!(a.machineIds ?? []).includes(machineId)) - Number(!(b.machineIds ?? []).includes(machineId)) || a.name.localeCompare(b.name))
+                        .map((p) => (
+                          <TouchableOpacity key={p.id} style={[styles.chip, styles.chipSmall]} onPress={() => bumpJobPart(p.id, 1)}>
+                            <Text style={styles.chipSmallText}>{`${(p.machineIds ?? []).includes(machineId) ? '★ ' : ''}${p.name}`}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      {spares.length === 0 ? <Text style={styles.sub}>The stores are empty — add parts on the Spares tab first.</Text> : null}
+                    </View>
+                  ) : null}
+                </>
+              ) : null}
+
               {!isNew ? (
-                <TouchableOpacity style={styles.doneBtn} onPress={() => setDoing(true)}>
+                <TouchableOpacity style={styles.doneBtn} onPress={startDoing}>
                   <Text style={styles.doneText}>Record as done</Text>
                 </TouchableOpacity>
               ) : null}
@@ -259,6 +355,20 @@ export default function PmsJobSc() {
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
+  );
+}
+
+function Stepper({ value, onChange, styles }: { value: number; onChange: (v: number) => void; styles: ReturnType<typeof makeStyles> }) {
+  return (
+    <View style={styles.stepper}>
+      <TouchableOpacity style={styles.stepBtn} onPress={() => onChange(Math.max(0, value - 1))} hitSlop={6}>
+        <Text style={styles.stepText}>−</Text>
+      </TouchableOpacity>
+      <Text style={styles.stepVal}>{value}</Text>
+      <TouchableOpacity style={styles.stepBtn} onPress={() => onChange(value + 1)} hitSlop={6}>
+        <Text style={styles.stepText}>+</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -285,4 +395,12 @@ const makeStyles = (COLORS: Palette) =>
     doneText: { color: COLORS.textWhite, fontWeight: '800', fontSize: SIZES.body },
     deleteBtn: { marginTop: SIZES.md, paddingVertical: SIZES.md, borderRadius: SIZES.radiusMd, borderWidth: 1, borderColor: COLORS.danger, alignItems: 'center' },
     deleteText: { color: COLORS.danger, fontWeight: '700', fontSize: SIZES.body },
+    partsHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: SIZES.lg },
+    addPart: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
+    partRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, paddingVertical: SIZES.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.borderLight },
+    partName: { fontSize: SIZES.body, fontWeight: '600', color: COLORS.textDark },
+    stepper: { flexDirection: 'row', alignItems: 'center', gap: SIZES.xs },
+    stepBtn: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
+    stepText: { color: COLORS.primary, fontSize: 18, fontWeight: '800', lineHeight: 20 },
+    stepVal: { minWidth: 28, textAlign: 'center', fontSize: SIZES.body, fontWeight: '800', color: COLORS.textDark },
   });

@@ -59,6 +59,8 @@ export interface PmsJob {
   lastDoneHours?: number;
   /** Parts, consumables, maker's reference. */
   notes?: string;
+  /** Spare parts taken from the stores each time it is done (types/spares.ts). */
+  parts?: import('./spares').JobPart[];
   deleted?: boolean;
   updatedAt: number;
 }

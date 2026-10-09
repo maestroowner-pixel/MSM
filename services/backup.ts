@@ -24,6 +24,7 @@ import { Inspection } from '../types/inspection';
 import { CrewMember } from '../types/crew';
 import { RestDay } from '../types/rest';
 import { Machine, PmsDone, PmsJob } from '../types/pms';
+import { SpareMove, SparePart } from '../types/spares';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from '../services/storage';
 import { VesselInfo } from '../services/storage';
@@ -48,6 +49,8 @@ export interface BackupFile {
   rest?: RestDay[];
   /** Planned maintenance. Absent in backups made before it existed. */
   pms?: { machines: Machine[]; jobs: PmsJob[]; done: PmsDone[] };
+  /** Spare parts and their movements. Absent in backups made before it existed. */
+  spares?: { parts: SparePart[]; moves: SpareMove[] };
   files?: Record<string, string>; // basename -> base64 of the file contents
 }
 
@@ -133,6 +136,10 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     jobs: await storage.loadList<PmsJob>(storage.PMS_JOBS_KEY),
     done: await storage.loadList<PmsDone>(storage.PMS_DONE_KEY),
   };
+  const spares = {
+    parts: await storage.loadList<SparePart>(storage.SPARES_KEY),
+    moves: await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY),
+  };
 
   // Read each referenced binary into a basename -> base64 map.
   const files: Record<string, string> = {};
@@ -159,6 +166,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     crew,
     rest,
     pms,
+    spares,
     files,
   };
 
@@ -315,6 +323,10 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     await storage.saveList(storage.PMS_MACHINES_KEY, backup.pms.machines ?? []);
     await storage.saveList(storage.PMS_JOBS_KEY, backup.pms.jobs ?? []);
     await storage.saveList(storage.PMS_DONE_KEY, backup.pms.done ?? []);
+  }
+  if (backup.spares) {
+    await storage.saveList(storage.SPARES_KEY, backup.spares.parts ?? []);
+    await storage.saveList(storage.SPARE_MOVES_KEY, backup.spares.moves ?? []);
   }
 
   if (backup.compressor) await storage.saveCompressor(normalizeCompressorState(backup.compressor));

@@ -16,6 +16,7 @@ import { SIZES, Palette, SCROLLBAR_GUTTER } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
+import { stockByPart, toOrderCounts } from '../services/spares';
 import { CATEGORY_MAP, GROUP_ORDER, GROUP_SHORT } from '../constants/categories';
 import { gettingStarted } from '../constants/gettingStarted';
 import { complianceDate, computeStatus, daysUntil, formatDate } from '../utils/dates';
@@ -84,7 +85,8 @@ type ListEntry =
   | ({ kind: 'row'; key: string } & Scored);
 
 export default function DashboardSc() {
-  const { flat, loading, certificates, isLocked, recentScans, templates, inspections: trail, machines, pmsJobs } = useData();
+  const { flat, loading, certificates, isLocked, recentScans, templates, inspections: trail, machines, pmsJobs, spares, spareMoves } = useData();
+  const sparesOwed = useMemo(() => toOrderCounts(spares, stockByPart(spareMoves)), [spares, spareMoves]);
   // The maintenance strip leads to the PMS tab, so it goes where the tab goes.
   const { tabs } = useSync();
 
@@ -323,6 +325,16 @@ export default function DashboardSc() {
               : 'Maintenance — nothing owed'}
           </Text>
           {pmsOwed.overdue ? <Text style={[styles.posHeaderCount, { color: COLORS.danger }]}>{pmsOwed.overdue}</Text> : null}
+          <Text style={styles.posHeaderChevron}>›</Text>
+        </TouchableOpacity>
+      ) : null}
+      {spares.length > 0 && tabs.has('spares') && sparesOwed.out + sparesOwed.low > 0 ? (
+        <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('Spares')} activeOpacity={0.7}>
+          <MciIcon name="package-variant-closed" size={15} color={COLORS.textLight} />
+          <Text style={styles.posHeaderText} numberOfLines={1}>
+            {[sparesOwed.out ? `${sparesOwed.out} spare${sparesOwed.out === 1 ? '' : 's'} out of stock` : null, sparesOwed.low ? `${sparesOwed.low} low` : null].filter(Boolean).join(' · ')}
+          </Text>
+          {sparesOwed.out ? <Text style={[styles.posHeaderCount, { color: COLORS.danger }]}>{sparesOwed.out}</Text> : null}
           <Text style={styles.posHeaderChevron}>›</Text>
         </TouchableOpacity>
       ) : null}

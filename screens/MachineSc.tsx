@@ -21,6 +21,8 @@ import { SIZES, Palette } from '../theme';
 import { Machine, PmsJob } from '../types/pms';
 import { dueText, hoursPerDay, intervalText, jobDue, MACHINE_TYPES, sortJobsByDue, todayIso, withReading } from '../services/pms';
 import { formatDate } from '../utils/dates';
+import { qtyText, stockByPart, stockStatus } from '../services/spares';
+import { moduleOn } from '../constants/modules';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -30,8 +32,11 @@ export default function MachineSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { machines, pmsJobs, pmsDone, saveMachine, savePmsJob } = useData();
+  const { machines, pmsJobs, pmsDone, spares, spareMoves, saveMachine, savePmsJob } = useData();
   const id: string = route.params?.id;
+  // Spare parts marked as fitting this machine (Spares module).
+  const fitting = useMemo(() => (moduleOn('spares') ? spares.filter((p) => (p.machineIds ?? []).includes(id)) : []), [spares, id]);
+  const stock = useMemo(() => stockByPart(spareMoves), [spareMoves]);
   const existing = machines.find((m) => m.id === id);
   const isNew = !existing;
 
@@ -210,6 +215,22 @@ export default function MachineSc() {
                   <Text style={styles.sub} numberOfLines={2}>{`Every ${intervalText(j)} · ${dueText(d)}`}</Text>
                 </View>
                 {d.status !== 'none' ? <StatusPill status={d.status} /> : null}
+              </TouchableOpacity>
+            );
+          })}
+
+          {fitting.length ? <Label>{`Spares for this machine (${fitting.length})`}</Label> : null}
+          {fitting.map((p) => {
+            const have = stock.get(p.id) ?? 0;
+            const st = stockStatus(p, have);
+            return (
+              <TouchableOpacity key={p.id} style={styles.row} onPress={() => nav.navigate('SparePart', { id: p.id })} activeOpacity={0.7}>
+                <View style={[styles.bar, { backgroundColor: st === 'out' ? COLORS.danger : st === 'low' ? COLORS.warning : COLORS.success }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowTitle} numberOfLines={1}>{p.name}</Text>
+                  <Text style={styles.sub} numberOfLines={1}>{[p.partNo, p.location].filter(Boolean).join(' · ') || '—'}</Text>
+                </View>
+                <Text style={[styles.rowTitle, { color: st === 'out' ? COLORS.danger : st === 'low' ? COLORS.warning : COLORS.textDark }]}>{qtyText(have, p)}</Text>
               </TouchableOpacity>
             );
           })}

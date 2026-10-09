@@ -30,7 +30,7 @@
 
 import { ModuleKey, moduleOn } from './modules';
 
-export type TabKey = 'certificates' | 'reports' | 'maintenance' | 'rest';
+export type TabKey = 'certificates' | 'reports' | 'maintenance' | 'spares' | 'rest';
 
 export interface OptionalTab {
   key: TabKey;
@@ -49,6 +49,7 @@ export interface OptionalTab {
 export const OPTIONAL_TABS: OptionalTab[] = [
   { key: 'certificates', route: 'Certificates', label: 'Certificates', column: 'Certs', icon: 'certificate' },
   { key: 'maintenance', module: 'pms', route: 'Maintenance', label: 'PMS', column: 'PMS', icon: 'engine' },
+  { key: 'spares', module: 'spares', route: 'Spares', label: 'Spares', column: 'Spares', icon: 'package-variant-closed' },
   { key: 'rest', module: 'rest', route: 'HoursOfRest', label: 'Rest', column: 'Rest', icon: 'bed-clock' },
   { key: 'reports', route: 'Reports', label: 'Reports', column: 'Reports', icon: 'file-document' },
 ];

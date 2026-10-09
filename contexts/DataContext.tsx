@@ -12,6 +12,7 @@ import { Inspection, InspectionPeriod } from '../types/inspection';
 import { CrewMember, liveCrew } from '../types/crew';
 import { RestDay } from '../types/rest';
 import { Machine, PmsDone, PmsJob } from '../types/pms';
+import { SpareMove, SparePart } from '../types/spares';
 import { ChecklistTemplate } from '../constants/checklists';
 import { CategoryMeta, setVesselCategories } from '../constants/categories';
 import { CATEGORIES, CATEGORY_MAP } from '../constants/categories';
@@ -54,8 +55,16 @@ interface DataContextType {
   pmsDone: PmsDone[];
   saveMachine: (m: Machine) => Promise<void>;
   savePmsJob: (j: PmsJob) => Promise<void>;
-  /** Record a completion and move its job's baseline, in one step. */
-  completePmsJob: (done: PmsDone, job: PmsJob) => Promise<void>;
+  /**
+   * Record a completion and move its job's baseline, in one step — and, when the
+   * job takes parts, the "used" movements that take them out of the stores.
+   */
+  completePmsJob: (done: PmsDone, job: PmsJob, moves?: SpareMove[]) => Promise<void>;
+  /** Spare parts — live lines only — and every stock movement. */
+  spares: SparePart[];
+  spareMoves: SpareMove[];
+  saveSpare: (p: SparePart) => Promise<void>;
+  addSpareMoves: (moves: SpareMove[]) => Promise<void>;
   /** The vessel's own checklists; they replace the built-in for their category. */
   templates: ChecklistTemplate[];
   /** Headings this vessel invented, on top of the 23 the app ships. */
@@ -117,6 +126,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [machines, setMachines] = useState<Machine[]>([]);
   const [pmsJobs, setPmsJobs] = useState<PmsJob[]>([]);
   const [pmsDone, setPmsDone] = useState<PmsDone[]>([]);
+  const [spares, setSpares] = useState<SparePart[]>([]);
+  const [spareMoves, setSpareMoves] = useState<SpareMove[]>([]);
   const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
   const [categories, setCategories] = useState<CategoryMeta[]>([]);
   const [recentScans, setRecentScans] = useState<ScanEntry[]>([]);
@@ -153,6 +164,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMachines((await storage.loadList<Machine>(storage.PMS_MACHINES_KEY)).filter((m) => !m.deleted));
     setPmsJobs((await storage.loadList<PmsJob>(storage.PMS_JOBS_KEY)).filter((j) => !j.deleted));
     setPmsDone(await storage.loadList<PmsDone>(storage.PMS_DONE_KEY));
+    setSpares((await storage.loadList<SparePart>(storage.SPARES_KEY)).filter((p) => !p.deleted));
+    setSpareMoves(await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY));
     setTemplates(await storage.loadTemplates());
     setSigningPolicyState((await storage.loadSigningPolicy()) ?? DEFAULT_POLICY);
     setPhotoArchiveState((await storage.loadPhotoArchive()) ?? DEFAULT_ARCHIVE);
@@ -288,6 +301,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMachines((await storage.loadList<Machine>(storage.PMS_MACHINES_KEY)).filter((m) => !m.deleted));
     setPmsJobs((await storage.loadList<PmsJob>(storage.PMS_JOBS_KEY)).filter((j) => !j.deleted));
     setPmsDone(await storage.loadList<PmsDone>(storage.PMS_DONE_KEY));
+    setSpares((await storage.loadList<SparePart>(storage.SPARES_KEY)).filter((p) => !p.deleted));
+    setSpareMoves(await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY));
   }, []);
 
   const saveMachine = useCallback(async (m: Machine) => {
@@ -300,9 +315,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await loadPms();
   }, [loadPms]);
 
-  const completePmsJob = useCallback(async (done: PmsDone, job: PmsJob) => {
+  const completePmsJob = useCallback(async (done: PmsDone, job: PmsJob, moves: SpareMove[] = []) => {
     await storage.upsertInList(storage.PMS_DONE_KEY, done);
     await storage.upsertInList(storage.PMS_JOBS_KEY, job);
+    if (moves.length) await storage.saveList(storage.SPARE_MOVES_KEY, [...(await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY)), ...moves]);
+    await loadPms();
+  }, [loadPms]);
+
+  const saveSpare = useCallback(async (p: SparePart) => {
+    await storage.upsertInList(storage.SPARES_KEY, p);
+    await loadPms();
+  }, [loadPms]);
+
+  const addSpareMoves = useCallback(async (moves: SpareMove[]) => {
+    if (!moves.length) return;
+    await storage.saveList(storage.SPARE_MOVES_KEY, [...(await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY)), ...moves]);
     await loadPms();
   }, [loadPms]);
 
@@ -421,6 +448,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         saveMachine,
         savePmsJob,
         completePmsJob,
+        spares,
+        spareMoves,
+        saveSpare,
+        addSpareMoves,
         templates,
         categories,
         recentScans,

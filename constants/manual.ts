@@ -330,6 +330,17 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '📦',
+      title: "Spare parts",
+      body: [
+        "The Spares tab is the stores: each line has its name, part number, maker, where it is kept and a re-order level. The list is grouped by location, out-of-stock and low lines first; To order narrows it to exactly those.",
+        "On hand is never typed over. Open a part and use + Received for a delivery, − Used for a part taken outside the maintenance plan, or Stocktake for what is physically on the shelf. Each is a signed movement and the stock is their sum, so two devices booking at once both count.",
+        "A stocktake is recorded as the difference from the book, so a count taken offline does not undo a delivery booked meanwhile. A wrong movement is corrected by a stocktake; movements cannot be edited.",
+        "Mark which machines a part fits: the machine's screen lists its spares with the stock. On a maintenance job, Parts used each time lists what the job takes; Record as done takes them out of the stores, and the quantities can be changed or set to 0 on the day.",
+        "The Dashboard shows a line when anything is out of stock or low.",
+      ],
+    },
+    {
       emoji: '☁️',
       title: "Cloud sync & inspection photos",
       body: [
@@ -675,6 +686,17 @@ const ru: ManualContent = {
         "«Скоро» — последние 10 % интервала, а не 60 дней, как у оборудования: иначе ежемесячная работа была бы «скоро» с первого же дня.",
         "Typical jobs добавляет обычный список для типа механизма. Интервалы типовые, не от производителя: сверьте каждый с инструкцией и поправьте.",
         "Record as done подписывает выполнение — дата, счётчик, примечание, ваше имя — в историю механизма. Как и проверку, её нельзя изменить или удалить; ошибка исправляется повторной записью. При удалении механизма или работы история сохраняется.",
+      ],
+    },
+    {
+      emoji: '📦',
+      title: "Запчасти (Spare parts)",
+      body: [
+        "Вкладка Spares — это склад: у каждой позиции название, партномер, производитель, место хранения и минимальный остаток. Список сгруппирован по местам хранения, сначала то, чего нет или мало; кнопка To order оставляет только такие позиции.",
+        "Остаток никогда не вводится поверх. Откройте запчасть: + Received — поступление, − Used — взято вне плана ТО, Stocktake — сколько физически на полке. Каждое действие — подписанное движение, а остаток — их сумма, поэтому если два устройства записали одновременно, учтутся оба.",
+        "Пересчёт записывается как разница с учётом, поэтому пересчёт без связи не отменит поступление, записанное в это время на другом устройстве. Ошибочное движение исправляется пересчётом; движения не редактируются.",
+        "Отметьте, к каким механизмам подходит запчасть: в карточке механизма будет список его запчастей с остатком. В работе ТО раздел Parts used each time перечисляет, что она расходует; Record as done списывает это со склада, а количество можно поменять или поставить 0 в день работы.",
+        "На главном экране появляется строка, когда что-то закончилось или ниже минимума.",
       ],
     },
     {
@@ -1026,6 +1048,17 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '📦',
+      title: "Repuestos (Spare parts)",
+      body: [
+        "La pestaña Spares es el pañol: cada línea tiene nombre, número de pieza, fabricante, dónde se guarda y un nivel de pedido. La lista se agrupa por ubicación, primero lo agotado y lo bajo; To order deja solo esas líneas.",
+        "Las existencias nunca se escriben encima. Abra un repuesto: + Received para una entrega, − Used para una pieza usada fuera del plan de mantenimiento, Stocktake para lo que hay físicamente en el estante. Cada uno es un movimiento firmado y las existencias son su suma, así que si dos dispositivos registran a la vez, cuentan los dos.",
+        "Un recuento se registra como la diferencia con el libro, así que un recuento hecho sin conexión no anula una entrega registrada mientras tanto. Un movimiento erróneo se corrige con un recuento; los movimientos no se editan.",
+        "Marque a qué máquinas sirve un repuesto: la pantalla de la máquina lista sus repuestos con las existencias. En un trabajo de mantenimiento, Parts used each time lista lo que consume; Record as done lo descuenta del pañol, y las cantidades se pueden cambiar o poner a 0 ese día.",
+        "El Dashboard muestra una línea cuando algo está agotado o bajo.",
+      ],
+    },
+    {
       emoji: '☁️',
       title: "Sincronización y fotos de inspección",
       body: [
@@ -1374,6 +1407,17 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '📦',
+      title: "Запчастини (Spare parts)",
+      body: [
+        "Вкладка Spares — це склад: у кожної позиції назва, партномер, виробник, місце зберігання і мінімальний залишок. Список згрупований за місцями зберігання, спочатку те, чого немає або мало; кнопка To order залишає лише такі позиції.",
+        "Залишок ніколи не вводиться поверх. Відкрийте запчастину: + Received — надходження, − Used — взято поза планом ТО, Stocktake — скільки фізично на полиці. Кожна дія — підписаний рух, а залишок — їхня сума, тож якщо два пристрої записали одночасно, врахуються обидва.",
+        "Перерахунок записується як різниця з обліком, тож перерахунок без зв'язку не скасує надходження, записане в цей час на іншому пристрої. Помилковий рух виправляється перерахунком; рухи не редагуються.",
+        "Позначте, до яких механізмів підходить запчастина: у картці механізму буде список його запчастин із залишком. У роботі ТО розділ Parts used each time перелічує, що вона витрачає; Record as done списує це зі складу, а кількість можна змінити або поставити 0 у день роботи.",
+        "На головному екрані з'являється рядок, коли щось закінчилося або нижче мінімуму.",
+      ],
+    },
+    {
       emoji: '☁️',
       title: "Синхронізація та фото інспекцій",
       body: [
@@ -1443,6 +1487,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
   { title: 'Access — which tabs each device shows', module: 'access' },
   { title: 'Hours of rest', module: 'rest' },
   { title: 'Planned maintenance', module: 'pms' },
+  { title: 'Spare parts', module: 'spares' },
 ];
 
 /** The manual as this build should show it: sections of switched-off modules removed. */

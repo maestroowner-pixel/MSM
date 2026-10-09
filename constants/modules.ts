@@ -24,7 +24,7 @@
 // will follow the same way); whether the module exists at all is ours.
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -51,6 +51,8 @@ export const MODULES: Record<ModuleKey, boolean> = {
   pms: false,
   /** Settings → Access: the Master's tabs-per-device matrix. */
   access: false,
+  /** Spare parts stores — the Spares tab; parts used by PMS jobs. */
+  spares: false,
 };
 
 export function moduleOn(key: ModuleKey): boolean {
