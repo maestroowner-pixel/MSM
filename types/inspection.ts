@@ -55,6 +55,8 @@ export type InspectionOutcome = 'pass' | 'fail';
 
 export interface Inspection {
   id: string;
+  /** How the signer confirmed — finger, face or signing PIN (services/signature.ts). Absent when not asked. */
+  signedWith?: import('../services/signature').SignProof;
   /** The item inspected. Kept as a plain id — the category is stored beside it
    *  so a report can be built without walking the whole register. */
   itemId: string;

@@ -280,7 +280,8 @@ function doneRows(data: ReportData, flat: EquipmentItem[]) {
       time: timeOnly(insp.at),
       category: CATEGORY_MAP[insp.category]?.label ?? insp.category,
       initials: initialsOf(insp.by),
-      by: signatureLine(insp.by, insp.byRank),
+      // How the signature was confirmed, when the vessel asks for it.
+      by: signatureLine(insp.by, insp.byRank) + (insp.signedWith ? ` · ${insp.signedWith.method === 'pin' ? 'PIN' : 'biometric'}` : ''),
       result: insp.outcome === 'fail' ? 'FAIL' : 'PASS',
       detail: `${b.passed}/${b.passed + b.failed + b.na}`,
       defect: defectReason(insp),

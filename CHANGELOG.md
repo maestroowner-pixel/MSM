@@ -5,6 +5,14 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Confirmed signatures (dark, `signConfirm`; Master's `confirmSignature`, off).** One confirmation
+  for every signed act (components/SignConfirm): fingerprint / face on the signer's OWN device
+  (expo-local-authentication, device passcode not accepted), WebAuthn platform authenticator on the
+  web (Touch ID, Windows Hello), otherwise the signer's own 4–6 digit signing PIN — chosen by them,
+  stored only as a salted iterated SHA-256 in SecureStore, 5 tries then a 5-minute lock, reset by
+  the Master in Settings. Records carry `signedWith` {method, deviceId, at}; the inspection report
+  shows "· PIN" / "· biometric". Wired into inspections, PMS completions and stores movements.
+  **Needs a new store build** for biometrics (new native module); `npm run check:signature`.
 - **Spare parts (dark, `spares`).** Spares tab: lines with part no., maker, location, unit,
   re-order level and the machines they fit; grouped by location, out/low first, "To order" filter.
   Stock is the SUM of signed, append-only movements (received / used / stocktake as a difference),

@@ -24,7 +24,7 @@
 // will follow the same way); whether the module exists at all is ours.
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -53,6 +53,11 @@ export const MODULES: Record<ModuleKey, boolean> = {
   access: false,
   /** Spare parts stores — the Spares tab; parts used by PMS jobs. */
   spares: false,
+  /**
+   * Confirmed signatures — fingerprint / face / signing PIN. Needs a STORE BUILD
+   * with expo-local-authentication for biometrics; the PIN works on any build.
+   */
+  signConfirm: false,
 };
 
 export function moduleOn(key: ModuleKey): boolean {

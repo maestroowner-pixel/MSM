@@ -19,6 +19,7 @@ import { useTheme, useThemeName } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { moduleOn } from '../constants/modules';
+import { PinHolder, pinHolders, resetPin } from '../services/signature';
 import { VesselInfo, resetAllData } from '../services/storage';
 import * as fb from '../services/firebaseService';
 import { clearAttachmentsDir } from '../services/attachments';
@@ -70,6 +71,11 @@ export default function SettingsSc() {
   const wide = useWindowDimensions().width >= 600;
   const { vessel, setVessel, reload, flat, certificates, prefs, setPrefs, signingPolicy, setSigningPolicy } = useData();
   const sync = useSync();
+  // Who has a signing PIN on this device, for the Master's reset list.
+  const [pinHoldersHere, setPinHoldersHere] = useState<PinHolder[]>([]);
+  useEffect(() => {
+    if (moduleOn('signConfirm')) void pinHolders().then(setPinHoldersHere);
+  }, []);
   /**
    * Who may touch the register wholesale.
    *
@@ -715,6 +721,52 @@ export default function SettingsSc() {
             trackColor={{ true: COLORS.primary, false: COLORS.border }}
           />
         </View>
+        {moduleOn('signConfirm') ? (
+          <>
+            {/* Finger, face or the signer's own PIN on every signature
+                (components/SignConfirm). Off by default. */}
+            <View style={styles.toggleRow}>
+              <IconChip name="fingerprint" size={18} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.linkTitle}>Confirm every signature</Text>
+                <Text style={styles.linkSub}>
+                  {isMaster
+                    ? 'Each signature is confirmed by the signer\'s fingerprint or face on their own device, or by their own signing PIN.'
+                    : signingPolicy.confirmSignature
+                      ? 'On for this vessel — confirm with your finger, face or signing PIN. Set by the Master.'
+                      : 'Off for this vessel. Set by the Master.'}
+                </Text>
+              </View>
+              <Switch
+                value={!!signingPolicy.confirmSignature}
+                disabled={!isMaster}
+                onValueChange={(v) => void changeSigningPolicy({ confirmSignature: v })}
+                trackColor={{ true: COLORS.primary, false: COLORS.border }}
+              />
+            </View>
+            {isMaster && pinHoldersHere.length ? (
+              <View style={{ marginTop: SIZES.sm }}>
+                <Text style={styles.linkSub}>Signing PINs on this device — reset one that has been forgotten; its holder chooses a new one at their next signature.</Text>
+                {pinHoldersHere.map((h) => (
+                  <View key={h.key} style={[styles.linkRow, { paddingVertical: SIZES.xs }]}>
+                    <Text style={[styles.linkTitle, { flex: 1 }]} numberOfLines={1}>{h.name}</Text>
+                    <TouchableOpacity
+                      hitSlop={8}
+                      onPress={() =>
+                        Alert.alert('Reset signing PIN', `${h.name} will choose a new PIN the next time they sign on this device.`, [
+                          { text: 'Cancel', style: 'cancel' },
+                          { text: 'Reset', style: 'destructive', onPress: async () => { await resetPin(h.key); setPinHoldersHere(await pinHolders()); } },
+                        ])
+                      }
+                    >
+                      <Text style={{ color: COLORS.danger, fontWeight: '700' }}>Reset</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+          </>
+        ) : null}
       </Card>
 
       {canHandleData ? (

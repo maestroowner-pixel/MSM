@@ -34,6 +34,7 @@ import { dueText, jobAfter, jobDue, todayIso, withReading } from '../services/pm
 import { movesForJob, qtyText, stockByPart } from '../services/spares';
 import { JobPart } from '../types/spares';
 import { moduleOn } from '../constants/modules';
+import { useSignConfirm } from '../components/SignConfirm';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -60,6 +61,7 @@ export default function PmsJobSc() {
   /** Quantities to take on "Done", by part id; starts from the job's list. */
   const [take, setTake] = useState<Record<string, number>>({});
   const sync = useSync();
+  const confirmSign = useSignConfirm();
 
   const id: string = route.params?.id;
   const existing = pmsJobs.find((j) => j.id === id);
@@ -125,6 +127,13 @@ export default function PmsJobSc() {
     const hours = num(doneHours);
     if (existing.intervalHours && hours == null) return Alert.alert('Counter', 'Enter the counter reading when the job was done.');
     if (doneDate > todayIso()) return Alert.alert('Date', 'The date is in the future.');
+    const sig = await confirmSign({
+      personKey: me && sync.me ? `device:${sync.me.id}` : signerId ?? signer.name,
+      name: signer.name,
+      ownDevice: !!me,
+      what: `Record "${existing.title}" as done`,
+    });
+    if (!sig) return;
     const done: PmsDone = {
       id: uid('done'),
       jobId: existing.id,
@@ -137,6 +146,7 @@ export default function PmsJobSc() {
       byRank: signer.rank,
       note: doneNote.trim() || undefined,
       at: Date.now(),
+      ...(sig.proof ? { signedWith: sig.proof } : {}),
       updatedAt: Date.now(),
     };
     const moves = sparesOn

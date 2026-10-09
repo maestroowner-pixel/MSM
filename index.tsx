@@ -23,6 +23,7 @@ import { SIZES, APP_CONFIG } from './theme';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { DataProvider, useData } from './contexts/DataContext';
 import { SyncProvider, useSync } from './contexts/SyncContext';
+import { SignConfirmProvider } from './components/SignConfirm';
 import { applyOrientationPolicy } from './utils/orientation';
 import { goBackOr } from './utils/nav';
 import { ensureTrialStarted } from './services/trial';
@@ -519,7 +520,11 @@ function App() {
             {/* Inside DataProvider: sync reads the register from it and writes
                 remote changes back through reload(). */}
             <SyncProvider>
-              <Root />
+              {/* Inside both: confirmation reads the signing policy (data) and
+                  this device's id. See components/SignConfirm. */}
+              <SignConfirmProvider>
+                <Root />
+              </SignConfirmProvider>
             </SyncProvider>
           </DataProvider>
         </ThemeProvider>

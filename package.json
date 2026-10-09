@@ -26,6 +26,7 @@
     "check:pms": "rm -rf .check-pms && tsc scripts/check-pms.ts --outDir .check-pms --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-pms/scripts/check-pms.js; s=$?; rm -rf .check-pms; exit $s",
     "check:access": "rm -rf .check-acc && tsc scripts/check-access.ts --outDir .check-acc --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-acc/scripts/check-access.js; s=$?; rm -rf .check-acc; exit $s",
     "check:spares": "rm -rf .check-spr && tsc scripts/check-spares.ts --outDir .check-spr --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-spr/scripts/check-spares.js; s=$?; rm -rf .check-spr; exit $s",
+    "check:signature": "rm -rf .check-sig && tsc scripts/check-signature.ts --outDir .check-sig --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck --types node && node .check-sig/scripts/check-signature.js; s=$?; rm -rf .check-sig; exit $s",
     "check:rest": "rm -rf .check-rest && tsc scripts/check-rest-hours.ts --outDir .check-rest --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-rest/scripts/check-rest-hours.js; s=$?; rm -rf .check-rest; exit $s",
     "check:bulk": "rm -rf .check-bulk && tsc scripts/check-bulk-edit.ts --outDir .check-bulk --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-bulk/ && node .check-bulk/scripts/check-bulk-edit.js; s=$?; rm -rf .check-bulk; exit $s"
   },
@@ -66,6 +67,7 @@
     "expo-image-manipulator": "~14.0.8",
     "expo-image-picker": "~17.0.11",
     "expo-linear-gradient": "~15.0.8",
+    "expo-local-authentication": "~17.0.9",
     "expo-notifications": "~0.32.17",
     "expo-print": "~15.0.8",
     "expo-screen-orientation": "~9.0.9",

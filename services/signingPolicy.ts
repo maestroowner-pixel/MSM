@@ -53,6 +53,13 @@ export interface SigningPolicy {
    */
   signAsDevice?: boolean;
   /**
+   * Every signature is confirmed — by the signer's finger or face on their own
+   * device, or by their own signing PIN (services/signature.ts). Asked for on
+   * 9 Oct 2026. Off by default, so a working vessel's rounds do not change until
+   * its Master decides. Optional: older copies of the policy lack it.
+   */
+  confirmSignature?: boolean;
+  /**
    * Categories the scan rule does NOT apply to (25 Sep 2026).
    *
    * Asked for by a vessel: a rescue boat's own inventory, or the loose

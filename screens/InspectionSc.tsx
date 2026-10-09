@@ -51,6 +51,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SCAN_PROOF_MINUTES, scanProofFor, signerRule, signingGate } from '../services/signingPolicy';
+import { useSignConfirm } from '../components/SignConfirm';
 import { SIZES, Palette } from '../theme';
 import { CATEGORY_MAP } from '../constants/categories';
 import { periodsFor, templateFor } from '../constants/checklists';
@@ -89,6 +90,7 @@ export default function InspectionSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
   const { flat, crew, prefs, vessel, templates, addInspection, setPrefs, signingPolicy } = useData();
+  const confirmSign = useSignConfirm();
   const sync = useSync();
 
   const itemId: string = route.params?.itemId;
@@ -262,9 +264,15 @@ export default function InspectionSc() {
     if (!item || !template || !signer) return;
     if (signed.current) return; // already signed from this screen — never twice
     signed.current = true;
+    // Finger, face or signing PIN, when the vessel asks for it (SignConfirm).
+    const sig = await confirmSign({ personKey: signer.id, name: signer.name, ownDevice: rule.kind === 'device', what: 'Sign the inspection' });
+    if (!sig) {
+      signed.current = false;
+      return;
+    }
     setSaving(true);
     try {
-      const record = inspections.create({
+      const created = inspections.create({
         item,
         template,
         results,
@@ -281,6 +289,7 @@ export default function InspectionSc() {
               ? { method: proof.method, scannedAt: proof.at }
               : undefined,
       });
+      const record = sig.proof ? { ...created, signedWith: sig.proof } : created;
       await addInspection(record);
       // The record is up in seconds; its photographs wait for a connection worth
       // spending (services/photoQueue.ts). Queued even when uploads are switched
@@ -301,7 +310,7 @@ export default function InspectionSc() {
     } finally {
       setSaving(false);
     }
-  }, [item, template, signer, results, comment, photos, defectNote, addInspection, setPrefs, nav, gate.kind, overrideReason, proof, rule.kind]);
+  }, [item, template, signer, results, comment, photos, defectNote, addInspection, setPrefs, nav, gate.kind, overrideReason, proof, rule.kind, confirmSign]);
 
   const confirmSave = () => {
     if (signed.current || confirming.current) return;

@@ -61,6 +61,8 @@ export interface SpareMove {
   note?: string;
   /** Epoch ms when recorded. */
   at: number;
+  /** How the signer confirmed — finger, face or signing PIN (services/signature.ts). Absent when not asked. */
+  signedWith?: import('../services/signature').SignProof;
   updatedAt: number;
 }
 

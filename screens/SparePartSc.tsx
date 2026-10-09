@@ -33,6 +33,7 @@ import { personName } from '../types/role';
 import { MOVE_LABEL, makeMove, moveText, qtyText, stockByPart, stockStatus, unitOf } from '../services/spares';
 import { todayIso } from '../services/pms';
 import { moduleOn } from '../constants/modules';
+import { useSignConfirm } from '../components/SignConfirm';
 import { formatDate } from '../utils/dates';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -46,6 +47,7 @@ export default function SparePartSc() {
   const route = useRoute<any>();
   const { spares, spareMoves, machines, crew, saveSpare, addSpareMoves } = useData();
   const sync = useSync();
+  const confirmSign = useSignConfirm();
 
   const id: string = route.params?.id;
   const existing = spares.find((p) => p.id === id);
@@ -110,12 +112,20 @@ export default function SparePartSc() {
     const n = num(amount);
     if (n == null || (moving !== 'count' && n === 0)) return Alert.alert('Quantity', 'Enter how many.');
     if (!signer) return Alert.alert('Who is this?', 'Choose your name.');
+    const sig = await confirmSign({
+      personKey: me && sync.me ? `device:${sync.me.id}` : picked ? picked.id : `name:${signer.by}`,
+      name: signer.by,
+      ownDevice: !!me,
+      what: `${MOVE_LABEL[moving]}: ${existing.name}`,
+    });
+    if (!sig) return;
     if (moving === 'used' && n > onHand) {
       // Allowed — the part is in the engineer's hand whatever the book says — but
       // said, so the next stocktake is not a surprise.
       Alert.alert('More than the book shows', `The book shows ${qtyText(onHand, existing)}. Recorded anyway; a stocktake will put the count right.`);
     }
-    await addSpareMoves([makeMove(existing, moving, n, onHand, signer, todayIso(), { note: note.trim() || undefined })]);
+    const move = makeMove(existing, moving, n, onHand, signer, todayIso(), { note: note.trim() || undefined });
+    await addSpareMoves([sig.proof ? { ...move, signedWith: sig.proof } : move]);
     playSuccessSound();
     setMoving(null);
     setAmount('');

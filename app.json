@@ -96,6 +96,12 @@
         }
       ],
       "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow ISMpilot to use Face ID to confirm your signature on inspections and records."
+        }
+      ],
       "expo-font",
       "@bacons/apple-targets",
       [

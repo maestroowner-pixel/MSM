@@ -307,6 +307,16 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '✍️',
+      title: "Confirmed signatures",
+      body: [
+        "With Settings → Confirm every signature on (Master), each signature — an inspection, a maintenance job, a stores movement — is confirmed by the signer: their fingerprint or face on their own device, or their own signing PIN.",
+        "Fingerprint and face are offered only when the device signs as its own account. A phone knows an enrolled finger touched it, not whose — so on a shared tablet everyone signs with their PIN.",
+        "The first time you sign on a device you choose a signing PIN of 4–6 digits. It is not your account PIN, it is stored only as a hash, and nobody can read it — the Master included. Five wrong tries lock it for five minutes. Forgotten? The Master resets it in Settings, and you choose a new one.",
+        "The report shows how each signature was confirmed (PIN or biometric) beside the name.",
+      ],
+    },
+    {
       emoji: '🛏️',
       title: "Hours of rest",
       body: [
@@ -663,6 +673,16 @@ const ru: ManualContent = {
         "Так у каждого на экране только нужное: у матроса нет плана ТО машинного отделения, у механика — сертификатов экипажа.",
         "Dashboard, Equipment и Settings включены всегда. На устройстве Мастера всегда все вкладки. Устройство, которое Мастер ещё не настраивал, показывает все вкладки — при обновлении ничего не пропадёт.",
         "Это порядок, а не замок: что устройство может менять, по-прежнему решает его роль в Accounts, и это проверяет сервер.",
+      ],
+    },
+    {
+      emoji: '✍️',
+      title: "Подтверждённые подписи",
+      body: [
+        "Если Мастер включил Settings → Confirm every signature, каждая подпись — проверка, работа ТО, движение склада — подтверждается: отпечатком или лицом на своём устройстве либо своим PIN подписи.",
+        "Отпечаток и лицо доступны, только когда устройство подписывает как свой аккаунт. Телефон знает, что приложен сохранённый палец, но не чей — поэтому на общем планшете каждый подписывает своим PIN.",
+        "При первой подписи на устройстве вы выбираете PIN подписи из 4–6 цифр. Это не PIN аккаунта; он хранится только в виде хеша, и прочитать его не может никто, включая Мастера. Пять неверных попыток блокируют его на пять минут. Забыли — Мастер сбрасывает его в Settings, и вы выбираете новый.",
+        "В отчёте рядом с именем указано, чем подтверждена подпись (PIN или биометрия).",
       ],
     },
     {
@@ -1025,6 +1045,16 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '✍️',
+      title: "Firmas confirmadas",
+      body: [
+        "Con Settings → Confirm every signature activado (Master), cada firma — una inspección, un trabajo de mantenimiento, un movimiento del pañol — la confirma el firmante: con su huella o su cara en su propio dispositivo, o con su propio PIN de firma.",
+        "La huella y la cara solo se ofrecen cuando el dispositivo firma como su propia cuenta. Un teléfono sabe que lo tocó un dedo registrado, no de quién: en una tableta compartida cada uno firma con su PIN.",
+        "La primera vez que firma en un dispositivo elige un PIN de firma de 4–6 cifras. No es el PIN de la cuenta, se guarda solo como hash y nadie puede leerlo, ni el Master. Cinco intentos fallidos lo bloquean cinco minutos. ¿Olvidado? El Master lo restablece en Settings y usted elige uno nuevo.",
+        "El informe indica junto al nombre cómo se confirmó cada firma (PIN o biometría).",
+      ],
+    },
+    {
       emoji: '🛏️',
       title: "Horas de descanso (Hours of rest)",
       body: [
@@ -1384,6 +1414,16 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '✍️',
+      title: "Підтверджені підписи",
+      body: [
+        "Якщо Майстер увімкнув Settings → Confirm every signature, кожен підпис — перевірка, робота ТО, рух складу — підтверджується: відбитком або обличчям на своєму пристрої чи своїм PIN підпису.",
+        "Відбиток і обличчя доступні, лише коли пристрій підписує як свій акаунт. Телефон знає, що приклали збережений палець, але не чий — тож на спільному планшеті кожен підписує своїм PIN.",
+        "Під час першого підпису на пристрої ви обираєте PIN підпису з 4–6 цифр. Це не PIN акаунта; він зберігається лише як хеш, і прочитати його не може ніхто, зокрема Майстер. П'ять невдалих спроб блокують його на п'ять хвилин. Забули — Майстер скидає його в Settings, і ви обираєте новий.",
+        "У звіті поруч з ім'ям зазначено, чим підтверджено підпис (PIN чи біометрія).",
+      ],
+    },
+    {
       emoji: '🛏️',
       title: "Години відпочинку (Hours of rest)",
       body: [
@@ -1488,6 +1528,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
   { title: 'Hours of rest', module: 'rest' },
   { title: 'Planned maintenance', module: 'pms' },
   { title: 'Spare parts', module: 'spares' },
+  { title: 'Confirmed signatures', module: 'signConfirm' },
 ];
 
 /** The manual as this build should show it: sections of switched-off modules removed. */
