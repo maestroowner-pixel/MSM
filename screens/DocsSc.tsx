@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 
 import { Empty, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
+import { Dropdown } from '../components/Dropdown';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
@@ -108,24 +109,28 @@ export default function DocsSc() {
           autoCapitalize="characters"
         />
       </View>
-      <View style={styles.chips}>
-        <Text style={styles.chipLabel}>Sort</Text>
-        {([['number', 'No.'], ['title', 'Title'], ['issued', 'Newest'], ['review', 'Review due']] as [DocSort, string][]).map(([k, l]) => (
-          <TouchableOpacity key={k} style={[styles.chip, sortBy === k && styles.chipOn]} onPress={() => setSortBy(k)}>
-            <Text style={[styles.chipText, sortBy === k && styles.chipTextOn]}>{l}</Text>
-          </TouchableOpacity>
-        ))}
+      {/* Sort and type side by side, as drop-downs (components/Dropdown). */}
+      <View style={styles.dropRow}>
+        <Dropdown
+          caption="SORT"
+          value={sortBy}
+          onChange={setSortBy}
+          options={[
+            { value: 'number', label: 'Document no.' },
+            { value: 'title', label: 'Title' },
+            { value: 'issued', label: 'Newest first' },
+            { value: 'review', label: 'Review due' },
+          ]}
+          style={{ flex: 1 }}
+        />
+        <Dropdown
+          caption="TYPE"
+          value={cat}
+          onChange={setCat}
+          options={[{ value: null as DocCategory | null, label: 'All types' }, ...presentCats.map((c) => ({ value: c as DocCategory | null, label: DOC_CATEGORY_LABEL[c] }))]}
+          style={{ flex: 1 }}
+        />
       </View>
-      {presentCats.length > 1 ? (
-        <View style={styles.chips}>
-          <Text style={styles.chipLabel}>Type</Text>
-          {presentCats.map((c) => (
-            <TouchableOpacity key={c} style={[styles.chip, cat === c && styles.chipOn]} onPress={() => setCat(cat === c ? null : c)}>
-              <Text style={[styles.chipText, cat === c && styles.chipTextOn]}>{DOC_CATEGORY_LABEL[c]}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      ) : null}
 
       {mine.length && !searching ? (
         <>
@@ -164,12 +169,7 @@ const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
     search: { ...COLORS.glassInput, borderRadius: SIZES.radiusMd, paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm, fontSize: SIZES.body, color: COLORS.text },
     searchRow: { flexDirection: 'row', gap: SIZES.sm, marginBottom: SIZES.sm },
-    chips: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SIZES.xs, marginBottom: SIZES.sm },
-    chipLabel: { fontSize: SIZES.tiny, fontWeight: '700', color: COLORS.textLight, marginRight: 2 },
-    chip: { paddingVertical: 4, paddingHorizontal: SIZES.sm, borderRadius: 999, borderWidth: 1, borderColor: COLORS.primary },
-    chipOn: { backgroundColor: COLORS.primary },
-    chipText: { color: COLORS.primary, fontWeight: '600', fontSize: SIZES.small },
-    chipTextOn: { color: COLORS.textWhite },
+    dropRow: { flexDirection: 'row', gap: SIZES.sm, marginBottom: SIZES.md },
     snip: { fontSize: SIZES.small, color: COLORS.text, fontStyle: 'italic', marginTop: 2 },
     head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: SIZES.md },
     add: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
