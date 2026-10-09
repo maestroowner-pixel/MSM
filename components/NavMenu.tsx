@@ -33,8 +33,12 @@ import { SIZES, Palette } from '../theme';
 import { applyOrder, move } from '../utils/navOrder';
 export { applyOrder, move };
 
-/** Up to this many screens the plain tab bar is used. */
-export const FEW = 5;
+/**
+ * Up to this many screens the plain tab bar is used. A phone still holds six
+ * tabs (2.59: Dashboard, Equipment, Certificates, Rest, Reports, Settings); a
+ * browser gets the menu from six, as asked for on the web.
+ */
+export const FEW = Platform.OS === 'web' ? 5 : 6;
 /** Screens kept on a phone's bottom bar before "Menu". */
 const ON_BAR = 4;
 /** A window this wide may pin the menu open. */

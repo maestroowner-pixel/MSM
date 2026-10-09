@@ -5,6 +5,14 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+## 2.59 — 9 Oct 2026
+
+**Released in this version: crew list & certificate matrix (`crewCerts`) and Hours of rest
+(`rest`).** Everything else below stays dark behind its flag. Needs `npm run deploy:rules` BEFORE
+the app reaches users (crew written by Officers, `crew_private`, `rest`); rules tested in the
+emulator — scripts/rules-test.mjs, 29 cases. Phone keeps a six-tab bar (menu from seven); the web
+uses the left menu from six screens.
+
 - **Reports saved into a remembered folder (web).** Chrome / Opera / Edge: the first save asks for a
   folder, its handle is kept in IndexedDB, later saves write straight into it (the browser asks once
   per session whether the site may still write there); Settings → Reports folder shows and changes

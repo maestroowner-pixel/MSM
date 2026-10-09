@@ -2,7 +2,7 @@
   "expo": {
     "name": "ISMpilot",
     "slug": "marine-safety-manager",
-    "version": "2.58",
+    "version": "2.59",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "msm",
@@ -20,7 +20,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.kukalab.msm",
       "appleTeamId": "LAGTN99698",
-      "buildNumber": "20581",
+      "buildNumber": "20591",
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.kukalab.msm"
@@ -52,7 +52,7 @@
     },
     "android": {
       "package": "com.kukalab.msm",
-      "versionCode": 20581,
+      "versionCode": 20591,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",

@@ -44,9 +44,10 @@ export const MODULES: Record<ModuleKey, boolean> = {
   // (`npm run deploy:rules`), and deploy the site manual's matching section.
 
   /** Crew and vessel certificates — the Crew / Vessel tabs on Certificates. */
-  crewCerts: false,
+  // Released in 2.59 (9 Oct 2026) with Hours of rest — rules deployed first.
+  crewCerts: true,
   /** Hours of rest (MLC / STCW) — the Rest tab. */
-  rest: false,
+  rest: true,
   /** Planned maintenance by running hours — the PMS tab and Dashboard strip. */
   pms: false,
   /** Settings → Access: the Master's tabs-per-device matrix. */
