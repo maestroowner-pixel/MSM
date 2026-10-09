@@ -24,6 +24,7 @@ import { SIZES, Palette } from '../theme';
 import { crewLabel, CrewMember, isAboard } from '../types/crew';
 import { personName, roleAtLeast } from '../types/role';
 import { moduleOn } from '../constants/modules';
+import { canRememberFolder, chooseFolder } from '../utils/webSave';
 import { RestDay } from '../types/rest';
 import { analyseRest, RULE_LABEL } from '../services/restHours';
 import { exportRestPdf } from '../services/restReport';
@@ -242,6 +243,15 @@ export default function HoursOfRestSc() {
           <Text style={styles.reportText}>Monthly record (PDF) for signature</Text>
         </TouchableOpacity>
         {savedTo ? <Text style={styles.savedTo}>{`✓ ${savedTo}`}</Text> : null}
+        {canRememberFolder() ? (
+          <TouchableOpacity
+            onPress={() => void chooseFolder('reports').then((n) => n && setSavedTo(`Reports now go to the folder “${n}”`))}
+            hitSlop={8}
+            style={{ alignSelf: 'center', marginTop: SIZES.xs }}
+          >
+            <Text style={{ color: COLORS.textLight, fontSize: SIZES.small, fontWeight: '600' }}>Change folder</Text>
+          </TouchableOpacity>
+        ) : null}
       </Card>
 
       <FlatList
