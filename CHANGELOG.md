@@ -3,6 +3,23 @@
 Kept by hand. Each entry says what changed and, where it matters, **why** — the reasoning is
 the part that stops the next person undoing it.
 
+## Unreleased
+
+- **Manual (en / ru / es / uk) brought up to date with the app.**
+  - New section **Lifting & Mooring**: the eight categories, the annual round every one of them
+    owes (the examination the certificate rests on) and the quarterly round for Mooring and
+    Working Aloft. The module has been on since 2.52, but the manual still described "24
+    categories under three groups" — it now says four registers.
+  - Rounds now read Weekly / Monthly / Quarterly / **Annual**, since Lifting brought the annual one.
+  - "an MSM QR" → "an ISMpilot QR". `MSM ID`, `MSM_report_…` and `.msm` stay: they are the real
+    names of the column and the files, and the manual has to say what the user actually sees.
+  - Licence: no price and no "60 days free, with no key and no card". The price is changing (full
+    PMS + ISM is planned) and must not be promised in a manual that ships for months; "no card"
+    read as a promise about checkout, where LemonSqueezy does ask for a card. The free period is
+    stated as it works in `services/trial.ts`: 60 days for the VESSEL before the
+    15-items-per-category limit applies. Pricing questions go to mail@ismpilot.com.
+  - The web manual at ismpilot.com/manual carries the same content.
+
 ## 2.58 — 8 October 2026
 
 Android versionCode 20581 · iOS build 20581.
