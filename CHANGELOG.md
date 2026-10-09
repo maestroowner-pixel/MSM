@@ -5,6 +5,25 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Crew and vessel certificates.** The Certificates tab has three tabs — Equipment, Crew, Vessel.
+  - A crew certificate belongs to a PERSON (STCW, CoC, ENG1 / medical, passport, seaman's book,
+    visa): the holder is picked from the crew list, or typed on a device that has no crew list yet.
+    The Crew tab groups by person, worst status first, because the question asked of it is "whose
+    papers run out". Settings → Crew shows "3 certificates · 1 expired" on each row and opens the tab.
+  - A vessel certificate is the ship's own paper (registry, SMC, DOC, ISSC, MLC, load line…).
+  - **One record, not three.** `Certificate` gains `scope`, `crewId` and `holderName`; a record
+    without `scope` reads as `equipment`, so nothing already on a vessel changes meaning, and the
+    new kinds ride the existing sync (register blob), backup, file attachments and status rule.
+    `holderName` is kept on the certificate because the crew list can lose the person.
+  - Suggested names (constants/certificateTypes.ts) fill the name field with one tap, so "ENG1" is
+    not spelt three ways and a search finds all of them.
+  - Expiry reminders now cover crew and vessel certificates (60 / 30 / 7 days). Equipment
+    certificates are still left out: the items they cover already carry the date.
+  - The item screen's "Link certificates" offers equipment certificates only.
+  - Privacy Policy (in-app and ismpilot.com) names the crew data now held: crew certificates with
+    number, dates and scan. It also stops describing the retired Realtime Database and push/pull.
+  - Manual (en / ru / es / uk): the Certificates section explains the three tabs.
+
 - **Manual (en / ru / es / uk) brought up to date with the app.**
   - New section **Lifting & Mooring**: the eight categories, the annual round every one of them
     owes (the examination the certificate rests on) and the quarterly round for Mooring and

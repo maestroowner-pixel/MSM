@@ -1,10 +1,14 @@
 // ===================================
-// Certificates — list of certificates (each can cover one or many items).
+// Certificates — equipment, crew and vessel certificates, one tab each.
+//
+// One list underneath (types/certificate.ts says why); the tabs only filter it.
+// The Crew tab groups by person, worst status first inside each, because the
+// question asked of it is "whose papers run out", not "which papers exist".
 // ===================================
 
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Image, useWindowDimensions } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, SectionList, TouchableOpacity, TextInput, Image, useWindowDimensions } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Screen, StatusPill, Empty, statusColor } from '../components/ui'
 import { HelpButton } from '../components/HelpButton';
 import { SIZES, Palette } from '../theme';
@@ -12,12 +16,21 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { statusFromDate, formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
-import { Certificate } from '../types/certificate';
+import { Certificate, CertificateScope, scopeOf } from '../types/certificate';
+import { crewLabel } from '../types/crew';
+import { ComplianceStatus } from '../types/equipment';
 import { canAddCertificate } from '../services/trial';
 import { MciIcon } from '../components/MciIcon';
 
 export default function CertificatesSc() {
-  const { certificates } = useData();
+  const { certificates, crew } = useData();
+  const route = useRoute<any>();
+  const [tab, setTab] = useState<CertificateScope>(route.params?.tab ?? 'equipment');
+  // Opened from a crew row ("3 certificates · 1 expired") with { tab: 'crew' }.
+  useEffect(() => {
+    const t = route.params?.tab;
+    if (t === 'equipment' || t === 'crew' || t === 'vessel') setTab(t);
+  }, [route.params?.tab]);
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -25,19 +38,54 @@ export default function CertificatesSc() {
   const { width } = useWindowDimensions();
   const cols = width >= 600 ? 2 : 1;
 
+  const counts = useMemo(() => {
+    const n: Record<CertificateScope, number> = { equipment: 0, crew: 0, vessel: 0 };
+    certificates.forEach((c) => (n[scopeOf(c)] += 1));
+    return n;
+  }, [certificates]);
+
+  const crewById = useMemo(() => new Map(crew.map((m) => [m.id, m])), [crew]);
+  const holderOf = (c: Certificate) => {
+    const m = c.crewId ? crewById.get(c.crewId) : undefined;
+    return m && !m.deleted ? crewLabel(m) : c.holderName || 'No holder';
+  };
+
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase();
+    const inTab = certificates.filter((c) => scopeOf(c) === tab);
     const filtered = needle
-      ? certificates.filter((c) =>
-          [c.name, c.number, c.issuer].some((v) => v?.toLowerCase().includes(needle))
+      ? inTab.filter((c) =>
+          [c.name, c.number, c.issuer, tab === 'crew' ? holderOf(c) : undefined].some((v) => v?.toLowerCase().includes(needle))
         )
-      : certificates;
+      : inTab;
     return [...filtered].sort((a, b) => {
       const da = a.expiryDate ?? '9999';
       const db = b.expiryDate ?? '9999';
       return da.localeCompare(db);
     });
-  }, [certificates, q]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [certificates, q, tab, crewById]);
+
+  /** Crew tab: one section per person, the person with the worst paper first. */
+  const sections = useMemo(() => {
+    if (tab !== 'crew') return [];
+    const rank: Record<ComplianceStatus, number> = { expired: 0, due: 1, none: 2, ok: 3 };
+    const groups = new Map<string, Certificate[]>();
+    list.forEach((c) => {
+      const k = holderOf(c);
+      groups.set(k, [...(groups.get(k) ?? []), c]);
+    });
+    return [...groups.entries()]
+      .map(([title, data]) => {
+        const worst = data.reduce<ComplianceStatus>((w, c) => {
+          const s = statusFromDate(c.expiryDate);
+          return rank[s] < rank[w] ? s : w;
+        }, 'ok');
+        return { title, data, worst };
+      })
+      .sort((a, b) => rank[a.worst] - rank[b.worst] || a.title.localeCompare(b.title));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list, tab]);
 
   const addCertificate = async () => {
     if (!(await canAddCertificate(certificates.length))) {
@@ -46,6 +94,7 @@ export default function CertificatesSc() {
     }
     const newCert: Certificate = {
       id: uid('cert'),
+      scope: tab,
       name: '',
       itemIds: [],
       createdAt: Date.now(),
@@ -64,7 +113,7 @@ export default function CertificatesSc() {
       <View style={styles.head}>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>Certificates</Text>
-          <Text style={styles.sub}>{certificates.length} certificates · link items to a group certificate</Text>
+          <Text style={styles.sub}>{SUBTITLE[tab](counts[tab])}</Text>
         </View>
         <HelpButton section={4} />
         <TouchableOpacity style={[styles.addBtn, { marginLeft: SIZES.sm }]} onPress={addCertificate}>
@@ -72,10 +121,26 @@ export default function CertificatesSc() {
         </TouchableOpacity>
       </View>
 
-      {certificates.length > 0 ? (
+      <View style={styles.tabs}>
+        {TABS.map((t) => (
+          <TouchableOpacity
+            key={t.key}
+            style={[styles.tab, tab === t.key && styles.tabOn]}
+            onPress={() => setTab(t.key)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: tab === t.key }}
+          >
+            <Text style={[styles.tabText, tab === t.key && styles.tabTextOn]}>
+              {t.label}{counts[t.key] ? ` · ${counts[t.key]}` : ''}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {counts[tab] > 0 ? (
         <TextInput
           style={styles.search}
-          placeholder="Search name, number, issuer…"
+          placeholder={tab === 'crew' ? 'Search person, certificate, number…' : 'Search name, number, issuer…'}
           placeholderTextColor={COLORS.textLight}
           value={q}
           onChangeText={setQ}
@@ -83,7 +148,22 @@ export default function CertificatesSc() {
       ) : null}
 
       {list.length === 0 ? (
-        <Empty text="No certificates yet. Tap + to add one and link the items it covers." />
+        <Empty text={EMPTY[tab]} />
+      ) : tab === 'crew' ? (
+        <SectionList
+          sections={sections}
+          keyExtractor={(c) => c.id}
+          contentContainerStyle={{ paddingBottom: SIZES.xxxl }}
+          stickySectionHeadersEnabled={false}
+          renderSectionHeader={({ section }) => (
+            <View style={styles.personHead}>
+              <MciIcon name="account" size={18} />
+              <Text style={styles.personName} numberOfLines={1}>{section.title}</Text>
+              <StatusPill status={section.worst} />
+            </View>
+          )}
+          renderItem={({ item }) => <CertRow item={item} onPress={() => nav.navigate('CertificateDetail', { id: item.id })} />}
+        />
       ) : (
         <FlatList
           data={list}
@@ -92,40 +172,74 @@ export default function CertificatesSc() {
           columnWrapperStyle={cols > 1 ? { gap: SIZES.sm } : undefined}
           keyExtractor={(c) => c.id}
           contentContainerStyle={{ paddingBottom: SIZES.xxxl }}
-          renderItem={({ item }) => {
-            const status = statusFromDate(item.expiryDate);
-            return (
-              <TouchableOpacity
-                style={[styles.row, cols > 1 && { flex: 1 }]}
-                activeOpacity={0.7}
-                onPress={() => nav.navigate('CertificateDetail', { id: item.id })}
-              >
-                <View style={[styles.bar, { backgroundColor: statusColor(status) }]} />
-                <View style={{ marginRight: SIZES.sm }}><MciIcon name="certificate" size={22} /></View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.rowTitle} numberOfLines={1}>
-                    {item.name || 'Untitled certificate'}
-                  </Text>
-                  <Text style={styles.rowSub} numberOfLines={1}>
-                    {[item.number && `№ ${item.number}`, `${item.itemIds.length} item${item.itemIds.length === 1 ? '' : 's'}`]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  {item.expiryDate ? <Text style={styles.rowDate}>{formatDate(item.expiryDate)}</Text> : null}
-                  <StatusPill status={status} />
-                </View>
-              </TouchableOpacity>
-            );
-          }}
+          renderItem={({ item }) => (
+            <CertRow item={item} wide={cols > 1} onPress={() => nav.navigate('CertificateDetail', { id: item.id })} />
+          )}
         />
       )}
     </Screen>
   );
 }
 
+const TABS: { key: CertificateScope; label: string }[] = [
+  { key: 'equipment', label: 'Equipment' },
+  { key: 'crew', label: 'Crew' },
+  { key: 'vessel', label: 'Vessel' },
+];
+
+const SUBTITLE: Record<CertificateScope, (n: number) => string> = {
+  equipment: (n) => `${n} certificate${n === 1 ? '' : 's'} · link items to a group certificate`,
+  crew: (n) => `${n} crew certificate${n === 1 ? '' : 's'} · STCW, CoC, medical, passport`,
+  vessel: (n) => `${n} vessel certificate${n === 1 ? '' : 's'} · registry, SMC, ISSC, MLC`,
+};
+
+const EMPTY: Record<CertificateScope, string> = {
+  equipment: 'No certificates yet. Tap + to add one and link the items it covers.',
+  crew: 'No crew certificates yet. Tap + to add one — STCW, CoC, medical, passport — and choose whose it is.',
+  vessel: "No vessel certificates yet. Tap + to add the ship's own papers — registry, SMC, ISSC, MLC, load line.",
+};
+
+function CertRow({ item, wide, onPress }: { item: Certificate; wide?: boolean; onPress: () => void }) {
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+  const status = statusFromDate(item.expiryDate);
+  const scope = scopeOf(item);
+  const sub =
+    scope === 'equipment'
+      ? [item.number && `№ ${item.number}`, `${item.itemIds.length} item${item.itemIds.length === 1 ? '' : 's'}`]
+      : [item.number && `№ ${item.number}`, item.issuer];
+  return (
+    <TouchableOpacity style={[styles.row, wide && { flex: 1 }]} activeOpacity={0.7} onPress={onPress}>
+      <View style={[styles.bar, { backgroundColor: statusColor(status) }]} />
+      <View style={{ marginRight: SIZES.sm }}>
+        <MciIcon name={scope === 'crew' ? 'card-account-details' : scope === 'vessel' ? 'ferry' : 'certificate'} size={22} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.rowTitle} numberOfLines={1}>
+          {item.name || 'Untitled certificate'}
+        </Text>
+        {sub.some(Boolean) ? (
+          <Text style={styles.rowSub} numberOfLines={1}>
+            {sub.filter(Boolean).join(' · ')}
+          </Text>
+        ) : null}
+      </View>
+      <View style={{ alignItems: 'flex-end' }}>
+        {item.expiryDate ? <Text style={styles.rowDate}>{formatDate(item.expiryDate)}</Text> : null}
+        <StatusPill status={status} />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 const makeStyles = (COLORS: Palette) => StyleSheet.create({
+  tabs: { flexDirection: 'row', gap: SIZES.xs, marginBottom: SIZES.md },
+  tab: { flex: 1, paddingVertical: SIZES.sm, borderRadius: SIZES.radiusMd, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center' },
+  tabOn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  tabText: { fontSize: SIZES.small, fontWeight: '600', color: COLORS.text },
+  tabTextOn: { color: COLORS.textWhite },
+  personHead: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginTop: SIZES.sm, marginBottom: SIZES.xs },
+  personName: { flex: 1, fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark },
   watermark: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   watermarkImg: { width: 240, height: 243, opacity: 0.08 },
   head: { flexDirection: 'row', alignItems: 'center', marginBottom: SIZES.md, gap: SIZES.sm },

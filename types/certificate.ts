@@ -1,9 +1,32 @@
 // ===================================
-// Certificate — a document (e.g. a class/service certificate) that can cover
-// one or many equipment items (a "group certificate").
+// Certificate — a document with an expiry date. Three kinds share one record:
+//
+//   equipment — a class/service certificate covering one or many items
+//               (a "group certificate"). The original and still the default.
+//   crew      — a PERSON's document: STCW, CoC, medical, passport, visa. Linked
+//               to the crew list by `crewId`.
+//   vessel    — the SHIP's own papers: registry, SMC, ISSC, MLC, load line.
+//
+// WHY ONE RECORD AND NOT THREE. A crew member's medical expires exactly the way a
+// liferaft service certificate does: a number, an issuer, two dates, a scan. One
+// shape means one list, one sync path (the register blob), one backup, one status
+// rule and one set of reminders — and a record written before `scope` existed
+// reads as `equipment`, so nothing already on a vessel changes meaning.
 // ===================================
 
+export type CertificateScope = 'equipment' | 'crew' | 'vessel';
+
 export interface Certificate {
+  /** Absent on everything written before crew/vessel certificates — read as 'equipment'. */
+  scope?: CertificateScope;
+  /** crew: the holder, by CrewMember.id. */
+  crewId?: string;
+  /**
+   * crew: the holder's name at the time of saving. The crew list can lose a
+   * person (removed, or never synced to this device); the certificate must still
+   * say whose it is.
+   */
+  holderName?: string;
   id: string;
   name: string; // e.g. "Liferaft annual service certificate"
   number?: string; // certificate / report number
@@ -16,4 +39,8 @@ export interface Certificate {
   itemIds: string[]; // equipment items covered by this certificate
   createdAt: number;
   updatedAt: number;
+}
+
+export function scopeOf(c: Pick<Certificate, 'scope'>): CertificateScope {
+  return c.scope ?? 'equipment';
 }

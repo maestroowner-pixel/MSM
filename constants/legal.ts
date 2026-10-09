@@ -8,7 +8,7 @@ import { APP_CONFIG } from '../theme';
 // 2 (7 Oct 2026): who KukaLab is, Feedback, governing law — everyone accepts again.
 export const LEGAL_VERSION = 2;
 export const LEGAL_ACCEPTED_KEY = `msm:legal_accepted_v${LEGAL_VERSION}`;
-export const EFFECTIVE_DATE = '7 October 2026';
+export const EFFECTIVE_DATE = '9 October 2026';
 
 /**
  * Who provides the app — required in both documents (Spain's LSSI art. 10 for
@@ -53,7 +53,8 @@ export const PRIVACY_POLICY: LegalDoc = {
       heading: '1. What we process',
       paragraphs: [
         'The app stores the safety-equipment records you create or import: equipment types, serial/ID numbers, positions on the vessel, quantities, inspection and expiry dates, remarks, and vessel details such as name, IMO, flag, call sign and MMSI.',
-        'No personal account, name, email or location is required to use the app.',
+        'Crew records the vessel chooses to keep: crew names and ranks, the accounts the Master issues (a name and an 8-digit PIN), the name, date and time on every signed inspection, and crew certificates — the type of document, its number, issuer, issue and expiry dates, and a scan or photo if one is attached. These are entered by the vessel, for the vessel\'s own compliance records.',
+        'No email address, phone number or location is required to use the app, and the app does not collect them.',
       ],
     },
     {
@@ -65,8 +66,8 @@ export const PRIVACY_POLICY: LegalDoc = {
     {
       heading: '3. Optional cloud sync',
       paragraphs: [
-        'If you enable sync, your inventory and vessel info are sent to and retrieved from Google Firebase (Authentication and Realtime Database), stored under an account derived from your vessel IMO number. This is processed by Google as our infrastructure provider and is subject to Google\'s terms.',
-        'A random device identifier is generated to support the multi-device approval feature. You choose when to push to or pull from the cloud.',
+        'When a device joins a vessel, the register, certificates (including crew certificates and their attached files), inspection records, crew list and vessel information are sent to and retrieved from Google Firebase (Authentication, Firestore and Cloud Storage), stored under an account tied to the vessel\'s IMO number. Google processes this data as our infrastructure provider, subject to Google\'s terms.',
+        'A random device identifier is generated so the Master can approve each device.',
       ],
     },
     {

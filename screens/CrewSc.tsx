@@ -23,6 +23,7 @@ import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
 import { CrewMember } from '../types/crew';
 import { uid } from '../utils/id';
+import { statusFromDate } from '../utils/dates';
 import { useSync } from '../contexts/SyncContext';
 import * as accounts from '../services/accounts';
 import { EnrolledDevice, personName } from '../types/role';
@@ -31,7 +32,7 @@ export default function CrewSc() {
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { crew, vessel, inspections: trail, saveCrewMember, removeCrewMember } = useData();
+  const { crew, vessel, inspections: trail, certificates, saveCrewMember, removeCrewMember } = useData();
 
   /**
    * Only a Master edits this list.
@@ -152,8 +153,24 @@ export default function CrewSc() {
     );
   };
 
+  /** Each person's own certificates: how many, and how many need action. */
+  const papers = useMemo(() => {
+    const m = new Map<string, { total: number; expired: number; due: number }>();
+    for (const cert of certificates) {
+      if (cert.scope !== 'crew' || !cert.crewId) continue;
+      const p = m.get(cert.crewId) ?? { total: 0, expired: 0, due: 0 };
+      const st = statusFromDate(cert.expiryDate);
+      p.total += 1;
+      if (st === 'expired') p.expired += 1;
+      if (st === 'due') p.due += 1;
+      m.set(cert.crewId, p);
+    }
+    return m;
+  }, [certificates]);
+
   const renderRow = ({ item: c }: { item: CrewMember }) => {
     const n = signedCount.get(c.id) ?? 0;
+    const p = papers.get(c.id);
     return (
       <Card>
         <View style={styles.row}>
@@ -168,6 +185,20 @@ export default function CrewSc() {
               {[c.rank, c.active ? null : 'Retired', n ? `${n} signed` : null].filter(Boolean).join(' · ') ||
                 'No rank set'}
             </Text>
+            <TouchableOpacity onPress={() => nav.navigate('Main', { screen: 'Certificates', params: { tab: 'crew' } })} hitSlop={6}>
+              <Text
+                style={[
+                  styles.meta,
+                  p?.expired ? { color: COLORS.danger, fontWeight: '600' } : p?.due ? { color: COLORS.warning, fontWeight: '600' } : null,
+                ]}
+              >
+                {p
+                  ? [`${p.total} certificate${p.total === 1 ? '' : 's'}`, p.expired ? `${p.expired} expired` : null, p.due ? `${p.due} due soon` : null]
+                      .filter(Boolean)
+                      .join(' · ')
+                  : 'No certificates recorded'}
+              </Text>
+            </TouchableOpacity>
           </View>
           {isMaster ? (
             <>

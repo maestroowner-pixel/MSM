@@ -126,7 +126,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const flatArr = CATEGORIES.flatMap((c) => all[c.key]);
     setByCategory(all);
     setFlat(flatArr);
-    setCertificates(await storage.loadCertificates());
+    const certs = await storage.loadCertificates();
+    setCertificates(certs);
     setVesselState(await storage.loadVessel());
     setCompressorState(await storage.loadCompressor());
     setInspections(await storage.loadInspections());
@@ -140,7 +141,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
     void computeLocks(all);
     // Keep expiry reminders in sync with the data (no-op unless enabled/supported).
-    if (p.notificationsEnabled) rescheduleExpiryReminders(flatArr);
+    if (p.notificationsEnabled) rescheduleExpiryReminders(flatArr, certs);
   }, [computeLocks]);
 
   const refreshLocks = useCallback(async () => {

@@ -1,5 +1,10 @@
 // ===================================
-// Certificate detail — edit, attach a file, link the items it covers, delete.
+// Certificate detail — edit, attach a file, delete; then by kind:
+//   equipment — link the items it covers;
+//   crew      — choose whose it is, from the crew list;
+//   vessel    — nothing more: the ship holds it.
+// A row of suggested names sits under the name field for crew and vessel, so the
+// same document is spelt the same way everywhere (constants/certificateTypes.ts).
 // ===================================
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -23,7 +28,9 @@ import { useTheme } from '../contexts/ThemeContext';
 import { BackButton, CategoryBadge, Label, StatusPill } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { useData } from '../contexts/DataContext';
-import { Certificate } from '../types/certificate';
+import { Certificate, scopeOf } from '../types/certificate';
+import { liveCrew, crewLabel } from '../types/crew';
+import { CREW_CERT_TYPES, VESSEL_CERT_TYPES } from '../constants/certificateTypes';
 import { CATEGORY_MAP } from '../constants/categories';
 import { statusFromDate, formatDate } from '../utils/dates';
 import { pickDocument, pickFromLibrary, pickFromCamera, openFile, deleteFile, resolveUri, PickedFile } from '../services/attachments';
@@ -36,7 +43,7 @@ export default function CertificateDetailSc() {
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useS();
-  const { certificates, flat, saveCertificate, removeCertificate, loading } = useData();
+  const { certificates, flat, crew, saveCertificate, removeCertificate, loading } = useData();
 
   const id: string | null = route.params?.id ?? null;
   const existing = useMemo(() => certificates.find((c) => c.id === id), [certificates, id]);
@@ -84,12 +91,26 @@ export default function CertificateDetailSc() {
     [flat, draft.itemIds]
   );
 
+  const scope = scopeOf(draft);
+  const people = useMemo(
+    () => liveCrew(crew).filter((m) => m.active || m.id === draft.crewId).sort((a, b) => a.name.localeCompare(b.name)),
+    [crew, draft.crewId]
+  );
+  const holder = draft.crewId ? crew.find((m) => m.id === draft.crewId) : undefined;
+
   const onSave = async () => {
     if (!draft.name.trim()) {
       Alert.alert('Name required', 'Give the certificate a name.');
       return;
     }
-    await saveCertificate({ ...draft, updatedAt: Date.now() });
+    if (scope === 'crew' && !draft.crewId && !draft.holderName?.trim()) {
+      Alert.alert('Whose certificate?', 'Choose the crew member who holds it.');
+      return;
+    }
+    // The holder's name travels with the certificate, so it still reads right on a
+    // device whose crew list does not have this person (types/certificate.ts).
+    const holderName = holder ? holder.name : draft.holderName;
+    await saveCertificate({ ...draft, holderName, updatedAt: Date.now() });
     playSuccessSound();
     goBackOr(nav);
   };
@@ -175,7 +196,7 @@ export default function CertificateDetailSc() {
         <View style={styles.header}>
           <BackButton onPress={() => (picking ? setPicking(false) : goBackOr(nav))} />
           <Text style={styles.headerTitle} numberOfLines={1}>
-            {picking ? 'Link items' : isNew ? 'New certificate' : 'Edit certificate'}
+            {picking ? 'Link items' : `${isNew ? 'New' : 'Edit'} ${scope === 'crew' ? 'crew certificate' : scope === 'vessel' ? 'vessel certificate' : 'certificate'}`}
           </Text>
           {picking ? (
             <TouchableOpacity onPress={() => setPicking(false)} hitSlop={12}>
@@ -226,13 +247,61 @@ export default function CertificateDetailSc() {
         ) : (
           <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
             <View style={styles.titleRow}>
-              <MciIcon name="certificate" size={32} />
+              <MciIcon name={scope === 'crew' ? 'card-account-details' : scope === 'vessel' ? 'ferry' : 'certificate'} size={32} />
               {!isNew ? <StatusPill status={status} /> : null}
             </View>
 
+            {scope === 'crew' ? (
+              <View style={styles.fieldWrap}>
+                <Label>Holder ★</Label>
+                {people.length === 0 ? (
+                  // No crew list on this device (not joined to a vessel yet, or not
+                  // synced): the holder is typed instead of picked, and the name is
+                  // kept on the certificate either way.
+                  <TextInput
+                    style={styles.input}
+                    value={draft.holderName ?? ''}
+                    onChangeText={(v) => set({ holderName: v, crewId: undefined })}
+                    placeholder="Full name"
+                    placeholderTextColor={COLORS.textLight}
+                  />
+                ) : (
+                  <View style={styles.chips}>
+                    {people.map((m) => {
+                      const on = m.id === draft.crewId;
+                      return (
+                        <TouchableOpacity
+                          key={m.id}
+                          style={[styles.chip, on && styles.chipOn]}
+                          onPress={() => set({ crewId: m.id, holderName: m.name })}
+                          accessibilityRole="radio"
+                          accessibilityState={{ selected: on }}
+                        >
+                          <Text style={[styles.chipText, on && styles.chipTextOn]} numberOfLines={1}>{crewLabel(m)}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+            ) : null}
+
             <Field label="Certificate name ★" value={draft.name} onChange={(v) => set({ name: v })} />
+            {scope !== 'equipment' ? (
+              <View style={[styles.chips, { marginTop: -SIZES.sm, marginBottom: SIZES.md }]}>
+                {(scope === 'crew' ? CREW_CERT_TYPES : VESSEL_CERT_TYPES).map((t) => (
+                  <TouchableOpacity key={t} style={[styles.chip, styles.chipSmall, draft.name === t && styles.chipOn]} onPress={() => set({ name: t })}>
+                    <Text style={[styles.chipSmallText, draft.name === t && styles.chipTextOn]}>{t}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : null}
             <Field label="Number" value={draft.number} onChange={(v) => set({ number: v })} />
-            <Field label="Issuer / station" value={draft.issuer} onChange={(v) => set({ issuer: v })} />
+            <Field
+              label={scope === 'crew' ? 'Issued by (flag, MCA, training centre)' : scope === 'vessel' ? 'Issued by (flag, class, RO)' : 'Issuer / station'}
+              value={draft.issuer}
+              onChange={(v) => set({ issuer: v })}
+            />
             <DateField label="Issue date" value={draft.issueDate} onChange={(v) => set({ issueDate: v })} />
             <DateField label="Expiry date ★" value={draft.expiryDate} onChange={(v) => set({ expiryDate: v })} defaultYear={new Date().getFullYear() + 5} />
 
@@ -276,7 +345,8 @@ export default function CertificateDetailSc() {
               )}
             </View>
 
-            {/* Linked items */}
+            {/* Linked items — equipment certificates only */}
+            {scope === 'equipment' ? (
             <View style={styles.card}>
               <View style={styles.linkHead}>
                 <Label>Covered items ({draft.itemIds.length})</Label>
@@ -309,6 +379,7 @@ export default function CertificateDetailSc() {
                 })
               )}
             </View>
+            ) : null}
 
             <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
               <Text style={styles.deleteText}>{isNew ? 'Discard' : 'Delete certificate'}</Text>
@@ -399,6 +470,13 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   unlink: { color: COLORS.danger, fontSize: SIZES.h5, fontWeight: '700' },
   deleteBtn: { marginTop: SIZES.lg, paddingVertical: SIZES.md, borderRadius: SIZES.radiusMd, borderWidth: 1, borderColor: COLORS.danger, alignItems: 'center' },
   deleteText: { color: COLORS.danger, fontWeight: '700', fontSize: SIZES.body },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.xs, marginTop: SIZES.xs },
+  chip: { paddingVertical: 7, paddingHorizontal: SIZES.md, borderRadius: 999, borderWidth: 1, borderColor: COLORS.primary, maxWidth: '100%' },
+  chipOn: { backgroundColor: COLORS.primary },
+  chipText: { color: COLORS.primary, fontWeight: '600', fontSize: SIZES.small },
+  chipTextOn: { color: COLORS.textWhite },
+  chipSmall: { paddingVertical: 4, paddingHorizontal: SIZES.sm, borderColor: COLORS.border },
+  chipSmallText: { color: COLORS.text, fontSize: SIZES.tiny },
   // picker
   pickRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.sm, marginBottom: SIZES.xs },
   check: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },

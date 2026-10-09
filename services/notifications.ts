@@ -12,6 +12,7 @@
 import { complianceDate, formatDate } from '../utils/dates';
 import { CATEGORY_MAP } from '../constants/categories';
 import { EquipmentItem } from '../types/equipment';
+import { Certificate, scopeOf } from '../types/certificate';
 
 // Defensive require — missing native module must not crash app startup.
 let N: any = null;
@@ -53,10 +54,12 @@ export async function cancelAll(): Promise<void> {
 }
 
 /**
- * Cancel and re-schedule expiry reminders for the given items.
+ * Cancel and re-schedule expiry reminders for the given items, and for crew and
+ * vessel certificates. Equipment certificates are left out: the items they cover
+ * already carry the date, and a second reminder for the same liferaft is noise.
  * Returns the number of notifications scheduled (0 when unsupported/denied).
  */
-export async function rescheduleExpiryReminders(items: EquipmentItem[]): Promise<number> {
+export async function rescheduleExpiryReminders(items: EquipmentItem[], certificates: Certificate[] = []): Promise<number> {
   if (!N) return 0;
   try {
     await N.cancelAllScheduledNotificationsAsync();
@@ -83,6 +86,25 @@ export async function rescheduleExpiryReminders(items: EquipmentItem[]): Promise
           fire,
           title: `${catLabel} — ${off} days to expiry`,
           body: `${name}${it.position ? ` · ${it.position}` : ''} — due ${formatDate(iso)}`,
+        });
+      }
+    }
+
+    for (const c of certificates) {
+      const scope = scopeOf(c);
+      if (scope === 'equipment' || !c.expiryDate) continue;
+      const exp = new Date(`${c.expiryDate}T00:00:00`);
+      if (isNaN(exp.getTime())) continue;
+      const what = c.name || 'Certificate';
+      for (const off of REMIND_OFFSETS) {
+        const fire = new Date(exp);
+        fire.setDate(fire.getDate() - off);
+        fire.setHours(FIRE_HOUR, 0, 0, 0);
+        if (fire.getTime() <= now) continue;
+        reminders.push({
+          fire,
+          title: `${scope === 'crew' ? 'Crew certificate' : 'Vessel certificate'} — ${off} days to expiry`,
+          body: `${scope === 'crew' && c.holderName ? `${c.holderName} · ` : ''}${what} — expires ${formatDate(c.expiryDate)}`,
         });
       }
     }

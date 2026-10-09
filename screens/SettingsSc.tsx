@@ -67,7 +67,7 @@ export default function SettingsSc() {
   // wide and the same rule turns "Save vessel info" into a banner, so past
   // tablet width the two full-bleed buttons shrink to their own size.
   const wide = useWindowDimensions().width >= 600;
-  const { vessel, setVessel, reload, flat, prefs, setPrefs, signingPolicy, setSigningPolicy } = useData();
+  const { vessel, setVessel, reload, flat, certificates, prefs, setPrefs, signingPolicy, setSigningPolicy } = useData();
   const sync = useSync();
   /**
    * Who may touch the register wholesale.
@@ -170,7 +170,7 @@ export default function SettingsSc() {
       return;
     }
     await setPrefs({ notificationsEnabled: true });
-    const n = await rescheduleExpiryReminders(flat);
+    const n = await rescheduleExpiryReminders(flat, certificates);
     playSuccessSound();
     Alert.alert(
       'Reminders on',

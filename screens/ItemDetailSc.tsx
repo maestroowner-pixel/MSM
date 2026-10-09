@@ -20,6 +20,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { BackButton, CategoryBadge, Label, StatusPill, statusColor } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { useData } from '../contexts/DataContext';
+import { scopeOf } from '../types/certificate';
 import { CATEGORY_MAP, GROUP_SHORT, visibleCategories } from '../constants/categories';
 import { Attachment, CategoryKey, EquipmentItem } from '../types/equipment';
 import { Inspection, PERIOD_LABEL } from '../types/inspection';
@@ -122,6 +123,9 @@ export default function ItemDetailSc() {
     touched.current = true;
     setDraft((d) => ({ ...d, ...patch }));
   };
+
+  // Crew and vessel certificates cover no items; only equipment ones are offered here.
+  const equipmentCerts = useMemo(() => certificates.filter((c) => scopeOf(c) === 'equipment'), [certificates]);
 
   const linkedCerts = useMemo(
     () => certificates.filter((c) => c.itemIds.includes(draft.id)),
@@ -805,11 +809,11 @@ export default function ItemDetailSc() {
           <View style={styles.rnBackdrop}>
             <View style={[styles.rnCard, { maxHeight: '80%' }]}>
               <Text style={styles.rnTitle}>Link certificates</Text>
-              {certificates.length === 0 ? (
+              {equipmentCerts.length === 0 ? (
                 <Text style={styles.certEmpty}>No certificates yet. Create one in the Certificates tab first.</Text>
               ) : (
                 <ScrollView style={{ marginTop: SIZES.xs }}>
-                  {certificates.map((c) => {
+                  {equipmentCerts.map((c) => {
                     const on = c.itemIds.includes(draft.id);
                     return (
                       <TouchableOpacity key={c.id} style={styles.cpRow} onPress={() => toggleCert(c.id)} activeOpacity={0.7}>
