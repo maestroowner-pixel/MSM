@@ -63,12 +63,22 @@ export function printHtmlWeb(html: string, fileName?: string): void {
     try {
       iframe.contentWindow.focus();
       const before = g.document.title;
-      if (fileName) g.document.title = fileName.replace(/\.pdf$/i, '');
-      try {
-        iframe.contentWindow.print();
-      } finally {
-        if (fileName) g.document.title = before;
+      if (fileName) {
+        // Put back only once the dialog is CLOSED. Chrome blocks in print(), but
+        // Opera returns at once and reads the title afterwards — restoring it
+        // straight away saved the file as "Rest · ISMpilot.pdf" again.
+        g.document.title = fileName.replace(/\.pdf$/i, '');
+        let restored = false;
+        const restore = () => {
+          if (restored) return;
+          restored = true;
+          g.document.title = before;
+        };
+        iframe.contentWindow.addEventListener?.('afterprint', restore);
+        g.addEventListener?.('afterprint', restore, { once: true });
+        g.setTimeout(restore, 120000);
       }
+      iframe.contentWindow.print();
     } finally {
       // Keep the frame alive long enough for the print dialog to read it.
       g.setTimeout(() => iframe.remove(), 60000);
