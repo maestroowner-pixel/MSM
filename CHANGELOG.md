@@ -5,6 +5,15 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **ISM documents with read-and-sign (dark, `docs`).** Docs tab: controlled documents (SMS manual,
+  procedures, circulars, standing orders, policies, forms) with number, revision, issue and review
+  dates; a PDF from the office, text written aboard, or both. "To read" for the person on the
+  device; "I have read and understood" signs the CURRENT revision (confirmed via SignConfirm), one
+  signature per person per revision, append-only. Read-by count and "not yet" names from the crew
+  list (by id, or by name for device accounts). New revision → everyone signs again; old signatures
+  kept. Officers/Master edit (rules: `isAdmin`). Files go to Cloud Storage; offline, the file stays
+  on the attaching device (`filePending`) and is never pushed inside the record. Dashboard line
+  "N documents to read". Synced as `ism_docs` + `ism_doc_acks`; in backups. `npm run check:docs`.
 - **Confirmed signatures (dark, `signConfirm`; Master's `confirmSignature`, off).** One confirmation
   for every signed act (components/SignConfirm): fingerprint / face on the signer's OWN device
   (expo-local-authentication, device passcode not accepted), WebAuthn platform authenticator on the

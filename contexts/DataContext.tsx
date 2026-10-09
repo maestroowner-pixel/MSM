@@ -13,6 +13,7 @@ import { CrewMember, liveCrew } from '../types/crew';
 import { RestDay } from '../types/rest';
 import { Machine, PmsDone, PmsJob } from '../types/pms';
 import { SpareMove, SparePart } from '../types/spares';
+import { DocAck, IsmDoc } from '../types/docs';
 import { ChecklistTemplate } from '../constants/checklists';
 import { CategoryMeta, setVesselCategories } from '../constants/categories';
 import { CATEGORIES, CATEGORY_MAP } from '../constants/categories';
@@ -65,6 +66,11 @@ interface DataContextType {
   spareMoves: SpareMove[];
   saveSpare: (p: SparePart) => Promise<void>;
   addSpareMoves: (moves: SpareMove[]) => Promise<void>;
+  /** ISM documents — live only — and every read-and-sign signature. */
+  docs: IsmDoc[];
+  docAcks: DocAck[];
+  saveDoc: (d: IsmDoc) => Promise<void>;
+  addDocAck: (a: DocAck) => Promise<void>;
   /** The vessel's own checklists; they replace the built-in for their category. */
   templates: ChecklistTemplate[];
   /** Headings this vessel invented, on top of the 23 the app ships. */
@@ -128,6 +134,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [pmsDone, setPmsDone] = useState<PmsDone[]>([]);
   const [spares, setSpares] = useState<SparePart[]>([]);
   const [spareMoves, setSpareMoves] = useState<SpareMove[]>([]);
+  const [docs, setDocs] = useState<IsmDoc[]>([]);
+  const [docAcks, setDocAcks] = useState<DocAck[]>([]);
   const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
   const [categories, setCategories] = useState<CategoryMeta[]>([]);
   const [recentScans, setRecentScans] = useState<ScanEntry[]>([]);
@@ -166,6 +174,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setPmsDone(await storage.loadList<PmsDone>(storage.PMS_DONE_KEY));
     setSpares((await storage.loadList<SparePart>(storage.SPARES_KEY)).filter((p) => !p.deleted));
     setSpareMoves(await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY));
+    setDocs((await storage.loadList<IsmDoc>(storage.DOCS_KEY)).filter((d) => !d.deleted));
+    setDocAcks(await storage.loadList<DocAck>(storage.DOC_ACKS_KEY));
     setTemplates(await storage.loadTemplates());
     setSigningPolicyState((await storage.loadSigningPolicy()) ?? DEFAULT_POLICY);
     setPhotoArchiveState((await storage.loadPhotoArchive()) ?? DEFAULT_ARCHIVE);
@@ -303,6 +313,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setPmsDone(await storage.loadList<PmsDone>(storage.PMS_DONE_KEY));
     setSpares((await storage.loadList<SparePart>(storage.SPARES_KEY)).filter((p) => !p.deleted));
     setSpareMoves(await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY));
+    setDocs((await storage.loadList<IsmDoc>(storage.DOCS_KEY)).filter((d) => !d.deleted));
+    setDocAcks(await storage.loadList<DocAck>(storage.DOC_ACKS_KEY));
   }, []);
 
   const saveMachine = useCallback(async (m: Machine) => {
@@ -324,6 +336,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const saveSpare = useCallback(async (p: SparePart) => {
     await storage.upsertInList(storage.SPARES_KEY, p);
+    await loadPms();
+  }, [loadPms]);
+
+  const saveDoc = useCallback(async (d: IsmDoc) => {
+    await storage.upsertInList(storage.DOCS_KEY, d);
+    await loadPms();
+  }, [loadPms]);
+
+  // Once per person per revision: a second tap is a no-op, not a duplicate.
+  const addDocAck = useCallback(async (a: DocAck) => {
+    const list = await storage.loadList<DocAck>(storage.DOC_ACKS_KEY);
+    if (!list.some((x) => x.id === a.id)) await storage.saveList(storage.DOC_ACKS_KEY, [...list, a]);
     await loadPms();
   }, [loadPms]);
 
@@ -452,6 +476,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         spareMoves,
         saveSpare,
         addSpareMoves,
+        docs,
+        docAcks,
+        saveDoc,
+        addDocAck,
         templates,
         categories,
         recentScans,

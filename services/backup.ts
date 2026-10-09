@@ -25,6 +25,7 @@ import { CrewMember } from '../types/crew';
 import { RestDay } from '../types/rest';
 import { Machine, PmsDone, PmsJob } from '../types/pms';
 import { SpareMove, SparePart } from '../types/spares';
+import { DocAck, IsmDoc } from '../types/docs';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from '../services/storage';
 import { VesselInfo } from '../services/storage';
@@ -51,6 +52,8 @@ export interface BackupFile {
   pms?: { machines: Machine[]; jobs: PmsJob[]; done: PmsDone[] };
   /** Spare parts and their movements. Absent in backups made before it existed. */
   spares?: { parts: SparePart[]; moves: SpareMove[] };
+  /** ISM documents (records; files are links) and read-and-sign signatures. */
+  docs?: { docs: IsmDoc[]; acks: DocAck[] };
   files?: Record<string, string>; // basename -> base64 of the file contents
 }
 
@@ -140,6 +143,10 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     parts: await storage.loadList<SparePart>(storage.SPARES_KEY),
     moves: await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY),
   };
+  const docs = {
+    docs: await storage.loadList<IsmDoc>(storage.DOCS_KEY),
+    acks: await storage.loadList<DocAck>(storage.DOC_ACKS_KEY),
+  };
 
   // Read each referenced binary into a basename -> base64 map.
   const files: Record<string, string> = {};
@@ -167,6 +174,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     rest,
     pms,
     spares,
+    docs,
     files,
   };
 
@@ -327,6 +335,10 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
   if (backup.spares) {
     await storage.saveList(storage.SPARES_KEY, backup.spares.parts ?? []);
     await storage.saveList(storage.SPARE_MOVES_KEY, backup.spares.moves ?? []);
+  }
+  if (backup.docs) {
+    await storage.saveList(storage.DOCS_KEY, backup.docs.docs ?? []);
+    await storage.saveList(storage.DOC_ACKS_KEY, backup.docs.acks ?? []);
   }
 
   if (backup.compressor) await storage.saveCompressor(normalizeCompressorState(backup.compressor));

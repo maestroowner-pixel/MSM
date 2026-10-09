@@ -1200,6 +1200,8 @@ const SYNCED_LISTS: SyncedList[] = [
   { sub: 'pms_done', key: storage.PMS_DONE_KEY, appendOnly: true },
   { sub: 'spares', key: storage.SPARES_KEY },
   { sub: 'spare_moves', key: storage.SPARE_MOVES_KEY, appendOnly: true },
+  { sub: 'ism_docs', key: storage.DOCS_KEY },
+  { sub: 'ism_doc_acks', key: storage.DOC_ACKS_KEY, appendOnly: true },
 ];
 
 async function pushList(uid: string, l: SyncedList): Promise<number> {

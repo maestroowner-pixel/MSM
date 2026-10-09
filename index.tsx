@@ -6,7 +6,7 @@
 import 'react-native-gesture-handler';
 import './utils/webAlert'; // web: make Alert.alert use the browser dialog (no-op on native)
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Animated, Platform, Linking } from 'react-native';
+import { View, StyleSheet, Animated, Platform, Linking, useWindowDimensions } from 'react-native';
 import { registerRootComponent } from 'expo';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, DefaultTheme, useNavigation, useIsFocused, useNavigationContainerRef } from '@react-navigation/native';
@@ -69,6 +69,8 @@ import AccountsSc from './screens/AccountsSc';
 import AccessSc from './screens/AccessSc';
 import SparesSc from './screens/SparesSc';
 import SparePartSc from './screens/SparePartSc';
+import DocsSc from './screens/DocsSc';
+import DocSc from './screens/DocSc';
 import { OPTIONAL_TABS } from './constants/access';
 import EnrolSc from './screens/EnrolSc';
 import { recordScanProof } from './services/signingPolicy';
@@ -87,6 +89,7 @@ const TAB_ICONS: Record<string, string> = {
 };
 const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Certificates: CertificatesSc,
+  Documents: DocsSc,
   Maintenance: MaintenanceSc,
   HoursOfRest: HoursOfRestSc,
   Spares: SparesSc,
@@ -156,6 +159,12 @@ function MainTabs() {
   const { tabs } = useSync();
   const shown = OPTIONAL_TABS.filter((t) => tabs.has(t.key));
   const tabOrder = ['Dashboard', 'Equipment', ...shown.map((t) => t.route), 'Settings'];
+  // With every module on, eight tabs share a phone's width and the full labels
+  // run into each other ("DashboardEquipmentCertificates"). Below ~72 px a tab,
+  // the long ones are shortened; on a laptop they stay whole.
+  const { width: screenW } = useWindowDimensions();
+  const crowded = screenW / tabOrder.length < 72;
+  const SHORT: Record<string, string> = { Dashboard: 'Home', Equipment: 'Equip', Certificates: 'Certs' };
   const orderRef = useRef(tabOrder);
   orderRef.current = tabOrder;
 
@@ -226,6 +235,7 @@ function MainTabs() {
             tabBarInactiveTintColor: COLORS.tabInactive,
             tabBarStyle: tabBarStyle as any,
             tabBarLabelStyle: { fontSize: SIZES.tiny, fontWeight: '600' },
+            ...(crowded && SHORT[route.name] ? { tabBarLabel: SHORT[route.name] } : {}),
             tabBarIcon: ({ focused }) => <TabIcon route={route.name} focused={focused} />,
           })}
         >
@@ -282,6 +292,7 @@ const linking = {
           Maintenance: 'maintenance',
           HoursOfRest: 'rest',
           Spares: 'spares',
+          Documents: 'documents',
           Settings: 'settings',
         },
       },
@@ -306,6 +317,7 @@ const linking = {
       Machine: 'machine/:id',
       PmsJob: 'pms-job/:id',
       SparePart: 'spare/:id',
+      Doc: 'document/:id',
       Defects: 'defects',
       Accounts: 'accounts',
       Access: 'access',
@@ -489,6 +501,7 @@ function Root() {
         <Stack.Screen name="Machine" component={MachineSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsJob" component={PmsJobSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="SparePart" component={SparePartSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Doc" component={DocSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Checklists" component={ChecklistsSc} options={webHeader('Checklists', toTab('Settings'))} />
         <Stack.Screen name="ScanRules" component={ScanRulesSc} options={webHeader('Scan by category', toTab('Settings'))} />
         <Stack.Screen name="PhotoArchive" component={PhotoArchiveSc} options={webHeader('Photo archive', toTab('Settings'))} />

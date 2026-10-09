@@ -24,7 +24,7 @@
 // will follow the same way); whether the module exists at all is ours.
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -58,6 +58,8 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * with expo-local-authentication for biometrics; the PIN works on any build.
    */
   signConfirm: false,
+  /** ISM documents with read-and-sign — the Docs tab. */
+  docs: false,
 };
 
 export function moduleOn(key: ModuleKey): boolean {

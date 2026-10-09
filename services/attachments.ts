@@ -287,6 +287,16 @@ function urlKey(url: string): string {
   return (h >>> 0).toString(36);
 }
 
+/**
+ * A stored file as a `data:` URI — what Storage's uploadString takes. For
+ * documents shared with the vessel (services/docFiles.ts).
+ */
+export async function toDataUri(uri: string, name: string): Promise<string> {
+  if (uri.startsWith('data:')) return uri;
+  const b64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' as any });
+  return `data:${mimeFor(name) ?? 'application/octet-stream'};base64,${b64}`;
+}
+
 function mimeFor(name: string): string | undefined {
   const ext = name.toLowerCase().split('.').pop() ?? '';
   return (

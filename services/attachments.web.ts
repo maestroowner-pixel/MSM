@@ -106,3 +106,8 @@ export async function openFile(uri: string, _name?: string): Promise<void> {
     /* ignore */
   }
 }
+
+/** Web files are already `data:` URIs. */
+export async function toDataUri(uri: string, _name: string): Promise<string> {
+  return uri;
+}

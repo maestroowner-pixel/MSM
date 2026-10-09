@@ -307,6 +307,17 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '📚',
+      title: "ISM documents",
+      body: [
+        "The Docs tab holds the vessel's controlled documents — SMS manual, procedures, circulars, the Master's standing orders, policies, forms — each with its number, revision, issue date and review date. A document is a file (the PDF from the office), text written aboard, or both.",
+        "At the top is what the person on this device still has to read. Open the document, read it, and tap I have read and understood: that is a signature for the current revision, confirmed like any other.",
+        "Each document shows how many of the crew list have signed it and who has not yet. Signatures are never removed.",
+        "Officers and the Master add and edit documents. New revision moves it to Rev N+1 and asks everyone to read and sign again; signatures for earlier revisions stay in the history. Correcting a typo in the same revision does not.",
+        "Files are shared with every device through the vessel. If the file cannot be uploaded (no connection), the document is saved and its file stays on the device that attached it until it is saved again with a connection.",
+      ],
+    },
+    {
       emoji: '✍️',
       title: "Confirmed signatures",
       body: [
@@ -673,6 +684,17 @@ const ru: ManualContent = {
         "Так у каждого на экране только нужное: у матроса нет плана ТО машинного отделения, у механика — сертификатов экипажа.",
         "Dashboard, Equipment и Settings включены всегда. На устройстве Мастера всегда все вкладки. Устройство, которое Мастер ещё не настраивал, показывает все вкладки — при обновлении ничего не пропадёт.",
         "Это порядок, а не замок: что устройство может менять, по-прежнему решает его роль в Accounts, и это проверяет сервер.",
+      ],
+    },
+    {
+      emoji: '📚',
+      title: "ISM-документы",
+      body: [
+        "Вкладка Docs хранит управляемые документы судна — руководство SMS, процедуры, циркуляры, постоянные распоряжения капитана, политики, формы — у каждого номер, ревизия, дата выпуска и дата пересмотра. Документ — это файл (PDF из офиса), текст, написанный на борту, или и то и другое.",
+        "Сверху — то, что человеку на этом устройстве ещё нужно прочитать. Откройте документ, прочитайте и нажмите I have read and understood: это подпись за текущую ревизию, подтверждаемая как любая другая.",
+        "У каждого документа видно, сколько человек из списка экипажа подписали и кто ещё нет. Подписи никогда не удаляются.",
+        "Офицеры и Мастер добавляют и правят документы. New revision переводит его в Rev N+1 и просит всех прочитать и подписать заново; подписи прошлых ревизий остаются в истории. Исправление опечатки в той же ревизии этого не делает.",
+        "Файлы попадают на все устройства через судно. Если файл не удалось загрузить (нет связи), документ сохраняется, а файл остаётся на устройстве, которое его прикрепило, пока его не сохранят снова при связи.",
       ],
     },
     {
@@ -1045,6 +1067,17 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '📚',
+      title: "Documentos ISM",
+      body: [
+        "La pestaña Docs guarda los documentos controlados del buque — manual SMS, procedimientos, circulares, órdenes permanentes del Master, políticas, formularios — cada uno con número, revisión, fecha de emisión y fecha de revisión. Un documento es un archivo (el PDF de la oficina), texto escrito a bordo, o ambos.",
+        "Arriba aparece lo que la persona de este dispositivo aún tiene que leer. Abra el documento, léalo y pulse I have read and understood: es una firma de la revisión vigente, confirmada como cualquier otra.",
+        "Cada documento muestra cuántos de la lista de tripulación lo han firmado y quién aún no. Las firmas nunca se eliminan.",
+        "Los oficiales y el Master añaden y editan documentos. New revision lo pasa a Rev N+1 y pide a todos leer y firmar de nuevo; las firmas de revisiones anteriores quedan en el historial. Corregir una errata en la misma revisión no lo hace.",
+        "Los archivos llegan a todos los dispositivos a través del buque. Si el archivo no se puede subir (sin conexión), el documento se guarda y el archivo queda en el dispositivo que lo adjuntó hasta que se guarde de nuevo con conexión.",
+      ],
+    },
+    {
       emoji: '✍️',
       title: "Firmas confirmadas",
       body: [
@@ -1414,6 +1447,17 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '📚',
+      title: "ISM-документи",
+      body: [
+        "Вкладка Docs зберігає керовані документи судна — посібник SMS, процедури, циркуляри, постійні розпорядження капітана, політики, форми — у кожного номер, ревізія, дата випуску й дата перегляду. Документ — це файл (PDF з офісу), текст, написаний на борту, або обидва.",
+        "Угорі — те, що людині на цьому пристрої ще треба прочитати. Відкрийте документ, прочитайте й натисніть I have read and understood: це підпис за поточну ревізію, підтверджений як будь-який інший.",
+        "У кожного документа видно, скільки людей зі списку екіпажу підписали і хто ще ні. Підписи ніколи не видаляються.",
+        "Офіцери й Майстер додають і редагують документи. New revision переводить його в Rev N+1 і просить усіх прочитати й підписати знову; підписи попередніх ревізій лишаються в історії. Виправлення одруківки в тій самій ревізії цього не робить.",
+        "Файли потрапляють на всі пристрої через судно. Якщо файл не вдалося завантажити (немає зв'язку), документ зберігається, а файл лишається на пристрої, який його прикріпив, доки його не збережуть знову зі зв'язком.",
+      ],
+    },
+    {
       emoji: '✍️',
       title: "Підтверджені підписи",
       body: [
@@ -1529,6 +1573,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
   { title: 'Planned maintenance', module: 'pms' },
   { title: 'Spare parts', module: 'spares' },
   { title: 'Confirmed signatures', module: 'signConfirm' },
+  { title: 'ISM documents', module: 'docs' },
 ];
 
 /** The manual as this build should show it: sections of switched-off modules removed. */

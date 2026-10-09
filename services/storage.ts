@@ -26,6 +26,8 @@ export const PMS_JOBS_KEY = `${PREFIX}pms_jobs`;
 export const PMS_DONE_KEY = `${PREFIX}pms_done`;
 export const SPARES_KEY = `${PREFIX}spares`;
 export const SPARE_MOVES_KEY = `${PREFIX}spare_moves`;
+export const DOCS_KEY = `${PREFIX}ism_docs`;
+export const DOC_ACKS_KEY = `${PREFIX}ism_doc_acks`;
 /** The vessel's "scan before you sign" rule, as this device last knew it. */
 export const SIGNING_POLICY_KEY = `${PREFIX}signing_policy`;
 /** What this vessel has archived and what the last sweep did — services/photoArchive.ts. */
@@ -627,6 +629,9 @@ export async function resetAllData(): Promise<void> {
     PMS_DONE_KEY,
     SPARES_KEY,
     SPARE_MOVES_KEY,
+    DOCS_KEY,
+    DOC_ACKS_KEY,
+    'msm:docfiles_pending',
     VESSEL_KEY,
     SIGNING_POLICY_KEY,
     PHOTO_ARCHIVE_KEY,

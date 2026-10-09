@@ -181,6 +181,18 @@ service cloud.firestore {
         allow create: if member(v);
         allow update, delete: if false;
       }
+      // ISM documents: issued and revised by Officers and the Master; signed
+      // for ("read and understood") by everyone, once per person per revision.
+      match /ism_docs/{id} {
+        allow read: if member(v);
+        allow create, update: if isAdmin(v);
+        allow delete: if false;
+      }
+      match /ism_doc_acks/{id} {
+        allow read: if member(v);
+        allow create: if member(v);
+        allow update, delete: if false;
+      }
 
       // The vessel's own checklists. Any member reads them — a round cannot be
       // carried out without the questions — and an OFFICER may write them. That
