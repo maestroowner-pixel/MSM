@@ -5,6 +5,13 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **PMS for the whole vessel, by department (dark, `pms`).** Systems carry a department
+  (Engineering, Deck, Safety, Bridge & comms, Interior, AV / IT, Hull & dry dock) and an optional
+  running-hours counter (calendar-only systems hide every hours field). Maintenance groups systems by
+  department, each with its own "+ Add", and filters by department. The typical-jobs catalogue
+  (services/pmsCatalogue.ts) grows from 6 machine types to 38 systems / 181 jobs, offered per
+  department, from the superyacht task list. Older machine records read as Engineering with a counter.
+- Sync: only the collections of switched-on modules are read and written.
 - **Fleet console for superintendents (dark, `fleet`; server NOT deployed).** New role `shore`
   ("Superintendent (shore)") a Master issues in Accounts. functions/index.js: `enrolShore` (IMO +
   name + PIN of a shore invitation; one browser account, its own secret, vessels added one by one

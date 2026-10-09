@@ -25,9 +25,39 @@ export interface HoursReading {
   hours: number;
 }
 
+/**
+ * Where a system belongs on board (9 Oct 2026: "all the vessel's work, not only
+ * the engine room"). A "machine" here is any system that owes recurring work —
+ * a generator, the tender, the galley, the Wi-Fi — grouped by department.
+ */
+export type Dept = 'engineering' | 'deck' | 'safety' | 'bridge' | 'interior' | 'avit' | 'hull';
+
+export const DEPTS: { key: Dept; label: string; icon: string }[] = [
+  { key: 'engineering', label: 'Engineering', icon: 'engine' },
+  { key: 'deck', label: 'Deck', icon: 'anchor' },
+  { key: 'safety', label: 'Safety', icon: 'fire-extinguisher' },
+  { key: 'bridge', label: 'Bridge & comms', icon: 'radar' },
+  { key: 'interior', label: 'Interior', icon: 'sofa' },
+  { key: 'avit', label: 'AV / IT', icon: 'lan' },
+  { key: 'hull', label: 'Hull & dry dock', icon: 'ferry' },
+];
+
+export function deptOf(m: Pick<Machine, 'dept'>): Dept {
+  return m.dept ?? 'engineering';
+}
+
+/** Has a running-hours counter. Machines from before departments existed were engines: yes. */
+export function hasCounter(m: Pick<Machine, 'dept' | 'counter'>): boolean {
+  return m.counter ?? deptOf(m) === 'engineering';
+}
+
 export interface Machine {
   id: string;
   name: string;
+  /** Department; absent on records made before departments — read as engineering. */
+  dept?: Dept;
+  /** Has a running-hours counter; see hasCounter() for the default. */
+  counter?: boolean;
   /** Engine room, lazarette, flybridge… */
   location?: string;
   maker?: string;

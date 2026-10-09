@@ -34,5 +34,18 @@ const j = (p: Partial<PmsJob>): PmsJob => ({ id: 'j', machineId: 'm', title: 'Oi
 ok(intervalText({ intervalHours: 250, intervalDays: 365 }) === '250 h or 1 y', 'interval text "250 h or 1 y"');
 ok(intervalText({ intervalDays: 30 }) === '1 mo', 'interval text "1 mo"');
 
+// The catalogue (services/pmsCatalogue.ts)
+import { CATALOGUE } from '../services/pmsCatalogue';
+{
+  const keys = new Set(CATALOGUE.map((c) => c.key));
+  ok(keys.size === CATALOGUE.length, `catalogue: ${CATALOGUE.length} systems, keys unique`);
+  ok(CATALOGUE.every((c) => c.jobs.length > 0), 'catalogue: every system has jobs');
+  const stuck = CATALOGUE.filter((c) => !c.counter).flatMap((c) => c.jobs.filter((j) => !j.days).map((j) => `${c.label}: ${j.title}`));
+  ok(stuck.length === 0, `catalogue: calendar-only systems give every job a day interval${stuck.length ? ' — ' + stuck.join('; ') : ''}`);
+  const depts = new Set(CATALOGUE.map((c) => c.dept));
+  ok(depts.size === 7, `catalogue covers all 7 departments (${[...depts].join(', ')})`);
+  ok(CATALOGUE.reduce((n, c) => n + c.jobs.length, 0) > 150, `catalogue: ${CATALOGUE.reduce((n, c) => n + c.jobs.length, 0)} jobs`);
+}
+
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

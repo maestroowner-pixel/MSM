@@ -27,7 +27,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { PmsDone, PmsJob } from '../types/pms';
+import { PmsDone, PmsJob, hasCounter } from '../types/pms';
 import { crewLabel } from '../types/crew';
 import { personName } from '../types/role';
 import { dueText, jobAfter, jobDue, todayIso, withReading } from '../services/pms';
@@ -68,6 +68,8 @@ export default function PmsJobSc() {
   const machineId: string = existing?.machineId ?? route.params?.machineId;
   const machine = machines.find((m) => m.id === machineId);
   const isNew = !existing;
+  // Calendar-only systems (galley, network, hull) have no counter to ask about.
+  const counter = machine ? hasCounter(machine) : true;
 
   const [draft, setDraft] = useState<PmsJob>(existing ?? { id, machineId, title: '', updatedAt: Date.now() });
   const touched = useRef(false);
@@ -102,7 +104,7 @@ export default function PmsJobSc() {
 
   const onSave = async () => {
     if (!draft.title.trim()) return Alert.alert('Title required', 'Say what the job is — "Oil and filter change".');
-    if (!draft.intervalHours && !draft.intervalDays) return Alert.alert('Interval', 'Give an interval in hours, in days, or both.');
+    if (!draft.intervalHours && !draft.intervalDays) return Alert.alert('Interval', counter ? 'Give an interval in hours, in days, or both.' : 'Give an interval in days.');
     await savePmsJob({ ...draft, title: draft.title.trim(), updatedAt: Date.now() });
     playSuccessSound();
     goBackOr(nav);
@@ -125,7 +127,7 @@ export default function PmsJobSc() {
     if (!existing) return Alert.alert('Save first', 'Save the job, then record it as done.');
     if (!signer) return Alert.alert('Who did it?', 'Choose your name.');
     const hours = num(doneHours);
-    if (existing.intervalHours && hours == null) return Alert.alert('Counter', 'Enter the counter reading when the job was done.');
+    if (counter && existing.intervalHours && hours == null) return Alert.alert('Counter', 'Enter the counter reading when the job was done.');
     if (doneDate > todayIso()) return Alert.alert('Date', 'The date is in the future.');
     const sig = await confirmSign({
       personKey: me && sync.me ? `device:${sync.me.id}` : signerId ?? signer.name,
@@ -208,6 +210,7 @@ export default function PmsJobSc() {
               <View style={{ marginBottom: SIZES.md }}>
                 <SimpleDatePicker label="Done on" value={doneDate} onChange={setDoneDate} />
               </View>
+              {counter ? (<>
               <Label>{`Counter reading${existing?.intervalHours ? ' ★' : ''}`}</Label>
               <TextInput
                 style={styles.input}
@@ -220,6 +223,7 @@ export default function PmsJobSc() {
                 placeholder="h"
                 placeholderTextColor={COLORS.textLight}
               />
+              </>) : null}
               <View style={{ height: SIZES.md }} />
               <Label>Note (parts used, findings)</Label>
               <TextInput style={[styles.input, { minHeight: 70 }]} value={doneNote} onChangeText={setDoneNote} multiline placeholder="—" placeholderTextColor={COLORS.textLight} />
@@ -265,6 +269,7 @@ export default function PmsJobSc() {
               <Label>Job ★</Label>
               <TextInput style={styles.input} value={draft.title} onChangeText={(v) => set({ title: v })} placeholder="Oil and filter change" placeholderTextColor={COLORS.textLight} />
               <View style={{ height: SIZES.md }} />
+              {counter ? (<>
               <Label>Every … running hours</Label>
               <TextInput
                 style={styles.input}
@@ -275,7 +280,8 @@ export default function PmsJobSc() {
                 placeholderTextColor={COLORS.textLight}
               />
               <View style={{ height: SIZES.md }} />
-              <Label>…or every … days, whichever comes first</Label>
+              </>) : null}
+              <Label>{counter ? '…or every … days, whichever comes first' : 'Every … days'}</Label>
               <TextInput
                 style={styles.input}
                 value={draft.intervalDays != null ? String(draft.intervalDays) : ''}
@@ -297,7 +303,7 @@ export default function PmsJobSc() {
                 <View style={{ flex: 1 }}>
                   <SimpleDatePicker label="Date" value={draft.lastDoneDate} onChange={(v) => set({ lastDoneDate: v })} />
                 </View>
-                <View style={{ width: 120 }}>
+                {counter ? <View style={{ width: 120 }}>
                   <TextInput
                     style={styles.input}
                     value={draft.lastDoneHours != null ? String(draft.lastDoneHours) : ''}
@@ -306,7 +312,7 @@ export default function PmsJobSc() {
                     placeholder="at … h"
                     placeholderTextColor={COLORS.textLight}
                   />
-                </View>
+                </View> : null}
               </View>
               <Text style={styles.sub}>The starting point the next due date is counted from. After this, "Record as done" moves it for you.</Text>
               <View style={{ height: SIZES.md }} />

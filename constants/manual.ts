@@ -352,6 +352,7 @@ const en: ManualContent = {
       title: "Planned maintenance",
       body: [
         "The PMS tab (or the Maintenance strip on the Dashboard) holds the machinery — main engines, generators, watermaker, compressors, pumps, stabilisers — each with its running-hours counter and its jobs.",
+        "Systems are grouped by department — Engineering, Deck, Safety, Bridge & comms, Interior, AV / IT, Hull & dry dock — each with its own + Add, so the whole vessel's work goes in the plan: the tender and cranes, the galley, the network, the hull. A system without a running-hours counter (galley, network, hull) is serviced by the calendar only. Typical jobs offers the usual list for the department.",
         "A job has an interval in running hours, in days, or both, and falls due on whichever comes first, as makers write it (\"every 250 h or 12 months\"). Set when it was last done — date and counter — once; after that, Record as done moves it for you. A job never done has no start to count from and shows \"Never done\" instead of a date.",
         "Enter the counter on the machine's screen (Save reading). The last readings give a running rate, so an hours-based job also shows roughly how many days it has left. A reading lower than the last is refused: a replaced counter is a new machine.",
         "Due soon is the last 10 % of the interval — not the 60 days used for equipment, which would make a monthly job \"due\" from the day it was done.",
@@ -741,6 +742,7 @@ const ru: ManualContent = {
       title: "Планово-предупредительное ТО (Planned maintenance)",
       body: [
         "Вкладка PMS (или полоска Maintenance на дашборде) — механизмы: главные двигатели, генераторы, опреснитель, компрессоры, насосы, стабилизаторы — у каждого счётчик моточасов и свои работы.",
+        "Системы сгруппированы по отделам — Engineering, Deck, Safety, Bridge & comms, Interior, AV / IT, Hull & dry dock — у каждого своя кнопка + Add, чтобы в план попадали все работы судна: тендер и краны, камбуз, сеть, корпус. У системы без счётчика моточасов (камбуз, сеть, корпус) работы идут только по календарю. Typical jobs предлагает обычный список для отдела.",
         "У работы интервал в моточасах, в днях или и то и другое; срок наступает по тому, что раньше, как пишут производители («каждые 250 ч или 12 месяцев»). Один раз укажите, когда она делалась последний раз — дата и счётчик; дальше Record as done сдвигает это сам. Работа, которая ни разу не делалась, показывает «Never done» вместо даты.",
         "Показания счётчика вводятся на экране механизма (Save reading). По последним показаниям считается среднее в сутки, поэтому у работы по часам видно и примерно сколько дней осталось. Показание меньше прошлого не принимается: заменённый счётчик — это новый механизм.",
         "«Скоро» — последние 10 % интервала, а не 60 дней, как у оборудования: иначе ежемесячная работа была бы «скоро» с первого же дня.",
@@ -1130,6 +1132,7 @@ const es: ManualContent = {
       title: "Mantenimiento planificado (Planned maintenance)",
       body: [
         "La pestaña PMS (o la franja Maintenance del Dashboard) contiene la maquinaria — motores principales, generadores, potabilizadora, compresores, bombas, estabilizadores — cada una con su contador de horas y sus trabajos.",
+        "Los sistemas se agrupan por departamento — Engineering, Deck, Safety, Bridge & comms, Interior, AV / IT, Hull & dry dock — cada uno con su + Add, para que todo el trabajo del buque entre en el plan: el tender y las grúas, la cocina, la red, el casco. Un sistema sin contador de horas (cocina, red, casco) se mantiene solo por calendario. Typical jobs ofrece la lista habitual del departamento.",
         "Un trabajo tiene un intervalo en horas de funcionamiento, en días o ambos, y vence con lo que llegue antes, como lo escriben los fabricantes («cada 250 h o 12 meses»). Indique una vez cuándo se hizo por última vez — fecha y contador; después Record as done lo mueve solo. Un trabajo nunca hecho muestra «Never done» en vez de fecha.",
         "Introduzca el contador en la pantalla de la máquina (Save reading). Las últimas lecturas dan un ritmo de uso, así que un trabajo por horas muestra también cuántos días le quedan aproximadamente. No se acepta una lectura menor que la anterior: un contador sustituido es una máquina nueva.",
         "«Pronto» es el último 10 % del intervalo, no los 60 días de los equipos, que harían «pendiente» un trabajo mensual desde el primer día.",
@@ -1519,6 +1522,7 @@ const uk: ManualContent = {
       title: "Планове ТО (Planned maintenance)",
       body: [
         "Вкладка PMS (або смуга Maintenance на дашборді) — механізми: головні двигуни, генератори, опріснювач, компресори, насоси, стабілізатори — у кожного лічильник мотогодин і свої роботи.",
+        "Системи згруповані за відділами — Engineering, Deck, Safety, Bridge & comms, Interior, AV / IT, Hull & dry dock — у кожного своя кнопка + Add, щоб до плану потрапляли всі роботи судна: тендер і крани, камбуз, мережа, корпус. У системи без лічильника мотогодин (камбуз, мережа, корпус) роботи йдуть лише за календарем. Typical jobs пропонує звичайний список для відділу.",
         "Робота має інтервал у мотогодинах, у днях або і те, і те; строк настає за тим, що раніше, як пишуть виробники («кожні 250 год або 12 місяців»). Один раз укажіть, коли її робили востаннє — дата й лічильник; далі Record as done зсуває це сам. Робота, яку ще не робили, показує «Never done» замість дати.",
         "Показання лічильника вводяться на екрані механізму (Save reading). За останніми показаннями рахується середнє на добу, тож у роботи за годинами видно й приблизно скільки днів лишилося. Показання менше за попереднє не приймається: замінений лічильник — це новий механізм.",
         "«Скоро» — останні 10 % інтервалу, а не 60 днів, як в обладнання: інакше щомісячна робота була б «скоро» з першого ж дня.",

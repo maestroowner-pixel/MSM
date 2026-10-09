@@ -9,7 +9,7 @@
 // ===================================
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,8 +18,9 @@ import { BackButton, Label, StatusPill, statusColor } from '../components/ui';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
-import { Machine, PmsJob } from '../types/pms';
-import { dueText, hoursPerDay, intervalText, jobDue, MACHINE_TYPES, sortJobsByDue, todayIso, withReading } from '../services/pms';
+import { DEPTS, Machine, PmsJob, deptOf, hasCounter } from '../types/pms';
+import { dueText, hoursPerDay, intervalText, jobDue, sortJobsByDue, todayIso, withReading } from '../services/pms';
+import { CATALOGUE } from '../services/pmsCatalogue';
 import { formatDate } from '../utils/dates';
 import { qtyText, stockByPart, stockStatus } from '../services/spares';
 import { moduleOn } from '../constants/modules';
@@ -40,7 +41,10 @@ export default function MachineSc() {
   const existing = machines.find((m) => m.id === id);
   const isNew = !existing;
 
-  const [draft, setDraft] = useState<Machine>(existing ?? { id, name: '', updatedAt: Date.now() });
+  // A new system starts in the department it was added from (MaintenanceSc).
+  const [draft, setDraft] = useState<Machine>(
+    existing ?? { id, name: '', ...(route.params?.dept ? { dept: route.params.dept } : {}), updatedAt: Date.now() }
+  );
   const [reading, setReading] = useState('');
   const [showTypes, setShowTypes] = useState(false);
   // The machine may arrive after the screen does (opened by URL on a cold start,
@@ -66,12 +70,13 @@ export default function MachineSc() {
   );
   const rate = hoursPerDay(existing?.readings);
 
-  const saveDetails = async () => {
-    if (!draft.name.trim()) {
-      Alert.alert('Name required', 'Name the machine — "Main engine PS", "Generator 1".');
+  const saveDetails = async (extra: Partial<Machine> = {}) => {
+    const name = (extra.name ?? draft.name).trim();
+    if (!name) {
+      Alert.alert('Name required', 'Name it — "Main engine PS", "Tender", "Galley", "Wi-Fi network".');
       return false;
     }
-    await saveMachine({ ...(existing ?? draft), ...draft, name: draft.name.trim(), updatedAt: Date.now() });
+    await saveMachine({ ...(existing ?? draft), ...draft, ...extra, name, updatedAt: Date.now() });
     return true;
   };
 
@@ -98,8 +103,15 @@ export default function MachineSc() {
   };
 
   const addTypical = async (key: string) => {
-    if (!(await saveDetails())) return;
-    const t = MACHINE_TYPES.find((x) => x.key === key);
+    const t = CATALOGUE.find((x) => x.key === key);
+    // A system picked from the catalogue takes its department and counter too,
+    // and its name when none was typed.
+    const patch: Partial<Machine> = t
+      ? { dept: t.dept, counter: t.counter, ...(draft.name.trim() ? {} : { name: t.label.replace(/\s*\(.*\)$/, '') }) }
+      : {};
+    touched.current = true;
+    setDraft((d) => ({ ...d, ...patch }));
+    if (!(await saveDetails(patch))) return;
     const have = new Set(pmsJobs.filter((j) => j.machineId === id).map((j) => j.title.toLowerCase()));
     for (const job of t?.jobs ?? []) {
       if (have.has(job.title.toLowerCase())) continue;
@@ -107,7 +119,7 @@ export default function MachineSc() {
         id: uid('job'),
         machineId: id,
         title: job.title,
-        intervalHours: job.hours,
+        intervalHours: t?.counter ? job.hours : undefined,
         intervalDays: job.days,
         notes: 'Typical interval — check against the maker\'s manual.',
         updatedAt: Date.now(),
@@ -119,7 +131,7 @@ export default function MachineSc() {
 
   const onDelete = () => {
     if (isNew) return goBackOr(nav);
-    Alert.alert('Remove machine', 'Remove this machine and its jobs from the plan? The history of work done is kept.', [
+    Alert.alert('Remove', 'Remove this system and its jobs from the plan? The history of work done is kept.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove',
@@ -138,14 +150,22 @@ export default function MachineSc() {
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
           <BackButton onPress={() => goBackOr(nav)} />
-          <Text style={styles.headerTitle} numberOfLines={1}>{isNew ? 'New machine' : draft.name || 'Machine'}</Text>
+          <Text style={styles.headerTitle} numberOfLines={1}>{isNew ? 'New system' : draft.name || 'System'}</Text>
           <TouchableOpacity onPress={onSave} hitSlop={12}>
             <Text style={styles.save}>Save</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
-          <Field label="Name ★" value={draft.name} onChange={(v) => set({ name: v })} placeholder="Main engine PS" />
+          <Label>Department</Label>
+          <View style={styles.depts}>
+            {DEPTS.map((d) => (
+              <TouchableOpacity key={d.key} style={[styles.dept, deptOf(draft) === d.key && styles.deptOn]} onPress={() => set({ dept: d.key })}>
+                <Text style={[styles.deptText, deptOf(draft) === d.key && styles.deptTextOn]}>{d.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Field label="Name ★" value={draft.name} onChange={(v) => set({ name: v })} placeholder={deptOf(draft) === 'engineering' ? 'Main engine PS' : 'Tender, Galley, Wi-Fi network…'} />
           <Field label="Location" value={draft.location} onChange={(v) => set({ location: v })} placeholder="Engine room" />
           <View style={{ flexDirection: 'row', gap: SIZES.sm }}>
             <View style={{ flex: 1 }}><Field label="Maker" value={draft.maker} onChange={(v) => set({ maker: v })} /></View>
@@ -153,6 +173,15 @@ export default function MachineSc() {
           </View>
           <Field label="Serial" value={draft.serial} onChange={(v) => set({ serial: v })} />
 
+          <View style={styles.counterRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowTitle}>Running-hours counter</Text>
+              <Text style={styles.sub}>Off for systems serviced by the calendar only — galley, network, hull.</Text>
+            </View>
+            <Switch value={hasCounter(draft)} onValueChange={(v) => set({ counter: v })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
+          </View>
+
+          {hasCounter(draft) ? (
           <View style={styles.card}>
             <Label>Running hours</Label>
             <Text style={styles.hours}>
@@ -178,6 +207,7 @@ export default function MachineSc() {
               </TouchableOpacity>
             </View>
           </View>
+          ) : null}
 
           <View style={styles.jobsHead}>
             <Label>{`Jobs (${jobs.length})`}</Label>
@@ -197,8 +227,8 @@ export default function MachineSc() {
           </View>
           {showTypes ? (
             <View style={styles.types}>
-              <Text style={styles.sub}>Adds the usual jobs for this kind of machine, without a last-done date. Check each interval against the maker's manual.</Text>
-              {MACHINE_TYPES.map((t) => (
+              <Text style={styles.sub}>Adds the usual jobs for this kind of system, without a last-done date. Check each interval against the maker's manual.</Text>
+              {CATALOGUE.filter((t) => t.dept === deptOf(draft)).map((t) => (
                 <TouchableOpacity key={t.key} style={styles.type} onPress={() => addTypical(t.key)}>
                   <Text style={styles.typeText}>{`${t.label} · ${t.jobs.length} jobs`}</Text>
                 </TouchableOpacity>
@@ -247,7 +277,7 @@ export default function MachineSc() {
           ))}
 
           <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
-            <Text style={styles.deleteText}>{isNew ? 'Discard' : 'Remove machine'}</Text>
+            <Text style={styles.deleteText}>{isNew ? 'Discard' : 'Remove'}</Text>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
@@ -268,6 +298,12 @@ function Field({ label, value, onChange, placeholder }: { label: string; value?:
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
+    depts: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.xs, marginTop: SIZES.xs, marginBottom: SIZES.md },
+    dept: { paddingVertical: 5, paddingHorizontal: SIZES.sm, borderRadius: 999, borderWidth: 1, borderColor: COLORS.primary },
+    deptOn: { backgroundColor: COLORS.primary },
+    deptText: { color: COLORS.primary, fontWeight: '600', fontSize: SIZES.small },
+    deptTextOn: { color: COLORS.textWhite },
+    counterRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginVertical: SIZES.md },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SIZES.lg, paddingVertical: SIZES.md },
     headerTitle: { flex: 1, textAlign: 'center', fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark },
     save: { fontSize: SIZES.h5, fontWeight: '700', color: COLORS.primary },
