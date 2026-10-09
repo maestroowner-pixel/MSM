@@ -16,5 +16,15 @@ ok(!toggleTab(undefined, 'reports').includes('reports') && toggleTab(undefined, 
 ok(toggleTab(['rest'], 'maintenance').includes('maintenance'), 'tap on red → green');
 ok(toggleTab(['rest', 'future_tab'], 'rest').join() === 'future_tab', 'toggle keeps keys this version does not know');
 
+// The menu's own order (utils/navOrder.ts)
+import { applyOrder, move } from '../utils/navOrder';
+{
+  const avail = ['Dashboard', 'Equipment', 'Documents', 'Maintenance', 'Settings'];
+  ok(applyOrder(avail, null).join() === avail.join(), 'menu: no saved order → standard order');
+  ok(applyOrder(avail, ['Maintenance', 'Gone', 'Dashboard']).join() === 'Maintenance,Dashboard,Equipment,Documents,Settings',
+    'menu: saved order first, a screen no longer shown dropped, new screens after');
+  ok(move(['A', 'B', 'C'], 'C', -1).join() === 'A,C,B' && move(['A', 'B'], 'A', -1).join() === 'A,B', 'menu: ↑ swaps, top stays top');
+}
+
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

@@ -5,7 +5,7 @@
 
 import 'react-native-gesture-handler';
 import './utils/webAlert'; // web: make Alert.alert use the browser dialog (no-op on native)
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, Animated, Platform, Linking, useWindowDimensions } from 'react-native';
 import { registerRootComponent } from 'expo';
 import { StatusBar } from 'expo-status-bar';
@@ -74,6 +74,7 @@ import DocSc from './screens/DocSc';
 import FleetSc from './screens/FleetSc';
 import FleetVesselSc from './screens/FleetVesselSc';
 import { OPTIONAL_TABS } from './constants/access';
+import { FEW, MENU_WIDTH, NavMenuBar, PIN_WIDTH, useNavPrefs } from './components/NavMenu';
 import EnrolSc from './screens/EnrolSc';
 import { recordScanProof } from './services/signingPolicy';
 
@@ -153,9 +154,22 @@ function TabFade({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Full names for the menu, where there is room for them (components/NavMenu).
+const MENU_LABEL: Record<string, string> = {
+  Dashboard: 'Dashboard',
+  Equipment: 'Equipment',
+  Certificates: 'Certificates',
+  Documents: 'Documents',
+  Maintenance: 'Maintenance (PMS)',
+  Spares: 'Spare parts',
+  HoursOfRest: 'Hours of rest',
+  Reports: 'Reports',
+  Settings: 'Settings',
+};
+
 function MainTabs() {
   const navigation = useNavigation<any>();
-  const currentIdx = useRef(0);
+  const currentName = useRef('Dashboard');
   const insets = useSafeAreaInsets();
   const COLORS = useTheme();
   const { tabs } = useSync();
@@ -167,8 +181,14 @@ function MainTabs() {
   const { width: screenW } = useWindowDimensions();
   const crowded = screenW / tabOrder.length < 72;
   const SHORT: Record<string, string> = { Dashboard: 'Home', Equipment: 'Equip', Certificates: 'Certs' };
-  const orderRef = useRef(tabOrder);
-  orderRef.current = tabOrder;
+  // Past FEW screens the tab bar gives way to the menu, in the person's own order.
+  const available = useMemo(() => tabOrder, [tabOrder.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
+  const navPrefs = useNavPrefs(available);
+  const many = tabOrder.length > FEW;
+  const order = many ? navPrefs.order : tabOrder;
+  const docked = Platform.OS === 'web' && many && navPrefs.pinned && screenW >= PIN_WIDTH;
+  const orderRef = useRef(order);
+  orderRef.current = order;
 
   // Edge-to-edge is enabled, so the tab bar draws behind the Android system
   // navigation (3-button or gesture). Pad the bar by the bottom inset so the
@@ -213,8 +233,11 @@ function MainTabs() {
     .failOffsetY([-15, 15])
     .minVelocityX(180)
     .onEnd((e) => {
-      const idx = currentIdx.current;
+      // By name in the person's order, not by the navigator's index — with the
+      // menu the two differ.
       const order = orderRef.current;
+      const idx = order.indexOf(currentName.current);
+      if (idx < 0) return;
       if (e.translationX < -45 && idx < order.length - 1) navigation.navigate(order[idx + 1]);
       else if (e.translationX > 45 && idx > 0) navigation.navigate(order[idx - 1]);
     })
@@ -224,13 +247,26 @@ function MainTabs() {
     <GestureDetector gesture={swipe}>
       <View style={{ flex: 1 }}>
         <Tab.Navigator
-          sceneContainerStyle={onWeb ? { paddingTop: barHeight } : undefined}
+          sceneContainerStyle={onWeb ? { paddingTop: barHeight, ...(docked ? { paddingLeft: MENU_WIDTH } : {}) } : undefined}
           screenListeners={{
             state: (e: any) => {
-              const idx = e.data?.state?.index;
-              if (typeof idx === 'number') currentIdx.current = idx;
+              const st = e.data?.state;
+              const name = st?.routes?.[st.index]?.name;
+              if (typeof name === 'string') currentName.current = name;
             },
           }}
+          tabBar={
+            many
+              ? (p) => (
+                  <NavMenuBar
+                    {...p}
+                    {...navPrefs}
+                    icons={TAB_ICONS}
+                    labelOf={(r) => MENU_LABEL[r] ?? r}
+                  />
+                )
+              : undefined
+          }
           screenOptions={({ route }) => ({
             headerShown: false,
             tabBarActiveTintColor: COLORS.tabActive,

@@ -5,6 +5,12 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Menu instead of a tab bar past five screens** (components/NavMenu). Web: top bar with ☰ and the
+  current screen; the menu slides in from the left and closes on a choice; on windows ≥ 1100 px it
+  can be pinned open beside the content. Phone: the first four screens of the person's order on the
+  bottom bar plus "Menu". "Edit order" with ↑ ↓; the order and the pin are per device
+  (`msm:nav_order`, `msm:nav_pinned`). Swipe follows the person's order. Up to five screens (modules
+  off) the plain tab bar is unchanged.
 - **PMS for the whole vessel, by department (dark, `pms`).** Systems carry a department
   (Engineering, Deck, Safety, Bridge & comms, Interior, AV / IT, Hull & dry dock) and an optional
   running-hours counter (calendar-only systems hide every hours field). Maintenance groups systems by
