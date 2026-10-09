@@ -19,9 +19,9 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { DOC_CATEGORY_LABEL, IsmDoc } from '../types/docs';
+import { DOC_CATEGORY_LABEL, DocCategory, IsmDoc } from '../types/docs';
 import { personName, roleAtLeast } from '../types/role';
-import { iHaveRead, readStatus, reviewState } from '../services/docs';
+import { DocSort, iHaveRead, readStatus, reviewState, searchDocs, snippet, sortDocs } from '../services/docs';
 import { todayIso } from '../services/pms';
 import { uid } from '../utils/id';
 
@@ -32,6 +32,9 @@ export default function DocsSc() {
   const { docs, docAcks, crew, prefs } = useData();
   const sync = useSync();
   const [q, setQ] = useState('');
+  const [num, setNum] = useState('');
+  const [sortBy, setSortBy] = useState<DocSort>('number');
+  const [cat, setCat] = useState<DocCategory | null>(null);
   const today = todayIso();
 
   // Who "I" am on this device: its account, else the crew member last picked.
@@ -43,12 +46,14 @@ export default function DocsSc() {
 
   const canEdit = !sync.enrolled || roleAtLeast(sync.role, 'admin');
 
-  const shown = useMemo(() => {
-    const n = q.trim().toLowerCase();
-    return docs
-      .filter((d) => !n || [d.title, d.docNo, DOC_CATEGORY_LABEL[d.category]].some((v) => v?.toLowerCase().includes(n)))
-      .sort((a, b) => (a.docNo ?? a.title).localeCompare(b.docNo ?? b.title, undefined, { numeric: true }));
-  }, [docs, q]);
+  // Word search (title, number, type, text, file name, the PDF's own words) and
+  // number search, then the type filter and the chosen order.
+  const shown = useMemo(
+    () => sortDocs(searchDocs(docs, q, num, (d) => DOC_CATEGORY_LABEL[d.category]).filter((d) => !cat || d.category === cat), sortBy),
+    [docs, q, num, cat, sortBy]
+  );
+  const searching = !!(q.trim() || num.trim() || cat);
+  const presentCats = useMemo(() => (Object.keys(DOC_CATEGORY_LABEL) as DocCategory[]).filter((c) => docs.some((d) => d.category === c)), [docs]);
 
   const mine = useMemo(
     () => (me ? shown.filter((d) => d.mustRead !== false && !iHaveRead(d, docAcks, me.key, me.name)) : []),
@@ -71,6 +76,7 @@ export default function DocsSc() {
               .filter(Boolean)
               .join(' · ')}
           </Text>
+          {q.trim() && snippet(d, q) ? <Text style={styles.snip} numberOfLines={2}>{snippet(d, q)}</Text> : null}
         </View>
         {d.mustRead !== false && st.required ? (
           <Text style={[styles.count, st.unread.length ? { color: COLORS.warning } : { color: COLORS.success }]}>
@@ -85,31 +91,60 @@ export default function DocsSc() {
     <Screen scroll>
       <ScreenTitle title="Documents" subtitle="SMS, procedures, circulars — read and sign" help="ISM documents" />
 
-      <TextInput
-        style={styles.search}
-        value={q}
-        onChangeText={setQ}
-        placeholder="Search title, number, type…"
-        placeholderTextColor={COLORS.textLight}
-      />
+      <View style={styles.searchRow}>
+        <TextInput
+          style={[styles.search, { flex: 2 }]}
+          value={q}
+          onChangeText={setQ}
+          placeholder="Search by word — in the title and inside the document"
+          placeholderTextColor={COLORS.textLight}
+        />
+        <TextInput
+          style={[styles.search, { flex: 1 }]}
+          value={num}
+          onChangeText={setNum}
+          placeholder="Document no."
+          placeholderTextColor={COLORS.textLight}
+          autoCapitalize="characters"
+        />
+      </View>
+      <View style={styles.chips}>
+        <Text style={styles.chipLabel}>Sort</Text>
+        {([['number', 'No.'], ['title', 'Title'], ['issued', 'Newest'], ['review', 'Review due']] as [DocSort, string][]).map(([k, l]) => (
+          <TouchableOpacity key={k} style={[styles.chip, sortBy === k && styles.chipOn]} onPress={() => setSortBy(k)}>
+            <Text style={[styles.chipText, sortBy === k && styles.chipTextOn]}>{l}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      {presentCats.length > 1 ? (
+        <View style={styles.chips}>
+          <Text style={styles.chipLabel}>Type</Text>
+          {presentCats.map((c) => (
+            <TouchableOpacity key={c} style={[styles.chip, cat === c && styles.chipOn]} onPress={() => setCat(cat === c ? null : c)}>
+              <Text style={[styles.chipText, cat === c && styles.chipTextOn]}>{DOC_CATEGORY_LABEL[c]}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : null}
 
-      {mine.length ? (
+      {mine.length && !searching ? (
         <>
           <Label>{`To read — ${me!.name} (${mine.length})`}</Label>
           {mine.map((d) => <Row key={`m${d.id}`} d={d} highlight />)}
         </>
-      ) : me && docs.length ? (
+      ) : me && docs.length && !searching ? (
         <Text style={styles.allRead}>✓ {me.name} has read every document that must be read.</Text>
       ) : null}
 
       <View style={styles.head}>
-        <Label>{`All documents (${shown.length})`}</Label>
+        <Label>{searching ? `Found ${shown.length} of ${docs.length}` : `All documents (${shown.length})`}</Label>
         {canEdit ? (
           <TouchableOpacity onPress={() => nav.navigate('Doc', { id: uid('doc'), isNew: true })} hitSlop={10}>
             <Text style={styles.add}>+ Add document</Text>
           </TouchableOpacity>
         ) : null}
       </View>
+      {docs.length > 0 && shown.length === 0 ? <Empty text="No document matches." /> : null}
       {docs.length === 0 ? (
         <Empty
           text={
@@ -127,7 +162,15 @@ export default function DocsSc() {
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
-    search: { ...COLORS.glassInput, borderRadius: SIZES.radiusMd, paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm, fontSize: SIZES.body, color: COLORS.text, marginBottom: SIZES.md },
+    search: { ...COLORS.glassInput, borderRadius: SIZES.radiusMd, paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm, fontSize: SIZES.body, color: COLORS.text },
+    searchRow: { flexDirection: 'row', gap: SIZES.sm, marginBottom: SIZES.sm },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SIZES.xs, marginBottom: SIZES.sm },
+    chipLabel: { fontSize: SIZES.tiny, fontWeight: '700', color: COLORS.textLight, marginRight: 2 },
+    chip: { paddingVertical: 4, paddingHorizontal: SIZES.sm, borderRadius: 999, borderWidth: 1, borderColor: COLORS.primary },
+    chipOn: { backgroundColor: COLORS.primary },
+    chipText: { color: COLORS.primary, fontWeight: '600', fontSize: SIZES.small },
+    chipTextOn: { color: COLORS.textWhite },
+    snip: { fontSize: SIZES.small, color: COLORS.text, fontStyle: 'italic', marginTop: 2 },
     head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: SIZES.md },
     add: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
     allRead: { color: COLORS.success, fontWeight: '600', fontSize: SIZES.small, marginBottom: SIZES.sm },

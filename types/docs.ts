@@ -53,6 +53,12 @@ export interface IsmDoc {
   fileName?: string;
   /** The file is attached but not yet uploaded — only the attaching device has it (services/docFiles.ts). */
   filePending?: boolean;
+  /**
+   * The words inside the file (PDF text, taken when it is uploaded from a
+   * computer — utils/pdfText), so a search finds a document by what it says.
+   * Capped at utils/pdfText MAX_TEXT.
+   */
+  text?: string;
   /** False for reference documents nobody has to sign for. Default true. */
   mustRead?: boolean;
   /** Who issued or uploaded it. */

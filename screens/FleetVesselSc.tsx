@@ -25,6 +25,7 @@ import { moduleOn } from '../constants/modules';
 import { VesselData } from '../services/fleetSummary';
 import { readStatus } from '../services/docs';
 import { pickDocument, toDataUri } from '../services/attachments';
+import { pdfText } from '../utils/pdfText';
 import { todayIso } from '../services/pms';
 import { Certificate, CertificateScope, scopeOf } from '../types/certificate';
 import { DOC_CATEGORY_LABEL, DocCategory, IsmDoc } from '../types/docs';
@@ -274,8 +275,11 @@ function DocEditor({ imo, start, isNew, onClose, onSaved }: { imo: string; start
     if (!f) return;
     setBusy(true);
     try {
-      const url = await shore.uploadFile(imo, d.id, `doc_${d.id}_r${revision}`, await toDataUri(f.uri, f.name ?? 'document.pdf'));
-      set({ fileUri: url, fileName: f.name ?? 'document.pdf', filePending: false });
+      const dataUri = await toDataUri(f.uri, f.name ?? 'document.pdf');
+      const url = await shore.uploadFile(imo, d.id, `doc_${d.id}_r${revision}`, dataUri);
+      // The words inside, so the crew can search the document by them.
+      const text = await pdfText(dataUri).catch(() => null);
+      set({ fileUri: url, fileName: f.name ?? 'document.pdf', filePending: false, ...(text ? { text } : {}) });
     } catch (e: any) {
       Alert.alert('File not uploaded', e?.message ?? String(e));
     } finally {

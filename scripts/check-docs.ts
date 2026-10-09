@@ -33,5 +33,25 @@ ok(reviewState({ ...doc, reviewDue: '2026-10-01' }, '2026-10-09') === 'overdue',
 ok(reviewState({ ...doc, reviewDue: '2026-10-30' }, '2026-10-09') === 'soon', 'review within 30 days → soon');
 ok(reviewState({ ...doc, reviewDue: '2027-03-01' }, '2026-10-09') === null, 'review far off → nothing');
 
+// Search and order (services/docs)
+import { searchDocs, snippet, sortDocs } from '../services/docs';
+{
+  const D = (o: Partial<IsmDoc>): IsmDoc => ({ id: o.id ?? 'x', title: 'X', category: 'procedure', revision: 1, issued: '2026-01-01', updatedAt: 0, ...o });
+  const list = [
+    D({ id: 'a', title: 'Enclosed space entry', docNo: 'SMS-07-03', text: 'The atmosphere must be tested for oxygen before entry. A standby person stays at the entrance.' }),
+    D({ id: 'b', title: 'Garbage management plan', docNo: 'SMS-11-01', issued: '2026-05-01', reviewDue: '2026-11-01' }),
+    D({ id: 'c', title: 'Bunkering', docNo: 'SMS-07-10', body: 'Close all scuppers. Oxygen-free… no: keep SOPEP kit ready.', reviewDue: '2027-01-01' }),
+    D({ id: 'd', title: "Master's orders", category: 'orders' }),
+  ];
+  const cat = () => '';
+  ok(searchDocs(list, 'oxygen', '', cat).map((d) => d.id).join() === 'a,c', 'word search finds words inside the PDF text and the body');
+  ok(searchDocs(list, 'standby ENTRANCE', '', cat).map((d) => d.id).join() === 'a', 'several words: all must be there, any case');
+  ok(searchDocs(list, '', 'sms 07', cat).map((d) => d.id).join() === 'a,c', 'number search ignores spaces, matches part of the number');
+  ok(searchDocs(list, 'oxygen', '07-10', cat).map((d) => d.id).join() === 'c', 'word and number together');
+  ok((snippet(list[0], 'oxygen') ?? '').includes('tested for oxygen before entry'), 'snippet shows the words around the hit');
+  ok(sortDocs(list, 'number').map((d) => d.id).join() === 'a,c,b,d', 'sort by number: numeric order, unnumbered last');
+  ok(sortDocs(list, 'issued')[0].id === 'b' && sortDocs(list, 'review').map((d) => d.id).slice(0, 2).join() === 'b,c', 'sort newest / review due');
+}
+
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

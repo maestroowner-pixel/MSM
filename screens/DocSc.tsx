@@ -29,7 +29,10 @@ import { crewLabel } from '../types/crew';
 import { personName, roleAtLeast } from '../types/role';
 import { iHaveRead, readStatus } from '../services/docs';
 import { pendingFile, shareDocFile } from '../services/docFiles';
-import { openFile, pickDocument } from '../services/attachments';
+import { openFile, pickDocument, toDataUri } from '../services/attachments';
+import { pdfText } from '../utils/pdfText';
+import { DocViewer } from '../components/DocViewer';
+import { onWeb } from '../utils/fileShare';
 import { todayIso } from '../services/pms';
 import { formatDate, formatDateTime } from '../utils/dates';
 import { goBackOr } from '../utils/nav';
@@ -191,11 +194,24 @@ export default function DocSc() {
     ]);
   };
 
+  const [indexing, setIndexing] = useState<string | null>(null);
   const attach = async () => {
     const f = await pickDocument();
-    if (f) {
-      touched.current = true;
-      setNewFile({ uri: f.uri, name: f.name ?? 'Document' });
+    if (!f) return;
+    touched.current = true;
+    const name = f.name ?? 'Document';
+    setNewFile({ uri: f.uri, name });
+    // Take the words out of a PDF so the document can be searched by them.
+    if (/\.pdf$/i.test(name)) {
+      setIndexing('Reading the document’s text…');
+      const text = await pdfText(await toDataUri(f.uri, name)).catch(() => null);
+      if (text) {
+        set({ text });
+        setIndexing(`Text read — ${text.split(' ').length} words, searchable`);
+      } else {
+        set({ text: undefined });
+        setIndexing(onWeb ? 'The text could not be read (a scan?) — found by title and number only' : null);
+      }
     }
   };
 
@@ -256,6 +272,7 @@ export default function DocSc() {
                 <MciIcon name="paperclip" size={18} color={COLORS.primary} />
                 <Text style={styles.fileText} numberOfLines={1}>{fileLabel ? `${fileLabel} — replace` : 'Attach a file'}</Text>
               </TouchableOpacity>
+              {indexing ? <Text style={styles.sub}>{indexing}</Text> : draft.text ? <Text style={styles.sub}>{`Searchable text: ${draft.text.split(' ').length} words`}</Text> : null}
               <View style={{ height: SIZES.md }} />
               <Label>Text (for a circular or orders written aboard)</Label>
               <TextInput style={[styles.input, { minHeight: 140, textAlignVertical: 'top' }]} value={draft.body ?? ''} onChangeText={(v) => set({ body: v })} multiline placeholder="—" placeholderTextColor={COLORS.textLight} />
@@ -294,6 +311,10 @@ export default function DocSc() {
               ) : null}
               {heldHere && doc.filePending ? (
                 <Text style={styles.sub}>Only this device has the file so far — Edit and Save when connected to share it with the vessel.</Text>
+              ) : null}
+
+              {doc.fileUri || heldHere ? (
+                <DocViewer uri={(doc.fileUri ?? heldHere?.uri)!} name={doc.fileName ?? heldHere?.name} />
               ) : null}
 
               {doc.body ? <Text style={styles.body}>{doc.body}</Text> : null}

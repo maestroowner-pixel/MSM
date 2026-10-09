@@ -5,6 +5,13 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Documents (dark, `docs`): readable, searchable, sortable.** A PDF or image is shown on the
+  page (web: the browser's viewer in a frame; phones keep "Open"). On upload from a computer the
+  PDF's text is read (pdf.js from cdnjs, utils/pdfText) and stored with the document (≤ 60 000
+  chars), also when a superintendent uploads in Fleet. Two searches — by word (title, number, type,
+  text, file name and the PDF's own words, all words must match, with the passage shown) and by
+  document number (separators ignored) — plus sort by number / title / newest / review due and a
+  type filter. `check:docs` +7.
 ## 2.59 — 9 Oct 2026
 
 - **Crew list (IMO FAL Form 5)** as PDF from Settings → Crew — port and date of arrival/departure,
