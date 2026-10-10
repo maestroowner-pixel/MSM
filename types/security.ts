@@ -32,6 +32,27 @@ export interface Visitor {
   inBy: string;
   outBy?: string;
   remarks?: string;
+  /** The visitor's own signature, drawn on the screen (SVG path, 300 × 100). */
+  signature?: string;
+  updatedAt: number;
+}
+
+/**
+ * A crew member crossing the gangway — scanned from their QR crew card or
+ * marked by the watch. Append-only; where a person is now is their last move.
+ */
+export interface CrewMove {
+  id: string;
+  crewId: string;
+  name: string;
+  dir: 'ashore' | 'aboard';
+  date: string;
+  /** hh:mm */
+  time: string;
+  at: number;
+  /** Gangway watch / device that recorded it. */
+  by: string;
+  via: 'qr' | 'manual';
   updatedAt: number;
 }
 

@@ -66,6 +66,8 @@ export function parseItemQr(payload: string): string | null {
   return id || null;
 }
 
+export { CREW_QR_SCHEME, crewQrPayload, parseCrewQr } from './crewQr';
+
 /**
  * A `msm://` link that arrives from OUTSIDE a printed sticker — a home-screen
  * widget, or a Shortcut. Same private scheme as the labels, but where the QR only

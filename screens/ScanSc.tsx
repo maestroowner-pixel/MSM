@@ -33,6 +33,13 @@ import { SCAN_BARCODE_TYPES, ScanMatch, lookupScan } from '../services/barcode';
 import { SIZES, Palette } from '../theme';
 import { goBackOr } from '../utils/nav';
 import { recordScanProof } from '../services/signingPolicy';
+import { parseCrewQr } from '../services/crewQr';
+import { isDoubleScan, nextMove } from '../services/gangway';
+import { useSync } from '../contexts/SyncContext';
+import { moduleOn } from '../constants/modules';
+import { isAboard } from '../types/crew';
+import { personName } from '../types/role';
+import * as storage from '../services/storage';
 
 /** No expo-camera on Windows — see the module header. */
 const HAS_CAMERA = Platform.OS !== 'windows';
@@ -51,7 +58,10 @@ export default function ScanSc() {
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { flat, recordScan } = useData();
+  const { flat, recordScan, crew, crewMoves, appendRow } = useData();
+  const sync = useSync();
+  /** The last crew card read at the gangway — shown big, then the scanner is ready for the next. */
+  const [crewHit, setCrewHit] = useState<{ name: string; text: string; ok: boolean } | null>(null);
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
   const [permission, requestPermission] = useCameraPermissions();
@@ -70,6 +80,25 @@ export default function ScanSc() {
     (code: string, via: 'camera' | 'typed') => {
       if (locked.current) return;
       locked.current = true;
+
+      // A crew card (msm://crew/<id>): going ashore or coming back aboard.
+      const crewId = parseCrewQr(code);
+      if (crewId && moduleOn('security')) {
+        const c = crew.find((x) => x.id === crewId && isAboard(x));
+        const show = (hit: { name: string; text: string; ok: boolean }) => {
+          setCrewHit(hit);
+          setTimeout(() => {
+            locked.current = false;
+          }, 2500);
+        };
+        if (!c) return show({ name: 'Unknown card', text: 'Not on the crew list of this vessel (signed off, or another vessel’s card).', ok: false });
+        if (isDoubleScan(c.id, crewMoves)) return show({ name: c.name, text: 'Already recorded a moment ago.', ok: true });
+        const by = sync.me ? personName(sync.me) : 'Gangway';
+        const m = nextMove(c, crewMoves, by, via === 'camera' ? 'qr' : 'manual');
+        void appendRow(storage.CREW_MOVES_KEY, m);
+        show({ name: c.rank ? `${c.name} · ${c.rank}` : c.name, text: `${m.dir === 'ashore' ? 'ASHORE' : 'BACK ABOARD'} · ${m.time}`, ok: true });
+        return;
+      }
 
       const match = lookupScan(code, flat);
       if (match.kind === 'item') {
@@ -90,7 +119,7 @@ export default function ScanSc() {
       }
       setResult(match);
     },
-    [flat, nav, recordScan]
+    [flat, nav, recordScan, crew, crewMoves, appendRow, sync.me]
   );
 
   const again = () => {
@@ -229,6 +258,15 @@ export default function ScanSc() {
           />
           <View style={styles.reticle} pointerEvents="none" />
         </View>
+      ) : null}
+
+      {crewHit ? (
+        <Card style={{ borderLeftWidth: 6, borderLeftColor: crewHit.ok ? COLORS.success : COLORS.danger }}>
+          <Label>Gangway</Label>
+          <Text style={{ fontSize: SIZES.h3, fontWeight: '900', color: COLORS.textDark }}>{crewHit.name}</Text>
+          <Text style={{ fontSize: SIZES.h4, fontWeight: '800', color: crewHit.ok ? COLORS.success : COLORS.danger, marginTop: 4 }}>{crewHit.text}</Text>
+          <Text style={styles.note}>Ready for the next card.</Text>
+        </Card>
       ) : null}
 
       {result?.kind === 'stale' ? (

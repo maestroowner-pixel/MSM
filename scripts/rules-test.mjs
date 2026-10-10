@@ -92,6 +92,9 @@ await t(true, 'Officer (SSO) sets the security level', setDoc(R(officer, 'securi
 await t(true, 'Crew member records a security drill', setDoc(R(crew, 'security_drills', 'd1'), { id: 'd1' }));
 await t(false, 'A security drill cannot be changed', updateDoc(R(crew, 'security_drills', 'd1'), { findings: 'x' }));
 
+await t(true, 'Gangway records a crew member going ashore', setDoc(R(crew, 'crew_moves', 'm1'), { id: 'm1', dir: 'ashore' }));
+await t(false, 'A crew movement cannot be changed', updateDoc(R(crew, 'crew_moves', 'm1'), { dir: 'aboard' }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

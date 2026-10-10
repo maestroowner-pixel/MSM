@@ -42,6 +42,7 @@ export const SOPEP_DRILLS_KEY = `${PREFIX}sopep_drills`;
 export const VISITORS_KEY = `${PREFIX}visitors`;
 export const SECURITY_LEVEL_KEY = `${PREFIX}security_levels`;
 export const SECURITY_DRILLS_KEY = `${PREFIX}security_drills`;
+export const CREW_MOVES_KEY = `${PREFIX}crew_moves`;
 export const DOC_ACKS_KEY = `${PREFIX}ism_doc_acks`;
 /** The vessel's "scan before you sign" rule, as this device last knew it. */
 export const SIGNING_POLICY_KEY = `${PREFIX}signing_policy`;
@@ -660,6 +661,7 @@ export async function resetAllData(): Promise<void> {
     VISITORS_KEY,
     SECURITY_LEVEL_KEY,
     SECURITY_DRILLS_KEY,
+    CREW_MOVES_KEY,
     DOC_ACKS_KEY,
     'msm:docfiles_pending',
     VESSEL_KEY,

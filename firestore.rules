@@ -278,6 +278,12 @@ service cloud.firestore {
         allow create, update: if member(v);
         allow delete: if false;
       }
+      // Crew going ashore / coming back aboard (QR crew card at the gangway).
+      match /crew_moves/{id} {
+        allow read: if reader(v);
+        allow create: if member(v);
+        allow update, delete: if false;
+      }
       match /security_drills/{id} {
         allow read: if reader(v);
         allow create: if member(v);

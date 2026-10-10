@@ -1,68 +1,166 @@
 // ===================================
-// Security — ISPS Code: the security level and the gangway / visitor log
-// (types/security.ts).
+// Security — ISPS Code: the digital gangway logbook and the security drills.
 //
-// The gangway watch signs a visitor on — name, company, purpose, the identity
-// document seen, the pass given, who receives them — and signs them off. "On
-// board now" is every visitor not yet signed off, the first thing a Master
-// asks at a muster. The log for any day or month goes out as Excel.
+//   On board   persons on board now: crew (going ashore / back aboard by their
+//              QR crew card or the watch's tap) and visitors signed on; sign a
+//              visitor on — with their signature on the screen — and off.
+//   Logbook    the book for a day or a month: visitors with their signatures,
+//              crew ashore / back aboard; PDF and Excel.
+//   Drills     security drills, at least every three months.
+//
+// The security level is a small switch in the corner (10 Oct 2026: "usually
+// ISPS 1 — level 2 or 3 is out of the ordinary"); above 1 a line says so.
+// Everything synchronises across the vessel's devices (services/firebaseService).
 // ===================================
 
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import * as XLSX from 'xlsx';
+import { useNavigation } from '@react-navigation/native';
 
 import { Card, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
+import { Dropdown } from '../components/Dropdown';
+import { SignaturePad, SignatureView } from '../components/SignaturePad';
 import { useSigner } from '../components/SignerChoice';
 import { useSignConfirm } from '../components/SignConfirm';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { LEVEL_TEXT, SECURITY_DRILL_DAYS, SECURITY_SCENARIOS, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
+import { CrewMove, LEVEL_TEXT, SECURITY_DRILL_DAYS, SECURITY_SCENARIOS, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
 import { isAboard } from '../types/crew';
 import { roleAtLeast } from '../types/role';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
-import { vesselHeader } from '../services/export';
-import { deliverFile, onWeb } from '../utils/fileShare';
-import { saveFileWeb } from '../utils/webSave';
+import { isAshore, lastMoves, nextMove, personsOnBoard } from '../services/gangway';
+import { exportCrewCards } from '../services/crewCards';
+import { exportVisitorExcel, exportVisitorPdf, movesOf, visitsOf, vlogTitle } from '../services/visitorLog';
 import { formatDate, formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 
+type Tab = 'board' | 'log' | 'drills';
 const hhmm = () => new Date().toTimeString().slice(0, 5);
 const ID_TYPES = ['Passport', 'ID card', 'Driving licence', "Seaman's book", 'Company ID'];
 
 export default function SecuritySc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { visitors, securityLevels, securityDrills, crew, vessel, saveRow, appendRow } = useData();
-  const confirmSign = useSignConfirm();
+  const nav = useNavigation<any>();
+  const { visitors, securityLevels, securityDrills, crewMoves, crew, vessel, saveRow, appendRow } = useData();
   const sync = useSync();
-  const { signer, picker } = useSigner();
+  const confirmSign = useSignConfirm();
+  const { signer, picker } = useSigner('WATCH');
   const officer = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const today = todayIso();
-  const [adding, setAdding] = useState(false);
-  const [day, setDay] = useState(today);
+  const [tab, setTab] = useState<Tab>('board');
   const [saved, setSaved] = useState<string | null>(null);
+  const done = (where: string | null | void) => {
+    if (typeof where === 'string') setSaved(where === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${where}”`);
+  };
+  const fail = (e: any) => Alert.alert('Security', String(e?.message ?? e));
 
+  // ---- level ----
   const level = useMemo(() => [...securityLevels].sort((a, b) => b.since - a.since)[0], [securityLevels]);
-  const current = level?.level ?? 1;
-  const onBoard = visitors.filter((v) => !v.timeOut).sort((a, b) => a.timeIn.localeCompare(b.timeIn));
-  const ofDay = visitors.filter((v) => v.date === day).sort((a, b) => b.timeIn.localeCompare(a.timeIn));
-  const people = crew.filter(isAboard);
-  const [tab, setTab] = useState<'gangway' | 'drills'>('gangway');
+  const current = (level?.level ?? 1) as 1 | 2 | 3;
+  const levelColor = (l: number) => (l === 1 ? COLORS.success : l === 2 ? COLORS.warning : COLORS.danger);
+  const setLevel = (l: 1 | 2 | 3) => {
+    if (l === current) return;
+    if (!officer) return Alert.alert('Security level', 'Set by the Master or the Ship Security Officer.');
+    if (!signer) return Alert.alert('Who is setting it?', 'Choose the watch first.');
+    const go = async () => {
+      const r: SecurityLevelRec = { id: `level_${Date.now()}`, level: l, since: Date.now(), by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), updatedAt: Date.now() };
+      await appendRow(storage.SECURITY_LEVEL_KEY, r);
+      playSuccessSound();
+    };
+    Alert.alert(`Security level ${l}`, LEVEL_TEXT[l], [{ text: 'Cancel', style: 'cancel' }, { text: `Set level ${l}`, onPress: () => void go() }]);
+  };
+  const levelSwitch = (
+    <View style={styles.lvl}>
+      <Text style={styles.lvlText}>ISPS</Text>
+      {([1, 2, 3] as const).map((l) => (
+        <TouchableOpacity key={l} onPress={() => setLevel(l)} hitSlop={4} accessibilityLabel={`Security level ${l}`} style={[styles.lvlBtn, current === l && { backgroundColor: levelColor(l), borderColor: levelColor(l) }]}>
+          <Text style={[styles.lvlBtnText, current === l && { color: COLORS.textWhite }]}>{l}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
 
-  // ---- security drills ----
+  // ---- on board ----
+  const people = crew.filter(isAboard);
+  const last = useMemo(() => lastMoves(crewMoves), [crewMoves]);
+  const pob = useMemo(() => personsOnBoard(crew, crewMoves, visitors), [crew, crewMoves, visitors]);
+  const onBoard = visitors.filter((v) => !v.timeOut).sort((a, b) => a.timeIn.localeCompare(b.timeIn));
+  const moveCrew = async (id: string) => {
+    const c = people.find((p) => p.id === id);
+    if (!c) return;
+    if (!signer) return Alert.alert('Gangway watch', 'Choose the watch first.');
+    await appendRow(storage.CREW_MOVES_KEY, nextMove(c, crewMoves, signer.name, 'manual'));
+    playSuccessSound();
+  };
+
+  // ---- new visitor ----
+  const [adding, setAdding] = useState(false);
+  const blank = { name: '', company: '', purpose: '', idType: 'Passport', idNo: '', passNo: '', host: '', remarks: '', signature: '' };
+  const [f, setF] = useState(blank);
+  const setSig = useCallback((signature: string) => setF((x) => ({ ...x, signature })), []);
+  // A returning contractor: pick their earlier visit, the rest fills itself in.
+  const known = useMemo(() => {
+    const q = f.name.trim().toLowerCase();
+    if (q.length < 2) return [];
+    const seen = new Map<string, Visitor>();
+    for (const v of [...visitors].sort((a, b) => b.updatedAt - a.updatedAt)) {
+      const k = v.name.toLowerCase();
+      if (k.includes(q) && k !== q && !seen.has(k)) seen.set(k, v);
+    }
+    return [...seen.values()].slice(0, 4);
+  }, [f.name, visitors]);
+  const signOn = async () => {
+    if (!signer) return Alert.alert('Gangway watch', 'Choose the watch first.');
+    if (!f.name.trim() || !f.purpose.trim()) return Alert.alert('Visitor', 'Name and purpose of the visit are needed.');
+    if (current >= 2 && !f.idNo.trim()) return Alert.alert('Identity', `At security level ${current} the identity document must be checked and recorded.`);
+    const v: Visitor = {
+      id: uid('vis'), date: today, timeIn: hhmm(), name: f.name.trim(), purpose: f.purpose.trim(), inBy: signer.name, updatedAt: Date.now(),
+      ...(f.company.trim() ? { company: f.company.trim() } : {}),
+      ...(f.idNo.trim() ? { idType: f.idType, idNo: f.idNo.trim() } : {}),
+      ...(f.passNo.trim() ? { passNo: f.passNo.trim() } : {}),
+      ...(f.host ? { host: f.host } : {}),
+      ...(f.remarks.trim() ? { remarks: f.remarks.trim() } : {}),
+      ...(f.signature ? { signature: f.signature } : {}),
+    };
+    await saveRow(storage.VISITORS_KEY, v);
+    setF(blank);
+    setAdding(false);
+    playSuccessSound();
+  };
+  const signOff = async (v: Visitor) => {
+    if (!signer) return Alert.alert('Gangway watch', 'Choose the watch first.');
+    await saveRow(storage.VISITORS_KEY, { ...v, timeOut: hhmm(), ...(v.date !== today ? { dateOut: today } : {}), outBy: signer.name });
+    playSuccessSound();
+  };
+
+  // ---- logbook ----
+  const [byMonth, setByMonth] = useState(false);
+  const [day, setDay] = useState(today);
+  const period = byMonth ? day.slice(0, 7) : day;
+  const book = useMemo(() => visitsOf(visitors, period), [visitors, period]);
+  const bookMoves = useMemo(() => movesOf(crewMoves, period), [crewMoves, period]);
+  const atEnd = period >= (byMonth ? today.slice(0, 7) : today);
+  const shift = (n: number) => {
+    const d = new Date(`${day}T00:00:00Z`);
+    if (byMonth) d.setUTCMonth(d.getUTCMonth() + n, 1);
+    else d.setUTCDate(d.getUTCDate() + n);
+    const iso = d.toISOString().slice(0, 10);
+    setDay(iso > today ? today : iso);
+  };
+
+  // ---- drills ----
   const drills = useMemo(() => [...securityDrills].sort((a, b) => b.at - a.at), [securityDrills]);
   const nextDue = drills[0] ? new Date(Date.parse(`${drills[0].date}T00:00:00Z`) + SECURITY_DRILL_DAYS * 86400000).toISOString().slice(0, 10) : null;
   const drillLate = !nextDue || nextDue < today;
-  const drillDue = nextDue ? `${drillLate ? 'overdue since' : 'next by'} ${formatDate(nextDue)}` : 'none yet';
   const [d, setD] = useState({ scenario: SECURITY_SCENARIOS[0], minutes: '', findings: '', team: [] as string[] });
   const saveDrill = async () => {
-    if (!signer) return Alert.alert('Who conducted it?', 'Choose your name below.');
+    if (!signer) return Alert.alert('Who conducted it?', 'Choose the watch first.');
     if (!d.team.length) return Alert.alert('Drill', 'Mark who took part.');
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Security drill — ${d.scenario}` });
     if (!sig) return;
@@ -77,207 +175,169 @@ export default function SecuritySc() {
     playSuccessSound();
   };
 
-  const setLevel = (l: 1 | 2 | 3) => {
-    if (!officer) return Alert.alert('Security level', 'Set by the Master or the Ship Security Officer.');
-    if (!signer) return Alert.alert('Who is setting it?', 'Choose your name below.');
-    if (l === current) return;
-    const go = async () => {
-      const r: SecurityLevelRec = { id: `level_${Date.now()}`, level: l, since: Date.now(), by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), updatedAt: Date.now() };
-      await appendRow(storage.SECURITY_LEVEL_KEY, r);
-      playSuccessSound();
-    };
-    Alert.alert(`Security level ${l}`, LEVEL_TEXT[l], [{ text: 'Cancel', style: 'cancel' }, { text: `Set level ${l}`, onPress: () => void go() }]);
-  };
-
-  // ---- new visitor ----
-  const blank = { name: '', company: '', purpose: '', idType: 'Passport', idNo: '', passNo: '', host: '', remarks: '' };
-  const [f, setF] = useState(blank);
-  const signOn = async () => {
-    if (!signer) return Alert.alert('Gangway watch', 'Choose your name below.');
-    if (!f.name.trim() || !f.purpose.trim()) return Alert.alert('Visitor', 'Name and purpose of the visit are needed.');
-    if (current >= 2 && !f.idNo.trim()) return Alert.alert('Identity', `At security level ${current} the identity document must be checked and recorded.`);
-    const v: Visitor = {
-      id: uid('vis'), date: today, timeIn: hhmm(), name: f.name.trim(), purpose: f.purpose.trim(), inBy: signer.name, updatedAt: Date.now(),
-      ...(f.company.trim() ? { company: f.company.trim() } : {}),
-      ...(f.idNo.trim() ? { idType: f.idType, idNo: f.idNo.trim() } : {}),
-      ...(f.passNo.trim() ? { passNo: f.passNo.trim() } : {}),
-      ...(f.host ? { host: f.host } : {}),
-      ...(f.remarks.trim() ? { remarks: f.remarks.trim() } : {}),
-    };
-    await saveRow(storage.VISITORS_KEY, v);
-    setF(blank);
-    setAdding(false);
-    playSuccessSound();
-  };
-  const signOff = async (v: Visitor) => {
-    if (!signer) return Alert.alert('Gangway watch', 'Choose your name below.');
-    await saveRow(storage.VISITORS_KEY, { ...v, timeOut: hhmm(), ...(v.date !== today ? { dateOut: today } : {}), outBy: signer.name });
-    playSuccessSound();
-  };
-
-  const exportLog = async (month: boolean) => {
-    const rows = visitors.filter((v) => (month ? v.date.startsWith(day.slice(0, 7)) : v.date === day)).sort((a, b) => `${a.date}${a.timeIn}`.localeCompare(`${b.date}${b.timeIn}`));
-    const head = ['Date', 'Time in', 'Time out', 'Name', 'Company', 'Purpose', 'ID', 'ID No.', 'Pass No.', 'Host', 'Signed on by', 'Signed off by', 'Remarks'];
-    const ws = XLSX.utils.aoa_to_sheet([[`Gangway / visitor log — ${month ? day.slice(0, 7) : day}`], [vesselHeader(vessel)], [], head, ...rows.map((v) => [v.date, v.timeIn, v.timeOut ? `${v.dateOut ? `${v.dateOut} ` : ''}${v.timeOut}` : 'ON BOARD', v.name, v.company ?? '', v.purpose, v.idType ?? '', v.idNo ?? '', v.passNo ?? '', v.host ?? '', v.inBy, v.outBy ?? '', v.remarks ?? ''])]);
-    ws['!cols'] = head.map(() => ({ wch: 16 }));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Visitors');
-    const v = (vessel?.vessel_name ?? '').replace(/[\\/:*?"<>|]+/g, ' ').trim();
-    const name = `Visitor log-${month ? `${day.slice(5, 7)}${day.slice(2, 4)}` : `${day.slice(8, 10)}${day.slice(5, 7)}${day.slice(2, 4)}`}${v ? `-${v}` : ''}.xlsx`;
-    const b64 = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
-    const mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-    if (onWeb) {
-      const bin = atob(b64);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      const where = await saveFileWeb(new Blob([bytes], { type: mime }), name, 'reports');
-      if (where) setSaved(where === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${where}”`);
-    } else await deliverFile(name, b64, true, mime);
-  };
-
-  const shiftDay = (n: number) => {
-    const d = new Date(`${day}T00:00:00Z`);
-    d.setUTCDate(d.getUTCDate() + n);
-    setDay(d.toISOString().slice(0, 10));
-  };
-  const levelColor = current === 1 ? COLORS.success : current === 2 ? COLORS.warning : COLORS.danger;
+  const Chip = ({ on, label, onPress, warn }: { on: boolean; label: string; onPress: () => void; warn?: boolean }) => (
+    <TouchableOpacity onPress={onPress} style={[styles.chip, on && styles.chipOn, warn && !on && { borderColor: COLORS.danger }]}>
+      <Text style={[styles.chipText, on && styles.chipTextOn, warn && !on && { color: COLORS.danger }]}>{label}</Text>
+    </TouchableOpacity>
+  );
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Security" subtitle="ISPS Code — security level, gangway / visitor log, security drills" help="Security (ISPS)" />
+      <ScreenTitle title="Security" subtitle="ISPS Code — gangway logbook and drills" help="Security (ISPS)" actions={levelSwitch} />
+      {current > 1 && level ? (
+        <Text style={[styles.alert, { color: levelColor(current), borderColor: levelColor(current) }]}>
+          {`Security level ${current} since ${formatDateTime(level.since)} — ${LEVEL_TEXT[current]}. Identity document required for every visitor.`}
+        </Text>
+      ) : null}
 
-      <Card>
-        <View style={styles.levelRow}>
-          <MciIcon name="shield-account" size={28} color={levelColor} />
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.levelTitle, { color: levelColor }]}>{`Security level ${current}`}</Text>
-            <Text style={styles.sub}>{LEVEL_TEXT[current as 1 | 2 | 3]}</Text>
-            {level ? <Text style={styles.sub}>{`Since ${formatDateTime(level.since)} · set by ${level.by}`}</Text> : null}
-          </View>
-          <View style={styles.levelBtns}>
-            {([1, 2, 3] as const).map((l) => (
-              <TouchableOpacity key={l} onPress={() => setLevel(l)} style={[styles.levelBtn, current === l && { backgroundColor: levelColor, borderColor: levelColor }]}>
-                <Text style={[styles.levelBtnText, current === l && { color: COLORS.textWhite }]}>{l}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+      <View style={styles.topRow}>
+        <View style={styles.chips}>
+          <Chip on={tab === 'board'} label={`On board · ${pob.total}`} onPress={() => setTab('board')} />
+          <Chip on={tab === 'log'} label="Logbook" onPress={() => setTab('log')} />
+          <Chip on={tab === 'drills'} label="Drills" onPress={() => setTab('drills')} warn={drillLate} />
         </View>
-      </Card>
-
-      <View style={styles.chips}>
-        {([['gangway', `Gangway · ${onBoard.length} on board`], ['drills', `Drills · ${drillDue}`]] as ['gangway' | 'drills', string][]).map(([k, l]) => (
-          <TouchableOpacity key={k} onPress={() => setTab(k)} style={[styles.chip, tab === k && styles.chipOn, k === 'drills' && drillLate && tab !== k && { borderColor: COLORS.danger }]}>
-            <Text style={[styles.chipText, tab === k && styles.chipTextOn, k === 'drills' && drillLate && tab !== k && { color: COLORS.danger }]}>{l}</Text>
-          </TouchableOpacity>
-        ))}
+        {picker ? <View style={{ minWidth: 240, flexShrink: 1 }}>{picker}</View> : null}
       </View>
 
-      {tab === 'gangway' ? (
+      {tab === 'board' ? (
         <>
-        <View style={styles.row}>
-          <Label>{`On board now — ${onBoard.length} visitor${onBoard.length === 1 ? '' : 's'}`}</Label>
-          <TouchableOpacity style={styles.btn} onPress={() => setAdding((v) => !v)}><Text style={styles.btnText}>{adding ? 'Close' : '+ Sign a visitor on'}</Text></TouchableOpacity>
-        </View>
-
-        {adding ? (
-          <Card>
-            <View style={styles.pair}>
-              <TextInput style={styles.input} value={f.name} onChangeText={(v) => setF({ ...f, name: v })} placeholder="Full name ★" placeholderTextColor={COLORS.textLight} />
-              <TextInput style={styles.input} value={f.company} onChangeText={(v) => setF({ ...f, company: v })} placeholder="Company" placeholderTextColor={COLORS.textLight} />
-            </View>
-            <TextInput style={styles.input} value={f.purpose} onChangeText={(v) => setF({ ...f, purpose: v })} placeholder="Purpose of the visit ★ — e.g. engineer, AC service" placeholderTextColor={COLORS.textLight} />
-            <View style={styles.chips}>
-              {ID_TYPES.map((t) => (
-                <TouchableOpacity key={t} onPress={() => setF({ ...f, idType: t })} style={[styles.chip, f.idType === t && styles.chipOn]}>
-                  <Text style={[styles.chipText, f.idType === t && styles.chipTextOn]}>{t}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <View style={styles.pair}>
-              <TextInput style={styles.input} value={f.idNo} onChangeText={(v) => setF({ ...f, idNo: v })} placeholder={`${f.idType} No.${current >= 2 ? ' ★' : ''}`} placeholderTextColor={COLORS.textLight} />
-              <TextInput style={styles.input} value={f.passNo} onChangeText={(v) => setF({ ...f, passNo: v })} placeholder="Visitor pass No." placeholderTextColor={COLORS.textLight} />
-            </View>
-            <Text style={styles.sub}>Received / escorted by</Text>
-            <View style={styles.chips}>
-              {people.map((p) => (
-                <TouchableOpacity key={p.id} onPress={() => setF({ ...f, host: f.host === p.name ? '' : p.name })} style={[styles.chip, f.host === p.name && styles.chipOn]}>
-                  <Text style={[styles.chipText, f.host === p.name && styles.chipTextOn]}>{p.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <TextInput style={styles.input} value={f.remarks} onChangeText={(v) => setF({ ...f, remarks: v })} placeholder="Remarks — tools, bags searched, areas allowed" placeholderTextColor={COLORS.textLight} />
-            <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void signOn()}><Text style={styles.btnText}>Sign on</Text></TouchableOpacity>
-          </Card>
-        ) : null}
-
-        {onBoard.map((v) => (
-          <View key={v.id} style={[styles.visitor, { borderLeftColor: COLORS.warning }]}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.vName}>{v.company ? `${v.name} · ${v.company}` : v.name}</Text>
-              <Text style={styles.sub}>{[`in ${v.date !== today ? `${formatDate(v.date)} ` : ''}${v.timeIn}`, v.purpose, v.passNo ? `pass ${v.passNo}` : null, v.host ? `with ${v.host}` : null].filter(Boolean).join(' · ')}</Text>
-            </View>
-            <TouchableOpacity style={styles.btnOutline} onPress={() => void signOff(v)}><Text style={styles.btnOutlineText}>Sign off</Text></TouchableOpacity>
+          <Text style={styles.pob}>{`${pob.total} persons on board — crew ${pob.crewAboard} of ${pob.crewTotal}${pob.visitors ? `, visitors ${pob.visitors}` : ''}`}</Text>
+          <View style={styles.actions}>
+            <TouchableOpacity style={styles.btn} onPress={() => setAdding((v) => !v)}><Text style={styles.btnText}>{adding ? 'Close' : '+ Visitor'}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btnOutline} onPress={() => nav.navigate('Scan')}>
+              <MciIcon name="qrcode-scan" size={16} color={COLORS.primary} />
+              <Text style={styles.btnOutlineText}>Scan crew card</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.btnOutline} onPress={() => exportCrewCards(people, vessel).then(done, fail)}>
+              <MciIcon name="card-account-details-outline" size={16} color={COLORS.primary} />
+              <Text style={styles.btnOutlineText}>Print crew cards</Text>
+            </TouchableOpacity>
           </View>
-        ))}
-        {!onBoard.length ? <Text style={styles.sub}>No visitors on board.</Text> : null}
+          {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{`✓ ${saved}`}</Text> : null}
 
-        {picker ? <><Text style={[styles.sub, { marginTop: SIZES.md }]}>Gangway watch</Text>{picker}</> : null}
+          {adding ? (
+            <Card>
+              <View style={styles.pair}>
+                <TextInput style={styles.input} value={f.name} onChangeText={(v) => setF({ ...f, name: v })} placeholder="Full name ★" placeholderTextColor={COLORS.textLight} />
+                <TextInput style={styles.input} value={f.company} onChangeText={(v) => setF({ ...f, company: v })} placeholder="Company" placeholderTextColor={COLORS.textLight} />
+              </View>
+              {known.length ? (
+                <View style={styles.chips}>
+                  {known.map((k) => (
+                    <TouchableOpacity key={k.id} style={styles.known} onPress={() => setF({ ...f, name: k.name, company: k.company ?? '', purpose: k.purpose, idType: k.idType ?? f.idType, idNo: k.idNo ?? '', host: k.host ?? '' })}>
+                      <Text style={styles.knownText}>{`↺ ${k.name}${k.company ? ` · ${k.company}` : ''}`}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : null}
+              <TextInput style={styles.input} value={f.purpose} onChangeText={(v) => setF({ ...f, purpose: v })} placeholder="Purpose of the visit ★" placeholderTextColor={COLORS.textLight} />
+              <View style={styles.pair}>
+                <Dropdown caption="ID" value={f.idType} onChange={(v) => setF({ ...f, idType: v })} options={ID_TYPES.map((t) => ({ value: t, label: t }))} style={{ flex: 1, minWidth: 180, marginTop: SIZES.xs }} />
+                <TextInput style={styles.input} value={f.idNo} onChangeText={(v) => setF({ ...f, idNo: v })} placeholder={`Document No.${current >= 2 ? ' ★' : ''}`} placeholderTextColor={COLORS.textLight} />
+                <TextInput style={styles.input} value={f.passNo} onChangeText={(v) => setF({ ...f, passNo: v })} placeholder="Visitor pass No." placeholderTextColor={COLORS.textLight} />
+              </View>
+              <View style={styles.pair}>
+                <Dropdown caption="HOST" value={f.host} onChange={(v) => setF({ ...f, host: v })} options={[{ value: '', label: '—' }, ...people.map((p) => ({ value: p.name, label: p.name }))]} style={{ flex: 1, minWidth: 180, marginTop: SIZES.xs }} />
+                <TextInput style={[styles.input, { flex: 2 }]} value={f.remarks} onChangeText={(v) => setF({ ...f, remarks: v })} placeholder="Remarks — tools, bags searched, areas allowed" placeholderTextColor={COLORS.textLight} />
+              </View>
+              <SignaturePad value={f.signature} onChange={setSig} />
+              <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }]} onPress={() => void signOn()}><Text style={styles.btnText}>Sign on</Text></TouchableOpacity>
+            </Card>
+          ) : null}
 
-        <View style={[styles.row, { marginTop: SIZES.lg }]}>
-          <TouchableOpacity onPress={() => shiftDay(-1)} hitSlop={10}><MciIcon name="chevron-left" size={26} color={COLORS.primary} /></TouchableOpacity>
-          <Text style={styles.dayTitle}>{`Log — ${formatDate(day)}`}</Text>
-          <TouchableOpacity onPress={() => shiftDay(1)} disabled={day >= today} hitSlop={10}><MciIcon name="chevron-right" size={26} color={day >= today ? COLORS.border : COLORS.primary} /></TouchableOpacity>
-          <TouchableOpacity style={styles.btnOutline} onPress={() => void exportLog(false)}><Text style={styles.btnOutlineText}>Excel — day</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.btnOutline} onPress={() => void exportLog(true)}><Text style={styles.btnOutlineText}>Excel — month</Text></TouchableOpacity>
-        </View>
-        {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{`✓ ${saved}`}</Text> : null}
-        {ofDay.map((v) => (
-          <View key={v.id} style={styles.visitor}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.vName}>{v.company ? `${v.name} · ${v.company}` : v.name}</Text>
-              <Text style={styles.sub}>{[`${v.timeIn} → ${v.timeOut ?? 'on board'}`, v.purpose, v.idNo ? `${v.idType} ${v.idNo}` : null, v.passNo ? `pass ${v.passNo}` : null, v.host ? `with ${v.host}` : null, `on: ${v.inBy}`, v.outBy ? `off: ${v.outBy}` : null].filter(Boolean).join(' · ')}</Text>
+          <Label>{`Visitors on board (${onBoard.length})`}</Label>
+          {onBoard.map((v) => (
+            <View key={v.id} style={[styles.row, { borderLeftColor: COLORS.warning }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name}>{v.company ? `${v.name} · ${v.company}` : v.name}</Text>
+                <Text style={styles.sub}>{[`in ${v.date !== today ? `${formatDate(v.date)} ` : ''}${v.timeIn}`, v.purpose, v.passNo ? `pass ${v.passNo}` : null, v.host ? `with ${v.host}` : null].filter(Boolean).join(' · ')}</Text>
+              </View>
+              <TouchableOpacity style={styles.small} onPress={() => void signOff(v)}><Text style={styles.smallText}>Sign off</Text></TouchableOpacity>
             </View>
+          ))}
+          {!onBoard.length ? <Text style={styles.sub}>No visitors on board.</Text> : null}
+
+          <Label>{`Crew (${pob.crewAboard} aboard${pob.ashore.length ? `, ${pob.ashore.length} ashore` : ''})`}</Label>
+          {people.map((c) => {
+            const away = isAshore(c.id, last);
+            const m = last.get(c.id);
+            const when = m ? `${m.date !== today ? `${formatDate(m.date)} ` : ''}${m.time}` : '';
+            return (
+              <View key={c.id} style={[styles.row, { borderLeftColor: away ? COLORS.textLight : COLORS.success }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.name, away && { color: COLORS.textLight }]}>{c.rank ? `${c.name} · ${c.rank}` : c.name}</Text>
+                  <Text style={styles.sub}>{away ? `ashore since ${when}` : m ? `aboard since ${when}` : 'aboard'}</Text>
+                </View>
+                <TouchableOpacity style={styles.small} onPress={() => void moveCrew(c.id)}><Text style={styles.smallText}>{away ? 'Back aboard' : 'Ashore'}</Text></TouchableOpacity>
+              </View>
+            );
+          })}
+        </>
+      ) : tab === 'log' ? (
+        <>
+          <View style={styles.periodRow}>
+            <TouchableOpacity onPress={() => shift(-1)} hitSlop={10}><MciIcon name="chevron-left" size={26} color={COLORS.primary} /></TouchableOpacity>
+            <Text style={styles.period}>{vlogTitle(period)}</Text>
+            <TouchableOpacity onPress={() => shift(1)} disabled={atEnd} hitSlop={10}>
+              <MciIcon name="chevron-right" size={26} color={atEnd ? COLORS.border : COLORS.primary} />
+            </TouchableOpacity>
+            <Dropdown caption="SHOW" value={byMonth ? 'm' : 'd'} onChange={(v) => setByMonth(v === 'm')} options={[{ value: 'd', label: 'Day' }, { value: 'm', label: 'Month' }]} style={{ minWidth: 150 }} />
+            <TouchableOpacity style={styles.btnOutline} onPress={() => exportVisitorPdf(visitors, crewMoves, period, vessel).then(done, fail)}><Text style={styles.btnOutlineText}>PDF</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btnOutline} onPress={() => exportVisitorExcel(visitors, crewMoves, period, vessel).then(done, fail)}><Text style={styles.btnOutlineText}>Excel</Text></TouchableOpacity>
           </View>
-        ))}
-        {!ofDay.length ? <Text style={styles.sub}>No visitors this day.</Text> : null}
+          {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{`✓ ${saved}`}</Text> : null}
+
+          <Label>{`Visitors (${book.length})`}</Label>
+          {book.map((v, i) => (
+            <View key={v.id} style={styles.row}>
+              <Text style={styles.no}>{i + 1}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name}>{v.company ? `${v.name} · ${v.company}` : v.name}</Text>
+                <Text style={styles.sub}>
+                  {[byMonth ? formatDate(v.date) : null, `${v.timeIn} → ${v.timeOut ?? 'on board'}`, v.purpose, v.idNo ? `${v.idType} ${v.idNo}` : null, v.passNo ? `pass ${v.passNo}` : null, v.host ? `with ${v.host}` : null, `watch ${v.outBy && v.outBy !== v.inBy ? `${v.inBy} / ${v.outBy}` : v.inBy}`].filter(Boolean).join(' · ')}
+                </Text>
+              </View>
+              {v.signature ? <SignatureView path={v.signature} height={34} /> : null}
+            </View>
+          ))}
+          {!book.length ? <Text style={styles.sub}>No visitors.</Text> : null}
+
+          <Label>{`Crew ashore / back aboard (${bookMoves.length})`}</Label>
+          {bookMoves.map((m: CrewMove) => (
+            <Text key={m.id} style={styles.move}>
+              {`${byMonth ? `${formatDate(m.date)} ` : ''}${m.time}  ${m.name} — ${m.dir === 'ashore' ? 'ashore' : 'back aboard'} · ${m.via === 'qr' ? 'card' : m.by}`}
+            </Text>
+          ))}
+          {!bookMoves.length ? <Text style={styles.sub}>No crew movements.</Text> : null}
         </>
       ) : (
         <>
+          <Text style={[styles.sub, drillLate && { color: COLORS.danger, fontWeight: '700' }]}>
+            {nextDue ? `Next drill ${drillLate ? 'overdue since' : 'by'} ${formatDate(nextDue)} — ISPS: at least every three months.` : 'No security drill recorded yet — ISPS: at least every three months.'}
+          </Text>
           <Card>
-            <Label>Record a security drill — today</Label>
-            <View style={styles.chips}>
-              {SECURITY_SCENARIOS.map((x) => (
-                <TouchableOpacity key={x} onPress={() => setD({ ...d, scenario: x })} style={[styles.chip, d.scenario === x && styles.chipOn]}>
-                  <Text style={[styles.chipText, d.scenario === x && styles.chipTextOn]}>{x}</Text>
-                </TouchableOpacity>
-              ))}
+            <View style={styles.pair}>
+              <Dropdown caption="SCENARIO" value={SECURITY_SCENARIOS.includes(d.scenario) ? d.scenario : ''} onChange={(v) => setD({ ...d, scenario: v || SECURITY_SCENARIOS[0] })} options={[...SECURITY_SCENARIOS.map((x) => ({ value: x, label: x })), { value: '', label: 'Other…' }]} style={{ flex: 1, minWidth: 260, marginTop: SIZES.xs }} />
+              <TextInput style={[styles.input, { maxWidth: 140 }]} value={d.minutes} onChangeText={(v) => setD({ ...d, minutes: v })} placeholder="Minutes" placeholderTextColor={COLORS.textLight} keyboardType="number-pad" />
             </View>
             <TextInput style={styles.input} value={SECURITY_SCENARIOS.includes(d.scenario) ? '' : d.scenario} onChangeText={(v) => setD({ ...d, scenario: v || SECURITY_SCENARIOS[0] })} placeholder="…or describe another scenario" placeholderTextColor={COLORS.textLight} />
-            <Text style={styles.sub}>Who took part</Text>
+            <Text style={[styles.sub, { marginTop: SIZES.sm }]}>Who took part</Text>
             <View style={styles.chips}>
-              {people.map((p) => (
-                <TouchableOpacity key={p.id} onPress={() => setD({ ...d, team: d.team.includes(p.name) ? d.team.filter((n) => n !== p.name) : [...d.team, p.name] })} style={[styles.chip, d.team.includes(p.name) && styles.chipOn]}>
-                  <Text style={[styles.chipText, d.team.includes(p.name) && styles.chipTextOn]}>{p.name}</Text>
-                </TouchableOpacity>
-              ))}
+              {people.map((p) => <Chip key={p.id} on={d.team.includes(p.name)} label={p.name} onPress={() => setD({ ...d, team: d.team.includes(p.name) ? d.team.filter((n) => n !== p.name) : [...d.team, p.name] })} />)}
+              {people.length ? <Chip on={false} label={d.team.length === people.length ? 'None' : 'All'} onPress={() => setD({ ...d, team: d.team.length === people.length ? [] : people.map((p) => p.name) })} /> : null}
             </View>
-            <View style={styles.pair}>
-              <TextInput style={[styles.input, { maxWidth: 140 }]} value={d.minutes} onChangeText={(v) => setD({ ...d, minutes: v })} placeholder="Minutes" placeholderTextColor={COLORS.textLight} keyboardType="number-pad" />
-              <TextInput style={[styles.input, { flex: 3 }]} value={d.findings} onChangeText={(v) => setD({ ...d, findings: v })} placeholder="Areas searched, findings, what to improve" placeholderTextColor={COLORS.textLight} multiline />
-            </View>
-            {picker ? <><Text style={styles.sub}>Drill conducted by</Text>{picker}</> : null}
-            <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void saveDrill()}><Text style={styles.btnText}>Sign the drill</Text></TouchableOpacity>
+            <TextInput style={styles.input} value={d.findings} onChangeText={(v) => setD({ ...d, findings: v })} placeholder="Areas searched, findings, what to improve" placeholderTextColor={COLORS.textLight} multiline />
+            <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }]} onPress={() => void saveDrill()}><Text style={styles.btnText}>Sign the drill</Text></TouchableOpacity>
           </Card>
           {drills.map((x) => (
-            <View key={x.id} style={styles.visitor}>
+            <View key={x.id} style={styles.row}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.vName}>{x.scenario}</Text>
+                <Text style={styles.name}>{x.scenario}</Text>
                 <Text style={styles.sub}>{[`${formatDate(x.date)} ${x.time ?? ''}`, `${x.participants.length} took part`, x.minutes ? `${x.minutes} min` : null, x.byRank ? `${x.by} (${x.byRank})` : x.by].filter(Boolean).join(' · ')}</Text>
                 {x.findings ? <Text style={styles.sub}>{x.findings}</Text> : null}
               </View>
             </View>
           ))}
-          {!drills.length ? <Text style={styles.sub}>No security drill recorded. ISPS: at least one every three months.</Text> : null}
         </>
       )}
     </Screen>
@@ -286,25 +346,34 @@ export default function SecuritySc() {
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
-    levelRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md },
-    levelTitle: { fontSize: SIZES.h4, fontWeight: '900' },
-    levelBtns: { flexDirection: 'row', gap: 6 },
-    levelBtn: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },
-    levelBtnText: { fontWeight: '900', fontSize: SIZES.body, color: COLORS.textDark },
-    sub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },
-    row: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: SIZES.sm, justifyContent: 'space-between', marginVertical: SIZES.sm },
-    dayTitle: { flex: 1, fontSize: SIZES.h5, fontWeight: '800', color: COLORS.textDark },
-    btn: { backgroundColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 10, paddingHorizontal: SIZES.md, marginTop: SIZES.xs },
-    btnText: { color: COLORS.textWhite, fontWeight: '800' },
-    btnOutline: { borderWidth: 1, borderColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 8, paddingHorizontal: SIZES.md },
-    btnOutlineText: { color: COLORS.primary, fontWeight: '800' },
-    pair: { flexDirection: 'row', gap: SIZES.sm, flexWrap: 'wrap' },
-    input: { flex: 1, minWidth: 140, ...COLORS.glassInput, borderRadius: SIZES.radiusMd, paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm, fontSize: SIZES.body, color: COLORS.text, marginTop: SIZES.xs },
-    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.xs, marginTop: SIZES.xs, marginBottom: SIZES.xs },
+    lvl: { flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: SIZES.sm, marginTop: 4 },
+    lvlText: { fontSize: SIZES.tiny, fontWeight: '800', color: COLORS.textLight, marginRight: 2 },
+    lvlBtn: { width: 24, height: 24, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },
+    lvlBtnText: { fontSize: SIZES.tiny, fontWeight: '900', color: COLORS.textLight },
+    alert: { borderWidth: 1, borderRadius: SIZES.radiusMd, padding: SIZES.sm, fontWeight: '700', fontSize: SIZES.small, marginBottom: SIZES.md },
+    topRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: SIZES.sm, marginBottom: SIZES.sm },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.xs, marginTop: SIZES.xs },
     chip: { paddingVertical: 6, paddingHorizontal: SIZES.sm, borderRadius: 999, borderWidth: 1, borderColor: COLORS.primary },
     chipOn: { backgroundColor: COLORS.primary },
     chipText: { color: COLORS.primary, fontWeight: '600', fontSize: SIZES.small },
     chipTextOn: { color: COLORS.textWhite },
-    visitor: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.md, marginBottom: SIZES.xs, borderLeftWidth: 4, borderLeftColor: COLORS.borderLight },
-    vName: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.textDark },
+    pob: { fontSize: SIZES.h5, fontWeight: '800', color: COLORS.textDark, marginTop: SIZES.sm },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.sm, marginVertical: SIZES.md },
+    btn: { backgroundColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 10, paddingHorizontal: SIZES.md },
+    btnText: { color: COLORS.textWhite, fontWeight: '800' },
+    btnOutline: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 9, paddingHorizontal: SIZES.md },
+    btnOutlineText: { color: COLORS.primary, fontWeight: '800' },
+    small: { borderWidth: 1, borderColor: COLORS.primary, borderRadius: 8, paddingVertical: 6, paddingHorizontal: SIZES.sm },
+    smallText: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
+    pair: { flexDirection: 'row', gap: SIZES.sm, flexWrap: 'wrap', alignItems: 'center' },
+    input: { flex: 1, minWidth: 140, ...COLORS.glassInput, borderRadius: SIZES.radiusMd, paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm, fontSize: SIZES.body, color: COLORS.text, marginTop: SIZES.xs },
+    known: { borderRadius: 999, backgroundColor: COLORS.borderLight, paddingVertical: 5, paddingHorizontal: SIZES.sm },
+    knownText: { fontSize: SIZES.small, color: COLORS.textDark, fontWeight: '600' },
+    row: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, ...COLORS.glassCard, borderRadius: SIZES.radiusMd, paddingVertical: SIZES.sm, paddingHorizontal: SIZES.md, marginBottom: SIZES.xs, borderLeftWidth: 4, borderLeftColor: COLORS.borderLight },
+    name: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.textDark },
+    sub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },
+    no: { width: 22, textAlign: 'right', fontWeight: '800', color: COLORS.textLight },
+    periodRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: SIZES.sm, marginVertical: SIZES.sm },
+    period: { fontSize: SIZES.h5, fontWeight: '800', color: COLORS.textDark, minWidth: 140, textAlign: 'center' },
+    move: { fontSize: SIZES.small, color: COLORS.textDark, paddingVertical: 3 },
   });

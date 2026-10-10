@@ -74,6 +74,7 @@ import DocSc from './screens/DocSc';
 import CrewMemberSc from './screens/CrewMemberSc';
 import PermitsSc from './screens/PermitsSc';
 import FuelSc from './screens/FuelSc';
+import { swipeLock } from './utils/swipeLock';
 import GarbageSc from './screens/GarbageSc';
 import SopepSc from './screens/SopepSc';
 import SecuritySc from './screens/SecuritySc';
@@ -267,6 +268,8 @@ function MainTabs() {
     .failOffsetY([-15, 15])
     .minVelocityX(180)
     .onEnd((e) => {
+      // A stroke on a signature pad is not a swipe (utils/swipeLock).
+      if (swipeLock.held) return;
       // By name in the person's order, not by the navigator's index — with the
       // menu the two differ.
       const order = orderRef.current;

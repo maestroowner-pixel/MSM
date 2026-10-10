@@ -5,6 +5,15 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Security = digital gangway logbook (dark, `security`).** Tabs On board / Logbook / Drills.
+  ISPS level is a small 1·2·3 switch in the title corner (warning line above level 1). Gangway
+  watch is a drop-down (signer picker is now a drop-down on every screen, remembered while the app
+  is open). Visitors sign on with their own signature drawn on the screen (components/SignaturePad,
+  SVG path), returning visitors auto-fill. **Crew QR cards** (credit-card size, 10 per A4,
+  `msm://crew/<id>`): the Scan screen records ashore / back aboard (double scan within 60 s
+  ignored); the watch can also tap. Persons on board = crew aboard + visitors. Logbook for a day or
+  month as PDF (signatures drawn in) and Excel, with crew movements. New list `crew_moves`
+  (append-only rule). `npm run check:gangway`; rules 53/53.
 - **SOPEP (dark, `sopep`).** Oil-spill locker list (typical yacht starter, editable, location per item),
   signed inventory checks with counts and "to replace" marks (shortages shown on the list), signed
   oil-spill drills (scenario, participants, minutes, lessons). Checks and drills append-only.

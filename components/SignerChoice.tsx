@@ -2,7 +2,9 @@
 // otherwise a name picked from the crew on board (remembered as the last signer).
 // Shared by permits, risk assessments and any other signed step.
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
+
+import { Dropdown } from './Dropdown';
 
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
@@ -19,33 +21,39 @@ export interface Signer {
   own: boolean;
 }
 
-export function useSigner(): { signer: Signer | null; picker: React.ReactElement | null } {
+/** The name last chosen on this device — kept while the app is open, so moving between screens does not ask again. */
+let lastPicked = '';
+
+export function useSigner(caption = 'SIGNING AS'): { signer: Signer | null; picker: React.ReactElement | null } {
   const COLORS = useTheme();
   const { crew, prefs } = useData();
   const sync = useSync();
   const people = useMemo(() => crew.filter(isAboard), [crew]);
-  const [pickedId, setPickedId] = useState<string | undefined>(prefs?.lastCrewId);
+  const [pickedId, setPicked] = useState<string>(lastPicked || prefs?.lastCrewId || '');
+  const setPickedId = (id: string) => {
+    lastPicked = id;
+    setPicked(id);
+  };
   if (sync.me) {
     return { signer: { key: `device:${sync.me.id}`, name: personName(sync.me), rank: sync.me.position || undefined, own: true }, picker: null };
   }
   const picked = people.find((p) => p.id === pickedId);
-  const picker = (
-    <View style={styles.chips}>
-      {people.map((p) => {
-        const on = p.id === pickedId;
-        return (
-          <TouchableOpacity key={p.id} onPress={() => setPickedId(p.id)} style={[styles.chip, { borderColor: COLORS.primary }, on && { backgroundColor: COLORS.primary }]}>
-            <Text style={{ color: on ? COLORS.textWhite : COLORS.primary, fontWeight: '600', fontSize: SIZES.small }}>{crewLabel(p)}</Text>
-          </TouchableOpacity>
-        );
-      })}
-      {!people.length ? <Text style={{ color: COLORS.textLight, fontSize: SIZES.small }}>Nobody is on board in the crew list.</Text> : null}
-    </View>
+  // One drop-down, not a row of every name (10 Oct 2026: "a drop-down is enough
+  // and minimal").
+  const picker = people.length ? (
+    <Dropdown
+      caption={caption}
+      value={picked ? pickedId : ''}
+      onChange={setPickedId}
+      options={[{ value: '', label: 'Choose…' }, ...people.map((p) => ({ value: p.id, label: crewLabel(p) }))]}
+      style={styles.drop}
+    />
+  ) : (
+    <Text style={{ color: COLORS.textLight, fontSize: SIZES.small }}>Nobody is on board in the crew list.</Text>
   );
   return { signer: picked ? { key: picked.id, name: picked.name, rank: picked.rank, own: false } : null, picker };
 }
 
 const styles = StyleSheet.create({
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.xs, marginTop: SIZES.xs },
-  chip: { paddingVertical: 6, paddingHorizontal: SIZES.sm, borderRadius: 999, borderWidth: 1 },
+  drop: { marginTop: SIZES.xs, maxWidth: 420 },
 });

@@ -337,8 +337,8 @@ const en: ManualContent = {
       emoji: '🛂',
       title: "Security (ISPS)",
       body: [
-        "The Security screen shows the vessel's ISPS security level (1, 2 or 3) — changed by an Officer or the Master, with history — and the gangway / visitor log.",
-        "The gangway watch signs each visitor on — name, company, purpose, identity document, pass number, who receives them — and signs them off. At level 2 and above the identity document must be recorded. \"On board now\" lists every visitor not yet signed off. The log for a day or a month exports to Excel. The Drills tab records security drills — stowaway search, bomb threat and search, intruder, piracy, SSAS test — with who took part and the findings, signed; ISPS asks for one at least every three months, and the tab shows when the next is due.",
+        "The Security screen is the digital gangway logbook. The ISPS security level is the small 1 · 2 · 3 switch in the corner — normally 1; an Officer or the Master changes it, with history, and above 1 a line says so. Choose the gangway watch from the drop-down. On board shows persons on board: crew and visitors.",
+        "The gangway watch signs each visitor on — name, company, purpose, identity document, pass number, who receives them — and signs them off. At level 2 and above the identity document must be recorded. \"On board now\" lists every visitor not yet signed off. The log for a day or a month exports to Excel. The visitor signs on the screen with a finger. Crew cards: print a QR card for each crew member; scanning it at the gangway marks them ashore or back aboard. The Logbook tab is the book for a day or a month — PDF with signatures, and Excel. The Drills tab records security drills — stowaway search, bomb threat and search, intruder, piracy, SSAS test — with who took part and the findings, signed; ISPS asks for one at least every three months, and the tab shows when the next is due.",
       ],
     },
     {
@@ -783,8 +783,8 @@ const ru: ManualContent = {
       emoji: '🛂',
       title: "Охрана (Security, ISPS)",
       body: [
-        "Экран Security показывает уровень охраны ISPS (1, 2 или 3) — меняет офицер или Мастер, с историей — и журнал посетителей у трапа.",
-        "Вахтенный у трапа регистрирует каждого посетителя — имя, компания, цель, документ, номер пропуска, кто принимает — и отмечает уход. На уровне 2 и выше документ обязателен. «On board now» — все, кто ещё не ушёл. Журнал за день или месяц выгружается в Excel. Вкладка Drills — учения по охране: поиск безбилетников, угроза взрыва и поиск бомбы, проникновение, пираты, тест SSAS — с участниками и выводами, с подписью; ISPS требует не реже раза в три месяца, вкладка показывает срок следующего.",
+        "Экран Security — цифровой журнал у трапа. Уровень охраны ISPS — маленький переключатель 1 · 2 · 3 в углу, обычно 1; меняет офицер или Мастер, с историей, при уровне выше 1 появляется строка-предупреждение. Вахтенного выберите в выпадающем списке. On board показывает, сколько людей на борту: экипаж и посетители.",
+        "Вахтенный у трапа регистрирует каждого посетителя — имя, компания, цель, документ, номер пропуска, кто принимает — и отмечает уход. На уровне 2 и выше документ обязателен. «On board now» — все, кто ещё не ушёл. Журнал за день или месяц выгружается в Excel. Посетитель расписывается пальцем на экране. Карточки экипажа: распечатайте QR-карточку каждому; скан у трапа отмечает уход на берег и возвращение. Вкладка Logbook — журнал за день или месяц, PDF с подписями и Excel. Вкладка Drills — учения по охране: поиск безбилетников, угроза взрыва и поиск бомбы, проникновение, пираты, тест SSAS — с участниками и выводами, с подписью; ISPS требует не реже раза в три месяца, вкладка показывает срок следующего.",
       ],
     },
     {
@@ -1229,8 +1229,8 @@ const es: ManualContent = {
       emoji: '🛂',
       title: "Protección (Security, ISPS)",
       body: [
-        "La pantalla Security muestra el nivel de protección ISPS del buque (1, 2 o 3) — lo cambia un oficial o el Master, con historial — y el registro de visitas en la pasarela.",
-        "El guardia de pasarela registra la entrada de cada visitante — nombre, empresa, motivo, documento de identidad, número de pase, quién lo recibe — y su salida. Desde el nivel 2 el documento es obligatorio. \"On board now\" lista a quienes aún no han salido. El registro de un día o un mes se exporta a Excel. La pestaña Drills registra ejercicios de protección — búsqueda de polizones, amenaza de bomba y búsqueda, intrusión, piratería, prueba SSAS — con participantes y hallazgos, firmados; ISPS pide al menos uno cada tres meses y la pestaña muestra cuándo toca el siguiente.",
+        "La pantalla Security es el libro digital de la pasarela. El nivel de protección ISPS es el pequeño selector 1 · 2 · 3 de la esquina — normalmente 1; lo cambia un oficial o el Master, con historial, y por encima de 1 aparece un aviso. Elija la guardia de pasarela en el desplegable. On board muestra las personas a bordo: tripulación y visitas.",
+        "El guardia de pasarela registra la entrada de cada visitante — nombre, empresa, motivo, documento de identidad, número de pase, quién lo recibe — y su salida. Desde el nivel 2 el documento es obligatorio. \"On board now\" lista a quienes aún no han salido. El registro de un día o un mes se exporta a Excel. La visita firma con el dedo en la pantalla. Tarjetas de tripulación: imprima una tarjeta QR para cada tripulante; escanearla en la pasarela marca la salida a tierra o el regreso. La pestaña Logbook es el libro de un día o un mes — PDF con firmas y Excel. La pestaña Drills registra ejercicios de protección — búsqueda de polizones, amenaza de bomba y búsqueda, intrusión, piratería, prueba SSAS — con participantes y hallazgos, firmados; ISPS pide al menos uno cada tres meses y la pestaña muestra cuándo toca el siguiente.",
       ],
     },
     {
@@ -1675,8 +1675,8 @@ const uk: ManualContent = {
       emoji: '🛂',
       title: "Охорона (Security, ISPS)",
       body: [
-        "Екран Security показує рівень охорони ISPS (1, 2 чи 3) — змінює офіцер або Майстер, з історією — і журнал відвідувачів біля трапа.",
-        "Вахтовий біля трапа реєструє кожного відвідувача — ім'я, компанія, мета, документ, номер перепустки, хто приймає — і позначає вихід. На рівні 2 і вище документ обов'язковий. «On board now» — усі, хто ще не вийшов. Журнал за день чи місяць вивантажується в Excel. Вкладка Drills — навчання з охорони: пошук безквиткових, загроза вибуху й пошук бомби, проникнення, пірати, тест SSAS — з учасниками й висновками, з підписом; ISPS вимагає не рідше разу на три місяці, вкладка показує термін наступного.",
+        "Екран Security — цифровий журнал біля трапа. Рівень охорони ISPS — маленький перемикач 1 · 2 · 3 у куті, зазвичай 1; змінює офіцер або Майстер, з історією, при рівні вище 1 з'являється попередження. Вахтового оберіть у випадному списку. On board показує, скільки людей на борту: екіпаж і відвідувачі.",
+        "Вахтовий біля трапа реєструє кожного відвідувача — ім'я, компанія, мета, документ, номер перепустки, хто приймає — і позначає вихід. На рівні 2 і вище документ обов'язковий. «On board now» — усі, хто ще не вийшов. Журнал за день чи місяць вивантажується в Excel. Відвідувач розписується пальцем на екрані. Картки екіпажу: роздрукуйте QR-картку кожному; скан біля трапа позначає вихід на берег і повернення. Вкладка Logbook — журнал за день чи місяць, PDF з підписами та Excel. Вкладка Drills — навчання з охорони: пошук безквиткових, загроза вибуху й пошук бомби, проникнення, пірати, тест SSAS — з учасниками й висновками, з підписом; ISPS вимагає не рідше разу на три місяці, вкладка показує термін наступного.",
       ],
     },
     {
