@@ -18,6 +18,7 @@ import { Permit, RiskAssessment } from '../types/permits';
 import { FuelBunker, FuelDailySent, FuelReading, FuelTank, FuelTransfer } from '../types/fuel';
 import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
 import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
+import { Survey, SurveyDone } from '../types/survey';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
 import { ChecklistTemplate } from '../constants/checklists';
 import { CategoryMeta, setVesselCategories } from '../constants/categories';
@@ -104,6 +105,9 @@ interface DataContextType {
   securityLevels: SecurityLevelRec[];
   securityDrills: SecurityDrill[];
   crewMoves: CrewMove[];
+  /** Surveys & audits — the plan (edited) and the occasions carried out (append-only). */
+  surveys: Survey[];
+  surveysDone: SurveyDone[];
   /** Upsert (lists edited in place) or append (records) by storage key. */
   saveRow: <T extends { id: string }>(key: string, row: T) => Promise<void>;
   appendRow: <T extends { id: string }>(key: string, row: T) => Promise<void>;
@@ -189,6 +193,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [securityLevels, setSecurityLevels] = useState<SecurityLevelRec[]>([]);
   const [securityDrills, setSecurityDrills] = useState<SecurityDrill[]>([]);
   const [crewMoves, setCrewMoves] = useState<CrewMove[]>([]);
+  const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [surveysDone, setSurveysDone] = useState<SurveyDone[]>([]);
   const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
   const [categories, setCategories] = useState<CategoryMeta[]>([]);
   const [recentScans, setRecentScans] = useState<ScanEntry[]>([]);
@@ -246,6 +252,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSecurityLevels(await storage.loadList<SecurityLevelRec>(storage.SECURITY_LEVEL_KEY));
     setSecurityDrills(await storage.loadList<SecurityDrill>(storage.SECURITY_DRILLS_KEY));
     setCrewMoves(await storage.loadList<CrewMove>(storage.CREW_MOVES_KEY));
+    setSurveys((await storage.loadList<Survey>(storage.SURVEYS_KEY)).filter((x) => !x.deleted));
+    setSurveysDone(await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY));
     setTemplates(await storage.loadTemplates());
     setSigningPolicyState((await storage.loadSigningPolicy()) ?? DEFAULT_POLICY);
     setPhotoArchiveState((await storage.loadPhotoArchive()) ?? DEFAULT_ARCHIVE);
@@ -402,6 +410,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSecurityLevels(await storage.loadList<SecurityLevelRec>(storage.SECURITY_LEVEL_KEY));
     setSecurityDrills(await storage.loadList<SecurityDrill>(storage.SECURITY_DRILLS_KEY));
     setCrewMoves(await storage.loadList<CrewMove>(storage.CREW_MOVES_KEY));
+    setSurveys((await storage.loadList<Survey>(storage.SURVEYS_KEY)).filter((x) => !x.deleted));
+    setSurveysDone(await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY));
   }, []);
 
   const saveMachine = useCallback(async (m: Machine) => {
@@ -623,6 +633,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         securityLevels,
         securityDrills,
         crewMoves,
+        surveys,
+        surveysDone,
         saveRow,
         appendRow,
         savePermit,

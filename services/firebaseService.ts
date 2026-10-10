@@ -1226,6 +1226,8 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'security_levels', key: storage.SECURITY_LEVEL_KEY, appendOnly: true, module: 'security' },
   { sub: 'security_drills', key: storage.SECURITY_DRILLS_KEY, appendOnly: true, module: 'security' },
   { sub: 'crew_moves', key: storage.CREW_MOVES_KEY, appendOnly: true, module: 'security' },
+  { sub: 'surveys', key: storage.SURVEYS_KEY, module: 'surveys' },
+  { sub: 'surveys_done', key: storage.SURVEYS_DONE_KEY, appendOnly: true, module: 'surveys' },
 ];
 
 /**

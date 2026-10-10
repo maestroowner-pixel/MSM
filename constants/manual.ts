@@ -343,6 +343,25 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '📋',
+      title: "Board",
+      body: [
+        "With the board on, the Dashboard is the vessel's notice board across every module: the status line (ISPS level, persons on board, fuel on board), Needs attention — everything that needs someone, red first — the Plan, Today and a tile per section.",
+        "Needs attention follows the rank: the crew see what is theirs (documents to read, equipment, defects), the Officers the vessel, the Master everything, including the months still to sign.",
+        "The Plan shows the rounds of this week, month, quarter and year with how many items are done, the surveys and audits whose window is open or near, and equipment services coming up. Today ticks off the day's routine — the fuel sounding, the noon report, the weekly round.",
+        "The list of LSA / FFE and lifting gear by expiry is still there: tap the LSA / FFE tile (Expiries).",
+      ],
+    },
+    {
+      emoji: '🗓️',
+      title: "Surveys & audits",
+      body: [
+        "Surveys & audits keeps the plan of class, flag and ISM events — annual surveys, intermediate and renewal, Load Line, dry-dock, internal and external ISM audits, MLC — and any of your own.",
+        "Each has a due date or an anniversary, a window either side (usually ±3 months) and a repeat. The list puts overdue and open windows first.",
+        "Carried out records the date, the report number and the findings, signed, and moves the plan on: an anniversary-based survey to the next anniversary, the others counted from the day done. Officers and the Master keep the plan; the history cannot be changed.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Permits to work and risk assessments",
       body: [
@@ -787,6 +806,25 @@ const ru: ManualContent = {
       body: [
         "Экран Security — цифровой журнал у трапа. Уровень охраны ISPS — маленький переключатель 1 · 2 · 3 в углу, обычно 1; меняет офицер или Мастер, с историей, при уровне выше 1 появляется строка-предупреждение. Вахтенного выберите в выпадающем списке. On board показывает, сколько людей на борту: экипаж и посетители.",
         "Вахтенный у трапа регистрирует каждого посетителя — имя, компания, цель, документ, номер пропуска, кто принимает — и отмечает уход. На уровне 2 и выше документ обязателен. «On board now» — все, кто ещё не ушёл. Журнал за день или месяц выгружается в Excel. Посетитель расписывается пальцем на экране. Карточки экипажа: распечатайте QR-карточку каждому; скан у трапа отмечает уход на берег и возвращение. Вкладка Logbook — журнал за день или месяц, PDF с подписями и Excel. Вкладка Drills — учения по охране: поиск безбилетников, угроза взрыва и поиск бомбы, проникновение, пираты, тест SSAS — с участниками и выводами, с подписью; ISPS требует не реже раза в три месяца, вкладка показывает срок следующего.",
+      ],
+    },
+    {
+      emoji: '📋',
+      title: "Доска (Board)",
+      body: [
+        "Когда доска включена, Dashboard становится доской объявлений судна по всем разделам: строка состояния (уровень ISPS, люди на борту, топливо), «Требует внимания» — всё, что ждёт человека, сначала красное, — «План», «Сегодня» и плитка на каждый раздел.",
+        "«Требует внимания» зависит от должности: экипаж видит своё (документы к ознакомлению, оборудование, дефекты), офицеры — судно, Мастер — всё, включая месяцы, которые ещё надо подписать.",
+        "«План» показывает обходы недели, месяца, квартала и года — сколько позиций сделано, — освидетельствования и аудиты с открытым или близким окном и ближайшее обслуживание оборудования. «Сегодня» отмечает распорядок дня — замер топлива, полуденный отчёт, недельный обход.",
+        "Список LSA / FFE и такелажа по срокам остался: плитка LSA / FFE (Expiries).",
+      ],
+    },
+    {
+      emoji: '🗓️',
+      title: "Освидетельствования и аудиты (Surveys & audits)",
+      body: [
+        "Surveys & audits — план событий класса, флага и ISM: ежегодные, промежуточные и очередные освидетельствования, Load Line, докование, внутренние и внешние аудиты ISM, MLC — и свои пункты.",
+        "У каждого — срок или дата годовщины, окно в обе стороны (обычно ±3 месяца) и повтор. Сверху — просроченные и с открытым окном.",
+        "Carried out записывает дату, номер отчёта и замечания с подписью и переносит план: по годовщине — на следующую годовщину, остальные — от даты проведения. План ведут офицеры и Мастер; историю изменить нельзя.",
       ],
     },
     {
@@ -1237,6 +1275,25 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '📋',
+      title: "Tablón (Board)",
+      body: [
+        "Con el tablón activado, el Dashboard es el tablón de anuncios del buque para todas las secciones: la línea de estado (nivel ISPS, personas a bordo, combustible), Needs attention — todo lo que espera a alguien, primero lo rojo —, el Plan, Today y una ficha por sección.",
+        "Needs attention sigue el cargo: la tripulación ve lo suyo (documentos por leer, equipos, defectos), los oficiales el buque, el Master todo, incluidos los meses por firmar.",
+        "El Plan muestra las rondas de la semana, el mes, el trimestre y el año con cuántos elementos están hechos, los reconocimientos y auditorías con ventana abierta o próxima y los servicios de equipos que se acercan. Today marca la rutina del día — el sondeo, el informe del mediodía, la ronda semanal.",
+        "La lista de LSA / FFE y aparejos por vencimiento sigue ahí: ficha LSA / FFE (Expiries).",
+      ],
+    },
+    {
+      emoji: '🗓️',
+      title: "Reconocimientos y auditorías (Surveys & audits)",
+      body: [
+        "Surveys & audits lleva el plan de clase, bandera e ISM — reconocimientos anuales, intermedio y de renovación, Load Line, varada, auditorías ISM internas y externas, MLC — y los propios.",
+        "Cada uno tiene una fecha o un aniversario, una ventana a ambos lados (normalmente ±3 meses) y una repetición. Primero los vencidos y los de ventana abierta.",
+        "Carried out registra la fecha, el número de informe y las observaciones, firmado, y mueve el plan: los de aniversario al siguiente aniversario, los demás desde la fecha de realización. El plan lo llevan los oficiales y el Master; el historial no se modifica.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Permisos de trabajo y evaluaciones de riesgo",
       body: [
@@ -1684,6 +1741,25 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '📋',
+      title: "Дошка (Board)",
+      body: [
+        "Коли дошку ввімкнено, Dashboard стає дошкою оголошень судна за всіма розділами: рядок стану (рівень ISPS, люди на борту, паливо), «Потребує уваги» — усе, що чекає на людину, спершу червоне, — «План», «Сьогодні» і плитка на кожен розділ.",
+        "«Потребує уваги» залежить від посади: екіпаж бачить своє (документи до ознайомлення, обладнання, дефекти), офіцери — судно, Майстер — усе, зокрема місяці, які ще треба підписати.",
+        "«План» показує обходи тижня, місяця, кварталу й року — скільки позицій зроблено, — огляди й аудити з відкритим чи близьким вікном і найближче обслуговування обладнання. «Сьогодні» позначає розпорядок дня — замір палива, полуденний звіт, тижневий обхід.",
+        "Список LSA / FFE і такелажу за термінами залишився: плитка LSA / FFE (Expiries).",
+      ],
+    },
+    {
+      emoji: '🗓️',
+      title: "Огляди й аудити (Surveys & audits)",
+      body: [
+        "Surveys & audits — план подій класу, прапора й ISM: щорічні, проміжні й чергові огляди, Load Line, докування, внутрішні й зовнішні аудити ISM, MLC — і власні пункти.",
+        "Кожен має термін або дату річниці, вікно в обидва боки (зазвичай ±3 місяці) і повтор. Угорі — прострочені й з відкритим вікном.",
+        "Carried out записує дату, номер звіту й зауваження з підписом і переносить план: за річницею — на наступну річницю, інші — від дати проведення. План ведуть офіцери й Майстер; історію змінити не можна.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Дозволи на роботу та оцінка ризиків",
       body: [
@@ -1847,6 +1923,8 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
   { title: 'Fuel', module: 'fuel' },
   { title: 'Garbage Record Book', module: 'garbage' },
   { title: 'SOPEP', module: 'sopep' },
+  { title: 'Board', module: 'board' },
+  { title: 'Surveys & audits', module: 'surveys' },
   { title: 'Security (ISPS)', module: 'security' },
   { title: 'Fleet console (superintendent)', module: 'fleet' },
 ];

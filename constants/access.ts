@@ -30,7 +30,7 @@
 
 import { ModuleKey, moduleOn } from './modules';
 
-export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'reports' | 'maintenance' | 'spares' | 'rest';
+export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'reports' | 'maintenance' | 'spares' | 'rest';
 
 export interface OptionalTab {
   key: TabKey;
@@ -53,6 +53,7 @@ export const OPTIONAL_TABS: OptionalTab[] = [
   { key: 'maintenance', module: 'pms', route: 'Maintenance', label: 'PMS', column: 'PMS', icon: 'engine' },
   { key: 'fuel', module: 'fuel', route: 'Fuel', label: 'Fuel', column: 'Fuel', icon: 'gas-station' },
   { key: 'garbage', module: 'garbage', route: 'Garbage', label: 'Garbage', column: 'GRB', icon: 'trash-can-outline' },
+  { key: 'surveys', module: 'surveys', route: 'Surveys', label: 'Surveys', column: 'SRV', icon: 'calendar-check-outline' },
   { key: 'sopep', module: 'sopep', route: 'Sopep', label: 'SOPEP', column: 'SOPEP', icon: 'oil' },
   { key: 'security', module: 'security', route: 'Security', label: 'Security', column: 'ISPS', icon: 'shield-account' },
   { key: 'spares', module: 'spares', route: 'Spares', label: 'Spares', column: 'Spares', icon: 'package-variant-closed' },

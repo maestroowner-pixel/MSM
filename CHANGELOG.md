@@ -13,6 +13,16 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Notice board (dark, `board`).** The Dashboard tab becomes the vessel's board across every module
+  (services/board.ts → screens/BoardSc.tsx): status line (ISPS, persons on board, ROB ≈ days), Needs
+  attention (register by category, defects, vessel/equipment/crew certificates, PMS, spares, documents
+  to read, permits, fuel sounding / noon report / low fuel, garbage month unsigned / accidental,
+  SOPEP check / shortages / drill, ISPS level / drill, surveys) filtered by rank, Plan (week / month /
+  quarter / year rounds with progress, survey windows, equipment services ≤ 60 days), Today, and a
+  tile per module on. The old expiry list is the "Expiries" screen (LSA / FFE tile). Menu label Board.
+- **Surveys & audits (dark, `surveys`).** Class / flag / ISM / dry-dock plan with due date or
+  anniversary, window (±months), repeat; Carried out (signed, append-only history) moves the plan on.
+  11 templates. Rules: plan and records by Officers/Master. `check:surveys`, `check:board`; rules 59/59.
 - **Dashboard reminder: "The Master PIN is still 0000"** (components/MasterPinBanner) — Master only,
   only with confirmed signatures on, re-checked on focus; taps through to the Crew matrix. The
   Crew matrix 🔒 locks and Master PIN link are now hidden with `signConfirm` (the matrix itself

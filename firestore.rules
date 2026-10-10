@@ -284,6 +284,18 @@ service cloud.firestore {
         allow create, update: if member(v);
         allow delete: if false;
       }
+      // Surveys & audits: the plan is kept by the Officers and the Master; each
+      // occasion carried out is a record, written once. The shore can read.
+      match /surveys/{id} {
+        allow read: if reader(v);
+        allow create, update: if isAdmin(v);
+        allow delete: if false;
+      }
+      match /surveys_done/{id} {
+        allow read: if reader(v);
+        allow create: if isAdmin(v);
+        allow update, delete: if false;
+      }
       // Crew going ashore / coming back aboard (QR crew card at the gangway).
       match /crew_moves/{id} {
         allow read: if reader(v);

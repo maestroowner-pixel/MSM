@@ -98,6 +98,11 @@ await t(false, 'A crew movement cannot be changed', updateDoc(R(crew, 'crew_move
 await t(true, 'Crew member logs a fuel daily report as sent', setDoc(R(crew, 'fuel_daily', 'fd1'), { id: 'fd1' }));
 await t(false, 'A sent daily report cannot be changed', updateDoc(R(crew, 'fuel_daily', 'fd1'), { text: 'x' }));
 
+await t(false, 'Crew cannot change the survey plan', setDoc(R(crew, 'surveys', 'sv1'), { id: 'sv1' }));
+await t(true, 'Officer plans a survey', setDoc(R(officer, 'surveys', 'sv1'), { id: 'sv1', due: '2026-12-15' }));
+await t(true, 'Officer records a survey carried out', setDoc(R(officer, 'surveys_done', 'sd1'), { id: 'sd1' }));
+await t(false, 'A survey carried out cannot be changed', updateDoc(R(officer, 'surveys_done', 'sd1'), { ref: 'x' }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

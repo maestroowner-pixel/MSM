@@ -24,7 +24,7 @@
 // will follow the same way); whether the module exists at all is ours.
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -77,6 +77,10 @@ export const MODULES: Record<ModuleKey, boolean> = {
   sopep: false,
   /** Security (ISPS): gangway visitor log and the security level. */
   security: false,
+  /** Surveys & audits planner: class, flag, ISM audits, dry-dock — windows and next dates. */
+  surveys: false,
+  /** The Dashboard as the vessel's notice board across every module (the old list moves to its own screen). */
+  board: false,
 };
 
 export function moduleOn(key: ModuleKey): boolean {

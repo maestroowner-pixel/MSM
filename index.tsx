@@ -34,6 +34,7 @@ import SplashSc from './screens/SplashSc';
 import ConsentSc from './screens/ConsentSc';
 import { LEGAL_ACCEPTED_KEY } from './constants/legal';
 import DashboardSc from './screens/DashboardSc';
+import BoardSc from './screens/BoardSc';
 import CategoriesSc from './screens/CategoriesSc';
 import CategoryItemsSc from './screens/CategoryItemsSc';
 import ItemDetailSc from './screens/ItemDetailSc';
@@ -79,6 +80,7 @@ import { swipeLock } from './utils/swipeLock';
 import GarbageSc from './screens/GarbageSc';
 import SopepSc from './screens/SopepSc';
 import SecuritySc from './screens/SecuritySc';
+import SurveysSc from './screens/SurveysSc';
 import PermitSc from './screens/PermitSc';
 import RiskSc from './screens/RiskSc';
 import CrewMatrixSc from './screens/CrewMatrixSc';
@@ -112,6 +114,7 @@ const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Garbage: GarbageSc,
   Sopep: SopepSc,
   Security: SecuritySc,
+  Surveys: SurveysSc,
   Maintenance: MaintenanceSc,
   HoursOfRest: HoursOfRestSc,
   Spares: SparesSc,
@@ -175,7 +178,7 @@ function TabFade({ children }: { children: React.ReactNode }) {
 
 // Full names for the menu, where there is room for them (components/NavMenu).
 const MENU_LABEL: Record<string, string> = {
-  Dashboard: 'Dashboard',
+  Dashboard: moduleOn('board') ? 'Board' : 'Dashboard',
   Equipment: 'Equipment',
   Certificates: 'Certificates',
   Documents: 'Documents',
@@ -187,6 +190,7 @@ const MENU_LABEL: Record<string, string> = {
   Permits: 'Permits & risk',
   Sopep: 'SOPEP',
   Security: 'Security (ISPS)',
+  Surveys: 'Surveys & audits',
   Fuel: 'Fuel',
   Garbage: 'Garbage record book',
   Reports: 'Reports',
@@ -320,7 +324,7 @@ function MainTabs() {
           })}
         >
           <Tab.Screen name="Dashboard">
-            {() => <TabFade><DashboardSc /></TabFade>}
+            {() => <TabFade>{moduleOn('board') ? <BoardSc /> : <DashboardSc />}</TabFade>}
           </Tab.Screen>
           <Tab.Screen name="Equipment">
             {() => <TabFade><CategoriesSc /></TabFade>}
@@ -378,6 +382,7 @@ const linking = {
           Garbage: 'garbage',
           Sopep: 'sopep',
           Security: 'security',
+          Surveys: 'surveys',
           Settings: 'settings',
         },
       },
@@ -605,6 +610,8 @@ function Root() {
         <Stack.Screen name="CategoriesEdit" component={CategoriesEditSc} options={webHeader('Categories', toTab('Settings'))} />
         <Stack.Screen name="ChecklistEdit" component={ChecklistEditSc} options={webHeader('Checklist', { screen: 'Checklists' })} />
         <Stack.Screen name="Defects" component={DefectsSc} options={webHeader('Open defects')} />
+        {/* With the notice board on, the old Dashboard — LSA / FFE / lifting by expiry — is this screen. */}
+        <Stack.Screen name="Expiries" component={DashboardSc} options={webHeader('LSA / FFE expiries')} />
         <Stack.Screen name="Accounts" component={AccountsSc} options={webHeader('Accounts', toTab('Settings'))} />
         <Stack.Screen name="Enrol" component={EnrolSc} options={webHeader('Join this vessel', toTab('Settings'))} />
       </Stack.Navigator>
