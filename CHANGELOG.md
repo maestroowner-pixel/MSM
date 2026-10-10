@@ -5,6 +5,10 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Dashboard reminder: "The Master PIN is still 0000"** (components/MasterPinBanner) — Master only,
+  only with confirmed signatures on, re-checked on focus; taps through to the Crew matrix. The
+  Crew matrix 🔒 locks and Master PIN link are now hidden with `signConfirm` (the matrix itself
+  ships in 2.59).
 - **Master PIN defaults to 0000** until the Master changes it (checkPin accepts the default for
   `ADMIN_KEY` while none is stored; same lockout). So a first PIN always needs the Master PIN. Crew
   matrix shows the Master "Master PIN is 0000 — change it"; the unlock card only says it is still
