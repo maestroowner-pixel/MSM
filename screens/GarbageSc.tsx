@@ -17,7 +17,7 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { GARBAGE_CATEGORY, GARBAGE_METHOD, GarbageCategory, GarbageEntry, GarbageMethod } from '../types/garbage';
-import { entryItems, garbageMonth, itemsText, placeText, seaDischargeProblem } from '../services/garbage';
+import { currentEntries, entryItems, garbageMonth, itemsText, placeText, previousVersions, seaDischargeProblem } from '../services/garbage';
 import { exportGarbageExcel, exportGarbagePdf } from '../services/garbageReport';
 import { todayIso } from '../services/pms';
 import { formatDate, formatDateTime } from '../utils/dates';
@@ -46,12 +46,40 @@ export default function GarbageSc() {
 
   const m = useMemo(() => garbageMonth(garbage, month), [garbage, month]);
   const sign = garbageSigns.find((s) => s.month === month);
-  const byMethod = (k: GarbageMethod) => Math.round(m.entries.filter((e) => e.method === k).reduce((n, e) => n + e.volume, 0) * 1000) / 1000;
+  const byMethod = (k: GarbageMethod) => Math.round(m.entries.filter((e) => e.method === k && !e.cancelled).reduce((n, e) => n + e.volume, 0) * 1000) / 1000;
 
   // ---- new entry ----
   // Several categories in one operation, each with its amount (m³ as typed).
   const blank = { amounts: {} as Partial<Record<GarbageCategory, string>>, method: 'shore' as GarbageMethod, atSea: false, port: '', position: '', distance: '', comminuted: false, receipt: '', container: '', remarks: '', date: today, time: hhmm() };
   const [f, setF] = useState(blank);
+  // Amending an entry: the form opens with it, and the new version must say why.
+  const [editing, setEditing] = useState<GarbageEntry | null>(null);
+  const [reason, setReason] = useState('');
+  const [cancelling, setCancelling] = useState<GarbageEntry | null>(null);
+  const [openHist, setOpenHist] = useState<string | null>(null);
+  const startEdit = (e: GarbageEntry) => {
+    const amounts: Partial<Record<GarbageCategory, string>> = {};
+    for (const i of entryItems(e)) amounts[i.category] = String(i.volume);
+    setF({ amounts, method: e.method, atSea: !!e.position, port: e.port ?? '', position: e.position ?? '', distance: e.distanceNm != null ? String(e.distanceNm) : '', comminuted: !!e.comminuted, receipt: e.receiptNo ?? '', container: e.containerNo ?? '', remarks: e.remarks ?? '', date: e.date, time: e.time });
+    setEditing(e);
+    setReason('');
+    setCancelling(null);
+    setAdding(true);
+  };
+  const cancelEntry = async () => {
+    if (!cancelling) return;
+    if (!signer) return Alert.alert('Who is signing?', 'Choose your name below.');
+    if (reason.trim().length < 3) return Alert.alert('Reason', 'Say why the entry is cancelled.');
+    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Cancel garbage entry ${formatDate(cancelling.date)} — ${reason.trim()}` });
+    if (!sig) return;
+    const now = Date.now();
+    // The cancelling version carries its own signer — not the original's rank or proof.
+    const { byRank: _r, signedWith: _s, ...base } = cancelling;
+    await addGarbage({ ...base, id: uid('grb'), supersedes: cancelling.id, cancelled: true, editReason: reason.trim(), by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now });
+    setCancelling(null);
+    setReason('');
+    playSuccessSound();
+  };
   const picked = CATS.filter((c) => f.amounts[c] != null);
   const items = picked.map((c) => ({ category: c, volume: Number((f.amounts[c] ?? '').replace(',', '.')) }));
   const volume = Math.round(items.reduce((n, i) => n + (i.volume > 0 ? i.volume : 0), 0) * 1000) / 1000;
@@ -66,8 +94,9 @@ export default function GarbageSc() {
     if (f.atSea || f.method === 'sea') {
       if (!f.position.trim()) return Alert.alert('Position', 'Enter the ship’s position.');
     } else if (!f.port.trim()) return Alert.alert('Port', 'Enter the port.');
+    if (editing && reason.trim().length < 3) return Alert.alert('Reason for the change', 'Say why the entry is being changed — it is kept in the book with your signature.');
     const go = async () => {
-      const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Garbage Record Book — ${items.map((i) => `${i.category} ${i.volume}`).join(', ')} m³` });
+      const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: editing ? `Amend garbage entry — ${reason.trim()}` : `Garbage Record Book — ${items.map((i) => `${i.category} ${i.volume}`).join(', ')} m³` });
       if (!sig) return;
       const now = Date.now();
       const e: GarbageEntry = {
@@ -78,8 +107,11 @@ export default function GarbageSc() {
         ...(f.container.trim() ? { containerNo: f.container.trim() } : {}),
         ...(f.remarks.trim() ? { remarks: f.remarks.trim() } : {}),
         by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now,
+        ...(editing ? { supersedes: editing.id, editReason: reason.trim() } : {}),
       };
       await addGarbage(e);
+      setEditing(null);
+      setReason('');
       setF({ ...blank, port: f.port, position: '', date: today, time: hhmm() });
       setAdding(false);
       playSuccessSound();
@@ -119,7 +151,7 @@ export default function GarbageSc() {
         title={`Garbage — ${monthName(month)}`}
         subtitle="Garbage Record Book — Part I · MARPOL Annex V"
         help="Garbage Record Book"
-        actions={<MonthPicker value={month} onChange={setMonth} months={[...new Set(garbage.map((e) => e.date.slice(0, 7)))]} counts={garbage.reduce((c: Record<string, number>, e) => ((c[e.date.slice(0, 7)] = (c[e.date.slice(0, 7)] ?? 0) + 1), c), {})} />}
+        actions={<MonthPicker value={month} onChange={setMonth} months={[...new Set(garbage.map((e) => e.date.slice(0, 7)))]} counts={currentEntries(garbage).reduce((c: Record<string, number>, e) => ((c[e.date.slice(0, 7)] = (c[e.date.slice(0, 7)] ?? 0) + 1), c), {})} />}
       />
 
       <View style={styles.stats}>
@@ -132,7 +164,7 @@ export default function GarbageSc() {
       </View>
 
       <View style={styles.row}>
-        <TouchableOpacity style={styles.btn} onPress={() => setAdding((v) => !v)}><Text style={styles.btnText}>{adding ? 'Close' : '+ New entry'}</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.btn} onPress={() => { setAdding((v) => !v); setEditing(null); setReason(''); setF(blank); }}><Text style={styles.btnText}>{adding ? 'Close' : '+ New entry'}</Text></TouchableOpacity>
         <TouchableOpacity style={styles.btnOutline} onPress={() => void report('pdf')}><Text style={styles.btnOutlineText}>PDF</Text></TouchableOpacity>
         <TouchableOpacity style={styles.btnOutline} onPress={() => void report('xlsx')}><Text style={styles.btnOutlineText}>Excel</Text></TouchableOpacity>
         {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{`✓ ${saved}`}</Text> : null}
@@ -204,23 +236,64 @@ export default function GarbageSc() {
               {picker}
             </>
           ) : null}
-          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }]} onPress={() => void save()}>
-            <Text style={styles.btnText}>Sign the entry</Text>
-          </TouchableOpacity>
-          <Text style={styles.sub}>An entry cannot be changed afterwards. To correct one, make a further entry saying what it corrects.</Text>
+          {editing ? (
+            <TextInput style={[styles.input, { borderColor: COLORS.warning, borderWidth: 1 }]} value={reason} onChangeText={setReason} placeholder="Reason for the change ★ — e.g. amount misread, wrong category" placeholderTextColor={COLORS.textLight} />
+          ) : null}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.md, marginTop: SIZES.md }}>
+            <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void save()}>
+              <Text style={styles.btnText}>{editing ? 'Sign the change' : 'Sign the entry'}</Text>
+            </TouchableOpacity>
+            {editing ? <TouchableOpacity onPress={() => { setEditing(null); setAdding(false); setF(blank); }}><Text style={{ color: COLORS.primary, fontWeight: '700' }}>Cancel</Text></TouchableOpacity> : null}
+          </View>
+          <Text style={styles.sub}>{editing ? `Changing the entry of ${formatDate(editing.date)} ${editing.time}. The original stays in the book; the change carries your reason and signature.` : 'A change later keeps the original: it needs the reason and the signature of whoever changes it.'}</Text>
         </Card>
       ) : null}
 
       <Label>{`Entries (${m.entries.length})`}</Label>
-      {[...m.entries].reverse().map((e) => (
-        <View key={e.id} style={styles.entry}>
-          <View style={[styles.cat, e.method === 'accidental' && { backgroundColor: COLORS.danger }]}><Text style={styles.catText} numberOfLines={1}>{entryItems(e).map((i) => i.category).join('')}</Text></View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.entryTitle}>{`${itemsText(e, (c) => GARBAGE_CATEGORY[c])} m³ · ${GARBAGE_METHOD[e.method]}`}</Text>
-            <Text style={styles.sub}>{[`${formatDate(e.date)} ${e.time}`, placeText(e), e.containerNo ? `container ${e.containerNo}` : null, e.receiptNo ? `receipt ${e.receiptNo}` : null, e.remarks, e.byRank ? `${e.by} (${e.byRank})` : e.by].filter(Boolean).join(' · ')}</Text>
+      {cancelling ? (
+        <Card>
+          <Label>{`Cancel the entry of ${formatDate(cancelling.date)} ${cancelling.time}`}</Label>
+          <Text style={styles.sub}>It stays in the book, struck through and out of the totals, with your reason and signature.</Text>
+          <TextInput style={[styles.input, { borderColor: COLORS.warning, borderWidth: 1 }]} value={reason} onChangeText={setReason} placeholder="Reason ★ — e.g. entered twice" placeholderTextColor={COLORS.textLight} />
+          {picker}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.md, marginTop: SIZES.md }}>
+            <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.danger }]} onPress={() => void cancelEntry()}><Text style={styles.btnText}>Sign — cancel the entry</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => { setCancelling(null); setReason(''); }}><Text style={{ color: COLORS.primary, fontWeight: '700' }}>Keep it</Text></TouchableOpacity>
           </View>
-        </View>
-      ))}
+        </Card>
+      ) : null}
+      {[...m.entries].reverse().map((e) => {
+        const prev = previousVersions(garbage, e);
+        return (
+          <View key={e.id} style={[styles.entry, e.cancelled && { opacity: 0.6 }]}>
+            <View style={[styles.cat, e.method === 'accidental' && { backgroundColor: COLORS.danger }, e.cancelled && { backgroundColor: COLORS.textLight }]}><Text style={styles.catText} numberOfLines={1}>{entryItems(e).map((i) => i.category).join('')}</Text></View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.entryTitle, e.cancelled && { textDecorationLine: 'line-through' }]}>{`${itemsText(e, (c) => GARBAGE_CATEGORY[c])} m³ · ${GARBAGE_METHOD[e.method]}`}</Text>
+              <Text style={styles.sub}>{[`${formatDate(e.date)} ${e.time}`, placeText(e), e.containerNo ? `container ${e.containerNo}` : null, e.receiptNo ? `receipt ${e.receiptNo}` : null, e.remarks, e.byRank ? `${e.by} (${e.byRank})` : e.by].filter(Boolean).join(' · ')}</Text>
+              {e.supersedes ? (
+                <TouchableOpacity onPress={() => setOpenHist(openHist === e.id ? null : e.id)}>
+                  <Text style={[styles.sub, { color: e.cancelled ? COLORS.danger : COLORS.warning, fontWeight: '700' }]}>
+                    {`${e.cancelled ? 'Cancelled' : 'Amended'} ${formatDateTime(e.at)} by ${e.byRank ? `${e.by} (${e.byRank})` : e.by} — ${e.editReason ?? ''} · ${prev.length} earlier version${prev.length === 1 ? '' : 's'} ${openHist === e.id ? '▴' : '▾'}`}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+              {openHist === e.id
+                ? prev.map((v) => (
+                    <Text key={v.id} style={[styles.sub, { textDecorationLine: 'line-through' }]}>
+                      {[`${itemsText(v, (c) => GARBAGE_CATEGORY[c])} m³ · ${GARBAGE_METHOD[v.method]}`, `${formatDate(v.date)} ${v.time}`, placeText(v), v.byRank ? `${v.by} (${v.byRank})` : v.by, v.editReason ? `(${v.editReason})` : null].filter(Boolean).join(' · ')}
+                    </Text>
+                  ))
+                : null}
+            </View>
+            {!e.cancelled ? (
+              <View style={{ gap: 6 }}>
+                <TouchableOpacity onPress={() => startEdit(e)} hitSlop={6}><Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small }}>Edit</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => { setCancelling(e); setReason(''); setEditing(null); }} hitSlop={6}><Text style={{ color: COLORS.danger, fontWeight: '700', fontSize: SIZES.small }}>Delete</Text></TouchableOpacity>
+              </View>
+            ) : null}
+          </View>
+        );
+      })}
       {!m.entries.length ? <Text style={styles.sub}>No entries this month.</Text> : null}
 
       <Label>Master</Label>

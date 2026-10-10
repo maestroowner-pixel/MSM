@@ -13,6 +13,7 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Garbage: Edit and Delete with reason and signature.** Versions kept append-only: an amendment is a new entry `supersedes` the old one with `editReason`; Delete is a `cancelled` version (struck through, out of the totals). Both need a reason and a confirmed signature. "Amended / Cancelled … by … — reason · n earlier versions" with the history on tap; PDF/Excel remarks say so. `currentEntries`, `previousVersions` tested; board and month counts use the current book.
 - **Every signature is confirmed** (PIN / fingerprint / by hand) whenever `signConfirm` is on — the Settings switch is gone (an info line instead). Fuel soundings, bunkerings and transfers and defect rectifications now go through it too and keep `signedWith` / `closedWith`.
 - **Month picker in the title** (components/MonthPicker): "October ▾" beside the ?, a list of the months with records (+ the current), newest first, "December 2025" for another year, with counts. Replaces the arrow rows on the permits archive, Garbage and Fuel. Dropdown keeps its list on screen at the right edge.
 - **Garbage: one entry, several categories.** `items` [{category, volume}] — tap every category in the operation, an amount each; one line on screen, in PDF and Excel; totals per category; sea-discharge rules checked per category (named). Older single-category entries read as one item (`entryItems`).

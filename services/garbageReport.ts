@@ -35,11 +35,11 @@ export function grbRows(entries: GarbageEntry[]): string[][] {
     `${gDmy(e.date)} ${e.time}`,
     placeText(e),
     items.map((i) => `${i.category} — ${GARBAGE_CATEGORY[i.category]}${items.length > 1 ? ` ${v(i.volume)}` : ''}`).join('\n'),
-    e.method === 'sea' ? v(sum) : '',
-    e.method === 'shore' ? v(sum) : '',
-    e.method === 'incineration' ? v(sum) : '',
-    e.method === 'accidental' ? v(sum) : '',
-    [e.containerNo ? `Container ${e.containerNo}` : '', e.receiptNo ? `Receipt ${e.receiptNo}` : '', e.comminuted ? 'comminuted' : '', e.remarks ?? ''].filter(Boolean).join('; '),
+    e.method === 'sea' && !e.cancelled ? v(sum) : '',
+    e.method === 'shore' && !e.cancelled ? v(sum) : '',
+    e.method === 'incineration' && !e.cancelled ? v(sum) : '',
+    e.method === 'accidental' && !e.cancelled ? v(sum) : '',
+    [e.cancelled ? `CANCELLED — ${e.editReason ?? ''} (${e.by})` : e.supersedes ? `Amended — ${e.editReason ?? ''} (${e.by})` : '', e.containerNo ? `Container ${e.containerNo}` : '', e.receiptNo ? `Receipt ${e.receiptNo}` : '', e.comminuted ? 'comminuted' : '', e.remarks ?? ''].filter(Boolean).join('; '),
     e.byRank ? `${e.by} (${e.byRank})` : e.by,
   ];
   });

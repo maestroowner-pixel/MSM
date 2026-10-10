@@ -54,6 +54,15 @@ export interface GarbageEntry {
    * and put it on one line"). Older entries have none: `category` / `volume`.
    */
   items?: { category: GarbageCategory; volume: number }[];
+  /**
+   * Amended or cancelled (10 Oct 2026: "edit an entry — with the reason and the
+   * signature of whoever edited it"). The book keeps every version: a new entry
+   * replaces `supersedes`; `cancelled` takes the entry out of the totals but
+   * leaves it in the book, struck through. Reason and signer are required.
+   */
+  supersedes?: string;
+  cancelled?: boolean;
+  editReason?: string;
   /** In port: its name. */
   port?: string;
   /** At sea: position as written ("38°45.2'N 002°10.6'E"). */

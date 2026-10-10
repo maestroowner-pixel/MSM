@@ -38,6 +38,7 @@ import { robTotal } from './fuel';
 import { fuelDaily } from './fuelDaily';
 import { personsOnBoard } from './gangway';
 import { surveyStatus } from './surveys';
+import { currentEntries } from './garbage';
 
 export type Level = 'red' | 'amber' | 'blue';
 export type Audience = 'all' | 'officer' | 'master';
@@ -293,9 +294,10 @@ export function buildBoard(x: BoardInput): Board {
 
   // ---- Garbage ----
   if (x.on('garbage')) {
+    const book = currentEntries(x.garbage).filter((e) => !e.cancelled);
     const pm = prevMonth(x.today);
-    if (x.garbage.some((e) => e.date.startsWith(pm)) && !x.garbageSigns.some((s) => s.month === pm)) n.push({ key: 'grb:sign', level: 'amber', who: 'master', icon: 'trash-can-outline', route: 'Garbage', title: `Garbage Record Book — ${pm} not signed by the Master` });
-    const m = x.garbage.filter((e) => e.date.startsWith(x.today.slice(0, 7)));
+    if (book.some((e) => e.date.startsWith(pm)) && !x.garbageSigns.some((s) => s.month === pm)) n.push({ key: 'grb:sign', level: 'amber', who: 'master', icon: 'trash-can-outline', route: 'Garbage', title: `Garbage Record Book — ${pm} not signed by the Master` });
+    const m = book.filter((e) => e.date.startsWith(x.today.slice(0, 7)));
     const acc = m.filter((e) => e.method === 'accidental').length;
     if (acc) n.push({ key: 'grb:acc', level: 'red', who: 'officer', icon: 'trash-can-outline', route: 'Garbage', title: `Garbage — ${plural(acc, 'accidental discharge')} this month` });
     tiles.push({ key: 'grb', label: 'Garbage', icon: 'trash-can-outline', route: 'Garbage', level: acc ? 'red' : undefined, line: `${plural(m.length, 'entry', 'entries')} this month` });

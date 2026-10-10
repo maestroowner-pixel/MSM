@@ -56,11 +56,33 @@ export interface GarbageMonth {
 
 const empty = (): Record<GarbageMethod, number> => ({ shore: 0, sea: 0, incineration: 0, accidental: 0 });
 
-export function garbageMonth(entries: GarbageEntry[], month: string): GarbageMonth {
+/** The entries as the book stands: every entry that no later version replaces. */
+export function currentEntries(all: GarbageEntry[]): GarbageEntry[] {
+  const replaced = new Set(all.map((e) => e.supersedes).filter(Boolean) as string[]);
+  return all.filter((e) => !replaced.has(e.id));
+}
+
+/** Earlier versions of an entry, newest first. */
+export function previousVersions(all: GarbageEntry[], e: GarbageEntry): GarbageEntry[] {
+  const out: GarbageEntry[] = [];
+  let id = e.supersedes;
+  const byId = new Map(all.map((x) => [x.id, x]));
+  while (id && byId.has(id) && out.length < 50) {
+    const prev = byId.get(id)!;
+    out.push(prev);
+    id = prev.supersedes;
+  }
+  return out;
+}
+
+/** The month as the book stands — current versions; cancelled ones listed but not counted. */
+export function garbageMonth(all: GarbageEntry[], month: string): GarbageMonth {
+  const entries = currentEntries(all);
   const list = entries.filter((e) => e.date.startsWith(month)).sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`));
   const totals = Object.fromEntries((['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'] as GarbageCategory[]).map((c) => [c, empty()])) as GarbageMonth['totals'];
   let total = 0;
   for (const e of list) {
+    if (e.cancelled) continue;
     for (const i of entryItems(e)) {
       totals[i.category][e.method] = Math.round((totals[i.category][e.method] + i.volume) * 1000) / 1000;
       total += i.volume;

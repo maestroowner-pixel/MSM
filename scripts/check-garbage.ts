@@ -1,5 +1,5 @@
 // npm run check:garbage — MARPOL Annex V sea-discharge rules and month totals (services/garbage.ts).
-import { entryItems, garbageMonth, itemsText, placeText, seaDischargeProblem } from '../services/garbage';
+import { currentEntries, entryItems, garbageMonth, itemsText, placeText, previousVersions, seaDischargeProblem } from '../services/garbage';
 import { GarbageEntry } from '../types/garbage';
 
 let failed = 0;
@@ -28,6 +28,17 @@ ok(placeText(E({ port: 'Palma' })) === 'Palma' && placeText(E({ position: "38°4
   ok(itemsText(multi, (c) => c) === 'C C 0.4 · A A 0.1 · B B 0.2', 'one line with every category and amount');
   ok(/^C: /.test(seaDischargeProblem({ ...multi, method: 'sea', distanceNm: 20 }) ?? ''), 'at sea, the prohibited category in a mixed entry is named');
   ok(seaDischargeProblem({ ...multi, method: 'sea', distanceNm: 20, items: [{ category: 'B', volume: 0.2 }] }) === null, 'food alone 20 nm out is allowed');
+}
+{
+  const v1: any = { id: 'v1', date: '2026-10-05', time: '10:00', category: 'C', method: 'shore', volume: 0.5, port: 'Palma', by: 'A', at: 1, updatedAt: 1 };
+  const v2: any = { ...v1, id: 'v2', volume: 0.3, supersedes: 'v1', editReason: 'Volume misread', by: 'B', at: 2 };
+  const x1: any = { ...v1, id: 'x1', volume: 0.2, date: '2026-10-07' };
+  const x2: any = { ...x1, id: 'x2', supersedes: 'x1', cancelled: true, editReason: 'Entered twice', at: 3 };
+  const all = [v1, v2, x1, x2];
+  ok(currentEntries(all).map((e) => e.id).join() === 'v2,x2', 'the book shows the latest version of each entry');
+  ok(previousVersions(all, v2).map((e) => e.id).join() === 'v1', 'earlier versions are kept');
+  const m = garbageMonth(all, '2026-10');
+  ok(m.total === 0.3 && m.entries.length === 2, 'amended amount counted, cancelled entry listed but not counted');
 }
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);
