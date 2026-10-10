@@ -53,5 +53,25 @@ import { searchDocs, snippet, sortDocs } from '../services/docs';
   ok(sortDocs(list, 'issued')[0].id === 'b' && sortDocs(list, 'review').map((d) => d.id).slice(0, 2).join() === 'b,c', 'sort newest / review due');
 }
 
+// Batch upload (services/docs)
+import { docFromFileName, matchExisting } from '../services/docs';
+{
+  const a = docFromFileName('SMS-07-03 Enclosed space entry.pdf');
+  ok(a.docNo === 'SMS-07-03' && a.title === 'Enclosed space entry', `file name → number + title (${a.docNo} · ${a.title})`);
+  const b = docFromFileName('SMS_07_03_Enclosed_space_entry.pdf');
+  ok(b.docNo === 'SMS-07-03' && b.title === 'Enclosed space entry', `underscores (${b.docNo} · ${b.title})`);
+  const c = docFromFileName('Garbage management plan rev2.pdf');
+  ok(!c.docNo && c.title === 'Garbage management plan rev2', 'no number in the name → title only');
+  const d = docFromFileName('POL 03 - Drug and alcohol policy.docx');
+  ok(d.docNo === 'POL-03' && d.title === 'Drug and alcohol policy', `"POL 03 - …" (${d.docNo} · ${d.title})`);
+  const docs: IsmDoc[] = [
+    { id: 'e', title: 'Enclosed space entry procedure', docNo: 'SMS-07-03', category: 'procedure', revision: 4, issued: '2026-01-01', updatedAt: 0 },
+    { id: 'g', title: 'Garbage management plan rev2', category: 'sms', revision: 2, issued: '2026-01-01', updatedAt: 0 },
+  ];
+  ok(matchExisting(docs, a)?.id === 'e', 'matched by number even when the title differs → new revision');
+  ok(matchExisting(docs, c)?.id === 'g', 'no number: matched by the same title');
+  ok(!matchExisting(docs, d), 'a new document matches nothing');
+}
+
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

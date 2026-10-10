@@ -108,3 +108,31 @@ export function sortDocs(docs: IsmDoc[], by: DocSort): IsmDoc[] {
   };
   return [...docs].sort(cmp[by]);
 }
+
+// ---- batch upload (Documents → Upload) ----------------------------------------------
+
+/**
+ * Number and title out of a file name, as offices name them:
+ *   "SMS-07-03 Enclosed space entry.pdf"   → SMS-07-03 · Enclosed space entry
+ *   "SMS_07_03_Enclosed_space_entry.pdf"   → SMS-07-03 · Enclosed space entry
+ *   "Garbage management plan rev2.pdf"     → —         · Garbage management plan rev2
+ */
+export function docFromFileName(fileName: string): { docNo?: string; title: string } {
+  const base = fileName.replace(/\.[a-z0-9]{2,5}$/i, '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+  const m = /^([A-Za-z]{1,6}[\s-]?\d{1,4}(?:[\s.-]\d{1,4}){0,3})\s*[-–:]?\s+(.+)$/.exec(base);
+  if (m) {
+    const docNo = m[1].toUpperCase().replace(/[\s.]+/g, '-').replace(/-+/g, '-');
+    return { docNo, title: m[2].trim() };
+  }
+  return { title: base || fileName };
+}
+
+/** The existing document a file is a new revision of: same number, else same title. */
+export function matchExisting(docs: IsmDoc[], parsed: { docNo?: string; title: string }): IsmDoc | undefined {
+  const bare = (x?: string) => (x ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (parsed.docNo) {
+    const byNo = docs.find((d) => !d.deleted && d.docNo && bare(d.docNo) === bare(parsed.docNo));
+    if (byNo) return byNo;
+  }
+  return docs.find((d) => !d.deleted && fold(d.title).trim() === fold(parsed.title).trim());
+}

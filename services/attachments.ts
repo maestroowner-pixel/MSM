@@ -143,6 +143,19 @@ export async function pickDocument(): Promise<PickedFile | null> {
   return { uri: uriOut, name: a.name ?? 'Document', kind: isImage ? 'photo' : 'document' };
 }
 
+/** Several documents at once (Documents → Upload). Empty array when cancelled. */
+export async function pickDocuments(): Promise<PickedFile[]> {
+  const res = await DocumentPicker.getDocumentAsync({ type: ['application/pdf', 'image/*', '*/*'], copyToCacheDirectory: true, multiple: true });
+  if (res.canceled || !res.assets?.length) return [];
+  const out: PickedFile[] = [];
+  for (const a of res.assets) {
+    const isImage = (a.mimeType || '').startsWith('image/');
+    const uri = isImage ? await persistPhoto(a.uri, extOf(a.name, 'jpg')) : await persist(a.uri, extOf(a.name, 'pdf'));
+    out.push({ uri, name: a.name ?? 'Document', kind: isImage ? 'photo' : 'document' });
+  }
+  return out;
+}
+
 /** Open / preview a stored file via the OS share/quick-look sheet. */
 /** Extension for a data: URI, so the written file opens in the right app. */
 function extFor(dataUri: string): string {

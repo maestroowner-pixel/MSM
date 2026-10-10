@@ -111,3 +111,35 @@ export async function openFile(uri: string, _name?: string): Promise<void> {
 export async function toDataUri(uri: string, _name: string): Promise<string> {
   return uri;
 }
+
+/**
+ * Several documents at once (Documents → Upload — "load them in batches,
+ * selecting several at once", 9 Oct 2026). Each comes back as a data: URI, like
+ * pickDocument. Empty array when cancelled.
+ */
+export function pickDocuments(): Promise<PickedFile[]> {
+  return new Promise((resolve) => {
+    const input = g.document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf,image/*,.doc,.docx,.xls,.xlsx';
+    input.multiple = true;
+    input.style.display = 'none';
+    input.onchange = async () => {
+      const files: File[] = Array.from(input.files ?? []);
+      g.document.body.removeChild(input);
+      const out: PickedFile[] = [];
+      for (const f of files) {
+        const dataUri: string = await new Promise((res) => {
+          const r = new FileReader();
+          r.onload = () => res(String(r.result));
+          r.onerror = () => res('');
+          r.readAsDataURL(f);
+        });
+        if (dataUri) out.push({ uri: dataUri, name: f.name, kind: f.type.startsWith('image/') ? 'photo' : 'document' });
+      }
+      resolve(out);
+    };
+    g.document.body.appendChild(input);
+    input.click();
+  });
+}
