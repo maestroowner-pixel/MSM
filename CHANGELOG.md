@@ -5,6 +5,13 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Garbage Record Book, Part I (dark, `garbage`).** MARPOL Annex V, form of MEPC.295(71):
+  entries by category A–I with amount (m³), to reception facility / into sea / incinerated /
+  accidental, port or position and distance from land, container No., receipt No., remarks, signed
+  by the officer in charge (SignConfirm). Sea-discharge rules checked (A, C–F, H, I prohibited; food
+  ≥ 12 nm, 3 nm comminuted; carcasses ≥ 100 nm) — warned, not blocked, accidental always recordable.
+  Append-only (rules: create only); the Master signs each month (rules: Master only). Month totals;
+  the page as PDF (A4 landscape) and Excel (Part I + Totals). `npm run check:garbage`; rules 43/43.
 - **Fuel (dark, `fuel`).** Diesel only, litres (owner's decision, 10 Oct 2026; petrol for tenders
   later). Tanks: two to start (port, starboard), rename / capacity / add / remove. The day's sounding
   tank by tank (signed by name); bunkerings — port, supplier, litres, density, sulphur, BDN, litres

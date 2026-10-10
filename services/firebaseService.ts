@@ -1216,6 +1216,8 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'fuel_readings', key: storage.FUEL_READINGS_KEY, module: 'fuel' },
   { sub: 'fuel_bunkers', key: storage.FUEL_BUNKERS_KEY, module: 'fuel' },
   { sub: 'fuel_transfers', key: storage.FUEL_TRANSFERS_KEY, module: 'fuel' },
+  { sub: 'garbage', key: storage.GARBAGE_KEY, appendOnly: true, module: 'garbage' },
+  { sub: 'garbage_signs', key: storage.GARBAGE_SIGNS_KEY, appendOnly: true, module: 'garbage' },
 ];
 
 /**

@@ -77,6 +77,11 @@ await t(true, 'Officer records a bunkering', setDoc(R(officer, 'fuel_bunkers', '
 await t(false, 'Nobody deletes a bunkering', deleteDoc(R(master, 'fuel_bunkers', 'b1')));
 await t(false, 'Superintendent cannot write fuel records', setDoc(R(shore, 'fuel_readings', 'x'), { id: 'x' }));
 
+await t(true, 'Officer records a garbage entry', setDoc(R(officer, 'garbage', 'g1'), { id: 'g1', category: 'C' }));
+await t(false, 'A garbage entry cannot be changed', updateDoc(R(officer, 'garbage', 'g1'), { volume: 9 }));
+await t(false, 'An Officer cannot sign the month as Master', setDoc(R(officer, 'garbage_signs', 'grb_2026-10'), { id: 'grb_2026-10' }));
+await t(true, 'The Master signs the month', setDoc(R(master, 'garbage_signs', 'grb_2026-10'), { id: 'grb_2026-10' }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

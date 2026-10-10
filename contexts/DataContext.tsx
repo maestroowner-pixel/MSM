@@ -16,6 +16,7 @@ import { SpareMove, SparePart } from '../types/spares';
 import { DocAck, IsmDoc } from '../types/docs';
 import { Permit, RiskAssessment } from '../types/permits';
 import { FuelBunker, FuelReading, FuelTank, FuelTransfer } from '../types/fuel';
+import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
 import { ChecklistTemplate } from '../constants/checklists';
 import { CategoryMeta, setVesselCategories } from '../constants/categories';
 import { CATEGORIES, CATEGORY_MAP } from '../constants/categories';
@@ -87,6 +88,11 @@ interface DataContextType {
   fuelBunkers: FuelBunker[];
   fuelTransfers: FuelTransfer[];
   saveFuel: (kind: 'tank' | 'reading' | 'bunker' | 'transfer', row: any) => Promise<void>;
+  /** Garbage Record Book — entries and the Master's monthly signatures (append-only). */
+  garbage: GarbageEntry[];
+  garbageSigns: GarbageMasterSign[];
+  addGarbage: (e: GarbageEntry) => Promise<void>;
+  signGarbageMonth: (s: GarbageMasterSign) => Promise<void>;
   /** The vessel's own checklists; they replace the built-in for their category. */
   templates: ChecklistTemplate[];
   /** Headings this vessel invented, on top of the 23 the app ships. */
@@ -159,6 +165,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [fuelReadings, setFuelReadings] = useState<FuelReading[]>([]);
   const [fuelBunkers, setFuelBunkers] = useState<FuelBunker[]>([]);
   const [fuelTransfers, setFuelTransfers] = useState<FuelTransfer[]>([]);
+  const [garbage, setGarbage] = useState<GarbageEntry[]>([]);
+  const [garbageSigns, setGarbageSigns] = useState<GarbageMasterSign[]>([]);
   const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
   const [categories, setCategories] = useState<CategoryMeta[]>([]);
   const [recentScans, setRecentScans] = useState<ScanEntry[]>([]);
@@ -206,6 +214,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setFuelReadings(await storage.loadList<FuelReading>(storage.FUEL_READINGS_KEY));
     setFuelBunkers(await storage.loadList<FuelBunker>(storage.FUEL_BUNKERS_KEY));
     setFuelTransfers(await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY));
+    setGarbage(await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY));
+    setGarbageSigns(await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY));
     setTemplates(await storage.loadTemplates());
     setSigningPolicyState((await storage.loadSigningPolicy()) ?? DEFAULT_POLICY);
     setPhotoArchiveState((await storage.loadPhotoArchive()) ?? DEFAULT_ARCHIVE);
@@ -352,6 +362,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setFuelReadings(await storage.loadList<FuelReading>(storage.FUEL_READINGS_KEY));
     setFuelBunkers(await storage.loadList<FuelBunker>(storage.FUEL_BUNKERS_KEY));
     setFuelTransfers(await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY));
+    setGarbage(await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY));
+    setGarbageSigns(await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY));
   }, []);
 
   const saveMachine = useCallback(async (m: Machine) => {
@@ -396,6 +408,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await storage.upsertInList(key, { ...row, updatedAt: Date.now() });
     await loadPms();
   }, [loadPms]);
+
+  // Append-only: an entry with an id already held is ignored, never replaced.
+  const appendTo = useCallback(async (key: string, row: { id: string }) => {
+    const list = await storage.loadList<{ id: string }>(key);
+    if (!list.some((x) => x.id === row.id)) await storage.saveList(key, [...list, row]);
+    await loadPms();
+  }, [loadPms]);
+  const addGarbage = useCallback((e: GarbageEntry) => appendTo(storage.GARBAGE_KEY, e), [appendTo]);
+  const signGarbageMonth = useCallback((x: GarbageMasterSign) => appendTo(storage.GARBAGE_SIGNS_KEY, x), [appendTo]);
 
   const saveRisk = useCallback(async (x: RiskAssessment) => {
     await storage.upsertInList(storage.RISKS_KEY, x);
@@ -547,6 +568,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         fuelBunkers,
         fuelTransfers,
         saveFuel,
+        garbage,
+        garbageSigns,
+        addGarbage,
+        signGarbageMonth,
         savePermit,
         saveRisk,
         templates,

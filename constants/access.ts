@@ -30,7 +30,7 @@
 
 import { ModuleKey, moduleOn } from './modules';
 
-export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'reports' | 'maintenance' | 'spares' | 'rest';
+export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'reports' | 'maintenance' | 'spares' | 'rest';
 
 export interface OptionalTab {
   key: TabKey;
@@ -52,6 +52,7 @@ export const OPTIONAL_TABS: OptionalTab[] = [
   { key: 'documents', module: 'docs', route: 'Documents', label: 'Docs', column: 'Docs', icon: 'book-open-page-variant' },
   { key: 'maintenance', module: 'pms', route: 'Maintenance', label: 'PMS', column: 'PMS', icon: 'engine' },
   { key: 'fuel', module: 'fuel', route: 'Fuel', label: 'Fuel', column: 'Fuel', icon: 'gas-station' },
+  { key: 'garbage', module: 'garbage', route: 'Garbage', label: 'Garbage', column: 'GRB', icon: 'trash-can-outline' },
   { key: 'spares', module: 'spares', route: 'Spares', label: 'Spares', column: 'Spares', icon: 'package-variant-closed' },
   { key: 'rest', module: 'rest', route: 'HoursOfRest', label: 'Rest', column: 'Rest', icon: 'bed-clock' },
   { key: 'reports', route: 'Reports', label: 'Reports', column: 'Reports', icon: 'file-document' },

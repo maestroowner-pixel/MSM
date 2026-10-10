@@ -29,6 +29,7 @@ import { DocAck, IsmDoc } from '../types/docs';
 import { CrewPrivate } from '../types/crew';
 import { Permit, RiskAssessment } from '../types/permits';
 import { FuelBunker, FuelReading, FuelTank, FuelTransfer } from '../types/fuel';
+import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from '../services/storage';
 import { VesselInfo } from '../services/storage';
@@ -63,6 +64,8 @@ export interface BackupFile {
   ptw?: { permits: Permit[]; risks: RiskAssessment[] };
   /** Fuel tanks, soundings, bunkerings, transfers. */
   fuel?: { tanks: FuelTank[]; readings: FuelReading[]; bunkers: FuelBunker[]; transfers: FuelTransfer[] };
+  /** Garbage Record Book entries and the Master's monthly signatures. */
+  garbage?: { entries: GarbageEntry[]; signs: GarbageMasterSign[] };
   files?: Record<string, string>; // basename -> base64 of the file contents
 }
 
@@ -164,6 +167,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     bunkers: await storage.loadList<FuelBunker>(storage.FUEL_BUNKERS_KEY),
     transfers: await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY),
   };
+  const garbage = { entries: await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY), signs: await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY) };
 
   // Read each referenced binary into a basename -> base64 map.
   const files: Record<string, string> = {};
@@ -195,6 +199,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     crewPrivate,
     ptw,
     fuel,
+    garbage,
     files,
   };
 
@@ -372,6 +377,10 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     await storage.saveList(storage.FUEL_READINGS_KEY, backup.fuel.readings ?? []);
     await storage.saveList(storage.FUEL_BUNKERS_KEY, backup.fuel.bunkers ?? []);
     await storage.saveList(storage.FUEL_TRANSFERS_KEY, backup.fuel.transfers ?? []);
+  }
+  if (backup.garbage) {
+    await storage.saveList(storage.GARBAGE_KEY, backup.garbage.entries ?? []);
+    await storage.saveList(storage.GARBAGE_SIGNS_KEY, backup.garbage.signs ?? []);
   }
 
   if (backup.compressor) await storage.saveCompressor(normalizeCompressorState(backup.compressor));

@@ -34,6 +34,8 @@ export const FUEL_TANKS_KEY = `${PREFIX}fuel_tanks`;
 export const FUEL_READINGS_KEY = `${PREFIX}fuel_readings`;
 export const FUEL_BUNKERS_KEY = `${PREFIX}fuel_bunkers`;
 export const FUEL_TRANSFERS_KEY = `${PREFIX}fuel_transfers`;
+export const GARBAGE_KEY = `${PREFIX}garbage`;
+export const GARBAGE_SIGNS_KEY = `${PREFIX}garbage_signs`;
 export const DOC_ACKS_KEY = `${PREFIX}ism_doc_acks`;
 /** The vessel's "scan before you sign" rule, as this device last knew it. */
 export const SIGNING_POLICY_KEY = `${PREFIX}signing_policy`;
@@ -644,6 +646,8 @@ export async function resetAllData(): Promise<void> {
     FUEL_READINGS_KEY,
     FUEL_BUNKERS_KEY,
     FUEL_TRANSFERS_KEY,
+    GARBAGE_KEY,
+    GARBAGE_SIGNS_KEY,
     DOC_ACKS_KEY,
     'msm:docfiles_pending',
     VESSEL_KEY,
