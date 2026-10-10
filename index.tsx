@@ -170,7 +170,8 @@ const MENU_LABEL: Record<string, string> = {
   Maintenance: 'Maintenance (PMS)',
   Spares: 'Spare parts',
   HoursOfRest: 'Hours of rest',
-  CrewMatrix: 'Crew & matrix',
+  Crew: 'Crew list',
+  CrewMatrix: 'Crew matrix',
   Permits: 'Permits & risk',
   Reports: 'Reports',
   Settings: 'Settings',
@@ -192,7 +193,9 @@ function MainTabs() {
   const SHORT: Record<string, string> = { Dashboard: 'Home', Equipment: 'Equip', Certificates: 'Certs' };
   // Past FEW screens the tab bar gives way to the menu, in the person's own order.
   // The menu also lists screens that are not tabs — the crew matrix, under Crew.
-  const menuExtras = moduleOn('crewCerts') ? ['CrewMatrix'] : [];
+  // Crew list (FAL Form 5, import) and the crew matrix — Officers and the Master
+  // keep them, but everyone may look; the screens say what each rank can do.
+  const menuExtras = moduleOn('crewCerts') ? ['Crew', 'CrewMatrix'] : [];
   const available = useMemo(() => [...tabOrder, ...menuExtras], [tabOrder.join('|'), menuExtras.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
   const navPrefs = useNavPrefs(available);
   const many = tabOrder.length > FEW;
@@ -277,7 +280,7 @@ function MainTabs() {
                   <NavMenuBar
                     {...p}
                     {...navPrefs}
-                    icons={{ ...TAB_ICONS, CrewMatrix: 'account-group' }}
+                    icons={{ ...TAB_ICONS, Crew: 'clipboard-account-outline', CrewMatrix: 'table-account' }}
                     labelOf={(r) => MENU_LABEL[r] ?? r}
                   />
                 )
