@@ -20,7 +20,9 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { moduleOn } from '../constants/modules';
 import { canRememberFolder, chooseFolder, rememberedFolder } from '../utils/webSave';
-import { PinHolder, pinHolders, resetPin } from '../services/signature';
+import { ADMIN_KEY, PinHolder, pinHolders, resetPin } from '../services/signature';
+import { usePinChange } from '../components/PinChange';
+import { personName } from '../types/role';
 import { VesselInfo, resetAllData } from '../services/storage';
 import * as fb from '../services/firebaseService';
 import { clearAttachmentsDir } from '../services/attachments';
@@ -77,6 +79,7 @@ export default function SettingsSc() {
     void rememberedFolder('reports').then(setReportsFolder);
   }, []);
   // Who has a signing PIN on this device, for the Master's reset list.
+  const changePin = usePinChange();
   const [pinHoldersHere, setPinHoldersHere] = useState<PinHolder[]>([]);
   useEffect(() => {
     if (moduleOn('signConfirm')) void pinHolders().then(setPinHoldersHere);
@@ -763,17 +766,17 @@ export default function SettingsSc() {
         </View>
         {moduleOn('signConfirm') ? (
           <>
-            {/* Finger, face or the signer's own PIN on every signature
-                (components/SignConfirm). Off by default. */}
+            {/* Fingerprint, hand-drawn signature or the signer's own PIN on every
+                signature (components/SignConfirm). Off by default. Never a face. */}
             <View style={styles.toggleRow}>
               <IconChip name="fingerprint" size={18} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.linkTitle}>Confirm every signature</Text>
                 <Text style={styles.linkSub}>
                   {isMaster
-                    ? 'Each signature is confirmed by the signer\'s fingerprint or face on their own device, or by their own signing PIN.'
+                    ? 'Each signature is confirmed by the signer: their own signing PIN, their fingerprint on their own device, or their signature drawn on the screen.'
                     : signingPolicy.confirmSignature
-                      ? 'On for this vessel — confirm with your finger, face or signing PIN. Set by the Master.'
+                      ? 'On for this vessel — confirm with your signing PIN, fingerprint or by hand. Set by the Master.'
                       : 'Off for this vessel. Set by the Master.'}
                 </Text>
               </View>
@@ -784,10 +787,42 @@ export default function SettingsSc() {
                 trackColor={{ true: COLORS.primary, false: COLORS.border }}
               />
             </View>
-            {isMaster && pinHoldersHere.length ? (
+            {/* Setting or changing a PIN (components/PinChange): the Master PIN opens
+                a new one, the owner's own PIN or the Master PIN a change. */}
+            {sync.me ? (
+              <TouchableOpacity style={styles.linkRow} onPress={() => changePin({ key: `device:${sync.me!.id}`, name: personName(sync.me!) }, { onDone: () => void pinHolders().then(setPinHoldersHere) })}>
+                <IconChip name="dialpad" size={18} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.linkTitle}>My signing PIN</Text>
+                  <Text style={styles.linkSub}>{pinHoldersHere.some((h) => h.key === `device:${sync.me!.id}`) ? 'Set — change it with your PIN or the Master PIN' : 'Not set — the Master PIN opens it'}</Text>
+                </View>
+                <Text style={styles.chev}>›</Text>
+              </TouchableOpacity>
+            ) : null}
+            {isMaster ? (
+              <TouchableOpacity style={styles.linkRow} onPress={() => changePin({ key: ADMIN_KEY, name: 'Master' }, { onDone: () => void pinHolders().then(setPinHoldersHere) })}>
+                <IconChip name="lock" size={18} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.linkTitle}>Master PIN</Text>
+                  <Text style={[styles.linkSub, !pinHoldersHere.some((h) => h.key === ADMIN_KEY) && { color: COLORS.warning, fontWeight: '700' }]}>{pinHoldersHere.some((h) => h.key === ADMIN_KEY) ? 'Changed from the default — opens everyone’s PIN on this device' : 'Still the default 0000 — change it'}</Text>
+                </View>
+                <Text style={styles.chev}>›</Text>
+              </TouchableOpacity>
+            ) : null}
+            {moduleOn('crewCerts') ? (
+              <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('CrewMatrix')}>
+                <IconChip name="account-lock-outline" size={18} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.linkTitle}>Crew signing PINs</Text>
+                  <Text style={styles.linkSub}>Crew matrix — the 🔒 by each name sets or changes that person’s PIN</Text>
+                </View>
+                <Text style={styles.chev}>›</Text>
+              </TouchableOpacity>
+            ) : null}
+            {isMaster && pinHoldersHere.filter((h) => h.key !== ADMIN_KEY).length ? (
               <View style={{ marginTop: SIZES.sm }}>
                 <Text style={styles.linkSub}>Signing PINs on this device — reset one that has been forgotten; its holder chooses a new one at their next signature.</Text>
-                {pinHoldersHere.map((h) => (
+                {pinHoldersHere.filter((h) => h.key !== ADMIN_KEY).map((h) => (
                   <View key={h.key} style={[styles.linkRow, { paddingVertical: SIZES.xs }]}>
                     <Text style={[styles.linkTitle, { flex: 1 }]} numberOfLines={1}>{h.name}</Text>
                     <TouchableOpacity

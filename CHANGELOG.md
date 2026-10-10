@@ -13,6 +13,7 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Settings → signing: set / change PINs.** My signing PIN (an enrolled device's own account), Master PIN (0000 until changed, flagged), Crew signing PINs → Crew matrix; reset list leaves out the Master PIN. Wording without "face".
 - **Notice board (dark, `board`).** The Dashboard tab becomes the vessel's board across every module
   (services/board.ts → screens/BoardSc.tsx): status line (ISPS, persons on board, ROB ≈ days), Needs
   attention (register by category, defects, vessel/equipment/crew certificates, PMS, spares, documents
