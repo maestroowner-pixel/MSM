@@ -30,8 +30,8 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { MciIcon } from './MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { SIZES, Palette } from '../theme';
-import { applyOrder, move } from '../utils/navOrder';
-export { applyOrder, move };
+import { applyOrder, flatGrouped, grouped, move, moveInGroup } from '../utils/navOrder';
+export { applyOrder, move, flatGrouped };
 
 /**
  * Up to this many screens the plain tab bar is used. A phone still holds six
@@ -121,7 +121,7 @@ export function NavMenuBar(props: Props) {
     );
   }
 
-  const onBar = order.slice(0, ON_BAR);
+  const onBar = flatGrouped(order).slice(0, ON_BAR);
   const inMenu = !onBar.includes(current);
   return (
     <>
@@ -189,28 +189,30 @@ function MenuList({
         </View>
       </View>
       {Platform.OS !== 'web' && !editing ? <Text style={styles.hint}>The first four are on the bar below.</Text> : null}
-      {order.map((r, i) => {
-        const on = r === current;
-        return (
-          <View key={r}>
-            {Platform.OS !== 'web' && i === ON_BAR ? <View style={styles.sep} /> : null}
-            <TouchableOpacity style={[styles.item, on && !editing && styles.itemOn]} onPress={() => (editing ? undefined : onPick(r))} disabled={editing} activeOpacity={0.7}>
-              <MciIcon name={icons[r] ?? 'circle-small'} size={22} color={on ? COLORS.primary : COLORS.textLight} />
-              <Text style={[styles.itemText, on && { color: COLORS.primary }]} numberOfLines={1}>{labelOf(r)}</Text>
-              {editing ? (
-                <View style={{ flexDirection: 'row', gap: SIZES.xs }}>
-                  <TouchableOpacity onPress={() => setOrder(move(order, r, -1))} disabled={i === 0} hitSlop={6} style={[styles.arrow, i === 0 && { opacity: 0.25 }]} accessibilityLabel={`Move ${labelOf(r)} up`}>
-                    <MciIcon name="arrow-up" size={18} color={COLORS.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => setOrder(move(order, r, 1))} disabled={i === order.length - 1} hitSlop={6} style={[styles.arrow, i === order.length - 1 && { opacity: 0.25 }]} accessibilityLabel={`Move ${labelOf(r)} down`}>
-                    <MciIcon name="arrow-down" size={18} color={COLORS.primary} />
-                  </TouchableOpacity>
-                </View>
-              ) : null}
-            </TouchableOpacity>
-          </View>
-        );
-      })}
+      {grouped(order).map(({ group, routes }) => (
+        <View key={group.key}>
+          {group.label ? <Text style={styles.groupHead}>{group.label}</Text> : <View style={styles.sep} />}
+          {routes.map((r, i) => {
+            const on = r === current;
+            return (
+              <TouchableOpacity key={r} style={[styles.item, on && !editing && styles.itemOn]} onPress={() => (editing ? undefined : onPick(r))} disabled={editing} activeOpacity={0.7}>
+                <MciIcon name={icons[r] ?? 'circle-small'} size={22} color={on ? COLORS.primary : COLORS.textLight} />
+                <Text style={[styles.itemText, on && { color: COLORS.primary }]} numberOfLines={1}>{labelOf(r)}</Text>
+                {editing && routes.length > 1 ? (
+                  <View style={{ flexDirection: 'row', gap: SIZES.xs }}>
+                    <TouchableOpacity onPress={() => setOrder(moveInGroup(order, r, -1))} disabled={i === 0} hitSlop={6} style={[styles.arrow, i === 0 && { opacity: 0.25 }]} accessibilityLabel={`Move ${labelOf(r)} up`}>
+                      <MciIcon name="arrow-up" size={18} color={COLORS.primary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setOrder(moveInGroup(order, r, 1))} disabled={i === routes.length - 1} hitSlop={6} style={[styles.arrow, i === routes.length - 1 && { opacity: 0.25 }]} accessibilityLabel={`Move ${labelOf(r)} down`}>
+                      <MciIcon name="arrow-down" size={18} color={COLORS.primary} />
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      ))}
       {editing ? (
         <TouchableOpacity onPress={reset} style={{ padding: SIZES.md }}>
           <Text style={[styles.edit, { color: COLORS.textLight }]}>Reset to the standard order</Text>
@@ -245,6 +247,7 @@ const makeStyles = (COLORS: Palette) =>
     menuTitle: { fontSize: SIZES.h4, fontWeight: '800', color: COLORS.textDark },
     edit: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
     hint: { fontSize: SIZES.tiny, color: COLORS.textLight, paddingHorizontal: SIZES.lg, marginBottom: SIZES.xs },
+    groupHead: { fontSize: SIZES.tiny, fontWeight: '800', color: COLORS.textLight, textTransform: 'uppercase', letterSpacing: 0.6, paddingHorizontal: SIZES.lg, marginTop: SIZES.md, marginBottom: 2 },
     sep: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.borderLight, marginVertical: SIZES.xs, marginHorizontal: SIZES.lg },
     item: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md, paddingVertical: 11, paddingHorizontal: SIZES.lg },
     itemOn: { backgroundColor: COLORS.primary + '14' },

@@ -76,7 +76,8 @@ import CrewMatrixSc from './screens/CrewMatrixSc';
 import FleetSc from './screens/FleetSc';
 import FleetVesselSc from './screens/FleetVesselSc';
 import { OPTIONAL_TABS } from './constants/access';
-import { FEW, MENU_WIDTH, NavMenuBar, PIN_WIDTH, useNavPrefs } from './components/NavMenu';
+import { FEW, MENU_WIDTH, NavMenuBar, PIN_WIDTH, flatGrouped, useNavPrefs } from './components/NavMenu';
+import { moduleOn } from './constants/modules';
 import EnrolSc from './screens/EnrolSc';
 import { recordScanProof } from './services/signingPolicy';
 
@@ -165,6 +166,7 @@ const MENU_LABEL: Record<string, string> = {
   Maintenance: 'Maintenance (PMS)',
   Spares: 'Spare parts',
   HoursOfRest: 'Hours of rest',
+  CrewMatrix: 'Crew & matrix',
   Reports: 'Reports',
   Settings: 'Settings',
 };
@@ -184,10 +186,13 @@ function MainTabs() {
   const crowded = screenW / tabOrder.length < 72;
   const SHORT: Record<string, string> = { Dashboard: 'Home', Equipment: 'Equip', Certificates: 'Certs' };
   // Past FEW screens the tab bar gives way to the menu, in the person's own order.
-  const available = useMemo(() => tabOrder, [tabOrder.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The menu also lists screens that are not tabs — the crew matrix, under Crew.
+  const menuExtras = moduleOn('crewCerts') ? ['CrewMatrix'] : [];
+  const available = useMemo(() => [...tabOrder, ...menuExtras], [tabOrder.join('|'), menuExtras.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
   const navPrefs = useNavPrefs(available);
   const many = tabOrder.length > FEW;
-  const order = many ? navPrefs.order : tabOrder;
+  // Swipes follow the menu's grouped order, tabs only.
+  const order = many ? flatGrouped(navPrefs.order).filter((r) => tabOrder.includes(r)) : tabOrder;
   const docked = Platform.OS === 'web' && many && navPrefs.pinned && screenW >= PIN_WIDTH;
   const orderRef = useRef(order);
   orderRef.current = order;
@@ -267,7 +272,7 @@ function MainTabs() {
                   <NavMenuBar
                     {...p}
                     {...navPrefs}
-                    icons={TAB_ICONS}
+                    icons={{ ...TAB_ICONS, CrewMatrix: 'account-group' }}
                     labelOf={(r) => MENU_LABEL[r] ?? r}
                   />
                 )

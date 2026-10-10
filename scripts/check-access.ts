@@ -26,5 +26,16 @@ import { applyOrder, move } from '../utils/navOrder';
   ok(move(['A', 'B', 'C'], 'C', -1).join() === 'A,C,B' && move(['A', 'B'], 'A', -1).join() === 'A,B', 'menu: ↑ swaps, top stays top');
 }
 
+// Menu groups (utils/navOrder)
+import { flatGrouped, grouped, moveInGroup } from '../utils/navOrder';
+{
+  const order = ['Settings', 'HoursOfRest', 'Documents', 'Dashboard', 'CrewMatrix', 'Equipment', 'Certificates'];
+  ok(grouped(order).map((g) => g.group.key).join() === 'ops,crew,docs,system', 'groups in fixed order: inspections, crew, documents, settings last');
+  ok(flatGrouped(order).join() === 'Dashboard,Equipment,HoursOfRest,CrewMatrix,Documents,Certificates,Settings', 'flat order keeps the person\'s order inside each group');
+  const up = moveInGroup(order, 'CrewMatrix', -1);
+  ok(flatGrouped(up).slice(2, 4).join() === 'CrewMatrix,HoursOfRest', '↑ moves within its group');
+  ok(moveInGroup(order, 'Dashboard', -1).join() === order.join(), 'top of a group stays there (no jumping groups)');
+}
+
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);
