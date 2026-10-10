@@ -15,6 +15,7 @@ import { Machine, PmsDone, PmsJob } from '../types/pms';
 import { SpareMove, SparePart } from '../types/spares';
 import { DocAck, IsmDoc } from '../types/docs';
 import { Permit, RiskAssessment } from '../types/permits';
+import { FuelBunker, FuelReading, FuelTank, FuelTransfer } from '../types/fuel';
 import { ChecklistTemplate } from '../constants/checklists';
 import { CategoryMeta, setVesselCategories } from '../constants/categories';
 import { CATEGORIES, CATEGORY_MAP } from '../constants/categories';
@@ -80,6 +81,12 @@ interface DataContextType {
   risks: RiskAssessment[];
   savePermit: (p: Permit) => Promise<void>;
   saveRisk: (r: RiskAssessment) => Promise<void>;
+  /** Fuel — tanks (live), soundings, bunkerings, transfers. */
+  fuelTanks: FuelTank[];
+  fuelReadings: FuelReading[];
+  fuelBunkers: FuelBunker[];
+  fuelTransfers: FuelTransfer[];
+  saveFuel: (kind: 'tank' | 'reading' | 'bunker' | 'transfer', row: any) => Promise<void>;
   /** The vessel's own checklists; they replace the built-in for their category. */
   templates: ChecklistTemplate[];
   /** Headings this vessel invented, on top of the 23 the app ships. */
@@ -148,6 +155,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [crewPrivate, setCrewPrivate] = useState<CrewPrivate[]>([]);
   const [permits, setPermits] = useState<Permit[]>([]);
   const [risks, setRisks] = useState<RiskAssessment[]>([]);
+  const [fuelTanks, setFuelTanks] = useState<FuelTank[]>([]);
+  const [fuelReadings, setFuelReadings] = useState<FuelReading[]>([]);
+  const [fuelBunkers, setFuelBunkers] = useState<FuelBunker[]>([]);
+  const [fuelTransfers, setFuelTransfers] = useState<FuelTransfer[]>([]);
   const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
   const [categories, setCategories] = useState<CategoryMeta[]>([]);
   const [recentScans, setRecentScans] = useState<ScanEntry[]>([]);
@@ -191,6 +202,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setCrewPrivate(await storage.loadList<CrewPrivate>(storage.CREW_PRIVATE_KEY));
     setPermits((await storage.loadList<Permit>(storage.PERMITS_KEY)).filter((x) => !x.deleted));
     setRisks((await storage.loadList<RiskAssessment>(storage.RISKS_KEY)).filter((x) => !x.deleted));
+    setFuelTanks((await storage.loadList<FuelTank>(storage.FUEL_TANKS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order));
+    setFuelReadings(await storage.loadList<FuelReading>(storage.FUEL_READINGS_KEY));
+    setFuelBunkers(await storage.loadList<FuelBunker>(storage.FUEL_BUNKERS_KEY));
+    setFuelTransfers(await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY));
     setTemplates(await storage.loadTemplates());
     setSigningPolicyState((await storage.loadSigningPolicy()) ?? DEFAULT_POLICY);
     setPhotoArchiveState((await storage.loadPhotoArchive()) ?? DEFAULT_ARCHIVE);
@@ -333,6 +348,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setCrewPrivate(await storage.loadList<CrewPrivate>(storage.CREW_PRIVATE_KEY));
     setPermits((await storage.loadList<Permit>(storage.PERMITS_KEY)).filter((x) => !x.deleted));
     setRisks((await storage.loadList<RiskAssessment>(storage.RISKS_KEY)).filter((x) => !x.deleted));
+    setFuelTanks((await storage.loadList<FuelTank>(storage.FUEL_TANKS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order));
+    setFuelReadings(await storage.loadList<FuelReading>(storage.FUEL_READINGS_KEY));
+    setFuelBunkers(await storage.loadList<FuelBunker>(storage.FUEL_BUNKERS_KEY));
+    setFuelTransfers(await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY));
   }, []);
 
   const saveMachine = useCallback(async (m: Machine) => {
@@ -369,6 +388,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const savePermit = useCallback(async (x: Permit) => {
     await storage.upsertInList(storage.PERMITS_KEY, x);
+    await loadPms();
+  }, [loadPms]);
+
+  const saveFuel = useCallback(async (kind: 'tank' | 'reading' | 'bunker' | 'transfer', row: any) => {
+    const key = { tank: storage.FUEL_TANKS_KEY, reading: storage.FUEL_READINGS_KEY, bunker: storage.FUEL_BUNKERS_KEY, transfer: storage.FUEL_TRANSFERS_KEY }[kind];
+    await storage.upsertInList(key, { ...row, updatedAt: Date.now() });
     await loadPms();
   }, [loadPms]);
 
@@ -517,6 +542,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         saveCrewPrivate,
         permits,
         risks,
+        fuelTanks,
+        fuelReadings,
+        fuelBunkers,
+        fuelTransfers,
+        saveFuel,
         savePermit,
         saveRisk,
         templates,

@@ -72,6 +72,11 @@ await t(true, 'Crew member writes a risk assessment', setDoc(R(crew, 'risk_asses
 await t(false, 'Superintendent cannot write permits', setDoc(R(shore, 'permits', 'ptw2'), { id: 'ptw2' }));
 await t(true, 'Superintendent reads permits', getDoc(R(shore, 'permits', 'ptw1')));
 
+await t(true, 'Crew member records a fuel sounding', setDoc(R(crew, 'fuel_readings', 'rob_2026-10-10'), { id: 'rob_2026-10-10' }));
+await t(true, 'Officer records a bunkering', setDoc(R(officer, 'fuel_bunkers', 'b1'), { id: 'b1', litres: 5000 }));
+await t(false, 'Nobody deletes a bunkering', deleteDoc(R(master, 'fuel_bunkers', 'b1')));
+await t(false, 'Superintendent cannot write fuel records', setDoc(R(shore, 'fuel_readings', 'x'), { id: 'x' }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

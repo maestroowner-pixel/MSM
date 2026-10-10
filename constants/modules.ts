@@ -24,7 +24,7 @@
 // will follow the same way); whether the module exists at all is ours.
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -69,6 +69,8 @@ export const MODULES: Record<ModuleKey, boolean> = {
   fleet: false,
   /** Permits to work and risk assessments — the Permits tab. */
   ptw: false,
+  /** Fuel: tanks, daily soundings, bunkerings, transfers, monthly report. */
+  fuel: false,
 };
 
 export function moduleOn(key: ModuleKey): boolean {

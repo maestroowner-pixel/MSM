@@ -218,6 +218,28 @@ service cloud.firestore {
         allow create, update: if member(v);
         allow delete: if false;
       }
+      // Fuel: tanks, daily soundings, bunkerings, transfers — kept by whoever
+      // is on watch; never deleted (a wrong figure is corrected, not erased).
+      match /fuel_tanks/{id} {
+        allow read: if reader(v);
+        allow create, update: if member(v);
+        allow delete: if false;
+      }
+      match /fuel_readings/{id} {
+        allow read: if reader(v);
+        allow create, update: if member(v);
+        allow delete: if false;
+      }
+      match /fuel_bunkers/{id} {
+        allow read: if reader(v);
+        allow create, update: if member(v);
+        allow delete: if false;
+      }
+      match /fuel_transfers/{id} {
+        allow read: if reader(v);
+        allow create, update: if member(v);
+        allow delete: if false;
+      }
       // Personal details and next of kin of the crew: Officers and the Master
       // only — the crew list itself is read by every device, these are not.
       match /crew_private/{id} {

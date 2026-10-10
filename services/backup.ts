@@ -28,6 +28,7 @@ import { SpareMove, SparePart } from '../types/spares';
 import { DocAck, IsmDoc } from '../types/docs';
 import { CrewPrivate } from '../types/crew';
 import { Permit, RiskAssessment } from '../types/permits';
+import { FuelBunker, FuelReading, FuelTank, FuelTransfer } from '../types/fuel';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from '../services/storage';
 import { VesselInfo } from '../services/storage';
@@ -60,6 +61,8 @@ export interface BackupFile {
   crewPrivate?: CrewPrivate[];
   /** Permits to work and risk assessments. */
   ptw?: { permits: Permit[]; risks: RiskAssessment[] };
+  /** Fuel tanks, soundings, bunkerings, transfers. */
+  fuel?: { tanks: FuelTank[]; readings: FuelReading[]; bunkers: FuelBunker[]; transfers: FuelTransfer[] };
   files?: Record<string, string>; // basename -> base64 of the file contents
 }
 
@@ -155,6 +158,12 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   };
   const crewPrivate = await storage.loadList<CrewPrivate>(storage.CREW_PRIVATE_KEY);
   const ptw = { permits: await storage.loadList<Permit>(storage.PERMITS_KEY), risks: await storage.loadList<RiskAssessment>(storage.RISKS_KEY) };
+  const fuel = {
+    tanks: await storage.loadList<FuelTank>(storage.FUEL_TANKS_KEY),
+    readings: await storage.loadList<FuelReading>(storage.FUEL_READINGS_KEY),
+    bunkers: await storage.loadList<FuelBunker>(storage.FUEL_BUNKERS_KEY),
+    transfers: await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY),
+  };
 
   // Read each referenced binary into a basename -> base64 map.
   const files: Record<string, string> = {};
@@ -185,6 +194,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     docs,
     crewPrivate,
     ptw,
+    fuel,
     files,
   };
 
@@ -356,6 +366,12 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
   if (backup.ptw) {
     await storage.saveList(storage.PERMITS_KEY, backup.ptw.permits ?? []);
     await storage.saveList(storage.RISKS_KEY, backup.ptw.risks ?? []);
+  }
+  if (backup.fuel) {
+    await storage.saveList(storage.FUEL_TANKS_KEY, backup.fuel.tanks ?? []);
+    await storage.saveList(storage.FUEL_READINGS_KEY, backup.fuel.readings ?? []);
+    await storage.saveList(storage.FUEL_BUNKERS_KEY, backup.fuel.bunkers ?? []);
+    await storage.saveList(storage.FUEL_TRANSFERS_KEY, backup.fuel.transfers ?? []);
   }
 
   if (backup.compressor) await storage.saveCompressor(normalizeCompressorState(backup.compressor));

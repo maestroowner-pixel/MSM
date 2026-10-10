@@ -307,6 +307,16 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '⛽',
+      title: "Fuel",
+      body: [
+        "The Fuel screen keeps the yacht's diesel in litres: the day's sounding tank by tank, bunkerings, transfers between tanks, and the month. Start with two tanks (port and starboard) and rename, add or remove tanks under Tanks.",
+        "Consumption is never typed: it is yesterday's remaining on board plus what was received, minus today's. A day without a sounding has no figure; the fuel burnt over the gap is put on the next sounding (\"· 3 d\"). A figure marked ⚠ means a sounding or a bunker quantity is wrong.",
+        "+ Bunkering records port, supplier, litres, density, sulphur, BDN number and the litres into each tank, and writes the Oil Record Book Part I entry (code H) ready to copy.",
+        "Monthly report: PDF or Excel — opening ROB, received, consumed, closing ROB, the days, the bunkerings as ORB entries, transfers, and signature lines for the Chief Engineer and the Master.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Permits to work and risk assessments",
       body: [
@@ -715,6 +725,16 @@ const ru: ManualContent = {
         "Так у каждого на экране только нужное: у матроса нет плана ТО машинного отделения, у механика — сертификатов экипажа.",
         "Dashboard, Equipment и Settings включены всегда. На устройстве Мастера всегда все вкладки. Устройство, которое Мастер ещё не настраивал, показывает все вкладки — при обновлении ничего не пропадёт.",
         "Это порядок, а не замок: что устройство может менять, по-прежнему решает его роль в Accounts, и это проверяет сервер.",
+      ],
+    },
+    {
+      emoji: '⛽',
+      title: "Топливо (Fuel)",
+      body: [
+        "Экран Fuel ведёт дизель яхты в литрах: ежедневный замер по танкам, бункеровки, перекачки между танками и месяц. Начните с двух танков (левый и правый) и переименуйте, добавьте или удалите их в разделе Tanks.",
+        "Расход не вводится: это вчерашний остаток плюс полученное минус сегодняшний. У дня без замера своей цифры нет; израсходованное за пропуск относится на следующий замер («· 3 d»). Цифра с ⚠ значит, что ошибка в замере или в количестве бункеровки.",
+        "+ Bunkering записывает порт, поставщика, литры, плотность, серу, номер BDN и литры по танкам и готовит запись в Oil Record Book Part I (код H) для копирования.",
+        "Отчёт за месяц: PDF или Excel — остаток на начало, получено, израсходовано, остаток на конец, дни, бункеровки как записи ORB, перекачки и строки подписи стармеха и Мастера.",
       ],
     },
     {
@@ -1129,6 +1149,16 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '⛽',
+      title: "Combustible (Fuel)",
+      body: [
+        "La pantalla Fuel lleva el gasoil del yate en litros: la sonda diaria tanque por tanque, los suministros, los trasvases entre tanques y el mes. Empiece con dos tanques (babor y estribor) y renómbrelos, añada o quite tanques en Tanks.",
+        "El consumo no se escribe: es el remanente de ayer más lo recibido menos el de hoy. Un día sin sonda no tiene cifra; lo consumido en el hueco se carga a la siguiente sonda («· 3 d»). Una cifra con ⚠ indica un error en una sonda o en la cantidad suministrada.",
+        "+ Bunkering registra puerto, proveedor, litros, densidad, azufre, número de BDN y litros por tanque, y prepara la anotación del Oil Record Book Parte I (código H) para copiar.",
+        "Informe mensual: PDF o Excel — remanente inicial, recibido, consumido, remanente final, los días, los suministros como anotaciones ORB, trasvases y líneas de firma del Jefe de Máquinas y el Master.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Permisos de trabajo y evaluaciones de riesgo",
       body: [
@@ -1540,6 +1570,16 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '⛽',
+      title: "Паливо (Fuel)",
+      body: [
+        "Екран Fuel веде дизель яхти в літрах: щоденний замір по танках, бункерування, перекачування між танками та місяць. Почніть із двох танків (лівий і правий) і перейменуйте, додайте чи видаліть їх у розділі Tanks.",
+        "Витрата не вводиться: це вчорашній залишок плюс отримане мінус сьогоднішній. День без заміру своєї цифри не має; витрачене за пропуск відноситься на наступний замір («· 3 d»). Цифра з ⚠ означає помилку в замірі чи в кількості бункерування.",
+        "+ Bunkering записує порт, постачальника, літри, щільність, сірку, номер BDN і літри по танках та готує запис в Oil Record Book Part I (код H) для копіювання.",
+        "Звіт за місяць: PDF чи Excel — залишок на початок, отримано, витрачено, залишок на кінець, дні, бункерування як записи ORB, перекачування та рядки підпису старшого механіка й Майстра.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Дозволи на роботу та оцінка ризиків",
       body: [
@@ -1700,6 +1740,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
   { title: 'Confirmed signatures', module: 'signConfirm' },
   { title: 'ISM documents', module: 'docs' },
   { title: 'Permits to work and risk assessments', module: 'ptw' },
+  { title: 'Fuel', module: 'fuel' },
   { title: 'Fleet console (superintendent)', module: 'fleet' },
 ];
 

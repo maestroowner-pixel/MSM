@@ -5,6 +5,15 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Fuel (dark, `fuel`).** Diesel only, litres (owner's decision, 10 Oct 2026; petrol for tenders
+  later). Tanks: two to start (port, starboard), rename / capacity / add / remove. The day's sounding
+  tank by tank (signed by name); bunkerings — port, supplier, litres, density, sulphur, BDN, litres
+  per tank — written as Oil Record Book Part I code H entries; transfers between tanks. Consumption is
+  computed (ROB before + received − ROB after), gaps put on the next sounding, impossible figures
+  flagged. Month: opening / received / consumed / closing, day by day; report as PDF (jsPDF on the
+  web into the remembered folder, expo-print on phones) and Excel (Summary, Daily, Bunkering,
+  Transfers). Synced `fuel_tanks|readings|bunkers|transfers`; rules (39 emulator cases); backups;
+  `npm run check:fuel`. Menu: Inspections & maintenance. Crew list as its own menu item.
 - **Permits to work and risk assessments (dark, `ptw`).** Permits tab (menu: Documents & permits):
   hot work, enclosed space, height/overside, electrical isolation, cold work, diving — each with its
   precaution checklist (Yes / No / N/A) and maximum window. Draft → Requested → Approved → In progress

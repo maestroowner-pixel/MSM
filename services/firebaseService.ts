@@ -1212,6 +1212,10 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'ism_doc_acks', key: storage.DOC_ACKS_KEY, appendOnly: true, module: 'docs' },
   { sub: 'permits', key: storage.PERMITS_KEY, module: 'ptw' },
   { sub: 'risk_assessments', key: storage.RISKS_KEY, module: 'ptw' },
+  { sub: 'fuel_tanks', key: storage.FUEL_TANKS_KEY, module: 'fuel' },
+  { sub: 'fuel_readings', key: storage.FUEL_READINGS_KEY, module: 'fuel' },
+  { sub: 'fuel_bunkers', key: storage.FUEL_BUNKERS_KEY, module: 'fuel' },
+  { sub: 'fuel_transfers', key: storage.FUEL_TRANSFERS_KEY, module: 'fuel' },
 ];
 
 /**

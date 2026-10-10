@@ -73,6 +73,7 @@ import DocsSc from './screens/DocsSc';
 import DocSc from './screens/DocSc';
 import CrewMemberSc from './screens/CrewMemberSc';
 import PermitsSc from './screens/PermitsSc';
+import FuelSc from './screens/FuelSc';
 import PermitSc from './screens/PermitSc';
 import RiskSc from './screens/RiskSc';
 import CrewMatrixSc from './screens/CrewMatrixSc';
@@ -100,6 +101,7 @@ const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Certificates: CertificatesSc,
   Documents: DocsSc,
   Permits: PermitsSc,
+  Fuel: FuelSc,
   Maintenance: MaintenanceSc,
   HoursOfRest: HoursOfRestSc,
   Spares: SparesSc,
@@ -351,6 +353,7 @@ const linking = {
           Spares: 'spares',
           Documents: 'documents',
           Permits: 'permits',
+          Fuel: 'fuel',
           Settings: 'settings',
         },
       },
