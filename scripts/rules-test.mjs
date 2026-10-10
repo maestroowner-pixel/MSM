@@ -65,6 +65,13 @@ await t(false, 'Crew cannot write ISM documents', setDoc(R(crew, 'ism_docs', 'd2
 await t(true, 'Crew signs an ISM document', setDoc(R(crew, 'ism_doc_acks', 'a1'), { id: 'a1' }));
 await t(false, 'A document signature cannot be changed', updateDoc(R(crew, 'ism_doc_acks', 'a1'), { by: 'x' }));
 
+await t(true, 'Crew member requests a permit to work', setDoc(R(crew, 'permits', 'ptw1'), { id: 'ptw1', status: 'requested' }));
+await t(true, 'Officer approves it (update)', updateDoc(R(officer, 'permits', 'ptw1'), { status: 'approved' }));
+await t(false, 'Nobody deletes a permit', deleteDoc(R(master, 'permits', 'ptw1')));
+await t(true, 'Crew member writes a risk assessment', setDoc(R(crew, 'risk_assessments', 'ra1'), { id: 'ra1', title: 'x' }));
+await t(false, 'Superintendent cannot write permits', setDoc(R(shore, 'permits', 'ptw2'), { id: 'ptw2' }));
+await t(true, 'Superintendent reads permits', getDoc(R(shore, 'permits', 'ptw1')));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

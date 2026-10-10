@@ -72,6 +72,9 @@ import SparePartSc from './screens/SparePartSc';
 import DocsSc from './screens/DocsSc';
 import DocSc from './screens/DocSc';
 import CrewMemberSc from './screens/CrewMemberSc';
+import PermitsSc from './screens/PermitsSc';
+import PermitSc from './screens/PermitSc';
+import RiskSc from './screens/RiskSc';
 import CrewMatrixSc from './screens/CrewMatrixSc';
 import FleetSc from './screens/FleetSc';
 import FleetVesselSc from './screens/FleetVesselSc';
@@ -96,6 +99,7 @@ const TAB_ICONS: Record<string, string> = {
 const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Certificates: CertificatesSc,
   Documents: DocsSc,
+  Permits: PermitsSc,
   Maintenance: MaintenanceSc,
   HoursOfRest: HoursOfRestSc,
   Spares: SparesSc,
@@ -167,6 +171,7 @@ const MENU_LABEL: Record<string, string> = {
   Spares: 'Spare parts',
   HoursOfRest: 'Hours of rest',
   CrewMatrix: 'Crew & matrix',
+  Permits: 'Permits & risk',
   Reports: 'Reports',
   Settings: 'Settings',
 };
@@ -342,6 +347,7 @@ const linking = {
           HoursOfRest: 'rest',
           Spares: 'spares',
           Documents: 'documents',
+          Permits: 'permits',
           Settings: 'settings',
         },
       },
@@ -368,6 +374,8 @@ const linking = {
       SparePart: 'spare/:id',
       Doc: 'document/:id',
       CrewMember: 'crew/:id',
+      Permit: 'permit/:id',
+      Risk: 'risk/:id',
       CrewMatrix: 'crew-matrix',
       Fleet: 'fleet',
       FleetVessel: 'fleet/:imo',
@@ -556,6 +564,8 @@ function Root() {
         <Stack.Screen name="SparePart" component={SparePartSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Doc" component={DocSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="CrewMember" component={CrewMemberSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Permit" component={PermitSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Risk" component={RiskSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="CrewMatrix" component={CrewMatrixSc} options={webHeader('Crew matrix')} />
         <Stack.Screen name="Fleet" component={FleetSc} options={webHeader('Fleet')} />
         <Stack.Screen name="FleetVessel" component={FleetVesselSc} options={webHeader('Vessel', { screen: 'Fleet' })} />

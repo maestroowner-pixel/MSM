@@ -307,6 +307,16 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🦺',
+      title: "Permits to work and risk assessments",
+      body: [
+        "The Permits screen holds permits to work — hot work, enclosed space entry, work at height / overside, electrical isolation, cold work, diving — and the risk assessments behind them.",
+        "A permit goes Draft → Requested → Approved → In progress → Closed, each step signed. Fill in the work, place, time window (each type has a maximum), the team and every precaution (Yes / No / N/A). Enclosed space and hot work need gas readings within the limits (O₂ 20.8–21.5 %, LEL < 1 %, H₂S < 5 ppm, CO < 25 ppm). Only an Officer or the Master approves, and only when nothing blocks it; the screen lists what does.",
+        "Every permit needs a risk assessment: copy one from the vessel's library for the job and adjust it. A risk assessment rates each hazard on a 5 × 5 matrix before and after its controls; anything still High or Extreme is called out. Start the library from the six starter assessments and make them the vessel's own.",
+        "A permit past its window shows as Overdue: close it or issue a new one.",
+      ],
+    },
+    {
       emoji: '📚',
       title: "ISM documents",
       body: [
@@ -705,6 +715,16 @@ const ru: ManualContent = {
         "Так у каждого на экране только нужное: у матроса нет плана ТО машинного отделения, у механика — сертификатов экипажа.",
         "Dashboard, Equipment и Settings включены всегда. На устройстве Мастера всегда все вкладки. Устройство, которое Мастер ещё не настраивал, показывает все вкладки — при обновлении ничего не пропадёт.",
         "Это порядок, а не замок: что устройство может менять, по-прежнему решает его роль в Accounts, и это проверяет сервер.",
+      ],
+    },
+    {
+      emoji: '🦺',
+      title: "Разрешения на работу и оценка рисков",
+      body: [
+        "Экран Permits — разрешения на работу (горячие работы, вход в замкнутое пространство, работа на высоте / за бортом, электрическая изоляция, холодные работы, водолазные работы) и оценки рисков к ним.",
+        "Разрешение проходит Draft → Requested → Approved → In progress → Closed, каждый шаг подписывается. Заполните работу, место, окно времени (у каждого типа свой максимум), бригаду и все меры (Yes / No / N/A). Для замкнутых пространств и горячих работ нужны замеры газа в пределах (O₂ 20,8–21,5 %, LEL < 1 %, H₂S < 5 ppm, CO < 25 ppm). Одобряет только офицер или Мастер и только когда ничего не мешает — экран перечисляет, что именно.",
+        "Каждому разрешению нужна оценка риска: скопируйте её из библиотеки судна под работу и поправьте. В оценке каждая опасность оценивается по матрице 5 × 5 до и после мер контроля; всё, что осталось High или Extreme, выделяется. Библиотеку можно начать с шести стартовых оценок и доработать под судно.",
+        "Разрешение с истёкшим окном показывается как Overdue: закройте его или выпустите новое.",
       ],
     },
     {
@@ -1109,6 +1129,16 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🦺',
+      title: "Permisos de trabajo y evaluaciones de riesgo",
+      body: [
+        "La pantalla Permits contiene los permisos de trabajo — trabajos en caliente, entrada en espacios cerrados, trabajo en altura / por la borda, aislamiento eléctrico, trabajo en frío, buceo — y sus evaluaciones de riesgo.",
+        "Un permiso pasa por Draft → Requested → Approved → In progress → Closed, con firma en cada paso. Indique el trabajo, el lugar, la ventana horaria (cada tipo tiene un máximo), el equipo y cada precaución (Yes / No / N/A). Espacios cerrados y trabajos en caliente necesitan mediciones de gas dentro de límites (O₂ 20,8–21,5 %, LEL < 1 %, H₂S < 5 ppm, CO < 25 ppm). Solo un oficial o el Master aprueba, y solo cuando nada lo impide; la pantalla dice qué falta.",
+        "Cada permiso necesita una evaluación de riesgo: copie una de la biblioteca del buque para el trabajo y ajústela. Cada peligro se valora en una matriz 5 × 5 antes y después de los controles; lo que siga en High o Extreme se señala. Empiece la biblioteca con las seis evaluaciones iniciales y adáptelas al buque.",
+        "Un permiso fuera de su ventana aparece como Overdue: ciérrelo o emita otro.",
+      ],
+    },
+    {
       emoji: '📚',
       title: "Documentos ISM",
       body: [
@@ -1510,6 +1540,16 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🦺',
+      title: "Дозволи на роботу та оцінка ризиків",
+      body: [
+        "Екран Permits — дозволи на роботу (гарячі роботи, вхід у замкнений простір, робота на висоті / за бортом, електрична ізоляція, холодні роботи, водолазні роботи) та оцінки ризиків до них.",
+        "Дозвіл проходить Draft → Requested → Approved → In progress → Closed, кожен крок підписується. Заповніть роботу, місце, вікно часу (у кожного типу свій максимум), бригаду й усі заходи (Yes / No / N/A). Для замкнених просторів і гарячих робіт потрібні заміри газу в межах (O₂ 20,8–21,5 %, LEL < 1 %, H₂S < 5 ppm, CO < 25 ppm). Схвалює лише офіцер або Майстер і лише коли ніщо не заважає — екран перелічує, що саме.",
+        "Кожному дозволу потрібна оцінка ризику: скопіюйте її з бібліотеки судна під роботу й поправте. Кожна небезпека оцінюється за матрицею 5 × 5 до і після заходів контролю; усе, що лишилося High чи Extreme, виділяється. Бібліотеку можна почати з шести стартових оцінок і доробити під судно.",
+        "Дозвіл із простроченим вікном показується як Overdue: закрийте його або випустіть новий.",
+      ],
+    },
+    {
       emoji: '📚',
       title: "ISM-документи",
       body: [
@@ -1659,6 +1699,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
   { title: 'Spare parts', module: 'spares' },
   { title: 'Confirmed signatures', module: 'signConfirm' },
   { title: 'ISM documents', module: 'docs' },
+  { title: 'Permits to work and risk assessments', module: 'ptw' },
   { title: 'Fleet console (superintendent)', module: 'fleet' },
 ];
 

@@ -5,6 +5,18 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Permits to work and risk assessments (dark, `ptw`).** Permits tab (menu: Documents & permits):
+  hot work, enclosed space, height/overside, electrical isolation, cold work, diving — each with its
+  precaution checklist (Yes / No / N/A) and maximum window. Draft → Requested → Approved → In progress
+  → Closed / Cancelled, every step signed (SignConfirm); numbers PTW-yyyy-nnn. Approval by an Officer
+  or the Master only, blocked until every precaution is answered and none is No, the window fits, gas
+  is within limits (O₂ 20.8–21.5 %, LEL < 1 %, H₂S < 5 ppm, CO < 25 ppm) and a risk assessment is
+  attached; overdue permits flagged. Risk assessments: hazards on a 5 × 5 matrix before and after
+  controls, High / Extreme residuals called out, signed approval cleared by any change; a vessel
+  library (six starter assessments) copied per job. Synced `permits`, `risk_assessments`; rules (35
+  emulator cases); backups; `npm run check:permits` (17).
+- Documents: upload several at once (number and title from file names, matches become new
+  revisions, PDF text indexed). Menu grouped by purpose; crew matrix in the menu.
 - **Documents (dark, `docs`): readable, searchable, sortable.** A PDF or image is shown on the
   page (web: the browser's viewer in a frame; phones keep "Open"). On upload from a computer the
   PDF's text is read (pdf.js from cdnjs, utils/pdfText) and stored with the document (≤ 60 000

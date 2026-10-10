@@ -206,6 +206,18 @@ service cloud.firestore {
         allow create, update: if isAdmin(v) || shore(v);
         allow delete: if false;
       }
+      // Permits to work and risk assessments: anyone aboard requests and edits
+      // (the app enforces who approves, and signs each step); never deleted.
+      match /permits/{id} {
+        allow read: if reader(v);
+        allow create, update: if member(v);
+        allow delete: if false;
+      }
+      match /risk_assessments/{id} {
+        allow read: if reader(v);
+        allow create, update: if member(v);
+        allow delete: if false;
+      }
       // Personal details and next of kin of the crew: Officers and the Master
       // only — the crew list itself is read by every device, these are not.
       match /crew_private/{id} {

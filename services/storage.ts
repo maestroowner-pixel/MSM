@@ -28,6 +28,8 @@ export const SPARES_KEY = `${PREFIX}spares`;
 export const SPARE_MOVES_KEY = `${PREFIX}spare_moves`;
 export const DOCS_KEY = `${PREFIX}ism_docs`;
 export const CREW_PRIVATE_KEY = `${PREFIX}crew_private`;
+export const PERMITS_KEY = `${PREFIX}permits`;
+export const RISKS_KEY = `${PREFIX}risk_assessments`;
 export const DOC_ACKS_KEY = `${PREFIX}ism_doc_acks`;
 /** The vessel's "scan before you sign" rule, as this device last knew it. */
 export const SIGNING_POLICY_KEY = `${PREFIX}signing_policy`;
@@ -632,6 +634,8 @@ export async function resetAllData(): Promise<void> {
     SPARE_MOVES_KEY,
     DOCS_KEY,
     CREW_PRIVATE_KEY,
+    PERMITS_KEY,
+    RISKS_KEY,
     DOC_ACKS_KEY,
     'msm:docfiles_pending',
     VESSEL_KEY,

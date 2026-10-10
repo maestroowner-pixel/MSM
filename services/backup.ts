@@ -27,6 +27,7 @@ import { Machine, PmsDone, PmsJob } from '../types/pms';
 import { SpareMove, SparePart } from '../types/spares';
 import { DocAck, IsmDoc } from '../types/docs';
 import { CrewPrivate } from '../types/crew';
+import { Permit, RiskAssessment } from '../types/permits';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from '../services/storage';
 import { VesselInfo } from '../services/storage';
@@ -57,6 +58,8 @@ export interface BackupFile {
   docs?: { docs: IsmDoc[]; acks: DocAck[] };
   /** Crew personal details and next of kin (the Master's backup). */
   crewPrivate?: CrewPrivate[];
+  /** Permits to work and risk assessments. */
+  ptw?: { permits: Permit[]; risks: RiskAssessment[] };
   files?: Record<string, string>; // basename -> base64 of the file contents
 }
 
@@ -151,6 +154,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     acks: await storage.loadList<DocAck>(storage.DOC_ACKS_KEY),
   };
   const crewPrivate = await storage.loadList<CrewPrivate>(storage.CREW_PRIVATE_KEY);
+  const ptw = { permits: await storage.loadList<Permit>(storage.PERMITS_KEY), risks: await storage.loadList<RiskAssessment>(storage.RISKS_KEY) };
 
   // Read each referenced binary into a basename -> base64 map.
   const files: Record<string, string> = {};
@@ -180,6 +184,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     spares,
     docs,
     crewPrivate,
+    ptw,
     files,
   };
 
@@ -347,6 +352,10 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
   }
   if (backup.crewPrivate) {
     await storage.saveList(storage.CREW_PRIVATE_KEY, backup.crewPrivate);
+  }
+  if (backup.ptw) {
+    await storage.saveList(storage.PERMITS_KEY, backup.ptw.permits ?? []);
+    await storage.saveList(storage.RISKS_KEY, backup.ptw.risks ?? []);
   }
 
   if (backup.compressor) await storage.saveCompressor(normalizeCompressorState(backup.compressor));

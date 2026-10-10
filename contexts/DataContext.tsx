@@ -14,6 +14,7 @@ import { RestDay } from '../types/rest';
 import { Machine, PmsDone, PmsJob } from '../types/pms';
 import { SpareMove, SparePart } from '../types/spares';
 import { DocAck, IsmDoc } from '../types/docs';
+import { Permit, RiskAssessment } from '../types/permits';
 import { ChecklistTemplate } from '../constants/checklists';
 import { CategoryMeta, setVesselCategories } from '../constants/categories';
 import { CATEGORIES, CATEGORY_MAP } from '../constants/categories';
@@ -74,6 +75,11 @@ interface DataContextType {
   /** Crew personal details and next of kin — present on Officers' and the Master's devices only. */
   crewPrivate: CrewPrivate[];
   saveCrewPrivate: (p: CrewPrivate) => Promise<void>;
+  /** Permits to work and risk assessments — live only. */
+  permits: Permit[];
+  risks: RiskAssessment[];
+  savePermit: (p: Permit) => Promise<void>;
+  saveRisk: (r: RiskAssessment) => Promise<void>;
   /** The vessel's own checklists; they replace the built-in for their category. */
   templates: ChecklistTemplate[];
   /** Headings this vessel invented, on top of the 23 the app ships. */
@@ -140,6 +146,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [docs, setDocs] = useState<IsmDoc[]>([]);
   const [docAcks, setDocAcks] = useState<DocAck[]>([]);
   const [crewPrivate, setCrewPrivate] = useState<CrewPrivate[]>([]);
+  const [permits, setPermits] = useState<Permit[]>([]);
+  const [risks, setRisks] = useState<RiskAssessment[]>([]);
   const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
   const [categories, setCategories] = useState<CategoryMeta[]>([]);
   const [recentScans, setRecentScans] = useState<ScanEntry[]>([]);
@@ -181,6 +189,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setDocs((await storage.loadList<IsmDoc>(storage.DOCS_KEY)).filter((d) => !d.deleted));
     setDocAcks(await storage.loadList<DocAck>(storage.DOC_ACKS_KEY));
     setCrewPrivate(await storage.loadList<CrewPrivate>(storage.CREW_PRIVATE_KEY));
+    setPermits((await storage.loadList<Permit>(storage.PERMITS_KEY)).filter((x) => !x.deleted));
+    setRisks((await storage.loadList<RiskAssessment>(storage.RISKS_KEY)).filter((x) => !x.deleted));
     setTemplates(await storage.loadTemplates());
     setSigningPolicyState((await storage.loadSigningPolicy()) ?? DEFAULT_POLICY);
     setPhotoArchiveState((await storage.loadPhotoArchive()) ?? DEFAULT_ARCHIVE);
@@ -321,6 +331,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setDocs((await storage.loadList<IsmDoc>(storage.DOCS_KEY)).filter((d) => !d.deleted));
     setDocAcks(await storage.loadList<DocAck>(storage.DOC_ACKS_KEY));
     setCrewPrivate(await storage.loadList<CrewPrivate>(storage.CREW_PRIVATE_KEY));
+    setPermits((await storage.loadList<Permit>(storage.PERMITS_KEY)).filter((x) => !x.deleted));
+    setRisks((await storage.loadList<RiskAssessment>(storage.RISKS_KEY)).filter((x) => !x.deleted));
   }, []);
 
   const saveMachine = useCallback(async (m: Machine) => {
@@ -352,6 +364,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const saveCrewPrivate = useCallback(async (p: CrewPrivate) => {
     await storage.upsertInList(storage.CREW_PRIVATE_KEY, p);
+    await loadPms();
+  }, [loadPms]);
+
+  const savePermit = useCallback(async (x: Permit) => {
+    await storage.upsertInList(storage.PERMITS_KEY, x);
+    await loadPms();
+  }, [loadPms]);
+
+  const saveRisk = useCallback(async (x: RiskAssessment) => {
+    await storage.upsertInList(storage.RISKS_KEY, x);
     await loadPms();
   }, [loadPms]);
 
@@ -493,6 +515,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         addDocAck,
         crewPrivate,
         saveCrewPrivate,
+        permits,
+        risks,
+        savePermit,
+        saveRisk,
         templates,
         categories,
         recentScans,

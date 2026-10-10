@@ -1210,6 +1210,8 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'spare_moves', key: storage.SPARE_MOVES_KEY, appendOnly: true, module: 'spares' },
   { sub: 'ism_docs', key: storage.DOCS_KEY, module: 'docs' },
   { sub: 'ism_doc_acks', key: storage.DOC_ACKS_KEY, appendOnly: true, module: 'docs' },
+  { sub: 'permits', key: storage.PERMITS_KEY, module: 'ptw' },
+  { sub: 'risk_assessments', key: storage.RISKS_KEY, module: 'ptw' },
 ];
 
 /**
