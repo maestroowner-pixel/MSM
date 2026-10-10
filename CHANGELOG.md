@@ -3,6 +3,14 @@
 Kept by hand. Each entry says what changed and, where it matters, **why** — the reasoning is
 the part that stops the next person undoing it.
 
+## 2.59 (20592) — 10 Oct 2026
+
+- **Held back (user):** Crew list / certificate matrix and Hours of rest join the other hidden
+  modules — 2.59 ships what 2.58 has plus fixes. Only `lifting` is on.
+- Studio renamed **Kuka Soft** (`APP_CONFIG.company`; legal texts, Settings footer, manual).
+- Settings → Reports folder only shows when a report that uses it is on.
+- Build 20592 (20591 was built with crew + rest on — not to be uploaded).
+
 ## Unreleased
 
 - **Dashboard reminder: "The Master PIN is still 0000"** (components/MasterPinBanner) — Master only,

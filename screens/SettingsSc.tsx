@@ -587,7 +587,9 @@ export default function SettingsSc() {
           </TouchableOpacity>
         </Card>
       ) : null}
-      {canRememberFolder() ? (
+      {/* Only the reports that save into a folder (rest, crew list, fuel, garbage,
+          gangway) use it — none of them is on, nothing to choose. */}
+      {canRememberFolder() && (['rest', 'crewCerts', 'fuel', 'garbage', 'security'] as const).some((m) => moduleOn(m)) ? (
         <Card>
           <Label>Reports folder</Label>
           {/* Where PDF reports are saved on this computer (utils/webSave). */}

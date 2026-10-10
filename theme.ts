@@ -171,7 +171,7 @@ export const APP_CONFIG = {
   // carries it into the two native projects.
   version: String(require('./app.json').expo.version),
   developer: 'Mykhaylo Osypov',
-  company: 'KukaLab',
+  company: 'Kuka Soft',
   year: '2026',
   email: 'kukalab@icloud.com',
   website: 'ismpilot.com',
