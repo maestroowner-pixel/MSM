@@ -78,7 +78,10 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { signingPolicy } = useData();
-  const required = moduleOn('signConfirm') && !!signingPolicy?.confirmSignature;
+  // Every signature is confirmed — PIN, fingerprint or by hand (10 Oct 2026: "a
+  // signature with nothing asked is not acceptable"). The old per-vessel switch
+  // (signingPolicy.confirmSignature) no longer turns it off.
+  const required = moduleOn('signConfirm');
 
   const [req, setReq] = useState<SignRequest | null>(null);
   const [step, setStep] = useState<Step>('pin');
@@ -191,7 +194,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
       : step === 'set2'
       ? 'Type the same PIN again.'
       : step === 'admin'
-      ? 'Setting a first signing PIN needs the Master. Or sign by hand / with the fingerprint for now.'
+      ? `Setting a first signing PIN needs the Master.${canDraw || bio ? ` Or sign ${[canDraw ? 'by hand' : null, bio ? 'with your fingerprint' : null].filter(Boolean).join(' or ')} for now.` : ''}`
       : step === 'draw'
       ? 'With a finger or a stylus, as on paper. It goes into the record with your name.'
       : step === 'pin'

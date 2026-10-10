@@ -107,12 +107,13 @@ export function closeDefect(
   insp: Inspection,
   by: string,
   note?: string,
-  at: number = Date.now()
+  at: number = Date.now(),
+  proof?: import('./signature').SignProof
 ): Inspection {
   if (!insp.defect) return insp;
   return {
     ...insp,
-    defect: { ...insp.defect, open: false, closedAt: at, closedBy: by, closedNote: note?.trim() || undefined },
+    defect: { ...insp.defect, open: false, closedAt: at, closedBy: by, closedNote: note?.trim() || undefined, ...(proof ? { closedWith: proof } : {}) },
     updatedAt: at,
   };
 }

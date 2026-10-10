@@ -168,6 +168,8 @@ export interface InspectionDefect {
   /** Rectification, when it happens — stamped and signed like everything else. */
   closedAt?: number;
   closedBy?: string;
+  /** How the rectification was signed (PIN / fingerprint / by hand). */
+  closedWith?: import('../services/signature').SignProof;
   closedNote?: string;
 }
 

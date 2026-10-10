@@ -767,25 +767,15 @@ export default function SettingsSc() {
         {moduleOn('signConfirm') ? (
           <>
             {/* Fingerprint, hand-drawn signature or the signer's own PIN on every
-                signature (components/SignConfirm). Off by default. Never a face. */}
+                signature (components/SignConfirm). Always on with the module. Never a face. */}
             <View style={styles.toggleRow}>
               <IconChip name="fingerprint" size={18} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.linkTitle}>Confirm every signature</Text>
+                <Text style={styles.linkTitle}>Signatures are confirmed</Text>
                 <Text style={styles.linkSub}>
-                  {isMaster
-                    ? 'Each signature is confirmed by the signer: their own signing PIN, their fingerprint on their own device, or their signature drawn on the screen.'
-                    : signingPolicy.confirmSignature
-                      ? 'On for this vessel — confirm with your signing PIN, fingerprint or by hand. Set by the Master.'
-                      : 'Off for this vessel. Set by the Master.'}
+                  Every signature asks the signer for their own signing PIN, their fingerprint on their own device, or their signature drawn on the screen. A name alone never signs.
                 </Text>
               </View>
-              <Switch
-                value={!!signingPolicy.confirmSignature}
-                disabled={!isMaster}
-                onValueChange={(v) => void changeSigningPolicy({ confirmSignature: v })}
-                trackColor={{ true: COLORS.primary, false: COLORS.border }}
-              />
             </View>
             {/* Setting or changing a PIN (components/PinChange): the Master PIN opens
                 a new one, the owner's own PIN or the Master PIN a change. */}

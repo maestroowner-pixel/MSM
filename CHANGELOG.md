@@ -13,6 +13,7 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Every signature is confirmed** (PIN / fingerprint / by hand) whenever `signConfirm` is on — the Settings switch is gone (an info line instead). Fuel soundings, bunkerings and transfers and defect rectifications now go through it too and keep `signedWith` / `closedWith`.
 - **Month picker in the title** (components/MonthPicker): "October ▾" beside the ?, a list of the months with records (+ the current), newest first, "December 2025" for another year, with counts. Replaces the arrow rows on the permits archive, Garbage and Fuel. Dropdown keeps its list on screen at the right edge.
 - **Garbage: one entry, several categories.** `items` [{category, volume}] — tap every category in the operation, an amount each; one line on screen, in PDF and Excel; totals per category; sea-discharge rules checked per category (named). Older single-category entries read as one item (`entryItems`).
 - **Permit PDF with the toolbox meeting report** (services/permitReport.ts → utils/permitPdf.web.ts / HTML print): the work, precautions with answers (NO in red), gas, isolations, RA hazards with residual risk, toolbox report (held, place, job, attendees with attendance and a column to sign by hand, topics ticked, raised/agreed), signatures incl. closing time and hand-drawn signatures as images. PDF button in the permit header. Shared `utils/sigImage`.

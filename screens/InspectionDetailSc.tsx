@@ -33,6 +33,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { BackButton, Card, CategoryBadge, Label } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { SignerPicker } from '../components/SignerPicker';
+import { useSignConfirm } from '../components/SignConfirm';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
@@ -96,6 +97,7 @@ export default function InspectionDetailSc() {
   const breakdown = inspections.resultBreakdown(insp);
   const failed = insp.outcome === 'fail';
 
+  const confirmSign = useSignConfirm();
   const rectify = (signerId: string) => {
     const signer = activeCrew.find((c) => c.id === signerId);
     if (!signer) return;
@@ -113,9 +115,15 @@ export default function InspectionDetailSc() {
         { text: 'Cancel', style: 'cancel', onPress: () => { rectifying.current = false; } },
         {
           text: 'Confirm',
-          onPress: () => {
+          onPress: async () => {
+            // The rectification is a signature like any other: PIN, fingerprint or by hand.
+            const sig = await confirmSign({ personKey: signer.id, name: signer.name, ownDevice: false, what: 'Defect rectified' });
+            if (!sig) {
+              rectifying.current = false;
+              return;
+            }
             void saveInspection(
-              inspections.closeDefect(insp, signatureLine(signer.name, signer.rank), closeNote)
+              inspections.closeDefect(insp, signatureLine(signer.name, signer.rank), closeNote, Date.now(), sig.proof)
             );
             setClosing(false);
             setCloseNote('');

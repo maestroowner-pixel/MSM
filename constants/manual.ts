@@ -396,7 +396,7 @@ const en: ManualContent = {
       emoji: '✍️',
       title: "Confirmed signatures",
       body: [
-        "With Settings → Confirm every signature on (Master), each signature — an inspection, a maintenance job, a stores movement — is confirmed by the signer in one of three ways: their own signing PIN, their fingerprint, or their signature drawn on the screen with a finger or a stylus (on a phone or a tablet). Face ID is not used: a face is not a signature.",
+        "Every signature — an inspection, a defect rectified, a maintenance job, a stores movement, a fuel sounding, a garbage entry — is confirmed by the signer in one of three ways: their own signing PIN, their fingerprint, or their signature drawn on the screen with a finger or a stylus (on a phone or a tablet). Face ID is not used: a face is not a signature.",
         "The fingerprint is offered only when the device signs as its own account and has a fingerprint reader. A phone knows an enrolled finger touched it, not whose — so on a shared tablet everyone signs with their PIN or by hand. Signing PINs are under a lock in the Crew matrix (🔒 by each name). The Master PIN is 0000 until the Master changes it there — change it first. A person without a PIN gets one only with the Master PIN; once it is set, it is changed with the owner's own PIN or the Master PIN. A first signature without a PIN asks for the Master PIN too.",
         "The first time you sign on a device you choose a signing PIN of 4–6 digits. It is not your account PIN, it is stored only as a hash, and nobody can read it — the Master included. Five wrong tries lock it for five minutes. Forgotten? The Master resets it in Settings, and you choose a new one.",
         "The report shows how each signature was confirmed (PIN or biometric) beside the name.",
@@ -863,7 +863,7 @@ const ru: ManualContent = {
       emoji: '✍️',
       title: "Подтверждённые подписи",
       body: [
-        "Если Мастер включил Settings → Confirm every signature, каждая подпись — проверка, работа ТО, движение склада — подтверждается одним из трёх способов: своим PIN подписи, отпечатком пальца или подписью рукой на экране — пальцем или стилусом (на телефоне или планшете). Face ID не используется: лицо — не подпись.",
+        "Каждая подпись — проверка, закрытие дефекта, работа ТО, движение склада, замер топлива, запись о мусоре — подтверждается одним из трёх способов: своим PIN подписи, отпечатком пальца или подписью рукой на экране — пальцем или стилусом (на телефоне или планшете). Face ID не используется: лицо — не подпись.",
         "Отпечаток доступен, только когда устройство подписывает как свой аккаунт и у него есть сканер отпечатка. Телефон знает, что приложен сохранённый палец, но не чей — поэтому на общем планшете каждый подписывает своим PIN или рукой. PIN подписи — под замком в Crew matrix (🔒 у каждого имени). Master PIN по умолчанию 0000, пока Мастер его там не сменит — смените его первым делом. Человеку без PIN его задают только с Master PIN; когда PIN уже есть, его меняют своим PIN или Master PIN. Первая подпись без PIN тоже спрашивает Master PIN.",
         "При первой подписи на устройстве вы выбираете PIN подписи из 4–6 цифр. Это не PIN аккаунта; он хранится только в виде хеша, и прочитать его не может никто, включая Мастера. Пять неверных попыток блокируют его на пять минут. Забыли — Мастер сбрасывает его в Settings, и вы выбираете новый.",
         "В отчёте рядом с именем указано, чем подтверждена подпись (PIN или биометрия).",
@@ -1330,7 +1330,7 @@ const es: ManualContent = {
       emoji: '✍️',
       title: "Firmas confirmadas",
       body: [
-        "Con Settings → Confirm every signature activado (Master), cada firma — una inspección, un trabajo de mantenimiento, un movimiento del pañol — la confirma el firmante de una de tres maneras: su propio PIN de firma, su huella, o su firma trazada en la pantalla con el dedo o un lápiz (en un teléfono o una tableta). Face ID no se usa: una cara no es una firma.",
+        "Cada firma — una inspección, un defecto subsanado, un trabajo de mantenimiento, un movimiento del pañol, un sondeo, una anotación de basuras — la confirma el firmante de una de tres maneras: su propio PIN de firma, su huella, o su firma trazada en la pantalla con el dedo o un lápiz (en un teléfono o una tableta). Face ID no se usa: una cara no es una firma.",
         "La huella solo se ofrece cuando el dispositivo firma como su propia cuenta y tiene lector de huellas. Un teléfono sabe que lo tocó un dedo registrado, no de quién: en una tableta compartida cada uno firma con su PIN o a mano. Los PIN de firma están bajo llave en Crew matrix (🔒 junto a cada nombre). El Master PIN es 0000 hasta que el Master lo cambie allí — cámbielo lo primero. Quien no tiene PIN lo recibe solo con el Master PIN; una vez fijado, se cambia con el propio PIN o con el Master PIN. Una primera firma sin PIN también pide el Master PIN.",
         "La primera vez que firma en un dispositivo elige un PIN de firma de 4–6 cifras. No es el PIN de la cuenta, se guarda solo como hash y nadie puede leerlo, ni el Master. Cinco intentos fallidos lo bloquean cinco minutos. ¿Olvidado? El Master lo restablece en Settings y usted elige uno nuevo.",
         "El informe indica junto al nombre cómo se confirmó cada firma (PIN o biometría).",
@@ -1797,7 +1797,7 @@ const uk: ManualContent = {
       emoji: '✍️',
       title: "Підтверджені підписи",
       body: [
-        "Якщо Майстер увімкнув Settings → Confirm every signature, кожен підпис — перевірка, робота ТО, рух складу — підтверджується одним із трьох способів: своїм PIN підпису, відбитком пальця або підписом рукою на екрані — пальцем чи стилусом (на телефоні або планшеті). Face ID не використовується: обличчя — не підпис.",
+        "Кожен підпис — перевірка, закриття дефекту, робота ТО, рух складу, замір палива, запис про сміття — підтверджується одним із трьох способів: своїм PIN підпису, відбитком пальця або підписом рукою на екрані — пальцем чи стилусом (на телефоні або планшеті). Face ID не використовується: обличчя — не підпис.",
         "Відбиток доступний, лише коли пристрій підписує як свій акаунт і має сканер відбитка. Телефон знає, що прикладено збережений палець, але не чий — тому на спільному планшеті кожен підписує своїм PIN або рукою. PIN підпису — під замком у Crew matrix (🔒 біля кожного імені). Master PIN за замовчуванням 0000, доки Майстер його там не змінить — змініть його насамперед. Людині без PIN його задають лише з Master PIN; коли PIN уже є, його змінюють своїм PIN або Master PIN. Перший підпис без PIN теж питає Master PIN.",
         "Під час першого підпису на пристрої ви обираєте PIN підпису з 4–6 цифр. Це не PIN акаунта; він зберігається лише як хеш, і прочитати його не може ніхто, зокрема Майстер. П'ять невдалих спроб блокують його на п'ять хвилин. Забули — Майстер скидає його в Settings, і ви обираєте новий.",
         "У звіті поруч з ім'ям зазначено, чим підтверджено підпис (PIN чи біометрія).",

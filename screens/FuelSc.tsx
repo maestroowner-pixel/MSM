@@ -12,6 +12,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { FuelDaily } from '../components/FuelDaily';
 import { MonthPicker } from '../components/MonthPicker';
+import { useSignConfirm } from '../components/SignConfirm';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { Card, Empty, Label, Screen, ScreenTitle } from '../components/ui';
@@ -60,7 +61,14 @@ export default function FuelSc() {
   const [rob, setRob] = useState<Record<string, string>>({});
   const robValue = (t: FuelTank) => rob[t.id] ?? (todays?.tanks[t.id] != null ? String(todays.tanks[t.id]) : '');
 
-  const by = () => (signer ? { by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}) } : null);
+  // Each record is signed: the name, and the PIN / fingerprint / hand that confirmed it.
+  const confirmSign = useSignConfirm();
+  const by = async (what: string) => {
+    if (!signer) return null;
+    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what });
+    if (!sig) return undefined;
+    return { by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), ...(sig.proof ? { signedWith: sig.proof } : {}) };
+  };
   const needSigner = () => {
     Alert.alert('Who is recording?', 'Choose your name below.');
     return null;
@@ -71,14 +79,15 @@ export default function FuelSc() {
   };
 
   const saveSounding = async () => {
-    const who = by() ?? needSigner();
-    if (!who) return;
+    if (!signer) return needSigner();
     const vals: Record<string, number> = {};
     for (const t of tanks) {
       const v = num(robValue(t));
       if (v == null) return Alert.alert('Sounding', `Enter the litres in ${t.name}.`);
       vals[t.id] = v;
     }
+    const who = await by('Fuel sounding');
+    if (!who) return;
     const r: FuelReading = { id: `rob_${today}`, date: today, time: hhmm(), tanks: vals, ...who, updatedAt: Date.now() };
     await saveFuel('reading', r);
     setRob({});
@@ -88,8 +97,7 @@ export default function FuelSc() {
   // ---- bunkering form ----
   const [bk, setBk] = useState({ port: '', supplier: '', litres: '', density: '', sulphur: '', bdn: '', note: '', into: {} as Record<string, string> });
   const saveBunker = async () => {
-    const who = by() ?? needSigner();
-    if (!who) return;
+    if (!signer) return needSigner();
     const litres = num(bk.litres);
     if (!bk.port.trim() || !litres) return Alert.alert('Bunkering', 'Port and litres received are needed.');
     const into: Record<string, number> = {};
@@ -100,6 +108,8 @@ export default function FuelSc() {
     if (!Object.keys(into).length && tanks.length === 1) into[tanks[0].id] = litres;
     const split = Object.values(into).reduce((a, b) => a + b, 0);
     if (Object.keys(into).length && Math.abs(split - litres) > 1) return Alert.alert('Bunkering', `The tanks add up to ${split} L, not ${litres} L.`);
+    const who = await by(`Bunkering — ${litres} L at ${bk.port.trim()}`);
+    if (!who) return;
     const b: FuelBunker = {
       id: uid('bunk'), date: today, time: hhmm(), port: bk.port.trim(), litres, into, ...who, updatedAt: Date.now(),
       ...(bk.supplier.trim() ? { supplier: bk.supplier.trim() } : {}),
@@ -117,10 +127,11 @@ export default function FuelSc() {
   // ---- transfer form ----
   const [tf, setTf] = useState({ from: '', to: '', litres: '' });
   const saveTransfer = async () => {
-    const who = by() ?? needSigner();
-    if (!who) return;
+    if (!signer) return needSigner();
     const litres = num(tf.litres);
     if (!tf.from || !tf.to || tf.from === tf.to || !litres) return Alert.alert('Transfer', 'Choose two different tanks and the litres moved.');
+    const who = await by(`Fuel transfer — ${litres} L`);
+    if (!who) return;
     const t: FuelTransfer = { id: uid('xfer'), date: today, time: hhmm(), fromTankId: tf.from, toTankId: tf.to, litres, ...who, updatedAt: Date.now() };
     await saveFuel('transfer', t);
     setTf({ from: '', to: '', litres: '' });

@@ -11,6 +11,8 @@
 // bunkerings and transfers are entries like those in the Oil Record Book.
 // ===================================
 
+import type { SignProof } from '../services/signature';
+
 export interface FuelTank {
   id: string;
   name: string;
@@ -33,6 +35,8 @@ export interface FuelReading {
   tanks: Record<string, number>;
   by: string;
   byRank?: string;
+  /** How it was signed (PIN / fingerprint / by hand). */
+  signedWith?: SignProof;
   note?: string;
   updatedAt: number;
 }
@@ -56,6 +60,8 @@ export interface FuelBunker {
   into: Record<string, number>;
   by: string;
   byRank?: string;
+  /** How it was signed (PIN / fingerprint / by hand). */
+  signedWith?: SignProof;
   note?: string;
   updatedAt: number;
 }
@@ -69,6 +75,8 @@ export interface FuelTransfer {
   litres: number;
   by: string;
   byRank?: string;
+  /** How it was signed (PIN / fingerprint / by hand). */
+  signedWith?: SignProof;
   note?: string;
   updatedAt: number;
 }
@@ -85,6 +93,8 @@ export interface FuelDailySent {
   sentAt: number;
   by: string;
   byRank?: string;
+  /** How it was signed (PIN / fingerprint / by hand). */
+  signedWith?: SignProof;
   /** Addressees for an e-mail. */
   to?: string;
   /** How it left: the mail app opened, the share sheet, or copied. */
