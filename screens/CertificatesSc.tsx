@@ -7,7 +7,7 @@
 // ===================================
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, SectionList, TouchableOpacity, TextInput, Image, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, FlatList, SectionList, TouchableOpacity, TextInput, useWindowDimensions } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Screen, StatusPill, Empty, statusColor } from '../components/ui'
 import { HelpButton } from '../components/HelpButton';
@@ -108,10 +108,6 @@ export default function CertificatesSc() {
 
   return (
     <Screen contentStyle={{ paddingBottom: 0 }}>
-      {/* Faint centred ISMpilot shield behind the list. */}
-      <View pointerEvents="none" style={styles.watermark}>
-        <Image source={require('../assets/ismpilot-mark.png')} style={styles.watermarkImg} resizeMode="contain" />
-      </View>
 
       <View style={styles.head}>
         <View style={{ flex: 1 }}>
@@ -257,8 +253,6 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   tabTextOn: { color: COLORS.textWhite },
   personHead: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginTop: SIZES.sm, marginBottom: SIZES.xs },
   personName: { flex: 1, fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark },
-  watermark: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  watermarkImg: { width: 240, height: 243, opacity: 0.08 },
   head: { flexDirection: 'row', alignItems: 'center', marginBottom: SIZES.md, gap: SIZES.sm },
   title: { fontSize: SIZES.h2, fontWeight: '700', color: COLORS.textDark },
   sub: { fontSize: SIZES.small, color: COLORS.textLight },
