@@ -5,6 +5,15 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **SOPEP (dark, `sopep`).** Oil-spill locker list (typical yacht starter, editable, location per item),
+  signed inventory checks with counts and "to replace" marks (shortages shown on the list), signed
+  oil-spill drills (scenario, participants, minutes, lessons). Checks and drills append-only.
+- **Security — ISPS (dark, `security`).** Security level 1/2/3 with history (Officer/Master only by
+  rules); gangway visitor log: sign on (name, company, purpose, ID type/No. — required at level ≥ 2,
+  pass No., host) and sign off; "On board now"; day/month Excel. Menu groups "Environment"
+  (Fuel, Garbage, SOPEP) and "Security". Rules 49/49.
+- **Permits: Archive by month.** "Archive — by month" button with month arrows lists every permit of
+  the month; the open list keeps the 5 most recently closed.
 - **Garbage Record Book, Part I (dark, `garbage`).** MARPOL Annex V, form of MEPC.295(71):
   entries by category A–I with amount (m³), to reception facility / into sea / incinerated /
   accidental, port or position and distance from land, container No., receipt No., remarks, signed

@@ -1218,6 +1218,11 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'fuel_transfers', key: storage.FUEL_TRANSFERS_KEY, module: 'fuel' },
   { sub: 'garbage', key: storage.GARBAGE_KEY, appendOnly: true, module: 'garbage' },
   { sub: 'garbage_signs', key: storage.GARBAGE_SIGNS_KEY, appendOnly: true, module: 'garbage' },
+  { sub: 'sopep_items', key: storage.SOPEP_ITEMS_KEY, module: 'sopep' },
+  { sub: 'sopep_checks', key: storage.SOPEP_CHECKS_KEY, appendOnly: true, module: 'sopep' },
+  { sub: 'sopep_drills', key: storage.SOPEP_DRILLS_KEY, appendOnly: true, module: 'sopep' },
+  { sub: 'visitors', key: storage.VISITORS_KEY, module: 'security' },
+  { sub: 'security_levels', key: storage.SECURITY_LEVEL_KEY, appendOnly: true, module: 'security' },
 ];
 
 /**

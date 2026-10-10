@@ -27,7 +27,9 @@ export interface MenuGroup {
 }
 
 export const MENU_GROUPS: MenuGroup[] = [
-  { key: 'ops', label: 'Inspections & maintenance', routes: ['Dashboard', 'Equipment', 'Maintenance', 'Spares', 'Fuel', 'Garbage', 'Reports'] },
+  { key: 'ops', label: 'Inspections & maintenance', routes: ['Dashboard', 'Equipment', 'Maintenance', 'Spares', 'Reports'] },
+  { key: 'env', label: 'Environment', routes: ['Fuel', 'Garbage', 'Sopep'] },
+  { key: 'security', label: 'Security', routes: ['Security'] },
   { key: 'crew', label: 'Crew', routes: ['Crew', 'CrewMatrix', 'HoursOfRest'] },
   { key: 'docs', label: 'Documents & permits', routes: ['Documents', 'Certificates', 'Permits'] },
   { key: 'system', label: '', routes: ['Settings'] },

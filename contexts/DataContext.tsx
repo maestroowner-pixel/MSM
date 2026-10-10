@@ -17,6 +17,8 @@ import { DocAck, IsmDoc } from '../types/docs';
 import { Permit, RiskAssessment } from '../types/permits';
 import { FuelBunker, FuelReading, FuelTank, FuelTransfer } from '../types/fuel';
 import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
+import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
+import { SecurityLevelRec, Visitor } from '../types/security';
 import { ChecklistTemplate } from '../constants/checklists';
 import { CategoryMeta, setVesselCategories } from '../constants/categories';
 import { CATEGORIES, CATEGORY_MAP } from '../constants/categories';
@@ -93,6 +95,15 @@ interface DataContextType {
   garbageSigns: GarbageMasterSign[];
   addGarbage: (e: GarbageEntry) => Promise<void>;
   signGarbageMonth: (s: GarbageMasterSign) => Promise<void>;
+  /** SOPEP and security. */
+  sopepItems: SopepItem[];
+  sopepChecks: SopepCheck[];
+  sopepDrills: SopepDrill[];
+  visitors: Visitor[];
+  securityLevels: SecurityLevelRec[];
+  /** Upsert (lists edited in place) or append (records) by storage key. */
+  saveRow: <T extends { id: string }>(key: string, row: T) => Promise<void>;
+  appendRow: <T extends { id: string }>(key: string, row: T) => Promise<void>;
   /** The vessel's own checklists; they replace the built-in for their category. */
   templates: ChecklistTemplate[];
   /** Headings this vessel invented, on top of the 23 the app ships. */
@@ -167,6 +178,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [fuelTransfers, setFuelTransfers] = useState<FuelTransfer[]>([]);
   const [garbage, setGarbage] = useState<GarbageEntry[]>([]);
   const [garbageSigns, setGarbageSigns] = useState<GarbageMasterSign[]>([]);
+  const [sopepItems, setSopepItems] = useState<SopepItem[]>([]);
+  const [sopepChecks, setSopepChecks] = useState<SopepCheck[]>([]);
+  const [sopepDrills, setSopepDrills] = useState<SopepDrill[]>([]);
+  const [visitors, setVisitors] = useState<Visitor[]>([]);
+  const [securityLevels, setSecurityLevels] = useState<SecurityLevelRec[]>([]);
   const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
   const [categories, setCategories] = useState<CategoryMeta[]>([]);
   const [recentScans, setRecentScans] = useState<ScanEntry[]>([]);
@@ -216,6 +232,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setFuelTransfers(await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY));
     setGarbage(await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY));
     setGarbageSigns(await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY));
+    setSopepItems((await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order));
+    setSopepChecks(await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY));
+    setSopepDrills(await storage.loadList<SopepDrill>(storage.SOPEP_DRILLS_KEY));
+    setVisitors(await storage.loadList<Visitor>(storage.VISITORS_KEY));
+    setSecurityLevels(await storage.loadList<SecurityLevelRec>(storage.SECURITY_LEVEL_KEY));
     setTemplates(await storage.loadTemplates());
     setSigningPolicyState((await storage.loadSigningPolicy()) ?? DEFAULT_POLICY);
     setPhotoArchiveState((await storage.loadPhotoArchive()) ?? DEFAULT_ARCHIVE);
@@ -364,6 +385,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setFuelTransfers(await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY));
     setGarbage(await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY));
     setGarbageSigns(await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY));
+    setSopepItems((await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order));
+    setSopepChecks(await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY));
+    setSopepDrills(await storage.loadList<SopepDrill>(storage.SOPEP_DRILLS_KEY));
+    setVisitors(await storage.loadList<Visitor>(storage.VISITORS_KEY));
+    setSecurityLevels(await storage.loadList<SecurityLevelRec>(storage.SECURITY_LEVEL_KEY));
   }, []);
 
   const saveMachine = useCallback(async (m: Machine) => {
@@ -415,6 +441,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (!list.some((x) => x.id === row.id)) await storage.saveList(key, [...list, row]);
     await loadPms();
   }, [loadPms]);
+  const saveRow = useCallback(async (key: string, row: { id: string }) => {
+    await storage.upsertInList(key, { ...row, updatedAt: Date.now() });
+    await loadPms();
+  }, [loadPms]);
+  const appendRow = useCallback((key: string, row: { id: string }) => appendTo(key, row), [appendTo]);
   const addGarbage = useCallback((e: GarbageEntry) => appendTo(storage.GARBAGE_KEY, e), [appendTo]);
   const signGarbageMonth = useCallback((x: GarbageMasterSign) => appendTo(storage.GARBAGE_SIGNS_KEY, x), [appendTo]);
 
@@ -572,6 +603,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         garbageSigns,
         addGarbage,
         signGarbageMonth,
+        sopepItems,
+        sopepChecks,
+        sopepDrills,
+        visitors,
+        securityLevels,
+        saveRow,
+        appendRow,
         savePermit,
         saveRisk,
         templates,

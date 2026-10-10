@@ -30,6 +30,8 @@ import { CrewPrivate } from '../types/crew';
 import { Permit, RiskAssessment } from '../types/permits';
 import { FuelBunker, FuelReading, FuelTank, FuelTransfer } from '../types/fuel';
 import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
+import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
+import { SecurityLevelRec, Visitor } from '../types/security';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from '../services/storage';
 import { VesselInfo } from '../services/storage';
@@ -66,6 +68,9 @@ export interface BackupFile {
   fuel?: { tanks: FuelTank[]; readings: FuelReading[]; bunkers: FuelBunker[]; transfers: FuelTransfer[] };
   /** Garbage Record Book entries and the Master's monthly signatures. */
   garbage?: { entries: GarbageEntry[]; signs: GarbageMasterSign[] };
+  /** SOPEP locker, checks, drills; ISPS visitor log and security levels. */
+  sopep?: { items: SopepItem[]; checks: SopepCheck[]; drills: SopepDrill[] };
+  security?: { visitors: Visitor[]; levels: SecurityLevelRec[] };
   files?: Record<string, string>; // basename -> base64 of the file contents
 }
 
@@ -168,6 +173,8 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     transfers: await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY),
   };
   const garbage = { entries: await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY), signs: await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY) };
+  const sopep = { items: await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY), checks: await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY), drills: await storage.loadList<SopepDrill>(storage.SOPEP_DRILLS_KEY) };
+  const security = { visitors: await storage.loadList<Visitor>(storage.VISITORS_KEY), levels: await storage.loadList<SecurityLevelRec>(storage.SECURITY_LEVEL_KEY) };
 
   // Read each referenced binary into a basename -> base64 map.
   const files: Record<string, string> = {};
@@ -200,6 +207,8 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     ptw,
     fuel,
     garbage,
+    sopep,
+    security,
     files,
   };
 
@@ -381,6 +390,15 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
   if (backup.garbage) {
     await storage.saveList(storage.GARBAGE_KEY, backup.garbage.entries ?? []);
     await storage.saveList(storage.GARBAGE_SIGNS_KEY, backup.garbage.signs ?? []);
+  }
+  if (backup.sopep) {
+    await storage.saveList(storage.SOPEP_ITEMS_KEY, backup.sopep.items ?? []);
+    await storage.saveList(storage.SOPEP_CHECKS_KEY, backup.sopep.checks ?? []);
+    await storage.saveList(storage.SOPEP_DRILLS_KEY, backup.sopep.drills ?? []);
+  }
+  if (backup.security) {
+    await storage.saveList(storage.VISITORS_KEY, backup.security.visitors ?? []);
+    await storage.saveList(storage.SECURITY_LEVEL_KEY, backup.security.levels ?? []);
   }
 
   if (backup.compressor) await storage.saveCompressor(normalizeCompressorState(backup.compressor));

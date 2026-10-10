@@ -36,6 +36,11 @@ export const FUEL_BUNKERS_KEY = `${PREFIX}fuel_bunkers`;
 export const FUEL_TRANSFERS_KEY = `${PREFIX}fuel_transfers`;
 export const GARBAGE_KEY = `${PREFIX}garbage`;
 export const GARBAGE_SIGNS_KEY = `${PREFIX}garbage_signs`;
+export const SOPEP_ITEMS_KEY = `${PREFIX}sopep_items`;
+export const SOPEP_CHECKS_KEY = `${PREFIX}sopep_checks`;
+export const SOPEP_DRILLS_KEY = `${PREFIX}sopep_drills`;
+export const VISITORS_KEY = `${PREFIX}visitors`;
+export const SECURITY_LEVEL_KEY = `${PREFIX}security_levels`;
 export const DOC_ACKS_KEY = `${PREFIX}ism_doc_acks`;
 /** The vessel's "scan before you sign" rule, as this device last knew it. */
 export const SIGNING_POLICY_KEY = `${PREFIX}signing_policy`;
@@ -648,6 +653,11 @@ export async function resetAllData(): Promise<void> {
     FUEL_TRANSFERS_KEY,
     GARBAGE_KEY,
     GARBAGE_SIGNS_KEY,
+    SOPEP_ITEMS_KEY,
+    SOPEP_CHECKS_KEY,
+    SOPEP_DRILLS_KEY,
+    VISITORS_KEY,
+    SECURITY_LEVEL_KEY,
     DOC_ACKS_KEY,
     'msm:docfiles_pending',
     VESSEL_KEY,

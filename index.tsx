@@ -75,6 +75,8 @@ import CrewMemberSc from './screens/CrewMemberSc';
 import PermitsSc from './screens/PermitsSc';
 import FuelSc from './screens/FuelSc';
 import GarbageSc from './screens/GarbageSc';
+import SopepSc from './screens/SopepSc';
+import SecuritySc from './screens/SecuritySc';
 import PermitSc from './screens/PermitSc';
 import RiskSc from './screens/RiskSc';
 import CrewMatrixSc from './screens/CrewMatrixSc';
@@ -104,6 +106,8 @@ const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Permits: PermitsSc,
   Fuel: FuelSc,
   Garbage: GarbageSc,
+  Sopep: SopepSc,
+  Security: SecuritySc,
   Maintenance: MaintenanceSc,
   HoursOfRest: HoursOfRestSc,
   Spares: SparesSc,
@@ -177,6 +181,10 @@ const MENU_LABEL: Record<string, string> = {
   Crew: 'Crew list',
   CrewMatrix: 'Crew matrix',
   Permits: 'Permits & risk',
+  Sopep: 'SOPEP',
+  Security: 'Security (ISPS)',
+  Fuel: 'Fuel',
+  Garbage: 'Garbage record book',
   Reports: 'Reports',
   Settings: 'Settings',
 };
@@ -357,6 +365,8 @@ const linking = {
           Permits: 'permits',
           Fuel: 'fuel',
           Garbage: 'garbage',
+          Sopep: 'sopep',
+          Security: 'security',
           Settings: 'settings',
         },
       },

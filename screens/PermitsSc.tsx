@@ -39,7 +39,20 @@ export default function PermitsSc() {
   const open = permits.filter((p) => ['draft', 'requested', 'approved', 'active'].includes(p.status));
   const rank = (p: Permit) => (isOverdue(p, now) ? 0 : p.status === 'active' ? 1 : p.status === 'approved' ? 2 : p.status === 'requested' ? 3 : 4);
   const openSorted = [...open].sort((a, b) => rank(a) - rank(b) || (a.from ?? '').localeCompare(b.from ?? ''));
-  const history = permits.filter((p) => p.status === 'closed' || p.status === 'cancelled').sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 30);
+  const history = permits.filter((p) => p.status === 'closed' || p.status === 'cancelled').sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 5);
+
+  // Archive: every permit of a month (by the start of the work, else when it
+  // was raised), month by month.
+  const [archive, setArchive] = useState(false);
+  const [month, setMonth] = useState(now.slice(0, 7));
+  const monthOf = (p: Permit) => (p.from ?? '').slice(0, 7) || new Date(p.createdAt - new Date(p.createdAt).getTimezoneOffset() * 60000).toISOString().slice(0, 7);
+  const ofMonth = permits.filter((p) => !p.deleted && monthOf(p) === month).sort((a, b) => (b.from ?? '').localeCompare(a.from ?? '') || b.createdAt - a.createdAt);
+  const shiftMonth = (by: number) => {
+    const [y, m] = month.split('-').map(Number);
+    const d = new Date(Date.UTC(y, m - 1 + by, 1));
+    setMonth(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`);
+  };
+  const monthLabel = new Date(`${month}-01T00:00:00Z`).toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 
   const library = risks.filter((r) => r.generic).sort((a, b) => a.title.localeCompare(b.title));
   const jobRisks = risks.filter((r) => !r.generic).sort((a, b) => b.updatedAt - a.updatedAt);
@@ -122,11 +135,31 @@ export default function PermitsSc() {
               <Text style={styles.btnText}>+ New permit</Text>
             </TouchableOpacity>
           </View>
-          <Label>{`Open (${open.length})`}</Label>
-          {openSorted.map((p) => <PermitRow key={p.id} p={p} />)}
-          {!open.length ? <Empty text="No open permits. Choose the kind of work and tap “New permit”." /> : null}
-          {history.length ? <Label>History</Label> : null}
-          {history.map((p) => <PermitRow key={p.id} p={p} />)}
+          <TouchableOpacity style={[styles.archiveBtn, archive && styles.tabOn]} onPress={() => setArchive((v) => !v)}>
+            <MciIcon name="archive-outline" size={18} color={archive ? COLORS.textWhite : COLORS.primary} />
+            <Text style={[styles.tabText, archive && styles.tabTextOn]}>{archive ? 'Back to open permits' : 'Archive — by month'}</Text>
+          </TouchableOpacity>
+          {archive ? (
+            <>
+              <View style={styles.monthRow}>
+                <TouchableOpacity onPress={() => shiftMonth(-1)} hitSlop={10}><MciIcon name="chevron-left" size={28} color={COLORS.primary} /></TouchableOpacity>
+                <Text style={styles.month}>{`${monthLabel} · ${ofMonth.length}`}</Text>
+                <TouchableOpacity onPress={() => shiftMonth(1)} disabled={month >= now.slice(0, 7)} hitSlop={10}>
+                  <MciIcon name="chevron-right" size={28} color={month >= now.slice(0, 7) ? COLORS.border : COLORS.primary} />
+                </TouchableOpacity>
+              </View>
+              {ofMonth.map((p) => <PermitRow key={p.id} p={p} />)}
+              {!ofMonth.length ? <Empty text="No permits this month." /> : null}
+            </>
+          ) : (
+            <>
+              <Label>{`Open (${open.length})`}</Label>
+              {openSorted.map((p) => <PermitRow key={p.id} p={p} />)}
+              {!open.length ? <Empty text="No open permits. Choose the kind of work and tap “New permit”." /> : null}
+              {history.length ? <Label>Recently closed</Label> : null}
+              {history.map((p) => <PermitRow key={p.id} p={p} />)}
+            </>
+          )}
         </>
       ) : (
         <>
@@ -174,5 +207,8 @@ const makeStyles = (COLORS: Palette) =>
     title: { fontSize: SIZES.h5, fontWeight: '600', color: COLORS.textDark },
     sub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 1 },
     status: { fontSize: SIZES.small, fontWeight: '800' },
+    archiveBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', borderWidth: 1, borderColor: COLORS.primary, borderRadius: 999, paddingVertical: 6, paddingHorizontal: SIZES.md, marginBottom: SIZES.sm },
+    monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: SIZES.sm },
+    month: { fontSize: SIZES.h5, fontWeight: '800', color: COLORS.textDark },
     starter: { ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.md },
   });

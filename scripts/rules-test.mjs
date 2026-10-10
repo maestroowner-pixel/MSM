@@ -82,6 +82,13 @@ await t(false, 'A garbage entry cannot be changed', updateDoc(R(officer, 'garbag
 await t(false, 'An Officer cannot sign the month as Master', setDoc(R(officer, 'garbage_signs', 'grb_2026-10'), { id: 'grb_2026-10' }));
 await t(true, 'The Master signs the month', setDoc(R(master, 'garbage_signs', 'grb_2026-10'), { id: 'grb_2026-10' }));
 
+await t(true, 'Crew member records a SOPEP check', setDoc(R(crew, 'sopep_checks', 's1'), { id: 's1' }));
+await t(false, 'A SOPEP check cannot be changed', updateDoc(R(crew, 'sopep_checks', 's1'), { remarks: 'x' }));
+await t(true, 'Gangway watch signs a visitor on', setDoc(R(crew, 'visitors', 'v1'), { id: 'v1', name: 'X' }));
+await t(true, 'Gangway watch signs the visitor off', updateDoc(R(crew, 'visitors', 'v1'), { timeOut: '12:00' }));
+await t(false, 'Crew cannot change the security level', setDoc(R(crew, 'security_levels', 'l1'), { level: 2 }));
+await t(true, 'Officer (SSO) sets the security level', setDoc(R(officer, 'security_levels', 'l1'), { level: 2 }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

@@ -326,6 +326,22 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🛢️',
+      title: "SOPEP",
+      body: [
+        "The SOPEP screen keeps the oil-spill locker: each item with the quantity the plan requires and where it is. Start from the typical yacht list and edit it to the vessel's own SOPEP.",
+        "Inventory check: count every line, mark anything to replace, sign. The locker list then shows what is short. Drills: choose the scenario, mark who took part, add the lessons, sign. Checks and drills are kept as records and cannot be changed.",
+      ],
+    },
+    {
+      emoji: '🛂',
+      title: "Security (ISPS)",
+      body: [
+        "The Security screen shows the vessel's ISPS security level (1, 2 or 3) — changed by an Officer or the Master, with history — and the gangway / visitor log.",
+        "The gangway watch signs each visitor on — name, company, purpose, identity document, pass number, who receives them — and signs them off. At level 2 and above the identity document must be recorded. \"On board now\" lists every visitor not yet signed off. The log for a day or a month exports to Excel.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Permits to work and risk assessments",
       body: [
@@ -753,6 +769,22 @@ const ru: ManualContent = {
         "Экран Garbage — Garbage Record Book, часть I (MARPOL Annex V, форма MEPC.295(71)): каждая сдача на берег, сжигание, сброс в море и случайная потеря по категориям A–I, с объёмом в м³, портом или координатами судна, номером квитанции и подписью офицера.",
         "Приложение предупреждает о сбросах в море, запрещённых Приложением V: пластик, бытовые отходы, кулинарное масло, зола инсинератора, эксплуатационные отходы, рыболовные снасти и электронные отходы — никогда; пищевые отходы — только от 12 миль от берега (от 3 миль, если измельчены); туши животных — от 100 миль. Случайная потеря всегда записывается как таковая.",
         "Записи нельзя изменить; ошибка исправляется следующей записью. Мастер подписывает каждый месяц. PDF и Excel печатают месяц в виде страницы журнала с итогами по категориям.",
+      ],
+    },
+    {
+      emoji: '🛢️',
+      title: "SOPEP",
+      body: [
+        "Экран SOPEP ведёт шкаф для разливов нефтепродуктов: каждая позиция с количеством по плану и местом хранения. Начните с типового списка для яхты и приведите его к SOPEP судна.",
+        "Проверка инвентаря: пересчитайте каждую позицию, отметьте, что заменить, подпишите. Список шкафа покажет, чего не хватает. Учения: выберите сценарий, отметьте участников, запишите выводы, подпишите. Проверки и учения хранятся как записи и не изменяются.",
+      ],
+    },
+    {
+      emoji: '🛂',
+      title: "Охрана (Security, ISPS)",
+      body: [
+        "Экран Security показывает уровень охраны ISPS (1, 2 или 3) — меняет офицер или Мастер, с историей — и журнал посетителей у трапа.",
+        "Вахтенный у трапа регистрирует каждого посетителя — имя, компания, цель, документ, номер пропуска, кто принимает — и отмечает уход. На уровне 2 и выше документ обязателен. «On board now» — все, кто ещё не ушёл. Журнал за день или месяц выгружается в Excel.",
       ],
     },
     {
@@ -1186,6 +1218,22 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🛢️',
+      title: "SOPEP",
+      body: [
+        "La pantalla SOPEP lleva la taquilla para derrames: cada artículo con la cantidad que exige el plan y dónde está. Empiece con la lista típica de yate y adáptela al SOPEP del buque.",
+        "Inventario: cuente cada línea, marque lo que hay que reponer, firme. La lista muestra entonces lo que falta. Ejercicios: elija el escenario, marque quién participó, anote las lecciones, firme. Inventarios y ejercicios se guardan como registros y no se modifican.",
+      ],
+    },
+    {
+      emoji: '🛂',
+      title: "Protección (Security, ISPS)",
+      body: [
+        "La pantalla Security muestra el nivel de protección ISPS del buque (1, 2 o 3) — lo cambia un oficial o el Master, con historial — y el registro de visitas en la pasarela.",
+        "El guardia de pasarela registra la entrada de cada visitante — nombre, empresa, motivo, documento de identidad, número de pase, quién lo recibe — y su salida. Desde el nivel 2 el documento es obligatorio. \"On board now\" lista a quienes aún no han salido. El registro de un día o un mes se exporta a Excel.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Permisos de trabajo y evaluaciones de riesgo",
       body: [
@@ -1616,6 +1664,22 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🛢️',
+      title: "SOPEP",
+      body: [
+        "Екран SOPEP веде шафу для розливів нафтопродуктів: кожна позиція з кількістю за планом і місцем зберігання. Почніть з типового списку для яхти й приведіть його до SOPEP судна.",
+        "Перевірка інвентарю: перелічіть кожну позицію, позначте, що замінити, підпишіть. Список покаже, чого бракує. Навчання: оберіть сценарій, позначте учасників, запишіть висновки, підпишіть. Перевірки й навчання зберігаються як записи і не змінюються.",
+      ],
+    },
+    {
+      emoji: '🛂',
+      title: "Охорона (Security, ISPS)",
+      body: [
+        "Екран Security показує рівень охорони ISPS (1, 2 чи 3) — змінює офіцер або Майстер, з історією — і журнал відвідувачів біля трапа.",
+        "Вахтовий біля трапа реєструє кожного відвідувача — ім'я, компанія, мета, документ, номер перепустки, хто приймає — і позначає вихід. На рівні 2 і вище документ обов'язковий. «On board now» — усі, хто ще не вийшов. Журнал за день чи місяць вивантажується в Excel.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Дозволи на роботу та оцінка ризиків",
       body: [
@@ -1778,6 +1842,8 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
   { title: 'Permits to work and risk assessments', module: 'ptw' },
   { title: 'Fuel', module: 'fuel' },
   { title: 'Garbage Record Book', module: 'garbage' },
+  { title: 'SOPEP', module: 'sopep' },
+  { title: 'Security (ISPS)', module: 'security' },
   { title: 'Fleet console (superintendent)', module: 'fleet' },
 ];
 
