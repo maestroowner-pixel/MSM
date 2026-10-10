@@ -17,7 +17,7 @@
 
 import type { SignProof } from '../services/signature';
 
-export type PermitType = 'hot' | 'enclosed' | 'height' | 'electrical' | 'cold' | 'diving';
+export type PermitType = 'general' | 'hot' | 'enclosed' | 'height' | 'electrical' | 'cold' | 'diving';
 
 export type PermitStatus = 'draft' | 'requested' | 'approved' | 'active' | 'closed' | 'cancelled';
 

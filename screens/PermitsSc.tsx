@@ -33,7 +33,7 @@ export default function PermitsSc() {
   const nav = useNavigation<any>();
   const { permits, risks, saveRisk } = useData();
   const [tab, setTab] = useState<Tab>('permits');
-  const [newType, setNewType] = useState<PermitType>('hot');
+  const [newType, setNewType] = useState<PermitType>('general');
   const now = nowLocal();
 
   const open = permits.filter((p) => ['draft', 'requested', 'approved', 'active'].includes(p.status));

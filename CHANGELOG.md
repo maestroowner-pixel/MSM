@@ -13,6 +13,7 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Permits: General permit to work** — first in the list and the default; checklist for work that needs control but no specialised permit (scope, RA, no special hazard or that permit also issued, isolation, PPE, tools, area, OOW/CE informed, comms).
 - **Security split: Gangway logbook / Drills** (menu sub-items, chips on a phone; On board / Log inside
   the logbook). **Visitor passes:** reusable numbered passes VISITOR 01–20 with QR `msm://pass/NN`
   (Print visitor passes, same 10-per-A4 sheet as crew cards). Scanning a free pass opens the sign-on

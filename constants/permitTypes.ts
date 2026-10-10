@@ -29,6 +29,23 @@ export interface PermitTypeDef {
 
 export const PERMIT_TYPES: PermitTypeDef[] = [
   {
+    // Work that needs control but none of the specialised permits below
+    // (10 Oct 2026: "add a general permit"). A specialised hazard found while
+    // planning gets its own permit as well.
+    key: 'general', label: 'General permit to work', icon: 'clipboard-text-outline', maxHours: 12, gas: false,
+    checks: [
+      { id: 'scope', text: 'Job, place and limits of the work explained to everyone involved' },
+      { id: 'ra', text: 'Risk assessment reviewed with the team; hazards and controls understood' },
+      { id: 'special', text: 'No hot work, enclosed space, height, electrical isolation or diving involved — or the specific permit is also issued' },
+      { id: 'isolate', text: 'Equipment / systems affected isolated and tagged where needed' },
+      { id: 'ppe', text: 'Correct PPE worn for the job' },
+      { id: 'tools', text: 'Tools and equipment checked and fit for use' },
+      { id: 'area', text: 'Work area barriered / signed; other departments affected informed' },
+      { id: 'bridge', text: 'Officer of the watch / Chief Engineer informed' },
+      { id: 'comms', text: 'Means of communication agreed' },
+    ],
+  },
+  {
     key: 'hot', label: 'Hot work', icon: 'fire', maxHours: 12, gas: true,
     checks: [
       { id: 'area', text: 'Area cleared of combustibles; adjacent spaces and the other side of bulkheads checked' },
