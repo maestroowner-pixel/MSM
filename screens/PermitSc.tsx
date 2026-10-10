@@ -28,9 +28,10 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { Answer, GasTest, PERMIT_STATUS_LABEL, Permit, PermitType, SignStamp } from '../types/permits';
+import { Answer, GasTest, PERMIT_STATUS_LABEL, Permit, PermitType, SignStamp, ToolboxMeeting } from '../types/permits';
 import { GAS_LIMITS, PERMIT_TYPE_MAP } from '../constants/permitTypes';
-import { RISK_COLOR, RISK_LABEL, approvalBlockers, gasProblems, isOverdue, nextNumber, nowLocal, worstResidual } from '../services/permits';
+import { RISK_COLOR, RISK_LABEL, approvalBlockers, gasProblems, isOverdue, nextNumber, nowLocal, startBlockers, worstResidual } from '../services/permits';
+import { TOOLBOX_TOPICS } from '../constants/toolbox';
 import { isAboard } from '../types/crew';
 import { roleAtLeast } from '../types/role';
 import { formatDateTime } from '../utils/dates';
@@ -91,9 +92,25 @@ export default function PermitSc() {
     return { by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: Date.now(), ...(sig.proof ? { signedWith: sig.proof } : {}) };
   };
 
+  // Closing: the date and time the work was finished — now, or earlier if it
+  // is signed afterwards; never before the work started or in the future.
+  const [closing, setClosing] = useState<string | null>(null);
+  const closeProblem = (v: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v)) return 'Date and time as yyyy-mm-dd hh:mm.';
+    if (v > nowLocal()) return 'Not in the future.';
+    const startedAt = p.started ? nowLocal(new Date(p.started.at)) : p.from;
+    if (startedAt && v < startedAt) return `Not before the work started (${startedAt.replace('T', ' ')}).`;
+    return null;
+  };
+
   const act = async (kind: 'request' | 'approve' | 'start' | 'close' | 'cancel') => {
+    if (kind === 'close') {
+      const prob = closing == null ? 'Enter the closing date and time.' : closeProblem(closing);
+      if (prob) return Alert.alert('Closing time', prob);
+    }
     if (kind === 'approve' && blockers.length) return Alert.alert('Not ready to approve', blockers.map((b) => `• ${b}`).join('\n'));
     if (kind === 'approve' && !officer) return Alert.alert('Approval', 'A permit is approved by an Officer or the Master.');
+    if (kind === 'start' && startBlockers(p).length) return Alert.alert('Not ready to start', startBlockers(p).map((b) => `• ${b}`).join('\n'));
     const label = { request: 'Request the permit', approve: 'Approve the permit', start: 'Start the work', close: 'Close — work complete, area safe', cancel: 'Cancel the permit' }[kind];
     const s = await stamp(label);
     if (!s) return;
@@ -106,10 +123,35 @@ export default function PermitSc() {
         : kind === 'start'
         ? { ...p, status: 'active', started: s }
         : kind === 'close'
-        ? { ...p, status: 'closed', closed: s }
+        ? { ...p, status: 'closed', closed: s, closedAt: closing! }
         : { ...p, status: 'cancelled', cancelled: s };
     await persist(next);
     playSuccessSound();
+  };
+
+  // Toolbox meeting — held before the work, with everyone on it marked.
+  const [tb, setTb] = useState<{ open: boolean; present: string[]; extra: string[]; topics: string[]; concerns: string }>({ open: false, present: [], extra: [], topics: [], concerns: '' });
+  const openToolbox = () =>
+    setTb({ open: true, present: p.toolbox ? p.toolbox.attendees.filter((a) => a.present).map((a) => a.name) : [], extra: p.toolbox ? p.toolbox.attendees.map((a) => a.name).filter((n) => !p.team.includes(n)) : [], topics: p.toolbox?.topics ?? [], concerns: p.toolbox?.concerns ?? '' });
+  const holdToolbox = async () => {
+    if (!p.work.trim() || !p.location.trim()) return Alert.alert('Toolbox meeting', 'Write the job and the place in the permit first — the meeting is about them.');
+    const names = [...p.team, ...tb.extra.filter((n) => !p.team.includes(n))];
+    const missing = p.team.filter((n) => !tb.present.includes(n));
+    const go = async () => {
+      const s = await stamp('Toolbox meeting held');
+      if (!s) return;
+      const t: ToolboxMeeting = {
+        at: s.at, location: p.location.trim(), work: p.work.trim(),
+        attendees: names.map((n) => ({ name: n, present: tb.present.includes(n) })),
+        topics: tb.topics, ...(tb.concerns.trim() ? { concerns: tb.concerns.trim() } : {}),
+        by: s.by, ...(s.byRank ? { byRank: s.byRank } : {}), ...(s.signedWith ? { signedWith: s.signedWith } : {}),
+      };
+      await persist({ ...p, toolbox: t });
+      setTb({ ...tb, open: false });
+      playSuccessSound();
+    };
+    if (missing.length) Alert.alert('Not everyone is here', `${missing.join(', ')} not marked present — they cannot start the work until a meeting with them is held. Record it anyway?`, [{ text: 'Cancel', style: 'cancel' }, { text: 'Record', onPress: () => void go() }]);
+    else await go();
   };
 
   // Gas readings
@@ -168,11 +210,11 @@ export default function PermitSc() {
           <TextInput style={styles.input} value={p.location} onChangeText={(v) => set({ location: v })} editable={editable} placeholder="Lazarette, port side" placeholderTextColor={COLORS.textLight} />
           <View style={styles.pair}>
             <View style={{ flex: 1 }}>
-              <Label>From (yyyy-mm-dd hh:mm)</Label>
+              <Label>Valid from (yyyy-mm-dd hh:mm)</Label>
               <TextInput style={styles.input} value={(p.from ?? '').replace('T', ' ')} onChangeText={(v) => set({ from: v.trim().replace(' ', 'T') })} editable={editable} />
             </View>
             <View style={{ flex: 1 }}>
-              <Label>{`To (max ${def.maxHours} h)`}</Label>
+              <Label>{`Valid until — permit closes (max ${def.maxHours} h)`}</Label>
               <TextInput style={styles.input} value={(p.to ?? '').replace('T', ' ')} onChangeText={(v) => set({ to: v.trim().replace(' ', 'T') })} editable={editable} />
             </View>
           </View>
@@ -274,11 +316,80 @@ export default function PermitSc() {
           <Text style={styles.section}>Isolations and notes</Text>
           <TextInput style={[styles.input, { minHeight: 70, textAlignVertical: 'top' }]} value={p.notes ?? ''} onChangeText={(v) => set({ notes: v })} editable={!final} multiline placeholder="Breaker 3-12 locked, tag 0451 · Fire watch: J. Dodd" placeholderTextColor={COLORS.textLight} />
 
+          <Text style={styles.section}>Toolbox meeting</Text>
+          {p.toolbox && !tb.open ? (
+            <View style={styles.tbBox}>
+              <Text style={styles.tbLine}>{`${formatDateTime(p.toolbox.at)} · held by ${p.toolbox.byRank ? `${p.toolbox.by} (${p.toolbox.byRank})` : p.toolbox.by}${p.toolbox.signedWith ? ` · ${proofShort(p.toolbox.signedWith)}` : ''}`}</Text>
+              <Text style={styles.tbLine}>{`Place: ${p.toolbox.location}`}</Text>
+              <Text style={styles.tbLine}>{`Job: ${p.toolbox.work}`}</Text>
+              <Text style={styles.tbLine}>{`Present: ${p.toolbox.attendees.filter((a) => a.present).map((a) => a.name).join(', ') || '—'}`}</Text>
+              {p.toolbox.attendees.some((a) => !a.present) ? <Text style={[styles.tbLine, { color: COLORS.danger }]}>{`Absent: ${p.toolbox.attendees.filter((a) => !a.present).map((a) => a.name).join(', ')}`}</Text> : null}
+              <Text style={styles.tbLine}>{`Covered: ${TOOLBOX_TOPICS.filter((t) => p.toolbox!.topics.includes(t.id)).map((t) => t.text).join('; ') || '—'}`}</Text>
+              {p.toolbox.concerns ? <Text style={styles.tbLine}>{`Raised / agreed: ${p.toolbox.concerns}`}</Text> : null}
+              {startBlockers(p).length && !final && p.status !== 'active' ? <Text style={[styles.tbLine, { color: COLORS.warning, fontWeight: '700' }]}>{startBlockers(p).join(' · ')}</Text> : null}
+              {!final && p.status !== 'active' ? (
+                <TouchableOpacity onPress={openToolbox}><Text style={styles.link}>Hold it again</Text></TouchableOpacity>
+              ) : null}
+            </View>
+          ) : !final && p.status !== 'active' ? (
+            tb.open ? (
+              <View style={styles.tbBox}>
+                <Text style={styles.tbLine}>{`Place: ${p.location || '—'}`}</Text>
+                <Text style={styles.tbLine}>{`Job: ${p.work || '—'}`}</Text>
+                <Label>Present — tap each person at the meeting</Label>
+                <View style={styles.chips}>
+                  {[...p.team, ...tb.extra.filter((n) => !p.team.includes(n))].map((n) => {
+                    const on = tb.present.includes(n);
+                    return (
+                      <TouchableOpacity key={n} style={[styles.chip, on && styles.chipOn]} onPress={() => setTb({ ...tb, present: on ? tb.present.filter((x) => x !== n) : [...tb.present, n] })}>
+                        <Text style={[styles.chipText, on && styles.chipTextOn]}>{`${on ? '✓ ' : ''}${n}${p.team.includes(n) ? '' : ' (also present)'}`}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                <Text style={styles.sub}>Also present (not on the team)</Text>
+                <View style={styles.chips}>
+                  {people.filter((c) => !p.team.includes(c.name) && !tb.extra.includes(c.name)).map((c) => (
+                    <TouchableOpacity key={c.id} style={styles.chip} onPress={() => setTb({ ...tb, extra: [...tb.extra, c.name], present: [...tb.present, c.name] })}>
+                      <Text style={styles.chipText}>{`+ ${c.name}`}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <Label>Covered</Label>
+                {TOOLBOX_TOPICS.map((t) => {
+                  const on = tb.topics.includes(t.id);
+                  return (
+                    <TouchableOpacity key={t.id} style={styles.tbTopic} onPress={() => setTb({ ...tb, topics: on ? tb.topics.filter((x) => x !== t.id) : [...tb.topics, t.id] })}>
+                      <MciIcon name={on ? 'checkbox-marked' : 'checkbox-blank-outline'} size={20} color={on ? COLORS.success : COLORS.textLight} />
+                      <Text style={styles.tbTopicText}>{t.text}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+                {ra?.hazards.length ? (
+                  <Text style={styles.sub}>{`From ${ra.no ?? 'the risk assessment'}: ${ra.hazards.map((h) => h.hazard).join(' · ')}`}</Text>
+                ) : null}
+                <TextInput style={[styles.input, { minHeight: 60, textAlignVertical: 'top' }]} value={tb.concerns} onChangeText={(v) => setTb({ ...tb, concerns: v })} multiline placeholder="Questions and concerns raised, what was agreed" placeholderTextColor={COLORS.textLight} />
+                <View style={styles.actions}>
+                  <Action label="Sign the toolbox meeting" onPress={() => void holdToolbox()} styles={styles} />
+                  <Action label="Cancel" onPress={() => setTb({ ...tb, open: false })} styles={styles} outline />
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity onPress={openToolbox}>
+                <Text style={styles.link}>+ Hold the toolbox meeting</Text>
+                <Text style={styles.sub}>Before the work starts — the team, the place and the job, hazards and controls.</Text>
+              </TouchableOpacity>
+            )
+          ) : (
+            <Text style={styles.sub}>No toolbox meeting was recorded.</Text>
+          )}
+
           <Text style={styles.section}>Signatures</Text>
           <Stamp label="Requested" s={p.requested} />
           <Stamp label="Approved" s={p.approved} />
           <Stamp label="Work started" s={p.started} />
           <Stamp label="Closed" s={p.closed} />
+          {p.closedAt ? <Text style={styles.stamp}>{`Work finished, permit closed at ${p.closedAt.replace('T', ' ')}`}</Text> : null}
           <Stamp label="Cancelled" s={p.cancelled} />
 
           {!final ? (
@@ -295,11 +406,26 @@ export default function PermitSc() {
                   {blockers.map((b) => <Text key={b} style={styles.sub}>{`• ${b}`}</Text>)}
                 </View>
               ) : null}
+              {p.status === 'approved' && startBlockers(p).length ? (
+                <View style={styles.blockers}>
+                  <Text style={[styles.sub, { color: COLORS.warning, fontWeight: '700' }]}>Before the work starts:</Text>
+                  {startBlockers(p).map((b) => <Text key={b} style={styles.sub}>{`• ${b}`}</Text>)}
+                </View>
+              ) : null}
               <View style={styles.actions}>
                 {p.status === 'draft' ? <Action label="Request the permit" onPress={() => void act('request')} styles={styles} /> : null}
                 {p.status === 'requested' ? <Action label="Approve" onPress={() => void act('approve')} styles={styles} dim={!!blockers.length || !officer} /> : null}
-                {p.status === 'approved' ? <Action label="Start the work" onPress={() => void act('start')} styles={styles} /> : null}
-                {p.status === 'active' ? <Action label="Close — work complete, area safe" onPress={() => void act('close')} styles={styles} /> : null}
+                {p.status === 'approved' ? <Action label="Start the work" onPress={() => void act('start')} styles={styles} dim={!!startBlockers(p).length} /> : null}
+                {p.status === 'active' && closing == null ? <Action label="Close — work complete, area safe" onPress={() => setClosing(nowLocal())} styles={styles} /> : null}
+                {p.status === 'active' && closing != null ? (
+                  <View style={styles.blockers}>
+                    <Label>Closed at — date and time the work was finished (yyyy-mm-dd hh:mm)</Label>
+                    <TextInput style={styles.input} value={closing.replace('T', ' ')} onChangeText={(v) => setClosing(v.trim().replace(' ', 'T'))} />
+                    {closeProblem(closing) ? <Text style={[styles.sub, { color: COLORS.danger }]}>{closeProblem(closing)}</Text> : null}
+                    <Action label="Sign — work complete, area safe" onPress={() => void act('close')} styles={styles} dim={!!closeProblem(closing)} />
+                    <TouchableOpacity onPress={() => setClosing(null)}><Text style={styles.link}>Not yet</Text></TouchableOpacity>
+                  </View>
+                ) : null}
                 {p.status !== 'draft' ? <Action label="Cancel the permit" onPress={() => void act('cancel')} styles={styles} outline /> : null}
               </View>
             </>
@@ -333,6 +459,10 @@ const makeStyles = (COLORS: Palette) =>
     chipOn: { backgroundColor: COLORS.primary },
     chipText: { color: COLORS.primary, fontWeight: '600', fontSize: SIZES.small },
     chipTextOn: { color: COLORS.textWhite },
+    tbBox: { borderWidth: 1, borderColor: COLORS.borderLight, borderRadius: SIZES.radiusMd, padding: SIZES.md, gap: 4 },
+    tbLine: { fontSize: SIZES.small, color: COLORS.textDark },
+    tbTopic: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, paddingVertical: 4 },
+    tbTopicText: { flex: 1, fontSize: SIZES.small, color: COLORS.textDark },
     section: { fontSize: SIZES.h5, fontWeight: '800', color: COLORS.textDark, marginTop: SIZES.xl, marginBottom: SIZES.xs },
     sub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },
     check: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, paddingVertical: SIZES.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.borderLight },

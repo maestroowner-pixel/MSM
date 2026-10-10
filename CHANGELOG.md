@@ -13,6 +13,13 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Permits: toolbox meeting report in every permit.** Place and job copied from the permit; team
+  members marked present (+ others present), topics covered (constants/toolbox.ts), RA hazards shown,
+  concerns/agreed, signed by the leader. "Start the work" is blocked until everyone on the team is
+  marked present and the place/job still match (`startBlockers`, tested).
+- **Permits: closing date and time.** Window fields read "Valid from" / "Valid until — permit closes";
+  closing asks "Closed at" (now by default, not in the future, not before the start), stored as
+  `closedAt` and shown with the signatures.
 - **Permits: General permit to work** — first in the list and the default; checklist for work that needs control but no specialised permit (scope, RA, no special hazard or that permit also issued, isolation, PPE, tools, area, OOW/CE informed, comms).
 - **Security split: Gangway logbook / Drills** (menu sub-items, chips on a phone; On board / Log inside
   the logbook). **Visitor passes:** reusable numbered passes VISITOR 01–20 with QR `msm://pass/NN`

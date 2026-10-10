@@ -33,6 +33,21 @@ export function lastGas(p: Permit): GasTest | undefined {
 }
 
 /** Why a permit cannot be approved yet. Empty = it can. */
+/**
+ * Why the work cannot start yet: no toolbox meeting, someone on the team not
+ * marked present at it, or the meeting held for a different place / job.
+ */
+export function startBlockers(p: Permit): string[] {
+  const t = p.toolbox;
+  if (!t) return ['no toolbox meeting held'];
+  const out: string[] = [];
+  const present = new Set(t.attendees.filter((a) => a.present).map((a) => a.name));
+  const absent = p.team.filter((n) => !present.has(n));
+  if (absent.length) out.push(`not at the toolbox meeting: ${absent.join(', ')}`);
+  if (t.location.trim() !== p.location.trim() || t.work.trim() !== p.work.trim()) out.push('the place or the job changed since the toolbox meeting — hold it again');
+  return out;
+}
+
 export function approvalBlockers(p: Permit, raExists: boolean): string[] {
   const def = PERMIT_TYPE_MAP[p.type];
   const out: string[] = [];

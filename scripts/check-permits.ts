@@ -1,5 +1,5 @@
 // npm run check:permits — permit-to-work and risk-assessment rules (services/permits.ts).
-import { approvalBlockers, gasProblems, isOverdue, nextNumber, riskLevel, unacceptable, worstResidual } from '../services/permits';
+import { approvalBlockers, startBlockers, gasProblems, isOverdue, nextNumber, riskLevel, unacceptable, worstResidual } from '../services/permits';
 import { PERMIT_TYPE_MAP, PERMIT_TYPES } from '../constants/permitTypes';
 import { RISK_LIBRARY } from '../constants/riskLibrary';
 import { Permit, RiskAssessment } from '../types/permits';
@@ -36,5 +36,16 @@ ok(worstResidual(ra) === 'high' && unacceptable(ra).map((h) => h.id).join() === 
 ok(PERMIT_TYPES.every((t) => t.checks.some((c) => c.id === 'ra')), 'every permit type asks that the risk assessment was reviewed');
 ok(RISK_LIBRARY.every((t) => t.hazards.every((h) => riskLevel(h.residualLikelihood!, h.residualSeverity!) !== 'extreme')), 'starter library: no hazard left Extreme with controls');
 
+{
+  const p: any = { id: 'x', type: 'general', work: 'Change filters', location: 'Engine room', team: ['Ana', 'Tom'], checks: {}, status: 'approved', createdAt: 0, updatedAt: 0 };
+  const okTb = (b: string[], m: string, c: boolean) => { if (!c) { console.log("✗", m, b); failed++; } else console.log('✓', m); };
+  okTb(startBlockers(p), 'no toolbox meeting → cannot start', startBlockers(p)[0] === 'no toolbox meeting held');
+  p.toolbox = { at: 0, location: 'Engine room', work: 'Change filters', attendees: [{ name: 'Ana', present: true }, { name: 'Tom', present: false }], topics: [], by: 'CE' };
+  okTb(startBlockers(p), 'Tom not present → named', /Tom/.test(startBlockers(p).join()));
+  p.toolbox.attendees[1].present = true;
+  okTb(startBlockers(p), 'everyone present → can start', startBlockers(p).length === 0);
+  p.location = 'Lazarette';
+  okTb(startBlockers(p), 'place changed after the meeting → hold it again', /hold it again/.test(startBlockers(p).join()));
+}
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

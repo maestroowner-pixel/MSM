@@ -369,6 +369,7 @@ const en: ManualContent = {
         "A permit goes Draft → Requested → Approved → In progress → Closed, each step signed. Fill in the work, place, time window (each type has a maximum), the team and every precaution (Yes / No / N/A). Enclosed space and hot work need gas readings within the limits (O₂ 20.8–21.5 %, LEL < 1 %, H₂S < 5 ppm, CO < 25 ppm). Only an Officer or the Master approves, and only when nothing blocks it; the screen lists what does.",
         "Every permit needs a risk assessment: copy one from the vessel's library for the job and adjust it. A risk assessment rates each hazard on a 5 × 5 matrix before and after its controls; anything still High or Extreme is called out. Start the library from the six starter assessments and make them the vessel's own.",
         "A permit past its window shows as Overdue: close it or issue a new one.",
+        "Toolbox meeting: before the work starts, hold it in the permit — the place and the job come from the permit; mark everyone present, tick what was covered (hazards and controls from the risk assessment, PPE, communication, emergency, stop-work), write what was raised, sign. The work cannot start until everyone on the team is marked present; if the place or the job changes afterwards, hold it again. Closing: enter the date and time the work was finished (now by default; earlier if you sign afterwards, never before the start) and sign — it is printed on the permit with the signature.",
       ],
     },
     {
@@ -835,6 +836,7 @@ const ru: ManualContent = {
         "Разрешение проходит Draft → Requested → Approved → In progress → Closed, каждый шаг подписывается. Заполните работу, место, окно времени (у каждого типа свой максимум), бригаду и все меры (Yes / No / N/A). Для замкнутых пространств и горячих работ нужны замеры газа в пределах (O₂ 20,8–21,5 %, LEL < 1 %, H₂S < 5 ppm, CO < 25 ppm). Одобряет только офицер или Мастер и только когда ничего не мешает — экран перечисляет, что именно.",
         "Каждому разрешению нужна оценка риска: скопируйте её из библиотеки судна под работу и поправьте. В оценке каждая опасность оценивается по матрице 5 × 5 до и после мер контроля; всё, что осталось High или Extreme, выделяется. Библиотеку можно начать с шести стартовых оценок и доработать под судно.",
         "Разрешение с истёкшим окном показывается как Overdue: закройте его или выпустите новое.",
+        "Toolbox meeting: перед началом работы проведите его в пермите — место и работа берутся из пермита; отметьте всех присутствующих, отметьте, что разобрано (опасности и меры из оценки рисков, СИЗ, связь, аварийные действия, право остановить работу), запишите вопросы, подпишите. Работу нельзя начать, пока не отмечены все из бригады; если место или работа изменились — проведите заново. Закрытие: укажите дату и время окончания работы (по умолчанию — сейчас; раньше, если подписываете позже, но не раньше начала) и подпишите — это записывается в пермит вместе с подписью.",
       ],
     },
     {
@@ -1301,6 +1303,7 @@ const es: ManualContent = {
         "Un permiso pasa por Draft → Requested → Approved → In progress → Closed, con firma en cada paso. Indique el trabajo, el lugar, la ventana horaria (cada tipo tiene un máximo), el equipo y cada precaución (Yes / No / N/A). Espacios cerrados y trabajos en caliente necesitan mediciones de gas dentro de límites (O₂ 20,8–21,5 %, LEL < 1 %, H₂S < 5 ppm, CO < 25 ppm). Solo un oficial o el Master aprueba, y solo cuando nada lo impide; la pantalla dice qué falta.",
         "Cada permiso necesita una evaluación de riesgo: copie una de la biblioteca del buque para el trabajo y ajústela. Cada peligro se valora en una matriz 5 × 5 antes y después de los controles; lo que siga en High o Extreme se señala. Empiece la biblioteca con las seis evaluaciones iniciales y adáptelas al buque.",
         "Un permiso fuera de su ventana aparece como Overdue: ciérrelo o emita otro.",
+        "Toolbox meeting: antes de empezar, celébrela en el permiso — el lugar y el trabajo vienen del permiso; marque a todos los presentes, lo tratado (peligros y controles de la evaluación de riesgos, EPI, comunicación, emergencia, parar el trabajo), anote lo planteado y firme. El trabajo no puede empezar hasta que todo el equipo esté marcado como presente; si cambian el lugar o el trabajo, repítala. Cierre: indique la fecha y la hora en que terminó el trabajo (ahora por defecto; antes si firma más tarde, nunca antes del inicio) y firme — queda en el permiso con la firma.",
       ],
     },
     {
@@ -1767,6 +1770,7 @@ const uk: ManualContent = {
         "Дозвіл проходить Draft → Requested → Approved → In progress → Closed, кожен крок підписується. Заповніть роботу, місце, вікно часу (у кожного типу свій максимум), бригаду й усі заходи (Yes / No / N/A). Для замкнених просторів і гарячих робіт потрібні заміри газу в межах (O₂ 20,8–21,5 %, LEL < 1 %, H₂S < 5 ppm, CO < 25 ppm). Схвалює лише офіцер або Майстер і лише коли ніщо не заважає — екран перелічує, що саме.",
         "Кожному дозволу потрібна оцінка ризику: скопіюйте її з бібліотеки судна під роботу й поправте. Кожна небезпека оцінюється за матрицею 5 × 5 до і після заходів контролю; усе, що лишилося High чи Extreme, виділяється. Бібліотеку можна почати з шести стартових оцінок і доробити під судно.",
         "Дозвіл із простроченим вікном показується як Overdue: закрийте його або випустіть новий.",
+        "Toolbox meeting: перед початком роботи проведіть його в пермиті — місце й робота беруться з пермиту; позначте всіх присутніх, що розібрано (небезпеки й заходи з оцінки ризиків, ЗІЗ, зв'язок, аварійні дії, право зупинити роботу), запишіть питання, підпишіть. Роботу не можна почати, доки не позначено всіх із бригади; якщо місце чи робота змінилися — проведіть знову. Закриття: вкажіть дату й час закінчення роботи (за замовчуванням — зараз; раніше, якщо підписуєте пізніше, але не раніше початку) і підпишіть — це записується в пермит разом із підписом.",
       ],
     },
     {
