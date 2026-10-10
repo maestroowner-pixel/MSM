@@ -16,7 +16,7 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { GARBAGE_CATEGORY, GARBAGE_METHOD, GarbageCategory, GarbageEntry, GarbageMethod } from '../types/garbage';
-import { garbageMonth, placeText, seaDischargeProblem } from '../services/garbage';
+import { entryItems, garbageMonth, itemsText, placeText, seaDischargeProblem } from '../services/garbage';
 import { exportGarbageExcel, exportGarbagePdf } from '../services/garbageReport';
 import { todayIso } from '../services/pms';
 import { formatDate, formatDateTime } from '../utils/dates';
@@ -53,26 +53,31 @@ export default function GarbageSc() {
   const byMethod = (k: GarbageMethod) => Math.round(m.entries.filter((e) => e.method === k).reduce((n, e) => n + e.volume, 0) * 1000) / 1000;
 
   // ---- new entry ----
-  const blank = { category: 'C' as GarbageCategory, method: 'shore' as GarbageMethod, atSea: false, port: '', position: '', distance: '', comminuted: false, volume: '', receipt: '', container: '', remarks: '', date: today, time: hhmm() };
+  // Several categories in one operation, each with its amount (m³ as typed).
+  const blank = { amounts: {} as Partial<Record<GarbageCategory, string>>, method: 'shore' as GarbageMethod, atSea: false, port: '', position: '', distance: '', comminuted: false, receipt: '', container: '', remarks: '', date: today, time: hhmm() };
   const [f, setF] = useState(blank);
-  const volume = Number(f.volume.replace(',', '.'));
+  const picked = CATS.filter((c) => f.amounts[c] != null);
+  const items = picked.map((c) => ({ category: c, volume: Number((f.amounts[c] ?? '').replace(',', '.')) }));
+  const volume = Math.round(items.reduce((n, i) => n + (i.volume > 0 ? i.volume : 0), 0) * 1000) / 1000;
   const distance = f.distance.trim() ? Number(f.distance.replace(',', '.')) : undefined;
-  const problem = seaDischargeProblem({ category: f.category, method: f.method, distanceNm: distance, comminuted: f.comminuted });
+  const problem = picked.length ? seaDischargeProblem({ category: picked[0], method: f.method, distanceNm: distance, comminuted: f.comminuted, items }) : null;
 
   const save = async () => {
     if (!signer) return Alert.alert('Who is signing?', 'Choose your name below.');
-    if (!(volume > 0)) return Alert.alert('Amount', 'Enter the estimated amount in m³.');
+    if (!picked.length) return Alert.alert('Category', 'Tap the categories in this operation.');
+    const noAmount = items.filter((i) => !(i.volume > 0)).map((i) => i.category);
+    if (noAmount.length) return Alert.alert('Amount', `Enter the estimated amount in m³ for ${noAmount.join(', ')}.`);
     if (f.atSea || f.method === 'sea') {
       if (!f.position.trim()) return Alert.alert('Position', 'Enter the ship’s position.');
     } else if (!f.port.trim()) return Alert.alert('Port', 'Enter the port.');
     const go = async () => {
-      const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Garbage Record Book — ${f.category} ${GARBAGE_CATEGORY[f.category]}, ${volume} m³` });
+      const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Garbage Record Book — ${items.map((i) => `${i.category} ${i.volume}`).join(', ')} m³` });
       if (!sig) return;
       const now = Date.now();
       const e: GarbageEntry = {
-        id: uid('grb'), date: f.date, time: f.time, category: f.category, method: f.method, volume,
+        id: uid('grb'), date: f.date, time: f.time, category: picked[0], method: f.method, volume, items,
         ...(f.atSea || f.method === 'sea' ? { position: f.position.trim(), ...(distance != null ? { distanceNm: distance } : {}) } : { port: f.port.trim() }),
-        ...(f.comminuted && f.category === 'B' ? { comminuted: true } : {}),
+        ...(f.comminuted && picked.includes('B') ? { comminuted: true } : {}),
         ...(f.receipt.trim() ? { receiptNo: f.receipt.trim() } : {}),
         ...(f.container.trim() ? { containerNo: f.container.trim() } : {}),
         ...(f.remarks.trim() ? { remarks: f.remarks.trim() } : {}),
@@ -143,7 +148,29 @@ export default function GarbageSc() {
         <Card>
           <Label>Category</Label>
           <View style={styles.chips}>
-            {CATS.map((c) => <Chip key={c} on={f.category === c} label={`${c} · ${GARBAGE_CATEGORY[c]}`} onPress={() => setF({ ...f, category: c })} />)}
+            {CATS.map((c) => (
+              <Chip
+                key={c}
+                on={f.amounts[c] != null}
+                label={`${c} · ${GARBAGE_CATEGORY[c]}`}
+                onPress={() => {
+                  const a = { ...f.amounts };
+                  if (a[c] != null) delete a[c];
+                  else a[c] = '';
+                  setF({ ...f, amounts: a });
+                }}
+              />
+            ))}
+          </View>
+          {picked.length ? <Label>Amount, m³</Label> : null}
+          <View style={styles.amounts}>
+            {picked.map((c) => (
+              <View key={c} style={styles.amountRow}>
+                <Text style={styles.amountLabel} numberOfLines={1}>{`${c} · ${GARBAGE_CATEGORY[c]}`}</Text>
+                <TextInput style={[styles.input, styles.amountInput]} value={f.amounts[c] ?? ''} onChangeText={(v) => setF({ ...f, amounts: { ...f.amounts, [c]: v } })} placeholder="m³" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
+              </View>
+            ))}
+            {picked.length > 1 ? <Text style={styles.sub}>{`Total ${volume} m³`}</Text> : null}
           </View>
           <Label>How</Label>
           <View style={styles.chips}>
@@ -161,14 +188,13 @@ export default function GarbageSc() {
           ) : (
             <TextInput style={styles.input} value={f.port} onChangeText={(v) => setF({ ...f, port: v })} placeholder="Port" placeholderTextColor={COLORS.textLight} />
           )}
-          {f.category === 'B' && f.method === 'sea' ? (
+          {picked.includes('B') && f.method === 'sea' ? (
             <View style={styles.toggle}>
               <Text style={styles.toggleText}>Comminuted (ground below 25 mm)</Text>
               <Switch value={f.comminuted} onValueChange={(v) => setF({ ...f, comminuted: v })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
             </View>
           ) : null}
           <View style={styles.pair}>
-            <TextInput style={styles.input} value={f.volume} onChangeText={(v) => setF({ ...f, volume: v })} placeholder="Amount, m³" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
             <TextInput style={styles.input} value={f.date} onChangeText={(v) => setF({ ...f, date: v })} placeholder="yyyy-mm-dd" placeholderTextColor={COLORS.textLight} />
             <TextInput style={styles.input} value={f.time} onChangeText={(v) => setF({ ...f, time: v })} placeholder="hh:mm" placeholderTextColor={COLORS.textLight} />
           </View>
@@ -194,9 +220,9 @@ export default function GarbageSc() {
       <Label>{`Entries (${m.entries.length})`}</Label>
       {[...m.entries].reverse().map((e) => (
         <View key={e.id} style={styles.entry}>
-          <View style={[styles.cat, e.method === 'accidental' && { backgroundColor: COLORS.danger }]}><Text style={styles.catText}>{e.category}</Text></View>
+          <View style={[styles.cat, e.method === 'accidental' && { backgroundColor: COLORS.danger }]}><Text style={styles.catText} numberOfLines={1}>{entryItems(e).map((i) => i.category).join('')}</Text></View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.entryTitle}>{`${GARBAGE_CATEGORY[e.category]} · ${e.volume} m³ · ${GARBAGE_METHOD[e.method]}`}</Text>
+            <Text style={styles.entryTitle}>{`${itemsText(e, (c) => GARBAGE_CATEGORY[c])} m³ · ${GARBAGE_METHOD[e.method]}`}</Text>
             <Text style={styles.sub}>{[`${formatDate(e.date)} ${e.time}`, placeText(e), e.containerNo ? `container ${e.containerNo}` : null, e.receiptNo ? `receipt ${e.receiptNo}` : null, e.remarks, e.byRank ? `${e.by} (${e.byRank})` : e.by].filter(Boolean).join(' · ')}</Text>
           </View>
         </View>
@@ -237,9 +263,13 @@ const makeStyles = (COLORS: Palette) =>
     toggleText: { flex: 1, fontSize: SIZES.body, color: COLORS.textDark },
     pair: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.sm },
     input: { flex: 1, minWidth: 110, ...COLORS.glassInput, borderRadius: SIZES.radiusMd, paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm, fontSize: SIZES.body, color: COLORS.text, marginTop: SIZES.xs },
+    amounts: { gap: 4, marginBottom: SIZES.sm },
+    amountRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm },
+    amountLabel: { flex: 1, fontSize: SIZES.body, color: COLORS.textDark },
+    amountInput: { flex: 0, width: 110, minWidth: 110, textAlign: 'right' },
     problem: { color: COLORS.danger, fontWeight: '700', fontSize: SIZES.small, marginTop: SIZES.sm },
     entry: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.md, marginBottom: SIZES.sm },
-    cat: { width: 30, height: 30, borderRadius: 15, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
+    cat: { minWidth: 30, height: 30, paddingHorizontal: 6, borderRadius: 15, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
     catText: { color: COLORS.textWhite, fontWeight: '900' },
     entryTitle: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.textDark },
     stamp: { fontSize: SIZES.body, color: COLORS.textDark },

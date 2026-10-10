@@ -15,7 +15,26 @@
 
 import { GarbageCategory, GarbageEntry, GarbageMethod } from '../types/garbage';
 
-export function seaDischargeProblem(e: Pick<GarbageEntry, 'category' | 'method' | 'distanceNm' | 'comminuted'>): string | null {
+/** The categories and amounts of an entry — several, or the one of an older entry. */
+export function entryItems(e: Pick<GarbageEntry, 'category' | 'volume' | 'items'>): { category: GarbageCategory; volume: number }[] {
+  return e.items && e.items.length ? e.items : [{ category: e.category, volume: e.volume }];
+}
+
+/** "C Domestic wastes 0.4 · A Plastics 0.1" */
+export function itemsText(e: Pick<GarbageEntry, 'category' | 'volume' | 'items'>, label: (c: GarbageCategory) => string): string {
+  return entryItems(e).map((i) => `${i.category} ${label(i.category)} ${Math.round(i.volume * 1000) / 1000}`).join(' · ');
+}
+
+/** The first rule an entry breaks at sea, over all its categories. */
+export function seaDischargeProblem(e: Pick<GarbageEntry, 'category' | 'method' | 'distanceNm' | 'comminuted' | 'items'> & { volume?: number }): string | null {
+  for (const i of entryItems({ category: e.category, volume: e.volume ?? 0, items: e.items })) {
+    const p = categoryProblem({ ...e, category: i.category });
+    if (p) return e.items && e.items.length > 1 ? `${i.category}: ${p}` : p;
+  }
+  return null;
+}
+
+function categoryProblem(e: Pick<GarbageEntry, 'category' | 'method' | 'distanceNm' | 'comminuted'>): string | null {
   if (e.method !== 'sea') return null;
   const prohibited: GarbageCategory[] = ['A', 'C', 'D', 'E', 'F', 'H', 'I'];
   if (prohibited.includes(e.category)) return 'Discharge of this category into the sea is prohibited (MARPOL Annex V). If it was lost or discharged by accident, record it as accidental.';
@@ -42,8 +61,10 @@ export function garbageMonth(entries: GarbageEntry[], month: string): GarbageMon
   const totals = Object.fromEntries((['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'] as GarbageCategory[]).map((c) => [c, empty()])) as GarbageMonth['totals'];
   let total = 0;
   for (const e of list) {
-    totals[e.category][e.method] = Math.round((totals[e.category][e.method] + e.volume) * 1000) / 1000;
-    total += e.volume;
+    for (const i of entryItems(e)) {
+      totals[i.category][e.method] = Math.round((totals[i.category][e.method] + i.volume) * 1000) / 1000;
+      total += i.volume;
+    }
   }
   return { entries: list, totals, total: Math.round(total * 1000) / 1000 };
 }

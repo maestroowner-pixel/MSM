@@ -12,7 +12,7 @@ import * as XLSX from 'xlsx';
 
 import { VesselInfo } from './storage';
 import { esc, share, vesselHeader } from './export';
-import { garbageMonth, placeText } from './garbage';
+import { entryItems, garbageMonth, placeText } from './garbage';
 import { GARBAGE_CATEGORY, GarbageEntry, GarbageMasterSign } from '../types/garbage';
 import { deliverFile, onWeb, onWindows } from '../utils/fileShare';
 import { saveFileWeb } from '../utils/webSave';
@@ -27,17 +27,22 @@ export function gMonthLabel(month: string) {
 /** One row per entry, in the book's column order. */
 export function grbRows(entries: GarbageEntry[]): string[][] {
   const v = (x: number) => String(Math.round(x * 1000) / 1000);
-  return entries.map((e) => [
+  return entries.map((e) => {
+    // One operation on one line: every category with its amount, the total in the method's column.
+    const items = entryItems(e);
+    const sum = items.reduce((n, i) => n + i.volume, 0);
+    return [
     `${gDmy(e.date)} ${e.time}`,
     placeText(e),
-    `${e.category} — ${GARBAGE_CATEGORY[e.category]}`,
-    e.method === 'sea' ? v(e.volume) : '',
-    e.method === 'shore' ? v(e.volume) : '',
-    e.method === 'incineration' ? v(e.volume) : '',
-    e.method === 'accidental' ? v(e.volume) : '',
+    items.map((i) => `${i.category} — ${GARBAGE_CATEGORY[i.category]}${items.length > 1 ? ` ${v(i.volume)}` : ''}`).join('\n'),
+    e.method === 'sea' ? v(sum) : '',
+    e.method === 'shore' ? v(sum) : '',
+    e.method === 'incineration' ? v(sum) : '',
+    e.method === 'accidental' ? v(sum) : '',
     [e.containerNo ? `Container ${e.containerNo}` : '', e.receiptNo ? `Receipt ${e.receiptNo}` : '', e.comminuted ? 'comminuted' : '', e.remarks ?? ''].filter(Boolean).join('; '),
     e.byRank ? `${e.by} (${e.byRank})` : e.by,
-  ]);
+  ];
+  });
 }
 
 export const GRB_HEAD = ['Date / time', 'Position of the ship / port', 'Category', 'Into sea, m³', 'To reception facility, m³', 'Incinerated, m³', 'Accidental, m³', 'Remarks', 'Officer in charge'];

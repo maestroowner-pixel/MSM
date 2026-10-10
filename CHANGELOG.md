@@ -13,6 +13,7 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Garbage: one entry, several categories.** `items` [{category, volume}] — tap every category in the operation, an amount each; one line on screen, in PDF and Excel; totals per category; sea-discharge rules checked per category (named). Older single-category entries read as one item (`entryItems`).
 - **Permit PDF with the toolbox meeting report** (services/permitReport.ts → utils/permitPdf.web.ts / HTML print): the work, precautions with answers (NO in red), gas, isolations, RA hazards with residual risk, toolbox report (held, place, job, attendees with attendance and a column to sign by hand, topics ticked, raised/agreed), signatures incl. closing time and hand-drawn signatures as images. PDF button in the permit header. Shared `utils/sigImage`.
 - **Permits: toolbox meeting report in every permit.** Place and job copied from the permit; team
   members marked present (+ others present), topics covered (constants/toolbox.ts), RA hazards shown,

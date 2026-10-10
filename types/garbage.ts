@@ -43,10 +43,17 @@ export interface GarbageEntry {
   /** yyyy-mm-dd and hh:mm, ship's time. */
   date: string;
   time: string;
+  /** The first category (older entries: the only one). */
   category: GarbageCategory;
   method: GarbageMethod;
-  /** Estimated amount, m³. */
+  /** Estimated amount, m³ — the whole entry. */
   volume: number;
+  /**
+   * One operation, several categories, one line (10 Oct 2026: "in one entry
+   * several kinds of garbage are counted at once — give the amount and the type
+   * and put it on one line"). Older entries have none: `category` / `volume`.
+   */
+  items?: { category: GarbageCategory; volume: number }[];
   /** In port: its name. */
   port?: string;
   /** At sea: position as written ("38°45.2'N 002°10.6'E"). */
