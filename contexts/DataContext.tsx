@@ -18,7 +18,7 @@ import { Permit, RiskAssessment } from '../types/permits';
 import { FuelBunker, FuelReading, FuelTank, FuelTransfer } from '../types/fuel';
 import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
 import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
-import { SecurityLevelRec, Visitor } from '../types/security';
+import { SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
 import { ChecklistTemplate } from '../constants/checklists';
 import { CategoryMeta, setVesselCategories } from '../constants/categories';
 import { CATEGORIES, CATEGORY_MAP } from '../constants/categories';
@@ -101,6 +101,7 @@ interface DataContextType {
   sopepDrills: SopepDrill[];
   visitors: Visitor[];
   securityLevels: SecurityLevelRec[];
+  securityDrills: SecurityDrill[];
   /** Upsert (lists edited in place) or append (records) by storage key. */
   saveRow: <T extends { id: string }>(key: string, row: T) => Promise<void>;
   appendRow: <T extends { id: string }>(key: string, row: T) => Promise<void>;
@@ -183,6 +184,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [sopepDrills, setSopepDrills] = useState<SopepDrill[]>([]);
   const [visitors, setVisitors] = useState<Visitor[]>([]);
   const [securityLevels, setSecurityLevels] = useState<SecurityLevelRec[]>([]);
+  const [securityDrills, setSecurityDrills] = useState<SecurityDrill[]>([]);
   const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
   const [categories, setCategories] = useState<CategoryMeta[]>([]);
   const [recentScans, setRecentScans] = useState<ScanEntry[]>([]);
@@ -237,6 +239,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSopepDrills(await storage.loadList<SopepDrill>(storage.SOPEP_DRILLS_KEY));
     setVisitors(await storage.loadList<Visitor>(storage.VISITORS_KEY));
     setSecurityLevels(await storage.loadList<SecurityLevelRec>(storage.SECURITY_LEVEL_KEY));
+    setSecurityDrills(await storage.loadList<SecurityDrill>(storage.SECURITY_DRILLS_KEY));
     setTemplates(await storage.loadTemplates());
     setSigningPolicyState((await storage.loadSigningPolicy()) ?? DEFAULT_POLICY);
     setPhotoArchiveState((await storage.loadPhotoArchive()) ?? DEFAULT_ARCHIVE);
@@ -390,6 +393,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSopepDrills(await storage.loadList<SopepDrill>(storage.SOPEP_DRILLS_KEY));
     setVisitors(await storage.loadList<Visitor>(storage.VISITORS_KEY));
     setSecurityLevels(await storage.loadList<SecurityLevelRec>(storage.SECURITY_LEVEL_KEY));
+    setSecurityDrills(await storage.loadList<SecurityDrill>(storage.SECURITY_DRILLS_KEY));
   }, []);
 
   const saveMachine = useCallback(async (m: Machine) => {
@@ -608,6 +612,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         sopepDrills,
         visitors,
         securityLevels,
+        securityDrills,
         saveRow,
         appendRow,
         savePermit,

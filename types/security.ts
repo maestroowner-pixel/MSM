@@ -9,6 +9,8 @@
 //                  the Ship Security Officer, with when and why it changed.
 // ===================================
 
+import type { SignProof } from '../services/signature';
+
 export interface Visitor {
   id: string;
   date: string;
@@ -43,6 +45,37 @@ export interface SecurityLevelRec {
   byRank?: string;
   updatedAt: number;
 }
+
+/** A security drill (ISPS Code A/13.4, B/13.6: at least every three months). */
+export interface SecurityDrill {
+  id: string;
+  date: string;
+  time?: string;
+  scenario: string;
+  participants: string[];
+  minutes?: number;
+  /** Areas searched / what was found, what to improve. */
+  findings?: string;
+  by: string;
+  byRank?: string;
+  at: number;
+  signedWith?: SignProof;
+  updatedAt: number;
+}
+
+export const SECURITY_SCENARIOS = [
+  'Stowaway search',
+  'Bomb threat — search for a suspicious device',
+  'Unauthorised boarding / intruder',
+  'Piracy / armed robbery attack',
+  'Suspicious package or delivery',
+  'Restricted area breach',
+  'Change of security level',
+  'Ship Security Alert System (SSAS) test',
+];
+
+/** Drills at least every three months. */
+export const SECURITY_DRILL_DAYS = 90;
 
 export const LEVEL_TEXT: Record<1 | 2 | 3, string> = {
   1: 'Normal — minimum protective measures at all times',

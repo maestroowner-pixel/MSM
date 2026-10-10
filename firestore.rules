@@ -278,6 +278,11 @@ service cloud.firestore {
         allow create, update: if member(v);
         allow delete: if false;
       }
+      match /security_drills/{id} {
+        allow read: if reader(v);
+        allow create: if member(v);
+        allow update, delete: if false;
+      }
       match /security_levels/{id} {
         allow read: if reader(v);
         allow create: if isAdmin(v);

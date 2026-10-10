@@ -31,7 +31,7 @@ import { Permit, RiskAssessment } from '../types/permits';
 import { FuelBunker, FuelReading, FuelTank, FuelTransfer } from '../types/fuel';
 import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
 import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
-import { SecurityLevelRec, Visitor } from '../types/security';
+import { SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from '../services/storage';
 import { VesselInfo } from '../services/storage';
@@ -70,7 +70,7 @@ export interface BackupFile {
   garbage?: { entries: GarbageEntry[]; signs: GarbageMasterSign[] };
   /** SOPEP locker, checks, drills; ISPS visitor log and security levels. */
   sopep?: { items: SopepItem[]; checks: SopepCheck[]; drills: SopepDrill[] };
-  security?: { visitors: Visitor[]; levels: SecurityLevelRec[] };
+  security?: { visitors: Visitor[]; levels: SecurityLevelRec[]; drills?: SecurityDrill[] };
   files?: Record<string, string>; // basename -> base64 of the file contents
 }
 
@@ -174,7 +174,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   };
   const garbage = { entries: await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY), signs: await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY) };
   const sopep = { items: await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY), checks: await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY), drills: await storage.loadList<SopepDrill>(storage.SOPEP_DRILLS_KEY) };
-  const security = { visitors: await storage.loadList<Visitor>(storage.VISITORS_KEY), levels: await storage.loadList<SecurityLevelRec>(storage.SECURITY_LEVEL_KEY) };
+  const security = { visitors: await storage.loadList<Visitor>(storage.VISITORS_KEY), levels: await storage.loadList<SecurityLevelRec>(storage.SECURITY_LEVEL_KEY), drills: await storage.loadList<SecurityDrill>(storage.SECURITY_DRILLS_KEY) };
 
   // Read each referenced binary into a basename -> base64 map.
   const files: Record<string, string> = {};
@@ -399,6 +399,7 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
   if (backup.security) {
     await storage.saveList(storage.VISITORS_KEY, backup.security.visitors ?? []);
     await storage.saveList(storage.SECURITY_LEVEL_KEY, backup.security.levels ?? []);
+    await storage.saveList(storage.SECURITY_DRILLS_KEY, backup.security.drills ?? []);
   }
 
   if (backup.compressor) await storage.saveCompressor(normalizeCompressorState(backup.compressor));

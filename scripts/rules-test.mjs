@@ -89,6 +89,9 @@ await t(true, 'Gangway watch signs the visitor off', updateDoc(R(crew, 'visitors
 await t(false, 'Crew cannot change the security level', setDoc(R(crew, 'security_levels', 'l1'), { level: 2 }));
 await t(true, 'Officer (SSO) sets the security level', setDoc(R(officer, 'security_levels', 'l1'), { level: 2 }));
 
+await t(true, 'Crew member records a security drill', setDoc(R(crew, 'security_drills', 'd1'), { id: 'd1' }));
+await t(false, 'A security drill cannot be changed', updateDoc(R(crew, 'security_drills', 'd1'), { findings: 'x' }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);
