@@ -293,7 +293,7 @@ export default function CrewSc() {
   return (
     <Screen scroll>
       <ScreenTitle
-        title="Crew"
+        title={crewMgmt ? 'Crew list' : 'Crew'}
         subtitle={
           isMaster
             ? 'Who can sign an inspection. Names go on the record.'

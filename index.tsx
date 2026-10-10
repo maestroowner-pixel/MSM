@@ -559,7 +559,7 @@ function Root() {
         <Stack.Screen name="RecentScans" component={RecentScansSc} options={webHeader('Recently scanned')} />
         <Stack.Screen name="Inspection" component={InspectionSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="InspectionDetail" component={InspectionDetailSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Crew" component={CrewSc} options={webHeader('Crew', toTab('Settings'))} />
+        <Stack.Screen name="Crew" component={CrewSc} options={webHeader(moduleOn('crewCerts') ? 'Crew list' : 'Crew', toTab('Settings'))} />
         <Stack.Screen name="RestDay" component={RestDaySc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Access" component={AccessSc} options={webHeader('Access', toTab('Settings'))} />
         <Stack.Screen name="Machine" component={MachineSc} options={{ presentation: 'modal' }} />
