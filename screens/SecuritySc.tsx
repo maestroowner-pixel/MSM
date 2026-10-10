@@ -13,9 +13,9 @@
 // Everything synchronises across the vessel's devices (services/firebaseService).
 // ===================================
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { Card, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
@@ -33,7 +33,8 @@ import { roleAtLeast } from '../types/role';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { isAshore, lastMoves, nextMove, personsOnBoard } from '../services/gangway';
-import { exportCrewCards } from '../services/crewCards';
+import { exportCrewCards, exportVisitorPasses } from '../services/crewCards';
+import { samePass } from '../services/crewQr';
 import { exportVisitorExcel, exportVisitorPdf, movesOf, visitsOf, vlogTitle } from '../services/visitorLog';
 import { formatDate, formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
@@ -53,7 +54,13 @@ export default function SecuritySc() {
   const { signer, picker } = useSigner('WATCH');
   const officer = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const today = todayIso();
-  const [tab, setTab] = useState<Tab>('board');
+  // Two pages, as the menu's Security sub-items (and the chips on a phone):
+  // the gangway logbook, and the drills.
+  const route = useRoute<any>();
+  const view: 'gangway' | 'drills' = route.params?.view === 'drills' ? 'drills' : 'gangway';
+  const setView = (v: 'gangway' | 'drills') => nav.setParams({ view: v, pass: undefined });
+  const [sub, setSub] = useState<'board' | 'log'>('board');
+  const tab: Tab = view === 'drills' ? 'drills' : sub;
   const [saved, setSaved] = useState<string | null>(null);
   const done = (where: string | null | void) => {
     if (typeof where === 'string') setSaved(where === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${where}”`);
@@ -115,10 +122,23 @@ export default function SecuritySc() {
     }
     return [...seen.values()].slice(0, 4);
   }, [f.name, visitors]);
+  // Scanned a free visitor pass (ScanSc): open the sign-on form with its number.
+  useEffect(() => {
+    const p = route.params?.pass;
+    if (!p) return;
+    setSub('board');
+    setAdding(true);
+    setF((x) => ({ ...x, passNo: String(p) }));
+    nav.setParams({ pass: undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.params?.pass]);
+
   const signOn = async () => {
     if (!signer) return Alert.alert('Gangway watch', 'Choose the watch first.');
     if (!f.name.trim() || !f.purpose.trim()) return Alert.alert('Visitor', 'Name and purpose of the visit are needed.');
     if (current >= 2 && !f.idNo.trim()) return Alert.alert('Identity', `At security level ${current} the identity document must be checked and recorded.`);
+    const holder = f.passNo.trim() ? onBoard.find((v) => samePass(v.passNo, f.passNo)) : undefined;
+    if (holder) return Alert.alert('Pass in use', `Pass ${f.passNo.trim()} is still with ${holder.name} (on board since ${holder.timeIn}). Sign them off first, or give another pass.`);
     const v: Visitor = {
       id: uid('vis'), date: today, timeIn: hhmm(), name: f.name.trim(), purpose: f.purpose.trim(), inBy: signer.name, updatedAt: Date.now(),
       ...(f.company.trim() ? { company: f.company.trim() } : {}),
@@ -183,7 +203,7 @@ export default function SecuritySc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Security" subtitle="ISPS Code — gangway logbook and drills" help="Security (ISPS)" actions={levelSwitch} />
+      <ScreenTitle title={view === 'drills' ? 'Security drills' : 'Gangway logbook'} subtitle={view === 'drills' ? 'ISPS Code — at least one every three months' : 'ISPS Code — who is on board, visitors in and out'} help="Security (ISPS)" actions={levelSwitch} />
       {current > 1 && level ? (
         <Text style={[styles.alert, { color: levelColor(current), borderColor: levelColor(current) }]}>
           {`Security level ${current} since ${formatDateTime(level.since)} — ${LEVEL_TEXT[current]}. Identity document required for every visitor.`}
@@ -192,9 +212,17 @@ export default function SecuritySc() {
 
       <View style={styles.topRow}>
         <View style={styles.chips}>
-          <Chip on={tab === 'board'} label={`On board · ${pob.total}`} onPress={() => setTab('board')} />
-          <Chip on={tab === 'log'} label="Logbook" onPress={() => setTab('log')} />
-          <Chip on={tab === 'drills'} label="Drills" onPress={() => setTab('drills')} warn={drillLate} />
+          <Chip on={view === 'gangway'} label="Gangway logbook" onPress={() => setView('gangway')} />
+          <Chip on={view === 'drills'} label="Drills" onPress={() => setView('drills')} warn={drillLate} />
+          {view === 'gangway' ? (
+            <View style={styles.seg}>
+              {([['board', `On board · ${pob.total}`], ['log', 'Log']] as const).map(([k, l]) => (
+                <TouchableOpacity key={k} onPress={() => setSub(k)} style={[styles.segBtn, sub === k && styles.segOn]}>
+                  <Text style={[styles.segText, sub === k && styles.segTextOn]}>{l}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : null}
         </View>
         {picker ? <View style={{ minWidth: 240, flexShrink: 1 }}>{picker}</View> : null}
       </View>
@@ -206,7 +234,11 @@ export default function SecuritySc() {
             <TouchableOpacity style={styles.btn} onPress={() => setAdding((v) => !v)}><Text style={styles.btnText}>{adding ? 'Close' : '+ Visitor'}</Text></TouchableOpacity>
             <TouchableOpacity style={styles.btnOutline} onPress={() => nav.navigate('Scan')}>
               <MciIcon name="qrcode-scan" size={16} color={COLORS.primary} />
-              <Text style={styles.btnOutlineText}>Scan crew card</Text>
+              <Text style={styles.btnOutlineText}>Scan card or pass</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.btnOutline} onPress={() => exportVisitorPasses(20, vessel).then(done, fail)}>
+              <MciIcon name="badge-account-horizontal-outline" size={16} color={COLORS.primary} />
+              <Text style={styles.btnOutlineText}>Print visitor passes</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.btnOutline} onPress={() => exportCrewCards(people, vessel).then(done, fail)}>
               <MciIcon name="card-account-details-outline" size={16} color={COLORS.primary} />
@@ -346,6 +378,11 @@ export default function SecuritySc() {
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
+    seg: { flexDirection: 'row', borderWidth: 1, borderColor: COLORS.border, borderRadius: 999, overflow: 'hidden', marginLeft: SIZES.sm },
+    segBtn: { paddingVertical: 5, paddingHorizontal: SIZES.md },
+    segOn: { backgroundColor: COLORS.borderLight },
+    segText: { fontSize: SIZES.small, fontWeight: '600', color: COLORS.textLight },
+    segTextOn: { color: COLORS.textDark, fontWeight: '800' },
     lvl: { flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: SIZES.sm, marginTop: 4 },
     lvlText: { fontSize: SIZES.tiny, fontWeight: '800', color: COLORS.textLight, marginRight: 2 },
     lvlBtn: { width: 24, height: 24, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },

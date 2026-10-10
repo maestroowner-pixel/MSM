@@ -321,8 +321,8 @@ export function buildBoard(x: BoardInput): Board {
     status.pob = { total: pob.total, crew: pob.crewAboard, visitors: pob.visitors };
     const lastDrill = [...x.securityDrills].sort((a, b) => b.at - a.at)[0];
     const age = lastDrill ? daysAgo(x.today, lastDrill.date) : 999;
-    if (age > 90) n.push({ key: 'isps:drill', level: 'amber', who: 'officer', icon: 'shield-account', route: 'Security', title: lastDrill ? `Security drill overdue — last ${dm(lastDrill.date)}` : 'Security drill — none recorded (every 3 months)' });
-    else if (age > 75) plan.push({ key: 'isps:drill', icon: 'shield-account', route: 'Security', title: 'Security drill', sub: `due within ${plural(90 - age, 'day')}` });
+    if (age > 90) n.push({ key: 'isps:drill', level: 'amber', who: 'officer', icon: 'shield-account', route: 'Security', params: { view: 'drills' }, title: lastDrill ? `Security drill overdue — last ${dm(lastDrill.date)}` : 'Security drill — none recorded (every 3 months)' });
+    else if (age > 75) plan.push({ key: 'isps:drill', icon: 'shield-account', route: 'Security', params: { view: 'drills' }, title: 'Security drill', sub: `due within ${plural(90 - age, 'day')}` });
     if (pob.visitors) today.push({ key: 'vis', title: `${plural(pob.visitors, 'visitor')} on board`, done: false, route: 'Security' });
     tiles.push({ key: 'sec', label: 'Security', icon: 'shield-account', route: 'Security', level: lev > 1 ? 'red' : age > 90 ? 'amber' : undefined, line: `ISPS ${lev} · ${pob.total} on board` });
   }

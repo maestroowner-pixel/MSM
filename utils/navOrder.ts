@@ -46,6 +46,10 @@ export interface MenuChild {
   icon: string;
 }
 export const MENU_CHILDREN: Record<string, MenuChild[]> = {
+  Security: [
+    { view: 'gangway', label: 'Gangway logbook', icon: 'ferry' },
+    { view: 'drills', label: 'Drills', icon: 'run-fast' },
+  ],
   Fuel: [
     { view: 'sounding', label: 'Sounding', icon: 'ruler' },
     { view: 'daily', label: 'Daily report', icon: 'clipboard-text-clock-outline' },

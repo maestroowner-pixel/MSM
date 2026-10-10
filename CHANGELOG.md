@@ -13,6 +13,11 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Security split: Gangway logbook / Drills** (menu sub-items, chips on a phone; On board / Log inside
+  the logbook). **Visitor passes:** reusable numbered passes VISITOR 01–20 with QR `msm://pass/NN`
+  (Print visitor passes, same 10-per-A4 sheet as crew cards). Scanning a free pass opens the sign-on
+  form with its number; scanning a pass held by a visitor on board signs them off. A pass still out
+  cannot be given again. Board's drill notices open Drills.
 - **Settings → signing: set / change PINs.** My signing PIN (an enrolled device's own account), Master PIN (0000 until changed, flagged), Crew signing PINs → Crew matrix; reset list leaves out the Master PIN. Wording without "face".
 - **Notice board (dark, `board`).** The Dashboard tab becomes the vessel's board across every module
   (services/board.ts → screens/BoardSc.tsx): status line (ISPS, persons on board, ROB ≈ days), Needs

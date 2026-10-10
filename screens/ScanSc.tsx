@@ -33,7 +33,7 @@ import { SCAN_BARCODE_TYPES, ScanMatch, lookupScan } from '../services/barcode';
 import { SIZES, Palette } from '../theme';
 import { goBackOr } from '../utils/nav';
 import { recordScanProof } from '../services/signingPolicy';
-import { parseCrewQr } from '../services/crewQr';
+import { parseCrewQr, parsePassQr, samePass } from '../services/crewQr';
 import { isDoubleScan, nextMove } from '../services/gangway';
 import { useSync } from '../contexts/SyncContext';
 import { moduleOn } from '../constants/modules';
@@ -58,7 +58,7 @@ export default function ScanSc() {
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { flat, recordScan, crew, crewMoves, appendRow } = useData();
+  const { flat, recordScan, crew, crewMoves, appendRow, visitors, saveRow } = useData();
   const sync = useSync();
   /** The last crew card read at the gangway — shown big, then the scanner is ready for the next. */
   const [crewHit, setCrewHit] = useState<{ name: string; text: string; ok: boolean } | null>(null);
@@ -100,6 +100,26 @@ export default function ScanSc() {
         return;
       }
 
+      // A visitor pass (msm://pass/07): back at the gangway → sign its holder off;
+      // a free pass → the sign-on form with this pass number.
+      const passNo = parsePassQr(code);
+      if (passNo && moduleOn('security')) {
+        const holder = visitors.find((v) => !v.timeOut && samePass(v.passNo, passNo));
+        if (!holder) {
+          nav.replace('Main', { screen: 'Security', params: { view: 'gangway', pass: passNo } });
+          return;
+        }
+        const t = new Date();
+        const hhmm = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
+        const day = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+        void saveRow(storage.VISITORS_KEY, { ...holder, timeOut: hhmm, ...(holder.date !== day ? { dateOut: day } : {}), outBy: sync.me ? personName(sync.me) : 'Gangway' });
+        setCrewHit({ name: holder.company ? `${holder.name} · ${holder.company}` : holder.name, text: `SIGNED OFF · pass ${passNo} · ${hhmm}`, ok: true });
+        setTimeout(() => {
+          locked.current = false;
+        }, 2500);
+        return;
+      }
+
       const match = lookupScan(code, flat);
       if (match.kind === 'item') {
         // Proof that the label was in front of the camera — what lets a crew
@@ -119,7 +139,7 @@ export default function ScanSc() {
       }
       setResult(match);
     },
-    [flat, nav, recordScan, crew, crewMoves, appendRow, sync.me]
+    [flat, nav, recordScan, crew, crewMoves, appendRow, visitors, saveRow, sync.me]
   );
 
   const again = () => {

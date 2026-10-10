@@ -1,7 +1,7 @@
 // npm run check:gangway — who is ashore, persons on board, the next move a
 // crew card makes, double scans, and the crew card QR payload.
 import { isAshore, isDoubleScan, lastMoves, nextMove, personsOnBoard } from '../services/gangway';
-import { crewQrPayload, parseCrewQr } from '../services/crewQr';
+import { crewQrPayload, parseCrewQr, parsePassQr, passQrPayload, samePass } from '../services/crewQr';
 
 let fail = 0;
 const ok = (c: boolean, m: string) => { if (!c) { fail++; console.log('✗', m); } else console.log('✓', m); };
@@ -22,5 +22,7 @@ ok(pob.crewTotal === 2 && pob.crewAboard === 1 && pob.visitors === 1 && pob.tota
 ok(isDoubleScan('a', [m1], t0.getTime() + 30_000) && !isDoubleScan('a', [m1], t0.getTime() + 120_000), 'double scan within a minute');
 ok(parseCrewQr(crewQrPayload('crw_AbC')) === 'crw_AbC' && parseCrewQr('MSM://CREW/x1') === 'x1', 'crew QR round trip, case of scheme ignored');
 ok(parseCrewQr('msm://item/x') === null, 'crew and item QRs do not mix');
+ok(parsePassQr(passQrPayload('07')) === '07' && parsePassQr('msm://crew/x') === null && parseCrewQr(passQrPayload('07')) === null, 'visitor pass QR round trip, not a crew card');
+ok(samePass('7', '07') && samePass('07', '7') && !samePass('7', '17') && !samePass(undefined, '7'), '"7" and "07" are the same pass');
 console.log(fail ? `${fail} failed` : 'all passed');
 process.exit(fail ? 1 : 0);
