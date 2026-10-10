@@ -314,7 +314,7 @@ const en: ManualContent = {
         "Consumption is never typed: it is yesterday's remaining on board plus what was received, minus today's. A day without a sounding has no figure; the fuel burnt over the gap is put on the next sounding (\"· 3 d\"). A figure marked ⚠ means a sounding or a bunker quantity is wrong.",
         "+ Bunkering records port, supplier, litres, density, sulphur, BDN number and the litres into each tank, and writes the Oil Record Book Part I entry (code H) ready to copy.",
         "Monthly report: PDF or Excel — opening ROB, received, consumed, closing ROB, the days, the bunkerings as ORB entries, transfers, and signature lines for the Chief Engineer and the Master.",
-        "In the menu Fuel opens into Sounding and Daily report. Daily report is the noon report: consumption since the previous sounding (normally noon to noon), ROB by tank, received, the 7-day average and how many days the fuel lasts at that rate, month to date — add a remark and send it by e-mail, share it, or copy it. The addressees are remembered.",
+        "In the menu Fuel opens into Sounding and Daily report. Daily report is the noon report: consumption since the previous sounding (normally noon to noon), ROB by tank, received, the 7-day average and how many days the fuel lasts at that rate, month to date — add a remark and send it by e-mail, share it, or copy it. The addressees are remembered. Every report sent is kept in Sent reports — day, who, when, how and to whom, with the text as it went; it syncs with the vessel and cannot be changed.",
       ],
     },
     {
@@ -761,7 +761,7 @@ const ru: ManualContent = {
         "Расход не вводится: это вчерашний остаток плюс полученное минус сегодняшний. У дня без замера своей цифры нет; израсходованное за пропуск относится на следующий замер («· 3 d»). Цифра с ⚠ значит, что ошибка в замере или в количестве бункеровки.",
         "+ Bunkering записывает порт, поставщика, литры, плотность, серу, номер BDN и литры по танкам и готовит запись в Oil Record Book Part I (код H) для копирования.",
         "Отчёт за месяц: PDF или Excel — остаток на начало, получено, израсходовано, остаток на конец, дни, бункеровки как записи ORB, перекачки и строки подписи стармеха и Мастера.",
-        "В меню Fuel раскрывается на Sounding и Daily report. Daily report — полуденный отчёт: расход с предыдущего замера (обычно с полудня до полудня), остаток по танкам, приход, средний расход за 7 дней и на сколько дней хватит топлива, расход с начала месяца — добавьте примечание и отправьте по e-mail, через «Поделиться» или скопируйте. Адресаты запоминаются.",
+        "В меню Fuel раскрывается на Sounding и Daily report. Daily report — полуденный отчёт: расход с предыдущего замера (обычно с полудня до полудня), остаток по танкам, приход, средний расход за 7 дней и на сколько дней хватит топлива, расход с начала месяца — добавьте примечание и отправьте по e-mail, через «Поделиться» или скопируйте. Адресаты запоминаются. Каждый отправленный отчёт сохраняется в Sent reports — день, кто, когда, как и кому, с текстом в том виде, как ушёл; журнал синхронизируется и не изменяется.",
       ],
     },
     {
@@ -1208,7 +1208,7 @@ const es: ManualContent = {
         "El consumo no se escribe: es el remanente de ayer más lo recibido menos el de hoy. Un día sin sonda no tiene cifra; lo consumido en el hueco se carga a la siguiente sonda («· 3 d»). Una cifra con ⚠ indica un error en una sonda o en la cantidad suministrada.",
         "+ Bunkering registra puerto, proveedor, litros, densidad, azufre, número de BDN y litros por tanque, y prepara la anotación del Oil Record Book Parte I (código H) para copiar.",
         "Informe mensual: PDF o Excel — remanente inicial, recibido, consumido, remanente final, los días, los suministros como anotaciones ORB, trasvases y líneas de firma del Jefe de Máquinas y el Master.",
-        "En el menú, Fuel se abre en Sounding y Daily report. Daily report es el informe del mediodía: consumo desde el sondeo anterior (normalmente de mediodía a mediodía), remanente por tanque, recibido, la media de 7 días y cuántos días dura el combustible a ese ritmo, consumo del mes — añada una observación y envíelo por e-mail, compártalo o cópielo. Los destinatarios se recuerdan.",
+        "En el menú, Fuel se abre en Sounding y Daily report. Daily report es el informe del mediodía: consumo desde el sondeo anterior (normalmente de mediodía a mediodía), remanente por tanque, recibido, la media de 7 días y cuántos días dura el combustible a ese ritmo, consumo del mes — añada una observación y envíelo por e-mail, compártalo o cópielo. Los destinatarios se recuerdan. Cada informe enviado queda en Sent reports — día, quién, cuándo, cómo y a quién, con el texto tal como salió; se sincroniza y no se puede modificar.",
       ],
     },
     {
@@ -1655,7 +1655,7 @@ const uk: ManualContent = {
         "Витрата не вводиться: це вчорашній залишок плюс отримане мінус сьогоднішній. День без заміру своєї цифри не має; витрачене за пропуск відноситься на наступний замір («· 3 d»). Цифра з ⚠ означає помилку в замірі чи в кількості бункерування.",
         "+ Bunkering записує порт, постачальника, літри, щільність, сірку, номер BDN і літри по танках та готує запис в Oil Record Book Part I (код H) для копіювання.",
         "Звіт за місяць: PDF чи Excel — залишок на початок, отримано, витрачено, залишок на кінець, дні, бункерування як записи ORB, перекачування та рядки підпису старшого механіка й Майстра.",
-        "У меню Fuel розкривається на Sounding і Daily report. Daily report — полуденний звіт: витрата з попереднього заміру (зазвичай з полудня до полудня), залишок за танками, прихід, середня витрата за 7 днів і на скільки днів вистачить палива, витрата з початку місяця — додайте примітку й надішліть e-mail, через «Поділитися» або скопіюйте. Адресати запам'ятовуються.",
+        "У меню Fuel розкривається на Sounding і Daily report. Daily report — полуденний звіт: витрата з попереднього заміру (зазвичай з полудня до полудня), залишок за танками, прихід, середня витрата за 7 днів і на скільки днів вистачить палива, витрата з початку місяця — додайте примітку й надішліть e-mail, через «Поділитися» або скопіюйте. Адресати запам'ятовуються. Кожен надісланий звіт зберігається в Sent reports — день, хто, коли, як і кому, з текстом у тому вигляді, як пішов; журнал синхронізується і не змінюється.",
       ],
     },
     {

@@ -5,6 +5,10 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Fuel daily report — Sent reports log.** Each sending (e-mail opened / shared / copied) is kept
+  with the day, sender, time, addressees, figures and the text as it went (`fuel_daily`, append-only
+  rule; synced, in backups). The day shows "✓ Sent …"; the log lists the last 30, tap for the text.
+  Rules 55/55.
 - **Menu sub-items; Fuel → Sounding / Daily report (dark, `fuel`).** `MENU_CHILDREN` in
   utils/navOrder: an entry with sub-items opens on tap (the current one starts open), each opens the
   screen on a page (`view` param). Fuel's chips do the same on the phone. **Daily report** = noon

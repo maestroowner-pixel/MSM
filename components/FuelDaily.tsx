@@ -2,7 +2,8 @@
 // Fuel → Daily report: the noon report, built from the soundings
 // (services/fuelDaily.ts), with a remark and the sender's name; sent by
 // e-mail, by the phone's share sheet (WhatsApp, Mail…), or copied.
-// The addressees are remembered on this device.
+// The addressees are remembered on this device. Every sending is logged —
+// figures and text as they went — and the log syncs with the vessel.
 // ===================================
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -18,7 +19,10 @@ import { SIZES, Palette } from '../theme';
 import { fuelDaily, fuelDailyText } from '../services/fuelDaily';
 import { vesselHeader } from '../services/export';
 import { todayIso } from '../services/pms';
-import { formatDate } from '../utils/dates';
+import { formatDate, formatDateTime } from '../utils/dates';
+import { uid } from '../utils/id';
+import * as storage from '../services/storage';
+import { FuelDailySent } from '../types/fuel';
 
 const TO_KEY = 'msm:fuel_report_to';
 const L = (n: number) => `${Math.round(n).toLocaleString('en-GB').replace(/,/g, ' ')} L`;
@@ -26,7 +30,8 @@ const L = (n: number) => `${Math.round(n).toLocaleString('en-GB').replace(/,/g, 
 export function FuelDaily({ onSounding }: { onSounding: () => void }) {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { fuelTanks, fuelReadings, fuelBunkers, vessel } = useData();
+  const { fuelTanks, fuelReadings, fuelBunkers, fuelDailySent, vessel, appendRow } = useData();
+  const [openLog, setOpenLog] = useState<string | null>(null);
   const { signer, picker } = useSigner('FROM');
   const today = todayIso();
   const [date, setDate] = useState(today);
@@ -58,12 +63,24 @@ export function FuelDaily({ onSounding }: { onSounding: () => void }) {
     }
     return true;
   };
+  const log = async (channel: FuelDailySent['channel']) => {
+    const now = Date.now();
+    const row: FuelDailySent = {
+      id: uid('fdr'), date, sentAt: now, by: signer!.name, ...(signer!.rank ? { byRank: signer!.rank } : {}), channel,
+      ...(channel === 'email' && to.trim() ? { to: to.trim() } : {}),
+      ...(r.consumed != null ? { consumed: r.consumed } : {}), ...(r.rob != null ? { rob: r.rob } : {}),
+      ...(r.avg7 != null ? { avg7: r.avg7 } : {}), ...(r.daysLeft != null ? { daysLeft: r.daysLeft } : {}),
+      ...(remarks.trim() ? { remarks: remarks.trim() } : {}), text, updatedAt: now,
+    };
+    await appendRow(storage.FUEL_DAILY_KEY, row);
+  };
   const email = async () => {
     if (!ready()) return;
     try {
       await AsyncStorage.setItem(TO_KEY, to.trim());
     } catch {}
     await Linking.openURL(`mailto:${encodeURIComponent(to.trim())}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`);
+    await log('email');
   };
   const share = async () => {
     if (!ready()) return;
@@ -72,6 +89,7 @@ export function FuelDaily({ onSounding }: { onSounding: () => void }) {
       if (nav?.share) {
         try {
           await nav.share({ title: subject, text });
+          await log('share');
           return;
         } catch {
           /* cancelled — fall through to copy */
@@ -79,14 +97,20 @@ export function FuelDaily({ onSounding }: { onSounding: () => void }) {
       }
       try {
         await nav?.clipboard?.writeText(text);
+        await log('copy');
         setNote('Copied — paste it into the message.');
       } catch {
         setNote('Could not copy — select the text below.');
       }
       return;
     }
-    await Share.share({ title: subject, message: text });
+    const res = await Share.share({ title: subject, message: text });
+    if (res.action !== Share.dismissedAction) await log('share');
   };
+  const sentToday = fuelDailySent.filter((x) => x.date === date).sort((a, b) => a.sentAt - b.sentAt);
+  const history = useMemo(() => [...fuelDailySent].sort((a, b) => b.sentAt - a.sentAt).slice(0, 30), [fuelDailySent]);
+  const how = (x: FuelDailySent) => (x.channel === 'email' ? `e-mail${x.to ? ` → ${x.to}` : ''}` : x.channel === 'share' ? 'shared' : 'copied');
+  const hm = (t: number) => new Date(t).toTimeString().slice(0, 5);
 
   return (
     <>
@@ -130,8 +154,28 @@ export function FuelDaily({ onSounding }: { onSounding: () => void }) {
           </TouchableOpacity>
         </View>
         {note ? <Text style={[styles.sub, { color: COLORS.primary, fontWeight: '700' }]}>{note}</Text> : null}
+        {sentToday.length ? (
+          <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700', marginTop: SIZES.sm }]}>
+            {`✓ Sent for ${formatDate(date)}: ${sentToday.map((x) => `${hm(x.sentAt)} ${x.by} · ${how(x)}`).join('; ')}`}
+          </Text>
+        ) : null}
         <Text style={styles.preview} selectable>{text}</Text>
       </Card>
+
+      <Label>{`Sent reports (${fuelDailySent.length})`}</Label>
+      {history.map((x) => (
+        <TouchableOpacity key={x.id} style={styles.logRow} onPress={() => setOpenLog(openLog === x.id ? null : x.id)} activeOpacity={0.7}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm }}>
+            <Text style={styles.logDay}>{formatDate(x.date)}</Text>
+            <Text style={[styles.sub, { flex: 1 }]} numberOfLines={1}>
+              {[x.consumed != null ? `${L(x.consumed)} burnt` : null, x.rob != null ? `ROB ${L(x.rob)}` : null, `${formatDateTime(x.sentAt)} · ${x.byRank ? `${x.by} (${x.byRank})` : x.by} · ${how(x)}`].filter(Boolean).join(' · ')}
+            </Text>
+            <MciIcon name={openLog === x.id ? 'chevron-up' : 'chevron-down'} size={18} color={COLORS.textLight} />
+          </View>
+          {openLog === x.id ? <Text style={styles.preview} selectable>{x.text}</Text> : null}
+        </TouchableOpacity>
+      ))}
+      {!history.length ? <Text style={styles.sub}>Nothing sent yet. Each report you send is kept here, as it went.</Text> : null}
     </>
   );
 }
@@ -160,5 +204,7 @@ const makeStyles = (COLORS: Palette) =>
     btnText: { color: COLORS.textWhite, fontWeight: '800' },
     btnOutline: { borderWidth: 1, borderColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 10, paddingHorizontal: SIZES.md },
     btnOutlineText: { color: COLORS.primary, fontWeight: '800' },
+    logRow: { ...COLORS.glassCard, borderRadius: SIZES.radiusMd, paddingVertical: SIZES.sm, paddingHorizontal: SIZES.md, marginBottom: SIZES.xs },
+    logDay: { fontWeight: '800', color: COLORS.textDark, fontSize: SIZES.body, minWidth: 96 },
     preview: { marginTop: SIZES.md, padding: SIZES.md, borderRadius: SIZES.radiusMd, backgroundColor: COLORS.borderLight, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: SIZES.small, color: COLORS.textDark },
   });

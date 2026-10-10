@@ -73,6 +73,31 @@ export interface FuelTransfer {
   updatedAt: number;
 }
 
+/**
+ * A daily (noon) report as it went out — the figures and the text frozen at
+ * the moment of sending, so the log shows what the office was told even if a
+ * sounding is corrected later. Append-only.
+ */
+export interface FuelDailySent {
+  id: string;
+  /** The report day. */
+  date: string;
+  sentAt: number;
+  by: string;
+  byRank?: string;
+  /** Addressees for an e-mail. */
+  to?: string;
+  /** How it left: the mail app opened, the share sheet, or copied. */
+  channel: 'email' | 'share' | 'copy';
+  consumed?: number;
+  rob?: number;
+  avg7?: number;
+  daysLeft?: number;
+  remarks?: string;
+  text: string;
+  updatedAt: number;
+}
+
 export const DEFAULT_TANKS: Omit<FuelTank, 'id' | 'updatedAt'>[] = [
   { name: 'Port diesel tank', order: 0 },
   { name: 'Starboard diesel tank', order: 1 },

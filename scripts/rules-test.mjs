@@ -95,6 +95,9 @@ await t(false, 'A security drill cannot be changed', updateDoc(R(crew, 'security
 await t(true, 'Gangway records a crew member going ashore', setDoc(R(crew, 'crew_moves', 'm1'), { id: 'm1', dir: 'ashore' }));
 await t(false, 'A crew movement cannot be changed', updateDoc(R(crew, 'crew_moves', 'm1'), { dir: 'aboard' }));
 
+await t(true, 'Crew member logs a fuel daily report as sent', setDoc(R(crew, 'fuel_daily', 'fd1'), { id: 'fd1' }));
+await t(false, 'A sent daily report cannot be changed', updateDoc(R(crew, 'fuel_daily', 'fd1'), { text: 'x' }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

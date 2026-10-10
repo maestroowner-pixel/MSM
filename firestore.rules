@@ -240,6 +240,12 @@ service cloud.firestore {
         allow create, update: if member(v);
         allow delete: if false;
       }
+      // Fuel daily (noon) reports as sent — a log, written once.
+      match /fuel_daily/{id} {
+        allow read: if reader(v);
+        allow create: if member(v);
+        allow update, delete: if false;
+      }
       // Garbage Record Book (MARPOL Annex V): entries and the Master's monthly
       // signatures are written once and never changed — as in the paper book,
       // a mistake is corrected by a further entry.

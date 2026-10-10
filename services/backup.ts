@@ -28,7 +28,7 @@ import { SpareMove, SparePart } from '../types/spares';
 import { DocAck, IsmDoc } from '../types/docs';
 import { CrewPrivate } from '../types/crew';
 import { Permit, RiskAssessment } from '../types/permits';
-import { FuelBunker, FuelReading, FuelTank, FuelTransfer } from '../types/fuel';
+import { FuelBunker, FuelDailySent, FuelReading, FuelTank, FuelTransfer } from '../types/fuel';
 import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
 import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
@@ -65,7 +65,7 @@ export interface BackupFile {
   /** Permits to work and risk assessments. */
   ptw?: { permits: Permit[]; risks: RiskAssessment[] };
   /** Fuel tanks, soundings, bunkerings, transfers. */
-  fuel?: { tanks: FuelTank[]; readings: FuelReading[]; bunkers: FuelBunker[]; transfers: FuelTransfer[] };
+  fuel?: { tanks: FuelTank[]; readings: FuelReading[]; bunkers: FuelBunker[]; transfers: FuelTransfer[]; daily?: FuelDailySent[] };
   /** Garbage Record Book entries and the Master's monthly signatures. */
   garbage?: { entries: GarbageEntry[]; signs: GarbageMasterSign[] };
   /** SOPEP locker, checks, drills; ISPS visitor log and security levels. */
@@ -171,6 +171,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     readings: await storage.loadList<FuelReading>(storage.FUEL_READINGS_KEY),
     bunkers: await storage.loadList<FuelBunker>(storage.FUEL_BUNKERS_KEY),
     transfers: await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY),
+    daily: await storage.loadList<FuelDailySent>(storage.FUEL_DAILY_KEY),
   };
   const garbage = { entries: await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY), signs: await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY) };
   const sopep = { items: await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY), checks: await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY), drills: await storage.loadList<SopepDrill>(storage.SOPEP_DRILLS_KEY) };
@@ -386,6 +387,7 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     await storage.saveList(storage.FUEL_READINGS_KEY, backup.fuel.readings ?? []);
     await storage.saveList(storage.FUEL_BUNKERS_KEY, backup.fuel.bunkers ?? []);
     await storage.saveList(storage.FUEL_TRANSFERS_KEY, backup.fuel.transfers ?? []);
+    await storage.saveList(storage.FUEL_DAILY_KEY, backup.fuel.daily ?? []);
   }
   if (backup.garbage) {
     await storage.saveList(storage.GARBAGE_KEY, backup.garbage.entries ?? []);

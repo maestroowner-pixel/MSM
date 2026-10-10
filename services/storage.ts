@@ -34,6 +34,7 @@ export const FUEL_TANKS_KEY = `${PREFIX}fuel_tanks`;
 export const FUEL_READINGS_KEY = `${PREFIX}fuel_readings`;
 export const FUEL_BUNKERS_KEY = `${PREFIX}fuel_bunkers`;
 export const FUEL_TRANSFERS_KEY = `${PREFIX}fuel_transfers`;
+export const FUEL_DAILY_KEY = `${PREFIX}fuel_daily`;
 export const GARBAGE_KEY = `${PREFIX}garbage`;
 export const GARBAGE_SIGNS_KEY = `${PREFIX}garbage_signs`;
 export const SOPEP_ITEMS_KEY = `${PREFIX}sopep_items`;
@@ -653,6 +654,7 @@ export async function resetAllData(): Promise<void> {
     FUEL_READINGS_KEY,
     FUEL_BUNKERS_KEY,
     FUEL_TRANSFERS_KEY,
+    FUEL_DAILY_KEY,
     GARBAGE_KEY,
     GARBAGE_SIGNS_KEY,
     SOPEP_ITEMS_KEY,

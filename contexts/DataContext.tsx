@@ -15,7 +15,7 @@ import { Machine, PmsDone, PmsJob } from '../types/pms';
 import { SpareMove, SparePart } from '../types/spares';
 import { DocAck, IsmDoc } from '../types/docs';
 import { Permit, RiskAssessment } from '../types/permits';
-import { FuelBunker, FuelReading, FuelTank, FuelTransfer } from '../types/fuel';
+import { FuelBunker, FuelDailySent, FuelReading, FuelTank, FuelTransfer } from '../types/fuel';
 import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
 import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
@@ -91,6 +91,7 @@ interface DataContextType {
   fuelTransfers: FuelTransfer[];
   saveFuel: (kind: 'tank' | 'reading' | 'bunker' | 'transfer', row: any) => Promise<void>;
   /** Garbage Record Book — entries and the Master's monthly signatures (append-only). */
+  fuelDailySent: FuelDailySent[];
   garbage: GarbageEntry[];
   garbageSigns: GarbageMasterSign[];
   addGarbage: (e: GarbageEntry) => Promise<void>;
@@ -178,6 +179,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [fuelReadings, setFuelReadings] = useState<FuelReading[]>([]);
   const [fuelBunkers, setFuelBunkers] = useState<FuelBunker[]>([]);
   const [fuelTransfers, setFuelTransfers] = useState<FuelTransfer[]>([]);
+  const [fuelDailySent, setFuelDailySent] = useState<FuelDailySent[]>([]);
   const [garbage, setGarbage] = useState<GarbageEntry[]>([]);
   const [garbageSigns, setGarbageSigns] = useState<GarbageMasterSign[]>([]);
   const [sopepItems, setSopepItems] = useState<SopepItem[]>([]);
@@ -234,6 +236,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setFuelReadings(await storage.loadList<FuelReading>(storage.FUEL_READINGS_KEY));
     setFuelBunkers(await storage.loadList<FuelBunker>(storage.FUEL_BUNKERS_KEY));
     setFuelTransfers(await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY));
+    setFuelDailySent(await storage.loadList<FuelDailySent>(storage.FUEL_DAILY_KEY));
     setGarbage(await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY));
     setGarbageSigns(await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY));
     setSopepItems((await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order));
@@ -389,6 +392,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setFuelReadings(await storage.loadList<FuelReading>(storage.FUEL_READINGS_KEY));
     setFuelBunkers(await storage.loadList<FuelBunker>(storage.FUEL_BUNKERS_KEY));
     setFuelTransfers(await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY));
+    setFuelDailySent(await storage.loadList<FuelDailySent>(storage.FUEL_DAILY_KEY));
     setGarbage(await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY));
     setGarbageSigns(await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY));
     setSopepItems((await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order));
@@ -607,6 +611,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         fuelBunkers,
         fuelTransfers,
         saveFuel,
+        fuelDailySent,
         garbage,
         garbageSigns,
         addGarbage,
