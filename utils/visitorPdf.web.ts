@@ -7,24 +7,7 @@ import { VesselInfo } from '../services/storage';
 import { vesselHeader } from '../services/export';
 import { MOVES_HEAD, SIG_COL, VLOG_HEAD, moveRows, vlogRows, vlogTitle } from '../services/visitorLog';
 import { SIG_H, SIG_W } from '../components/SignaturePad';
-
-function sigImage(path: string): string | null {
-  try {
-    const cv = document.createElement('canvas');
-    cv.width = SIG_W;
-    cv.height = SIG_H;
-    const g = cv.getContext('2d');
-    if (!g) return null;
-    g.strokeStyle = '#0B2545';
-    g.lineWidth = 3;
-    g.lineCap = 'round';
-    g.lineJoin = 'round';
-    g.stroke(new Path2D(path));
-    return cv.toDataURL('image/png');
-  } catch {
-    return null;
-  }
-}
+import { sigImage } from './sigImage';
 
 export function visitorPdfBlob(visits: Visitor[], moves: CrewMove[], period: string, vessel: VesselInfo | null): Blob {
   const { jsPDF } = require('jspdf');

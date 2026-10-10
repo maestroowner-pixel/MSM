@@ -32,6 +32,7 @@ import { Answer, GasTest, PERMIT_STATUS_LABEL, Permit, PermitType, SignStamp, To
 import { GAS_LIMITS, PERMIT_TYPE_MAP } from '../constants/permitTypes';
 import { RISK_COLOR, RISK_LABEL, approvalBlockers, gasProblems, isOverdue, nextNumber, nowLocal, startBlockers, worstResidual } from '../services/permits';
 import { TOOLBOX_TOPICS } from '../constants/toolbox';
+import { exportPermitPdf } from '../services/permitReport';
 import { isAboard } from '../types/crew';
 import { roleAtLeast } from '../types/role';
 import { formatDateTime } from '../utils/dates';
@@ -46,7 +47,7 @@ export default function PermitSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { permits, risks, crew, savePermit, saveRisk } = useData();
+  const { permits, risks, crew, savePermit, saveRisk , vessel } = useData();
   const sync = useSync();
   const confirmSign = useSignConfirm();
   const { signer, picker } = useSigner();
@@ -190,6 +191,22 @@ export default function PermitSc() {
         <View style={styles.header}>
           <BackButton onPress={() => goBackOr(nav)} />
           <Text style={styles.headerTitle} numberOfLines={1}>{p.no ?? `New ${def.label.toLowerCase()} permit`}</Text>
+          {/* The permit with its toolbox meeting report, as a document (services/permitReport). */}
+          {existing ? (
+            <TouchableOpacity
+              onPress={() =>
+                exportPermitPdf(p, ra, vessel).then(
+                  (w) => typeof w === 'string' && Alert.alert('Permit PDF', w === 'Downloads' ? 'Saved to Downloads.' : `Saved to the folder “${w}”.`),
+                  (e) => Alert.alert('Permit PDF', String(e?.message ?? e))
+                )
+              }
+              hitSlop={12}
+              style={{ marginRight: SIZES.md }}
+              accessibilityLabel="Permit as PDF"
+            >
+              <MciIcon name="file-pdf-box" size={24} color={COLORS.primary} />
+            </TouchableOpacity>
+          ) : null}
           {editable ? (
             <TouchableOpacity onPress={() => void persist(p).then(() => playSuccessSound())} hitSlop={12}>
               <Text style={styles.save}>Save</Text>
