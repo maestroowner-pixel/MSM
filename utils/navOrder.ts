@@ -36,6 +36,22 @@ export const MENU_GROUPS: MenuGroup[] = [
 ];
 
 const OTHER = 'ops';
+/**
+ * Sub-items under a menu entry: tapping the entry opens them, each opens the
+ * screen on one of its pages (route params `view`). Add pages here as they come.
+ */
+export interface MenuChild {
+  view: string;
+  label: string;
+  icon: string;
+}
+export const MENU_CHILDREN: Record<string, MenuChild[]> = {
+  Fuel: [
+    { view: 'sounding', label: 'Sounding', icon: 'ruler' },
+    { view: 'daily', label: 'Daily report', icon: 'clipboard-text-clock-outline' },
+  ],
+};
+
 export function groupOf(route: string): string {
   return MENU_GROUPS.find((g) => g.routes.includes(route))?.key ?? OTHER;
 }

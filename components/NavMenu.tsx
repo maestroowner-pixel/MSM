@@ -30,7 +30,7 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { MciIcon } from './MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { SIZES, Palette } from '../theme';
-import { applyOrder, flatGrouped, grouped, move, moveInGroup } from '../utils/navOrder';
+import { MENU_CHILDREN, applyOrder, flatGrouped, grouped, move, moveInGroup } from '../utils/navOrder';
 export { applyOrder, move, flatGrouped };
 
 /**
@@ -94,8 +94,9 @@ export function NavMenuBar(props: Props) {
   const [open, setOpen] = useState(false);
   const { state, navigation, order, icons, labelOf, pinned } = props;
   const current = state.routes[state.index]?.name;
-  const go = (name: string) => {
-    navigation.navigate(name);
+  const currentView: string | undefined = (state.routes[state.index]?.params as any)?.view;
+  const go = (name: string, params?: object) => {
+    navigation.navigate(name, params);
     setOpen(false);
   };
   const onWeb = Platform.OS === 'web';
@@ -105,7 +106,7 @@ export function NavMenuBar(props: Props) {
   const back = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate(home));
   const docked = onWeb && pinned && width >= PIN_WIDTH;
 
-  const list = <MenuList {...props} current={current} onPick={go} canPin={onWeb && width >= PIN_WIDTH} onClose={() => setOpen(false)} />;
+  const list = <MenuList {...props} current={current} currentView={currentView} onPick={go} canPin={onWeb && width >= PIN_WIDTH} onClose={() => setOpen(false)} />;
 
   if (onWeb) {
     return (
@@ -174,14 +175,18 @@ function MenuList({
   icons,
   labelOf,
   current,
+  currentView,
   onPick,
   canPin,
   onClose,
-}: Props & { current: string; onPick: (r: string) => void; canPin: boolean; onClose: () => void }) {
+}: Props & { current: string; currentView?: string; onPick: (r: string, params?: object) => void; canPin: boolean; onClose: () => void }) {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const insets = useSafeAreaInsets();
   const [editing, setEditing] = useState(false);
+  // Entries with sub-items open on a tap; the one on screen starts open.
+  const [openParents, setOpenParents] = useState<string[]>(MENU_CHILDREN[current] ? [current] : []);
+  const toggle = (r: string) => setOpenParents((o) => (o.includes(r) ? o.filter((x) => x !== r) : [...o, r]));
   return (
     <ScrollView contentContainerStyle={{ paddingTop: insets.top + SIZES.md, paddingBottom: SIZES.xl }}>
       <View style={styles.menuHead}>
@@ -202,11 +207,15 @@ function MenuList({
         <View key={group.key}>
           {group.label ? <Text style={styles.groupHead}>{group.label}</Text> : <View style={styles.sep} />}
           {routes.map((r, i) => {
-            const on = r === current;
+            const kids = MENU_CHILDREN[r];
+            const expanded = !!kids && openParents.includes(r) && !editing;
+            const on = r === current && !kids;
             return (
-              <TouchableOpacity key={r} style={[styles.item, on && !editing && styles.itemOn]} onPress={() => (editing ? undefined : onPick(r))} disabled={editing} activeOpacity={0.7}>
-                <MciIcon name={icons[r] ?? 'circle-small'} size={22} color={on ? COLORS.primary : COLORS.textLight} />
-                <Text style={[styles.itemText, on && { color: COLORS.primary }]} numberOfLines={1}>{labelOf(r)}</Text>
+              <View key={r}>
+              <TouchableOpacity style={[styles.item, on && !editing && styles.itemOn]} onPress={() => (editing ? undefined : kids ? toggle(r) : onPick(r))} disabled={editing} activeOpacity={0.7} accessibilityState={kids ? { expanded } : undefined}>
+                <MciIcon name={icons[r] ?? 'circle-small'} size={22} color={on || (kids && r === current) ? COLORS.primary : COLORS.textLight} />
+                <Text style={[styles.itemText, (on || (kids && r === current)) && { color: COLORS.primary }]} numberOfLines={1}>{labelOf(r)}</Text>
+                {kids && !editing ? <MciIcon name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={COLORS.textLight} /> : null}
                 {editing && routes.length > 1 ? (
                   <View style={{ flexDirection: 'row', gap: SIZES.xs }}>
                     <TouchableOpacity onPress={() => setOrder(moveInGroup(order, r, -1))} disabled={i === 0} hitSlop={6} style={[styles.arrow, i === 0 && { opacity: 0.25 }]} accessibilityLabel={`Move ${labelOf(r)} up`}>
@@ -218,6 +227,18 @@ function MenuList({
                   </View>
                 ) : null}
               </TouchableOpacity>
+              {expanded
+                ? kids!.map((k, j) => {
+                    const kon = r === current && (currentView ?? kids![0].view) === k.view;
+                    return (
+                      <TouchableOpacity key={k.view} style={[styles.item, styles.child, kon && styles.itemOn]} onPress={() => onPick(r, { view: k.view })} activeOpacity={0.7}>
+                        <MciIcon name={k.icon} size={18} color={kon ? COLORS.primary : COLORS.textLight} />
+                        <Text style={[styles.itemText, styles.childText, kon && { color: COLORS.primary }]} numberOfLines={1}>{k.label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })
+                : null}
+              </View>
             );
           })}
         </View>
@@ -233,6 +254,8 @@ function MenuList({
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
+    child: { paddingLeft: SIZES.lg + 22, paddingVertical: 8 },
+    childText: { fontSize: SIZES.small },
     top: {
       position: 'absolute', top: 0, right: 0, flexDirection: 'row', alignItems: 'center', gap: SIZES.sm,
       paddingHorizontal: SIZES.lg, backgroundColor: COLORS.tabBackground,

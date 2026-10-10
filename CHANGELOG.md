@@ -5,6 +5,12 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Menu sub-items; Fuel → Sounding / Daily report (dark, `fuel`).** `MENU_CHILDREN` in
+  utils/navOrder: an entry with sub-items opens on tap (the current one starts open), each opens the
+  screen on a page (`view` param). Fuel's chips do the same on the phone. **Daily report** = noon
+  report from the soundings: consumed since the previous sounding (24 h / n days), ROB by tank,
+  received, 7-day average and days of fuel at that rate, month to date, remark, sender — sent by
+  e-mail (addressees remembered on the device), share sheet, or copied. `npm run check:fueldaily`.
 - **Security = digital gangway logbook (dark, `security`).** Tabs On board / Logbook / Drills.
   ISPS level is a small 1·2·3 switch in the title corner (warning line above level 1). Gangway
   watch is a drop-down (signer picker is now a drop-down on every screen, remembered while the app

@@ -9,6 +9,8 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { FuelDaily } from '../components/FuelDaily';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { Card, Empty, Label, Screen, ScreenTitle } from '../components/ui';
@@ -51,6 +53,10 @@ export default function FuelSc() {
   const today = todayIso();
   const [month, setMonth] = useState(today.slice(0, 7));
   const [panel, setPanel] = useState<Panel>('none');
+  const nav = useNavigation<any>();
+  const route = useRoute<any>();
+  const view: 'sounding' | 'daily' = route.params?.view === 'daily' ? 'daily' : 'sounding';
+  const setView = (v: 'sounding' | 'daily') => nav.setParams({ view: v });
   const [saved, setSaved] = useState<string | null>(null);
 
   const m = useMemo(() => fuelMonth(month, tanks, fuelReadings, fuelBunkers, fuelTransfers), [month, tanks, fuelReadings, fuelBunkers, fuelTransfers]);
@@ -149,9 +155,31 @@ export default function FuelSc() {
 
   const shownDays = m.days.filter((d) => d.rob != null || d.received).reverse();
 
+  // Fuel has two pages — Sounding and Daily report — opened from the menu's
+  // Fuel sub-items, or from these chips (the phone's bar has no sub-items).
+  const viewSwitch = (
+    <View style={styles.views}>
+      {([['sounding', 'Sounding'], ['daily', 'Daily report']] as const).map(([k, l]) => (
+        <TouchableOpacity key={k} onPress={() => setView(k)} style={[styles.viewChip, view === k && { backgroundColor: COLORS.primary }]}>
+          <Text style={[styles.viewChipText, view === k && { color: COLORS.textWhite }]}>{l}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+  if (view === 'daily') {
+    return (
+      <Screen scroll>
+        <ScreenTitle title="Fuel — daily report" subtitle="The noon report: consumption over the last day, from the soundings" help="Fuel" />
+        {viewSwitch}
+        <FuelDaily onSounding={() => setView('sounding')} />
+      </Screen>
+    );
+  }
+
   return (
     <Screen scroll>
-      <ScreenTitle title="Fuel" subtitle="Diesel — soundings, bunkering, consumption" help="Fuel" />
+      <ScreenTitle title="Fuel — sounding" subtitle="Diesel — soundings, bunkering, consumption" help="Fuel" />
+      {viewSwitch}
 
       {/* Today's sounding */}
       <Card>
@@ -305,6 +333,9 @@ export default function FuelSc() {
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
+    views: { flexDirection: 'row', gap: SIZES.xs, marginBottom: SIZES.md },
+    viewChip: { paddingVertical: 6, paddingHorizontal: SIZES.md, borderRadius: 999, borderWidth: 1, borderColor: COLORS.primary },
+    viewChipText: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
     tankRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginTop: SIZES.sm },
     tankName: { flex: 1, fontSize: SIZES.body, fontWeight: '600', color: COLORS.textDark },
     litres: { width: 140, ...COLORS.glassInput, borderRadius: SIZES.radiusMd, paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm, fontSize: SIZES.body, color: COLORS.text, textAlign: 'right' },
