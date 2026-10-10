@@ -99,6 +99,10 @@ export function NavMenuBar(props: Props) {
     setOpen(false);
   };
   const onWeb = Platform.OS === 'web';
+  // Back: to the screen visited before (the navigator keeps the history), or
+  // to the first screen when the page was opened straight on this one.
+  const home = flatGrouped(order)[0] ?? state.routes[0]?.name;
+  const back = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate(home));
   const docked = onWeb && pinned && width >= PIN_WIDTH;
 
   const list = <MenuList {...props} current={current} onPick={go} canPin={onWeb && width >= PIN_WIDTH} onClose={() => setOpen(false)} />;
@@ -107,6 +111,11 @@ export function NavMenuBar(props: Props) {
     return (
       <>
         <View style={[styles.top, { paddingTop: insets.top, height: 60 + insets.top, left: docked ? MENU_WIDTH : 0 }]}>
+          {current !== home ? (
+            <TouchableOpacity onPress={back} hitSlop={10} style={styles.back} accessibilityRole="button" accessibilityLabel="Back">
+              <MciIcon name="arrow-left" size={24} color={COLORS.primary} />
+            </TouchableOpacity>
+          ) : null}
           {!docked ? (
             <TouchableOpacity onPress={() => setOpen(true)} hitSlop={10} style={styles.burger} accessibilityLabel="Menu">
               <MciIcon name="menu" size={26} color={COLORS.tabActive} />
@@ -230,6 +239,7 @@ const makeStyles = (COLORS: Palette) =>
       borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.borderLight,
     },
     burger: { marginRight: SIZES.sm },
+    back: { marginRight: SIZES.sm, paddingRight: SIZES.xs },
     topTitle: { fontSize: SIZES.h5, fontWeight: '700', color: COLORS.tabActive },
     dock: {
       position: 'absolute', top: 0, left: 0, bottom: 0, width: MENU_WIDTH, backgroundColor: COLORS.cardSolid,

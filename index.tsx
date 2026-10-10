@@ -88,6 +88,8 @@ import { moduleOn } from './constants/modules';
 import EnrolSc from './screens/EnrolSc';
 import { recordScanProof } from './services/signingPolicy';
 
+/** A browser on a touch screen (tablet / phone) — swipe between screens works there. */
+const touchScreen = Platform.OS === 'web' && typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
@@ -255,11 +257,12 @@ function MainTabs() {
       };
 
   // Swipe left/right to move between tabs (gesture-handler, no reanimated needed).
-  // Phones only. In a browser the same drag is a mouse selecting text, a
-  // trackpad scrolling a wide table sideways, a scrollbar being pulled — and the
-  // page jumped to the next screen instead (9 Oct 2026). The web has the menu.
+  // Phones, and the browser on a touch screen (a tablet — 10 Oct 2026). Not
+  // with a mouse: there the same drag is selecting text, a trackpad scrolling a
+  // wide table sideways, a scrollbar being pulled — and the page jumped to the
+  // next screen instead (9 Oct 2026). The web has the menu and the ← in the bar.
   const swipe = Gesture.Pan()
-    .enabled(Platform.OS !== 'web')
+    .enabled(Platform.OS !== 'web' || touchScreen)
     .activeOffsetX([-25, 25])
     .failOffsetY([-15, 15])
     .minVelocityX(180)
@@ -275,9 +278,13 @@ function MainTabs() {
     .runOnJS(true);
 
   return (
-    <GestureDetector gesture={swipe}>
+    // pan-y: the browser keeps vertical scrolling for itself; only a sideways
+    // drag reaches the gesture.
+    <GestureDetector gesture={swipe} touchAction={onWeb ? 'pan-y' : undefined}>
       <View style={{ flex: 1 }}>
         <Tab.Navigator
+          // ← in the web bar goes back through the screens visited, as a browser would.
+          backBehavior="history"
           sceneContainerStyle={onWeb ? { paddingTop: barHeight, ...(docked ? { paddingLeft: MENU_WIDTH } : {}) } : undefined}
           screenListeners={{
             state: (e: any) => {
