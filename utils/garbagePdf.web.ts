@@ -2,6 +2,7 @@
 // autotable). Phones print the HTML version in services/garbageReport.ts.
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
+import { proofShort } from '../services/signature';
 import { VesselInfo } from '../services/storage';
 import { vesselHeader } from '../services/export';
 import { GRB_HEAD, gDmy, gMonthLabel, grbRows } from '../services/garbageReport';
@@ -42,7 +43,7 @@ export function garbagePdfBlob(entries: GarbageEntry[], month: string, vessel: V
   doc.line(W - 120, y, W - 10, y);
   doc.setFontSize(8);
   doc.text(
-    `Master's signature${sign ? `: ${sign.by}${sign.byRank ? ` (${sign.byRank})` : ''}, ${gDmy(new Date(sign.at).toISOString().slice(0, 10))}${sign.signedWith ? ` · ${sign.signedWith.method === 'pin' ? 'PIN' : 'biometric'}` : ''}` : ''}`,
+    `Master's signature${sign ? `: ${sign.by}${sign.byRank ? ` (${sign.byRank})` : ''}, ${gDmy(new Date(sign.at).toISOString().slice(0, 10))}${sign.signedWith ? ` · ${proofShort(sign.signedWith)}` : ''}` : ''}`,
     W - 120,
     y + 4
   );

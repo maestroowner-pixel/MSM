@@ -7,7 +7,7 @@
 // requiring the JS wrapper there throws a redbox even inside try/catch. On such
 // a build this reports "not available" and signing falls back to the PIN.
 //
-// What a success proves, and no more: someone whose finger or face is enrolled
+// What a success proves, and no more: someone whose finger is enrolled
 // in THIS handset's own settings confirmed. The phone does not say whose — which
 // is why services/signature.ts offers it only for the device's own account.
 // ===================================
@@ -40,19 +40,19 @@ export async function biometricKind(): Promise<BiometricKind | null> {
   if (!L) return null;
   try {
     if (!(await L.hasHardwareAsync()) || !(await L.isEnrolledAsync())) return null;
+    // A fingerprint or nothing: a face is not a signature (10 Oct 2026). An
+    // iPhone with Face ID, a phone with face or iris unlock only — the signer
+    // uses the PIN or signs by hand instead.
     const types: number[] = await L.supportedAuthenticationTypesAsync();
     const T = L.AuthenticationType ?? {};
-    if (types.includes(T.FACIAL_RECOGNITION)) return 'face';
-    if (types.includes(T.FINGERPRINT)) return 'fingerprint';
-    if (types.includes(T.IRIS)) return 'iris';
-    return 'biometric';
+    return types.includes(T.FINGERPRINT) ? 'fingerprint' : null;
   } catch {
     return null;
   }
 }
 
 /**
- * Ask for the finger or face. Biometrics only — the device passcode is NOT
+ * Ask for the finger. Biometrics only — the device passcode is NOT
  * accepted as a fallback, because on a ship the passcode of a shared phone is
  * known to half the crew. Our own signing PIN is the fallback instead.
  */
@@ -65,6 +65,9 @@ export async function confirmBiometric(reason: string): Promise<boolean> {
       cancelLabel: 'Use PIN',
       disableDeviceFallback: true,
       fallbackLabel: '',
+      // Android: class-3 ("strong") biometrics only. On a phone with both, this
+      // leaves out the face unlock most makers ship as class 2.
+      biometricsSecurityLevel: 'strong',
     });
     return !!r?.success;
   } catch {

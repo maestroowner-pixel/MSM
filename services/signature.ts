@@ -34,8 +34,15 @@ import { PIN_MAX, PIN_MIN, isValidSignPin, stretch } from './pinHash';
 export { PIN_MAX, PIN_MIN, isValidSignPin, isWeakPin } from './pinHash';
 
 /** What a signed record carries about HOW its signer confirmed. */
+/**
+ * How a signature was confirmed. A person signs — so a PIN, a fingerprint, or
+ * their hand on the screen (finger or stylus, on a phone or tablet). Never a
+ * face: Face ID is not a signature (10 Oct 2026).
+ */
 export interface SignProof {
-  method: 'biometric' | 'pin';
+  method: 'biometric' | 'pin' | 'drawn';
+  /** The handwritten signature, for `drawn` (SVG path, 300 × 100 — components/SignaturePad). */
+  drawing?: string;
   /** The device it was signed on (firebaseService.getLocalDeviceId). */
   deviceId?: string;
   at: number;
@@ -174,7 +181,12 @@ function randomHex(bytes: number): string {
 }
 
 /** "Face ID · iPhone", "PIN" — one line for a report or a history row. */
+/** One word for a printed record: PIN / fingerprint / handwritten. */
+export function proofShort(p: SignProof | undefined): string {
+  return !p ? '' : p.method === 'biometric' ? 'fingerprint' : p.method === 'drawn' ? 'handwritten' : 'PIN';
+}
+
 export function proofText(p: SignProof | undefined): string | null {
   if (!p) return null;
-  return p.method === 'biometric' ? 'Confirmed by biometrics' : 'Confirmed by PIN';
+  return p.method === 'biometric' ? 'Confirmed by fingerprint' : p.method === 'drawn' ? 'Signed by hand on the screen' : 'Confirmed by PIN';
 }

@@ -14,6 +14,7 @@
 // ===================================
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { proofShort } from '../services/signature';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -138,7 +139,7 @@ export default function PermitSc() {
 
   const Stamp = ({ label, s }: { label: string; s?: SignStamp }) =>
     s ? (
-      <Text style={styles.stamp}>{`${label}: ${s.byRank ? `${s.by} (${s.byRank})` : s.by} · ${formatDateTime(s.at)}${s.signedWith ? ` · ${s.signedWith.method === 'pin' ? 'PIN' : 'biometric'}` : ''}`}</Text>
+      <Text style={styles.stamp}>{`${label}: ${s.byRank ? `${s.by} (${s.byRank})` : s.by} · ${formatDateTime(s.at)}${s.signedWith ? ` · ${proofShort(s.signedWith)}` : ''}`}</Text>
     ) : null;
 
   return (

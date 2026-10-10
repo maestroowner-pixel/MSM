@@ -11,6 +11,7 @@
 // ===================================
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { proofShort } from '../services/signature';
 import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -369,7 +370,7 @@ export default function DocSc() {
                         {a.byRank ? `${a.by} (${a.byRank})` : a.by}
                       </Text>
                       <Text style={styles.sub}>
-                        {[`Rev ${a.revision}`, formatDateTime(a.at), a.signedWith ? (a.signedWith.method === 'pin' ? 'PIN' : 'biometric') : null].filter(Boolean).join(' · ')}
+                        {[`Rev ${a.revision}`, formatDateTime(a.at), a.signedWith ? proofShort(a.signedWith) : null].filter(Boolean).join(' · ')}
                       </Text>
                     </View>
                   ))}

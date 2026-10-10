@@ -20,6 +20,7 @@
 // ===================================
 
 import * as Print from 'expo-print';
+import { proofShort } from './signature';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as XLSX from 'xlsx';
 
@@ -281,7 +282,7 @@ function doneRows(data: ReportData, flat: EquipmentItem[]) {
       category: CATEGORY_MAP[insp.category]?.label ?? insp.category,
       initials: initialsOf(insp.by),
       // How the signature was confirmed, when the vessel asks for it.
-      by: signatureLine(insp.by, insp.byRank) + (insp.signedWith ? ` · ${insp.signedWith.method === 'pin' ? 'PIN' : 'biometric'}` : ''),
+      by: signatureLine(insp.by, insp.byRank) + (insp.signedWith ? ` · ${proofShort(insp.signedWith)}` : ''),
       result: insp.outcome === 'fail' ? 'FAIL' : 'PASS',
       detail: `${b.passed}/${b.passed + b.failed + b.na}`,
       defect: defectReason(insp),

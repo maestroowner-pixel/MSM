@@ -99,7 +99,7 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Allow ISMpilot to use Face ID to confirm your signature on inspections and records."
+          "faceIDPermission": false
         }
       ],
       "expo-font",

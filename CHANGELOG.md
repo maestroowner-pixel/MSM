@@ -5,6 +5,13 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Signatures: PIN, fingerprint, or by hand — no Face ID.** Biometrics = fingerprint only: native
+  `biometricKind()` offers it only when a fingerprint sensor is enrolled (Face ID / face / iris →
+  PIN), Android requires class-3 biometrics; on the web only a Mac's Touch ID (iPad / phone / Windows
+  Hello may be a face). New method **Sign by hand** on phones, tablets and touch-screen browsers:
+  finger or stylus on SignaturePad, kept in the proof (`method: 'drawn'`, `drawing` SVG path). The
+  confirm card offers the other ways as links. `faceIDPermission: false`, NSFaceIDUsageDescription
+  removed. Records print "PIN / fingerprint / handwritten" (`proofShort`).
 - **Fuel daily report — Sent reports log.** Each sending (e-mail opened / shared / copied) is kept
   with the day, sender, time, addressees, figures and the text as it went (`fuel_daily`, append-only
   rule; synced, in backups). The day shows "✓ Sent …"; the log lists the last 30, tap for the text.

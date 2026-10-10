@@ -19,7 +19,7 @@
 // ===================================
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { MciIcon } from './MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
@@ -28,6 +28,7 @@ import { SIZES, Palette } from '../theme';
 import { moduleOn } from '../constants/modules';
 import * as fb from '../services/firebaseService';
 import { BiometricKind, biometricKind, confirmBiometric } from '../services/biometric';
+import { SignaturePad } from './SignaturePad';
 import {
   PIN_MAX,
   PIN_MIN,
@@ -52,7 +53,10 @@ export interface SignRequest {
 
 export type SignResult = { proof?: SignProof } | null;
 
-type Step = 'bio' | 'pin' | 'set1' | 'set2';
+type Step = 'bio' | 'pin' | 'set1' | 'set2' | 'draw';
+
+/** A phone, a tablet, or a browser on a touch screen — where a hand or a stylus can sign. */
+const canDraw = Platform.OS !== 'web' || (typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches);
 
 const Ctx = createContext<((r: SignRequest) => Promise<SignResult>) | null>(null);
 
@@ -72,6 +76,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
   const [step, setStep] = useState<Step>('pin');
   const [bio, setBio] = useState<BiometricKind | null>(null);
   const [pin, setPinText] = useState('');
+  const [drawing, setDrawing] = useState('');
   const [first, setFirst] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
   const resolver = useRef<((r: SignResult) => void) | null>(null);
@@ -84,9 +89,14 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
 
   // Firestore refuses `undefined` outright, so the device id is left out rather
   // than sent empty when it cannot be read.
-  const proof = async (method: SignProof['method']): Promise<SignResult> => {
+  const proof = async (method: SignProof['method'], drawn?: string): Promise<SignResult> => {
     const deviceId = await fb.getLocalDeviceId().catch(() => undefined);
-    return { proof: { method, ...(deviceId ? { deviceId } : {}), at: Date.now() } };
+    return { proof: { method, ...(drawn ? { drawing: drawn } : {}), ...(deviceId ? { deviceId } : {}), at: Date.now() } };
+  };
+  const toPin = async () => {
+    if (!req) return;
+    setMsg(null);
+    setStep((await hasPin(req.personKey)) ? 'pin' : 'set1');
   };
 
   const tryBio = useCallback(async (r: SignRequest) => {
@@ -102,6 +112,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
       return new Promise<SignResult>((resolve) => {
         resolver.current = resolve;
         setPinText('');
+        setDrawing('');
         setFirst('');
         setMsg(null);
         setReq(r);
@@ -157,12 +168,14 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
   };
 
   const title =
-    step === 'bio' ? 'Confirm with biometrics' : step === 'pin' ? 'Enter your signing PIN' : step === 'set1' ? 'Choose a signing PIN' : 'Repeat the PIN';
+    step === 'bio' ? 'Confirm with your fingerprint' : step === 'draw' ? 'Sign by hand' : step === 'pin' ? 'Enter your signing PIN' : step === 'set1' ? 'Choose a signing PIN' : 'Repeat the PIN';
   const hint =
     step === 'set1'
       ? `First signature on this device. Choose ${PIN_MIN}–${PIN_MAX} digits that only you know — not your account PIN. Nobody can read it back, the Master included.`
       : step === 'set2'
       ? 'Type the same PIN again.'
+      : step === 'draw'
+      ? 'With a finger or a stylus, as on paper. It goes into the record with your name.'
       : step === 'pin'
       ? 'Forgotten it? The Master resets it in Settings → Signing PINs, and you choose a new one.'
       : null;
@@ -173,14 +186,21 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
       <Modal visible={!!req} transparent animationType="fade" onRequestClose={() => finish(null)}>
         <View style={styles.backdrop}>
           <View style={styles.card}>
-            <MciIcon name={step === 'bio' ? (bio === 'face' ? 'face-recognition' : 'fingerprint') : 'dialpad'} size={40} color={COLORS.primary} />
+            <MciIcon name={step === 'bio' ? 'fingerprint' : step === 'draw' ? 'draw-pen' : 'dialpad'} size={40} color={COLORS.primary} />
             <Text style={styles.what}>{req?.what}</Text>
             <Text style={styles.name}>{req?.name}</Text>
             <Text style={styles.title}>{title}</Text>
             {step === 'bio' ? (
               <TouchableOpacity style={styles.primary} onPress={() => req && void tryBio(req)}>
-                <Text style={styles.primaryText}>{bio === 'face' ? 'Use Face ID' : 'Touch to sign'}</Text>
+                <Text style={styles.primaryText}>Touch to sign</Text>
               </TouchableOpacity>
+            ) : step === 'draw' ? (
+              <View style={{ alignSelf: 'stretch' }}>
+                <SignaturePad value={drawing} onChange={setDrawing} label={req?.name ?? ''} />
+                <TouchableOpacity style={[styles.primary, !drawing && { opacity: 0.5 }]} disabled={!drawing} onPress={async () => finish(await proof('drawn', drawing))}>
+                  <Text style={styles.primaryText}>Sign</Text>
+                </TouchableOpacity>
+              </View>
             ) : (
               <>
                 <TextInput
@@ -204,15 +224,24 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
             {msg ? <Text style={styles.msg}>{msg}</Text> : null}
             {hint ? <Text style={styles.hint}>{hint}</Text> : null}
             <View style={styles.row}>
-              {step === 'bio' ? (
-                <TouchableOpacity onPress={async () => req && setStep((await hasPin(req.personKey)) ? 'pin' : 'set1')} hitSlop={8}>
-                  <Text style={styles.link}>Use PIN</Text>
-                </TouchableOpacity>
-              ) : bio && step === 'pin' ? (
-                <TouchableOpacity onPress={() => { setStep('bio'); req && void tryBio(req); }} hitSlop={8}>
-                  <Text style={styles.link}>Use biometrics</Text>
-                </TouchableOpacity>
-              ) : <View />}
+              {/* The other ways this person can sign here: PIN, fingerprint, by hand. */}
+              <View style={{ flexDirection: 'row', gap: SIZES.md, flexWrap: 'wrap', flex: 1 }}>
+                {step !== 'pin' && step !== 'set1' && step !== 'set2' ? (
+                  <TouchableOpacity onPress={() => void toPin()} hitSlop={8}>
+                    <Text style={styles.link}>PIN</Text>
+                  </TouchableOpacity>
+                ) : null}
+                {bio && step !== 'bio' ? (
+                  <TouchableOpacity onPress={() => { setStep('bio'); req && void tryBio(req); }} hitSlop={8}>
+                    <Text style={styles.link}>Fingerprint</Text>
+                  </TouchableOpacity>
+                ) : null}
+                {canDraw && step !== 'draw' ? (
+                  <TouchableOpacity onPress={() => { setMsg(null); setStep('draw'); }} hitSlop={8}>
+                    <Text style={styles.link}>Sign by hand</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
               <TouchableOpacity onPress={() => finish(null)} hitSlop={8}>
                 <Text style={[styles.link, { color: COLORS.textLight }]}>Cancel</Text>
               </TouchableOpacity>

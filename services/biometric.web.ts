@@ -36,7 +36,13 @@ export async function biometricKind(): Promise<BiometricKind | null> {
     const PKC: any = (globalThis as any).PublicKeyCredential;
     if (!PKC || typeof PKC.isUserVerifyingPlatformAuthenticatorAvailable !== 'function') return null;
     if (!window.isSecureContext) return null;
-    return (await PKC.isUserVerifyingPlatformAuthenticatorAvailable()) ? 'biometric' : null;
+    // Only a Mac's Touch ID. In a browser the platform authenticator does not say
+    // which it uses: on an iPad or a phone it is Face ID or face unlock, on a PC
+    // Windows Hello may be a face — and a face is not a signature (10 Oct 2026).
+    // Those devices sign with the PIN or by hand.
+    const mac = /Macintosh/.test(navigator.userAgent) && !(navigator.maxTouchPoints > 0);
+    if (!mac) return null;
+    return (await PKC.isUserVerifyingPlatformAuthenticatorAvailable()) ? 'fingerprint' : null;
   } catch {
     return null;
   }
