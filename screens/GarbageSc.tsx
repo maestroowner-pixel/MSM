@@ -9,6 +9,7 @@ import { Alert, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } fr
 
 import { Card, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
+import { MonthPicker, monthName } from '../components/MonthPicker';
 import { useSignConfirm } from '../components/SignConfirm';
 import { useSigner } from '../components/SignerChoice';
 import { useTheme } from '../contexts/ThemeContext';
@@ -29,11 +30,6 @@ const hhmm = () => {
   const d = new Date();
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
-function shiftMonth(m: string, by: number) {
-  const [y, mo] = m.split('-').map(Number);
-  const d = new Date(Date.UTC(y, mo - 1 + by, 1));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-}
 
 export default function GarbageSc() {
   const COLORS = useTheme();
@@ -119,15 +115,13 @@ export default function GarbageSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Garbage" subtitle="Garbage Record Book — Part I · MARPOL Annex V" help="Garbage Record Book" />
+      <ScreenTitle
+        title={`Garbage — ${monthName(month)}`}
+        subtitle="Garbage Record Book — Part I · MARPOL Annex V"
+        help="Garbage Record Book"
+        actions={<MonthPicker value={month} onChange={setMonth} months={[...new Set(garbage.map((e) => e.date.slice(0, 7)))]} counts={garbage.reduce((c: Record<string, number>, e) => ((c[e.date.slice(0, 7)] = (c[e.date.slice(0, 7)] ?? 0) + 1), c), {})} />}
+      />
 
-      <View style={styles.monthRow}>
-        <TouchableOpacity onPress={() => setMonth(shiftMonth(month, -1))} hitSlop={10}><MciIcon name="chevron-left" size={28} color={COLORS.primary} /></TouchableOpacity>
-        <Text style={styles.month}>{new Date(`${month}-01T00:00:00Z`).toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' })}</Text>
-        <TouchableOpacity onPress={() => setMonth(shiftMonth(month, 1))} disabled={month >= today.slice(0, 7)} hitSlop={10}>
-          <MciIcon name="chevron-right" size={28} color={month >= today.slice(0, 7) ? COLORS.border : COLORS.primary} />
-        </TouchableOpacity>
-      </View>
       <View style={styles.stats}>
         {([['To reception facility', 'shore'], ['Incinerated', 'incineration'], ['Into sea', 'sea'], ['Accidental', 'accidental']] as [string, GarbageMethod][]).map(([l, k]) => (
           <View key={k} style={styles.stat}>

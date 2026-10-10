@@ -11,6 +11,7 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { FuelDaily } from '../components/FuelDaily';
+import { MonthPicker } from '../components/MonthPicker';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { Card, Empty, Label, Screen, ScreenTitle } from '../components/ui';
@@ -37,11 +38,6 @@ const hhmm = () => {
   const d = new Date();
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
-function shiftMonth(m: string, by: number) {
-  const [y, mo] = m.split('-').map(Number);
-  const d = new Date(Date.UTC(y, mo - 1 + by, 1));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-}
 
 type Panel = 'none' | 'bunker' | 'transfer' | 'tanks';
 
@@ -178,7 +174,12 @@ export default function FuelSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Fuel — sounding" subtitle="Diesel — soundings, bunkering, consumption" help="Fuel" />
+      <ScreenTitle
+        title="Fuel — sounding"
+        subtitle="Diesel — soundings, bunkering, consumption"
+        help="Fuel"
+        actions={<MonthPicker value={month} onChange={setMonth} months={[...new Set([...fuelReadings.map((r) => r.date.slice(0, 7)), ...fuelBunkers.map((b) => b.date.slice(0, 7))])]} />}
+      />
       {viewSwitch}
 
       {/* Today's sounding */}
@@ -205,14 +206,8 @@ export default function FuelSc() {
         ) : null}
       </Card>
 
-      {/* Month */}
-      <View style={styles.monthRow}>
-        <TouchableOpacity onPress={() => setMonth(shiftMonth(month, -1))} hitSlop={10}><MciIcon name="chevron-left" size={28} color={COLORS.primary} /></TouchableOpacity>
-        <Text style={styles.month}>{new Date(`${month}-01T00:00:00Z`).toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' })}</Text>
-        <TouchableOpacity onPress={() => setMonth(shiftMonth(month, 1))} disabled={month >= today.slice(0, 7)} hitSlop={10}>
-          <MciIcon name="chevron-right" size={28} color={month >= today.slice(0, 7) ? COLORS.border : COLORS.primary} />
-        </TouchableOpacity>
-      </View>
+      {/* Month — picked in the title */}
+      <Text style={styles.monthHead}>{new Date(`${month}-01T00:00:00Z`).toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' })}</Text>
       <View style={styles.stats}>
         {([['Opening ROB', m.opening], ['Received', m.received], ['Consumed', m.consumed], ['Closing ROB', m.closing]] as [string, number | undefined][]).map(([l, v]) => (
           <View key={l} style={styles.stat}>
@@ -333,6 +328,7 @@ export default function FuelSc() {
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
+    monthHead: { fontSize: SIZES.h5, fontWeight: '800', color: COLORS.textDark, marginTop: SIZES.md, marginBottom: SIZES.sm },
     views: { flexDirection: 'row', gap: SIZES.xs, marginBottom: SIZES.md },
     viewChip: { paddingVertical: 6, paddingHorizontal: SIZES.md, borderRadius: 999, borderWidth: 1, borderColor: COLORS.primary },
     viewChipText: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },

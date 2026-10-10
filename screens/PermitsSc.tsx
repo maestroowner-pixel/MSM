@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 
 import { Empty, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
+import { MonthPicker, monthName } from '../components/MonthPicker';
 import { Dropdown } from '../components/Dropdown';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
@@ -47,12 +48,13 @@ export default function PermitsSc() {
   const [month, setMonth] = useState(now.slice(0, 7));
   const monthOf = (p: Permit) => (p.from ?? '').slice(0, 7) || new Date(p.createdAt - new Date(p.createdAt).getTimezoneOffset() * 60000).toISOString().slice(0, 7);
   const ofMonth = permits.filter((p) => !p.deleted && monthOf(p) === month).sort((a, b) => (b.from ?? '').localeCompare(a.from ?? '') || b.createdAt - a.createdAt);
-  const shiftMonth = (by: number) => {
-    const [y, m] = month.split('-').map(Number);
-    const d = new Date(Date.UTC(y, m - 1 + by, 1));
-    setMonth(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`);
-  };
-  const monthLabel = new Date(`${month}-01T00:00:00Z`).toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const permitCounts = useMemo(() => {
+    const c: Record<string, number> = {};
+    for (const x of permits) if (!x.deleted) c[monthOf(x)] = (c[monthOf(x)] ?? 0) + 1;
+    return c;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permits]);
+  const permitMonths = Object.keys(permitCounts);
 
   const library = risks.filter((r) => r.generic).sort((a, b) => a.title.localeCompare(b.title));
   const jobRisks = risks.filter((r) => !r.generic).sort((a, b) => b.updatedAt - a.updatedAt);
@@ -112,7 +114,12 @@ export default function PermitsSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Permits" subtitle="Permits to work and risk assessments" help="Permits to work and risk assessments" />
+      <ScreenTitle
+        title={archive && tab === 'permits' ? `Permits — ${monthName(month)}` : 'Permits'}
+        subtitle={archive && tab === 'permits' ? `Archive · ${ofMonth.length} permit${ofMonth.length === 1 ? '' : 's'} this month` : 'Permits to work and risk assessments'}
+        help="Permits to work and risk assessments"
+        actions={archive && tab === 'permits' ? <MonthPicker value={month} onChange={setMonth} months={permitMonths} counts={permitCounts} /> : undefined}
+      />
       <View style={styles.tabs}>
         {([['permits', `Permits to work · ${open.length} open`], ['risks', `Risk assessments · ${risks.length}`]] as [Tab, string][]).map(([k, l]) => (
           <TouchableOpacity key={k} style={[styles.tab, tab === k && styles.tabOn]} onPress={() => setTab(k)}>
@@ -141,13 +148,6 @@ export default function PermitsSc() {
           </TouchableOpacity>
           {archive ? (
             <>
-              <View style={styles.monthRow}>
-                <TouchableOpacity onPress={() => shiftMonth(-1)} hitSlop={10}><MciIcon name="chevron-left" size={28} color={COLORS.primary} /></TouchableOpacity>
-                <Text style={styles.month}>{`${monthLabel} · ${ofMonth.length}`}</Text>
-                <TouchableOpacity onPress={() => shiftMonth(1)} disabled={month >= now.slice(0, 7)} hitSlop={10}>
-                  <MciIcon name="chevron-right" size={28} color={month >= now.slice(0, 7) ? COLORS.border : COLORS.primary} />
-                </TouchableOpacity>
-              </View>
               {ofMonth.map((p) => <PermitRow key={p.id} p={p} />)}
               {!ofMonth.length ? <Empty text="No permits this month." /> : null}
             </>

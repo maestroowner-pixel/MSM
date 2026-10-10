@@ -34,13 +34,17 @@ export function Dropdown<T>({
   style?: any;
 }) {
   const COLORS = useTheme();
-  const { height: winH } = useWindowDimensions();
+  const { height: winH, width: winW } = useWindowDimensions();
   const ref = useRef<View>(null);
   const [at, setAt] = useState<{ x: number; y: number; w: number } | null>(null);
   const current = options.find((o) => o.value === value)?.label ?? '';
 
   const open = () =>
-    ref.current?.measureInWindow((x, y, w, h) => setAt({ x, y: y + h + 4, w: Math.max(w, 200) }));
+    ref.current?.measureInWindow((x, y, w, h) => {
+      const mw = Math.max(w, 200);
+      // Keep the list on screen when the button sits at the right edge (a title's corner).
+      setAt({ x: Math.max(8, Math.min(x, winW - mw - 8)), y: y + h + 4, w: mw });
+    });
 
   return (
     <>
@@ -52,7 +56,7 @@ export function Dropdown<T>({
         accessibilityLabel={`${caption}: ${current}`}
         style={[styles.button, { ...COLORS.glassCard, borderColor: COLORS.borderLight }, style]}
       >
-        <Text style={[styles.caption, { color: COLORS.textLight }]}>{caption}</Text>
+        {caption ? <Text style={[styles.caption, { color: COLORS.textLight }]}>{caption}</Text> : null}
         <Text style={[styles.value, { color: COLORS.textDark }]} numberOfLines={1}>{current}</Text>
         <MciIcon name="chevron-down" size={18} color={COLORS.textLight} />
       </TouchableOpacity>
