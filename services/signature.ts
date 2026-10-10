@@ -137,7 +137,12 @@ export async function setPin(personKey: string, name: string, pin: string): Prom
  * Kept like any signing PIN, under its own holder key.
  */
 export const ADMIN_KEY = 'master';
-export const hasAdminPin = () => hasPin(ADMIN_KEY);
+/** Until the Master changes it, the Master PIN is 0000 (10 Oct 2026). */
+export const DEFAULT_ADMIN_PIN = '0000';
+/** There is always a Master PIN — the default one until it is changed. */
+export const hasAdminPin = async () => true;
+/** Still the default 0000 on this device. */
+export const adminPinIsDefault = async () => !(await hasPin(ADMIN_KEY));
 
 /** The Master's reset: the holder chooses a new PIN the next time they sign. */
 export async function resetPin(personKey: string): Promise<void> {
@@ -152,9 +157,14 @@ export async function checkPin(personKey: string, pin: string): Promise<PinCheck
   const lock = await lockedUntil(personKey);
   if (lock) return { ok: false, left: 0, lockedUntil: lock };
   const raw = await getRaw(slot(personKey));
-  if (!raw) return { ok: false, left: MAX_TRIES };
-  const { salt, hash } = JSON.parse(raw);
-  if (stretch(pin, salt) === hash) {
+  // The Master PIN before the Master changes it: 0000.
+  const defaultMaster = !raw && personKey === ADMIN_KEY;
+  if (!raw && !defaultMaster) return { ok: false, left: MAX_TRIES };
+  const good = defaultMaster ? pin === DEFAULT_ADMIN_PIN : (() => {
+    const { salt, hash } = JSON.parse(raw!);
+    return stretch(pin, salt) === hash;
+  })();
+  if (good) {
     await clearFails(personKey);
     return { ok: true };
   }

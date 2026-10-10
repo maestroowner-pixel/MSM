@@ -119,12 +119,10 @@ export default function CrewMatrixSc() {
             <Text style={styles.link}>{showOff ? 'Hide signed off' : `Show signed off (${people.off.length})`}</Text>
           </TouchableOpacity>
         ) : <View />}
-        {isMaster || pins.has(ADMIN_KEY) ? (
-          <TouchableOpacity onPress={() => (isMaster || pins.has(ADMIN_KEY)) && changePin({ key: ADMIN_KEY, name: 'Master' }, { onDone: loadPins })} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <MciIcon name={pins.has(ADMIN_KEY) ? 'lock' : 'lock-plus-outline'} size={16} color={pins.has(ADMIN_KEY) ? COLORS.success : COLORS.warning} />
-            <Text style={styles.link}>{pins.has(ADMIN_KEY) ? 'Master PIN' : 'Set the Master PIN'}</Text>
-          </TouchableOpacity>
-        ) : null}
+        <TouchableOpacity onPress={() => changePin({ key: ADMIN_KEY, name: 'Master' }, { onDone: loadPins })} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <MciIcon name="lock" size={16} color={pins.has(ADMIN_KEY) ? COLORS.success : COLORS.warning} />
+          <Text style={[styles.link, !pins.has(ADMIN_KEY) && isMaster && { color: COLORS.warning }]}>{pins.has(ADMIN_KEY) || !isMaster ? 'Master PIN' : 'Master PIN is 0000 — change it'}</Text>
+        </TouchableOpacity>
         {canEdit ? (
           <TouchableOpacity onPress={() => nav.navigate('CrewMember', { id: uid('crew'), isNew: true })} hitSlop={8}>
             <Text style={styles.link}>+ Add crew member</Text>

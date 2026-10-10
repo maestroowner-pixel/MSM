@@ -1,10 +1,9 @@
 // ===================================
 // Setting / changing a signing PIN — under a lock (Crew matrix → 🔒).
 //
-//   No PIN yet      the Master's PIN opens it.
+//   No PIN yet      the Master's PIN opens it (0000 until the Master changes it).
 //   PIN set         the owner's own PIN, or the Master's PIN.
-//   The Master PIN  first time: the Master sets it; after that only the old
-//                   Master PIN opens it.
+//   The Master PIN  0000 by default; changed with the current one.
 // Wrong PINs count against the same lockout as signing (services/signature).
 // Like every signing PIN it lives on this device only.
 // ===================================
@@ -36,6 +35,7 @@ export function PinChangeProvider({ children }: { children: React.ReactNode }) {
   const [by, setBy] = useState<'own' | 'master'>('master');
   const [ownSet, setOwnSet] = useState(false);
   const [masterSet, setMasterSet] = useState(false);
+  const [masterDefault, setMasterDefault] = useState(false);
   const [pin, setPinText] = useState('');
   const [first, setFirst] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
@@ -50,7 +50,9 @@ export function PinChangeProvider({ children }: { children: React.ReactNode }) {
     setOnDone(() => opts?.onDone);
     void (async () => {
       const own = await hasPin(p.key);
-      const master = await hasPin(ADMIN_KEY);
+      // The Master PIN always exists — 0000 until it is changed.
+      const master = true;
+      setMasterDefault(!(await hasPin(ADMIN_KEY)));
       setOwnSet(own);
       setMasterSet(master);
       setBy(own ? 'own' : 'master');
@@ -152,9 +154,10 @@ export function PinChangeProvider({ children }: { children: React.ReactNode }) {
               </TouchableOpacity>
             )}
             {msg ? <Text style={styles.msg}>{msg}</Text> : null}
-            {step === 'new1' && !isMasterPin && !masterSet && !ownSet ? (
-              <Text style={styles.hint}>No Master PIN on this device yet — set one in the Crew matrix (🔒 Master PIN) so that setting a PIN needs the Master.</Text>
-            ) : step === 'new1' ? (
+            {step === 'unlock' && (isMasterPin || by === 'master') && masterDefault ? (
+              <Text style={styles.hint}>The Master PIN has not been changed from the default yet — the Master should change it (Crew matrix → Master PIN).</Text>
+            ) : null}
+            {step === 'new1' ? (
               <Text style={styles.hint}>{`${PIN_MIN}–${PIN_MAX} digits. Kept on this device only, as a hash — nobody can read it back.`}</Text>
             ) : null}
             {step !== 'done' ? (

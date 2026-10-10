@@ -5,6 +5,10 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Master PIN defaults to 0000** until the Master changes it (checkPin accepts the default for
+  `ADMIN_KEY` while none is stored; same lockout). So a first PIN always needs the Master PIN. Crew
+  matrix shows the Master "Master PIN is 0000 — change it"; the unlock card only says it is still
+  the default, without the digits.
 - **Signing PINs under a lock — in the Crew matrix.** 🔒 by each name (green = PIN set on this
   device). Master PIN (`ADMIN_KEY`, set first by the Master, changed with the old one). No PIN yet →
   the Master PIN opens it; PIN set → the owner's own PIN or the Master PIN; then the new PIN twice
