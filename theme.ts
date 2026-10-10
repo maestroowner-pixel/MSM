@@ -173,7 +173,7 @@ export const APP_CONFIG = {
   developer: 'Mykhaylo Osypov',
   company: 'Kuka Soft',
   year: '2026',
-  email: 'kukalab@icloud.com',
+  email: 'mail@ismpilot.com',
   website: 'ismpilot.com',
 };
 

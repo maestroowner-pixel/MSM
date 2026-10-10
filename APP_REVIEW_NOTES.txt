@@ -22,8 +22,8 @@ The reviewer buys nothing: a 60-day free period runs from first launch and cover
 
 6. PERMISSIONS. Camera — photographing equipment and certificates, and scanning the QR labels the app prints; both prompted in context. Photo Library — attaching an existing image. Bluetooth — only when printing a QR label to a label printer, never in the background. Notifications — local, no push: reminders 60/30/7 days before an inspection or expiry date. Microphone is disabled in the build. No location, contacts, health data or ad identifier.
 
-7. DATA REMOVAL. Settings → "This device" → Sign off & erase takes this device off the vessel and wipes its local copy, leaving the vessel's register alone. Settings → Reset all data (Master only, gated behind typing the phrase) erases everything on the device, and on a syncing device the vessel's cloud copy too. A vessel's cloud record is deleted on request at kukalab@icloud.com.
+7. DATA REMOVAL. Settings → "This device" → Sign off & erase takes this device off the vessel and wipes its local copy, leaving the vessel's register alone. Settings → Reset all data (Master only, gated behind typing the phrase) erases everything on the device, and on a syncing device the vessel's cloud copy too. A vessel's cloud record is deleted on request at mail@ismpilot.com.
 
 8. REGIONAL AND REGULATORY. Identical in every region; interface English, in-app manual also RU/ES/UK by device language. The app certifies nothing and does not replace statutory inspections or class/flag approval, which its Terms state. It cites SOLAS, the FSS Code and IMO MSC circulars BY REFERENCE ONLY; no copyrighted text is reproduced.
 
-Contact: kukalab@icloud.com · https://kuka-lab.com
+Contact: mail@ismpilot.com · https://ismpilot.com
