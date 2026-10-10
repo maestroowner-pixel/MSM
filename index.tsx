@@ -24,6 +24,7 @@ import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { DataProvider, useData } from './contexts/DataContext';
 import { SyncProvider, useSync } from './contexts/SyncContext';
 import { SignConfirmProvider } from './components/SignConfirm';
+import { PinChangeProvider } from './components/PinChange';
 import { applyOrientationPolicy } from './utils/orientation';
 import { goBackOr } from './utils/nav';
 import { ensureTrialStarted } from './services/trial';
@@ -632,7 +633,9 @@ function App() {
               {/* Inside both: confirmation reads the signing policy (data) and
                   this device's id. See components/SignConfirm. */}
               <SignConfirmProvider>
+                <PinChangeProvider>
                 <Root />
+                </PinChangeProvider>
               </SignConfirmProvider>
             </SyncProvider>
           </DataProvider>

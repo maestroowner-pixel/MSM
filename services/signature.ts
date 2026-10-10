@@ -130,6 +130,15 @@ export async function setPin(personKey: string, name: string, pin: string): Prom
   await saveHolders([...list, { key: personKey, name, setAt: Date.now() }]);
 }
 
+/**
+ * The Master's PIN — the key to everyone's signing PIN on this device
+ * (10 Oct 2026: "under a lock; by default the captain's PIN opens it; once a
+ * person has set theirs, either the admin PIN or the owner's own PIN opens it").
+ * Kept like any signing PIN, under its own holder key.
+ */
+export const ADMIN_KEY = 'master';
+export const hasAdminPin = () => hasPin(ADMIN_KEY);
+
 /** The Master's reset: the holder chooses a new PIN the next time they sign. */
 export async function resetPin(personKey: string): Promise<void> {
   await setRaw(slot(personKey), null);

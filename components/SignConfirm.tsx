@@ -39,6 +39,8 @@ import {
   isWeakPin,
   lockedUntil,
   setPin,
+  ADMIN_KEY,
+  hasAdminPin,
 } from '../services/signature';
 
 export interface SignRequest {
@@ -53,7 +55,7 @@ export interface SignRequest {
 
 export type SignResult = { proof?: SignProof } | null;
 
-type Step = 'bio' | 'pin' | 'set1' | 'set2' | 'draw';
+type Step = 'bio' | 'pin' | 'admin' | 'set1' | 'set2' | 'draw';
 
 /** A phone, a tablet, or a browser on a touch screen — where a hand or a stylus can sign. */
 const canDraw = Platform.OS !== 'web' || (typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches);
@@ -64,6 +66,12 @@ export function useSignConfirm(): (r: SignRequest) => Promise<SignResult> {
   const fn = useContext(Ctx);
   // Outside the provider (a test, a screen rendered alone): nothing is asked.
   return fn ?? (async () => ({}));
+}
+
+/** Where the PIN path starts: the PIN, or — with none yet — the Master's unlock (if there is a Master PIN). */
+async function pinStep(personKey: string): Promise<Step> {
+  if (await hasPin(personKey)) return 'pin';
+  return (await hasAdminPin()) ? 'admin' : 'set1';
 }
 
 export function SignConfirmProvider({ children }: { children: React.ReactNode }) {
@@ -96,13 +104,13 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
   const toPin = async () => {
     if (!req) return;
     setMsg(null);
-    setStep((await hasPin(req.personKey)) ? 'pin' : 'set1');
+    setStep(await pinStep(req.personKey));
   };
 
   const tryBio = useCallback(async (r: SignRequest) => {
     setMsg(null);
     if (await confirmBiometric(`${r.what} as ${r.name}`)) finish(await proof('biometric'));
-    else setStep((await hasPin(r.personKey)) ? 'pin' : 'set1');
+    else setStep(await pinStep(r.personKey));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finish]);
 
@@ -123,7 +131,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
             setStep('bio');
             void tryBio(r);
           } else {
-            setStep((await hasPin(r.personKey)) ? 'pin' : 'set1');
+            setStep(await pinStep(r.personKey));
           }
         })();
       });
@@ -140,6 +148,14 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
   const submit = async () => {
     if (!req) return;
     const v = pin.trim();
+    if (step === 'admin') {
+      // A first PIN is set only with the Master's PIN (components/PinChange).
+      const r = await checkPin(ADMIN_KEY, v);
+      setPinText('');
+      if (!r.ok) return setMsg(r.lockedUntil ? lockText(r.lockedUntil) : `Wrong Master PIN — ${r.left} ${r.left === 1 ? 'try' : 'tries'} left.`);
+      setMsg(null);
+      return setStep('set1');
+    }
     if (step === 'pin') {
       const r = await checkPin(req.personKey, v);
       setPinText('');
@@ -168,12 +184,14 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
   };
 
   const title =
-    step === 'bio' ? 'Confirm with your fingerprint' : step === 'draw' ? 'Sign by hand' : step === 'pin' ? 'Enter your signing PIN' : step === 'set1' ? 'Choose a signing PIN' : 'Repeat the PIN';
+    step === 'bio' ? 'Confirm with your fingerprint' : step === 'draw' ? 'Sign by hand' : step === 'admin' ? 'No signing PIN yet — the Master PIN, please' : step === 'pin' ? 'Enter your signing PIN' : step === 'set1' ? 'Choose a signing PIN' : 'Repeat the PIN';
   const hint =
     step === 'set1'
       ? `First signature on this device. Choose ${PIN_MIN}–${PIN_MAX} digits that only you know — not your account PIN. Nobody can read it back, the Master included.`
       : step === 'set2'
       ? 'Type the same PIN again.'
+      : step === 'admin'
+      ? 'Setting a first signing PIN needs the Master. Or sign by hand / with the fingerprint for now.'
       : step === 'draw'
       ? 'With a finger or a stylus, as on paper. It goes into the record with your name.'
       : step === 'pin'
@@ -217,7 +235,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
                   placeholderTextColor={COLORS.textLight}
                 />
                 <TouchableOpacity style={[styles.primary, pin.length < PIN_MIN && { opacity: 0.5 }]} disabled={pin.length < PIN_MIN} onPress={() => void submit()}>
-                  <Text style={styles.primaryText}>{step === 'set1' ? 'Next' : 'Sign'}</Text>
+                  <Text style={styles.primaryText}>{step === 'set1' ? 'Next' : step === 'admin' ? 'Unlock' : 'Sign'}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -226,7 +244,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
             <View style={styles.row}>
               {/* The other ways this person can sign here: PIN, fingerprint, by hand. */}
               <View style={{ flexDirection: 'row', gap: SIZES.md, flexWrap: 'wrap', flex: 1 }}>
-                {step !== 'pin' && step !== 'set1' && step !== 'set2' ? (
+                {step !== 'pin' && step !== 'admin' && step !== 'set1' && step !== 'set2' ? (
                   <TouchableOpacity onPress={() => void toPin()} hitSlop={8}>
                     <Text style={styles.link}>PIN</Text>
                   </TouchableOpacity>

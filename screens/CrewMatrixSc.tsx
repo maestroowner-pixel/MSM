@@ -13,9 +13,12 @@
 // register), both stored on the vessel and synced to every device.
 // ===================================
 
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { MciIcon } from '../components/MciIcon';
+import { usePinChange } from '../components/PinChange';
+import { ADMIN_KEY, pinHolders } from '../services/signature';
 
 import { Empty, Screen, ScreenTitle, statusColor } from '../components/ui';
 import { useTheme } from '../contexts/ThemeContext';
@@ -44,6 +47,14 @@ export default function CrewMatrixSc() {
   const sync = useSync();
   const canEdit = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const [showOff, setShowOff] = useState(false);
+  // Signing PINs on this device — the 🔒 by each name (components/PinChange).
+  const changePin = usePinChange();
+  const [pins, setPins] = useState<Set<string>>(new Set());
+  const loadPins = useCallback(() => {
+    void pinHolders().then((h) => setPins(new Set(h.map((x) => x.key))));
+  }, []);
+  useFocusEffect(loadPins);
+  const isMaster = !sync.enrolled || sync.role === 'superadmin';
 
   const people = useMemo(() => {
     const live = crew.filter((c) => c.active && !c.deleted);
@@ -108,6 +119,12 @@ export default function CrewMatrixSc() {
             <Text style={styles.link}>{showOff ? 'Hide signed off' : `Show signed off (${people.off.length})`}</Text>
           </TouchableOpacity>
         ) : <View />}
+        {isMaster || pins.has(ADMIN_KEY) ? (
+          <TouchableOpacity onPress={() => (isMaster || pins.has(ADMIN_KEY)) && changePin({ key: ADMIN_KEY, name: 'Master' }, { onDone: loadPins })} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <MciIcon name={pins.has(ADMIN_KEY) ? 'lock' : 'lock-plus-outline'} size={16} color={pins.has(ADMIN_KEY) ? COLORS.success : COLORS.warning} />
+            <Text style={styles.link}>{pins.has(ADMIN_KEY) ? 'Master PIN' : 'Set the Master PIN'}</Text>
+          </TouchableOpacity>
+        ) : null}
         {canEdit ? (
           <TouchableOpacity onPress={() => nav.navigate('CrewMember', { id: uid('crew'), isNew: true })} hitSlop={8}>
             <Text style={styles.link}>+ Add crew member</Text>
@@ -134,6 +151,11 @@ export default function CrewMatrixSc() {
                   </Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.xs }}>
                     <Text style={styles.sub} numberOfLines={1}>{off ? 'Signed off' : p.rank || '—'}</Text>
+                    {!off ? (
+                      <TouchableOpacity onPress={() => changePin({ key: p.id, name: p.name }, { onDone: loadPins })} hitSlop={6} accessibilityLabel={`Signing PIN of ${p.name}`}>
+                        <MciIcon name={pins.has(p.id) ? 'lock' : 'lock-open-outline'} size={14} color={pins.has(p.id) ? COLORS.success : COLORS.textLight} />
+                      </TouchableOpacity>
+                    ) : null}
                     {off && canEdit ? (
                       <TouchableOpacity onPress={() => void signOn(p)} hitSlop={6}>
                         <Text style={[styles.link, { fontSize: SIZES.tiny }]}>Sign on</Text>
@@ -184,7 +206,7 @@ export default function CrewMatrixSc() {
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
-    tools: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SIZES.md },
+    tools: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.md, justifyContent: 'space-between', marginBottom: SIZES.md },
     link: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
     table: { flexDirection: 'row', ...COLORS.glassCard, borderRadius: SIZES.radiusMd, overflow: 'hidden' },
     head: { height: 64, justifyContent: 'flex-end', paddingHorizontal: SIZES.sm, paddingBottom: 6, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.borderLight },

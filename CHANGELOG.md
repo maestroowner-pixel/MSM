@@ -5,6 +5,12 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Signing PINs under a lock — in the Crew matrix.** 🔒 by each name (green = PIN set on this
+  device). Master PIN (`ADMIN_KEY`, set first by the Master, changed with the old one). No PIN yet →
+  the Master PIN opens it; PIN set → the owner's own PIN or the Master PIN; then the new PIN twice
+  (components/PinChange, same lockout as signing). A first signature without a PIN asks for the
+  Master PIN when one exists (SignConfirm step `admin`); without a Master PIN on the device the old
+  behaviour stays (the person chooses their own).
 - **Signatures: PIN, fingerprint, or by hand — no Face ID.** Biometrics = fingerprint only: native
   `biometricKind()` offers it only when a fingerprint sensor is enrolled (Face ID / face / iris →
   PIN), Android requires class-3 biometrics; on the web only a Mac's Touch ID (iPad / phone / Windows
