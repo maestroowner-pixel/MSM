@@ -146,6 +146,8 @@ await t(false, 'An Officer cannot change what the defect says', setDoc(R(officer
 await t(true, 'An Officer closes the defect', setDoc(R(officer, 'pms_defects', 'df9'), { id: 'df9', machineId: 'mc1', category: 'safety', description: 'Leak', closed: { note: 'Seal renewed' }, updatedAt: 9 }));
 await t(false, 'A closed defect cannot be closed again', setDoc(R(master, 'pms_defects', 'df9'), { id: 'df9', machineId: 'mc1', category: 'safety', description: 'Leak', closed: { note: 'other' }, updatedAt: 10 }));
 
+await t(true, 'An Officer records a counter replacement', setDoc(R(officer, 'pms_machines', 'mc1'), { id: 'mc1', name: 'Main engine PS', hours: 130, hoursDate: '2026-10-11', counterOffset: 130, updatedAt: 11 }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

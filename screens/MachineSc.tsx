@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BackButton, Label, StatusPill, statusColor } from '../components/ui';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
-import { PLAN_LOCKED, plansPms } from '../types/role';
+import { PLAN_LOCKED, personName, plansPms } from '../types/role';
 import { useSync } from '../contexts/SyncContext';
 import { EvidencePhoto } from '../components/EvidencePhoto';
 import { categoryColor } from './PmsDefectSc';
@@ -26,7 +26,7 @@ import { machineHistory, openDefects } from '../services/pmsHistory';
 import { exportPmsHistory } from '../services/pmsHistoryReport';
 import { SIZES, Palette } from '../theme';
 import { DEPTS, Machine, PmsJob, deptOf, hasCounter } from '../types/pms';
-import { activeDeferral, dueText, hoursPerDay, jobDue, sortJobsByDue, todayIso, withReading, scheduleText } from '../services/pms';
+import { activeDeferral, dueText, hoursPerDay, jobDue, sortJobsByDue, todayIso, withReading, scheduleText , checkReading } from '../services/pms';
 import { CATALOGUE } from '../services/pmsCatalogue';
 import { formatDate } from '../utils/dates';
 import { qtyText, stockByPart, stockStatus } from '../services/spares';
@@ -98,19 +98,40 @@ export default function MachineSc() {
     }
   };
 
-  const onReading = async () => {
-    const h = Number(reading.replace(',', '.'));
-    if (!Number.isFinite(h) || h < 0) return Alert.alert('Counter', 'Enter the hours shown on the counter.');
+  // A reading the calendar cannot explain waits here for its reason (TM Master's
+  // rule): lower than the last, or more hours than have passed + 12.
+  const [doubt, setDoubt] = useState<{ total: number; why: string } | null>(null);
+  const [doubtReason, setDoubtReason] = useState('');
+  // Counter replaced: what the new counter shows now.
+  const [replacing, setReplacing] = useState<string | null>(null);
+  const meName = sync.me ? personName(sync.me) : undefined;
+  const offset = (existing ?? draft).counterOffset ?? 0;
+  const putReading = async (total: number, reason?: string, extra: Partial<Machine> = {}) => {
     const base = existing ?? draft;
-    if (base.hours != null && h < base.hours) {
-      return Alert.alert('Counter', `The last reading was ${base.hours} h. A counter does not go back — if it was replaced, add it as a new machine.`);
-    }
     if (!draft.name.trim()) return Alert.alert('Name required', 'Name the machine first.');
-    const next = withReading({ ...base, ...draft, name: draft.name.trim() }, today, h);
+    const next = withReading({ ...base, ...extra, ...(canPlan ? { ...draft, name: draft.name.trim() } : {}) }, today, total, { reason, by: meName });
     await saveMachine(next);
     setDraft(next);
     setReading('');
+    setDoubt(null);
+    setDoubtReason('');
+    setReplacing(null);
     playSuccessSound();
+  };
+  const onReading = async () => {
+    const h = Number(reading.replace(',', '.'));
+    if (!reading.trim() || !Number.isFinite(h) || h < 0) return Alert.alert('Counter', 'Enter the hours shown on the counter.');
+    const total = h + offset;
+    const c = checkReading(existing ?? draft, today, total);
+    if (!c.ok) return setDoubt({ total, why: c.why });
+    await putReading(total);
+  };
+  const onReplaced = async () => {
+    const shows = Number((replacing ?? '').replace(',', '.'));
+    const base = existing ?? draft;
+    if (!replacing?.trim() || !Number.isFinite(shows) || shows < 0) return Alert.alert('New counter', 'Enter what the new counter shows now.');
+    if (base.hours == null) return Alert.alert('New counter', 'There is no reading yet — just enter the counter.');
+    await putReading(base.hours, `Counter replaced — new counter at ${shows} h, machine at ${base.hours} h`, { counterOffset: base.hours - shows });
   };
 
   const addTypical = async (key: string) => {
@@ -230,6 +251,34 @@ export default function MachineSc() {
                 <Text style={styles.btnText}>Save reading</Text>
               </TouchableOpacity>
             </View>
+            {offset ? <Text style={styles.sub}>{`Counter replaced: ${offset} h are added to what it shows.`}</Text> : null}
+            {doubt ? (
+              <View style={styles.doubt}>
+                <Text style={[styles.sub, { color: COLORS.warning, fontWeight: '700' }]}>{`⚠ ${doubt.total} h — ${doubt.why}`}</Text>
+                <TextInput style={[styles.input, { marginTop: SIZES.xs }]} value={doubtReason} onChangeText={setDoubtReason} placeholder="Reason ★ — counter misread last time, engine on shore power test…" placeholderTextColor={COLORS.textLight} />
+                <View style={{ flexDirection: 'row', gap: SIZES.md, alignItems: 'center', marginTop: SIZES.xs }}>
+                  <TouchableOpacity style={styles.btn} onPress={() => (doubtReason.trim().length < 3 ? Alert.alert('Reason', 'Say why the reading is right.') : void putReading(doubt.total, doubtReason.trim()))}>
+                    <Text style={styles.btnText}>Save with the reason</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setDoubt(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+                </View>
+              </View>
+            ) : null}
+            {replacing != null ? (
+              <View style={styles.doubt}>
+                <Text style={styles.sub}>{`The machine is at ${(existing ?? draft).hours ?? 0} h. What does the new counter show now? The difference is added to it from now on, so the jobs keep their due hours.`}</Text>
+                <View style={[styles.readRow, { marginTop: SIZES.xs }]}>
+                  <TextInput style={[styles.input, { flex: 1, marginTop: 0 }]} value={replacing} onChangeText={setReplacing} placeholder="New counter shows, h" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
+                  <TouchableOpacity style={styles.btn} onPress={() => void onReplaced()}><Text style={styles.btnText}>Save</Text></TouchableOpacity>
+                </View>
+                <TouchableOpacity onPress={() => setReplacing(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+              </View>
+            ) : (existing ?? draft).hours != null ? (
+              <TouchableOpacity onPress={() => setReplacing('')} hitSlop={8}><Text style={[styles.link, { marginTop: SIZES.xs }]}>Counter replaced…</Text></TouchableOpacity>
+            ) : null}
+            {((existing ?? draft).readings ?? []).filter((r) => r.reason).slice(-3).map((r) => (
+              <Text key={`${r.date}-${r.hours}-${r.reason}`} style={styles.sub}>{`${formatDate(r.date)} · ${r.hours} h — ${r.reason}${r.by ? ` (${r.by})` : ''}`}</Text>
+            ))}
           </View>
           ) : null}
 
@@ -394,6 +443,7 @@ const makeStyles = (COLORS: Palette) =>
     btnText: { color: COLORS.textWhite, fontWeight: '700' },
     jobsHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: SIZES.sm, marginBottom: SIZES.xs },
     link: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
+    doubt: { marginTop: SIZES.sm, padding: SIZES.sm, borderRadius: SIZES.radiusMd, borderWidth: 1, borderColor: COLORS.warning },
     types: { ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.md, marginBottom: SIZES.sm, gap: SIZES.xs },
     type: { paddingVertical: SIZES.sm, paddingHorizontal: SIZES.md, borderRadius: SIZES.radiusSm, borderWidth: 1, borderColor: COLORS.primary },
     typeText: { color: COLORS.primary, fontWeight: '600', fontSize: SIZES.small },

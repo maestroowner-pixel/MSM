@@ -53,10 +53,27 @@ export function todayIso(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-/** Running hours per calendar day, from the readings kept on the machine. */
+/**
+ * Is a reading believable? Lower than the last one, or more than the hours the
+ * calendar allows since it (+ 12 h of slack, as TM Master does) — accepted only
+ * with a reason. `total` is the machine's running hours (counter + offset).
+ */
+export function checkReading(m: Pick<Machine, 'hours' | 'hoursDate'>, date: string, total: number): { ok: true } | { ok: false; why: string } {
+  if (m.hours == null || !m.hoursDate) return { ok: true };
+  if (total < m.hours) return { ok: false, why: `Lower than the last reading (${m.hours} h on ${m.hoursDate.split('-').reverse().join('.')}).` };
+  const days = Math.max(0, daysBetween(m.hoursDate, date));
+  const most = (days + 1) * 24 + 12;
+  if (total - m.hours > most) return { ok: false, why: `${Math.round(total - m.hours)} h more than the last reading, in ${days} day${days === 1 ? '' : 's'} — more than the machine could have run.` };
+  return { ok: true };
+}
+
+/** Running hours per calendar day, from the readings kept on the machine — since the last adjustment, which would skew it. */
 export function hoursPerDay(readings: HoursReading[] | undefined): number | undefined {
   if (!readings || readings.length < 2) return undefined;
-  const sorted = [...readings].sort((a, b) => a.date.localeCompare(b.date));
+  let sorted = [...readings].sort((a, b) => a.date.localeCompare(b.date));
+  const lastAdj = sorted.map((r) => !!r.reason).lastIndexOf(true);
+  if (lastAdj > 0) sorted = sorted.slice(lastAdj);
+  if (sorted.length < 2) return undefined;
   const first = sorted[0];
   const last = sorted[sorted.length - 1];
   const days = daysBetween(first.date, last.date);
@@ -157,8 +174,10 @@ export function statusRank(s: ComplianceStatus): number {
 }
 
 /** A new counter reading: updates hours and keeps the last READINGS_KEPT. */
-export function withReading(m: Machine, date: string, hours: number): Machine {
-  const readings = [...(m.readings ?? []).filter((r) => r.date !== date), { date, hours }]
+export function withReading(m: Machine, date: string, hours: number, note?: { reason?: string; by?: string }): Machine {
+  // A reading replaces the day's earlier one — unless that one carries a reason
+  // (a correction, a counter replaced): that is history and stays.
+  const readings = [...(m.readings ?? []).filter((r) => r.date !== date || r.reason), { date, hours, ...(note?.reason ? { reason: note.reason } : {}), ...(note?.by ? { by: note.by } : {}) }]
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(-READINGS_KEPT);
   const latest = readings[readings.length - 1];

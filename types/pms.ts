@@ -22,7 +22,11 @@
 export interface HoursReading {
   /** yyyy-mm-dd */
   date: string;
+  /** Running hours of the machine (what the counter shows + Machine.counterOffset). */
   hours: number;
+  /** Why a reading lower than the last, or higher than the time allows, was accepted — or "Counter replaced". */
+  reason?: string;
+  by?: string;
 }
 
 /**
@@ -76,6 +80,12 @@ export interface Machine {
    * history on the document; the full history of work is in PmsDone.
    */
   readings?: HoursReading[];
+  /**
+   * Hours the machine had run before its present counter was fitted: what the
+   * new counter shows + this = the machine's running hours. Set by "Counter
+   * replaced", so the jobs' due hours carry on unchanged.
+   */
+  counterOffset?: number;
   deleted?: boolean;
   updatedAt: number;
 }

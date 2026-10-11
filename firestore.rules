@@ -191,7 +191,7 @@ service cloud.firestore {
       match /pms_machines/{id} {
         allow read: if reader(v);
         allow create: if plans(v);
-        allow update: if plans(v) || (member(v) && onlyChanges(['hours', 'hoursDate', 'readings', 'updatedAt']));
+        allow update: if plans(v) || (member(v) && onlyChanges(['hours', 'hoursDate', 'readings', 'counterOffset', 'updatedAt']));
         allow delete: if false;
       }
       match /pms_jobs/{id} {

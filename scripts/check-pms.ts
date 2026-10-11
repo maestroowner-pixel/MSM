@@ -1,5 +1,5 @@
 // npm run check:pms — planned-maintenance due dates against hand-worked cases.
-import { jobDue, withReading, hoursPerDay, jobAfter, intervalText, scheduleText } from '../services/pms';
+import { jobDue, withReading, hoursPerDay, jobAfter, intervalText, scheduleText, checkReading } from '../services/pms';
 import { Machine, PmsJob, finishedOneOff } from '../types/pms';
 
 let failed = 0;
@@ -72,6 +72,24 @@ import { pmsMonth } from '../services/pmsKpi';
   ok(jobDue(byHours, m, '2026-10-11').status === 'expired' && jobDue(byHours, m, '2026-10-11').hoursLeft === -30, 'one-off by counter, passed → overdue by 30 h');
   ok(scheduleText(byDate) === 'One-off — by 15.10.2026' && scheduleText({ intervalDays: 30 } as any) === 'Every 1 mo', 'schedule text');
   ok(finishedOneOff({ ...byDate, lastDoneDate: '2026-10-12' }) && !finishedOneOff({ intervalDays: 30, lastDoneDate: '2026-10-12' } as any), 'a one-off done is finished; a recurring one is not');
+}
+// Readings the calendar cannot explain need a reason; the rate starts after the last adjustment.
+{
+  const m: any = { hours: 1000, hoursDate: '2026-10-09' };
+  ok(checkReading(m, '2026-10-11', 1060).ok, '60 h in 2 days — fine');
+  const low = checkReading(m, '2026-10-11', 990);
+  ok(!low.ok && /Lower than the last/.test((low as any).why), 'lower than the last → asks a reason');
+  ok(!checkReading(m, '2026-10-11', 1090).ok, '90 h in 2 days (most 3×24 + 12 = 84) → asks a reason');
+  ok(checkReading({}, '2026-10-11', 5).ok, 'first reading — nothing to compare');
+  const rs: any[] = [{ date: '2026-09-01', hours: 100 }, { date: '2026-09-11', hours: 300 }, { date: '2026-09-21', hours: 50, reason: 'Counter replaced' }, { date: '2026-10-01', hours: 70 }];
+  ok(hoursPerDay(rs) === 2, `rate counted after the adjustment: ${hoursPerDay(rs)} h/day`);
+}
+{
+  const m: any = { id: 'g', name: 'G', readings: [{ date: '2026-10-11', hours: 9700, reason: 'Counter replaced' }], hours: 9700, hoursDate: '2026-10-11', updatedAt: 0 };
+  const n = withReading(m, '2026-10-11', 9715);
+  ok(n.readings!.length === 2 && n.hours === 9715 && n.readings![0].reason === 'Counter replaced', 'a reading the same day keeps the adjustment before it');
+  const n2 = withReading(n, '2026-10-11', 9720);
+  ok(n2.readings!.length === 2 && n2.hours === 9720, 'a second plain reading that day replaces the plain one');
 }
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);
