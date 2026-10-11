@@ -117,6 +117,18 @@ export interface PmsJob {
   dueHours?: number;
   /** The defect it puts right (PmsDefect.id). */
   defectId?: string;
+  /**
+   * Fixed schedule (TM Master comparison, item 4): due on set dates / counter
+   * marks — `anchorDate` + n × interval (months when the interval is a multiple
+   * of 30 days, years for 365) and `anchorHours` + n × intervalHours — whenever
+   * it was actually done. Without it the next due counts from the last done.
+   */
+  fixed?: boolean;
+  anchorDate?: string;
+  anchorHours?: number;
+  /** Warn this many days / hours before due, instead of the last tenth of the interval. */
+  warnDays?: number;
+  warnHours?: number;
   deleted?: boolean;
   updatedAt: number;
 }

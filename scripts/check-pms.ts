@@ -1,5 +1,5 @@
 // npm run check:pms — planned-maintenance due dates against hand-worked cases.
-import { jobDue, withReading, hoursPerDay, jobAfter, intervalText, scheduleText, checkReading , noteForNext, lastCondition } from '../services/pms';
+import { jobDue, withReading, hoursPerDay, jobAfter, intervalText, scheduleText, checkReading, noteForNext, lastCondition, nextDueDate, nextDueHours, addInterval } from '../services/pms';
 import { Machine, PmsJob, finishedOneOff } from '../types/pms';
 
 let failed = 0;
@@ -101,6 +101,21 @@ import { pmsMonth } from '../services/pmsKpi';
   ok(lastCondition('me', done)?.conditionAfter === 'good', 'last condition is the latest one recorded');
   const r = pmsMonth('2026-10', [{ id: 'me', name: 'ME', updatedAt: 0 }] as any, [], done, [], '2026-10-11');
   ok(r.manHours === 1.5 && r.done[0][5] === 'Good' && r.done[0][6] === '1.5', `month: man-hours ${r.manHours}, condition and man-h columns`);
+}
+// Fixed schedule and per-job warning.
+{
+  const m: any = { id: 'me', hours: 1480, updatedAt: 0 };
+  const monthly: any = { id: 'f', machineId: 'me', title: 'Fire pump test', intervalDays: 30, fixed: true, anchorDate: '2026-10-01', lastDoneDate: '2026-10-03', updatedAt: 0 };
+  ok(nextDueDate(monthly) === '2026-11-01', `fixed monthly done on the 3rd → next due the 1st: ${nextDueDate(monthly)}`);
+  ok(nextDueDate({ ...monthly, lastDoneDate: '2026-09-28' }) === '2026-10-01', 'done early for October → due 1 October still');
+  ok(nextDueDate({ ...monthly, fixed: false }) === '2026-11-02', 'not fixed → 30 days after the last done');
+  ok(addInterval('2026-01-31', 30) === '2026-02-28', 'month step keeps the end of the month');
+  ok(nextDueDate({ ...monthly, lastDoneDate: undefined }) === '2026-10-01', 'never done → the anchor');
+  const hrs: any = { id: 'h', machineId: 'me', title: 'Service', intervalHours: 500, fixed: true, lastDoneHours: 1020, updatedAt: 0 };
+  ok(nextDueHours(hrs) === 1500, `fixed 500 h marks, done at 1020 → due at 1500: ${nextDueHours(hrs)}`);
+  ok(nextDueHours({ ...hrs, fixed: false }) === 1520, 'not fixed → last done + 500');
+  ok(jobDue(hrs, m, '2026-10-11').status === 'due' && jobDue({ ...hrs, warnHours: 10 }, m, '2026-10-11').status === 'ok', 'own warning: 20 h left — due soon by default (50 h), in date with a 10 h warning');
+  ok(jobDue({ ...monthly, warnDays: 30 }, m, '2026-10-11').status === 'due' && jobDue(monthly, m, '2026-10-11').status === 'ok', 'own warning in days');
 }
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

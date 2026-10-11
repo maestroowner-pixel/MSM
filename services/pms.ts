@@ -114,15 +114,17 @@ export function jobDue(job: PmsJob, machine: Machine | undefined, today = todayI
   let hourFrac: number | undefined;
   let dayFrac: number | undefined;
 
-  if (job.intervalHours && job.lastDoneHours != null && machine?.hours != null) {
-    out.hoursLeft = job.lastDoneHours + job.intervalHours - machine.hours;
+  const dueH = nextDueHours(job);
+  if (job.intervalHours && dueH != null && machine?.hours != null) {
+    out.hoursLeft = dueH - machine.hours;
     hourFrac = out.hoursLeft / job.intervalHours;
     const rate = hoursPerDay(machine.readings);
     if (rate && rate > 0) out.estDaysForHours = Math.floor(out.hoursLeft / rate);
   }
-  if (job.intervalDays && job.lastDoneDate) {
-    out.daysLeft = job.lastDoneDate ? daysBetween(today, job.lastDoneDate) + job.intervalDays : undefined;
-    dayFrac = out.daysLeft! / job.intervalDays;
+  const dueD = nextDueDate(job);
+  if (job.intervalDays && dueD) {
+    out.daysLeft = daysBetween(today, dueD);
+    dayFrac = out.daysLeft / job.intervalDays;
   }
 
   if (hourFrac == null && dayFrac == null) {
@@ -133,10 +135,57 @@ export function jobDue(job: PmsJob, machine: Machine | undefined, today = todayI
   // Which limit comes first: compare as a fraction of each interval.
   out.by = hourFrac == null ? 'days' : dayFrac == null ? 'hours' : hourFrac <= dayFrac ? 'hours' : 'days';
   const overdue = (out.hoursLeft != null && out.hoursLeft < 0) || (out.daysLeft != null && out.daysLeft < 0);
-  const soonHours = out.hoursLeft != null && out.hoursLeft <= Math.max(1, (job.intervalHours ?? 0) * 0.1);
-  const soonDays = out.daysLeft != null && out.daysLeft <= Math.max(1, (job.intervalDays ?? 0) * 0.1);
+  const soonHours = out.hoursLeft != null && out.hoursLeft <= (job.warnHours ?? Math.max(1, (job.intervalHours ?? 0) * 0.1));
+  const soonDays = out.daysLeft != null && out.daysLeft <= (job.warnDays ?? Math.max(1, (job.intervalDays ?? 0) * 0.1));
   out.status = overdue ? 'expired' : soonHours || soonDays ? 'due' : 'ok';
   return out;
+}
+
+/** `iso` moved on by `n` intervals of `days` — whole months for multiples of 30, years for 365 (a fixed schedule's calendar). */
+export function addInterval(iso: string, days: number, n = 1): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  if (days % 365 === 0) d.setUTCFullYear(d.getUTCFullYear() + (days / 365) * n);
+  else if (days % 30 === 0) {
+    const day = d.getUTCDate();
+    d.setUTCDate(1);
+    d.setUTCMonth(d.getUTCMonth() + (days / 30) * n);
+    // The 31st of a 30-day month is its last day, not the 1st of the next.
+    const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+    d.setUTCDate(Math.min(day, last));
+  } else d.setUTCDate(d.getUTCDate() + days * n);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * The next due date. Counting from the last done; or, on a fixed schedule, the
+ * first scheduled date (anchor + n × interval) after the last done — so a job
+ * due on the 1st and done on the 3rd is next due on the 1st again.
+ */
+export function nextDueDate(job: Pick<PmsJob, 'intervalDays' | 'lastDoneDate' | 'fixed' | 'anchorDate'>): string | undefined {
+  if (!job.intervalDays) return undefined;
+  // Counting from the last done stays in plain days, as it always has.
+  if (!job.fixed || !job.anchorDate) {
+    if (!job.lastDoneDate) return undefined;
+    const d = new Date(`${job.lastDoneDate}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + job.intervalDays);
+    return d.toISOString().slice(0, 10);
+  }
+  if (!job.lastDoneDate) return job.anchorDate;
+  for (let n = 0; n < 5000; n++) {
+    const d = addInterval(job.anchorDate, job.intervalDays, n);
+    if (d > job.lastDoneDate) return d;
+  }
+  return undefined;
+}
+
+/** The next due counter reading — last done + interval, or the next fixed mark after it. */
+export function nextDueHours(job: Pick<PmsJob, 'intervalHours' | 'lastDoneHours' | 'fixed' | 'anchorHours'>): number | undefined {
+  if (!job.intervalHours) return undefined;
+  if (!job.fixed) return job.lastDoneHours != null ? job.lastDoneHours + job.intervalHours : undefined;
+  const anchor = job.anchorHours ?? job.intervalHours;
+  if (job.lastDoneHours == null) return anchor;
+  if (job.lastDoneHours < anchor) return anchor;
+  return anchor + (Math.floor((job.lastDoneHours - anchor) / job.intervalHours) + 1) * job.intervalHours;
 }
 
 /** "120 h left", "3 d overdue", "45 d left (≈ 12 d by hours)". */
@@ -153,8 +202,8 @@ export function dueText(d: JobDue): string {
 }
 
 /** "Every 500 h or 1 y", or "One-off — by 20 Oct 2026 or 4 500 h". */
-export function scheduleText(job: Pick<PmsJob, 'intervalHours' | 'intervalDays' | 'oneOff' | 'dueDate' | 'dueHours'>): string {
-  if (!job.oneOff) return `Every ${intervalText(job)}`;
+export function scheduleText(job: Pick<PmsJob, 'intervalHours' | 'intervalDays' | 'oneOff' | 'dueDate' | 'dueHours' | 'fixed'>): string {
+  if (!job.oneOff) return `Every ${intervalText(job)}${job.fixed ? ' · fixed' : ''}`;
   const by = [job.dueDate ? job.dueDate.split('-').reverse().join('.') : null, job.dueHours != null ? `${job.dueHours} h` : null].filter(Boolean).join(' or ');
   return by ? `One-off — by ${by}` : 'One-off';
 }

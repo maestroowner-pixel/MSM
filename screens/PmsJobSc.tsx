@@ -153,10 +153,18 @@ export default function PmsJobSc() {
     if (draft.oneOff) {
       if (!draft.dueDate && draft.dueHours == null) return Alert.alert('Due', counter ? 'Give the date, the counter reading, or both, it must be done by.' : 'Give the date it must be done by.');
     } else if (!draft.intervalHours && !draft.intervalDays) return Alert.alert('Interval', counter ? 'Give an interval in hours, in days, or both.' : 'Give an interval in days.');
-    const { intervalHours, intervalDays, dueDate, dueHours, ...rest } = draft;
+    if (!draft.oneOff && draft.fixed && draft.intervalDays && !draft.anchorDate) return Alert.alert('Fixed schedule', 'Give the date the schedule runs from — e.g. the 1st of next month.');
+    const { intervalHours, intervalDays, dueDate, dueHours, fixed, anchorDate, anchorHours, warnDays, warnHours, ...rest } = draft;
     const clean: PmsJob = draft.oneOff
       ? { ...rest, ...(dueDate ? { dueDate } : {}), ...(dueHours != null ? { dueHours } : {}) }
-      : { ...rest, ...(intervalHours ? { intervalHours } : {}), ...(intervalDays ? { intervalDays } : {}) };
+      : {
+          ...rest,
+          ...(intervalHours ? { intervalHours } : {}),
+          ...(intervalDays ? { intervalDays } : {}),
+          ...(fixed ? { fixed: true, ...(anchorDate && intervalDays ? { anchorDate } : {}), ...(anchorHours != null && intervalHours ? { anchorHours } : {}) } : {}),
+          ...(warnDays != null ? { warnDays } : {}),
+          ...(warnHours != null ? { warnHours } : {}),
+        };
     await savePmsJob({ ...clean, title: draft.title.trim(), updatedAt: Date.now() });
     playSuccessSound();
     goBackOr(nav);
@@ -485,6 +493,34 @@ export default function PmsJobSc() {
                     <Text style={[styles.chipSmallText, draft.intervalDays === c.days && styles.chipTextOn]}>{c.label}</Text>
                   </TouchableOpacity>
                 ))}
+              </View>
+              <View style={{ height: SIZES.md }} />
+              <TouchableOpacity style={styles.defectToggle} onPress={() => set({ fixed: !draft.fixed || undefined })}>
+                <Text style={[styles.defectBox, { borderColor: COLORS.primary }, draft.fixed && { backgroundColor: COLORS.primary, color: COLORS.textWhite }]}>{draft.fixed ? '✓' : ''}</Text>
+                <Text style={styles.signer}>Fixed schedule</Text>
+              </TouchableOpacity>
+              <Text style={styles.sub}>Due on set dates or counter marks — the 1st of every month, every 500 h — whenever it was actually done.</Text>
+              {draft.fixed ? (
+                <View style={{ flexDirection: 'row', gap: SIZES.sm, alignItems: 'flex-end', marginTop: SIZES.xs }}>
+                  {draft.intervalDays ? (
+                    <View style={{ flex: 1 }}>
+                      <SimpleDatePicker label="Due dates from" value={draft.anchorDate} onChange={(v) => set({ anchorDate: v })} />
+                    </View>
+                  ) : null}
+                  {counter && draft.intervalHours ? (
+                    <View style={{ width: 160 }}>
+                      <TextInput style={styles.input} value={draft.anchorHours != null ? String(draft.anchorHours) : ''} onChangeText={(v) => set({ anchorHours: num(v) })} keyboardType="decimal-pad" placeholder={`First at … h (${draft.intervalHours})`} placeholderTextColor={COLORS.textLight} />
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+              <View style={{ height: SIZES.md }} />
+              <Label>Warn before due</Label>
+              <View style={{ flexDirection: 'row', gap: SIZES.sm }}>
+                <TextInput style={[styles.input, { flex: 1 }]} value={draft.warnDays != null ? String(draft.warnDays) : ''} onChangeText={(v) => set({ warnDays: num(v) })} keyboardType="number-pad" placeholder={`… days (default ${Math.max(1, Math.round((draft.intervalDays ?? 0) * 0.1))})`} placeholderTextColor={COLORS.textLight} />
+                {counter ? (
+                  <TextInput style={[styles.input, { flex: 1 }]} value={draft.warnHours != null ? String(draft.warnHours) : ''} onChangeText={(v) => set({ warnHours: num(v) })} keyboardType="number-pad" placeholder={`… hours (default ${Math.max(1, Math.round((draft.intervalHours ?? 0) * 0.1))})`} placeholderTextColor={COLORS.textLight} />
+                ) : null}
               </View>
               <View style={{ height: SIZES.md }} />
               <Label>Last done</Label>
