@@ -20,13 +20,16 @@ import { MciIcon } from '../components/MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
+import { categoryColor } from './PmsDefectSc';
+import { machineHistory, openDefects, packMachines } from '../services/pmsHistory';
+import { exportPmsHistory } from '../services/pmsHistoryReport';
 import { PLAN_LOCKED, plansPms } from '../types/role';
 import { planImport } from '../services/pmsImport';
 import { exportPlanTemplate, pickPlanSheet } from '../services/pmsTemplate';
 import { SIZES, Palette } from '../theme';
 import { ComplianceStatus } from '../types/equipment';
 import { activeDeferral, dueText, jobDue, sortJobsByDue, todayIso, worse } from '../services/pms';
-import { DEPTS, Dept, JOB_TYPE, Machine, PmsJob, deptOf, hasCounter } from '../types/pms';
+import { DEFECT_CATEGORY, DEPTS, Dept, JOB_TYPE, Machine, PmsJob, deptOf, hasCounter } from '../types/pms';
 import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 
@@ -34,7 +37,18 @@ export default function MaintenanceSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
-  const { machines, pmsJobs, pmsDeferrals, pmsDone, vessel, savePlan } = useData();
+  const { machines, pmsJobs, pmsDeferrals, pmsDone, pmsDefects, vessel, savePlan } = useData();
+  const defectsOpen = useMemo(() => openDefects(pmsDefects), [pmsDefects]);
+  const surveyPack = async () => {
+    try {
+      const list = packMachines(machines).map((m) => machineHistory(m, pmsJobs, pmsDone, pmsDeferrals, pmsDefects, todayIso()));
+      if (!list.length) return Alert.alert('Survey pack', 'No systems in the plan yet.');
+      const w = await exportPmsHistory('Survey pack — maintenance history', `Survey pack-${todayIso()}`, vessel, list);
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+    } catch (e: any) {
+      Alert.alert('Survey pack', String(e?.message ?? e));
+    }
+  };
   const sync = useSync();
   // The plan itself — systems, jobs, intervals, the template — is the Master's
   // or the superintendent's; everyone records the work.
@@ -127,6 +141,7 @@ export default function MaintenanceSc() {
         <Text style={styles.kpi}>{`${report.completion.all == null ? '—' : `${report.completion.all} %`} done${report.completion.critical != null ? ` · critical ${report.completion.critical} %` : ''}`}</Text>
         <TouchableOpacity style={styles.repBtn} onPress={() => void exportReport('pdf')}><Text style={styles.repBtnText}>Report PDF</Text></TouchableOpacity>
         <TouchableOpacity style={styles.repBtn} onPress={() => void exportReport('xlsx')}><Text style={styles.repBtnText}>Excel</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.repBtn} onPress={() => void surveyPack()}><Text style={styles.repBtnText}>Survey pack (PDF)</Text></TouchableOpacity>
       </View>
       <View style={[styles.reportRow, !canPlan && { opacity: 0.35 }]} pointerEvents={canPlan ? 'auto' : 'none'}>
         <Text style={styles.kpi}>Plan</Text>
@@ -157,6 +172,17 @@ export default function MaintenanceSc() {
           ))}
         </View>
       ) : null}
+
+      {defectsOpen.length ? <Label>{`Open defects (${defectsOpen.length})`}</Label> : null}
+      {defectsOpen.map((x) => (
+        <TouchableOpacity key={x.id} style={styles.row} onPress={() => nav.navigate('PmsDefect', { id: x.id })} activeOpacity={0.7}>
+          <View style={[styles.bar, { backgroundColor: categoryColor(COLORS, x.category) }]} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title} numberOfLines={1}>{x.description}</Text>
+            <Text style={styles.sub} numberOfLines={1}>{`${DEFECT_CATEGORY[x.category]} · ${x.machineName} · ${formatDate(x.date)}`}</Text>
+          </View>
+        </TouchableOpacity>
+      ))}
 
       {owed.length ? <Label>Owed now</Label> : null}
       {owed.map((j) => {

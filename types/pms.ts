@@ -116,6 +116,10 @@ export interface PmsDone {
   at: number;
   /** How the signer confirmed — finger, face or signing PIN (services/signature.ts). Absent when not asked. */
   signedWith?: import('../services/signature').SignProof;
+  /** Evidence at closure — before / after, clearances, parts replaced. Required on critical equipment. */
+  photos?: import('./equipment').Attachment[];
+  /** A defect found doing the job (PmsDefect.id). */
+  defectId?: string;
   updatedAt: number;
 }
 
@@ -154,5 +158,46 @@ export interface PmsDeferral {
   byRank?: string;
   at: number;
   signedWith?: import('../services/signature').SignProof;
+  updatedAt: number;
+}
+
+// ---- Defects found on machinery (ISM 10.1) ----------------------------------
+// Raised from a job done or from the machine; closed by an officer or the
+// Master with what was done, signed. Kept, never deleted.
+
+export type DefectCategory = 'safety' | 'class' | 'operational';
+export const DEFECT_CATEGORY: Record<DefectCategory, string> = {
+  safety: 'Safety-critical',
+  class: 'Class-affecting',
+  operational: 'Operational',
+};
+
+export interface PmsDefectClose {
+  date: string;
+  note: string;
+  by: string;
+  byRank?: string;
+  at: number;
+  signedWith?: import('../services/signature').SignProof;
+  photos?: import('./equipment').Attachment[];
+}
+
+export interface PmsDefect {
+  id: string;
+  machineId: string;
+  machineName: string;
+  jobId?: string;
+  jobTitle?: string;
+  /** The completion it was found in. */
+  doneId?: string;
+  category: DefectCategory;
+  description: string;
+  date: string;
+  by: string;
+  byRank?: string;
+  at: number;
+  signedWith?: import('../services/signature').SignProof;
+  photos?: import('./equipment').Attachment[];
+  closed?: PmsDefectClose;
   updatedAt: number;
 }

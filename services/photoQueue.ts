@@ -95,7 +95,12 @@ export async function pendingCount(): Promise<number> {
 }
 
 /** Queue every photo of a freshly signed record. Idempotent. */
-export async function enqueueInspection(vessel: string, insp: Inspection): Promise<void> {
+/**
+ * Queue a record's photos. An inspection, or any other signed record with
+ * evidence photos (a PMS job done, a machinery defect) — the cloud path is the
+ * record's id, so they share the inspection folder and its rules.
+ */
+export async function enqueueInspection(vessel: string, insp: Pick<Inspection, 'id' | 'photos'>): Promise<void> {
   const photos: Attachment[] = (insp.photos ?? []).filter((p) => p.kind === 'photo');
   if (!photos.length) return;
 

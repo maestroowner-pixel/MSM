@@ -51,6 +51,7 @@ import RestDaySc from './screens/RestDaySc';
 import MaintenanceSc from './screens/MaintenanceSc';
 import MachineSc from './screens/MachineSc';
 import PmsJobSc from './screens/PmsJobSc';
+import PmsDefectSc from './screens/PmsDefectSc';
 import CompressorSc from './screens/CompressorSc';
 import PaywallSc from './screens/PaywallSc';
 import LabelSc from './screens/LabelSc';
@@ -417,6 +418,7 @@ const linking = {
       RestDay: 'rest/:crewId/:date',
       Machine: 'machine/:id',
       PmsJob: 'pms-job/:id',
+      PmsDefect: 'pms-defect/:id',
       SparePart: 'spare/:id',
       Doc: 'document/:id',
       CrewMember: 'crew/:id',
@@ -607,6 +609,7 @@ function Root() {
         <Stack.Screen name="Access" component={AccessSc} options={webHeader('Access', toTab('Settings'))} />
         <Stack.Screen name="Machine" component={MachineSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsJob" component={PmsJobSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="PmsDefect" component={PmsDefectSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="SparePart" component={SparePartSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Doc" component={DocSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="CrewMember" component={CrewMemberSc} options={{ presentation: 'modal' }} />

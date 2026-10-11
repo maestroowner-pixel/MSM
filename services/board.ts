@@ -111,6 +111,7 @@ export interface BoardInput {
   machines: Machine[];
   pmsJobs: PmsJob[];
   pmsDeferrals?: import('../types/pms').PmsDeferral[];
+  pmsDefects?: import('../types/pms').PmsDefect[];
   spares: SparePart[];
   spareMoves: SpareMove[];
   docs: IsmDoc[];
@@ -245,6 +246,12 @@ export function buildBoard(x: BoardInput): Board {
     }
     if (over) n.push({ key: 'pms:over', level: 'red', who: 'officer', icon: 'engine-outline', route: 'Maintenance', title: `Maintenance — ${plural(over, 'job')} overdue` });
     if (due) n.push({ key: 'pms:due', level: 'amber', who: 'officer', icon: 'engine-outline', route: 'Maintenance', title: `Maintenance — ${plural(due, 'job')} due` });
+    // Machinery defects: safety-critical to everyone at once, class-affecting to the officers.
+    const open = (x.pmsDefects ?? []).filter((d) => !d.closed);
+    const safety = open.filter((d) => d.category === 'safety');
+    const cls = open.filter((d) => d.category === 'class');
+    if (safety.length) n.push({ key: 'pms:defect-safety', level: 'red', who: 'all', icon: 'alert-octagon-outline', route: 'Maintenance', title: `Safety-critical defect${safety.length > 1 ? `s (${safety.length})` : ''} — ${safety[0].machineName}`, sub: safety[0].description });
+    if (cls.length) n.push({ key: 'pms:defect-class', level: 'amber', who: 'officer', icon: 'alert-outline', route: 'Maintenance', title: `Class-affecting defect${cls.length > 1 ? `s (${cls.length})` : ''} — ${cls[0].machineName}`, sub: cls[0].description });
     tiles.push({ key: 'pms', label: 'Maintenance', icon: 'engine-outline', route: 'Maintenance', level: lvl(over, due), line: over || due ? [over ? `${over} overdue` : null, due ? `${due} due` : null].filter(Boolean).join(' · ') : `${x.pmsJobs.length} jobs in hand` });
   }
 

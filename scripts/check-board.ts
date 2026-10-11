@@ -33,5 +33,7 @@ ok(!b.attention.some((x) => x.key === 'grb:sign'), 'crew do not see the Masterâ€
 ok(!b.attention.some((x) => x.key === 'isps:drill'), 'crew do not see officer items');
 b = buildBoard(base({ role: 'superadmin', on: (m) => m === 'garbage', garbage: [{ date: `${pm}-05`, method: 'shore' }] as any }));
 ok(b.attention.some((x) => x.key === 'grb:sign'), 'the Master sees it');
+b = buildBoard(base({ role: 'user', on: (m) => m === 'pms', machines: [{ id: 'm', name: 'Steering gear', updatedAt: 0 }] as any, pmsJobs: [{ id: 'j', machineId: 'm', title: 'x', intervalDays: 30, lastDoneDate: plus(0), updatedAt: 0 }] as any, pmsDefects: [{ id: 'd', machineId: 'm', machineName: 'Steering gear', category: 'safety', description: 'Ram seal leaking', date: plus(0), by: 'x', at: 0, updatedAt: 0 }, { id: 'e', machineId: 'm', machineName: 'Steering gear', category: 'class', description: 'y', date: plus(0), by: 'x', at: 0, updatedAt: 0 }] as any }));
+ok(b.attention.some((a) => a.key === 'pms:defect-safety' && /Steering gear/.test(a.title)) && !b.attention.some((a) => a.key === 'pms:defect-class'), 'safety-critical defect shown to crew; class-affecting only to officers');
 console.log(fail ? `${fail} failed` : 'all passed');
 process.exit(fail ? 1 : 0);

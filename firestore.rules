@@ -205,6 +205,14 @@ service cloud.firestore {
         allow create: if member(v);
         allow update, delete: if false;
       }
+      // A defect found on machinery: raised by any member, closed (only the
+      // `closed` block) by an officer or the Master. Never deleted.
+      match /pms_defects/{id} {
+        allow read: if reader(v);
+        allow create: if member(v) && !('closed' in request.resource.data);
+        allow update: if isAdmin(v) && onlyChanges(['closed', 'updatedAt']) && !('closed' in resource.data);
+        allow delete: if false;
+      }
       // A job deferred — the Master's decision, signed, kept.
       match /pms_deferrals/{id} {
         allow read: if reader(v);

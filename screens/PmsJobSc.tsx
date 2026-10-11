@@ -27,7 +27,10 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { JOB_TYPE, JobType, PmsDone, PmsJob, hasCounter } from '../types/pms';
+import { DEFECT_CATEGORY, DefectCategory, JOB_TYPE, JobType, PmsDefect, PmsDone, PmsJob, hasCounter } from '../types/pms';
+import { Attachment } from '../types/equipment';
+import { PhotoPicker } from '../components/PhotoPicker';
+import * as photoQueue from '../services/photoQueue';
 import { Dropdown } from '../components/Dropdown';
 import * as storage from '../services/storage';
 import { crewLabel } from '../types/crew';
@@ -55,7 +58,10 @@ export default function PmsJobSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { pmsJobs, machines, crew, spares, spareMoves, savePmsJob, saveMachine, completePmsJob, pmsDeferrals, appendRow } = useData();
+  const { pmsJobs, machines, crew, spares, spareMoves, savePmsJob, saveMachine, completePmsJob, pmsDeferrals, appendRow, saveRow, vessel } = useData();
+  // Evidence at closure, and a defect found doing the job (ISM 10.1).
+  const [donePhotos, setDonePhotos] = useState<Attachment[]>([]);
+  const [defect, setDefect] = useState<{ category: DefectCategory; description: string } | null>(null);
   const sparesOn = moduleOn('spares');
   const partById = useMemo(() => new Map(spares.map((p) => [p.id, p])), [spares]);
   const stock = useMemo(() => stockByPart(spareMoves), [spareMoves]);
@@ -155,6 +161,8 @@ export default function PmsJobSc() {
     const hours = num(doneHours);
     if (counter && existing.intervalHours && hours == null) return Alert.alert('Counter', 'Enter the counter reading when the job was done.');
     if (doneDate > todayIso()) return Alert.alert('Date', 'The date is in the future.');
+    if (machine?.critical && !donePhotos.length) return Alert.alert('Evidence', 'Critical equipment: add at least one photo of the work — before and after, clearances, parts replaced.');
+    if (defect && defect.description.trim().length < 3) return Alert.alert('Defect', 'Describe the defect found, or untick it.');
     const sig = await confirmSign({
       personKey: me && sync.me ? `device:${sync.me.id}` : signerId ?? signer.name,
       name: signer.name,
@@ -175,8 +183,17 @@ export default function PmsJobSc() {
       note: doneNote.trim() || undefined,
       at: Date.now(),
       ...(sig.proof ? { signedWith: sig.proof } : {}),
+      ...(donePhotos.length ? { photos: donePhotos } : {}),
       updatedAt: Date.now(),
     };
+    const found: PmsDefect | null = defect
+      ? {
+          id: uid('dft'), machineId, machineName: machine?.name ?? '', jobId: existing.id, jobTitle: existing.title, doneId: done.id,
+          category: defect.category, description: defect.description.trim(), date: doneDate,
+          by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: done.at, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: done.at,
+        }
+      : null;
+    if (found) done.defectId = found.id;
     const moves = sparesOn
       ? movesForJob(
           Object.entries(take).map(([partId, qty]) => ({ partId, qty })),
@@ -188,6 +205,8 @@ export default function PmsJobSc() {
         )
       : [];
     await completePmsJob(done, jobAfter(existing, done), moves);
+    if (found) await saveRow(storage.PMS_DEFECTS_KEY, found);
+    if (donePhotos.length && vessel?.imo) await photoQueue.enqueueInspection(vessel.imo, done);
     if (machine && hours != null && (machine.hours == null || hours > machine.hours)) {
       await saveMachine(withReading(machine, doneDate, hours));
     }
@@ -281,6 +300,26 @@ export default function PmsJobSc() {
               <View style={{ height: SIZES.md }} />
               <Label>Note (parts used, findings)</Label>
               <TextInput style={[styles.input, { minHeight: 70 }]} value={doneNote} onChangeText={setDoneNote} multiline placeholder="—" placeholderTextColor={COLORS.textLight} />
+              <View style={{ height: SIZES.md }} />
+              <Label>{`Photos${machine?.critical ? ' ★' : ''}`}</Label>
+              <PhotoPicker photos={donePhotos} onChange={setDonePhotos} hint={machine?.critical ? 'Critical equipment — at least one photo of the work.' : 'Before and after, clearances, parts replaced.'} />
+              <View style={{ height: SIZES.md }} />
+              <TouchableOpacity style={styles.defectToggle} onPress={() => setDefect(defect ? null : { category: 'operational', description: '' })}>
+                <Text style={[styles.defectBox, defect && { backgroundColor: COLORS.warning, color: COLORS.textWhite }]}>{defect ? '✓' : ''}</Text>
+                <Text style={styles.signer}>Found a defect</Text>
+              </TouchableOpacity>
+              {defect ? (
+                <View style={{ marginTop: SIZES.sm }}>
+                  <View style={styles.chips}>
+                    {(Object.keys(DEFECT_CATEGORY) as DefectCategory[]).map((c) => (
+                      <TouchableOpacity key={c} style={[styles.chip, defect.category === c && styles.chipOn]} onPress={() => setDefect({ ...defect, category: c })}>
+                        <Text style={[styles.chipText, defect.category === c && styles.chipTextOn]}>{DEFECT_CATEGORY[c]}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <TextInput style={[styles.input, { minHeight: 60, borderColor: COLORS.warning, borderWidth: 1 }]} value={defect.description} onChangeText={(v) => setDefect({ ...defect, description: v })} multiline placeholder="What is wrong ★ — it goes to the defect list until an officer closes it" placeholderTextColor={COLORS.textLight} />
+                </View>
+              ) : null}
               <View style={{ height: SIZES.md }} />
               <Label>Signed by</Label>
               {me ? (
@@ -464,6 +503,8 @@ const makeStyles = (COLORS: Palette) =>
     input: { ...COLORS.glassInput, borderRadius: SIZES.radiusMd, paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm, fontSize: SIZES.body, color: COLORS.text, marginTop: 4 },
     sub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 4 },
     signer: { fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark, marginTop: 4 },
+    defectToggle: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm },
+    defectBox: { width: 22, height: 22, borderRadius: 5, borderWidth: 1.5, borderColor: COLORS.warning, textAlign: 'center', fontWeight: '900', overflow: 'hidden' },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.xs, marginTop: SIZES.xs },
     chip: { paddingVertical: 7, paddingHorizontal: SIZES.md, borderRadius: 999, borderWidth: 1, borderColor: COLORS.primary },
     chipOn: { backgroundColor: COLORS.primary },

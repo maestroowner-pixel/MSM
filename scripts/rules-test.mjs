@@ -139,6 +139,13 @@ await t(true, 'Crew records the job done (last done moves)', setDoc(R(crew, 'pms
 await t(true, 'An Officer enters a counter reading', setDoc(R(officer, 'pms_machines', 'mc1'), { id: 'mc1', name: 'Main engine PS', hours: 130, hoursDate: '2026-10-11', updatedAt: 6 }));
 await t(false, 'An Officer cannot rename a machine', setDoc(R(officer, 'pms_machines', 'mc1'), { id: 'mc1', name: 'Other', hours: 130, hoursDate: '2026-10-11', updatedAt: 7 }));
 
+await t(true, 'Crew raises a machinery defect', setDoc(R(crew, 'pms_defects', 'df9'), { id: 'df9', machineId: 'mc1', category: 'safety', description: 'Leak' }));
+await t(false, 'Crew cannot raise a defect already closed', setDoc(R(crew, 'pms_defects', 'df8'), { id: 'df8', closed: { note: 'x' } }));
+await t(false, 'Crew cannot close a defect', setDoc(R(crew, 'pms_defects', 'df9'), { id: 'df9', machineId: 'mc1', category: 'safety', description: 'Leak', closed: { note: 'fixed' } }));
+await t(false, 'An Officer cannot change what the defect says', setDoc(R(officer, 'pms_defects', 'df9'), { id: 'df9', machineId: 'mc1', category: 'operational', description: 'Leak' }));
+await t(true, 'An Officer closes the defect', setDoc(R(officer, 'pms_defects', 'df9'), { id: 'df9', machineId: 'mc1', category: 'safety', description: 'Leak', closed: { note: 'Seal renewed' }, updatedAt: 9 }));
+await t(false, 'A closed defect cannot be closed again', setDoc(R(master, 'pms_defects', 'df9'), { id: 'df9', machineId: 'mc1', category: 'safety', description: 'Leak', closed: { note: 'other' }, updatedAt: 10 }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

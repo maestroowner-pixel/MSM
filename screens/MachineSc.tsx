@@ -19,6 +19,11 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { PLAN_LOCKED, plansPms } from '../types/role';
 import { useSync } from '../contexts/SyncContext';
+import { EvidencePhoto } from '../components/EvidencePhoto';
+import { categoryColor } from './PmsDefectSc';
+import { DEFECT_CATEGORY } from '../types/pms';
+import { machineHistory, openDefects } from '../services/pmsHistory';
+import { exportPmsHistory } from '../services/pmsHistoryReport';
 import { SIZES, Palette } from '../theme';
 import { DEPTS, Machine, PmsJob, deptOf, hasCounter } from '../types/pms';
 import { activeDeferral, dueText, hoursPerDay, intervalText, jobDue, sortJobsByDue, todayIso, withReading } from '../services/pms';
@@ -35,7 +40,9 @@ export default function MachineSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { machines, pmsJobs, pmsDone, pmsDeferrals, spares, spareMoves, saveMachine, savePmsJob } = useData();
+  const { machines, pmsJobs, pmsDone, pmsDeferrals, pmsDefects, spares, spareMoves, saveMachine, savePmsJob, vessel } = useData();
+  const defects = useMemo(() => openDefects(pmsDefects.filter((d) => d.machineId === route.params?.id)), [pmsDefects, route.params?.id]);
+  const [histSaved, setHistSaved] = useState<string | null>(null);
   const sync = useSync();
   const canPlan = plansPms(sync.enrolled, sync.role);
   const id: string = route.params?.id;
@@ -282,6 +289,40 @@ export default function MachineSc() {
             );
           })}
 
+          <View style={styles.jobsHead}>
+            <Label>{`Open defects (${defects.length})`}</Label>
+            {!isNew ? (
+              <TouchableOpacity onPress={() => nav.navigate('PmsDefect', { id: uid('new'), machineId: id })} hitSlop={8}>
+                <Text style={styles.link}>+ Report defect</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          {defects.map((x) => (
+            <TouchableOpacity key={x.id} style={styles.row} onPress={() => nav.navigate('PmsDefect', { id: x.id })} activeOpacity={0.7}>
+              <View style={[styles.bar, { backgroundColor: categoryColor(COLORS, x.category) }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle} numberOfLines={2}>{x.description}</Text>
+                <Text style={styles.sub}>{`${DEFECT_CATEGORY[x.category]} · ${formatDate(x.date)} · ${x.by}`}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+
+          {!isNew ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.md, marginTop: SIZES.md }}>
+              <TouchableOpacity
+                onPress={() =>
+                  void exportPmsHistory('Maintenance history', `Maintenance history-${draft.name}`, vessel, [machineHistory(existing ?? draft, pmsJobs, pmsDone, pmsDeferrals, pmsDefects, today)])
+                    .then((w) => typeof w === 'string' && setHistSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`))
+                    .catch((e) => Alert.alert('History', String(e?.message ?? e)))
+                }
+                hitSlop={8}
+              >
+                <Text style={styles.link}>History for the surveyor (PDF)</Text>
+              </TouchableOpacity>
+              {histSaved ? <Text style={[styles.sub, { color: COLORS.success }]}>{`✓ ${histSaved}`}</Text> : null}
+            </View>
+          ) : null}
+
           {history.length ? <Label>Recent work</Label> : null}
           {history.map((h) => (
             <View key={h.id} style={styles.hist}>
@@ -290,6 +331,11 @@ export default function MachineSc() {
                 {[formatDate(h.date), h.hours != null ? `${h.hours} h` : null, h.byRank ? `${h.by} (${h.byRank})` : h.by].filter(Boolean).join(' · ')}
               </Text>
               {h.note ? <Text style={styles.note}>{h.note}</Text> : null}
+              {h.photos?.length ? (
+                <View style={{ flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.xs, flexWrap: 'wrap' }}>
+                  {h.photos.map((p) => <EvidencePhoto key={p.id} vessel={vessel?.imo ?? ''} inspectionId={h.id} photo={p} />)}
+                </View>
+              ) : null}
             </View>
           ))}
 
