@@ -17,6 +17,7 @@ import { DocAck, IsmDoc } from '../types/docs';
 import { Permit, RiskAssessment } from '../types/permits';
 import { FuelBunker, FuelDailySent, FuelReading, FuelTank, FuelTransfer } from '../types/fuel';
 import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
+import { OrbEntry, OrbMasterSign } from '../types/orb';
 import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
 import { Survey, SurveyDone } from '../types/survey';
 import { live } from '../services/versions';
@@ -36,7 +37,7 @@ import { DEFAULT_ARCHIVE, PhotoArchiveState } from '../services/photoArchive';
 import { setSoundsMuted } from '../utils/sound';
 
 /** The logs whose records are changed by versions (Edit / Delete, Master only). */
-const VERSIONED_KEYS = [storage.FUEL_READINGS_KEY, storage.FUEL_BUNKERS_KEY, storage.FUEL_TRANSFERS_KEY, storage.SOPEP_CHECKS_KEY, storage.SOPEP_DRILLS_KEY, storage.VISITORS_KEY, storage.SECURITY_DRILLS_KEY, storage.SURVEYS_DONE_KEY];
+const VERSIONED_KEYS = [storage.ORB_KEY, storage.FUEL_READINGS_KEY, storage.FUEL_BUNKERS_KEY, storage.FUEL_TRANSFERS_KEY, storage.SOPEP_CHECKS_KEY, storage.SOPEP_DRILLS_KEY, storage.VISITORS_KEY, storage.SECURITY_DRILLS_KEY, storage.SURVEYS_DONE_KEY];
 
 interface DataContextType {
   loading: boolean;
@@ -100,6 +101,9 @@ interface DataContextType {
   /** Garbage Record Book — entries and the Master's monthly signatures (append-only). */
   fuelDailySent: FuelDailySent[];
   garbage: GarbageEntry[];
+  /** Oil Record Book Part I — live entries (versionsOf(ORB_KEY) for every version) and the Master's months. */
+  orb: OrbEntry[];
+  orbSigns: OrbMasterSign[];
   garbageSigns: GarbageMasterSign[];
   addGarbage: (e: GarbageEntry) => Promise<void>;
   signGarbageMonth: (s: GarbageMasterSign) => Promise<void>;
@@ -197,6 +201,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [fuelTransfers, setFuelTransfers] = useState<FuelTransfer[]>([]);
   const [fuelDailySent, setFuelDailySent] = useState<FuelDailySent[]>([]);
   const [garbage, setGarbage] = useState<GarbageEntry[]>([]);
+  const [orb, setOrb] = useState<OrbEntry[]>([]);
+  const [orbSigns, setOrbSigns] = useState<OrbMasterSign[]>([]);
   const [garbageSigns, setGarbageSigns] = useState<GarbageMasterSign[]>([]);
   const [sopepItems, setSopepItems] = useState<SopepItem[]>([]);
   const [sopepChecks, setSopepChecks] = useState<SopepCheck[]>([]);
@@ -260,6 +266,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setFuelTransfers(live(await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY)));
     setFuelDailySent(await storage.loadList<FuelDailySent>(storage.FUEL_DAILY_KEY));
     setGarbage(await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY));
+    setOrb(live(await storage.loadList<OrbEntry>(storage.ORB_KEY)));
+    setOrbSigns(await storage.loadList<OrbMasterSign>(storage.ORB_SIGNS_KEY));
     setGarbageSigns(await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY));
     setSopepItems((await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order));
     setSopepChecks(live(await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY)));
@@ -420,6 +428,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setFuelTransfers(live(await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY)));
     setFuelDailySent(await storage.loadList<FuelDailySent>(storage.FUEL_DAILY_KEY));
     setGarbage(await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY));
+    setOrb(live(await storage.loadList<OrbEntry>(storage.ORB_KEY)));
+    setOrbSigns(await storage.loadList<OrbMasterSign>(storage.ORB_SIGNS_KEY));
     setGarbageSigns(await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY));
     setSopepItems((await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order));
     setSopepChecks(live(await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY)));
@@ -643,6 +653,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         saveFuel,
         fuelDailySent,
         garbage,
+        orb,
+        orbSigns,
         garbageSigns,
         addGarbage,
         signGarbageMonth,

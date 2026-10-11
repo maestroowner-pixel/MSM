@@ -30,6 +30,7 @@ import { CrewPrivate } from '../types/crew';
 import { Permit, RiskAssessment } from '../types/permits';
 import { FuelBunker, FuelDailySent, FuelReading, FuelTank, FuelTransfer } from '../types/fuel';
 import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
+import { OrbEntry, OrbMasterSign } from '../types/orb';
 import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
 import { Survey, SurveyDone } from '../types/survey';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
@@ -69,6 +70,8 @@ export interface BackupFile {
   fuel?: { tanks: FuelTank[]; readings: FuelReading[]; bunkers: FuelBunker[]; transfers: FuelTransfer[]; daily?: FuelDailySent[] };
   /** Garbage Record Book entries and the Master's monthly signatures. */
   garbage?: { entries: GarbageEntry[]; signs: GarbageMasterSign[] };
+  /** Oil Record Book Part I. */
+  orb?: { entries: OrbEntry[]; signs: OrbMasterSign[] };
   /** SOPEP locker, checks, drills; ISPS visitor log and security levels. */
   sopep?: { items: SopepItem[]; checks: SopepCheck[]; drills: SopepDrill[] };
   /** Surveys & audits: the plan and what was carried out. */
@@ -177,6 +180,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     transfers: await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY),
     daily: await storage.loadList<FuelDailySent>(storage.FUEL_DAILY_KEY),
   };
+  const orb = { entries: await storage.loadList<OrbEntry>(storage.ORB_KEY), signs: await storage.loadList<OrbMasterSign>(storage.ORB_SIGNS_KEY) };
   const garbage = { entries: await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY), signs: await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY) };
   const surveys = { plan: await storage.loadList<Survey>(storage.SURVEYS_KEY), done: await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY) };
   const sopep = { items: await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY), checks: await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY), drills: await storage.loadList<SopepDrill>(storage.SOPEP_DRILLS_KEY) };
@@ -213,6 +217,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     ptw,
     fuel,
     garbage,
+    orb,
     sopep,
     security,
     surveys,
@@ -395,6 +400,10 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     await storage.saveList(storage.FUEL_BUNKERS_KEY, backup.fuel.bunkers ?? []);
     await storage.saveList(storage.FUEL_TRANSFERS_KEY, backup.fuel.transfers ?? []);
     await storage.saveList(storage.FUEL_DAILY_KEY, backup.fuel.daily ?? []);
+  }
+  if (backup.orb) {
+    await storage.saveList(storage.ORB_KEY, backup.orb.entries ?? []);
+    await storage.saveList(storage.ORB_SIGNS_KEY, backup.orb.signs ?? []);
   }
   if (backup.garbage) {
     await storage.saveList(storage.GARBAGE_KEY, backup.garbage.entries ?? []);

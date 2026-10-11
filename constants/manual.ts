@@ -362,6 +362,14 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🛢️',
+      title: "Oil Record Book",
+      body: [
+        "Oil Record Book is Part I of the ORB (MARPOL Annex I, machinery spaces): one entry per operation under its code — A/B oil fuel tanks, C sludge retained or disposed of, D/E bilge water (through 15 ppm, to a holding tank, ashore; times and position), F oil filtering equipment failure, G accidental discharge, H bunkering, I other remarks.",
+        "The form asks for what the code needs and shows the line as it will read in the book, with the item numbers. A bunkering recorded in Fuel can be taken over for H in one tap. Each entry is signed by the officer in charge; the Master signs each month and alone can change or delete an entry, with the reason. PDF and Excel print the month as the book's page.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Permits to work and risk assessments",
       body: [
@@ -828,6 +836,14 @@ const ru: ManualContent = {
         "Surveys & audits — план событий класса, флага и ISM: ежегодные, промежуточные и очередные освидетельствования, Load Line, докование, внутренние и внешние аудиты ISM, MLC — и свои пункты.",
         "У каждого — срок или дата годовщины, окно в обе стороны (обычно ±3 месяца) и повтор. Сверху — просроченные и с открытым окном.",
         "Carried out записывает дату, номер отчёта и замечания с подписью и переносит план: по годовщине — на следующую годовщину, остальные — от даты проведения. План ведут офицеры и Мастер; историю изменить нельзя.",
+      ],
+    },
+    {
+      emoji: '🛢️',
+      title: "Журнал нефтяных операций (Oil Record Book)",
+      body: [
+        "Oil Record Book — часть I журнала нефтяных операций (MARPOL Annex I, машинные помещения): одна запись — одна операция под своим кодом: A/B топливные танки, C шлам (остаток или сдача), D/E льяльные воды (через 15 ppm, в сборный танк, на берег; время и координаты), F неисправность фильтрующего оборудования, G случайный сброс, H бункеровка, I прочие записи.",
+        "Форма спрашивает то, что нужно для кода, и показывает строку так, как она будет в журнале, с номерами пунктов. Бункеровку из Fuel можно перенести в H одним нажатием. Каждую запись подписывает ответственный офицер; Мастер подписывает месяц и только он может исправить или удалить запись, с причиной. PDF и Excel печатают месяц как страницу журнала.",
       ],
     },
     {
@@ -1300,6 +1316,14 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🛢️',
+      title: "Libro registro de hidrocarburos (Oil Record Book)",
+      body: [
+        "Oil Record Book es la Parte I del libro (MARPOL Anexo I, espacios de máquinas): una anotación por operación con su código — A/B tanques de combustible, C fangos retenidos o eliminados, D/E aguas de sentina (por el equipo de 15 ppm, a tanque, a tierra; horas y posición), F avería del equipo filtrador, G descarga accidental, H toma de combustible, I otras observaciones.",
+        "El formulario pide lo que necesita el código y muestra la línea tal como quedará en el libro, con los números de punto. Un suministro registrado en Fuel pasa a H con un toque. Cada anotación la firma el oficial a cargo; el Master firma cada mes y solo él puede cambiar o borrar una anotación, con el motivo. PDF y Excel imprimen el mes como la página del libro.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Permisos de trabajo y evaluaciones de riesgo",
       body: [
@@ -1769,6 +1793,14 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🛢️',
+      title: "Журнал нафтових операцій (Oil Record Book)",
+      body: [
+        "Oil Record Book — частина I журналу нафтових операцій (MARPOL Annex I, машинні приміщення): один запис — одна операція під своїм кодом: A/B паливні танки, C шлам (залишок або здача), D/E лляльні води (через 15 ppm, у збірний танк, на берег; час і координати), F несправність фільтрувального обладнання, G випадковий скид, H бункерування, I інші записи.",
+        "Форма питає те, що потрібно для коду, і показує рядок так, як він буде в журналі, з номерами пунктів. Бункерування з Fuel можна перенести в H одним натисканням. Кожен запис підписує відповідальний офіцер; Майстер підписує місяць і лише він може виправити чи видалити запис, з причиною. PDF і Excel друкують місяць як сторінку журналу.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Дозволи на роботу та оцінка ризиків",
       body: [
@@ -1934,6 +1966,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
   { title: 'Permits to work and risk assessments', module: 'ptw' },
   { title: 'Fuel', module: 'fuel' },
   { title: 'Garbage Record Book', module: 'garbage' },
+  { title: 'Oil Record Book', module: 'orb' },
   { title: 'SOPEP', module: 'sopep' },
   { title: 'Board', module: 'board' },
   { title: 'Surveys & audits', module: 'surveys' },

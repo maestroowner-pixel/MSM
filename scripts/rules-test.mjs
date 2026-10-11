@@ -117,6 +117,12 @@ await t(false, 'An Officer cannot defer a job', setDoc(R(officer, 'pms_deferrals
 await t(true, 'The Master defers a job', setDoc(R(master, 'pms_deferrals', 'df2'), { id: 'df2', jobId: 'j1', reason: 'Spares on order' }));
 await t(false, 'A deferral cannot be changed', updateDoc(R(master, 'pms_deferrals', 'df2'), { reason: 'x' }));
 
+await t(true, 'Officer records an ORB entry', setDoc(R(officer, 'orb', 'o1'), { id: 'o1', code: 'D' }));
+await t(false, 'An ORB entry cannot be changed', updateDoc(R(officer, 'orb', 'o1'), { quantity: 9 }));
+await t(false, 'An Officer cannot amend an ORB entry', setDoc(R(officer, 'orb', 'o2'), { id: 'o2', supersedes: 'o1' }));
+await t(false, 'An Officer cannot sign the ORB month', setDoc(R(officer, 'orb_signs', 'orb_2026-10'), { id: 'orb_2026-10' }));
+await t(true, 'The Master signs the ORB month', setDoc(R(master, 'orb_signs', 'orb_2026-10'), { id: 'orb_2026-10' }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

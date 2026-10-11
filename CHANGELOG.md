@@ -13,6 +13,7 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Oil Record Book Part I (dark, `orb`).** MARPOL Annex I machinery-space operations, codes A–I (types/orb.ts); the form asks what each code needs (`ORB_FIELDS`, `orbProblem`) and builds the book line with item numbers (`orbText`, tested — check:orb); H takes a Fuel bunkering in one tap; officer signs each entry, Master signs the month; Edit / Delete Master only with the reason (versions); PDF (A4, the book's columns) and Excel; month picker. Rules: entries create-only, versions and month signatures the Master's. Menu: Environment → Oil record book. Rules 75/75.
 - **Hours of rest:** month picker in the title (arrow row removed).
 - **Spares for jobs ahead** (services/sparesNeed.ts, tested): parts the PMS jobs due / overdue within 30 / 60 / 90 days will use, against the stock, keeping the re-order level — "need · have · order" with the jobs; **Requisition (Excel)** with those and the parts below re-order level.
 - **Gangway logbook:** Gangway logbook / Drills chips removed (menu sub-items do it); Port ★ and Berth ★ at the top (kept with the vessel's details, synced; required to sign a visitor on) with the date; every visit stores port and berth (new column in the log, PDF and Excel); Time in ★ in the form (now by default, editable) and Time out asked at sign-off (now by default); crew buttons coloured — Ashore yellow, Back aboard green.

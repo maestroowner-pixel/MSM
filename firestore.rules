@@ -267,6 +267,18 @@ service cloud.firestore {
         allow create: if member(v);
         allow update, delete: if false;
       }
+      // Oil Record Book Part I: entries written once; a change or deletion is a
+      // new version, the Master's; the Master signs each month.
+      match /orb/{id} {
+        allow read: if reader(v);
+        allow create: if member(v) && (plainRecord() || isSuper(v));
+        allow update, delete: if false;
+      }
+      match /orb_signs/{id} {
+        allow read: if reader(v);
+        allow create: if isSuper(v);
+        allow update, delete: if false;
+      }
       // Garbage Record Book (MARPOL Annex V): entries and the Master's monthly
       // signatures are written once and never changed — as in the paper book,
       // a mistake is corrected by a further entry.

@@ -78,6 +78,7 @@ import PermitsSc from './screens/PermitsSc';
 import FuelSc from './screens/FuelSc';
 import { swipeLock } from './utils/swipeLock';
 import GarbageSc from './screens/GarbageSc';
+import OrbSc from './screens/OrbSc';
 import SopepSc from './screens/SopepSc';
 import SecuritySc from './screens/SecuritySc';
 import SurveysSc from './screens/SurveysSc';
@@ -112,6 +113,7 @@ const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Permits: PermitsSc,
   Fuel: FuelSc,
   Garbage: GarbageSc,
+  OilRecord: OrbSc,
   Sopep: SopepSc,
   Security: SecuritySc,
   Surveys: SurveysSc,
@@ -193,6 +195,7 @@ const MENU_LABEL: Record<string, string> = {
   Surveys: 'Surveys & audits',
   Fuel: 'Fuel',
   Garbage: 'Garbage record book',
+  OilRecord: 'Oil record book',
   Reports: 'Reports',
   Settings: 'Settings',
 };
@@ -380,6 +383,7 @@ const linking = {
           Permits: 'permits',
           Fuel: 'fuel',
           Garbage: 'garbage',
+          OilRecord: 'oil-record',
           Sopep: 'sopep',
           Security: 'security',
           Surveys: 'surveys',
