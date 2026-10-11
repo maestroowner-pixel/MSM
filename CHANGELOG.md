@@ -18,6 +18,7 @@ What the crew sees (from Jez's letter of 11 Oct 2026 and the DreamBoat data):
 - **Register protection:** Replace all keeps matched items' ids; a copy before every import; Settings → Data → Save a copy as a file; each inspection keeps the item's details (entry below).
 - **Inspection report** marks photos ("Photos: N", Excel column).
 - Everything in 2.59 (only `lifting` on among the newer modules). The other modules below stay dark.
+- **User manual reorganised** (user, 11 Oct 2026): settings topics first, then the screens in menu order; new sections "Settings — what is where" and "Moving around the app" (menu groups, Edit order, back arrow and swipe, ? help); 4 languages, same order (manual sections of dark modules stay hidden by position).
 
 Rules deployed by the user on 11 Oct 2026 (99/99).
 
