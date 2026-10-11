@@ -41,5 +41,23 @@ ok(jm.length === 1 && jm[0].delta === -1 && jm[0].doneId === 'd1' && jm[0].machi
 const t = toOrderCounts([imp, oil], new Map([['p1', 2], ['p2', 0]]));
 ok(t.low === 1 && t.out === 1, 'to-order counts: 1 low, 1 out');
 
+import { upcomingNeeds } from '../services/sparesNeed';
+{
+  const parts: any[] = [{ id: 'f', name: 'Oil filter', minQty: 1, updatedAt: 0 }, { id: 'i', name: 'Impeller', updatedAt: 0 }, { id: 'g', name: 'Gasket', updatedAt: 0 }];
+  const ms: any[] = [{ id: 'me', name: 'Main engine', hours: 1000, updatedAt: 0 }];
+  const js: any[] = [
+    { id: 'j1', machineId: 'me', title: 'Oil change', intervalDays: 30, lastDoneDate: '2026-09-20', parts: [{ partId: 'f', qty: 2 }], updatedAt: 0 },
+    { id: 'j2', machineId: 'me', title: 'Impeller', intervalDays: 365, lastDoneDate: '2026-06-01', parts: [{ partId: 'i', qty: 1 }], updatedAt: 0 },
+    { id: 'j3', machineId: 'me', title: 'Overhaul', intervalDays: 30, lastDoneDate: '2026-08-01', parts: [{ partId: 'g', qty: 4 }], updatedAt: 0 },
+  ];
+  const stock = new Map([['f', 1], ['g', 4]]);
+  const n = upcomingNeeds(js, ms, [], parts, stock, 30, '2026-10-11');
+  const by = new Map(n.map((x) => [x.part.id, x]));
+  ok(by.get('f')?.order === 2 && /in 9 d/.test(by.get('f')!.forJobs[0]), 'due in 9 d: need 2, have 1, keep 1 on the shelf → order 2');
+  ok(!by.has('i'), 'a job far ahead is not counted');
+  ok(!by.has('g'), 'overdue job but enough on hand → nothing to order');
+  const n90 = upcomingNeeds(js, ms, [], parts, stock, 365, '2026-10-11');
+  ok(n90.some((x) => x.part.id === 'i' && x.order === 1), 'a longer horizon brings the impeller in');
+}
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

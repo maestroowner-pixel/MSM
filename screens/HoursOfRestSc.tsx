@@ -17,6 +17,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { Card, Empty, Screen, ScreenTitle, StatusPill } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
+import { MonthPicker, monthName } from '../components/MonthPicker';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
@@ -35,16 +36,7 @@ function todayIso(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function shiftMonth(month: string, n: number): string {
-  const [y, m] = month.split('-').map(Number);
-  const d = new Date(Date.UTC(y, m - 1 + n, 1));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-}
 
-function monthLabel(month: string): string {
-  const [y, m] = month.split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1, 1)).toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
-}
 
 export default function HoursOfRestSc() {
   const COLORS = useTheme();
@@ -153,7 +145,12 @@ export default function HoursOfRestSc() {
     // The page scrolls; the day list inside it does not (scrollEnabled false) —
     // without `scroll` here nothing moved at all, by wheel or by finger.
     <Screen scroll>
-      <ScreenTitle title="Hours of rest" subtitle="MLC 2006 · STCW A-VIII/1 · ship's time" help="Hours of rest" />
+      <ScreenTitle
+        title={`Hours of rest — ${monthName(month)}`}
+        subtitle="MLC 2006 · STCW A-VIII/1 · ship's time"
+        help="Hours of rest"
+        actions={<MonthPicker value={month} onChange={setMonth} months={[...new Set(rest.map((d: any) => String(d.date).slice(0, 7)))]} />}
+      />
       {canEditCrew ? (
         <TouchableOpacity onPress={() => nav.navigate('CrewMatrix')} style={{ alignSelf: 'flex-end', marginTop: -SIZES.sm, marginBottom: SIZES.sm }} hitSlop={8}>
           <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small }}>Crew on board — add / sign on / sign off ›</Text>
@@ -216,21 +213,6 @@ export default function HoursOfRestSc() {
       </>
       )}
       <View style={wide ? { flex: 1 } : undefined}>
-
-      <View style={styles.monthRow}>
-        <TouchableOpacity onPress={() => setMonth(shiftMonth(month, -1))} hitSlop={12} accessibilityLabel="Previous month">
-          <MciIcon name="chevron-left" size={28} color={COLORS.primary} />
-        </TouchableOpacity>
-        <Text style={styles.month}>{monthLabel(month)}</Text>
-        <TouchableOpacity
-          onPress={() => setMonth(shiftMonth(month, 1))}
-          hitSlop={12}
-          disabled={month >= today.slice(0, 7)}
-          accessibilityLabel="Next month"
-        >
-          <MciIcon name="chevron-right" size={28} color={month >= today.slice(0, 7) ? COLORS.border : COLORS.primary} />
-        </TouchableOpacity>
-      </View>
 
       <Card>
         <View style={styles.stats}>

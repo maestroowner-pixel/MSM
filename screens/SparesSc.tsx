@@ -12,7 +12,7 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import { Card, Empty, Label, Screen, ScreenTitle } from '../components/ui';
@@ -22,12 +22,23 @@ import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
 import { StockStatus, qtyText, statusRank, stockByPart, stockStatus } from '../services/spares';
 import { uid } from '../utils/id';
+import * as XLSX from 'xlsx';
+import { Dropdown } from '../components/Dropdown';
+import { moduleOn } from '../constants/modules';
+import { upcomingNeeds } from '../services/sparesNeed';
+import { vesselHeader } from '../services/export';
+import { todayIso } from '../services/pms';
+import { deliverFile, onWeb } from '../utils/fileShare';
+import { saveFileWeb } from '../utils/webSave';
 
 export default function SparesSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
-  const { spares, spareMoves } = useData();
+  const { spares, spareMoves, pmsJobs, machines, pmsDeferrals, vessel } = useData();
+  // Parts the coming PMS jobs will use that are not on the shelf (services/sparesNeed).
+  const [horizon, setHorizon] = useState(30);
+  const [saved, setSaved] = useState<string | null>(null);
   const [q, setQ] = useState('');
   const [toOrder, setToOrder] = useState(false);
 
@@ -39,6 +50,35 @@ export default function SparesSc() {
     }),
     [spares, stock]
   );
+  const needs = useMemo(() => (moduleOn('pms') ? upcomingNeeds(pmsJobs, machines, pmsDeferrals, spares, stock, horizon) : []), [pmsJobs, machines, pmsDeferrals, spares, stock, horizon]);
+  const requisition = async () => {
+    try {
+      const lowOnly = rows.filter((r) => r.status !== 'ok' && !needs.some((n) => n.part.id === r.p.id));
+      const head = ['Part', 'Part No.', 'Maker', 'Unit', 'Needed for jobs', 'In stock', 'Order', 'For'];
+      const body = [
+        ...needs.map((n) => [n.part.name, n.part.partNo ?? '', n.part.maker ?? '', n.part.unit ?? 'pcs', n.need, n.onHand, n.order, n.forJobs.join('; ')]),
+        ...lowOnly.map((r) => [r.p.name, r.p.partNo ?? '', r.p.maker ?? '', r.p.unit ?? 'pcs', '', r.onHand, Math.max(1, (r.p.minQty ?? 0) - r.onHand + 1), 'below re-order level']),
+      ];
+      const ws = XLSX.utils.aoa_to_sheet([[`Spares requisition — jobs within ${horizon} days`], [vesselHeader(vessel)], [], head, ...body]);
+      ws['!cols'] = head.map((h) => ({ wch: h === 'For' ? 60 : 16 }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Requisition');
+      const v = (vessel?.vessel_name ?? '').replace(/[\\/:*?"<>|]+/g, ' ').trim();
+      const d = todayIso();
+      const name = `Spares requisition-${d.slice(8, 10)}${d.slice(5, 7)}${d.slice(2, 4)}${v ? `-${v}` : ''}.xlsx`;
+      const b64 = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+      const mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      if (onWeb) {
+        const bin = atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const w = await saveFileWeb(new Blob([bytes], { type: mime }), name, 'reports');
+        if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+      } else await deliverFile(name, b64, true, mime);
+    } catch (e: any) {
+      Alert.alert('Requisition', String(e?.message ?? e));
+    }
+  };
   const out = rows.filter((r) => r.status === 'out').length;
   const low = rows.filter((r) => r.status === 'low').length;
 
@@ -74,6 +114,27 @@ export default function SparesSc() {
           <Stat value={String(spares.length)} label="Lines" color={COLORS.textDark} />
         </View>
       </Card>
+
+      {moduleOn('pms') ? (
+        <Card>
+          <View style={styles.needHead}>
+            <Text style={styles.needTitle}>{`For jobs ahead · ${needs.length}`}</Text>
+            <Dropdown caption="WITHIN" value={horizon} onChange={setHorizon} options={[30, 60, 90].map((d) => ({ value: d, label: `${d} days` }))} style={{ minWidth: 150 }} />
+            <TouchableOpacity style={styles.reqBtn} onPress={() => void requisition()}><Text style={styles.reqBtnText}>Requisition (Excel)</Text></TouchableOpacity>
+          </View>
+          {saved ? <Text style={{ color: COLORS.success, fontWeight: '700', fontSize: 12 }}>{`✓ ${saved}`}</Text> : null}
+          {needs.map((n) => (
+            <TouchableOpacity key={n.part.id} style={styles.needRow} onPress={() => nav.navigate('SparePart', { id: n.part.id })} activeOpacity={0.7}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.needName}>{`${n.part.name}${n.part.partNo ? ` · ${n.part.partNo}` : ''}`}</Text>
+                <Text style={styles.needSub} numberOfLines={2}>{n.forJobs.join(' · ')}</Text>
+              </View>
+              <Text style={styles.needQty}>{`need ${n.need} · have ${n.onHand} · order ${n.order}`}</Text>
+            </TouchableOpacity>
+          ))}
+          {!needs.length ? <Text style={styles.needSub}>{`Everything the PMS jobs of the next ${horizon} days use is on the shelf.`}</Text> : null}
+        </Card>
+      ) : null}
 
       <View style={styles.tools}>
         <TextInput
@@ -134,6 +195,14 @@ function Stat({ value, label, color }: { value: string; label: string; color: st
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
+    needHead: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: SIZES.sm, marginBottom: SIZES.sm },
+    needTitle: { flex: 1, fontSize: SIZES.body, fontWeight: '800', color: COLORS.textDark },
+    reqBtn: { borderWidth: 1, borderColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 8, paddingHorizontal: SIZES.md },
+    reqBtnText: { color: COLORS.primary, fontWeight: '800' },
+    needRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.borderLight },
+    needName: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.textDark },
+    needSub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },
+    needQty: { fontSize: SIZES.small, fontWeight: '800', color: COLORS.warning },
     stats: { flexDirection: 'row', gap: SIZES.sm },
     tools: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginTop: SIZES.sm },
     search: { flex: 1, ...COLORS.glassInput, borderRadius: SIZES.radiusMd, paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm, fontSize: SIZES.body, color: COLORS.text },
