@@ -5,7 +5,7 @@
 
 import 'react-native-gesture-handler';
 import './utils/webAlert'; // web: make Alert.alert use the browser dialog (no-op on native)
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { View, StyleSheet, Animated, Platform, Linking, useWindowDimensions } from 'react-native';
 import { registerRootComponent } from 'expo';
 import { StatusBar } from 'expo-status-bar';
@@ -450,6 +450,7 @@ function Root() {
   const navigationRef = useNavigationContainerRef<any>();
   const { flat } = useData();
   const [showSplash, setShowSplash] = useState(true);
+  const hideSplash = useCallback(() => setShowSplash(false), []);
   // null = still loading the stored flag; false = must show; true = accepted
   const [legalAccepted, setLegalAccepted] = useState<boolean | null>(null);
 
@@ -643,7 +644,7 @@ function Root() {
       </Stack.Navigator>
       {showSplash ? (
         <View style={StyleSheet.absoluteFill}>
-          <SplashSc onDone={() => setShowSplash(false)} />
+          <SplashSc onDone={hideSplash} />
         </View>
       ) : showConsent ? (
         <View style={StyleSheet.absoluteFill}>

@@ -22,7 +22,15 @@ const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 // ismpilot-logo-on-dark.png is 1280×400 with its own side margins.
 const LOGO_RATIO = 400 / 1280;
 
+// Once per launch. The splash's effect used to depend on `onDone`, which the
+// parent passed as a fresh arrow on every render — and startup renders many
+// times as each list loads, so the effect re-ran and the bell rang again each
+// time (11 Oct 2026: "the bell rings over and over on the phone").
+let bellRung = false;
+
 export default function SplashSc({ onDone }: { onDone: () => void }) {
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
   const { width } = useWindowDimensions();
   const logoW = Math.min(width * 0.86, 520);
   const container = useRef(new Animated.Value(1)).current;
@@ -35,11 +43,14 @@ export default function SplashSc({ onDone }: { onDone: () => void }) {
     const handoff = () => {
       if (done) return;
       done = true;
-      onDone();
+      onDoneRef.current();
     };
 
     // Best-effort on the web: a browser may hold the sound until first interaction.
-    playShipBellSound();
+    if (!bellRung) {
+      bellRung = true;
+      playShipBellSound();
+    }
     Animated.parallel([
       Animated.timing(logoOpacity, { toValue: 1, duration: IN_MS, easing: Easing.out(Easing.cubic), useNativeDriver: USE_NATIVE_DRIVER }),
       Animated.spring(logoScale, { toValue: 1, friction: 7, tension: 40, useNativeDriver: USE_NATIVE_DRIVER }),
@@ -56,7 +67,9 @@ export default function SplashSc({ onDone }: { onDone: () => void }) {
       clearTimeout(finish);
       clearTimeout(guarantee);
     };
-  }, [container, logoOpacity, logoScale, footOpacity, onDone]);
+    // Once: the animated values are refs, and onDone is read through its ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <Animated.View style={[styles.fill, { opacity: container }]}>
