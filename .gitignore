@@ -30,3 +30,8 @@ keystore.properties
 # Cloud Functions dependencies (installed with `cd functions && npm i`)
 functions/node_modules/
 .check-reg/
+
+# Release artefacts — built locally, uploaded to the stores, never committed
+*.aab
+*.apk
+*.ipa
