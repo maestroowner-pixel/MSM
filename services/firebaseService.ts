@@ -1197,14 +1197,22 @@ interface SyncedList {
    * of new ones down with it, and is then known to be there.
    */
   appendOnly?: boolean;
+  /**
+   * The fields every member may change; the rest only the Master or the
+   * superintendent (the maintenance plan, 11 Oct 2026). When a whole record is
+   * refused, these alone are sent and the vessel's copy is taken back — so a
+   * counter reading or a job done always goes up, even from a device holding an
+   * older version of the plan, and never holds up the rest of the batch.
+   */
+  partial?: string[];
 }
 
 const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] = [
   // Personal details and next of kin: Officers and the Master only (rules).
   { sub: 'crew_private', key: storage.CREW_PRIVATE_KEY, module: 'crewCerts', officers: true },
   { sub: 'rest', key: storage.REST_KEY, module: 'rest' },
-  { sub: 'pms_machines', key: storage.PMS_MACHINES_KEY, module: 'pms' },
-  { sub: 'pms_jobs', key: storage.PMS_JOBS_KEY, module: 'pms' },
+  { sub: 'pms_machines', key: storage.PMS_MACHINES_KEY, module: 'pms', partial: ['hours', 'hoursDate', 'readings', 'updatedAt'] },
+  { sub: 'pms_jobs', key: storage.PMS_JOBS_KEY, module: 'pms', partial: ['lastDoneDate', 'lastDoneHours', 'updatedAt'] },
   { sub: 'pms_done', key: storage.PMS_DONE_KEY, appendOnly: true, module: 'pms' },
   { sub: 'pms_deferrals', key: storage.PMS_DEFERRALS_KEY, appendOnly: true, module: 'pms' },
   { sub: 'spares', key: storage.SPARES_KEY, module: 'spares' },
@@ -1249,6 +1257,44 @@ const liveLists = async () => {
   return SYNCED_LISTS.filter((l) => moduleOn(l.module) && (!l.officers || officer));
 };
 
+/**
+ * A batch was refused: send one record at a time; a record refused whole sends
+ * only the fields everyone may change, then takes the vessel's copy back. A
+ * record the vessel does not have and this device may not create stays on the
+ * device (it is not retried; the plan is the Master's).
+ */
+async function pushPartly(uid: string, l: SyncedList, rows: { id: string; updatedAt: number }[]): Promise<void> {
+  const d = requireDb();
+  const denied = (e: any) => String(e?.code ?? e?.message ?? '').includes('permission');
+  const back: Record<string, any> = {};
+  for (const r of rows) {
+    const ref = fsDoc(d, ROOT, uid, l.sub, r.id);
+    try {
+      await fsSetDoc(ref, stripUndefined(r));
+      continue;
+    } catch (e: any) {
+      if (!denied(e)) throw e;
+    }
+    const there = await fsGetDoc(ref);
+    if (!there.exists()) {
+      console.warn(`[sync] ${l.sub}/${r.id} refused — only the Master or the superintendent adds to the plan`);
+      continue;
+    }
+    const part: Record<string, any> = {};
+    for (const k of l.partial ?? []) if ((r as any)[k] !== undefined) part[k] = (r as any)[k];
+    try {
+      await fsSetDoc(ref, stripUndefined(part), { merge: true });
+    } catch (e: any) {
+      if (!denied(e)) throw e;
+    }
+    back[r.id] = (await fsGetDoc(ref)).data();
+  }
+  if (Object.keys(back).length) {
+    const list = await storage.loadList<{ id: string; updatedAt: number }>(l.key);
+    await storage.saveList(l.key, list.map((x) => back[x.id] ?? x));
+  }
+}
+
 async function pushList(uid: string, l: SyncedList): Promise<number> {
   try {
     const list = await storage.loadList<{ id: string; updatedAt: number }>(l.key);
@@ -1272,6 +1318,14 @@ async function pushList(uid: string, l: SyncedList): Promise<number> {
         }
         sent[r.id] = r.updatedAt ?? 0;
       }
+    } else if (l.partial) {
+      try {
+        await writeInBatches(uid, l.sub, fresh.map((r) => ({ id: r.id, data: r })));
+      } catch (e: any) {
+        if (!String(e?.code ?? e?.message ?? '').includes('permission')) throw e;
+        await pushPartly(uid, l, fresh);
+      }
+      for (const r of fresh) sent[r.id] = r.updatedAt ?? 0;
     } else {
       await writeInBatches(uid, l.sub, fresh.map((r) => ({ id: r.id, data: r })));
       for (const r of fresh) sent[r.id] = r.updatedAt ?? 0;

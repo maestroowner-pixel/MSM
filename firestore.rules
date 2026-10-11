@@ -176,19 +176,28 @@ service cloud.firestore {
         allow delete: if false;
       }
 
-      // Planned maintenance (types/pms.ts). Machines and their jobs are written
-      // by any member — the engineer who reads the counter is the one who updates
-      // it — and removed by tombstone, never deleted. A completed job is a
-      // signed record and is append-only, like an inspection: created once,
-      // never changed, never deleted.
+      // Planned maintenance (types/pms.ts). The plan — systems, jobs, intervals,
+      // removal by tombstone — is the Master's or the superintendent's (11 Oct
+      // 2026). Every member still writes what the work changes: the counter
+      // reading on a machine, the last-done date and hours on a job. Never
+      // deleted. A completed job is a signed record and is append-only, like an
+      // inspection: created once, never changed, never deleted.
+      function plans(v) {
+        return isSuper(v) || shore(v);
+      }
+      function onlyChanges(keys) {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+      }
       match /pms_machines/{id} {
         allow read: if reader(v);
-        allow create, update: if member(v);
+        allow create: if plans(v);
+        allow update: if plans(v) || (member(v) && onlyChanges(['hours', 'hoursDate', 'readings', 'updatedAt']));
         allow delete: if false;
       }
       match /pms_jobs/{id} {
         allow read: if reader(v);
-        allow create, update: if member(v);
+        allow create: if plans(v);
+        allow update: if plans(v) || (member(v) && onlyChanges(['lastDoneDate', 'lastDoneHours', 'updatedAt']));
         allow delete: if false;
       }
       match /pms_done/{id} {

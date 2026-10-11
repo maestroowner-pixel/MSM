@@ -70,6 +70,8 @@ interface DataContextType {
   pmsDeferrals: PmsDeferral[];
   saveMachine: (m: Machine) => Promise<void>;
   savePmsJob: (j: PmsJob) => Promise<void>;
+  /** Many systems and jobs at once — a plan loaded from the template; read back once. */
+  savePlan: (machines: Machine[], jobs: PmsJob[]) => Promise<void>;
   /**
    * Record a completion and move its job's baseline, in one step — and, when the
    * job takes parts, the "used" movements that take them out of the stores.
@@ -471,6 +473,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await loadPms();
   }, [loadPms]);
 
+  const savePlan = useCallback(async (ms: Machine[], js: PmsJob[]) => {
+    const put = async <T extends { id: string }>(key: string, rows: T[]) => {
+      if (!rows.length) return;
+      const byId = new Map(rows.map((r) => [r.id, r]));
+      const have = await storage.loadList<T>(key);
+      await storage.saveList(key, [...have.map((r) => byId.get(r.id) ?? r), ...rows.filter((r) => !have.some((h) => h.id === r.id))]);
+    };
+    await put(storage.PMS_MACHINES_KEY, ms);
+    await put(storage.PMS_JOBS_KEY, js);
+    await loadPms();
+  }, [loadPms]);
+
   const completePmsJob = useCallback(async (done: PmsDone, job: PmsJob, moves: SpareMove[] = []) => {
     await storage.upsertInList(storage.PMS_DONE_KEY, done);
     await storage.upsertInList(storage.PMS_JOBS_KEY, job);
@@ -651,6 +665,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         pmsDeferrals,
         saveMachine,
         savePmsJob,
+        savePlan,
         completePmsJob,
         spares,
         spareMoves,

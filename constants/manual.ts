@@ -453,6 +453,7 @@ const en: ManualContent = {
       emoji: '⚙️',
       title: "Planned maintenance",
       body: [
+        "The plan — systems, jobs, intervals — is set by the Master or the shore superintendent; everyone else records work done and counter readings. To load a whole plan at once, download Template (Excel) (it comes with the plan already in it), fill one row per job and choose Load plan (Excel): new systems and jobs are added, those with the same name updated, nothing removed; rows that cannot be read are listed before loading.",
         "The PMS tab (or the Maintenance strip on the Dashboard) holds the machinery — main engines, generators, watermaker, compressors, pumps, stabilisers — each with its running-hours counter and its jobs.",
         "Systems are grouped by department — Engineering, Deck, Safety, Bridge & comms, Interior, AV / IT, Hull & dry dock — each with its own + Add, so the whole vessel's work goes in the plan: the tender and cranes, the galley, the network, the hull. A system without a running-hours counter (galley, network, hull) is serviced by the calendar only. Typical jobs offers the usual list for the department.",
         "A job has an interval in running hours, in days, or both, and falls due on whichever comes first, as makers write it (\"every 250 h or 12 months\"). Set when it was last done — date and counter — once; after that, Record as done moves it for you. A job never done has no start to count from and shows \"Never done\" instead of a date.",
@@ -946,6 +947,7 @@ const ru: ManualContent = {
       emoji: '⚙️',
       title: "Планово-предупредительное ТО (Planned maintenance)",
       body: [
+        "План — системы, работы, интервалы — задаёт Мастер или суперинтендант с берега; остальные отмечают выполненные работы и вводят показания счётчиков. Чтобы загрузить весь план сразу, скачайте Template (Excel) (в нём уже есть текущий план), заполните по строке на работу и выберите Load plan (Excel): новые системы и работы добавятся, с тем же названием — обновятся, ничего не удаляется; строки, которые не удалось прочитать, показываются до загрузки.",
         "Вкладка PMS (или полоска Maintenance на дашборде) — механизмы: главные двигатели, генераторы, опреснитель, компрессоры, насосы, стабилизаторы — у каждого счётчик моточасов и свои работы.",
         "Системы сгруппированы по отделам — Engineering, Deck, Safety, Bridge & comms, Interior, AV / IT, Hull & dry dock — у каждого своя кнопка + Add, чтобы в план попадали все работы судна: тендер и краны, камбуз, сеть, корпус. У системы без счётчика моточасов (камбуз, сеть, корпус) работы идут только по календарю. Typical jobs предлагает обычный список для отдела.",
         "У работы интервал в моточасах, в днях или и то и другое; срок наступает по тому, что раньше, как пишут производители («каждые 250 ч или 12 месяцев»). Один раз укажите, когда она делалась последний раз — дата и счётчик; дальше Record as done сдвигает это сам. Работа, которая ни разу не делалась, показывает «Never done» вместо даты.",
@@ -1439,6 +1441,7 @@ const es: ManualContent = {
       emoji: '⚙️',
       title: "Mantenimiento planificado (Planned maintenance)",
       body: [
+        "El plan — sistemas, trabajos, intervalos — lo fija el Master o el superintendente en tierra; los demás registran los trabajos hechos y las lecturas de horas. Para cargar todo el plan de una vez, descargue Template (Excel) (ya trae el plan actual), rellene una fila por trabajo y elija Load plan (Excel): se añaden los sistemas y trabajos nuevos, se actualizan los del mismo nombre y no se borra nada; las filas que no se pueden leer se muestran antes de cargar.",
         "La pestaña PMS (o la franja Maintenance del Dashboard) contiene la maquinaria — motores principales, generadores, potabilizadora, compresores, bombas, estabilizadores — cada una con su contador de horas y sus trabajos.",
         "Los sistemas se agrupan por departamento — Engineering, Deck, Safety, Bridge & comms, Interior, AV / IT, Hull & dry dock — cada uno con su + Add, para que todo el trabajo del buque entre en el plan: el tender y las grúas, la cocina, la red, el casco. Un sistema sin contador de horas (cocina, red, casco) se mantiene solo por calendario. Typical jobs ofrece la lista habitual del departamento.",
         "Un trabajo tiene un intervalo en horas de funcionamiento, en días o ambos, y vence con lo que llegue antes, como lo escriben los fabricantes («cada 250 h o 12 meses»). Indique una vez cuándo se hizo por última vez — fecha y contador; después Record as done lo mueve solo. Un trabajo nunca hecho muestra «Never done» en vez de fecha.",
@@ -1932,6 +1935,7 @@ const uk: ManualContent = {
       emoji: '⚙️',
       title: "Планове ТО (Planned maintenance)",
       body: [
+        "План — системи, роботи, інтервали — задає Майстер або суперінтендант з берега; решта відмічає виконані роботи й вводить показники лічильників. Щоб завантажити весь план одразу, завантажте Template (Excel) (у ньому вже є поточний план), заповніть по рядку на роботу й оберіть Load plan (Excel): нові системи й роботи додадуться, з тією ж назвою — оновляться, нічого не видаляється; рядки, які не вдалося прочитати, показуються до завантаження.",
         "Вкладка PMS (або смуга Maintenance на дашборді) — механізми: головні двигуни, генератори, опріснювач, компресори, насоси, стабілізатори — у кожного лічильник мотогодин і свої роботи.",
         "Системи згруповані за відділами — Engineering, Deck, Safety, Bridge & comms, Interior, AV / IT, Hull & dry dock — у кожного своя кнопка + Add, щоб до плану потрапляли всі роботи судна: тендер і крани, камбуз, мережа, корпус. У системи без лічильника мотогодин (камбуз, мережа, корпус) роботи йдуть лише за календарем. Typical jobs пропонує звичайний список для відділу.",
         "Робота має інтервал у мотогодинах, у днях або і те, і те; строк настає за тим, що раніше, як пишуть виробники («кожні 250 год або 12 місяців»). Один раз укажіть, коли її робили востаннє — дата й лічильник; далі Record as done зсуває це сам. Робота, яку ще не робили, показує «Never done» замість дати.",

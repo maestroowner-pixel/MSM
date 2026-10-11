@@ -39,6 +39,17 @@ export const ROLE_DESCRIPTION: Record<Role, string> = {
   shore: 'From the office, in Fleet: sees this vessel, edits its documents and certificates.',
 };
 
+/**
+ * Who changes the maintenance plan — adds and removes systems and jobs, sets
+ * intervals, loads the plan from a template: the Master or the shore
+ * superintendent (asked 11 Oct 2026). Everyone records work done and counter
+ * readings. A device not enrolled is the Master's own.
+ */
+export function plansPms(enrolled: boolean, role: Role | null | undefined): boolean {
+  return !enrolled || role === 'superadmin' || role === 'shore';
+}
+export const PLAN_LOCKED = 'Only the Master or the superintendent changes the plan.';
+
 /** Highest first — the order the account list should read in. */
 export const ROLE_ORDER: Role[] = ['superadmin', 'admin', 'user', 'shore'];
 

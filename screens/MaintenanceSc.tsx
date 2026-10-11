@@ -19,6 +19,10 @@ import { Card, Empty, Label, Screen, ScreenTitle, StatusPill, statusColor } from
 import { MciIcon } from '../components/MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
+import { useSync } from '../contexts/SyncContext';
+import { PLAN_LOCKED, plansPms } from '../types/role';
+import { planImport } from '../services/pmsImport';
+import { exportPlanTemplate, pickPlanSheet } from '../services/pmsTemplate';
 import { SIZES, Palette } from '../theme';
 import { ComplianceStatus } from '../types/equipment';
 import { activeDeferral, dueText, jobDue, sortJobsByDue, todayIso, worse } from '../services/pms';
@@ -30,7 +34,44 @@ export default function MaintenanceSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
-  const { machines, pmsJobs, pmsDeferrals, pmsDone, vessel } = useData();
+  const { machines, pmsJobs, pmsDeferrals, pmsDone, vessel, savePlan } = useData();
+  const sync = useSync();
+  // The plan itself — systems, jobs, intervals, the template — is the Master's
+  // or the superintendent's; everyone records the work.
+  const canPlan = plansPms(sync.enrolled, sync.role);
+  const downloadTemplate = async () => {
+    try {
+      const w = await exportPlanTemplate(machines, pmsJobs);
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+    } catch (e: any) {
+      Alert.alert('Plan template', String(e?.message ?? e));
+    }
+  };
+  const loadPlan = async () => {
+    try {
+      const picked = await pickPlanSheet();
+      if (!picked) return;
+      const r = planImport(picked.rows, machines, pmsJobs, uid);
+      if (!r.machines.length && !r.jobs.length) {
+        return Alert.alert('Load the plan', ['Nothing new or changed in the sheet.', ...r.errors.slice(0, 12)].join('\n'));
+      }
+      const apply = async () => {
+        await savePlan(r.machines, r.jobs);
+        setSaved(`Plan loaded: ${r.addedSystems.length} systems and ${r.addedJobs} jobs added, ${r.updatedJobs} jobs updated`);
+      };
+      Alert.alert(
+        `Load the plan from “${picked.name}”?`,
+        [
+          r.addedSystems.length ? `New systems (${r.addedSystems.length}): ${r.addedSystems.slice(0, 15).join(', ')}${r.addedSystems.length > 15 ? '…' : ''}.` : null,
+          `Jobs: ${r.addedJobs} new, ${r.updatedJobs} updated. Nothing is removed.`,
+          r.errors.length ? `Not read (${r.errors.length}):\n${r.errors.slice(0, 12).join('\n')}${r.errors.length > 12 ? '\n…' : ''}` : null,
+        ].filter(Boolean).join('\n\n'),
+        [{ text: 'Cancel', style: 'cancel' }, { text: 'Load', onPress: () => void apply() }]
+      );
+    } catch (e: any) {
+      Alert.alert('Load the plan', String(e?.message ?? e));
+    }
+  };
   // The month's report: completion %, done, deferred, overdue — PDF / Excel.
   const [repMonth, setRepMonth] = useState(todayIso().slice(0, 7));
   const [saved, setSaved] = useState<string | null>(null);
@@ -87,6 +128,12 @@ export default function MaintenanceSc() {
         <TouchableOpacity style={styles.repBtn} onPress={() => void exportReport('pdf')}><Text style={styles.repBtnText}>Report PDF</Text></TouchableOpacity>
         <TouchableOpacity style={styles.repBtn} onPress={() => void exportReport('xlsx')}><Text style={styles.repBtnText}>Excel</Text></TouchableOpacity>
       </View>
+      <View style={[styles.reportRow, !canPlan && { opacity: 0.35 }]} pointerEvents={canPlan ? 'auto' : 'none'}>
+        <Text style={styles.kpi}>Plan</Text>
+        <TouchableOpacity style={styles.repBtn} onPress={() => void downloadTemplate()}><Text style={styles.repBtnText}>Template (Excel)</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.repBtn} onPress={() => void loadPlan()}><Text style={styles.repBtnText}>Load plan (Excel)</Text></TouchableOpacity>
+        {!canPlan ? <Text style={styles.sub}>{PLAN_LOCKED}</Text> : null}
+      </View>
       {saved ? <Text style={{ color: COLORS.success, fontWeight: '700', fontSize: SIZES.small, marginBottom: SIZES.sm }}>{`✓ ${saved}`}</Text> : null}
 
       <Card>
@@ -139,7 +186,7 @@ export default function MaintenanceSc() {
                 <MciIcon name={d.icon} size={16} color={COLORS.textLight} />
                 <Label>{rows.length ? `${d.label} (${rows.length})` : d.label}</Label>
               </View>
-              <TouchableOpacity onPress={() => addMachine(d.key)} hitSlop={10}>
+              <TouchableOpacity disabled={!canPlan} style={!canPlan && { opacity: 0.35 }} onPress={() => addMachine(d.key)} hitSlop={10}>
                 <Text style={styles.add}>+ Add</Text>
               </TouchableOpacity>
             </View>

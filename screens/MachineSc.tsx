@@ -17,6 +17,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BackButton, Label, StatusPill, statusColor } from '../components/ui';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
+import { PLAN_LOCKED, plansPms } from '../types/role';
+import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { DEPTS, Machine, PmsJob, deptOf, hasCounter } from '../types/pms';
 import { activeDeferral, dueText, hoursPerDay, intervalText, jobDue, sortJobsByDue, todayIso, withReading } from '../services/pms';
@@ -34,6 +36,8 @@ export default function MachineSc() {
   const nav = useNavigation<any>();
   const route = useRoute<any>();
   const { machines, pmsJobs, pmsDone, pmsDeferrals, spares, spareMoves, saveMachine, savePmsJob } = useData();
+  const sync = useSync();
+  const canPlan = plansPms(sync.enrolled, sync.role);
   const id: string = route.params?.id;
   // Spare parts marked as fitting this machine (Spares module).
   const fitting = useMemo(() => (moduleOn('spares') ? spares.filter((p) => (p.machineIds ?? []).includes(id)) : []), [spares, id]);
@@ -152,12 +156,16 @@ export default function MachineSc() {
         <View style={styles.header}>
           <BackButton onPress={() => goBackOr(nav)} />
           <Text style={styles.headerTitle} numberOfLines={1}>{isNew ? 'New system' : draft.name || 'System'}</Text>
-          <TouchableOpacity onPress={onSave} hitSlop={12}>
-            <Text style={styles.save}>Save</Text>
-          </TouchableOpacity>
+          {canPlan ? (
+            <TouchableOpacity onPress={onSave} hitSlop={12}>
+              <Text style={styles.save}>Save</Text>
+            </TouchableOpacity>
+          ) : <View style={{ width: 40 }} />}
         </View>
 
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
+          {!canPlan ? <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>{PLAN_LOCKED}</Text> : null}
+          <View pointerEvents={canPlan ? 'auto' : 'none'} style={!canPlan && { opacity: 0.6 }}>
           <Label>Department</Label>
           <View style={styles.depts}>
             {DEPTS.map((d) => (
@@ -187,6 +195,7 @@ export default function MachineSc() {
               <Text style={styles.sub}>Steering, propulsion, fire-fighting, safety systems — its jobs are done on time and cannot be deferred.</Text>
             </View>
             <Switch value={!!draft.critical} onValueChange={(v) => set({ critical: v })} trackColor={{ true: COLORS.danger, false: COLORS.border }} />
+          </View>
           </View>
 
           {hasCounter(draft) ? (
@@ -219,7 +228,7 @@ export default function MachineSc() {
 
           <View style={styles.jobsHead}>
             <Label>{`Jobs (${jobs.length})`}</Label>
-            <View style={{ flexDirection: 'row', gap: SIZES.md }}>
+            <View pointerEvents={canPlan ? 'auto' : 'none'} style={[{ flexDirection: 'row', gap: SIZES.md }, !canPlan && { opacity: 0.35 }]}>
               <TouchableOpacity onPress={() => setShowTypes((v) => !v)} hitSlop={8}>
                 <Text style={styles.link}>Typical jobs</Text>
               </TouchableOpacity>
@@ -284,7 +293,7 @@ export default function MachineSc() {
             </View>
           ))}
 
-          <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
+          <TouchableOpacity disabled={!canPlan} style={[styles.deleteBtn, !canPlan && { opacity: 0.35 }]} onPress={onDelete}>
             <Text style={styles.deleteText}>{isNew ? 'Discard' : 'Remove'}</Text>
           </TouchableOpacity>
         </ScrollView>

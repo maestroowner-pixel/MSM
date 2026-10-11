@@ -31,7 +31,7 @@ import { JOB_TYPE, JobType, PmsDone, PmsJob, hasCounter } from '../types/pms';
 import { Dropdown } from '../components/Dropdown';
 import * as storage from '../services/storage';
 import { crewLabel } from '../types/crew';
-import { personName } from '../types/role';
+import { PLAN_LOCKED, personName, plansPms } from '../types/role';
 import { activeDeferral, dueText, jobAfter, jobCycle, jobDue, todayIso, withReading } from '../services/pms';
 import { movesForJob, qtyText, stockByPart } from '../services/spares';
 import { JobPart } from '../types/spares';
@@ -100,6 +100,7 @@ export default function PmsJobSc() {
 
   const deferral = existing ? activeDeferral(existing, pmsDeferrals) : undefined;
   const isMaster = !sync.enrolled || sync.role === 'superadmin';
+  const canPlan = plansPms(sync.enrolled, sync.role);
   const [defer, setDefer] = useState<{ date: string; hours: string; reason: string } | null>(null);
   const signDeferral = async () => {
     if (!existing || !defer) return;
@@ -127,6 +128,7 @@ export default function PmsJobSc() {
   };
 
   const onSave = async () => {
+    if (!canPlan) return Alert.alert('Maintenance plan', PLAN_LOCKED);
     if (!draft.title.trim()) return Alert.alert('Title required', 'Say what the job is — "Oil and filter change".');
     if (!draft.intervalHours && !draft.intervalDays) return Alert.alert('Interval', counter ? 'Give an interval in hours, in days, or both.' : 'Give an interval in days.');
     await savePmsJob({ ...draft, title: draft.title.trim(), updatedAt: Date.now() });
@@ -214,9 +216,11 @@ export default function PmsJobSc() {
         <View style={styles.header}>
           <BackButton onPress={() => (doing ? setDoing(false) : goBackOr(nav))} />
           <Text style={styles.headerTitle} numberOfLines={1}>{doing ? 'Record as done' : isNew ? 'New job' : 'Job'}</Text>
-          <TouchableOpacity onPress={doing ? onDone : onSave} hitSlop={12}>
-            <Text style={styles.save}>{doing ? 'Sign' : 'Save'}</Text>
-          </TouchableOpacity>
+          {doing || canPlan ? (
+            <TouchableOpacity onPress={doing ? onDone : onSave} hitSlop={12}>
+              <Text style={styles.save}>{doing ? 'Sign' : 'Save'}</Text>
+            </TouchableOpacity>
+          ) : <View style={{ width: 40 }} />}
         </View>
 
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
@@ -316,6 +320,8 @@ export default function PmsJobSc() {
             </>
           ) : (
             <>
+              {!canPlan ? <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>{PLAN_LOCKED}</Text> : null}
+              <View pointerEvents={canPlan ? 'auto' : 'none'} style={!canPlan && { opacity: 0.6 }}>
               <Label>Job ★</Label>
               <TextInput style={styles.input} value={draft.title} onChangeText={(v) => set({ title: v })} placeholder="Oil and filter change" placeholderTextColor={COLORS.textLight} />
               <Dropdown caption="TYPE" value={draft.type ?? ''} onChange={(v) => set({ type: (v || undefined) as JobType | undefined })} options={[{ value: '', label: '—' }, ...(Object.keys(JOB_TYPE) as JobType[]).map((k) => ({ value: k, label: JOB_TYPE[k] }))]} style={{ marginTop: SIZES.sm }} />
@@ -408,13 +414,14 @@ export default function PmsJobSc() {
                   ) : null}
                 </>
               ) : null}
+              </View>
 
               {!isNew ? (
                 <TouchableOpacity style={styles.doneBtn} onPress={startDoing}>
                   <Text style={styles.doneText}>Record as done</Text>
                 </TouchableOpacity>
               ) : null}
-              <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
+              <TouchableOpacity disabled={!canPlan} style={[styles.deleteBtn, !canPlan && { opacity: 0.35 }]} onPress={onDelete}>
                 <Text style={styles.deleteText}>{isNew ? 'Discard' : 'Remove job'}</Text>
               </TouchableOpacity>
             </>

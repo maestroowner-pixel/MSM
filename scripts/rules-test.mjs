@@ -128,6 +128,17 @@ await t(false, 'A ballast entry cannot be amended by an Officer', setDoc(R(offic
 await t(true, 'The Master signs the ballast month', setDoc(R(master, 'ballast_signs', 'ballast_2026-10'), { id: 'ballast_2026-10' }));
 await t(false, 'An Officer cannot sign the sewage month', setDoc(R(officer, 'sewage_signs', 'sewage_2026-10'), { id: 'sewage_2026-10' }));
 
+// The maintenance plan: the Master or the superintendent; the crew records the work.
+await t(true, 'The Master adds a machine to the plan', setDoc(R(master, 'pms_machines', 'mc1'), { id: 'mc1', name: 'Main engine PS', hours: 100 }));
+await t(true, 'The superintendent adds a job to the plan', setDoc(R(shore, 'pms_jobs', 'jb1'), { id: 'jb1', machineId: 'mc1', title: 'Oil change', intervalHours: 500 }));
+await t(false, 'An Officer cannot add a job', setDoc(R(officer, 'pms_jobs', 'jb2'), { id: 'jb2', machineId: 'mc1', title: 'X' }));
+await t(false, 'Crew cannot add a machine', setDoc(R(crew, 'pms_machines', 'mc2'), { id: 'mc2', name: 'X' }));
+await t(false, 'An Officer cannot change an interval', setDoc(R(officer, 'pms_jobs', 'jb1'), { id: 'jb1', machineId: 'mc1', title: 'Oil change', intervalHours: 1000 }));
+await t(false, 'Crew cannot remove a job', setDoc(R(crew, 'pms_jobs', 'jb1'), { id: 'jb1', machineId: 'mc1', title: 'Oil change', intervalHours: 500, deleted: true }));
+await t(true, 'Crew records the job done (last done moves)', setDoc(R(crew, 'pms_jobs', 'jb1'), { id: 'jb1', machineId: 'mc1', title: 'Oil change', intervalHours: 500, lastDoneDate: '2026-10-11', lastDoneHours: 120, updatedAt: 5 }));
+await t(true, 'An Officer enters a counter reading', setDoc(R(officer, 'pms_machines', 'mc1'), { id: 'mc1', name: 'Main engine PS', hours: 130, hoursDate: '2026-10-11', updatedAt: 6 }));
+await t(false, 'An Officer cannot rename a machine', setDoc(R(officer, 'pms_machines', 'mc1'), { id: 'mc1', name: 'Other', hours: 130, hoursDate: '2026-10-11', updatedAt: 7 }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);
