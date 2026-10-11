@@ -148,6 +148,11 @@ await t(false, 'A closed defect cannot be closed again', setDoc(R(master, 'pms_d
 
 await t(true, 'An Officer records a counter replacement', setDoc(R(officer, 'pms_machines', 'mc1'), { id: 'mc1', name: 'Main engine PS', hours: 130, hoursDate: '2026-10-11', counterOffset: 130, updatedAt: 11 }));
 
+await t(true, 'An Officer starts a round', setDoc(R(officer, 'rounds', 'r1'), { id: 'r1', period: 'monthly', categories: ['eebd'] }));
+await t(false, 'Crew cannot start a round', setDoc(R(crew, 'rounds', 'r2'), { id: 'r2' }));
+await t(false, 'A round cannot be re-scoped', setDoc(R(officer, 'rounds', 'r1'), { id: 'r1', period: 'weekly', categories: ['eebd'] }));
+await t(true, 'An Officer closes a round', setDoc(R(officer, 'rounds', 'r1'), { id: 'r1', period: 'monthly', categories: ['eebd'], closedAt: 5, closedBy: 'Jez', updatedAt: 5 }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

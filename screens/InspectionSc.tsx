@@ -55,6 +55,10 @@ import { useSignConfirm } from '../components/SignConfirm';
 import { SIZES, Palette } from '../theme';
 import { CATEGORY_MAP } from '../constants/categories';
 import { periodsFor, templateFor } from '../constants/checklists';
+import { roundTakes } from '../services/rounds';
+import { useActiveRound } from '../services/activeRound';
+import { moduleOn } from '../constants/modules';
+
 import { CheckResult, InspectionPeriod, PERIOD_LABEL } from '../types/inspection';
 import { Attachment, EquipmentItem } from '../types/equipment';
 import { crewLabel } from '../types/crew';
@@ -89,7 +93,8 @@ export default function InspectionSc() {
   const route = useRoute<any>();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
-  const { flat, crew, prefs, vessel, templates, addInspection, setPrefs, signingPolicy } = useData();
+  const { flat, crew, prefs, vessel, templates, addInspection, setPrefs, signingPolicy, rounds } = useData();
+  const activeRoundId = useActiveRound();
   const confirmSign = useSignConfirm();
   const sync = useSync();
 
@@ -143,6 +148,14 @@ export default function InspectionSc() {
     () => (item ? templateFor(item.category, period, templates) : null),
     [item, period]
   );
+
+  // The round this inspection counts towards: the one it was opened from, or
+  // the round this device is working in — when it covers this item's category
+  // and this period, and is still open (services/rounds roundTakes).
+  const round = useMemo(() => {
+    const r = rounds.find((x) => x.id === (route.params?.roundId ?? activeRoundId));
+    return roundTakes(r, item, period) ? r! : null;
+  }, [rounds, route.params?.roundId, activeRoundId, item, period]);
 
   // Results start EMPTY — see decision 1 in the header.
   const [results, setResults] = useState<Record<string, CheckResult>>({});
@@ -282,6 +295,7 @@ export default function InspectionSc() {
         comment,
         photos,
         defectNote,
+        ...(round && moduleOn('rounds') ? { roundId: round.id } : {}),
         verification:
           gate.kind === 'override'
             ? { method: 'override', reason: overrideReason }
@@ -310,7 +324,7 @@ export default function InspectionSc() {
     } finally {
       setSaving(false);
     }
-  }, [item, template, signer, results, comment, photos, defectNote, addInspection, setPrefs, nav, gate.kind, overrideReason, proof, rule.kind, confirmSign]);
+  }, [round, item, template, signer, results, comment, photos, defectNote, addInspection, setPrefs, nav, gate.kind, overrideReason, proof, rule.kind, confirmSign]);
 
   const confirmSave = () => {
     if (signed.current || confirming.current) return;
@@ -445,6 +459,12 @@ export default function InspectionSc() {
           contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}
           keyboardShouldPersistTaps="handled"
         >
+          {round && moduleOn('rounds') ? (
+            <View style={[styles.card, { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, paddingVertical: SIZES.sm }]}>
+              <MciIcon name="clipboard-check-outline" size={18} color={COLORS.success} />
+              <Text style={[styles.itemMeta, { flex: 1, color: COLORS.success, fontWeight: '700' }]}>{`Counts towards the ${round.period} round · ${round.label}`}</Text>
+            </View>
+          ) : null}
           {/* What is being inspected — never in doubt, because the scan chose it. */}
           <View style={styles.titleRow}>
             <CategoryBadge category={item.category} size={26} />

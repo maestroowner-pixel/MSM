@@ -109,6 +109,8 @@ export interface Inspection {
    * fall back to the template (see `checklistRows` in services/inspections).
    */
   lines?: InspectionLine[];
+  /** The inspection round it was signed in (types/round.ts), if any. Only these count towards a round. */
+  roundId?: string;
   /** The item as it stood when inspected (services/inspections itemSnapshot). Absent on records before 2.60. */
   item?: InspectedItem;
   /** Frozen at save time — never recomputed. */

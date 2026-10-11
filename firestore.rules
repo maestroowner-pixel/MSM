@@ -284,6 +284,14 @@ service cloud.firestore {
         allow create: if member(v);
         allow update, delete: if false;
       }
+      // Inspection rounds (types/round.ts): started and closed by an officer or the
+      // Master; the inspections in them are ordinary signed records.
+      match /rounds/{id} {
+        allow read: if reader(v);
+        allow create: if isAdmin(v);
+        allow update: if isAdmin(v) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['closedAt', 'closedBy', 'updatedAt']);
+        allow delete: if false;
+      }
       // Sewage and Ballast Water record books — kept like the Oil Record Book.
       match /sewage/{id} {
         allow read: if reader(v);

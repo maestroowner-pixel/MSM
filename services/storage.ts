@@ -41,6 +41,7 @@ export const GARBAGE_KEY = `${PREFIX}garbage`;
 export const GARBAGE_SIGNS_KEY = `${PREFIX}garbage_signs`;
 export const ORB_KEY = `${PREFIX}orb`;
 export const ORB_SIGNS_KEY = `${PREFIX}orb_signs`;
+export const ROUNDS_KEY = `${PREFIX}rounds`;
 export const SEWAGE_KEY = `${PREFIX}sewage`;
 export const SEWAGE_SIGNS_KEY = `${PREFIX}sewage_signs`;
 export const BALLAST_KEY = `${PREFIX}ballast`;
@@ -674,6 +675,7 @@ export async function resetAllData(): Promise<void> {
     GARBAGE_SIGNS_KEY,
     ORB_KEY,
     ORB_SIGNS_KEY,
+    ROUNDS_KEY,
     SEWAGE_KEY,
     SEWAGE_SIGNS_KEY,
     BALLAST_KEY,

@@ -85,8 +85,18 @@ export function selectLabelItems(items: EquipmentItem[], q: LabelBatchQuery): Eq
     return true;
   });
 
+  return sortByDeck(picked);
+}
+
+/**
+ * The vessel's walking order — deck, then category, then item number, then type.
+ * Shared by label batches and inspection rounds (Jez, 11 Oct 2026: "organised by
+ * deck, location and item number, following the existing sorting system").
+ */
+export function sortByDeck<T extends EquipmentItem>(picked: T[]): T[] {
+  const catOrder = new Map<CategoryKey, number>(CATEGORIES.map((c, i) => [c.key, i]));
   const deckRank = new Map<string, number>(listDecks(picked).map((d, i) => [d.key, i]));
-  return picked.sort((a, b) => {
+  return [...picked].sort((a, b) => {
     const da = deckRank.get(deckKey(a.deck)) ?? 0;
     const db = deckRank.get(deckKey(b.deck)) ?? 0;
     if (da !== db) return da - db;

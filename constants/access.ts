@@ -30,7 +30,7 @@
 
 import { ModuleKey, moduleOn } from './modules';
 
-export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'orb' | 'sewage' | 'ballast' | 'reports' | 'maintenance' | 'spares' | 'rest';
+export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'reports' | 'maintenance' | 'spares' | 'rest';
 
 export interface OptionalTab {
   key: TabKey;
@@ -56,6 +56,7 @@ export const OPTIONAL_TABS: OptionalTab[] = [
   { key: 'orb', module: 'orb', route: 'OilRecord', label: 'Oil Record Book', column: 'ORB', icon: 'oil' },
   { key: 'sewage', module: 'sewage', route: 'Sewage', label: 'Sewage record', column: 'Sew', icon: 'water-pump' },
   { key: 'ballast', module: 'ballast', route: 'Ballast', label: 'Ballast water', column: 'BW', icon: 'waves' },
+  { key: 'rounds', module: 'rounds', route: 'Rounds', label: 'Inspection rounds', column: 'RND', icon: 'clipboard-check-outline' },
   { key: 'surveys', module: 'surveys', route: 'Surveys', label: 'Surveys', column: 'SRV', icon: 'calendar-check-outline' },
   { key: 'sopep', module: 'sopep', route: 'Sopep', label: 'SOPEP', column: 'SOPEP', icon: 'oil' },
   { key: 'security', module: 'security', route: 'Security', label: 'Security', column: 'ISPS', icon: 'shield-account' },

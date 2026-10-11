@@ -1231,6 +1231,7 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'garbage_signs', key: storage.GARBAGE_SIGNS_KEY, appendOnly: true, module: 'garbage' },
   { sub: 'orb', key: storage.ORB_KEY, appendOnly: true, module: 'orb' },
   { sub: 'orb_signs', key: storage.ORB_SIGNS_KEY, appendOnly: true, module: 'orb' },
+  { sub: 'rounds', key: storage.ROUNDS_KEY, module: 'rounds' },
   { sub: 'sewage', key: storage.SEWAGE_KEY, appendOnly: true, module: 'sewage' },
   { sub: 'sewage_signs', key: storage.SEWAGE_SIGNS_KEY, appendOnly: true, module: 'sewage' },
   { sub: 'ballast', key: storage.BALLAST_KEY, appendOnly: true, module: 'ballast' },

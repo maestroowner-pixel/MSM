@@ -32,6 +32,8 @@ import { formatDate } from '../utils/dates';
 // ---- Creating --------------------------------------------------------------
 
 export interface NewInspectionInput {
+  /** The round it is signed in (types/round.ts). */
+  roundId?: string;
   item: EquipmentItem;
   template: ChecklistTemplate;
   results: Record<string, CheckResult>;
@@ -101,6 +103,7 @@ export function create(input: NewInspectionInput): Inspection {
     results: input.results,
     lines,
     item: itemSnapshot(input.item),
+    ...(input.roundId ? { roundId: input.roundId } : {}),
     outcome,
     comment: input.comment?.trim() || undefined,
     photos: input.photos?.length ? input.photos : undefined,

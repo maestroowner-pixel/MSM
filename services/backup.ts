@@ -32,6 +32,7 @@ import { FuelBunker, FuelDailySent, FuelReading, FuelTank, FuelTransfer } from '
 import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
 import { OrbEntry, OrbMasterSign } from '../types/orb';
 import { LogEntry, LogMonthSign } from '../types/logbook';
+import { InspectionRound } from '../types/round';
 import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
 import { Survey, SurveyDone } from '../types/survey';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
@@ -73,6 +74,8 @@ export interface BackupFile {
   garbage?: { entries: GarbageEntry[]; signs: GarbageMasterSign[] };
   /** Oil Record Book Part I. */
   orb?: { entries: OrbEntry[]; signs: OrbMasterSign[] };
+  /** Inspection rounds. */
+  rounds?: InspectionRound[];
   /** Sewage and Ballast Water record books. */
   sewage?: { entries: LogEntry[]; signs: LogMonthSign[] };
   ballast?: { entries: LogEntry[]; signs: LogMonthSign[] };
@@ -197,6 +200,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     transfers: await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY),
     daily: await storage.loadList<FuelDailySent>(storage.FUEL_DAILY_KEY),
   };
+  const rounds = await storage.loadList<InspectionRound>(storage.ROUNDS_KEY);
   const sewage = { entries: await storage.loadList<LogEntry>(storage.SEWAGE_KEY), signs: await storage.loadList<LogMonthSign>(storage.SEWAGE_SIGNS_KEY) };
   const ballast = { entries: await storage.loadList<LogEntry>(storage.BALLAST_KEY), signs: await storage.loadList<LogMonthSign>(storage.BALLAST_SIGNS_KEY) };
   const orb = { entries: await storage.loadList<OrbEntry>(storage.ORB_KEY), signs: await storage.loadList<OrbMasterSign>(storage.ORB_SIGNS_KEY) };
@@ -237,6 +241,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     fuel,
     garbage,
     orb,
+    rounds,
     sewage,
     ballast,
     sopep,
@@ -423,6 +428,7 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     await storage.saveList(storage.FUEL_TRANSFERS_KEY, backup.fuel.transfers ?? []);
     await storage.saveList(storage.FUEL_DAILY_KEY, backup.fuel.daily ?? []);
   }
+  if (backup.rounds) await storage.saveList(storage.ROUNDS_KEY, backup.rounds);
   if (backup.sewage) {
     await storage.saveList(storage.SEWAGE_KEY, backup.sewage.entries ?? []);
     await storage.saveList(storage.SEWAGE_SIGNS_KEY, backup.sewage.signs ?? []);

@@ -19,6 +19,7 @@ import { FuelBunker, FuelDailySent, FuelReading, FuelTank, FuelTransfer } from '
 import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
 import { OrbEntry, OrbMasterSign } from '../types/orb';
 import { LogEntry, LogMonthSign } from '../types/logbook';
+import { InspectionRound } from '../types/round';
 import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
 import { Survey, SurveyDone } from '../types/survey';
 import { live } from '../services/versions';
@@ -110,6 +111,8 @@ interface DataContextType {
   orb: OrbEntry[];
   orbSigns: OrbMasterSign[];
   /** Sewage and Ballast Water record books — live entries and the Master's months. */
+  /** Inspection rounds, open and closed. */
+  rounds: InspectionRound[];
   sewage: LogEntry[];
   sewageSigns: LogMonthSign[];
   ballast: LogEntry[];
@@ -214,6 +217,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [garbage, setGarbage] = useState<GarbageEntry[]>([]);
   const [orb, setOrb] = useState<OrbEntry[]>([]);
   const [orbSigns, setOrbSigns] = useState<OrbMasterSign[]>([]);
+  const [rounds, setRounds] = useState<InspectionRound[]>([]);
   const [sewage, setSewage] = useState<LogEntry[]>([]);
   const [sewageSigns, setSewageSigns] = useState<LogMonthSign[]>([]);
   const [ballast, setBallast] = useState<LogEntry[]>([]);
@@ -284,6 +288,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setGarbage(await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY));
     setOrb(live(await storage.loadList<OrbEntry>(storage.ORB_KEY)));
     setOrbSigns(await storage.loadList<OrbMasterSign>(storage.ORB_SIGNS_KEY));
+    setRounds(await storage.loadList<InspectionRound>(storage.ROUNDS_KEY));
     setSewage(live(await storage.loadList<LogEntry>(storage.SEWAGE_KEY)));
     setSewageSigns(await storage.loadList<LogMonthSign>(storage.SEWAGE_SIGNS_KEY));
     setBallast(live(await storage.loadList<LogEntry>(storage.BALLAST_KEY)));
@@ -451,6 +456,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setGarbage(await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY));
     setOrb(live(await storage.loadList<OrbEntry>(storage.ORB_KEY)));
     setOrbSigns(await storage.loadList<OrbMasterSign>(storage.ORB_SIGNS_KEY));
+    setRounds(await storage.loadList<InspectionRound>(storage.ROUNDS_KEY));
     setSewage(live(await storage.loadList<LogEntry>(storage.SEWAGE_KEY)));
     setSewageSigns(await storage.loadList<LogMonthSign>(storage.SEWAGE_SIGNS_KEY));
     setBallast(live(await storage.loadList<LogEntry>(storage.BALLAST_KEY)));
@@ -694,6 +700,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         garbage,
         orb,
         orbSigns,
+        rounds,
         sewage,
         sewageSigns,
         ballast,

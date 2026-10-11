@@ -379,6 +379,14 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '📋',
+      title: "Inspection rounds",
+      body: [
+        "An inspection round is a shared to-do list for one period — this week, this month — and the categories it covers: fire extinguishers, hydrants, EEBDs… An officer or the Master starts it; everyone works in it, on any device. The outstanding list is in walking order — deck, location, item number — and an item comes off it as soon as somebody signs it in the round; the progress reads 75 / 100.",
+        "Opening a round makes it this device's round: a label scanned on the way round and signed counts towards it, and the inspection screen says so. Only inspections signed within the round count — an item checked outside it stays outstanding there. Done items show who, rank, date and time. Round report (PDF / Excel) lists what was done by whom and what is still outstanding. Close the round when finished; nothing is removed from the register.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: "Oil Record Book",
       body: [
@@ -873,6 +881,14 @@ const ru: ManualContent = {
       body: [
         "Журнал балластных вод (Конвенция BWM): приём, циркуляция или обработка, замена (последовательная, проточная, разбавлением) с координатами начала и конца, сброс в море, сдача на приёмное сооружение, случайный приём или сброс, неисправность системы обработки (BWMS).",
         "Замена проверяется по D-1: не ближе 50 миль от берега (по возможности 200) и глубина не меньше 200 м. Подписи, подпись Мастера за месяц, исправления только Мастером, PDF и Excel — как в других журналах.",
+      ],
+    },
+    {
+      emoji: '📋',
+      title: "Обходы (Inspection rounds)",
+      body: [
+        "Обход — общий список дел на один период (эта неделя, этот месяц) по выбранным категориям: огнетушители, гидранты, EEBD… Его начинает офицер или Мастер, работают в нём все и на любых устройствах. Невыполненное идёт в порядке обхода — палуба, место, номер; оборудование уходит из списка, как только кто-то подписал его в обходе; прогресс — 75 / 100.",
+        "Открытый на устройстве обход становится обходом этого устройства: отсканированное по пути и подписанное оборудование засчитывается в него, и экран осмотра это показывает. Засчитываются только осмотры внутри обхода — проверенное вне его остаётся в списке. У сделанного видно, кто, звание, дата и время. Отчёт по обходу (PDF / Excel) — что сделано кем и что осталось. Закончив, закройте обход; из реестра ничего не удаляется.",
       ],
     },
     {
@@ -1373,6 +1389,14 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '📋',
+      title: "Rondas de inspección (Inspection rounds)",
+      body: [
+        "Una ronda es una lista de tareas compartida para un periodo — esta semana, este mes — y las categorías que cubre: extintores, hidrantes, EEBD… La inicia un oficial o el Master; todos trabajan en ella, desde cualquier dispositivo. La lista de pendientes sigue el orden de recorrido — cubierta, ubicación, número — y un equipo sale de ella en cuanto alguien lo firma en la ronda; el progreso se ve como 75 / 100.",
+        "Abrir una ronda la convierte en la ronda de este dispositivo: una etiqueta escaneada en el recorrido y firmada cuenta para ella, y la pantalla de inspección lo indica. Solo cuentan las inspecciones firmadas dentro de la ronda — un equipo revisado fuera sigue pendiente en ella. Los hechos muestran quién, rango, fecha y hora. El informe de la ronda (PDF / Excel) muestra qué hizo cada uno y qué queda. Cierre la ronda al terminar; nada se borra del registro.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: "Libro registro de hidrocarburos (Oil Record Book)",
       body: [
@@ -1870,6 +1894,14 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '📋',
+      title: "Обходи (Inspection rounds)",
+      body: [
+        "Обхід — спільний список справ на один період (цей тиждень, цей місяць) за вибраними категоріями: вогнегасники, гідранти, EEBD… Його починає офіцер або Майстер, працюють у ньому всі й на будь-яких пристроях. Невиконане йде в порядку обходу — палуба, місце, номер; обладнання зникає зі списку, щойно хтось підписав його в обході; прогрес — 75 / 100.",
+        "Відкритий на пристрої обхід стає обходом цього пристрою: відскановане дорогою й підписане обладнання зараховується до нього, і екран огляду це показує. Зараховуються лише огляди всередині обходу — перевірене поза ним лишається в списку. Біля виконаного видно, хто, звання, дата й час. Звіт за обходом (PDF / Excel) — що зроблено ким і що лишилося. Закінчивши, закрийте обхід; з реєстру нічого не видаляється.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: "Журнал нафтових операцій (Oil Record Book)",
       body: [
@@ -2046,6 +2078,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
   { title: 'Permits to work and risk assessments', module: 'ptw' },
   { title: 'Fuel', module: 'fuel' },
   { title: 'Garbage Record Book', module: 'garbage' },
+  { title: 'Inspection rounds', module: 'rounds' },
   { title: 'Oil Record Book', module: 'orb' },
   { title: 'Sewage record', module: 'sewage' },
   { title: 'Ballast water', module: 'ballast' },
