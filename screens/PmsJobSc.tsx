@@ -39,6 +39,8 @@ import { activeDeferral, dueText, jobAfter, jobCycle, jobDue, todayIso, withRead
 import { movesForJob, qtyText, stockByPart } from '../services/spares';
 import { JobPart } from '../types/spares';
 import { moduleOn } from '../constants/modules';
+import { PERMIT_TYPES, PERMIT_TYPE_MAP } from '../constants/permitTypes';
+import { jobGate } from '../services/jobGate';
 import { useSignConfirm } from '../components/SignConfirm';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
@@ -58,7 +60,7 @@ export default function PmsJobSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { pmsJobs, pmsDone, machines, crew, spares, spareMoves, savePmsJob, saveMachine, completePmsJob, pmsDeferrals, appendRow, saveRow, vessel } = useData();
+  const { pmsJobs, pmsDone, machines, crew, spares, spareMoves, savePmsJob, saveMachine, completePmsJob, pmsDeferrals, appendRow, saveRow, vessel, permits, docs, docAcks } = useData();
   // Evidence at closure, and a defect found doing the job (ISM 10.1).
   const [donePhotos, setDonePhotos] = useState<Attachment[]>([]);
   const [defect, setDefect] = useState<{ category: DefectCategory; description: string } | null>(null);
@@ -119,6 +121,11 @@ export default function PmsJobSc() {
   const signer = me ? { name: me, rank: meRank } : people.find((p) => p.id === signerId);
 
   const deferral = existing ? activeDeferral(existing, pmsDeferrals) : undefined;
+  // What the job needs before it is signed out: its permit, its documents read by the signer.
+  const signerKey = me && sync.me ? `device:${sync.me.id}` : signerId;
+  const gate = existing && !unplanned
+    ? jobGate(existing, { permits, done: pmsDone, docs, acks: docAcks, personKey: signerKey, ptwOn: moduleOn('ptw'), docsOn: moduleOn('docs') })
+    : { permitMissing: false, unread: [] as typeof docs };
   const isMaster = !sync.enrolled || sync.role === 'superadmin';
   const canPlan = plansPms(sync.enrolled, sync.role);
   const [defer, setDefer] = useState<{ date: string; hours: string; reason: string } | null>(null);
@@ -194,6 +201,8 @@ export default function PmsJobSc() {
     if (doneDate > todayIso()) return Alert.alert('Date', 'The date is in the future.');
     if (machine?.critical && !donePhotos.length) return Alert.alert('Evidence', 'Critical equipment: add at least one photo of the work — before and after, clearances, parts replaced.');
     if (defect && defect.description.trim().length < 3) return Alert.alert('Defect', 'Describe the defect found, or untick it.');
+    if (gate.permitMissing) return Alert.alert('Permit to work', `This job needs a ${(PERMIT_TYPE_MAP[existing!.permitType!]?.label ?? '').toLowerCase()} permit raised for it, approved or open, before it is signed out.`);
+    if (gate.unread.length) return Alert.alert('Read first', `${signer.name} has not read: ${gate.unread.map((d) => `${d.title} (Rev ${d.revision})`).join(', ')}.`);
     if (condAfter === 'out' && !defect) return Alert.alert('Out of service', 'Equipment left out of service is a defect — tick "Found a defect" and describe it.');
     const mh = num(manHours);
     if (manHours.trim() && mh == null) return Alert.alert('Man-hours', 'Enter the man-hours as a number, e.g. 1.5.');
@@ -217,6 +226,7 @@ export default function PmsJobSc() {
       by: signer.name,
       byRank: signer.rank,
       note: doneNote.trim() || undefined,
+      ...(gate.permit ? { permitId: gate.permit.id, ...(gate.permit.no ? { permitNo: gate.permit.no } : {}) } : {}),
       ...(condBefore ? { conditionBefore: condBefore } : {}),
       ...(condAfter ? { conditionAfter: condAfter } : {}),
       ...(mh != null ? { manHours: mh } : {}),
@@ -402,6 +412,30 @@ export default function PmsJobSc() {
                   <TextInput style={[styles.input, { minHeight: 60, borderColor: COLORS.warning, borderWidth: 1 }]} value={defect.description} onChangeText={(v) => setDefect({ ...defect, description: v })} multiline placeholder="What is wrong ★ — it goes to the defect list until an officer closes it" placeholderTextColor={COLORS.textLight} />
                 </View>
               ) : null}
+              {existing?.permitType && moduleOn('ptw') ? (
+                <View style={[styles.deferBox, { marginTop: SIZES.md }]}>
+                  <Text style={[styles.sub, { fontWeight: '800' }]}>{`Permit to work · ${PERMIT_TYPE_MAP[existing.permitType]?.label ?? existing.permitType}`}</Text>
+                  {gate.permit ? (
+                    <TouchableOpacity onPress={() => nav.navigate('Permit', { id: gate.permit!.id })}>
+                      <Text style={[styles.signer, { color: COLORS.success }]}>{`✓ ${gate.permit.no ?? 'Permit'} · ${gate.permit.status}`}</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity onPress={() => nav.navigate('Permit', { id: uid('ptw'), isNew: true, type: existing.permitType, work: `${machine?.name ?? ''} — ${existing.title}`, location: machine?.location ?? '', pmsJobId: existing.id })}>
+                      <Text style={[styles.signer, { color: COLORS.warning }]}>None raised for this job yet — Raise a permit ›</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ) : null}
+              {gate.unread.length ? (
+                <View style={[styles.deferBox, { marginTop: SIZES.md }]}>
+                  <Text style={[styles.sub, { fontWeight: '800' }]}>Read before signing</Text>
+                  {gate.unread.map((d) => (
+                    <TouchableOpacity key={d.id} onPress={() => nav.navigate('Doc', { id: d.id })}>
+                      <Text style={[styles.signer, { color: COLORS.warning }]}>{`${d.title} (Rev ${d.revision}) — Read ›`}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : null}
               <View style={{ height: SIZES.md }} />
               <Label>Signed by</Label>
               {me ? (
@@ -498,7 +532,25 @@ export default function PmsJobSc() {
               <TouchableOpacity style={styles.defectToggle} onPress={() => set({ classJob: !draft.classJob || undefined })}>
                 <Text style={[styles.defectBox, { borderColor: COLORS.primary }, draft.classJob && { backgroundColor: COLORS.primary, color: COLORS.textWhite }]}>{draft.classJob ? '✓' : ''}</Text>
                 <Text style={styles.signer}>{`Class job${machine?.classCode ? ` · ${machine.classCode}` : ''}`}</Text>
-              </TouchableOpacity>              <View style={{ height: SIZES.md }} />
+              </TouchableOpacity>
+              {moduleOn('ptw') ? (
+                <Dropdown caption="REQUIRES PERMIT" value={draft.permitType ?? ''} onChange={(v) => set({ permitType: (v || undefined) as PmsJob['permitType'] })} options={[{ value: '', label: 'None' }, ...PERMIT_TYPES.map((t) => ({ value: t.key, label: t.label }))]} style={{ marginTop: SIZES.sm }} />
+              ) : null}
+              {moduleOn('docs') && docs.length ? (
+                <>
+                  <Text style={[styles.sub, { marginTop: SIZES.sm }]}>Read before doing — the person signing must have read these</Text>
+                  <View style={styles.chips}>
+                    {docs.map((d) => {
+                      const on = (draft.docIds ?? []).includes(d.id);
+                      return (
+                        <TouchableOpacity key={d.id} style={[styles.chip, styles.chipSmall, on && styles.chipOn]} onPress={() => set({ docIds: on ? (draft.docIds ?? []).filter((x) => x !== d.id) : [...(draft.docIds ?? []), d.id] })}>
+                          <Text style={[styles.chipSmallText, on && styles.chipTextOn]}>{`${d.docNo ? `${d.docNo} · ` : ''}${d.title}`}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </>
+              ) : null}              <View style={{ height: SIZES.md }} />
               <TouchableOpacity style={styles.defectToggle} onPress={() => set({ fixed: !draft.fixed || undefined })}>
                 <Text style={[styles.defectBox, { borderColor: COLORS.primary }, draft.fixed && { backgroundColor: COLORS.primary, color: COLORS.textWhite }]}>{draft.fixed ? '✓' : ''}</Text>
                 <Text style={styles.signer}>Fixed schedule</Text>

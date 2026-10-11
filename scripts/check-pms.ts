@@ -48,6 +48,7 @@ import { CATALOGUE } from '../services/pmsCatalogue';
 }
 
 import { pmsMonth } from '../services/pmsKpi';
+import { jobGate } from '../services/jobGate';
 {
   const ms: any[] = [{ id: 'me', name: 'Main engine', critical: true, hours: 5000, updatedAt: 0 }, { id: 'wm', name: 'Watermaker', updatedAt: 0 }];
   const js: any[] = [
@@ -132,6 +133,23 @@ import { pmsMonth } from '../services/pmsKpi';
   const oil = a.flatMap((g) => g.rows).find((r) => r.job.id === 'b')!;
   ok(oil.estimated && oil.date === '2026-11-10', `hours job estimated at the running rate (10 h/day, 300 h left → 10 Nov): ${oil.date}`);
   ok(!a.flatMap((g) => g.rows).some((r) => r.job.id === 'c'), 'the annual job (Feb 2027) is beyond 3 months');
+}
+// What a job needs before sign-out: its permit for this cycle, its documents read.
+{
+  const job: any = { id: 'j', permitType: 'hot', docIds: ['d1'] };
+  const permits: any[] = [
+    { id: 'p0', type: 'hot', pmsJobId: 'j', status: 'closed', createdAt: 100 },
+    { id: 'p1', type: 'hot', pmsJobId: 'j', status: 'requested', createdAt: 300 },
+  ];
+  const done: any[] = [{ id: 'x', jobId: 'j', at: 200 }];
+  const docs: any[] = [{ id: 'd1', title: 'Hot work procedure', revision: 2 }];
+  const base = { permits, done, docs, acks: [] as any[], personKey: 'crew1', ptwOn: true, docsOn: true };
+  const g1 = jobGate(job, base);
+  ok(g1.permitMissing && g1.unread.length === 1, 'last cycle\'s permit and a requested one do not count; document unread');
+  const g2 = jobGate(job, { ...base, permits: [...permits, { id: 'p2', type: 'hot', pmsJobId: 'j', status: 'active', createdAt: 400 }], acks: [{ docId: 'd1', revision: 1, personKey: 'crew1' } as any] });
+  ok(!g2.permitMissing && g2.permit?.id === 'p2' && g2.unread.length === 1, 'an active permit for this cycle covers it; an old revision read does not');
+  const g3 = jobGate(job, { ...base, acks: [{ docId: 'd1', revision: 2, personKey: 'crew1' } as any], ptwOn: false });
+  ok(!g3.permitMissing && g3.unread.length === 0, 'with the permits module off nothing is asked; the current revision read');
 }
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

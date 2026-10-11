@@ -59,7 +59,7 @@ export default function PermitSc() {
   const type: PermitType = existing?.type ?? route.params?.type ?? 'hot';
   const def = PERMIT_TYPE_MAP[type];
   const [p, setP] = useState<Permit>(
-    existing ?? { id, type, work: '', location: '', from: start, to: plusHours(start, Math.min(4, def.maxHours)), team: [], checks: {}, status: 'draft', createdAt: Date.now(), updatedAt: Date.now() }
+    existing ?? { id, type, work: route.params?.work ?? '', location: route.params?.location ?? '', ...(route.params?.pmsJobId ? { pmsJobId: route.params.pmsJobId } : {}), from: start, to: plusHours(start, Math.min(4, def.maxHours)), team: [], checks: {}, status: 'draft', createdAt: Date.now(), updatedAt: Date.now() }
   );
   const touched = useRef(false);
   useEffect(() => {

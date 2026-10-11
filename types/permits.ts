@@ -96,6 +96,8 @@ export interface Permit {
   closedAt?: string;
   cancelled?: SignStamp;
   notes?: string;
+  /** The planned-maintenance job this permit is for (PmsJob.id), when raised from it. */
+  pmsJobId?: string;
   /** The toolbox meeting before the work (required to start it). */
   toolbox?: ToolboxMeeting;
   deleted?: boolean;

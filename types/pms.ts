@@ -131,6 +131,10 @@ export interface PmsJob {
   anchorHours?: number;
   /** Credited to class (a class job — survey evidence). */
   classJob?: boolean;
+  /** Needs a permit to work of this type, raised for the job, before it can be signed out (TM Master comparison, item 6). */
+  permitType?: import('./permits').PermitType;
+  /** ISM documents the person signing must have read (current revision) — risk assessment, procedure. */
+  docIds?: string[];
   /** Warn this many days / hours before due, instead of the last tenth of the interval. */
   warnDays?: number;
   warnHours?: number;
@@ -165,6 +169,9 @@ export interface PmsDone {
   unplanned?: boolean;
   /** The defect this (one-off) job put right. */
   forDefectId?: string;
+  /** The permit to work the job was done under. */
+  permitId?: string;
+  permitNo?: string;
   /** The equipment's condition before and after the work (TM Master comparison, item 3). */
   conditionBefore?: Condition;
   conditionAfter?: Condition;

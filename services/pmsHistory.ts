@@ -67,7 +67,7 @@ export function machineHistory(m: Machine, jobs: PmsJob[], done: PmsDone[], defe
       title: 'Work done',
       head: ['Date', 'Job', 'Counter', 'Condition', 'Man-h', 'Done and signed by', 'Note', 'Photos'],
       widths: { 0: 20, 2: 18, 3: 30, 4: 14, 5: 44, 7: 14 },
-      rows: md.map((d) => [dmy(d.date), `${d.unplanned ? 'Unplanned: ' : ''}${d.jobTitle}`, d.hours != null ? `${d.hours} h` : '', conditionText(d), d.manHours != null ? String(d.manHours) : '', `${who(d.by, d.byRank)}${d.signedWith ? ` · ${how(d.signedWith)}` : ''}`, [d.note, d.defectId ? 'Defect raised' : null].filter(Boolean).join(' · '), d.photos?.length ? String(d.photos.length) : '']),
+      rows: md.map((d) => [dmy(d.date), `${d.unplanned ? 'Unplanned: ' : ''}${d.jobTitle}`, d.hours != null ? `${d.hours} h` : '', conditionText(d), d.manHours != null ? String(d.manHours) : '', `${who(d.by, d.byRank)}${d.signedWith ? ` · ${how(d.signedWith)}` : ''}`, [d.note, d.permitNo ? `Permit ${d.permitNo}` : null, d.defectId ? 'Defect raised' : null].filter(Boolean).join(' · '), d.photos?.length ? String(d.photos.length) : '']),
     },
   ];
   if (mf.length) {
