@@ -22,6 +22,8 @@ What the crew sees (from Jez's letter of 11 Oct 2026 and the DreamBoat data):
 
 Rules deployed by the user on 11 Oct 2026 (99/99).
 
+Store text — App Store (167 chars): "Inspection rounds: shared weekly and monthly to-do lists across all devices. Safer Excel import that keeps your inspection history. Photo counts in inspection reports." Google Play (411 chars) and the long version: `/Users/Oxford/MarineSafetyManager/stores/release-2.60.md`. Site manual reorganised with "What's new in 2.60" (site/manual.html, deployed by the user with wrangler).
+
 ### Since 2.59 (dark unless said above)
 
 - **Inspection rounds (dark, `rounds`; Jez, 11 Oct 2026).** A round = one period's window + categories, started and closed by an officer or the Master (types/round.ts; rules: create/close isAdmin, only closedAt/closedBy change). Shared to-do list on every device: outstanding items in walking order (deck → category → number; `sortByDeck`, shared with label batches), progress "N / M", category filter, done items with name, rank, date, time. Only inspections signed in the round (`Inspection.roundId`) count; opening a round makes it this device's round, so a scanned and signed item counts and the inspection screen says so (`roundTakes`, services/activeRound). Round report PDF / Excel (services/roundReport) with per-category totals and who did how many. Menu: Inspections → Inspection rounds. Rules 99/99; check:rounds.
