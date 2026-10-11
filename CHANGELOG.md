@@ -15,6 +15,7 @@ the part that stops the next person undoing it.
 
 Next build: 2.62 (2.61 was uploaded to the stores on 11 Oct 2026 — everything below waits for it).
 
+- **Scanner: a crew card or visitor pass on a vessel without gangway control** (user, 11 Oct 2026). With `security` off the code used to fall through to the register search — "Not on file" and the advice to file it as an item's serial (which would make a crew card open an item). It now says "Crew card" / "Visitor pass" — "Gangway control is not switched on for this vessel — nothing is recorded." Checked in the browser with release flags.
 - **Fix: SDM import kept one certificate out of 27, and the form could write the imported details back over** (user, 11 Oct 2026, a real 29-document SDM backup). The certificates were saved one by one, each followed by a full data reload; the reloads overlapped and React stopped on "maximum update depth" after the first, so the rest of the loop never ran. Now all certificates go in one write (`saveCertificates`) with one reload, before the person and their private details. And the crew member's form takes the imported record (`onImported`), so a Save afterwards — after anything was typed before importing — no longer overwrites it with what the form held. Checked in the browser with the real file: all personal fields, next of kin and 27 certificates kept, also after Save.
 
 ## 2.61 (20611) — 11 Oct 2026

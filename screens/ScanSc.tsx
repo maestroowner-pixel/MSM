@@ -100,6 +100,22 @@ export default function ScanSc() {
         return;
       }
 
+      // A crew card or visitor pass on a vessel without gangway control: say what it
+      // is. It used to fall through to the register search — "Not on file", with the
+      // advice to file the code as an item's serial, which would have made the
+      // officer's card open a fire extinguisher (11 Oct 2026).
+      if ((crewId || parsePassQr(code)) && !moduleOn('security')) {
+        setCrewHit({
+          name: crewId ? 'Crew card' : 'Visitor pass',
+          text: 'Gangway control is not switched on for this vessel — nothing is recorded.',
+          ok: false,
+        });
+        setTimeout(() => {
+          locked.current = false;
+        }, 2500);
+        return;
+      }
+
       // A visitor pass (msm://pass/07): back at the gangway → sign its holder off;
       // a free pass → the sign-on form with this pass number.
       const passNo = parsePassQr(code);
