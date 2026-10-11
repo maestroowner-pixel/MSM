@@ -53,6 +53,17 @@ export const PERIOD_DAYS: Record<InspectionPeriod, number> = {
  */
 export type InspectionOutcome = 'pass' | 'fail';
 
+/** What identified the item at the time of the inspection. */
+export interface InspectedItem {
+  no?: string;
+  type?: string;
+  make?: string;
+  size?: string;
+  serial?: string;
+  deck?: string;
+  position?: string;
+}
+
 export interface Inspection {
   id: string;
   /** How the signer confirmed — finger, face or signing PIN (services/signature.ts). Absent when not asked. */
@@ -98,6 +109,8 @@ export interface Inspection {
    * fall back to the template (see `checklistRows` in services/inspections).
    */
   lines?: InspectionLine[];
+  /** The item as it stood when inspected (services/inspections itemSnapshot). Absent on records before 2.60. */
+  item?: InspectedItem;
   /** Frozen at save time — never recomputed. */
   outcome: InspectionOutcome;
 

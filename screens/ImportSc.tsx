@@ -39,7 +39,7 @@ function rowName(it: EquipmentItem): string {
 
 export default function ImportSc() {
   const nav = useNavigation<any>();
-  const { reload, flat, byCategory, vessel } = useData();
+  const { reload, flat, byCategory, vessel, inspections: trail } = useData();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const [busy, setBusy] = useState(false);
@@ -58,6 +58,16 @@ export default function ImportSc() {
     () => (preview ? (Object.values(preview.byCategory).flat() as EquipmentItem[]) : []),
     [preview]
   );
+  // REPLACE is matched like UPDATE, against the whole register, so an item that
+  // is still in the file keeps its id — its printed label, its inspections, its
+  // defects. Only what the file does not hold is removed. Replacing by building
+  // every item new (as before) unlinked 229 inspections on DreamBoat (5 Oct 2026).
+  const replacePlan = useMemo(() => (preview && mode === 'replace' ? planUpdate(flat, rows, (c) => c in CATEGORY_MAP) : null), [preview, mode, flat, rows]);
+  /** Signed inspections whose item would leave the register. */
+  const unlinked = (gone: EquipmentItem[]) => {
+    const ids = new Set(gone.map((it) => it.id));
+    return trail.filter((i) => ids.has(i.itemId)).length;
+  };
   const plan = useMemo(() => {
     if (!preview || mode !== 'update') return null;
     // What the file can declare MISSING: the categories it has sheets for. A
@@ -135,10 +145,31 @@ export default function ImportSc() {
 
   const apply = async () => {
     if (!preview) return;
+    if (replacePlan) {
+      const kept = replacePlan.changed.length + replacePlan.unchanged.length;
+      const lost = unlinked(replacePlan.missing);
+      Alert.alert(
+        'Replace the register?',
+        [
+          `${kept} item${kept === 1 ? '' : 's'} found in the file keep their identity — labels, inspections and defects stay linked.`,
+          `${replacePlan.added.length} new.`,
+          replacePlan.missing.length
+            ? `${replacePlan.missing.length} not in the file will be removed${lost ? ` — ${lost} signed inspection${lost === 1 ? '' : 's'} of theirs will no longer show in reports` : ''}.`
+            : null,
+          'A copy of the register as it is now is kept in Settings → Save a copy as a file.',
+        ].filter(Boolean).join('\n\n'),
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Replace', style: 'destructive', onPress: () => void run() },
+        ]
+      );
+      return;
+    }
     if (plan && removeMissing && plan.missing.length) {
+      const lost = unlinked(plan.missing);
       Alert.alert(
         `Remove ${plan.missing.length} item${plan.missing.length === 1 ? '' : 's'}?`,
-        'They are not in this file. Their printed labels will stop working. Signed inspections stay on record.',
+        `They are not in this file. Their printed labels will stop working.${lost ? ` ${lost} signed inspection${lost === 1 ? '' : 's'} of theirs stay on record but will no longer show in reports.` : ' Signed inspections stay on record.'}`,
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Remove and update', style: 'destructive', onPress: () => void run() },
@@ -156,8 +187,19 @@ export default function ImportSc() {
       // A dated copy of the register as it was, so the import can be rolled back
       // from Settings → Data like any other bad day.
       await snapshot.takeSnapshot(vessel).catch(() => null);
+      // …and one on its own shelf, which later launches cannot push out.
+      await snapshot.takeImportSnapshot(vessel, `${mode} · ${fileName ?? 'workbook'}`).catch(() => null);
       let message: string;
-      if (mode === 'update' && plan) {
+      if (mode === 'replace' && replacePlan) {
+        const next = applyPlan(byCategory, replacePlan, true);
+        // Every category is the file's now: one it has no rows for is emptied, as a replace always did.
+        for (const meta of Object.values(CATEGORY_MAP)) {
+          await storage.replaceCategory(meta.key as CategoryKey, next[meta.key] ?? []);
+        }
+        message =
+          `${replacePlan.changed.length + replacePlan.unchanged.length} kept, ${replacePlan.added.length} added` +
+          (replacePlan.missing.length ? `, ${replacePlan.missing.length} removed.` : '.');
+      } else if (mode === 'update' && plan) {
         const next = applyPlan(byCategory, plan, removeMissing);
         for (const [cat, list] of Object.entries(next)) {
           await storage.replaceCategory(cat as CategoryKey, list ?? []);

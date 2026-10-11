@@ -29,7 +29,7 @@ import { clearAttachmentsDir } from '../services/attachments';
 import { exportTemplate } from '../services/export';
 import { GROUP_ORDER } from '../constants/categories';
 import { Group } from '../types/equipment';
-import { exportBackup, pickBackup, restoreBackup } from '../services/backup';
+import { exportBackup, pickBackup, restoreBackup, saveCopyAsFile } from '../services/backup';
 import * as snapshot from '../services/snapshot';
 import { isSubscribed, onEntitlementChange } from '../services/purchases';
 import { playSuccessSound, playErrorSound } from '../utils/sound';
@@ -127,6 +127,7 @@ export default function SettingsSc() {
   const scanExemptCount = (signingPolicy.scanExempt ?? []).length;
   const [busy, setBusy] = useState(false);
   const [snaps, setSnaps] = useState<snapshot.SnapshotInfo[]>([]);
+  const [importSnaps, setImportSnaps] = useState<snapshot.SnapshotInfo[]>([]);
   /**
    * Is the vessel licensed? Only for the colour of the PRO badge in the header.
    * Re-read when the entitlement changes, because activating a key happens on
@@ -226,7 +227,10 @@ export default function SettingsSc() {
    */
   const focused = useIsFocused();
   useEffect(() => {
-    const load = () => void snapshot.listSnapshots().then(setSnaps).catch(() => {});
+    const load = () => {
+      void snapshot.listSnapshots().then(setSnaps).catch(() => {});
+      void snapshot.listSnapshots('import').then(setImportSnaps).catch(() => {});
+    };
     load();
     const t = setTimeout(load, 2000);
     return () => clearTimeout(t);
@@ -330,6 +334,34 @@ export default function SettingsSc() {
    * still on disk under their own names, so the links survive. That distinction
    * is spelled out rather than left for someone to discover afterwards.
    */
+  /**
+   * Save one of the copies on this device as a file — without rolling back. The
+   * way an old register is handed over for repair (DreamBoat, Oct 2026: the copy
+   * from before a re-import was on one officer's phone, and the only button
+   * there would have rolled the whole device back).
+   */
+  const saveCopy = () => {
+    const all = [...importSnaps, ...snaps].sort((a, b) => b.at - a.at);
+    if (!all.length) return Alert.alert('No copies yet', 'The app keeps a copy each time it opens, and another before every Excel import.');
+    Alert.alert(
+      'Save a copy as a file',
+      'Choose the copy. It is saved as a .msm file to send on — nothing on this device changes. Records only, no photos.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        ...all.map((c) => ({
+          text: `${c.kind === 'import' ? 'Before import' : 'On opening'} · ${formatDateTime(c.at)} (${c.items} items, ${c.inspections} inspections)`,
+          onPress: async () => {
+            try {
+              await saveCopyAsFile(await snapshot.snapshotBody(c.slot, c.kind));
+            } catch (e: any) {
+              Alert.alert('Could not save', e?.message ?? String(e));
+            }
+          },
+        })),
+      ]
+    );
+  };
+
   const restoreSnapshot = () => {
     if (!snaps.length) {
       Alert.alert(
@@ -903,6 +935,18 @@ export default function SettingsSc() {
                 {snaps.length
                   ? `${snaps[0].items} items, ${snaps[0].inspections} inspections · saved when the app opened`
                   : 'A snapshot is saved automatically each time the app opens'}
+              </Text>
+            </View>
+            <Text style={styles.chev}>›</Text>
+          </TouchableOpacity>
+        ) : null}
+        {canHandleData ? (
+          <TouchableOpacity style={[styles.linkRow, !(snaps.length + importSnaps.length) && { opacity: 0.45 }]} onPress={saveCopy} disabled={busy}>
+            <IconChip name="content-save-outline" size={18} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkTitle}>Save a copy as a file</Text>
+              <Text style={styles.linkSub}>
+                {`${snaps.length + importSnaps.length} cop${snaps.length + importSnaps.length === 1 ? 'y' : 'ies'} on this device${importSnaps.length ? ` · before import ${formatDateTime(importSnaps[0].at)}` : ''} — nothing is rolled back`}
               </Text>
             </View>
             <Text style={styles.chev}>›</Text>

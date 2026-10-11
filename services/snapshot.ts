@@ -40,12 +40,23 @@ import { BackupFile, restoreBackup } from './backup';
 import { VesselInfo } from './storage';
 
 const SLOTS = 3;
-const KEY = (i: number) => `msm:snapshot:${i}`;
+/**
+ * Two shelves. `launch` — the three copies taken as the app opens, rotated by
+ * every launch that changed something. `import` — a copy taken just before an
+ * Excel import, rotated ONLY by imports: on DreamBoat (5 Oct 2026) a register
+ * replaced from Excel had its old copy pushed off the launch shelf by three days
+ * of rounds, and with it the only way to link 229 inspections back.
+ */
+export type SnapshotKind = 'launch' | 'import';
+const KEY = (i: number, kind: SnapshotKind = 'launch') => (kind === 'import' ? `msm:snapshot:import:${i}` : `msm:snapshot:${i}`);
 const BACKUP_MAGIC = 'MarineSafetyManager';
 const BACKUP_VERSION = 3;
 
 export interface SnapshotInfo {
   slot: number;
+  kind: SnapshotKind;
+  /** For an import copy: what was being imported. */
+  note?: string;
   at: number;
   items: number;
   certificates: number;
@@ -75,9 +86,9 @@ async function collect(vessel: VesselInfo | null): Promise<BackupFile> {
   };
 }
 
-async function read(slot: number): Promise<BackupFile | null> {
+async function read(slot: number, kind: SnapshotKind = 'launch'): Promise<BackupFile | null> {
   try {
-    const raw = await AsyncStorage.getItem(KEY(slot));
+    const raw = await AsyncStorage.getItem(KEY(slot, kind));
     if (!raw) return null;
     const b = JSON.parse(raw) as BackupFile;
     return b && b.app === BACKUP_MAGIC && b.categories ? b : null;
@@ -86,16 +97,18 @@ async function read(slot: number): Promise<BackupFile | null> {
   }
 }
 
-/** Newest first. Slot 0 is always the newest. */
-export async function listSnapshots(): Promise<SnapshotInfo[]> {
+/** Newest first. Slot 0 is always the newest. `kind` picks the shelf (launch by default). */
+export async function listSnapshots(kind: SnapshotKind = 'launch'): Promise<SnapshotInfo[]> {
   const out: SnapshotInfo[] = [];
   for (let i = 0; i < SLOTS; i++) {
-    const raw = await AsyncStorage.getItem(KEY(i)).catch(() => null);
+    const raw = await AsyncStorage.getItem(KEY(i, kind)).catch(() => null);
     if (!raw) continue;
-    const b = await read(i);
+    const b = await read(i, kind);
     if (!b) continue;
     out.push({
       slot: i,
+      kind,
+      ...((b as any).note ? { note: (b as any).note } : {}),
       at: b.exportedAt,
       items: countItems(b),
       certificates: b.certificates?.length ?? 0,
@@ -157,12 +170,13 @@ export async function takeSnapshot(
 }
 
 /** Put a snapshot back. Same path as restoring a `.msm`, minus the binaries. */
-export async function restoreSnapshot(slot: number): Promise<SnapshotInfo> {
-  const b = await read(slot);
+export async function restoreSnapshot(slot: number, kind: SnapshotKind = 'launch'): Promise<SnapshotInfo> {
+  const b = await read(slot, kind);
   if (!b) throw new Error('That snapshot is no longer on this device.');
   await restoreBackup(b);
   return {
     slot,
+    kind,
     at: b.exportedAt,
     items: countItems(b),
     certificates: b.certificates?.length ?? 0,
@@ -172,7 +186,38 @@ export async function restoreSnapshot(slot: number): Promise<SnapshotInfo> {
   };
 }
 
+/**
+ * The copy taken right before an Excel import, on its own shelf. Always saved
+ * when there is a register to protect — even if unchanged since launch, since
+ * this is the copy that must outlive the days after the import.
+ */
+export async function takeImportSnapshot(vessel: VesselInfo | null, note: string): Promise<'saved' | 'nothing-to-save' | 'failed'> {
+  try {
+    const fresh = { ...(await collect(vessel)), note } as BackupFile & { note: string };
+    if (countItems(fresh) === 0) return 'nothing-to-save';
+    for (let i = SLOTS - 1; i > 0; i--) {
+      const prev = await AsyncStorage.getItem(KEY(i - 1, 'import')).catch(() => null);
+      if (prev) await AsyncStorage.setItem(KEY(i, 'import'), prev);
+    }
+    await AsyncStorage.setItem(KEY(0, 'import'), JSON.stringify(fresh));
+    return 'saved';
+  } catch (e: any) {
+    console.warn('[snapshot] import copy not taken:', e?.message ?? e);
+    return 'failed';
+  }
+}
+
+/** A copy's records as a backup file body — to save it off the device without rolling back to it. */
+export async function snapshotBody(slot: number, kind: SnapshotKind = 'launch'): Promise<BackupFile> {
+  const b = await read(slot, kind);
+  if (!b) throw new Error('That copy is no longer on this device.');
+  return b;
+}
+
 /** Used by "Reset all data": a wipe must not leave the old register recoverable. */
 export async function clearSnapshots(): Promise<void> {
-  for (let i = 0; i < SLOTS; i++) await AsyncStorage.removeItem(KEY(i)).catch(() => {});
+  for (let i = 0; i < SLOTS; i++) {
+    await AsyncStorage.removeItem(KEY(i)).catch(() => {});
+    await AsyncStorage.removeItem(KEY(i, 'import')).catch(() => {});
+  }
 }

@@ -201,6 +201,29 @@ if (ref && fs.existsSync(ref)) {
   console.log('skip  reference workbook (pass its path to check it)');
 }
 
+// "Replace all" from a workbook WITHOUT the MSM ID column (DreamBoat, 5 Oct 2026):
+// matched like an update against the whole register, so items keep their ids and
+// their inspections stay linked; only what the file lacks goes.
+{
+  const old: EquipmentItem[] = [
+    { id: 'fir_old_1', category: 'fire_extinguishers', no: '01-SD', type: 'CO2', size: '5kg', serial: 'C001111', deck: '1. Sun Deck', position: 'EM Generator', updatedAt: 1 },
+    { id: 'fir_old_2', category: 'fire_extinguishers', no: '02-SD', type: 'Foam', size: '9L', deck: '1. Sun Deck', position: 'Bar', updatedAt: 1 },
+    { id: 'eeb_old_1', category: 'eebd', no: 'E-01', type: 'EEBD', serial: 'X9', deck: '4. Main Deck', position: 'Crew mess', updatedAt: 1 },
+  ];
+  const fileRows: EquipmentItem[] = [
+    { id: 'new_a', category: 'fire_extinguishers', no: '01-SD', type: 'CO2', size: '5kg', serial: 'C001111', deck: '1. Sun Deck', position: 'EM Generator', updatedAt: 2 },
+    { id: 'new_b', category: 'fire_extinguishers', no: '02-SD', type: 'Foam', size: '9L', deck: '1. Sun Deck', position: 'Bar', remarks: 'Serviced', updatedAt: 2 },
+    { id: 'new_c', category: 'fire_extinguishers', no: '03-SD', type: 'CO2', size: '2kg', deck: '1. Sun Deck', position: 'Bridge', updatedAt: 2 },
+  ];
+  const rp = planUpdate(old, fileRows, (c) => c in CATEGORY_MAP);
+  const next = applyPlan({ fire_extinguishers: old.slice(0, 2), eebd: old.slice(2) }, rp, true);
+  const fe = next.fire_extinguishers ?? [];
+  ok('replace without MSM IDs keeps matched ids',
+     fe.some((x) => x.id === 'fir_old_1') && fe.some((x) => x.id === 'fir_old_2' && x.remarks === 'Serviced') && fe.length === 3,
+     fe.map((x) => `${x.id}:${x.no}`).join(', '));
+  ok('replace removes what the file lacks', (next.eebd ?? []).length === 0 && rp.missing.length === 1 && rp.missing[0].id === 'eeb_old_1', `${rp.missing.map((m) => m.id)}`);
+}
+
 console.log(fails ? `\n${fails} FAILED` : '\nall passed');
 // The compiled copy lives in .check-reg (see package.json); it is only scaffolding.
 try { fs.rmSync(require('path').resolve(__dirname, '..'), { recursive: true, force: true }); } catch { /* leave it */ }

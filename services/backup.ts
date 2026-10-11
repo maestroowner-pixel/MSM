@@ -151,6 +151,18 @@ function collectFileUris(
   return Array.from(uris);
 }
 
+/**
+ * Save one of the device's automatic copies as a `.msm` file, WITHOUT rolling
+ * back to it — so an old register can be handed over for repair (relinking
+ * inspections) while the device keeps working on today's data. Records only:
+ * the copies never held photos.
+ */
+export async function saveCopyAsFile(b: BackupFile): Promise<void> {
+  const d = new Date(b.exportedAt);
+  const stamp = `${fileDateStamp(d)}-${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`;
+  await deliverFile(`MSM_copy_${stamp}.msm`, JSON.stringify(b), false, 'application/json');
+}
+
 /** Gather everything + embedded files, then write+share a .msm file. */
 export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSummary> {
   // Every bucket, including any this build cannot name — a backup that drops a

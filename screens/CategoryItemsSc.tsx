@@ -221,8 +221,9 @@ export default function CategoryItemsSc() {
       `All ${count} item${count === 1 ? '' : 's'} in this category will be deleted` +
         (syncing ? ' — on the vessel and on every device aboard, not just this one' : '') +
         '.\n\nTheir photos, certificate links and printed QR labels go with them. Signed ' +
-        'inspections stay on record. Other categories are not touched.\n\n' +
-        'A copy of the register as it is now is kept in Settings → Data, so this can be rolled back.',
+        'inspections stay on record but no longer show in reports — loading the list again ' +
+        'creates new items. To change items, use Import → Update instead. Other categories are not touched.\n\n' +
+        'A copy of the register as it is now is kept in Settings → Save a copy as a file.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -231,6 +232,9 @@ export default function CategoryItemsSc() {
           onPress: async () => {
             try {
               await snapshot.takeSnapshot(vessel).catch(() => null);
+              // Kept on the import shelf too: a cleared category is usually loaded again
+              // next, and this copy must outlive the launches that follow.
+              await snapshot.takeImportSnapshot(vessel, `cleared ${meta.label}`).catch(() => null);
               await storage.replaceCategory(category, []);
               await reload();
             } catch (e: any) {

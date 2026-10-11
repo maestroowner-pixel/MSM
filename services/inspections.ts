@@ -21,6 +21,7 @@ import {
   PERIOD_DAYS,
   outcomeOf,
   hasOpenDefect as recordHasOpenDefect,
+  InspectedItem,
 } from '../types/inspection';
 import { ChecklistTemplate, lineText, templateById } from '../constants/checklists';
 import { CrewMember } from '../types/crew';
@@ -58,6 +59,21 @@ export interface NewInspectionInput {
  * person nothing, and the one thing worse than no audit trail is one nobody can
  * act on.
  */
+/**
+ * The item as it stood when inspected — number, type, maker, size, serial,
+ * deck, location. Travels with the record (like `by` and `lines`) so a report
+ * can still say WHAT was inspected after the register is replaced or the item
+ * removed; DreamBoat lost the meaning of 229 records that way (5 Oct 2026).
+ */
+export function itemSnapshot(it: Pick<EquipmentItem, 'no' | 'type' | 'make' | 'size' | 'serial' | 'deck' | 'position'>): InspectedItem {
+  const out: InspectedItem = {};
+  for (const k of ['no', 'type', 'make', 'size', 'serial', 'deck', 'position'] as const) {
+    const v = it[k];
+    if (v !== undefined && v !== null && String(v).trim() !== '') out[k] = String(v);
+  }
+  return out;
+}
+
 export function create(input: NewInspectionInput): Inspection {
   const at = input.at ?? Date.now();
   const outcome = outcomeOf(input.results);
@@ -84,6 +100,7 @@ export function create(input: NewInspectionInput): Inspection {
     templateVersion: input.template.version,
     results: input.results,
     lines,
+    item: itemSnapshot(input.item),
     outcome,
     comment: input.comment?.trim() || undefined,
     photos: input.photos?.length ? input.photos : undefined,
