@@ -7,7 +7,7 @@
 // Pure, tested (check:pmshistory); printed by pmsHistoryReport.ts.
 // ===================================
 
-import { DEFECT_CATEGORY, JOB_TYPE, Machine, PmsDefect, PmsDeferral, PmsDone, PmsJob, hasCounter } from '../types/pms';
+import { CONDITION, DEFECT_CATEGORY, JOB_TYPE, Machine, PmsDefect, PmsDeferral, PmsDone, PmsJob, hasCounter } from '../types/pms';
 import { activeDeferral, dueText, jobDue, scheduleText } from './pms';
 
 export interface HistTable {
@@ -28,6 +28,12 @@ const who = (by: string, rank?: string) => (rank ? `${by} (${rank})` : by);
 const how = (m?: { method?: string }) => (!m ? '' : m.method === 'biometric' ? 'fingerprint' : m.method === 'drawn' ? 'handwritten' : 'PIN');
 const STATUS: Record<string, string> = { expired: 'OVERDUE', due: 'Due soon', ok: 'In date', none: '—' };
 
+/** "Fair → Good", "→ Good", "" — the condition columns of a sign-out. */
+export function conditionText(d: Pick<PmsDone, 'conditionBefore' | 'conditionAfter'>): string {
+  if (!d.conditionBefore && !d.conditionAfter) return '';
+  return `${d.conditionBefore ? CONDITION[d.conditionBefore] : ''} → ${d.conditionAfter ? CONDITION[d.conditionAfter] : '—'}`.trim();
+}
+
 export function machineHistory(m: Machine, jobs: PmsJob[], done: PmsDone[], deferrals: PmsDeferral[], defects: PmsDefect[], today: string): MachineHistory {
   const mj = jobs.filter((j) => j.machineId === m.id && !j.deleted).sort((a, b) => a.title.localeCompare(b.title));
   const md = done.filter((d) => d.machineId === m.id).sort((a, b) => b.date.localeCompare(a.date) || b.at - a.at);
@@ -39,6 +45,10 @@ export function machineHistory(m: Machine, jobs: PmsJob[], done: PmsDone[], defe
     m.location ? `Location: ${m.location}` : null,
     m.critical ? 'CRITICAL EQUIPMENT' : null,
     hasCounter(m) ? (m.hours != null ? `Running hours ${m.hours} h (read ${dmy(m.hoursDate)})` : 'Running hours: no reading') : null,
+    (() => {
+      const c = md.find((d) => d.conditionAfter);
+      return c ? `Last condition: ${CONDITION[c.conditionAfter!]} (${dmy(c.date)})` : null;
+    })(),
     `Printed ${dmy(today)}`,
   ].filter(Boolean) as string[];
 
@@ -54,9 +64,9 @@ export function machineHistory(m: Machine, jobs: PmsJob[], done: PmsDone[], defe
     },
     {
       title: 'Work done',
-      head: ['Date', 'Job', 'Counter', 'Done and signed by', 'Note', 'Photos'],
-      widths: { 0: 22, 2: 20, 3: 48, 5: 16 },
-      rows: md.map((d) => [dmy(d.date), `${d.unplanned ? 'Unplanned: ' : ''}${d.jobTitle}`, d.hours != null ? `${d.hours} h` : '', `${who(d.by, d.byRank)}${d.signedWith ? ` · ${how(d.signedWith)}` : ''}`, [d.note, d.defectId ? 'Defect raised' : null].filter(Boolean).join(' · '), d.photos?.length ? String(d.photos.length) : '']),
+      head: ['Date', 'Job', 'Counter', 'Condition', 'Man-h', 'Done and signed by', 'Note', 'Photos'],
+      widths: { 0: 20, 2: 18, 3: 30, 4: 14, 5: 44, 7: 14 },
+      rows: md.map((d) => [dmy(d.date), `${d.unplanned ? 'Unplanned: ' : ''}${d.jobTitle}`, d.hours != null ? `${d.hours} h` : '', conditionText(d), d.manHours != null ? String(d.manHours) : '', `${who(d.by, d.byRank)}${d.signedWith ? ` · ${how(d.signedWith)}` : ''}`, [d.note, d.defectId ? 'Defect raised' : null].filter(Boolean).join(' · '), d.photos?.length ? String(d.photos.length) : '']),
     },
   ];
   if (mf.length) {

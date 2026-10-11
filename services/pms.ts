@@ -209,3 +209,13 @@ export function sortJobsByDue(jobs: PmsJob[], machines: Map<string, Machine>, to
 export function jobAfter(job: PmsJob, done: Pick<PmsDone, 'date' | 'hours'>): PmsJob {
   return { ...job, lastDoneDate: done.date, lastDoneHours: done.hours ?? job.lastDoneHours, updatedAt: Date.now() };
 }
+
+/** The last word left for this job's next sign-out (PmsDone.nextNote), newest first. */
+export function noteForNext(jobId: string, done: PmsDone[]): PmsDone | undefined {
+  return done.filter((d) => d.jobId === jobId && d.nextNote?.trim()).sort((a, b) => b.date.localeCompare(a.date) || b.at - a.at)[0];
+}
+
+/** The machine's condition as last recorded after work on it. */
+export function lastCondition(machineId: string, done: PmsDone[]): PmsDone | undefined {
+  return done.filter((d) => d.machineId === machineId && d.conditionAfter).sort((a, b) => b.date.localeCompare(a.date) || b.at - a.at)[0];
+}

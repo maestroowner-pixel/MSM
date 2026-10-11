@@ -11,6 +11,10 @@ the part that stops the next person undoing it.
 - Settings → Reports folder only shows when a report that uses it is on.
 - Build 20592 (20591 was built with crew + rest on — not to be uploaded).
 
+## Unreleased
+
+- **PMS fuller sign-out** (TM Master comparison, item 3; dark with `pms`). Recording a job done asks the condition before and after (`Condition`: Good / Fair / Poor / Out of service — out of service needs a defect), man-hours, and a note for next time (`PmsDone.nextNote`, shown at the top of the next sign-out — `noteForNext`). The machine shows its last condition (`lastCondition`); the surveyor's history gains Condition and Man-h columns and "Last condition"; the monthly report gains Condition after and Man-h columns and the month's man-hours. All on the signed completion record — no rule changes. check:pms, check:pmshistory.
+
 ## 2.60 (20601) — 11 Oct 2026
 
 What the crew sees (from Jez's letter of 11 Oct 2026 and the DreamBoat data):

@@ -148,8 +148,18 @@ export interface PmsDone {
   unplanned?: boolean;
   /** The defect this (one-off) job put right. */
   forDefectId?: string;
+  /** The equipment's condition before and after the work (TM Master comparison, item 3). */
+  conditionBefore?: Condition;
+  conditionAfter?: Condition;
+  /** Man-hours the work took, all hands together. */
+  manHours?: number;
+  /** For whoever does the job next time — shown at the top when it is recorded again. */
+  nextNote?: string;
   updatedAt: number;
 }
+
+export type Condition = 'good' | 'fair' | 'poor' | 'out';
+export const CONDITION: Record<Condition, string> = { good: 'Good', fair: 'Fair', poor: 'Poor', out: 'Out of service' };
 
 export const READINGS_KEPT = 30;
 

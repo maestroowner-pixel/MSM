@@ -21,12 +21,12 @@ import { PLAN_LOCKED, personName, plansPms } from '../types/role';
 import { useSync } from '../contexts/SyncContext';
 import { EvidencePhoto } from '../components/EvidencePhoto';
 import { categoryColor } from './PmsDefectSc';
-import { DEFECT_CATEGORY } from '../types/pms';
-import { machineHistory, openDefects } from '../services/pmsHistory';
+import { CONDITION, DEFECT_CATEGORY } from '../types/pms';
+import { conditionText, machineHistory, openDefects } from '../services/pmsHistory';
 import { exportPmsHistory } from '../services/pmsHistoryReport';
 import { SIZES, Palette } from '../theme';
 import { DEPTS, Machine, PmsJob, deptOf, hasCounter } from '../types/pms';
-import { activeDeferral, dueText, hoursPerDay, jobDue, sortJobsByDue, todayIso, withReading, scheduleText , checkReading } from '../services/pms';
+import { activeDeferral, dueText, hoursPerDay, jobDue, sortJobsByDue, todayIso, withReading, scheduleText , checkReading , lastCondition } from '../services/pms';
 import { CATALOGUE } from '../services/pmsCatalogue';
 import { formatDate } from '../utils/dates';
 import { qtyText, stockByPart, stockStatus } from '../services/spares';
@@ -282,6 +282,14 @@ export default function MachineSc() {
           </View>
           ) : null}
 
+          {(() => {
+            const lc = lastCondition(id, pmsDone);
+            return lc ? (
+              <Text style={[styles.sub, { marginTop: SIZES.sm, fontWeight: '700', color: lc.conditionAfter === 'out' || lc.conditionAfter === 'poor' ? COLORS.warning : COLORS.textDark }]}>
+                {`Last condition: ${CONDITION[lc.conditionAfter!]} · ${formatDate(lc.date)} · ${lc.jobTitle}`}
+              </Text>
+            ) : null;
+          })()}
           <View style={styles.jobsHead}>
             <Label>{`Jobs (${jobs.length})`}</Label>
             <View pointerEvents={canPlan ? 'auto' : 'none'} style={[{ flexDirection: 'row', gap: SIZES.md }, !canPlan && { opacity: 0.35 }]}>
@@ -392,7 +400,7 @@ export default function MachineSc() {
             <View key={h.id} style={styles.hist}>
               <Text style={styles.rowTitle} numberOfLines={1}>{`${h.unplanned ? 'Unplanned · ' : ''}${h.jobTitle}`}</Text>
               <Text style={styles.sub}>
-                {[formatDate(h.date), h.hours != null ? `${h.hours} h` : null, h.byRank ? `${h.by} (${h.byRank})` : h.by].filter(Boolean).join(' · ')}
+                {[formatDate(h.date), h.hours != null ? `${h.hours} h` : null, conditionText(h) || null, h.manHours != null ? `${h.manHours} man-h` : null, h.byRank ? `${h.by} (${h.byRank})` : h.by].filter(Boolean).join(' · ')}
               </Text>
               {h.note ? <Text style={styles.note}>{h.note}</Text> : null}
               {h.photos?.length ? (

@@ -27,7 +27,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { DEFECT_CATEGORY, DefectCategory, JOB_TYPE, JobType, PmsDefect, PmsDone, PmsJob, hasCounter } from '../types/pms';
+import { CONDITION, Condition, DEFECT_CATEGORY, DefectCategory, JOB_TYPE, JobType, PmsDefect, PmsDone, PmsJob, hasCounter } from '../types/pms';
 import { Attachment } from '../types/equipment';
 import { PhotoPicker } from '../components/PhotoPicker';
 import * as photoQueue from '../services/photoQueue';
@@ -35,7 +35,7 @@ import { Dropdown } from '../components/Dropdown';
 import * as storage from '../services/storage';
 import { crewLabel } from '../types/crew';
 import { PLAN_LOCKED, personName, plansPms } from '../types/role';
-import { activeDeferral, dueText, jobAfter, jobCycle, jobDue, todayIso, withReading } from '../services/pms';
+import { activeDeferral, dueText, jobAfter, jobCycle, jobDue, todayIso, withReading , noteForNext } from '../services/pms';
 import { movesForJob, qtyText, stockByPart } from '../services/spares';
 import { JobPart } from '../types/spares';
 import { moduleOn } from '../constants/modules';
@@ -58,7 +58,7 @@ export default function PmsJobSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { pmsJobs, machines, crew, spares, spareMoves, savePmsJob, saveMachine, completePmsJob, pmsDeferrals, appendRow, saveRow, vessel } = useData();
+  const { pmsJobs, pmsDone, machines, crew, spares, spareMoves, savePmsJob, saveMachine, completePmsJob, pmsDeferrals, appendRow, saveRow, vessel } = useData();
   // Evidence at closure, and a defect found doing the job (ISM 10.1).
   const [donePhotos, setDonePhotos] = useState<Attachment[]>([]);
   const [defect, setDefect] = useState<{ category: DefectCategory; description: string } | null>(null);
@@ -107,6 +107,11 @@ export default function PmsJobSc() {
   const doneHoursTouched = useRef(false);
   const setDoneHours = (v: string) => setDoneHoursRaw(v);
   const [doneNote, setDoneNote] = useState('');
+  // The fuller sign-out (TM Master comparison): condition before / after, man-hours, a word for next time.
+  const [condBefore, setCondBefore] = useState<Condition | null>(null);
+  const [condAfter, setCondAfter] = useState<Condition | null>(null);
+  const [manHours, setManHours] = useState('');
+  const [nextNote, setNextNote] = useState('');
   const people = useMemo(() => crew.filter((c) => c.active), [crew]);
   const me = sync.me ? personName(sync.me) : '';
   const meRank = sync.me?.position;
@@ -181,6 +186,9 @@ export default function PmsJobSc() {
     if (doneDate > todayIso()) return Alert.alert('Date', 'The date is in the future.');
     if (machine?.critical && !donePhotos.length) return Alert.alert('Evidence', 'Critical equipment: add at least one photo of the work — before and after, clearances, parts replaced.');
     if (defect && defect.description.trim().length < 3) return Alert.alert('Defect', 'Describe the defect found, or untick it.');
+    if (condAfter === 'out' && !defect) return Alert.alert('Out of service', 'Equipment left out of service is a defect — tick "Found a defect" and describe it.');
+    const mh = num(manHours);
+    if (manHours.trim() && mh == null) return Alert.alert('Man-hours', 'Enter the man-hours as a number, e.g. 1.5.');
     const sig = await confirmSign({
       personKey: me && sync.me ? `device:${sync.me.id}` : signerId ?? signer.name,
       name: signer.name,
@@ -201,6 +209,10 @@ export default function PmsJobSc() {
       by: signer.name,
       byRank: signer.rank,
       note: doneNote.trim() || undefined,
+      ...(condBefore ? { conditionBefore: condBefore } : {}),
+      ...(condAfter ? { conditionAfter: condAfter } : {}),
+      ...(mh != null ? { manHours: mh } : {}),
+      ...(nextNote.trim() ? { nextNote: nextNote.trim() } : {}),
       at: Date.now(),
       ...(sig.proof ? { signedWith: sig.proof } : {}),
       ...(donePhotos.length ? { photos: donePhotos } : {}),
@@ -303,6 +315,15 @@ export default function PmsJobSc() {
 
           {doing ? (
             <>
+              {!unplanned && existing && noteForNext(existing.id, pmsDone) ? (() => {
+                const n = noteForNext(existing.id, pmsDone)!;
+                return (
+                  <View style={[styles.deferBox, { marginBottom: SIZES.md }]}>
+                    <Text style={[styles.sub, { fontWeight: '800' }]}>{`From last time · ${n.date.split('-').reverse().join('.')} · ${n.byRank ? `${n.by} (${n.byRank})` : n.by}`}</Text>
+                    <Text style={styles.signer}>{n.nextNote}</Text>
+                  </View>
+                );
+              })() : null}
               {unplanned ? (
                 <>
                   <Label>What was done ★</Label>
@@ -329,8 +350,30 @@ export default function PmsJobSc() {
               />
               </>) : null}
               <View style={{ height: SIZES.md }} />
+              <Label>Condition before → after</Label>
+              {(['before', 'after'] as const).map((w) => {
+                const v = w === 'before' ? condBefore : condAfter;
+                const setV = w === 'before' ? setCondBefore : setCondAfter;
+                return (
+                  <View key={w} style={[styles.chips, { marginTop: 4 }]}>
+                    <Text style={[styles.sub, { width: 52 }]}>{w === 'before' ? 'Before' : 'After'}</Text>
+                    {(Object.keys(CONDITION) as Condition[]).map((c) => (
+                      <TouchableOpacity key={c} style={[styles.chip, styles.chipSmall, v === c && { backgroundColor: c === 'out' || c === 'poor' ? COLORS.warning : COLORS.primary, borderColor: c === 'out' || c === 'poor' ? COLORS.warning : COLORS.primary }]} onPress={() => setV(v === c ? null : c)}>
+                        <Text style={[styles.chipSmallText, v === c && styles.chipTextOn]}>{CONDITION[c]}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                );
+              })}
+              <View style={{ height: SIZES.md }} />
+              <Label>Man-hours</Label>
+              <TextInput style={[styles.input, { width: 140 }]} value={manHours} onChangeText={setManHours} keyboardType="decimal-pad" placeholder="e.g. 2.5" placeholderTextColor={COLORS.textLight} />
+              <View style={{ height: SIZES.md }} />
               <Label>Note (parts used, findings)</Label>
               <TextInput style={[styles.input, { minHeight: 70 }]} value={doneNote} onChangeText={setDoneNote} multiline placeholder="—" placeholderTextColor={COLORS.textLight} />
+              <View style={{ height: SIZES.md }} />
+              <Label>Note for next time</Label>
+              <TextInput style={[styles.input, { minHeight: 50 }]} value={nextNote} onChangeText={setNextNote} multiline placeholder="Shown to whoever does this job next — e.g. order a spare gasket, the seal is weeping" placeholderTextColor={COLORS.textLight} />
               <View style={{ height: SIZES.md }} />
               <Label>{`Photos${machine?.critical ? ' ★' : ''}`}</Label>
               <PhotoPicker photos={donePhotos} onChange={setDonePhotos} hint={machine?.critical ? 'Critical equipment — at least one photo of the work.' : 'Before and after, clearances, parts replaced.'} />

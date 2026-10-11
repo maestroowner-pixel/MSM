@@ -1,5 +1,5 @@
 // npm run check:pms — planned-maintenance due dates against hand-worked cases.
-import { jobDue, withReading, hoursPerDay, jobAfter, intervalText, scheduleText, checkReading } from '../services/pms';
+import { jobDue, withReading, hoursPerDay, jobAfter, intervalText, scheduleText, checkReading , noteForNext, lastCondition } from '../services/pms';
 import { Machine, PmsJob, finishedOneOff } from '../types/pms';
 
 let failed = 0;
@@ -90,6 +90,17 @@ import { pmsMonth } from '../services/pmsKpi';
   ok(n.readings!.length === 2 && n.hours === 9715 && n.readings![0].reason === 'Counter replaced', 'a reading the same day keeps the adjustment before it');
   const n2 = withReading(n, '2026-10-11', 9720);
   ok(n2.readings!.length === 2 && n2.hours === 9720, 'a second plain reading that day replaces the plain one');
+}
+// The fuller sign-out: condition, man-hours, a note for next time.
+{
+  const done: any[] = [
+    { id: 'a', jobId: 'j1', machineId: 'me', jobTitle: 'Oil change', machineName: 'ME', date: '2026-09-01', by: 'Tom', at: 1, nextNote: 'Order a spare gasket', conditionAfter: 'fair', manHours: 2, updatedAt: 1 },
+    { id: 'b', jobId: 'j1', machineId: 'me', jobTitle: 'Oil change', machineName: 'ME', date: '2026-10-05', by: 'Ana', at: 2, conditionBefore: 'fair', conditionAfter: 'good', manHours: 1.5, updatedAt: 2 },
+  ];
+  ok(noteForNext('j1', done)?.nextNote === 'Order a spare gasket', 'the last note for next time is found even when the latest sign-out has none');
+  ok(lastCondition('me', done)?.conditionAfter === 'good', 'last condition is the latest one recorded');
+  const r = pmsMonth('2026-10', [{ id: 'me', name: 'ME', updatedAt: 0 }] as any, [], done, [], '2026-10-11');
+  ok(r.manHours === 1.5 && r.done[0][5] === 'Good' && r.done[0][6] === '1.5', `month: man-hours ${r.manHours}, condition and man-h columns`);
 }
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);
