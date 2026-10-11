@@ -286,9 +286,11 @@ export default function GarbageSc() {
                 : null}
             </View>
             {!e.cancelled ? (
-              <View style={{ gap: 6 }}>
-                <TouchableOpacity onPress={() => startEdit(e)} hitSlop={6}><Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small }}>Edit</Text></TouchableOpacity>
-                <TouchableOpacity onPress={() => { setCancelling(e); setReason(''); setEditing(null); }} hitSlop={6}><Text style={{ color: COLORS.danger, fontWeight: '700', fontSize: SIZES.small }}>Delete</Text></TouchableOpacity>
+              // Changing the book is the Master's (10 Oct 2026): everyone else sees
+              // the controls greyed out. The server refuses it too (firestore.rules).
+              <View style={{ gap: 6, opacity: isMaster ? 1 : 0.35 }} accessibilityState={{ disabled: !isMaster }}>
+                <TouchableOpacity disabled={!isMaster} onPress={() => startEdit(e)} hitSlop={6}><Text style={{ color: isMaster ? COLORS.primary : COLORS.textLight, fontWeight: '700', fontSize: SIZES.small }}>Edit</Text></TouchableOpacity>
+                <TouchableOpacity disabled={!isMaster} onPress={() => { setCancelling(e); setReason(''); setEditing(null); }} hitSlop={6}><Text style={{ color: isMaster ? COLORS.danger : COLORS.textLight, fontWeight: '700', fontSize: SIZES.small }}>Delete</Text></TouchableOpacity>
               </View>
             ) : null}
           </View>

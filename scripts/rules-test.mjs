@@ -103,6 +103,9 @@ await t(true, 'Officer plans a survey', setDoc(R(officer, 'surveys', 'sv1'), { i
 await t(true, 'Officer records a survey carried out', setDoc(R(officer, 'surveys_done', 'sd1'), { id: 'sd1' }));
 await t(false, 'A survey carried out cannot be changed', updateDoc(R(officer, 'surveys_done', 'sd1'), { ref: 'x' }));
 
+await t(false, 'An Officer cannot amend a garbage entry', setDoc(R(officer, 'garbage', 'g1v2'), { id: 'g1v2', supersedes: 'g1', editReason: 'x' }));
+await t(true, 'The Master amends a garbage entry', setDoc(R(master, 'garbage', 'g1v3'), { id: 'g1v3', supersedes: 'g1', editReason: 'Amount misread' }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

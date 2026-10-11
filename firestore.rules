@@ -251,7 +251,8 @@ service cloud.firestore {
       // a mistake is corrected by a further entry.
       match /garbage/{id} {
         allow read: if reader(v);
-        allow create: if member(v);
+        // A new version of an entry (amended / cancelled) is the Master's alone.
+        allow create: if member(v) && (!('supersedes' in request.resource.data) || isSuper(v));
         allow update, delete: if false;
       }
       match /garbage_signs/{id} {

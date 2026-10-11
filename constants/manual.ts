@@ -323,7 +323,7 @@ const en: ManualContent = {
       body: [
         "The Garbage screen is the Garbage Record Book, Part I (MARPOL Annex V, form of MEPC.295(71)): every delivery to a reception facility, incineration, discharge into the sea and accidental loss, by category A–I, with the amount in m³, the port or the ship's position, the receipt number, and the officer's signature. One entry is one operation: tap every category it carries and give each its amount — it is one line in the book.",
         "The app warns about discharges into the sea that Annex V forbids: plastics, domestic waste, cooking oil, incinerator ash, operational waste, fishing gear and e-waste never; food waste only 12 nm or more from land (3 nm if comminuted); animal carcasses 100 nm or more. An accidental loss is always recorded as such.",
-        "Edit changes an entry and Delete cancels it — each needs the reason and the signature of whoever does it; the original stays in the book (Amended / Cancelled, earlier versions one tap away) and a cancelled entry is struck through and left out of the totals. The Master signs each month. PDF and Excel print the month as the book's page, with totals by category.",
+        "The Master alone can Edit an entry or Delete (cancel) it — the buttons are greyed out for everyone else; each needs the reason and the signature of whoever does it; the original stays in the book (Amended / Cancelled, earlier versions one tap away) and a cancelled entry is struck through and left out of the totals. The Master signs each month. PDF and Excel print the month as the book's page, with totals by category.",
       ],
     },
     {
@@ -790,7 +790,7 @@ const ru: ManualContent = {
       body: [
         "Экран Garbage — Garbage Record Book, часть I (MARPOL Annex V, форма MEPC.295(71)): каждая сдача на берег, сжигание, сброс в море и случайная потеря по категориям A–I, с объёмом в м³, портом или координатами судна, номером квитанции и подписью офицера. Одна запись — одна операция: отметьте все категории, которые в неё входят, и укажите количество каждой — в журнале это одна строка.",
         "Приложение предупреждает о сбросах в море, запрещённых Приложением V: пластик, бытовые отходы, кулинарное масло, зола инсинератора, эксплуатационные отходы, рыболовные снасти и электронные отходы — никогда; пищевые отходы — только от 12 миль от берега (от 3 миль, если измельчены); туши животных — от 100 миль. Случайная потеря всегда записывается как таковая.",
-        "Edit исправляет запись, Delete аннулирует её — каждое действие требует причины и подписи того, кто его делает; исходная запись остаётся в журнале (Amended / Cancelled, прежние версии по нажатию), аннулированная зачёркнута и не идёт в итоги. Мастер подписывает каждый месяц. PDF и Excel печатают месяц в виде страницы журнала с итогами по категориям.",
+        "Исправить (Edit) или аннулировать (Delete) запись может только Мастер — у остальных кнопки неактивны; каждое действие требует причины и подписи того, кто его делает; исходная запись остаётся в журнале (Amended / Cancelled, прежние версии по нажатию), аннулированная зачёркнута и не идёт в итоги. Мастер подписывает каждый месяц. PDF и Excel печатают месяц в виде страницы журнала с итогами по категориям.",
       ],
     },
     {
@@ -1257,7 +1257,7 @@ const es: ManualContent = {
       body: [
         "La pantalla Garbage es el Libro registro de basuras, Parte I (MARPOL Anexo V, formulario MEPC.295(71)): cada entrega a instalación de recepción, incineración, descarga al mar y pérdida accidental, por categoría A–I, con la cantidad en m³, el puerto o la posición del buque, el número de recibo y la firma del oficial. Una anotación es una operación: marque todas las categorías que incluye y la cantidad de cada una — es una sola línea en el libro.",
         "La app avisa de las descargas al mar que el Anexo V prohíbe: plásticos, desechos domésticos, aceite de cocina, cenizas del incinerador, desechos operacionales, artes de pesca y residuos electrónicos nunca; restos de comida solo a 12 millas o más de tierra (3 millas si están triturados); cadáveres de animales a 100 millas o más. Una pérdida accidental siempre se registra como tal.",
-        "Edit cambia una anotación y Delete la anula — cada uno exige el motivo y la firma de quien lo hace; el original queda en el libro (Amended / Cancelled, versiones anteriores a un toque) y una anotación anulada aparece tachada y fuera de los totales. El Master firma cada mes. PDF y Excel imprimen el mes como la página del libro, con totales por categoría.",
+        "Solo el Master puede cambiar (Edit) o anular (Delete) una anotación — para los demás los botones están desactivados; cada uno exige el motivo y la firma de quien lo hace; el original queda en el libro (Amended / Cancelled, versiones anteriores a un toque) y una anotación anulada aparece tachada y fuera de los totales. El Master firma cada mes. PDF y Excel imprimen el mes como la página del libro, con totales por categoría.",
       ],
     },
     {
@@ -1724,7 +1724,7 @@ const uk: ManualContent = {
       body: [
         "Екран Garbage — Garbage Record Book, частина I (MARPOL Annex V, форма MEPC.295(71)): кожна здача на берег, спалювання, скидання в море та випадкова втрата за категоріями A–I, з об'ємом у м³, портом або координатами судна, номером квитанції та підписом офіцера. Один запис — одна операція: позначте всі категорії, що до неї входять, і вкажіть кількість кожної — у журналі це один рядок.",
         "Застосунок попереджає про скидання в море, заборонені Додатком V: пластик, побутові відходи, кулінарна олія, зола інсинератора, експлуатаційні відходи, рибальські снасті та електронні відходи — ніколи; харчові відходи — лише від 12 миль від берега (від 3 миль, якщо подрібнені); туші тварин — від 100 миль. Випадкова втрата завжди записується як така.",
-        "Edit виправляє запис, Delete анулює його — кожна дія вимагає причини й підпису того, хто її робить; початковий запис лишається в журналі (Amended / Cancelled, попередні версії за натисканням), анульований закреслено й не враховано в підсумках. Майстер підписує кожен місяць. PDF і Excel друкують місяць як сторінку журналу з підсумками за категоріями.",
+        "Виправити (Edit) чи анулювати (Delete) запис може лише Майстер — в інших кнопки неактивні; кожна дія вимагає причини й підпису того, хто її робить; початковий запис лишається в журналі (Amended / Cancelled, попередні версії за натисканням), анульований закреслено й не враховано в підсумках. Майстер підписує кожен місяць. PDF і Excel друкують місяць як сторінку журналу з підсумками за категоріями.",
       ],
     },
     {
