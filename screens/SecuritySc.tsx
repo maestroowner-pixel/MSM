@@ -14,7 +14,7 @@
 // ===================================
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { Card, Label, Screen, ScreenTitle } from '../components/ui';
@@ -35,7 +35,11 @@ import { roleAtLeast } from '../types/role';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { isAshore, lastMoves, nextMove, personsOnBoard } from '../services/gangway';
-import { exportCrewCards, exportVisitorPasses } from '../services/crewCards';
+import { GANGWAY_STOCKS, crewCardSpecs, exportCrewCards, exportVisitorPasses, visitorPassSpecs } from '../services/crewCards';
+import { GANGWAY_STOCK_MM } from '../services/gangwayLabels';
+import { TsplLabelSpec, labelsToTspl } from '../services/tspl';
+import { getSavedPrinter, printTspl, SavedPrinter } from '../services/blePrinter';
+import { PrinterModal } from '../components/PrinterModal';
 import { samePass } from '../services/crewQr';
 import { exportVisitorExcel, exportVisitorPdf, movesOf, visitsOf, vlogTitle } from '../services/visitorLog';
 import { formatDate, formatDateTime } from '../utils/dates';
@@ -224,8 +228,44 @@ export default function SecuritySc() {
     </TouchableOpacity>
   );
 
+  // Crew cards and visitor passes on the label printer (Xprinter, Bluetooth) —
+  // the same printer and rolls as the equipment labels.
+  const [printerOpen, setPrinterOpen] = useState(false);
+  const [pending, setPending] = useState<{ specs: TsplLabelSpec[]; what: string } | null>(null);
+  const sendLabels = async (printer: SavedPrinter, job: { specs: TsplLabelSpec[]; what: string }) => {
+    try {
+      await printTspl(printer.id, labelsToTspl(job.specs));
+      Alert.alert('Sent to printer', `${job.what} sent to ${printer.name}.`);
+    } catch (e: any) {
+      Alert.alert('Could not print to the Xprinter', String(e?.message ?? e));
+    } finally {
+      setPending(null);
+    }
+  };
+  const pickSize = (make: (size: (typeof GANGWAY_STOCKS)[number]) => { specs: TsplLabelSpec[]; what: string }) =>
+    Alert.alert('Label size', 'The roll loaded in the printer.', [
+      ...GANGWAY_STOCKS.map((sz) => ({
+        text: `${GANGWAY_STOCK_MM[sz].widthMm} × ${GANGWAY_STOCK_MM[sz].heightMm} mm`,
+        onPress: async () => {
+          const job = make(sz);
+          const printer = await getSavedPrinter();
+          if (printer) return void sendLabels(printer, job);
+          setPending(job);
+          setPrinterOpen(true);
+        },
+      })),
+      { text: 'Cancel', style: 'cancel' as const },
+    ]);
+  const toXprinter = () =>
+    Alert.alert('Print to Xprinter', 'Stickers with the gangway QR — for a card holder or a lanyard tag.', [
+      { text: `Crew cards (${people.length})`, onPress: () => (people.length ? pickSize((sz) => ({ specs: crewCardSpecs(people, vessel, sz), what: `${people.length} crew card${people.length === 1 ? '' : 's'}` })) : Alert.alert('Crew cards', 'The crew list is empty.')) },
+      { text: 'Visitor passes 01–20', onPress: () => pickSize((sz) => ({ specs: visitorPassSpecs(20, vessel, sz), what: '20 visitor passes' })) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+
   return (
     <Screen scroll>
+      <PrinterModal visible={printerOpen} onClose={() => { setPrinterOpen(false); setPending(null); }} onPicked={(p) => { setPrinterOpen(false); if (pending) void sendLabels(p, pending); }} />
       <ScreenTitle title={view === 'drills' ? 'Security drills' : 'Gangway logbook'} subtitle={view === 'drills' ? 'ISPS Code — at least one every three months' : 'ISPS Code — who is on board, visitors in and out'} help="Security (ISPS)" actions={levelSwitch} />
       {current > 1 && level ? (
         <Text style={[styles.alert, { color: levelColor(current), borderColor: levelColor(current) }]}>
@@ -273,6 +313,12 @@ export default function SecuritySc() {
               <MciIcon name="card-account-details-outline" size={16} color={COLORS.primary} />
               <Text style={styles.btnOutlineText}>Print crew cards</Text>
             </TouchableOpacity>
+            {Platform.OS === 'ios' || Platform.OS === 'android' ? (
+              <TouchableOpacity style={styles.btnOutline} onPress={toXprinter}>
+                <MciIcon name="bluetooth" size={16} color={COLORS.primary} />
+                <Text style={styles.btnOutlineText}>Print to Xprinter</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
           {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{`✓ ${saved}`}</Text> : null}
 

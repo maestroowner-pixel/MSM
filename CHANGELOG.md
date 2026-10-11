@@ -13,6 +13,7 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Gangway QR on the Xprinter** (user, 11 Oct 2026; dark with `security`). Gangway logbook → Print to Xprinter (phone / tablet): crew cards or visitor passes 01–20 as TSPL stickers (100×50, 60×40, 50×30) over Bluetooth, the same printer flow as equipment labels (PrinterModal, saved printer). services/gangwayLabels (pure; check:gangway checks the QR payloads in the TSPL).
 - **PMS fuller sign-out** (TM Master comparison, item 3; dark with `pms`). Recording a job done asks the condition before and after (`Condition`: Good / Fair / Poor / Out of service — out of service needs a defect), man-hours, and a note for next time (`PmsDone.nextNote`, shown at the top of the next sign-out — `noteForNext`). The machine shows its last condition (`lastCondition`); the surveyor's history gains Condition and Man-h columns and "Last condition"; the monthly report gains Condition after and Man-h columns and the month's man-hours. All on the signed completion record — no rule changes. check:pms, check:pmshistory.
 
 ## 2.60 (20601) — 11 Oct 2026

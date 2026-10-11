@@ -1,6 +1,8 @@
 // npm run check:gangway — who is ashore, persons on board, the next move a
 // crew card makes, double scans, and the crew card QR payload.
 import { isAshore, isDoubleScan, lastMoves, nextMove, personsOnBoard } from '../services/gangway';
+import { labelsToTspl } from '../services/tspl';
+import { crewCardSpecs, visitorPassSpecs } from '../services/gangwayLabels';
 import { crewQrPayload, parseCrewQr, parsePassQr, passQrPayload, samePass } from '../services/crewQr';
 
 let fail = 0;
@@ -24,5 +26,11 @@ ok(parseCrewQr(crewQrPayload('crw_AbC')) === 'crw_AbC' && parseCrewQr('MSM://CRE
 ok(parseCrewQr('msm://item/x') === null, 'crew and item QRs do not mix');
 ok(parsePassQr(passQrPayload('07')) === '07' && parsePassQr('msm://crew/x') === null && parseCrewQr(passQrPayload('07')) === null, 'visitor pass QR round trip, not a crew card');
 ok(samePass('7', '07') && samePass('07', '7') && !samePass('7', '17') && !samePass(undefined, '7'), '"7" and "07" are the same pass');
+// Crew cards and visitor passes on the Xprinter: the printer is sent the same QR the scanner reads.
+{
+  const tspl = labelsToTspl([...crewCardSpecs([{ id: 'c1', name: 'Jez Dodd', rank: '3/O' }], { vessel_name: 'MY Alpha' }, '60x40'), ...visitorPassSpecs(2, null, '50x30')]);
+  ok(tspl.includes(crewQrPayload('c1')) && tspl.includes(passQrPayload('02')), 'TSPL carries the crew-card and pass QR payloads');
+  ok((tspl.match(/PRINT 1/g) ?? []).length === 3 && tspl.includes('SIZE 60 mm,40 mm') && tspl.includes('Jez Dodd') && tspl.includes('VISITOR 01'), 'one PRINT per sticker, the roll size, the names');
+}
 console.log(fail ? `${fail} failed` : 'all passed');
 process.exit(fail ? 1 : 0);

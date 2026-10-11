@@ -147,3 +147,6 @@ export function exportVisitorPasses(count: number, vessel: VesselInfo | null) {
   });
   return exportCards(cards, vessel, 'Visitor passes');
 }
+
+// Label-printer stickers of the same cards: services/gangwayLabels.ts (pure, tested).
+export { GANGWAY_STOCKS, crewCardSpecs, visitorPassSpecs } from './gangwayLabels';
