@@ -13,6 +13,7 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Signing: the signer chooses** — "How do you sign?" with big PIN / Sign by hand / Fingerprint (own device with a sensor) buttons; "Another way" goes back. Sign by hand opens a wide window (pad up to half the screen height, 3 : 1) with big Delete and Sign buttons; offered on every device.
 - **Edit / Delete in every log — Master only, reason + signature, versions kept.** services/versions.ts
   (`current`, `live`, `previous`, `amended`, `cancelled`) + components/Amend.tsx (dialog with the
   record's fields, reason ★, signer, confirmed signature; AmendButtons greyed out for non-Masters;

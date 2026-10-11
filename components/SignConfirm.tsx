@@ -55,10 +55,11 @@ export interface SignRequest {
 
 export type SignResult = { proof?: SignProof } | null;
 
-type Step = 'bio' | 'pin' | 'admin' | 'set1' | 'set2' | 'draw';
+type Step = 'choose' | 'bio' | 'pin' | 'admin' | 'set1' | 'set2' | 'draw';
 
 /** A phone, a tablet, or a browser on a touch screen — where a hand or a stylus can sign. */
-const canDraw = Platform.OS !== 'web' || (typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches);
+/** Signing by hand is offered everywhere — a stylus or finger on a tablet, a pen tablet or mouse on a computer. */
+const canDraw = true;
 
 const Ctx = createContext<((r: SignRequest) => Promise<SignResult>) | null>(null);
 
@@ -128,14 +129,9 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
         setMsg(null);
         setReq(r);
         void (async () => {
-          const kind = r.ownDevice ? await biometricKind() : null;
-          setBio(kind);
-          if (kind) {
-            setStep('bio');
-            void tryBio(r);
-          } else {
-            setStep(await pinStep(r.personKey));
-          }
+          // The signer chooses: PIN, by hand, or the fingerprint on their own device (11 Oct 2026).
+          setBio(r.ownDevice ? await biometricKind() : null);
+          setStep('choose');
         })();
       });
     },
@@ -187,7 +183,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
   };
 
   const title =
-    step === 'bio' ? 'Confirm with your fingerprint' : step === 'draw' ? 'Sign by hand' : step === 'admin' ? 'No signing PIN yet — the Master PIN, please' : step === 'pin' ? 'Enter your signing PIN' : step === 'set1' ? 'Choose a signing PIN' : 'Repeat the PIN';
+    step === 'choose' ? 'How do you sign?' : step === 'bio' ? 'Confirm with your fingerprint' : step === 'draw' ? 'Sign by hand' : step === 'admin' ? 'No signing PIN yet — the Master PIN, please' : step === 'pin' ? 'Enter your signing PIN' : step === 'set1' ? 'Choose a signing PIN' : 'Repeat the PIN';
   const hint =
     step === 'set1'
       ? `First signature on this device. Choose ${PIN_MIN}–${PIN_MAX} digits that only you know — not your account PIN. Nobody can read it back, the Master included.`
@@ -206,21 +202,48 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
       {children}
       <Modal visible={!!req} transparent animationType="fade" onRequestClose={() => finish(null)}>
         <View style={styles.backdrop}>
-          <View style={styles.card}>
-            <MciIcon name={step === 'bio' ? 'fingerprint' : step === 'draw' ? 'draw-pen' : 'dialpad'} size={40} color={COLORS.primary} />
+          <View style={[styles.card, step === 'draw' && styles.cardWide]}>
+            {step !== 'draw' ? <MciIcon name={step === 'choose' ? 'draw' : step === 'bio' ? 'fingerprint' : 'dialpad'} size={40} color={COLORS.primary} /> : null}
             <Text style={styles.what}>{req?.what}</Text>
             <Text style={styles.name}>{req?.name}</Text>
             <Text style={styles.title}>{title}</Text>
-            {step === 'bio' ? (
+            {step === 'choose' ? (
+              <View style={styles.choices}>
+                <TouchableOpacity style={styles.choice} onPress={() => void toPin()}>
+                  <MciIcon name="dialpad" size={30} color={COLORS.primary} />
+                  <Text style={styles.choiceText}>PIN</Text>
+                </TouchableOpacity>
+                {canDraw ? (
+                  <TouchableOpacity style={styles.choice} onPress={() => { setMsg(null); setDrawing(''); setStep('draw'); }}>
+                    <MciIcon name="draw-pen" size={30} color={COLORS.primary} />
+                    <Text style={styles.choiceText}>Sign by hand</Text>
+                  </TouchableOpacity>
+                ) : null}
+                {bio ? (
+                  <TouchableOpacity style={styles.choice} onPress={() => { setStep('bio'); req && void tryBio(req); }}>
+                    <MciIcon name="fingerprint" size={30} color={COLORS.primary} />
+                    <Text style={styles.choiceText}>Fingerprint</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            ) : step === 'bio' ? (
               <TouchableOpacity style={styles.primary} onPress={() => req && void tryBio(req)}>
                 <Text style={styles.primaryText}>Touch to sign</Text>
               </TouchableOpacity>
             ) : step === 'draw' ? (
               <View style={{ alignSelf: 'stretch' }}>
-                <SignaturePad value={drawing} onChange={setDrawing} label={req?.name ?? ''} />
-                <TouchableOpacity style={[styles.primary, !drawing && { opacity: 0.5 }]} disabled={!drawing} onPress={async () => finish(await proof('drawn', drawing))}>
-                  <Text style={styles.primaryText}>Sign</Text>
-                </TouchableOpacity>
+                {/* A big pad for a stylus or a finger, and two big buttons. */}
+                <SignaturePad value={drawing} onChange={setDrawing} big />
+                <View style={styles.drawButtons}>
+                  <TouchableOpacity style={[styles.bigBtn, styles.bigOutline]} onPress={() => setDrawing('')}>
+                    <MciIcon name="eraser" size={22} color={COLORS.danger} />
+                    <Text style={[styles.bigBtnText, { color: COLORS.danger }]}>Delete</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.bigBtn, { backgroundColor: COLORS.primary }, !drawing && { opacity: 0.5 }]} disabled={!drawing} onPress={async () => finish(await proof('drawn', drawing))}>
+                    <MciIcon name="check" size={22} color={COLORS.textWhite} />
+                    <Text style={[styles.bigBtnText, { color: COLORS.textWhite }]}>Sign</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ) : (
               <>
@@ -245,24 +268,12 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
             {msg ? <Text style={styles.msg}>{msg}</Text> : null}
             {hint ? <Text style={styles.hint}>{hint}</Text> : null}
             <View style={styles.row}>
-              {/* The other ways this person can sign here: PIN, fingerprint, by hand. */}
-              <View style={{ flexDirection: 'row', gap: SIZES.md, flexWrap: 'wrap', flex: 1 }}>
-                {step !== 'pin' && step !== 'admin' && step !== 'set1' && step !== 'set2' ? (
-                  <TouchableOpacity onPress={() => void toPin()} hitSlop={8}>
-                    <Text style={styles.link}>PIN</Text>
-                  </TouchableOpacity>
-                ) : null}
-                {bio && step !== 'bio' ? (
-                  <TouchableOpacity onPress={() => { setStep('bio'); req && void tryBio(req); }} hitSlop={8}>
-                    <Text style={styles.link}>Fingerprint</Text>
-                  </TouchableOpacity>
-                ) : null}
-                {canDraw && step !== 'draw' ? (
-                  <TouchableOpacity onPress={() => { setMsg(null); setStep('draw'); }} hitSlop={8}>
-                    <Text style={styles.link}>Sign by hand</Text>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
+              {/* Back to the choice: PIN, by hand, fingerprint. */}
+              {step !== 'choose' ? (
+                <TouchableOpacity onPress={() => { setMsg(null); setPinText(''); setStep('choose'); }} hitSlop={8}>
+                  <Text style={styles.link}>Another way</Text>
+                </TouchableOpacity>
+              ) : <View />}
               <TouchableOpacity onPress={() => finish(null)} hitSlop={8}>
                 <Text style={[styles.link, { color: COLORS.textLight }]}>Cancel</Text>
               </TouchableOpacity>
@@ -282,6 +293,14 @@ function lockText(until: number): string {
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
     backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', padding: SIZES.lg },
+    cardWide: { maxWidth: 1000, padding: SIZES.xl },
+    choices: { alignSelf: 'stretch', gap: SIZES.sm, marginTop: SIZES.md },
+    choice: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md, borderWidth: 1, borderColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: SIZES.md, paddingHorizontal: SIZES.lg },
+    choiceText: { fontSize: SIZES.h5, fontWeight: '800', color: COLORS.primary },
+    drawButtons: { flexDirection: 'row', gap: SIZES.md, marginTop: SIZES.lg, justifyContent: 'center' },
+    bigBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SIZES.sm, minWidth: 180, paddingVertical: 16, paddingHorizontal: SIZES.xl, borderRadius: SIZES.radiusMd },
+    bigOutline: { borderWidth: 2, borderColor: COLORS.danger },
+    bigBtnText: { fontSize: SIZES.h5, fontWeight: '900' },
     card: { ...COLORS.glassCard, backgroundColor: COLORS.cardSolid, borderRadius: SIZES.radiusLg, padding: SIZES.lg, width: '100%', maxWidth: 380, alignItems: 'center' },
     what: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: SIZES.sm, textAlign: 'center' },
     name: { fontSize: SIZES.h4, fontWeight: '800', color: COLORS.textDark, marginTop: 2, textAlign: 'center' },

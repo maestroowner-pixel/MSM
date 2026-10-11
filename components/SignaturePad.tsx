@@ -9,7 +9,7 @@
 // ===================================
 
 import React, { useMemo, useRef, useState } from 'react';
-import { PanResponder, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { PanResponder, Platform, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { useTheme } from '../contexts/ThemeContext';
@@ -28,9 +28,17 @@ export function SignatureView({ path, height = 40, color }: { path: string; heig
   );
 }
 
-export function SignaturePad({ value, onChange, label = 'Visitor’s signature' }: { value: string; onChange: (path: string) => void; label?: string }) {
+/**
+ * `big`: the signing window (components/SignConfirm) — no label or Clear link
+ * (the window has its own Delete / Sign buttons), as wide as the screen allows
+ * while staying within half its height.
+ */
+export function SignaturePad({ value, onChange, label = 'Visitor’s signature', big }: { value: string; onChange: (path: string) => void; label?: string; big?: boolean }) {
   const c = useTheme();
   const [w, setW] = useState(SIG_W);
+  const { height: winH } = useWindowDimensions();
+  // The big pad keeps the 3 : 1 shape within half the screen's height.
+  const bigMax = Math.max(SIG_W, Math.round(winH * 0.5 * (SIG_W / SIG_H)));
   const scale = SIG_W / w;
   const path = useRef(value);
   path.current = value;
@@ -71,18 +79,18 @@ export function SignaturePad({ value, onChange, label = 'Visitor’s signature' 
 
   const drawn = `${value}${live.current}`;
   return (
-    <View style={{ marginTop: SIZES.sm }}>
-      <View style={styles.head}>
+    <View style={{ marginTop: SIZES.sm, alignSelf: 'stretch', alignItems: big ? 'center' : undefined }}>
+      {big ? null : <View style={styles.head}>
         <Text style={{ fontSize: SIZES.small, color: c.textLight }}>{label}</Text>
         {value ? (
           <TouchableOpacity onPress={() => onChange('')} hitSlop={8}>
             <Text style={{ color: c.primary, fontWeight: '700', fontSize: SIZES.small }}>Clear</Text>
           </TouchableOpacity>
         ) : null}
-      </View>
+      </View>}
       <View
         onLayout={(e) => setW(e.nativeEvent.layout.width || SIG_W)}
-        style={[styles.box, { borderColor: c.border, backgroundColor: c.cardSolid, height: (w * SIG_H) / SIG_W }, Platform.OS === 'web' ? ({ touchAction: 'none', cursor: 'crosshair', userSelect: 'none' } as any) : null]}
+        style={[styles.box, big && { maxWidth: bigMax, borderWidth: 2 }, { borderColor: c.border, backgroundColor: c.cardSolid, height: (w * SIG_H) / SIG_W }, Platform.OS === 'web' ? ({ touchAction: 'none', cursor: 'crosshair', userSelect: 'none' } as any) : null]}
         {...pan.panHandlers}
       >
         <Svg width="100%" height="100%" viewBox={`0 0 ${SIG_W} ${SIG_H}`} pointerEvents="none">
