@@ -11,7 +11,11 @@ the part that stops the next person undoing it.
 - Settings → Reports folder only shows when a report that uses it is on.
 - Build 20592 (20591 was built with crew + rest on — not to be uploaded).
 
-## Unreleased
+## 2.61 (20611) — 11 Oct 2026
+
+What the crew sees: **the ship's bell rings once on launch** (it repeated on phones in 2.60). Modules on: lifting, rounds — unchanged. Everything below since 2.60 is dark.
+
+### Since 2.60 (dark unless said above)
 
 - **Fix: the ship's bell rang over and over on launch** (user, 11 Oct 2026, phone). The splash's effect depended on `onDone`, passed as a new arrow on every render of the root; startup renders many times as lists load (more with every module), so the effect re-ran — bell, animation and timers restarting each time. The splash now runs its effect once, reads `onDone` through a ref, rings the bell at most once per launch; index.tsx passes a stable `hideSplash`. Checked in the browser: 1 bell per launch. Present in 2.60 — ships with the next build.
 - **PMS: cancel a wrong sign-out** (TM Master comparison, item 7; dark with `pms`). The Master cancels a completion within 30 days (`cancellable`) from the machine's Recent work, with reason and signature — a cancelling version (services/versions; `PmsDone` is versioned now, `pmsDone` in DataContext is `live`), shown struck through with who and why; the job goes back to its earlier baseline — the latest remaining sign-out, or what it had before (`prevLastDoneDate/Hours`, now kept on each completion) — so a finished one-off reopens (`jobAfterCancel`). Spares taken stay out. **Rules: pms_done cancelling versions are the Master's — deploy needed.** Rules 101/101; check:pms.
