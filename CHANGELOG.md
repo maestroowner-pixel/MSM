@@ -13,6 +13,8 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **PMS monthly report** (services/pmsKpi.ts pure + services/pmsReport.ts, utils/pmsPdf.web.ts): completion % (done ÷ done + overdue) all and critical, done (signed), deferrals, overdue now; PDF (A4 landscape) and Excel; month picker, KPI and buttons on the Maintenance screen. Tested.
+- **PMS catalogue + merchant systems (18):** large main engine, aux generators, boiler, purifier, starting air, heat exchangers, FWG, OWS / 15 ppm, steering (merchant), reefer, windlass & winches, cargo cranes, hatch covers, ballast tanks & holds, air/sounding pipes & WT doors, ladders, LSA/FFE by period, electrical & automation, navigation & GMDSS incl. VDR — every job with its type; critical systems marked. 57 systems.
 - **Board layout:** Sections (tiles) at the top, Needs attention under them; Today and the Plan stay in the right column.
 - **PMS: job types, critical equipment, deferrals.** `PmsJob.type` (Maintenance, Performance test, Safety check, Measurement, Visual check, Calibration, Megger, Overhaul — drop-down in the job); `Machine.critical` (switch; ⚑ CRITICAL in the lists). Deferral = `pms_deferrals` record (Master only, reason ★, until date and/or counter reading, signed, append-only; never on critical equipment); it holds for the job's current cycle and replaces the interval in `jobDue` everywhere (lists, sorting, board, dashboard). Rules 70/70. (Monthly PMS report — not yet.)
 - **Signing: the signer chooses** — "How do you sign?" with big PIN / Sign by hand / Fingerprint (own device with a sensor) buttons; "Another way" goes back. Sign by hand opens a wide window (pad up to half the screen height, 3 : 1) with big Delete and Sign buttons; offered on every device.

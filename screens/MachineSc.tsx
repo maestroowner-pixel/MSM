@@ -107,7 +107,7 @@ export default function MachineSc() {
     // A system picked from the catalogue takes its department and counter too,
     // and its name when none was typed.
     const patch: Partial<Machine> = t
-      ? { dept: t.dept, counter: t.counter, ...(draft.name.trim() ? {} : { name: t.label.replace(/\s*\(.*\)$/, '') }) }
+      ? { dept: t.dept, counter: t.counter, ...(t.critical ? { critical: true } : {}), ...(draft.name.trim() ? {} : { name: t.label.replace(/\s*\(.*\)$/, '') }) }
       : {};
     touched.current = true;
     setDraft((d) => ({ ...d, ...patch }));
@@ -119,6 +119,7 @@ export default function MachineSc() {
         id: uid('job'),
         machineId: id,
         title: job.title,
+        ...(job.type ? { type: job.type } : {}),
         intervalHours: t?.counter ? job.hours : undefined,
         intervalDays: job.days,
         notes: 'Typical interval — check against the maker\'s manual.',

@@ -47,5 +47,19 @@ import { CATALOGUE } from '../services/pmsCatalogue';
   ok(CATALOGUE.reduce((n, c) => n + c.jobs.length, 0) > 150, `catalogue: ${CATALOGUE.reduce((n, c) => n + c.jobs.length, 0)} jobs`);
 }
 
+import { pmsMonth } from '../services/pmsKpi';
+{
+  const ms: any[] = [{ id: 'me', name: 'Main engine', critical: true, hours: 5000, updatedAt: 0 }, { id: 'wm', name: 'Watermaker', updatedAt: 0 }];
+  const js: any[] = [
+    { id: 'j1', machineId: 'me', title: 'Oil change', type: 'maintenance', intervalDays: 30, lastDoneDate: '2026-08-01', updatedAt: 0 },
+    { id: 'j2', machineId: 'wm', title: 'Membrane flush', intervalDays: 30, lastDoneDate: '2026-10-05', updatedAt: 0 },
+    { id: 'j3', machineId: 'wm', title: 'Filters', intervalDays: 10, lastDoneDate: '2026-09-01', updatedAt: 0 },
+  ];
+  const done: any[] = [{ id: 'd1', jobId: 'j2', machineId: 'wm', jobTitle: 'Membrane flush', machineName: 'Watermaker', date: '2026-10-05', by: 'Ana', at: 0, updatedAt: 0 }];
+  const dfr: any[] = [{ id: 'f1', jobId: 'j3', machineId: 'wm', jobTitle: 'Filters', machineName: 'Watermaker', cycle: '2026-09-01|', untilDate: '2026-10-30', reason: 'Spares on order', by: 'Master', at: Date.parse('2026-10-08T10:00:00'), updatedAt: 0 }];
+  const r = pmsMonth('2026-10', ms, js, done, dfr, '2026-10-11');
+  ok(r.done.length === 1 && r.deferred.length === 1 && r.overdue.length === 1, 'month: 1 done, 1 deferred, 1 overdue (the deferred one is not overdue)');
+  ok(r.overdue[0][0].startsWith('⚑') && r.completion.all === 50 && r.completion.critical === 0, 'completion 50 %; critical 0 % (its only job is overdue)');
+}
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

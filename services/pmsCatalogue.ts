@@ -13,12 +13,14 @@
 // limit.
 // ===================================
 
-import { Dept } from '../types/pms';
+import { Dept, JobType } from '../types/pms';
 
 export interface CatalogueJob {
   title: string;
   hours?: number;
   days?: number;
+  /** Kind of job (types/pms JOB_TYPE). */
+  type?: JobType;
 }
 
 export interface CatalogueSystem {
@@ -27,6 +29,8 @@ export interface CatalogueSystem {
   label: string;
   /** Has a running-hours counter (engines, generators, compressors…). */
   counter: boolean;
+  /** Critical equipment by default (steering, propulsion, fire-fighting, safety). */
+  critical?: boolean;
   jobs: CatalogueJob[];
 }
 
@@ -306,6 +310,139 @@ export const CATALOGUE: CatalogueSystem[] = [
     { title: 'Haul-out: antifouling, zincs, seacocks, transducers', days: Y },
     { title: 'Class bottom survey', days: 913 },
     { title: 'Thickness gauging (class)', days: 5 * Y },
+  ] },
+  // ---- Merchant vessels (11 Oct 2026, from the owner's typical list) -----------
+  // Larger ships: slow / medium-speed main engines, boilers, purifiers, cargo
+  // gear, hatches, holds. Intervals typical — the maker's manual and the ship's
+  // PMS decide.
+  { key: 'me_large', dept: 'engineering', label: 'Main engine — slow / medium speed (merchant)', counter: true, critical: true, jobs: [
+    { title: 'Daily rounds: parameters, oil levels, leaks', days: 1, type: 'visual' },
+    { title: 'Lube oil analysis; filters cleaned', hours: 500, type: 'measurement' },
+    { title: 'Fuel injectors check / overhaul', hours: 2000, type: 'maintenance' },
+    { title: 'Valve clearances check', hours: 2000, type: 'measurement' },
+    { title: 'Turbocharger water washing (compressor / turbine side)', hours: 1000, type: 'maintenance' },
+    { title: 'Piston overhaul: liners, rings, bearings inspected', hours: 8000, type: 'overhaul' },
+    { title: 'Crankshaft deflections', hours: 4000, type: 'measurement' },
+    { title: 'Major overhaul; turbocharger overhaul', hours: 16000, type: 'overhaul' },
+    { title: 'Safety devices and shutdowns test', days: Q, type: 'safety' },
+  ] },
+  { key: 'aux_gen_large', dept: 'engineering', label: 'Auxiliary diesel generator (merchant)', counter: true, critical: true, jobs: [
+    { title: 'Lube oil and filters change', hours: 500, type: 'maintenance' },
+    { title: 'Fuel injectors check', hours: 2000, type: 'maintenance' },
+    { title: 'Cylinder heads overhaul', hours: 8000, type: 'overhaul' },
+    { title: 'Piston group overhaul', hours: 16000, type: 'overhaul' },
+    { title: 'Protection test: overspeed, low lube oil pressure, high temperature', days: Q, type: 'safety' },
+    { title: 'Generator insulation resistance', days: Q, type: 'megger' },
+  ] },
+  { key: 'boiler', dept: 'engineering', label: 'Boiler (auxiliary / exhaust gas)', counter: false, jobs: [
+    { title: 'Boiler water analysis and treatment', days: W, type: 'measurement' },
+    { title: 'Burner check and clean', days: Q, type: 'maintenance' },
+    { title: 'Fire side / gas side cleaning', days: H, type: 'maintenance' },
+    { title: 'Safety valves test (lifting)', days: Y, type: 'safety' },
+    { title: 'Flame failure, low water level and pressure trips test', days: M, type: 'safety' },
+    { title: 'Internal inspection (class)', days: 2 * Y + 6 * M, type: 'visual' },
+  ] },
+  { key: 'purifier', dept: 'engineering', label: 'Fuel / lube oil separator (purifier)', counter: true, jobs: [
+    { title: 'Bowl cleaning', hours: 500, type: 'maintenance' },
+    { title: 'Seals and O-rings renewal', hours: 4000, type: 'maintenance' },
+    { title: 'Major overhaul (bearings, gear)', hours: 8000, type: 'overhaul' },
+    { title: 'Alarms and shutdowns test', days: Q, type: 'safety' },
+  ] },
+  { key: 'start_air', dept: 'engineering', label: 'Starting air compressor and receivers', counter: true, critical: true, jobs: [
+    { title: 'Compressor oil change', hours: 500, type: 'maintenance' },
+    { title: 'Suction and delivery valves overhaul', hours: 1000, type: 'overhaul' },
+    { title: 'Air receiver drain and inspection', days: M, type: 'visual' },
+    { title: 'Safety valves test', days: Y, type: 'safety' },
+  ] },
+  { key: 'heat_exchangers', dept: 'engineering', label: 'Heat exchangers and coolers', counter: false, jobs: [
+    { title: 'Cleaning (plate / tube)', days: Y, type: 'maintenance' },
+    { title: 'Zinc anodes renewal', days: H, type: 'maintenance' },
+    { title: 'Performance check: temperatures in / out', days: M, type: 'performance' },
+  ] },
+  { key: 'fwg', dept: 'engineering', label: 'Fresh water generator (evaporator)', counter: true, jobs: [
+    { title: 'Cleaning / descaling', days: Q, type: 'maintenance' },
+    { title: 'Salinometer check and calibration', days: M, type: 'calibration' },
+    { title: 'Ejector and pump check', days: H, type: 'maintenance' },
+  ] },
+  { key: 'ows', dept: 'engineering', label: 'Oily water separator and 15 ppm alarm', counter: false, jobs: [
+    { title: '15 ppm alarm and automatic stop test', days: M, type: 'safety' },
+    { title: '15 ppm monitor calibration (certificate)', days: 5 * Y, type: 'calibration' },
+    { title: 'Coalescer / filter elements', days: H, type: 'maintenance' },
+  ] },
+  { key: 'steering_merchant', dept: 'engineering', label: 'Steering gear (merchant)', counter: false, critical: true, jobs: [
+    { title: 'Hydraulic oil level, leaks, linkages', days: W, type: 'visual' },
+    { title: 'Steering gear test before departure', days: 1, type: 'performance' },
+    { title: 'Emergency steering drill', days: Q, type: 'safety' },
+    { title: 'Hydraulic oil analysis', days: Y, type: 'measurement' },
+    { title: 'Motor insulation resistance', days: H, type: 'megger' },
+  ] },
+  { key: 'reefer', dept: 'engineering', label: 'Provision refrigeration and air conditioning plant', counter: true, jobs: [
+    { title: 'Refrigerant leak check', days: M, type: 'safety' },
+    { title: 'Compressor oil and filters', hours: 4000, type: 'maintenance' },
+    { title: 'Condenser and evaporator cleaning', days: H, type: 'maintenance' },
+    { title: 'Room temperatures and alarms check', days: W, type: 'performance' },
+  ] },
+  { key: 'mooring_merchant', dept: 'deck', label: 'Windlass and mooring winches (merchant)', counter: false, jobs: [
+    { title: 'Lubrication (gears, bearings, brakes)', days: M, type: 'maintenance' },
+    { title: 'Brake holding capacity test', days: Y, type: 'performance' },
+    { title: 'Anchor chain and stoppers inspection', days: Y, type: 'visual' },
+    { title: 'Mooring lines and wires inspection', days: M, type: 'visual' },
+  ] },
+  { key: 'cargo_cranes', dept: 'deck', label: 'Cargo cranes and derricks', counter: true, jobs: [
+    { title: 'Wire ropes inspection and lubrication', days: M, type: 'maintenance' },
+    { title: 'Limit switches and safety devices test', days: M, type: 'safety' },
+    { title: 'Slewing bearing and hydraulics check', hours: 500, type: 'maintenance' },
+    { title: 'Thorough examination (competent person)', days: Y, type: 'visual' },
+    { title: 'Load test', days: 5 * Y, type: 'performance' },
+  ] },
+  { key: 'hatch_covers', dept: 'deck', label: 'Hatch covers', counter: false, jobs: [
+    { title: 'Rubber seals and compression bars', days: Q, type: 'visual' },
+    { title: 'Hydraulic system: oil, hoses, cylinders', days: Q, type: 'maintenance' },
+    { title: 'Cleats and wedges', days: H, type: 'maintenance' },
+    { title: 'Hose (water-tightness) test', days: Y, type: 'performance' },
+  ] },
+  { key: 'holds_tanks', dept: 'hull', label: 'Ballast tanks and cargo holds', counter: false, jobs: [
+    { title: 'Coating and structure inspection', days: Y, type: 'visual' },
+    { title: 'Anodes in ballast tanks', days: 2 * Y + 6 * M, type: 'visual' },
+    { title: 'Bilge wells and sounding pipes', days: Q, type: 'maintenance' },
+  ] },
+  { key: 'closures', dept: 'deck', label: 'Air pipes, sounding pipes, watertight doors, portholes', counter: false, jobs: [
+    { title: 'Air pipe heads (floats, gauzes)', days: Q, type: 'visual' },
+    { title: 'Watertight doors operation and seals', days: W, type: 'safety' },
+    { title: 'Portholes and deadlights', days: Q, type: 'visual' },
+  ] },
+  { key: 'ladders', dept: 'deck', label: 'Accommodation ladder, pilot ladder, railings', counter: false, jobs: [
+    { title: 'Pilot ladder inspection (SOLAS V/23)', days: M, type: 'visual' },
+    { title: 'Accommodation ladder and winch', days: M, type: 'maintenance' },
+    { title: 'Accommodation ladder load test', days: 5 * Y, type: 'performance' },
+    { title: 'Railings and lifelines', days: Q, type: 'visual' },
+  ] },
+  { key: 'lsa_ffe_merchant', dept: 'safety', label: 'LSA and FFE (merchant)', counter: false, critical: true, jobs: [
+    { title: 'Lifeboats inspection; lifeboat engine run', days: W, type: 'safety' },
+    { title: 'Emergency generator and emergency fire pump test', days: W, type: 'performance' },
+    { title: 'Fire extinguishers, hoses and hydrants', days: M, type: 'visual' },
+    { title: 'Breathing apparatus (BA sets)', days: M, type: 'safety' },
+    { title: 'Emergency lighting', days: M, type: 'safety' },
+    { title: 'Liferafts and hydrostatic releases service', days: Y, type: 'maintenance' },
+    { title: 'Davits, winches and release gear (annual examination)', days: Y, type: 'safety' },
+    { title: 'Fixed fire-fighting systems service', days: Y, type: 'maintenance' },
+    { title: 'Lifeboat davits load test; on-load release', days: 5 * Y, type: 'performance' },
+    { title: 'Cylinders hydrostatic test', days: 5 * Y, type: 'performance' },
+  ] },
+  { key: 'electrical_merchant', dept: 'engineering', label: 'Electrical and automation (merchant)', counter: false, jobs: [
+    { title: 'Insulation resistance: motors and networks', days: Q, type: 'megger' },
+    { title: 'Main and emergency switchboards: inspection, tighten connections', days: Y, type: 'maintenance' },
+    { title: 'Batteries: electrolyte density and voltage', days: W, type: 'measurement' },
+    { title: 'Main engine and boiler alarms and protections test', days: Q, type: 'safety' },
+    { title: 'Fire detection, sensors and general alarm test', days: W, type: 'safety' },
+    { title: 'Navigation lights check', days: 1, type: 'visual' },
+  ] },
+  { key: 'nav_merchant', dept: 'bridge', label: 'Navigation and GMDSS (merchant)', counter: false, jobs: [
+    { title: 'GMDSS, EPIRB and SART tests', days: M, type: 'performance' },
+    { title: 'Gyro, magnetic compass, radar, echo sounder, log check', days: M, type: 'performance' },
+    { title: 'Compass deviation (swing)', days: Y, type: 'calibration' },
+    { title: 'VDR annual performance test', days: Y, type: 'performance' },
+    { title: 'EPIRB shore-based maintenance', days: 5 * Y, type: 'maintenance' },
   ] },
 ];
 

@@ -10,7 +10,9 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { MonthPicker } from '../components/MonthPicker';
+import { exportPmsExcel, exportPmsPdf, pmsMonth } from '../services/pmsReport';
 import { useNavigation } from '@react-navigation/native';
 
 import { Card, Empty, Label, Screen, ScreenTitle, StatusPill, statusColor } from '../components/ui';
@@ -28,7 +30,19 @@ export default function MaintenanceSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
-  const { machines, pmsJobs, pmsDeferrals } = useData();
+  const { machines, pmsJobs, pmsDeferrals, pmsDone, vessel } = useData();
+  // The month's report: completion %, done, deferred, overdue — PDF / Excel.
+  const [repMonth, setRepMonth] = useState(todayIso().slice(0, 7));
+  const [saved, setSaved] = useState<string | null>(null);
+  const report = useMemo(() => pmsMonth(repMonth, machines, pmsJobs, pmsDone, pmsDeferrals), [repMonth, machines, pmsJobs, pmsDone, pmsDeferrals]);
+  const exportReport = async (kind: 'pdf' | 'xlsx') => {
+    try {
+      const w = kind === 'pdf' ? await exportPmsPdf(report, vessel) : await exportPmsExcel(report, vessel);
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+    } catch (e: any) {
+      Alert.alert('PMS report', String(e?.message ?? e));
+    }
+  };
   const dueOf = (j: PmsJob, m: Machine | undefined) => jobDue(j, m, today, activeDeferral(j, pmsDeferrals));
   const today = todayIso();
   const [only, setOnly] = useState<Dept | null>(null);
@@ -67,6 +81,13 @@ export default function MaintenanceSc() {
   return (
     <Screen scroll>
       <ScreenTitle title="Maintenance" subtitle="Planned maintenance · every department" help="Planned maintenance" />
+      <View style={styles.reportRow}>
+        <MonthPicker value={repMonth} onChange={setRepMonth} months={[...new Set([...pmsDone.map((d) => d.date.slice(0, 7))])]} />
+        <Text style={styles.kpi}>{`${report.completion.all == null ? '—' : `${report.completion.all} %`} done${report.completion.critical != null ? ` · critical ${report.completion.critical} %` : ''}`}</Text>
+        <TouchableOpacity style={styles.repBtn} onPress={() => void exportReport('pdf')}><Text style={styles.repBtnText}>Report PDF</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.repBtn} onPress={() => void exportReport('xlsx')}><Text style={styles.repBtnText}>Excel</Text></TouchableOpacity>
+      </View>
+      {saved ? <Text style={{ color: COLORS.success, fontWeight: '700', fontSize: SIZES.small, marginBottom: SIZES.sm }}>{`✓ ${saved}`}</Text> : null}
 
       <Card>
         <View style={styles.stats}>
@@ -157,6 +178,10 @@ function Stat({ value, label, color }: { value: string; label: string; color: st
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
+    reportRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: SIZES.sm, marginBottom: SIZES.md },
+    kpi: { fontSize: SIZES.body, fontWeight: '800', color: COLORS.textDark, marginRight: SIZES.sm },
+    repBtn: { borderWidth: 1, borderColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 7, paddingHorizontal: SIZES.md },
+    repBtnText: { color: COLORS.primary, fontWeight: '800' },
     stats: { flexDirection: 'row', gap: SIZES.sm },
     row: { flexDirection: 'row', alignItems: 'center', ...COLORS.glassCard, borderRadius: SIZES.radiusMd, paddingVertical: SIZES.md, paddingRight: SIZES.md, marginBottom: SIZES.sm, overflow: 'hidden', gap: SIZES.xs },
     bar: { width: 5, alignSelf: 'stretch', marginRight: SIZES.sm },
