@@ -60,7 +60,7 @@ export default function PmsJobSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { pmsJobs, pmsDone, machines, crew, spares, spareMoves, savePmsJob, saveMachine, completePmsJob, pmsDeferrals, appendRow, saveRow, vessel, permits, docs, docAcks } = useData();
+  const { pmsJobs, pmsDone, machines, crew, spares, spareMoves, savePmsJob, saveMachine, completePmsJob, pmsDeferrals, appendRow, saveRow, vessel, permits, docs, docAcks, pmsProjects } = useData();
   // Evidence at closure, and a defect found doing the job (ISM 10.1).
   const [donePhotos, setDonePhotos] = useState<Attachment[]>([]);
   const [defect, setDefect] = useState<{ category: DefectCategory; description: string } | null>(null);
@@ -128,7 +128,7 @@ export default function PmsJobSc() {
     : { permitMissing: false, unread: [] as typeof docs };
   const isMaster = !sync.enrolled || sync.role === 'superadmin';
   const canPlan = plansPms(sync.enrolled, sync.role);
-  const [defer, setDefer] = useState<{ date: string; hours: string; reason: string } | null>(null);
+  const [defer, setDefer] = useState<{ date: string; hours: string; reason: string; projectId?: string } | null>(null);
   const signDeferral = async () => {
     if (!existing || !defer) return;
     if (machine?.critical) return Alert.alert('Critical equipment', 'Jobs on critical equipment cannot be deferred.');
@@ -142,6 +142,7 @@ export default function PmsJobSc() {
     const now = Date.now();
     await appendRow(storage.PMS_DEFERRALS_KEY, {
       id: uid('dfr'), jobId: existing.id, machineId, jobTitle: existing.title, machineName: machine?.name ?? '', cycle: jobCycle(existing),
+      ...(defer.projectId ? { projectId: defer.projectId } : {}),
       ...(defer.date ? { untilDate: defer.date } : {}), ...(untilHours != null ? { untilHours } : {}),
       reason: defer.reason.trim(), by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now,
     });
@@ -315,12 +316,30 @@ export default function PmsJobSc() {
               <Text style={styles.sub}>Critical equipment — this job cannot be deferred.</Text>
             ) : defer ? (
               <View style={styles.deferBox}>
+                {pmsProjects.filter((pj) => !pj.closedAt && pj.dueDate >= todayIso()).length ? (
+                  <View style={[styles.chips, { marginTop: 0 }]}>
+                    {pmsProjects.filter((pj) => !pj.closedAt && pj.dueDate >= todayIso()).map((pj) => (
+                      <TouchableOpacity key={pj.id} style={[styles.chip, styles.chipSmall, defer.projectId === pj.id && styles.chipOn]} onPress={() => setDefer(defer.projectId === pj.id ? { ...defer, projectId: undefined } : { ...defer, projectId: pj.id, date: pj.dueDate, hours: '' })}>
+                        <Text style={[styles.chipSmallText, defer.projectId === pj.id && styles.chipTextOn]}>{`To ${pj.name} · ${pj.dueDate.split('-').reverse().join('.')}`}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : null}
                 <Label>Defer until — date and / or counter reading</Label>
                 <SimpleDatePicker label="Until" value={defer.date} onChange={(v) => setDefer({ ...defer, date: v })} />
                 {counter ? (
                   <TextInput style={[styles.input, { marginTop: SIZES.sm }]} value={defer.hours} onChangeText={(v) => setDefer({ ...defer, hours: v })} placeholder="…or until counter reading, h" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
                 ) : null}
                 <TextInput style={[styles.input, { marginTop: SIZES.sm, borderColor: COLORS.warning, borderWidth: 1 }]} value={defer.reason} onChangeText={(v) => setDefer({ ...defer, reason: v })} placeholder="Reason ★ — e.g. spares on order, vessel on charter" placeholderTextColor={COLORS.textLight} />
+                {!me ? (
+                  <View style={styles.chips}>
+                    {people.map((pp) => (
+                      <TouchableOpacity key={pp.id} style={[styles.chip, styles.chipSmall, signerId === pp.id && styles.chipOn]} onPress={() => setSignerId(pp.id)}>
+                        <Text style={[styles.chipSmallText, signerId === pp.id && styles.chipTextOn]}>{crewLabel(pp)}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : null}
                 <View style={{ flexDirection: 'row', gap: SIZES.md, alignItems: 'center', marginTop: SIZES.sm }}>
                   <TouchableOpacity style={styles.deferBtn} onPress={() => void signDeferral()}><Text style={styles.deferBtnText}>Sign the deferral</Text></TouchableOpacity>
                   <TouchableOpacity onPress={() => setDefer(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>

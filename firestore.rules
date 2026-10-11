@@ -214,6 +214,12 @@ service cloud.firestore {
         allow update: if isAdmin(v) && onlyChanges(['closed', 'updatedAt']) && !('closed' in resource.data);
         allow delete: if false;
       }
+      // A project (yard period, dry dock) — part of the plan: the Master's or the superintendent's.
+      match /pms_projects/{id} {
+        allow read: if reader(v);
+        allow create, update: if plans(v);
+        allow delete: if false;
+      }
       // A job deferred — the Master's decision, signed, kept.
       match /pms_deferrals/{id} {
         allow read: if reader(v);

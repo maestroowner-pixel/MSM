@@ -26,6 +26,7 @@ export const PMS_JOBS_KEY = `${PREFIX}pms_jobs`;
 export const PMS_DONE_KEY = `${PREFIX}pms_done`;
 export const PMS_DEFERRALS_KEY = `${PREFIX}pms_deferrals`;
 export const PMS_DEFECTS_KEY = `${PREFIX}pms_defects`;
+export const PMS_PROJECTS_KEY = `${PREFIX}pms_projects`;
 export const SPARES_KEY = `${PREFIX}spares`;
 export const SPARE_MOVES_KEY = `${PREFIX}spare_moves`;
 export const DOCS_KEY = `${PREFIX}ism_docs`;
@@ -660,6 +661,7 @@ export async function resetAllData(): Promise<void> {
     PMS_DONE_KEY,
     PMS_DEFERRALS_KEY,
     PMS_DEFECTS_KEY,
+    PMS_PROJECTS_KEY,
     SPARES_KEY,
     SPARE_MOVES_KEY,
     DOCS_KEY,

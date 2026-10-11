@@ -52,6 +52,7 @@ import MaintenanceSc from './screens/MaintenanceSc';
 import MachineSc from './screens/MachineSc';
 import PmsJobSc from './screens/PmsJobSc';
 import PmsDefectSc from './screens/PmsDefectSc';
+import PmsProjectsSc, { PmsProjectSc } from './screens/PmsProjectsSc';
 import CompressorSc from './screens/CompressorSc';
 import PaywallSc from './screens/PaywallSc';
 import LabelSc from './screens/LabelSc';
@@ -424,6 +425,8 @@ const linking = {
       Machine: 'machine/:id',
       PmsJob: 'pms-job/:id',
       PmsDefect: 'pms-defect/:id',
+      PmsProjects: 'pms-projects',
+      PmsProject: 'pms-project/:id',
       Round: 'round/:id',
       SparePart: 'spare/:id',
       Doc: 'document/:id',
@@ -616,6 +619,8 @@ function Root() {
         <Stack.Screen name="Machine" component={MachineSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsJob" component={PmsJobSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsDefect" component={PmsDefectSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="PmsProjects" component={PmsProjectsSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="PmsProject" component={PmsProjectSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Round" component={RoundSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="SparePart" component={SparePartSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Doc" component={DocSc} options={{ presentation: 'modal' }} />

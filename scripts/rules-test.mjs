@@ -156,6 +156,9 @@ await t(true, 'An Officer closes a round', setDoc(R(officer, 'rounds', 'r1'), { 
 await t(false, 'An Officer cannot cancel a sign-out', setDoc(R(officer, 'pms_done', 'pd2'), { id: 'pd2', supersedes: 'p1', cancelled: true }));
 await t(true, 'The Master cancels a wrong sign-out', setDoc(R(master, 'pms_done', 'pd3'), { id: 'pd3', supersedes: 'p1', cancelled: true, editReason: 'Wrong job signed' }));
 
+await t(true, 'The Master creates a yard project', setDoc(R(master, 'pms_projects', 'pj1'), { id: 'pj1', name: 'Yard Feb 2027', dueDate: '2027-02-01' }));
+await t(false, 'An Officer cannot create a project', setDoc(R(officer, 'pms_projects', 'pj2'), { id: 'pj2', name: 'X' }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

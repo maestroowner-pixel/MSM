@@ -37,7 +37,7 @@ export default function MaintenanceSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
-  const { machines, pmsJobs, pmsDeferrals, pmsDone, pmsDefects, vessel, savePlan } = useData();
+  const { machines, pmsJobs, pmsDeferrals, pmsDone, pmsDefects, pmsProjects, vessel, savePlan } = useData();
   const defectsOpen = useMemo(() => openDefects(pmsDefects), [pmsDefects]);
   const surveyPack = async () => {
     try {
@@ -154,6 +154,9 @@ export default function MaintenanceSc() {
         <TouchableOpacity style={styles.repBtn} onPress={() => void loadPlan()}><Text style={styles.repBtnText}>Load plan (Excel)</Text></TouchableOpacity>
         {!canPlan ? <Text style={styles.sub}>{PLAN_LOCKED}</Text> : null}
       </View>
+      <TouchableOpacity onPress={() => nav.navigate('PmsProjects')} style={{ alignSelf: 'flex-start', marginBottom: SIZES.sm }}>
+        <Text style={[styles.repBtnText, { color: COLORS.primary }]}>{`Projects — yard / dry dock${pmsProjects.filter((p) => !p.closedAt).length ? ` (${pmsProjects.filter((p) => !p.closedAt).length})` : ''} ›`}</Text>
+      </TouchableOpacity>
       {saved ? <Text style={{ color: COLORS.success, fontWeight: '700', fontSize: SIZES.small, marginBottom: SIZES.sm }}>{`✓ ${saved}`}</Text> : null}
 
       <Card>

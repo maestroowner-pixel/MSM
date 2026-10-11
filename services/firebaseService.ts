@@ -1216,6 +1216,7 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'pms_done', key: storage.PMS_DONE_KEY, appendOnly: true, module: 'pms' },
   { sub: 'pms_deferrals', key: storage.PMS_DEFERRALS_KEY, appendOnly: true, module: 'pms' },
   { sub: 'pms_defects', key: storage.PMS_DEFECTS_KEY, module: 'pms', partial: ['closed', 'updatedAt'] },
+  { sub: 'pms_projects', key: storage.PMS_PROJECTS_KEY, module: 'pms' },
   { sub: 'spares', key: storage.SPARES_KEY, module: 'spares' },
   { sub: 'spare_moves', key: storage.SPARE_MOVES_KEY, appendOnly: true, module: 'spares' },
   { sub: 'ism_docs', key: storage.DOCS_KEY, module: 'docs' },

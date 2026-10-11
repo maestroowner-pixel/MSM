@@ -49,6 +49,7 @@ import { CATALOGUE } from '../services/pmsCatalogue';
 
 import { pmsMonth } from '../services/pmsKpi';
 import { jobGate } from '../services/jobGate';
+import { projectJobs, yardList } from '../services/pmsProjects';
 {
   const ms: any[] = [{ id: 'me', name: 'Main engine', critical: true, hours: 5000, updatedAt: 0 }, { id: 'wm', name: 'Watermaker', updatedAt: 0 }];
   const js: any[] = [
@@ -163,6 +164,26 @@ import { jobGate } from '../services/jobGate';
   const first = jobAfterCancel({ ...job, oneOff: true }, { ...wrong, prevLastDoneDate: undefined, prevLastDoneHours: undefined }, [wrong]);
   ok(!first.lastDoneDate && first.lastDoneHours == null, 'a one-off\'s only sign-out cancelled → open again');
   ok(cancellable({ at: Date.now() - 29 * 86400000 }) && !cancellable({ at: Date.now() - 31 * 86400000 }) && !cancellable({ at: Date.now(), cancelled: true }), '30 days, not twice');
+}
+// Projects: jobs deferred to a yard period.
+{
+  const proj: any = { id: 'pj', name: 'Yard Feb 2027', dueDate: '2027-02-01', createdBy: 'M', createdAt: 0, updatedAt: 0 };
+  const ms: any[] = [{ id: 'm1', name: 'Shaft seal', critical: true, updatedAt: 0 }, { id: 'm2', name: 'Hull', updatedAt: 0 }];
+  const js: any[] = [
+    { id: 'a', machineId: 'm1', title: 'Renew seal', intervalDays: 365, lastDoneDate: '2025-09-01', updatedAt: 0 },
+    { id: 'b', machineId: 'm2', title: 'Anodes', intervalDays: 730, lastDoneDate: '2024-09-01', updatedAt: 0 },
+    { id: 'c', machineId: 'm2', title: 'Hull paint', intervalDays: 1825, lastDoneDate: '2026-01-01', updatedAt: 0 },
+  ];
+  const defs: any[] = [
+    { id: 'd1', jobId: 'a', cycle: '2025-09-01|', projectId: 'pj', untilDate: '2027-02-01', reason: 'Needs dry dock', at: 10 },
+    { id: 'd2', jobId: 'b', cycle: '2024-09-01|', projectId: 'pj', untilDate: '2027-02-01', reason: 'Out of water', at: 11 },
+  ];
+  const done: any[] = [{ id: 'x', jobId: 'b', machineId: 'm2', jobTitle: 'Anodes', machineName: 'Hull', date: '2026-10-11', at: 20, by: 'M' }];
+  const jobsAfter = js.map((j) => (j.id === 'b' ? { ...j, lastDoneDate: '2026-10-11' } : j));
+  const pj = projectJobs(proj, jobsAfter, ms, defs, done);
+  ok(pj.pending.map((r) => r.job.id).join() === 'a' && pj.done.length === 1 && pj.done[0].done.id === 'x', 'pending: deferred and not yet done; done: signed after the deferral');
+  const y = yardList(proj, pj, '2026-10-11');
+  ok(y.tables[0].rows[0][3] === 'CRITICAL' && /Needs dry dock/.test(y.tables[0].rows[0][5]), 'yard list: critical marked, the reason given');
 }
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

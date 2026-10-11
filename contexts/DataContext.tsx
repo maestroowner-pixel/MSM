@@ -11,7 +11,7 @@ import { CompressorState } from '../types/compressor';
 import { Inspection, InspectionPeriod } from '../types/inspection';
 import { CrewMember, CrewPrivate, liveCrew } from '../types/crew';
 import { RestDay } from '../types/rest';
-import { Machine, PmsDone, PmsJob, PmsDeferral, PmsDefect , finishedOneOff } from '../types/pms';
+import { Machine, PmsDone, PmsJob, PmsDeferral, PmsDefect, PmsProject , finishedOneOff } from '../types/pms';
 import { SpareMove, SparePart } from '../types/spares';
 import { DocAck, IsmDoc } from '../types/docs';
 import { Permit, RiskAssessment } from '../types/permits';
@@ -71,6 +71,8 @@ interface DataContextType {
   pmsDeferrals: PmsDeferral[];
   /** Defects found on machinery, open and closed. */
   pmsDefects: PmsDefect[];
+  /** Projects — yard periods, dry docks — jobs are deferred to. */
+  pmsProjects: PmsProject[];
   saveMachine: (m: Machine) => Promise<void>;
   savePmsJob: (j: PmsJob) => Promise<void>;
   /** Many systems and jobs at once — a plan loaded from the template; read back once. */
@@ -202,6 +204,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [pmsDone, setPmsDone] = useState<PmsDone[]>([]);
   const [pmsDeferrals, setPmsDeferrals] = useState<PmsDeferral[]>([]);
   const [pmsDefects, setPmsDefects] = useState<PmsDefect[]>([]);
+  const [pmsProjects, setPmsProjects] = useState<PmsProject[]>([]);
   const [spares, setSpares] = useState<SparePart[]>([]);
   const [spareMoves, setSpareMoves] = useState<SpareMove[]>([]);
   const [docs, setDocs] = useState<IsmDoc[]>([]);
@@ -273,6 +276,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setPmsDone(live(await storage.loadList<PmsDone>(storage.PMS_DONE_KEY)));
     setPmsDeferrals(await storage.loadList<PmsDeferral>(storage.PMS_DEFERRALS_KEY));
     setPmsDefects(await storage.loadList<PmsDefect>(storage.PMS_DEFECTS_KEY));
+    setPmsProjects((await storage.loadList<PmsProject>(storage.PMS_PROJECTS_KEY)).filter((x) => !x.deleted));
     setSpares((await storage.loadList<SparePart>(storage.SPARES_KEY)).filter((p) => !p.deleted));
     setSpareMoves(await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY));
     setDocs((await storage.loadList<IsmDoc>(storage.DOCS_KEY)).filter((d) => !d.deleted));
@@ -441,6 +445,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setPmsDone(live(await storage.loadList<PmsDone>(storage.PMS_DONE_KEY)));
     setPmsDeferrals(await storage.loadList<PmsDeferral>(storage.PMS_DEFERRALS_KEY));
     setPmsDefects(await storage.loadList<PmsDefect>(storage.PMS_DEFECTS_KEY));
+    setPmsProjects((await storage.loadList<PmsProject>(storage.PMS_PROJECTS_KEY)).filter((x) => !x.deleted));
     setSpares((await storage.loadList<SparePart>(storage.SPARES_KEY)).filter((p) => !p.deleted));
     setSpareMoves(await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY));
     setDocs((await storage.loadList<IsmDoc>(storage.DOCS_KEY)).filter((d) => !d.deleted));
@@ -675,6 +680,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         pmsDone,
         pmsDeferrals,
         pmsDefects,
+        pmsProjects,
         saveMachine,
         savePmsJob,
         savePlan,

@@ -218,6 +218,8 @@ export const JOB_TYPE: Record<JobType, string> = {
  */
 export interface PmsDeferral {
   id: string;
+  /** Deferred to a project (yard period, dry dock) — until its date (PmsProject). */
+  projectId?: string;
   jobId: string;
   machineId: string;
   jobTitle: string;
@@ -272,5 +274,20 @@ export interface PmsDefect {
   signedWith?: import('../services/signature').SignProof;
   photos?: import('./equipment').Attachment[];
   closed?: PmsDefectClose;
+  updatedAt: number;
+}
+
+// ---- Projects: a yard period, a dry dock — jobs deferred to one common date ----
+export interface PmsProject {
+  id: string;
+  name: string;
+  /** yyyy-mm-dd — when the work is planned (start of the yard period). */
+  dueDate: string;
+  description?: string;
+  createdBy: string;
+  createdAt: number;
+  /** Closed once the yard period is over; its list stays. */
+  closedAt?: number;
+  deleted?: boolean;
   updatedAt: number;
 }
