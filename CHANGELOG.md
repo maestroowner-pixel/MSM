@@ -13,6 +13,7 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Gangway logbook:** Gangway logbook / Drills chips removed (menu sub-items do it); Port ★ and Berth ★ at the top (kept with the vessel's details, synced; required to sign a visitor on) with the date; every visit stores port and berth (new column in the log, PDF and Excel); Time in ★ in the form (now by default, editable) and Time out asked at sign-off (now by default); crew buttons coloured — Ashore yellow, Back aboard green.
 - **PMS monthly report** (services/pmsKpi.ts pure + services/pmsReport.ts, utils/pmsPdf.web.ts): completion % (done ÷ done + overdue) all and critical, done (signed), deferrals, overdue now; PDF (A4 landscape) and Excel; month picker, KPI and buttons on the Maintenance screen. Tested.
 - **PMS catalogue + merchant systems (18):** large main engine, aux generators, boiler, purifier, starting air, heat exchangers, FWG, OWS / 15 ppm, steering (merchant), reefer, windlass & winches, cargo cranes, hatch covers, ballast tanks & holds, air/sounding pipes & WT doors, ladders, LSA/FFE by period, electrical & automation, navigation & GMDSS incl. VDR — every job with its type; critical systems marked. 57 systems.
 - **Board layout:** Sections (tiles) at the top, Needs attention under them; Today and the Plan stay in the right column.

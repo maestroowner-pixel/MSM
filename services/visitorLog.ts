@@ -23,13 +23,14 @@ export function visitsOf(all: Visitor[], period: string): Visitor[] {
   return all.filter((v) => v.date.startsWith(period)).sort((a, b) => `${a.date}${a.timeIn}`.localeCompare(`${b.date}${b.timeIn}`));
 }
 
-export const VLOG_HEAD = ['No.', 'Date', 'Name', 'Company', 'Purpose of visit', 'ID document', 'Pass', 'Host', 'In', 'Out', 'Signature', 'Watch', 'Remarks'];
-export const SIG_COL = 10;
+export const VLOG_HEAD = ['No.', 'Date', 'Port / berth', 'Name', 'Company', 'Purpose of visit', 'ID document', 'Pass', 'Host', 'In', 'Out', 'Signature', 'Watch', 'Remarks'];
+export const SIG_COL = 11;
 
 export function vlogRows(visits: Visitor[]): string[][] {
   return visits.map((v, i) => [
     String(i + 1),
     vDmy(v.date),
+    [v.port, v.berth].filter(Boolean).join(' / '),
     v.name,
     v.company ?? '',
     v.purpose,

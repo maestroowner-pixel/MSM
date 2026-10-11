@@ -30,7 +30,7 @@ export function visitorPdfBlob(visits: Visitor[], moves: CrewMove[], period: str
     body: rows.length ? rows : [['', 'No visitors.', ...VLOG_HEAD.slice(2).map(() => '')]],
     styles: { fontSize: 7, cellPadding: 1.2, textColor: navy, lineColor: [200, 208, 219], lineWidth: 0.15, overflow: 'linebreak', minCellHeight: 9, valign: 'middle' },
     headStyles: { fillColor: [238, 242, 247], textColor: navy, fontStyle: 'bold', fontSize: 6.8 },
-    columnStyles: { 0: { cellWidth: 8 }, 1: { cellWidth: 17 }, 8: { cellWidth: 11 }, 9: { cellWidth: 13 }, [SIG_COL]: { cellWidth: 27 } },
+    columnStyles: { 0: { cellWidth: 7 }, 1: { cellWidth: 16 }, 2: { cellWidth: 26 }, 9: { cellWidth: 11 }, 10: { cellWidth: 13 }, [SIG_COL]: { cellWidth: 25 } },
     margin: { left: 10, right: 10 },
     theme: 'grid',
     didDrawCell: (d: any) => {

@@ -50,7 +50,7 @@ export default function SecuritySc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
-  const { visitors, securityLevels, securityDrills, crewMoves, crew, vessel, saveRow, appendRow, versionsOf } = useData();
+  const { visitors, securityLevels, securityDrills, crewMoves, crew, vessel, setVessel, saveRow, appendRow, versionsOf } = useData();
   const amend = useAmend();
   const allVisitors = versionsOf(storage.VISITORS_KEY) as Visitor[];
   const allDrills = versionsOf(storage.SECURITY_DRILLS_KEY) as SecurityDrill[];
@@ -115,7 +115,7 @@ export default function SecuritySc() {
 
   // ---- new visitor ----
   const [adding, setAdding] = useState(false);
-  const blank = { name: '', company: '', purpose: '', idType: 'Passport', idNo: '', passNo: '', host: '', remarks: '', signature: '' };
+  const blank = { timeIn: hhmm(), name: '', company: '', purpose: '', idType: 'Passport', idNo: '', passNo: '', host: '', remarks: '', signature: '' };
   const [f, setF] = useState(blank);
   const setSig = useCallback((signature: string) => setF((x) => ({ ...x, signature })), []);
   // A returning contractor: pick their earlier visit, the rest fills itself in.
@@ -143,11 +143,14 @@ export default function SecuritySc() {
   const signOn = async () => {
     if (!signer) return Alert.alert('Gangway watch', 'Choose the watch first.');
     if (!f.name.trim() || !f.purpose.trim()) return Alert.alert('Visitor', 'Name and purpose of the visit are needed.');
+    if (!/^\d{2}:\d{2}$/.test(f.timeIn)) return Alert.alert('Time in', 'The time the visitor came aboard, hh:mm.');
+    if (!vessel?.port?.trim() || !vessel?.berth?.trim()) return Alert.alert('Port and berth', 'Enter the port and the berth at the top of the logbook first.');
     if (current >= 2 && !f.idNo.trim()) return Alert.alert('Identity', `At security level ${current} the identity document must be checked and recorded.`);
     const holder = f.passNo.trim() ? onBoard.find((v) => samePass(v.passNo, f.passNo)) : undefined;
     if (holder) return Alert.alert('Pass in use', `Pass ${f.passNo.trim()} is still with ${holder.name} (on board since ${holder.timeIn}). Sign them off first, or give another pass.`);
     const v: Visitor = {
-      id: uid('vis'), date: today, timeIn: hhmm(), name: f.name.trim(), purpose: f.purpose.trim(), inBy: signer.name, updatedAt: Date.now(),
+      id: uid('vis'), date: today, timeIn: f.timeIn, name: f.name.trim(), purpose: f.purpose.trim(), inBy: signer.name, updatedAt: Date.now(),
+      port: vessel.port.trim(), berth: vessel.berth.trim(),
       ...(f.company.trim() ? { company: f.company.trim() } : {}),
       ...(f.idNo.trim() ? { idType: f.idType, idNo: f.idNo.trim() } : {}),
       ...(f.passNo.trim() ? { passNo: f.passNo.trim() } : {}),
@@ -160,10 +163,21 @@ export default function SecuritySc() {
     setAdding(false);
     playSuccessSound();
   };
-  const signOff = async (v: Visitor) => {
+  // Signing off asks the time the visitor left — now by default.
+  const [leaving, setLeaving] = useState<{ id: string; time: string } | null>(null);
+  const signOff = async (v: Visitor, time: string) => {
     if (!signer) return Alert.alert('Gangway watch', 'Choose the watch first.');
-    await saveRow(storage.VISITORS_KEY, { ...v, timeOut: hhmm(), ...(v.date !== today ? { dateOut: today } : {}), outBy: signer.name });
+    if (!/^\d{2}:\d{2}$/.test(time)) return Alert.alert('Time out', 'The time the visitor left, hh:mm.');
+    await saveRow(storage.VISITORS_KEY, { ...v, timeOut: time, ...(v.date !== today ? { dateOut: today } : {}), outBy: signer.name });
+    setLeaving(null);
     playSuccessSound();
+  };
+  // Port and berth of the vessel now — kept with the vessel's details, synced.
+  const [portF, setPortF] = useState({ port: vessel?.port ?? '', berth: vessel?.berth ?? '' });
+  useEffect(() => setPortF({ port: vessel?.port ?? '', berth: vessel?.berth ?? '' }), [vessel?.port, vessel?.berth]);
+  const savePort = () => {
+    if (portF.port.trim() === (vessel?.port ?? '') && portF.berth.trim() === (vessel?.berth ?? '')) return;
+    void setVessel({ ...(vessel ?? {}), port: portF.port.trim(), berth: portF.berth.trim() });
   };
 
   // ---- logbook ----
@@ -219,10 +233,16 @@ export default function SecuritySc() {
         </Text>
       ) : null}
 
+      {/* Gangway logbook and Drills are separate pages, reached from the menu (no chips here). */}
+      {view === 'gangway' ? (
+        <View style={styles.portRow}>
+          <TextInput style={[styles.input, styles.portInput]} value={portF.port} onChangeText={(v) => setPortF({ ...portF, port: v })} onBlur={savePort} onSubmitEditing={savePort} placeholder="Port ★" placeholderTextColor={COLORS.textLight} />
+          <TextInput style={[styles.input, styles.portInput]} value={portF.berth} onChangeText={(v) => setPortF({ ...portF, berth: v })} onBlur={savePort} onSubmitEditing={savePort} placeholder="Berth / anchorage ★" placeholderTextColor={COLORS.textLight} />
+          <Text style={styles.portDate}>{formatDate(today)}</Text>
+        </View>
+      ) : null}
       <View style={styles.topRow}>
         <View style={styles.chips}>
-          <Chip on={view === 'gangway'} label="Gangway logbook" onPress={() => setView('gangway')} />
-          <Chip on={view === 'drills'} label="Drills" onPress={() => setView('drills')} warn={drillLate} />
           {view === 'gangway' ? (
             <View style={styles.seg}>
               {([['board', `On board · ${pob.total}`], ['log', 'Log']] as const).map(([k, l]) => (
@@ -240,7 +260,7 @@ export default function SecuritySc() {
         <>
           <Text style={styles.pob}>{`${pob.total} persons on board — crew ${pob.crewAboard} of ${pob.crewTotal}${pob.visitors ? `, visitors ${pob.visitors}` : ''}`}</Text>
           <View style={styles.actions}>
-            <TouchableOpacity style={styles.btn} onPress={() => setAdding((v) => !v)}><Text style={styles.btnText}>{adding ? 'Close' : '+ Visitor'}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btn} onPress={() => { if (!adding) setF({ ...blank, timeIn: hhmm() }); setAdding((v) => !v); }}><Text style={styles.btnText}>{adding ? 'Close' : '+ Visitor'}</Text></TouchableOpacity>
             <TouchableOpacity style={styles.btnOutline} onPress={() => nav.navigate('Scan')}>
               <MciIcon name="qrcode-scan" size={16} color={COLORS.primary} />
               <Text style={styles.btnOutlineText}>Scan card or pass</Text>
@@ -260,6 +280,10 @@ export default function SecuritySc() {
             <Card>
               <View style={styles.pair}>
                 <TextInput style={styles.input} value={f.name} onChangeText={(v) => setF({ ...f, name: v })} placeholder="Full name ★" placeholderTextColor={COLORS.textLight} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: SIZES.xs }}>
+                  <Text style={styles.sub}>{`${formatDate(today)} · Time in ★`}</Text>
+                  <TextInput style={[styles.input, { flex: 0, minWidth: 80, width: 80, marginTop: 0, textAlign: 'center' }]} value={f.timeIn} onChangeText={(v) => setF({ ...f, timeIn: v })} placeholder="hh:mm" placeholderTextColor={COLORS.textLight} />
+                </View>
                 <TextInput style={styles.input} value={f.company} onChangeText={(v) => setF({ ...f, company: v })} placeholder="Company" placeholderTextColor={COLORS.textLight} />
               </View>
               {known.length ? (
@@ -293,7 +317,14 @@ export default function SecuritySc() {
                 <Text style={styles.name}>{v.company ? `${v.name} · ${v.company}` : v.name}</Text>
                 <Text style={styles.sub}>{[`in ${v.date !== today ? `${formatDate(v.date)} ` : ''}${v.timeIn}`, v.purpose, v.passNo ? `pass ${v.passNo}` : null, v.host ? `with ${v.host}` : null].filter(Boolean).join(' · ')}</Text>
               </View>
-              <TouchableOpacity style={styles.small} onPress={() => void signOff(v)}><Text style={styles.smallText}>Sign off</Text></TouchableOpacity>
+              {leaving?.id === v.id ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <TextInput style={[styles.input, { flex: 0, minWidth: 80, width: 80, marginTop: 0, textAlign: 'center' }]} value={leaving.time} onChangeText={(t) => setLeaving({ ...leaving, time: t })} placeholder="hh:mm" placeholderTextColor={COLORS.textLight} />
+                  <TouchableOpacity style={[styles.small, { backgroundColor: COLORS.primary }]} onPress={() => void signOff(v, leaving.time)}><Text style={[styles.smallText, { color: COLORS.textWhite }]}>Time out ✓</Text></TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.small} onPress={() => setLeaving({ id: v.id, time: hhmm() })}><Text style={styles.smallText}>Sign off</Text></TouchableOpacity>
+              )}
             </View>
           ))}
           {!onBoard.length ? <Text style={styles.sub}>No visitors on board.</Text> : null}
@@ -309,7 +340,10 @@ export default function SecuritySc() {
                   <Text style={[styles.name, away && { color: COLORS.textLight }]}>{c.rank ? `${c.name} · ${c.rank}` : c.name}</Text>
                   <Text style={styles.sub}>{away ? `ashore since ${when}` : m ? `aboard since ${when}` : 'aboard'}</Text>
                 </View>
-                <TouchableOpacity style={styles.small} onPress={() => void moveCrew(c.id)}><Text style={styles.smallText}>{away ? 'Back aboard' : 'Ashore'}</Text></TouchableOpacity>
+                {/* Ashore yellow, back aboard green (11 Oct 2026). */}
+                <TouchableOpacity style={[styles.small, { backgroundColor: away ? COLORS.success : COLORS.warning, borderColor: away ? COLORS.success : COLORS.warning }]} onPress={() => void moveCrew(c.id)}>
+                  <Text style={[styles.smallText, { color: COLORS.textWhite }]}>{away ? 'Back aboard' : 'Ashore'}</Text>
+                </TouchableOpacity>
               </View>
             );
           })}
@@ -335,7 +369,7 @@ export default function SecuritySc() {
               <View style={{ flex: 1 }}>
                 <Text style={[styles.name, v.cancelled && { textDecorationLine: 'line-through' }]}>{v.company ? `${v.name} · ${v.company}` : v.name}</Text>
                 <Text style={styles.sub}>
-                  {[byMonth ? formatDate(v.date) : null, `${v.timeIn} → ${v.timeOut ?? 'on board'}`, v.purpose, v.idNo ? `${v.idType} ${v.idNo}` : null, v.passNo ? `pass ${v.passNo}` : null, v.host ? `with ${v.host}` : null, `watch ${v.outBy && v.outBy !== v.inBy ? `${v.inBy} / ${v.outBy}` : v.inBy}`].filter(Boolean).join(' · ')}
+                  {[byMonth ? formatDate(v.date) : null, [v.port, v.berth].filter(Boolean).join(' / ') || null, `${v.timeIn} → ${v.timeOut ?? 'on board'}`, v.purpose, v.idNo ? `${v.idType} ${v.idNo}` : null, v.passNo ? `pass ${v.passNo}` : null, v.host ? `with ${v.host}` : null, `watch ${v.outBy && v.outBy !== v.inBy ? `${v.inBy} / ${v.outBy}` : v.inBy}`].filter(Boolean).join(' · ')}
                 </Text>
                 <AmendNote rec={v} all={allVisitors} summary={visitorLine} />
               </View>
@@ -404,6 +438,9 @@ export default function SecuritySc() {
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
+    portRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, flexWrap: 'wrap', marginBottom: SIZES.sm },
+    portInput: { flex: 1, minWidth: 160, marginTop: 0 },
+    portDate: { fontSize: SIZES.body, fontWeight: '800', color: COLORS.textDark },
     seg: { flexDirection: 'row', borderWidth: 1, borderColor: COLORS.border, borderRadius: 999, overflow: 'hidden', marginLeft: SIZES.sm },
     segBtn: { paddingVertical: 5, paddingHorizontal: SIZES.md },
     segOn: { backgroundColor: COLORS.borderLight },

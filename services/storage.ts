@@ -124,6 +124,9 @@ export interface VesselInfo {
   flag?: string;
   call_sign?: string;
   mmsi?: string;
+  /** Where the vessel lies now — the gangway logbook's port and berth (11 Oct 2026). */
+  port?: string;
+  berth?: string;
 }
 
 export const VESSEL_KEY = `${PREFIX}vessel_info`;

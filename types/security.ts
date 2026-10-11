@@ -29,6 +29,9 @@ export interface Visitor extends Versioned {
   passNo?: string;
   /** Crew member who receives / escorts the visitor. */
   host?: string;
+  /** Port and berth the vessel lay at when the visitor came aboard. */
+  port?: string;
+  berth?: string;
   /** Gangway watch who signed the visitor on. */
   inBy: string;
   outBy?: string;
