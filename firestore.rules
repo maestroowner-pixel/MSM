@@ -267,6 +267,27 @@ service cloud.firestore {
         allow create: if member(v);
         allow update, delete: if false;
       }
+      // Sewage and Ballast Water record books — kept like the Oil Record Book.
+      match /sewage/{id} {
+        allow read: if reader(v);
+        allow create: if member(v) && (plainRecord() || isSuper(v));
+        allow update, delete: if false;
+      }
+      match /sewage_signs/{id} {
+        allow read: if reader(v);
+        allow create: if isSuper(v);
+        allow update, delete: if false;
+      }
+      match /ballast/{id} {
+        allow read: if reader(v);
+        allow create: if member(v) && (plainRecord() || isSuper(v));
+        allow update, delete: if false;
+      }
+      match /ballast_signs/{id} {
+        allow read: if reader(v);
+        allow create: if isSuper(v);
+        allow update, delete: if false;
+      }
       // Oil Record Book Part I: entries written once; a change or deletion is a
       // new version, the Master's; the Master signs each month.
       match /orb/{id} {

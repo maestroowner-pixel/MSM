@@ -123,6 +123,11 @@ await t(false, 'An Officer cannot amend an ORB entry', setDoc(R(officer, 'orb', 
 await t(false, 'An Officer cannot sign the ORB month', setDoc(R(officer, 'orb_signs', 'orb_2026-10'), { id: 'orb_2026-10' }));
 await t(true, 'The Master signs the ORB month', setDoc(R(master, 'orb_signs', 'orb_2026-10'), { id: 'orb_2026-10' }));
 
+await t(true, 'Officer records a sewage entry', setDoc(R(officer, 'sewage', 's1'), { id: 's1', code: 'STP' }));
+await t(false, 'A ballast entry cannot be amended by an Officer', setDoc(R(officer, 'ballast', 'b2'), { id: 'b2', supersedes: 'b1' }));
+await t(true, 'The Master signs the ballast month', setDoc(R(master, 'ballast_signs', 'ballast_2026-10'), { id: 'ballast_2026-10' }));
+await t(false, 'An Officer cannot sign the sewage month', setDoc(R(officer, 'sewage_signs', 'sewage_2026-10'), { id: 'sewage_2026-10' }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

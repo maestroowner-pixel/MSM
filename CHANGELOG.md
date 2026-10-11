@@ -13,6 +13,7 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Sewage record and Ballast Water Record Book (dark, `sewage`, `ballast`).** One shared screen (screens/LogBookSc) driven by a spec per book (services/logbooks): codes, the fields each asks for, rule checks before signing (sewage: comminuted ≥ 3 nm, untreated ≥ 12 nm and ≥ 4 kn; ballast exchange D-1: ≥ 50 nm and ≥ 200 m), the book line. Officer signs each entry, Master signs the month and alone amends/deletes (versions); PDF/Excel; month picker. Menu: Environment. Rules 79/79; check:logbooks.
 - **Oil Record Book Part I (dark, `orb`).** MARPOL Annex I machinery-space operations, codes A–I (types/orb.ts); the form asks what each code needs (`ORB_FIELDS`, `orbProblem`) and builds the book line with item numbers (`orbText`, tested — check:orb); H takes a Fuel bunkering in one tap; officer signs each entry, Master signs the month; Edit / Delete Master only with the reason (versions); PDF (A4, the book's columns) and Excel; month picker. Rules: entries create-only, versions and month signatures the Master's. Menu: Environment → Oil record book. Rules 75/75.
 - **Hours of rest:** month picker in the title (arrow row removed).
 - **Spares for jobs ahead** (services/sparesNeed.ts, tested): parts the PMS jobs due / overdue within 30 / 60 / 90 days will use, against the stock, keeping the re-order level — "need · have · order" with the jobs; **Requisition (Excel)** with those and the parts below re-order level.

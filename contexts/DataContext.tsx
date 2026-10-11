@@ -18,6 +18,7 @@ import { Permit, RiskAssessment } from '../types/permits';
 import { FuelBunker, FuelDailySent, FuelReading, FuelTank, FuelTransfer } from '../types/fuel';
 import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
 import { OrbEntry, OrbMasterSign } from '../types/orb';
+import { LogEntry, LogMonthSign } from '../types/logbook';
 import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
 import { Survey, SurveyDone } from '../types/survey';
 import { live } from '../services/versions';
@@ -37,7 +38,7 @@ import { DEFAULT_ARCHIVE, PhotoArchiveState } from '../services/photoArchive';
 import { setSoundsMuted } from '../utils/sound';
 
 /** The logs whose records are changed by versions (Edit / Delete, Master only). */
-const VERSIONED_KEYS = [storage.ORB_KEY, storage.FUEL_READINGS_KEY, storage.FUEL_BUNKERS_KEY, storage.FUEL_TRANSFERS_KEY, storage.SOPEP_CHECKS_KEY, storage.SOPEP_DRILLS_KEY, storage.VISITORS_KEY, storage.SECURITY_DRILLS_KEY, storage.SURVEYS_DONE_KEY];
+const VERSIONED_KEYS = [storage.SEWAGE_KEY, storage.BALLAST_KEY, storage.ORB_KEY, storage.FUEL_READINGS_KEY, storage.FUEL_BUNKERS_KEY, storage.FUEL_TRANSFERS_KEY, storage.SOPEP_CHECKS_KEY, storage.SOPEP_DRILLS_KEY, storage.VISITORS_KEY, storage.SECURITY_DRILLS_KEY, storage.SURVEYS_DONE_KEY];
 
 interface DataContextType {
   loading: boolean;
@@ -104,6 +105,11 @@ interface DataContextType {
   /** Oil Record Book Part I — live entries (versionsOf(ORB_KEY) for every version) and the Master's months. */
   orb: OrbEntry[];
   orbSigns: OrbMasterSign[];
+  /** Sewage and Ballast Water record books — live entries and the Master's months. */
+  sewage: LogEntry[];
+  sewageSigns: LogMonthSign[];
+  ballast: LogEntry[];
+  ballastSigns: LogMonthSign[];
   garbageSigns: GarbageMasterSign[];
   addGarbage: (e: GarbageEntry) => Promise<void>;
   signGarbageMonth: (s: GarbageMasterSign) => Promise<void>;
@@ -203,6 +209,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [garbage, setGarbage] = useState<GarbageEntry[]>([]);
   const [orb, setOrb] = useState<OrbEntry[]>([]);
   const [orbSigns, setOrbSigns] = useState<OrbMasterSign[]>([]);
+  const [sewage, setSewage] = useState<LogEntry[]>([]);
+  const [sewageSigns, setSewageSigns] = useState<LogMonthSign[]>([]);
+  const [ballast, setBallast] = useState<LogEntry[]>([]);
+  const [ballastSigns, setBallastSigns] = useState<LogMonthSign[]>([]);
   const [garbageSigns, setGarbageSigns] = useState<GarbageMasterSign[]>([]);
   const [sopepItems, setSopepItems] = useState<SopepItem[]>([]);
   const [sopepChecks, setSopepChecks] = useState<SopepCheck[]>([]);
@@ -268,6 +278,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setGarbage(await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY));
     setOrb(live(await storage.loadList<OrbEntry>(storage.ORB_KEY)));
     setOrbSigns(await storage.loadList<OrbMasterSign>(storage.ORB_SIGNS_KEY));
+    setSewage(live(await storage.loadList<LogEntry>(storage.SEWAGE_KEY)));
+    setSewageSigns(await storage.loadList<LogMonthSign>(storage.SEWAGE_SIGNS_KEY));
+    setBallast(live(await storage.loadList<LogEntry>(storage.BALLAST_KEY)));
+    setBallastSigns(await storage.loadList<LogMonthSign>(storage.BALLAST_SIGNS_KEY));
     setGarbageSigns(await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY));
     setSopepItems((await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order));
     setSopepChecks(live(await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY)));
@@ -430,6 +444,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setGarbage(await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY));
     setOrb(live(await storage.loadList<OrbEntry>(storage.ORB_KEY)));
     setOrbSigns(await storage.loadList<OrbMasterSign>(storage.ORB_SIGNS_KEY));
+    setSewage(live(await storage.loadList<LogEntry>(storage.SEWAGE_KEY)));
+    setSewageSigns(await storage.loadList<LogMonthSign>(storage.SEWAGE_SIGNS_KEY));
+    setBallast(live(await storage.loadList<LogEntry>(storage.BALLAST_KEY)));
+    setBallastSigns(await storage.loadList<LogMonthSign>(storage.BALLAST_SIGNS_KEY));
     setGarbageSigns(await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY));
     setSopepItems((await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order));
     setSopepChecks(live(await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY)));
@@ -655,6 +673,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         garbage,
         orb,
         orbSigns,
+        sewage,
+        sewageSigns,
+        ballast,
+        ballastSigns,
         garbageSigns,
         addGarbage,
         signGarbageMonth,

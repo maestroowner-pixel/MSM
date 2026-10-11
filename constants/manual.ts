@@ -362,6 +362,22 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🚽',
+      title: "Sewage record",
+      body: [
+        "Sewage record (MARPOL Annex IV): discharges through the approved treatment plant, comminuted and disinfected sewage (at least 3 nm from land), untreated from the holding tank (at least 12 nm, en route at 4 knots or more), deliveries ashore with the receipt, holding tank levels, and plant failures or maintenance.",
+        "Before signing, the form warns when the distance or speed is against the rules. Each entry is signed by the officer in charge; the Master signs the month and alone can change or delete an entry, with the reason. PDF and Excel print the month.",
+      ],
+    },
+    {
+      emoji: '🌊',
+      title: "Ballast water",
+      body: [
+        "Ballast Water Record Book (BWM Convention): uptake, circulation or treatment, exchange (sequential, flow-through, dilution) with the positions at start and end, discharge to sea, to a reception facility, accidental uptake or discharge, and failures of the treatment system (BWMS).",
+        "An exchange is checked against D-1: at least 50 nm from land (200 nm where possible) and 200 m of water. Signing, the Master's month signature, changes by the Master only, PDF and Excel work as in the other record books.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: "Oil Record Book",
       body: [
@@ -836,6 +852,22 @@ const ru: ManualContent = {
         "Surveys & audits — план событий класса, флага и ISM: ежегодные, промежуточные и очередные освидетельствования, Load Line, докование, внутренние и внешние аудиты ISM, MLC — и свои пункты.",
         "У каждого — срок или дата годовщины, окно в обе стороны (обычно ±3 месяца) и повтор. Сверху — просроченные и с открытым окном.",
         "Carried out записывает дату, номер отчёта и замечания с подписью и переносит план: по годовщине — на следующую годовщину, остальные — от даты проведения. План ведут офицеры и Мастер; историю изменить нельзя.",
+      ],
+    },
+    {
+      emoji: '🚽',
+      title: "Журнал сточных вод (Sewage)",
+      body: [
+        "Журнал сточных вод (MARPOL Annex IV): сброс через одобренную установку очистки, измельчённых и обеззараженных стоков (не ближе 3 миль от берега), необработанных из сборного танка (не ближе 12 миль, на ходу не меньше 4 узлов), сдача на берег с квитанцией, уровень сборного танка, неисправность и обслуживание установки.",
+        "Перед подписью форма предупреждает, если расстояние или скорость нарушают правила. Каждую запись подписывает ответственный офицер; Мастер подписывает месяц и только он может исправить или удалить запись, с причиной. PDF и Excel печатают месяц.",
+      ],
+    },
+    {
+      emoji: '🌊',
+      title: "Балластные воды (Ballast water)",
+      body: [
+        "Журнал балластных вод (Конвенция BWM): приём, циркуляция или обработка, замена (последовательная, проточная, разбавлением) с координатами начала и конца, сброс в море, сдача на приёмное сооружение, случайный приём или сброс, неисправность системы обработки (BWMS).",
+        "Замена проверяется по D-1: не ближе 50 миль от берега (по возможности 200) и глубина не меньше 200 м. Подписи, подпись Мастера за месяц, исправления только Мастером, PDF и Excel — как в других журналах.",
       ],
     },
     {
@@ -1316,6 +1348,22 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🚽',
+      title: "Registro de aguas sucias (Sewage)",
+      body: [
+        "Registro de aguas sucias (MARPOL Anexo IV): descargas por la planta de tratamiento aprobada, aguas desmenuzadas y desinfectadas (a 3 millas o más de tierra), sin tratar desde el tanque de retención (a 12 millas o más, navegando a 4 nudos como mínimo), entregas en tierra con recibo, nivel del tanque y averías o mantenimiento de la planta.",
+        "Antes de firmar, el formulario avisa si la distancia o la velocidad incumplen las reglas. Cada anotación la firma el oficial a cargo; el Master firma el mes y solo él puede cambiar o borrar una anotación, con el motivo. PDF y Excel imprimen el mes.",
+      ],
+    },
+    {
+      emoji: '🌊',
+      title: "Agua de lastre (Ballast water)",
+      body: [
+        "Libro registro del agua de lastre (Convenio BWM): toma, circulación o tratamiento, cambio (secuencial, flujo continuo, dilución) con las posiciones de inicio y fin, descarga al mar, a instalación de recepción, toma o descarga accidental y averías del sistema de tratamiento (BWMS).",
+        "El cambio se comprueba según D-1: a 50 millas o más de tierra (200 cuando sea posible) y 200 m de profundidad. Firmas, la firma mensual del Master, cambios solo por el Master, PDF y Excel funcionan como en los otros libros.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: "Libro registro de hidrocarburos (Oil Record Book)",
       body: [
@@ -1793,6 +1841,22 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🚽',
+      title: "Журнал стічних вод (Sewage)",
+      body: [
+        "Журнал стічних вод (MARPOL Annex IV): скид через схвалену установку очищення, подрібнених і знезаражених стоків (не ближче 3 миль від берега), неочищених зі збірного танка (не ближче 12 миль, на ходу не менше 4 вузлів), здача на берег із квитанцією, рівень збірного танка, несправність і обслуговування установки.",
+        "Перед підписом форма попереджає, якщо відстань чи швидкість порушують правила. Кожен запис підписує відповідальний офіцер; Майстер підписує місяць і лише він може виправити чи видалити запис, з причиною. PDF і Excel друкують місяць.",
+      ],
+    },
+    {
+      emoji: '🌊',
+      title: "Баластні води (Ballast water)",
+      body: [
+        "Журнал баластних вод (Конвенція BWM): прийом, циркуляція чи обробка, заміна (послідовна, проточна, розведенням) з координатами початку і кінця, скид у море, здача на приймальну споруду, випадковий прийом чи скид, несправність системи обробки (BWMS).",
+        "Заміна перевіряється за D-1: не ближче 50 миль від берега (за можливості 200) і глибина не менше 200 м. Підписи, підпис Майстра за місяць, виправлення лише Майстром, PDF і Excel — як в інших журналах.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: "Журнал нафтових операцій (Oil Record Book)",
       body: [
@@ -1967,6 +2031,8 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
   { title: 'Fuel', module: 'fuel' },
   { title: 'Garbage Record Book', module: 'garbage' },
   { title: 'Oil Record Book', module: 'orb' },
+  { title: 'Sewage record', module: 'sewage' },
+  { title: 'Ballast water', module: 'ballast' },
   { title: 'SOPEP', module: 'sopep' },
   { title: 'Board', module: 'board' },
   { title: 'Surveys & audits', module: 'surveys' },

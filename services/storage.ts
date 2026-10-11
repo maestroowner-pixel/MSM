@@ -40,6 +40,10 @@ export const GARBAGE_KEY = `${PREFIX}garbage`;
 export const GARBAGE_SIGNS_KEY = `${PREFIX}garbage_signs`;
 export const ORB_KEY = `${PREFIX}orb`;
 export const ORB_SIGNS_KEY = `${PREFIX}orb_signs`;
+export const SEWAGE_KEY = `${PREFIX}sewage`;
+export const SEWAGE_SIGNS_KEY = `${PREFIX}sewage_signs`;
+export const BALLAST_KEY = `${PREFIX}ballast`;
+export const BALLAST_SIGNS_KEY = `${PREFIX}ballast_signs`;
 export const SOPEP_ITEMS_KEY = `${PREFIX}sopep_items`;
 export const SOPEP_CHECKS_KEY = `${PREFIX}sopep_checks`;
 export const SOPEP_DRILLS_KEY = `${PREFIX}sopep_drills`;
@@ -668,6 +672,10 @@ export async function resetAllData(): Promise<void> {
     GARBAGE_SIGNS_KEY,
     ORB_KEY,
     ORB_SIGNS_KEY,
+    SEWAGE_KEY,
+    SEWAGE_SIGNS_KEY,
+    BALLAST_KEY,
+    BALLAST_SIGNS_KEY,
     SOPEP_ITEMS_KEY,
     SOPEP_CHECKS_KEY,
     SOPEP_DRILLS_KEY,

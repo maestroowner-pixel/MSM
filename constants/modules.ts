@@ -24,7 +24,7 @@
 // will follow the same way); whether the module exists at all is ours.
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -83,6 +83,10 @@ export const MODULES: Record<ModuleKey, boolean> = {
   board: false,
   /** Oil Record Book Part I (MARPOL Annex I, machinery spaces). */
   orb: false,
+  /** Sewage record (MARPOL Annex IV). */
+  sewage: false,
+  /** Ballast Water Record Book (BWM Convention). */
+  ballast: false,
 };
 
 export function moduleOn(key: ModuleKey): boolean {
