@@ -61,6 +61,9 @@ export interface Machine {
   /** Critical equipment (steering, propulsion, fire-fighting, safety systems): its jobs are
    *  to be done in full and on time — they cannot be deferred (11 Oct 2026). */
   critical?: boolean;
+  /** Under class survey (CSM / continuous survey), with the society's code for it. */
+  classItem?: boolean;
+  classCode?: string;
   /** Department; absent on records made before departments — read as engineering. */
   dept?: Dept;
   /** Has a running-hours counter; see hasCounter() for the default. */
@@ -126,6 +129,8 @@ export interface PmsJob {
   fixed?: boolean;
   anchorDate?: string;
   anchorHours?: number;
+  /** Credited to class (a class job — survey evidence). */
+  classJob?: boolean;
   /** Warn this many days / hours before due, instead of the last tenth of the interval. */
   warnDays?: number;
   warnHours?: number;

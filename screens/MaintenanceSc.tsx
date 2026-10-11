@@ -12,7 +12,7 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { MonthPicker } from '../components/MonthPicker';
-import { exportPmsExcel, exportPmsPdf, pmsMonth } from '../services/pmsReport';
+import { exportPmsExcel, exportPmsPdf, monthLabelPms, pmsMonth } from '../services/pmsReport';
 import { useNavigation } from '@react-navigation/native';
 
 import { Card, Empty, Label, Screen, ScreenTitle, StatusPill, statusColor } from '../components/ui';
@@ -28,7 +28,7 @@ import { planImport } from '../services/pmsImport';
 import { exportPlanTemplate, pickPlanSheet } from '../services/pmsTemplate';
 import { SIZES, Palette } from '../theme';
 import { ComplianceStatus } from '../types/equipment';
-import { activeDeferral, dueText, jobDue, sortJobsByDue, todayIso, worse } from '../services/pms';
+import { activeDeferral, dueText, jobDue, sortJobsByDue, todayIso, worse , jobsAhead } from '../services/pms';
 import { DEFECT_CATEGORY, DEPTS, Dept, JOB_TYPE, Machine, PmsJob, deptOf, hasCounter } from '../types/pms';
 import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
@@ -101,11 +101,16 @@ export default function MaintenanceSc() {
   const dueOf = (j: PmsJob, m: Machine | undefined) => jobDue(j, m, today, activeDeferral(j, pmsDeferrals));
   const today = todayIso();
   const [only, setOnly] = useState<Dept | null>(null);
+  // Critical / Class: narrow everything below to those machines and jobs.
+  const [flag, setFlag] = useState<'critical' | 'class' | null>(null);
+  const [ahead, setAhead] = useState<3 | 6 | 12 | null>(null);
+  const flagged = (j: PmsJob, m?: Machine) => !flag || (flag === 'critical' ? !!m?.critical : !!(j.classJob || m?.classItem));
 
   const byId = useMemo(() => new Map(machines.map((m) => [m.id, m])), [machines]);
   const liveJobs = useMemo(
-    () => pmsJobs.filter((j) => byId.has(j.machineId) && (!only || deptOf(byId.get(j.machineId)!) === only)),
-    [pmsJobs, byId, only]
+    () => pmsJobs.filter((j) => byId.has(j.machineId) && (!only || deptOf(byId.get(j.machineId)!) === only) && flagged(j, byId.get(j.machineId))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pmsJobs, byId, only, flag]
   );
   const owed = useMemo(
     () => sortJobsByDue(liveJobs, byId, today, pmsDeferrals).filter((j) => {
@@ -119,7 +124,7 @@ export default function MaintenanceSc() {
   const machineRows = useMemo(
     () =>
       machines
-        .filter((m) => !only || deptOf(m) === only)
+        .filter((m) => (!only || deptOf(m) === only) && (!flag || liveJobs.some((j) => j.machineId === m.id) || (flag === 'critical' ? m.critical : m.classItem)))
         .map((m) => {
           const jobs = liveJobs.filter((j) => j.machineId === m.id);
           const worst = jobs.reduce<ComplianceStatus>((w, j) => worse(w, dueOf(j, m).status), 'none');
@@ -159,6 +164,38 @@ export default function MaintenanceSc() {
           <Stat value={String(liveJobs.length)} label="Jobs" color={COLORS.textDark} />
         </View>
       </Card>
+
+      <View style={styles.filters}>
+        {(['critical', 'class'] as const).map((k) => (
+          <TouchableOpacity key={k} style={[styles.filter, flag === k && styles.filterOn]} onPress={() => setFlag(flag === k ? null : k)}>
+            <Text style={[styles.filterText, flag === k && styles.filterTextOn]}>{k === 'critical' ? '⚑ Critical' : 'Class'}</Text>
+          </TouchableOpacity>
+        ))}
+        {[3, 6, 12].map((n) => (
+          <TouchableOpacity key={n} style={[styles.filter, ahead === n && styles.filterOn]} onPress={() => setAhead(ahead === n ? null : (n as 3 | 6 | 12))}>
+            <Text style={[styles.filterText, ahead === n && styles.filterTextOn]}>{`Plan ahead · ${n} mo`}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      {ahead ? (
+        <>
+          {jobsAhead(machines, liveJobs, pmsDeferrals, today, ahead).map((g) => (
+            <View key={g.month}>
+              <Label>{`${monthLabelPms(g.month)} (${g.rows.length})`}</Label>
+              {g.rows.map((r) => (
+                <TouchableOpacity key={r.job.id} style={styles.row} onPress={() => nav.navigate('PmsJob', { id: r.job.id })} activeOpacity={0.7}>
+                  <View style={[styles.bar, { backgroundColor: statusColor(dueOf(r.job, r.machine).status) }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.title} numberOfLines={1}>{`${r.machine.critical ? '⚑ ' : ''}${r.job.title}`}</Text>
+                    <Text style={styles.sub} numberOfLines={1}>{[formatDate(r.date) + (r.estimated ? ' (est. by hours)' : ''), r.machine.name, r.job.classJob || r.machine.classItem ? 'CLASS' : null].filter(Boolean).join(' · ')}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ))}
+          {!jobsAhead(machines, liveJobs, pmsDeferrals, today, ahead).length ? <Text style={styles.sub}>Nothing falls due in this period.</Text> : null}
+        </>
+      ) : null}
 
       {present.size > 1 ? (
         <View style={styles.filters}>

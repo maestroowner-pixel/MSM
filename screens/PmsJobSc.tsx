@@ -495,6 +495,10 @@ export default function PmsJobSc() {
                 ))}
               </View>
               <View style={{ height: SIZES.md }} />
+              <TouchableOpacity style={styles.defectToggle} onPress={() => set({ classJob: !draft.classJob || undefined })}>
+                <Text style={[styles.defectBox, { borderColor: COLORS.primary }, draft.classJob && { backgroundColor: COLORS.primary, color: COLORS.textWhite }]}>{draft.classJob ? '✓' : ''}</Text>
+                <Text style={styles.signer}>{`Class job${machine?.classCode ? ` · ${machine.classCode}` : ''}`}</Text>
+              </TouchableOpacity>              <View style={{ height: SIZES.md }} />
               <TouchableOpacity style={styles.defectToggle} onPress={() => set({ fixed: !draft.fixed || undefined })}>
                 <Text style={[styles.defectBox, { borderColor: COLORS.primary }, draft.fixed && { backgroundColor: COLORS.primary, color: COLORS.textWhite }]}>{draft.fixed ? '✓' : ''}</Text>
                 <Text style={styles.signer}>Fixed schedule</Text>

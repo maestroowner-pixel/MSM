@@ -1,5 +1,5 @@
 // npm run check:pms — planned-maintenance due dates against hand-worked cases.
-import { jobDue, withReading, hoursPerDay, jobAfter, intervalText, scheduleText, checkReading, noteForNext, lastCondition, nextDueDate, nextDueHours, addInterval } from '../services/pms';
+import { jobDue, withReading, hoursPerDay, jobAfter, intervalText, scheduleText, checkReading, noteForNext, lastCondition, nextDueDate, nextDueHours, addInterval , jobsAhead } from '../services/pms';
 import { Machine, PmsJob, finishedOneOff } from '../types/pms';
 
 let failed = 0;
@@ -116,6 +116,22 @@ import { pmsMonth } from '../services/pmsKpi';
   ok(nextDueHours({ ...hrs, fixed: false }) === 1520, 'not fixed → last done + 500');
   ok(jobDue(hrs, m, '2026-10-11').status === 'due' && jobDue({ ...hrs, warnHours: 10 }, m, '2026-10-11').status === 'ok', 'own warning: 20 h left — due soon by default (50 h), in date with a 10 h warning');
   ok(jobDue({ ...monthly, warnDays: 30 }, m, '2026-10-11').status === 'due' && jobDue(monthly, m, '2026-10-11').status === 'ok', 'own warning in days');
+}
+// The plan ahead, by month.
+{
+  const ms: any[] = [{ id: 'me', name: 'ME', hours: 1000, readings: [{ date: '2026-10-01', hours: 900 }, { date: '2026-10-11', hours: 1000 }], updatedAt: 0 }];
+  const js: any[] = [
+    { id: 'a', machineId: 'me', title: 'Monthly test', intervalDays: 30, lastDoneDate: '2026-10-01', updatedAt: 0 },
+    { id: 'b', machineId: 'me', title: 'Oil change', intervalHours: 500, lastDoneHours: 800, updatedAt: 0 },
+    { id: 'c', machineId: 'me', title: 'Annual', intervalDays: 365, lastDoneDate: '2026-02-01', updatedAt: 0 },
+    { id: 'd', machineId: 'me', title: 'Overdue', intervalDays: 7, lastDoneDate: '2026-09-01', updatedAt: 0 },
+  ];
+  const a = jobsAhead(ms, js, [], '2026-10-11', 3);
+  ok(a.map((g) => g.month).join() === '2026-10,2026-11', `months: ${a.map((g) => g.month)}`);
+  ok(a[0].rows[0].job.id === 'd' && a[0].rows[0].date === '2026-10-11', 'overdue shows today, first');
+  const oil = a.flatMap((g) => g.rows).find((r) => r.job.id === 'b')!;
+  ok(oil.estimated && oil.date === '2026-11-10', `hours job estimated at the running rate (10 h/day, 300 h left → 10 Nov): ${oil.date}`);
+  ok(!a.flatMap((g) => g.rows).some((r) => r.job.id === 'c'), 'the annual job (Feb 2027) is beyond 3 months');
 }
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

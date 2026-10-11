@@ -44,6 +44,7 @@ export function machineHistory(m: Machine, jobs: PmsJob[], done: PmsDone[], defe
     m.serial ? `S/N ${m.serial}` : null,
     m.location ? `Location: ${m.location}` : null,
     m.critical ? 'CRITICAL EQUIPMENT' : null,
+    m.classItem ? `CLASS${m.classCode ? ` ${m.classCode}` : ''}` : null,
     hasCounter(m) ? (m.hours != null ? `Running hours ${m.hours} h (read ${dmy(m.hoursDate)})` : 'Running hours: no reading') : null,
     (() => {
       const c = md.find((d) => d.conditionAfter);
@@ -59,7 +60,7 @@ export function machineHistory(m: Machine, jobs: PmsJob[], done: PmsDone[], defe
       widths: { 1: 30, 2: 30, 3: 34, 4: 22, 5: 70 },
       rows: mj.map((j) => {
         const d = jobDue(j, m, today, activeDeferral(j, deferrals));
-        return [j.title, j.type ? JOB_TYPE[j.type] : '', scheduleText(j).replace(/^Every /, ''), [dmy(j.lastDoneDate), j.lastDoneHours != null ? `${j.lastDoneHours} h` : ''].filter(Boolean).join(' · '), d.deferred ? 'Deferred' : STATUS[d.status], dueText(d)];
+        return [`${j.title}${j.classJob || m.classItem ? ' (class)' : ''}`, j.type ? JOB_TYPE[j.type] : '', scheduleText(j).replace(/^Every /, ''), [dmy(j.lastDoneDate), j.lastDoneHours != null ? `${j.lastDoneHours} h` : ''].filter(Boolean).join(' · '), d.deferred ? 'Deferred' : STATUS[d.status], dueText(d)];
       }),
     },
     {

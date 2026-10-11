@@ -224,6 +224,14 @@ export default function MachineSc() {
             </View>
             <Switch value={!!draft.critical} onValueChange={(v) => set({ critical: v })} trackColor={{ true: COLORS.danger, false: COLORS.border }} />
           </View>
+          <View style={styles.counterRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowTitle}>Class item</Text>
+              <Text style={styles.sub}>Surveyed by class (continuous survey of machinery) — its jobs count as class evidence.</Text>
+            </View>
+            <Switch value={!!draft.classItem} onValueChange={(v) => set({ classItem: v || undefined })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
+          </View>
+          {draft.classItem ? <Field label="Class code" value={draft.classCode} onChange={(v) => set({ classCode: v })} placeholder="The society's item code" /> : null}
           </View>
 
           {hasCounter(draft) ? (

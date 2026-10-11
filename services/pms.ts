@@ -268,3 +268,53 @@ export function noteForNext(jobId: string, done: PmsDone[]): PmsDone | undefined
 export function lastCondition(machineId: string, done: PmsDone[]): PmsDone | undefined {
   return done.filter((d) => d.machineId === machineId && d.conditionAfter).sort((a, b) => b.date.localeCompare(a.date) || b.at - a.at)[0];
 }
+
+export interface AheadRow {
+  job: PmsJob;
+  machine: Machine;
+  /** The due date, or the date the counter is estimated to reach the due hours. */
+  date: string;
+  estimated: boolean;
+}
+
+/**
+ * The plan ahead, month by month — every job falling due between today and
+ * `months` from now (overdue ones in the first month), by date or by the counter
+ * at the machine's running rate. TM Master's "due timeline", as a list a phone
+ * can show.
+ */
+export function jobsAhead(machines: Machine[], jobs: PmsJob[], deferrals: PmsDeferral[], today: string, months: number): { month: string; rows: AheadRow[] }[] {
+  const byId = new Map(machines.map((m) => [m.id, m]));
+  const end = addInterval(today, 30, months);
+  const plusDays = (n: number) => {
+    const d = new Date(`${today}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + n);
+    return d.toISOString().slice(0, 10);
+  };
+  const rows: AheadRow[] = [];
+  for (const j of jobs) {
+    const m = byId.get(j.machineId);
+    if (!m || j.deleted) continue;
+    const d = jobDue(j, m, today, activeDeferral(j, deferrals));
+    const cands: { date: string; estimated: boolean }[] = [];
+    if (d.daysLeft != null) cands.push({ date: plusDays(d.daysLeft), estimated: false });
+    if (d.hoursLeft != null) {
+      if (d.hoursLeft < 0) cands.push({ date: today, estimated: false });
+      else if (d.estDaysForHours != null) cands.push({ date: plusDays(d.estDaysForHours), estimated: true });
+    }
+    if (!cands.length) continue;
+    const first = cands.sort((a, b) => a.date.localeCompare(b.date))[0];
+    const date = first.date < today ? today : first.date;
+    if (date >= end) continue;
+    rows.push({ job: j, machine: m, date, estimated: first.estimated });
+  }
+  rows.sort((a, b) => a.date.localeCompare(b.date) || a.machine.name.localeCompare(b.machine.name));
+  const out: { month: string; rows: AheadRow[] }[] = [];
+  for (const r of rows) {
+    const mo = r.date.slice(0, 7);
+    const g = out[out.length - 1];
+    if (g && g.month === mo) g.rows.push(r);
+    else out.push({ month: mo, rows: [r] });
+  }
+  return out;
+}

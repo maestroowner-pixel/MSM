@@ -386,6 +386,7 @@ const en: ManualContent = {
         "Besides recurring jobs: + One-off on a machine plans a corrective job done once by a date and / or a counter reading (from a defect: + Plan a corrective job); recording it as done takes it off the plan. + Unplanned work records a repair or breakdown that was not in the plan — signed, with photos, straight into the machine's history.",
         "Recording a job done also asks the condition before and after (Good, Fair, Poor, Out of service — out of service needs a defect), the man-hours, and a note for next time, which appears at the top when the job is recorded again. The machine shows its last condition; the monthly report and the surveyor's history carry the condition and man-hours.",
         "Fixed schedule on a job makes it due on set dates or counter marks — the 1st of every month from a chosen date, every 500 h — whenever it was actually done; without it the next due counts from the last done. Warn before due sets how many days or hours ahead the job turns amber, instead of the last tenth of its interval.",
+        "A machine can be marked Class item with the society's code, and a job Class job — they print as class in the surveyor's history. On Maintenance, ⚑ Critical and Class narrow the screen to those machines and jobs; Plan ahead · 3 / 6 / 12 mo lists what falls due month by month — jobs by hours on the date the counter is estimated to reach, overdue ones first.",
       ],
     },
     {
@@ -912,6 +913,7 @@ const ru: ManualContent = {
         "Кроме повторяющихся работ: + One-off на карточке оборудования планирует разовую (корректирующую) работу к дате и/или показанию счётчика (из неисправности — + Plan a corrective job); после отметки о выполнении она уходит из плана. + Unplanned work записывает ремонт или поломку вне плана — с подписью и фото, сразу в историю оборудования.",
         "При отметке о выполнении указываются также состояние до и после (Good, Fair, Poor, Out of service — для «вне эксплуатации» нужна неисправность), человеко-часы и заметка на следующий раз, которая появится вверху при следующем выполнении. На карточке оборудования видно последнее состояние; месячный отчёт и история для сюрвейера содержат состояние и трудозатраты.",
         "Fixed schedule у работы делает её срок фиксированным — по датам или отметкам счётчика (1-е число каждого месяца с выбранной даты, каждые 500 ч), когда бы её ни выполнили; без него следующий срок считается от последнего выполнения. Warn before due задаёт, за сколько дней или часов работа становится жёлтой, вместо последней десятой части интервала.",
+        "Оборудование можно отметить как Class item с кодом общества, а работу — как Class job; в истории для сюрвейера они помечены как класс. На экране Maintenance фильтры ⚑ Critical и Class оставляют только это оборудование и работы; Plan ahead · 3 / 6 / 12 mo показывает, что подходит по срокам, по месяцам — работы по часам на дату, когда счётчик, по оценке, дойдёт до срока; просроченные первыми.",
       ],
     },
     {
@@ -1438,6 +1440,7 @@ const es: ManualContent = {
         "Además de los trabajos periódicos: + One-off en el equipo planifica un trabajo correctivo único para una fecha y/o lectura de horas (desde una avería: + Plan a corrective job); al registrarlo como hecho sale del plan. + Unplanned work registra una reparación o avería fuera del plan — firmada, con fotos, directamente en el historial del equipo.",
         "Al registrar un trabajo se indica también el estado antes y después (Good, Fair, Poor, Out of service — fuera de servicio requiere una avería), las horas-hombre y una nota para la próxima vez, que aparece arriba cuando el trabajo se registra de nuevo. El equipo muestra su último estado; el informe mensual y el historial para el inspector incluyen el estado y las horas-hombre.",
         "Fixed schedule en un trabajo lo hace vencer en fechas o marcas de horas fijas — el día 1 de cada mes desde una fecha elegida, cada 500 h — se haga cuando se haga; sin él, el próximo vencimiento cuenta desde la última vez. Warn before due fija con cuántos días u horas de antelación el trabajo pasa a ámbar, en lugar de la última décima parte de su intervalo.",
+        "Un equipo puede marcarse como Class item con el código de la sociedad, y un trabajo como Class job; aparecen como clase en el historial para el inspector. En Maintenance, ⚑ Critical y Class limitan la pantalla a esos equipos y trabajos; Plan ahead · 3 / 6 / 12 mo lista lo que vence mes a mes — los trabajos por horas en la fecha estimada en que el contador llegará, los vencidos primero.",
       ],
     },
     {
@@ -1964,6 +1967,7 @@ const uk: ManualContent = {
         "Окрім повторюваних робіт: + One-off на картці обладнання планує разову (коригувальну) роботу до дати та/або показника лічильника (з несправності — + Plan a corrective job); після відмітки про виконання вона зникає з плану. + Unplanned work записує ремонт чи поломку поза планом — з підписом і фото, одразу в історію обладнання.",
         "Під час відмітки про виконання вказуються також стан до і після (Good, Fair, Poor, Out of service — для «поза експлуатацією» потрібна несправність), людино-години та нотатка на наступний раз, яка з'явиться вгорі під час наступного виконання. На картці обладнання видно останній стан; місячний звіт та історія для сюрвеєра містять стан і трудовитрати.",
         "Fixed schedule у роботи робить її термін фіксованим — за датами чи позначками лічильника (1-ше число кожного місяця від вибраної дати, кожні 500 год), коли б її не виконали; без нього наступний термін рахується від останнього виконання. Warn before due задає, за скільки днів чи годин робота стає жовтою, замість останньої десятої частини інтервалу.",
+        "Обладнання можна позначити як Class item з кодом товариства, а роботу — як Class job; в історії для сюрвеєра вони позначені як клас. На екрані Maintenance фільтри ⚑ Critical і Class залишають лише це обладнання й роботи; Plan ahead · 3 / 6 / 12 mo показує, що підходить за термінами, по місяцях — роботи за годинами на дату, коли лічильник, за оцінкою, дійде до терміну; прострочені першими.",
       ],
     },
     {
