@@ -11,6 +11,10 @@ the part that stops the next person undoing it.
 - Settings → Reports folder only shows when a report that uses it is on.
 - Build 20592 (20591 was built with crew + rest on — not to be uploaded).
 
+## Unreleased
+
+- **Fix: SDM import kept one certificate out of 27, and the form could write the imported details back over** (user, 11 Oct 2026, a real 29-document SDM backup). The certificates were saved one by one, each followed by a full data reload; the reloads overlapped and React stopped on "maximum update depth" after the first, so the rest of the loop never ran. Now all certificates go in one write (`saveCertificates`) with one reload, before the person and their private details. And the crew member's form takes the imported record (`onImported`), so a Save afterwards — after anything was typed before importing — no longer overwrites it with what the form held. Checked in the browser with the real file: all personal fields, next of kin and 27 certificates kept, also after Save.
+
 ## 2.61 (20611) — 11 Oct 2026
 
 What the crew sees: **the ship's bell rings once on launch** (it repeated on phones in 2.60). Modules on: lifting, rounds — unchanged. Everything below since 2.60 is dark.

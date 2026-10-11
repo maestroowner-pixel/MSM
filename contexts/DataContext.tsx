@@ -159,6 +159,8 @@ interface DataContextType {
   /** Move an item to another category, keeping its id, history and certificates. */
   moveItem: (item: EquipmentItem, to: CategoryKey) => Promise<void>;
   saveCertificate: (cert: Certificate) => Promise<void>;
+  /** Many certificates in one write and one reload (an SDM import brings dozens). */
+  saveCertificates: (certs: Certificate[]) => Promise<void>;
   removeCertificate: (id: string) => Promise<void>;
   saveCompressor: (state: CompressorState) => Promise<void>;
   /** Record a signed inspection. Records are never edited afterwards. */
@@ -402,6 +404,27 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const saveCertificate = useCallback(
     async (cert: Certificate) => {
       await storage.upsertCertificate(cert);
+      await reload();
+    },
+    [reload]
+  );
+
+  const saveCertificates = useCallback(
+    async (certs: Certificate[]) => {
+      if (!certs.length) return;
+      const list = await storage.loadCertificates();
+      const byId = new Map(list.map((c, i) => [c.id, i]));
+      const now = Date.now();
+      for (const c of certs) {
+        const next = { ...c, updatedAt: now };
+        const i = byId.get(c.id);
+        if (i != null) list[i] = next;
+        else {
+          byId.set(c.id, list.length);
+          list.push(next);
+        }
+      }
+      await storage.saveCertificates(list);
       await reload();
     },
     [reload]
@@ -739,6 +762,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         removeItem,
         moveItem,
         saveCertificate,
+        saveCertificates,
         removeCertificate,
         saveCompressor,
         addInspection,

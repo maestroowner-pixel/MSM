@@ -137,7 +137,16 @@ export default function CrewMemberSc() {
             </View>
           ) : null}
           {canEdit && !isNew ? (
-            <TouchableOpacity onPress={() => void importSdm(id)} style={{ alignSelf: 'flex-end', marginBottom: SIZES.sm }} hitSlop={8}>
+            <TouchableOpacity
+              onPress={() =>
+                void importSdm(id, (plan) => {
+                  // The form shows what was imported — and a later Save keeps it,
+                  // instead of writing back what the form held before.
+                  touched.current = false;
+                  setM(plan.member);
+                  setP(JSON.parse(JSON.stringify(plan.priv)));
+                })
+              } style={{ alignSelf: 'flex-end', marginBottom: SIZES.sm }} hitSlop={8}>
               <Text style={styles.link}>Fill from the seafarer's SDM file (.sdm) ›</Text>
             </TouchableOpacity>
           ) : null}
