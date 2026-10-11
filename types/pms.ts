@@ -172,6 +172,17 @@ export interface PmsDone {
   /** The permit to work the job was done under. */
   permitId?: string;
   permitNo?: string;
+  /** The job's baseline before this sign-out moved it — what a cancellation puts back. */
+  prevLastDoneDate?: string;
+  prevLastDoneHours?: number;
+  /** A wrong sign-out cancelled by the Master within 30 days (services/versions — a cancelling version, kept struck through). */
+  supersedes?: string;
+  cancelled?: boolean;
+  editReason?: string;
+  editedBy?: string;
+  editedByRank?: string;
+  editedAt?: number;
+  editedWith?: import('../services/signature').SignProof;
   /** The equipment's condition before and after the work (TM Master comparison, item 3). */
   conditionBefore?: Condition;
   conditionAfter?: Condition;

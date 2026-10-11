@@ -39,7 +39,7 @@ import { DEFAULT_ARCHIVE, PhotoArchiveState } from '../services/photoArchive';
 import { setSoundsMuted } from '../utils/sound';
 
 /** The logs whose records are changed by versions (Edit / Delete, Master only). */
-const VERSIONED_KEYS = [storage.SEWAGE_KEY, storage.BALLAST_KEY, storage.ORB_KEY, storage.FUEL_READINGS_KEY, storage.FUEL_BUNKERS_KEY, storage.FUEL_TRANSFERS_KEY, storage.SOPEP_CHECKS_KEY, storage.SOPEP_DRILLS_KEY, storage.VISITORS_KEY, storage.SECURITY_DRILLS_KEY, storage.SURVEYS_DONE_KEY];
+const VERSIONED_KEYS = [storage.PMS_DONE_KEY, storage.SEWAGE_KEY, storage.BALLAST_KEY, storage.ORB_KEY, storage.FUEL_READINGS_KEY, storage.FUEL_BUNKERS_KEY, storage.FUEL_TRANSFERS_KEY, storage.SOPEP_CHECKS_KEY, storage.SOPEP_DRILLS_KEY, storage.VISITORS_KEY, storage.SECURITY_DRILLS_KEY, storage.SURVEYS_DONE_KEY];
 
 interface DataContextType {
   loading: boolean;
@@ -270,7 +270,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setRest(await storage.loadRest());
     setMachines((await storage.loadList<Machine>(storage.PMS_MACHINES_KEY)).filter((m) => !m.deleted));
     setPmsJobs((await storage.loadList<PmsJob>(storage.PMS_JOBS_KEY)).filter((j) => !j.deleted && !finishedOneOff(j)));
-    setPmsDone(await storage.loadList<PmsDone>(storage.PMS_DONE_KEY));
+    setPmsDone(live(await storage.loadList<PmsDone>(storage.PMS_DONE_KEY)));
     setPmsDeferrals(await storage.loadList<PmsDeferral>(storage.PMS_DEFERRALS_KEY));
     setPmsDefects(await storage.loadList<PmsDefect>(storage.PMS_DEFECTS_KEY));
     setSpares((await storage.loadList<SparePart>(storage.SPARES_KEY)).filter((p) => !p.deleted));
@@ -438,7 +438,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const loadPms = useCallback(async () => {
     setMachines((await storage.loadList<Machine>(storage.PMS_MACHINES_KEY)).filter((m) => !m.deleted));
     setPmsJobs((await storage.loadList<PmsJob>(storage.PMS_JOBS_KEY)).filter((j) => !j.deleted && !finishedOneOff(j)));
-    setPmsDone(await storage.loadList<PmsDone>(storage.PMS_DONE_KEY));
+    setPmsDone(live(await storage.loadList<PmsDone>(storage.PMS_DONE_KEY)));
     setPmsDeferrals(await storage.loadList<PmsDeferral>(storage.PMS_DEFERRALS_KEY));
     setPmsDefects(await storage.loadList<PmsDefect>(storage.PMS_DEFECTS_KEY));
     setSpares((await storage.loadList<SparePart>(storage.SPARES_KEY)).filter((p) => !p.deleted));

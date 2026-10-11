@@ -153,6 +153,9 @@ await t(false, 'Crew cannot start a round', setDoc(R(crew, 'rounds', 'r2'), { id
 await t(false, 'A round cannot be re-scoped', setDoc(R(officer, 'rounds', 'r1'), { id: 'r1', period: 'weekly', categories: ['eebd'] }));
 await t(true, 'An Officer closes a round', setDoc(R(officer, 'rounds', 'r1'), { id: 'r1', period: 'monthly', categories: ['eebd'], closedAt: 5, closedBy: 'Jez', updatedAt: 5 }));
 
+await t(false, 'An Officer cannot cancel a sign-out', setDoc(R(officer, 'pms_done', 'pd2'), { id: 'pd2', supersedes: 'p1', cancelled: true }));
+await t(true, 'The Master cancels a wrong sign-out', setDoc(R(master, 'pms_done', 'pd3'), { id: 'pd3', supersedes: 'p1', cancelled: true, editReason: 'Wrong job signed' }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

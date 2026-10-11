@@ -1,5 +1,5 @@
 // npm run check:pms — planned-maintenance due dates against hand-worked cases.
-import { jobDue, withReading, hoursPerDay, jobAfter, intervalText, scheduleText, checkReading, noteForNext, lastCondition, nextDueDate, nextDueHours, addInterval , jobsAhead } from '../services/pms';
+import { jobDue, withReading, hoursPerDay, jobAfter, intervalText, scheduleText, checkReading, noteForNext, lastCondition, nextDueDate, nextDueHours, addInterval , jobsAhead , jobAfterCancel, cancellable } from '../services/pms';
 import { Machine, PmsJob, finishedOneOff } from '../types/pms';
 
 let failed = 0;
@@ -150,6 +150,19 @@ import { jobGate } from '../services/jobGate';
   ok(!g2.permitMissing && g2.permit?.id === 'p2' && g2.unread.length === 1, 'an active permit for this cycle covers it; an old revision read does not');
   const g3 = jobGate(job, { ...base, acks: [{ docId: 'd1', revision: 2, personKey: 'crew1' } as any], ptwOn: false });
   ok(!g3.permitMissing && g3.unread.length === 0, 'with the permits module off nothing is asked; the current revision read');
+}
+// Cancelling a wrong sign-out puts the job back.
+{
+  const job: any = { id: 'j', machineId: 'me', title: 'X', intervalDays: 30, lastDoneDate: '2026-10-10', lastDoneHours: 1200, updatedAt: 0 };
+  const wrong: any = { id: 'w', jobId: 'j', date: '2026-10-10', hours: 1200, at: Date.parse('2026-10-10'), prevLastDoneDate: '2026-09-01', prevLastDoneHours: 1000 };
+  const back = jobAfterCancel(job, wrong, [wrong]);
+  ok(back.lastDoneDate === '2026-09-01' && back.lastDoneHours === 1000, 'no other sign-out → the baseline it had before');
+  const earlier: any = { id: 'e', jobId: 'j', date: '2026-09-05', hours: 1050, at: Date.parse('2026-09-05') };
+  const back2 = jobAfterCancel(job, wrong, [wrong, earlier]);
+  ok(back2.lastDoneDate === '2026-09-05' && back2.lastDoneHours === 1050, 'an earlier sign-out remains → back to it');
+  const first = jobAfterCancel({ ...job, oneOff: true }, { ...wrong, prevLastDoneDate: undefined, prevLastDoneHours: undefined }, [wrong]);
+  ok(!first.lastDoneDate && first.lastDoneHours == null, 'a one-off\'s only sign-out cancelled → open again');
+  ok(cancellable({ at: Date.now() - 29 * 86400000 }) && !cancellable({ at: Date.now() - 31 * 86400000 }) && !cancellable({ at: Date.now(), cancelled: true }), '30 days, not twice');
 }
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

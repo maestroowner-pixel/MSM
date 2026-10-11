@@ -19,14 +19,17 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { PLAN_LOCKED, personName, plansPms } from '../types/role';
 import { useSync } from '../contexts/SyncContext';
+import { useAmend } from '../components/Amend';
+import { current, live } from '../services/versions';
+import * as storage from '../services/storage';
 import { EvidencePhoto } from '../components/EvidencePhoto';
 import { categoryColor } from './PmsDefectSc';
 import { CONDITION, DEFECT_CATEGORY } from '../types/pms';
 import { conditionText, machineHistory, openDefects } from '../services/pmsHistory';
 import { exportPmsHistory } from '../services/pmsHistoryReport';
 import { SIZES, Palette } from '../theme';
-import { DEPTS, Machine, PmsJob, deptOf, hasCounter } from '../types/pms';
-import { activeDeferral, dueText, hoursPerDay, jobDue, sortJobsByDue, todayIso, withReading, scheduleText , checkReading , lastCondition } from '../services/pms';
+import { DEPTS, Machine, PmsDone, PmsJob, deptOf, hasCounter } from '../types/pms';
+import { activeDeferral, dueText, hoursPerDay, jobDue, sortJobsByDue, todayIso, withReading, scheduleText , checkReading , lastCondition , cancellable, jobAfterCancel } from '../services/pms';
 import { CATALOGUE } from '../services/pmsCatalogue';
 import { formatDate } from '../utils/dates';
 import { qtyText, stockByPart, stockStatus } from '../services/spares';
@@ -40,7 +43,7 @@ export default function MachineSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { machines, pmsJobs, pmsDone, pmsDeferrals, pmsDefects, spares, spareMoves, saveMachine, savePmsJob, vessel } = useData();
+  const { machines, pmsJobs, pmsDone, pmsDeferrals, pmsDefects, spares, spareMoves, saveMachine, savePmsJob, vessel, versionsOf } = useData();
   const defects = useMemo(() => openDefects(pmsDefects.filter((d) => d.machineId === route.params?.id)), [pmsDefects, route.params?.id]);
   const [histSaved, setHistSaved] = useState<string | null>(null);
   const sync = useSync();
@@ -75,10 +78,26 @@ export default function MachineSc() {
     const byId = new Map([[id, existing ?? draft]]);
     return sortJobsByDue(pmsJobs.filter((j) => j.machineId === id), byId, today, pmsDeferrals);
   }, [pmsJobs, id, existing, draft, today, pmsDeferrals]);
+  // Every sign-out as it stands — cancelled ones shown struck through, with the reason.
+  const allDone = versionsOf(storage.PMS_DONE_KEY) as PmsDone[];
   const history = useMemo(
-    () => pmsDone.filter((d) => d.machineId === id).sort((a, b) => b.at - a.at).slice(0, 10),
-    [pmsDone, id]
+    () => current(allDone).filter((d) => d.machineId === id).sort((a, b) => b.at - a.at).slice(0, 10),
+    [allDone, id]
   );
+  const amend = useAmend();
+  const isMaster = !sync.enrolled || sync.role === 'superadmin';
+  // A wrong sign-out, cancelled by the Master: the record stays, struck through; the job goes back.
+  const cancelDone = (h: PmsDone) =>
+    amend.remove({
+      store: storage.PMS_DONE_KEY,
+      record: h,
+      what: `${h.jobTitle}, signed ${formatDate(h.date)} by ${h.by}${h.unplanned ? '' : ' — the job returns to its earlier due date'}`,
+      onDone: async (next: PmsDone) => {
+        if (h.unplanned) return;
+        const raw = (await storage.loadList<PmsJob>(storage.PMS_JOBS_KEY)).find((j) => j.id === h.jobId);
+        if (raw) await savePmsJob(jobAfterCancel(raw, next, live(await storage.loadList<PmsDone>(storage.PMS_DONE_KEY))));
+      },
+    });
   const rate = hoursPerDay(existing?.readings);
 
   const saveDetails = async (extra: Partial<Machine> = {}) => {
@@ -405,15 +424,23 @@ export default function MachineSc() {
             ) : null}
           </View>
           {history.map((h) => (
-            <View key={h.id} style={styles.hist}>
-              <Text style={styles.rowTitle} numberOfLines={1}>{`${h.unplanned ? 'Unplanned · ' : ''}${h.jobTitle}`}</Text>
+            <View key={h.id} style={[styles.hist, h.cancelled && { opacity: 0.6 }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm }}>
+                <Text style={[styles.rowTitle, { flex: 1 }, h.cancelled && { textDecorationLine: 'line-through' }]} numberOfLines={1}>{`${h.unplanned ? 'Unplanned · ' : ''}${h.jobTitle}`}</Text>
+                {!h.cancelled && cancellable(h) ? (
+                  <TouchableOpacity disabled={!isMaster} style={!isMaster && { opacity: 0.35 }} onPress={() => cancelDone(h)} hitSlop={8}>
+                    <Text style={[styles.link, { color: COLORS.danger }]}>Cancel</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+              {h.cancelled ? <Text style={[styles.sub, { color: COLORS.danger }]}>{`Cancelled — ${h.editReason ?? ''} · ${h.editedByRank ? `${h.editedBy} (${h.editedByRank})` : h.editedBy ?? ''}`}</Text> : null}
               <Text style={styles.sub}>
                 {[formatDate(h.date), h.hours != null ? `${h.hours} h` : null, conditionText(h) || null, h.manHours != null ? `${h.manHours} man-h` : null, h.byRank ? `${h.by} (${h.byRank})` : h.by].filter(Boolean).join(' · ')}
               </Text>
               {h.note ? <Text style={styles.note}>{h.note}</Text> : null}
               {h.photos?.length ? (
                 <View style={{ flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.xs, flexWrap: 'wrap' }}>
-                  {h.photos.map((p) => <EvidencePhoto key={p.id} vessel={vessel?.imo ?? ''} inspectionId={h.id} photo={p} />)}
+                  {h.photos.map((p) => <EvidencePhoto key={p.id} vessel={vessel?.imo ?? ''} inspectionId={h.supersedes ?? h.id} photo={p} />)}
                 </View>
               ) : null}
             </View>
@@ -423,6 +450,7 @@ export default function MachineSc() {
             <Text style={styles.deleteText}>{isNew ? 'Discard' : 'Remove'}</Text>
           </TouchableOpacity>
         </ScrollView>
+        {amend.ui}
       </SafeAreaView>
     </LinearGradient>
   );

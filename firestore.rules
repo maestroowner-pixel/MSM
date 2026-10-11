@@ -202,7 +202,8 @@ service cloud.firestore {
       }
       match /pms_done/{id} {
         allow read: if reader(v);
-        allow create: if member(v);
+        // A cancelling version (a wrong sign-out, within 30 days) is the Master's.
+        allow create: if member(v) && (plainRecord() || isSuper(v));
         allow update, delete: if false;
       }
       // A defect found on machinery: raised by any member, closed (only the

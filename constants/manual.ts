@@ -388,6 +388,7 @@ const en: ManualContent = {
         "Fixed schedule on a job makes it due on set dates or counter marks — the 1st of every month from a chosen date, every 500 h — whenever it was actually done; without it the next due counts from the last done. Warn before due sets how many days or hours ahead the job turns amber, instead of the last tenth of its interval.",
         "A machine can be marked Class item with the society's code, and a job Class job — they print as class in the surveyor's history. On Maintenance, ⚑ Critical and Class narrow the screen to those machines and jobs; Plan ahead · 3 / 6 / 12 mo lists what falls due month by month — jobs by hours on the date the counter is estimated to reach, overdue ones first.",
         "A job can require a permit to work of a given type and documents to be read (Requires permit, Read before doing). It is then signed out only with a permit of that type raised for the job in this cycle — approved, open or closed — and by someone who has read the current revision of each document; Raise a permit opens one already filled in with the job and its location. The completion keeps the permit number.",
+        "A job signed out by mistake can be cancelled by the Master within 30 days: Cancel on the machine's Recent work, with the reason and a signature. The record stays, struck through, with who cancelled it and why; the job goes back to the due date it had before. Spare parts taken out stay out — return them in Spares if they were not used.",
       ],
     },
     {
@@ -916,6 +917,7 @@ const ru: ManualContent = {
         "Fixed schedule у работы делает её срок фиксированным — по датам или отметкам счётчика (1-е число каждого месяца с выбранной даты, каждые 500 ч), когда бы её ни выполнили; без него следующий срок считается от последнего выполнения. Warn before due задаёт, за сколько дней или часов работа становится жёлтой, вместо последней десятой части интервала.",
         "Оборудование можно отметить как Class item с кодом общества, а работу — как Class job; в истории для сюрвейера они помечены как класс. На экране Maintenance фильтры ⚑ Critical и Class оставляют только это оборудование и работы; Plan ahead · 3 / 6 / 12 mo показывает, что подходит по срокам, по месяцам — работы по часам на дату, когда счётчик, по оценке, дойдёт до срока; просроченные первыми.",
         "Работа может требовать наряд-допуск определённого типа и прочтения документов (Requires permit, Read before doing). Тогда её можно закрыть только при наряде этого типа, оформленном на эту работу в текущем цикле (одобрен, открыт или закрыт), и если подписывающий прочитал текущую редакцию каждого документа; Raise a permit открывает наряд, уже заполненный работой и местом. В записи о выполнении сохраняется номер наряда.",
+        "Ошибочно закрытую работу Мастер может отменить в течение 30 дней: Cancel в Recent work на карточке оборудования, с причиной и подписью. Запись остаётся зачёркнутой — кто и почему отменил; работа возвращается к прежнему сроку. Списанные запчасти не возвращаются сами — верните их в Spares, если они не пошли в дело.",
       ],
     },
     {
@@ -1444,6 +1446,7 @@ const es: ManualContent = {
         "Fixed schedule en un trabajo lo hace vencer en fechas o marcas de horas fijas — el día 1 de cada mes desde una fecha elegida, cada 500 h — se haga cuando se haga; sin él, el próximo vencimiento cuenta desde la última vez. Warn before due fija con cuántos días u horas de antelación el trabajo pasa a ámbar, en lugar de la última décima parte de su intervalo.",
         "Un equipo puede marcarse como Class item con el código de la sociedad, y un trabajo como Class job; aparecen como clase en el historial para el inspector. En Maintenance, ⚑ Critical y Class limitan la pantalla a esos equipos y trabajos; Plan ahead · 3 / 6 / 12 mo lista lo que vence mes a mes — los trabajos por horas en la fecha estimada en que el contador llegará, los vencidos primero.",
         "Un trabajo puede exigir un permiso de trabajo de un tipo y la lectura de documentos (Requires permit, Read before doing). Entonces solo se cierra con un permiso de ese tipo emitido para el trabajo en este ciclo — aprobado, abierto o cerrado — y por alguien que haya leído la revisión vigente de cada documento; Raise a permit abre uno ya rellenado con el trabajo y su ubicación. El registro guarda el número del permiso.",
+        "Un trabajo cerrado por error lo puede anular el Master en 30 días: Cancel en Recent work del equipo, con el motivo y una firma. El registro queda tachado, con quién lo anuló y por qué; el trabajo vuelve a su vencimiento anterior. Los repuestos retirados no vuelven solos — devuélvalos en Spares si no se usaron.",
       ],
     },
     {
@@ -1972,6 +1975,7 @@ const uk: ManualContent = {
         "Fixed schedule у роботи робить її термін фіксованим — за датами чи позначками лічильника (1-ше число кожного місяця від вибраної дати, кожні 500 год), коли б її не виконали; без нього наступний термін рахується від останнього виконання. Warn before due задає, за скільки днів чи годин робота стає жовтою, замість останньої десятої частини інтервалу.",
         "Обладнання можна позначити як Class item з кодом товариства, а роботу — як Class job; в історії для сюрвеєра вони позначені як клас. На екрані Maintenance фільтри ⚑ Critical і Class залишають лише це обладнання й роботи; Plan ahead · 3 / 6 / 12 mo показує, що підходить за термінами, по місяцях — роботи за годинами на дату, коли лічильник, за оцінкою, дійде до терміну; прострочені першими.",
         "Робота може вимагати наряд-допуск певного типу та прочитання документів (Requires permit, Read before doing). Тоді її можна закрити лише за наряду цього типу, оформленого на цю роботу в поточному циклі (схвалений, відкритий чи закритий), і якщо той, хто підписує, прочитав поточну редакцію кожного документа; Raise a permit відкриває наряд, уже заповнений роботою та місцем. У записі про виконання зберігається номер наряду.",
+        "Помилково закриту роботу Майстер може скасувати протягом 30 днів: Cancel у Recent work на картці обладнання, з причиною та підписом. Запис лишається закресленим — хто й чому скасував; робота повертається до попереднього терміну. Списані запчастини не повертаються самі — поверніть їх у Spares, якщо їх не використали.",
       ],
     },
     {

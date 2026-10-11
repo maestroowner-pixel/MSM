@@ -226,6 +226,8 @@ export default function PmsJobSc() {
       by: signer.name,
       byRank: signer.rank,
       note: doneNote.trim() || undefined,
+      ...(existing?.lastDoneDate ? { prevLastDoneDate: existing.lastDoneDate } : {}),
+      ...(existing?.lastDoneHours != null ? { prevLastDoneHours: existing.lastDoneHours } : {}),
       ...(gate.permit ? { permitId: gate.permit.id, ...(gate.permit.no ? { permitNo: gate.permit.no } : {}) } : {}),
       ...(condBefore ? { conditionBefore: condBefore } : {}),
       ...(condAfter ? { conditionAfter: condAfter } : {}),

@@ -318,3 +318,26 @@ export function jobsAhead(machines: Machine[], jobs: PmsJob[], deferrals: PmsDef
   }
   return out;
 }
+
+/** A sign-out the Master may still cancel: within 30 days, not already cancelled or replaced. */
+export const CANCEL_DAYS = 30;
+export function cancellable(d: Pick<PmsDone, 'at' | 'cancelled'>, now = Date.now()): boolean {
+  return !d.cancelled && now - d.at <= CANCEL_DAYS * 86_400_000;
+}
+
+/**
+ * The job as it should stand once `cancelledDone` is cancelled: its baseline
+ * goes back to the latest remaining sign-out, or to what it was before (the
+ * record keeps it), so the job is due again from its original date.
+ */
+export function jobAfterCancel(job: PmsJob, cancelledDone: PmsDone, remaining: PmsDone[]): PmsJob {
+  const latest = remaining.filter((d) => d.jobId === job.id && d.id !== cancelledDone.id && !d.cancelled).sort((a, b) => b.date.localeCompare(a.date) || b.at - a.at)[0];
+  const out: PmsJob = { ...job, updatedAt: Date.now() };
+  const date = latest ? latest.date : cancelledDone.prevLastDoneDate;
+  const hours = latest ? latest.hours ?? cancelledDone.prevLastDoneHours : cancelledDone.prevLastDoneHours;
+  if (date) out.lastDoneDate = date;
+  else delete out.lastDoneDate;
+  if (hours != null) out.lastDoneHours = hours;
+  else delete out.lastDoneHours;
+  return out;
+}
