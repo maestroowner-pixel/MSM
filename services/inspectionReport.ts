@@ -261,7 +261,15 @@ function commentsOf(insp: Inspection): string {
   // A Master signing without a scan says why, and the why belongs where an
   // auditor reads — not only in a column that says "No scan".
   const override = insp.verification?.method === 'override' ? verificationText(insp.verification, timeOnly) : '';
-  return [insp.comment?.trim(), defect && `Defect: ${defect}`, override].filter(Boolean).join(' — ');
+  // Photographic evidence is part of the record; the report says it exists
+  // (Jez, 11 Oct 2026: "no indication that photographs have been attached").
+  const n = photoCount(insp);
+  return [insp.comment?.trim(), defect && `Defect: ${defect}`, override, n ? `Photos: ${n}` : ''].filter(Boolean).join(' — ');
+}
+
+/** Photographs (not documents) attached to the inspection. */
+export function photoCount(insp: Inspection): number {
+  return (insp.photos ?? []).filter((p) => p.kind === 'photo').length;
 }
 
 /** The short "Scan" cell: QR when the label was scanned, "No scan" for a Master's override. */
@@ -273,7 +281,9 @@ function scanCell(insp: Inspection): string {
 
 function doneRows(data: ReportData, flat: EquipmentItem[]) {
   return data.done.map((insp) => {
-    const it = flat.find((e) => e.id === insp.itemId);
+    // An item no longer in the register is described from the record itself
+    // (inspections from 2.60 carry it — see itemSnapshot).
+    const it = flat.find((e) => e.id === insp.itemId) ?? (insp.item ? ({ id: insp.itemId, category: insp.category, ...insp.item } as unknown as EquipmentItem) : undefined);
     const b = inspections.resultBreakdown(insp);
     return {
       ...itemCells(it),
@@ -288,6 +298,7 @@ function doneRows(data: ReportData, flat: EquipmentItem[]) {
       defect: defectReason(insp),
       comment: insp.comment ?? '',
       comments: commentsOf(insp),
+      photos: photoCount(insp),
       scan: scanCell(insp),
       scanFull: verificationText(insp.verification, timeOnly),
     };
@@ -613,9 +624,9 @@ export async function exportReportXlsx(
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), 'Summary');
 
   const done = [
-    ['No.', 'Location', 'Category', 'Type', 'Size', 'Serial', 'Result', 'Lines passed', 'Comments', 'Initials', 'Date', 'Time', 'Inspected by', 'Scan'],
+    ['No.', 'Location', 'Category', 'Type', 'Size', 'Serial', 'Result', 'Lines passed', 'Comments', 'Photos', 'Initials', 'Date', 'Time', 'Inspected by', 'Scan'],
     ...doneRows(data, flat).map((r) => [
-      r.no, r.location, r.category, r.item, r.size, r.serial, r.result, r.detail, r.comments, r.initials, r.date, r.time, r.by, r.scanFull,
+      r.no, r.location, r.category, r.item, r.size, r.serial, r.result, r.detail, r.comments, r.photos || '', r.initials, r.date, r.time, r.by, r.scanFull,
     ]),
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(done), 'Inspections');
