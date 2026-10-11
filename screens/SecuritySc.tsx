@@ -20,6 +20,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Card, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { Dropdown } from '../components/Dropdown';
+import { MonthPicker } from '../components/MonthPicker';
 import { SignaturePad, SignatureView } from '../components/SignaturePad';
 import { useSigner } from '../components/SignerChoice';
 import { useSignConfirm } from '../components/SignConfirm';
@@ -192,6 +193,18 @@ export default function SecuritySc() {
   const book = useMemo(() => visitsOf(latestVersions(allVisitors), period), [allVisitors, period]);
   const bookMoves = useMemo(() => movesOf(crewMoves, period), [crewMoves, period]);
   const atEnd = period >= (byMonth ? today.slice(0, 7) : today);
+  // Month picker in the title, like the other logs: the months the book has, with
+  // how many visits and crew moves each — picking one shows that month whole.
+  const logCounts = useMemo(() => {
+    const c: Record<string, number> = {};
+    for (const v of latestVersions(allVisitors)) if (v.date) c[v.date.slice(0, 7)] = (c[v.date.slice(0, 7)] ?? 0) + 1;
+    for (const m of crewMoves) if (m.date) c[m.date.slice(0, 7)] = (c[m.date.slice(0, 7)] ?? 0) + 1;
+    return c;
+  }, [allVisitors, crewMoves]);
+  const pickMonth = (m: string) => {
+    setByMonth(true);
+    setDay(m === today.slice(0, 7) ? today : `${m}-01`);
+  };
   const shift = (n: number) => {
     const d = new Date(`${day}T00:00:00Z`);
     if (byMonth) d.setUTCMonth(d.getUTCMonth() + n, 1);
@@ -266,7 +279,21 @@ export default function SecuritySc() {
   return (
     <Screen scroll>
       <PrinterModal visible={printerOpen} onClose={() => { setPrinterOpen(false); setPending(null); }} onPicked={(p) => { setPrinterOpen(false); if (pending) void sendLabels(p, pending); }} />
-      <ScreenTitle title={view === 'drills' ? 'Security drills' : 'Gangway logbook'} subtitle={view === 'drills' ? 'ISPS Code — at least one every three months' : 'ISPS Code — who is on board, visitors in and out'} help="Security (ISPS)" actions={levelSwitch} />
+      <ScreenTitle
+        title={view === 'drills' ? 'Security drills' : 'Gangway logbook'}
+        subtitle={view === 'drills' ? 'ISPS Code — at least one every three months' : 'ISPS Code — who is on board, visitors in and out'}
+        help="Security (ISPS)"
+        actions={
+          view !== 'drills' && tab === 'log' ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <MonthPicker value={day.slice(0, 7)} onChange={pickMonth} months={Object.keys(logCounts)} counts={logCounts} />
+              {levelSwitch}
+            </View>
+          ) : (
+            levelSwitch
+          )
+        }
+      />
       {current > 1 && level ? (
         <Text style={[styles.alert, { color: levelColor(current), borderColor: levelColor(current) }]}>
           {`Security level ${current} since ${formatDateTime(level.since)} — ${LEVEL_TEXT[current]}. Identity document required for every visitor.`}

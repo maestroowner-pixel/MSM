@@ -85,7 +85,7 @@ export function permitPdfBlob(d: PermitDoc): Blob {
 
   heading('Signatures');
   const imgs = d.signatures.map((s) => (s.drawing ? sigImage(s.drawing) : null));
-  autoTable(doc, { ...base, startY: y, head: [['Step', 'Name', 'Time', 'Confirmed by', 'Signature']], body: d.signatures.length ? d.signatures.map((s) => [s.step, s.who, s.when, s.how, '']) : [['Not signed.', '', '', '', '']],
+  autoTable(doc, { ...base, startY: y, head: [['Step', 'Name', 'Time', 'Signed', 'Signature']], body: d.signatures.length ? d.signatures.map((s) => [s.step, s.who, s.when, s.how, '']) : [['Not signed.', '', '', '', '']],
     styles: { ...base.styles, minCellHeight: 9, valign: 'middle' }, columnStyles: { 3: { cellWidth: 22 }, 4: { cellWidth: 32 } },
     didDrawCell: (c: any) => {
       if (c.section !== 'body' || c.column.index !== 4) return;

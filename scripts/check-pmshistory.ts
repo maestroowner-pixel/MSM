@@ -21,7 +21,7 @@ ok(h.facts.includes('CRITICAL EQUIPMENT') && h.facts.some((f) => f.includes('S/N
 const planned = h.tables.find((t) => t.title === 'Planned jobs')!;
 ok(planned.rows[0][4] === 'OVERDUE' && /100 h overdue/.test(planned.rows[0][5]), `oil change overdue by 100 h: ${planned.rows[0].join(' | ')}`);
 const work = h.tables.find((t) => t.title === 'Work done')!;
-ok(work.rows.length === 1 && work.rows[0][5] === 'Tom Reed (C/E) · PIN' && work.rows[0][7] === '1' && /Defect raised/.test(work.rows[0][6]), 'work done: only this machine, signer, photo count, defect');
+ok(work.rows.length === 1 && work.rows[0][5] === 'Tom Reed (C/E) · signed by PIN' && work.rows[0][7] === '1' && /Defect raised/.test(work.rows[0][6]), 'work done: only this machine, signer, photo count, defect');
 const dx = h.tables.find((t) => t.title === 'Defects')!;
 ok(dx.rows[0][4] === 'OPEN' && /Gasket renewed/.test(dx.rows[1][4]), 'defects: open first, closed with rectification');
 ok(!h.tables.some((t) => t.title === 'Deferrals'), 'no deferrals table when none');

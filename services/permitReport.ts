@@ -127,7 +127,7 @@ function html(d: PermitDoc): string {
       <div style="margin-top:6px">${table(['#', 'Name', '', 'Attendance', 'Signature'], d.toolbox.attendees)}</div>
       <div class="topics" style="margin-top:6px">${d.toolbox.topics.map((x) => `<div>${esc(x)}</div>`).join('')}</div>
       ${d.toolbox.concerns ? `<div style="margin-top:6px"><b>Raised / agreed:</b> ${esc(d.toolbox.concerns)}</div>` : ''}` : '<div>Not held.</div>'}
-    <h2>Signatures</h2><table><thead><tr><th>Step</th><th>Name</th><th>Time</th><th>Confirmed by</th><th>Signature</th></tr></thead><tbody>${sigRows || '<tr><td colspan="5">Not signed.</td></tr>'}</tbody></table>
+    <h2>Signatures</h2><table><thead><tr><th>Step</th><th>Name</th><th>Time</th><th>Signed</th><th>Signature</th></tr></thead><tbody>${sigRows || '<tr><td colspan="5">Not signed.</td></tr>'}</tbody></table>
   </body></html>`;
 }
 

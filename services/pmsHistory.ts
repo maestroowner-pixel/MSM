@@ -25,7 +25,7 @@ export interface MachineHistory {
 
 const dmy = (iso?: string) => (iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}` : '');
 const who = (by: string, rank?: string) => (rank ? `${by} (${rank})` : by);
-const how = (m?: { method?: string }) => (!m ? '' : m.method === 'biometric' ? 'fingerprint' : m.method === 'drawn' ? 'handwritten' : 'PIN');
+const how = (m?: { method?: string }) => (!m ? '' : m.method === 'biometric' ? 'signed biometrically' : m.method === 'drawn' ? 'signed by hand' : 'signed by PIN');
 const STATUS: Record<string, string> = { expired: 'OVERDUE', due: 'Due soon', ok: 'In date', none: '—' };
 
 /** "Fair → Good", "→ Good", "" — the condition columns of a sign-out. */

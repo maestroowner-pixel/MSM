@@ -31,6 +31,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { BackButton, Card, CategoryBadge, Label } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { EvidencePhoto } from '../components/EvidencePhoto';
+import { proofText } from '../services/signature';
 import { SignerPicker } from '../components/SignerPicker';
 import { useSignConfirm } from '../components/SignConfirm';
 import { useTheme } from '../contexts/ThemeContext';
@@ -185,6 +186,7 @@ export default function InspectionDetailSc() {
             <Label>Signed</Label>
             <Row icon="account-check" text={signatureLine(insp.by, insp.byRank)} />
             <Row icon="clock-outline" text={formatDateTime(insp.at)} />
+            {insp.signedWith ? <Row icon={insp.signedWith.method === 'biometric' ? 'fingerprint' : insp.signedWith.method === 'drawn' ? 'draw' : 'dialpad'} text={proofText(insp.signedWith) ?? ''} /> : null}
             {insp.verification ? (
               <Row
                 icon={insp.verification.method === 'override' ? 'qrcode-remove' : 'qrcode-scan'}

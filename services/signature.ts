@@ -199,13 +199,17 @@ function randomHex(bytes: number): string {
   return s;
 }
 
-/** "Face ID · iPhone", "PIN" — one line for a report or a history row. */
-/** One word for a printed record: PIN / fingerprint / handwritten. */
+/**
+ * How a record was signed, as a printed record says it (user, 11 Oct 2026):
+ * "signed by PIN", "signed biometrically" (fingerprint / Touch ID), "signed by
+ * hand" (on the screen). All three ways stay open to everyone.
+ */
 export function proofShort(p: SignProof | undefined): string {
-  return !p ? '' : p.method === 'biometric' ? 'fingerprint' : p.method === 'drawn' ? 'handwritten' : 'PIN';
+  return !p ? '' : p.method === 'biometric' ? 'signed biometrically' : p.method === 'drawn' ? 'signed by hand' : 'signed by PIN';
 }
 
+/** The same as a sentence, for a record's own screen. */
 export function proofText(p: SignProof | undefined): string | null {
   if (!p) return null;
-  return p.method === 'biometric' ? 'Confirmed by fingerprint' : p.method === 'drawn' ? 'Signed by hand on the screen' : 'Confirmed by PIN';
+  return p.method === 'biometric' ? 'Signed biometrically' : p.method === 'drawn' ? 'Signed by hand on the screen' : 'Signed by PIN';
 }

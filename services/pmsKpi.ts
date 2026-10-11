@@ -3,7 +3,7 @@
 import { activeDeferral, dueText, jobDue, todayIso } from './pms';
 import { CONDITION, JOB_TYPE, Machine, PmsDeferral, PmsDone, PmsJob } from '../types/pms';
 
-const proofShort = (p?: { method: string }) => (!p ? '' : p.method === 'biometric' ? 'fingerprint' : p.method === 'drawn' ? 'handwritten' : 'PIN');
+const proofShort = (p?: { method: string }) => (!p ? '' : p.method === 'biometric' ? 'signed biometrically' : p.method === 'drawn' ? 'signed by hand' : 'signed by PIN');
 
 export interface PmsMonth {
   month: string;
