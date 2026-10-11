@@ -1,6 +1,6 @@
 // npm run check:pms — planned-maintenance due dates against hand-worked cases.
-import { jobDue, withReading, hoursPerDay, jobAfter, intervalText } from '../services/pms';
-import { Machine, PmsJob } from '../types/pms';
+import { jobDue, withReading, hoursPerDay, jobAfter, intervalText, scheduleText } from '../services/pms';
+import { Machine, PmsJob, finishedOneOff } from '../types/pms';
 
 let failed = 0;
 const ok = (c: boolean, m: string) => { if (!c) failed++; console.log(`${c ? '✓' : '✗'} ${m}`); };
@@ -60,6 +60,18 @@ import { pmsMonth } from '../services/pmsKpi';
   const r = pmsMonth('2026-10', ms, js, done, dfr, '2026-10-11');
   ok(r.done.length === 1 && r.deferred.length === 1 && r.overdue.length === 1, 'month: 1 done, 1 deferred, 1 overdue (the deferred one is not overdue)');
   ok(r.overdue[0][0].startsWith('⚑') && r.completion.all === 50 && r.completion.critical === 0, 'completion 50 %; critical 0 % (its only job is overdue)');
+}
+// One-off (corrective) jobs: due by a date and / or a counter reading, once.
+{
+  const m: any = { id: 'me', name: 'ME', hours: 4980, updatedAt: 0 };
+  const byDate: any = { id: 'o1', machineId: 'me', title: 'Renew lagging', oneOff: true, dueDate: '2026-10-15', updatedAt: 0 };
+  ok(jobDue(byDate, m, '2026-10-11').status === 'due' && jobDue(byDate, m, '2026-10-11').daysLeft === 4, 'one-off due in 4 days → due soon');
+  ok(jobDue(byDate, m, '2026-10-20').status === 'expired', 'one-off past its date → overdue');
+  ok(jobDue({ ...byDate, dueDate: '2026-12-01' }, m, '2026-10-11').status === 'ok', 'one-off weeks away → in date');
+  const byHours: any = { ...byDate, dueDate: undefined, dueHours: 4950 };
+  ok(jobDue(byHours, m, '2026-10-11').status === 'expired' && jobDue(byHours, m, '2026-10-11').hoursLeft === -30, 'one-off by counter, passed → overdue by 30 h');
+  ok(scheduleText(byDate) === 'One-off — by 15.10.2026' && scheduleText({ intervalDays: 30 } as any) === 'Every 1 mo', 'schedule text');
+  ok(finishedOneOff({ ...byDate, lastDoneDate: '2026-10-12' }) && !finishedOneOff({ intervalDays: 30, lastDoneDate: '2026-10-12' } as any), 'a one-off done is finished; a recurring one is not');
 }
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

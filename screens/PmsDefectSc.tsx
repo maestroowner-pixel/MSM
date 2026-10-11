@@ -23,7 +23,8 @@ import { DEFECT_CATEGORY, DefectCategory, PmsDefect } from '../types/pms';
 import { Attachment } from '../types/equipment';
 import * as storage from '../services/storage';
 import * as photoQueue from '../services/photoQueue';
-import { todayIso } from '../services/pms';
+import { scheduleText, todayIso } from '../services/pms';
+import { plansPms } from '../types/role';
 import { formatDate, formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
@@ -36,10 +37,12 @@ export default function PmsDefectSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { pmsDefects, machines, saveRow, vessel } = useData();
+  const { pmsDefects, machines, pmsJobs, pmsDone, saveRow, vessel } = useData();
   const sync = useSync();
   // Closing is an officer's or the Master's — the rules say the same.
   const canClose = !sync.enrolled || sync.role === 'admin' || sync.role === 'superadmin';
+  // A corrective (one-off) job is part of the plan — the Master's or the superintendent's.
+  const canPlan = plansPms(sync.enrolled, sync.role);
   const confirmSign = useSignConfirm();
   const { signer, picker } = useSigner();
   const existing = pmsDefects.find((d) => d.id === route.params?.id);
@@ -109,6 +112,30 @@ export default function PmsDefectSc() {
               <View style={styles.photos}>{existing.photos.map((p) => <EvidencePhoto key={p.id} vessel={imo} inspectionId={existing.id} photo={p} />)}</View>
             ) : null}
           </Card>
+          {(() => {
+            const open = pmsJobs.filter((j) => j.defectId === existing.id);
+            const done = pmsDone.filter((d) => d.forDefectId === existing.id);
+            if (!open.length && !done.length && (existing.closed || !canPlan)) return null;
+            return (
+              <Card>
+                <Label>Corrective job</Label>
+                {open.map((j) => (
+                  <TouchableOpacity key={j.id} onPress={() => nav.navigate('PmsJob', { id: j.id })}>
+                    <Text style={styles.link}>{`${j.title} · ${scheduleText(j)}`}</Text>
+                  </TouchableOpacity>
+                ))}
+                {done.map((d) => (
+                  <Text key={d.id} style={styles.text}>{`✓ ${d.jobTitle} — done ${formatDate(d.date)} by ${d.byRank ? `${d.by} (${d.byRank})` : d.by}${d.note ? ` · ${d.note}` : ''}`}</Text>
+                ))}
+                {!existing.closed && canPlan && !open.length ? (
+                  <TouchableOpacity onPress={() => nav.navigate('PmsJob', { id: uid('job'), machineId: existing.machineId, isNew: true, oneOff: true, defectId: existing.id, title: existing.description.slice(0, 80) })}>
+                    <Text style={styles.link}>+ Plan a corrective job</Text>
+                  </TouchableOpacity>
+                ) : null}
+                {done.length && !existing.closed ? <Text style={styles.sub}>The job is done — close the defect below with what was done.</Text> : null}
+              </Card>
+            );
+          })()}
           {existing.closed ? (
             <Card>
               <Label>Rectified</Label>
@@ -165,4 +192,5 @@ const makeStyles = (COLORS: Palette) =>
     input: { ...COLORS.glassInput, borderRadius: SIZES.radiusMd, paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm, fontSize: SIZES.body, color: COLORS.text, marginTop: SIZES.sm, textAlignVertical: 'top' },
     btn: { backgroundColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 12, alignItems: 'center' },
     btnText: { color: COLORS.textWhite, fontWeight: '800' },
+    link: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.body, marginTop: SIZES.xs },
   });

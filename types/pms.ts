@@ -96,9 +96,23 @@ export interface PmsJob {
   notes?: string;
   /** Spare parts taken from the stores each time it is done (types/spares.ts). */
   parts?: import('./spares').JobPart[];
+  /**
+   * A one-off (corrective) job: done once by `dueDate` and / or `dueHours`, no
+   * interval. Signing it out sets `lastDoneDate` like any job — and that is what
+   * marks it finished (finishedOneOff), so the crew's rights to sign it out are
+   * the same as for a planned job.
+   */
+  oneOff?: boolean;
+  dueDate?: string;
+  dueHours?: number;
+  /** The defect it puts right (PmsDefect.id). */
+  defectId?: string;
   deleted?: boolean;
   updatedAt: number;
 }
+
+/** A one-off job already done — off the plan, kept in the history. */
+export const finishedOneOff = (j: Pick<PmsJob, 'oneOff' | 'lastDoneDate'>) => !!j.oneOff && !!j.lastDoneDate;
 
 export interface PmsDone {
   id: string;
@@ -120,6 +134,10 @@ export interface PmsDone {
   photos?: import('./equipment').Attachment[];
   /** A defect found doing the job (PmsDefect.id). */
   defectId?: string;
+  /** Work done that was not in the plan — a breakdown, a repair (a "service report"); no job behind it. */
+  unplanned?: boolean;
+  /** The defect this (one-off) job put right. */
+  forDefectId?: string;
   updatedAt: number;
 }
 

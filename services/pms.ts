@@ -77,6 +77,22 @@ export function jobDue(job: PmsJob, machine: Machine | undefined, today = todayI
     d.status = over ? 'expired' : soon ? 'due' : 'ok';
     return d;
   }
+  // One-off: due by a date and / or a counter reading, once.
+  if (job.oneOff) {
+    const d: JobDue = { status: 'ok', noBaseline: false };
+    if (job.dueHours != null && machine?.hours != null) {
+      d.hoursLeft = job.dueHours - machine.hours;
+      const rate = hoursPerDay(machine.readings);
+      if (rate && rate > 0 && d.hoursLeft >= 0) d.estDaysForHours = Math.floor(d.hoursLeft / rate);
+    }
+    if (job.dueDate) d.daysLeft = daysBetween(today, job.dueDate);
+    if (d.hoursLeft == null && d.daysLeft == null) return { status: 'none', noBaseline: false };
+    d.by = d.daysLeft == null ? 'hours' : 'days';
+    const over = (d.hoursLeft != null && d.hoursLeft < 0) || (d.daysLeft != null && d.daysLeft < 0);
+    const soon = (d.hoursLeft != null && d.hoursLeft <= 25) || (d.daysLeft != null && d.daysLeft <= 7);
+    d.status = over ? 'expired' : soon ? 'due' : 'ok';
+    return d;
+  }
   const out: JobDue = { status: 'none', noBaseline: false };
   let hourFrac: number | undefined;
   let dayFrac: number | undefined;
@@ -117,6 +133,13 @@ export function dueText(d: JobDue): string {
   }
   if (d.daysLeft != null) parts.push(d.daysLeft < 0 ? `${Math.abs(d.daysLeft)} d overdue` : `${d.daysLeft} d left`);
   return pre + (parts.join(' · ') || 'No interval set');
+}
+
+/** "Every 500 h or 1 y", or "One-off — by 20 Oct 2026 or 4 500 h". */
+export function scheduleText(job: Pick<PmsJob, 'intervalHours' | 'intervalDays' | 'oneOff' | 'dueDate' | 'dueHours'>): string {
+  if (!job.oneOff) return `Every ${intervalText(job)}`;
+  const by = [job.dueDate ? job.dueDate.split('-').reverse().join('.') : null, job.dueHours != null ? `${job.dueHours} h` : null].filter(Boolean).join(' or ');
+  return by ? `One-off — by ${by}` : 'One-off';
 }
 
 export function intervalText(job: Pick<PmsJob, 'intervalHours' | 'intervalDays'>): string {

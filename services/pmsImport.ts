@@ -75,7 +75,7 @@ export function planRows(machines: Machine[], jobs: PmsJob[]): (string | number)
   const order = new Map(DEPTS.map((d, i) => [d.key, i]));
   const live = machines.filter((m) => !m.deleted).sort((a, b) => (order.get(deptOf(a))! - order.get(deptOf(b))!) || a.name.localeCompare(b.name));
   for (const m of live) {
-    const mj = jobs.filter((j) => j.machineId === m.id && !j.deleted).sort((a, b) => a.title.localeCompare(b.title));
+    const mj = jobs.filter((j) => j.machineId === m.id && !j.deleted && !j.oneOff).sort((a, b) => a.title.localeCompare(b.title));
     const sys = [DEPTS.find((d) => d.key === deptOf(m))!.label, m.name, m.critical ? 'Y' : '', hasCounter(m) ? 'Y' : 'N', m.location ?? '', m.maker ?? '', m.model ?? ''];
     if (!mj.length) out.push([...sys, '', '', '', '', '', '', '']);
     for (const j of mj) {

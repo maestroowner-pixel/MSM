@@ -11,7 +11,7 @@ import { CompressorState } from '../types/compressor';
 import { Inspection, InspectionPeriod } from '../types/inspection';
 import { CrewMember, CrewPrivate, liveCrew } from '../types/crew';
 import { RestDay } from '../types/rest';
-import { Machine, PmsDone, PmsJob, PmsDeferral, PmsDefect } from '../types/pms';
+import { Machine, PmsDone, PmsJob, PmsDeferral, PmsDefect , finishedOneOff } from '../types/pms';
 import { SpareMove, SparePart } from '../types/spares';
 import { DocAck, IsmDoc } from '../types/docs';
 import { Permit, RiskAssessment } from '../types/permits';
@@ -265,7 +265,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setCrew(liveCrew(await storage.loadCrew()));
     setRest(await storage.loadRest());
     setMachines((await storage.loadList<Machine>(storage.PMS_MACHINES_KEY)).filter((m) => !m.deleted));
-    setPmsJobs((await storage.loadList<PmsJob>(storage.PMS_JOBS_KEY)).filter((j) => !j.deleted));
+    setPmsJobs((await storage.loadList<PmsJob>(storage.PMS_JOBS_KEY)).filter((j) => !j.deleted && !finishedOneOff(j)));
     setPmsDone(await storage.loadList<PmsDone>(storage.PMS_DONE_KEY));
     setPmsDeferrals(await storage.loadList<PmsDeferral>(storage.PMS_DEFERRALS_KEY));
     setPmsDefects(await storage.loadList<PmsDefect>(storage.PMS_DEFECTS_KEY));
@@ -432,7 +432,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const loadPms = useCallback(async () => {
     setMachines((await storage.loadList<Machine>(storage.PMS_MACHINES_KEY)).filter((m) => !m.deleted));
-    setPmsJobs((await storage.loadList<PmsJob>(storage.PMS_JOBS_KEY)).filter((j) => !j.deleted));
+    setPmsJobs((await storage.loadList<PmsJob>(storage.PMS_JOBS_KEY)).filter((j) => !j.deleted && !finishedOneOff(j)));
     setPmsDone(await storage.loadList<PmsDone>(storage.PMS_DONE_KEY));
     setPmsDeferrals(await storage.loadList<PmsDeferral>(storage.PMS_DEFERRALS_KEY));
     setPmsDefects(await storage.loadList<PmsDefect>(storage.PMS_DEFECTS_KEY));

@@ -26,7 +26,7 @@ import { machineHistory, openDefects } from '../services/pmsHistory';
 import { exportPmsHistory } from '../services/pmsHistoryReport';
 import { SIZES, Palette } from '../theme';
 import { DEPTS, Machine, PmsJob, deptOf, hasCounter } from '../types/pms';
-import { activeDeferral, dueText, hoursPerDay, intervalText, jobDue, sortJobsByDue, todayIso, withReading } from '../services/pms';
+import { activeDeferral, dueText, hoursPerDay, jobDue, sortJobsByDue, todayIso, withReading, scheduleText } from '../services/pms';
 import { CATALOGUE } from '../services/pmsCatalogue';
 import { formatDate } from '../utils/dates';
 import { qtyText, stockByPart, stockStatus } from '../services/spares';
@@ -247,6 +247,14 @@ export default function MachineSc() {
               >
                 <Text style={styles.link}>+ Add job</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                onPress={async () => {
+                  if (await saveDetails()) nav.navigate('PmsJob', { id: uid('job'), machineId: id, isNew: true, oneOff: true });
+                }}
+                hitSlop={8}
+              >
+                <Text style={styles.link}>+ One-off</Text>
+              </TouchableOpacity>
             </View>
           </View>
           {showTypes ? (
@@ -266,7 +274,7 @@ export default function MachineSc() {
                 <View style={[styles.bar, { backgroundColor: statusColor(d.status) }]} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowTitle} numberOfLines={1}>{j.title}</Text>
-                  <Text style={styles.sub} numberOfLines={2}>{`Every ${intervalText(j)} · ${dueText(d)}`}</Text>
+                  <Text style={styles.sub} numberOfLines={2}>{`${scheduleText(j)} · ${dueText(d)}`}</Text>
                 </View>
                 {d.status !== 'none' ? <StatusPill status={d.status} /> : null}
               </TouchableOpacity>
@@ -323,10 +331,17 @@ export default function MachineSc() {
             </View>
           ) : null}
 
-          {history.length ? <Label>Recent work</Label> : null}
+          <View style={styles.jobsHead}>
+            <Label>{history.length ? 'Recent work' : 'Work done'}</Label>
+            {!isNew ? (
+              <TouchableOpacity onPress={() => nav.navigate('PmsJob', { id: uid('srv'), machineId: id, unplanned: true })} hitSlop={8}>
+                <Text style={styles.link}>+ Unplanned work</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
           {history.map((h) => (
             <View key={h.id} style={styles.hist}>
-              <Text style={styles.rowTitle} numberOfLines={1}>{h.jobTitle}</Text>
+              <Text style={styles.rowTitle} numberOfLines={1}>{`${h.unplanned ? 'Unplanned · ' : ''}${h.jobTitle}`}</Text>
               <Text style={styles.sub}>
                 {[formatDate(h.date), h.hours != null ? `${h.hours} h` : null, h.byRank ? `${h.by} (${h.byRank})` : h.by].filter(Boolean).join(' · ')}
               </Text>

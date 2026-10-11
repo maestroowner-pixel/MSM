@@ -8,7 +8,7 @@
 // ===================================
 
 import { DEFECT_CATEGORY, JOB_TYPE, Machine, PmsDefect, PmsDeferral, PmsDone, PmsJob, hasCounter } from '../types/pms';
-import { activeDeferral, dueText, intervalText, jobDue } from './pms';
+import { activeDeferral, dueText, jobDue, scheduleText } from './pms';
 
 export interface HistTable {
   title: string;
@@ -45,18 +45,18 @@ export function machineHistory(m: Machine, jobs: PmsJob[], done: PmsDone[], defe
   const tables: HistTable[] = [
     {
       title: 'Planned jobs',
-      head: ['Job', 'Type', 'Interval', 'Last done', 'Status', 'Next'],
+      head: ['Job', 'Type', 'Schedule', 'Last done', 'Status', 'Next'],
       widths: { 1: 30, 2: 30, 3: 34, 4: 22, 5: 70 },
       rows: mj.map((j) => {
         const d = jobDue(j, m, today, activeDeferral(j, deferrals));
-        return [j.title, j.type ? JOB_TYPE[j.type] : '', intervalText(j), [dmy(j.lastDoneDate), j.lastDoneHours != null ? `${j.lastDoneHours} h` : ''].filter(Boolean).join(' · '), d.deferred ? 'Deferred' : STATUS[d.status], dueText(d)];
+        return [j.title, j.type ? JOB_TYPE[j.type] : '', scheduleText(j).replace(/^Every /, ''), [dmy(j.lastDoneDate), j.lastDoneHours != null ? `${j.lastDoneHours} h` : ''].filter(Boolean).join(' · '), d.deferred ? 'Deferred' : STATUS[d.status], dueText(d)];
       }),
     },
     {
       title: 'Work done',
       head: ['Date', 'Job', 'Counter', 'Done and signed by', 'Note', 'Photos'],
       widths: { 0: 22, 2: 20, 3: 48, 5: 16 },
-      rows: md.map((d) => [dmy(d.date), d.jobTitle, d.hours != null ? `${d.hours} h` : '', `${who(d.by, d.byRank)}${d.signedWith ? ` · ${how(d.signedWith)}` : ''}`, [d.note, d.defectId ? 'Defect raised' : null].filter(Boolean).join(' · '), d.photos?.length ? String(d.photos.length) : '']),
+      rows: md.map((d) => [dmy(d.date), `${d.unplanned ? 'Unplanned: ' : ''}${d.jobTitle}`, d.hours != null ? `${d.hours} h` : '', `${who(d.by, d.byRank)}${d.signedWith ? ` · ${how(d.signedWith)}` : ''}`, [d.note, d.defectId ? 'Defect raised' : null].filter(Boolean).join(' · '), d.photos?.length ? String(d.photos.length) : '']),
     },
   ];
   if (mf.length) {

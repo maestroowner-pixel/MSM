@@ -76,10 +76,19 @@ export default function PmsJobSc() {
   const machineId: string = existing?.machineId ?? route.params?.machineId;
   const machine = machines.find((m) => m.id === machineId);
   const isNew = !existing;
+  // Work done that was not in the plan — recorded and signed straight away, no job behind it.
+  const unplanned = !!route.params?.unplanned;
   // Calendar-only systems (galley, network, hull) have no counter to ask about.
   const counter = machine ? hasCounter(machine) : true;
 
-  const [draft, setDraft] = useState<PmsJob>(existing ?? { id, machineId, title: '', updatedAt: Date.now() });
+  const [draft, setDraft] = useState<PmsJob>(
+    existing ?? {
+      id, machineId, title: route.params?.title ?? '',
+      ...(route.params?.oneOff ? { oneOff: true } : {}),
+      ...(route.params?.defectId ? { defectId: route.params.defectId } : {}),
+      updatedAt: Date.now(),
+    }
+  );
   const touched = useRef(false);
   useEffect(() => {
     if (existing && !touched.current) setDraft(existing);
@@ -92,7 +101,7 @@ export default function PmsJobSc() {
     setDraft((d) => ({ ...d, ...p }));
   };
 
-  const [doing, setDoing] = useState(false);
+  const [doing, setDoing] = useState(unplanned);
   const [doneDate, setDoneDate] = useState(todayIso());
   const [doneHours, setDoneHoursRaw] = useState(machine?.hours != null ? String(machine.hours) : '');
   const doneHoursTouched = useRef(false);
@@ -136,8 +145,14 @@ export default function PmsJobSc() {
   const onSave = async () => {
     if (!canPlan) return Alert.alert('Maintenance plan', PLAN_LOCKED);
     if (!draft.title.trim()) return Alert.alert('Title required', 'Say what the job is — "Oil and filter change".');
-    if (!draft.intervalHours && !draft.intervalDays) return Alert.alert('Interval', counter ? 'Give an interval in hours, in days, or both.' : 'Give an interval in days.');
-    await savePmsJob({ ...draft, title: draft.title.trim(), updatedAt: Date.now() });
+    if (draft.oneOff) {
+      if (!draft.dueDate && draft.dueHours == null) return Alert.alert('Due', counter ? 'Give the date, the counter reading, or both, it must be done by.' : 'Give the date it must be done by.');
+    } else if (!draft.intervalHours && !draft.intervalDays) return Alert.alert('Interval', counter ? 'Give an interval in hours, in days, or both.' : 'Give an interval in days.');
+    const { intervalHours, intervalDays, dueDate, dueHours, ...rest } = draft;
+    const clean: PmsJob = draft.oneOff
+      ? { ...rest, ...(dueDate ? { dueDate } : {}), ...(dueHours != null ? { dueHours } : {}) }
+      : { ...rest, ...(intervalHours ? { intervalHours } : {}), ...(intervalDays ? { intervalDays } : {}) };
+    await savePmsJob({ ...clean, title: draft.title.trim(), updatedAt: Date.now() });
     playSuccessSound();
     goBackOr(nav);
   };
@@ -156,10 +171,13 @@ export default function PmsJobSc() {
   };
 
   const onDone = async () => {
-    if (!existing) return Alert.alert('Save first', 'Save the job, then record it as done.');
+    if (!existing && !unplanned) return Alert.alert('Save first', 'Save the job, then record it as done.');
+    const jobTitle = unplanned ? draft.title.trim() : existing!.title;
+    if (!jobTitle) return Alert.alert('What was done?', 'Say what the work was — "Raw-water pump seal renewed".');
+    if (unplanned && !doneNote.trim()) return Alert.alert('Report', 'Describe the work in the note — what failed, what was done.');
     if (!signer) return Alert.alert('Who did it?', 'Choose your name.');
     const hours = num(doneHours);
-    if (counter && existing.intervalHours && hours == null) return Alert.alert('Counter', 'Enter the counter reading when the job was done.');
+    if (counter && (existing?.intervalHours || existing?.dueHours != null) && hours == null) return Alert.alert('Counter', 'Enter the counter reading when the job was done.');
     if (doneDate > todayIso()) return Alert.alert('Date', 'The date is in the future.');
     if (machine?.critical && !donePhotos.length) return Alert.alert('Evidence', 'Critical equipment: add at least one photo of the work — before and after, clearances, parts replaced.');
     if (defect && defect.description.trim().length < 3) return Alert.alert('Defect', 'Describe the defect found, or untick it.');
@@ -167,14 +185,16 @@ export default function PmsJobSc() {
       personKey: me && sync.me ? `device:${sync.me.id}` : signerId ?? signer.name,
       name: signer.name,
       ownDevice: !!me,
-      what: `Record "${existing.title}" as done`,
+      what: unplanned ? `Unplanned work on ${machine?.name ?? 'the machine'}: ${jobTitle}` : `Record "${jobTitle}" as done`,
     });
     if (!sig) return;
     const done: PmsDone = {
       id: uid('done'),
-      jobId: existing.id,
+      jobId: unplanned ? 'unplanned' : existing!.id,
       machineId,
-      jobTitle: existing.title,
+      jobTitle,
+      ...(unplanned ? { unplanned: true } : {}),
+      ...(existing?.defectId ? { forDefectId: existing.defectId } : {}),
       machineName: machine?.name ?? '',
       date: doneDate,
       hours,
@@ -188,7 +208,7 @@ export default function PmsJobSc() {
     };
     const found: PmsDefect | null = defect
       ? {
-          id: uid('dft'), machineId, machineName: machine?.name ?? '', jobId: existing.id, jobTitle: existing.title, doneId: done.id,
+          id: uid('dft'), machineId, machineName: machine?.name ?? '', ...(existing ? { jobId: existing.id } : {}), jobTitle, doneId: done.id,
           category: defect.category, description: defect.description.trim(), date: doneDate,
           by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: done.at, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: done.at,
         }
@@ -201,10 +221,14 @@ export default function PmsJobSc() {
           stock,
           { by: signer.name, byRank: signer.rank },
           doneDate,
-          { doneId: done.id, jobTitle: existing.title, machineName: machine?.name ?? '' }
+          { doneId: done.id, jobTitle, machineName: machine?.name ?? '' }
         )
       : [];
-    await completePmsJob(done, jobAfter(existing, done), moves);
+    if (existing) await completePmsJob(done, jobAfter(existing, done), moves);
+    else {
+      await appendRow(storage.PMS_DONE_KEY, done);
+      for (const mv of moves) await appendRow(storage.SPARE_MOVES_KEY, mv);
+    }
     if (found) await saveRow(storage.PMS_DEFECTS_KEY, found);
     if (donePhotos.length && vessel?.imo) await photoQueue.enqueueInspection(vessel.imo, done);
     if (machine && hours != null && (machine.hours == null || hours > machine.hours)) {
@@ -233,8 +257,8 @@ export default function PmsJobSc() {
     <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
-          <BackButton onPress={() => (doing ? setDoing(false) : goBackOr(nav))} />
-          <Text style={styles.headerTitle} numberOfLines={1}>{doing ? 'Record as done' : isNew ? 'New job' : 'Job'}</Text>
+          <BackButton onPress={() => (doing && !unplanned ? setDoing(false) : goBackOr(nav))} />
+          <Text style={styles.headerTitle} numberOfLines={1}>{unplanned ? 'Unplanned work' : doing ? 'Record as done' : isNew ? (draft.oneOff ? 'New one-off job' : 'New job') : draft.oneOff ? 'One-off job' : 'Job'}</Text>
           {doing || canPlan ? (
             <TouchableOpacity onPress={doing ? onDone : onSave} hitSlop={12}>
               <Text style={styles.save}>{doing ? 'Sign' : 'Save'}</Text>
@@ -279,7 +303,14 @@ export default function PmsJobSc() {
 
           {doing ? (
             <>
-              <Text style={styles.jobTitle}>{existing?.title}</Text>
+              {unplanned ? (
+                <>
+                  <Label>What was done ★</Label>
+                  <TextInput style={[styles.input, { marginBottom: SIZES.md }]} value={draft.title} onChangeText={(v) => set({ title: v })} placeholder="Raw-water pump seal renewed" placeholderTextColor={COLORS.textLight} />
+                </>
+              ) : (
+                <Text style={styles.jobTitle}>{existing?.title}</Text>
+              )}
               <View style={{ marginBottom: SIZES.md }}>
                 <SimpleDatePicker label="Done on" value={doneDate} onChange={setDoneDate} />
               </View>
@@ -361,10 +392,29 @@ export default function PmsJobSc() {
             <>
               {!canPlan ? <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>{PLAN_LOCKED}</Text> : null}
               <View pointerEvents={canPlan ? 'auto' : 'none'} style={!canPlan && { opacity: 0.6 }}>
+              {isNew ? (
+                <View style={[styles.chips, { marginTop: 0, marginBottom: SIZES.sm }]}>
+                  {[{ k: false, l: 'Recurring' }, { k: true, l: 'One-off (corrective)' }].map((o) => (
+                    <TouchableOpacity key={o.l} style={[styles.chip, !!draft.oneOff === o.k && styles.chipOn]} onPress={() => set({ oneOff: o.k || undefined })}>
+                      <Text style={[styles.chipText, !!draft.oneOff === o.k && styles.chipTextOn]}>{o.l}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : null}
               <Label>Job ★</Label>
               <TextInput style={styles.input} value={draft.title} onChangeText={(v) => set({ title: v })} placeholder="Oil and filter change" placeholderTextColor={COLORS.textLight} />
               <Dropdown caption="TYPE" value={draft.type ?? ''} onChange={(v) => set({ type: (v || undefined) as JobType | undefined })} options={[{ value: '', label: '—' }, ...(Object.keys(JOB_TYPE) as JobType[]).map((k) => ({ value: k, label: JOB_TYPE[k] }))]} style={{ marginTop: SIZES.sm }} />
               <View style={{ height: SIZES.md }} />
+              {draft.oneOff ? (
+                <>
+                  <Label>Must be done by</Label>
+                  <SimpleDatePicker label="Date" value={draft.dueDate} onChange={(v) => set({ dueDate: v })} />
+                  {counter ? (
+                    <TextInput style={[styles.input, { marginTop: SIZES.sm }]} value={draft.dueHours != null ? String(draft.dueHours) : ''} onChangeText={(v) => set({ dueHours: num(v) })} keyboardType="decimal-pad" placeholder={`…or by counter reading, h${machine?.hours != null ? ` (now ${machine.hours})` : ''}`} placeholderTextColor={COLORS.textLight} />
+                  ) : null}
+                  <Text style={styles.sub}>Done once. Recording it as done takes it off the plan; it stays in the machine's history.</Text>
+                </>
+              ) : (<>
               {counter ? (<>
               <Label>Every … running hours</Label>
               <TextInput
@@ -411,6 +461,7 @@ export default function PmsJobSc() {
                 </View> : null}
               </View>
               <Text style={styles.sub}>The starting point the next due date is counted from. After this, "Record as done" moves it for you.</Text>
+              </>)}
               <View style={{ height: SIZES.md }} />
               <Label>Notes (parts, consumables, maker's reference)</Label>
               <TextInput style={[styles.input, { minHeight: 70 }]} value={draft.notes ?? ''} onChangeText={(v) => set({ notes: v })} multiline placeholder="—" placeholderTextColor={COLORS.textLight} />
