@@ -23,6 +23,8 @@ import { Dropdown } from '../components/Dropdown';
 import { SignaturePad, SignatureView } from '../components/SignaturePad';
 import { useSigner } from '../components/SignerChoice';
 import { useSignConfirm } from '../components/SignConfirm';
+import { AmendButtons, AmendNote, useAmend } from '../components/Amend';
+import { current as latestVersions } from '../services/versions';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
@@ -48,8 +50,13 @@ export default function SecuritySc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
-  const { visitors, securityLevels, securityDrills, crewMoves, crew, vessel, saveRow, appendRow } = useData();
+  const { visitors, securityLevels, securityDrills, crewMoves, crew, vessel, saveRow, appendRow, versionsOf } = useData();
+  const amend = useAmend();
+  const allVisitors = versionsOf(storage.VISITORS_KEY) as Visitor[];
+  const allDrills = versionsOf(storage.SECURITY_DRILLS_KEY) as SecurityDrill[];
+  const visitorLine = (v: Visitor) => [v.company ? `${v.name} · ${v.company}` : v.name, `${v.timeIn} → ${v.timeOut ?? 'on board'}`, v.purpose, v.idNo ? `${v.idType} ${v.idNo}` : null, v.passNo ? `pass ${v.passNo}` : null].filter(Boolean).join(' · ');
   const sync = useSync();
+  const isMaster = !sync.enrolled || sync.role === 'superadmin';
   const confirmSign = useSignConfirm();
   const { signer, picker } = useSigner('WATCH');
   const officer = !sync.enrolled || roleAtLeast(sync.role, 'admin');
@@ -163,7 +170,8 @@ export default function SecuritySc() {
   const [byMonth, setByMonth] = useState(false);
   const [day, setDay] = useState(today);
   const period = byMonth ? day.slice(0, 7) : day;
-  const book = useMemo(() => visitsOf(visitors, period), [visitors, period]);
+  // The book as it stands: amended visits in their latest version, deleted ones struck through.
+  const book = useMemo(() => visitsOf(latestVersions(allVisitors), period), [allVisitors, period]);
   const bookMoves = useMemo(() => movesOf(crewMoves, period), [crewMoves, period]);
   const atEnd = period >= (byMonth ? today.slice(0, 7) : today);
   const shift = (n: number) => {
@@ -176,6 +184,7 @@ export default function SecuritySc() {
 
   // ---- drills ----
   const drills = useMemo(() => [...securityDrills].sort((a, b) => b.at - a.at), [securityDrills]);
+  const drillsShown = useMemo(() => latestVersions(allDrills).sort((a, b) => b.at - a.at), [allDrills]);
   const nextDue = drills[0] ? new Date(Date.parse(`${drills[0].date}T00:00:00Z`) + SECURITY_DRILL_DAYS * 86400000).toISOString().slice(0, 10) : null;
   const drillLate = !nextDue || nextDue < today;
   const [d, setD] = useState({ scenario: SECURITY_SCENARIOS[0], minutes: '', findings: '', team: [] as string[] });
@@ -314,22 +323,30 @@ export default function SecuritySc() {
               <MciIcon name="chevron-right" size={26} color={atEnd ? COLORS.border : COLORS.primary} />
             </TouchableOpacity>
             <Dropdown caption="SHOW" value={byMonth ? 'm' : 'd'} onChange={(v) => setByMonth(v === 'm')} options={[{ value: 'd', label: 'Day' }, { value: 'm', label: 'Month' }]} style={{ minWidth: 150 }} />
-            <TouchableOpacity style={styles.btnOutline} onPress={() => exportVisitorPdf(visitors, crewMoves, period, vessel).then(done, fail)}><Text style={styles.btnOutlineText}>PDF</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.btnOutline} onPress={() => exportVisitorExcel(visitors, crewMoves, period, vessel).then(done, fail)}><Text style={styles.btnOutlineText}>Excel</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btnOutline} onPress={() => exportVisitorPdf(latestVersions(allVisitors), crewMoves, period, vessel).then(done, fail)}><Text style={styles.btnOutlineText}>PDF</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btnOutline} onPress={() => exportVisitorExcel(latestVersions(allVisitors), crewMoves, period, vessel).then(done, fail)}><Text style={styles.btnOutlineText}>Excel</Text></TouchableOpacity>
           </View>
           {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{`✓ ${saved}`}</Text> : null}
 
           <Label>{`Visitors (${book.length})`}</Label>
           {book.map((v, i) => (
-            <View key={v.id} style={styles.row}>
+            <View key={v.id} style={[styles.row, v.cancelled && { opacity: 0.6 }]}>
               <Text style={styles.no}>{i + 1}</Text>
               <View style={{ flex: 1 }}>
-                <Text style={styles.name}>{v.company ? `${v.name} · ${v.company}` : v.name}</Text>
+                <Text style={[styles.name, v.cancelled && { textDecorationLine: 'line-through' }]}>{v.company ? `${v.name} · ${v.company}` : v.name}</Text>
                 <Text style={styles.sub}>
                   {[byMonth ? formatDate(v.date) : null, `${v.timeIn} → ${v.timeOut ?? 'on board'}`, v.purpose, v.idNo ? `${v.idType} ${v.idNo}` : null, v.passNo ? `pass ${v.passNo}` : null, v.host ? `with ${v.host}` : null, `watch ${v.outBy && v.outBy !== v.inBy ? `${v.inBy} / ${v.outBy}` : v.inBy}`].filter(Boolean).join(' · ')}
                 </Text>
+                <AmendNote rec={v} all={allVisitors} summary={visitorLine} />
               </View>
               {v.signature ? <SignatureView path={v.signature} height={34} /> : null}
+              {!v.cancelled ? (
+                <AmendButtons
+                  isMaster={isMaster}
+                  onEdit={() => amend.edit({ store: storage.VISITORS_KEY, record: v, what: `Visitor ${v.name}, ${formatDate(v.date)}`, fields: [{ key: 'name', label: 'Name' }, { key: 'company', label: 'Company' }, { key: 'purpose', label: 'Purpose' }, { key: 'idType', label: 'ID document' }, { key: 'idNo', label: 'Document No.' }, { key: 'passNo', label: 'Pass No.' }, { key: 'host', label: 'Host' }, { key: 'timeIn', label: 'Time in (hh:mm)' }, { key: 'timeOut', label: 'Time out (hh:mm)' }, { key: 'remarks', label: 'Remarks', kind: 'multiline' }] })}
+                  onDelete={() => amend.remove({ store: storage.VISITORS_KEY, record: v, what: `Visitor ${v.name}, ${formatDate(v.date)}` })}
+                />
+              ) : null}
             </View>
           ))}
           {!book.length ? <Text style={styles.sub}>No visitors.</Text> : null}
@@ -361,17 +378,26 @@ export default function SecuritySc() {
             <TextInput style={styles.input} value={d.findings} onChangeText={(v) => setD({ ...d, findings: v })} placeholder="Areas searched, findings, what to improve" placeholderTextColor={COLORS.textLight} multiline />
             <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }]} onPress={() => void saveDrill()}><Text style={styles.btnText}>Sign the drill</Text></TouchableOpacity>
           </Card>
-          {drills.map((x) => (
-            <View key={x.id} style={styles.row}>
+          {drillsShown.map((x) => (
+            <View key={x.id} style={[styles.row, x.cancelled && { opacity: 0.6 }]}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.name}>{x.scenario}</Text>
+                <Text style={[styles.name, x.cancelled && { textDecorationLine: 'line-through' }]}>{x.scenario}</Text>
                 <Text style={styles.sub}>{[`${formatDate(x.date)} ${x.time ?? ''}`, `${x.participants.length} took part`, x.minutes ? `${x.minutes} min` : null, x.byRank ? `${x.by} (${x.byRank})` : x.by].filter(Boolean).join(' · ')}</Text>
                 {x.findings ? <Text style={styles.sub}>{x.findings}</Text> : null}
+                <AmendNote rec={x} all={allDrills} summary={(p) => [p.scenario, formatDate(p.date), p.minutes ? `${p.minutes} min` : null, p.findings].filter(Boolean).join(' · ')} />
               </View>
+              {!x.cancelled ? (
+                <AmendButtons
+                  isMaster={isMaster}
+                  onEdit={() => amend.edit({ store: storage.SECURITY_DRILLS_KEY, record: x, what: `Security drill ${formatDate(x.date)}`, fields: [{ key: 'scenario', label: 'Scenario' }, { key: 'minutes', label: 'Minutes', kind: 'number' }, { key: 'findings', label: 'Areas searched, findings', kind: 'multiline' }] })}
+                  onDelete={() => amend.remove({ store: storage.SECURITY_DRILLS_KEY, record: x, what: `Security drill ${formatDate(x.date)}` })}
+                />
+              ) : null}
             </View>
           ))}
         </>
       )}
+      {amend.ui}
     </Screen>
   );
 }

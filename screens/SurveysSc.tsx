@@ -12,6 +12,8 @@ import { Alert, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } fr
 import { Card, Empty, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { useSignConfirm } from '../components/SignConfirm';
+import { AmendButtons, AmendNote, useAmend } from '../components/Amend';
+import { current as latestVersions } from '../services/versions';
 import { useSigner } from '../components/SignerChoice';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
@@ -31,9 +33,13 @@ const isIso = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(
 export default function SurveysSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { surveys, surveysDone, saveRow, appendRow } = useData();
+  const { surveys, surveysDone, saveRow, appendRow, versionsOf } = useData();
+  const amend = useAmend();
+  const allDone = versionsOf(storage.SURVEYS_DONE_KEY) as SurveyDone[];
+  const doneLine = (h: SurveyDone) => [formatDate(h.date), h.ref ? `No. ${h.ref}` : null, h.byRank ? `${h.by} (${h.byRank})` : h.by, h.note].filter(Boolean).join(' · ');
   const sync = useSync();
   const canEdit = !sync.enrolled || roleAtLeast(sync.role, 'admin');
+  const isMaster = !sync.enrolled || sync.role === 'superadmin';
   const confirmSign = useSignConfirm();
   const { signer, picker } = useSigner();
   const today = todayIso();
@@ -154,7 +160,7 @@ export default function SurveysSc() {
 
       {!rows.length && !edit ? <Empty text={canEdit ? 'Nothing planned yet. Tap + Add and choose the surveys and audits that apply to the vessel.' : 'Nothing planned yet.'} /> : null}
       {rows.map(({ s, st }) => {
-        const hist = surveysDone.filter((d) => d.surveyId === s.id).sort((a, b) => b.date.localeCompare(a.date));
+        const hist = latestVersions(allDone).filter((d) => d.surveyId === s.id).sort((a, b) => b.date.localeCompare(a.date));
         return (
           <View key={s.id} style={[styles.item, { borderLeftColor: color[st.state] }]}>
             <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm }} onPress={() => setOpen(open === s.id ? null : s.id)} activeOpacity={0.7}>
@@ -170,7 +176,32 @@ export default function SurveysSc() {
             </TouchableOpacity>
             {open === s.id ? (
               hist.length ? (
-                hist.map((h) => <Text key={h.id} style={styles.hist}>{[formatDate(h.date), h.ref ? `No. ${h.ref}` : null, h.byRank ? `${h.by} (${h.byRank})` : h.by, h.note].filter(Boolean).join(' · ')}</Text>)
+                hist.map((h) => (
+                  <View key={h.id} style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.hist, h.cancelled && { textDecorationLine: 'line-through', color: COLORS.textLight }]}>{doneLine(h)}</Text>
+                      <AmendNote rec={h} all={allDone} summary={doneLine} />
+                    </View>
+                    {!h.cancelled ? (
+                      <AmendButtons
+                        row
+                        isMaster={isMaster}
+                        onEdit={() => amend.edit({ store: storage.SURVEYS_DONE_KEY, record: h, what: `${h.name} — carried out ${formatDate(h.date)}`, fields: [{ key: 'date', label: 'Date carried out (yyyy-mm-dd)' }, { key: 'ref', label: 'Report / endorsement No.' }, { key: 'note', label: 'Findings, remarks', kind: 'multiline' }] })}
+                        onDelete={() =>
+                          amend.remove({
+                            store: storage.SURVEYS_DONE_KEY,
+                            record: h,
+                            what: `${h.name} — carried out ${formatDate(h.date)}`,
+                            // It did not happen: the plan goes back to the date it answered.
+                            onDone: async () => {
+                              if (s.repeat && s.due === nextDue({ ...s, due: h.forDue }, h.date)) await saveRow(storage.SURVEYS_KEY, { ...s, due: h.forDue });
+                            },
+                          })
+                        }
+                      />
+                    ) : null}
+                  </View>
+                ))
               ) : (
                 <Text style={styles.hist}>Not carried out in the app yet.</Text>
               )
@@ -178,6 +209,7 @@ export default function SurveysSc() {
           </View>
         );
       })}
+      {amend.ui}
     </Screen>
   );
 }

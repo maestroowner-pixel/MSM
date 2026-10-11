@@ -12,6 +12,7 @@
 
 import type { SignProof } from '../services/signature';
 
+import type { Versioned } from '../services/versions';
 export interface SopepItem {
   id: string;
   name: string;
@@ -24,7 +25,7 @@ export interface SopepItem {
   updatedAt: number;
 }
 
-export interface SopepCheck {
+export interface SopepCheck extends Versioned {
   id: string;
   date: string;
   /** Counted quantity by item id. */
@@ -39,7 +40,7 @@ export interface SopepCheck {
   updatedAt: number;
 }
 
-export interface SopepDrill {
+export interface SopepDrill extends Versioned {
   id: string;
   date: string;
   time?: string;

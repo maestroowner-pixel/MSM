@@ -13,6 +13,15 @@ the part that stops the next person undoing it.
 
 ## Unreleased
 
+- **Edit / Delete in every log — Master only, reason + signature, versions kept.** services/versions.ts
+  (`current`, `live`, `previous`, `amended`, `cancelled`) + components/Amend.tsx (dialog with the
+  record's fields, reason ★, signer, confirmed signature; AmendButtons greyed out for non-Masters;
+  AmendNote with the history). Fuel (soundings — today's no longer overwritten — bunkerings,
+  transfers), SOPEP (checks, drills), gangway visitor log (PDF/Excel marked), security drills,
+  surveys carried out (deleting one moves the plan back). DataContext gives live lists to every
+  calculation and `versionsOf(key)` for the history. Rules: a version (`supersedes`) is the
+  Master's in all of them; fuel records updated by the Master only; visitors' sign-off still open
+  to the watch. Garbage: the four total tiles removed. Rules 67/67, `check:versions`.
 - **Garbage Edit / Delete: Master only.** Greyed-out, disabled buttons for everyone else; rules: a version carrying `supersedes` is created by the Master only. Rules 61/61.
 - **Garbage: Edit and Delete with reason and signature.** Versions kept append-only: an amendment is a new entry `supersedes` the old one with `editReason`; Delete is a `cancelled` version (struck through, out of the totals). Both need a reason and a confirmed signature. "Amended / Cancelled … by … — reason · n earlier versions" with the history on tap; PDF/Excel remarks say so. `currentEntries`, `previousVersions` tested; board and month counts use the current book.
 - **Every signature is confirmed** (PIN / fingerprint / by hand) whenever `signConfirm` is on — the Settings switch is gone (an info line instead). Fuel soundings, bunkerings and transfers and defect rectifications now go through it too and keep `signedWith` / `closedWith`.

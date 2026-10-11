@@ -13,6 +13,7 @@
 
 import type { SignProof } from '../services/signature';
 
+import type { Versioned } from '../services/versions';
 export interface FuelTank {
   id: string;
   name: string;
@@ -25,7 +26,7 @@ export interface FuelTank {
 }
 
 /** The day's soundings: litres remaining on board, tank by tank. */
-export interface FuelReading {
+export interface FuelReading extends Versioned {
   /** `rob_<yyyy-mm-dd>` — one per day. */
   id: string;
   date: string;
@@ -41,7 +42,7 @@ export interface FuelReading {
   updatedAt: number;
 }
 
-export interface FuelBunker {
+export interface FuelBunker extends Versioned {
   id: string;
   date: string;
   /** Local time, "14:30". */
@@ -66,7 +67,7 @@ export interface FuelBunker {
   updatedAt: number;
 }
 
-export interface FuelTransfer {
+export interface FuelTransfer extends Versioned {
   id: string;
   date: string;
   time?: string;

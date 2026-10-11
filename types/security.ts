@@ -11,7 +11,8 @@
 
 import type { SignProof } from '../services/signature';
 
-export interface Visitor {
+import type { Versioned } from '../services/versions';
+export interface Visitor extends Versioned {
   id: string;
   date: string;
   /** hh:mm */
@@ -68,7 +69,7 @@ export interface SecurityLevelRec {
 }
 
 /** A security drill (ISPS Code A/13.4, B/13.6: at least every three months). */
-export interface SecurityDrill {
+export interface SecurityDrill extends Versioned {
   id: string;
   date: string;
   time?: string;

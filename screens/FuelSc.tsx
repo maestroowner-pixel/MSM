@@ -13,6 +13,10 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { FuelDaily } from '../components/FuelDaily';
 import { MonthPicker } from '../components/MonthPicker';
 import { useSignConfirm } from '../components/SignConfirm';
+import { AmendButtons, AmendNote, useAmend } from '../components/Amend';
+import { useSync } from '../contexts/SyncContext';
+import { current } from '../services/versions';
+import * as storage from '../services/storage';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { Card, Empty, Label, Screen, ScreenTitle } from '../components/ui';
@@ -45,7 +49,16 @@ type Panel = 'none' | 'bunker' | 'transfer' | 'tanks';
 export default function FuelSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { fuelTanks: tanks, fuelReadings, fuelBunkers, fuelTransfers, saveFuel, vessel } = useData();
+  const { fuelTanks: tanks, fuelReadings, fuelBunkers, fuelTransfers, saveFuel, vessel, versionsOf } = useData();
+  const sync = useSync();
+  const isMaster = !sync.enrolled || sync.role === 'superadmin';
+  const amend = useAmend();
+  const allReadings = versionsOf(storage.FUEL_READINGS_KEY) as FuelReading[];
+  const allBunkers = versionsOf(storage.FUEL_BUNKERS_KEY) as FuelBunker[];
+  const allTransfers = versionsOf(storage.FUEL_TRANSFERS_KEY) as FuelTransfer[];
+  const tankFields = () => tanks.map((t) => ({ key: `tanks.${t.id}`, label: `${t.name}, litres`, kind: 'number' as const }));
+  const editReading = (r: FuelReading) => amend.edit({ store: storage.FUEL_READINGS_KEY, record: r, what: `Fuel sounding ${formatDate(r.date)}`, fields: tankFields() });
+  const removeReading = (r: FuelReading) => amend.remove({ store: storage.FUEL_READINGS_KEY, record: r, what: `Fuel sounding ${formatDate(r.date)}` });
   const { signer, picker } = useSigner();
   const today = todayIso();
   const [month, setMonth] = useState(today.slice(0, 7));
@@ -199,15 +212,20 @@ export default function FuelSc() {
         {tanks.map((t) => (
           <View key={t.id} style={styles.tankRow}>
             <Text style={styles.tankName} numberOfLines={1}>{t.name}</Text>
-            <TextInput style={styles.litres} value={robValue(t)} onChangeText={(v) => setRob({ ...rob, [t.id]: v })} keyboardType="decimal-pad" placeholder="litres" placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.litres, todays && { opacity: 0.7 }]} value={robValue(t)} onChangeText={(v) => setRob({ ...rob, [t.id]: v })} editable={!todays} keyboardType="decimal-pad" placeholder="litres" placeholderTextColor={COLORS.textLight} />
             {t.capacity && num(robValue(t)) != null ? <Text style={styles.pct}>{`${Math.round((num(robValue(t))! / t.capacity) * 100)} %`}</Text> : <View style={{ width: 44 }} />}
           </View>
         ))}
         <View style={styles.totalRow}>
           <Text style={styles.total}>{`ROB ${nf(tanks.reduce((n, t) => n + (num(robValue(t)) ?? 0), 0))}`}</Text>
-          <TouchableOpacity style={styles.btn} onPress={() => void saveSounding()}>
-            <Text style={styles.btnText}>{todays ? 'Update' : 'Save sounding'}</Text>
-          </TouchableOpacity>
+          {/* Once signed, today's sounding is changed like any record: the Master, a reason, a signature. */}
+          {todays ? (
+            <AmendButtons row isMaster={isMaster} onEdit={() => editReading(todays)} onDelete={() => removeReading(todays)} />
+          ) : (
+            <TouchableOpacity style={styles.btn} onPress={() => void saveSounding()}>
+              <Text style={styles.btnText}>Save sounding</Text>
+            </TouchableOpacity>
+          )}
         </View>
         {picker ? (
           <>
@@ -238,6 +256,7 @@ export default function FuelSc() {
         <View style={styles.table}>
           <View style={[styles.tr, styles.th]}>
             {['Date', 'ROB', 'Received', 'Consumed'].map((h) => <Text key={h} style={[styles.td, styles.thText]}>{h}</Text>)}
+            <View style={{ width: 96 }} />
           </View>
           {shownDays.map((d) => (
             <View key={d.date} style={styles.tr}>
@@ -247,6 +266,12 @@ export default function FuelSc() {
               <Text style={[styles.td, d.suspect && { color: COLORS.danger, fontWeight: '700' }]}>
                 {d.consumed == null ? '' : `${nf(d.consumed)}${d.span && d.span > 1 ? ` · ${d.span} d` : ''}${d.suspect ? ' ⚠ check' : ''}`}
               </Text>
+              <View style={{ width: 96, alignItems: 'flex-end' }}>
+                {(() => {
+                  const r = fuelReadings.find((x) => x.date === d.date);
+                  return r ? <AmendButtons row isMaster={isMaster} onEdit={() => editReading(r)} onDelete={() => removeReading(r)} /> : null;
+                })()}
+              </View>
             </View>
           ))}
         </View>
@@ -316,23 +341,50 @@ export default function FuelSc() {
         </Card>
       ) : null}
 
-      {m.bunkers.length ? (
+      {current(allReadings).filter((r) => r.supersedes && r.date.startsWith(month)).map((r) => (
+        <View key={r.id} style={styles.entry}>
+          <Text style={[styles.entryHead, r.cancelled && { textDecorationLine: 'line-through' }]}>{`Sounding ${formatDate(r.date)} · ROB ${nf(robTotal(r, tanks))}`}</Text>
+          <AmendNote rec={r} all={allReadings} summary={(p) => `${formatDate(p.date)} · ROB ${nf(robTotal(p, tanks))} · ${p.by}`} />
+        </View>
+      ))}
+      {current(allBunkers).some((b) => b.date.startsWith(month)) ? (
         <>
           <Label>Bunkering this month — Oil Record Book entries</Label>
-          {m.bunkers.map((b) => (
-            <View key={b.id} style={styles.entry}>
-              <Text style={styles.entryHead}>{`${formatDate(b.date)} · ${nf(b.litres)} · ${b.port} · ${b.by}`}</Text>
-              <Text style={styles.orb} selectable>{orbBunkerLine(b, tanks)}</Text>
+          {current(allBunkers).filter((b) => b.date.startsWith(month)).sort((a, b) => a.date.localeCompare(b.date)).map((b) => (
+            <View key={b.id} style={[styles.entry, { flexDirection: 'row', gap: SIZES.sm }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.entryHead, b.cancelled && { textDecorationLine: 'line-through' }]}>{`${formatDate(b.date)} · ${nf(b.litres)} · ${b.port} · ${b.by}`}</Text>
+                <Text style={[styles.orb, b.cancelled && { textDecorationLine: 'line-through' }]} selectable>{orbBunkerLine(b, tanks)}</Text>
+                <AmendNote rec={b} all={allBunkers} summary={(p) => `${formatDate(p.date)} · ${nf(p.litres)} · ${p.port} · ${p.by}`} />
+              </View>
+              {!b.cancelled ? (
+                <AmendButtons
+                  isMaster={isMaster}
+                  onEdit={() => amend.edit({ store: storage.FUEL_BUNKERS_KEY, record: b, what: `Bunkering ${formatDate(b.date)} at ${b.port}`, fields: [{ key: 'port', label: 'Port' }, { key: 'supplier', label: 'Supplier' }, { key: 'litres', label: 'Litres received', kind: 'number' }, ...tanks.map((t) => ({ key: `into.${t.id}`, label: `Into ${t.name}, litres`, kind: 'number' as const })), { key: 'density', label: 'Density kg/L @15 °C', kind: 'number' }, { key: 'sulphur', label: 'Sulphur % m/m', kind: 'number' }, { key: 'bdnNo', label: 'BDN No.' }, { key: 'note', label: 'Note', kind: 'multiline' }] })}
+                  onDelete={() => amend.remove({ store: storage.FUEL_BUNKERS_KEY, record: b, what: `Bunkering ${formatDate(b.date)} at ${b.port}` })}
+                />
+              ) : null}
             </View>
           ))}
         </>
       ) : null}
-      {m.transfers.length ? (
+      {current(allTransfers).some((t) => t.date.startsWith(month)) ? (
         <>
           <Label>Transfers this month</Label>
-          {m.transfers.map((t) => <Text key={t.id} style={styles.sub}>{`${formatDate(t.date)} — ${transferText(t, tanks)} · ${t.by}`}</Text>)}
+          {current(allTransfers).filter((t) => t.date.startsWith(month)).map((t) => (
+            <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginBottom: 4 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.sub, t.cancelled && { textDecorationLine: 'line-through' }]}>{`${formatDate(t.date)} — ${transferText(t, tanks)} · ${t.by}`}</Text>
+                <AmendNote rec={t} all={allTransfers} summary={(p) => `${formatDate(p.date)} — ${transferText(p, tanks)} · ${p.by}`} />
+              </View>
+              {!t.cancelled ? (
+                <AmendButtons row isMaster={isMaster} onEdit={() => amend.edit({ store: storage.FUEL_TRANSFERS_KEY, record: t, what: `Transfer ${formatDate(t.date)}`, fields: [{ key: 'litres', label: 'Litres', kind: 'number' }, { key: 'note', label: 'Note', kind: 'multiline' }] })} onDelete={() => amend.remove({ store: storage.FUEL_TRANSFERS_KEY, record: t, what: `Transfer ${formatDate(t.date)}` })} />
+              ) : null}
+            </View>
+          ))}
         </>
       ) : null}
+      {amend.ui}
     </Screen>
   );
 }

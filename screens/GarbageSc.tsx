@@ -46,7 +46,6 @@ export default function GarbageSc() {
 
   const m = useMemo(() => garbageMonth(garbage, month), [garbage, month]);
   const sign = garbageSigns.find((s) => s.month === month);
-  const byMethod = (k: GarbageMethod) => Math.round(m.entries.filter((e) => e.method === k && !e.cancelled).reduce((n, e) => n + e.volume, 0) * 1000) / 1000;
 
   // ---- new entry ----
   // Several categories in one operation, each with its amount (m³ as typed).
@@ -153,15 +152,6 @@ export default function GarbageSc() {
         help="Garbage Record Book"
         actions={<MonthPicker value={month} onChange={setMonth} months={[...new Set(garbage.map((e) => e.date.slice(0, 7)))]} counts={currentEntries(garbage).reduce((c: Record<string, number>, e) => ((c[e.date.slice(0, 7)] = (c[e.date.slice(0, 7)] ?? 0) + 1), c), {})} />}
       />
-
-      <View style={styles.stats}>
-        {([['To reception facility', 'shore'], ['Incinerated', 'incineration'], ['Into sea', 'sea'], ['Accidental', 'accidental']] as [string, GarbageMethod][]).map(([l, k]) => (
-          <View key={k} style={styles.stat}>
-            <Text style={[styles.statVal, k === 'accidental' && byMethod(k) ? { color: COLORS.danger } : null]}>{`${byMethod(k)} m³`}</Text>
-            <Text style={styles.sub}>{l}</Text>
-          </View>
-        ))}
-      </View>
 
       <View style={styles.row}>
         <TouchableOpacity style={styles.btn} onPress={() => { setAdding((v) => !v); setEditing(null); setReason(''); setF(blank); }}><Text style={styles.btnText}>{adding ? 'Close' : '+ New entry'}</Text></TouchableOpacity>

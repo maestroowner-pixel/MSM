@@ -12,6 +12,7 @@
 //   SurveyDone   one occasion it was carried out — append-only, the history.
 // ===================================
 
+import type { Versioned } from '../services/versions';
 export interface Survey {
   id: string;
   name: string;
@@ -32,7 +33,7 @@ export interface Survey {
   updatedAt: number;
 }
 
-export interface SurveyDone {
+export interface SurveyDone extends Versioned {
   id: string;
   surveyId: string;
   name: string;

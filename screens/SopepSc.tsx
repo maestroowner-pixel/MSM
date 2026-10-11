@@ -15,6 +15,9 @@ import { Card, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { useSignConfirm } from '../components/SignConfirm';
 import { useSigner } from '../components/SignerChoice';
+import { AmendButtons, AmendNote, useAmend } from '../components/Amend';
+import { useSync } from '../contexts/SyncContext';
+import { current } from '../services/versions';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
@@ -33,7 +36,13 @@ const SCENARIOS = ['Overflow / spill during bunkering', 'Hydraulic oil leak on d
 export default function SopepSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { sopepItems: items, sopepChecks, sopepDrills, crew, saveRow, appendRow } = useData();
+  const { sopepItems: items, sopepChecks, sopepDrills, crew, saveRow, appendRow, versionsOf } = useData();
+  const sync = useSync();
+  const isMaster = !sync.enrolled || sync.role === 'superadmin';
+  const amend = useAmend();
+  const allChecks = versionsOf(storage.SOPEP_CHECKS_KEY) as SopepCheck[];
+  const allDrills = versionsOf(storage.SOPEP_DRILLS_KEY) as SopepDrill[];
+  const checkLine = (c: SopepCheck) => `${formatDate(c.date)} · ${c.by}${items.filter((i) => (c.counted[i.id] ?? 0) < i.required).length ? ` · ${items.filter((i) => (c.counted[i.id] ?? 0) < i.required).length} short` : ' · complete'}${c.remarks ? ` · ${c.remarks}` : ''}`;
   const confirmSign = useSignConfirm();
   const { signer, picker } = useSigner();
   const [tab, setTab] = useState<Tab>('locker');
@@ -159,9 +168,22 @@ export default function SopepSc() {
           <TextInput style={styles.input} value={remarks} onChangeText={setRemarks} placeholder="Remarks" placeholderTextColor={COLORS.textLight} />
           {picker ? <><Text style={styles.sub}>Checked by</Text>{picker}</> : null}
           <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void saveCheck()}><Text style={styles.btnText}>Sign the check</Text></TouchableOpacity>
-          {sopepChecks.length ? <Label>Previous checks</Label> : null}
-          {[...sopepChecks].sort((a, b) => b.at - a.at).map((c) => (
-            <Text key={c.id} style={styles.sub}>{`${formatDate(c.date)} · ${c.by}${items.filter((i) => (c.counted[i.id] ?? 0) < i.required).length ? ` · ${items.filter((i) => (c.counted[i.id] ?? 0) < i.required).length} short` : ' · complete'}${c.remarks ? ` · ${c.remarks}` : ''}`}</Text>
+          {allChecks.length ? <Label>Previous checks</Label> : null}
+          {current(allChecks).sort((a, b) => b.at - a.at).map((c) => (
+            <View key={c.id} style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginBottom: 4 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.sub, c.cancelled && { textDecorationLine: 'line-through' }]}>{checkLine(c)}</Text>
+                <AmendNote rec={c} all={allChecks} summary={checkLine} />
+              </View>
+              {!c.cancelled ? (
+                <AmendButtons
+                  row
+                  isMaster={isMaster}
+                  onEdit={() => amend.edit({ store: storage.SOPEP_CHECKS_KEY, record: c, what: `SOPEP check ${formatDate(c.date)}`, fields: [...items.map((i) => ({ key: `counted.${i.id}`, label: `${i.name} (${i.required} ${i.unit ?? ''})`, kind: 'number' as const })), { key: 'remarks', label: 'Remarks', kind: 'multiline' }] })}
+                  onDelete={() => amend.remove({ store: storage.SOPEP_CHECKS_KEY, record: c, what: `SOPEP check ${formatDate(c.date)}` })}
+                />
+              ) : null}
+            </View>
           ))}
         </Card>
       ) : (
@@ -183,17 +205,26 @@ export default function SopepSc() {
             {picker ? <><Text style={styles.sub}>Drill conducted by</Text>{picker}</> : null}
             <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void saveDrill()}><Text style={styles.btnText}>Sign the drill</Text></TouchableOpacity>
           </Card>
-          {[...sopepDrills].sort((a, b) => b.at - a.at).map((x) => (
-            <View key={x.id} style={styles.item}>
+          {current(allDrills).sort((a, b) => b.at - a.at).map((x) => (
+            <View key={x.id} style={[styles.item, x.cancelled && { opacity: 0.6 }]}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.itemTitle}>{x.scenario}</Text>
+                <Text style={[styles.itemTitle, x.cancelled && { textDecorationLine: 'line-through' }]}>{x.scenario}</Text>
                 <Text style={styles.sub}>{[`${formatDate(x.date)} ${x.time ?? ''}`, `${x.participants.length} took part`, x.minutes ? `${x.minutes} min` : null, x.by].filter(Boolean).join(' · ')}</Text>
                 {x.lessons ? <Text style={styles.sub}>{x.lessons}</Text> : null}
+                <AmendNote rec={x} all={allDrills} summary={(p) => [p.scenario, formatDate(p.date), p.minutes ? `${p.minutes} min` : null, p.lessons].filter(Boolean).join(' · ')} />
               </View>
+              {!x.cancelled ? (
+                <AmendButtons
+                  isMaster={isMaster}
+                  onEdit={() => amend.edit({ store: storage.SOPEP_DRILLS_KEY, record: x, what: `Oil-spill drill ${formatDate(x.date)}`, fields: [{ key: 'scenario', label: 'Scenario' }, { key: 'minutes', label: 'Minutes', kind: 'number' }, { key: 'lessons', label: 'Lessons learned, actions', kind: 'multiline' }] })}
+                  onDelete={() => amend.remove({ store: storage.SOPEP_DRILLS_KEY, record: x, what: `Oil-spill drill ${formatDate(x.date)}` })}
+                />
+              ) : null}
             </View>
           ))}
         </>
       )}
+      {amend.ui}
     </Screen>
   );
 }

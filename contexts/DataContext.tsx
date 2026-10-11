@@ -19,6 +19,7 @@ import { FuelBunker, FuelDailySent, FuelReading, FuelTank, FuelTransfer } from '
 import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
 import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
 import { Survey, SurveyDone } from '../types/survey';
+import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
 import { ChecklistTemplate } from '../constants/checklists';
 import { CategoryMeta, setVesselCategories } from '../constants/categories';
@@ -33,6 +34,9 @@ import { onEntitlementChange } from '../services/purchases';
 import { DEFAULT_POLICY, SigningPolicy } from '../services/signingPolicy';
 import { DEFAULT_ARCHIVE, PhotoArchiveState } from '../services/photoArchive';
 import { setSoundsMuted } from '../utils/sound';
+
+/** The logs whose records are changed by versions (Edit / Delete, Master only). */
+const VERSIONED_KEYS = [storage.FUEL_READINGS_KEY, storage.FUEL_BUNKERS_KEY, storage.FUEL_TRANSFERS_KEY, storage.SOPEP_CHECKS_KEY, storage.SOPEP_DRILLS_KEY, storage.VISITORS_KEY, storage.SECURITY_DRILLS_KEY, storage.SURVEYS_DONE_KEY];
 
 interface DataContextType {
   loading: boolean;
@@ -108,6 +112,11 @@ interface DataContextType {
   /** Surveys & audits — the plan (edited) and the occasions carried out (append-only). */
   surveys: Survey[];
   surveysDone: SurveyDone[];
+  /**
+   * Every version of an amendable log (services/versions) by storage key. The
+   * lists above (fuelReadings, visitors…) hold only the live versions.
+   */
+  versionsOf: (key: string) => any[];
   /** Upsert (lists edited in place) or append (records) by storage key. */
   saveRow: <T extends { id: string }>(key: string, row: T) => Promise<void>;
   appendRow: <T extends { id: string }>(key: string, row: T) => Promise<void>;
@@ -195,6 +204,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [crewMoves, setCrewMoves] = useState<CrewMove[]>([]);
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [surveysDone, setSurveysDone] = useState<SurveyDone[]>([]);
+  // Every version of the logs that can be amended — for the history and the struck-through lines.
+  const [versions, setVersions] = useState<Record<string, any[]>>({});
+  const versionsOf = useCallback((key: string) => versions[key] ?? [], [versions]);
   const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
   const [categories, setCategories] = useState<CategoryMeta[]>([]);
   const [recentScans, setRecentScans] = useState<ScanEntry[]>([]);
@@ -239,21 +251,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setPermits((await storage.loadList<Permit>(storage.PERMITS_KEY)).filter((x) => !x.deleted));
     setRisks((await storage.loadList<RiskAssessment>(storage.RISKS_KEY)).filter((x) => !x.deleted));
     setFuelTanks((await storage.loadList<FuelTank>(storage.FUEL_TANKS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order));
-    setFuelReadings(await storage.loadList<FuelReading>(storage.FUEL_READINGS_KEY));
-    setFuelBunkers(await storage.loadList<FuelBunker>(storage.FUEL_BUNKERS_KEY));
-    setFuelTransfers(await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY));
+    setFuelReadings(live(await storage.loadList<FuelReading>(storage.FUEL_READINGS_KEY)));
+    setFuelBunkers(live(await storage.loadList<FuelBunker>(storage.FUEL_BUNKERS_KEY)));
+    setFuelTransfers(live(await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY)));
     setFuelDailySent(await storage.loadList<FuelDailySent>(storage.FUEL_DAILY_KEY));
     setGarbage(await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY));
     setGarbageSigns(await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY));
     setSopepItems((await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order));
-    setSopepChecks(await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY));
-    setSopepDrills(await storage.loadList<SopepDrill>(storage.SOPEP_DRILLS_KEY));
-    setVisitors(await storage.loadList<Visitor>(storage.VISITORS_KEY));
+    setSopepChecks(live(await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY)));
+    setSopepDrills(live(await storage.loadList<SopepDrill>(storage.SOPEP_DRILLS_KEY)));
+    setVisitors(live(await storage.loadList<Visitor>(storage.VISITORS_KEY)));
     setSecurityLevels(await storage.loadList<SecurityLevelRec>(storage.SECURITY_LEVEL_KEY));
-    setSecurityDrills(await storage.loadList<SecurityDrill>(storage.SECURITY_DRILLS_KEY));
+    setSecurityDrills(live(await storage.loadList<SecurityDrill>(storage.SECURITY_DRILLS_KEY)));
     setCrewMoves(await storage.loadList<CrewMove>(storage.CREW_MOVES_KEY));
     setSurveys((await storage.loadList<Survey>(storage.SURVEYS_KEY)).filter((x) => !x.deleted));
-    setSurveysDone(await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY));
+    setSurveysDone(live(await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY)));
+    setVersions(Object.fromEntries(await Promise.all(VERSIONED_KEYS.map(async (k) => [k, await storage.loadList<any>(k)] as const))));
     setTemplates(await storage.loadTemplates());
     setSigningPolicyState((await storage.loadSigningPolicy()) ?? DEFAULT_POLICY);
     setPhotoArchiveState((await storage.loadPhotoArchive()) ?? DEFAULT_ARCHIVE);
@@ -397,21 +410,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setPermits((await storage.loadList<Permit>(storage.PERMITS_KEY)).filter((x) => !x.deleted));
     setRisks((await storage.loadList<RiskAssessment>(storage.RISKS_KEY)).filter((x) => !x.deleted));
     setFuelTanks((await storage.loadList<FuelTank>(storage.FUEL_TANKS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order));
-    setFuelReadings(await storage.loadList<FuelReading>(storage.FUEL_READINGS_KEY));
-    setFuelBunkers(await storage.loadList<FuelBunker>(storage.FUEL_BUNKERS_KEY));
-    setFuelTransfers(await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY));
+    setFuelReadings(live(await storage.loadList<FuelReading>(storage.FUEL_READINGS_KEY)));
+    setFuelBunkers(live(await storage.loadList<FuelBunker>(storage.FUEL_BUNKERS_KEY)));
+    setFuelTransfers(live(await storage.loadList<FuelTransfer>(storage.FUEL_TRANSFERS_KEY)));
     setFuelDailySent(await storage.loadList<FuelDailySent>(storage.FUEL_DAILY_KEY));
     setGarbage(await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY));
     setGarbageSigns(await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY));
     setSopepItems((await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order));
-    setSopepChecks(await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY));
-    setSopepDrills(await storage.loadList<SopepDrill>(storage.SOPEP_DRILLS_KEY));
-    setVisitors(await storage.loadList<Visitor>(storage.VISITORS_KEY));
+    setSopepChecks(live(await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY)));
+    setSopepDrills(live(await storage.loadList<SopepDrill>(storage.SOPEP_DRILLS_KEY)));
+    setVisitors(live(await storage.loadList<Visitor>(storage.VISITORS_KEY)));
     setSecurityLevels(await storage.loadList<SecurityLevelRec>(storage.SECURITY_LEVEL_KEY));
-    setSecurityDrills(await storage.loadList<SecurityDrill>(storage.SECURITY_DRILLS_KEY));
+    setSecurityDrills(live(await storage.loadList<SecurityDrill>(storage.SECURITY_DRILLS_KEY)));
     setCrewMoves(await storage.loadList<CrewMove>(storage.CREW_MOVES_KEY));
     setSurveys((await storage.loadList<Survey>(storage.SURVEYS_KEY)).filter((x) => !x.deleted));
-    setSurveysDone(await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY));
+    setSurveysDone(live(await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY)));
+    setVersions(Object.fromEntries(await Promise.all(VERSIONED_KEYS.map(async (k) => [k, await storage.loadList<any>(k)] as const))));
   }, []);
 
   const saveMachine = useCallback(async (m: Machine) => {
@@ -635,6 +649,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         crewMoves,
         surveys,
         surveysDone,
+        versionsOf,
         saveRow,
         appendRow,
         savePermit,

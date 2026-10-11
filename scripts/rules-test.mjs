@@ -106,6 +106,13 @@ await t(false, 'A survey carried out cannot be changed', updateDoc(R(officer, 's
 await t(false, 'An Officer cannot amend a garbage entry', setDoc(R(officer, 'garbage', 'g1v2'), { id: 'g1v2', supersedes: 'g1', editReason: 'x' }));
 await t(true, 'The Master amends a garbage entry', setDoc(R(master, 'garbage', 'g1v3'), { id: 'g1v3', supersedes: 'g1', editReason: 'Amount misread' }));
 
+await t(false, 'An Officer cannot amend a fuel sounding', setDoc(R(officer, 'fuel_readings', 'rob_v2'), { id: 'rob_v2', supersedes: 'rob_1', editReason: 'x' }));
+await t(true, 'The Master amends a fuel sounding', setDoc(R(master, 'fuel_readings', 'rob_v3'), { id: 'rob_v3', supersedes: 'rob_1', editReason: 'Gauge misread' }));
+await t(false, 'Crew cannot delete a SOPEP drill', setDoc(R(crew, 'sopep_drills', 'sd_x'), { id: 'sd_x', supersedes: 'sd_1', cancelled: true }));
+await t(true, 'Gangway watch signs off an amended visitor', updateDoc(R(crew, 'visitors', 'v1'), { timeOut: '13:00' }));
+await t(false, 'Gangway watch cannot turn a visit into another version', updateDoc(R(crew, 'visitors', 'v1'), { supersedes: 'v0' }));
+await t(false, 'An Officer cannot overwrite a signed fuel sounding', setDoc(R(officer, 'fuel_readings', 'rob_v3'), { id: 'rob_v3', note: 'x' }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

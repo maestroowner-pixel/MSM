@@ -64,6 +64,15 @@ service cloud.firestore {
              && claims().fleet[v] == true;
     }
 
+    // A record that replaces another (an amendment or a deletion, services/versions)
+    // is the Master's alone, in every log.
+    function plainRecord() {
+      return !('supersedes' in request.resource.data);
+    }
+    function sameVersion() {
+      return request.resource.data.get('supersedes', null) == resource.data.get('supersedes', null);
+    }
+
     function reader(v) {
       return member(v) || shore(v);
     }
@@ -227,17 +236,23 @@ service cloud.firestore {
       }
       match /fuel_readings/{id} {
         allow read: if reader(v);
-        allow create, update: if member(v);
+        allow create: if member(v) && (plainRecord() || isSuper(v));
+        // Signed records are changed only by a new version (the Master's).
+        allow update: if isSuper(v);
         allow delete: if false;
       }
       match /fuel_bunkers/{id} {
         allow read: if reader(v);
-        allow create, update: if member(v);
+        allow create: if member(v) && (plainRecord() || isSuper(v));
+        // Signed records are changed only by a new version (the Master's).
+        allow update: if isSuper(v);
         allow delete: if false;
       }
       match /fuel_transfers/{id} {
         allow read: if reader(v);
-        allow create, update: if member(v);
+        allow create: if member(v) && (plainRecord() || isSuper(v));
+        // Signed records are changed only by a new version (the Master's).
+        allow update: if isSuper(v);
         allow delete: if false;
       }
       // Fuel daily (noon) reports as sent — a log, written once.
@@ -269,12 +284,12 @@ service cloud.firestore {
       }
       match /sopep_checks/{id} {
         allow read: if reader(v);
-        allow create: if member(v);
+        allow create: if member(v) && (plainRecord() || isSuper(v));
         allow update, delete: if false;
       }
       match /sopep_drills/{id} {
         allow read: if reader(v);
-        allow create: if member(v);
+        allow create: if member(v) && (plainRecord() || isSuper(v));
         allow update, delete: if false;
       }
       // Security (ISPS): the visitor log is written by the gangway watch and
@@ -282,7 +297,9 @@ service cloud.firestore {
       // Master (the Ship Security Officer), kept as history.
       match /visitors/{id} {
         allow read: if reader(v);
-        allow create, update: if member(v);
+        allow create: if member(v) && (plainRecord() || isSuper(v));
+        // Signing a visitor off is an update; making it another version is not.
+        allow update: if member(v) && (sameVersion() || isSuper(v));
         allow delete: if false;
       }
       // Surveys & audits: the plan is kept by the Officers and the Master; each
@@ -294,7 +311,7 @@ service cloud.firestore {
       }
       match /surveys_done/{id} {
         allow read: if reader(v);
-        allow create: if isAdmin(v);
+        allow create: if isAdmin(v) && (plainRecord() || isSuper(v));
         allow update, delete: if false;
       }
       // Crew going ashore / coming back aboard (QR crew card at the gangway).
@@ -305,7 +322,7 @@ service cloud.firestore {
       }
       match /security_drills/{id} {
         allow read: if reader(v);
-        allow create: if member(v);
+        allow create: if member(v) && (plainRecord() || isSuper(v));
         allow update, delete: if false;
       }
       match /security_levels/{id} {

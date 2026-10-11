@@ -40,7 +40,7 @@ export function vlogRows(visits: Visitor[]): string[][] {
     v.timeOut ? `${v.dateOut ? `${vDmy(v.dateOut).slice(0, 5)} ` : ''}${v.timeOut}` : 'on board',
     '',
     v.outBy && v.outBy !== v.inBy ? `${v.inBy} / ${v.outBy}` : v.inBy,
-    v.remarks ?? '',
+    [v.cancelled ? `DELETED — ${v.editReason ?? ''} (${v.editedBy ?? ''})` : v.supersedes ? `Amended — ${v.editReason ?? ''} (${v.editedBy ?? ''})` : '', v.remarks ?? ''].filter(Boolean).join('; '),
   ]);
 }
 
