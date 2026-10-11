@@ -88,7 +88,7 @@ export const MODULES: Record<ModuleKey, boolean> = {
   /** Ballast Water Record Book (BWM Convention). */
   ballast: false,
   /** Inspection rounds — shared weekly / monthly to-do lists (Jez, 11 Oct 2026). */
-  rounds: false,
+  rounds: true,
 };
 
 export function moduleOn(key: ModuleKey): boolean {

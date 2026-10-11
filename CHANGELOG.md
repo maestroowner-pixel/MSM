@@ -11,7 +11,17 @@ the part that stops the next person undoing it.
 - Settings → Reports folder only shows when a report that uses it is on.
 - Build 20592 (20591 was built with crew + rest on — not to be uploaded).
 
-## Unreleased
+## 2.60 (20601) — 11 Oct 2026
+
+What the crew sees (from Jez's letter of 11 Oct 2026 and the DreamBoat data):
+- **Inspection rounds — on** (`rounds: true`): shared weekly / monthly to-do lists (entry below).
+- **Register protection:** Replace all keeps matched items' ids; a copy before every import; Settings → Data → Save a copy as a file; each inspection keeps the item's details (entry below).
+- **Inspection report** marks photos ("Photos: N", Excel column).
+- Everything in 2.59 (only `lifting` on among the newer modules). The other modules below stay dark.
+
+Rules deployed by the user on 11 Oct 2026 (99/99).
+
+### Since 2.59 (dark unless said above)
 
 - **Inspection rounds (dark, `rounds`; Jez, 11 Oct 2026).** A round = one period's window + categories, started and closed by an officer or the Master (types/round.ts; rules: create/close isAdmin, only closedAt/closedBy change). Shared to-do list on every device: outstanding items in walking order (deck → category → number; `sortByDeck`, shared with label batches), progress "N / M", category filter, done items with name, rank, date, time. Only inspections signed in the round (`Inspection.roundId`) count; opening a round makes it this device's round, so a scanned and signed item counts and the inspection screen says so (`roundTakes`, services/activeRound). Round report PDF / Excel (services/roundReport) with per-category totals and who did how many. Menu: Inspections → Inspection rounds. Rules 99/99; check:rounds.
 - **Inspection report shows photos** (Jez, 11 Oct 2026). The Comments cell ends with "Photos: N" when the inspection has photographs (PDF on phone and web, Excel); the Excel sheet has a Photos column. An inspection whose item is no longer in the register is described from the record's own item snapshot when it has one.
