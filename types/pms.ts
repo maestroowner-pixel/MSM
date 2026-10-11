@@ -54,6 +54,9 @@ export function hasCounter(m: Pick<Machine, 'dept' | 'counter'>): boolean {
 export interface Machine {
   id: string;
   name: string;
+  /** Critical equipment (steering, propulsion, fire-fighting, safety systems): its jobs are
+   *  to be done in full and on time — they cannot be deferred (11 Oct 2026). */
+  critical?: boolean;
   /** Department; absent on records made before departments — read as engineering. */
   dept?: Dept;
   /** Has a running-hours counter; see hasCounter() for the default. */
@@ -81,6 +84,8 @@ export interface PmsJob {
   id: string;
   machineId: string;
   title: string;
+  /** What kind of job — the scope and the evidence it calls for. */
+  type?: JobType;
   /** Every N running hours. */
   intervalHours?: number;
   /** Every N days (a month is entered as 30, a year as 365). */
@@ -115,3 +120,39 @@ export interface PmsDone {
 }
 
 export const READINGS_KEPT = 30;
+
+/** Kinds of job (11 Oct 2026, after the usual class-aligned PMS). */
+export type JobType = 'maintenance' | 'performance' | 'safety' | 'measurement' | 'visual' | 'calibration' | 'megger' | 'overhaul';
+export const JOB_TYPE: Record<JobType, string> = {
+  maintenance: 'Maintenance',
+  performance: 'Performance test',
+  safety: 'Safety check',
+  measurement: 'Measurement',
+  visual: 'Visual check',
+  calibration: 'Calibration',
+  megger: 'Megger (insulation) test',
+  overhaul: 'Overhaul',
+};
+
+/**
+ * A job deferred — moved to a later date and/or counter reading, with the
+ * reason, signed by the Master. It holds for the current cycle only (until the
+ * job is next done). Critical equipment is never deferred. Append-only.
+ */
+export interface PmsDeferral {
+  id: string;
+  jobId: string;
+  machineId: string;
+  jobTitle: string;
+  machineName: string;
+  /** The cycle it belongs to: `${lastDoneDate}|${lastDoneHours}` when it was deferred. */
+  cycle: string;
+  untilDate?: string;
+  untilHours?: number;
+  reason: string;
+  by: string;
+  byRank?: string;
+  at: number;
+  signedWith?: import('../services/signature').SignProof;
+  updatedAt: number;
+}

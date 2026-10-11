@@ -19,7 +19,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
 import { DEPTS, Machine, PmsJob, deptOf, hasCounter } from '../types/pms';
-import { dueText, hoursPerDay, intervalText, jobDue, sortJobsByDue, todayIso, withReading } from '../services/pms';
+import { activeDeferral, dueText, hoursPerDay, intervalText, jobDue, sortJobsByDue, todayIso, withReading } from '../services/pms';
 import { CATALOGUE } from '../services/pmsCatalogue';
 import { formatDate } from '../utils/dates';
 import { qtyText, stockByPart, stockStatus } from '../services/spares';
@@ -33,7 +33,7 @@ export default function MachineSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { machines, pmsJobs, pmsDone, spares, spareMoves, saveMachine, savePmsJob } = useData();
+  const { machines, pmsJobs, pmsDone, pmsDeferrals, spares, spareMoves, saveMachine, savePmsJob } = useData();
   const id: string = route.params?.id;
   // Spare parts marked as fitting this machine (Spares module).
   const fitting = useMemo(() => (moduleOn('spares') ? spares.filter((p) => (p.machineIds ?? []).includes(id)) : []), [spares, id]);
@@ -62,8 +62,8 @@ export default function MachineSc() {
 
   const jobs = useMemo(() => {
     const byId = new Map([[id, existing ?? draft]]);
-    return sortJobsByDue(pmsJobs.filter((j) => j.machineId === id), byId, today);
-  }, [pmsJobs, id, existing, draft, today]);
+    return sortJobsByDue(pmsJobs.filter((j) => j.machineId === id), byId, today, pmsDeferrals);
+  }, [pmsJobs, id, existing, draft, today, pmsDeferrals]);
   const history = useMemo(
     () => pmsDone.filter((d) => d.machineId === id).sort((a, b) => b.at - a.at).slice(0, 10),
     [pmsDone, id]
@@ -180,6 +180,13 @@ export default function MachineSc() {
             </View>
             <Switch value={hasCounter(draft)} onValueChange={(v) => set({ counter: v })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
           </View>
+          <View style={styles.counterRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowTitle}>Critical equipment</Text>
+              <Text style={styles.sub}>Steering, propulsion, fire-fighting, safety systems — its jobs are done on time and cannot be deferred.</Text>
+            </View>
+            <Switch value={!!draft.critical} onValueChange={(v) => set({ critical: v })} trackColor={{ true: COLORS.danger, false: COLORS.border }} />
+          </View>
 
           {hasCounter(draft) ? (
           <View style={styles.card}>
@@ -236,7 +243,7 @@ export default function MachineSc() {
             </View>
           ) : null}
           {jobs.map((j) => {
-            const d = jobDue(j, existing ?? draft, today);
+            const d = jobDue(j, existing ?? draft, today, activeDeferral(j, pmsDeferrals));
             return (
               <TouchableOpacity key={j.id} style={styles.row} onPress={() => nav.navigate('PmsJob', { id: j.id })} activeOpacity={0.7}>
                 <View style={[styles.bar, { backgroundColor: statusColor(d.status) }]} />

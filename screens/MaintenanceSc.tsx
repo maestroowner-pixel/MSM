@@ -19,8 +19,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
 import { ComplianceStatus } from '../types/equipment';
-import { dueText, jobDue, sortJobsByDue, todayIso, worse } from '../services/pms';
-import { DEPTS, Dept, deptOf, hasCounter } from '../types/pms';
+import { activeDeferral, dueText, jobDue, sortJobsByDue, todayIso, worse } from '../services/pms';
+import { DEPTS, Dept, JOB_TYPE, Machine, PmsJob, deptOf, hasCounter } from '../types/pms';
 import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 
@@ -28,7 +28,8 @@ export default function MaintenanceSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
-  const { machines, pmsJobs } = useData();
+  const { machines, pmsJobs, pmsDeferrals } = useData();
+  const dueOf = (j: PmsJob, m: Machine | undefined) => jobDue(j, m, today, activeDeferral(j, pmsDeferrals));
   const today = todayIso();
   const [only, setOnly] = useState<Dept | null>(null);
 
@@ -38,13 +39,13 @@ export default function MaintenanceSc() {
     [pmsJobs, byId, only]
   );
   const owed = useMemo(
-    () => sortJobsByDue(liveJobs, byId, today).filter((j) => {
-      const s = jobDue(j, byId.get(j.machineId), today).status;
+    () => sortJobsByDue(liveJobs, byId, today, pmsDeferrals).filter((j) => {
+      const s = dueOf(j, byId.get(j.machineId)).status;
       return s === 'expired' || s === 'due';
     }),
-    [liveJobs, byId, today]
+    [liveJobs, byId, today, pmsDeferrals]
   );
-  const overdue = owed.filter((j) => jobDue(j, byId.get(j.machineId), today).status === 'expired').length;
+  const overdue = owed.filter((j) => dueOf(j, byId.get(j.machineId)).status === 'expired').length;
 
   const machineRows = useMemo(
     () =>
@@ -52,7 +53,7 @@ export default function MaintenanceSc() {
         .filter((m) => !only || deptOf(m) === only)
         .map((m) => {
           const jobs = liveJobs.filter((j) => j.machineId === m.id);
-          const worst = jobs.reduce<ComplianceStatus>((w, j) => worse(w, jobDue(j, m, today).status), 'none');
+          const worst = jobs.reduce<ComplianceStatus>((w, j) => worse(w, dueOf(j, m).status), 'none');
           return { m, jobs: jobs.length, worst };
         })
         .sort((a, b) => a.m.name.localeCompare(b.m.name)),
@@ -92,13 +93,13 @@ export default function MaintenanceSc() {
       {owed.length ? <Label>Owed now</Label> : null}
       {owed.map((j) => {
         const m = byId.get(j.machineId)!;
-        const d = jobDue(j, m, today);
+        const d = dueOf(j, m);
         return (
           <TouchableOpacity key={j.id} style={styles.row} onPress={() => nav.navigate('PmsJob', { id: j.id })} activeOpacity={0.7}>
             <View style={[styles.bar, { backgroundColor: statusColor(d.status) }]} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.title} numberOfLines={1}>{j.title}</Text>
-              <Text style={styles.sub} numberOfLines={1}>{`${m.name} · ${dueText(d)}`}</Text>
+              <Text style={styles.title} numberOfLines={1}>{`${m.critical ? '⚑ ' : ''}${j.title}`}</Text>
+              <Text style={styles.sub} numberOfLines={1}>{[m.critical ? 'CRITICAL' : null, m.name, j.type ? JOB_TYPE[j.type] : null, dueText(d)].filter(Boolean).join(' · ')}</Text>
             </View>
             <StatusPill status={d.status} />
           </TouchableOpacity>

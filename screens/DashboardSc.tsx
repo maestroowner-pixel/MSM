@@ -8,7 +8,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, useWindowDimensions, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MciIcon } from '../components/MciIcon';
-import { jobDue } from '../services/pms';
+import { activeDeferral, jobDue } from '../services/pms';
 import { Screen, ScreenTitle, Empty, statusColor, CategoryBadge } from '../components/ui';
 import { TrialBanner } from '../components/TrialBanner';
 import { MasterPinBanner } from '../components/MasterPinBanner';
@@ -88,7 +88,7 @@ type ListEntry =
   | ({ kind: 'row'; key: string } & Scored);
 
 export default function DashboardSc() {
-  const { flat, loading, certificates, isLocked, recentScans, templates, inspections: trail, machines, pmsJobs, spares, spareMoves, docs, docAcks, crew, prefs } = useData();
+  const { flat, loading, certificates, isLocked, recentScans, templates, inspections: trail, machines, pmsJobs, pmsDeferrals, spares, spareMoves, docs, docAcks, crew, prefs } = useData();
   const sparesOwed = useMemo(() => toOrderCounts(spares, stockByPart(spareMoves)), [spares, spareMoves]);
   // The maintenance strip leads to the PMS tab, so it goes where the tab goes.
   const { tabs, me: myDevice } = useSync();
@@ -112,7 +112,7 @@ export default function DashboardSc() {
     for (const j of pmsJobs) {
       const m = byId.get(j.machineId);
       if (!m) continue;
-      const st = jobDue(j, m).status;
+      const st = jobDue(j, m, undefined, activeDeferral(j, pmsDeferrals)).status;
       if (st === 'expired') overdue += 1;
       else if (st === 'due') due += 1;
     }

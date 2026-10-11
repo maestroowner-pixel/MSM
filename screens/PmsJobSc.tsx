@@ -27,10 +27,12 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { PmsDone, PmsJob, hasCounter } from '../types/pms';
+import { JOB_TYPE, JobType, PmsDone, PmsJob, hasCounter } from '../types/pms';
+import { Dropdown } from '../components/Dropdown';
+import * as storage from '../services/storage';
 import { crewLabel } from '../types/crew';
 import { personName } from '../types/role';
-import { dueText, jobAfter, jobDue, todayIso, withReading } from '../services/pms';
+import { activeDeferral, dueText, jobAfter, jobCycle, jobDue, todayIso, withReading } from '../services/pms';
 import { movesForJob, qtyText, stockByPart } from '../services/spares';
 import { JobPart } from '../types/spares';
 import { moduleOn } from '../constants/modules';
@@ -53,7 +55,7 @@ export default function PmsJobSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { pmsJobs, machines, crew, spares, spareMoves, savePmsJob, saveMachine, completePmsJob } = useData();
+  const { pmsJobs, machines, crew, spares, spareMoves, savePmsJob, saveMachine, completePmsJob, pmsDeferrals, appendRow } = useData();
   const sparesOn = moduleOn('spares');
   const partById = useMemo(() => new Map(spares.map((p) => [p.id, p])), [spares]);
   const stock = useMemo(() => stockByPart(spareMoves), [spareMoves]);
@@ -96,7 +98,29 @@ export default function PmsJobSc() {
   const [signerId, setSignerId] = useState<string | undefined>();
   const signer = me ? { name: me, rank: meRank } : people.find((p) => p.id === signerId);
 
-  const due = jobDue(existing ?? draft, machine);
+  const deferral = existing ? activeDeferral(existing, pmsDeferrals) : undefined;
+  const isMaster = !sync.enrolled || sync.role === 'superadmin';
+  const [defer, setDefer] = useState<{ date: string; hours: string; reason: string } | null>(null);
+  const signDeferral = async () => {
+    if (!existing || !defer) return;
+    if (machine?.critical) return Alert.alert('Critical equipment', 'Jobs on critical equipment cannot be deferred.');
+    const untilHours = num(defer.hours);
+    if (!defer.date && untilHours == null) return Alert.alert('Defer until', 'Give a date, a counter reading, or both.');
+    if (defer.date && defer.date < todayIso()) return Alert.alert('Defer until', 'The date is in the past.');
+    if (defer.reason.trim().length < 3) return Alert.alert('Reason', 'Say why the job is deferred.');
+    if (!signer) return Alert.alert('Who is signing?', 'Choose your name.');
+    const sig = await confirmSign({ personKey: me && sync.me ? `device:${sync.me.id}` : signerId ?? signer.name, name: signer.name, ownDevice: !!me, what: `Defer "${existing.title}" — ${defer.reason.trim()}` });
+    if (!sig) return;
+    const now = Date.now();
+    await appendRow(storage.PMS_DEFERRALS_KEY, {
+      id: uid('dfr'), jobId: existing.id, machineId, jobTitle: existing.title, machineName: machine?.name ?? '', cycle: jobCycle(existing),
+      ...(defer.date ? { untilDate: defer.date } : {}), ...(untilHours != null ? { untilHours } : {}),
+      reason: defer.reason.trim(), by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now,
+    });
+    setDefer(null);
+    playSuccessSound();
+  };
+  const due = jobDue(existing ?? draft, machine, undefined, deferral);
   const num = (v: string) => {
     const n = Number(v.replace(',', '.'));
     return v.trim() && Number.isFinite(n) && n >= 0 ? n : undefined;
@@ -197,11 +221,37 @@ export default function PmsJobSc() {
 
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
           <Text style={styles.machine}>{machine?.name ?? 'Machine'}</Text>
+          {machine?.critical ? <Text style={styles.critical}>CRITICAL EQUIPMENT</Text> : null}
           {!isNew ? (
             <View style={styles.dueRow}>
               {due.status !== 'none' ? <StatusPill status={due.status} /> : null}
               <Text style={styles.dueText}>{dueText(due)}</Text>
             </View>
+          ) : null}
+          {/* Deferral: the Master moves the job to a later date / counter reading, with the reason, signed. */}
+          {!isNew && !doing && existing ? (
+            deferral ? (
+              <Text style={styles.deferNote}>{`Deferred${deferral.untilDate ? ` until ${deferral.untilDate}` : ''}${deferral.untilHours != null ? `${deferral.untilDate ? ' or' : ' until'} ${deferral.untilHours} h` : ''} — ${deferral.reason} · ${deferral.byRank ? `${deferral.by} (${deferral.byRank})` : deferral.by}`}</Text>
+            ) : machine?.critical ? (
+              <Text style={styles.sub}>Critical equipment — this job cannot be deferred.</Text>
+            ) : defer ? (
+              <View style={styles.deferBox}>
+                <Label>Defer until — date and / or counter reading</Label>
+                <SimpleDatePicker label="Until" value={defer.date} onChange={(v) => setDefer({ ...defer, date: v })} />
+                {counter ? (
+                  <TextInput style={[styles.input, { marginTop: SIZES.sm }]} value={defer.hours} onChangeText={(v) => setDefer({ ...defer, hours: v })} placeholder="…or until counter reading, h" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
+                ) : null}
+                <TextInput style={[styles.input, { marginTop: SIZES.sm, borderColor: COLORS.warning, borderWidth: 1 }]} value={defer.reason} onChangeText={(v) => setDefer({ ...defer, reason: v })} placeholder="Reason ★ — e.g. spares on order, vessel on charter" placeholderTextColor={COLORS.textLight} />
+                <View style={{ flexDirection: 'row', gap: SIZES.md, alignItems: 'center', marginTop: SIZES.sm }}>
+                  <TouchableOpacity style={styles.deferBtn} onPress={() => void signDeferral()}><Text style={styles.deferBtnText}>Sign the deferral</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => setDefer(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity disabled={!isMaster} style={{ opacity: isMaster ? 1 : 0.35, alignSelf: 'flex-start' }} onPress={() => setDefer({ date: todayIso(), hours: '', reason: '' })}>
+                <Text style={styles.link}>Defer the job (Master)</Text>
+              </TouchableOpacity>
+            )
           ) : null}
 
           {doing ? (
@@ -268,6 +318,7 @@ export default function PmsJobSc() {
             <>
               <Label>Job ★</Label>
               <TextInput style={styles.input} value={draft.title} onChangeText={(v) => set({ title: v })} placeholder="Oil and filter change" placeholderTextColor={COLORS.textLight} />
+              <Dropdown caption="TYPE" value={draft.type ?? ''} onChange={(v) => set({ type: (v || undefined) as JobType | undefined })} options={[{ value: '', label: '—' }, ...(Object.keys(JOB_TYPE) as JobType[]).map((k) => ({ value: k, label: JOB_TYPE[k] }))]} style={{ marginTop: SIZES.sm }} />
               <View style={{ height: SIZES.md }} />
               {counter ? (<>
               <Label>Every … running hours</Label>
@@ -390,6 +441,12 @@ function Stepper({ value, onChange, styles }: { value: number; onChange: (v: num
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
+    link: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small, marginBottom: SIZES.md },
+    critical: { fontSize: SIZES.tiny, fontWeight: '900', color: COLORS.danger, letterSpacing: 1, marginBottom: 4 },
+    deferNote: { fontSize: SIZES.small, fontWeight: '700', color: COLORS.warning, marginBottom: SIZES.md },
+    deferBox: { borderWidth: 1, borderColor: COLORS.warning, borderRadius: SIZES.radiusMd, padding: SIZES.md, marginBottom: SIZES.md },
+    deferBtn: { backgroundColor: COLORS.warning, borderRadius: SIZES.radiusMd, paddingVertical: 10, paddingHorizontal: SIZES.md },
+    deferBtnText: { color: COLORS.textWhite, fontWeight: '800' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SIZES.lg, paddingVertical: SIZES.md },
     headerTitle: { flex: 1, textAlign: 'center', fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark },
     save: { fontSize: SIZES.h5, fontWeight: '700', color: COLORS.primary },

@@ -196,6 +196,12 @@ service cloud.firestore {
         allow create: if member(v);
         allow update, delete: if false;
       }
+      // A job deferred — the Master's decision, signed, kept.
+      match /pms_deferrals/{id} {
+        allow read: if reader(v);
+        allow create: if isSuper(v);
+        allow update, delete: if false;
+      }
       // Spare parts: the stocked lines are edited (tombstoned, never deleted);
       // their movements are append-only, because stock is their sum.
       match /spares/{id} {

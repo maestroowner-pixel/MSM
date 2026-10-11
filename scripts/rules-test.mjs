@@ -113,6 +113,10 @@ await t(true, 'Gangway watch signs off an amended visitor', updateDoc(R(crew, 'v
 await t(false, 'Gangway watch cannot turn a visit into another version', updateDoc(R(crew, 'visitors', 'v1'), { supersedes: 'v0' }));
 await t(false, 'An Officer cannot overwrite a signed fuel sounding', setDoc(R(officer, 'fuel_readings', 'rob_v3'), { id: 'rob_v3', note: 'x' }));
 
+await t(false, 'An Officer cannot defer a job', setDoc(R(officer, 'pms_deferrals', 'df1'), { id: 'df1', jobId: 'j1' }));
+await t(true, 'The Master defers a job', setDoc(R(master, 'pms_deferrals', 'df2'), { id: 'df2', jobId: 'j1', reason: 'Spares on order' }));
+await t(false, 'A deferral cannot be changed', updateDoc(R(master, 'pms_deferrals', 'df2'), { reason: 'x' }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

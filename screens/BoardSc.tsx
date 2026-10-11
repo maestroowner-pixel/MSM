@@ -156,15 +156,16 @@ export default function BoardSc() {
       <MasterPinBanner />
       {wide ? (
         <View style={{ flexDirection: 'row', gap: SIZES.lg, alignItems: 'flex-start' }}>
-          <View style={{ flex: 3 }}>{attention}{tiles}</View>
+          {/* Sections first, what needs attention under them; Today and the Plan on the right (11 Oct 2026). */}
+          <View style={{ flex: 3 }}>{tiles}{attention}</View>
           <View style={{ flex: 2 }}>{today}{plan}</View>
         </View>
       ) : (
         <>
+          {tiles}
           {attention}
           {today}
           {plan}
-          {tiles}
         </>
       )}
     </Screen>

@@ -17,7 +17,7 @@
 // ===================================
 
 import { ComplianceStatus } from '../types/equipment';
-import { HoursReading, Machine, PmsDone, PmsJob, READINGS_KEPT } from '../types/pms';
+import { HoursReading, Machine, PmsDeferral, PmsDone, PmsJob, READINGS_KEPT } from '../types/pms';
 
 export interface JobDue {
   status: ComplianceStatus;
@@ -31,6 +31,17 @@ export interface JobDue {
   by?: 'hours' | 'days';
   /** True when the job has never been done and has no baseline to count from. */
   noBaseline: boolean;
+  /** Counted against a deferral (services/pms activeDeferral), not the interval. */
+  deferred?: boolean;
+}
+
+/** The cycle a job is in: changes every time it is done. */
+export const jobCycle = (job: Pick<PmsJob, 'lastDoneDate' | 'lastDoneHours'>) => `${job.lastDoneDate ?? ''}|${job.lastDoneHours ?? ''}`;
+
+/** The deferral that holds for the job's current cycle, latest first. */
+export function activeDeferral(job: PmsJob, deferrals: PmsDeferral[]): PmsDeferral | undefined {
+  const c = jobCycle(job);
+  return deferrals.filter((d) => d.jobId === job.id && d.cycle === c).sort((a, b) => b.at - a.at)[0];
 }
 
 function daysBetween(a: string, b: string): number {
@@ -54,7 +65,18 @@ export function hoursPerDay(readings: HoursReading[] | undefined): number | unde
   return hours / days;
 }
 
-export function jobDue(job: PmsJob, machine: Machine | undefined, today = todayIso()): JobDue {
+export function jobDue(job: PmsJob, machine: Machine | undefined, today = todayIso(), deferral?: PmsDeferral): JobDue {
+  // Deferred: the new limits replace the interval for this cycle.
+  if (deferral) {
+    const d: JobDue = { status: 'ok', noBaseline: false, deferred: true };
+    if (deferral.untilHours != null && machine?.hours != null) d.hoursLeft = deferral.untilHours - machine.hours;
+    if (deferral.untilDate) d.daysLeft = daysBetween(today, deferral.untilDate);
+    d.by = d.hoursLeft != null && (d.daysLeft == null) ? 'hours' : 'days';
+    const over = (d.hoursLeft != null && d.hoursLeft < 0) || (d.daysLeft != null && d.daysLeft < 0);
+    const soon = (d.hoursLeft != null && d.hoursLeft <= 10) || (d.daysLeft != null && d.daysLeft <= 3);
+    d.status = over ? 'expired' : soon ? 'due' : 'ok';
+    return d;
+  }
   const out: JobDue = { status: 'none', noBaseline: false };
   let hourFrac: number | undefined;
   let dayFrac: number | undefined;
@@ -87,13 +109,14 @@ export function jobDue(job: PmsJob, machine: Machine | undefined, today = todayI
 /** "120 h left", "3 d overdue", "45 d left (≈ 12 d by hours)". */
 export function dueText(d: JobDue): string {
   if (d.noBaseline) return 'Never done — record the last time it was done';
+  const pre = d.deferred ? 'Deferred · ' : '';
   const parts: string[] = [];
   if (d.hoursLeft != null) {
     parts.push(d.hoursLeft < 0 ? `${Math.abs(Math.round(d.hoursLeft))} h overdue` : `${Math.round(d.hoursLeft)} h left`);
     if (d.estDaysForHours != null && d.hoursLeft >= 0) parts.push(`≈ ${d.estDaysForHours} d at the current rate`);
   }
   if (d.daysLeft != null) parts.push(d.daysLeft < 0 ? `${Math.abs(d.daysLeft)} d overdue` : `${d.daysLeft} d left`);
-  return parts.join(' · ') || 'No interval set';
+  return pre + (parts.join(' · ') || 'No interval set');
 }
 
 export function intervalText(job: Pick<PmsJob, 'intervalHours' | 'intervalDays'>): string {
@@ -132,10 +155,10 @@ export function mergeById<T extends { id: string; updatedAt: number }>(local: T[
 // ---- Job templates ----------------------------------------------------------
 // Moved to services/pmsCatalogue.ts (by department, 9 Oct 2026).
 
-export function sortJobsByDue(jobs: PmsJob[], machines: Map<string, Machine>, today = todayIso()): PmsJob[] {
+export function sortJobsByDue(jobs: PmsJob[], machines: Map<string, Machine>, today = todayIso(), deferrals: PmsDeferral[] = []): PmsJob[] {
   return [...jobs].sort((a, b) => {
-    const da = jobDue(a, machines.get(a.machineId), today);
-    const db = jobDue(b, machines.get(b.machineId), today);
+    const da = jobDue(a, machines.get(a.machineId), today, activeDeferral(a, deferrals));
+    const db = jobDue(b, machines.get(b.machineId), today, activeDeferral(b, deferrals));
     return RANK[da.status] - RANK[db.status] || (da.daysLeft ?? da.estDaysForHours ?? 1e9) - (db.daysLeft ?? db.estDaysForHours ?? 1e9);
   });
 }

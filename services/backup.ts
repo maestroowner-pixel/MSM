@@ -23,7 +23,7 @@ import { CompressorState, normalizeCompressorState } from '../types/compressor';
 import { Inspection } from '../types/inspection';
 import { CrewMember } from '../types/crew';
 import { RestDay } from '../types/rest';
-import { Machine, PmsDone, PmsJob } from '../types/pms';
+import { Machine, PmsDone, PmsJob, PmsDeferral } from '../types/pms';
 import { SpareMove, SparePart } from '../types/spares';
 import { DocAck, IsmDoc } from '../types/docs';
 import { CrewPrivate } from '../types/crew';
@@ -56,7 +56,7 @@ export interface BackupFile {
   /** Hours of rest, one record per person per day. Absent in backups made before it existed. */
   rest?: RestDay[];
   /** Planned maintenance. Absent in backups made before it existed. */
-  pms?: { machines: Machine[]; jobs: PmsJob[]; done: PmsDone[] };
+  pms?: { machines: Machine[]; jobs: PmsJob[]; done: PmsDone[]; deferrals?: PmsDeferral[] };
   /** Spare parts and their movements. Absent in backups made before it existed. */
   spares?: { parts: SparePart[]; moves: SpareMove[] };
   /** ISM documents (records; files are links) and read-and-sign signatures. */
@@ -158,6 +158,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     machines: await storage.loadList<Machine>(storage.PMS_MACHINES_KEY),
     jobs: await storage.loadList<PmsJob>(storage.PMS_JOBS_KEY),
     done: await storage.loadList<PmsDone>(storage.PMS_DONE_KEY),
+    deferrals: await storage.loadList<PmsDeferral>(storage.PMS_DEFERRALS_KEY),
   };
   const spares = {
     parts: await storage.loadList<SparePart>(storage.SPARES_KEY),
@@ -371,6 +372,7 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     await storage.saveList(storage.PMS_MACHINES_KEY, backup.pms.machines ?? []);
     await storage.saveList(storage.PMS_JOBS_KEY, backup.pms.jobs ?? []);
     await storage.saveList(storage.PMS_DONE_KEY, backup.pms.done ?? []);
+    await storage.saveList(storage.PMS_DEFERRALS_KEY, backup.pms.deferrals ?? []);
   }
   if (backup.spares) {
     await storage.saveList(storage.SPARES_KEY, backup.spares.parts ?? []);

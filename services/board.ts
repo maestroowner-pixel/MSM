@@ -28,7 +28,7 @@ import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/sec
 import { Survey, SurveyDone } from '../types/survey';
 import { ModuleKey } from '../constants/modules';
 import { complianceDate, computeStatus, daysUntil, statusFromDate } from '../utils/dates';
-import { jobDue } from './pms';
+import { activeDeferral, jobDue } from './pms';
 import { stockByPart, toOrderCounts } from './spares';
 import { toRead } from './docs';
 import { isOverdue } from './permits';
@@ -110,6 +110,7 @@ export interface BoardInput {
   crewPrivate: CrewPrivate[];
   machines: Machine[];
   pmsJobs: PmsJob[];
+  pmsDeferrals?: import('../types/pms').PmsDeferral[];
   spares: SparePart[];
   spareMoves: SpareMove[];
   docs: IsmDoc[];
@@ -238,7 +239,7 @@ export function buildBoard(x: BoardInput): Board {
     for (const j of x.pmsJobs) {
       const m = byId.get(j.machineId);
       if (!m) continue;
-      const st = jobDue(j, m, x.today).status;
+      const st = jobDue(j, m, x.today, activeDeferral(j, x.pmsDeferrals ?? [])).status;
       if (st === 'expired') over++;
       else if (st === 'due') due++;
     }

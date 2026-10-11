@@ -11,7 +11,7 @@ import { CompressorState } from '../types/compressor';
 import { Inspection, InspectionPeriod } from '../types/inspection';
 import { CrewMember, CrewPrivate, liveCrew } from '../types/crew';
 import { RestDay } from '../types/rest';
-import { Machine, PmsDone, PmsJob } from '../types/pms';
+import { Machine, PmsDone, PmsJob, PmsDeferral } from '../types/pms';
 import { SpareMove, SparePart } from '../types/spares';
 import { DocAck, IsmDoc } from '../types/docs';
 import { Permit, RiskAssessment } from '../types/permits';
@@ -64,6 +64,8 @@ interface DataContextType {
   machines: Machine[];
   pmsJobs: PmsJob[];
   pmsDone: PmsDone[];
+  /** Jobs deferred by the Master (types/pms PmsDeferral). */
+  pmsDeferrals: PmsDeferral[];
   saveMachine: (m: Machine) => Promise<void>;
   savePmsJob: (j: PmsJob) => Promise<void>;
   /**
@@ -181,6 +183,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [machines, setMachines] = useState<Machine[]>([]);
   const [pmsJobs, setPmsJobs] = useState<PmsJob[]>([]);
   const [pmsDone, setPmsDone] = useState<PmsDone[]>([]);
+  const [pmsDeferrals, setPmsDeferrals] = useState<PmsDeferral[]>([]);
   const [spares, setSpares] = useState<SparePart[]>([]);
   const [spareMoves, setSpareMoves] = useState<SpareMove[]>([]);
   const [docs, setDocs] = useState<IsmDoc[]>([]);
@@ -243,6 +246,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMachines((await storage.loadList<Machine>(storage.PMS_MACHINES_KEY)).filter((m) => !m.deleted));
     setPmsJobs((await storage.loadList<PmsJob>(storage.PMS_JOBS_KEY)).filter((j) => !j.deleted));
     setPmsDone(await storage.loadList<PmsDone>(storage.PMS_DONE_KEY));
+    setPmsDeferrals(await storage.loadList<PmsDeferral>(storage.PMS_DEFERRALS_KEY));
     setSpares((await storage.loadList<SparePart>(storage.SPARES_KEY)).filter((p) => !p.deleted));
     setSpareMoves(await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY));
     setDocs((await storage.loadList<IsmDoc>(storage.DOCS_KEY)).filter((d) => !d.deleted));
@@ -402,6 +406,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMachines((await storage.loadList<Machine>(storage.PMS_MACHINES_KEY)).filter((m) => !m.deleted));
     setPmsJobs((await storage.loadList<PmsJob>(storage.PMS_JOBS_KEY)).filter((j) => !j.deleted));
     setPmsDone(await storage.loadList<PmsDone>(storage.PMS_DONE_KEY));
+    setPmsDeferrals(await storage.loadList<PmsDeferral>(storage.PMS_DEFERRALS_KEY));
     setSpares((await storage.loadList<SparePart>(storage.SPARES_KEY)).filter((p) => !p.deleted));
     setSpareMoves(await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY));
     setDocs((await storage.loadList<IsmDoc>(storage.DOCS_KEY)).filter((d) => !d.deleted));
@@ -615,6 +620,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         machines,
         pmsJobs,
         pmsDone,
+        pmsDeferrals,
         saveMachine,
         savePmsJob,
         completePmsJob,
