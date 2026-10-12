@@ -38,6 +38,8 @@ import { robTotal } from './fuel';
 import { fuelDaily } from './fuelDaily';
 import { personsOnBoard } from './gangway';
 import { surveyStatus } from './surveys';
+import { ncState, nextActionDue } from './safety';
+import { NonConformity, SafetyObservation } from '../types/safety';
 import { currentEntries } from './garbage';
 
 export type Level = 'red' | 'amber' | 'blue';
@@ -132,6 +134,8 @@ export interface BoardInput {
   crewMoves: CrewMove[];
   surveys: Survey[];
   surveysDone: SurveyDone[];
+  observations?: SafetyObservation[];
+  ncs?: NonConformity[];
 }
 
 const RANK: Record<Level, number> = { red: 0, amber: 1, blue: 2 };
@@ -355,6 +359,31 @@ export function buildBoard(x: BoardInput): Board {
       }
     }
     tiles.push({ key: 'sv', label: 'Surveys & audits', icon: 'calendar-check-outline', route: 'Surveys', level: lvl(red, amber), line: red ? `${red} overdue` : amber ? `${amber} window open` : `${x.surveys.filter((v) => !v.deleted).length} planned` });
+  }
+
+  // ---- QHSE: observation cards and non-conformities ----
+  if (x.on('qhse')) {
+    const ncs = x.ncs ?? [];
+    const obs = x.observations ?? [];
+    let red = 0;
+    let amber = 0;
+    for (const nc of ncs) {
+      const st = ncState(nc, x.today);
+      if (st === 'overdue') {
+        red++;
+        n.push({ key: `nc:${nc.id}`, level: 'red', who: 'officer', icon: 'clipboard-alert-outline', route: 'Nc', params: { id: nc.id }, title: `${nc.no} — action overdue`, sub: nc.title });
+      } else if (st === 'ready') {
+        amber++;
+        n.push({ key: `nc:${nc.id}`, level: 'amber', who: 'master', icon: 'clipboard-check-outline', route: 'Nc', params: { id: nc.id }, title: `${nc.no} — actions done, to close`, sub: nc.title });
+      } else if (st === 'open') {
+        const due = nextActionDue(nc);
+        if (due) plan.push({ key: `nc:${nc.id}`, icon: 'clipboard-text-outline', route: 'Nc', params: { id: nc.id }, title: `${nc.no} ${nc.title}`, sub: `next action by ${dm(due)}.${due.slice(0, 4)}` });
+      }
+    }
+    const fresh = obs.filter((o) => !o.reviewedAt).length;
+    if (fresh) n.push({ key: 'obs:new', level: 'amber', who: 'officer', icon: 'eye-outline', route: 'Safety', title: `${plural(fresh, 'observation card')} to review` });
+    const open = ncs.filter((v) => !v.closedAt).length;
+    tiles.push({ key: 'qhse', label: 'Safety', icon: 'shield-check-outline', route: 'Safety', level: lvl(red, amber || fresh), line: [open ? `${open} NC open` : 'No NC open', fresh ? `${fresh} new cards` : null].filter(Boolean).join(' · ') });
   }
 
   // Who sees what.

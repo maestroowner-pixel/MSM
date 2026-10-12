@@ -159,6 +159,18 @@ await t(true, 'The Master cancels a wrong sign-out', setDoc(R(master, 'pms_done'
 await t(true, 'The Master creates a yard project', setDoc(R(master, 'pms_projects', 'pj1'), { id: 'pj1', name: 'Yard Feb 2027', dueDate: '2027-02-01' }));
 await t(false, 'An Officer cannot create a project', setDoc(R(officer, 'pms_projects', 'pj2'), { id: 'pj2', name: 'X' }));
 
+await t(true, 'Crew writes an observation card', setDoc(R(crew, 'observations', 'o1'), { id: 'o1', kind: 'unsafe_condition', what: 'Guard missing', updatedAt: 1 }));
+await t(false, 'Crew cannot review a card', setDoc(R(crew, 'observations', 'o1'), { id: 'o1', kind: 'unsafe_condition', what: 'Guard missing', reviewedAt: 2, updatedAt: 2 }));
+await t(false, 'A card cannot be rewritten', setDoc(R(officer, 'observations', 'o1'), { id: 'o1', kind: 'good_practice', what: 'Guard missing', updatedAt: 2 }));
+await t(true, 'An Officer reviews a card', setDoc(R(officer, 'observations', 'o1'), { id: 'o1', kind: 'unsafe_condition', what: 'Guard missing', reviewedAt: 2, reviewedBy: 'Jez', review: 'Fitted', updatedAt: 2 }));
+await t(false, 'Crew cannot raise an NC', setDoc(R(crew, 'ncs', 'n1'), { id: 'n1', no: 'NC-2026-001', actions: [] }));
+await t(true, 'An Officer raises an NC', setDoc(R(officer, 'ncs', 'n1'), { id: 'n1', no: 'NC-2026-001', title: 'Guard', actions: [], updatedAt: 1 }));
+await t(true, 'Crew signs off an action', setDoc(R(crew, 'ncs', 'n1'), { id: 'n1', no: 'NC-2026-001', title: 'Guard', actions: [{ id: 'a', doneAt: 3 }], updatedAt: 3 }));
+await t(false, 'Crew cannot change the finding', setDoc(R(crew, 'ncs', 'n1'), { id: 'n1', no: 'NC-2026-001', title: 'Other', actions: [{ id: 'a', doneAt: 3 }], updatedAt: 4 }));
+await t(false, 'An Officer cannot close an NC', setDoc(R(officer, 'ncs', 'n1'), { id: 'n1', no: 'NC-2026-001', title: 'Guard', actions: [{ id: 'a', doneAt: 3 }], closedAt: 5, updatedAt: 5 }));
+await t(true, 'The Master closes an NC', setDoc(R(master, 'ncs', 'n1'), { id: 'n1', no: 'NC-2026-001', title: 'Guard', actions: [{ id: 'a', doneAt: 3 }], closedAt: 5, updatedAt: 5 }));
+await t(false, 'A closed NC is final', setDoc(R(master, 'ncs', 'n1'), { id: 'n1', no: 'NC-2026-001', title: 'Guard', actions: [], updatedAt: 6 }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

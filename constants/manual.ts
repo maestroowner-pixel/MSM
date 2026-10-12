@@ -480,6 +480,14 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🦺',
+      title: "Safety observations & NC",
+      body: [
+        "Observation cards: anyone on board hands one in, in half a minute — an unsafe condition, an unsafe act, a near miss, or good practice worth sharing; what it is about, where, what was done there and then, and whether the work was stopped. With your name, or anonymous: an anonymous card does not carry the name. New cards come first; an officer reviews each one — \"Reviewed\" with a word on what was done, or \"Raise an NC\". The line above the list counts this month's cards, near misses and good practice — the figures for the monthly safety meeting.",
+        "Non-conformities (ISM Code 9 and 10): from an audit, PSC, flag or class, an incident, a near miss or an observation card. Each gets a number — NC-2026-001 — a grade (observation, non-conformity, major NC), what was found, the requirement not met and the root cause. Then the actions: the correction made, the corrective action against the cause, a preventive one elsewhere — each with by whom and by when. Whoever did it signs it done (PIN, fingerprint or by hand). When every action is done the Master closes the NC, signed, with a word on whether it worked; a closed NC does not change. Overdue actions and NCs waiting to be closed are on the Dashboard. QHSE register (PDF / Excel) prints both lists.",
+      ],
+    },
+    {
       emoji: '👥',
       title: "Crew list and certificate matrix",
       body: [
@@ -1007,6 +1015,14 @@ const ru: ManualContent = {
         "Вахтенный у трапа регистрирует каждого посетителя — имя, компания, цель, документ, номер пропуска, кто принимает — и отмечает уход. На уровне 2 и выше документ обязателен. «On board now» — все, кто ещё не ушёл. Журнал за день или месяц выгружается в Excel. Посетитель расписывается пальцем на экране. В меню Security раскрывается на Gangway logbook и Drills. Пропуска посетителей: распечатайте один раз пронумерованные пропуска (VISITOR 01–20) и держите у трапа — скан свободного пропуска начинает регистрацию с его номером, скан на выходе отмечает уход того, у кого он был. Карточки экипажа: распечатайте QR-карточку каждому; скан у трапа отмечает уход на берег и возвращение. Вкладка Logbook — журнал за день или месяц, PDF с подписями и Excel. Вкладка Drills — учения по охране: поиск безбилетников, угроза взрыва и поиск бомбы, проникновение, пираты, тест SSAS — с участниками и выводами, с подписью; ISPS требует не реже раза в три месяца, вкладка показывает срок следующего.",
         "На телефоне или планшете Print to Xprinter отправляет карточки экипажа или пропуска посетителей 01–20 на Bluetooth-принтер этикеток, которым печатают наклейки оборудования: наклейки 100 × 50, 60 × 40 или 50 × 30 мм с тем же QR — для держателя карточки или бейджа на шнурке.",
         "Выбор месяца в заголовке журнала показывает месяц целиком — у каждого месяца число визитов и движений экипажа; режим Day со стрелками листает по дням.",
+      ],
+    },
+    {
+      emoji: '🦺',
+      title: "Наблюдения и несоответствия (Safety, NC / CAPA)",
+      body: [
+        "Карточки наблюдений: любой на борту подаёт карточку за полминуты — опасное условие, опасное действие, почти-происшествие (near miss) или хорошая практика, которой стоит поделиться; о чём, где, что сделано на месте и была ли остановлена работа. С именем или анонимно — анонимная карточка имени не содержит. Новые карточки идут первыми; офицер разбирает каждую — «Reviewed» с комментарием или «Raise an NC». Строка над списком считает карточки, near miss и хорошую практику за месяц — цифры для ежемесячного собрания по безопасности.",
+        "Несоответствия (ISM, разделы 9 и 10): из аудита, PSC, флага или класса, инцидента, near miss или карточки наблюдения. У каждого номер — NC-2026-001, — степень (замечание, несоответствие, крупное несоответствие), что обнаружено, какое требование нарушено и коренная причина. Дальше действия: исправление, корректирующее действие против причины, предупреждающее — у каждого исполнитель и срок. Исполнитель подписывает выполнение (PIN, отпечаток или рукой). Когда всё выполнено, Мастер закрывает NC с подписью и оценкой, сработали ли меры; закрытое NC больше не меняется. Просроченные действия и NC, ждущие закрытия, видны на главном экране. QHSE register (PDF / Excel) печатает оба списка.",
       ],
     },
     {
@@ -1540,6 +1556,14 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🦺',
+      title: "Observaciones y no conformidades (Safety, NC / CAPA)",
+      body: [
+        "Tarjetas de observación: cualquiera a bordo entrega una en medio minuto — una condición insegura, un acto inseguro, un casi accidente o una buena práctica que vale la pena compartir; de qué trata, dónde, qué se hizo en el momento y si se detuvo el trabajo. Con nombre o anónima: la tarjeta anónima no lleva el nombre. Las nuevas aparecen primero; un oficial revisa cada una — \"Reviewed\" con un comentario, o \"Raise an NC\". La línea sobre la lista cuenta las tarjetas, casi accidentes y buenas prácticas del mes, las cifras para la reunión mensual de seguridad.",
+        "No conformidades (Código IGS, secciones 9 y 10): de una auditoría, PSC, bandera o clase, un incidente, un casi accidente o una tarjeta. Cada una tiene número — NC-2026-001 — grado (observación, no conformidad, NC mayor), lo encontrado, el requisito incumplido y la causa raíz. Luego las acciones: la corrección, la acción correctiva contra la causa y una preventiva, cada una con responsable y plazo. Quien la realiza la firma como hecha (PIN, huella o a mano). Con todas hechas, el Master cierra la NC firmando y valorando si funcionó; una NC cerrada no cambia. Las acciones vencidas y las NC por cerrar aparecen en el panel. QHSE register (PDF / Excel) imprime ambas listas.",
+      ],
+    },
+    {
       emoji: '👥',
       title: "Lista de tripulación y matriz de certificados",
       body: [
@@ -2070,6 +2094,14 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🦺',
+      title: "Спостереження та невідповідності (Safety, NC / CAPA)",
+      body: [
+        "Картки спостережень: будь-хто на борту подає картку за пів хвилини — небезпечна умова, небезпечна дія, майже-подія (near miss) або добра практика, якою варто поділитися; про що, де, що зроблено на місці і чи було зупинено роботу. З іменем або анонімно — анонімна картка імені не містить. Нові картки йдуть першими; офіцер розглядає кожну — «Reviewed» з коментарем або «Raise an NC». Рядок над списком рахує картки, near miss і добру практику за місяць — цифри для щомісячних зборів з безпеки.",
+        "Невідповідності (ISM, розділи 9 і 10): з аудиту, PSC, прапора чи класу, інциденту, near miss або картки спостереження. Кожна має номер — NC-2026-001, — ступінь (зауваження, невідповідність, суттєва невідповідність), що виявлено, яку вимогу порушено і корінну причину. Далі дії: виправлення, коригувальна дія проти причини, запобіжна — у кожної виконавець і строк. Виконавець підписує виконання (PIN, відбиток або рукою). Коли все виконано, Майстер закриває NC з підписом і оцінкою, чи спрацювали заходи; закрита NC більше не змінюється. Прострочені дії та NC, що чекають закриття, видно на головному екрані. QHSE register (PDF / Excel) друкує обидва списки.",
+      ],
+    },
+    {
       emoji: '👥',
       title: "Список екіпажу та матриця сертифікатів",
       body: [
@@ -2186,6 +2218,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
   { title: 'Board', module: 'board' },
   { title: 'Surveys & audits', module: 'surveys' },
   { title: 'Security (ISPS)', module: 'security' },
+  { title: 'Safety observations & NC', module: 'qhse' },
   { title: 'Fleet console (superintendent)', module: 'fleet' },
 ];
 

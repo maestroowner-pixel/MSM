@@ -385,6 +385,26 @@ service cloud.firestore {
         allow create: if isAdmin(v) && (plainRecord() || isSuper(v));
         allow update, delete: if false;
       }
+      // QHSE (types/safety.ts). An observation card is anybody's to write; an
+      // officer or the Master reviews it, and the review is all that changes.
+      match /observations/{id} {
+        allow read: if reader(v);
+        allow create: if member(v) && !('reviewedAt' in request.resource.data);
+        allow update: if isAdmin(v) && onlyChanges(['reviewedAt', 'reviewedBy', 'reviewedByRank', 'review', 'ncId', 'updatedAt']);
+        allow delete: if false;
+      }
+      // A non-conformity is raised and worked by the officers; anyone on board
+      // signs off the action given to him; only the Master (or the shore) closes
+      // it, and a closed one is final.
+      match /ncs/{id} {
+        allow read: if reader(v);
+        allow create: if isAdmin(v) && !('closedAt' in request.resource.data);
+        allow update: if resource.data.get('closedAt', null) == null && (
+                        plans(v)
+                        || (isAdmin(v) && !('closedAt' in request.resource.data))
+                        || (member(v) && onlyChanges(['actions', 'updatedAt'])));
+        allow delete: if false;
+      }
       // Crew going ashore / coming back aboard (QR crew card at the gangway).
       match /crew_moves/{id} {
         allow read: if reader(v);

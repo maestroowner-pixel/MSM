@@ -85,6 +85,8 @@ import LogBookSc from './screens/LogBookSc';
 import SopepSc from './screens/SopepSc';
 import SecuritySc from './screens/SecuritySc';
 import SurveysSc from './screens/SurveysSc';
+import SafetySc from './screens/SafetySc';
+import NcSc from './screens/NcSc';
 import RoundsSc from './screens/RoundsSc';
 import RoundSc from './screens/RoundSc';
 import PermitSc from './screens/PermitSc';
@@ -124,6 +126,7 @@ const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Sopep: SopepSc,
   Security: SecuritySc,
   Surveys: SurveysSc,
+  Safety: SafetySc,
   Rounds: RoundsSc,
   Maintenance: MaintenanceSc,
   HoursOfRest: HoursOfRestSc,
@@ -201,6 +204,7 @@ const MENU_LABEL: Record<string, string> = {
   Sopep: 'SOPEP',
   Security: 'Security (ISPS)',
   Surveys: 'Surveys & audits',
+  Safety: 'Safety observations & NC',
   Rounds: 'Inspection rounds',
   Fuel: 'Fuel',
   Garbage: 'Garbage record book',
@@ -400,6 +404,7 @@ const linking = {
           Sopep: 'sopep',
           Security: 'security',
           Surveys: 'surveys',
+          Safety: 'safety',
           Rounds: 'rounds',
           Settings: 'settings',
         },
@@ -428,6 +433,7 @@ const linking = {
       PmsProjects: 'pms-projects',
       PmsProject: 'pms-project/:id',
       Round: 'round/:id',
+      Nc: 'nc/:id',
       SparePart: 'spare/:id',
       Doc: 'document/:id',
       CrewMember: 'crew/:id',
@@ -623,6 +629,7 @@ function Root() {
         <Stack.Screen name="PmsProjects" component={PmsProjectsSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsProject" component={PmsProjectSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Round" component={RoundSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Nc" component={NcSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="SparePart" component={SparePartSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Doc" component={DocSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="CrewMember" component={CrewMemberSc} options={{ presentation: 'modal' }} />

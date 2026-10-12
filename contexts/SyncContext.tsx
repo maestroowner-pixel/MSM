@@ -124,7 +124,7 @@ const PUSH_DEBOUNCE_MS = 1500;
 const TRAIL_WINDOW_DAYS = 400;
 
 export function SyncProvider({ children }: { children: React.ReactNode }) {
-  const { flat, certificates, vessel, compressor, inspections: trail, crew, rest, machines, pmsJobs, pmsDone, pmsDeferrals, pmsDefects, pmsProjects, spares, spareMoves, docs, docAcks, crewPrivate, permits, risks, fuelTanks, fuelReadings, fuelBunkers, fuelTransfers, fuelDailySent, garbage, garbageSigns, orb, orbSigns, rounds, sewage, sewageSigns, ballast, ballastSigns, sopepItems, sopepChecks, sopepDrills, visitors, securityLevels, securityDrills, crewMoves, surveys, surveysDone, prefs, reload, setSigningPolicy, setPhotoArchive } = useData();
+  const { flat, certificates, vessel, compressor, inspections: trail, crew, rest, machines, pmsJobs, pmsDone, pmsDeferrals, pmsDefects, pmsProjects, spares, spareMoves, docs, docAcks, crewPrivate, permits, risks, fuelTanks, fuelReadings, fuelBunkers, fuelTransfers, fuelDailySent, garbage, garbageSigns, orb, orbSigns, rounds, sewage, sewageSigns, ballast, ballastSigns, sopepItems, sopepChecks, sopepDrills, visitors, securityLevels, securityDrills, crewMoves, surveys, surveysDone, observations, ncs, prefs, reload, setSigningPolicy, setPhotoArchive } = useData();
 
   const [status, setStatus] = useState<SyncStatus>('off');
   const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
@@ -613,7 +613,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!uidRef.current || applyingRemote.current) return;
     schedulePush();
-  }, [flat, certificates, vessel, compressor, trail, crew, rest, machines, pmsJobs, pmsDone, pmsDeferrals, pmsDefects, pmsProjects, spares, spareMoves, docs, docAcks, crewPrivate, permits, risks, fuelTanks, fuelReadings, fuelBunkers, fuelTransfers, fuelDailySent, garbage, garbageSigns, orb, orbSigns, rounds, sewage, sewageSigns, ballast, ballastSigns, sopepItems, sopepChecks, sopepDrills, visitors, securityLevels, securityDrills, crewMoves, surveys, surveysDone, schedulePush]);
+  }, [flat, certificates, vessel, compressor, trail, crew, rest, machines, pmsJobs, pmsDone, pmsDeferrals, pmsDefects, pmsProjects, spares, spareMoves, docs, docAcks, crewPrivate, permits, risks, fuelTanks, fuelReadings, fuelBunkers, fuelTransfers, fuelDailySent, garbage, garbageSigns, orb, orbSigns, rounds, sewage, sewageSigns, ballast, ballastSigns, sopepItems, sopepChecks, sopepDrills, visitors, securityLevels, securityDrills, crewMoves, surveys, surveysDone, observations, ncs, schedulePush]);
 
   // Fix 1, second half: re-push when the app comes back to the foreground.
   //
