@@ -11,9 +11,11 @@ the part that stops the next person undoing it.
 - Settings → Reports folder only shows when a report that uses it is on.
 - Build 20592 (20591 was built with crew + rest on — not to be uploaded).
 
-## Unreleased
+## 2.62 (20621) — 13 Oct 2026
 
-Next build: 2.62 (2.61 is out in both stores since 12 Oct 2026; the web was deployed from the 2.61 commit the same day — everything below waits for 2.62).
+What the crew sees: **inspection rounds as Jez asked** — the report in the Reports layout with a final Officer / Master sign-off, Deck → Location → number, and an inspection counts towards the matching round from anywhere (Dashboard, scanner, widget); **the fix for React error 185 after saving**; records say how they were signed ("signed by PIN" …); a crew card or visitor pass scanned without gangway control says so. Modules on: lifting, rounds — unchanged. Everything else below is dark (QHSE, gangway photo, SDM import with crew certificates).
+
+### Since 2.61
 
 - **Gangway — Jez's point 4** (dark with `security`): a **photograph** of the visitor on sign-on (phone camera, 240 px JPEG kept on the visit record, removed automatically 90 days after the visit — `photosToRemove`); scanning a pass in use opens the holder's **identity card** (photo, name, company, purpose, host, time aboard) instead of signing them off, and the watch signs off from there (Sign off now); returning contractors bring their photo with them.
 - **Inspection rounds — Jez's points 1–3** (13 Oct 2026). (1) The round report is the Reports-tab report — same layout, PDF and Excel — scoped to the round (`services/reportData.ts`), with who did each inspection and, at the foot, the round's **final sign-off**: closing a round is now signing it off as reviewed and completed (Officer or Master, PIN / fingerprint / hand, remarks required when items are left). (2) Outstanding items read like Equipment: **Deck → Location → number** (`walkGroups`). (3) An inspection counts towards the open round of the **same period** that covers its category **from anywhere** — Dashboard, scanner, widget, any device (`roundFor`); two open rounds of one period and category can no longer be started. Report stats count items, not records. Rules: the sign-off fields, and a closed round is final (115/115).
