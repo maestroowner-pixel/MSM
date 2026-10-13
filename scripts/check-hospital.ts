@@ -80,7 +80,7 @@ ok(sortChest(sorted, 'purpose').map((r) => purposeOf(r.item)).join() === 'Bandag
 ok(earliestExpiry(sorted[2]) === '2026-10-01', 'soonest expiry includes out of date');
 ok(matchesSearch(sorted[1].item, 'anaphylaxis') && matchesSearch(sorted[1].item, 'C01CA24'), 'MHM search: indication and ATC');
 ok(stockLevel({ usable: 0, item: { required: 10 } } as any) === 'empty' && stockLevel({ usable: 2, item: { required: 10 } } as any) === 'critical' && stockLevel({ usable: 4, item: { required: 10 } } as any) === 'low' && stockLevel({ usable: 9, item: { required: 10 } } as any) === 'adequate' && stockLevel({ usable: 10, item: { required: 10 } } as any) === 'good', 'MHM stock levels <25 / <50 / <100 %');
-ok(purposeIcon('Cardiovascular') === '❤️' && mmYY('2027-11-30') === '11/27', 'group mark, MM/YY');
+ok(purposeIcon('Cardiovascular') === 'heart-pulse' && purposeIcon('Something new') === 'pill' && mmYY('2027-11-30') === '11/27', 'group icon (MaterialCommunityIcons, not emoji), MM/YY');
 ok(matchesName(sorted[1].item, 'adren') && !matchesName(sorted[1].item, 'zinc'), 'search by name');
 
 // where it is, and the list number

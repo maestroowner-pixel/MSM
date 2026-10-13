@@ -23,6 +23,7 @@ import { BackButton, Card, Label, Screen, ScreenTitle } from '../components/ui';
 import { useSignConfirm } from '../components/SignConfirm';
 import { useSigner } from '../components/SignerChoice';
 import { useWitness } from '../components/WitnessChoice';
+import { MciIcon } from '../components/MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
@@ -173,7 +174,7 @@ export default function MedItemSc() {
           {st.expired ? <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700' }]}>{`${st.expired} out of date — dispose of them`}</Text> : null}
           {coming ? <Text style={[styles.sub, { color: COLORS.primary }]}>{`${coming} on order`}</Text> : null}
           <Text style={styles.sub}>{[MED_KIND_LABEL[item.kind], item.controlled ? 'Controlled drug' : null].filter(Boolean).join(' · ')}</Text>
-          {placeText(item) ? <Text style={[styles.body, { fontWeight: '700' }]}>{`📍 ${placeText(item)}`}</Text> : null}
+          {placeText(item) ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><MciIcon name="map-marker-outline" size={16} color={COLORS.textLight} /><Text style={[styles.body, { fontWeight: '700', flexShrink: 1 }]}>{placeText(item)}</Text></View> : null}
           {item.listNo ? <Text style={styles.sub}>{`List No. ${item.listNo}`}</Text> : null}
           {officer ? (
             <View style={styles.row}>

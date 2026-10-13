@@ -478,14 +478,15 @@ export const STOCK_LEVEL_LABEL: Record<StockLevel, string> = { empty: 'Out of st
 
 /** The group's mark, as in MHM's category pills. */
 export function purposeIcon(group: string): string {
+  // MaterialCommunityIcons names (components/MciIcon) — the app's own icons, not emoji (13 Oct 2026).
   const g = group.toLowerCase();
   const table: [RegExp, string][] = [
-    [/pain|fever|analges/, '🩹'], [/cardio/, '❤️'], [/gastro/, '🍽️'], [/infect|antibio/, '🦠'], [/respir/, '🫁'], [/derma|skin/, '🧴'],
-    [/nervous|psych/, '🧠'], [/eye|ear/, '👁️'], [/allerg/, '🤧'], [/emergenc/, '🚨'], [/rehydr/, '💧'], [/vaccin/, '💉'], [/dental/, '🦷'],
-    [/women/, '👩'], [/resusc|oxygen/, '🫀'], [/bandage|suture|dressing/, '🩹'], [/instrument/, '✂️'], [/examin|monitor/, '🩺'],
-    [/inject|cathet/, '💉'], [/nursing/, '🛏️'], [/immobil|splint/, '🦴'], [/disinfect|protect/, '🧼'], [/equipment/, '🧰'],
+    [/pain|fever|analges/, 'thermometer'], [/cardio/, 'heart-pulse'], [/gastro/, 'stomach'], [/infect|antibio/, 'bacteria-outline'], [/respir/, 'lungs'], [/derma|skin/, 'lotion-outline'],
+    [/nervous|psych/, 'brain'], [/eye|ear/, 'eye-outline'], [/allerg/, 'flower-pollen-outline'], [/emergenc/, 'ambulance'], [/rehydr/, 'water-outline'], [/vaccin/, 'needle'], [/dental/, 'tooth-outline'],
+    [/women/, 'human-female'], [/resusc|oxygen/, 'gas-cylinder'], [/bandage|suture|dressing/, 'bandage'], [/instrument/, 'content-cut'], [/examin|monitor/, 'stethoscope'],
+    [/inject|cathet/, 'needle'], [/nursing/, 'bed-outline'], [/immobil|splint/, 'bone'], [/disinfect|protect/, 'hand-wash-outline'], [/equipment/, 'toolbox-outline'],
   ];
-  return table.find(([re]) => re.test(g))?.[1] ?? '💊';
+  return table.find(([re]) => re.test(g))?.[1] ?? 'pill';
 }
 
 /** MHM's search: name, strength, code (ATC / IMGS), and what it is for. */

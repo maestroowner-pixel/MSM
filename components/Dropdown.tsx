@@ -18,6 +18,8 @@ import { SIZES } from '../theme';
 export interface DropdownOption<T> {
   value: T;
   label: string;
+  /** A MaterialCommunityIcons name shown before the label. */
+  icon?: string;
 }
 
 export function Dropdown<T>({
@@ -37,7 +39,8 @@ export function Dropdown<T>({
   const { height: winH, width: winW } = useWindowDimensions();
   const ref = useRef<View>(null);
   const [at, setAt] = useState<{ x: number; y: number; w: number } | null>(null);
-  const current = options.find((o) => o.value === value)?.label ?? '';
+  const cur = options.find((o) => o.value === value);
+  const current = cur?.label ?? '';
 
   const open = () =>
     ref.current?.measureInWindow((x, y, w, h) => {
@@ -57,7 +60,8 @@ export function Dropdown<T>({
         style={[styles.button, { ...COLORS.glassCard, borderColor: COLORS.borderLight }, style]}
       >
         {caption ? <Text style={[styles.caption, { color: COLORS.textLight }]}>{caption}</Text> : null}
-        <Text style={[styles.value, { color: COLORS.textDark }]} numberOfLines={1}>{current}</Text>
+        {cur?.icon ? <MciIcon name={cur.icon} size={18} color={COLORS.primary} style={{ marginLeft: 'auto' }} /> : null}
+        <Text style={[styles.value, { color: COLORS.textDark }, cur?.icon ? { flexGrow: 0, flexShrink: 1, flexBasis: 'auto' } : null]} numberOfLines={1}>{current}</Text>
         <MciIcon name="chevron-down" size={18} color={COLORS.textLight} />
       </TouchableOpacity>
       <Modal visible={!!at} transparent animationType="none" onRequestClose={() => setAt(null)}>
@@ -76,7 +80,10 @@ export function Dropdown<T>({
                       setAt(null);
                     }}
                   >
-                    <Text style={[styles.itemText, { color: on ? COLORS.primary : COLORS.textDark }, on && { fontWeight: '700' }]}>{o.label}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, flexShrink: 1 }}>
+                      {o.icon ? <MciIcon name={o.icon} size={18} color={on ? COLORS.primary : COLORS.textLight} /> : null}
+                      <Text style={[styles.itemText, { color: on ? COLORS.primary : COLORS.textDark }, on && { fontWeight: '700' }]}>{o.label}</Text>
+                    </View>
                     {on ? <MciIcon name="check" size={16} color={COLORS.primary} /> : null}
                   </TouchableOpacity>
                 );

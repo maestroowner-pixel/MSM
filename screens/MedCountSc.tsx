@@ -17,6 +17,7 @@ import { BackButton, Card, Label, Screen, ScreenTitle } from '../components/ui';
 import { useSignConfirm } from '../components/SignConfirm';
 import { useSigner } from '../components/SignerChoice';
 import { useWitness } from '../components/WitnessChoice';
+import { MciIcon } from '../components/MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
@@ -181,7 +182,7 @@ export default function MedCountSc() {
         const head = r.place && (i === 0 || visible[i - 1].place !== r.place) ? r.place : null;
         return (
           <React.Fragment key={r.key}>
-          {head ? <Text style={[styles.sub, { fontWeight: '800', color: COLORS.textDark, marginTop: SIZES.md }]}>{`📍 ${head}`}</Text> : null}
+          {head ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: SIZES.md }}><MciIcon name="map-marker-outline" size={15} color={COLORS.textDark} /><Text style={[styles.sub, { fontWeight: '800', color: COLORS.textDark, marginTop: 0 }]}>{head}</Text></View> : null}
           <View style={[styles.row, { marginVertical: 2, borderBottomWidth: 0.5, borderBottomColor: COLORS.borderLight, paddingBottom: 4 }]}>
             <View style={{ flex: 1, minWidth: 160 }}>
               <Text style={styles.name}>{`${r.name}${itemOf(r.itemId)?.controlled ? ' · CD' : ''}${r.found ? ' · found' : ''}`}</Text>

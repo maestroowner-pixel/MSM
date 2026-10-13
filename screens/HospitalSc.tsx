@@ -22,6 +22,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { Card, Screen, ScreenTitle } from '../components/ui';
 import { Dropdown } from '../components/Dropdown';
+import { MciIcon } from '../components/MciIcon';
 import { useSigner } from '../components/SignerChoice';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
@@ -183,6 +184,14 @@ export default function HospitalSc() {
     </TouchableOpacity>
   );
 
+  // Where an item is kept — the map-marker icon, not an emoji.
+  const Place = ({ text }: { text: string }) => (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+      <MciIcon name="map-marker-outline" size={14} color={COLORS.textLight} />
+      <Text style={[styles.sub, { color: COLORS.textDark, marginTop: 0, flexShrink: 1 }]}>{text}</Text>
+    </View>
+  );
+
   const pages: [HospitalView, string][] = [
     ['register', `Register · ${rows.length}`],
     ['orders', `Orders · ${open.length}`],
@@ -203,10 +212,10 @@ export default function HospitalSc() {
         <>
           {rows.length ? (
             <>
-              <TextInput style={[styles.input, { marginTop: 0, marginBottom: SIZES.sm }]} value={q} onChangeText={setQ} placeholder="🔍 Search — name, indication, ATC, list No., cabinet" placeholderTextColor={COLORS.textLight} />
+              <TextInput style={[styles.input, { marginTop: 0, marginBottom: SIZES.sm }]} value={q} onChangeText={setQ} placeholder="Search — name, indication, ATC, list No., cabinet" placeholderTextColor={COLORS.textLight} />
               {/* Group, what to show and the order — three drop-downs side by side (13 Oct 2026: "filters and sorting as drop-down menus"). */}
               <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.sm, gap: SIZES.xs }]}>
-                <Dropdown caption="GROUP" value={group ?? ''} onChange={(v: string) => setGroup(v || null)} options={[{ value: '', label: `💊 All · ${rows.length}` }, ...groups.map(([g, n]) => ({ value: g, label: `${purposeIcon(g)} ${g} · ${n}` }))]} style={{ flex: 1, minWidth: 200 }} />
+                <Dropdown caption="GROUP" value={group ?? ''} onChange={(v: string) => setGroup(v || null)} options={[{ value: '', label: `All · ${rows.length}`, icon: 'pill' }, ...groups.map(([g, n]) => ({ value: g, label: `${g} · ${n}`, icon: purposeIcon(g) }))]} style={{ flex: 1, minWidth: 200 }} />
                 <Dropdown caption="SHOW" value={filter} onChange={setFilter} style={{ flex: 1, minWidth: 200 }} options={[
                   { value: 'all' as Filter, label: 'All' },
                   { value: 'expired' as Filter, label: `Out of date · ${counts.expired}` },
@@ -239,17 +248,19 @@ export default function HospitalSc() {
             const exp = earliestExpiry(r);
             return (
               <React.Fragment key={r.item.id}>
-              {head ? <Text style={[styles.sub, { fontWeight: '800', color: COLORS.textDark, marginTop: SIZES.md, marginBottom: 4 }]}>{`${head} · ${shown.filter((x) => purposeOf(x.item) === head).length}`}</Text> : null}
+              {head ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: SIZES.md, marginBottom: 4 }}><MciIcon name={purposeIcon(head)} size={16} color={COLORS.textDark} /><Text style={[styles.sub, { fontWeight: '800', color: COLORS.textDark, marginTop: 0 }]}>{`${head} · ${shown.filter((x) => purposeOf(x.item) === head).length}`}</Text></View> : null}
               <TouchableOpacity style={[styles.item, { borderLeftColor: stateColor(r), flexDirection: 'row', gap: SIZES.sm }]} onPress={() => nav.navigate('MedItem', { id: r.item.id })} activeOpacity={0.7}>
                 <View style={{ flex: 1, minWidth: 0 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={[styles.name, { flexShrink: 1 }]} numberOfLines={1}>{`${purposeIcon(purposeOf(r.item))} ${r.item.name}${r.item.controlled ? ' 🔒' : ''}`}</Text>
+                  <MciIcon name={purposeIcon(purposeOf(r.item))} size={18} color={COLORS.primary} />
+                  <Text style={[styles.name, { flexShrink: 1 }]} numberOfLines={1}>{r.item.name}</Text>
+                  {r.item.controlled ? <MciIcon name="lock" size={15} color={COLORS.warning} /> : null}
                   <TouchableOpacity onPress={() => setInfo(r)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Reference — ${r.item.name}`} style={[styles.infoBtn, { borderColor: COLORS.primary }]}>
                     <Text style={[styles.infoBtnText, { color: COLORS.primary }]}>i</Text>
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.sub}>{[r.item.listNo ? `No. ${r.item.listNo}` : null, r.item.strength].filter(Boolean).join(' · ')}</Text>
-                {placeText(r.item) ? <Text style={[styles.sub, { color: COLORS.textDark }]}>{`📍 ${placeText(r.item)}`}</Text> : null}
+                {placeText(r.item) ? <Place text={placeText(r.item)} /> : null}
                 <Text style={[styles.sub, { color: stateColor(r), fontWeight: '700' }]}>{[`${r.usable} / ${r.item.required} ${r.item.unit}`, STOCK_LEVEL_LABEL[stockLevel(r)], r.short ? `${r.short} short` : null, r.expired ? `${r.expired} out of date` : r.nextState === 'soon' ? 'expiring' : null].filter(Boolean).join(' · ')}</Text>
                 {coming ? <Text style={[styles.sub, { color: COLORS.primary }]}>{`${coming} on order`}</Text> : null}
                 {sortBy === 'expiry' && exp ? <Text style={[styles.sub, { color: expiryState(today, exp) === 'expired' ? COLORS.danger : COLORS.textLight }]}>{`Soonest expiry ${formatDate(exp)}`}</Text> : null}
@@ -424,8 +435,13 @@ export default function HospitalSc() {
               const ref = referenceOf(info.item);
               return (
                 <>
-                  <Text style={[styles.name, { fontSize: 18 }]}>{`${purposeIcon(purposeOf(info.item))} ${info.item.name}${info.item.controlled ? ' 🔒' : ''}`}</Text>
-                  <Text style={styles.sub}>{[info.item.strength, placeText(info.item) ? `📍 ${placeText(info.item)}` : null, `${info.usable} / ${info.item.required} ${info.item.unit} · ${STOCK_LEVEL_LABEL[stockLevel(info)]}`].filter(Boolean).join(' · ')}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <MciIcon name={purposeIcon(purposeOf(info.item))} size={22} color={COLORS.primary} />
+                    <Text style={[styles.name, { fontSize: 18, flexShrink: 1 }]}>{info.item.name}</Text>
+                    {info.item.controlled ? <MciIcon name="lock" size={18} color={COLORS.warning} /> : null}
+                  </View>
+                  <Text style={styles.sub}>{[info.item.strength, `${info.usable} / ${info.item.required} ${info.item.unit} · ${STOCK_LEVEL_LABEL[stockLevel(info)]}`].filter(Boolean).join(' · ')}</Text>
+                  {placeText(info.item) ? <Place text={placeText(info.item)} /> : null}
                   {ref.facts.length ? <Text style={[styles.sub, { color: COLORS.textDark, marginTop: SIZES.xs }]}>{ref.facts.join(' · ')}</Text> : null}
                   <ScrollView style={{ maxHeight: 360, marginTop: SIZES.sm }}>
                     <Text style={[styles.body, { lineHeight: 21 }]}>{ref.text || 'No entry in the WHO IMGS reference for this item.'}</Text>
