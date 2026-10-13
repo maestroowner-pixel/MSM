@@ -130,6 +130,11 @@ try {
   ok(bd.attention.some((n: any) => n.key === 'med:ord:o'), 'board: overdue order');
   ok(bd.attention.some((n: any) => n.key === 'med:cd'), 'board: controlled drugs never counted');
   ok(bd.tiles.some((t: any) => t.key === 'med'), 'board: Hospital tile');
+  ok(bd.attention.some((n: any) => n.key === 'med:empty') && /out of stock/.test(bd.tiles.find((t: any) => t.key === 'med')?.line ?? ''), 'board: required item out of stock — notice and tile');
+  ok(!!bd.attention.find((n: any) => n.key === 'med:exp')?.sub?.includes('landing report'), 'board: out of date points to the landing report');
+  const bd2 = buildBoard({ ...base, role: 'superadmin', medItems: [I({ id: 'mo', name: 'Morphine', controlled: true, required: 5 })], medMoves: [M({ itemId: 'mo', qty: 5, expiry: '2026-09-30' }), M({ itemId: 'mo', qty: 5, expiry: '2027-09-30' })], medOrders: [], medTreatments: [] });
+  const cdn = bd2.attention.find((n: any) => n.key === 'med:exp:cd');
+  ok(cdn?.route === 'MedLanding' && cdn?.params?.mode === 'cd' && cdn?.who === 'master' && !bd2.attention.some((n: any) => n.key === 'med:empty'), 'board: controlled drugs out of date → their landing report, for the Master');
 } catch (e: any) {
   ok(false, `board builds: ${e?.message}`);
 }

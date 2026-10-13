@@ -43,7 +43,7 @@ import { NonConformity, SafetyObservation } from '../types/safety';
 import { Drill } from '../types/drills';
 import { drillSchedule } from './drills';
 import { MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
-import { chestCounts, chestStatus, followUpsDue, lastControlledCount, orderOverdue } from './hospital';
+import { chestCounts, chestStatus, followUpsDue, landingLinesFor, lastControlledCount, orderOverdue, stockLevel } from './hospital';
 import { currentEntries } from './garbage';
 
 export type Level = 'red' | 'amber' | 'blue';
@@ -381,7 +381,12 @@ export function buildBoard(x: BoardInput): Board {
     const items = x.medItems ?? [];
     const rows = chestStatus(items, x.medMoves ?? [], x.today);
     const c = chestCounts(rows);
-    if (c.expired) n.push({ key: 'med:exp', level: 'red', who: 'officer', icon: 'medical-bag', route: 'Hospital', params: { view: 'register', filter: 'expired' }, title: `Medicine chest — ${plural(c.expired, 'item')} out of date` });
+    // Out of date goes ashore on a landing report — the controlled drugs on their own, the Master's (13 Oct 2026).
+    const landCd = landingLinesFor(rows, x.today, true).length;
+    const empty = rows.filter((r) => r.item.required > 0 && stockLevel(r) === 'empty').length;
+    if (c.expired) n.push({ key: 'med:exp', level: 'red', who: 'officer', icon: 'medical-bag', route: 'Hospital', params: { view: 'register', filter: 'expired' }, title: `Medicine chest — ${plural(c.expired, 'item')} out of date`, sub: 'Land them ashore with a landing report — handed over and received, both signed' });
+    if (landCd) n.push({ key: 'med:exp:cd', level: 'red', who: 'master', icon: 'lock-alert-outline', route: 'MedLanding', params: { id: 'new', mode: 'cd' }, title: `Controlled drugs — ${plural(landCd, 'batch', 'batches')} out of date`, sub: 'Landing report with a witness — the register shows them disposed of' });
+    if (empty) n.push({ key: 'med:empty', level: 'red', who: 'officer', icon: 'package-variant-remove', route: 'Hospital', params: { view: 'register', filter: 'empty' }, title: `Medicine chest — ${plural(empty, 'item')} out of stock`, sub: 'None aboard of a required item — order it' });
     if (c.soon) n.push({ key: 'med:soon', level: 'amber', who: 'officer', icon: 'medical-bag', route: 'Hospital', params: { view: 'register', filter: 'soon' }, title: `Medicine chest — ${plural(c.soon, 'item')} expiring within 30 days` });
     if (c.short) n.push({ key: 'med:short', level: 'amber', who: 'officer', icon: 'medical-bag', route: 'Hospital', params: { view: 'register', filter: 'short' }, title: `Medicine chest — ${plural(c.short, 'item')} below the scale` });
     if (items.some((i) => i.controlled && !i.deleted)) {
@@ -390,7 +395,7 @@ export function buildBoard(x: BoardInput): Board {
     }
     for (const o of (x.medOrders ?? []).filter((o) => orderOverdue(o, x.medMoves ?? [], x.today))) n.push({ key: `med:ord:${o.id}`, level: 'amber', who: 'officer', icon: 'truck-delivery-outline', route: 'MedOrder', params: { id: o.id }, title: `Medical order ${o.no} — overdue`, sub: `expected ${dm(o.due!)}${o.supplier ? ` · ${o.supplier}` : ''}` });
     for (const t of followUpsDue(x.medTreatments ?? [], x.today)) n.push({ key: `med:fu:${t.id}`, level: 'blue', who: 'officer', icon: 'stethoscope', route: 'Treatment', params: { id: 'new', followUpOf: t.id }, title: `Follow-up — ${t.patient}`, sub: `${t.no} ${t.complaint}` });
-    tiles.push({ key: 'med', label: 'Hospital', icon: 'medical-bag', route: 'Hospital', level: lvl(c.expired, c.soon + c.short), line: items.length ? [c.expired ? `${c.expired} expired` : null, c.soon ? `${c.soon} expiring` : null, c.short ? `${c.short} short` : null].filter(Boolean).join(' · ') || 'All in date' : 'No chest list yet' });
+    tiles.push({ key: 'med', label: 'Hospital', icon: 'medical-bag', route: 'Hospital', level: lvl(c.expired + empty, c.soon + c.short), line: items.length ? [c.expired ? `${c.expired} expired` : null, empty ? `${empty} out of stock` : null, c.soon ? `${c.soon} expiring` : null, c.short ? `${c.short} short` : null].filter(Boolean).slice(0, 3).join(' · ') || 'All in date' : 'No chest list yet' });
   }
 
   // ---- Surveys & audits ----
