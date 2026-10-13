@@ -57,6 +57,11 @@ export interface SignRequest {
    * list (13 Oct 2026: "attendance list signed digitally — PIN and bio").
    */
   always?: boolean;
+  /**
+   * Someone with no PIN on this device and none to get — the person ashore who
+   * receives a landing: the hand-drawn signature only.
+   */
+  handOnly?: boolean;
 }
 
 export type SignResult = { proof?: SignProof } | null;
@@ -137,7 +142,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
         void (async () => {
           // The signer chooses: PIN, by hand, or the fingerprint on their own device (11 Oct 2026).
           setBio(r.ownDevice ? await biometricKind() : null);
-          setStep('choose');
+          setStep(r.handOnly ? 'draw' : 'choose');
         })();
       });
     },
@@ -275,7 +280,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
             {hint ? <Text style={styles.hint}>{hint}</Text> : null}
             <View style={styles.row}>
               {/* Back to the choice: PIN, by hand, fingerprint. */}
-              {step !== 'choose' ? (
+              {step !== 'choose' && !req?.handOnly ? (
                 <TouchableOpacity onPress={() => { setMsg(null); setPinText(''); setStep('choose'); }} hitSlop={8}>
                   <Text style={styles.link}>Another way</Text>
                 </TouchableOpacity>

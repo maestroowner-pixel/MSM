@@ -2,6 +2,7 @@
 // Content: services/hospitalReport.ts (treatmentDoc).
 /* eslint-disable @typescript-eslint/no-var-requires */
 import type { MedDoc } from '../services/hospitalReport';
+import { sigImage } from './sigImage';
 
 const plain = (s: string) => s.replace(/[₀-₉]/g, (c) => String(c.charCodeAt(0) - 0x2080)).replace(/≈/g, '~').replace(/≤/g, '<=').replace(/≥/g, '>=');
 
@@ -42,6 +43,45 @@ export function medPdfBlob(d: MedDoc): Blob {
     if (s.table) {
       autoTable(doc, { ...base, startY: y, head: [s.table.head.map(plain)], body: s.table.rows.map((r) => r.map(plain)) });
       y = (doc as any).lastAutoTable.finalY + 1;
+    }
+    if (s.text) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(...navy);
+      const lines = doc.splitTextToSize(plain(s.text), doc.internal.pageSize.getWidth() - 2 * M);
+      doc.text(lines, M, y + 4);
+      y += 4 + lines.length * 4;
+    }
+    if (s.signatures?.length) {
+      // Side by side, a box each: role, the drawn signature over a line, name, how and when.
+      const W = doc.internal.pageSize.getWidth() - 2 * M;
+      const gap = 5;
+      const w = (W - gap * (s.signatures.length - 1)) / s.signatures.length;
+      if (y > H - 50) {
+        doc.addPage();
+        y = 18;
+      }
+      s.signatures.forEach((g, i) => {
+        const x = M + i * (w + gap);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(...grey);
+        doc.text(plain(g.role), x, y + 4);
+        const img = g.drawing ? sigImage(g.drawing) : null;
+        if (img) doc.addImage(img, 'PNG', x, y + 6, Math.min(w, 54), Math.min(w, 54) / 3);
+        doc.setDrawColor(...navy);
+        doc.setLineWidth(0.3);
+        doc.line(x, y + 25, x + w, y + 25);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(...navy);
+        doc.text(doc.splitTextToSize(plain(g.name || ' '), w), x, y + 29);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(...grey);
+        doc.text(doc.splitTextToSize(plain(g.detail), w), x, y + 33);
+      });
+      y += 42;
     }
   }
   return doc.output('blob');

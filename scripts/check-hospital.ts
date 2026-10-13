@@ -1,7 +1,7 @@
 // npm run check:hospital — stock by batch, expiry, orders delivered in parts, the inventory, the register, the scale, the Excel list, the board.
 import {
   chestStatus, checkLinesFor, differences, expiryState, followUpsDue, lastControlledCount, nextNo, normExpiry, onOrderByItem, orderOverdue, orderState,
-  pickBatch, planImport, batchLabel, sortChest, purposeOf, earliestExpiry, matchesName, placeText, comparePlace, stockLevel, matchesSearch, purposeIcon, mmYY, readSheet, receivedByLine, registerLines, scaleEntry, scaleItems, stockByItem, toOrder,
+  pickBatch, planImport, batchLabel, sortChest, purposeOf, earliestExpiry, matchesName, placeText, comparePlace, stockLevel, matchesSearch, purposeIcon, mmYY, readSheet, receivedByLine, registerLines, scaleEntry, scaleItems, stockByItem, toOrder, landingLinesFor, listNoOf, isLanding, CHECK_KIND_LABEL,
 } from '../services/hospital';
 import { MED_SCALE, NURSING_SCALE } from '../constants/medScale';
 import { buildBoard } from '../services/board';
@@ -98,6 +98,17 @@ ok(scaleItems('A').some((x) => x.listNo === 'W.H.O. 1.3.1') && scaleItems('A').s
 // batch = expiry MM/YY
 ok(normExpiry('11/27') === '2027-11-30' && normExpiry('02/28') === '2028-02-29', 'expiry as on the box: 11/27');
 ok(batchLabel({ expiry: '2027-11-30' }) === '11/27' && batchLabel({ expiry: '2027-11-30', batchNo: 'A1' }) === '11/27 · lot A1', 'a batch is its MM/YY, the lot beside it');
+
+// landing report: out-of-date stock ashore, controlled drugs on their own
+const lst = chestStatus([I({}), I({ id: 'mo', name: 'Morphine', strength: 'ampoule 10mg/ml', unit: 'ampoules', controlled: true }), I({ id: 'ad', name: 'Adrenaline', strength: 'ampoule 1:1000 (1mg/ml)' })],
+  [...moves, M({ itemId: 'mo', qty: 4, expiry: '2026-09-30' }), M({ itemId: 'mo', qty: 6, expiry: '2027-09-30' }), M({ itemId: 'ad', qty: 3, expiry: '2026-01-31' })], T);
+const lnd = landingLinesFor(lst, T, false);
+const lcd = landingLinesFor(lst, T, true);
+ok(lnd.length === 2 && lnd.every((l) => !l.controlled && l.reason === 'expired') && lnd.find((l) => l.itemId === 'p')?.counted === 50, 'landing: every out-of-date batch, the whole quantity, not the controlled drugs');
+ok(lcd.length === 1 && lcd[0].itemId === 'mo' && lcd[0].counted === 4 && lcd[0].controlled && lcd[0].unit === 'ampoules', 'landing — controlled drugs: only theirs, only out of date');
+ok(lnd[0].itemId === 'ad' && lnd[0].listNo === 'W.H.O. 1.3.1', 'landing: list No. from the scale when the item has none; numbered lines first');
+ok(listNoOf({ name: 'X', listNo: ' MSN A-12 ' }) === 'MSN A-12' && listNoOf({ name: 'Acetylsalicylic acid', strength: 'tablet 300mg' }) === 'W.H.O. 2.1' && listNoOf({ name: 'Nothing' }) === undefined, 'list No.: own first, then WHO / IMGS');
+ok(isLanding({ kind: 'landing-cd' }) && !isLanding({ kind: 'handover' }) && !!CHECK_KIND_LABEL.landing && nextNo('LND', [{ no: 'INV-2026-004' }, { no: 'LND-2026-001' }], T) === 'LND-2026-002', 'landing kinds and numbers LND');
 
 // board
 const base: any = { on: (k: string) => k === 'hospital', role: 'admin', me: null, today: T, now: `${T}T10:00`, labelOf: (k: any) => k, periodsOf: () => [], flat: [], certificates: [], inspections: [], crew: [], rest: [], machines: [], pmsJobs: [], pmsDone: [], pmsDeferrals: [], pmsDefects: [], spares: [], spareMoves: [], docs: [], docAcks: [], permits: [], fuelTanks: [], fuelReadings: [], fuelBunkers: [], fuelDailySent: [], garbage: [], garbageSigns: [], sopepItems: [], sopepChecks: [], sopepDrills: [], visitors: [], securityLevels: [], securityDrills: [], crewMoves: [], surveys: [], surveysDone: [], rounds: [], categories: [], templates: {} };

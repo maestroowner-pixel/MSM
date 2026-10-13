@@ -34,7 +34,7 @@ import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import {
   ItemStatus, ORDER_STATE_LABEL, chestCounts, chestStatus, daysTo, differences, followUpsDue, isArchived, itemKey, lastControlledCount,
-  onOrderByItem, orderOverdue, ChestSort, CHECK_KIND_LABEL, STOCK_LEVEL_LABEL, placeText, earliestExpiry, expiryState, matchesSearch, mmYY, purposeIcon, purposeOf, scaleEntry, sortChest, stockLevel, orderState, planImport, readSheet, receivedByLine, scaleItems, sortOrders, sortTreatments,
+  onOrderByItem, orderOverdue, isLanding, landingLinesFor, ChestSort, CHECK_KIND_LABEL, STOCK_LEVEL_LABEL, placeText, earliestExpiry, expiryState, matchesSearch, mmYY, purposeIcon, purposeOf, scaleEntry, sortChest, stockLevel, orderState, planImport, readSheet, receivedByLine, scaleItems, sortOrders, sortTreatments,
 } from '../services/hospital';
 import { exportChestExcel, exportChestPdf, exportChestTemplate, exportControlledPdf, exportMedLogExcel, exportMedLogPdf, pickChestSheet } from '../services/hospitalReport';
 import { formatDate } from '../utils/dates';
@@ -115,6 +115,7 @@ export default function HospitalSc() {
   const log = useMemo(() => sortTreatments(medTreatments), [medTreatments]);
   const due = followUpsDue(medTreatments, today);
   const checks = useMemo(() => [...medChecks].sort((a, b) => b.at - a.at), [medChecks]);
+  const expiredLines = useMemo(() => ({ other: landingLinesFor(rows, today, false).length, cd: landingLinesFor(rows, today, true).length }), [rows, today]);
 
   const run = async (what: string, f: () => Promise<string | null | void>) => {
     try {
@@ -224,6 +225,13 @@ export default function HospitalSc() {
                 <Text style={[styles.sub, { marginBottom: SIZES.sm, color: !lastCount || daysTo(lastCount, today) > 31 ? COLORS.warning : COLORS.textLight }]}>
                   {`${lastCount ? `Last counted ${formatDate(lastCount)}` : 'Never counted'} — the Master counts them monthly, with a witness (Inventory). Every move of a controlled drug is witnessed.`}
                 </Text>
+              ) : null}
+              {filter === 'expired' && officer && (expiredLines.other || expiredLines.cd) ? (
+                <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.sm }]}>
+                  <Text style={[styles.sub, { flexBasis: '100%' }]}>Out-of-date stock goes ashore for destruction with a landing report — handed over and received, both signed.</Text>
+                  {expiredLines.other ? <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedLanding', { id: 'new' })}><Text style={styles.smallText}>{`Landing report — expired · ${expiredLines.other}`}</Text></TouchableOpacity> : null}
+                  {expiredLines.cd ? <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedLanding', { id: 'new', mode: 'cd' })}><Text style={styles.smallText}>{`Landing report — controlled drugs · ${expiredLines.cd}`}</Text></TouchableOpacity> : null}
+                </View>
               ) : null}
             </>
           ) : null}
@@ -355,7 +363,7 @@ export default function HospitalSc() {
         </>
       ) : shownView === 'inventory' ? (
         <>
-          <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>Counting the chest against the books. Inventory: go round the cabinets with the list, change only what you count differently — the books then follow the count, and the differences print. Controlled drugs: the Master’s monthly count with a witness, and the handover when the responsible officer changes — the outgoing and the incoming count together and both sign.</Text>
+          <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>Counting the chest against the books. Inventory: go round the cabinets with the list, change only what you count differently — the books then follow the count, and the differences print. Controlled drugs: the Master’s monthly count with a witness, and the handover when the responsible officer changes — the outgoing and the incoming count together and both sign. Landing report: out-of-date stock handed ashore for destruction — you hand over, the person ashore signs by hand; the controlled drugs on their own report, with a witness.</Text>
           {officer && rows.length ? (
             <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.md }]}>
               <TouchableOpacity style={styles.btn} onPress={() => nav.navigate('MedCount', { id: 'new' })}><Text style={styles.btnText}>Start an inventory</Text></TouchableOpacity>
@@ -363,13 +371,19 @@ export default function HospitalSc() {
               {controlled.length ? <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedCount', { id: 'new', mode: 'handover' })}><Text style={styles.smallText}>Controlled drugs handover</Text></TouchableOpacity> : null}
             </View>
           ) : null}
+          {officer && rows.length ? (
+            <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.md }]}>
+              <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedLanding', { id: 'new' })}><Text style={styles.smallText}>{`Landing report — expired${expiredLines.other ? ` · ${expiredLines.other}` : ''}`}</Text></TouchableOpacity>
+              {controlled.length ? <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedLanding', { id: 'new', mode: 'cd' })}><Text style={styles.smallText}>{`Landing report — controlled drugs${expiredLines.cd ? ` · ${expiredLines.cd}` : ''}`}</Text></TouchableOpacity> : null}
+            </View>
+          ) : null}
           {!rows.length ? <Text style={styles.sub}>Make the register first — then count it here.</Text> : null}
           {checks.map((c) => {
             const diff = differences(c).length;
             return (
-              <TouchableOpacity key={c.id} style={[styles.item, { borderLeftColor: diff ? COLORS.warning : COLORS.success }]} onPress={() => nav.navigate('MedCount', { id: c.id })} activeOpacity={0.7}>
+              <TouchableOpacity key={c.id} style={[styles.item, { borderLeftColor: isLanding(c) ? COLORS.primary : diff ? COLORS.warning : COLORS.success }]} onPress={() => nav.navigate(isLanding(c) ? 'MedLanding' : 'MedCount', { id: c.id })} activeOpacity={0.7}>
                 <Text style={styles.name}>{`${c.no} · ${CHECK_KIND_LABEL[c.kind ?? 'inventory']} · ${formatDate(c.date)}`}</Text>
-                <Text style={styles.sub}>{[`${c.lines.length} lines`, diff ? `${diff} differences` : 'as the books', c.kind === 'handover' ? `${c.by} → ${c.witness}` : c.witness ? `witness ${c.witness}` : null, c.kind === 'handover' ? null : c.byRank ? `${c.by} (${c.byRank})` : c.by].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.sub}>{isLanding(c) ? [`${c.lines.length} lines`, c.port, `${c.by} → ${[c.receiver, c.receiverOrg].filter(Boolean).join(', ')}`].filter(Boolean).join(' · ') : [`${c.lines.length} lines`, diff ? `${diff} differences` : 'as the books', c.kind === 'handover' ? `${c.by} → ${c.witness}` : c.witness ? `witness ${c.witness}` : null, c.kind === 'handover' ? null : c.byRank ? `${c.by} (${c.byRank})` : c.by].filter(Boolean).join(' · ')}</Text>
               </TouchableOpacity>
             );
           })}

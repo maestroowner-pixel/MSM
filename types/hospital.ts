@@ -137,7 +137,16 @@ export interface CheckLine {
   /** What the books said. */
   expected: number;
   counted: number;
+  /** A landing report's line: the list No., strength, unit and why it goes ashore. */
+  listNo?: string;
+  strength?: string;
+  unit?: string;
+  controlled?: boolean;
+  reason?: LandingReason;
 }
+
+export type LandingReason = 'expired' | 'damaged' | 'recalled' | 'other';
+export const LANDING_REASON_LABEL: Record<LandingReason, string> = { expired: 'Expired', damaged: 'Damaged', recalled: 'Recalled', other: 'Other' };
 
 export interface MedCheck {
   id: string;
@@ -148,8 +157,13 @@ export interface MedCheck {
    * controlled drugs, with a witness; handover — the controlled drugs handed
    * from one responsible officer to the next (13 Oct 2026: "narcotic list
    * handover"): `by` hands over, `witness` takes over, both sign. Absent: inventory.
+   * landing / landing-cd — out-of-date (or damaged) stock handed ashore for
+   * destruction (13 Oct 2026: "landing report … signatures handed over /
+   * received, and separately for controlled items"): `by` hands over (with a
+   * `witness` for controlled drugs), the `receiver` ashore signs by hand on this
+   * device; `counted` is the quantity landed, `expected` what the books held.
    */
-  kind?: 'inventory' | 'cd' | 'handover';
+  kind?: 'inventory' | 'cd' | 'handover' | 'landing' | 'landing-cd';
   date: string;
   lines: CheckLine[];
   note?: string;
@@ -160,6 +174,12 @@ export interface MedCheck {
   witness?: string;
   witnessRank?: string;
   witnessWith?: SignProof;
+  /** Landing: the port, and who received it ashore — name, company, position. */
+  port?: string;
+  receiver?: string;
+  receiverOrg?: string;
+  receiverRole?: string;
+  receivedWith?: SignProof;
   updatedAt: number;
 }
 

@@ -5,7 +5,7 @@
 // ===================================
 
 import { HospitalCategory, MED_SCALE, NURSING_SCALE, ScaleMedicine, ScaleNursing } from '../constants/medScale';
-import { CheckLine, Issued, MedCheck, MedItem, MedKind, MedMove, MedOrder, MedTreatment } from '../types/hospital';
+import { CheckLine, Issued, LandingReason, MedCheck, MedItem, MedKind, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 
 export interface Batch {
   key: string;
@@ -335,7 +335,41 @@ export function checkLinesFor(rows: ItemStatus[]): CheckLine[] {
   return out;
 }
 
-export const CHECK_KIND_LABEL: Record<NonNullable<MedCheck['kind']>, string> = { inventory: 'Inventory', cd: 'Controlled drugs count', handover: 'Controlled drugs handover' };
+export const CHECK_KIND_LABEL: Record<NonNullable<MedCheck['kind']>, string> = { inventory: 'Inventory', cd: 'Controlled drugs count', handover: 'Controlled drugs handover', landing: 'Landing report', 'landing-cd': 'Landing report — controlled drugs' };
+
+export const isLanding = (c: Pick<MedCheck, 'kind'>) => c.kind === 'landing' || c.kind === 'landing-cd';
+
+// ---- landing: out-of-date stock handed ashore for destruction ----
+
+/** The list No. an item goes by — its own, or the WHO / IMGS number from the scale (constants/medScale.ts). */
+export function listNoOf(item: Pick<MedItem, 'name' | 'strength' | 'code' | 'listNo'>): string | undefined {
+  if (item.listNo?.trim()) return item.listNo.trim();
+  const e = scaleEntry(item);
+  return e.med?.who ?? e.nursing?.code;
+}
+
+/** One batch as a landing line — the whole batch, as the books hold it. */
+export function landingLine(r: ItemStatus, b: { batchNo?: string; expiry?: string; qty: number }, reason: LandingReason): CheckLine {
+  const listNo = listNoOf(r.item);
+  const place = placeText(r.item);
+  return {
+    itemId: r.item.id, name: r.item.name, ...(r.item.strength ? { strength: r.item.strength } : {}), unit: r.item.unit, ...(listNo ? { listNo } : {}), ...(place ? { place } : {}),
+    ...(b.batchNo ? { batchNo: b.batchNo } : {}), ...(b.expiry ? { expiry: b.expiry } : {}), expected: b.qty, counted: b.qty, ...(r.item.controlled ? { controlled: true } : {}), reason,
+  };
+}
+
+/**
+ * What goes ashore: every out-of-date batch still on the books — the controlled
+ * drugs on their own report (`cd`), everything else on the other.
+ */
+export function landingLinesFor(rows: ItemStatus[], today: string, cd: boolean): CheckLine[] {
+  const out: CheckLine[] = [];
+  for (const r of [...rows].sort((a, b) => (a.item.listNo ? 0 : 1) - (b.item.listNo ? 0 : 1) || a.item.name.localeCompare(b.item.name))) {
+    if (!!r.item.controlled !== cd) continue;
+    for (const b of r.batches) if (b.qty > 0 && expiryState(today, b.expiry) === 'expired') out.push(landingLine(r, b, 'expired'));
+  }
+  return out;
+}
 
 export const differences = (c: Pick<MedCheck, 'lines'>) => c.lines.filter((l) => l.counted !== l.expected);
 

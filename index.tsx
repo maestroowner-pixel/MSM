@@ -94,6 +94,7 @@ import MedItemSc from './screens/MedItemSc';
 import TreatmentSc from './screens/TreatmentSc';
 import MedOrderSc from './screens/MedOrderSc';
 import MedCountSc from './screens/MedCountSc';
+import MedLandingSc from './screens/MedLandingSc';
 import RoundsSc from './screens/RoundsSc';
 import RoundSc from './screens/RoundSc';
 import PermitSc from './screens/PermitSc';
@@ -452,6 +453,7 @@ const linking = {
       Treatment: 'treatment/:id',
       MedOrder: 'medical-order/:id',
       MedCount: 'medical-inventory/:id',
+      MedLanding: 'medical-landing/:id',
       SparePart: 'spare/:id',
       Doc: 'document/:id',
       CrewMember: 'crew/:id',
@@ -653,6 +655,7 @@ function Root() {
         <Stack.Screen name="Treatment" component={TreatmentSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="MedOrder" component={MedOrderSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="MedCount" component={MedCountSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="MedLanding" component={MedLandingSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="SparePart" component={SparePartSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Doc" component={DocSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="CrewMember" component={CrewMemberSc} options={{ presentation: 'modal' }} />
