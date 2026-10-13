@@ -27,6 +27,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
+import { ShipClock } from './ShipClock';
 import { MciIcon } from './MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { SIZES, Palette } from '../theme';
@@ -124,6 +125,7 @@ export function NavMenuBar(props: Props) {
           ) : null}
           <MciIcon name={icons[current] ?? 'circle-small'} size={22} color={COLORS.tabActive} />
           <Text style={styles.topTitle} numberOfLines={1}>{labelOf(current)}</Text>
+          <ShipClock />
         </View>
         {docked ? <View style={[styles.dock, { paddingTop: insets.top }]}>{list}</View> : null}
         <Drawer open={open} onClose={() => setOpen(false)} styles={styles}>{list}</Drawer>
