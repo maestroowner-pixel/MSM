@@ -32,7 +32,7 @@ import { MED_KIND_LABEL, MedItem, MedKind, MedMove } from '../types/hospital';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { proofShort } from '../services/signature';
-import { placeText, MOVE_LABEL, daysTo, expiryState, itemStatus, normExpiry, onOrderByItem, registerLines, scaleEntry, stockByItem } from '../services/hospital';
+import { batchLabel, mmYY, placeText, MOVE_LABEL, daysTo, expiryState, itemStatus, normExpiry, onOrderByItem, registerLines, scaleEntry, stockByItem } from '../services/hospital';
 import { MED_INFO_NOTICE, WHO_NOTICE } from '../constants/medNotice';
 import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
@@ -192,9 +192,9 @@ export default function MedItemSc() {
             return (
               <View key={b.key} style={[styles.item, { borderLeftColor: s === 'expired' ? COLORS.danger : s === 'soon' ? COLORS.warning : COLORS.success, flexDirection: 'row', alignItems: 'center' }]}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.name}>{`${b.qty} ${item.unit}`}</Text>
+                  <Text style={styles.name}>{`${b.expiry ? mmYY(b.expiry) : 'No expiry'} — ${b.qty} ${item.unit}`}</Text>
                   <Text style={[styles.sub, { color: color(s), fontWeight: s === 'expired' || s === 'soon' ? '700' : '400' }]}>
-                    {[b.batchNo ? `batch ${b.batchNo}` : 'no batch number', b.expiry ? `exp ${formatDate(b.expiry)}${s === 'expired' ? ' — OUT OF DATE' : s === 'soon' ? ` — ${daysTo(today, b.expiry)} d left` : ''}` : 'no expiry'].join(' · ')}
+                    {[b.expiry ? `expires ${formatDate(b.expiry)}${s === 'expired' ? ' — OUT OF DATE' : s === 'soon' ? ` — ${daysTo(today, b.expiry)} d left` : ''}` : null, b.batchNo ? `lot ${b.batchNo}` : null].filter(Boolean).join(' · ')}
                   </Text>
                 </View>
                 {officer ? <TouchableOpacity style={styles.small} onPress={() => setAct({ kind: 'disposed', qty: String(b.qty), batchNo: '', expiry: '', note: s === 'expired' ? 'Out of date' : '', batchKey: b.key })}><Text style={styles.smallText}>Dispose…</Text></TouchableOpacity> : null}
@@ -210,8 +210,8 @@ export default function MedItemSc() {
                 <TextInput style={styles.input} value={act.qty} onChangeText={(v) => setAct({ ...act, qty: v })} keyboardType="decimal-pad" placeholder={`How many ${item.unit} ★`} placeholderTextColor={COLORS.textLight} />
                 {act.kind === 'received' ? (
                   <View style={styles.row}>
-                    <TextInput style={[styles.input, { flex: 1, minWidth: 110, marginTop: 0 }]} value={act.batchNo} onChangeText={(v) => setAct({ ...act, batchNo: v })} placeholder="Batch / lot" placeholderTextColor={COLORS.textLight} />
-                    <TextInput style={[styles.input, { flex: 1, minWidth: 110, marginTop: 0 }]} value={act.expiry} onChangeText={(v) => setAct({ ...act, expiry: v })} placeholder="Expiry — 2027-03" placeholderTextColor={COLORS.textLight} />
+                    <TextInput style={[styles.input, { flex: 1, minWidth: 110, marginTop: 0 }]} value={act.expiry} onChangeText={(v) => setAct({ ...act, expiry: v })} placeholder="Expiry MM/YY — 11/27 ★" placeholderTextColor={COLORS.textLight} />
+                    <TextInput style={[styles.input, { flex: 1, minWidth: 110, marginTop: 0 }]} value={act.batchNo} onChangeText={(v) => setAct({ ...act, batchNo: v })} placeholder="Lot No. (optional)" placeholderTextColor={COLORS.textLight} />
                   </View>
                 ) : (
                   <View style={styles.chips}>
@@ -253,7 +253,7 @@ export default function MedItemSc() {
           {(item.controlled ? lines.map((l) => ({ m: l.move, bal: l.balance as number | undefined })) : [...moves].sort((a, b) => b.at - a.at).map((m) => ({ m, bal: undefined as number | undefined }))).map(({ m, bal }) => (
             <View key={m.id} style={[styles.item, { borderLeftColor: m.kind === 'received' ? COLORS.success : m.kind === 'count' ? COLORS.primary : COLORS.warning }]}>
               <Text style={styles.name}>{`${MOVE_LABEL[m.kind]} ${m.qty} ${item.unit}${bal != null ? ` → balance ${bal}` : ''}`}</Text>
-              <Text style={styles.sub}>{[formatDate(m.date), m.batchNo ? `batch ${m.batchNo}` : null, m.expiry ? `exp ${m.expiry.slice(0, 7)}` : null, m.treatmentId ? 'medical log' : null, m.orderId ? medOrders.find((o) => o.id === m.orderId)?.no : null, m.note].filter(Boolean).join(' · ')}</Text>
+              <Text style={styles.sub}>{[formatDate(m.date), m.expiry || m.batchNo ? batchLabel(m) : null, m.treatmentId ? 'medical log' : null, m.orderId ? medOrders.find((o) => o.id === m.orderId)?.no : null, m.note].filter(Boolean).join(' · ')}</Text>
               <Text style={styles.sub}>{`${who(m.by, m.byRank)}${m.signedWith ? ` · ${proofShort(m.signedWith)}` : ''}${m.witness ? ` · witness ${who(m.witness, m.witnessRank)}${m.witnessWith ? ` (${proofShort(m.witnessWith)})` : ''}` : ''}`}</Text>
             </View>
           ))}

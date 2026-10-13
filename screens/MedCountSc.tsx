@@ -26,7 +26,7 @@ import { CheckLine, MedCheck, MedMove } from '../types/hospital';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { proofShort } from '../services/signature';
-import { CHECK_KIND_LABEL, chestStatus, checkLinesFor, expiryState, nextNo, normExpiry } from '../services/hospital';
+import { batchLabel, CHECK_KIND_LABEL, chestStatus, checkLinesFor, expiryState, nextNo, normExpiry } from '../services/hospital';
 import { exportCheckPdf } from '../services/hospitalReport';
 import { formatDate, formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
@@ -185,7 +185,7 @@ export default function MedCountSc() {
           <View style={[styles.row, { marginVertical: 2, borderBottomWidth: 0.5, borderBottomColor: COLORS.borderLight, paddingBottom: 4 }]}>
             <View style={{ flex: 1, minWidth: 160 }}>
               <Text style={styles.name}>{`${r.name}${itemOf(r.itemId)?.controlled ? ' · CD' : ''}${r.found ? ' · found' : ''}`}</Text>
-              <Text style={[styles.sub, s === 'expired' ? { color: COLORS.danger, fontWeight: '700' } : null]}>{[r.batchNo ? `batch ${r.batchNo}` : null, r.expiry ? `exp ${r.expiry.slice(0, 7)}${s === 'expired' ? ' OUT OF DATE' : ''}` : null, `books ${r.expected}`].filter(Boolean).join(' · ')}</Text>
+              <Text style={[styles.sub, s === 'expired' ? { color: COLORS.danger, fontWeight: '700' } : null]}>{[r.expiry || r.batchNo ? `${batchLabel(r)}${s === 'expired' ? ' OUT OF DATE' : ''}` : null, `books ${r.expected}`].filter(Boolean).join(' · ')}</Text>
             </View>
             <TextInput style={[styles.input, { width: 80, marginTop: 0, textAlign: 'right' }, diff && { borderColor: COLORS.warning, borderWidth: 2 }]} value={r.text} onChangeText={(v) => setText(r.key, v)} keyboardType="decimal-pad" selectTextOnFocus />
           </View>
@@ -198,8 +198,8 @@ export default function MedCountSc() {
           <TextInput style={styles.input} value={medItems.find((i) => i.id === found.itemId)?.name ?? ''} editable={false} />
           <View style={styles.row}>
             <TextInput style={[styles.input, { width: 80, marginTop: 0 }]} value={found.qty} onChangeText={(v) => setFound({ ...found, qty: v })} keyboardType="decimal-pad" placeholder="Qty" placeholderTextColor={COLORS.textLight} />
-            <TextInput style={[styles.input, { flex: 1, minWidth: 90, marginTop: 0 }]} value={found.batchNo} onChangeText={(v) => setFound({ ...found, batchNo: v })} placeholder="Batch" placeholderTextColor={COLORS.textLight} />
-            <TextInput style={[styles.input, { flex: 1, minWidth: 90, marginTop: 0 }]} value={found.expiry} onChangeText={(v) => setFound({ ...found, expiry: v })} placeholder="Expiry 2027-03" placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { flex: 1, minWidth: 90, marginTop: 0 }]} value={found.expiry} onChangeText={(v) => setFound({ ...found, expiry: v })} placeholder="Expiry MM/YY" placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { flex: 1, minWidth: 90, marginTop: 0 }]} value={found.batchNo} onChangeText={(v) => setFound({ ...found, batchNo: v })} placeholder="Lot (optional)" placeholderTextColor={COLORS.textLight} />
           </View>
           <View style={styles.row}>
             <TouchableOpacity style={styles.btn} onPress={addFound}><Text style={styles.btnText}>Add</Text></TouchableOpacity>

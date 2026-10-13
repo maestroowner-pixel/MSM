@@ -98,11 +98,12 @@ export function normExpiry(v: unknown): string | undefined {
   if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
   m = /^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/.exec(s);
   if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
-  // A month alone ("2027-03", "03/2027") means to the end of that month.
+  // A month alone ("2027-03", "03/2027", "11/27" as on the box) means to the end of that month.
   const ym = /^(\d{4})[-/.](\d{1,2})$/.exec(s);
   const my = /^(\d{1,2})[-/.](\d{4})$/.exec(s);
-  const y = ym ? Number(ym[1]) : my ? Number(my[2]) : 0;
-  const mo = ym ? Number(ym[2]) : my ? Number(my[1]) : 0;
+  const myShort = /^(\d{1,2})[-/.](\d{2})$/.exec(s);
+  const y = ym ? Number(ym[1]) : my ? Number(my[2]) : myShort ? 2000 + Number(myShort[2]) : 0;
+  const mo = ym ? Number(ym[2]) : my ? Number(my[1]) : myShort ? Number(myShort[1]) : 0;
   if (y && mo >= 1 && mo <= 12) return new Date(Date.UTC(y, mo, 0)).toISOString().slice(0, 10);
   return undefined;
 }
@@ -465,4 +466,13 @@ export function comparePlace(a: Pick<MedItem, 'location' | 'cabinet' | 'cell'>, 
     return x.localeCompare(y, undefined, { numeric: true, sensitivity: 'base' });
   }
   return 0;
+}
+
+/**
+ * A batch as the crew knows it — by its expiry, MM/YY as on the box (13 Oct
+ * 2026: "batch = exp mm/yy"); the lot number, where one was written, beside it.
+ */
+export function batchLabel(b: { batchNo?: string; expiry?: string }): string {
+  if (!b.expiry) return b.batchNo ? `lot ${b.batchNo} · no expiry` : 'no expiry';
+  return `${mmYY(b.expiry)}${b.batchNo ? ` · lot ${b.batchNo}` : ''}`;
 }

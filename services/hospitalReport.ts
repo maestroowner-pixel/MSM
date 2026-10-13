@@ -20,7 +20,7 @@ import { VesselInfo } from './storage';
 import { esc, share, vesselHeader } from './export';
 import { exportPmsHistory } from './pmsHistoryReport';
 import { sheetRows } from './pmsImport';
-import { comparePlace, placeText, ItemStatus, MOVE_LABEL, SHEET_HEAD, daysTo, expiryState, issuedText, receivedByLine, registerLines, sheetOf, sortTreatments, toOrder } from './hospital';
+import { batchLabel, comparePlace, placeText, ItemStatus, MOVE_LABEL, SHEET_HEAD, daysTo, expiryState, issuedText, receivedByLine, registerLines, sheetOf, sortTreatments, toOrder } from './hospital';
 import { proofShort } from './signature';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment, OUTCOME_LABEL } from '../types/hospital';
 import { deliverFile, onWeb, onWindows } from '../utils/fileShare';
@@ -64,7 +64,7 @@ function chestRows(rows: ItemStatus[], today: string): string[][] {
     if (!r.batches.length) out.push([...base, '', '', '0', 'NONE ABOARD']);
     r.batches.forEach((b, i) => {
       const st = expiryState(today, b.expiry);
-      out.push([...(i ? ['', '', '', '', '', '', ''] : base), b.batchNo ?? '', b.expiry ?? '', String(b.qty), st === 'expired' ? 'EXPIRED' : st === 'soon' ? `expires in ${daysTo(today, b.expiry!)} d` : st === 'later' ? 'within 90 d' : '']);
+      out.push([...(i ? ['', '', '', '', '', '', ''] : base), batchLabel(b), b.expiry ?? '', String(b.qty), st === 'expired' ? 'EXPIRED' : st === 'soon' ? `expires in ${daysTo(today, b.expiry!)} d` : st === 'later' ? 'within 90 d' : '']);
     });
   }
   return out;
@@ -137,7 +137,7 @@ export async function exportOrderPdf(o: MedOrder, moves: MedMove[], vessel: Vess
 
 export async function exportCheckPdf(c: MedCheck, vessel: VesselInfo | null) {
   const diff = c.lines.filter((l) => l.counted !== l.expected);
-  const row = (l: MedCheck['lines'][number]) => [l.name, l.place ?? '', l.batchNo ?? '', l.expiry ?? '', String(l.expected), String(l.counted), l.counted === l.expected ? '' : `${l.counted > l.expected ? '+' : ''}${l.counted - l.expected}`];
+  const row = (l: MedCheck['lines'][number]) => [l.name, l.place ?? '', batchLabel(l), l.expiry ?? '', String(l.expected), String(l.counted), l.counted === l.expected ? '' : `${l.counted > l.expected ? '+' : ''}${l.counted - l.expected}`];
   const head = ['Item', 'Where', 'Batch', 'Expiry', 'Books', 'Counted', 'Difference'];
   const kind = c.kind ?? 'inventory';
   const title = kind === 'handover' ? 'Controlled drugs — handover' : kind === 'cd' ? 'Controlled drugs — monthly count' : 'Medicine chest inventory';
@@ -162,7 +162,7 @@ export async function exportControlledPdf(items: MedItem[], moves: MedMove[], to
     return {
       title: `${i.name}${i.strength ? ` ${i.strength}` : ''}`,
       facts: [`Balance ${lines.length ? lines[lines.length - 1].balance : 0} ${i.unit}`, `Required ${i.required}`, i.listNo ? `List No. ${i.listNo}` : '', placeText(i)].filter(Boolean),
-      tables: [{ title: 'Register', head: CD_HEAD, rows: lines.map((l) => [l.move.date, `${MOVE_LABEL[l.move.kind]}${l.move.treatmentId ? ' (treatment)' : ''}`, l.move.batchNo ?? '', l.move.expiry ?? '', l.in ? String(l.in) : '', l.out ? String(l.out) : '', String(l.balance), `${who(l.move.by, l.move.byRank)}${l.move.signedWith ? ` · ${proofShort(l.move.signedWith)}` : ''}`, l.move.witness ? `${who(l.move.witness, l.move.witnessRank)}${l.move.witnessWith ? ` · ${proofShort(l.move.witnessWith)}` : ''}` : '', l.move.note ?? '']), widths: { 0: 20, 1: 26, 2: 20, 3: 20, 4: 12, 5: 12, 6: 16, 7: 44, 8: 44 } }],
+      tables: [{ title: 'Register', head: CD_HEAD, rows: lines.map((l) => [l.move.date, `${MOVE_LABEL[l.move.kind]}${l.move.treatmentId ? ' (treatment)' : ''}`, batchLabel(l.move), l.move.expiry ?? '', l.in ? String(l.in) : '', l.out ? String(l.out) : '', String(l.balance), `${who(l.move.by, l.move.byRank)}${l.move.signedWith ? ` · ${proofShort(l.move.signedWith)}` : ''}`, l.move.witness ? `${who(l.move.witness, l.move.witnessRank)}${l.move.witnessWith ? ` · ${proofShort(l.move.witnessWith)}` : ''}` : '', l.move.note ?? '']), widths: { 0: 20, 1: 26, 2: 20, 3: 20, 4: 12, 5: 12, 6: 16, 7: 44, 8: 44 } }],
     };
   }));
 }

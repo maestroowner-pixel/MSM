@@ -1,7 +1,7 @@
 // npm run check:hospital — stock by batch, expiry, orders delivered in parts, the inventory, the register, the scale, the Excel list, the board.
 import {
   chestStatus, checkLinesFor, differences, expiryState, followUpsDue, lastControlledCount, nextNo, normExpiry, onOrderByItem, orderOverdue, orderState,
-  pickBatch, planImport, sortChest, purposeOf, earliestExpiry, matchesName, placeText, comparePlace, stockLevel, matchesSearch, purposeIcon, mmYY, readSheet, receivedByLine, registerLines, scaleEntry, scaleItems, stockByItem, toOrder,
+  pickBatch, planImport, batchLabel, sortChest, purposeOf, earliestExpiry, matchesName, placeText, comparePlace, stockLevel, matchesSearch, purposeIcon, mmYY, readSheet, receivedByLine, registerLines, scaleEntry, scaleItems, stockByItem, toOrder,
 } from '../services/hospital';
 import { MED_SCALE, NURSING_SCALE } from '../constants/medScale';
 import { buildBoard } from '../services/board';
@@ -94,6 +94,10 @@ ok(sortChest(listed, 'list').map((r) => r.item.id).join() === 'a,b,n', 'by list 
 const sheet2 = readSheet([['List No.', 'Name', 'Cabinet', 'Cell', 'Quantity'], ['W.H.O. 1.3.1', 'Adrenaline', 'A', '4', 5]]);
 ok(sheet2.lines[0].listNo === 'W.H.O. 1.3.1' && sheet2.lines[0].cabinet === 'A' && sheet2.lines[0].cell === '4', 'Excel: list No., cabinet, cell');
 ok(scaleItems('A').some((x) => x.listNo === 'W.H.O. 1.3.1') && scaleItems('A').some((x) => x.listNo === 'II.1.11'), 'scale carries WHO numbers and IMGS codes');
+
+// batch = expiry MM/YY
+ok(normExpiry('11/27') === '2027-11-30' && normExpiry('02/28') === '2028-02-29', 'expiry as on the box: 11/27');
+ok(batchLabel({ expiry: '2027-11-30' }) === '11/27' && batchLabel({ expiry: '2027-11-30', batchNo: 'A1' }) === '11/27 · lot A1', 'a batch is its MM/YY, the lot beside it');
 
 // board
 const base: any = { on: (k: string) => k === 'hospital', role: 'admin', me: null, today: T, now: `${T}T10:00`, labelOf: (k: any) => k, periodsOf: () => [], flat: [], certificates: [], inspections: [], crew: [], rest: [], machines: [], pmsJobs: [], pmsDone: [], pmsDeferrals: [], pmsDefects: [], spares: [], spareMoves: [], docs: [], docAcks: [], permits: [], fuelTanks: [], fuelReadings: [], fuelBunkers: [], fuelDailySent: [], garbage: [], garbageSigns: [], sopepItems: [], sopepChecks: [], sopepDrills: [], visitors: [], securityLevels: [], securityDrills: [], crewMoves: [], surveys: [], surveysDone: [], rounds: [], categories: [], templates: {} };
