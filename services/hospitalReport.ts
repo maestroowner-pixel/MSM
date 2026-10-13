@@ -282,6 +282,22 @@ function medHtml(d: MedDoc): string {
   </body></html>`;
 }
 
+/** Any record laid out as a MedDoc (sections, tables, signature boxes) — PDF, A4 portrait. Used by the safety meeting too. */
+export async function exportDocPdf(d: MedDoc, fileStem: string, vessel: VesselInfo | null): Promise<string | null | void> {
+  if (onWindows) throw new Error('PDF export is not available on Windows.');
+  const name = `${stem(fileStem, vessel)}.pdf`;
+  if (onWeb) return saveFileWeb(medPdfBlob(d), name, 'reports');
+  const { uri } = await Print.printToFileAsync({ html: medHtml(d), width: 595, height: 842 });
+  const dest = `${FileSystem.cacheDirectory}${name}`;
+  try {
+    await FileSystem.deleteAsync(dest, { idempotent: true });
+    await FileSystem.copyAsync({ from: uri, to: dest });
+    await share(dest, 'application/pdf', name);
+  } catch {
+    await share(uri, 'application/pdf', name);
+  }
+}
+
 export async function exportTreatmentPdf(t: MedTreatment, vessel: VesselInfo | null): Promise<string | null | void> {
   if (onWindows) throw new Error('PDF export is not available on Windows.');
   const d = treatmentDoc(t, vessel);

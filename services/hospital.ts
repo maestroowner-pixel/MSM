@@ -5,6 +5,7 @@
 // ===================================
 
 import { HospitalCategory, IMGS_REFERENCE, MED_SCALE, NURSING_SCALE, ScaleMedicine, ScaleNursing } from '../constants/medScale';
+import { isMasked, maskName } from '../utils/privacy';
 import { CheckLine, Issued, LandingReason, MedCheck, MedItem, MedKind, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 
 export interface Batch {
@@ -115,14 +116,7 @@ export function normExpiry(v: unknown): string | undefined {
 // patient's name only — "Ann Lee" → "A…e". The full name stays on the device it
 // was written on; a pull puts it back (as Marine Hospital Manager does).
 
-export function maskName(name: string): string {
-  const s = name.trim().replace(/\s+/g, ' ');
-  if (s.length <= 1) return s;
-  return `${s[0]}…${s[s.length - 1]}`;
-}
-
-/** Already masked — what the cloud holds. */
-export const isMasked = (name: string) => /^.(….)?$/u.test(name);
+export { maskName, isMasked };
 
 /** What goes up: the entry with the name masked. */
 export function treatmentToCloud<T extends { patient: string }>(t: T): T {

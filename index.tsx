@@ -89,6 +89,7 @@ import SafetySc from './screens/SafetySc';
 import NcSc from './screens/NcSc';
 import DrillsSc from './screens/DrillsSc';
 import DrillSc from './screens/DrillSc';
+import MeetingSc from './screens/MeetingSc';
 import HospitalSc from './screens/HospitalSc';
 import PassengersSc from './screens/PassengersSc';
 import MedItemSc from './screens/MedItemSc';
@@ -453,6 +454,7 @@ const linking = {
       Round: 'round/:id',
       Nc: 'nc/:id',
       Drill: 'drill/:id',
+      Meeting: 'safety-meeting/:id',
       MedItem: 'medicine/:id',
       Treatment: 'treatment/:id',
       MedOrder: 'medical-order/:id',
@@ -655,6 +657,7 @@ function Root() {
         <Stack.Screen name="Round" component={RoundSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Nc" component={NcSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Drill" component={DrillSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Meeting" component={MeetingSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="MedItem" component={MedItemSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Treatment" component={TreatmentSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="MedOrder" component={MedOrderSc} options={{ presentation: 'modal' }} />

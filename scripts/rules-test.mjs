@@ -206,13 +206,23 @@ await t(false, 'An inventory is final', setDoc(R(master, 'med_checks', 'c1'), { 
 await t(false, 'A masked name is not unmasked', setDoc(R(master, 'med_treatments', 't1'), { id: 't1', no: 'MED-2026-001', patient: 'Max', complaint: 'Cut hand', issued: [], outcome: 'fit', by: 'Jez', files: [{ id: 'f', name: 'advice.pdf' }], updatedAt: 4 }));
 await t(false, 'A medical log entry is final', setDoc(R(master, 'med_treatments', 't1'), { id: 't1', no: 'MED-2026-001', patient: 'M…x', complaint: 'Other', issued: [], outcome: 'fit', by: 'Jez', updatedAt: 2 }));
 
-await t(true, 'An Officer adds a passenger', setDoc(R(officer, 'passengers', 'pax1'), { id: 'pax1', name: 'Sophie Martin', cabin: 'VIP', updatedAt: 1 }));
+await t(false, 'A guest\'s full name never goes up', setDoc(R(officer, 'passengers', 'pax0'), { id: 'pax0', name: 'Sophie Martin', cabin: 'VIP', updatedAt: 1 }));
+await t(false, 'A guest\'s nationality stays on board', setDoc(R(officer, 'passengers', 'pax0'), { id: 'pax0', name: 'S…n', nationality: 'FR', updatedAt: 1 }));
+await t(true, 'An Officer adds a passenger (masked)', setDoc(R(officer, 'passengers', 'pax1'), { id: 'pax1', name: 'S…n', cabin: 'VIP', updatedAt: 1 }));
 await t(true, 'Crew (the gangway watch) read the passenger list', getDoc(R(crew, 'passengers', 'pax1')));
 await t(false, 'Crew cannot change the passenger list', setDoc(R(crew, 'passengers', 'pax1'), { id: 'pax1', name: 'X', updatedAt: 2 }));
-await t(true, 'An Officer keeps a passenger\'s documents', setDoc(R(officer, 'passengers_private', 'pax1'), { id: 'pax1', idType: 'Passport', idNo: '12AB34567', updatedAt: 1 }));
+await t(false, 'A guest\'s documents never go up', setDoc(R(master, 'passengers_private', 'pax1'), { id: 'pax1', idType: 'Passport', idNo: '12AB34567', updatedAt: 1 }));
 await t(false, 'Crew cannot read a passenger\'s documents', getDoc(R(crew, 'passengers_private', 'pax1')));
 await t(false, 'The shore cannot read a passenger\'s documents', getDoc(R(shore, 'passengers_private', 'pax1')));
-await t(true, 'The watch records a passenger going ashore', setDoc(R(crew, 'crew_moves', 'mvp1'), { id: 'mvp1', crewId: 'pax1', name: 'Sophie Martin', dir: 'ashore', date: '2026-10-13', time: '10:00', at: 1, by: 'Max', via: 'qr', updatedAt: 1 }));
+await t(false, 'A guest\'s crossing never carries the full name', setDoc(R(crew, 'crew_moves', 'mvp0'), { id: 'mvp0', crewId: 'pax1', name: 'Sophie Martin', dir: 'ashore', date: '2026-10-13', time: '10:00', at: 1, by: 'Max', via: 'qr', updatedAt: 1 }));
+await t(true, 'The watch records a passenger going ashore', setDoc(R(crew, 'crew_moves', 'mvp1'), { id: 'mvp1', crewId: 'pax1', name: 'S…n', dir: 'ashore', date: '2026-10-13', time: '10:00', at: 1, by: 'Max', via: 'qr', updatedAt: 1 }));
+
+const SM = { id: 'sm1', no: 'SM-2026-001', date: '2026-10-13', agenda: [], attendance: [{ name: 'Max', present: true }], carried: [], actions: [], plannedBy: 'Jez', updatedAt: 1 };
+await t(true, 'An Officer writes the safety meeting', setDoc(R(officer, 'safety_meetings', 'sm1'), SM));
+await t(true, 'Crew sign their attendance line', setDoc(R(crew, 'safety_meetings', 'sm1'), { ...SM, attendance: [{ name: 'Max', present: true, signedAt: 5 }], updatedAt: 2 }));
+await t(false, 'Crew cannot change the minutes', setDoc(R(crew, 'safety_meetings', 'sm1'), { ...SM, attendance: [{ name: 'Max', present: true, signedAt: 5 }], minutes: 'x', updatedAt: 3 }));
+await t(true, 'The Master signs the meeting', setDoc(R(master, 'safety_meetings', 'sm1'), { ...SM, attendance: [{ name: 'Max', present: true, signedAt: 5 }], doneAt: 9, doneBy: 'Jez', updatedAt: 9 }));
+await t(false, 'A signed meeting is final', setDoc(R(master, 'safety_meetings', 'sm1'), { ...SM, minutes: 'later', doneAt: 9, updatedAt: 10 }));
 
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);

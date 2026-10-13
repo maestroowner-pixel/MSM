@@ -52,6 +52,8 @@ import { formatDate, formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 
+import MeetingsSc from './MeetingsSc';
+
 type Tab = 'board' | 'log' | 'drills';
 const hhmm = () => new Date().toTimeString().slice(0, 5);
 const ID_TYPES = ['Passport', 'ID card', 'Driving licence', "Seaman's book", 'Company ID'];
@@ -59,7 +61,7 @@ const ID_TYPES = ['Passport', 'ID card', 'Driving licence', "Seaman's book", 'Co
 /** The menu's Security pages: gangway and drills here, the safety flashes on their own screen. */
 export default function SecurityRoute() {
   const route = useRoute<any>();
-  return route.params?.view === 'flashes' ? <SafetyFlashesSc /> : <SecuritySc />;
+  return route.params?.view === 'flashes' ? <SafetyFlashesSc /> : route.params?.view === 'meetings' ? <MeetingsSc /> : <SecuritySc />;
 }
 
 function SecuritySc() {
@@ -273,7 +275,7 @@ function SecuritySc() {
   const saveDrill = async () => {
     if (!signer) return Alert.alert('Who conducted it?', 'Choose the watch first.');
     if (!d.team.length) return Alert.alert('Drill', 'Mark who took part.');
-    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Security drill — ${d.scenario}` });
+    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `ISPS drill — ${d.scenario}` });
     if (!sig) return;
     const now = Date.now();
     const r: SecurityDrill = {
@@ -331,7 +333,7 @@ function SecuritySc() {
     <Screen scroll>
       <PrinterModal visible={printerOpen} onClose={() => { setPrinterOpen(false); setPending(null); }} onPicked={(p) => { setPrinterOpen(false); if (pending) void sendLabels(p, pending); }} />
       <ScreenTitle
-        title={view === 'drills' ? 'Security drills' : 'Gangway logbook'}
+        title={view === 'drills' ? 'ISPS drills' : 'Gangway logbook'}
         subtitle={view === 'drills' ? 'ISPS Code — at least one every three months' : 'ISPS Code — who is on board, visitors in and out'}
         help="Security (ISPS)"
         actions={

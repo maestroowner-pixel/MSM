@@ -1,5 +1,8 @@
 // npm run check:board — the notice board picks the right things from each module.
 import { buildBoard, BoardInput } from '../services/board';
+import { passengerFromCloud, passengerToCloud } from '../types/passengers';
+import { planPaxImport, readPaxRows, paxSheet, PAX_HEAD } from '../services/passengerList';
+import { uid } from '../utils/id';
 
 let fail = 0;
 const ok = (c: boolean, m: string) => { if (!c) { fail++; console.log('✗', m); } else console.log('✓', m); };
@@ -43,6 +46,31 @@ ok(b.tiles.find((t) => t.key === 'crew')?.line === '2 on board · 9 ashore · 1 
 ok(b.status.pob?.total === 3 && b.status.pob?.ashore === 9, 'persons on board: 2 crew + 1 passenger; 9 ashore');
 ok(/3 on board · 9 ashore/.test(b.tiles.find((t) => t.key === 'sec')?.line ?? ''), 'security tile: on board and ashore');
 ok(b.tiles.find((t) => t.key === 'pax')?.line === '1 on board' && b.plan.some((p) => p.key === 'pax:in:p2'), 'passengers tile; one joining in 3 days on the plan');
+
+// monthly safety meeting
+const sm = (date: string, actions: any[] = []) => ({ id: `sm${date}`, no: `SM-${date}`, date, agenda: [], attendance: [], carried: [], actions, plannedBy: 'x', doneAt: 1, doneBy: 'Master', updatedAt: 1 });
+b = buildBoard(base({ on: (k) => k === 'meetings', safetyMeetings: [] }));
+ok(b.plan.some((p) => p.key === 'sm:due'), 'meeting: none held → on the plan');
+b = buildBoard(base({ on: (k) => k === 'meetings', safetyMeetings: [sm(plus(-50), [{ id: 'a', text: 'Replace the torn life ring line', due: plus(-5) }])] as any }));
+ok(b.attention.some((x) => x.key === 'sm:due' && x.level === 'red') && b.attention.some((x) => x.key === 'sm:act'), 'meeting: over a month ago → red; its action past due');
+
+// gangway names for the Master only
+const gw = (role: any) => buildBoard(base({ role, crew: crew9 as any, crewMoves: away9 as any })).summaries.find((v) => v.key === 'gangway')!;
+ok(!!gw('superadmin').rows.find((r) => r.label === 'Crew')?.more?.length && !gw('admin').rows.some((r) => r.more?.length) && !gw('user').rows.some((r) => r.more?.length), 'gangway summary: names for the Master, counts for the others');
+
+// the guest list does not leave the vessel
+const guest: any = { id: 'pax1', name: 'Sophie Martin', cabin: 'VIP', nationality: 'FR', notes: 'Vegetarian', embarked: today, addedAt: 0, updatedAt: 1 };
+const up = passengerToCloud(guest);
+ok(up.name === 'S…n' && !('nationality' in up) && !('notes' in up) && up.cabin === 'VIP' && guest.name === 'Sophie Martin', 'guest up: masked name, no nationality or notes');
+const back = passengerFromCloud(guest, { ...up, disembarked: today, updatedAt: 5 });
+ok(back.name === 'Sophie Martin' && back.nationality === 'FR' && back.disembarked === today && passengerFromCloud(undefined, up).name === 'S…n', 'guest down: own copy put back together; elsewhere the letters');
+ok(uid('pax').startsWith('pax'), 'passenger ids start with pax (crossings masked by id)');
+// passenger list Excel
+const sheet = readPaxRows([['Passenger list'], PAX_HEAD, ['Example: X'], ['Sophie  Martin', "Owner's guest", 'VIP', 'France', '1985-04-12', 'Passport', '18AB23456', '2031-06-30', '2026-10-10', 'Palma', '', '', '+33', 'Paul', 'Vegetarian'], ['', 'x']]);
+ok(sheet.length === 1 && sheet[0].name === 'Sophie Martin' && sheet[0].idNo === '18AB23456' && sheet[0].dateOfBirth === '1985-04-12', 'Excel read: name, passport, date of birth; examples and blanks skipped');
+const plan = planPaxImport(sheet, [guest], [], today);
+ok(plan.updated.length === 1 && plan.passengers[0].id === 'pax1' && plan.privates[0].idNo === '18AB23456' && plan.passengers[0].cabin === 'VIP', 'Excel import: matched by name, documents to the private record');
+ok(paxSheet([guest], [], false)[0].length < PAX_HEAD.length, 'Excel out without documents for the crew');
 
 console.log(fail ? `${fail} failed` : 'all passed');
 process.exit(fail ? 1 : 0);

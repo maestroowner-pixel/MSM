@@ -25,6 +25,7 @@ import { Survey, SurveyDone } from '../types/survey';
 import { NonConformity, SafetyObservation } from '../types/safety';
 import { Drill } from '../types/drills';
 import { Passenger, PassengerPrivate } from '../types/passengers';
+import { SafetyMeeting } from '../types/meetings';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
@@ -144,6 +145,7 @@ interface DataContextType {
   medMoves: MedMove[];
   medTreatments: MedTreatment[];
   passengers: Passenger[];
+  safetyMeetings: SafetyMeeting[];
   passengersPrivate: PassengerPrivate[];
   medOrders: MedOrder[];
   medChecks: MedCheck[];
@@ -264,6 +266,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [medMoves, setMedMoves] = useState<MedMove[]>([]);
   const [medTreatments, setMedTreatments] = useState<MedTreatment[]>([]);
   const [passengers, setPassengers] = useState<Passenger[]>([]);
+  const [safetyMeetings, setSafetyMeetings] = useState<SafetyMeeting[]>([]);
   const [passengersPrivate, setPassengersPrivate] = useState<PassengerPrivate[]>([]);
   const [medOrders, setMedOrders] = useState<MedOrder[]>([]);
   const [medChecks, setMedChecks] = useState<MedCheck[]>([]);
@@ -349,6 +352,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _medMoves = await storage.loadList<MedMove>(storage.MED_MOVES_KEY);
     const _medTreatments = await storage.loadList<MedTreatment>(storage.MED_TREATMENTS_KEY);
     const _passengers = (await storage.loadList<Passenger>(storage.PASSENGERS_KEY)).filter((x) => !x.deleted);
+    const _safetyMeetings = (await storage.loadList<SafetyMeeting>(storage.SAFETY_MEETINGS_KEY)).filter((x) => !x.deleted);
     const _passengersPrivate = await storage.loadList<PassengerPrivate>(storage.PASSENGERS_PRIVATE_KEY);
     const _medOrders = await storage.loadList<MedOrder>(storage.MED_ORDERS_KEY);
     const _medChecks = await storage.loadList<MedCheck>(storage.MED_CHECKS_KEY);
@@ -405,6 +409,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMedMoves(_medMoves);
     setMedTreatments(_medTreatments);
     setPassengers(_passengers);
+    setSafetyMeetings(_safetyMeetings);
     setPassengersPrivate(_passengersPrivate);
     setMedOrders(_medOrders);
     setMedChecks(_medChecks);
@@ -608,6 +613,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _medMoves = await storage.loadList<MedMove>(storage.MED_MOVES_KEY);
     const _medTreatments = await storage.loadList<MedTreatment>(storage.MED_TREATMENTS_KEY);
     const _passengers = (await storage.loadList<Passenger>(storage.PASSENGERS_KEY)).filter((x) => !x.deleted);
+    const _safetyMeetings = (await storage.loadList<SafetyMeeting>(storage.SAFETY_MEETINGS_KEY)).filter((x) => !x.deleted);
     const _passengersPrivate = await storage.loadList<PassengerPrivate>(storage.PASSENGERS_PRIVATE_KEY);
     const _medOrders = await storage.loadList<MedOrder>(storage.MED_ORDERS_KEY);
     const _medChecks = await storage.loadList<MedCheck>(storage.MED_CHECKS_KEY);
@@ -655,6 +661,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMedMoves(_medMoves);
     setMedTreatments(_medTreatments);
     setPassengers(_passengers);
+    setSafetyMeetings(_safetyMeetings);
     setPassengersPrivate(_passengersPrivate);
     setMedOrders(_medOrders);
     setMedChecks(_medChecks);
@@ -917,6 +924,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         medMoves,
         medTreatments,
         passengers,
+        safetyMeetings,
         passengersPrivate,
         medOrders,
         medChecks,

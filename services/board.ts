@@ -44,6 +44,8 @@ import { Drill } from '../types/drills';
 import { drillSchedule } from './drills';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 import { Passenger, passengerAboard } from '../types/passengers';
+import { SafetyMeeting } from '../types/meetings';
+import { meetingDue, openActions } from './meetings';
 import { chestCounts, chestStatus, followUpsDue, isArchived, isLanding, landingLinesFor, lastControlledCount, orderOverdue, orderState, stockLevel } from './hospital';
 import { currentEntries } from './garbage';
 
@@ -167,6 +169,7 @@ export interface BoardInput {
   medOrders?: MedOrder[];
   medChecks?: MedCheck[];
   passengers?: Passenger[];
+  safetyMeetings?: SafetyMeeting[];
 }
 
 const RANK: Record<Level, number> = { red: 0, amber: 1, blue: 2 };
@@ -374,20 +377,25 @@ export function buildBoard(x: BoardInput): Board {
     const age = lastDrill ? daysAgo(x.today, lastDrill.date) : 999;
     if (x.on('drills')) {
       // the Drills schedule carries it
-    } else if (age > 90) n.push({ key: 'isps:drill', level: 'amber', who: 'officer', icon: 'shield-account', route: 'Security', params: { view: 'drills' }, title: lastDrill ? `Security drill overdue — last ${dm(lastDrill.date)}` : 'Security drill — none recorded (every 3 months)' });
-    else if (age > 75) plan.push({ key: 'isps:drill', icon: 'shield-account', route: 'Security', params: { view: 'drills' }, title: 'Security drill', sub: `due within ${plural(90 - age, 'day')}` });
+    } else if (age > 90) n.push({ key: 'isps:drill', level: 'amber', who: 'officer', icon: 'shield-account', route: 'Security', params: { view: 'drills' }, title: lastDrill ? `ISPS drill overdue — last ${dm(lastDrill.date)}` : 'ISPS drill — none recorded (every 3 months)' });
+    else if (age > 75) plan.push({ key: 'isps:drill', icon: 'shield-account', route: 'Security', params: { view: 'drills' }, title: 'ISPS drill', sub: `due within ${plural(90 - age, 'day')}` });
     if (pob.visitors) today.push({ key: 'vis', title: `${plural(pob.visitors, 'visitor')} on board`, done: false, route: 'Security' });
     tiles.push({ key: 'sec', label: 'Security', icon: 'shield-account', route: 'Security', level: lev > 1 ? 'red' : age > 90 ? 'amber' : undefined, line: `ISPS ${lev} · ${pob.total} on board${pob.ashore.length + pob.paxAshore.length ? ` · ${pob.ashore.length + pob.paxAshore.length} ashore` : ''}` });
     // The gangway at a glance: who is aboard, who is ashore and since when, the visitors, today's crossings.
     const last = lastMoves(x.crewMoves);
     const onBoardVis = x.visitors.filter((v) => !v.timeOut);
     const crossedToday = x.crewMoves.filter((m) => m.date === x.today);
+    const master = x.role === 'superadmin';
+    const since = (c: { id: string; name: string }) => { const m = last.get(c.id); return `${c.name}${m ? ` · off since ${m.date === x.today ? m.time : `${dm(m.date)} ${m.time}`}` : ''}`; };
     summaries.push({
       key: 'gangway', title: 'Gangway', icon: 'ferry', route: 'Security', params: { view: 'gangway' }, who: 'all',
+      // Crew, passengers and visitors, each on board / off (13 Oct 2026: "gangway data — crew / pass / visitors on / off").
+      // Names (who is ashore and since when, which visitors) for the Master only — the others see the counts (13 Oct 2026).
       rows: [
-        { label: 'On board', value: `${pob.total} — crew ${pob.crewAboard} of ${pob.crewTotal}${pob.paxTotal ? `, passengers ${pob.paxAboard} of ${pob.paxTotal}` : ''}${pob.visitors ? `, ${plural(pob.visitors, 'visitor')}` : ''}` },
-        { label: 'Ashore', value: pob.ashore.length || pob.paxAshore.length ? [pob.ashore.length ? plural(pob.ashore.length, 'crew member', 'crew') : null, pob.paxAshore.length ? plural(pob.paxAshore.length, 'passenger') : null].filter(Boolean).join(', ') : 'nobody', level: pob.ashore.length || pob.paxAshore.length ? 'amber' : undefined, more: [...pob.ashore, ...pob.paxAshore].slice(0, 8).map((c) => { const m = last.get(c.id); return `${c.name}${pob.paxAshore.includes(c as any) ? ' (passenger)' : ''}${m ? ` · since ${m.date === x.today ? m.time : `${dm(m.date)} ${m.time}`}` : ''}`; }) },
-        { label: 'Visitors', value: onBoardVis.length ? `${onBoardVis.length} on board` : 'none on board', level: onBoardVis.length ? 'blue' : undefined, more: onBoardVis.slice(0, 6).map((v) => `${v.name}${v.company ? `, ${v.company}` : ''} · in ${v.timeIn}`) },
+        { label: 'On board', value: `${pob.total} persons` },
+        { label: 'Crew', value: `${pob.crewAboard} on · ${pob.ashore.length} off${pob.crewTotal ? ` (of ${pob.crewTotal})` : ''}`, level: pob.ashore.length ? 'amber' : undefined, ...(master ? { more: pob.ashore.slice(0, 8).map(since) } : {}) },
+        ...(x.on('passengers') ? [{ label: 'Passengers', value: `${pob.paxAboard} on · ${pob.paxAshore.length} off${pob.paxTotal ? ` (of ${pob.paxTotal})` : ''}`, level: (pob.paxAshore.length ? 'amber' : undefined) as Level | undefined, ...(master ? { more: pob.paxAshore.slice(0, 8).map(since) } : {}) }] : []),
+        { label: 'Visitors', value: `${onBoardVis.length} on · ${x.visitors.filter((v) => v.timeOut && (v.dateOut ?? v.date) === x.today).length} off today`, level: onBoardVis.length ? 'blue' : undefined, ...(master ? { more: onBoardVis.slice(0, 6).map((v) => `${v.name}${v.company ? `, ${v.company}` : ''} · in ${v.timeIn}`) } : {}) },
         { label: 'Today', value: `${crossedToday.filter((m) => m.dir === 'ashore').length} went ashore · ${crossedToday.filter((m) => m.dir === 'aboard').length} came back · ${plural(x.visitors.filter((v) => v.date === x.today).length, 'visitor')}` },
       ],
     });
@@ -460,6 +468,17 @@ export function buildBoard(x: BoardInput): Board {
         ...(landings.length ? [{ label: 'Last landing', value: `${landings[0].no} · ${dm(landings[0].date)}${landings[0].port ? ` · ${landings[0].port}` : ''}` }] : []),
       ] : [{ label: 'Chest', value: 'No chest list yet' }],
     });
+  }
+
+  // ---- Monthly safety meeting (types/meetings.ts) ----
+  if (x.on('meetings')) {
+    const list = x.safetyMeetings ?? [];
+    const d = meetingDue(list, x.today);
+    const late = openActions(list).filter((a) => a.due && a.due < x.today);
+    const params = { view: 'meetings' };
+    if (d.overdue) n.push({ key: 'sm:due', level: 'red', who: 'officer', icon: 'account-group-outline', route: 'Security', params, title: 'Monthly safety meeting overdue', sub: d.last ? `last held ${dm(d.last.date)}.${d.last.date.slice(0, 4)}` : 'none held yet' });
+    else if (d.due) plan.push({ key: 'sm:due', icon: 'account-group-outline', route: 'Security', params, title: 'Monthly safety meeting', sub: d.last ? `due this month · last ${dm(d.last.date)}` : 'none held yet', level: 'amber' });
+    if (late.length) n.push({ key: 'sm:act', level: 'amber', who: 'officer', icon: 'clipboard-text-clock-outline', route: 'Security', params, title: `Safety meeting — ${plural(late.length, 'action')} past due`, sub: late.slice(0, 2).map((a) => a.text).join(' · ') });
   }
 
   // ---- Passengers (types/passengers.ts) ----

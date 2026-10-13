@@ -1,3 +1,4 @@
+import type { ModuleKey } from '../constants/modules';
 // The person's screen order for the menu (components/NavMenu) — pure, so `npm run check:access` can test it.
 
 /** The saved order applied to the screens this device shows; new ones go last. */
@@ -44,11 +45,14 @@ export interface MenuChild {
   view: string;
   label: string;
   icon: string;
+  /** Shown only when this module is on (constants/modules.ts). */
+  module?: ModuleKey;
 }
 export const MENU_CHILDREN: Record<string, MenuChild[]> = {
   Security: [
     { view: 'gangway', label: 'Gangway logbook', icon: 'ferry' },
-    { view: 'drills', label: 'Drills', icon: 'run-fast' },
+    { view: 'drills', label: 'ISPS drills', icon: 'run-fast' },
+    { view: 'meetings', label: 'Monthly safety meeting', icon: 'account-group-outline', module: 'meetings' },
     { view: 'flashes', label: 'Safety flashes (IMCA)', icon: 'flash-alert-outline' },
   ],
   Hospital: [

@@ -33,6 +33,8 @@ import { todayIso } from '../services/pms';
 import { isAshore, lastMoves, nextMove } from '../services/gangway';
 import { exportPassengerCards } from '../services/crewCards';
 import { exportPmsHistory } from '../services/pmsHistoryReport';
+import { paxSheet, paxTemplateRows, planPaxImport } from '../services/passengerList';
+import { pickPaxSheet, savePaxSheet } from '../services/passengerFiles';
 import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
@@ -46,7 +48,7 @@ export default function PassengersSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
-  const { passengers, passengersPrivate, crewMoves, saveRow, appendRow, vessel } = useData();
+  const { passengers, passengersPrivate, crewMoves, saveRow, saveRows, appendRow, vessel } = useData();
   const sync = useSync();
   const officer = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const { signer, picker } = useSigner('WATCH');
@@ -112,6 +114,25 @@ export default function PassengersSc() {
     return exportPmsHistory('Passenger list', `Passenger list ${today}`, vessel, [{ title: `Passenger list — ${formatDate(today)}`, facts: [`${aboardList.length - ashore.length} on board${ashore.length ? `, ${ashore.length} ashore now` : ''}`, show === 'all' ? 'all passengers' : show], tables: [{ title: 'Passengers', head, rows }] } as any]).then(done, fail);
   };
 
+  // A filled-in sheet (the template's columns): matched by name — updated, or added (as the crew list).
+  const importSheet = async () => {
+    try {
+      const picked = await pickPaxSheet();
+      if (!picked) return;
+      if (!picked.rows.length) return Alert.alert('Import', `No passengers found in “${picked.name}”. Use the passenger list template.`);
+      const plan = planPaxImport(picked.rows, passengers, passengersPrivate, today);
+      const apply = async () => {
+        await saveRows(storage.PASSENGERS_KEY, plan.passengers);
+        if (plan.privates.length) await saveRows(storage.PASSENGERS_PRIVATE_KEY, plan.privates);
+        playSuccessSound();
+        setSaved(`${plan.added.length} added, ${plan.updated.length} updated from “${picked.name}”`);
+      };
+      Alert.alert(`Import ${picked.rows.length} from “${picked.name}”?`, [plan.added.length ? `New: ${plan.added.join(', ')}.` : null, plan.updated.length ? `Updated (already on the list): ${plan.updated.join(', ')}.` : null, 'Empty cells leave what the app already has.'].filter(Boolean).join('\n\n'), [{ text: 'Cancel', style: 'cancel' }, { text: 'Import', onPress: () => void apply() }]);
+    } catch (e: any) {
+      Alert.alert('Import failed', String(e?.message ?? e));
+    }
+  };
+
   const SHOW_OPTS: { value: Show; label: string }[] = [
     { value: 'aboard', label: `Current guests · ${passengers.filter((p) => state(p) === 'aboard').length}` },
     { value: 'expected', label: `Expected · ${passengers.filter((p) => state(p) === 'expected').length}` },
@@ -132,6 +153,9 @@ export default function PassengersSc() {
         <TouchableOpacity style={styles.small} onPress={() => nav.navigate('Scan')}><Text style={styles.smallText}>Scan card</Text></TouchableOpacity>
         <TouchableOpacity style={styles.small} disabled={!aboardList.length} onPress={() => exportPassengerCards(aboardList, vessel).then(done, fail)}><Text style={styles.smallText}>Print passenger cards</Text></TouchableOpacity>
         <TouchableOpacity style={styles.small} onPress={() => void listPdf()}><Text style={styles.smallText}>Passenger list (PDF)</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.small} onPress={() => savePaxSheet(paxSheet(shown, passengersPrivate, officer), `Passenger list ${today}`, vessel).then(done, fail)}><Text style={styles.smallText}>Excel</Text></TouchableOpacity>
+        {officer ? <TouchableOpacity style={styles.small} onPress={() => void importSheet()}><Text style={styles.smallText}>Import from Excel</Text></TouchableOpacity> : null}
+        {officer ? <TouchableOpacity style={styles.small} onPress={() => savePaxSheet(paxTemplateRows(), 'Passenger list template', vessel).then(done, fail)}><Text style={styles.smallText}>Excel template</Text></TouchableOpacity> : null}
       </View>
       {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700', marginBottom: SIZES.sm }]}>{`✓ ${saved}`}</Text> : null}
 

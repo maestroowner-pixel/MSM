@@ -415,6 +415,16 @@ service cloud.firestore {
                         && (isAdmin(v) || (member(v) && onlyChanges(['attendance', 'updatedAt'])));
         allow delete: if false;
       }
+      // Monthly safety meeting (types/meetings.ts): as a drill — written by an
+      // officer or the Master, each person on board signs his own attendance
+      // line; signed by the Master, final.
+      match /safety_meetings/{id} {
+        allow read: if reader(v);
+        allow create: if isAdmin(v) && plainRecord();
+        allow update: if resource.data.get('doneAt', null) == null
+                        && (isAdmin(v) || (member(v) && onlyChanges(['attendance', 'updatedAt'])));
+        allow delete: if false;
+      }
       // Hospital (types/hospital.ts). The chest and its moves are kept by the
       // officers; moves are never changed. The medical log is health data: the
       // Master and the officers only — not the crew, not the shore.
@@ -452,22 +462,27 @@ service cloud.firestore {
         allow create: if isAdmin(v);
         allow update, delete: if false;
       }
-      // Passengers (types/passengers.ts): the list everyone on board reads — the
-      // gangway watch needs it; the officers and the Master keep it. Their
-      // documents, date of birth and contact ashore: officers and the Master only.
+      // Passengers (types/passengers.ts) — confidential: the guest list does not
+      // leave the vessel. Up here a guest is the first and last letter of the
+      // name, the cabin and the dates; the documents are never sent.
       match /passengers/{id} {
+        function masked() {
+          return request.resource.data.name is string && request.resource.data.name.matches('^.(….)?$')
+            && !('nationality' in request.resource.data) && !('notes' in request.resource.data);
+        }
         allow read: if reader(v);
-        allow create, update: if isAdmin(v);
+        allow create, update: if isAdmin(v) && masked();
         allow delete: if false;
       }
       match /passengers_private/{id} {
-        allow read, create, update: if isAdmin(v);
-        allow delete: if false;
+        allow read, write: if false;
       }
       // Crew going ashore / coming back aboard (QR crew card at the gangway).
       match /crew_moves/{id} {
         allow read: if reader(v);
-        allow create: if member(v);
+        // A passenger's crossing carries the name masked (the guest list stays on board).
+        allow create: if member(v) && (!(string(request.resource.data.get('crewId', '')).matches('^pax.*'))
+                                       || string(request.resource.data.get('name', '')).matches('^.(….)?$'));
         allow update, delete: if false;
       }
       match /security_drills/{id} {

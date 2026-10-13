@@ -31,6 +31,7 @@ import { ShipClock } from './ShipClock';
 import { MciIcon } from './MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { SIZES, Palette } from '../theme';
+import { moduleOn } from '../constants/modules';
 import { MENU_CHILDREN, applyOrder, flatGrouped, grouped, move, moveInGroup } from '../utils/navOrder';
 export { applyOrder, move, flatGrouped };
 
@@ -209,7 +210,7 @@ function MenuList({
         <View key={group.key}>
           {group.label ? <Text style={styles.groupHead}>{group.label}</Text> : <View style={styles.sep} />}
           {routes.map((r, i) => {
-            const kids = MENU_CHILDREN[r];
+            const kids = MENU_CHILDREN[r]?.filter((k) => !k.module || moduleOn(k.module));
             const expanded = !!kids && openParents.includes(r) && !editing;
             const on = r === current && !kids;
             return (

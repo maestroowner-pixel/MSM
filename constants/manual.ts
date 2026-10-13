@@ -482,12 +482,21 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🤝',
+      title: "Monthly safety meeting",
+      body: [
+        "Monthly safety meeting (menu → Security): the safety committee on board meets every month. A new meeting lays out the standing agenda — the last meeting's open actions, accidents and near misses, drills, non-conformities and inspections, rest hours, health, PPE, new procedures and safety flashes, risk assessments, security, environment, crew suggestions — with a line for what was said on each point.",
+        "Attendance list: everyone aboard is on it; tick who is present, give a reason for who is not, and each person signs his own line on this device — signing PIN or by hand. Someone not on the crew list (superintendent, contractor) can be added. Attendance list (PDF) prints it on its own.",
+        "Actions: who does what by when. Open actions come back at the next meeting until they are ticked done; past their date they show on the Board. Signed by the Master or who chaired it, the meeting is final; Minutes (PDF) prints the whole record. The Board says when this month's meeting is due, and red when there was none for more than a month.",
+      ],
+    },
+    {
       emoji: '🛳️',
       title: "Passengers",
       body: [
         "Passengers (menu → Crew → Passengers): the guests aboard, apart from the crew — name as in the passport, group (owner, owner's guest, charter guest), cabin, nationality, when and where they embarked and left. The list shows who is on board, who is expected and who has disembarked; search by name, cabin or nationality.",
         "Gangway: each passenger on board has Ashore / Back aboard, as the crew do — the watch taps, or scans the passenger card (Print passenger cards: the same QR as a crew card). Passengers count in the persons on board on the Gangway logbook and the Board; the Board's Gangway summary says who is ashore and since when.",
-        "Documents — identity document, its expiry, date of birth, phone and the contact ashore — are kept by the officers and the Master only; the crew and the gangway watch see the list, not the documents. Passenger list (PDF) prints the list, with the documents for the officers.",
+        "Documents — identity document, its expiry, date of birth, phone and the contact ashore — are kept by the officers and the Master only, on the device they were entered on — they never leave the vessel. The guest list is confidential: on the cloud a guest is the first and last letter of the name (\"S…n\"), the cabin and the dates; nationality and notes stay on board too. Passenger list (PDF / Excel) prints the list, with the documents for the officers; Import from Excel reads the template back.",
       ],
     },
     {
@@ -1055,12 +1064,21 @@ const ru: ManualContent = {
       ],
     },
     {
+      emoji: '🤝',
+      title: "Ежемесячное собрание по безопасности (Monthly safety meeting)",
+      body: [
+        "Monthly safety meeting (меню → Security): комитет по безопасности на борту собирается каждый месяц. Новое собрание открывается с постоянной повесткой — открытые действия прошлого собрания, происшествия и почти-происшествия, учения, несоответствия и проверки, часы отдыха, здоровье, СИЗ, новые процедуры и safety flashes, оценки риска, охрана, экология, предложения экипажа — и строкой для сказанного по каждому пункту.",
+        "Attendance list: в нём все на борту; отметьте присутствующих, для отсутствующих — причину; каждый подписывает свою строку на этом устройстве — PIN подписи или рукой. Можно добавить человека не из списка экипажа (суперинтендант, подрядчик). Attendance list (PDF) печатает список отдельно.",
+        "Действия: кто, что и к какому сроку. Открытые действия возвращаются на следующее собрание, пока их не отметят выполненными; просроченные видны на Board. После подписи Мастера или председателя собрание окончательное; Minutes (PDF) печатает весь протокол. Board напоминает о собрании этого месяца и краснеет, если собрания не было больше месяца.",
+      ],
+    },
+    {
       emoji: '🛳️',
       title: "Пассажиры (Passengers)",
       body: [
         "Passengers (меню → Crew → Passengers): гости на борту, отдельно от экипажа — имя как в паспорте, группа (владелец, гость владельца, чартерный гость), каюта, гражданство, когда и где сели и сошли. В списке видно, кто на борту, кого ждут и кто сошёл; поиск по имени, каюте, гражданству.",
         "Трап: у каждого пассажира на борту — Ashore / Back aboard, как у экипажа: вахта нажимает или сканирует карточку пассажира (Print passenger cards — тот же QR, что у карточки экипажа). Пассажиры входят в число людей на борту в журнале трапа и на Board; сводка Gangway на Board показывает, кто на берегу и с какого времени.",
-        "Документы — удостоверение, его срок, дата рождения, телефон и контакт на берегу — видят только офицеры и Мастер; экипаж и вахта у трапа видят список, но не документы. Passenger list (PDF) печатает список, для офицеров — с документами.",
+        "Документы — удостоверение, его срок, дата рождения, телефон и контакт на берегу — видят только офицеры и Мастер, на устройстве, где их внесли, — они не покидают судно. Список гостей конфиденциален: в облаке гость — первая и последняя буква имени («S…n»), каюта и даты; гражданство и заметки тоже остаются на борту. Passenger list (PDF / Excel) печатает список, для офицеров — с документами; Import from Excel читает заполненный шаблон.",
       ],
     },
     {
@@ -1628,12 +1646,21 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🤝',
+      title: "Reunión mensual de seguridad (Monthly safety meeting)",
+      body: [
+        "Monthly safety meeting (menú → Security): el comité de seguridad a bordo se reúne cada mes. Una reunión nueva trae el orden del día fijo — acciones abiertas de la última reunión, accidentes y casi accidentes, ejercicios, no conformidades e inspecciones, horas de descanso, salud, EPI, nuevos procedimientos y safety flashes, evaluaciones de riesgo, protección, medio ambiente, sugerencias de la tripulación — con una línea para lo dicho en cada punto.",
+        "Attendance list: están todos los de a bordo; marque los presentes, indique el motivo de los ausentes, y cada uno firma su propia línea en este dispositivo — PIN de firma o a mano. Se puede añadir a alguien que no está en la lista de tripulación (superintendente, contratista). Attendance list (PDF) la imprime aparte.",
+        "Acciones: quién hace qué y para cuándo. Las acciones abiertas vuelven en la siguiente reunión hasta marcarlas hechas; vencidas, aparecen en el Board. Firmada por el Capitán o quien la presidió, la reunión es definitiva; Minutes (PDF) imprime el acta completa. El Board avisa de la reunión del mes y se pone en rojo si no la hubo en más de un mes.",
+      ],
+    },
+    {
       emoji: '🛳️',
       title: "Pasajeros (Passengers)",
       body: [
         "Passengers (menú → Crew → Passengers): los invitados a bordo, aparte de la tripulación — nombre como en el pasaporte, grupo (armador, invitado del armador, invitado de chárter), camarote, nacionalidad, cuándo y dónde embarcaron y desembarcaron. La lista muestra quién está a bordo, a quién se espera y quién ha desembarcado; búsqueda por nombre, camarote o nacionalidad.",
         "Pasarela: cada pasajero a bordo tiene Ashore / Back aboard, como la tripulación — la guardia pulsa o escanea la tarjeta del pasajero (Print passenger cards: el mismo QR que la tarjeta de tripulante). Los pasajeros cuentan en las personas a bordo del libro de pasarela y del Board; el resumen Gangway del Board dice quién está en tierra y desde cuándo.",
-        "Los documentos — documento de identidad, su caducidad, fecha de nacimiento, teléfono y contacto en tierra — solo los ven los oficiales y el Capitán; la tripulación y la guardia de pasarela ven la lista, no los documentos. Passenger list (PDF) imprime la lista, con los documentos para los oficiales.",
+        "Los documentos — documento de identidad, su caducidad, fecha de nacimiento, teléfono y contacto en tierra — solo los ven los oficiales y el Capitán, en el dispositivo donde se introdujeron — nunca salen del buque. La lista de invitados es confidencial: en la nube un invitado es la primera y la última letra del nombre («S…n»), el camarote y las fechas; la nacionalidad y las notas también quedan a bordo. Passenger list (PDF / Excel) imprime la lista, con los documentos para los oficiales; Import from Excel lee la plantilla rellenada.",
       ],
     },
     {
@@ -2201,12 +2228,21 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🤝',
+      title: "Щомісячні збори з безпеки (Monthly safety meeting)",
+      body: [
+        "Monthly safety meeting (меню → Security): комітет з безпеки на борту збирається щомісяця. Нові збори відкриваються з постійним порядком денним — відкриті дії минулих зборів, події та майже-події, навчання, невідповідності та перевірки, години відпочинку, здоров'я, ЗІЗ, нові процедури та safety flashes, оцінки ризику, охорона, екологія, пропозиції екіпажу — і рядком для сказаного з кожного пункту.",
+        "Attendance list: у ньому всі на борту; позначте присутніх, для відсутніх — причину; кожен підписує свій рядок на цьому пристрої — PIN підпису або рукою. Можна додати людину не зі списку екіпажу (суперінтендант, підрядник). Attendance list (PDF) друкує список окремо.",
+        "Дії: хто, що і до якого строку. Відкриті дії повертаються на наступні збори, доки їх не позначать виконаними; прострочені видно на Board. Після підпису Мастера чи голови збори остаточні; Minutes (PDF) друкує весь протокол. Board нагадує про збори цього місяця і червоніє, якщо зборів не було понад місяць.",
+      ],
+    },
+    {
       emoji: '🛳️',
       title: "Пасажири (Passengers)",
       body: [
         "Passengers (меню → Crew → Passengers): гості на борту, окремо від екіпажу — ім'я як у паспорті, група (власник, гість власника, чартерний гість), каюта, громадянство, коли і де сіли та зійшли. У списку видно, хто на борту, кого чекають і хто зійшов; пошук за ім'ям, каютою, громадянством.",
         "Трап: у кожного пасажира на борту — Ashore / Back aboard, як в екіпажу: вахта натискає або сканує картку пасажира (Print passenger cards — той самий QR, що й у картки екіпажу). Пасажири входять до кількості людей на борту в журналі трапу та на Board; зведення Gangway на Board показує, хто на березі і з якого часу.",
-        "Документи — посвідчення, його строк, дата народження, телефон і контакт на березі — бачать лише офіцери та Мастер; екіпаж і вахта біля трапу бачать список, але не документи. Passenger list (PDF) друкує список, для офіцерів — з документами.",
+        "Документи — посвідчення, його строк, дата народження, телефон і контакт на березі — бачать лише офіцери та Мастер, на пристрої, де їх внесли, — вони не залишають судно. Список гостей конфіденційний: у хмарі гість — перша й остання літера імені («S…n»), каюта і дати; громадянство та нотатки теж залишаються на борту. Passenger list (PDF / Excel) друкує список, для офіцерів — з документами; Import from Excel читає заповнений шаблон.",
       ],
     },
     {
@@ -2360,6 +2396,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
   { title: 'Security (ISPS)', module: 'security' },
   { title: 'Hospital', module: 'hospital' },
   { title: 'Passengers', module: 'passengers' },
+  { title: 'Monthly safety meeting', module: 'meetings' },
   { title: 'Drills', module: 'drills' },
   { title: 'Safety observations & NC', module: 'qhse' },
   { title: 'Fleet console (superintendent)', module: 'fleet' },

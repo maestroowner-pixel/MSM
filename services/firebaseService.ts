@@ -87,6 +87,11 @@ import { Inspection } from '../types/inspection';
 import { CrewMember } from '../types/crew';
 import { mergeById } from './pms';
 import { treatmentFromCloud, treatmentToCloud } from './hospital';
+import { isPassengerId, passengerFromCloud, passengerToCloud } from '../types/passengers';
+import { isMasked, maskName } from '../utils/privacy';
+
+const moveToCloud = (m: any) => (isPassengerId(String(m.crewId ?? '')) && !isMasked(String(m.name ?? '')) ? { ...m, name: maskName(String(m.name ?? '')) } : m);
+const moveFromCloud = (local: any, remote: any) => (local && isPassengerId(String(remote.crewId ?? '')) ? { ...remote, name: local.name } : remote);
 import { ChecklistTemplate } from '../constants/checklists';
 import { PhotoArchiveState } from './photoArchive';
 import { CATEGORIES, CategoryMeta } from '../constants/categories';
@@ -1254,7 +1259,8 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'visitors', key: storage.VISITORS_KEY, module: 'security' },
   { sub: 'security_levels', key: storage.SECURITY_LEVEL_KEY, appendOnly: true, module: 'security' },
   { sub: 'security_drills', key: storage.SECURITY_DRILLS_KEY, appendOnly: true, module: 'security' },
-  { sub: 'crew_moves', key: storage.CREW_MOVES_KEY, appendOnly: true, module: 'security' },
+  // A passenger's crossing goes up with the name masked (types/passengers.ts).
+  { sub: 'crew_moves', key: storage.CREW_MOVES_KEY, appendOnly: true, module: 'security', toCloud: moveToCloud, fromCloud: moveFromCloud },
   { sub: 'surveys', key: storage.SURVEYS_KEY, module: 'surveys' },
   { sub: 'surveys_done', key: storage.SURVEYS_DONE_KEY, appendOnly: true, module: 'surveys' },
   { sub: 'observations', key: storage.OBSERVATIONS_KEY, module: 'qhse' },
@@ -1265,9 +1271,12 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'med_orders', key: storage.MED_ORDERS_KEY, module: 'hospital' },
   { sub: 'med_checks', key: storage.MED_CHECKS_KEY, appendOnly: true, module: 'hospital' },
   // The medical log is personal health data: the Master and the officers only.
-  // Passengers: the list is everyone's (the gangway watch); their documents the officers' only.
-  { sub: 'passengers', key: storage.PASSENGERS_KEY, module: 'passengers' },
-  { sub: 'passengers_private', key: storage.PASSENGERS_PRIVATE_KEY, module: 'passengers', officers: true },
+  // Monthly safety meetings: kept by the officers, each person signs his own attendance line.
+  { sub: 'safety_meetings', key: storage.SAFETY_MEETINGS_KEY, module: 'meetings' },
+  // Passengers: confidential — the guest list does not leave the vessel. The cloud holds the
+  // first and last letter of each name, the cabin and the dates (to count who is aboard);
+  // their documents (passengers_private) are never sent.
+  { sub: 'passengers', key: storage.PASSENGERS_KEY, module: 'passengers', toCloud: passengerToCloud, fromCloud: passengerFromCloud },
   // The patient's name never leaves the vessel: the cloud holds its first and last letter.
   { sub: 'med_treatments', key: storage.MED_TREATMENTS_KEY, module: 'hospital', officers: true, toCloud: treatmentToCloud, fromCloud: treatmentFromCloud, resend: 'mask1' },
 ];
@@ -1343,7 +1352,9 @@ async function pushList(uid: string, l: SyncedList): Promise<number> {
           sent[r.id] = r.updatedAt ?? 0;
         } catch (e: any) {
           if (!String(e?.code ?? e?.message ?? '').includes('permission')) throw e;
-          console.warn(`[sync] ${l.sub}/${r.id} refused — stays queued`);
+          // Append-only and already up there (a resend): counts as sent. Otherwise it stays queued.
+          if (l.appendOnly && (await fsGetDoc(fsDoc(d, ROOT, uid, l.sub, r.id))).exists()) sent[r.id] = r.updatedAt ?? 0;
+          else console.warn(`[sync] ${l.sub}/${r.id} refused — stays queued`);
         }
       }
     } else if (l.appendOnly) {
