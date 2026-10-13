@@ -59,6 +59,11 @@ export const SURVEYS_DONE_KEY = `${PREFIX}surveys_done`;
 export const OBSERVATIONS_KEY = `${PREFIX}observations`;
 export const NCS_KEY = `${PREFIX}ncs`;
 export const DRILLS_KEY = `${PREFIX}drills`;
+export const MED_ITEMS_KEY = `${PREFIX}med_items`;
+export const MED_MOVES_KEY = `${PREFIX}med_moves`;
+export const MED_TREATMENTS_KEY = `${PREFIX}med_treatments`;
+export const MED_ORDERS_KEY = `${PREFIX}med_orders`;
+export const MED_CHECKS_KEY = `${PREFIX}med_checks`;
 export const DOC_ACKS_KEY = `${PREFIX}ism_doc_acks`;
 /** The vessel's "scan before you sign" rule, as this device last knew it. */
 export const SIGNING_POLICY_KEY = `${PREFIX}signing_policy`;
@@ -542,6 +547,22 @@ export async function upsertInList<T extends { id: string }>(key: string, row: T
   await saveList(key, list);
 }
 
+/** Many rows into one list in a single write (an import, a scale, an inventory). */
+export async function upsertManyInList<T extends { id: string }>(key: string, rows: T[]): Promise<void> {
+  if (!rows.length) return;
+  const list = await loadList<T>(key);
+  const at = new Map(list.map((r, i) => [r.id, i]));
+  for (const row of rows) {
+    const i = at.get(row.id);
+    if (i != null) list[i] = row;
+    else {
+      at.set(row.id, list.length);
+      list.push(row);
+    }
+  }
+  await saveList(key, list);
+}
+
 // ---- Hours of rest ----------------------------------------------------------
 
 export async function loadRest(): Promise<import('../types/rest').RestDay[]> {
@@ -697,6 +718,11 @@ export async function resetAllData(): Promise<void> {
     OBSERVATIONS_KEY,
     NCS_KEY,
     DRILLS_KEY,
+    MED_ITEMS_KEY,
+    MED_MOVES_KEY,
+    MED_TREATMENTS_KEY,
+    MED_ORDERS_KEY,
+    MED_CHECKS_KEY,
     DOC_ACKS_KEY,
     'msm:docfiles_pending',
     VESSEL_KEY,

@@ -183,6 +183,25 @@ await t(false, 'A signed drill is final', setDoc(R(master, 'drills', 'd1'), { id
 await t(true, 'The Master edits a planned drill', setDoc(R(master, 'drills', 'd2'), { id: 'd2', no: 'DR-2026-002', type: 'mob', scenario: [], attendance: [], updatedAt: 1 }).then(() => setDoc(R(master, 'drills', 'd2'), { id: 'd2', no: 'DR-2026-002', type: 'mob', topic: 'MOB aft', scenario: [], attendance: [], updatedAt: 2 })));
 await t(true, 'Crew reads drills', getDoc(R(crew, 'drills', 'd1')));
 
+await t(true, 'An Officer adds a medicine', setDoc(R(officer, 'med_items', 'm1'), { id: 'm1', name: 'Paracetamol', unit: 'tablets', required: 100, kind: 'medicine', order: 0, updatedAt: 1 }));
+await t(false, 'Crew cannot change the chest', setDoc(R(crew, 'med_items', 'm1'), { id: 'm1', name: 'Paracetamol', unit: 'tablets', required: 1, kind: 'medicine', order: 0, updatedAt: 2 }));
+await t(true, 'Crew sees the chest', getDoc(R(crew, 'med_items', 'm1')));
+await t(true, 'An Officer receives stock', setDoc(R(officer, 'med_moves', 'mv1'), { id: 'mv1', itemId: 'm1', kind: 'received', qty: 100, expiry: '2028-01-31', by: 'Jez', updatedAt: 1 }));
+await t(false, 'A move is never changed', setDoc(R(master, 'med_moves', 'mv1'), { id: 'mv1', itemId: 'm1', kind: 'received', qty: 10, by: 'Jez', updatedAt: 2 }));
+await t(false, 'A move never carries a patient', setDoc(R(officer, 'med_moves', 'mv2'), { id: 'mv2', itemId: 'm1', kind: 'issued', qty: 2, patient: 'Max', by: 'Jez', updatedAt: 1 }));
+await t(true, 'An Officer writes the medical log', setDoc(R(officer, 'med_treatments', 't1'), { id: 't1', no: 'MED-2026-001', patient: 'Max', complaint: 'Cut hand', issued: [], outcome: 'fit', by: 'Jez', updatedAt: 1 }));
+await t(false, 'Crew cannot read the medical log', getDoc(R(crew, 'med_treatments', 't1')));
+await t(false, 'The shore cannot read the medical log', getDoc(R(shore, 'med_treatments', 't1')));
+await t(false, 'Crew cannot write the medical log', setDoc(R(crew, 'med_treatments', 't2'), { id: 't2', no: 'MED-2026-002', patient: 'Max', complaint: 'x', issued: [], outcome: 'fit', by: 'Max', updatedAt: 1 }));
+await t(true, 'Medical advice added to an entry', setDoc(R(officer, 'med_treatments', 't1'), { id: 't1', no: 'MED-2026-001', patient: 'Max', complaint: 'Cut hand', issued: [], outcome: 'fit', by: 'Jez', files: [{ id: 'f', name: 'advice.pdf' }], updatedAt: 3 }));
+await t(true, 'An Officer orders', setDoc(R(officer, 'med_orders', 'o1'), { id: 'o1', no: 'MO-2026-001', lines: [{ id: 'l', itemId: 'm1', qty: 10 }], by: 'Jez', updatedAt: 1 }));
+await t(false, 'Crew cannot order', setDoc(R(crew, 'med_orders', 'o2'), { id: 'o2', no: 'MO-2026-002', lines: [], by: 'Max', updatedAt: 1 }));
+await t(true, 'An Officer closes an order', setDoc(R(officer, 'med_orders', 'o1'), { id: 'o1', no: 'MO-2026-001', lines: [{ id: 'l', itemId: 'm1', qty: 10 }], by: 'Jez', closedAt: 5, closeNote: 'Rest not available', updatedAt: 5 }));
+await t(false, 'A closed order is final', setDoc(R(master, 'med_orders', 'o1'), { id: 'o1', no: 'MO-2026-001', lines: [], by: 'Jez', updatedAt: 6 }));
+await t(true, 'An Officer signs an inventory', setDoc(R(officer, 'med_checks', 'c1'), { id: 'c1', no: 'INV-2026-001', lines: [], by: 'Jez', updatedAt: 1 }));
+await t(false, 'An inventory is final', setDoc(R(master, 'med_checks', 'c1'), { id: 'c1', no: 'INV-2026-001', lines: [{ x: 1 }], by: 'Jez', updatedAt: 2 }));
+await t(false, 'A medical log entry is final', setDoc(R(master, 'med_treatments', 't1'), { id: 't1', no: 'MED-2026-001', patient: 'Max', complaint: 'Other', issued: [], outcome: 'fit', by: 'Jez', updatedAt: 2 }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

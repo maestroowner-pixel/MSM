@@ -89,6 +89,16 @@ export async function uploadInline(
   return await getDownloadURL(ref);
 }
 
+/**
+ * A medical log file (services/medFiles.ts) — its own folder, which only the
+ * Master and the officers may read (storage.rules).
+ */
+export async function uploadMedical(vessel: string, ownerId: string, fileId: string, dataUri: string): Promise<string> {
+  const ref = storageRef(bucket(), `${ROOT}/${vessel.replace(/\D/g, '')}/medical/${ownerId}/${fileId}`);
+  await uploadString(ref, dataUri, 'data_url', { contentType: mimeOf(dataUri) });
+  return await getDownloadURL(ref);
+}
+
 /** Remove a file. Best-effort: a missing object is already the desired state. */
 export async function removeAttachment(vessel: string, ownerId: string, fileId: string): Promise<void> {
   try {

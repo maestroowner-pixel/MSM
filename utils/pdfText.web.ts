@@ -19,7 +19,8 @@ export const MAX_TEXT = 60000;
 
 let loading: Promise<any> | null = null;
 
-function pdfjs(): Promise<any> {
+/** pdf.js from cdnjs, loaded once (also used by utils/pdfCompress.web.ts). */
+export function pdfjs(): Promise<any> {
   const g: any = globalThis as any;
   if (g.pdfjsLib) return Promise.resolve(g.pdfjsLib);
   if (loading) return loading;

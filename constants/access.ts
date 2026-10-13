@@ -30,7 +30,7 @@
 
 import { ModuleKey, moduleOn } from './modules';
 
-export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'reports' | 'maintenance' | 'spares' | 'rest';
+export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'reports' | 'maintenance' | 'spares' | 'rest';
 
 export interface OptionalTab {
   key: TabKey;
@@ -58,6 +58,7 @@ export const OPTIONAL_TABS: OptionalTab[] = [
   { key: 'ballast', module: 'ballast', route: 'Ballast', label: 'Ballast water', column: 'BW', icon: 'waves' },
   { key: 'rounds', module: 'rounds', route: 'Rounds', label: 'Inspection rounds', column: 'RND', icon: 'clipboard-check-outline' },
   { key: 'surveys', module: 'surveys', route: 'Surveys', label: 'Surveys', column: 'SRV', icon: 'calendar-check-outline' },
+  { key: 'hospital', module: 'hospital', route: 'Hospital', label: 'Hospital', column: 'MED', icon: 'medical-bag' },
   { key: 'drills', module: 'drills', route: 'Drills', label: 'Drills', column: 'DRL', icon: 'run-fast' },
   { key: 'qhse', module: 'qhse', route: 'Safety', label: 'Safety', column: 'QHSE', icon: 'shield-check-outline' },
   { key: 'sopep', module: 'sopep', route: 'Sopep', label: 'SOPEP', column: 'SOPEP', icon: 'oil' },

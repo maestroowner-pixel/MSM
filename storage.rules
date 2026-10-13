@@ -93,6 +93,18 @@ service firebase.storage {
       allow delete: if member(vessel);
     }
 
+    // Hospital (13 Oct 2026): files kept with the medical log — the written
+    // radio medical advice. Health data: the Master and the officers only, never
+    // the crew or the shore, and never replaced.
+    match /safety_vessels/{vessel}/medical/{ownerId}/{file} {
+      allow read: if member(vessel) && (claims().role == 'admin' || claims().role == 'superadmin');
+      allow create: if member(vessel) && (claims().role == 'admin' || claims().role == 'superadmin')
+                    && resource == null
+                    && request.resource.size < 12 * 1024 * 1024
+                    && (request.resource.contentType == 'application/pdf' || request.resource.contentType.matches('image/.*'));
+      allow update, delete: if false;
+    }
+
     // Anything outside that shape is nobody's business.
     match /{allPaths=**} {
       allow read, write: if false;

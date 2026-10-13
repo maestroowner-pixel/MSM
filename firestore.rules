@@ -415,6 +415,37 @@ service cloud.firestore {
                         && (isAdmin(v) || (member(v) && onlyChanges(['attendance', 'updatedAt'])));
         allow delete: if false;
       }
+      // Hospital (types/hospital.ts). The chest and its moves are kept by the
+      // officers; moves are never changed. The medical log is health data: the
+      // Master and the officers only — not the crew, not the shore.
+      match /med_items/{id} {
+        allow read: if reader(v);
+        allow create, update: if isAdmin(v);
+        allow delete: if false;
+      }
+      match /med_moves/{id} {
+        allow read: if reader(v);
+        allow create: if isAdmin(v) && !('patient' in request.resource.data);
+        allow update, delete: if false;
+      }
+      // An entry never changes; the written medical advice may be added to it.
+      match /med_treatments/{id} {
+        allow read, create: if isAdmin(v);
+        allow update: if isAdmin(v) && onlyChanges(['files', 'updatedAt']);
+        allow delete: if false;
+      }
+      // Orders: written and received against by the officers; closed, final.
+      match /med_orders/{id} {
+        allow read: if reader(v);
+        allow create: if isAdmin(v) && !('closedAt' in request.resource.data);
+        allow update: if isAdmin(v) && resource.data.get('closedAt', null) == null;
+        allow delete: if false;
+      }
+      match /med_checks/{id} {
+        allow read: if reader(v);
+        allow create: if isAdmin(v);
+        allow update, delete: if false;
+      }
       // Crew going ashore / coming back aboard (QR crew card at the gangway).
       match /crew_moves/{id} {
         allow read: if reader(v);

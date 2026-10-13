@@ -24,6 +24,7 @@ import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
 import { Survey, SurveyDone } from '../types/survey';
 import { NonConformity, SafetyObservation } from '../types/safety';
 import { Drill } from '../types/drills';
+import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
 import { ChecklistTemplate } from '../constants/checklists';
@@ -138,6 +139,11 @@ interface DataContextType {
   observations: SafetyObservation[];
   ncs: NonConformity[];
   drills: Drill[];
+  medItems: MedItem[];
+  medMoves: MedMove[];
+  medTreatments: MedTreatment[];
+  medOrders: MedOrder[];
+  medChecks: MedCheck[];
   surveysDone: SurveyDone[];
   /**
    * Every version of an amendable log (services/versions) by storage key. The
@@ -146,6 +152,12 @@ interface DataContextType {
   versionsOf: (key: string) => any[];
   /** Upsert (lists edited in place) or append (records) by storage key. */
   saveRow: <T extends { id: string }>(key: string, row: T) => Promise<void>;
+  /**
+   * Many rows, written together and loaded back ONCE. Saving them one by one
+   * reloads every list per row — fifty rows in a row ran React into its nested
+   * update limit (error 185, 13 Oct 2026, the hospital scale).
+   */
+  saveRows: <T extends { id: string }>(key: string, rows: T[]) => Promise<void>;
   appendRow: <T extends { id: string }>(key: string, row: T) => Promise<void>;
   /** The vessel's own checklists; they replace the built-in for their category. */
   templates: ChecklistTemplate[];
@@ -245,6 +257,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [observations, setObservations] = useState<SafetyObservation[]>([]);
   const [ncs, setNcs] = useState<NonConformity[]>([]);
   const [drills, setDrills] = useState<Drill[]>([]);
+  const [medItems, setMedItems] = useState<MedItem[]>([]);
+  const [medMoves, setMedMoves] = useState<MedMove[]>([]);
+  const [medTreatments, setMedTreatments] = useState<MedTreatment[]>([]);
+  const [medOrders, setMedOrders] = useState<MedOrder[]>([]);
+  const [medChecks, setMedChecks] = useState<MedCheck[]>([]);
   const [surveysDone, setSurveysDone] = useState<SurveyDone[]>([]);
   // Every version of the logs that can be amended — for the history and the struck-through lines.
   const [versions, setVersions] = useState<Record<string, any[]>>({});
@@ -323,6 +340,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _observations = await storage.loadList<SafetyObservation>(storage.OBSERVATIONS_KEY);
     const _ncs = await storage.loadList<NonConformity>(storage.NCS_KEY);
     const _drills = (await storage.loadList<Drill>(storage.DRILLS_KEY)).filter((x) => !x.deleted);
+    const _medItems = (await storage.loadList<MedItem>(storage.MED_ITEMS_KEY)).filter((x) => !x.deleted).sort((x, y) => x.order - y.order);
+    const _medMoves = await storage.loadList<MedMove>(storage.MED_MOVES_KEY);
+    const _medTreatments = await storage.loadList<MedTreatment>(storage.MED_TREATMENTS_KEY);
+    const _medOrders = await storage.loadList<MedOrder>(storage.MED_ORDERS_KEY);
+    const _medChecks = await storage.loadList<MedCheck>(storage.MED_CHECKS_KEY);
     const _surveysDone = live(await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY));
     const _versions = Object.fromEntries(await Promise.all(VERSIONED_KEYS.map(async (k) => [k, await storage.loadList<any>(k)] as const)));
     const _templates = await storage.loadTemplates();
@@ -372,6 +394,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setObservations(_observations);
     setNcs(_ncs);
     setDrills(_drills);
+    setMedItems(_medItems);
+    setMedMoves(_medMoves);
+    setMedTreatments(_medTreatments);
+    setMedOrders(_medOrders);
+    setMedChecks(_medChecks);
     setSurveysDone(_surveysDone);
     setVersions(_versions);
     setTemplates(_templates);
@@ -568,6 +595,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _observations = await storage.loadList<SafetyObservation>(storage.OBSERVATIONS_KEY);
     const _ncs = await storage.loadList<NonConformity>(storage.NCS_KEY);
     const _drills = (await storage.loadList<Drill>(storage.DRILLS_KEY)).filter((x) => !x.deleted);
+    const _medItems = (await storage.loadList<MedItem>(storage.MED_ITEMS_KEY)).filter((x) => !x.deleted).sort((x, y) => x.order - y.order);
+    const _medMoves = await storage.loadList<MedMove>(storage.MED_MOVES_KEY);
+    const _medTreatments = await storage.loadList<MedTreatment>(storage.MED_TREATMENTS_KEY);
+    const _medOrders = await storage.loadList<MedOrder>(storage.MED_ORDERS_KEY);
+    const _medChecks = await storage.loadList<MedCheck>(storage.MED_CHECKS_KEY);
     const _surveysDone = live(await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY));
     const _versions = Object.fromEntries(await Promise.all(VERSIONED_KEYS.map(async (k) => [k, await storage.loadList<any>(k)] as const)));
     setMachines(_machines);
@@ -608,6 +640,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setObservations(_observations);
     setNcs(_ncs);
     setDrills(_drills);
+    setMedItems(_medItems);
+    setMedMoves(_medMoves);
+    setMedTreatments(_medTreatments);
+    setMedOrders(_medOrders);
+    setMedChecks(_medChecks);
     setSurveysDone(_surveysDone);
     setVersions(_versions);
   }, []);
@@ -675,6 +712,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [loadPms]);
   const saveRow = useCallback(async (key: string, row: { id: string }) => {
     await storage.upsertInList(key, { ...row, updatedAt: Date.now() });
+    await loadPms();
+  }, [loadPms]);
+  const saveRows = useCallback(async (key: string, rows: { id: string }[]) => {
+    const now = Date.now();
+    await storage.upsertManyInList(key, rows.map((r) => ({ ...r, updatedAt: (r as any).updatedAt ?? now })));
     await loadPms();
   }, [loadPms]);
   const appendRow = useCallback((key: string, row: { id: string }) => appendTo(key, row), [appendTo]);
@@ -858,9 +900,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         observations,
         ncs,
         drills,
+        medItems,
+        medMoves,
+        medTreatments,
+        medOrders,
+        medChecks,
         surveysDone,
         versionsOf,
         saveRow,
+        saveRows,
         appendRow,
         savePermit,
         saveRisk,

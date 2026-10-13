@@ -42,6 +42,8 @@ import { ncState, nextActionDue } from './safety';
 import { NonConformity, SafetyObservation } from '../types/safety';
 import { Drill } from '../types/drills';
 import { drillSchedule } from './drills';
+import { MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
+import { chestCounts, chestStatus, followUpsDue, lastControlledCount, orderOverdue } from './hospital';
 import { currentEntries } from './garbage';
 
 export type Level = 'red' | 'amber' | 'blue';
@@ -139,6 +141,10 @@ export interface BoardInput {
   observations?: SafetyObservation[];
   ncs?: NonConformity[];
   drills?: Drill[];
+  medItems?: MedItem[];
+  medMoves?: MedMove[];
+  medTreatments?: MedTreatment[];
+  medOrders?: MedOrder[];
 }
 
 const RANK: Record<Level, number> = { red: 0, amber: 1, blue: 2 };
@@ -368,6 +374,23 @@ export function buildBoard(x: BoardInput): Board {
     }
     const done30 = drills.filter((d) => d.doneAt && daysAgo(x.today, d.date) <= 30).length;
     tiles.push({ key: 'drills', label: 'Drills', icon: 'run-fast', route: 'Drills', level: lvl(red, amber), line: red ? `${red} overdue` : amber ? `${amber} due this week` : `${done30} in the last 30 days` });
+  }
+
+  // ---- Hospital: expired, expiring, short; the controlled drugs count; follow-ups ----
+  if (x.on('hospital')) {
+    const items = x.medItems ?? [];
+    const rows = chestStatus(items, x.medMoves ?? [], x.today);
+    const c = chestCounts(rows);
+    if (c.expired) n.push({ key: 'med:exp', level: 'red', who: 'officer', icon: 'medical-bag', route: 'Hospital', params: { view: 'register', filter: 'expired' }, title: `Medicine chest — ${plural(c.expired, 'item')} out of date` });
+    if (c.soon) n.push({ key: 'med:soon', level: 'amber', who: 'officer', icon: 'medical-bag', route: 'Hospital', params: { view: 'register', filter: 'soon' }, title: `Medicine chest — ${plural(c.soon, 'item')} expiring within 30 days` });
+    if (c.short) n.push({ key: 'med:short', level: 'amber', who: 'officer', icon: 'medical-bag', route: 'Hospital', params: { view: 'register', filter: 'short' }, title: `Medicine chest — ${plural(c.short, 'item')} below the scale` });
+    if (items.some((i) => i.controlled && !i.deleted)) {
+      const last = lastControlledCount(items, x.medMoves ?? []);
+      if (!last || daysAgo(x.today, last) > 31) n.push({ key: 'med:cd', level: 'amber', who: 'master', icon: 'pill', route: 'Hospital', params: { view: 'register', filter: 'controlled' }, title: last ? `Controlled drugs — last counted ${dm(last)}` : 'Controlled drugs — never counted', sub: 'The Master counts them monthly, with a witness' });
+    }
+    for (const o of (x.medOrders ?? []).filter((o) => orderOverdue(o, x.medMoves ?? [], x.today))) n.push({ key: `med:ord:${o.id}`, level: 'amber', who: 'officer', icon: 'truck-delivery-outline', route: 'MedOrder', params: { id: o.id }, title: `Medical order ${o.no} — overdue`, sub: `expected ${dm(o.due!)}${o.supplier ? ` · ${o.supplier}` : ''}` });
+    for (const t of followUpsDue(x.medTreatments ?? [], x.today)) n.push({ key: `med:fu:${t.id}`, level: 'blue', who: 'officer', icon: 'stethoscope', route: 'Treatment', params: { id: 'new', followUpOf: t.id }, title: `Follow-up — ${t.patient}`, sub: `${t.no} ${t.complaint}` });
+    tiles.push({ key: 'med', label: 'Hospital', icon: 'medical-bag', route: 'Hospital', level: lvl(c.expired, c.soon + c.short), line: items.length ? [c.expired ? `${c.expired} expired` : null, c.soon ? `${c.soon} expiring` : null, c.short ? `${c.short} short` : null].filter(Boolean).join(' · ') || 'All in date' : 'No chest list yet' });
   }
 
   // ---- Surveys & audits ----

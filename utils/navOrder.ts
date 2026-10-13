@@ -30,7 +30,7 @@ export const MENU_GROUPS: MenuGroup[] = [
   { key: 'ops', label: 'Inspections & maintenance', routes: ['Dashboard', 'Equipment', 'Rounds', 'Maintenance', 'Spares', 'Reports'] },
   { key: 'env', label: 'Environment', routes: ['Fuel', 'OilRecord', 'Garbage', 'Sewage', 'Ballast', 'Sopep'] },
   { key: 'security', label: 'Safety & security', routes: ['Drills', 'Safety', 'Security'] },
-  { key: 'crew', label: 'Crew', routes: ['Crew', 'CrewMatrix', 'HoursOfRest'] },
+  { key: 'crew', label: 'Crew', routes: ['Crew', 'CrewMatrix', 'HoursOfRest', 'Hospital'] },
   { key: 'docs', label: 'Documents & permits', routes: ['Documents', 'Certificates', 'Surveys', 'Permits'] },
   { key: 'system', label: '', routes: ['Settings'] },
 ];
@@ -49,6 +49,15 @@ export const MENU_CHILDREN: Record<string, MenuChild[]> = {
   Security: [
     { view: 'gangway', label: 'Gangway logbook', icon: 'ferry' },
     { view: 'drills', label: 'Drills', icon: 'run-fast' },
+    { view: 'flashes', label: 'Safety flashes (IMCA)', icon: 'flash-alert-outline' },
+  ],
+  Hospital: [
+    { view: 'register', label: 'Register', icon: 'clipboard-list-outline' },
+    { view: 'orders', label: 'Orders', icon: 'truck-delivery-outline' },
+    { view: 'archive', label: 'Orders archive', icon: 'archive-outline' },
+    { view: 'inventory', label: 'Inventory', icon: 'counter' },
+    { view: 'log', label: 'Medical log', icon: 'notebook-outline' },
+    { view: 'reference', label: 'Medicine reference', icon: 'book-open-variant' },
   ],
   Fuel: [
     { view: 'sounding', label: 'Sounding', icon: 'ruler' },

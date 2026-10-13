@@ -43,6 +43,7 @@ import { GANGWAY_STOCK_MM } from '../services/gangwayLabels';
 import { TsplLabelSpec, labelsToTspl } from '../services/tspl';
 import { getSavedPrinter, printTspl, SavedPrinter } from '../services/blePrinter';
 import { PrinterModal } from '../components/PrinterModal';
+import SafetyFlashesSc from './SafetyFlashesSc';
 import { samePass } from '../services/crewQr';
 import { exportVisitorExcel, exportVisitorPdf, movesOf, visitsOf, vlogTitle } from '../services/visitorLog';
 import { formatDate, formatDateTime } from '../utils/dates';
@@ -53,7 +54,13 @@ type Tab = 'board' | 'log' | 'drills';
 const hhmm = () => new Date().toTimeString().slice(0, 5);
 const ID_TYPES = ['Passport', 'ID card', 'Driving licence', "Seaman's book", 'Company ID'];
 
-export default function SecuritySc() {
+/** The menu's Security pages: gangway and drills here, the safety flashes on their own screen. */
+export default function SecurityRoute() {
+  const route = useRoute<any>();
+  return route.params?.view === 'flashes' ? <SafetyFlashesSc /> : <SecuritySc />;
+}
+
+function SecuritySc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();

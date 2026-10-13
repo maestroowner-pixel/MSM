@@ -5,3 +5,7 @@ export const MAX_TEXT = 60000;
 export async function pdfText(_dataUri: string): Promise<string | null> {
   return null;
 }
+
+export function pdfjs(): Promise<any> {
+  return Promise.reject(new Error('pdf.js is web-only.'));
+}

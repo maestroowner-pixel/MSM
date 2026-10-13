@@ -89,6 +89,11 @@ import SafetySc from './screens/SafetySc';
 import NcSc from './screens/NcSc';
 import DrillsSc from './screens/DrillsSc';
 import DrillSc from './screens/DrillSc';
+import HospitalSc from './screens/HospitalSc';
+import MedItemSc from './screens/MedItemSc';
+import TreatmentSc from './screens/TreatmentSc';
+import MedOrderSc from './screens/MedOrderSc';
+import MedCountSc from './screens/MedCountSc';
 import RoundsSc from './screens/RoundsSc';
 import RoundSc from './screens/RoundSc';
 import PermitSc from './screens/PermitSc';
@@ -130,6 +135,7 @@ const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Surveys: SurveysSc,
   Safety: SafetySc,
   Drills: DrillsSc,
+  Hospital: HospitalSc,
   Rounds: RoundsSc,
   Maintenance: MaintenanceSc,
   HoursOfRest: HoursOfRestSc,
@@ -209,6 +215,7 @@ const MENU_LABEL: Record<string, string> = {
   Surveys: 'Surveys & audits',
   Safety: 'Safety observations & NC',
   Drills: 'Drills',
+  Hospital: 'Hospital',
   Rounds: 'Inspection rounds',
   Fuel: 'Fuel',
   Garbage: 'Garbage record book',
@@ -410,6 +417,7 @@ const linking = {
           Surveys: 'surveys',
           Safety: 'safety',
           Drills: 'drills',
+          Hospital: 'hospital',
           Rounds: 'rounds',
           Settings: 'settings',
         },
@@ -440,6 +448,10 @@ const linking = {
       Round: 'round/:id',
       Nc: 'nc/:id',
       Drill: 'drill/:id',
+      MedItem: 'medicine/:id',
+      Treatment: 'treatment/:id',
+      MedOrder: 'medical-order/:id',
+      MedCount: 'medical-inventory/:id',
       SparePart: 'spare/:id',
       Doc: 'document/:id',
       CrewMember: 'crew/:id',
@@ -637,6 +649,10 @@ function Root() {
         <Stack.Screen name="Round" component={RoundSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Nc" component={NcSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Drill" component={DrillSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="MedItem" component={MedItemSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Treatment" component={TreatmentSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="MedOrder" component={MedOrderSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="MedCount" component={MedCountSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="SparePart" component={SparePartSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Doc" component={DocSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="CrewMember" component={CrewMemberSc} options={{ presentation: 'modal' }} />
