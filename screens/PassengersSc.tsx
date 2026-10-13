@@ -220,8 +220,9 @@ export default function PassengersSc() {
               {st === 'aboard' ? <Text style={[styles.sub, { color: away ? COLORS.warning : COLORS.success, fontWeight: '700' }]}>{away ? `Ashore since ${m?.date === today ? m.time : m ? `${formatDate(m.date)} ${m.time}` : '—'}` : 'Aboard'}</Text> : null}
             </View>
             {st === 'aboard' ? (
-              <TouchableOpacity style={[styles.small, { backgroundColor: away ? COLORS.success : COLORS.warning, borderColor: away ? COLORS.success : COLORS.warning }]} onPress={() => void cross(p)} accessibilityLabel={`${away ? 'Back aboard' : 'Ashore'} — ${p.name}`}>
-                <Text style={[styles.smallText, { color: COLORS.textWhite }]}>{away ? 'Back aboard' : 'Ashore'}</Text>
+              <TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: away ? COLORS.warning : COLORS.success, borderColor: away ? COLORS.warning : COLORS.success }]} onPress={() => void cross(p)} accessibilityLabel={`${p.name}: ${away ? 'ashore' : 'on board'} — tap to change`}>
+                <MciIcon name="swap-horizontal" size={14} color={COLORS.textWhite} />
+                <Text style={[styles.smallText, { color: COLORS.textWhite }]}>{away ? 'Ashore' : 'On board'}</Text>
               </TouchableOpacity>
             ) : null}
           </TouchableOpacity>

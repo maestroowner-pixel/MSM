@@ -495,7 +495,7 @@ const en: ManualContent = {
       title: "Passengers",
       body: [
         "Passengers (menu → Crew → Passengers): the guests aboard, apart from the crew — name as in the passport, group (owner, owner's guest, charter guest), cabin, nationality, when and where they embarked and left. The list shows who is on board, who is expected and who has disembarked; search by name, cabin or nationality.",
-        "Gangway: each passenger on board has Ashore / Back aboard, as the crew do — the watch taps, or scans the passenger card (Print passenger cards: the same QR as a crew card). Passengers count in the persons on board on the Gangway logbook and the Board; the Board's Gangway summary says who is ashore and since when.",
+        "Gangway: each passenger and crew member has a button that shows where they are now — On board (green) or Ashore (yellow); the watch taps it to change it, or scans the passenger card (Print passenger cards: the same QR as a crew card). Passengers count in the persons on board on the Gangway logbook and the Board; the Board's Gangway summary says who is ashore and since when.",
         "Documents — identity document, its expiry, date of birth, phone and the contact ashore — are kept by the officers and the Master only, on the device they were entered on — they never leave the vessel. The guest list is confidential: on the cloud a guest is the first and last letter of the name (\"S…n\"), the cabin and the dates; nationality and notes stay on board too. Passenger list (PDF / Excel) prints the list, with the documents for the officers; Import from Excel reads the template back.",
       ],
     },
@@ -1077,7 +1077,7 @@ const ru: ManualContent = {
       title: "Пассажиры (Passengers)",
       body: [
         "Passengers (меню → Crew → Passengers): гости на борту, отдельно от экипажа — имя как в паспорте, группа (владелец, гость владельца, чартерный гость), каюта, гражданство, когда и где сели и сошли. В списке видно, кто на борту, кого ждут и кто сошёл; поиск по имени, каюте, гражданству.",
-        "Трап: у каждого пассажира на борту — Ashore / Back aboard, как у экипажа: вахта нажимает или сканирует карточку пассажира (Print passenger cards — тот же QR, что у карточки экипажа). Пассажиры входят в число людей на борту в журнале трапа и на Board; сводка Gangway на Board показывает, кто на берегу и с какого времени.",
+        "Трап: у каждого пассажира и члена экипажа кнопка показывает, где он сейчас, — On board (зелёная) или Ashore (жёлтая); вахта нажимает, чтобы изменить, или сканирует карточку пассажира (Print passenger cards — тот же QR, что у карточки экипажа). Пассажиры входят в число людей на борту в журнале трапа и на Board; сводка Gangway на Board показывает, кто на берегу и с какого времени.",
         "Документы — удостоверение, его срок, дата рождения, телефон и контакт на берегу — видят только офицеры и Мастер, на устройстве, где их внесли, — они не покидают судно. Список гостей конфиденциален: в облаке гость — первая и последняя буква имени («S…n»), каюта и даты; гражданство и заметки тоже остаются на борту. Passenger list (PDF / Excel) печатает список, для офицеров — с документами; Import from Excel читает заполненный шаблон.",
       ],
     },
@@ -1659,7 +1659,7 @@ const es: ManualContent = {
       title: "Pasajeros (Passengers)",
       body: [
         "Passengers (menú → Crew → Passengers): los invitados a bordo, aparte de la tripulación — nombre como en el pasaporte, grupo (armador, invitado del armador, invitado de chárter), camarote, nacionalidad, cuándo y dónde embarcaron y desembarcaron. La lista muestra quién está a bordo, a quién se espera y quién ha desembarcado; búsqueda por nombre, camarote o nacionalidad.",
-        "Pasarela: cada pasajero a bordo tiene Ashore / Back aboard, como la tripulación — la guardia pulsa o escanea la tarjeta del pasajero (Print passenger cards: el mismo QR que la tarjeta de tripulante). Los pasajeros cuentan en las personas a bordo del libro de pasarela y del Board; el resumen Gangway del Board dice quién está en tierra y desde cuándo.",
+        "Pasarela: cada pasajero y tripulante tiene un botón que muestra dónde está ahora — On board (verde) o Ashore (amarillo); la guardia lo pulsa para cambiarlo, o escanea la tarjeta del pasajero (Print passenger cards: el mismo QR que la tarjeta de tripulante). Los pasajeros cuentan en las personas a bordo del libro de pasarela y del Board; el resumen Gangway del Board dice quién está en tierra y desde cuándo.",
         "Los documentos — documento de identidad, su caducidad, fecha de nacimiento, teléfono y contacto en tierra — solo los ven los oficiales y el Capitán, en el dispositivo donde se introdujeron — nunca salen del buque. La lista de invitados es confidencial: en la nube un invitado es la primera y la última letra del nombre («S…n»), el camarote y las fechas; la nacionalidad y las notas también quedan a bordo. Passenger list (PDF / Excel) imprime la lista, con los documentos para los oficiales; Import from Excel lee la plantilla rellenada.",
       ],
     },
@@ -2241,7 +2241,7 @@ const uk: ManualContent = {
       title: "Пасажири (Passengers)",
       body: [
         "Passengers (меню → Crew → Passengers): гості на борту, окремо від екіпажу — ім'я як у паспорті, група (власник, гість власника, чартерний гість), каюта, громадянство, коли і де сіли та зійшли. У списку видно, хто на борту, кого чекають і хто зійшов; пошук за ім'ям, каютою, громадянством.",
-        "Трап: у кожного пасажира на борту — Ashore / Back aboard, як в екіпажу: вахта натискає або сканує картку пасажира (Print passenger cards — той самий QR, що й у картки екіпажу). Пасажири входять до кількості людей на борту в журналі трапу та на Board; зведення Gangway на Board показує, хто на березі і з якого часу.",
+        "Трап: у кожного пасажира й члена екіпажу кнопка показує, де він зараз, — On board (зелена) або Ashore (жовта); вахта натискає, щоб змінити, або сканує картку пасажира (Print passenger cards — той самий QR, що й у картки екіпажу). Пасажири входять до кількості людей на борту в журналі трапу та на Board; зведення Gangway на Board показує, хто на березі і з якого часу.",
         "Документи — посвідчення, його строк, дата народження, телефон і контакт на березі — бачать лише офіцери та Мастер, на пристрої, де їх внесли, — вони не залишають судно. Список гостей конфіденційний: у хмарі гість — перша й остання літера імені («S…n»), каюта і дати; громадянство та нотатки теж залишаються на борту. Passenger list (PDF / Excel) друкує список, для офіцерів — з документами; Import from Excel читає заповнений шаблон.",
       ],
     },

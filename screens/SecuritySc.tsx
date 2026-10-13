@@ -501,9 +501,10 @@ function SecuritySc() {
                   <Text style={[styles.name, away && { color: COLORS.textLight }]}>{c.rank ? `${c.name} · ${c.rank}` : c.name}</Text>
                   <Text style={styles.sub}>{away ? `ashore since ${when}` : m ? `aboard since ${when}` : 'aboard'}</Text>
                 </View>
-                {/* Ashore yellow, back aboard green (11 Oct 2026). */}
-                <TouchableOpacity style={[styles.small, { backgroundColor: away ? COLORS.success : COLORS.warning, borderColor: away ? COLORS.success : COLORS.warning }]} onPress={() => void moveCrew(c.id)}>
-                  <Text style={[styles.smallText, { color: COLORS.textWhite }]}>{away ? 'Back aboard' : 'Ashore'}</Text>
+                {/* The button shows where the person IS — on board green, ashore yellow — and a tap changes it (13 Oct 2026: "write the current state on the button"). */}
+                <TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: away ? COLORS.warning : COLORS.success, borderColor: away ? COLORS.warning : COLORS.success }]} onPress={() => void moveCrew(c.id)} accessibilityLabel={`${c.name}: ${away ? 'ashore' : 'on board'} — tap to change`}>
+                  <MciIcon name="swap-horizontal" size={14} color={COLORS.textWhite} />
+                <Text style={[styles.smallText, { color: COLORS.textWhite }]}>{away ? 'Ashore' : 'On board'}</Text>
                 </TouchableOpacity>
               </View>
             );
@@ -525,8 +526,9 @@ function SecuritySc() {
                       <Text style={[styles.name, away && { color: COLORS.textLight }]}>{c.cabin ? `${c.name} · cabin ${c.cabin}` : c.name}</Text>
                       <Text style={styles.sub}>{away ? `ashore since ${when}` : m ? `aboard since ${when}` : 'aboard'}</Text>
                     </View>
-                    <TouchableOpacity style={[styles.small, { backgroundColor: away ? COLORS.success : COLORS.warning, borderColor: away ? COLORS.success : COLORS.warning }]} onPress={() => void moveCrew(c.id)}>
-                      <Text style={[styles.smallText, { color: COLORS.textWhite }]}>{away ? 'Back aboard' : 'Ashore'}</Text>
+                    <TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: away ? COLORS.warning : COLORS.success, borderColor: away ? COLORS.warning : COLORS.success }]} onPress={() => void moveCrew(c.id)} accessibilityLabel={`${c.name}: ${away ? 'ashore' : 'on board'} — tap to change`}>
+                      <MciIcon name="swap-horizontal" size={14} color={COLORS.textWhite} />
+                <Text style={[styles.smallText, { color: COLORS.textWhite }]}>{away ? 'Ashore' : 'On board'}</Text>
                     </TouchableOpacity>
                   </View>
                 );
