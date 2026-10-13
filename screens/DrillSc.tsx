@@ -172,11 +172,14 @@ export default function DrillSc() {
   const toggleAtt = (i: number, a: Attendee) => setAtt(i, a.present ? { present: false, signedAt: undefined, signedWith: undefined } : { present: true, reason: undefined });
 
   // ---- the attendance list, signed in person ----
-  // On the officer's phone each person signs his own line — PIN (theirs on this
-  // phone) or by hand; on his own phone a crew member signs it with his finger
-  // too. Asked always, whatever the vessel's signing setting.
+  // Signed on the bridge device or the officer's (13 Oct 2026: "they sign on
+  // the bridge's or the officer's device"): each person his own line — his
+  // signing PIN on that device, or by hand; the fingerprint only for the
+  // device's own account, since a shared device cannot tell whose finger it is.
+  // Asked always, whatever the vessel's signing setting. A bridge device on a
+  // crew account may sign lines but changes nothing else.
   const meName = sync.me ? personName(sync.me) : null;
-  const canSignLine = (a: Attendee) => !done && !a.signedAt && (canEdit || a.name === meName);
+  const canSignLine = (a: Attendee) => !done && !a.signedAt;
   const signLine = async (i: number) => {
     const a = d.attendance[i];
     const mine = !!sync.me && a.name === meName;
@@ -187,7 +190,7 @@ export default function DrillSc() {
     const attendance = d.attendance.map((x, k) => (k === i ? line : x));
     if (canEdit) set({ attendance });
     else {
-      // A crew member's own line, saved at once — he cannot edit the rest.
+      // A bridge device on a crew account: the line is saved at once — it cannot edit the rest.
       const out = { ...d, attendance, updatedAt: Date.now() };
       await saveRow(storage.DRILLS_KEY, out);
       setDraft(out);
@@ -440,7 +443,7 @@ export default function DrillSc() {
       {/* ---- attendance ---- */}
       <Card>
         <Label>{`Attendance · ${present} of ${d.attendance.length} present${present ? ` · ${d.attendance.filter((a) => a.signedAt).length} signed` : ''}`}</Label>
-        {!done && present ? <Text style={styles.sub}>Each person signs his own line — his PIN, or by hand on the screen; on his own phone, with his fingerprint. Taking a tick off takes the signature with it.</Text> : null}
+        {!done && present ? <Text style={styles.sub}>On this device, each person signs his own line — his signing PIN, or by hand on the screen. Taking a tick off takes the signature with it.</Text> : null}
         {!ro ? (
           <View style={styles.row}>
             <TouchableOpacity style={styles.small} onPress={() => set({ attendance: d.attendance.map((a) => ({ ...a, present: true, reason: undefined })) })}><Text style={styles.smallText}>All present</Text></TouchableOpacity>
@@ -461,8 +464,8 @@ export default function DrillSc() {
                   <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700', marginTop: 0 }]}>{`✓ ${attendanceSig(a)}`}</Text>
                   {a.signedWith?.drawing ? <SigLine path={a.signedWith.drawing} color={COLORS.textDark} /> : null}
                 </View>
-              ) : canSignLine(a) && (a.present || a.name === meName) ? (
-                <TouchableOpacity style={styles.signBtn} onPress={() => void signLine(i)}><Text style={styles.signText}>{a.name === meName ? 'Sign — it’s me' : 'Sign'}</Text></TouchableOpacity>
+              ) : canSignLine(a) && (a.present || !canEdit) ? (
+                <TouchableOpacity style={styles.signBtn} onPress={() => void signLine(i)}><Text style={styles.signText}>Sign</Text></TouchableOpacity>
               ) : !a.present && (done || st === 'running') ? (
                 <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700' }]}>{a.reason || 'absent'}</Text>
               ) : null}
