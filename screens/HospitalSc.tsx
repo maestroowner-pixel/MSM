@@ -17,7 +17,7 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { Card, Screen, ScreenTitle } from '../components/ui';
@@ -35,7 +35,7 @@ import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import {
   ItemStatus, ORDER_STATE_LABEL, chestCounts, chestStatus, daysTo, differences, followUpsDue, isArchived, itemKey, lastControlledCount,
-  onOrderByItem, orderOverdue, isLanding, landingLinesFor, ChestSort, CHECK_KIND_LABEL, STOCK_LEVEL_LABEL, placeText, earliestExpiry, expiryState, matchesSearch, mmYY, purposeIcon, purposeOf, scaleEntry, sortChest, stockLevel, orderState, planImport, readSheet, receivedByLine, scaleItems, sortOrders, sortTreatments,
+  onOrderByItem, orderOverdue, isLanding, landingLinesFor, referenceOf, ChestSort, CHECK_KIND_LABEL, STOCK_LEVEL_LABEL, placeText, earliestExpiry, expiryState, matchesSearch, mmYY, purposeIcon, purposeOf, scaleEntry, sortChest, stockLevel, orderState, planImport, readSheet, receivedByLine, scaleItems, sortOrders, sortTreatments,
 } from '../services/hospital';
 import { exportChestExcel, exportChestPdf, exportChestTemplate, exportControlledPdf, exportMedLogExcel, exportMedLogPdf, pickChestSheet } from '../services/hospitalReport';
 import { formatDate } from '../utils/dates';
@@ -58,7 +58,7 @@ const TITLE: Record<HospitalView, [string, string]> = {
 
 export default function HospitalSc() {
   const COLORS = useTheme();
-  const styles = useMemo(() => ({ ...makeStyles(COLORS), ...StyleSheet.create({ badgeBox: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, minWidth: 54, alignItems: 'center' }, badgeQty: { fontSize: SIZES.small, fontWeight: '800' }, badgeExp: { fontSize: 10, fontWeight: '700' } }) }), [COLORS]);
+  const styles = useMemo(() => ({ ...makeStyles(COLORS), ...StyleSheet.create({ badgeBox: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, minWidth: 54, alignItems: 'center' }, badgeQty: { fontSize: SIZES.small, fontWeight: '800' }, badgeExp: { fontSize: 10, fontWeight: '700' }, infoBtn: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' }, infoBtnText: { fontSize: 12, fontWeight: '800', fontStyle: 'italic', fontFamily: 'Georgia', lineHeight: 14 }, infoBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: SIZES.md }, infoCard: { borderRadius: SIZES.radiusLg, padding: SIZES.lg, width: '100%', maxWidth: 560 } }) }), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
   const { medItems, medMoves, medTreatments, medOrders, medChecks, saveRows, vessel } = useData();
@@ -84,6 +84,8 @@ export default function HospitalSc() {
   const [choosingCat, setChoosingCat] = useState(false);
   const [refPart, setRefPart] = useState<'medicines' | 'scale' | 'equipment'>('medicines');
   const [openRef, setOpenRef] = useState<string | null>(null);
+  // The "i" on an item's panel: its reference entry in a pop-up, with what to do next.
+  const [info, setInfo] = useState<ItemStatus | null>(null);
 
   const rows = useMemo(() => chestStatus(medItems, medMoves, today), [medItems, medMoves, today]);
   const counts = chestCounts(rows);
@@ -240,7 +242,12 @@ export default function HospitalSc() {
               {head ? <Text style={[styles.sub, { fontWeight: '800', color: COLORS.textDark, marginTop: SIZES.md, marginBottom: 4 }]}>{`${head} · ${shown.filter((x) => purposeOf(x.item) === head).length}`}</Text> : null}
               <TouchableOpacity style={[styles.item, { borderLeftColor: stateColor(r), flexDirection: 'row', gap: SIZES.sm }]} onPress={() => nav.navigate('MedItem', { id: r.item.id })} activeOpacity={0.7}>
                 <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={styles.name} numberOfLines={1}>{`${purposeIcon(purposeOf(r.item))} ${r.item.name}${r.item.controlled ? ' 🔒' : ''}`}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={[styles.name, { flexShrink: 1 }]} numberOfLines={1}>{`${purposeIcon(purposeOf(r.item))} ${r.item.name}${r.item.controlled ? ' 🔒' : ''}`}</Text>
+                  <TouchableOpacity onPress={() => setInfo(r)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Reference — ${r.item.name}`} style={[styles.infoBtn, { borderColor: COLORS.primary }]}>
+                    <Text style={[styles.infoBtnText, { color: COLORS.primary }]}>i</Text>
+                  </TouchableOpacity>
+                </View>
                 <Text style={styles.sub}>{[r.item.listNo ? `No. ${r.item.listNo}` : null, r.item.strength].filter(Boolean).join(' · ')}</Text>
                 {placeText(r.item) ? <Text style={[styles.sub, { color: COLORS.textDark }]}>{`📍 ${placeText(r.item)}`}</Text> : null}
                 <Text style={[styles.sub, { color: stateColor(r), fontWeight: '700' }]}>{[`${r.usable} / ${r.item.required} ${r.item.unit}`, STOCK_LEVEL_LABEL[stockLevel(r)], r.short ? `${r.short} short` : null, r.expired ? `${r.expired} out of date` : r.nextState === 'soon' ? 'expiring' : null].filter(Boolean).join(' · ')}</Text>
@@ -410,6 +417,32 @@ export default function HospitalSc() {
         </>
       )}
       {saved ? <Text style={styles.sub}>{saved}</Text> : null}
+      <Modal visible={!!info} transparent animationType="fade" onRequestClose={() => setInfo(null)}>
+        <TouchableOpacity style={styles.infoBack} activeOpacity={1} onPress={() => setInfo(null)}>
+          <TouchableOpacity activeOpacity={1} style={[styles.infoCard, { ...COLORS.glassCard, backgroundColor: COLORS.cardSolid }]}>
+            {info ? (() => {
+              const ref = referenceOf(info.item);
+              return (
+                <>
+                  <Text style={[styles.name, { fontSize: 18 }]}>{`${purposeIcon(purposeOf(info.item))} ${info.item.name}${info.item.controlled ? ' 🔒' : ''}`}</Text>
+                  <Text style={styles.sub}>{[info.item.strength, placeText(info.item) ? `📍 ${placeText(info.item)}` : null, `${info.usable} / ${info.item.required} ${info.item.unit} · ${STOCK_LEVEL_LABEL[stockLevel(info)]}`].filter(Boolean).join(' · ')}</Text>
+                  {ref.facts.length ? <Text style={[styles.sub, { color: COLORS.textDark, marginTop: SIZES.xs }]}>{ref.facts.join(' · ')}</Text> : null}
+                  <ScrollView style={{ maxHeight: 360, marginTop: SIZES.sm }}>
+                    <Text style={[styles.body, { lineHeight: 21 }]}>{ref.text || 'No entry in the WHO IMGS reference for this item.'}</Text>
+                    {ref.text ? <Text style={[styles.sub, { marginTop: SIZES.sm, fontWeight: '700' }]}>{MED_INFO_NOTICE}</Text> : null}
+                    {ref.text ? <Text style={[styles.sub, { fontSize: 11, marginTop: SIZES.xs }]}>{WHO_NOTICE}</Text> : null}
+                  </ScrollView>
+                  <View style={[styles.row, { marginTop: SIZES.md }]}>
+                    <TouchableOpacity style={styles.btn} onPress={() => { const id = info.item.id; setInfo(null); nav.navigate('MedItem', { id }); }}><Text style={styles.btnText}>Open the item</Text></TouchableOpacity>
+                    <TouchableOpacity style={styles.small} onPress={() => { const n = info.item.name; setInfo(null); setQ(n); setRefPart(scaleEntry(info.item).nursing ? 'equipment' : 'medicines'); setView('reference'); }}><Text style={styles.smallText}>In the reference</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => setInfo(null)}><Text style={styles.link}>Close</Text></TouchableOpacity>
+                  </View>
+                </>
+              );
+            })() : null}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </Screen>
   );
 }

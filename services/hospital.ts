@@ -4,7 +4,7 @@
 // Pure: no storage, no React.
 // ===================================
 
-import { HospitalCategory, MED_SCALE, NURSING_SCALE, ScaleMedicine, ScaleNursing } from '../constants/medScale';
+import { HospitalCategory, IMGS_REFERENCE, MED_SCALE, NURSING_SCALE, ScaleMedicine, ScaleNursing } from '../constants/medScale';
 import { CheckLine, Issued, LandingReason, MedCheck, MedItem, MedKind, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 
 export interface Batch {
@@ -399,6 +399,25 @@ export function scaleEntry(item: Pick<MedItem, 'name' | 'strength' | 'code'>): {
   const all = MED_SCALE.filter((m) => m.name.toLowerCase() === n);
   const med = all.find((m) => (item.strength ?? '').toLowerCase() === m.strength.toLowerCase()) ?? all[0];
   return med ? { med } : {};
+}
+
+/**
+ * What the reference says about an item, for the "i" on its panel: the scale's
+ * entry (indication, ATC, WHO No., IMGS text) or the IMGS medicine entry of the
+ * same name; the equipment's IMGS code and note. `text` empty = nothing there.
+ */
+export function referenceOf(item: Pick<MedItem, 'name' | 'strength' | 'code' | 'listNo'>): { facts: string[]; text: string } {
+  const e = scaleEntry(item);
+  const n = item.name.trim().toLowerCase();
+  // By exact name only, and only for an item not on the scale: where the scale holds the
+  // medicine without a reference (morphine, permethrin — the guide's form differs) none is shown.
+  const imgs = IMGS_REFERENCE.find((r) => r.name.toLowerCase() === n);
+  if (e.nursing) return { facts: [`IMGS ${e.nursing.code}`, e.nursing.group, e.nursing.description !== e.nursing.name ? e.nursing.description : ''].filter(Boolean), text: e.nursing.ref ?? '' };
+  const m = e.med;
+  return {
+    facts: [listNoOf(item) ?? '', m?.indication ? `For: ${m.indication}` : '', m?.atc ? `ATC ${m.atc}` : '', m?.controlled ? 'Controlled drug' : ''].filter(Boolean),
+    text: m ? m.ref ?? '' : imgs?.text ?? '',
+  };
 }
 
 /** What to order: short of the scale, or expiring within 90 days — never more than the scale. */

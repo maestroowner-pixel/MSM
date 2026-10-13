@@ -1,7 +1,7 @@
 // npm run check:hospital — stock by batch, expiry, orders delivered in parts, the inventory, the register, the scale, the Excel list, the board.
 import {
   chestStatus, checkLinesFor, differences, expiryState, followUpsDue, lastControlledCount, nextNo, normExpiry, onOrderByItem, orderOverdue, orderState,
-  pickBatch, planImport, batchLabel, sortChest, purposeOf, earliestExpiry, matchesName, placeText, comparePlace, stockLevel, matchesSearch, purposeIcon, mmYY, readSheet, receivedByLine, registerLines, scaleEntry, scaleItems, stockByItem, toOrder, landingLinesFor, listNoOf, isLanding, CHECK_KIND_LABEL,
+  pickBatch, planImport, batchLabel, sortChest, purposeOf, earliestExpiry, matchesName, placeText, comparePlace, stockLevel, matchesSearch, purposeIcon, mmYY, readSheet, receivedByLine, registerLines, scaleEntry, scaleItems, stockByItem, toOrder, landingLinesFor, listNoOf, referenceOf, isLanding, CHECK_KIND_LABEL,
 } from '../services/hospital';
 import { MED_SCALE, NURSING_SCALE } from '../constants/medScale';
 import { buildBoard } from '../services/board';
@@ -109,6 +109,12 @@ ok(lcd.length === 1 && lcd[0].itemId === 'mo' && lcd[0].counted === 4 && !!lcd[0
 ok(lnd[0].itemId === 'ad' && lnd[0].listNo === 'W.H.O. 1.3.1', 'landing: list No. from the scale when the item has none; numbered lines first');
 ok(listNoOf({ name: 'X', listNo: ' MSN A-12 ' }) === 'MSN A-12' && listNoOf({ name: 'Acetylsalicylic acid', strength: 'tablet 300mg' }) === 'W.H.O. 2.1' && listNoOf({ name: 'Nothing' }) === undefined, 'list No.: own first, then WHO / IMGS');
 ok(isLanding({ kind: 'landing-cd' }) && !isLanding({ kind: 'handover' }) && !!CHECK_KIND_LABEL.landing && nextNo('LND', [{ no: 'INV-2026-004' }, { no: 'LND-2026-001' }], T) === 'LND-2026-002', 'landing kinds and numbers LND');
+
+// the "i" on a panel
+const ra = referenceOf({ name: 'Adrenaline', strength: 'ampoule 1:1000 (1mg/ml)' });
+ok(ra.text.includes('anaphylaxis') && ra.facts.includes('W.H.O. 1.3.1') && ra.facts.some((f) => f.startsWith('ATC')), 'reference: medicine — text, WHO No., ATC');
+ok(MED_SCALE.filter((m) => !m.ref).every((m) => referenceOf({ name: m.name, strength: m.strength }).text === ''), 'reference: none where the scale left it out on purpose');
+ok(referenceOf({ name: 'x', code: 'II.1.11' }).facts[0] === 'IMGS II.1.11' && referenceOf({ name: 'Nothing here' }).text === '', 'reference: equipment by IMGS code; none = empty');
 
 // board
 const base: any = { on: (k: string) => k === 'hospital', role: 'admin', me: null, today: T, now: `${T}T10:00`, labelOf: (k: any) => k, periodsOf: () => [], flat: [], certificates: [], inspections: [], crew: [], rest: [], machines: [], pmsJobs: [], pmsDone: [], pmsDeferrals: [], pmsDefects: [], spares: [], spareMoves: [], docs: [], docAcks: [], permits: [], fuelTanks: [], fuelReadings: [], fuelBunkers: [], fuelDailySent: [], garbage: [], garbageSigns: [], sopepItems: [], sopepChecks: [], sopepDrills: [], visitors: [], securityLevels: [], securityDrills: [], crewMoves: [], surveys: [], surveysDone: [], rounds: [], categories: [], templates: {} };
