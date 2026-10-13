@@ -56,7 +56,9 @@ ok(b.attention.some((x) => x.key === 'sm:due' && x.level === 'red') && b.attenti
 
 // gangway names for the Master only
 const gw = (role: any) => buildBoard(base({ role, crew: crew9 as any, crewMoves: away9 as any })).summaries.find((v) => v.key === 'gangway')!;
-ok(!!gw('superadmin').rows.find((r) => r.label === 'Crew')?.more?.length && !gw('admin').rows.some((r) => r.more?.length) && !gw('user').rows.some((r) => r.more?.length), 'gangway summary: names for the Master, counts for the others');
+ok(!!gw('superadmin').rows.find((r) => r.label === 'Ashore now')?.more?.length && !gw('admin').rows.some((r) => r.more?.length) && !gw('user').rows.some((r) => r.more?.length), 'gangway summary: names for the Master, counts for the others');
+const tb = gw('user').table!;
+ok(JSON.stringify(tb.head) === '["","On board","Ashore"]' && tb.rows[0].cells.join() === 'Crew,2,9' && tb.rows[tb.rows.length - 1].cells.join() === 'Total,2,9', 'gangway table: crew 2 on board, 9 ashore; total');
 
 // the guest list does not leave the vessel
 const guest: any = { id: 'pax1', name: 'Sophie Martin', cabin: 'VIP', nationality: 'FR', notes: 'Vegetarian', embarked: today, addedAt: 0, updatedAt: 1 };

@@ -143,6 +143,20 @@ export default function BoardSc() {
         <Text style={[styles.head, { marginBottom: 0, flex: 1 }]}>{g.title}</Text>
         <MciIcon name="chevron-right" size={18} color={COLORS.textLight} />
       </View>
+      {g.table ? (
+        <View style={styles.sumTable}>
+          <View style={styles.sumTr}>
+            {g.table.head.map((h, i) => <Text key={i} style={[styles.sumTh, i ? styles.sumNum : null]}>{h}</Text>)}
+          </View>
+          {g.table.rows.map((r, k) => (
+            <View key={k} style={[styles.sumTr, r.bold && { borderTopWidth: 1, borderTopColor: COLORS.border }]}>
+              {r.cells.map((c, i) => (
+                <Text key={i} style={[styles.noticeText, i ? styles.sumNum : { flex: 1.4 }, r.bold && { fontWeight: '800' }, i === 2 && r.level && c !== '0' && c !== '—' ? { color: color(r.level), fontWeight: '800' } : null]}>{c}</Text>
+              ))}
+            </View>
+          ))}
+        </View>
+      ) : null}
       {g.rows.map((r) => (
         <View key={r.label} style={styles.sumRow}>
           <Text style={styles.sumLabel}>{r.label}</Text>
@@ -203,6 +217,10 @@ const makeStyles = (COLORS: Palette) =>
     noticeText: { fontSize: SIZES.body, color: COLORS.textDark, fontWeight: '600' },
     sub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },
     sumRow: { flexDirection: 'row', gap: SIZES.sm, paddingVertical: 5, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.borderLight },
+    sumTable: { marginBottom: SIZES.xs },
+    sumTr: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.borderLight },
+    sumTh: { flex: 1.4, fontSize: SIZES.small, color: COLORS.textLight, fontWeight: '700' },
+    sumNum: { flex: 1, textAlign: 'right', fontVariant: ['tabular-nums'] },
     sumLabel: { width: 118, fontSize: SIZES.small, color: COLORS.textLight, paddingTop: 2 },
     allGood: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, paddingVertical: SIZES.sm },
     planRow: { flexDirection: 'row', alignItems: 'flex-start', gap: SIZES.sm, paddingVertical: 8 },

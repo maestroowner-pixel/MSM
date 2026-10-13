@@ -98,6 +98,8 @@ export interface SummaryRow {
   more?: string[];
 }
 export interface Summary {
+  /** A small table above the rows — the gangway's on board / ashore. */
+  table?: { head: string[]; rows: { cells: string[]; level?: Level; bold?: boolean }[] };
   key: string;
   title: string;
   icon: string;
@@ -386,17 +388,25 @@ export function buildBoard(x: BoardInput): Board {
     const onBoardVis = x.visitors.filter((v) => !v.timeOut);
     const crossedToday = x.crewMoves.filter((m) => m.date === x.today);
     const master = x.role === 'superadmin';
-    const since = (c: { id: string; name: string }) => { const m = last.get(c.id); return `${c.name}${m ? ` · off since ${m.date === x.today ? m.time : `${dm(m.date)} ${m.time}`}` : ''}`; };
+    const since = (c: { id: string; name: string }) => { const m = last.get(c.id); return `${c.name}${m ? ` · since ${m.date === x.today ? m.time : `${dm(m.date)} ${m.time}`}` : ''}`; };
     summaries.push({
       key: 'gangway', title: 'Gangway', icon: 'ferry', route: 'Security', params: { view: 'gangway' }, who: 'all',
-      // Crew, passengers and visitors, each on board / off (13 Oct 2026: "gangway data — crew / pass / visitors on / off").
-      // Names (who is ashore and since when, which visitors) for the Master only — the others see the counts (13 Oct 2026).
+      // A small table (13 Oct 2026: "9 on · 0 off" was not clear): who is on board and who is ashore,
+      // crew / passengers / visitors and the total; under it what crossed today. Names — who is
+      // ashore and since when, which visitors are aboard — for the Master only; the others see the counts.
+      table: {
+        head: ['', 'On board', 'Ashore'],
+        rows: [
+          { cells: ['Crew', String(pob.crewAboard), String(pob.ashore.length)], level: pob.ashore.length ? 'amber' : undefined },
+          ...(x.on('passengers') ? [{ cells: ['Passengers', String(pob.paxAboard), String(pob.paxAshore.length)], level: (pob.paxAshore.length ? 'amber' : undefined) as Level | undefined }] : []),
+          { cells: ['Visitors', String(onBoardVis.length), '—'], level: (onBoardVis.length ? 'blue' : undefined) as Level | undefined },
+          { cells: ['Total', String(pob.total), String(pob.ashore.length + pob.paxAshore.length)], bold: true },
+        ],
+      },
       rows: [
-        { label: 'On board', value: `${pob.total} persons` },
-        { label: 'Crew', value: `${pob.crewAboard} on · ${pob.ashore.length} off${pob.crewTotal ? ` (of ${pob.crewTotal})` : ''}`, level: pob.ashore.length ? 'amber' : undefined, ...(master ? { more: pob.ashore.slice(0, 8).map(since) } : {}) },
-        ...(x.on('passengers') ? [{ label: 'Passengers', value: `${pob.paxAboard} on · ${pob.paxAshore.length} off${pob.paxTotal ? ` (of ${pob.paxTotal})` : ''}`, level: (pob.paxAshore.length ? 'amber' : undefined) as Level | undefined, ...(master ? { more: pob.paxAshore.slice(0, 8).map(since) } : {}) }] : []),
-        { label: 'Visitors', value: `${onBoardVis.length} on · ${x.visitors.filter((v) => v.timeOut && (v.dateOut ?? v.date) === x.today).length} off today`, level: onBoardVis.length ? 'blue' : undefined, ...(master ? { more: onBoardVis.slice(0, 6).map((v) => `${v.name}${v.company ? `, ${v.company}` : ''} · in ${v.timeIn}`) } : {}) },
-        { label: 'Today', value: `${crossedToday.filter((m) => m.dir === 'ashore').length} went ashore · ${crossedToday.filter((m) => m.dir === 'aboard').length} came back · ${plural(x.visitors.filter((v) => v.date === x.today).length, 'visitor')}` },
+        ...(master && pob.ashore.length + pob.paxAshore.length ? [{ label: 'Ashore now', value: '', more: [...pob.ashore, ...pob.paxAshore].slice(0, 10).map((c) => `${since(c)}${pob.paxAshore.includes(c as any) ? ' · passenger' : ''}`) }] : []),
+        ...(master && onBoardVis.length ? [{ label: 'Visitors aboard', value: '', more: onBoardVis.slice(0, 6).map((v) => `${v.name}${v.company ? `, ${v.company}` : ''} · in ${v.timeIn}`) }] : []),
+        { label: 'Today', value: [`${plural(crossedToday.filter((m) => m.dir === 'ashore').length, 'person')} went ashore`, `${crossedToday.filter((m) => m.dir === 'aboard').length} came back`, `${plural(x.visitors.filter((v) => v.date === x.today).length, 'visitor')} came, ${x.visitors.filter((v) => v.timeOut && (v.dateOut ?? v.date) === x.today).length} left`].join(' · ') },
       ],
     });
   }
