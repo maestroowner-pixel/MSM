@@ -172,6 +172,14 @@ await t(false, 'An Officer cannot close an NC', setDoc(R(officer, 'ncs', 'n1'), 
 await t(true, 'The Master closes an NC', setDoc(R(master, 'ncs', 'n1'), { id: 'n1', no: 'NC-2026-001', title: 'Guard', actions: [{ id: 'a', doneAt: 3 }], closedAt: 5, updatedAt: 5 }));
 await t(false, 'A closed NC is final', setDoc(R(master, 'ncs', 'n1'), { id: 'n1', no: 'NC-2026-001', title: 'Guard', actions: [], updatedAt: 6 }));
 
+await t(false, 'Crew cannot plan a drill', setDoc(R(crew, 'drills', 'd1'), { id: 'd1', no: 'DR-2026-001', type: 'fire', scenario: [], attendance: [], updatedAt: 1 }));
+await t(true, 'An Officer plans a drill', setDoc(R(officer, 'drills', 'd1'), { id: 'd1', no: 'DR-2026-001', type: 'fire', scenario: [], attendance: [], updatedAt: 1 }));
+await t(true, 'The Officer writes the scenario as it is typed', setDoc(R(officer, 'drills', 'd1'), { id: 'd1', no: 'DR-2026-001', type: 'fire', scenario: [{ id: 's', min: 0, text: 'Alarm' }], attendance: [], updatedAt: 2 }));
+await t(true, 'Signed as carried out', setDoc(R(officer, 'drills', 'd1'), { id: 'd1', no: 'DR-2026-001', type: 'fire', scenario: [{ id: 's', min: 0, text: 'Alarm' }], attendance: [{ name: 'A', present: true }], doneAt: 3, doneBy: 'Jez', updatedAt: 3 }));
+await t(false, 'A signed drill is final', setDoc(R(master, 'drills', 'd1'), { id: 'd1', no: 'DR-2026-001', type: 'fire', scenario: [], attendance: [], updatedAt: 4 }));
+await t(true, 'The Master edits a planned drill', setDoc(R(master, 'drills', 'd2'), { id: 'd2', no: 'DR-2026-002', type: 'mob', scenario: [], attendance: [], updatedAt: 1 }).then(() => setDoc(R(master, 'drills', 'd2'), { id: 'd2', no: 'DR-2026-002', type: 'mob', topic: 'MOB aft', scenario: [], attendance: [], updatedAt: 2 })));
+await t(true, 'Crew reads drills', getDoc(R(crew, 'drills', 'd1')));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

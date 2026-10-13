@@ -1248,6 +1248,7 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'surveys_done', key: storage.SURVEYS_DONE_KEY, appendOnly: true, module: 'surveys' },
   { sub: 'observations', key: storage.OBSERVATIONS_KEY, module: 'qhse' },
   { sub: 'ncs', key: storage.NCS_KEY, module: 'qhse' },
+  { sub: 'drills', key: storage.DRILLS_KEY, module: 'drills' },
 ];
 
 /**

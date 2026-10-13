@@ -24,7 +24,7 @@
 // will follow the same way); whether the module exists at all is ours.
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -91,6 +91,8 @@ export const MODULES: Record<ModuleKey, boolean> = {
   rounds: true,
   /** QHSE: safety observation cards and non-conformities with corrective actions (NC / CAPA). */
   qhse: false,
+  /** Drills — schedule, scenario minute by minute, attendance, theory briefing, reports (13 Oct 2026). */
+  drills: false,
 };
 
 export function moduleOn(key: ModuleKey): boolean {

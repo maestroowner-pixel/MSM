@@ -29,7 +29,7 @@ export interface MenuGroup {
 export const MENU_GROUPS: MenuGroup[] = [
   { key: 'ops', label: 'Inspections & maintenance', routes: ['Dashboard', 'Equipment', 'Rounds', 'Maintenance', 'Spares', 'Reports'] },
   { key: 'env', label: 'Environment', routes: ['Fuel', 'OilRecord', 'Garbage', 'Sewage', 'Ballast', 'Sopep'] },
-  { key: 'security', label: 'Safety & security', routes: ['Safety', 'Security'] },
+  { key: 'security', label: 'Safety & security', routes: ['Drills', 'Safety', 'Security'] },
   { key: 'crew', label: 'Crew', routes: ['Crew', 'CrewMatrix', 'HoursOfRest'] },
   { key: 'docs', label: 'Documents & permits', routes: ['Documents', 'Certificates', 'Surveys', 'Permits'] },
   { key: 'system', label: '', routes: ['Settings'] },

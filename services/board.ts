@@ -40,6 +40,8 @@ import { personsOnBoard } from './gangway';
 import { surveyStatus } from './surveys';
 import { ncState, nextActionDue } from './safety';
 import { NonConformity, SafetyObservation } from '../types/safety';
+import { Drill } from '../types/drills';
+import { drillSchedule } from './drills';
 import { currentEntries } from './garbage';
 
 export type Level = 'red' | 'amber' | 'blue';
@@ -136,6 +138,7 @@ export interface BoardInput {
   surveysDone: SurveyDone[];
   observations?: SafetyObservation[];
   ncs?: NonConformity[];
+  drills?: Drill[];
 }
 
 const RANK: Record<Level, number> = { red: 0, amber: 1, blue: 2 };
@@ -322,7 +325,7 @@ export function buildBoard(x: BoardInput): Board {
     const short = lastCheck ? x.sopepItems.filter((i) => !i.deleted && (lastCheck.counted[i.id] ?? 0) < i.required).length : 0;
     if (!lastCheck || daysAgo(x.today, lastCheck.date) > 31) n.push({ key: 'sopep:chk', level: 'amber', who: 'officer', icon: 'oil', route: 'Sopep', title: lastCheck ? `SOPEP locker — last checked ${dm(lastCheck.date)}` : 'SOPEP locker — never checked' });
     if (short) n.push({ key: 'sopep:short', level: 'amber', who: 'officer', icon: 'oil', route: 'Sopep', title: `SOPEP locker — ${plural(short, 'item')} short` });
-    if (!lastDrill || daysAgo(x.today, lastDrill.date) > 90) n.push({ key: 'sopep:drill', level: 'blue', who: 'officer', icon: 'oil', route: 'Sopep', title: lastDrill ? `Oil-spill drill — last ${dm(lastDrill.date)}` : 'Oil-spill drill — none recorded' });
+    if (!x.on('drills') && (!lastDrill || daysAgo(x.today, lastDrill.date) > 90)) n.push({ key: 'sopep:drill', level: 'blue', who: 'officer', icon: 'oil', route: 'Sopep', title: lastDrill ? `Oil-spill drill — last ${dm(lastDrill.date)}` : 'Oil-spill drill — none recorded' });
     tiles.push({ key: 'sopep', label: 'SOPEP', icon: 'oil', route: 'Sopep', level: short ? 'amber' : undefined, line: lastCheck ? `checked ${dm(lastCheck.date)}${short ? ` · ${short} short` : ''}` : 'not checked' });
   }
 
@@ -335,10 +338,35 @@ export function buildBoard(x: BoardInput): Board {
     status.pob = { total: pob.total, crew: pob.crewAboard, visitors: pob.visitors };
     const lastDrill = [...x.securityDrills].sort((a, b) => b.at - a.at)[0];
     const age = lastDrill ? daysAgo(x.today, lastDrill.date) : 999;
-    if (age > 90) n.push({ key: 'isps:drill', level: 'amber', who: 'officer', icon: 'shield-account', route: 'Security', params: { view: 'drills' }, title: lastDrill ? `Security drill overdue — last ${dm(lastDrill.date)}` : 'Security drill — none recorded (every 3 months)' });
+    if (x.on('drills')) {
+      // the Drills schedule carries it
+    } else if (age > 90) n.push({ key: 'isps:drill', level: 'amber', who: 'officer', icon: 'shield-account', route: 'Security', params: { view: 'drills' }, title: lastDrill ? `Security drill overdue — last ${dm(lastDrill.date)}` : 'Security drill — none recorded (every 3 months)' });
     else if (age > 75) plan.push({ key: 'isps:drill', icon: 'shield-account', route: 'Security', params: { view: 'drills' }, title: 'Security drill', sub: `due within ${plural(90 - age, 'day')}` });
     if (pob.visitors) today.push({ key: 'vis', title: `${plural(pob.visitors, 'visitor')} on board`, done: false, route: 'Security' });
     tiles.push({ key: 'sec', label: 'Security', icon: 'shield-account', route: 'Security', level: lev > 1 ? 'red' : age > 90 ? 'amber' : undefined, line: `ISPS ${lev} · ${pob.total} on board` });
+  }
+
+  // ---- Drills: what is due, what is planned ----
+  if (x.on('drills')) {
+    const drills = x.drills ?? [];
+    const rows = drillSchedule(drills, x.today, x.sopepDrills, x.securityDrills);
+    let red = 0;
+    let amber = 0;
+    for (const r of rows) {
+      const left = r.left ?? -1;
+      if (r.planned && r.planned.date <= x.today) {
+        n.push({ key: `drill:${r.type}`, level: left < 0 ? 'amber' : 'blue', who: 'officer', icon: 'run-fast', route: 'Drill', params: { id: r.planned.id }, title: `${r.title} drill — planned ${r.planned.date === x.today ? 'today' : dm(r.planned.date)}`, sub: r.planned.topic || undefined });
+        if (left < 0) amber++;
+      } else if (left < 0) {
+        red++;
+        n.push({ key: `drill:${r.type}`, level: 'red', who: 'officer', icon: 'run-fast', route: 'Drill', params: { id: 'new', type: r.type }, title: r.last ? `${r.title} drill overdue — last ${dm(r.last)}` : `${r.title} drill — none recorded`, sub: r.reg });
+      } else if (left <= 7) {
+        amber++;
+        plan.push({ key: `drill:${r.type}`, icon: 'run-fast', route: 'Drill', params: r.planned ? { id: r.planned.id } : { id: 'new', type: r.type }, title: `${r.title} drill`, sub: r.planned ? `planned ${dm(r.planned.date)}` : `due within ${plural(left, 'day')}` });
+      }
+    }
+    const done30 = drills.filter((d) => d.doneAt && daysAgo(x.today, d.date) <= 30).length;
+    tiles.push({ key: 'drills', label: 'Drills', icon: 'run-fast', route: 'Drills', level: lvl(red, amber), line: red ? `${red} overdue` : amber ? `${amber} due this week` : `${done30} in the last 30 days` });
   }
 
   // ---- Surveys & audits ----

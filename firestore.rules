@@ -405,6 +405,14 @@ service cloud.firestore {
                         || (member(v) && onlyChanges(['actions', 'updatedAt'])));
         allow delete: if false;
       }
+      // Drills (types/drills.ts): planned and run by an officer or the Master,
+      // saved as they are written; signed as carried out, a drill is final.
+      match /drills/{id} {
+        allow read: if reader(v);
+        allow create: if isAdmin(v) && plainRecord();
+        allow update: if isAdmin(v) && resource.data.get('doneAt', null) == null;
+        allow delete: if false;
+      }
       // Crew going ashore / coming back aboard (QR crew card at the gangway).
       match /crew_moves/{id} {
         allow read: if reader(v);

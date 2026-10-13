@@ -23,6 +23,7 @@ import { InspectionRound } from '../types/round';
 import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
 import { Survey, SurveyDone } from '../types/survey';
 import { NonConformity, SafetyObservation } from '../types/safety';
+import { Drill } from '../types/drills';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
 import { ChecklistTemplate } from '../constants/checklists';
@@ -136,6 +137,7 @@ interface DataContextType {
   /** QHSE: safety observation cards and non-conformities. */
   observations: SafetyObservation[];
   ncs: NonConformity[];
+  drills: Drill[];
   surveysDone: SurveyDone[];
   /**
    * Every version of an amendable log (services/versions) by storage key. The
@@ -242,6 +244,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [observations, setObservations] = useState<SafetyObservation[]>([]);
   const [ncs, setNcs] = useState<NonConformity[]>([]);
+  const [drills, setDrills] = useState<Drill[]>([]);
   const [surveysDone, setSurveysDone] = useState<SurveyDone[]>([]);
   // Every version of the logs that can be amended — for the history and the struck-through lines.
   const [versions, setVersions] = useState<Record<string, any[]>>({});
@@ -319,6 +322,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _surveys = (await storage.loadList<Survey>(storage.SURVEYS_KEY)).filter((x) => !x.deleted);
     const _observations = await storage.loadList<SafetyObservation>(storage.OBSERVATIONS_KEY);
     const _ncs = await storage.loadList<NonConformity>(storage.NCS_KEY);
+    const _drills = (await storage.loadList<Drill>(storage.DRILLS_KEY)).filter((x) => !x.deleted);
     const _surveysDone = live(await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY));
     const _versions = Object.fromEntries(await Promise.all(VERSIONED_KEYS.map(async (k) => [k, await storage.loadList<any>(k)] as const)));
     const _templates = await storage.loadTemplates();
@@ -367,6 +371,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSurveys(_surveys);
     setObservations(_observations);
     setNcs(_ncs);
+    setDrills(_drills);
     setSurveysDone(_surveysDone);
     setVersions(_versions);
     setTemplates(_templates);
@@ -562,6 +567,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _surveys = (await storage.loadList<Survey>(storage.SURVEYS_KEY)).filter((x) => !x.deleted);
     const _observations = await storage.loadList<SafetyObservation>(storage.OBSERVATIONS_KEY);
     const _ncs = await storage.loadList<NonConformity>(storage.NCS_KEY);
+    const _drills = (await storage.loadList<Drill>(storage.DRILLS_KEY)).filter((x) => !x.deleted);
     const _surveysDone = live(await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY));
     const _versions = Object.fromEntries(await Promise.all(VERSIONED_KEYS.map(async (k) => [k, await storage.loadList<any>(k)] as const)));
     setMachines(_machines);
@@ -601,6 +607,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSurveys(_surveys);
     setObservations(_observations);
     setNcs(_ncs);
+    setDrills(_drills);
     setSurveysDone(_surveysDone);
     setVersions(_versions);
   }, []);
@@ -850,6 +857,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         surveys,
         observations,
         ncs,
+        drills,
         surveysDone,
         versionsOf,
         saveRow,

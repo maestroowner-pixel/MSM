@@ -58,6 +58,7 @@ export const SURVEYS_KEY = `${PREFIX}surveys`;
 export const SURVEYS_DONE_KEY = `${PREFIX}surveys_done`;
 export const OBSERVATIONS_KEY = `${PREFIX}observations`;
 export const NCS_KEY = `${PREFIX}ncs`;
+export const DRILLS_KEY = `${PREFIX}drills`;
 export const DOC_ACKS_KEY = `${PREFIX}ism_doc_acks`;
 /** The vessel's "scan before you sign" rule, as this device last knew it. */
 export const SIGNING_POLICY_KEY = `${PREFIX}signing_policy`;
@@ -695,6 +696,7 @@ export async function resetAllData(): Promise<void> {
     SURVEYS_DONE_KEY,
     OBSERVATIONS_KEY,
     NCS_KEY,
+    DRILLS_KEY,
     DOC_ACKS_KEY,
     'msm:docfiles_pending',
     VESSEL_KEY,

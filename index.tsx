@@ -87,6 +87,8 @@ import SecuritySc from './screens/SecuritySc';
 import SurveysSc from './screens/SurveysSc';
 import SafetySc from './screens/SafetySc';
 import NcSc from './screens/NcSc';
+import DrillsSc from './screens/DrillsSc';
+import DrillSc from './screens/DrillSc';
 import RoundsSc from './screens/RoundsSc';
 import RoundSc from './screens/RoundSc';
 import PermitSc from './screens/PermitSc';
@@ -127,6 +129,7 @@ const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Security: SecuritySc,
   Surveys: SurveysSc,
   Safety: SafetySc,
+  Drills: DrillsSc,
   Rounds: RoundsSc,
   Maintenance: MaintenanceSc,
   HoursOfRest: HoursOfRestSc,
@@ -205,6 +208,7 @@ const MENU_LABEL: Record<string, string> = {
   Security: 'Security (ISPS)',
   Surveys: 'Surveys & audits',
   Safety: 'Safety observations & NC',
+  Drills: 'Drills',
   Rounds: 'Inspection rounds',
   Fuel: 'Fuel',
   Garbage: 'Garbage record book',
@@ -405,6 +409,7 @@ const linking = {
           Security: 'security',
           Surveys: 'surveys',
           Safety: 'safety',
+          Drills: 'drills',
           Rounds: 'rounds',
           Settings: 'settings',
         },
@@ -434,6 +439,7 @@ const linking = {
       PmsProject: 'pms-project/:id',
       Round: 'round/:id',
       Nc: 'nc/:id',
+      Drill: 'drill/:id',
       SparePart: 'spare/:id',
       Doc: 'document/:id',
       CrewMember: 'crew/:id',
@@ -630,6 +636,7 @@ function Root() {
         <Stack.Screen name="PmsProject" component={PmsProjectSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Round" component={RoundSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Nc" component={NcSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Drill" component={DrillSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="SparePart" component={SparePartSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Doc" component={DocSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="CrewMember" component={CrewMemberSc} options={{ presentation: 'modal' }} />

@@ -36,6 +36,7 @@ import { InspectionRound } from '../types/round';
 import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
 import { Survey, SurveyDone } from '../types/survey';
 import { NonConformity, SafetyObservation } from '../types/safety';
+import { Drill } from '../types/drills';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from '../services/storage';
@@ -86,6 +87,8 @@ export interface BackupFile {
   surveys?: { plan: Survey[]; done: SurveyDone[] };
   /** QHSE: observation cards and non-conformities. */
   qhse?: { observations: SafetyObservation[]; ncs: NonConformity[] };
+  /** Drills: planned and carried out. */
+  drills?: Drill[];
   security?: { visitors: Visitor[]; levels: SecurityLevelRec[]; drills?: SecurityDrill[]; crewMoves?: CrewMove[] };
   files?: Record<string, string>; // basename -> base64 of the file contents
 }
@@ -210,6 +213,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   const orb = { entries: await storage.loadList<OrbEntry>(storage.ORB_KEY), signs: await storage.loadList<OrbMasterSign>(storage.ORB_SIGNS_KEY) };
   const garbage = { entries: await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY), signs: await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY) };
   const qhse = { observations: await storage.loadList<SafetyObservation>(storage.OBSERVATIONS_KEY), ncs: await storage.loadList<NonConformity>(storage.NCS_KEY) };
+  const drills = await storage.loadList<Drill>(storage.DRILLS_KEY);
   const surveys = { plan: await storage.loadList<Survey>(storage.SURVEYS_KEY), done: await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY) };
   const sopep = { items: await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY), checks: await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY), drills: await storage.loadList<SopepDrill>(storage.SOPEP_DRILLS_KEY) };
   const security = { visitors: await storage.loadList<Visitor>(storage.VISITORS_KEY), levels: await storage.loadList<SecurityLevelRec>(storage.SECURITY_LEVEL_KEY), drills: await storage.loadList<SecurityDrill>(storage.SECURITY_DRILLS_KEY), crewMoves: await storage.loadList<CrewMove>(storage.CREW_MOVES_KEY) };
@@ -253,6 +257,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     security,
     surveys,
     qhse,
+    drills,
     files,
   };
 
@@ -456,6 +461,7 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     await storage.saveList(storage.OBSERVATIONS_KEY, backup.qhse.observations ?? []);
     await storage.saveList(storage.NCS_KEY, backup.qhse.ncs ?? []);
   }
+  if (backup.drills) await storage.saveList(storage.DRILLS_KEY, backup.drills);
   if (backup.surveys) {
     await storage.saveList(storage.SURVEYS_KEY, backup.surveys.plan ?? []);
     await storage.saveList(storage.SURVEYS_DONE_KEY, backup.surveys.done ?? []);

@@ -481,6 +481,16 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🧯',
+      title: "Drills",
+      body: [
+        "Drills plans and records the emergency drills. Schedule: every drill SOLAS, ISPS and MARPOL require — general emergency and muster, abandon ship and fire monthly, enclosed space every two months, emergency steering, security and oil spill every three months — and every other drill once the vessel has held it, with when it was last held and when it is next due; overdue in red, also on the Dashboard. Oil-spill and security drills recorded on the SOPEP and Security screens count too.",
+        "Plan a drill: pick the drill, give the topic the crew will hear (\"Fire in the galley\"), the date, start time and place. Content: what the drill covers, a point per line; for fire, enclosed space, abandon ship and man overboard the practical checklist drops in with one tap. Scenario: write it minute by minute — each step has its minute (T+0, T+5…), what happens and who acts. A new step comes five minutes after the last; − / + move it a minute; the usual steps (alarm, PA announcement, muster and roll call, report to the bridge, all clear, debrief) are one tap each; \"Start from the last one\" copies the scenario of the previous drill of the same kind. With the start time filled in each step shows its clock time. Everything saves as you type.",
+        "On the day: Start → Now, then during the drill tap \"Done now\" on each step — the report prints the planned time and the actual time side by side. Attendance lists everyone aboard: tap who is there (All present for a full muster), give a reason for the rest (on watch, ashore, rest, sick), add a cadet, contractor or guest by name. The theory briefing for each drill (from the Drill Trainer) can be read on the screen; switch on \"Theory briefing given\" and it is printed as the annex. Write the debrief — lessons and actions — and sign as carried out (PIN, fingerprint or by hand); a signed drill is final.",
+        "Reports: the drill report (PDF) — drill, topic, time, place, content, the scenario with planned and actual times, attendance with a signature column, debrief, signature and the theory annex; before the drill the same sheet prints as the plan. The attendance list (PDF) alone, to pass round and sign on paper. The drill register (PDF / Excel) — every drill carried out, the schedule, and attendance person by person.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Safety observations & NC",
       body: [
@@ -1017,6 +1027,16 @@ const ru: ManualContent = {
         "На телефоне или планшете Print to Xprinter отправляет карточки экипажа или пропуска посетителей 01–20 на Bluetooth-принтер этикеток, которым печатают наклейки оборудования: наклейки 100 × 50, 60 × 40 или 50 × 30 мм с тем же QR — для держателя карточки или бейджа на шнурке.",
         "Выбор месяца в заголовке журнала показывает месяц целиком — у каждого месяца число визитов и движений экипажа; режим Day со стрелками листает по дням.",
         "Фото посетителя: при регистрации 📷 Photo снимает посетителя камерой телефона; снимок хранится в уменьшенном виде в записи визита и удаляется автоматически через 90 дней после визита (запись в журнале остаётся) — предупредите посетителя. Скан занятой карты показывает, у кого она: фото, имя, компания, цель, к кому, время на борту, — любой член экипажа может проверить, кто это; сам скан уход не оформляет. Вахтенный оформляет уход из этой карточки (Sign off now). У повторного подрядчика данные и фото подставляются из прошлого визита.",
+      ],
+    },
+    {
+      emoji: '🧯',
+      title: "Учения (Drills)",
+      body: [
+        "Drills — план и учёт учебных тревог. Расписание: все учения, которых требуют SOLAS, ISPS и MARPOL (общесудовая тревога и сбор, оставление судна и пожар — ежемесячно, закрытые помещения — раз в два месяца, аварийное рулевое, охрана и разлив нефти — раз в три месяца), и любые другие — после первого проведения; когда было последнее и когда следующее, просроченные — красным, они же на главном экране. Учения по разливу и охране, записанные на экранах SOPEP и Security, тоже засчитываются.",
+        "Запланировать учение: выбрать вид, тема, которую услышит экипаж («Пожар на камбузе»), дата, время начала и место. Содержание — что отрабатывается, по пункту в строке; для пожара, закрытых помещений, оставления судна и «человек за бортом» практический чек-лист вставляется одним нажатием. Сценарий пишется по минутам: у каждого шага своя минута (T+0, T+5…), что происходит и кто действует. Новый шаг встаёт через пять минут после последнего; − / + сдвигают на минуту; типовые шаги (тревога, объявление по трансляции, сбор и перекличка, доклад на мостик, отбой, разбор) — одним нажатием; «Start from the last one» копирует сценарий прошлого учения того же вида. Если указано время начала, у каждого шага видно его время по часам. Всё сохраняется по мере ввода.",
+        "В день учения: Start → Now, а по ходу — «Done now» на каждом шаге; в отчёте плановое и фактическое время стоят рядом. Присутствие: в списке все, кто на борту, — отметить пришедших (All present — если все), для остальных причина (вахта, на берегу, отдых, болен); курсанта, подрядчика или гостя можно добавить по имени. Теорию по каждому учению (из Drill Trainer) можно прочитать на экране; включите «Theory briefing given» — и она печатается приложением к отчёту. Запишите разбор — выводы и меры — и подпишите как проведённое (PIN, отпечаток или рукой); подписанное учение не меняется.",
+        "Отчёты: отчёт об учении (PDF) — вид, тема, время, место, содержание, сценарий с плановым и фактическим временем, присутствие с графой для подписи, разбор, подпись и приложение с теорией; до учения тот же лист печатается как план. Отдельно — лист присутствия (PDF), чтобы пустить по рукам и подписать. Журнал учений (PDF / Excel) — все проведённые учения, расписание и присутствие по людям.",
       ],
     },
     {
@@ -1559,6 +1579,16 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🧯',
+      title: "Ejercicios (Drills)",
+      body: [
+        "Drills planifica y registra los ejercicios de emergencia. Calendario: todos los que exigen SOLAS, ISPS y MARPOL — emergencia general y reunión, abandono del buque e incendio cada mes, espacios cerrados cada dos meses, gobierno de emergencia, protección y derrame cada tres meses — y cualquier otro una vez realizado, con la última fecha y la próxima; los vencidos en rojo, también en el panel. Los ejercicios de derrame y de protección registrados en las pantallas SOPEP y Security también cuentan.",
+        "Planificar un ejercicio: elegir el tipo, el tema que oirá la tripulación (\"Incendio en la cocina\"), la fecha, la hora de inicio y el lugar. Contenido: lo que se practica, un punto por línea; para incendio, espacios cerrados, abandono y hombre al agua la lista de comprobación práctica se inserta con un toque. Escenario minuto a minuto: cada paso tiene su minuto (T+0, T+5…), qué ocurre y quién actúa. Un paso nuevo va cinco minutos después del último; − / + lo mueven un minuto; los pasos habituales (alarma, aviso por megafonía, reunión y lista, informe al puente, fin del ejercicio, análisis) con un toque; \"Start from the last one\" copia el escenario del ejercicio anterior del mismo tipo. Con la hora de inicio cada paso muestra su hora. Todo se guarda al escribir.",
+        "El día del ejercicio: Start → Now y, durante el ejercicio, \"Done now\" en cada paso; el informe muestra la hora prevista y la real. Asistencia: todos los que están a bordo — marcar quién está (All present si están todos), el motivo para los demás (de guardia, en tierra, descanso, enfermo), añadir un cadete, contratista o invitado por nombre. La teoría de cada ejercicio (del Drill Trainer) se puede leer en pantalla; con \"Theory briefing given\" se imprime como anexo. Escriba el análisis — lecciones y acciones — y firme como realizado (PIN, huella o a mano); un ejercicio firmado no cambia.",
+        "Informes: el informe del ejercicio (PDF) — tipo, tema, hora, lugar, contenido, escenario con hora prevista y real, asistencia con columna de firma, análisis, firma y el anexo de teoría; antes del ejercicio la misma hoja se imprime como plan. La lista de asistencia (PDF) sola, para pasarla y firmar en papel. El registro de ejercicios (PDF / Excel) — todos los realizados, el calendario y la asistencia por persona.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Observaciones y no conformidades (Safety, NC / CAPA)",
       body: [
@@ -2098,6 +2128,16 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🧯',
+      title: "Навчання (Drills)",
+      body: [
+        "Drills — план і облік навчальних тривог. Розклад: усі навчання, яких вимагають SOLAS, ISPS і MARPOL (загальносуднова тривога і збір, залишення судна та пожежа — щомісяця, закриті приміщення — раз на два місяці, аварійне керування стерном, охорона і розлив нафти — раз на три місяці), та будь-які інші — після першого проведення; коли було останнє і коли наступне, прострочені — червоним, вони ж на головному екрані. Навчання з розливу та охорони, записані на екранах SOPEP і Security, теж зараховуються.",
+        "Запланувати навчання: вибрати вид, тема, яку почує екіпаж («Пожежа на камбузі»), дата, час початку і місце. Зміст — що відпрацьовується, по пункту в рядку; для пожежі, закритих приміщень, залишення судна і «людина за бортом» практичний чек-лист вставляється одним натисканням. Сценарій пишеться по хвилинах: у кожного кроку своя хвилина (T+0, T+5…), що відбувається і хто діє. Новий крок стає через п'ять хвилин після останнього; − / + зсувають на хвилину; типові кроки (тривога, оголошення по трансляції, збір і перекличка, доповідь на місток, відбій, розбір) — одним натисканням; «Start from the last one» копіює сценарій минулого навчання того ж виду. Якщо вказано час початку, біля кожного кроку видно його час. Усе зберігається під час введення.",
+        "У день навчання: Start → Now, а під час навчання — «Done now» на кожному кроці; у звіті плановий і фактичний час стоять поруч. Присутність: у списку всі, хто на борту, — відмітити присутніх (All present — якщо всі), для решти причина (вахта, на березі, відпочинок, хворий); курсанта, підрядника чи гостя можна додати за іменем. Теорію до кожного навчання (з Drill Trainer) можна прочитати на екрані; увімкніть «Theory briefing given» — і вона друкується додатком до звіту. Запишіть розбір — висновки і заходи — і підпишіть як проведене (PIN, відбиток або рукою); підписане навчання не змінюється.",
+        "Звіти: звіт про навчання (PDF) — вид, тема, час, місце, зміст, сценарій з плановим і фактичним часом, присутність із графою для підпису, розбір, підпис і додаток з теорією; до навчання той самий аркуш друкується як план. Окремо — лист присутності (PDF), щоб передати по руках і підписати. Журнал навчань (PDF / Excel) — усі проведені навчання, розклад і присутність по людях.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Спостереження та невідповідності (Safety, NC / CAPA)",
       body: [
@@ -2222,6 +2262,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
   { title: 'Board', module: 'board' },
   { title: 'Surveys & audits', module: 'surveys' },
   { title: 'Security (ISPS)', module: 'security' },
+  { title: 'Drills', module: 'drills' },
   { title: 'Safety observations & NC', module: 'qhse' },
   { title: 'Fleet console (superintendent)', module: 'fleet' },
 ];
