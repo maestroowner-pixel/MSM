@@ -209,7 +209,7 @@ const MENU_LABEL: Record<string, string> = {
   HoursOfRest: 'Hours of rest',
   Crew: 'Crew list',
   CrewMatrix: 'Crew matrix',
-  Permits: 'Permits & risk',
+  Permits: 'Permits, TBT & RA',
   Sopep: 'SOPEP',
   Security: 'Security (ISPS)',
   Surveys: 'Surveys & audits',

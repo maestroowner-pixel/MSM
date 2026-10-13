@@ -115,8 +115,8 @@ export default function PermitsSc() {
   return (
     <Screen scroll>
       <ScreenTitle
-        title={archive && tab === 'permits' ? `Permits — ${monthName(month)}` : 'Permits'}
-        subtitle={archive && tab === 'permits' ? `Archive · ${ofMonth.length} permit${ofMonth.length === 1 ? '' : 's'} this month` : 'Permits to work and risk assessments'}
+        title={archive && tab === 'permits' ? `Permits — ${monthName(month)}` : 'Permits, TBT & RA'}
+        subtitle={archive && tab === 'permits' ? `Archive · ${ofMonth.length} permit${ofMonth.length === 1 ? '' : 's'} this month` : 'Permits to work, toolbox talks and risk assessments'}
         help="Permits to work and risk assessments"
         actions={archive && tab === 'permits' ? <MonthPicker value={month} onChange={setMonth} months={permitMonths} counts={permitCounts} /> : undefined}
       />
