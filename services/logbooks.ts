@@ -136,7 +136,7 @@ export const BALLAST: BookSpec = {
     const tr = e.treated == null ? null : e.treated ? 'treated (BWMS)' : 'not treated';
     switch (e.code) {
       case 'UP':
-        return join([`Uptake ${m3(e.quantity)} into ${e.tank}`, span(e), e.place, e.depth != null && `depth ${e.depth} m`, tr, e.remarks]);
+        return join([`Uptake ${m3(e.quantity)} into ${e.tank ?? '…'}`, span(e), e.place, e.depth != null && `depth ${e.depth} m`, tr, e.remarks]);
       case 'CIRC':
         return join([`Circulated / treated ${m3(e.quantity)} in ${e.tank}`, span(e), tr, e.remarks]);
       case 'EXCH': {

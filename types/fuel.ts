@@ -105,6 +105,11 @@ export interface FuelDailySent {
   avg7?: number;
   daysLeft?: number;
   remarks?: string;
+  /** Noon or midnight report (absent: noon — reports sent before 13 Oct 2026). */
+  kind?: 'noon' | 'midnight';
+  /** Position at the report's time (38°45.2'N 002°10.6'E) or the port. */
+  position?: string;
+  port?: string;
   text: string;
   updatedAt: number;
 }

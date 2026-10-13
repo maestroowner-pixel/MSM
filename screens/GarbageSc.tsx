@@ -22,6 +22,7 @@ import { exportGarbageExcel, exportGarbagePdf } from '../services/garbageReport'
 import { todayIso } from '../services/pms';
 import { formatDate, formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
+import { PositionInput } from '../components/PositionInput';
 import { playSuccessSound } from '../utils/sound';
 
 const CATS = Object.keys(GARBAGE_CATEGORY) as GarbageCategory[];
@@ -197,10 +198,10 @@ export default function GarbageSc() {
             <Switch value={f.atSea || f.method === 'sea'} disabled={f.method === 'sea'} onValueChange={(v) => setF({ ...f, atSea: v })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
           </View>
           {f.atSea || f.method === 'sea' ? (
-            <View style={styles.pair}>
-              <TextInput style={[styles.input, { flex: 2 }]} value={f.position} onChangeText={(v) => setF({ ...f, position: v })} placeholder="Position — 38°45.2'N 002°10.6'E" placeholderTextColor={COLORS.textLight} />
+            <>
+              <PositionInput portAllowed={false} position={f.position} onChange={(pos) => setF((x) => ({ ...x, position: pos }))} />
               <TextInput style={styles.input} value={f.distance} onChangeText={(v) => setF({ ...f, distance: v })} placeholder="nm from land" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
-            </View>
+            </>
           ) : (
             <TextInput style={styles.input} value={f.port} onChangeText={(v) => setF({ ...f, port: v })} placeholder="Port" placeholderTextColor={COLORS.textLight} />
           )}

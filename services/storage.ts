@@ -144,6 +144,8 @@ export interface VesselInfo {
   /** Where the vessel lies now — the gangway logbook's port and berth (11 Oct 2026). */
   port?: string;
   berth?: string;
+  /** Ship's time as an offset from UTC ("+02:00"); unset — the device's own zone (utils/shipTime.ts). */
+  ship_utc_offset?: string;
 }
 
 export const VESSEL_KEY = `${PREFIX}vessel_info`;

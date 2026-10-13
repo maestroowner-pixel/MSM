@@ -28,6 +28,8 @@ import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { formatDate, formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
+import { PositionInput } from '../components/PositionInput';
+import { parsePosition } from '../utils/position';
 import { playSuccessSound } from '../utils/sound';
 
 const STORE: Record<BookKey, { key: string; signs: string }> = {
@@ -163,10 +165,16 @@ export default function LogBookSc() {
           {has('quantity') ? input('quantity') : null}
           {has('method') && cs.methods ? <View style={styles.chips}>{Object.entries(cs.methods).map(([k, l]) => chip(f.method === k, l, () => setF({ ...f, method: k }), k))}</View> : null}
           {has('treated') ? <View style={styles.chips}>{chip(f.treated === true, 'Treated (BWMS)', () => setF({ ...f, treated: true }))}{chip(f.treated === false, 'Not treated', () => setF({ ...f, treated: false }))}</View> : null}
-          <View style={styles.pair}>
-            {has('place') ? input('place') : null}
-            {has('placeEnd') ? input('placeEnd') : null}
-          </View>
+          {/* Position (cells) or port — one or the other; the end of an operation at sea is a position. */}
+          {has('place') ? (
+            <PositionInput
+              label={has('placeEnd') ? 'Position at start' : 'Position'}
+              position={parsePosition(f.place) ? f.place : ''}
+              port={parsePosition(f.place) ? '' : f.place}
+              onChange={(pos, port) => setF((x) => ({ ...x, place: pos || port }))}
+            />
+          ) : null}
+          {has('placeEnd') ? <PositionInput label="Position at end" portAllowed={false} position={f.placeEnd} onChange={(pos) => setF((x) => ({ ...x, placeEnd: pos }))} /> : null}
           <View style={styles.pair}>
             {has('start') ? input('start') : null}
             {has('stop') ? input('stop') : null}

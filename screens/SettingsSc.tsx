@@ -7,6 +7,8 @@
 // enrolled by name + PIN and sync then runs by itself.
 // ===================================
 
+import { Dropdown } from '../components/Dropdown';
+import { OFFSETS, offsetText, shipAndUtc } from '../utils/shipTime';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Switch, Modal, TouchableWithoutFeedback, Keyboard, Linking, Image, LayoutAnimation, Platform, UIManager, useWindowDimensions } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
@@ -203,7 +205,7 @@ export default function SettingsSc() {
   /** Does the form differ from what is stored? What makes Save mean something. */
   const vesselDirty = useMemo(
     () =>
-      (['vessel_name', 'imo', 'flag', 'call_sign', 'mmsi'] as (keyof VesselInfo)[]).some(
+      (['vessel_name', 'imo', 'flag', 'call_sign', 'mmsi', 'ship_utc_offset'] as (keyof VesselInfo)[]).some(
         (k) => String(form[k] ?? '').trim() !== String(vessel?.[k] ?? '').trim()
       ),
     [form, vessel]
@@ -585,6 +587,16 @@ export default function SettingsSc() {
         <FormField label="Flag" value={form.flag} onChange={(v) => setForm({ ...form, flag: v })} />
         <FormField label="Call sign" value={form.call_sign} onChange={(v) => setForm({ ...form, call_sign: v })} />
         <FormField label="MMSI" value={form.mmsi} onChange={(v) => setForm({ ...form, mmsi: v })} keyboard="number-pad" />
+        {/* Ship's time — the reports' header shows it beside UTC (13 Oct 2026). */}
+        <View style={{ marginTop: SIZES.sm }}>
+          <Dropdown
+            caption="SHIP'S TIME"
+            value={form.ship_utc_offset ?? ''}
+            onChange={(v: string) => setForm({ ...form, ship_utc_offset: v || undefined })}
+            options={[{ value: '', label: `As this device (UTC${offsetText(-new Date().getTimezoneOffset())})` }, ...OFFSETS.map((o) => ({ value: o, label: `UTC${o}` }))]}
+          />
+          <Text style={{ fontSize: SIZES.small, color: COLORS.textLight, marginTop: 4 }}>{`Now: ${shipAndUtc(Date.now(), form.ship_utc_offset).line}`}</Text>
+        </View>
         {/* Nothing to save is said by the button itself. A live "Save" beside five
             filled fields is the app asking for something it already has. */}
         <TouchableOpacity

@@ -85,14 +85,22 @@ const L = (n: number) => `${Math.round(n).toLocaleString('en-GB').replace(/,/g, 
 const dm = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`;
 
 /** The report as text — for an e-mail, a message or the clipboard. */
-export function fuelDailyText(r: FuelDailyReport, vesselLine: string, remarks: string, by: string): string {
-  const lines = [`FUEL — DAILY REPORT ${dm(r.date)}.${r.date.slice(0, 4)}${r.reading?.time ? ` ${r.reading.time}` : ''}`, vesselLine, ''];
+export function fuelDailyText(r: FuelDailyReport, vesselLine: string, remarks: string, by: string, opts: { position?: string; port?: string; activity?: string[]; kind?: 'noon' | 'midnight'; stamp?: string } = {}): string {
+  // The vessel's day (13 Oct 2026): where she is, the fuel, and what was done
+  // on board — every log, counted (services/dailyActivity.ts).
+  const lines = [`${opts.kind === 'midnight' ? 'MIDNIGHT REPORT' : opts.kind === 'noon' ? 'NOON REPORT' : 'DAILY REPORT'} ${dm(r.date)}.${r.date.slice(0, 4)}${r.reading?.time ? ` ${r.reading.time}` : ''}`, vesselLine];
+  if (opts.stamp) lines.push(opts.stamp);
+  if (opts.position?.trim()) lines.push(`Position: ${opts.position.trim()}`);
+  else if (opts.port?.trim()) lines.push(`In port: ${opts.port.trim()}`);
+  lines.push('', 'FUEL');
+  if (!r.reading) lines.push('No sounding for the day.');
   if (r.consumed != null && r.previous)
     lines.push(`Consumed: ${L(r.consumed)}${r.span && r.span > 1 ? ` over ${r.span} days` : ''} (${dm(r.previous.date)} ${r.previous.time ?? ''} → ${dm(r.date)} ${r.reading?.time ?? ''})`.replace(/\s+\)/, ')').replace(/\s+→/, ' →'));
   if (r.received) lines.push(`Received: ${L(r.received)}`);
   if (r.rob != null) lines.push(`ROB: ${L(r.rob)}${r.byTank.length > 1 ? ` (${r.byTank.map((t) => `${t.name} ${L(t.litres)}`).join(' / ')})` : ''}`);
   if (r.avg7 != null) lines.push(`Average, last 7 days: ${L(r.avg7)}/day${r.daysLeft != null ? ` — about ${r.daysLeft} days at this rate` : ''}`);
   if (r.monthToDate != null) lines.push(`Month to date: ${L(r.monthToDate)}`);
+  if (opts.activity?.length) lines.push('', opts.kind === 'noon' ? 'ON BOARD — noon to noon' : opts.kind === 'midnight' ? 'ON BOARD — 00:00 to 24:00' : 'ON BOARD', ...opts.activity);
   if (remarks.trim()) lines.push('', `Remarks: ${remarks.trim()}`);
   lines.push('', `— ${by}`);
   return lines.join('\n');

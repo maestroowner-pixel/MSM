@@ -27,6 +27,8 @@ import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { formatDate, formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
+import { PositionInput } from '../components/PositionInput';
+import { parsePosition } from '../utils/position';
 import { playSuccessSound } from '../utils/sound';
 
 const CODES = Object.keys(ORB_CODE) as OrbCode[];
@@ -164,7 +166,14 @@ export default function OrbSc() {
               {(METHODS_FOR[f.code] ?? []).map((m) => <Chip key={m} on={f.method === m} label={ORB_METHOD[m]} onPress={() => setF({ ...f, method: m })} />)}
             </View>
           ) : null}
-          {fields.includes('place') ? T({ k: "place",  ph: f.code === 'H' ? 'Port' : 'Position (start – stop) or port' }) : null}
+          {fields.includes('place') ? (
+            <PositionInput
+              position={parsePosition(f.place) ? f.place : ''}
+              port={parsePosition(f.place) ? '' : f.place}
+              onChange={(pos, port) => setF((x) => ({ ...x, place: pos || port }))}
+              portPlaceholder={f.code === 'H' ? 'Port of bunkering' : 'Port'}
+            />
+          ) : null}
           <View style={styles.pair}>
             {fields.includes('start') ? T({ k: "start",  ph: f.code === 'F' ? 'Time of failure' : f.code === 'E' ? 'Into automatic, hh:mm' : 'Start, hh:mm' }) : null}
             {fields.includes('stop') ? T({ k: "stop",  ph: f.code === 'F' ? 'Back in operation, hh:mm' : f.code === 'E' ? 'Back to manual, hh:mm' : 'Stop, hh:mm' }) : null}
