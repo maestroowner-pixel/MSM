@@ -42,8 +42,10 @@ export const SEWAGE: BookSpec = {
   subtitle: 'Sewage record · MARPOL Annex IV',
   help: 'Sewage record',
   codes: {
-    STP: { label: 'Discharge through the approved sewage treatment plant', fields: ['quantity', 'place', 'placeEnd', 'start', 'stop'] },
-    COM: { label: 'Discharge comminuted and disinfected (≥ 3 nm)', fields: ['quantity', 'place', 'placeEnd', 'start', 'stop', 'distance'] },
+    // Every discharge at sea: start and end — time and position — and the
+    // ship's speed (13 Oct 2026).
+    STP: { label: 'Discharge through the approved sewage treatment plant', fields: ['quantity', 'place', 'placeEnd', 'start', 'stop', 'speed'] },
+    COM: { label: 'Discharge comminuted and disinfected (≥ 3 nm)', fields: ['quantity', 'place', 'placeEnd', 'start', 'stop', 'distance', 'speed'] },
     HT: { label: 'Discharge from the holding tank, untreated (≥ 12 nm, ≥ 4 kn)', fields: ['tank', 'quantity', 'place', 'placeEnd', 'start', 'stop', 'distance', 'speed'] },
     SHORE: { label: 'Delivered to a reception facility', fields: ['tank', 'quantity', 'place', 'receiptNo'] },
     LEVEL: { label: 'Holding tank level', fields: ['tank', 'quantity'] },
@@ -52,16 +54,19 @@ export const SEWAGE: BookSpec = {
   problem: (e) => {
     switch (e.code) {
       case 'STP':
-        return e.quantity == null || !e.place ? 'Quantity and position are needed.' : null;
+        if (e.quantity == null || !e.place) return 'Quantity and position are needed.';
+        return !e.start || !e.stop || !e.placeEnd || e.speed == null ? 'Start and end of the discharge — time and position — and the ship’s speed.' : null;
       case 'COM':
         if (e.quantity == null || !e.place) return 'Quantity and position are needed.';
         if (e.distance == null) return 'Distance from the nearest land.';
-        return e.distance < 3 ? 'Comminuted and disinfected sewage: at least 3 nm from the nearest land (MARPOL IV reg. 11).' : null;
+        if (e.distance < 3) return 'Comminuted and disinfected sewage: at least 3 nm from the nearest land (MARPOL IV reg. 11).';
+        return !e.start || !e.stop || !e.placeEnd || e.speed == null ? 'Start and end of the discharge — time and position — and the ship’s speed.' : null;
       case 'HT':
         if (!e.tank || e.quantity == null || !e.place) return 'Tank, quantity and position are needed.';
         if (e.distance == null || e.speed == null) return 'Distance from land and the ship’s speed.';
         if (e.distance < 12) return 'Untreated sewage from a holding tank: at least 12 nm from the nearest land.';
-        return e.speed < 4 ? 'Untreated sewage: only with the ship en route at not less than 4 knots.' : null;
+        if (e.speed < 4) return 'Untreated sewage: only with the ship en route at not less than 4 knots.';
+        return !e.start || !e.stop || !e.placeEnd ? 'Start and end of the discharge — time and position.' : null;
       case 'SHORE':
         return e.quantity == null || !e.place ? 'Quantity and port are needed.' : null;
       case 'LEVEL':
@@ -75,9 +80,9 @@ export const SEWAGE: BookSpec = {
   text: (e) => {
     switch (e.code) {
       case 'STP':
-        return join([`Treated discharge ${m3(e.quantity)}`, span(e), where(e), e.remarks]);
+        return join([`Treated discharge ${m3(e.quantity)}`, span(e), where(e), e.speed != null && `${e.speed} kn`, e.remarks]);
       case 'COM':
-        return join([`Comminuted / disinfected ${m3(e.quantity)}`, span(e), where(e), e.distance != null && `${e.distance} nm from land`, e.remarks]);
+        return join([`Comminuted / disinfected ${m3(e.quantity)}`, span(e), where(e), e.distance != null && `${e.distance} nm from land`, e.speed != null && `${e.speed} kn`, e.remarks]);
       case 'HT':
         return join([`Untreated from ${e.tank} ${m3(e.quantity)}`, span(e), where(e), e.distance != null && `${e.distance} nm from land`, e.speed != null && `${e.speed} kn`, e.remarks]);
       case 'SHORE':

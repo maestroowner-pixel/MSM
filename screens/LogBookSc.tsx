@@ -41,10 +41,10 @@ const PH: Record<Exclude<LogField, 'method' | 'treated'>, string> = {
   quantity: 'Quantity, m³',
   place: 'Position at start, or port',
   placeEnd: 'Position at end',
-  start: 'Start, hh:mm',
-  stop: 'Stop, hh:mm',
+  start: 'Started, hh:mm',
+  stop: 'Ended, hh:mm',
   distance: 'Distance from nearest land, nm',
-  speed: 'Speed, kn',
+  speed: 'Ship’s speed, kn',
   depth: 'Water depth, m',
   receiptNo: 'Reception facility receipt No.',
 };
@@ -133,6 +133,12 @@ export default function LogBookSc() {
   const input = (k: Exclude<LogField, 'method' | 'treated'>) => (
     <TextInput key={k} style={styles.input} value={f[k]} onChangeText={(v) => setF({ ...f, [k]: v })} placeholder={PH[k]} placeholderTextColor={COLORS.textLight} keyboardType={NUMERIC.includes(k) ? 'decimal-pad' : undefined} />
   );
+  const timeRow = (k: 'start' | 'stop') => (
+    <View key={k} style={[styles.pair, { alignItems: 'center' }]}>
+      {input(k)}
+      <TouchableOpacity onPress={() => setF((x) => ({ ...x, [k]: hhmm() }))} hitSlop={8}><Text style={{ color: COLORS.primary, fontWeight: '800', marginTop: SIZES.xs }}>Now</Text></TouchableOpacity>
+    </View>
+  );
   const chip = (on: boolean, label: string, onPress: () => void, key?: string) => (
     <TouchableOpacity key={key ?? label} onPress={onPress} style={[styles.chip, on && styles.chipOn]}><Text style={[styles.chipText, on && styles.chipTextOn]}>{label}</Text></TouchableOpacity>
   );
@@ -165,20 +171,38 @@ export default function LogBookSc() {
           {has('quantity') ? input('quantity') : null}
           {has('method') && cs.methods ? <View style={styles.chips}>{Object.entries(cs.methods).map(([k, l]) => chip(f.method === k, l, () => setF({ ...f, method: k }), k))}</View> : null}
           {has('treated') ? <View style={styles.chips}>{chip(f.treated === true, 'Treated (BWMS)', () => setF({ ...f, treated: true }))}{chip(f.treated === false, 'Not treated', () => setF({ ...f, treated: false }))}</View> : null}
-          {/* Position (cells) or port — one or the other; the end of an operation at sea is a position. */}
-          {has('place') ? (
-            <PositionInput
-              label={has('placeEnd') ? 'Position at start' : 'Position'}
-              position={parsePosition(f.place) ? f.place : ''}
-              port={parsePosition(f.place) ? '' : f.place}
-              onChange={(pos, port) => setF((x) => ({ ...x, place: pos || port }))}
-            />
-          ) : null}
-          {has('placeEnd') ? <PositionInput label="Position at end" portAllowed={false} position={f.placeEnd} onChange={(pos) => setF((x) => ({ ...x, placeEnd: pos }))} /> : null}
-          <View style={styles.pair}>
-            {has('start') ? input('start') : null}
-            {has('stop') ? input('stop') : null}
-          </View>
+          {/* An operation at sea with a start and an end: each is a time and a
+              position (13 Oct 2026). Otherwise: position or port, and the times. */}
+          {has('placeEnd') ? (
+            <>
+              <Label>Start</Label>
+              {has('start') ? timeRow('start') : null}
+              <PositionInput
+                label="Position at start"
+                position={parsePosition(f.place) ? f.place : ''}
+                port={parsePosition(f.place) ? '' : f.place}
+                onChange={(pos, port) => setF((x) => ({ ...x, place: pos || port }))}
+              />
+              <Label>End</Label>
+              {has('stop') ? timeRow('stop') : null}
+              <PositionInput label="Position at end" portAllowed={false} position={f.placeEnd} onChange={(pos) => setF((x) => ({ ...x, placeEnd: pos }))} />
+            </>
+          ) : (
+            <>
+              {has('place') ? (
+                <PositionInput
+                  label="Position"
+                  position={parsePosition(f.place) ? f.place : ''}
+                  port={parsePosition(f.place) ? '' : f.place}
+                  onChange={(pos, port) => setF((x) => ({ ...x, place: pos || port }))}
+                />
+              ) : null}
+              <View style={styles.pair}>
+                {has('start') ? input('start') : null}
+                {has('stop') ? input('stop') : null}
+              </View>
+            </>
+          )}
           <View style={styles.pair}>
             {has('distance') ? input('distance') : null}
             {has('speed') ? input('speed') : null}
