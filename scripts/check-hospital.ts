@@ -1,7 +1,7 @@
 // npm run check:hospital — stock by batch, expiry, orders delivered in parts, the inventory, the register, the scale, the Excel list, the board.
 import {
   chestStatus, checkLinesFor, differences, expiryState, followUpsDue, lastControlledCount, nextNo, normExpiry, onOrderByItem, orderOverdue, orderState,
-  pickBatch, planImport, sortChest, purposeOf, earliestExpiry, matchesName, readSheet, receivedByLine, registerLines, scaleEntry, scaleItems, stockByItem, toOrder,
+  pickBatch, planImport, sortChest, purposeOf, earliestExpiry, matchesName, stockLevel, matchesSearch, purposeIcon, mmYY, readSheet, receivedByLine, registerLines, scaleEntry, scaleItems, stockByItem, toOrder,
 } from '../services/hospital';
 import { MED_SCALE, NURSING_SCALE } from '../constants/medScale';
 import { buildBoard } from '../services/board';
@@ -78,6 +78,9 @@ ok(sortChest(sorted, 'expiry').map((r) => r.item.id).join() === 'g,z,a', 'by exp
 ok(purposeOf(sorted[1].item) === 'Cardiovascular' && purposeOf(sorted[2].item) === 'Bandages & Sutures', 'purpose from the WHO IMGS group, or the item’s own');
 ok(sortChest(sorted, 'purpose').map((r) => purposeOf(r.item)).join() === 'Bandages & Sutures,Cardiovascular,Dermatology', 'by purpose, groups in order');
 ok(earliestExpiry(sorted[2]) === '2026-10-01', 'soonest expiry includes out of date');
+ok(matchesSearch(sorted[1].item, 'anaphylaxis') && matchesSearch(sorted[1].item, 'C01CA24'), 'MHM search: indication and ATC');
+ok(stockLevel({ usable: 0, item: { required: 10 } } as any) === 'empty' && stockLevel({ usable: 2, item: { required: 10 } } as any) === 'critical' && stockLevel({ usable: 4, item: { required: 10 } } as any) === 'low' && stockLevel({ usable: 9, item: { required: 10 } } as any) === 'adequate' && stockLevel({ usable: 10, item: { required: 10 } } as any) === 'good', 'MHM stock levels <25 / <50 / <100 %');
+ok(purposeIcon('Cardiovascular') === '❤️' && mmYY('2027-11-30') === '11/27', 'group mark, MM/YY');
 ok(matchesName(sorted[1].item, 'adren') && !matchesName(sorted[1].item, 'zinc'), 'search by name');
 
 // board

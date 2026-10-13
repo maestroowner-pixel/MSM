@@ -393,3 +393,39 @@ export function matchesName(item: MedItem, q: string): boolean {
   const hay = `${item.name} ${item.strength ?? ''} ${item.code ?? ''}`.toLowerCase();
   return words.every((w) => hay.includes(w));
 }
+
+// ---- as Marine Hospital Manager shows it (13 Oct 2026: "look at the logic in MHM") ----
+
+export type StockLevel = 'empty' | 'critical' | 'low' | 'adequate' | 'good';
+/** In date against the scale: none, < 25 %, < 50 %, < 100 %, full (MHM's stock status). */
+export function stockLevel(r: ItemStatus): StockLevel {
+  if (r.usable <= 0) return 'empty';
+  if (!r.item.required) return 'good';
+  const p = (r.usable / r.item.required) * 100;
+  return p < 25 ? 'critical' : p < 50 ? 'low' : p < 100 ? 'adequate' : 'good';
+}
+export const STOCK_LEVEL_LABEL: Record<StockLevel, string> = { empty: 'Out of stock', critical: 'Critical', low: 'Low stock', adequate: 'Adequate', good: 'In stock' };
+
+/** The group's mark, as in MHM's category pills. */
+export function purposeIcon(group: string): string {
+  const g = group.toLowerCase();
+  const table: [RegExp, string][] = [
+    [/pain|fever|analges/, '🩹'], [/cardio/, '❤️'], [/gastro/, '🍽️'], [/infect|antibio/, '🦠'], [/respir/, '🫁'], [/derma|skin/, '🧴'],
+    [/nervous|psych/, '🧠'], [/eye|ear/, '👁️'], [/allerg/, '🤧'], [/emergenc/, '🚨'], [/rehydr/, '💧'], [/vaccin/, '💉'], [/dental/, '🦷'],
+    [/women/, '👩'], [/resusc|oxygen/, '🫀'], [/bandage|suture|dressing/, '🩹'], [/instrument/, '✂️'], [/examin|monitor/, '🩺'],
+    [/inject|cathet/, '💉'], [/nursing/, '🛏️'], [/immobil|splint/, '🦴'], [/disinfect|protect/, '🧼'], [/equipment/, '🧰'],
+  ];
+  return table.find(([re]) => re.test(g))?.[1] ?? '💊';
+}
+
+/** MHM's search: name, strength, code (ATC / IMGS), and what it is for. */
+export function matchesSearch(item: MedItem, q: string): boolean {
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return true;
+  const s = scaleEntry(item);
+  const hay = `${item.name} ${item.strength ?? ''} ${item.code ?? ''} ${s.med?.atc ?? ''} ${s.med?.indication ?? ''} ${s.nursing?.code ?? ''}`.toLowerCase();
+  return words.every((w) => hay.includes(w));
+}
+
+/** "11/27" — a batch's expiry as on MHM's badges. */
+export const mmYY = (iso?: string) => (iso ? `${iso.slice(5, 7)}/${iso.slice(2, 4)}` : 'no exp');

@@ -17,7 +17,7 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { Card, Screen, ScreenTitle } from '../components/ui';
@@ -34,7 +34,7 @@ import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import {
   ItemStatus, ORDER_STATE_LABEL, chestCounts, chestStatus, daysTo, differences, followUpsDue, isArchived, itemKey, lastControlledCount,
-  onOrderByItem, orderOverdue, ChestSort, earliestExpiry, expiryState, matchesName, purposeOf, scaleEntry, sortChest, orderState, planImport, readSheet, receivedByLine, scaleItems, sortOrders, sortTreatments,
+  onOrderByItem, orderOverdue, ChestSort, STOCK_LEVEL_LABEL, earliestExpiry, expiryState, matchesSearch, mmYY, purposeIcon, purposeOf, scaleEntry, sortChest, stockLevel, orderState, planImport, readSheet, receivedByLine, scaleItems, sortOrders, sortTreatments,
 } from '../services/hospital';
 import { exportChestExcel, exportChestPdf, exportChestTemplate, exportControlledPdf, exportMedLogExcel, exportMedLogPdf, pickChestSheet } from '../services/hospitalReport';
 import { formatDate } from '../utils/dates';
@@ -43,7 +43,7 @@ import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
 
 export type HospitalView = 'register' | 'orders' | 'archive' | 'inventory' | 'log' | 'reference';
-type Filter = 'all' | 'expired' | 'soon' | 'short' | 'controlled';
+type Filter = 'all' | 'expired' | 'soon' | 'short' | 'empty' | 'low' | 'controlled';
 
 const TITLE: Record<HospitalView, [string, string]> = {
   register: ['Hospital — register', 'Medicine chest: what is aboard, expiry, what is short'],
@@ -57,7 +57,7 @@ const TITLE: Record<HospitalView, [string, string]> = {
 
 export default function HospitalSc() {
   const COLORS = useTheme();
-  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+  const styles = useMemo(() => ({ ...makeStyles(COLORS), ...StyleSheet.create({ badgeBox: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, minWidth: 54, alignItems: 'center' }, badgeQty: { fontSize: SIZES.small, fontWeight: '800' }, badgeExp: { fontSize: 10, fontWeight: '700' } }) }), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
   const { medItems, medMoves, medTreatments, medOrders, medChecks, saveRows, vessel } = useData();
@@ -76,7 +76,7 @@ export default function HospitalSc() {
   }
   const shownView: HospitalView = view === 'log' && !officer ? 'register' : view;
 
-  const [filter, setFilter] = useState<Filter>((['expired', 'soon', 'short', 'controlled'] as Filter[]).includes(route.params?.filter) ? route.params.filter : 'all');
+  const [filter, setFilter] = useState<Filter>((['expired', 'soon', 'short', 'empty', 'low', 'controlled'] as Filter[]).includes(route.params?.filter) ? route.params.filter : 'all');
   const [q, setQ] = useState('');
   const [saved, setSaved] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -88,16 +88,25 @@ export default function HospitalSc() {
   const counts = chestCounts(rows);
   const onOrder = useMemo(() => onOrderByItem(medOrders, medMoves), [medOrders, medMoves]);
   const [sortBy, setSortBy] = useState<ChestSort>('attention');
+  const [group, setGroup] = useState<string | null>(null);
   const shown = useMemo(
     () =>
       sortChest(
         rows
-          .filter((r) => filter === 'all' || (filter === 'expired' ? r.expired > 0 : filter === 'soon' ? r.nextState === 'soon' : filter === 'short' ? r.short > 0 : !!r.item.controlled))
-          .filter((r) => matchesName(r.item, q)),
+          .filter((r) => filter === 'all' || (filter === 'expired' ? r.expired > 0 : filter === 'soon' ? r.nextState === 'soon' : filter === 'short' ? r.short > 0 : filter === 'empty' ? stockLevel(r) === 'empty' : filter === 'low' ? ['critical', 'low'].includes(stockLevel(r)) : !!r.item.controlled))
+          .filter((r) => !group || purposeOf(r.item) === group)
+          .filter((r) => matchesSearch(r.item, q)),
         sortBy
       ),
-    [rows, filter, q, sortBy]
+    [rows, filter, q, sortBy, group]
   );
+  // The groups present, for MHM's pills — the most items first.
+  const groups = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of rows) m.set(purposeOf(r.item), (m.get(purposeOf(r.item)) ?? 0) + 1);
+    return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [rows]);
+  const levels = useMemo(() => ({ empty: rows.filter((r) => stockLevel(r) === 'empty').length, low: rows.filter((r) => ['critical', 'low'].includes(stockLevel(r))).length }), [rows]);
   const controlled = rows.filter((r) => r.item.controlled);
   const lastCount = lastControlledCount(medItems, medMoves);
   const orders = useMemo(() => sortOrders(medOrders).map((o) => ({ o, st: orderState(o, medMoves) })), [medOrders, medMoves]);
@@ -163,10 +172,6 @@ export default function HospitalSc() {
   };
 
   const stateColor = (r: ItemStatus) => (r.expired ? COLORS.danger : r.nextState === 'soon' || r.short ? COLORS.warning : COLORS.success);
-  const expLine = (r: ItemStatus) => {
-    if (!r.batches.length) return 'None aboard';
-    return [r.expired ? `${r.expired} out of date` : null, r.next ? (r.nextState === 'soon' ? `expires in ${daysTo(today, r.next)} d` : `exp ${r.next.slice(0, 7)}`) : null, r.batches.length > 1 ? `${r.batches.length} batches` : null].filter(Boolean).join(' · ');
-  };
 
   const Chip = ({ on, label, onPress }: { on: boolean; label: string; onPress: () => void }) => (
     <TouchableOpacity style={[styles.chip, on && styles.chipOn]} onPress={onPress}>
@@ -194,7 +199,12 @@ export default function HospitalSc() {
         <>
           {rows.length ? (
             <>
-              <TextInput style={[styles.input, { marginTop: 0, marginBottom: SIZES.sm }]} value={q} onChangeText={setQ} placeholder="Search by name" placeholderTextColor={COLORS.textLight} />
+              <TextInput style={[styles.input, { marginTop: 0, marginBottom: SIZES.sm }]} value={q} onChangeText={setQ} placeholder="🔍 Search by name, indication, ATC" placeholderTextColor={COLORS.textLight} />
+              {/* Groups as in MHM: tap one to see only it. */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SIZES.xs, paddingBottom: SIZES.sm }}>
+                <Chip on={!group} label={`💊 All · ${rows.length}`} onPress={() => setGroup(null)} />
+                {groups.map(([g, n]) => <Chip key={g} on={group === g} label={`${purposeIcon(g)} ${g} · ${n}`} onPress={() => setGroup(group === g ? null : g)} />)}
+              </ScrollView>
               <View style={[styles.chips, { alignItems: 'center' }]}>
                 <Text style={[styles.sub, { marginTop: 0 }]}>Sort</Text>
                 {([['attention', 'Attention'], ['purpose', 'Purpose'], ['expiry', 'Expiry'], ['name', 'A–Z']] as [ChestSort, string][]).map(([k, l]) => (
@@ -205,7 +215,9 @@ export default function HospitalSc() {
                 <Chip on={filter === 'all'} label="All" onPress={() => setFilter('all')} />
                 <Chip on={filter === 'expired'} label={`Out of date · ${counts.expired}`} onPress={() => setFilter('expired')} />
                 <Chip on={filter === 'soon'} label={`Expiring ≤ 30 d · ${counts.soon}`} onPress={() => setFilter('soon')} />
-                <Chip on={filter === 'short'} label={`Short · ${counts.short}`} onPress={() => setFilter('short')} />
+                <Chip on={filter === 'empty'} label={`Out of stock · ${levels.empty}`} onPress={() => setFilter('empty')} />
+                <Chip on={filter === 'low'} label={`Low stock · ${levels.low}`} onPress={() => setFilter('low')} />
+                <Chip on={filter === 'short'} label={`Below scale · ${counts.short}`} onPress={() => setFilter('short')} />
                 {controlled.length ? <Chip on={filter === 'controlled'} label={`Controlled · ${controlled.length}`} onPress={() => setFilter('controlled')} /> : null}
               </View>
               {filter === 'controlled' ? (
@@ -223,13 +235,28 @@ export default function HospitalSc() {
             return (
               <React.Fragment key={r.item.id}>
               {head ? <Text style={[styles.sub, { fontWeight: '800', color: COLORS.textDark, marginTop: SIZES.md, marginBottom: 4 }]}>{`${head} · ${shown.filter((x) => purposeOf(x.item) === head).length}`}</Text> : null}
-              <TouchableOpacity style={[styles.item, { borderLeftColor: stateColor(r) }]} onPress={() => nav.navigate('MedItem', { id: r.item.id })} activeOpacity={0.7}>
-                <Text style={styles.name}>{`${r.item.name}${r.item.controlled ? '  · CD' : ''}`}</Text>
+              <TouchableOpacity style={[styles.item, { borderLeftColor: stateColor(r), flexDirection: 'row', gap: SIZES.sm }]} onPress={() => nav.navigate('MedItem', { id: r.item.id })} activeOpacity={0.7}>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.name} numberOfLines={1}>{`${purposeIcon(purposeOf(r.item))} ${r.item.name}${r.item.controlled ? ' 🔒' : ''}`}</Text>
                 <Text style={styles.sub}>{[r.item.strength, r.item.location].filter(Boolean).join(' · ')}</Text>
-                <Text style={[styles.sub, { color: stateColor(r), fontWeight: '700' }]}>{[`${r.usable} / ${r.item.required} ${r.item.unit}`, r.short ? `${r.short} short` : null, expLine(r)].filter(Boolean).join(' · ')}</Text>
+                <Text style={[styles.sub, { color: stateColor(r), fontWeight: '700' }]}>{[`${r.usable} / ${r.item.required} ${r.item.unit}`, STOCK_LEVEL_LABEL[stockLevel(r)], r.short ? `${r.short} short` : null, r.expired ? `${r.expired} out of date` : r.nextState === 'soon' ? 'expiring' : null].filter(Boolean).join(' · ')}</Text>
                 {coming ? <Text style={[styles.sub, { color: COLORS.primary }]}>{`${coming} on order`}</Text> : null}
                 {sortBy === 'expiry' && exp ? <Text style={[styles.sub, { color: expiryState(today, exp) === 'expired' ? COLORS.danger : COLORS.textLight }]}>{`Soonest expiry ${formatDate(exp)}`}</Text> : null}
                 {sortBy === 'purpose' ? <Text style={styles.sub} numberOfLines={1}>{scaleEntry(r.item).med?.indication ?? ''}</Text> : null}
+                </View>
+                {/* Batches as MHM shows them: quantity and MM/YY, out of date in red; two, then +n. */}
+                <View style={{ gap: 4, alignItems: 'flex-end' }}>
+                  {!r.batches.length ? (
+                    <View style={[styles.badgeBox, { borderColor: COLORS.danger }]}><Text style={[styles.badgeQty, { color: COLORS.danger }]}>0</Text><Text style={[styles.badgeExp, { color: COLORS.danger }]}>EMPTY</Text></View>
+                  ) : (
+                    r.batches.slice(0, 2).map((b) => {
+                      const s = expiryState(today, b.expiry);
+                      const c = s === 'expired' ? COLORS.danger : s === 'soon' ? COLORS.warning : COLORS.success;
+                      return <View key={b.key} style={[styles.badgeBox, { borderColor: c }]}><Text style={[styles.badgeQty, { color: c }]}>{b.qty}</Text><Text style={[styles.badgeExp, { color: c }]}>{mmYY(b.expiry)}</Text></View>;
+                    })
+                  )}
+                  {r.batches.length > 2 ? <View style={[styles.badgeBox, { borderColor: COLORS.border }]}><Text style={[styles.badgeQty, { color: COLORS.textLight }]}>{`+${r.batches.length - 2}`}</Text></View> : null}
+                </View>
               </TouchableOpacity>
               </React.Fragment>
             );
