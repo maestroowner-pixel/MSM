@@ -353,16 +353,17 @@ export function buildBoard(x: BoardInput): Board {
     let red = 0;
     let amber = 0;
     for (const r of rows) {
-      const left = r.left ?? -1;
+      // An own drill off a cycle is never due — only its plan shows.
+      const left = r.everyDays ? r.left ?? -1 : 9999;
       if (r.planned && r.planned.date <= x.today) {
         n.push({ key: `drill:${r.type}`, level: left < 0 ? 'amber' : 'blue', who: 'officer', icon: 'run-fast', route: 'Drill', params: { id: r.planned.id }, title: `${r.title} drill — planned ${r.planned.date === x.today ? 'today' : dm(r.planned.date)}`, sub: r.planned.topic || undefined });
         if (left < 0) amber++;
       } else if (left < 0) {
         red++;
-        n.push({ key: `drill:${r.type}`, level: 'red', who: 'officer', icon: 'run-fast', route: 'Drill', params: { id: 'new', type: r.type }, title: r.last ? `${r.title} drill overdue — last ${dm(r.last)}` : `${r.title} drill — none recorded`, sub: r.reg });
+        n.push({ key: `drill:${r.type}`, level: 'red', who: 'officer', icon: 'run-fast', route: 'Drill', params: r.own ? { id: 'new', type: 'other', title: r.own.title } : { id: 'new', type: r.type }, title: r.last ? `${r.title} drill overdue — last ${dm(r.last)}` : `${r.title} drill — none recorded`, sub: r.reg });
       } else if (left <= 7) {
         amber++;
-        plan.push({ key: `drill:${r.type}`, icon: 'run-fast', route: 'Drill', params: r.planned ? { id: r.planned.id } : { id: 'new', type: r.type }, title: `${r.title} drill`, sub: r.planned ? `planned ${dm(r.planned.date)}` : `due within ${plural(left, 'day')}` });
+        plan.push({ key: `drill:${r.type}`, icon: 'run-fast', route: 'Drill', params: r.planned ? { id: r.planned.id } : r.own ? { id: 'new', type: 'other', title: r.own.title } : { id: 'new', type: r.type }, title: `${r.title} drill`, sub: r.planned ? `planned ${dm(r.planned.date)}` : `due within ${plural(left, 'day')}` });
       }
     }
     const done30 = drills.filter((d) => d.doneAt && daysAgo(x.today, d.date) <= 30).length;

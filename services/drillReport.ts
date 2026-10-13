@@ -23,7 +23,7 @@ import { esc, share, vesselHeader } from './export';
 import { exportPmsHistory } from './pmsHistoryReport';
 import type { DrillDoc } from './drills';
 import { REGISTER_HEAD, SCHEDULE_HEAD, ScheduleRow, drillDoc, registerRows, scheduleRows } from './drills';
-import { Drill, drillTypeTitle } from '../types/drills';
+import { Drill, drillTitle } from '../types/drills';
 import { deliverFile, onWeb, onWindows } from '../utils/fileShare';
 import { saveFileWeb } from '../utils/webSave';
 import { drillPdfBlob } from '../utils/drillPdf';
@@ -32,7 +32,7 @@ const clean = (s: string) => s.replace(/[\\/:*?"<>|]+/g, ' ').trim();
 
 export function drillFileName(d: Drill, vessel: VesselInfo | null, listOnly = false) {
   const v = clean(vessel?.vessel_name ?? '');
-  return clean(`${d.no || 'Drill plan'} ${listOnly ? 'Attendance' : drillTypeTitle(d.type)} ${d.date}${v ? `-${v}` : ''}`) + '.pdf';
+  return clean(`${d.no || 'Drill plan'} ${listOnly ? 'Attendance' : drillTitle(d)} ${d.date}${v ? `-${v}` : ''}`) + '.pdf';
 }
 
 const kv = (rows: [string, string][]) => `<table>${rows.map(([k, v]) => `<tr><td class="k">${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')}</table>`;
@@ -100,7 +100,7 @@ export async function exportDrillRegisterExcel(drills: Drill[], schedule: Schedu
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Drill register'], [vesselHeader(vessel)], s.facts, [], s.register.head, ...s.register.rows]), 'Drills');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([s.schedule.head, ...s.schedule.rows]), 'Schedule');
   const attendance: string[][] = [['No.', 'Date', 'Drill', 'Name', 'Rank', 'Attendance']];
-  for (const d of drills.filter((x) => x.doneAt)) for (const a of d.attendance) attendance.push([d.no, d.date, drillTypeTitle(d.type), a.name, a.rank ?? '', a.present ? 'present' : `absent${a.reason ? ` — ${a.reason}` : ''}`]);
+  for (const d of drills.filter((x) => x.doneAt)) for (const a of d.attendance) attendance.push([d.no, d.date, drillTitle(d), a.name, a.rank ?? '', a.present ? 'present' : `absent${a.reason ? ` — ${a.reason}` : ''}`]);
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(attendance), 'Attendance');
   const v = clean(vessel?.vessel_name ?? '');
   const name = `Drill register ${today}${v ? `-${v}` : ''}.xlsx`;

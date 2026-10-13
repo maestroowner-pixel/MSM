@@ -1,5 +1,5 @@
 // npm run check:drills — numbers, the schedule, the scenario clock, report rows, the board.
-import { attendanceRows, clockAt, drillSchedule, drillState, minutesBetween, nextDrillNo, nextStepMin, registerRows, scenarioRows, sortDrills } from '../services/drills';
+import { everyLabel, lastOfType, attendanceRows, clockAt, drillSchedule, drillState, minutesBetween, nextDrillNo, nextStepMin, registerRows, scenarioRows, sortDrills } from '../services/drills';
 import { drillDoc } from '../services/drills';
 import { DRILL_THEORY } from '../constants/drillTheory';
 import { DRILL_TYPES } from '../types/drills';
@@ -37,6 +37,25 @@ ok(sch.find((r) => r.type === 'oilspill')?.last === '2026-09-20', 'a SOPEP-scree
 ok(!!sch.find((r) => r.type === 'mob')?.planned, 'a planned optional drill joins the schedule');
 ok(!sch.find((r) => r.type === 'helicopter'), 'optional drills never held stay off the schedule');
 ok(sch.find((r) => r.type === 'abandon')?.last === undefined && sch[0].left === undefined, 'never held = due now, at the top');
+
+// own drills ('other')
+const own = drillSchedule([
+  D({ id: 'o1', type: 'other', title: 'Lifeboat release gear', reg: 'SMS 8.2', everyDays: 90, date: '2026-06-01', doneAt: 1 }),
+  D({ id: 'o2', type: 'other', title: 'lifeboat release gear ', everyDays: 90, date: '2026-07-01', doneAt: 2 }),
+  D({ id: 'o3', type: 'other', title: 'Gas leak in the galley', date: '2026-10-01', doneAt: 3 }),
+], T);
+const lb = own.find((r) => r.type === 'other:lifeboat release gear')!;
+ok(!!lb && lb.last === '2026-07-01' && lb.due === '2026-09-29' && lb.left! < 0, 'own drill: one row per name (case and spaces ignored), due by its interval');
+ok(lb.own?.title === 'lifeboat release gear', 'own drill row carries its name to plan the next');
+const gas = own.find((r) => r.type === 'other:gas leak in the galley')!;
+ok(!!gas && gas.due === undefined && gas.everyDays === 0, 'own drill off a cycle is never due');
+ok(own[own.length - 1].type === 'other:gas leak in the galley', 'off-cycle drills at the end of the schedule');
+ok(lastOfType([D({ id: 'x', type: 'other', title: 'Gas leak in the galley', scenario: [{ id: 's', min: 0, text: 'Smell of gas' }], doneAt: 1 })], { type: 'other', title: 'gas leak in the galley' })?.id === 'x', 'copy the last own drill of the same name');
+ok(lastOfType([D({ id: 'x', type: 'other', title: 'A', scenario: [{ id: 's', min: 0, text: 'x' }] })], { type: 'other', title: '' }) === undefined, 'an unnamed own drill copies nothing');
+const ownDoc = drillDoc(D({ type: 'other', title: 'Gas leak in the galley', reg: 'SMS 8.2', theoryText: 'LPG is heavier than air.\nShut the valve at the bottle.', theory: true }), 'V');
+ok(ownDoc.title.includes('Gas leak in the galley') && ownDoc.facts[0][1] === 'Gas leak in the galley · SMS 8.2', 'own drill: report names it and its requirement');
+ok(ownDoc.theory?.text.length === 2, 'own drill: the officer\'s briefing is the annex');
+ok(everyLabel(0) === 'not on a cycle', 'interval label for off-cycle');
 
 // report rows
 const run = D({ time: '10:00', endTime: '10:40', scenario: [{ id: 'b', min: 5, text: 'Muster', at: '10:06' }, { id: 'a', min: 0, text: 'Alarm', who: 'Bridge' }], attendance: [{ name: 'Ann', rank: '2/O', present: true }, { name: 'Bob', present: false, reason: 'On watch' }], doneAt: 9, doneBy: 'Jez' });

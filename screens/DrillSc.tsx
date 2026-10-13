@@ -39,7 +39,7 @@ import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { roleAtLeast } from '../types/role';
 import { isAboard } from '../types/crew';
-import { ABSENCE_REASONS, Attendee, DRILL_TYPES, DRILL_TYPE_MAP, Drill, QUICK_STEPS, ScenarioStep, drillTypeTitle } from '../types/drills';
+import { ABSENCE_REASONS, Attendee, DRILL_TYPES, DRILL_TYPE_MAP, Drill, OWN_INTERVALS, QUICK_STEPS, ScenarioStep, drillKind, drillTitle } from '../types/drills';
 import { DRILL_THEORY } from '../constants/drillTheory';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
@@ -82,8 +82,13 @@ export default function DrillSc() {
   const fresh = (): Drill => {
     const type = route.params?.type && (DRILL_TYPE_MAP[route.params.type] || route.params.type === 'other') ? route.params.type : 'fire';
     const now = Date.now();
+    // Planning the next of an own drill: its name, requirement, interval and
+    // briefing come from the last one of that name.
+    const name = type === 'other' ? String(route.params?.title ?? '').trim() : '';
+    const like = name ? [...drills].filter((x) => drillKind(x) === drillKind({ type: 'other', title: name })).sort((a, b) => b.date.localeCompare(a.date))[0] : undefined;
+    const own = type === 'other' ? { title: name, ...(like?.reg ? { reg: like.reg } : {}), ...(like?.everyDays ? { everyDays: like.everyDays } : {}), ...(like?.theoryText ? { theoryText: like.theoryText } : {}) } : {};
     return {
-      id, no: '', type, topic: '', date: today, scenario: [], theory: !!DRILL_THEORY[type],
+      id, no: '', type, ...own, topic: '', date: today, scenario: [], theory: !!DRILL_THEORY[type] || !!like?.theoryText,
       attendance: people.map((p) => ({ name: p.name, ...(p.rank ? { rank: p.rank } : {}), present: false })),
       plannedBy: '', updatedAt: now,
     };
@@ -143,7 +148,8 @@ export default function DrillSc() {
   const ro = done || !canEdit;
   const st = drillState(d);
   const theory = DRILL_THEORY[d.type];
-  const prev = !ro && !d.scenario.length ? lastOfType(drills, d.type, d.id) : undefined;
+  const isOwn = d.type === 'other';
+  const prev = !ro && !d.scenario.length ? lastOfType(drills, d, d.id) : undefined;
   const present = d.attendance.filter((a) => a.present).length;
   const steps = sortSteps(d.scenario);
   const started = !!d.time && d.date <= today;
@@ -184,9 +190,9 @@ export default function DrillSc() {
   const sign = async () => {
     if (!d.time) return Alert.alert('Drill', 'When did it start? Fill in the start time.');
     if (!present) return Alert.alert('Attendance', 'Mark who took part.');
-    if (!d.topic.trim() && d.type === 'other') return Alert.alert('Drill', 'Give the drill a topic.');
+    if (isOwn && !d.title?.trim()) return Alert.alert('Drill', 'Give your drill a name.');
     if (!signer) return Alert.alert('Who conducted it?', 'Choose your name.');
-    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${d.no || 'Drill'} — ${drillTypeTitle(d.type)} — carried out` });
+    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${d.no || 'Drill'} — ${drillTitle(d)} — carried out` });
     if (!sig) return;
     const now = Date.now();
     const out: Drill = {
@@ -235,8 +241,8 @@ export default function DrillSc() {
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav)} />
       <ScreenTitle
-        title={`${d.no ? `${d.no} · ` : ''}${drillTypeTitle(d.type)} drill`}
-        subtitle={done ? `Carried out ${formatDate(d.date)} · signed ${formatDateTime(d.doneAt!)} by ${d.doneByRank ? `${d.doneBy} (${d.doneByRank})` : d.doneBy}${d.doneWith ? ` · ${proofShort(d.doneWith)}` : ''}` : `${DRILL_STATE_LABEL[st]}${DRILL_TYPE_MAP[d.type] ? ` · ${DRILL_TYPE_MAP[d.type].reg}` : ''}`}
+        title={`${d.no ? `${d.no} · ` : ''}${drillTitle(d)}${isOwn ? '' : ' drill'}`}
+        subtitle={done ? `Carried out ${formatDate(d.date)} · signed ${formatDateTime(d.doneAt!)} by ${d.doneByRank ? `${d.doneBy} (${d.doneByRank})` : d.doneBy}${d.doneWith ? ` · ${proofShort(d.doneWith)}` : ''}` : `${DRILL_STATE_LABEL[st]}${DRILL_TYPE_MAP[d.type] ? ` · ${DRILL_TYPE_MAP[d.type].reg}` : d.reg?.trim() ? ` · ${d.reg.trim()}` : isOwn ? ' · own drill' : ''}`}
         help="Drills"
       />
       {!ro && savedNote ? <Text style={[styles.sub, { color: COLORS.success }]}>{savedNote}</Text> : null}
@@ -245,7 +251,25 @@ export default function DrillSc() {
       <Card>
         <Label>The drill</Label>
         {!ro ? (
-          <Dropdown caption="DRILL" value={d.type} onChange={(v: string) => set({ type: v, theory: !!DRILL_THEORY[v] })} options={[...DRILL_TYPES.map((t) => ({ value: t.id, label: t.title })), { value: 'other', label: 'Other' }]} />
+          <Dropdown caption="DRILL" value={d.type} onChange={(v: string) => set({ type: v, theory: !!DRILL_THEORY[v] || (v === 'other' && !!d.theoryText?.trim()) })} options={[...DRILL_TYPES.map((t) => ({ value: t.id, label: t.title })), { value: 'other', label: 'Other — your own drill' }]} />
+        ) : null}
+        {isOwn ? (
+          ro ? (
+            <Text style={styles.sub}>{[d.reg?.trim() || 'Own drill', OWN_INTERVALS.find((x) => x.days === d.everyDays)?.label ?? 'Not on a cycle'].join(' · ')}</Text>
+          ) : (
+            <>
+              {field({ value: d.title, onChange: (v) => set({ title: v }), placeholder: 'Name of the drill ★ — e.g. Lifeboat release gear, Gas leak in the galley', style: { fontWeight: '700' } })}
+              {field({ value: d.reg, onChange: (v) => set({ reg: v }), placeholder: 'Required by — e.g. SMS 8.2, flag circular, charterer' })}
+              <Text style={[styles.sub, { marginTop: SIZES.sm }]}>How often</Text>
+              <View style={styles.chips}>
+                {OWN_INTERVALS.map((x) => (
+                  <TouchableOpacity key={x.label} style={[styles.chip, d.everyDays === x.days && styles.chipOn]} onPress={() => set({ everyDays: x.days })}>
+                    <Text style={[styles.chipText, d.everyDays === x.days && styles.chipTextOn]}>{x.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )
         ) : null}
         {field({ value: d.topic, onChange: (v) => set({ topic: v }), placeholder: `Topic — e.g. ${d.type === 'fire' ? 'Fire in the galley' : d.type === 'mob' ? 'Man overboard from the aft deck' : 'what the crew is told'}`, style: ro ? { fontWeight: '700' } : null })}
         {ro ? (
@@ -284,7 +308,7 @@ export default function DrillSc() {
         ) : (
           <>
             <TextInput style={[styles.input, { minHeight: 80 }]} value={d.content ?? ''} onChangeText={(v) => set({ content: v })} multiline placeholder={'What the drill covers — a point per line:\nRaise the alarm and report the fire\nBoundary cooling, ventilation closed\nBA team: pressure check, lifeline signals'} placeholderTextColor={COLORS.textLight} />
-            {theory?.checklist ? <TouchableOpacity onPress={insertChecklist}><Text style={styles.link}>{`+ Insert the ${drillTypeTitle(d.type).toLowerCase()} checklist (${theory.checklist.length} parts)`}</Text></TouchableOpacity> : null}
+            {theory?.checklist ? <TouchableOpacity onPress={insertChecklist}><Text style={styles.link}>{`+ Insert the ${drillTitle(d).toLowerCase()} checklist (${theory.checklist.length} parts)`}</Text></TouchableOpacity> : null}
           </>
         )}
       </Card>
@@ -355,7 +379,22 @@ export default function DrillSc() {
       </Card>
 
       {/* ---- theory ---- */}
-      {theory ? (
+      {isOwn ? (
+        <Card>
+          <Label>Theory briefing</Label>
+          {ro ? (
+            d.theoryText?.trim() ? <Text style={[styles.body, { lineHeight: 21 }]}>{d.theoryText}</Text> : <Text style={styles.sub}>—</Text>
+          ) : (
+            <TextInput style={[styles.input, { minHeight: 110 }]} value={d.theoryText ?? ''} onChangeText={(v) => set({ theoryText: v, ...(v.trim() && !d.theoryText?.trim() ? { theory: true } : {}) })} multiline placeholder={'What the crew is told before the drill — the hazard, the equipment, who does what, the signals. A paragraph per line.\nIt is kept with the drill and comes back the next time you plan it.'} placeholderTextColor={COLORS.textLight} />
+          )}
+          {d.theoryText?.trim() ? (
+            <View style={styles.toggle}>
+              <Text style={[styles.toggleText, { fontWeight: '700' }]}>Theory briefing given — printed as the report’s annex</Text>
+              <Switch value={d.theory} onValueChange={(v) => set({ theory: v })} disabled={ro} />
+            </View>
+          ) : null}
+        </Card>
+      ) : theory ? (
         <Card>
           <View style={styles.toggle}>
             <Text style={[styles.toggleText, { fontWeight: '700' }]}>Theory briefing given — printed as the report’s annex</Text>

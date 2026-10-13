@@ -44,8 +44,16 @@ export interface Drill extends Versioned {
   id: string;
   /** DR-YYYY-NNN, given when first saved. */
   no: string;
-  /** DRILL_TYPES id, or 'other'. */
+  /** DRILL_TYPES id, or 'other' — the vessel's own drill, described by the fields below. */
   type: string;
+  /** Own drill ('other'): its name — "Lifeboat release gear", "Gas leak in the galley". */
+  title?: string;
+  /** Own drill: where it is required — "SMS 8.2", "Flag circular 12/2025". */
+  reg?: string;
+  /** Own drill: due every … days; none = not on a cycle. */
+  everyDays?: number;
+  /** Own drill: the theory briefing, written by the officer. */
+  theoryText?: string;
   /** The topic as the crew hears it — "Fire in the galley". */
   topic: string;
   date: string;
@@ -111,6 +119,22 @@ export const DRILL_TYPES: DrillType[] = [
 export const DRILL_TYPE_MAP: Record<string, DrillType> = Object.fromEntries(DRILL_TYPES.map((t) => [t.id, t]));
 
 export const drillTypeTitle = (id: string) => DRILL_TYPE_MAP[id]?.title ?? 'Other drill';
+
+/** The drill's name — the vessel's own name for an 'other' drill. */
+export const drillTitle = (d: Pick<Drill, 'type' | 'title'>) => (d.type === 'other' ? d.title?.trim() || 'Other drill' : drillTypeTitle(d.type));
+
+/** One drill kind on the schedule: a DRILL_TYPES id, or `other:<name>` for an own drill. */
+export const drillKind = (d: Pick<Drill, 'type' | 'title'>) => (d.type === 'other' ? `other:${(d.title ?? '').trim().toLowerCase()}` : d.type);
+
+/** Intervals offered for an own drill. */
+export const OWN_INTERVALS: { days?: number; label: string }[] = [
+  { days: 30, label: 'Monthly' },
+  { days: 60, label: 'Every 2 months' },
+  { days: 90, label: 'Every 3 months' },
+  { days: 180, label: 'Every 6 months' },
+  { days: 365, label: 'Yearly' },
+  { label: 'Not on a cycle' },
+];
 
 /** Steps an officer adds with one tap — the bones most scenarios share. */
 export const QUICK_STEPS: { text: string; who?: string }[] = [

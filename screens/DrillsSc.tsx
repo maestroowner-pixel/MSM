@@ -18,7 +18,7 @@ import { SIZES } from '../theme';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { roleAtLeast } from '../types/role';
-import { DRILL_TYPES, drillTypeTitle } from '../types/drills';
+import { DRILL_TYPES, drillTitle } from '../types/drills';
 import { todayIso } from '../services/pms';
 import { DRILL_STATE_LABEL, drillSchedule, drillState, everyLabel, minutesBetween, sortDrills } from '../services/drills';
 import { exportDrillRegisterExcel, exportDrillRegisterPdf } from '../services/drillReport';
@@ -44,9 +44,9 @@ export default function DrillsSc() {
   const overdue = schedule.filter((r) => (r.left ?? -1) < 0).length;
   const open = drills.filter((d) => !d.doneAt).length;
 
-  const plan = (type: string) => {
+  const plan = (type: string, title?: string) => {
     setChoosing(false);
-    nav.navigate('Drill', { id: 'new', type });
+    nav.navigate('Drill', { id: 'new', type, ...(title ? { title } : {}) });
   };
 
   const report = async (kind: 'pdf' | 'xlsx') => {
@@ -58,7 +58,7 @@ export default function DrillsSc() {
     }
   };
 
-  const dueColor = (left?: number) => (left == null || left < 0 ? COLORS.danger : left <= 7 ? COLORS.warning : COLORS.success);
+  const dueColor = (left?: number, every = 1) => (!every ? COLORS.textLight : left == null || left < 0 ? COLORS.danger : left <= 7 ? COLORS.warning : COLORS.success);
 
   return (
     <Screen scroll>
@@ -83,7 +83,7 @@ export default function DrillsSc() {
                 </TouchableOpacity>
               ))}
               <TouchableOpacity style={styles.chip} onPress={() => plan('other')}>
-                <Text style={styles.chipText}>Other…</Text>
+                <Text style={styles.chipText}>Other — your own drill…</Text>
               </TouchableOpacity>
             </View>
             <TouchableOpacity onPress={() => setChoosing(false)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
@@ -98,12 +98,12 @@ export default function DrillsSc() {
       {tab === 'schedule' ? (
         <>
           {schedule.map((r) => (
-            <TouchableOpacity key={r.type} style={[styles.item, { borderLeftColor: dueColor(r.left) }]} activeOpacity={0.7}
-              onPress={() => (r.planned ? nav.navigate('Drill', { id: r.planned.id }) : canPlan ? plan(r.type) : undefined)}>
+            <TouchableOpacity key={r.type} style={[styles.item, { borderLeftColor: dueColor(r.left, r.everyDays) }]} activeOpacity={0.7}
+              onPress={() => (r.planned ? nav.navigate('Drill', { id: r.planned.id }) : canPlan ? (r.own ? plan('other', r.own.title) : plan(r.type)) : undefined)}>
               <Text style={styles.name}>{r.title}</Text>
               <Text style={styles.sub}>{`${r.reg} · ${everyLabel(r.everyDays)}`}</Text>
-              <Text style={[styles.sub, { color: dueColor(r.left), fontWeight: '700' }]}>
-                {r.last ? `Last ${formatDate(r.last)} · ${(r.left ?? 0) < 0 ? `overdue since ${formatDate(r.due)}` : `next by ${formatDate(r.due)}`}` : 'Never held — due now'}
+              <Text style={[styles.sub, { color: dueColor(r.left, r.everyDays), fontWeight: '700' }]}>
+                {r.last ? `Last ${formatDate(r.last)}${r.due ? ` · ${(r.left ?? 0) < 0 ? `overdue since ${formatDate(r.due)}` : `next by ${formatDate(r.due)}`}` : ''}` : r.everyDays ? 'Never held — due now' : 'Not held yet'}
               </Text>
               {r.planned ? <Text style={[styles.sub, { color: COLORS.primary }]}>{`Planned ${formatDate(r.planned.date)}${r.planned.time ? ` ${r.planned.time}` : ''} · ${r.planned.no}`}</Text> : canPlan ? <Text style={styles.link}>Plan it →</Text> : null}
             </TouchableOpacity>
@@ -118,8 +118,8 @@ export default function DrillsSc() {
             const len = minutesBetween(d.time, d.endTime);
             return (
               <TouchableOpacity key={d.id} style={[styles.item, { borderLeftColor: color }]} onPress={() => nav.navigate('Drill', { id: d.id })} activeOpacity={0.7}>
-                <Text style={styles.name}>{`${d.no} · ${d.topic || drillTypeTitle(d.type)}`}</Text>
-                <Text style={styles.sub}>{[drillTypeTitle(d.type), `${formatDate(d.date)}${d.time ? ` ${d.time}` : ''}`, len != null ? `${len} min` : null, d.location].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.name}>{`${d.no} · ${d.topic || drillTitle(d)}`}</Text>
+                <Text style={styles.sub}>{[drillTitle(d), `${formatDate(d.date)}${d.time ? ` ${d.time}` : ''}`, len != null ? `${len} min` : null, d.location].filter(Boolean).join(' · ')}</Text>
                 <Text style={[styles.sub, { color, fontWeight: '700' }]}>
                   {[DRILL_STATE_LABEL[st], st === 'done' ? `${d.attendance.filter((a) => a.present).length}/${d.attendance.length} present` : `${d.scenario.length} steps`, st === 'done' ? d.doneBy : null].filter(Boolean).join(' · ')}
                 </Text>

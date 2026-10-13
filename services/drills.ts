@@ -3,7 +3,7 @@
 // and the rows of the reports (types/drills.ts). Pure: no storage, no React.
 // ===================================
 
-import { DRILL_TYPES, DRILL_TYPE_MAP, Drill, ScenarioStep, drillTypeTitle } from '../types/drills';
+import { DRILL_TYPES, DRILL_TYPE_MAP, Drill, ScenarioStep, drillKind, drillTitle } from '../types/drills';
 import type { SopepDrill } from '../types/sopep';
 import type { SecurityDrill } from '../types/security';
 import type { SignProof } from './signature';
@@ -59,14 +59,20 @@ export function sortDrills(list: Drill[]): Drill[] {
 }
 
 /** The last drill of this type carried out — the one to copy a scenario from. */
-export function lastOfType(list: Drill[], type: string, notId?: string): Drill | undefined {
-  return list.filter((d) => d.type === type && d.id !== notId && d.scenario.length).sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0) || b.date.localeCompare(a.date))[0];
+export function lastOfType(list: Drill[], of: Pick<Drill, 'type' | 'title'>, notId?: string): Drill | undefined {
+  const kind = drillKind(of);
+  if (kind === 'other:') return undefined;
+  return list.filter((d) => drillKind(d) === kind && d.id !== notId && d.scenario.length).sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0) || b.date.localeCompare(a.date))[0];
 }
 
 export interface ScheduleRow {
+  /** DRILL_TYPES id, or `other:<name>` for an own drill. */
   type: string;
+  /** Own drill: its name as written, to plan the next one with. */
+  own?: { title: string; reg?: string; everyDays?: number };
   title: string;
   reg: string;
+  /** 0 = not on a cycle (own drill). */
   everyDays: number;
   last?: string;
   due?: string;
@@ -87,21 +93,35 @@ export function drillSchedule(drills: Drill[], today: string, sopepDrills: Sopep
   const see = (type: string, date: string) => {
     if (!lastBy.has(type) || lastBy.get(type)! < date) lastBy.set(type, date);
   };
-  for (const d of done) see(d.type, d.date);
+  for (const d of done) see(drillKind(d), d.date);
   for (const d of sopepDrills) see('oilspill', d.date);
   for (const d of securityDrills) see('security', d.date);
   const plannedBy = new Map<string, Drill>();
-  for (const d of drills.filter((x) => !x.doneAt).sort((a, b) => a.date.localeCompare(b.date))) if (!plannedBy.has(d.type)) plannedBy.set(d.type, d);
-  return DRILL_TYPES.filter((t) => t.required || lastBy.has(t.id) || plannedBy.has(t.id))
-    .map((t) => {
-      const last = lastBy.get(t.id);
-      const due = last ? addDays(last, t.everyDays) : undefined;
-      return { type: t.id, title: t.title, reg: t.reg, everyDays: t.everyDays, ...(last ? { last } : {}), ...(due ? { due, left: daysBetween(today, due) } : {}), ...(plannedBy.has(t.id) ? { planned: plannedBy.get(t.id) } : {}) };
-    })
-    .sort((a, b) => (a.left ?? -9999) - (b.left ?? -9999));
+  for (const d of drills.filter((x) => !x.doneAt).sort((a, b) => a.date.localeCompare(b.date))) if (!plannedBy.has(drillKind(d))) plannedBy.set(drillKind(d), d);
+  const std: ScheduleRow[] = DRILL_TYPES.filter((t) => t.required || lastBy.has(t.id) || plannedBy.has(t.id)).map((t) => {
+    const last = lastBy.get(t.id);
+    const due = last ? addDays(last, t.everyDays) : undefined;
+    return { type: t.id, title: t.title, reg: t.reg, everyDays: t.everyDays, ...(last ? { last } : {}), ...(due ? { due, left: daysBetween(today, due) } : {}), ...(plannedBy.has(t.id) ? { planned: plannedBy.get(t.id) } : {}) };
+  });
+  // The vessel's own drills — one row per name, described by the latest one.
+  const ownLatest = new Map<string, Drill>();
+  for (const d of drills.filter((x) => x.type === 'other' && x.title?.trim()).sort((a, b) => a.date.localeCompare(b.date) || a.updatedAt - b.updatedAt)) ownLatest.set(drillKind(d), d);
+  const own: ScheduleRow[] = [...ownLatest.entries()].map(([kind, d]) => {
+    const last = lastBy.get(kind);
+    const every = d.everyDays ?? 0;
+    const due = last && every ? addDays(last, every) : undefined;
+    const title = d.title!.trim();
+    return {
+      type: kind, title, reg: d.reg?.trim() || 'Own drill', everyDays: every, own: { title, ...(d.reg?.trim() ? { reg: d.reg.trim() } : {}), ...(every ? { everyDays: every } : {}) },
+      ...(last ? { last } : {}), ...(due ? { due, left: daysBetween(today, due) } : {}), ...(plannedBy.has(kind) ? { planned: plannedBy.get(kind) } : {}),
+    };
+  });
+  // Never held first, then the soonest due; own drills off a cycle at the end.
+  const rank = (r: ScheduleRow) => (r.left != null ? r.left : r.everyDays ? -9999 : 99999);
+  return [...std, ...own].sort((a, b) => rank(a) - rank(b));
 }
 
-export const everyLabel = (days: number) => (days === 30 ? 'monthly' : days === 60 ? 'every 2 months' : days === 90 ? 'every 3 months' : days === 180 ? 'every 6 months' : days === 365 ? 'yearly' : `every ${days} days`);
+export const everyLabel = (days: number) => (!days ? 'not on a cycle' : days === 30 ? 'monthly' : days === 60 ? 'every 2 months' : days === 90 ? 'every 3 months' : days === 180 ? 'every 6 months' : days === 365 ? 'yearly' : `every ${days} days`);
 
 // ---- reports ----
 
@@ -121,7 +141,7 @@ export function drillFacts(d: Drill): [string, string][] {
   const len = minutesBetween(d.time, d.endTime);
   const present = d.attendance.filter((a) => a.present).length;
   return [
-    ['Drill', `${drillTypeTitle(d.type)}${t ? ` · ${t.reg}` : ''}`],
+    ['Drill', `${drillTitle(d)}${t ? ` · ${t.reg}` : d.reg?.trim() ? ` · ${d.reg.trim()}` : ''}`],
     ['Topic', d.topic || '—'],
     ['Date', d.date],
     ['Time', [d.time, d.endTime].filter(Boolean).join(' – ') + (len != null ? ` (${len} min)` : '') || '—'],
@@ -135,7 +155,7 @@ export function drillFacts(d: Drill): [string, string][] {
 export const REGISTER_HEAD = ['No.', 'Date', 'Time', 'Drill', 'Topic', 'Location', 'Present', 'Absent', 'Conducted by', 'Debrief'];
 export function registerRows(list: Drill[]): string[][] {
   return sortDrills(list).filter((d) => d.doneAt).map((d) => [
-    d.no, d.date, [d.time, d.endTime].filter(Boolean).join('–'), drillTypeTitle(d.type), d.topic, d.location ?? '',
+    d.no, d.date, [d.time, d.endTime].filter(Boolean).join('–'), drillTitle(d), d.topic, d.location ?? '',
     String(d.attendance.filter((a) => a.present).length), d.attendance.filter((a) => !a.present).map((a) => a.name).join(', '),
     who(d.doneBy, d.doneByRank), d.debrief ?? '',
   ]);
@@ -143,7 +163,7 @@ export function registerRows(list: Drill[]): string[][] {
 
 export const SCHEDULE_HEAD = ['Drill', 'Requirement', 'Interval', 'Last held', 'Next due', 'Planned'];
 export function scheduleRows(rows: ScheduleRow[]): string[][] {
-  return rows.map((r) => [r.title, r.reg, everyLabel(r.everyDays), r.last ?? 'never', r.due ? `${r.due}${(r.left ?? 0) < 0 ? ' OVERDUE' : ''}` : 'now', r.planned ? `${r.planned.no} ${r.planned.date}` : '']);
+  return rows.map((r) => [r.title, r.reg, everyLabel(r.everyDays), r.last ?? 'never', r.due ? `${r.due}${(r.left ?? 0) < 0 ? ' OVERDUE' : ''}` : r.everyDays ? 'now' : '—', r.planned ? `${r.planned.no} ${r.planned.date}` : '']);
 }
 
 // ---- the drill report / attendance list, as rows (drawn by services/drillReport.ts) ----
@@ -172,9 +192,10 @@ export interface DrillDoc {
 
 export function drillDoc(d: Drill, vesselLine: string, listOnly = false): DrillDoc {
   const st = drillState(d);
-  const theory = DRILL_THEORY[d.type];
+  const own = d.type === 'other' && d.theoryText?.trim() ? { title: drillTitle(d), text: d.theoryText.split(/\n\s*\n|\n/).map((p) => p.trim()).filter(Boolean) } : undefined;
+  const theory = DRILL_THEORY[d.type] ?? own;
   return {
-    title: `${listOnly ? 'Attendance list' : 'Drill report'} — ${drillTypeTitle(d.type)}${d.no ? ` · ${d.no}` : ''}`,
+    title: `${listOnly ? 'Attendance list' : 'Drill report'} — ${drillTitle(d)}${d.no ? ` · ${d.no}` : ''}`,
     vesselLine,
     status: st === 'done' ? DRILL_STATE_LABEL.done : 'PLAN — not yet carried out',
     listOnly,
