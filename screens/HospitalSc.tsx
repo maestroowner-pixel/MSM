@@ -59,7 +59,7 @@ const TITLE: Record<HospitalView, [string, string]> = {
 
 export default function HospitalSc() {
   const COLORS = useTheme();
-  const styles = useMemo(() => ({ ...makeStyles(COLORS), ...StyleSheet.create({ badgeBox: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, minWidth: 54, alignItems: 'center' }, badgeQty: { fontSize: SIZES.small, fontWeight: '800' }, badgeExp: { fontSize: 10, fontWeight: '700' }, infoBtn: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' }, infoBtnText: { fontSize: 12, fontWeight: '800', fontStyle: 'italic', fontFamily: 'Georgia', lineHeight: 14 }, issueBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, borderWidth: 1, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, minWidth: 54, justifyContent: 'center' }, issueText: { fontSize: 11, fontWeight: '800' }, infoBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: SIZES.md }, infoCard: { borderRadius: SIZES.radiusLg, padding: SIZES.lg, width: '100%', maxWidth: 560 } }) }), [COLORS]);
+  const styles = useMemo(() => ({ ...makeStyles(COLORS), ...StyleSheet.create({ badgeBox: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, minWidth: 54, alignItems: 'center' }, badgeQty: { fontSize: SIZES.small, fontWeight: '800' }, badgeExp: { fontSize: 10, fontWeight: '700' }, infoBtn: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' }, infoBtnText: { fontSize: 12, fontWeight: '800', fontStyle: 'italic', fontFamily: 'Georgia', lineHeight: 14 }, infoBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: SIZES.md }, infoCard: { borderRadius: SIZES.radiusLg, padding: SIZES.lg, width: '100%', maxWidth: 560 } }) }), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
   const { medItems, medMoves, medTreatments, medOrders, medChecks, saveRows, vessel } = useData();
@@ -266,23 +266,23 @@ export default function HospitalSc() {
                 {sortBy === 'expiry' && exp ? <Text style={[styles.sub, { color: expiryState(today, exp) === 'expired' ? COLORS.danger : COLORS.textLight }]}>{`Soonest expiry ${formatDate(exp)}`}</Text> : null}
                 {sortBy === 'purpose' ? <Text style={styles.sub} numberOfLines={1}>{scaleEntry(r.item).med?.indication ?? ''}</Text> : null}
                 </View>
-                {/* Batches as MHM shows them: quantity and MM/YY, out of date in red; two, then +n. */}
-                <View style={{ gap: 4, alignItems: 'flex-end' }}>
+                {/* One row on the right (13 Oct 2026): the out-of-date batches, then those in date (quantity and MM/YY, as MHM), then Issue. */}
+                <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center', alignSelf: 'center' }}>
                   {!r.batches.length ? (
                     <View style={[styles.badgeBox, { borderColor: COLORS.danger }]}><Text style={[styles.badgeQty, { color: COLORS.danger }]}>0</Text><Text style={[styles.badgeExp, { color: COLORS.danger }]}>EMPTY</Text></View>
                   ) : (
-                    r.batches.slice(0, 2).map((b) => {
+                    [...r.batches].sort((x, y) => (expiryState(today, x.expiry) === 'expired' ? 0 : 1) - (expiryState(today, y.expiry) === 'expired' ? 0 : 1)).slice(0, 3).map((b) => {
                       const s = expiryState(today, b.expiry);
                       const c = s === 'expired' ? COLORS.danger : s === 'soon' ? COLORS.warning : COLORS.success;
                       return <View key={b.key} style={[styles.badgeBox, { borderColor: c }]}><Text style={[styles.badgeQty, { color: c }]}>{b.qty}</Text><Text style={[styles.badgeExp, { color: c }]}>{mmYY(b.expiry)}</Text></View>;
                     })
                   )}
-                  {r.batches.length > 2 ? <View style={[styles.badgeBox, { borderColor: COLORS.border }]}><Text style={[styles.badgeQty, { color: COLORS.textLight }]}>{`+${r.batches.length - 2}`}</Text></View> : null}
+                  {r.batches.length > 3 ? <View style={[styles.badgeBox, { borderColor: COLORS.border }]}><Text style={[styles.badgeQty, { color: COLORS.textLight }]}>{`+${r.batches.length - 3}`}</Text><Text style={[styles.badgeExp, { color: COLORS.textLight }]}>more</Text></View> : null}
                   {/* Issue: a new entry in the medical log with this item already in it. */}
                   {officer && r.usable > 0 ? (
-                    <TouchableOpacity onPress={() => nav.navigate('Treatment', { id: 'new', issue: r.item.id })} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Issue — ${r.item.name}`} style={[styles.issueBtn, { borderColor: COLORS.primary }]}>
-                      <MciIcon name="hand-heart-outline" size={14} color={COLORS.primary} />
-                      <Text style={[styles.issueText, { color: COLORS.primary }]}>Issue</Text>
+                    <TouchableOpacity onPress={() => nav.navigate('Treatment', { id: 'new', issue: r.item.id })} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Issue — ${r.item.name}`} style={[styles.badgeBox, { borderColor: COLORS.primary, backgroundColor: COLORS.primary }]}>
+                      <MciIcon name="hand-heart-outline" size={15} color={COLORS.textWhite} />
+                      <Text style={[styles.badgeExp, { color: COLORS.textWhite }]}>ISSUE</Text>
                     </TouchableOpacity>
                   ) : null}
                 </View>
