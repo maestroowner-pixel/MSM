@@ -15,6 +15,8 @@ the part that stops the next person undoing it.
 
 What the crew sees: **inspection rounds as Jez asked** — the report in the Reports layout with a final Officer / Master sign-off, Deck → Location → number, and an inspection counts towards the matching round from anywhere (Dashboard, scanner, widget); **the fix for React error 185 after saving**; records say how they were signed ("signed by PIN" …); a crew card or visitor pass scanned without gangway control says so. Modules on: lifting, rounds — unchanged. Everything else below is dark (QHSE, gangway photo, SDM import with crew certificates).
 
+**Server rules deployed 13 Oct 2026** (before 2.62 reaches the crews): rounds accept the final sign-off fields and a closed round is final; `observations` and `ncs` for QHSE. Backward compatible with 2.61.
+
 ### Since 2.61
 
 - **Gangway — Jez's point 4** (dark with `security`): a **photograph** of the visitor on sign-on (phone camera, 240 px JPEG kept on the visit record, removed automatically 90 days after the visit — `photosToRemove`); scanning a pass in use opens the holder's **identity card** (photo, name, company, purpose, host, time aboard) instead of signing them off, and the watch signs off from there (Sign off now); returning contractors bring their photo with them.
