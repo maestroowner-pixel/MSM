@@ -34,7 +34,7 @@ import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import {
   ItemStatus, ORDER_STATE_LABEL, chestCounts, chestStatus, daysTo, differences, followUpsDue, isArchived, itemKey, lastControlledCount,
-  onOrderByItem, orderOverdue, orderState, planImport, readSheet, receivedByLine, scaleItems, sortOrders, sortTreatments,
+  onOrderByItem, orderOverdue, ChestSort, earliestExpiry, expiryState, matchesName, purposeOf, scaleEntry, sortChest, orderState, planImport, readSheet, receivedByLine, scaleItems, sortOrders, sortTreatments,
 } from '../services/hospital';
 import { exportChestExcel, exportChestPdf, exportChestTemplate, exportControlledPdf, exportMedLogExcel, exportMedLogPdf, pickChestSheet } from '../services/hospitalReport';
 import { formatDate } from '../utils/dates';
@@ -54,7 +54,6 @@ const TITLE: Record<HospitalView, [string, string]> = {
   reference: ['Medicine reference', 'WHO IMGS — for information only'],
 };
 
-const rank = (r: ItemStatus) => (r.expired ? 0 : r.nextState === 'soon' ? 1 : r.short ? 2 : r.nextState === 'later' ? 3 : 4);
 
 export default function HospitalSc() {
   const COLORS = useTheme();
@@ -88,13 +87,17 @@ export default function HospitalSc() {
   const rows = useMemo(() => chestStatus(medItems, medMoves, today), [medItems, medMoves, today]);
   const counts = chestCounts(rows);
   const onOrder = useMemo(() => onOrderByItem(medOrders, medMoves), [medOrders, medMoves]);
-  const shown = useMemo(() => {
-    const words = q.toLowerCase().split(/\s+/).filter(Boolean);
-    return rows
-      .filter((r) => filter === 'all' || (filter === 'expired' ? r.expired > 0 : filter === 'soon' ? r.nextState === 'soon' : filter === 'short' ? r.short > 0 : !!r.item.controlled))
-      .filter((r) => words.every((w) => `${r.item.name} ${r.item.strength ?? ''} ${r.item.location ?? ''} ${r.item.group ?? ''} ${r.item.code ?? ''}`.toLowerCase().includes(w)))
-      .sort((a, b) => rank(a) - rank(b) || a.item.name.localeCompare(b.item.name));
-  }, [rows, filter, q]);
+  const [sortBy, setSortBy] = useState<ChestSort>('attention');
+  const shown = useMemo(
+    () =>
+      sortChest(
+        rows
+          .filter((r) => filter === 'all' || (filter === 'expired' ? r.expired > 0 : filter === 'soon' ? r.nextState === 'soon' : filter === 'short' ? r.short > 0 : !!r.item.controlled))
+          .filter((r) => matchesName(r.item, q)),
+        sortBy
+      ),
+    [rows, filter, q, sortBy]
+  );
   const controlled = rows.filter((r) => r.item.controlled);
   const lastCount = lastControlledCount(medItems, medMoves);
   const orders = useMemo(() => sortOrders(medOrders).map((o) => ({ o, st: orderState(o, medMoves) })), [medOrders, medMoves]);
@@ -191,6 +194,13 @@ export default function HospitalSc() {
         <>
           {rows.length ? (
             <>
+              <TextInput style={[styles.input, { marginTop: 0, marginBottom: SIZES.sm }]} value={q} onChangeText={setQ} placeholder="Search by name" placeholderTextColor={COLORS.textLight} />
+              <View style={[styles.chips, { alignItems: 'center' }]}>
+                <Text style={[styles.sub, { marginTop: 0 }]}>Sort</Text>
+                {([['attention', 'Attention'], ['purpose', 'Purpose'], ['expiry', 'Expiry'], ['name', 'A–Z']] as [ChestSort, string][]).map(([k, l]) => (
+                  <Chip key={k} on={sortBy === k} label={l} onPress={() => setSortBy(k)} />
+                ))}
+              </View>
               <View style={styles.chips}>
                 <Chip on={filter === 'all'} label="All" onPress={() => setFilter('all')} />
                 <Chip on={filter === 'expired'} label={`Out of date · ${counts.expired}`} onPress={() => setFilter('expired')} />
@@ -203,18 +213,25 @@ export default function HospitalSc() {
                   {`${lastCount ? `Last counted ${formatDate(lastCount)}` : 'Never counted'} — the Master counts them monthly, with a witness (Inventory). Every move of a controlled drug is witnessed.`}
                 </Text>
               ) : null}
-              <TextInput style={[styles.input, { marginTop: 0, marginBottom: SIZES.sm }]} value={q} onChangeText={setQ} placeholder="Search — name, strength, group, location, code" placeholderTextColor={COLORS.textLight} />
             </>
           ) : null}
-          {shown.map((r) => {
+          {shown.map((r, i) => {
             const coming = onOrder.get(r.item.id);
+            // By purpose: a heading where the group changes.
+            const head = sortBy === 'purpose' && (i === 0 || purposeOf(shown[i - 1].item) !== purposeOf(r.item)) ? purposeOf(r.item) : null;
+            const exp = earliestExpiry(r);
             return (
-              <TouchableOpacity key={r.item.id} style={[styles.item, { borderLeftColor: stateColor(r) }]} onPress={() => nav.navigate('MedItem', { id: r.item.id })} activeOpacity={0.7}>
+              <React.Fragment key={r.item.id}>
+              {head ? <Text style={[styles.sub, { fontWeight: '800', color: COLORS.textDark, marginTop: SIZES.md, marginBottom: 4 }]}>{`${head} · ${shown.filter((x) => purposeOf(x.item) === head).length}`}</Text> : null}
+              <TouchableOpacity style={[styles.item, { borderLeftColor: stateColor(r) }]} onPress={() => nav.navigate('MedItem', { id: r.item.id })} activeOpacity={0.7}>
                 <Text style={styles.name}>{`${r.item.name}${r.item.controlled ? '  · CD' : ''}`}</Text>
                 <Text style={styles.sub}>{[r.item.strength, r.item.location].filter(Boolean).join(' · ')}</Text>
                 <Text style={[styles.sub, { color: stateColor(r), fontWeight: '700' }]}>{[`${r.usable} / ${r.item.required} ${r.item.unit}`, r.short ? `${r.short} short` : null, expLine(r)].filter(Boolean).join(' · ')}</Text>
                 {coming ? <Text style={[styles.sub, { color: COLORS.primary }]}>{`${coming} on order`}</Text> : null}
+                {sortBy === 'expiry' && exp ? <Text style={[styles.sub, { color: expiryState(today, exp) === 'expired' ? COLORS.danger : COLORS.textLight }]}>{`Soonest expiry ${formatDate(exp)}`}</Text> : null}
+                {sortBy === 'purpose' ? <Text style={styles.sub} numberOfLines={1}>{scaleEntry(r.item).med?.indication ?? ''}</Text> : null}
               </TouchableOpacity>
+              </React.Fragment>
             );
           })}
           {rows.length && !shown.length ? <Text style={styles.sub}>Nothing here.</Text> : null}

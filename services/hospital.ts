@@ -362,3 +362,34 @@ export function toOrder(rows: ItemStatus[], today: string, onOrder: Map<string, 
     })
     .filter((x) => x.need > 0);
 }
+
+// ---- the register's order (13 Oct 2026: "sort by purpose, by expiry, alphabetically") ----
+
+/** What an item is for: its own group, or the WHO IMGS group by its name, or its kind. */
+export function purposeOf(item: MedItem): string {
+  if (item.group?.trim()) return item.group.trim();
+  const s = scaleEntry(item);
+  return s.med?.group ?? s.nursing?.group ?? ({ medicine: 'Other medicines', equipment: 'Other equipment', consumable: 'Other dressings & consumables' } as Record<MedKind, string>)[item.kind];
+}
+
+/** The soonest expiry of anything aboard, out of date included. */
+export const earliestExpiry = (r: ItemStatus) => r.batches.map((b) => b.expiry).filter(Boolean).sort()[0] as string | undefined;
+
+export type ChestSort = 'attention' | 'purpose' | 'expiry' | 'name';
+const attention = (r: ItemStatus) => (r.expired ? 0 : r.nextState === 'soon' ? 1 : r.short ? 2 : r.nextState === 'later' ? 3 : 4);
+const byName = (a: ItemStatus, b: ItemStatus) => a.item.name.localeCompare(b.item.name) || (a.item.strength ?? '').localeCompare(b.item.strength ?? '');
+
+export function sortChest(rows: ItemStatus[], by: ChestSort): ItemStatus[] {
+  const out = [...rows];
+  if (by === 'name') return out.sort(byName);
+  if (by === 'expiry') return out.sort((a, b) => (earliestExpiry(a) ?? '9999').localeCompare(earliestExpiry(b) ?? '9999') || byName(a, b));
+  if (by === 'purpose') return out.sort((a, b) => purposeOf(a.item).localeCompare(purposeOf(b.item)) || byName(a, b));
+  return out.sort((a, b) => attention(a) - attention(b) || byName(a, b));
+}
+
+/** Search by name: every word in the name, strength or code. */
+export function matchesName(item: MedItem, q: string): boolean {
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  const hay = `${item.name} ${item.strength ?? ''} ${item.code ?? ''}`.toLowerCase();
+  return words.every((w) => hay.includes(w));
+}

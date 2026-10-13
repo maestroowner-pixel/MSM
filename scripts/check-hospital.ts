@@ -1,7 +1,7 @@
 // npm run check:hospital — stock by batch, expiry, orders delivered in parts, the inventory, the register, the scale, the Excel list, the board.
 import {
   chestStatus, checkLinesFor, differences, expiryState, followUpsDue, lastControlledCount, nextNo, normExpiry, onOrderByItem, orderOverdue, orderState,
-  pickBatch, planImport, readSheet, receivedByLine, registerLines, scaleEntry, scaleItems, stockByItem, toOrder,
+  pickBatch, planImport, sortChest, purposeOf, earliestExpiry, matchesName, readSheet, receivedByLine, registerLines, scaleEntry, scaleItems, stockByItem, toOrder,
 } from '../services/hospital';
 import { MED_SCALE, NURSING_SCALE } from '../constants/medScale';
 import { buildBoard } from '../services/board';
@@ -66,6 +66,19 @@ const sheet = readSheet([['Medicine chest'], ['Name', 'Strength / form', 'Unit',
 ok(sheet.lines.length === 3 && sheet.skipped === 1 && sheet.lines[2].controlled && sheet.lines[1].expiry === '2028-04-30', 'reads the list: header found, controlled, expiry, a stray row skipped');
 const plan = planImport(sheet.lines, [I({})]);
 ok(plan.update.length === 1 && plan.add.length === 1 && plan.counts.length === 3, 'existing item updated, new added, each batch with a quantity counted');
+
+// the register's order
+const sorted = chestStatus([
+  I({ id: 'z', name: 'Zinc oxide', strength: 'paste/ointment 20%', required: 1 }),
+  I({ id: 'a', name: 'Adrenaline', strength: 'ampoule 1:1000 (1mg/ml)', required: 1 }),
+  I({ id: 'g', name: 'Gauze', group: 'Bandages & Sutures', kind: 'consumable', required: 1 }),
+], [M({ itemId: 'z', expiry: '2026-11-30' }), M({ itemId: 'a', expiry: '2028-01-31' }), M({ itemId: 'g', expiry: '2026-10-01' })], T);
+ok(sortChest(sorted, 'name').map((r) => r.item.id).join() === 'a,g,z', 'A–Z');
+ok(sortChest(sorted, 'expiry').map((r) => r.item.id).join() === 'g,z,a', 'by expiry, out of date first');
+ok(purposeOf(sorted[1].item) === 'Cardiovascular' && purposeOf(sorted[2].item) === 'Bandages & Sutures', 'purpose from the WHO IMGS group, or the item’s own');
+ok(sortChest(sorted, 'purpose').map((r) => purposeOf(r.item)).join() === 'Bandages & Sutures,Cardiovascular,Dermatology', 'by purpose, groups in order');
+ok(earliestExpiry(sorted[2]) === '2026-10-01', 'soonest expiry includes out of date');
+ok(matchesName(sorted[1].item, 'adren') && !matchesName(sorted[1].item, 'zinc'), 'search by name');
 
 // board
 const base: any = { on: (k: string) => k === 'hospital', role: 'admin', me: null, today: T, now: `${T}T10:00`, labelOf: (k: any) => k, periodsOf: () => [], flat: [], certificates: [], inspections: [], crew: [], rest: [], machines: [], pmsJobs: [], pmsDone: [], pmsDeferrals: [], pmsDefects: [], spares: [], spareMoves: [], docs: [], docAcks: [], permits: [], fuelTanks: [], fuelReadings: [], fuelBunkers: [], fuelDailySent: [], garbage: [], garbageSigns: [], sopepItems: [], sopepChecks: [], sopepDrills: [], visitors: [], securityLevels: [], securityDrills: [], crewMoves: [], surveys: [], surveysDone: [], rounds: [], categories: [], templates: {} };
