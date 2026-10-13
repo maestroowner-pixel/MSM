@@ -34,7 +34,7 @@ import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import {
   ItemStatus, ORDER_STATE_LABEL, chestCounts, chestStatus, daysTo, differences, followUpsDue, isArchived, itemKey, lastControlledCount,
-  onOrderByItem, orderOverdue, ChestSort, STOCK_LEVEL_LABEL, earliestExpiry, expiryState, matchesSearch, mmYY, purposeIcon, purposeOf, scaleEntry, sortChest, stockLevel, orderState, planImport, readSheet, receivedByLine, scaleItems, sortOrders, sortTreatments,
+  onOrderByItem, orderOverdue, ChestSort, CHECK_KIND_LABEL, STOCK_LEVEL_LABEL, placeText, earliestExpiry, expiryState, matchesSearch, mmYY, purposeIcon, purposeOf, scaleEntry, sortChest, stockLevel, orderState, planImport, readSheet, receivedByLine, scaleItems, sortOrders, sortTreatments,
 } from '../services/hospital';
 import { exportChestExcel, exportChestPdf, exportChestTemplate, exportControlledPdf, exportMedLogExcel, exportMedLogPdf, pickChestSheet } from '../services/hospitalReport';
 import { formatDate } from '../utils/dates';
@@ -199,7 +199,7 @@ export default function HospitalSc() {
         <>
           {rows.length ? (
             <>
-              <TextInput style={[styles.input, { marginTop: 0, marginBottom: SIZES.sm }]} value={q} onChangeText={setQ} placeholder="🔍 Search by name, indication, ATC" placeholderTextColor={COLORS.textLight} />
+              <TextInput style={[styles.input, { marginTop: 0, marginBottom: SIZES.sm }]} value={q} onChangeText={setQ} placeholder="🔍 Search — name, indication, ATC, list No., cabinet" placeholderTextColor={COLORS.textLight} />
               {/* Groups as in MHM: tap one to see only it. */}
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SIZES.xs, paddingBottom: SIZES.sm }}>
                 <Chip on={!group} label={`💊 All · ${rows.length}`} onPress={() => setGroup(null)} />
@@ -207,7 +207,7 @@ export default function HospitalSc() {
               </ScrollView>
               <View style={[styles.chips, { alignItems: 'center' }]}>
                 <Text style={[styles.sub, { marginTop: 0 }]}>Sort</Text>
-                {([['attention', 'Attention'], ['purpose', 'Purpose'], ['expiry', 'Expiry'], ['name', 'A–Z']] as [ChestSort, string][]).map(([k, l]) => (
+                {([['attention', 'Attention'], ['purpose', 'Purpose'], ['expiry', 'Expiry'], ['name', 'A–Z'], ['place', 'Location'], ['list', 'List No.']] as [ChestSort, string][]).map(([k, l]) => (
                   <Chip key={k} on={sortBy === k} label={l} onPress={() => setSortBy(k)} />
                 ))}
               </View>
@@ -238,7 +238,8 @@ export default function HospitalSc() {
               <TouchableOpacity style={[styles.item, { borderLeftColor: stateColor(r), flexDirection: 'row', gap: SIZES.sm }]} onPress={() => nav.navigate('MedItem', { id: r.item.id })} activeOpacity={0.7}>
                 <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={styles.name} numberOfLines={1}>{`${purposeIcon(purposeOf(r.item))} ${r.item.name}${r.item.controlled ? ' 🔒' : ''}`}</Text>
-                <Text style={styles.sub}>{[r.item.strength, r.item.location].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.sub}>{[r.item.listNo ? `No. ${r.item.listNo}` : null, r.item.strength].filter(Boolean).join(' · ')}</Text>
+                {placeText(r.item) ? <Text style={[styles.sub, { color: COLORS.textDark }]}>{`📍 ${placeText(r.item)}`}</Text> : null}
                 <Text style={[styles.sub, { color: stateColor(r), fontWeight: '700' }]}>{[`${r.usable} / ${r.item.required} ${r.item.unit}`, STOCK_LEVEL_LABEL[stockLevel(r)], r.short ? `${r.short} short` : null, r.expired ? `${r.expired} out of date` : r.nextState === 'soon' ? 'expiring' : null].filter(Boolean).join(' · ')}</Text>
                 {coming ? <Text style={[styles.sub, { color: COLORS.primary }]}>{`${coming} on order`}</Text> : null}
                 {sortBy === 'expiry' && exp ? <Text style={[styles.sub, { color: expiryState(today, exp) === 'expired' ? COLORS.danger : COLORS.textLight }]}>{`Soonest expiry ${formatDate(exp)}`}</Text> : null}
@@ -354,16 +355,21 @@ export default function HospitalSc() {
         </>
       ) : shownView === 'inventory' ? (
         <>
+          <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>Counting the chest against the books. Inventory: go round the cabinets with the list, change only what you count differently — the books then follow the count, and the differences print. Controlled drugs: the Master’s monthly count with a witness, and the handover when the responsible officer changes — the outgoing and the incoming count together and both sign.</Text>
           {officer && rows.length ? (
-            <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginBottom: SIZES.md }]} onPress={() => nav.navigate('MedCount', { id: 'new' })}><Text style={styles.btnText}>Start an inventory</Text></TouchableOpacity>
+            <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.md }]}>
+              <TouchableOpacity style={styles.btn} onPress={() => nav.navigate('MedCount', { id: 'new' })}><Text style={styles.btnText}>Start an inventory</Text></TouchableOpacity>
+              {controlled.length ? <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedCount', { id: 'new', mode: 'cd' })}><Text style={styles.smallText}>Controlled drugs count</Text></TouchableOpacity> : null}
+              {controlled.length ? <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedCount', { id: 'new', mode: 'handover' })}><Text style={styles.smallText}>Controlled drugs handover</Text></TouchableOpacity> : null}
+            </View>
           ) : null}
           {!rows.length ? <Text style={styles.sub}>Make the register first — then count it here.</Text> : null}
           {checks.map((c) => {
             const diff = differences(c).length;
             return (
               <TouchableOpacity key={c.id} style={[styles.item, { borderLeftColor: diff ? COLORS.warning : COLORS.success }]} onPress={() => nav.navigate('MedCount', { id: c.id })} activeOpacity={0.7}>
-                <Text style={styles.name}>{`${c.no} · ${formatDate(c.date)}`}</Text>
-                <Text style={styles.sub}>{[`${c.lines.length} lines`, diff ? `${diff} differences` : 'as the books', c.witness ? `witness ${c.witness}` : null, c.byRank ? `${c.by} (${c.byRank})` : c.by].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.name}>{`${c.no} · ${CHECK_KIND_LABEL[c.kind ?? 'inventory']} · ${formatDate(c.date)}`}</Text>
+                <Text style={styles.sub}>{[`${c.lines.length} lines`, diff ? `${diff} differences` : 'as the books', c.kind === 'handover' ? `${c.by} → ${c.witness}` : c.witness ? `witness ${c.witness}` : null, c.kind === 'handover' ? null : c.byRank ? `${c.by} (${c.byRank})` : c.by].filter(Boolean).join(' · ')}</Text>
               </TouchableOpacity>
             );
           })}

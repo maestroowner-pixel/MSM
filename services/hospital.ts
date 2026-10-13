@@ -156,7 +156,7 @@ export const MOVE_LABEL: Record<MedMove['kind'], string> = { received: 'Received
 
 // ---- the Excel list ----
 
-export const SHEET_HEAD = ['Name', 'Strength / form', 'Unit', 'Required', 'Kind', 'Location', 'Controlled', 'Batch', 'Expiry', 'Quantity'];
+export const SHEET_HEAD = ['List No.', 'Name', 'Strength / form', 'Unit', 'Required', 'Kind', 'Location', 'Cabinet', 'Cell', 'Controlled', 'Batch', 'Expiry', 'Quantity'];
 
 export interface SheetLine {
   name: string;
@@ -165,6 +165,9 @@ export interface SheetLine {
   required: number;
   kind: MedKind;
   location?: string;
+  listNo?: string;
+  cabinet?: string;
+  cell?: string;
   controlled: boolean;
   batchNo?: string;
   expiry?: string;
@@ -178,7 +181,7 @@ export function readSheet(rows: unknown[][]): { lines: SheetLine[]; skipped: num
   const norm = (v: unknown) => String(v ?? '').trim().toLowerCase();
   // The header row is the first with a name column AND at least one more column
   // we know — a title like "Medicine chest" above it is not a header.
-  const known = [/^(name|item|medicine|description)/, /strength|form|dosage/, /^(unit|uom)/, /^(required|min|req)|scale/, /^(batch|lot)/, /^exp/, /^(quantity|qty|stock)|on hand|aboard/, /location|^where|^stowed/, /controlled|narcotic/];
+  const known = [/^(name|item|medicine|description)/, /strength|form|dosage/, /^(unit|uom)/, /^(required|min|req)|scale/, /^(batch|lot)/, /^exp/, /^(quantity|qty|stock)|on hand|aboard/, /location|^where|^stowed/, /controlled|narcotic/, /^list|who|^no\.?$/, /cabinet|locker|cupboard/, /^cell|shelf|drawer|compartment/];
   const h = rows.findIndex((r) => {
     const cells = r.map(norm);
     return cells.some((c) => known[0].test(c)) && known.slice(1).filter((k) => cells.some((c) => k.test(c))).length >= 1;
@@ -193,6 +196,9 @@ export function readSheet(rows: unknown[][]): { lines: SheetLine[]; skipped: num
     required: col(/^required/, /^min/, /scale/, /^req/),
     kind: col(/^kind/, /^type/, /^category/),
     location: col(/location/, /^where/, /^stowed/),
+    listNo: col(/^list/, /who/, /^no\.?$/, /^#$/, /^ref/),
+    cabinet: col(/cabinet/, /locker/, /cupboard/),
+    cell: col(/^cell/, /shelf/, /drawer/, /compartment/, /^box/, /^bin/),
     controlled: col(/controlled/, /narcotic/, /^cd$/),
     batch: col(/^batch/, /^lot/),
     expiry: col(/^expir/, /^exp/, /best before/),
@@ -218,6 +224,9 @@ export function readSheet(rows: unknown[][]): { lines: SheetLine[]; skipped: num
       required: req != null && Number.isFinite(req) ? req : 0,
       kind: KIND_WORDS.find(([re]) => re.test(kindText))?.[1] ?? 'medicine',
       ...(c.location >= 0 && String(r[c.location] ?? '').trim() ? { location: String(r[c.location]).trim() } : {}),
+      ...(c.listNo >= 0 && String(r[c.listNo] ?? '').trim() ? { listNo: String(r[c.listNo]).trim() } : {}),
+      ...(c.cabinet >= 0 && String(r[c.cabinet] ?? '').trim() ? { cabinet: String(r[c.cabinet]).trim() } : {}),
+      ...(c.cell >= 0 && String(r[c.cell] ?? '').trim() ? { cell: String(r[c.cell]).trim() } : {}),
       controlled: /^(y|yes|x|1|true|cd|да)$/.test(ctl),
       ...(c.batch >= 0 && String(r[c.batch] ?? '').trim() ? { batchNo: String(r[c.batch]).trim() } : {}),
       ...(c.expiry >= 0 && normExpiry(r[c.expiry]) ? { expiry: normExpiry(r[c.expiry]) } : {}),
@@ -240,7 +249,7 @@ export function planImport(lines: SheetLine[], items: MedItem[]): { update: MedI
   const counts: { key: string; line: SheetLine }[] = [];
   for (const l of lines) {
     const k = key(l.name, l.strength);
-    const fields = { name: l.name, ...(l.strength ? { strength: l.strength } : {}), unit: l.unit, required: l.required, kind: l.kind, ...(l.location ? { location: l.location } : {}), ...(l.controlled ? { controlled: true } : {}) };
+    const fields = { name: l.name, ...(l.strength ? { strength: l.strength } : {}), unit: l.unit, required: l.required, kind: l.kind, ...(l.location ? { location: l.location } : {}), ...(l.listNo ? { listNo: l.listNo } : {}), ...(l.cabinet ? { cabinet: l.cabinet } : {}), ...(l.cell ? { cell: l.cell } : {}), ...(l.controlled ? { controlled: true } : {}) };
     const old = have.get(k);
     if (old) update.set(k, { ...old, ...fields, required: Math.max(update.get(k)?.required ?? 0, l.required) });
     else if (!add.has(k)) add.set(k, fields);
@@ -255,7 +264,7 @@ export const itemKey = key;
 export function sheetOf(rows: ItemStatus[]): unknown[][] {
   const out: unknown[][] = [SHEET_HEAD];
   for (const r of rows) {
-    const base = [r.item.name, r.item.strength ?? '', r.item.unit, r.item.required, r.item.kind, r.item.location ?? '', r.item.controlled ? 'yes' : ''];
+    const base = [r.item.listNo ?? '', r.item.name, r.item.strength ?? '', r.item.unit, r.item.required, r.item.kind, r.item.location ?? '', r.item.cabinet ?? '', r.item.cell ?? '', r.item.controlled ? 'yes' : ''];
     if (!r.batches.length) out.push([...base, '', '', '']);
     for (const b of r.batches) out.push([...base, b.batchNo ?? '', b.expiry ?? '', b.qty]);
   }
@@ -315,12 +324,17 @@ export function sortOrders(list: MedOrder[]): MedOrder[] {
 /** The lines to count: every batch the books show, and one empty line for an item with none. */
 export function checkLinesFor(rows: ItemStatus[]): CheckLine[] {
   const out: CheckLine[] = [];
-  for (const r of rows) {
-    if (!r.batches.length) out.push({ itemId: r.item.id, name: r.item.name, expected: 0, counted: 0 });
-    for (const b of r.batches) out.push({ itemId: r.item.id, name: r.item.name, ...(b.batchNo ? { batchNo: b.batchNo } : {}), ...(b.expiry ? { expiry: b.expiry } : {}), expected: b.qty, counted: b.qty });
+  // In the order one walks the chest: room, cabinet, cell.
+  for (const r of [...rows].sort((a, b) => comparePlace(a.item, b.item) || a.item.name.localeCompare(b.item.name))) {
+    const place = placeText(r.item);
+    const base = { itemId: r.item.id, name: [r.item.name, r.item.strength].filter(Boolean).join(' '), ...(place ? { place } : {}) };
+    if (!r.batches.length) out.push({ ...base, expected: 0, counted: 0 });
+    for (const b of r.batches) out.push({ ...base, ...(b.batchNo ? { batchNo: b.batchNo } : {}), ...(b.expiry ? { expiry: b.expiry } : {}), expected: b.qty, counted: b.qty });
   }
   return out;
 }
+
+export const CHECK_KIND_LABEL: Record<NonNullable<MedCheck['kind']>, string> = { inventory: 'Inventory', cd: 'Controlled drugs count', handover: 'Controlled drugs handover' };
 
 export const differences = (c: Pick<MedCheck, 'lines'>) => c.lines.filter((l) => l.counted !== l.expected);
 
@@ -330,11 +344,11 @@ export const differences = (c: Pick<MedCheck, 'lines'>) => c.lines.filter((l) =>
 export function scaleItems(cat: HospitalCategory): Omit<MedItem, 'id' | 'order' | 'updatedAt'>[] {
   const meds = MED_SCALE.filter((m) => m.req[cat] != null).map((m) => ({
     name: m.name, strength: m.strength, unit: unitOf(m.form), required: m.req[cat]!, kind: 'medicine' as MedKind, group: m.group,
-    ...(m.atc ? { code: m.atc } : {}), ...(m.controlled ? { controlled: true } : {}),
+    ...(m.atc ? { code: m.atc } : {}), ...(m.who ? { listNo: m.who } : {}), ...(m.controlled ? { controlled: true } : {}),
   }));
   const nurs = NURSING_SCALE.filter((n) => n.qty > 0).map((n) => ({
     name: n.name, ...(n.description && n.description !== n.name ? { strength: n.description } : {}), unit: 'pcs', required: n.qty,
-    kind: (/bandage|suture|dressing|gauze|compress|plaster|glove|swab/i.test(`${n.group} ${n.name}`) ? 'consumable' : 'equipment') as MedKind, group: n.group, code: n.code,
+    kind: (/bandage|suture|dressing|gauze|compress|plaster|glove|swab/i.test(`${n.group} ${n.name}`) ? 'consumable' : 'equipment') as MedKind, group: n.group, code: n.code, listNo: n.code,
   }));
   return [...meds, ...nurs];
 }
@@ -375,13 +389,15 @@ export function purposeOf(item: MedItem): string {
 /** The soonest expiry of anything aboard, out of date included. */
 export const earliestExpiry = (r: ItemStatus) => r.batches.map((b) => b.expiry).filter(Boolean).sort()[0] as string | undefined;
 
-export type ChestSort = 'attention' | 'purpose' | 'expiry' | 'name';
+export type ChestSort = 'attention' | 'purpose' | 'expiry' | 'name' | 'place' | 'list';
 const attention = (r: ItemStatus) => (r.expired ? 0 : r.nextState === 'soon' ? 1 : r.short ? 2 : r.nextState === 'later' ? 3 : 4);
 const byName = (a: ItemStatus, b: ItemStatus) => a.item.name.localeCompare(b.item.name) || (a.item.strength ?? '').localeCompare(b.item.strength ?? '');
 
 export function sortChest(rows: ItemStatus[], by: ChestSort): ItemStatus[] {
   const out = [...rows];
   if (by === 'name') return out.sort(byName);
+  if (by === 'place') return out.sort((a, b) => comparePlace(a.item, b.item) || byName(a, b));
+  if (by === 'list') return out.sort((a, b) => (a.item.listNo ? 0 : 1) - (b.item.listNo ? 0 : 1) || (a.item.listNo ?? '').localeCompare(b.item.listNo ?? '', undefined, { numeric: true }) || byName(a, b));
   if (by === 'expiry') return out.sort((a, b) => (earliestExpiry(a) ?? '9999').localeCompare(earliestExpiry(b) ?? '9999') || byName(a, b));
   if (by === 'purpose') return out.sort((a, b) => purposeOf(a.item).localeCompare(purposeOf(b.item)) || byName(a, b));
   return out.sort((a, b) => attention(a) - attention(b) || byName(a, b));
@@ -423,9 +439,30 @@ export function matchesSearch(item: MedItem, q: string): boolean {
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   if (!words.length) return true;
   const s = scaleEntry(item);
-  const hay = `${item.name} ${item.strength ?? ''} ${item.code ?? ''} ${s.med?.atc ?? ''} ${s.med?.indication ?? ''} ${s.nursing?.code ?? ''}`.toLowerCase();
+  const hay = `${item.name} ${item.strength ?? ''} ${item.code ?? ''} ${item.listNo ?? ''} ${item.location ?? ''} ${item.cabinet ?? ''} ${item.cell ?? ''} ${s.med?.atc ?? ''} ${s.med?.indication ?? ''} ${s.nursing?.code ?? ''}`.toLowerCase();
   return words.every((w) => hay.includes(w));
 }
 
 /** "11/27" — a batch's expiry as on MHM's badges. */
 export const mmYY = (iso?: string) => (iso ? `${iso.slice(5, 7)}/${iso.slice(2, 4)}` : 'no exp');
+
+// ---- where it is (13 Oct 2026: "location in the cabinet, cell number, list number — it is very important to find one's way") ----
+
+/** "Hospital · cabinet A · cell 3" — the room, the cabinet, the cell. */
+export function placeText(item: Pick<MedItem, 'location' | 'cabinet' | 'cell'>): string {
+  const cab = item.cabinet?.trim();
+  const cell = item.cell?.trim();
+  return [item.location?.trim(), cab ? (/^[a-z0-9]{1,3}$/i.test(cab) ? `cabinet ${cab}` : cab) : null, cell ? (/^[a-z0-9]{1,4}$/i.test(cell) ? `cell ${cell}` : cell) : null].filter(Boolean).join(' · ');
+}
+/** Room, then cabinet, then cell — "cell 2" before "cell 10"; what has no place goes last. */
+export function comparePlace(a: Pick<MedItem, 'location' | 'cabinet' | 'cell'>, b: Pick<MedItem, 'location' | 'cabinet' | 'cell'>): number {
+  for (const k of ['location', 'cabinet', 'cell'] as const) {
+    const x = a[k]?.trim() ?? '';
+    const y = b[k]?.trim() ?? '';
+    if (x === y) continue;
+    if (!x) return 1;
+    if (!y) return -1;
+    return x.localeCompare(y, undefined, { numeric: true, sensitivity: 'base' });
+  }
+  return 0;
+}

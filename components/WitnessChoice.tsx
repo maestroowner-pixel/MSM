@@ -22,13 +22,13 @@ export interface WitnessSign {
   witnessWith?: SignProof;
 }
 
-export function useWitness(signerName?: string) {
+export function useWitness(signerName?: string, caption = 'WITNESS') {
   const { crew } = useData();
   const confirmSign = useSignConfirm();
   const people = useMemo(() => crew.filter(isAboard).filter((c) => c.name !== signerName), [crew, signerName]);
   const [id, setId] = useState('');
   const picked = people.find((p) => p.id === id);
-  const picker = <Dropdown caption="WITNESS" value={picked ? id : ''} onChange={setId} options={[{ value: '', label: 'Choose…' }, ...people.map((p) => ({ value: p.id, label: p.rank ? `${p.name} · ${p.rank}` : p.name }))]} />;
+  const picker = <Dropdown caption={caption} value={picked ? id : ''} onChange={setId} options={[{ value: '', label: 'Choose…' }, ...people.map((p) => ({ value: p.id, label: p.rank ? `${p.name} · ${p.rank}` : p.name }))]} />;
   const confirm = async (what: string): Promise<WitnessSign | null> => {
     if (!picked) return null;
     const r = await confirmSign({ personKey: picked.id, name: picked.name, ownDevice: false, what: `Witness — ${what}`, always: true });

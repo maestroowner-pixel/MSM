@@ -26,7 +26,7 @@ import { CheckLine, MedCheck, MedMove } from '../types/hospital';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { proofShort } from '../services/signature';
-import { chestStatus, checkLinesFor, expiryState, nextNo, normExpiry } from '../services/hospital';
+import { CHECK_KIND_LABEL, chestStatus, checkLinesFor, expiryState, nextNo, normExpiry } from '../services/hospital';
 import { exportCheckPdf } from '../services/hospitalReport';
 import { formatDate, formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
@@ -45,8 +45,12 @@ export default function MedCountSc() {
   const sync = useSync();
   const officer = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const confirmSign = useSignConfirm();
-  const { signer, picker } = useSigner('COUNTED BY');
-  const witness = useWitness(signer?.name);
+  // Three counts (13 Oct 2026): the whole chest; the Master's monthly count of
+  // the controlled drugs; the controlled drugs handed over from one responsible
+  // officer to the next — outgoing signs, incoming signs.
+  const mode: 'inventory' | 'cd' | 'handover' = route.params?.mode === 'handover' ? 'handover' : route.params?.mode === 'cd' ? 'cd' : 'inventory';
+  const { signer, picker } = useSigner(mode === 'handover' ? 'HANDING OVER — OUTGOING' : 'COUNTED BY');
+  const witness = useWitness(signer?.name, mode === 'handover' ? 'TAKING OVER — INCOMING' : 'WITNESS');
   const today = todayIso();
 
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -55,7 +59,7 @@ export default function MedCountSc() {
   const statuses = useMemo(() => chestStatus(medItems, medMoves, today), [medItems, medMoves, today]);
   const [rows, setRows] = useState<Row[] | null>(() => (id === 'new' ? checkLinesFor(statuses).map((l, i) => ({ ...l, key: `l${i}`, text: String(l.counted) })) : null));
   const [q, setQ] = useState('');
-  const [onlyCd, setOnlyCd] = useState(false);
+  const [onlyCd, setOnlyCd] = useState(mode !== 'inventory');
   const [note, setNote] = useState('');
   const [found, setFound] = useState<{ itemId: string; batchNo: string; expiry: string; qty: string } | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
@@ -76,17 +80,17 @@ export default function MedCountSc() {
     return (
       <Screen scroll>
         <BackButton onPress={() => goBackOr(nav)} />
-        <ScreenTitle title={`Inventory ${stored.no}`} subtitle={`${formatDate(stored.date)} · ${stored.lines.length} lines · ${diff.length ? `${diff.length} differences` : 'as the books'}`} help="Hospital" />
+        <ScreenTitle title={`${CHECK_KIND_LABEL[stored.kind ?? 'inventory']} ${stored.no}`} subtitle={`${formatDate(stored.date)} · ${stored.lines.length} lines · ${diff.length ? `${diff.length} differences` : 'as the books'}`} help="Hospital" />
         <View style={[styles.item, { borderLeftColor: diff.length ? COLORS.warning : COLORS.success }]}>
-          <Text style={styles.sub}>{`Counted by ${who(stored.by, stored.byRank)} · ${formatDateTime(stored.at)}${stored.signedWith ? ` · ${proofShort(stored.signedWith)}` : ''}`}</Text>
-          {stored.witness ? <Text style={styles.sub}>{`Witness ${who(stored.witness, stored.witnessRank)}${stored.witnessWith ? ` · ${proofShort(stored.witnessWith)}` : ''}`}</Text> : null}
+          <Text style={styles.sub}>{`${stored.kind === 'handover' ? 'Handed over by' : 'Counted by'} ${who(stored.by, stored.byRank)} · ${formatDateTime(stored.at)}${stored.signedWith ? ` · ${proofShort(stored.signedWith)}` : ''}`}</Text>
+          {stored.witness ? <Text style={styles.sub}>{`${stored.kind === 'handover' ? 'Taken over by' : 'Witness'} ${who(stored.witness, stored.witnessRank)}${stored.witnessWith ? ` · ${proofShort(stored.witnessWith)}` : ''}`}</Text> : null}
           {stored.note ? <Text style={styles.body}>{stored.note}</Text> : null}
         </View>
         <Label>{diff.length ? 'Differences' : 'Counted'}</Label>
         {(diff.length ? diff : stored.lines).map((l, i) => (
           <Text key={i} style={[styles.body, { paddingVertical: 2 }]}>{`${l.name}${l.batchNo ? ` · ${l.batchNo}` : ''}${l.expiry ? ` · ${l.expiry.slice(0, 7)}` : ''} — books ${l.expected}, counted ${l.counted}`}</Text>
         ))}
-        <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }]} onPress={() => void pdf()}><Text style={styles.btnText}>Inventory (PDF)</Text></TouchableOpacity>
+        <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }]} onPress={() => void pdf()}><Text style={styles.btnText}>{`${CHECK_KIND_LABEL[stored.kind ?? 'inventory']} (PDF)`}</Text></TouchableOpacity>
         {saved ? <Text style={styles.sub}>{saved}</Text> : null}
       </Screen>
     );
@@ -128,14 +132,16 @@ export default function MedCountSc() {
     const cdIn = use.some((r) => itemOf(r.itemId)?.controlled);
     if (cdIn && !witness.picked) return Alert.alert('Controlled drugs', 'They are counted with a witness — choose the second person present.');
     const no = nextNo('INV', medChecks, today);
-    const what = `${onlyCd ? 'Controlled drugs count' : 'Medicine chest inventory'} ${no}`;
+    if (mode === 'handover' && !witness.picked) return Alert.alert('Handover', 'Choose who takes over the controlled drugs.');
+    const kind = mode === 'handover' ? 'handover' : onlyCd ? 'cd' : 'inventory';
+    const what = `${CHECK_KIND_LABEL[kind]} ${no}`;
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what });
     if (!sig) return;
     const w = cdIn ? await witness.confirm(what) : null;
     if (cdIn && !w) return;
     const now = Date.now();
     const lines: CheckLine[] = use.map(({ key, text, found: _f, ...l }) => ({ ...l, counted: Number(text.replace(',', '.')) }));
-    const c: MedCheck = { id: uid('inv'), no, date: today, lines, ...(note.trim() ? { note: note.trim() } : {}), by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), ...(w ?? {}), updatedAt: now };
+    const c: MedCheck = { id: uid('inv'), no, kind, date: today, lines, ...(note.trim() ? { note: note.trim() } : {}), by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), ...(w ?? {}), updatedAt: now };
     await saveRow(storage.MED_CHECKS_KEY, c);
     const counts: MedMove[] = [];
     for (const l of lines) {
@@ -154,23 +160,36 @@ export default function MedCountSc() {
   return (
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav)} />
-      <ScreenTitle title="Inventory" subtitle={`${rows.length} lines from the books — change only what differs${changed ? ` · ${changed} changed` : ''}`} help="Hospital" />
+      <ScreenTitle title={mode === 'handover' ? 'Controlled drugs handover' : onlyCd ? 'Controlled drugs count' : 'Inventory'} subtitle={`${visible.length} lines from the books — change only what differs${changed ? ` · ${changed} changed` : ''}`} help="Hospital" />
+      <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>
+        {mode === 'handover'
+          ? 'The outgoing and the incoming officer count every controlled drug together, batch by batch. Correct what differs; both sign — the outgoing as handing over, the incoming as taking over. The handover prints as a list with both signatures.'
+          : onlyCd
+          ? 'The Master counts the controlled drugs with a witness, monthly. Correct what differs and sign; both signatures go on the register.'
+          : 'Go round the chest with this list — it runs room by room, cabinet by cabinet. The quantities are from the books: change only what you count differently, add a batch you find. When signed, the books follow the count and the differences print.'}
+      </Text>
       <TextInput style={[styles.input, { marginTop: 0 }]} value={q} onChangeText={setQ} placeholder="Find an item" placeholderTextColor={COLORS.textLight} />
-      <View style={styles.toggle}>
-        <Text style={styles.toggleText}>Controlled drugs only (the Master’s monthly count)</Text>
-        <Switch value={onlyCd} onValueChange={setOnlyCd} />
-      </View>
-      {visible.map((r) => {
+      {mode === 'handover' ? null : (
+        <View style={styles.toggle}>
+          <Text style={styles.toggleText}>Controlled drugs only (the Master’s monthly count)</Text>
+          <Switch value={onlyCd} onValueChange={setOnlyCd} />
+        </View>
+      )}
+      {visible.map((r, i) => {
         const diff = Number(r.text.replace(',', '.')) !== r.expected;
         const s = expiryState(today, r.expiry);
+        const head = r.place && (i === 0 || visible[i - 1].place !== r.place) ? r.place : null;
         return (
-          <View key={r.key} style={[styles.row, { marginVertical: 2, borderBottomWidth: 0.5, borderBottomColor: COLORS.borderLight, paddingBottom: 4 }]}>
+          <React.Fragment key={r.key}>
+          {head ? <Text style={[styles.sub, { fontWeight: '800', color: COLORS.textDark, marginTop: SIZES.md }]}>{`📍 ${head}`}</Text> : null}
+          <View style={[styles.row, { marginVertical: 2, borderBottomWidth: 0.5, borderBottomColor: COLORS.borderLight, paddingBottom: 4 }]}>
             <View style={{ flex: 1, minWidth: 160 }}>
               <Text style={styles.name}>{`${r.name}${itemOf(r.itemId)?.controlled ? ' · CD' : ''}${r.found ? ' · found' : ''}`}</Text>
               <Text style={[styles.sub, s === 'expired' ? { color: COLORS.danger, fontWeight: '700' } : null]}>{[r.batchNo ? `batch ${r.batchNo}` : null, r.expiry ? `exp ${r.expiry.slice(0, 7)}${s === 'expired' ? ' OUT OF DATE' : ''}` : null, `books ${r.expected}`].filter(Boolean).join(' · ')}</Text>
             </View>
             <TextInput style={[styles.input, { width: 80, marginTop: 0, textAlign: 'right' }, diff && { borderColor: COLORS.warning, borderWidth: 2 }]} value={r.text} onChangeText={(v) => setText(r.key, v)} keyboardType="decimal-pad" selectTextOnFocus />
           </View>
+          </React.Fragment>
         );
       })}
       {found ? (
@@ -195,9 +214,9 @@ export default function MedCountSc() {
       <Card>
         <TextInput style={styles.input} value={note} onChangeText={setNote} placeholder="Remarks — damaged boxes, what was moved" placeholderTextColor={COLORS.textLight} />
         {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
-        {cdCounted ? <View style={{ marginTop: SIZES.sm }}>{witness.picker}</View> : null}
+        {cdCounted || mode === 'handover' ? <View style={{ marginTop: SIZES.sm }}>{witness.picker}</View> : null}
         <View style={styles.row}>
-          <TouchableOpacity style={styles.btn} onPress={() => void sign()}><Text style={styles.btnText}>Sign the inventory</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.btn} onPress={() => void sign()}><Text style={styles.btnText}>{mode === 'handover' ? 'Sign the handover' : 'Sign the count'}</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => goBackOr(nav)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
         </View>
       </Card>

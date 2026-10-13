@@ -32,7 +32,7 @@ import { MED_KIND_LABEL, MedItem, MedKind, MedMove } from '../types/hospital';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { proofShort } from '../services/signature';
-import { MOVE_LABEL, daysTo, expiryState, itemStatus, normExpiry, onOrderByItem, registerLines, scaleEntry, stockByItem } from '../services/hospital';
+import { placeText, MOVE_LABEL, daysTo, expiryState, itemStatus, normExpiry, onOrderByItem, registerLines, scaleEntry, stockByItem } from '../services/hospital';
 import { MED_INFO_NOTICE, WHO_NOTICE } from '../constants/medNotice';
 import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
@@ -151,7 +151,12 @@ export default function MedItemSc() {
               </TouchableOpacity>
             ))}
           </View>
-          <TextInput style={styles.input} value={draft.location ?? ''} onChangeText={(v) => set({ location: v })} placeholder="Where it is kept — Hospital, locker 2" placeholderTextColor={COLORS.textLight} />
+          <TextInput style={styles.input} value={draft.listNo ?? ''} onChangeText={(v) => set({ listNo: v })} placeholder="No. in the list — WHO (W.H.O. 1.3.1, II.2.21) or the flag's (MSN 1768 A-12)" placeholderTextColor={COLORS.textLight} />
+          <TextInput style={styles.input} value={draft.location ?? ''} onChangeText={(v) => set({ location: v })} placeholder="Where — Hospital, bridge first-aid bag, rescue boat" placeholderTextColor={COLORS.textLight} />
+          <View style={styles.row}>
+            <TextInput style={[styles.input, { flex: 1, minWidth: 120, marginTop: 0 }]} value={draft.cabinet ?? ''} onChangeText={(v) => set({ cabinet: v })} placeholder="Cabinet / locker — A, CD safe" placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { flex: 1, minWidth: 120, marginTop: 0 }]} value={draft.cell ?? ''} onChangeText={(v) => set({ cell: v })} placeholder="Cell / shelf / drawer — 3, Shelf 2" placeholderTextColor={COLORS.textLight} />
+          </View>
           <TextInput style={styles.input} value={draft.group ?? ''} onChangeText={(v) => set({ group: v })} placeholder="Group — Cardiovascular, Bandages & Sutures" placeholderTextColor={COLORS.textLight} />
           <View style={styles.toggle}>
             <Text style={styles.toggleText}>Controlled drug — every move witnessed, counted by the Master monthly</Text>
@@ -167,7 +172,9 @@ export default function MedItemSc() {
           <Text style={styles.name}>{`${st.usable} of ${item.required} ${item.unit} in date${st.short ? ` · ${st.short} short` : ''}`}</Text>
           {st.expired ? <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700' }]}>{`${st.expired} out of date — dispose of them`}</Text> : null}
           {coming ? <Text style={[styles.sub, { color: COLORS.primary }]}>{`${coming} on order`}</Text> : null}
-          <Text style={styles.sub}>{[MED_KIND_LABEL[item.kind], item.location, item.controlled ? 'Controlled drug' : null].filter(Boolean).join(' · ')}</Text>
+          <Text style={styles.sub}>{[MED_KIND_LABEL[item.kind], item.controlled ? 'Controlled drug' : null].filter(Boolean).join(' · ')}</Text>
+          {placeText(item) ? <Text style={[styles.body, { fontWeight: '700' }]}>{`📍 ${placeText(item)}`}</Text> : null}
+          {item.listNo ? <Text style={styles.sub}>{`List No. ${item.listNo}`}</Text> : null}
           {officer ? (
             <View style={styles.row}>
               <TouchableOpacity onPress={() => setDraft(item)}><Text style={styles.link}>Edit</Text></TouchableOpacity>

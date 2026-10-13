@@ -20,9 +20,9 @@ import { VesselInfo } from './storage';
 import { esc, share, vesselHeader } from './export';
 import { exportPmsHistory } from './pmsHistoryReport';
 import { sheetRows } from './pmsImport';
-import { ItemStatus, MOVE_LABEL, SHEET_HEAD, daysTo, expiryState, issuedText, receivedByLine, registerLines, sheetOf, sortTreatments, toOrder } from './hospital';
+import { comparePlace, placeText, ItemStatus, MOVE_LABEL, SHEET_HEAD, daysTo, expiryState, issuedText, receivedByLine, registerLines, sheetOf, sortTreatments, toOrder } from './hospital';
 import { proofShort } from './signature';
-import { MED_KIND_LABEL, MedCheck, MedItem, MedMove, MedOrder, MedTreatment, OUTCOME_LABEL } from '../types/hospital';
+import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment, OUTCOME_LABEL } from '../types/hospital';
 import { deliverFile, onWeb, onWindows } from '../utils/fileShare';
 import { pickBinaryFileWeb } from '../utils/webFile';
 import { saveFileWeb } from '../utils/webSave';
@@ -55,11 +55,12 @@ async function saveXlsx(wb: XLSX.WorkBook, name: string): Promise<string | null 
 
 // ---- the chest ----
 
-const CHEST_HEAD = ['Item', 'Strength / form', 'Kind', 'Location', 'Required', 'In date', 'Short', 'Batch', 'Expiry', 'Qty', 'State'];
+const CHEST_HEAD = ['List No.', 'Item', 'Strength / form', 'Where', 'Required', 'In date', 'Short', 'Batch', 'Expiry', 'Qty', 'State'];
 function chestRows(rows: ItemStatus[], today: string): string[][] {
   const out: string[][] = [];
-  for (const r of rows) {
-    const base = [`${r.item.name}${r.item.controlled ? ' (CD)' : ''}`, r.item.strength ?? '', MED_KIND_LABEL[r.item.kind], r.item.location ?? '', `${r.item.required} ${r.item.unit}`, String(r.usable), r.short ? String(r.short) : ''];
+  // As the chest is laid out: room, cabinet, cell — the list in hand finds the shelf.
+  for (const r of [...rows].sort((a, b) => comparePlace(a.item, b.item) || a.item.name.localeCompare(b.item.name))) {
+    const base = [r.item.listNo ?? '', `${r.item.name}${r.item.controlled ? ' (CD)' : ''}`, r.item.strength ?? '', placeText(r.item), `${r.item.required} ${r.item.unit}`, String(r.usable), r.short ? String(r.short) : ''];
     if (!r.batches.length) out.push([...base, '', '', '0', 'NONE ABOARD']);
     r.batches.forEach((b, i) => {
       const st = expiryState(today, b.expiry);
@@ -82,7 +83,7 @@ export async function exportChestPdf(rows: ItemStatus[], today: string, vessel: 
     title: 'Medicine chest — inventory and expiry',
     facts: [`${rows.length} items`, ex ? `${ex} with expired stock` : 'nothing expired', short ? `${short} below the scale` : 'all at the scale', `as of ${today}`],
     tables: [
-      { title: 'Inventory', head: CHEST_HEAD, rows: chestRows(rows, today), widths: { 0: 48, 1: 34, 2: 22, 3: 26, 4: 22, 5: 14, 6: 12, 7: 22, 8: 20, 9: 12 } },
+      { title: 'Inventory', head: CHEST_HEAD, rows: chestRows(rows, today), widths: { 0: 18, 1: 44, 2: 34, 3: 40, 4: 22, 5: 14, 6: 12, 7: 20, 8: 20, 9: 12 } },
       { title: 'To order (short, or expiring within 90 days)', head: ORDER_HEAD, rows: orderRows(rows, today), widths: { 0: 60, 1: 40 } },
     ],
   }]);
@@ -136,12 +137,18 @@ export async function exportOrderPdf(o: MedOrder, moves: MedMove[], vessel: Vess
 
 export async function exportCheckPdf(c: MedCheck, vessel: VesselInfo | null) {
   const diff = c.lines.filter((l) => l.counted !== l.expected);
-  const row = (l: MedCheck['lines'][number]) => [l.name, l.batchNo ?? '', l.expiry ?? '', String(l.expected), String(l.counted), l.counted === l.expected ? '' : `${l.counted > l.expected ? '+' : ''}${l.counted - l.expected}`];
-  const head = ['Item', 'Batch', 'Expiry', 'Books', 'Counted', 'Difference'];
-  return exportPmsHistory('Medicine chest inventory', `${c.no} Inventory`, vessel, [{
-    title: `Inventory ${c.no} — ${c.date}`,
-    facts: [`${c.lines.length} lines`, diff.length ? `${diff.length} differences` : 'as the books', `counted by ${who(c.by, c.byRank)}${c.signedWith ? ` · ${proofShort(c.signedWith)}` : ''}`, c.witness ? `witness ${who(c.witness, c.witnessRank)}${c.witnessWith ? ` · ${proofShort(c.witnessWith)}` : ''}` : '', c.note ?? ''].filter(Boolean),
-    tables: [...(diff.length ? [{ title: 'Differences', head, rows: diff.map(row), widths: { 0: 90 } }] : []), { title: 'Counted', head, rows: c.lines.map(row), widths: { 0: 90 } }],
+  const row = (l: MedCheck['lines'][number]) => [l.name, l.place ?? '', l.batchNo ?? '', l.expiry ?? '', String(l.expected), String(l.counted), l.counted === l.expected ? '' : `${l.counted > l.expected ? '+' : ''}${l.counted - l.expected}`];
+  const head = ['Item', 'Where', 'Batch', 'Expiry', 'Books', 'Counted', 'Difference'];
+  const kind = c.kind ?? 'inventory';
+  const title = kind === 'handover' ? 'Controlled drugs — handover' : kind === 'cd' ? 'Controlled drugs — monthly count' : 'Medicine chest inventory';
+  const sig = (s?: any) => (s ? ` · ${proofShort(s)}` : '');
+  const people = kind === 'handover'
+    ? [`Handed over by ${who(c.by, c.byRank)}${sig(c.signedWith)}`, `Taken over by ${who(c.witness, c.witnessRank)}${sig(c.witnessWith)}`]
+    : [`counted by ${who(c.by, c.byRank)}${sig(c.signedWith)}`, c.witness ? `witness ${who(c.witness, c.witnessRank)}${sig(c.witnessWith)}` : ''];
+  return exportPmsHistory(title, `${c.no} ${kind === 'handover' ? 'CD handover' : kind === 'cd' ? 'CD count' : 'Inventory'}`, vessel, [{
+    title: `${title} ${c.no} — ${localStamp(c.at)}`,
+    facts: [`${c.lines.length} lines`, diff.length ? `${diff.length} differences` : 'as the books', ...people, c.note ?? ''].filter(Boolean),
+    tables: [...(diff.length ? [{ title: 'Differences', head, rows: diff.map(row), widths: { 0: 80, 1: 60 } }] : []), { title: kind === 'handover' ? 'Handed over' : 'Counted', head, rows: c.lines.map(row), widths: { 0: 80, 1: 60 } }],
   }]);
 }
 
@@ -154,7 +161,7 @@ export async function exportControlledPdf(items: MedItem[], moves: MedMove[], to
     const lines = registerLines(i.id, moves);
     return {
       title: `${i.name}${i.strength ? ` ${i.strength}` : ''}`,
-      facts: [`Balance ${lines.length ? lines[lines.length - 1].balance : 0} ${i.unit}`, `Required ${i.required}`, i.location ?? ''].filter(Boolean),
+      facts: [`Balance ${lines.length ? lines[lines.length - 1].balance : 0} ${i.unit}`, `Required ${i.required}`, i.listNo ? `List No. ${i.listNo}` : '', placeText(i)].filter(Boolean),
       tables: [{ title: 'Register', head: CD_HEAD, rows: lines.map((l) => [l.move.date, `${MOVE_LABEL[l.move.kind]}${l.move.treatmentId ? ' (treatment)' : ''}`, l.move.batchNo ?? '', l.move.expiry ?? '', l.in ? String(l.in) : '', l.out ? String(l.out) : '', String(l.balance), `${who(l.move.by, l.move.byRank)}${l.move.signedWith ? ` · ${proofShort(l.move.signedWith)}` : ''}`, l.move.witness ? `${who(l.move.witness, l.move.witnessRank)}${l.move.witnessWith ? ` · ${proofShort(l.move.witnessWith)}` : ''}` : '', l.move.note ?? '']), widths: { 0: 20, 1: 26, 2: 20, 3: 20, 4: 12, 5: 12, 6: 16, 7: 44, 8: 44 } }],
     };
   }));

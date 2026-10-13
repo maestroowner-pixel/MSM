@@ -42,8 +42,14 @@ export interface MedItem {
   /** How many the scale requires aboard. */
   required: number;
   kind: MedKind;
-  /** Hospital, bridge first-aid bag, rescue boat… */
+  /** The number in the list the chest is kept to — WHO IMGS ("W.H.O. 1.3.1", "II.2.21") or the flag's ("MSN 1768 A-12"). */
+  listNo?: string;
+  /** Where it is kept — the room: Hospital, bridge first-aid bag, rescue boat… */
   location?: string;
+  /** In the room: cabinet, locker, cupboard — "A", "CD safe". */
+  cabinet?: string;
+  /** In the cabinet: shelf, drawer, cell, box — "3", "Shelf 2 / box 4". */
+  cell?: string;
   /** Therapeutic group or equipment section — "Cardiovascular", "Bandages & Sutures". */
   group?: string;
   /** ATC code (medicines) or IMGS code (equipment, "II.2.21"). */
@@ -126,6 +132,8 @@ export interface CheckLine {
   name: string;
   batchNo?: string;
   expiry?: string;
+  /** Where it is kept, as written at the count — "Hospital · cabinet A · cell 3". */
+  place?: string;
   /** What the books said. */
   expected: number;
   counted: number;
@@ -135,6 +143,13 @@ export interface MedCheck {
   id: string;
   /** INV-YYYY-NNN */
   no: string;
+  /**
+   * inventory — the whole chest; cd — the Master's monthly count of the
+   * controlled drugs, with a witness; handover — the controlled drugs handed
+   * from one responsible officer to the next (13 Oct 2026: "narcotic list
+   * handover"): `by` hands over, `witness` takes over, both sign. Absent: inventory.
+   */
+  kind?: 'inventory' | 'cd' | 'handover';
   date: string;
   lines: CheckLine[];
   note?: string;

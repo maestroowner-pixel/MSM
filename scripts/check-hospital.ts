@@ -1,7 +1,7 @@
 // npm run check:hospital — stock by batch, expiry, orders delivered in parts, the inventory, the register, the scale, the Excel list, the board.
 import {
   chestStatus, checkLinesFor, differences, expiryState, followUpsDue, lastControlledCount, nextNo, normExpiry, onOrderByItem, orderOverdue, orderState,
-  pickBatch, planImport, sortChest, purposeOf, earliestExpiry, matchesName, stockLevel, matchesSearch, purposeIcon, mmYY, readSheet, receivedByLine, registerLines, scaleEntry, scaleItems, stockByItem, toOrder,
+  pickBatch, planImport, sortChest, purposeOf, earliestExpiry, matchesName, placeText, comparePlace, stockLevel, matchesSearch, purposeIcon, mmYY, readSheet, receivedByLine, registerLines, scaleEntry, scaleItems, stockByItem, toOrder,
 } from '../services/hospital';
 import { MED_SCALE, NURSING_SCALE } from '../constants/medScale';
 import { buildBoard } from '../services/board';
@@ -82,6 +82,18 @@ ok(matchesSearch(sorted[1].item, 'anaphylaxis') && matchesSearch(sorted[1].item,
 ok(stockLevel({ usable: 0, item: { required: 10 } } as any) === 'empty' && stockLevel({ usable: 2, item: { required: 10 } } as any) === 'critical' && stockLevel({ usable: 4, item: { required: 10 } } as any) === 'low' && stockLevel({ usable: 9, item: { required: 10 } } as any) === 'adequate' && stockLevel({ usable: 10, item: { required: 10 } } as any) === 'good', 'MHM stock levels <25 / <50 / <100 %');
 ok(purposeIcon('Cardiovascular') === '❤️' && mmYY('2027-11-30') === '11/27', 'group mark, MM/YY');
 ok(matchesName(sorted[1].item, 'adren') && !matchesName(sorted[1].item, 'zinc'), 'search by name');
+
+// where it is, and the list number
+ok(placeText({ location: 'Hospital', cabinet: 'A', cell: '3' }) === 'Hospital · cabinet A · cell 3' && placeText({ location: 'Hospital', cabinet: 'CD safe' }) === 'Hospital · CD safe', 'place: room · cabinet · cell');
+const placed = chestStatus([I({ id: 'x', name: 'X', location: 'Hospital', cabinet: 'A', cell: '10' }), I({ id: 'y', name: 'Y', location: 'Hospital', cabinet: 'A', cell: '2' }), I({ id: 'w', name: 'W', location: 'Bridge' })], [], T);
+ok(comparePlace({ location: 'Hospital' }, { location: 'Hospital — emergency trolley' }) < 0, 'a room before a longer name of the same start');
+ok(sortChest(placed, 'place').map((r) => r.item.id).join() === 'w,y,x', 'by place: room, cabinet, then cell 2 before 10');
+ok(checkLinesFor(placed).map((l) => l.itemId).join() === 'w,y,x' && checkLinesFor(placed)[1].place === 'Hospital · cabinet A · cell 2', 'the count walks the cabinets, place on every line');
+const listed = chestStatus([I({ id: 'b', name: 'B', listNo: 'W.H.O. 2.10' }), I({ id: 'a', name: 'A', listNo: 'W.H.O. 2.9' }), I({ id: 'n', name: 'N' })], [], T);
+ok(sortChest(listed, 'list').map((r) => r.item.id).join() === 'a,b,n', 'by list No.: 2.9 before 2.10, none last');
+const sheet2 = readSheet([['List No.', 'Name', 'Cabinet', 'Cell', 'Quantity'], ['W.H.O. 1.3.1', 'Adrenaline', 'A', '4', 5]]);
+ok(sheet2.lines[0].listNo === 'W.H.O. 1.3.1' && sheet2.lines[0].cabinet === 'A' && sheet2.lines[0].cell === '4', 'Excel: list No., cabinet, cell');
+ok(scaleItems('A').some((x) => x.listNo === 'W.H.O. 1.3.1') && scaleItems('A').some((x) => x.listNo === 'II.1.11'), 'scale carries WHO numbers and IMGS codes');
 
 // board
 const base: any = { on: (k: string) => k === 'hospital', role: 'admin', me: null, today: T, now: `${T}T10:00`, labelOf: (k: any) => k, periodsOf: () => [], flat: [], certificates: [], inspections: [], crew: [], rest: [], machines: [], pmsJobs: [], pmsDone: [], pmsDeferrals: [], pmsDefects: [], spares: [], spareMoves: [], docs: [], docAcks: [], permits: [], fuelTanks: [], fuelReadings: [], fuelBunkers: [], fuelDailySent: [], garbage: [], garbageSigns: [], sopepItems: [], sopepChecks: [], sopepDrills: [], visitors: [], securityLevels: [], securityDrills: [], crewMoves: [], surveys: [], surveysDone: [], rounds: [], categories: [], templates: {} };
