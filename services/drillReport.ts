@@ -54,7 +54,7 @@ function html(d: DrillDoc): string {
     ${kv(d.facts)}
     ${!d.listOnly && d.content.length ? `<h2>Content of the drill</h2><ul>${d.content.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}
     ${!d.listOnly && d.scenario.length ? `<h2>Scenario</h2>${table(['T+min', 'Clock', 'Action', 'Who', 'Actual'], d.scenario)}` : ''}
-    <h2>Attendance</h2>${table(['#', 'Name', 'Rank', 'Attendance', 'Signature'], d.attendance, 'att')}
+    <h2>Attendance</h2><table class="att"><thead><tr>${['#', 'Name', 'Rank', 'Attendance', 'Signature'].map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${d.attendance.map((r, i) => `<tr>${r.map((c, k) => `<td class="${c.startsWith('ABSENT') ? 'bad' : ''}">${esc(c)}${k === 4 && d.attSigs[i] ? ` <svg viewBox="0 0 300 100" width="66" height="22"><path d="${esc(d.attSigs[i])}" stroke="#0B2545" stroke-width="3" fill="none" stroke-linecap="round"/></svg>` : ''}</td>`).join('')}</tr>`).join('')}</tbody></table>
     ${!d.listOnly && d.debrief ? `<h2>Debrief — lessons and actions</h2><div>${esc(d.debrief).replace(/\n/g, '<br>')}</div>` : ''}
     <h2>Signature</h2>${sig}
     ${d.theory ? `<div class="annex"><h2>Annex — theory briefing</h2><h1>${esc(d.theory.title)}</h1>${d.theory.text.map((p) => `<p>${esc(p)}</p>`).join('')}</div>` : ''}

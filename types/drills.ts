@@ -38,6 +38,12 @@ export interface Attendee {
   reason?: string;
   /** Not on the crew list — a guest, contractor, cadet. */
   extra?: boolean;
+  /**
+   * Signed in person on the attendance list — PIN, fingerprint (own phone) or by
+   * hand. Taking the tick off takes the signature with it.
+   */
+  signedAt?: number;
+  signedWith?: SignProof;
 }
 
 export interface Drill extends Versioned {

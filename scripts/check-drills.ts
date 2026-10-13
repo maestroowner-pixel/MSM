@@ -1,5 +1,5 @@
 // npm run check:drills — numbers, the schedule, the scenario clock, report rows, the board.
-import { everyLabel, lastOfType, attendanceRows, clockAt, drillSchedule, drillState, minutesBetween, nextDrillNo, nextStepMin, registerRows, scenarioRows, sortDrills } from '../services/drills';
+import { archive, archiveKinds, archiveYears, attendanceSig, byMonth, everyLabel, lastOfType, attendanceRows, clockAt, drillSchedule, drillState, minutesBetween, nextDrillNo, nextStepMin, registerRows, scenarioRows, sortDrills } from '../services/drills';
 import { drillDoc } from '../services/drills';
 import { DRILL_THEORY } from '../constants/drillTheory';
 import { DRILL_TYPES } from '../types/drills';
@@ -68,6 +68,29 @@ const doc = drillDoc(run, 'V');
 ok(!!doc.theory && doc.theory.text.length > 3 && !!doc.signature, 'report: theory annex and signature');
 ok(drillDoc(run, 'V', true).theory === undefined, 'attendance list: no annex');
 ok(drillDoc(D({}), 'V').status.startsWith('PLAN'), 'unsigned prints as the plan');
+
+// attendance signatures
+const sig = D({ attendance: [{ name: 'Ann', present: true, signedAt: new Date('2026-10-13T10:07:00').getTime(), signedWith: { method: 'pin', at: 1 } }, { name: 'Bob', present: true, signedAt: new Date('2026-10-13T10:08:00').getTime(), signedWith: { method: 'drawn', drawing: 'M0 0 L10 10', at: 1 } }, { name: 'Cy', present: true }], doneAt: 5 });
+ok(attendanceSig(sig.attendance[0]) === 'signed by PIN · 10:07', 'PIN signature on the list');
+ok(attendanceSig(sig.attendance[1]) === '10:08' && drillDoc(sig, 'V').attSigs[1] === 'M0 0 L10 10', 'hand signature drawn, with the time');
+ok(attendanceRows(sig)[2][4] === '', 'not signed = empty');
+ok(drillDoc(D({ attendance: [{ name: 'Ann', present: true, signedAt: 1, signedWith: { method: 'biometric', at: 1 } }] }), 'V', true).attendance[0][4].startsWith('signed biometrically'), 'attendance list before signing the drill shows who signed');
+
+// archive
+const arch = [
+  D({ id: 'a', no: 'DR-2025-004', type: 'fire', date: '2025-12-02', doneAt: 1, topic: 'Engine room fire' }),
+  D({ id: 'b', no: 'DR-2026-001', type: 'fire', date: '2026-01-10', doneAt: 2, attendance: [{ name: 'Nina Brooks', present: true }] }),
+  D({ id: 'c', no: 'DR-2026-002', type: 'mob', date: '2026-01-20', doneAt: 3 }),
+  D({ id: 'd', no: 'DR-2026-003', type: 'fire', date: '2026-02-03', doneAt: 4 }),
+  D({ id: 'p', no: 'DR-2026-004', type: 'fire', date: '2026-03-01' }),
+];
+ok(archiveYears(arch).join() === '2026,2025', 'years, newest first; plans left out');
+ok(archive(arch, { year: '2026', kind: '', q: '' }).map((d) => d.id).join() === 'd,c,b', 'archive of a year, newest first, no plans');
+ok(archive(arch, { year: '', kind: 'fire', q: '' }).length === 3, 'one kind across years');
+ok(archive(arch, { year: '', kind: '', q: 'nina' }).map((d) => d.id).join() === 'b', 'search finds a name on the list');
+ok(archive(arch, { year: '', kind: '', q: 'engine fire' }).map((d) => d.id).join() === 'a', 'every word must match');
+ok(archiveKinds(arch, '2026')[0].kind === 'fire' && archiveKinds(arch, '2026')[0].n === 2, 'kinds of the year, most held first');
+ok(byMonth(archive(arch, { year: '2026', kind: '', q: '' })).map((g) => `${g.month}:${g.drills.length}`).join() === 'February 2026:1,January 2026:2', 'grouped by month');
 
 // board
 const base: any = { on: (k: string) => k === 'drills', role: 'admin', me: null, today: T, now: `${T}T10:00`, labelOf: (k: any) => k, periodsOf: () => [], flat: [], certificates: [], inspections: [], crew: [], rest: [], machines: [], pmsJobs: [], pmsDone: [], pmsDeferrals: [], pmsDefects: [], spares: [], spareMoves: [], docs: [], docAcks: [], permits: [], fuelTanks: [], fuelReadings: [], fuelBunkers: [], fuelDailySent: [], garbage: [], garbageSigns: [], sopepItems: [], sopepChecks: [], sopepDrills: [], visitors: [], securityLevels: [], securityDrills: [], crewMoves: [], surveys: [], surveysDone: [], rounds: [], categories: [], templates: {} };

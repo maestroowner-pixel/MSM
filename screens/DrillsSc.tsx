@@ -9,7 +9,7 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { Alert, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { Card, Label, Screen, ScreenTitle } from '../components/ui';
@@ -20,7 +20,7 @@ import { useSync } from '../contexts/SyncContext';
 import { roleAtLeast } from '../types/role';
 import { DRILL_TYPES, drillTitle } from '../types/drills';
 import { todayIso } from '../services/pms';
-import { DRILL_STATE_LABEL, drillSchedule, drillState, everyLabel, minutesBetween, sortDrills } from '../services/drills';
+import { DRILL_STATE_LABEL, archive, archiveKinds, archiveYears, byMonth, drillSchedule, drillState, everyLabel, minutesBetween, sortDrills } from '../services/drills';
 import { exportDrillRegisterExcel, exportDrillRegisterPdf } from '../services/drillReport';
 import { formatDate } from '../utils/dates';
 import { makeStyles } from './SafetySc';
@@ -35,12 +35,20 @@ export default function DrillsSc() {
   const canPlan = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const today = todayIso();
 
-  const [tab, setTab] = useState<'schedule' | 'drills'>(route.params?.view === 'drills' ? 'drills' : 'schedule');
+  const [tab, setTab] = useState<'schedule' | 'planned' | 'archive'>(route.params?.view === 'archive' ? 'archive' : route.params?.view === 'planned' ? 'planned' : 'schedule');
+  const years = useMemo(() => archiveYears(drills), [drills]);
+  const [year, setYear] = useState<string>(() => String(new Date().getFullYear()));
+  const [kind, setKind] = useState('');
+  const [q, setQ] = useState('');
+  const yearShown = years.includes(year) || !year ? year : years[0] ?? '';
+  const kinds = useMemo(() => archiveKinds(drills, yearShown), [drills, yearShown]);
+  const found = useMemo(() => archive(drills, { year: yearShown, kind, q }), [drills, yearShown, kind, q]);
   const [choosing, setChoosing] = useState(false);
   const [saved, setSaved] = useState<string | null>(null);
 
   const schedule = useMemo(() => drillSchedule(drills, today, sopepDrills, securityDrills), [drills, today, sopepDrills, securityDrills]);
-  const list = useMemo(() => sortDrills(drills), [drills]);
+  const list = useMemo(() => sortDrills(drills).filter((d) => !d.doneAt), [drills]);
+  const doneCount = drills.filter((d) => d.doneAt).length;
   const overdue = schedule.filter((r) => (r.left ?? -1) < 0).length;
   const open = drills.filter((d) => !d.doneAt).length;
 
@@ -51,7 +59,9 @@ export default function DrillsSc() {
 
   const report = async (kind: 'pdf' | 'xlsx') => {
     try {
-      const w = kind === 'pdf' ? await exportDrillRegisterPdf(drills, schedule, today, vessel) : await exportDrillRegisterExcel(drills, schedule, today, vessel);
+      // From the archive: what it shows (year, drill, search).
+      const which = tab === 'archive' ? found : drills;
+      const w = kind === 'pdf' ? await exportDrillRegisterPdf(which, schedule, today, vessel) : await exportDrillRegisterExcel(which, schedule, today, vessel);
       if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
     } catch (e: any) {
       Alert.alert('Drill register', String(e?.message ?? e));
@@ -67,8 +77,11 @@ export default function DrillsSc() {
         <TouchableOpacity style={[styles.chip, tab === 'schedule' && styles.chipOn]} onPress={() => setTab('schedule')}>
           <Text style={[styles.chipText, tab === 'schedule' && styles.chipTextOn]}>{`Schedule${overdue ? ` · ${overdue} due` : ''}`}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.chip, tab === 'drills' && styles.chipOn]} onPress={() => setTab('drills')}>
-          <Text style={[styles.chipText, tab === 'drills' && styles.chipTextOn]}>{`Drills · ${drills.length}${open ? ` (${open} planned)` : ''}`}</Text>
+        <TouchableOpacity style={[styles.chip, tab === 'planned' && styles.chipOn]} onPress={() => setTab('planned')}>
+          <Text style={[styles.chipText, tab === 'planned' && styles.chipTextOn]}>{`Planned · ${open}`}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.chip, tab === 'archive' && styles.chipOn]} onPress={() => setTab('archive')}>
+          <Text style={[styles.chipText, tab === 'archive' && styles.chipTextOn]}>{`Archive · ${doneCount}`}</Text>
         </TouchableOpacity>
       </View>
 
@@ -110,6 +123,52 @@ export default function DrillsSc() {
           ))}
           <Text style={styles.sub}>Other drills join the schedule once held. Oil-spill and security drills recorded on the SOPEP and Security screens count too.</Text>
         </>
+      ) : tab === 'archive' ? (
+        <>
+          <View style={styles.chips}>
+            {years.map((y) => (
+              <TouchableOpacity key={y} style={[styles.chip, yearShown === y && styles.chipOn]} onPress={() => { setYear(y); setKind(''); }}>
+                <Text style={[styles.chipText, yearShown === y && styles.chipTextOn]}>{y}</Text>
+              </TouchableOpacity>
+            ))}
+            {years.length > 1 ? (
+              <TouchableOpacity style={[styles.chip, !yearShown && styles.chipOn]} onPress={() => { setYear(''); setKind(''); }}>
+                <Text style={[styles.chipText, !yearShown && styles.chipTextOn]}>All years</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          {kinds.length > 1 ? (
+            <View style={styles.chips}>
+              <TouchableOpacity style={[styles.chip, !kind && styles.chipOn]} onPress={() => setKind('')}>
+                <Text style={[styles.chipText, !kind && styles.chipTextOn]}>All drills</Text>
+              </TouchableOpacity>
+              {kinds.map((k) => (
+                <TouchableOpacity key={k.kind} style={[styles.chip, kind === k.kind && styles.chipOn]} onPress={() => setKind(kind === k.kind ? '' : k.kind)}>
+                  <Text style={[styles.chipText, kind === k.kind && styles.chipTextOn]}>{`${k.title} · ${k.n}`}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : null}
+          {doneCount ? <TextInput style={[styles.input, { marginTop: 0, marginBottom: SIZES.sm }]} value={q} onChangeText={setQ} placeholder="Search — number, topic, place, a name on the list" placeholderTextColor={COLORS.textLight} /> : null}
+          {byMonth(found).map((g) => (
+            <View key={g.month}>
+              <Text style={[styles.sub, { fontWeight: '800', marginTop: SIZES.sm, marginBottom: 4 }]}>{`${g.month} · ${g.drills.length}`}</Text>
+              {g.drills.map((d) => {
+                const len = minutesBetween(d.time, d.endTime);
+                const signed = d.attendance.filter((a) => a.signedAt).length;
+                const present = d.attendance.filter((a) => a.present).length;
+                return (
+                  <TouchableOpacity key={d.id} style={[styles.item, { borderLeftColor: COLORS.success }]} onPress={() => nav.navigate('Drill', { id: d.id })} activeOpacity={0.7}>
+                    <Text style={styles.name}>{`${d.no} · ${drillTitle(d)}`}</Text>
+                    <Text style={styles.sub}>{[d.topic, `${formatDate(d.date)}${d.time ? ` ${d.time}` : ''}`, len != null ? `${len} min` : null, d.location].filter(Boolean).join(' · ')}</Text>
+                    <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{[`${present}/${d.attendance.length} present`, signed ? `${signed} signed the list` : null, d.doneBy].filter(Boolean).join(' · ')}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ))}
+          {!found.length ? <Text style={styles.sub}>{doneCount ? 'Nothing found.' : 'No drill carried out yet — signed drills are kept here, by year and month.'}</Text> : null}
+        </>
       ) : (
         <>
           {list.map((d) => {
@@ -126,7 +185,7 @@ export default function DrillsSc() {
               </TouchableOpacity>
             );
           })}
-          {!list.length ? <Text style={styles.sub}>No drills yet. Plan one — pick the drill, write the scenario minute by minute, and on the day mark who is there.</Text> : null}
+          {!list.length ? <Text style={styles.sub}>Nothing planned. Plan one — pick the drill, write the scenario minute by minute, and on the day mark who is there.</Text> : null}
         </>
       )}
 

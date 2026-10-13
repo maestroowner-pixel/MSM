@@ -3,7 +3,7 @@
 // and the rows of the reports (types/drills.ts). Pure: no storage, no React.
 // ===================================
 
-import { DRILL_TYPES, DRILL_TYPE_MAP, Drill, ScenarioStep, drillKind, drillTitle } from '../types/drills';
+import { DRILL_TYPES, DRILL_TYPE_MAP, Attendee, Drill, ScenarioStep, drillKind, drillTitle } from '../types/drills';
 import type { SopepDrill } from '../types/sopep';
 import type { SecurityDrill } from '../types/security';
 import type { SignProof } from './signature';
@@ -121,6 +121,56 @@ export function drillSchedule(drills: Drill[], today: string, sopepDrills: Sopep
   return [...std, ...own].sort((a, b) => rank(a) - rank(b));
 }
 
+// ---- the archive: drills carried out, by year, kind and words ----
+
+export interface ArchiveFilter {
+  /** 'YYYY', or '' for every year. */
+  year: string;
+  /** drillKind, or '' for every kind. */
+  kind: string;
+  /** Words in the number, drill, topic, place, debrief or a name on the list. */
+  q: string;
+}
+
+export const archiveYears = (list: Drill[]) => [...new Set(list.filter((d) => d.doneAt).map((d) => d.date.slice(0, 4)))].sort().reverse();
+
+/** The kinds held in that year (all years with ''), named, most held first. */
+export function archiveKinds(list: Drill[], year: string): { kind: string; title: string; n: number }[] {
+  const m = new Map<string, { kind: string; title: string; n: number }>();
+  for (const d of list.filter((x) => x.doneAt && (!year || x.date.startsWith(year)))) {
+    const k = drillKind(d);
+    const e = m.get(k) ?? { kind: k, title: drillTitle(d), n: 0 };
+    e.n++;
+    m.set(k, e);
+  }
+  return [...m.values()].sort((a, b) => b.n - a.n || a.title.localeCompare(b.title));
+}
+
+export function archive(list: Drill[], f: ArchiveFilter): Drill[] {
+  const words = f.q.toLowerCase().split(/\s+/).filter(Boolean);
+  return list
+    .filter((d) => d.doneAt && (!f.year || d.date.startsWith(f.year)) && (!f.kind || drillKind(d) === f.kind))
+    .filter((d) => {
+      if (!words.length) return true;
+      const hay = [d.no, drillTitle(d), d.topic, d.location, d.debrief, d.doneBy, ...d.attendance.map((a) => a.name)].join(' ').toLowerCase();
+      return words.every((w) => hay.includes(w));
+    })
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.time ?? '').localeCompare(a.time ?? ''));
+}
+
+const MONTH = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+/** Newest month first: "October 2026" and its drills. */
+export function byMonth(list: Drill[]): { month: string; drills: Drill[] }[] {
+  const out: { month: string; drills: Drill[] }[] = [];
+  for (const d of list) {
+    const label = `${MONTH[Number(d.date.slice(5, 7)) - 1]} ${d.date.slice(0, 4)}`;
+    const last = out[out.length - 1];
+    if (last?.month === label) last.drills.push(d);
+    else out.push({ month: label, drills: [d] });
+  }
+  return out;
+}
+
 export const everyLabel = (days: number) => (!days ? 'not on a cycle' : days === 30 ? 'monthly' : days === 60 ? 'every 2 months' : days === 90 ? 'every 3 months' : days === 180 ? 'every 6 months' : days === 365 ? 'yearly' : `every ${days} days`);
 
 // ---- reports ----
@@ -132,8 +182,15 @@ export function scenarioRows(d: Drill): string[][] {
   return sortSteps(d.scenario).map((s) => [`T+${s.min}`, clockAt(d.time, s.min), s.text, s.who ?? '', s.at ?? '']);
 }
 
+/** The signature cell: how and when they signed; a hand signature is drawn over it (drillDoc.attSigs). */
+export function attendanceSig(a: Attendee): string {
+  if (!a.signedAt) return '';
+  const hm = new Date(a.signedAt).toTimeString().slice(0, 5);
+  return a.signedWith?.method === 'drawn' ? hm : `${proofLabel(a.signedWith) || 'signed'} · ${hm}`;
+}
+
 export function attendanceRows(d: Drill, blank = false): string[][] {
-  return d.attendance.map((a, i) => [String(i + 1), a.name, a.rank ?? '', blank ? '' : a.present ? 'present' : `ABSENT${a.reason ? ` — ${a.reason}` : ''}`, '']);
+  return d.attendance.map((a, i) => [String(i + 1), a.name, a.rank ?? '', blank ? '' : a.present ? 'present' : `ABSENT${a.reason ? ` — ${a.reason}` : ''}`, blank ? '' : attendanceSig(a)]);
 }
 
 export function drillFacts(d: Drill): [string, string][] {
@@ -185,6 +242,8 @@ export interface DrillDoc {
   content: string[];
   scenario: string[][];
   attendance: string[][];
+  /** Hand signatures on the attendance list, row by row (SVG paths). */
+  attSigs: (string | undefined)[];
   debrief?: string;
   signature?: { who: string; when: string; how: string; drawing?: string };
   theory?: { title: string; text: string[] };
@@ -202,7 +261,8 @@ export function drillDoc(d: Drill, vesselLine: string, listOnly = false): DrillD
     facts: listOnly ? drillFacts(d).filter(([k]) => ['Drill', 'Topic', 'Date', 'Time', 'Location'].includes(k)) : drillFacts(d),
     content: contentLines(d),
     scenario: scenarioRows(d),
-    attendance: attendanceRows(d, listOnly && st !== 'done'),
+    attendance: attendanceRows(d, listOnly && st !== 'done' && !d.attendance.some((a) => a.signedAt)),
+    attSigs: d.attendance.map((a) => (a.signedWith?.method === 'drawn' ? a.signedWith.drawing : undefined)),
     ...(d.debrief?.trim() ? { debrief: d.debrief.trim() } : {}),
     ...(d.doneAt ? { signature: { who: d.doneByRank ? `${d.doneBy} (${d.doneByRank})` : d.doneBy ?? '', when: stamp(d.doneAt), how: proofLabel(d.doneWith) || '—', ...(d.doneWith?.drawing ? { drawing: d.doneWith.drawing } : {}) } } : {}),
     ...(!listOnly && d.theory && theory ? { theory: { title: theory.title, text: theory.text } } : {}),

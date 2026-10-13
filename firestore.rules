@@ -410,7 +410,9 @@ service cloud.firestore {
       match /drills/{id} {
         allow read: if reader(v);
         allow create: if isAdmin(v) && plainRecord();
-        allow update: if isAdmin(v) && resource.data.get('doneAt', null) == null;
+        // Anyone on board signs his own line of the attendance list.
+        allow update: if resource.data.get('doneAt', null) == null
+                        && (isAdmin(v) || (member(v) && onlyChanges(['attendance', 'updatedAt'])));
         allow delete: if false;
       }
       // Crew going ashore / coming back aboard (QR crew card at the gangway).

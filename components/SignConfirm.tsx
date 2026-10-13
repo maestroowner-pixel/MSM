@@ -51,6 +51,12 @@ export interface SignRequest {
   ownDevice: boolean;
   /** "Sign the inspection", "Record the job as done". */
   what: string;
+  /**
+   * Ask even where confirmed signatures are not switched on for the app — a
+   * signature that is nothing but a tap means nothing on a drill's attendance
+   * list (13 Oct 2026: "attendance list signed digitally — PIN and bio").
+   */
+  always?: boolean;
 }
 
 export type SignResult = { proof?: SignProof } | null;
@@ -120,7 +126,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
 
   const confirm = useCallback(
     async (r: SignRequest): Promise<SignResult> => {
-      if (!required) return {};
+      if (!required && !r.always) return {};
       return new Promise<SignResult>((resolve) => {
         resolver.current = resolve;
         setPinText('');

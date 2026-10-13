@@ -26,6 +26,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import Svg, { Path } from 'react-native-svg';
 
 import { BackButton, Card, Label, Screen, ScreenTitle } from '../components/ui';
 import { Dropdown } from '../components/Dropdown';
@@ -37,14 +38,14 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { roleAtLeast } from '../types/role';
+import { personName, roleAtLeast } from '../types/role';
 import { isAboard } from '../types/crew';
 import { ABSENCE_REASONS, Attendee, DRILL_TYPES, DRILL_TYPE_MAP, Drill, OWN_INTERVALS, QUICK_STEPS, ScenarioStep, drillKind, drillTitle } from '../types/drills';
 import { DRILL_THEORY } from '../constants/drillTheory';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { proofShort } from '../services/signature';
-import { DRILL_STATE_LABEL, clockAt, contentLines, drillState, lastOfType, minutesBetween, nextDrillNo, nextStepMin, nowHm, sortSteps } from '../services/drills';
+import { DRILL_STATE_LABEL, attendanceSig, clockAt, contentLines, drillState, lastOfType, minutesBetween, nextDrillNo, nextStepMin, nowHm, sortSteps } from '../services/drills';
 import { exportDrillPdf } from '../services/drillReport';
 import { formatDate, formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
@@ -165,7 +166,34 @@ export default function DrillSc() {
     set({ scenario: [...d.scenario, { id: sid, min: nextStepMin(d.scenario), text, ...(who ? { who } : {}) }] });
     if (!text) setFocusId(sid);
   };
-  const setAtt = (i: number, p: Partial<Attendee>) => set({ attendance: d.attendance.map((a, k) => (k === i ? { ...a, ...p } : a)) });
+  // Firestore refuses `undefined`: a field taken away is left out, not emptied.
+  const tidy = (a: Attendee): Attendee => Object.fromEntries(Object.entries(a).filter(([, v]) => v !== undefined)) as Attendee;
+  const setAtt = (i: number, p: Partial<Attendee>) => set({ attendance: d.attendance.map((a, k) => (k === i ? tidy({ ...a, ...p }) : a)) });
+  const toggleAtt = (i: number, a: Attendee) => setAtt(i, a.present ? { present: false, signedAt: undefined, signedWith: undefined } : { present: true, reason: undefined });
+
+  // ---- the attendance list, signed in person ----
+  // On the officer's phone each person signs his own line — PIN (theirs on this
+  // phone) or by hand; on his own phone a crew member signs it with his finger
+  // too. Asked always, whatever the vessel's signing setting.
+  const meName = sync.me ? personName(sync.me) : null;
+  const canSignLine = (a: Attendee) => !done && !a.signedAt && (canEdit || a.name === meName);
+  const signLine = async (i: number) => {
+    const a = d.attendance[i];
+    const mine = !!sync.me && a.name === meName;
+    const key = mine ? `device:${sync.me!.id}` : crew.find((c) => c.name === a.name && !c.deleted)?.id ?? `guest:${a.name}`;
+    const res = await confirmSign({ personKey: key, name: a.name, ownDevice: mine, what: `Attendance — ${d.no || 'drill'} ${drillTitle(d)}`, always: true });
+    if (!res) return;
+    const line = tidy({ ...a, present: true, reason: undefined, signedAt: Date.now(), ...(res.proof ? { signedWith: res.proof } : {}) });
+    const attendance = d.attendance.map((x, k) => (k === i ? line : x));
+    if (canEdit) set({ attendance });
+    else {
+      // A crew member's own line, saved at once — he cannot edit the rest.
+      const out = { ...d, attendance, updatedAt: Date.now() };
+      await saveRow(storage.DRILLS_KEY, out);
+      setDraft(out);
+    }
+    playSuccessSound();
+  };
 
   const copyPrev = () => {
     if (!prev) return;
@@ -192,6 +220,8 @@ export default function DrillSc() {
     if (!present) return Alert.alert('Attendance', 'Mark who took part.');
     if (isOwn && !d.title?.trim()) return Alert.alert('Drill', 'Give your drill a name.');
     if (!signer) return Alert.alert('Who conducted it?', 'Choose your name.');
+    const unsigned = d.attendance.filter((a) => a.present && !a.signedAt).length;
+    if (unsigned && !(await new Promise<boolean>((ok) => Alert.alert('Attendance list', `${unsigned} of ${present} present have not signed the list. Their lines stay unsigned once the drill is signed.`, [{ text: 'Back to the list', style: 'cancel', onPress: () => ok(false) }, { text: 'Sign the drill anyway', onPress: () => ok(true) }])))) return;
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${d.no || 'Drill'} — ${drillTitle(d)} — carried out` });
     if (!sig) return;
     const now = Date.now();
@@ -409,7 +439,8 @@ export default function DrillSc() {
 
       {/* ---- attendance ---- */}
       <Card>
-        <Label>{`Attendance · ${present} of ${d.attendance.length} present`}</Label>
+        <Label>{`Attendance · ${present} of ${d.attendance.length} present${present ? ` · ${d.attendance.filter((a) => a.signedAt).length} signed` : ''}`}</Label>
+        {!done && present ? <Text style={styles.sub}>Each person signs his own line — his PIN, or by hand on the screen; on his own phone, with his fingerprint. Taking a tick off takes the signature with it.</Text> : null}
         {!ro ? (
           <View style={styles.row}>
             <TouchableOpacity style={styles.small} onPress={() => set({ attendance: d.attendance.map((a) => ({ ...a, present: true, reason: undefined })) })}><Text style={styles.smallText}>All present</Text></TouchableOpacity>
@@ -419,13 +450,22 @@ export default function DrillSc() {
         ) : null}
         {d.attendance.map((a, i) => (
           <View key={`${a.name}-${i}`} style={styles.att}>
-            <TouchableOpacity style={styles.attMain} disabled={ro} onPress={() => setAtt(i, { present: !a.present, ...(a.present ? {} : { reason: undefined }) })} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.attMain} disabled={ro} onPress={() => toggleAtt(i, a)} activeOpacity={0.7}>
               <View style={[styles.box, a.present && { backgroundColor: COLORS.success, borderColor: COLORS.success }]}>{a.present ? <MciIcon name="check" size={16} color={COLORS.textWhite} /> : null}</View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={styles.name}>{a.name}</Text>
                 <Text style={styles.sub}>{[a.rank, a.extra ? 'not on the crew list' : null].filter(Boolean).join(' · ') || ' '}</Text>
               </View>
-              {!a.present && (done || st === 'running') ? <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700' }]}>{a.reason || 'absent'}</Text> : null}
+              {a.signedAt ? (
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700', marginTop: 0 }]}>{`✓ ${attendanceSig(a)}`}</Text>
+                  {a.signedWith?.drawing ? <SigLine path={a.signedWith.drawing} color={COLORS.textDark} /> : null}
+                </View>
+              ) : canSignLine(a) && (a.present || a.name === meName) ? (
+                <TouchableOpacity style={styles.signBtn} onPress={() => void signLine(i)}><Text style={styles.signText}>{a.name === meName ? 'Sign — it’s me' : 'Sign'}</Text></TouchableOpacity>
+              ) : !a.present && (done || st === 'running') ? (
+                <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700' }]}>{a.reason || 'absent'}</Text>
+              ) : null}
             </TouchableOpacity>
             {!ro && !a.present && st === 'running' ? (
               <View style={[styles.chips, { marginLeft: 34, marginBottom: 2 }]}>
@@ -485,6 +525,15 @@ export default function DrillSc() {
   );
 }
 
+/** A hand signature, small, beside the name. */
+function SigLine({ path, color }: { path: string; color: string }) {
+  return (
+    <Svg viewBox="0 0 300 100" width={66} height={22}>
+      <Path d={path} stroke={color} strokeWidth={4} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
     timeBox: { flexDirection: 'row', alignItems: 'center', gap: SIZES.xs },
@@ -506,5 +555,7 @@ const makeStyles = (COLORS: Palette) =>
     att: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.borderLight },
     attMain: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, paddingVertical: 8 },
     box: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },
+    signBtn: { borderWidth: 1, borderColor: COLORS.primary, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 },
+    signText: { fontSize: SIZES.small, fontWeight: '800', color: COLORS.primary },
     chipSm: { paddingVertical: 3, paddingHorizontal: 8, borderRadius: 999, borderWidth: 1, borderColor: COLORS.primary },
   });

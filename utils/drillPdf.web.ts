@@ -64,7 +64,15 @@ export function drillPdfBlob(raw: DrillDoc): Blob {
     y = after();
   }
   heading('Attendance');
-  autoTable(doc, { ...base, startY: y, head: [['#', 'Name', 'Rank', 'Attendance', 'Signature']], body: d.attendance, styles: { ...base.styles, minCellHeight: 8, valign: 'middle' }, columnStyles: { 0: { cellWidth: 8 }, 2: { cellWidth: 32 }, 3: { cellWidth: 38 }, 4: { cellWidth: 42 } }, didParseCell: red });
+  const attImgs = raw.attSigs.map((p) => (p ? sigImage(p) : null));
+  autoTable(doc, { ...base, startY: y, head: [['#', 'Name', 'Rank', 'Attendance', 'Signature']], body: d.attendance, styles: { ...base.styles, minCellHeight: 9, valign: 'middle' }, columnStyles: { 0: { cellWidth: 8 }, 2: { cellWidth: 32 }, 3: { cellWidth: 38 }, 4: { cellWidth: 46 } }, didParseCell: red,
+    didDrawCell: (c: any) => {
+      if (c.section !== 'body' || c.column.index !== 4) return;
+      const img = attImgs[c.row.index];
+      if (!img) return;
+      const h = Math.min(c.cell.height - 1, 8);
+      doc.addImage(img, 'PNG', c.cell.x + c.cell.width - h * 3 - 2, c.cell.y + (c.cell.height - h) / 2, h * 3, h);
+    } });
   y = after();
   if (!d.listOnly && d.debrief) {
     heading('Debrief — lessons and actions');
