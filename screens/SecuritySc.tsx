@@ -36,6 +36,8 @@ import { roleAtLeast } from '../types/role';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { VISITOR_PHOTO_DAYS, isAshore, lastMoves, nextMove, personsOnBoard, photosToRemove } from '../services/gangway';
+import { moduleOn } from '../constants/modules';
+import { passengerAboard } from '../types/passengers';
 import { pickFromCamera } from '../services/attachments';
 import { portraitDataUri } from '../services/images';
 import { GANGWAY_STOCKS, crewCardSpecs, exportCrewCards, exportVisitorPasses, visitorPassSpecs } from '../services/crewCards';
@@ -64,7 +66,7 @@ function SecuritySc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
-  const { visitors, securityLevels, securityDrills, crewMoves, crew, vessel, setVessel, saveRow, appendRow, versionsOf } = useData();
+  const { visitors, securityLevels, securityDrills, crewMoves, crew, vessel, setVessel, saveRow, appendRow, versionsOf, passengers } = useData();
   const amend = useAmend();
   const allVisitors = versionsOf(storage.VISITORS_KEY) as Visitor[];
   const allDrills = versionsOf(storage.SECURITY_DRILLS_KEY) as SecurityDrill[];
@@ -117,10 +119,13 @@ function SecuritySc() {
   // ---- on board ----
   const people = crew.filter(isAboard);
   const last = useMemo(() => lastMoves(crewMoves), [crewMoves]);
-  const pob = useMemo(() => personsOnBoard(crew, crewMoves, visitors), [crew, crewMoves, visitors]);
+  // Passengers count too, and cross at the gangway like the crew (13 Oct 2026).
+  const paxOn = moduleOn('passengers');
+  const guests = useMemo(() => (paxOn ? passengers.filter((p) => passengerAboard(p, today)).sort((a, b) => a.name.localeCompare(b.name)) : []), [paxOn, passengers, today]);
+  const pob = useMemo(() => personsOnBoard(crew, crewMoves, visitors, guests, today), [crew, crewMoves, visitors, guests, today]);
   const onBoard = visitors.filter((v) => !v.timeOut).sort((a, b) => a.timeIn.localeCompare(b.timeIn));
   const moveCrew = async (id: string) => {
-    const c = people.find((p) => p.id === id);
+    const c = people.find((p) => p.id === id) ?? guests.find((p) => p.id === id);
     if (!c) return;
     if (!signer) return Alert.alert('Gangway watch', 'Choose the watch first.');
     await appendRow(storage.CREW_MOVES_KEY, nextMove(c, crewMoves, signer.name, 'manual'));
@@ -371,7 +376,7 @@ function SecuritySc() {
 
       {tab === 'board' ? (
         <>
-          <Text style={styles.pob}>{`${pob.total} persons on board — crew ${pob.crewAboard} of ${pob.crewTotal}${pob.visitors ? `, visitors ${pob.visitors}` : ''}`}</Text>
+          <Text style={styles.pob}>{`${pob.total} persons on board — crew ${pob.crewAboard} of ${pob.crewTotal}${pob.paxTotal ? `, passengers ${pob.paxAboard} of ${pob.paxTotal}` : ''}${pob.visitors ? `, visitors ${pob.visitors}` : ''}`}</Text>
           <View style={styles.actions}>
             <TouchableOpacity style={styles.btn} onPress={() => { if (!adding) setF({ ...blank, timeIn: hhmm() }); setAdding((v) => !v); }}><Text style={styles.btnText}>{adding ? 'Close' : '+ Visitor'}</Text></TouchableOpacity>
             <TouchableOpacity style={styles.btnOutline} onPress={() => nav.navigate('Scan')}>
@@ -501,6 +506,32 @@ function SecuritySc() {
               </View>
             );
           })}
+
+          {paxOn ? (
+            <>
+              <View style={[styles.row, { borderLeftWidth: 0, paddingLeft: 0, alignItems: 'center' }]}>
+                <View style={{ flex: 1 }}><Label>{`Passengers (${pob.paxAboard} aboard${pob.paxAshore.length ? `, ${pob.paxAshore.length} ashore` : ''})`}</Label></View>
+                <TouchableOpacity onPress={() => nav.navigate('Passengers')}><Text style={styles.btnOutlineText}>Passenger list ›</Text></TouchableOpacity>
+              </View>
+              {guests.map((c) => {
+                const away = isAshore(c.id, last);
+                const m = last.get(c.id);
+                const when = m ? `${m.date !== today ? `${formatDate(m.date)} ` : ''}${m.time}` : '';
+                return (
+                  <View key={c.id} style={[styles.row, { borderLeftColor: away ? COLORS.textLight : COLORS.success }]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.name, away && { color: COLORS.textLight }]}>{c.cabin ? `${c.name} · cabin ${c.cabin}` : c.name}</Text>
+                      <Text style={styles.sub}>{away ? `ashore since ${when}` : m ? `aboard since ${when}` : 'aboard'}</Text>
+                    </View>
+                    <TouchableOpacity style={[styles.small, { backgroundColor: away ? COLORS.success : COLORS.warning, borderColor: away ? COLORS.success : COLORS.warning }]} onPress={() => void moveCrew(c.id)}>
+                      <Text style={[styles.smallText, { color: COLORS.textWhite }]}>{away ? 'Back aboard' : 'Ashore'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+              {!guests.length ? <Text style={styles.sub}>No passengers on board.</Text> : null}
+            </>
+          ) : null}
         </>
       ) : tab === 'log' ? (
         <>

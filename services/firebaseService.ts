@@ -86,6 +86,7 @@ import { normalizeCompressorState } from '../types/compressor';
 import { Inspection } from '../types/inspection';
 import { CrewMember } from '../types/crew';
 import { mergeById } from './pms';
+import { treatmentFromCloud, treatmentToCloud } from './hospital';
 import { ChecklistTemplate } from '../constants/checklists';
 import { PhotoArchiveState } from './photoArchive';
 import { CATEGORIES, CategoryMeta } from '../constants/categories';
@@ -1205,6 +1206,16 @@ interface SyncedList {
    * older version of the plan, and never holds up the rest of the batch.
    */
   partial?: string[];
+  /**
+   * What the cloud may hold of a record, and how a pulled copy is put back
+   * together with this device's own — the medical log's patient name stays on
+   * board, the first and last letter go up (13 Oct 2026). Such a list is sent
+   * one record at a time: one refused stays queued and holds up no other.
+   */
+  toCloud?: (r: any) => any;
+  fromCloud?: (local: any, remote: any) => any;
+  /** Bump to send every record again through `toCloud` (an older copy up there held more). */
+  resend?: string;
 }
 
 const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] = [
@@ -1254,7 +1265,11 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'med_orders', key: storage.MED_ORDERS_KEY, module: 'hospital' },
   { sub: 'med_checks', key: storage.MED_CHECKS_KEY, appendOnly: true, module: 'hospital' },
   // The medical log is personal health data: the Master and the officers only.
-  { sub: 'med_treatments', key: storage.MED_TREATMENTS_KEY, module: 'hospital', officers: true },
+  // Passengers: the list is everyone's (the gangway watch); their documents the officers' only.
+  { sub: 'passengers', key: storage.PASSENGERS_KEY, module: 'passengers' },
+  { sub: 'passengers_private', key: storage.PASSENGERS_PRIVATE_KEY, module: 'passengers', officers: true },
+  // The patient's name never leaves the vessel: the cloud holds its first and last letter.
+  { sub: 'med_treatments', key: storage.MED_TREATMENTS_KEY, module: 'hospital', officers: true, toCloud: treatmentToCloud, fromCloud: treatmentFromCloud, resend: 'mask1' },
 ];
 
 /**
@@ -1311,11 +1326,27 @@ async function pushList(uid: string, l: SyncedList): Promise<number> {
   try {
     const list = await storage.loadList<{ id: string; updatedAt: number }>(l.key);
     const pushedKey = `msm:pushed_${l.sub}`;
+    // A copy up there that held more than it may now (full names before 13 Oct 2026): send everything again, once.
+    if (l.resend && (await AsyncStorage.getItem(`${pushedKey}_v`)) !== l.resend) {
+      await AsyncStorage.removeItem(pushedKey);
+      await AsyncStorage.setItem(`${pushedKey}_v`, l.resend);
+    }
     const raw = await AsyncStorage.getItem(pushedKey);
     const sent: Record<string, number> = raw ? JSON.parse(raw) : {};
     const fresh = list.filter((r) => (sent[r.id] ?? -1) < (r.updatedAt ?? 0));
     if (!fresh.length) return 0;
-    if (l.appendOnly) {
+    if (l.toCloud) {
+      const d = requireDb();
+      for (const r of fresh) {
+        try {
+          await fsSetDoc(fsDoc(d, ROOT, uid, l.sub, r.id), stripUndefined(l.toCloud(r)));
+          sent[r.id] = r.updatedAt ?? 0;
+        } catch (e: any) {
+          if (!String(e?.code ?? e?.message ?? '').includes('permission')) throw e;
+          console.warn(`[sync] ${l.sub}/${r.id} refused — stays queued`);
+        }
+      }
+    } else if (l.appendOnly) {
       const d = requireDb();
       for (const r of fresh) {
         try {
@@ -1361,7 +1392,10 @@ async function pullList(uid: string, l: SyncedList): Promise<number> {
     const remote: { id: string; updatedAt: number }[] = [];
     snap.forEach((doc) => remote.push(doc.data() as any));
     if (remote.length) {
-      await storage.saveList(l.key, mergeById(await storage.loadList<{ id: string; updatedAt: number }>(l.key), remote));
+      const local = await storage.loadList<{ id: string; updatedAt: number }>(l.key);
+      const mine = new Map(local.map((x) => [x.id, x]));
+      const back = l.fromCloud ? remote.map((r) => l.fromCloud!(mine.get(r.id), r)) : remote;
+      await storage.saveList(l.key, mergeById(local, back));
       // What the vessel just handed us is, by definition, already up there. Without
       // this a device that lost its pushed-map (a reinstall, a restore) re-sends
       // everything it pulls — and for `pms_done`, where the rules allow create but

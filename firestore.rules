@@ -429,9 +429,15 @@ service cloud.firestore {
         allow update, delete: if false;
       }
       // An entry never changes; the written medical advice may be added to it.
+      // The patient's name never leaves the vessel: the cloud holds its first and
+      // last letter only ("A…e"); an older copy with the full name may be masked.
       match /med_treatments/{id} {
-        allow read, create: if isAdmin(v);
-        allow update: if isAdmin(v) && onlyChanges(['files', 'updatedAt']);
+        function masked() {
+          return request.resource.data.patient is string && request.resource.data.patient.matches('^.(….)?$');
+        }
+        allow read: if isAdmin(v);
+        allow create: if isAdmin(v) && masked();
+        allow update: if isAdmin(v) && masked() && onlyChanges(['files', 'patient', 'updatedAt']);
         allow delete: if false;
       }
       // Orders: written and received against by the officers; closed, final.
@@ -445,6 +451,18 @@ service cloud.firestore {
         allow read: if reader(v);
         allow create: if isAdmin(v);
         allow update, delete: if false;
+      }
+      // Passengers (types/passengers.ts): the list everyone on board reads — the
+      // gangway watch needs it; the officers and the Master keep it. Their
+      // documents, date of birth and contact ashore: officers and the Master only.
+      match /passengers/{id} {
+        allow read: if reader(v);
+        allow create, update: if isAdmin(v);
+        allow delete: if false;
+      }
+      match /passengers_private/{id} {
+        allow read, create, update: if isAdmin(v);
+        allow delete: if false;
       }
       // Crew going ashore / coming back aboard (QR crew card at the gangway).
       match /crew_moves/{id} {

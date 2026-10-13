@@ -35,5 +35,14 @@ b = buildBoard(base({ role: 'superadmin', on: (m) => m === 'garbage', garbage: [
 ok(b.attention.some((x) => x.key === 'grb:sign'), 'the Master sees it');
 b = buildBoard(base({ role: 'user', on: (m) => m === 'pms', machines: [{ id: 'm', name: 'Steering gear', updatedAt: 0 }] as any, pmsJobs: [{ id: 'j', machineId: 'm', title: 'x', intervalDays: 30, lastDoneDate: plus(0), updatedAt: 0 }] as any, pmsDefects: [{ id: 'd', machineId: 'm', machineName: 'Steering gear', category: 'safety', description: 'Ram seal leaking', date: plus(0), by: 'x', at: 0, updatedAt: 0 }, { id: 'e', machineId: 'm', machineName: 'Steering gear', category: 'class', description: 'y', date: plus(0), by: 'x', at: 0, updatedAt: 0 }] as any }));
 ok(b.attention.some((a) => a.key === 'pms:defect-safety' && /Steering gear/.test(a.title)) && !b.attention.some((a) => a.key === 'pms:defect-class'), 'safety-critical defect shown to crew; class-affecting only to officers');
+// on board is not signed on: those ashore apart (13 Oct 2026); passengers count too
+const crew9 = Array.from({ length: 12 }, (_, i) => ({ id: `c${i}`, name: `C${i}`, active: true, addedAt: 0, updatedAt: 0, ...(i === 11 ? { onBoard: false } : {}) }));
+const away9 = Array.from({ length: 9 }, (_, i) => ({ id: `mv${i}`, crewId: `c${i}`, name: `C${i}`, dir: 'ashore', date: today, time: '09:00', at: 1, by: 'w', via: 'qr', updatedAt: 1 }));
+b = buildBoard(base({ crew: crew9 as any, crewMoves: away9 as any, passengers: [{ id: 'p1', name: 'Sophie', embarked: today, addedAt: 0, updatedAt: 0 }, { id: 'p2', name: 'Leo', embarked: plus(3), addedAt: 0, updatedAt: 0 }] as any }));
+ok(b.tiles.find((t) => t.key === 'crew')?.line === '2 on board · 9 ashore · 1 on leave', 'crew tile: on board, ashore, on leave apart');
+ok(b.status.pob?.total === 3 && b.status.pob?.ashore === 9, 'persons on board: 2 crew + 1 passenger; 9 ashore');
+ok(/3 on board · 9 ashore/.test(b.tiles.find((t) => t.key === 'sec')?.line ?? ''), 'security tile: on board and ashore');
+ok(b.tiles.find((t) => t.key === 'pax')?.line === '1 on board' && b.plan.some((p) => p.key === 'pax:in:p2'), 'passengers tile; one joining in 3 days on the plan');
+
 console.log(fail ? `${fail} failed` : 'all passed');
 process.exit(fail ? 1 : 0);

@@ -24,7 +24,7 @@
 // will follow the same way); whether the module exists at all is ours.
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -95,6 +95,8 @@ export const MODULES: Record<ModuleKey, boolean> = {
   drills: false,
   /** Hospital — medicine chest with expiry, medical log (officers only), controlled drugs register (13 Oct 2026). */
   hospital: false,
+  /** Passengers — the guests aboard, their documents (officers only), and their crossings at the gangway (13 Oct 2026). */
+  passengers: false,
 };
 
 export function moduleOn(key: ModuleKey): boolean {

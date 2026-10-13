@@ -35,6 +35,8 @@ import { goBackOr } from '../utils/nav';
 import { recordScanProof } from '../services/signingPolicy';
 import { parseCrewQr, parsePassQr, samePass } from '../services/crewQr';
 import { isDoubleScan, nextMove } from '../services/gangway';
+import { todayIso } from '../services/pms';
+import { passengerAboard } from '../types/passengers';
 import { useSync } from '../contexts/SyncContext';
 import { moduleOn } from '../constants/modules';
 import { isAboard } from '../types/crew';
@@ -58,7 +60,7 @@ export default function ScanSc() {
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { flat, recordScan, crew, crewMoves, appendRow, visitors, saveRow } = useData();
+  const { flat, recordScan, crew, crewMoves, appendRow, visitors, saveRow, passengers } = useData();
   const sync = useSync();
   /** The last crew card read at the gangway — shown big, then the scanner is ready for the next. */
   const [crewHit, setCrewHit] = useState<{ name: string; text: string; ok: boolean } | null>(null);
@@ -84,14 +86,16 @@ export default function ScanSc() {
       // A crew card (msm://crew/<id>): going ashore or coming back aboard.
       const crewId = parseCrewQr(code);
       if (crewId && moduleOn('security')) {
-        const c = crew.find((x) => x.id === crewId && isAboard(x));
+        // A passenger card carries the same scheme, with the passenger's id (types/passengers.ts).
+        const pax = moduleOn('passengers') ? passengers.find((x) => x.id === crewId && passengerAboard(x, todayIso())) : undefined;
+        const c = crew.find((x) => x.id === crewId && isAboard(x)) ?? (pax ? { id: pax.id, name: pax.name, rank: pax.cabin ? `Guest · cabin ${pax.cabin}` : 'Guest' } : undefined);
         const show = (hit: { name: string; text: string; ok: boolean }) => {
           setCrewHit(hit);
           setTimeout(() => {
             locked.current = false;
           }, 2500);
         };
-        if (!c) return show({ name: 'Unknown card', text: 'Not on the crew list of this vessel (signed off, or another vessel’s card).', ok: false });
+        if (!c) return show({ name: 'Unknown card', text: 'Not on the crew or passenger list of this vessel (signed off, disembarked, or another vessel’s card).', ok: false });
         if (isDoubleScan(c.id, crewMoves)) return show({ name: c.name, text: 'Already recorded a moment ago.', ok: true });
         const by = sync.me ? personName(sync.me) : 'Gangway';
         const m = nextMove(c, crewMoves, by, via === 'camera' ? 'qr' : 'manual');
@@ -151,7 +155,7 @@ export default function ScanSc() {
       }
       setResult(match);
     },
-    [flat, nav, recordScan, crew, crewMoves, appendRow, visitors, saveRow, sync.me]
+    [flat, nav, recordScan, crew, crewMoves, appendRow, visitors, saveRow, sync.me, passengers]
   );
 
   const again = () => {

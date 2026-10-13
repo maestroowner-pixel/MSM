@@ -90,6 +90,7 @@ import NcSc from './screens/NcSc';
 import DrillsSc from './screens/DrillsSc';
 import DrillSc from './screens/DrillSc';
 import HospitalSc from './screens/HospitalSc';
+import PassengersSc from './screens/PassengersSc';
 import MedItemSc from './screens/MedItemSc';
 import TreatmentSc from './screens/TreatmentSc';
 import MedOrderSc from './screens/MedOrderSc';
@@ -137,6 +138,7 @@ const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Safety: SafetySc,
   Drills: DrillsSc,
   Hospital: HospitalSc,
+  Passengers: PassengersSc,
   Rounds: RoundsSc,
   Maintenance: MaintenanceSc,
   HoursOfRest: HoursOfRestSc,
@@ -217,6 +219,7 @@ const MENU_LABEL: Record<string, string> = {
   Safety: 'Safety observations & NC',
   Drills: 'Drills',
   Hospital: 'Hospital',
+  Passengers: 'Passengers',
   Rounds: 'Inspection rounds',
   Fuel: 'Fuel',
   Garbage: 'Garbage record book',
@@ -419,6 +422,7 @@ const linking = {
           Safety: 'safety',
           Drills: 'drills',
           Hospital: 'hospital',
+          Passengers: 'passengers',
           Rounds: 'rounds',
           Settings: 'settings',
         },

@@ -1,7 +1,7 @@
 // npm run check:hospital — stock by batch, expiry, orders delivered in parts, the inventory, the register, the scale, the Excel list, the board.
 import {
   chestStatus, checkLinesFor, differences, expiryState, followUpsDue, lastControlledCount, nextNo, normExpiry, onOrderByItem, orderOverdue, orderState,
-  pickBatch, planImport, batchLabel, sortChest, purposeOf, earliestExpiry, matchesName, placeText, comparePlace, stockLevel, matchesSearch, purposeIcon, mmYY, readSheet, receivedByLine, registerLines, scaleEntry, scaleItems, stockByItem, toOrder, landingLinesFor, listNoOf, referenceOf, returnedFor, isLanding, CHECK_KIND_LABEL,
+  pickBatch, planImport, batchLabel, sortChest, purposeOf, earliestExpiry, matchesName, placeText, comparePlace, stockLevel, matchesSearch, purposeIcon, mmYY, readSheet, receivedByLine, registerLines, scaleEntry, scaleItems, stockByItem, toOrder, landingLinesFor, listNoOf, referenceOf, returnedFor, maskName, isMasked, treatmentToCloud, treatmentFromCloud, isLanding, CHECK_KIND_LABEL,
 } from '../services/hospital';
 import { MED_SCALE, NURSING_SCALE } from '../constants/medScale';
 import { buildBoard } from '../services/board';
@@ -115,6 +115,12 @@ const given = [...moves, M({ kind: 'issued', qty: 6, batchNo: 'C3', expiry: '202
 ok(stockByItem(given).get('p')!.find((x) => x.batchNo === 'C3')!.qty === 36 && returnedFor('t1', given).get('p') === 4, 'returned unused: back into its batch, counted against the entry');
 const rl = registerLines('p', given);
 ok(rl[rl.length - 1].in === 4 && rl[rl.length - 1].balance === rl[rl.length - 2].balance + 4, 'register: a return is an in');
+
+// the patient's name never leaves the vessel
+ok(maskName('Ann Lee') === 'A…e' && maskName(' Max ') === 'M…x' && maskName('J') === 'J' && isMasked('A…e') && !isMasked('Ann'), 'name masked: first and last letter');
+const tr: any = { id: 't', patient: 'Ann Lee', updatedAt: 1 };
+ok(treatmentToCloud(tr).patient === 'A…e' && tr.patient === 'Ann Lee', 'up: masked copy, the local entry untouched');
+ok(treatmentFromCloud(tr, { ...tr, patient: 'A…e', files: [1], updatedAt: 2 }).patient === 'Ann Lee' && treatmentFromCloud(undefined, { ...tr, patient: 'A…e' }).patient === 'A…e', 'down: the full name comes back where it was written; elsewhere the letters');
 
 // the "i" on a panel
 const ra = referenceOf({ name: 'Adrenaline', strength: 'ampoule 1:1000 (1mg/ml)' });

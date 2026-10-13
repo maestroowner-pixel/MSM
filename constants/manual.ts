@@ -482,6 +482,15 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🛳️',
+      title: "Passengers",
+      body: [
+        "Passengers (menu → Crew → Passengers): the guests aboard, apart from the crew — name as in the passport, group (owner, owner's guest, charter guest), cabin, nationality, when and where they embarked and left. The list shows who is on board, who is expected and who has disembarked; search by name, cabin or nationality.",
+        "Gangway: each passenger on board has Ashore / Back aboard, as the crew do — the watch taps, or scans the passenger card (Print passenger cards: the same QR as a crew card). Passengers count in the persons on board on the Gangway logbook and the Board; the Board's Gangway summary says who is ashore and since when.",
+        "Documents — identity document, its expiry, date of birth, phone and the contact ashore — are kept by the officers and the Master only; the crew and the gangway watch see the list, not the documents. Passenger list (PDF) prints the list, with the documents for the officers.",
+      ],
+    },
+    {
       emoji: '🏥',
       title: "Hospital",
       body: [
@@ -492,6 +501,7 @@ const en: ManualContent = {
         "Landing report (Inventory, or the Register's Out of date filter): out-of-date stock handed ashore for destruction. Every out-of-date batch is listed with its list No.; a damaged or recalled batch may be added; change the quantity if not all goes. You sign as handing over, the person ashore — pharmacy, agent, authority — signs by hand on the screen; the books show it as disposed of. Controlled drugs have their own landing report, with a witness. The PDF carries the signatures.",
         "Issue (a button on each item in the Register and on its card): opens a new medical log entry with that medicine already in it — the whole chest in date can be added, searched by name, indication, ATC or list No. Medicine given but not used comes back from the signed entry (Return from the patient), into the batch it came from — a controlled drug with a witness. Dispose on an item: destroyed on board, or landed ashore — which opens a landing report for that batch.",
         "Medicine reference (menu → Hospital): the WHO IMGS medicine entries, the scale A / B / C and the equipment notes, searchable — for information only, not a diagnostic tool or a prescription guide. Content from the WHO International Medical Guide for Ships, 3rd edition, is used with the permission of the World Health Organization; the World Health Organization bears no responsibility or liability for this application or for any decisions made based on its content.",
+        "The patient's name never leaves the vessel: on the cloud a medical log entry carries only the first and last letter of the name (\"A…e\"); the full name stays on the device it was written on. Other devices of the vessel see the letters.",
       ],
     },
     {
@@ -1045,6 +1055,15 @@ const ru: ManualContent = {
       ],
     },
     {
+      emoji: '🛳️',
+      title: "Пассажиры (Passengers)",
+      body: [
+        "Passengers (меню → Crew → Passengers): гости на борту, отдельно от экипажа — имя как в паспорте, группа (владелец, гость владельца, чартерный гость), каюта, гражданство, когда и где сели и сошли. В списке видно, кто на борту, кого ждут и кто сошёл; поиск по имени, каюте, гражданству.",
+        "Трап: у каждого пассажира на борту — Ashore / Back aboard, как у экипажа: вахта нажимает или сканирует карточку пассажира (Print passenger cards — тот же QR, что у карточки экипажа). Пассажиры входят в число людей на борту в журнале трапа и на Board; сводка Gangway на Board показывает, кто на берегу и с какого времени.",
+        "Документы — удостоверение, его срок, дата рождения, телефон и контакт на берегу — видят только офицеры и Мастер; экипаж и вахта у трапа видят список, но не документы. Passenger list (PDF) печатает список, для офицеров — с документами.",
+      ],
+    },
+    {
       emoji: '🏥',
       title: "Госпиталь (Hospital)",
       body: [
@@ -1055,6 +1074,7 @@ const ru: ManualContent = {
         "Landing report (Inventory или фильтр Out of date в Register): просрочка, сданная на берег для уничтожения. Все просроченные партии в списке с номером по списку; можно добавить повреждённую или отозванную партию; количество меняется, если сдаётся не всё. Вы подписываете как сдавший, человек на берегу — аптека, агент, власти — расписывается рукой на экране; в учёте это списание. Для контролируемых препаратов — отдельный landing report, со свидетелем. В PDF — подписи.",
         "Issue (кнопка на каждой позиции в Register и в карточке): открывает новую запись медицинского журнала уже с этим препаратом; добавить можно всё, что есть в сроке, с поиском по названию, показанию, ATC и номеру. Неиспользованное возвращается от пациента из подписанной записи (Return from the patient) в ту же партию; контролируемый препарат — со свидетелем. Dispose у позиции: уничтожено на борту или сдано на берег — тогда открывается landing report на эту партию.",
         "Справочник (меню → Hospital): статьи WHO IMGS по медикаментам, нормы A / B / C и заметки по оборудованию, с поиском — только для информации, не инструмент диагностики и не руководство по назначению. Материалы WHO International Medical Guide for Ships, 3-е издание, используются с разрешения Всемирной организации здравоохранения; ВОЗ не несёт ответственности за это приложение и за решения, принятые на основе его содержания.",
+        "Имя пациента не покидает судно: в облаке запись медицинского журнала хранит только первую и последнюю букву имени («A…e»); полное имя остаётся на устройстве, где запись сделана. Другие устройства судна видят буквы.",
       ],
     },
     {
@@ -1608,6 +1628,15 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🛳️',
+      title: "Pasajeros (Passengers)",
+      body: [
+        "Passengers (menú → Crew → Passengers): los invitados a bordo, aparte de la tripulación — nombre como en el pasaporte, grupo (armador, invitado del armador, invitado de chárter), camarote, nacionalidad, cuándo y dónde embarcaron y desembarcaron. La lista muestra quién está a bordo, a quién se espera y quién ha desembarcado; búsqueda por nombre, camarote o nacionalidad.",
+        "Pasarela: cada pasajero a bordo tiene Ashore / Back aboard, como la tripulación — la guardia pulsa o escanea la tarjeta del pasajero (Print passenger cards: el mismo QR que la tarjeta de tripulante). Los pasajeros cuentan en las personas a bordo del libro de pasarela y del Board; el resumen Gangway del Board dice quién está en tierra y desde cuándo.",
+        "Los documentos — documento de identidad, su caducidad, fecha de nacimiento, teléfono y contacto en tierra — solo los ven los oficiales y el Capitán; la tripulación y la guardia de pasarela ven la lista, no los documentos. Passenger list (PDF) imprime la lista, con los documentos para los oficiales.",
+      ],
+    },
+    {
       emoji: '🏥',
       title: "Hospital",
       body: [
@@ -1618,6 +1647,7 @@ const es: ManualContent = {
         "Landing report (Inventory, o el filtro Out of date del Register): lo caducado entregado en tierra para su destrucción. Se listan todos los lotes caducados con su número de lista; se puede añadir un lote dañado o retirado; cambie la cantidad si no va todo. Usted firma como quien entrega, la persona en tierra — farmacia, agente, autoridad — firma a mano en la pantalla; en los libros queda como dado de baja. Los medicamentos controlados tienen su propio landing report, con testigo. El PDF lleva las firmas.",
         "Issue (un botón en cada artículo del Register y en su ficha): abre una entrada nueva del diario médico con ese medicamento; se puede añadir todo lo que está en fecha, buscando por nombre, indicación, ATC o número. Lo entregado y no usado vuelve desde la entrada firmada (Return from the patient) a su mismo lote; un medicamento controlado, con testigo. Dispose en un artículo: destruido a bordo o entregado en tierra — entonces se abre un landing report de ese lote.",
         "Referencia de medicamentos (menú → Hospital): las fichas WHO IMGS de medicamentos, la dotación A / B / C y las notas de equipos, con búsqueda — solo a título informativo, no es una herramienta de diagnóstico ni una guía de prescripción. El contenido de la WHO International Medical Guide for Ships, 3.ª edición, se usa con permiso de la Organización Mundial de la Salud; la OMS no asume ninguna responsabilidad por esta aplicación ni por las decisiones basadas en su contenido.",
+        "El nombre del paciente no sale del buque: en la nube una entrada del diario médico guarda solo la primera y la última letra del nombre («A…e»); el nombre completo queda en el dispositivo donde se escribió. Los demás dispositivos del buque ven las letras.",
       ],
     },
     {
@@ -2171,6 +2201,15 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🛳️',
+      title: "Пасажири (Passengers)",
+      body: [
+        "Passengers (меню → Crew → Passengers): гості на борту, окремо від екіпажу — ім'я як у паспорті, група (власник, гість власника, чартерний гість), каюта, громадянство, коли і де сіли та зійшли. У списку видно, хто на борту, кого чекають і хто зійшов; пошук за ім'ям, каютою, громадянством.",
+        "Трап: у кожного пасажира на борту — Ashore / Back aboard, як в екіпажу: вахта натискає або сканує картку пасажира (Print passenger cards — той самий QR, що й у картки екіпажу). Пасажири входять до кількості людей на борту в журналі трапу та на Board; зведення Gangway на Board показує, хто на березі і з якого часу.",
+        "Документи — посвідчення, його строк, дата народження, телефон і контакт на березі — бачать лише офіцери та Мастер; екіпаж і вахта біля трапу бачать список, але не документи. Passenger list (PDF) друкує список, для офіцерів — з документами.",
+      ],
+    },
+    {
       emoji: '🏥',
       title: "Госпіталь (Hospital)",
       body: [
@@ -2181,6 +2220,7 @@ const uk: ManualContent = {
         "Landing report (Inventory або фільтр Out of date у Register): прострочене, здане на берег для знищення. Усі прострочені партії у списку з номером за списком; можна додати пошкоджену або відкликану партію; кількість змінюється, якщо здається не все. Ви підписуєте як той, хто здав, людина на березі — аптека, агент, влада — розписується рукою на екрані; в обліку це списання. Для контрольованих препаратів — окремий landing report, зі свідком. У PDF — підписи.",
         "Issue (кнопка на кожній позиції в Register і в картці): відкриває новий запис медичного журналу вже з цим препаратом; додати можна все, що є в строку, з пошуком за назвою, показанням, ATC і номером. Невикористане повертається від пацієнта з підписаного запису (Return from the patient) у ту саму партію; контрольований препарат — зі свідком. Dispose у позиції: знищено на борту або здано на берег — тоді відкривається landing report на цю партію.",
         "Довідник (меню → Hospital): статті WHO IMGS щодо медикаментів, норми A / B / C і нотатки щодо обладнання, з пошуком — лише для інформації, не інструмент діагностики і не посібник з призначення. Матеріали WHO International Medical Guide for Ships, 3-тє видання, використовуються з дозволу Всесвітньої організації охорони здоров'я; ВООЗ не несе відповідальності за цей додаток і за рішення, ухвалені на основі його змісту.",
+        "Ім'я пацієнта не залишає судно: у хмарі запис медичного журналу зберігає лише першу й останню літеру імені («A…e»); повне ім'я залишається на пристрої, де запис зроблено. Інші пристрої судна бачать літери.",
       ],
     },
     {
@@ -2319,6 +2359,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
   { title: 'Surveys & audits', module: 'surveys' },
   { title: 'Security (ISPS)', module: 'security' },
   { title: 'Hospital', module: 'hospital' },
+  { title: 'Passengers', module: 'passengers' },
   { title: 'Drills', module: 'drills' },
   { title: 'Safety observations & NC', module: 'qhse' },
   { title: 'Fleet console (superintendent)', module: 'fleet' },

@@ -139,6 +139,11 @@ export function exportCrewCards(crew: CrewMember[], vessel: VesselInfo | null) {
   return exportCards(crew.map((c) => ({ name: c.name, sub: c.rank ?? '', foot: 'CREW CARD · scan at the gangway', qr: crewQrPayload(c.id) })), vessel, 'Crew cards');
 }
 
+/** Passenger cards — the same QR scheme as the crew's: the gangway knows a passenger by id (types/passengers.ts). */
+export function exportPassengerCards(list: { id: string; name: string; cabin?: string }[], vessel: VesselInfo | null) {
+  return exportCards(list.map((p) => ({ name: p.name, sub: p.cabin ? `Guest · cabin ${p.cabin}` : 'Guest', foot: 'PASSENGER CARD · scan at the gangway', qr: crewQrPayload(p.id) })), vessel, 'Passenger cards');
+}
+
 /** Reusable numbered visitor passes, 01…count — laminated and kept at the gangway. */
 export function exportVisitorPasses(count: number, vessel: VesselInfo | null) {
   const cards = Array.from({ length: count }, (_, i) => {

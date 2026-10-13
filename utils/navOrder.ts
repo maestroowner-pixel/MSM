@@ -30,7 +30,7 @@ export const MENU_GROUPS: MenuGroup[] = [
   { key: 'ops', label: 'Inspections & maintenance', routes: ['Dashboard', 'Equipment', 'Rounds', 'Maintenance', 'Spares', 'Reports'] },
   { key: 'env', label: 'Environment', routes: ['Fuel', 'OilRecord', 'Garbage', 'Sewage', 'Ballast', 'Sopep'] },
   { key: 'security', label: 'Safety & security', routes: ['Drills', 'Safety', 'Security'] },
-  { key: 'crew', label: 'Crew', routes: ['Crew', 'CrewMatrix', 'HoursOfRest', 'Hospital'] },
+  { key: 'crew', label: 'Crew', routes: ['Crew', 'Passengers', 'CrewMatrix', 'HoursOfRest', 'Hospital'] },
   { key: 'docs', label: 'Documents & permits', routes: ['Documents', 'Certificates', 'Surveys', 'Permits'] },
   { key: 'system', label: '', routes: ['Settings'] },
 ];

@@ -43,6 +43,7 @@ import { NonConformity, SafetyObservation } from '../types/safety';
 import { Drill } from '../types/drills';
 import { drillSchedule } from './drills';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
+import { Passenger, passengerAboard } from '../types/passengers';
 import { chestCounts, chestStatus, followUpsDue, isArchived, isLanding, landingLinesFor, lastControlledCount, orderOverdue, orderState, stockLevel } from './hospital';
 import { currentEntries } from './garbage';
 
@@ -106,7 +107,7 @@ export interface Summary {
 
 export interface BoardStatus {
   isps?: number;
-  pob?: { total: number; crew: number; visitors: number };
+  pob?: { total: number; crew: number; visitors: number; ashore?: number };
   rob?: { litres: number; daysLeft?: number };
 }
 export interface Board {
@@ -165,6 +166,7 @@ export interface BoardInput {
   medTreatments?: MedTreatment[];
   medOrders?: MedOrder[];
   medChecks?: MedCheck[];
+  passengers?: Passenger[];
 }
 
 const RANK: Record<Level, number> = { red: 0, amber: 1, blue: 2 };
@@ -263,7 +265,11 @@ export function buildBoard(x: BoardInput): Board {
       else if (iss.some((i) => i.level === 'due')) amber++;
     }
     if (red || amber) n.push({ key: 'crew', level: red ? 'red' : 'amber', who: 'officer', icon: 'card-account-details-outline', route: 'CrewMatrix', title: `Crew documents — ${[red ? `${plural(red, 'person')} with expired` : null, amber ? `${amber} due soon` : null].filter(Boolean).join(', ')}` });
-    tiles.push({ key: 'crew', label: 'Crew', icon: 'account-group-outline', route: 'CrewMatrix', level: lvl(red, amber), line: `${aboard.length} on board` });
+    // Signed on is not on board: with the gangway on, those ashore are said apart (13 Oct 2026: "it said 9 on board — in fact 9 ashore").
+    const last = x.on('security') ? lastMoves(x.crewMoves) : new Map();
+    const away = aboard.filter((c) => last.get(c.id)?.dir === 'ashore').length;
+    const leave = x.crew.filter((c) => c.active && !c.deleted && c.onBoard === false).length;
+    tiles.push({ key: 'crew', label: 'Crew', icon: 'account-group-outline', route: 'CrewMatrix', level: lvl(red, amber), line: [`${aboard.length - away} on board`, away ? `${away} ashore` : null, leave ? `${leave} on leave` : null].filter(Boolean).join(' · ') });
   }
 
   // ---- PMS ----
@@ -361,8 +367,9 @@ export function buildBoard(x: BoardInput): Board {
     const lev = [...x.securityLevels].sort((a, b) => b.since - a.since)[0]?.level ?? 1;
     status.isps = lev;
     if (lev > 1) n.push({ key: 'isps', level: 'red', who: 'all', icon: 'shield-alert-outline', route: 'Security', title: `ISPS security level ${lev}` });
-    const pob = personsOnBoard(x.crew, x.crewMoves, x.visitors);
-    status.pob = { total: pob.total, crew: pob.crewAboard, visitors: pob.visitors };
+    const guests = x.on('passengers') ? (x.passengers ?? []).filter((p) => passengerAboard(p, x.today)) : [];
+    const pob = personsOnBoard(x.crew, x.crewMoves, x.visitors, guests, x.today);
+    status.pob = { total: pob.total, crew: pob.crewAboard, visitors: pob.visitors, ashore: pob.ashore.length + pob.paxAshore.length };
     const lastDrill = [...x.securityDrills].sort((a, b) => b.at - a.at)[0];
     const age = lastDrill ? daysAgo(x.today, lastDrill.date) : 999;
     if (x.on('drills')) {
@@ -370,7 +377,7 @@ export function buildBoard(x: BoardInput): Board {
     } else if (age > 90) n.push({ key: 'isps:drill', level: 'amber', who: 'officer', icon: 'shield-account', route: 'Security', params: { view: 'drills' }, title: lastDrill ? `Security drill overdue — last ${dm(lastDrill.date)}` : 'Security drill — none recorded (every 3 months)' });
     else if (age > 75) plan.push({ key: 'isps:drill', icon: 'shield-account', route: 'Security', params: { view: 'drills' }, title: 'Security drill', sub: `due within ${plural(90 - age, 'day')}` });
     if (pob.visitors) today.push({ key: 'vis', title: `${plural(pob.visitors, 'visitor')} on board`, done: false, route: 'Security' });
-    tiles.push({ key: 'sec', label: 'Security', icon: 'shield-account', route: 'Security', level: lev > 1 ? 'red' : age > 90 ? 'amber' : undefined, line: `ISPS ${lev} · ${pob.total} on board` });
+    tiles.push({ key: 'sec', label: 'Security', icon: 'shield-account', route: 'Security', level: lev > 1 ? 'red' : age > 90 ? 'amber' : undefined, line: `ISPS ${lev} · ${pob.total} on board${pob.ashore.length + pob.paxAshore.length ? ` · ${pob.ashore.length + pob.paxAshore.length} ashore` : ''}` });
     // The gangway at a glance: who is aboard, who is ashore and since when, the visitors, today's crossings.
     const last = lastMoves(x.crewMoves);
     const onBoardVis = x.visitors.filter((v) => !v.timeOut);
@@ -378,8 +385,8 @@ export function buildBoard(x: BoardInput): Board {
     summaries.push({
       key: 'gangway', title: 'Gangway', icon: 'ferry', route: 'Security', params: { view: 'gangway' }, who: 'all',
       rows: [
-        { label: 'On board', value: `${pob.total} — crew ${pob.crewAboard} of ${pob.crewTotal}${pob.visitors ? `, ${plural(pob.visitors, 'visitor')}` : ''}` },
-        { label: 'Ashore', value: pob.ashore.length ? plural(pob.ashore.length, 'crew member', 'crew') : 'nobody', level: pob.ashore.length ? 'amber' : undefined, more: pob.ashore.slice(0, 6).map((c) => { const m = last.get(c.id); return `${c.name}${m ? ` · since ${m.date === x.today ? m.time : `${dm(m.date)} ${m.time}`}` : ''}`; }) },
+        { label: 'On board', value: `${pob.total} — crew ${pob.crewAboard} of ${pob.crewTotal}${pob.paxTotal ? `, passengers ${pob.paxAboard} of ${pob.paxTotal}` : ''}${pob.visitors ? `, ${plural(pob.visitors, 'visitor')}` : ''}` },
+        { label: 'Ashore', value: pob.ashore.length || pob.paxAshore.length ? [pob.ashore.length ? plural(pob.ashore.length, 'crew member', 'crew') : null, pob.paxAshore.length ? plural(pob.paxAshore.length, 'passenger') : null].filter(Boolean).join(', ') : 'nobody', level: pob.ashore.length || pob.paxAshore.length ? 'amber' : undefined, more: [...pob.ashore, ...pob.paxAshore].slice(0, 8).map((c) => { const m = last.get(c.id); return `${c.name}${pob.paxAshore.includes(c as any) ? ' (passenger)' : ''}${m ? ` · since ${m.date === x.today ? m.time : `${dm(m.date)} ${m.time}`}` : ''}`; }) },
         { label: 'Visitors', value: onBoardVis.length ? `${onBoardVis.length} on board` : 'none on board', level: onBoardVis.length ? 'blue' : undefined, more: onBoardVis.slice(0, 6).map((v) => `${v.name}${v.company ? `, ${v.company}` : ''} · in ${v.timeIn}`) },
         { label: 'Today', value: `${crossedToday.filter((m) => m.dir === 'ashore').length} went ashore · ${crossedToday.filter((m) => m.dir === 'aboard').length} came back · ${plural(x.visitors.filter((v) => v.date === x.today).length, 'visitor')}` },
       ],
@@ -453,6 +460,18 @@ export function buildBoard(x: BoardInput): Board {
         ...(landings.length ? [{ label: 'Last landing', value: `${landings[0].no} · ${dm(landings[0].date)}${landings[0].port ? ` · ${landings[0].port}` : ''}` }] : []),
       ] : [{ label: 'Chest', value: 'No chest list yet' }],
     });
+  }
+
+  // ---- Passengers (types/passengers.ts) ----
+  if (x.on('passengers')) {
+    const list = (x.passengers ?? []).filter((p) => !p.deleted);
+    const aboard = list.filter((p) => passengerAboard(p, x.today));
+    const away = aboard.filter((p) => lastMoves(x.crewMoves).get(p.id)?.dir === 'ashore').length;
+    const coming = list.filter((p) => p.embarked && p.embarked > x.today && daysAgo(p.embarked, x.today) <= 7);
+    const leaving = aboard.filter((p) => p.disembarked && daysAgo(p.disembarked, x.today) <= 2);
+    for (const p of coming) plan.push({ key: `pax:in:${p.id}`, icon: 'account-arrow-right-outline', route: 'Passengers', title: `${p.name} joins`, sub: `${dm(p.embarked!)}${p.embarkPort ? ` · ${p.embarkPort}` : ''}${p.cabin ? ` · cabin ${p.cabin}` : ''}` });
+    for (const p of leaving) plan.push({ key: `pax:out:${p.id}`, icon: 'account-arrow-left-outline', route: 'Passengers', title: `${p.name} leaves`, sub: `${dm(p.disembarked!)}${p.disembarkPort ? ` · ${p.disembarkPort}` : ''}` });
+    tiles.push({ key: 'pax', label: 'Passengers', icon: 'account-group-outline', route: 'Passengers', level: away ? 'blue' : undefined, line: aboard.length ? `${aboard.length - away} on board${away ? ` · ${away} ashore` : ''}` : coming.length ? `${coming.length} joining this week` : 'None on board' });
   }
 
   // ---- Surveys & audits ----

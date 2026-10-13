@@ -38,6 +38,7 @@ import { Survey, SurveyDone } from '../types/survey';
 import { NonConformity, SafetyObservation } from '../types/safety';
 import { Drill } from '../types/drills';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
+import { Passenger, PassengerPrivate } from '../types/passengers';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from '../services/storage';
@@ -92,6 +93,7 @@ export interface BackupFile {
   drills?: Drill[];
   /** Hospital: the chest, its moves, the medical log. */
   hospital?: { items: MedItem[]; moves: MedMove[]; treatments: MedTreatment[]; orders?: MedOrder[]; checks?: MedCheck[] };
+  passengers?: { list: Passenger[]; private?: PassengerPrivate[] };
   security?: { visitors: Visitor[]; levels: SecurityLevelRec[]; drills?: SecurityDrill[]; crewMoves?: CrewMove[] };
   files?: Record<string, string>; // basename -> base64 of the file contents
 }
@@ -217,6 +219,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   const garbage = { entries: await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY), signs: await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY) };
   const qhse = { observations: await storage.loadList<SafetyObservation>(storage.OBSERVATIONS_KEY), ncs: await storage.loadList<NonConformity>(storage.NCS_KEY) };
   const drills = await storage.loadList<Drill>(storage.DRILLS_KEY);
+  const passengers = { list: await storage.loadList<Passenger>(storage.PASSENGERS_KEY), private: await storage.loadList<PassengerPrivate>(storage.PASSENGERS_PRIVATE_KEY) };
   const hospital = { items: await storage.loadList<MedItem>(storage.MED_ITEMS_KEY), moves: await storage.loadList<MedMove>(storage.MED_MOVES_KEY), treatments: await storage.loadList<MedTreatment>(storage.MED_TREATMENTS_KEY), orders: await storage.loadList<MedOrder>(storage.MED_ORDERS_KEY), checks: await storage.loadList<MedCheck>(storage.MED_CHECKS_KEY) };
   const surveys = { plan: await storage.loadList<Survey>(storage.SURVEYS_KEY), done: await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY) };
   const sopep = { items: await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY), checks: await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY), drills: await storage.loadList<SopepDrill>(storage.SOPEP_DRILLS_KEY) };
@@ -263,6 +266,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     qhse,
     drills,
     hospital,
+    passengers,
     files,
   };
 
@@ -467,6 +471,10 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     await storage.saveList(storage.NCS_KEY, backup.qhse.ncs ?? []);
   }
   if (backup.drills) await storage.saveList(storage.DRILLS_KEY, backup.drills);
+  if (backup.passengers) {
+    await storage.saveList(storage.PASSENGERS_KEY, backup.passengers.list ?? []);
+    await storage.saveList(storage.PASSENGERS_PRIVATE_KEY, backup.passengers.private ?? []);
+  }
   if (backup.hospital) {
     await storage.saveList(storage.MED_ITEMS_KEY, backup.hospital.items ?? []);
     await storage.saveList(storage.MED_MOVES_KEY, backup.hospital.moves ?? []);

@@ -76,6 +76,7 @@ export default function BoardSc() {
     data.vessel?.vessel_name || null,
     st.isps ? `ISPS ${st.isps}` : null,
     st.pob ? `${st.pob.total} on board${st.pob.visitors ? ` (${st.pob.visitors} visitor${st.pob.visitors > 1 ? 's' : ''})` : ''}` : null,
+    st.pob?.ashore ? `${st.pob.ashore} ashore` : null,
     st.rob ? `ROB ${Math.round(st.rob.litres).toLocaleString('en-GB').replace(/,/g, ' ')} L${st.rob.daysLeft != null ? ` ≈ ${st.rob.daysLeft} d` : ''}` : null,
   ].filter(Boolean);
 

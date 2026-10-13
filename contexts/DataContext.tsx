@@ -24,6 +24,7 @@ import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
 import { Survey, SurveyDone } from '../types/survey';
 import { NonConformity, SafetyObservation } from '../types/safety';
 import { Drill } from '../types/drills';
+import { Passenger, PassengerPrivate } from '../types/passengers';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
@@ -142,6 +143,8 @@ interface DataContextType {
   medItems: MedItem[];
   medMoves: MedMove[];
   medTreatments: MedTreatment[];
+  passengers: Passenger[];
+  passengersPrivate: PassengerPrivate[];
   medOrders: MedOrder[];
   medChecks: MedCheck[];
   surveysDone: SurveyDone[];
@@ -260,6 +263,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [medItems, setMedItems] = useState<MedItem[]>([]);
   const [medMoves, setMedMoves] = useState<MedMove[]>([]);
   const [medTreatments, setMedTreatments] = useState<MedTreatment[]>([]);
+  const [passengers, setPassengers] = useState<Passenger[]>([]);
+  const [passengersPrivate, setPassengersPrivate] = useState<PassengerPrivate[]>([]);
   const [medOrders, setMedOrders] = useState<MedOrder[]>([]);
   const [medChecks, setMedChecks] = useState<MedCheck[]>([]);
   const [surveysDone, setSurveysDone] = useState<SurveyDone[]>([]);
@@ -343,6 +348,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _medItems = (await storage.loadList<MedItem>(storage.MED_ITEMS_KEY)).filter((x) => !x.deleted).sort((x, y) => x.order - y.order);
     const _medMoves = await storage.loadList<MedMove>(storage.MED_MOVES_KEY);
     const _medTreatments = await storage.loadList<MedTreatment>(storage.MED_TREATMENTS_KEY);
+    const _passengers = (await storage.loadList<Passenger>(storage.PASSENGERS_KEY)).filter((x) => !x.deleted);
+    const _passengersPrivate = await storage.loadList<PassengerPrivate>(storage.PASSENGERS_PRIVATE_KEY);
     const _medOrders = await storage.loadList<MedOrder>(storage.MED_ORDERS_KEY);
     const _medChecks = await storage.loadList<MedCheck>(storage.MED_CHECKS_KEY);
     const _surveysDone = live(await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY));
@@ -397,6 +404,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMedItems(_medItems);
     setMedMoves(_medMoves);
     setMedTreatments(_medTreatments);
+    setPassengers(_passengers);
+    setPassengersPrivate(_passengersPrivate);
     setMedOrders(_medOrders);
     setMedChecks(_medChecks);
     setSurveysDone(_surveysDone);
@@ -598,6 +607,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _medItems = (await storage.loadList<MedItem>(storage.MED_ITEMS_KEY)).filter((x) => !x.deleted).sort((x, y) => x.order - y.order);
     const _medMoves = await storage.loadList<MedMove>(storage.MED_MOVES_KEY);
     const _medTreatments = await storage.loadList<MedTreatment>(storage.MED_TREATMENTS_KEY);
+    const _passengers = (await storage.loadList<Passenger>(storage.PASSENGERS_KEY)).filter((x) => !x.deleted);
+    const _passengersPrivate = await storage.loadList<PassengerPrivate>(storage.PASSENGERS_PRIVATE_KEY);
     const _medOrders = await storage.loadList<MedOrder>(storage.MED_ORDERS_KEY);
     const _medChecks = await storage.loadList<MedCheck>(storage.MED_CHECKS_KEY);
     const _surveysDone = live(await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY));
@@ -643,6 +654,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMedItems(_medItems);
     setMedMoves(_medMoves);
     setMedTreatments(_medTreatments);
+    setPassengers(_passengers);
+    setPassengersPrivate(_passengersPrivate);
     setMedOrders(_medOrders);
     setMedChecks(_medChecks);
     setSurveysDone(_surveysDone);
@@ -903,6 +916,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         medItems,
         medMoves,
         medTreatments,
+        passengers,
+        passengersPrivate,
         medOrders,
         medChecks,
         surveysDone,

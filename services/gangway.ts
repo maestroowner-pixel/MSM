@@ -8,6 +8,7 @@
 
 import { CrewMember, isAboard } from '../types/crew';
 import { CrewMove, Visitor } from '../types/security';
+import { Passenger, passengerAboard } from '../types/passengers';
 import { uid } from '../utils/id';
 
 /** Last move of each crew member, by crew id. */
@@ -25,13 +26,23 @@ export function isAshore(crewId: string, last: Map<string, CrewMove>): boolean {
 }
 
 /** Persons on board now: signed-on crew not ashore, and visitors not signed off. */
-export function personsOnBoard(crew: CrewMember[], moves: CrewMove[], visitors: Visitor[]) {
+export function personsOnBoard(crew: CrewMember[], moves: CrewMove[], visitors: Visitor[], passengers: Passenger[] = [], today = localToday()) {
   const last = lastMoves(moves);
   const signedOn = crew.filter(isAboard);
   const ashore = signedOn.filter((c) => isAshore(c.id, last));
   const crewAboard = signedOn.length - ashore.length;
   const guests = visitors.filter((v) => !v.timeOut).length;
-  return { crewAboard, crewTotal: signedOn.length, ashore, visitors: guests, total: crewAboard + guests };
+  // Passengers (types/passengers.ts) — embarked and not yet left; ashore by their last crossing.
+  const joined = passengers.filter((p) => passengerAboard(p, today));
+  const paxAshore = joined.filter((p) => isAshore(p.id, last));
+  const paxAboard = joined.length - paxAshore.length;
+  return { crewAboard, crewTotal: signedOn.length, ashore, visitors: guests, paxAboard, paxTotal: joined.length, paxAshore, total: crewAboard + guests + paxAboard };
+}
+
+function localToday(): string {
+  const d = new Date();
+  const z = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
 }
 
 /** The move a scan or a tap makes: the opposite of where the person is now. */

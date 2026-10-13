@@ -110,6 +110,30 @@ export function normExpiry(v: unknown): string | undefined {
 
 // ---- the medical log ----
 
+// ---- the patient's name never leaves the vessel (13 Oct 2026) ----
+// On the cloud a medical log entry carries the first and the last letter of the
+// patient's name only — "Ann Lee" → "A…e". The full name stays on the device it
+// was written on; a pull puts it back (as Marine Hospital Manager does).
+
+export function maskName(name: string): string {
+  const s = name.trim().replace(/\s+/g, ' ');
+  if (s.length <= 1) return s;
+  return `${s[0]}…${s[s.length - 1]}`;
+}
+
+/** Already masked — what the cloud holds. */
+export const isMasked = (name: string) => /^.(….)?$/u.test(name);
+
+/** What goes up: the entry with the name masked. */
+export function treatmentToCloud<T extends { patient: string }>(t: T): T {
+  return isMasked(t.patient) ? t : { ...t, patient: maskName(t.patient) };
+}
+
+/** What comes down: the vessel's copy, with this device's full name back in it. */
+export function treatmentFromCloud<T extends { patient: string }>(local: T | undefined, remote: T): T {
+  return local && !isMasked(local.patient) && maskName(local.patient) === remote.patient ? { ...remote, patient: local.patient } : remote;
+}
+
 export const nextMedNo = (list: MedTreatment[], date: string) => nextNo('MED', list, date);
 
 export const sortTreatments = (list: MedTreatment[]) => [...list].sort((a, b) => b.date.localeCompare(a.date) || (b.time ?? '').localeCompare(a.time ?? '') || b.no.localeCompare(a.no));
