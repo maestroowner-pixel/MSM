@@ -36,14 +36,14 @@ import { openDefects, windowFor } from './inspections';
 import { crewIssues } from './crewIssues';
 import { robTotal } from './fuel';
 import { fuelDaily } from './fuelDaily';
-import { personsOnBoard } from './gangway';
+import { lastMoves, personsOnBoard } from './gangway';
 import { surveyStatus } from './surveys';
 import { ncState, nextActionDue } from './safety';
 import { NonConformity, SafetyObservation } from '../types/safety';
 import { Drill } from '../types/drills';
 import { drillSchedule } from './drills';
-import { MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
-import { chestCounts, chestStatus, followUpsDue, landingLinesFor, lastControlledCount, orderOverdue, stockLevel } from './hospital';
+import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
+import { chestCounts, chestStatus, followUpsDue, isArchived, isLanding, landingLinesFor, lastControlledCount, orderOverdue, orderState, stockLevel } from './hospital';
 import { currentEntries } from './garbage';
 
 export type Level = 'red' | 'amber' | 'blue';
@@ -86,6 +86,24 @@ export interface Tile {
   params?: Record<string, unknown>;
   icon: string;
 }
+/** A summary panel (13 Oct 2026: "add the hospital, a summary of the gangway"): a few facts, each with its own colour. */
+export interface SummaryRow {
+  label: string;
+  value: string;
+  level?: Level;
+  /** Names under the line — who is ashore, which visitors. */
+  more?: string[];
+}
+export interface Summary {
+  key: string;
+  title: string;
+  icon: string;
+  route: string;
+  params?: Record<string, unknown>;
+  who: Audience;
+  rows: SummaryRow[];
+}
+
 export interface BoardStatus {
   isps?: number;
   pob?: { total: number; crew: number; visitors: number };
@@ -97,6 +115,7 @@ export interface Board {
   plan: PlanRow[];
   today: TodayRow[];
   tiles: Tile[];
+  summaries: Summary[];
 }
 
 export interface BoardInput {
@@ -145,6 +164,7 @@ export interface BoardInput {
   medMoves?: MedMove[];
   medTreatments?: MedTreatment[];
   medOrders?: MedOrder[];
+  medChecks?: MedCheck[];
 }
 
 const RANK: Record<Level, number> = { red: 0, amber: 1, blue: 2 };
@@ -162,6 +182,7 @@ export function buildBoard(x: BoardInput): Board {
   const plan: PlanRow[] = [];
   const today: TodayRow[] = [];
   const tiles: Tile[] = [];
+  const summaries: Summary[] = [];
   const status: BoardStatus = {};
   const lvl = (red: number, amber: number): Level | undefined => (red ? 'red' : amber ? 'amber' : undefined);
 
@@ -350,6 +371,19 @@ export function buildBoard(x: BoardInput): Board {
     else if (age > 75) plan.push({ key: 'isps:drill', icon: 'shield-account', route: 'Security', params: { view: 'drills' }, title: 'Security drill', sub: `due within ${plural(90 - age, 'day')}` });
     if (pob.visitors) today.push({ key: 'vis', title: `${plural(pob.visitors, 'visitor')} on board`, done: false, route: 'Security' });
     tiles.push({ key: 'sec', label: 'Security', icon: 'shield-account', route: 'Security', level: lev > 1 ? 'red' : age > 90 ? 'amber' : undefined, line: `ISPS ${lev} · ${pob.total} on board` });
+    // The gangway at a glance: who is aboard, who is ashore and since when, the visitors, today's crossings.
+    const last = lastMoves(x.crewMoves);
+    const onBoardVis = x.visitors.filter((v) => !v.timeOut);
+    const crossedToday = x.crewMoves.filter((m) => m.date === x.today);
+    summaries.push({
+      key: 'gangway', title: 'Gangway', icon: 'ferry', route: 'Security', params: { view: 'gangway' }, who: 'all',
+      rows: [
+        { label: 'On board', value: `${pob.total} — crew ${pob.crewAboard} of ${pob.crewTotal}${pob.visitors ? `, ${plural(pob.visitors, 'visitor')}` : ''}` },
+        { label: 'Ashore', value: pob.ashore.length ? plural(pob.ashore.length, 'crew member', 'crew') : 'nobody', level: pob.ashore.length ? 'amber' : undefined, more: pob.ashore.slice(0, 6).map((c) => { const m = last.get(c.id); return `${c.name}${m ? ` · since ${m.date === x.today ? m.time : `${dm(m.date)} ${m.time}`}` : ''}`; }) },
+        { label: 'Visitors', value: onBoardVis.length ? `${onBoardVis.length} on board` : 'none on board', level: onBoardVis.length ? 'blue' : undefined, more: onBoardVis.slice(0, 6).map((v) => `${v.name}${v.company ? `, ${v.company}` : ''} · in ${v.timeIn}`) },
+        { label: 'Today', value: `${crossedToday.filter((m) => m.dir === 'ashore').length} went ashore · ${crossedToday.filter((m) => m.dir === 'aboard').length} came back · ${plural(x.visitors.filter((v) => v.date === x.today).length, 'visitor')}` },
+      ],
+    });
   }
 
   // ---- Drills: what is due, what is planned ----
@@ -396,6 +430,29 @@ export function buildBoard(x: BoardInput): Board {
     for (const o of (x.medOrders ?? []).filter((o) => orderOverdue(o, x.medMoves ?? [], x.today))) n.push({ key: `med:ord:${o.id}`, level: 'amber', who: 'officer', icon: 'truck-delivery-outline', route: 'MedOrder', params: { id: o.id }, title: `Medical order ${o.no} — overdue`, sub: `expected ${dm(o.due!)}${o.supplier ? ` · ${o.supplier}` : ''}` });
     for (const t of followUpsDue(x.medTreatments ?? [], x.today)) n.push({ key: `med:fu:${t.id}`, level: 'blue', who: 'officer', icon: 'stethoscope', route: 'Treatment', params: { id: 'new', followUpOf: t.id }, title: `Follow-up — ${t.patient}`, sub: `${t.no} ${t.complaint}` });
     tiles.push({ key: 'med', label: 'Hospital', icon: 'medical-bag', route: 'Hospital', level: lvl(c.expired + empty, c.soon + c.short), line: items.length ? [c.expired ? `${c.expired} expired` : null, empty ? `${empty} out of stock` : null, c.soon ? `${c.soon} expiring` : null, c.short ? `${c.short} short` : null].filter(Boolean).slice(0, 3).join(' · ') || 'All in date' : 'No chest list yet' });
+    // The hospital at a glance — counts only; the medical log is the officers' (no patient names here).
+    const live = items.filter((i) => !i.deleted);
+    const cds = live.filter((i) => i.controlled);
+    const lastCd = lastControlledCount(items, x.medMoves ?? []);
+    const openOrders = (x.medOrders ?? []).filter((o) => !isArchived(orderState(o, x.medMoves ?? [])));
+    const late = openOrders.filter((o) => orderOverdue(o, x.medMoves ?? [], x.today)).length;
+    const month = x.today.slice(0, 7);
+    const log = x.medTreatments ?? [];
+    const fu = followUpsDue(log, x.today).length;
+    const landings = (x.medChecks ?? []).filter(isLanding).sort((a, b) => b.at - a.at);
+    const inStock = rows.filter((r) => !['empty', 'critical', 'low'].includes(stockLevel(r))).length;
+    summaries.push({
+      key: 'hospital', title: 'Hospital', icon: 'medical-bag', route: 'Hospital', who: 'officer',
+      rows: live.length ? [
+        { label: 'Chest', value: `${live.length} items · ${inStock} stocked${empty ? ` · ${empty} out of stock` : ''}`, level: empty ? 'red' : undefined },
+        { label: 'Out of date', value: c.expired ? `${plural(c.expired, 'item')}${landCd ? ` (${plural(landCd, 'controlled batch', 'controlled batches')})` : ''} — to land ashore` : 'none', level: c.expired ? 'red' : undefined },
+        { label: 'Expiring ≤ 30 d', value: c.soon ? plural(c.soon, 'item') : 'none', level: c.soon ? 'amber' : undefined },
+        { label: 'Below the scale', value: c.short ? `${plural(c.short, 'item')}${openOrders.length ? ` · ${plural(openOrders.length, 'order')} open${late ? `, ${late} overdue` : ''}` : ''}` : openOrders.length ? `none · ${plural(openOrders.length, 'order')} open` : 'none', level: late ? 'amber' : c.short ? 'amber' : undefined },
+        ...(cds.length ? [{ label: 'Controlled drugs', value: `${plural(cds.length, 'item')} · ${lastCd ? `counted ${dm(lastCd)}` : 'never counted'}`, level: (!lastCd || daysAgo(x.today, lastCd) > 31 ? 'amber' : undefined) as Level | undefined }] : []),
+        { label: 'Medical log', value: `${log.filter((t) => t.date.startsWith(month)).length} this month${fu ? ` · ${plural(fu, 'follow-up')} due` : ''}`, level: fu ? 'blue' : undefined },
+        ...(landings.length ? [{ label: 'Last landing', value: `${landings[0].no} · ${dm(landings[0].date)}${landings[0].port ? ` · ${landings[0].port}` : ''}` }] : []),
+      ] : [{ label: 'Chest', value: 'No chest list yet' }],
+    });
   }
 
   // ---- Surveys & audits ----
@@ -451,5 +508,6 @@ export function buildBoard(x: BoardInput): Board {
     plan,
     today,
     tiles,
+    summaries: summaries.filter((v) => sees(v.who)),
   };
 }

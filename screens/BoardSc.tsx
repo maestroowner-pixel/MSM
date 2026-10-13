@@ -134,6 +134,26 @@ export default function BoardSc() {
     </View>
   ) : null;
 
+  // Summaries — the gangway and the hospital at a glance (13 Oct 2026).
+  const summaries = board.summaries.map((g) => (
+    <TouchableOpacity key={g.key} style={styles.block} onPress={() => go(g.route, g.params)} activeOpacity={0.85}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+        <MciIcon name={g.icon} size={18} color={COLORS.primary} />
+        <Text style={[styles.head, { marginBottom: 0, flex: 1 }]}>{g.title}</Text>
+        <MciIcon name="chevron-right" size={18} color={COLORS.textLight} />
+      </View>
+      {g.rows.map((r) => (
+        <View key={r.label} style={styles.sumRow}>
+          <Text style={styles.sumLabel}>{r.label}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.noticeText, r.level ? { color: color(r.level), fontWeight: '700' } : null]}>{r.value}</Text>
+            {r.more?.map((m) => <Text key={m} style={styles.sub}>{m}</Text>)}
+          </View>
+        </View>
+      ))}
+    </TouchableOpacity>
+  ));
+
   const tiles = (
     <View style={styles.block}>
       <Text style={styles.head}>Sections</Text>
@@ -158,13 +178,14 @@ export default function BoardSc() {
         <View style={{ flexDirection: 'row', gap: SIZES.lg, alignItems: 'flex-start' }}>
           {/* Sections first, what needs attention under them; Today and the Plan on the right (11 Oct 2026). */}
           <View style={{ flex: 3 }}>{tiles}{attention}</View>
-          <View style={{ flex: 2 }}>{today}{plan}</View>
+          <View style={{ flex: 2 }}>{today}{summaries}{plan}</View>
         </View>
       ) : (
         <>
           {tiles}
           {attention}
           {today}
+          {summaries}
           {plan}
         </>
       )}
@@ -180,6 +201,8 @@ const makeStyles = (COLORS: Palette) =>
     dot: { width: 8, height: 8, borderRadius: 4 },
     noticeText: { fontSize: SIZES.body, color: COLORS.textDark, fontWeight: '600' },
     sub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },
+    sumRow: { flexDirection: 'row', gap: SIZES.sm, paddingVertical: 5, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.borderLight },
+    sumLabel: { width: 118, fontSize: SIZES.small, color: COLORS.textLight, paddingTop: 2 },
     allGood: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, paddingVertical: SIZES.sm },
     planRow: { flexDirection: 'row', alignItems: 'flex-start', gap: SIZES.sm, paddingVertical: 8 },
     bar: { height: 5, borderRadius: 3, backgroundColor: COLORS.borderLight, marginTop: 5, overflow: 'hidden' },
