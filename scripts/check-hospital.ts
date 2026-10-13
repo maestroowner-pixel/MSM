@@ -105,7 +105,7 @@ const lst = chestStatus([I({}), I({ id: 'mo', name: 'Morphine', strength: 'ampou
 const lnd = landingLinesFor(lst, T, false);
 const lcd = landingLinesFor(lst, T, true);
 ok(lnd.length === 2 && lnd.every((l) => !l.controlled && l.reason === 'expired') && lnd.find((l) => l.itemId === 'p')?.counted === 50, 'landing: every out-of-date batch, the whole quantity, not the controlled drugs');
-ok(lcd.length === 1 && lcd[0].itemId === 'mo' && lcd[0].counted === 4 && lcd[0].controlled && lcd[0].unit === 'ampoules', 'landing — controlled drugs: only theirs, only out of date');
+ok(lcd.length === 1 && lcd[0].itemId === 'mo' && lcd[0].counted === 4 && !!lcd[0].controlled && lcd[0].unit === 'ampoules', 'landing — controlled drugs: only theirs, only out of date');
 ok(lnd[0].itemId === 'ad' && lnd[0].listNo === 'W.H.O. 1.3.1', 'landing: list No. from the scale when the item has none; numbered lines first');
 ok(listNoOf({ name: 'X', listNo: ' MSN A-12 ' }) === 'MSN A-12' && listNoOf({ name: 'Acetylsalicylic acid', strength: 'tablet 300mg' }) === 'W.H.O. 2.1' && listNoOf({ name: 'Nothing' }) === undefined, 'list No.: own first, then WHO / IMGS');
 ok(isLanding({ kind: 'landing-cd' }) && !isLanding({ kind: 'handover' }) && !!CHECK_KIND_LABEL.landing && nextNo('LND', [{ no: 'INV-2026-004' }, { no: 'LND-2026-001' }], T) === 'LND-2026-002', 'landing kinds and numbers LND');

@@ -17,10 +17,11 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { Card, Screen, ScreenTitle } from '../components/ui';
+import { Dropdown } from '../components/Dropdown';
 import { useSigner } from '../components/SignerChoice';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
@@ -201,25 +202,19 @@ export default function HospitalSc() {
           {rows.length ? (
             <>
               <TextInput style={[styles.input, { marginTop: 0, marginBottom: SIZES.sm }]} value={q} onChangeText={setQ} placeholder="🔍 Search — name, indication, ATC, list No., cabinet" placeholderTextColor={COLORS.textLight} />
-              {/* Groups as in MHM: tap one to see only it. */}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SIZES.xs, paddingBottom: SIZES.sm }}>
-                <Chip on={!group} label={`💊 All · ${rows.length}`} onPress={() => setGroup(null)} />
-                {groups.map(([g, n]) => <Chip key={g} on={group === g} label={`${purposeIcon(g)} ${g} · ${n}`} onPress={() => setGroup(group === g ? null : g)} />)}
-              </ScrollView>
-              <View style={[styles.chips, { alignItems: 'center' }]}>
-                <Text style={[styles.sub, { marginTop: 0 }]}>Sort</Text>
-                {([['attention', 'Attention'], ['purpose', 'Purpose'], ['expiry', 'Expiry'], ['name', 'A–Z'], ['place', 'Location'], ['list', 'List No.']] as [ChestSort, string][]).map(([k, l]) => (
-                  <Chip key={k} on={sortBy === k} label={l} onPress={() => setSortBy(k)} />
-                ))}
-              </View>
-              <View style={styles.chips}>
-                <Chip on={filter === 'all'} label="All" onPress={() => setFilter('all')} />
-                <Chip on={filter === 'expired'} label={`Out of date · ${counts.expired}`} onPress={() => setFilter('expired')} />
-                <Chip on={filter === 'soon'} label={`Expiring ≤ 30 d · ${counts.soon}`} onPress={() => setFilter('soon')} />
-                <Chip on={filter === 'empty'} label={`Out of stock · ${levels.empty}`} onPress={() => setFilter('empty')} />
-                <Chip on={filter === 'low'} label={`Low stock · ${levels.low}`} onPress={() => setFilter('low')} />
-                <Chip on={filter === 'short'} label={`Below scale · ${counts.short}`} onPress={() => setFilter('short')} />
-                {controlled.length ? <Chip on={filter === 'controlled'} label={`Controlled · ${controlled.length}`} onPress={() => setFilter('controlled')} /> : null}
+              {/* Group, what to show and the order — three drop-downs side by side (13 Oct 2026: "filters and sorting as drop-down menus"). */}
+              <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.sm, gap: SIZES.xs }]}>
+                <Dropdown caption="GROUP" value={group ?? ''} onChange={(v: string) => setGroup(v || null)} options={[{ value: '', label: `💊 All · ${rows.length}` }, ...groups.map(([g, n]) => ({ value: g, label: `${purposeIcon(g)} ${g} · ${n}` }))]} style={{ flex: 1, minWidth: 200 }} />
+                <Dropdown caption="SHOW" value={filter} onChange={setFilter} style={{ flex: 1, minWidth: 200 }} options={[
+                  { value: 'all' as Filter, label: 'All' },
+                  { value: 'expired' as Filter, label: `Out of date · ${counts.expired}` },
+                  { value: 'soon' as Filter, label: `Expiring ≤ 30 d · ${counts.soon}` },
+                  { value: 'empty' as Filter, label: `Out of stock · ${levels.empty}` },
+                  { value: 'low' as Filter, label: `Low stock · ${levels.low}` },
+                  { value: 'short' as Filter, label: `Below scale · ${counts.short}` },
+                  ...(controlled.length ? [{ value: 'controlled' as Filter, label: `Controlled · ${controlled.length}` }] : []),
+                ]} />
+                <Dropdown caption="SORT" value={sortBy} onChange={setSortBy} style={{ flex: 1, minWidth: 200 }} options={([['attention', 'Attention'], ['purpose', 'Purpose'], ['expiry', 'Expiry'], ['name', 'A–Z'], ['place', 'Location'], ['list', 'List No.']] as [ChestSort, string][]).map(([value, label]) => ({ value, label }))} />
               </View>
               {filter === 'controlled' ? (
                 <Text style={[styles.sub, { marginBottom: SIZES.sm, color: !lastCount || daysTo(lastCount, today) > 31 ? COLORS.warning : COLORS.textLight }]}>
