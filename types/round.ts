@@ -9,6 +9,7 @@
 
 import type { CategoryKey } from './equipment';
 import type { InspectionPeriod } from './inspection';
+import type { SignProof } from '../services/signature';
 
 export interface InspectionRound {
   id: string;
@@ -21,8 +22,17 @@ export interface InspectionRound {
   startedBy: string;
   startedByRank?: string;
   startedAt: number;
-  /** Closed rounds stay, with their report; a closed round takes no more inspections. */
+  /**
+   * Closed rounds stay, with their report; a closed round takes no more
+   * inspections. Closing is the final sign-off — an Officer or the Master
+   * confirms the round was reviewed and completed, signed (Jez, 13 Oct 2026);
+   * it prints at the foot of the round's report.
+   */
   closedAt?: number;
   closedBy?: string;
+  closedByRank?: string;
+  closedWith?: SignProof;
+  /** Remarks on closing — why items are left, what was found. */
+  closeNote?: string;
   updatedAt: number;
 }

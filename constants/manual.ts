@@ -365,8 +365,8 @@ const en: ManualContent = {
       emoji: '📋',
       title: "Inspection rounds",
       body: [
-        "An inspection round is a shared to-do list for one period — this week, this month — and the categories it covers: fire extinguishers, hydrants, EEBDs… An officer or the Master starts it; everyone works in it, on any device. The outstanding list is in walking order — deck, location, item number — and an item comes off it as soon as somebody signs it in the round; the progress reads 75 / 100.",
-        "Opening a round makes it this device's round: a label scanned on the way round and signed counts towards it, and the inspection screen says so. Only inspections signed within the round count — an item checked outside it stays outstanding there. Done items show who, rank, date and time. Round report (PDF / Excel) lists what was done by whom and what is still outstanding. Close the round when finished; nothing is removed from the register.",
+        "An inspection round is a shared to-do list for one period — this week, this month — and the categories it covers: fire extinguishers, hydrants, EEBDs… An officer or the Master starts it; everyone works in it, on any device. The outstanding list reads like the Equipment section: Deck, then Location, then the equipment number. An item comes off it as soon as somebody signs it; the progress reads 75 / 100. Only one round of a period can be open for a category at a time.",
+        "An inspection counts towards the open round of the same period that covers its category, however the item was reached — from the round, the Dashboard, the scanner or the phone widget — so a store full of equipment can be scanned item by item. A weekly inspection never counts towards a monthly round. Done items show who, rank, date and time. To finish, an Officer or the Master signs the round off — reviewed and completed, signed by PIN, fingerprint or hand, with remarks if items are left. The round report (PDF / Excel) has the same layout as the reports on the Reports tab, lists who carried out each inspection, and carries the sign-off at the foot — ready to file in the PMS.",
       ],
     },
     {
@@ -903,8 +903,8 @@ const ru: ManualContent = {
       emoji: '📋',
       title: "Обходы (Inspection rounds)",
       body: [
-        "Обход — общий список дел на один период (эта неделя, этот месяц) по выбранным категориям: огнетушители, гидранты, EEBD… Его начинает офицер или Мастер, работают в нём все и на любых устройствах. Невыполненное идёт в порядке обхода — палуба, место, номер; оборудование уходит из списка, как только кто-то подписал его в обходе; прогресс — 75 / 100.",
-        "Открытый на устройстве обход становится обходом этого устройства: отсканированное по пути и подписанное оборудование засчитывается в него, и экран осмотра это показывает. Засчитываются только осмотры внутри обхода — проверенное вне его остаётся в списке. У сделанного видно, кто, звание, дата и время. Отчёт по обходу (PDF / Excel) — что сделано кем и что осталось. Закончив, закройте обход; из реестра ничего не удаляется.",
+        "Обход — общий список дел на один период (эта неделя, этот месяц) по выбранным категориям: огнетушители, гидранты, EEBD… Его начинает офицер или Мастер, работают в нём все и на любых устройствах. Невыполненное идёт как в разделе Equipment: палуба, место, номер оборудования. Оборудование уходит из списка, как только кто-то его подписал; прогресс — 75 / 100. По одной категории в одном периоде может быть открыт только один обход.",
+        "Осмотр засчитывается в открытый обход того же периода, если обход включает категорию оборудования, — откуда бы осмотр ни был открыт: из обхода, с главного экрана, из сканера или виджета. Так склад с оборудованием можно пройти сканом по одному. Недельный осмотр в месячный обход не попадает. У сделанного видно, кто, звание, дата и время. В конце офицер или Мастер подписывает обход — проверен и завершён, подпись PIN, отпечатком или рукой, с примечанием, если что-то осталось. Отчёт по обходу (PDF / Excel) — в том же виде, что отчёты на вкладке Reports, с тем, кто какой осмотр сделал, и с финальной подписью внизу — готов для загрузки в PMS.",
       ],
     },
     {
@@ -1441,8 +1441,8 @@ const es: ManualContent = {
       emoji: '📋',
       title: "Rondas de inspección (Inspection rounds)",
       body: [
-        "Una ronda es una lista de tareas compartida para un periodo — esta semana, este mes — y las categorías que cubre: extintores, hidrantes, EEBD… La inicia un oficial o el Master; todos trabajan en ella, desde cualquier dispositivo. La lista de pendientes sigue el orden de recorrido — cubierta, ubicación, número — y un equipo sale de ella en cuanto alguien lo firma en la ronda; el progreso se ve como 75 / 100.",
-        "Abrir una ronda la convierte en la ronda de este dispositivo: una etiqueta escaneada en el recorrido y firmada cuenta para ella, y la pantalla de inspección lo indica. Solo cuentan las inspecciones firmadas dentro de la ronda — un equipo revisado fuera sigue pendiente en ella. Los hechos muestran quién, rango, fecha y hora. El informe de la ronda (PDF / Excel) muestra qué hizo cada uno y qué queda. Cierre la ronda al terminar; nada se borra del registro.",
+        "Una ronda es una lista de tareas compartida para un periodo — esta semana, este mes — y las categorías que cubre: extintores, hidrantes, EEBD… La inicia un oficial o el Master; todos trabajan en ella, desde cualquier dispositivo. Los pendientes se leen como la sección Equipment: cubierta, ubicación, número del equipo. Un equipo sale de la lista en cuanto alguien lo firma; el progreso se ve como 75 / 100. Solo puede haber una ronda abierta por categoría y periodo.",
+        "Una inspección cuenta para la ronda abierta del mismo periodo que cubre su categoría, se abra desde donde se abra — la ronda, el panel, el escáner o el widget — así un pañol lleno de equipos se recorre escaneando uno a uno. Una inspección semanal nunca cuenta para una ronda mensual. Los hechos muestran quién, rango, fecha y hora. Para terminar, un oficial o el Master firma la ronda — revisada y completada, con PIN, huella o a mano, con observaciones si quedan equipos. El informe de la ronda (PDF / Excel) tiene el mismo formato que los informes de la pestaña Reports, muestra quién hizo cada inspección y lleva la firma final al pie — listo para el PMS.",
       ],
     },
     {
@@ -1979,8 +1979,8 @@ const uk: ManualContent = {
       emoji: '📋',
       title: "Обходи (Inspection rounds)",
       body: [
-        "Обхід — спільний список справ на один період (цей тиждень, цей місяць) за вибраними категоріями: вогнегасники, гідранти, EEBD… Його починає офіцер або Майстер, працюють у ньому всі й на будь-яких пристроях. Невиконане йде в порядку обходу — палуба, місце, номер; обладнання зникає зі списку, щойно хтось підписав його в обході; прогрес — 75 / 100.",
-        "Відкритий на пристрої обхід стає обходом цього пристрою: відскановане дорогою й підписане обладнання зараховується до нього, і екран огляду це показує. Зараховуються лише огляди всередині обходу — перевірене поза ним лишається в списку. Біля виконаного видно, хто, звання, дата й час. Звіт за обходом (PDF / Excel) — що зроблено ким і що лишилося. Закінчивши, закрийте обхід; з реєстру нічого не видаляється.",
+        "Обхід — спільний список справ на один період (цей тиждень, цей місяць) за вибраними категоріями: вогнегасники, гідранти, EEBD… Його починає офіцер або Майстер, працюють у ньому всі й на будь-яких пристроях. Невиконане йде як у розділі Equipment: палуба, місце, номер обладнання. Обладнання зникає зі списку, щойно хтось його підписав; прогрес — 75 / 100. За однією категорією в одному періоді може бути відкритий лише один обхід.",
+        "Огляд зараховується до відкритого обходу того самого періоду, якщо обхід містить категорію обладнання, — звідки б огляд не був відкритий: з обходу, з головного екрана, зі сканера чи віджета. Так склад з обладнанням можна пройти скануванням по одному. Тижневий огляд до місячного обходу не потрапляє. Біля виконаного видно, хто, звання, дата й час. Наприкінці офіцер або Майстер підписує обхід — перевірено й завершено, підпис PIN, відбитком або рукою, з приміткою, якщо щось лишилося. Звіт за обходом (PDF / Excel) — у тому самому вигляді, що звіти на вкладці Reports, з тим, хто який огляд зробив, і з фінальним підписом унизу — готовий для PMS.",
       ],
     },
     {

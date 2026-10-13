@@ -296,7 +296,7 @@ service cloud.firestore {
       match /rounds/{id} {
         allow read: if reader(v);
         allow create: if isAdmin(v);
-        allow update: if isAdmin(v) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['closedAt', 'closedBy', 'updatedAt']);
+        allow update: if isAdmin(v) && resource.data.get('closedAt', null) == null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['closedAt', 'closedBy', 'closedByRank', 'closedWith', 'closeNote', 'updatedAt']);
         allow delete: if false;
       }
       // Sewage and Ballast Water record books — kept like the Oil Record Book.

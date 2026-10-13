@@ -7,18 +7,20 @@
 // ===================================
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { BackButton, Card, Label, Screen, ScreenTitle } from '../components/ui';
+import { useSignConfirm } from '../components/SignConfirm';
+import { useSigner } from '../components/SignerChoice';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES } from '../theme';
 import { CategoryKey } from '../types/equipment';
-import { roundProgress, roundTitle } from '../services/rounds';
+import { roundProgress, roundTitle, walkGroups } from '../services/rounds';
 import { setActiveRound, useActiveRound } from '../services/activeRound';
-import { exportRoundExcel, exportRoundPdf } from '../services/roundReport';
+import { exportReportPdf, exportReportXlsx, roundSignoffLine } from '../services/inspectionReport';
 import * as storage from '../services/storage';
 import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
 import { formatDateTime } from '../utils/dates';
@@ -31,14 +33,16 @@ export default function RoundSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { rounds, flat, inspections: trail, vessel, saveRow } = useData();
+  const { rounds, flat, inspections: trail, vessel, saveRow, templates } = useData();
+  const confirmSign = useSignConfirm();
+  const { signer, picker } = useSigner('SIGNED OFF BY');
+  const [closing, setClosing] = useState<string | null>(null);
   const sync = useSync();
   const canRun = !sync.enrolled || sync.role === 'admin' || sync.role === 'superadmin';
   const round = rounds.find((r) => r.id === route.params?.id);
   const active = useActiveRound();
   const [only, setOnly] = useState<CategoryKey | null>(null);
   const [show, setShow] = useState<'out' | 'done'>('out');
-  const [saved, setSaved] = useState<string | null>(null);
 
   // Opening an open round makes it this device's round.
   useEffect(() => {
@@ -59,36 +63,35 @@ export default function RoundSc() {
   const title = roundTitle(round, labelOf);
   const pct = all.scope.length ? Math.round((all.done.size / all.scope.length) * 100) : 0;
 
-  const close = () =>
-    Alert.alert('Close the round?', `${all.done.size} of ${all.scope.length} inspected, ${all.outstanding.length} outstanding. A closed round takes no more inspections; its report stays.`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Close',
-        style: 'destructive',
-        onPress: async () => {
-          const now = Date.now();
-          await saveRow(storage.ROUNDS_KEY, { ...round, closedAt: now, closedBy: sync.me ? personName(sync.me) : 'Master', updatedAt: now });
-          if (active === round.id) await setActiveRound(null);
-        },
-      },
-    ]);
+  // Closing is the round's final sign-off (Jez, 13 Oct 2026): an Officer or the
+  // Master confirms it was reviewed and completed, signed; it prints on the report.
+  const close = async () => {
+    if (closing === null) return;
+    if (!signer) return Alert.alert('Who is signing it off?', 'Choose your name.');
+    const left = all.outstanding.length;
+    if (left && !closing.trim()) return Alert.alert('Outstanding', `${left} still to inspect. Say why they are left (remarks), or finish them first.`);
+    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${title} — reviewed and completed` });
+    if (!sig) return;
+    const now = Date.now();
+    await saveRow(storage.ROUNDS_KEY, {
+      ...round, closedAt: now, closedBy: signer.name, ...(signer.rank ? { closedByRank: signer.rank } : {}),
+      ...(sig.proof ? { closedWith: sig.proof } : {}), ...(closing.trim() ? { closeNote: closing.trim() } : {}), updatedAt: now,
+    });
+    if (active === round.id) await setActiveRound(null);
+    setClosing(null);
+  };
   const report = async (kind: 'pdf' | 'xlsx') => {
     try {
-      const w = kind === 'pdf' ? await exportRoundPdf(round, title, all, vessel, labelOf) : await exportRoundExcel(round, title, all, vessel, labelOf);
-      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+      const opts = { scope: 'ALL' as const, period: round.period, round, templates };
+      if (kind === 'pdf') await exportReportPdf(flat, trail, vessel, opts);
+      else await exportReportXlsx(flat, trail, vessel, opts);
     } catch (e: any) {
       Alert.alert('Round report', String(e?.message ?? e));
     }
   };
 
-  // Outstanding grouped by deck, in walking order.
-  const groups: { deck: string; items: typeof p.outstanding }[] = [];
-  for (const it of p.outstanding) {
-    const d = it.deck?.trim() || 'No deck';
-    const g = groups[groups.length - 1];
-    if (g && g.deck === d) g.items.push(it);
-    else groups.push({ deck: d, items: [it] });
-  }
+  // Outstanding as the Equipment section reads: Deck → Location → number.
+  const groups = walkGroups(p.outstanding);
   const doneList = p.scope.filter((it) => p.done.has(it.id)).sort((a, b) => p.done.get(b.id)!.at - p.done.get(a.id)!.at);
 
   return (
@@ -99,11 +102,14 @@ export default function RoundSc() {
         <Text style={[styles.title, { fontSize: SIZES.h3 ?? 20 }]}>{`${all.done.size} / ${all.scope.length} completed · ${all.outstanding.length} remaining`}</Text>
         <View style={styles.bar}><View style={[styles.barFill, { width: `${pct}%`, backgroundColor: pct === 100 ? COLORS.success : COLORS.primary }]} /></View>
         {round.closedAt ? (
-          <Text style={styles.sub}>Closed — no more inspections count towards it.</Text>
+          <>
+            <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{`✓ Reviewed and completed — ${roundSignoffLine(round)}`}</Text>
+            {round.closeNote ? <Text style={styles.sub}>{round.closeNote}</Text> : null}
+          </>
         ) : active === round.id ? (
-          <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>This device is working in this round — scan a label, sign, and it comes off the list.</Text>
+          <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>Scan a label anywhere in the app — Dashboard, scanner or widget — sign it on this period, and it comes off the list.</Text>
         ) : (
-          <TouchableOpacity onPress={() => void setActiveRound(round.id)}><Text style={styles.link}>Work in this round on this device</Text></TouchableOpacity>
+          <Text style={styles.sub}>An inspection of these categories signed on this period counts towards it, from any device.</Text>
         )}
       </Card>
 
@@ -128,9 +134,12 @@ export default function RoundSc() {
 
       {show === 'out'
         ? groups.map((g) => (
-            <View key={g.deck}>
-              <Label>{`${g.deck} (${g.items.length})`}</Label>
-              {g.items.map((it) => (
+            <View key={g.key || '-'}>
+              {g.label ? <Label>{`${g.label} (${g.places.reduce((n, pl) => n + pl.items.length, 0)})`}</Label> : null}
+              {g.places.map((pl) => (
+              <View key={pl.key || '-'}>
+              <Text style={styles.place}>{`${pl.label} · ${pl.items.length}`}</Text>
+              {pl.items.map((it) => (
                 <TouchableOpacity
                   key={it.id}
                   style={styles.row}
@@ -140,10 +149,12 @@ export default function RoundSc() {
                 >
                   <View style={{ flex: 1 }}>
                     <Text style={styles.title} numberOfLines={1}>{`${itemNumber(it) ? `No. ${itemNumber(it)} — ` : ''}${typeWithSize(it) || labelOf(it.category)}`}</Text>
-                    <Text style={styles.sub} numberOfLines={1}>{[labelOf(it.category), itemLocation(it), it.serial ? `S/N ${it.serial}` : ''].filter(Boolean).join(' · ')}</Text>
+                    <Text style={styles.sub} numberOfLines={1}>{[labelOf(it.category), it.serial ? `S/N ${it.serial}` : ''].filter(Boolean).join(' · ')}</Text>
                   </View>
                   {!round.closedAt ? <Text style={styles.chev}>›</Text> : null}
                 </TouchableOpacity>
+              ))}
+              </View>
               ))}
             </View>
           ))
@@ -164,9 +175,20 @@ export default function RoundSc() {
       <View style={[styles.btnRow, { flexWrap: 'wrap' }]}>
         <TouchableOpacity style={styles.btn} onPress={() => void report('pdf')}><Text style={styles.btnText}>Round report (PDF)</Text></TouchableOpacity>
         <TouchableOpacity style={styles.btn} onPress={() => void report('xlsx')}><Text style={styles.btnText}>Excel</Text></TouchableOpacity>
-        {canRun && !round.closedAt ? <TouchableOpacity onPress={close}><Text style={[styles.link, { color: COLORS.danger }]}>Close the round</Text></TouchableOpacity> : null}
-        {saved ? <Text style={[styles.sub, { color: COLORS.success }]}>{`✓ ${saved}`}</Text> : null}
+        {canRun && !round.closedAt && closing === null ? <TouchableOpacity onPress={() => setClosing('')}><Text style={styles.link}>Sign off and close…</Text></TouchableOpacity> : null}
       </View>
+      {closing !== null ? (
+        <Card>
+          <Label>Final sign-off — the round was reviewed and completed</Label>
+          <Text style={styles.sub}>{`${all.done.size} of ${all.scope.length} inspected${all.outstanding.length ? ` · ${all.outstanding.length} still outstanding` : ''}. The report keeps who carried out each inspection; this signature closes the round.`}</Text>
+          <TextInput style={styles.input} value={closing} onChangeText={setClosing} multiline placeholder={all.outstanding.length ? 'Remarks — why items are left ★' : 'Remarks (optional)'} placeholderTextColor={COLORS.textLight} />
+          {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
+          <View style={styles.btnRow}>
+            <TouchableOpacity style={styles.btn} onPress={() => void close()}><Text style={styles.btnText}>Sign off and close</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setClosing(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+          </View>
+        </Card>
+      ) : null}
     </Screen>
   );
 }

@@ -38,8 +38,11 @@ import { deliverFile, onWeb, onWindows } from '../utils/fileShare';
 import { printHtmlWeb } from '../utils/webFile';
 import { fileDateStamp, formatDate } from '../utils/dates';
 import { initialsOf, itemLocation, itemNumber } from '../utils/itemText';
+import { InspectionRound } from '../types/round';
 
-export type ReportScope = Group | 'ALL';
+import { MON, ReportData, ReportScope, buildRoundReport, periodNameFor, roundSignoffLine } from './reportData';
+export type { ReportData, ReportScope } from './reportData';
+export { periodNameFor, roundSignoffLine } from './reportData';
 
 export interface ReportOptions {
   scope: ReportScope;
@@ -62,37 +65,15 @@ export interface ReportOptions {
    * the report a worklist, would quietly under-report.
    */
   templates?: ChecklistTemplate[];
+  /**
+   * The report of ONE inspection round (Jez, 13 Oct 2026: "exactly the same
+   * layout as the inspection reports"). In scope = the round's items in walking
+   * order; carried out = what was signed IN the round; the round's window; and
+   * the round's own sign-off at the foot.
+   */
+  round?: InspectionRound;
 }
 
-export interface ReportData {
-  title: string;
-  windowLabel: string;
-  scope: ReportScope;
-  period: InspectionPeriod;
-  /** The categories the report was narrowed to, if it was (see ReportOptions). */
-  categories?: CategoryKey[];
-  /** Items the period's round applies to. */
-  inScope: EquipmentItem[];
-  /** Signed in the window, newest first. */
-  done: Inspection[];
-  /** In scope, with nothing signed in the window. */
-  missed: EquipmentItem[];
-  /** Open defects on in-scope items, whenever they were raised. */
-  defects: Inspection[];
-  /** Whether every in-scope item was inspected in the window. */
-  completed: boolean;
-  /** Pass/fail of the round: each item judged by its LATEST record in the window,
-   *  so an item that failed and was re-inspected clean is not held against it.
-   *  null while nothing has been signed. */
-  passed: boolean | null;
-  /** "September 2026 Monthly Inspection – Completed – Passed": the line a vessel
-   *  files as its evidence in the PMS, stated rather than left to be worked out. */
-  headline: string;
-  /** "September 2026" / "Week 37 · 07–13 Sep 2026" — English and locale-proof,
-   *  because a report handed to a surveyor should not change language with the
-   *  browser it was printed from. */
-  periodName: string;
-}
 
 const SCOPE_LABEL: Record<ReportScope, string> = {
   // "All equipment", not "LSA & FFE": the ALL filter passes every group, Other
@@ -128,6 +109,7 @@ export function buildReport(
   trail: Inspection[],
   opts: ReportOptions
 ): ReportData {
+  if (opts.round) return buildRoundReport(flat, trail, opts.round);
   const ref = opts.ref ?? new Date();
   const window = inspections.windowFor(opts.period, ref);
 
@@ -190,40 +172,6 @@ export function buildReport(
     headline,
     periodName,
   };
-}
-
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-const MON = MONTH_NAMES.map((m) => m.slice(0, 3));
-
-/** ISO-8601 week number of a local date. */
-function isoWeek(d: Date): number {
-  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const day = (t.getUTCDay() + 6) % 7;
-  t.setUTCDate(t.getUTCDate() - day + 3);
-  const firstThursday = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
-  return 1 + Math.round(((t.getTime() - firstThursday.getTime()) / 86_400_000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
-}
-
-export function periodNameFor(period: InspectionPeriod, from: number, to: number): string {
-  const a = new Date(from);
-  if (period === 'annual') return String(a.getFullYear());
-  // "Q3 2026 · Jul–Sep": the quarter is what the SMS and the superintendent call
-  // it, the months are what anyone reading the file wants to see.
-  if (period === 'quarterly') {
-    const q = Math.floor(a.getMonth() / 3);
-    return `Q${q + 1} ${a.getFullYear()} · ${MON[q * 3]}–${MON[q * 3 + 2]}`;
-  }
-  if (period !== 'weekly') return `${MONTH_NAMES[a.getMonth()]} ${a.getFullYear()}`;
-  const b = new Date(to - 1);
-  const dd = (x: Date) => String(x.getDate()).padStart(2, '0');
-  const range =
-    a.getMonth() === b.getMonth()
-      ? `${dd(a)}–${dd(b)} ${MON[b.getMonth()]} ${b.getFullYear()}`
-      : `${dd(a)} ${MON[a.getMonth()]} – ${dd(b)} ${MON[b.getMonth()]} ${b.getFullYear()}`;
-  return `Week ${isoWeek(a)} · ${range}`;
 }
 
 /** "13 Sep 2026" and "14:05" as separate cells — the vessel's own sheet has a Date column. */
@@ -353,9 +301,9 @@ function signatureKey(data: ReportData, trail: Inspection[]): Array<{ initials: 
 
 function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[], vessel: VesselInfo | null): string {
   const today = formatDate(new Date().toISOString().slice(0, 10));
-  const pct = data.inScope.length
-    ? Math.round((data.done.length / data.inScope.length) * 100)
-    : 0;
+  // Items inspected, not records: an item signed twice is one item done.
+  const itemsDone = data.inScope.length - data.missed.length;
+  const pct = data.inScope.length ? Math.round((itemsDone / data.inScope.length) * 100) : 0;
 
   const done = doneRows(data, flat)
     .map(
@@ -461,6 +409,8 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
       /* A filled sign-off needs breathing room where the rule used to be. */
       .sign .gap { display: inline-block; width: 34px; }
       .signnote { margin-top: 3px; font-size: 8.5px; color: #7F8C8D; }
+      .final { margin-top: 14px; padding: 7px 10px; border: 1.5px solid #27AE60; border-radius: 4px; font-size: 11px; color: #1E8449; background: #EAF7EE; }
+      .final.open { border-color: #F39C12; color: #9A6A00; background: #FEF5E7; }
     </style></head>
     <body>
       <h1>${esc(data.title)}</h1>
@@ -469,7 +419,7 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
 
       <div class="summary">
         <div class="stat"><div class="v">${data.inScope.length}</div><div class="k">In scope</div></div>
-        <div class="stat"><div class="v">${data.done.length}</div><div class="k">Inspected</div></div>
+        <div class="stat"><div class="v">${itemsDone}</div><div class="k">Inspected</div></div>
         <div class="stat${data.missed.length ? ' bad' : ''}"><div class="v">${data.missed.length}</div><div class="k">Outstanding</div></div>
         <div class="stat${data.defects.length ? ' bad' : ''}"><div class="v">${data.defects.length}</div><div class="k">Open defects</div></div>
         <div class="stat"><div class="v">${pct}%</div><div class="k">Complete</div></div>
@@ -520,6 +470,12 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
       </div>
       <div class="signnote">Taken from the signatures on the inspections in this report.</div>`;
       })()}
+
+      ${data.round
+        ? data.round.closedAt
+          ? `<div class="final"><b>Round reviewed and completed</b> — ${esc(roundSignoffLine(data.round))}${data.round.closeNote ? `<div class="signnote">${esc(data.round.closeNote)}</div>` : ''}</div>`
+          : `<div class="final open">Round still open — not yet signed off by an Officer or the Master.</div>`
+        : ''}
     </body></html>`;
 }
 
@@ -533,7 +489,7 @@ function fileStem(data: ReportData): string {
   // The period REPORTED ON, not the day it was printed: September's report run on
   // 2 October must not file as October's.
   const w = data.periodName.replace(/^Week (\d+).*?(\d{4})$/, 'W$1_$2').replace(/\s+/g, '_').replace(/[^A-Za-z0-9_]/g, '');
-  return `MSM_${scope}_${data.period}_${w || fileDateStamp()}`;
+  return `MSM_${data.round ? 'round_' : ''}${scope}_${data.period}_${w || fileDateStamp()}`;
 }
 
 export async function exportReportPdf(
@@ -605,7 +561,7 @@ export async function exportReportXlsx(
     ['Status', data.completed ? 'Completed' : 'Incomplete'],
     ['Result', data.passed == null ? '—' : data.passed ? 'Passed' : 'Failed'],
     ['In scope', data.inScope.length],
-    ['Inspected', data.done.length],
+    ['Inspected', data.inScope.length - data.missed.length],
     ['Outstanding', data.missed.length],
     ['Open defects', data.defects.length],
     [],
@@ -617,6 +573,9 @@ export async function exportReportXlsx(
         ? [['Checked by', ''], ['Rank', ''], ['Date', '']]
         : [['Checked by', so.names], ['Rank', so.rank || '—'], ['Date', so.date]];
     })(),
+    ...(data.round
+      ? [[], ['Round sign-off', data.round.closedAt ? roundSignoffLine(data.round) : 'Open — not yet signed off'], ...(data.round.closeNote ? [['Remarks', data.round.closeNote]] : [])]
+      : []),
     [],
     ['Initials', 'Signed by'],
     ...signatureKey(data, trail).map((k) => [k.initials, k.name]),

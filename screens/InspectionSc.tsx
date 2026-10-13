@@ -55,7 +55,7 @@ import { useSignConfirm } from '../components/SignConfirm';
 import { SIZES, Palette } from '../theme';
 import { CATEGORY_MAP } from '../constants/categories';
 import { periodsFor, templateFor } from '../constants/checklists';
-import { roundTakes } from '../services/rounds';
+import { roundFor, roundTakes } from '../services/rounds';
 import { useActiveRound } from '../services/activeRound';
 import { moduleOn } from '../constants/modules';
 
@@ -149,12 +149,13 @@ export default function InspectionSc() {
     [item, period]
   );
 
-  // The round this inspection counts towards: the one it was opened from, or
-  // the round this device is working in — when it covers this item's category
-  // and this period, and is still open (services/rounds roundTakes).
+  // The round this inspection counts towards: the one it was opened from;
+  // otherwise ANY open round of this period that covers the item's category,
+  // however the item was reached — Dashboard, scanner, widget (Jez, 13 Oct 2026)
+  // — preferring the round this device is working in (services/rounds roundFor).
   const round = useMemo(() => {
-    const r = rounds.find((x) => x.id === (route.params?.roundId ?? activeRoundId));
-    return roundTakes(r, item, period) ? r! : null;
+    const from = rounds.find((x) => x.id === route.params?.roundId);
+    return roundTakes(from, item, period) ? from! : roundFor(rounds, item, period, activeRoundId);
   }, [rounds, route.params?.roundId, activeRoundId, item, period]);
 
   // Results start EMPTY — see decision 1 in the header.

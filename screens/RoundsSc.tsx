@@ -21,7 +21,7 @@ import { CategoryKey } from '../types/equipment';
 import { InspectionPeriod, PERIOD_LABEL } from '../types/inspection';
 import { InspectionRound } from '../types/round';
 import { windowFor } from '../services/inspections';
-import { roundProgress, roundTitle } from '../services/rounds';
+import { overlappingRound, roundProgress, roundTitle } from '../services/rounds';
 import { setActiveRound } from '../services/activeRound';
 import * as storage from '../services/storage';
 import { formatDateTime } from '../utils/dates';
@@ -59,6 +59,10 @@ export default function RoundsSc() {
   const start = async () => {
     if (!cats.size) return Alert.alert('Categories', 'Choose what the round covers.');
     if (!signer) return Alert.alert('Who is starting it?', 'Choose your name.');
+    // One open round per period and category: an inspection signed anywhere counts
+    // towards the round covering it, and two would split the same items.
+    const clash = overlappingRound(rounds, period, [...cats]);
+    if (clash) return Alert.alert('Already open', `${roundTitle(clash, labelOf)} is open and covers ${clash.categories.filter((c) => cats.has(c)).map(labelOf).join(', ')}. Work in it, or close it first.`);
     const w = windowFor(period);
     const now = Date.now();
     const r: InspectionRound = {
@@ -151,9 +155,11 @@ export const makeStyles = (COLORS: Palette) =>
     chipOn: { backgroundColor: COLORS.primary },
     chipText: { color: COLORS.primary, fontWeight: '600', fontSize: SIZES.small },
     chipTextOn: { color: COLORS.textWhite },
+    place: { fontSize: SIZES.small, fontWeight: '700', color: COLORS.textDark, marginTop: SIZES.xs, marginBottom: 2, paddingLeft: 2 },
     labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     link: { color: COLORS.primary, fontWeight: '700' },
     btnRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md, marginTop: SIZES.md },
     btn: { backgroundColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 10, paddingHorizontal: SIZES.md },
     btnText: { color: COLORS.textWhite, fontWeight: '800' },
+    input: { ...COLORS.glassInput, borderRadius: SIZES.radiusMd, paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm, fontSize: SIZES.body, color: COLORS.text, marginTop: SIZES.sm, minHeight: 50, textAlignVertical: 'top' },
   });
