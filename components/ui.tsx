@@ -14,6 +14,8 @@ import {
   TouchableOpacity,
   Image,
   ImageSourcePropType,
+  Platform,
+  Pressable,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -238,7 +240,8 @@ export function ScreenTitle({
   const c = useTheme();
   const styles = useStyles();
   return (
-    <View style={{ marginBottom: SIZES.lg, flexDirection: 'row', alignItems: 'flex-start' }}>
+    // Above what follows, so the scan button grown by the mouse is not covered by the next card.
+    <View style={{ marginBottom: SIZES.lg, flexDirection: 'row', alignItems: 'flex-start', zIndex: 5 }}>
       <View style={{ flex: 1 }}>
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
@@ -246,24 +249,14 @@ export function ScreenTitle({
       {actions}
       {help !== undefined ? <HelpButton section={help} /> : null}
       {onLabels ? (
-        <TouchableOpacity
-          style={styles.scanBtn}
-          onPress={onLabels}
-          hitSlop={10}
-          accessibilityLabel="Print QR labels"
-        >
-          <MciIcon name="tag-multiple-outline" size={36} color={c.primary} />
-        </TouchableOpacity>
+        <Pressable style={({ hovered }: any) => [styles.scanBtn, hovered && styles.scanBtnHover]} onPress={onLabels} hitSlop={10} accessibilityLabel="Print QR labels">
+          <MciIcon name="tag-multiple-outline" size={18} color={c.primary} />
+        </Pressable>
       ) : null}
       {onScan ? (
-        <TouchableOpacity
-          style={styles.scanBtn}
-          onPress={onScan}
-          hitSlop={10}
-          accessibilityLabel="Scan QR label"
-        >
-          <MciIcon name="qrcode-scan" size={44} color={c.primary} />
-        </TouchableOpacity>
+        <Pressable style={({ hovered }: any) => [styles.scanBtn, hovered && styles.scanBtnHover]} onPress={onScan} hitSlop={10} accessibilityLabel="Scan QR label">
+          <MciIcon name="qrcode-scan" size={22} color={c.primary} />
+        </Pressable>
       ) : null}
     </View>
   );
@@ -379,9 +372,13 @@ const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
     title: { fontSize: SIZES.h2, fontWeight: '700', color: COLORS.textDark },
     subtitle: { fontSize: SIZES.body, color: COLORS.textLight, marginTop: 2 },
+    // Half the size it was (13 Oct 2026: "the QR button in the top corner — half
+    // the size; on the web it grows when the mouse is over it"). The hover state
+    // exists on the web only; it doubles the button from its top-right corner.
     scanBtn: {
-      width: 76,
-      height: 76,
+      width: 38,
+      height: 38,
+      ...(Platform.OS === 'web' ? ({ transitionProperty: 'transform', transitionDuration: '150ms', transformOrigin: 'top right' } as any) : {}),
       borderRadius: SIZES.radiusMd,
       alignItems: 'center',
       justifyContent: 'center',
@@ -390,6 +387,7 @@ const makeStyles = (COLORS: Palette) =>
       borderColor: COLORS.border,
       marginLeft: SIZES.sm,
     },
+    scanBtnHover: { transform: [{ scale: 2 }], zIndex: 10 },
     card: {
       ...COLORS.glassCard,
       borderRadius: SIZES.radiusLg,
