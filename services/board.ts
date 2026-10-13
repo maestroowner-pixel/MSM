@@ -548,6 +548,11 @@ export function buildBoard(x: BoardInput): Board {
     tiles.push({ key: 'qhse', label: 'Safety', icon: 'shield-check-outline', route: 'Safety', level: lvl(red, amber || fresh), line: [open ? `${open} NC open` : 'No NC open', fresh ? `${fresh} new cards` : null].filter(Boolean).join(' · ') });
   }
 
+  // Passengers where Documents were, Documents where Passengers were (13 Oct 2026: "swap passengers and documents").
+  const di = tiles.findIndex((t) => t.key === 'docs');
+  const pi = tiles.findIndex((t) => t.key === 'pax');
+  if (di >= 0 && pi >= 0) [tiles[di], tiles[pi]] = [tiles[pi], tiles[di]];
+
   // Who sees what.
   const sees = (w: Audience) => w === 'all' || (w === 'officer' && x.role !== 'user') || (w === 'master' && x.role === 'superadmin');
   return {

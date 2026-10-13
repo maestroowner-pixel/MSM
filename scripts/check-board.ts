@@ -60,6 +60,10 @@ ok(!!gw('superadmin').rows.find((r) => r.label === 'Ashore now')?.more?.length &
 const tb = gw('user').table!;
 ok(JSON.stringify(tb.head) === '["","On board","Ashore"]' && tb.rows[0].cells.join() === 'Crew,2,9' && tb.rows[tb.rows.length - 1].cells.join() === 'Total,2,9', 'gangway table: crew 2 on board, 9 ashore; total');
 
+// tile order: Passengers in Documents' place
+const order = buildBoard(base({ me: { key: 'k', name: 'Jez' }, docs: [{ id: 'd', title: 'SMS', updatedAt: 0 }] as any, passengers: [] })).tiles.map((t) => t.key);
+ok(order.includes('docs') && order.includes('pax') && order.indexOf('pax') < order.indexOf('docs'), 'tiles: Passengers and Documents swapped');
+
 // the guest list does not leave the vessel
 const guest: any = { id: 'pax1', name: 'Sophie Martin', cabin: 'VIP', nationality: 'FR', notes: 'Vegetarian', embarked: today, addedAt: 0, updatedAt: 1 };
 const up = passengerToCloud(guest);
