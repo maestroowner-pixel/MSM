@@ -14,7 +14,7 @@
 // ===================================
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform } from 'react-native';
+import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { Card, Label, Screen, ScreenTitle } from '../components/ui';
@@ -35,7 +35,9 @@ import { isAboard } from '../types/crew';
 import { roleAtLeast } from '../types/role';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
-import { isAshore, lastMoves, nextMove, personsOnBoard } from '../services/gangway';
+import { VISITOR_PHOTO_DAYS, isAshore, lastMoves, nextMove, personsOnBoard, photosToRemove } from '../services/gangway';
+import { pickFromCamera } from '../services/attachments';
+import { portraitDataUri } from '../services/images';
 import { GANGWAY_STOCKS, crewCardSpecs, exportCrewCards, exportVisitorPasses, visitorPassSpecs } from '../services/crewCards';
 import { GANGWAY_STOCK_MM } from '../services/gangwayLabels';
 import { TsplLabelSpec, labelsToTspl } from '../services/tspl';
@@ -120,7 +122,7 @@ export default function SecuritySc() {
 
   // ---- new visitor ----
   const [adding, setAdding] = useState(false);
-  const blank = { timeIn: hhmm(), name: '', company: '', purpose: '', idType: 'Passport', idNo: '', passNo: '', host: '', remarks: '', signature: '' };
+  const blank = { timeIn: hhmm(), name: '', company: '', purpose: '', idType: 'Passport', idNo: '', passNo: '', host: '', remarks: '', signature: '', photo: '' };
   const [f, setF] = useState(blank);
   const setSig = useCallback((signature: string) => setF((x) => ({ ...x, signature })), []);
   // A returning contractor: pick their earlier visit, the rest fills itself in.
@@ -145,6 +147,42 @@ export default function SecuritySc() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route.params?.pass]);
 
+  // The visitor's photograph — the phone's camera, kept small on the record.
+  const takePhoto = async () => {
+    const shot = await pickFromCamera();
+    if (!shot) return;
+    const photo = await portraitDataUri(shot.uri);
+    if (!photo) return Alert.alert('Photo', 'The photograph could not be used — try again.');
+    setF((x) => ({ ...x, photo }));
+  };
+
+  // A pass scanned while in use (ScanSc): the holder's card, with the photograph.
+  const [ident, setIdent] = useState<string | null>(null);
+  useEffect(() => {
+    const id = route.params?.visitor;
+    if (!id) return;
+    setSub('board');
+    setIdent(String(id));
+    nav.setParams({ visitor: undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.params?.visitor]);
+
+  // Photographs are personal data: gone VISITOR_PHOTO_DAYS after the visit — the
+  // log entry stays. Done by an Officer's or the Master's device when it opens
+  // the screen, a few at a time.
+  useEffect(() => {
+    if (!officer) return;
+    const due = photosToRemove(visitors, today).slice(0, 10);
+    if (!due.length) return;
+    void (async () => {
+      for (const v of due) {
+        const { photo: _drop, ...rest } = v;
+        await saveRow(storage.VISITORS_KEY, { ...rest, photoRemovedAt: Date.now() });
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [officer, visitors.length, today]);
+
   const signOn = async () => {
     if (!signer) return Alert.alert('Gangway watch', 'Choose the watch first.');
     if (!f.name.trim() || !f.purpose.trim()) return Alert.alert('Visitor', 'Name and purpose of the visit are needed.');
@@ -162,6 +200,7 @@ export default function SecuritySc() {
       ...(f.host ? { host: f.host } : {}),
       ...(f.remarks.trim() ? { remarks: f.remarks.trim() } : {}),
       ...(f.signature ? { signature: f.signature } : {}),
+      ...(f.photo ? { photo: f.photo } : {}),
     };
     await saveRow(storage.VISITORS_KEY, v);
     setF(blank);
@@ -362,7 +401,7 @@ export default function SecuritySc() {
               {known.length ? (
                 <View style={styles.chips}>
                   {known.map((k) => (
-                    <TouchableOpacity key={k.id} style={styles.known} onPress={() => setF({ ...f, name: k.name, company: k.company ?? '', purpose: k.purpose, idType: k.idType ?? f.idType, idNo: k.idNo ?? '', host: k.host ?? '' })}>
+                    <TouchableOpacity key={k.id} style={styles.known} onPress={() => setF({ ...f, name: k.name, company: k.company ?? '', purpose: k.purpose, idType: k.idType ?? f.idType, idNo: k.idNo ?? '', host: k.host ?? '', photo: k.photo ?? f.photo })}>
                       <Text style={styles.knownText}>{`↺ ${k.name}${k.company ? ` · ${k.company}` : ''}`}</Text>
                     </TouchableOpacity>
                   ))}
@@ -378,14 +417,49 @@ export default function SecuritySc() {
                 <Dropdown caption="HOST" value={f.host} onChange={(v) => setF({ ...f, host: v })} options={[{ value: '', label: '—' }, ...people.map((p) => ({ value: p.name, label: p.name }))]} style={{ flex: 1, minWidth: 180, marginTop: SIZES.xs }} />
                 <TextInput style={[styles.input, { flex: 2 }]} value={f.remarks} onChangeText={(v) => setF({ ...f, remarks: v })} placeholder="Remarks — tools, bags searched, areas allowed" placeholderTextColor={COLORS.textLight} />
               </View>
+              <View style={[styles.pair, { alignItems: 'center', marginTop: SIZES.sm }]}>
+                {f.photo ? <Image source={{ uri: f.photo }} style={styles.thumbBig} /> : null}
+                <TouchableOpacity style={styles.small} onPress={() => void takePhoto()}><Text style={styles.smallText}>{f.photo ? 'Retake photo' : '📷 Photo'}</Text></TouchableOpacity>
+                {f.photo ? <TouchableOpacity onPress={() => setF({ ...f, photo: '' })}><Text style={[styles.smallText, { color: COLORS.danger }]}>Remove</Text></TouchableOpacity> : null}
+                <Text style={[styles.sub, { flex: 1, minWidth: 160 }]}>{`So the crew can check who holds the pass. Kept ${VISITOR_PHOTO_DAYS} days after the visit — tell the visitor.`}</Text>
+              </View>
               <SignaturePad value={f.signature} onChange={setSig} />
               <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }]} onPress={() => void signOn()}><Text style={styles.btnText}>Sign on</Text></TouchableOpacity>
             </Card>
           ) : null}
 
+          {(() => {
+            const v = ident ? allVisitors.find((x) => x.id === ident) : undefined;
+            if (!v) return null;
+            const aboard = !v.timeOut;
+            return (
+              <Card>
+                <View style={{ flexDirection: 'row', gap: SIZES.md, flexWrap: 'wrap' }}>
+                  {v.photo ? <Image source={{ uri: v.photo }} style={styles.portrait} /> : <View style={[styles.portrait, { alignItems: 'center', justifyContent: 'center' }]}><MciIcon name="account" size={64} color={COLORS.textLight} /><Text style={styles.sub}>No photo</Text></View>}
+                  <View style={{ flex: 1, minWidth: 180 }}>
+                    <Text style={[styles.sub, { color: aboard ? COLORS.success : COLORS.danger, fontWeight: '800' }]}>{aboard ? `ON BOARD · pass ${v.passNo ?? '—'}` : `SIGNED OFF ${v.dateOut ? `${formatDate(v.dateOut)} ` : ''}${v.timeOut}`}</Text>
+                    <Text style={[styles.name, { fontSize: 20 }]}>{v.name}</Text>
+                    {v.company ? <Text style={styles.name}>{v.company}</Text> : null}
+                    <Text style={styles.sub}>{v.purpose}</Text>
+                    <Text style={styles.sub}>{[`in ${v.date !== today ? `${formatDate(v.date)} ` : ''}${v.timeIn}`, v.host ? `visiting ${v.host}` : null, `signed on by ${v.inBy}`].filter(Boolean).join(' · ')}</Text>
+                    {v.idNo ? <Text style={styles.sub}>{`${v.idType ?? 'ID'} ${v.idNo}`}</Text> : null}
+                    {v.remarks ? <Text style={styles.sub}>{v.remarks}</Text> : null}
+                  </View>
+                </View>
+                <View style={[styles.pair, { marginTop: SIZES.md }]}>
+                  {aboard ? (
+                    <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.warning }]} onPress={() => { void signOff(v, hhmm()).then(() => setIdent(null)); }}><Text style={styles.btnText}>Sign off now — leaving the vessel</Text></TouchableOpacity>
+                  ) : null}
+                  <TouchableOpacity onPress={() => setIdent(null)}><Text style={styles.smallText}>Close</Text></TouchableOpacity>
+                </View>
+              </Card>
+            );
+          })()}
+
           <Label>{`Visitors on board (${onBoard.length})`}</Label>
           {onBoard.map((v) => (
             <View key={v.id} style={[styles.row, { borderLeftColor: COLORS.warning }]}>
+              {v.photo ? <TouchableOpacity onPress={() => setIdent(v.id)}><Image source={{ uri: v.photo }} style={styles.thumb} /></TouchableOpacity> : null}
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{v.company ? `${v.name} · ${v.company}` : v.name}</Text>
                 <Text style={styles.sub}>{[`in ${v.date !== today ? `${formatDate(v.date)} ` : ''}${v.timeIn}`, v.purpose, v.passNo ? `pass ${v.passNo}` : null, v.host ? `with ${v.host}` : null].filter(Boolean).join(' · ')}</Text>
@@ -511,6 +585,9 @@ export default function SecuritySc() {
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
+    thumb: { width: 40, height: 40, borderRadius: 6, marginRight: SIZES.sm },
+    thumbBig: { width: 64, height: 64, borderRadius: 8 },
+    portrait: { width: 160, height: 160, borderRadius: 10, backgroundColor: COLORS.border },
     portRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, flexWrap: 'wrap', marginBottom: SIZES.sm },
     portInput: { flex: 1, minWidth: 160, marginTop: 0 },
     portDate: { fontSize: SIZES.body, fontWeight: '800', color: COLORS.textDark },

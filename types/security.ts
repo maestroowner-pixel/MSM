@@ -38,6 +38,15 @@ export interface Visitor extends Versioned {
   remarks?: string;
   /** The visitor's own signature, drawn on the screen (SVG path, 300 × 100). */
   signature?: string;
+  /**
+   * The visitor's photograph — a small JPEG (240 px) kept ON the record as a
+   * data: URI, so every phone has it the moment the record syncs and a crew
+   * member scanning the pass can see who should be holding it (Jez, 13 Oct
+   * 2026). Personal data: removed VISITOR_PHOTO_DAYS after the visit, leaving
+   * `photoRemovedAt`; the log entry itself stays.
+   */
+  photo?: string;
+  photoRemovedAt?: number;
   updatedAt: number;
 }
 

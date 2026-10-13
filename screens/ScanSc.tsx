@@ -116,8 +116,11 @@ export default function ScanSc() {
         return;
       }
 
-      // A visitor pass (msm://pass/07): back at the gangway → sign its holder off;
-      // a free pass → the sign-on form with this pass number.
+      // A visitor pass (msm://pass/07): a pass in use → who holds it, with the
+      // photograph — anyone can check who it is; the watch signs them off from
+      // there (Jez, 13 Oct 2026: identify and sign off are both a scan of the
+      // pass, and an identity check must not sign anybody off). A free pass →
+      // the sign-on form with this pass number.
       const passNo = parsePassQr(code);
       if (passNo && moduleOn('security')) {
         const holder = visitors.find((v) => !v.timeOut && samePass(v.passNo, passNo));
@@ -125,14 +128,7 @@ export default function ScanSc() {
           nav.replace('Main', { screen: 'Security', params: { view: 'gangway', pass: passNo } });
           return;
         }
-        const t = new Date();
-        const hhmm = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
-        const day = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
-        void saveRow(storage.VISITORS_KEY, { ...holder, timeOut: hhmm, ...(holder.date !== day ? { dateOut: day } : {}), outBy: sync.me ? personName(sync.me) : 'Gangway' });
-        setCrewHit({ name: holder.company ? `${holder.name} · ${holder.company}` : holder.name, text: `SIGNED OFF · pass ${passNo} · ${hhmm}`, ok: true });
-        setTimeout(() => {
-          locked.current = false;
-        }, 2500);
+        nav.replace('Main', { screen: 'Security', params: { view: 'gangway', visitor: holder.id } });
         return;
       }
 

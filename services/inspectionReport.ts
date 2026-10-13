@@ -434,7 +434,7 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
       )}
 
       ${section(
-        'Not inspected in this period',
+        data.round ? 'Not inspected in this round' : 'Not inspected in this period',
         data.missed.length,
         '<th class="nw">No.</th><th>Location</th><th>Category</th><th>Type</th><th>Size</th><th>Serial</th><th class="nw">Last inspected</th><th class="c">By</th>',
         missed,
@@ -464,7 +464,7 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
       </div>`;
         }
         return `<div class="sign">
-        Checked by: <b>${esc(so.names)}</b>${
+        ${data.round ? 'Inspections carried out by' : 'Checked by'}: <b>${esc(so.names)}</b>${
           so.rank ? `<span class="gap"></span>Rank: <b>${esc(so.rank)}</b>` : ''
         }<span class="gap"></span>Date: <b>${esc(so.date)}</b>
       </div>

@@ -60,3 +60,19 @@ export async function downscale(uri: string): Promise<string> {
     return uri;
   }
 }
+
+/**
+ * A small portrait for a visitor's record: 240 px on the long edge, JPEG, as a
+ * data: URI (~15–25 KB) kept on the record itself. null when it cannot be made.
+ */
+export async function portraitDataUri(uri: string): Promise<string | null> {
+  try {
+    const m = await ImageManipulator.manipulate(uri).renderAsync();
+    const target = m.width >= m.height ? { width: 240 } : { height: 240 };
+    const img = await ImageManipulator.manipulate(uri).resize(target).renderAsync();
+    const r = await img.saveAsync({ format: SaveFormat.JPEG, compress: 0.6, base64: true });
+    return r.base64 ? `data:image/jpeg;base64,${r.base64}` : null;
+  } catch {
+    return null;
+  }
+}

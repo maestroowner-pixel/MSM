@@ -60,3 +60,12 @@ export function isDoubleScan(crewId: string, moves: CrewMove[], now = Date.now()
   const last = lastMoves(moves).get(crewId);
   return !!last && now - last.at < DOUBLE_SCAN_MS;
 }
+
+/** How long a visitor's photograph is kept after the visit. */
+export const VISITOR_PHOTO_DAYS = 90;
+
+/** Visits whose photograph is due to be removed: signed off, and the day they left is VISITOR_PHOTO_DAYS behind. */
+export function photosToRemove(visitors: Visitor[], today: string): Visitor[] {
+  const limit = Date.parse(`${today}T00:00:00Z`) - VISITOR_PHOTO_DAYS * 86400000;
+  return visitors.filter((v) => v.photo && v.timeOut && Date.parse(`${v.dateOut ?? v.date}T00:00:00Z`) < limit);
+}

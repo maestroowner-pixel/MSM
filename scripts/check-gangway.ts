@@ -1,6 +1,6 @@
 // npm run check:gangway — who is ashore, persons on board, the next move a
 // crew card makes, double scans, and the crew card QR payload.
-import { isAshore, isDoubleScan, lastMoves, nextMove, personsOnBoard } from '../services/gangway';
+import { isAshore, isDoubleScan, lastMoves, nextMove, personsOnBoard, photosToRemove } from '../services/gangway';
 import { labelsToTspl } from '../services/tspl';
 import { crewCardSpecs, visitorPassSpecs } from '../services/gangwayLabels';
 import { crewQrPayload, parseCrewQr, parsePassQr, passQrPayload, samePass } from '../services/crewQr';
@@ -31,6 +31,11 @@ ok(samePass('7', '07') && samePass('07', '7') && !samePass('7', '17') && !samePa
   const tspl = labelsToTspl([...crewCardSpecs([{ id: 'c1', name: 'Jez Dodd', rank: '3/O' }], { vessel_name: 'MY Alpha' }, '60x40'), ...visitorPassSpecs(2, null, '50x30')]);
   ok(tspl.includes(crewQrPayload('c1')) && tspl.includes(passQrPayload('02')), 'TSPL carries the crew-card and pass QR payloads');
   ok((tspl.match(/PRINT 1/g) ?? []).length === 3 && tspl.includes('SIZE 60 mm,40 mm') && tspl.includes('Jez Dodd') && tspl.includes('VISITOR 01'), 'one PRINT per sticker, the roll size, the names');
+}
+{
+  const V = (o: any): any => ({ id: 'v', date: '2026-07-01', timeIn: '08:00', name: 'X', purpose: 'Yard', inBy: 'Jez', updatedAt: 0, photo: 'data:', ...o });
+  const due = photosToRemove([V({ id: 'old', timeOut: '17:00' }), V({ id: 'aboard' }), V({ id: 'recent', date: '2026-08-01', timeOut: '17:00' }), V({ id: 'nophoto', timeOut: '17:00', photo: undefined }), V({ id: 'stayed', date: '2026-06-01', dateOut: '2026-09-01', timeOut: '10:00' })], '2026-10-13');
+  ok(due.map((v) => v.id).join() === 'old', `photo removed 90 days after leaving, never while aboard: ${due.map((v) => v.id)}`);
 }
 console.log(fail ? `${fail} failed` : 'all passed');
 process.exit(fail ? 1 : 0);
