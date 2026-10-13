@@ -155,9 +155,16 @@ export function FuelDaily({ onSounding }: { onSounding: () => void }) {
         </TouchableOpacity>
       </View>
 
+      <View style={{ flexDirection: 'row', gap: SIZES.xs, marginBottom: SIZES.sm }}>
+        {(['noon', 'midnight'] as ReportKind[]).map((k) => (
+          <TouchableOpacity key={k} onPress={() => setKind(k)} style={[styles.btnOutline, { paddingVertical: 6 }, kind === k && { backgroundColor: COLORS.primary }]}>
+            <Text style={[styles.btnOutlineText, kind === k && { color: COLORS.textWhite }]}>{`${REPORT_LABEL[k]} · ${k === 'noon' ? 'noon to noon' : '00:00–24:00'}`}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
       {!r.reading ? (
         <Card>
-          <Text style={styles.warn}>{`No sounding for ${formatDate(date)} yet — the report is made from it.`}</Text>
+          <Text style={styles.warn}>{`No sounding for ${formatDate(date)} yet — the fuel figures come from it.`}</Text>
           <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={onSounding}><Text style={styles.btnText}>Go to Sounding</Text></TouchableOpacity>
         </Card>
       ) : (
@@ -173,13 +180,6 @@ export function FuelDaily({ onSounding }: { onSounding: () => void }) {
         </>
       )}
 
-      <View style={{ flexDirection: 'row', gap: SIZES.xs, marginBottom: SIZES.sm }}>
-        {(['noon', 'midnight'] as ReportKind[]).map((k) => (
-          <TouchableOpacity key={k} onPress={() => setKind(k)} style={[styles.btnOutline, { paddingVertical: 6 }, kind === k && { backgroundColor: COLORS.primary }]}>
-            <Text style={[styles.btnOutlineText, kind === k && { color: COLORS.textWhite }]}>{`${REPORT_LABEL[k]} · ${k === 'noon' ? 'noon to noon' : '00:00–24:00'}`}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
       <Card>
         <Text style={[styles.sub, { marginTop: 0, marginBottom: SIZES.xs, fontWeight: '700' }]}>{stamp}</Text>
         <Label>{kind === 'noon' ? 'Noon position' : 'Midnight position'}</Label>
