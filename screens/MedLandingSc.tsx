@@ -58,7 +58,15 @@ export default function MedLandingSc() {
   const id = savedId ?? route.params?.id;
   const stored = medChecks.find((c) => c.id === id);
   const statuses = useMemo(() => chestStatus(medItems, medMoves, today), [medItems, medMoves, today]);
-  const [rows, setRows] = useState<Row[]>(() => (id === 'new' ? landingLinesFor(statuses, today, cd).map((l, i) => ({ ...l, key: `l${i}`, text: String(l.counted) })) : []));
+  // From an item's Dispose → "Landed ashore": that batch alone; otherwise every out-of-date batch.
+  const [rows, setRows] = useState<Row[]>(() => {
+    if (id !== 'new') return [];
+    const one = route.params?.item ? statuses.find((r) => r.item.id === route.params.item) : undefined;
+    const lines = one
+      ? one.batches.filter((b) => b.qty > 0 && (!route.params?.batch || b.key === route.params.batch)).map((b) => landingLine(one, b, expiryState(today, b.expiry) === 'expired' ? 'expired' : 'damaged'))
+      : landingLinesFor(statuses, today, cd);
+    return lines.map((l, i) => ({ ...l, key: `l${i}`, text: String(l.counted) }));
+  });
   const [q, setQ] = useState('');
   const [port, setPort] = useState('');
   const [receiver, setReceiver] = useState('');
@@ -160,7 +168,7 @@ export default function MedLandingSc() {
   return (
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav)} />
-      <ScreenTitle title={title} subtitle={`${rows.length} lines · ${total} units`} help="Hospital" />
+      <ScreenTitle title={title} subtitle={`${rows.length} ${rows.length === 1 ? 'line' : 'lines'} · ${total} units`} help="Hospital" />
       <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>
         {cd
           ? 'Out-of-date controlled drugs handed ashore for destruction — a pharmacy, a doctor or the authority. Count them with a witness; you sign as handing over, the witness signs, the person ashore signs by hand on this screen. The register shows them as disposed of.'

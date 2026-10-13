@@ -25,7 +25,7 @@ export function stockByItem(moves: MedMove[]): Map<string, Batch[]> {
     const map = per.get(m.itemId) ?? new Map<string, Batch>();
     const k = batchKey(m);
     const b = map.get(k) ?? { key: k, ...(m.batchNo?.trim() ? { batchNo: m.batchNo.trim() } : {}), ...(m.expiry ? { expiry: m.expiry } : {}), qty: 0 };
-    if (m.kind === 'received') b.qty += m.qty;
+    if (m.kind === 'received' || m.kind === 'returned') b.qty += m.qty;
     else if (m.kind === 'issued' || m.kind === 'disposed') b.qty -= m.qty;
     else b.qty = m.qty; // a count sets the batch
     map.set(k, b);
@@ -140,7 +140,7 @@ export function registerLines(itemId: string, moves: MedMove[]): RegisterLine[] 
     const k = batchKey(m);
     const before = total();
     const cur = batches.get(k) ?? 0;
-    const next = m.kind === 'received' ? cur + m.qty : m.kind === 'count' ? m.qty : cur - m.qty;
+    const next = m.kind === 'received' || m.kind === 'returned' ? cur + m.qty : m.kind === 'count' ? m.qty : cur - m.qty;
     batches.set(k, next);
     const after = total();
     return { move: m, in: Math.max(0, after - before), out: Math.max(0, before - after), balance: after };
@@ -153,7 +153,14 @@ export function lastControlledCount(items: MedItem[], moves: MedMove[]): string 
   return moves.filter((m) => ids.has(m.itemId) && m.kind === 'count').map((m) => m.date).sort().pop();
 }
 
-export const MOVE_LABEL: Record<MedMove['kind'], string> = { received: 'Received', issued: 'Issued', disposed: 'Disposed', count: 'Counted' };
+export const MOVE_LABEL: Record<MedMove['kind'], string> = { received: 'Received', issued: 'Issued', returned: 'Returned by the patient', disposed: 'Disposed', count: 'Counted' };
+
+/** Given back so far against a log entry, item by item. */
+export function returnedFor(treatmentId: string, moves: MedMove[]): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const x of moves) if (x.treatmentId === treatmentId && x.kind === 'returned') m.set(x.itemId, (m.get(x.itemId) ?? 0) + x.qty);
+  return m;
+}
 
 // ---- the Excel list ----
 

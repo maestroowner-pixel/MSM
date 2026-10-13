@@ -42,7 +42,7 @@ import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
 
 type Action = { kind: 'received' | 'disposed'; qty: string; batchNo: string; expiry: string; note: string; batchKey?: string };
-const DISPOSE_REASONS = ['Out of date', 'Damaged', 'Used — not in the log', 'Returned to supplier'];
+const DISPOSE_REASONS = ['Out of date', 'Damaged', 'Used — not in the log'];
 
 export default function MedItemSc() {
   const COLORS = useTheme();
@@ -215,6 +215,16 @@ export default function MedItemSc() {
                     <TextInput style={[styles.input, { flex: 1, minWidth: 110, marginTop: 0 }]} value={act.batchNo} onChangeText={(v) => setAct({ ...act, batchNo: v })} placeholder="Lot No. (optional)" placeholderTextColor={COLORS.textLight} />
                   </View>
                 ) : (
+                  <>
+                  {/* How it goes (13 Oct 2026): destroyed on board, or handed ashore — then on a landing report, signed handed over / received. */}
+                  <Text style={[styles.sub, { marginTop: SIZES.sm }]}>How</Text>
+                  <View style={styles.chips}>
+                    <TouchableOpacity style={[styles.chip, styles.chipOn]}><Text style={[styles.chipText, styles.chipTextOn]}>Destroyed on board</Text></TouchableOpacity>
+                    <TouchableOpacity style={styles.chip} onPress={() => { const b = act.batchKey; setAct(null); nav.navigate('MedLanding', { id: 'new', ...(item.controlled ? { mode: 'cd' } : {}), item: item.id, ...(b ? { batch: b } : {}) }); }}>
+                      <Text style={styles.chipText}>Landed ashore — landing report</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.sub}>Why</Text>
                   <View style={styles.chips}>
                     {DISPOSE_REASONS.map((r) => (
                       <TouchableOpacity key={r} style={[styles.chip, act.note === r && styles.chipOn]} onPress={() => setAct({ ...act, note: r })}>
@@ -222,8 +232,9 @@ export default function MedItemSc() {
                       </TouchableOpacity>
                     ))}
                   </View>
+                  </>
                 )}
-                <TextInput style={styles.input} value={act.note} onChangeText={(v) => setAct({ ...act, note: v })} placeholder={act.kind === 'received' ? 'From — e.g. MY Aurora, shore pharmacy' : 'How disposed — returned to pharmacy, incinerated ashore'} placeholderTextColor={COLORS.textLight} />
+                <TextInput style={styles.input} value={act.note} onChangeText={(v) => setAct({ ...act, note: v })} placeholder={act.kind === 'received' ? 'From — e.g. MY Aurora, shore pharmacy' : 'How destroyed — diluted and flushed, crushed with a witness…'} placeholderTextColor={COLORS.textLight} />
                 {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
                 {item.controlled ? <View style={{ marginTop: SIZES.sm }}>{witness.picker}</View> : null}
                 <View style={styles.row}>
@@ -232,7 +243,10 @@ export default function MedItemSc() {
                 </View>
               </Card>
             ) : (
-              <TouchableOpacity style={[styles.small, { alignSelf: 'flex-start', marginTop: SIZES.sm }]} onPress={() => setAct({ kind: 'received', qty: '', batchNo: '', expiry: '', note: '' })}><Text style={styles.smallText}>+ Receive outside an order</Text></TouchableOpacity>
+              <View style={styles.row}>
+                {st.usable > 0 ? <TouchableOpacity style={styles.btn} onPress={() => nav.navigate('Treatment', { id: 'new', issue: item.id })}><Text style={styles.btnText}>Issue — medical log</Text></TouchableOpacity> : null}
+                <TouchableOpacity style={styles.small} onPress={() => setAct({ kind: 'received', qty: '', batchNo: '', expiry: '', note: '' })}><Text style={styles.smallText}>+ Receive outside an order</Text></TouchableOpacity>
+              </View>
             )
           ) : null}
 
@@ -252,7 +266,7 @@ export default function MedItemSc() {
 
           <Label>{item.controlled ? 'Controlled drugs register' : `History · ${moves.length}`}</Label>
           {(item.controlled ? lines.map((l) => ({ m: l.move, bal: l.balance as number | undefined })) : [...moves].sort((a, b) => b.at - a.at).map((m) => ({ m, bal: undefined as number | undefined }))).map(({ m, bal }) => (
-            <View key={m.id} style={[styles.item, { borderLeftColor: m.kind === 'received' ? COLORS.success : m.kind === 'count' ? COLORS.primary : COLORS.warning }]}>
+            <View key={m.id} style={[styles.item, { borderLeftColor: m.kind === 'received' || m.kind === 'returned' ? COLORS.success : m.kind === 'count' ? COLORS.primary : COLORS.warning }]}>
               <Text style={styles.name}>{`${MOVE_LABEL[m.kind]} ${m.qty} ${item.unit}${bal != null ? ` → balance ${bal}` : ''}`}</Text>
               <Text style={styles.sub}>{[formatDate(m.date), m.expiry || m.batchNo ? batchLabel(m) : null, m.treatmentId ? 'medical log' : null, m.orderId ? medOrders.find((o) => o.id === m.orderId)?.no : null, m.note].filter(Boolean).join(' · ')}</Text>
               <Text style={styles.sub}>{`${who(m.by, m.byRank)}${m.signedWith ? ` · ${proofShort(m.signedWith)}` : ''}${m.witness ? ` · witness ${who(m.witness, m.witnessRank)}${m.witnessWith ? ` (${proofShort(m.witnessWith)})` : ''}` : ''}`}</Text>

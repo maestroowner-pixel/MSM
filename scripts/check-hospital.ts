@@ -1,7 +1,7 @@
 // npm run check:hospital — stock by batch, expiry, orders delivered in parts, the inventory, the register, the scale, the Excel list, the board.
 import {
   chestStatus, checkLinesFor, differences, expiryState, followUpsDue, lastControlledCount, nextNo, normExpiry, onOrderByItem, orderOverdue, orderState,
-  pickBatch, planImport, batchLabel, sortChest, purposeOf, earliestExpiry, matchesName, placeText, comparePlace, stockLevel, matchesSearch, purposeIcon, mmYY, readSheet, receivedByLine, registerLines, scaleEntry, scaleItems, stockByItem, toOrder, landingLinesFor, listNoOf, referenceOf, isLanding, CHECK_KIND_LABEL,
+  pickBatch, planImport, batchLabel, sortChest, purposeOf, earliestExpiry, matchesName, placeText, comparePlace, stockLevel, matchesSearch, purposeIcon, mmYY, readSheet, receivedByLine, registerLines, scaleEntry, scaleItems, stockByItem, toOrder, landingLinesFor, listNoOf, referenceOf, returnedFor, isLanding, CHECK_KIND_LABEL,
 } from '../services/hospital';
 import { MED_SCALE, NURSING_SCALE } from '../constants/medScale';
 import { buildBoard } from '../services/board';
@@ -109,6 +109,12 @@ ok(lcd.length === 1 && lcd[0].itemId === 'mo' && lcd[0].counted === 4 && !!lcd[0
 ok(lnd[0].itemId === 'ad' && lnd[0].listNo === 'W.H.O. 1.3.1', 'landing: list No. from the scale when the item has none; numbered lines first');
 ok(listNoOf({ name: 'X', listNo: ' MSN A-12 ' }) === 'MSN A-12' && listNoOf({ name: 'Acetylsalicylic acid', strength: 'tablet 300mg' }) === 'W.H.O. 2.1' && listNoOf({ name: 'Nothing' }) === undefined, 'list No.: own first, then WHO / IMGS');
 ok(isLanding({ kind: 'landing-cd' }) && !isLanding({ kind: 'handover' }) && !!CHECK_KIND_LABEL.landing && nextNo('LND', [{ no: 'INV-2026-004' }, { no: 'LND-2026-001' }], T) === 'LND-2026-002', 'landing kinds and numbers LND');
+
+// return from the patient
+const given = [...moves, M({ kind: 'issued', qty: 6, batchNo: 'C3', expiry: '2028-01-31', treatmentId: 't1' }), M({ kind: 'returned', qty: 4, batchNo: 'C3', expiry: '2028-01-31', treatmentId: 't1' })];
+ok(stockByItem(given).get('p')!.find((x) => x.batchNo === 'C3')!.qty === 36 && returnedFor('t1', given).get('p') === 4, 'returned unused: back into its batch, counted against the entry');
+const rl = registerLines('p', given);
+ok(rl[rl.length - 1].in === 4 && rl[rl.length - 1].balance === rl[rl.length - 2].balance + 4, 'register: a return is an in');
 
 // the "i" on a panel
 const ra = referenceOf({ name: 'Adrenaline', strength: 'ampoule 1:1000 (1mg/ml)' });

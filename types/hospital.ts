@@ -62,7 +62,8 @@ export interface MedItem {
   updatedAt: number;
 }
 
-export type MedMoveKind = 'received' | 'issued' | 'disposed' | 'count';
+/** returned — unused medicine given back by the patient (against its log entry), back into its batch. */
+export type MedMoveKind = 'received' | 'issued' | 'returned' | 'disposed' | 'count';
 
 export interface MedMove {
   id: string;

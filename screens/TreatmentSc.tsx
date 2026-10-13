@@ -15,7 +15,7 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { BackButton, Card, Label, Screen, ScreenTitle } from '../components/ui';
@@ -34,7 +34,8 @@ import { Issued, MedFile, MedMove, MedOutcome, MedTreatment, OUTCOME_LABEL, Vita
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { proofShort } from '../services/signature';
-import { chestStatus, issuedText, nextMedNo, pickBatch, scaleEntry } from '../services/hospital';
+import { chestStatus, issuedText, matchesSearch, nextMedNo, pickBatch, purposeIcon, purposeOf, returnedFor, scaleEntry } from '../services/hospital';
+import { MciIcon } from '../components/MciIcon';
 import { PickedMedFile, keepMedFile, openMedFile, photoMedFile, pickMedFile, sizeText } from '../services/medFiles';
 import { exportTreatmentPdf } from '../services/hospitalReport';
 import { nowHm } from '../services/drills';
@@ -66,9 +67,11 @@ export default function TreatmentSc() {
   const stored = medTreatments.find((t) => t.id === id);
   const prior = medTreatments.find((t) => t.id === route.params?.followUpOf);
   const people = useMemo(() => crew.filter(isAboard), [crew]);
+  // Issue from the register (13 Oct 2026: "an Issue button on the item, opening an entry in the log").
+  const preset = route.params?.issue ? medItems.find((i) => i.id === route.params.issue && !i.deleted) : undefined;
   const [d, setD] = useState<MedTreatment>(() => ({
     id: uid('trt'), no: '', date: today, time: nowHm(), patient: prior?.patient ?? '', ...(prior?.patientRank ? { patientRank: prior.patientRank } : {}),
-    complaint: prior ? `Follow-up: ${prior.complaint}` : '', issued: [], outcome: 'fit', ...(prior ? { followUpOf: prior.id } : {}), by: '', at: 0, updatedAt: 0,
+    complaint: prior ? `Follow-up: ${prior.complaint}` : '', issued: preset ? [{ itemId: preset.id, name: [preset.name, preset.strength].filter(Boolean).join(' '), qty: 1, unit: preset.unit }] : [], outcome: 'fit', ...(prior ? { followUpOf: prior.id } : {}), by: '', at: 0, updatedAt: 0,
   }));
   const [patientPick, setPatientPick] = useState<string>(() => people.find((p) => p.name === prior?.patient)?.id ?? '');
   const [tmas, setTmas] = useState(false);
@@ -77,6 +80,7 @@ export default function TreatmentSc() {
   const [files, setFiles] = useState<PickedMedFile[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [ret, setRet] = useState<{ itemId: string; qty: string } | null>(null);
 
   const status = useMemo(() => chestStatus(medItems, medMoves, today), [medItems, medMoves, today]);
   const who = (by?: string, rank?: string) => (rank ? `${by} (${rank})` : by ?? '');
@@ -123,6 +127,33 @@ export default function TreatmentSc() {
         Alert.alert('Medical report', String(e?.message ?? e));
       }
     };
+    const back = returnedFor(t.id, medMoves);
+    const giveBack = async () => {
+      if (!ret) return;
+      const x = t.issued.find((y) => y.itemId === ret.itemId);
+      if (!x) return;
+      const qty = Number(ret.qty.replace(',', '.'));
+      const left = x.qty - (back.get(x.itemId) ?? 0);
+      if (!(qty > 0) || qty > left) return Alert.alert('Return', `Between 1 and ${left} ${x.unit}.`);
+      if (!signer) return Alert.alert('Who takes it back?', 'Choose your name — an officer or the Master.');
+      const isCd = !!medItems.find((i) => i.id === x.itemId)?.controlled;
+      if (isCd && !witness.picked) return Alert.alert('Controlled drug', 'Choose the witness — the second person present.');
+      const what = `${t.no} — ${x.name} ${qty} ${x.unit} returned unused`;
+      const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what });
+      if (!sig) return;
+      const w = isCd ? await witness.confirm(what) : null;
+      if (isCd && !w) return;
+      const now = Date.now();
+      // Back into the batch it was given from; the patient's name stays in the log, not on the move.
+      const m: MedMove = {
+        id: uid('mmv'), itemId: x.itemId, kind: 'returned', qty, ...(x.batchNo ? { batchNo: x.batchNo } : {}), ...(x.expiry ? { expiry: x.expiry } : {}), date: today, note: `${t.no} returned unused`, treatmentId: t.id,
+        by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), ...(w ?? {}), updatedAt: now,
+      };
+      await saveRow(storage.MED_MOVES_KEY, m);
+      setRet(null);
+      playSuccessSound();
+      setSaved(`${x.name}: ${qty} ${x.unit} back in the chest`);
+    };
     const line = (k: string, val?: string) => (val ? <Text style={styles.body}><Text style={{ color: COLORS.textLight }}>{`${k}: `}</Text>{val}</Text> : null);
     return (
       <Screen scroll>
@@ -137,12 +168,41 @@ export default function TreatmentSc() {
           {line('Diagnosis', t.diagnosis)}
           {line('Treatment', t.treatment)}
           {t.issued.length ? line('Medicines', t.issued.map(issuedText).join('; ')) : null}
+          {back.size ? line('Returned unused', t.issued.filter((x) => back.get(x.itemId)).map((x) => `${x.name} ${back.get(x.itemId)} ${x.unit}`).join('; ')) : null}
           {t.tmas ? line('Radio medical advice', [t.tmas.centre, t.tmas.ref, t.tmas.advice].filter(Boolean).join(' · ')) : null}
           {line('Follow-up', t.followUp ? formatDate(t.followUp) : undefined)}
           {prior ? line('Follows', `${prior.no} ${prior.complaint}`) : null}
           <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{`Signed by ${who(t.by, t.byRank)} · ${formatDateTime(t.at)}${t.signedWith ? ` · ${proofShort(t.signedWith)}` : ''}`}</Text>
           {t.witness ? <Text style={styles.sub}>{`Witness ${who(t.witness, t.witnessRank)}${t.witnessWith ? ` · ${proofShort(t.witnessWith)}` : ''}`}</Text> : null}
         </Card>
+        {t.issued.some((x) => (back.get(x.itemId) ?? 0) < x.qty) ? (
+          <Card>
+            <Label>Return from the patient</Label>
+            <Text style={styles.sub}>Medicine given but not used — the patient gives it back, it goes back into its batch in the chest. A controlled drug comes back with a witness.</Text>
+            {ret ? (
+              <>
+                {(() => {
+                  const x = t.issued.find((y) => y.itemId === ret.itemId)!;
+                  const left = x.qty - (back.get(x.itemId) ?? 0);
+                  return <Text style={[styles.name, { marginTop: SIZES.sm }]}>{`${x.name} — given ${x.qty} ${x.unit}, can return up to ${left}`}</Text>;
+                })()}
+                <TextInput style={styles.input} value={ret.qty} onChangeText={(v) => setRet({ ...ret, qty: v })} keyboardType="decimal-pad" placeholder="How many come back ★" placeholderTextColor={COLORS.textLight} />
+                {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
+                {medItems.find((i) => i.id === ret.itemId)?.controlled ? <View style={{ marginTop: SIZES.sm }}>{witness.picker}</View> : null}
+                <View style={styles.row}>
+                  <TouchableOpacity style={styles.btn} onPress={() => void giveBack()}><Text style={styles.btnText}>Sign the return</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => setRet(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <View style={styles.row}>
+                {t.issued.filter((x) => (back.get(x.itemId) ?? 0) < x.qty).map((x) => (
+                  <TouchableOpacity key={x.itemId} style={styles.small} onPress={() => setRet({ itemId: x.itemId, qty: String(x.qty - (back.get(x.itemId) ?? 0)) })}><Text style={styles.smallText}>{`Return ${x.name}…`}</Text></TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </Card>
+        ) : null}
         <Label>{`Files · ${t.files?.length ?? 0}`}</Label>
         {(t.files ?? []).map((f) => (
           <TouchableOpacity key={f.id} style={[styles.item, { borderLeftColor: COLORS.primary }]} onPress={() => void openMedFile(f.url, f.name).catch((e) => Alert.alert('File', String(e?.message ?? e)))}>
@@ -168,7 +228,8 @@ export default function TreatmentSc() {
   const set = (p: Partial<MedTreatment>) => setD({ ...d, ...p });
   const setV = (k: keyof Vitals, val: string) => set({ vitals: { ...(d.vitals ?? {}), [k]: val } });
   const available = status.filter((r) => r.usable > 0 && !d.issued.some((x) => x.itemId === r.item.id));
-  const found = adding != null ? available.filter((r) => `${r.item.name} ${r.item.strength ?? ''}`.toLowerCase().includes(adding.toLowerCase())).slice(0, 12) : [];
+  // The whole chest in date, medicines first, A–Z — searched by name, indication, ATC, list No. (13 Oct 2026: "the list is not complete").
+  const found = adding != null ? available.filter((r) => matchesSearch(r.item, adding)).sort((a, b) => (a.item.kind === 'medicine' ? 0 : 1) - (b.item.kind === 'medicine' ? 0 : 1) || a.item.name.localeCompare(b.item.name)) : [];
   const cdGiven = d.issued.some((x) => medItems.find((i) => i.id === x.itemId)?.controlled);
 
   const sign = async () => {
@@ -271,7 +332,7 @@ export default function TreatmentSc() {
           return (
             <View key={x.itemId} style={{ marginBottom: SIZES.sm }}>
               <View style={styles.row}>
-                <Text style={[styles.name, { flex: 1, minWidth: 150 }]}>{`${x.name}${item?.controlled ? ' · CD' : ''}`}</Text>
+                <Text style={[styles.name, { flex: 1, minWidth: 150 }]}>{x.name}{item?.controlled ? ' ' : ''}{item?.controlled ? <MciIcon name="lock" size={14} color={COLORS.warning} /> : null}</Text>
                 <TextInput style={[styles.input, { width: 70, marginTop: 0, textAlign: 'right' }]} value={x.qty ? String(x.qty) : ''} onChangeText={(v) => set({ issued: d.issued.map((y) => (y.itemId === x.itemId ? { ...y, qty: Number(v.replace(',', '.')) || 0 } : y)) })} keyboardType="decimal-pad" />
                 <Text style={styles.sub}>{x.unit}</Text>
                 <TouchableOpacity onPress={() => set({ issued: d.issued.filter((y) => y.itemId !== x.itemId) })}><Text style={[styles.link, { color: COLORS.danger }]}>✕</Text></TouchableOpacity>
@@ -292,11 +353,16 @@ export default function TreatmentSc() {
         {adding != null ? (
           <>
             <TextInput style={styles.input} value={adding} onChangeText={setAdding} placeholder="Find in the chest" placeholderTextColor={COLORS.textLight} autoFocus />
-            {found.map((r) => (
-              <TouchableOpacity key={r.item.id} onPress={() => { set({ issued: [...d.issued, { itemId: r.item.id, name: [r.item.name, r.item.strength].filter(Boolean).join(' '), qty: 1, unit: r.item.unit }] }); setAdding(null); }}>
-                <Text style={[styles.body, { paddingVertical: 4 }]}>{`+ ${r.item.name}${r.item.strength ? ` · ${r.item.strength}` : ''} — ${r.usable} ${r.item.unit}`}</Text>
-              </TouchableOpacity>
-            ))}
+            <Text style={styles.sub}>{`${found.length} in date aboard${adding ? ' — found' : ''}`}</Text>
+            <ScrollView style={{ maxHeight: 420 }} nestedScrollEnabled>
+              {found.map((r) => (
+                <TouchableOpacity key={r.item.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 5 }} onPress={() => { set({ issued: [...d.issued, { itemId: r.item.id, name: [r.item.name, r.item.strength].filter(Boolean).join(' '), qty: 1, unit: r.item.unit }] }); setAdding(null); }}>
+                  <MciIcon name={purposeIcon(purposeOf(r.item))} size={16} color={COLORS.primary} />
+                  <Text style={[styles.body, { flexShrink: 1 }]}>{`${r.item.name}${r.item.strength ? ` · ${r.item.strength}` : ''} — ${r.usable} ${r.item.unit}`}</Text>
+                  {r.item.controlled ? <MciIcon name="lock" size={14} color={COLORS.warning} /> : null}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
             {adding && !found.length ? <Text style={styles.sub}>Nothing in date aboard by that name.</Text> : null}
             <TouchableOpacity onPress={() => setAdding(null)}><Text style={styles.link}>Done</Text></TouchableOpacity>
           </>

@@ -59,7 +59,7 @@ const TITLE: Record<HospitalView, [string, string]> = {
 
 export default function HospitalSc() {
   const COLORS = useTheme();
-  const styles = useMemo(() => ({ ...makeStyles(COLORS), ...StyleSheet.create({ badgeBox: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, minWidth: 54, alignItems: 'center' }, badgeQty: { fontSize: SIZES.small, fontWeight: '800' }, badgeExp: { fontSize: 10, fontWeight: '700' }, infoBtn: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' }, infoBtnText: { fontSize: 12, fontWeight: '800', fontStyle: 'italic', fontFamily: 'Georgia', lineHeight: 14 }, infoBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: SIZES.md }, infoCard: { borderRadius: SIZES.radiusLg, padding: SIZES.lg, width: '100%', maxWidth: 560 } }) }), [COLORS]);
+  const styles = useMemo(() => ({ ...makeStyles(COLORS), ...StyleSheet.create({ badgeBox: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, minWidth: 54, alignItems: 'center' }, badgeQty: { fontSize: SIZES.small, fontWeight: '800' }, badgeExp: { fontSize: 10, fontWeight: '700' }, infoBtn: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' }, infoBtnText: { fontSize: 12, fontWeight: '800', fontStyle: 'italic', fontFamily: 'Georgia', lineHeight: 14 }, issueBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, borderWidth: 1, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, minWidth: 54, justifyContent: 'center' }, issueText: { fontSize: 11, fontWeight: '800' }, infoBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: SIZES.md }, infoCard: { borderRadius: SIZES.radiusLg, padding: SIZES.lg, width: '100%', maxWidth: 560 } }) }), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
   const { medItems, medMoves, medTreatments, medOrders, medChecks, saveRows, vessel } = useData();
@@ -278,6 +278,13 @@ export default function HospitalSc() {
                     })
                   )}
                   {r.batches.length > 2 ? <View style={[styles.badgeBox, { borderColor: COLORS.border }]}><Text style={[styles.badgeQty, { color: COLORS.textLight }]}>{`+${r.batches.length - 2}`}</Text></View> : null}
+                  {/* Issue: a new entry in the medical log with this item already in it. */}
+                  {officer && r.usable > 0 ? (
+                    <TouchableOpacity onPress={() => nav.navigate('Treatment', { id: 'new', issue: r.item.id })} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Issue — ${r.item.name}`} style={[styles.issueBtn, { borderColor: COLORS.primary }]}>
+                      <MciIcon name="hand-heart-outline" size={14} color={COLORS.primary} />
+                      <Text style={[styles.issueText, { color: COLORS.primary }]}>Issue</Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
               </TouchableOpacity>
               </React.Fragment>
