@@ -62,6 +62,8 @@ export default function ScanSc() {
   const route = useRoute<any>();
   const { flat, recordScan, crew, crewMoves, appendRow, visitors, saveRow, passengers } = useData();
   const sync = useSync();
+  /** Opened from the gangway page: a crew or passenger card records the crossing. */
+  const atGangway = ['1', 'true', true, 1].includes(route.params?.gangway);
   /** The last crew card read at the gangway — shown big, then the scanner is ready for the next. */
   const [crewHit, setCrewHit] = useState<{ name: string; text: string; ok: boolean } | null>(null);
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -83,8 +85,22 @@ export default function ScanSc() {
       if (locked.current) return;
       locked.current = true;
 
-      // A crew card (msm://crew/<id>): going ashore or coming back aboard.
+      // A crew card (msm://crew/<id>): going ashore or coming back aboard — only when the
+      // scanner was opened from the gangway page (14 Oct 2026: "crossing the gangway only
+      // from the gangway page"). Anywhere else the card opens the person: the crew member's
+      // card, or the passenger on the passenger list.
       const crewId = parseCrewQr(code);
+      if (crewId && !atGangway) {
+        const member = crew.find((x) => x.id === crewId && !x.deleted);
+        if (member) return nav.replace('CrewMember', { id: member.id });
+        const guest = moduleOn('passengers') ? passengers.find((x) => x.id === crewId && !x.deleted) : undefined;
+        if (guest) return nav.replace('Main', { screen: 'Passengers', params: { open: guest.id } });
+        setCrewHit({ name: 'Unknown card', text: 'Not on the crew or passenger list of this vessel (another vessel’s card, or removed).', ok: false });
+        setTimeout(() => {
+          locked.current = false;
+        }, 2500);
+        return;
+      }
       if (crewId && moduleOn('security')) {
         // A passenger card carries the same scheme, with the passenger's id (types/passengers.ts).
         const pax = moduleOn('passengers') ? passengers.find((x) => x.id === crewId && passengerAboard(x, todayIso())) : undefined;
@@ -224,7 +240,7 @@ export default function ScanSc() {
       <BackButton onPress={() => goBackOr(nav)} />
       <View style={styles.head}>
         <View style={{ flex: 1 }}>
-          <ScreenTitle title="Scan" subtitle="An ISMpilot QR label, or a serial / asset tag." />
+          <ScreenTitle title={atGangway ? 'Scan at the gangway' : 'Scan'} subtitle={atGangway ? 'A crew or passenger card records going ashore or coming back aboard; a visitor pass signs the visitor off.' : 'An ISMpilot QR label, or a serial / asset tag. A crew or passenger card opens the person — crossings are recorded from the gangway page.'} />
         </View>
       </View>
 

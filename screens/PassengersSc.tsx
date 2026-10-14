@@ -13,9 +13,9 @@
 //   print          passenger cards, the passenger list (PDF)
 // ===================================
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { Card, Label, Screen, ScreenTitle } from '../components/ui';
 import { Dropdown } from '../components/Dropdown';
@@ -59,6 +59,18 @@ export default function PassengersSc() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
 
+  // A passenger card scanned anywhere but the gangway opens the passenger here (ScanSc).
+  const route = useRoute<any>();
+  const openId: string | undefined = route.params?.open;
+  useEffect(() => {
+    const p = openId ? passengers.find((x) => x.id === openId) : undefined;
+    if (!p) return;
+    setShow('all');
+    if (officer) setDraft({ ...p, priv: passengersPrivate.find((x) => x.id === p.id) ?? { id: p.id, updatedAt: Date.now() } });
+    else setQ(p.name);
+    nav.setParams({ open: undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId]);
   const last = useMemo(() => lastMoves(crewMoves), [crewMoves]);
   const privOf = (id: string) => passengersPrivate.find((x) => x.id === id);
   const state = (p: Passenger): Show => (p.disembarked && p.disembarked <= today ? 'left' : p.embarked && p.embarked > today ? 'expected' : 'aboard');
@@ -150,7 +162,7 @@ export default function PassengersSc() {
       </View>
       <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.sm }]}>
         {officer ? <TouchableOpacity style={styles.btn} onPress={() => open()}><Text style={styles.btnText}>+ Passenger</Text></TouchableOpacity> : null}
-        <TouchableOpacity style={styles.small} onPress={() => nav.navigate('Scan')}><Text style={styles.smallText}>Scan card</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.small} onPress={() => nav.navigate('Main', { screen: 'Security', params: { view: 'gangway' } })}><Text style={styles.smallText}>Gangway ›</Text></TouchableOpacity>
         <TouchableOpacity style={styles.small} disabled={!aboardList.length} onPress={() => exportPassengerCards(aboardList, vessel).then(done, fail)}><Text style={styles.smallText}>Print passenger cards</Text></TouchableOpacity>
         <TouchableOpacity style={styles.small} onPress={() => void listPdf()}><Text style={styles.smallText}>Passenger list (PDF)</Text></TouchableOpacity>
         <TouchableOpacity style={styles.small} onPress={() => savePaxSheet(paxSheet(shown, passengersPrivate, officer), `Passenger list ${today}`, vessel).then(done, fail)}><Text style={styles.smallText}>Export to Excel</Text></TouchableOpacity>

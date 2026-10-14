@@ -336,6 +336,7 @@ function SecuritySc() {
         title={view === 'drills' ? 'ISPS drills' : 'Gangway logbook'}
         subtitle={view === 'drills' ? 'ISPS Code — at least one every three months' : 'ISPS Code — who is on board, visitors in and out'}
         help="Security (ISPS)"
+        onScan={view === 'gangway' ? () => nav.navigate('Scan', { gangway: 1 }) : undefined}
         actions={
           view !== 'drills' && tab === 'log' ? (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -381,7 +382,7 @@ function SecuritySc() {
           <Text style={styles.pob}>{`${pob.total} persons on board — crew ${pob.crewAboard} of ${pob.crewTotal}${pob.paxTotal ? `, passengers ${pob.paxAboard} of ${pob.paxTotal}` : ''}${pob.visitors ? `, visitors ${pob.visitors}` : ''}`}</Text>
           <View style={styles.actions}>
             <TouchableOpacity style={styles.btn} onPress={() => { if (!adding) setF({ ...blank, timeIn: hhmm() }); setAdding((v) => !v); }}><Text style={styles.btnText}>{adding ? 'Close' : '+ Visitor'}</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.btnOutline} onPress={() => nav.navigate('Scan')}>
+            <TouchableOpacity style={styles.btnOutline} onPress={() => nav.navigate('Scan', { gangway: 1 })}>
               <MciIcon name="qrcode-scan" size={16} color={COLORS.primary} />
               <Text style={styles.btnOutlineText}>Scan card or pass</Text>
             </TouchableOpacity>
