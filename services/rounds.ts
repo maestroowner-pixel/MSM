@@ -115,6 +115,27 @@ export function roundFor(rounds: InspectionRound[], item: Pick<EquipmentItem, 'c
   return fit.find((r) => r.id === preferId) ?? fit.sort((a, b) => b.startedAt - a.startedAt)[0] ?? null;
 }
 
+/**
+ * Open rounds that duplicate each other — the same period, a category in common
+ * (started on two phones before they synced, or on an app older than 2.62; Jez,
+ * 14 Oct 2026). Each pair is told once: the later one to close, the earlier kept.
+ */
+export function duplicateRounds(rounds: InspectionRound[]): { keep: InspectionRound; extra: InspectionRound }[] {
+  const open = rounds.filter((r) => !r.closedAt).sort((a, b) => a.startedAt - b.startedAt);
+  const out: { keep: InspectionRound; extra: InspectionRound }[] = [];
+  const told = new Set<string>();
+  for (let i = 0; i < open.length; i++) {
+    for (let j = i + 1; j < open.length; j++) {
+      const a = open[i];
+      const b = open[j];
+      if (told.has(b.id) || told.has(a.id) || a.period !== b.period || !a.categories.some((c) => b.categories.includes(c))) continue;
+      out.push({ keep: a, extra: b });
+      told.add(b.id);
+    }
+  }
+  return out;
+}
+
 /** An open round of this period already covering one of these categories — starting another would split the work. */
 export function overlappingRound(rounds: InspectionRound[], period: string, cats: CategoryKey[]): InspectionRound | null {
   return rounds.find((r) => !r.closedAt && r.period === period && r.categories.some((c) => cats.includes(c))) ?? null;

@@ -1,5 +1,5 @@
 // npm run check:rounds — inspection rounds: scope, done in the round only, walking order.
-import { overlappingRound, roundFor, roundProgress, roundTakes, walkGroups } from '../services/rounds';
+import { overlappingRound, roundFor, roundProgress, roundTakes, walkGroups, duplicateRounds } from '../services/rounds';
 import { buildRoundReport, roundSignoffLine } from '../services/reportData';
 
 let fail = 0;
@@ -50,5 +50,12 @@ const rep = buildRoundReport(flat, trail, closed);
 ok(rep.inScope.length === 4 && rep.missed.length === 3 && rep.done.length === 2 && rep.done.every((i) => i.roundId === 'r1'), 'report: round scope, only inspections signed in it');
 ok(/Monthly Inspection Round/.test(rep.headline) && /Incomplete \(1 of 4/.test(rep.headline) && /Signed off/.test(rep.headline), `headline: ${rep.headline}`);
 ok(roundSignoffLine(closed) === 'Jez (Chief Officer) · 31 Oct 2026 17:05 · signed by PIN' || /Jez.*Chief Officer.*17:05.*signed by PIN/.test(roundSignoffLine(closed)), `sign-off line: ${roundSignoffLine(closed)}`);
+// duplicates (Jez, 14 Oct 2026): two open rounds of the same period sharing a category
+{
+  const R = (id: string, period: string, cats: string[], at: number, closed?: number): any => ({ id, period, categories: cats, startedAt: at, startedBy: 'x', from: '', to: '', label: '', updatedAt: at, ...(closed ? { closedAt: closed } : {}) });
+  const d = duplicateRounds([R('a', 'monthly', ['fire_extinguishers'], 1), R('b', 'monthly', ['fire_extinguishers', 'lifebuoys'], 2), R('c', 'weekly', ['fire_extinguishers'], 3), R('e', 'monthly', ['lifejackets'], 4), R('f', 'monthly', ['fire_extinguishers'], 5, 6)]);
+  ok(d.length === 1 && d[0].keep.id === 'a' && d[0].extra.id === 'b', 'duplicate rounds: the later of two open monthly rounds sharing a category; other periods, other categories and closed rounds left alone');
+}
+
 console.log(fail ? `${fail} failed` : 'all passed');
 process.exit(fail ? 1 : 0);

@@ -1435,6 +1435,33 @@ export async function pushLists(uid: string): Promise<void> {
   for (const l of await liveLists()) await pushList(uid, l);
 }
 
+/**
+ * The vessel's rounds as the server holds them NOW, merged into this device's
+ * list — asked for right before a round is started, so a round another phone
+ * opened a minute ago is seen and not started twice (Jez, 14 Oct 2026). Null
+ * when there is no session or no answer within a few seconds (then the local
+ * list decides, as before).
+ */
+export async function freshRounds(): Promise<{ id: string; updatedAt: number }[] | null> {
+  try {
+    const vessel = await currentVesselKey();
+    if (!vessel || !currentUid()) return null;
+    const snap = await Promise.race([
+      fsGetDocs(fsCollection(requireDb(), ROOT, vessel, 'rounds')),
+      new Promise<null>((ok) => setTimeout(() => ok(null), 6000)),
+    ]);
+    if (!snap) return null;
+    const remote: { id: string; updatedAt: number }[] = [];
+    snap.forEach((doc) => remote.push(doc.data() as any));
+    const merged = mergeById(await storage.loadList<{ id: string; updatedAt: number }>(storage.ROUNDS_KEY), remote);
+    await storage.saveList(storage.ROUNDS_KEY, merged);
+    return merged;
+  } catch (e: any) {
+    console.warn('[sync] rounds not fetched:', e?.message ?? e);
+    return null;
+  }
+}
+
 export async function pullLists(uid: string): Promise<void> {
   for (const l of await liveLists()) await pullList(uid, l);
 }
