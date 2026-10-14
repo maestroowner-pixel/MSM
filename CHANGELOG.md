@@ -30,6 +30,8 @@ Dark behind their flags (shipped in the code, not shown): hospital (landing repo
 
 Web deployed first, the same day; the store builds follow.
 
+Also in 2.63 — **inspection rounds: no more duplicates** (Jez, 14 Oct 2026: two identical rounds open on the phone). Start locks against a second tap and asks the vessel's latest rounds before creating one; two open rounds covering the same show a warning with Close the duplicate. The server closes a duplicate whatever app made it (`roundsDedupOnCreate` on a new round, `roundsDedupSweep` hourly) — deployed 14 Oct; DreamBoat's duplicate closed by the first sweep. Stores and AI are in the code, dark (`stores`, `ai`).
+
 ## 2.62 (20621) — 13 Oct 2026
 
 - **Released 14 Oct 2026:** App Store and Google Play approved; web deployed the same day from the release commit `72ff642` (not the branch head — the work since stays dark behind its flags), https://ismpilot.web.app, version.json 2.62.
