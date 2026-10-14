@@ -87,7 +87,7 @@ const TASKS = {
     if (data.length > 14_000_000) throw new HttpsError('invalid-argument', 'The file is too large — under 10 MB.');
     const block = media === 'application/pdf' ? { type: 'document', source: { type: 'base64', media_type: media, data } } : { type: 'image', source: { type: 'base64', media_type: media, data } };
     const fields = (d.fields || []).slice(0, 40).map((f) => `- ${str(f, 120)}`).join('\n');
-    const text = `This is a ${str(d.target, 40)} list from a ship (a photo of a paper list, or a PDF). Read every line into rows with our columns:\n${fields}\n\nDates as yyyy-mm-dd (a month alone as yyyy-mm). Numbers as numbers. Leave a column out of a row when the list does not say it. Do not invent anything.\nReturn JSON only: {"rows": [{"<our column>": value, ...}, ...], "unreadable": "<what could not be read, or empty>"}`;
+    const text = `This is a ${str(d.target, 40)} list from a ship (a photo of a paper list, or a PDF). Read every line into rows with our columns:\n${fields}\n\nDates as yyyy-mm-dd (a month alone as yyyy-mm, a year alone as yyyy-12). Numbers as numbers. What the title or a heading of the list says for all its lines (a deck, a location, a section) goes into every row it covers. Leave a column out of a row when the list does not say it. Do not invent anything.\nReturn JSON only: {"rows": [{"<our column>": value, ...}, ...], "unreadable": "<what could not be read, or empty>"}`;
     return json(await claude(key, FAST, 'You transcribe ship inventories exactly. Answer with JSON only.', [block, { type: 'text', text }], 8000));
   },
 
@@ -117,3 +117,6 @@ exports.ai = onCall({ secrets: [ANTHROPIC_API_KEY], region: REGION, timeoutSecon
   console.log(`[ai] ${t.vessel} ${task}`);
   return out;
 });
+
+// For scripts/ai-check (the prompts against the real model, from a Mac) — not a function.
+exports._tasks = TASKS;
