@@ -28,7 +28,7 @@ export interface MenuGroup {
 }
 
 export const MENU_GROUPS: MenuGroup[] = [
-  { key: 'ops', label: 'Inspections & maintenance', routes: ['Dashboard', 'Equipment', 'Rounds', 'Maintenance', 'Spares', 'Reports'] },
+  { key: 'ops', label: 'Inspections & maintenance', routes: ['Dashboard', 'Equipment', 'Rounds', 'Maintenance', 'Spares', 'Stores', 'Reports'] },
   { key: 'env', label: 'Environment', routes: ['Fuel', 'OilRecord', 'Garbage', 'Sewage', 'Ballast', 'Sopep'] },
   { key: 'security', label: 'Safety & security', routes: ['Drills', 'Safety', 'Security'] },
   { key: 'crew', label: 'Crew', routes: ['Crew', 'Passengers', 'CrewMatrix', 'HoursOfRest', 'Hospital'] },
@@ -62,6 +62,10 @@ export const MENU_CHILDREN: Record<string, MenuChild[]> = {
     { view: 'inventory', label: 'Inventory', icon: 'counter' },
     { view: 'log', label: 'Medical log', icon: 'notebook-outline' },
     { view: 'reference', label: 'Medicine reference', icon: 'book-open-variant' },
+  ],
+  Stores: [
+    { view: 'ppe', label: 'PPE store', icon: 'hard-hat' },
+    { view: 'provisions', label: 'Provisions', icon: 'food-apple-outline' },
   ],
   Fuel: [
     { view: 'sounding', label: 'Sounding', icon: 'ruler' },

@@ -227,6 +227,10 @@ await t(false, 'A signed meeting is final', setDoc(R(master, 'safety_meetings', 
 await t(true, 'Crew name a SOPEP locker', setDoc(R(crew, 'sopep_lockers', 'lk1'), { id: 'lk1', name: 'Bow locker', location: 'Forepeak', order: 1, updatedAt: 1 }));
 await t(true, 'The shore reads the SOPEP lockers', getDoc(R(shore, 'sopep_lockers', 'lk1')));
 
+await t(true, 'Crew add a store item', setDoc(R(crew, 'store_items', 'st1'), { id: 'st1', store: 'ppe', name: 'Coveralls', size: 'L', unit: 'pcs', min: 2, order: 0, updatedAt: 1 }));
+await t(true, 'Crew issue from the store', setDoc(R(crew, 'store_moves', 'sm1'), { id: 'sm1', itemId: 'st1', kind: 'issued', qty: 1, date: '2026-10-14', to: 'Max', by: 'Jez', at: 1, updatedAt: 1 }));
+await t(false, 'A store move is never changed', setDoc(R(master, 'store_moves', 'sm1'), { id: 'sm1', itemId: 'st1', kind: 'issued', qty: 5, date: '2026-10-14', by: 'Jez', at: 1, updatedAt: 2 }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

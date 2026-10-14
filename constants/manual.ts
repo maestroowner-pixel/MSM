@@ -492,6 +492,15 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🏬',
+      title: "Stores",
+      body: [
+        "Stores (menu → Stores): the PPE store and the provisions, kept the same way — every item with a minimum to keep, what is on hand batch by batch, what is below the minimum or out of date. Tap an item to receive, issue, count or dispose of it, or to edit it; the Board says what is short or out of date, and To order (Excel) lists what to buy.",
+        "PPE store: coveralls, boots, gloves, glasses, hearing and breathing protection, harnesses — one line per size. Issue to crew: the crew member signs for it on this device (PIN or by hand); Return takes it back. Issued to crew shows what each person holds, and PPE record (PDF) prints their card to sign. Start from the typical list, or load your own.",
+        "Provisions: the dry store, chilled, frozen, beverages, bakery, fresh fruit and veg, cleaning — with best-before dates. Issue to galley takes from the batch that expires first; out-of-date stock is thrown away with Dispose, so the record shows it. Excel: the template (name, section, unit, minimum, place, quantity, best before), import — a supplier's or the chef's list reads too (Item, UoM, Par, Qty, Best before) — and export.",
+      ],
+    },
+    {
       emoji: '🛳️',
       title: "Passengers",
       body: [
@@ -1072,6 +1081,15 @@ const ru: ManualContent = {
         "Monthly safety meeting (меню → Security): комитет по безопасности на борту собирается каждый месяц. Новое собрание открывается с постоянной повесткой — открытые действия прошлого собрания, происшествия и почти-происшествия, учения, несоответствия и проверки, часы отдыха, здоровье, СИЗ, новые процедуры и safety flashes, оценки риска, охрана, экология, предложения экипажа — и строкой для сказанного по каждому пункту.",
         "Attendance list: в нём все на борту; отметьте присутствующих, для отсутствующих — причину; каждый подписывает свою строку на этом устройстве — PIN подписи или рукой. Можно добавить человека не из списка экипажа (суперинтендант, подрядчик). Attendance list (PDF) печатает список отдельно.",
         "Действия: кто, что и к какому сроку. Открытые действия возвращаются на следующее собрание, пока их не отметят выполненными; просроченные видны на Board. После подписи Мастера или председателя собрание окончательное; Minutes (PDF) печатает весь протокол. Board напоминает о собрании этого месяца и краснеет, если собрания не было больше месяца.",
+      ],
+    },
+    {
+      emoji: '🏬',
+      title: "Склады (Stores)",
+      body: [
+        "Stores (меню → Stores): склад СИЗ и провизия, устроены одинаково — у каждой позиции минимальный запас, остаток по партиям, что ниже минимума или просрочено. Нажмите на позицию: приход, выдача, пересчёт, списание или правка; Board показывает нехватку и просрочку, To order (Excel) — что заказать.",
+        "PPE store: комбинезоны, обувь, перчатки, очки, защита слуха и дыхания, страховочные пояса — по строке на размер. Issue to crew: член экипажа расписывается в получении на этом устройстве (PIN или рукой); Return — возврат. Issued to crew показывает, что у кого на руках, PPE record (PDF) печатает его карточку для подписи. Начните с типового списка или загрузите свой.",
+        "Provisions: сухая провизия, охлаждённое, заморозка, напитки, выпечка, овощи и фрукты, моющие — со сроками годности. Issue to galley берёт из партии с ближайшим сроком; просрочка списывается через Dispose, и это остаётся в учёте. Excel: шаблон (название, раздел, единица, минимум, место, количество, срок), импорт — список поставщика или шефа тоже читается (Item, UoM, Par, Qty, Best before) — и экспорт.",
       ],
     },
     {
@@ -1658,6 +1676,15 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🏬',
+      title: "Almacenes (Stores)",
+      body: [
+        "Stores (menú → Stores): el almacén de EPI y las provisiones, llevados igual — cada artículo con un mínimo, lo que hay lote a lote, lo que está bajo mínimo o caducado. Pulse un artículo para recibir, entregar, contar o dar de baja, o para editarlo; el Board avisa de faltas y caducados, y To order (Excel) lista lo que pedir.",
+        "PPE store: monos, botas, guantes, gafas, protección auditiva y respiratoria, arneses — una línea por talla. Issue to crew: el tripulante firma la recepción en este dispositivo (PIN o a mano); Return lo devuelve. Issued to crew muestra lo que tiene cada uno, y PPE record (PDF) imprime su ficha para firmar. Empiece con la lista típica o cargue la suya.",
+        "Provisions: despensa seca, refrigerado, congelado, bebidas, panadería, fruta y verdura, limpieza — con fechas de consumo preferente. Issue to galley saca del lote que caduca antes; lo caducado se da de baja con Dispose y queda registrado. Excel: la plantilla (nombre, sección, unidad, mínimo, lugar, cantidad, consumo preferente), importar — también se lee la lista del proveedor o del chef (Item, UoM, Par, Qty, Best before) — y exportar.",
+      ],
+    },
+    {
       emoji: '🛳️',
       title: "Pasajeros (Passengers)",
       body: [
@@ -2241,6 +2268,15 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🏬',
+      title: "Склади (Stores)",
+      body: [
+        "Stores (меню → Stores): склад ЗІЗ і провізія, влаштовані однаково — у кожної позиції мінімальний запас, залишок за партіями, що нижче мінімуму або прострочене. Натисніть на позицію: прихід, видача, перерахунок, списання або правка; Board показує нестачу й прострочення, To order (Excel) — що замовити.",
+        "PPE store: комбінезони, взуття, рукавиці, окуляри, захист слуху й дихання, страхувальні пояси — по рядку на розмір. Issue to crew: член екіпажу розписується в отриманні на цьому пристрої (PIN або рукою); Return — повернення. Issued to crew показує, що в кого на руках, PPE record (PDF) друкує його картку для підпису. Почніть з типового списку або завантажте свій.",
+        "Provisions: суха провізія, охолоджене, заморожене, напої, випічка, овочі й фрукти, мийні — з термінами придатності. Issue to galley бере з партії з найближчим терміном; прострочене списується через Dispose і лишається в обліку. Excel: шаблон (назва, розділ, одиниця, мінімум, місце, кількість, термін), імпорт — список постачальника чи шефа теж читається (Item, UoM, Par, Qty, Best before) — і експорт.",
+      ],
+    },
+    {
       emoji: '🛳️',
       title: "Пасажири (Passengers)",
       body: [
@@ -2400,6 +2436,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
   { title: 'Security (ISPS)', module: 'security' },
   { title: 'Hospital', module: 'hospital' },
   { title: 'Passengers', module: 'passengers' },
+  { title: 'Stores', module: 'stores' },
   { title: 'Monthly safety meeting', module: 'meetings' },
   { title: 'Drills', module: 'drills' },
   { title: 'Safety observations & NC', module: 'qhse' },

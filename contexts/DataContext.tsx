@@ -26,6 +26,7 @@ import { NonConformity, SafetyObservation } from '../types/safety';
 import { Drill } from '../types/drills';
 import { Passenger, PassengerPrivate } from '../types/passengers';
 import { SafetyMeeting } from '../types/meetings';
+import { StoreItem, StoreMove } from '../types/stores';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
@@ -147,6 +148,8 @@ interface DataContextType {
   medTreatments: MedTreatment[];
   passengers: Passenger[];
   safetyMeetings: SafetyMeeting[];
+  storeItems: StoreItem[];
+  storeMoves: StoreMove[];
   passengersPrivate: PassengerPrivate[];
   medOrders: MedOrder[];
   medChecks: MedCheck[];
@@ -269,6 +272,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [medTreatments, setMedTreatments] = useState<MedTreatment[]>([]);
   const [passengers, setPassengers] = useState<Passenger[]>([]);
   const [safetyMeetings, setSafetyMeetings] = useState<SafetyMeeting[]>([]);
+  const [storeItems, setStoreItems] = useState<StoreItem[]>([]);
+  const [storeMoves, setStoreMoves] = useState<StoreMove[]>([]);
   const [passengersPrivate, setPassengersPrivate] = useState<PassengerPrivate[]>([]);
   const [medOrders, setMedOrders] = useState<MedOrder[]>([]);
   const [medChecks, setMedChecks] = useState<MedCheck[]>([]);
@@ -356,6 +361,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _medTreatments = await storage.loadList<MedTreatment>(storage.MED_TREATMENTS_KEY);
     const _passengers = (await storage.loadList<Passenger>(storage.PASSENGERS_KEY)).filter((x) => !x.deleted);
     const _safetyMeetings = (await storage.loadList<SafetyMeeting>(storage.SAFETY_MEETINGS_KEY)).filter((x) => !x.deleted);
+    const _storeItems = (await storage.loadList<StoreItem>(storage.STORE_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order);
+    const _storeMoves = await storage.loadList<StoreMove>(storage.STORE_MOVES_KEY);
     const _passengersPrivate = await storage.loadList<PassengerPrivate>(storage.PASSENGERS_PRIVATE_KEY);
     const _medOrders = await storage.loadList<MedOrder>(storage.MED_ORDERS_KEY);
     const _medChecks = await storage.loadList<MedCheck>(storage.MED_CHECKS_KEY);
@@ -414,6 +421,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMedTreatments(_medTreatments);
     setPassengers(_passengers);
     setSafetyMeetings(_safetyMeetings);
+    setStoreItems(_storeItems);
+    setStoreMoves(_storeMoves);
     setPassengersPrivate(_passengersPrivate);
     setMedOrders(_medOrders);
     setMedChecks(_medChecks);
@@ -619,6 +628,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _medTreatments = await storage.loadList<MedTreatment>(storage.MED_TREATMENTS_KEY);
     const _passengers = (await storage.loadList<Passenger>(storage.PASSENGERS_KEY)).filter((x) => !x.deleted);
     const _safetyMeetings = (await storage.loadList<SafetyMeeting>(storage.SAFETY_MEETINGS_KEY)).filter((x) => !x.deleted);
+    const _storeItems = (await storage.loadList<StoreItem>(storage.STORE_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order);
+    const _storeMoves = await storage.loadList<StoreMove>(storage.STORE_MOVES_KEY);
     const _passengersPrivate = await storage.loadList<PassengerPrivate>(storage.PASSENGERS_PRIVATE_KEY);
     const _medOrders = await storage.loadList<MedOrder>(storage.MED_ORDERS_KEY);
     const _medChecks = await storage.loadList<MedCheck>(storage.MED_CHECKS_KEY);
@@ -668,6 +679,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMedTreatments(_medTreatments);
     setPassengers(_passengers);
     setSafetyMeetings(_safetyMeetings);
+    setStoreItems(_storeItems);
+    setStoreMoves(_storeMoves);
     setPassengersPrivate(_passengersPrivate);
     setMedOrders(_medOrders);
     setMedChecks(_medChecks);
@@ -932,6 +945,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         medTreatments,
         passengers,
         safetyMeetings,
+        storeItems,
+        storeMoves,
         passengersPrivate,
         medOrders,
         medChecks,

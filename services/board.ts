@@ -45,6 +45,8 @@ import { drillSchedule } from './drills';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 import { Passenger, passengerAboard } from '../types/passengers';
 import { SafetyMeeting } from '../types/meetings';
+import { StoreItem, StoreMove } from '../types/stores';
+import { storeCounts, storeStatus } from './stores';
 import { meetingDue, openActions } from './meetings';
 import { chestCounts, chestStatus, followUpsDue, isArchived, isLanding, landingLinesFor, lastControlledCount, orderOverdue, orderState, stockLevel } from './hospital';
 import { currentEntries } from './garbage';
@@ -172,6 +174,8 @@ export interface BoardInput {
   medChecks?: MedCheck[];
   passengers?: Passenger[];
   safetyMeetings?: SafetyMeeting[];
+  storeItems?: StoreItem[];
+  storeMoves?: StoreMove[];
 }
 
 const RANK: Record<Level, number> = { red: 0, amber: 1, blue: 2 };
@@ -478,6 +482,19 @@ export function buildBoard(x: BoardInput): Board {
         ...(landings.length ? [{ label: 'Last landing', value: `${landings[0].no} · ${dm(landings[0].date)}${landings[0].port ? ` · ${landings[0].port}` : ''}` }] : []),
       ] : [{ label: 'Chest', value: 'No chest list yet' }],
     });
+  }
+
+  // ---- Stores (types/stores.ts): below the minimum, provisions out of date ----
+  if (x.on('stores')) {
+    const all = x.storeItems ?? [];
+    const ppe = storeCounts(storeStatus(all.filter((i) => i.store === 'ppe'), x.storeMoves ?? [], x.today));
+    const pro = storeCounts(storeStatus(all.filter((i) => i.store === 'provisions'), x.storeMoves ?? [], x.today));
+    if (pro.expired) n.push({ key: 'sto:pro:exp', level: 'red', who: 'all', icon: 'food-apple-outline', route: 'Stores', params: { view: 'provisions' }, title: `Provisions — ${plural(pro.expired, 'item')} out of date`, sub: 'Throw away and record it (Dispose)' });
+    if (pro.soon) n.push({ key: 'sto:pro:soon', level: 'amber', who: 'all', icon: 'food-apple-outline', route: 'Stores', params: { view: 'provisions' }, title: `Provisions — ${plural(pro.soon, 'item')} best before within a week` });
+    if (pro.short) n.push({ key: 'sto:pro:short', level: 'amber', who: 'officer', icon: 'cart-outline', route: 'Stores', params: { view: 'provisions' }, title: `Provisions — ${plural(pro.short, 'item')} below the minimum`, sub: 'To order (Excel) on the Provisions page' });
+    if (ppe.short) n.push({ key: 'sto:ppe:short', level: 'amber', who: 'officer', icon: 'hard-hat', route: 'Stores', params: { view: 'ppe' }, title: `PPE store — ${plural(ppe.short, 'item')} below the minimum` });
+    if (ppe.expired) n.push({ key: 'sto:ppe:exp', level: 'red', who: 'officer', icon: 'hard-hat', route: 'Stores', params: { view: 'ppe' }, title: `PPE store — ${plural(ppe.expired, 'item')} past expiry`, sub: 'Harness, helmet, filters — take out of use' });
+    if (ppe.items || pro.items) tiles.push({ key: 'sto', label: 'Stores', icon: 'warehouse', route: 'Stores', level: lvl(pro.expired + ppe.expired, pro.short + ppe.short + pro.soon), line: [ppe.items ? `PPE ${ppe.short ? `${ppe.short} short` : 'OK'}` : null, pro.items ? `provisions ${pro.expired ? `${pro.expired} out of date` : pro.short ? `${pro.short} short` : 'OK'}` : null].filter(Boolean).join(' · ') });
   }
 
   // ---- Monthly safety meeting (types/meetings.ts) ----

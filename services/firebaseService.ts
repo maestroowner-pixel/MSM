@@ -1272,6 +1272,9 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'med_orders', key: storage.MED_ORDERS_KEY, module: 'hospital' },
   { sub: 'med_checks', key: storage.MED_CHECKS_KEY, appendOnly: true, module: 'hospital' },
   // The medical log is personal health data: the Master and the officers only.
+  // Stores — PPE and provisions: items kept by anyone on board; moves never changed.
+  { sub: 'store_items', key: storage.STORE_ITEMS_KEY, module: 'stores' },
+  { sub: 'store_moves', key: storage.STORE_MOVES_KEY, appendOnly: true, module: 'stores' },
   // Monthly safety meetings: kept by the officers, each person signs his own attendance line.
   { sub: 'safety_meetings', key: storage.SAFETY_MEETINGS_KEY, module: 'meetings' },
   // Passengers: confidential — the guest list does not leave the vessel. The cloud holds the

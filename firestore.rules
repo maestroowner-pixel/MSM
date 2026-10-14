@@ -421,6 +421,18 @@ service cloud.firestore {
                         && (isAdmin(v) || (member(v) && onlyChanges(['attendance', 'updatedAt'])));
         allow delete: if false;
       }
+      // Stores (types/stores.ts) — the PPE store and the provisions: anyone on
+      // board keeps the list and moves stock; a move is never changed.
+      match /store_items/{id} {
+        allow read: if reader(v);
+        allow create, update: if member(v);
+        allow delete: if false;
+      }
+      match /store_moves/{id} {
+        allow read: if reader(v);
+        allow create: if member(v);
+        allow update, delete: if false;
+      }
       // Monthly safety meeting (types/meetings.ts): as a drill — written by an
       // officer or the Master, each person on board signs his own attendance
       // line; signed by the Master, final.

@@ -92,6 +92,7 @@ import DrillSc from './screens/DrillSc';
 import MeetingSc from './screens/MeetingSc';
 import HospitalSc from './screens/HospitalSc';
 import PassengersSc from './screens/PassengersSc';
+import StoresSc from './screens/StoresSc';
 import MedItemSc from './screens/MedItemSc';
 import TreatmentSc from './screens/TreatmentSc';
 import MedOrderSc from './screens/MedOrderSc';
@@ -140,6 +141,7 @@ const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Drills: DrillsSc,
   Hospital: HospitalSc,
   Passengers: PassengersSc,
+  Stores: StoresSc,
   Rounds: RoundsSc,
   Maintenance: MaintenanceSc,
   HoursOfRest: HoursOfRestSc,
@@ -221,6 +223,7 @@ const MENU_LABEL: Record<string, string> = {
   Drills: 'Drills',
   Hospital: 'Hospital',
   Passengers: 'Passengers',
+  Stores: 'Stores',
   Rounds: 'Inspection rounds',
   Fuel: 'Fuel',
   Garbage: 'Garbage record book',
@@ -424,6 +427,7 @@ const linking = {
           Drills: 'drills',
           Hospital: 'hospital',
           Passengers: 'passengers',
+          Stores: 'stores',
           Rounds: 'rounds',
           Settings: 'settings',
         },

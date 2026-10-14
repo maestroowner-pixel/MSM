@@ -3,6 +3,7 @@ import { buildBoard, BoardInput } from '../services/board';
 import { passengerFromCloud, passengerToCloud } from '../types/passengers';
 import { planPaxImport, readPaxRows, paxSheet, PAX_HEAD } from '../services/passengerList';
 import { uid } from '../utils/id';
+import { heldByPerson, planStoreImport, readStoreSheet, storeStatus, storeSheet } from '../services/stores';
 
 let fail = 0;
 const ok = (c: boolean, m: string) => { if (!c) { fail++; console.log('✗', m); } else console.log('✓', m); };
@@ -63,6 +64,26 @@ ok(JSON.stringify(tb.head) === '["","On board","Ashore"]' && tb.rows[0].cells.jo
 // tile order: Passengers in Documents' place
 const order = buildBoard(base({ me: { key: 'k', name: 'Jez' }, docs: [{ id: 'd', title: 'SMS', updatedAt: 0 }] as any, passengers: [] })).tiles.map((t) => t.key);
 ok(order.includes('docs') && order.includes('pax') && order.indexOf('pax') < order.indexOf('docs'), 'tiles: Passengers and Documents swapped');
+
+// stores — PPE and provisions (14 Oct 2026)
+{
+  const it = (o: any): any => ({ store: 'provisions', unit: 'packs', min: 10, order: 0, updatedAt: 0, ...o });
+  const mv = (o: any): any => ({ id: uid('m'), kind: 'received', date: today, by: 'x', at: Date.now(), updatedAt: 0, ...o });
+  const items = [it({ id: 'pasta', name: 'Pasta' }), it({ id: 'milk', name: 'Milk', min: 6 }), it({ id: 'boots', store: 'ppe', name: 'Safety boots', size: '42', unit: 'pairs', min: 1 })];
+  const moves = [mv({ itemId: 'pasta', qty: 24, expiry: plus(200) }), mv({ itemId: 'milk', qty: 4, expiry: plus(-1) }), mv({ itemId: 'milk', qty: 6, expiry: plus(3) }), mv({ itemId: 'boots', qty: 2 }), mv({ itemId: 'boots', kind: 'issued', qty: 1, to: 'Ann Lee', toId: 'c2', at: Date.now() + 1 }), mv({ itemId: 'pasta', kind: 'issued', qty: 20, expiry: plus(200), at: Date.now() + 2 })];
+  const st = storeStatus(items, moves, today);
+  const g = (id: string) => st.find((r) => r.item.id === id)!;
+  ok(g('pasta').usable === 4 && g('pasta').short === 6, 'stores: issued to the galley, 4 left, 6 below the minimum');
+  ok(g('milk').expired === 4 && g('milk').usable === 6 && g('milk').soon && g('milk').short === 0, 'stores: out-of-date batch apart, best before within a week flagged');
+  ok(heldByPerson(items, moves).get('Ann Lee')?.[0]?.qty === 1 && g('boots').usable === 1, 'PPE: what a person holds; the store has 1 pair left');
+  const lines = readStoreSheet([['Provision list'], ['Item', 'Section', 'UoM', 'Par', 'Shelf', 'Qty', 'Best before'], ['Example: x', '', '', '', '', '', ''], ['Olive oil 1 l', 'Dry store', 'bottles', 4, 'Rack A', 6, '11/27'], ['Pasta', 'Dry store', '', 12, '', '', '']]);
+  ok(lines.length === 2 && lines[0].unit === 'bottles' && lines[0].min === 4 && lines[0].qty === 6 && lines[0].expiry === '2027-11-30', `store sheet: other people's headings read: ${JSON.stringify(lines[0])}`);
+  const plan = planStoreImport(lines, items, 'provisions');
+  ok(plan.added.join() === 'Olive oil 1 l' && plan.updated.join() === 'Pasta' && plan.save.find((x) => x.name === 'Pasta')?.min === 12 && plan.counts.length === 1, 'store import: matched by name, minimum updated, quantity counted in');
+  ok(storeSheet(st.filter((r) => r.item.store === 'provisions')).length === 1 + 3, 'store export: a line per batch');
+  const b = buildBoard(base({ on: (k) => k === 'stores', storeItems: items, storeMoves: moves }));
+  ok(b.attention.some((x) => x.key === 'sto:pro:exp') && b.attention.some((x) => x.key === 'sto:pro:short') && b.tiles.some((t) => t.key === 'sto'), 'board: provisions out of date and below the minimum; Stores tile');
+}
 
 // the guest list does not leave the vessel
 const guest: any = { id: 'pax1', name: 'Sophie Martin', cabin: 'VIP', nationality: 'FR', notes: 'Vegetarian', embarked: today, addedAt: 0, updatedAt: 1 };
