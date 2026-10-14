@@ -97,19 +97,26 @@ export default function SopepSc() {
   };
 
   // ---- check ----
+  // The check counts the locker chosen above (LOCKER), or every locker.
+  const countLocker = sel !== 'all' ? lockers.find((l) => l.id === sel) : undefined;
+  const countItems = countLocker ? items.filter((i) => lockerOf(i) === countLocker.id) : items;
   const [counts, setCounts] = useState<Record<string, string>>({});
   const [bad, setBad] = useState<string[]>([]);
   const [remarks, setRemarks] = useState('');
   const saveCheck = async () => {
-    const counted: Record<string, number> = {};
-    for (const i of items) {
+    // One locker counted (14 Oct 2026): the others keep what the last check found.
+    const counted: Record<string, number> = { ...(countItems.length < items.length ? lastCheck?.counted ?? {} : {}) };
+    for (const i of countItems) {
       const v = Number((counts[i.id] ?? '').replace(',', '.'));
       if ((counts[i.id] ?? '').trim() === '' || !Number.isFinite(v)) return Alert.alert('Inventory', `Count “${i.name}”.`);
       counted[i.id] = v;
     }
-    const s = await stamp('SOPEP inventory check');
+    const s = await stamp(countLocker ? `SOPEP inventory check — ${countLocker.name}` : 'SOPEP inventory check');
     if (!s) return;
-    const c: SopepCheck = { id: uid('sopc'), date: today, counted, ...(bad.length ? { defective: bad } : {}), ...(remarks.trim() ? { remarks: remarks.trim() } : {}), ...s, updatedAt: Date.now() };
+    const note = [countLocker ? `${countLocker.name} only` : null, remarks.trim() || null].filter(Boolean).join(' · ');
+    const keepBad = countLocker ? (lastCheck?.defective ?? []).filter((id) => !countItems.some((i) => i.id === id)) : [];
+    const allBad = [...keepBad, ...bad];
+    const c: SopepCheck = { id: uid('sopc'), date: today, counted, ...(allBad.length ? { defective: allBad } : {}), ...(note ? { remarks: note } : {}), ...s, updatedAt: Date.now() };
     await appendRow(storage.SOPEP_CHECKS_KEY, c);
     setCounts({});
     setBad([]);
@@ -176,6 +183,12 @@ export default function SopepSc() {
                     <TextInput key={`n-${l.id}`} style={styles.lockerName} defaultValue={l.name} onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v && v !== l.name) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, name: v }); }} onEndEditing={(e) => { const v = e.nativeEvent.text.trim(); if (v && v !== l.name) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, name: v }); }} />
                     <TextInput key={`p-${l.id}`} style={styles.sub} defaultValue={l.location ?? ''} placeholder="Where it is — engine room stbd, bunker station, bow locker" placeholderTextColor={COLORS.textLight} onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v !== (l.location ?? '')) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, location: v }); }} onEndEditing={(e) => { const v = e.nativeEvent.text.trim(); if (v !== (l.location ?? '')) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, location: v }); }} />
                   </View>
+                  {inIt.length ? (
+                    <TouchableOpacity style={styles.btnOutline} onPress={() => { setSel(l.id); setTab('check'); }} accessibilityLabel={`Count ${l.name}`}>
+                      <MciIcon name="counter" size={16} color={COLORS.primary} />
+                      <Text style={styles.btnOutlineText}>Count</Text>
+                    </TouchableOpacity>
+                  ) : null}
                   <TouchableOpacity onPress={() => void exportLockerLabels([l], vessel).then(done, fail)} hitSlop={8} accessibilityLabel={`QR label — ${l.name}`}>
                     <MciIcon name="qrcode" size={22} color={COLORS.primary} />
                   </TouchableOpacity>
@@ -186,20 +199,28 @@ export default function SopepSc() {
                   ) : null}
                 </View>
                 {inIt.map((i) => (
-                  <View key={i.id} style={styles.item}>
-                    <View style={{ flex: 1 }}>
+                  <View key={i.id} style={[styles.item, { flexWrap: 'wrap' }]}>
+                    {/* Name and place first; the locker, count, quantity and unit beside it — or under it on a phone. */}
+                    <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 220, minWidth: 0 }}>
                       <TextInput style={styles.itemName} defaultValue={i.name} onEndEditing={(e) => e.nativeEvent.text.trim() && void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, name: e.nativeEvent.text.trim() })} onBlur={(e: any) => { const v = String(e?.target?.value ?? '').trim(); if (v && v !== i.name) void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, name: v }); }} />
                       <TextInput style={styles.sub} defaultValue={i.location ?? ''} placeholder="Shelf / place in the locker" placeholderTextColor={COLORS.textLight} onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v !== (i.location ?? '')) void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, location: v }); }} onEndEditing={(e) => void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, location: e.nativeEvent.text.trim() })} />
                     </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 'auto', flexShrink: 1, maxWidth: '100%' }}>
                     {lockers.length > 1 ? (
-                      <Dropdown caption="" value={lockerOf(i)} onChange={(v: string) => void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, lockerId: v })} options={lockers.map((x) => ({ value: x.id, label: x.name }))} style={{ minWidth: 150, maxWidth: 200, paddingVertical: 4 }} />
+                      <Dropdown caption="" value={lockerOf(i)} onChange={(v: string) => void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, lockerId: v })} options={lockers.map((x) => ({ value: x.id, label: x.name }))} style={{ minWidth: 118, maxWidth: 190, flexShrink: 1, paddingVertical: 4, paddingHorizontal: 8 }} />
                     ) : null}
-                    <Text style={[styles.qty, short(i) ? { color: COLORS.danger } : null]}>
-                      {lastCheck ? `${lastCheck.counted[i.id] ?? 0} / ` : ''}{`${i.required} ${i.unit ?? ''}`}
-                    </Text>
+                    {/* The quantity the plan requires and its unit, corrected here (14 Oct 2026); the count on hand comes from the last check. */}
+                    {lastCheck ? <Text style={[styles.qty, { minWidth: 36, textAlign: 'right' }, short(i) ? { color: COLORS.danger } : null]} numberOfLines={1}>{`${lastCheck.counted[i.id] ?? 0} /`}</Text> : null}
+                    <TextInput key={`q-${i.id}`} style={[styles.qtyInput, short(i) ? { borderColor: COLORS.danger } : null]} defaultValue={String(i.required)} keyboardType="number-pad" selectTextOnFocus accessibilityLabel={`Quantity required — ${i.name}`}
+                      onBlur={(e: any) => { const v = Number(String(e?.target?.value ?? e?.nativeEvent?.text ?? '').replace(',', '.')); if (Number.isFinite(v) && v >= 0 && v !== i.required) void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, required: v }); }}
+                      onEndEditing={(e) => { const v = Number(e.nativeEvent.text.replace(',', '.')); if (Number.isFinite(v) && v >= 0 && v !== i.required) void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, required: v }); }} />
+                    <TextInput key={`u-${i.id}`} style={styles.unitInput} defaultValue={i.unit ?? ''} placeholder="unit" placeholderTextColor={COLORS.textLight} accessibilityLabel={`Unit — ${i.name}`}
+                      onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v !== (i.unit ?? '')) void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, unit: v }); }}
+                      onEndEditing={(e) => { const v = e.nativeEvent.text.trim(); if (v !== (i.unit ?? '')) void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, unit: v }); }} />
                     <TouchableOpacity onPress={() => Alert.alert('Remove', `Remove “${i.name}” from the locker list?`, [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, deleted: true }) }])} hitSlop={8}>
                       <MciIcon name="delete-outline" size={20} color={COLORS.textLight} />
                     </TouchableOpacity>
+                    </View>
                   </View>
                 ))}
                 {items.length || l.id !== MAIN_LOCKER ? (
@@ -219,8 +240,9 @@ export default function SopepSc() {
         </>
       ) : tab === 'check' ? (
         <Card>
-          <Label>Count the locker</Label>
-          {lockers.flatMap((l) => {
+          <Label>{countLocker ? `Count ${countLocker.name}` : 'Count the lockers'}</Label>
+          {countLocker ? <Text style={styles.sub}>{`Only ${countLocker.name}${countLocker.location ? ` (${countLocker.location})` : ''} — the other lockers keep their last count. Choose All lockers on the Lockers tab to count everything.`}</Text> : null}
+          {(countLocker ? [countLocker] : lockers).flatMap((l) => {
             const inIt = items.filter((i) => lockerOf(i) === l.id);
             return inIt.length && lockers.length > 1 ? [<Text key={`h-${l.id}`} style={[styles.sub, { fontWeight: '800', color: COLORS.textDark, marginTop: SIZES.sm }]}>{`${l.name}${l.location ? ` · ${l.location}` : ''}`}</Text>, ...inIt] : inIt;
           }).map((i: any) => (React.isValidElement(i) ? i : (
@@ -314,6 +336,8 @@ const makeStyles = (COLORS: Palette) =>
     itemTitle: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.textDark },
     sub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },
     qty: { fontSize: SIZES.body, fontWeight: '800', color: COLORS.textDark },
+    qtyInput: { width: 58, textAlign: 'right', fontSize: SIZES.body, fontWeight: '800', color: COLORS.textDark, borderWidth: 1, borderColor: COLORS.border, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 4 },
+    unitInput: { width: 54, fontSize: SIZES.small, color: COLORS.textDark, borderWidth: 1, borderColor: COLORS.borderLight, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 4 },
     link: { color: COLORS.primary, fontWeight: '700', marginTop: SIZES.sm },
     btn: { backgroundColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 10, paddingHorizontal: SIZES.md, marginTop: SIZES.sm },
     btnText: { color: COLORS.textWhite, fontWeight: '800' },

@@ -467,7 +467,7 @@ const en: ManualContent = {
       body: [
         "The SOPEP screen keeps the oil-spill locker: each item with the quantity the plan requires and where it is. Start from the typical yacht list and edit it to the vessel's own SOPEP.",
         "Inventory check: count every line, mark anything to replace, sign. The locker list then shows what is short. Drills: choose the scenario, mark who took part, add the lessons, sign. Checks and drills are kept as records and cannot be changed.",
-        "Several lockers: a vessel may keep SOPEP equipment in more than one place — + New locker, then give each a name and where it is (engine room stbd, bunker station, bow). Each item belongs to a locker and can be moved to another. QR label prints a label for a locker (or for all of them); scanned with the app, it opens that locker's contents. The label carries the locker's id only, so renaming or moving a locker keeps the label good.",
+        "Several lockers: a vessel may keep SOPEP equipment in more than one place — + New locker, then give each a name and where it is (engine room stbd, bunker station, bow). Each item belongs to a locker and can be moved to another. QR label prints a label for a locker (or for all of them); scanned with the app, it opens that locker's contents. The label carries the locker's id only, so renaming or moving a locker keeps the label good. The quantity each item needs and its unit are corrected in the item's line; Count on a locker counts that locker alone — the others keep their last count.",
       ],
     },
     {
@@ -1050,7 +1050,7 @@ const ru: ManualContent = {
       body: [
         "Экран SOPEP ведёт шкаф для разливов нефтепродуктов: каждая позиция с количеством по плану и местом хранения. Начните с типового списка для яхты и приведите его к SOPEP судна.",
         "Проверка инвентаря: пересчитайте каждую позицию, отметьте, что заменить, подпишите. Список шкафа покажет, чего не хватает. Учения: выберите сценарий, отметьте участников, запишите выводы, подпишите. Проверки и учения хранятся как записи и не изменяются.",
-        "Несколько локеров: SOPEP-снабжение может лежать в разных местах — + New locker, затем у каждого название и место (машинное отделение, правый борт, бункеровочная станция, нос). Каждая позиция принадлежит локеру, её можно перенести в другой. QR label печатает наклейку локера (или всех сразу); отсканированная приложением, она открывает содержимое этого локера. На наклейке только id локера, поэтому переименование или перенос локера наклейку не портят.",
+        "Несколько локеров: SOPEP-снабжение может лежать в разных местах — + New locker, затем у каждого название и место (машинное отделение, правый борт, бункеровочная станция, нос). Каждая позиция принадлежит локеру, её можно перенести в другой. QR label печатает наклейку локера (или всех сразу); отсканированная приложением, она открывает содержимое этого локера. На наклейке только id локера, поэтому переименование или перенос локера наклейку не портят. Требуемое количество и единица правятся прямо в строке позиции; Count у локера пересчитывает только его — остальные сохраняют последний пересчёт.",
       ],
     },
     {
@@ -1633,7 +1633,7 @@ const es: ManualContent = {
       body: [
         "La pantalla SOPEP lleva la taquilla para derrames: cada artículo con la cantidad que exige el plan y dónde está. Empiece con la lista típica de yate y adáptela al SOPEP del buque.",
         "Inventario: cuente cada línea, marque lo que hay que reponer, firme. La lista muestra entonces lo que falta. Ejercicios: elija el escenario, marque quién participó, anote las lecciones, firme. Inventarios y ejercicios se guardan como registros y no se modifican.",
-        "Varios armarios: el material SOPEP puede estar en más de un sitio — + New locker, y a cada uno un nombre y dónde está (cámara de máquinas Er, estación de toma de combustible, proa). Cada artículo pertenece a un armario y se puede pasar a otro. QR label imprime la etiqueta de un armario (o de todos); escaneada con la app, abre su contenido. La etiqueta lleva solo el id del armario: renombrarlo o moverlo no la invalida.",
+        "Varios armarios: el material SOPEP puede estar en más de un sitio — + New locker, y a cada uno un nombre y dónde está (cámara de máquinas Er, estación de toma de combustible, proa). Cada artículo pertenece a un armario y se puede pasar a otro. QR label imprime la etiqueta de un armario (o de todos); escaneada con la app, abre su contenido. La etiqueta lleva solo el id del armario: renombrarlo o moverlo no la invalida. La cantidad requerida y la unidad se corrigen en la línea del artículo; Count en un armario cuenta solo ese armario — los demás conservan su último recuento.",
       ],
     },
     {
@@ -2216,7 +2216,7 @@ const uk: ManualContent = {
       body: [
         "Екран SOPEP веде шафу для розливів нафтопродуктів: кожна позиція з кількістю за планом і місцем зберігання. Почніть з типового списку для яхти й приведіть його до SOPEP судна.",
         "Перевірка інвентарю: перелічіть кожну позицію, позначте, що замінити, підпишіть. Список покаже, чого бракує. Навчання: оберіть сценарій, позначте учасників, запишіть висновки, підпишіть. Перевірки й навчання зберігаються як записи і не змінюються.",
-        "Кілька локерів: SOPEP-постачання може бути в різних місцях — + New locker, потім кожному назва і місце (машинне відділення, правий борт, бункерувальна станція, ніс). Кожна позиція належить локеру, її можна перенести в інший. QR label друкує наклейку локера (або всіх одразу); відсканована застосунком, вона відкриває вміст цього локера. На наклейці лише id локера, тож перейменування чи перенесення локера наклейку не псують.",
+        "Кілька локерів: SOPEP-постачання може бути в різних місцях — + New locker, потім кожному назва і місце (машинне відділення, правий борт, бункерувальна станція, ніс). Кожна позиція належить локеру, її можна перенести в інший. QR label друкує наклейку локера (або всіх одразу); відсканована застосунком, вона відкриває вміст цього локера. На наклейці лише id локера, тож перейменування чи перенесення локера наклейку не псують. Потрібна кількість і одиниця виправляються прямо в рядку позиції; Count у локера перераховує лише його — інші зберігають останній перерахунок.",
       ],
     },
     {
