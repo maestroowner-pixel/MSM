@@ -9,7 +9,8 @@ import * as DocumentPicker from 'expo-document-picker';
 
 import { VesselInfo } from './storage';
 import { esc, share } from './export';
-import { CrewListRow, CrewRow, crewListFileName, crewTemplateBase64, parseCrewWorkbook } from './crewList';
+import { CrewListRow, CrewRow, crewListFileName, crewSheetBase64, crewTemplateBase64, parseCrewWorkbook } from './crewList';
+import { CrewMember, CrewPrivate } from '../types/crew';
 import { deliverFile, onWeb, onWindows } from '../utils/fileShare';
 import { pickBinaryFileWeb, pickTextFileWeb } from '../utils/webFile';
 import { crewListPdfBlob } from '../utils/crewListPdf';
@@ -76,6 +77,22 @@ export async function exportCrewListPdf(i: CrewListInput): Promise<string | null
 
 export async function exportCrewTemplate(): Promise<void> {
   await deliverFile('ISMpilot_Crew_List_Template.xlsx', crewTemplateBase64(), true, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+
+/** The crew as it stands, in the template's layout — edit it and import it back. */
+export async function exportCrewSheet(crew: CrewMember[], privates: CrewPrivate[], vessel: VesselInfo | null): Promise<string | null | void> {
+  const MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const v = (vessel?.vessel_name ?? '').replace(/[\\/:*?"<>|]+/g, ' ').trim();
+  const d = new Date();
+  const name = `Crew list ${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}${v ? `-${v}` : ''}.xlsx`;
+  const b64 = crewSheetBase64(crew, privates);
+  if (onWeb) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return saveFileWeb(new Blob([bytes], { type: MIME }), name, 'reports');
+  }
+  await deliverFile(name, b64, true, MIME);
 }
 
 /** Pick a filled-in template and read it. Null when cancelled. */

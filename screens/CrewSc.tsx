@@ -23,7 +23,7 @@ import { useData } from '../contexts/DataContext';
 import { moduleOn } from '../constants/modules';
 import SimpleDatePicker from '../components/SimpleDatePicker';
 import { crewListGaps, crewListRows, planCrewImport } from '../services/crewList';
-import { exportCrewListPdf, exportCrewTemplate, pickCrewSheet } from '../services/crewListReport';
+import { exportCrewListPdf, exportCrewSheet, exportCrewTemplate, pickCrewSheet } from '../services/crewListReport';
 import { crewIssues, issueSummary, worstIssue } from '../services/crewIssues';
 import { useSdmImport } from '../components/useSdmImport';
 import { SIZES, Palette } from '../theme';
@@ -304,7 +304,7 @@ export default function CrewSc() {
       {crewMgmt && isMaster ? (
         <Card>
           <Label>Crew list</Label>
-          <Text style={styles.meta}>The IMO FAL Form 5 for port, agent and immigration — everyone on board. Or load the crew from Excel: fill the template on a computer and import it.</Text>
+          <Text style={styles.meta}>The IMO FAL Form 5 for port, agent and immigration — everyone on board. Or load the crew from Excel: fill the template on a computer and import it — or export the crew, correct it in Excel and import it back. A list from the agent reads too (Surname / Given names, Passport, DOB).</Text>
           <View style={styles.listBtns}>
             <TouchableOpacity style={styles.listBtn} onPress={() => setListing((v) => !v)}>
               <MciIcon name="file-pdf-box" size={18} color={COLORS.textWhite} />
@@ -315,6 +315,9 @@ export default function CrewSc() {
             </TouchableOpacity>
             <TouchableOpacity style={styles.listBtnOutline} onPress={() => void importSheet()}>
               <Text style={styles.listBtnOutlineText}>Import from Excel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.listBtnOutline} onPress={() => void exportCrewSheet(crew, crewPrivate, vessel).then((w) => { if (typeof w === 'string') setListSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`); }).catch((e) => Alert.alert('Export', String(e?.message ?? e)))}>
+              <Text style={styles.listBtnOutlineText}>Export to Excel</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.listBtnOutline} onPress={() => void importSdm()}>
               <Text style={styles.listBtnOutlineText}>Import SDM file (.sdm)</Text>
@@ -341,7 +344,7 @@ export default function CrewSc() {
               </TouchableOpacity>
               {listSaved ? <Text style={[styles.meta, { color: COLORS.success, fontWeight: '700', textAlign: 'center' }]}>{`✓ ${listSaved}`}</Text> : null}
             </View>
-          ) : null}
+          ) : listSaved ? <Text style={[styles.meta, { color: COLORS.success, fontWeight: '700' }]}>{`✓ ${listSaved}`}</Text> : null}
         </Card>
       ) : null}
 

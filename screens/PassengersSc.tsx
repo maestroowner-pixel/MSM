@@ -153,7 +153,7 @@ export default function PassengersSc() {
         <TouchableOpacity style={styles.small} onPress={() => nav.navigate('Scan')}><Text style={styles.smallText}>Scan card</Text></TouchableOpacity>
         <TouchableOpacity style={styles.small} disabled={!aboardList.length} onPress={() => exportPassengerCards(aboardList, vessel).then(done, fail)}><Text style={styles.smallText}>Print passenger cards</Text></TouchableOpacity>
         <TouchableOpacity style={styles.small} onPress={() => void listPdf()}><Text style={styles.smallText}>Passenger list (PDF)</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.small} onPress={() => savePaxSheet(paxSheet(shown, passengersPrivate, officer), `Passenger list ${today}`, vessel).then(done, fail)}><Text style={styles.smallText}>Excel</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.small} onPress={() => savePaxSheet(paxSheet(shown, passengersPrivate, officer), `Passenger list ${today}`, vessel).then(done, fail)}><Text style={styles.smallText}>Export to Excel</Text></TouchableOpacity>
         {officer ? <TouchableOpacity style={styles.small} onPress={() => void importSheet()}><Text style={styles.smallText}>Import from Excel</Text></TouchableOpacity> : null}
         {officer ? <TouchableOpacity style={styles.small} onPress={() => savePaxSheet(paxTemplateRows(), 'Passenger list template', vessel).then(done, fail)}><Text style={styles.smallText}>Excel template</Text></TouchableOpacity> : null}
       </View>

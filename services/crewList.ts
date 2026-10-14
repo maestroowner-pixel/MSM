@@ -56,6 +56,24 @@ export function crewTemplateBase64(): string {
   return XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
 }
 
+/**
+ * The crew as it stands, in the template's columns — sent out, corrected, it
+ * comes back in as it is (14 Oct 2026: "convenient import and export of the
+ * crew and the passengers").
+ */
+export function crewSheetBase64(crew: CrewMember[], privates: CrewPrivate[]): string {
+  const rows = crew.filter((c) => !c.deleted && c.active).map((c) => {
+    const p = privates.find((x) => x.id === c.id);
+    const k = p?.nextOfKin;
+    return [c.name, c.rank ?? '', p?.dateOfBirth ?? '', p?.placeOfBirth ?? '', p?.nationality ?? '', p?.passportNo ?? '', p?.passportExpiry ?? '', p?.seamansBookNo ?? '', c.signOn ?? '', c.signOnPort ?? '', p?.phone ?? '', p?.email ?? '', p?.homeAddress ?? '', k?.lastName ?? k?.name ?? '', k?.firstName ?? '', k?.relationship ?? '', k?.phone ?? '', k?.email ?? '', k?.address ?? ''];
+  });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([[...CREW_COLUMNS], ...rows]);
+  ws['!cols'] = CREW_COLUMNS.map((c) => ({ wch: Math.max(14, c.length + 2) }));
+  XLSX.utils.book_append_sheet(wb, ws, 'Crew list');
+  return XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+}
+
 export interface CrewRow {
   name: string;
   rank?: string;
@@ -93,12 +111,14 @@ export function parseCrewWorkbook(data: ArrayBuffer | Uint8Array | string): Crew
   const ws = wb.Sheets[wb.SheetNames[0]];
   if (!ws) return [];
   const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
-  const headAt = rows.findIndex((r) => r.some((c) => /full name|^name$/i.test(String(c).trim())));
+  const headAt = rows.findIndex((r) => r.some((c) => /full name|^name$|family name, given names|^surname$|^family name$/i.test(String(c).trim())));
   if (headAt < 0) throw new Error('No "Full name" column — use the crew list template.');
   const head = rows[headAt].map((h) => norm(String(h)).replace('★', '').trim());
   const col = (label: string) => head.findIndex((h) => h.startsWith(norm(label).replace('★', '').trim()));
   const at = {
-    name: col('Full name') >= 0 ? col('Full name') : head.findIndex((h) => h === 'name'),
+    name: col('Full name') >= 0 ? col('Full name') : col('Family name, given names') >= 0 ? col('Family name, given names') : head.findIndex((h) => h === 'name'),
+    family: head.findIndex((h) => h === 'surname' || h === 'family name' || h === 'last name'),
+    given: head.findIndex((h) => h === 'given names' || h === 'given name' || h === 'first name'),
     rank: col('Rank'),
     dob: col('Date of birth'),
     pob: col('Place of birth'),
@@ -122,7 +142,7 @@ export function parseCrewWorkbook(data: ArrayBuffer | Uint8Array | string): Crew
   const get = (r: any[], i: number) => (i >= 0 ? r[i] : undefined);
   const out: CrewRow[] = [];
   for (const r of rows.slice(headAt + 1)) {
-    const name = text(get(r, at.name));
+    const name = text(get(r, at.name)) ?? ([text(get(r, at.given)), text(get(r, at.family))].filter(Boolean).join(' ') || undefined);
     if (!name || /^example\b/i.test(name)) continue;
     out.push({
       name: name.replace(/\s+/g, ' '),

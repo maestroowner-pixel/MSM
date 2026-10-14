@@ -37,26 +37,62 @@ const text = (v: any) => {
   return s || undefined;
 };
 
+// Headings as other people write them — an agent's guest list, a charter manifest,
+// a FAL Form 6 — so a sheet from outside reads without retyping (14 Oct 2026:
+// "so it is not typed by hand — load the xlsx, convenient import and export").
+const ALIASES: Record<string, string[]> = {
+  name: ['full name', 'name', 'family name, given names', 'passenger name', 'guest name', 'guest', 'passenger', 'name of passenger', 'surname, given names'],
+  family: ['family name', 'surname', 'last name'],
+  given: ['given names', 'given name', 'first name', 'first names', 'forename'],
+  group: ['group', 'category', 'type', 'role'],
+  cabin: ['cabin', 'stateroom', 'room', 'berth'],
+  nat: ['nationality', 'citizenship', 'country'],
+  dob: ['date of birth', 'dob', 'birth date', 'born', 'date and place of birth'],
+  idType: ['id type', 'document type', 'type of identity document', 'nature of identity document'],
+  idNo: ['id no', 'id number', 'passport no', 'passport number', 'passport', 'document no', 'document number', 'nature and no', 'serial number of identity document', 'identity document'],
+  idExp: ['id expiry', 'passport expiry', 'expiry', 'expires', 'valid until', 'expiry date', 'date of expiry'],
+  on: ['embarked', 'embarkation date', 'date of embarkation', 'arrival', 'arrival date', 'joins', 'join date'],
+  onPort: ['port embarked', 'port of embarkation', 'embarkation port'],
+  off: ['disembarked', 'disembarkation date', 'date of disembarkation', 'departure', 'departure date', 'leaves'],
+  offPort: ['port disembarked', 'port of disembarkation', 'disembarkation port'],
+  phone: ['phone', 'mobile', 'telephone', 'tel'],
+  contact: ['contact ashore', 'emergency contact', 'next of kin', 'contact'],
+  notes: ['notes', 'remarks', 'comments', 'diet', 'dietary', 'allergies'],
+};
+
+/** Which column is which: an exact heading first, then one that starts with it — the longer alias wins over the shorter. */
+function columns(head: string[]): Record<string, number> {
+  const used = new Set<number>();
+  const at: Record<string, number> = {};
+  const order = Object.entries(ALIASES).flatMap(([k, list]) => list.map((a) => ({ k, a }))).sort((x, y) => y.a.length - x.a.length);
+  for (const pass of ['exact', 'start'] as const) {
+    for (const { k, a } of order) {
+      if (at[k] !== undefined) continue;
+      const i = head.findIndex((h, j) => !used.has(j) && (pass === 'exact' ? h === a : h.startsWith(a)));
+      if (i >= 0) { at[k] = i; used.add(i); }
+    }
+  }
+  return at;
+}
+
 /** The sheet's rows (first sheet) → passengers. Rows without a name, or starting "Example", are skipped. */
 export function readPaxRows(rows: any[][]): PaxRow[] {
-  const headAt = rows.findIndex((r) => r.some((c) => /full name|^name$/i.test(String(c).trim())));
-  if (headAt < 0) throw new Error('No "Full name" column — use the passenger list template.');
-  const head = rows[headAt].map((h) => norm(String(h)));
-  const col = (label: string) => head.findIndex((h) => h.startsWith(norm(label)));
-  const at = {
-    name: col('Full name') >= 0 ? col('Full name') : head.findIndex((h) => h === 'name'),
-    group: col('Group'), cabin: col('Cabin'), nat: col('Nationality'), dob: col('Date of birth'), idType: col('ID type'), idNo: col('ID No'), idExp: col('ID expiry'),
-    on: col('Embarked'), onPort: col('Port embarked'), off: col('Disembarked'), offPort: col('Port disembarked'), phone: col('Phone'), contact: col('Contact ashore'), notes: col('Notes'),
-  };
-  const get = (r: any[], i: number) => (i >= 0 ? r[i] : undefined);
+  // The heading row: a name column and at least one more — a title above it ("Guest manifest — MY Aurora") is not one.
+  const isHead = (r: any[]) => { const c = columns(r.map((h) => norm(String(h)))); return (c.name !== undefined || (c.family !== undefined && c.given !== undefined)) && Object.keys(c).length >= 2; };
+  const headAt = rows.findIndex(isHead);
+  if (headAt < 0) throw new Error('No name column found — a "Full name" (or "Surname" and "Given names") heading. Use the passenger list template.');
+  const at = columns(rows[headAt].map((h) => norm(String(h))));
+  const get = (r: any[], k: string) => (at[k] !== undefined ? r[at[k]] : undefined);
   const out: PaxRow[] = [];
   for (const r of rows.slice(headAt + 1)) {
-    const name = text(get(r, at.name));
-    if (!name || /^example\b/i.test(name)) continue;
+    const whole = text(get(r, 'name'));
+    const split = [text(get(r, 'given')), text(get(r, 'family'))].filter(Boolean).join(' ');
+    const name = whole || split || undefined;
+    if (!name || [whole, text(get(r, 'family')), text(get(r, 'given'))].some((v) => v && /^example\b/i.test(v))) continue;
     const row: PaxRow = {
-      name: name.replace(/\s+/g, ' '), group: text(get(r, at.group)), cabin: text(get(r, at.cabin)), nationality: text(get(r, at.nat)), dateOfBirth: parseDateCell(get(r, at.dob)),
-      idType: text(get(r, at.idType)), idNo: text(get(r, at.idNo)), idExpiry: parseDateCell(get(r, at.idExp)), embarked: parseDateCell(get(r, at.on)), embarkPort: text(get(r, at.onPort)),
-      disembarked: parseDateCell(get(r, at.off)), disembarkPort: text(get(r, at.offPort)), phone: text(get(r, at.phone)), emergencyContact: text(get(r, at.contact)), notes: text(get(r, at.notes)),
+      name: name.replace(/\s+/g, ' '), group: text(get(r, 'group')), cabin: text(get(r, 'cabin')), nationality: text(get(r, 'nat')), dateOfBirth: parseDateCell(get(r, 'dob')),
+      idType: text(get(r, 'idType')), idNo: text(get(r, 'idNo')), idExpiry: parseDateCell(get(r, 'idExp')), embarked: parseDateCell(get(r, 'on')), embarkPort: text(get(r, 'onPort')),
+      disembarked: parseDateCell(get(r, 'off')), disembarkPort: text(get(r, 'offPort')), phone: text(get(r, 'phone')), emergencyContact: text(get(r, 'contact')), notes: text(get(r, 'notes')),
     };
     out.push(Object.fromEntries(Object.entries(row).filter(([, v]) => v !== undefined)) as unknown as PaxRow);
   }

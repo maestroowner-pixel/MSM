@@ -1,6 +1,6 @@
 // npm run check:crewlist — crew list import and FAL Form 5 rows (services/crewList.ts).
 import * as XLSX from 'xlsx';
-import { CREW_COLUMNS, crewListFileName, crewListGaps, crewListRows, crewTemplateBase64, parseCrewWorkbook, planCrewImport } from '../services/crewList';
+import { CREW_COLUMNS, crewListFileName, crewListGaps, crewListRows, crewTemplateBase64, crewSheetBase64, parseCrewWorkbook, planCrewImport } from '../services/crewList';
 import { toCountryCode } from '../constants/countries';
 import { CrewMember, CrewPrivate } from '../types/crew';
 
@@ -88,6 +88,21 @@ import { parseSdm, planSdmImport, sdmDate } from '../services/sdmImport';
   // Same file again into the same person: nothing new.
   const again = planSdmImport(sdm, [plan.member], [plan.priv], plan.certificates);
   ok(!again.isNew && again.certificates.length === 0, 'SDM: importing the same file twice adds nothing');
+}
+
+// export → import: the crew as it stands comes back in as it is (14 Oct 2026)
+{
+  const crewA: CrewMember[] = [{ id: 'c1', name: 'Jez Dodd', rank: 'Third Officer', active: true, addedAt: 0, updatedAt: 0, signOn: '2026-09-01', signOnPort: 'Palma' } as any, { id: 'c2', name: 'Old Hand', active: false, addedAt: 0, updatedAt: 0 } as any];
+  const privA: CrewPrivate[] = [{ id: 'c1', dateOfBirth: '1990-01-02', nationality: 'GB', passportNo: '123456789', passportExpiry: '2031-01-01', nextOfKin: { lastName: 'Dodd', firstName: 'Ann', phone: '+44 1' }, updatedAt: 0 }];
+  const back = parseCrewWorkbook(crewSheetBase64(crewA, privA));
+  ok(back.length === 1 && back[0].name === 'Jez Dodd' && back[0].rank === 'Third Officer' && back[0].passportNo === '123456789' && back[0].dateOfBirth === '1990-01-02' && back[0].signOnPort === 'Palma' && back[0].kinFirst === 'Ann', 'export → import: the signed-on crew, papers and next of kin, round trip');
+  const plan = planCrewImport(back, crewA, privA);
+  ok(plan.updated.length === 1 && !plan.added.length, 'the exported crew imports back as updates, nobody new');
+  // an agent's list: surname and given names in two columns
+  const ws = XLSX.utils.aoa_to_sheet([['Crew — MY Aurora'], ['Surname', 'Given names', 'Rank / position', 'Passport no.'], ['DODD', 'Jez', '3/O', '999']]);
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'x');
+  const two = parseCrewWorkbook(XLSX.write(wb, { type: 'base64', bookType: 'xlsx' }));
+  ok(two.length === 1 && two[0].name === 'Jez DODD' && two[0].passportNo === '999', `surname + given names read: ${JSON.stringify(two[0])}`);
 }
 
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');

@@ -77,6 +77,10 @@ ok(sheet.length === 1 && sheet[0].name === 'Sophie Martin' && sheet[0].idNo === 
 const plan = planPaxImport(sheet, [guest], [], today);
 ok(plan.updated.length === 1 && plan.passengers[0].id === 'pax1' && plan.privates[0].idNo === '18AB23456' && plan.passengers[0].cabin === 'VIP', 'Excel import: matched by name, documents to the private record');
 ok(paxSheet([guest], [], false)[0].length < PAX_HEAD.length, 'Excel out without documents for the crew');
+const agent = readPaxRows([['Guest manifest — MY Aurora'], ['Surname', 'Given names', 'Nationality', 'DOB', 'Passport No.', 'Passport expiry', 'Stateroom', 'Arrival date', 'Remarks'], ['Example', 'Row', '', '', '', '', '', '', ''], ['MARTIN', 'Sophie', 'France', '12/04/1985', '18AB23456', '30/06/2031', 'VIP', '13/10/2026', 'Vegetarian']]);
+ok(agent.length === 1 && agent[0].name === 'Sophie MARTIN' && agent[0].idNo === '18AB23456' && agent[0].cabin === 'VIP' && agent[0].nationality === 'France' && agent[0].notes === 'Vegetarian' && !!agent[0].dateOfBirth && !!agent[0].embarked, `an agent's manifest reads: ${JSON.stringify(agent[0])}`);
+const fal = readPaxRows([['Family name, given names', 'Nationality', 'Date of birth', 'Nature and No. of identity document'], ['TESTOV Alexander', 'Cyprus', '1971-03-14', 'Passport K12345678']]);
+ok(fal[0]?.name === 'TESTOV Alexander' && fal[0].idNo === 'Passport K12345678', 'a FAL Form 6 layout reads');
 
 console.log(fail ? `${fail} failed` : 'all passed');
 process.exit(fail ? 1 : 0);
