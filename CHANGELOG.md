@@ -22,6 +22,14 @@ the part that stops the next person undoing it.
 - **Drills — your own drill** (13 Oct 2026: "besides the drills in the list, let her create her own — one Other at the end with fields to edit"). "Other — your own drill" closes the list: name, required by, how often (monthly … yearly, or not on a cycle), and the officer's own theory briefing, printed as the annex. Once held it joins the schedule under its name (one row per name), and planning the next one from there brings back the name, requirement, interval and briefing; "Start from the last one" copies its scenario. `check:drills` 38.
 - **Drills — archive, and the attendance list signed digitally** (13 Oct 2026: "drill archive, and the attendance list signed digitally, PIN and bio"). Signed on the bridge device or the officer's ("they sign on the bridge's or the officer's device"): each person present signs his own line — his signing PIN on that device, or by hand; the fingerprint only for the device's own account (a shared device cannot tell whose finger it is). A bridge device on a crew account may sign lines and nothing else (rules: a member changes only the attendance, until the drill is signed). Asked always, whatever the confirmed-signatures switch (`SignRequest.always`). Unticking takes the signature off. Signing the drill with lines unsigned asks first. The list / report print "signed by PIN · 10:07" or the hand signature. Archive tab: drills carried out by year and month, filter by drill, search (number, topic, place, debrief, names); the register exports what it shows. Tabs now Schedule / Planned / Archive. Rules 125/125, `check:drills` 49.
 
+## 2.63 (20631) — 14 Oct 2026
+
+What the crew sees: **Security (ISPS) switched on for everyone** (user, 14 Oct 2026: "do it for all — for now it is one vessel", DreamBoat's trial for Jez): the gangway logbook — visitors with photo, ID and signature, numbered visitor passes, crew cards; who is on board and who is ashore, the button showing where each person is now (On board / Ashore, ⇄ to change); crossings recorded only from the gangway page; ISPS drills (renamed from Drills); the security level; IMCA safety flashes. Modules on: lifting, rounds, security.
+
+Dark behind their flags (shipped in the code, not shown): hospital (landing report, issue / return, WHO reference), passengers, monthly safety meeting, drills, SOPEP lockers with QR, QHSE, the Board and the rest. Firestore rules for all of them deployed 14 Oct 2026. The guest list and patient names never leave the vessel (masked on the cloud).
+
+Web deployed first, the same day; the store builds follow.
+
 ## 2.62 (20621) — 13 Oct 2026
 
 - **Released 14 Oct 2026:** App Store and Google Play approved; web deployed the same day from the release commit `72ff642` (not the branch head — the work since stays dark behind its flags), https://ismpilot.web.app, version.json 2.62.

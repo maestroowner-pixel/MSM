@@ -75,8 +75,11 @@ export const MODULES: Record<ModuleKey, boolean> = {
   garbage: false,
   /** SOPEP locker inventory, checks and oil-spill drills. */
   sopep: false,
-  /** Security (ISPS): gangway visitor log and the security level. */
-  security: false,
+  /**
+   * Security (ISPS): gangway visitor log and the security level. On for everyone
+   * (14 Oct 2026: "do it for all — for now it is one vessel", DreamBoat's trial).
+   */
+  security: true,
   /** Surveys & audits planner: class, flag, ISM audits, dry-dock — windows and next dates. */
   surveys: false,
   /** The Dashboard as the vessel's notice board across every module (the old list moves to its own screen). */
