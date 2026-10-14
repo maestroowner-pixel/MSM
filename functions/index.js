@@ -784,3 +784,7 @@ exports.sweepPhotos = onSchedule(
 
 // AI — smart import, the round by voice and photo, questions to the vessel's data (functions/ai.js).
 exports.ai = require('./ai').ai;
+
+// Duplicate inspection rounds closed on the server, whatever app made them (functions/rounds.js).
+exports.roundsDedupOnCreate = require('./rounds').roundsDedupOnCreate;
+exports.roundsDedupSweep = require('./rounds').roundsDedupSweep;
