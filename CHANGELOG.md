@@ -28,7 +28,7 @@ What the crew sees: **Security (ISPS) switched on for everyone** (user, 14 Oct 2
 
 Dark behind their flags (shipped in the code, not shown): hospital (landing report, issue / return, WHO reference), passengers, monthly safety meeting, drills, SOPEP lockers with QR, QHSE, the Board and the rest. Firestore rules for all of them deployed 14 Oct 2026. The guest list and patient names never leave the vessel (masked on the cloud).
 
-Web deployed first, the same day; the store builds follow.
+Web deployed first, the same day; store builds (20632) uploaded 14 Oct 2026.
 
 Also in 2.63 — **inspection rounds: no more duplicates** (Jez, 14 Oct 2026: two identical rounds open on the phone). Start locks against a second tap and asks the vessel's latest rounds before creating one; two open rounds covering the same show a warning with Close the duplicate. The server closes a duplicate whatever app made it (`roundsDedupOnCreate` on a new round, `roundsDedupSweep` hourly) — deployed 14 Oct; DreamBoat's duplicate closed by the first sweep. Stores and AI are in the code, dark (`stores`, `ai`).
 
