@@ -24,7 +24,7 @@
 // will follow the same way); whether the module exists at all is ours.
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -104,6 +104,8 @@ export const MODULES: Record<ModuleKey, boolean> = {
   meetings: false,
   /** Stores — the PPE store (issued to crew, signed for) and the provision store (best-before), with minimums (14 Oct 2026). */
   stores: false,
+  /** AI — smart import of any list, the round by voice and photo, questions to the vessel's data (functions/ai.js, 14 Oct 2026). */
+  ai: false,
 };
 
 export function moduleOn(key: ModuleKey): boolean {

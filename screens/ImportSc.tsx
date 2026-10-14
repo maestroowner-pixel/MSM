@@ -15,6 +15,11 @@ import { BackButton, Card, CategoryBadge, Screen, ScreenTitle } from '../compone
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { parseWorkbookBase64, parseWorkbookBytes, ImportPreview } from '../services/excelImport';
+import { aiReadDocument, rowsToWorkbook } from '../services/aiImport';
+import { aiReady } from '../services/ai';
+import { pickDocForAi } from '../services/medFiles';
+import { useSync } from '../contexts/SyncContext';
+import { MciIcon } from '../components/MciIcon';
 import { exportTemplate } from '../services/export';
 import { pickFileBase64, onWindows, onWeb } from '../utils/fileShare';
 import { pickBinaryFileWeb } from '../utils/webFile';
@@ -77,6 +82,29 @@ export default function ImportSc() {
     const covers = preview.sortedSheets.length ? () => true : (c: CategoryKey) => covered.has(c);
     return planUpdate(flat, rows, covers);
   }, [preview, mode, flat, rows]);
+
+  const sync = useSync();
+  const [aiNote, setAiNote] = useState<string | null>(null);
+  const pickAi = async () => {
+    try {
+      const doc = await pickDocForAi();
+      if (!doc) return;
+      setBusy(true);
+      setAiNote(`The AI is reading “${doc.name}” — a page takes about half a minute…`);
+      const r = await aiReadDocument(doc.dataUri, 'equipment');
+      const n = r.rows.length - 1;
+      if (!n) throw new Error(`No equipment found in “${doc.name}”.${r.unreadable ? ` ${r.unreadable}` : ''}`);
+      setFileName(`${doc.name} (read by the AI)`);
+      setPreview(parseWorkbookBytes(rowsToWorkbook(r.rows)));
+      setAiNote(`${n} lines read by the AI — check them below before importing.${r.unreadable ? ` Not readable: ${r.unreadable}` : ''}`);
+    } catch (e: any) {
+      setAiNote(null);
+      playErrorSound();
+      Alert.alert('Read with AI', String(e?.message ?? e));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const pick = async () => {
     try {
@@ -255,6 +283,15 @@ export default function ImportSc() {
       <TouchableOpacity style={styles.pickBtn} onPress={pick} disabled={busy}>
         <Text style={styles.pickBtnText}>{fileName ? 'Choose a different file' : 'Choose .xlsx file'}</Text>
       </TouchableOpacity>
+
+      {/* A paper register — photographed, or a scanned PDF: the AI reads it into rows, the preview below shows them before anything is saved (14 Oct 2026). */}
+      {aiReady(sync.enrolled) ? (
+        <TouchableOpacity style={[styles.templateBtn, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]} onPress={() => void pickAi()} disabled={busy}>
+          <MciIcon name="creation" size={18} color={COLORS.primary} />
+          <Text style={styles.templateBtnText}>Photo or PDF of a paper register (AI)</Text>
+        </TouchableOpacity>
+      ) : null}
+      {aiNote ? <Text style={{ color: COLORS.textLight, fontSize: SIZES.small, marginTop: SIZES.xs }}>{aiNote}</Text> : null}
 
       <TouchableOpacity style={styles.templateBtn} onPress={() => void downloadTemplate()} disabled={busy}>
         <Text style={styles.templateBtnText}>

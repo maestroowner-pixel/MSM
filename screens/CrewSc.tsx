@@ -24,6 +24,10 @@ import { moduleOn } from '../constants/modules';
 import SimpleDatePicker from '../components/SimpleDatePicker';
 import { crewListGaps, crewListRows, planCrewImport } from '../services/crewList';
 import { exportCrewListPdf, exportCrewSheet, exportCrewTemplate, pickCrewSheet } from '../services/crewListReport';
+import { pickSheetRows } from '../services/sheetFiles';
+import { aiRenameHeadings, rowsToWorkbook } from '../services/aiImport';
+import { aiReady } from '../services/ai';
+import { CrewRow, parseCrewWorkbook } from '../services/crewList';
 import { crewIssues, issueSummary, worstIssue } from '../services/crewIssues';
 import { useSdmImport } from '../components/useSdmImport';
 import { SIZES, Palette } from '../theme';
@@ -118,9 +122,24 @@ export default function CrewSc() {
     }
   };
 
-  const importSheet = async () => {
+  // Any crew list, its columns named any way: the AI reads the headings (and masked samples), never the list (services/aiImport).
+  const importAi = async () => {
     try {
-      const picked = await pickCrewSheet();
+      const file = await pickSheetRows();
+      if (!file) return;
+      setListSaved('The AI is reading the columns…');
+      const r = await aiRenameHeadings(file.rows, 'crew');
+      setListSaved(null);
+      await importSheet({ name: file.name, rows: parseCrewWorkbook(rowsToWorkbook(r.rows)) }, `Columns read by the AI: ${r.mapped.map((m) => `${m.from} → ${m.to}`).join('; ')}.`);
+    } catch (e: any) {
+      setListSaved(null);
+      Alert.alert('Import', String(e?.message ?? e));
+    }
+  };
+
+  const importSheet = async (given?: { name: string; rows: CrewRow[] }, note?: string) => {
+    try {
+      const picked = given ?? (await pickCrewSheet());
       if (!picked) return;
       if (!picked.rows.length) return Alert.alert('Import', `No crew found in “${picked.name}”. Use the crew list template.`);
       const plan = planCrewImport(picked.rows, crew, crewPrivate);
@@ -133,6 +152,7 @@ export default function CrewSc() {
       Alert.alert(
         `Import ${picked.rows.length} from “${picked.name}”?`,
         [
+          note ?? null,
           plan.added.length ? `New: ${plan.added.join(', ')}.` : null,
           plan.updated.length ? `Updated (already on the list): ${plan.updated.join(', ')}.` : null,
           'Everyone in the sheet is signed on. Empty cells leave what the app already has.',
@@ -316,6 +336,12 @@ export default function CrewSc() {
             <TouchableOpacity style={styles.listBtnOutline} onPress={() => void importSheet()}>
               <Text style={styles.listBtnOutlineText}>Import from Excel</Text>
             </TouchableOpacity>
+            {aiReady(isEnrolled) ? (
+              <TouchableOpacity style={styles.listBtnOutline} onPress={() => void importAi()}>
+                <MciIcon name="creation" size={16} color={COLORS.primary} />
+                <Text style={styles.listBtnOutlineText}>Any list (AI)</Text>
+              </TouchableOpacity>
+            ) : null}
             <TouchableOpacity style={styles.listBtnOutline} onPress={() => void exportCrewSheet(crew, crewPrivate, vessel).then((w) => { if (typeof w === 'string') setListSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`); }).catch((e) => Alert.alert('Export', String(e?.message ?? e)))}>
               <Text style={styles.listBtnOutlineText}>Export to Excel</Text>
             </TouchableOpacity>
@@ -458,7 +484,7 @@ const makeStyles = (COLORS: Palette) =>
     listBtns: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.sm, marginTop: SIZES.sm },
     listBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: SIZES.sm, paddingHorizontal: SIZES.md },
     listBtnText: { color: COLORS.textWhite, fontWeight: '700' },
-    listBtnOutline: { borderWidth: 1, borderColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: SIZES.sm, paddingHorizontal: SIZES.md },
+    listBtnOutline: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: SIZES.sm, paddingHorizontal: SIZES.md },
     listBtnOutlineText: { color: COLORS.primary, fontWeight: '700' },
     chip: { paddingVertical: 6, paddingHorizontal: SIZES.md, borderRadius: 999, borderWidth: 1, borderColor: COLORS.primary },
     chipOn: { backgroundColor: COLORS.primary },

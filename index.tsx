@@ -90,6 +90,7 @@ import NcSc from './screens/NcSc';
 import DrillsSc from './screens/DrillsSc';
 import DrillSc from './screens/DrillSc';
 import MeetingSc from './screens/MeetingSc';
+import AskSc from './screens/AskSc';
 import HospitalSc from './screens/HospitalSc';
 import PassengersSc from './screens/PassengersSc';
 import StoresSc from './screens/StoresSc';
@@ -459,6 +460,7 @@ const linking = {
       Nc: 'nc/:id',
       Drill: 'drill/:id',
       Meeting: 'safety-meeting/:id',
+      Ask: 'ask',
       MedItem: 'medicine/:id',
       Treatment: 'treatment/:id',
       MedOrder: 'medical-order/:id',
@@ -662,6 +664,7 @@ function Root() {
         <Stack.Screen name="Nc" component={NcSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Drill" component={DrillSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Meeting" component={MeetingSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Ask" component={AskSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="MedItem" component={MedItemSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Treatment" component={TreatmentSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="MedOrder" component={MedOrderSc} options={{ presentation: 'modal' }} />

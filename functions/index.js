@@ -781,3 +781,6 @@ exports.sweepPhotos = onSchedule(
     console.log(`[sweep] done: ${deletedTotal} files across ${sweptVessels} vessels`);
   }
 );
+
+// AI — smart import, the round by voice and photo, questions to the vessel's data (functions/ai.js).
+exports.ai = require('./ai').ai;

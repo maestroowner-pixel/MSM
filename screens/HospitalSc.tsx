@@ -38,6 +38,10 @@ import {
   ItemStatus, ORDER_STATE_LABEL, chestCounts, chestStatus, daysTo, differences, followUpsDue, isArchived, itemKey, lastControlledCount,
   onOrderByItem, orderOverdue, isLanding, landingLinesFor, referenceOf, ChestSort, CHECK_KIND_LABEL, STOCK_LEVEL_LABEL, placeText, earliestExpiry, expiryState, matchesSearch, mmYY, purposeIcon, purposeOf, scaleEntry, sortChest, stockLevel, orderState, planImport, readSheet, receivedByLine, scaleItems, sortOrders, sortTreatments,
 } from '../services/hospital';
+import { pickSheetRows } from '../services/sheetFiles';
+import { aiReadDocument, aiRenameHeadings } from '../services/aiImport';
+import { aiReady } from '../services/ai';
+import { pickDocForAi } from '../services/medFiles';
 import { exportChestExcel, exportChestPdf, exportChestTemplate, exportControlledPdf, exportMedLogExcel, exportMedLogPdf, pickChestSheet } from '../services/hospitalReport';
 import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
@@ -141,8 +145,31 @@ export default function HospitalSc() {
 
   // Load the vessel's own list: items matched by name and strength are updated,
   // the rest added; every line with a quantity counts that batch.
-  const load = async () => {
-    const f = await pickChestSheet();
+  // With the AI: a list with its own column names (the AI names them; the list stays here), or a photo / PDF of a paper one.
+  const loadAi = async (how: 'sheet' | 'doc') => {
+    try {
+      if (how === 'sheet') {
+        const file = await pickSheetRows();
+        if (!file) return;
+        setSaved('The AI is reading the columns…');
+        const r = await aiRenameHeadings(file.rows, 'medicine');
+        setSaved(null);
+        return load({ name: file.name, rows: r.rows }, `Columns read by the AI: ${r.mapped.map((m) => `${m.from} → ${m.to}`).join('; ')}.`);
+      }
+      const doc = await pickDocForAi();
+      if (!doc) return;
+      setSaved(`The AI is reading “${doc.name}”…`);
+      const r = await aiReadDocument(doc.dataUri, 'medicine');
+      setSaved(null);
+      return load({ name: doc.name, rows: r.rows }, `Read by the AI — check the lines.${r.unreadable ? ` Not readable: ${r.unreadable}` : ''}`);
+    } catch (e: any) {
+      setSaved(null);
+      Alert.alert('Medicine chest', String(e?.message ?? e));
+    }
+  };
+
+  const load = async (given?: { name: string; rows: unknown[][] }, note?: string) => {
+    const f = given ?? (await pickChestSheet());
     if (!f) return;
     const { lines, skipped } = readSheet(f.rows);
     if (!lines.length) return Alert.alert('Medicine chest', `No items found in “${f.name}”. The first row needs a “Name” column — download the Excel list to see the layout.`);
@@ -170,7 +197,7 @@ export default function HospitalSc() {
       playSuccessSound();
       Alert.alert('Medicine chest', `${plan.add.length} added, ${plan.update.length} updated, ${plan.counts.length} batches counted${skipped ? `; ${skipped} rows without a name skipped` : ''}.`);
     };
-    Alert.alert('Load the list', `${f.name}: ${plan.add.length} new items, ${plan.update.length} to update, ${plan.counts.length} batches with a quantity (counted as aboard now).`, [
+    Alert.alert('Load the list', `${note ? `${note}\n\n` : ''}${f.name}: ${plan.add.length} new items, ${plan.update.length} to update, ${plan.counts.length} batches with a quantity (counted as aboard now).`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Load', onPress: () => void go() },
     ]);
@@ -307,6 +334,7 @@ export default function HospitalSc() {
                   <View style={styles.row}>
                     <TouchableOpacity style={styles.btn} disabled={busy} onPress={() => setChoosingCat(true)}><Text style={styles.btnText}>Start from the WHO IMGS scale</Text></TouchableOpacity>
                     <TouchableOpacity style={styles.small} disabled={busy} onPress={() => void load()}><Text style={styles.smallText}>Load from Excel</Text></TouchableOpacity>
+                    {aiReady(sync.enrolled) ? <><TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} disabled={busy} onPress={() => void loadAi('sheet')}><MciIcon name="creation" size={14} color={COLORS.primary} /><Text style={styles.smallText}>Any list (AI)</Text></TouchableOpacity><TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} disabled={busy} onPress={() => void loadAi('doc')}><MciIcon name="camera-outline" size={14} color={COLORS.primary} /><Text style={styles.smallText}>Photo / PDF (AI)</Text></TouchableOpacity></> : null}
                     <TouchableOpacity onPress={() => void run('Excel list', () => exportChestTemplate([]))}><Text style={styles.link}>Excel layout</Text></TouchableOpacity>
                   </View>
                 )
@@ -319,6 +347,7 @@ export default function HospitalSc() {
             <View style={styles.row}>
               <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedItem', { id: 'new' })}><Text style={styles.smallText}>+ Item</Text></TouchableOpacity>
               <TouchableOpacity style={styles.small} disabled={busy} onPress={() => void load()}><Text style={styles.smallText}>Load from Excel</Text></TouchableOpacity>
+                    {aiReady(sync.enrolled) ? <><TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} disabled={busy} onPress={() => void loadAi('sheet')}><MciIcon name="creation" size={14} color={COLORS.primary} /><Text style={styles.smallText}>Any list (AI)</Text></TouchableOpacity><TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} disabled={busy} onPress={() => void loadAi('doc')}><MciIcon name="camera-outline" size={14} color={COLORS.primary} /><Text style={styles.smallText}>Photo / PDF (AI)</Text></TouchableOpacity></> : null}
               <TouchableOpacity onPress={() => void run('Excel list', () => exportChestTemplate(rows))}><Text style={styles.link}>Excel list to fill in</Text></TouchableOpacity>
             </View>
           ) : null}

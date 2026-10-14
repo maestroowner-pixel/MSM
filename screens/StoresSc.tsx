@@ -34,6 +34,10 @@ import { batchLabel, expiryState, mmYY, normExpiry } from '../services/hospital'
 import { StoreStatus, batchToIssue, heldByPerson, planStoreImport, readStoreSheet, storeCounts, storeSheet, storeStatus, storeTemplateRows, toOrder } from '../services/stores';
 import { exportDocPdf } from '../services/hospitalReport';
 import { pickSheetRows, saveSheet } from '../services/sheetFiles';
+import { aiReadDocument, aiRenameHeadings } from '../services/aiImport';
+import { aiReady } from '../services/ai';
+import { pickDocForAi } from '../services/medFiles';
+import { useSync } from '../contexts/SyncContext';
 import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
@@ -56,6 +60,7 @@ export default function StoresSc() {
   const ppe = store === 'ppe';
   const { storeItems, storeMoves, crew, vessel, saveRow, saveRows, appendRow } = useData();
   const confirmSign = useSignConfirm();
+  const sync = useSync();
   const { signer, picker } = useSigner(ppe ? 'ISSUED BY' : 'SIGNING AS');
   const today = todayIso();
   const people = useMemo(() => crew.filter(isAboard), [crew]);
@@ -142,9 +147,32 @@ export default function StoresSc() {
   };
 
   // ---- Excel ----
-  const importSheet = async () => {
+  // Any list (the AI names the columns; the list stays here) or a photo / PDF of a paper one (the AI reads it).
+  const importAi = async (how: 'sheet' | 'doc') => {
     try {
-      const picked = await pickSheetRows();
+      if (how === 'sheet') {
+        const file = await pickSheetRows();
+        if (!file) return;
+        setSaved('The AI is reading the columns…');
+        const r = await aiRenameHeadings(file.rows, store);
+        setSaved(null);
+        return importSheet({ name: file.name, rows: r.rows }, `Columns read by the AI: ${r.mapped.map((m) => `${m.from} → ${m.to}`).join('; ')}.`);
+      }
+      const doc = await pickDocForAi();
+      if (!doc) return;
+      setSaved(`The AI is reading “${doc.name}”…`);
+      const r = await aiReadDocument(doc.dataUri, store);
+      setSaved(null);
+      return importSheet({ name: doc.name, rows: r.rows }, `Read by the AI from the ${/pdf/.test(doc.dataUri.slice(0, 30)) ? 'PDF' : 'photo'} — check the lines before importing.${r.unreadable ? ` Not readable: ${r.unreadable}` : ''}`);
+    } catch (e: any) {
+      setSaved(null);
+      Alert.alert('Import', String(e?.message ?? e));
+    }
+  };
+
+  const importSheet = async (given?: { name: string; rows: unknown[][] }, note?: string) => {
+    try {
+      const picked = given ?? (await pickSheetRows());
       if (!picked) return;
       const lines = readStoreSheet(picked.rows);
       if (!lines.length) return Alert.alert('Import', `Nothing found in “${picked.name}”. Use the template.`);
@@ -157,7 +185,7 @@ export default function StoresSc() {
         playSuccessSound();
         setSaved(`${plan.added.length} added, ${plan.updated.length} updated, ${plan.counts.length} quantities counted — from “${picked.name}”`);
       };
-      Alert.alert(`Import ${lines.length} lines from “${picked.name}”?`, [plan.added.length ? `New: ${plan.added.slice(0, 12).join(', ')}${plan.added.length > 12 ? ` and ${plan.added.length - 12} more` : ''}.` : null, plan.updated.length ? `Updated: ${plan.updated.length}.` : null, plan.counts.length ? `Quantities in the sheet are counted into the store (by best-before).` : null].filter(Boolean).join('\n\n'), [{ text: 'Cancel', style: 'cancel' }, { text: 'Import', onPress: () => void apply() }]);
+      Alert.alert(`Import ${lines.length} lines from “${picked.name}”?`, [note ?? null, plan.added.length ? `New: ${plan.added.slice(0, 12).join(', ')}${plan.added.length > 12 ? ` and ${plan.added.length - 12} more` : ''}.` : null, plan.updated.length ? `Updated: ${plan.updated.length}.` : null, plan.counts.length ? `Quantities in the sheet are counted into the store (by best-before).` : null].filter(Boolean).join('\n\n'), [{ text: 'Cancel', style: 'cancel' }, { text: 'Import', onPress: () => void apply() }]);
     } catch (e: any) {
       Alert.alert('Import failed', String(e?.message ?? e));
     }
@@ -227,6 +255,12 @@ export default function StoresSc() {
             <TouchableOpacity style={styles.btn} onPress={() => setEdit({ id: uid('sto'), store, name: '', unit: ppe ? 'pcs' : 'packs', min: 0, order: items.length, updatedAt: Date.now(), ...(cat ? { category: cat } : {}) })}><Text style={styles.btnText}>+ Item</Text></TouchableOpacity>
             <TouchableOpacity style={styles.small} disabled={!counts.short} onPress={() => void orderSheet()}><Text style={styles.smallText}>{`To order (Excel) · ${counts.short}`}</Text></TouchableOpacity>
             <TouchableOpacity style={styles.small} onPress={() => void importSheet()}><Text style={styles.smallText}>Import from Excel</Text></TouchableOpacity>
+            {aiReady(sync.enrolled) ? (
+              <>
+                <TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} onPress={() => void importAi('sheet')}><MciIcon name="creation" size={14} color={COLORS.primary} /><Text style={styles.smallText}>Any list (AI)</Text></TouchableOpacity>
+                <TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} onPress={() => void importAi('doc')}><MciIcon name="camera-outline" size={14} color={COLORS.primary} /><Text style={styles.smallText}>Photo / PDF (AI)</Text></TouchableOpacity>
+              </>
+            ) : null}
             <TouchableOpacity style={styles.small} onPress={() => saveSheet(storeSheet(rows), title, `${title} ${today}`, vessel).then(done, fail)}><Text style={styles.smallText}>Export to Excel</Text></TouchableOpacity>
             <TouchableOpacity style={styles.small} onPress={() => saveSheet(storeTemplateRows(store), title, `${title} template`, vessel).then(done, fail)}><Text style={styles.smallText}>Excel template</Text></TouchableOpacity>
           </View>

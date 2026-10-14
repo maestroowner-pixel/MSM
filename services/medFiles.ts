@@ -42,7 +42,8 @@ function b64(bytes: Uint8Array): string {
 }
 const bytesOfB64 = (b: string) => Math.floor((b.length * 3) / 4) - (b.endsWith('==') ? 2 : b.endsWith('=') ? 1 : 0);
 
-async function imageToDataUri(uri: string): Promise<string> {
+/** A picture (file, blob or data URI) as a downscaled JPEG data URI — for the AI too (screens/InspectionSc). */
+export async function imageToDataUri(uri: string): Promise<string> {
   const small = await downscale(uri);
   if (small.startsWith('data:')) return small;
   if (onWeb) {
@@ -82,6 +83,32 @@ export async function pickMedFile(): Promise<PickedMedFile | null> {
   }
   const dataUri = await imageToDataUri(a.uri);
   return { name: a.name.replace(/\.\w+$/, '.jpg'), dataUri, bytes: bytesOfB64(dataUri.slice(dataUri.indexOf(',') + 1)) };
+}
+
+/**
+ * A paper list for the AI to read (services/aiImport): a PDF as it is (the text
+ * must stay sharp — no recompressing), a picture downscaled. Null when cancelled.
+ */
+export async function pickDocForAi(): Promise<PickedMedFile | null> {
+  if (onWeb) {
+    const f = await pickBinaryFileWeb('.pdf,application/pdf,image/*');
+    if (!f?.bytes) return null;
+    const raw = new Uint8Array(f.bytes);
+    if (/\.pdf$/i.test(f.name)) return { name: f.name, dataUri: `data:application/pdf;base64,${b64(raw)}`, bytes: raw.length };
+    const url = URL.createObjectURL(new Blob([raw]));
+    const dataUri = await imageToDataUri(url);
+    URL.revokeObjectURL(url);
+    return { name: f.name, dataUri, bytes: bytesOfB64(dataUri.slice(dataUri.indexOf(',') + 1)) };
+  }
+  const res = await DocumentPicker.getDocumentAsync({ type: ['application/pdf', 'image/*'], copyToCacheDirectory: true });
+  if (res.canceled || !res.assets?.length) return null;
+  const a = res.assets[0];
+  if (/\.pdf$/i.test(a.name) || a.mimeType === 'application/pdf') {
+    const data = await FileSystem.readAsStringAsync(a.uri, { encoding: 'base64' as any });
+    return { name: a.name, dataUri: `data:application/pdf;base64,${data}`, bytes: bytesOfB64(data) };
+  }
+  const dataUri = await imageToDataUri(a.uri);
+  return { name: a.name, dataUri, bytes: bytesOfB64(dataUri.slice(dataUri.indexOf(',') + 1)) };
 }
 
 /** A photograph of the written advice, downscaled. Null when cancelled. */

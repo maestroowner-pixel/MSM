@@ -47,6 +47,9 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { BackButton, Card, CategoryBadge, Label } from '../components/ui';
 import { SignerPicker } from '../components/SignerPicker';
 import { MciIcon } from '../components/MciIcon';
+import { VoiceInput } from '../components/VoiceInput';
+import { aiCall, aiReady } from '../services/ai';
+import { imageToDataUri } from '../services/medFiles';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
@@ -272,6 +275,37 @@ export default function InspectionSc() {
       { text: 'Photo Library', onPress: addPhoto(pickFromLibrary) },
       { text: 'Cancel', style: 'cancel' },
     ]);
+  };
+
+  // ---- the AI (14 Oct 2026, AI no. 2): what the inspector said, or a photo of the item, → the checklist ----
+  // It only suggests: lines it cannot see stay empty, and the inspector checks every line and signs.
+  const [said, setSaid] = useState('');
+  const [aiBusy, setAiBusy] = useState<string | null>(null);
+  const [aiDone, setAiDone] = useState<string | null>(null);
+  const askAi = async (withPhoto: boolean) => {
+    if (!item || !template) return;
+    const shot = withPhoto ? [...photos].reverse().find((p) => p.kind === 'photo') : undefined;
+    if (withPhoto && !shot) return Alert.alert('Photo', 'Add a photograph of the item below first.');
+    if (!withPhoto && !said.trim()) return Alert.alert('What did you find?', 'Say it or type it in any language — the AI writes it up in English.');
+    try {
+      setAiBusy(withPhoto ? 'The AI is looking at the photo…' : 'The AI is reading what you said…');
+      const image = shot ? await imageToDataUri(resolveUri(shot.uri) ?? shot.uri) : undefined;
+      const out = await aiCall<{ answers?: Record<string, CheckResult | null>; remark?: string; defect?: string; seen?: string }>('inspect', {
+        item: { name: typeWithSize(item) || CATEGORY_MAP[item.category]?.label, number: itemNumber(item), category: CATEGORY_MAP[item.category]?.label, location: itemLocation(item) },
+        checklist: template.lines.map((l) => ({ id: l.id, text: l.text })),
+        ...(said.trim() ? { text: said.trim() } : {}),
+        ...(image ? { image: { mediaType: 'image/jpeg', data: image.slice(image.indexOf(',') + 1) } } : {}),
+      });
+      const got = Object.entries(out.answers ?? {}).filter(([id, v]) => v && template.lines.some((l) => l.id === id)) as [string, CheckResult][];
+      setResults((prev) => ({ ...prev, ...Object.fromEntries(got) }));
+      if (out.remark?.trim()) setComment((c) => [c.trim(), `${out.remark!.trim()} (AI-assisted from the inspector's ${withPhoto ? 'photo' : 'words'})`].filter(Boolean).join('\n'));
+      if (out.defect?.trim()) setDefectNote((d) => d.trim() || out.defect!.trim());
+      setAiDone(`${got.length} of ${template.lines.length} lines filled${out.seen ? ` · seen: ${out.seen}` : ''} — check every line before you sign.`);
+    } catch (e: any) {
+      Alert.alert('AI', String(e?.message ?? e));
+    } finally {
+      setAiBusy(null);
+    }
   };
 
   const save = useCallback(async () => {
@@ -550,6 +584,35 @@ export default function InspectionSc() {
               </View>
             </View>
           )}
+
+          {aiReady(sync.enrolled) ? (
+            <View style={styles.card}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <MciIcon name="creation" size={18} color={COLORS.primary} />
+                <Label style={{ flex: 1 }}>Say what you found — the AI fills the checklist</Label>
+                <VoiceInput onText={(t) => setSaid((x) => (x ? `${x} ${t}` : t))} />
+              </View>
+              <TextInput
+                style={[styles.input, styles.multiline]}
+                value={said}
+                onChangeText={setSaid}
+                placeholder="Any language — “pressure in the green, pin and seal in place, bracket loose”. On a phone, the keyboard’s microphone."
+                placeholderTextColor={COLORS.textLight}
+                multiline
+              />
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.sm, marginTop: SIZES.sm }}>
+                <TouchableOpacity style={[styles.allPassBtn, aiBusy && { opacity: 0.5 }]} disabled={!!aiBusy} onPress={() => void askAi(false)}>
+                  <MciIcon name="text-box-check-outline" size={16} color={COLORS.textWhite} />
+                  <Text style={styles.allPassText}>Fill from what I said</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.allPassBtn, aiBusy && { opacity: 0.5 }]} disabled={!!aiBusy} onPress={() => void askAi(true)}>
+                  <MciIcon name="camera-outline" size={16} color={COLORS.textWhite} />
+                  <Text style={styles.allPassText}>From the photo</Text>
+                </TouchableOpacity>
+              </View>
+              {aiBusy ? <Text style={styles.note}>{aiBusy}</Text> : aiDone ? <Text style={[styles.note, { color: COLORS.success, fontWeight: '700' }]}>{aiDone}</Text> : <Text style={styles.note}>For the photo: add it under Photographs, then tap From the photo. The AI only suggests — nothing is signed until you sign.</Text>}
+            </View>
+          ) : null}
 
           <View style={styles.card}>
             <View style={styles.checklistHead}>
