@@ -10,7 +10,7 @@
 //
 // CONFIG: fill in the three constants below from your LemonSqueezy dashboard.
 //   - LS_CHECKOUT_URL: Store → Products → your product → "Share / Buy link"
-//       (e.g. https://kukalab.lemonsqueezy.com/buy/xxxxxxxx-xxxx-...).
+//       (e.g. https://kuka-soft.lemonsqueezy.com/buy/xxxxxxxx-xxxx-...).
 //   - LS_STORE_ID / LS_PRODUCT_IDS: numeric ids (Settings → Stores, and the
 //       product's API id). Used to reject license keys from other products.
 //       Leave 0 / empty to skip that check.
@@ -19,7 +19,7 @@
 const LS_API = 'https://api.lemonsqueezy.com/v1';
 
 /** LemonSqueezy hosted checkout link for the yearly ISMpilot Pro product. */
-export const LS_CHECKOUT_URL = 'https://kuka-lab.lemonsqueezy.com/checkout/buy/43d5ae44-87a1-4fd9-8eea-1253c2224651';
+export const LS_CHECKOUT_URL = 'https://kuka-soft.lemonsqueezy.com/checkout/buy/43d5ae44-87a1-4fd9-8eea-1253c2224651';
 /** Numeric store id — a key whose meta.store_id differs is rejected (0 = skip). */
 export const LS_STORE_ID = 374407;
 /**
