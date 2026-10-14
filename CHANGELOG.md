@@ -24,6 +24,8 @@ the part that stops the next person undoing it.
 
 ## 2.62 (20621) — 13 Oct 2026
 
+- **Released 14 Oct 2026:** App Store and Google Play approved; web deployed the same day from the release commit `72ff642` (not the branch head — the work since stays dark behind its flags), https://ismpilot.web.app, version.json 2.62.
+
 What the crew sees: **inspection rounds as Jez asked** — the report in the Reports layout with a final Officer / Master sign-off, Deck → Location → number, and an inspection counts towards the matching round from anywhere (Dashboard, scanner, widget); **the fix for React error 185 after saving**; records say how they were signed ("signed by PIN" …); a crew card or visitor pass scanned without gangway control says so. Modules on: lifting, rounds — unchanged. Everything else below is dark (QHSE, gangway photo, SDM import with crew certificates).
 
 **Server rules deployed 13 Oct 2026** (before 2.62 reaches the crews): rounds accept the final sign-off fields and a closed round is final; `observations` and `ncs` for QHSE. Backward compatible with 2.61.
