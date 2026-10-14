@@ -13,9 +13,38 @@
 import type { SignProof } from '../services/signature';
 
 import type { Versioned } from '../services/versions';
+/**
+ * A SOPEP locker — a vessel may keep several (engine room, bow, bunker station),
+ * each named and placed, each with a QR label that opens its contents when
+ * scanned (14 Oct 2026, as InventoryLens does it: the QR carries the locker's
+ * short id only — msm://sopep/<id> — so a renamed or moved locker keeps its
+ * label).
+ */
+export interface SopepLocker {
+  id: string;
+  name: string;
+  location?: string;
+  order: number;
+  deleted?: boolean;
+  updatedAt: number;
+}
+
+/** The locker every item belonged to before there were several — the one an item with no `lockerId` is in. */
+export const MAIN_LOCKER = 'main';
+export const lockerOf = (i: Pick<SopepItem, 'lockerId'>) => i.lockerId || MAIN_LOCKER;
+
+/** The vessel's lockers, in order — the first one ("SOPEP locker") there even before it is saved. */
+export function sopepLockers(list: SopepLocker[]): SopepLocker[] {
+  const live = list.filter((l) => !l.deleted);
+  const main = live.find((l) => l.id === MAIN_LOCKER) ?? { id: MAIN_LOCKER, name: 'SOPEP locker', order: 0, updatedAt: 0 };
+  return [main, ...live.filter((l) => l.id !== MAIN_LOCKER)].sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+}
+
 export interface SopepItem {
   id: string;
   name: string;
+  /** Which locker (SopepLocker id); absent = the first, MAIN_LOCKER. */
+  lockerId?: string;
   /** Quantity required by the plan. */
   required: number;
   unit?: string;

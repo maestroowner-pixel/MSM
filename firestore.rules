@@ -353,6 +353,12 @@ service cloud.firestore {
         allow create, update: if member(v);
         allow delete: if false;
       }
+      // SOPEP lockers (types/sopep.ts): name and place, kept as the items are.
+      match /sopep_lockers/{id} {
+        allow read: if reader(v);
+        allow create, update: if member(v);
+        allow delete: if false;
+      }
       match /sopep_checks/{id} {
         allow read: if reader(v);
         allow create: if member(v) && (plainRecord() || isSuper(v));

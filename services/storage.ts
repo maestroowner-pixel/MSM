@@ -48,6 +48,7 @@ export const SEWAGE_SIGNS_KEY = `${PREFIX}sewage_signs`;
 export const BALLAST_KEY = `${PREFIX}ballast`;
 export const BALLAST_SIGNS_KEY = `${PREFIX}ballast_signs`;
 export const SOPEP_ITEMS_KEY = `${PREFIX}sopep_items`;
+export const SOPEP_LOCKERS_KEY = `${PREFIX}sopep_lockers`;
 export const SOPEP_CHECKS_KEY = `${PREFIX}sopep_checks`;
 export const SOPEP_DRILLS_KEY = `${PREFIX}sopep_drills`;
 export const VISITORS_KEY = `${PREFIX}visitors`;
@@ -712,6 +713,7 @@ export async function resetAllData(): Promise<void> {
     BALLAST_KEY,
     BALLAST_SIGNS_KEY,
     SOPEP_ITEMS_KEY,
+    SOPEP_LOCKERS_KEY,
     SOPEP_CHECKS_KEY,
     SOPEP_DRILLS_KEY,
     VISITORS_KEY,

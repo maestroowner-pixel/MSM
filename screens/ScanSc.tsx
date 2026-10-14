@@ -33,7 +33,7 @@ import { SCAN_BARCODE_TYPES, ScanMatch, lookupScan } from '../services/barcode';
 import { SIZES, Palette } from '../theme';
 import { goBackOr } from '../utils/nav';
 import { recordScanProof } from '../services/signingPolicy';
-import { parseCrewQr, parsePassQr, samePass } from '../services/crewQr';
+import { parseCrewQr, parsePassQr, samePass, parseSopepQr } from '../services/crewQr';
 import { isDoubleScan, nextMove } from '../services/gangway';
 import { todayIso } from '../services/pms';
 import { passengerAboard } from '../types/passengers';
@@ -84,6 +84,18 @@ export default function ScanSc() {
     (code: string, via: 'camera' | 'typed') => {
       if (locked.current) return;
       locked.current = true;
+
+      // A SOPEP locker's label (msm://sopep/<id>): what is in that locker (14 Oct 2026, as
+      // InventoryLens opens a locker). The id only — a renamed or moved locker keeps its label.
+      const lockerId = parseSopepQr(code);
+      if (lockerId) {
+        if (moduleOn('sopep')) return nav.replace('Main', { screen: 'Sopep', params: { locker: lockerId } });
+        setCrewHit({ name: 'SOPEP locker', text: 'The SOPEP module is not switched on for this vessel.', ok: false });
+        setTimeout(() => {
+          locked.current = false;
+        }, 2500);
+        return;
+      }
 
       // A crew card (msm://crew/<id>): going ashore or coming back aboard — only when the
       // scanner was opened from the gangway page (14 Oct 2026: "crossing the gangway only

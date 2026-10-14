@@ -8,7 +8,8 @@
 //   Drills     scenario, who took part, how long, lessons — signed.
 // ===================================
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { Card, Label, Screen, ScreenTitle } from '../components/ui';
@@ -21,7 +22,9 @@ import { current } from '../services/versions';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
-import { SOPEP_STARTER, SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
+import { MAIN_LOCKER, SOPEP_STARTER, SopepCheck, SopepDrill, SopepItem, SopepLocker, lockerOf, sopepLockers } from '../types/sopep';
+import { Dropdown } from '../components/Dropdown';
+import { exportLockerLabels } from '../services/crewCards';
 import { isAboard } from '../types/crew';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
@@ -36,7 +39,7 @@ const SCENARIOS = ['Overflow / spill during bunkering', 'Hydraulic oil leak on d
 export default function SopepSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { sopepItems: items, sopepChecks, sopepDrills, crew, saveRow, appendRow, versionsOf } = useData();
+  const { sopepItems: items, sopepLockers: lockerList, sopepChecks, sopepDrills, crew, vessel, saveRow, appendRow, versionsOf } = useData();
   const sync = useSync();
   const isMaster = !sync.enrolled || sync.role === 'superadmin';
   const amend = useAmend();
@@ -46,6 +49,31 @@ export default function SopepSc() {
   const confirmSign = useSignConfirm();
   const { signer, picker } = useSigner();
   const [tab, setTab] = useState<Tab>('locker');
+  // A locker's QR label scanned (ScanSc → Sopep { locker }): that locker opens.
+  const nav = useNavigation<any>();
+  const route = useRoute<any>();
+  const lockers = useMemo(() => sopepLockers(lockerList), [lockerList]);
+  const [sel, setSel] = useState<string>(route.params?.locker ?? 'all');
+  useEffect(() => {
+    const id = route.params?.locker;
+    if (!id) return;
+    setSel(id);
+    setTab('locker');
+    nav.setParams({ locker: undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.params?.locker]);
+  const unknownLocker = sel !== 'all' && !lockers.some((l) => l.id === sel);
+  const shown = sel === 'all' || unknownLocker ? lockers : lockers.filter((l) => l.id === sel);
+  const [saved, setSaved] = useState<string | null>(null);
+  const done = (w: string | null | void) => typeof w === 'string' && setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+  const fail = (e: any) => Alert.alert('SOPEP', String(e?.message ?? e));
+  const addLocker = async () => {
+    const l: SopepLocker = { id: uid('lk'), name: `SOPEP locker ${lockers.length + 1}`, order: lockers.length, updatedAt: Date.now() };
+    // The first one becomes a record too, so its name and place can be changed like the others'.
+    if (!lockerList.some((x) => x.id === MAIN_LOCKER)) await saveRow(storage.SOPEP_LOCKERS_KEY, lockers[0]);
+    await saveRow(storage.SOPEP_LOCKERS_KEY, l);
+    setSel(l.id);
+  };
   const today = todayIso();
 
   const lastCheck = useMemo(() => [...sopepChecks].sort((a, b) => b.at - a.at)[0], [sopepChecks]);
@@ -120,43 +148,82 @@ export default function SopepSc() {
         <Text style={styles.sumItem}>{lastDrill ? `Last drill ${formatDate(lastDrill.date)}` : 'No drill recorded'}</Text>
       </View>
       <View style={styles.tabs}>
-        {([['locker', `Locker · ${items.length}`], ['check', 'Inventory check'], ['drills', `Drills · ${sopepDrills.length}`]] as [Tab, string][]).map(([k, l]) => (
+        {([['locker', `Lockers · ${lockers.length} · ${items.length} items`], ['check', 'Inventory check'], ['drills', `Drills · ${sopepDrills.length}`]] as [Tab, string][]).map(([k, l]) => (
           <Chip key={k} on={tab === k} label={l} onPress={() => setTab(k)} />
         ))}
       </View>
 
       {tab === 'locker' ? (
         <>
-          {items.map((i) => (
-            <View key={i.id} style={styles.item}>
-              <View style={{ flex: 1 }}>
-                <TextInput style={styles.itemName} defaultValue={i.name} onEndEditing={(e) => e.nativeEvent.text.trim() && void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, name: e.nativeEvent.text.trim() })} onBlur={(e: any) => { const v = String(e?.target?.value ?? '').trim(); if (v && v !== i.name) void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, name: v }); }} />
-                <TextInput style={styles.sub} defaultValue={i.location ?? ''} placeholder="Location" placeholderTextColor={COLORS.textLight} onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v !== (i.location ?? '')) void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, location: v }); }} onEndEditing={(e) => void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, location: e.nativeEvent.text.trim() })} />
-              </View>
-              <Text style={[styles.qty, short(i) ? { color: COLORS.danger } : null]}>
-                {lastCheck ? `${lastCheck.counted[i.id] ?? 0} / ` : ''}{`${i.required} ${i.unit ?? ''}`}
-              </Text>
-              <TouchableOpacity onPress={() => Alert.alert('Remove', `Remove “${i.name}” from the locker list?`, [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, deleted: true }) }])} hitSlop={8}>
-                <MciIcon name="delete-outline" size={20} color={COLORS.textLight} />
-              </TouchableOpacity>
-            </View>
-          ))}
-          {items.length ? (
-            <TouchableOpacity onPress={() => void saveRow(storage.SOPEP_ITEMS_KEY, { id: uid('sop'), name: 'New item', required: 1, order: items.length } as any)}>
-              <Text style={styles.link}>+ Add an item</Text>
+          {/* Several lockers, each named and placed, each with its QR label (14 Oct 2026). */}
+          <View style={[styles.chips, { alignItems: 'center' }]}>
+            <Dropdown caption="LOCKER" value={sel} onChange={setSel} style={{ minWidth: 240, flexGrow: 1 }} options={[{ value: 'all', label: `All lockers · ${lockers.length}` }, ...lockers.map((l) => ({ value: l.id, label: `${l.name} · ${items.filter((i) => lockerOf(i) === l.id).length}` }))]} />
+            <TouchableOpacity style={styles.btnOutline} onPress={() => void addLocker()}><Text style={styles.btnOutlineText}>+ New locker</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btnOutline} onPress={() => void exportLockerLabels(shown, vessel).then(done, fail)}>
+              <MciIcon name="qrcode" size={16} color={COLORS.primary} />
+              <Text style={styles.btnOutlineText}>{shown.length > 1 ? `QR labels (${shown.length})` : 'QR label'}</Text>
             </TouchableOpacity>
-          ) : (
-            <Card>
-              <Text style={styles.sub}>No locker list yet. Start from a typical yacht SOPEP locker (16 items) and edit it to the vessel’s plan.</Text>
-              <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void addStarter()}><Text style={styles.btnText}>Add the typical list</Text></TouchableOpacity>
-            </Card>
-          )}
+          </View>
+          {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{`✓ ${saved}`}</Text> : null}
+          {unknownLocker ? <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700' }]}>That label is not a locker of this vessel (another vessel's, or the locker was removed).</Text> : null}
+          {shown.map((l) => {
+            const inIt = items.filter((i) => lockerOf(i) === l.id);
+            return (
+              <Card key={l.id}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm }}>
+                  <MciIcon name="archive-outline" size={22} color={COLORS.primary} />
+                  <View style={{ flex: 1 }}>
+                    <TextInput key={`n-${l.id}`} style={styles.lockerName} defaultValue={l.name} onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v && v !== l.name) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, name: v }); }} onEndEditing={(e) => { const v = e.nativeEvent.text.trim(); if (v && v !== l.name) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, name: v }); }} />
+                    <TextInput key={`p-${l.id}`} style={styles.sub} defaultValue={l.location ?? ''} placeholder="Where it is — engine room stbd, bunker station, bow locker" placeholderTextColor={COLORS.textLight} onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v !== (l.location ?? '')) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, location: v }); }} onEndEditing={(e) => { const v = e.nativeEvent.text.trim(); if (v !== (l.location ?? '')) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, location: v }); }} />
+                  </View>
+                  <TouchableOpacity onPress={() => void exportLockerLabels([l], vessel).then(done, fail)} hitSlop={8} accessibilityLabel={`QR label — ${l.name}`}>
+                    <MciIcon name="qrcode" size={22} color={COLORS.primary} />
+                  </TouchableOpacity>
+                  {l.id !== MAIN_LOCKER && !inIt.length ? (
+                    <TouchableOpacity onPress={() => void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, deleted: true }).then(() => setSel('all'))} hitSlop={8} accessibilityLabel={`Remove locker — ${l.name}`}>
+                      <MciIcon name="delete-outline" size={20} color={COLORS.textLight} />
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+                {inIt.map((i) => (
+                  <View key={i.id} style={styles.item}>
+                    <View style={{ flex: 1 }}>
+                      <TextInput style={styles.itemName} defaultValue={i.name} onEndEditing={(e) => e.nativeEvent.text.trim() && void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, name: e.nativeEvent.text.trim() })} onBlur={(e: any) => { const v = String(e?.target?.value ?? '').trim(); if (v && v !== i.name) void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, name: v }); }} />
+                      <TextInput style={styles.sub} defaultValue={i.location ?? ''} placeholder="Shelf / place in the locker" placeholderTextColor={COLORS.textLight} onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v !== (i.location ?? '')) void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, location: v }); }} onEndEditing={(e) => void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, location: e.nativeEvent.text.trim() })} />
+                    </View>
+                    {lockers.length > 1 ? (
+                      <Dropdown caption="" value={lockerOf(i)} onChange={(v: string) => void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, lockerId: v })} options={lockers.map((x) => ({ value: x.id, label: x.name }))} style={{ minWidth: 150, maxWidth: 200, paddingVertical: 4 }} />
+                    ) : null}
+                    <Text style={[styles.qty, short(i) ? { color: COLORS.danger } : null]}>
+                      {lastCheck ? `${lastCheck.counted[i.id] ?? 0} / ` : ''}{`${i.required} ${i.unit ?? ''}`}
+                    </Text>
+                    <TouchableOpacity onPress={() => Alert.alert('Remove', `Remove “${i.name}” from the locker list?`, [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, deleted: true }) }])} hitSlop={8}>
+                      <MciIcon name="delete-outline" size={20} color={COLORS.textLight} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                {items.length || l.id !== MAIN_LOCKER ? (
+                  <TouchableOpacity onPress={() => void saveRow(storage.SOPEP_ITEMS_KEY, { id: uid('sop'), name: 'New item', required: 1, order: items.length, ...(l.id !== MAIN_LOCKER ? { lockerId: l.id } : {}) } as any)}>
+                    <Text style={styles.link}>{`+ Add an item to ${l.name}`}</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <>
+                    <Text style={styles.sub}>No locker list yet. Start from a typical yacht SOPEP locker (16 items) and edit it to the vessel’s plan.</Text>
+                    <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void addStarter()}><Text style={styles.btnText}>Add the typical list</Text></TouchableOpacity>
+                  </>
+                )}
+              </Card>
+            );
+          })}
           {lastCheck?.defective?.length ? <Text style={[styles.sub, { color: COLORS.warning }]}>{`To replace: ${lastCheck.defective.map((id) => items.find((i) => i.id === id)?.name).filter(Boolean).join(', ')}`}</Text> : null}
         </>
       ) : tab === 'check' ? (
         <Card>
           <Label>Count the locker</Label>
-          {items.map((i) => (
+          {lockers.flatMap((l) => {
+            const inIt = items.filter((i) => lockerOf(i) === l.id);
+            return inIt.length && lockers.length > 1 ? [<Text key={`h-${l.id}`} style={[styles.sub, { fontWeight: '800', color: COLORS.textDark, marginTop: SIZES.sm }]}>{`${l.name}${l.location ? ` · ${l.location}` : ''}`}</Text>, ...inIt] : inIt;
+          }).map((i: any) => (React.isValidElement(i) ? i : (
             <View key={i.id} style={styles.countRow}>
               <Text style={styles.countName} numberOfLines={2}>{`${i.name} (${i.required} ${i.unit ?? ''})`}</Text>
               <TextInput style={styles.countInput} value={counts[i.id] ?? ''} onChangeText={(v) => setCounts({ ...counts, [i.id]: v })} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={COLORS.textLight} />
@@ -164,7 +231,7 @@ export default function SopepSc() {
                 <Text style={[styles.badText, bad.includes(i.id) && { color: COLORS.textWhite }]}>Replace</Text>
               </TouchableOpacity>
             </View>
-          ))}
+          )))}
           <TextInput style={styles.input} value={remarks} onChangeText={setRemarks} placeholder="Remarks" placeholderTextColor={COLORS.textLight} />
           {picker ? <><Text style={styles.sub}>Checked by</Text>{picker}</> : null}
           <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void saveCheck()}><Text style={styles.btnText}>Sign the check</Text></TouchableOpacity>
@@ -241,6 +308,9 @@ const makeStyles = (COLORS: Palette) =>
     chipTextOn: { color: COLORS.textWhite },
     item: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, ...COLORS.glassCard, borderRadius: SIZES.radiusMd, paddingVertical: SIZES.sm, paddingHorizontal: SIZES.md, marginBottom: SIZES.xs },
     itemName: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.textDark, paddingVertical: 2 },
+    lockerName: { fontSize: SIZES.h4 ?? 18, fontWeight: '800', color: COLORS.textDark, paddingVertical: 2 },
+    btnOutline: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingHorizontal: SIZES.md, paddingVertical: 8 },
+    btnOutlineText: { fontSize: SIZES.small, fontWeight: '800', color: COLORS.primary },
     itemTitle: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.textDark },
     sub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },
     qty: { fontSize: SIZES.body, fontWeight: '800', color: COLORS.textDark },

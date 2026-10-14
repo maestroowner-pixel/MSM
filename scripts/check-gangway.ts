@@ -3,7 +3,8 @@
 import { isAshore, isDoubleScan, lastMoves, nextMove, personsOnBoard, photosToRemove } from '../services/gangway';
 import { labelsToTspl } from '../services/tspl';
 import { crewCardSpecs, visitorPassSpecs } from '../services/gangwayLabels';
-import { crewQrPayload, parseCrewQr, parsePassQr, passQrPayload, samePass } from '../services/crewQr';
+import { crewQrPayload, parseCrewQr, parsePassQr, passQrPayload, samePass, parseSopepQr, sopepQrPayload } from '../services/crewQr';
+import { MAIN_LOCKER, lockerOf, sopepLockers } from '../types/sopep';
 
 let fail = 0;
 const ok = (c: boolean, m: string) => { if (!c) { fail++; console.log('✗', m); } else console.log('✓', m); };
@@ -37,5 +38,9 @@ ok(samePass('7', '07') && samePass('07', '7') && !samePass('7', '17') && !samePa
   const due = photosToRemove([V({ id: 'old', timeOut: '17:00' }), V({ id: 'aboard' }), V({ id: 'recent', date: '2026-08-01', timeOut: '17:00' }), V({ id: 'nophoto', timeOut: '17:00', photo: undefined }), V({ id: 'stayed', date: '2026-06-01', dateOut: '2026-09-01', timeOut: '10:00' })], '2026-10-13');
   ok(due.map((v) => v.id).join() === 'old', `photo removed 90 days after leaving, never while aboard: ${due.map((v) => v.id)}`);
 }
+// SOPEP lockers (14 Oct 2026)
+ok(parseSopepQr(sopepQrPayload('lk_ab12')) === 'lk_ab12' && parseSopepQr('MSM://SOPEP/main') === 'main' && parseSopepQr(crewQrPayload('c1')) === null && parseCrewQr(sopepQrPayload('x')) === null, 'SOPEP locker QR: its own scheme, not mistaken for a crew card');
+ok(sopepLockers([])[0].id === MAIN_LOCKER && sopepLockers([{ id: 'lk2', name: 'Bow', order: 1, updatedAt: 1 }]).map((l) => l.id).join() === 'main,lk2' && sopepLockers([{ id: 'main', name: 'Engine room', order: 0, updatedAt: 1 }])[0].name === 'Engine room', 'lockers: the first is there before it is saved, renamed when saved');
+ok(lockerOf({}) === MAIN_LOCKER && lockerOf({ lockerId: 'lk2' }) === 'lk2', 'an item without a locker is in the first one');
 console.log(fail ? `${fail} failed` : 'all passed');
 process.exit(fail ? 1 : 0);

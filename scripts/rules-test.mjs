@@ -224,6 +224,9 @@ await t(false, 'Crew cannot change the minutes', setDoc(R(crew, 'safety_meetings
 await t(true, 'The Master signs the meeting', setDoc(R(master, 'safety_meetings', 'sm1'), { ...SM, attendance: [{ name: 'Max', present: true, signedAt: 5 }], doneAt: 9, doneBy: 'Jez', updatedAt: 9 }));
 await t(false, 'A signed meeting is final', setDoc(R(master, 'safety_meetings', 'sm1'), { ...SM, minutes: 'later', doneAt: 9, updatedAt: 10 }));
 
+await t(true, 'Crew name a SOPEP locker', setDoc(R(crew, 'sopep_lockers', 'lk1'), { id: 'lk1', name: 'Bow locker', location: 'Forepeak', order: 1, updatedAt: 1 }));
+await t(true, 'The shore reads the SOPEP lockers', getDoc(R(shore, 'sopep_lockers', 'lk1')));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

@@ -13,7 +13,7 @@ import QRCode from 'qrcode';
 
 import { VesselInfo } from './storage';
 import { esc, share } from './export';
-import { crewQrPayload, passQrPayload } from './crewQr';
+import { crewQrPayload, passQrPayload, sopepQrPayload } from './crewQr';
 import { CrewMember } from '../types/crew';
 import { onWeb, onWindows } from '../utils/fileShare';
 import { saveFileWeb } from '../utils/webSave';
@@ -103,7 +103,8 @@ function pdfBlob(cards: CardSpec[], vessel: VesselInfo | null): Blob {
       doc.text(doc.splitTextToSize(c.name, 36), x + 5, y + 17);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
-      doc.text(c.sub, x + 5, y + 31);
+      // Wrapped to the text column, clear of the QR (a long locker place ran under it).
+      doc.text(doc.splitTextToSize(c.sub, 36).slice(0, 3), x + 5, y + 31);
     }
     doc.setTextColor(91, 107, 126);
     doc.setFontSize(5.5);
@@ -142,6 +143,11 @@ export function exportCrewCards(crew: CrewMember[], vessel: VesselInfo | null) {
 /** Passenger cards — the same QR scheme as the crew's: the gangway knows a passenger by id (types/passengers.ts). */
 export function exportPassengerCards(list: { id: string; name: string; cabin?: string }[], vessel: VesselInfo | null) {
   return exportCards(list.map((p) => ({ name: p.name, sub: p.cabin ? `Guest · cabin ${p.cabin}` : 'Guest', foot: 'PASSENGER CARD · scan at the gangway', qr: crewQrPayload(p.id) })), vessel, 'Passenger cards');
+}
+
+/** SOPEP locker labels — name big, where it is, the QR that opens its contents (types/sopep.ts). */
+export function exportLockerLabels(list: { id: string; name: string; location?: string }[], vessel: VesselInfo | null) {
+  return exportCards(list.map((l) => ({ name: l.name, sub: l.location ?? '', foot: 'SOPEP LOCKER · scan to see what is inside', qr: sopepQrPayload(l.id) })), vessel, 'SOPEP locker labels');
 }
 
 /** Reusable numbered visitor passes, 01…count — laminated and kept at the gangway. */

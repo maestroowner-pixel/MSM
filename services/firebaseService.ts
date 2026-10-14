@@ -1254,6 +1254,7 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'ballast', key: storage.BALLAST_KEY, appendOnly: true, module: 'ballast' },
   { sub: 'ballast_signs', key: storage.BALLAST_SIGNS_KEY, appendOnly: true, module: 'ballast' },
   { sub: 'sopep_items', key: storage.SOPEP_ITEMS_KEY, module: 'sopep' },
+  { sub: 'sopep_lockers', key: storage.SOPEP_LOCKERS_KEY, module: 'sopep' },
   { sub: 'sopep_checks', key: storage.SOPEP_CHECKS_KEY, appendOnly: true, module: 'sopep' },
   { sub: 'sopep_drills', key: storage.SOPEP_DRILLS_KEY, appendOnly: true, module: 'sopep' },
   { sub: 'visitors', key: storage.VISITORS_KEY, module: 'security' },

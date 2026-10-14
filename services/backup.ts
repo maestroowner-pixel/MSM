@@ -33,7 +33,7 @@ import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
 import { OrbEntry, OrbMasterSign } from '../types/orb';
 import { LogEntry, LogMonthSign } from '../types/logbook';
 import { InspectionRound } from '../types/round';
-import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
+import { SopepCheck, SopepDrill, SopepItem, SopepLocker } from '../types/sopep';
 import { Survey, SurveyDone } from '../types/survey';
 import { NonConformity, SafetyObservation } from '../types/safety';
 import { Drill } from '../types/drills';
@@ -85,7 +85,7 @@ export interface BackupFile {
   sewage?: { entries: LogEntry[]; signs: LogMonthSign[] };
   ballast?: { entries: LogEntry[]; signs: LogMonthSign[] };
   /** SOPEP locker, checks, drills; ISPS visitor log and security levels. */
-  sopep?: { items: SopepItem[]; checks: SopepCheck[]; drills: SopepDrill[] };
+  sopep?: { lockers?: SopepLocker[]; items: SopepItem[]; checks: SopepCheck[]; drills: SopepDrill[] };
   /** Surveys & audits: the plan and what was carried out. */
   surveys?: { plan: Survey[]; done: SurveyDone[] };
   /** QHSE: observation cards and non-conformities. */
@@ -225,7 +225,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   const passengers = { list: await storage.loadList<Passenger>(storage.PASSENGERS_KEY), private: await storage.loadList<PassengerPrivate>(storage.PASSENGERS_PRIVATE_KEY) };
   const hospital = { items: await storage.loadList<MedItem>(storage.MED_ITEMS_KEY), moves: await storage.loadList<MedMove>(storage.MED_MOVES_KEY), treatments: await storage.loadList<MedTreatment>(storage.MED_TREATMENTS_KEY), orders: await storage.loadList<MedOrder>(storage.MED_ORDERS_KEY), checks: await storage.loadList<MedCheck>(storage.MED_CHECKS_KEY) };
   const surveys = { plan: await storage.loadList<Survey>(storage.SURVEYS_KEY), done: await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY) };
-  const sopep = { items: await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY), checks: await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY), drills: await storage.loadList<SopepDrill>(storage.SOPEP_DRILLS_KEY) };
+  const sopep = { lockers: await storage.loadList<SopepLocker>(storage.SOPEP_LOCKERS_KEY), items: await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY), checks: await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY), drills: await storage.loadList<SopepDrill>(storage.SOPEP_DRILLS_KEY) };
   const security = { visitors: await storage.loadList<Visitor>(storage.VISITORS_KEY), levels: await storage.loadList<SecurityLevelRec>(storage.SECURITY_LEVEL_KEY), drills: await storage.loadList<SecurityDrill>(storage.SECURITY_DRILLS_KEY), crewMoves: await storage.loadList<CrewMove>(storage.CREW_MOVES_KEY) };
 
   // Read each referenced binary into a basename -> base64 map.
@@ -493,6 +493,7 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
   }
   if (backup.sopep) {
     await storage.saveList(storage.SOPEP_ITEMS_KEY, backup.sopep.items ?? []);
+    await storage.saveList(storage.SOPEP_LOCKERS_KEY, backup.sopep.lockers ?? []);
     await storage.saveList(storage.SOPEP_CHECKS_KEY, backup.sopep.checks ?? []);
     await storage.saveList(storage.SOPEP_DRILLS_KEY, backup.sopep.drills ?? []);
   }

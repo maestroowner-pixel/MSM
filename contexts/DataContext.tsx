@@ -20,7 +20,7 @@ import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
 import { OrbEntry, OrbMasterSign } from '../types/orb';
 import { LogEntry, LogMonthSign } from '../types/logbook';
 import { InspectionRound } from '../types/round';
-import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
+import { SopepCheck, SopepDrill, SopepItem, SopepLocker } from '../types/sopep';
 import { Survey, SurveyDone } from '../types/survey';
 import { NonConformity, SafetyObservation } from '../types/safety';
 import { Drill } from '../types/drills';
@@ -129,6 +129,7 @@ interface DataContextType {
   signGarbageMonth: (s: GarbageMasterSign) => Promise<void>;
   /** SOPEP and security. */
   sopepItems: SopepItem[];
+  sopepLockers: SopepLocker[];
   sopepChecks: SopepCheck[];
   sopepDrills: SopepDrill[];
   visitors: Visitor[];
@@ -252,6 +253,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [ballastSigns, setBallastSigns] = useState<LogMonthSign[]>([]);
   const [garbageSigns, setGarbageSigns] = useState<GarbageMasterSign[]>([]);
   const [sopepItems, setSopepItems] = useState<SopepItem[]>([]);
+  const [sopepLockers, setSopepLockers] = useState<SopepLocker[]>([]);
   const [sopepChecks, setSopepChecks] = useState<SopepCheck[]>([]);
   const [sopepDrills, setSopepDrills] = useState<SopepDrill[]>([]);
   const [visitors, setVisitors] = useState<Visitor[]>([]);
@@ -338,6 +340,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _ballastSigns = await storage.loadList<LogMonthSign>(storage.BALLAST_SIGNS_KEY);
     const _garbageSigns = await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY);
     const _sopepItems = (await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order);
+    const _sopepLockers = await storage.loadList<SopepLocker>(storage.SOPEP_LOCKERS_KEY);
     const _sopepChecks = live(await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY));
     const _sopepDrills = live(await storage.loadList<SopepDrill>(storage.SOPEP_DRILLS_KEY));
     const _visitors = live(await storage.loadList<Visitor>(storage.VISITORS_KEY));
@@ -395,6 +398,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setBallastSigns(_ballastSigns);
     setGarbageSigns(_garbageSigns);
     setSopepItems(_sopepItems);
+    setSopepLockers(_sopepLockers);
     setSopepChecks(_sopepChecks);
     setSopepDrills(_sopepDrills);
     setVisitors(_visitors);
@@ -599,6 +603,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _ballastSigns = await storage.loadList<LogMonthSign>(storage.BALLAST_SIGNS_KEY);
     const _garbageSigns = await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY);
     const _sopepItems = (await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order);
+    const _sopepLockers = await storage.loadList<SopepLocker>(storage.SOPEP_LOCKERS_KEY);
     const _sopepChecks = live(await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY));
     const _sopepDrills = live(await storage.loadList<SopepDrill>(storage.SOPEP_DRILLS_KEY));
     const _visitors = live(await storage.loadList<Visitor>(storage.VISITORS_KEY));
@@ -647,6 +652,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setBallastSigns(_ballastSigns);
     setGarbageSigns(_garbageSigns);
     setSopepItems(_sopepItems);
+    setSopepLockers(_sopepLockers);
     setSopepChecks(_sopepChecks);
     setSopepDrills(_sopepDrills);
     setVisitors(_visitors);
@@ -910,6 +916,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         addGarbage,
         signGarbageMonth,
         sopepItems,
+        sopepLockers,
         sopepChecks,
         sopepDrills,
         visitors,
