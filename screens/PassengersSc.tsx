@@ -177,7 +177,7 @@ export default function PassengersSc() {
           <TextInput style={styles.input} value={draft.name} onChangeText={(v) => set({ name: v })} placeholder="Full name as in the passport ★" placeholderTextColor={COLORS.textLight} autoFocus />
           <View style={styles.row}>
             <Dropdown caption="GROUP" value={draft.group ?? ''} onChange={(v: string) => set({ group: v || undefined })} options={[{ value: '', label: '—' }, ...PASSENGER_GROUPS.map((g) => ({ value: g, label: g }))]} style={{ flex: 1, minWidth: 200 }} />
-            <TextInput style={[styles.input, { flex: 1, minWidth: 120, marginTop: 0 }]} value={draft.cabin ?? ''} onChangeText={(v) => set({ cabin: v })} placeholder="Cabin" placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { flex: 1, minWidth: 120, marginTop: 0 }]} value={draft.cabin ?? ''} onChangeText={(v) => set({ cabin: v })} placeholder="Cabin No." placeholderTextColor={COLORS.textLight} />
             <TextInput style={[styles.input, { flex: 1, minWidth: 140, marginTop: 0 }]} value={draft.nationality ?? ''} onChangeText={(v) => set({ nationality: v })} placeholder="Nationality" placeholderTextColor={COLORS.textLight} />
           </View>
           <View style={styles.row}>

@@ -80,7 +80,7 @@ export default function CrewMemberSc() {
 
   const save = async () => {
     if (!m.name.trim()) return Alert.alert('Name required', 'Full name, as on the passport.');
-    await saveCrewMember({ ...m, name: m.name.trim(), rank: m.rank?.trim() || undefined });
+    await saveCrewMember({ ...m, name: m.name.trim(), rank: m.rank?.trim() || undefined, cabin: m.cabin?.trim() || undefined });
     // Only what was filled in; Firestore refuses undefined.
     const clean = JSON.parse(JSON.stringify({ ...p, updatedAt: Date.now() }));
     if (canEdit && Object.keys(clean).length > 2) await saveCrewPrivate(clean);
@@ -152,6 +152,7 @@ export default function CrewMemberSc() {
           ) : null}
           {F({ label: 'Full name ★', value: m.name, onChange: (v) => setMember({ name: v }), placeholder: 'As on the passport' })}
           {F({ label: 'Rank / position', value: m.rank, onChange: (v) => setMember({ rank: v }), placeholder: 'Chief Officer, Bosun, Deckhand…' })}
+          {F({ label: 'Cabin No.', value: m.cabin, onChange: (v) => setMember({ cabin: v }), placeholder: 'C3, 12, Crew 4…' })}
 
           <View style={styles.card}>
             <View style={styles.toggleRow}>

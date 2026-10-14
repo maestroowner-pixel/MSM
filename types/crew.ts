@@ -22,6 +22,8 @@ export interface CrewMember {
   name: string;
   /** Rank / role — "Third Officer", "Bosun". Snapshotted onto each signature. */
   rank?: string;
+  /** Cabin No. — on the crew list, the gangway and the crew card (14 Oct 2026). */
+  cabin?: string;
   active: boolean;
   addedAt: number;
   updatedAt: number;

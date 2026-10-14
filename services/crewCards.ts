@@ -136,7 +136,7 @@ async function exportCards(cards: CardSpec[], vessel: VesselInfo | null, title: 
 }
 
 export function exportCrewCards(crew: CrewMember[], vessel: VesselInfo | null) {
-  return exportCards(crew.map((c) => ({ name: c.name, sub: c.rank ?? '', foot: 'CREW CARD · scan at the gangway', qr: crewQrPayload(c.id) })), vessel, 'Crew cards');
+  return exportCards(crew.map((c) => ({ name: c.name, sub: [c.rank, c.cabin ? `cabin ${c.cabin}` : null].filter(Boolean).join(' · '), foot: 'CREW CARD · scan at the gangway', qr: crewQrPayload(c.id) })), vessel, 'Crew cards');
 }
 
 /** Passenger cards — the same QR scheme as the crew's: the gangway knows a passenger by id (types/passengers.ts). */

@@ -499,7 +499,7 @@ function SecuritySc() {
             return (
               <View key={c.id} style={[styles.row, { borderLeftColor: away ? COLORS.textLight : COLORS.success }]}>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.name, away && { color: COLORS.textLight }]}>{c.rank ? `${c.name} · ${c.rank}` : c.name}</Text>
+                  <Text style={[styles.name, away && { color: COLORS.textLight }]}>{[c.name, c.rank, c.cabin ? `cabin ${c.cabin}` : null].filter(Boolean).join(' · ')}</Text>
                   <Text style={styles.sub}>{away ? `ashore since ${when}` : m ? `aboard since ${when}` : 'aboard'}</Text>
                 </View>
                 {/* The button shows where the person IS — on board green, ashore yellow — and a tap changes it (13 Oct 2026: "write the current state on the button"). */}

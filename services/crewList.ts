@@ -26,6 +26,7 @@ import { uid } from '../utils/id';
 export const CREW_COLUMNS = [
   'Full name ★',
   'Rank / position',
+  'Cabin No.',
   'Date of birth',
   'Place of birth',
   'Nationality (2 letters: GB, ES, UA…)',
@@ -45,7 +46,7 @@ export const CREW_COLUMNS = [
   'Next of kin — address',
 ] as const;
 
-const EXAMPLE = ['Example — Jane Smith (delete this row)', 'Chief Officer', '1988-05-14', 'Southampton, UK', 'GB', '123456789', '2031-02-28', 'SB-55821', '2026-10-01', 'Palma de Mallorca', '+44 7700 900000', 'jane@example.com', '1 High St, Southampton, UK', 'Smith', 'John', 'Husband', '+44 7700 900001', '', '1 High St, Southampton, UK'];
+const EXAMPLE = ['Example — Jane Smith (delete this row)', 'Chief Officer', 'C2', '1988-05-14', 'Southampton, UK', 'GB', '123456789', '2031-02-28', 'SB-55821', '2026-10-01', 'Palma de Mallorca', '+44 7700 900000', 'jane@example.com', '1 High St, Southampton, UK', 'Smith', 'John', 'Husband', '+44 7700 900001', '', '1 High St, Southampton, UK'];
 
 /** A blank template as base64 .xlsx, with one example row to delete. */
 export function crewTemplateBase64(): string {
@@ -65,7 +66,7 @@ export function crewSheetBase64(crew: CrewMember[], privates: CrewPrivate[]): st
   const rows = crew.filter((c) => !c.deleted && c.active).map((c) => {
     const p = privates.find((x) => x.id === c.id);
     const k = p?.nextOfKin;
-    return [c.name, c.rank ?? '', p?.dateOfBirth ?? '', p?.placeOfBirth ?? '', p?.nationality ?? '', p?.passportNo ?? '', p?.passportExpiry ?? '', p?.seamansBookNo ?? '', c.signOn ?? '', c.signOnPort ?? '', p?.phone ?? '', p?.email ?? '', p?.homeAddress ?? '', k?.lastName ?? k?.name ?? '', k?.firstName ?? '', k?.relationship ?? '', k?.phone ?? '', k?.email ?? '', k?.address ?? ''];
+    return [c.name, c.rank ?? '', c.cabin ?? '', p?.dateOfBirth ?? '', p?.placeOfBirth ?? '', p?.nationality ?? '', p?.passportNo ?? '', p?.passportExpiry ?? '', p?.seamansBookNo ?? '', c.signOn ?? '', c.signOnPort ?? '', p?.phone ?? '', p?.email ?? '', p?.homeAddress ?? '', k?.lastName ?? k?.name ?? '', k?.firstName ?? '', k?.relationship ?? '', k?.phone ?? '', k?.email ?? '', k?.address ?? ''];
   });
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([[...CREW_COLUMNS], ...rows]);
@@ -77,6 +78,7 @@ export function crewSheetBase64(crew: CrewMember[], privates: CrewPrivate[]): st
 export interface CrewRow {
   name: string;
   rank?: string;
+  cabin?: string;
   dateOfBirth?: string;
   placeOfBirth?: string;
   nationality?: string;
@@ -120,6 +122,7 @@ export function parseCrewWorkbook(data: ArrayBuffer | Uint8Array | string): Crew
     family: head.findIndex((h) => h === 'surname' || h === 'family name' || h === 'last name'),
     given: head.findIndex((h) => h === 'given names' || h === 'given name' || h === 'first name'),
     rank: col('Rank'),
+    cabin: head.findIndex((h) => h.startsWith('cabin') || h === 'stateroom'),
     dob: col('Date of birth'),
     pob: col('Place of birth'),
     nat: col('Nationality'),
@@ -147,6 +150,7 @@ export function parseCrewWorkbook(data: ArrayBuffer | Uint8Array | string): Crew
     out.push({
       name: name.replace(/\s+/g, ' '),
       rank: text(get(r, at.rank)),
+      cabin: text(get(r, at.cabin)),
       dateOfBirth: parseDateCell(get(r, at.dob)),
       placeOfBirth: text(get(r, at.pob)),
       ...(() => {
@@ -196,7 +200,7 @@ export function planCrewImport(rows: CrewRow[], crew: CrewMember[], privates: Cr
     const id = had?.id ?? uid('crew');
     const member: CrewMember = {
       ...(had ?? { id, name: r.name, addedAt: now, updatedAt: now, active: true }),
-      ...filled({ rank: r.rank, signOn: r.signOn, signOnPort: r.signOnPort }),
+      ...filled({ rank: r.rank, cabin: r.cabin, signOn: r.signOn, signOnPort: r.signOnPort }),
       name: had?.name ?? r.name,
       active: true,
       onBoard: true,

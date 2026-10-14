@@ -11,7 +11,7 @@ import { Passenger, PassengerPrivate } from '../types/passengers';
 import { parseDateCell } from '../utils/dates';
 import { uid } from '../utils/id';
 
-export const PAX_HEAD = ['Full name ★', 'Group', 'Cabin', 'Nationality', 'Date of birth', 'ID type', 'ID No.', 'ID expiry', 'Embarked', 'Port embarked', 'Disembarked', 'Port disembarked', 'Phone', 'Contact ashore', 'Notes'];
+export const PAX_HEAD = ['Full name ★', 'Group', 'Cabin No.', 'Nationality', 'Date of birth', 'ID type', 'ID No.', 'ID expiry', 'Embarked', 'Port embarked', 'Disembarked', 'Port disembarked', 'Phone', 'Contact ashore', 'Notes'];
 
 export interface PaxRow {
   name: string;
@@ -45,7 +45,7 @@ const ALIASES: Record<string, string[]> = {
   family: ['family name', 'surname', 'last name'],
   given: ['given names', 'given name', 'first name', 'first names', 'forename'],
   group: ['group', 'category', 'type', 'role'],
-  cabin: ['cabin', 'stateroom', 'room', 'berth'],
+  cabin: ['cabin no', 'cabin number', 'cabin', 'stateroom', 'room', 'berth'],
   nat: ['nationality', 'citizenship', 'country'],
   dob: ['date of birth', 'dob', 'birth date', 'born', 'date and place of birth'],
   idType: ['id type', 'document type', 'type of identity document', 'nature of identity document'],
@@ -136,7 +136,7 @@ export function paxSheet(list: Passenger[], privs: PassengerPrivate[], withDocs:
   const head = withDocs ? PAX_HEAD : PAX_HEAD.filter((h) => !['Date of birth', 'ID type', 'ID No.', 'ID expiry', 'Phone', 'Contact ashore'].includes(h));
   const rows = list.filter((p) => !p.deleted).map((p) => {
     const x = privs.find((v) => v.id === p.id);
-    const all: Record<string, unknown> = { 'Full name ★': p.name, Group: p.group ?? '', Cabin: p.cabin ?? '', Nationality: p.nationality ?? '', 'Date of birth': x?.dateOfBirth ?? '', 'ID type': x?.idType ?? '', 'ID No.': x?.idNo ?? '', 'ID expiry': x?.idExpiry ?? '', Embarked: p.embarked ?? '', 'Port embarked': p.embarkPort ?? '', Disembarked: p.disembarked ?? '', 'Port disembarked': p.disembarkPort ?? '', Phone: x?.phone ?? '', 'Contact ashore': x?.emergencyContact ?? '', Notes: p.notes ?? '' };
+    const all: Record<string, unknown> = { 'Full name ★': p.name, Group: p.group ?? '', 'Cabin No.': p.cabin ?? '', Nationality: p.nationality ?? '', 'Date of birth': x?.dateOfBirth ?? '', 'ID type': x?.idType ?? '', 'ID No.': x?.idNo ?? '', 'ID expiry': x?.idExpiry ?? '', Embarked: p.embarked ?? '', 'Port embarked': p.embarkPort ?? '', Disembarked: p.disembarked ?? '', 'Port disembarked': p.disembarkPort ?? '', Phone: x?.phone ?? '', 'Contact ashore': x?.emergencyContact ?? '', Notes: p.notes ?? '' };
     return head.map((h) => all[h]);
   });
   return [head, ...rows];

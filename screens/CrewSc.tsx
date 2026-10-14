@@ -241,7 +241,7 @@ export default function CrewSc() {
           <View style={{ flex: 1 }}>
             <Text style={[styles.name, !c.active && { color: COLORS.textLight }]}>{c.name}</Text>
             <Text style={styles.meta}>
-              {[c.rank, c.active ? null : 'Retired', crewMgmt && c.active && c.onBoard === false ? 'Signed off' : null, n ? `${n} signed` : null].filter(Boolean).join(' · ') ||
+              {[c.rank, c.cabin ? `cabin ${c.cabin}` : null, c.active ? null : 'Retired', crewMgmt && c.active && c.onBoard === false ? 'Signed off' : null, n ? `${n} signed` : null].filter(Boolean).join(' · ') ||
                 'No rank set'}
             </Text>
             {(() => {
