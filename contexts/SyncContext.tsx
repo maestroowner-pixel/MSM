@@ -41,7 +41,7 @@ import { DEFAULT_ARCHIVE, newerArchive } from '../services/photoArchive';
 import { EnrolledDevice, Role } from '../types/role';
 import * as accounts from '../services/accounts';
 import { useData } from './DataContext';
-import { ManageKey, TabKey, canManage, releasedTabs, visibleTabs } from '../constants/access';
+import { ManageKey, TabKey, canManage, pageShown, releasedTabs, visibleTabs } from '../constants/access';
 import { moduleOn } from '../constants/modules';
 
 /** The tabs the Master last set for this device, for a launch with no signal. */
@@ -70,6 +70,8 @@ interface SyncContextType {
   tabs: Set<TabKey>;
   /** May this device open the gear on Stores / SOPEP (constants/access.ts canManage)? */
   canManage: (key: ManageKey) => boolean;
+  /** Does this device show that page under its menu entry ("Security:searches")? The Master's page sets it. */
+  pageOn: (key: string) => boolean;
   lastSyncAt: number | null;
   /** Size of the register blob, so Settings can show it before it is a problem. */
   registerBytes: number;
@@ -679,10 +681,12 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   }, [myTabs, role]);
 
   const canManageFn = React.useCallback((key: ManageKey) => canManage(me?.manage, key, role === 'superadmin', enrolled), [me, role, enrolled]);
+  // As with the tabs: while Access is off, the Master has no screen to set it, so nothing stored is obeyed.
+  const pageOnFn = React.useCallback((key: string) => !moduleOn('access') || pageShown(me?.hidePages, key, role === 'superadmin', enrolled), [me, role, enrolled]);
 
   return (
     <SyncContext.Provider
-      value={{ status, role, enrolled, me, tabs, canManage: canManageFn, lastSyncAt, registerBytes, connect, disconnect, pushLocalNow, applyLocally, lastError }}
+      value={{ status, role, enrolled, me, tabs, canManage: canManageFn, pageOn: pageOnFn, lastSyncAt, registerBytes, connect, disconnect, pushLocalNow, applyLocally, lastError }}
     >
       {children}
     </SyncContext.Provider>

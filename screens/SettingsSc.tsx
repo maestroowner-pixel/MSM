@@ -686,6 +686,17 @@ export default function SettingsSc() {
             which put a door in front of the crew and a notice on it saying the
             door is not theirs. A member who wants the read-only roster can still
             reach /accounts by URL, where the screen explains itself. */}
+        {/* Everything the Master can allow or delegate, as one table (screens/MasterSc). */}
+        {sync.role === 'superadmin' && moduleOn('access') ? (
+          <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('MasterPage')}>
+            <IconChip name="shield-crown-outline" size={18} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkTitle}>Master's page</Text>
+              <Text style={styles.linkSub}>Who may see and do what — menus, pages, buttons, ranks, signing</Text>
+            </View>
+            <Text style={styles.chev}>›</Text>
+          </TouchableOpacity>
+        ) : null}
         {sync.role === 'superadmin' ? (
           <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Accounts')}>
             <IconChip name="key" size={18} />

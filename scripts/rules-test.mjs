@@ -56,6 +56,8 @@ await t(false, 'Device cannot rename itself', updateDoc(R(crew, 'devices', 'devU
 await t(true, 'Master sets a device\'s tabs', updateDoc(R(master, 'devices', 'devU'), { tabs: ['rest'] }));
 await t(false, 'Device cannot give itself the gear', updateDoc(R(crew, 'devices', 'devU'), { manage: ['stores', 'sopep'] }));
 await t(true, 'Master gives a device the stores gear', updateDoc(R(master, 'devices', 'devU'), { manage: ['stores'] }));
+await t(false, 'Device cannot change its own hidden pages', updateDoc(R(crew, 'devices', 'devU'), { hidePages: [] }));
+await t(true, 'Master hides a page on a device', updateDoc(R(master, 'devices', 'devU'), { hidePages: ['Security:searches'] }));
 await t(false, 'Crew cannot read invitations (PINs)', getDoc(R(crew, 'invites', 'i1')));
 await t(true, 'Superintendent reads the register of a fleet vessel', getDoc(doc(shore, 'safety_vessels', V)));
 await t(false, 'Superintendent cannot read a vessel outside the fleet', getDoc(doc(shore, 'safety_vessels', OTHER)));

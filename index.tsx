@@ -71,6 +71,7 @@ import DefectsSc from './screens/DefectsSc';
 import InspectionDetailSc from './screens/InspectionDetailSc';
 import AccountsSc from './screens/AccountsSc';
 import AccessSc from './screens/AccessSc';
+import MasterSc from './screens/MasterSc';
 import SparesSc from './screens/SparesSc';
 import SparePartSc from './screens/SparePartSc';
 import DocsSc from './screens/DocsSc';
@@ -108,6 +109,7 @@ import FleetSc from './screens/FleetSc';
 import FleetVesselSc from './screens/FleetVesselSc';
 import { OPTIONAL_TABS } from './constants/access';
 import { FEW, MENU_WIDTH, NavMenuBar, PIN_WIDTH, flatGrouped, useNavPrefs } from './components/NavMenu';
+import { MENU_LABEL } from './utils/navOrder';
 import { moduleOn } from './constants/modules';
 import EnrolSc from './screens/EnrolSc';
 import { recordScanProof } from './services/signingPolicy';
@@ -206,34 +208,7 @@ function TabFade({ children }: { children: React.ReactNode }) {
 }
 
 // Full names for the menu, where there is room for them (components/NavMenu).
-const MENU_LABEL: Record<string, string> = {
-  Dashboard: moduleOn('board') ? 'Board' : 'Dashboard',
-  Equipment: 'Equipment',
-  Certificates: 'Certificates',
-  Documents: 'Documents',
-  Maintenance: 'Maintenance (PMS)',
-  Spares: 'Spare parts',
-  HoursOfRest: 'Hours of rest',
-  Crew: 'Crew list',
-  CrewMatrix: 'Crew matrix',
-  Permits: 'Permits, TBT & RA',
-  Sopep: 'SOPEP',
-  Security: 'Security (ISPS)',
-  Surveys: 'Surveys & audits',
-  Safety: 'Safety observations & NC',
-  Drills: 'Drills',
-  Hospital: 'Hospital',
-  Passengers: 'Passengers',
-  Stores: 'Stores',
-  Rounds: 'Inspection rounds',
-  Fuel: 'Fuel',
-  Garbage: 'Garbage record book',
-  OilRecord: 'Oil record book',
-  Sewage: 'Sewage record',
-  Ballast: 'Ballast water',
-  Reports: 'Reports',
-  Settings: 'Settings',
-};
+// The menu's names: utils/navOrder.ts MENU_LABEL (shared with the Master's page).
 
 function MainTabs() {
   const navigation = useNavigation<any>();
@@ -477,6 +452,7 @@ const linking = {
       Defects: 'defects',
       Accounts: 'accounts',
       Access: 'access',
+      MasterPage: 'master',
       Enrol: 'join',
     },
   },
@@ -655,6 +631,7 @@ function Root() {
         <Stack.Screen name="Crew" component={CrewSc} options={webHeader(moduleOn('crewCerts') ? 'Crew list' : 'Crew', toTab('Settings'))} />
         <Stack.Screen name="RestDay" component={RestDaySc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Access" component={AccessSc} options={webHeader('Access', toTab('Settings'))} />
+        <Stack.Screen name="MasterPage" component={MasterSc} options={webHeader("Master's page", toTab('Settings'))} />
         <Stack.Screen name="Machine" component={MachineSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsJob" component={PmsJobSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsDefect" component={PmsDefectSc} options={{ presentation: 'modal' }} />

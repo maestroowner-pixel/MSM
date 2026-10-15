@@ -1,5 +1,6 @@
 // npm run check:access — which tabs a device shows (constants/access.ts).
-import { ALL_TABS, MANAGE_ROUTE, canManage, toggleManage, toggleTab, visibleTabs } from '../constants/access';
+import { ALL_TABS, MANAGE_ROUTE, canManage, pageKey, pageShown, toggleManage, togglePage, toggleTab, visibleTabs } from '../constants/access';
+import { masterCell, masterRows } from '../services/masterPage';
 
 let failed = 0;
 const ok = (c: boolean, m: string) => { if (!c) failed++; console.log(`${c ? '✓' : '✗'} ${m}`); };
@@ -44,5 +45,22 @@ ok(canManage(['stores'], 'stores', false, true) && !canManage(['stores'], 'sopep
 ok(canManage(undefined, 'sopep', true, true) && canManage(undefined, 'stores', false, false), 'gear: the Master always; a device not joined to a vessel is its own Master');
 ok(toggleManage(undefined, 'sopep').join() === 'sopep' && toggleManage(['sopep', 'stores'], 'sopep').join() === 'stores', 'gear: switched on and off');
 ok(MANAGE_ROUTE.Stores === 'stores' && MANAGE_ROUTE.Sopep === 'sopep', 'gear: the menu entries it belongs to');
+
+// the Master's page (15 Oct 2026)
+ok(pageShown(undefined, 'Security:searches', false, true) && !pageShown(['Security:searches'], 'Security:searches', false, true) && pageShown(['Security:searches'], 'Security:searches', true, true), 'pages: shown by default, hidden where the Master hid them, never for the Master');
+ok(togglePage(undefined, 'Security:ssp').join() === 'Security:ssp' && togglePage(['Security:ssp'], 'Security:ssp').length === 0 && pageKey('Sopep', 'drills') === 'Sopep:drills', 'pages: hidden and shown again');
+const mr = masterRows([]);
+ok(mr[0].kind === 'group' && mr.some((r) => r.kind === 'fixed' && r.id === 'Dashboard') && mr.some((r) => r.kind === 'tab' && r.id === 'Rounds'), `rows: groups, the fixed entries, the released tabs (${mr.length} rows)`);
+const sec = mr.filter((r) => r.kind === 'page' && r.id.startsWith('Security/'));
+ok(sec.some((r) => r.kind === 'page' && r.page === 'Security:ssp' && r.officers) && sec.some((r) => r.kind === 'page' && r.page === 'Security:searches'), 'rows: Security pages, the SSP marked for officers');
+const pg: any = { kind: 'page', id: 'x', label: 'Searches', icon: 'x', tab: 'security', page: 'Security:searches' };
+const ssp: any = { ...pg, page: 'Security:ssp', officers: true };
+const gear: any = { kind: 'manage', id: 'm', label: 'g', tab: 'stores', manage: 'stores' };
+const crew: any = { role: 'user' }, off: any = { role: 'admin' }, mst: any = { role: 'superadmin', tabs: [] };
+ok(masterCell(pg, crew).on && !masterCell(pg, crew).locked && !masterCell(pg, { ...crew, hidePages: ['Security:searches'] }).on, 'cell: a page on, and off when hidden');
+ok(!masterCell(pg, { ...crew, tabs: ['rounds'] }).on && masterCell(pg, { ...crew, tabs: ['rounds'] }).locked, 'cell: a page dim and locked while its menu entry is off');
+ok(!masterCell(ssp, crew).on && masterCell(ssp, crew).locked && masterCell(ssp, off).on && !masterCell(ssp, off).locked, 'cell: officers-only page — locked off for crew, switchable for an officer');
+ok(!masterCell(gear, off).on && masterCell(gear, { ...off, manage: ['stores'] }).on && masterCell(gear, mst).on && masterCell(gear, mst).locked, 'cell: the gear off by default, on when given; the Master always');
+ok(masterCell({ kind: 'rank', id: 'r', label: 'Plan drills', tab: 'drills' } as any, off).on && !masterCell({ kind: 'rank', id: 'r', label: 'Plan drills', tab: 'drills' } as any, crew).on, 'cell: by rank — lit for an officer, dim for crew');
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

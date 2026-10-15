@@ -1,4 +1,4 @@
-import type { ModuleKey } from '../constants/modules';
+import { moduleOn, type ModuleKey } from '../constants/modules';
 // The person's screen order for the menu (components/NavMenu) — pure, so `npm run check:access` can test it.
 
 /** The saved order applied to the screens this device shows; new ones go last. */
@@ -123,3 +123,33 @@ export function moveInGroup(order: string[], name: string, dir: -1 | 1): string[
   [out[a], out[b]] = [out[b], out[a]];
   return out;
 }
+
+/** The menu's names for its entries (index.tsx, and the Master's page). */
+export const MENU_LABEL: Record<string, string> = {
+  Dashboard: moduleOn('board') ? 'Board' : 'Dashboard',
+  Equipment: 'Equipment',
+  Certificates: 'Certificates',
+  Documents: 'Documents',
+  Maintenance: 'Maintenance (PMS)',
+  Spares: 'Spare parts',
+  HoursOfRest: 'Hours of rest',
+  Crew: 'Crew list',
+  CrewMatrix: 'Crew matrix',
+  Permits: 'Permits, TBT & RA',
+  Sopep: 'SOPEP',
+  Security: 'Security (ISPS)',
+  Surveys: 'Surveys & audits',
+  Safety: 'Safety observations & NC',
+  Drills: 'Drills',
+  Hospital: 'Hospital',
+  Passengers: 'Passengers',
+  Stores: 'Stores',
+  Rounds: 'Inspection rounds',
+  Fuel: 'Fuel',
+  Garbage: 'Garbage record book',
+  OilRecord: 'Oil record book',
+  Sewage: 'Sewage record',
+  Ballast: 'Ballast water',
+  Reports: 'Reports',
+  Settings: 'Settings',
+};

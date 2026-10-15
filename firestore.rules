@@ -122,13 +122,14 @@ service cloud.firestore {
         // the Master, which is the precise thing the rule exists to prevent. So
         // who a device belongs to is the Master's to set, in Accounts → Rename,
         // and a vessel asked for exactly that in those words. Likewise `tabs`,
-        // which tabs the device shows, and `manage`, which places it may manage
-        // (Settings → Access).
+        // which tabs the device shows, `manage`, which places it may manage, and
+        // `hidePages`, which menu pages it does not show (Settings → Access, and
+        // the Master's page).
         allow update: if member(v)
                       && deviceId == claims().deviceId
                       && !request.resource.data.diff(resource.data).affectedKeys()
                             .hasAny(['role', 'approved', 'disabled', 'secretHash', 'secretSalt',
-                                     'firstName', 'lastName', 'position', 'tabs', 'manage']);
+                                     'firstName', 'lastName', 'position', 'tabs', 'manage', 'hidePages']);
 
         // Approving, demoting and switching off are the Master's, and are the
         // reason a Master exists.

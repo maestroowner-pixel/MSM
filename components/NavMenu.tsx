@@ -222,7 +222,9 @@ function MenuList({
         <View key={group.key}>
           {group.label ? <Text style={styles.groupHead}>{group.label}</Text> : <View style={styles.sep} />}
           {routes.map((r, i) => {
-            const kids = childrenOf(r)?.filter((k) => !k.module || moduleOn(k.module));
+            const shown = childrenOf(r)?.filter((k) => (!k.module || moduleOn(k.module)) && sync.pageOn(`${k.route ?? r}:${k.view}`));
+            // Every page hidden for this device: the entry opens its screen as one without pages.
+            const kids = shown?.length ? shown : undefined;
             const expanded = !!kids && openParents.includes(r) && !editing;
             const on = r === current && !kids;
             return (

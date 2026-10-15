@@ -117,6 +117,27 @@ export function toggleManage(manage: string[] | undefined | null, key: ManageKey
   return base.includes(key) ? base.filter((k) => k !== key) : [...base, key];
 }
 
+// ---- Pages under a menu entry (15 Oct 2026, the Master's page) ----
+//
+// A menu entry's pages — Security's gangway, drills, searches — can be taken off
+// one device's menu as its tabs can: `EnrolledDevice.hidePages`, the keys of the
+// pages it does NOT show ("Security:searches"), set on the Master's page. Open
+// by default, like the tabs; tidiness, not a lock.
+
+export const pageKey = (route: string, view: string) => `${route}:${view}`;
+
+/** Does this device show that page in its menu? */
+export function pageShown(hidePages: string[] | undefined | null, key: string, isMaster: boolean, enrolled: boolean): boolean {
+  if (!enrolled || isMaster) return true;
+  return !(Array.isArray(hidePages) && hidePages.includes(key));
+}
+
+/** Show or hide one page (the list holds the hidden ones). */
+export function togglePage(hidePages: string[] | undefined | null, key: string): string[] {
+  const base = Array.isArray(hidePages) ? hidePages : [];
+  return base.includes(key) ? base.filter((k) => k !== key) : [...base, key];
+}
+
 /** Flip one tab, keeping any keys this version does not know about. */
 export function toggleTab(tabs: string[] | undefined | null, key: TabKey): string[] {
   const base = Array.isArray(tabs) ? tabs : ALL_TABS;

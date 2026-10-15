@@ -209,6 +209,11 @@ export async function setDeviceManage(vessel: string, deviceId: string, manage: 
   await setDoc(doc(db(), ROOT, vessel, 'devices', deviceId), { manage }, { merge: true });
 }
 
+/** The menu pages a device does not show (constants/access.ts `pageKey`) — the Master's to set. */
+export async function setDeviceHidePages(vessel: string, deviceId: string, hidePages: string[]): Promise<void> {
+  await setDoc(doc(db(), ROOT, vessel, 'devices', deviceId), { hidePages }, { merge: true });
+}
+
 /**
  * Switch a device off — a lost handset, or somebody who has left. Kept rather
  * than deleted so the record of what it did remains, and so re-enrolling on the

@@ -156,6 +156,8 @@ export interface EnrolledDevice {
    * screen. Absent = none.
    */
   manage?: string[];
+  /** The pages under a menu entry this device does NOT show ("Security:searches"), set on the Master's page. Absent = all. */
+  hidePages?: string[];
 }
 
 export function personName(d: { firstName?: string; lastName?: string }): string {
