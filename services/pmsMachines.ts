@@ -18,6 +18,7 @@
 // ===================================
 
 import { Machine, PmsJob, hasCounter } from '../types/pms';
+import { withReading } from './pms';
 
 /** What is the unit's own and does not pass to a copy. */
 const UNIT_OWN: (keyof Machine)[] = ['serial', 'hours', 'hoursDate', 'readings', 'counterOffset', 'installed', 'replaces', 'scrapped', 'deleted'];
@@ -109,5 +110,68 @@ export function predecessors(m: Machine, all: Machine[]): Machine[] {
     cur = all.find((x) => x.id === cur!.replaces);
     if (cur) out.push(cur);
   }
+  return out;
+}
+
+// ---- Components (TM Master comparison, item 6) ----
+
+/** A machine's components, and theirs, depth first. */
+export function descendants(id: string, all: Machine[]): Machine[] {
+  const out: Machine[] = [];
+  const seen = new Set<string>([id]);
+  const walk = (pid: string) => {
+    for (const c of all.filter((m) => m.parentId === pid && !m.deleted && !m.scrapped)) {
+      if (seen.has(c.id)) continue;
+      seen.add(c.id);
+      out.push(c);
+      walk(c.id);
+    }
+  };
+  walk(id);
+  return out;
+}
+
+/**
+ * The components whose hours follow `next` after its counter moved from
+ * `prev`: each gets the same difference on its own figure (not below 0), and
+ * passes it on to those that follow it. Nothing when the hours did not change.
+ */
+export function followerReadings(prev: Machine | undefined, next: Machine, all: Machine[], date: string): Machine[] {
+  const diff = (next.hours ?? 0) - (prev?.hours ?? next.hours ?? 0);
+  if (!diff || next.hours == null) return [];
+  const out: Machine[] = [];
+  const step = (parentId: string, seen: Set<string>) => {
+    for (const c of all.filter((m) => m.parentId === parentId && m.followsParent && !m.deleted && !m.scrapped)) {
+      if (seen.has(c.id)) continue;
+      seen.add(c.id);
+      out.push(withReading(c, date, Math.max(0, Math.round(((c.hours ?? 0) + diff) * 10) / 10)));
+      step(c.id, seen);
+    }
+  };
+  step(next.id, new Set([next.id]));
+  return out;
+}
+
+/** Machines that may be this one's parent: not itself, not one of its own components. */
+export function parentChoices(m: Pick<Machine, 'id'>, all: Machine[]): Machine[] {
+  const own = new Set([m.id, ...descendants(m.id, all).map((x) => x.id)]);
+  return all.filter((x) => !own.has(x.id) && !x.deleted && !x.scrapped).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** The machines in list order: each parent followed by its components, with their depth. */
+export function treeOrder<T extends { m: Machine }>(rows: T[]): (T & { depth: number })[] {
+  const ids = new Set(rows.map((r) => r.m.id));
+  const kids = (pid?: string) => rows.filter((r) => (pid ? r.m.parentId === pid : !r.m.parentId || !ids.has(r.m.parentId)));
+  const out: (T & { depth: number })[] = [];
+  const seen = new Set<string>();
+  const walk = (list: T[], depth: number) => {
+    for (const r of list) {
+      if (seen.has(r.m.id)) continue;
+      seen.add(r.m.id);
+      out.push({ ...r, depth });
+      walk(kids(r.m.id), depth + 1);
+    }
+  };
+  walk(kids(undefined), 0);
   return out;
 }

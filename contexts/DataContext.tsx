@@ -34,6 +34,7 @@ import { ChecklistTemplate } from '../constants/checklists';
 import { CategoryMeta, setVesselCategories } from '../constants/categories';
 import { CATEGORIES, CATEGORY_MAP } from '../constants/categories';
 import * as storage from '../services/storage';
+import { followerReadings } from '../services/pmsMachines';
 import * as snapshot from '../services/snapshot';
 import { ScanEntry, loadScanHistory, recordScan as persistScan } from '../services/scanHistory';
 import { rescheduleExpiryReminders } from '../services/notifications';
@@ -696,7 +697,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const saveMachine = useCallback(async (m: Machine) => {
+    // A component whose hours follow this machine takes the same difference (services/pmsMachines).
+    const all = await storage.loadList<Machine>(storage.PMS_MACHINES_KEY);
+    const followers = followerReadings(all.find((x) => x.id === m.id), m, all, m.hoursDate ?? new Date().toISOString().slice(0, 10));
     await storage.upsertInList(storage.PMS_MACHINES_KEY, m);
+    for (const f of followers) await storage.upsertInList(storage.PMS_MACHINES_KEY, f);
     await loadPms();
   }, [loadPms]);
 

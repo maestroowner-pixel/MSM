@@ -36,7 +36,9 @@ import { qtyText, stockByPart, stockStatus } from '../services/spares';
 import { moduleOn } from '../constants/modules';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
-import { copyJobsTo, copyMachine, predecessors, replaceMachine, scrapMachine } from '../services/pmsMachines';
+import { copyJobsTo, copyMachine, parentChoices, predecessors, replaceMachine, scrapMachine } from '../services/pmsMachines';
+import { Dropdown } from '../components/Dropdown';
+import { MACHINE_FIELDS, changeText, planDiff, withChanges } from '../services/planLog';
 import { playSuccessSound } from '../utils/sound';
 
 export default function MachineSc() {
@@ -60,7 +62,13 @@ export default function MachineSc() {
 
   // A new system starts in the department it was added from (MaintenanceSc).
   const [draft, setDraft] = useState<Machine>(
-    existing ?? { id, name: '', ...(route.params?.dept ? { dept: route.params.dept } : {}), updatedAt: Date.now() }
+    existing ?? {
+      id, name: '',
+      ...(route.params?.dept ? { dept: route.params.dept } : {}),
+      // A component added from its parent: listed under it, its hours following the parent's when it has a counter.
+      ...(route.params?.parentId ? { parentId: route.params.parentId, ...(route.params.follows ? { followsParent: true, counter: true, hours: 0 } : {}) } : {}),
+      updatedAt: Date.now(),
+    }
   );
   const [reading, setReading] = useState('');
   const [showTypes, setShowTypes] = useState(false);
@@ -109,9 +117,20 @@ export default function MachineSc() {
       Alert.alert('Name required', 'Name it — "Main engine PS", "Tender", "Galley", "Wi-Fi network".');
       return false;
     }
-    await saveMachine({ ...(existing ?? draft), ...draft, ...extra, name, updatedAt: Date.now() });
+    const next = { ...(existing ?? draft), ...draft, ...extra, name };
+    // The change log (services/planLog.ts): critical, class item or code changed says why.
+    const diff = planDiff(existing, next, MACHINE_FIELDS);
+    if (diff.some((d) => d.needsReason) && changeReason.trim().length < 3) {
+      Alert.alert('Reason for the change', `Say why — ${diff.filter((d) => d.needsReason).map((d) => d.label.toLowerCase()).join(', ')} changed. It is kept in the change log.`);
+      return false;
+    }
+    const now = Date.now();
+    await saveMachine({ ...next, ...(diff.length ? { changes: withChanges(existing?.changes, diff, { by: meName || 'Master', ...(sync.me?.position ? { byRank: sync.me.position } : {}) }, changeReason, now) } : {}), updatedAt: now });
+    setChangeReason('');
     return true;
   };
+  const [changeReason, setChangeReason] = useState('');
+  const [showLog, setShowLog] = useState(false);
 
   const onSave = async () => {
     if (await saveDetails()) {
@@ -302,6 +321,29 @@ export default function MachineSc() {
             <View style={{ flex: 1 }}><Field label="Model" value={draft.model} onChange={(v) => set({ model: v })} /></View>
           </View>
           <Field label="Serial" value={draft.serial} onChange={(v) => set({ serial: v })} />
+          {(() => {
+            const choices = parentChoices(draft, machines);
+            const parent = machines.find((m) => m.id === draft.parentId);
+            return choices.length ? (
+              <View style={{ marginBottom: SIZES.md }}>
+                <Dropdown
+                  caption="PART OF"
+                  value={draft.parentId ?? ''}
+                  onChange={(v: string) => set({ parentId: v || undefined, ...(v ? {} : { followsParent: undefined }) })}
+                  options={[{ value: '', label: '— a system of its own' }, ...choices.map((m) => ({ value: m.id, label: m.name }))]}
+                />
+                {parent && hasCounter(parent) ? (
+                  <View style={styles.counterRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.rowTitle}>{`Running hours from ${parent.name}`}</Text>
+                      <Text style={styles.sub}>Each reading of it adds the same hours here, from this one's own figure. Off if it has a counter of its own.</Text>
+                    </View>
+                    <Switch value={!!draft.followsParent} onValueChange={(v) => set({ followsParent: v || undefined, ...(v ? { counter: true } : {}) })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
+                  </View>
+                ) : null}
+              </View>
+            ) : null;
+          })()}
 
           <View style={styles.counterRow}>
             <View style={{ flex: 1 }}>
@@ -325,6 +367,7 @@ export default function MachineSc() {
             <Switch value={!!draft.classItem} onValueChange={(v) => set({ classItem: v || undefined })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
           </View>
           {draft.classItem ? <Field label="Class code" value={draft.classCode} onChange={(v) => set({ classCode: v })} placeholder="The society's item code" /> : null}
+          {!isNew ? <Field label="Reason for the change" value={changeReason} onChange={setChangeReason} placeholder="Needed when critical, class item or class code changes" /> : null}
           </View>
 
           {hasCounter(draft) ? (
@@ -353,6 +396,9 @@ export default function MachineSc() {
               </TouchableOpacity>
             </View>
             {offset ? <Text style={styles.sub}>{`Counter replaced: ${offset} h are added to what it shows.`}</Text> : null}
+            {draft.followsParent && machines.find((m) => m.id === draft.parentId) ? (
+              <Text style={styles.sub}>{`Follows ${machines.find((m) => m.id === draft.parentId)!.name}: its readings add here. Enter a figure only to set this one's own (0 when fitted new).`}</Text>
+            ) : null}
             {doubt ? (
               <View style={styles.doubt}>
                 <Text style={[styles.sub, { color: COLORS.warning, fontWeight: '700' }]}>{`⚠ ${doubt.total} h — ${doubt.why}`}</Text>
@@ -383,6 +429,32 @@ export default function MachineSc() {
           </View>
           ) : null}
 
+          {!isNew ? (
+            <>
+              <View style={styles.jobsHead}>
+                <Label>{`Components (${machines.filter((m) => m.parentId === id).length})`}</Label>
+                {canPlan ? (
+                  <TouchableOpacity onPress={async () => { if (await saveDetails()) nav.push('Machine', { id: uid('mach'), isNew: true, dept: deptOf(draft), parentId: id, follows: hasCounter(draft) }); }} hitSlop={8}>
+                    <Text style={styles.link}>+ Add component</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+              {machines.filter((m) => m.parentId === id).map((c) => (
+                <TouchableOpacity key={c.id} style={styles.row} onPress={() => nav.push('Machine', { id: c.id })} activeOpacity={0.7}>
+                  <View style={[styles.bar, { backgroundColor: COLORS.primary }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.rowTitle} numberOfLines={1}>{c.name}</Text>
+                    <Text style={styles.sub} numberOfLines={1}>{[c.serial ? `S/N ${c.serial}` : null, hasCounter(c) && c.hours != null ? `${c.hours} h${c.followsParent ? ' (follows)' : ''}` : null, `${pmsJobs.filter((j) => j.machineId === c.id && !j.deleted).length} jobs`].filter(Boolean).join(' · ')}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </>
+          ) : null}
+          {draft.parentId && machines.find((m) => m.id === draft.parentId) ? (
+            <TouchableOpacity onPress={() => nav.push('Machine', { id: draft.parentId })} hitSlop={8}>
+              <Text style={[styles.link, { marginTop: SIZES.xs }]}>{`↑ Part of ${machines.find((m) => m.id === draft.parentId)!.name}`}</Text>
+            </TouchableOpacity>
+          ) : null}
           {(() => {
             const lc = lastCondition(id, pmsDone);
             return lc ? (
@@ -520,6 +592,18 @@ export default function MachineSc() {
             </View>
           ))}
 
+          {existing?.changes?.length ? (
+            <View style={{ marginTop: SIZES.md }}>
+              <TouchableOpacity onPress={() => setShowLog((v) => !v)} hitSlop={8}>
+                <Text style={styles.link}>{`${showLog ? 'Hide' : 'Show'} the change log (${existing.changes.length})`}</Text>
+              </TouchableOpacity>
+              {showLog
+                ? [...existing.changes].reverse().map((c, i) => (
+                    <Text key={`${c.at}-${i}`} style={styles.sub}>{`${formatDate(new Date(c.at).toISOString().slice(0, 10))} · ${c.byRank ? `${c.by} (${c.byRank})` : c.by} · ${changeText(c)}${c.reason ? ` — ${c.reason}` : ''}`}</Text>
+                  ))
+                : null}
+            </View>
+          ) : null}
           {!isNew && canPlan ? (
             <View style={[styles.jobsHead, { marginTop: SIZES.lg, justifyContent: 'flex-start', gap: SIZES.lg, flexWrap: 'wrap' }]}>
               <TouchableOpacity onPress={() => void onCopy()} hitSlop={8}><Text style={styles.link}>Copy this system</Text></TouchableOpacity>

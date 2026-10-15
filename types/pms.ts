@@ -89,6 +89,17 @@ export interface Machine {
    * replaced", so the jobs' due hours carry on unchanged.
    */
   counterOffset?: number;
+  /**
+   * A component of another machine (TM Master comparison, item 6): the
+   * turbocharger of the main engine, the pump of the watermaker. Listed under it.
+   */
+  parentId?: string;
+  /**
+   * Its running hours follow its parent's: each reading of the parent adds the
+   * same hours to it (from its own starting figure — a turbocharger fitted at
+   * 12 000 h of the engine starts at 0). Off for one with its own counter.
+   */
+  followsParent?: boolean;
   /** yyyy-mm-dd fitted on board — set when it replaced another unit. */
   installed?: string;
   /** The unit this one replaced (Machine.id): its history is where this one's begins. */
@@ -100,6 +111,8 @@ export interface Machine {
    * history of work done on it out of reach.
    */
   scrapped?: { date: string; reason: string; by: string; byRank?: string; replacedBy?: string };
+  /** Who changed what in this machine's record, and why (services/planLog.ts). */
+  changes?: PlanChange[];
   deleted?: boolean;
   updatedAt: number;
 }
@@ -155,8 +168,21 @@ export interface PmsJob {
    * (null, so a merge-write clears it on the server too) when signed out.
    */
   prepared?: PmsPrepared | null;
+  /** Who changed what in this job's plan, and why (services/planLog.ts). */
+  changes?: PlanChange[];
   deleted?: boolean;
   updatedAt: number;
+}
+
+/** One change to the plan: a field of a job or a machine, from → to, by whom, why. */
+export interface PlanChange {
+  at: number;
+  by: string;
+  byRank?: string;
+  field: string;
+  from: string;
+  to: string;
+  reason?: string;
 }
 
 export interface PmsPrepared {

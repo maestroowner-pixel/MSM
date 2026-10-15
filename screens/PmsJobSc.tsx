@@ -41,6 +41,7 @@ import { JobPart } from '../types/spares';
 import { moduleOn } from '../constants/modules';
 import { PERMIT_TYPES, PERMIT_TYPE_MAP } from '../constants/permitTypes';
 import { jobGate } from '../services/jobGate';
+import { JOB_FIELDS, changeText, planDiff, withChanges } from '../services/planLog';
 import { useSignConfirm } from '../components/SignConfirm';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
@@ -173,10 +174,17 @@ export default function PmsJobSc() {
           ...(warnDays != null ? { warnDays } : {}),
           ...(warnHours != null ? { warnHours } : {}),
         };
-    await savePmsJob({ ...clean, title: draft.title.trim(), updatedAt: Date.now() });
+    const next = { ...clean, title: draft.title.trim() };
+    // The change log (services/planLog.ts): an interval, a due date, class or permit changed says why.
+    const diff = planDiff(existing, next, JOB_FIELDS);
+    if (diff.some((d) => d.needsReason) && changeReason.trim().length < 3) return Alert.alert('Reason for the change', `Say why — ${diff.filter((d) => d.needsReason).map((d) => d.label.toLowerCase()).join(', ')} changed. It is kept in the job's change log.`);
+    const now = Date.now();
+    await savePmsJob({ ...next, ...(diff.length ? { changes: withChanges(existing?.changes, diff, { by: me || 'Master', ...(meRank ? { byRank: meRank } : {}) }, changeReason, now) } : {}), updatedAt: now });
     playSuccessSound();
     goBackOr(nav);
   };
+  const [changeReason, setChangeReason] = useState('');
+  const [showLog, setShowLog] = useState(false);
 
   // ---- Done, then signed (TM Master comparison, item 5) ----
   // Anyone may write a job up as done; an officer (or the Master) signs it out —
@@ -727,6 +735,24 @@ export default function PmsJobSc() {
               ) : null}
               </View>
 
+              {existing && canPlan ? (
+                <View style={{ marginTop: SIZES.md }}>
+                  <Label>Reason for the change</Label>
+                  <TextInput style={styles.input} value={changeReason} onChangeText={setChangeReason} placeholder="Needed when the interval, due date, class or permit changes — maker's bulletin, running experience…" placeholderTextColor={COLORS.textLight} />
+                </View>
+              ) : null}
+              {existing?.changes?.length ? (
+                <View style={{ marginTop: SIZES.md }}>
+                  <TouchableOpacity onPress={() => setShowLog((v) => !v)} hitSlop={8}>
+                    <Text style={styles.link}>{`${showLog ? 'Hide' : 'Show'} the change log (${existing.changes.length})`}</Text>
+                  </TouchableOpacity>
+                  {showLog
+                    ? [...existing.changes].reverse().map((c, i) => (
+                        <Text key={`${c.at}-${i}`} style={styles.sub}>{`${new Date(c.at).toISOString().slice(0, 10).split('-').reverse().join('.')} · ${c.byRank ? `${c.by} (${c.byRank})` : c.by} · ${changeText(c)}${c.reason ? ` — ${c.reason}` : ''}`}</Text>
+                      ))
+                    : null}
+                </View>
+              ) : null}
               {existing?.prepared ? (
                 <View style={[styles.deferBox, { marginTop: SIZES.md }]}>
                   <Text style={[styles.sub, { fontWeight: '800', color: COLORS.warning }]}>{`Done ${existing.prepared.date.split('-').reverse().join('.')} by ${existing.prepared.byRank ? `${existing.prepared.by} (${existing.prepared.byRank})` : existing.prepared.by} — awaiting sign-off`}</Text>

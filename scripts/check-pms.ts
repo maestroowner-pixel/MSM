@@ -1,7 +1,8 @@
 // npm run check:pms — planned-maintenance due dates against hand-worked cases.
 import { jobDue, withReading, hoursPerDay, jobAfter, intervalText, scheduleText, checkReading, noteForNext, lastCondition, nextDueDate, nextDueHours, addInterval , jobsAhead , jobAfterCancel, cancellable, multiSignable } from '../services/pms';
 import { Machine, PmsJob, finishedOneOff } from '../types/pms';
-import { copyJobsTo, copyMachine, predecessors, replaceMachine, scrapMachine } from '../services/pmsMachines';
+import { JOB_FIELDS, MACHINE_FIELDS, changeText, planDiff, withChanges } from '../services/planLog';
+import { copyJobsTo, copyMachine, descendants, followerReadings, parentChoices, predecessors, replaceMachine, scrapMachine, treeOrder } from '../services/pmsMachines';
 
 let failed = 0;
 const ok = (c: boolean, m: string) => { if (!c) failed++; console.log(`${c ? '✓' : '✗'} ${m}`); };
@@ -220,6 +221,37 @@ import { projectJobs, yardList } from '../services/pmsProjects';
   ok(multiSignable(j, m), 'a weekly check on an ordinary machine: yes');
   ok(!multiSignable({ ...j, intervalHours: 250 }, m) && !multiSignable(j, { ...m, critical: true }) && !multiSignable({ ...j, permitType: 'hot' as any }, m), 'by hours, critical equipment, a permit: no');
   ok(!multiSignable({ ...j, parts: [{ partId: 'p', qty: 1 }] }, m) && !multiSignable({ ...j, prepared: { date: 'x', by: 'y', at: 1 } }, m) && !multiSignable({ ...j, oneOff: true }, m), 'parts to take, written up, one-off: no');
+}
+// Components: hours that follow the parent.
+{
+  const me: Machine = { id: 'me', name: 'Main engine', hours: 12000, hoursDate: '2026-10-01', updatedAt: 0 };
+  const tc: Machine = { id: 'tc', name: 'Turbocharger', parentId: 'me', followsParent: true, hours: 0, updatedAt: 0 };
+  const ct: Machine = { id: 'ct', name: 'TC cartridge', parentId: 'tc', followsParent: true, hours: 50, updatedAt: 0 };
+  const fp: Machine = { id: 'fp', name: 'Fuel pump', parentId: 'me', hours: 300, updatedAt: 0 };
+  const all = [me, tc, ct, fp];
+  const f = followerReadings(me, { ...me, hours: 12200 }, all, '2026-10-15');
+  ok(f.map((m) => `${m.id}:${m.hours}`).join() === 'tc:200,ct:250', 'the engine +200 h: the turbocharger and its cartridge +200 each, on their own figures');
+  ok(!f.some((m) => m.id === 'fp'), 'one with its own counter does not follow');
+  ok(followerReadings(me, me, all, '2026-10-15').length === 0, 'no change, no readings');
+  ok(followerReadings(me, { ...me, hours: 11000 }, all, '2026-10-15')[0].hours === 0, 'a correction down: never below 0');
+  ok(descendants('me', all).map((m) => m.id).join() === 'tc,ct,fp', 'components, depth first');
+  ok(parentChoices(tc, all).map((m) => m.id).join() === 'fp,me', 'a parent may not be itself or one of its own components');
+  const t = treeOrder([fp, ct, me, tc].map((m) => ({ m })));
+  ok(t.map((r) => `${'-'.repeat(r.depth)}${r.m.id}`).join() === 'me,-fp,-tc,--ct', 'list order: each parent, then its components');
+}
+// The change log of the plan.
+{
+  const j: PmsJob = { id: 'j', machineId: 'm', title: 'Oil and filter', intervalHours: 250, updatedAt: 0 };
+  const d = planDiff(j, { ...j, intervalHours: 500, title: 'Oil + filter' }, JOB_FIELDS);
+  ok(d.map((x) => `${x.field}:${x.from}>${x.to}:${x.needsReason}`).join() === 'title:Oil and filter>Oil + filter:false,intervalHours:250 h>500 h:true', 'what changed, and which change needs a reason');
+  ok(planDiff(undefined, j, JOB_FIELDS).length === 0 && planDiff(j, { ...j, notes: 'x' }, JOB_FIELDS).length === 0, 'a new job, or an untracked field: nothing logged');
+  const log = withChanges(undefined, d, { by: 'Master', byRank: 'Master' }, 'Maker bulletin MB-12', 5);
+  ok(log!.length === 2 && log![1].reason === 'Maker bulletin MB-12' && changeText(log![1]) === 'Interval, hours: 250 h → 500 h', 'logged with who and why');
+  ok(withChanges(log, [], { by: 'x' }, '', 6) === log, 'no change: the log as it was');
+  const big = withChanges(Array.from({ length: 100 }, (_, i) => ({ at: i, by: 'x', field: 'f', from: 'a', to: 'b' })), d, { by: 'y' }, '', 7)!;
+  ok(big.length === 100 && big[99].field === 'Interval, hours', 'the last 100 kept');
+  const m: Machine = { id: 'm', name: 'Steering', updatedAt: 0 };
+  ok(planDiff(m, { ...m, classItem: true, classCode: 'SG-1' }, MACHINE_FIELDS).every((x) => x.needsReason), 'class item and code changes need a reason');
 }
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

@@ -22,6 +22,7 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { categoryColor } from './PmsDefectSc';
 import { classPack, machineHistory, openDefects, packMachines } from '../services/pmsHistory';
+import { treeOrder } from '../services/pmsMachines';
 import { exportPmsHistory } from '../services/pmsHistoryReport';
 import { PLAN_LOCKED, plansPms } from '../types/role';
 import { planImport } from '../services/pmsImport';
@@ -327,7 +328,8 @@ export default function MaintenanceSc() {
         <Empty text="Nothing in the plan yet. Add the vessel's systems by department — engines and generators, the tender and the cranes, the galley, the network, the hull — then their jobs, or start each from the typical jobs." />
       ) : null}
       {DEPTS.filter((d) => (only ? d.key === only : true)).map((d) => {
-        const rows = machineRows.filter((r) => deptOf(r.m) === d.key);
+        // Each system followed by its components (services/pmsMachines treeOrder).
+        const rows = treeOrder(machineRows.filter((r) => deptOf(r.m) === d.key));
         return (
           <View key={d.key}>
             <View style={styles.machHead}>
@@ -339,11 +341,11 @@ export default function MaintenanceSc() {
                 <Text style={styles.add}>+ Add</Text>
               </TouchableOpacity>
             </View>
-            {rows.map(({ m, jobs, worst }) => (
-              <TouchableOpacity key={m.id} style={styles.row} onPress={() => nav.navigate('Machine', { id: m.id })} activeOpacity={0.7}>
+            {rows.map(({ m, jobs, worst, depth }) => (
+              <TouchableOpacity key={m.id} style={[styles.row, depth ? { marginLeft: Math.min(depth, 3) * SIZES.lg } : null]} onPress={() => nav.navigate('Machine', { id: m.id })} activeOpacity={0.7}>
                 <View style={[styles.bar, { backgroundColor: statusColor(worst) }]} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.title} numberOfLines={1}>{m.name}</Text>
+                  <Text style={styles.title} numberOfLines={1}>{`${depth ? '↳ ' : ''}${m.name}`}</Text>
                   <Text style={styles.sub} numberOfLines={1}>
                     {[
                       hasCounter(m) ? (m.hours != null ? `${m.hours} h${m.hoursDate ? ` on ${formatDate(m.hoursDate)}` : ''}` : 'No counter reading') : null,
