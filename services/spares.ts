@@ -3,7 +3,7 @@
 // why stock is a sum of movements rather than a stored number).
 // ===================================
 
-import { JobPart, MoveKind, SpareMove, SparePart } from '../types/spares';
+import { JobPart, MoveKind, SpareMove, SparePart, SpareSupplier } from '../types/spares';
 import { uid } from '../utils/id';
 
 export type StockStatus = 'out' | 'low' | 'ok';
@@ -65,7 +65,7 @@ export function makeMove(
   onHand: number,
   signer: Signer,
   date: string,
-  extra: Partial<Pick<SpareMove, 'note' | 'doneId' | 'jobTitle' | 'machineName'>> = {}
+  extra: Partial<Pick<SpareMove, 'note' | 'doneId' | 'jobTitle' | 'machineName' | 'expiry'>> = {}
 ): SpareMove {
   const delta =
     kind === 'received' ? Math.abs(amount)
@@ -123,4 +123,72 @@ export function moveText(m: SpareMove, p: Pick<SparePart, 'unit'>): string {
   const amt = `${sign}${qtyText(Math.abs(m.delta), p)}`;
   if (m.kind === 'count') return `Counted ${qtyText(m.counted ?? 0, p)} (${amt})`;
   return `${MOVE_LABEL[m.kind]} ${amt}`;
+}
+
+// ---- Ordering, shelf life, consumption (15 Oct 2026, TM Master comparison, item 3) ----
+
+/**
+ * How many to order: up to the maximum when one is set, otherwise one over the
+ * re-order level. Nothing while the stock is above the re-order level.
+ */
+export function orderQty(part: Pick<SparePart, 'minQty' | 'maxQty'>, onHand: number): number {
+  const low = onHand <= 0 || (part.minQty != null && onHand <= part.minQty);
+  if (!low) return 0;
+  if (part.maxQty != null && part.maxQty > onHand) return round(part.maxQty - onHand);
+  return Math.max(1, round((part.minQty ?? 0) - onHand + 1));
+}
+
+export interface Batch {
+  qty: number;
+  expiry?: string;
+}
+
+/**
+ * What is on the shelf by expiry date, from the movements: each delivery is a
+ * batch with its date; what is used or counted short comes off the batch that
+ * expires first (the one an engineer takes); what is counted over is a batch
+ * with no date. Batches without a date sort last.
+ */
+export function batchesOnHand(moves: SpareMove[]): Batch[] {
+  const sorted = [...moves].sort((a, b) => a.at - b.at || a.date.localeCompare(b.date));
+  let batches: Batch[] = [];
+  const order = (x: Batch) => x.expiry ?? '9999-99-99';
+  for (const m of sorted) {
+    if (m.delta > 0) batches.push({ qty: m.delta, ...(m.kind === 'received' && m.expiry ? { expiry: m.expiry } : {}) });
+    else if (m.delta < 0) {
+      let take = -m.delta;
+      batches.sort((a, b) => order(a).localeCompare(order(b)));
+      for (const b of batches) {
+        const t = Math.min(b.qty, take);
+        b.qty = round(b.qty - t);
+        take = round(take - t);
+        if (take <= 0) break;
+      }
+    }
+    batches = batches.filter((b) => b.qty > 0);
+  }
+  return batches.sort((a, b) => order(a).localeCompare(order(b)));
+}
+
+/** The first expiry date still on the shelf, with how many expire then. */
+export function firstExpiry(moves: SpareMove[]): Batch | undefined {
+  const dated = batchesOnHand(moves).filter((b) => b.expiry);
+  if (!dated.length) return undefined;
+  const e = dated[0].expiry!;
+  return { expiry: e, qty: round(dated.filter((b) => b.expiry === e).reduce((sum, b) => sum + b.qty, 0)) };
+}
+
+/** Used per calendar year, the last `years` years, newest first (TM Master's consumption). */
+export function usedByYear(moves: SpareMove[], today: string, years = 3): { year: number; used: number }[] {
+  const y0 = Number(today.slice(0, 4));
+  return Array.from({ length: years }, (_, i) => {
+    const year = y0 - i;
+    const used = moves.filter((m) => m.kind === 'used' && m.date.startsWith(String(year))).reduce((sum, m) => sum - m.delta, 0);
+    return { year, used: round(used) };
+  });
+}
+
+/** "EUR 42.50" — the price as quoted. */
+export function priceText(x: Pick<SpareSupplier, 'price' | 'currency'>): string {
+  return x.price != null ? `${x.currency?.trim() || 'EUR'} ${x.price.toFixed(2)}` : '';
 }

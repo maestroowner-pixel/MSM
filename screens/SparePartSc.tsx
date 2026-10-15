@@ -27,14 +27,16 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { MoveKind, SparePart } from '../types/spares';
+import { MoveKind, SparePart, SpareSupplier } from '../types/spares';
 import { crewLabel } from '../types/crew';
 import { personName } from '../types/role';
-import { MOVE_LABEL, makeMove, moveText, qtyText, stockByPart, stockStatus, unitOf } from '../services/spares';
+import { MOVE_LABEL, firstExpiry, makeMove, moveText, orderQty, priceText, qtyText, stockByPart, stockStatus, unitOf, usedByYear } from '../services/spares';
 import { todayIso } from '../services/pms';
 import { moduleOn } from '../constants/modules';
 import { useSignConfirm } from '../components/SignConfirm';
 import { formatDate } from '../utils/dates';
+
+const addDays = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
 
@@ -89,6 +91,13 @@ export default function SparePartSc() {
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [opening, setOpening] = useState('');
+  /** received: the use-by date of what came in, if it has one. */
+  const [expiry, setExpiry] = useState('');
+  const partMoves = useMemo(() => spareMoves.filter((m) => m.partId === id), [spareMoves, id]);
+  const shelf = useMemo(() => firstExpiry(partMoves), [partMoves]);
+  const used = useMemo(() => usedByYear(partMoves, todayIso()), [partMoves]);
+  const suppliers = draft.suppliers ?? [];
+  const setSupplier = (i: number, patch: Partial<SpareSupplier>) => set({ suppliers: suppliers.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
 
   const num = (v: string) => {
     const n = Number(v.replace(',', '.'));
@@ -97,7 +106,9 @@ export default function SparePartSc() {
 
   const onSave = async () => {
     if (!draft.name.trim()) return Alert.alert('Name required', 'Say what the part is — "Raw-water pump impeller".');
-    const part = { ...draft, name: draft.name.trim(), updatedAt: Date.now() };
+    if (draft.maxQty != null && draft.minQty != null && draft.maxQty <= draft.minQty) return Alert.alert('Order up to', 'The maximum is above the re-order level.');
+    const sups = (draft.suppliers ?? []).filter((x) => x.name.trim()).map((x) => ({ ...x, name: x.name.trim() }));
+    const part = { ...draft, name: draft.name.trim(), ...(sups.length ? { suppliers: sups } : { suppliers: undefined }), updatedAt: Date.now() };
     await saveSpare(part);
     const start = num(opening);
     if (isNew && start != null && start > 0) {
@@ -112,6 +123,8 @@ export default function SparePartSc() {
     const n = num(amount);
     if (n == null || (moving !== 'count' && n === 0)) return Alert.alert('Quantity', 'Enter how many.');
     if (!signer) return Alert.alert('Who is this?', 'Choose your name.');
+    const exp = moving === 'received' ? expiry.trim() : '';
+    if (exp && !(/^\d{4}-\d{2}-\d{2}$/.test(exp) && !isNaN(Date.parse(exp)))) return Alert.alert('Expiry', 'yyyy-mm-dd, or leave it empty.');
     const sig = await confirmSign({
       personKey: me && sync.me ? `device:${sync.me.id}` : picked ? picked.id : `name:${signer.by}`,
       name: signer.by,
@@ -124,12 +137,13 @@ export default function SparePartSc() {
       // said, so the next stocktake is not a surprise.
       Alert.alert('More than the book shows', `The book shows ${qtyText(onHand, existing)}. Recorded anyway; a stocktake will put the count right.`);
     }
-    const move = makeMove(existing, moving, n, onHand, signer, todayIso(), { note: note.trim() || undefined });
+    const move = makeMove(existing, moving, n, onHand, signer, todayIso(), { note: note.trim() || undefined, ...(exp ? { expiry: exp } : {}) });
     await addSpareMoves([sig.proof ? { ...move, signedWith: sig.proof } : move]);
     playSuccessSound();
     setMoving(null);
     setAmount('');
     setNote('');
+    setExpiry('');
   };
 
   const onDelete = () => {
@@ -172,7 +186,16 @@ export default function SparePartSc() {
               <Text style={[styles.stock, { color: qtyColor }]}>{qtyText(onHand, existing!)}</Text>
               <Text style={styles.sub}>
                 {status === 'out' ? 'Out of stock' : status === 'low' ? `At or below the re-order level (${existing!.minQty})` : existing!.minQty != null ? `Re-order at ${existing!.minQty}` : 'No re-order level set'}
+                {orderQty(existing!, onHand) ? ` · order ${qtyText(orderQty(existing!, onHand), existing!)}${existing!.maxQty != null ? ' (up to the maximum)' : ''}` : ''}
               </Text>
+              {shelf ? (
+                <Text style={[styles.sub, { textAlign: 'center', fontWeight: '700', color: shelf.expiry! < todayIso() ? COLORS.danger : shelf.expiry! <= addDays(todayIso(), 90) ? COLORS.warning : COLORS.textLight }]}>
+                  {`${shelf.expiry! < todayIso() ? 'Expired' : 'Expires'} ${formatDate(shelf.expiry)} · ${qtyText(shelf.qty, existing!)}`}
+                </Text>
+              ) : null}
+              {used.some((u) => u.used) ? (
+                <Text style={[styles.sub, { textAlign: 'center' }]}>{`Used: ${used.map((u) => `${u.year} · ${u.used}`).join('   ')}`}</Text>
+              ) : null}
               {!moving ? (
                 <View style={styles.moveBtns}>
                   {(['received', 'used', 'count'] as MoveKind[]).map((k) => (
@@ -196,6 +219,13 @@ export default function SparePartSc() {
               <View style={{ height: SIZES.md }} />
               <Label>{moving === 'received' ? 'Note (supplier, order no.)' : moving === 'used' ? 'Note (what for)' : 'Note'}</Label>
               <TextInput style={styles.input} value={note} onChangeText={setNote} placeholder="—" placeholderTextColor={COLORS.textLight} />
+              {moving === 'received' ? (
+                <>
+                  <View style={{ height: SIZES.md }} />
+                  <Label>Expiry, if it has one (yyyy-mm-dd)</Label>
+                  <TextInput style={styles.input} value={expiry} onChangeText={setExpiry} placeholder="Sealant, chemicals, filters with a shelf life" placeholderTextColor={COLORS.textLight} />
+                </>
+              ) : null}
               <View style={{ height: SIZES.md }} />
               <Label>Recorded by</Label>
               {me ? (
@@ -228,6 +258,9 @@ export default function SparePartSc() {
                 </View>
               </View>
               <View style={{ height: SIZES.md }} />
+              <Label>IMPA / ISSA No.</Label>
+              <TextInput style={styles.input} value={draft.impa ?? ''} onChangeText={(v) => set({ impa: v })} placeholder="What a chandler orders by" placeholderTextColor={COLORS.textLight} />
+              <View style={{ height: SIZES.md }} />
               <Label>Location (store, shelf, box)</Label>
               <TextInput style={styles.input} value={draft.location ?? ''} onChangeText={(v) => set({ location: v })} placeholder="ER store · B3" placeholderTextColor={COLORS.textLight} />
               <View style={styles.pair}>
@@ -239,6 +272,17 @@ export default function SparePartSc() {
                     onChangeText={(v) => set({ minQty: num(v) })}
                     keyboardType="decimal-pad"
                     placeholder="2"
+                    placeholderTextColor={COLORS.textLight}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Label>Order up to</Label>
+                  <TextInput
+                    style={styles.input}
+                    value={draft.maxQty != null ? String(draft.maxQty) : ''}
+                    onChangeText={(v) => set({ maxQty: num(v) })}
+                    keyboardType="decimal-pad"
+                    placeholder="6"
                     placeholderTextColor={COLORS.textLight}
                   />
                 </View>
@@ -274,6 +318,33 @@ export default function SparePartSc() {
               ) : null}
 
               <View style={{ height: SIZES.md }} />
+              <View style={styles.supHead}>
+                <Label>Suppliers</Label>
+                <TouchableOpacity onPress={() => set({ suppliers: [...suppliers, { name: '' }] })} hitSlop={8}>
+                  <Text style={styles.supAdd}>+ Add supplier</Text>
+                </TouchableOpacity>
+              </View>
+              {suppliers.map((x, i) => (
+                <View key={i} style={styles.sup}>
+                  <View style={styles.supRow}>
+                    <Text style={styles.supTag}>{i === 0 ? 'Usual' : `${i + 1}`}</Text>
+                    <TextInput style={[styles.input, styles.supName]} value={x.name} onChangeText={(v) => setSupplier(i, { name: v })} placeholder="Supplier" placeholderTextColor={COLORS.textLight} />
+                    <TouchableOpacity onPress={() => set({ suppliers: suppliers.filter((_, j) => j !== i) })} hitSlop={8}><Text style={styles.supX}>✕</Text></TouchableOpacity>
+                  </View>
+                  <View style={styles.supRow}>
+                    <TextInput style={[styles.input, styles.supField]} value={x.ref ?? ''} onChangeText={(v) => setSupplier(i, { ref: v || undefined })} placeholder="Their ref." placeholderTextColor={COLORS.textLight} />
+                    <TextInput style={[styles.input, styles.supField]} value={x.price != null ? String(x.price) : ''} onChangeText={(v) => setSupplier(i, { price: num(v), priceDate: todayIso() })} keyboardType="decimal-pad" placeholder="Price" placeholderTextColor={COLORS.textLight} />
+                    <TextInput style={[styles.input, styles.supCur]} value={x.currency ?? ''} onChangeText={(v) => setSupplier(i, { currency: v.toUpperCase() || undefined })} placeholder="EUR" placeholderTextColor={COLORS.textLight} autoCapitalize="characters" maxLength={3} />
+                    <TextInput style={[styles.input, styles.supField]} value={x.leadDays != null ? String(x.leadDays) : ''} onChangeText={(v) => setSupplier(i, { leadDays: num(v) })} keyboardType="number-pad" placeholder="Lead, days" placeholderTextColor={COLORS.textLight} />
+                  </View>
+                  {x.price != null || x.leadDays != null || x.ref ? (
+                    <Text style={styles.sub}>
+                      {[x.ref ? `ref. ${x.ref}` : null, x.price != null ? `${priceText(x)}${x.priceDate ? ` quoted ${formatDate(x.priceDate)}` : ''}` : null, x.leadDays != null ? `${x.leadDays} days to deliver` : null].filter(Boolean).join(' · ')}
+                    </Text>
+                  ) : null}
+                </View>
+              ))}
+              <View style={{ height: SIZES.md }} />
               <Label>Notes</Label>
               <TextInput style={[styles.input, { minHeight: 60 }]} value={draft.notes ?? ''} onChangeText={(v) => set({ notes: v })} multiline placeholder="Supplier, alternative part numbers…" placeholderTextColor={COLORS.textLight} />
 
@@ -286,7 +357,7 @@ export default function SparePartSc() {
                       <View style={{ flex: 1 }}>
                         <Text style={styles.moveText}>{moveText(m, draft)}</Text>
                         <Text style={styles.sub} numberOfLines={2}>
-                          {[formatDate(m.date), m.by, m.jobTitle ? `${m.machineName ? `${m.machineName}: ` : ''}${m.jobTitle}` : null, m.note].filter(Boolean).join(' · ')}
+                          {[formatDate(m.date), m.by, m.jobTitle ? `${m.machineName ? `${m.machineName}: ` : ''}${m.jobTitle}` : null, m.expiry ? `use by ${formatDate(m.expiry)}` : null, m.note].filter(Boolean).join(' · ')}
                         </Text>
                       </View>
                     </View>
@@ -332,4 +403,13 @@ const makeStyles = (COLORS: Palette) =>
     moveText: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.textDark },
     deleteBtn: { marginTop: SIZES.xl, paddingVertical: SIZES.md, borderRadius: SIZES.radiusMd, borderWidth: 1, borderColor: COLORS.danger, alignItems: 'center' },
     deleteText: { color: COLORS.danger, fontWeight: '700', fontSize: SIZES.body },
+    supHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    supAdd: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
+    sup: { ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.sm, marginTop: SIZES.xs },
+    supRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.xs, flexWrap: 'wrap' },
+    supTag: { fontSize: SIZES.tiny, fontWeight: '800', color: COLORS.textLight, textTransform: 'uppercase', width: 40 },
+    supName: { flex: 1, minWidth: 140 },
+    supField: { flex: 1, minWidth: 80 },
+    supCur: { width: 64 },
+    supX: { color: COLORS.danger, fontWeight: '800', fontSize: SIZES.h5, paddingHorizontal: SIZES.xs },
   });

@@ -31,11 +31,29 @@ export interface SparePart {
   unit?: string;
   /** Re-order level: at or below it the part is "low". */
   minQty?: number;
+  /** Order up to this many (TM Master's "to max"): an order brings the stock back to it. */
+  maxQty?: number;
+  /** IMPA / ISSA catalogue number — what a ship chandler orders by. */
+  impa?: string;
+  /** Who sells it, the first the usual one — price, their reference, how long it takes to arrive. */
+  suppliers?: SpareSupplier[];
   /** Machines it fits (types/pms Machine ids). */
   machineIds?: string[];
   notes?: string;
   deleted?: boolean;
   updatedAt: number;
+}
+
+export interface SpareSupplier {
+  name: string;
+  /** Their part reference. */
+  ref?: string;
+  price?: number;
+  currency?: string;
+  /** Days from order to delivery on board (lead time). */
+  leadDays?: number;
+  /** yyyy-mm-dd the price was quoted. */
+  priceDate?: string;
 }
 
 export type MoveKind = 'received' | 'used' | 'count' | 'adjust';
@@ -59,6 +77,8 @@ export interface SpareMove {
   by: string;
   byRank?: string;
   note?: string;
+  /** received: the use-by / expiry date of what came in (sealants, filters with a shelf life, chemicals). */
+  expiry?: string;
   /** Epoch ms when recorded. */
   at: number;
   /** How the signer confirmed — finger, face or signing PIN (services/signature.ts). Absent when not asked. */

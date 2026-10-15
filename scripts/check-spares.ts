@@ -1,5 +1,5 @@
 // npm run check:spares — stock as the sum of movements (services/spares.ts).
-import { makeMove, movesForJob, stockByPart, stockStatus, toOrderCounts } from '../services/spares';
+import { batchesOnHand, firstExpiry, makeMove, movesForJob, orderQty, stockByPart, stockStatus, toOrderCounts, usedByYear } from '../services/spares';
 import { SparePart } from '../types/spares';
 
 let failed = 0;
@@ -58,6 +58,22 @@ import { upcomingNeeds } from '../services/sparesNeed';
   ok(!by.has('g'), 'overdue job but enough on hand → nothing to order');
   const n90 = upcomingNeeds(js, ms, [], parts, stock, 365, '2026-10-11');
   ok(n90.some((x) => x.part.id === 'i' && x.order === 1), 'a longer horizon brings the impeller in');
+}
+// Ordering to max, shelf life, consumption (TM Master comparison, item 3).
+{
+  ok(orderQty({ minQty: 2, maxQty: 6 }, 1) === 5 && orderQty({ minQty: 2, maxQty: 6 }, 2) === 4, 'at or below the re-order level: order up to the maximum');
+  ok(orderQty({ minQty: 2, maxQty: 6 }, 3) === 0, 'above the re-order level: nothing to order');
+  ok(orderQty({ minQty: 2 }, 1) === 2 && orderQty({}, 0) === 1, 'no maximum: one over the re-order level; out with no levels: one');
+  let t = 0;
+  const mv = (kind: any, amount: number, onHand: number, date: string, expiry?: string) => ({ ...makeMove(imp, kind, amount, onHand, S, date, expiry ? { expiry } : {}), at: ++t });
+  const ms = [mv('received', 4, 0, '2025-03-01', '2027-06-30'), mv('received', 2, 4, '2026-01-10', '2026-12-31'), mv('used', 3, 6, '2026-05-01'), mv('count', 4, 3, '2026-09-01')];
+  const b = batchesOnHand(ms);
+  ok(JSON.stringify(b) === JSON.stringify([{ qty: 3, expiry: '2027-06-30' }, { qty: 1 }]), 'used comes off the batch that expires first; counted over is a batch with no date');
+  ok(firstExpiry(ms)?.expiry === '2027-06-30' && firstExpiry(ms)?.qty === 3, 'first expiry still on the shelf');
+  ok(firstExpiry([mv('received', 2, 0, '2026-01-01')]) === undefined, 'nothing dated: no expiry');
+  const u = usedByYear([...ms, mv('used', 1, 4, '2024-02-02'), mv('used', 2, 3, '2026-10-01')], '2026-10-15');
+  ok(u.map((x) => `${x.year}:${x.used}`).join() === '2026:5,2025:0,2024:1', 'used per year, the last three, newest first; counts are not use');
+  ok(makeMove(imp, 'received', 2, 0, S, D, { expiry: '2028-01-01' }).expiry === '2028-01-01', 'a delivery keeps its expiry');
 }
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

@@ -20,7 +20,11 @@ import { MciIcon } from '../components/MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
-import { StockStatus, qtyText, statusRank, stockByPart, stockStatus } from '../services/spares';
+import { StockStatus, firstExpiry, makeMove, orderQty, priceText, qtyText, statusRank, stockByPart, stockStatus } from '../services/spares';
+import { useSigner } from '../components/SignerChoice';
+import { useSignConfirm } from '../components/SignConfirm';
+import { formatDate } from '../utils/dates';
+import { playSuccessSound } from '../utils/sound';
 import { uid } from '../utils/id';
 import * as XLSX from 'xlsx';
 import { Dropdown } from '../components/Dropdown';
@@ -35,7 +39,9 @@ export default function SparesSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
-  const { spares, spareMoves, pmsJobs, machines, pmsDeferrals, vessel } = useData();
+  const { spares, spareMoves, pmsJobs, machines, pmsDeferrals, vessel, addSpareMoves } = useData();
+  const { signer, picker } = useSigner('COUNTED BY');
+  const confirmSign = useSignConfirm();
   // Parts the coming PMS jobs will use that are not on the shelf (services/sparesNeed).
   const [horizon, setHorizon] = useState(30);
   const [saved, setSaved] = useState<string | null>(null);
@@ -43,21 +49,61 @@ export default function SparesSc() {
   const [toOrder, setToOrder] = useState(false);
 
   const stock = useMemo(() => stockByPart(spareMoves), [spareMoves]);
+  const today = todayIso();
+  const soon = new Date(Date.parse(`${today}T00:00:00Z`) + 90 * 86400000).toISOString().slice(0, 10);
   const rows = useMemo(
     () => spares.map((p) => {
       const onHand = stock.get(p.id) ?? 0;
-      return { p, onHand, status: stockStatus(p, onHand) };
+      // The first shelf-life date still on the shelf (services/spares batchesOnHand).
+      const exp = firstExpiry(spareMoves.filter((m) => m.partId === p.id));
+      return { p, onHand, status: stockStatus(p, onHand), exp };
     }),
-    [spares, stock]
+    [spares, stock, spareMoves]
   );
+  const expiring = rows.filter((r) => r.exp && r.exp.expiry! <= soon).length;
+
+  // ---- Stocktake of one location at once (TM Master's mass update) ----
+  const [counting, setCounting] = useState<{ loc: string; qty: Record<string, string> } | null>(null);
+  const startCount = (loc: string, list: { p: { id: string }; onHand: number }[]) =>
+    setCounting({ loc, qty: Object.fromEntries(list.map((r) => [r.p.id, String(r.onHand)])) });
+  const saveCount = async () => {
+    if (!counting) return;
+    const changed = rows.filter((r) => counting.qty[r.p.id] != null).map((r) => ({ r, n: Number(counting.qty[r.p.id].replace(',', '.')) }));
+    if (changed.some((c) => !counting.qty[c.r.p.id].trim() || !Number.isFinite(c.n) || c.n < 0)) return Alert.alert('Stocktake', 'Every line needs what is on the shelf — 0 when empty.');
+    const diff = changed.filter((c) => c.n !== c.r.onHand);
+    if (!signer) return Alert.alert('Who counted?', 'Choose your name.');
+    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Stocktake: ${counting.loc} — ${changed.length} line${changed.length === 1 ? '' : 's'}` });
+    if (!sig) return;
+    // Every line counted is recorded — an unchanged count is the evidence it was checked.
+    const moves = changed.map((c) => {
+      const m = makeMove(c.r.p, 'count', c.n, c.r.onHand, { by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}) }, today, { note: `Stocktake ${counting.loc}` });
+      return sig.proof ? { ...m, signedWith: sig.proof } : m;
+    });
+    await addSpareMoves(moves);
+    setCounting(null);
+    playSuccessSound();
+    Alert.alert('Stocktake', `${changed.length} line${changed.length === 1 ? '' : 's'} counted · ${diff.length} differed from the book.`);
+  };
   const needs = useMemo(() => (moduleOn('pms') ? upcomingNeeds(pmsJobs, machines, pmsDeferrals, spares, stock, horizon) : []), [pmsJobs, machines, pmsDeferrals, spares, stock, horizon]);
   const requisition = async () => {
     try {
       const lowOnly = rows.filter((r) => r.status !== 'ok' && !needs.some((n) => n.part.id === r.p.id));
-      const head = ['Part', 'Part No.', 'Maker', 'Unit', 'Needed for jobs', 'In stock', 'Order', 'For'];
+      // The usual supplier's reference, price and lead time — what the purchaser needs to place it.
+      const sup = (p: (typeof spares)[number], qty: number) => {
+        const x = p.suppliers?.[0];
+        return [x?.name ?? '', x?.ref ?? '', x?.price != null ? priceText(x) : '', x?.price != null ? Number((x.price * qty).toFixed(2)) : '', x?.leadDays != null ? x.leadDays : ''];
+      };
+      const head = ['Part', 'Part No.', 'IMPA', 'Maker', 'Unit', 'Needed for jobs', 'In stock', 'Order', 'For', 'Supplier', 'Their ref.', 'Unit price', 'Line total', 'Lead, days'];
       const body = [
-        ...needs.map((n) => [n.part.name, n.part.partNo ?? '', n.part.maker ?? '', n.part.unit ?? 'pcs', n.need, n.onHand, n.order, n.forJobs.join('; ')]),
-        ...lowOnly.map((r) => [r.p.name, r.p.partNo ?? '', r.p.maker ?? '', r.p.unit ?? 'pcs', '', r.onHand, Math.max(1, (r.p.minQty ?? 0) - r.onHand + 1), 'below re-order level']),
+        ...needs.map((n) => {
+          // Enough for the jobs, and the line back up to its maximum when it has one.
+          const qty = Math.max(n.order, orderQty(n.part, n.onHand - n.need));
+          return [n.part.name, n.part.partNo ?? '', n.part.impa ?? '', n.part.maker ?? '', n.part.unit ?? 'pcs', n.need, n.onHand, qty, n.forJobs.join('; '), ...sup(n.part, qty)];
+        }),
+        ...lowOnly.map((r) => {
+          const qty = orderQty(r.p, r.onHand);
+          return [r.p.name, r.p.partNo ?? '', r.p.impa ?? '', r.p.maker ?? '', r.p.unit ?? 'pcs', '', r.onHand, qty, r.p.maxQty != null ? 'below re-order level — up to the maximum' : 'below re-order level', ...sup(r.p, qty)];
+        }),
       ];
       const ws = XLSX.utils.aoa_to_sheet([[`Spares requisition — jobs within ${horizon} days`], [vesselHeader(vessel)], [], head, ...body]);
       ws['!cols'] = head.map((h) => ({ wch: h === 'For' ? 60 : 16 }));
@@ -111,6 +157,7 @@ export default function SparesSc() {
         <View style={styles.stats}>
           <Stat value={String(out)} label="Out of stock" color={out ? COLORS.danger : COLORS.textDark} />
           <Stat value={String(low)} label="Low" color={low ? COLORS.warning : COLORS.textDark} />
+          <Stat value={String(expiring)} label="Expiring ≤ 90 d" color={expiring ? COLORS.warning : COLORS.textDark} />
           <Stat value={String(spares.length)} label="Lines" color={COLORS.textDark} />
         </View>
       </Card>
@@ -163,19 +210,49 @@ export default function SparesSc() {
       ) : (
         groups.map(({ loc, list }) => (
           <View key={loc}>
-            <Text style={styles.loc}>{loc}</Text>
-            {list.map(({ p, onHand, status }) => (
-              <TouchableOpacity key={p.id} style={styles.row} onPress={() => nav.navigate('SparePart', { id: p.id })} activeOpacity={0.7}>
+            <View style={styles.locHead}>
+              <Text style={styles.loc}>{loc}</Text>
+              {counting?.loc === loc ? null : (
+                <TouchableOpacity onPress={() => startCount(loc, list)} hitSlop={8} disabled={!!counting}>
+                  <Text style={[styles.add, !!counting && { opacity: 0.35 }]}>Stocktake</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {counting?.loc === loc ? (
+              <Text style={styles.sub}>What is on the shelf, line by line — prefilled with the book. Every line is recorded as counted.</Text>
+            ) : null}
+            {list.map(({ p, onHand, status, exp }) => (
+              <TouchableOpacity key={p.id} style={styles.row} onPress={() => (counting?.loc === loc ? undefined : nav.navigate('SparePart', { id: p.id }))} activeOpacity={0.7}>
                 <View style={[styles.bar, { backgroundColor: status === 'ok' ? COLORS.success : color(status) }]} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.title} numberOfLines={1}>{p.name}</Text>
                   <Text style={styles.sub} numberOfLines={1}>
-                    {[p.partNo, p.maker, p.minQty != null ? `min ${p.minQty}` : null].filter(Boolean).join(' · ') || '—'}
+                    {[p.partNo, p.maker, p.minQty != null ? `min ${p.minQty}` : null, p.maxQty != null ? `max ${p.maxQty}` : null].filter(Boolean).join(' · ') || '—'}
                   </Text>
+                  {exp && exp.expiry! <= soon ? (
+                    <Text style={[styles.sub, { color: exp.expiry! < today ? COLORS.danger : COLORS.warning, fontWeight: '700' }]}>{`${exp.expiry! < today ? 'Expired' : 'Expires'} ${formatDate(exp.expiry)} · ${qtyText(exp.qty, p)}`}</Text>
+                  ) : null}
                 </View>
-                <Text style={[styles.qty, { color: color(status) }]}>{qtyText(onHand, p)}</Text>
+                {counting?.loc === loc ? (
+                  <TextInput
+                    style={[styles.search, styles.countIn]}
+                    value={counting.qty[p.id] ?? ''}
+                    onChangeText={(v) => setCounting({ ...counting, qty: { ...counting.qty, [p.id]: v } })}
+                    keyboardType="decimal-pad"
+                    selectTextOnFocus
+                  />
+                ) : (
+                  <Text style={[styles.qty, { color: color(status) }]}>{qtyText(onHand, p)}</Text>
+                )}
               </TouchableOpacity>
             ))}
+            {counting?.loc === loc ? (
+              <View style={styles.countBar}>
+                {picker}
+                <TouchableOpacity style={styles.reqBtn} onPress={() => void saveCount()}><Text style={styles.reqBtnText}>Record the count</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setCounting(null)}><Text style={styles.add}>Cancel</Text></TouchableOpacity>
+              </View>
+            ) : null}
           </View>
         ))
       )}
@@ -218,4 +295,7 @@ const makeStyles = (COLORS: Palette) =>
     title: { fontSize: SIZES.h5, fontWeight: '600', color: COLORS.textDark },
     sub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 1 },
     qty: { fontSize: SIZES.h5, fontWeight: '800', marginLeft: SIZES.sm },
+    locHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    countIn: { flex: 0, width: 80, textAlign: 'center', fontWeight: '800' },
+    countBar: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: SIZES.md, marginBottom: SIZES.md },
   });
