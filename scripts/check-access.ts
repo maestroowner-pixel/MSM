@@ -1,6 +1,7 @@
 // npm run check:access — which tabs a device shows (constants/access.ts).
 import { ALL_TABS, MANAGE_ROUTE, canManage, pageKey, pageShown, toggleManage, togglePage, toggleTab, visibleTabs } from '../constants/access';
 import { masterCell, masterRows } from '../services/masterPage';
+import { olderConnections } from '../types/role';
 
 let failed = 0;
 const ok = (c: boolean, m: string) => { if (!c) failed++; console.log(`${c ? '✓' : '✗'} ${m}`); };
@@ -62,5 +63,16 @@ ok(!masterCell(pg, { ...crew, tabs: ['rounds'] }).on && masterCell(pg, { ...crew
 ok(!masterCell(ssp, crew).on && masterCell(ssp, crew).locked && masterCell(ssp, off).on && !masterCell(ssp, off).locked, 'cell: officers-only page — locked off for crew, switchable for an officer');
 ok(!masterCell(gear, off).on && masterCell(gear, { ...off, manage: ['stores'] }).on && masterCell(gear, mst).on && masterCell(gear, mst).locked, 'cell: the gear off by default, on when given; the Master always');
 ok(masterCell({ kind: 'rank', id: 'r', label: 'Plan drills', tab: 'drills' } as any, off).on && !masterCell({ kind: 'rank', id: 'r', label: 'Plan drills', tab: 'drills' } as any, crew).on, 'cell: by rank — lit for an officer, dim for crew');
+
+// older connections of the same person (15 Oct 2026: five "Master Nemo · Web")
+{
+  const dv = (id: string, seen: number, o: any = {}): any => ({ id, firstName: 'Master', lastName: 'Nemo', role: 'superadmin', platform: 'web', approved: true, lastSeenAt: seen, ...o });
+  const list = [dv('a', 5), dv('b', 9), dv('c', 3), dv('d', 1, { platform: 'ios' }), dv('e', 2, { role: 'admin' }), dv('f', 0, { disabled: true }), dv('g', 4, { firstName: 'Lisa' })];
+  const o = olderConnections(list);
+  ok([...o.keys()].sort().join() === 'a,c' && o.get('a') === 'b', `older: same name, rank and device kind — the one seen last kept (${[...o.keys()].join()})`);
+  const mine = olderConnections(list, 'c');
+  ok(!mine.has('c') && mine.has('b') && mine.has('a'), 'older: this device is always the one kept — the Master never switches himself off');
+  ok(olderConnections([dv('x', 1, { firstName: '', lastName: '' }), dv('y', 2, { firstName: '', lastName: '' })]).size === 0, 'older: unnamed devices are not guessed at');
+}
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

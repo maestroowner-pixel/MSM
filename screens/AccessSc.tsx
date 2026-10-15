@@ -26,7 +26,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { EnrolledDevice, ROLE_LABEL, personName } from '../types/role';
+import { EnrolledDevice, ROLE_LABEL, olderConnections, personName } from '../types/role';
 import { MANAGE_COLUMNS, ManageKey, TabKey, releasedTabs, toggleManage, toggleTab, visibleTabs } from '../constants/access';
 import { moduleOn } from '../constants/modules';
 import * as accounts from '../services/accounts';
@@ -83,13 +83,15 @@ export default function AccessSc() {
     return () => stop();
   }, [imo]);
 
+  const older = useMemo(() => olderConnections(devices, me?.id), [devices, me?.id]);
   const rows = useMemo(
     () =>
       devices
-        // Shore accounts are not devices aboard and have no tab bar here.
-        .filter((d) => d.approved && !d.disabled && d.role !== 'shore')
+        // Shore accounts are not devices aboard and have no tab bar here; an older
+        // connection of the same person is left out (types/role.ts olderConnections).
+        .filter((d) => d.approved && !d.disabled && d.role !== 'shore' && !older.has(d.id))
         .sort((a, b) => rank(a) - rank(b) || label(a).localeCompare(label(b))),
-    [devices]
+    [devices, older]
   );
 
   const flip = async (d: EnrolledDevice, key: TabKey) => {
@@ -244,6 +246,9 @@ export default function AccessSc() {
         </View>
       )}
 
+      {older.size ? (
+        <Text style={styles.foot}>{`${older.size} older connection${older.size === 1 ? '' : 's'} of the same people not shown (a new browser address or a reinstall joins as a new device). Switch them off in Accounts → Devices.`}</Text>
+      ) : null}
       <Text style={styles.foot}>
         ⚙ columns: who may manage the stores and the SOPEP lockers — add one, give it an ID, print its label, load its list. Off until you switch it on; the gear in the menu shows only where it is on.
         {'\n'}A Master's device always shows every tab. This keeps each screen to what its holder needs; it is not a lock —

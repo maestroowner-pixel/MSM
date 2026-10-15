@@ -163,3 +163,30 @@ export interface EnrolledDevice {
 export function personName(d: { firstName?: string; lastName?: string }): string {
   return [d.firstName, d.lastName].filter(Boolean).join(' ').trim();
 }
+
+/**
+ * Older connections of the same person (15 Oct 2026). Every new browser address
+ * (a preview, a port, the live site) or cleared browser storage joins as a NEW
+ * device, and a reinstalled phone too; the old record stays, so the Master's
+ * tables filled with five "Master Nemo · Web". Grouped by name, rank and kind of
+ * device, the one seen last is kept and the rest are its older connections —
+ * except this device itself, which is always the one kept in its group.
+ *
+ * Returns older id → the id of the connection kept.
+ */
+export function olderConnections(devices: EnrolledDevice[], meId?: string): Map<string, string> {
+  const live = devices.filter((d) => d.approved && !d.disabled && d.role !== 'shore');
+  const key = (d: EnrolledDevice) => [personName(d).toLowerCase().replace(/\s+/g, ' '), d.role, d.platform ?? ''].join('|');
+  const groups = new Map<string, EnrolledDevice[]>();
+  for (const d of live) {
+    if (!personName(d)) continue;
+    groups.set(key(d), [...(groups.get(key(d)) ?? []), d]);
+  }
+  const out = new Map<string, string>();
+  for (const g of groups.values()) {
+    if (g.length < 2) continue;
+    const keep = g.find((d) => d.id === meId) ?? [...g].sort((a, b) => (b.lastSeenAt ?? b.createdAt ?? 0) - (a.lastSeenAt ?? a.createdAt ?? 0))[0];
+    for (const d of g) if (d.id !== keep.id) out.set(d.id, keep.id);
+  }
+  return out;
+}

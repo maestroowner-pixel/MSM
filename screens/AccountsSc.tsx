@@ -21,14 +21,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import {
-  EnrolledDevice,
-  Invite,
-  ROLE_LABEL,
-  ROLE_ORDER,
-  Role,
-  personName,
-} from '../types/role';
+import { EnrolledDevice, Invite, ROLE_LABEL, ROLE_ORDER, Role, personName, olderConnections } from '../types/role';
 import * as accounts from '../services/accounts';
 import * as fb from '../services/firebaseService';
 import { formatDateTime } from '../utils/dates';
@@ -56,7 +49,7 @@ export default function AccountsSc() {
    * button which always fails is telling the user something untrue about their
    * own authority.
    */
-  const { role: myRole } = useSync();
+  const { role: myRole, me } = useSync();
   const isMaster = myRole === 'superadmin';
   const rankKnown = myRole !== null;
 
@@ -64,6 +57,7 @@ export default function AccountsSc() {
   const shownTab: Tab = isMaster ? tab : 'devices';
   const [invites, setInvites] = useState<Invite[]>([]);
   const [devices, setDevices] = useState<EnrolledDevice[]>([]);
+  const older = useMemo(() => olderConnections(devices, me?.id), [devices, me?.id]);
   const [error, setError] = useState<string | null>(null);
   /** This device's own id — it must not be able to remove itself (see below). */
   const [myDeviceId, setMyDeviceId] = useState<string | null>(null);
@@ -506,6 +500,25 @@ export default function AccountsSc() {
           />
         </>
       ) : (
+        <>
+        {/* Older connections of the same person (types/role.ts olderConnections): a
+            new browser address or a reinstall joins as a new device. One tap
+            switches them all off; the one in use, and this device, stay. */}
+        {isMaster && older.size ? (
+          <Card>
+            <Text style={styles.name}>{`${older.size} older connection${older.size === 1 ? '' : 's'}`}</Text>
+            <Text style={styles.meta}>The same person, rank and kind of device joined again — from another browser address, after clearing the browser, or a reinstalled phone. The one seen last is kept (this device always).</Text>
+            <TouchableOpacity
+              style={[styles.waitPill, { alignSelf: 'flex-start', marginTop: SIZES.sm }]}
+              onPress={() => Alert.alert('Switch off the older connections?', [...older.keys()].map((id) => { const d = devices.find((x) => x.id === id); return d ? `${personName(d)} · ${d.platform ?? ''} · last seen ${d.lastSeenAt ? formatDateTime(d.lastSeenAt) : '—'}` : id; }).join('\n'), [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Switch off', style: 'destructive', onPress: () => void Promise.all([...older.keys()].map((id) => accounts.disableDevice(imo, id))).catch((e) => Alert.alert('Devices', String(e?.message ?? e))) },
+              ])}
+            >
+              <Text style={styles.waitText}>SWITCH THEM OFF</Text>
+            </TouchableOpacity>
+          </Card>
+        ) : null}
         <FlatList
           data={devices}
           keyExtractor={(d) => d.id}
@@ -533,6 +546,7 @@ export default function AccountsSc() {
                         item.disabled ? 'Switched off' : item.approved ? 'Approved' : 'Waiting',
                         item.platform,
                         item.lastSeenAt ? formatDateTime(item.lastSeenAt) : null,
+                        older.has(item.id) ? 'Older connection' : null,
                       ]
                         .filter(Boolean)
                         .join(' · ')}
@@ -571,6 +585,7 @@ export default function AccountsSc() {
             </Card>
           )}
         />
+        </>
       )}
 
       {/* Rename. The bridge computer two officers rotate through is not called

@@ -32,7 +32,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { EnrolledDevice, ROLE_LABEL, Role, personName } from '../types/role';
+import { EnrolledDevice, ROLE_LABEL, Role, olderConnections, personName } from '../types/role';
 import { ManageKey, TabKey, toggleManage, togglePage, toggleTab } from '../constants/access';
 import { Row, masterCell, masterRows } from '../services/masterPage';
 import { moduleOn } from '../constants/modules';
@@ -71,13 +71,14 @@ export default function MasterSc() {
     return () => stop();
   }, [imo, isMaster]);
 
+  const older = useMemo(() => olderConnections(devices, sync.me?.id), [devices, sync.me?.id]);
   const cols = useMemo(
     () =>
       devices
-        .filter((d) => d.approved && !d.disabled && d.role !== 'shore')
+        .filter((d) => d.approved && !d.disabled && d.role !== 'shore' && !older.has(d.id))
         .map((d) => ({ ...d, ...(pending[d.id] ?? {}) }))
         .sort((a, b) => rankOrder(a.role) - rankOrder(b.role) || label(a).localeCompare(label(b))),
-    [devices, pending]
+    [devices, pending, older]
   );
 
   const rows: Row[] = useMemo(() => masterRows(storeRoomList), [storeRoomList]);
@@ -149,6 +150,11 @@ export default function MasterSc() {
         Tap a dot: it glows when that device has it, dim when not. Pages and the ⚙ gear follow their menu entry. Rows marked by rank follow the rank — tap the rank on top to change it. The phone follows on its next sync.
       </Text>
       {error ? <Card><Text style={{ color: COLORS.danger }}>{error}</Text></Card> : null}
+      {older.size ? (
+        <TouchableOpacity onPress={() => nav.navigate('Accounts')}>
+          <Text style={[styles.lead, { color: COLORS.warning }]}>{`${older.size} older connection${older.size === 1 ? '' : 's'} of the same people not shown — switch them off in Accounts → Devices ›`}</Text>
+        </TouchableOpacity>
+      ) : null}
 
       {!imo ? (
         <Empty text="Set the vessel's IMO number in Settings and connect it first." />
