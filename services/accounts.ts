@@ -23,6 +23,7 @@ import {
   doc,
   getDocs,
   onSnapshot,
+  deleteField,
   setDoc,
 } from 'firebase/firestore';
 
@@ -218,9 +219,24 @@ export async function setDeviceHidePages(vessel: string, deviceId: string, hideP
  * Switch a device off — a lost handset, or somebody who has left. Kept rather
  * than deleted so the record of what it did remains, and so re-enrolling on the
  * same install cannot quietly undo it.
+ *
+ * The Master's word is final either way: it clears the server's "retired as a
+ * duplicate" mark (functions/devices.js), which a connection would otherwise undo
+ * by opening the app.
  */
 export async function disableDevice(vessel: string, deviceId: string, disabled = true): Promise<void> {
-  await setDoc(doc(db(), ROOT, vessel, 'devices', deviceId), { disabled }, { merge: true });
+  await setDoc(doc(db(), ROOT, vessel, 'devices', deviceId), { disabled, retiredAt: deleteField(), retiredFor: deleteField() }, { merge: true });
+}
+
+/**
+ * Older connections of the same person (types/role.ts olderConnections), retired
+ * the way the server does it (functions/devices.js): out of the tables, and back
+ * by themselves if that install is opened again — so a browser in real use is not
+ * locked out by a tidy-up.
+ */
+export async function retireDevices(vessel: string, older: Map<string, string>): Promise<void> {
+  const now = Date.now();
+  await Promise.all([...older].map(([id, keep]) => setDoc(doc(db(), ROOT, vessel, 'devices', id), { disabled: true, retiredAt: now, retiredFor: keep }, { merge: true })));
 }
 
 export async function removeDevice(vessel: string, deviceId: string): Promise<void> {

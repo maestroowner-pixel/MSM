@@ -239,7 +239,7 @@ export default function EnrolSc() {
           {me.position ? <Text style={styles.position}>{me.position}</Text> : null}
           <Text style={styles.note}>
             {ROLE_LABEL[me.role]}
-            {me.disabled
+            {me.disabled && !me.retiredAt
               ? ' · switched off by the Master'
               : me.approved
                 ? ' · approved'

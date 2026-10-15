@@ -158,6 +158,14 @@ export interface EnrolledDevice {
   manage?: string[];
   /** The pages under a menu entry this device does NOT show ("Security:searches"), set on the Master's page. Absent = all. */
   hidePages?: string[];
+  /**
+   * Retired by the server as an older connection of the same person
+   * (functions/devices.js): `disabled`, hidden from the tables, and back by itself
+   * the next time that install opens the app. The Master's own switch-off clears it.
+   */
+  retiredAt?: number;
+  /** The connection kept in its place. */
+  retiredFor?: string;
 }
 
 export function personName(d: { firstName?: string; lastName?: string }): string {

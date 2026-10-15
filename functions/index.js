@@ -41,6 +41,7 @@ const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const crypto = require('crypto');
+const { retireDuplicates, revive } = require('./devices');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -248,7 +249,9 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
   const deviceSnap = await deviceRef.get();
   const device = deviceSnap.exists ? deviceSnap.data() : null;
 
-  if (device?.disabled) {
+  // A connection the server retired as a duplicate (functions/devices.js) is not
+  // switched off: joining again on it is the person using it, and it comes back.
+  if (device?.disabled && !device.retiredAt) {
     throw new HttpsError('permission-denied', 'This device has been switched off.');
   }
 
@@ -314,6 +317,7 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
       appVersion: appVersion ?? null,
       lastSeenAt: now,
       createdAt: device?.createdAt ?? now,
+      ...(device?.retiredAt ? revive() : {}),
     },
     { merge: true }
   );
@@ -333,6 +337,13 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
     `[enrol] ${deviceId} on ${vessel} via ${invite ? 'invitation ' + invite.id : 'the bootstrap code'} ` +
       `— role ${role}, approved ${approved}`
   );
+
+  // The person's other connections of the same rank and kind of device are
+  // retired: this one is in use. Best-effort — a failure must not cost the
+  // enrolment.
+  if (approved) {
+    await retireDuplicates(vessel, deviceId).catch((e) => console.warn(`[enrol] retiring duplicates on ${vessel}: ${e && e.message ? e.message : e}`));
+  }
 
   if (!approved) {
     // No token. Knowing a PIN gets a device into the queue and no further, and
@@ -392,7 +403,7 @@ exports.refresh = onCall({ region: REGION }, async (req) => {
   // again, which strands it with a "could not connect" it cannot act on. Say
   // `reenrol` and let the client forget the secret and start over.
   if (!device) return { status: 'reenrol', role: 'user' };
-  if (device.disabled) throw new HttpsError('permission-denied', 'This device has been switched off.');
+  if (device.disabled && !device.retiredAt) throw new HttpsError('permission-denied', 'This device has been switched off.');
   if (!device.secretHash) return { status: 'reenrol', role: device.role ?? 'user' };
 
   if (!secretMatches(deviceSecret, device)) {
@@ -415,7 +426,9 @@ exports.refresh = onCall({ region: REGION }, async (req) => {
   // Older clients do not send them, so each is written only when present — an
   // undefined would fail the whole write, and a null would erase what enrolment
   // recorded in exchange for nothing.
-  const beat = { lastSeenAt: Date.now() };
+  // Retired as a duplicate (functions/devices.js) and opened again: it is in use
+  // after all, so it comes back to the tables.
+  const beat = { lastSeenAt: Date.now(), ...(device.retiredAt ? revive() : {}) };
   if (typeof appVersion === 'string' && appVersion) beat.appVersion = appVersion;
   if (typeof platform === 'string' && platform) beat.platform = platform;
   await snap.ref.set(beat, { merge: true });
@@ -788,3 +801,6 @@ exports.ai = require('./ai').ai;
 // Duplicate inspection rounds closed on the server, whatever app made them (functions/rounds.js).
 exports.roundsDedupOnCreate = require('./rounds').roundsDedupOnCreate;
 exports.roundsDedupSweep = require('./rounds').roundsDedupSweep;
+
+// Duplicate connections of the same person retired on the server (functions/devices.js).
+exports.devicesDedupSweep = require('./devices').devicesDedupSweep;

@@ -59,6 +59,9 @@ export default function AccountsSc() {
   const shownTab: Tab = isMaster ? tab : 'devices';
   const [invites, setInvites] = useState<Invite[]>([]);
   const [devices, setDevices] = useState<EnrolledDevice[]>([]);
+  // Connections the server retired as duplicates (functions/devices.js) — out of the list unless asked for.
+  const [showRetired, setShowRetired] = useState(false);
+  const retired = useMemo(() => devices.filter((d) => d.disabled && d.retiredAt), [devices]);
   const older = useMemo(() => olderConnections(devices, me?.id), [devices, me?.id]);
   const [error, setError] = useState<string | null>(null);
   /** This device's own id — it must not be able to remove itself (see below). */
@@ -468,12 +471,12 @@ export default function AccountsSc() {
         {isMaster && older.size ? (
           <Card>
             <Text style={styles.name}>{`${older.size} older connection${older.size === 1 ? '' : 's'}`}</Text>
-            <Text style={styles.meta}>The same person, rank and kind of device joined again — from another browser address, after clearing the browser, or a reinstalled phone. The one seen last is kept (this device always).</Text>
+            <Text style={styles.meta}>The same person, rank and kind of device joined again — from another browser address, after clearing the browser, or a reinstalled phone. The one seen last is kept (this device always). The server switches such connections off by itself after three days unused; one opened again comes back.</Text>
             <TouchableOpacity
               style={[styles.waitPill, { alignSelf: 'flex-start', marginTop: SIZES.sm }]}
               onPress={() => Alert.alert('Switch off the older connections?', [...older.keys()].map((id) => { const d = devices.find((x) => x.id === id); return d ? `${personName(d)} · ${d.platform ?? ''} · last seen ${d.lastSeenAt ? formatDateTime(d.lastSeenAt) : '—'}` : id; }).join('\n'), [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Switch off', style: 'destructive', onPress: () => void Promise.all([...older.keys()].map((id) => accounts.disableDevice(imo, id))).catch((e) => Alert.alert('Devices', String(e?.message ?? e))) },
+                { text: 'Switch off', style: 'destructive', onPress: () => void accounts.retireDevices(imo, older).catch((e) => Alert.alert('Devices', String(e?.message ?? e))) },
               ])}
             >
               <Text style={styles.waitText}>SWITCH THEM OFF</Text>
@@ -481,8 +484,13 @@ export default function AccountsSc() {
           </Card>
         ) : null}
         <FlatList
-          data={devices}
+          data={showRetired ? devices : devices.filter((d) => !(d.disabled && d.retiredAt))}
           keyExtractor={(d) => d.id}
+          ListFooterComponent={retired.length ? (
+            <TouchableOpacity onPress={() => setShowRetired(!showRetired)} style={{ paddingVertical: SIZES.sm }}>
+              <Text style={styles.meta}>{showRetired ? 'Hide the older connections switched off automatically' : `${retired.length} older connection${retired.length === 1 ? '' : 's'} switched off automatically — they come back if used again. Show ›`}</Text>
+            </TouchableOpacity>
+          ) : null}
           contentContainerStyle={{ paddingBottom: SIZES.xxxl }}
           ListEmptyComponent={<Empty text={'No devices have enrolled yet.'} />}
           renderItem={({ item }) => (
@@ -504,7 +512,7 @@ export default function AccountsSc() {
                       {[
                         item.position || null,
                         ROLE_LABEL[item.role],
-                        item.disabled ? 'Switched off' : item.approved ? 'Approved' : 'Waiting',
+                        item.disabled ? (item.retiredAt ? 'Older connection, switched off automatically' : 'Switched off') : item.approved ? 'Approved' : 'Waiting',
                         item.platform,
                         item.lastSeenAt ? formatDateTime(item.lastSeenAt) : null,
                         older.has(item.id) ? 'Older connection' : null,

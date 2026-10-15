@@ -13,6 +13,13 @@ the part that stops the next person undoing it.
 
 ## Next — after 2.62
 
+- **Duplicate connections retired by the server** (`functions/devices.js`, 15 Oct 2026). When someone joins again (a new
+  browser address, cleared storage, a reinstall) their other connections of the same rank and kind of device are retired;
+  a daily sweep (03:30 UTC) retires an older connection unused for 3 days. *Retired*, not switched off: `disabled` +
+  `retiredAt`, hidden in Accounts, and back by itself when that install opens the app (`refresh`/`enrol`), so nobody
+  using two browsers is locked out. The Master's own Switch off clears `retiredAt` and holds; the Accounts bulk
+  button now retires the same way. `npm run check:devices`; enrol → retire → revive → hard-off checked on the emulators.
+
 - **Access is part of the Master's page** (15 Oct 2026: "the Master's page and Access are really the same thing"). The Master's page already held every device's tabs and gears, with the pages, ranks and signing rules besides; the separate Access screen is gone, Settings has one row — **Master's page** — and the old address (/access) opens it. The manual's Access section describes the Master's page (help button there).
 
 - **Older connections of the same person** (15 Oct 2026: five "Master Nemo · Web" on Access). Every new browser address (a preview, a port, the live site), cleared browser storage or reinstalled phone joins as a new device and the old record stays. Devices with the same name, rank and kind are grouped; the one seen last is kept — this device always — and the others are **older connections** (`types/role.ts` `olderConnections`): left out of the Access table and the Master's page (with a line saying how many), labelled "Older connection" in Accounts → Devices, where the Master switches them all off with one tap (listed first; nothing deleted). Access and the Master's page also fit their columns to the window now. `check:access` +3.
