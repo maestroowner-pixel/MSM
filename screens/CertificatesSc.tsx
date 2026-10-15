@@ -22,6 +22,8 @@ import { ComplianceStatus } from '../types/equipment';
 import { canAddCertificate } from '../services/trial';
 import { MciIcon } from '../components/MciIcon';
 import { moduleOn } from '../constants/modules';
+import { certSurveySummary, worstOf } from '../services/certSurveys';
+import { todayIso } from '../services/pms';
 
 export default function CertificatesSc() {
   const { certificates, crew } = useData();
@@ -215,8 +217,15 @@ const EMPTY: Record<CertificateScope, string> = {
 function CertRow({ item, wide, onPress }: { item: Certificate; wide?: boolean; onPress: () => void }) {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const status = statusFromDate(item.expiryDate);
+  const { surveys, surveysDone } = useData();
   const scope = scopeOf(item);
+  // A vessel certificate is only as good as its last endorsement (services/certSurveys.ts).
+  const sv = scope === 'vessel' && moduleOn('surveys') ? certSurveySummary(item.id, surveys, surveysDone, todayIso()) : undefined;
+  const status = sv ? worstOf(statusFromDate(item.expiryDate), sv.status) : statusFromDate(item.expiryDate);
+  const next = sv?.next;
+  const nextLine = next
+    ? `${next.s.name.split(' — ').slice(1).join(' — ').replace(/^./, (ch) => ch.toUpperCase())}: ${next.st.state === 'overdue' ? `overdue since ${formatDate(next.st.closes)}` : next.st.state === 'open' ? `window open until ${formatDate(next.st.closes)}` : `window opens ${formatDate(next.st.opens)}`}`
+    : undefined;
   const sub =
     scope === 'equipment'
       ? [item.number && `№ ${item.number}`, `${item.itemIds.length} item${item.itemIds.length === 1 ? '' : 's'}`]
@@ -234,6 +243,11 @@ function CertRow({ item, wide, onPress }: { item: Certificate; wide?: boolean; o
         {sub.some(Boolean) ? (
           <Text style={styles.rowSub} numberOfLines={1}>
             {sub.filter(Boolean).join(' · ')}
+          </Text>
+        ) : null}
+        {nextLine ? (
+          <Text style={[styles.rowSub, { color: sv!.status === 'ok' ? COLORS.textLight : statusColor(sv!.status) }]} numberOfLines={1}>
+            {nextLine}
           </Text>
         ) : null}
       </View>

@@ -25,6 +25,7 @@ import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { SurveyState, nextDue, sortSurveys } from '../services/surveys';
 import { formatDate } from '../utils/dates';
+import { annualCoveredBy, defaultScheme, planForCertificate, renewedExpiry } from '../services/certSurveys';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 
@@ -33,7 +34,7 @@ const isIso = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(
 export default function SurveysSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { surveys, surveysDone, saveRow, appendRow, versionsOf } = useData();
+  const { surveys, surveysDone, saveRow, saveRows, appendRow, versionsOf, certificates, saveCertificate } = useData();
   const amend = useAmend();
   const allDone = versionsOf(storage.SURVEYS_DONE_KEY) as SurveyDone[];
   const doneLine = (h: SurveyDone) => [formatDate(h.date), h.ref ? `No. ${h.ref}` : null, h.byRank ? `${h.by} (${h.byRank})` : h.by, h.note].filter(Boolean).join(' · ');
@@ -46,7 +47,13 @@ export default function SurveysSc() {
   const rows = useMemo(() => sortSurveys(surveys, today, surveysDone), [surveys, today, surveysDone]);
 
   const [edit, setEdit] = useState<Survey | null>(null);
-  const [doing, setDoing] = useState<{ s: Survey; date: string; ref: string; note: string } | null>(null);
+  /** `expiry` / `number`: a certificate's renewal gives it new ones. */
+  const [doing, setDoing] = useState<{ s: Survey; date: string; ref: string; note: string; expiry: string; number: string } | null>(null);
+  const certOf = (sv: Survey) => (sv.certId ? certificates.find((c) => c.id === sv.certId) : undefined);
+  const startDoing = (sv: Survey) => {
+    const c = sv.kind === 'renewal' ? certOf(sv) : undefined;
+    setDoing({ s: sv, date: today, ref: '', note: '', expiry: (c && renewedExpiry(c, today)) ?? '', number: '' });
+  };
   const [open, setOpen] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
@@ -73,6 +80,8 @@ export default function SurveysSc() {
   const carriedOut = async () => {
     if (!doing) return;
     if (!isIso(doing.date) || doing.date > today) return Alert.alert('Date', 'The date it was carried out, yyyy-mm-dd — not in the future.');
+    const renewing = doing.s.kind === 'renewal' ? certOf(doing.s) : undefined;
+    if (renewing && (!isIso(doing.expiry) || doing.expiry <= doing.date)) return Alert.alert('New expiry', 'The renewed certificate’s expiry date, yyyy-mm-dd.');
     if (!signer) return Alert.alert('Who is recording it?', 'Choose your name below.');
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${doing.s.name} — carried out ${formatDate(doing.date)}` });
     if (!sig) return;
@@ -80,10 +89,28 @@ export default function SurveysSc() {
     const rec: SurveyDone = {
       id: uid('svd'), surveyId: doing.s.id, name: doing.s.name, date: doing.date, forDue: doing.s.due,
       ...(doing.ref.trim() ? { ref: doing.ref.trim() } : {}), ...(doing.note.trim() ? { note: doing.note.trim() } : {}),
+      ...(doing.s.certId ? { certId: doing.s.certId } : {}), ...(doing.s.kind ? { kind: doing.s.kind } : {}),
       by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, updatedAt: now,
     };
     await appendRow(storage.SURVEYS_DONE_KEY, rec);
     if (doing.s.repeat) await saveRow(storage.SURVEYS_KEY, { ...doing.s, due: nextDue(doing.s, doing.date) });
+    // The intermediate takes the place of that year's annual: recorded with it, under the same signature.
+    const covered = annualCoveredBy(doing.s, doing.date, surveys, surveysDone);
+    if (covered) {
+      await appendRow(storage.SURVEYS_DONE_KEY, { ...rec, id: uid('svd'), surveyId: covered.id, name: covered.name, forDue: covered.due, kind: covered.kind, note: `Held with the intermediate survey${rec.note ? ` · ${rec.note}` : ''}` });
+    }
+    // A renewal: the certificate takes its new dates, and the next cycle is planned from them.
+    if (renewing) {
+      const renewed = { ...renewing, issueDate: doing.date, expiryDate: doing.expiry, ...(doing.number.trim() ? { number: doing.number.trim() } : {}), updatedAt: now };
+      await saveCertificate(renewed);
+      const scheme = renewing.surveyScheme ?? defaultScheme(renewing.name);
+      const next = planForCertificate(renewed, scheme, today, now).filter((p) => p.include).map((p) => p.survey);
+      // What the old cycle still owed is replaced by the new cycle; what it carried out stays.
+      const nextIds = new Set(next.map((x) => x.id));
+      const left = surveys.filter((x) => x.certId === renewing.id && !x.deleted && x.id !== doing.s.id && !nextIds.has(x.id) && !surveysDone.some((d) => d.surveyId === x.id && d.forDue === x.due)).map((x) => ({ ...x, deleted: true, updatedAt: now }));
+      if (next.length + left.length) await saveRows(storage.SURVEYS_KEY, [...next, ...left]);
+      Alert.alert('Certificate renewed', `${renewing.name}: valid to ${formatDate(doing.expiry)}; ${next.length} survey${next.length === 1 ? '' : 's'} planned for the new cycle. Attach the new certificate on its card.`);
+    }
     setDoing(null);
     playSuccessSound();
   };
@@ -149,6 +176,18 @@ export default function SurveysSc() {
             <TextInput style={styles.input} value={doing.ref} onChangeText={(v) => setDoing({ ...doing, ref: v })} placeholder="Report / endorsement No." placeholderTextColor={COLORS.textLight} />
           </View>
           <TextInput style={styles.input} value={doing.note} onChangeText={(v) => setDoing({ ...doing, note: v })} placeholder="Findings, conditions of class, remarks" placeholderTextColor={COLORS.textLight} multiline />
+          {doing.s.kind === 'renewal' && certOf(doing.s) ? (
+            <>
+              <Text style={styles.sub}>{`The renewed ${certOf(doing.s)!.name}`}</Text>
+              <View style={styles.pair}>
+                <TextInput style={styles.input} value={doing.expiry} onChangeText={(v) => setDoing({ ...doing, expiry: v })} placeholder="New expiry yyyy-mm-dd" placeholderTextColor={COLORS.textLight} />
+                <TextInput style={styles.input} value={doing.number} onChangeText={(v) => setDoing({ ...doing, number: v })} placeholder="New certificate No." placeholderTextColor={COLORS.textLight} />
+              </View>
+            </>
+          ) : null}
+          {doing.s.kind === 'intermediate' && isIso(doing.date) && annualCoveredBy(doing.s, doing.date, surveys, surveysDone) ? (
+            <Text style={styles.sub}>{`Also records the ${annualCoveredBy(doing.s, doing.date, surveys, surveysDone)!.name.split(' — ').pop()} — the intermediate takes its place.`}</Text>
+          ) : null}
           {doing.s.repeat ? <Text style={styles.sub}>{`Next: ${formatDate(nextDue(doing.s, isIso(doing.date) ? doing.date : today))}`}</Text> : null}
           {picker ? <><Text style={styles.sub}>Recorded by</Text>{picker}</> : null}
           <View style={styles.row}>
@@ -170,7 +209,7 @@ export default function SurveysSc() {
                 <Text style={styles.sub}>{[`${s.anniversary ? 'Anniversary' : 'Due'} ${formatDate(s.due)}`, s.repeat ? `every ${s.repeat % 12 ? `${s.repeat} months` : `${s.repeat / 12} year${s.repeat > 12 ? 's' : ''}`}` : 'once', s.by].filter(Boolean).join(' · ')}</Text>
               </View>
               {canEdit && st.state !== 'done' ? (
-                <TouchableOpacity style={styles.small} onPress={() => setDoing({ s, date: today, ref: '', note: '' })}><Text style={styles.smallText}>Carried out</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.small} onPress={() => startDoing(s)}><Text style={styles.smallText}>Carried out</Text></TouchableOpacity>
               ) : null}
               {canEdit ? <TouchableOpacity onPress={() => setEdit(s)} hitSlop={8}><MciIcon name="pencil-outline" size={18} color={COLORS.textLight} /></TouchableOpacity> : null}
             </TouchableOpacity>

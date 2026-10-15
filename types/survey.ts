@@ -13,6 +13,13 @@
 // ===================================
 
 import type { Versioned } from '../services/versions';
+
+/**
+ * What an occasion is to the certificate it endorses (15 Oct 2026, the TM Master
+ * comparison: "annual / intermediate / renewal surveys with a window, not only an
+ * expiry date"). Absent on the vessel's own plan rows that belong to no certificate.
+ */
+export type SurveyKind = 'annual' | 'intermediate' | 'renewal';
 export interface Survey {
   id: string;
   name: string;
@@ -29,6 +36,9 @@ export interface Survey {
   by?: string;
   note?: string;
   order: number;
+  /** The vessel certificate it endorses (Certificate.id) — planned from the certificate (services/certSurveys.ts). */
+  certId?: string;
+  kind?: SurveyKind;
   deleted?: boolean;
   updatedAt: number;
 }
@@ -44,6 +54,9 @@ export interface SurveyDone extends Versioned {
   /** Report / endorsement number. */
   ref?: string;
   note?: string;
+  /** Copied from the plan row, so a certificate keeps its endorsements when a renewal replans it. */
+  certId?: string;
+  kind?: SurveyKind;
   by: string;
   byRank?: string;
   at: number;

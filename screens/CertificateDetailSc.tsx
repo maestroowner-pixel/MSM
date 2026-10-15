@@ -37,13 +37,17 @@ import { pickDocument, pickFromLibrary, pickFromCamera, openFile, deleteFile, re
 import { playSuccessSound } from '../utils/sound';
 import SimpleDatePicker from '../components/SimpleDatePicker';
 import { goBackOr } from '../utils/nav';
+import { moduleOn } from '../constants/modules';
+import { CertSurveys } from '../components/CertSurveys';
+import { certSurveySummary, worstOf } from '../services/certSurveys';
+import { todayIso } from '../services/pms';
 
 export default function CertificateDetailSc() {
   const route = useRoute<any>();
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useS();
-  const { certificates, flat, crew, saveCertificate, removeCertificate, loading } = useData();
+  const { certificates, flat, crew, saveCertificate, removeCertificate, loading, surveys, surveysDone } = useData();
 
   const id: string | null = route.params?.id ?? null;
   const existing = useMemo(() => certificates.find((c) => c.id === id), [certificates, id]);
@@ -164,7 +168,11 @@ export default function CertificateDetailSc() {
     return base.slice(0, 200);
   }, [flat, search]);
 
-  const status = statusFromDate(draft.expiryDate);
+  const withSurveys = scope === 'vessel' && moduleOn('surveys');
+  // A certificate whose survey window has closed un-endorsed is not valid, whatever its expiry says.
+  const status = withSurveys
+    ? worstOf(statusFromDate(draft.expiryDate), certSurveySummary(draft.id, surveys, surveysDone, todayIso()).status)
+    : statusFromDate(draft.expiryDate);
 
   if (missing) {
     return (
@@ -344,6 +352,8 @@ export default function CertificateDetailSc() {
                 </TouchableOpacity>
               )}
             </View>
+
+            {withSurveys ? <CertSurveys cert={draft} stored={existing} onScheme={(v) => set({ surveyScheme: v })} /> : null}
 
             {/* Linked items — equipment certificates only */}
             {scope === 'equipment' ? (

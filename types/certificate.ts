@@ -37,6 +37,8 @@ export interface Certificate {
   fileName?: string;
   fileKind?: 'photo' | 'document';
   itemIds: string[]; // equipment items covered by this certificate
+  /** vessel: how its surveys run (services/certSurveys.ts); chosen when they are planned. */
+  surveyScheme?: import('../services/certSurveys').SurveyScheme;
   createdAt: number;
   updatedAt: number;
 }
