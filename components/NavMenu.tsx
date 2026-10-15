@@ -33,8 +33,10 @@ import { useTheme } from '../contexts/ThemeContext';
 import { SIZES, Palette } from '../theme';
 import { moduleOn } from '../constants/modules';
 import { useData } from '../contexts/DataContext';
+import { useSync } from '../contexts/SyncContext';
+import { roleAtLeast } from '../types/role';
 import { StoreKind, storeRooms } from '../types/stores';
-import { MENU_CHILDREN, MenuChild, applyOrder, flatGrouped, grouped, move, moveInGroup } from '../utils/navOrder';
+import { MENU_CHILDREN, MENU_GEAR, MenuChild, applyOrder, flatGrouped, grouped, move, moveInGroup } from '../utils/navOrder';
 export { applyOrder, move, flatGrouped };
 
 /**
@@ -192,8 +194,10 @@ function MenuList({
   // Stores: one sub-item per store — the two built-in ones and those the vessel
   // added with the gear (15 Oct 2026, types/stores.ts StoreRoom).
   const { storeRoomList } = useData();
+  const sync = useSync();
+  const officer = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const childrenOf = (r: string): MenuChild[] | undefined =>
-    r === 'Stores' ? storeRooms(storeRoomList).map((x) => ({ view: x.id, label: x.name, icon: ROOM_ICON[x.kind] })) : MENU_CHILDREN[r];
+    r === 'Stores' ? storeRooms(storeRoomList).map((x) => ({ view: x.id, label: x.name, icon: ROOM_ICON[x.kind] })) : MENU_CHILDREN[r]?.filter((k) => officer || !k.officers);
   // Entries with sub-items open on a tap; the one on screen starts open.
   const [openParents, setOpenParents] = useState<string[]>(MENU_CHILDREN[current] ? [current] : []);
   const toggle = (r: string) => setOpenParents((o) => (o.includes(r) ? o.filter((x) => x !== r) : [...o, r]));
@@ -225,8 +229,8 @@ function MenuList({
               <TouchableOpacity style={[styles.item, on && !editing && styles.itemOn]} onPress={() => (editing ? undefined : kids ? toggle(r) : onPick(r))} disabled={editing} activeOpacity={0.7} accessibilityState={kids ? { expanded } : undefined}>
                 <MciIcon name={icons[r] ?? 'circle-small'} size={22} color={on || (kids && r === current) ? COLORS.primary : COLORS.textLight} />
                 <Text style={[styles.itemText, (on || (kids && r === current)) && { color: COLORS.primary }]} numberOfLines={1}>{labelOf(r)}</Text>
-                {r === 'Stores' && !editing ? (
-                  <TouchableOpacity onPress={() => onPick(r, { view: 'manage' })} hitSlop={8} accessibilityRole="button" accessibilityLabel="Manage stores">
+                {MENU_GEAR[r] && !editing ? (
+                  <TouchableOpacity onPress={() => onPick(r, { view: 'manage' })} hitSlop={8} accessibilityRole="button" accessibilityLabel={MENU_GEAR[r]}>
                     <MciIcon name="cog-outline" size={20} color={r === current && currentView === 'manage' ? COLORS.primary : COLORS.textLight} />
                   </TouchableOpacity>
                 ) : null}
@@ -244,9 +248,10 @@ function MenuList({
               </TouchableOpacity>
               {expanded
                 ? kids!.map((k, j) => {
-                    const kon = r === current && (currentView ?? kids![0].view) === k.view;
+                    const to = k.route ?? r;
+                    const kon = to === current && (currentView ?? (k.route ? MENU_CHILDREN[to]?.[0]?.view : kids![0].view)) === k.view;
                     return (
-                      <TouchableOpacity key={k.view} style={[styles.item, styles.child, kon && styles.itemOn]} onPress={() => onPick(r, { view: k.view })} activeOpacity={0.7}>
+                      <TouchableOpacity key={`${to}:${k.view}`} style={[styles.item, styles.child, kon && styles.itemOn]} onPress={() => onPick(to, { view: k.view })} activeOpacity={0.7}>
                         <MciIcon name={k.icon} size={18} color={kon ? COLORS.primary : COLORS.textLight} />
                         <Text style={[styles.itemText, styles.childText, kon && { color: COLORS.primary }]} numberOfLines={1}>{k.label}</Text>
                       </TouchableOpacity>

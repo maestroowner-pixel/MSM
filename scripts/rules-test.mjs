@@ -233,6 +233,17 @@ await t(true, 'The shore reads the SOPEP lockers', getDoc(R(shore, 'sopep_locker
 await t(true, 'Crew add a store item', setDoc(R(crew, 'store_items', 'st1'), { id: 'st1', store: 'ppe', name: 'Coveralls', size: 'L', unit: 'pcs', min: 2, order: 0, updatedAt: 1 }));
 await t(true, 'Crew issue from the store', setDoc(R(crew, 'store_moves', 'sm1'), { id: 'sm1', itemId: 'st1', kind: 'issued', qty: 1, date: '2026-10-14', to: 'Max', by: 'Jez', at: 1, updatedAt: 1 }));
 await t(false, 'A store move is never changed', setDoc(R(master, 'store_moves', 'sm1'), { id: 'sm1', itemId: 'st1', kind: 'issued', qty: 5, date: '2026-10-14', by: 'Jez', at: 1, updatedAt: 2 }));
+await t(true, 'An officer files the SSP', setDoc(R(officer, 'ssp_docs', 'd1'), { id: 'd1', title: 'Ship Security Plan — approved', updatedAt: 1 }));
+await t(false, 'The crew cannot read the SSP', getDoc(R(crew, 'ssp_docs', 'd1')));
+await t(false, 'The shore cannot read the SSP', getDoc(R(shore, 'ssp_docs', 'd1')));
+await t(false, 'The crew cannot write the SSP shelf', setDoc(R(crew, 'ssp_docs', 'd2'), { id: 'd2', title: 'x', updatedAt: 1 }));
+await t(true, 'The Master reads the SOPEP docs', setDoc(R(master, 'sopep_docs', 'd1'), { id: 'd1', title: 'SOPEP — approved plan', updatedAt: 1 }));
+await t(false, 'The crew cannot read the SOPEP docs', getDoc(R(crew, 'sopep_docs', 'd1')));
+await t(true, 'An officer sets the search areas and teams', setDoc(R(officer, 'search_plan', 'plan'), { id: 'plan', teams: [], areas: [], updatedAt: 1 }));
+await t(false, 'The crew cannot change the search plan', setDoc(R(crew, 'search_plan', 'plan'), { id: 'plan', teams: [], areas: [], updatedAt: 2 }));
+await t(true, 'The crew read the search plan', getDoc(R(crew, 'search_plan', 'plan')));
+await t(true, 'Crew mark an area searched', setDoc(R(crew, 'searches', 's1'), { id: 's1', kind: 'stowaway', date: '2026-10-15', time: '10:00', areas: [{ areaId: 'a1', name: 'Lazarette', result: 'clear', by: 'Max' }], updatedAt: 1 }));
+await t(false, 'A search is never deleted', deleteDoc(R(master, 'searches', 's1')));
 await t(true, 'Crew add a store with its ID and place', setDoc(R(crew, 'store_rooms', 'str1'), { id: 'str1', code: 'ST-01', name: "Bosun's store", kind: 'general', location: 'Fwd lazarette', order: 2, updatedAt: 1 }));
 await t(true, 'The shore reads the stores', getDoc(R(shore, 'store_rooms', 'str1')));
 await t(false, 'A store is never deleted (removed by a mark)', deleteDoc(R(master, 'store_rooms', 'str1')));

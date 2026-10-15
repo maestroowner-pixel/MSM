@@ -6,7 +6,7 @@
 // ===================================
 
 import { TsplLabelSpec } from './tspl';
-import { crewQrPayload, passQrPayload, storeQrPayload } from './crewQr';
+import { crewQrPayload, passQrPayload, sopepQrPayload, storeQrPayload } from './crewQr';
 import { CrewMember } from '../types/crew';
 
 /** The rolls a gangway sticker is worth printing on (sizes as services/qrLabel LABEL_STOCKS). */
@@ -49,5 +49,16 @@ export function storeLabelSpecs(rooms: { id: string; code: string; name: string;
     qrPayload: storeQrPayload(r.id),
     name: r.code,
     lines: [r.name, r.location ?? '', vessel?.vessel_name ?? ''].filter(Boolean),
+  }));
+}
+
+/** SOPEP locker labels — the ID large, the name and place under it (types/sopep.ts). */
+export function sopepLabelSpecs(lockers: { id: string; code: string; name: string; location?: string }[], vessel: { vessel_name?: string } | null, size: GangwayStock): TsplLabelSpec[] {
+  const st = GANGWAY_STOCK_MM[size];
+  return lockers.map((l) => ({
+    ...st,
+    qrPayload: sopepQrPayload(l.id),
+    name: l.code,
+    lines: [l.name, l.location ?? '', 'SOPEP LOCKER'].filter(Boolean),
   }));
 }

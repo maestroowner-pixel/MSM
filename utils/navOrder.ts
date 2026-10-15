@@ -47,11 +47,20 @@ export interface MenuChild {
   icon: string;
   /** Shown only when this module is on (constants/modules.ts). */
   module?: ModuleKey;
+  /** Opens another screen than its entry's — the SOPEP and ISPS drills under Drills. */
+  route?: string;
+  /** For the Master and the officers only — the SOPEP documents, the Ship Security Plan. */
+  officers?: boolean;
 }
+
+/** Entries with a gear beside them (15 Oct 2026): it opens the page that keeps their places — `view: 'manage'`. */
+export const MENU_GEAR: Record<string, string> = { Stores: 'Manage stores', Sopep: 'Manage SOPEP lockers' };
 export const MENU_CHILDREN: Record<string, MenuChild[]> = {
   Security: [
     { view: 'gangway', label: 'Gangway logbook', icon: 'ferry' },
     { view: 'drills', label: 'ISPS drills', icon: 'run-fast' },
+    { view: 'searches', label: 'Searches — stowaway, bomb', icon: 'magnify-scan' },
+    { view: 'ssp', label: 'Ship Security Plan', icon: 'shield-lock-outline', officers: true },
     { view: 'meetings', label: 'Monthly safety meeting', icon: 'account-group-outline', module: 'meetings' },
     { view: 'flashes', label: 'Safety flashes (IMCA)', icon: 'flash-alert-outline' },
   ],
@@ -67,6 +76,18 @@ export const MENU_CHILDREN: Record<string, MenuChild[]> = {
   Stores: [
     { view: 'ppe', label: 'PPE store', icon: 'hard-hat' },
     { view: 'provisions', label: 'Provisions', icon: 'food-apple-outline' },
+  ],
+  // SOPEP (15 Oct 2026): the lockers and their checks, the drills, and the plan's documents for the officers.
+  Sopep: [
+    { view: 'inventory', label: 'SOPEP stores (inventory)', icon: 'archive-outline' },
+    { view: 'drills', label: 'SOPEP drills', icon: 'run-fast' },
+    { view: 'docs', label: 'SOPEP docs', icon: 'file-lock-outline', officers: true },
+  ],
+  // Every drill in one place: the schedule, and the SOPEP and ISPS drills kept on their own pages.
+  Drills: [
+    { view: 'list', label: 'Drills & schedule', icon: 'calendar-check-outline' },
+    { view: 'drills', label: 'SOPEP drills', icon: 'oil', route: 'Sopep', module: 'sopep' },
+    { view: 'drills', label: 'ISPS drills', icon: 'shield-account-outline', route: 'Security', module: 'security' },
   ],
   Fuel: [
     { view: 'sounding', label: 'Sounding', icon: 'ruler' },

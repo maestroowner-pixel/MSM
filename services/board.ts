@@ -371,7 +371,7 @@ export function buildBoard(x: BoardInput): Board {
     const short = lastCheck ? x.sopepItems.filter((i) => !i.deleted && (lastCheck.counted[i.id] ?? 0) < i.required).length : 0;
     if (!lastCheck || daysAgo(x.today, lastCheck.date) > 31) n.push({ key: 'sopep:chk', level: 'amber', who: 'officer', icon: 'oil', route: 'Sopep', title: lastCheck ? `SOPEP locker — last checked ${dm(lastCheck.date)}` : 'SOPEP locker — never checked' });
     if (short) n.push({ key: 'sopep:short', level: 'amber', who: 'officer', icon: 'oil', route: 'Sopep', title: `SOPEP locker — ${plural(short, 'item')} short` });
-    if (!x.on('drills') && (!lastDrill || daysAgo(x.today, lastDrill.date) > 90)) n.push({ key: 'sopep:drill', level: 'blue', who: 'officer', icon: 'oil', route: 'Sopep', title: lastDrill ? `Oil-spill drill — last ${dm(lastDrill.date)}` : 'Oil-spill drill — none recorded' });
+    if (!x.on('drills') && (!lastDrill || daysAgo(x.today, lastDrill.date) > 90)) n.push({ key: 'sopep:drill', level: 'blue', who: 'officer', icon: 'oil', route: 'Sopep', params: { view: 'drills' }, title: lastDrill ? `Oil-spill drill — last ${dm(lastDrill.date)}` : 'Oil-spill drill — none recorded' });
     tiles.push({ key: 'sopep', label: 'SOPEP', icon: 'oil', route: 'Sopep', level: short ? 'amber' : undefined, line: lastCheck ? `checked ${dm(lastCheck.date)}${short ? ` · ${short} short` : ''}` : 'not checked' });
   }
 

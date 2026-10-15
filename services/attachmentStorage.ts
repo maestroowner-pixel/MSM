@@ -99,6 +99,13 @@ export async function uploadMedical(vessel: string, ownerId: string, fileId: str
   return await getDownloadURL(ref);
 }
 
+/** An officers-only document's file (types/officerDocs.ts) — its own folder (storage.rules `restricted/`). */
+export async function uploadRestricted(vessel: string, ownerId: string, fileId: string, dataUri: string): Promise<string> {
+  const ref = storageRef(bucket(), `${ROOT}/${vessel.replace(/\D/g, '')}/restricted/${ownerId}/${fileId}`);
+  await uploadString(ref, dataUri, 'data_url', { contentType: mimeOf(dataUri) });
+  return await getDownloadURL(ref);
+}
+
 /** Remove a file. Best-effort: a missing object is already the desired state. */
 export async function removeAttachment(vessel: string, ownerId: string, fileId: string): Promise<void> {
   try {

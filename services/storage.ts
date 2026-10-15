@@ -68,6 +68,10 @@ export const SAFETY_MEETINGS_KEY = `${PREFIX}safety_meetings`;
 export const STORE_ITEMS_KEY = `${PREFIX}store_items`;
 export const STORE_MOVES_KEY = `${PREFIX}store_moves`;
 export const STORE_ROOMS_KEY = `${PREFIX}store_rooms`;
+export const SOPEP_DOCS_KEY = `${PREFIX}sopep_docs`;
+export const SSP_DOCS_KEY = `${PREFIX}ssp_docs`;
+export const SEARCH_PLAN_KEY = `${PREFIX}search_plan`;
+export const SEARCHES_KEY = `${PREFIX}searches`;
 export const PASSENGERS_PRIVATE_KEY = `${PREFIX}passengers_private`;
 export const MED_ORDERS_KEY = `${PREFIX}med_orders`;
 export const MED_CHECKS_KEY = `${PREFIX}med_checks`;
@@ -736,6 +740,10 @@ export async function resetAllData(): Promise<void> {
     STORE_ITEMS_KEY,
     STORE_MOVES_KEY,
     STORE_ROOMS_KEY,
+    SOPEP_DOCS_KEY,
+    SSP_DOCS_KEY,
+    SEARCH_PLAN_KEY,
+    SEARCHES_KEY,
     PASSENGERS_PRIVATE_KEY,
     MED_ORDERS_KEY,
     MED_CHECKS_KEY,

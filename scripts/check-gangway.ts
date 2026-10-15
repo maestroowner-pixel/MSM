@@ -4,7 +4,11 @@ import { isAshore, isDoubleScan, lastMoves, nextMove, personsOnBoard, photosToRe
 import { labelsToTspl } from '../services/tspl';
 import { crewCardSpecs, visitorPassSpecs } from '../services/gangwayLabels';
 import { crewQrPayload, parseCrewQr, parsePassQr, passQrPayload, samePass, parseSopepQr, sopepQrPayload } from '../services/crewQr';
-import { MAIN_LOCKER, lockerOf, sopepLockers } from '../types/sopep';
+import { MAIN_LOCKER, lockerCode, lockerOf, nextLockerCode, sopepLockers } from '../types/sopep';
+import { planSopepImport, readSopepSheet } from '../services/sopepSheet';
+import { sopepLabelSpecs } from '../services/gangwayLabels';
+import { areasFor, defaultPlan, searchDone } from '../types/searches';
+import { MENU_CHILDREN, MENU_GEAR } from '../utils/navOrder';
 
 let fail = 0;
 const ok = (c: boolean, m: string) => { if (!c) { fail++; console.log('✗', m); } else console.log('✓', m); };
@@ -42,5 +46,25 @@ ok(samePass('7', '07') && samePass('07', '7') && !samePass('7', '17') && !samePa
 ok(parseSopepQr(sopepQrPayload('lk_ab12')) === 'lk_ab12' && parseSopepQr('MSM://SOPEP/main') === 'main' && parseSopepQr(crewQrPayload('c1')) === null && parseCrewQr(sopepQrPayload('x')) === null, 'SOPEP locker QR: its own scheme, not mistaken for a crew card');
 ok(sopepLockers([])[0].id === MAIN_LOCKER && sopepLockers([{ id: 'lk2', name: 'Bow', order: 1, updatedAt: 1 }]).map((l) => l.id).join() === 'main,lk2' && sopepLockers([{ id: 'main', name: 'Engine room', order: 0, updatedAt: 1 }])[0].name === 'Engine room', 'lockers: the first is there before it is saved, renamed when saved');
 ok(lockerOf({}) === MAIN_LOCKER && lockerOf({ lockerId: 'lk2' }) === 'lk2', 'an item without a locker is in the first one');
+// SOPEP lockers with IDs, lists from Excel (15 Oct 2026)
+const lk = sopepLockers([{ id: 'lk2', name: 'Bunker station', code: 'SP-02', order: 1, updatedAt: 1 }]);
+ok(lockerCode(lk[0]) === 'SP-01' && lockerCode(lk[1]) === 'SP-02' && nextLockerCode(lk) === 'SP-03' && nextLockerCode([]) === 'SP-01', 'locker IDs: the first is SP-01, the next free one offered');
+const sl = readSopepSheet([['SOPEP inventory'], ['Description', 'Qty', 'UoM', 'Stowage'], ['Example: x', 1, '', ''], ['Oil absorbent pads', '120', 'pcs', 'Shelf 1'], ['Scupper plugs', 8, '', '']]);
+ok(sl.length === 2 && sl[0].required === 120 && sl[0].unit === 'pcs' && sl[0].location === 'Shelf 1' && sl[1].required === 8, `SOPEP sheet: other people's headings read: ${JSON.stringify(sl[0])}`);
+const sitems: any[] = [{ id: 'i1', name: 'Scupper plugs', required: 6, order: 0, updatedAt: 0 }, { id: 'i2', name: 'Oil absorbent pads', required: 50, lockerId: 'lk2', order: 1, updatedAt: 0 }];
+const sp1 = planSopepImport(sl, sitems, MAIN_LOCKER, MAIN_LOCKER);
+ok(sp1.updated.join() === 'Scupper plugs' && sp1.added.join() === 'Oil absorbent pads' && sp1.save.find((x) => x.name === 'Scupper plugs')?.required === 8 && !sp1.save.some((x) => x.lockerId), 'SOPEP import into the first locker: matched there only (the bunker station pads untouched), added with no locker id');
+const sp2 = planSopepImport(sl, sitems, 'lk2', MAIN_LOCKER);
+ok(sp2.updated.join() === 'Oil absorbent pads' && sp2.save.every((x) => x.lockerId === 'lk2'), 'SOPEP import into another locker: its own list');
+ok(sopepLabelSpecs([{ id: 'lk2', code: 'SP-02', name: 'Bunker station', location: 'Aft deck' }], null, '50x30')[0].qrPayload === sopepQrPayload('lk2'), 'SOPEP sticker: the QR carries the locker id');
+// searches
+const plan = defaultPlan();
+const st = areasFor(plan, 'stowaway'), bo = areasFor(plan, 'bomb');
+ok(st.length === plan.areas.length && bo.length === plan.areas.length - 1 && st.every((a) => a.team) && !bo.some((a) => /Tender garage/.test(a.name)), 'search areas: each with its team; the tender garage only for stowaways');
+ok(searchDone({ areas: [{ areaId: 'a', name: 'x', result: 'clear' }, { areaId: 'b', name: 'y' }] } as any) === 1, 'search progress: areas marked');
+// menu
+ok(!!MENU_GEAR.Sopep && !!MENU_GEAR.Stores && MENU_CHILDREN.Sopep.map((k) => k.view).join() === 'inventory,drills,docs' && MENU_CHILDREN.Sopep.find((k) => k.view === 'docs')?.officers === true, 'menu: SOPEP — inventory, drills, docs (officers), with the gear');
+ok(MENU_CHILDREN.Drills.filter((k) => k.route).map((k) => `${k.route}:${k.view}`).join() === 'Sopep:drills,Security:drills', 'menu: Drills lists the SOPEP and ISPS drills');
+ok(MENU_CHILDREN.Security.some((k) => k.view === 'ssp' && k.officers) && MENU_CHILDREN.Security.some((k) => k.view === 'searches'), 'menu: Security — Ship Security Plan (officers), searches');
 console.log(fail ? `${fail} failed` : 'all passed');
 process.exit(fail ? 1 : 0);

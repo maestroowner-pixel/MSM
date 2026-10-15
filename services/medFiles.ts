@@ -16,7 +16,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 
 import { downscale } from './images';
-import { uploadMedical } from './attachmentStorage';
+import { uploadMedical, uploadRestricted } from './attachmentStorage';
 import { pickFromCamera } from './attachments';
 import { onWeb } from '../utils/fileShare';
 import { pickBinaryFileWeb } from '../utils/webFile';
@@ -126,6 +126,15 @@ export async function keepMedFile(vesselImo: string | undefined, synced: boolean
   const imo = (vesselImo ?? '').replace(/\D/g, '');
   if (!imo) throw new Error('The vessel has no IMO number — set it in Settings.');
   return uploadMedical(imo, treatmentId, fileId, f.dataUri);
+}
+
+/** An officers-only document's file (types/officerDocs.ts): the restricted folder, or (a device on its own) the file itself. */
+export async function keepRestrictedFile(vesselImo: string | undefined, synced: boolean, docId: string, fileId: string, f: PickedMedFile): Promise<string> {
+  if (f.bytes > MAX_MED_FILE) throw new Error(`${kb(f.bytes)} is too large — at most ${kb(MAX_MED_FILE)}.`);
+  if (!synced) return f.dataUri;
+  const imo = (vesselImo ?? '').replace(/\D/g, '');
+  if (!imo) throw new Error('The vessel has no IMO number — set it in Settings.');
+  return uploadRestricted(imo, docId, fileId, f.dataUri);
 }
 
 /** Open a kept file: the link in the browser / viewer, or the file itself. */

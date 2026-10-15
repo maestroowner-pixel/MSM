@@ -1,5 +1,11 @@
 // ===================================
-// SOPEP — the oil-spill locker and the drills (types/sopep.ts).
+// SOPEP — the oil-spill lockers and the drills (types/sopep.ts). One screen,
+// a page per menu entry (15 Oct 2026; route param `view`):
+//   inventory  the lockers' lists and the inventory check (below);
+//   drills     the SOPEP drills — also listed under Drills in the menu;
+//   docs       the plan's own papers, for the officers (components/OfficerDocs);
+//   manage     the gear on the menu entry: the lockers themselves — ID, place,
+//              QR label, list from Excel (components/SopepLockers).
 //
 //   Locker     the plan's list: item, quantity required, where. Starts from a
 //              typical yacht list; edit it to the vessel's own SOPEP.
@@ -22,7 +28,9 @@ import { current } from '../services/versions';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
-import { MAIN_LOCKER, SOPEP_STARTER, SopepCheck, SopepDrill, SopepItem, SopepLocker, lockerOf, sopepLockers } from '../types/sopep';
+import { MAIN_LOCKER, SOPEP_STARTER, SopepCheck, SopepDrill, SopepItem, SopepLocker, lockerCode, lockerOf, nextLockerCode, sopepLockers } from '../types/sopep';
+import { SopepLockers } from '../components/SopepLockers';
+import { OfficerDocs } from '../components/OfficerDocs';
 import { Dropdown } from '../components/Dropdown';
 import { exportLockerLabels } from '../services/crewCards';
 import { isAboard } from '../types/crew';
@@ -32,7 +40,8 @@ import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 
-type Tab = 'locker' | 'check' | 'drills';
+type Tab = 'locker' | 'check';
+type View_ = 'inventory' | 'drills' | 'docs' | 'manage';
 
 const SCENARIOS = ['Overflow / spill during bunkering', 'Hydraulic oil leak on deck', 'Leak from the hull or a fuel tank', 'Oil in the bilge discharged by mistake', 'Spill during oil change / transfer'];
 
@@ -52,6 +61,7 @@ export default function SopepSc() {
   // A locker's QR label scanned (ScanSc → Sopep { locker }): that locker opens.
   const nav = useNavigation<any>();
   const route = useRoute<any>();
+  const view: View_ = (['drills', 'docs', 'manage'] as const).find((v) => v === route.params?.view) ?? 'inventory';
   const lockers = useMemo(() => sopepLockers(lockerList), [lockerList]);
   const [sel, setSel] = useState<string>(route.params?.locker ?? 'all');
   useEffect(() => {
@@ -59,7 +69,7 @@ export default function SopepSc() {
     if (!id) return;
     setSel(id);
     setTab('locker');
-    nav.setParams({ locker: undefined });
+    nav.setParams({ locker: undefined, view: 'inventory' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route.params?.locker]);
   const unknownLocker = sel !== 'all' && !lockers.some((l) => l.id === sel);
@@ -68,7 +78,7 @@ export default function SopepSc() {
   const done = (w: string | null | void) => typeof w === 'string' && setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
   const fail = (e: any) => Alert.alert('SOPEP', String(e?.message ?? e));
   const addLocker = async () => {
-    const l: SopepLocker = { id: uid('lk'), name: `SOPEP locker ${lockers.length + 1}`, order: lockers.length, updatedAt: Date.now() };
+    const l: SopepLocker = { id: uid('lk'), name: `SOPEP locker ${lockers.length + 1}`, code: nextLockerCode(lockers), order: lockers.length, updatedAt: Date.now() };
     // The first one becomes a record too, so its name and place can be changed like the others'.
     if (!lockerList.some((x) => x.id === MAIN_LOCKER)) await saveRow(storage.SOPEP_LOCKERS_KEY, lockers[0]);
     await saveRow(storage.SOPEP_LOCKERS_KEY, l);
@@ -149,24 +159,35 @@ export default function SopepSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="SOPEP" subtitle="Oil spill locker, inventory checks and drills" help="SOPEP" />
+      <ScreenTitle
+        title={view === 'drills' ? 'SOPEP drills' : view === 'docs' ? 'SOPEP docs' : view === 'manage' ? 'SOPEP lockers' : 'SOPEP stores'}
+        subtitle={view === 'drills' ? 'Oil spill drills — scenario, who took part, lessons' : view === 'docs' ? 'The plan and its contacts — officers only' : view === 'manage' ? `${lockers.length} lockers · IDs, places, QR labels, lists` : 'Oil spill lockers and their inventory checks'}
+        help="SOPEP"
+      />
+      {view === 'manage' ? (
+        <SopepLockers onOpen={(id) => { setSel(id); setTab('locker'); nav.setParams({ view: 'inventory' }); }} done={done} fail={fail} />
+      ) : view === 'docs' ? (
+        <OfficerDocs shelf="sopep" intro="The approved SOPEP, its contact lists and drawings — kept for the Master and the officers." />
+      ) : (<>
       <View style={styles.summary}>
         <Text style={[styles.sumItem, shortCount ? { color: COLORS.danger } : null]}>{lastCheck ? `Last check ${formatDate(lastCheck.date)}${shortCount ? ` · ${shortCount} short` : ' · complete'}` : 'Never checked'}</Text>
         <Text style={styles.sumItem}>{lastDrill ? `Last drill ${formatDate(lastDrill.date)}` : 'No drill recorded'}</Text>
       </View>
+      {view === 'inventory' ? (
       <View style={styles.tabs}>
-        {([['locker', `Lockers · ${lockers.length} · ${items.length} items`], ['check', 'Inventory check'], ['drills', `Drills · ${sopepDrills.length}`]] as [Tab, string][]).map(([k, l]) => (
+        {([['locker', `Lockers · ${lockers.length} · ${items.length} items`], ['check', 'Inventory check']] as [Tab, string][]).map(([k, l]) => (
           <Chip key={k} on={tab === k} label={l} onPress={() => setTab(k)} />
         ))}
       </View>
+      ) : null}
 
-      {tab === 'locker' ? (
+      {view === 'inventory' && tab === 'locker' ? (
         <>
           {/* Several lockers, each named and placed, each with its QR label (14 Oct 2026). */}
           <View style={[styles.chips, { alignItems: 'center' }]}>
             <Dropdown caption="LOCKER" value={sel} onChange={setSel} style={{ minWidth: 240, flexGrow: 1 }} options={[{ value: 'all', label: `All lockers · ${lockers.length}` }, ...lockers.map((l) => ({ value: l.id, label: `${l.name} · ${items.filter((i) => lockerOf(i) === l.id).length}` }))]} />
             <TouchableOpacity style={styles.btnOutline} onPress={() => void addLocker()}><Text style={styles.btnOutlineText}>+ New locker</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.btnOutline} onPress={() => void exportLockerLabels(shown, vessel).then(done, fail)}>
+            <TouchableOpacity style={styles.btnOutline} onPress={() => void exportLockerLabels(shown.map((l) => ({ ...l, code: lockerCode(l) })), vessel).then(done, fail)}>
               <MciIcon name="qrcode" size={16} color={COLORS.primary} />
               <Text style={styles.btnOutlineText}>{shown.length > 1 ? `QR labels (${shown.length})` : 'QR label'}</Text>
             </TouchableOpacity>
@@ -178,7 +199,9 @@ export default function SopepSc() {
             return (
               <Card key={l.id}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm }}>
-                  <MciIcon name="archive-outline" size={22} color={COLORS.primary} />
+                  <View style={{ borderWidth: 1, borderColor: COLORS.primary, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                    <Text style={{ fontSize: SIZES.small, fontWeight: '800', color: COLORS.primary }}>{lockerCode(l) || '—'}</Text>
+                  </View>
                   <View style={{ flex: 1 }}>
                     <TextInput key={`n-${l.id}`} style={styles.lockerName} defaultValue={l.name} onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v && v !== l.name) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, name: v }); }} onEndEditing={(e) => { const v = e.nativeEvent.text.trim(); if (v && v !== l.name) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, name: v }); }} />
                     <TextInput key={`p-${l.id}`} style={styles.sub} defaultValue={l.location ?? ''} placeholder="Where it is — engine room stbd, bunker station, bow locker" placeholderTextColor={COLORS.textLight} onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v !== (l.location ?? '')) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, location: v }); }} onEndEditing={(e) => { const v = e.nativeEvent.text.trim(); if (v !== (l.location ?? '')) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, location: v }); }} />
@@ -189,7 +212,7 @@ export default function SopepSc() {
                       <Text style={styles.btnOutlineText}>Count</Text>
                     </TouchableOpacity>
                   ) : null}
-                  <TouchableOpacity onPress={() => void exportLockerLabels([l], vessel).then(done, fail)} hitSlop={8} accessibilityLabel={`QR label — ${l.name}`}>
+                  <TouchableOpacity onPress={() => void exportLockerLabels([{ ...l, code: lockerCode(l) }], vessel).then(done, fail)} hitSlop={8} accessibilityLabel={`QR label — ${l.name}`}>
                     <MciIcon name="qrcode" size={22} color={COLORS.primary} />
                   </TouchableOpacity>
                   {l.id !== MAIN_LOCKER && !inIt.length ? (
@@ -238,7 +261,7 @@ export default function SopepSc() {
           })}
           {lastCheck?.defective?.length ? <Text style={[styles.sub, { color: COLORS.warning }]}>{`To replace: ${lastCheck.defective.map((id) => items.find((i) => i.id === id)?.name).filter(Boolean).join(', ')}`}</Text> : null}
         </>
-      ) : tab === 'check' ? (
+      ) : view === 'inventory' ? (
         <Card>
           <Label>{countLocker ? `Count ${countLocker.name}` : 'Count the lockers'}</Label>
           {countLocker ? <Text style={styles.sub}>{`Only ${countLocker.name}${countLocker.location ? ` (${countLocker.location})` : ''} — the other lockers keep their last count. Choose All lockers on the Lockers tab to count everything.`}</Text> : null}
@@ -313,6 +336,7 @@ export default function SopepSc() {
           ))}
         </>
       )}
+      </>)}
       {amend.ui}
     </Screen>
   );

@@ -146,8 +146,8 @@ export function exportPassengerCards(list: { id: string; name: string; cabin?: s
 }
 
 /** SOPEP locker labels — name big, where it is, the QR that opens its contents (types/sopep.ts). */
-export function exportLockerLabels(list: { id: string; name: string; location?: string }[], vessel: VesselInfo | null) {
-  return exportCards(list.map((l) => ({ name: l.name, sub: l.location ?? '', foot: 'SOPEP LOCKER · scan to see what is inside', qr: sopepQrPayload(l.id) })), vessel, 'SOPEP locker labels');
+export function exportLockerLabels(list: { id: string; name: string; code?: string; location?: string }[], vessel: VesselInfo | null) {
+  return exportCards(list.map((l) => ({ name: l.name, sub: [l.code, l.location].filter(Boolean).join(' · '), foot: 'SOPEP LOCKER · scan to see what is inside', qr: sopepQrPayload(l.id) })), vessel, 'SOPEP locker labels');
 }
 
 /** Store labels — the store's name, its ID and place, the QR that opens its list (types/stores.ts StoreRoom). */
@@ -165,4 +165,4 @@ export function exportVisitorPasses(count: number, vessel: VesselInfo | null) {
 }
 
 // Label-printer stickers of the same cards: services/gangwayLabels.ts (pure, tested).
-export { GANGWAY_STOCKS, crewCardSpecs, storeLabelSpecs, visitorPassSpecs } from './gangwayLabels';
+export { GANGWAY_STOCKS, crewCardSpecs, sopepLabelSpecs, storeLabelSpecs, visitorPassSpecs } from './gangwayLabels';

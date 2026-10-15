@@ -53,15 +53,32 @@ import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 
 import MeetingsSc from './MeetingsSc';
+import SearchesSc from './SearchesSc';
+import { OfficerDocs } from '../components/OfficerDocs';
 
 type Tab = 'board' | 'log' | 'drills';
 const hhmm = () => new Date().toTimeString().slice(0, 5);
 const ID_TYPES = ['Passport', 'ID card', 'Driving licence', "Seaman's book", 'Company ID'];
 
-/** The menu's Security pages: gangway and drills here, the safety flashes on their own screen. */
+/** The menu's Security pages: gangway and drills here; the safety flashes, meetings, searches and the Ship Security Plan on their own. */
 export default function SecurityRoute() {
   const route = useRoute<any>();
-  return route.params?.view === 'flashes' ? <SafetyFlashesSc /> : route.params?.view === 'meetings' ? <MeetingsSc /> : <SecuritySc />;
+  const v = route.params?.view;
+  if (v === 'flashes') return <SafetyFlashesSc />;
+  if (v === 'meetings') return <MeetingsSc />;
+  if (v === 'searches') return <SearchesSc />;
+  if (v === 'ssp') return <SspSc />;
+  return <SecuritySc />;
+}
+
+/** The Ship Security Plan and its papers — the Master and the officers only (ISPS A/9.7; types/officerDocs.ts). */
+function SspSc() {
+  return (
+    <Screen scroll>
+      <ScreenTitle title="Ship Security Plan" subtitle="ISPS — the approved plan and its papers, officers only" help="Security (ISPS)" />
+      <OfficerDocs shelf="ssp" intro="The approved SSP, the assessment, the ISSC and the security contacts. Confidential: not shown to the crew, not sent to the shore." />
+    </Screen>
+  );
 }
 
 function SecuritySc() {

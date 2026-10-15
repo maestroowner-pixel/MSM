@@ -35,6 +35,7 @@ import { goBackOr } from '../utils/nav';
 import { recordScanProof } from '../services/signingPolicy';
 import { parseCrewQr, parsePassQr, samePass, parseSopepQr, parseStoreQr } from '../services/crewQr';
 import { roomByCode, storeRooms } from '../types/stores';
+import { lockerCode, sopepLockers } from '../types/sopep';
 import { isDoubleScan, nextMove } from '../services/gangway';
 import { todayIso } from '../services/pms';
 import { passengerAboard } from '../types/passengers';
@@ -61,7 +62,7 @@ export default function ScanSc() {
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { flat, recordScan, crew, crewMoves, appendRow, visitors, saveRow, passengers, storeRoomList } = useData();
+  const { flat, recordScan, crew, crewMoves, appendRow, visitors, saveRow, passengers, storeRoomList, sopepLockers: sopepLockerList } = useData();
   const sync = useSync();
   /** Opened from the gangway page: a crew or passenger card records the crossing. */
   const atGangway = ['1', 'true', true, 1].includes(route.params?.gangway);
@@ -88,7 +89,8 @@ export default function ScanSc() {
 
       // A SOPEP locker's label (msm://sopep/<id>): what is in that locker (14 Oct 2026, as
       // InventoryLens opens a locker). The id only — a renamed or moved locker keeps its label.
-      const lockerId = parseSopepQr(code);
+      // …or its ID typed (SP-01), 15 Oct 2026.
+      const lockerId = parseSopepQr(code) ?? (via === 'typed' && moduleOn('sopep') ? sopepLockers(sopepLockerList).find((l) => lockerCode(l).toUpperCase() === code.trim().toUpperCase())?.id : undefined);
       if (lockerId) {
         if (moduleOn('sopep')) return nav.replace('Main', { screen: 'Sopep', params: { locker: lockerId } });
         setCrewHit({ name: 'SOPEP locker', text: 'The SOPEP module is not switched on for this vessel.', ok: false });
@@ -198,7 +200,7 @@ export default function ScanSc() {
       }
       setResult(match);
     },
-    [flat, nav, recordScan, crew, crewMoves, appendRow, visitors, saveRow, sync.me, passengers, storeRoomList]
+    [flat, nav, recordScan, crew, crewMoves, appendRow, visitors, saveRow, sync.me, passengers, storeRoomList, sopepLockerList]
   );
 
   const again = () => {

@@ -23,6 +23,8 @@ import type { Versioned } from '../services/versions';
 export interface SopepLocker {
   id: string;
   name: string;
+  /** The short ID on its label and typed to open it — SP-01 (15 Oct 2026, as the stores'). */
+  code?: string;
   location?: string;
   order: number;
   deleted?: boolean;
@@ -38,6 +40,19 @@ export function sopepLockers(list: SopepLocker[]): SopepLocker[] {
   const live = list.filter((l) => !l.deleted);
   const main = live.find((l) => l.id === MAIN_LOCKER) ?? { id: MAIN_LOCKER, name: 'SOPEP locker', order: 0, updatedAt: 0 };
   return [main, ...live.filter((l) => l.id !== MAIN_LOCKER)].sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+}
+
+/** The first locker's ID until one is given. */
+export const MAIN_LOCKER_CODE = 'SP-01';
+/** A locker's ID — its own, or SP-01 for the first. */
+export const lockerCode = (l: Pick<SopepLocker, 'id' | 'code'>) => l.code || (l.id === MAIN_LOCKER ? MAIN_LOCKER_CODE : '');
+/** The next free ID — SP-02 after SP-01. */
+export function nextLockerCode(list: Pick<SopepLocker, 'id' | 'code'>[]): string {
+  const taken = new Set(list.map((l) => lockerCode(l).toUpperCase()));
+  for (let n = 1; ; n++) {
+    const c = `SP-${String(n).padStart(2, '0')}`;
+    if (!taken.has(c)) return c;
+  }
 }
 
 export interface SopepItem {

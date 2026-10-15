@@ -355,6 +355,28 @@ service cloud.firestore {
         allow delete: if false;
       }
       // SOPEP lockers (types/sopep.ts): name and place, kept as the items are.
+      // The SOPEP's papers and the Ship Security Plan (types/officerDocs.ts): the
+      // Master and the officers only — the plan is need-to-know (ISPS A/9.7).
+      match /sopep_docs/{id} {
+        allow read, create, update: if isAdmin(v);
+        allow delete: if false;
+      }
+      match /ssp_docs/{id} {
+        allow read, create, update: if isAdmin(v);
+        allow delete: if false;
+      }
+      // Stowaway and bomb searches (types/searches.ts): the officers keep the plan
+      // of areas and teams; anyone on board records the areas searched.
+      match /search_plan/{id} {
+        allow read: if reader(v);
+        allow create, update: if isAdmin(v);
+        allow delete: if false;
+      }
+      match /searches/{id} {
+        allow read: if reader(v);
+        allow create, update: if member(v);
+        allow delete: if false;
+      }
       match /sopep_lockers/{id} {
         allow read: if reader(v);
         allow create, update: if member(v);
