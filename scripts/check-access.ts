@@ -1,5 +1,5 @@
 // npm run check:access — which tabs a device shows (constants/access.ts).
-import { ALL_TABS, toggleTab, visibleTabs } from '../constants/access';
+import { ALL_TABS, MANAGE_ROUTE, canManage, toggleManage, toggleTab, visibleTabs } from '../constants/access';
 
 let failed = 0;
 const ok = (c: boolean, m: string) => { if (!c) failed++; console.log(`${c ? '✓' : '✗'} ${m}`); };
@@ -37,5 +37,12 @@ import { flatGrouped, grouped, moveInGroup } from '../utils/navOrder';
   ok(moveInGroup(order, 'Dashboard', -1).join() === order.join(), 'top of a group stays there (no jumping groups)');
 }
 
+
+// the gears — only where the Master allows (15 Oct 2026)
+ok(!canManage(undefined, 'stores', false, true) && !canManage([], 'sopep', false, true), 'gear: closed by default for a crew or officer device');
+ok(canManage(['stores'], 'stores', false, true) && !canManage(['stores'], 'sopep', false, true), 'gear: open only for what the Master switched on');
+ok(canManage(undefined, 'sopep', true, true) && canManage(undefined, 'stores', false, false), 'gear: the Master always; a device not joined to a vessel is its own Master');
+ok(toggleManage(undefined, 'sopep').join() === 'sopep' && toggleManage(['sopep', 'stores'], 'sopep').join() === 'stores', 'gear: switched on and off');
+ok(MANAGE_ROUTE.Stores === 'stores' && MANAGE_ROUTE.Sopep === 'sopep', 'gear: the menu entries it belongs to');
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

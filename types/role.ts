@@ -150,6 +150,12 @@ export interface EnrolledDevice {
    * the Master on the Access screen. Absent = all of them.
    */
   tabs?: string[];
+  /**
+   * The places this device may manage — the gear on Stores / SOPEP
+   * (constants/access.ts `ManageKey`), switched on by the Master on the Access
+   * screen. Absent = none.
+   */
+  manage?: string[];
 }
 
 export function personName(d: { firstName?: string; lastName?: string }): string {

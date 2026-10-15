@@ -50,6 +50,8 @@ export default function SopepSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { sopepItems: items, sopepLockers: lockerList, sopepChecks, sopepDrills, crew, vessel, saveRow, appendRow, versionsOf } = useData();
   const sync = useSync();
+  // The lockers themselves — new, renamed, placed, removed — for those the Master allows (constants/access.ts canManage).
+  const mayManage = sync.canManage('sopep');
   const isMaster = !sync.enrolled || sync.role === 'superadmin';
   const amend = useAmend();
   const allChecks = versionsOf(storage.SOPEP_CHECKS_KEY) as SopepCheck[];
@@ -164,7 +166,9 @@ export default function SopepSc() {
         subtitle={view === 'drills' ? 'Oil spill drills — scenario, who took part, lessons' : view === 'docs' ? 'The plan and its contacts — officers only' : view === 'manage' ? `${lockers.length} lockers · IDs, places, QR labels, lists` : 'Oil spill lockers and their inventory checks'}
         help="SOPEP"
       />
-      {view === 'manage' ? (
+      {view === 'manage' && !mayManage ? (
+        <Text style={styles.sub}>Managing the SOPEP lockers — adding one, its ID, its label, loading its list — is for those the Master allows (Settings → Access).</Text>
+      ) : view === 'manage' ? (
         <SopepLockers onOpen={(id) => { setSel(id); setTab('locker'); nav.setParams({ view: 'inventory' }); }} done={done} fail={fail} />
       ) : view === 'docs' ? (
         <OfficerDocs shelf="sopep" intro="The approved SOPEP, its contact lists and drawings — kept for the Master and the officers." />
@@ -186,7 +190,7 @@ export default function SopepSc() {
           {/* Several lockers, each named and placed, each with its QR label (14 Oct 2026). */}
           <View style={[styles.chips, { alignItems: 'center' }]}>
             <Dropdown caption="LOCKER" value={sel} onChange={setSel} style={{ minWidth: 240, flexGrow: 1 }} options={[{ value: 'all', label: `All lockers · ${lockers.length}` }, ...lockers.map((l) => ({ value: l.id, label: `${l.name} · ${items.filter((i) => lockerOf(i) === l.id).length}` }))]} />
-            <TouchableOpacity style={styles.btnOutline} onPress={() => void addLocker()}><Text style={styles.btnOutlineText}>+ New locker</Text></TouchableOpacity>
+            {mayManage ? <TouchableOpacity style={styles.btnOutline} onPress={() => void addLocker()}><Text style={styles.btnOutlineText}>+ New locker</Text></TouchableOpacity> : null}
             <TouchableOpacity style={styles.btnOutline} onPress={() => void exportLockerLabels(shown.map((l) => ({ ...l, code: lockerCode(l) })), vessel).then(done, fail)}>
               <MciIcon name="qrcode" size={16} color={COLORS.primary} />
               <Text style={styles.btnOutlineText}>{shown.length > 1 ? `QR labels (${shown.length})` : 'QR label'}</Text>
@@ -203,8 +207,8 @@ export default function SopepSc() {
                     <Text style={{ fontSize: SIZES.small, fontWeight: '800', color: COLORS.primary }}>{lockerCode(l) || '—'}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <TextInput key={`n-${l.id}`} style={styles.lockerName} defaultValue={l.name} onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v && v !== l.name) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, name: v }); }} onEndEditing={(e) => { const v = e.nativeEvent.text.trim(); if (v && v !== l.name) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, name: v }); }} />
-                    <TextInput key={`p-${l.id}`} style={styles.sub} defaultValue={l.location ?? ''} placeholder="Where it is — engine room stbd, bunker station, bow locker" placeholderTextColor={COLORS.textLight} onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v !== (l.location ?? '')) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, location: v }); }} onEndEditing={(e) => { const v = e.nativeEvent.text.trim(); if (v !== (l.location ?? '')) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, location: v }); }} />
+                    <TextInput key={`n-${l.id}`} style={styles.lockerName} editable={mayManage} defaultValue={l.name} onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v && v !== l.name) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, name: v }); }} onEndEditing={(e) => { const v = e.nativeEvent.text.trim(); if (v && v !== l.name) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, name: v }); }} />
+                    <TextInput key={`p-${l.id}`} style={styles.sub} editable={mayManage} defaultValue={l.location ?? ''} placeholder="Where it is — engine room stbd, bunker station, bow locker" placeholderTextColor={COLORS.textLight} onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v !== (l.location ?? '')) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, location: v }); }} onEndEditing={(e) => { const v = e.nativeEvent.text.trim(); if (v !== (l.location ?? '')) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, location: v }); }} />
                   </View>
                   {inIt.length ? (
                     <TouchableOpacity style={styles.btnOutline} onPress={() => { setSel(l.id); setTab('check'); }} accessibilityLabel={`Count ${l.name}`}>
@@ -215,7 +219,7 @@ export default function SopepSc() {
                   <TouchableOpacity onPress={() => void exportLockerLabels([{ ...l, code: lockerCode(l) }], vessel).then(done, fail)} hitSlop={8} accessibilityLabel={`QR label — ${l.name}`}>
                     <MciIcon name="qrcode" size={22} color={COLORS.primary} />
                   </TouchableOpacity>
-                  {l.id !== MAIN_LOCKER && !inIt.length ? (
+                  {mayManage && l.id !== MAIN_LOCKER && !inIt.length ? (
                     <TouchableOpacity onPress={() => void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, deleted: true }).then(() => setSel('all'))} hitSlop={8} accessibilityLabel={`Remove locker — ${l.name}`}>
                       <MciIcon name="delete-outline" size={20} color={COLORS.textLight} />
                     </TouchableOpacity>

@@ -204,6 +204,11 @@ export async function setDeviceTabs(vessel: string, deviceId: string, tabs: stri
   await setDoc(doc(db(), ROOT, vessel, 'devices', deviceId), { tabs }, { merge: true });
 }
 
+/** The places a device may manage (constants/access.ts `ManageKey`) — the Master's to set. */
+export async function setDeviceManage(vessel: string, deviceId: string, manage: string[]): Promise<void> {
+  await setDoc(doc(db(), ROOT, vessel, 'devices', deviceId), { manage }, { merge: true });
+}
+
 /**
  * Switch a device off — a lost handset, or somebody who has left. Kept rather
  * than deleted so the record of what it did remains, and so re-enrolling on the

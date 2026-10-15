@@ -41,7 +41,7 @@ import { DEFAULT_ARCHIVE, newerArchive } from '../services/photoArchive';
 import { EnrolledDevice, Role } from '../types/role';
 import * as accounts from '../services/accounts';
 import { useData } from './DataContext';
-import { TabKey, releasedTabs, visibleTabs } from '../constants/access';
+import { ManageKey, TabKey, canManage, releasedTabs, visibleTabs } from '../constants/access';
 import { moduleOn } from '../constants/modules';
 
 /** The tabs the Master last set for this device, for a launch with no signal. */
@@ -68,6 +68,8 @@ interface SyncContextType {
    * phone does not flash the full bar while the device list loads.
    */
   tabs: Set<TabKey>;
+  /** May this device open the gear on Stores / SOPEP (constants/access.ts canManage)? */
+  canManage: (key: ManageKey) => boolean;
   lastSyncAt: number | null;
   /** Size of the register blob, so Settings can show it before it is a problem. */
   registerBytes: number;
@@ -676,9 +678,11 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     return new Set([...on].filter((k) => released.has(k)));
   }, [myTabs, role]);
 
+  const canManageFn = React.useCallback((key: ManageKey) => canManage(me?.manage, key, role === 'superadmin', enrolled), [me, role, enrolled]);
+
   return (
     <SyncContext.Provider
-      value={{ status, role, enrolled, me, tabs, lastSyncAt, registerBytes, connect, disconnect, pushLocalNow, applyLocally, lastError }}
+      value={{ status, role, enrolled, me, tabs, canManage: canManageFn, lastSyncAt, registerBytes, connect, disconnect, pushLocalNow, applyLocally, lastError }}
     >
       {children}
     </SyncContext.Provider>

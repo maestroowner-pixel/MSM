@@ -234,7 +234,9 @@ export default function StoresSc() {
     return (
       <Screen scroll>
         <ScreenTitle title="Stores" subtitle={`${rooms.length} stores · IDs, places, QR labels, lists`} help="Stores" />
-        <StoreRooms onOpen={(id) => nav.setParams({ view: id })} onImport={(r) => void importSheet(undefined, undefined, r)} done={done} fail={fail} />
+        {!sync.canManage('stores') ? (
+          <Text style={styles.sub}>Managing the stores — adding one, its ID, its label, loading its list — is for those the Master allows (Settings → Access).</Text>
+        ) : <StoreRooms onOpen={(id) => nav.setParams({ view: id })} onImport={(r) => void importSheet(undefined, undefined, r)} done={done} fail={fail} />}
         {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700', marginTop: SIZES.sm }]}>{`✓ ${saved}`}</Text> : null}
       </Screen>
     );

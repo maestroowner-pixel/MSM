@@ -35,6 +35,7 @@ import { moduleOn } from '../constants/modules';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { roleAtLeast } from '../types/role';
+import { MANAGE_ROUTE } from '../constants/access';
 import { StoreKind, storeRooms } from '../types/stores';
 import { MENU_CHILDREN, MENU_GEAR, MenuChild, applyOrder, flatGrouped, grouped, move, moveInGroup } from '../utils/navOrder';
 export { applyOrder, move, flatGrouped };
@@ -229,7 +230,7 @@ function MenuList({
               <TouchableOpacity style={[styles.item, on && !editing && styles.itemOn]} onPress={() => (editing ? undefined : kids ? toggle(r) : onPick(r))} disabled={editing} activeOpacity={0.7} accessibilityState={kids ? { expanded } : undefined}>
                 <MciIcon name={icons[r] ?? 'circle-small'} size={22} color={on || (kids && r === current) ? COLORS.primary : COLORS.textLight} />
                 <Text style={[styles.itemText, (on || (kids && r === current)) && { color: COLORS.primary }]} numberOfLines={1}>{labelOf(r)}</Text>
-                {MENU_GEAR[r] && !editing ? (
+                {MENU_GEAR[r] && !editing && (!MANAGE_ROUTE[r] || sync.canManage(MANAGE_ROUTE[r])) ? (
                   <TouchableOpacity onPress={() => onPick(r, { view: 'manage' })} hitSlop={8} accessibilityRole="button" accessibilityLabel={MENU_GEAR[r]}>
                     <MciIcon name="cog-outline" size={20} color={r === current && currentView === 'manage' ? COLORS.primary : COLORS.textLight} />
                   </TouchableOpacity>

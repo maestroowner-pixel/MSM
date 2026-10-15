@@ -86,6 +86,37 @@ export function visibleTabs(tabs: string[] | undefined | null, isMaster: boolean
   return new Set(ALL_TABS.filter((k) => tabs.includes(k)));
 }
 
+// ---- Managing places (15 Oct 2026: "the gears — only for whom the Master allows") ----
+//
+// The gear beside Stores and SOPEP in the menu opens the places themselves —
+// adding a store or a locker, its ID, its label, loading its list. Unlike a tab
+// this is closed by default: nobody but the Master has it until the Master
+// switches it on for a device (`EnrolledDevice.manage`, set on the Access
+// screen; firestore.rules keeps a device from setting it on itself). A device
+// on its own, not joined to a vessel, is its own Master.
+
+export type ManageKey = 'stores' | 'sopep';
+
+export const MANAGE_COLUMNS: { key: ManageKey; module: ModuleKey; label: string; column: string; icon: string }[] = [
+  { key: 'stores', module: 'stores', label: 'Manage stores', column: 'STO ⚙', icon: 'cog-outline' },
+  { key: 'sopep', module: 'sopep', label: 'Manage SOPEP lockers', column: 'SOPEP ⚙', icon: 'cog-outline' },
+];
+
+/** The menu entry whose gear each key opens. */
+export const MANAGE_ROUTE: Record<string, ManageKey> = { Stores: 'stores', Sopep: 'sopep' };
+
+/** May this device manage these places? */
+export function canManage(manage: string[] | undefined | null, key: ManageKey, isMaster: boolean, enrolled: boolean): boolean {
+  if (!enrolled || isMaster) return true;
+  return Array.isArray(manage) && manage.includes(key);
+}
+
+/** Flip one manage key (absent = none). */
+export function toggleManage(manage: string[] | undefined | null, key: ManageKey): string[] {
+  const base = Array.isArray(manage) ? manage : [];
+  return base.includes(key) ? base.filter((k) => k !== key) : [...base, key];
+}
+
 /** Flip one tab, keeping any keys this version does not know about. */
 export function toggleTab(tabs: string[] | undefined | null, key: TabKey): string[] {
   const base = Array.isArray(tabs) ? tabs : ALL_TABS;

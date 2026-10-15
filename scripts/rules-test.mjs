@@ -54,6 +54,8 @@ await t(true, 'Device updates its own platform', updateDoc(R(crew, 'devices', 'd
 await t(false, 'Device cannot change its own tabs', updateDoc(R(crew, 'devices', 'devU'), { tabs: ['rest'] }));
 await t(false, 'Device cannot rename itself', updateDoc(R(crew, 'devices', 'devU'), { firstName: 'Master' }));
 await t(true, 'Master sets a device\'s tabs', updateDoc(R(master, 'devices', 'devU'), { tabs: ['rest'] }));
+await t(false, 'Device cannot give itself the gear', updateDoc(R(crew, 'devices', 'devU'), { manage: ['stores', 'sopep'] }));
+await t(true, 'Master gives a device the stores gear', updateDoc(R(master, 'devices', 'devU'), { manage: ['stores'] }));
 await t(false, 'Crew cannot read invitations (PINs)', getDoc(R(crew, 'invites', 'i1')));
 await t(true, 'Superintendent reads the register of a fleet vessel', getDoc(doc(shore, 'safety_vessels', V)));
 await t(false, 'Superintendent cannot read a vessel outside the fleet', getDoc(doc(shore, 'safety_vessels', OTHER)));

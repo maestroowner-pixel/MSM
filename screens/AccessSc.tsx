@@ -27,12 +27,14 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { EnrolledDevice, ROLE_LABEL, personName } from '../types/role';
-import { TabKey, releasedTabs, toggleTab, visibleTabs } from '../constants/access';
+import { MANAGE_COLUMNS, ManageKey, TabKey, releasedTabs, toggleManage, toggleTab, visibleTabs } from '../constants/access';
 import { moduleOn } from '../constants/modules';
 import * as accounts from '../services/accounts';
 
 const ROW_H = 58;
 const COLUMNS = releasedTabs();
+/** The gears (15 Oct 2026): who may manage the stores and the SOPEP lockers — off until the Master switches them on. */
+const MANAGE = MANAGE_COLUMNS.filter((m) => moduleOn(m.module));
 const COL_W = 64;
 const NAME_W = 170;
 
@@ -50,6 +52,7 @@ export default function AccessSc() {
   const [error, setError] = useState<string | null>(null);
   /** Taps not yet confirmed by the listener: device id → tabs as tapped. */
   const [pending, setPending] = useState<Record<string, string[]>>({});
+  const [pendingM, setPendingM] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     if (!imo) return;
@@ -61,6 +64,11 @@ export default function AccessSc() {
         setPending((p) => {
           const next = { ...p };
           for (const d of rows) if (next[d.id] && same(next[d.id], d.tabs)) delete next[d.id];
+          return next;
+        });
+        setPendingM((p) => {
+          const next = { ...p };
+          for (const d of rows) if (next[d.id] && same(next[d.id], d.manage ?? [])) delete next[d.id];
           return next;
         });
       });
@@ -88,6 +96,21 @@ export default function AccessSc() {
       await accounts.setDeviceTabs(imo, d.id, next);
     } catch (e: any) {
       setPending((p) => {
+        const { [d.id]: _, ...rest } = p;
+        return rest;
+      });
+      setError(e?.message ?? String(e));
+    }
+  };
+
+  const flipManage = async (d: EnrolledDevice, key: ManageKey) => {
+    const next = toggleManage(pendingM[d.id] ?? d.manage, key);
+    setPendingM((p) => ({ ...p, [d.id]: next }));
+    setError(null);
+    try {
+      await accounts.setDeviceManage(imo, d.id, next);
+    } catch (e: any) {
+      setPendingM((p) => {
         const { [d.id]: _, ...rest } = p;
         return rest;
       });
@@ -153,6 +176,12 @@ export default function AccessSc() {
                     <Text style={styles.headText} numberOfLines={1}>{t.column}</Text>
                   </View>
                 ))}
+                {MANAGE.map((m, i) => (
+                  <View key={`m-${m.key}`} style={[styles.colHead, i === 0 && styles.manageEdge]}>
+                    <MciIcon name={m.icon} size={18} color={COLORS.primary} />
+                    <Text style={[styles.headText, { color: COLORS.primary }]} numberOfLines={1}>{m.column}</Text>
+                  </View>
+                ))}
               </View>
               {rows.map((d) => {
                 const locked = d.role === 'superadmin';
@@ -183,6 +212,25 @@ export default function AccessSc() {
                         </TouchableOpacity>
                       );
                     })}
+                    {MANAGE.map((m, i) => {
+                      const green = locked || (pendingM[d.id] ?? d.manage ?? []).includes(m.key);
+                      return (
+                        <TouchableOpacity
+                          key={`m-${m.key}`}
+                          style={[styles.dotCell, i === 0 && styles.manageEdge]}
+                          disabled={locked}
+                          onPress={() => flipManage(d, m.key)}
+                          hitSlop={4}
+                          accessibilityRole="switch"
+                          accessibilityState={{ checked: green, disabled: locked }}
+                          accessibilityLabel={`${m.label} for ${label(d)}`}
+                        >
+                          <View style={[styles.dot, { backgroundColor: green ? COLORS.success : COLORS.danger, opacity: locked ? 0.45 : 1 }]}>
+                            {locked ? <MciIcon name="lock" size={12} color="#fff" /> : <MciIcon name="cog" size={13} color="#fff" />}
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 );
               })}
@@ -192,7 +240,8 @@ export default function AccessSc() {
       )}
 
       <Text style={styles.foot}>
-        A Master's device always shows every tab. This keeps each screen to what its holder needs; it is not a lock —
+        ⚙ columns: who may manage the stores and the SOPEP lockers — add one, give it an ID, print its label, load its list. Off until you switch it on; the gear in the menu shows only where it is on.
+        {'\n'}A Master's device always shows every tab. This keeps each screen to what its holder needs; it is not a lock —
         what a device may change is still set by its rank in Accounts.
       </Text>
     </Screen>
@@ -224,6 +273,7 @@ const makeStyles = (COLORS: Palette) =>
     name: { fontSize: SIZES.small, fontWeight: '700', color: COLORS.textDark },
     you: { fontWeight: '400', color: COLORS.textLight },
     sub: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 1 },
+    manageEdge: { borderLeftWidth: 1, borderLeftColor: COLORS.borderLight },
     dotCell: { width: COL_W, height: ROW_H, alignItems: 'center', justifyContent: 'center' },
     dot: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
     foot: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: SIZES.md },
