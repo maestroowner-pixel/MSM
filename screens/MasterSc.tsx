@@ -145,7 +145,7 @@ export default function MasterSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Master's page" subtitle="Who may see and do what — every device, every menu, page and button" />
+      <ScreenTitle title="Master's page" subtitle="Who may see and do what — every device, every menu, page and button" help="Access — which tabs each device shows" />
       <Text style={styles.lead}>
         Tap a dot: it glows when that device has it, dim when not. Pages and the ⚙ gear follow their menu entry. Rows marked by rank follow the rank — tap the rank on top to change it. The phone follows on its next sync.
       </Text>

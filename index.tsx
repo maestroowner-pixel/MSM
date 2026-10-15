@@ -70,7 +70,6 @@ import ChecklistEditSc from './screens/ChecklistEditSc';
 import DefectsSc from './screens/DefectsSc';
 import InspectionDetailSc from './screens/InspectionDetailSc';
 import AccountsSc from './screens/AccountsSc';
-import AccessSc from './screens/AccessSc';
 import MasterSc from './screens/MasterSc';
 import SparesSc from './screens/SparesSc';
 import SparePartSc from './screens/SparePartSc';
@@ -630,7 +629,8 @@ function Root() {
         <Stack.Screen name="InspectionDetail" component={InspectionDetailSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Crew" component={CrewSc} options={webHeader(moduleOn('crewCerts') ? 'Crew list' : 'Crew', toTab('Settings'))} />
         <Stack.Screen name="RestDay" component={RestDaySc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Access" component={AccessSc} options={webHeader('Access', toTab('Settings'))} />
+        {/* Access became part of the Master's page (15 Oct 2026); the old address opens it. */}
+        <Stack.Screen name="Access" component={MasterSc} options={webHeader("Master's page", toTab('Settings'))} />
         <Stack.Screen name="MasterPage" component={MasterSc} options={webHeader("Master's page", toTab('Settings'))} />
         <Stack.Screen name="Machine" component={MachineSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsJob" component={PmsJobSc} options={{ presentation: 'modal' }} />

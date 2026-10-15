@@ -89,7 +89,7 @@ const en: ManualContent = {
       emoji: '🧭',
       title: "Access — which tabs each device shows",
       body: [
-        "Settings → Access (Master only) is a table: one row per device, one column per tab — Certificates, PMS, Rest, Reports. A green dot means the tab is on that device, red means it is not. Tap to switch; the device follows on its next sync.",
+        "Settings → Master's page (Master only) is one table of everything that can be allowed or delegated: one column per device with its rank on top (tap: Crew ↔ Officer), one row per menu entry, the pages under it, the ⚙ gear on it, and what the rank decides there. A dot glows when the device has it, dim when not — tap to switch. Under the table, the vessel's signing rules.",
         "Use it to keep each screen to what its holder needs: a deckhand's phone without the engine room's maintenance plan, an engineer's without the crew certificates.",
         "Dashboard, Equipment and Settings are always on. A Master's device always shows every tab. A device the Master has never set shows every tab, so nothing disappears on an update.",
         "This is tidiness, not a lock: what a device may change is still decided by its rank in Accounts, and enforced by the server.",
@@ -697,7 +697,7 @@ const ru: ManualContent = {
       emoji: '🧭',
       title: "Доступ — какие вкладки видит устройство (Access)",
       body: [
-        "Settings → Access (только Мастер) — таблица: строка на каждое устройство, столбец на каждую вкладку — Certificates, PMS, Rest, Reports. Зелёная точка — вкладка на этом устройстве есть, красная — нет. Нажмите, чтобы переключить; устройство подхватит при следующей синхронизации.",
+        "Settings → Master's page (только капитан) — одна таблица всего, что можно разрешить или делегировать: столбец на устройство с рангом сверху (нажатие: Crew ↔ Officer), строка на пункт меню, его страницы, ⚙ шестерёнку и то, что решает ранг. Точка светится, когда у устройства это есть, тусклая — когда нет; нажатие переключает. Под таблицей — правила подписи судна.",
         "Так у каждого на экране только нужное: у матроса нет плана ТО машинного отделения, у механика — сертификатов экипажа.",
         "Dashboard, Equipment и Settings включены всегда. На устройстве Мастера всегда все вкладки. Устройство, которое Мастер ещё не настраивал, показывает все вкладки — при обновлении ничего не пропадёт.",
         "Это порядок, а не замок: что устройство может менять, по-прежнему решает его роль в Accounts, и это проверяет сервер.",
@@ -1303,7 +1303,7 @@ const es: ManualContent = {
       emoji: '🧭',
       title: "Acceso — qué pestañas muestra cada dispositivo (Access)",
       body: [
-        "Settings → Access (solo el Master) es una tabla: una fila por dispositivo y una columna por pestaña — Certificates, PMS, Rest, Reports. Punto verde: la pestaña está en ese dispositivo; rojo: no está. Toque para cambiar; el dispositivo lo aplica en la siguiente sincronización.",
+        "Settings → Master's page (solo el Capitán) es una tabla de todo lo que se puede permitir o delegar: una columna por dispositivo con su rango arriba (pulsar: Crew ↔ Officer), una fila por entrada del menú, sus páginas, el engranaje ⚙ y lo que decide el rango. El punto brilla cuando el dispositivo lo tiene y queda tenue cuando no — pulse para cambiarlo. Debajo, las reglas de firma del buque.",
         "Así cada pantalla muestra solo lo necesario: el teléfono de un marinero sin el plan de mantenimiento de máquinas, el de un maquinista sin los certificados de la tripulación.",
         "Dashboard, Equipment y Settings están siempre activas. El dispositivo del Master muestra siempre todas las pestañas. Un dispositivo que el Master nunca configuró muestra todas, para que nada desaparezca con una actualización.",
         "Es orden, no un cerrojo: lo que un dispositivo puede cambiar lo sigue decidiendo su rango en Accounts, y lo hace cumplir el servidor.",
@@ -1909,7 +1909,7 @@ const uk: ManualContent = {
       emoji: '🧭',
       title: "Доступ — які вкладки бачить пристрій (Access)",
       body: [
-        "Settings → Access (лише Майстер) — таблиця: рядок на кожен пристрій, стовпець на кожну вкладку — Certificates, PMS, Rest, Reports. Зелена точка — вкладка на цьому пристрої є, червона — немає. Натисніть, щоб перемкнути; пристрій підхопить при наступній синхронізації.",
+        "Settings → Master's page (лише капітан) — одна таблиця всього, що можна дозволити чи делегувати: стовпець на пристрій з рангом угорі (натискання: Crew ↔ Officer), рядок на пункт меню, його сторінки, ⚙ шестерню і те, що вирішує ранг. Точка світиться, коли пристрій це має, тьмяна — коли ні; натискання перемикає. Під таблицею — правила підпису судна.",
         "Так у кожного на екрані лише потрібне: у матроса немає плану ТО машинного відділення, у механіка — сертифікатів екіпажу.",
         "Dashboard, Equipment і Settings увімкнені завжди. На пристрої Майстра завжди всі вкладки. Пристрій, який Майстер ще не налаштовував, показує всі вкладки — після оновлення нічого не зникне.",
         "Це порядок, а не замок: що пристрій може змінювати, як і раніше вирішує його роль в Accounts, і це перевіряє сервер.",

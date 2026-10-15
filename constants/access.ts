@@ -5,7 +5,8 @@
 // maintenance plan or the monthly reports; a tab bar with them on is clutter he
 // learns to ignore, and a tab bar he ignores is one he stops trusting. The Master
 // asked to decide per handset, on one screen, with a dot per tab: green on, red
-// off (9 Oct 2026). That screen is screens/AccessSc.
+// off (9 Oct 2026). That screen was screens/AccessSc; since 15 Oct 2026 it is part
+// of the Master's page (screens/MasterSc), with the pages, gears and ranks.
 //
 // WHERE IT LIVES. On the device's own record in the vessel's device list
 // (`EnrolledDevice.tabs`), written by the Master. firestore.rules forbids a

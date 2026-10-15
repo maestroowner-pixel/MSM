@@ -707,16 +707,6 @@ export default function SettingsSc() {
             <Text style={styles.chev}>›</Text>
           </TouchableOpacity>
         ) : null}
-        {sync.role === 'superadmin' && moduleOn('access') ? (
-          <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Access')}>
-            <IconChip name="view-grid-outline" size={18} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.linkTitle}>Access</Text>
-              <Text style={styles.linkSub}>Which tabs each device shows — certificates, PMS, rest, reports</Text>
-            </View>
-            <Text style={styles.chev}>›</Text>
-          </TouchableOpacity>
-        ) : null}
       </Card>
       ) : null}
 
