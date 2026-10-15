@@ -40,12 +40,13 @@ import { writeSigningPolicy } from '../services/policy';
 import * as accounts from '../services/accounts';
 
 const NAME_W = 230;
-const COL_W = 84;
+/** Widest a column gets; narrower to fit the window (15 Oct 2026: the right-hand columns were cut off). */
+const COL_MAX = 84;
+const COL_MIN = 44;
 const ROW_H = 40;
 
 export default function MasterSc() {
   const COLORS = useTheme();
-  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const { vessel, storeRoomList, signingPolicy, setSigningPolicy } = useData();
   const sync = useSync();
@@ -80,6 +81,10 @@ export default function MasterSc() {
   );
 
   const rows: Row[] = useMemo(() => masterRows(storeRoomList), [storeRoomList]);
+  // The table's own width, measured: the columns share what is left after the names, so every one shows.
+  const [tableW, setTableW] = useState(0);
+  const colW = tableW ? Math.max(COL_MIN, Math.min(COL_MAX, Math.floor((tableW - NAME_W - 2) / Math.max(1, cols.length)))) : COL_MAX;
+  const styles = useMemo(() => makeStyles(COLORS, colW), [COLORS, colW]);
 
   // ---- writes ----
   const write = async (d: EnrolledDevice, patch: Partial<EnrolledDevice>, send: () => Promise<void>) => {
@@ -150,7 +155,7 @@ export default function MasterSc() {
       ) : !cols.length ? (
         <Empty text="No approved devices yet. Issue accounts in Settings → Accounts; each device that joins appears here." />
       ) : (
-        <View style={styles.table}>
+        <View style={styles.table} onLayout={(e) => setTableW(e.nativeEvent.layout.width)}>
           <View style={{ width: NAME_W }}>
             <View style={[styles.head, { alignItems: 'flex-start' }]}><Text style={styles.headText}>Menu · page · button</Text></View>
             <View style={[styles.row, styles.rankRow]}><Text style={styles.rowStrong}>Rank</Text></View>
@@ -235,7 +240,7 @@ export default function MasterSc() {
 const label = (d: EnrolledDevice) => personName(d) || 'Unnamed device';
 const rankOrder = (r: Role) => (r === 'superadmin' ? 0 : r === 'admin' ? 1 : 2);
 
-const makeStyles = (COLORS: Palette) =>
+const makeStyles = (COLORS: Palette, COL_W: number = COL_MAX) =>
   StyleSheet.create({
     lead: { fontSize: SIZES.small, color: COLORS.textLight, marginBottom: SIZES.md },
     table: { flexDirection: 'row', ...COLORS.glassCard, borderRadius: SIZES.radiusMd, overflow: 'hidden', marginBottom: SIZES.md },
@@ -250,7 +255,7 @@ const makeStyles = (COLORS: Palette) =>
     rowStrong: { fontSize: SIZES.small, fontWeight: '700', color: COLORS.textDark },
     rowText: { fontSize: SIZES.small, color: COLORS.textLight },
     cellBox: { width: COL_W, height: '100%', alignItems: 'center', justifyContent: 'center' },
-    dot: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    dot: { width: COL_W < 56 ? 20 : 24, height: COL_W < 56 ? 20 : 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
     // On glows; off is dim.
     dotOn: { backgroundColor: COLORS.success, shadowColor: COLORS.success, shadowOpacity: 0.9, shadowRadius: 7, shadowOffset: { width: 0, height: 0 }, elevation: 4 },
     dotOff: { backgroundColor: COLORS.border, opacity: 0.45 },

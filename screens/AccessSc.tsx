@@ -35,14 +35,19 @@ const ROW_H = 58;
 const COLUMNS = releasedTabs();
 /** The gears (15 Oct 2026): who may manage the stores and the SOPEP lockers — off until the Master switches them on. */
 const MANAGE = MANAGE_COLUMNS.filter((m) => moduleOn(m.module));
-const COL_W = 64;
+/** Widest a column gets; narrower to fit the window (15 Oct 2026: the right-hand columns were cut off). */
+const COL_MAX = 64;
+const COL_MIN = 34;
 const NAME_W = 170;
 
 const PLATFORM: Record<string, string> = { ios: 'iPhone / iPad', android: 'Android', web: 'Web', windows: 'Windows', macos: 'Mac' };
 
 export default function AccessSc() {
   const COLORS = useTheme();
-  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+  // The table's own width, measured: the columns share what is left after the names, so every one shows.
+  const [tableW, setTableW] = useState(0);
+  const colW = tableW ? Math.max(COL_MIN, Math.min(COL_MAX, Math.floor((tableW - NAME_W - 2) / Math.max(1, COLUMNS.length + MANAGE.length)))) : COL_MAX;
+  const styles = useMemo(() => makeStyles(COLORS, colW), [COLORS, colW]);
   const { vessel } = useData();
   const { role, me } = useSync();
   const imo = (vessel?.imo ?? '').replace(/\D/g, '');
@@ -147,7 +152,7 @@ export default function AccessSc() {
       ) : rows.length === 0 ? (
         <Empty text="No approved devices yet. Issue accounts in Settings → Accounts; each device that joins appears here." />
       ) : (
-        <View style={styles.table}>
+        <View style={styles.table} onLayout={(e) => setTableW(e.nativeEvent.layout.width)}>
           {/* Fixed name column */}
           <View style={{ width: NAME_W }}>
             <View style={[styles.head, { alignItems: 'flex-start' }]}>
@@ -167,7 +172,7 @@ export default function AccessSc() {
           </View>
 
           {/* Dots, scrolling sideways */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator style={{ flex: 1 }}>
             <View>
               <View style={[styles.head, { flexDirection: 'row' }]}>
                 {COLUMNS.map((t) => (
@@ -261,7 +266,7 @@ function same(a: string[] | undefined, b: string[] | undefined): boolean {
   return a.length === b.length && a.every((k) => b.includes(k));
 }
 
-const makeStyles = (COLORS: Palette) =>
+const makeStyles = (COLORS: Palette, COL_W: number = COL_MAX) =>
   StyleSheet.create({
     lead: { fontSize: SIZES.small, color: COLORS.textLight, marginBottom: SIZES.md },
     table: { flexDirection: 'row', ...COLORS.glassCard, borderRadius: SIZES.radiusMd, overflow: 'hidden' },
@@ -275,6 +280,6 @@ const makeStyles = (COLORS: Palette) =>
     sub: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: 1 },
     manageEdge: { borderLeftWidth: 1, borderLeftColor: COLORS.borderLight },
     dotCell: { width: COL_W, height: ROW_H, alignItems: 'center', justifyContent: 'center' },
-    dot: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+    dot: { width: COL_W < 46 ? 20 : 26, height: COL_W < 46 ? 20 : 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
     foot: { fontSize: SIZES.tiny, color: COLORS.textLight, marginTop: SIZES.md },
   });
