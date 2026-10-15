@@ -19,9 +19,10 @@
 // covers the register either way. That is the whole release step — everything
 // else is already wired.
 //
-// This is deliberately NOT a per-vessel setting. Whether a VESSEL uses a module
+// This is deliberately NOT a Master's setting. Whether a VESSEL uses a module
 // is the Master's business (categories can already be hidden, and a whole group
-// will follow the same way); whether the module exists at all is ours.
+// will follow the same way); whether the module exists at all is ours — for
+// every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
 export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp';
@@ -112,6 +113,50 @@ export const MODULES: Record<ModuleKey, boolean> = {
   ssp: false,
 };
 
+// ---- per-vessel release (15 Oct 2026) --------------------------------------
+//
+// A module finished but not released for everybody can be switched on for ONE
+// vessel — a pilot: DreamBoat tries Drills before every ship gets them. The list
+// is the `modules` field of the vessel document ({ drills: true, … }), and only
+// WE set it (Firebase console or admin credentials): firestore.rules refuses any
+// client write to it, the Master's included, because which modules a vessel has
+// is the product we sell it, not a vessel setting.
+//
+// It can only ADD to this build's flags, never take one away: a module released
+// for everybody is on whatever the vessel document says.
+//
+// Read synchronously like the build flags, so every existing `moduleOn` call
+// keeps working. SyncContext installs the vessel's list (cached in
+// `msm:vessel_modules`, so a launch at sea has it before any network) and
+// re-renders its consumers when it changes. Values computed at IMPORT time —
+// the lifting categories and checklists — cannot follow it; `lifting` is
+// released for everybody, so that costs nothing today.
+
+let vesselModules: Partial<Record<ModuleKey, boolean>> = {};
+
+/** Only known keys with `true` survive — the field is typed by hand in a console. */
+export function cleanModules(raw: unknown): Partial<Record<ModuleKey, boolean>> {
+  const out: Partial<Record<ModuleKey, boolean>> = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const k of Object.keys(MODULES) as ModuleKey[]) {
+    if ((raw as any)[k] === true) out[k] = true;
+  }
+  return out;
+}
+
+/** Install the vessel's list. Returns true when it changed what is on. */
+export function setVesselModules(raw: unknown): boolean {
+  const next = cleanModules(raw);
+  const changed = JSON.stringify(next) !== JSON.stringify(vesselModules);
+  vesselModules = next;
+  return changed;
+}
+
+/** The vessel's own additions (for Settings → About and diagnostics). */
+export function vesselModuleKeys(): ModuleKey[] {
+  return Object.keys(vesselModules) as ModuleKey[];
+}
+
 export function moduleOn(key: ModuleKey): boolean {
-  return MODULES[key] === true;
+  return MODULES[key] === true || vesselModules[key] === true;
 }

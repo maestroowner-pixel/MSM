@@ -42,7 +42,7 @@ import { EnrolledDevice, Role } from '../types/role';
 import * as accounts from '../services/accounts';
 import { useData } from './DataContext';
 import { ManageKey, TabKey, canManage, pageShown, releasedTabs, visibleTabs } from '../constants/access';
-import { moduleOn } from '../constants/modules';
+import { moduleOn, setVesselModules, cleanModules } from '../constants/modules';
 
 /** The tabs the Master last set for this device, for a launch with no signal. */
 const MY_TABS_KEY = 'msm:my_tabs';
@@ -55,6 +55,8 @@ interface SyncContextType {
   role: Role | null;
   /** Has this device ever enrolled (i.e. does it hold a device secret)? */
   enrolled: boolean;
+  /** Changes when the vessel's own modules do (constants/modules) — a re-render cue, nothing more. */
+  modulesRev: number;
   /**
    * This device's own account on the vessel — name, rank, role, approval — read
    * live from the vessel's device list, so a rename by the Master shows up
@@ -137,6 +139,24 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   const [enrolled, setEnrolled] = useState(false);
   const [me, setMe] = useState<EnrolledDevice | null>(null);
   const [myTabs, setMyTabs] = useState<string[] | null>(null);
+  // Bumped when the vessel's own module list changes (constants/modules
+  // `setVesselModules`). It is part of the context value, so every screen that
+  // reads useSync draws again with the module on or off.
+  const [modulesRev, setModulesRev] = useState(0);
+  const applyModules = useCallback((raw: unknown): boolean => {
+    const changed = setVesselModules(raw);
+    if (changed) setModulesRev((n) => n + 1);
+    void storage.saveVesselModules(cleanModules(raw));
+    return changed;
+  }, []);
+
+  // The list as this device last saw it, before any network: a pilot module
+  // must not vanish for a launch at sea.
+  useEffect(() => {
+    storage.loadVesselModules().then((raw) => {
+      if (raw && setVesselModules(raw)) setModulesRev((n) => n + 1);
+    });
+  }, []);
 
   useEffect(() => {
     AsyncStorage.getItem(MY_TABS_KEY)
@@ -412,6 +432,15 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         })
       );
 
+      // Modules switched on for this vessel only (constants/modules). A change
+      // syncs again, so the module's lists are pulled the moment it appears —
+      // `liveLists` in firebaseService reads the same flags.
+      unsubs.current.push(
+        fb.subscribeVesselModules(uid, (raw) => {
+          if (applyModules(raw)) void pushNowRef.current?.();
+        })
+      );
+
       // What the vessel has archived, and what the nightly sweep last did
       // (services/photoArchive.ts). Settled exactly like the rule above, with one
       // difference: the SWEEP writes here too, from the server, so even a Master's
@@ -587,13 +616,15 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     detach();
     uidRef.current = null;
     lastPushed.current = null;
+    // A pilot's modules belong to that vessel, not to this device.
+    applyModules(null);
     setRole(null);
     setEnrolled(false);
     forgetTabs();
     setLastError(null);
     setLastSyncAt(null);
     setStatus('off');
-  }, [detach, forgetTabs]);
+  }, [detach, forgetTabs, applyModules]);
 
   connectRef.current = connect;
 
@@ -678,15 +709,15 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     const released = new Set(releasedTabs().map((t) => t.key));
     const on = visibleTabs(moduleOn('access') ? myTabs : null, role === 'superadmin');
     return new Set([...on].filter((k) => released.has(k)));
-  }, [myTabs, role]);
+  }, [myTabs, role, modulesRev]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const canManageFn = React.useCallback((key: ManageKey) => canManage(me?.manage, key, role === 'superadmin', enrolled), [me, role, enrolled]);
   // As with the tabs: while Access is off, the Master has no screen to set it, so nothing stored is obeyed.
-  const pageOnFn = React.useCallback((key: string) => !moduleOn('access') || pageShown(me?.hidePages, key, role === 'superadmin', enrolled), [me, role, enrolled]);
+  const pageOnFn = React.useCallback((key: string) => !moduleOn('access') || pageShown(me?.hidePages, key, role === 'superadmin', enrolled), [me, role, enrolled, modulesRev]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <SyncContext.Provider
-      value={{ status, role, enrolled, me, tabs, canManage: canManageFn, pageOn: pageOnFn, lastSyncAt, registerBytes, connect, disconnect, pushLocalNow, applyLocally, lastError }}
+      value={{ status, role, enrolled, me, tabs, modulesRev, canManage: canManageFn, pageOn: pageOnFn, lastSyncAt, registerBytes, connect, disconnect, pushLocalNow, applyLocally, lastError }}
     >
       {children}
     </SyncContext.Provider>

@@ -126,7 +126,8 @@ export function moveInGroup(order: string[], name: string, dir: -1 | 1): string[
 
 /** The menu's names for its entries (index.tsx, and the Master's page). */
 export const MENU_LABEL: Record<string, string> = {
-  Dashboard: moduleOn('board') ? 'Board' : 'Dashboard',
+  // A getter: `board` may be switched on for one vessel after this file loads.
+  get Dashboard() { return moduleOn('board') ? 'Board' : 'Dashboard'; },
   Equipment: 'Equipment',
   Certificates: 'Certificates',
   Documents: 'Documents',

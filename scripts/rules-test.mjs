@@ -3,7 +3,7 @@
 //   mkdir /tmp/rt && cd /tmp/rt && npm init -y && npm i @firebase/rules-unit-testing firebase
 //   cp <repo>/scripts/rules-test.mjs . && echo '{"emulators":{"firestore":{"host":"127.0.0.1","port":8085}}}' > firebase.json
 //   npx firebase-tools@13.35.1 emulators:exec --only firestore --project demo-msm-rules "node rules-test.mjs <repo>/firestore.rules"
-// (13.x runs on Java 17; firebase-tools 14+ needs Java 21.) 29 cases, 9 Oct 2026.
+// (13.x runs on Java 17; firebase-tools 14+ needs Java 21 — Android Studio's jbr + Homebrew firebase work.)
 
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -16,7 +16,7 @@ const env = await initializeTestEnvironment({
 });
 await env.withSecurityRulesDisabled(async (c) => {
   const d = c.firestore();
-  await setDoc(doc(d, 'safety_vessels', V), { register: '{}', registerUpdatedAt: 1 });
+  await setDoc(doc(d, 'safety_vessels', V), { register: '{}', registerUpdatedAt: 1, modules: { drills: true } });
   await setDoc(doc(d, 'safety_vessels', OTHER), { register: '{}' });
   await setDoc(doc(d, 'safety_vessels', V, 'devices', 'devU'), { role: 'user', approved: true, firstName: 'A' });
   await setDoc(doc(d, 'safety_vessels', V, 'crew', 'c1'), { name: 'Jez', active: true });
@@ -38,6 +38,15 @@ const R = (d, ...p) => doc(d, 'safety_vessels', V, ...p);
 await t(true, 'crew member reads the register', getDoc(doc(crew, 'safety_vessels', V)));
 await t(false, 'crew member cannot read another vessel', getDoc(doc(crew, 'safety_vessels', OTHER)));
 await t(false, 'pending device reads nothing', getDoc(doc(pending, 'safety_vessels', V)));
+// `modules` (pilot modules for one vessel) is ours: no device writes it, the Master's included.
+await t(false, 'Master cannot switch a module on for the vessel', setDoc(doc(master, 'safety_vessels', V), { modules: { drills: true, pms: true } }, { merge: true }));
+await t(false, 'Crew cannot switch a module on for the vessel', updateDoc(doc(crew, 'safety_vessels', V), { modules: { drills: true, stores: true } }));
+const newcomer = as('n', { vessel: '9000003', role: 'superadmin', approved: true, deviceId: 'devN' });
+await t(false, 'A new vessel document cannot arrive with modules', setDoc(doc(newcomer, 'safety_vessels', '9000003'), { register: '{}', modules: { pms: true } }));
+await t(true, '…and arrives fine without them', setDoc(doc(newcomer, 'safety_vessels', '9000003'), { register: '{}' }));
+await t(true, 'Crew still writes the register beside modules', setDoc(doc(crew, 'safety_vessels', V), { register: '{"a":1}', registerUpdatedAt: 2 }, { merge: true }));
+await t(false, 'Master cannot take a module away either', updateDoc(doc(master, 'safety_vessels', V), { modules: {} }));
+await t(true, 'Crew reads the modules it has been given', getDoc(doc(crew, 'safety_vessels', V)));
 await t(true, 'everyone reads the crew list', getDoc(R(crew, 'crew', 'c1')));
 await t(true, 'Master writes the crew list', setDoc(R(master, 'crew', 'c2'), { name: 'Ana', active: true }));
 await t(true, 'Officer (Chief Officer) writes the crew list — NEW', setDoc(R(officer, 'crew', 'c3'), { name: 'Tom', active: true }));

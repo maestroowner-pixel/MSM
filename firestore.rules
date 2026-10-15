@@ -81,7 +81,10 @@ service cloud.firestore {
       // The register itself — one document holding the whole snapshot. Everyone
       // who is in may read and write it: that is the data model.
       allow read: if reader(v);
-      allow create: if member(v);
+      // `modules` — modules switched on for this vessel only (constants/modules
+      // `setVesselModules`) — is set by us, with admin credentials, and by no
+      // device: not even a Master, since it is what the vessel has been sold.
+      allow create: if member(v) && !('modules' in request.resource.data);
 
       // …but NOT the licence. `entitlement` sits on this same document, and MSM
       // Pro is now licensed per vessel and read from it — so leaving it writable
@@ -102,6 +105,7 @@ service cloud.firestore {
       // sweep itself writes here too — it runs with admin credentials and is not
       // subject to these rules.
       allow update: if member(v)
+                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['modules'])
                     && (isSuper(v)
                         || !request.resource.data.diff(resource.data)
                               .affectedKeys().hasAny(['entitlement', 'signingPolicy', 'photoArchive']));

@@ -81,6 +81,8 @@ export const DOC_ACKS_KEY = `${PREFIX}ism_doc_acks`;
 export const SIGNING_POLICY_KEY = `${PREFIX}signing_policy`;
 /** What this vessel has archived and what the last sweep did — services/photoArchive.ts. */
 export const PHOTO_ARCHIVE_KEY = `${PREFIX}photo_archive`;
+/** Modules switched on for THIS vessel only (constants/modules `setVesselModules`), as last seen. */
+export const VESSEL_MODULES_KEY = `${PREFIX}vessel_modules`;
 export const TEMPLATES_KEY = `${PREFIX}templates`;
 export const CATEGORIES_KEY = `${PREFIX}categories`;
 /**
@@ -668,6 +670,24 @@ export async function saveSigningPolicy(policy: import('./signingPolicy').Signin
   await AsyncStorage.setItem(SIGNING_POLICY_KEY, JSON.stringify(policy));
 }
 
+export async function loadVesselModules(): Promise<unknown> {
+  try {
+    const raw = await AsyncStorage.getItem(VESSEL_MODULES_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveVesselModules(modules: Record<string, boolean>): Promise<void> {
+  try {
+    if (Object.keys(modules).length) await AsyncStorage.setItem(VESSEL_MODULES_KEY, JSON.stringify(modules));
+    else await AsyncStorage.removeItem(VESSEL_MODULES_KEY);
+  } catch {
+    /* the cache is a convenience: the vessel document is the truth */
+  }
+}
+
 export async function loadPhotoArchive(): Promise<import('./photoArchive').PhotoArchiveState | null> {
   try {
     const raw = await AsyncStorage.getItem(PHOTO_ARCHIVE_KEY);
@@ -754,6 +774,7 @@ export async function resetAllData(): Promise<void> {
     VESSEL_KEY,
     SIGNING_POLICY_KEY,
     PHOTO_ARCHIVE_KEY,
+    VESSEL_MODULES_KEY,
   ];
   await AsyncStorage.multiRemove(keys);
 }

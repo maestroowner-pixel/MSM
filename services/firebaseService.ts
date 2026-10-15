@@ -1770,6 +1770,20 @@ export function subscribeSigningPolicy(uid: string, cb: (policy: SigningPolicy |
   );
 }
 
+/**
+ * Modules switched on for this vessel only (constants/modules `setVesselModules`).
+ * Set by us, never by a device — firestore.rules refuses any client write to it.
+ * `null` = the document has no such field.
+ */
+export function subscribeVesselModules(uid: string, cb: (modules: unknown) => void): () => void {
+  if (!syncSupported()) return () => {};
+  return fsOnSnapshot(
+    accountDoc(uid),
+    (snap) => cb(snap.exists() ? (snap.data() as any)?.modules ?? null : null),
+    (err) => console.warn('[sync] vessel modules listener stopped:', err?.message ?? err)
+  );
+}
+
 /** The vessel account's recorded trial-start (ms epoch), or null if none. */
 export async function getAccountTrialStart(uid: string): Promise<number | null> {
   const { db } = ensureInit();
