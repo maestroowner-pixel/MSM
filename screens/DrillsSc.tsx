@@ -23,6 +23,7 @@ import { todayIso } from '../services/pms';
 import { DRILL_STATE_LABEL, archive, archiveKinds, archiveYears, byMonth, drillSchedule, drillState, everyLabel, minutesBetween, sortDrills } from '../services/drills';
 import { exportDrillRegisterExcel, exportDrillRegisterPdf } from '../services/drillReport';
 import { formatDate } from '../utils/dates';
+import { DrillCalendar } from '../components/DrillCalendar';
 import { makeStyles } from './SafetySc';
 
 export default function DrillsSc() {
@@ -35,7 +36,14 @@ export default function DrillsSc() {
   const canPlan = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const today = todayIso();
 
-  const [tab, setTab] = useState<'schedule' | 'planned' | 'archive'>(route.params?.view === 'archive' ? 'archive' : route.params?.view === 'planned' ? 'planned' : 'schedule');
+  type Tab = 'schedule' | 'calendar' | 'planned' | 'archive';
+  const [tab, setTab] = useState<Tab>((['archive', 'planned', 'calendar'] as Tab[]).find((t) => t === route.params?.view) ?? 'schedule');
+  // The menu's Drill calendar / Drills & schedule entries switch the page of an open screen too.
+  React.useEffect(() => {
+    const v = route.params?.view;
+    if (v === 'calendar' || v === 'archive' || v === 'planned') setTab(v);
+    else if (v === 'list') setTab('schedule');
+  }, [route.params?.view]);
   const years = useMemo(() => archiveYears(drills), [drills]);
   const [year, setYear] = useState<string>(() => String(new Date().getFullYear()));
   const [kind, setKind] = useState('');
@@ -77,6 +85,9 @@ export default function DrillsSc() {
         <TouchableOpacity style={[styles.chip, tab === 'schedule' && styles.chipOn]} onPress={() => setTab('schedule')}>
           <Text style={[styles.chipText, tab === 'schedule' && styles.chipTextOn]}>{`Schedule${overdue ? ` · ${overdue} due` : ''}`}</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={[styles.chip, tab === 'calendar' && styles.chipOn]} onPress={() => setTab('calendar')}>
+          <Text style={[styles.chipText, tab === 'calendar' && styles.chipTextOn]}>Calendar</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={[styles.chip, tab === 'planned' && styles.chipOn]} onPress={() => setTab('planned')}>
           <Text style={[styles.chipText, tab === 'planned' && styles.chipTextOn]}>{`Planned · ${open}`}</Text>
         </TouchableOpacity>
@@ -108,7 +119,9 @@ export default function DrillsSc() {
         )
       ) : null}
 
-      {tab === 'schedule' ? (
+      {tab === 'calendar' ? (
+        <DrillCalendar schedule={schedule} today={today} onSaved={(w) => typeof w === 'string' && setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`)} />
+      ) : tab === 'schedule' ? (
         <>
           {schedule.map((r) => (
             <TouchableOpacity key={r.type} style={[styles.item, { borderLeftColor: dueColor(r.left, r.everyDays) }]} activeOpacity={0.7}

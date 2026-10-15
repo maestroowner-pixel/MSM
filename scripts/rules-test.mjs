@@ -233,6 +233,9 @@ await t(true, 'The shore reads the SOPEP lockers', getDoc(R(shore, 'sopep_locker
 await t(true, 'Crew add a store item', setDoc(R(crew, 'store_items', 'st1'), { id: 'st1', store: 'ppe', name: 'Coveralls', size: 'L', unit: 'pcs', min: 2, order: 0, updatedAt: 1 }));
 await t(true, 'Crew issue from the store', setDoc(R(crew, 'store_moves', 'sm1'), { id: 'sm1', itemId: 'st1', kind: 'issued', qty: 1, date: '2026-10-14', to: 'Max', by: 'Jez', at: 1, updatedAt: 1 }));
 await t(false, 'A store move is never changed', setDoc(R(master, 'store_moves', 'sm1'), { id: 'sm1', itemId: 'st1', kind: 'issued', qty: 5, date: '2026-10-14', by: 'Jez', at: 1, updatedAt: 2 }));
+await t(true, 'An officer draws up the drill plan', setDoc(R(officer, 'drill_plans', '2027'), { id: '2027', slots: [{ kind: 'fire', title: 'Fire', month: 1 }], updatedAt: 1 }));
+await t(true, 'The crew read the drill plan', getDoc(R(crew, 'drill_plans', '2027')));
+await t(false, 'The crew cannot change the drill plan', setDoc(R(crew, 'drill_plans', '2027'), { id: '2027', slots: [], updatedAt: 2 }));
 await t(true, 'An officer files the SSP', setDoc(R(officer, 'ssp_docs', 'd1'), { id: 'd1', title: 'Ship Security Plan — approved', updatedAt: 1 }));
 await t(false, 'The crew cannot read the SSP', getDoc(R(crew, 'ssp_docs', 'd1')));
 await t(false, 'The shore cannot read the SSP', getDoc(R(shore, 'ssp_docs', 'd1')));

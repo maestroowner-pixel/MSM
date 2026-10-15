@@ -436,6 +436,12 @@ service cloud.firestore {
       }
       // Drills (types/drills.ts): planned and run by an officer or the Master,
       // saved as they are written; signed as carried out, a drill is final.
+      // The drill calendar (services/drillPlan.ts): one plan per year, kept by the officers.
+      match /drill_plans/{id} {
+        allow read: if reader(v);
+        allow create, update: if isAdmin(v);
+        allow delete: if false;
+      }
       match /drills/{id} {
         allow read: if reader(v);
         allow create: if isAdmin(v) && plainRecord();

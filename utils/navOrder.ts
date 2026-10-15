@@ -85,7 +85,8 @@ export const MENU_CHILDREN: Record<string, MenuChild[]> = {
   ],
   // Every drill in one place: the schedule, and the SOPEP and ISPS drills kept on their own pages.
   Drills: [
-    { view: 'list', label: 'Drills & schedule', icon: 'calendar-check-outline' },
+    { view: 'list', label: 'Drills & schedule', icon: 'format-list-checks' },
+    { view: 'calendar', label: 'Drill calendar', icon: 'calendar-month-outline' },
     { view: 'drills', label: 'SOPEP drills', icon: 'oil', route: 'Sopep', module: 'sopep' },
     { view: 'drills', label: 'ISPS drills', icon: 'shield-account-outline', route: 'Security', module: 'security' },
   ],

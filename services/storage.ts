@@ -60,6 +60,7 @@ export const SURVEYS_DONE_KEY = `${PREFIX}surveys_done`;
 export const OBSERVATIONS_KEY = `${PREFIX}observations`;
 export const NCS_KEY = `${PREFIX}ncs`;
 export const DRILLS_KEY = `${PREFIX}drills`;
+export const DRILL_PLANS_KEY = `${PREFIX}drill_plans`;
 export const MED_ITEMS_KEY = `${PREFIX}med_items`;
 export const MED_MOVES_KEY = `${PREFIX}med_moves`;
 export const MED_TREATMENTS_KEY = `${PREFIX}med_treatments`;
@@ -744,6 +745,7 @@ export async function resetAllData(): Promise<void> {
     SSP_DOCS_KEY,
     SEARCH_PLAN_KEY,
     SEARCHES_KEY,
+    DRILL_PLANS_KEY,
     PASSENGERS_PRIVATE_KEY,
     MED_ORDERS_KEY,
     MED_CHECKS_KEY,

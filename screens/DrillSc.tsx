@@ -89,7 +89,8 @@ export default function DrillSc() {
     const like = name ? [...drills].filter((x) => drillKind(x) === drillKind({ type: 'other', title: name })).sort((a, b) => b.date.localeCompare(a.date))[0] : undefined;
     const own = type === 'other' ? { title: name, ...(like?.reg ? { reg: like.reg } : {}), ...(like?.everyDays ? { everyDays: like.everyDays } : {}), ...(like?.theoryText ? { theoryText: like.theoryText } : {}) } : {};
     return {
-      id, no: '', type, ...own, topic: '', date: today, scenario: [], theory: !!DRILL_THEORY[type] || !!like?.theoryText,
+      // A day given by the drill calendar (services/drillPlan dayIn), else today.
+      id, no: '', type, ...own, topic: '', date: /^\d{4}-\d{2}-\d{2}$/.test(String(route.params?.date ?? '')) ? route.params.date : today, scenario: [], theory: !!DRILL_THEORY[type] || !!like?.theoryText,
       attendance: people.map((p) => ({ name: p.name, ...(p.rank ? { rank: p.rank } : {}), present: false })),
       plannedBy: '', updatedAt: now,
     };

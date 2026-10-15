@@ -1273,6 +1273,8 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'observations', key: storage.OBSERVATIONS_KEY, module: 'qhse' },
   { sub: 'ncs', key: storage.NCS_KEY, module: 'qhse' },
   { sub: 'drills', key: storage.DRILLS_KEY, module: 'drills' },
+  // The drill calendar: one plan per year (services/drillPlan.ts).
+  { sub: 'drill_plans', key: storage.DRILL_PLANS_KEY, module: 'drills' },
   { sub: 'med_items', key: storage.MED_ITEMS_KEY, module: 'hospital' },
   { sub: 'med_moves', key: storage.MED_MOVES_KEY, appendOnly: true, module: 'hospital' },
   { sub: 'med_orders', key: storage.MED_ORDERS_KEY, module: 'hospital' },

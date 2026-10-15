@@ -28,6 +28,7 @@ import { Passenger, PassengerPrivate } from '../types/passengers';
 import { SafetyMeeting } from '../types/meetings';
 import { StoreItem, StoreMove, StoreRoom } from '../types/stores';
 import { OfficerDoc } from '../types/officerDocs';
+import type { DrillYearPlan } from '../services/drillPlan';
 import { SearchPlan, SecuritySearch } from '../types/searches';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 import { live } from '../services/versions';
@@ -148,6 +149,8 @@ interface DataContextType {
   observations: SafetyObservation[];
   ncs: NonConformity[];
   drills: Drill[];
+  /** The drill calendar — one plan per year (services/drillPlan.ts). */
+  drillPlans: DrillYearPlan[];
   medItems: MedItem[];
   medMoves: MedMove[];
   medTreatments: MedTreatment[];
@@ -281,6 +284,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [observations, setObservations] = useState<SafetyObservation[]>([]);
   const [ncs, setNcs] = useState<NonConformity[]>([]);
   const [drills, setDrills] = useState<Drill[]>([]);
+  const [drillPlans, setDrillPlans] = useState<DrillYearPlan[]>([]);
   const [medItems, setMedItems] = useState<MedItem[]>([]);
   const [medMoves, setMedMoves] = useState<MedMove[]>([]);
   const [medTreatments, setMedTreatments] = useState<MedTreatment[]>([]);
@@ -376,6 +380,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _observations = await storage.loadList<SafetyObservation>(storage.OBSERVATIONS_KEY);
     const _ncs = await storage.loadList<NonConformity>(storage.NCS_KEY);
     const _drills = (await storage.loadList<Drill>(storage.DRILLS_KEY)).filter((x) => !x.deleted);
+    const _drillPlans = await storage.loadList<DrillYearPlan>(storage.DRILL_PLANS_KEY);
     const _medItems = (await storage.loadList<MedItem>(storage.MED_ITEMS_KEY)).filter((x) => !x.deleted).sort((x, y) => x.order - y.order);
     const _medMoves = await storage.loadList<MedMove>(storage.MED_MOVES_KEY);
     const _medTreatments = await storage.loadList<MedTreatment>(storage.MED_TREATMENTS_KEY);
@@ -442,6 +447,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setObservations(_observations);
     setNcs(_ncs);
     setDrills(_drills);
+    setDrillPlans(_drillPlans);
     setMedItems(_medItems);
     setMedMoves(_medMoves);
     setMedTreatments(_medTreatments);
@@ -655,6 +661,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _observations = await storage.loadList<SafetyObservation>(storage.OBSERVATIONS_KEY);
     const _ncs = await storage.loadList<NonConformity>(storage.NCS_KEY);
     const _drills = (await storage.loadList<Drill>(storage.DRILLS_KEY)).filter((x) => !x.deleted);
+    const _drillPlans = await storage.loadList<DrillYearPlan>(storage.DRILL_PLANS_KEY);
     const _medItems = (await storage.loadList<MedItem>(storage.MED_ITEMS_KEY)).filter((x) => !x.deleted).sort((x, y) => x.order - y.order);
     const _medMoves = await storage.loadList<MedMove>(storage.MED_MOVES_KEY);
     const _medTreatments = await storage.loadList<MedTreatment>(storage.MED_TREATMENTS_KEY);
@@ -712,6 +719,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setObservations(_observations);
     setNcs(_ncs);
     setDrills(_drills);
+    setDrillPlans(_drillPlans);
     setMedItems(_medItems);
     setMedMoves(_medMoves);
     setMedTreatments(_medTreatments);
@@ -988,6 +996,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         observations,
         ncs,
         drills,
+        drillPlans,
         medItems,
         medMoves,
         medTreatments,

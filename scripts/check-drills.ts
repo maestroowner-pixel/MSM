@@ -4,6 +4,7 @@ import { drillDoc } from '../services/drills';
 import { DRILL_THEORY } from '../constants/drillTheory';
 import { DRILL_TYPES } from '../types/drills';
 import { buildBoard } from '../services/board';
+import { calendarRows, cellOf, dayIn, proposeYear, stepMonths, toggleSlot, yearCounts } from '../services/drillPlan';
 
 let fail = 0;
 const ok = (c: boolean, m: string) => { if (!c) { fail++; console.log('✗', m); } else console.log('✓', m); };
@@ -101,6 +102,34 @@ try {
   ok(b.tiles.some((t: any) => t.key === 'drills'), 'board: Drills tile');
 } catch (e: any) {
   ok(false, `board builds: ${e?.message}`);
+}
+
+// ---- the drill calendar (15 Oct 2026) ----
+{
+  const T = '2026-10-15';
+  const dr = (o: any): any => ({ id: Math.random().toString(36).slice(2), no: 'DR', topic: '', scenario: [], theory: false, attendance: [], plannedBy: 'x', updatedAt: 1, ...o });
+  const held = [dr({ type: 'fire', date: '2026-09-20', doneAt: 1 }), dr({ type: 'steering', date: '2026-08-10', doneAt: 1 })];
+  const sch = drillSchedule(held, T);
+  const y = proposeYear(2026, sch, T);
+  const months = (k: string, ys = y) => ys.filter((s) => s.kind === k).map((s) => s.month).join();
+  ok(stepMonths(30) === 1 && stepMonths(60) === 2 && stepMonths(90) === 3 && stepMonths(180) === 6 && stepMonths(365) === 12, 'calendar: intervals as months');
+  ok(months('fire') === '10,11,12' && months('abandon') === '10,11,12', `this year: monthly drills from this month on (fire ${months('fire')})`);
+  ok(months('steering') === '11', `this year: steering every 3 months from its due month (${months('steering')})`);
+  const y27 = proposeYear(2027, sch, T);
+  ok(months('fire', y27) === '1,2,3,4,5,6,7,8,9,10,11,12' && months('steering', y27) === '2,5,8,11' && months('enclosed', y27).split(',').length === 6, `next year: monthly 12, quarterly ${months('steering', y27)}, every 2 months 6`);
+  ok(proposeYear(2025, sch, T).length === 0, 'a past year is not drawn up');
+  const plan = { id: '2026', slots: y, updatedAt: 1 };
+  const sop: any[] = [{ id: 's', date: '2026-10-03', scenario: 'x', participants: [], by: 'x', at: 1, updatedAt: 1 }];
+  const ctx = { plan, drills: [...held, dr({ type: 'abandon', date: '2026-10-28' })], sopepDrills: sop, securityDrills: [], today: T };
+  ok(cellOf('fire', 2026, 9, ctx).state === 'done' && cellOf('fire', 2026, 10, ctx).state === 'planned', 'cell: carried out in September, planned in October');
+  ok(cellOf('abandon', 2026, 10, ctx).state === 'scheduled' && cellOf('abandon', 2026, 10, ctx).scheduled?.date === '2026-10-28', 'cell: planned on a day');
+  ok(cellOf('oilspill', 2026, 10, ctx).state === 'done', 'cell: a SOPEP drill counts in the calendar');
+  const past = { ...ctx, plan: toggleSlot(plan, 'mob', 'Man overboard', 3) };
+  ok(cellOf('mob', 2026, 3, past).state === 'missed' && calendarRows(sch, past.plan).some((r) => r.kind === 'mob'), 'cell: a planned month gone by without the drill is missed; a drill in the plan gets its row');
+  ok(toggleSlot(past.plan, 'mob', 'Man overboard', 3).slots.length === plan.slots.length, 'toggle: the month taken off again');
+  const c = yearCounts(calendarRows(sch, plan), 2026, ctx);
+  ok(c.planned === y.length && c.missed === 0, `year figures: ${JSON.stringify(c)}`);
+  ok(dayIn(2026, 10, T) === T && dayIn(2026, 12, T) === '2026-12-15', 'planning a month: today in this month, the 15th otherwise');
 }
 
 console.log(fail ? `\n${fail} failed` : '\nall passed');
