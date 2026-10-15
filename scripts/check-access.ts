@@ -53,7 +53,7 @@ ok(togglePage(undefined, 'Security:ssp').join() === 'Security:ssp' && togglePage
 const mr = masterRows([]);
 ok(mr[0].kind === 'group' && mr.some((r) => r.kind === 'fixed' && r.id === 'Dashboard') && mr.some((r) => r.kind === 'tab' && r.id === 'Rounds'), `rows: groups, the fixed entries, the released tabs (${mr.length} rows)`);
 const sec = mr.filter((r) => r.kind === 'page' && r.id.startsWith('Security/'));
-ok(sec.some((r) => r.kind === 'page' && r.page === 'Security:ssp' && r.officers) && sec.some((r) => r.kind === 'page' && r.page === 'Security:searches'), 'rows: Security pages, the SSP marked for officers');
+ok(sec.some((r) => r.kind === 'page' && r.page === 'Security:gangway') && sec.every((r) => r.kind !== 'page' || (r.page !== 'Security:ssp' || r.officers)), 'rows: Security pages (the SSP, when on, marked for officers)');
 const pg: any = { kind: 'page', id: 'x', label: 'Searches', icon: 'x', tab: 'security', page: 'Security:searches' };
 const ssp: any = { ...pg, page: 'Security:ssp', officers: true };
 const gear: any = { kind: 'manage', id: 'm', label: 'g', tab: 'stores', manage: 'stores' };

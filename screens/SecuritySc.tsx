@@ -66,8 +66,8 @@ export default function SecurityRoute() {
   const v = route.params?.view;
   if (v === 'flashes') return <SafetyFlashesSc />;
   if (v === 'meetings') return <MeetingsSc />;
-  if (v === 'searches') return <SearchesSc />;
-  if (v === 'ssp') return <SspSc />;
+  if (v === 'searches' && moduleOn('searches')) return <SearchesSc />;
+  if (v === 'ssp' && moduleOn('ssp')) return <SspSc />;
   return <SecuritySc />;
 }
 

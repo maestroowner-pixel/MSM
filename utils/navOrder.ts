@@ -59,8 +59,8 @@ export const MENU_CHILDREN: Record<string, MenuChild[]> = {
   Security: [
     { view: 'gangway', label: 'Gangway logbook', icon: 'ferry' },
     { view: 'drills', label: 'ISPS drills', icon: 'run-fast' },
-    { view: 'searches', label: 'Searches — stowaway, bomb', icon: 'magnify-scan' },
-    { view: 'ssp', label: 'Ship Security Plan', icon: 'shield-lock-outline', officers: true },
+    { view: 'searches', label: 'Searches — stowaway, bomb', icon: 'magnify-scan', module: 'searches' },
+    { view: 'ssp', label: 'Ship Security Plan', icon: 'shield-lock-outline', officers: true, module: 'ssp' },
     { view: 'meetings', label: 'Monthly safety meeting', icon: 'account-group-outline', module: 'meetings' },
     { view: 'flashes', label: 'Safety flashes (IMCA)', icon: 'flash-alert-outline' },
   ],

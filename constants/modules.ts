@@ -24,7 +24,7 @@
 // will follow the same way); whether the module exists at all is ours.
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -106,6 +106,10 @@ export const MODULES: Record<ModuleKey, boolean> = {
   stores: false,
   /** AI — smart import of any list, the round by voice and photo, questions to the vessel's data (functions/ai.js, 14 Oct 2026). */
   ai: false,
+  /** Security → Searches: stowaway and bomb searches, area by area, by team (15 Oct 2026). Needs `security`. */
+  searches: false,
+  /** Security → Ship Security Plan: the SSP and its papers, officers only (15 Oct 2026). Needs `security`. */
+  ssp: false,
 };
 
 export function moduleOn(key: ModuleKey): boolean {

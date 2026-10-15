@@ -1259,10 +1259,10 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'sopep_drills', key: storage.SOPEP_DRILLS_KEY, appendOnly: true, module: 'sopep' },
   // The SOPEP's own papers and the Ship Security Plan: the Master and the officers only (types/officerDocs.ts).
   { sub: 'sopep_docs', key: storage.SOPEP_DOCS_KEY, module: 'sopep', officers: true },
-  { sub: 'ssp_docs', key: storage.SSP_DOCS_KEY, module: 'security', officers: true },
+  { sub: 'ssp_docs', key: storage.SSP_DOCS_KEY, module: 'ssp', officers: true },
   // Stowaway and bomb searches: the plan (areas, teams) and each search (types/searches.ts).
-  { sub: 'search_plan', key: storage.SEARCH_PLAN_KEY, module: 'security' },
-  { sub: 'searches', key: storage.SEARCHES_KEY, module: 'security' },
+  { sub: 'search_plan', key: storage.SEARCH_PLAN_KEY, module: 'searches' },
+  { sub: 'searches', key: storage.SEARCHES_KEY, module: 'searches' },
   { sub: 'visitors', key: storage.VISITORS_KEY, module: 'security' },
   { sub: 'security_levels', key: storage.SECURITY_LEVEL_KEY, appendOnly: true, module: 'security' },
   { sub: 'security_drills', key: storage.SECURITY_DRILLS_KEY, appendOnly: true, module: 'security' },

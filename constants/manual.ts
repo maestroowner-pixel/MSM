@@ -2470,7 +2470,7 @@ export const MANUAL: Record<Lang, ManualContent> = { en, ru, es, uk };
 // hides only the paragraphs from that position on, for a module that extends an
 // existing section (crew certificates in Certificates). The order and length of
 // each section's body are the same in every language.
-const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
+const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: number[] }[] = [
   { title: 'Certificates', module: 'crewCerts', from: 4 },
   { title: 'Access — which tabs each device shows', module: 'access' },
   { title: 'Hours of rest', module: 'rest' },
@@ -2490,6 +2490,9 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number }[] = [
   { title: 'Board', module: 'board' },
   { title: 'Surveys & audits', module: 'surveys' },
   { title: 'Security (ISPS)', module: 'security' },
+  // Paragraphs of a live section about a page that ships dark (15 Oct 2026).
+  { title: 'Security (ISPS)', module: 'searches', drop: [6] },
+  { title: 'Security (ISPS)', module: 'ssp', drop: [7] },
   { title: 'Hospital', module: 'hospital' },
   { title: 'Passengers', module: 'passengers' },
   { title: 'Stores', module: 'stores' },
@@ -2505,9 +2508,12 @@ export function releasedManual(lang: Lang): ManualContent {
   const content = MANUAL[lang];
   const sections: Section[] = [];
   content.sections.forEach((sec, i) => {
-    const part = MODULE_PARTS.find((p) => p.title === MANUAL.en.sections[i]?.title && !moduleOn(p.module));
-    if (!part) sections.push(sec);
-    else if (part.from != null) sections.push({ ...sec, body: sec.body?.slice(0, part.from) });
+    const off = MODULE_PARTS.filter((p) => p.title === MANUAL.en.sections[i]?.title && !moduleOn(p.module));
+    if (off.some((p) => p.from == null && !p.drop)) return; // the whole section's module is off
+    const from = Math.min(...off.filter((p) => p.from != null).map((p) => p.from!), Infinity);
+    const drop = new Set(off.flatMap((p) => p.drop ?? []));
+    if (!off.length) sections.push(sec);
+    else sections.push({ ...sec, body: sec.body?.slice(0, from === Infinity ? undefined : from).filter((_, k) => !drop.has(k)) });
   });
   return { ...content, sections };
 }
