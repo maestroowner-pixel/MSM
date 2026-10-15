@@ -1,5 +1,5 @@
 // npm run check:pms — planned-maintenance due dates against hand-worked cases.
-import { jobDue, withReading, hoursPerDay, jobAfter, intervalText, scheduleText, checkReading, noteForNext, lastCondition, nextDueDate, nextDueHours, addInterval , jobsAhead , jobAfterCancel, cancellable } from '../services/pms';
+import { jobDue, withReading, hoursPerDay, jobAfter, intervalText, scheduleText, checkReading, noteForNext, lastCondition, nextDueDate, nextDueHours, addInterval , jobsAhead , jobAfterCancel, cancellable, multiSignable } from '../services/pms';
 import { Machine, PmsJob, finishedOneOff } from '../types/pms';
 import { copyJobsTo, copyMachine, predecessors, replaceMachine, scrapMachine } from '../services/pmsMachines';
 
@@ -212,6 +212,14 @@ import { projectJobs, yardList } from '../services/pmsProjects';
   ok(sc.machine.scrapped?.replacedBy === undefined && sc.jobs.length === 3, 'scrap: nothing in its place');
   const all = [r.old, r.fitted, { ...r.fitted, id: 'g7', replaces: 'g5' } as Machine];
   ok(predecessors(all[2], all).map((m) => m.id).join() === 'g5,g1', 'the chain of units replaced, newest first');
+}
+// Signed out together: the routine calendar jobs only.
+{
+  const m: Machine = { id: 'm', name: 'Fire pump', updatedAt: 0 };
+  const j: PmsJob = { id: 'j', machineId: 'm', title: 'Check', type: 'check' as any, intervalDays: 7, updatedAt: 0 };
+  ok(multiSignable(j, m), 'a weekly check on an ordinary machine: yes');
+  ok(!multiSignable({ ...j, intervalHours: 250 }, m) && !multiSignable(j, { ...m, critical: true }) && !multiSignable({ ...j, permitType: 'hot' as any }, m), 'by hours, critical equipment, a permit: no');
+  ok(!multiSignable({ ...j, parts: [{ partId: 'p', qty: 1 }] }, m) && !multiSignable({ ...j, prepared: { date: 'x', by: 'y', at: 1 } }, m) && !multiSignable({ ...j, oneOff: true }, m), 'parts to take, written up, one-off: no');
 }
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

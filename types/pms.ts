@@ -149,8 +149,29 @@ export interface PmsJob {
   /** Warn this many days / hours before due, instead of the last tenth of the interval. */
   warnDays?: number;
   warnHours?: number;
+  /**
+   * Done and written up by the person who did it, waiting for an officer to
+   * sign it out (TM Master comparison, item 5: "done, not signed"). Cleared
+   * (null, so a merge-write clears it on the server too) when signed out.
+   */
+  prepared?: PmsPrepared | null;
   deleted?: boolean;
   updatedAt: number;
+}
+
+export interface PmsPrepared {
+  date: string;
+  hours?: number;
+  note?: string;
+  conditionBefore?: Condition;
+  conditionAfter?: Condition;
+  manHours?: number;
+  nextNote?: string;
+  /** Parts taken from the stores, part id → quantity. */
+  take?: Record<string, number>;
+  by: string;
+  byRank?: string;
+  at: number;
 }
 
 /** A one-off job already done — off the plan, kept in the history. */
@@ -167,6 +188,9 @@ export interface PmsDone {
   hours?: number;
   by: string;
   byRank?: string;
+  /** Who did the work, when an officer signed out what they wrote up (PmsJob.prepared). */
+  doneBy?: string;
+  doneByRank?: string;
   note?: string;
   /** Epoch ms when signed. */
   at: number;

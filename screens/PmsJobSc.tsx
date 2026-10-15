@@ -27,14 +27,14 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { CONDITION, Condition, DEFECT_CATEGORY, DefectCategory, JOB_TYPE, JobType, PmsDefect, PmsDone, PmsJob, hasCounter } from '../types/pms';
+import { CONDITION, Condition, DEFECT_CATEGORY, DefectCategory, JOB_TYPE, JobType, PmsDefect, PmsDone, PmsJob, PmsPrepared, hasCounter } from '../types/pms';
 import { Attachment } from '../types/equipment';
 import { PhotoPicker } from '../components/PhotoPicker';
 import * as photoQueue from '../services/photoQueue';
 import { Dropdown } from '../components/Dropdown';
 import * as storage from '../services/storage';
 import { crewLabel } from '../types/crew';
-import { PLAN_LOCKED, personName, plansPms } from '../types/role';
+import { PLAN_LOCKED, personName, plansPms, roleAtLeast } from '../types/role';
 import { activeDeferral, dueText, jobAfter, jobCycle, jobDue, todayIso, withReading , noteForNext } from '../services/pms';
 import { movesForJob, qtyText, stockByPart } from '../services/spares';
 import { JobPart } from '../types/spares';
@@ -178,9 +178,57 @@ export default function PmsJobSc() {
     goBackOr(nav);
   };
 
+  // ---- Done, then signed (TM Master comparison, item 5) ----
+  // Anyone may write a job up as done; an officer (or the Master) signs it out —
+  // reviewing what was written, adding photos, and signing. Their name signs; the
+  // name of whoever did the work goes with it (PmsDone.doneBy).
+  const isOfficer = !sync.enrolled || roleAtLeast(sync.role, 'admin');
+  const [preparedBy, setPreparedBy] = useState<PmsPrepared | null>(null);
   const startDoing = () => {
-    setTake(Object.fromEntries((existing?.parts ?? []).map((p) => [p.partId, p.qty])));
+    const pr = existing?.prepared;
+    if (pr) {
+      setDoneDate(pr.date);
+      if (pr.hours != null) setDoneHours(String(pr.hours));
+      setDoneNote(pr.note ?? '');
+      setCondBefore(pr.conditionBefore ?? null);
+      setCondAfter(pr.conditionAfter ?? null);
+      setManHours(pr.manHours != null ? String(pr.manHours) : '');
+      setNextNote(pr.nextNote ?? '');
+      setTake(pr.take ?? {});
+      setPreparedBy(pr);
+    } else setTake(Object.fromEntries((existing?.parts ?? []).map((p) => [p.partId, p.qty])));
     setDoing(true);
+  };
+  /** The last sign-out of this job, to start from when the work was the same. */
+  const lastDone = useMemo(
+    () => (existing ? pmsDone.filter((d) => d.jobId === existing.id && !d.cancelled).sort((a, b) => b.date.localeCompare(a.date) || b.at - a.at)[0] : undefined),
+    [existing, pmsDone]
+  );
+  const copyLast = () => {
+    if (!lastDone) return;
+    setDoneNote(lastDone.note ?? '');
+    setCondBefore(lastDone.conditionBefore ?? null);
+    setCondAfter(lastDone.conditionAfter ?? null);
+    setManHours(lastDone.manHours != null ? String(lastDone.manHours) : '');
+  };
+  const onPrepare = async () => {
+    if (!existing) return;
+    if (!signer) return Alert.alert('Who did it?', 'Choose your name.');
+    const hours = num(doneHours);
+    if (counter && (existing.intervalHours || existing.dueHours != null) && hours == null) return Alert.alert('Counter', 'Enter the counter reading when the job was done.');
+    if (doneDate > todayIso()) return Alert.alert('Date', 'The date is in the future.');
+    const mh = num(manHours);
+    if (manHours.trim() && mh == null) return Alert.alert('Man-hours', 'Enter the man-hours as a number, e.g. 1.5.');
+    const pr: PmsPrepared = {
+      date: doneDate, ...(hours != null ? { hours } : {}), ...(doneNote.trim() ? { note: doneNote.trim() } : {}),
+      ...(condBefore ? { conditionBefore: condBefore } : {}), ...(condAfter ? { conditionAfter: condAfter } : {}),
+      ...(mh != null ? { manHours: mh } : {}), ...(nextNote.trim() ? { nextNote: nextNote.trim() } : {}),
+      ...(Object.keys(take).length ? { take } : {}),
+      by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: Date.now(),
+    };
+    await savePmsJob({ ...existing, prepared: pr, updatedAt: Date.now() });
+    playSuccessSound();
+    goBackOr(nav);
   };
 
   const setJobParts = (parts: JobPart[]) => set({ parts });
@@ -226,6 +274,7 @@ export default function PmsJobSc() {
       hours,
       by: signer.name,
       byRank: signer.rank,
+      ...(preparedBy && preparedBy.by !== signer.name ? { doneBy: preparedBy.by, ...(preparedBy.byRank ? { doneByRank: preparedBy.byRank } : {}) } : {}),
       note: doneNote.trim() || undefined,
       ...(existing?.lastDoneDate ? { prevLastDoneDate: existing.lastDoneDate } : {}),
       ...(existing?.lastDoneHours != null ? { prevLastDoneHours: existing.lastDoneHours } : {}),
@@ -257,7 +306,7 @@ export default function PmsJobSc() {
           { doneId: done.id, jobTitle, machineName: machine?.name ?? '' }
         )
       : [];
-    if (existing) await completePmsJob(done, jobAfter(existing, done), moves);
+    if (existing) await completePmsJob(done, { ...jobAfter(existing, done), ...(existing.prepared ? { prepared: null } : {}) }, moves);
     else {
       await appendRow(storage.PMS_DONE_KEY, done);
       for (const mv of moves) await appendRow(storage.SPARE_MOVES_KEY, mv);
@@ -363,6 +412,16 @@ export default function PmsJobSc() {
                   </View>
                 );
               })() : null}
+              {preparedBy ? (
+                <View style={[styles.deferBox, { marginBottom: SIZES.md }]}>
+                  <Text style={[styles.sub, { fontWeight: '800' }]}>{`Written up by ${preparedBy.byRank ? `${preparedBy.by} (${preparedBy.byRank})` : preparedBy.by} · ${preparedBy.date.split('-').reverse().join('.')}`}</Text>
+                  <Text style={styles.sub}>Check it, add the photos, and sign it out.</Text>
+                </View>
+              ) : !unplanned && lastDone ? (
+                <TouchableOpacity onPress={copyLast} hitSlop={8} style={{ marginBottom: SIZES.sm }}>
+                  <Text style={styles.link}>{`Same as last time (${lastDone.date.split('-').reverse().join('.')}) — copy its note, condition and man-hours`}</Text>
+                </TouchableOpacity>
+              ) : null}
               {unplanned ? (
                 <>
                   <Label>What was done ★</Label>
@@ -471,6 +530,12 @@ export default function PmsJobSc() {
                   {people.length === 0 ? <Text style={styles.sub}>The crew list is empty — the Master adds people in Settings → Crew.</Text> : null}
                 </View>
               )}
+              {!unplanned && existing && !preparedBy ? (
+                <TouchableOpacity style={[styles.deferBox, { marginTop: SIZES.md, alignItems: 'center' }]} onPress={() => void onPrepare()}>
+                  <Text style={styles.link}>Done — for an officer to sign</Text>
+                  <Text style={styles.sub}>Saves what you wrote; it shows as awaiting sign-off until an officer signs it out.</Text>
+                </TouchableOpacity>
+              ) : null}
               {sparesOn && Object.keys(take).length ? (
                 <>
                   <View style={{ height: SIZES.md }} />
@@ -662,9 +727,15 @@ export default function PmsJobSc() {
               ) : null}
               </View>
 
+              {existing?.prepared ? (
+                <View style={[styles.deferBox, { marginTop: SIZES.md }]}>
+                  <Text style={[styles.sub, { fontWeight: '800', color: COLORS.warning }]}>{`Done ${existing.prepared.date.split('-').reverse().join('.')} by ${existing.prepared.byRank ? `${existing.prepared.by} (${existing.prepared.byRank})` : existing.prepared.by} — awaiting sign-off`}</Text>
+                  {existing.prepared.note ? <Text style={styles.sub}>{existing.prepared.note}</Text> : null}
+                </View>
+              ) : null}
               {!isNew ? (
                 <TouchableOpacity style={styles.doneBtn} onPress={startDoing}>
-                  <Text style={styles.doneText}>Record as done</Text>
+                  <Text style={styles.doneText}>{existing?.prepared ? (isOfficer ? 'Review and sign' : 'Open the write-up') : 'Record as done'}</Text>
                 </TouchableOpacity>
               ) : null}
               <TouchableOpacity disabled={!canPlan} style={[styles.deleteBtn, !canPlan && { opacity: 0.35 }]} onPress={onDelete}>

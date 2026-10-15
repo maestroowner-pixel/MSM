@@ -509,7 +509,7 @@ export default function MachineSc() {
               </View>
               {h.cancelled ? <Text style={[styles.sub, { color: COLORS.danger }]}>{`Cancelled — ${h.editReason ?? ''} · ${h.editedByRank ? `${h.editedBy} (${h.editedByRank})` : h.editedBy ?? ''}`}</Text> : null}
               <Text style={styles.sub}>
-                {[formatDate(h.date), h.hours != null ? `${h.hours} h` : null, conditionText(h) || null, h.manHours != null ? `${h.manHours} man-h` : null, h.byRank ? `${h.by} (${h.byRank})` : h.by].filter(Boolean).join(' · ')}
+                {[formatDate(h.date), h.hours != null ? `${h.hours} h` : null, conditionText(h) || null, h.manHours != null ? `${h.manHours} man-h` : null, h.doneBy ? `done by ${h.doneBy}${h.doneByRank ? ` (${h.doneByRank})` : ''}` : null, h.doneBy ? `signed out by ${h.byRank ? `${h.by} (${h.byRank})` : h.by}` : h.byRank ? `${h.by} (${h.byRank})` : h.by].filter(Boolean).join(' · ')}
               </Text>
               {h.note ? <Text style={styles.note}>{h.note}</Text> : null}
               {h.photos?.length ? (

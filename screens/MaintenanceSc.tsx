@@ -10,7 +10,7 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { MonthPicker } from '../components/MonthPicker';
 import { exportPmsExcel, exportPmsPdf, monthLabelPms, pmsMonth } from '../services/pmsReport';
 import { useNavigation } from '@react-navigation/native';
@@ -21,14 +21,18 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { categoryColor } from './PmsDefectSc';
-import { machineHistory, openDefects, packMachines } from '../services/pmsHistory';
+import { classPack, machineHistory, openDefects, packMachines } from '../services/pmsHistory';
 import { exportPmsHistory } from '../services/pmsHistoryReport';
 import { PLAN_LOCKED, plansPms } from '../types/role';
 import { planImport } from '../services/pmsImport';
 import { exportPlanTemplate, pickPlanSheet } from '../services/pmsTemplate';
 import { SIZES, Palette } from '../theme';
 import { ComplianceStatus } from '../types/equipment';
-import { activeDeferral, dueText, jobDue, sortJobsByDue, todayIso, worse , jobsAhead } from '../services/pms';
+import { activeDeferral, dueText, jobAfter, jobDue, multiSignable, sortJobsByDue, todayIso, worse , jobsAhead } from '../services/pms';
+import { useSigner } from '../components/SignerChoice';
+import { useSignConfirm } from '../components/SignConfirm';
+import { playSuccessSound } from '../utils/sound';
+import { PmsDone } from '../types/pms';
 import { DEFECT_CATEGORY, DEPTS, Dept, JOB_TYPE, Machine, PmsJob, deptOf, hasCounter } from '../types/pms';
 import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
@@ -37,9 +41,24 @@ export default function MaintenanceSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
-  const { machines, scrappedMachines, pmsJobs, pmsDeferrals, pmsDone, pmsDefects, pmsProjects, vessel, savePlan } = useData();
+  const { machines, scrappedMachines, pmsJobs, pmsDeferrals, pmsDone, pmsDefects, pmsProjects, vessel, savePlan, completePmsJob } = useData();
+  const { signer, picker } = useSigner('SIGNED BY');
+  const confirmSign = useSignConfirm();
+  /** Several routine jobs of one type signed out at once (services/pms multiSignable). */
+  const [multi, setMulti] = useState<{ ids: string[]; note: string } | null>(null);
   const [showScrapped, setShowScrapped] = useState(false);
   const defectsOpen = useMemo(() => openDefects(pmsDefects), [pmsDefects]);
+  // What a class surveyor asks for at a periodical survey, in one file — the last 12 months of work.
+  const classSurveyPack = async () => {
+    try {
+      const today = todayIso();
+      const since = `${Number(today.slice(0, 4)) - 1}${today.slice(4)}`;
+      const w = await exportPmsHistory('Class survey pack', `Class survey pack-${today}`, vessel, classPack(machines, pmsJobs, pmsDone, pmsDeferrals, pmsDefects, today, since));
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+    } catch (e: any) {
+      Alert.alert('Class pack', String(e?.message ?? e));
+    }
+  };
   const surveyPack = async () => {
     try {
       const list = packMachines(machines).map((m) => machineHistory(m, pmsJobs, pmsDone, pmsDeferrals, pmsDefects, todayIso()));
@@ -121,6 +140,35 @@ export default function MaintenanceSc() {
     [liveJobs, byId, today, pmsDeferrals]
   );
   const overdue = owed.filter((j) => dueOf(j, byId.get(j.machineId)).status === 'expired').length;
+  const signable = owed.filter((j) => multiSignable(j, byId.get(j.machineId)));
+  const multiType = multi?.ids.length ? owed.find((j) => j.id === multi.ids[0])?.type : undefined;
+  const pickable = (j: PmsJob) => multiSignable(j, byId.get(j.machineId)) && (!multi?.ids.length || j.type === multiType);
+  const toggleMulti = (j: PmsJob) => {
+    if (!multi || !pickable(j)) return;
+    setMulti({ ...multi, ids: multi.ids.includes(j.id) ? multi.ids.filter((x) => x !== j.id) : [...multi.ids, j.id] });
+  };
+  const signMulti = async () => {
+    if (!multi?.ids.length) return Alert.alert('Sign together', 'Tick the jobs done.');
+    if (!signer) return Alert.alert('Who did them?', 'Choose your name.');
+    // From all jobs, not the list as filtered now — a filter changed after ticking must not drop one.
+    const list = multi.ids.map((id) => pmsJobs.find((j) => j.id === id && !j.deleted)).filter(Boolean) as PmsJob[];
+    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${list.length} jobs done: ${list.map((j) => j.title).join(', ')}` });
+    if (!sig) return;
+    const date = todayIso();
+    for (const j of list) {
+      const m = byId.get(j.machineId);
+      const now = Date.now();
+      const done: PmsDone = {
+        id: uid('done'), jobId: j.id, machineId: j.machineId, jobTitle: j.title, machineName: m?.name ?? '', date,
+        by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), ...(multi.note.trim() ? { note: multi.note.trim() } : {}),
+        ...(j.lastDoneDate ? { prevLastDoneDate: j.lastDoneDate } : {}), ...(j.lastDoneHours != null ? { prevLastDoneHours: j.lastDoneHours } : {}),
+        at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now,
+      };
+      await completePmsJob(done, jobAfter(j, done));
+    }
+    setMulti(null);
+    playSuccessSound();
+  };
 
   const machineRows = useMemo(
     () =>
@@ -135,6 +183,7 @@ export default function MaintenanceSc() {
     [machines, liveJobs, today, only]
   );
   const present = useMemo(() => new Set(machines.map(deptOf)), [machines]);
+  const awaiting = useMemo(() => pmsJobs.filter((j) => j.prepared && !j.deleted && byId.has(j.machineId)).sort((a, b) => a.prepared!.at - b.prepared!.at), [pmsJobs, byId]);
 
   const addMachine = (dept: Dept = only ?? 'engineering') =>
     nav.navigate('Machine', { id: uid('mach'), isNew: true, dept });
@@ -148,6 +197,7 @@ export default function MaintenanceSc() {
         <TouchableOpacity style={styles.repBtn} onPress={() => void exportReport('pdf')}><Text style={styles.repBtnText}>Report PDF</Text></TouchableOpacity>
         <TouchableOpacity style={styles.repBtn} onPress={() => void exportReport('xlsx')}><Text style={styles.repBtnText}>Excel</Text></TouchableOpacity>
         <TouchableOpacity style={styles.repBtn} onPress={() => void surveyPack()}><Text style={styles.repBtnText}>Survey pack (PDF)</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.repBtn} onPress={() => void classSurveyPack()}><Text style={styles.repBtnText}>Class pack (PDF)</Text></TouchableOpacity>
       </View>
       <View style={[styles.reportRow, !canPlan && { opacity: 0.35 }]} pointerEvents={canPlan ? 'auto' : 'none'}>
         <Text style={styles.kpi}>Plan</Text>
@@ -225,12 +275,44 @@ export default function MaintenanceSc() {
         </TouchableOpacity>
       ))}
 
-      {owed.length ? <Label>Owed now</Label> : null}
+      {/* Written up by whoever did them, waiting for an officer to sign out (PmsJob.prepared). */}
+      {awaiting.length ? <Label>{`Awaiting sign-off (${awaiting.length})`}</Label> : null}
+      {awaiting.map((j) => (
+        <TouchableOpacity key={j.id} style={styles.row} onPress={() => nav.navigate('PmsJob', { id: j.id })} activeOpacity={0.7}>
+          <View style={[styles.bar, { backgroundColor: COLORS.warning }]} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title} numberOfLines={1}>{j.title}</Text>
+            <Text style={styles.sub} numberOfLines={1}>{`${byId.get(j.machineId)?.name ?? ''} · done ${formatDate(j.prepared!.date)} by ${j.prepared!.by}`}</Text>
+          </View>
+        </TouchableOpacity>
+      ))}
+
+      {owed.length ? (
+        <View style={styles.machHead}>
+          <Label>Owed now</Label>
+          {signable.length > 1 && !multi ? (
+            <TouchableOpacity onPress={() => setMulti({ ids: [], note: '' })} hitSlop={8}><Text style={styles.add}>Sign several…</Text></TouchableOpacity>
+          ) : null}
+        </View>
+      ) : null}
+      {multi ? (
+        <Card>
+          <Text style={styles.sub}>Tick routine jobs of one type done today — calendar jobs, not on critical equipment, with no permit, documents or parts. One signature for all; each is recorded on its own.</Text>
+          <TextInput style={styles.multiNote} value={multi.note} onChangeText={(v) => setMulti({ ...multi, note: v })} placeholder="Note for all — e.g. tested, all in order" placeholderTextColor={COLORS.textLight} />
+          <View style={[styles.reportRow, { marginTop: SIZES.sm, marginBottom: 0 }]}>
+            {picker}
+            <TouchableOpacity style={styles.repBtn} onPress={() => void signMulti()}><Text style={styles.repBtnText}>{`Sign ${multi.ids.length}`}</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setMulti(null)}><Text style={styles.add}>Cancel</Text></TouchableOpacity>
+          </View>
+        </Card>
+      ) : null}
       {owed.map((j) => {
         const m = byId.get(j.machineId)!;
         const d = dueOf(j, m);
+        const ticked = !!multi?.ids.includes(j.id);
         return (
-          <TouchableOpacity key={j.id} style={styles.row} onPress={() => nav.navigate('PmsJob', { id: j.id })} activeOpacity={0.7}>
+          <TouchableOpacity key={j.id} style={[styles.row, multi && !pickable(j) && !ticked && { opacity: 0.4 }]} onPress={() => (multi ? toggleMulti(j) : nav.navigate('PmsJob', { id: j.id }))} activeOpacity={0.7}>
+            {multi ? <Text style={[styles.tick, ticked && styles.tickOn]}>{ticked ? '✓' : ''}</Text> : null}
             <View style={[styles.bar, { backgroundColor: statusColor(d.status) }]} />
             <View style={{ flex: 1 }}>
               <Text style={styles.title} numberOfLines={1}>{`${m.critical ? '⚑ ' : ''}${j.title}`}</Text>
@@ -327,4 +409,7 @@ const makeStyles = (COLORS: Palette) =>
     filterTextOn: { color: COLORS.textWhite },
     machHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: SIZES.md },
     add: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
+    multiNote: { ...COLORS.glassInput, borderRadius: SIZES.radiusMd, paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm, fontSize: SIZES.body, color: COLORS.text, marginTop: SIZES.sm },
+    tick: { width: 24, height: 24, marginLeft: SIZES.sm, borderRadius: 6, borderWidth: 2, borderColor: COLORS.primary, textAlign: 'center', color: COLORS.textWhite, fontWeight: '800', overflow: 'hidden' },
+    tickOn: { backgroundColor: COLORS.primary },
   });

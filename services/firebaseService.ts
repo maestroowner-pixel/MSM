@@ -1228,7 +1228,7 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'crew_private', key: storage.CREW_PRIVATE_KEY, module: 'crewCerts', officers: true },
   { sub: 'rest', key: storage.REST_KEY, module: 'rest' },
   { sub: 'pms_machines', key: storage.PMS_MACHINES_KEY, module: 'pms', partial: ['hours', 'hoursDate', 'readings', 'counterOffset', 'updatedAt'] },
-  { sub: 'pms_jobs', key: storage.PMS_JOBS_KEY, module: 'pms', partial: ['lastDoneDate', 'lastDoneHours', 'updatedAt'] },
+  { sub: 'pms_jobs', key: storage.PMS_JOBS_KEY, module: 'pms', partial: ['lastDoneDate', 'lastDoneHours', 'prepared', 'updatedAt'] },
   { sub: 'pms_done', key: storage.PMS_DONE_KEY, appendOnly: true, module: 'pms' },
   { sub: 'pms_deferrals', key: storage.PMS_DEFERRALS_KEY, appendOnly: true, module: 'pms' },
   { sub: 'pms_defects', key: storage.PMS_DEFECTS_KEY, module: 'pms', partial: ['closed', 'updatedAt'] },

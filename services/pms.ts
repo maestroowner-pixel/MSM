@@ -341,3 +341,15 @@ export function jobAfterCancel(job: PmsJob, cancelledDone: PmsDone, remaining: P
   else delete out.lastDoneHours;
   return out;
 }
+
+/**
+ * Can this job be signed out together with others (TM Master's multi sign-out,
+ * comparison item 5)? Only the routine ones: by the calendar (a counter reading
+ * is each machine's own), not on critical equipment (it needs its photo), with
+ * no permit, no documents to read, no parts to take and nothing written up
+ * waiting. And only with jobs of the same type — checks with checks.
+ */
+export function multiSignable(job: PmsJob, machine: Machine | undefined): boolean {
+  return !!machine && !machine.critical && !job.oneOff && !job.intervalHours && job.dueHours == null
+    && !job.permitType && !job.docIds?.length && !job.parts?.length && !job.prepared;
+}

@@ -197,7 +197,8 @@ service cloud.firestore {
       match /pms_jobs/{id} {
         allow read: if reader(v);
         allow create: if plans(v);
-        allow update: if plans(v) || (member(v) && onlyChanges(['lastDoneDate', 'lastDoneHours', 'updatedAt']));
+        // A member signs a job out (its last-done), or writes it up for an officer to sign (prepared).
+        allow update: if plans(v) || (member(v) && onlyChanges(['lastDoneDate', 'lastDoneHours', 'prepared', 'updatedAt']));
         allow delete: if false;
       }
       match /pms_done/{id} {

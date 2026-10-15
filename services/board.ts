@@ -295,6 +295,9 @@ export function buildBoard(x: BoardInput): Board {
     }
     if (over) n.push({ key: 'pms:over', level: 'red', who: 'officer', icon: 'engine-outline', route: 'Maintenance', title: `Maintenance — ${plural(over, 'job')} overdue` });
     if (due) n.push({ key: 'pms:due', level: 'amber', who: 'officer', icon: 'engine-outline', route: 'Maintenance', title: `Maintenance — ${plural(due, 'job')} due` });
+    // Written up as done by whoever did them, waiting for an officer's signature.
+    const waiting = x.pmsJobs.filter((j) => j.prepared && !j.deleted && byId.has(j.machineId)).length;
+    if (waiting) n.push({ key: 'pms:await', level: 'amber', who: 'officer', icon: 'clipboard-check-outline', route: 'Maintenance', title: `Maintenance — ${plural(waiting, 'job')} done, awaiting sign-off` });
     // Machinery defects: safety-critical to everyone at once, class-affecting to the officers.
     const open = (x.pmsDefects ?? []).filter((d) => !d.closed);
     const safety = open.filter((d) => d.category === 'safety');

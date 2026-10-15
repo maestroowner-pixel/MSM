@@ -1,5 +1,5 @@
 // npm run check:pmshistory — a machine's history for the surveyor; open defects order.
-import { machineHistory, openDefects, packMachines } from '../services/pmsHistory';
+import { classPack, machineHistory, openDefects, packMachines } from '../services/pmsHistory';
 import { Machine, PmsDefect, PmsDone, PmsJob } from '../types/pms';
 
 let fail = 0;
@@ -28,5 +28,30 @@ ok(!h.tables.some((t) => t.title === 'Deferrals'), 'no deferrals table when none
 ok(packMachines([gen, me]).map((m) => m.id).join() === 'm1', 'survey pack: critical machines');
 ok(packMachines([gen]).length === 1, 'survey pack: all when none critical');
 ok(openDefects(defects).map((d) => d.id).join() === 'x2,x3', 'open defects: safety first, then class');
+// The class survey pack.
+{
+  const ms: Machine[] = [
+    { id: 'c1', name: 'Steering gear', classItem: true, classCode: 'SG-01', critical: true, counter: false, updatedAt: 1 },
+    { id: 'c2', name: 'Fire pump', updatedAt: 1, counter: false },
+    { id: 'c3', name: 'Old pump', classItem: true, classCode: 'P-9', scrapped: { date: '2026-01-01', reason: 'x', by: 'y' }, updatedAt: 1 },
+  ];
+  const js: PmsJob[] = [
+    { id: 'a', machineId: 'c1', title: 'Function test', intervalDays: 30, lastDoneDate: '2026-08-01', updatedAt: 1 },
+    { id: 'b', machineId: 'c2', title: 'Capacity test', intervalDays: 365, lastDoneDate: '2026-01-01', classJob: true, updatedAt: 1 },
+    { id: 'c', machineId: 'c2', title: 'Gland', intervalDays: 30, lastDoneDate: '2026-09-30', updatedAt: 1 },
+    { id: 'd', machineId: 'c3', title: 'Old job', intervalDays: 30, lastDoneDate: '2020-01-01', updatedAt: 1 },
+  ];
+  const dn: PmsDone[] = [
+    { id: 'x', jobId: 'a', machineId: 'c1', jobTitle: 'Function test', machineName: 'Steering gear', date: '2026-08-01', by: 'C/E', at: 1, updatedAt: 1 },
+    { id: 'y', jobId: 'srv1', machineId: 'c2', jobTitle: 'Seal renewed', machineName: 'Fire pump', date: '2026-09-01', by: '2/E', unplanned: true, at: 2, updatedAt: 2 } as any,
+    { id: 'z', jobId: 'c', machineId: 'c2', jobTitle: 'Gland', machineName: 'Fire pump', date: '2025-01-01', by: '2/E', at: 0, updatedAt: 0 },
+  ];
+  const p = classPack(ms, js, dn, [], [], '2026-10-15', '2025-10-15');
+  ok(p.length === 3, 'three pages');
+  ok(p[0].tables[0].rows.map((r) => r[0]).join() === 'SG-01', 'class items: live ones only, by code (scrapped left out)');
+  ok(p[0].tables[1].rows.map((r) => r[2]).join() === 'Function test (critical),Capacity test', 'class jobs: on a class item, or marked class');
+  ok(p[1].tables[0].rows.map((r) => r[2]).join() === 'Function test (critical)', 'overdue: every job overdue, not only class');
+  ok(p[2].tables[0].rows.map((r) => r[3]).join() === 'Function test' && p[2].tables[1].rows.map((r) => r[3]).join() === 'Unplanned: Seal renewed', 'in the period: class jobs done; corrective / unplanned work');
+}
 console.log(fail ? `${fail} failed` : 'all passed');
 process.exit(fail ? 1 : 0);
