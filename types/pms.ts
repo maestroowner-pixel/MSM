@@ -89,6 +89,17 @@ export interface Machine {
    * replaced", so the jobs' due hours carry on unchanged.
    */
   counterOffset?: number;
+  /** yyyy-mm-dd fitted on board — set when it replaced another unit. */
+  installed?: string;
+  /** The unit this one replaced (Machine.id): its history is where this one's begins. */
+  replaces?: string;
+  /**
+   * Taken out of service — scrapped, or replaced by a new unit (TM Master
+   * comparison, item 2). Off the plan, the due lists and the Board; its record
+   * and history stay, under "Scrapped". Not deleted: deleting would take the
+   * history of work done on it out of reach.
+   */
+  scrapped?: { date: string; reason: string; by: string; byRank?: string; replacedBy?: string };
   deleted?: boolean;
   updatedAt: number;
 }

@@ -1,6 +1,7 @@
 // npm run check:pms — planned-maintenance due dates against hand-worked cases.
 import { jobDue, withReading, hoursPerDay, jobAfter, intervalText, scheduleText, checkReading, noteForNext, lastCondition, nextDueDate, nextDueHours, addInterval , jobsAhead , jobAfterCancel, cancellable } from '../services/pms';
 import { Machine, PmsJob, finishedOneOff } from '../types/pms';
+import { copyJobsTo, copyMachine, predecessors, replaceMachine, scrapMachine } from '../services/pmsMachines';
 
 let failed = 0;
 const ok = (c: boolean, m: string) => { if (!c) failed++; console.log(`${c ? '✓' : '✗'} ${m}`); };
@@ -184,6 +185,33 @@ import { projectJobs, yardList } from '../services/pmsProjects';
   ok(pj.pending.map((r) => r.job.id).join() === 'a' && pj.done.length === 1 && pj.done[0].done.id === 'x', 'pending: deferred and not yet done; done: signed after the deferral');
   const y = yardList(proj, pj, '2026-10-11');
   ok(y.tables[0].rows[0][3] === 'CRITICAL' && /Needs dry dock/.test(y.tables[0].rows[0][5]), 'yard list: critical marked, the reason given');
+}
+// A machine copied, its jobs copied, replaced, scrapped (services/pmsMachines.ts).
+{
+  let n = 0;
+  const uid = (p: string) => `${p}${++n}`;
+  const gen: Machine = { id: 'g1', name: 'Generator PS', dept: 'engineering', maker: 'Kohler', model: '99EFOZ', serial: 'K-111', hours: 4200, hoursDate: '2026-10-01', readings: [{ date: '2026-10-01', hours: 4200 }], critical: true, updatedAt: 0 };
+  const jobs: PmsJob[] = [
+    { id: 'j1', machineId: 'g1', title: 'Oil and filter', intervalHours: 250, intervalDays: 365, lastDoneDate: '2026-08-01', lastDoneHours: 4000, fixed: true, anchorHours: 250, updatedAt: 0 },
+    { id: 'j2', machineId: 'g1', title: 'Impeller', intervalDays: 365, lastDoneDate: '2026-01-10', updatedAt: 0 },
+    { id: 'j3', machineId: 'g1', title: 'Fix the leak', oneOff: true, dueDate: '2026-11-01', updatedAt: 0 },
+    { id: 'j4', machineId: 'g2', title: 'impeller ', intervalDays: 180, updatedAt: 0 },
+  ];
+  const c = copyMachine(gen, jobs, { id: 'g9', name: 'Generator SB', now: 5, uid });
+  ok(c.machine.name === 'Generator SB' && c.machine.maker === 'Kohler' && c.machine.critical === true && c.machine.serial === undefined && c.machine.hours === undefined && !c.machine.readings, 'copy: details yes; serial, counter, readings no');
+  ok(c.jobs.length === 2 && c.jobs.every((j) => j.machineId === 'g9' && !j.lastDoneDate && j.lastDoneHours == null && j.anchorHours == null) && c.jobs[0].fixed === true && c.jobs[0].intervalHours === 250, 'copy: recurring jobs only, no last-done, intervals kept');
+  const cj = copyJobsTo('g1', ['g1', 'g2', 'g3'], jobs, 5, uid);
+  ok(cj.filter((j) => j.machineId === 'g2').map((j) => j.title).join() === 'Oil and filter' && cj.filter((j) => j.machineId === 'g3').length === 2 && !cj.some((j) => j.machineId === 'g1'), 'copy jobs: a title the target has is skipped (case, spaces); not onto itself');
+  const r = replaceMachine(gen, jobs, { id: 'g5', date: '2026-10-15', reason: 'Crankshaft failure', by: 'C/E', serial: 'K-222', hours: 0, now: 6, uid });
+  ok(r.old.scrapped?.reason === 'Crankshaft failure' && r.old.scrapped.replacedBy === 'g5' && r.old.serial === 'K-111' && r.old.hours === 4200, 'replace: the old unit scrapped with the reason, its own record unchanged');
+  ok(r.fitted.serial === 'K-222' && r.fitted.hours === 0 && r.fitted.installed === '2026-10-15' && r.fitted.replaces === 'g1' && /replaced S\/N K-111/.test(r.fitted.readings![0].reason!), 'replace: the new unit, its serial, counter from fitting');
+  const nj = r.jobs.filter((j) => j.machineId === 'g5');
+  ok(nj.length === 2 && nj.every((j) => j.lastDoneDate === '2026-10-15') && nj.find((j) => j.title === 'Oil and filter')!.lastDoneHours === 0 && nj.find((j) => j.title === 'Impeller')!.lastDoneHours == null, 'replace: jobs counted from the day it was fitted');
+  ok(r.jobs.filter((j) => j.machineId === 'g1').length === 3 && r.jobs.filter((j) => j.machineId === 'g1').every((j) => j.deleted), 'replace: the old unit\'s jobs, one-off too, off the plan');
+  const sc = scrapMachine(gen, jobs, { date: '2026-10-15', reason: 'Removed', by: 'C/E', now: 7 });
+  ok(sc.machine.scrapped?.replacedBy === undefined && sc.jobs.length === 3, 'scrap: nothing in its place');
+  const all = [r.old, r.fitted, { ...r.fitted, id: 'g7', replaces: 'g5' } as Machine];
+  ok(predecessors(all[2], all).map((m) => m.id).join() === 'g5,g1', 'the chain of units replaced, newest first');
 }
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

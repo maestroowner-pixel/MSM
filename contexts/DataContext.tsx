@@ -71,6 +71,8 @@ interface DataContextType {
   saveRestDay: (day: RestDay) => Promise<void>;
   /** Planned maintenance — live records only (tombstones are kept in storage). */
   machines: Machine[];
+  /** Taken out of service (Machine.scrapped): kept for their history, off everything else. */
+  scrappedMachines: Machine[];
   pmsJobs: PmsJob[];
   pmsDone: PmsDone[];
   /** Jobs deferred by the Master (types/pms PmsDeferral). */
@@ -229,6 +231,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [crew, setCrew] = useState<CrewMember[]>([]);
   const [rest, setRest] = useState<RestDay[]>([]);
   const [machines, setMachines] = useState<Machine[]>([]);
+  const [scrappedMachines, setScrappedMachines] = useState<Machine[]>([]);
   const [pmsJobs, setPmsJobs] = useState<PmsJob[]>([]);
   const [pmsDone, setPmsDone] = useState<PmsDone[]>([]);
   const [pmsDeferrals, setPmsDeferrals] = useState<PmsDeferral[]>([]);
@@ -317,7 +320,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _inspections = await storage.loadInspections();
     const _crew = liveCrew(await storage.loadCrew());
     const _rest = await storage.loadRest();
-    const _machines = (await storage.loadList<Machine>(storage.PMS_MACHINES_KEY)).filter((m) => !m.deleted);
+    const _allMachines = (await storage.loadList<Machine>(storage.PMS_MACHINES_KEY)).filter((m) => !m.deleted);
+    const _machines = _allMachines.filter((m) => !m.scrapped);
     const _pmsJobs = (await storage.loadList<PmsJob>(storage.PMS_JOBS_KEY)).filter((j) => !j.deleted && !finishedOneOff(j));
     const _pmsDone = live(await storage.loadList<PmsDone>(storage.PMS_DONE_KEY));
     const _pmsDeferrals = await storage.loadList<PmsDeferral>(storage.PMS_DEFERRALS_KEY);
@@ -378,6 +382,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setCrew(_crew);
     setRest(_rest);
     setMachines(_machines);
+    setScrappedMachines(_allMachines.filter((m) => m.scrapped));
     setPmsJobs(_pmsJobs);
     setPmsDone(_pmsDone);
     setPmsDeferrals(_pmsDeferrals);
@@ -584,7 +589,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     // Read everything first, then set it all in one synchronous block: a setState
     // between awaits commits on its own, and ~40 of them in a row tripped React's
     // nested-update limit (error 185) once two more lists were added (12 Oct 2026).
-    const _machines = (await storage.loadList<Machine>(storage.PMS_MACHINES_KEY)).filter((m) => !m.deleted);
+    const _allMachines = (await storage.loadList<Machine>(storage.PMS_MACHINES_KEY)).filter((m) => !m.deleted);
+    const _machines = _allMachines.filter((m) => !m.scrapped);
     const _pmsJobs = (await storage.loadList<PmsJob>(storage.PMS_JOBS_KEY)).filter((j) => !j.deleted && !finishedOneOff(j));
     const _pmsDone = live(await storage.loadList<PmsDone>(storage.PMS_DONE_KEY));
     const _pmsDeferrals = await storage.loadList<PmsDeferral>(storage.PMS_DEFERRALS_KEY);
@@ -636,6 +642,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _surveysDone = live(await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY));
     const _versions = Object.fromEntries(await Promise.all(VERSIONED_KEYS.map(async (k) => [k, await storage.loadList<any>(k)] as const)));
     setMachines(_machines);
+    setScrappedMachines(_allMachines.filter((m) => m.scrapped));
     setPmsJobs(_pmsJobs);
     setPmsDone(_pmsDone);
     setPmsDeferrals(_pmsDeferrals);
@@ -890,6 +897,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         rest,
         saveRestDay,
         machines,
+        scrappedMachines,
         pmsJobs,
         pmsDone,
         pmsDeferrals,

@@ -37,7 +37,8 @@ export default function MaintenanceSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
-  const { machines, pmsJobs, pmsDeferrals, pmsDone, pmsDefects, pmsProjects, vessel, savePlan } = useData();
+  const { machines, scrappedMachines, pmsJobs, pmsDeferrals, pmsDone, pmsDefects, pmsProjects, vessel, savePlan } = useData();
+  const [showScrapped, setShowScrapped] = useState(false);
   const defectsOpen = useMemo(() => openDefects(pmsDefects), [pmsDefects]);
   const surveyPack = async () => {
     try {
@@ -275,6 +276,25 @@ export default function MaintenanceSc() {
           </View>
         );
       })}
+
+      {/* Taken out of service: off the plan, kept for their history (services/pmsMachines.ts). */}
+      {scrappedMachines.length ? (
+        <TouchableOpacity style={styles.machHead} onPress={() => setShowScrapped((v) => !v)} hitSlop={8}>
+          <Label>{`Scrapped (${scrappedMachines.length})`}</Label>
+          <Text style={styles.add}>{showScrapped ? 'Hide' : 'Show'}</Text>
+        </TouchableOpacity>
+      ) : null}
+      {showScrapped
+        ? [...scrappedMachines].sort((a, b) => (b.scrapped?.date ?? '').localeCompare(a.scrapped?.date ?? '')).map((m) => (
+            <TouchableOpacity key={m.id} style={[styles.row, { opacity: 0.75 }]} onPress={() => nav.navigate('Machine', { id: m.id })} activeOpacity={0.7}>
+              <View style={[styles.bar, { backgroundColor: COLORS.textLight }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.title} numberOfLines={1}>{`${m.name}${m.serial ? ` · S/N ${m.serial}` : ''}`}</Text>
+                <Text style={styles.sub} numberOfLines={1}>{`${m.scrapped?.replacedBy ? 'Replaced' : 'Scrapped'} ${formatDate(m.scrapped?.date)} — ${m.scrapped?.reason ?? ''}`}</Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        : null}
     </Screen>
   );
 }

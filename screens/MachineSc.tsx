@@ -36,6 +36,7 @@ import { qtyText, stockByPart, stockStatus } from '../services/spares';
 import { moduleOn } from '../constants/modules';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
+import { copyJobsTo, copyMachine, predecessors, replaceMachine, scrapMachine } from '../services/pmsMachines';
 import { playSuccessSound } from '../utils/sound';
 
 export default function MachineSc() {
@@ -43,16 +44,18 @@ export default function MachineSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { machines, pmsJobs, pmsDone, pmsDeferrals, pmsDefects, spares, spareMoves, saveMachine, savePmsJob, vessel, versionsOf } = useData();
+  const { machines, scrappedMachines, pmsJobs, pmsDone, pmsDeferrals, pmsDefects, spares, spareMoves, saveMachine, savePmsJob, savePlan, saveSpare, vessel, versionsOf } = useData();
   const defects = useMemo(() => openDefects(pmsDefects.filter((d) => d.machineId === route.params?.id)), [pmsDefects, route.params?.id]);
   const [histSaved, setHistSaved] = useState<string | null>(null);
   const sync = useSync();
-  const canPlan = plansPms(sync.enrolled, sync.role);
   const id: string = route.params?.id;
+  const retired = scrappedMachines.find((m) => m.id === id);
+  // A scrapped unit is history: read, not planned.
+  const canPlan = plansPms(sync.enrolled, sync.role) && !retired;
   // Spare parts marked as fitting this machine (Spares module).
   const fitting = useMemo(() => (moduleOn('spares') ? spares.filter((p) => (p.machineIds ?? []).includes(id)) : []), [spares, id]);
   const stock = useMemo(() => stockByPart(spareMoves), [spareMoves]);
-  const existing = machines.find((m) => m.id === id);
+  const existing = machines.find((m) => m.id === id) ?? retired;
   const isNew = !existing;
 
   // A new system starts in the department it was added from (MaintenanceSc).
@@ -181,8 +184,59 @@ export default function MachineSc() {
     setShowTypes(false);
   };
 
+  // ---- Copy, copy jobs, scrap / replace (services/pmsMachines.ts) ----
+  const allMachines = useMemo(() => [...machines, ...scrappedMachines], [machines, scrappedMachines]);
+  const before = useMemo(() => (existing ? predecessors(existing, allMachines) : []), [existing, allMachines]);
+  const hasHistory = allDone.some((d) => d.machineId === id);
+  const [retire, setRetire] = useState<{ date: string; reason: string; replace: boolean; serial: string; hours: string } | null>(null);
+  const [copyTo, setCopyTo] = useState<Set<string> | null>(null);
+  /** The spares that fit this machine fit its copy / its replacement too. */
+  const linkSpares = async (newId: string) => {
+    for (const p of spares.filter((x) => (x.machineIds ?? []).includes(id))) await saveSpare({ ...p, machineIds: [...(p.machineIds ?? []), newId], updatedAt: Date.now() });
+  };
+  const onCopy = async () => {
+    if (!existing || !(await saveDetails())) return;
+    const c = copyMachine({ ...existing, ...draft }, pmsJobs, { id: uid('mc'), name: `${draft.name.trim()} (copy)`, now: Date.now(), uid });
+    await savePlan([c.machine], c.jobs);
+    await linkSpares(c.machine.id);
+    playSuccessSound();
+    nav.push('Machine', { id: c.machine.id });
+  };
+  const onCopyJobs = async () => {
+    if (!copyTo?.size) return Alert.alert('Copy jobs', 'Tick the systems to copy the jobs to.');
+    const add = copyJobsTo(id, [...copyTo], pmsJobs, Date.now(), uid);
+    if (add.length) await savePlan([], add);
+    setCopyTo(null);
+    playSuccessSound();
+    Alert.alert('Copy jobs', add.length ? `${add.length} job${add.length === 1 ? '' : 's'} added — not yet done; set when each was last done on its job.` : 'They already have these jobs.');
+  };
+  const onRetire = async () => {
+    if (!retire || !existing) return;
+    const isIso = /^\d{4}-\d{2}-\d{2}$/.test(retire.date) && !isNaN(Date.parse(retire.date));
+    if (!isIso || retire.date > today) return Alert.alert('Date', 'The day it was taken out, yyyy-mm-dd — not in the future.');
+    if (retire.reason.trim().length < 3) return Alert.alert('Reason', 'Say why — worn out, failed, replaced at refit…');
+    const hours = Number(retire.hours.replace(',', '.') || '0');
+    if (retire.replace && hasCounter(existing) && (!Number.isFinite(hours) || hours < 0)) return Alert.alert('New unit', 'The hours on the new unit\'s counter — 0 for a new one.');
+    const r = { date: retire.date, reason: retire.reason.trim(), by: meName ?? 'Officer', ...(sync.me?.position ? { byRank: sync.me.position } : {}), now: Date.now() };
+    if (retire.replace) {
+      const out = replaceMachine(existing, pmsJobs, { ...r, id: uid('mc'), serial: retire.serial, hours, uid });
+      await savePlan([out.old, out.fitted], out.jobs);
+      await linkSpares(out.fitted.id);
+      setRetire(null);
+      playSuccessSound();
+      nav.replace('Machine', { id: out.fitted.id });
+    } else {
+      const out = scrapMachine(existing, pmsJobs, r);
+      await savePlan([out.machine], out.jobs);
+      setRetire(null);
+      playSuccessSound();
+      goBackOr(nav);
+    }
+  };
+
   const onDelete = () => {
     if (isNew) return goBackOr(nav);
+    if (hasHistory) return Alert.alert('Remove', 'It has a history of work done — scrap it instead, so the history stays where it can be read.');
     Alert.alert('Remove', 'Remove this system and its jobs from the plan? The history of work done is kept.', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -211,7 +265,27 @@ export default function MachineSc() {
         </View>
 
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
-          {!canPlan ? <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>{PLAN_LOCKED}</Text> : null}
+          {retired?.scrapped ? (
+            <View style={[styles.doubt, { borderColor: COLORS.danger, marginTop: 0, marginBottom: SIZES.md }]}>
+              <Text style={[styles.rowTitle, { color: COLORS.danger }]}>{`Scrapped ${formatDate(retired.scrapped.date)}`}</Text>
+              <Text style={styles.sub}>{[retired.scrapped.reason, retired.scrapped.byRank ? `${retired.scrapped.by} (${retired.scrapped.byRank})` : retired.scrapped.by].join(' · ')}</Text>
+              {retired.scrapped.replacedBy && allMachines.some((m) => m.id === retired.scrapped!.replacedBy) ? (
+                <TouchableOpacity onPress={() => nav.push('Machine', { id: retired.scrapped!.replacedBy })} hitSlop={8}>
+                  <Text style={[styles.link, { marginTop: SIZES.xs }]}>{`Replaced by ${allMachines.find((m) => m.id === retired.scrapped!.replacedBy)!.serial ? `S/N ${allMachines.find((m) => m.id === retired.scrapped!.replacedBy)!.serial}` : 'the new unit'} →`}</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          ) : !canPlan ? <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>{PLAN_LOCKED}</Text> : null}
+          {before.length ? (
+            <View style={[styles.card, { marginBottom: SIZES.md }]}>
+              <Text style={styles.sub}>{existing?.installed ? `Fitted ${formatDate(existing.installed)} — it replaced:` : 'It replaced:'}</Text>
+              {before.map((m) => (
+                <TouchableOpacity key={m.id} onPress={() => nav.push('Machine', { id: m.id })} hitSlop={6}>
+                  <Text style={[styles.link, { marginTop: 2 }]}>{`${m.serial ? `S/N ${m.serial}` : m.name}${m.scrapped ? ` · scrapped ${formatDate(m.scrapped.date)} — ${m.scrapped.reason}` : ''} · its history →`}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : null}
           <View pointerEvents={canPlan ? 'auto' : 'none'} style={!canPlan && { opacity: 0.6 }}>
           <Label>Department</Label>
           <View style={styles.depts}>
@@ -446,9 +520,70 @@ export default function MachineSc() {
             </View>
           ))}
 
-          <TouchableOpacity disabled={!canPlan} style={[styles.deleteBtn, !canPlan && { opacity: 0.35 }]} onPress={onDelete}>
-            <Text style={styles.deleteText}>{isNew ? 'Discard' : 'Remove'}</Text>
-          </TouchableOpacity>
+          {!isNew && canPlan ? (
+            <View style={[styles.jobsHead, { marginTop: SIZES.lg, justifyContent: 'flex-start', gap: SIZES.lg, flexWrap: 'wrap' }]}>
+              <TouchableOpacity onPress={() => void onCopy()} hitSlop={8}><Text style={styles.link}>Copy this system</Text></TouchableOpacity>
+              {jobs.some((j) => !j.oneOff) ? (
+                <TouchableOpacity onPress={() => setCopyTo(copyTo ? null : new Set())} hitSlop={8}><Text style={styles.link}>Copy jobs to…</Text></TouchableOpacity>
+              ) : null}
+              <TouchableOpacity onPress={() => setRetire(retire ? null : { date: today, reason: '', replace: true, serial: '', hours: '0' })} hitSlop={8}>
+                <Text style={[styles.link, { color: COLORS.danger }]}>Scrap / replace…</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+          {copyTo ? (
+            <View style={styles.types}>
+              <Text style={styles.sub}>Its recurring jobs are added to the systems ticked — not yet done; a job a system already has by that name is skipped.</Text>
+              {machines.filter((m) => m.id !== id).sort((a, b) => Number(deptOf(b) === deptOf(draft)) - Number(deptOf(a) === deptOf(draft)) || a.name.localeCompare(b.name)).map((m) => {
+                const on = copyTo.has(m.id);
+                return (
+                  <TouchableOpacity key={m.id} style={[styles.type, on && { backgroundColor: COLORS.primary }]} onPress={() => { const n = new Set(copyTo); if (on) n.delete(m.id); else n.add(m.id); setCopyTo(n); }}>
+                    <Text style={[styles.typeText, on && { color: COLORS.textWhite }]}>{`${on ? '✓ ' : ''}${m.name}`}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+              <View style={{ flexDirection: 'row', gap: SIZES.md, alignItems: 'center' }}>
+                <TouchableOpacity style={styles.btn} onPress={() => void onCopyJobs()}><Text style={styles.btnText}>{`Copy to ${copyTo.size}`}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setCopyTo(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
+          {retire ? (
+            <View style={[styles.doubt, { borderColor: COLORS.danger }]}>
+              <Text style={styles.sub}>Off the plan, with its history kept under Scrapped. Its jobs come off the due lists.</Text>
+              <View style={styles.readRow}>
+                <TextInput style={[styles.input, { flex: 1, marginTop: 0 }]} value={retire.date} onChangeText={(v) => setRetire({ ...retire, date: v })} placeholder="Date yyyy-mm-dd" placeholderTextColor={COLORS.textLight} />
+              </View>
+              <TextInput style={styles.input} value={retire.reason} onChangeText={(v) => setRetire({ ...retire, reason: v })} placeholder="Reason ★ — worn out, failed, replaced at refit…" placeholderTextColor={COLORS.textLight} />
+              <View style={styles.counterRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowTitle}>Replaced by a new unit</Text>
+                  <Text style={styles.sub}>A new record takes its place and its jobs, counted from the day it was fitted. The old unit's history stays its own.</Text>
+                </View>
+                <Switch value={retire.replace} onValueChange={(v) => setRetire({ ...retire, replace: v })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
+              </View>
+              {retire.replace ? (
+                <View style={styles.readRow}>
+                  <TextInput style={[styles.input, { flex: 1, marginTop: 0 }]} value={retire.serial} onChangeText={(v) => setRetire({ ...retire, serial: v })} placeholder="New unit's serial" placeholderTextColor={COLORS.textLight} />
+                  {hasCounter(draft) ? (
+                    <TextInput style={[styles.input, { flex: 1, marginTop: 0 }]} value={retire.hours} onChangeText={(v) => setRetire({ ...retire, hours: v })} placeholder="Its counter, h" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
+                  ) : null}
+                </View>
+              ) : null}
+              <View style={{ flexDirection: 'row', gap: SIZES.md, alignItems: 'center', marginTop: SIZES.sm }}>
+                <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.danger }]} onPress={() => void onRetire()}>
+                  <Text style={styles.btnText}>{retire.replace ? 'Scrap and fit the new unit' : 'Scrap'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setRetire(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
+
+          {!retired ? (
+            <TouchableOpacity disabled={!canPlan} style={[styles.deleteBtn, !canPlan && { opacity: 0.35 }]} onPress={onDelete}>
+              <Text style={styles.deleteText}>{isNew ? 'Discard' : hasHistory ? 'Remove (no history only)' : 'Remove — entered by mistake'}</Text>
+            </TouchableOpacity>
+          ) : null}
         </ScrollView>
         {amend.ui}
       </SafeAreaView>
