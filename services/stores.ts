@@ -5,7 +5,7 @@
 // ===================================
 
 import { Batch, daysTo, expiryState, normExpiry, stockByItem } from './hospital';
-import { StoreItem, StoreKind, StoreMove, storeItemTitle } from '../types/stores';
+import { StoreItem, StoreKind, StoreMove, StoreRoom, isBuiltinRoom, roomOf, storeItemTitle } from '../types/stores';
 import type { MedMove } from '../types/hospital';
 import { uid } from '../utils/id';
 
@@ -118,10 +118,16 @@ export function readStoreSheet(rows: unknown[][]): StoreSheetLine[] {
   return out;
 }
 
-/** A sheet into the store: matched by name and size — updated, or added; a quantity is counted into its batch. */
-export function planStoreImport(lines: StoreSheetLine[], items: StoreItem[], store: StoreKind) {
+/**
+ * A sheet into a store: matched by name and size within that store — updated,
+ * or added; a quantity is counted into its batch. `room` is the store (one of
+ * types/stores.ts storeRooms), or just a kind for the built-in store of it.
+ */
+export function planStoreImport(lines: StoreSheetLine[], items: StoreItem[], room: StoreKind | Pick<StoreRoom, 'id' | 'kind'>) {
+  const { id: roomId, kind: store } = typeof room === 'string' ? { id: room, kind: room } : room;
+  const own = isBuiltinRoom(roomId) ? {} : { roomId };
   const key = (n: string, s?: string) => `${n.trim().toLowerCase()}|${(s ?? '').trim().toLowerCase()}`;
-  const have = new Map(items.filter((i) => !i.deleted && i.store === store).map((i) => [key(i.name, i.size), i]));
+  const have = new Map(items.filter((i) => !i.deleted && roomOf(i) === roomId).map((i) => [key(i.name, i.size), i]));
   const save: StoreItem[] = [];
   const counts: { itemId: string; qty: number; expiry?: string }[] = [];
   const added: string[] = [];
@@ -131,7 +137,7 @@ export function planStoreImport(lines: StoreSheetLine[], items: StoreItem[], sto
   for (const l of lines) {
     const old = have.get(key(l.name, l.size));
     const it: StoreItem = {
-      ...(old ?? { id: uid('sto'), store, name: l.name, unit: l.unit ?? 'pcs', min: 0, order: order++, updatedAt: now }),
+      ...(old ?? { id: uid('sto'), store, ...own, name: l.name, unit: l.unit ?? 'pcs', min: 0, order: order++, updatedAt: now }),
       ...Object.fromEntries(Object.entries({ category: l.category, size: l.size, unit: l.unit, min: l.min, location: l.location }).filter(([, v]) => v !== undefined)),
       updatedAt: now,
     } as StoreItem;
@@ -154,4 +160,9 @@ export function storeSheet(rows: StoreStatus[]): unknown[][] {
   return out;
 }
 
-export const storeTemplateRows = (store: StoreKind): unknown[][] => [STORE_HEAD, store === 'ppe' ? ['Example: Coveralls', 'Body', 'L', 'pcs', 2, 'Crew store, shelf 2', 4, ''] : ['Example: Pasta, penne 500 g', 'Dry store', '', 'packs', 10, 'Dry store, rack B', 24, '06/27']];
+const TEMPLATE_EXAMPLE: Record<StoreKind, unknown[]> = {
+  ppe: ['Example: Coveralls', 'Body', 'L', 'pcs', 2, 'Crew store, shelf 2', 4, ''],
+  provisions: ['Example: Pasta, penne 500 g', 'Dry store', '', 'packs', 10, 'Dry store, rack B', 24, '06/27'],
+  general: ['Example: Shackle, galvanised 16 mm', 'Deck', '', 'pcs', 4, 'Shelf 2', 6, ''],
+};
+export const storeTemplateRows = (store: StoreKind): unknown[][] => [STORE_HEAD, TEMPLATE_EXAMPLE[store]];

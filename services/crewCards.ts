@@ -13,7 +13,7 @@ import QRCode from 'qrcode';
 
 import { VesselInfo } from './storage';
 import { esc, share } from './export';
-import { crewQrPayload, passQrPayload, sopepQrPayload } from './crewQr';
+import { crewQrPayload, passQrPayload, sopepQrPayload, storeQrPayload } from './crewQr';
 import { CrewMember } from '../types/crew';
 import { onWeb, onWindows } from '../utils/fileShare';
 import { saveFileWeb } from '../utils/webSave';
@@ -150,6 +150,11 @@ export function exportLockerLabels(list: { id: string; name: string; location?: 
   return exportCards(list.map((l) => ({ name: l.name, sub: l.location ?? '', foot: 'SOPEP LOCKER · scan to see what is inside', qr: sopepQrPayload(l.id) })), vessel, 'SOPEP locker labels');
 }
 
+/** Store labels — the store's name, its ID and place, the QR that opens its list (types/stores.ts StoreRoom). */
+export function exportStoreLabels(list: { id: string; code: string; name: string; location?: string }[], vessel: VesselInfo | null) {
+  return exportCards(list.map((r) => ({ name: r.name, sub: [r.code, r.location].filter(Boolean).join(' · '), foot: 'STORE · scan to open its list', qr: storeQrPayload(r.id) })), vessel, 'Store labels');
+}
+
 /** Reusable numbered visitor passes, 01…count — laminated and kept at the gangway. */
 export function exportVisitorPasses(count: number, vessel: VesselInfo | null) {
   const cards = Array.from({ length: count }, (_, i) => {
@@ -160,4 +165,4 @@ export function exportVisitorPasses(count: number, vessel: VesselInfo | null) {
 }
 
 // Label-printer stickers of the same cards: services/gangwayLabels.ts (pure, tested).
-export { GANGWAY_STOCKS, crewCardSpecs, visitorPassSpecs } from './gangwayLabels';
+export { GANGWAY_STOCKS, crewCardSpecs, storeLabelSpecs, visitorPassSpecs } from './gangwayLabels';

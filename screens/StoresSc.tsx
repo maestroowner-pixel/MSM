@@ -1,6 +1,8 @@
 // ===================================
-// Stores (types/stores.ts) — the PPE store and the provisions, one screen, two
-// pages (menu → Stores → PPE store / Provisions; route param `view`).
+// Stores (types/stores.ts) — the PPE store, the provisions and the vessel's own
+// stores, one screen, a page each (menu → Stores → the store; route param `view`
+// is the store's id). The gear on the menu entry (`view: 'manage'`) opens the
+// stores themselves: components/StoreRooms.
 //
 //   Stock      every item with what is on hand, batch by batch (provisions by
 //              best-before), below the minimum and out of date flagged.
@@ -12,9 +14,9 @@
 //              in), export; the list to order.
 // ===================================
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { Card, Label, Screen, ScreenTitle } from '../components/ui';
 import { Dropdown } from '../components/Dropdown';
@@ -25,7 +27,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES } from '../theme';
 import { isAboard } from '../types/crew';
-import { PPE_CATEGORIES, PPE_STARTER, PROVISION_CATEGORIES, STORE_LABEL, StoreItem, StoreKind, StoreMove, StoreMoveKind, storeItemTitle } from '../types/stores';
+import { PPE_STARTER, STORE_CATEGORIES, StoreItem, StoreKind, StoreMove, StoreMoveKind, StoreRoom, isBuiltinRoom, roomOf, storeItemTitle, storeRooms } from '../types/stores';
+import { StoreRooms } from '../components/StoreRooms';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { vesselHeader } from '../services/export';
@@ -50,15 +53,23 @@ const MOVE_TEXT: Record<StoreMoveKind, string> = { received: 'Received', issued:
 const ICONS: Record<string, string> = {
   Body: 'tshirt-crew-outline', Feet: 'shoe-formal', Hands: 'hand-back-left-outline', 'Eyes & face': 'safety-goggles', Head: 'hard-hat', Hearing: 'ear-hearing', Breathing: 'face-mask-outline', 'Fall protection': 'seatbelt', Water: 'lifebuoy',
   'Dry store': 'package-variant', Chilled: 'fridge-outline', Frozen: 'snowflake', Beverages: 'cup-water', Bakery: 'bread-slice-outline', 'Fresh fruit & veg': 'food-apple-outline', 'Cleaning & galley': 'spray-bottle',
+  Deck: 'anchor', 'Ropes & rigging': 'link-variant', Paint: 'format-paint', Engine: 'engine-outline', Electrical: 'flash-outline', Tools: 'wrench-outline', Cleaning: 'spray-bottle', Chemicals: 'flask-outline', Other: 'package-variant',
 };
 
 export default function StoresSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const route = useRoute<any>();
-  const store: StoreKind = route.params?.view === 'provisions' ? 'provisions' : 'ppe';
+  const nav = useNavigation<any>();
+  const { storeItems, storeMoves, storeRoomList, crew, vessel, saveRow, saveRows, appendRow } = useData();
+  const rooms = useMemo(() => storeRooms(storeRoomList), [storeRoomList]);
+  const manage = route.params?.view === 'manage';
+  // The store on screen: the one in the route (a menu entry, a scanned label), else the first.
+  const room: StoreRoom = rooms.find((r) => r.id === route.params?.view) ?? rooms[0];
+  const unknownRoom = !!route.params?.view && !manage && !rooms.some((r) => r.id === route.params?.view);
+  const store: StoreKind = room.kind;
   const ppe = store === 'ppe';
-  const { storeItems, storeMoves, crew, vessel, saveRow, saveRows, appendRow } = useData();
+  const general = store === 'general';
   const confirmSign = useSignConfirm();
   const sync = useSync();
   const { signer, picker } = useSigner(ppe ? 'ISSUED BY' : 'SIGNING AS');
@@ -74,11 +85,21 @@ export default function StoresSc() {
   const [edit, setEdit] = useState<StoreItem | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
 
-  const items = useMemo(() => storeItems.filter((i) => i.store === store), [storeItems, store]);
+  // Another store opened (the menu, a label): its own page, nothing left open from the last one.
+  useEffect(() => {
+    setOpen(null);
+    setAct(null);
+    setEdit(null);
+    setCat('');
+    setQ('');
+    setShow('all');
+  }, [room.id, manage]);
+  const items = useMemo(() => storeItems.filter((i) => roomOf(i) === room.id), [storeItems, room.id]);
+  const own = isBuiltinRoom(room.id) ? {} : { roomId: room.id };
   const moves = useMemo(() => storeMoves.filter((m) => items.some((i) => i.id === m.itemId)), [storeMoves, items]);
   const rows = useMemo(() => storeStatus(items, moves, today), [items, moves, today]);
   const counts = storeCounts(rows);
-  const cats = ppe ? PPE_CATEGORIES : PROVISION_CATEGORIES;
+  const cats = STORE_CATEGORIES[store];
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   const shown = rows
     .filter((r) => !cat || (r.item.category ?? '') === cat)
@@ -88,14 +109,14 @@ export default function StoresSc() {
   const held = useMemo(() => heldByPerson(items, moves), [items, moves]);
 
   const done = (w: string | null | void) => typeof w === 'string' && setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
-  const fail = (e: any) => Alert.alert(STORE_LABEL[store], String(e?.message ?? e));
+  const fail = (e: any) => Alert.alert(room.name, String(e?.message ?? e));
   const color = (r: StoreStatus) => (r.expired || r.usable <= 0 ? COLORS.danger : r.short || r.soon ? COLORS.warning : COLORS.success);
 
   // ---- the list ----
   const addStarter = async () => {
     const now = Date.now();
     const out: StoreItem[] = [];
-    for (const s of PPE_STARTER) for (const size of s.sizes ?? [undefined]) out.push({ id: uid('sto'), store, name: s.name, category: s.category, ...(size ? { size } : {}), unit: s.unit, min: s.min, order: out.length, updatedAt: now });
+    for (const s of PPE_STARTER) for (const size of s.sizes ?? [undefined]) out.push({ id: uid('sto'), store, ...own, name: s.name, category: s.category, ...(size ? { size } : {}), unit: s.unit, min: s.min, order: out.length, updatedAt: now });
     await saveRows(storage.STORE_ITEMS_KEY, out);
     setSaved(`${out.length} lines added — edit the minimums to the vessel's needs`);
   };
@@ -137,7 +158,7 @@ export default function StoresSc() {
     const now = Date.now();
     const m: StoreMove = {
       id: uid('stm'), itemId: r.item.id, kind: act.kind, qty, ...(batchNo ? { batchNo } : {}), ...(expiry ? { expiry } : {}), date: today,
-      ...(person ? { to: person.name, toId: person.id } : {}), ...(rec?.proof ? { toWith: rec.proof } : {}), ...(act.note.trim() ? { note: act.note.trim() } : !ppe && act.kind === 'issued' ? { note: 'Galley' } : {}),
+      ...(person ? { to: person.name, toId: person.id } : {}), ...(rec?.proof ? { toWith: rec.proof } : {}), ...(act.note.trim() ? { note: act.note.trim() } : store === 'provisions' && act.kind === 'issued' ? { note: 'Galley' } : {}),
       by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now,
     };
     await appendRow(storage.STORE_MOVES_KEY, m);
@@ -154,14 +175,14 @@ export default function StoresSc() {
         const file = await pickSheetRows();
         if (!file) return;
         setSaved('The AI is reading the columns…');
-        const r = await aiRenameHeadings(file.rows, store);
+        const r = await aiRenameHeadings(file.rows, ppe ? 'ppe' : 'provisions');
         setSaved(null);
         return importSheet({ name: file.name, rows: r.rows }, `Columns read by the AI: ${r.mapped.map((m) => `${m.from} → ${m.to}`).join('; ')}.`);
       }
       const doc = await pickDocForAi();
       if (!doc) return;
       setSaved(`The AI is reading “${doc.name}”…`);
-      const r = await aiReadDocument(doc.dataUri, store);
+      const r = await aiReadDocument(doc.dataUri, ppe ? 'ppe' : 'provisions');
       setSaved(null);
       return importSheet({ name: doc.name, rows: r.rows }, `Read by the AI from the ${/pdf/.test(doc.dataUri.slice(0, 30)) ? 'PDF' : 'photo'} — check the lines before importing.${r.unreadable ? ` Not readable: ${r.unreadable}` : ''}`);
     } catch (e: any) {
@@ -170,27 +191,27 @@ export default function StoresSc() {
     }
   };
 
-  const importSheet = async (given?: { name: string; rows: unknown[][] }, note?: string) => {
+  const importSheet = async (given?: { name: string; rows: unknown[][] }, note?: string, into: StoreRoom = room) => {
     try {
       const picked = given ?? (await pickSheetRows());
       if (!picked) return;
       const lines = readStoreSheet(picked.rows);
       if (!lines.length) return Alert.alert('Import', `Nothing found in “${picked.name}”. Use the template.`);
-      const plan = planStoreImport(lines, storeItems, store);
+      const plan = planStoreImport(lines, storeItems, into);
       const apply = async () => {
         await saveRows(storage.STORE_ITEMS_KEY, plan.save);
         const now = Date.now();
         const by = signer?.name ?? 'Import';
         for (const c of plan.counts) await appendRow(storage.STORE_MOVES_KEY, { id: uid('stm'), itemId: c.itemId, kind: 'count', qty: c.qty, ...(c.expiry ? { expiry: c.expiry } : {}), date: today, note: `Imported from ${picked.name}`, by, at: now, updatedAt: now } as StoreMove);
         playSuccessSound();
-        setSaved(`${plan.added.length} added, ${plan.updated.length} updated, ${plan.counts.length} quantities counted — from “${picked.name}”`);
+        setSaved(`${into.name}: ${plan.added.length} added, ${plan.updated.length} updated, ${plan.counts.length} quantities counted — from “${picked.name}”`);
       };
-      Alert.alert(`Import ${lines.length} lines from “${picked.name}”?`, [note ?? null, plan.added.length ? `New: ${plan.added.slice(0, 12).join(', ')}${plan.added.length > 12 ? ` and ${plan.added.length - 12} more` : ''}.` : null, plan.updated.length ? `Updated: ${plan.updated.length}.` : null, plan.counts.length ? `Quantities in the sheet are counted into the store (by best-before).` : null].filter(Boolean).join('\n\n'), [{ text: 'Cancel', style: 'cancel' }, { text: 'Import', onPress: () => void apply() }]);
+      Alert.alert(`Import ${lines.length} lines from “${picked.name}” into ${into.name}?`, [note ?? null, plan.added.length ? `New: ${plan.added.slice(0, 12).join(', ')}${plan.added.length > 12 ? ` and ${plan.added.length - 12} more` : ''}.` : null, plan.updated.length ? `Updated: ${plan.updated.length}.` : null, plan.counts.length ? `Quantities in the sheet are counted into the store (by best-before).` : null].filter(Boolean).join('\n\n'), [{ text: 'Cancel', style: 'cancel' }, { text: 'Import', onPress: () => void apply() }]);
     } catch (e: any) {
       Alert.alert('Import failed', String(e?.message ?? e));
     }
   };
-  const orderSheet = () => saveSheet([['Item', 'Size', 'Category', 'Unit', 'On hand (in date)', 'Minimum', 'To order'], ...toOrder(rows).map((o) => { const r = rows.find((x) => x.item.id === o.item.id)!; return [o.item.name, o.item.size ?? '', o.item.category ?? '', o.item.unit, r.usable, o.item.min, o.need]; })], 'To order', `${STORE_LABEL[store]} — to order ${today}`, vessel).then(done, fail);
+  const orderSheet = () => saveSheet([['Item', 'Size', 'Category', 'Unit', 'On hand (in date)', 'Minimum', 'To order'], ...toOrder(rows).map((o) => { const r = rows.find((x) => x.item.id === o.item.id)!; return [o.item.name, o.item.size ?? '', o.item.category ?? '', o.item.unit, r.usable, o.item.min, o.need]; })], 'To order', `${room.name} — to order ${today}`, vessel).then(done, fail);
 
   // ---- a person's PPE record ----
   const personPdf = (name: string) => {
@@ -208,10 +229,20 @@ export default function StoresSc() {
     }, `PPE record ${name} ${today}`, vessel).then(done, fail);
   };
 
-  const title = STORE_LABEL[store];
+  const title = room.name;
+  if (manage) {
+    return (
+      <Screen scroll>
+        <ScreenTitle title="Stores" subtitle={`${rooms.length} stores · IDs, places, QR labels, lists`} help="Stores" />
+        <StoreRooms onOpen={(id) => nav.setParams({ view: id })} onImport={(r) => void importSheet(undefined, undefined, r)} done={done} fail={fail} />
+        {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700', marginTop: SIZES.sm }]}>{`✓ ${saved}`}</Text> : null}
+      </Screen>
+    );
+  }
   return (
     <Screen scroll>
-      <ScreenTitle title={title} subtitle={[`${counts.items} items`, counts.short ? `${counts.short} below minimum` : null, counts.expired ? `${counts.expired} out of date` : null, counts.soon ? `${counts.soon} expiring` : null].filter(Boolean).join(' · ')} help="Stores" />
+      <ScreenTitle title={title} subtitle={[room.code, room.location, `${counts.items} items`, counts.short ? `${counts.short} below minimum` : null, counts.expired ? `${counts.expired} out of date` : null, counts.soon ? `${counts.soon} expiring` : null].filter(Boolean).join(' · ')} help="Stores" />
+      {unknownRoom ? <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700', marginBottom: SIZES.sm }]}>That label is not a store of this vessel (another vessel’s, or the store was removed) — showing the first store.</Text> : null}
       {ppe ? (
         <View style={styles.chips}>
           {(['stock', 'crew'] as const).map((k) => (
@@ -242,8 +273,8 @@ export default function StoresSc() {
       ) : (
         <>
           <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.sm, gap: SIZES.xs }]}>
-            <TextInput style={[styles.input, { flex: 2, minWidth: 200, marginTop: 0 }]} value={q} onChangeText={setQ} placeholder={ppe ? 'Search — item, size, place' : 'Search — item, section, place'} placeholderTextColor={COLORS.textLight} />
-            <Dropdown caption={ppe ? 'TYPE' : 'SECTION'} value={cat} onChange={setCat} style={{ flex: 1, minWidth: 200 }} options={[{ value: '', label: `All · ${rows.length}` }, ...cats.map((c) => ({ value: c, label: `${c} · ${rows.filter((r) => r.item.category === c).length}`, icon: ICONS[c] }))]} />
+            <TextInput style={[styles.input, { flex: 2, minWidth: 200, marginTop: 0 }]} value={q} onChangeText={setQ} placeholder={ppe ? 'Search — item, size, place' : general ? 'Search — item, kind, shelf' : 'Search — item, section, place'} placeholderTextColor={COLORS.textLight} />
+            <Dropdown caption={ppe || general ? 'TYPE' : 'SECTION'} value={cat} onChange={setCat} style={{ flex: 1, minWidth: 200 }} options={[{ value: '', label: `All · ${rows.length}` }, ...cats.map((c) => ({ value: c, label: `${c} · ${rows.filter((r) => r.item.category === c).length}`, icon: ICONS[c] }))]} />
             <Dropdown caption="SHOW" value={show} onChange={setShow} style={{ flex: 1, minWidth: 200 }} options={[
               { value: 'all' as Show, label: 'All' },
               { value: 'short' as Show, label: `Below minimum · ${counts.short}` },
@@ -252,7 +283,7 @@ export default function StoresSc() {
             ]} />
           </View>
           <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.sm }]}>
-            <TouchableOpacity style={styles.btn} onPress={() => setEdit({ id: uid('sto'), store, name: '', unit: ppe ? 'pcs' : 'packs', min: 0, order: items.length, updatedAt: Date.now(), ...(cat ? { category: cat } : {}) })}><Text style={styles.btnText}>+ Item</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btn} onPress={() => setEdit({ id: uid('sto'), store, ...own, name: '', unit: store === 'provisions' ? 'packs' : 'pcs', min: 0, order: items.length, updatedAt: Date.now(), ...(cat ? { category: cat } : {}) })}><Text style={styles.btnText}>+ Item</Text></TouchableOpacity>
             <TouchableOpacity style={styles.small} disabled={!counts.short} onPress={() => void orderSheet()}><Text style={styles.smallText}>{`To order (Excel) · ${counts.short}`}</Text></TouchableOpacity>
             <TouchableOpacity style={styles.small} onPress={() => void importSheet()}><Text style={styles.smallText}>Import from Excel</Text></TouchableOpacity>
             {aiReady(sync.enrolled) ? (
@@ -269,9 +300,9 @@ export default function StoresSc() {
           {edit ? (
             <Card>
               <Label>{items.some((i) => i.id === edit.id) ? 'Item' : 'New item'}</Label>
-              <TextInput style={styles.input} value={edit.name} onChangeText={(v) => setEdit({ ...edit, name: v })} placeholder={ppe ? 'Name ★ — Coveralls' : 'Name ★ — Pasta, penne 500 g'} placeholderTextColor={COLORS.textLight} autoFocus />
+              <TextInput style={styles.input} value={edit.name} onChangeText={(v) => setEdit({ ...edit, name: v })} placeholder={ppe ? 'Name ★ — Coveralls' : general ? 'Name ★ — Shackle, galvanised 16 mm' : 'Name ★ — Pasta, penne 500 g'} placeholderTextColor={COLORS.textLight} autoFocus />
               <View style={styles.row}>
-                <Dropdown caption={ppe ? 'TYPE' : 'SECTION'} value={edit.category ?? ''} onChange={(v: string) => setEdit({ ...edit, category: v || undefined })} options={[{ value: '', label: '—' }, ...cats.map((c) => ({ value: c, label: c, icon: ICONS[c] }))]} style={{ flex: 1, minWidth: 200 }} />
+                <Dropdown caption={ppe || general ? 'TYPE' : 'SECTION'} value={edit.category ?? ''} onChange={(v: string) => setEdit({ ...edit, category: v || undefined })} options={[{ value: '', label: '—' }, ...cats.map((c) => ({ value: c, label: c, icon: ICONS[c] }))]} style={{ flex: 1, minWidth: 200 }} />
                 {ppe ? <TextInput style={[styles.input, { width: 90, marginTop: 0 }]} value={edit.size ?? ''} onChangeText={(v) => setEdit({ ...edit, size: v })} placeholder="Size" placeholderTextColor={COLORS.textLight} /> : null}
                 <TextInput style={[styles.input, { width: 100, marginTop: 0 }]} value={edit.unit} onChangeText={(v) => setEdit({ ...edit, unit: v })} placeholder="Unit" placeholderTextColor={COLORS.textLight} />
                 <TextInput style={[styles.input, { width: 110, marginTop: 0 }]} value={String(edit.min)} onChangeText={(v) => setEdit({ ...edit, min: Number(v.replace(',', '.')) || 0 })} keyboardType="number-pad" placeholder="Minimum" placeholderTextColor={COLORS.textLight} />
@@ -288,7 +319,7 @@ export default function StoresSc() {
 
           {!items.length ? (
             <Card>
-              <Text style={styles.sub}>{ppe ? 'No PPE on the list yet. Start from a typical yacht PPE store (coveralls and boots in sizes, gloves, glasses, hearing, breathing, harnesses), load it from Excel, or add items one by one.' : 'No provisions on the list yet. Load the provision list from Excel (the template has the columns: name, section, unit, minimum, place, quantity, best before), or add items one by one.'}</Text>
+              <Text style={styles.sub}>{ppe ? 'No PPE on the list yet. Start from a typical yacht PPE store (coveralls and boots in sizes, gloves, glasses, hearing, breathing, harnesses), load it from Excel, or add items one by one.' : general ? `Nothing on the list of ${room.name} yet. Load its list from Excel (Import from Excel — the template has the columns), or add items one by one.` : 'No provisions on the list yet. Load the provision list from Excel (the template has the columns: name, section, unit, minimum, place, quantity, best before), or add items one by one.'}</Text>
               {ppe ? <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void addStarter()}><Text style={styles.btnText}>Add the typical PPE list</Text></TouchableOpacity> : null}
             </Card>
           ) : null}
@@ -332,7 +363,7 @@ export default function StoresSc() {
                     <View style={styles.row}>
                       {(ppe ? (['received', 'issued', 'returned', 'count', 'disposed'] as StoreMoveKind[]) : (['received', 'issued', 'count', 'disposed'] as StoreMoveKind[])).map((k2) => (
                         <TouchableOpacity key={k2} style={[styles.small, act?.kind === k2 && { backgroundColor: COLORS.primary }]} onPress={() => { const old = k2 === 'disposed' ? r.batches.find((b) => expiryState(today, b.expiry) === 'expired') : undefined; setAct({ kind: k2, qty: k2 === 'count' ? String(r.onHand) : old ? String(old.qty) : '', expiry: '', to: '', note: old ? 'Out of date' : '', ...(old ? { batchKey: old.key } : {}) }); }}>
-                          <Text style={[styles.smallText, act?.kind === k2 && { color: COLORS.textWhite }]}>{k2 === 'received' ? 'Receive' : k2 === 'issued' ? (ppe ? 'Issue to crew' : 'Issue to galley') : k2 === 'returned' ? 'Return' : k2 === 'count' ? 'Count' : 'Dispose'}</Text>
+                          <Text style={[styles.smallText, act?.kind === k2 && { color: COLORS.textWhite }]}>{k2 === 'received' ? 'Receive' : k2 === 'issued' ? (ppe ? 'Issue to crew' : general ? 'Issue' : 'Issue to galley') : k2 === 'returned' ? 'Return' : k2 === 'count' ? 'Count' : 'Dispose'}</Text>
                         </TouchableOpacity>
                       ))}
                       <TouchableOpacity onPress={() => setEdit(r.item)}><Text style={styles.link}>Edit</Text></TouchableOpacity>
@@ -340,14 +371,14 @@ export default function StoresSc() {
                     {act ? (
                       <>
                         <TextInput style={styles.input} value={act.qty} onChangeText={(v) => setAct({ ...act, qty: v })} keyboardType="decimal-pad" placeholder={`How many ${r.item.unit} ★`} placeholderTextColor={COLORS.textLight} autoFocus />
-                        {act.kind === 'received' ? <TextInput style={styles.input} value={act.expiry} onChangeText={(v) => setAct({ ...act, expiry: v })} placeholder={ppe ? 'Expiry if it has one (harness, helmet) — 11/31' : 'Best before — 11/27'} placeholderTextColor={COLORS.textLight} /> : null}
+                        {act.kind === 'received' ? <TextInput style={styles.input} value={act.expiry} onChangeText={(v) => setAct({ ...act, expiry: v })} placeholder={store === 'provisions' ? 'Best before — 11/27' : 'Expiry if it has one — 11/31'} placeholderTextColor={COLORS.textLight} /> : null}
                         {(act.kind === 'disposed' || act.kind === 'count') && r.batches.length > 1 ? (
                           <Dropdown caption="BATCH" value={act.batchKey ?? ''} onChange={(v: string) => setAct({ ...act, batchKey: v || undefined, ...(act.kind === 'count' ? { qty: String(r.batches.find((b) => b.key === v)?.qty ?? act.qty) } : {}) })} options={[{ value: '', label: act.kind === 'count' ? 'New batch' : 'Choose…' }, ...r.batches.map((b) => ({ value: b.key, label: `${batchLabel(b)} — ${b.qty} ${r.item.unit}` }))]} style={{ marginTop: SIZES.xs }} />
                         ) : null}
                         {ppe && (act.kind === 'issued' || act.kind === 'returned') ? (
                           <Dropdown caption={act.kind === 'issued' ? 'TO' : 'FROM'} value={act.to} onChange={(v: string) => setAct({ ...act, to: v })} options={[{ value: '', label: 'Choose…' }, ...people.map((p) => ({ value: p.id, label: p.rank ? `${p.name} · ${p.rank}` : p.name }))]} style={{ marginTop: SIZES.xs }} />
                         ) : null}
-                        <TextInput style={styles.input} value={act.note} onChangeText={(v) => setAct({ ...act, note: v })} placeholder={act.kind === 'received' ? 'From — supplier, delivery note' : act.kind === 'disposed' ? 'Why — out of date, damaged' : 'Note'} placeholderTextColor={COLORS.textLight} />
+                        <TextInput style={styles.input} value={act.note} onChangeText={(v) => setAct({ ...act, note: v })} placeholder={act.kind === 'received' ? 'From — supplier, delivery note' : act.kind === 'disposed' ? 'Why — out of date, damaged' : general && act.kind === 'issued' ? 'To whom, what for' : 'Note'} placeholderTextColor={COLORS.textLight} />
                         {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
                         {ppe && act.kind === 'issued' ? <Text style={styles.sub}>The crew member signs for it on this device after you — PIN or by hand.</Text> : null}
                         <View style={styles.row}>

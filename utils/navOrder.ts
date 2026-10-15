@@ -63,6 +63,7 @@ export const MENU_CHILDREN: Record<string, MenuChild[]> = {
     { view: 'log', label: 'Medical log', icon: 'notebook-outline' },
     { view: 'reference', label: 'Medicine reference', icon: 'book-open-variant' },
   ],
+  // Stores: built from the vessel's stores (components/NavMenu, types/stores.ts storeRooms) — these two until it adds its own.
   Stores: [
     { view: 'ppe', label: 'PPE store', icon: 'hard-hat' },
     { view: 'provisions', label: 'Provisions', icon: 'food-apple-outline' },

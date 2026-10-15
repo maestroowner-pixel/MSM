@@ -136,6 +136,9 @@ await t(false, 'Crew cannot add a machine', setDoc(R(crew, 'pms_machines', 'mc2'
 await t(false, 'An Officer cannot change an interval', setDoc(R(officer, 'pms_jobs', 'jb1'), { id: 'jb1', machineId: 'mc1', title: 'Oil change', intervalHours: 1000 }));
 await t(false, 'Crew cannot remove a job', setDoc(R(crew, 'pms_jobs', 'jb1'), { id: 'jb1', machineId: 'mc1', title: 'Oil change', intervalHours: 500, deleted: true }));
 await t(true, 'Crew records the job done (last done moves)', setDoc(R(crew, 'pms_jobs', 'jb1'), { id: 'jb1', machineId: 'mc1', title: 'Oil change', intervalHours: 500, lastDoneDate: '2026-10-11', lastDoneHours: 120, updatedAt: 5 }));
+await t(true, 'Crew writes a job up for an officer to sign (prepared)', setDoc(R(crew, 'pms_jobs', 'jb1'), { id: 'jb1', machineId: 'mc1', title: 'Oil change', intervalHours: 500, lastDoneDate: '2026-10-11', lastDoneHours: 120, prepared: { date: '2026-10-15', by: 'AB Lee', at: 6 }, updatedAt: 6 }));
+await t(false, 'Writing a job up does not change it (title)', setDoc(R(crew, 'pms_jobs', 'jb1'), { id: 'jb1', machineId: 'mc1', title: 'Renamed', intervalHours: 500, lastDoneDate: '2026-10-11', lastDoneHours: 120, prepared: { date: '2026-10-15', by: 'AB Lee', at: 6 }, updatedAt: 7 }));
+await t(true, 'An officer signs it out: last done moves, the write-up cleared', setDoc(R(officer, 'pms_jobs', 'jb1'), { id: 'jb1', machineId: 'mc1', title: 'Oil change', intervalHours: 500, lastDoneDate: '2026-10-15', lastDoneHours: 130, prepared: null, updatedAt: 8 }));
 await t(true, 'An Officer enters a counter reading', setDoc(R(officer, 'pms_machines', 'mc1'), { id: 'mc1', name: 'Main engine PS', hours: 130, hoursDate: '2026-10-11', updatedAt: 6 }));
 await t(false, 'An Officer cannot rename a machine', setDoc(R(officer, 'pms_machines', 'mc1'), { id: 'mc1', name: 'Other', hours: 130, hoursDate: '2026-10-11', updatedAt: 7 }));
 
@@ -230,6 +233,10 @@ await t(true, 'The shore reads the SOPEP lockers', getDoc(R(shore, 'sopep_locker
 await t(true, 'Crew add a store item', setDoc(R(crew, 'store_items', 'st1'), { id: 'st1', store: 'ppe', name: 'Coveralls', size: 'L', unit: 'pcs', min: 2, order: 0, updatedAt: 1 }));
 await t(true, 'Crew issue from the store', setDoc(R(crew, 'store_moves', 'sm1'), { id: 'sm1', itemId: 'st1', kind: 'issued', qty: 1, date: '2026-10-14', to: 'Max', by: 'Jez', at: 1, updatedAt: 1 }));
 await t(false, 'A store move is never changed', setDoc(R(master, 'store_moves', 'sm1'), { id: 'sm1', itemId: 'st1', kind: 'issued', qty: 5, date: '2026-10-14', by: 'Jez', at: 1, updatedAt: 2 }));
+await t(true, 'Crew add a store with its ID and place', setDoc(R(crew, 'store_rooms', 'str1'), { id: 'str1', code: 'ST-01', name: "Bosun's store", kind: 'general', location: 'Fwd lazarette', order: 2, updatedAt: 1 }));
+await t(true, 'The shore reads the stores', getDoc(R(shore, 'store_rooms', 'str1')));
+await t(false, 'A store is never deleted (removed by a mark)', deleteDoc(R(master, 'store_rooms', 'str1')));
+await t(false, 'Another vessel cannot add a store here', setDoc(doc(crew, 'safety_vessels', OTHER, 'store_rooms', 'x'), { id: 'x', code: 'X', name: 'X', kind: 'general', order: 0, updatedAt: 1 }));
 
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);

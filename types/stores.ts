@@ -9,6 +9,14 @@
 //   Provisions    dry store, chilled, frozen, beverages — with best-before
 //                 dates; issued to the galley, out-of-date thrown away and
 //                 recorded, counted.
+//   General       any other storeroom the vessel adds — bosun's store, engine
+//                 store, cleaning locker: items, minimums, issued and counted.
+//
+// The storerooms themselves (15 Oct 2026, as InventoryLens keeps its lockers):
+// the two above are always there; the vessel adds its own from the gear on the
+// Stores menu entry — each named, placed, given a short ID printed on its QR
+// label (msm://store/<id> — the id only, so a renamed or moved store keeps its
+// label), and filled from an Excel list.
 //
 // Stock is worked out batch by batch exactly as the medicine chest's
 // (services/hospital stockByItem): a batch is its expiry (and lot), moves are
@@ -17,12 +25,65 @@
 
 import type { SignProof } from '../services/signature';
 
-export type StoreKind = 'ppe' | 'provisions';
-export const STORE_LABEL: Record<StoreKind, string> = { ppe: 'PPE store', provisions: 'Provisions' };
+export type StoreKind = 'ppe' | 'provisions' | 'general';
+export const STORE_LABEL: Record<StoreKind, string> = { ppe: 'PPE store', provisions: 'Provisions', general: 'General stores' };
+export const STORE_KIND_SUB: Record<StoreKind, string> = {
+  ppe: 'Issued to a crew member, who signs for it',
+  provisions: 'Best-before dates; issued to the galley',
+  general: "Bosun's, engine, cleaning — issued and counted",
+};
+
+/** A storeroom (see the head of this file). */
+export interface StoreRoom {
+  id: string;
+  /** The short ID on its label and typed to open it — PPE, PROV, ST-03. */
+  code: string;
+  name: string;
+  kind: StoreKind;
+  location?: string;
+  order: number;
+  deleted?: boolean;
+  updatedAt: number;
+}
+
+/** The two stores every vessel has — their ids are their kinds, so items saved before rooms existed belong to them. */
+export const BUILTIN_ROOMS: StoreRoom[] = [
+  { id: 'ppe', code: 'PPE', name: 'PPE store', kind: 'ppe', order: 0, updatedAt: 0 },
+  { id: 'provisions', code: 'PROV', name: 'Provisions', kind: 'provisions', order: 1, updatedAt: 0 },
+];
+export const isBuiltinRoom = (id: string) => BUILTIN_ROOMS.some((r) => r.id === id);
+
+/** The vessel's stores in order: the two built-in ones (as renamed or placed), then its own. */
+export function storeRooms(list: StoreRoom[]): StoreRoom[] {
+  const builtin = BUILTIN_ROOMS.map((b) => ({ ...b, ...(list.find((x) => x.id === b.id) ?? {}), kind: b.kind, deleted: undefined }));
+  const own = list.filter((x) => !x.deleted && !isBuiltinRoom(x.id));
+  return [...builtin, ...own].sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+}
+
+/** The store an item is in: its room, or the built-in one of its kind. */
+export const roomOf = (i: Pick<StoreItem, 'roomId' | 'store'>) => i.roomId || i.store;
+
+/** Letters, digits, - and _ — what a label printer and a typed search both keep intact (InventoryLens LOCKER_ID_RE). */
+export const STORE_CODE_RE = /^[A-Za-z0-9_-]{1,16}$/;
+
+/** The next free ID — ST-03 after ST-01 and ST-02. */
+export function nextRoomCode(rooms: Pick<StoreRoom, 'code'>[]): string {
+  const taken = new Set(rooms.map((r) => r.code.toUpperCase()));
+  for (let n = 1; ; n++) {
+    const c = `ST-${String(n).padStart(2, '0')}`;
+    if (!taken.has(c)) return c;
+  }
+}
+
+/** A typed ID to its store — case does not matter. */
+export const roomByCode = (rooms: StoreRoom[], code: string) => rooms.find((r) => r.code.toUpperCase() === code.trim().toUpperCase());
 
 export interface StoreItem {
   id: string;
+  /** How the item is kept — its store's kind. */
   store: StoreKind;
+  /** Which store (StoreRoom id); absent = the built-in store of its kind. */
+  roomId?: string;
   name: string;
   /** PPE: Hands, Feet, Body…; provisions: Dry store, Chilled, Frozen, Beverages. */
   category?: string;
@@ -65,6 +126,8 @@ export interface StoreMove {
 
 export const PPE_CATEGORIES = ['Body', 'Feet', 'Hands', 'Eyes & face', 'Head', 'Hearing', 'Breathing', 'Fall protection', 'Water'];
 export const PROVISION_CATEGORIES = ['Dry store', 'Chilled', 'Frozen', 'Beverages', 'Bakery', 'Fresh fruit & veg', 'Cleaning & galley'];
+export const GENERAL_CATEGORIES = ['Deck', 'Ropes & rigging', 'Paint', 'Engine', 'Electrical', 'Tools', 'Cleaning', 'Chemicals', 'Other'];
+export const STORE_CATEGORIES: Record<StoreKind, string[]> = { ppe: PPE_CATEGORIES, provisions: PROVISION_CATEGORIES, general: GENERAL_CATEGORIES };
 
 /** A typical yacht PPE store — a starting list the vessel edits. Sized items are one line per size. */
 export const PPE_STARTER: { name: string; category: string; sizes?: string[]; unit: string; min: number }[] = [

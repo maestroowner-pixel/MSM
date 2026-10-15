@@ -32,7 +32,9 @@ import { MciIcon } from './MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { SIZES, Palette } from '../theme';
 import { moduleOn } from '../constants/modules';
-import { MENU_CHILDREN, applyOrder, flatGrouped, grouped, move, moveInGroup } from '../utils/navOrder';
+import { useData } from '../contexts/DataContext';
+import { StoreKind, storeRooms } from '../types/stores';
+import { MENU_CHILDREN, MenuChild, applyOrder, flatGrouped, grouped, move, moveInGroup } from '../utils/navOrder';
 export { applyOrder, move, flatGrouped };
 
 /**
@@ -187,6 +189,11 @@ function MenuList({
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const insets = useSafeAreaInsets();
   const [editing, setEditing] = useState(false);
+  // Stores: one sub-item per store — the two built-in ones and those the vessel
+  // added with the gear (15 Oct 2026, types/stores.ts StoreRoom).
+  const { storeRoomList } = useData();
+  const childrenOf = (r: string): MenuChild[] | undefined =>
+    r === 'Stores' ? storeRooms(storeRoomList).map((x) => ({ view: x.id, label: x.name, icon: ROOM_ICON[x.kind] })) : MENU_CHILDREN[r];
   // Entries with sub-items open on a tap; the one on screen starts open.
   const [openParents, setOpenParents] = useState<string[]>(MENU_CHILDREN[current] ? [current] : []);
   const toggle = (r: string) => setOpenParents((o) => (o.includes(r) ? o.filter((x) => x !== r) : [...o, r]));
@@ -210,7 +217,7 @@ function MenuList({
         <View key={group.key}>
           {group.label ? <Text style={styles.groupHead}>{group.label}</Text> : <View style={styles.sep} />}
           {routes.map((r, i) => {
-            const kids = MENU_CHILDREN[r]?.filter((k) => !k.module || moduleOn(k.module));
+            const kids = childrenOf(r)?.filter((k) => !k.module || moduleOn(k.module));
             const expanded = !!kids && openParents.includes(r) && !editing;
             const on = r === current && !kids;
             return (
@@ -218,6 +225,11 @@ function MenuList({
               <TouchableOpacity style={[styles.item, on && !editing && styles.itemOn]} onPress={() => (editing ? undefined : kids ? toggle(r) : onPick(r))} disabled={editing} activeOpacity={0.7} accessibilityState={kids ? { expanded } : undefined}>
                 <MciIcon name={icons[r] ?? 'circle-small'} size={22} color={on || (kids && r === current) ? COLORS.primary : COLORS.textLight} />
                 <Text style={[styles.itemText, (on || (kids && r === current)) && { color: COLORS.primary }]} numberOfLines={1}>{labelOf(r)}</Text>
+                {r === 'Stores' && !editing ? (
+                  <TouchableOpacity onPress={() => onPick(r, { view: 'manage' })} hitSlop={8} accessibilityRole="button" accessibilityLabel="Manage stores">
+                    <MciIcon name="cog-outline" size={20} color={r === current && currentView === 'manage' ? COLORS.primary : COLORS.textLight} />
+                  </TouchableOpacity>
+                ) : null}
                 {kids && !editing ? <MciIcon name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={COLORS.textLight} /> : null}
                 {editing && routes.length > 1 ? (
                   <View style={{ flexDirection: 'row', gap: SIZES.xs }}>
@@ -254,6 +266,8 @@ function MenuList({
     </ScrollView>
   );
 }
+
+const ROOM_ICON: Record<StoreKind, string> = { ppe: 'hard-hat', provisions: 'food-apple-outline', general: 'package-variant-closed' };
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({

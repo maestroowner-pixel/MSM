@@ -26,7 +26,7 @@ import { NonConformity, SafetyObservation } from '../types/safety';
 import { Drill } from '../types/drills';
 import { Passenger, PassengerPrivate } from '../types/passengers';
 import { SafetyMeeting } from '../types/meetings';
-import { StoreItem, StoreMove } from '../types/stores';
+import { StoreItem, StoreMove, StoreRoom } from '../types/stores';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
@@ -153,6 +153,8 @@ interface DataContextType {
   safetyMeetings: SafetyMeeting[];
   storeItems: StoreItem[];
   storeMoves: StoreMove[];
+  /** The vessel's own stores and the built-in ones as renamed — storeRooms() puts them in order. */
+  storeRoomList: StoreRoom[];
   passengersPrivate: PassengerPrivate[];
   medOrders: MedOrder[];
   medChecks: MedCheck[];
@@ -278,6 +280,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [safetyMeetings, setSafetyMeetings] = useState<SafetyMeeting[]>([]);
   const [storeItems, setStoreItems] = useState<StoreItem[]>([]);
   const [storeMoves, setStoreMoves] = useState<StoreMove[]>([]);
+  const [storeRoomList, setStoreRoomList] = useState<StoreRoom[]>([]);
   const [passengersPrivate, setPassengersPrivate] = useState<PassengerPrivate[]>([]);
   const [medOrders, setMedOrders] = useState<MedOrder[]>([]);
   const [medChecks, setMedChecks] = useState<MedCheck[]>([]);
@@ -368,6 +371,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _safetyMeetings = (await storage.loadList<SafetyMeeting>(storage.SAFETY_MEETINGS_KEY)).filter((x) => !x.deleted);
     const _storeItems = (await storage.loadList<StoreItem>(storage.STORE_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order);
     const _storeMoves = await storage.loadList<StoreMove>(storage.STORE_MOVES_KEY);
+    const _storeRooms = await storage.loadList<StoreRoom>(storage.STORE_ROOMS_KEY);
     const _passengersPrivate = await storage.loadList<PassengerPrivate>(storage.PASSENGERS_PRIVATE_KEY);
     const _medOrders = await storage.loadList<MedOrder>(storage.MED_ORDERS_KEY);
     const _medChecks = await storage.loadList<MedCheck>(storage.MED_CHECKS_KEY);
@@ -429,6 +433,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSafetyMeetings(_safetyMeetings);
     setStoreItems(_storeItems);
     setStoreMoves(_storeMoves);
+    setStoreRoomList(_storeRooms);
     setPassengersPrivate(_passengersPrivate);
     setMedOrders(_medOrders);
     setMedChecks(_medChecks);
@@ -637,6 +642,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _safetyMeetings = (await storage.loadList<SafetyMeeting>(storage.SAFETY_MEETINGS_KEY)).filter((x) => !x.deleted);
     const _storeItems = (await storage.loadList<StoreItem>(storage.STORE_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order);
     const _storeMoves = await storage.loadList<StoreMove>(storage.STORE_MOVES_KEY);
+    const _storeRooms = await storage.loadList<StoreRoom>(storage.STORE_ROOMS_KEY);
     const _passengersPrivate = await storage.loadList<PassengerPrivate>(storage.PASSENGERS_PRIVATE_KEY);
     const _medOrders = await storage.loadList<MedOrder>(storage.MED_ORDERS_KEY);
     const _medChecks = await storage.loadList<MedCheck>(storage.MED_CHECKS_KEY);
@@ -689,6 +695,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSafetyMeetings(_safetyMeetings);
     setStoreItems(_storeItems);
     setStoreMoves(_storeMoves);
+    setStoreRoomList(_storeRooms);
     setPassengersPrivate(_passengersPrivate);
     setMedOrders(_medOrders);
     setMedChecks(_medChecks);
@@ -960,6 +967,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         safetyMeetings,
         storeItems,
         storeMoves,
+        storeRoomList,
         passengersPrivate,
         medOrders,
         medChecks,

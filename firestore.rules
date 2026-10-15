@@ -434,6 +434,12 @@ service cloud.firestore {
         allow create: if member(v);
         allow update, delete: if false;
       }
+      // The storerooms: named, placed, with a QR label — added from the Stores menu.
+      match /store_rooms/{id} {
+        allow read: if reader(v);
+        allow create, update: if member(v);
+        allow delete: if false;
+      }
       // Monthly safety meeting (types/meetings.ts): as a drill — written by an
       // officer or the Master, each person on board signs his own attendance
       // line; signed by the Master, final.

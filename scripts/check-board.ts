@@ -4,6 +4,9 @@ import { passengerFromCloud, passengerToCloud } from '../types/passengers';
 import { planPaxImport, readPaxRows, paxSheet, PAX_HEAD } from '../services/passengerList';
 import { uid } from '../utils/id';
 import { heldByPerson, planStoreImport, readStoreSheet, storeStatus, storeSheet } from '../services/stores';
+import { STORE_CODE_RE, nextRoomCode, roomByCode, roomOf, storeRooms } from '../types/stores';
+import { parseStoreQr, storeQrPayload } from '../services/crewQr';
+import { storeLabelSpecs } from '../services/gangwayLabels';
 
 let fail = 0;
 const ok = (c: boolean, m: string) => { if (!c) { fail++; console.log('✗', m); } else console.log('✓', m); };
@@ -83,6 +86,27 @@ ok(order.includes('docs') && order.includes('pax') && order.indexOf('pax') < ord
   ok(storeSheet(st.filter((r) => r.item.store === 'provisions')).length === 1 + 3, 'store export: a line per batch');
   const b = buildBoard(base({ on: (k) => k === 'stores', storeItems: items, storeMoves: moves }));
   ok(b.attention.some((x) => x.key === 'sto:pro:exp') && b.attention.some((x) => x.key === 'sto:pro:short') && b.tiles.some((t) => t.key === 'sto'), 'board: provisions out of date and below the minimum; Stores tile');
+
+  // the vessel's own stores (gear on the Stores menu entry, 15 Oct 2026)
+  const bosun: any = { id: 'str1', code: 'ST-01', name: "Bosun's store", kind: 'general', location: 'fwd lazarette', order: 2, updatedAt: 1 };
+  const rooms = storeRooms([bosun, { id: 'ppe', code: 'PPE-1', name: 'Crew PPE', kind: 'provisions', order: 0, updatedAt: 1 } as any, { id: 'gone', code: 'X', name: 'Old', kind: 'general', order: 3, deleted: true, updatedAt: 1 } as any]);
+  ok(rooms.map((r) => r.id).join() === 'ppe,provisions,str1' && rooms[0].name === 'Crew PPE' && rooms[0].kind === 'ppe' && storeRooms([]).length === 2, 'stores: the two built-in first (renamed, kind kept), the vessel’s own after, removed ones gone');
+  ok(nextRoomCode(rooms) === 'ST-02' && nextRoomCode(storeRooms([])) === 'ST-01', 'store ID: the next free ST-nn offered');
+  ok(STORE_CODE_RE.test('ST-01') && STORE_CODE_RE.test('ER_2') && !STORE_CODE_RE.test('ST 01') && !STORE_CODE_RE.test('ST/1') && !STORE_CODE_RE.test(''), 'store ID: letters, digits, - and _ only');
+  ok(roomByCode(rooms, ' st-01 ')?.id === 'str1' && roomByCode(rooms, 'prov')?.id === 'provisions' && !roomByCode(rooms, 'ST-09'), 'store ID typed: found whatever the case');
+  ok(parseStoreQr(storeQrPayload('str1')) === 'str1' && parseStoreQr('MSM://STORE/str1') === 'str1' && parseStoreQr('msm://sopep/x') === null && parseStoreQr('msm://store/') === null, 'store label: msm://store/<id> read back, others not');
+  ok(roomOf({ store: 'provisions' }) === 'provisions' && roomOf({ store: 'general', roomId: 'str1' }) === 'str1', 'an item’s store: its room, or the built-in store of its kind');
+  const bl = readStoreSheet([['Name', 'Category', 'Unit', 'Min', 'Quantity'], ['Shackle 16 mm', 'Deck', 'pcs', 4, 6], ['Pasta', '', 'packs', 2, 1]]);
+  const bp = planStoreImport(bl, items, { id: 'str1', kind: 'general' });
+  ok(bp.added.length === 2 && bp.updated.length === 0 && bp.save.every((x) => x.roomId === 'str1' && x.store === 'general') && bp.counts.length === 2, 'Excel into a store: its own list — Pasta of the provisions not touched, both lines added there');
+  const bp2 = planStoreImport(bl.slice(0, 1), [...items, ...bp.save], { id: 'str1', kind: 'general' });
+  ok(bp2.updated.join() === 'Shackle 16 mm' && bp2.added.length === 0, 'Excel into a store again: matched within that store');
+  ok(planStoreImport(lines, items, { id: 'provisions', kind: 'provisions' }).save.every((x) => !x.roomId), 'built-in store: items keep no room id');
+  const sp = storeLabelSpecs([bosun], { vessel_name: 'DreamBoat' }, '50x30');
+  ok(sp[0].qrPayload === 'msm://store/str1' && sp[0].name === 'ST-01' && (sp[0].lines ?? []).join('|') === "Bosun's store|fwd lazarette|DreamBoat", 'store label sticker: QR with the id, the ID large, name and place');
+  const sItems = [...items, ...bp.save.map((x) => ({ ...x, min: 10 }))];
+  const b2 = buildBoard(base({ on: (k: string) => k === 'stores', storeItems: sItems, storeMoves: moves, storeRoomList: [bosun] }));
+  ok(b2.attention.some((x) => x.key === 'sto:str1:short' && (x.params as any)?.view === 'str1' && x.title.startsWith("Bosun's store")), 'board: a general store below the minimum, opening that store');
 }
 
 // the guest list does not leave the vessel

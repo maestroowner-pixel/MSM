@@ -23,6 +23,18 @@ export function parseSopepQr(payload: string): string | null {
   return s.slice(SOPEP_QR_SCHEME.length).trim() || null;
 }
 
+/** A store's label (types/stores.ts StoreRoom) — scanned, it opens that store's list. */
+export const STORE_QR_SCHEME = 'msm://store/';
+export function storeQrPayload(id: string): string {
+  return `${STORE_QR_SCHEME}${id}`;
+}
+export function parseStoreQr(payload: string): string | null {
+  const s = payload.trim();
+  if (s.length <= STORE_QR_SCHEME.length) return null;
+  if (s.slice(0, STORE_QR_SCHEME.length).toLowerCase() !== STORE_QR_SCHEME) return null;
+  return s.slice(STORE_QR_SCHEME.length).trim() || null;
+}
+
 /**
  * A visitor pass — reusable, numbered ("VISITOR 07"), kept at the gangway. The
  * watch hands it over at sign-on; scanned when it comes back, it signs off

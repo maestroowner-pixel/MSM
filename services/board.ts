@@ -45,7 +45,7 @@ import { drillSchedule } from './drills';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 import { Passenger, passengerAboard } from '../types/passengers';
 import { SafetyMeeting } from '../types/meetings';
-import { StoreItem, StoreMove } from '../types/stores';
+import { StoreItem, StoreMove, StoreRoom, roomOf, storeRooms } from '../types/stores';
 import { storeCounts, storeStatus } from './stores';
 import { meetingDue, openActions } from './meetings';
 import { chestCounts, chestStatus, followUpsDue, isArchived, isLanding, landingLinesFor, lastControlledCount, orderOverdue, orderState, stockLevel } from './hospital';
@@ -176,6 +176,7 @@ export interface BoardInput {
   safetyMeetings?: SafetyMeeting[];
   storeItems?: StoreItem[];
   storeMoves?: StoreMove[];
+  storeRoomList?: StoreRoom[];
 }
 
 const RANK: Record<Level, number> = { red: 0, amber: 1, blue: 2 };
@@ -497,6 +498,13 @@ export function buildBoard(x: BoardInput): Board {
     if (pro.short) n.push({ key: 'sto:pro:short', level: 'amber', who: 'officer', icon: 'cart-outline', route: 'Stores', params: { view: 'provisions' }, title: `Provisions — ${plural(pro.short, 'item')} below the minimum`, sub: 'To order (Excel) on the Provisions page' });
     if (ppe.short) n.push({ key: 'sto:ppe:short', level: 'amber', who: 'officer', icon: 'hard-hat', route: 'Stores', params: { view: 'ppe' }, title: `PPE store — ${plural(ppe.short, 'item')} below the minimum` });
     if (ppe.expired) n.push({ key: 'sto:ppe:exp', level: 'red', who: 'officer', icon: 'hard-hat', route: 'Stores', params: { view: 'ppe' }, title: `PPE store — ${plural(ppe.expired, 'item')} past expiry`, sub: 'Harness, helmet, filters — take out of use' });
+    // The vessel's general stores (bosun's, engine…): each its own line, to the officers.
+    for (const r of storeRooms(x.storeRoomList ?? []).filter((r) => r.kind === 'general')) {
+      const c = storeCounts(storeStatus(all.filter((i) => roomOf(i) === r.id), x.storeMoves ?? [], x.today));
+      const params = { view: r.id };
+      if (c.expired) n.push({ key: `sto:${r.id}:exp`, level: 'red', who: 'officer', icon: 'package-variant-closed', route: 'Stores', params, title: `${r.name} — ${plural(c.expired, 'item')} past expiry` });
+      if (c.short) n.push({ key: `sto:${r.id}:short`, level: 'amber', who: 'officer', icon: 'cart-outline', route: 'Stores', params, title: `${r.name} — ${plural(c.short, 'item')} below the minimum`, sub: `To order (Excel) on the ${r.name} page` });
+    }
     if (ppe.items || pro.items) tiles.push({ key: 'sto', label: 'Stores', icon: 'warehouse', route: 'Stores', level: lvl(pro.expired + ppe.expired, pro.short + ppe.short + pro.soon), line: [ppe.items ? `PPE ${ppe.short ? `${ppe.short} short` : 'OK'}` : null, pro.items ? `provisions ${pro.expired ? `${pro.expired} out of date` : pro.short ? `${pro.short} short` : 'OK'}` : null].filter(Boolean).join(' · ') });
   }
 

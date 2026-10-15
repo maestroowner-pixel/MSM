@@ -6,7 +6,7 @@
 // ===================================
 
 import { TsplLabelSpec } from './tspl';
-import { crewQrPayload, passQrPayload } from './crewQr';
+import { crewQrPayload, passQrPayload, storeQrPayload } from './crewQr';
 import { CrewMember } from '../types/crew';
 
 /** The rolls a gangway sticker is worth printing on (sizes as services/qrLabel LABEL_STOCKS). */
@@ -39,4 +39,15 @@ export function visitorPassSpecs(count: number, vessel: { vessel_name?: string }
       lines: [vessel?.vessel_name ?? '', 'Wear while on board', 'Return at the gangway'].filter(Boolean),
     };
   });
+}
+
+/** Store labels for the door or the shelf — the ID large, the name and place under it (types/stores.ts StoreRoom). */
+export function storeLabelSpecs(rooms: { id: string; code: string; name: string; location?: string }[], vessel: { vessel_name?: string } | null, size: GangwayStock): TsplLabelSpec[] {
+  const st = GANGWAY_STOCK_MM[size];
+  return rooms.map((r) => ({
+    ...st,
+    qrPayload: storeQrPayload(r.id),
+    name: r.code,
+    lines: [r.name, r.location ?? '', vessel?.vessel_name ?? ''].filter(Boolean),
+  }));
 }

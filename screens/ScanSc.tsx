@@ -33,7 +33,8 @@ import { SCAN_BARCODE_TYPES, ScanMatch, lookupScan } from '../services/barcode';
 import { SIZES, Palette } from '../theme';
 import { goBackOr } from '../utils/nav';
 import { recordScanProof } from '../services/signingPolicy';
-import { parseCrewQr, parsePassQr, samePass, parseSopepQr } from '../services/crewQr';
+import { parseCrewQr, parsePassQr, samePass, parseSopepQr, parseStoreQr } from '../services/crewQr';
+import { roomByCode, storeRooms } from '../types/stores';
 import { isDoubleScan, nextMove } from '../services/gangway';
 import { todayIso } from '../services/pms';
 import { passengerAboard } from '../types/passengers';
@@ -60,7 +61,7 @@ export default function ScanSc() {
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { flat, recordScan, crew, crewMoves, appendRow, visitors, saveRow, passengers } = useData();
+  const { flat, recordScan, crew, crewMoves, appendRow, visitors, saveRow, passengers, storeRoomList } = useData();
   const sync = useSync();
   /** Opened from the gangway page: a crew or passenger card records the crossing. */
   const atGangway = ['1', 'true', true, 1].includes(route.params?.gangway);
@@ -91,6 +92,20 @@ export default function ScanSc() {
       if (lockerId) {
         if (moduleOn('sopep')) return nav.replace('Main', { screen: 'Sopep', params: { locker: lockerId } });
         setCrewHit({ name: 'SOPEP locker', text: 'The SOPEP module is not switched on for this vessel.', ok: false });
+        setTimeout(() => {
+          locked.current = false;
+        }, 2500);
+        return;
+      }
+
+      // A store's label (msm://store/<id>), or a store's ID typed (PPE, ST-03): that
+      // store's list (15 Oct 2026, components/StoreRooms). Typed, an ID is tried
+      // only after the labels — a register search still finds an item whose serial
+      // happens to read the same.
+      const storeId = parseStoreQr(code) ?? (via === 'typed' && moduleOn('stores') ? roomByCode(storeRooms(storeRoomList), code)?.id : undefined);
+      if (storeId) {
+        if (moduleOn('stores')) return nav.replace('Main', { screen: 'Stores', params: { view: storeId } });
+        setCrewHit({ name: 'Store', text: 'The Stores module is not switched on for this vessel.', ok: false });
         setTimeout(() => {
           locked.current = false;
         }, 2500);
@@ -183,7 +198,7 @@ export default function ScanSc() {
       }
       setResult(match);
     },
-    [flat, nav, recordScan, crew, crewMoves, appendRow, visitors, saveRow, sync.me, passengers]
+    [flat, nav, recordScan, crew, crewMoves, appendRow, visitors, saveRow, sync.me, passengers, storeRoomList]
   );
 
   const again = () => {

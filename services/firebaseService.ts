@@ -1275,6 +1275,7 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   // Stores — PPE and provisions: items kept by anyone on board; moves never changed.
   { sub: 'store_items', key: storage.STORE_ITEMS_KEY, module: 'stores' },
   { sub: 'store_moves', key: storage.STORE_MOVES_KEY, appendOnly: true, module: 'stores' },
+  { sub: 'store_rooms', key: storage.STORE_ROOMS_KEY, module: 'stores' },
   // Monthly safety meetings: kept by the officers, each person signs his own attendance line.
   { sub: 'safety_meetings', key: storage.SAFETY_MEETINGS_KEY, module: 'meetings' },
   // Passengers: confidential — the guest list does not leave the vessel. The cloud holds the
