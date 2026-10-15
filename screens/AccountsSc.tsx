@@ -53,7 +53,9 @@ export default function AccountsSc() {
   const isMaster = myRole === 'superadmin';
   const rankKnown = myRole !== null;
 
-  const [tab, setTab] = useState<Tab>('invites');
+  // Devices first: what a Master comes here for most days. Issuing an account is a button and a sheet (15 Oct 2026).
+  const [tab, setTab] = useState<Tab>('devices');
+  const [issuing, setIssuing] = useState(false);
   const shownTab: Tab = isMaster ? tab : 'devices';
   const [invites, setInvites] = useState<Invite[]>([]);
   const [devices, setDevices] = useState<EnrolledDevice[]>([]);
@@ -123,6 +125,8 @@ export default function AccountsSc() {
       setLastName('');
       setPosition('');
       setRole('user');
+      setIssuing(false);
+      setTab('invites');
       // Shown rather than merely written, because the next thing that happens is
       // the Master reading it out to somebody standing in front of them.
       Alert.alert(
@@ -405,61 +409,18 @@ export default function AccountsSc() {
             </Text>
           </TouchableOpacity>
         ))}
+        {isMaster ? (
+          <TouchableOpacity style={[styles.tab, styles.tabIssue]} onPress={() => setIssuing(true)} accessibilityLabel="Issue an account">
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <MciIcon name="account-plus" size={16} color={COLORS.textWhite} />
+              <Text style={[styles.tabText, styles.tabTextOn]}>Issue an account</Text>
+            </View>
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       {shownTab === 'invites' ? (
         <>
-          <Card>
-            <Label>Issue an account</Label>
-            <TextInput
-              style={styles.input}
-              value={firstName}
-              onChangeText={setFirstName}
-              placeholder="First name"
-              placeholderTextColor={COLORS.textLight}
-              autoCapitalize="words"
-            />
-            <TextInput
-              style={styles.input}
-              value={lastName}
-              onChangeText={setLastName}
-              placeholder="Last name"
-              placeholderTextColor={COLORS.textLight}
-              autoCapitalize="words"
-            />
-            <TextInput
-              style={styles.input}
-              value={position}
-              onChangeText={setPosition}
-              placeholder="Rank aboard (Third Officer, Bosun…) — optional"
-              placeholderTextColor={COLORS.textLight}
-              autoCapitalize="words"
-            />
-            {/* The rank the person holds ON THE SHIP, which is not what the app
-                lets them do. A Second Engineer may hold a Crew account and a
-                cadet an Officer one; keeping them apart stops every promotion
-                aboard from being a permissions change. This is what appears
-                beside their signature. */}
-            <View style={styles.roleRow}>
-              {ROLE_ORDER.filter((r) => r !== 'shore' || moduleOn('fleet')).map((r) => (
-                <TouchableOpacity
-                  key={r}
-                  style={[styles.roleBtn, role === r && styles.roleBtnOn]}
-                  onPress={() => setRole(r)}
-                >
-                  <Text style={[styles.roleText, role === r && styles.roleTextOn]}>{ROLE_LABEL[r]}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <TouchableOpacity
-              style={[styles.primaryBtn, (!firstName.trim() || !lastName.trim()) && { opacity: 0.4 }]}
-              disabled={!firstName.trim() || !lastName.trim()}
-              onPress={issue}
-            >
-              <MciIcon name="account-plus" size={18} color={COLORS.textWhite} />
-              <Text style={styles.primaryBtnText}>Issue</Text>
-            </TouchableOpacity>
-          </Card>
 
           <FlatList
             data={invites}
@@ -588,6 +549,73 @@ export default function AccountsSc() {
         </>
       )}
 
+      {/* Issuing an account (15 Oct 2026: a button and a sheet — the form used to
+          sit on top of the lists, and the devices were below the fold). Same
+          backdrop-as-sibling arrangement as the rename sheet below. */}
+      <Modal visible={issuing} transparent animationType="slide" onRequestClose={() => setIssuing(false)}>
+        <View style={styles.backdrop}>
+          <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close" onPress={() => setIssuing(false)} />
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>Issue an account</Text>
+            <Text style={styles.note}>A name and a PIN the person enters on their own device. The PIN is shown once issued, and kept under Invitations.</Text>
+            <TextInput
+              style={styles.input}
+              value={firstName}
+              onChangeText={setFirstName}
+              placeholder="First name"
+              placeholderTextColor={COLORS.textLight}
+              autoCapitalize="words"
+              autoFocus
+            />
+            <TextInput
+              style={styles.input}
+              value={lastName}
+              onChangeText={setLastName}
+              placeholder="Last name"
+              placeholderTextColor={COLORS.textLight}
+              autoCapitalize="words"
+            />
+            <TextInput
+              style={styles.input}
+              value={position}
+              onChangeText={setPosition}
+              placeholder="Rank aboard (Third Officer, Bosun…) — optional"
+              placeholderTextColor={COLORS.textLight}
+              autoCapitalize="words"
+            />
+            {/* The rank the person holds ON THE SHIP, which is not what the app
+                lets them do. A Second Engineer may hold a Crew account and a
+                cadet an Officer one; keeping them apart stops every promotion
+                aboard from being a permissions change. This is what appears
+                beside their signature. */}
+            <View style={styles.roleRow}>
+              {ROLE_ORDER.filter((r) => r !== 'shore' || moduleOn('fleet')).map((r) => (
+                <TouchableOpacity
+                  key={r}
+                  style={[styles.roleBtn, role === r && styles.roleBtnOn]}
+                  onPress={() => setRole(r)}
+                >
+                  <Text style={[styles.roleText, role === r && styles.roleTextOn]}>{ROLE_LABEL[r]}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.sheetBtns}>
+              <TouchableOpacity
+                style={[styles.primaryBtn, { flex: 1, marginTop: 0 }, (!firstName.trim() || !lastName.trim()) && { opacity: 0.4 }]}
+                disabled={!firstName.trim() || !lastName.trim()}
+                onPress={issue}
+              >
+                <MciIcon name="account-plus" size={18} color={COLORS.textWhite} />
+                <Text style={styles.primaryBtnText}>Issue</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.secondaryBtn} onPress={() => setIssuing(false)}>
+                <Text style={styles.tabText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Rename. The bridge computer two officers rotate through is not called
           by either of their names, and until this existed the name typed on the
           day the vessel was set up was permanent. It renames the DEVICE only —
@@ -704,6 +732,7 @@ const makeStyles = (COLORS: Palette) =>
       borderColor: COLORS.border,
     },
     tabOn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    tabIssue: { backgroundColor: COLORS.success, borderColor: COLORS.success },
     tabText: { fontWeight: '700', color: COLORS.text, fontSize: SIZES.small },
     tabTextOn: { color: COLORS.textWhite },
 
