@@ -47,12 +47,13 @@ export interface DpLine {
   /**
    * Not a question (a vessel's own form, 16 Oct 2026): `field` a header field
    * (Location, Project, Client), `text` a written paragraph (brief description of
-   * the operation), `sketch` a drawing by hand (own vessel, rig, wind and current).
+   * the operation), `sketch` a drawing by hand (own vessel, rig, wind and current),
+   * `sign` who signs ("@sign SDPO", "@sign DPO" — default: handing over, taking over).
    * The answer is in `values[id]` — the drawing as an SVG path. A checklist with
    * its own fields shows them instead of the standard Field / Offshore unit /
    * Conditions.
    */
-  kind?: 'field' | 'text' | 'sketch';
+  kind?: 'field' | 'text' | 'sketch' | 'sign';
 }
 
 export interface DpCol {
@@ -133,6 +134,9 @@ export interface DpCheck {
   by2Rank?: string;
   by2Key?: string;
   by2With?: SignProof;
+  /** The roles the two signed as ("SDPO", "DPO"); absent on a handover — handing over, taking over. */
+  byRole?: string;
+  by2Role?: string;
   updatedAt: number;
 }
 

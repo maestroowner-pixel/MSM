@@ -28,7 +28,7 @@ import { moduleOn } from '../constants/modules';
 import * as storage from '../services/storage';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
-import { ASOG_LABEL, answerIsBad, cellKey, checkOutcome, hasCell, formatCell, isOther, otherKey, sectionCols, conditionsText, positionFromText, positionText, templatesNow } from '../services/dp';
+import { ASOG_LABEL, answerIsBad, cellKey, checkOutcome, signRoles, hasCell, formatCell, isOther, otherKey, sectionCols, conditionsText, positionFromText, positionText, templatesNow } from '../services/dp';
 import { PositionInput } from '../components/PositionInput';
 import { shipAndUtc } from '../utils/shipTime';
 import { exportDpCheckPdf } from '../services/dpReport';
@@ -53,7 +53,6 @@ const UNITS = ['kn', 'm', '°', '°/min', '%', 's', 'bar', 'rpm'];
 const SKETCH_W = 300;
 const SKETCH_H = 200;
 
-const ROLE = ['Handing over', 'Taking over'] as const;
 interface Sig { key: string; name: string; rank?: string; proof?: SignProof; at: number }
 
 const RES: { key: DpResult; label: string }[] = [
@@ -116,28 +115,29 @@ export default function DpCheckSc() {
   if (!c) return <Screen><Empty text="This checklist is not on this device." /></Screen>;
   const ro = !!done;
   const o = checkOutcome(c);
+  const ROLE = signRoles(c);
   const ownFields = c.lines.filter((l) => l.kind === 'field');
   const inTable = sectionCols(c.lines);
   const plainLines = c.lines.filter((l) => !l.head && !l.kind && !l.options && !l.value && !inTable.get(l.id));
   const signRow = async (row: 0 | 1) => {
     if (lat == null || lon == null) return Alert.alert('DP checklist', 'Enter the position first — degrees, minutes and N/S, E/W from the DGPS.');
     const p = people.find((x) => x.id === pickIds[row]);
-    if (!p) return Alert.alert('DP checklist', `Choose the name — ${ROLE[row].toLowerCase()}.`);
+    if (!p) return Alert.alert('DP checklist', `Choose the name — ${ROLE[row]}.`);
     const other = sigs[1 - row];
-    if (other && (other.key === p.id || other.name === p.name)) return Alert.alert('DP checklist', 'Two different people sign: the one handing over and the one taking over.');
-    const res = await confirmSign({ personKey: p.id, name: p.name, ownDevice: p.own, what: `${c.title} — ${ROLE[row].toLowerCase()}`, always: true });
+    if (other && (other.key === p.id || other.name === p.name)) return Alert.alert('DP checklist', `Two different people sign: ${ROLE[0]} and ${ROLE[1]}.`);
+    const res = await confirmSign({ personKey: p.id, name: p.name, ownDevice: p.own, what: `${c.title} — ${ROLE[row]}`, always: true });
     if (!res) return;
     setSigs((x) => x.map((v, i) => (i === row ? { key: p.id, name: p.name, rank: p.rank, proof: res.proof, at: Date.now() } : v)));
   };
   const save = async () => {
     const [a, b] = sigs;
     if (lat == null || lon == null) return Alert.alert('DP checklist', 'Enter the position the checklist is done at — degrees, minutes and N/S, E/W from the DGPS.');
-    if (!a || !b) return Alert.alert('DP checklist', 'Both sign before it is saved: the one handing over and the one taking over.');
+    if (!a || !b) return Alert.alert('DP checklist', `Both sign before it is saved: ${ROLE[0]} and ${ROLE[1]}.`);
     const finish = async () => {
       const clean = (r: Record<string, string>) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v));
       const cc = clean(cond as Record<string, string>);
       const at = Date.now();
-      const rec: DpCheck = { ...c, id: uid('dpc'), at, shipOffset: offset, position: { lat, lon }, operation: operation.trim() || undefined, unit: unit.trim() || undefined, conditions: Object.keys(cc).length ? cc : undefined, asog, values: Object.keys(clean(values)).length ? clean(values) : undefined, remarks: remarks.trim() || undefined, by: a.name, byRank: a.rank, byKey: a.key, byWith: a.proof, by2: b.name, by2Rank: b.rank, by2Key: b.key, by2With: b.proof, updatedAt: at };
+      const rec: DpCheck = { ...c, id: uid('dpc'), at, shipOffset: offset, position: { lat, lon }, operation: operation.trim() || undefined, unit: unit.trim() || undefined, conditions: Object.keys(cc).length ? cc : undefined, asog, values: Object.keys(clean(values)).length ? clean(values) : undefined, remarks: remarks.trim() || undefined, by: a.name, byRank: a.rank, byKey: a.key, byWith: a.proof, by2: b.name, by2Rank: b.rank, by2Key: b.key, by2With: b.proof, byRole: ROLE[0], by2Role: ROLE[1], updatedAt: at };
       // Firestore takes no undefined.
       for (const k of Object.keys(rec) as (keyof DpCheck)[]) if (rec[k] === undefined) delete rec[k];
       await saveRow(storage.DP_CHECKS_KEY, rec);

@@ -9,7 +9,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { VesselInfo } from './storage';
 import { share } from './export';
 import { exportPmsHistory } from './pmsHistoryReport';
-import { ASOG_LABEL, Letter, answerText, checkOutcome, conditionsText, letterHtml, positionText, rowCells } from './dp';
+import { ASOG_LABEL, Letter, signRoles, answerText, checkOutcome, conditionsText, letterHtml, positionText, rowCells } from './dp';
 import { shipAndUtc } from '../utils/shipTime';
 import { proofShort } from './signature';
 import { DpCheck } from '../types/dp';
@@ -66,8 +66,8 @@ export async function exportDpCheckPdf(c: DpCheck, vessel: VesselInfo | null) {
     title: 'Signatures',
     head: ['', 'Name', 'Position', 'Signature'],
     rows: [
-      ['Handing over', c.by, c.byRank ?? '', `${proofShort(c.byWith) || 'signed'} in ISMpilot, ${shipAndUtc(c.at, c.shipOffset).ship} LT`],
-      ['Taking over', c.by2 ?? '', c.by2Rank ?? '', c.by2 ? `${proofShort(c.by2With) || 'signed'} in ISMpilot, ${shipAndUtc(c.at, c.shipOffset).ship} LT` : ''],
+      [signRoles(c)[0], c.by, c.byRank ?? '', `${proofShort(c.byWith) || 'signed'} in ISMpilot, ${shipAndUtc(c.at, c.shipOffset).ship} LT`],
+      [signRoles(c)[1], c.by2 ?? '', c.by2Rank ?? '', c.by2 ? `${proofShort(c.by2With) || 'signed'} in ISMpilot, ${shipAndUtc(c.at, c.shipOffset).ship} LT` : ''],
     ],
     widths: { 0: 40, 1: 80, 2: 70, 3: 83 },
   });

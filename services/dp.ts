@@ -63,7 +63,7 @@ export function parseLine(raw: string): Omit<DpLine, 'id'> {
   let s = raw.trim();
   // "~Bow AZI": a row this vessel does not have — kept, so it can be shown again.
   if (s.startsWith('~')) return { ...parseLine(s.slice(1)), hidden: true };
-  const kind = /^@(field|text|sketch)\s+(.+)$/i.exec(s);
+  const kind = /^@(field|text|sketch|sign)\s+(.+)$/i.exec(s);
   if (kind) return { text: kind[2].trim(), kind: kind[1].toLowerCase() as DpLine['kind'] };
   if (s.startsWith('#')) {
     // "## > Alarm limits | …" — this table sits beside the one before it, as on the paper form.
@@ -352,15 +352,61 @@ const HANDOVER: string[] = [
   '@sketch Schematic: own vessel, rig, direction of wind and current',
 ];
 
+/**
+ * DP field arrival trials — the DP verification part of a vessel's arrival
+ * trials form (16 Oct 2026, the owner's sample), after the handover sheet.
+ * Signed by the SDPO and the DPO.
+ */
+const DONE = 'Done {Yes|!No|N/A} | Comments';
+const MOVES = [
+  'Move 10 m ahead — monitor position track, check footprint or overshoot',
+  'Move 10 m port — monitor position track, check footprint or overshoot',
+  'Move 10 m astern — monitor position track, check footprint or overshoot',
+  'Move 10 m stbd — monitor position track, check footprint or overshoot',
+  'Alter heading 10° P/S, 20° S/S, 10° P/S — check footprint, confirm original position',
+];
+const TRIALS: string[] = [
+  `## DP verification | ${DONE}`,
+  'UPS 1 — fail main power supply, check DP alarm and battery take-over (by ETO)',
+  'UPS 2 — fail main power supply, check DP alarm and battery take-over (by ETO)',
+  'DGPS 1 — fail diff. correction, check alarm and rejection by DP',
+  'DGPS 2 — fail diff. correction, check alarm and rejection by DP',
+  'HiPAP — fail signal from APOS, check alarm and rejection by DP',
+  `## Check DP positioning with DGPS 1 | ${DONE}`,
+  ...MOVES,
+  `## Check DP positioning with DGPS 2 | ${DONE}`,
+  ...MOVES,
+  `## Check DP positioning with HiPAP | ${DONE}`,
+  ...MOVES,
+  `## Check DP positioning with LTW | ${DONE}`,
+  'Move vessel through a box of 5 m sides and confirm original position with offline sensors; monitor position track',
+  'Move vessel to verify LTW out-of-range alarm on DP',
+  `## Check DP positioning with Fanbeam | ${DONE}`,
+  'Check parameters, adjust as necessary',
+  'If possible, start tracking target — range (m) / bearing in Comments',
+  'Tracking is stable (monitor for at least 10 min)',
+  `## Check DP positioning with thrusters de-selected | Thrusters de-selected | ${DONE}`,
+  'Move vessel through a box of 10 m sides; monitor position track; check maximum footprint / overshoot; confirm original position',
+  'Alter heading 20° stbd and then 20° port; check footprint',
+  '## Position dropout test (model test) | Done {Yes|!No|N/A} | Position deviation (m) [0.0] | Heading deviation (deg) [0.0]',
+  'Stabilise vessel in Auto DP for 30 min, log position on the survey screen; deselect all reference systems and wait 5 min; verify alarms and that the vessel keeps position on the mathematical model',
+  `## Additional checks | ${DONE}`,
+  'Fail each thruster to DP and check alarms',
+  'Switch on consequence analysis; deselect four thrusters; check DP alarm and position keeping; verify the consequence analysis warning',
+  'Rotate heading 360°; check discrepancy between reference systems',
+  `## Start-up settings | ${DONE}`,
+  'Complete the 6-hour DP checklist and attach it to this checklist',
+  'Complete the ER DP checklist and attach it to this checklist',
+  '@sign SDPO',
+  '@sign DPO',
+];
+
 /** A checklist's own items: one table, answered and remarked line by line. */
 const OWN = (title: string) => `## ${title} | Checked {Yes|!No|N/A} | Remarks`;
 
 export const DP_TEMPLATES: DpTemplate[] = [
   // A copy of the handover sheet — the base (the owner, 16 Oct 2026: "this is the base").
-  t('dp.arrival.bridge', 'Field arrival — bridge (before the 500 m zone)', 'bridge', [
-    ...HANDOVER,
-    // The DP trials data goes here next (the owner, 16 Oct 2026).
-  ]),
+  t('dp.arrival.bridge', 'Field arrival — bridge (before the 500 m zone)', 'bridge', [...HANDOVER, ...TRIALS]),
   t('dp.arrival.engine', 'Field arrival — engine room', 'engine', [
     ...SYSTEMS,
     OWN('Field arrival — engine room'),
@@ -436,6 +482,13 @@ export function answerText(l: DpLine, c: Pick<DpCheck, 'results' | 'values'>): s
 }
 
 /** A table row's cells as they print. */
+/** Who signs: the checklist's own roles ("@sign SDPO", "@sign DPO"), else handing over and taking over. */
+export function signRoles(c: Pick<DpCheck, 'lines'> & { byRole?: string; by2Role?: string }): [string, string] {
+  if (c.byRole || c.by2Role) return [c.byRole ?? 'Signed', c.by2Role ?? 'Signed'];
+  const own = c.lines.filter((l) => l.kind === 'sign').map((l) => l.text);
+  return [own[0] ?? 'Handing over', own[1] ?? 'Taking over'];
+}
+
 /** Does this row have a cell in that column? */
 export const hasCell = (l: DpLine, col: DpCol) => !(l.skip ?? []).some((x) => x.toLowerCase() === col.name.toLowerCase());
 
