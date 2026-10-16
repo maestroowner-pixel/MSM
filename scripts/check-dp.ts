@@ -10,18 +10,19 @@ const ids = DP_TEMPLATES.flatMap((x) => x.lines.map((l) => l.id));
 const ho = DP_TEMPLATES.find((x) => x.id === 'dp.handover')!;
 ok(ho.lines.filter((l) => l.kind === 'field').map((l) => l.text).join('|') === 'Location|Project|Client' && ho.lines.some((l) => l.kind === 'sketch') && ho.lines.some((l) => l.kind === 'text') && ho.lines.find((l) => l.text === 'Operation')?.cols?.[1].name === 'If No, why?', 'handover = the vessel form: header fields, If No why, brief description, schematic');
 ok(lineSource(parseLine('@sketch Own vessel, rig')) === '@sketch Own vessel, rig' && checkOutcome({ lines: ho.lines.filter((l) => l.kind), results: {} }).open === 0, 'fields, texts and sketches are not questions');
-ok(DP_TEMPLATES.filter((x) => x.id !== 'dp.handover').every((x) => x.lines[0].head && x.lines[0].text === 'Operator stations') && DP_TEMPLATES.filter((x) => !['dp.arrival.systems', 'dp.handover'].includes(x.id)).every((x) => x.lines.some((l) => l.head && l.cols?.[0].name === 'Checked')), 'every checklist starts with the DP system tables, then its own items as a table');
-ok(new Set(ids).size === ids.length && DP_TEMPLATES.length === 5, 'five built-in checklists, line ids unique');
-const sys = DP_TEMPLATES.find((x) => x.id === 'dp.arrival.systems')!;
+ok(DP_TEMPLATES.filter((x) => !['dp.handover', 'dp.arrival.bridge'].includes(x.id)).every((x) => x.lines[0].head && x.lines[0].text === 'Operator stations') && DP_TEMPLATES.find((x) => x.id === 'dp.arrival.bridge')!.lines[0].kind === 'field' && DP_TEMPLATES.filter((x) => x.id !== 'dp.handover').every((x) => x.lines.some((l) => l.head && l.cols?.[0].name === 'Checked')), 'every checklist starts with the DP system tables, then its own items as a table');
+ok(new Set(ids).size === ids.length && DP_TEMPLATES.length === 4, 'five built-in checklists, line ids unique');
+const eng = DP_TEMPLATES.find((x) => x.id === 'dp.arrival.engine')!;
+const sys = { ...eng, lines: eng.lines.slice(0, eng.lines.findIndex((l) => l.text === 'Field arrival — engine room')) };
 const heads = sys.lines.filter((l) => l.head);
 ok(heads.length === 9 && heads.every((h) => h.cols?.length) && heads.find((h) => h.text === 'Sensors')?.cols?.map((x) => x.name).join('|') === 'Available|Priority|Value|Deviation', 'arrival checklist laid out as the paper: nine tables, Sensors = Available / Priority / Value / Deviation');
 const prs = heads.find((h) => h.text === 'Origin reference system')!;
 ok(prs.cols![0].options!.join('|') === 'Not used|Monitor|Selected|Mobile' && prs.cols![1].name === 'Noise' && !prs.cols![1].options, 'PRS: status chosen, noise and weight written');
 
 // The vessel's own wording replaces a built-in; a switched-off one is gone; its own are added.
-const own = [{ ...DP_TEMPLATES[3], title: 'Our handover', updatedAt: 5 }, { ...DP_TEMPLATES[4], off: true, updatedAt: 5 }, { id: 'v.trials', title: 'Annual DP trials prep', where: 'bridge' as const, lines: [], updatedAt: 5 }];
+const own = [{ ...DP_TEMPLATES[2], title: 'Our handover', updatedAt: 5 }, { ...DP_TEMPLATES[3], off: true, updatedAt: 5 }, { id: 'v.trials', title: 'Annual DP trials prep', where: 'bridge' as const, lines: [], updatedAt: 5 }];
 const now = templatesNow(own);
-ok(now.map((x) => x.title).join('|') === `${DP_TEMPLATES[0].title}|${DP_TEMPLATES[1].title}|${DP_TEMPLATES[2].title}|Our handover|Annual DP trials prep`, 'reworded, switched off, own added');
+ok(now.map((x) => x.title).join('|') === `${DP_TEMPLATES[0].title}|${DP_TEMPLATES[1].title}|Our handover|Annual DP trials prep`, 'reworded, switched off, own added');
 
 // Rewording keeps the ids of lines whose text stayed.
 const old = ['DP status', 'Set-points', 'References in use', 'Sensors'].map((text, i) => ({ id: `dp.handover.x${i}`, text }));

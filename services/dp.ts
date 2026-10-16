@@ -356,8 +356,10 @@ const HANDOVER: string[] = [
 const OWN = (title: string) => `## ${title} | Checked {Yes|!No|N/A} | Remarks`;
 
 export const DP_TEMPLATES: DpTemplate[] = [
+  // The handover sheet is the base (the owner, 16 Oct 2026: "this is the base"); the
+  // arrival's own items follow it.
   t('dp.arrival.bridge', 'Field arrival — bridge (before the 500 m zone)', 'bridge', [
-    ...SYSTEMS,
+    ...HANDOVER,
     OWN('Field arrival — bridge'),
 
     'DP Operations Manual and the ASOG / WSOG for this operation on the bridge, read by the DPOs on watch',
@@ -390,8 +392,6 @@ export const DP_TEMPLATES: DpTemplate[] = [
     'Engine room manned as the ASOG requires; communications with the bridge tested',
     'Fire, flooding and machinery alarms clear',
   ]),
-  // The owner's Arrival DP Checklist (simulator course PR-33, annex 42), 16 Oct 2026: the system tables alone.
-  t('dp.arrival.systems', 'Arrival DP checklist — sensors, references, thrusters, power', 'bridge', SYSTEMS),
   t('dp.handover', 'DP watch handover / takeover', 'bridge', HANDOVER),
   t('dp.departure', 'Leaving the field', 'bridge', [
     ...SYSTEMS,
