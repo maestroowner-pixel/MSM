@@ -58,7 +58,7 @@ ok(['Master', 'Chief Officer', '2/O', 'Third Officer', 'SDPO', 'DPO', 'Chief Eng
 
 const dg = parseLine('DGPS 1 -[Beacon No.] -[Mode]');
 const rs = DP_TEMPLATES.find((x) => x.id === 'dp.handover')!.lines.find((l) => l.text === 'Reference system settings')!;
-ok(dg.text === 'DGPS 1' && dg.skip?.join('|') === 'Beacon No.|Mode' && lineSource(dg) === 'DGPS 1 -[Beacon No.] -[Mode]' && rs.cols!.map((c) => c.name).join('|') === 'Setting|Beacon No.|Value (%)|Mode' && !hasCell(dg as any, rs.cols![3]) && hasCell(dg as any, rs.cols![2]) && rowCells({ id: 'd', ...dg }, rs.cols!, { results: {}, values: {} })[3] === ' ', 'DGPS has no mode or beacon; Mode is the last column');
+ok(dg.text === 'DGPS 1' && dg.skip?.join('|') === 'Beacon No.|Mode' && lineSource(dg) === 'DGPS 1 -[Beacon No.] -[Mode]' && rs.cols!.map((c) => c.name).join('|') === 'Setting|Beacon No.|Value (%)|Mode|HDOP|Satellites' && !hasCell(dg as any, rs.cols![3]) && hasCell(dg as any, rs.cols![2]) && rowCells({ id: 'd', ...dg }, rs.cols!, { results: {}, values: {} })[3] === ' ', 'DGPS has no mode or beacon; Mode is the last column');
 
 // Position.
 ok(parseCoord('57 12.345 N', 'lat') === 57.20575 && parseCoord("001°23.456'W", 'lon') === -1.390933 && parseCoord('-33.5', 'lat') === -33.5, 'lat/lon: deg-min with hemisphere, decimal');
