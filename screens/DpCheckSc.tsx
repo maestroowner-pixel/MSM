@@ -259,7 +259,8 @@ export default function DpCheckSc() {
           const title = sec.head ? <Text style={styles.head}>{sec.head.text}</Text> : null;
           if (cols?.length) {
             const nameW = sec.lines.some((l) => l.text.length > 40) ? 320 : 170;
-            const yesCol = cols.findIndex((x) => x.options?.includes('Yes'));
+            // "All … — Yes" only where there are rows to fill at once, and never for a one-only column.
+            const yesCol = sec.lines.length > 1 ? cols.findIndex((x) => x.options?.includes('Yes') && !x.one) : -1;
             return (
               <View key={sec.head!.id}>
                 <View style={styles.headRow}>
@@ -301,7 +302,12 @@ export default function DpCheckSc() {
                                   const on = v === o;
                                   const red = on && answerIsBad(o, col);
                                   return (
-                                    <TouchableOpacity key={o} disabled={ro} accessibilityLabel={`${l.text} ${col.name} ${o}`} onPress={() => setResults((x) => ({ ...x, [k]: x[k] === o ? '' : o }))} style={[styles.mini, on && styles.chipOn, red && { backgroundColor: COLORS.danger, borderColor: COLORS.danger }]}>
+                                    <TouchableOpacity key={o} disabled={ro} accessibilityLabel={`${l.text} ${col.name} ${o}`} onPress={() => setResults((x) => {
+                                      // A one-only column: this row's Yes clears the others in the table.
+                                      const next = col.one ? { ...x, ...Object.fromEntries(sec.lines.map((r) => [cellKey(r.id, ci), ''])) } : { ...x };
+                                      next[k] = x[k] === o ? '' : o;
+                                      return next;
+                                    })} style={[styles.mini, on && styles.chipOn, red && { backgroundColor: COLORS.danger, borderColor: COLORS.danger }]}>
                                       <Text style={[styles.miniText, on && styles.chipTextOn]}>{o}</Text>
                                     </TouchableOpacity>
                                   );

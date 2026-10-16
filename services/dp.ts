@@ -73,7 +73,8 @@ export function parseLine(raw: string): Omit<DpLine, 'id'> {
       const m = /\{([^}]*)\}/.exec(c);
       const f = /\[([0.]+)\]/.exec(c);
       const name = c.replace(/\{[^}]*\}/, '').replace(/\[[0.]+\]/, '').trim();
-      return { name, ...(m ? JSON.parse(JSON.stringify(opts(m[1]))) : {}), ...(f ? { format: f[1] } : {}) };
+      const one = !!m && m[1].trim().toLowerCase() === 'one';
+      return { name, ...(one ? { options: ['Yes'], one: true } : m ? JSON.parse(JSON.stringify(opts(m[1]))) : {}), ...(f ? { format: f[1] } : {}) };
     });
     return { text: title, head: true, ...(cols.length ? { cols } : {}), ...(beside ? { beside } : {}) };
   }
@@ -109,7 +110,7 @@ export const lineSource = (l: Omit<DpLine, 'id'>): string =>
     : l.kind
     ? `@${l.kind} ${l.text}`
     : l.head
-    ? `## ${l.beside ? '> ' : ''}${l.text}${(l.cols ?? []).map((c) => ` | ${c.name}${optSource(c.options, c.bad)}${c.format ? ` [${c.format}]` : ''}`).join('')}`
+    ? `## ${l.beside ? '> ' : ''}${l.text}${(l.cols ?? []).map((c) => ` | ${c.name}${c.one ? ' {one}' : optSource(c.options, c.bad)}${c.format ? ` [${c.format}]` : ''}`).join('')}`
     : `${l.text}${optSource(l.options, l.bad)}${l.value ? ` [${l.value}]` : ''}${(l.skip ?? []).map((x) => ` -[${x}]`).join('')}`;
 
 /** The table a line sits in — the columns of the last heading above it, if that heading has any. */
@@ -247,15 +248,15 @@ const HANDOVER: string[] = [
   '## Event printer | Power {On|!Off} | Paper {Flush|Refresh} | Print status {Yes|!No} | Panel lamp test {Yes|!No}',
   'Event printer',
   // Sensor by sensor: the sensor, whether it is preferred, then its readings (16 Oct 2026).
-  '## Sensors — gyros | Preferred {Yes|No} | Heading (deg)',
+  '## Sensors — gyros | Preferred {one} | Heading (deg)',
   'Gyro 1',
   'Gyro 2',
   'Gyro 3',
   'Gyro 4',
-  '## Sensors — wind | Preferred {Yes|No} | Direction (deg) | Speed (kn)',
+  '## Sensors — wind | Preferred {one} | Direction (deg) | Speed (kn)',
   'Wind 1',
   'Wind 2',
-  '## Sensors — MRU / VRS | Preferred {Yes|No} | Pitch (deg) | Roll (deg)',
+  '## Sensors — MRU / VRS | Preferred {one} | Pitch (deg) | Roll (deg)',
   'MRU 1',
   'MRU 2',
   'VRS',

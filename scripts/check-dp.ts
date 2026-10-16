@@ -65,6 +65,9 @@ const hoT = DP_TEMPLATES.find((x) => x.id === 'dp.handover')!;
 const withHidden = { ...hoT, lines: hoT.lines.map((l) => (l.text === 'Bow AZI' ? { ...l, hidden: true } : l)) };
 ok(hid.hidden === true && hid.text === 'Bow AZI' && lineSource(hid) === '~Bow AZI' && !templatesNow([withHidden]).find((x) => x.id === 'dp.handover')!.lines.some((l) => l.text === 'Bow AZI') && hoT.lines.some((l) => l.text === 'AZI 2'), 'thruster variants shipped; a hidden row (~) stays in the wording, out of the checklist');
 
+const pr = parseLine('## Sensors — gyros | Preferred {one} | Heading (deg)');
+ok(pr.cols?.[0].one === true && pr.cols?.[0].options?.join() === 'Yes' && lineSource(pr) === '## Sensors — gyros | Preferred {one} | Heading (deg)', 'one preferred sensor per table');
+
 // Position.
 ok(parseCoord('57 12.345 N', 'lat') === 57.20575 && parseCoord("001°23.456'W", 'lon') === -1.390933 && parseCoord('-33.5', 'lat') === -33.5, 'lat/lon: deg-min with hemisphere, decimal');
 ok(parseCoord('57 12.3 E', 'lat') === undefined && parseCoord('91 00 N', 'lat') === undefined && parseCoord('12 75 N', 'lat') === undefined && parseCoord('abc', 'lon') === undefined && parseCoord('', 'lat') === undefined, 'wrong hemisphere, off the globe, minutes ≥ 60, words, empty — refused');

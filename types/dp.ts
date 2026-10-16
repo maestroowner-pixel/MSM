@@ -59,6 +59,8 @@ export interface DpCol {
   name: string;
   options?: string[];
   bad?: string[];
+  /** One row only may say Yes ("Preferred {one}" — one preferred gyro): choosing it clears the others. */
+  one?: boolean;
   /** A number written to this pattern ("Height (m) [0.0]" → one decimal): a number pad, rounded when the cell is left. */
   format?: string;
 }
