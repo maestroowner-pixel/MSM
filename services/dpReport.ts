@@ -42,11 +42,13 @@ export async function exportDpCheckPdf(c: DpCheck, vessel: VesselInfo | null) {
       // A table of long items (a checklist's own) gets a wide item column.
       const after = c.lines.slice(c.lines.indexOf(l) + 1);
       const rows = after.slice(0, Math.max(0, after.findIndex((x) => x.head)) || after.length);
-      const itemW = rows.some((x) => x.text.length > 40) ? 150 : 55;
-      const each = cols?.length ? Math.min(itemW === 150 ? 55 : 40, Math.floor((273 - 12 - itemW) / cols.length)) : 0;
+      // One-row tables (DP current, wind, swell) are small, so three fit side by side.
+      const tiny = rows.length === 1 && (cols?.length ?? 0) <= 2;
+      const itemW = tiny ? 26 : rows.some((x) => x.text.length > 40) ? 150 : 55;
+      const each = cols?.length ? (tiny ? 26 : Math.min(itemW === 150 ? 55 : 40, Math.floor((273 - 12 - itemW) / cols.length))) : 0;
       tables.push(
         cols?.length
-          ? { title: l.text, head: ['#', 'Item', ...cols.map((x) => (x.options ? `${x.name} (${x.options.join(' / ')})` : x.name))], rows: [], widths: { 0: 12, 1: itemW, ...Object.fromEntries(cols.map((_, i) => [i + 2, each])) } }
+          ? { title: l.text, head: ['#', 'Item', ...cols.map((x) => (x.options ? `${x.name} (${x.options.join(' / ')})` : x.name))], rows: [], widths: { 0: tiny ? 10 : 12, 1: itemW, ...Object.fromEntries(cols.map((_, i) => [i + 2, each])) } }
           : { title: l.head ? l.text : 'Checklist', head: ['#', 'Item', 'Answer'], rows: [], widths: { 0: 12, 1: 170, 2: 91 } }
       );
       (tables[tables.length - 1] as any).cols = cols;

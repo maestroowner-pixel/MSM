@@ -27,7 +27,7 @@ import { moduleOn } from '../constants/modules';
 import * as storage from '../services/storage';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
-import { ASOG_LABEL, answerIsBad, cellKey, checkOutcome, isOther, otherKey, sectionCols, conditionsText, positionFromText, positionText, templatesNow } from '../services/dp';
+import { ASOG_LABEL, answerIsBad, cellKey, checkOutcome, formatCell, isOther, otherKey, sectionCols, conditionsText, positionFromText, positionText, templatesNow } from '../services/dp';
 import { PositionInput } from '../components/PositionInput';
 import { shipAndUtc } from '../utils/shipTime';
 import { exportDpCheckPdf } from '../services/dpReport';
@@ -288,7 +288,7 @@ export default function DpCheckSc() {
                               return ro ? (
                                 <Text key={ci} style={[{ width: colWidth(col) }, styles.tdText]}>{c.values?.[k] || '—'}</Text>
                               ) : (
-                                <TextInput key={ci} style={[styles.input, styles.tdInput, { width: colWidth(col) }]} value={values[k] ?? ''} onChangeText={(t) => setValues((x) => ({ ...x, [k]: t }))} accessibilityLabel={`${l.text} ${col.name}`} />
+                                <TextInput key={ci} style={[styles.input, styles.tdInput, { width: colWidth(col) }]} value={values[k] ?? ''} onChangeText={(t) => setValues((x) => ({ ...x, [k]: t }))} keyboardType={col.format ? 'decimal-pad' : undefined} onBlur={col.format ? () => setValues((x) => ({ ...x, [k]: formatCell(x[k] ?? '', col.format) })) : undefined} accessibilityLabel={`${l.text} ${col.name}`} />
                               );
                             }
                             const v = c.results[k];

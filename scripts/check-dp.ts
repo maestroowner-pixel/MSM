@@ -1,5 +1,5 @@
 // npm run check:dp — DP checklists keep their line ids; DP days count as SDM counts them; the letter says what the log says.
-import { DP_TEMPLATES, otherKey, answerText, cellKey, sectionCols, buildLetter, checkOutcome, conditionsText, coordText, dayId, positionFromText, lineSource, parseCoord, parseLine, positionText, dpoTotals, emptySlots, hours, isDpDay, letterHtml, linesFromText, setRange, templatesNow } from '../services/dp';
+import { DP_TEMPLATES, formatCell, otherKey, answerText, cellKey, sectionCols, buildLetter, checkOutcome, conditionsText, coordText, dayId, positionFromText, lineSource, parseCoord, parseLine, positionText, dpoTotals, emptySlots, hours, isDpDay, letterHtml, linesFromText, setRange, templatesNow } from '../services/dp';
 import { DpDay } from '../types/dp';
 
 let fail = 0;
@@ -49,6 +49,9 @@ const keptSys = linesFromText(sys.lines.map(lineSource).join('\n'), sys.lines, s
 ok(keptSys.every((l, i) => l.id === sys.lines[i].id && JSON.stringify(l.cols) === JSON.stringify(sys.lines[i].cols)), 'the table checklist round-trips through the editor');
 
 ok(answerText({ id: 'rc', text: 'Rotation centre', options: ['Fwd', 'Other'] }, { results: { rc: 'Other' }, values: { [otherKey('rc')]: 'Moonpool' } }) === 'Other: Moonpool', '"Other" keeps what was written');
+
+const sw = parseLine('## > Swell | Direction (deg) | Height (m) [0.0]');
+ok(sw.beside === true && sw.cols?.[1].name === 'Height (m)' && sw.cols?.[1].format === '0.0' && lineSource(sw) === '## > Swell | Direction (deg) | Height (m) [0.0]' && formatCell('1,25', '0.0') === '1.3' && formatCell('2', '0.0') === '2.0' && formatCell('n/a', '0.0') === 'n/a', 'swell height to one decimal; table beside');
 
 // Position.
 ok(parseCoord('57 12.345 N', 'lat') === 57.20575 && parseCoord("001°23.456'W", 'lon') === -1.390933 && parseCoord('-33.5', 'lat') === -33.5, 'lat/lon: deg-min with hemisphere, decimal');

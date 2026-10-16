@@ -69,8 +69,9 @@ export function parseLine(raw: string): Omit<DpLine, 'id'> {
     const [title, ...cells] = splitCols(s.replace(/^#+\s*>?\s*/, ''));
     const cols = cells.filter(Boolean).map((c) => {
       const m = /\{([^}]*)\}/.exec(c);
-      const name = c.replace(/\{[^}]*\}/, '').trim();
-      return { name, ...(m ? JSON.parse(JSON.stringify(opts(m[1]))) : {}) };
+      const f = /\[([0.]+)\]/.exec(c);
+      const name = c.replace(/\{[^}]*\}/, '').replace(/\[[0.]+\]/, '').trim();
+      return { name, ...(m ? JSON.parse(JSON.stringify(opts(m[1]))) : {}), ...(f ? { format: f[1] } : {}) };
     });
     return { text: title, head: true, ...(cols.length ? { cols } : {}), ...(beside ? { beside } : {}) };
   }
@@ -98,7 +99,7 @@ export const lineSource = (l: Omit<DpLine, 'id'>): string =>
   l.kind
     ? `@${l.kind} ${l.text}`
     : l.head
-    ? `## ${l.beside ? '> ' : ''}${l.text}${(l.cols ?? []).map((c) => ` | ${c.name}${optSource(c.options, c.bad)}`).join('')}`
+    ? `## ${l.beside ? '> ' : ''}${l.text}${(l.cols ?? []).map((c) => ` | ${c.name}${optSource(c.options, c.bad)}${c.format ? ` [${c.format}]` : ''}`).join('')}`
     : `${l.text}${optSource(l.options, l.bad)}${l.value ? ` [${l.value}]` : ''}`;
 
 /** The table a line sits in — the columns of the last heading above it, if that heading has any. */
@@ -113,6 +114,15 @@ export function sectionCols(lines: DpLine[]): Map<string, DpCol[] | undefined> {
 }
 
 export const cellKey = (lineId: string, col: number) => `${lineId}#${col}`;
+
+/** A number to a column's pattern: "1,25" with "0.0" → "1.3"; not a number → as written. */
+export function formatCell(v: string, format?: string): string {
+  if (!format) return v;
+  const n = Number(v.trim().replace(',', '.'));
+  if (!v.trim() || !Number.isFinite(n)) return v;
+  const dec = format.includes('.') ? format.split('.')[1].length : 0;
+  return n.toFixed(dec);
+}
 
 const t = (id: string, title: string, where: DpWhere, lines: string[]): DpTemplate => ({
   id,
@@ -220,11 +230,12 @@ const HANDOVER: string[] = [
   'Rotation centre {Fwd|Midship|Aft|Other}',
   '## DP current | Direction (deg) | Speed (kn)',
   'DP current',
-  '## Event printer',
-  'Power {On|!Off}',
-  'Paper {Flush|Refresh}',
-  'Print status {Yes|!No}',
-  'Panel lamp test {Yes|!No}',
+  '## > Wind | Direction (deg) | Speed (kn)',
+  'Wind',
+  '## > Swell | Direction (deg) | Height (m) [0.0]',
+  'Swell',
+  '## Event printer | Power {On|!Off} | Paper {Flush|Refresh} | Print status {Yes|!No} | Panel lamp test {Yes|!No}',
+  'Event printer',
   '## Sensors | No. 1 | No. 2 | No. 3',
   'Gyro — heading (deg)',
   'Wind — direction (deg)',

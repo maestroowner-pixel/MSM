@@ -55,6 +55,8 @@ export interface DpCol {
   name: string;
   options?: string[];
   bad?: string[];
+  /** A number written to this pattern ("Height (m) [0.0]" → one decimal): a number pad, rounded when the cell is left. */
+  format?: string;
 }
 
 export type DpWhere = 'bridge' | 'engine';
