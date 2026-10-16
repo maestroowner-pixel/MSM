@@ -28,7 +28,7 @@ export interface MenuGroup {
 }
 
 export const MENU_GROUPS: MenuGroup[] = [
-  { key: 'ops', label: 'Inspections & maintenance', routes: ['Dashboard', 'Equipment', 'Rounds', 'Maintenance', 'Spares', 'Stores', 'Reports'] },
+  { key: 'ops', label: 'Inspections & maintenance', routes: ['Dashboard', 'Equipment', 'Rounds', 'Maintenance', 'Spares', 'Stores', 'Readiness', 'Reports'] },
   { key: 'env', label: 'Environment', routes: ['Fuel', 'OilRecord', 'Garbage', 'Sewage', 'Ballast', 'Sopep'] },
   { key: 'security', label: 'Safety & security', routes: ['Drills', 'Safety', 'Security'] },
   { key: 'crew', label: 'Crew', routes: ['Crew', 'Passengers', 'CrewMatrix', 'HoursOfRest', 'Hospital'] },
@@ -140,6 +140,7 @@ export const MENU_LABEL: Record<string, string> = {
   Sopep: 'SOPEP',
   Security: 'Security (ISPS)',
   Surveys: 'Surveys & audits',
+  Readiness: 'Inspection readiness',
   Safety: 'Safety observations & NC',
   Drills: 'Drills',
   Hospital: 'Hospital',

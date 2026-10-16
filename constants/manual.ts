@@ -612,6 +612,16 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🔎',
+      title: "Inspection readiness",
+      body: [
+        "Inspection readiness answers one question: what would an inspector find if they came aboard on a given day? Choose Port State Control, Flag inspection or Class survey, and the date — today, in 7, 14 or 30 days, or any day.",
+        "Red is what would be found on the day: certificates and equipment out of date by then, open defects, rounds with items never inspected, overdue drills, rest below the minimum, critical maintenance overdue, corrective actions past their date, medicines out of date. Amber is worth doing first: what runs out within 30 days after the inspection, and records still open.",
+        "Every line opens the record that puts it right. Areas with nothing to report are shown with a tick, so 'Ready' means checked and clean. PDF makes the same list for the Master and the DPA.",
+        "Class survey leaves out the crew's papers and hours of rest. The list checks what the app holds — it is a worklist, not the inspector's checklist.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Permits to work and risk assessments",
       body: [
@@ -1215,6 +1225,16 @@ const ru: ManualContent = {
         "Surveys & audits — план событий класса, флага и ISM: ежегодные, промежуточные и очередные освидетельствования, Load Line, докование, внутренние и внешние аудиты ISM, MLC — и свои пункты.",
         "У каждого — срок или дата годовщины, окно в обе стороны (обычно ±3 месяца) и повтор. Сверху — просроченные и с открытым окном.",
         "Carried out записывает дату, номер отчёта и замечания с подписью и переносит план: по годовщине — на следующую годовщину, остальные — от даты проведения. План ведут офицеры и Мастер; историю изменить нельзя.",
+      ],
+    },
+    {
+      emoji: '🔎',
+      title: "Готовность к проверке (Inspection readiness)",
+      body: [
+        "Готовность к проверке отвечает на один вопрос: что найдёт инспектор, если придёт на борт в выбранный день? Выберите Port State Control, проверку флага или освидетельствование класса и дату — сегодня, через 7, 14 или 30 дней или любой день.",
+        "Красное — то, что найдут в этот день: сертификаты и оборудование, просроченные к этой дате, открытые дефекты, обходы с непроверенными позициями, просроченные учения, недостаточный отдых, просроченное ТО критичного оборудования, просроченные корректирующие действия, просроченные лекарства. Жёлтое — что стоит сделать заранее: истекает в течение 30 дней после проверки, или запись ещё открыта.",
+        "Каждая строка открывает запись, которую нужно исправить. Разделы без замечаний отмечены галочкой — «Ready» значит «проверено и чисто». PDF — тот же список для капитана и DPA.",
+        "Для класса не проверяются документы экипажа и часы отдыха. Список проверяет то, что есть в приложении, — это рабочий список, а не чек-лист инспектора.",
       ],
     },
     {
@@ -1824,6 +1844,16 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🔎',
+      title: "Preparación para inspección (Inspection readiness)",
+      body: [
+        "La preparación para inspección responde a una pregunta: ¿qué encontraría un inspector si subiera a bordo un día concreto? Elija Port State Control, inspección de bandera o reconocimiento de clase, y la fecha — hoy, en 7, 14 o 30 días, o cualquier día.",
+        "En rojo, lo que se encontraría ese día: certificados y equipos caducados para entonces, defectos abiertos, rondas con elementos sin inspeccionar, ejercicios vencidos, descanso por debajo del mínimo, mantenimiento crítico vencido, acciones correctivas fuera de plazo, medicamentos caducados. En ámbar, lo que conviene hacer antes: lo que vence en los 30 días siguientes a la inspección y los registros aún abiertos.",
+        "Cada línea abre el registro que lo corrige. Las áreas sin nada que señalar llevan una marca, así que 'Ready' significa revisado y limpio. PDF genera la misma lista para el Capitán y la DPA.",
+        "El reconocimiento de clase no incluye los documentos de la tripulación ni las horas de descanso. La lista revisa lo que contiene la app: es una lista de trabajo, no la lista del inspector.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Permisos de trabajo y evaluaciones de riesgo",
       body: [
@@ -2430,6 +2460,16 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🔎',
+      title: "Готовність до перевірки (Inspection readiness)",
+      body: [
+        "Готовність до перевірки відповідає на одне питання: що знайде інспектор, якщо прийде на борт у вибраний день? Оберіть Port State Control, перевірку прапора чи огляд класу та дату — сьогодні, через 7, 14 чи 30 днів або будь-який день.",
+        "Червоне — те, що знайдуть цього дня: сертифікати й обладнання, прострочені до цієї дати, відкриті дефекти, обходи з неоглянутими позиціями, прострочені навчання, недостатній відпочинок, прострочене ТО критичного обладнання, прострочені коригувальні дії, прострочені ліки. Жовте — що варто зробити заздалегідь: спливає протягом 30 днів після перевірки, або запис ще відкритий.",
+        "Кожен рядок відкриває запис, який треба виправити. Розділи без зауважень позначені галочкою — «Ready» означає «перевірено й чисто». PDF — той самий список для капітана й DPA.",
+        "Для класу не перевіряються документи екіпажу й години відпочинку. Список перевіряє те, що є в застосунку, — це робочий список, а не чек-лист інспектора.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Дозволи на роботу та оцінка ризиків",
       body: [
@@ -2489,6 +2529,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'SOPEP', module: 'sopep' },
   { title: 'Board', module: 'board' },
   { title: 'Surveys & audits', module: 'surveys' },
+  { title: 'Inspection readiness', module: 'readiness' },
   { title: 'Security (ISPS)', module: 'security' },
   // Paragraphs of a live section about a page that ships dark (15 Oct 2026).
   { title: 'Security (ISPS)', module: 'searches', drop: [6] },

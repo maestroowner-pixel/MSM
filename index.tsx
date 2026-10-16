@@ -85,6 +85,7 @@ import LogBookSc from './screens/LogBookSc';
 import SopepSc from './screens/SopepSc';
 import SecuritySc from './screens/SecuritySc';
 import SurveysSc from './screens/SurveysSc';
+import ReadinessSc from './screens/ReadinessSc';
 import SafetySc from './screens/SafetySc';
 import NcSc from './screens/NcSc';
 import DrillsSc from './screens/DrillsSc';
@@ -139,6 +140,7 @@ const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Sopep: SopepSc,
   Security: SecuritySc,
   Surveys: SurveysSc,
+  Readiness: ReadinessSc,
   Safety: SafetySc,
   Drills: DrillsSc,
   Hospital: HospitalSc,
@@ -398,6 +400,7 @@ const linking = {
           Sopep: 'sopep',
           Security: 'security',
           Surveys: 'surveys',
+          Readiness: 'readiness',
           Safety: 'safety',
           Drills: 'drills',
           Hospital: 'hospital',

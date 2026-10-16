@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -111,6 +111,8 @@ export const MODULES: Record<ModuleKey, boolean> = {
   searches: false,
   /** Security → Ship Security Plan: the SSP and its papers, officers only (15 Oct 2026). Needs `security`. */
   ssp: false,
+  /** Inspection readiness — what PSC / flag / class would find on a date (services/readiness.ts). */
+  readiness: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------
@@ -142,6 +144,17 @@ export function cleanModules(raw: unknown): Partial<Record<ModuleKey, boolean>> 
     if ((raw as any)[k] === true) out[k] = true;
   }
   return out;
+}
+
+// In a browser the cache can be read before the first render: a link straight
+// to a pilot module's page (/readiness) would otherwise meet a navigator built
+// without it and fall back to the Dashboard. Native reads it in SyncContext,
+// behind the splash. The key is storage.ts's VESSEL_MODULES_KEY.
+try {
+  const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('msm:vessel_modules') : null;
+  if (raw) vesselModules = cleanModules(JSON.parse(raw));
+} catch {
+  /* no storage, or not JSON — the vessel document will say */
 }
 
 /** Install the vessel's list. Returns true when it changed what is on. */
