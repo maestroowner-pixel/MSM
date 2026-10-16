@@ -60,6 +60,11 @@ const dg = parseLine('DGPS 1 -[Beacon No.] -[Mode]');
 const rs = DP_TEMPLATES.find((x) => x.id === 'dp.handover')!.lines.find((l) => l.text === 'Reference system settings')!;
 ok(dg.text === 'DGPS 1' && dg.skip?.join('|') === 'Beacon No.|Mode' && lineSource(dg) === 'DGPS 1 -[Beacon No.] -[Mode]' && rs.cols!.map((c) => c.name).join('|') === 'Setting|Beacon No.|Value (%)|Mode|HDOP|Satellites' && !hasCell(dg as any, rs.cols![3]) && hasCell(dg as any, rs.cols![2]) && rowCells({ id: 'd', ...dg }, rs.cols!, { results: {}, values: {} })[3] === ' ', 'DGPS has no mode or beacon; Mode is the last column');
 
+const hid = parseLine('~Bow AZI');
+const hoT = DP_TEMPLATES.find((x) => x.id === 'dp.handover')!;
+const withHidden = { ...hoT, lines: hoT.lines.map((l) => (l.text === 'Bow AZI' ? { ...l, hidden: true } : l)) };
+ok(hid.hidden === true && hid.text === 'Bow AZI' && lineSource(hid) === '~Bow AZI' && !templatesNow([withHidden]).find((x) => x.id === 'dp.handover')!.lines.some((l) => l.text === 'Bow AZI') && hoT.lines.some((l) => l.text === 'AZI 2'), 'thruster variants shipped; a hidden row (~) stays in the wording, out of the checklist');
+
 // Position.
 ok(parseCoord('57 12.345 N', 'lat') === 57.20575 && parseCoord("001°23.456'W", 'lon') === -1.390933 && parseCoord('-33.5', 'lat') === -33.5, 'lat/lon: deg-min with hemisphere, decimal');
 ok(parseCoord('57 12.3 E', 'lat') === undefined && parseCoord('91 00 N', 'lat') === undefined && parseCoord('12 75 N', 'lat') === undefined && parseCoord('abc', 'lon') === undefined && parseCoord('', 'lat') === undefined, 'wrong hemisphere, off the globe, minutes ≥ 60, words, empty — refused');

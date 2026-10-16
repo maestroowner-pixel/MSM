@@ -61,6 +61,8 @@ const splitCols = (s: string) => {
 
 export function parseLine(raw: string): Omit<DpLine, 'id'> {
   let s = raw.trim();
+  // "~Bow AZI": a row this vessel does not have — kept, so it can be shown again.
+  if (s.startsWith('~')) return { ...parseLine(s.slice(1)), hidden: true };
   const kind = /^@(field|text|sketch)\s+(.+)$/i.exec(s);
   if (kind) return { text: kind[2].trim(), kind: kind[1].toLowerCase() as DpLine['kind'] };
   if (s.startsWith('#')) {
@@ -102,7 +104,9 @@ const optSource = (o?: string[], bad?: string[]) => (o?.length ? ` {${o.map((x) 
 
 /** The line back as it is written — what the editor shows. */
 export const lineSource = (l: Omit<DpLine, 'id'>): string =>
-  l.kind
+  l.hidden
+    ? `~${lineSource({ ...l, hidden: false })}`
+    : l.kind
     ? `@${l.kind} ${l.text}`
     : l.head
     ? `## ${l.beside ? '> ' : ''}${l.text}${(l.cols ?? []).map((c) => ` | ${c.name}${optSource(c.options, c.bad)}${c.format ? ` [${c.format}]` : ''}`).join('')}`
@@ -290,13 +294,22 @@ const HANDOVER: string[] = [
   'Setting',
   '## Joystick settings | Thrust {Full|Reduced} | Precision {High speed|General|Low speed} | Rotation centre {Fwd|Midship|Aft|Other}',
   'Joystick',
+  // Every arrangement there is; each vessel hides what it does not have ("~Bow AZI").
   '## Thrusters enabled | Enabled {Yes|No}',
+  'AZI 1',
+  'AZI 2',
   'Bow thruster 1',
   'Bow thruster 2',
+  'Bow thruster 3',
+  'Bow AZI',
   'Stern thruster 1',
   'Stern thruster 2',
+  'CPP 1',
+  'CPP 2',
   'Port propeller',
   'Stbd propeller',
+  'Rudder 1',
+  'Rudder 2',
   'Port rudder',
   'Stbd rudder',
   '## AutoPos settings | Value',
@@ -390,7 +403,7 @@ export function templatesNow(own: DpTemplate[]): DpTemplate[] {
   const byId = new Map(own.map((x) => [x.id, x]));
   const builtIn = DP_TEMPLATES.map((b) => byId.get(b.id) ?? b);
   const extra = own.filter((x) => !DP_TEMPLATES.some((b) => b.id === x.id));
-  return [...builtIn, ...extra].filter((x) => !x.off);
+  return [...builtIn, ...extra].filter((x) => !x.off).map((x) => (x.lines.some((l) => l.hidden) ? { ...x, lines: x.lines.filter((l) => !l.hidden) } : x));
 }
 
 /** Lines from text, one a line; a line written the same keeps its id (records are keyed by it). */
