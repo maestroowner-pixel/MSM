@@ -11,7 +11,7 @@ ok(new Set(ids).size === ids.length && DP_TEMPLATES.length === 5, 'five built-in
 const sys = DP_TEMPLATES.find((x) => x.id === 'dp.arrival.systems')!;
 const heads = sys.lines.filter((l) => l.head);
 ok(heads.length === 9 && heads.every((h) => h.cols?.length) && heads.find((h) => h.text === 'Sensors')?.cols?.map((x) => x.name).join('|') === 'Available|Priority|Value|Deviation', 'arrival checklist laid out as the paper: nine tables, Sensors = Available / Priority / Value / Deviation');
-const prs = heads.find((h) => h.text === 'Position reference systems')!;
+const prs = heads.find((h) => h.text === 'Origin reference system')!;
 ok(prs.cols![0].options!.join('|') === 'Not used|Monitor|Selected|Mobile' && prs.cols![1].name === 'Noise' && !prs.cols![1].options, 'PRS: status chosen, noise and weight written');
 
 // The vessel's own wording replaces a built-in; a switched-off one is gone; its own are added.
