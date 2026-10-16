@@ -1286,6 +1286,11 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'store_rooms', key: storage.STORE_ROOMS_KEY, module: 'stores' },
   // Monthly safety meetings: kept by the officers, each person signs his own attendance line.
   { sub: 'safety_meetings', key: storage.SAFETY_MEETINGS_KEY, module: 'meetings' },
+  // Dynamic positioning: signed checklists never change; DP time and the letter's details kept by the bridge.
+  { sub: 'dp_checks', key: storage.DP_CHECKS_KEY, appendOnly: true, module: 'dp' },
+  { sub: 'dp_days', key: storage.DP_DAYS_KEY, module: 'dp' },
+  { sub: 'dp_info', key: storage.DP_INFO_KEY, module: 'dp' },
+  { sub: 'dp_templates', key: storage.DP_TEMPLATES_KEY, module: 'dp' },
   // Passengers: confidential — the guest list does not leave the vessel. The cloud holds the
   // first and last letter of each name, the cabin and the dates (to count who is aboard);
   // their documents (passengers_private) are never sent.

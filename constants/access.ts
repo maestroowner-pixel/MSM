@@ -31,7 +31,7 @@
 
 import { ModuleKey, moduleOn } from './modules';
 
-export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'stores' | 'reports' | 'maintenance' | 'spares' | 'rest' | 'readiness';
+export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'stores' | 'reports' | 'maintenance' | 'spares' | 'rest' | 'readiness' | 'dp';
 
 export interface OptionalTab {
   key: TabKey;
@@ -69,6 +69,7 @@ export const OPTIONAL_TABS: OptionalTab[] = [
   { key: 'spares', module: 'spares', route: 'Spares', label: 'Spares', column: 'Spares', icon: 'package-variant-closed' },
   { key: 'rest', module: 'rest', route: 'HoursOfRest', label: 'Rest', column: 'Rest', icon: 'bed-clock' },
   { key: 'readiness', module: 'readiness', route: 'Readiness', label: 'Readiness', column: 'RDY', icon: 'clipboard-search-outline' },
+  { key: 'dp', module: 'dp', route: 'Dp', label: 'DP', column: 'DP', icon: 'crosshairs-gps' },
   { key: 'reports', route: 'Reports', label: 'Reports', column: 'Reports', icon: 'file-document' },
 ];
 

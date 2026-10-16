@@ -88,6 +88,9 @@ import SurveysSc from './screens/SurveysSc';
 import ReadinessSc from './screens/ReadinessSc';
 import HandoverSc from './screens/HandoverSc';
 import ServiceReportSc from './screens/ServiceReportSc';
+import DpSc from './screens/DpSc';
+import DpCheckSc from './screens/DpCheckSc';
+import DpTemplatesSc from './screens/DpTemplatesSc';
 import SafetySc from './screens/SafetySc';
 import NcSc from './screens/NcSc';
 import DrillsSc from './screens/DrillsSc';
@@ -143,6 +146,7 @@ const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Security: SecuritySc,
   Surveys: SurveysSc,
   Readiness: ReadinessSc,
+  Dp: DpSc,
   Safety: SafetySc,
   Drills: DrillsSc,
   Hospital: HospitalSc,
@@ -403,6 +407,7 @@ const linking = {
           Security: 'security',
           Surveys: 'surveys',
           Readiness: 'readiness',
+          Dp: 'dp',
           Safety: 'safety',
           Drills: 'drills',
           Hospital: 'hospital',
@@ -414,6 +419,8 @@ const linking = {
       },
       Handover: 'handover',
       ServiceReport: 'service-report',
+      DpCheck: 'dp-check',
+      DpTemplates: 'dp-checklists',
       CategoryItems: 'category/:category',
       ItemDetail: 'item/:category/:id',
       Import: 'import',
@@ -670,6 +677,8 @@ function Root() {
         <Stack.Screen name="Defects" component={DefectsSc} options={webHeader('Open defects')} />
         <Stack.Screen name="Handover" component={HandoverSc} options={webHeader('Handover', { screen: 'Main', params: { screen: 'Readiness' } } as any)} />
         <Stack.Screen name="ServiceReport" component={ServiceReportSc} options={webHeader('Service report', { screen: 'Main', params: { screen: 'Certificates' } } as any)} />
+        <Stack.Screen name="DpCheck" component={DpCheckSc} options={webHeader('DP checklist', { screen: 'Main', params: { screen: 'Dp' } } as any)} />
+        <Stack.Screen name="DpTemplates" component={DpTemplatesSc} options={webHeader('DP checklists', { screen: 'Main', params: { screen: 'Dp' } } as any)} />
         {/* With the notice board on, the old Dashboard — LSA / FFE / lifting by expiry — is this screen. */}
         <Stack.Screen name="Expiries" component={DashboardSc} options={webHeader('LSA / FFE expiries')} />
         <Stack.Screen name="Accounts" component={AccountsSc} options={webHeader('Accounts', toTab('Settings'))} />

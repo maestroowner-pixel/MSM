@@ -484,6 +484,30 @@ service cloud.firestore {
                         && (isAdmin(v) || (member(v) && onlyChanges(['attendance', 'updatedAt'])));
         allow delete: if false;
       }
+      // Dynamic positioning (types/dp.ts). A signed DP checklist is never changed
+      // or removed; DP time is kept by anyone on board (a DPO enters his watch);
+      // the letter's company details and the vessel's wording of the checklists
+      // are the officers'.
+      match /dp_checks/{id} {
+        allow read: if reader(v);
+        allow create: if member(v) && plainRecord();
+        allow update, delete: if false;
+      }
+      match /dp_days/{id} {
+        allow read: if reader(v);
+        allow create, update: if member(v);
+        allow delete: if false;
+      }
+      match /dp_info/{id} {
+        allow read: if reader(v);
+        allow create, update: if isAdmin(v);
+        allow delete: if false;
+      }
+      match /dp_templates/{id} {
+        allow read: if reader(v);
+        allow create, update: if isAdmin(v);
+        allow delete: if false;
+      }
       // Hospital (types/hospital.ts). The chest and its moves are kept by the
       // officers; moves are never changed. The medical log is health data: the
       // Master and the officers only — not the crew, not the shore.

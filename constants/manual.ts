@@ -625,6 +625,17 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🎯',
+      title: "Dynamic positioning",
+      body: [
+        "Dynamic positioning (menu → Dynamic positioning) has three pages: DP checklists, DP time and the confirmation letter.",
+        "DP checklists: field arrival on the bridge and in the engine room, DP watch handover, leaving the field. Choose the operation and the DP status (Green, Advisory, Yellow, Red), answer each item Yes / No / N/A (\"All yes\", then change what is not), add remarks and sign. A signed checklist is never changed; open it for the PDF.",
+        "The checklists the app ships are a starting point from IMCA M 103, IMO MSC.1/Circ.1580 and the MTS DP Operations Guidance — not your vessel's. The officers word them to the DP Operations Manual and the ASOG (\"Word them…\"): reword, add or remove items, switch one off, add the vessel's own. A checklist signed earlier keeps the words it was signed with.",
+        "DP time: choose the DPO and the day, then Active (in control) or Passive (watching) and tap the half-hours of the watch. A day with 2 hours or more is a DP day. The list below shows each DPO's DP days, active and passive hours.",
+        "Confirmation letter: the letter to the Nautical Institute for a DPO's DP certificate — New Scheme (grey logbook, after 1 January 2015: active and passive dates listed, only active time counts for revalidation) or Old Scheme. Choose the DPO and the period; the company, DP class, GRT and who signs are entered once. The date of birth comes from the crew's personal details on this device. The PDF leaves 35 mm at the top — print it on the company's letterhead, sign and stamp.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Permits to work and risk assessments",
       body: [
@@ -1241,6 +1252,17 @@ const ru: ManualContent = {
         "Для класса не проверяются документы экипажа и часы отдыха. Список проверяет то, что есть в приложении, — это рабочий список, а не чек-лист инспектора.",
         "Handover (ссылка под вердиктом) — отчёт при смене экипажа: что передаётся, кто кому, работы в процессе и заметки сменщику, всё просроченное сейчас и что наступит в ближайшие 30, 60 или 90 дней — один PDF со строками для подписей обоих и капитана. Заметки хранятся на этом устройстве до печати.",
         "Due dates to your calendar сохраняет файл .ics со всеми сроками на год вперёд — сертификаты, оборудование, освидетельствования, учения — как события на весь день с напоминанием за неделю. Откройте его в Outlook, Google или Apple Calendar. После изменения дат сделайте новый файл: Outlook и Apple Calendar передвинут уже добавленные события, Google добавит файл заново.",
+      ],
+    },
+    {
+      emoji: '🎯',
+      title: "Динамическое позиционирование (Dynamic positioning)",
+      body: [
+        "Dynamic positioning (меню → Dynamic positioning) — три страницы: DP checklists, DP time и Confirmation letter.",
+        "DP checklists: прибытие на месторождение — мостик и машинное отделение, передача DP-вахты, уход с месторождения. Укажите операцию и DP-статус (Green, Advisory, Yellow, Red), ответьте на каждый пункт Yes / No / N/A («All yes», затем поменяйте то, что не так), добавьте замечания и подпишите. Подписанный чеклист не меняется; откройте его для PDF.",
+        "Чеклисты в приложении — отправная точка по IMCA M 103, IMO MSC.1/Circ.1580 и MTS DP Operations Guidance, а не ваши. Офицеры приводят их к DP Operations Manual и ASOG судна («Word them…»): переформулировать, добавить или убрать пункты, выключить чеклист, добавить свой. Подписанный раньше чеклист сохраняет слова, под которыми его подписали.",
+        "DP time: выберите DPO и день, затем Active (управляет) или Passive (наблюдает) и отметьте получасы вахты. День с 2 часами и больше — DP-день. Ниже список: DP-дни каждого DPO, часы активные и пассивные.",
+        "Confirmation letter: письмо в Nautical Institute для DP-сертификата DPO — New Scheme (серый логбук, после 1 января 2015: перечислены активные и пассивные даты, для ревалидации считается только активное время) или Old Scheme. Выберите DPO и период; компания, DP-класс, GRT и подписант вводятся один раз. Дата рождения берётся из личных данных экипажа на этом устройстве. В PDF сверху оставлено 35 мм — печатайте на бланке компании, подпишите и поставьте печать.",
       ],
     },
     {
@@ -1863,6 +1885,17 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🎯',
+      title: "Posicionamiento dinámico (Dynamic positioning)",
+      body: [
+        "Dynamic positioning (menú → Dynamic positioning) tiene tres páginas: DP checklists, DP time y Confirmation letter.",
+        "DP checklists: llegada al campo en el puente y en la sala de máquinas, relevo de la guardia DP, salida del campo. Elija la operación y el estado DP (Green, Advisory, Yellow, Red), responda cada punto Yes / No / N/A («All yes» y luego cambie lo que no), añada observaciones y firme. Un checklist firmado no se cambia; ábralo para el PDF.",
+        "Los checklists de la app son un punto de partida según IMCA M 103, OMI MSC.1/Circ.1580 y la guía MTS DP Operations, no los de su buque. Los oficiales los adaptan al DP Operations Manual y al ASOG («Word them…»): reformular, añadir o quitar puntos, desactivar uno, añadir los propios. Un checklist firmado antes conserva las palabras con que se firmó.",
+        "DP time: elija el DPO y el día, luego Active (en control) o Passive (vigilando) y marque las medias horas de la guardia. Un día con 2 horas o más es un día DP. Abajo, los días DP de cada DPO y sus horas activas y pasivas.",
+        "Confirmation letter: la carta al Nautical Institute para el certificado DP de un DPO — New Scheme (libro gris, después del 1 de enero de 2015: fechas activas y pasivas; para la revalidación solo cuenta el tiempo activo) u Old Scheme. Elija el DPO y el periodo; la empresa, la clase DP, el GRT y quién firma se introducen una vez. La fecha de nacimiento sale de los datos personales de la tripulación en este dispositivo. El PDF deja 35 mm arriba: imprímalo en papel con membrete de la empresa, firme y selle.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Permisos de trabajo y evaluaciones de riesgo",
       body: [
@@ -2482,6 +2515,17 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🎯',
+      title: "Динамічне позиціонування (Dynamic positioning)",
+      body: [
+        "Dynamic positioning (меню → Dynamic positioning) — три сторінки: DP checklists, DP time і Confirmation letter.",
+        "DP checklists: прибуття на родовище — місток і машинне відділення, передача DP-вахти, вихід з родовища. Вкажіть операцію та DP-статус (Green, Advisory, Yellow, Red), дайте відповідь на кожен пункт Yes / No / N/A («All yes», потім змініть те, що не так), додайте зауваження й підпишіть. Підписаний чеклист не змінюється; відкрийте його для PDF.",
+        "Чеклисти в застосунку — відправна точка за IMCA M 103, IMO MSC.1/Circ.1580 і MTS DP Operations Guidance, а не ваші. Офіцери приводять їх до DP Operations Manual і ASOG судна («Word them…»): переформулювати, додати чи прибрати пункти, вимкнути чеклист, додати свій. Підписаний раніше чеклист зберігає слова, під якими його підписали.",
+        "DP time: виберіть DPO і день, потім Active (керує) або Passive (спостерігає) і позначте півгодини вахти. День із 2 годинами й більше — DP-день. Нижче — DP-дні кожного DPO, активні й пасивні години.",
+        "Confirmation letter: лист до Nautical Institute для DP-сертифіката DPO — New Scheme (сірий логбук, після 1 січня 2015: перелічені активні й пасивні дати, для ревалідації рахується лише активний час) або Old Scheme. Виберіть DPO і період; компанія, DP-клас, GRT і підписант вводяться один раз. Дата народження береться з особистих даних екіпажу на цьому пристрої. У PDF зверху залишено 35 мм — друкуйте на бланку компанії, підпишіть і поставте печатку.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Дозволи на роботу та оцінка ризиків",
       body: [
@@ -2543,6 +2587,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Board', module: 'board' },
   { title: 'Surveys & audits', module: 'surveys' },
   { title: 'Inspection readiness', module: 'readiness' },
+  { title: 'Dynamic positioning', module: 'dp' },
   { title: 'Security (ISPS)', module: 'security' },
   // Paragraphs of a live section about a page that ships dark (15 Oct 2026).
   { title: 'Security (ISPS)', module: 'searches', drop: [6] },

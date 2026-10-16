@@ -66,6 +66,10 @@ export const MED_MOVES_KEY = `${PREFIX}med_moves`;
 export const MED_TREATMENTS_KEY = `${PREFIX}med_treatments`;
 export const PASSENGERS_KEY = `${PREFIX}passengers`;
 export const SAFETY_MEETINGS_KEY = `${PREFIX}safety_meetings`;
+export const DP_CHECKS_KEY = `${PREFIX}dp_checks`;
+export const DP_DAYS_KEY = `${PREFIX}dp_days`;
+export const DP_INFO_KEY = `${PREFIX}dp_info`;
+export const DP_TEMPLATES_KEY = `${PREFIX}dp_templates`;
 export const STORE_ITEMS_KEY = `${PREFIX}store_items`;
 export const STORE_MOVES_KEY = `${PREFIX}store_moves`;
 export const STORE_ROOMS_KEY = `${PREFIX}store_rooms`;
@@ -758,6 +762,10 @@ export async function resetAllData(): Promise<void> {
     MED_TREATMENTS_KEY,
     PASSENGERS_KEY,
     SAFETY_MEETINGS_KEY,
+    DP_CHECKS_KEY,
+    DP_DAYS_KEY,
+    DP_INFO_KEY,
+    DP_TEMPLATES_KEY,
     STORE_ITEMS_KEY,
     STORE_MOVES_KEY,
     STORE_ROOMS_KEY,

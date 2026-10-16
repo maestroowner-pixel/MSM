@@ -233,6 +233,20 @@ await t(false, 'The shore cannot read a passenger\'s documents', getDoc(R(shore,
 await t(false, 'A guest\'s crossing never carries the full name', setDoc(R(crew, 'crew_moves', 'mvp0'), { id: 'mvp0', crewId: 'pax1', name: 'Sophie Martin', dir: 'ashore', date: '2026-10-13', time: '10:00', at: 1, by: 'Max', via: 'qr', updatedAt: 1 }));
 await t(true, 'The watch records a passenger going ashore', setDoc(R(crew, 'crew_moves', 'mvp1'), { id: 'mvp1', crewId: 'pax1', name: 'S…n', dir: 'ashore', date: '2026-10-13', time: '10:00', at: 1, by: 'Max', via: 'qr', updatedAt: 1 }));
 
+// Dynamic positioning.
+const DPC = { id: 'dpc1', templateId: 'dp.handover', title: 'DP watch handover', where: 'bridge', at: 1, lines: [{ id: 'dp.handover.01', text: 'DP status' }], results: { 'dp.handover.01': 'pass' }, by: 'Max', updatedAt: 1 };
+await t(true, 'Crew (a DPO) sign a DP checklist', setDoc(R(crew, 'dp_checks', 'dpc1'), DPC));
+await t(false, 'A signed DP checklist cannot be changed — even by the Master', setDoc(R(master, 'dp_checks', 'dpc1'), { ...DPC, results: { 'dp.handover.01': 'fail' }, updatedAt: 2 }));
+await t(false, 'Nobody deletes a DP checklist', deleteDoc(R(master, 'dp_checks', 'dpc1')));
+await t(true, 'A DPO enters his DP time', setDoc(R(crew, 'dp_days', 'c1_2026-10-16'), { id: 'c1_2026-10-16', crewId: 'c1', name: 'Max', date: '2026-10-16', slots: [1, 1, 1, 1], updatedAt: 1 }));
+await t(true, 'and corrects it', setDoc(R(crew, 'dp_days', 'c1_2026-10-16'), { id: 'c1_2026-10-16', crewId: 'c1', name: 'Max', date: '2026-10-16', slots: [1, 1, 2, 2], updatedAt: 2 }));
+await t(false, 'DP time is not deleted', deleteDoc(R(master, 'dp_days', 'c1_2026-10-16')));
+await t(false, 'Crew cannot change the letter\'s company details', setDoc(R(crew, 'dp_info', 'info'), { id: 'info', company: 'X', updatedAt: 1 }));
+await t(true, 'An Officer sets them', setDoc(R(officer, 'dp_info', 'info'), { id: 'info', company: 'Ocean Co', updatedAt: 1 }));
+await t(false, 'Crew cannot reword the DP checklists', setDoc(R(crew, 'dp_templates', 'dp.handover'), { id: 'dp.handover', title: 'x', lines: [], updatedAt: 1 }));
+await t(true, 'An Officer rewords them', setDoc(R(officer, 'dp_templates', 'dp.handover'), { id: 'dp.handover', title: 'Our handover', lines: [], updatedAt: 1 }));
+await t(true, 'Crew read the DP checklists', getDoc(R(crew, 'dp_templates', 'dp.handover')));
+
 const SM = { id: 'sm1', no: 'SM-2026-001', date: '2026-10-13', agenda: [], attendance: [{ name: 'Max', present: true }], carried: [], actions: [], plannedBy: 'Jez', updatedAt: 1 };
 await t(true, 'An Officer writes the safety meeting', setDoc(R(officer, 'safety_meetings', 'sm1'), SM));
 await t(true, 'Crew sign their attendance line', setDoc(R(crew, 'safety_meetings', 'sm1'), { ...SM, attendance: [{ name: 'Max', present: true, signedAt: 5 }], updatedAt: 2 }));

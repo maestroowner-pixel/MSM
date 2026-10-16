@@ -26,6 +26,7 @@ import { NonConformity, SafetyObservation } from '../types/safety';
 import { Drill } from '../types/drills';
 import { Passenger, PassengerPrivate } from '../types/passengers';
 import { SafetyMeeting } from '../types/meetings';
+import { DpCheck, DpDay, DpInfo, DpTemplate } from '../types/dp';
 import { StoreItem, StoreMove, StoreRoom } from '../types/stores';
 import { OfficerDoc } from '../types/officerDocs';
 import type { DrillYearPlan } from '../services/drillPlan';
@@ -156,6 +157,11 @@ interface DataContextType {
   medTreatments: MedTreatment[];
   passengers: Passenger[];
   safetyMeetings: SafetyMeeting[];
+  /** Dynamic positioning (types/dp.ts). */
+  dpChecks: DpCheck[];
+  dpDays: DpDay[];
+  dpInfo: DpInfo | null;
+  dpTemplates: DpTemplate[];
   storeItems: StoreItem[];
   storeMoves: StoreMove[];
   /** The vessel's own stores and the built-in ones as renamed — storeRooms() puts them in order. */
@@ -290,6 +296,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [medTreatments, setMedTreatments] = useState<MedTreatment[]>([]);
   const [passengers, setPassengers] = useState<Passenger[]>([]);
   const [safetyMeetings, setSafetyMeetings] = useState<SafetyMeeting[]>([]);
+  const [dpChecks, setDpChecks] = useState<DpCheck[]>([]);
+  const [dpDays, setDpDays] = useState<DpDay[]>([]);
+  const [dpInfo, setDpInfo] = useState<DpInfo | null>(null);
+  const [dpTemplates, setDpTemplates] = useState<DpTemplate[]>([]);
   const [storeItems, setStoreItems] = useState<StoreItem[]>([]);
   const [storeMoves, setStoreMoves] = useState<StoreMove[]>([]);
   const [storeRoomList, setStoreRoomList] = useState<StoreRoom[]>([]);
@@ -386,6 +396,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _medTreatments = await storage.loadList<MedTreatment>(storage.MED_TREATMENTS_KEY);
     const _passengers = (await storage.loadList<Passenger>(storage.PASSENGERS_KEY)).filter((x) => !x.deleted);
     const _safetyMeetings = (await storage.loadList<SafetyMeeting>(storage.SAFETY_MEETINGS_KEY)).filter((x) => !x.deleted);
+    const _dpChecks = await storage.loadList<DpCheck>(storage.DP_CHECKS_KEY);
+    const _dpDays = (await storage.loadList<DpDay>(storage.DP_DAYS_KEY)).filter((x) => !x.deleted);
+    const _dpInfo = (await storage.loadList<DpInfo>(storage.DP_INFO_KEY)).find((x) => x.id === 'info') ?? null;
+    const _dpTemplates = await storage.loadList<DpTemplate>(storage.DP_TEMPLATES_KEY);
     const _storeItems = (await storage.loadList<StoreItem>(storage.STORE_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order);
     const _storeMoves = await storage.loadList<StoreMove>(storage.STORE_MOVES_KEY);
     const _storeRooms = await storage.loadList<StoreRoom>(storage.STORE_ROOMS_KEY);
@@ -453,6 +467,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMedTreatments(_medTreatments);
     setPassengers(_passengers);
     setSafetyMeetings(_safetyMeetings);
+    setDpChecks(_dpChecks);
+    setDpDays(_dpDays);
+    setDpInfo(_dpInfo);
+    setDpTemplates(_dpTemplates);
     setStoreItems(_storeItems);
     setStoreMoves(_storeMoves);
     setStoreRoomList(_storeRooms);
@@ -667,6 +685,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _medTreatments = await storage.loadList<MedTreatment>(storage.MED_TREATMENTS_KEY);
     const _passengers = (await storage.loadList<Passenger>(storage.PASSENGERS_KEY)).filter((x) => !x.deleted);
     const _safetyMeetings = (await storage.loadList<SafetyMeeting>(storage.SAFETY_MEETINGS_KEY)).filter((x) => !x.deleted);
+    const _dpChecks = await storage.loadList<DpCheck>(storage.DP_CHECKS_KEY);
+    const _dpDays = (await storage.loadList<DpDay>(storage.DP_DAYS_KEY)).filter((x) => !x.deleted);
+    const _dpInfo = (await storage.loadList<DpInfo>(storage.DP_INFO_KEY)).find((x) => x.id === 'info') ?? null;
+    const _dpTemplates = await storage.loadList<DpTemplate>(storage.DP_TEMPLATES_KEY);
     const _storeItems = (await storage.loadList<StoreItem>(storage.STORE_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order);
     const _storeMoves = await storage.loadList<StoreMove>(storage.STORE_MOVES_KEY);
     const _storeRooms = await storage.loadList<StoreRoom>(storage.STORE_ROOMS_KEY);
@@ -725,6 +747,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMedTreatments(_medTreatments);
     setPassengers(_passengers);
     setSafetyMeetings(_safetyMeetings);
+    setDpChecks(_dpChecks);
+    setDpDays(_dpDays);
+    setDpInfo(_dpInfo);
+    setDpTemplates(_dpTemplates);
     setStoreItems(_storeItems);
     setStoreMoves(_storeMoves);
     setStoreRoomList(_storeRooms);
@@ -1002,6 +1028,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         medTreatments,
         passengers,
         safetyMeetings,
+        dpChecks,
+        dpDays,
+        dpInfo,
+        dpTemplates,
         storeItems,
         storeMoves,
         storeRoomList,

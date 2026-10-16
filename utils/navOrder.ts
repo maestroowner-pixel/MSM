@@ -28,7 +28,7 @@ export interface MenuGroup {
 }
 
 export const MENU_GROUPS: MenuGroup[] = [
-  { key: 'ops', label: 'Inspections & maintenance', routes: ['Dashboard', 'Equipment', 'Rounds', 'Maintenance', 'Spares', 'Stores', 'Readiness', 'Reports'] },
+  { key: 'ops', label: 'Inspections & maintenance', routes: ['Dashboard', 'Equipment', 'Rounds', 'Maintenance', 'Spares', 'Stores', 'Readiness', 'Dp', 'Reports'] },
   { key: 'env', label: 'Environment', routes: ['Fuel', 'OilRecord', 'Garbage', 'Sewage', 'Ballast', 'Sopep'] },
   { key: 'security', label: 'Safety & security', routes: ['Drills', 'Safety', 'Security'] },
   { key: 'crew', label: 'Crew', routes: ['Crew', 'Passengers', 'CrewMatrix', 'HoursOfRest', 'Hospital'] },
@@ -84,6 +84,11 @@ export const MENU_CHILDREN: Record<string, MenuChild[]> = {
     { view: 'docs', label: 'SOPEP docs', icon: 'file-lock-outline', officers: true },
   ],
   // Every drill in one place: the schedule, and the SOPEP and ISPS drills kept on their own pages.
+  Dp: [
+    { view: 'checklists', label: 'DP checklists', icon: 'clipboard-check-outline' },
+    { view: 'time', label: 'DP time', icon: 'timer-outline' },
+    { view: 'letter', label: 'Confirmation letter', icon: 'email-outline' },
+  ],
   Drills: [
     { view: 'list', label: 'Drills & schedule', icon: 'format-list-checks' },
     { view: 'calendar', label: 'Drill calendar', icon: 'calendar-month-outline' },
@@ -141,6 +146,7 @@ export const MENU_LABEL: Record<string, string> = {
   Security: 'Security (ISPS)',
   Surveys: 'Surveys & audits',
   Readiness: 'Inspection readiness',
+  Dp: 'Dynamic positioning',
   Safety: 'Safety observations & NC',
   Drills: 'Drills',
   Hospital: 'Hospital',

@@ -40,6 +40,7 @@ import { Drill } from '../types/drills';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 import { Passenger, PassengerPrivate } from '../types/passengers';
 import { SafetyMeeting } from '../types/meetings';
+import { DpCheck, DpDay, DpInfo, DpTemplate } from '../types/dp';
 import { StoreItem, StoreMove, StoreRoom } from '../types/stores';
 import { OfficerDoc } from '../types/officerDocs';
 import type { DrillYearPlan } from './drillPlan';
@@ -101,6 +102,7 @@ export interface BackupFile {
   hospital?: { items: MedItem[]; moves: MedMove[]; treatments: MedTreatment[]; orders?: MedOrder[]; checks?: MedCheck[] };
   passengers?: { list: Passenger[]; private?: PassengerPrivate[] };
   safetyMeetings?: SafetyMeeting[];
+  dp?: { checks: DpCheck[]; days: DpDay[]; info: DpInfo[]; templates: DpTemplate[] };
   stores?: { items: StoreItem[]; moves: StoreMove[]; rooms?: StoreRoom[] };
   security?: { visitors: Visitor[]; levels: SecurityLevelRec[]; drills?: SecurityDrill[]; crewMoves?: CrewMove[]; ssp?: OfficerDoc[]; searchPlan?: SearchPlan[]; searches?: SecuritySearch[] };
   files?: Record<string, string>; // basename -> base64 of the file contents
@@ -229,6 +231,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   const drills = await storage.loadList<Drill>(storage.DRILLS_KEY);
   const drillPlans = await storage.loadList<DrillYearPlan>(storage.DRILL_PLANS_KEY);
   const safetyMeetings = await storage.loadList<SafetyMeeting>(storage.SAFETY_MEETINGS_KEY);
+  const dp = { checks: await storage.loadList<DpCheck>(storage.DP_CHECKS_KEY), days: await storage.loadList<DpDay>(storage.DP_DAYS_KEY), info: await storage.loadList<DpInfo>(storage.DP_INFO_KEY), templates: await storage.loadList<DpTemplate>(storage.DP_TEMPLATES_KEY) };
   const stores = { items: await storage.loadList<StoreItem>(storage.STORE_ITEMS_KEY), moves: await storage.loadList<StoreMove>(storage.STORE_MOVES_KEY), rooms: await storage.loadList<StoreRoom>(storage.STORE_ROOMS_KEY) };
   const passengers = { list: await storage.loadList<Passenger>(storage.PASSENGERS_KEY), private: await storage.loadList<PassengerPrivate>(storage.PASSENGERS_PRIVATE_KEY) };
   const hospital = { items: await storage.loadList<MedItem>(storage.MED_ITEMS_KEY), moves: await storage.loadList<MedMove>(storage.MED_MOVES_KEY), treatments: await storage.loadList<MedTreatment>(storage.MED_TREATMENTS_KEY), orders: await storage.loadList<MedOrder>(storage.MED_ORDERS_KEY), checks: await storage.loadList<MedCheck>(storage.MED_CHECKS_KEY) };
@@ -280,6 +283,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     hospital,
     passengers,
     safetyMeetings,
+    dp,
     stores,
     files,
   };
@@ -487,6 +491,12 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
   if (backup.drills) await storage.saveList(storage.DRILLS_KEY, backup.drills);
   if (backup.drillPlans) await storage.saveList(storage.DRILL_PLANS_KEY, backup.drillPlans);
   if (backup.safetyMeetings) await storage.saveList(storage.SAFETY_MEETINGS_KEY, backup.safetyMeetings);
+  if (backup.dp) {
+    await storage.saveList(storage.DP_CHECKS_KEY, backup.dp.checks ?? []);
+    await storage.saveList(storage.DP_DAYS_KEY, backup.dp.days ?? []);
+    await storage.saveList(storage.DP_INFO_KEY, backup.dp.info ?? []);
+    await storage.saveList(storage.DP_TEMPLATES_KEY, backup.dp.templates ?? []);
+  }
   if (backup.stores) {
     await storage.saveList(storage.STORE_ITEMS_KEY, backup.stores.items ?? []);
     await storage.saveList(storage.STORE_MOVES_KEY, backup.stores.moves ?? []);

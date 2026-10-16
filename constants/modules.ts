@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -115,6 +115,8 @@ export const MODULES: Record<ModuleKey, boolean> = {
   readiness: false,
   /** Service report — a station's PDF into the register: dates, remarks, one certificate (services/serviceReport.ts, 16 Oct 2026). */
   serviceReport: false,
+  /** Dynamic positioning — DP checklists, DPOs' DP time, the Nautical Institute confirmation letter (services/dp.ts, 16 Oct 2026). */
+  dp: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------
