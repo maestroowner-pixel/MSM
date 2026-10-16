@@ -477,6 +477,10 @@ export default function DpCheckSc() {
             <Text style={styles.modalTitle}>{c.lines.find((l) => l.id === sketchFor)?.text ?? 'Schematic'}</Text>
             <SignaturePad big hint="Own vessel, rig, wind and current" value={sketchDraft} onChange={setSketchDraft} boxW={SKETCH_W} boxH={SKETCH_H} />
             <View style={styles.modalBtns}>
+              {/* Undo takes back the last stroke: each starts with M in the path. */}
+              <TouchableOpacity onPress={() => setSketchDraft((d) => d.replace(/M[^M]*$/, ''))} disabled={!sketchDraft} hitSlop={8}>
+                <Text style={[styles.link, !sketchDraft && { opacity: 0.4 }]}>↶ Undo</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => setSketchDraft('')} hitSlop={8}>
                 <Text style={[styles.link, { color: COLORS.danger }]}>Clear</Text>
               </TouchableOpacity>
