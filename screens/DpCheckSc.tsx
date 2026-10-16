@@ -526,7 +526,7 @@ const makeStyles = (COLORS: Palette) =>
     readLabel: { minWidth: 60, color: COLORS.text, fontSize: SIZES.small, fontWeight: '600' },
     unit: { color: COLORS.textLight, fontSize: SIZES.small, minWidth: 14 },
     cell: { width: 58, marginBottom: 0, paddingVertical: 6, paddingHorizontal: SIZES.sm, textAlign: 'center' },
-    valueInput: { flexGrow: 1, flexBasis: 120, marginBottom: 0, paddingVertical: 6 },
+    valueInput: { width: 160, marginBottom: 0, paddingVertical: 6 },
     headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', marginTop: SIZES.md },
     line: { ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.sm, marginBottom: SIZES.xs, borderWidth: 1, borderColor: 'transparent' },
     lineText: { color: COLORS.text },
