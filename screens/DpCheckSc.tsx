@@ -8,7 +8,7 @@
 // by the app, shown in ship's time and UTC, not typed.
 // ===================================
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
@@ -33,6 +33,7 @@ import { PositionInput } from '../components/PositionInput';
 import { shipAndUtc } from '../utils/shipTime';
 import { exportDpCheckPdf } from '../services/dpReport';
 import { archived } from '../services/dpArchive';
+import { clearDraft, loadDraft, saveDraft } from '../services/dpDraft';
 import { AsogStatus, DpCheck, DpConditions, DpLine, DpResult } from '../types/dp';
 
 // As the paper checklist lays them out: a value, then its direction, each with
@@ -91,6 +92,56 @@ export default function DpCheckSc() {
   // The same cells as the record books (Ballast, Garbage, Log book): deg, min, N/S · deg, min, E/W.
   const [posT, setPosT] = useState('');
   const [saved, setSaved] = useState<string | null>(null);
+
+  // The draft: what is filled in is kept on the device as it is typed, and offered
+  // back when this checklist is opened again unsaved (16 Oct 2026). Signatures are
+  // not part of it.
+  const draftId = done ? undefined : (route.params?.templateId as string | undefined);
+  const draftReady = useRef(false);
+  useEffect(() => {
+    if (!draftId) return;
+    let live = true;
+    void loadDraft(draftId).then((d) => {
+      if (!live) return;
+      if (!d) {
+        draftReady.current = true;
+        return;
+      }
+      const when = new Date(d.at).toISOString().slice(0, 16).replace('T', ' ');
+      Alert.alert('Unsaved checklist', `This checklist was filled in on this device and not signed (${when} UTC). Restore it?`, [
+        {
+          text: 'Start new',
+          style: 'destructive',
+          onPress: () => {
+            void clearDraft(draftId);
+            draftReady.current = true;
+          },
+        },
+        {
+          text: 'Restore',
+          onPress: () => {
+            setOperation(d.operation);
+            setUnit(d.unit);
+            setCond(d.cond);
+            setPosT(d.posT);
+            setAsog(d.asog);
+            setResults(d.results);
+            setValues(d.values);
+            setRemarks(d.remarks);
+            draftReady.current = true;
+          },
+        },
+      ]);
+    });
+    return () => {
+      live = false;
+    };
+  }, [draftId]);
+  useEffect(() => {
+    if (!draftId || !draftReady.current) return;
+    const t = setTimeout(() => void saveDraft(draftId, { operation, unit, cond, posT, asog, results, values, remarks }), 500);
+    return () => clearTimeout(t);
+  }, [draftId, operation, unit, cond, posT, asog, results, values, remarks]);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     if (done) return;
@@ -142,6 +193,8 @@ export default function DpCheckSc() {
       // Firestore takes no undefined.
       for (const k of Object.keys(rec) as (keyof DpCheck)[]) if (rec[k] === undefined) delete rec[k];
       await saveRow(storage.DP_CHECKS_KEY, rec);
+      draftReady.current = false;
+      await clearDraft(c.templateId);
       nav.replace('DpCheck', { id: rec.id });
     };
     const warn = [o.open ? `${o.open} not answered` : '', o.fail ? `${o.fail} answered No` : ''].filter(Boolean).join(', ');
