@@ -28,7 +28,7 @@ import { moduleOn } from '../constants/modules';
 import * as storage from '../services/storage';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
-import { ASOG_LABEL, answerIsBad, cellKey, checkOutcome, formatCell, isOther, otherKey, sectionCols, conditionsText, positionFromText, positionText, templatesNow } from '../services/dp';
+import { ASOG_LABEL, answerIsBad, cellKey, checkOutcome, hasCell, formatCell, isOther, otherKey, sectionCols, conditionsText, positionFromText, positionText, templatesNow } from '../services/dp';
 import { PositionInput } from '../components/PositionInput';
 import { shipAndUtc } from '../utils/shipTime';
 import { exportDpCheckPdf } from '../services/dpReport';
@@ -286,6 +286,7 @@ export default function DpCheckSc() {
                           <Text style={[styles.tdName, { width: nameW }]}>{l.text}</Text>
                           {cols.map((col, ci) => {
                             const k = cellKey(l.id, ci);
+                            if (!hasCell(l, col)) return <View key={ci} style={{ width: colWidth(col) }} />;
                             if (!col.options) {
                               return ro ? (
                                 <Text key={ci} style={[{ width: colWidth(col) }, styles.tdText]}>{c.values?.[k] || '—'}</Text>

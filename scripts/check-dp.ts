@@ -1,5 +1,5 @@
 // npm run check:dp — DP checklists keep their line ids; DP days count as SDM counts them; the letter says what the log says.
-import { DP_TEMPLATES, formatCell, otherKey, answerText, cellKey, sectionCols, buildLetter, checkOutcome, conditionsText, coordText, dayId, positionFromText, lineSource, parseCoord, parseLine, positionText, dpoTotals, emptySlots, hours, isDpDay, letterHtml, linesFromText, setRange, templatesNow } from '../services/dp';
+import { DP_TEMPLATES, hasCell, rowCells, formatCell, otherKey, answerText, cellKey, sectionCols, buildLetter, checkOutcome, conditionsText, coordText, dayId, positionFromText, lineSource, parseCoord, parseLine, positionText, dpoTotals, emptySlots, hours, isDpDay, letterHtml, linesFromText, setRange, templatesNow } from '../services/dp';
 import { DpDay } from '../types/dp';
 import { isOfficerRank } from '../types/crew';
 
@@ -55,6 +55,10 @@ const sw = parseLine('## > Swell | Direction (deg) | Height (m) [0.0]');
 ok(sw.beside === true && sw.cols?.[1].name === 'Height (m)' && sw.cols?.[1].format === '0.0' && lineSource(sw) === '## > Swell | Direction (deg) | Height (m) [0.0]' && formatCell('1,25', '0.0') === '1.3' && formatCell('2', '0.0') === '2.0' && formatCell('n/a', '0.0') === 'n/a', 'swell height to one decimal; table beside');
 
 ok(['Master', 'Chief Officer', '2/O', 'Third Officer', 'SDPO', 'DPO', 'Chief Engineer', '2nd Engineer', 'ETO', 'Chief Mate'].every(isOfficerRank) && !['Bosun', 'AB', 'Cook', 'Deck Cadet', 'Engine Cadet', 'Motorman', 'Oiler', ''].some(isOfficerRank), 'officers by rank sign DP checklists; ratings and cadets do not');
+
+const dg = parseLine('DGPS 1 -[Beacon No.] -[Mode]');
+const rs = DP_TEMPLATES.find((x) => x.id === 'dp.handover')!.lines.find((l) => l.text === 'Reference system settings')!;
+ok(dg.text === 'DGPS 1' && dg.skip?.join('|') === 'Beacon No.|Mode' && lineSource(dg) === 'DGPS 1 -[Beacon No.] -[Mode]' && rs.cols!.map((c) => c.name).join('|') === 'Setting|Beacon No.|Value (%)|Mode' && !hasCell(dg as any, rs.cols![3]) && hasCell(dg as any, rs.cols![2]) && rowCells({ id: 'd', ...dg }, rs.cols!, { results: {}, values: {} })[3] === ' ', 'DGPS has no mode or beacon; Mode is the last column');
 
 // Position.
 ok(parseCoord('57 12.345 N', 'lat') === 57.20575 && parseCoord("001°23.456'W", 'lon') === -1.390933 && parseCoord('-33.5', 'lat') === -33.5, 'lat/lon: deg-min with hemisphere, decimal');

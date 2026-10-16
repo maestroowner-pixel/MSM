@@ -76,6 +76,12 @@ export function parseLine(raw: string): Omit<DpLine, 'id'> {
     return { text: title, head: true, ...(cols.length ? { cols } : {}), ...(beside ? { beside } : {}) };
   }
   const out: Omit<DpLine, 'id'> = { text: '' };
+  // "-[Mode]": no cell in that column for this row.
+  const skip = [...s.matchAll(/-\[([^\]]+)\]/g)].map((m) => m[1].trim());
+  if (skip.length) {
+    out.skip = skip;
+    s = s.replace(/-\[[^\]]+\]/g, ' ');
+  }
   const opt = /\{([^}]*)\}/.exec(s);
   if (opt) {
     const o = opts(opt[1]);
@@ -100,7 +106,7 @@ export const lineSource = (l: Omit<DpLine, 'id'>): string =>
     ? `@${l.kind} ${l.text}`
     : l.head
     ? `## ${l.beside ? '> ' : ''}${l.text}${(l.cols ?? []).map((c) => ` | ${c.name}${optSource(c.options, c.bad)}${c.format ? ` [${c.format}]` : ''}`).join('')}`
-    : `${l.text}${optSource(l.options, l.bad)}${l.value ? ` [${l.value}]` : ''}`;
+    : `${l.text}${optSource(l.options, l.bad)}${l.value ? ` [${l.value}]` : ''}${(l.skip ?? []).map((x) => ` -[${x}]`).join('')}`;
 
 /** The table a line sits in — the columns of the last heading above it, if that heading has any. */
 export function sectionCols(lines: DpLine[]): Map<string, DpCol[] | undefined> {
@@ -268,15 +274,15 @@ const HANDOVER: string[] = [
   'Bus tie 5',
   'Bus tie 6',
   // Mode is for Fanbeam (fixed / relative) and HiPAP (SSBL, LBL…); Beacon No. for HiPAP; Value is the weight, in %.
-  '## Reference system settings | Setting {Enable|Disable|Monitor} | Mode | Beacon No. | Value (%)',
-  'DGPS 1',
-  'DGPS 2',
-  'DGPS 3',
-  'DGPS 4',
+  '## Reference system settings | Setting {Enable|Disable|Monitor} | Beacon No. | Value (%) | Mode',
+  'DGPS 1 -[Beacon No.] -[Mode]',
+  'DGPS 2 -[Beacon No.] -[Mode]',
+  'DGPS 3 -[Beacon No.] -[Mode]',
+  'DGPS 4 -[Beacon No.] -[Mode]',
   'HiPAP 1',
   'HiPAP 2',
-  'Fanbeam',
-  'LTW',
+  'Fanbeam -[Beacon No.]',
+  'LTW -[Beacon No.] -[Mode]',
   '## Reference system details',
   'Fanbeam range (m) / bearing (deg) [range / bearing]',
   'Weight {Normal|Reduced GPS}',
@@ -431,8 +437,11 @@ export function answerText(l: DpLine, c: Pick<DpCheck, 'results' | 'values'>): s
 }
 
 /** A table row's cells as they print. */
+/** Does this row have a cell in that column? */
+export const hasCell = (l: DpLine, col: DpCol) => !(l.skip ?? []).some((x) => x.toLowerCase() === col.name.toLowerCase());
+
 export const rowCells = (l: DpLine, cols: DpCol[], c: Pick<DpCheck, 'results' | 'values'>) =>
-  cols.map((col, i) => (col.options ? withOther(c.results[cellKey(l.id, i)], cellKey(l.id, i), c) : c.values?.[cellKey(l.id, i)]?.trim()) || '');
+  cols.map((col, i) => !hasCell(l, col) ? ' ' : (col.options ? withOther(c.results[cellKey(l.id, i)], cellKey(l.id, i), c) : c.values?.[cellKey(l.id, i)]?.trim()) || '');
 
 export const ASOG_LABEL: Record<AsogStatus, string> = { green: 'Green', blue: 'Advisory', yellow: 'Yellow', red: 'Red' };
 

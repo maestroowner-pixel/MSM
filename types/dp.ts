@@ -38,6 +38,8 @@ export interface DpLine {
    * "Noise"). A cell with options is chosen, without them it is written.
    */
   cols?: DpCol[];
+  /** In a table: the columns this row has no cell in ("DGPS 1 -[Mode]" — a DGPS has no mode). */
+  skip?: string[];
   /** On a heading: the section sits beside the one before it ("## > Alarm limits"). */
   beside?: boolean;
   /**
