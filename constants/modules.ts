@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -113,6 +113,8 @@ export const MODULES: Record<ModuleKey, boolean> = {
   ssp: false,
   /** Inspection readiness — what PSC / flag / class would find on a date (services/readiness.ts). */
   readiness: false,
+  /** Service report — a station's PDF into the register: dates, remarks, one certificate (services/serviceReport.ts, 16 Oct 2026). */
+  serviceReport: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------

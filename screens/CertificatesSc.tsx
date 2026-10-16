@@ -14,6 +14,7 @@ import { HelpButton } from '../components/HelpButton';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
+import { useSync } from '../contexts/SyncContext';
 import { statusFromDate, formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { Certificate, CertificateScope, scopeOf } from '../types/certificate';
@@ -27,6 +28,9 @@ import { todayIso } from '../services/pms';
 
 export default function CertificatesSc() {
   const { certificates, crew } = useData();
+  const { modulesRev } = useSync();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const TABS = useMemo(tabsNow, [modulesRev]);
   const route = useRoute<any>();
   const [tab, setTab] = useState<CertificateScope>(
     TABS.some((x) => x.key === route.params?.tab) ? route.params.tab : 'equipment'
@@ -150,6 +154,14 @@ export default function CertificatesSc() {
         />
       ) : null}
 
+      {tab === 'equipment' && moduleOn('serviceReport') ? (
+        <TouchableOpacity onPress={() => nav.navigate('ServiceReport')} style={styles.svcRow} hitSlop={8}>
+          <MciIcon name="file-certificate-outline" size={18} color={COLORS.primary} />
+          <Text style={styles.svcText}>From a service report — the station's PDF sets the items' dates</Text>
+          <MciIcon name="chevron-right" size={18} color={COLORS.primary} />
+        </TouchableOpacity>
+      ) : null}
+
       {tab === 'crew' ? (
         <TouchableOpacity onPress={() => nav.navigate('CrewMatrix')} style={{ alignSelf: 'flex-end', marginBottom: SIZES.sm }} hitSlop={8}>
           <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small }}>Crew matrix ›</Text>
@@ -192,7 +204,9 @@ export default function CertificatesSc() {
 
 // Crew and Vessel ship dark until `crewCerts` is on (constants/modules.ts);
 // with Equipment alone there is nothing to switch between, so no tab row.
-const TABS: { key: CertificateScope; label: string }[] = [
+// A function, not a constant: crewCerts may be switched on for one pilot vessel
+// after this file is loaded (constants/modules.ts, setVesselModules).
+const tabsNow = (): { key: CertificateScope; label: string }[] => [
   { key: 'equipment', label: 'Equipment' },
   ...(moduleOn('crewCerts')
     ? ([
@@ -260,6 +274,8 @@ function CertRow({ item, wide, onPress }: { item: Certificate; wide?: boolean; o
 }
 
 const makeStyles = (COLORS: Palette) => StyleSheet.create({
+  svcRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginBottom: SIZES.sm },
+  svcText: { flex: 1, color: COLORS.primary, fontWeight: '700' },
   tabs: { flexDirection: 'row', gap: SIZES.xs, marginBottom: SIZES.md },
   tab: { flex: 1, paddingVertical: SIZES.sm, borderRadius: SIZES.radiusMd, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center' },
   tabOn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },

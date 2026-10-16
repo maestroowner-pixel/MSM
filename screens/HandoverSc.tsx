@@ -9,7 +9,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
-import { Label, Screen, ScreenTitle } from '../components/ui';
+import { Empty, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
@@ -90,6 +90,9 @@ export default function HandoverSc() {
       />
     </View>
   );
+
+  // Registered for every vessel; a link to it must not open a module this vessel does not have.
+  if (!moduleOn('readiness')) return <Screen><Empty text="Not available on this vessel." /></Screen>;
 
   return (
     <Screen scroll>

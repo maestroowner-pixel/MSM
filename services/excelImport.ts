@@ -498,7 +498,7 @@ const CATEGORY_WORDS: Array<[CategoryKey, RegExp]> = [
   ['sopep', /sopep/i],
 ];
 
-function categoryFromWords(text: string): CategoryKey | null {
+export function categoryFromWords(text: string): CategoryKey | null {
   const t = text.trim();
   if (!t) return null;
   for (const [key, re] of CATEGORY_WORDS) if (re.test(t)) return key;

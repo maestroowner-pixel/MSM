@@ -596,6 +596,7 @@ const en: ManualContent = {
         'Open a certificate to set its number, issue/expiry dates (calendar picker) and attached file, and to link the items it covers.',
         'A certificate carries its own expiry status (red / amber / green), so it appears in your due-soon view.',
         'On an item screen, covering certificates are listed — tap ＋ Link to attach an existing certificate to that item (it is saved straight away). Items covered show a 📜 badge.',
+        "From a service report (on the Equipment tab): attach the PDF or photo the service station sent. The AI reads the certificate number, the station, the dates and the item lines — or type them in. Usually one certificate covers one kind of equipment (extinguishers, EEBD). The app finds the items by serial number or number on board; you check the ticks; Apply sets the next date, adds a line to Remarks and files one certificate with the PDF, linked to those items. Condemned or failed items keep their old date and are marked. The station needs no access to the vessel.",
         "Three tabs: Equipment, Crew and Vessel. Crew certificates belong to a PERSON — STCW, Certificate of Competency, ENG1 / medical, passport, seaman's book, visa. Choose the holder from the crew list and tap a suggested name (or type your own), so the same document is spelt the same way for everyone.",
         "The Crew tab groups certificates by person, with the person whose papers expire first at the top. Settings → Crew shows the same at a glance on each row: \"3 certificates · 1 expired\".",
         "Vessel certificates are the ship's own papers — registry, SMC, DOC, ISSC, MLC, load line, safety equipment, radio, IOPP, class, insurance.",
@@ -1214,6 +1215,7 @@ const ru: ManualContent = {
         'Откройте сертификат, чтобы задать номер, даты выдачи/окончания (через календарь), прикреплённый файл и связать покрываемые позиции.',
         'У сертификата свой статус срока (красный / жёлтый / зелёный), поэтому он попадает в список «скоро истекает».',
         'В карточке позиции перечислены покрывающие её сертификаты — нажмите ＋ Link, чтобы привязать к позиции существующий сертификат (сохраняется сразу). Покрытые позиции отмечены значком 📜.',
+        "Из отчёта станции (From a service report, на вкладке Equipment): приложите PDF или фото, присланные станцией обслуживания. AI прочтёт номер сертификата, станцию, даты и строки по позициям, или впишите это сами. Обычно один сертификат покрывает один вид оборудования (огнетушители, EEBD). Приложение находит позиции по серийному номеру или номеру на борту, вы проверяете галочками, Apply ставит следующую дату, добавляет строку в Remarks и заводит сертификат с PDF, привязанный к этим позициям. Забракованные (condemned) и не прошедшие сохраняют старую дату и получают пометку. Станции доступ к судну не нужен.",
         "Три вкладки: Equipment, Crew и Vessel. Сертификаты экипажа принадлежат ЧЕЛОВЕКУ — STCW, диплом (CoC), медкомиссия ENG1, паспорт, мореходная книжка, виза. Выберите владельца из списка экипажа и нажмите подходящее название (или впишите своё), чтобы один и тот же документ назывался одинаково у всех.",
         "Вкладка Crew группирует сертификаты по людям; выше всех тот, у кого документы истекают раньше. В Settings → Crew то же видно в строке каждого: «3 certificates · 1 expired».",
         "Сертификаты судна — собственные документы корабля: регистрация, SMC, DOC, ISSC, MLC, грузовая марка, safety equipment, радио, IOPP, класс, страховка.",
@@ -1832,6 +1834,7 @@ const es: ManualContent = {
         'Abra un certificado para fijar su número, fechas de emisión/caducidad (con el calendario) y archivo adjunto, y vincular los elementos que cubre.',
         'El certificado tiene su propio estado de caducidad (rojo / ámbar / verde), por lo que aparece en su vista de «próximos a vencer».',
         'En la ficha de un elemento se listan los certificados que lo cubren — pulse ＋ Link para vincular un certificado existente a ese elemento (se guarda al instante). Los elementos cubiertos muestran una insignia 📜.',
+        "Desde un informe de servicio (From a service report, en la pestaña Equipment): adjunte el PDF o la foto que envió la estación de servicio. La IA lee el número de certificado, la estación, las fechas y las líneas por equipo, o escríbalos usted. Normalmente un certificado cubre un tipo de equipo (extintores, EEBD). La app encuentra los equipos por número de serie o número a bordo, usted lo revisa marcando casillas, y Apply pone la próxima fecha, añade una línea en Remarks y registra un certificado con el PDF enlazado a ellos. Los rechazados (condemned) o fallidos conservan su fecha y quedan anotados. La estación no necesita acceso al buque.",
         "Tres pestañas: Equipment, Crew y Vessel. Los certificados de tripulación pertenecen a una PERSONA — STCW, título (CoC), reconocimiento médico ENG1, pasaporte, libreta marítima, visado. Elija el titular de la lista de tripulación y pulse un nombre sugerido (o escriba el suyo), para que el mismo documento se llame igual para todos.",
         "La pestaña Crew agrupa los certificados por persona; arriba, quien tiene documentos que caducan antes. En Settings → Crew se ve lo mismo en cada fila: «3 certificates · 1 expired».",
         "Los certificados del buque son los documentos propios del barco: registro, SMC, DOC, ISSC, MLC, francobordo, equipo de seguridad, radio, IOPP, clase, seguro.",
@@ -2450,6 +2453,7 @@ const uk: ManualContent = {
         'Відкрийте сертифікат, щоб задати номер, дати видачі/закінчення (через календар), прикріплений файл і пов’язати позиції, які він покриває.',
         'Сертифікат має власний статус терміну (червоний / жовтий / зелений), тож потрапляє у список «скоро спливає».',
         'У картці позиції перелічені сертифікати, що її покривають — натисніть ＋ Link, щоб прив’язати до позиції наявний сертифікат (зберігається одразу). Покриті позиції позначені значком 📜.',
+        "Зі звіту станції (From a service report, на вкладці Equipment): додайте PDF чи фото, надіслані станцією обслуговування. AI прочитає номер сертифіката, станцію, дати й рядки по позиціях, або впишіть це самі. Зазвичай один сертифікат покриває один вид обладнання (вогнегасники, EEBD). Застосунок знаходить позиції за серійним номером або номером на борту, ви перевіряєте галочками, Apply ставить наступну дату, додає рядок у Remarks і заводить сертифікат із PDF, прив'язаний до цих позицій. Забраковані (condemned) і ті, що не пройшли, зберігають стару дату й отримують позначку. Станції доступ до судна не потрібен.",
         "Три вкладки: Equipment, Crew і Vessel. Сертифікати екіпажу належать ЛЮДИНІ — STCW, диплом (CoC), медогляд ENG1, паспорт, посвідчення моряка, віза. Оберіть власника зі списку екіпажу й натисніть запропоновану назву (або впишіть свою), щоб той самий документ називався однаково в усіх.",
         "Вкладка Crew групує сертифікати за людьми; вище за всіх той, у кого документи спливають раніше. У Settings → Crew те саме видно в рядку кожного: «3 certificates · 1 expired».",
         "Сертифікати судна — власні документи корабля: реєстрація, SMC, DOC, ISSC, MLC, вантажна марка, safety equipment, радіо, IOPP, клас, страховка.",
@@ -2519,7 +2523,8 @@ export const MANUAL: Record<Lang, ManualContent> = { en, ru, es, uk };
 // existing section (crew certificates in Certificates). The order and length of
 // each section's body are the same in every language.
 const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: number[] }[] = [
-  { title: 'Certificates', module: 'crewCerts', from: 4 },
+  { title: 'Certificates', module: 'crewCerts', from: 5 },
+  { title: 'Certificates', module: 'serviceReport', drop: [4] },
   { title: 'Access — which tabs each device shows', module: 'access' },
   { title: 'Hours of rest', module: 'rest' },
   { title: 'Crew list and certificate matrix', module: 'crewCerts' },
