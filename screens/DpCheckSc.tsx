@@ -32,6 +32,7 @@ import { ASOG_LABEL, answerIsBad, cellKey, checkOutcome, signRoles, hasCell, for
 import { PositionInput } from '../components/PositionInput';
 import { shipAndUtc } from '../utils/shipTime';
 import { exportDpCheckPdf } from '../services/dpReport';
+import { archived } from '../services/dpArchive';
 import { AsogStatus, DpCheck, DpConditions, DpLine, DpResult } from '../types/dp';
 
 // As the paper checklist lays them out: a value, then its direction, each with
@@ -78,7 +79,7 @@ export default function DpCheckSc() {
   const [pickIds, setPickIds] = useState<string[]>(['', '']);
   const [sketchFor, setSketchFor] = useState<string | null>(null);
   const [sketchDraft, setSketchDraft] = useState('');
-  const done = dpChecks.find((c) => c.id === route.params?.id);
+  const done = dpChecks.find((c) => c.id === route.params?.id) ?? archived(route.params?.id);
   const tpl = useMemo(() => templatesNow(dpTemplates).find((x) => x.id === route.params?.templateId), [dpTemplates, route.params?.templateId]);
   const [operation, setOperation] = useState('');
   const [asog, setAsog] = useState<AsogStatus | undefined>(undefined);

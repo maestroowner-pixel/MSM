@@ -24,7 +24,9 @@ import { todayIso } from '../services/pms';
 import { ASOG_LABEL, SLOTS, Scheme, buildLetter, checkOutcome, dayId, dpoTotals, emptySlots, hours, isDpDay, templatesNow, positionText } from '../services/dp';
 import { shipAndUtc } from '../utils/shipTime';
 import { exportDpLetter } from '../services/dpReport';
-import { DpDay, DpInfo, DpSlot } from '../types/dp';
+import { DpCheck, DpDay, DpInfo, DpSlot } from '../types/dp';
+import { loadOlder } from '../services/dpArchive';
+import { DP_KEEP_DAYS } from '../services/firebaseService';
 import { isAboard } from '../types/crew';
 import { roleAtLeast } from '../types/role';
 
@@ -53,7 +55,26 @@ export default function DpSc() {
 
   const today = todayIso();
   const templates = useMemo(() => templatesNow(dpTemplates), [dpTemplates]);
-  const signed = useMemo(() => [...dpChecks].sort((a, b) => b.at - a.at).slice(0, 60), [dpChecks]);
+  const signed = useMemo(() => [...dpChecks].sort((a, b) => b.at - a.at), [dpChecks]);
+  // The archive: checklists older than this device keeps, read from the cloud page by page.
+  const [older, setOlder] = useState<DpCheck[]>([]);
+  const [olderBusy, setOlderBusy] = useState(false);
+  const [olderEnd, setOlderEnd] = useState(false);
+  const [olderErr, setOlderErr] = useState<string | null>(null);
+  const more = async () => {
+    setOlderBusy(true);
+    setOlderErr(null);
+    try {
+      const last = older[older.length - 1];
+      const page = (await loadOlder(last ? last.updatedAt : undefined)).filter((c) => !dpChecks.some((x) => x.id === c.id));
+      setOlder((x) => [...x, ...page]);
+      if (page.length < 40) setOlderEnd(true);
+    } catch (e: any) {
+      setOlderErr(String(e?.message ?? e));
+    } finally {
+      setOlderBusy(false);
+    }
+  };
   const aboard = useMemo(() => crew.filter(isAboard).sort((a, b) => a.name.localeCompare(b.name)), [crew]);
   const totals = useMemo(() => dpoTotals(dpDays), [dpDays]);
 
@@ -157,7 +178,7 @@ export default function DpSc() {
           ) : null}
           <Label style={{ marginTop: SIZES.md }}>Signed</Label>
           {!signed.length ? <Text style={styles.sub}>None yet.</Text> : null}
-          {signed.map((c) => {
+          {[...signed, ...older].map((c) => {
             const o = checkOutcome(c);
             return (
               <TouchableOpacity key={c.id} style={styles.row} onPress={() => nav.navigate('DpCheck', { id: c.id })} activeOpacity={0.7}>
@@ -172,6 +193,15 @@ export default function DpSc() {
               </TouchableOpacity>
             );
           })}
+          {/* Older than a device keeps: from the cloud, on request (firebaseService DP_KEEP_DAYS). */}
+          {sync.enrolled ? (
+            <TouchableOpacity onPress={() => void more()} disabled={olderBusy || olderEnd} style={{ marginVertical: SIZES.sm }}>
+              <Text style={[styles.link, (olderBusy || olderEnd) && { opacity: 0.5 }]}>
+                {olderBusy ? 'Loading…' : olderEnd ? (older.length ? 'No older checklists' : `No checklists older than ${DP_KEEP_DAYS} days`) : older.length ? 'More from the cloud →' : `Older than ${DP_KEEP_DAYS} days — from the cloud →`}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+          {olderErr ? <Text style={[styles.sub, { color: COLORS.danger }]}>{olderErr}</Text> : null}
         </>
       ) : null}
 

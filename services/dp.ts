@@ -579,6 +579,15 @@ export function conditionsText(c?: DpConditions): string {
 
 export const positionText = (p?: DpPosition) => (p && Number.isFinite(p.lat) && Number.isFinite(p.lon) ? `${coordText(p.lat, 'lat')} ${coordText(p.lon, 'lon')}` : '—');
 
+/**
+ * What a device keeps of a kept-for-days list (firebaseService keepDays): every
+ * record from the cutoff on, and any older one not yet known to be in the cloud
+ * (`sent` — id → updatedAt pushed). Pure.
+ */
+export function keepRecent<T extends { id: string; updatedAt: number; at?: number }>(list: T[], sent: Record<string, number>, cutoff: number): T[] {
+  return list.filter((r) => (r.at ?? r.updatedAt ?? 0) >= cutoff || (sent[r.id] ?? -1) < (r.updatedAt ?? 0));
+}
+
 // ---- DP time -------------------------------------------------------------------
 
 export const SLOTS = 48;

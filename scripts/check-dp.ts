@@ -1,5 +1,5 @@
 // npm run check:dp — DP checklists keep their line ids; DP days count as SDM counts them; the letter says what the log says.
-import { DP_TEMPLATES, signRoles, hasCell, rowCells, formatCell, otherKey, answerText, cellKey, sectionCols, buildLetter, checkOutcome, conditionsText, coordText, dayId, positionFromText, lineSource, parseCoord, parseLine, positionText, dpoTotals, emptySlots, hours, isDpDay, letterHtml, linesFromText, setRange, templatesNow } from '../services/dp';
+import { DP_TEMPLATES, keepRecent, signRoles, hasCell, rowCells, formatCell, otherKey, answerText, cellKey, sectionCols, buildLetter, checkOutcome, conditionsText, coordText, dayId, positionFromText, lineSource, parseCoord, parseLine, positionText, dpoTotals, emptySlots, hours, isDpDay, letterHtml, linesFromText, setRange, templatesNow } from '../services/dp';
 import { DpDay } from '../types/dp';
 import { isOfficerRank } from '../types/crew';
 
@@ -71,6 +71,10 @@ ok(pr.cols?.[0].one === true && pr.cols?.[0].options?.join() === 'Yes' && lineSo
 
 const arr = DP_TEMPLATES.find((x) => x.id === 'dp.arrival.bridge')!;
 ok(signRoles(arr).join('|') === 'SDPO|DPO' && signRoles(DP_TEMPLATES.find((x) => x.id === 'dp.handover')!).join('|') === 'Handing over|Taking over' && arr.lines.some((l) => l.text === 'DP verification' && l.head) && arr.lines.filter((l) => l.text.startsWith('Move 10 m ahead')).length === 3, 'arrival = handover sheet + DP verification trials, signed by SDPO and DPO');
+
+const DAY = 86_400_000, NOW = 200 * DAY, CUT = NOW - 90 * DAY;
+const recs = [{ id: 'new', at: NOW - DAY, updatedAt: NOW - DAY }, { id: 'oldSent', at: NOW - 120 * DAY, updatedAt: NOW - 120 * DAY }, { id: 'oldQueued', at: NOW - 100 * DAY, updatedAt: NOW - 100 * DAY }];
+ok(keepRecent(recs, { new: NOW - DAY, oldSent: NOW - 120 * DAY }, CUT).map((r) => r.id).join() === 'new,oldQueued', 'a device keeps 90 days; an older record goes only once it is up in the cloud');
 
 // Position.
 ok(parseCoord('57 12.345 N', 'lat') === 57.20575 && parseCoord("001°23.456'W", 'lon') === -1.390933 && parseCoord('-33.5', 'lat') === -33.5, 'lat/lon: deg-min with hemisphere, decimal');

@@ -77,6 +77,8 @@ import {
   onSnapshot as fsOnSnapshot,
   query as fsQuery,
   where as fsWhere,
+  orderBy as fsOrderBy,
+  limit as fsLimit,
   Firestore,
 } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -86,6 +88,7 @@ import { normalizeCompressorState } from '../types/compressor';
 import { Inspection } from '../types/inspection';
 import { CrewMember } from '../types/crew';
 import { mergeById } from './pms';
+import { keepRecent } from './dp';
 import { treatmentFromCloud, treatmentToCloud } from './hospital';
 import { isPassengerId, passengerFromCloud, passengerToCloud } from '../types/passengers';
 import { isMasked, maskName } from '../utils/privacy';
@@ -1221,7 +1224,18 @@ interface SyncedList {
   fromCloud?: (local: any, remote: any) => any;
   /** Bump to send every record again through `toCloud` (an older copy up there held more). */
   resend?: string;
+  /**
+   * Devices keep only this many days of the list; older records stay in the
+   * cloud and are fetched when asked for (`olderRecords`). A DP vessel signs two
+   * or three checklists a day: after a year every tablet would load ~1000 records
+   * (16 Oct 2026). A record is dropped from a device only once it is known to be
+   * up there — a device on no vessel never prunes, its copy is the only one.
+   */
+  keepDays?: number;
 }
+
+/** Days of DP checklists a device keeps; older ones are in the cloud (`olderRecords`). */
+export const DP_KEEP_DAYS = 90;
 
 const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] = [
   // Personal details and next of kin: Officers and the Master only (rules).
@@ -1287,7 +1301,7 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   // Monthly safety meetings: kept by the officers, each person signs his own attendance line.
   { sub: 'safety_meetings', key: storage.SAFETY_MEETINGS_KEY, module: 'meetings' },
   // Dynamic positioning: signed checklists never change; DP time and the letter's details kept by the bridge.
-  { sub: 'dp_checks', key: storage.DP_CHECKS_KEY, appendOnly: true, module: 'dp' },
+  { sub: 'dp_checks', key: storage.DP_CHECKS_KEY, appendOnly: true, module: 'dp', keepDays: DP_KEEP_DAYS },
   { sub: 'dp_days', key: storage.DP_DAYS_KEY, module: 'dp' },
   { sub: 'dp_info', key: storage.DP_INFO_KEY, module: 'dp' },
   { sub: 'dp_templates', key: storage.DP_TEMPLATES_KEY, module: 'dp' },
@@ -1413,8 +1427,9 @@ async function pushList(uid: string, l: SyncedList): Promise<number> {
 async function pullList(uid: string, l: SyncedList): Promise<number> {
   try {
     const pulledKey = `msm:pulled_${l.sub}_at`;
-    const since = Number((await AsyncStorage.getItem(pulledKey)) ?? 0) || 0;
     const startedAt = Date.now();
+    const cutoff = l.keepDays ? startedAt - l.keepDays * 86_400_000 : 0;
+    const since = Math.max(Number((await AsyncStorage.getItem(pulledKey)) ?? 0) || 0, cutoff);
     const snap = await fsGetDocs(
       fsQuery(fsCollection(requireDb(), ROOT, uid, l.sub), fsWhere('updatedAt', '>', since))
     );
@@ -1438,11 +1453,34 @@ async function pullList(uid: string, l: SyncedList): Promise<number> {
     // A little overlap, so a write that landed while this pull was running is
     // asked for again next time rather than missed.
     await AsyncStorage.setItem(pulledKey, String(startedAt - 60_000));
+    if (cutoff) await pruneList(l, cutoff);
     return remote.length;
   } catch (e: any) {
     console.warn(`[sync] ${l.sub} not pulled:`, e?.message ?? e);
     return 0;
   }
+}
+
+/** Drop records older than the cutoff that the vessel already holds — never one still waiting to go up. */
+async function pruneList(l: SyncedList, cutoff: number): Promise<void> {
+  const list = await storage.loadList<{ id: string; updatedAt: number; at?: number }>(l.key);
+  const raw = await AsyncStorage.getItem(`msm:pushed_${l.sub}`);
+  const keep = keepRecent(list, raw ? JSON.parse(raw) : {}, cutoff);
+  if (keep.length !== list.length) await storage.saveList(l.key, keep);
+}
+
+/**
+ * Records of a list from before `before` (ms), newest first, straight from the
+ * vessel's cloud copy — the archive behind a list devices keep only recent days
+ * of. Not stored on the device. Throws when there is no session.
+ */
+export async function olderRecords<T>(sub: string, before: number, max = 40): Promise<T[]> {
+  const vessel = await currentVesselKey();
+  if (!vessel || !currentUid()) throw new Error('The archive is in the cloud — it opens when the vessel syncs (Settings → Sync).');
+  const snap = await fsGetDocs(fsQuery(fsCollection(requireDb(), ROOT, vessel, sub), fsWhere('updatedAt', '<', before), fsOrderBy('updatedAt', 'desc'), fsLimit(max)));
+  const out: T[] = [];
+  snap.forEach((doc) => out.push(doc.data() as T));
+  return out;
 }
 
 export async function pushLists(uid: string): Promise<void> {
