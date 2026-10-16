@@ -77,7 +77,7 @@ export default function DpTemplatesSc() {
           ))}
         </View>
         <Label>Items — one a line</Label>
-        <Text style={styles.sub}>{'Plain line → Yes / No / N/A.  {Good|!No good} → one of these (! = wrong).  [Hdg] → a reading.  ## Sensors → a heading.  ## Sensors | Available {Yes|!No} | Value → a table: each line below is a row with these columns.'}</Text>
+        <Text style={styles.sub}>{'Plain line → Yes / No / N/A.  {Good|!No good} → one of these (! = wrong).  [Hdg] → a reading.  ## Sensors → a heading.  ## Sensors | Available {Yes|!No} | Value → a table: each line below is a row with these columns.  @field Location → a header field.  @text Brief description → a paragraph.  @sketch Own vessel, rig, wind, current → a drawing.'}</Text>
         <TextInput style={[styles.input, { minHeight: 260 }]} value={text} onChangeText={setText} multiline placeholderTextColor={COLORS.textLight} placeholder={'## Sensors\nGyro 1 {Available|Priority|Not available} [Hdg]\nPosition gain [setting]\nThrusters tested on DP'} />
         <TouchableOpacity style={styles.btn} onPress={save}>
           <Text style={styles.btnText}>Save</Text>
@@ -100,7 +100,7 @@ export default function DpTemplatesSc() {
             <MciIcon name={t.where === 'engine' ? 'engine-outline' : 'ferry'} size={20} color={COLORS.primary} />
             <TouchableOpacity style={{ flex: 1 }} onPress={() => open(t)}>
               <Text style={styles.title}>{t.title}</Text>
-              <Text style={styles.sub}>{`${t.lines.filter((l) => !l.head).length} items · ${builtIn ? (changed ? 'reworded' : 'as shipped') : 'the vessel’s own'}${t.off ? ' · off' : ''}`}</Text>
+              <Text style={styles.sub}>{`${t.lines.filter((l) => !l.head && !l.kind).length} items · ${builtIn ? (changed ? 'reworded' : 'as shipped') : 'the vessel’s own'}${t.off ? ' · off' : ''}`}</Text>
             </TouchableOpacity>
             {changed ? (
               <TouchableOpacity onPress={() => standard(t)} hitSlop={8}>

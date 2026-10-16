@@ -38,6 +38,15 @@ export interface DpLine {
    * "Noise"). A cell with options is chosen, without them it is written.
    */
   cols?: DpCol[];
+  /**
+   * Not a question (a vessel's own form, 16 Oct 2026): `field` a header field
+   * (Location, Project, Client), `text` a written paragraph (brief description of
+   * the operation), `sketch` a drawing by hand (own vessel, rig, wind and current).
+   * The answer is in `values[id]` — the drawing as an SVG path. A checklist with
+   * its own fields shows them instead of the standard Field / Offshore unit /
+   * Conditions.
+   */
+  kind?: 'field' | 'text' | 'sketch';
 }
 
 export interface DpCol {

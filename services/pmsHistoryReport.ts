@@ -17,6 +17,7 @@ function html(title: string, vessel: VesselInfo | null, list: MachineHistory[]):
   const page = (h: MachineHistory) => `<section>
     <div class="top">${esc(title)} · ${esc(vesselHeader(vessel))}</div>
     <h1>${esc(h.title)}</h1><div class="facts">${h.facts.map(esc).join(' · ')}</div>
+    ${(h.drawings ?? []).map((d) => `<h2>${esc(d.title)}</h2><svg width="${Math.round(d.w * 0.9)}px" height="${Math.round(d.h * 0.9)}px" viewBox="0 0 ${d.w} ${d.h}" style="border:.5px solid #c8d0db"><path d="${esc(d.path)}" stroke="#0B2545" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`).join('')}
     ${h.tables.map((t) => `<h2>${esc(t.title)} (${t.rows.length})</h2><table><thead><tr>${t.head.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${t.rows.length ? t.rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${t.head.length}">None.</td></tr>`}</tbody></table>`).join('')}
   </section>`;
   return `<!doctype html><html><head><meta charset="utf-8"><style>

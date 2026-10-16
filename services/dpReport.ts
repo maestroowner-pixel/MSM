@@ -19,7 +19,9 @@ import { dpLetterPdfBlob } from '../utils/dpLetterPdf';
 
 export async function exportDpCheckPdf(c: DpCheck, vessel: VesselInfo | null) {
   const o = checkOutcome(c);
+  const own = c.lines.filter((l) => l.kind === 'field');
   const facts = [
+    ...own.map((l) => `${l.text}: ${c.values?.[l.id]?.trim() || '—'}`),
     `position ${positionText(c.position)}`,
     shipAndUtc(c.at, c.shipOffset).line,
     c.operation ? `field: ${c.operation}` : null,
@@ -34,6 +36,7 @@ export async function exportDpCheckPdf(c: DpCheck, vessel: VesselInfo | null) {
   const tables: T[] = [];
   let n = 0;
   for (const l of c.lines) {
+    if (l.kind) continue;
     if (l.head || !tables.length) {
       const cols = l.head ? l.cols : undefined;
       // A table of long items (a checklist's own) gets a wide item column.
@@ -53,6 +56,8 @@ export async function exportDpCheckPdf(c: DpCheck, vessel: VesselInfo | null) {
     t.rows.push([String(++n), l.text, ...(t.cols?.length ? rowCells(l, t.cols, c).map((x) => x || '—') : [answerText(l, c) || '—'])]);
   }
   for (const t of tables) delete (t as any).cols;
+  for (const l of c.lines.filter((x) => x.kind === 'text')) tables.push({ title: l.text, head: ['', '', ''], rows: [['', c.values?.[l.id]?.trim() || '—', '']], widths: { 0: 12, 1: 170, 2: 91 } });
+  const drawings = c.lines.filter((x) => x.kind === 'sketch' && c.values?.[x.id]).map((x) => ({ title: x.text, path: c.values![x.id], w: 300, h: 200 }));
   if (c.remarks) tables.push({ title: 'Remarks', head: ['', 'Remarks', ''], rows: [['', c.remarks, '']], widths: { 0: 12, 1: 170, 2: 91 } });
   tables.push({
     title: 'Signatures',
@@ -63,7 +68,7 @@ export async function exportDpCheckPdf(c: DpCheck, vessel: VesselInfo | null) {
     ],
     widths: { 0: 40, 1: 80, 2: 70, 3: 83 },
   });
-  return exportPmsHistory('DP checklist', `DP ${c.title.split(' — ')[0]} ${new Date(c.at).toISOString().slice(0, 10)}`, vessel, [{ title: c.title, facts, tables }]);
+  return exportPmsHistory('DP checklist', `DP ${c.title.split(' — ')[0].replace(/\s*\/\s*/g, '-')} ${new Date(c.at).toISOString().slice(0, 10)}`, vessel, [{ title: c.title, facts, tables, drawings }]);
 }
 
 export async function exportDpLetter(l: Letter): Promise<string | null | void> {

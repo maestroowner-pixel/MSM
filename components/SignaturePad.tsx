@@ -18,11 +18,13 @@ import { swipeLock } from '../utils/swipeLock';
 
 export const SIG_W = 300;
 export const SIG_H = 100;
+const SIG_W0 = SIG_W;
+const SIG_H0 = SIG_H;
 
-export function SignatureView({ path, height = 40, color }: { path: string; height?: number; color?: string }) {
+export function SignatureView({ path, height = 40, color, boxW = SIG_W, boxH = SIG_H }: { path: string; height?: number; color?: string; boxW?: number; boxH?: number }) {
   const c = useTheme();
   return (
-    <Svg width={(height * SIG_W) / SIG_H} height={height} viewBox={`0 0 ${SIG_W} ${SIG_H}`}>
+    <Svg width={(height * boxW) / boxH} height={height} viewBox={`0 0 ${boxW} ${boxH}`}>
       <Path d={path} stroke={color ?? c.textDark} strokeWidth={2.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
@@ -33,7 +35,11 @@ export function SignatureView({ path, height = 40, color }: { path: string; heig
  * (the window has its own Delete / Sign buttons), as wide as the screen allows
  * while staying within half its height.
  */
-export function SignaturePad({ value, onChange, label = 'Visitor’s signature', big }: { value: string; onChange: (path: string) => void; label?: string; big?: boolean }) {
+export function SignaturePad({ value, onChange, label = 'Visitor’s signature', big, boxW, boxH, hint = 'Sign here' }: { value: string; onChange: (path: string) => void; label?: string; big?: boolean; boxW?: number; boxH?: number; hint?: string }) {
+  // A box of another shape — a sketch (the DP checklist's schematic) — keeps its own coordinates.
+  const SIG_W = boxW ?? SIG_W0;
+  const SIG_H = boxH ?? SIG_H0;
+  const sketch = boxH != null;
   const c = useTheme();
   const [w, setW] = useState(SIG_W);
   const { height: winH } = useWindowDimensions();
@@ -74,7 +80,7 @@ export function SignaturePad({ value, onChange, label = 'Visitor’s signature',
           swipeLock.held = false;
         },
       }),
-    [scale, onChange]
+    [scale, onChange, SIG_W, SIG_H]
   );
 
   const drawn = `${value}${live.current}`;
@@ -94,10 +100,10 @@ export function SignaturePad({ value, onChange, label = 'Visitor’s signature',
         {...pan.panHandlers}
       >
         <Svg width="100%" height="100%" viewBox={`0 0 ${SIG_W} ${SIG_H}`} pointerEvents="none">
-          <Path d={`M20 ${SIG_H - 22}L${SIG_W - 20} ${SIG_H - 22}`} stroke={c.borderLight} strokeWidth={1} />
+          {sketch ? null : <Path d={`M20 ${SIG_H - 22}L${SIG_W - 20} ${SIG_H - 22}`} stroke={c.borderLight} strokeWidth={1} />}
           {drawn ? <Path d={drawn} stroke={c.textDark} strokeWidth={2.5} fill="none" strokeLinecap="round" strokeLinejoin="round" /> : null}
         </Svg>
-        {!drawn ? <Text style={[styles.hint, { color: c.textLight }]} pointerEvents="none">Sign here</Text> : null}
+        {!drawn ? <Text style={[styles.hint, { color: c.textLight }]} pointerEvents="none">{hint}</Text> : null}
       </View>
     </View>
   );

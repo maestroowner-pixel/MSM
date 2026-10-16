@@ -9,12 +9,12 @@
 // ===================================
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { Empty, Label, Screen, ScreenTitle } from '../components/ui';
 import { useSignConfirm } from '../components/SignConfirm';
-import { SignatureView } from '../components/SignaturePad';
+import { SignaturePad, SignatureView } from '../components/SignaturePad';
 import { useSync } from '../contexts/SyncContext';
 import { personName } from '../types/role';
 import { SignProof, proofShort } from '../services/signature';
@@ -48,6 +48,10 @@ const colWidth = (col: { options?: string[] }) => (col.options ? col.options.red
 /** A reading named by its unit ([kn], [m]) shows the unit after the cell, as written on paper. */
 const UNITS = ['kn', 'm', '°', '°/min', '%', 's', 'bar', 'rpm'];
 
+/** The schematic's own box — wider than tall, as the space on the paper form. */
+const SKETCH_W = 300;
+const SKETCH_H = 200;
+
 const ROLE = ['Handing over', 'Taking over'] as const;
 interface Sig { key: string; name: string; rank?: string; proof?: SignProof; at: number }
 
@@ -72,6 +76,8 @@ export default function DpCheckSc() {
   const confirmSign = useSignConfirm();
   const [sigs, setSigs] = useState<(Sig | null)[]>([null, null]);
   const [pickIds, setPickIds] = useState<string[]>(['', '']);
+  const [sketchFor, setSketchFor] = useState<string | null>(null);
+  const [sketchDraft, setSketchDraft] = useState('');
   const done = dpChecks.find((c) => c.id === route.params?.id);
   const tpl = useMemo(() => templatesNow(dpTemplates).find((x) => x.id === route.params?.templateId), [dpTemplates, route.params?.templateId]);
   const [operation, setOperation] = useState('');
@@ -108,8 +114,9 @@ export default function DpCheckSc() {
   if (!c) return <Screen><Empty text="This checklist is not on this device." /></Screen>;
   const ro = !!done;
   const o = checkOutcome(c);
+  const ownFields = c.lines.filter((l) => l.kind === 'field');
   const inTable = sectionCols(c.lines);
-  const plainLines = c.lines.filter((l) => !l.head && !l.options && !l.value && !inTable.get(l.id));
+  const plainLines = c.lines.filter((l) => !l.head && !l.kind && !l.options && !l.value && !inTable.get(l.id));
   const signRow = async (row: 0 | 1) => {
     if (lat == null || lon == null) return Alert.alert('DP checklist', 'Enter the position first — degrees, minutes and N/S, E/W from the DGPS.');
     const p = people.find((x) => x.id === pickIds[row]);
@@ -153,6 +160,16 @@ export default function DpCheckSc() {
     <Screen scroll>
       <ScreenTitle title={c.title} subtitle={ro ? `Signed by ${c.by}${c.byRank ? ` (${c.byRank})` : ''}${c.by2 ? ` and ${c.by2}${c.by2Rank ? ` (${c.by2Rank})` : ''}` : ''}` : c.where === 'engine' ? 'Engine room' : 'Bridge'} help="Dynamic positioning" />
 
+      {ownFields.length ? (
+        <View style={styles.pair}>
+          {ownFields.map((l) => (
+            <View key={l.id} style={styles.half}>
+              <Label>{l.text}</Label>
+              {ro ? <Text style={styles.value}>{c.values?.[l.id] || '—'}</Text> : <TextInput style={styles.input} value={values[l.id] ?? ''} onChangeText={(t) => setValues((x) => ({ ...x, [l.id]: t }))} accessibilityLabel={l.text} />}
+            </View>
+          ))}
+        </View>
+      ) : (
       <View style={styles.pair}>
         <View style={styles.half}>
           <Label>Field</Label>
@@ -163,6 +180,7 @@ export default function DpCheckSc() {
           {ro ? <Text style={styles.value}>{c.unit || '—'}</Text> : <TextInput style={styles.input} value={unit} onChangeText={setUnit} />}
         </View>
       </View>
+      )}
       <Label>Date and time ★</Label>
       <Text style={styles.value}>{`${shipAndUtc(c.at, c.shipOffset).line}${ro ? '' : ' — set when signed'}`}</Text>
       {ro ? (
@@ -183,8 +201,8 @@ export default function DpCheckSc() {
         </>
       )}
 
-      <Label>Conditions</Label>
-      {ro ? (
+      {ownFields.length ? null : <Label>Conditions</Label>}
+      {ownFields.length ? null : ro ? (
         <Text style={styles.value}>{conditionsText(c.conditions) || '—'}</Text>
       ) : (
         <View>
@@ -218,7 +236,7 @@ export default function DpCheckSc() {
       </View>
 
       <View style={styles.headRow}>
-        <Label>{`Items (${c.lines.filter((l) => !l.head).length})`}</Label>
+        <Label>{`Items (${c.lines.filter((l) => !l.head && !l.kind).length})`}</Label>
         {!ro && plainLines.length ? (
           <TouchableOpacity onPress={() => setResults((x) => ({ ...x, ...Object.fromEntries(plainLines.map((l) => [l.id, x[l.id] ?? 'pass'])) }))}>
             <Text style={styles.link}>All Yes / No items yes — then change what is not</Text>
@@ -229,8 +247,9 @@ export default function DpCheckSc() {
         // Sections as on paper: a heading with columns is a table, the rest are cards.
         const secs: { head?: DpLine; lines: DpLine[] }[] = [];
         for (const l of c.lines) {
+          if (l.kind) continue;
           if (l.head || !secs.length) secs.push({ head: l.head ? l : undefined, lines: [] });
-          if (!l.head) secs[secs.length - 1].lines.push(l);
+          if (!l.head && !l.kind) secs[secs.length - 1].lines.push(l);
         }
         let n = 0;
         return secs.map((sec, si) => {
@@ -338,6 +357,24 @@ export default function DpCheckSc() {
         });
       })()}
 
+      {c.lines.filter((l) => l.kind === 'text' || l.kind === 'sketch').map((l) => (
+        <View key={l.id}>
+          <Label>{l.text}</Label>
+          {l.kind === 'text' ? (
+            ro ? <Text style={styles.value}>{c.values?.[l.id] || '—'}</Text> : <TextInput style={[styles.input, { minHeight: 70 }]} value={values[l.id] ?? ''} onChangeText={(t) => setValues((x) => ({ ...x, [l.id]: t }))} multiline accessibilityLabel={l.text} />
+          ) : ro ? (
+            c.values?.[l.id] ? <SignatureView path={c.values[l.id]} height={200} boxW={SKETCH_W} boxH={SKETCH_H} color={COLORS.textDark} /> : <Text style={styles.value}>—</Text>
+          ) : (
+            <View>
+              {values[l.id] ? <SignatureView path={values[l.id]} height={140} boxW={SKETCH_W} boxH={SKETCH_H} color={COLORS.textDark} /> : null}
+              <TouchableOpacity style={[styles.chip, { alignSelf: 'flex-start', marginTop: SIZES.xs }]} onPress={() => { setSketchDraft(values[l.id] ?? ''); setSketchFor(l.id); }}>
+                <Text style={styles.chipText}>{values[l.id] ? 'Redraw the schematic' : 'Draw the schematic'}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      ))}
+
       <Label>Remarks</Label>
       {ro ? <Text style={styles.value}>{c.remarks || '—'}</Text> : <TextInput style={[styles.input, { minHeight: 70 }]} value={remarks} onChangeText={setRemarks} multiline />}
 
@@ -406,6 +443,27 @@ export default function DpCheckSc() {
           </TouchableOpacity>
         </>
       )}
+      {/* The schematic is drawn in its own window, big, with a stylus (16 Oct 2026). */}
+      <Modal visible={!!sketchFor} transparent animationType="fade" onRequestClose={() => setSketchFor(null)}>
+        <View style={styles.modalBack}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>{c.lines.find((l) => l.id === sketchFor)?.text ?? 'Schematic'}</Text>
+            <SignaturePad big hint="Own vessel, rig, wind and current" value={sketchDraft} onChange={setSketchDraft} boxW={SKETCH_W} boxH={SKETCH_H} />
+            <View style={styles.modalBtns}>
+              <TouchableOpacity onPress={() => setSketchDraft('')} hitSlop={8}>
+                <Text style={[styles.link, { color: COLORS.danger }]}>Clear</Text>
+              </TouchableOpacity>
+              <View style={{ flex: 1 }} />
+              <TouchableOpacity onPress={() => setSketchFor(null)} hitSlop={8}>
+                <Text style={styles.link}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.signBtn} onPress={() => { const id = sketchFor!; setValues((x) => ({ ...x, [id]: sketchDraft })); setSketchFor(null); }}>
+                <Text style={styles.btnText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 }
@@ -433,6 +491,10 @@ const makeStyles = (COLORS: Palette) =>
     mini: { paddingVertical: 3, paddingHorizontal: 7, borderRadius: 6, borderWidth: 1, borderColor: COLORS.primary },
     miniText: { color: COLORS.primary, fontWeight: '600', fontSize: 11 },
     small: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
+    modalBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: SIZES.md },
+    modalCard: { backgroundColor: COLORS.cardSolid, borderRadius: SIZES.radiusMd, padding: SIZES.md, width: '100%', maxWidth: 900 },
+    modalTitle: { color: COLORS.text, fontWeight: '800', fontSize: SIZES.body },
+    modalBtns: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md, marginTop: SIZES.md },
     sigRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: SIZES.sm, marginTop: SIZES.xs, paddingVertical: SIZES.xs, borderBottomWidth: 1, borderBottomColor: COLORS.border },
     sigRole: { width: 100, color: COLORS.text, fontWeight: '700', fontSize: SIZES.small },
     signBtn: { backgroundColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 9, paddingHorizontal: SIZES.lg },

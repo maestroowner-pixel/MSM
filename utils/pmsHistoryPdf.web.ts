@@ -41,6 +41,35 @@ export function pmsHistoryPdfBlob(title: string, vesselLine: string, list: Machi
       autoTable(doc, { ...base, startY: y + 6, head: [t.head], columnStyles, body: t.rows.length ? t.rows.map((r) => r.map(plain)) : [['None.', ...t.head.slice(1).map(() => '')]] });
       y = (doc as any).lastAutoTable.finalY + 4;
     }
+    // Drawings by hand: the path's M/L points as lines, scaled into a box 90 mm wide.
+    for (const d of h.drawings ?? []) {
+      const bw = 90;
+      const bh = (bw * d.h) / d.w;
+      if (y + bh + 10 > H - 8) {
+        doc.addPage();
+        y = 12;
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text(plain(d.title.toUpperCase()), M, y + 4);
+      const top = y + 6;
+      doc.setDrawColor(200, 208, 219);
+      doc.setLineWidth(0.2);
+      doc.rect(M, top, bw, bh);
+      doc.setDrawColor(...navy);
+      doc.setLineWidth(0.4);
+      const k = bw / d.w;
+      let px: number | null = null;
+      let py: number | null = null;
+      for (const m of d.path.matchAll(/([ML])\s*(-?[\d.]+)[ ,]+(-?[\d.]+)/g)) {
+        const x = M + Number(m[2]) * k;
+        const yy = top + Number(m[3]) * k;
+        if (m[1] === 'L' && px != null && py != null) doc.line(px, py, x, yy);
+        px = x;
+        py = yy;
+      }
+      y = top + bh + 4;
+    }
   });
   return doc.output('blob');
 }

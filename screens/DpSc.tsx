@@ -145,7 +145,7 @@ export default function DpSc() {
               <MciIcon name={tp.where === 'engine' ? 'engine-outline' : 'ferry'} size={20} color={COLORS.primary} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.title}>{tp.title}</Text>
-                <Text style={styles.sub}>{`${tp.lines.filter((l) => !l.head).length} items · ${tp.where === 'engine' ? 'engine room' : 'bridge'}`}</Text>
+                <Text style={styles.sub}>{`${tp.lines.filter((l) => !l.head && !l.kind).length} items · ${tp.where === 'engine' ? 'engine room' : 'bridge'}`}</Text>
               </View>
               <MciIcon name="chevron-right" size={18} color={COLORS.textLight} />
             </TouchableOpacity>

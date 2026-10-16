@@ -61,6 +61,8 @@ const splitCols = (s: string) => {
 
 export function parseLine(raw: string): Omit<DpLine, 'id'> {
   let s = raw.trim();
+  const kind = /^@(field|text|sketch)\s+(.+)$/i.exec(s);
+  if (kind) return { text: kind[2].trim(), kind: kind[1].toLowerCase() as DpLine['kind'] };
   if (s.startsWith('#')) {
     const [title, ...cells] = splitCols(s.replace(/^#+\s*/, ''));
     const cols = cells.filter(Boolean).map((c) => {
@@ -91,7 +93,9 @@ const optSource = (o?: string[], bad?: string[]) => (o?.length ? ` {${o.map((x) 
 
 /** The line back as it is written — what the editor shows. */
 export const lineSource = (l: Omit<DpLine, 'id'>): string =>
-  l.head
+  l.kind
+    ? `@${l.kind} ${l.text}`
+    : l.head
     ? `## ${l.text}${(l.cols ?? []).map((c) => ` | ${c.name}${optSource(c.options, c.bad)}`).join('')}`
     : `${l.text}${optSource(l.options, l.bad)}${l.value ? ` [${l.value}]` : ''}`;
 
@@ -101,7 +105,7 @@ export function sectionCols(lines: DpLine[]): Map<string, DpCol[] | undefined> {
   let cols: DpCol[] | undefined;
   for (const l of lines) {
     if (l.head) cols = l.cols;
-    else m.set(l.id, cols);
+    else m.set(l.id, l.kind ? undefined : cols);
   }
   return m;
 }
@@ -188,6 +192,115 @@ const SYSTEMS: string[] = [
     'Offshore unit',
 ];
 
+/**
+ * DP watch handover / takeover — the owner's sample of a vessel's own form
+ * (a DP Operations Manual attachment, 16 Oct 2026), laid out as it is on paper;
+ * the form's revision block is left out. Vessel-specific by nature: the
+ * officers word it to their own DPOM.
+ */
+const HANDOVER: string[] = [
+  '@field Location',
+  '@field Project',
+  '@field Client',
+  '## Vessel position | Value',
+  'Compass heading (deg)',
+  'Set heading (deg)',
+  'Rate of turn (deg)',
+  'Working side',
+  '## Alarm limits | Warning | Alarm',
+  'Position (m)',
+  'Heading (deg)',
+  '## DP control',
+  'Blow {Off|On}',
+  'Operating station — OS on control [OS]',
+  'D.P. consequence alarm {Off|Class 2}',
+  'Control status [status]',
+  'Control mode [mode]',
+  'Rotation centre {Fwd|Midship|Aft|Other}',
+  '## DP current | Direction (deg) | Speed (kn)',
+  'DP current',
+  '## Event printer',
+  'Power {On|!Off}',
+  'Paper {Flush|Refresh}',
+  'Print status {Yes|!No}',
+  'Panel lamp test {Yes|!No}',
+  '## Sensors | No. 1 | No. 2 | No. 3',
+  'Gyro — heading (deg)',
+  'Wind — direction (deg)',
+  'Wind — speed (kn)',
+  'MRU — pitch (deg)',
+  'MRU — roll (deg)',
+  'VRS — pitch / roll (deg)',
+  '## Power management | On load {Yes|No} | Loading (%)',
+  'DG1',
+  'DG2',
+  'SG1',
+  'SG2',
+  '## Power | Value',
+  'Total active power (kW)',
+  'Spinning reserve power (kW)',
+  'Maximum kW on bus A',
+  'Maximum kW on bus B',
+  'Consumed (kW)',
+  '## Bus tie',
+  'Bus tie breaker {Open|Close}',
+  '## Reference system settings | Setting {Enable|Disable|Monitor}',
+  'DGPS 1',
+  'DGPS 2',
+  'Fanbeam',
+  '## Reference system details',
+  'Fanbeam mode {Fixed|Relative}',
+  'Fanbeam range (m) / bearing (deg) [range / bearing]',
+  'Weight {Normal|Reduced GPS}',
+  'Acceptance limits {Narrow|Normal|Wide}',
+  'Median test {Off|Warning|Warning & reject}',
+  'DGPS differential correction [source]',
+  'Redundant stations — update offline {Yes|No}',
+  '## Joystick settings',
+  'Thrust {Full|Reduced}',
+  'Precision {High speed|General|Low speed}',
+  'Rotation centre {Fwd|Midship|Aft|Other}',
+  '## Thrusters enabled | Enabled {Yes|No}',
+  'Bow thruster 1',
+  'Bow thruster 2',
+  'Stern thruster 1',
+  'Stern thruster 2',
+  'Port propeller',
+  'Stbd propeller',
+  'Port rudder',
+  'Stbd rudder',
+  '## AutoPos settings | Value',
+  'Low speed',
+  'Surge (%)',
+  'Sway (%)',
+  'Yaw (%)',
+  'Acceleration factor',
+  'Retardation factor',
+  'Increment (m)',
+  'Speed set points (kn)',
+  '## AutoPos mode',
+  'Controller mode {High precision|Green}',
+  'Gain {Low|Medium|High}',
+  '## Communication / miscellaneous | Checked {Yes|!No}',
+  'Bridge — ECR / deck',
+  'Bridge — crane control',
+  'DP alert alarm / lights',
+  'Lights / shapes displayed',
+  '## Operation | Done {Yes|!No} | If No, why?',
+  'Vessel set up as per ASOG',
+  'JHA / RA prepared',
+  'DP pre-operation checklist completed',
+  'Capability plot verified',
+  'Weather forecast received',
+  '## Environmental condition | Value',
+  'Water depth (m)',
+  'Wave height (m)',
+  'Period (s)',
+  'Sea state',
+  '@text Brief description of the operation in progress',
+  '@sketch Schematic: own vessel, rig, direction of wind and current',
+];
+
 /** A checklist's own items: one table, answered and remarked line by line. */
 const OWN = (title: string) => `## ${title} | Checked {Yes|!No|N/A} | Remarks`;
 
@@ -228,22 +341,7 @@ export const DP_TEMPLATES: DpTemplate[] = [
   ]),
   // The owner's Arrival DP Checklist (simulator course PR-33, annex 42), 16 Oct 2026: the system tables alone.
   t('dp.arrival.systems', 'Arrival DP checklist — sensors, references, thrusters, power', 'bridge', SYSTEMS),
-  t('dp.handover', 'DP watch handover', 'bridge', [
-    ...SYSTEMS,
-    OWN('Watch handover'),
-
-    'DP status and ASOG condition (Green / Advisory / Yellow / Red)',
-    'Position and heading set-points; position and heading error within limits',
-    'Position references in use, their weighting, any rejected or deselected',
-    'Gyros, MRUs and wind sensors — any deselected or in fault',
-    'Thrusters in use and their load; any thruster not available',
-    'Power: generators on line, load, consequence analysis status',
-    'Wind, current and sea — trend and forecast',
-    'Operation in progress and the next steps; SIMOPS; vessels in the 500 m zone',
-    'Alarms since the last watch and what was done; open defects',
-    'Communications with the installation / client representative confirmed',
-    'DP logbook up to date',
-  ]),
+  t('dp.handover', 'DP watch handover / takeover', 'bridge', HANDOVER),
   t('dp.departure', 'Leaving the field', 'bridge', [
     ...SYSTEMS,
     OWN('Leaving the field'),
@@ -308,7 +406,7 @@ export function checkOutcome(c: Pick<DpCheck, 'lines' | 'results'> & { values?: 
   const r = { pass: 0, fail: 0, na: 0, open: 0 };
   const table = sectionCols(c.lines);
   for (const l of c.lines) {
-    if (l.head) continue;
+    if (l.head || l.kind) continue;
     const cols = table.get(l.id);
     if (cols) {
       // A row: answered when any cell is; wrong when a cell holds a "!" answer.

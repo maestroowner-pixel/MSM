@@ -6,7 +6,10 @@ let fail = 0;
 const ok = (c: boolean, m: string) => { if (!c) { fail++; console.log('✗', m); } else console.log('✓', m); };
 
 const ids = DP_TEMPLATES.flatMap((x) => x.lines.map((l) => l.id));
-ok(DP_TEMPLATES.every((x) => x.lines[0].head && x.lines[0].text === 'Operator stations') && DP_TEMPLATES.filter((x) => x.id !== 'dp.arrival.systems').every((x) => x.lines.some((l) => l.head && l.cols?.[0].name === 'Checked')), 'every checklist starts with the DP system tables, then its own items as a table');
+const ho = DP_TEMPLATES.find((x) => x.id === 'dp.handover')!;
+ok(ho.lines.filter((l) => l.kind === 'field').map((l) => l.text).join('|') === 'Location|Project|Client' && ho.lines.some((l) => l.kind === 'sketch') && ho.lines.some((l) => l.kind === 'text') && ho.lines.find((l) => l.text === 'Operation')?.cols?.[1].name === 'If No, why?', 'handover = the vessel form: header fields, If No why, brief description, schematic');
+ok(lineSource(parseLine('@sketch Own vessel, rig')) === '@sketch Own vessel, rig' && checkOutcome({ lines: ho.lines.filter((l) => l.kind), results: {} }).open === 0, 'fields, texts and sketches are not questions');
+ok(DP_TEMPLATES.filter((x) => x.id !== 'dp.handover').every((x) => x.lines[0].head && x.lines[0].text === 'Operator stations') && DP_TEMPLATES.filter((x) => !['dp.arrival.systems', 'dp.handover'].includes(x.id)).every((x) => x.lines.some((l) => l.head && l.cols?.[0].name === 'Checked')), 'every checklist starts with the DP system tables, then its own items as a table');
 ok(new Set(ids).size === ids.length && DP_TEMPLATES.length === 5, 'five built-in checklists, line ids unique');
 const sys = DP_TEMPLATES.find((x) => x.id === 'dp.arrival.systems')!;
 const heads = sys.lines.filter((l) => l.head);
