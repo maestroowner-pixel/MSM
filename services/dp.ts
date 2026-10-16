@@ -267,8 +267,8 @@ const HANDOVER: string[] = [
   'Bus tie 4',
   'Bus tie 5',
   'Bus tie 6',
-  // Beacon No. is for the HiPAP rows; Value is the reference's weight, in %.
-  '## Reference system settings | Setting {Enable|Disable|Monitor} | Beacon No. | Value (%)',
+  // Mode is for Fanbeam (fixed / relative) and HiPAP (SSBL, LBL…); Beacon No. for HiPAP; Value is the weight, in %.
+  '## Reference system settings | Setting {Enable|Disable|Monitor} | Mode | Beacon No. | Value (%)',
   'DGPS 1',
   'DGPS 2',
   'DGPS 3',
@@ -278,7 +278,6 @@ const HANDOVER: string[] = [
   'Fanbeam',
   'LTW',
   '## Reference system details',
-  'Fanbeam mode {Fixed|Relative}',
   'Fanbeam range (m) / bearing (deg) [range / bearing]',
   'Weight {Normal|Reduced GPS}',
   'Acceptance limits {Narrow|Normal|Wide}',
