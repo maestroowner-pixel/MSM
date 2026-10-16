@@ -32,7 +32,7 @@ export async function exportDpCheckPdf(c: DpCheck, vessel: VesselInfo | null) {
   ].filter(Boolean) as string[];
   // As the paper checklist: a heading with columns is a table with those
   // columns; the other sections list item and answer. 273 mm across.
-  type T = { title: string; head: string[]; rows: string[][]; widths: Record<number, number> };
+  type T = { title: string; head: string[]; rows: string[][]; widths: Record<number, number>; beside?: boolean };
   const tables: T[] = [];
   let n = 0;
   for (const l of c.lines) {
@@ -42,14 +42,15 @@ export async function exportDpCheckPdf(c: DpCheck, vessel: VesselInfo | null) {
       // A table of long items (a checklist's own) gets a wide item column.
       const after = c.lines.slice(c.lines.indexOf(l) + 1);
       const rows = after.slice(0, Math.max(0, after.findIndex((x) => x.head)) || after.length);
-      const itemW = rows.some((x) => x.text.length > 40) ? 150 : 70;
-      const each = cols?.length ? Math.min(itemW === 150 ? 55 : 45, Math.floor((273 - 12 - itemW) / cols.length)) : 0;
+      const itemW = rows.some((x) => x.text.length > 40) ? 150 : 55;
+      const each = cols?.length ? Math.min(itemW === 150 ? 55 : 40, Math.floor((273 - 12 - itemW) / cols.length)) : 0;
       tables.push(
         cols?.length
           ? { title: l.text, head: ['#', 'Item', ...cols.map((x) => (x.options ? `${x.name} (${x.options.join(' / ')})` : x.name))], rows: [], widths: { 0: 12, 1: itemW, ...Object.fromEntries(cols.map((_, i) => [i + 2, each])) } }
           : { title: l.head ? l.text : 'Checklist', head: ['#', 'Item', 'Answer'], rows: [], widths: { 0: 12, 1: 170, 2: 91 } }
       );
       (tables[tables.length - 1] as any).cols = cols;
+      if (l.head && l.beside) (tables[tables.length - 1] as any).beside = true;
     }
     if (l.head) continue;
     const t = tables[tables.length - 1] as T & { cols?: typeof l.cols };

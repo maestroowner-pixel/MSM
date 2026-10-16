@@ -64,13 +64,15 @@ export function parseLine(raw: string): Omit<DpLine, 'id'> {
   const kind = /^@(field|text|sketch)\s+(.+)$/i.exec(s);
   if (kind) return { text: kind[2].trim(), kind: kind[1].toLowerCase() as DpLine['kind'] };
   if (s.startsWith('#')) {
-    const [title, ...cells] = splitCols(s.replace(/^#+\s*/, ''));
+    // "## > Alarm limits | …" — this table sits beside the one before it, as on the paper form.
+    const beside = /^#+\s*>/.test(s);
+    const [title, ...cells] = splitCols(s.replace(/^#+\s*>?\s*/, ''));
     const cols = cells.filter(Boolean).map((c) => {
       const m = /\{([^}]*)\}/.exec(c);
       const name = c.replace(/\{[^}]*\}/, '').trim();
       return { name, ...(m ? JSON.parse(JSON.stringify(opts(m[1]))) : {}) };
     });
-    return cols.length ? { text: title, head: true, cols } : { text: title, head: true };
+    return { text: title, head: true, ...(cols.length ? { cols } : {}), ...(beside ? { beside } : {}) };
   }
   const out: Omit<DpLine, 'id'> = { text: '' };
   const opt = /\{([^}]*)\}/.exec(s);
@@ -96,7 +98,7 @@ export const lineSource = (l: Omit<DpLine, 'id'>): string =>
   l.kind
     ? `@${l.kind} ${l.text}`
     : l.head
-    ? `## ${l.text}${(l.cols ?? []).map((c) => ` | ${c.name}${optSource(c.options, c.bad)}`).join('')}`
+    ? `## ${l.beside ? '> ' : ''}${l.text}${(l.cols ?? []).map((c) => ` | ${c.name}${optSource(c.options, c.bad)}`).join('')}`
     : `${l.text}${optSource(l.options, l.bad)}${l.value ? ` [${l.value}]` : ''}`;
 
 /** The table a line sits in — the columns of the last heading above it, if that heading has any. */
@@ -207,12 +209,13 @@ const HANDOVER: string[] = [
   'Set heading (deg)',
   'Rate of turn (deg)',
   'Working side',
-  '## Alarm limits | Warning | Alarm',
+  '## > Alarm limits | Warning | Alarm',
   'Position (m)',
   'Heading (deg)',
+  '## Operating station | OS on control {OS1|OS2|OS3} | Computer {C1|C2|C3} | Controller {A|B|C}',
+  'In control',
   '## DP control',
   'Blow {Off|On}',
-  'Operating station — OS on control [OS]',
   'D.P. consequence alarm {Off|Class 2}',
   'Control status [status]',
   'Control mode [mode]',

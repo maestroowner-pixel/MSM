@@ -38,6 +38,8 @@ export interface DpLine {
    * "Noise"). A cell with options is chosen, without them it is written.
    */
   cols?: DpCol[];
+  /** On a heading: the section sits beside the one before it ("## > Alarm limits"). */
+  beside?: boolean;
   /**
    * Not a question (a vessel's own form, 16 Oct 2026): `field` a header field
    * (Location, Project, Client), `text` a written paragraph (brief description of

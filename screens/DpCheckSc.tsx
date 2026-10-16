@@ -252,7 +252,7 @@ export default function DpCheckSc() {
           if (!l.head && !l.kind) secs[secs.length - 1].lines.push(l);
         }
         let n = 0;
-        return secs.map((sec, si) => {
+        const els = secs.map((sec, si) => {
           const cols = sec.head?.cols;
           const title = sec.head ? <Text style={styles.head}>{sec.head.text}</Text> : null;
           if (cols?.length) {
@@ -355,6 +355,10 @@ export default function DpCheckSc() {
             </View>
           );
         });
+        // A section marked "beside" shares a row with the one before it (wraps on a phone).
+        const rows: React.ReactNode[][] = [];
+        secs.forEach((sec, i) => (sec.head?.beside && rows.length ? rows[rows.length - 1].push(els[i]) : rows.push([els[i]])));
+        return rows.map((r, i) => (r.length === 1 ? r[0] : <View key={`row${i}`} style={styles.besideRow}>{r.map((e, j) => <View key={j} style={{ flexShrink: 1 }}>{e}</View>)}</View>));
       })()}
 
       {c.lines.filter((l) => l.kind === 'text' || l.kind === 'sketch').map((l) => (
@@ -495,6 +499,7 @@ const makeStyles = (COLORS: Palette) =>
     modalCard: { backgroundColor: COLORS.cardSolid, borderRadius: SIZES.radiusMd, padding: SIZES.md, width: '100%', maxWidth: 900 },
     modalTitle: { color: COLORS.text, fontWeight: '800', fontSize: SIZES.body },
     modalBtns: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md, marginTop: SIZES.md },
+    besideRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: SIZES.lg, alignItems: 'flex-start' },
     sigRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: SIZES.sm, marginTop: SIZES.xs, paddingVertical: SIZES.xs, borderBottomWidth: 1, borderBottomColor: COLORS.border },
     sigRole: { width: 100, color: COLORS.text, fontWeight: '700', fontSize: SIZES.small },
     signBtn: { backgroundColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 9, paddingHorizontal: SIZES.lg },

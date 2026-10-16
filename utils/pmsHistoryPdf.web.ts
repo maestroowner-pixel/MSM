@@ -29,17 +29,26 @@ export function pmsHistoryPdfBlob(title: string, vesselLine: string, list: Machi
     const facts: string[] = doc.splitTextToSize(plain(h.facts.join('  -  ')), doc.internal.pageSize.getWidth() - 2 * M);
     doc.text(facts, M, 22);
     let y = 22 + (facts.length - 1) * 3.6 + 4;
+    // A table marked `beside` starts level with the one before it, to its right.
+    let prev: { y: number; right: number; bottom: number; page: number } | null = null;
+    const W = doc.internal.pageSize.getWidth();
     for (const t of h.tables) {
-      if (y > H - 25) {
+      const width = Object.values(t.widths ?? {}).reduce((a, b) => a + b, 0) || W - 2 * M;
+      const side: boolean = !!(t.beside && prev && prev.right + 6 + width <= W - M && prev.page === doc.getNumberOfPages());
+      if (!side && y > H - 25) {
         doc.addPage();
         y = 12;
       }
+      const top: number = side ? prev!.y : y;
+      const left: number = side ? prev!.right + 6 : M;
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
-      doc.text(`${t.title.toUpperCase()} (${t.rows.length})`, M, y + 4);
+      doc.text(`${t.title.toUpperCase()} (${t.rows.length})`, left, top + 4);
       const columnStyles = Object.fromEntries(Object.entries(t.widths ?? {}).map(([k, w]) => [k, { cellWidth: w }]));
-      autoTable(doc, { ...base, startY: y + 6, head: [t.head], columnStyles, body: t.rows.length ? t.rows.map((r) => r.map(plain)) : [['None.', ...t.head.slice(1).map(() => '')]] });
-      y = (doc as any).lastAutoTable.finalY + 4;
+      autoTable(doc, { ...base, margin: { left, right: side ? W - left - width : M }, tableWidth: t.widths ? width : 'auto', startY: top + 6, head: [t.head], columnStyles, body: t.rows.length ? t.rows.map((r) => r.map(plain)) : [['None.', ...t.head.slice(1).map(() => '')]] });
+      const bottom = (doc as any).lastAutoTable.finalY;
+      prev = { y: top, right: left + width, bottom: side ? Math.max(prev!.bottom, bottom) : bottom, page: doc.getNumberOfPages() };
+      y = prev.bottom + 4;
     }
     // Drawings by hand: the path's M/L points as lines, scaled into a box 90 mm wide.
     for (const d of h.drawings ?? []) {

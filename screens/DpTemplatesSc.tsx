@@ -77,7 +77,7 @@ export default function DpTemplatesSc() {
           ))}
         </View>
         <Label>Items — one a line</Label>
-        <Text style={styles.sub}>{'Plain line → Yes / No / N/A.  {Good|!No good} → one of these (! = wrong).  [Hdg] → a reading.  ## Sensors → a heading.  ## Sensors | Available {Yes|!No} | Value → a table: each line below is a row with these columns.  @field Location → a header field.  @text Brief description → a paragraph.  @sketch Own vessel, rig, wind, current → a drawing.'}</Text>
+        <Text style={styles.sub}>{'Plain line → Yes / No / N/A.  {Good|!No good} → one of these (! = wrong).  [Hdg] → a reading.  ## Sensors → a heading.  ## Sensors | Available {Yes|!No} | Value → a table: each line below is a row with these columns (## > … puts it beside the table before).  @field Location → a header field.  @text Brief description → a paragraph.  @sketch Own vessel, rig, wind, current → a drawing.'}</Text>
         <TextInput style={[styles.input, { minHeight: 260 }]} value={text} onChangeText={setText} multiline placeholderTextColor={COLORS.textLight} placeholder={'## Sensors\nGyro 1 {Available|Priority|Not available} [Hdg]\nPosition gain [setting]\nThrusters tested on DP'} />
         <TouchableOpacity style={styles.btn} onPress={save}>
           <Text style={styles.btnText}>Save</Text>

@@ -16,6 +16,8 @@ export interface HistTable {
   rows: string[][];
   /** Column widths in mm on A4 landscape (277 mm usable); the rest share what is left. */
   widths?: Record<number, number>;
+  /** Printed beside the table before it, as on the paper form. */
+  beside?: boolean;
 }
 export interface MachineHistory {
   title: string;
