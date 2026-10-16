@@ -12,6 +12,8 @@
 //               vessel, once (one row, id 'info').
 // ===================================
 
+import type { SignProof } from '../services/signature';
+
 export type DpSlot = 0 | 1 | 2; // 0 none · 1 Active (at the desk, in control) · 2 Passive (watching)
 
 /**
@@ -104,11 +106,14 @@ export interface DpCheck {
   by: string;
   byRank?: string;
   byKey?: string;
+  /** How it was confirmed — PIN, by hand (with the drawing) or fingerprint (services/signature.ts). */
+  byWith?: SignProof;
   /** The second signature — the DPO taking over (16 Oct 2026: "two sign it — name and
    *  position, usually those changing the watch"). Required on records from that day. */
   by2?: string;
   by2Rank?: string;
   by2Key?: string;
+  by2With?: SignProof;
   updatedAt: number;
 }
 

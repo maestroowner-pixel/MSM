@@ -117,38 +117,14 @@ const t = (id: string, title: string, where: DpWhere, lines: string[]): DpTempla
   updatedAt: 0,
 });
 
-export const DP_TEMPLATES: DpTemplate[] = [
-  t('dp.arrival.bridge', 'Field arrival — bridge (before the 500 m zone)', 'bridge', [
-    'DP Operations Manual and the ASOG / WSOG for this operation on the bridge, read by the DPOs on watch',
-    'Critical / task activity mode (CAM / TAM) agreed with the engine room and set up',
-    'DP control system: all operator stations online, no unaccepted alarms',
-    'Position references: the number the DP class and the ASOG require online, of different principles, compared and weighted',
-    'DGNSS: corrections received, age and HDOP within limits',
-    'Gyros, MRUs / VRUs and wind sensors online and agreeing with each other',
-    'Each thruster tested in manual and on DP — response to command checked',
-    'Independent joystick and manual levers tested',
-    'Consequence analysis active with no alarm — enough power and thrust for the worst-case failure',
-    'Capability plot checked against the weather; forecast received and within the ASOG limits',
-    'DP alert lights (green / yellow / red) and communications with the engine room, deck and installation tested',
-    'Permission to enter the 500 m zone received; SIMOPS agreed with the installation',
-    'Set-up position held on DP outside the 500 m zone for the time the ASOG requires',
-    'Approach route, escape route and drift-off direction agreed',
-    'DP status Green — logged',
-  ]),
-  t('dp.arrival.engine', 'Field arrival — engine room', 'engine', [
-    'Machinery set up as agreed for the operation (CAM / TAM) — bus tie breakers as required',
-    'Generators online as required; stand-by generators available on automatic start',
-    'Fuel: service tanks full, purifiers running, no fuel change-over planned during the operation',
-    'Cooling water, lube oil and starting air normal; stand-by pumps on automatic',
-    'UPS for DP control, position references and communications on line and charged — no UPS alarm',
-    'No maintenance or isolation on DP-critical equipment; work permits suspended for the operation',
-    'Thruster drives and motors: no alarms; hydraulic / lube oil systems normal',
-    'Engine room manned as the ASOG requires; communications with the bridge tested',
-    'Fire, flooding and machinery alarms clear',
-  ]),
-  // The owner's Arrival DP Checklist (simulator course PR-33, annex 42), 16 Oct 2026:
-  // the state of every sensor, reference, thruster and generator, line by line.
-  t('dp.arrival.systems', 'Arrival DP checklist — sensors, references, thrusters, power', 'bridge', [
+/**
+ * Every DP checklist starts with the state of the DP system — sensors, position
+ * references, thrusters, power, communications — and then its own items (16 Oct
+ * 2026, the owner: "every checklist must have the sensors and all the rest — it
+ * starts with that"), laid out as tables as on the paper Arrival DP Checklist.
+ */
+const SYSTEMS: string[] = [
+
     '## Operator stations | Online {Yes|!No}',
     'OS1',
     'OS2',
@@ -212,8 +188,52 @@ export const DP_TEMPLATES: DpTemplate[] = [
     'Diving station',
     'ROV station',
     'Offshore unit',
+];
+
+/** A checklist's own items: one table, answered and remarked line by line. */
+const OWN = (title: string) => `## ${title} | Checked {Yes|!No|N/A} | Remarks`;
+
+export const DP_TEMPLATES: DpTemplate[] = [
+  t('dp.arrival.bridge', 'Field arrival — bridge (before the 500 m zone)', 'bridge', [
+    ...SYSTEMS,
+    OWN('Field arrival — bridge'),
+
+    'DP Operations Manual and the ASOG / WSOG for this operation on the bridge, read by the DPOs on watch',
+    'Critical / task activity mode (CAM / TAM) agreed with the engine room and set up',
+    'DP control system: all operator stations online, no unaccepted alarms',
+    'Position references: the number the DP class and the ASOG require online, of different principles, compared and weighted',
+    'DGNSS: corrections received, age and HDOP within limits',
+    'Gyros, MRUs / VRUs and wind sensors online and agreeing with each other',
+    'Each thruster tested in manual and on DP — response to command checked',
+    'Independent joystick and manual levers tested',
+    'Consequence analysis active with no alarm — enough power and thrust for the worst-case failure',
+    'Capability plot checked against the weather; forecast received and within the ASOG limits',
+    'DP alert lights (green / yellow / red) and communications with the engine room, deck and installation tested',
+    'Permission to enter the 500 m zone received; SIMOPS agreed with the installation',
+    'Set-up position held on DP outside the 500 m zone for the time the ASOG requires',
+    'Approach route, escape route and drift-off direction agreed',
+    'DP status Green — logged',
   ]),
+  t('dp.arrival.engine', 'Field arrival — engine room', 'engine', [
+    ...SYSTEMS,
+    OWN('Field arrival — engine room'),
+
+    'Machinery set up as agreed for the operation (CAM / TAM) — bus tie breakers as required',
+    'Generators online as required; stand-by generators available on automatic start',
+    'Fuel: service tanks full, purifiers running, no fuel change-over planned during the operation',
+    'Cooling water, lube oil and starting air normal; stand-by pumps on automatic',
+    'UPS for DP control, position references and communications on line and charged — no UPS alarm',
+    'No maintenance or isolation on DP-critical equipment; work permits suspended for the operation',
+    'Thruster drives and motors: no alarms; hydraulic / lube oil systems normal',
+    'Engine room manned as the ASOG requires; communications with the bridge tested',
+    'Fire, flooding and machinery alarms clear',
+  ]),
+  // The owner's Arrival DP Checklist (simulator course PR-33, annex 42), 16 Oct 2026: the system tables alone.
+  t('dp.arrival.systems', 'Arrival DP checklist — sensors, references, thrusters, power', 'bridge', SYSTEMS),
   t('dp.handover', 'DP watch handover', 'bridge', [
+    ...SYSTEMS,
+    OWN('Watch handover'),
+
     'DP status and ASOG condition (Green / Advisory / Yellow / Red)',
     'Position and heading set-points; position and heading error within limits',
     'Position references in use, their weighting, any rejected or deselected',
@@ -227,6 +247,9 @@ export const DP_TEMPLATES: DpTemplate[] = [
     'DP logbook up to date',
   ]),
   t('dp.departure', 'Leaving the field', 'bridge', [
+    ...SYSTEMS,
+    OWN('Leaving the field'),
+
     'Operation complete; lines, hoses, ROV and crane loads clear of the vessel and the installation',
     'Installation informed; permission to leave the 500 m zone',
     'Moved off on DP along the agreed route, away from the installation',

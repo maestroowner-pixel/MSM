@@ -13,7 +13,11 @@ import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View 
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { Empty, Label, Screen, ScreenTitle } from '../components/ui';
-import { useSigner } from '../components/SignerChoice';
+import { useSignConfirm } from '../components/SignConfirm';
+import { SignatureView } from '../components/SignaturePad';
+import { useSync } from '../contexts/SyncContext';
+import { personName } from '../types/role';
+import { SignProof, proofShort } from '../services/signature';
 import { Dropdown } from '../components/Dropdown';
 import { crewLabel, isAboard } from '../types/crew';
 import { useTheme } from '../contexts/ThemeContext';
@@ -44,6 +48,9 @@ const colWidth = (col: { options?: string[] }) => (col.options ? col.options.red
 /** A reading named by its unit ([kn], [m]) shows the unit after the cell, as written on paper. */
 const UNITS = ['kn', 'm', '°', '°/min', '%', 's', 'bar', 'rpm'];
 
+const ROLE = ['Handing over', 'Taking over'] as const;
+interface Sig { key: string; name: string; rank?: string; proof?: SignProof; at: number }
+
 const RES: { key: DpResult; label: string }[] = [
   { key: 'pass', label: 'Yes' },
   { key: 'fail', label: 'No' },
@@ -56,9 +63,15 @@ export default function DpCheckSc() {
   const nav = useNavigation<any>();
   const route = useRoute<any>();
   const { dpChecks, dpTemplates, vessel, saveRow } = useData();
-  const { signer, picker } = useSigner('SIGNED BY — HANDING OVER');
+  // Two signatures, each a person picked by name and confirmed by PIN or by hand
+  // (16 Oct 2026: "the bridge pad cannot hold every officer's fingerprint") — the
+  // device's own account is one of the names, and on an officer's own phone it may
+  // use the fingerprint.
   const { crew } = useData();
-  const [secondId, setSecondId] = useState('');
+  const sync = useSync();
+  const confirmSign = useSignConfirm();
+  const [sigs, setSigs] = useState<(Sig | null)[]>([null, null]);
+  const [pickIds, setPickIds] = useState<string[]>(['', '']);
   const done = dpChecks.find((c) => c.id === route.params?.id);
   const tpl = useMemo(() => templatesNow(dpTemplates).find((x) => x.id === route.params?.templateId), [dpTemplates, route.params?.templateId]);
   const [operation, setOperation] = useState('');
@@ -80,8 +93,11 @@ export default function DpCheckSc() {
   // The last checklist's place, offered (not filled in) — a vessel on DP stays put for days.
   const last = useMemo(() => [...dpChecks].sort((a, b) => b.at - a.at).find((x) => x.position), [dpChecks]);
 
-  const aboard = useMemo(() => crew.filter(isAboard), [crew]);
-  const second = aboard.find((p) => p.id === secondId);
+  const people = useMemo(() => {
+    const list: { id: string; name: string; rank?: string; own: boolean }[] = crew.filter(isAboard).map((m) => ({ id: m.id, name: m.name, rank: m.rank, own: false }));
+    if (sync.me) list.unshift({ id: `device:${sync.me.id}`, name: personName(sync.me), rank: sync.me.position || undefined, own: true });
+    return list;
+  }, [crew, sync.me]);
 
   if (!moduleOn('dp')) return <Screen><Empty text="Not available on this vessel." /></Screen>;
   const here = positionFromText(posT);
@@ -94,27 +110,34 @@ export default function DpCheckSc() {
   const o = checkOutcome(c);
   const inTable = sectionCols(c.lines);
   const plainLines = c.lines.filter((l) => !l.head && !l.options && !l.value && !inTable.get(l.id));
-  const sign = async () => {
-    if (lat == null || lon == null) return Alert.alert('DP checklist', 'Enter the position the checklist is done at — latitude and longitude, degrees, minutes and N/S, E/W from the DGPS.');
-    if (!signer) return Alert.alert('DP checklist', 'Choose who signs — handing over.');
-    if (!second) return Alert.alert('DP checklist', 'Choose the second signature — taking over.');
-    if (second.id === signer.key || second.name === signer.name) return Alert.alert('DP checklist', 'Two different people sign: the one handing over and the one taking over.');
+  const signRow = async (row: 0 | 1) => {
+    if (lat == null || lon == null) return Alert.alert('DP checklist', 'Enter the position first — degrees, minutes and N/S, E/W from the DGPS.');
+    const p = people.find((x) => x.id === pickIds[row]);
+    if (!p) return Alert.alert('DP checklist', `Choose the name — ${ROLE[row].toLowerCase()}.`);
+    const other = sigs[1 - row];
+    if (other && (other.key === p.id || other.name === p.name)) return Alert.alert('DP checklist', 'Two different people sign: the one handing over and the one taking over.');
+    const res = await confirmSign({ personKey: p.id, name: p.name, ownDevice: p.own, what: `${c.title} — ${ROLE[row].toLowerCase()}`, always: true });
+    if (!res) return;
+    setSigs((x) => x.map((v, i) => (i === row ? { key: p.id, name: p.name, rank: p.rank, proof: res.proof, at: Date.now() } : v)));
+  };
+  const save = async () => {
+    const [a, b] = sigs;
+    if (lat == null || lon == null) return Alert.alert('DP checklist', 'Enter the position the checklist is done at — degrees, minutes and N/S, E/W from the DGPS.');
+    if (!a || !b) return Alert.alert('DP checklist', 'Both sign before it is saved: the one handing over and the one taking over.');
     const finish = async () => {
       const clean = (r: Record<string, string>) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v));
       const cc = clean(cond as Record<string, string>);
       const at = Date.now();
-      const rec: DpCheck = { ...c, id: uid('dpc'), at, shipOffset: offset, position: { lat, lon }, operation: operation.trim() || undefined, unit: unit.trim() || undefined, conditions: Object.keys(cc).length ? cc : undefined, asog, values: Object.keys(clean(values)).length ? clean(values) : undefined, remarks: remarks.trim() || undefined, by: signer.name, byRank: signer.rank, byKey: signer.key, by2: second.name, by2Rank: second.rank || undefined, by2Key: second.id, updatedAt: at };
-      if (!rec.by2Rank) delete rec.by2Rank;
-      if (!rec.values) delete rec.values;
-      if (!rec.conditions) delete rec.conditions;
-      if (!rec.shipOffset) delete rec.shipOffset;
+      const rec: DpCheck = { ...c, id: uid('dpc'), at, shipOffset: offset, position: { lat, lon }, operation: operation.trim() || undefined, unit: unit.trim() || undefined, conditions: Object.keys(cc).length ? cc : undefined, asog, values: Object.keys(clean(values)).length ? clean(values) : undefined, remarks: remarks.trim() || undefined, by: a.name, byRank: a.rank, byKey: a.key, byWith: a.proof, by2: b.name, by2Rank: b.rank, by2Key: b.key, by2With: b.proof, updatedAt: at };
+      // Firestore takes no undefined.
+      for (const k of Object.keys(rec) as (keyof DpCheck)[]) if (rec[k] === undefined) delete rec[k];
       await saveRow(storage.DP_CHECKS_KEY, rec);
       nav.replace('DpCheck', { id: rec.id });
     };
     const warn = [o.open ? `${o.open} not answered` : '', o.fail ? `${o.fail} answered No` : ''].filter(Boolean).join(', ');
-    Alert.alert('Sign the checklist?', `${warn ? `${warn}. ` : ''}A signed checklist cannot be changed.`, [
+    Alert.alert('Save the signed checklist?', `${warn ? `${warn}. ` : ''}A signed checklist cannot be changed.`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign', onPress: () => void finish() },
+      { text: 'Save', onPress: () => void finish() },
     ]);
   };
   const pdf = async () => {
@@ -214,13 +237,22 @@ export default function DpCheckSc() {
           const cols = sec.head?.cols;
           const title = sec.head ? <Text style={styles.head}>{sec.head.text}</Text> : null;
           if (cols?.length) {
+            const nameW = sec.lines.some((l) => l.text.length > 40) ? 300 : 150;
+            const yesCol = cols.findIndex((x) => x.options?.includes('Yes'));
             return (
               <View key={sec.head!.id}>
-                {title}
+                <View style={styles.headRow}>
+                  {title}
+                  {!ro && yesCol >= 0 ? (
+                    <TouchableOpacity onPress={() => setResults((x) => ({ ...x, ...Object.fromEntries(sec.lines.map((l) => [cellKey(l.id, yesCol), x[cellKey(l.id, yesCol)] || 'Yes'])) }))} hitSlop={6}>
+                      <Text style={styles.small}>{`All ${cols[yesCol].name} — Yes`}</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.table}>
                     <View style={[styles.tr, styles.th]}>
-                      <Text style={[styles.tdName, styles.thText]}> </Text>
+                      <Text style={[styles.tdName, styles.thText, { width: nameW }]}> </Text>
                       {cols.map((col, ci) => (
                         <Text key={ci} style={[{ width: colWidth(col) }, styles.thText]}>{col.name}</Text>
                       ))}
@@ -230,7 +262,7 @@ export default function DpCheckSc() {
                       const rowBad = cols.some((col, ci) => col.options && answerIsBad(c.results[cellKey(l.id, ci)], col));
                       return (
                         <View key={l.id} style={[styles.tr, rowBad && styles.trBad]}>
-                          <Text style={styles.tdName}>{l.text}</Text>
+                          <Text style={[styles.tdName, { width: nameW }]}>{l.text}</Text>
                           {cols.map((col, ci) => {
                             const k = cellKey(l.id, ci);
                             if (!col.options) {
@@ -312,6 +344,19 @@ export default function DpCheckSc() {
       <Text style={[styles.sub, { marginVertical: SIZES.sm }]}>{`${o.pass} yes · ${o.fail} no · ${o.na} n/a${o.open ? ` · ${o.open} not answered` : ''}`}</Text>
       {ro ? (
         <>
+          <Label>Signatures</Label>
+          {[
+            { role: ROLE[0], name: c.by, rank: c.byRank, proof: c.byWith },
+            { role: ROLE[1], name: c.by2, rank: c.by2Rank, proof: c.by2With },
+          ].map((x) => (
+            <View key={x.role} style={styles.sigRow}>
+              <Text style={styles.sigRole}>{x.role}</Text>
+              <View style={{ flex: 1, minWidth: 180 }}>
+                <Text style={styles.value}>{x.name ? `${x.name}${x.rank ? ` (${x.rank})` : ''}${x.proof ? ` · ${proofShort(x.proof)}` : ''}` : '—'}</Text>
+                {x.proof?.drawing ? <SignatureView path={x.proof.drawing} height={36} color={COLORS.textDark} /> : null}
+              </View>
+            </View>
+          ))}
           <TouchableOpacity style={styles.btn} onPress={pdf}>
             <Text style={styles.btnText}>PDF</Text>
           </TouchableOpacity>
@@ -322,16 +367,42 @@ export default function DpCheckSc() {
         </>
       ) : (
         <>
-          {picker}
-          <Dropdown
-            caption="SIGNED BY — TAKING OVER"
-            value={second ? secondId : ''}
-            onChange={setSecondId}
-            options={[{ value: '', label: 'Choose…' }, ...aboard.filter((p) => p.id !== signer?.key && p.name !== signer?.name).map((p) => ({ value: p.id, label: crewLabel(p) }))]}
-            style={{ marginTop: SIZES.xs, maxWidth: 420 }}
-          />
-          <TouchableOpacity style={styles.btn} onPress={sign}>
-            <Text style={styles.btnText}>{signer && second ? `Sign — ${signer.name} and ${second.name}` : 'Sign'}</Text>
+          <Label>Signatures ★</Label>
+          {([0, 1] as const).map((row) => {
+            const done = sigs[row];
+            const taken = sigs[1 - row];
+            return (
+              <View key={row} style={styles.sigRow}>
+                <Text style={styles.sigRole}>{ROLE[row]}</Text>
+                {done ? (
+                  <View style={{ flex: 1, minWidth: 180 }}>
+                    <Text style={styles.value}>{`✓ ${done.name}${done.rank ? ` (${done.rank})` : ''} · ${proofShort(done.proof) || 'signed'}`}</Text>
+                    {done.proof?.drawing ? <SignatureView path={done.proof.drawing} height={36} color={COLORS.textDark} /> : null}
+                  </View>
+                ) : (
+                  <Dropdown
+                    caption="NAME"
+                    value={pickIds[row]}
+                    onChange={(v: string) => setPickIds((x) => x.map((y, i) => (i === row ? v : y)))}
+                    options={[{ value: '', label: 'Choose the name…' }, ...people.filter((p) => !taken || (p.id !== taken.key && p.name !== taken.name)).map((p) => ({ value: p.id, label: p.own ? `${crewLabel(p)} — this device` : crewLabel(p) }))]}
+                    style={{ flex: 1, minWidth: 200, maxWidth: 360 }}
+                  />
+                )}
+                {done ? (
+                  <TouchableOpacity onPress={() => setSigs((x) => x.map((v, i) => (i === row ? null : v)))} hitSlop={8}>
+                    <Text style={styles.link}>Undo</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity style={[styles.signBtn, !pickIds[row] && { opacity: 0.5 }]} onPress={() => void signRow(row)}>
+                    <Text style={styles.btnText}>Sign</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            );
+          })}
+          {people.length < 2 ? <Text style={styles.sub}>Two people sign — add the DPOs to the crew list (Crew).</Text> : null}
+          <TouchableOpacity style={[styles.btn, !(sigs[0] && sigs[1]) && { opacity: 0.5 }]} onPress={save}>
+            <Text style={styles.btnText}>Save the signed checklist</Text>
           </TouchableOpacity>
         </>
       )}
@@ -361,6 +432,10 @@ const makeStyles = (COLORS: Palette) =>
     optCell: { flexDirection: 'row', gap: 3 },
     mini: { paddingVertical: 3, paddingHorizontal: 7, borderRadius: 6, borderWidth: 1, borderColor: COLORS.primary },
     miniText: { color: COLORS.primary, fontWeight: '600', fontSize: 11 },
+    small: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
+    sigRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: SIZES.sm, marginTop: SIZES.xs, paddingVertical: SIZES.xs, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+    sigRole: { width: 100, color: COLORS.text, fontWeight: '700', fontSize: SIZES.small },
+    signBtn: { backgroundColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 9, paddingHorizontal: SIZES.lg },
     condRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: SIZES.xs },
     condLabel: { width: 92, color: COLORS.text, fontSize: SIZES.small, fontWeight: '600' },
     dirLabel: { width: 'auto', marginLeft: 4 },

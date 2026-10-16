@@ -11,6 +11,7 @@ import { share } from './export';
 import { exportPmsHistory } from './pmsHistoryReport';
 import { ASOG_LABEL, Letter, answerText, checkOutcome, conditionsText, letterHtml, positionText, rowCells } from './dp';
 import { shipAndUtc } from '../utils/shipTime';
+import { proofShort } from './signature';
 import { DpCheck } from '../types/dp';
 import { onWeb, onWindows } from '../utils/fileShare';
 import { saveFileWeb } from '../utils/webSave';
@@ -35,10 +36,14 @@ export async function exportDpCheckPdf(c: DpCheck, vessel: VesselInfo | null) {
   for (const l of c.lines) {
     if (l.head || !tables.length) {
       const cols = l.head ? l.cols : undefined;
-      const each = cols?.length ? Math.min(45, Math.floor((273 - 12 - 70) / cols.length)) : 0;
+      // A table of long items (a checklist's own) gets a wide item column.
+      const after = c.lines.slice(c.lines.indexOf(l) + 1);
+      const rows = after.slice(0, Math.max(0, after.findIndex((x) => x.head)) || after.length);
+      const itemW = rows.some((x) => x.text.length > 40) ? 150 : 70;
+      const each = cols?.length ? Math.min(itemW === 150 ? 55 : 45, Math.floor((273 - 12 - itemW) / cols.length)) : 0;
       tables.push(
         cols?.length
-          ? { title: l.text, head: ['#', 'Item', ...cols.map((x) => (x.options ? `${x.name} (${x.options.join(' / ')})` : x.name))], rows: [], widths: { 0: 12, 1: 70, ...Object.fromEntries(cols.map((_, i) => [i + 2, each])) } }
+          ? { title: l.text, head: ['#', 'Item', ...cols.map((x) => (x.options ? `${x.name} (${x.options.join(' / ')})` : x.name))], rows: [], widths: { 0: 12, 1: itemW, ...Object.fromEntries(cols.map((_, i) => [i + 2, each])) } }
           : { title: l.head ? l.text : 'Checklist', head: ['#', 'Item', 'Answer'], rows: [], widths: { 0: 12, 1: 170, 2: 91 } }
       );
       (tables[tables.length - 1] as any).cols = cols;
@@ -53,8 +58,8 @@ export async function exportDpCheckPdf(c: DpCheck, vessel: VesselInfo | null) {
     title: 'Signatures',
     head: ['', 'Name', 'Position', 'Signature'],
     rows: [
-      ['Handing over', c.by, c.byRank ?? '', `signed in ISMpilot ${shipAndUtc(c.at, c.shipOffset).ship} LT`],
-      ['Taking over', c.by2 ?? '', c.by2Rank ?? '', c.by2 ? `signed in ISMpilot ${shipAndUtc(c.at, c.shipOffset).ship} LT` : ''],
+      ['Handing over', c.by, c.byRank ?? '', `${proofShort(c.byWith) || 'signed'} in ISMpilot, ${shipAndUtc(c.at, c.shipOffset).ship} LT`],
+      ['Taking over', c.by2 ?? '', c.by2Rank ?? '', c.by2 ? `${proofShort(c.by2With) || 'signed'} in ISMpilot, ${shipAndUtc(c.at, c.shipOffset).ship} LT` : ''],
     ],
     widths: { 0: 40, 1: 80, 2: 70, 3: 83 },
   });
