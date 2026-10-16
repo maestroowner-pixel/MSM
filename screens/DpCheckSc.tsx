@@ -3,7 +3,8 @@
 // (route { id }). A signed record keeps a copy of the lines it was signed
 // against and is never edited (firestore.rules: dp_checks has no update).
 // Where and when are REQUIRED (16 Oct 2026, the owner): the position is typed
-// or taken from the device, the date and time are the moment of signing — set
+// from the DGPS — never the phone's own GPS ("the information comes from the
+// DGPS") — the date and time are the moment of signing — set
 // by the app, shown in ship's time and UTC, not typed.
 // ===================================
 
@@ -59,7 +60,6 @@ export default function DpCheckSc() {
   const [cond, setCond] = useState<DpConditions>({});
   const [latT, setLatT] = useState('');
   const [lonT, setLonT] = useState('');
-  const [gps, setGps] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -82,19 +82,6 @@ export default function DpCheckSc() {
     setLatT(coordText(a, 'lat'));
     setLonT(coordText(b, 'lon'));
   };
-  const geo: any = typeof navigator !== 'undefined' ? (navigator as any).geolocation : undefined;
-  const fromDevice = () => {
-    setGps('Reading the position…');
-    geo.getCurrentPosition(
-      (p: any) => {
-        setPos(p.coords.latitude, p.coords.longitude);
-        setGps(`From this device, ±${Math.round(p.coords.accuracy)} m — check it against the DP position.`);
-      },
-      (e: any) => setGps(`No position from this device (${e?.message || 'refused'}) — type it in.`),
-      { enableHighAccuracy: true, timeout: 20000 }
-    );
-  };
-
   const sign = async () => {
     if (lat == null || lon == null) return Alert.alert('DP checklist', 'Enter the position the checklist is done at — latitude and longitude, e.g. 57 12.345 N and 001 23.456 E.');
     if (!signer) return Alert.alert('DP checklist', 'Choose who signs.');
@@ -136,23 +123,18 @@ export default function DpCheckSc() {
       ) : (
         <>
           <View style={styles.pair}>
+            <Text style={[styles.sub, { width: '100%' }]}>From the DGPS</Text>
             <TextInput style={[styles.input, styles.half, latT && lat == null && styles.bad]} value={latT} onChangeText={setLatT} placeholder="Latitude  57 12.345 N" placeholderTextColor={COLORS.textLight} autoCapitalize="characters" />
             <TextInput style={[styles.input, styles.half, lonT && lon == null && styles.bad]} value={lonT} onChangeText={setLonT} placeholder="Longitude  001 23.456 E" placeholderTextColor={COLORS.textLight} autoCapitalize="characters" />
           </View>
           {lat != null && lon != null ? <Text style={[styles.sub, { marginBottom: SIZES.xs }]}>{`✓ ${positionText({ lat, lon })}`}</Text> : null}
           <View style={styles.chips}>
-            {geo ? (
-              <TouchableOpacity style={styles.chip} onPress={fromDevice}>
-                <Text style={styles.chipText}>Use this device's position</Text>
-              </TouchableOpacity>
-            ) : null}
             {last ? (
               <TouchableOpacity style={styles.chip} onPress={() => setPos(last.position.lat, last.position.lon)}>
                 <Text style={styles.chipText}>{`As the last checklist (${shipAndUtc(last.at, last.shipOffset).ship.slice(5)})`}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
-          {gps ? <Text style={[styles.sub, { marginTop: 4 }]}>{gps}</Text> : null}
         </>
       )}
 
