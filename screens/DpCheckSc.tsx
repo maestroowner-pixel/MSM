@@ -19,7 +19,8 @@ import { useSync } from '../contexts/SyncContext';
 import { personName } from '../types/role';
 import { SignProof, proofShort } from '../services/signature';
 import { Dropdown } from '../components/Dropdown';
-import { crewLabel, isAboard } from '../types/crew';
+import { crewLabel, isAboard, isOfficerRank } from '../types/crew';
+import { roleAtLeast } from '../types/role';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
@@ -100,10 +101,11 @@ export default function DpCheckSc() {
   const last = useMemo(() => [...dpChecks].sort((a, b) => b.at - a.at).find((x) => x.position), [dpChecks]);
 
   const people = useMemo(() => {
-    const list: { id: string; name: string; rank?: string; own: boolean }[] = crew.filter(isAboard).map((m) => ({ id: m.id, name: m.name, rank: m.rank, own: false }));
-    if (sync.me) list.unshift({ id: `device:${sync.me.id}`, name: personName(sync.me), rank: sync.me.position || undefined, own: true });
+    // Officers only — the DP checklists are the officers' (16 Oct 2026).
+    const list: { id: string; name: string; rank?: string; own: boolean }[] = crew.filter((m) => isAboard(m) && isOfficerRank(m.rank)).map((m) => ({ id: m.id, name: m.name, rank: m.rank, own: false }));
+    if (sync.me && roleAtLeast(sync.role, 'admin')) list.unshift({ id: `device:${sync.me.id}`, name: personName(sync.me), rank: sync.me.position || undefined, own: true });
     return list;
-  }, [crew, sync.me]);
+  }, [crew, sync.me, sync.role]);
 
   if (!moduleOn('dp')) return <Screen><Empty text="Not available on this vessel." /></Screen>;
   const here = positionFromText(posT);
@@ -455,7 +457,7 @@ export default function DpCheckSc() {
               </View>
             );
           })}
-          {people.length < 2 ? <Text style={styles.sub}>Two people sign — add the DPOs to the crew list (Crew).</Text> : null}
+          {people.length < 2 ? <Text style={styles.sub}>Two officers sign — the crew list (Crew) needs the officers aboard with their rank (Master, Chief Officer, DPO, Engineer…).</Text> : null}
           <TouchableOpacity style={[styles.btn, !(sigs[0] && sigs[1]) && { opacity: 0.5 }]} onPress={save}>
             <Text style={styles.btnText}>Save the signed checklist</Text>
           </TouchableOpacity>

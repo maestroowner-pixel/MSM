@@ -101,6 +101,18 @@ export function liveCrew(list: CrewMember[]): CrewMember[] {
   return list.filter((c) => !c.deleted);
 }
 
+/**
+ * An officer by the rank written on the crew list — the Master, mates and
+ * officers, DPOs, engineers, ETO; not cadets or trainees. The DP checklists are
+ * filled in and signed by officers only (16 Oct 2026). Rank is free text, so
+ * this reads the words, not a fixed list.
+ */
+export function isOfficerRank(rank?: string): boolean {
+  const r = (rank ?? '').toLowerCase();
+  if (!r.trim() || /cadet|trainee|apprentice|student/.test(r)) return false;
+  return /\b(master|captain|capt|officer|mate|dpo|sdpo|engineer|eto|electro[- ]?technical|c\/o|2\/o|3\/o|c\/e|2\/e|3\/e|4\/e|oow)\b/.test(r) || /^(co|2o|3o|ce|2e|3e|4e)$/.test(r.replace(/[^a-z0-9]/g, ''));
+}
+
 /** "Jez Dodd · Third Officer" — one line for a picker row or a report cell. */
 export function crewLabel(c: Pick<CrewMember, 'name' | 'rank'>): string {
   return c.rank ? `${c.name} · ${c.rank}` : c.name;
