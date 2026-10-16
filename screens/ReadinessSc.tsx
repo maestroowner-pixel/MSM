@@ -6,7 +6,7 @@
 // ===================================
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 import { Screen, ScreenTitle } from '../components/ui';
@@ -22,10 +22,12 @@ import { periodsFor } from '../constants/checklists';
 import { CategoryKey } from '../types/equipment';
 import { todayIso } from '../services/pms';
 import { KIND_LABEL, ReadinessKind, buildReadiness, verdict } from '../services/readiness';
-import { exportReadinessPdf } from '../services/readinessReport';
+import { buildCalendar, ICS_REMIND_DAYS } from '../services/calendarIcs';
+import { exportCalendarIcs, exportReadinessPdf } from '../services/readinessReport';
 
 const addDays = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
 const SOON = [0, 7, 14, 30];
+const onWebPlatform = Platform.OS === 'web';
 
 export default function ReadinessSc() {
   const COLORS = useTheme();
@@ -62,6 +64,24 @@ export default function ReadinessSc() {
       if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
     } catch (e: any) {
       Alert.alert('Inspection readiness', String(e?.message ?? e));
+    }
+  };
+
+  // The calendar always looks a year ahead from today, whatever inspection is picked above.
+  const calendar = async () => {
+    try {
+      const c = buildCalendar({
+        today,
+        on: moduleOn,
+        labelOf: (k: CategoryKey) => data.categories.find((x) => x.key === k)?.label ?? CATEGORY_MAP[k]?.label ?? String(k),
+        periodsOf: (k: CategoryKey) => periodsFor(k, data.templates),
+        ...data,
+      });
+      const { count, where } = await exportCalendarIcs(c, data.vessel);
+      const place = typeof where === 'string' ? (where === 'Downloads' ? ' to Downloads' : ` to the folder “${where}”`) : '';
+      if (typeof where === 'string' || !onWebPlatform) setSaved(`${count} due date${count === 1 ? '' : 's'} saved${place} — open the file in Outlook, Google or Apple Calendar`);
+    } catch (e: any) {
+      Alert.alert('Calendar', String(e?.message ?? e));
     }
   };
 
@@ -104,6 +124,11 @@ export default function ReadinessSc() {
         <MciIcon name="swap-horizontal-bold" size={18} color={COLORS.primary} />
         <Text style={styles.handoverText}>Crew change? Make the handover report</Text>
         <MciIcon name="chevron-right" size={18} color={COLORS.primary} />
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.handover} onPress={calendar} activeOpacity={0.7}>
+        <MciIcon name="calendar-export" size={18} color={COLORS.primary} />
+        <Text style={styles.handoverText}>{`Due dates to your calendar (.ics) — a year ahead, reminder ${ICS_REMIND_DAYS} days before`}</Text>
+        <MciIcon name="download" size={18} color={COLORS.primary} />
       </TouchableOpacity>
 
       {r.sections.map((s) => (

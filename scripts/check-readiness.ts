@@ -1,6 +1,7 @@
 // npm run check:readiness — inspection readiness judges each record against the inspection DAY.
 import { buildReadiness, dateLevel, ReadinessInput, verdict } from '../services/readiness';
 import { buildHandover, emptyDraft, handoverPages } from '../services/handover';
+import { buildCalendar, fold, icsEvents, toIcs } from '../services/calendarIcs';
 
 let fail = 0;
 const ok = (c: boolean, m: string) => { if (!c) { fail++; console.log('✗', m); } else console.log('✓', m); };
@@ -77,6 +78,19 @@ ok(pg.title === 'Handover — Deck' && pg.facts[1] === 'from Ann Lee (Chief Offi
 ok(pg.tables[0].title === 'Work in progress' && pg.tables[0].rows.length === 2 && pg.tables[0].rows[1][1] === 'Paint locker', 'notes: one row a line, bullets and blanks dropped');
 ok(pg.tables[pg.tables.length - 1].rows.map((r) => r[0]).join() === 'Outgoing,Incoming,Master', 'signature lines last: outgoing, incoming, Master');
 ok(pg.tables.some((t) => t.rows.some((r) => r[0] === 'NOW')) && pg.tables.some((t) => t.rows.some((r) => r[0] === 'Coming')), 'findings marked NOW / Coming');
+
+// Calendar (.ics): a year ahead, dated lines from today on, none from the past.
+const cal = buildCalendar(base({ flat: [item('k1', plus(200)), item('k2', plus(-5)), item('k3', plus(400))] }));
+const ev = icsEvents(cal, 'DreamBoat');
+ok(ev.length === 1 && ev[0].date === plus(200) && ev[0].uid === 'eq:k1@ismpilot.com', 'ics: 200 days out listed; past and beyond a year left out');
+ok(ev[0].summary.endsWith(' — DreamBoat') && !/in \d+ days/.test(ev[0].description), 'ics: vessel in the title, no "in N days" that goes stale');
+const ics = toIcs([...ev, { uid: 'x@ismpilot.com', date: '2027-01-31', summary: 'Fire, door; "A", B\\C', description: 'line1\nline2 ' + 'é'.repeat(60) }], 'ISMpilot — DreamBoat', new Date('2026-10-16T08:00:00Z'));
+const lines = ics.split('\r\n');
+ok(ics.startsWith('BEGIN:VCALENDAR\r\nVERSION:2.0') && ics.endsWith('END:VCALENDAR\r\n'), 'ics: CRLF calendar envelope');
+ok(lines.includes('DTSTART;VALUE=DATE:20270131') && lines.includes('DTEND;VALUE=DATE:20270201') && lines.includes('DTSTAMP:20261016T080000Z'), 'ics: all-day event, end the next day, stamp in UTC');
+ok(lines.includes('SUMMARY:Fire\\, door\\; "A"\\, B\\\\C') && lines.includes('TRIGGER:-P7D'), 'ics: commas, semicolons, backslashes escaped; reminder a week before');
+ok(lines.every((l) => new TextEncoder().encode(l).length <= 75) && lines.some((l) => l.startsWith(' ')), 'ics: long lines folded at 75 octets (UTF-8)');
+ok(fold('a'.repeat(80)).split('\r\n ').join('') === 'a'.repeat(80), 'ics: unfolding gives the line back');
 
 console.log(fail ? `\n${fail} FAILED` : '\nall passed');
 process.exit(fail ? 1 : 0);

@@ -620,6 +620,7 @@ const en: ManualContent = {
         "Every line opens the record that puts it right. Areas with nothing to report are shown with a tick, so 'Ready' means checked and clean. PDF makes the same list for the Master and the DPA.",
         "Class survey leaves out the crew's papers and hours of rest. The list checks what the app holds — it is a worklist, not the inspector's checklist.",
         "Handover (the link under the verdict) makes the report for crew change: what is handed over, from whom to whom, your work in progress and notes for the relief, everything overdue now and what falls due in the next 30, 60 or 90 days — one PDF with lines for both signatures and the Master's. The notes stay on this device until printed.",
+        "Due dates to your calendar saves an .ics file with every dated line a year ahead — certificates, equipment, surveys, drills — as all-day events with a reminder a week before. Open it in Outlook, Google or Apple Calendar. Make a new file after the dates change: Outlook and Apple Calendar move the events they already have; Google adds the file again.",
       ],
     },
     {
@@ -1237,6 +1238,7 @@ const ru: ManualContent = {
         "Каждая строка открывает запись, которую нужно исправить. Разделы без замечаний отмечены галочкой — «Ready» значит «проверено и чисто». PDF — тот же список для капитана и DPA.",
         "Для класса не проверяются документы экипажа и часы отдыха. Список проверяет то, что есть в приложении, — это рабочий список, а не чек-лист инспектора.",
         "Handover (ссылка под вердиктом) — отчёт при смене экипажа: что передаётся, кто кому, работы в процессе и заметки сменщику, всё просроченное сейчас и что наступит в ближайшие 30, 60 или 90 дней — один PDF со строками для подписей обоих и капитана. Заметки хранятся на этом устройстве до печати.",
+        "Due dates to your calendar сохраняет файл .ics со всеми сроками на год вперёд — сертификаты, оборудование, освидетельствования, учения — как события на весь день с напоминанием за неделю. Откройте его в Outlook, Google или Apple Calendar. После изменения дат сделайте новый файл: Outlook и Apple Calendar передвинут уже добавленные события, Google добавит файл заново.",
       ],
     },
     {
@@ -1854,6 +1856,7 @@ const es: ManualContent = {
         "Cada línea abre el registro que lo corrige. Las áreas sin nada que señalar llevan una marca, así que 'Ready' significa revisado y limpio. PDF genera la misma lista para el Capitán y la DPA.",
         "El reconocimiento de clase no incluye los documentos de la tripulación ni las horas de descanso. La lista revisa lo que contiene la app: es una lista de trabajo, no la lista del inspector.",
         "Handover (el enlace bajo el veredicto) prepara el informe del relevo: qué se entrega, de quién a quién, trabajos en curso y notas para el relevo, todo lo vencido ahora y lo que vence en los próximos 30, 60 o 90 días — un PDF con líneas para las firmas de ambos y del Capitán. Las notas quedan en este dispositivo hasta imprimirlas.",
+        "Due dates to your calendar guarda un archivo .ics con cada fecha del próximo año — certificados, equipos, inspecciones, ejercicios — como eventos de día completo con aviso una semana antes. Ábralo en Outlook, Google o Apple Calendar. Cuando cambien las fechas, genere un archivo nuevo: Outlook y Apple Calendar mueven los eventos que ya tienen; Google vuelve a añadir el archivo.",
       ],
     },
     {
@@ -2471,6 +2474,7 @@ const uk: ManualContent = {
         "Кожен рядок відкриває запис, який треба виправити. Розділи без зауважень позначені галочкою — «Ready» означає «перевірено й чисто». PDF — той самий список для капітана й DPA.",
         "Для класу не перевіряються документи екіпажу й години відпочинку. Список перевіряє те, що є в застосунку, — це робочий список, а не чек-лист інспектора.",
         "Handover (посилання під вердиктом) — звіт при зміні екіпажу: що передається, хто кому, роботи в процесі й нотатки змінникові, усе прострочене зараз і що настане в найближчі 30, 60 чи 90 днів — один PDF з рядками для підписів обох і капітана. Нотатки зберігаються на цьому пристрої до друку.",
+        "Due dates to your calendar зберігає файл .ics з усіма строками на рік уперед — сертифікати, обладнання, огляди, навчання — як події на весь день з нагадуванням за тиждень. Відкрийте його в Outlook, Google чи Apple Calendar. Після зміни дат зробіть новий файл: Outlook і Apple Calendar пересунуть уже додані події, Google додасть файл заново.",
       ],
     },
     {
