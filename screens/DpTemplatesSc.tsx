@@ -18,7 +18,7 @@ import { SIZES, Palette } from '../theme';
 import { moduleOn } from '../constants/modules';
 import * as storage from '../services/storage';
 import { uid } from '../utils/id';
-import { DP_TEMPLATES, linesFromText } from '../services/dp';
+import { DP_TEMPLATES, lineSource, linesFromText } from '../services/dp';
 import { DpTemplate, DpWhere } from '../types/dp';
 import { roleAtLeast } from '../types/role';
 
@@ -45,7 +45,7 @@ export default function DpTemplatesSc() {
     setEditing(t);
     setTitle(t.title);
     setWhere(t.where);
-    setText(t.lines.map((l) => l.text).join('\n'));
+    setText(t.lines.map(lineSource).join('\n'));
   };
   const save = async () => {
     if (!editing) return;
@@ -77,7 +77,8 @@ export default function DpTemplatesSc() {
           ))}
         </View>
         <Label>Items — one a line</Label>
-        <TextInput style={[styles.input, { minHeight: 260 }]} value={text} onChangeText={setText} multiline placeholderTextColor={COLORS.textLight} placeholder="Each line becomes an item with Yes / No / N/A" />
+        <Text style={styles.sub}>{'Plain line → Yes / No / N/A.  {Not used|Monitor|Selected} → one of these.  [Hdg] → a reading.  ## Sensors → a heading.'}</Text>
+        <TextInput style={[styles.input, { minHeight: 260 }]} value={text} onChangeText={setText} multiline placeholderTextColor={COLORS.textLight} placeholder={'## Sensors\nGyro 1 {Available|Priority|Not available} [Hdg]\nPosition gain [setting]\nThrusters tested on DP'} />
         <TouchableOpacity style={styles.btn} onPress={save}>
           <Text style={styles.btnText}>Save</Text>
         </TouchableOpacity>
@@ -99,7 +100,7 @@ export default function DpTemplatesSc() {
             <MciIcon name={t.where === 'engine' ? 'engine-outline' : 'ferry'} size={20} color={COLORS.primary} />
             <TouchableOpacity style={{ flex: 1 }} onPress={() => open(t)}>
               <Text style={styles.title}>{t.title}</Text>
-              <Text style={styles.sub}>{`${t.lines.length} items · ${builtIn ? (changed ? 'reworded' : 'as shipped') : 'the vessel’s own'}${t.off ? ' · off' : ''}`}</Text>
+              <Text style={styles.sub}>{`${t.lines.filter((l) => !l.head).length} items · ${builtIn ? (changed ? 'reworded' : 'as shipped') : 'the vessel’s own'}${t.off ? ' · off' : ''}`}</Text>
             </TouchableOpacity>
             {changed ? (
               <TouchableOpacity onPress={() => standard(t)} hitSlop={8}>

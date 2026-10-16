@@ -14,9 +14,20 @@
 
 export type DpSlot = 0 | 1 | 2; // 0 none · 1 Active (at the desk, in control) · 2 Passive (watching)
 
+/**
+ * One line of a DP checklist. Plain, it is answered Yes / No / N/A. With
+ * `options` it is answered by one of them ("Not used / Monitor / Selected").
+ * With `value` it also takes a reading under that label ("Hdg", "Pitch/Roll");
+ * a line with a `value` and no `options` is a reading only ("Position gain").
+ * `head` makes it a section heading, not a question. (16 Oct 2026, from the
+ * owner's Arrival DP Checklist, annex 42.)
+ */
 export interface DpLine {
   id: string;
   text: string;
+  options?: string[];
+  value?: string;
+  head?: boolean;
 }
 
 export type DpWhere = 'bridge' | 'engine';
@@ -32,6 +43,23 @@ export interface DpTemplate {
 }
 
 export type DpResult = 'pass' | 'fail' | 'na';
+
+/** Where the vessel was — decimal degrees, north and east positive. */
+export interface DpPosition {
+  lat: number;
+  lon: number;
+}
+
+/** The conditions at the time, as the Arrival DP Checklist heads them — all free text. */
+export interface DpConditions {
+  waterDepth?: string;
+  windSpeed?: string;
+  windDir?: string;
+  currentSpeed?: string;
+  currentDir?: string;
+  waveHeight?: string;
+  waveDir?: string;
+}
 /** The well-specific / activity-specific operating guidance condition (ASOG / WSOG / CAM). */
 export type AsogStatus = 'green' | 'blue' | 'yellow' | 'red';
 
@@ -40,13 +68,23 @@ export interface DpCheck {
   templateId: string;
   title: string;
   where: DpWhere;
-  /** ms — when it was signed. */
+  /** ms — when it was signed: the checklist's date and time, set by the app, not typed. */
   at: number;
-  /** The operation / field / installation it was done for. */
+  /** Ship's time offset at the time ("+01:00"), so the record reads in the time it was kept. */
+  shipOffset?: string;
+  /** Where it was filled in — REQUIRED (16 Oct 2026; firestore.rules refuses a record without it). */
+  position: DpPosition;
+  /** The operation / field it was done for. */
   operation?: string;
+  /** The offshore unit / installation. */
+  unit?: string;
+  conditions?: DpConditions;
   asog?: AsogStatus;
   lines: DpLine[];
-  results: Record<string, DpResult>;
+  /** Yes / No / N/A as pass / fail / na; an option line stores the option chosen. */
+  results: Record<string, string>;
+  /** Readings, by line id. */
+  values?: Record<string, string>;
   remarks?: string;
   by: string;
   byRank?: string;

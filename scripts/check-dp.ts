@@ -1,24 +1,42 @@
 // npm run check:dp — DP checklists keep their line ids; DP days count as SDM counts them; the letter says what the log says.
-import { DP_TEMPLATES, buildLetter, checkOutcome, dayId, dpoTotals, emptySlots, hours, isDpDay, letterHtml, linesFromText, setRange, templatesNow } from '../services/dp';
+import { DP_TEMPLATES, answerText, buildLetter, checkOutcome, conditionsText, coordText, dayId, lineSource, parseCoord, parseLine, positionText, dpoTotals, emptySlots, hours, isDpDay, letterHtml, linesFromText, setRange, templatesNow } from '../services/dp';
 import { DpDay } from '../types/dp';
 
 let fail = 0;
 const ok = (c: boolean, m: string) => { if (!c) { fail++; console.log('✗', m); } else console.log('✓', m); };
 
 const ids = DP_TEMPLATES.flatMap((x) => x.lines.map((l) => l.id));
-ok(new Set(ids).size === ids.length && DP_TEMPLATES.length === 4, 'four built-in checklists, line ids unique');
+ok(new Set(ids).size === ids.length && DP_TEMPLATES.length === 5, 'five built-in checklists, line ids unique');
+const sys = DP_TEMPLATES.find((x) => x.id === 'dp.arrival.systems')!;
+ok(sys.lines.filter((l) => l.head).length === 8 && sys.lines.find((l) => l.text === 'GPS 1')?.options?.join('|') === 'Not used|Monitor|Selected', 'arrival systems checklist: eight sections, GPS answered Not used / Monitor / Selected');
 
 // The vessel's own wording replaces a built-in; a switched-off one is gone; its own are added.
-const own = [{ ...DP_TEMPLATES[2], title: 'Our handover', updatedAt: 5 }, { ...DP_TEMPLATES[3], off: true, updatedAt: 5 }, { id: 'v.trials', title: 'Annual DP trials prep', where: 'bridge' as const, lines: [], updatedAt: 5 }];
+const own = [{ ...DP_TEMPLATES[3], title: 'Our handover', updatedAt: 5 }, { ...DP_TEMPLATES[4], off: true, updatedAt: 5 }, { id: 'v.trials', title: 'Annual DP trials prep', where: 'bridge' as const, lines: [], updatedAt: 5 }];
 const now = templatesNow(own);
-ok(now.map((x) => x.title).join('|') === `${DP_TEMPLATES[0].title}|${DP_TEMPLATES[1].title}|Our handover|Annual DP trials prep`, 'reworded, switched off, own added');
+ok(now.map((x) => x.title).join('|') === `${DP_TEMPLATES[0].title}|${DP_TEMPLATES[1].title}|${DP_TEMPLATES[2].title}|Our handover|Annual DP trials prep`, 'reworded, switched off, own added');
 
 // Rewording keeps the ids of lines whose text stayed.
-const old = DP_TEMPLATES[2].lines;
+const old = DP_TEMPLATES[3].lines;
 const edited = linesFromText(`${old[0].text}\n- New line about the ROV\n${old[2].text}\n\n`, old, 'dp.handover', 1);
 ok(edited.length === 3 && edited[0].id === old[0].id && edited[2].id === old[2].id && edited[1].id !== old[1].id, 'kept lines keep their id; a new line gets a new one; bullets and blanks dropped');
 
 ok(JSON.stringify(checkOutcome({ lines: old.slice(0, 4), results: { [old[0].id]: 'pass', [old[1].id]: 'fail', [old[2].id]: 'na' } })) === '{"pass":1,"fail":1,"na":1,"open":1}', 'outcome counts');
+
+// Line syntax: options, a reading, a heading; written back the same.
+const g = parseLine('Gyro 1 {Available|Priority} [Hdg]');
+ok(g.text === 'Gyro 1' && g.options?.length === 2 && g.value === 'Hdg' && lineSource(g) === 'Gyro 1 {Available|Priority} [Hdg]', 'option + reading line parsed and written back');
+ok(parseLine('## Power').head === true && parseLine('Position gain [setting]').value === 'setting' && !parseLine('Position gain [setting]').options, 'heading; reading-only');
+const L3 = [{ id: 'h', text: 'Sensors', head: true }, { id: 'a', text: 'GPS 1', options: ['Not used', 'Selected'] }, { id: 'b', text: 'Gain', value: 'setting' }, { id: 'c', text: 'Crane', options: ['Good', 'No good'] }, { id: 'd', text: 'Gyro', options: ['Available'], value: 'Hdg' }];
+ok(JSON.stringify(checkOutcome({ lines: L3, results: { a: 'Selected', c: 'No good' }, values: { b: '30' } })) === '{"pass":2,"fail":1,"na":0,"open":1}', 'outcome: headings skipped, a reading counts when written, No good is a no');
+ok(answerText(L3[4], { results: { d: 'Available' }, values: { d: '123.4' } }) === 'Available · Hdg: 123.4', 'answer text with the reading');
+const kept = linesFromText(sys.lines.map(lineSource).join('\n'), sys.lines, sys.id, 1);
+ok(kept.every((l, i) => l.id === sys.lines[i].id) && kept.length === sys.lines.length, 'the arrival checklist round-trips through the editor with every id kept');
+
+// Position.
+ok(parseCoord('57 12.345 N', 'lat') === 57.20575 && parseCoord("001°23.456'W", 'lon') === -1.390933 && parseCoord('-33.5', 'lat') === -33.5, 'lat/lon: deg-min with hemisphere, decimal');
+ok(parseCoord('57 12.3 E', 'lat') === undefined && parseCoord('91 00 N', 'lat') === undefined && parseCoord('12 75 N', 'lat') === undefined && parseCoord('abc', 'lon') === undefined && parseCoord('', 'lat') === undefined, 'wrong hemisphere, off the globe, minutes ≥ 60, words, empty — refused');
+ok(coordText(57.20575, 'lat') === '57°12.345′N' && coordText(-1.390933, 'lon') === '001°23.456′W' && positionText({ lat: NaN, lon: 1 }) === '—', 'written as a navigator writes it');
+ok(conditionsText({ waterDepth: '85 m', windSpeed: '15 kn', windDir: '270', waveHeight: '1.5 m' }) === 'water depth 85 m · wind 15 kn / 270 · waves 1.5 m', 'conditions line');
 
 // DP time.
 let s = setRange(emptySlots(), 16, 20, 1); // 08:00–10:00 active

@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import type { MachineHistory } from '../services/pmsHistory';
 
-const plain = (s: string) => s.replace(/[–—]/g, '-').replace(/[“”]/g, '"').replace(/≈/g, '~').replace(/³/g, '3').replace(/·/g, '-');
+const plain = (s: string) => s.replace(/[–—]/g, '-').replace(/[“”]/g, '"').replace(/≈/g, '~').replace(/³/g, '3').replace(/·/g, '-').replace(/[′‘’]/g, "'").replace(/″/g, '"');
 
 export function pmsHistoryPdfBlob(title: string, vesselLine: string, list: MachineHistory[]): Blob {
   const { jsPDF } = require('jspdf');
@@ -25,8 +25,10 @@ export function pmsHistoryPdfBlob(title: string, vesselLine: string, list: Machi
     doc.text(plain(h.title), M, 17);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
-    doc.text(plain(h.facts.join('  -  ')), M, 22);
-    let y = 26;
+    // Wrapped: a DP checklist's facts (position, time, conditions…) run past one line.
+    const facts: string[] = doc.splitTextToSize(plain(h.facts.join('  -  ')), doc.internal.pageSize.getWidth() - 2 * M);
+    doc.text(facts, M, 22);
+    let y = 22 + (facts.length - 1) * 3.6 + 4;
     for (const t of h.tables) {
       if (y > H - 25) {
         doc.addPage();

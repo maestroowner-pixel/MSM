@@ -21,7 +21,8 @@ import { SIZES, Palette } from '../theme';
 import { moduleOn } from '../constants/modules';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
-import { ASOG_LABEL, SLOTS, Scheme, buildLetter, checkOutcome, dayId, dpoTotals, emptySlots, hours, isDpDay, templatesNow } from '../services/dp';
+import { ASOG_LABEL, SLOTS, Scheme, buildLetter, checkOutcome, dayId, dpoTotals, emptySlots, hours, isDpDay, templatesNow, positionText } from '../services/dp';
+import { shipAndUtc } from '../utils/shipTime';
 import { exportDpLetter } from '../services/dpReport';
 import { DpDay, DpInfo, DpSlot } from '../types/dp';
 import { isAboard } from '../types/crew';
@@ -144,7 +145,7 @@ export default function DpSc() {
               <MciIcon name={tp.where === 'engine' ? 'engine-outline' : 'ferry'} size={20} color={COLORS.primary} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.title}>{tp.title}</Text>
-                <Text style={styles.sub}>{`${tp.lines.length} items · ${tp.where === 'engine' ? 'engine room' : 'bridge'}`}</Text>
+                <Text style={styles.sub}>{`${tp.lines.filter((l) => !l.head).length} items · ${tp.where === 'engine' ? 'engine room' : 'bridge'}`}</Text>
               </View>
               <MciIcon name="chevron-right" size={18} color={COLORS.textLight} />
             </TouchableOpacity>
@@ -164,7 +165,7 @@ export default function DpSc() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.title}>{c.title}</Text>
                   <Text style={styles.sub}>
-                    {[new Date(c.at).toISOString().slice(0, 16).replace('T', ' '), c.operation, c.asog ? ASOG_LABEL[c.asog] : null, `${c.by}`, o.fail ? `${o.fail} NO` : null].filter(Boolean).join(' · ')}
+                    {[`${shipAndUtc(c.at, c.shipOffset).ship} LT`, c.position ? positionText(c.position) : null, c.operation, c.asog ? ASOG_LABEL[c.asog] : null, `${c.by}`, o.fail ? `${o.fail} NO` : null].filter(Boolean).join(' · ')}
                   </Text>
                 </View>
                 <MciIcon name="chevron-right" size={18} color={COLORS.textLight} />

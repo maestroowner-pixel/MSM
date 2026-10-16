@@ -490,7 +490,12 @@ service cloud.firestore {
       // are the officers'.
       match /dp_checks/{id} {
         allow read: if reader(v);
-        allow create: if member(v) && plainRecord();
+        // Where it was done is required (16 Oct 2026): a position in degrees.
+        allow create: if member(v) && plainRecord()
+          && request.resource.data.position is map
+          && request.resource.data.position.lat is number && request.resource.data.position.lon is number
+          && request.resource.data.position.lat >= -90 && request.resource.data.position.lat <= 90
+          && request.resource.data.position.lon >= -180 && request.resource.data.position.lon <= 180;
         allow update, delete: if false;
       }
       match /dp_days/{id} {
