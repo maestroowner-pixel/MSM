@@ -356,27 +356,10 @@ const HANDOVER: string[] = [
 const OWN = (title: string) => `## ${title} | Checked {Yes|!No|N/A} | Remarks`;
 
 export const DP_TEMPLATES: DpTemplate[] = [
-  // The handover sheet is the base (the owner, 16 Oct 2026: "this is the base"); the
-  // arrival's own items follow it.
+  // A copy of the handover sheet — the base (the owner, 16 Oct 2026: "this is the base").
   t('dp.arrival.bridge', 'Field arrival — bridge (before the 500 m zone)', 'bridge', [
     ...HANDOVER,
-    OWN('Field arrival — bridge'),
-
-    'DP Operations Manual and the ASOG / WSOG for this operation on the bridge, read by the DPOs on watch',
-    'Critical / task activity mode (CAM / TAM) agreed with the engine room and set up',
-    'DP control system: all operator stations online, no unaccepted alarms',
-    'Position references: the number the DP class and the ASOG require online, of different principles, compared and weighted',
-    'DGNSS: corrections received, age and HDOP within limits',
-    'Gyros, MRUs / VRUs and wind sensors online and agreeing with each other',
-    'Each thruster tested in manual and on DP — response to command checked',
-    'Independent joystick and manual levers tested',
-    'Consequence analysis active with no alarm — enough power and thrust for the worst-case failure',
-    'Capability plot checked against the weather; forecast received and within the ASOG limits',
-    'DP alert lights (green / yellow / red) and communications with the engine room, deck and installation tested',
-    'Permission to enter the 500 m zone received; SIMOPS agreed with the installation',
-    'Set-up position held on DP outside the 500 m zone for the time the ASOG requires',
-    'Approach route, escape route and drift-off direction agreed',
-    'DP status Green — logged',
+    // The DP trials data goes here next (the owner, 16 Oct 2026).
   ]),
   t('dp.arrival.engine', 'Field arrival — engine room', 'engine', [
     ...SYSTEMS,
