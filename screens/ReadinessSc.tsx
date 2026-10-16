@@ -100,6 +100,11 @@ export default function ReadinessSc() {
         </TouchableOpacity>
       </View>
       {saved ? <Text style={[styles.sub, { color: COLORS.success, marginBottom: SIZES.sm }]}>{`✓ ${saved}`}</Text> : null}
+      <TouchableOpacity style={styles.handover} onPress={() => nav.navigate('Handover')} activeOpacity={0.7}>
+        <MciIcon name="swap-horizontal-bold" size={18} color={COLORS.primary} />
+        <Text style={styles.handoverText}>Crew change? Make the handover report</Text>
+        <MciIcon name="chevron-right" size={18} color={COLORS.primary} />
+      </TouchableOpacity>
 
       {r.sections.map((s) => (
         <View key={s.key} style={styles.block}>
@@ -151,4 +156,6 @@ const makeStyles = (COLORS: Palette) =>
     dot: { width: 10, height: 10, borderRadius: 5 },
     title: { color: COLORS.text, fontWeight: '600' },
     sub: { color: COLORS.textLight, fontSize: SIZES.small, marginTop: 2 },
+    handover: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginBottom: SIZES.md },
+    handoverText: { flex: 1, color: COLORS.primary, fontWeight: '700' },
   });

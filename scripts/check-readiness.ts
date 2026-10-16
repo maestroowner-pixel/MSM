@@ -1,5 +1,6 @@
 // npm run check:readiness — inspection readiness judges each record against the inspection DAY.
 import { buildReadiness, dateLevel, ReadinessInput, verdict } from '../services/readiness';
+import { buildHandover, emptyDraft, handoverPages } from '../services/handover';
 
 let fail = 0;
 const ok = (c: boolean, m: string) => { if (!c) { fail++; console.log('✗', m); } else console.log('✓', m); };
@@ -65,6 +66,17 @@ const work = (h: number) => '1'.repeat(h * 2) + '0'.repeat(48 - h * 2);
 const rest = [-3, -2, -1].map((k) => ({ id: `m1_${plus(k)}`, crewId: 'm1', holderName: 'Ann Lee', date: plus(k), work: work(k === -2 ? 18 : 8), updatedAt: 0 }));
 r = buildReadiness(base({ on: (m) => m === 'rest', crew, rest: rest as any }));
 ok(keys(r).includes('rest:m1:v:red'), 'a day with 6 h rest → finding');
+
+// Handover: today, looking over the trip.
+const h60 = buildHandover(base({ flat: [item('h1', plus(45)), item('h2', plus(-1))] }), 60);
+const h30 = buildHandover(base({ flat: [item('h1', plus(45)), item('h2', plus(-1))] }), 30);
+ok(keys(h60).includes('eq:h1:amber') && !keys(h30).some((k) => k.startsWith('eq:h1')), 'handover: 45 days out is listed over a 60-day trip, not a 30-day one');
+ok(keys(h60).includes('eq:h2:red'), 'handover: already expired → now');
+const pg = handoverPages({ ...emptyDraft({ name: 'Ann Lee', rank: 'Chief Officer' }), area: 'Deck', toName: 'Tom Roe', progress: '- Liferaft 2 ashore\n\n• Paint locker', ahead: 60 }, h60)[0];
+ok(pg.title === 'Handover — Deck' && pg.facts[1] === 'from Ann Lee (Chief Officer) to Tom Roe', 'handover page: title and who');
+ok(pg.tables[0].title === 'Work in progress' && pg.tables[0].rows.length === 2 && pg.tables[0].rows[1][1] === 'Paint locker', 'notes: one row a line, bullets and blanks dropped');
+ok(pg.tables[pg.tables.length - 1].rows.map((r) => r[0]).join() === 'Outgoing,Incoming,Master', 'signature lines last: outgoing, incoming, Master');
+ok(pg.tables.some((t) => t.rows.some((r) => r[0] === 'NOW')) && pg.tables.some((t) => t.rows.some((r) => r[0] === 'Coming')), 'findings marked NOW / Coming');
 
 console.log(fail ? `\n${fail} FAILED` : '\nall passed');
 process.exit(fail ? 1 : 0);

@@ -86,6 +86,7 @@ import SopepSc from './screens/SopepSc';
 import SecuritySc from './screens/SecuritySc';
 import SurveysSc from './screens/SurveysSc';
 import ReadinessSc from './screens/ReadinessSc';
+import HandoverSc from './screens/HandoverSc';
 import SafetySc from './screens/SafetySc';
 import NcSc from './screens/NcSc';
 import DrillsSc from './screens/DrillsSc';
@@ -410,6 +411,7 @@ const linking = {
           Settings: 'settings',
         },
       },
+      Handover: 'handover',
       CategoryItems: 'category/:category',
       ItemDetail: 'item/:category/:id',
       Import: 'import',
@@ -664,6 +666,7 @@ function Root() {
         <Stack.Screen name="CategoriesEdit" component={CategoriesEditSc} options={webHeader('Categories', toTab('Settings'))} />
         <Stack.Screen name="ChecklistEdit" component={ChecklistEditSc} options={webHeader('Checklist', { screen: 'Checklists' })} />
         <Stack.Screen name="Defects" component={DefectsSc} options={webHeader('Open defects')} />
+        <Stack.Screen name="Handover" component={HandoverSc} options={webHeader('Handover', { screen: 'Main', params: { screen: 'Readiness' } } as any)} />
         {/* With the notice board on, the old Dashboard — LSA / FFE / lifting by expiry — is this screen. */}
         <Stack.Screen name="Expiries" component={DashboardSc} options={webHeader('LSA / FFE expiries')} />
         <Stack.Screen name="Accounts" component={AccountsSc} options={webHeader('Accounts', toTab('Settings'))} />

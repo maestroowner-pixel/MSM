@@ -85,6 +85,8 @@ export interface ReadinessInput {
   kind: ReadinessKind;
   date: string;
   today: string;
+  /** How far past `date` amber looks, in days (LOOK_AHEAD by default; a handover looks over the next trip). */
+  ahead?: number;
   on: (m: ModuleKey) => boolean;
   labelOf: (c: CategoryKey) => string;
   periodsOf: (c: CategoryKey) => InspectionPeriod[];
@@ -134,19 +136,22 @@ const localIso = (ms: number) => {
  * runs out within LOOK_AHEAD days after, nothing otherwise. "Expires on the day"
  * is red — the certificate is not valid for the whole inspection.
  */
-export function dateLevel(iso: string | undefined, date: string): GapLevel | null {
+export function dateLevel(iso: string | undefined, date: string, ahead = LOOK_AHEAD): GapLevel | null {
   if (!iso || !/^\d{4}-\d{2}-\d{2}/.test(iso)) return null;
   const d = iso.slice(0, 10);
   if (d <= date) return 'red';
-  if (d <= addDays(date, LOOK_AHEAD)) return 'amber';
+  if (d <= addDays(date, ahead)) return 'amber';
   return null;
 }
+
+const daysFrom = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / DAY);
 
 function dateText(iso: string, x: Pick<ReadinessInput, 'today' | 'date'>, verb = 'expires'): string {
   const d = iso.slice(0, 10);
   if (d < x.today) return `${verb === 'expires' ? 'expired' : 'was due'} ${dmy(d)}`;
+  if (d === x.today) return `${verb} today`;
   if (d <= x.date) return `${verb} ${dmy(d)} — before the inspection`;
-  return `${verb} ${dmy(d)} — soon after the inspection`;
+  return `${verb} ${dmy(d)} — in ${plural(daysFrom(x.today, d), 'day')}`;
 }
 
 const RANK: Record<GapLevel, number> = { red: 0, amber: 1 };
@@ -155,6 +160,7 @@ const byWorst = (a: Gap, b: Gap) => RANK[a.level] - RANK[b.level] || (a.date ?? 
 export function buildReadiness(x: ReadinessInput): Readiness {
   const out: ReadinessSection[] = [];
   const want = SECTIONS[x.kind];
+  const ahead = x.ahead ?? LOOK_AHEAD;
   const add = (key: SectionKey, title: string, icon: string, gaps: Gap[]) => {
     if (want.includes(key)) out.push({ key, title, icon, gaps: gaps.sort(byWorst) });
   };
@@ -164,7 +170,7 @@ export function buildReadiness(x: ReadinessInput): Readiness {
   {
     const gaps: Gap[] = [];
     for (const c of x.certificates.filter((v) => v.scope === 'vessel')) {
-      const l = dateLevel(c.expiryDate, x.date);
+      const l = dateLevel(c.expiryDate, x.date, ahead);
       if (l) gaps.push({ key: `vc:${c.id}`, level: l, date: c.expiryDate, title: c.name, sub: dateText(c.expiryDate!, x), route: 'CertificateDetail', params: { id: c.id } });
     }
     add('vesselCerts', 'Vessel certificates', 'certificate-outline', gaps);
@@ -175,7 +181,7 @@ export function buildReadiness(x: ReadinessInput): Readiness {
     const gaps: Gap[] = [];
     for (const it of x.flat) {
       const d = complianceDate(it);
-      const l = dateLevel(d, x.date);
+      const l = dateLevel(d, x.date, ahead);
       if (!l) continue;
       const name = [it.type, it.no ? `No ${it.no}` : null, it.serial ? `S/N ${it.serial}` : null].filter(Boolean).join(' · ') || 'Item';
       const where = [it.deck, it.position].filter(Boolean).join(', ');
@@ -202,7 +208,7 @@ export function buildReadiness(x: ReadinessInput): Readiness {
   {
     const gaps: Gap[] = [];
     for (const c of x.certificates.filter((v) => (v.scope ?? 'equipment') === 'equipment')) {
-      const l = dateLevel(c.expiryDate, x.date);
+      const l = dateLevel(c.expiryDate, x.date, ahead);
       if (l) gaps.push({ key: `ec:${c.id}`, level: l, date: c.expiryDate, title: c.name, sub: dateText(c.expiryDate!, x), route: 'CertificateDetail', params: { id: c.id } });
     }
     add('serviceCerts', 'Service certificates', 'wrench-clock', gaps);
@@ -231,7 +237,7 @@ export function buildReadiness(x: ReadinessInput): Readiness {
       }
       const m = missing(cur);
       if (m && Number.isFinite(first)) gaps.push({ key: `rnd:${p}:now`, level: 'amber', date: localIso(cur.from), route: 'Rounds', title: `${name[p]} — ${cur.label} (current)`, sub: `${m} of ${owing.length} items still to inspect` });
-      if (!Number.isFinite(first)) gaps.push({ key: `rnd:${p}:never`, level: 'red', route: 'Rounds', title: `${name[p]} — never recorded`, sub: `${owing.length} items owe it` });
+      if (!Number.isFinite(first)) gaps.push({ key: `rnd:${p}:never`, level: 'red', route: 'Rounds', title: `${name[p]} — never recorded`, sub: `${owing.length} ${owing.length === 1 ? 'item owes' : 'items owe'} it` });
     }
     add('rounds', 'Inspection rounds', 'clipboard-check-outline', gaps);
   }
@@ -244,7 +250,7 @@ export function buildReadiness(x: ReadinessInput): Readiness {
       const left = r.left ?? -1;
       const params = r.own ? { id: 'new', type: 'other', title: r.own.title } : { id: 'new', type: r.type };
       if (left < 0) gaps.push({ key: `drl:${r.type}`, level: 'red', date: r.due, route: 'Drill', params, title: `${r.title} drill`, sub: r.last ? `last held ${dmy(r.last)} — overdue on the day` : `none recorded · ${r.reg}` });
-      else if (left <= LOOK_AHEAD) gaps.push({ key: `drl:${r.type}`, level: 'amber', date: r.due, route: 'Drill', params, title: `${r.title} drill`, sub: `due ${dmy(r.due!)} — soon after the inspection` });
+      else if (left <= ahead) gaps.push({ key: `drl:${r.type}`, level: 'amber', date: r.due, route: 'Drill', params, title: `${r.title} drill`, sub: `due ${dmy(r.due!)} — in ${plural(daysFrom(x.today, r.due!), 'day')}` });
     }
     add('drills', 'Drills', 'run-fast', gaps);
   }
@@ -254,7 +260,7 @@ export function buildReadiness(x: ReadinessInput): Readiness {
     const gaps: Gap[] = [];
     const aboard = new Set(x.crew.filter(isAboard).map((m) => m.id));
     for (const c of x.certificates.filter((v) => v.scope === 'crew' && v.crewId && aboard.has(v.crewId))) {
-      const l = dateLevel(c.expiryDate, x.date);
+      const l = dateLevel(c.expiryDate, x.date, ahead);
       const who = x.crew.find((m) => m.id === c.crewId);
       if (l) gaps.push({ key: `cc:${c.id}`, level: l, date: c.expiryDate, title: `${who?.name ?? c.holderName ?? 'Crew'} — ${c.name}`, sub: dateText(c.expiryDate!, x), route: 'CertificateDetail', params: { id: c.id } });
     }
@@ -287,7 +293,7 @@ export function buildReadiness(x: ReadinessInput): Readiness {
     for (const s of (x.surveys ?? []).filter((v) => !v.deleted)) {
       const st = surveyStatus(s, x.date, x.surveysDone ?? []);
       if (st.state === 'overdue') gaps.push({ key: `sv:${s.id}`, level: 'red', date: st.closes, route: 'Surveys', title: s.name, sub: `window closes ${dmy(st.closes)} — not carried out` });
-      else if (st.state === 'open' && st.days <= LOOK_AHEAD) gaps.push({ key: `sv:${s.id}`, level: 'amber', date: st.closes, route: 'Surveys', title: s.name, sub: `window open until ${dmy(st.closes)}` });
+      else if (st.state === 'open' && st.days <= ahead) gaps.push({ key: `sv:${s.id}`, level: 'amber', date: st.closes, route: 'Surveys', title: s.name, sub: `window open until ${dmy(st.closes)}` });
     }
     add('surveys', 'Surveys & audits', 'calendar-check-outline', gaps);
   }

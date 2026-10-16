@@ -775,6 +775,7 @@ export async function resetAllData(): Promise<void> {
     SIGNING_POLICY_KEY,
     PHOTO_ARCHIVE_KEY,
     VESSEL_MODULES_KEY,
+    'msm:handover_draft', // services/handover.ts — the outgoing officer's notes
   ];
   await AsyncStorage.multiRemove(keys);
 }

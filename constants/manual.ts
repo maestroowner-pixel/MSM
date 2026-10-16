@@ -619,6 +619,7 @@ const en: ManualContent = {
         "Red is what would be found on the day: certificates and equipment out of date by then, open defects, rounds with items never inspected, overdue drills, rest below the minimum, critical maintenance overdue, corrective actions past their date, medicines out of date. Amber is worth doing first: what runs out within 30 days after the inspection, and records still open.",
         "Every line opens the record that puts it right. Areas with nothing to report are shown with a tick, so 'Ready' means checked and clean. PDF makes the same list for the Master and the DPA.",
         "Class survey leaves out the crew's papers and hours of rest. The list checks what the app holds — it is a worklist, not the inspector's checklist.",
+        "Handover (the link under the verdict) makes the report for crew change: what is handed over, from whom to whom, your work in progress and notes for the relief, everything overdue now and what falls due in the next 30, 60 or 90 days — one PDF with lines for both signatures and the Master's. The notes stay on this device until printed.",
       ],
     },
     {
@@ -1235,6 +1236,7 @@ const ru: ManualContent = {
         "Красное — то, что найдут в этот день: сертификаты и оборудование, просроченные к этой дате, открытые дефекты, обходы с непроверенными позициями, просроченные учения, недостаточный отдых, просроченное ТО критичного оборудования, просроченные корректирующие действия, просроченные лекарства. Жёлтое — что стоит сделать заранее: истекает в течение 30 дней после проверки, или запись ещё открыта.",
         "Каждая строка открывает запись, которую нужно исправить. Разделы без замечаний отмечены галочкой — «Ready» значит «проверено и чисто». PDF — тот же список для капитана и DPA.",
         "Для класса не проверяются документы экипажа и часы отдыха. Список проверяет то, что есть в приложении, — это рабочий список, а не чек-лист инспектора.",
+        "Handover (ссылка под вердиктом) — отчёт при смене экипажа: что передаётся, кто кому, работы в процессе и заметки сменщику, всё просроченное сейчас и что наступит в ближайшие 30, 60 или 90 дней — один PDF со строками для подписей обоих и капитана. Заметки хранятся на этом устройстве до печати.",
       ],
     },
     {
@@ -1851,6 +1853,7 @@ const es: ManualContent = {
         "En rojo, lo que se encontraría ese día: certificados y equipos caducados para entonces, defectos abiertos, rondas con elementos sin inspeccionar, ejercicios vencidos, descanso por debajo del mínimo, mantenimiento crítico vencido, acciones correctivas fuera de plazo, medicamentos caducados. En ámbar, lo que conviene hacer antes: lo que vence en los 30 días siguientes a la inspección y los registros aún abiertos.",
         "Cada línea abre el registro que lo corrige. Las áreas sin nada que señalar llevan una marca, así que 'Ready' significa revisado y limpio. PDF genera la misma lista para el Capitán y la DPA.",
         "El reconocimiento de clase no incluye los documentos de la tripulación ni las horas de descanso. La lista revisa lo que contiene la app: es una lista de trabajo, no la lista del inspector.",
+        "Handover (el enlace bajo el veredicto) prepara el informe del relevo: qué se entrega, de quién a quién, trabajos en curso y notas para el relevo, todo lo vencido ahora y lo que vence en los próximos 30, 60 o 90 días — un PDF con líneas para las firmas de ambos y del Capitán. Las notas quedan en este dispositivo hasta imprimirlas.",
       ],
     },
     {
@@ -2467,6 +2470,7 @@ const uk: ManualContent = {
         "Червоне — те, що знайдуть цього дня: сертифікати й обладнання, прострочені до цієї дати, відкриті дефекти, обходи з неоглянутими позиціями, прострочені навчання, недостатній відпочинок, прострочене ТО критичного обладнання, прострочені коригувальні дії, прострочені ліки. Жовте — що варто зробити заздалегідь: спливає протягом 30 днів після перевірки, або запис ще відкритий.",
         "Кожен рядок відкриває запис, який треба виправити. Розділи без зауважень позначені галочкою — «Ready» означає «перевірено й чисто». PDF — той самий список для капітана й DPA.",
         "Для класу не перевіряються документи екіпажу й години відпочинку. Список перевіряє те, що є в застосунку, — це робочий список, а не чек-лист інспектора.",
+        "Handover (посилання під вердиктом) — звіт при зміні екіпажу: що передається, хто кому, роботи в процесі й нотатки змінникові, усе прострочене зараз і що настане в найближчі 30, 60 чи 90 днів — один PDF з рядками для підписів обох і капітана. Нотатки зберігаються на цьому пристрої до друку.",
       ],
     },
     {
