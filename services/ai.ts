@@ -22,7 +22,7 @@ export function aiReady(enrolled: boolean): boolean {
   return moduleOn('ai') && (enrolled || !!mock());
 }
 
-export async function aiCall<T>(task: 'map' | 'table' | 'inspect' | 'ask', input: unknown): Promise<T> {
+export async function aiCall<T>(task: 'map' | 'table' | 'inspect' | 'ask' | 'form', input: unknown): Promise<T> {
   const m = mock();
   if (m) return (await m(task, input)) as T;
   const app = fb.firebaseApp();

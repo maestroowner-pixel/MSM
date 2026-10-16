@@ -7,7 +7,7 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { Empty, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
@@ -21,6 +21,11 @@ import { uid } from '../utils/id';
 import { DP_TEMPLATES, lineSource, linesFromText } from '../services/dp';
 import { DpTemplate, DpWhere } from '../types/dp';
 import { roleAtLeast } from '../types/role';
+import { aiCall, aiReady } from '../services/ai';
+import { PickedFile, pickDocument, pickFromCamera, pickFromLibrary, toDataUri } from '../services/attachments';
+
+const MAX_AI_BYTES = 10 * 1024 * 1024;
+type FormReply = { title?: string; where?: string; lines?: string[]; unreadable?: string };
 
 export default function DpTemplatesSc() {
   const COLORS = useTheme();
@@ -37,11 +42,56 @@ export default function DpTemplatesSc() {
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [where, setWhere] = useState<DpWhere>('bridge');
+  const [busy, setBusy] = useState<string | null>(null);
+  const [aiNote, setAiNote] = useState<string | null>(null);
+  const ai = aiReady(sync.enrolled);
+
+  /**
+   * The vessel's own paper form → a checklist (16 Oct 2026): a PDF or a photo of
+   * the blank form goes to the AI (functions/ai.js `form`), which writes it in the
+   * editor's wording; the officer checks it against the paper and saves. A second
+   * page is read the same way and added at the end.
+   */
+  const readForm = (add: boolean) => {
+    const go = (picker: () => Promise<PickedFile | null>) => async () => {
+      const f = await picker();
+      if (!f) return;
+      setBusy('The AI is reading the form — about half a minute a page…');
+      try {
+        const dataUri = await toDataUri(f.uri, f.name ?? 'form.pdf');
+        const mediaType = dataUri.slice(5, dataUri.indexOf(';'));
+        const data = dataUri.slice(dataUri.indexOf(',') + 1);
+        if (data.length * 0.75 > MAX_AI_BYTES) throw new Error('The file is over 10 MB — a smaller scan or one page at a time.');
+        const r = await aiCall<FormReply>('form', { target: 'DP checklist', mediaType, data });
+        const lines = (r.lines ?? []).map((x) => String(x)).filter((x) => x.trim());
+        if (!lines.length) throw new Error(r.unreadable || 'Nothing could be read — try a sharper photo or the PDF.');
+        if (add && editing) setText((t) => `${t.trimEnd()}\n${lines.join('\n')}`);
+        else {
+          setEditing({ id: uid('dpt'), title: '', where: 'bridge', lines: [], updatedAt: 0 });
+          setTitle(String(r.title ?? '').trim());
+          setWhere(r.where === 'engine' ? 'engine' : 'bridge');
+          setText(lines.join('\n'));
+        }
+        setAiNote(`Read by the AI: ${lines.length} lines${r.unreadable ? ` · could not read: ${r.unreadable}` : ''}. Check every line against the paper before saving.`);
+      } catch (e: any) {
+        Alert.alert('The vessel’s form', String(e?.message ?? e));
+      } finally {
+        setBusy(null);
+      }
+    };
+    Alert.alert(add ? 'The next page of the form' : 'The vessel’s form', 'A PDF, or a photo of the blank form. Only its layout is read — what is filled in on it is left out.', [
+      { text: 'Document (PDF…)', onPress: go(pickDocument) },
+      { text: 'Photo Library', onPress: go(pickFromLibrary) },
+      { text: 'Camera', onPress: go(pickFromCamera) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
 
   if (!moduleOn('dp')) return <Screen><Empty text="Not available on this vessel." /></Screen>;
   if (!officer) return <Screen><Empty text="The officers and the Master word the DP checklists." /></Screen>;
 
   const open = (t: DpTemplate) => {
+    setAiNote(null);
     setEditing(t);
     setTitle(t.title);
     setWhere(t.where);
@@ -76,9 +126,21 @@ export default function DpTemplatesSc() {
             </TouchableOpacity>
           ))}
         </View>
+        {aiNote ? <Text style={[styles.sub, { color: COLORS.warning, marginBottom: SIZES.xs }]}>{aiNote}</Text> : null}
         <Label>Items — one a line</Label>
         <Text style={styles.sub}>{'Plain line → Yes / No / N/A.  {Good|!No good} → one of these (! = wrong).  [Hdg] → a reading.  ## Sensors → a heading.  ## Sensors | Available {Yes|!No} | Value → a table: each line below is a row with these columns (## > … puts it beside the table before; a row with -[Mode] has no cell in that column).  ~Bow AZI → hidden on this vessel (remove the ~ to show it again).  @field Location → a header field.  @text Brief description → a paragraph.  @sketch Own vessel, rig, wind, current → a drawing.  @sign SDPO, @sign DPO → who signs (default: handing over, taking over).'}</Text>
         <TextInput style={[styles.input, { minHeight: 260 }]} value={text} onChangeText={setText} multiline placeholderTextColor={COLORS.textLight} placeholder={'## Sensors\nGyro 1 {Available|Priority|Not available} [Hdg]\nPosition gain [setting]\nThrusters tested on DP'} />
+        {ai && aiNote ? (
+          <TouchableOpacity onPress={() => readForm(true)} disabled={!!busy} style={{ marginBottom: SIZES.sm }}>
+            <Text style={styles.link}>+ Add the next page of the form (AI)</Text>
+          </TouchableOpacity>
+        ) : null}
+        {busy ? (
+          <View style={styles.busy}>
+            <ActivityIndicator color={COLORS.primary} />
+            <Text style={styles.sub}>{busy}</Text>
+          </View>
+        ) : null}
         <TouchableOpacity style={styles.btn} onPress={save}>
           <Text style={styles.btnText}>Save</Text>
         </TouchableOpacity>
@@ -116,6 +178,17 @@ export default function DpTemplatesSc() {
       <TouchableOpacity style={[styles.btn, { marginTop: SIZES.md }]} onPress={() => open({ id: uid('dpt'), title: '', where: 'bridge', lines: [], updatedAt: 0 })}>
         <Text style={styles.btnText}>+ New checklist</Text>
       </TouchableOpacity>
+      {ai ? (
+        <TouchableOpacity style={[styles.btnOutline, { marginTop: SIZES.sm }]} onPress={() => readForm(false)} disabled={!!busy}>
+          <Text style={styles.btnOutlineText}>From the vessel’s form — PDF or photo (AI)</Text>
+        </TouchableOpacity>
+      ) : null}
+      {busy ? (
+        <View style={styles.busy}>
+          <ActivityIndicator color={COLORS.primary} />
+          <Text style={styles.sub}>{busy}</Text>
+        </View>
+      ) : null}
     </Screen>
   );
 }
@@ -134,5 +207,8 @@ const makeStyles = (COLORS: Palette) =>
     link: { color: COLORS.primary, fontWeight: '700' },
     input: { ...COLORS.glassInput, borderRadius: SIZES.radiusMd, paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm, fontSize: SIZES.body, color: COLORS.text, marginBottom: SIZES.sm, textAlignVertical: 'top' },
     btn: { backgroundColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 12 },
+    btnOutline: { borderWidth: 1, borderColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 12 },
+    btnOutlineText: { color: COLORS.primary, fontWeight: '800', textAlign: 'center' },
+    busy: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginVertical: SIZES.sm },
     btnText: { color: COLORS.textWhite, fontWeight: '800', textAlign: 'center' },
   });

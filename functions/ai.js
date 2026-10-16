@@ -13,6 +13,10 @@
 //            → an answer per checklist line, a remark in English, a defect.
 //   ask      a question about the vessel → an answer from the summary the app
 //            sends (no patient or guest names in it — built on the device).
+//   form     a photo or PDF of the vessel's own paper form (a DP checklist) →
+//            the checklist in the app's wording (services/dp.ts parseLine), for
+//            an officer to check in the editor. Only the form's structure: what
+//            someone filled in — names, readings, ticks — is left out.
 //
 // Only an approved device of a vessel may call it; each vessel has a daily
 // allowance (ai_usage/{yyyy-mm-dd}).
@@ -26,7 +30,7 @@ const ANTHROPIC_API_KEY = defineSecret('ANTHROPIC_API_KEY');
 const ROOT = 'safety_vessels';
 const REGION = 'europe-west1';
 // A day's allowance per vessel: the cheap tasks (fast model) generously, questions (the larger model, the vessel's records as context) less.
-const DAILY = { map: 100, table: 100, inspect: 400, ask: 60 };
+const DAILY = { map: 100, table: 100, inspect: 400, ask: 60, form: 20 };
 const FAST = 'claude-haiku-5-5';
 const SMART = 'claude-sonnet-5-5';
 
@@ -98,6 +102,42 @@ const TASKS = {
     if (d.image?.data) content.push({ type: 'image', source: { type: 'base64', media_type: str(d.image.mediaType, 30) || 'image/jpeg', data: str(d.image.data, 14_000_000) } });
     content.push({ type: 'text', text: `Equipment: ${str(item.name, 120)}${item.number ? ` No. ${str(item.number, 40)}` : ''}${item.category ? ` (${str(item.category, 60)})` : ''}${item.location ? `, ${str(item.location, 80)}` : ''}.\nChecklist (id: line):\n${lines}\n\n${d.text ? `What the inspector said (any language): """${str(d.text, 2000)}"""\n\n` : ''}${d.image?.data ? 'A photo of the item is attached.\n\n' : ''}For each checklist line decide pass, fail or na — only where the words or the photo show it; otherwise null. Write the remark in plain English as an officer would log it (what was found, nothing invented). If something is wrong, a short defect line.\nReturn JSON only: {"answers": {"<id>": "pass"|"fail"|"na"|null}, "remark": "<English>", "defect": "<English, or empty>", "seen": "<what the photo shows, one line, or empty>"}` });
     return json(await claude(key, FAST, 'You help a ship\'s officer record a safety equipment inspection. Be strict: never mark pass without evidence. Answer with JSON only.', content, 1500));
+  },
+
+  async form(key, d) {
+    const media = String(d.mediaType || '');
+    if (!/^(image\/(jpeg|png|webp|gif)|application\/pdf)$/.test(media)) throw new HttpsError('invalid-argument', 'A photo (JPEG, PNG) or a PDF.');
+    const data = String(d.data || '');
+    if (data.length > 14_000_000) throw new HttpsError('invalid-argument', 'The file is too large — under 10 MB.');
+    const block = media === 'application/pdf' ? { type: 'document', source: { type: 'base64', media_type: media, data } } : { type: 'image', source: { type: 'base64', media_type: media, data } };
+    const text = `This is a ship's own paper form — a ${str(d.target, 60) || 'DP checklist'}. Write it out as a checklist in the wording below, one line per line, in the form's order, so it looks like the paper.
+
+THE WORDING
+- A section heading:            ## Sensors
+- A section that is a TABLE:    ## Sensors | Available {Yes|!No} | Value | Deviation
+  then each row of the table on its own line (just the row's name): Gyro 1
+  Columns: "Name {A|B|C}" = choose one of these; "Name" alone = a cell to write in.
+  "!" before an option marks the answer that means something is wrong: {Yes|!No}, {Good|!No good}.
+  A number cell with a fixed format: "Height (m) [0.0]".
+  A row with no cell in a column: "DGPS 1 -[Mode]".
+  A table set beside the one before it on the paper: "## > Alarm limits | Warning | Alarm".
+- A plain question answered Yes / No / N/A:   Vessel set up as per ASOG
+- A question with its own options:            Rotation centre {Fwd|Midship|Aft|Other}
+- A question with a reading:                  Fanbeam range [m]
+- A header field at the top of the form:      @field Location
+- A paragraph to write:                       @text Brief description of the operation in progress
+- A drawing box:                              @sketch Own vessel, rig, wind and current
+- Who signs (one line each):                  @sign SDPO
+
+RULES
+- Prefer tables wherever the paper has columns. Units in the column or row name, e.g. "Speed (kn)".
+- Yes/No columns on the paper become {Yes|!No} unless "No" is not a fault there (then {Yes|No}).
+- Leave out: the form's revision block, document numbers, page numbers, company names and logos, date and time (the app sets them), the vessel's position (the app asks for it).
+- Leave out EVERYTHING somebody filled in: names, signatures, ticks, readings, dates, comments. Only the blank form.
+- Do not invent lines that are not on the paper.
+
+Return JSON only: {"title": "<the form's title, short>", "where": "bridge" | "engine", "lines": ["<line>", ...], "unreadable": "<what could not be read, or empty>"}`;
+    return json(await claude(key, SMART, 'You turn a ship\'s paper checklist into the wording of a maritime safety app, exactly and without inventing. Answer with JSON only.', [block, { type: 'text', text }], 8000));
   },
 
   async ask(key, d) {
