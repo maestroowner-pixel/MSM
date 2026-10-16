@@ -20,7 +20,7 @@ ok(coordsError({ latDeg: '', latMin: '', ns: 'N', lonDeg: '', lonMin: '', ew: 'E
 
 // ship's time
 ok(offsetMinutes('+02:00') === 120 && offsetMinutes('-03:30') === -210 && offsetMinutes('') === undefined, 'offsets read');
-ok(OFFSETS.includes('-12:00') && OFFSETS.includes('+14:00') && OFFSETS.includes('+05:45'), 'every zone a ship keeps');
+ok(OFFSETS.length === 27 && OFFSETS[0] === '-12:00' && OFFSETS[26] === '+14:00' && OFFSETS.every((o) => o.endsWith(':00')), 'UTC-12 to UTC+14 by the whole hour');
 const noonUtc = shipInstant('2026-10-13', '12:00', '+02:00');
 ok(new Date(noonUtc).toISOString() === '2026-10-13T10:00:00.000Z', 'noon at UTC+2 is 10:00 UTC');
 ok(shipAndUtc(noonUtc, '+02:00').line === "2026-10-13 12:00 ship's time (UTC+02:00) · 10:00 UTC", 'header: ship\'s time and UTC');

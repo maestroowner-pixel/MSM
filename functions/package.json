@@ -9,7 +9,8 @@
   "scripts": {
     "secret": "npx firebase-tools functions:secrets:set BOOTSTRAP_CODE --project marine-safety-manager",
     "deploy": "cd .. && npx firebase-tools deploy --only functions --project marine-safety-manager",
-    "logs": "cd .. && npx firebase-tools functions:log --project marine-safety-manager"
+    "logs": "cd .. && npx firebase-tools functions:log --project marine-safety-manager",
+    "code": "node scripts/setup-code.js"
   },
   "dependencies": {
     "firebase-admin": "^12.7.0",

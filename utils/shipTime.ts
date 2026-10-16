@@ -16,11 +16,10 @@ export function offsetMinutes(text?: string): number | undefined {
 
 export const offsetText = (min: number) => `${min < 0 ? '-' : '+'}${String(Math.floor(Math.abs(min) / 60)).padStart(2, '0')}:${String(Math.abs(min) % 60).padStart(2, '0')}`;
 
-/** Every zone a ship keeps: UTC−12 to UTC+14, by the half hour (and the three ¾-hour zones). */
-export const OFFSETS: string[] = [
-  ...Array.from({ length: 53 }, (_, i) => offsetText((i - 24) * 30)),
-  '+05:45', '+08:45', '+12:45',
-].sort((a, b) => (offsetMinutes(a) ?? 0) - (offsetMinutes(b) ?? 0));
+/** UTC−12 to UTC+14 by the WHOLE hour (16 Oct 2026: "ship's time is not set by
+ *  the half hour — plus one hour, minus one hour"). Ship's time is a zone the
+ *  Master keeps, moved an hour at a time, not a country's legal time. */
+export const OFFSETS: string[] = Array.from({ length: 27 }, (_, i) => offsetText((i - 12) * 60));
 
 const z = (n: number) => String(n).padStart(2, '0');
 const stamp = (d: Date) => `${d.getUTCFullYear()}-${z(d.getUTCMonth() + 1)}-${z(d.getUTCDate())} ${z(d.getUTCHours())}:${z(d.getUTCMinutes())}`;

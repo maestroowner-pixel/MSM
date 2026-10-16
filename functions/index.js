@@ -42,6 +42,7 @@ const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const crypto = require('crypto');
 const { retireDuplicates, revive } = require('./devices');
+const { isSetupCode } = require('./setupCode');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -55,6 +56,8 @@ const REGION = 'europe-west1';
  *
  * A SECRET, not a constant in the app: that is the entire point. Set it with
  *   npx firebase-tools functions:secrets:set BOOTSTRAP_CODE
+ * Since 16 Oct 2026 nobody types the secret itself: each vessel's code is
+ * derived from it and the IMO (setupCode.js) — `npm run code -- <IMO>`.
  */
 const BOOTSTRAP_CODE = defineSecret('BOOTSTRAP_CODE');
 
@@ -201,17 +204,18 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
   //
   // The honest recovery is a deliberate one: the holder of the setup code says,
   // in as many words, that they are taking the vessel over. The app asks first
-  // and only then sends `takeover`. It is not granted silently, because the code
-  // is shared across every vessel and an IMO is public — quietly minting a Master
-  // for anyone who typed both would be a back door, not a recovery.
-  const wantsTakeover = takeover === true && String(pin).trim() === BOOTSTRAP_CODE.value();
+  // and only then sends `takeover`. It is still not granted silently: the code
+  // is the vessel's own now (setupCode.js), but it is printed on a licence and
+  // a licence gets passed around — a takeover should be a decision, not a typo.
+  const setupCode = isSetupCode(pin, vessel, BOOTSTRAP_CODE.value());
+  const wantsTakeover = takeover === true && setupCode;
 
   let invite = null;
 
   if (invites.empty || !anyMaster || wantsTakeover) {
     // Nobody has set this vessel up. The bootstrap code stands in for an
     // invitation — and it never left the server.
-    if (String(pin).trim() !== BOOTSTRAP_CODE.value()) {
+    if (!setupCode) {
       // With invitations present this is not necessarily a bootstrap attempt —
       // fall through and try the invitations before refusing.
       if (!invites.empty) {

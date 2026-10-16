@@ -593,7 +593,7 @@ export default function SettingsSc() {
             caption="SHIP'S TIME"
             value={form.ship_utc_offset ?? ''}
             onChange={(v: string) => setForm({ ...form, ship_utc_offset: v || undefined })}
-            options={[{ value: '', label: `As this device (UTC${offsetText(-new Date().getTimezoneOffset())})` }, ...OFFSETS.map((o) => ({ value: o, label: `UTC${o}` }))]}
+            options={[{ value: '', label: `As this device (UTC${offsetText(-new Date().getTimezoneOffset())})` }, ...(form.ship_utc_offset && !OFFSETS.includes(form.ship_utc_offset) ? [form.ship_utc_offset] : []).concat(OFFSETS).map((o) => ({ value: o, label: `UTC${o}` }))]}
           />
           <Text style={{ fontSize: SIZES.small, color: COLORS.textLight, marginTop: 4 }}>{`Now: ${shipAndUtc(Date.now(), form.ship_utc_offset).line}`}</Text>
         </View>
