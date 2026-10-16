@@ -44,7 +44,7 @@ const COND: { label: string; key: keyof DpConditions; unit: string; dir?: keyof 
 ];
 
 /** One width for a column's heading and every cell under it — the table lines up. */
-const colWidth = (col: { options?: string[] }) => (col.options ? col.options.reduce((w, o) => w + o.length * 6.6 + 18, 0) + (col.options.length - 1) * 3 + (col.options.some(isOther) ? 96 : 0) : 90);
+const colWidth = (col: { options?: string[] }) => (col.options ? col.options.reduce((w, o) => w + o.length * 8.2 + 26, 0) + (col.options.length - 1) * 4 + (col.options.some(isOther) ? 104 : 0) : 100);
 
 /** A reading named by its unit ([kn], [m]) shows the unit after the cell, as written on paper. */
 const UNITS = ['kn', 'm', '°', '°/min', '%', 's', 'bar', 'rpm'];
@@ -258,7 +258,7 @@ export default function DpCheckSc() {
           const cols = sec.head?.cols;
           const title = sec.head ? <Text style={styles.head}>{sec.head.text}</Text> : null;
           if (cols?.length) {
-            const nameW = sec.lines.some((l) => l.text.length > 40) ? 300 : 150;
+            const nameW = sec.lines.some((l) => l.text.length > 40) ? 320 : 170;
             const yesCol = cols.findIndex((x) => x.options?.includes('Yes'));
             return (
               <View key={sec.head!.id}>
@@ -500,16 +500,16 @@ const makeStyles = (COLORS: Palette) =>
     half: { flexGrow: 1, flexBasis: 220 },
     bad: { borderWidth: 1, borderColor: COLORS.danger },
     table: { borderWidth: 1, borderColor: COLORS.border, borderRadius: SIZES.radiusMd, overflow: 'hidden', marginBottom: SIZES.xs },
-    tr: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: COLORS.border, paddingVertical: 4, paddingHorizontal: 6, gap: 6 },
+    tr: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: COLORS.border, paddingVertical: 6, paddingHorizontal: 8, gap: 8 },
     th: { borderTopWidth: 0, backgroundColor: COLORS.glassCard?.backgroundColor ?? 'transparent' },
-    thText: { color: COLORS.textLight, fontWeight: '700', fontSize: SIZES.small },
+    thText: { color: COLORS.textLight, fontWeight: '700', fontSize: SIZES.body },
     trBad: { backgroundColor: 'rgba(231,76,60,0.12)' },
-    tdName: { width: 150, color: COLORS.text, fontSize: SIZES.small, fontWeight: '600' },
-    tdText: { color: COLORS.text, fontSize: SIZES.small },
-    tdInput: { marginBottom: 0, paddingVertical: 4, paddingHorizontal: 6, fontSize: SIZES.small },
-    optCell: { flexDirection: 'row', gap: 3 },
-    mini: { paddingVertical: 3, paddingHorizontal: 7, borderRadius: 6, borderWidth: 1, borderColor: COLORS.primary },
-    miniText: { color: COLORS.primary, fontWeight: '600', fontSize: 11 },
+    tdName: { width: 170, color: COLORS.text, fontSize: SIZES.body, fontWeight: '600' },
+    tdText: { color: COLORS.text, fontSize: SIZES.body },
+    tdInput: { marginBottom: 0, paddingVertical: 7, paddingHorizontal: 8, fontSize: SIZES.body },
+    optCell: { flexDirection: 'row', gap: 4 },
+    mini: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, borderWidth: 1, borderColor: COLORS.primary },
+    miniText: { color: COLORS.primary, fontWeight: '700', fontSize: 14 },
     small: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
     modalBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: SIZES.md },
     modalCard: { backgroundColor: COLORS.cardSolid, borderRadius: SIZES.radiusMd, padding: SIZES.md, width: '100%', maxWidth: 900 },
