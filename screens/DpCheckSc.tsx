@@ -27,7 +27,7 @@ import { moduleOn } from '../constants/modules';
 import * as storage from '../services/storage';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
-import { ASOG_LABEL, answerIsBad, cellKey, checkOutcome, sectionCols, conditionsText, positionFromText, positionText, templatesNow } from '../services/dp';
+import { ASOG_LABEL, answerIsBad, cellKey, checkOutcome, isOther, otherKey, sectionCols, conditionsText, positionFromText, positionText, templatesNow } from '../services/dp';
 import { PositionInput } from '../components/PositionInput';
 import { shipAndUtc } from '../utils/shipTime';
 import { exportDpCheckPdf } from '../services/dpReport';
@@ -43,7 +43,7 @@ const COND: { label: string; key: keyof DpConditions; unit: string; dir?: keyof 
 ];
 
 /** One width for a column's heading and every cell under it — the table lines up. */
-const colWidth = (col: { options?: string[] }) => (col.options ? col.options.reduce((w, o) => w + o.length * 6.6 + 18, 0) + (col.options.length - 1) * 3 : 90);
+const colWidth = (col: { options?: string[] }) => (col.options ? col.options.reduce((w, o) => w + o.length * 6.6 + 18, 0) + (col.options.length - 1) * 3 + (col.options.some(isOther) ? 96 : 0) : 90);
 
 /** A reading named by its unit ([kn], [m]) shows the unit after the cell, as written on paper. */
 const UNITS = ['kn', 'm', '°', '°/min', '%', 's', 'bar', 'rpm'];
@@ -303,6 +303,13 @@ export default function DpCheckSc() {
                                     </TouchableOpacity>
                                   );
                                 })}
+                                {isOther(v) ? (
+                                  ro ? (
+                                    <Text style={styles.tdText}>{c.values?.[otherKey(k)] || ''}</Text>
+                                  ) : (
+                                    <TextInput style={[styles.input, styles.tdInput, { width: 90 }]} value={values[otherKey(k)] ?? ''} onChangeText={(t) => setValues((x) => ({ ...x, [otherKey(k)]: t }))} accessibilityLabel={`${l.text} ${col.name} other`} autoFocus />
+                                  )
+                                ) : null}
                               </View>
                             );
                           })}
@@ -337,6 +344,13 @@ export default function DpCheckSc() {
                           );
                         })}
                       </View>
+                    ) : null}
+                    {isOther(v) ? (
+                      ro ? (
+                        <Text style={[styles.sub, { marginTop: 4 }]}>{c.values?.[otherKey(l.id)] || '—'}</Text>
+                      ) : (
+                        <TextInput style={[styles.input, { marginTop: SIZES.xs, marginBottom: 0 }]} value={values[otherKey(l.id)] ?? ''} onChangeText={(t) => setValues((x) => ({ ...x, [otherKey(l.id)]: t }))} accessibilityLabel={`${l.text} other`} autoFocus />
+                      )
                     ) : null}
                     {l.value ? (
                       ro ? (

@@ -390,16 +390,21 @@ const isBad = (v: string | undefined, def: { options?: string[]; bad?: string[] 
 export const answerIsBad = isBad;
 
 /** What a plain line's answer prints as. */
+/** "Other" opens a cell to write in (16 Oct 2026); what is written is kept beside the answer. */
+export const isOther = (v?: string) => !!v && /^other$/i.test(v.trim());
+export const otherKey = (key: string) => `${key}#other`;
+const withOther = (v: string | undefined, key: string, c: Pick<DpCheck, 'values'>) => (isOther(v) && c.values?.[otherKey(key)]?.trim() ? `${v}: ${c.values[otherKey(key)].trim()}` : v ?? '');
+
 export function answerText(l: DpLine, c: Pick<DpCheck, 'results' | 'values'>): string {
   const r = c.results[l.id];
-  const a = r === 'pass' ? 'Yes' : r === 'fail' ? 'No' : r === 'na' ? 'N/A' : r ?? '';
+  const a = r === 'pass' ? 'Yes' : r === 'fail' ? 'No' : r === 'na' ? 'N/A' : withOther(r, l.id, c);
   const v = c.values?.[l.id]?.trim();
   return [a, v ? `${l.value}: ${v}` : ''].filter(Boolean).join(' · ');
 }
 
 /** A table row's cells as they print. */
 export const rowCells = (l: DpLine, cols: DpCol[], c: Pick<DpCheck, 'results' | 'values'>) =>
-  cols.map((col, i) => (col.options ? c.results[cellKey(l.id, i)] : c.values?.[cellKey(l.id, i)]?.trim()) || '');
+  cols.map((col, i) => (col.options ? withOther(c.results[cellKey(l.id, i)], cellKey(l.id, i), c) : c.values?.[cellKey(l.id, i)]?.trim()) || '');
 
 export const ASOG_LABEL: Record<AsogStatus, string> = { green: 'Green', blue: 'Advisory', yellow: 'Yellow', red: 'Red' };
 

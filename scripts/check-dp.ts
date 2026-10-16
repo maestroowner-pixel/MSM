@@ -1,5 +1,5 @@
 // npm run check:dp — DP checklists keep their line ids; DP days count as SDM counts them; the letter says what the log says.
-import { DP_TEMPLATES, answerText, cellKey, sectionCols, buildLetter, checkOutcome, conditionsText, coordText, dayId, positionFromText, lineSource, parseCoord, parseLine, positionText, dpoTotals, emptySlots, hours, isDpDay, letterHtml, linesFromText, setRange, templatesNow } from '../services/dp';
+import { DP_TEMPLATES, otherKey, answerText, cellKey, sectionCols, buildLetter, checkOutcome, conditionsText, coordText, dayId, positionFromText, lineSource, parseCoord, parseLine, positionText, dpoTotals, emptySlots, hours, isDpDay, letterHtml, linesFromText, setRange, templatesNow } from '../services/dp';
 import { DpDay } from '../types/dp';
 
 let fail = 0;
@@ -47,6 +47,8 @@ ok(sectionCols(T).get('r1')?.length === 2, 'rows know their table');
 ok(JSON.stringify(checkOutcome({ lines: T, results: { [cellKey('r1', 0)]: 'Good', [cellKey('r2', 0)]: 'No good' }, values: {} })) === '{"pass":1,"fail":1,"na":0,"open":1}', 'table rows: good, no good, empty');
 const keptSys = linesFromText(sys.lines.map(lineSource).join('\n'), sys.lines, sys.id, 1);
 ok(keptSys.every((l, i) => l.id === sys.lines[i].id && JSON.stringify(l.cols) === JSON.stringify(sys.lines[i].cols)), 'the table checklist round-trips through the editor');
+
+ok(answerText({ id: 'rc', text: 'Rotation centre', options: ['Fwd', 'Other'] }, { results: { rc: 'Other' }, values: { [otherKey('rc')]: 'Moonpool' } }) === 'Other: Moonpool', '"Other" keeps what was written');
 
 // Position.
 ok(parseCoord('57 12.345 N', 'lat') === 57.20575 && parseCoord("001°23.456'W", 'lon') === -1.390933 && parseCoord('-33.5', 'lat') === -33.5, 'lat/lon: deg-min with hemisphere, decimal');
