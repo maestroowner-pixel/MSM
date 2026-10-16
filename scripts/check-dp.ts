@@ -1,5 +1,5 @@
 // npm run check:dp — DP checklists keep their line ids; DP days count as SDM counts them; the letter says what the log says.
-import { DP_TEMPLATES, answerText, buildLetter, checkOutcome, conditionsText, coordText, dayId, lineSource, parseCoord, parseLine, positionText, dpoTotals, emptySlots, hours, isDpDay, letterHtml, linesFromText, setRange, templatesNow } from '../services/dp';
+import { DP_TEMPLATES, answerText, cellKey, sectionCols, buildLetter, checkOutcome, conditionsText, coordText, dayId, positionFromText, lineSource, parseCoord, parseLine, positionText, dpoTotals, emptySlots, hours, isDpDay, letterHtml, linesFromText, setRange, templatesNow } from '../services/dp';
 import { DpDay } from '../types/dp';
 
 let fail = 0;
@@ -8,7 +8,10 @@ const ok = (c: boolean, m: string) => { if (!c) { fail++; console.log('✗', m);
 const ids = DP_TEMPLATES.flatMap((x) => x.lines.map((l) => l.id));
 ok(new Set(ids).size === ids.length && DP_TEMPLATES.length === 5, 'five built-in checklists, line ids unique');
 const sys = DP_TEMPLATES.find((x) => x.id === 'dp.arrival.systems')!;
-ok(sys.lines.filter((l) => l.head).length === 8 && sys.lines.find((l) => l.text === 'GPS 1')?.options?.join('|') === 'Not used|Monitor|Selected', 'arrival systems checklist: eight sections, GPS answered Not used / Monitor / Selected');
+const heads = sys.lines.filter((l) => l.head);
+ok(heads.length === 9 && heads.every((h) => h.cols?.length) && heads.find((h) => h.text === 'Sensors')?.cols?.map((x) => x.name).join('|') === 'Available|Priority|Value|Deviation', 'arrival checklist laid out as the paper: nine tables, Sensors = Available / Priority / Value / Deviation');
+const prs = heads.find((h) => h.text === 'Position reference systems')!;
+ok(prs.cols![0].options!.join('|') === 'Not used|Monitor|Selected|Mobile' && prs.cols![1].name === 'Noise' && !prs.cols![1].options, 'PRS: status chosen, noise and weight written');
 
 // The vessel's own wording replaces a built-in; a switched-off one is gone; its own are added.
 const own = [{ ...DP_TEMPLATES[3], title: 'Our handover', updatedAt: 5 }, { ...DP_TEMPLATES[4], off: true, updatedAt: 5 }, { id: 'v.trials', title: 'Annual DP trials prep', where: 'bridge' as const, lines: [], updatedAt: 5 }];
@@ -26,16 +29,27 @@ ok(JSON.stringify(checkOutcome({ lines: old.slice(0, 4), results: { [old[0].id]:
 const g = parseLine('Gyro 1 {Available|Priority} [Hdg]');
 ok(g.text === 'Gyro 1' && g.options?.length === 2 && g.value === 'Hdg' && lineSource(g) === 'Gyro 1 {Available|Priority} [Hdg]', 'option + reading line parsed and written back');
 ok(parseLine('## Power').head === true && parseLine('Position gain [setting]').value === 'setting' && !parseLine('Position gain [setting]').options, 'heading; reading-only');
-const L3 = [{ id: 'h', text: 'Sensors', head: true }, { id: 'a', text: 'GPS 1', options: ['Not used', 'Selected'] }, { id: 'b', text: 'Gain', value: 'setting' }, { id: 'c', text: 'Crane', options: ['Good', 'No good'] }, { id: 'd', text: 'Gyro', options: ['Available'], value: 'Hdg' }];
+const L3 = [{ id: 'h', text: 'Sensors', head: true }, { id: 'a', text: 'GPS 1', options: ['Not used', 'Selected'] }, { id: 'b', text: 'Gain', value: 'setting' }, { id: 'c', text: 'Crane', options: ['Good', 'No good'], bad: ['No good'] }, { id: 'd', text: 'Gyro', options: ['Available'], value: 'Hdg' }];
 ok(JSON.stringify(checkOutcome({ lines: L3, results: { a: 'Selected', c: 'No good' }, values: { b: '30' } })) === '{"pass":2,"fail":1,"na":0,"open":1}', 'outcome: headings skipped, a reading counts when written, No good is a no');
 ok(answerText(L3[4], { results: { d: 'Available' }, values: { d: '123.4' } }) === 'Available · Hdg: 123.4', 'answer text with the reading');
 const kept = linesFromText(sys.lines.map(lineSource).join('\n'), sys.lines, sys.id, 1);
 ok(kept.every((l, i) => l.id === sys.lines[i].id) && kept.length === sys.lines.length, 'the arrival checklist round-trips through the editor with every id kept');
 
+// Tables: a heading with columns; a row is answered when a cell is, wrong when a "!" answer is chosen.
+const th = parseLine('## Comms | Status {Good|!No good} | Note');
+ok(th.head === true && th.cols?.[0].bad?.join() === 'No good' && th.cols?.[1].name === 'Note' && lineSource(th) === '## Comms | Status {Good|!No good} | Note', 'table heading parsed, "!" marks the wrong answer, written back');
+const T = [{ id: 'h', ...th }, { id: 'r1', text: 'Crane' }, { id: 'r2', text: 'Deck' }, { id: 'r3', text: 'ROV' }];
+ok(sectionCols(T).get('r1')?.length === 2, 'rows know their table');
+ok(JSON.stringify(checkOutcome({ lines: T, results: { [cellKey('r1', 0)]: 'Good', [cellKey('r2', 0)]: 'No good' }, values: {} })) === '{"pass":1,"fail":1,"na":0,"open":1}', 'table rows: good, no good, empty');
+const keptSys = linesFromText(sys.lines.map(lineSource).join('\n'), sys.lines, sys.id, 1);
+ok(keptSys.every((l, i) => l.id === sys.lines[i].id && JSON.stringify(l.cols) === JSON.stringify(sys.lines[i].cols)), 'the table checklist round-trips through the editor');
+
 // Position.
 ok(parseCoord('57 12.345 N', 'lat') === 57.20575 && parseCoord("001°23.456'W", 'lon') === -1.390933 && parseCoord('-33.5', 'lat') === -33.5, 'lat/lon: deg-min with hemisphere, decimal');
 ok(parseCoord('57 12.3 E', 'lat') === undefined && parseCoord('91 00 N', 'lat') === undefined && parseCoord('12 75 N', 'lat') === undefined && parseCoord('abc', 'lon') === undefined && parseCoord('', 'lat') === undefined, 'wrong hemisphere, off the globe, minutes ≥ 60, words, empty — refused');
-ok(coordText(57.20575, 'lat') === '57°12.345′N' && coordText(-1.390933, 'lon') === '001°23.456′W' && positionText({ lat: NaN, lon: 1 }) === '—', 'written as a navigator writes it');
+ok(coordText(57.20575, 'lat') === "57°12.3'N" && coordText(-1.390933, 'lon') === "001°23.5'W" && positionText({ lat: NaN, lon: 1 }) === '—', 'written as the record books write it');
+const pf = positionFromText("57°12.3'N 001°23.5'W");
+ok(!!pf && pf.lat === 57.205 && pf.lon === -1.391667 && positionText(pf) === "57°12.3'N 001°23.5'W" && !positionFromText('') && !positionFromText("57°12.3'N"), 'the record-book cells read back to degrees and round-trip');
 ok(conditionsText({ waterDepth: '85 m', windSpeed: '15 kn', windDir: '270', waveHeight: '1.5 m' }) === 'water depth 85 m · wind 15 kn / 270 · waves 1.5 m', 'conditions line');
 
 // DP time.

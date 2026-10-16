@@ -165,7 +165,7 @@ export default function DpSc() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.title}>{c.title}</Text>
                   <Text style={styles.sub}>
-                    {[`${shipAndUtc(c.at, c.shipOffset).ship} LT`, c.position ? positionText(c.position) : null, c.operation, c.asog ? ASOG_LABEL[c.asog] : null, `${c.by}`, o.fail ? `${o.fail} NO` : null].filter(Boolean).join(' · ')}
+                    {[`${shipAndUtc(c.at, c.shipOffset).ship} LT`, c.position ? positionText(c.position) : null, c.operation, c.asog ? ASOG_LABEL[c.asog] : null, c.by2 ? `${c.by} / ${c.by2}` : c.by, o.fail ? `${o.fail} NO` : null].filter(Boolean).join(' · ')}
                   </Text>
                 </View>
                 <MciIcon name="chevron-right" size={18} color={COLORS.textLight} />

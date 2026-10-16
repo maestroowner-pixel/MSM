@@ -26,8 +26,22 @@ export interface DpLine {
   id: string;
   text: string;
   options?: string[];
+  /** Of `options`, the answers that mean something is wrong (written with "!": {Good|!No good}). */
+  bad?: string[];
   value?: string;
   head?: boolean;
+  /**
+   * On a heading: the section is a TABLE, laid out as the paper checklist —
+   * every line under it is a row with these cells ("Available {Yes|!No}",
+   * "Noise"). A cell with options is chosen, without them it is written.
+   */
+  cols?: DpCol[];
+}
+
+export interface DpCol {
+  name: string;
+  options?: string[];
+  bad?: string[];
 }
 
 export type DpWhere = 'bridge' | 'engine';
@@ -81,14 +95,20 @@ export interface DpCheck {
   conditions?: DpConditions;
   asog?: AsogStatus;
   lines: DpLine[];
-  /** Yes / No / N/A as pass / fail / na; an option line stores the option chosen. */
+  /** Yes / No / N/A as pass / fail / na; an option line stores the option chosen; a table cell is keyed `${lineId}#${col}`. */
   results: Record<string, string>;
-  /** Readings, by line id. */
+  /** Readings, by line id (a table cell by `${lineId}#${col}`). */
   values?: Record<string, string>;
   remarks?: string;
+  /** The first signature — the DPO handing over the watch (or doing the check). */
   by: string;
   byRank?: string;
   byKey?: string;
+  /** The second signature — the DPO taking over (16 Oct 2026: "two sign it — name and
+   *  position, usually those changing the watch"). Required on records from that day. */
+  by2?: string;
+  by2Rank?: string;
+  by2Key?: string;
   updatedAt: number;
 }
 

@@ -19,7 +19,7 @@
 // Pure: `npm run check:dp` runs it in node.
 // ===================================
 
-import { AsogStatus, DpCheck, DpConditions, DpDay, DpInfo, DpLine, DpPosition, DpSlot, DpTemplate, DpWhere } from '../types/dp';
+import { AsogStatus, DpCheck, DpCol, DpConditions, DpDay, DpInfo, DpLine, DpPosition, DpSlot, DpTemplate, DpWhere } from '../types/dp';
 
 // ---- checklists ---------------------------------------------------------------
 
@@ -27,18 +27,55 @@ import { AsogStatus, DpCheck, DpConditions, DpDay, DpInfo, DpLine, DpPosition, D
  * A line as the officers write it, one a line:
  *   Thrusters tested on DP              → Yes / No / N/A
  *   GPS 1 {Not used|Monitor|Selected}   → one of the options
+ *   Crane {Good|!No good}               → "!" marks the answer that is wrong
  *   Gyro 1 {Available|Priority} [Hdg]   → an option and a reading
  *   Position gain [setting]             → a reading only
  *   ## Position references              → a heading
+ *   ## Sensors | Available {Yes|!No} | Priority {Yes|No} | Value | Deviation
+ *                                       → a TABLE: each line below is a row
+ *                                         with these cells, as on paper
  */
+const opts = (inner: string) => {
+  const raw = inner.split('|').map((x) => x.trim()).filter(Boolean);
+  const options = raw.map((x) => x.replace(/^!\s*/, ''));
+  const bad = raw.filter((x) => x.startsWith('!')).map((x) => x.replace(/^!\s*/, ''));
+  return { options: options.length ? options : undefined, bad: bad.length ? bad : undefined };
+};
+
+/** Split on "|" outside braces. */
+const splitCols = (s: string) => {
+  const out: string[] = [];
+  let depth = 0;
+  let cur = '';
+  for (const ch of s) {
+    if (ch === '{') depth++;
+    if (ch === '}') depth = Math.max(0, depth - 1);
+    if (ch === '|' && depth === 0) {
+      out.push(cur);
+      cur = '';
+    } else cur += ch;
+  }
+  out.push(cur);
+  return out.map((x) => x.trim());
+};
+
 export function parseLine(raw: string): Omit<DpLine, 'id'> {
   let s = raw.trim();
-  if (s.startsWith('#')) return { text: s.replace(/^#+\s*/, ''), head: true };
+  if (s.startsWith('#')) {
+    const [title, ...cells] = splitCols(s.replace(/^#+\s*/, ''));
+    const cols = cells.filter(Boolean).map((c) => {
+      const m = /\{([^}]*)\}/.exec(c);
+      const name = c.replace(/\{[^}]*\}/, '').trim();
+      return { name, ...(m ? JSON.parse(JSON.stringify(opts(m[1]))) : {}) };
+    });
+    return cols.length ? { text: title, head: true, cols } : { text: title, head: true };
+  }
   const out: Omit<DpLine, 'id'> = { text: '' };
   const opt = /\{([^}]*)\}/.exec(s);
   if (opt) {
-    const o = opt[1].split('|').map((x) => x.trim()).filter(Boolean);
-    if (o.length) out.options = o;
+    const o = opts(opt[1]);
+    if (o.options) out.options = o.options;
+    if (o.bad) out.bad = o.bad;
     s = s.replace(opt[0], ' ');
   }
   const val = /\[([^\]]*)\]/.exec(s);
@@ -50,9 +87,26 @@ export function parseLine(raw: string): Omit<DpLine, 'id'> {
   return out;
 }
 
+const optSource = (o?: string[], bad?: string[]) => (o?.length ? ` {${o.map((x) => (bad?.includes(x) ? `!${x}` : x)).join('|')}}` : '');
+
 /** The line back as it is written — what the editor shows. */
 export const lineSource = (l: Omit<DpLine, 'id'>): string =>
-  l.head ? `## ${l.text}` : `${l.text}${l.options?.length ? ` {${l.options.join('|')}}` : ''}${l.value ? ` [${l.value}]` : ''}`;
+  l.head
+    ? `## ${l.text}${(l.cols ?? []).map((c) => ` | ${c.name}${optSource(c.options, c.bad)}`).join('')}`
+    : `${l.text}${optSource(l.options, l.bad)}${l.value ? ` [${l.value}]` : ''}`;
+
+/** The table a line sits in — the columns of the last heading above it, if that heading has any. */
+export function sectionCols(lines: DpLine[]): Map<string, DpCol[] | undefined> {
+  const m = new Map<string, DpCol[] | undefined>();
+  let cols: DpCol[] | undefined;
+  for (const l of lines) {
+    if (l.head) cols = l.cols;
+    else m.set(l.id, cols);
+  }
+  return m;
+}
+
+export const cellKey = (lineId: string, col: number) => `${lineId}#${col}`;
 
 const t = (id: string, title: string, where: DpWhere, lines: string[]): DpTemplate => ({
   id,
@@ -62,13 +116,6 @@ const t = (id: string, title: string, where: DpWhere, lines: string[]): DpTempla
   lines: lines.map((text, i) => ({ id: `${id}.${String(i + 1).padStart(2, '0')}`, ...parseLine(text) })),
   updatedAt: 0,
 });
-
-const SENSOR = '{Available|Priority|Not available}';
-const PRS = '{Not used|Monitor|Selected}';
-const PRS_M = '{Not used|Monitor|Selected|Mobile}';
-const THR = '{Activated – Auto|Activated – Manual|Ready|Not available}';
-const GEN = '{Running – on bus|Running – breaker open|Stopped}';
-const COMMS = '{Good|No good}';
 
 export const DP_TEMPLATES: DpTemplate[] = [
   t('dp.arrival.bridge', 'Field arrival — bridge (before the 500 m zone)', 'bridge', [
@@ -102,68 +149,69 @@ export const DP_TEMPLATES: DpTemplate[] = [
   // The owner's Arrival DP Checklist (simulator course PR-33, annex 42), 16 Oct 2026:
   // the state of every sensor, reference, thruster and generator, line by line.
   t('dp.arrival.systems', 'Arrival DP checklist — sensors, references, thrusters, power', 'bridge', [
-    '## Operator stations',
-    'OS1 online',
-    'OS2 online',
-    '## Sensors',
-    `Gyro 1 ${SENSOR} [Hdg]`,
-    `Gyro 2 ${SENSOR} [Hdg]`,
-    `Gyro 3 ${SENSOR} [Hdg]`,
-    `VRS 1 ${SENSOR} [Pitch/Roll]`,
-    `VRS 2 ${SENSOR} [Pitch/Roll]`,
-    `MRU ${SENSOR} [Pitch/Roll]`,
-    `Wind 1 ${SENSOR} [Speed/dir]`,
-    `Wind 2 ${SENSOR} [Speed/dir]`,
-    `Wind 3 ${SENSOR} [Speed/dir]`,
-    '## DP settings',
-    'Fore-aft speed [kn]',
-    'Athwartships speed [kn]',
-    'Position gain [setting]',
-    'Position limit [m]',
-    'Speed vector gain [setting]',
-    'Heading limit [°]',
-    'Heading gain [setting]',
-    'Rate of turn (ROT) [°/min]',
-    'Use shortest turn {Yes|No}',
-    'Origin reference system [system]',
-    '## Position references',
-    `GPS 1 ${PRS} [Noise / weight]`,
-    `GPS 2 ${PRS} [Noise / weight]`,
-    `GPS 3 ${PRS} [Noise / weight]`,
-    `Laser reference (LR) ${PRS_M} [Noise / weight]`,
-    `RadaScan / RADius ${PRS_M} [Noise / weight]`,
-    `Light taut wire (LTW) ${PRS_M} [Noise / weight]`,
-    `HPR 1 ${PRS_M} [Noise / weight]`,
-    `HPR 2 ${PRS_M} [Noise / weight]`,
-    `HPR 3 ${PRS_M} [Noise / weight]`,
-    `HPR 4 ${PRS_M} [Noise / weight]`,
-    '## Consequence analysis',
-    'Consequence analysis {On|Off}',
-    'Automatic wind compensation (AWC) {On|Off}',
-    '## Thrusters and rudders',
-    `Stbd propeller ${THR}`,
-    `Port propeller ${THR}`,
-    `Stbd rudder ${THR}`,
-    `Port rudder ${THR}`,
-    `Bow thruster A ${THR}`,
-    `Bow thruster B ${THR}`,
-    `Stern thruster A ${THR}`,
-    `Stern thruster B ${THR}`,
-    '## Power',
-    'Stbd main engine {On|Off}',
-    'Port main engine {On|Off}',
-    `Generator 1 ${GEN}`,
-    `Generator 2 ${GEN}`,
-    `Generator 3 ${GEN}`,
-    'Bus tie breaker {Closed|Open}',
-    '## Communications',
-    `Crane ${COMMS}`,
-    `Engine control room ${COMMS}`,
-    `Captain ${COMMS}`,
-    `Deck ${COMMS}`,
-    `Diving station ${COMMS}`,
-    `ROV station ${COMMS}`,
-    `Offshore unit ${COMMS}`,
+    '## Operator stations | Online {Yes|!No}',
+    'OS1',
+    'OS2',
+    '## Sensors | Available {Yes|!No} | Priority {Yes|No} | Value | Deviation',
+    'Gyro 1 · Hdg',
+    'Gyro 2 · Hdg',
+    'Gyro 3 · Hdg',
+    'VRS 1 · Pitch/Roll',
+    'VRS 2 · Pitch/Roll',
+    'MRU · Pitch/Roll',
+    'Wind 1 · Speed/dir',
+    'Wind 2 · Speed/dir',
+    'Wind 3 · Speed/dir',
+    '## DP settings | Value',
+    'Fore-aft speed',
+    'Athwartships speed',
+    'Position gain',
+    'Position limit',
+    'Speed vector gain',
+    'Heading limit',
+    'Heading gain',
+    'Rate of turn (ROT)',
+    'Use shortest turn',
+    'Origin reference system',
+    '## Position reference systems | Status {Not used|Monitor|Selected|Mobile} | Noise | Weight',
+    'GPS 1',
+    'GPS 2',
+    'GPS 3',
+    'Laser reference (LR)',
+    'RadaScan / RADius',
+    'LTW',
+    'HPR 1',
+    'HPR 2',
+    'HPR 3',
+    'HPR 4',
+    '## Consequence analysis | Status {On|!Off}',
+    'Consequence analysis',
+    'AWC',
+    '## Thrusters and rudders | Run {Yes|No} | Ready {Yes|No} | Activated {Yes|No} | Mode {Auto|Manual}',
+    'Stbd propeller',
+    'Port propeller',
+    'Stbd rudder',
+    'Port rudder',
+    'Bow A thruster',
+    'Bow B thruster',
+    'Stern A thruster',
+    'Stern B thruster',
+    '## Main engines | Status {On|Off}',
+    'Stbd main engine',
+    'Port main engine',
+    '## Generators | Run {Yes|No} | On bus {Closed|Open}',
+    'Generator 1',
+    'Generator 2',
+    'Generator 3',
+    'Bus tie breaker',
+    '## Communications | Status {Good|!No good}',
+    'Crane',
+    'Engine',
+    'Captain',
+    'Deck',
+    'Diving station',
+    'ROV station',
+    'Offshore unit',
   ]),
   t('dp.handover', 'DP watch handover', 'bridge', [
     'DP status and ASOG condition (Green / Advisory / Yellow / Red)',
@@ -214,10 +262,14 @@ export function linesFromText(text: string, old: DpLine[], prefix: string, now =
     });
 }
 
-/** Answers that mean something is wrong — counted as "no" and marked red. */
+/** Answers that mean something is wrong when the line does not say ("!"): No, No good. */
 export const BAD_ANSWERS = ['fail', 'No', 'No good', 'Not available'];
 
-/** What a line's answer prints as. */
+const isBad = (v: string | undefined, def: { options?: string[]; bad?: string[] }) =>
+  !!v && (def.options ? (def.bad ?? []).includes(v) : BAD_ANSWERS.includes(v));
+export const answerIsBad = isBad;
+
+/** What a plain line's answer prints as. */
 export function answerText(l: DpLine, c: Pick<DpCheck, 'results' | 'values'>): string {
   const r = c.results[l.id];
   const a = r === 'pass' ? 'Yes' : r === 'fail' ? 'No' : r === 'na' ? 'N/A' : r ?? '';
@@ -225,20 +277,33 @@ export function answerText(l: DpLine, c: Pick<DpCheck, 'results' | 'values'>): s
   return [a, v ? `${l.value}: ${v}` : ''].filter(Boolean).join(' · ');
 }
 
+/** A table row's cells as they print. */
+export const rowCells = (l: DpLine, cols: DpCol[], c: Pick<DpCheck, 'results' | 'values'>) =>
+  cols.map((col, i) => (col.options ? c.results[cellKey(l.id, i)] : c.values?.[cellKey(l.id, i)]?.trim()) || '');
+
 export const ASOG_LABEL: Record<AsogStatus, string> = { green: 'Green', blue: 'Advisory', yellow: 'Yellow', red: 'Red' };
 
 export function checkOutcome(c: Pick<DpCheck, 'lines' | 'results'> & { values?: Record<string, string> }): { pass: number; fail: number; na: number; open: number } {
   const r = { pass: 0, fail: 0, na: 0, open: 0 };
+  const table = sectionCols(c.lines);
   for (const l of c.lines) {
     if (l.head) continue;
+    const cols = table.get(l.id);
+    if (cols) {
+      // A row: answered when any cell is; wrong when a cell holds a "!" answer.
+      const cells = rowCells(l, cols, c);
+      if (cols.some((col, i) => col.options && isBad(cells[i], col))) r.fail++;
+      else if (cells.some(Boolean)) r.pass++;
+      else r.open++;
+      continue;
+    }
     const v = c.results[l.id];
     if (!l.options && l.value) {
-      // A reading only: done when written.
       if (c.values?.[l.id]?.trim()) r.pass++;
       else r.open++;
     } else if (!v) r.open++;
     else if (v === 'na' || v === 'N/A') r.na++;
-    else if (BAD_ANSWERS.includes(v)) r.fail++;
+    else if (isBad(v, l)) r.fail++;
     else r.pass++;
   }
   return r;
@@ -268,14 +333,22 @@ export function parseCoord(text: string, kind: 'lat' | 'lon'): number | undefine
   return Math.round(v * 1e6) / 1e6;
 }
 
-/** 57°12.345′N */
+/** 57°12.3'N — written as the record books write it (utils/position.ts). */
 export function coordText(v: number, kind: 'lat' | 'lon'): string {
   const a = Math.abs(v);
   let d = Math.floor(a);
-  let m = Math.round((a - d) * 60 * 1000) / 1000;
+  let m = Math.round((a - d) * 600) / 10;
   if (m >= 60) { d += 1; m = 0; }
   const h = kind === 'lat' ? (v < 0 ? 'S' : 'N') : v < 0 ? 'W' : 'E';
-  return `${String(d).padStart(kind === 'lat' ? 2 : 3, '0')}°${m.toFixed(3).padStart(6, '0')}′${h}`;
+  return `${String(d).padStart(kind === 'lat' ? 2 : 3, '0')}°${m.toFixed(1).padStart(4, '0')}'${h}`;
+}
+
+/** "57°12.3'N 001°23.5'W" (PositionInput) → degrees; undefined unless both halves read. */
+export function positionFromText(text: string): DpPosition | undefined {
+  const [a, b] = (text ?? '').trim().split(/\s+(?=\d)/);
+  const lat = parseCoord(a ?? '', 'lat');
+  const lon = parseCoord(b ?? '', 'lon');
+  return lat == null || lon == null ? undefined : { lat, lon };
 }
 
 /** "depth 85 m · wind 15 kn / 270° · current 0.8 kn / 045° · waves 1.5 m / 260°" */

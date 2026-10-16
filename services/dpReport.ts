@@ -9,7 +9,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { VesselInfo } from './storage';
 import { share } from './export';
 import { exportPmsHistory } from './pmsHistoryReport';
-import { ASOG_LABEL, Letter, answerText, checkOutcome, conditionsText, letterHtml, positionText } from './dp';
+import { ASOG_LABEL, Letter, answerText, checkOutcome, conditionsText, letterHtml, positionText, rowCells } from './dp';
 import { shipAndUtc } from '../utils/shipTime';
 import { DpCheck } from '../types/dp';
 import { onWeb, onWindows } from '../utils/fileShare';
@@ -25,18 +25,39 @@ export async function exportDpCheckPdf(c: DpCheck, vessel: VesselInfo | null) {
     c.unit ? `offshore unit: ${c.unit}` : null,
     conditionsText(c.conditions) || null,
     c.asog ? `DP status ${ASOG_LABEL[c.asog]}` : null,
-    `signed by ${c.by}${c.byRank ? ` (${c.byRank})` : ''}`,
     `${o.pass} yes · ${o.fail} no · ${o.na} n/a${o.open ? ` · ${o.open} not answered` : ''}`,
   ].filter(Boolean) as string[];
-  // One table a section, as the paper checklist is laid out.
-  const widths = { 0: 12, 1: 170, 2: 91 };
-  const tables: { title: string; head: string[]; rows: string[][]; widths: Record<number, number> }[] = [];
+  // As the paper checklist: a heading with columns is a table with those
+  // columns; the other sections list item and answer. 273 mm across.
+  type T = { title: string; head: string[]; rows: string[][]; widths: Record<number, number> };
+  const tables: T[] = [];
   let n = 0;
   for (const l of c.lines) {
-    if (l.head || !tables.length) tables.push({ title: l.head ? l.text : 'Checklist', head: ['#', 'Item', 'Answer'], rows: [], widths });
-    if (!l.head) tables[tables.length - 1].rows.push([String(++n), l.text, answerText(l, c) || '—']);
+    if (l.head || !tables.length) {
+      const cols = l.head ? l.cols : undefined;
+      const each = cols?.length ? Math.min(45, Math.floor((273 - 12 - 70) / cols.length)) : 0;
+      tables.push(
+        cols?.length
+          ? { title: l.text, head: ['#', 'Item', ...cols.map((x) => (x.options ? `${x.name} (${x.options.join(' / ')})` : x.name))], rows: [], widths: { 0: 12, 1: 70, ...Object.fromEntries(cols.map((_, i) => [i + 2, each])) } }
+          : { title: l.head ? l.text : 'Checklist', head: ['#', 'Item', 'Answer'], rows: [], widths: { 0: 12, 1: 170, 2: 91 } }
+      );
+      (tables[tables.length - 1] as any).cols = cols;
+    }
+    if (l.head) continue;
+    const t = tables[tables.length - 1] as T & { cols?: typeof l.cols };
+    t.rows.push([String(++n), l.text, ...(t.cols?.length ? rowCells(l, t.cols, c).map((x) => x || '—') : [answerText(l, c) || '—'])]);
   }
-  if (c.remarks) tables.push({ title: 'Remarks', head: ['', 'Remarks', ''], rows: [['', c.remarks, '']], widths });
+  for (const t of tables) delete (t as any).cols;
+  if (c.remarks) tables.push({ title: 'Remarks', head: ['', 'Remarks', ''], rows: [['', c.remarks, '']], widths: { 0: 12, 1: 170, 2: 91 } });
+  tables.push({
+    title: 'Signatures',
+    head: ['', 'Name', 'Position', 'Signature'],
+    rows: [
+      ['Handing over', c.by, c.byRank ?? '', `signed in ISMpilot ${shipAndUtc(c.at, c.shipOffset).ship} LT`],
+      ['Taking over', c.by2 ?? '', c.by2Rank ?? '', c.by2 ? `signed in ISMpilot ${shipAndUtc(c.at, c.shipOffset).ship} LT` : ''],
+    ],
+    widths: { 0: 40, 1: 80, 2: 70, 3: 83 },
+  });
   return exportPmsHistory('DP checklist', `DP ${c.title.split(' — ')[0]} ${new Date(c.at).toISOString().slice(0, 10)}`, vessel, [{ title: c.title, facts, tables }]);
 }
 
