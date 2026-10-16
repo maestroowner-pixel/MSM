@@ -217,8 +217,6 @@ const HANDOVER: string[] = [
   '## DP control',
   'Blow {Off|On}',
   'D.P. consequence alarm {Off|Class 2}',
-  'Control status [status]',
-  'Control mode [mode]',
   'Rotation centre {Fwd|Midship|Aft|Other}',
   '## DP current | Direction (deg) | Speed (kn)',
   'DP current',
