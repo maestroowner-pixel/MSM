@@ -247,6 +247,7 @@ const HANDOVER: string[] = [
   'Gyro 1',
   'Gyro 2',
   'Gyro 3',
+  'Gyro 4',
   '## Sensors — wind | Preferred {Yes|No} | Direction (deg) | Speed (kn)',
   'Wind 1',
   'Wind 2',
