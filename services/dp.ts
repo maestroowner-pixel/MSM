@@ -224,6 +224,8 @@ const HANDOVER: string[] = [
   'Heading (deg)',
   '## Operating station | OS on control {OS1|OS2|OS3} | Computer {C1|C2|C3} | Controller {A|B|C}',
   'In control',
+  '## > Vessel mode | Mode | DP class {Off|1|2|3}',
+  'Vessel',
   '## DP control',
   'Blow {Off|On}',
   'D.P. consequence alarm {Off|Class 2}',
