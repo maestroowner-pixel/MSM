@@ -74,7 +74,7 @@ export default function PatrolsSc() {
   };
   const fail = (e: any) => Alert.alert('PDF', String(e?.message ?? e));
 
-  const due = dayRounds(today, plans, patrols.filter((p) => p.date === today));
+  const due = dayRounds(today, plans, patrols.filter((p) => p.date === today), { date: today, hhmm: hm() });
   const plan = live ? plans.find((p) => p.id === live.planId) : undefined;
 
   // ---- a round ----------------------------------------------------------------
@@ -201,11 +201,11 @@ export default function PatrolsSc() {
         <>
           {!points.length ? <Text style={[styles.sub, { marginVertical: SIZES.sm }]}>{officer ? 'No checkpoints yet — add the places in Checkpoints, print their labels, then choose them for each round.' : 'No checkpoints yet — an officer sets them up.'}</Text> : null}
           {due.map((d) => (
-            <View key={`${d.plan.id}${d.slot}`} style={[styles.item, { borderLeftColor: d.done ? COLORS.success : d.slot <= hm() ? COLORS.danger : COLORS.border, flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, flexWrap: 'wrap' }]}>
+            <View key={`${d.plan.id}${d.slot}`} style={[styles.item, { borderLeftColor: d.done ? COLORS.success : !d.pending ? COLORS.danger : d.slot <= hm() ? COLORS.warning : COLORS.border, flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, flexWrap: 'wrap' }]}>
               <Text style={[styles.name, { width: 52 }]}>{d.slot}</Text>
               <View style={{ flex: 1, minWidth: 180 }}>
                 <Text style={styles.name}>{d.plan.name}</Text>
-                <Text style={styles.sub}>{d.done ? `Done ${hm(d.done.startedAt)}–${hm(d.done.finishedAt)} · ${d.done.by} · ${d.done.visits.length}/${d.done.visits.length + d.done.missed.length}${d.done.missed.length ? ` · missed ${d.done.missed.map((m) => m.code).join(', ')}` : ''}` : d.slot <= hm() ? 'Not done yet' : 'Later today'}</Text>
+                <Text style={styles.sub}>{d.done ? `Done ${hm(d.done.startedAt)}–${hm(d.done.finishedAt)} · ${d.done.by} · ${d.done.visits.length}/${d.done.visits.length + d.done.missed.length}${d.done.missed.length ? ` · missed ${d.done.missed.map((m) => m.code).join(', ')}` : ''}` : !d.pending ? 'Missed — not done within two hours of its time' : d.slot <= hm() ? 'Due now' : 'Later today'}</Text>
               </View>
               {!d.done ? (
                 <TouchableOpacity style={styles.btn} onPress={() => start(d.plan)}>
@@ -432,7 +432,7 @@ function Reports({ plans, done, fail }: { plans: PatrolPlan[]; done: (w: string 
     return d.toISOString().slice(0, 7);
   };
   const dayShift = (d: string, by: number) => new Date(Date.parse(`${d}T12:00:00Z`) + by * 86_400_000).toISOString().slice(0, 10);
-  const r = dayRounds(day, plans, patrols.filter((p) => p.date === day));
+  const r = dayRounds(day, plans, patrols.filter((p) => p.date === day), { date: today, hhmm: hm() });
   return (
     <>
       <Label>A day</Label>

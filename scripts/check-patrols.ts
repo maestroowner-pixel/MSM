@@ -1,5 +1,5 @@
 // npm run check:patrols — security rounds due / done / missed; the key register.
-import { STARTER_PLANS, dayRounds, keyStatus, keysOut, missedPoints, monthSummary, nextCode, slotFor } from '../services/patrols';
+import { STARTER_PLANS, GRACE_MIN, dayRounds, keyStatus, keysOut, missedPoints, monthSummary, nextCode, slotFor } from '../services/patrols';
 import { Patrol } from '../types/patrols';
 import { KeyMove } from '../types/keys';
 
@@ -14,6 +14,10 @@ const done = [pat('patrol.opening', '07:00', '2026-10-17'), pat('patrol.daytime'
 const day = dayRounds('2026-10-17', plans, done);
 ok(day.length === 5 && day.map((d) => d.slot).join() === '07:00,10:00,13:00,16:00,21:00', 'five rounds due a day, in time order');
 ok(day.filter((d) => d.done).length === 2 && !day.find((d) => d.slot === '10:00')!.done, 'done and missed told apart');
+
+const live = dayRounds('2026-10-17', plans, done, { date: '2026-10-17', hhmm: '12:30' });
+ok(!live.find((d) => d.slot === '10:00')!.pending && live.find((d) => d.slot === '16:00')!.pending === true && live.find((d) => d.slot === '21:00')!.pending === true && GRACE_MIN === 120, 'today: a round is missed only two hours after its time; later ones are still to come');
+ok(monthSummary('2026-10', plans, done, '2026-10-17', '12:30')[16].due === 3, 'the month leaves out today’s rounds still to come');
 
 const daytime = plans.find((p) => p.id === 'patrol.daytime')!;
 ok(slotFor(daytime, '09:20', []) === '10:00' && slotFor(daytime, '11:30', []) === '10:00' && slotFor(daytime, '11:30', ['10:00']) === '13:00' && slotFor(daytime, '17:00', ['10:00', '13:00', '16:00']) === null, 'a round started now is for the right time');

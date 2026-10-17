@@ -9,6 +9,7 @@
 import { VesselInfo } from './storage';
 import { exportPmsHistory } from './pmsHistoryReport';
 import { dayRounds, keyStatus, keysOut, livePlans, monthSummary } from './patrols';
+import { todayIso } from './pms';
 import { Patrol, PatrolPlan } from '../types/patrols';
 import { KeyItem, KeyMove } from '../types/keys';
 
@@ -29,13 +30,14 @@ const dutiesTables = (plans: PatrolPlan[]): T[] =>
   livePlans(plans).map((p) => ({ title: `Duties — ${p.name} (${p.times.join(', ')})`, head: ['#', 'Duty'], rows: p.duties.map((d, i) => [String(i + 1), d]), widths: { 0: 12, 1: 261 } }));
 
 export function exportPatrolDay(date: string, plans: PatrolPlan[], patrols: Patrol[], vessel: VesselInfo | null) {
-  const r = dayRounds(date, plans, patrols);
+  const r = dayRounds(date, plans, patrols, { date: todayIso(), hhmm: hm(Date.now()) });
   const done = r.filter((x) => x.done);
-  const facts = [`${r.length} rounds due`, `${done.length} done`, `${r.length - done.length} missed`, `${done.reduce((n, x) => n + x.done!.missed.length, 0)} checkpoints missed`];
+  const missed = r.filter((x) => !x.done && !x.pending).length;
+  const facts = [`${r.length} rounds due`, `${done.length} done`, `${missed} missed`, ...(r.some((x) => x.pending) ? [`${r.filter((x) => x.pending).length} still to come`] : []), `${done.reduce((n, x) => n + x.done!.missed.length, 0)} checkpoints missed`];
   const rounds: T = {
     title: 'Rounds',
     head: ['Due', 'Round', 'Done', 'By', 'Visited', 'Checkpoints missed', 'Remarks'],
-    rows: r.map((x) => (x.done ? [x.slot, x.plan.name, ...roundRow(x.done, x.plan.checkpointIds.length || x.done.visits.length + x.done.missed.length)] : [x.slot, x.plan.name, 'MISSED', '—', '—', '—', '—'])),
+    rows: r.map((x) => (x.done ? [x.slot, x.plan.name, ...roundRow(x.done, x.plan.checkpointIds.length || x.done.visits.length + x.done.missed.length)] : [x.slot, x.plan.name, x.pending ? (date === todayIso() && x.slot <= hm(Date.now()) ? 'due now' : 'not yet due') : 'MISSED', '—', '—', '—', '—'])),
     widths: { 0: 14, 1: 45, 2: 24, 3: 45, 4: 18, 5: 55, 6: 72 },
   };
   const visits: T = {
@@ -48,7 +50,7 @@ export function exportPatrolDay(date: string, plans: PatrolPlan[], patrols: Patr
 }
 
 export function exportPatrolMonth(month: string, today: string, plans: PatrolPlan[], patrols: Patrol[], vessel: VesselInfo | null) {
-  const days = monthSummary(month, plans, patrols, today);
+  const days = monthSummary(month, plans, patrols, today, hm(Date.now()));
   const due = days.reduce((n, d) => n + d.due, 0);
   const done = days.reduce((n, d) => n + d.done, 0);
   const facts = [`${days.length} days`, `${due} rounds due`, `${done} done`, `${due - done} missed`, `${days.reduce((n, d) => n + d.points, 0)} checkpoints missed`];

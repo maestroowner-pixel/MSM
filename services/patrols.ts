@@ -73,15 +73,24 @@ export interface DueRound {
   plan: PatrolPlan;
   slot: string;
   done?: Patrol;
+  /** Not done, and its time (plus the grace) has not passed yet — not missed. */
+  pending?: boolean;
 }
 
-/** Every round due on a date and the one that covered it. */
-export function dayRounds(date: string, plans: PatrolPlan[], patrols: Patrol[]): DueRound[] {
+/** How long after its time a round not done counts as missed. */
+export const GRACE_MIN = 120;
+
+/**
+ * Every round due on a date and the one that covered it. `now` (the date and
+ * "HH:MM" of now) marks today's rounds whose time has not passed as pending.
+ */
+export function dayRounds(date: string, plans: PatrolPlan[], patrols: Patrol[], now?: { date: string; hhmm: string }): DueRound[] {
   const out: DueRound[] = [];
   for (const p of livePlans(plans)) {
     for (const slot of p.times) {
       const done = patrols.filter((x) => x.planId === p.id && x.date === date && x.slot === slot).sort((a, b) => a.finishedAt - b.finishedAt)[0];
-      out.push({ plan: p, slot, done });
+      const pending = !done && !!now && (date > now.date || (date === now.date && mins(slot) + GRACE_MIN > mins(now.hhmm)));
+      out.push({ plan: p, slot, done, ...(pending ? { pending } : {}) });
     }
   }
   return out.sort((a, b) => mins(a.slot) - mins(b.slot));
@@ -105,14 +114,14 @@ export function missedPoints(p: PatrolPlan, points: Checkpoint[], visited: strin
 }
 
 /** Rounds of a month, day by day: due, done, missed; and the missed checkpoints. */
-export function monthSummary(month: string, plans: PatrolPlan[], patrols: Patrol[], today: string) {
+export function monthSummary(month: string, plans: PatrolPlan[], patrols: Patrol[], today: string, nowHhmm = '23:59') {
   const [y, m] = month.split('-').map(Number);
   const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
   const rows: { date: string; due: number; done: number; missed: string[]; points: number }[] = [];
   for (let d = 1; d <= days; d++) {
     const date = `${month}-${String(d).padStart(2, '0')}`;
     if (date > today) break;
-    const r = dayRounds(date, plans, patrols);
+    const r = dayRounds(date, plans, patrols, { date: today, hhmm: nowHhmm }).filter((x) => !x.pending);
     rows.push({
       date,
       due: r.length,
