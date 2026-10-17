@@ -27,16 +27,21 @@ export interface MenuGroup {
   routes: string[];
 }
 
+// By the ship's own work (17 Oct 2026: "the side menu is chaos"): the board on
+// top, then equipment, safety, security, MARPOL, crew, operations, papers.
 export const MENU_GROUPS: MenuGroup[] = [
-  { key: 'ops', label: 'Inspections & maintenance', routes: ['Dashboard', 'Equipment', 'Rounds', 'Maintenance', 'Spares', 'Stores', 'Readiness', 'Dp', 'Reports'] },
-  { key: 'env', label: 'Environment', routes: ['Fuel', 'OilRecord', 'Garbage', 'Sewage', 'Ballast', 'Sopep'] },
-  { key: 'security', label: 'Safety & security', routes: ['Drills', 'Safety', 'Security'] },
-  { key: 'crew', label: 'Crew', routes: ['Crew', 'Passengers', 'CrewMatrix', 'HoursOfRest', 'Hospital'] },
-  { key: 'docs', label: 'Documents & permits', routes: ['Documents', 'Certificates', 'Surveys', 'Permits'] },
+  { key: 'home', label: '', routes: ['Dashboard'] },
+  { key: 'equipment', label: 'Equipment & maintenance', routes: ['Equipment', 'Rounds', 'Maintenance', 'Spares', 'Stores'] },
+  { key: 'safety', label: 'Safety', routes: ['Drills', 'Safety'] },
+  { key: 'security', label: 'Security (ISPS)', routes: ['Security'] },
+  { key: 'env', label: 'Environment (MARPOL)', routes: ['OilRecord', 'Garbage', 'Sewage', 'Ballast', 'Fuel', 'Sopep'] },
+  { key: 'crew', label: 'Crew', routes: ['Crew', 'CrewMatrix', 'HoursOfRest', 'Passengers', 'Hospital'] },
+  { key: 'ops', label: 'Operations', routes: ['Dp', 'Readiness'] },
+  { key: 'docs', label: 'Documents & compliance', routes: ['Certificates', 'Documents', 'Permits', 'Surveys', 'Reports'] },
   { key: 'system', label: '', routes: ['Settings'] },
 ];
 
-const OTHER = 'ops';
+const OTHER = 'equipment';
 /**
  * Sub-items under a menu entry: tapping the entry opens them, each opens the
  * screen on one of its pages (route params `view`). Add pages here as they come.
@@ -63,8 +68,15 @@ export const MENU_CHILDREN: Record<string, MenuChild[]> = {
     { view: 'patrols', label: 'Security rounds', icon: 'walk', module: 'patrols' },
     { view: 'keys', label: 'Key register', icon: 'key-chain-variant', module: 'keys' },
     { view: 'ssp', label: 'Ship Security Plan', icon: 'shield-lock-outline', officers: true, module: 'ssp' },
-    { view: 'meetings', label: 'Monthly safety meeting', icon: 'account-group-outline', module: 'meetings' },
-    { view: 'flashes', label: 'Safety flashes (IMCA)', icon: 'flash-alert-outline' },
+  ],
+  // Safety (17 Oct 2026): the observations and NCs, and the safety meeting and IMCA flashes,
+  // which used to sit under Security. The meeting and the flashes keep their pages (and their
+  // Master's-page keys) on the Security screen.
+  Safety: [
+    { view: 'cards', label: 'Safety observations', icon: 'eye-check-outline' },
+    { view: 'ncs', label: 'Non-conformities', icon: 'alert-octagon-outline' },
+    { view: 'meetings', label: 'Monthly safety meeting', icon: 'account-group-outline', route: 'Security', module: 'meetings' },
+    { view: 'flashes', label: 'Safety flashes (IMCA)', icon: 'flash-alert-outline', route: 'Security' },
   ],
   Hospital: [
     { view: 'register', label: 'Register', icon: 'clipboard-list-outline' },

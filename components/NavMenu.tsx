@@ -220,7 +220,7 @@ function MenuList({
       {Platform.OS !== 'web' && !editing ? <Text style={styles.hint}>The first four are on the bar below.</Text> : null}
       {grouped(order).map(({ group, routes }) => (
         <View key={group.key}>
-          {group.label ? <Text style={styles.groupHead}>{group.label}</Text> : <View style={styles.sep} />}
+          {group.label ? <Text style={styles.groupHead}>{group.label}</Text> : group.key === 'home' ? null : <View style={styles.sep} />}
           {routes.map((r, i) => {
             const shown = childrenOf(r)?.filter((k) => (!k.module || moduleOn(k.module)) && sync.pageOn(`${k.route ?? r}:${k.view}`));
             // Every page hidden for this device: the entry opens its screen as one without pages.
