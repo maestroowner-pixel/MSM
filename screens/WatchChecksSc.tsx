@@ -34,6 +34,8 @@ const SETS: Record<'Watch' | 'Familiar', Folder[]> = {
   Familiar: [
     { key: 'fam-bridge', label: 'Bridge familiarisation', icon: 'ferry', sub: 'On joining — STCW I/14, ISM Code 6.3' },
     { key: 'fam-engine', label: 'Engine familiarisation', icon: 'engine-outline', sub: 'On joining — STCW I/14, ISM Code 6.3' },
+    { key: 'fam-project', label: 'Project crew familiarisation', icon: 'account-hard-hat', sub: 'Project and special personnel on joining — IP Code, SPS Code' },
+    { key: 'fam-pax', label: 'Passenger familiarisation', icon: 'account-group-outline', sub: 'Guests’ safety briefing — SOLAS III/19.2' },
   ],
 };
 

@@ -118,6 +118,8 @@ export const MENU_CHILDREN: Record<string, MenuChild[]> = {
   Familiar: [
     { view: 'fam-bridge', label: 'Bridge familiarisation', icon: 'ferry' },
     { view: 'fam-engine', label: 'Engine familiarisation', icon: 'engine-outline' },
+    { view: 'fam-project', label: 'Project crew familiarisation', icon: 'account-hard-hat' },
+    { view: 'fam-pax', label: 'Passenger familiarisation', icon: 'account-group-outline' },
   ],
   Dp: [
     { view: 'checklists', label: 'DP checklists', icon: 'clipboard-check-outline' },

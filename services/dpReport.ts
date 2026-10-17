@@ -18,7 +18,7 @@ import { saveFileWeb } from '../utils/webSave';
 import { dpLetterPdfBlob } from '../utils/dpLetterPdf';
 
 /** The report's heading and file name by the checklist's book. */
-const kindOf = (c: DpCheck) => (c.book === 'bridge' ? { title: 'Bridge checklist', stem: 'Bridge' } : c.book === 'engine' ? { title: 'Engine checklist', stem: 'Engine' } : c.book === 'fam-bridge' || c.book === 'fam-engine' ? { title: 'Familiarisation', stem: 'Familiarisation' } : { title: 'DP checklist', stem: 'DP' });
+const kindOf = (c: DpCheck) => (c.book === 'bridge' ? { title: 'Bridge checklist', stem: 'Bridge' } : c.book === 'engine' ? { title: 'Engine checklist', stem: 'Engine' } : String(c.book ?? '').startsWith('fam') ? { title: 'Familiarisation', stem: 'Familiarisation' } : { title: 'DP checklist', stem: 'DP' });
 
 /** The signed checklist as the report's page — shared by the PDF and the print. */
 function dpCheckPage(c: DpCheck) {

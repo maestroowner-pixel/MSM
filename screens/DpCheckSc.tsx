@@ -20,6 +20,9 @@ import { personName } from '../types/role';
 import { SignProof, proofShort } from '../services/signature';
 import { Dropdown } from '../components/Dropdown';
 import { crewLabel, isAboard, isOfficerRank } from '../types/crew';
+import { passengerAboard } from '../types/passengers';
+import { maskName } from '../utils/privacy';
+import { todayIso } from '../services/pms';
 import { roleAtLeast } from '../types/role';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
@@ -73,7 +76,9 @@ export default function DpCheckSc() {
   // (16 Oct 2026: "the bridge pad cannot hold every officer's fingerprint") — the
   // device's own account is one of the names, and on an officer's own phone it may
   // use the fingerprint.
-  const { crew } = useData();
+  const { crew, passengers } = useData();
+  // Familiarising someone not on the crew list — project people, a guest: the name written in (row 0).
+  const [typedName, setTypedName] = useState('');
   const sync = useSync();
   const confirmSign = useSignConfirm();
   const [sigs, setSigs] = useState<(Sig | null)[]>([null, null]);
@@ -82,7 +87,7 @@ export default function DpCheckSc() {
   const [sketchDraft, setSketchDraft] = useState('');
   const done = dpChecks.find((c) => c.id === route.params?.id) ?? archived(route.params?.id);
   // Any book's checklist — DP, bridge or engine (17 Oct 2026).
-  const tpl = useMemo(() => (['dp', 'bridge', 'engine', 'fam-bridge', 'fam-engine'] as CheckBook[]).flatMap((b) => templatesNow(dpTemplates, b)).find((x) => x.id === route.params?.templateId), [dpTemplates, route.params?.templateId]);
+  const tpl = useMemo(() => (['dp', 'bridge', 'engine', 'fam-bridge', 'fam-engine', 'fam-project', 'fam-pax'] as CheckBook[]).flatMap((b) => templatesNow(dpTemplates, b)).find((x) => x.id === route.params?.templateId), [dpTemplates, route.params?.templateId]);
   const [operation, setOperation] = useState('');
   const [asog, setAsog] = useState<AsogStatus | undefined>(undefined);
   const [results, setResults] = useState<Record<string, string>>({});
@@ -160,9 +165,15 @@ export default function DpCheckSc() {
     if (sync.me && (fam || roleAtLeast(sync.role, 'admin'))) list.unshift({ id: `device:${sync.me.id}`, name: personName(sync.me), rank: sync.me.position || undefined, own: true });
     return list;
   }, [crew, sync.me, sync.role, done, tpl]);
+  // Project crew and guests are familiarised from outside the crew list: row 0 offers the
+  // passengers aboard (a guest briefing) and a name to write in; row 1 is the crew member.
+  const tplBook = String((done ?? tpl)?.book ?? '');
+  const outsider = tplBook === 'fam-project' || tplBook === 'fam-pax';
+  const guests = useMemo(() => (tplBook === 'fam-pax' ? passengers.filter((x) => passengerAboard(x, todayIso())).map((x) => ({ id: `pax:${x.id}`, name: x.name, rank: x.cabin ? `Guest · cabin ${x.cabin}` : 'Guest', own: false })) : []), [passengers, tplBook]);
+  const rowPeople = (row: 0 | 1) => (row === 0 && tplBook === 'fam-pax' ? guests : people);
 
   const book: CheckBook = bookOf(done ?? tpl ?? {});
-  const KIND = book === 'bridge' ? 'Bridge checklist' : book === 'engine' ? 'Engine checklist' : book === 'fam-bridge' ? 'Bridge familiarisation' : book === 'fam-engine' ? 'Engine familiarisation' : 'DP checklist';
+  const KIND = book === 'bridge' ? 'Bridge checklist' : book === 'engine' ? 'Engine checklist' : book === 'fam-bridge' ? 'Bridge familiarisation' : book === 'fam-engine' ? 'Engine familiarisation' : book === 'fam-project' ? 'Project crew familiarisation' : book === 'fam-pax' ? 'Passenger familiarisation' : 'DP checklist';
   if (!moduleOn(book === 'dp' ? 'dp' : 'watchChecks')) return <Screen><Empty text="Not available on this vessel." /></Screen>;
   const here = positionFromText(posT);
   const lat = here?.lat;
@@ -178,13 +189,17 @@ export default function DpCheckSc() {
   const plainLines = c.lines.filter((l) => !l.head && !l.kind && !l.options && !l.value && !inTable.get(l.id));
   const signRow = async (row: 0 | 1) => {
     if (lat == null || lon == null) return Alert.alert(KIND, 'Enter the position first — degrees, minutes and N/S, E/W from the GNSS / DGPS.');
-    const p = people.find((x) => x.id === pickIds[row]);
+    const typed = row === 0 && outsider && !pickIds[0] && typedName.trim() ? { id: `name:${typedName.trim()}`, name: typedName.trim(), rank: book === 'fam-pax' ? 'Guest' : 'Project crew', own: false } : undefined;
+    const p = typed ?? rowPeople(row).find((x) => x.id === pickIds[row]);
     if (!p) return Alert.alert(KIND, `Choose the name — ${ROLE[row]}.`);
     const other = sigs[1 - row];
     if (other && (other.key === p.id || other.name === p.name)) return Alert.alert(KIND, `Two different people sign: ${ROLE[0]} and ${ROLE[1]}.`);
-    const res = await confirmSign({ personKey: p.id, name: p.name, ownDevice: p.own, what: `${c.title} — ${ROLE[row]}`, always: true });
+    // A guest or a project hand has no PIN on this device: by hand.
+    const res = await confirmSign({ personKey: p.id, name: p.name, ownDevice: p.own, what: `${c.title} — ${ROLE[row]}`, always: true, handOnly: row === 0 && outsider && !p.own && (book === 'fam-pax' || p.id.startsWith('name:') || p.id.startsWith('pax:')) });
     if (!res) return;
-    setSigs((x) => x.map((v, i) => (i === row ? { key: p.id, name: p.name, rank: p.rank, proof: res.proof, at: Date.now() } : v)));
+    // A guest's name leaves the vessel only as its first and last letters (types/passengers.ts).
+    const kept = book === 'fam-pax' && row === 0 ? maskName(p.name) : p.name;
+    setSigs((x) => x.map((v, i) => (i === row ? { key: p.id, name: kept, rank: p.rank, proof: res.proof, at: Date.now() } : v)));
   };
   const save = async () => {
     const [a, b] = sigs;
@@ -512,10 +527,16 @@ export default function DpCheckSc() {
                     caption="NAME"
                     value={pickIds[row]}
                     onChange={(v: string) => setPickIds((x) => x.map((y, i) => (i === row ? v : y)))}
-                    options={[{ value: '', label: 'Choose the name…' }, ...people.filter((p) => !taken || (p.id !== taken.key && p.name !== taken.name)).map((p) => ({ value: p.id, label: p.own ? `${crewLabel(p)} — this device` : crewLabel(p) }))]}
+                    options={[{ value: '', label: 'Choose the name…' }, ...rowPeople(row).filter((p) => !taken || (p.id !== taken.key && p.name !== taken.name)).map((p) => ({ value: p.id, label: p.own ? `${crewLabel(p)} — this device` : crewLabel(p) }))]}
                     style={{ flex: 1, minWidth: 200, maxWidth: 360 }}
                   />
                 )}
+                {!done && row === 0 && outsider && !pickIds[0] ? (
+                  <>
+                    <Text style={styles.sub}>or write the name</Text>
+                    <TextInput style={[styles.input, { flex: 1, minWidth: 180, marginBottom: 0 }]} value={typedName} onChangeText={setTypedName} accessibilityLabel="Or write the name" />
+                  </>
+                ) : null}
                 {done ? (
                   <TouchableOpacity onPress={() => setSigs((x) => x.map((v, i) => (i === row ? null : v)))} hitSlop={8}>
                     <Text style={styles.link}>Undo</Text>

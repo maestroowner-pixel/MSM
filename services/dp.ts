@@ -693,6 +693,61 @@ const FAM_ENGINE: string[] = [
   '@sign Familiarised by',
 ];
 
+// Project crew (IP Code, SPS Code — survey, ROV, construction people aboard for a
+// project) and passengers / guests (SOLAS III/19.2 safety briefing), 17 Oct 2026.
+const FAM_PROJECT: string[] = [
+  '@field Company',
+  '@field Role on the project',
+  '@field Date joined',
+  `## Safety induction | ${DONE3}`,
+  'Vessel layout and restricted areas',
+  'Muster station, alarm signals and what to do',
+  'Lifejacket and immersion suit — donning demonstrated',
+  'Lifeboats / liferafts and abandon ship',
+  'Escape routes, fire alarm call points and extinguishers',
+  'PPE required on deck and in work areas',
+  'Permit to work system and toolbox talks',
+  'Stop-work authority and reporting hazards',
+  'Smoking, drug and alcohol policy',
+  'Hours of work and rest',
+  "Medical — ship's hospital, first aid, reporting injury",
+  'Security (ISPS) — ID, visitors, restricted areas',
+  'Garbage and environment rules',
+  `## Project operations | ${DONE3}`,
+  'Interfaces with the ship’s crew — SIMOPS, who to call',
+  'Lifting operations and crane signals',
+  'Working over the side and at height',
+  'DP operations — ASOG awareness, DP alert lights',
+  'ROV / survey spread hazards',
+  'Radio channels and communications',
+  `## Documents | ${CHK}`,
+  'Offshore safety and medical certificates seen (BOSIET / GWO, medical)',
+  'Next-of-kin details recorded',
+  '@sign Familiarised',
+  '@sign Familiarised by',
+];
+const FAM_PAX: string[] = [
+  '@field Cabin',
+  '@field Number of guests briefed',
+  `## Safety briefing | Given {Yes|!No|N/A} | Remarks`,
+  'Muster station and the way to it',
+  'General emergency alarm — what to do',
+  'Lifejackets — where they are, how to put one on (shown)',
+  'Liferafts and abandon ship',
+  'Fire — alarm, escape routes, no lifts',
+  'Man overboard — shout, point, throw',
+  'Restricted areas — bridge, engine room, crew areas',
+  'Safety on deck — handrails, footwear, weather decks at sea',
+  'Tender and water toys',
+  'Swimming from the vessel',
+  'Medical needs, allergies and mobility told to the crew',
+  'Smoking policy',
+  'Visitors and security on board',
+  'Who to call on board in an emergency',
+  '@sign Guest',
+  '@sign Briefed by',
+];
+
 const tb = (book: CheckBook, id: string, title: string, where: DpWhere, lines: string[]): DpTemplate => ({ ...t(id, title, where, lines), book });
 
 /** The bridge and engine checklists the app ships. */
@@ -703,6 +758,8 @@ export const WATCH_TEMPLATES: DpTemplate[] = [
   tb('engine', 'engine.signoff', 'Sign-on / sign-off handover — engineer', 'engine', ENGINE_SIGNOFF),
   tb('fam-bridge', 'fam.bridge', 'Bridge familiarisation', 'bridge', FAM_BRIDGE),
   tb('fam-engine', 'fam.engine', 'Engine familiarisation', 'engine', FAM_ENGINE),
+  tb('fam-project', 'fam.project', 'Project crew familiarisation', 'bridge', FAM_PROJECT),
+  tb('fam-pax', 'fam.pax', 'Passenger familiarisation — safety briefing', 'bridge', FAM_PAX),
 ];
 
 /** What the vessel works to: the built-ins as reworded, the vessel's own, without the switched-off. */
