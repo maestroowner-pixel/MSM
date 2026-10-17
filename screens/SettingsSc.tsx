@@ -711,6 +711,16 @@ export default function SettingsSc() {
             <Text style={styles.chev}>›</Text>
           </TouchableOpacity>
         ) : null}
+        {sync.role === 'superadmin' && sync.enrolled ? (
+          <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('EmailReport')}>
+            <IconChip name="email-outline" size={18} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkTitle}>Email report</Text>
+              <Text style={styles.linkSub}>Monthly safety digest to owner / DPA</Text>
+            </View>
+            <Text style={styles.chev}>›</Text>
+          </TouchableOpacity>
+        ) : null}
       </Card>
       ) : null}
 

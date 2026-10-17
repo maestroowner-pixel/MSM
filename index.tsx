@@ -71,6 +71,7 @@ import DefectsSc from './screens/DefectsSc';
 import InspectionDetailSc from './screens/InspectionDetailSc';
 import AccountsSc from './screens/AccountsSc';
 import MasterSc from './screens/MasterSc';
+import EmailReportSc from './screens/EmailReportSc';
 import SparesSc from './screens/SparesSc';
 import SparePartSc from './screens/SparePartSc';
 import DocsSc from './screens/DocsSc';
@@ -471,6 +472,7 @@ const linking = {
       FleetVessel: 'fleet/:imo',
       Defects: 'defects',
       Accounts: 'accounts',
+      EmailReport: 'email-report',
       Access: 'access',
       MasterPage: 'master',
       Enrol: 'join',
@@ -695,6 +697,7 @@ function Root() {
         {/* With the notice board on, the old Dashboard — LSA / FFE / lifting by expiry — is this screen. */}
         <Stack.Screen name="Expiries" component={DashboardSc} options={webHeader('LSA / FFE expiries')} />
         <Stack.Screen name="Accounts" component={AccountsSc} options={webHeader('Accounts', toTab('Settings'))} />
+        <Stack.Screen name="EmailReport" component={EmailReportSc} options={webHeader('Email Report', toTab('Settings'))} />
         <Stack.Screen name="Enrol" component={EnrolSc} options={webHeader('Join this vessel', toTab('Settings'))} />
       </Stack.Navigator>
       {showSplash ? (

@@ -108,7 +108,7 @@ service cloud.firestore {
                     && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['modules'])
                     && (isSuper(v)
                         || !request.resource.data.diff(resource.data)
-                              .affectedKeys().hasAny(['entitlement', 'signingPolicy', 'photoArchive']));
+                              .affectedKeys().hasAny(['entitlement', 'signingPolicy', 'photoArchive', 'emailReport']));
       allow delete: if false;
 
       // ---- devices ---------------------------------------------------------

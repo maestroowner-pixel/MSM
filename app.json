@@ -2,7 +2,7 @@
   "expo": {
     "name": "ISMpilot",
     "slug": "marine-safety-manager",
-    "version": "2.63",
+    "version": "2.64",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "msm",
@@ -20,7 +20,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.kukalab.msm",
       "appleTeamId": "LAGTN99698",
-      "buildNumber": "20632",
+      "buildNumber": "20640",
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.kukalab.msm"
@@ -52,7 +52,7 @@
     },
     "android": {
       "package": "com.kukalab.msm",
-      "versionCode": 20632,
+      "versionCode": 20640,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -110,7 +110,7 @@
           "widgets": [
             {
               "name": "Scan",
-              "label": "ISMpilot · Scan",
+              "label": "ISMpilot \u00b7 Scan",
               "description": "Open the scanner",
               "previewImage": "./assets/widgets/scan-preview.png",
               "minWidth": "80dp",
@@ -121,7 +121,7 @@
             },
             {
               "name": "Flagged",
-              "label": "ISMpilot · Scan + Flagged",
+              "label": "ISMpilot \u00b7 Scan + Flagged",
               "description": "Scanner and the latest flagged items",
               "previewImage": "./assets/widgets/flagged-preview.png",
               "minWidth": "250dp",
