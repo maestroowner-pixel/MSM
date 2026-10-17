@@ -21,7 +21,7 @@ import { useTheme, useThemeName } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { moduleOn } from '../constants/modules';
-import { canRememberFolder, chooseFolder, rememberedFolder } from '../utils/webSave';
+import { canRememberFolder, chooseFolder, forgetFolder, rememberedFolders } from '../utils/webSave';
 import { ADMIN_KEY, PinHolder, pinHolders, resetPin } from '../services/signature';
 import { usePinChange } from '../components/PinChange';
 import { personName } from '../types/role';
@@ -76,10 +76,9 @@ export default function SettingsSc() {
   const wide = useWindowDimensions().width >= 600;
   const { vessel, setVessel, reload, flat, certificates, prefs, setPrefs, signingPolicy, setSigningPolicy } = useData();
   const sync = useSync();
-  const [reportsFolder, setReportsFolder] = useState<string | null>(null);
-  useEffect(() => {
-    void rememberedFolder('reports').then(setReportsFolder);
-  }, []);
+  const [folders, setFolders] = useState<{ kind: string; name: string; folder: string }[]>([]);
+  const readFolders = () => void rememberedFolders().then(setFolders);
+  useEffect(readFolders, []);
   // Who has a signing PIN on this device, for the Master's reset list.
   const changePin = usePinChange();
   const [pinHoldersHere, setPinHoldersHere] = useState<PinHolder[]>([]);
@@ -638,20 +637,25 @@ export default function SettingsSc() {
           gangway) use it — none of them is on, nothing to choose. */}
       {canRememberFolder() && (['rest', 'crewCerts', 'fuel', 'garbage', 'security'] as const).some((m) => moduleOn(m)) ? (
         <Card>
-          <Label>Reports folder</Label>
-          {/* Where PDF reports are saved on this computer (utils/webSave). */}
-          <View style={styles.linkRow}>
-            <IconChip name="folder-outline" size={18} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.linkTitle}>{reportsFolder ?? 'Not chosen yet'}</Text>
-              <Text style={styles.linkSub}>
-                {reportsFolder ? 'Reports are saved straight into this folder.' : 'The first report you save asks for a folder and remembers it.'}
-              </Text>
+          <Label>Folders</Label>
+          {/* A folder per section on this computer (utils/webSave): the first save in a section asks for it. */}
+          <Text style={[styles.linkSub, { marginBottom: SIZES.xs }]}>Each section saves its files to its own folder — DP, Security, Drills… The first file saved in a section asks for its folder.</Text>
+          {!folders.length ? <Text style={styles.linkSub}>No folder chosen yet.</Text> : null}
+          {folders.map((f) => (
+            <View key={f.kind} style={styles.linkRow}>
+              <IconChip name="folder-outline" size={18} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.linkTitle}>{f.name}</Text>
+                <Text style={styles.linkSub}>{`→ ${f.folder}`}</Text>
+              </View>
+              <TouchableOpacity onPress={() => void chooseFolder(f.kind).then(readFolders)} hitSlop={8}>
+                <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Change</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => void forgetFolder(f.kind).then(readFolders)} hitSlop={8}>
+                <Text style={{ color: COLORS.textLight, fontWeight: '700', marginLeft: SIZES.sm }}>Forget</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={() => void chooseFolder('reports').then((n) => n && setReportsFolder(n))} hitSlop={8}>
-              <Text style={{ color: COLORS.primary, fontWeight: '700' }}>{reportsFolder ? 'Change' : 'Choose'}</Text>
-            </TouchableOpacity>
-          </View>
+          ))}
         </Card>
       ) : null}
       {/* Planned maintenance and Hours of rest were cards here; they are tabs now,

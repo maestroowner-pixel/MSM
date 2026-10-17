@@ -227,7 +227,7 @@ export default function HoursOfRestSc() {
         {savedTo ? <Text style={styles.savedTo}>{`✓ ${savedTo}`}</Text> : null}
         {canRememberFolder() ? (
           <TouchableOpacity
-            onPress={() => void chooseFolder('reports').then((n) => n && setSavedTo(`Reports now go to the folder “${n}”`))}
+            onPress={() => void chooseFolder('rest').then((n) => n && setSavedTo(`Hours of rest files now go to the folder “${n}”`))}
             hitSlop={8}
             style={{ alignSelf: 'center', marginTop: SIZES.xs }}
           >
