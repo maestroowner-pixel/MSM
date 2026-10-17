@@ -131,6 +131,9 @@ THE WORDING
 
 RULES
 - Prefer tables wherever the paper has columns. Units in the column or row name, e.g. "Speed (kn)".
+- Lines of the same kind answered the same way (OS1 Yes/No, OS2 Yes/No; Gyro 1, Gyro 2…) are ONE table with a row each, never separate questions.
+- Weather and sea readings (wind, current, waves, swell) are tables, not header fields: "## Wind | Speed (kn) | Direction (deg)" with one row, and the next ones beside it ("## > Current | …", "## > Waves | Height (m) [0.0] | Direction (deg)").
+- @field is only for what names the job: location, field, project, client, offshore unit.
 - Yes/No columns on the paper become {Yes|!No} unless "No" is not a fault there (then {Yes|No}).
 - Leave out: the form's revision block, document numbers, page numbers, company names and logos, date and time (the app sets them), the vessel's position (the app asks for it).
 - Leave out EVERYTHING somebody filled in: names, signatures, ticks, readings, dates, comments. Only the blank form.
