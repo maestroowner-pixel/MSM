@@ -65,6 +65,8 @@ export interface Patrol {
   by: string;
   byRank?: string;
   byKey?: string;
+  /** How it was signed — PIN, by hand (with the drawing) or fingerprint (services/signature.ts). */
+  byWith?: import('../services/signature').SignProof;
   updatedAt: number;
 }
 

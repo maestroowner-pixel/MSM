@@ -18,6 +18,8 @@ export interface HistTable {
   widths?: Record<number, number>;
   /** Printed beside the table before it, as on the paper form. */
   beside?: boolean;
+  /** Hand-drawn signatures to paint in cells, keyed "row:col" — the SVG path (300 × 100, components/SignaturePad). */
+  sigs?: Record<string, string>;
 }
 export interface MachineHistory {
   title: string;

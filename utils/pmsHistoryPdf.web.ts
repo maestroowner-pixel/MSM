@@ -2,6 +2,7 @@
 // landscape, one machine per page. Content: services/pmsHistory.ts.
 /* eslint-disable @typescript-eslint/no-var-requires */
 import type { MachineHistory } from '../services/pmsHistory';
+import { sigImage } from './sigImage';
 
 const plain = (s: string) => s.replace(/[–—]/g, '-').replace(/[“”]/g, '"').replace(/≈/g, '~').replace(/³/g, '3').replace(/·/g, '-').replace(/[′‘’]/g, "'").replace(/″/g, '"');
 
@@ -45,7 +46,34 @@ export function pmsHistoryPdfBlob(title: string, vesselLine: string, list: Machi
       doc.setFontSize(9);
       doc.text(`${t.title.toUpperCase()} (${t.rows.length})`, left, top + 4);
       const columnStyles = Object.fromEntries(Object.entries(t.widths ?? {}).map(([k, w]) => [k, { cellWidth: w }]));
-      autoTable(doc, { ...base, margin: { left, right: side ? W - left - width : M }, tableWidth: t.widths ? width : 'auto', startY: top + 6, head: [t.head], columnStyles, body: t.rows.length ? t.rows.map((r) => r.map(plain)) : [['None.', ...t.head.slice(1).map(() => '')]] });
+      // Hand-drawn signatures painted into their cells (a row with one is made tall enough).
+      const imgs = Object.fromEntries(Object.entries(t.sigs ?? {}).map(([k, path]) => [k, sigImage(path)]));
+      const hasSig = (row: number) => Object.keys(imgs).some((k) => k.startsWith(`${row}:`) && imgs[k]);
+      autoTable(doc, {
+        ...base,
+        margin: { left, right: side ? W - left - width : M },
+        tableWidth: t.widths ? width : 'auto',
+        startY: top + 6,
+        head: [t.head],
+        columnStyles,
+        body: t.rows.length ? t.rows.map((r) => r.map(plain)) : [['None.', ...t.head.slice(1).map(() => '')]],
+        didParseCell: (c: any) => {
+          // A signed row is 30 mm tall (17 Oct 2026: "the signature cell 30 × 30 mm").
+          if (c.section === 'body' && hasSig(c.row.index)) {
+            c.cell.styles.minCellHeight = 30;
+            c.cell.styles.valign = 'top';
+          }
+        },
+        didDrawCell: (c: any) => {
+          if (c.section !== 'body') return;
+          const img = imgs[`${c.row.index}:${c.column.index}`];
+          if (!img) return;
+          // The drawing across the cell's width (3 : 1, as it was drawn), at its foot.
+          const w = Math.min(c.cell.width - 2, 28);
+          const h = w / 3;
+          doc.addImage(img, 'PNG', c.cell.x + (c.cell.width - w) / 2, c.cell.y + c.cell.height - h - 2, w, h);
+        },
+      });
       const bottom = (doc as any).lastAutoTable.finalY;
       prev = { y: top, right: left + width, bottom: side ? Math.max(prev!.bottom, bottom) : bottom, page: doc.getNumberOfPages() };
       y = prev.bottom + 4;

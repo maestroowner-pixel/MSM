@@ -108,6 +108,7 @@ export default function PatrolsSc() {
         by: signer.name,
         ...(signer.rank ? { byRank: signer.rank } : {}),
         byKey: signer.key,
+        ...(sig.proof ? { byWith: sig.proof } : {}),
         updatedAt: now,
       };
       await saveRow(storage.PATROLS_KEY, rec);

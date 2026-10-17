@@ -33,7 +33,7 @@ function dpCheckPage(c: DpCheck) {
   ].filter(Boolean) as string[];
   // As the paper checklist: a heading with columns is a table with those
   // columns; the other sections list item and answer. 273 mm across.
-  type T = { title: string; head: string[]; rows: string[][]; widths: Record<number, number>; beside?: boolean };
+  type T = { title: string; head: string[]; rows: string[][]; widths: Record<number, number>; beside?: boolean; sigs?: Record<string, string> };
   const tables: T[] = [];
   let n = 0;
   for (const l of c.lines) {
@@ -65,12 +65,15 @@ function dpCheckPage(c: DpCheck) {
   if (c.remarks) tables.push({ title: 'Remarks', head: ['', 'Remarks', ''], rows: [['', c.remarks, '']], widths: { 0: 12, 1: 170, 2: 91 } });
   tables.push({
     title: 'Signatures',
-    head: ['', 'Name', 'Position', 'Signature'],
+
     rows: [
-      [signRoles(c)[0], c.by, c.byRank ?? '', `${proofShort(c.byWith) || 'signed'} in ISMpilot, ${shipAndUtc(c.at, c.shipOffset).ship} LT`],
-      [signRoles(c)[1], c.by2 ?? '', c.by2Rank ?? '', c.by2 ? `${proofShort(c.by2With) || 'signed'} in ISMpilot, ${shipAndUtc(c.at, c.shipOffset).ship} LT` : ''],
+      [signRoles(c)[0], c.by, c.byRank ?? '', `${proofShort(c.byWith) || 'signed'} in ISMpilot, ${shipAndUtc(c.at, c.shipOffset).ship} LT`, ''],
+      [signRoles(c)[1], c.by2 ?? '', c.by2Rank ?? '', c.by2 ? `${proofShort(c.by2With) || 'signed'} in ISMpilot, ${shipAndUtc(c.at, c.shipOffset).ship} LT` : '', ''],
     ],
-    widths: { 0: 40, 1: 80, 2: 70, 3: 83 },
+    head: ['', 'Name', 'Position', 'How signed', 'Signature'],
+    widths: { 0: 40, 1: 70, 2: 50, 3: 83, 4: 30 },
+    // Signed by hand: the signature itself, in its cell (17 Oct 2026).
+    sigs: Object.fromEntries([c.byWith?.drawing ? ['0:4', c.byWith.drawing] : null, c.by2With?.drawing ? ['1:4', c.by2With.drawing] : null].filter(Boolean) as [string, string][]),
   });
   return { title: c.title, facts, tables, drawings };
 }

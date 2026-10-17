@@ -29,6 +29,8 @@ export interface KeyMove {
   person: string;
   personRank?: string;
   personKey?: string;
+  /** How the person signed for it — the drawing kept when by hand (services/signature.ts). */
+  personWith?: import('../services/signature').SignProof;
   /** Who recorded it — the officer or the watch at the key cabinet. */
   by: string;
   at: number;

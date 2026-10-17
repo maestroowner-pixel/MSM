@@ -16,7 +16,7 @@ import { KeyItem, KeyMove } from '../types/keys';
 const hm = (t: number) => new Date(t).toTimeString().slice(0, 5);
 const dmy = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
 const stamp = (t: number) => `${dmy(new Date(t - new Date(t).getTimezoneOffset() * 60000).toISOString().slice(0, 10))} ${hm(t)}`;
-type T = { title: string; head: string[]; rows: string[][]; widths?: Record<number, number> };
+type T = { title: string; head: string[]; rows: string[][]; widths?: Record<number, number>; sigs?: Record<string, string> };
 
 const roundRow = (p: Patrol, total: number) => [
   `${hm(p.startedAt)}–${hm(p.finishedAt)}`,
@@ -39,6 +39,8 @@ export function exportPatrolDay(date: string, plans: PatrolPlan[], patrols: Patr
     head: ['Due', 'Round', 'Done', 'By', 'Visited', 'Checkpoints missed', 'Remarks'],
     rows: r.map((x) => (x.done ? [x.slot, x.plan.name, ...roundRow(x.done, x.plan.checkpointIds.length || x.done.visits.length + x.done.missed.length)] : [x.slot, x.plan.name, x.pending ? (date === todayIso() && x.slot <= hm(Date.now()) ? 'due now' : 'not yet due') : 'MISSED', '—', '—', '—', '—'])),
     widths: { 0: 14, 1: 45, 2: 24, 3: 45, 4: 18, 5: 55, 6: 72 },
+    // Signed by hand: the signature under the name (17 Oct 2026).
+    sigs: Object.fromEntries(r.map((x, i) => (x.done?.byWith?.drawing ? [`${i}:3`, x.done.byWith.drawing] : null)).filter(Boolean) as [string, string][]),
   };
   const visits: T = {
     title: 'Checkpoints visited',
@@ -61,6 +63,7 @@ export function exportPatrolMonth(month: string, today: string, plans: PatrolPla
     head: ['Date', 'Due', 'Round', 'Done', 'By', 'Visited', 'Checkpoints missed', 'Remarks'],
     rows: all.map((p) => [dmy(p.date), p.slot ?? '—', p.planName, ...roundRow(p, p.visits.length + p.missed.length)]),
     widths: { 0: 22, 1: 14, 2: 40, 3: 24, 4: 40, 5: 16, 6: 50, 7: 67 },
+    sigs: Object.fromEntries(all.map((p, i) => (p.byWith?.drawing ? [`${i}:4`, p.byWith.drawing] : null)).filter(Boolean) as [string, string][]),
   };
   return exportPmsHistory('Security rounds', `Security rounds ${month}`, vessel, [{ title: `Security rounds — ${month}`, facts, tables: [byDay, list, ...dutiesTables(plans)] }]);
 }
@@ -74,7 +77,7 @@ export function exportKeyReport(from: string, to: string, keys: KeyItem[], moves
   const tables: T[] = [
     { title: 'Out now', head: ['Key', 'Opens', 'Held by', 'Since', 'Days', 'Due back'], rows: out.map((o) => [o.key.code, o.key.name, o.move.personRank ? `${o.move.person} (${o.move.personRank})` : o.move.person, stamp(o.move.at), String(o.days), o.move.dueBack ? dmy(o.move.dueBack) : '—']), widths: { 0: 20, 1: 80, 2: 70, 3: 40, 4: 15, 5: 48 } },
     { title: 'Register', head: ['Key', 'Opens', 'Kept', 'Status'], rows: live.sort((a, b) => a.code.localeCompare(b.code)).map((k) => { const m = st.get(k.id); return [k.code, k.name, k.location ?? '—', m?.dir === 'out' ? `OUT — ${m.person}` : 'On the board']; }), widths: { 0: 20, 1: 110, 2: 70, 3: 73 } },
-    { title: 'Movements', head: ['Date', 'Key', 'Out / in', 'Person', 'Recorded by', 'Note'], rows: period.map((m) => [stamp(m.at), `${m.code} · ${m.name}`, m.dir === 'out' ? 'OUT' : 'Back', m.personRank ? `${m.person} (${m.personRank})` : m.person, m.by, m.note ?? '—']), widths: { 0: 32, 1: 70, 2: 18, 3: 55, 4: 45, 5: 53 } },
+    { title: 'Movements', head: ['Date', 'Key', 'Out / in', 'Person', 'Recorded by', 'Note'], rows: period.map((m) => [stamp(m.at), `${m.code} · ${m.name}`, m.dir === 'out' ? 'OUT' : 'Back', m.personRank ? `${m.person} (${m.personRank})` : m.person, m.by, m.note ?? '—']), widths: { 0: 32, 1: 70, 2: 18, 3: 55, 4: 45, 5: 53 }, sigs: Object.fromEntries(period.map((m, i) => (m.personWith?.drawing ? [`${i}:3`, m.personWith.drawing] : null)).filter(Boolean) as [string, string][]) },
   ];
   return exportPmsHistory('Key register', `Key register ${from} ${to}`, vessel, [{ title: 'Key register', facts, tables }]);
 }

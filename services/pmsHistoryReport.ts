@@ -18,7 +18,7 @@ function html(title: string, vessel: VesselInfo | null, list: MachineHistory[]):
     <div class="top">${esc(title)} · ${esc(vesselHeader(vessel))}</div>
     <h1>${esc(h.title)}</h1><div class="facts">${h.facts.map(esc).join(' · ')}</div>
     ${(h.drawings ?? []).map((d) => `<h2>${esc(d.title)}</h2><svg width="${Math.round(d.w * 0.9)}px" height="${Math.round(d.h * 0.9)}px" viewBox="0 0 ${d.w} ${d.h}" style="border:.5px solid #c8d0db"><path d="${esc(d.path)}" stroke="#0B2545" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`).join('')}
-    ${h.tables.map((t) => `<h2>${esc(t.title)} (${t.rows.length})</h2><table><thead><tr>${t.head.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${t.rows.length ? t.rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${t.head.length}">None.</td></tr>`}</tbody></table>`).join('')}
+    ${h.tables.map((t) => `<h2>${esc(t.title)} (${t.rows.length})</h2><table><thead><tr>${t.head.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${t.rows.length ? t.rows.map((r, ri) => `<tr>${r.map((c, ci) => `<td>${esc(c)}${t.sigs?.[`${ri}:${ci}`] ? `<br><svg viewBox="0 0 300 100" style="width:28mm;height:9.3mm;margin-top:14mm"><path d="${esc(t.sigs[`${ri}:${ci}`])}" stroke="#0B2545" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${t.head.length}">None.</td></tr>`}</tbody></table>`).join('')}
   </section>`;
   return `<!doctype html><html><head><meta charset="utf-8"><style>
     @page { size: A4 landscape; margin: 0; } body { margin: 10mm; font-family: -apple-system, Helvetica, Arial, sans-serif; font-size: 8.5px; color: #0B2545; }

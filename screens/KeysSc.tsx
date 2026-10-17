@@ -84,7 +84,7 @@ export default function KeysSc() {
     const sig = await confirmSign({ personKey: p ? p.id : `name:${name}`, name, ownDevice: false, what: `Key ${k.code} — ${k.name} — taken`, always: true, handOnly: !p });
     if (!sig) return;
     const now = Date.now();
-    const mv: KeyMove = { id: uid('km'), keyId: k.id, code: k.code, name: k.name, dir: 'out', person: name, ...(p?.rank ? { personRank: p.rank } : {}), ...(p ? { personKey: p.id } : {}), by: recorder, at: now, ...(note.trim() ? { note: note.trim() } : {}), ...(dueBack ? { dueBack } : {}), updatedAt: now };
+    const mv: KeyMove = { id: uid('km'), keyId: k.id, code: k.code, name: k.name, dir: 'out', person: name, ...(p?.rank ? { personRank: p.rank } : {}), ...(p ? { personKey: p.id } : {}), ...(sig.proof ? { personWith: sig.proof } : {}), by: recorder, at: now, ...(note.trim() ? { note: note.trim() } : {}), ...(dueBack ? { dueBack } : {}), updatedAt: now };
     await saveRow(storage.KEY_MOVES_KEY, mv);
     playSuccessSound();
     setSaved(`${k.code} ${k.name} — out to ${name}`);
