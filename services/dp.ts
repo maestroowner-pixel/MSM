@@ -19,7 +19,7 @@
 // Pure: `npm run check:dp` runs it in node.
 // ===================================
 
-import { AsogStatus, DpCheck, DpCol, DpConditions, DpDay, DpInfo, DpLine, DpPosition, DpSlot, DpTemplate, DpWhere } from '../types/dp';
+import { AsogStatus, CheckBook, DpCheck, DpCol, DpConditions, DpDay, DpInfo, DpLine, DpPosition, DpSlot, DpTemplate, DpWhere } from '../types/dp';
 
 // ---- checklists ---------------------------------------------------------------
 
@@ -435,11 +435,128 @@ export const DP_TEMPLATES: DpTemplate[] = [
   ]),
 ];
 
+// ---- bridge and engine checklists (17 Oct 2026) ----------------------------------
+//
+// The watch handover on the bridge and in the engine room, as STCW Code A-VIII/2
+// lists what the relieving officer must know (part 4-1, navigational watch;
+// part 4-2, engineering watch) — laid out as the DP sheet is. A starting point:
+// each vessel's forms are set up from its own (the checklist editor, AI import).
+
+const BRIDGE_HANDOVER: string[] = [
+  '@field Voyage (from – to)',
+  '@field Port / area',
+  '## Position and track | Value',
+  'Position fix — method and time',
+  'Course to steer (deg)',
+  'Course over ground (deg)',
+  'Speed through water (kn)',
+  'Speed over ground (kn)',
+  'Next waypoint / ETA',
+  'Cross-track distance (m)',
+  'Draught fwd / aft (m)',
+  '## > Weather | Value',
+  'Wind (dir / force)',
+  'Sea / swell',
+  'Visibility (nm)',
+  'Barometer (hPa) and trend',
+  '## Compass errors | Error (deg)',
+  'Gyro error',
+  'Magnetic compass deviation',
+  '## Steering | Mode {Auto|Manual|Track control} | Steering pumps {1|2|1 + 2}',
+  'Steering',
+  '## Navigational equipment | Status {In use|Standby|!Defective} | Remarks',
+  'Radar 1 (X-band)',
+  'Radar 2 (S-band)',
+  'ECDIS 1',
+  'ECDIS 2',
+  'GNSS / GPS',
+  'Gyro compass',
+  'Autopilot',
+  'AIS',
+  'Echo sounder',
+  'Speed log',
+  'BNWAS',
+  'VDR',
+  'VHF / GMDSS',
+  'Navigation lights / shapes',
+  '## Traffic and hazards | Checked {Yes|!No|N/A} | Remarks',
+  'Traffic around the vessel — targets, CPA / TCPA',
+  'Navigational hazards and shallow water ahead',
+  'TSS, VTS and reporting points ahead',
+  'Tidal stream and current',
+  'Under-keel clearance and squat',
+  '## Orders and operations | Read {Yes|!No|N/A} | Remarks',
+  "Master's standing orders",
+  "Master's night orders",
+  'Passage plan for the watch',
+  'Ship operations in progress (cargo, ballast, deck work, drills)',
+  'Lookout posted and fit for duty',
+  'Engine room status / restrictions',
+  'Navigational warnings / NAVTEX',
+];
+
+const ENGINE_HANDOVER: string[] = [
+  '@field Voyage / port',
+  '## Propulsion | Status {Running|Standby|Stopped} | RPM / load | Remarks',
+  'Main engine 1',
+  'Main engine 2',
+  '~CPP / pitch',
+  '~Shaft generator',
+  '## Generators | On load {Yes|No} | Load (kW) | Running hours',
+  'DG1',
+  'DG2',
+  'DG3',
+  'DG4',
+  '~DG5',
+  '~DG6',
+  '## > Emergency generator | Mode {Auto|!Manual|!Off}',
+  'Emergency generator',
+  '## Systems | Status {Normal|!Abnormal} | Remarks',
+  'Fuel oil system — service tanks, purifiers',
+  'Lube oil system',
+  'Cooling water — HT / LT',
+  'Starting air pressure',
+  'Steering gear',
+  'Bilges and bilge wells',
+  'Sewage treatment plant',
+  'Fresh water generator / tanks',
+  'Boiler / incinerator',
+  'HVAC and refrigeration',
+  '## Tanks | Level (%) | Remarks',
+  'Fuel service tank',
+  'Fuel settling tank',
+  'Bilge holding tank',
+  'Sludge tank',
+  'Sewage holding tank',
+  'Fresh water',
+  '## Alarms and safety | Checked {Yes|!No|N/A} | Remarks',
+  'Alarms since the last watch — acknowledged and explained',
+  'Fire detection system — no faults',
+  'Fixed fire-fighting system — ready',
+  'Watertight doors and openings',
+  'Machinery space unattended (UMS) — conditions met',
+  '## Orders and work | Read {Yes|!No|N/A} | Remarks',
+  "Chief Engineer's standing / night orders",
+  'Maintenance and repairs in progress — isolations and permits',
+  'Fuel transfers / bunkering planned or in progress',
+  'Restrictions on machinery from the bridge',
+  'Oil record book entries up to date',
+];
+
+const tb = (book: CheckBook, id: string, title: string, where: DpWhere, lines: string[]): DpTemplate => ({ ...t(id, title, where, lines), book });
+
+/** The bridge and engine checklists the app ships. */
+export const WATCH_TEMPLATES: DpTemplate[] = [
+  tb('bridge', 'bridge.handover', 'Bridge watch handover', 'bridge', BRIDGE_HANDOVER),
+  tb('engine', 'engine.handover', 'Engine room watch handover', 'engine', ENGINE_HANDOVER),
+];
+
 /** What the vessel works to: the built-ins as reworded, the vessel's own, without the switched-off. */
-export function templatesNow(own: DpTemplate[]): DpTemplate[] {
+export function templatesNow(own: DpTemplate[], book: CheckBook = 'dp'): DpTemplate[] {
+  const shipped = book === 'dp' ? DP_TEMPLATES : WATCH_TEMPLATES.filter((x) => x.book === book);
   const byId = new Map(own.map((x) => [x.id, x]));
-  const builtIn = DP_TEMPLATES.map((b) => byId.get(b.id) ?? b);
-  const extra = own.filter((x) => !DP_TEMPLATES.some((b) => b.id === x.id));
+  const builtIn = shipped.map((b) => byId.get(b.id) ?? b);
+  const extra = own.filter((x) => (x.book ?? 'dp') === book && !shipped.some((b) => b.id === x.id) && !DP_TEMPLATES.some((b) => b.id === x.id) && !WATCH_TEMPLATES.some((b) => b.id === x.id));
   return [...builtIn, ...extra].filter((x) => !x.off).map((x) => (x.lines.some((l) => l.hidden) ? { ...x, lines: x.lines.filter((l) => !l.hidden) } : x));
 }
 

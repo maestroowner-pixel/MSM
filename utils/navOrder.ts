@@ -39,7 +39,7 @@ export const MENU_GROUPS: MenuGroup[] = [
   { key: 'security', label: 'Security', routes: ['Security'] },
   { key: 'env', label: 'Environment (MARPOL)', routes: ['OilRecord', 'Garbage', 'Sewage', 'Ballast', 'Fuel', 'Sopep'] },
   { key: 'crew', label: 'Crew', routes: ['Crew', 'CrewMatrix', 'HoursOfRest', 'Passengers'] },
-  { key: 'ops', label: 'Operations', routes: ['Dp', 'Readiness'] },
+  { key: 'ops', label: 'Operations', routes: ['Watch', 'Dp', 'Readiness'] },
   { key: 'docs', label: 'Documents & compliance', routes: ['Certificates', 'Documents', 'Permits', 'Surveys', 'Reports'] },
   { key: 'system', label: '', routes: ['Settings'] },
 ];
@@ -109,6 +109,11 @@ export const MENU_CHILDREN: Record<string, MenuChild[]> = {
     { view: 'docs', label: 'SOPEP docs', icon: 'file-lock-outline', officers: true },
   ],
   // Every drill in one place: the schedule, and the SOPEP and ISPS drills kept on their own pages.
+  // Bridge and engine checklists (17 Oct 2026): two folders, the watch handover first.
+  Watch: [
+    { view: 'bridge', label: 'Bridge checklists', icon: 'ferry' },
+    { view: 'engine', label: 'Engine checklists', icon: 'engine-outline' },
+  ],
   Dp: [
     { view: 'checklists', label: 'DP checklists', icon: 'clipboard-check-outline' },
     { view: 'time', label: 'DP time', icon: 'timer-outline' },
@@ -172,6 +177,7 @@ export const MENU_LABEL: Record<string, string> = {
   Surveys: 'Surveys & audits',
   Readiness: 'Inspection readiness',
   Dp: 'Dynamic positioning',
+  Watch: 'Bridge & engine checklists',
   Safety: 'Safety observations & NC',
   Drills: 'Drills',
   Hospital: 'Hospital',

@@ -17,6 +17,9 @@ import { onWeb, onWindows } from '../utils/fileShare';
 import { saveFileWeb } from '../utils/webSave';
 import { dpLetterPdfBlob } from '../utils/dpLetterPdf';
 
+/** The report's heading and file name by the checklist's book. */
+const kindOf = (c: DpCheck) => (c.book === 'bridge' ? { title: 'Bridge checklist', stem: 'Bridge' } : c.book === 'engine' ? { title: 'Engine checklist', stem: 'Engine' } : { title: 'DP checklist', stem: 'DP' });
+
 /** The signed checklist as the report's page — shared by the PDF and the print. */
 function dpCheckPage(c: DpCheck) {
   const o = checkOutcome(c);
@@ -79,12 +82,14 @@ function dpCheckPage(c: DpCheck) {
 }
 
 export function exportDpCheckPdf(c: DpCheck, vessel: VesselInfo | null) {
-  return exportPmsHistory('DP checklist', `DP ${c.title.split(' — ')[0].replace(/\s*\/\s*/g, '-')} ${new Date(c.at).toISOString().slice(0, 10)}`, vessel, [dpCheckPage(c)]);
+  const k = kindOf(c);
+  const name = c.title.split(' — ')[0].replace(/\s*\/\s*/g, '-');
+  return exportPmsHistory(k.title, `${name.toLowerCase().startsWith(k.stem.toLowerCase()) ? '' : `${k.stem} `}${name} ${new Date(c.at).toISOString().slice(0, 10)}`, vessel, [dpCheckPage(c)]);
 }
 
 /** Straight to the printer (17 Oct 2026): the browser's print window, or the phone's. */
 export function printDpCheck(c: DpCheck, vessel: VesselInfo | null) {
-  return printPmsHistory('DP checklist', vessel, [dpCheckPage(c)]);
+  return printPmsHistory(kindOf(c).title, vessel, [dpCheckPage(c)]);
 }
 
 export async function exportDpLetter(l: Letter): Promise<string | null | void> {

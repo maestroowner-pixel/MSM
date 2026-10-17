@@ -89,6 +89,7 @@ import ReadinessSc from './screens/ReadinessSc';
 import HandoverSc from './screens/HandoverSc';
 import ServiceReportSc from './screens/ServiceReportSc';
 import DpSc from './screens/DpSc';
+import WatchChecksSc from './screens/WatchChecksSc';
 import DpCheckSc from './screens/DpCheckSc';
 import DpTemplatesSc from './screens/DpTemplatesSc';
 import SafetySc from './screens/SafetySc';
@@ -147,6 +148,7 @@ const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Surveys: SurveysSc,
   Readiness: ReadinessSc,
   Dp: DpSc,
+  Watch: WatchChecksSc,
   Safety: SafetySc,
   Drills: DrillsSc,
   Hospital: HospitalSc,
@@ -408,6 +410,7 @@ const linking = {
           Surveys: 'surveys',
           Readiness: 'readiness',
           Dp: 'dp',
+          Watch: 'checklists-watch',
           Safety: 'safety',
           Drills: 'drills',
           Hospital: 'hospital',
@@ -677,7 +680,7 @@ function Root() {
         <Stack.Screen name="Defects" component={DefectsSc} options={webHeader('Open defects')} />
         <Stack.Screen name="Handover" component={HandoverSc} options={webHeader('Handover', { screen: 'Main', params: { screen: 'Readiness' } } as any)} />
         <Stack.Screen name="ServiceReport" component={ServiceReportSc} options={webHeader('Service report', { screen: 'Main', params: { screen: 'Certificates' } } as any)} />
-        <Stack.Screen name="DpCheck" component={DpCheckSc} options={webHeader('DP checklist', { screen: 'Main', params: { screen: 'Dp' } } as any)} />
+        <Stack.Screen name="DpCheck" component={DpCheckSc} options={webHeader('Checklist')} />
         <Stack.Screen name="DpTemplates" component={DpTemplatesSc} options={webHeader('DP checklists', { screen: 'Main', params: { screen: 'Dp' } } as any)} />
         {/* With the notice board on, the old Dashboard — LSA / FFE / lifting by expiry — is this screen. */}
         <Stack.Screen name="Expiries" component={DashboardSc} options={webHeader('LSA / FFE expiries')} />

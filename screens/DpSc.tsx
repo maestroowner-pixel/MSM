@@ -24,7 +24,7 @@ import { todayIso } from '../services/pms';
 import { ASOG_LABEL, SLOTS, Scheme, buildLetter, checkOutcome, dayId, dpoTotals, emptySlots, hours, isDpDay, templatesNow, positionText } from '../services/dp';
 import { shipAndUtc } from '../utils/shipTime';
 import { exportDpLetter } from '../services/dpReport';
-import { DpCheck, DpDay, DpInfo, DpSlot } from '../types/dp';
+import { DpCheck, DpDay, DpInfo, DpSlot, bookOf } from '../types/dp';
 import { loadOlder } from '../services/dpArchive';
 import { DP_KEEP_DAYS } from '../services/firebaseService';
 import { isAboard } from '../types/crew';
@@ -55,7 +55,8 @@ export default function DpSc() {
 
   const today = todayIso();
   const templates = useMemo(() => templatesNow(dpTemplates), [dpTemplates]);
-  const signed = useMemo(() => [...dpChecks].sort((a, b) => b.at - a.at), [dpChecks]);
+  // DP records only — the bridge and engine checklists share the store (17 Oct 2026).
+  const signed = useMemo(() => dpChecks.filter((c) => bookOf(c) === 'dp').sort((a, b) => b.at - a.at), [dpChecks]);
   // The archive: checklists older than this device keeps, read from the cloud page by page.
   const [older, setOlder] = useState<DpCheck[]>([]);
   const [olderBusy, setOlderBusy] = useState(false);
@@ -66,7 +67,7 @@ export default function DpSc() {
     setOlderErr(null);
     try {
       const last = older[older.length - 1];
-      const page = (await loadOlder(last ? last.updatedAt : undefined)).filter((c) => !dpChecks.some((x) => x.id === c.id));
+      const page = (await loadOlder(last ? last.updatedAt : undefined)).filter((c) => bookOf(c) === 'dp' && !dpChecks.some((x) => x.id === c.id));
       setOlder((x) => [...x, ...page]);
       if (page.length < 40) setOlderEnd(true);
     } catch (e: any) {

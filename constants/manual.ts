@@ -639,6 +639,14 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '📋',
+      title: "Bridge and engine checklists",
+      body: [
+        "Bridge and engine checklists (menu → Operations → Bridge & engine checklists) has two folders: Bridge checklists and Engine checklists. Each starts with the watch handover — what the relieving officer must know under STCW Code A-VIII/2: on the bridge the position and track, weather, compass errors, steering, every navigational aid, traffic and hazards, the Master's orders; in the engine room the propulsion, generators, systems, tanks, alarms and the Chief Engineer's orders.",
+        "They work as the DP checklists: the position and the time of signing are required, tables as on the paper, two officers sign — handing over and taking over — by PIN or by hand, drafts are kept, and the signed checklist is never changed; open it for the PDF or Print. The vessel's own forms are set up by ISMpilot.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Permits to work and risk assessments",
       body: [
@@ -1269,6 +1277,14 @@ const ru: ManualContent = {
         "Подписывают два офицера — сдающий и принимающий вахту (при прибытии — SDPO и DPO): каждый выбирает своё имя и подписывает PIN или от руки; на своём телефоне — и отпечатком. Затем «Save the signed checklist»; подписанный не меняется и открывается в PDF. Если выйти без сохранения — черновик остаётся на устройстве, при открытии предлагается восстановить. На устройствах хранятся чеклисты за 90 дней; старые открываются из облака под списком.",
         "DP time: выберите DPO и день, затем Active (управляет) или Passive (наблюдает) и отметьте получасы вахты. День с 2 часами и больше — DP-день. Ниже список: DP-дни каждого DPO, часы активные и пассивные.",
         "Confirmation letter: письмо в Nautical Institute для DP-сертификата DPO — New Scheme (серый логбук, после 1 января 2015: перечислены активные и пассивные даты, для ревалидации считается только активное время) или Old Scheme. Выберите DPO и период; компания, DP-класс, GRT и подписант вводятся один раз. Дата рождения берётся из личных данных экипажа на этом устройстве. В PDF сверху оставлено 35 мм — печатайте на бланке компании, подпишите и поставьте печать.",
+      ],
+    },
+    {
+      emoji: '📋',
+      title: "Чеклисты мостика и машины (Bridge and engine checklists)",
+      body: [
+        "Bridge and engine checklists (меню → Operations → Bridge & engine checklists) — две папки: Bridge checklists и Engine checklists. Первым в каждой — передача вахты: что должен знать принимающий по STCW Code A-VIII/2 — на мостике позиция и путь, погода, поправки компасов, рулевое, навигационное оборудование, суда и опасности, распоряжения капитана; в машине — пропульсия, генераторы, системы, танки, тревоги и распоряжения старшего механика.",
+        "Работают как DP-чеклисты: позиция и время подписи обязательны, таблицы как на бумаге, подписывают двое — сдающий и принимающий — PIN или рукой, черновик сохраняется, подписанный не меняется; PDF или Print. Свои бланки судна настраивает ISMpilot.",
       ],
     },
     {
@@ -1905,6 +1921,14 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '📋',
+      title: "Checklists de puente y máquinas (Bridge and engine checklists)",
+      body: [
+        "Bridge and engine checklists (menú → Operations → Bridge & engine checklists) tiene dos carpetas: Bridge checklists y Engine checklists. Cada una empieza con el relevo de guardia — lo que el oficial entrante debe saber según el Código STCW A-VIII/2: en el puente la posición y derrota, el tiempo, errores de compás, gobierno, equipos náuticos, tráfico y peligros, órdenes del Capitán; en máquinas la propulsión, generadores, sistemas, tanques, alarmas y órdenes del Jefe de Máquinas.",
+        "Funcionan como los checklists DP: posición y hora de firma obligatorias, tablas como en papel, firman dos oficiales — quien entrega y quien recibe — con PIN o a mano, se guarda el borrador y el firmado no cambia; PDF o Print. ISMpilot configura los formularios del buque.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Permisos de trabajo y evaluaciones de riesgo",
       body: [
@@ -2538,6 +2562,14 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '📋',
+      title: "Чеклісти містка і машини (Bridge and engine checklists)",
+      body: [
+        "Bridge and engine checklists (меню → Operations → Bridge & engine checklists) — дві папки: Bridge checklists і Engine checklists. Першою в кожній — передача вахти: що має знати той, хто приймає, за STCW Code A-VIII/2 — на містку позиція і шлях, погода, поправки компасів, стернове, навігаційне обладнання, судна і небезпеки, розпорядження капітана; у машині — пропульсія, генератори, системи, танки, тривоги і розпорядження старшого механіка.",
+        "Працюють як DP-чеклісти: позиція і час підпису обов'язкові, таблиці як на папері, підписують двоє — PIN або від руки, чернетка зберігається, підписаний не змінюється; PDF або Print. Свої бланки судна налаштовує ISMpilot.",
+      ],
+    },
+    {
       emoji: '🦺',
       title: "Дозволи на роботу та оцінка ризиків",
       body: [
@@ -2600,6 +2632,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Surveys & audits', module: 'surveys' },
   { title: 'Inspection readiness', module: 'readiness' },
   { title: 'Dynamic positioning', module: 'dp' },
+  { title: 'Bridge and engine checklists', module: 'watchChecks' },
   { title: 'Security (ISPS)', module: 'security' },
   // Paragraphs of a live section about a page that ships dark (15 Oct 2026).
   { title: 'Security (ISPS)', module: 'searches', drop: [6] },

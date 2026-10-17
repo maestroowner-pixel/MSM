@@ -34,7 +34,7 @@ import { shipAndUtc } from '../utils/shipTime';
 import { exportDpCheckPdf, printDpCheck } from '../services/dpReport';
 import { archived } from '../services/dpArchive';
 import { clearDraft, loadDraft, saveDraft } from '../services/dpDraft';
-import { AsogStatus, DpCheck, DpConditions, DpLine, DpResult } from '../types/dp';
+import { AsogStatus, CheckBook, DpCheck, DpConditions, DpLine, DpResult, bookOf } from '../types/dp';
 
 // As the paper checklist lays them out: a value, then its direction, each with
 // its name in front of the cell and its unit after it ("the operator is used to it").
@@ -81,7 +81,8 @@ export default function DpCheckSc() {
   const [sketchFor, setSketchFor] = useState<string | null>(null);
   const [sketchDraft, setSketchDraft] = useState('');
   const done = dpChecks.find((c) => c.id === route.params?.id) ?? archived(route.params?.id);
-  const tpl = useMemo(() => templatesNow(dpTemplates).find((x) => x.id === route.params?.templateId), [dpTemplates, route.params?.templateId]);
+  // Any book's checklist — DP, bridge or engine (17 Oct 2026).
+  const tpl = useMemo(() => (['dp', 'bridge', 'engine'] as CheckBook[]).flatMap((b) => templatesNow(dpTemplates, b)).find((x) => x.id === route.params?.templateId), [dpTemplates, route.params?.templateId]);
   const [operation, setOperation] = useState('');
   const [asog, setAsog] = useState<AsogStatus | undefined>(undefined);
   const [results, setResults] = useState<Record<string, string>>({});
@@ -158,7 +159,9 @@ export default function DpCheckSc() {
     return list;
   }, [crew, sync.me, sync.role]);
 
-  if (!moduleOn('dp')) return <Screen><Empty text="Not available on this vessel." /></Screen>;
+  const book: CheckBook = bookOf(done ?? tpl ?? {});
+  const KIND = book === 'bridge' ? 'Bridge checklist' : book === 'engine' ? 'Engine checklist' : 'DP checklist';
+  if (!moduleOn(book === 'dp' ? 'dp' : 'watchChecks')) return <Screen><Empty text="Not available on this vessel." /></Screen>;
   const here = positionFromText(posT);
   const lat = here?.lat;
   const lon = here?.lon;
@@ -172,24 +175,24 @@ export default function DpCheckSc() {
   const inTable = sectionCols(c.lines);
   const plainLines = c.lines.filter((l) => !l.head && !l.kind && !l.options && !l.value && !inTable.get(l.id));
   const signRow = async (row: 0 | 1) => {
-    if (lat == null || lon == null) return Alert.alert('DP checklist', 'Enter the position first — degrees, minutes and N/S, E/W from the DGPS.');
+    if (lat == null || lon == null) return Alert.alert(KIND, 'Enter the position first — degrees, minutes and N/S, E/W from the GNSS / DGPS.');
     const p = people.find((x) => x.id === pickIds[row]);
-    if (!p) return Alert.alert('DP checklist', `Choose the name — ${ROLE[row]}.`);
+    if (!p) return Alert.alert(KIND, `Choose the name — ${ROLE[row]}.`);
     const other = sigs[1 - row];
-    if (other && (other.key === p.id || other.name === p.name)) return Alert.alert('DP checklist', `Two different people sign: ${ROLE[0]} and ${ROLE[1]}.`);
+    if (other && (other.key === p.id || other.name === p.name)) return Alert.alert(KIND, `Two different people sign: ${ROLE[0]} and ${ROLE[1]}.`);
     const res = await confirmSign({ personKey: p.id, name: p.name, ownDevice: p.own, what: `${c.title} — ${ROLE[row]}`, always: true });
     if (!res) return;
     setSigs((x) => x.map((v, i) => (i === row ? { key: p.id, name: p.name, rank: p.rank, proof: res.proof, at: Date.now() } : v)));
   };
   const save = async () => {
     const [a, b] = sigs;
-    if (lat == null || lon == null) return Alert.alert('DP checklist', 'Enter the position the checklist is done at — degrees, minutes and N/S, E/W from the DGPS.');
-    if (!a || !b) return Alert.alert('DP checklist', `Both sign before it is saved: ${ROLE[0]} and ${ROLE[1]}.`);
+    if (lat == null || lon == null) return Alert.alert(KIND, 'Enter the position the checklist is done at — degrees, minutes and N/S, E/W from the GNSS / DGPS.');
+    if (!a || !b) return Alert.alert(KIND, `Both sign before it is saved: ${ROLE[0]} and ${ROLE[1]}.`);
     const finish = async () => {
       const clean = (r: Record<string, string>) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v));
       const cc = clean(cond as Record<string, string>);
       const at = Date.now();
-      const rec: DpCheck = { ...c, id: uid('dpc'), at, shipOffset: offset, position: { lat, lon }, operation: operation.trim() || undefined, unit: unit.trim() || undefined, conditions: Object.keys(cc).length ? cc : undefined, asog, values: Object.keys(clean(values)).length ? clean(values) : undefined, remarks: remarks.trim() || undefined, by: a.name, byRank: a.rank, byKey: a.key, byWith: a.proof, by2: b.name, by2Rank: b.rank, by2Key: b.key, by2With: b.proof, byRole: ROLE[0], by2Role: ROLE[1], updatedAt: at };
+      const rec: DpCheck = { ...c, ...(book !== 'dp' ? { book } : {}), id: uid(book === 'dp' ? 'dpc' : book === 'bridge' ? 'brc' : 'erc'), at, shipOffset: offset, position: { lat, lon }, operation: operation.trim() || undefined, unit: unit.trim() || undefined, conditions: Object.keys(cc).length ? cc : undefined, asog, values: Object.keys(clean(values)).length ? clean(values) : undefined, remarks: remarks.trim() || undefined, by: a.name, byRank: a.rank, byKey: a.key, byWith: a.proof, by2: b.name, by2Rank: b.rank, by2Key: b.key, by2With: b.proof, byRole: ROLE[0], by2Role: ROLE[1], updatedAt: at };
       // Firestore takes no undefined.
       for (const k of Object.keys(rec) as (keyof DpCheck)[]) if (rec[k] === undefined) delete rec[k];
       await saveRow(storage.DP_CHECKS_KEY, rec);
@@ -208,7 +211,7 @@ export default function DpCheckSc() {
       const w = await exportDpCheckPdf(c, vessel);
       if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
     } catch (e: any) {
-      Alert.alert('DP checklist', String(e?.message ?? e));
+      Alert.alert(KIND, String(e?.message ?? e));
     }
   };
 
@@ -246,7 +249,7 @@ export default function DpCheckSc() {
         </>
       ) : (
         <>
-          <PositionInput label="Position ★ (from the DGPS)" portAllowed={false} position={posT} onChange={(v) => setPosT(v)} />
+          <PositionInput label={book === 'dp' ? 'Position ★ (from the DGPS)' : 'Position ★ (from the GNSS)'} portAllowed={false} position={posT} onChange={(v) => setPosT(v)} />
           <View style={styles.chips}>
             {last ? (
               <TouchableOpacity style={styles.chip} onPress={() => setPosT(positionText(last.position))}>

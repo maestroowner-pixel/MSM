@@ -1232,6 +1232,8 @@ interface SyncedList {
    * up there — a device on no vessel never prunes, its copy is the only one.
    */
   keepDays?: number;
+  /** Also synced when this other module is on (dp_checks carry the bridge and engine checklists too). */
+  also?: ModuleKey;
 }
 
 /** Days of DP checklists a device keeps; older ones are in the cloud (`olderRecords`). */
@@ -1308,10 +1310,10 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   // Monthly safety meetings: kept by the officers, each person signs his own attendance line.
   { sub: 'safety_meetings', key: storage.SAFETY_MEETINGS_KEY, module: 'meetings' },
   // Dynamic positioning: signed checklists never change; DP time and the letter's details kept by the bridge.
-  { sub: 'dp_checks', key: storage.DP_CHECKS_KEY, appendOnly: true, module: 'dp', keepDays: DP_KEEP_DAYS },
+  { sub: 'dp_checks', key: storage.DP_CHECKS_KEY, appendOnly: true, module: 'dp', also: 'watchChecks', keepDays: DP_KEEP_DAYS },
   { sub: 'dp_days', key: storage.DP_DAYS_KEY, module: 'dp' },
   { sub: 'dp_info', key: storage.DP_INFO_KEY, module: 'dp' },
-  { sub: 'dp_templates', key: storage.DP_TEMPLATES_KEY, module: 'dp' },
+  { sub: 'dp_templates', key: storage.DP_TEMPLATES_KEY, also: 'watchChecks', module: 'dp' },
   // Passengers: confidential — the guest list does not leave the vessel. The cloud holds the
   // first and last letter of each name, the cabin and the dates (to count who is aboard);
   // their documents (passengers_private) are never sent.
@@ -1329,7 +1331,7 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
 const liveLists = async () => {
   const role = await claimedRole();
   const officer = role === 'admin' || role === 'superadmin';
-  return SYNCED_LISTS.filter((l) => moduleOn(l.module) && (!l.officers || officer));
+  return SYNCED_LISTS.filter((l) => (moduleOn(l.module) || (l.also && moduleOn(l.also))) && (!l.officers || officer));
 };
 
 /**

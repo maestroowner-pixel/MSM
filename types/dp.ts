@@ -68,7 +68,16 @@ export interface DpCol {
 
 export type DpWhere = 'bridge' | 'engine';
 
+/**
+ * Which book a checklist belongs to (17 Oct 2026): the DP checklists, or the
+ * bridge and engine-room checklists (watch handover first) — the same engine,
+ * tables, position, two signatures, drafts, PDF. Absent = DP.
+ */
+export type CheckBook = 'dp' | 'bridge' | 'engine';
+export const bookOf = (x: { book?: CheckBook }) => x.book ?? 'dp';
+
 export interface DpTemplate {
+  book?: CheckBook;
   id: string;
   title: string;
   where: DpWhere;
@@ -100,6 +109,7 @@ export interface DpConditions {
 export type AsogStatus = 'green' | 'blue' | 'yellow' | 'red';
 
 export interface DpCheck {
+  book?: CheckBook;
   id: string;
   templateId: string;
   title: string;
