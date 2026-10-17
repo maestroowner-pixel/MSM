@@ -37,6 +37,8 @@ import { playSuccessSound } from '../utils/sound';
 import { loadCrewPhotos, setCrewPhoto } from '../services/crewPhotos';
 import { cardPortraitDataUri } from '../services/images';
 import { PhotoCamera } from '../components/PhotoCamera';
+import { PhotoEditor } from '../components/PhotoEditor';
+import { canEditPhotos } from '../utils/photoEdit';
 import { PickedFile, pickFromLibrary } from '../services/attachments';
 
 export default function CrewMemberSc() {
@@ -64,11 +66,17 @@ export default function CrewMemberSc() {
     void loadCrewPhotos().then((all) => setPhoto(all[id] ?? null));
   }, [id]);
   const [camOpen, setCamOpen] = useState(false);
+  // In the browser the picture opens in the editor first (light, background); a phone keeps it as taken.
+  const [editing, setEditing] = useState<string | null>(null);
+  const keepPhoto = async (uri: string) => {
+    await setCrewPhoto(id, uri);
+    setPhoto(uri);
+  };
   const usePicture = async (src: string) => {
     const uri = await cardPortraitDataUri(src);
     if (!uri) return Alert.alert('Photo', 'That picture could not be read — try another.');
-    await setCrewPhoto(id, uri);
-    setPhoto(uri);
+    if (canEditPhotos()) setEditing(uri);
+    else await keepPhoto(uri);
   };
   const takePhoto = (picker: () => Promise<PickedFile | null>) => async () => {
     const f = await picker();
@@ -156,6 +164,7 @@ export default function CrewMemberSc() {
               ) : null}
             </View>
           ) : null}
+          <PhotoEditor src={editing} onClose={() => setEditing(null)} onDone={(u) => { setEditing(null); void keepPhoto(u); }} />
           <PhotoCamera visible={camOpen} title={`Photo — ${m.name || 'crew member'}`} onClose={() => setCamOpen(false)} onTaken={(u) => { setCamOpen(false); void usePicture(u); }} />
           {/* The photo printed on the crew ID card (Security → ID cards). Kept on this device, never sent. */}
           <View style={[styles.card, { flexDirection: 'row', alignItems: 'center', gap: SIZES.md }]}>
@@ -167,6 +176,7 @@ export default function CrewMemberSc() {
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.md, marginTop: 4 }}>
                   <TouchableOpacity onPress={() => setCamOpen(true)} hitSlop={8}><Text style={styles.link}>Take — camera</Text></TouchableOpacity>
                   <TouchableOpacity onPress={() => void takePhoto(pickFromLibrary)()} hitSlop={8}><Text style={styles.link}>Choose</Text></TouchableOpacity>
+                  {photo && canEditPhotos() ? <TouchableOpacity onPress={() => setEditing(photo)} hitSlop={8}><Text style={styles.link}>Adjust</Text></TouchableOpacity> : null}
                   {photo ? <TouchableOpacity onPress={() => void setCrewPhoto(id, null).then(() => setPhoto(null))} hitSlop={8}><Text style={[styles.link, { color: COLORS.danger }]}>Remove</Text></TouchableOpacity> : null}
                 </View>
               ) : null}
