@@ -24,10 +24,18 @@ import { DP_KEEP_DAYS } from '../services/firebaseService';
 import { CheckBook, DpCheck, bookOf } from '../types/dp';
 import { shipAndUtc } from '../utils/shipTime';
 
-const BOOKS: { key: Exclude<CheckBook, 'dp'>; label: string; icon: string }[] = [
-  { key: 'bridge', label: 'Bridge checklists', icon: 'ferry' },
-  { key: 'engine', label: 'Engine checklists', icon: 'engine-outline' },
-];
+type Folder = { key: Exclude<CheckBook, 'dp'>; label: string; icon: string; sub: string };
+// Two menu entries share this screen: Bridge & engine checklists, and Familiarisation.
+const SETS: Record<'Watch' | 'Familiar', Folder[]> = {
+  Watch: [
+    { key: 'bridge', label: 'Bridge checklists', icon: 'ferry', sub: 'Navigational watch, crew change — STCW Code A-VIII/2, ISM 6.3' },
+    { key: 'engine', label: 'Engine checklists', icon: 'engine-outline', sub: 'Engineering watch, crew change — STCW Code A-VIII/2, ISM 6.3' },
+  ],
+  Familiar: [
+    { key: 'fam-bridge', label: 'Bridge familiarisation', icon: 'ferry', sub: 'On joining — STCW I/14, ISM Code 6.3' },
+    { key: 'fam-engine', label: 'Engine familiarisation', icon: 'engine-outline', sub: 'On joining — STCW I/14, ISM Code 6.3' },
+  ],
+};
 
 export default function WatchChecksSc() {
   const COLORS = useTheme();
@@ -36,8 +44,9 @@ export default function WatchChecksSc() {
   const route = useRoute<any>();
   const { dpChecks, dpTemplates } = useData();
   const sync = useSync();
-  const book: Exclude<CheckBook, 'dp'> = route.params?.view === 'engine' ? 'engine' : 'bridge';
-  const meta = BOOKS.find((b) => b.key === book)!;
+  const BOOKS = SETS[route.name === 'Familiar' ? 'Familiar' : 'Watch'];
+  const meta = BOOKS.find((b) => b.key === route.params?.view) ?? BOOKS[0];
+  const book = meta.key;
   const templates = useMemo(() => templatesNow(dpTemplates, book), [dpTemplates, book]);
   const signed = useMemo(() => dpChecks.filter((c) => bookOf(c) === book).sort((a, b) => b.at - a.at), [dpChecks, book]);
   const [older, setOlder] = useState<DpCheck[]>([]);
@@ -60,7 +69,7 @@ export default function WatchChecksSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title={meta.label} subtitle={book === 'bridge' ? 'Navigational watch — STCW Code A-VIII/2, part 4-1' : 'Engineering watch — STCW Code A-VIII/2, part 4-2'} help="Bridge and engine checklists" />
+      <ScreenTitle title={meta.label} subtitle={meta.sub} help="Bridge and engine checklists" />
       <View style={styles.chips}>
         {BOOKS.map((b) => (
           <TouchableOpacity key={b.key} style={[styles.chip, b.key === book && styles.chipOn]} onPress={() => nav.setParams({ view: b.key })}>

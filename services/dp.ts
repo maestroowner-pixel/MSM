@@ -609,6 +609,90 @@ const ENGINE_SIGNOFF: string[] = [
   '@sign Signing on',
 ];
 
+// Familiarisation on joining (17 Oct 2026: "a Familiarisation folder — bridge
+// and engine"): what a newcomer is shown before taking duties — STCW I/14 and
+// A-I/14, ISM Code 6.3, SOLAS — signed by the one familiarised and the one who
+// familiarised them (ratings too).
+const DONE3 = 'Done {Yes|!No|N/A} | Remarks';
+const FAM_GENERAL: string[] = [
+  '@field Name and rank familiarised',
+  '@field Date joined',
+  `## On joining — all | ${DONE3}`,
+  "Ship's particulars, layout and accommodation",
+  'Muster station and emergency duties (muster list)',
+  'Alarm signals — general emergency, fire, abandon ship',
+  'Lifeboats / liferafts, lifejackets and immersion suits — where and how',
+  'Fire-fighting equipment — where and how',
+  'Escape routes and emergency exits',
+  'Company policies — drug and alcohol, environment, harassment',
+  'Security duties (ISPS) and restricted areas',
+  'Garbage management and MARPOL',
+  'Hours of work and rest',
+];
+const FAM_BRIDGE: string[] = [
+  ...FAM_GENERAL,
+  `## Bridge equipment | Shown and operated {Yes|!No|N/A} | Remarks`,
+  'Radars / ARPA',
+  'ECDIS — type-specific familiarisation',
+  'GNSS',
+  'Gyro and magnetic compass',
+  'Autopilot and steering change-over, emergency steering',
+  'Echo sounder and speed log',
+  'AIS',
+  'BNWAS',
+  'VDR — saving the data',
+  'GMDSS — VHF DSC, MF/HF, NAVTEX, EPIRB, SART',
+  'Navigation lights and sound signals',
+  'Engine controls and emergency stop on the bridge',
+  'Thrusters',
+  'Internal communications',
+  `## Procedures | Read and understood {Yes|!No|N/A} | Remarks`,
+  "Master's standing orders",
+  'Bridge procedures and passage planning',
+  'When to call the Master',
+  'Restricted visibility',
+  'Anchoring and anchor watch',
+  'Pilot boarding and master-pilot exchange',
+  'Emergency procedures — fire, flooding, collision, grounding, man overboard',
+  'Reporting — VTS, ship reporting systems',
+  'Deck logbook keeping',
+  '@sign Familiarised',
+  '@sign Familiarised by',
+];
+const FAM_ENGINE: string[] = [
+  ...FAM_GENERAL,
+  `## Machinery | Shown and operated {Yes|!No|N/A} | Remarks`,
+  'Main engines — remote and local control',
+  'Generators and switchboard — synchronising, preferential trips',
+  'Blackout recovery',
+  'Emergency generator and emergency switchboard',
+  'Fuel oil system and purifiers',
+  'Lube oil system',
+  'Cooling water systems',
+  'Compressed air',
+  'Steering gear — local and emergency steering',
+  'Bilge and ballast pumps',
+  'Oily water separator and 15 ppm alarm',
+  'Sewage treatment plant and incinerator',
+  'Fresh water generator and boiler',
+  'Fire pumps and emergency fire pump',
+  'Fixed fire-fighting system — release',
+  'Quick-closing valves and emergency stops — fuel, ventilation',
+  'Fire dampers and watertight doors',
+  'Alarm and monitoring system, UMS',
+  'Workshop tools and machinery safety',
+  'Enclosed spaces in the engine room',
+  `## Procedures | Read and understood {Yes|!No|N/A} | Remarks`,
+  "Chief Engineer's standing orders",
+  'Engine room watchkeeping and UMS rounds',
+  'Permits to work and isolation (lock-out / tag-out)',
+  'Bunkering procedure',
+  'Oil record book',
+  'Emergency procedures — engine room fire, blackout, flooding',
+  '@sign Familiarised',
+  '@sign Familiarised by',
+];
+
 const tb = (book: CheckBook, id: string, title: string, where: DpWhere, lines: string[]): DpTemplate => ({ ...t(id, title, where, lines), book });
 
 /** The bridge and engine checklists the app ships. */
@@ -617,6 +701,8 @@ export const WATCH_TEMPLATES: DpTemplate[] = [
   tb('engine', 'engine.handover', 'Engine room watch handover', 'engine', ENGINE_HANDOVER),
   tb('bridge', 'bridge.signoff', 'Sign-on / sign-off handover — deck officer', 'bridge', DECK_SIGNOFF),
   tb('engine', 'engine.signoff', 'Sign-on / sign-off handover — engineer', 'engine', ENGINE_SIGNOFF),
+  tb('fam-bridge', 'fam.bridge', 'Bridge familiarisation', 'bridge', FAM_BRIDGE),
+  tb('fam-engine', 'fam.engine', 'Engine familiarisation', 'engine', FAM_ENGINE),
 ];
 
 /** What the vessel works to: the built-ins as reworded, the vessel's own, without the switched-off. */

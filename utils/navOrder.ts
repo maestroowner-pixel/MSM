@@ -39,7 +39,7 @@ export const MENU_GROUPS: MenuGroup[] = [
   { key: 'security', label: 'Security', routes: ['Security'] },
   { key: 'env', label: 'Environment (MARPOL)', routes: ['OilRecord', 'Garbage', 'Sewage', 'Ballast', 'Fuel', 'Sopep'] },
   { key: 'crew', label: 'Crew', routes: ['Crew', 'CrewMatrix', 'HoursOfRest', 'Passengers'] },
-  { key: 'ops', label: 'Operations', routes: ['Watch', 'Dp', 'Readiness'] },
+  { key: 'ops', label: 'Operations', routes: ['Watch', 'Familiar', 'Dp', 'Readiness'] },
   { key: 'docs', label: 'Documents & compliance', routes: ['Certificates', 'Documents', 'Permits', 'Surveys', 'Reports'] },
   { key: 'system', label: '', routes: ['Settings'] },
 ];
@@ -114,6 +114,11 @@ export const MENU_CHILDREN: Record<string, MenuChild[]> = {
     { view: 'bridge', label: 'Bridge checklists', icon: 'ferry' },
     { view: 'engine', label: 'Engine checklists', icon: 'engine-outline' },
   ],
+  // Familiarisation on joining (17 Oct 2026): bridge and engine.
+  Familiar: [
+    { view: 'fam-bridge', label: 'Bridge familiarisation', icon: 'ferry' },
+    { view: 'fam-engine', label: 'Engine familiarisation', icon: 'engine-outline' },
+  ],
   Dp: [
     { view: 'checklists', label: 'DP checklists', icon: 'clipboard-check-outline' },
     { view: 'time', label: 'DP time', icon: 'timer-outline' },
@@ -178,6 +183,7 @@ export const MENU_LABEL: Record<string, string> = {
   Readiness: 'Inspection readiness',
   Dp: 'Dynamic positioning',
   Watch: 'Bridge & engine checklists',
+  Familiar: 'Familiarisation',
   Safety: 'Safety observations & NC',
   Drills: 'Drills',
   Hospital: 'Hospital',

@@ -31,7 +31,7 @@
 
 import { ModuleKey, moduleOn } from './modules';
 
-export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'stores' | 'reports' | 'maintenance' | 'spares' | 'rest' | 'readiness' | 'dp' | 'watch';
+export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'stores' | 'reports' | 'maintenance' | 'spares' | 'rest' | 'readiness' | 'dp' | 'watch' | 'familiar';
 
 export interface OptionalTab {
   key: TabKey;
@@ -71,6 +71,7 @@ export const OPTIONAL_TABS: OptionalTab[] = [
   { key: 'readiness', module: 'readiness', route: 'Readiness', label: 'Readiness', column: 'RDY', icon: 'clipboard-search-outline' },
   { key: 'dp', module: 'dp', route: 'Dp', label: 'DP', column: 'DP', icon: 'crosshairs-gps' },
   { key: 'watch', module: 'watchChecks', route: 'Watch', label: 'Bridge & engine', column: 'B&E', icon: 'clipboard-text-outline' },
+  { key: 'familiar', module: 'watchChecks', route: 'Familiar', label: 'Familiarisation', column: 'FAM', icon: 'school-outline' },
   { key: 'reports', route: 'Reports', label: 'Reports', column: 'Reports', icon: 'file-document' },
 ];
 
