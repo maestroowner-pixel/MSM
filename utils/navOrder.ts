@@ -116,6 +116,7 @@ export const MENU_CHILDREN: Record<string, MenuChild[]> = {
   ],
   // Familiarisation on joining (17 Oct 2026): bridge and engine.
   Familiar: [
+    { view: 'fam-safety', label: 'Safety familiarisation', icon: 'lifebuoy' },
     { view: 'fam-bridge', label: 'Bridge familiarisation', icon: 'ferry' },
     { view: 'fam-engine', label: 'Engine familiarisation', icon: 'engine-outline' },
     { view: 'fam-project', label: 'Project crew familiarisation', icon: 'account-hard-hat' },

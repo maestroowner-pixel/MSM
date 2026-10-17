@@ -32,6 +32,7 @@ const SETS: Record<'Watch' | 'Familiar', Folder[]> = {
     { key: 'engine', label: 'Engine checklists', icon: 'engine-outline', sub: 'Engineering watch, crew change — STCW Code A-VIII/2, ISM 6.3' },
   ],
   Familiar: [
+    { key: 'fam-safety', label: 'Safety familiarisation', icon: 'lifebuoy', sub: 'Everyone boarding, within 24 hours and before sailing — STCW A-VI/1, ISM 6.3' },
     { key: 'fam-bridge', label: 'Bridge familiarisation', icon: 'ferry', sub: 'On joining — STCW I/14, ISM Code 6.3' },
     { key: 'fam-engine', label: 'Engine familiarisation', icon: 'engine-outline', sub: 'On joining — STCW I/14, ISM Code 6.3' },
     { key: 'fam-project', label: 'Project crew familiarisation', icon: 'account-hard-hat', sub: 'Project and special personnel on joining — IP Code, SPS Code' },

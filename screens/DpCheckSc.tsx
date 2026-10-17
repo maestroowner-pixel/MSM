@@ -87,7 +87,7 @@ export default function DpCheckSc() {
   const [sketchDraft, setSketchDraft] = useState('');
   const done = dpChecks.find((c) => c.id === route.params?.id) ?? archived(route.params?.id);
   // Any book's checklist — DP, bridge or engine (17 Oct 2026).
-  const tpl = useMemo(() => (['dp', 'bridge', 'engine', 'fam-bridge', 'fam-engine', 'fam-project', 'fam-pax', 'fam-dp'] as CheckBook[]).flatMap((b) => templatesNow(dpTemplates, b)).find((x) => x.id === route.params?.templateId), [dpTemplates, route.params?.templateId]);
+  const tpl = useMemo(() => (['dp', 'bridge', 'engine', 'fam-bridge', 'fam-engine', 'fam-project', 'fam-pax', 'fam-dp', 'fam-safety'] as CheckBook[]).flatMap((b) => templatesNow(dpTemplates, b)).find((x) => x.id === route.params?.templateId), [dpTemplates, route.params?.templateId]);
   const [operation, setOperation] = useState('');
   const [asog, setAsog] = useState<AsogStatus | undefined>(undefined);
   const [results, setResults] = useState<Record<string, string>>({});
@@ -168,12 +168,12 @@ export default function DpCheckSc() {
   // Project crew and guests are familiarised from outside the crew list: row 0 offers the
   // passengers aboard (a guest briefing) and a name to write in; row 1 is the crew member.
   const tplBook = String((done ?? tpl)?.book ?? '');
-  const outsider = tplBook === 'fam-project' || tplBook === 'fam-pax';
+  const outsider = tplBook === 'fam-project' || tplBook === 'fam-pax' || tplBook === 'fam-safety';
   const guests = useMemo(() => (tplBook === 'fam-pax' ? passengers.filter((x) => passengerAboard(x, todayIso())).map((x) => ({ id: `pax:${x.id}`, name: x.name, rank: x.cabin ? `Guest · cabin ${x.cabin}` : 'Guest', own: false })) : []), [passengers, tplBook]);
   const rowPeople = (row: 0 | 1) => (row === 0 && tplBook === 'fam-pax' ? guests : people);
 
   const book: CheckBook = bookOf(done ?? tpl ?? {});
-  const KIND = book === 'bridge' ? 'Bridge checklist' : book === 'engine' ? 'Engine checklist' : book === 'fam-bridge' ? 'Bridge familiarisation' : book === 'fam-engine' ? 'Engine familiarisation' : book === 'fam-project' ? 'Project crew familiarisation' : book === 'fam-pax' ? 'Passenger familiarisation' : book === 'fam-dp' ? 'DP familiarisation' : 'DP checklist';
+  const KIND = book === 'bridge' ? 'Bridge checklist' : book === 'engine' ? 'Engine checklist' : book === 'fam-bridge' ? 'Bridge familiarisation' : book === 'fam-engine' ? 'Engine familiarisation' : book === 'fam-project' ? 'Project crew familiarisation' : book === 'fam-pax' ? 'Passenger familiarisation' : book === 'fam-dp' ? 'DP familiarisation' : book === 'fam-safety' ? 'Safety familiarisation' : 'DP checklist';
   if (!moduleOn(book === 'dp' ? 'dp' : 'watchChecks')) return <Screen><Empty text="Not available on this vessel." /></Screen>;
   const here = positionFromText(posT);
   const lat = here?.lat;
@@ -189,7 +189,7 @@ export default function DpCheckSc() {
   const plainLines = c.lines.filter((l) => !l.head && !l.kind && !l.options && !l.value && !inTable.get(l.id));
   const signRow = async (row: 0 | 1) => {
     if (lat == null || lon == null) return Alert.alert(KIND, 'Enter the position first — degrees, minutes and N/S, E/W from the GNSS / DGPS.');
-    const typed = row === 0 && outsider && !pickIds[0] && typedName.trim() ? { id: `name:${typedName.trim()}`, name: typedName.trim(), rank: book === 'fam-pax' ? 'Guest' : 'Project crew', own: false } : undefined;
+    const typed = row === 0 && outsider && !pickIds[0] && typedName.trim() ? { id: `name:${typedName.trim()}`, name: typedName.trim(), rank: book === 'fam-pax' ? 'Guest' : book === 'fam-safety' ? 'Visitor' : 'Project crew', own: false } : undefined;
     const p = typed ?? rowPeople(row).find((x) => x.id === pickIds[row]);
     if (!p) return Alert.alert(KIND, `Choose the name — ${ROLE[row]}.`);
     const other = sigs[1 - row];

@@ -816,6 +816,42 @@ const FAM_DP: string[] = [
 ];
 
 
+// Safety familiarisation within 24 hours, before sailing (STCW A-VI/1 para 1, ISM 6.3) —
+// after an operator's on-board form (VC-01, sent 17 Oct 2026). For everyone who boards to
+// stay: a seafarer or a visitor, one person per sheet; Section 1 by the Safety Officer,
+// Section 2 by the Safety Officer or the 2nd Engineer.
+const TICK = 'Done {Yes|!No|N/A} | Remarks';
+const FAM_SAFETY: string[] = [
+  '@field Port',
+  '@field Department (deck / engine / visitor)',
+  `## Section 1 — Safety and environmental briefing (before sailing) | ${TICK}`,
+  'Lifejackets — where they are and how to use one',
+  'Lifeboats and liferafts — muster and embarkation stations, emergency escape routes',
+  'Fire-fighting appliances — location',
+  'Medical equipment — location',
+  'Breathing apparatus — location',
+  'Emergency radio equipment — location',
+  'Escape routes',
+  'Garbage disposal — arrangements and where it goes',
+  'Fire and abandon ship — muster, man overboard, fire or smoke detected, the alarm sounded; raising the alarm, using a portable extinguisher, talking to others on elementary safety',
+  'Emergency teams — the seafarer’s own duties in an emergency',
+  'Muster list updated with the new arrival',
+  `## Section 2 — Safety, cyber security and specific duties | ${TICK}`,
+  'All personnel — safety arrangements; safety symbols, signs and alarm signals',
+  'Deck — organisation of duties; pump room emergency alarms',
+  'The seafarer’s routine duties and the equipment or installations they will use',
+  'Engine — organisation of duties',
+  'Engine room emergency alarms',
+  'Oily water separator',
+  'Protective clothing and work permits (enclosed space entry, hot work)',
+  'Drug and alcohol policy',
+  'Immediate action on an accident or medical emergency, before further medical help',
+  'Closing and opening fire, weathertight and watertight doors (other than hull openings)',
+  'Personal devices — USB sticks, phones, tablets — under the cyber security policy',
+  '@sign Familiarised',
+  '@sign Familiarised by',
+];
+
 const tb = (book: CheckBook, id: string, title: string, where: DpWhere, lines: string[]): DpTemplate => ({ ...t(id, title, where, lines), book });
 
 /** The bridge and engine checklists the app ships. */
@@ -824,6 +860,7 @@ export const WATCH_TEMPLATES: DpTemplate[] = [
   tb('engine', 'engine.handover', 'Engine room watch handover', 'engine', ENGINE_HANDOVER),
   tb('bridge', 'bridge.signoff', 'Sign-on / sign-off handover — deck officer', 'bridge', DECK_SIGNOFF),
   tb('engine', 'engine.signoff', 'Sign-on / sign-off handover — engineer', 'engine', ENGINE_SIGNOFF),
+  tb('fam-safety', 'fam.safety', 'Safety familiarisation — within 24 hours', 'bridge', FAM_SAFETY),
   tb('fam-bridge', 'fam.bridge', 'Bridge familiarisation', 'bridge', FAM_BRIDGE),
   tb('fam-engine', 'fam.engine', 'Engine familiarisation', 'engine', FAM_ENGINE),
   tb('fam-project', 'fam.project', 'Project crew familiarisation', 'bridge', FAM_PROJECT),
