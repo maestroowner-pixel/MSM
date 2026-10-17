@@ -100,7 +100,41 @@ function download(blob: Blob, fileName: string): void {
  * Call it straight from the click (no long awaits before it): asking for a
  * folder, or for permission to write to it again, needs the user's gesture.
  */
+/**
+ * Says where the file went, for a few seconds at the bottom of the screen (17 Oct
+ * 2026: "the first time it asks for the folder, then — silence"). Every PDF and
+ * sheet the web build saves comes through here, so every screen says it the same
+ * way, wherever the page is scrolled to.
+ */
+function toast(fileName: string, where: string): void {
+  try {
+    const id = 'ismpilot-save-toast';
+    document.getElementById(id)?.remove();
+    const el = document.createElement('div');
+    el.id = id;
+    el.setAttribute('role', 'status');
+    el.textContent = `✓ ${fileName} — saved ${where === 'Downloads' ? 'to Downloads' : `to the folder “${where}”`}`;
+    Object.assign(el.style, {
+      position: 'fixed', left: '50%', bottom: '24px', transform: 'translateX(-50%)', zIndex: '99999',
+      maxWidth: 'calc(100vw - 32px)', padding: '12px 18px', borderRadius: '10px',
+      background: '#0B2545', color: '#fff', font: '600 14px -apple-system, Helvetica, Arial, sans-serif',
+      boxShadow: '0 6px 24px rgba(0,0,0,.35)', overflowWrap: 'anywhere', transition: 'opacity .4s',
+    } as Partial<CSSStyleDeclaration>);
+    document.body.appendChild(el);
+    setTimeout(() => (el.style.opacity = '0'), 4500);
+    setTimeout(() => el.remove(), 5000);
+  } catch {
+    /* no document (a test) — the screen's own line still says it */
+  }
+}
+
 export async function saveFileWeb(blob: Blob, fileName: string, kind = 'reports'): Promise<string | null> {
+  const where = await saveTo(blob, fileName, kind);
+  if (where) toast(fileName, where);
+  return where;
+}
+
+async function saveTo(blob: Blob, fileName: string, kind: string): Promise<string | null> {
   if (!canRememberFolder()) {
     download(blob, fileName);
     return 'Downloads';
