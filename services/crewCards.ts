@@ -13,7 +13,7 @@ import QRCode from 'qrcode';
 
 import { VesselInfo } from './storage';
 import { esc, share } from './export';
-import { crewQrPayload, passQrPayload, sopepQrPayload, storeQrPayload } from './crewQr';
+import { checkpointQrPayload, crewQrPayload, keyQrPayload, passQrPayload, sopepQrPayload, storeQrPayload } from './crewQr';
 import { CrewMember } from '../types/crew';
 import { onWeb, onWindows } from '../utils/fileShare';
 import { saveFileWeb } from '../utils/webSave';
@@ -153,6 +153,16 @@ export function exportLockerLabels(list: { id: string; name: string; code?: stri
 /** Store labels — the store's name, its ID and place, the QR that opens its list (types/stores.ts StoreRoom). */
 export function exportStoreLabels(list: { id: string; code: string; name: string; location?: string }[], vessel: VesselInfo | null) {
   return exportCards(list.map((r) => ({ name: r.name, sub: [r.code, r.location].filter(Boolean).join(' · '), foot: 'STORE · scan to open its list', qr: storeQrPayload(r.id) })), vessel, 'Store labels');
+}
+
+/** Security round checkpoint labels — the ID large, the place, the QR the watch scans (types/patrols.ts). */
+export function exportCheckpointLabels(list: { id: string; code: string; name: string; location?: string }[], vessel: VesselInfo | null) {
+  return exportCards(list.map((c) => ({ name: `${c.code} · ${c.name}`, sub: c.location ?? '', foot: 'SECURITY ROUND · scan when you are here', qr: checkpointQrPayload(c.id) })), vessel, 'Checkpoint labels');
+}
+
+/** Key tags — the key's ID and what it opens, the QR that signs it out and back (types/keys.ts). */
+export function exportKeyTags(list: { id: string; code: string; name: string; location?: string }[], vessel: VesselInfo | null) {
+  return exportCards(list.map((k) => ({ name: `${k.code} · ${k.name}`, sub: k.location ?? '', foot: 'KEY · scan to sign it out or back', qr: keyQrPayload(k.id) })), vessel, 'Key tags');
 }
 
 /** Reusable numbered visitor passes, 01…count — laminated and kept at the gangway. */

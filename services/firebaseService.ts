@@ -1277,6 +1277,13 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   // Stowaway and bomb searches: the plan (areas, teams) and each search (types/searches.ts).
   { sub: 'search_plan', key: storage.SEARCH_PLAN_KEY, module: 'searches' },
   { sub: 'searches', key: storage.SEARCHES_KEY, module: 'searches' },
+  // Security rounds: the places and the rounds (officers), each round done (written once).
+  { sub: 'checkpoints', key: storage.CHECKPOINTS_KEY, module: 'patrols' },
+  { sub: 'patrol_plans', key: storage.PATROL_PLANS_KEY, module: 'patrols' },
+  { sub: 'patrols', key: storage.PATROLS_KEY, appendOnly: true, module: 'patrols' },
+  // The key register: the keys (officers) and every issue and return (written once).
+  { sub: 'keys', key: storage.KEYS_KEY, module: 'keys' },
+  { sub: 'key_moves', key: storage.KEY_MOVES_KEY, appendOnly: true, module: 'keys' },
   { sub: 'visitors', key: storage.VISITORS_KEY, module: 'security' },
   { sub: 'security_levels', key: storage.SECURITY_LEVEL_KEY, appendOnly: true, module: 'security' },
   { sub: 'security_drills', key: storage.SECURITY_DRILLS_KEY, appendOnly: true, module: 'security' },

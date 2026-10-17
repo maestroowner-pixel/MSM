@@ -45,6 +45,8 @@ import { StoreItem, StoreMove, StoreRoom } from '../types/stores';
 import { OfficerDoc } from '../types/officerDocs';
 import type { DrillYearPlan } from './drillPlan';
 import { SearchPlan, SecuritySearch } from '../types/searches';
+import { Checkpoint, Patrol, PatrolPlan } from '../types/patrols';
+import { KeyItem, KeyMove } from '../types/keys';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
 import { CATEGORIES } from '../constants/categories';
 import * as storage from '../services/storage';
@@ -104,7 +106,7 @@ export interface BackupFile {
   safetyMeetings?: SafetyMeeting[];
   dp?: { checks: DpCheck[]; days: DpDay[]; info: DpInfo[]; templates: DpTemplate[] };
   stores?: { items: StoreItem[]; moves: StoreMove[]; rooms?: StoreRoom[] };
-  security?: { visitors: Visitor[]; levels: SecurityLevelRec[]; drills?: SecurityDrill[]; crewMoves?: CrewMove[]; ssp?: OfficerDoc[]; searchPlan?: SearchPlan[]; searches?: SecuritySearch[] };
+  security?: { visitors: Visitor[]; levels: SecurityLevelRec[]; drills?: SecurityDrill[]; crewMoves?: CrewMove[]; ssp?: OfficerDoc[]; searchPlan?: SearchPlan[]; searches?: SecuritySearch[]; checkpoints?: Checkpoint[]; patrolPlans?: PatrolPlan[]; patrols?: Patrol[]; keys?: KeyItem[]; keyMoves?: KeyMove[] };
   files?: Record<string, string>; // basename -> base64 of the file contents
 }
 
@@ -237,7 +239,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   const hospital = { items: await storage.loadList<MedItem>(storage.MED_ITEMS_KEY), moves: await storage.loadList<MedMove>(storage.MED_MOVES_KEY), treatments: await storage.loadList<MedTreatment>(storage.MED_TREATMENTS_KEY), orders: await storage.loadList<MedOrder>(storage.MED_ORDERS_KEY), checks: await storage.loadList<MedCheck>(storage.MED_CHECKS_KEY) };
   const surveys = { plan: await storage.loadList<Survey>(storage.SURVEYS_KEY), done: await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY) };
   const sopep = { lockers: await storage.loadList<SopepLocker>(storage.SOPEP_LOCKERS_KEY), items: await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY), checks: await storage.loadList<SopepCheck>(storage.SOPEP_CHECKS_KEY), drills: await storage.loadList<SopepDrill>(storage.SOPEP_DRILLS_KEY), docs: await storage.loadList<OfficerDoc>(storage.SOPEP_DOCS_KEY) };
-  const security = { visitors: await storage.loadList<Visitor>(storage.VISITORS_KEY), levels: await storage.loadList<SecurityLevelRec>(storage.SECURITY_LEVEL_KEY), drills: await storage.loadList<SecurityDrill>(storage.SECURITY_DRILLS_KEY), crewMoves: await storage.loadList<CrewMove>(storage.CREW_MOVES_KEY), ssp: await storage.loadList<OfficerDoc>(storage.SSP_DOCS_KEY), searchPlan: await storage.loadList<SearchPlan>(storage.SEARCH_PLAN_KEY), searches: await storage.loadList<SecuritySearch>(storage.SEARCHES_KEY) };
+  const security = { visitors: await storage.loadList<Visitor>(storage.VISITORS_KEY), levels: await storage.loadList<SecurityLevelRec>(storage.SECURITY_LEVEL_KEY), drills: await storage.loadList<SecurityDrill>(storage.SECURITY_DRILLS_KEY), crewMoves: await storage.loadList<CrewMove>(storage.CREW_MOVES_KEY), ssp: await storage.loadList<OfficerDoc>(storage.SSP_DOCS_KEY), searchPlan: await storage.loadList<SearchPlan>(storage.SEARCH_PLAN_KEY), searches: await storage.loadList<SecuritySearch>(storage.SEARCHES_KEY), checkpoints: await storage.loadList<Checkpoint>(storage.CHECKPOINTS_KEY), patrolPlans: await storage.loadList<PatrolPlan>(storage.PATROL_PLANS_KEY), patrols: await storage.loadList<Patrol>(storage.PATROLS_KEY), keys: await storage.loadList<KeyItem>(storage.KEYS_KEY), keyMoves: await storage.loadList<KeyMove>(storage.KEY_MOVES_KEY) };
 
   // Read each referenced binary into a basename -> base64 map.
   const files: Record<string, string> = {};
@@ -532,6 +534,11 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     if (backup.security.ssp) await storage.saveList(storage.SSP_DOCS_KEY, backup.security.ssp);
     if (backup.security.searchPlan) await storage.saveList(storage.SEARCH_PLAN_KEY, backup.security.searchPlan);
     if (backup.security.searches) await storage.saveList(storage.SEARCHES_KEY, backup.security.searches);
+    if (backup.security.checkpoints) await storage.saveList(storage.CHECKPOINTS_KEY, backup.security.checkpoints);
+    if (backup.security.patrolPlans) await storage.saveList(storage.PATROL_PLANS_KEY, backup.security.patrolPlans);
+    if (backup.security.patrols) await storage.saveList(storage.PATROLS_KEY, backup.security.patrols);
+    if (backup.security.keys) await storage.saveList(storage.KEYS_KEY, backup.security.keys);
+    if (backup.security.keyMoves) await storage.saveList(storage.KEY_MOVES_KEY, backup.security.keyMoves);
   }
 
   if (backup.compressor) await storage.saveCompressor(normalizeCompressorState(backup.compressor));

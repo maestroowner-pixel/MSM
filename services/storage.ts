@@ -77,6 +77,12 @@ export const SOPEP_DOCS_KEY = `${PREFIX}sopep_docs`;
 export const SSP_DOCS_KEY = `${PREFIX}ssp_docs`;
 export const SEARCH_PLAN_KEY = `${PREFIX}search_plan`;
 export const SEARCHES_KEY = `${PREFIX}searches`;
+// Security rounds and the key register (types/patrols.ts, types/keys.ts; 17 Oct 2026).
+export const CHECKPOINTS_KEY = `${PREFIX}checkpoints`;
+export const PATROL_PLANS_KEY = `${PREFIX}patrol_plans`;
+export const PATROLS_KEY = `${PREFIX}patrols`;
+export const KEYS_KEY = `${PREFIX}key_register`;
+export const KEY_MOVES_KEY = `${PREFIX}key_moves`;
 export const PASSENGERS_PRIVATE_KEY = `${PREFIX}passengers_private`;
 export const MED_ORDERS_KEY = `${PREFIX}med_orders`;
 export const MED_CHECKS_KEY = `${PREFIX}med_checks`;
@@ -773,6 +779,12 @@ export async function resetAllData(): Promise<void> {
     SSP_DOCS_KEY,
     SEARCH_PLAN_KEY,
     SEARCHES_KEY,
+    CHECKPOINTS_KEY,
+    PATROL_PLANS_KEY,
+    PATROLS_KEY,
+    KEYS_KEY,
+    KEY_MOVES_KEY,
+    'msm:patrol_live', // services/patrolLive.ts — a round under way on this device
     DRILL_PLANS_KEY,
     PASSENGERS_PRIVATE_KEY,
     MED_ORDERS_KEY,

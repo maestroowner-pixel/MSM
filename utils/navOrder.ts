@@ -60,6 +60,8 @@ export const MENU_CHILDREN: Record<string, MenuChild[]> = {
     { view: 'gangway', label: 'Gangway logbook', icon: 'ferry' },
     { view: 'drills', label: 'ISPS drills', icon: 'run-fast' },
     { view: 'searches', label: 'Searches — stowaway, bomb', icon: 'magnify-scan', module: 'searches' },
+    { view: 'patrols', label: 'Security rounds', icon: 'walk', module: 'patrols' },
+    { view: 'keys', label: 'Key register', icon: 'key-chain-variant', module: 'keys' },
     { view: 'ssp', label: 'Ship Security Plan', icon: 'shield-lock-outline', officers: true, module: 'ssp' },
     { view: 'meetings', label: 'Monthly safety meeting', icon: 'account-group-outline', module: 'meetings' },
     { view: 'flashes', label: 'Safety flashes (IMCA)', icon: 'flash-alert-outline' },

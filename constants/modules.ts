@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -124,6 +124,10 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * vessel in the console, set them up, then remove it.
    */
   dpEditor: false,
+  /** Security rounds — QR checkpoints, opening / daytime / closing rounds, daily and monthly reports (Jez, 17 Oct 2026). Needs `security`. */
+  patrols: false,
+  /** Key register — keys with QR tags, signed out and back, who holds what (Jez, 17 Oct 2026). Needs `security`. */
+  keys: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------

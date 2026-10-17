@@ -383,6 +383,35 @@ service cloud.firestore {
         allow create, update: if member(v);
         allow delete: if false;
       }
+      // Security rounds (types/patrols.ts): the officers keep the places and the
+      // rounds; anyone on watch files a round done — once, never changed.
+      match /checkpoints/{id} {
+        allow read: if reader(v);
+        allow create, update: if isAdmin(v);
+        allow delete: if false;
+      }
+      match /patrol_plans/{id} {
+        allow read: if reader(v);
+        allow create, update: if isAdmin(v);
+        allow delete: if false;
+      }
+      match /patrols/{id} {
+        allow read: if reader(v);
+        allow create: if member(v) && plainRecord();
+        allow update, delete: if false;
+      }
+      // The key register (types/keys.ts): the officers keep the list of keys;
+      // anyone at the key cabinet records an issue or a return — once, never changed.
+      match /keys/{id} {
+        allow read: if reader(v);
+        allow create, update: if isAdmin(v);
+        allow delete: if false;
+      }
+      match /key_moves/{id} {
+        allow read: if reader(v);
+        allow create: if member(v) && plainRecord();
+        allow update, delete: if false;
+      }
       match /sopep_lockers/{id} {
         allow read: if reader(v);
         allow create, update: if member(v);

@@ -54,6 +54,8 @@ import { playSuccessSound } from '../utils/sound';
 
 import MeetingsSc from './MeetingsSc';
 import SearchesSc from './SearchesSc';
+import PatrolsSc from './PatrolsSc';
+import KeysSc from './KeysSc';
 import { OfficerDocs } from '../components/OfficerDocs';
 
 type Tab = 'board' | 'log' | 'drills';
@@ -67,6 +69,8 @@ export default function SecurityRoute() {
   if (v === 'flashes') return <SafetyFlashesSc />;
   if (v === 'meetings') return <MeetingsSc />;
   if (v === 'searches' && moduleOn('searches')) return <SearchesSc />;
+  if (v === 'patrols' && moduleOn('patrols')) return <PatrolsSc />;
+  if (v === 'keys' && moduleOn('keys')) return <KeysSc />;
   if (v === 'ssp' && moduleOn('ssp')) return <SspSc />;
   return <SecuritySc />;
 }

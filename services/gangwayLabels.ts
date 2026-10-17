@@ -6,7 +6,7 @@
 // ===================================
 
 import { TsplLabelSpec } from './tspl';
-import { crewQrPayload, passQrPayload, sopepQrPayload, storeQrPayload } from './crewQr';
+import { checkpointQrPayload, crewQrPayload, keyQrPayload, passQrPayload, sopepQrPayload, storeQrPayload } from './crewQr';
 import { CrewMember } from '../types/crew';
 
 /** The rolls a gangway sticker is worth printing on (sizes as services/qrLabel LABEL_STOCKS). */
@@ -60,5 +60,16 @@ export function sopepLabelSpecs(lockers: { id: string; code: string; name: strin
     qrPayload: sopepQrPayload(l.id),
     name: l.code,
     lines: [l.name, l.location ?? '', 'SOPEP LOCKER'].filter(Boolean),
+  }));
+}
+
+/** Checkpoint labels and key tags for the Xprinter — the ID large, the name and place under it. */
+export function codeLabelSpecs(kind: 'checkpoint' | 'key', list: { id: string; code: string; name: string; location?: string }[], vessel: { vessel_name?: string } | null, size: GangwayStock): TsplLabelSpec[] {
+  const st = GANGWAY_STOCK_MM[size];
+  return list.map((x) => ({
+    ...st,
+    qrPayload: kind === 'key' ? keyQrPayload(x.id) : checkpointQrPayload(x.id),
+    name: x.code,
+    lines: [x.name, x.location ?? '', vessel?.vessel_name ?? ''].filter(Boolean),
   }));
 }

@@ -52,3 +52,27 @@ export function parsePassQr(payload: string): string | null {
 }
 /** "7" and "07" are the same pass. */
 export const samePass = (a?: string, b?: string) => !!a && !!b && a.trim().replace(/^0+(?=\d)/, '').toUpperCase() === b.trim().replace(/^0+(?=\d)/, '').toUpperCase();
+
+/** A security round checkpoint's label (types/patrols.ts) — scanned on a round, it records the visit. */
+export const CHECKPOINT_QR_SCHEME = 'msm://checkpoint/';
+export function checkpointQrPayload(id: string): string {
+  return `${CHECKPOINT_QR_SCHEME}${id}`;
+}
+export function parseCheckpointQr(payload: string): string | null {
+  const s = payload.trim();
+  if (s.length <= CHECKPOINT_QR_SCHEME.length) return null;
+  if (s.slice(0, CHECKPOINT_QR_SCHEME.length).toLowerCase() !== CHECKPOINT_QR_SCHEME) return null;
+  return s.slice(CHECKPOINT_QR_SCHEME.length).trim() || null;
+}
+
+/** A key tag (types/keys.ts) — scanned, it opens the key to sign it out or back. */
+export const KEY_QR_SCHEME = 'msm://key/';
+export function keyQrPayload(id: string): string {
+  return `${KEY_QR_SCHEME}${id}`;
+}
+export function parseKeyQr(payload: string): string | null {
+  const s = payload.trim();
+  if (s.length <= KEY_QR_SCHEME.length) return null;
+  if (s.slice(0, KEY_QR_SCHEME.length).toLowerCase() !== KEY_QR_SCHEME) return null;
+  return s.slice(KEY_QR_SCHEME.length).trim() || null;
+}

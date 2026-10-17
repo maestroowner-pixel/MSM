@@ -53,7 +53,8 @@
     "check:readiness": "rm -rf .check-rdy && tsc scripts/check-readiness.ts --outDir .check-rdy --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-rdy/ && node .check-rdy/scripts/check-readiness.js; s=$?; rm -rf .check-rdy; exit $s",
     "check:board": "rm -rf .check-board && tsc scripts/check-board.ts --outDir .check-board --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-board/ && node .check-board/scripts/check-board.js; s=$?; rm -rf .check-board; exit $s",
     "check:rest": "rm -rf .check-rest && tsc scripts/check-rest-hours.ts --outDir .check-rest --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-rest/scripts/check-rest-hours.js; s=$?; rm -rf .check-rest; exit $s",
-    "check:bulk": "rm -rf .check-bulk && tsc scripts/check-bulk-edit.ts --outDir .check-bulk --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-bulk/ && node .check-bulk/scripts/check-bulk-edit.js; s=$?; rm -rf .check-bulk; exit $s"
+    "check:bulk": "rm -rf .check-bulk && tsc scripts/check-bulk-edit.ts --outDir .check-bulk --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-bulk/ && node .check-bulk/scripts/check-bulk-edit.js; s=$?; rm -rf .check-bulk; exit $s",
+    "check:patrols": "rm -rf .check-pat && tsc scripts/check-patrols.ts --outDir .check-pat --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-pat/scripts/check-patrols.js; s=$?; rm -rf .check-pat; exit $s"
   },
   "keywords": [
     "maritime",

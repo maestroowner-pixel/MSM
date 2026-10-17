@@ -33,7 +33,8 @@ import { SCAN_BARCODE_TYPES, ScanMatch, lookupScan } from '../services/barcode';
 import { SIZES, Palette } from '../theme';
 import { goBackOr } from '../utils/nav';
 import { recordScanProof } from '../services/signingPolicy';
-import { parseCrewQr, parsePassQr, samePass, parseSopepQr, parseStoreQr } from '../services/crewQr';
+import { parseCheckpointQr, parseCrewQr, parseKeyQr, parsePassQr, samePass, parseSopepQr, parseStoreQr } from '../services/crewQr';
+import { visit as visitCheckpoint } from '../services/patrolLive';
 import { roomByCode, storeRooms } from '../types/stores';
 import { lockerCode, sopepLockers } from '../types/sopep';
 import { isDoubleScan, nextMove } from '../services/gangway';
@@ -62,10 +63,12 @@ export default function ScanSc() {
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { flat, recordScan, crew, crewMoves, appendRow, visitors, saveRow, passengers, storeRoomList, sopepLockers: sopepLockerList } = useData();
+  const { flat, recordScan, crew, crewMoves, appendRow, visitors, saveRow, passengers, storeRoomList, sopepLockers: sopepLockerList, checkpoints, keyList } = useData();
   const sync = useSync();
   /** Opened from the gangway page: a crew or passenger card records the crossing. */
   const atGangway = ['1', 'true', true, 1].includes(route.params?.gangway);
+  /** Opened from a security round: each checkpoint scanned is recorded and the scanner stays open for the next. */
+  const onRound = ['1', 'true', true, 1].includes(route.params?.patrol);
   /** The last crew card read at the gangway — shown big, then the scanner is ready for the next. */
   const [crewHit, setCrewHit] = useState<{ name: string; text: string; ok: boolean } | null>(null);
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -86,6 +89,36 @@ export default function ScanSc() {
     (code: string, via: 'camera' | 'typed') => {
       if (locked.current) return;
       locked.current = true;
+
+      const hold = (hit: { name: string; text: string; ok: boolean }, ms = 2200) => {
+        setCrewHit(hit);
+        setTimeout(() => {
+          locked.current = false;
+        }, ms);
+      };
+
+      // A security round checkpoint (msm://checkpoint/<id>), or its ID typed (CP-03):
+      // recorded in the round under way on this device (Jez, 17 Oct 2026).
+      const cp = moduleOn('patrols')
+        ? checkpoints.find((c) => c.id === parseCheckpointQr(code)) ?? (via === 'typed' ? checkpoints.find((c) => c.code.toUpperCase() === code.trim().toUpperCase()) : undefined)
+        : undefined;
+      if (cp || parseCheckpointQr(code)) {
+        if (!cp) return hold({ name: 'Checkpoint', text: moduleOn('patrols') ? 'Not a checkpoint of this vessel (removed, or another vessel’s label).' : 'Security rounds are not switched on for this vessel.', ok: false });
+        void visitCheckpoint(cp, via === 'camera' ? 'scan' : 'typed').then((r) => {
+          if (!r) return hold({ name: `${cp.code} · ${cp.name}`, text: 'No round under way on this device — start one in Security → Security rounds.', ok: false }, 3000);
+          const at = new Date(r.live.visits.find((v) => v.checkpointId === cp.id)!.at).toTimeString().slice(0, 5);
+          if (!onRound) return nav.replace('Main', { screen: 'Security', params: { view: 'patrols' } });
+          hold({ name: `${cp.code} · ${cp.name}`, text: r.already ? `Already recorded on this round at ${at}.` : `Recorded ${at} · ${r.live.visits.length} visited`, ok: true });
+        });
+        return;
+      }
+
+      // A key tag (msm://key/<id>), or a key's ID typed (K-04): that key, to sign it out or back.
+      const key = moduleOn('keys')
+        ? keyList.find((k) => k.id === parseKeyQr(code)) ?? (via === 'typed' ? keyList.find((k) => k.code.toUpperCase() === code.trim().toUpperCase()) : undefined)
+        : undefined;
+      if (key) return nav.replace('Main', { screen: 'Security', params: { view: 'keys', key: key.id } });
+      if (parseKeyQr(code)) return hold({ name: 'Key tag', text: moduleOn('keys') ? 'Not a key of this vessel (removed, or another vessel’s tag).' : 'The key register is not switched on for this vessel.', ok: false });
 
       // A SOPEP locker's label (msm://sopep/<id>): what is in that locker (14 Oct 2026, as
       // InventoryLens opens a locker). The id only — a renamed or moved locker keeps its label.

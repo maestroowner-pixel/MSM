@@ -31,6 +31,8 @@ import { StoreItem, StoreMove, StoreRoom } from '../types/stores';
 import { OfficerDoc } from '../types/officerDocs';
 import type { DrillYearPlan } from '../services/drillPlan';
 import { SearchPlan, SecuritySearch } from '../types/searches';
+import { Checkpoint, Patrol, PatrolPlan } from '../types/patrols';
+import { KeyItem, KeyMove } from '../types/keys';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
@@ -172,6 +174,12 @@ interface DataContextType {
   /** Stowaway / bomb searches (types/searches.ts): the plan record (if saved) and the searches. */
   searchPlans: SearchPlan[];
   searches: SecuritySearch[];
+  /** Security rounds (types/patrols.ts) and the key register (types/keys.ts). */
+  checkpoints: Checkpoint[];
+  patrolPlans: PatrolPlan[];
+  patrols: Patrol[];
+  keyList: KeyItem[];
+  keyMoves: KeyMove[];
   passengersPrivate: PassengerPrivate[];
   medOrders: MedOrder[];
   medChecks: MedCheck[];
@@ -307,6 +315,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [sspDocs, setSspDocs] = useState<OfficerDoc[]>([]);
   const [searchPlans, setSearchPlans] = useState<SearchPlan[]>([]);
   const [searches, setSearches] = useState<SecuritySearch[]>([]);
+  const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
+  const [patrolPlans, setPatrolPlans] = useState<PatrolPlan[]>([]);
+  const [patrols, setPatrols] = useState<Patrol[]>([]);
+  const [keyList, setKeyList] = useState<KeyItem[]>([]);
+  const [keyMoves, setKeyMoves] = useState<KeyMove[]>([]);
   const [passengersPrivate, setPassengersPrivate] = useState<PassengerPrivate[]>([]);
   const [medOrders, setMedOrders] = useState<MedOrder[]>([]);
   const [medChecks, setMedChecks] = useState<MedCheck[]>([]);
@@ -407,6 +420,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _sspDocs = (await storage.loadList<OfficerDoc>(storage.SSP_DOCS_KEY)).filter((x) => !x.deleted);
     const _searchPlans = await storage.loadList<SearchPlan>(storage.SEARCH_PLAN_KEY);
     const _searches = await storage.loadList<SecuritySearch>(storage.SEARCHES_KEY);
+    const _checkpoints = (await storage.loadList<Checkpoint>(storage.CHECKPOINTS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order);
+    const _patrolPlans = await storage.loadList<PatrolPlan>(storage.PATROL_PLANS_KEY);
+    const _patrols = await storage.loadList<Patrol>(storage.PATROLS_KEY);
+    const _keyList = (await storage.loadList<KeyItem>(storage.KEYS_KEY)).filter((x) => !x.deleted);
+    const _keyMoves = await storage.loadList<KeyMove>(storage.KEY_MOVES_KEY);
     const _passengersPrivate = await storage.loadList<PassengerPrivate>(storage.PASSENGERS_PRIVATE_KEY);
     const _medOrders = await storage.loadList<MedOrder>(storage.MED_ORDERS_KEY);
     const _medChecks = await storage.loadList<MedCheck>(storage.MED_CHECKS_KEY);
@@ -478,6 +496,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSspDocs(_sspDocs);
     setSearchPlans(_searchPlans);
     setSearches(_searches);
+    setCheckpoints(_checkpoints);
+    setPatrolPlans(_patrolPlans);
+    setPatrols(_patrols);
+    setKeyList(_keyList);
+    setKeyMoves(_keyMoves);
     setPassengersPrivate(_passengersPrivate);
     setMedOrders(_medOrders);
     setMedChecks(_medChecks);
@@ -696,6 +719,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _sspDocs = (await storage.loadList<OfficerDoc>(storage.SSP_DOCS_KEY)).filter((x) => !x.deleted);
     const _searchPlans = await storage.loadList<SearchPlan>(storage.SEARCH_PLAN_KEY);
     const _searches = await storage.loadList<SecuritySearch>(storage.SEARCHES_KEY);
+    const _checkpoints = (await storage.loadList<Checkpoint>(storage.CHECKPOINTS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order);
+    const _patrolPlans = await storage.loadList<PatrolPlan>(storage.PATROL_PLANS_KEY);
+    const _patrols = await storage.loadList<Patrol>(storage.PATROLS_KEY);
+    const _keyList = (await storage.loadList<KeyItem>(storage.KEYS_KEY)).filter((x) => !x.deleted);
+    const _keyMoves = await storage.loadList<KeyMove>(storage.KEY_MOVES_KEY);
     const _passengersPrivate = await storage.loadList<PassengerPrivate>(storage.PASSENGERS_PRIVATE_KEY);
     const _medOrders = await storage.loadList<MedOrder>(storage.MED_ORDERS_KEY);
     const _medChecks = await storage.loadList<MedCheck>(storage.MED_CHECKS_KEY);
@@ -758,6 +786,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSspDocs(_sspDocs);
     setSearchPlans(_searchPlans);
     setSearches(_searches);
+    setCheckpoints(_checkpoints);
+    setPatrolPlans(_patrolPlans);
+    setPatrols(_patrols);
+    setKeyList(_keyList);
+    setKeyMoves(_keyMoves);
     setPassengersPrivate(_passengersPrivate);
     setMedOrders(_medOrders);
     setMedChecks(_medChecks);
@@ -1039,6 +1072,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         sspDocs,
         searchPlans,
         searches,
+        checkpoints,
+        patrolPlans,
+        patrols,
+        keyList,
+        keyMoves,
         passengersPrivate,
         medOrders,
         medChecks,
