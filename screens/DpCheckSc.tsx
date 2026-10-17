@@ -87,7 +87,7 @@ export default function DpCheckSc() {
   const [sketchDraft, setSketchDraft] = useState('');
   const done = dpChecks.find((c) => c.id === route.params?.id) ?? archived(route.params?.id);
   // Any book's checklist — DP, bridge or engine (17 Oct 2026).
-  const tpl = useMemo(() => (['dp', 'bridge', 'engine', 'fam-bridge', 'fam-engine', 'fam-project', 'fam-pax', 'fam-dp', 'fam-safety'] as CheckBook[]).flatMap((b) => templatesNow(dpTemplates, b)).find((x) => x.id === route.params?.templateId), [dpTemplates, route.params?.templateId]);
+  const tpl = useMemo(() => (['dp', 'bridge', 'engine', 'fam-bridge', 'fam-engine', 'fam-project', 'fam-pax', 'fam-dp', 'fam-safety', 'bridge-sea', 'bridge-arrival', 'bridge-pilot', 'bridge-vis', 'bridge-weather', 'emergency'] as CheckBook[]).flatMap((b) => templatesNow(dpTemplates, b)).find((x) => x.id === route.params?.templateId), [dpTemplates, route.params?.templateId]);
   const [operation, setOperation] = useState('');
   const [asog, setAsog] = useState<AsogStatus | undefined>(undefined);
   const [results, setResults] = useState<Record<string, string>>({});
@@ -173,7 +173,7 @@ export default function DpCheckSc() {
   const rowPeople = (row: 0 | 1) => (row === 0 && tplBook === 'fam-pax' ? guests : people);
 
   const book: CheckBook = bookOf(done ?? tpl ?? {});
-  const KIND = book === 'bridge' ? 'Bridge checklist' : book === 'engine' ? 'Engine checklist' : book === 'fam-bridge' ? 'Bridge familiarisation' : book === 'fam-engine' ? 'Engine familiarisation' : book === 'fam-project' ? 'Project crew familiarisation' : book === 'fam-pax' ? 'Passenger familiarisation' : book === 'fam-dp' ? 'DP familiarisation' : book === 'fam-safety' ? 'Safety familiarisation' : 'DP checklist';
+  const KIND = book === 'bridge' ? 'Bridge checklist' : book === 'engine' ? 'Engine checklist' : book === 'fam-bridge' ? 'Bridge familiarisation' : book === 'fam-engine' ? 'Engine familiarisation' : book === 'fam-project' ? 'Project crew familiarisation' : book === 'fam-pax' ? 'Passenger familiarisation' : book === 'fam-dp' ? 'DP familiarisation' : book === 'fam-safety' ? 'Safety familiarisation' : book === 'emergency' ? 'Emergency card' : String(book).startsWith('bridge-') ? 'Bridge checklist' : 'DP checklist';
   if (!moduleOn(book === 'dp' ? 'dp' : 'watchChecks')) return <Screen><Empty text="Not available on this vessel." /></Screen>;
   const here = positionFromText(posT);
   const lat = here?.lat;
@@ -209,7 +209,7 @@ export default function DpCheckSc() {
       const clean = (r: Record<string, string>) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v));
       const cc = clean(cond as Record<string, string>);
       const at = Date.now();
-      const rec: DpCheck = { ...c, ...(book !== 'dp' ? { book } : {}), id: uid(book === 'dp' ? 'dpc' : book === 'bridge' ? 'brc' : book === 'engine' ? 'erc' : 'fam'), at, shipOffset: offset, position: { lat, lon }, operation: operation.trim() || undefined, unit: unit.trim() || undefined, conditions: Object.keys(cc).length ? cc : undefined, asog, values: Object.keys(clean(values)).length ? clean(values) : undefined, remarks: remarks.trim() || undefined, by: a.name, byRank: a.rank, byKey: a.key, byWith: a.proof, by2: b.name, by2Rank: b.rank, by2Key: b.key, by2With: b.proof, byRole: ROLE[0], by2Role: ROLE[1], updatedAt: at };
+      const rec: DpCheck = { ...c, ...(book !== 'dp' ? { book } : {}), id: uid(book === 'dp' ? 'dpc' : book === 'emergency' ? 'emg' : String(book).startsWith('bridge') ? 'brc' : book === 'engine' ? 'erc' : 'fam'), at, shipOffset: offset, position: { lat, lon }, operation: operation.trim() || undefined, unit: unit.trim() || undefined, conditions: Object.keys(cc).length ? cc : undefined, asog, values: Object.keys(clean(values)).length ? clean(values) : undefined, remarks: remarks.trim() || undefined, by: a.name, byRank: a.rank, byKey: a.key, byWith: a.proof, by2: b.name, by2Rank: b.rank, by2Key: b.key, by2With: b.proof, byRole: ROLE[0], by2Role: ROLE[1], updatedAt: at };
       // Firestore takes no undefined.
       for (const k of Object.keys(rec) as (keyof DpCheck)[]) if (rec[k] === undefined) delete rec[k];
       await saveRow(storage.DP_CHECKS_KEY, rec);

@@ -73,7 +73,7 @@ export type DpWhere = 'bridge' | 'engine';
  * bridge and engine-room checklists (watch handover first) — the same engine,
  * tables, position, two signatures, drafts, PDF. Absent = DP.
  */
-export type CheckBook = 'dp' | 'bridge' | 'engine' | 'fam-bridge' | 'fam-engine' | 'fam-project' | 'fam-pax' | 'fam-dp' | 'fam-safety';
+export type CheckBook = 'dp' | 'bridge' | 'engine' | 'fam-bridge' | 'fam-engine' | 'fam-project' | 'fam-pax' | 'fam-dp' | 'fam-safety' | 'bridge-sea' | 'bridge-arrival' | 'bridge-pilot' | 'bridge-vis' | 'bridge-weather' | 'emergency';
 export const bookOf = (x: { book?: CheckBook }) => x.book ?? 'dp';
 
 export interface DpTemplate {

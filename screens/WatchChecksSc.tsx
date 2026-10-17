@@ -24,19 +24,21 @@ import { DP_KEEP_DAYS } from '../services/firebaseService';
 import { CheckBook, DpCheck, bookOf } from '../types/dp';
 import { shipAndUtc } from '../utils/shipTime';
 
-type Folder = { key: Exclude<CheckBook, 'dp'>; label: string; icon: string; sub: string };
+type Folder = { key: string; label: string; icon: string; sub: string; books: Exclude<CheckBook, 'dp'>[] };
 // Two menu entries share this screen: Bridge & engine checklists, and Familiarisation.
 const SETS: Record<'Watch' | 'Familiar', Folder[]> = {
   Watch: [
-    { key: 'bridge', label: 'Bridge checklists', icon: 'ferry', sub: 'Navigational watch, crew change — STCW Code A-VIII/2, ISM 6.3' },
-    { key: 'engine', label: 'Engine checklists', icon: 'engine-outline', sub: 'Engineering watch, crew change — STCW Code A-VIII/2, ISM 6.3' },
+    // Bridge, engine and emergency — the sea-going round and the IMO emergency cards (SOLAS III/8, STCW A-VIII/2 Part 3).
+    { key: 'bridge', label: 'Bridge checklists', icon: 'ferry', sub: 'Navigational watch and the sea-going round — STCW Code A-VIII/2, SOLAS V/34', books: ['bridge', 'bridge-sea', 'bridge-arrival', 'bridge-pilot', 'bridge-vis', 'bridge-weather'] },
+    { key: 'engine', label: 'Engine checklists', icon: 'engine-outline', sub: 'Engineering watch, crew change — STCW Code A-VIII/2, ISM 6.3', books: ['engine'] },
+    { key: 'emergency', label: 'Emergency cards', icon: 'alarm-light-outline', sub: 'What the OOW does now — SOLAS III/8, muster list', books: ['emergency'] },
   ],
   Familiar: [
-    { key: 'fam-safety', label: 'Safety familiarisation', icon: 'lifebuoy', sub: 'Everyone boarding, within 24 hours and before sailing — STCW A-VI/1, ISM 6.3' },
-    { key: 'fam-bridge', label: 'Bridge familiarisation', icon: 'ferry', sub: 'On joining — STCW I/14, ISM Code 6.3' },
-    { key: 'fam-engine', label: 'Engine familiarisation', icon: 'engine-outline', sub: 'On joining — STCW I/14, ISM Code 6.3' },
-    { key: 'fam-project', label: 'Project crew familiarisation', icon: 'account-hard-hat', sub: 'Project and special personnel on joining — IP Code, SPS Code' },
-    { key: 'fam-pax', label: 'Passenger familiarisation', icon: 'account-group-outline', sub: 'Guests’ safety briefing — SOLAS III/19.2' },
+    { key: 'fam-safety', label: 'Safety familiarisation', icon: 'lifebuoy', sub: 'Everyone boarding, within 24 hours and before sailing — STCW A-VI/1, ISM 6.3', books: ['fam-safety'] },
+    { key: 'fam-bridge', label: 'Bridge familiarisation', icon: 'ferry', sub: 'On joining — STCW I/14, ISM Code 6.3', books: ['fam-bridge'] },
+    { key: 'fam-engine', label: 'Engine familiarisation', icon: 'engine-outline', sub: 'On joining — STCW I/14, ISM Code 6.3', books: ['fam-engine'] },
+    { key: 'fam-project', label: 'Project crew familiarisation', icon: 'account-hard-hat', sub: 'Project and special personnel on joining — IP Code, SPS Code', books: ['fam-project'] },
+    { key: 'fam-pax', label: 'Passenger familiarisation', icon: 'account-group-outline', sub: 'Guests’ safety briefing — SOLAS III/19.2', books: ['fam-pax'] },
   ],
 };
 
@@ -49,9 +51,9 @@ export default function WatchChecksSc() {
   const sync = useSync();
   const BOOKS = SETS[route.name === 'Familiar' ? 'Familiar' : 'Watch'];
   const meta = BOOKS.find((b) => b.key === route.params?.view) ?? BOOKS[0];
-  const book = meta.key;
-  const templates = useMemo(() => templatesNow(dpTemplates, book), [dpTemplates, book]);
-  const signed = useMemo(() => dpChecks.filter((c) => bookOf(c) === book).sort((a, b) => b.at - a.at), [dpChecks, book]);
+  const books = meta.books;
+  const templates = useMemo(() => books.flatMap((b) => templatesNow(dpTemplates, b)), [dpTemplates, books]);
+  const signed = useMemo(() => dpChecks.filter((c) => books.includes(bookOf(c) as any)).sort((a, b) => b.at - a.at), [dpChecks, books]);
   const [older, setOlder] = useState<DpCheck[]>([]);
   const [olderBusy, setOlderBusy] = useState(false);
   const [olderEnd, setOlderEnd] = useState(false);
@@ -63,7 +65,7 @@ export default function WatchChecksSc() {
     try {
       const last = older[older.length - 1];
       const page = await loadOlder(last ? last.updatedAt : undefined);
-      setOlder((x) => [...x, ...page.filter((c) => bookOf(c) === book && !dpChecks.some((d) => d.id === c.id))]);
+      setOlder((x) => [...x, ...page.filter((c) => books.includes(bookOf(c) as any) && !dpChecks.some((d) => d.id === c.id))]);
       if (page.length < 40) setOlderEnd(true);
     } finally {
       setOlderBusy(false);
@@ -75,8 +77,8 @@ export default function WatchChecksSc() {
       <ScreenTitle title={meta.label} subtitle={meta.sub} help="Bridge and engine checklists" />
       <View style={styles.chips}>
         {BOOKS.map((b) => (
-          <TouchableOpacity key={b.key} style={[styles.chip, b.key === book && styles.chipOn]} onPress={() => nav.setParams({ view: b.key })}>
-            <Text style={[styles.chipText, b.key === book && styles.chipTextOn]}>{b.label}</Text>
+          <TouchableOpacity key={b.key} style={[styles.chip, b.key === meta.key && styles.chipOn]} onPress={() => nav.setParams({ view: b.key })}>
+            <Text style={[styles.chipText, b.key === meta.key && styles.chipTextOn]}>{b.label}</Text>
           </TouchableOpacity>
         ))}
       </View>

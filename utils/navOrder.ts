@@ -113,6 +113,7 @@ export const MENU_CHILDREN: Record<string, MenuChild[]> = {
   Watch: [
     { view: 'bridge', label: 'Bridge checklists', icon: 'ferry' },
     { view: 'engine', label: 'Engine checklists', icon: 'engine-outline' },
+    { view: 'emergency', label: 'Emergency cards', icon: 'alarm-light-outline' },
   ],
   // Familiarisation on joining (17 Oct 2026): bridge and engine.
   Familiar: [
