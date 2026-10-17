@@ -31,7 +31,7 @@ import { goBackOr } from '../utils/nav';
 import { ASOG_LABEL, answerIsBad, cellKey, checkOutcome, signRoles, hasCell, formatCell, isOther, otherKey, sectionCols, conditionsText, positionFromText, positionText, templatesNow } from '../services/dp';
 import { PositionInput } from '../components/PositionInput';
 import { shipAndUtc } from '../utils/shipTime';
-import { exportDpCheckPdf } from '../services/dpReport';
+import { exportDpCheckPdf, printDpCheck } from '../services/dpReport';
 import { archived } from '../services/dpArchive';
 import { clearDraft, loadDraft, saveDraft } from '../services/dpDraft';
 import { AsogStatus, DpCheck, DpConditions, DpLine, DpResult } from '../types/dp';
@@ -475,9 +475,14 @@ export default function DpCheckSc() {
               </View>
             </View>
           ))}
-          <TouchableOpacity style={styles.btn} onPress={pdf}>
-            <Text style={styles.btnText}>PDF</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: SIZES.sm }}>
+            <TouchableOpacity style={[styles.btn, { flex: 1 }]} onPress={pdf}>
+              <Text style={styles.btnText}>PDF</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.btn, { flex: 1 }]} onPress={() => void printDpCheck(c, vessel).catch((e) => Alert.alert('Print', String(e?.message ?? e)))}>
+              <Text style={styles.btnText}>Print</Text>
+            </TouchableOpacity>
+          </View>
           {saved ? <Text style={[styles.sub, { color: COLORS.success }]}>{`✓ ${saved}`}</Text> : null}
           <TouchableOpacity onPress={() => goBackOr(nav)} style={{ marginTop: SIZES.md }}>
             <Text style={styles.link}>← Dynamic positioning</Text>

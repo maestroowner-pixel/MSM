@@ -8,7 +8,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 
 import { VesselInfo } from './storage';
 import { share } from './export';
-import { exportPmsHistory } from './pmsHistoryReport';
+import { exportPmsHistory, printPmsHistory } from './pmsHistoryReport';
 import { ASOG_LABEL, Letter, signRoles, answerText, checkOutcome, conditionsText, letterHtml, positionText, rowCells } from './dp';
 import { shipAndUtc } from '../utils/shipTime';
 import { proofShort } from './signature';
@@ -17,7 +17,8 @@ import { onWeb, onWindows } from '../utils/fileShare';
 import { saveFileWeb } from '../utils/webSave';
 import { dpLetterPdfBlob } from '../utils/dpLetterPdf';
 
-export async function exportDpCheckPdf(c: DpCheck, vessel: VesselInfo | null) {
+/** The signed checklist as the report's page — shared by the PDF and the print. */
+function dpCheckPage(c: DpCheck) {
   const o = checkOutcome(c);
   const own = c.lines.filter((l) => l.kind === 'field');
   const facts = [
@@ -71,7 +72,16 @@ export async function exportDpCheckPdf(c: DpCheck, vessel: VesselInfo | null) {
     ],
     widths: { 0: 40, 1: 80, 2: 70, 3: 83 },
   });
-  return exportPmsHistory('DP checklist', `DP ${c.title.split(' — ')[0].replace(/\s*\/\s*/g, '-')} ${new Date(c.at).toISOString().slice(0, 10)}`, vessel, [{ title: c.title, facts, tables, drawings }]);
+  return { title: c.title, facts, tables, drawings };
+}
+
+export function exportDpCheckPdf(c: DpCheck, vessel: VesselInfo | null) {
+  return exportPmsHistory('DP checklist', `DP ${c.title.split(' — ')[0].replace(/\s*\/\s*/g, '-')} ${new Date(c.at).toISOString().slice(0, 10)}`, vessel, [dpCheckPage(c)]);
+}
+
+/** Straight to the printer (17 Oct 2026): the browser's print window, or the phone's. */
+export function printDpCheck(c: DpCheck, vessel: VesselInfo | null) {
+  return printPmsHistory('DP checklist', vessel, [dpCheckPage(c)]);
 }
 
 export async function exportDpLetter(l: Letter): Promise<string | null | void> {

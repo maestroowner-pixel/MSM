@@ -43,3 +43,34 @@ export async function exportPmsHistory(title: string, fileStem: string, vessel: 
     await share(uri, 'application/pdf', name);
   }
 }
+
+/**
+ * Print instead of saving (17 Oct 2026, the DP checklist first): in a browser
+ * the PDF goes into a hidden frame and the browser's print window opens on it;
+ * on a phone the system print dialog, from the same page as the PDF.
+ */
+export async function printPmsHistory(title: string, vessel: VesselInfo | null, list: MachineHistory[]): Promise<void> {
+  if (onWindows) throw new Error('Printing is not available on Windows.');
+  if (onWeb) {
+    const url = URL.createObjectURL(pmsHistoryPdfBlob(title, vesselHeader(vessel), list));
+    const frame = document.createElement('iframe');
+    Object.assign(frame.style, { position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0' });
+    frame.src = url;
+    frame.onload = () => {
+      try {
+        frame.contentWindow?.focus();
+        frame.contentWindow?.print();
+      } catch {
+        // A browser that will not print a PDF from a frame: open it in a tab to print from there.
+        window.open(url, '_blank');
+      }
+      setTimeout(() => {
+        frame.remove();
+        URL.revokeObjectURL(url);
+      }, 60_000);
+    };
+    document.body.appendChild(frame);
+    return;
+  }
+  await Print.printAsync({ html: html(title, vessel, list), orientation: Print.Orientation.landscape });
+}
