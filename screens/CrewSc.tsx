@@ -13,8 +13,9 @@
 // ===================================
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { loadCrewPhotos } from '../services/crewPhotos';
 
 import { Card, Empty, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
@@ -43,6 +44,13 @@ export default function CrewSc() {
   const nav = useNavigation<any>();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { crew, vessel, inspections: trail, certificates, crewPrivate, saveCrewMember, saveCrewPrivate, removeCrewMember } = useData();
+  // ID card photos on this device (services/crewPhotos) — the faces in the list.
+  const [photos, setPhotos] = useState<Record<string, string>>({});
+  useFocusEffect(
+    React.useCallback(() => {
+      void loadCrewPhotos().then(setPhotos);
+    }, [])
+  );
 
   /**
    * Only a Master edits this list.
@@ -253,11 +261,15 @@ export default function CrewSc() {
     return (
       <Card>
         <TouchableOpacity style={styles.row} disabled={!crewMgmt} onPress={() => nav.navigate('CrewMember', { id: c.id })} activeOpacity={0.7}>
-          <MciIcon
-            name={c.active ? 'account' : 'account-off'}
-            size={24}
-            color={c.active ? COLORS.primary : COLORS.textLight}
-          />
+          {photos[c.id] ? (
+            <Image source={{ uri: photos[c.id] }} style={{ width: 36, height: 46, borderRadius: 5, opacity: c.active ? 1 : 0.5 }} />
+          ) : (
+            <MciIcon
+              name={c.active ? 'account' : 'account-off'}
+              size={24}
+              color={c.active ? COLORS.primary : COLORS.textLight}
+            />
+          )}
           <View style={{ flex: 1 }}>
             <Text style={[styles.name, !c.active && { color: COLORS.textLight }]}>{c.name}</Text>
             <Text style={styles.meta}>
