@@ -87,7 +87,7 @@ export default function DpCheckSc() {
   const [sketchDraft, setSketchDraft] = useState('');
   const done = dpChecks.find((c) => c.id === route.params?.id) ?? archived(route.params?.id);
   // Any book's checklist — DP, bridge or engine (17 Oct 2026).
-  const tpl = useMemo(() => (['dp', 'bridge', 'engine', 'fam-bridge', 'fam-engine', 'fam-project', 'fam-pax'] as CheckBook[]).flatMap((b) => templatesNow(dpTemplates, b)).find((x) => x.id === route.params?.templateId), [dpTemplates, route.params?.templateId]);
+  const tpl = useMemo(() => (['dp', 'bridge', 'engine', 'fam-bridge', 'fam-engine', 'fam-project', 'fam-pax', 'fam-dp'] as CheckBook[]).flatMap((b) => templatesNow(dpTemplates, b)).find((x) => x.id === route.params?.templateId), [dpTemplates, route.params?.templateId]);
   const [operation, setOperation] = useState('');
   const [asog, setAsog] = useState<AsogStatus | undefined>(undefined);
   const [results, setResults] = useState<Record<string, string>>({});
@@ -173,7 +173,7 @@ export default function DpCheckSc() {
   const rowPeople = (row: 0 | 1) => (row === 0 && tplBook === 'fam-pax' ? guests : people);
 
   const book: CheckBook = bookOf(done ?? tpl ?? {});
-  const KIND = book === 'bridge' ? 'Bridge checklist' : book === 'engine' ? 'Engine checklist' : book === 'fam-bridge' ? 'Bridge familiarisation' : book === 'fam-engine' ? 'Engine familiarisation' : book === 'fam-project' ? 'Project crew familiarisation' : book === 'fam-pax' ? 'Passenger familiarisation' : 'DP checklist';
+  const KIND = book === 'bridge' ? 'Bridge checklist' : book === 'engine' ? 'Engine checklist' : book === 'fam-bridge' ? 'Bridge familiarisation' : book === 'fam-engine' ? 'Engine familiarisation' : book === 'fam-project' ? 'Project crew familiarisation' : book === 'fam-pax' ? 'Passenger familiarisation' : book === 'fam-dp' ? 'DP familiarisation' : 'DP checklist';
   if (!moduleOn(book === 'dp' ? 'dp' : 'watchChecks')) return <Screen><Empty text="Not available on this vessel." /></Screen>;
   const here = positionFromText(posT);
   const lat = here?.lat;

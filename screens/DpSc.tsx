@@ -54,7 +54,7 @@ export default function DpSc() {
   }, [route.params?.view]);
 
   const today = todayIso();
-  const templates = useMemo(() => templatesNow(dpTemplates), [dpTemplates]);
+  const templates = useMemo(() => [...templatesNow(dpTemplates), ...templatesNow(dpTemplates, 'fam-dp')], [dpTemplates]);
   // DP records only — the bridge and engine checklists share the store (17 Oct 2026).
   const signed = useMemo(() => dpChecks.filter((c) => bookOf(c) === 'dp').sort((a, b) => b.at - a.at), [dpChecks]);
   // The archive: checklists older than this device keeps, read from the cloud page by page.

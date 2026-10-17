@@ -748,6 +748,31 @@ const FAM_PAX: string[] = [
   '@sign Briefed by',
 ];
 
+const FAM_DP: string[] = [
+  '@field DP certificate (NI Basic / Advanced, limited / unlimited)',
+  '@field Date joined',
+  `## DP system | ${DONE3}`,
+  'DP class, redundancy concept and worst-case failure (FMEA)',
+  'DP desks and operator stations — main, backup, joystick, independent joystick',
+  'Control modes and transfer of control',
+  'Position references — DGPS, HiPAP, Fanbeam, taut wire: set-up and limits',
+  'Sensors — gyros, MRUs, wind sensors',
+  'Thrusters and propulsion — emergency stops and their location',
+  'Power plant — generators, bus ties, blackout recovery',
+  'UPS and DP network',
+  'Alarms, consequence analysis and the event printer',
+  `## Procedures | ${DONE3}`,
+  'ASOG / WSOG / CAMO — green, advisory, yellow, red',
+  'DP watchkeeping — handover and arrival / field checklists',
+  'DP alert lights and communication with the client / ROV / crane',
+  'Emergency procedures — drive-off, drift-off, loss of position',
+  'DP trials, capability plots and footprint',
+  'DP incident reporting (IMCA) and the DP log',
+  '@sign Familiarised',
+  '@sign Familiarised by',
+];
+
+
 const tb = (book: CheckBook, id: string, title: string, where: DpWhere, lines: string[]): DpTemplate => ({ ...t(id, title, where, lines), book });
 
 /** The bridge and engine checklists the app ships. */
@@ -760,6 +785,7 @@ export const WATCH_TEMPLATES: DpTemplate[] = [
   tb('fam-engine', 'fam.engine', 'Engine familiarisation', 'engine', FAM_ENGINE),
   tb('fam-project', 'fam.project', 'Project crew familiarisation', 'bridge', FAM_PROJECT),
   tb('fam-pax', 'fam.pax', 'Passenger familiarisation — safety briefing', 'bridge', FAM_PAX),
+  tb('fam-dp', 'fam.dp', 'DP familiarisation', 'bridge', FAM_DP),
 ];
 
 /** What the vessel works to: the built-ins as reworded, the vessel's own, without the switched-off. */
