@@ -12,7 +12,7 @@
 // ===================================
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -34,6 +34,9 @@ import { todayIso } from '../services/pms';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
+import { loadCrewPhotos, setCrewPhoto } from '../services/crewPhotos';
+import { portraitDataUri } from '../services/images';
+import { PickedFile, pickFromCamera, pickFromLibrary } from '../services/attachments';
 
 export default function CrewMemberSc() {
   const COLORS = useTheme();
@@ -54,6 +57,19 @@ export default function CrewMemberSc() {
   const priv0 = crewPrivate.find((p) => p.id === id);
   const [p, setP] = useState<CrewPrivate>(priv0 ?? { id, updatedAt: now });
   const touched = useRef(false);
+  // The ID card photo — on this device only (services/crewPhotos).
+  const [photo, setPhoto] = useState<string | null>(null);
+  useEffect(() => {
+    void loadCrewPhotos().then((all) => setPhoto(all[id] ?? null));
+  }, [id]);
+  const takePhoto = (picker: () => Promise<PickedFile | null>) => async () => {
+    const f = await picker();
+    if (!f) return;
+    const uri = await portraitDataUri(f.uri, 480, 0.8);
+    if (!uri) return Alert.alert('Photo', 'That picture could not be read — try another.');
+    await setCrewPhoto(id, uri);
+    setPhoto(uri);
+  };
   useEffect(() => {
     if (existing && !touched.current) setM(existing);
   }, [existing]);
@@ -153,6 +169,22 @@ export default function CrewMemberSc() {
           {F({ label: 'Full name ★', value: m.name, onChange: (v) => setMember({ name: v }), placeholder: 'As on the passport' })}
           {F({ label: 'Rank / position', value: m.rank, onChange: (v) => setMember({ rank: v }), placeholder: 'Chief Officer, Bosun, Deckhand…' })}
           {F({ label: 'Cabin No.', value: m.cabin, onChange: (v) => setMember({ cabin: v }), placeholder: 'C3, 12, Crew 4…' })}
+
+          {/* The photo printed on the crew ID card (Security → ID cards). Kept on this device, never sent. */}
+          <View style={[styles.card, { flexDirection: 'row', alignItems: 'center', gap: SIZES.md }]}>
+            {photo ? <Image source={{ uri: photo }} style={{ width: 66, height: 84, borderRadius: 6 }} /> : <View style={{ width: 66, height: 84, borderRadius: 6, backgroundColor: COLORS.border, alignItems: 'center', justifyContent: 'center' }}><Text style={styles.sub}>No photo</Text></View>}
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={styles.title}>Photo for the ID card</Text>
+              <Text style={styles.sub}>Head and shoulders, plain background. Kept on this device only — the card is printed from here.</Text>
+              {canEdit ? (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.md, marginTop: 4 }}>
+                  <TouchableOpacity onPress={() => void takePhoto(pickFromCamera)()} hitSlop={8}><Text style={styles.link}>Take</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => void takePhoto(pickFromLibrary)()} hitSlop={8}><Text style={styles.link}>Choose</Text></TouchableOpacity>
+                  {photo ? <TouchableOpacity onPress={() => void setCrewPhoto(id, null).then(() => setPhoto(null))} hitSlop={8}><Text style={[styles.link, { color: COLORS.danger }]}>Remove</Text></TouchableOpacity> : null}
+                </View>
+              ) : null}
+            </View>
+          </View>
 
           <View style={styles.card}>
             <View style={styles.toggleRow}>

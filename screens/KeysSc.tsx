@@ -32,6 +32,7 @@ import { todayIso } from '../services/pms';
 import { keyStatus, keysOut, nextCode } from '../services/patrols';
 import { exportKeyReport } from '../services/patrolReport';
 import { exportKeyTags } from '../services/crewCards';
+import { exportEngravingSvg, exportKeyTagCards } from '../services/idCards';
 import { GANGWAY_STOCKS, GANGWAY_STOCK_MM, codeLabelSpecs } from '../services/gangwayLabels';
 import { TsplLabelSpec, labelsToTspl } from '../services/tspl';
 import { getSavedPrinter, printTspl, SavedPrinter } from '../services/blePrinter';
@@ -181,6 +182,8 @@ export default function KeysSc() {
           <>
             <TouchableOpacity style={styles.small} onPress={() => void exportKeyTags(keys, vessel).then(done, fail)}><Text style={styles.smallText}>Key tags — all (PDF)</Text></TouchableOpacity>
             <TouchableOpacity style={styles.small} onPress={() => toXprinter(keys)}><Text style={styles.smallText}>Xprinter — all</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.small} onPress={() => void exportKeyTagCards(keys, vessel).then(done, fail)}><Text style={styles.smallText}>Card printer — 3 tags a card (CR80)</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.small} onPress={() => void exportEngravingSvg(keys, vessel).then(done, fail)}><Text style={styles.smallText}>Laser engraving file (SVG)</Text></TouchableOpacity>
           </>
         ) : null}
       </View>

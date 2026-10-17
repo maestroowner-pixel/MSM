@@ -22,8 +22,8 @@ export const CARD_W = 85.6;
 export const CARD_H = 54;
 
 /** The QR as a square matrix of dark (true) / light modules. */
-export function qrMatrix(text: string): boolean[][] {
-  const q = QRCode.create(text, { errorCorrectionLevel: 'Q' });
+export function qrMatrix(text: string, ecl: 'L' | 'M' | 'Q' | 'H' = 'Q'): boolean[][] {
+  const q = QRCode.create(text, { errorCorrectionLevel: ecl });
   const n = q.modules.size;
   const out: boolean[][] = [];
   for (let r = 0; r < n; r++) {

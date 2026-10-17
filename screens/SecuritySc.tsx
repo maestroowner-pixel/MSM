@@ -40,6 +40,8 @@ import { moduleOn } from '../constants/modules';
 import { passengerAboard } from '../types/passengers';
 import { pickFromCamera } from '../services/attachments';
 import { portraitDataUri } from '../services/images';
+import { exportIdCards } from '../services/idCards';
+import { loadCrewPhotos } from '../services/crewPhotos';
 import { GANGWAY_STOCKS, crewCardSpecs, exportCrewCards, exportVisitorPasses, visitorPassSpecs } from '../services/crewCards';
 import { GANGWAY_STOCK_MM } from '../services/gangwayLabels';
 import { TsplLabelSpec, labelsToTspl } from '../services/tspl';
@@ -414,6 +416,11 @@ function SecuritySc() {
             <TouchableOpacity style={styles.btnOutline} onPress={() => exportCrewCards(people, vessel).then(done, fail)}>
               <MciIcon name="card-account-details-outline" size={16} color={COLORS.primary} />
               <Text style={styles.btnOutlineText}>Print crew cards</Text>
+            </TouchableOpacity>
+            {/* For a plastic card printer — CR80, photo, both sides (17 Oct 2026). */}
+            <TouchableOpacity style={styles.btnOutline} onPress={() => void loadCrewPhotos().then((ph) => exportIdCards(people.map((c) => ({ id: c.id, name: c.name, rank: c.rank, cabin: c.cabin, photo: ph[c.id] })), vessel)).then(done, fail)}>
+              <MciIcon name="card-account-details-star-outline" size={16} color={COLORS.primary} />
+              <Text style={styles.btnOutlineText}>ID cards — card printer (CR80)</Text>
             </TouchableOpacity>
             {Platform.OS === 'ios' || Platform.OS === 'android' ? (
               <TouchableOpacity style={styles.btnOutline} onPress={toXprinter}>

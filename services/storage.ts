@@ -785,6 +785,7 @@ export async function resetAllData(): Promise<void> {
     KEYS_KEY,
     KEY_MOVES_KEY,
     'msm:patrol_live', // services/patrolLive.ts — a round under way on this device
+    'msm:crew_photos', // services/crewPhotos.ts — ID card photos, this device only
     DRILL_PLANS_KEY,
     PASSENGERS_PRIVATE_KEY,
     MED_ORDERS_KEY,
