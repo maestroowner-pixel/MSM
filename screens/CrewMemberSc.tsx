@@ -35,8 +35,9 @@ import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
 import { loadCrewPhotos, setCrewPhoto } from '../services/crewPhotos';
-import { portraitDataUri } from '../services/images';
-import { PickedFile, pickFromCamera, pickFromLibrary } from '../services/attachments';
+import { cardPortraitDataUri } from '../services/images';
+import { PhotoCamera } from '../components/PhotoCamera';
+import { PickedFile, pickFromLibrary } from '../services/attachments';
 
 export default function CrewMemberSc() {
   const COLORS = useTheme();
@@ -62,13 +63,16 @@ export default function CrewMemberSc() {
   useEffect(() => {
     void loadCrewPhotos().then((all) => setPhoto(all[id] ?? null));
   }, [id]);
-  const takePhoto = (picker: () => Promise<PickedFile | null>) => async () => {
-    const f = await picker();
-    if (!f) return;
-    const uri = await portraitDataUri(f.uri, 480, 0.8);
+  const [camOpen, setCamOpen] = useState(false);
+  const usePicture = async (src: string) => {
+    const uri = await cardPortraitDataUri(src);
     if (!uri) return Alert.alert('Photo', 'That picture could not be read — try another.');
     await setCrewPhoto(id, uri);
     setPhoto(uri);
+  };
+  const takePhoto = (picker: () => Promise<PickedFile | null>) => async () => {
+    const f = await picker();
+    if (f) await usePicture(f.uri);
   };
   useEffect(() => {
     if (existing && !touched.current) setM(existing);
@@ -152,6 +156,7 @@ export default function CrewMemberSc() {
               ) : null}
             </View>
           ) : null}
+          <PhotoCamera visible={camOpen} title={`Photo — ${m.name || 'crew member'}`} onClose={() => setCamOpen(false)} onTaken={(u) => { setCamOpen(false); void usePicture(u); }} />
           {/* The photo printed on the crew ID card (Security → ID cards). Kept on this device, never sent. */}
           <View style={[styles.card, { flexDirection: 'row', alignItems: 'center', gap: SIZES.md }]}>
             {photo ? <Image source={{ uri: photo }} style={{ width: 84, height: 106, borderRadius: 6 }} /> : <View style={{ width: 84, height: 106, borderRadius: 6, backgroundColor: COLORS.border, alignItems: 'center', justifyContent: 'center' }}><Text style={styles.sub}>No photo</Text></View>}
@@ -160,7 +165,7 @@ export default function CrewMemberSc() {
               <Text style={styles.sub}>On the profile and the ID card. Head and shoulders, plain background. Kept on this device only.</Text>
               {canEdit ? (
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.md, marginTop: 4 }}>
-                  <TouchableOpacity onPress={() => void takePhoto(pickFromCamera)()} hitSlop={8}><Text style={styles.link}>Take</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => setCamOpen(true)} hitSlop={8}><Text style={styles.link}>Take — camera</Text></TouchableOpacity>
                   <TouchableOpacity onPress={() => void takePhoto(pickFromLibrary)()} hitSlop={8}><Text style={styles.link}>Choose</Text></TouchableOpacity>
                   {photo ? <TouchableOpacity onPress={() => void setCrewPhoto(id, null).then(() => setPhoto(null))} hitSlop={8}><Text style={[styles.link, { color: COLORS.danger }]}>Remove</Text></TouchableOpacity> : null}
                 </View>

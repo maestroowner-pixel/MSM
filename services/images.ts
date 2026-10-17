@@ -76,3 +76,27 @@ export async function portraitDataUri(uri: string, edge = 240, quality = 0.6): P
     return null;
   }
 }
+
+/**
+ * The ID card portrait (17 Oct 2026): the middle of the picture cut to the
+ * card's 22 × 28 proportion, 480 px tall, JPEG data: URI. A camera gives a
+ * landscape frame; the card wants head and shoulders.
+ */
+export async function cardPortraitDataUri(uri: string): Promise<string | null> {
+  try {
+    const m = await ImageManipulator.manipulate(uri).renderAsync();
+    const ratio = 22 / 28;
+    let w = m.width;
+    let h = m.height;
+    if (w / h > ratio) w = Math.round(h * ratio);
+    else h = Math.round(w / ratio);
+    const img = await ImageManipulator.manipulate(uri)
+      .crop({ originX: Math.round((m.width - w) / 2), originY: Math.round((m.height - h) / 2), width: w, height: h })
+      .resize({ height: 480 })
+      .renderAsync();
+    const r = await img.saveAsync({ format: SaveFormat.JPEG, compress: 0.82, base64: true });
+    return r.base64 ? `data:image/jpeg;base64,${r.base64}` : null;
+  } catch {
+    return null;
+  }
+}

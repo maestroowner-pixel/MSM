@@ -38,8 +38,8 @@ import { todayIso } from '../services/pms';
 import { VISITOR_PHOTO_DAYS, isAshore, lastMoves, nextMove, personsOnBoard, photosToRemove } from '../services/gangway';
 import { moduleOn } from '../constants/modules';
 import { passengerAboard } from '../types/passengers';
-import { pickFromCamera } from '../services/attachments';
 import { portraitDataUri } from '../services/images';
+import { PhotoCamera } from '../components/PhotoCamera';
 import { exportIdCards } from '../services/idCards';
 import { loadCrewPhotos } from '../services/crewPhotos';
 import { GANGWAY_STOCKS, crewCardSpecs, exportCrewCards, exportVisitorPasses, visitorPassSpecs } from '../services/crewCards';
@@ -185,10 +185,12 @@ function SecuritySc() {
   }, [route.params?.pass]);
 
   // The visitor's photograph — the phone's camera, kept small on the record.
-  const takePhoto = async () => {
-    const shot = await pickFromCamera();
-    if (!shot) return;
-    const photo = await portraitDataUri(shot.uri);
+  // The camera window (components/PhotoCamera) — a laptop's webcam or a phone's (17 Oct 2026).
+  const [camOpen, setCamOpen] = useState(false);
+  const takePhoto = async () => setCamOpen(true);
+  const usePhoto = async (uri: string) => {
+    setCamOpen(false);
+    const photo = await portraitDataUri(uri);
     if (!photo) return Alert.alert('Photo', 'The photograph could not be used — try again.');
     setF((x) => ({ ...x, photo }));
   };
@@ -355,6 +357,7 @@ function SecuritySc() {
   return (
     <Screen scroll>
       <PrinterModal visible={printerOpen} onClose={() => { setPrinterOpen(false); setPending(null); }} onPicked={(p) => { setPrinterOpen(false); if (pending) void sendLabels(p, pending); }} />
+      <PhotoCamera visible={camOpen} title="Visitor photo" onClose={() => setCamOpen(false)} onTaken={(u) => void usePhoto(u)} />
       <ScreenTitle
         title={view === 'drills' ? 'ISPS drills' : 'Gangway logbook'}
         subtitle={view === 'drills' ? 'ISPS Code — at least one every three months' : 'ISPS Code — who is on board, visitors in and out'}
