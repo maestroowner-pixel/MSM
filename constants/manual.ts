@@ -65,6 +65,7 @@ const en: ManualContent = {
       title: "Moving around the app",
       body: [
         "The menu (☰) groups the screens by what they are for: Inspections & maintenance, Environment, Security, Crew, Documents & permits, and Settings at the foot. Entries with pages (Fuel, Security) open into them. Edit order in the menu puts the screens in the order you use them — on this device only.",
+        "Favourites (★ in the top bar): “Add this page” keeps where you are — a section or one of its pages, an equipment category, a checklist — and the list opens it again in two clicks; on a record (a document, a certificate, an item) the ☆ beside Back does the same. Edit renames, reorders and removes. On a phone the favourites head the menu. They are kept on this device.",
         "The ← arrow at the top goes back to where you came from. On a tablet or phone a swipe from the left edge does the same. The ? at the top of a screen opens this manual at the part about it. A screen the Master has switched off for your device (Access) is not in the menu.",
       ],
     },
@@ -708,6 +709,7 @@ const ru: ManualContent = {
       title: "Как перемещаться по приложению",
       body: [
         "Меню (☰) группирует экраны по назначению: Inspections & maintenance, Environment, Security, Crew, Documents & permits и внизу Settings. Пункты со страницами (Fuel, Security) раскрываются. Edit order в меню расставляет экраны в удобном вам порядке — только на этом устройстве.",
+        "Избранное (★ в верхней панели): «Add this page» запоминает, где вы, — раздел или его страницу, категорию оборудования, чеклист, — и список открывает это снова в два клика; в карточке записи (документ, сертификат, оборудование) то же делает ☆ рядом с Back. Edit — переименовать, переставить, убрать. На телефоне избранное — первым в меню. Хранится на этом устройстве.",
         "Стрелка ← вверху возвращает туда, откуда вы пришли; на планшете или телефоне то же делает смахивание от левого края. Знак ? вверху экрана открывает этот мануал на нужном разделе. Экрана, который Мастер выключил для вашего устройства (Access), в меню нет.",
       ],
     },
@@ -1349,6 +1351,7 @@ const es: ManualContent = {
       title: "Cómo moverse por la aplicación",
       body: [
         "El menú (☰) agrupa las pantallas por su uso: Inspections & maintenance, Environment, Security, Crew, Documents & permits y, al pie, Settings. Las entradas con páginas (Fuel, Security) se despliegan. Edit order en el menú ordena las pantallas como usted las usa — solo en este dispositivo.",
+        "Favoritos (★ en la barra superior): «Add this page» guarda dónde está — una sección o su página, una categoría de equipos, un checklist — y la lista lo abre de nuevo en dos clics; en un registro (documento, certificado, equipo) lo hace la ☆ junto a Back. Edit renombra, reordena y quita. En el teléfono los favoritos van primero en el menú. Se guardan en este dispositivo.",
         "La flecha ← de arriba vuelve a donde estaba; en una tableta o teléfono, deslizar desde el borde izquierdo hace lo mismo. El ? de arriba abre este manual en la parte de esa pantalla. Una pantalla que el Master ha desactivado para su dispositivo (Access) no aparece en el menú.",
       ],
     },
@@ -1990,6 +1993,7 @@ const uk: ManualContent = {
       title: "Як переміщатися застосунком",
       body: [
         "Меню (☰) групує екрани за призначенням: Inspections & maintenance, Environment, Security, Crew, Documents & permits і внизу Settings. Пункти зі сторінками (Fuel, Security) розкриваються. Edit order у меню розставляє екрани у зручному вам порядку — лише на цьому пристрої.",
+        "Обране (★ у верхній панелі): «Add this page» запам'ятовує, де ви, — розділ або його сторінку, категорію обладнання, чекліст, — і список відкриває це знову у два кліки; у картці запису (документ, сертифікат, обладнання) те саме робить ☆ біля Back. Edit — перейменувати, переставити, прибрати. На телефоні обране — першим у меню. Зберігається на цьому пристрої.",
         "Стрілка ← угорі повертає туди, звідки ви прийшли; на планшеті чи телефоні те саме робить змахування від лівого краю. Знак ? угорі екрана відкриває цей мануал на потрібному розділі. Екрана, який Майстер вимкнув для вашого пристрою (Access), у меню немає.",
       ],
     },

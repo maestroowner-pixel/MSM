@@ -9,7 +9,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { View, StyleSheet, Animated, Platform, Linking, useWindowDimensions } from 'react-native';
 import { registerRootComponent } from 'expo';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer, DefaultTheme, useNavigation, useIsFocused, useNavigationContainerRef } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, useNavigation, useIsFocused } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator, TransitionPresets } from '@react-navigation/stack';
 // The stack's own back button, used directly so it can be shown when the stack cannot go back.
@@ -115,6 +115,8 @@ import FleetSc from './screens/FleetSc';
 import FleetVesselSc from './screens/FleetVesselSc';
 import { OPTIONAL_TABS } from './constants/access';
 import { FEW, MENU_WIDTH, NavMenuBar, PIN_WIDTH, flatGrouped, useNavPrefs } from './components/NavMenu';
+import { FavStar } from './components/Favourites';
+import { navRef } from './utils/favourites';
 import { MENU_LABEL } from './utils/navOrder';
 import { moduleOn } from './constants/modules';
 import EnrolSc from './screens/EnrolSc';
@@ -479,7 +481,8 @@ const linking = {
 
 function Root() {
   const COLORS = useTheme();
-  const navigationRef = useNavigationContainerRef<any>();
+  // Shared with the favourites (utils/favourites), which open places from anywhere.
+  const navigationRef = navRef;
   const { flat } = useData();
   const [showSplash, setShowSplash] = useState(true);
   const hideSplash = useCallback(() => setShowSplash(false), []);
@@ -569,6 +572,11 @@ function Root() {
               )}
               onPress={() => goBackOr(navigation, back.screen, back.params)}
             />
+          ),
+          headerRight: () => (
+            <View style={{ marginRight: 12 }}>
+              <FavStar color={COLORS.primary} />
+            </View>
           ),
         })
       : undefined;

@@ -28,6 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
 import { ShipClock } from './ShipClock';
+import { FavMenuSection, FavStar } from './Favourites';
 import { MciIcon } from './MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { SIZES, Palette } from '../theme';
@@ -131,6 +132,7 @@ export function NavMenuBar(props: Props) {
           ) : null}
           <MciIcon name={icons[current] ?? 'circle-small'} size={22} color={COLORS.tabActive} />
           <Text style={styles.topTitle} numberOfLines={1}>{labelOf(current)}</Text>
+          <FavStar icons={icons} />
           <ShipClock />
         </View>
         {docked ? <View style={[styles.dock, { paddingTop: insets.top }]}>{list}</View> : null}
@@ -218,6 +220,8 @@ function MenuList({
         </View>
       </View>
       {Platform.OS !== 'web' && !editing ? <Text style={styles.hint}>The first four are on the bar below.</Text> : null}
+      {/* On a phone the menu is the way in: what is kept comes first (17 Oct 2026). */}
+      {Platform.OS !== 'web' && !editing ? <FavMenuSection onPicked={onClose} itemStyle={styles.item} textStyle={styles.itemText} headStyle={styles.groupHead} /> : null}
       {grouped(order).map(({ group, routes }) => (
         <View key={group.key}>
           {group.label ? <Text style={styles.groupHead}>{group.label}</Text> : group.key === 'home' ? null : <View style={styles.sep} />}

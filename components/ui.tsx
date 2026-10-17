@@ -25,6 +25,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { ComplianceStatus, CategoryKey } from '../types/equipment';
 import { CATEGORY_MAP } from '../constants/categories';
 import { HelpButton } from './HelpButton';
+import { FavToggle } from './Favourites';
 
 type GlyphName = React.ComponentProps<typeof MciIcon>['name'];
 
@@ -281,24 +282,31 @@ export function BackButton({
   onPress,
   label = 'Back',
   style,
+  fav = true,
 }: {
   onPress: () => void;
   label?: string;
+  /** The ☆ for the favourites beside it — off where the screen is not a place to return to. */
+  fav?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
   const c = useTheme();
   const styles = useStyles();
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      hitSlop={12}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={[styles.backBtn, style]}
-    >
-      <MciIcon name="arrow-left" size={22} color={c.primary} />
-      <Text style={styles.backText}>{label}</Text>
-    </TouchableOpacity>
+    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      <TouchableOpacity
+        onPress={onPress}
+        hitSlop={12}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        style={[styles.backBtn, style]}
+      >
+        <MciIcon name="arrow-left" size={22} color={c.primary} />
+        <Text style={styles.backText}>{label}</Text>
+      </TouchableOpacity>
+      {/* A record can be kept in the favourites from here (components/Favourites). */}
+      {fav ? <FavToggle /> : null}
+    </View>
   );
 }
 
