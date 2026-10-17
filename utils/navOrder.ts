@@ -3,7 +3,8 @@ import { moduleOn, type ModuleKey } from '../constants/modules';
 
 /** The saved order applied to the screens this device shows; new ones go last. */
 export function applyOrder(available: string[], saved: string[] | null): string[] {
-  if (!saved?.length) return available;
+  // Nobody has ordered them: the order the menu's groups list them in.
+  if (!saved?.length) return [...available].sort((a, b) => rank(a) - rank(b));
   const known = saved.filter((r) => available.includes(r));
   return [...known, ...available.filter((r) => !known.includes(r))];
 }
@@ -33,15 +34,25 @@ export const MENU_GROUPS: MenuGroup[] = [
   { key: 'home', label: '', routes: ['Dashboard'] },
   { key: 'equipment', label: 'Equipment & maintenance', routes: ['Equipment', 'Rounds', 'Maintenance', 'Spares', 'Stores'] },
   { key: 'safety', label: 'Safety', routes: ['Drills', 'Safety'] },
-  { key: 'security', label: 'Security (ISPS)', routes: ['Security'] },
+  // The ship's hospital on its own, under Safety (17 Oct 2026: "out of Crew, its own section").
+  { key: 'medical', label: 'Medical', routes: ['Hospital'] },
+  { key: 'security', label: 'Security', routes: ['Security'] },
   { key: 'env', label: 'Environment (MARPOL)', routes: ['OilRecord', 'Garbage', 'Sewage', 'Ballast', 'Fuel', 'Sopep'] },
-  { key: 'crew', label: 'Crew', routes: ['Crew', 'CrewMatrix', 'HoursOfRest', 'Passengers', 'Hospital'] },
+  { key: 'crew', label: 'Crew', routes: ['Crew', 'CrewMatrix', 'HoursOfRest', 'Passengers'] },
   { key: 'ops', label: 'Operations', routes: ['Dp', 'Readiness'] },
   { key: 'docs', label: 'Documents & compliance', routes: ['Certificates', 'Documents', 'Permits', 'Surveys', 'Reports'] },
   { key: 'system', label: '', routes: ['Settings'] },
 ];
 
 const OTHER = 'equipment';
+/** A screen's place in MENU_GROUPS (group, then its place in the group); unknown ones last. */
+function rank(route: string): number {
+  for (let g = 0; g < MENU_GROUPS.length; g++) {
+    const i = MENU_GROUPS[g].routes.indexOf(route);
+    if (i >= 0) return g * 100 + i;
+  }
+  return 10_000;
+}
 /**
  * Sub-items under a menu entry: tapping the entry opens them, each opens the
  * screen on one of its pages (route params `view`). Add pages here as they come.

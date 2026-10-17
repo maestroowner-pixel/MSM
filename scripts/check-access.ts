@@ -22,7 +22,8 @@ ok(toggleTab(['rest', 'future_tab'], 'rest').join() === 'future_tab', 'toggle ke
 import { applyOrder, move } from '../utils/navOrder';
 {
   const avail = ['Dashboard', 'Equipment', 'Documents', 'Maintenance', 'Settings'];
-  ok(applyOrder(avail, null).join() === avail.join(), 'menu: no saved order → standard order');
+  ok(applyOrder(avail, null).join() === 'Dashboard,Equipment,Maintenance,Documents,Settings', 'menu: no saved order → the groups\' order');
+  ok(applyOrder(['Hospital', 'Crew', 'Drills', 'Fuel', 'OilRecord'], null).join() === 'Drills,Hospital,OilRecord,Fuel,Crew', 'Hospital under Safety; MARPOL books before fuel; crew after');
   ok(applyOrder(avail, ['Maintenance', 'Gone', 'Dashboard']).join() === 'Maintenance,Dashboard,Equipment,Documents,Settings',
     'menu: saved order first, a screen no longer shown dropped, new screens after');
   ok(move(['A', 'B', 'C'], 'C', -1).join() === 'A,C,B' && move(['A', 'B'], 'A', -1).join() === 'A,B', 'menu: ↑ swaps, top stays top');
