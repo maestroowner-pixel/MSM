@@ -1,5 +1,5 @@
 // npm run check:dp — DP checklists keep their line ids; DP days count as SDM counts them; the letter says what the log says.
-import { DP_TEMPLATES, keepRecent, signRoles, hasCell, rowCells, formatCell, otherKey, answerText, cellKey, sectionCols, buildLetter, checkOutcome, conditionsText, coordText, dayId, positionFromText, lineSource, parseCoord, parseLine, positionText, dpoTotals, emptySlots, hours, isDpDay, letterHtml, linesFromText, setRange, templatesNow } from '../services/dp';
+import { DP_TEMPLATES, WATCH_TEMPLATES, keepRecent, signRoles, hasCell, rowCells, formatCell, otherKey, answerText, cellKey, sectionCols, buildLetter, checkOutcome, conditionsText, coordText, dayId, positionFromText, lineSource, parseCoord, parseLine, positionText, dpoTotals, emptySlots, hours, isDpDay, letterHtml, linesFromText, setRange, templatesNow } from '../services/dp';
 import { DpDay } from '../types/dp';
 import { isOfficerRank } from '../types/crew';
 
@@ -75,6 +75,8 @@ ok(signRoles(arr).join('|') === 'SDPO|DPO' && signRoles(DP_TEMPLATES.find((x) =>
 const DAY = 86_400_000, NOW = 200 * DAY, CUT = NOW - 90 * DAY;
 const recs = [{ id: 'new', at: NOW - DAY, updatedAt: NOW - DAY }, { id: 'oldSent', at: NOW - 120 * DAY, updatedAt: NOW - 120 * DAY }, { id: 'oldQueued', at: NOW - 100 * DAY, updatedAt: NOW - 100 * DAY }];
 ok(keepRecent(recs, { new: NOW - DAY, oldSent: NOW - 120 * DAY }, CUT).map((r) => r.id).join() === 'new,oldQueued', 'a device keeps 90 days; an older record goes only once it is up in the cloud');
+
+ok(WATCH_TEMPLATES.map((x) => `${x.book}:${x.id}`).join() === 'bridge:bridge.handover,engine:engine.handover,bridge:bridge.signoff,engine:engine.signoff' && signRoles(WATCH_TEMPLATES[2]).join('|') === 'Signing off|Signing on' && signRoles(WATCH_TEMPLATES[0]).join('|') === 'Handing over|Taking over', 'bridge and engine books: watch handover and sign-on / sign-off, the right signatures');
 
 // Position.
 ok(parseCoord('57 12.345 N', 'lat') === 57.20575 && parseCoord("001°23.456'W", 'lon') === -1.390933 && parseCoord('-33.5', 'lat') === -33.5, 'lat/lon: deg-min with hemisphere, decimal');

@@ -543,12 +543,80 @@ const ENGINE_HANDOVER: string[] = [
   'Oil record book entries up to date',
 ];
 
+// Sign-on / sign-off: the officer leaving hands over to the one joining (17 Oct
+// 2026) — the state of the job, the papers and keys, and the familiarisation the
+// newcomer must have before taking duties (ISM Code 6.3, STCW I/14).
+const CHK = 'Checked {Yes|!No|N/A} | Remarks';
+const DECK_SIGNOFF: string[] = [
+  '@field Rank / position handed over',
+  '@field Port of handover',
+  `## Vessel status | ${CHK}`,
+  'Certificates and surveys due — dates explained',
+  'Outstanding defects and repairs',
+  'Open PSC / flag / class findings',
+  'Planned maintenance — overdue and due this month',
+  'LSA and FFE inspections — status',
+  'Navigational equipment — defects and service due',
+  'Charts and publications — corrections up to date',
+  'Stores and spares on order',
+  `## Documents, keys and accounts | ${CHK}`,
+  'Keys handed over',
+  'Passwords and accounts (ECDIS, company e-mail, devices)',
+  'Logbooks and record books up to date and signed',
+  'Reports due to the company',
+  'Correspondence in progress',
+  `## Familiarisation — ISM 6.3, STCW I/14 | ${CHK}`,
+  'Emergency duties (muster list) explained',
+  'LSA and FFE locations shown',
+  'Bridge equipment familiarisation completed',
+  "SMS manuals and Master's standing orders read",
+  'Drills due in the coming weeks',
+  `## People and contacts | ${CHK}`,
+  'Crew matters — certificates expiring, sign-offs planned',
+  'Contacts — agent, superintendent, DPA',
+  '@text Notes for the relieving officer',
+  '@sign Signing off',
+  '@sign Signing on',
+];
+const ENGINE_SIGNOFF: string[] = [
+  '@field Rank / position handed over',
+  '@field Port of handover',
+  `## Machinery status | ${CHK}`,
+  'Main engines and generators — condition, running hours',
+  'Planned maintenance — overdue and due this month',
+  'Outstanding defects and repairs; class items',
+  'Critical spares — on board and on order',
+  'Steering gear, fire pumps and emergency generator — last tests',
+  `## Bunkers and record books | Value | Remarks`,
+  'Fuel oil remaining on board (m³)',
+  'Lube oil remaining on board (l)',
+  'Sludge / bilge holding (m³)',
+  'Oil record book — up to date and signed',
+  `## Work in hand | ${CHK}`,
+  'Permits to work and isolations in force',
+  'Repairs by contractors in progress',
+  'Engine room keys handed over',
+  'Reports due to the company / technical superintendent',
+  `## Familiarisation — ISM 6.3, STCW I/14 | ${CHK}`,
+  'Emergency duties (muster list) explained',
+  'Emergency generator — start and changeover shown',
+  'Fire pumps and emergency fire pump shown',
+  'Quick-closing valves and emergency stops shown',
+  'Fixed fire-fighting system release shown',
+  "Chief Engineer's standing orders read",
+  '@text Notes for the relieving engineer',
+  '@sign Signing off',
+  '@sign Signing on',
+];
+
 const tb = (book: CheckBook, id: string, title: string, where: DpWhere, lines: string[]): DpTemplate => ({ ...t(id, title, where, lines), book });
 
 /** The bridge and engine checklists the app ships. */
 export const WATCH_TEMPLATES: DpTemplate[] = [
   tb('bridge', 'bridge.handover', 'Bridge watch handover', 'bridge', BRIDGE_HANDOVER),
   tb('engine', 'engine.handover', 'Engine room watch handover', 'engine', ENGINE_HANDOVER),
+  tb('bridge', 'bridge.signoff', 'Sign-on / sign-off handover — deck officer', 'bridge', DECK_SIGNOFF),
+  tb('engine', 'engine.signoff', 'Sign-on / sign-off handover — engineer', 'engine', ENGINE_SIGNOFF),
 ];
 
 /** What the vessel works to: the built-ins as reworded, the vessel's own, without the switched-off. */

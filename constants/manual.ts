@@ -642,7 +642,7 @@ const en: ManualContent = {
       emoji: '📋',
       title: "Bridge and engine checklists",
       body: [
-        "Bridge and engine checklists (menu → Operations → Bridge & engine checklists) has two folders: Bridge checklists and Engine checklists. Each starts with the watch handover — what the relieving officer must know under STCW Code A-VIII/2: on the bridge the position and track, weather, compass errors, steering, every navigational aid, traffic and hazards, the Master's orders; in the engine room the propulsion, generators, systems, tanks, alarms and the Chief Engineer's orders.",
+        "Bridge and engine checklists (menu → Operations → Bridge & engine checklists) has two folders: Bridge checklists and Engine checklists. Each holds the watch handover and the sign-on / sign-off handover at crew change (the job, papers and keys, familiarisation under ISM 6.3 and STCW I/14; signed by the one signing off and the one signing on). The watch handover is what the relieving officer must know under STCW Code A-VIII/2: on the bridge the position and track, weather, compass errors, steering, every navigational aid, traffic and hazards, the Master's orders; in the engine room the propulsion, generators, systems, tanks, alarms and the Chief Engineer's orders.",
         "They work as the DP checklists: the position and the time of signing are required, tables as on the paper, two officers sign — handing over and taking over — by PIN or by hand, drafts are kept, and the signed checklist is never changed; open it for the PDF or Print. The vessel's own forms are set up by ISMpilot.",
       ],
     },
@@ -1283,7 +1283,7 @@ const ru: ManualContent = {
       emoji: '📋',
       title: "Чеклисты мостика и машины (Bridge and engine checklists)",
       body: [
-        "Bridge and engine checklists (меню → Operations → Bridge & engine checklists) — две папки: Bridge checklists и Engine checklists. Первым в каждой — передача вахты: что должен знать принимающий по STCW Code A-VIII/2 — на мостике позиция и путь, погода, поправки компасов, рулевое, навигационное оборудование, суда и опасности, распоряжения капитана; в машине — пропульсия, генераторы, системы, танки, тревоги и распоряжения старшего механика.",
+        "Bridge and engine checklists (меню → Operations → Bridge & engine checklists) — две папки: Bridge checklists и Engine checklists. В каждой — передача вахты и передача дел при смене экипажа (Sign-on / sign-off: дела, документы и ключи, ознакомление по ISM 6.3 и STCW I/14; подписывают сдающий и принимающий дела). Передача вахты — что должен знать принимающий по STCW Code A-VIII/2 — на мостике позиция и путь, погода, поправки компасов, рулевое, навигационное оборудование, суда и опасности, распоряжения капитана; в машине — пропульсия, генераторы, системы, танки, тревоги и распоряжения старшего механика.",
         "Работают как DP-чеклисты: позиция и время подписи обязательны, таблицы как на бумаге, подписывают двое — сдающий и принимающий — PIN или рукой, черновик сохраняется, подписанный не меняется; PDF или Print. Свои бланки судна настраивает ISMpilot.",
       ],
     },
@@ -1924,7 +1924,7 @@ const es: ManualContent = {
       emoji: '📋',
       title: "Checklists de puente y máquinas (Bridge and engine checklists)",
       body: [
-        "Bridge and engine checklists (menú → Operations → Bridge & engine checklists) tiene dos carpetas: Bridge checklists y Engine checklists. Cada una empieza con el relevo de guardia — lo que el oficial entrante debe saber según el Código STCW A-VIII/2: en el puente la posición y derrota, el tiempo, errores de compás, gobierno, equipos náuticos, tráfico y peligros, órdenes del Capitán; en máquinas la propulsión, generadores, sistemas, tanques, alarmas y órdenes del Jefe de Máquinas.",
+        "Bridge and engine checklists (menú → Operations → Bridge & engine checklists) tiene dos carpetas: Bridge checklists y Engine checklists. Cada una tiene el relevo de guardia y el relevo por cambio de tripulación (Sign-on / sign-off: trabajo, documentos y llaves, familiarización según ISM 6.3 y STCW I/14). El relevo de guardia es lo que el oficial entrante debe saber según el Código STCW A-VIII/2: en el puente la posición y derrota, el tiempo, errores de compás, gobierno, equipos náuticos, tráfico y peligros, órdenes del Capitán; en máquinas la propulsión, generadores, sistemas, tanques, alarmas y órdenes del Jefe de Máquinas.",
         "Funcionan como los checklists DP: posición y hora de firma obligatorias, tablas como en papel, firman dos oficiales — quien entrega y quien recibe — con PIN o a mano, se guarda el borrador y el firmado no cambia; PDF o Print. ISMpilot configura los formularios del buque.",
       ],
     },
@@ -2565,7 +2565,7 @@ const uk: ManualContent = {
       emoji: '📋',
       title: "Чеклісти містка і машини (Bridge and engine checklists)",
       body: [
-        "Bridge and engine checklists (меню → Operations → Bridge & engine checklists) — дві папки: Bridge checklists і Engine checklists. Першою в кожній — передача вахти: що має знати той, хто приймає, за STCW Code A-VIII/2 — на містку позиція і шлях, погода, поправки компасів, стернове, навігаційне обладнання, судна і небезпеки, розпорядження капітана; у машині — пропульсія, генератори, системи, танки, тривоги і розпорядження старшого механіка.",
+        "Bridge and engine checklists (меню → Operations → Bridge & engine checklists) — дві папки: Bridge checklists і Engine checklists. У кожній — передача вахти і передача справ при зміні екіпажу (Sign-on / sign-off: справи, документи і ключі, ознайомлення за ISM 6.3 і STCW I/14). Передача вахти — що має знати той, хто приймає, за STCW Code A-VIII/2 — на містку позиція і шлях, погода, поправки компасів, стернове, навігаційне обладнання, судна і небезпеки, розпорядження капітана; у машині — пропульсія, генератори, системи, танки, тривоги і розпорядження старшого механіка.",
         "Працюють як DP-чеклісти: позиція і час підпису обов'язкові, таблиці як на папері, підписують двоє — PIN або від руки, чернетка зберігається, підписаний не змінюється; PDF або Print. Свої бланки судна налаштовує ISMpilot.",
       ],
     },
