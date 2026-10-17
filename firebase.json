@@ -10,6 +10,7 @@
         "**/.*"
       ],
       "rewrites": [
+        { "source": "/obs/**", "destination": "/obs.html" },
         {
           "source": "**",
           "destination": "/index.html"
@@ -71,6 +72,7 @@
         "**/.*"
       ],
       "rewrites": [
+        { "source": "/obs/**", "destination": "/obs.html" },
         {
           "source": "**",
           "destination": "/index.html"

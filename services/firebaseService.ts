@@ -1796,6 +1796,20 @@ export async function savePhotoArchive(uid: string, state: PhotoArchiveState): P
   await set(ref(db, `${ROOT}/${uid}/photo_archive`), state);
 }
 
+/** Read the vessel's public observation token (null if not yet set). */
+export async function readObsToken(uid: string): Promise<{ token: string; vesselName: string } | null> {
+  if (!syncSupported()) return null;
+  const snap = await fsGetDoc(accountDoc(uid));
+  if (!snap.exists()) return null;
+  const d = snap.data() as any;
+  return d.obsToken ? { token: d.obsToken as string, vesselName: (d.obsVesselName as string) ?? '' } : null;
+}
+
+/** Save (or replace) the vessel's public observation token and vessel name — Master only. */
+export async function saveObsToken(uid: string, token: string, vesselName: string): Promise<void> {
+  await fsSetDoc(accountDoc(uid), { obsToken: token, obsVesselName: vesselName }, { merge: true });
+}
+
 /** Watch it, so the sweep's own stamp and another officer's mark arrive here. */
 export function subscribePhotoArchive(uid: string, cb: (state: PhotoArchiveState | null) => void): () => void {
   if (!syncSupported()) return () => {};

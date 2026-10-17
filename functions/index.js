@@ -808,3 +808,6 @@ exports.roundsDedupSweep = require('./rounds').roundsDedupSweep;
 
 // Duplicate connections of the same person retired on the server (functions/devices.js).
 exports.devicesDedupSweep = require('./devices').devicesDedupSweep;
+
+// Public QR form — anonymous safety observations from anyone aboard, no app needed.
+exports.submitObs = require('./submitObs').submitObs;

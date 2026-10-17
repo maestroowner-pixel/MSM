@@ -57,6 +57,8 @@ export interface SafetyObservation {
   review?: string;
   /** The non-conformity it was raised as. */
   ncId?: string;
+  /** Submitted via the public QR form, not from an enrolled device. */
+  via?: 'qr';
   updatedAt: number;
 }
 

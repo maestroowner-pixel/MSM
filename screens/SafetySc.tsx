@@ -8,10 +8,11 @@
 // close; each opens on its own screen (NcSc). The register prints both.
 // ===================================
 
-import React, { useMemo, useState } from 'react';
-import { Alert, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, Platform, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
+import QRCode from 'react-native-qrcode-svg';
 import { Card, Empty, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { useSigner } from '../components/SignerChoice';
@@ -25,6 +26,7 @@ import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { NC_STATE_LABEL, NcState, ncState, nextActionDue, obsCounts, sortNcs, sortObservations } from '../services/safety';
 import { exportSafetyExcel, exportSafetyPdf } from '../services/safetyReport';
+import { readObsToken, saveObsToken } from '../services/firebaseService';
 import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
@@ -50,6 +52,21 @@ export default function SafetySc() {
   const [open, setOpen] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [saved, setSaved] = useState<string | null>(null);
+  const [obsQr, setObsQr] = useState<{ token: string; vesselName: string } | null | 'loading'>(canReview && sync.enrolled ? 'loading' : null);
+
+  useEffect(() => {
+    if (!canReview || !sync.enrolled) return;
+    readObsToken(vessel?.imo?.replace(/\D/g, '') ?? '').then((r) => setObsQr(r)).catch(() => setObsQr(null));
+  }, [sync.enrolled, canReview]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const generateObsQr = async () => {
+    const imo = vessel?.imo?.replace(/\D/g, '') ?? '';
+    if (!imo) return Alert.alert('IMO not set', 'Set the vessel IMO in Settings first.');
+    const token = Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    const name = vessel?.vessel_name ?? '';
+    await saveObsToken(imo, token, name);
+    setObsQr({ token, vesselName: name });
+  };
 
   const cards = useMemo(() => sortObservations(observations), [observations]);
   const list = useMemo(() => sortNcs(ncs, today), [ncs, today]);
@@ -159,6 +176,30 @@ export default function SafetySc() {
             </View>
           )}
 
+          {canReview && sync.enrolled ? (
+            <Card>
+              <Label>Observation QR for anyone aboard</Label>
+              <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>
+                {'Print this QR and post it in the mess room. Anyone on board can scan it with their own phone and submit a card — no account needed.'}
+              </Text>
+              {obsQr === 'loading' ? (
+                <Text style={styles.sub}>Loading…</Text>
+              ) : obsQr ? (
+                <>
+                  <View style={{ alignItems: 'flex-start', marginBottom: SIZES.sm }}>
+                    <QRCode value={`https://app.ismpilot.com/obs/${obsQr.token}`} size={160} />
+                  </View>
+                  <Text style={[styles.sub, { marginBottom: SIZES.sm }]} selectable>{`https://app.ismpilot.com/obs/${obsQr.token}`}</Text>
+                  <TouchableOpacity onPress={() => Alert.alert('Regenerate QR?', 'The old QR code will stop working.', [{ text: 'Cancel' }, { text: 'Regenerate', onPress: () => void generateObsQr() }])}>
+                    <Text style={styles.link}>Regenerate QR</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity style={styles.btn} onPress={() => void generateObsQr()}><Text style={styles.btnText}>Generate QR</Text></TouchableOpacity>
+              )}
+            </Card>
+          ) : null}
+
           {!cards.length && !draft ? <Empty text="No card yet. Anyone on board can hand one in — an unsafe act or condition, a near miss, or good practice worth sharing." /> : null}
           {cards.map((o) => {
             const nc = o.ncId ? ncs.find((n) => n.id === o.ncId) : undefined;
@@ -168,6 +209,7 @@ export default function SafetySc() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.xs }}>
                     <MciIcon name={OBS_KINDS.find((k) => k.key === o.kind)?.icon ?? 'alert-outline'} size={16} color={kindColor[o.kind]} />
                     <Text style={[styles.name, { flex: 1 }]}>{`${OBS_KIND_LABEL[o.kind]} · ${o.topic}`}</Text>
+                    {o.via === 'qr' ? <Text style={[styles.badge, { color: COLORS.primary, borderColor: COLORS.primary }]}>QR</Text> : null}
                     {!o.reviewedAt ? <Text style={[styles.badge, { color: COLORS.warning, borderColor: COLORS.warning }]}>NEW</Text> : null}
                   </View>
                   <Text style={styles.body}>{o.what}</Text>
