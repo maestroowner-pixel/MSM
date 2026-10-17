@@ -25,6 +25,25 @@ import { aiCall, aiReady } from '../services/ai';
 import { PickedFile, pickDocument, pickFromCamera, pickFromLibrary, toDataUri } from '../services/attachments';
 
 const MAX_AI_BYTES = 10 * 1024 * 1024;
+/** The editor's wording, line by line — what each form of line becomes. */
+const SYNTAX: [string, string][] = [
+  ['Thrusters tested on DP', 'a question: Yes / No / N/A'],
+  ['Rotation centre {Fwd|Aft|Other}', 'one of these; Other opens a cell to write in'],
+  ['Crane {Good|!No good}', '! marks the answer that means something is wrong'],
+  ['Fanbeam range [m]', 'a reading'],
+  ['## Sensors', 'a section heading'],
+  ['## Sensors | Available {Yes|!No} | Value', 'a table: each line below it is a row with these columns'],
+  ['Height (m) [0.0]', 'in a table heading: a number to one decimal'],
+  ['Preferred {one}', 'in a table heading: only one row may be Yes'],
+  ['## > Alarm limits | Warning | Alarm', 'this table sits beside the one before it'],
+  ['DGPS 1 -[Mode]', 'this row has no cell in the Mode column'],
+  ['~Bow AZI', 'hidden on this vessel — remove the ~ to show it again'],
+  ['@field Location', 'a field at the top of the form'],
+  ['@text Brief description', 'a paragraph to write'],
+  ['@sketch Own vessel, rig, wind, current', 'a drawing, by stylus'],
+  ['@sign SDPO', 'who signs (two lines; default: handing over, taking over)'],
+];
+
 type FormReply = { title?: string; where?: string; lines?: string[]; unreadable?: string };
 
 export default function DpTemplatesSc() {
@@ -43,6 +62,7 @@ export default function DpTemplatesSc() {
   const [text, setText] = useState('');
   const [where, setWhere] = useState<DpWhere>('bridge');
   const [busy, setBusy] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [aiNote, setAiNote] = useState<string | null>(null);
   const ai = aiReady(sync.enrolled);
 
@@ -117,7 +137,7 @@ export default function DpTemplatesSc() {
       <Screen scroll>
         <ScreenTitle title={builtIn ? 'Word the checklist' : 'Your checklist'} subtitle="One item a line. Signed checklists keep the words they were signed with." help="Dynamic positioning" />
         <Label>Title</Label>
-        <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholderTextColor={COLORS.textLight} placeholder="Pre-ROV launch DP check" />
+        <TextInput style={styles.input} value={title} onChangeText={setTitle} accessibilityLabel="Title" />
         <Label>Where</Label>
         <View style={styles.chips}>
           {(['bridge', 'engine'] as DpWhere[]).map((w) => (
@@ -128,8 +148,21 @@ export default function DpTemplatesSc() {
         </View>
         {aiNote ? <Text style={[styles.sub, { color: COLORS.warning, marginBottom: SIZES.xs }]}>{aiNote}</Text> : null}
         <Label>Items — one a line</Label>
-        <Text style={styles.sub}>{'Plain line → Yes / No / N/A.  {Good|!No good} → one of these (! = wrong).  [Hdg] → a reading.  ## Sensors → a heading.  ## Sensors | Available {Yes|!No} | Value → a table: each line below is a row with these columns (## > … puts it beside the table before; a row with -[Mode] has no cell in that column).  ~Bow AZI → hidden on this vessel (remove the ~ to show it again).  @field Location → a header field.  @text Brief description → a paragraph.  @sketch Own vessel, rig, wind, current → a drawing.  @sign SDPO, @sign DPO → who signs (default: handing over, taking over).'}</Text>
-        <TextInput style={[styles.input, { minHeight: 260 }]} value={text} onChangeText={setText} multiline placeholderTextColor={COLORS.textLight} placeholder={'## Sensors\nGyro 1 {Available|Priority|Not available} [Hdg]\nPosition gain [setting]\nThrusters tested on DP'} />
+        {/* How to write a line — folded away, opened when needed (17 Oct 2026). */}
+        <TouchableOpacity onPress={() => setHelpOpen((v) => !v)} hitSlop={6} style={{ marginBottom: SIZES.xs }}>
+          <Text style={styles.link}>{helpOpen ? '▾ How to write a line' : '▸ How to write a line'}</Text>
+        </TouchableOpacity>
+        {helpOpen ? (
+          <View style={styles.helpBox}>
+            {SYNTAX.map(([ex, what]) => (
+              <View key={ex} style={styles.helpRow}>
+                <Text style={styles.helpEx}>{ex}</Text>
+                <Text style={styles.helpWhat}>{what}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+        <TextInput style={[styles.input, { minHeight: 260 }]} value={text} onChangeText={setText} multiline accessibilityLabel="Items" />
         {ai && aiNote ? (
           <TouchableOpacity onPress={() => readForm(true)} disabled={!!busy} style={{ marginBottom: SIZES.sm }}>
             <Text style={styles.link}>+ Add the next page of the form (AI)</Text>
@@ -209,6 +242,10 @@ const makeStyles = (COLORS: Palette) =>
     btn: { backgroundColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 12 },
     btnOutline: { borderWidth: 1, borderColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 12 },
     btnOutlineText: { color: COLORS.primary, fontWeight: '800', textAlign: 'center' },
+    helpBox: { ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.sm, marginBottom: SIZES.sm, gap: 4 },
+    helpRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.sm },
+    helpEx: { width: 300, color: COLORS.text, fontFamily: 'monospace', fontSize: SIZES.small },
+    helpWhat: { flex: 1, minWidth: 200, color: COLORS.textLight, fontSize: SIZES.small },
     busy: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginVertical: SIZES.sm },
     btnText: { color: COLORS.textWhite, fontWeight: '800', textAlign: 'center' },
   });
