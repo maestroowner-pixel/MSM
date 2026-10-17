@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -117,6 +117,13 @@ export const MODULES: Record<ModuleKey, boolean> = {
   serviceReport: false,
   /** Dynamic positioning — DP checklists, DPOs' DP time, the Nautical Institute confirmation letter (services/dp.ts, 16 Oct 2026). */
   dp: false,
+  /**
+   * The DP checklist editor and the AI reading of a vessel's paper form — ours,
+   * not the vessel's (17 Oct 2026: "nobody aboard will do this"). ISMpilot sets
+   * a vessel's checklists up when it joins: `modules.dpEditor = true` on that
+   * vessel in the console, set them up, then remove it.
+   */
+  dpEditor: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------
