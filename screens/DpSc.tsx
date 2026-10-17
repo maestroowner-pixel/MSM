@@ -171,9 +171,9 @@ export default function DpSc() {
               <MciIcon name="chevron-right" size={18} color={COLORS.textLight} />
             </TouchableOpacity>
           ))}
-          {officer ? (
+          {officer && moduleOn('dpEditor') ? (
             <TouchableOpacity onPress={() => nav.navigate('DpTemplates')} style={{ marginVertical: SIZES.sm }}>
-              <Text style={styles.link}>Word them to your DP Operations Manual / ASOG →</Text>
+              <Text style={styles.link}>Set up the vessel's DP checklists (ISMpilot) →</Text>
             </TouchableOpacity>
           ) : null}
           <Label style={{ marginTop: SIZES.md }}>Signed</Label>

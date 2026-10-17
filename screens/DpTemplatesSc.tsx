@@ -1,6 +1,6 @@
 // ===================================
-// The vessel's DP checklists — the four the app ships, worded to the vessel's
-// DP Operations Manual and ASOG, and its own. Officers and the Master. A line
+// The vessel's DP checklists — set up by ISMpilot from the vessel's own forms
+// (behind `dpEditor`, 17 Oct 2026: nobody aboard edits them). A line
 // that keeps its text keeps its id (services/dp.ts linesFromText); signed
 // records keep the lines they were signed against, so nothing here rewrites
 // the past. A built-in is switched off, never deleted (rows merge by id).
@@ -107,7 +107,8 @@ export default function DpTemplatesSc() {
     ]);
   };
 
-  if (!moduleOn('dp')) return <Screen><Empty text="Not available on this vessel." /></Screen>;
+  // Ours, not the vessel's: switched on for a vessel only while ISMpilot sets its checklists up.
+  if (!moduleOn('dp') || !moduleOn('dpEditor')) return <Screen><Empty text="The vessel's DP checklists are set up by ISMpilot from the vessel's own forms." /></Screen>;
   if (!officer) return <Screen><Empty text="The officers and the Master word the DP checklists." /></Screen>;
 
   const open = (t: DpTemplate) => {
