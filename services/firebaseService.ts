@@ -1810,6 +1810,26 @@ export async function saveObsToken(uid: string, token: string, vesselName: strin
   await fsSetDoc(accountDoc(uid), { obsToken: token, obsVesselName: vesselName }, { merge: true });
 }
 
+export const INSPECT_LINK_BASE = 'https://europe-west1-marine-safety-manager.cloudfunctions.net/inspectView?t=';
+
+export async function readInspectLink(imo: string): Promise<{ token: string; expiry: number } | null> {
+  if (!syncSupported()) return null;
+  const snap = await fsGetDoc(accountDoc(imo));
+  if (!snap.exists()) return null;
+  const d = snap.data() as any;
+  return d.inspectToken && typeof d.inspectTokenExpiry === 'number' && d.inspectTokenExpiry > Date.now()
+    ? { token: d.inspectToken as string, expiry: d.inspectTokenExpiry as number }
+    : null;
+}
+
+export async function saveInspectLink(imo: string, token: string, expiry: number): Promise<void> {
+  await fsSetDoc(accountDoc(imo), { inspectToken: token, inspectTokenExpiry: expiry }, { merge: true });
+}
+
+export async function revokeInspectLink(imo: string): Promise<void> {
+  await fsSetDoc(accountDoc(imo), { inspectToken: null, inspectTokenExpiry: null }, { merge: true });
+}
+
 /** Watch it, so the sweep's own stamp and another officer's mark arrive here. */
 export function subscribePhotoArchive(uid: string, cb: (state: PhotoArchiveState | null) => void): () => void {
   if (!syncSupported()) return () => {};

@@ -5,8 +5,8 @@
 // and the DPA.
 // ===================================
 
-import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Clipboard, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 import { Screen, ScreenTitle } from '../components/ui';
@@ -24,23 +24,57 @@ import { todayIso } from '../services/pms';
 import { KIND_LABEL, ReadinessKind, buildReadiness, verdict } from '../services/readiness';
 import { buildCalendar, ICS_REMIND_DAYS } from '../services/calendarIcs';
 import { exportCalendarIcs, exportReadinessPdf } from '../services/readinessReport';
+import { INSPECT_LINK_BASE, readInspectLink, revokeInspectLink, saveInspectLink } from '../services/firebaseService';
 
 const addDays = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
 const SOON = [0, 7, 14, 30];
 const onWebPlatform = Platform.OS === 'web';
+
+const INSPECT_DAYS = [7, 30, 90] as const;
+type InspectDays = typeof INSPECT_DAYS[number];
 
 export default function ReadinessSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const data = useData();
-  useSync(); // re-render when a pilot module is switched on for the vessel
+  const sync = useSync();
   const [tick, setTick] = useState(0);
   useFocusEffect(useCallback(() => setTick((t) => t + 1), []));
   const today = todayIso();
   const [kind, setKind] = useState<ReadinessKind>('psc');
   const [date, setDate] = useState(today);
   const [saved, setSaved] = useState<string | null>(null);
+  const isMaster = !sync.enrolled || sync.role === 'superadmin';
+
+  // Inspector read-only link state.
+  const [inspectLink, setInspectLink] = useState<{ token: string; expiry: number } | null | 'loading'>(sync.enrolled ? 'loading' : null);
+  const [inspectOpen, setInspectOpen] = useState(false);
+  const [inspectDays, setInspectDays] = useState<InspectDays>(30);
+  useEffect(() => {
+    if (!sync.enrolled) return;
+    const imo = data.vessel?.imo?.replace(/\D/g, '') ?? '';
+    if (!imo) { setInspectLink(null); return; }
+    readInspectLink(imo).then(setInspectLink).catch(() => setInspectLink(null));
+  }, [sync.enrolled]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const generateInspectLink = async () => {
+    const imo = data.vessel?.imo?.replace(/\D/g, '') ?? '';
+    if (!imo) return Alert.alert('IMO not set', 'Set the vessel IMO in Settings first.');
+    const token = Array.from({ length: 24 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    const expiry = Date.now() + inspectDays * 86400000;
+    await saveInspectLink(imo, token, expiry);
+    setInspectLink({ token, expiry });
+  };
+
+  const doRevoke = () => {
+    const imo = data.vessel?.imo?.replace(/\D/g, '') ?? '';
+    if (!imo) return;
+    Alert.alert('Revoke link', 'Anyone with the current link will no longer be able to open it.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Revoke', style: 'destructive', onPress: async () => { await revokeInspectLink(imo); setInspectLink(null); } },
+    ]);
+  };
   const when = date < today ? today : date;
 
   const r = useMemo(
@@ -130,6 +164,45 @@ export default function ReadinessSc() {
         <Text style={styles.handoverText}>{`Due dates to your calendar (.ics) — a year ahead, reminder ${ICS_REMIND_DAYS} days before`}</Text>
         <MciIcon name="download" size={18} color={COLORS.primary} />
       </TouchableOpacity>
+      {isMaster && sync.enrolled ? (
+        <View style={styles.inspectBox}>
+          <TouchableOpacity style={styles.handover} onPress={() => setInspectOpen((v) => !v)} activeOpacity={0.7}>
+            <MciIcon name="shield-account-outline" size={18} color={COLORS.primary} />
+            <Text style={styles.handoverText}>Inspector / PSC read-only link</Text>
+            <MciIcon name={inspectOpen ? 'chevron-up' : 'chevron-down'} size={18} color={COLORS.primary} />
+          </TouchableOpacity>
+          {inspectOpen ? (
+            inspectLink && inspectLink !== 'loading' ? (
+              <View style={{ gap: SIZES.xs }}>
+                <Text style={[styles.sub, { fontWeight: '700' }]}>{`Valid until ${new Date(inspectLink.expiry).toISOString().slice(0, 10).split('-').reverse().join('.')}`}</Text>
+                <Text style={[styles.sub, { fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }]} numberOfLines={2} selectable>{`${INSPECT_LINK_BASE}${inspectLink.token}`}</Text>
+                <View style={{ flexDirection: 'row', gap: SIZES.md, marginTop: SIZES.xs }}>
+                  <TouchableOpacity onPress={() => { Clipboard.setString(`${INSPECT_LINK_BASE}${inspectLink.token}`); setSaved('Link copied'); }} hitSlop={8}>
+                    <Text style={styles.action}>Copy link</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={doRevoke} hitSlop={8}>
+                    <Text style={[styles.action, { color: COLORS.danger }]}>Revoke</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <View style={{ gap: SIZES.xs }}>
+                <Text style={styles.sub}>A link valid for N days — share it with an inspector or DPA. Anyone with it can see the compliance summary without installing the app.</Text>
+                <View style={[styles.inspectChips, { marginTop: SIZES.xs }]}>
+                  {INSPECT_DAYS.map((d) => (
+                    <TouchableOpacity key={d} style={[styles.chip, inspectDays === d && styles.chipOn]} onPress={() => setInspectDays(d)}>
+                      <Text style={[styles.chipText, inspectDays === d && styles.chipTextOn]}>{`${d} days`}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TouchableOpacity style={styles.genBtn} onPress={() => void generateInspectLink()}>
+                  <Text style={styles.genBtnText}>Generate link</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          ) : null}
+        </View>
+      ) : null}
 
       {r.sections.map((s) => (
         <View key={s.key} style={styles.block}>
@@ -183,4 +256,9 @@ const makeStyles = (COLORS: Palette) =>
     sub: { color: COLORS.textLight, fontSize: SIZES.small, marginTop: 2 },
     handover: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginBottom: SIZES.md },
     handoverText: { flex: 1, color: COLORS.primary, fontWeight: '700' },
+    inspectBox: { ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.md, marginBottom: SIZES.md },
+    inspectChips: { flexDirection: 'row', gap: SIZES.xs },
+    genBtn: { backgroundColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 10, alignItems: 'center', marginTop: SIZES.xs },
+    genBtnText: { color: COLORS.textWhite, fontWeight: '800', fontSize: SIZES.small },
+    action: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
   });

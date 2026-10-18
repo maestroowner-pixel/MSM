@@ -811,6 +811,7 @@ exports.devicesDedupSweep = require('./devices').devicesDedupSweep;
 
 // Public QR form — anonymous safety observations from anyone aboard, no app needed.
 exports.submitObs = require('./submitObs').submitObs;
+exports.inspectView = require('./inspectView').inspectView;
 
 // Monthly safety digest to owner/DPA (functions/emailReport.js).
 exports.sendMonthlyReport = require('./emailReport').sendMonthlyReport;
