@@ -14,14 +14,20 @@ import { useSync } from '../contexts/SyncContext';
 import { roleAtLeast } from '../types/role';
 import { LandingReport } from '../types/movement';
 
+const DIR_CFG: Record<'out' | 'in' | 'received', { bg: string; text: string; label: string }> = {
+  out:      { bg: '#fef3c7', text: '#92400e', label: 'Sent ashore' },
+  in:       { bg: '#dcfce7', text: '#166534', label: 'Returned' },
+  received: { bg: '#dbeafe', text: '#1e40af', label: 'Received' },
+};
+
 export default function LandingsSc() {
   const nav = useNavigation<any>();
   const COLORS = useTheme();
-  const { landings, itemMovements } = useData();
+  const { landings } = useData();
   const sync = useSync();
   const canEdit = !sync.enrolled || roleAtLeast(sync.role, 'admin');
 
-  const sorted = [...landings].sort((a, b) => b.updatedAt - a.updatedAt);
+  const sorted = [...landings].filter((r) => !r.deleted).sort((a, b) => b.updatedAt - a.updatedAt);
 
   const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: COLORS.background },
@@ -31,24 +37,21 @@ export default function LandingsSc() {
     no: { fontSize: 15, fontWeight: '700', color: COLORS.text },
     dir: { fontSize: 12, fontWeight: '600', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
     sub: { fontSize: 12, color: COLORS.textLight, marginTop: 2 },
-    btn: { backgroundColor: COLORS.primary, borderRadius: 10, padding: SIZES.md, margin: SIZES.md, marginTop: 0, alignItems: 'center' },
-    btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    btnRow: { flexDirection: 'row', gap: SIZES.sm, margin: SIZES.md, marginTop: 0 },
+    btn: { flex: 1, backgroundColor: COLORS.primary, borderRadius: 10, padding: SIZES.md, alignItems: 'center' },
+    btn2: { flex: 1, backgroundColor: '#2563eb', borderRadius: 10, padding: SIZES.md, alignItems: 'center' },
+    btnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   });
 
-  const dirBg = (dir: 'out' | 'in') => dir === 'out' ? '#fef3c7' : '#dcfce7';
-  const dirText = (dir: 'out' | 'in') => dir === 'out' ? '#92400e' : '#166534';
-  const dirLabel = (dir: 'out' | 'in') => dir === 'out' ? 'Sent ashore' : 'Returned';
-
   const renderItem = ({ item: r }: { item: LandingReport }) => {
+    const cfg = DIR_CFG[r.dir] ?? DIR_CFG.out;
     const count = r.movementIds.length;
-    const dest = r.to || r.port || '—';
+    const dest = r.supplier || r.to || r.port || '—';
     return (
       <TouchableOpacity style={styles.card} onPress={() => nav.navigate('LandingReport', { id: r.id })}>
         <View style={styles.row}>
           <Text style={styles.no}>{r.no}</Text>
-          <Text style={[styles.dir, { backgroundColor: dirBg(r.dir), color: dirText(r.dir) }]}>
-            {dirLabel(r.dir)}
-          </Text>
+          <Text style={[styles.dir, { backgroundColor: cfg.bg, color: cfg.text }]}>{cfg.label}</Text>
         </View>
         <Text style={styles.sub}>{r.date} · {dest} · {count} item{count !== 1 ? 's' : ''}</Text>
         {r.notes ? <Text style={[styles.sub, { marginTop: 3 }]}>{r.notes}</Text> : null}
@@ -58,19 +61,24 @@ export default function LandingsSc() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScreenTitle title="Landing Reports" />
+      <ScreenTitle title="Equipment Records" />
       <BackButton onPress={() => nav.goBack()} fav={false} />
       {canEdit && (
-        <TouchableOpacity style={styles.btn} onPress={() => nav.navigate('LandingReport', { id: 'new' })}>
-          <Text style={styles.btnText}>+ New landing report</Text>
-        </TouchableOpacity>
+        <View style={styles.btnRow}>
+          <TouchableOpacity style={styles.btn} onPress={() => nav.navigate('LandingReport', { id: 'new' })}>
+            <Text style={styles.btnText}>+ Landing report</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.btn2} onPress={() => nav.navigate('LandingReport', { id: 'new', initDir: 'received' })}>
+            <Text style={styles.btnText}>+ Receiving report</Text>
+          </TouchableOpacity>
+        </View>
       )}
       <FlatList
         data={sorted}
         keyExtractor={(r) => r.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={<Empty text="No landing reports yet" />}
+        ListEmptyComponent={<Empty text="No records yet" />}
       />
     </SafeAreaView>
   );

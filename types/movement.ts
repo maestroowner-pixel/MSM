@@ -2,13 +2,15 @@ import type { CategoryKey } from './equipment';
 import type { SignProof } from '../services/signature';
 
 // Direction of a physical movement.
-export type MovementDir = 'ashore' | 'return' | 'condemned' | 'transfer';
+export type MovementDir = 'received' | 'ashore' | 'return' | 'condemned' | 'transfer' | 'decommissioned';
 
 export const MOVEMENT_DIR_LABEL: Record<MovementDir, string> = {
+  received: 'Received aboard',
   ashore: 'Sent ashore',
   return: 'Returned aboard',
   condemned: 'Condemned',
   transfer: 'Transferred',
+  decommissioned: 'Written off',
 };
 
 // One movement record for a single equipment item.
@@ -50,10 +52,14 @@ export interface LandingReport {
   port?: string;
   /** Service station or receiver name. */
   to?: string;
-  /** 'out' = items leaving the vessel; 'in' = items returning aboard. */
-  dir: 'out' | 'in';
+  /** 'out' = items leaving for service; 'in' = items returning; 'received' = new delivery. */
+  dir: 'out' | 'in' | 'received';
   /** IDs of ItemMovements included in this report. */
   movementIds: string[];
+  /** Supplier / manufacturer name (used for received reports). */
+  supplier?: string;
+  /** Invoice or delivery note reference number. */
+  invoiceRef?: string;
   notes?: string;
   by?: string;
   byRank?: string;

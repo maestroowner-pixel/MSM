@@ -102,6 +102,7 @@ interface DataContextType {
   /** Landing / handover reports (#27). */
   landings: LandingReport[];
   saveLanding: (r: LandingReport, movements: ItemMovement[]) => Promise<void>;
+  saveMovement: (m: ItemMovement) => Promise<void>;
   saveMachine: (m: Machine) => Promise<void>;
   savePmsJob: (j: PmsJob) => Promise<void>;
   /** Many systems and jobs at once — a plan loaded from the template; read back once. */
@@ -950,6 +951,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await loadPms();
   }, [loadPms]);
 
+  const saveMovement = useCallback(async (movement: ItemMovement) => {
+    const existing = await storage.loadList<ItemMovement>(storage.ITEM_MOVEMENTS_KEY);
+    const idx = existing.findIndex((m) => m.id === movement.id);
+    if (idx >= 0) existing[idx] = movement; else existing.push(movement);
+    await storage.saveList(storage.ITEM_MOVEMENTS_KEY, existing);
+    await loadPms();
+  }, [loadPms]);
+
   const saveRestDay = useCallback(async (day: RestDay) => {
     await storage.upsertRestDay(day);
     setRest(await storage.loadRest());
@@ -1072,6 +1081,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         itemMovements,
         landings,
         saveLanding,
+        saveMovement,
         saveMachine,
         savePmsJob,
         savePlan,

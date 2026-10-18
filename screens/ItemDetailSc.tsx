@@ -37,6 +37,7 @@ import { duplicateItem } from '../services/duplicateItem';
 import { canAddItem } from '../services/trial';
 import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
 import { useSync } from '../contexts/SyncContext';
+import { roleAtLeast } from '../types/role';
 import { scanProofFor, signingGate } from '../services/signingPolicy';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -50,7 +51,7 @@ export default function ItemDetailSc() {
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useS();
-  const { byCategory, saveItem, removeItem, moveItem, certificates, saveCertificate, isLocked, inspections: trail, loading, itemMovements } = useData();
+  const { byCategory, saveItem, removeItem, moveItem, certificates, saveCertificate, isLocked, inspections: trail, loading, itemMovements, saveMovement } = useData();
 
   const category: CategoryKey = route.params.category;
   const id: string | null = route.params.id ?? null;
@@ -93,6 +94,9 @@ export default function ItemDetailSc() {
   // Attachment slot size is computed from the grid width so the 4 slots fill
   // the row evenly (no fixed width → no empty gap on the right).
   const [slot, setSlot] = useState(78);
+  const [writeOffOpen, setWriteOffOpen] = useState(false);
+  const [writeOffReason, setWriteOffReason] = useState('');
+  const [writingOff, setWritingOff] = useState(false);
 
   /**
    * THE REGISTER MAY ARRIVE AFTER THIS SCREEN DOES.
@@ -302,16 +306,21 @@ export default function ItemDetailSc() {
 
   const onDelete = () => {
     if (isNew) return goBackOr(nav);
-    Alert.alert('Delete item', 'Remove this item permanently?', [
+    const hasMovements = itemMovements.some((m) => m.itemId === draft.id && !m.deleted);
+    const isDecommissioned = itemMovements.some((m) => m.itemId === draft.id && m.dir === 'decommissioned' && !m.deleted);
+    const msg = hasMovements && !isDecommissioned
+      ? 'This item has movement history and has not been formally written off. Write it off first, or delete anyway?'
+      : 'Remove this item permanently?';
+    const deleteAction = async () => {
+      await removeItem(category, draft.id);
+      goBackOr(nav);
+    };
+    Alert.alert('Delete item', msg, [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          await removeItem(category, draft.id);
-          goBackOr(nav);
-        },
-      },
+      ...(hasMovements && !isDecommissioned
+        ? [{ text: 'Write off first', onPress: () => setWriteOffOpen(true) }]
+        : []),
+      { text: 'Delete anyway', style: 'destructive', onPress: deleteAction },
     ]);
   };
 
@@ -438,7 +447,7 @@ export default function ItemDetailSc() {
               A new item has no history and cannot be inspected until it is
               saved, so the whole block is hidden until then. */}
           {!isNew ? <InspectionCard item={draft} trail={trail} /> : null}
-          {!isNew ? <ShoreMovementsCard itemId={draft.id} movements={itemMovements} /> : null}
+          {!isNew ? <LifecycleCard itemId={draft.id} movements={itemMovements} onWriteOff={() => setWriteOffOpen(true)} /> : null}
 
           <Field label="Item No." value={draft.no != null ? String(draft.no) : ''} onChange={(v) => set({ no: v })} />
           <Field label="Type / Description" value={draft.type} onChange={(v) => set({ type: v })} />
@@ -845,6 +854,60 @@ export default function ItemDetailSc() {
             </View>
           </View>
         </Modal>
+
+        {/* Write-off (Списание) modal */}
+        <Modal visible={writeOffOpen} transparent animationType="fade" onRequestClose={() => setWriteOffOpen(false)}>
+          <View style={styles.rnBackdrop}>
+            <View style={styles.rnCard}>
+              <Text style={styles.rnTitle}>Write off item</Text>
+              <Text style={{ color: COLORS.textLight, fontSize: 13, marginBottom: SIZES.sm }}>
+                This creates an official decommission record. The item stays in the register as archived.
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={writeOffReason}
+                onChangeText={setWriteOffReason}
+                placeholder="Reason (e.g. End of service life, Destroyed in fire…)"
+                placeholderTextColor={COLORS.textLight}
+                multiline
+              />
+              <View style={styles.rnRow}>
+                <TouchableOpacity style={styles.rnBtn} onPress={() => setWriteOffOpen(false)}>
+                  <Text style={styles.rnBtnText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.rnBtn, styles.rnBtnPrimary, writingOff && { opacity: 0.6 }]}
+                  disabled={writingOff}
+                  onPress={async () => {
+                    setWritingOff(true);
+                    try {
+                      const snap = [draft.no, draft.type ?? draft.make].filter(Boolean).join(' ')
+                        || (CATEGORY_MAP[draft.category]?.label ?? '');
+                      await saveMovement({
+                        id: uid('woff'),
+                        itemId: draft.id,
+                        itemCategory: draft.category,
+                        itemSnap: snap,
+                        dir: 'decommissioned',
+                        date: new Date().toISOString().slice(0, 10),
+                        reason: writeOffReason.trim() || undefined,
+                        updatedAt: Date.now(),
+                      });
+                      setWriteOffOpen(false);
+                      setWriteOffReason('');
+                    } finally {
+                      setWritingOff(false);
+                    }
+                  }}
+                >
+                  {writingOff
+                    ? <ActivityIndicator color="#fff" />
+                    : <Text style={[styles.rnBtnText, styles.rnBtnTextPrimary]}>Confirm write-off</Text>}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -1052,31 +1115,71 @@ function InspectionCard({ item, trail }: { item: EquipmentItem; trail: Inspectio
   );
 }
 
-function ShoreMovementsCard({ itemId, movements }: { itemId: string; movements: import('../types/movement').ItemMovement[] }) {
+function LifecycleCard({ itemId, movements, onWriteOff }: {
+  itemId: string;
+  movements: import('../types/movement').ItemMovement[];
+  onWriteOff: () => void;
+}) {
   const COLORS = useTheme();
   const nav = useNavigation<any>();
-  const mine = movements.filter((m) => m.itemId === itemId && !m.deleted).sort((a, b) => b.updatedAt - a.updatedAt);
-  const DIR_COLOR: Record<string, string> = { ashore: '#f59e0b', return: '#22c55e', condemned: '#ef4444', transfer: '#6366f1' };
-  const DIR_LABEL: Record<string, string> = { ashore: 'Ashore', return: 'Returned', condemned: 'Condemned', transfer: 'Transferred' };
+  const sync = useSync();
+  const canEdit = !sync.enrolled || roleAtLeast(sync.role, 'admin');
+
+  const mine = movements.filter((m) => m.itemId === itemId && !m.deleted)
+    .sort((a, b) => a.updatedAt - b.updatedAt);
+
+  const isDecommissioned = mine.some((m) => m.dir === 'decommissioned');
+
+  const DIR_COLOR: Record<string, string> = {
+    received: '#2563eb',
+    ashore: '#f59e0b',
+    return: '#22c55e',
+    condemned: '#ef4444',
+    transfer: '#6366f1',
+    decommissioned: '#9ca3af',
+  };
+  const DIR_LABEL: Record<string, string> = {
+    received: 'Received',
+    ashore: 'Ashore',
+    return: 'Returned',
+    condemned: 'Condemned',
+    transfer: 'Transferred',
+    decommissioned: 'Written off',
+  };
+
   return (
     <View style={{ backgroundColor: COLORS.cardSolid, borderRadius: 10, padding: SIZES.md, marginBottom: SIZES.md, marginTop: SIZES.sm }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <Text style={{ fontWeight: '700', color: COLORS.text }}>Shore movements</Text>
+        <Text style={{ fontWeight: '700', color: COLORS.text }}>
+          {isDecommissioned ? 'Written off ✓' : 'Item lifecycle'}
+        </Text>
         <TouchableOpacity onPress={() => nav.navigate('Landings')}>
-          <Text style={{ color: COLORS.primary, fontSize: 13 }}>All reports ›</Text>
+          <Text style={{ color: COLORS.primary, fontSize: 13 }}>All records ›</Text>
         </TouchableOpacity>
       </View>
+
       {mine.length === 0 ? (
-        <Text style={{ color: COLORS.textLight, fontSize: 13 }}>No movements recorded</Text>
-      ) : mine.slice(0, 5).map((m) => (
+        <Text style={{ color: COLORS.textLight, fontSize: 13 }}>No records yet</Text>
+      ) : mine.slice(-6).map((m) => (
         <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4, borderBottomWidth: 1, borderColor: COLORS.border }}>
-          <View style={{ width: 70, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: DIR_COLOR[m.dir] + '22', marginRight: 8 }}>
-            <Text style={{ fontSize: 11, fontWeight: '700', color: DIR_COLOR[m.dir] }}>{DIR_LABEL[m.dir]}</Text>
+          <View style={{ width: 80, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: DIR_COLOR[m.dir] + '22', marginRight: 8 }}>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: DIR_COLOR[m.dir] }}>{DIR_LABEL[m.dir] ?? m.dir}</Text>
           </View>
           <Text style={{ flex: 1, fontSize: 13, color: COLORS.text }}>{m.date}</Text>
-          {m.to ? <Text style={{ fontSize: 12, color: COLORS.textLight }}>{m.to}</Text> : null}
+          <Text style={{ fontSize: 12, color: COLORS.textLight }} numberOfLines={1}>
+            {m.reason || m.to || ''}
+          </Text>
         </View>
       ))}
+
+      {!isDecommissioned && canEdit && (
+        <TouchableOpacity
+          style={{ marginTop: SIZES.sm, paddingVertical: 6, alignItems: 'center', backgroundColor: '#fee2e2', borderRadius: 8 }}
+          onPress={onWriteOff}
+        >
+          <Text style={{ color: '#b91c1c', fontWeight: '600', fontSize: 13 }}>Write off (Списание)…</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }

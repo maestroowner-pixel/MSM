@@ -41,17 +41,20 @@ export default function LandingReportSc() {
 
   const reportId: string = route.params?.id ?? 'new';
   const returnFrom: string | undefined = route.params?.returnFrom;
+  const initDir: 'out' | 'in' | 'received' | undefined = route.params?.initDir;
   const isNew = reportId === 'new';
 
   const existing = isNew ? null : landings.find((r) => r.id === reportId) ?? null;
   const returnFromReport = returnFrom ? landings.find((r) => r.id === returnFrom) ?? null : null;
 
-  const [dir, setDir] = useState<'out' | 'in'>(
-    existing?.dir ?? (returnFrom ? 'in' : 'out')
+  const [dir, setDir] = useState<'out' | 'in' | 'received'>(
+    existing?.dir ?? (returnFrom ? 'in' : (initDir ?? 'out'))
   );
   const [date, setDate] = useState(existing?.date ?? new Date().toISOString().slice(0, 10));
   const [port, setPort] = useState(existing?.port ?? '');
   const [to, setTo] = useState(existing?.to ?? (returnFromReport?.to ?? ''));
+  const [supplier, setSupplier] = useState(existing?.supplier ?? '');
+  const [invoiceRef, setInvoiceRef] = useState(existing?.invoiceRef ?? '');
   const [notes, setNotes] = useState(existing?.notes ?? '');
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [itemReasons, setItemReasons] = useState<Record<string, string>>({});
@@ -108,19 +111,21 @@ export default function LandingReportSc() {
     return map;
   }, [flat]);
 
-  // Items currently aboard (or ashore, depending on direction).
+  // Items available for this report type.
   const candidateItems = useMemo(() => {
-    const ashore = new Set(
-      itemMovements
-        .filter((m) => !m.deleted)
-        .reduce((acc, m) => {
-          if (m.dir === 'ashore') acc.add(m.itemId);
-          if (m.dir === 'return') acc.delete(m.itemId);
-          if (m.dir === 'condemned') acc.add(m.itemId);
-          return acc;
-        }, new Set<string>())
-    );
-    return flat.filter((it) => dir === 'out' ? !ashore.has(it.id) : ashore.has(it.id));
+    const active = itemMovements.filter((m) => !m.deleted);
+    const ashore = active.reduce((acc, m) => {
+      if (m.dir === 'ashore') acc.add(m.itemId);
+      if (m.dir === 'return') acc.delete(m.itemId);
+      if (m.dir === 'condemned') acc.add(m.itemId);
+      return acc;
+    }, new Set<string>());
+    const decommissioned = new Set(active.filter((m) => m.dir === 'decommissioned').map((m) => m.itemId));
+    if (dir === 'out') return flat.filter((it) => !ashore.has(it.id) && !decommissioned.has(it.id));
+    if (dir === 'in') return flat.filter((it) => ashore.has(it.id));
+    // received: items not yet formally received
+    const received = new Set(active.filter((m) => m.dir === 'received').map((m) => m.itemId));
+    return flat.filter((it) => !received.has(it.id));
   }, [flat, itemMovements, dir]);
 
   const toggleItem = (id: string) => {
@@ -136,7 +141,7 @@ export default function LandingReportSc() {
     [flat, selectedItemIds]
   );
 
-  const movDir: MovementDir = dir === 'out' ? 'ashore' : 'return';
+  const movDir: MovementDir = dir === 'out' ? 'ashore' : dir === 'in' ? 'return' : 'received';
 
   const buildMovements = useCallback((): ItemMovement[] => {
     return selectedItems.map((item) => {
@@ -196,7 +201,9 @@ export default function LandingReportSc() {
         dir,
         date,
         port: port.trim() || undefined,
-        to: to.trim() || undefined,
+        to: dir !== 'received' ? (to.trim() || undefined) : undefined,
+        supplier: dir === 'received' ? (supplier.trim() || undefined) : undefined,
+        invoiceRef: dir === 'received' ? (invoiceRef.trim() || undefined) : undefined,
         notes: notes.trim() || undefined,
         movementIds: movs.map((m) => m.id),
         by: by || undefined,
@@ -244,7 +251,7 @@ export default function LandingReportSc() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScreenTitle title={existing?.no ?? 'New Landing Report'} />
+      <ScreenTitle title={existing?.no ?? (dir === 'received' ? 'New Receiving Report' : 'New Landing Report')} />
       <BackButton onPress={() => nav.goBack()} fav={false} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
@@ -253,14 +260,14 @@ export default function LandingReportSc() {
           <View style={styles.field}>
             <Label style={styles.label}>Type</Label>
             <View style={styles.segRow}>
-              {(['out', 'in'] as const).map((d) => (
+              {(['out', 'in', 'received'] as const).map((d) => (
                 <TouchableOpacity
                   key={d}
                   style={[styles.seg, dir === d && { backgroundColor: COLORS.primary }]}
                   onPress={() => { setDir(d); setSelectedItemIds(new Set()); }}
                 >
                   <Text style={[styles.segText, dir === d && { color: '#fff' }]}>
-                    {d === 'out' ? 'Send ashore' : 'Return aboard'}
+                    {d === 'out' ? 'Send ashore' : d === 'in' ? 'Return aboard' : 'Receive'}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -284,13 +291,30 @@ export default function LandingReportSc() {
             : <TextInput style={styles.input} value={port} onChangeText={setPort} placeholder="Port name" placeholderTextColor={COLORS.textLight} />}
         </View>
 
-        {/* To / From */}
-        <View style={styles.field}>
-          <Label style={styles.label}>{dir === 'out' ? 'To (service station)' : 'From (service station)'}</Label>
-          {isReadOnly
-            ? <Text style={styles.value}>{existing?.to || '—'}</Text>
-            : <TextInput style={styles.input} value={to} onChangeText={setTo} placeholder="Service station name" placeholderTextColor={COLORS.textLight} />}
-        </View>
+        {/* To / From / Supplier */}
+        {dir !== 'received' ? (
+          <View style={styles.field}>
+            <Label style={styles.label}>{dir === 'out' ? 'To (service station)' : 'From (service station)'}</Label>
+            {isReadOnly
+              ? <Text style={styles.value}>{existing?.to || '—'}</Text>
+              : <TextInput style={styles.input} value={to} onChangeText={setTo} placeholder="Service station name" placeholderTextColor={COLORS.textLight} />}
+          </View>
+        ) : (
+          <>
+            <View style={styles.field}>
+              <Label style={styles.label}>Supplier / Manufacturer</Label>
+              {isReadOnly
+                ? <Text style={styles.value}>{existing?.supplier || '—'}</Text>
+                : <TextInput style={styles.input} value={supplier} onChangeText={setSupplier} placeholder="Supplier name" placeholderTextColor={COLORS.textLight} />}
+            </View>
+            <View style={styles.field}>
+              <Label style={styles.label}>Invoice / Delivery Note Ref</Label>
+              {isReadOnly
+                ? <Text style={styles.value}>{existing?.invoiceRef || '—'}</Text>
+                : <TextInput style={styles.input} value={invoiceRef} onChangeText={setInvoiceRef} placeholder="INV-2026-001" placeholderTextColor={COLORS.textLight} />}
+            </View>
+          </>
+        )}
 
         {/* Items */}
         <Label style={[styles.label, { marginHorizontal: SIZES.md }]}>
