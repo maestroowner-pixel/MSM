@@ -35,22 +35,28 @@ export default function LandingReportSc() {
   const nav = useNavigation<any>();
   const route = useRoute<any>();
   const COLORS = useTheme();
-  const { landings, itemMovements, saveLanding, flat, vessel } = useData();
+  const { landings, itemMovements, saveLanding, saveItem, flat, vessel } = useData();
   const sync = useSync();
   const canEdit = !sync.enrolled || roleAtLeast(sync.role, 'admin');
 
   const reportId: string = route.params?.id ?? 'new';
+  const returnFrom: string | undefined = route.params?.returnFrom;
   const isNew = reportId === 'new';
 
   const existing = isNew ? null : landings.find((r) => r.id === reportId) ?? null;
+  const returnFromReport = returnFrom ? landings.find((r) => r.id === returnFrom) ?? null : null;
 
-  const [dir, setDir] = useState<'out' | 'in'>(existing?.dir ?? 'out');
+  const [dir, setDir] = useState<'out' | 'in'>(
+    existing?.dir ?? (returnFrom ? 'in' : 'out')
+  );
   const [date, setDate] = useState(existing?.date ?? new Date().toISOString().slice(0, 10));
   const [port, setPort] = useState(existing?.port ?? '');
-  const [to, setTo] = useState(existing?.to ?? '');
+  const [to, setTo] = useState(existing?.to ?? (returnFromReport?.to ?? ''));
   const [notes, setNotes] = useState(existing?.notes ?? '');
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [itemReasons, setItemReasons] = useState<Record<string, string>>({});
+  const [itemServiceRefs, setItemServiceRefs] = useState<Record<string, string>>({});
+  const [itemNewDates, setItemNewDates] = useState<Record<string, string>>({});
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [printing, setPrinting] = useState(false);
@@ -74,10 +80,27 @@ export default function LandingReportSc() {
       const ids = new Set(myMovs.map((m) => m.itemId));
       setSelectedItemIds(ids);
       const reasons: Record<string, string> = {};
-      myMovs.forEach((m) => { reasons[m.itemId] = m.reason ?? ''; });
+      const serviceRefs: Record<string, string> = {};
+      const newDates: Record<string, string> = {};
+      myMovs.forEach((m) => {
+        reasons[m.itemId] = m.reason ?? '';
+        serviceRefs[m.itemId] = m.serviceRef ?? '';
+        newDates[m.itemId] = m.newInspectionDate ?? '';
+      });
       setItemReasons(reasons);
+      setItemServiceRefs(serviceRefs);
+      setItemNewDates(newDates);
     }
   }, [existing]);
+
+  // Pre-select items from the outgoing report when creating a return.
+  useEffect(() => {
+    if (returnFromReport && isNew) {
+      const movIds = new Set(returnFromReport.movementIds);
+      const outMovs = itemMovements.filter((m) => movIds.has(m.id));
+      setSelectedItemIds(new Set(outMovs.map((m) => m.itemId)));
+    }
+  }, [returnFromReport?.id]);
 
   const itemsById = useMemo(() => {
     const map = new Map<string, EquipmentItem>();
@@ -131,12 +154,14 @@ export default function LandingReportSc() {
         date,
         to: to.trim() || undefined,
         reason: itemReasons[item.id]?.trim() || undefined,
+        serviceRef: itemServiceRefs[item.id]?.trim() || undefined,
+        newInspectionDate: itemNewDates[item.id]?.trim() || undefined,
         by: signer.signer?.name ?? undefined,
         byRank: signer.signer?.rank ?? undefined,
         updatedAt: Date.now(),
       };
     });
-  }, [selectedItems, itemMovements, movDir, date, to, itemReasons, signer, reportId]);
+  }, [selectedItems, itemMovements, movDir, date, to, itemReasons, itemServiceRefs, itemNewDates, signer, reportId]);
 
   const handleSave = async (signed = false) => {
     if (selectedItemIds.size === 0) {
@@ -181,6 +206,16 @@ export default function LandingReportSc() {
       };
 
       await saveLanding(report, movs);
+
+      // For return reports, update each item's nextInspection date.
+      if (dir === 'in') {
+        const updates = movs.filter((m) => m.newInspectionDate);
+        for (const m of updates) {
+          const item = itemsById.get(m.itemId);
+          if (item) await saveItem({ ...item, nextInspection: m.newInspectionDate });
+        }
+      }
+
       nav.goBack();
     } finally {
       setSaving(false);
@@ -286,19 +321,38 @@ export default function LandingReportSc() {
                 )}
               </View>
               {isNew ? (
-                <TextInput
-                  style={[styles.input, { marginTop: 4 }]}
-                  value={itemReasons[item.id] ?? ''}
-                  onChangeText={(v) => setItemReasons((p) => ({ ...p, [item.id]: v }))}
-                  placeholder="Reason (optional)"
-                  placeholderTextColor={COLORS.textLight}
-                />
+                <>
+                  <TextInput
+                    style={[styles.input, { marginTop: 4 }]}
+                    value={itemReasons[item.id] ?? ''}
+                    onChangeText={(v) => setItemReasons((p) => ({ ...p, [item.id]: v }))}
+                    placeholder="Reason (optional)"
+                    placeholderTextColor={COLORS.textLight}
+                  />
+                  {dir === 'in' && (
+                    <>
+                      <TextInput
+                        style={[styles.input, { marginTop: 4 }]}
+                        value={itemServiceRefs[item.id] ?? ''}
+                        onChangeText={(v) => setItemServiceRefs((p) => ({ ...p, [item.id]: v }))}
+                        placeholder="Service certificate ref (optional)"
+                        placeholderTextColor={COLORS.textLight}
+                      />
+                      <SimpleDatePicker
+                        label="New next inspection"
+                        value={itemNewDates[item.id] ?? ''}
+                        onChange={(v) => setItemNewDates((p) => ({ ...p, [item.id]: v }))}
+                      />
+                    </>
+                  )}
+                </>
               ) : (
-                mov?.reason ? <Text style={styles.itemSub}>Reason: {mov.reason}</Text> : null
+                <>
+                  {mov?.reason ? <Text style={styles.itemSub}>Reason: {mov.reason}</Text> : null}
+                  {mov?.serviceRef ? <Text style={styles.itemSub}>Service ref: {mov.serviceRef}</Text> : null}
+                  {mov?.newInspectionDate ? <Text style={styles.itemSub}>Next inspection: {formatDate(mov.newInspectionDate)}</Text> : null}
+                </>
               )}
-              {!isNew && mov?.serviceRef ? (
-                <Text style={styles.itemSub}>Service ref: {mov.serviceRef}</Text>
-              ) : null}
             </View>
           );
         })}
@@ -337,6 +391,15 @@ export default function LandingReportSc() {
               <Text style={styles.btnText}>Sign & Save</Text>
             </TouchableOpacity>
           </>
+        )}
+
+        {existing?.dir === 'out' && canEdit && (
+          <TouchableOpacity
+            style={[styles.btn, { backgroundColor: '#22c55e', marginTop: SIZES.xs }]}
+            onPress={() => nav.navigate('LandingReport', { id: 'new', returnFrom: existing.id })}
+          >
+            <Text style={styles.btnText}>↩ Return these items aboard</Text>
+          </TouchableOpacity>
         )}
 
         {existing && (

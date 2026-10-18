@@ -30,6 +30,8 @@ export interface ItemMovement {
   reason?: string;
   /** Service certificate reference number returned from the service station. */
   serviceRef?: string;
+  /** New next-inspection date set when the item returns aboard. */
+  newInspectionDate?: string;
   by?: string;
   byRank?: string;
   notes?: string;
