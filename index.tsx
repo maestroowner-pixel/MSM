@@ -55,6 +55,8 @@ import PmsDefectSc from './screens/PmsDefectSc';
 import PmsProjectsSc, { PmsProjectSc } from './screens/PmsProjectsSc';
 import WatchLogSc from './screens/WatchLogSc';
 import WatchEntrySc from './screens/WatchEntrySc';
+import AuditsSc from './screens/AuditsSc';
+import AuditSc from './screens/AuditSc';
 import CompressorSc from './screens/CompressorSc';
 import PaywallSc from './screens/PaywallSc';
 import LabelSc from './screens/LabelSc';
@@ -456,6 +458,8 @@ const linking = {
       PmsProject: 'pms-project/:id',
       WatchLog: 'watch-log',
       WatchEntry: 'watch-entry',
+      InternalAudits: 'internal-audits',
+      InternalAudit: 'internal-audit/:id',
       Round: 'round/:id',
       Nc: 'nc/:id',
       Drill: 'drill/:id',
@@ -672,6 +676,8 @@ function Root() {
         <Stack.Screen name="PmsProject" component={PmsProjectSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="WatchLog" component={WatchLogSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="WatchEntry" component={WatchEntrySc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="InternalAudits" component={AuditsSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="InternalAudit" component={AuditSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Round" component={RoundSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Nc" component={NcSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Drill" component={DrillSc} options={{ presentation: 'modal' }} />

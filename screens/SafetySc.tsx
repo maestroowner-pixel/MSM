@@ -239,6 +239,9 @@ export default function SafetySc() {
           {canReview ? (
             <View style={styles.row}>
               <TouchableOpacity style={styles.btn} onPress={() => nav.navigate('Nc', { id: 'new' })}><Text style={styles.btnText}>+ Non-conformity</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.btn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: COLORS.primary }]} onPress={() => nav.navigate('InternalAudits')}>
+                <Text style={[styles.btnText, { color: COLORS.primary }]}>Internal audits ›</Text>
+              </TouchableOpacity>
             </View>
           ) : null}
           {!list.length ? <Empty text={canReview ? 'No non-conformity recorded. Raise one from an audit, PSC, an incident or an observation card.' : 'No non-conformity recorded.'} /> : null}

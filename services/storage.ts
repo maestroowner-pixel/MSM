@@ -96,6 +96,7 @@ export const VESSEL_MODULES_KEY = `${PREFIX}vessel_modules`;
 /** Engine-room rounds template and signed entries (backlog #9, Oct 2026). */
 export const WATCH_TEMPLATES_KEY = `${PREFIX}watch_templates`;
 export const WATCH_LOG_KEY = `${PREFIX}watch_log`;
+export const INTERNAL_AUDITS_KEY = `${PREFIX}internal_audits`;
 export const TEMPLATES_KEY = `${PREFIX}templates`;
 export const CATEGORIES_KEY = `${PREFIX}categories`;
 /**

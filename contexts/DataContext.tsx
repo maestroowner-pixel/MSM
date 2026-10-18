@@ -35,6 +35,7 @@ import { Checkpoint, Patrol, PatrolPlan } from '../types/patrols';
 import { KeyItem, KeyMove } from '../types/keys';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 import { WatchEntry, WatchTemplate } from '../types/watchLog';
+import { InternalAudit } from '../types/audit';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
 import { ChecklistTemplate } from '../constants/checklists';
@@ -93,6 +94,8 @@ interface DataContextType {
   watchTemplates: WatchTemplate[];
   /** Signed engine-room round entries — append-only. */
   watchLog: WatchEntry[];
+  /** Internal audits — ISM / MLC / custom (backlog #12). */
+  internalAudits: InternalAudit[];
   saveMachine: (m: Machine) => Promise<void>;
   savePmsJob: (j: PmsJob) => Promise<void>;
   /** Many systems and jobs at once — a plan loaded from the template; read back once. */
@@ -271,6 +274,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [pmsDefects, setPmsDefects] = useState<PmsDefect[]>([]);
   const [pmsProjects, setPmsProjects] = useState<PmsProject[]>([]);
   const [watchTemplates, setWatchTemplates] = useState<WatchTemplate[]>([]);
+  const [internalAudits, setInternalAudits] = useState<InternalAudit[]>([]);
   const [watchLog, setWatchLog] = useState<WatchEntry[]>([]);
   const [spares, setSpares] = useState<SparePart[]>([]);
   const [spareMoves, setSpareMoves] = useState<SpareMove[]>([]);
@@ -379,6 +383,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _pmsProjects = (await storage.loadList<PmsProject>(storage.PMS_PROJECTS_KEY)).filter((x) => !x.deleted);
     const _watchTemplates = (await storage.loadList<WatchTemplate>(storage.WATCH_TEMPLATES_KEY)).filter((x) => !x.deleted);
     const _watchLog = await storage.loadList<WatchEntry>(storage.WATCH_LOG_KEY);
+    const _internalAudits = (await storage.loadList<InternalAudit>(storage.INTERNAL_AUDITS_KEY)).filter((x) => !x.deleted);
     const _spares = (await storage.loadList<SparePart>(storage.SPARES_KEY)).filter((p) => !p.deleted);
     const _spareMoves = await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY);
     const _docs = (await storage.loadList<IsmDoc>(storage.DOCS_KEY)).filter((d) => !d.deleted);
@@ -457,6 +462,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setPmsProjects(_pmsProjects);
     setWatchTemplates(_watchTemplates);
     setWatchLog(_watchLog);
+    setInternalAudits(_internalAudits);
     setSpares(_spares);
     setSpareMoves(_spareMoves);
     setDocs(_docs);
@@ -682,6 +688,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _pmsProjects = (await storage.loadList<PmsProject>(storage.PMS_PROJECTS_KEY)).filter((x) => !x.deleted);
     const _watchTemplates = (await storage.loadList<WatchTemplate>(storage.WATCH_TEMPLATES_KEY)).filter((x) => !x.deleted);
     const _watchLog = await storage.loadList<WatchEntry>(storage.WATCH_LOG_KEY);
+    const _internalAudits = (await storage.loadList<InternalAudit>(storage.INTERNAL_AUDITS_KEY)).filter((x) => !x.deleted);
     const _spares = (await storage.loadList<SparePart>(storage.SPARES_KEY)).filter((p) => !p.deleted);
     const _spareMoves = await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY);
     const _docs = (await storage.loadList<IsmDoc>(storage.DOCS_KEY)).filter((d) => !d.deleted);
@@ -751,6 +758,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setPmsProjects(_pmsProjects);
     setWatchTemplates(_watchTemplates);
     setWatchLog(_watchLog);
+    setInternalAudits(_internalAudits);
     setSpares(_spares);
     setSpareMoves(_spareMoves);
     setDocs(_docs);
@@ -1027,6 +1035,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         pmsProjects,
         watchTemplates,
         watchLog,
+        internalAudits,
         saveMachine,
         savePmsJob,
         savePlan,
