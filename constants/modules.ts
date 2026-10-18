@@ -71,7 +71,7 @@ export const MODULES: Record<ModuleKey, boolean> = {
   /** Permits to work and risk assessments — the Permits tab. */
   ptw: false,
   /** Fuel: tanks, daily soundings, bunkerings, transfers, monthly report. */
-  fuel: false,
+  fuel: true,
   /** Garbage Record Book (MARPOL Annex V, Part I). */
   garbage: false,
   /** SOPEP locker inventory, checks and oil-spill drills. */

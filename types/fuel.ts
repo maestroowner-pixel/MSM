@@ -14,9 +14,21 @@
 import type { SignProof } from '../services/signature';
 
 import type { Versioned } from '../services/versions';
+
+export type FuelKind = 'diesel' | 'petrol' | 'freshwater' | 'lube_oil';
+
+export const FUEL_KIND_LABEL: Record<FuelKind, string> = {
+  diesel: 'MGO / Diesel',
+  petrol: 'Petrol (FRC / Tenders)',
+  freshwater: 'Fresh Water',
+  lube_oil: 'Lubricating Oils',
+};
+
 export interface FuelTank {
   id: string;
   name: string;
+  /** Fluid type — absent means 'diesel' (legacy tanks). */
+  kind?: FuelKind;
   /** Litres, optional — shows how full a tank is. */
   capacity?: number;
   /** Position in lists. */
@@ -45,6 +57,8 @@ export interface FuelReading extends Versioned {
 export interface FuelBunker extends Versioned {
   id: string;
   date: string;
+  /** Fluid type — absent means 'diesel' (legacy bunkers). */
+  kind?: FuelKind;
   /** Local time, "14:30". */
   time?: string;
   port: string;
@@ -55,8 +69,12 @@ export interface FuelBunker extends Versioned {
   density?: number;
   /** Sulphur content % m/m, from the BDN. */
   sulphur?: number;
-  /** Bunker delivery note number. */
+  /** Bunker delivery note number (diesel). */
   bdnNo?: string;
+  /** For petrol: which craft was fuelled (FRC, Tender 1, Scooter…). */
+  craft?: string;
+  /** For lubricating oils: grade (SAE 40, HV 46, …). */
+  grade?: string;
   /** Litres into each tank. */
   into: Record<string, number>;
   by: string;

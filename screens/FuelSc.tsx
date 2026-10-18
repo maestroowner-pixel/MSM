@@ -26,7 +26,7 @@ import { useSigner } from '../components/SignerChoice';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
-import { DEFAULT_TANKS, FuelBunker, FuelReading, FuelTank, FuelTransfer } from '../types/fuel';
+import { DEFAULT_TANKS, FuelBunker, FuelKind, FUEL_KIND_LABEL, FuelReading, FuelTank, FuelTransfer } from '../types/fuel';
 import { fuelMonth, orbBunkerLine, robTotal, transferText } from '../services/fuel';
 import { exportFuelExcel, exportFuelPdf } from '../services/fuelReport';
 import { todayIso } from '../services/pms';
@@ -49,13 +49,19 @@ type Panel = 'none' | 'bunker' | 'transfer' | 'tanks';
 export default function FuelSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { fuelTanks: tanks, fuelReadings, fuelBunkers, fuelTransfers, saveFuel, vessel, versionsOf } = useData();
+  const { fuelTanks: allTanks, fuelReadings, fuelBunkers, fuelTransfers, saveFuel, vessel, versionsOf } = useData();
   const sync = useSync();
   const isMaster = !sync.enrolled || sync.role === 'superadmin';
   const amend = useAmend();
   const allReadings = versionsOf(storage.FUEL_READINGS_KEY) as FuelReading[];
-  const allBunkers = versionsOf(storage.FUEL_BUNKERS_KEY) as FuelBunker[];
+  const allBunkersAll = versionsOf(storage.FUEL_BUNKERS_KEY) as FuelBunker[];
   const allTransfers = versionsOf(storage.FUEL_TRANSFERS_KEY) as FuelTransfer[];
+
+  const [kind, setKind] = React.useState<FuelKind>('diesel');
+  const tanks = useMemo(() => allTanks.filter((t) => (t.kind ?? 'diesel') === kind), [allTanks, kind]);
+  const allBunkers = useMemo(() => allBunkersAll.filter((b) => (b.kind ?? 'diesel') === kind), [allBunkersAll, kind]);
+  const kindBunkers = useMemo(() => fuelBunkers.filter((b) => (b.kind ?? 'diesel') === kind), [fuelBunkers, kind]);
+
   const tankFields = () => tanks.map((t) => ({ key: `tanks.${t.id}`, label: `${t.name}, litres`, kind: 'number' as const }));
   const editReading = (r: FuelReading) => amend.edit({ store: storage.FUEL_READINGS_KEY, record: r, what: `Fuel sounding ${formatDate(r.date)}`, fields: tankFields() });
   const removeReading = (r: FuelReading) => amend.remove({ store: storage.FUEL_READINGS_KEY, record: r, what: `Fuel sounding ${formatDate(r.date)}` });
@@ -69,7 +75,7 @@ export default function FuelSc() {
   const setView = (v: 'sounding' | 'daily') => nav.setParams({ view: v });
   const [saved, setSaved] = useState<string | null>(null);
 
-  const m = useMemo(() => fuelMonth(month, tanks, fuelReadings, fuelBunkers, fuelTransfers), [month, tanks, fuelReadings, fuelBunkers, fuelTransfers]);
+  const m = useMemo(() => fuelMonth(month, tanks, fuelReadings, kindBunkers, fuelTransfers), [month, tanks, fuelReadings, kindBunkers, fuelTransfers]);
   const todays = fuelReadings.find((r) => r.date === today);
   const [rob, setRob] = useState<Record<string, string>>({});
   const robValue = (t: FuelTank) => rob[t.id] ?? (todays?.tanks[t.id] != null ? String(todays.tanks[t.id]) : '');
@@ -88,7 +94,11 @@ export default function FuelSc() {
   };
 
   const setupTanks = async () => {
-    for (const t of DEFAULT_TANKS) await saveFuel('tank', { ...t, id: uid('tank') });
+    if (kind === 'diesel') {
+      for (const t of DEFAULT_TANKS) await saveFuel('tank', { ...t, id: uid('tank'), kind: 'diesel' });
+    } else {
+      await saveFuel('tank', { id: uid('tank'), name: `${FUEL_KIND_LABEL[kind]} — Tank 1`, order: 0, kind });
+    }
   };
 
   const saveSounding = async () => {
@@ -108,11 +118,11 @@ export default function FuelSc() {
   };
 
   // ---- bunkering form ----
-  const [bk, setBk] = useState({ port: '', supplier: '', litres: '', density: '', sulphur: '', bdn: '', note: '', into: {} as Record<string, string> });
+  const [bk, setBk] = useState({ port: '', supplier: '', litres: '', density: '', sulphur: '', bdn: '', note: '', into: {} as Record<string, string>, craft: '', grade: '' });
   const saveBunker = async () => {
     if (!signer) return needSigner();
     const litres = num(bk.litres);
-    if (!bk.port.trim() || !litres) return Alert.alert('Bunkering', 'Port and litres received are needed.');
+    if (!bk.port.trim() || !litres) return Alert.alert('Bunkering', 'Port/location and quantity are needed.');
     const into: Record<string, number> = {};
     for (const t of tanks) {
       const v = num(bk.into[t.id] ?? '');
@@ -121,18 +131,20 @@ export default function FuelSc() {
     if (!Object.keys(into).length && tanks.length === 1) into[tanks[0].id] = litres;
     const split = Object.values(into).reduce((a, b) => a + b, 0);
     if (Object.keys(into).length && Math.abs(split - litres) > 1) return Alert.alert('Bunkering', `The tanks add up to ${split} L, not ${litres} L.`);
-    const who = await by(`Bunkering — ${litres} L at ${bk.port.trim()}`);
+    const who = await by(`${FUEL_KIND_LABEL[kind]} — ${litres} L at ${bk.port.trim()}`);
     if (!who) return;
     const b: FuelBunker = {
-      id: uid('bunk'), date: today, time: hhmm(), port: bk.port.trim(), litres, into, ...who, updatedAt: Date.now(),
+      id: uid('bunk'), date: today, time: hhmm(), port: bk.port.trim(), litres, into, kind, ...who, updatedAt: Date.now(),
       ...(bk.supplier.trim() ? { supplier: bk.supplier.trim() } : {}),
-      ...(num(bk.density) ? { density: num(bk.density) } : {}),
-      ...(num(bk.sulphur) != null && bk.sulphur.trim() ? { sulphur: num(bk.sulphur) } : {}),
-      ...(bk.bdn.trim() ? { bdnNo: bk.bdn.trim() } : {}),
+      ...(kind === 'diesel' && num(bk.density) ? { density: num(bk.density) } : {}),
+      ...(kind === 'diesel' && num(bk.sulphur) != null && bk.sulphur.trim() ? { sulphur: num(bk.sulphur) } : {}),
+      ...(kind === 'diesel' && bk.bdn.trim() ? { bdnNo: bk.bdn.trim() } : {}),
+      ...(kind === 'petrol' && bk.craft.trim() ? { craft: bk.craft.trim() } : {}),
+      ...(kind === 'lube_oil' && bk.grade.trim() ? { grade: bk.grade.trim() } : {}),
       ...(bk.note.trim() ? { note: bk.note.trim() } : {}),
     };
     await saveFuel('bunker', b);
-    setBk({ port: '', supplier: '', litres: '', density: '', sulphur: '', bdn: '', note: '', into: {} });
+    setBk({ port: '', supplier: '', litres: '', density: '', sulphur: '', bdn: '', note: '', into: {}, craft: '', grade: '' });
     setPanel('none');
     playSuccessSound();
   };
@@ -161,13 +173,28 @@ export default function FuelSc() {
     }
   };
 
+  const kindChips = (
+    <View style={styles.views}>
+      {(Object.keys(FUEL_KIND_LABEL) as FuelKind[]).map((k) => (
+        <TouchableOpacity key={k} onPress={() => { setKind(k); setPanel('none'); }} style={[styles.viewChip, kind === k && { backgroundColor: COLORS.primary }]}>
+          <Text style={[styles.viewChipText, kind === k && { color: COLORS.textWhite }]}>{k === 'diesel' ? 'MGO' : k === 'petrol' ? 'Petrol' : k === 'freshwater' ? 'Water' : 'Oils'}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
   if (!tanks.length) {
+    const setupLabel = kind === 'diesel' ? 'Set up two diesel tanks' : `Add first ${FUEL_KIND_LABEL[kind]} tank`;
+    const hint = kind === 'diesel'
+      ? 'No diesel tanks yet. Start with port and starboard — rename, add or remove to match the vessel.'
+      : `No ${FUEL_KIND_LABEL[kind].toLowerCase()} tanks yet. Add one to start tracking.`;
     return (
       <Screen scroll>
-        <ScreenTitle title="Fuel" subtitle="Diesel — soundings, bunkering, consumption" help="Fuel" />
-        <Empty text="No tanks yet. Start with two — port and starboard — and rename, add or remove them to match the vessel." />
+        <ScreenTitle title="Fuel" subtitle={FUEL_KIND_LABEL[kind]} help="Fuel" />
+        {kindChips}
+        <Empty text={hint} />
         <TouchableOpacity style={[styles.btn, { alignSelf: 'center' }]} onPress={() => void setupTanks()}>
-          <Text style={styles.btnText}>Set up two tanks</Text>
+          <Text style={styles.btnText}>{setupLabel}</Text>
         </TouchableOpacity>
       </Screen>
     );
@@ -186,10 +213,11 @@ export default function FuelSc() {
       ))}
     </View>
   );
-  if (view === 'daily') {
+  if (view === 'daily' && kind === 'diesel') {
     return (
       <Screen scroll>
         <ScreenTitle title="Fuel — daily report" subtitle="The noon report: consumption over the last day, from the soundings" help="Fuel" />
+        {kindChips}
         {viewSwitch}
         <FuelDaily onSounding={() => setView('sounding')} />
       </Screen>
@@ -199,12 +227,13 @@ export default function FuelSc() {
   return (
     <Screen scroll>
       <ScreenTitle
-        title="Fuel — sounding"
-        subtitle="Diesel — soundings, bunkering, consumption"
+        title="Fuel"
+        subtitle={FUEL_KIND_LABEL[kind]}
         help="Fuel"
-        actions={<MonthPicker value={month} onChange={setMonth} months={[...new Set([...fuelReadings.map((r) => r.date.slice(0, 7)), ...fuelBunkers.map((b) => b.date.slice(0, 7))])]} />}
+        actions={<MonthPicker value={month} onChange={setMonth} months={[...new Set([...fuelReadings.map((r) => r.date.slice(0, 7)), ...kindBunkers.map((b) => b.date.slice(0, 7))])]} />}
       />
-      {viewSwitch}
+      {kindChips}
+      {kind === 'diesel' ? viewSwitch : null}
 
       {/* Today's sounding */}
       <Card>
@@ -281,23 +310,39 @@ export default function FuelSc() {
 
       {/* Bunkering, transfers, tanks */}
       <View style={styles.reportRow}>
-        <TouchableOpacity style={[styles.btnOutline, panel === 'bunker' && styles.btnOn]} onPress={() => setPanel(panel === 'bunker' ? 'none' : 'bunker')}><Text style={[styles.btnOutlineText, panel === 'bunker' && { color: COLORS.textWhite }]}>+ Bunkering</Text></TouchableOpacity>
-        <TouchableOpacity style={[styles.btnOutline, panel === 'transfer' && styles.btnOn]} onPress={() => setPanel(panel === 'transfer' ? 'none' : 'transfer')}><Text style={[styles.btnOutlineText, panel === 'transfer' && { color: COLORS.textWhite }]}>+ Transfer</Text></TouchableOpacity>
+        <TouchableOpacity style={[styles.btnOutline, panel === 'bunker' && styles.btnOn]} onPress={() => setPanel(panel === 'bunker' ? 'none' : 'bunker')}>
+          <Text style={[styles.btnOutlineText, panel === 'bunker' && { color: COLORS.textWhite }]}>
+            {kind === 'petrol' ? '+ Fuelling' : kind === 'freshwater' ? '+ Water delivery' : kind === 'lube_oil' ? '+ Oil delivery' : '+ Bunkering'}
+          </Text>
+        </TouchableOpacity>
+        {kind === 'diesel' ? (
+          <TouchableOpacity style={[styles.btnOutline, panel === 'transfer' && styles.btnOn]} onPress={() => setPanel(panel === 'transfer' ? 'none' : 'transfer')}><Text style={[styles.btnOutlineText, panel === 'transfer' && { color: COLORS.textWhite }]}>+ Transfer</Text></TouchableOpacity>
+        ) : null}
         <TouchableOpacity style={[styles.btnOutline, panel === 'tanks' && styles.btnOn]} onPress={() => setPanel(panel === 'tanks' ? 'none' : 'tanks')}><Text style={[styles.btnOutlineText, panel === 'tanks' && { color: COLORS.textWhite }]}>Tanks</Text></TouchableOpacity>
       </View>
 
       {panel === 'bunker' ? (
         <Card>
-          <Label>Bunkering — today</Label>
+          <Label>{kind === 'petrol' ? 'Fuelling — today' : kind === 'freshwater' ? 'Water delivery — today' : kind === 'lube_oil' ? 'Oil delivery — today' : 'Bunkering — today'}</Label>
           <View style={styles.pair}>
-            <TextInput style={[styles.input, { flex: 2 }]} value={bk.port} onChangeText={(v) => setBk({ ...bk, port: v })} placeholder="Port ★" placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { flex: 2 }]} value={bk.port} onChangeText={(v) => setBk({ ...bk, port: v })} placeholder={kind === 'lube_oil' ? 'Location ★' : 'Port ★'} placeholderTextColor={COLORS.textLight} />
             <TextInput style={[styles.input, { flex: 2 }]} value={bk.supplier} onChangeText={(v) => setBk({ ...bk, supplier: v })} placeholder="Supplier" placeholderTextColor={COLORS.textLight} />
           </View>
+          {kind === 'petrol' && (
+            <TextInput style={styles.input} value={bk.craft} onChangeText={(v) => setBk({ ...bk, craft: v })} placeholder="Craft (FRC / Tender 1 / Scooter…)" placeholderTextColor={COLORS.textLight} />
+          )}
+          {kind === 'lube_oil' && (
+            <TextInput style={styles.input} value={bk.grade} onChangeText={(v) => setBk({ ...bk, grade: v })} placeholder="Grade (SAE 40, HV 46, Shell Rimula…)" placeholderTextColor={COLORS.textLight} />
+          )}
           <View style={styles.pair}>
             <TextInput style={styles.input} value={bk.litres} onChangeText={(v) => setBk({ ...bk, litres: v })} placeholder="Litres ★" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
-            <TextInput style={styles.input} value={bk.density} onChangeText={(v) => setBk({ ...bk, density: v })} placeholder="Density kg/L" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
-            <TextInput style={styles.input} value={bk.sulphur} onChangeText={(v) => setBk({ ...bk, sulphur: v })} placeholder="Sulphur %" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
-            <TextInput style={styles.input} value={bk.bdn} onChangeText={(v) => setBk({ ...bk, bdn: v })} placeholder="BDN No." placeholderTextColor={COLORS.textLight} />
+            {kind === 'diesel' && (
+              <>
+                <TextInput style={styles.input} value={bk.density} onChangeText={(v) => setBk({ ...bk, density: v })} placeholder="Density kg/L" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
+                <TextInput style={styles.input} value={bk.sulphur} onChangeText={(v) => setBk({ ...bk, sulphur: v })} placeholder="Sulphur %" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
+                <TextInput style={styles.input} value={bk.bdn} onChangeText={(v) => setBk({ ...bk, bdn: v })} placeholder="BDN No." placeholderTextColor={COLORS.textLight} />
+              </>
+            )}
           </View>
           {tanks.length > 1 ? (
             <View style={styles.pair}>
@@ -307,7 +352,7 @@ export default function FuelSc() {
             </View>
           ) : null}
           <TextInput style={styles.input} value={bk.note} onChangeText={(v) => setBk({ ...bk, note: v })} placeholder="Note" placeholderTextColor={COLORS.textLight} />
-          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void saveBunker()}><Text style={styles.btnText}>Record bunkering</Text></TouchableOpacity>
+          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void saveBunker()}><Text style={styles.btnText}>Record</Text></TouchableOpacity>
         </Card>
       ) : null}
 
@@ -335,7 +380,7 @@ export default function FuelSc() {
               </TouchableOpacity>
             </View>
           ))}
-          <TouchableOpacity onPress={() => void saveFuel('tank', { id: uid('tank'), name: `Tank ${tanks.length + 1}`, order: tanks.length })}>
+          <TouchableOpacity onPress={() => void saveFuel('tank', { id: uid('tank'), name: `Tank ${tanks.length + 1}`, order: tanks.length, kind })}>
             <Text style={styles.link}>+ Add a tank</Text>
           </TouchableOpacity>
         </Card>
@@ -349,19 +394,23 @@ export default function FuelSc() {
       ))}
       {current(allBunkers).some((b) => b.date.startsWith(month)) ? (
         <>
-          <Label>Bunkering this month — Oil Record Book entries</Label>
+          <Label>{kind === 'diesel' ? 'Bunkering this month — Oil Record Book entries' : `${FUEL_KIND_LABEL[kind]} deliveries this month`}</Label>
           {current(allBunkers).filter((b) => b.date.startsWith(month)).sort((a, b) => a.date.localeCompare(b.date)).map((b) => (
             <View key={b.id} style={[styles.entry, { flexDirection: 'row', gap: SIZES.sm }]}>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.entryHead, b.cancelled && { textDecorationLine: 'line-through' }]}>{`${formatDate(b.date)} · ${nf(b.litres)} · ${b.port} · ${b.by}`}</Text>
-                <Text style={[styles.orb, b.cancelled && { textDecorationLine: 'line-through' }]} selectable>{orbBunkerLine(b, tanks)}</Text>
+                <Text style={[styles.entryHead, b.cancelled && { textDecorationLine: 'line-through' }]}>
+                  {`${formatDate(b.date)} · ${nf(b.litres)}${b.craft ? ` → ${b.craft}` : b.grade ? ` · ${b.grade}` : ''} · ${b.port} · ${b.by}`}
+                </Text>
+                {kind === 'diesel' ? (
+                  <Text style={[styles.orb, b.cancelled && { textDecorationLine: 'line-through' }]} selectable>{orbBunkerLine(b, tanks)}</Text>
+                ) : null}
                 <AmendNote rec={b} all={allBunkers} summary={(p) => `${formatDate(p.date)} · ${nf(p.litres)} · ${p.port} · ${p.by}`} />
               </View>
               {!b.cancelled ? (
                 <AmendButtons
                   isMaster={isMaster}
-                  onEdit={() => amend.edit({ store: storage.FUEL_BUNKERS_KEY, record: b, what: `Bunkering ${formatDate(b.date)} at ${b.port}`, fields: [{ key: 'port', label: 'Port' }, { key: 'supplier', label: 'Supplier' }, { key: 'litres', label: 'Litres received', kind: 'number' }, ...tanks.map((t) => ({ key: `into.${t.id}`, label: `Into ${t.name}, litres`, kind: 'number' as const })), { key: 'density', label: 'Density kg/L @15 °C', kind: 'number' }, { key: 'sulphur', label: 'Sulphur % m/m', kind: 'number' }, { key: 'bdnNo', label: 'BDN No.' }, { key: 'note', label: 'Note', kind: 'multiline' }] })}
-                  onDelete={() => amend.remove({ store: storage.FUEL_BUNKERS_KEY, record: b, what: `Bunkering ${formatDate(b.date)} at ${b.port}` })}
+                  onEdit={() => amend.edit({ store: storage.FUEL_BUNKERS_KEY, record: b, what: `${formatDate(b.date)} · ${nf(b.litres)} at ${b.port}`, fields: [{ key: 'port', label: 'Port / Location' }, { key: 'supplier', label: 'Supplier' }, { key: 'litres', label: 'Litres received', kind: 'number' }, ...tanks.map((t) => ({ key: `into.${t.id}`, label: `Into ${t.name}, litres`, kind: 'number' as const })), ...(kind === 'diesel' ? [{ key: 'density', label: 'Density kg/L @15 °C', kind: 'number' as const }, { key: 'sulphur', label: 'Sulphur % m/m', kind: 'number' as const }, { key: 'bdnNo', label: 'BDN No.' }] : []), ...(kind === 'petrol' ? [{ key: 'craft', label: 'Craft (FRC / Tender…)' }] : []), ...(kind === 'lube_oil' ? [{ key: 'grade', label: 'Grade' }] : []), { key: 'note', label: 'Note', kind: 'multiline' }] })}
+                  onDelete={() => amend.remove({ store: storage.FUEL_BUNKERS_KEY, record: b, what: `${formatDate(b.date)} at ${b.port}` })}
                 />
               ) : null}
             </View>
