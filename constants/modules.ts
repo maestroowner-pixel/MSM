@@ -84,7 +84,8 @@ export const MODULES: Record<ModuleKey, boolean> = {
    */
   security: true,
   /** Surveys & audits planner: class, flag, ISM audits, dry-dock — windows and next dates. */
-  surveys: false,
+  // Released 18 Oct 2026.
+  surveys: true,
   /** The Dashboard as the vessel's notice board across every module (the old list moves to its own screen). */
   board: false,
   /** Oil Record Book Part I (MARPOL Annex I, machinery spaces). */
@@ -117,9 +118,11 @@ export const MODULES: Record<ModuleKey, boolean> = {
   /** Security → Ship Security Plan: the SSP and its papers, officers only (15 Oct 2026). Needs `security`. */
   ssp: false,
   /** Inspection readiness — what PSC / flag / class would find on a date (services/readiness.ts). */
-  readiness: false,
+  // Released 18 Oct 2026.
+  readiness: true,
   /** Service report — a station's PDF into the register: dates, remarks, one certificate (services/serviceReport.ts, 16 Oct 2026). */
-  serviceReport: false,
+  // Released 18 Oct 2026.
+  serviceReport: true,
   /** Dynamic positioning — DP checklists, DPOs' DP time, the Nautical Institute confirmation letter (services/dp.ts, 16 Oct 2026). */
   dp: false,
   /**
