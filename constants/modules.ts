@@ -94,15 +94,18 @@ export const MODULES: Record<ModuleKey, boolean> = {
   /** Inspection rounds — shared weekly / monthly to-do lists (Jez, 11 Oct 2026). */
   rounds: true,
   /** QHSE: safety observation cards and non-conformities with corrective actions (NC / CAPA). */
-  qhse: false,
+  // Released 18 Oct 2026.
+  qhse: true,
   /** Drills — schedule, scenario minute by minute, attendance, theory briefing, reports (13 Oct 2026). */
-  drills: false,
+  // Released 18 Oct 2026.
+  drills: true,
   /** Hospital — medicine chest with expiry, medical log (officers only), controlled drugs register (13 Oct 2026). */
   hospital: false,
   /** Passengers — the guests aboard, their documents (officers only), and their crossings at the gangway (13 Oct 2026). */
   passengers: false,
   /** Monthly safety meeting — agenda, attendance signed line by line, actions carried forward (13 Oct 2026). */
-  meetings: false,
+  // Released 18 Oct 2026.
+  meetings: true,
   /** Stores — the PPE store (issued to crew, signed for) and the provision store (best-before), with minimums (14 Oct 2026). */
   stores: false,
   /** AI — smart import of any list, the round by voice and photo, questions to the vessel's data (functions/ai.js, 14 Oct 2026). */
