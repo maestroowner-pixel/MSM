@@ -74,7 +74,8 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * Accounts. Needs the functions and rules DEPLOYED (enrolShore, refreshShore,
    * shoreSaveCertificate) before it can be switched on.
    */
-  fleet: false,
+  // Released 18 Oct 2026 — functions deployed first.
+  fleet: true,
   /** Permits to work and risk assessments — the Permits tab. */
   // Released 18 Oct 2026.
   ptw: true,
