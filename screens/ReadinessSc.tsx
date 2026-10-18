@@ -24,7 +24,7 @@ import { todayIso } from '../services/pms';
 import { KIND_LABEL, ReadinessKind, buildReadiness, verdict } from '../services/readiness';
 import { buildCalendar, ICS_REMIND_DAYS } from '../services/calendarIcs';
 import { exportCalendarIcs, exportReadinessPdf } from '../services/readinessReport';
-import { INSPECT_LINK_BASE, readInspectLink, revokeInspectLink, saveInspectLink } from '../services/firebaseService';
+import { ICS_BASE_URL, INSPECT_LINK_BASE, readIcsLink, readInspectLink, revokeIcsLink, revokeInspectLink, saveIcsLink, saveInspectLink } from '../services/firebaseService';
 
 const addDays = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
 const SOON = [0, 7, 14, 30];
@@ -75,6 +75,34 @@ export default function ReadinessSc() {
       { text: 'Revoke', style: 'destructive', onPress: async () => { await revokeInspectLink(imo); setInspectLink(null); } },
     ]);
   };
+
+  // Calendar subscription (webcal://) — ICS live feed.
+  const [icsToken, setIcsToken] = useState<string | null | 'loading'>(sync.enrolled && isMaster ? 'loading' : null);
+  const [icsOpen, setIcsOpen] = useState(false);
+  useEffect(() => {
+    if (!sync.enrolled || !isMaster) return;
+    const imo = data.vessel?.imo?.replace(/\D/g, '') ?? '';
+    if (!imo) { setIcsToken(null); return; }
+    readIcsLink(imo).then(setIcsToken).catch(() => setIcsToken(null));
+  }, [sync.enrolled, isMaster]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const generateIcsLink = async () => {
+    const imo = data.vessel?.imo?.replace(/\D/g, '') ?? '';
+    if (!imo) return Alert.alert('IMO not set', 'Set the vessel IMO in Settings first.');
+    const token = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    await saveIcsLink(imo, token);
+    setIcsToken(token);
+  };
+
+  const revokeIcs = () => {
+    const imo = data.vessel?.imo?.replace(/\D/g, '') ?? '';
+    if (!imo) return;
+    Alert.alert('Revoke calendar', 'Calendar apps that subscribed will stop receiving updates.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Revoke', style: 'destructive', onPress: async () => { await revokeIcsLink(imo); setIcsToken(null); } },
+    ]);
+  };
+
   const when = date < today ? today : date;
 
   const r = useMemo(
@@ -197,6 +225,42 @@ export default function ReadinessSc() {
                 </View>
                 <TouchableOpacity style={styles.genBtn} onPress={() => void generateInspectLink()}>
                   <Text style={styles.genBtnText}>Generate link</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          ) : null}
+        </View>
+      ) : null}
+
+      {isMaster && sync.enrolled ? (
+        <View style={styles.inspectBox}>
+          <TouchableOpacity style={styles.handover} onPress={() => setIcsOpen((v) => !v)} activeOpacity={0.7}>
+            <MciIcon name="calendar-sync-outline" size={18} color={COLORS.primary} />
+            <Text style={styles.handoverText}>Calendar subscription (webcal)</Text>
+            <MciIcon name={icsOpen ? 'chevron-up' : 'chevron-down'} size={18} color={COLORS.primary} />
+          </TouchableOpacity>
+          {icsOpen ? (
+            icsToken && icsToken !== 'loading' ? (
+              <View style={{ gap: SIZES.xs }}>
+                <Text style={styles.sub}>Subscribe in iOS Calendar, Google or Outlook — it updates automatically every 12 hours.</Text>
+                <Text style={[styles.sub, { fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 11 }]} numberOfLines={3} selectable>{`${ICS_BASE_URL}${icsToken}`}</Text>
+                <View style={{ flexDirection: 'row', gap: SIZES.md, marginTop: SIZES.xs, flexWrap: 'wrap' }}>
+                  <TouchableOpacity onPress={() => { Clipboard.setString(`webcal://${ICS_BASE_URL.replace('https://', '')}${icsToken}`); setSaved('webcal:// link copied'); }} hitSlop={8}>
+                    <Text style={styles.action}>Copy webcal://</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => { Clipboard.setString(`${ICS_BASE_URL}${icsToken}`); setSaved('https:// link copied'); }} hitSlop={8}>
+                    <Text style={styles.action}>Copy https://</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={revokeIcs} hitSlop={8}>
+                    <Text style={[styles.action, { color: COLORS.danger }]}>Revoke</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <View style={{ gap: SIZES.xs }}>
+                <Text style={styles.sub}>A permanent live link — equipment due dates, vessel certificates and drills, 12 months ahead. Add it once and your calendar stays in sync.</Text>
+                <TouchableOpacity style={styles.genBtn} onPress={() => void generateIcsLink()}>
+                  <Text style={styles.genBtnText}>Generate calendar link</Text>
                 </TouchableOpacity>
               </View>
             )

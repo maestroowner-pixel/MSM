@@ -1814,6 +1814,7 @@ export async function saveObsToken(uid: string, token: string, vesselName: strin
 }
 
 export const INSPECT_LINK_BASE = 'https://europe-west1-marine-safety-manager.cloudfunctions.net/inspectView?t=';
+export const ICS_BASE_URL = 'https://europe-west1-marine-safety-manager.cloudfunctions.net/icsCalendar?t=';
 
 export async function readInspectLink(imo: string): Promise<{ token: string; expiry: number } | null> {
   if (!syncSupported()) return null;
@@ -1831,6 +1832,22 @@ export async function saveInspectLink(imo: string, token: string, expiry: number
 
 export async function revokeInspectLink(imo: string): Promise<void> {
   await fsSetDoc(accountDoc(imo), { inspectToken: null, inspectTokenExpiry: null }, { merge: true });
+}
+
+export async function readIcsLink(imo: string): Promise<string | null> {
+  if (!syncSupported()) return null;
+  const snap = await fsGetDoc(accountDoc(imo));
+  if (!snap.exists()) return null;
+  const d = snap.data() as any;
+  return typeof d.icsToken === 'string' && d.icsToken ? (d.icsToken as string) : null;
+}
+
+export async function saveIcsLink(imo: string, token: string): Promise<void> {
+  await fsSetDoc(accountDoc(imo), { icsToken: token }, { merge: true });
+}
+
+export async function revokeIcsLink(imo: string): Promise<void> {
+  await fsSetDoc(accountDoc(imo), { icsToken: null }, { merge: true });
 }
 
 /** Watch it, so the sweep's own stamp and another officer's mark arrive here. */
