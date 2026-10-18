@@ -205,7 +205,7 @@ function MenuList({
   const [openParents, setOpenParents] = useState<string[]>(MENU_CHILDREN[current] ? [current] : []);
   const toggle = (r: string) => setOpenParents((o) => (o.includes(r) ? o.filter((x) => x !== r) : [...o, r]));
   return (
-    <ScrollView contentContainerStyle={{ paddingTop: insets.top + SIZES.md, paddingBottom: SIZES.xl }}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: insets.top + SIZES.md, paddingBottom: SIZES.xl }}>
       <View style={styles.menuHead}>
         <Text style={styles.menuTitle}>ISMpilot</Text>
         <View style={{ flexDirection: 'row', gap: SIZES.md }}>
@@ -303,7 +303,7 @@ const makeStyles = (COLORS: Palette) =>
     },
     barItem: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
     barLabel: { fontSize: SIZES.tiny, fontWeight: '600' },
-    drawer: { width: MENU_WIDTH + 24, maxWidth: '85%', backgroundColor: COLORS.cardSolid, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 16, elevation: 12 },
+    drawer: { width: MENU_WIDTH + 24, maxWidth: '85%', alignSelf: 'stretch', backgroundColor: COLORS.cardSolid, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 16, elevation: 12 },
     scrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
     menuHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SIZES.lg, marginBottom: SIZES.sm },
     menuTitle: { fontSize: SIZES.h4, fontWeight: '800', color: COLORS.textDark },
