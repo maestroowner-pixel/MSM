@@ -61,7 +61,7 @@ export default function PmsJobSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { pmsJobs, pmsDone, machines, crew, spares, spareMoves, savePmsJob, saveMachine, completePmsJob, pmsDeferrals, appendRow, saveRow, vessel, permits, docs, docAcks, pmsProjects } = useData();
+  const { pmsJobs, pmsDone, pmsDefects, machines, crew, spares, spareMoves, savePmsJob, saveMachine, completePmsJob, pmsDeferrals, appendRow, saveRow, vessel, permits, docs, docAcks, pmsProjects } = useData();
   // Evidence at closure, and a defect found doing the job (ISM 10.1).
   const [donePhotos, setDonePhotos] = useState<Attachment[]>([]);
   const [defect, setDefect] = useState<{ category: DefectCategory; description: string } | null>(null);
@@ -122,6 +122,7 @@ export default function PmsJobSc() {
   const signer = me ? { name: me, rank: meRank } : people.find((p) => p.id === signerId);
 
   const deferral = existing ? activeDeferral(existing, pmsDeferrals) : undefined;
+  const linkedDefect = draft.defectId ? pmsDefects.find((d) => d.id === draft.defectId) : undefined;
   // What the job needs before it is signed out: its permit, its documents read by the signer.
   const signerKey = me && sync.me ? `device:${sync.me.id}` : signerId;
   const gate = existing && !unplanned
@@ -359,6 +360,11 @@ export default function PmsJobSc() {
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
           <Text style={styles.machine}>{machine?.name ?? 'Machine'}</Text>
           {machine?.critical ? <Text style={styles.critical}>CRITICAL EQUIPMENT</Text> : null}
+          {linkedDefect ? (
+            <TouchableOpacity onPress={() => nav.navigate('PmsDefect', { id: linkedDefect.id })} hitSlop={8} style={{ marginBottom: SIZES.xs }}>
+              <Text style={[styles.sub, { color: COLORS.warning, fontWeight: '700' }]}>{`Corrective job · ${DEFECT_CATEGORY[linkedDefect.category]} defect ${linkedDefect.date.split('-').reverse().join('.')}: ${linkedDefect.description}`}</Text>
+            </TouchableOpacity>
+          ) : null}
           {!isNew ? (
             <View style={styles.dueRow}>
               {due.status !== 'none' ? <StatusPill status={due.status} /> : null}
