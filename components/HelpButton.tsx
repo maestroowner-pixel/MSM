@@ -11,7 +11,7 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { Platform, View, Text, StyleSheet, Pressable, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { MciIcon } from './MciIcon';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
@@ -36,9 +36,9 @@ export function HelpButton({ section }: { section: HelpSection }) {
 
   return (
     <>
-      <TouchableOpacity style={styles.btn} onPress={() => setOpen(true)} hitSlop={10} accessibilityLabel="Help">
-        <MciIcon name="help-circle-outline" size={24} color={COLORS.primary} />
-      </TouchableOpacity>
+      <Pressable style={({ hovered }: any) => [styles.btn, hovered && styles.btnHover]} onPress={() => setOpen(true)} accessibilityLabel="Help">
+        <MciIcon name="help-circle-outline" size={20} color={COLORS.primary} />
+      </Pressable>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setOpen(false)}>
@@ -71,7 +71,14 @@ export function HelpButton({ section }: { section: HelpSection }) {
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
-    btn: { padding: 2 },
+    btn: {
+      width: 38, height: 38, borderRadius: SIZES.radiusMd,
+      alignItems: 'center', justifyContent: 'center',
+      backgroundColor: COLORS.cardSolid, borderWidth: 1, borderColor: COLORS.border,
+      marginLeft: SIZES.sm,
+      ...(Platform.OS === 'web' ? ({ transitionProperty: 'transform', transitionDuration: '150ms', transformOrigin: 'top right' } as any) : {}),
+    },
+    btnHover: { transform: [{ scale: 2 }], zIndex: 10 },
     backdrop: {
       flex: 1,
       backgroundColor: 'rgba(0,0,0,0.55)',

@@ -226,6 +226,7 @@ export function ScreenTitle({
   help,
   onScan,
   onLabels,
+  onAsk,
   actions,
 }: {
   title: string;
@@ -235,6 +236,8 @@ export function ScreenTitle({
   /** Batch QR-label printing — the other half of the scan button, on the
    *  Categories tab only: labels are printed a deck at a time, scanned one at a time. */
   onLabels?: () => void;
+  /** Ask ISMpilot — AI questions answered from the vessel's records. */
+  onAsk?: () => void;
   /** Small controls placed BEFORE the help button — see Settings' theme picker. */
   actions?: React.ReactNode;
 }) {
@@ -249,6 +252,11 @@ export function ScreenTitle({
       </View>
       {actions}
       {help !== undefined ? <HelpButton section={help} /> : null}
+      {onAsk ? (
+        <Pressable style={({ hovered }: any) => [styles.scanBtn, hovered && styles.scanBtnHover]} onPress={onAsk} hitSlop={10} accessibilityLabel="Ask ISMpilot">
+          <MciIcon name="creation" size={20} color={c.primary} />
+        </Pressable>
+      ) : null}
       {onLabels ? (
         <Pressable style={({ hovered }: any) => [styles.scanBtn, hovered && styles.scanBtnHover]} onPress={onLabels} hitSlop={10} accessibilityLabel="Print QR labels">
           <MciIcon name="tag-multiple-outline" size={18} color={c.primary} />

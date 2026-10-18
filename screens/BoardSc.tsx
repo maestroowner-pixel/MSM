@@ -187,19 +187,9 @@ export default function BoardSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Board" subtitle={statusBits.length ? statusBits.join(' · ') : 'The vessel at a glance'} help="Board" onScan={() => nav.navigate('Scan')} />
+      <ScreenTitle title="Board" subtitle={statusBits.length ? statusBits.join(' · ') : 'The vessel at a glance'} help="Board" onScan={() => nav.navigate('Scan')} onAsk={aiReady(sync.enrolled) ? () => go('Ask') : undefined} />
       <TrialBanner />
       <MasterPinBanner />
-      {aiReady(sync.enrolled) ? (
-        <TouchableOpacity style={[styles.block, { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, paddingVertical: SIZES.sm }]} onPress={() => go('Ask')} activeOpacity={0.8} accessibilityLabel="Ask ISMpilot">
-          <MciIcon name="creation" size={22} color={COLORS.primary} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.noticeText}>Ask ISMpilot</Text>
-            <Text style={styles.sub}>“What expires next month?” “When was the last enclosed space drill?” — answered from the vessel's records</Text>
-          </View>
-          <MciIcon name="chevron-right" size={18} color={COLORS.textLight} />
-        </TouchableOpacity>
-      ) : null}
       {wide ? (
         <View style={{ flexDirection: 'row', gap: SIZES.lg, alignItems: 'flex-start' }}>
           {/* Sections first, what needs attention under them; Today and the Plan on the right (11 Oct 2026). */}
