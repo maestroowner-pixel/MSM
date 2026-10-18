@@ -52,18 +52,23 @@ export const MODULES: Record<ModuleKey, boolean> = {
   // Released for all vessels 18 Oct 2026.
   rest: true,
   /** Planned maintenance by running hours — the PMS tab and Dashboard strip. */
-  pms: false,
+  // Released 18 Oct 2026.
+  pms: true,
   /** Settings → Access: the Master's tabs-per-device matrix. */
-  access: false,
+  // Released 18 Oct 2026.
+  access: true,
   /** Spare parts stores — the Spares tab; parts used by PMS jobs. */
-  spares: false,
+  // Released 18 Oct 2026.
+  spares: true,
   /**
    * Confirmed signatures — fingerprint / face / signing PIN. Needs a STORE BUILD
    * with expo-local-authentication for biometrics; the PIN works on any build.
    */
-  signConfirm: false,
+  // Released 18 Oct 2026 (PIN on all builds; biometrics on store builds).
+  signConfirm: true,
   /** ISM documents with read-and-sign — the Docs tab. */
-  docs: false,
+  // Released 18 Oct 2026.
+  docs: true,
   /**
    * Fleet console for superintendents (shore accounts) and the `shore` role in
    * Accounts. Needs the functions and rules DEPLOYED (enrolShore, refreshShore,
@@ -71,13 +76,16 @@ export const MODULES: Record<ModuleKey, boolean> = {
    */
   fleet: false,
   /** Permits to work and risk assessments — the Permits tab. */
-  ptw: false,
+  // Released 18 Oct 2026.
+  ptw: true,
   /** Fuel: tanks, daily soundings, bunkerings, transfers, monthly report. */
   fuel: true,
   /** Garbage Record Book (MARPOL Annex V, Part I). */
-  garbage: false,
+  // Released 18 Oct 2026.
+  garbage: true,
   /** SOPEP locker inventory, checks and oil-spill drills. */
-  sopep: false,
+  // Released 18 Oct 2026.
+  sopep: true,
   /**
    * Security (ISPS): gangway visitor log and the security level. On for everyone
    * (14 Oct 2026: "do it for all — for now it is one vessel", DreamBoat's trial).
@@ -87,13 +95,17 @@ export const MODULES: Record<ModuleKey, boolean> = {
   // Released 18 Oct 2026.
   surveys: true,
   /** The Dashboard as the vessel's notice board across every module (the old list moves to its own screen). */
-  board: false,
+  // Released 18 Oct 2026.
+  board: true,
   /** Oil Record Book Part I (MARPOL Annex I, machinery spaces). */
-  orb: false,
+  // Released 18 Oct 2026.
+  orb: true,
   /** Sewage record (MARPOL Annex IV). */
-  sewage: false,
+  // Released 18 Oct 2026.
+  sewage: true,
   /** Ballast Water Record Book (BWM Convention). */
-  ballast: false,
+  // Released 18 Oct 2026.
+  ballast: true,
   /** Inspection rounds — shared weekly / monthly to-do lists (Jez, 11 Oct 2026). */
   rounds: true,
   /** QHSE: safety observation cards and non-conformities with corrective actions (NC / CAPA). */
@@ -103,20 +115,26 @@ export const MODULES: Record<ModuleKey, boolean> = {
   // Released 18 Oct 2026.
   drills: true,
   /** Hospital — medicine chest with expiry, medical log (officers only), controlled drugs register (13 Oct 2026). */
-  hospital: false,
+  // Released 18 Oct 2026.
+  hospital: true,
   /** Passengers — the guests aboard, their documents (officers only), and their crossings at the gangway (13 Oct 2026). */
-  passengers: false,
+  // Released 18 Oct 2026.
+  passengers: true,
   /** Monthly safety meeting — agenda, attendance signed line by line, actions carried forward (13 Oct 2026). */
   // Released 18 Oct 2026.
   meetings: true,
   /** Stores — the PPE store (issued to crew, signed for) and the provision store (best-before), with minimums (14 Oct 2026). */
-  stores: false,
+  // Released 18 Oct 2026.
+  stores: true,
   /** AI — smart import of any list, the round by voice and photo, questions to the vessel's data (functions/ai.js, 14 Oct 2026). */
-  ai: false,
+  // Released 18 Oct 2026.
+  ai: true,
   /** Security → Searches: stowaway and bomb searches, area by area, by team (15 Oct 2026). Needs `security`. */
-  searches: false,
+  // Released 18 Oct 2026.
+  searches: true,
   /** Security → Ship Security Plan: the SSP and its papers, officers only (15 Oct 2026). Needs `security`. */
-  ssp: false,
+  // Released 18 Oct 2026.
+  ssp: true,
   /** Inspection readiness — what PSC / flag / class would find on a date (services/readiness.ts). */
   // Released 18 Oct 2026.
   readiness: true,
@@ -124,7 +142,8 @@ export const MODULES: Record<ModuleKey, boolean> = {
   // Released 18 Oct 2026.
   serviceReport: true,
   /** Dynamic positioning — DP checklists, DPOs' DP time, the Nautical Institute confirmation letter (services/dp.ts, 16 Oct 2026). */
-  dp: false,
+  // Released 18 Oct 2026.
+  dp: true,
   /**
    * The DP checklist editor and the AI reading of a vessel's paper form — ours,
    * not the vessel's (17 Oct 2026: "nobody aboard will do this"). ISMpilot sets
@@ -133,11 +152,14 @@ export const MODULES: Record<ModuleKey, boolean> = {
    */
   dpEditor: false,
   /** Security rounds — QR checkpoints, opening / daytime / closing rounds, daily and monthly reports (Jez, 17 Oct 2026). Needs `security`. */
-  patrols: false,
+  // Released 18 Oct 2026.
+  patrols: true,
   /** Key register — keys with QR tags, signed out and back, who holds what (Jez, 17 Oct 2026). Needs `security`. */
-  keys: false,
+  // Released 18 Oct 2026.
+  keys: true,
   /** Bridge and engine checklists — watch handover (STCW A-VIII/2) first, on the DP checklist engine (17 Oct 2026). */
-  watchChecks: false,
+  // Released 18 Oct 2026.
+  watchChecks: true,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------
