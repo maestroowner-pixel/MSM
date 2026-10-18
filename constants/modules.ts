@@ -46,9 +46,11 @@ export const MODULES: Record<ModuleKey, boolean> = {
 
   /** Crew and vessel certificates — the Crew / Vessel tabs on Certificates. */
   // Released in 2.59 (9 Oct 2026) with Hours of rest — rules deployed first.
-  crewCerts: false,
+  // Released for all vessels 18 Oct 2026.
+  crewCerts: true,
   /** Hours of rest (MLC / STCW) — the Rest tab. */
-  rest: false,
+  // Released for all vessels 18 Oct 2026.
+  rest: true,
   /** Planned maintenance by running hours — the PMS tab and Dashboard strip. */
   pms: false,
   /** Settings → Access: the Master's tabs-per-device matrix. */
