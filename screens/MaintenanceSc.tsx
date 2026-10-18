@@ -209,6 +209,9 @@ export default function MaintenanceSc() {
       <TouchableOpacity onPress={() => nav.navigate('PmsProjects')} style={{ alignSelf: 'flex-start', marginBottom: SIZES.sm }}>
         <Text style={[styles.repBtnText, { color: COLORS.primary }]}>{`Projects — yard / dry dock${pmsProjects.filter((p) => !p.closedAt).length ? ` (${pmsProjects.filter((p) => !p.closedAt).length})` : ''} ›`}</Text>
       </TouchableOpacity>
+      <TouchableOpacity onPress={() => nav.navigate('WatchLog')} style={{ alignSelf: 'flex-start', marginBottom: SIZES.sm }}>
+        <Text style={[styles.repBtnText, { color: COLORS.primary }]}>Engine room log ›</Text>
+      </TouchableOpacity>
       {saved ? <Text style={{ color: COLORS.success, fontWeight: '700', fontSize: SIZES.small, marginBottom: SIZES.sm }}>{`✓ ${saved}`}</Text> : null}
 
       <Card>

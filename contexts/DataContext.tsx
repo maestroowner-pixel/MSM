@@ -34,6 +34,7 @@ import { SearchPlan, SecuritySearch } from '../types/searches';
 import { Checkpoint, Patrol, PatrolPlan } from '../types/patrols';
 import { KeyItem, KeyMove } from '../types/keys';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
+import { WatchEntry, WatchTemplate } from '../types/watchLog';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
 import { ChecklistTemplate } from '../constants/checklists';
@@ -88,6 +89,10 @@ interface DataContextType {
   pmsDefects: PmsDefect[];
   /** Projects — yard periods, dry docks — jobs are deferred to. */
   pmsProjects: PmsProject[];
+  /** Engine-room round templates (backlog #9). */
+  watchTemplates: WatchTemplate[];
+  /** Signed engine-room round entries — append-only. */
+  watchLog: WatchEntry[];
   saveMachine: (m: Machine) => Promise<void>;
   savePmsJob: (j: PmsJob) => Promise<void>;
   /** Many systems and jobs at once — a plan loaded from the template; read back once. */
@@ -265,6 +270,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [pmsDeferrals, setPmsDeferrals] = useState<PmsDeferral[]>([]);
   const [pmsDefects, setPmsDefects] = useState<PmsDefect[]>([]);
   const [pmsProjects, setPmsProjects] = useState<PmsProject[]>([]);
+  const [watchTemplates, setWatchTemplates] = useState<WatchTemplate[]>([]);
+  const [watchLog, setWatchLog] = useState<WatchEntry[]>([]);
   const [spares, setSpares] = useState<SparePart[]>([]);
   const [spareMoves, setSpareMoves] = useState<SpareMove[]>([]);
   const [docs, setDocs] = useState<IsmDoc[]>([]);
@@ -370,6 +377,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _pmsDeferrals = await storage.loadList<PmsDeferral>(storage.PMS_DEFERRALS_KEY);
     const _pmsDefects = await storage.loadList<PmsDefect>(storage.PMS_DEFECTS_KEY);
     const _pmsProjects = (await storage.loadList<PmsProject>(storage.PMS_PROJECTS_KEY)).filter((x) => !x.deleted);
+    const _watchTemplates = (await storage.loadList<WatchTemplate>(storage.WATCH_TEMPLATES_KEY)).filter((x) => !x.deleted);
+    const _watchLog = await storage.loadList<WatchEntry>(storage.WATCH_LOG_KEY);
     const _spares = (await storage.loadList<SparePart>(storage.SPARES_KEY)).filter((p) => !p.deleted);
     const _spareMoves = await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY);
     const _docs = (await storage.loadList<IsmDoc>(storage.DOCS_KEY)).filter((d) => !d.deleted);
@@ -446,6 +455,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setPmsDeferrals(_pmsDeferrals);
     setPmsDefects(_pmsDefects);
     setPmsProjects(_pmsProjects);
+    setWatchTemplates(_watchTemplates);
+    setWatchLog(_watchLog);
     setSpares(_spares);
     setSpareMoves(_spareMoves);
     setDocs(_docs);
@@ -669,6 +680,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _pmsDeferrals = await storage.loadList<PmsDeferral>(storage.PMS_DEFERRALS_KEY);
     const _pmsDefects = await storage.loadList<PmsDefect>(storage.PMS_DEFECTS_KEY);
     const _pmsProjects = (await storage.loadList<PmsProject>(storage.PMS_PROJECTS_KEY)).filter((x) => !x.deleted);
+    const _watchTemplates = (await storage.loadList<WatchTemplate>(storage.WATCH_TEMPLATES_KEY)).filter((x) => !x.deleted);
+    const _watchLog = await storage.loadList<WatchEntry>(storage.WATCH_LOG_KEY);
     const _spares = (await storage.loadList<SparePart>(storage.SPARES_KEY)).filter((p) => !p.deleted);
     const _spareMoves = await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY);
     const _docs = (await storage.loadList<IsmDoc>(storage.DOCS_KEY)).filter((d) => !d.deleted);
@@ -736,6 +749,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setPmsDeferrals(_pmsDeferrals);
     setPmsDefects(_pmsDefects);
     setPmsProjects(_pmsProjects);
+    setWatchTemplates(_watchTemplates);
+    setWatchLog(_watchLog);
     setSpares(_spares);
     setSpareMoves(_spareMoves);
     setDocs(_docs);
@@ -1010,6 +1025,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         pmsDeferrals,
         pmsDefects,
         pmsProjects,
+        watchTemplates,
+        watchLog,
         saveMachine,
         savePmsJob,
         savePlan,

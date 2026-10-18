@@ -93,6 +93,9 @@ export const SIGNING_POLICY_KEY = `${PREFIX}signing_policy`;
 export const PHOTO_ARCHIVE_KEY = `${PREFIX}photo_archive`;
 /** Modules switched on for THIS vessel only (constants/modules `setVesselModules`), as last seen. */
 export const VESSEL_MODULES_KEY = `${PREFIX}vessel_modules`;
+/** Engine-room rounds template and signed entries (backlog #9, Oct 2026). */
+export const WATCH_TEMPLATES_KEY = `${PREFIX}watch_templates`;
+export const WATCH_LOG_KEY = `${PREFIX}watch_log`;
 export const TEMPLATES_KEY = `${PREFIX}templates`;
 export const CATEGORIES_KEY = `${PREFIX}categories`;
 /**

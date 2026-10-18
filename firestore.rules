@@ -227,6 +227,18 @@ service cloud.firestore {
         allow create, update: if plans(v);
         allow delete: if false;
       }
+      // Engine-room round template — Officers and Master edit it; everyone reads.
+      match /watch_templates/{id} {
+        allow read: if reader(v);
+        allow create, update: if isAdmin(v);
+        allow delete: if false;
+      }
+      // Engine-room round entries — any member signs one; immutable once written.
+      match /watch_log/{id} {
+        allow read: if reader(v);
+        allow create: if member(v);
+        allow update, delete: if false;
+      }
       // A job deferred — the Master's decision, signed, kept.
       match /pms_deferrals/{id} {
         allow read: if reader(v);
