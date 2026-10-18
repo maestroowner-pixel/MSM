@@ -1,0 +1,412 @@
+// ===================================
+// Landing Report — create / view (#27, Oct 2026)
+//
+// Creates a handover document when equipment is sent ashore for service or
+// returned aboard. Each item in the report gets a movement record; the report
+// itself can be printed as a PDF with per-item QR codes.
+// ===================================
+
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
+  Alert, ActivityIndicator, FlatList, Modal,
+} from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { SIZES } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import { BackButton, ScreenTitle, Label } from '../components/ui';
+import { useData } from '../contexts/DataContext';
+import { useSync } from '../contexts/SyncContext';
+import { roleAtLeast } from '../types/role';
+import { uid } from '../utils/id';
+import { formatDate } from '../utils/dates';
+import { signatureLine } from '../types/crew';
+import { useSigner, Signer } from '../components/SignerChoice';
+import { useSignConfirm, SignResult } from '../components/SignConfirm';
+import { ItemMovement, LandingReport, MovementDir, nextLandingNo, MOVEMENT_DIR_LABEL } from '../types/movement';
+import { EquipmentItem } from '../types/equipment';
+import { CATEGORY_MAP } from '../constants/categories';
+import { readInspectLink } from '../services/firebaseService';
+import { printLandingReport } from '../services/landingReport';
+import SimpleDatePicker from '../components/SimpleDatePicker';
+
+export default function LandingReportSc() {
+  const nav = useNavigation<any>();
+  const route = useRoute<any>();
+  const COLORS = useTheme();
+  const { landings, itemMovements, saveLanding, flat, vessel } = useData();
+  const sync = useSync();
+  const canEdit = !sync.enrolled || roleAtLeast(sync.role, 'admin');
+
+  const reportId: string = route.params?.id ?? 'new';
+  const isNew = reportId === 'new';
+
+  const existing = isNew ? null : landings.find((r) => r.id === reportId) ?? null;
+
+  const [dir, setDir] = useState<'out' | 'in'>(existing?.dir ?? 'out');
+  const [date, setDate] = useState(existing?.date ?? new Date().toISOString().slice(0, 10));
+  const [port, setPort] = useState(existing?.port ?? '');
+  const [to, setTo] = useState(existing?.to ?? '');
+  const [notes, setNotes] = useState(existing?.notes ?? '');
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
+  const [itemReasons, setItemReasons] = useState<Record<string, string>>({});
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const [inspectToken, setInspectToken] = useState<string | null>(null);
+
+  const signer = useSigner();
+  const confirmSign = useSignConfirm();
+
+  const imo = vessel?.imo?.replace(/\D/g, '') ?? '';
+  const vesselName = vessel?.vessel_name ?? `IMO ${imo}`;
+
+  useEffect(() => {
+    if (imo) readInspectLink(imo).then((t) => setInspectToken(t?.token ?? null)).catch(() => {});
+  }, [imo]);
+
+  // For an existing report, pre-load its movements.
+  useEffect(() => {
+    if (existing) {
+      const movIds = new Set(existing.movementIds);
+      const myMovs = itemMovements.filter((m) => movIds.has(m.id));
+      const ids = new Set(myMovs.map((m) => m.itemId));
+      setSelectedItemIds(ids);
+      const reasons: Record<string, string> = {};
+      myMovs.forEach((m) => { reasons[m.itemId] = m.reason ?? ''; });
+      setItemReasons(reasons);
+    }
+  }, [existing]);
+
+  const itemsById = useMemo(() => {
+    const map = new Map<string, EquipmentItem>();
+    flat.forEach((it) => map.set(it.id, it));
+    return map;
+  }, [flat]);
+
+  // Items currently aboard (or ashore, depending on direction).
+  const candidateItems = useMemo(() => {
+    const ashore = new Set(
+      itemMovements
+        .filter((m) => !m.deleted)
+        .reduce((acc, m) => {
+          if (m.dir === 'ashore') acc.add(m.itemId);
+          if (m.dir === 'return') acc.delete(m.itemId);
+          if (m.dir === 'condemned') acc.add(m.itemId);
+          return acc;
+        }, new Set<string>())
+    );
+    return flat.filter((it) => dir === 'out' ? !ashore.has(it.id) : ashore.has(it.id));
+  }, [flat, itemMovements, dir]);
+
+  const toggleItem = (id: string) => {
+    setSelectedItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectedItems = useMemo(
+    () => flat.filter((it) => selectedItemIds.has(it.id)),
+    [flat, selectedItemIds]
+  );
+
+  const movDir: MovementDir = dir === 'out' ? 'ashore' : 'return';
+
+  const buildMovements = useCallback((): ItemMovement[] => {
+    return selectedItems.map((item) => {
+      const existingMov = itemMovements.find(
+        (m) => m.itemId === item.id && m.landingId === reportId
+      );
+      const snap = [item.no, item.type ?? item.make].filter(Boolean).join(' ') || (CATEGORY_MAP[item.category]?.label ?? '');
+      return {
+        id: existingMov?.id ?? uid(),
+        itemId: item.id,
+        itemCategory: item.category,
+        itemSnap: snap,
+        dir: movDir,
+        landingId: reportId,
+        date,
+        to: to.trim() || undefined,
+        reason: itemReasons[item.id]?.trim() || undefined,
+        by: signer.signer?.name ?? undefined,
+        byRank: signer.signer?.rank ?? undefined,
+        updatedAt: Date.now(),
+      };
+    });
+  }, [selectedItems, itemMovements, movDir, date, to, itemReasons, signer, reportId]);
+
+  const handleSave = async (signed = false) => {
+    if (selectedItemIds.size === 0) {
+      Alert.alert('No items', 'Select at least one item for the report.');
+      return;
+    }
+    setSaving(true);
+    try {
+      let proof = existing?.signedWith;
+      let by = signer.signer?.name ?? existing?.by;
+      let byRank = signer.signer?.rank ?? existing?.byRank;
+      if (signed && signer.signer) {
+        const sig: SignResult = await confirmSign({
+          personKey: signer.signer.key,
+          name: signer.signer.name,
+          ownDevice: signer.signer.own,
+          what: 'Sign landing report',
+        });
+        if (!sig) { setSaving(false); return; }
+        proof = sig.proof;
+        by = signer.signer.name;
+        byRank = signer.signer.rank;
+      }
+
+      const id = isNew ? uid() : reportId;
+      const all = [...landings.filter((r) => !r.deleted)];
+      const movs = buildMovements().map((m) => ({ ...m, landingId: id }));
+
+      const report: LandingReport = {
+        id,
+        no: existing?.no ?? nextLandingNo(all),
+        dir,
+        date,
+        port: port.trim() || undefined,
+        to: to.trim() || undefined,
+        notes: notes.trim() || undefined,
+        movementIds: movs.map((m) => m.id),
+        by: by || undefined,
+        byRank: byRank || undefined,
+        signedWith: proof,
+        updatedAt: Date.now(),
+      };
+
+      await saveLanding(report, movs);
+      nav.goBack();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePrint = async () => {
+    if (!existing) { Alert.alert('Save first', 'Save the report before printing.'); return; }
+    setPrinting(true);
+    try {
+      const movIds = new Set(existing.movementIds);
+      const movs = itemMovements.filter((m) => movIds.has(m.id));
+      await printLandingReport(existing, movs, itemsById, vesselName, imo, inspectToken);
+    } catch (e: any) {
+      Alert.alert('Print error', e?.message ?? String(e));
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  const styles = useStyles(COLORS);
+  const isReadOnly = !canEdit || !isNew;
+  const myMovements = existing
+    ? itemMovements.filter((m) => existing.movementIds.includes(m.id))
+    : [];
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <ScreenTitle title={existing?.no ?? 'New Landing Report'} />
+      <BackButton onPress={() => nav.goBack()} fav={false} />
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+
+        {/* Direction */}
+        {isNew && (
+          <View style={styles.field}>
+            <Label style={styles.label}>Type</Label>
+            <View style={styles.segRow}>
+              {(['out', 'in'] as const).map((d) => (
+                <TouchableOpacity
+                  key={d}
+                  style={[styles.seg, dir === d && { backgroundColor: COLORS.primary }]}
+                  onPress={() => { setDir(d); setSelectedItemIds(new Set()); }}
+                >
+                  <Text style={[styles.segText, dir === d && { color: '#fff' }]}>
+                    {d === 'out' ? 'Send ashore' : 'Return aboard'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Date */}
+        <View style={styles.field}>
+          <Label style={styles.label}>Date</Label>
+          {isReadOnly
+            ? <Text style={styles.value}>{formatDate(date)}</Text>
+            : <SimpleDatePicker label="Date" value={date} onChange={setDate} />}
+        </View>
+
+        {/* Port */}
+        <View style={styles.field}>
+          <Label style={styles.label}>Port / Location</Label>
+          {isReadOnly
+            ? <Text style={styles.value}>{existing?.port || '—'}</Text>
+            : <TextInput style={styles.input} value={port} onChangeText={setPort} placeholder="Port name" placeholderTextColor={COLORS.textLight} />}
+        </View>
+
+        {/* To / From */}
+        <View style={styles.field}>
+          <Label style={styles.label}>{dir === 'out' ? 'To (service station)' : 'From (service station)'}</Label>
+          {isReadOnly
+            ? <Text style={styles.value}>{existing?.to || '—'}</Text>
+            : <TextInput style={styles.input} value={to} onChangeText={setTo} placeholder="Service station name" placeholderTextColor={COLORS.textLight} />}
+        </View>
+
+        {/* Items */}
+        <Label style={[styles.label, { marginHorizontal: SIZES.md }]}>
+          {isNew ? `Items (${selectedItemIds.size} selected)` : `Items (${myMovements.length})`}
+        </Label>
+
+        {isNew && (
+          <TouchableOpacity style={styles.addBtn} onPress={() => setPickerOpen(true)}>
+            <Text style={styles.addBtnText}>Select items…</Text>
+          </TouchableOpacity>
+        )}
+
+        {(isNew ? selectedItems : myMovements.map((m) => itemsById.get(m.itemId)).filter(Boolean) as EquipmentItem[]).map((item) => {
+          const cat = CATEGORY_MAP[item.category]?.label ?? item.category;
+          const desc = [item.no, item.type || item.make].filter(Boolean).join(' ');
+          const mov = isNew ? null : myMovements.find((m) => m.itemId === item.id);
+          return (
+            <View key={item.id} style={styles.itemCard}>
+              <View style={styles.itemRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.itemName}>{desc || cat}</Text>
+                  <Text style={styles.itemSub}>{cat} · SN {item.serial || '—'}</Text>
+                </View>
+                {isNew && (
+                  <TouchableOpacity onPress={() => toggleItem(item.id)}>
+                    <Text style={{ color: COLORS.danger, fontSize: 18 }}>✕</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              {isNew ? (
+                <TextInput
+                  style={[styles.input, { marginTop: 4 }]}
+                  value={itemReasons[item.id] ?? ''}
+                  onChangeText={(v) => setItemReasons((p) => ({ ...p, [item.id]: v }))}
+                  placeholder="Reason (optional)"
+                  placeholderTextColor={COLORS.textLight}
+                />
+              ) : (
+                mov?.reason ? <Text style={styles.itemSub}>Reason: {mov.reason}</Text> : null
+              )}
+              {!isNew && mov?.serviceRef ? (
+                <Text style={styles.itemSub}>Service ref: {mov.serviceRef}</Text>
+              ) : null}
+            </View>
+          );
+        })}
+
+        {/* Notes */}
+        <View style={styles.field}>
+          <Label style={styles.label}>Notes</Label>
+          {isReadOnly
+            ? <Text style={styles.value}>{existing?.notes || '—'}</Text>
+            : <TextInput style={[styles.input, { height: 70 }]} value={notes} onChangeText={setNotes} multiline placeholder="Notes…" placeholderTextColor={COLORS.textLight} />}
+        </View>
+
+        {/* Signature */}
+        {existing?.by && (
+          <View style={styles.field}>
+            <Label style={styles.label}>Signed by</Label>
+            <Text style={styles.value}>{signatureLine(existing.by, existing.byRank)}</Text>
+          </View>
+        )}
+
+        {/* Actions */}
+        {!isReadOnly && (
+          <>
+            <TouchableOpacity
+              style={[styles.btn, saving && { opacity: 0.6 }]}
+              onPress={() => handleSave(false)}
+              disabled={saving}
+            >
+              {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Save</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.btn, { backgroundColor: '#22c55e', marginTop: SIZES.xs }]}
+              onPress={() => handleSave(true)}
+              disabled={saving}
+            >
+              <Text style={styles.btnText}>Sign & Save</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {existing && (
+          <TouchableOpacity
+            style={[styles.btn, { backgroundColor: COLORS.cardSolid, borderWidth: 1, borderColor: COLORS.primary }]}
+            onPress={handlePrint}
+            disabled={printing}
+          >
+            {printing
+              ? <ActivityIndicator color={COLORS.primary} />
+              : <Text style={[styles.btnText, { color: COLORS.primary }]}>Print / Export PDF</Text>}
+          </TouchableOpacity>
+        )}
+
+      </ScrollView>
+
+      {/* Item picker modal */}
+      <Modal visible={pickerOpen} animationType="slide" onRequestClose={() => setPickerOpen(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }} edges={['top']}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', padding: SIZES.md, borderBottomWidth: 1, borderColor: COLORS.border }}>
+            <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: COLORS.text }}>
+              Select items ({selectedItemIds.size})
+            </Text>
+            <TouchableOpacity onPress={() => setPickerOpen(false)}>
+              <Text style={{ color: COLORS.primary, fontSize: 16 }}>Done</Text>
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={candidateItems}
+            keyExtractor={(it) => it.id}
+            renderItem={({ item }) => {
+              const selected = selectedItemIds.has(item.id);
+              const cat = CATEGORY_MAP[item.category]?.label ?? item.category;
+              const desc = [item.no, item.type || item.make].filter(Boolean).join(' ');
+              return (
+                <TouchableOpacity
+                  style={{ flexDirection: 'row', padding: SIZES.md, borderBottomWidth: 1, borderColor: COLORS.border, backgroundColor: selected ? '#e0f2fe' : COLORS.background }}
+                  onPress={() => toggleItem(item.id)}
+                >
+                  <Text style={{ flex: 1, color: COLORS.text }}>{desc || cat}</Text>
+                  <Text style={{ color: COLORS.textLight, fontSize: 12 }}>{cat} · {item.serial || '—'}</Text>
+                  {selected && <Text style={{ color: COLORS.primary, marginLeft: 8 }}>✓</Text>}
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </SafeAreaView>
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
+function useStyles(COLORS: ReturnType<typeof useTheme>) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: COLORS.background },
+    content: { padding: SIZES.md, paddingBottom: 40 },
+    field: { marginBottom: SIZES.md },
+    label: { fontSize: 12, color: COLORS.textLight, marginBottom: 4 },
+    value: { fontSize: 15, color: COLORS.text },
+    input: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 8, padding: SIZES.sm, color: COLORS.text, backgroundColor: COLORS.cardSolid },
+    segRow: { flexDirection: 'row', gap: 8 },
+    seg: { flex: 1, padding: SIZES.sm, borderRadius: 8, borderWidth: 1, borderColor: COLORS.primary, alignItems: 'center' },
+    segText: { color: COLORS.primary, fontWeight: '600' },
+    addBtn: { borderWidth: 1, borderColor: COLORS.primary, borderRadius: 8, padding: SIZES.sm, marginBottom: SIZES.sm, alignItems: 'center' },
+    addBtnText: { color: COLORS.primary, fontWeight: '600' },
+    itemCard: { backgroundColor: COLORS.cardSolid, borderRadius: 8, padding: SIZES.sm, marginBottom: SIZES.xs },
+    itemRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+    itemName: { fontSize: 14, fontWeight: '600', color: COLORS.text },
+    itemSub: { fontSize: 12, color: COLORS.textLight, marginTop: 2 },
+    btn: { backgroundColor: COLORS.primary, borderRadius: 10, padding: SIZES.md, alignItems: 'center', marginBottom: SIZES.sm },
+    btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  });
+}

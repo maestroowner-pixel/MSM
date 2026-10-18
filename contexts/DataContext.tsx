@@ -36,6 +36,7 @@ import { KeyItem, KeyMove } from '../types/keys';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 import { WatchEntry, WatchTemplate } from '../types/watchLog';
 import { InternalAudit } from '../types/audit';
+import { ItemMovement, LandingReport } from '../types/movement';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
 import { ChecklistTemplate } from '../constants/checklists';
@@ -96,6 +97,11 @@ interface DataContextType {
   watchLog: WatchEntry[];
   /** Internal audits — ISM / MLC / custom (backlog #12). */
   internalAudits: InternalAudit[];
+  /** Shore movement records per equipment item — append-only (#27). */
+  itemMovements: ItemMovement[];
+  /** Landing / handover reports (#27). */
+  landings: LandingReport[];
+  saveLanding: (r: LandingReport, movements: ItemMovement[]) => Promise<void>;
   saveMachine: (m: Machine) => Promise<void>;
   savePmsJob: (j: PmsJob) => Promise<void>;
   /** Many systems and jobs at once — a plan loaded from the template; read back once. */
@@ -276,6 +282,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [watchTemplates, setWatchTemplates] = useState<WatchTemplate[]>([]);
   const [internalAudits, setInternalAudits] = useState<InternalAudit[]>([]);
   const [watchLog, setWatchLog] = useState<WatchEntry[]>([]);
+  const [itemMovements, setItemMovements] = useState<ItemMovement[]>([]);
+  const [landings, setLandings] = useState<LandingReport[]>([]);
   const [spares, setSpares] = useState<SparePart[]>([]);
   const [spareMoves, setSpareMoves] = useState<SpareMove[]>([]);
   const [docs, setDocs] = useState<IsmDoc[]>([]);
@@ -384,6 +392,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _watchTemplates = (await storage.loadList<WatchTemplate>(storage.WATCH_TEMPLATES_KEY)).filter((x) => !x.deleted);
     const _watchLog = await storage.loadList<WatchEntry>(storage.WATCH_LOG_KEY);
     const _internalAudits = (await storage.loadList<InternalAudit>(storage.INTERNAL_AUDITS_KEY)).filter((x) => !x.deleted);
+    const _itemMovements = await storage.loadList<ItemMovement>(storage.ITEM_MOVEMENTS_KEY);
+    const _landings = (await storage.loadList<LandingReport>(storage.LANDINGS_KEY)).filter((x) => !x.deleted);
     const _spares = (await storage.loadList<SparePart>(storage.SPARES_KEY)).filter((p) => !p.deleted);
     const _spareMoves = await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY);
     const _docs = (await storage.loadList<IsmDoc>(storage.DOCS_KEY)).filter((d) => !d.deleted);
@@ -463,6 +473,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setWatchTemplates(_watchTemplates);
     setWatchLog(_watchLog);
     setInternalAudits(_internalAudits);
+    setItemMovements(_itemMovements);
+    setLandings(_landings);
     setSpares(_spares);
     setSpareMoves(_spareMoves);
     setDocs(_docs);
@@ -689,6 +701,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _watchTemplates = (await storage.loadList<WatchTemplate>(storage.WATCH_TEMPLATES_KEY)).filter((x) => !x.deleted);
     const _watchLog = await storage.loadList<WatchEntry>(storage.WATCH_LOG_KEY);
     const _internalAudits = (await storage.loadList<InternalAudit>(storage.INTERNAL_AUDITS_KEY)).filter((x) => !x.deleted);
+    const _itemMovements = await storage.loadList<ItemMovement>(storage.ITEM_MOVEMENTS_KEY);
+    const _landings = (await storage.loadList<LandingReport>(storage.LANDINGS_KEY)).filter((x) => !x.deleted);
     const _spares = (await storage.loadList<SparePart>(storage.SPARES_KEY)).filter((p) => !p.deleted);
     const _spareMoves = await storage.loadList<SpareMove>(storage.SPARE_MOVES_KEY);
     const _docs = (await storage.loadList<IsmDoc>(storage.DOCS_KEY)).filter((d) => !d.deleted);
@@ -759,6 +773,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setWatchTemplates(_watchTemplates);
     setWatchLog(_watchLog);
     setInternalAudits(_internalAudits);
+    setItemMovements(_itemMovements);
+    setLandings(_landings);
     setSpares(_spares);
     setSpareMoves(_spareMoves);
     setDocs(_docs);
@@ -917,6 +933,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await loadPms();
   }, [loadPms]);
 
+  const saveLanding = useCallback(async (report: LandingReport, movements: ItemMovement[]) => {
+    const existing = await storage.loadList<LandingReport>(storage.LANDINGS_KEY);
+    const idx = existing.findIndex((r) => r.id === report.id);
+    if (idx >= 0) existing[idx] = report; else existing.push(report);
+    await storage.saveList(storage.LANDINGS_KEY, existing);
+    if (movements.length) {
+      const existingMoves = await storage.loadList<ItemMovement>(storage.ITEM_MOVEMENTS_KEY);
+      const merged = [...existingMoves];
+      for (const m of movements) {
+        const mi = merged.findIndex((x) => x.id === m.id);
+        if (mi >= 0) merged[mi] = m; else merged.push(m);
+      }
+      await storage.saveList(storage.ITEM_MOVEMENTS_KEY, merged);
+    }
+    await loadPms();
+  }, [loadPms]);
+
   const saveRestDay = useCallback(async (day: RestDay) => {
     await storage.upsertRestDay(day);
     setRest(await storage.loadRest());
@@ -1036,6 +1069,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         watchTemplates,
         watchLog,
         internalAudits,
+        itemMovements,
+        landings,
+        saveLanding,
         saveMachine,
         savePmsJob,
         savePlan,

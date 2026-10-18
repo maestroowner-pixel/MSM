@@ -57,6 +57,8 @@ import WatchLogSc from './screens/WatchLogSc';
 import WatchEntrySc from './screens/WatchEntrySc';
 import AuditsSc from './screens/AuditsSc';
 import AuditSc from './screens/AuditSc';
+import LandingsSc from './screens/LandingsSc';
+import LandingReportSc from './screens/LandingReportSc';
 import CompressorSc from './screens/CompressorSc';
 import PaywallSc from './screens/PaywallSc';
 import LabelSc from './screens/LabelSc';
@@ -460,6 +462,8 @@ const linking = {
       WatchEntry: 'watch-entry',
       InternalAudits: 'internal-audits',
       InternalAudit: 'internal-audit/:id',
+      Landings: 'landings',
+      LandingReport: 'landing-report/:id',
       Round: 'round/:id',
       Nc: 'nc/:id',
       Drill: 'drill/:id',
@@ -678,6 +682,8 @@ function Root() {
         <Stack.Screen name="WatchEntry" component={WatchEntrySc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="InternalAudits" component={AuditsSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="InternalAudit" component={AuditSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Landings" component={LandingsSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="LandingReport" component={LandingReportSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Round" component={RoundSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Nc" component={NcSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Drill" component={DrillSc} options={{ presentation: 'modal' }} />

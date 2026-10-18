@@ -50,7 +50,7 @@ export default function ItemDetailSc() {
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useS();
-  const { byCategory, saveItem, removeItem, moveItem, certificates, saveCertificate, isLocked, inspections: trail, loading } = useData();
+  const { byCategory, saveItem, removeItem, moveItem, certificates, saveCertificate, isLocked, inspections: trail, loading, itemMovements } = useData();
 
   const category: CategoryKey = route.params.category;
   const id: string | null = route.params.id ?? null;
@@ -438,6 +438,7 @@ export default function ItemDetailSc() {
               A new item has no history and cannot be inspected until it is
               saved, so the whole block is hidden until then. */}
           {!isNew ? <InspectionCard item={draft} trail={trail} /> : null}
+          {!isNew ? <ShoreMovementsCard itemId={draft.id} movements={itemMovements} /> : null}
 
           <Field label="Item No." value={draft.no != null ? String(draft.no) : ''} onChange={(v) => set({ no: v })} />
           <Field label="Type / Description" value={draft.type} onChange={(v) => set({ type: v })} />
@@ -1047,6 +1048,35 @@ function InspectionCard({ item, trail }: { item: EquipmentItem; trail: Inspectio
           </Text>
         </TouchableOpacity>
       ) : null}
+    </View>
+  );
+}
+
+function ShoreMovementsCard({ itemId, movements }: { itemId: string; movements: import('../types/movement').ItemMovement[] }) {
+  const COLORS = useTheme();
+  const nav = useNavigation<any>();
+  const mine = movements.filter((m) => m.itemId === itemId && !m.deleted).sort((a, b) => b.updatedAt - a.updatedAt);
+  const DIR_COLOR: Record<string, string> = { ashore: '#f59e0b', return: '#22c55e', condemned: '#ef4444', transfer: '#6366f1' };
+  const DIR_LABEL: Record<string, string> = { ashore: 'Ashore', return: 'Returned', condemned: 'Condemned', transfer: 'Transferred' };
+  return (
+    <View style={{ backgroundColor: COLORS.cardSolid, borderRadius: 10, padding: SIZES.md, marginBottom: SIZES.md, marginTop: SIZES.sm }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <Text style={{ fontWeight: '700', color: COLORS.text }}>Shore movements</Text>
+        <TouchableOpacity onPress={() => nav.navigate('Landings')}>
+          <Text style={{ color: COLORS.primary, fontSize: 13 }}>All reports ›</Text>
+        </TouchableOpacity>
+      </View>
+      {mine.length === 0 ? (
+        <Text style={{ color: COLORS.textLight, fontSize: 13 }}>No movements recorded</Text>
+      ) : mine.slice(0, 5).map((m) => (
+        <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4, borderBottomWidth: 1, borderColor: COLORS.border }}>
+          <View style={{ width: 70, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: DIR_COLOR[m.dir] + '22', marginRight: 8 }}>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: DIR_COLOR[m.dir] }}>{DIR_LABEL[m.dir]}</Text>
+          </View>
+          <Text style={{ flex: 1, fontSize: 13, color: COLORS.text }}>{m.date}</Text>
+          {m.to ? <Text style={{ fontSize: 12, color: COLORS.textLight }}>{m.to}</Text> : null}
+        </View>
+      ))}
     </View>
   );
 }

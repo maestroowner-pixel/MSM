@@ -233,6 +233,19 @@ service cloud.firestore {
         allow create, update: if isAdmin(v);
         allow delete: if false;
       }
+      // Shore movements — append-only by Officers; any member reads.
+      match /item_movements/{id} {
+        allow read: if reader(v);
+        allow create: if isAdmin(v);
+        allow update: if isAdmin(v);
+        allow delete: if false;
+      }
+      // Landing / handover reports — Officers create and sign; any member reads.
+      match /landings/{id} {
+        allow read: if reader(v);
+        allow create, update: if isAdmin(v);
+        allow delete: if false;
+      }
       // Engine-room round template — Officers and Master edit it; everyone reads.
       match /watch_templates/{id} {
         allow read: if reader(v);

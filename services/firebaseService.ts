@@ -1252,6 +1252,8 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'watch_templates', key: storage.WATCH_TEMPLATES_KEY, module: 'pms' },
   { sub: 'watch_log', key: storage.WATCH_LOG_KEY, appendOnly: true, module: 'pms' },
   { sub: 'internal_audits', key: storage.INTERNAL_AUDITS_KEY, module: 'qhse' },
+  { sub: 'item_movements', key: storage.ITEM_MOVEMENTS_KEY, appendOnly: true, module: 'qhse' },
+  { sub: 'landings', key: storage.LANDINGS_KEY, module: 'qhse' },
   { sub: 'spares', key: storage.SPARES_KEY, module: 'spares' },
   { sub: 'spare_moves', key: storage.SPARE_MOVES_KEY, appendOnly: true, module: 'spares' },
   { sub: 'ism_docs', key: storage.DOCS_KEY, module: 'docs' },
