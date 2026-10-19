@@ -327,11 +327,22 @@ export function buildBoard(x: BoardInput): Board {
     const open = x.permits.filter((p) => !p.deleted && ['draft', 'requested', 'approved', 'active'].includes(p.status));
     const late = open.filter((p) => isOverdue(p, x.now));
     const active = open.filter((p) => p.status === 'active');
+    const waiting = open.filter((p) => p.status === 'requested');
+    const approved = open.filter((p) => p.status === 'approved');
     if (late.length) n.push({ key: 'ptw:late', level: 'red', who: 'officer', icon: 'clipboard-alert-outline', route: 'Permits', title: `${plural(late.length, 'permit')} past their time — close or renew` });
-    const waiting = open.filter((p) => p.status === 'requested').length;
-    if (waiting) n.push({ key: 'ptw:req', level: 'amber', who: 'officer', icon: 'clipboard-text-outline', route: 'Permits', title: `${plural(waiting, 'permit')} waiting for approval` });
+    if (waiting.length) n.push({ key: 'ptw:req', level: 'amber', who: 'officer', icon: 'clipboard-text-outline', route: 'Permits', title: `${plural(waiting.length, 'permit')} waiting for approval` });
     for (const p of active) today.push({ key: `ptw:${p.id}`, title: `Permit in force — ${p.no ?? ''} ${p.location ?? ''}`.replace(/\s+/g, ' ').trim(), done: false, route: 'Permit', params: { id: p.id } });
-    tiles.push({ key: 'ptw', label: 'Permits', icon: 'clipboard-text-outline', route: 'Permits', level: late.length ? 'red' : waiting ? 'amber' : undefined, line: open.length ? `${open.length} open · ${active.length} in force` : 'none open' });
+    const permitLabel = (p: Permit) => [`${p.no ?? ''}`, p.location].filter(Boolean).join(' · ');
+    summaries.push({
+      key: 'ptw', title: 'Permits', icon: 'clipboard-text-outline', route: 'Permits', who: 'officer',
+      rows: [
+        { label: 'In force', value: active.length ? String(active.length) : '—', level: active.length ? 'blue' : undefined, more: active.slice(0, 5).map(permitLabel) },
+        ...(approved.length ? [{ label: 'Approved', value: String(approved.length), more: approved.slice(0, 3).map(permitLabel) }] : []),
+        ...(waiting.length ? [{ label: 'Awaiting approval', value: String(waiting.length), level: 'amber' as Level, more: waiting.slice(0, 3).map(permitLabel) }] : []),
+        ...(late.length ? [{ label: 'Overdue — close or renew', value: String(late.length), level: 'red' as Level, more: late.slice(0, 3).map(permitLabel) }] : []),
+        { label: 'Open total', value: String(open.length) },
+      ],
+    });
   }
 
   // ---- Fuel ----
