@@ -88,8 +88,16 @@ type ListEntry =
   | ({ kind: 'row'; key: string } & Scored);
 
 export default function DashboardSc() {
-  const { flat, loading, certificates, isLocked, recentScans, templates, inspections: trail, machines, pmsJobs, pmsDeferrals, spares, spareMoves, docs, docAcks, crew, prefs } = useData();
+  const { flat, loading, certificates, isLocked, recentScans, templates, inspections: trail, machines, pmsJobs, pmsDeferrals, spares, spareMoves, docs, docAcks, crew, prefs, purchaseOrders } = useData();
   const sparesOwed = useMemo(() => toOrderCounts(spares, stockByPart(spareMoves)), [spares, spareMoves]);
+  const ordersStats = useMemo(() => {
+    const active = purchaseOrders.filter((o) => !o.deleted);
+    return {
+      total:    active.length,
+      standby:  active.filter((o) => o.status === 'standby').length,
+      partial:  active.filter((o) => o.status === 'partial').length,
+    };
+  }, [purchaseOrders]);
   // The maintenance strip leads to the PMS tab, so it goes where the tab goes.
   const { tabs, me: myDevice } = useSync();
   // Documents the person on this device still has to read and sign.
@@ -264,6 +272,8 @@ export default function DashboardSc() {
   const toggleStatus = (s: Exclude<StatusFilter, null>) => setStatus((cur) => (cur === s ? null : s));
   const cycleGroup = () => setGroup((g) => GROUP_FILTERS[(GROUP_FILTERS.indexOf(g) + 1) % GROUP_FILTERS.length]);
   const cycleSort = () => setSortBy((s) => SORT_ORDER[(SORT_ORDER.indexOf(s) + 1) % SORT_ORDER.length]);
+  const [listExpanded, setListExpanded] = useState(false);
+  const PREVIEW_COUNT = 5;
 
   // Tablets: two cards per row (location headers stay full-width).
   const { width } = useWindowDimensions();
@@ -280,6 +290,19 @@ export default function DashboardSc() {
     }
     return out;
   }, [listData, twoCol]);
+
+  const previewData = useMemo(() => {
+    if (listExpanded) return renderData;
+    let shown = 0;
+    const out = [];
+    for (const e of renderData) {
+      if (e.kind === 'header') { out.push(e); continue; }
+      if (shown >= PREVIEW_COUNT) break;
+      out.push(e);
+      shown += (e.kind === 'pair' && (e as any).right) ? 2 : 1;
+    }
+    return out;
+  }, [renderData, listExpanded]);
 
   const rowOf = (e: Extract<ListEntry, { kind: 'row' }>, fill?: boolean) => (
     <DashRow
@@ -359,6 +382,24 @@ export default function DashboardSc() {
           <Text style={styles.posHeaderChevron}>›</Text>
         </TouchableOpacity>
       ) : null}
+      {tabs.has('orders') && ordersStats.total > 0 ? (
+        <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('Orders')} activeOpacity={0.7}>
+          <MciIcon name="cart-outline" size={15} color={COLORS.textLight} />
+          <Text style={styles.posHeaderText} numberOfLines={1}>
+            {[
+              `${ordersStats.total} order${ordersStats.total === 1 ? '' : 's'}`,
+              ordersStats.standby ? `${ordersStats.standby} on hold` : null,
+              ordersStats.partial ? `${ordersStats.partial} partial` : null,
+            ].filter(Boolean).join(' · ')}
+          </Text>
+          {ordersStats.partial > 0
+            ? <Text style={[styles.posHeaderCount, { color: COLORS.warning }]}>{ordersStats.partial}</Text>
+            : ordersStats.standby > 0
+            ? <Text style={[styles.posHeaderCount, { color: COLORS.textLight }]}>{ordersStats.standby}</Text>
+            : null}
+          <Text style={styles.posHeaderChevron}>›</Text>
+        </TouchableOpacity>
+      ) : null}
       <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('Defects')} activeOpacity={0.7}>
         <MciIcon name="wrench-outline" size={15} color={COLORS.textLight} />
         <Text style={styles.posHeaderText} numberOfLines={1}>Open defects</Text>
@@ -432,7 +473,8 @@ export default function DashboardSc() {
         <GetStarted onStart={() => nav.navigate('GettingStarted')} />
       ) : (
         <FlatList
-          data={renderData}
+          data={previewData}
+          extraData={listExpanded}
           keyExtractor={(e) => e.key}
           contentContainerStyle={{ paddingBottom: SIZES.xxxl, paddingRight: SCROLLBAR_GUTTER }}
           // No permanent stripe down the right of the list: on web the bar is
@@ -441,6 +483,21 @@ export default function DashboardSc() {
           ListHeaderComponent={strips}
           ListEmptyComponent={
             <Empty text={status || group !== 'ALL' ? 'No items match the current filters.' : 'No items with dates yet. Import the LSA/FFE workbook from Settings.'} />
+          }
+          ListFooterComponent={
+            renderData.length > PREVIEW_COUNT ? (
+              <TouchableOpacity
+                style={styles.showMoreBtn}
+                onPress={() => setListExpanded((v) => !v)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.showMoreText}>
+                  {listExpanded
+                    ? 'Show less ↑'
+                    : `Show ${renderData.length - PREVIEW_COUNT} more ↓`}
+                </Text>
+              </TouchableOpacity>
+            ) : null
           }
           renderItem={({ item: e }) =>
             e.kind === 'header' ? (
@@ -659,6 +716,8 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   posHeaderCount: { fontSize: SIZES.tiny, fontWeight: '700', color: COLORS.textLight, marginLeft: SIZES.sm },
   posHeaderChevron: { fontSize: SIZES.h4, fontWeight: '700', color: COLORS.textLight, marginLeft: SIZES.xs },
   stripEmpty: { fontSize: SIZES.small, color: COLORS.textLight, fontStyle: 'italic', paddingHorizontal: SIZES.sm, paddingBottom: SIZES.sm, marginBottom: SIZES.xs },
+  showMoreBtn: { alignItems: 'center', paddingVertical: SIZES.md, marginBottom: SIZES.xl },
+  showMoreText: { fontSize: SIZES.small, fontWeight: '700', color: COLORS.primary },
   pairRow: { flexDirection: 'row', gap: SIZES.sm, alignItems: 'stretch' },
   row: {
     flexDirection: 'row',

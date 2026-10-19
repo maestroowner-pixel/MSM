@@ -45,6 +45,8 @@ export default function BoardSc() {
   // Re-read "now" each time the board comes into view: the noon report and the
   // rounds change with the clock, not only with the data.
   const [tick, setTick] = useState(0);
+  const [attentionExpanded, setAttentionExpanded] = useState(false);
+  const ATTENTION_PREVIEW = 5;
   useFocusEffect(useCallback(() => setTick((t) => t + 1), []));
 
   const role = !sync.enrolled ? 'superadmin' : (sync.role as 'user' | 'admin' | 'superadmin');
@@ -81,10 +83,14 @@ export default function BoardSc() {
     st.rob ? `ROB ${Math.round(st.rob.litres).toLocaleString('en-GB').replace(/,/g, ' ')} L${st.rob.daysLeft != null ? ` ≈ ${st.rob.daysLeft} d` : ''}` : null,
   ].filter(Boolean);
 
+  const visibleAttention = attentionExpanded
+    ? board.attention
+    : board.attention.slice(0, ATTENTION_PREVIEW);
+
   const attention = (
     <View style={styles.block}>
       <Text style={styles.head}>{board.attention.length ? `Needs attention · ${board.attention.length}` : 'Needs attention'}</Text>
-      {board.attention.map((a) => (
+      {visibleAttention.map((a) => (
         <TouchableOpacity key={a.key} style={styles.notice} onPress={() => go(a.route, a.params)} activeOpacity={0.7}>
           <View style={[styles.dot, { backgroundColor: color(a.level) }]} />
           <MciIcon name={a.icon} size={18} color={COLORS.textLight} />
@@ -95,6 +101,13 @@ export default function BoardSc() {
           <MciIcon name="chevron-right" size={18} color={COLORS.textLight} />
         </TouchableOpacity>
       ))}
+      {board.attention.length > ATTENTION_PREVIEW ? (
+        <TouchableOpacity style={styles.showMoreBtn} onPress={() => setAttentionExpanded((v) => !v)} activeOpacity={0.7}>
+          <Text style={styles.showMoreText}>
+            {attentionExpanded ? 'Show less ↑' : `Show ${board.attention.length - ATTENTION_PREVIEW} more ↓`}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
       {!board.attention.length ? (
         <View style={styles.allGood}>
           <MciIcon name="check-circle-outline" size={20} color={COLORS.success} />
@@ -224,6 +237,8 @@ const makeStyles = (COLORS: Palette) =>
     sumNum: { flex: 1, textAlign: 'right', fontVariant: ['tabular-nums'] },
     sumLabel: { width: 118, fontSize: SIZES.small, color: COLORS.textLight, paddingTop: 2 },
     allGood: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, paddingVertical: SIZES.sm },
+    showMoreBtn: { alignItems: 'center', paddingVertical: SIZES.sm },
+    showMoreText: { fontSize: SIZES.small, fontWeight: '700', color: COLORS.primary },
     planRow: { flexDirection: 'row', alignItems: 'flex-start', gap: SIZES.sm, paddingVertical: 8 },
     bar: { height: 5, borderRadius: 3, backgroundColor: COLORS.borderLight, marginTop: 5, overflow: 'hidden' },
     barFill: { height: 5, borderRadius: 3 },
