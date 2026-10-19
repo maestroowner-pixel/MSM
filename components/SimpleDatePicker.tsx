@@ -37,6 +37,10 @@ interface Props {
   onClear?: () => void;
   /** Shown instead of "Select date" when there is no value — e.g. "Will be cleared". */
   placeholder?: string;
+  /** Hide the built-in label text — use when the caller renders its own label. */
+  showLabel?: boolean;
+  /** Compact height — matches a standard TextInput, no minHeight. */
+  compact?: boolean;
 }
 
 const parseISODate = (iso: string): Date => {
@@ -44,7 +48,7 @@ const parseISODate = (iso: string): Date => {
   return new Date(y, m - 1, d);
 };
 
-const SimpleDatePicker: React.FC<Props> = ({ label, value, onChange, defaultYear, disabled, onClear, placeholder }) => {
+const SimpleDatePicker: React.FC<Props> = ({ label, value, onChange, defaultYear, disabled, onClear, placeholder, showLabel = true, compact = false }) => {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const [visible, setVisible] = useState(false);
@@ -76,10 +80,10 @@ const SimpleDatePicker: React.FC<Props> = ({ label, value, onChange, defaultYear
 
   return (
     <>
-      <Text style={styles.label}>{label}</Text>
+      {showLabel ? <Text style={styles.label}>{label}</Text> : null}
 
       <TouchableOpacity
-        style={styles.inputTrigger}
+        style={[styles.inputTrigger, compact && styles.inputTriggerCompact]}
         disabled={disabled}
         onPress={() => !disabled && setVisible(true)}
         activeOpacity={0.7}
@@ -208,6 +212,11 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
     paddingVertical: SIZES.sm,
     minHeight: 48,
     marginTop: 4,
+  },
+  inputTriggerCompact: {
+    minHeight: 0,
+    paddingVertical: 8,
+    marginTop: 0,
   },
   triggerText: { fontSize: SIZES.body, color: COLORS.text },
   triggerPlaceholder: { color: COLORS.textLight },
