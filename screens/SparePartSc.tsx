@@ -28,6 +28,7 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { MoveKind, SparePart, SpareSupplier } from '../types/spares';
+import { ORDER_DEPTS, ORDER_DEPT_LABEL } from '../types/orders';
 import { crewLabel } from '../types/crew';
 import { personName } from '../types/role';
 import { MOVE_LABEL, firstExpiry, makeMove, moveText, orderQty, priceText, qtyText, stockByPart, stockStatus, unitOf, usedByYear } from '../services/spares';
@@ -311,6 +312,20 @@ export default function SparePartSc() {
                     {machines.map((m) => (
                       <TouchableOpacity key={m.id} style={[styles.chip, styles.chipSmall, fits.has(m.id) && styles.chipOn]} onPress={() => toggleFit(m.id)}>
                         <Text style={[styles.chipSmallText, fits.has(m.id) && styles.chipTextOn]}>{m.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              ) : null}
+
+              {moduleOn('orders') ? (
+                <>
+                  <View style={{ height: SIZES.md }} />
+                  <Label>Department</Label>
+                  <View style={styles.chips}>
+                    {ORDER_DEPTS.map((d) => (
+                      <TouchableOpacity key={d} style={[styles.chip, styles.chipSmall, draft.dept === d && styles.chipOn]} onPress={() => set({ dept: draft.dept === d ? undefined : d })}>
+                        <Text style={[styles.chipSmallText, draft.dept === d && styles.chipTextOn]}>{ORDER_DEPT_LABEL[d]}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>

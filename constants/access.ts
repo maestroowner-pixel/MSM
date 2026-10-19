@@ -31,7 +31,7 @@
 
 import { ModuleKey, moduleOn } from './modules';
 
-export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'stores' | 'reports' | 'maintenance' | 'spares' | 'rest' | 'readiness' | 'dp' | 'watch' | 'familiar';
+export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'stores' | 'orders' | 'reports' | 'maintenance' | 'spares' | 'rest' | 'readiness' | 'dp' | 'watch' | 'familiar';
 
 export interface OptionalTab {
   key: TabKey;
@@ -66,6 +66,7 @@ export const OPTIONAL_TABS: OptionalTab[] = [
   { key: 'qhse', module: 'qhse', route: 'Safety', label: 'Safety', column: 'QHSE', icon: 'shield-check-outline' },
   { key: 'sopep', module: 'sopep', route: 'Sopep', label: 'SOPEP', column: 'SOPEP', icon: 'oil' },
   { key: 'security', module: 'security', route: 'Security', label: 'Security', column: 'ISPS', icon: 'shield-account' },
+  { key: 'orders', module: 'orders', route: 'Orders', label: 'Orders', column: 'ORD', icon: 'cart-outline' },
   { key: 'spares', module: 'spares', route: 'Spares', label: 'Spares', column: 'Spares', icon: 'package-variant-closed' },
   { key: 'rest', module: 'rest', route: 'HoursOfRest', label: 'Rest', column: 'Rest', icon: 'bed-clock' },
   { key: 'readiness', module: 'readiness', route: 'Readiness', label: 'Readiness', column: 'RDY', icon: 'clipboard-search-outline' },

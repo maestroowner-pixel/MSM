@@ -33,7 +33,7 @@ import { liveCrew, crewLabel } from '../types/crew';
 import { CREW_CERT_TYPES, VESSEL_CERT_TYPES } from '../constants/certificateTypes';
 import { CATEGORY_MAP } from '../constants/categories';
 import { statusFromDate, formatDate } from '../utils/dates';
-import { pickDocument, pickFromLibrary, pickFromCamera, openFile, deleteFile, resolveUri, PickedFile } from '../services/attachments';
+import { pickDocument, pickFromLibrary, pickFromCamera, openFile, deleteFile, resolveUri, toDataUri, PickedFile } from '../services/attachments';
 import { playSuccessSound } from '../utils/sound';
 import SimpleDatePicker from '../components/SimpleDatePicker';
 import { goBackOr } from '../utils/nav';
@@ -41,6 +41,8 @@ import { moduleOn } from '../constants/modules';
 import { CertSurveys } from '../components/CertSurveys';
 import { certSurveySummary, worstOf } from '../services/certSurveys';
 import { todayIso } from '../services/pms';
+import { aiCall, aiReady, CertAiResult } from '../services/ai';
+import { useSync } from '../contexts/SyncContext';
 
 export default function CertificateDetailSc() {
   const route = useRoute<any>();
@@ -49,8 +51,11 @@ export default function CertificateDetailSc() {
   const styles = useS();
   const { certificates, flat, crew, saveCertificate, removeCertificate, loading, surveys, surveysDone } = useData();
 
+  const sync = useSync();
   const id: string | null = route.params?.id ?? null;
   const existing = useMemo(() => certificates.find((c) => c.id === id), [certificates, id]);
+  const [aiScanning, setAiScanning] = useState(false);
+  const [aiNote, setAiNote] = useState<string | null>(null);
   /**
    * A placeholder so that everything below can assume a certificate. It is never
    * shown and never saved: while `missing` is true the screen renders the held
@@ -147,6 +152,70 @@ export default function CertificateDetailSc() {
       { text: 'Document (PDF…)', onPress: attach(pickDocument) },
       { text: 'Photo Library', onPress: attach(pickFromLibrary) },
       { text: 'Camera', onPress: attach(pickFromCamera) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const scanCert = () => {
+    Alert.alert('Scan certificate with AI', 'Take a clear photo of the certificate — both sides if the expiry is on the back.', [
+      {
+        text: 'Camera',
+        onPress: async () => {
+          const f = await pickFromCamera();
+          if (!f) return;
+          setAiScanning(true);
+          setAiNote(null);
+          try {
+            const dataUri = await toDataUri(f.uri, f.name ?? 'cert.jpg');
+            const mediaType = dataUri.slice(5, dataUri.indexOf(';'));
+            const data = dataUri.slice(dataUri.indexOf(',') + 1);
+            const res = await aiCall<CertAiResult>('cert', { mediaType, data, scope });
+            const patch: Partial<typeof draft> = {};
+            if (res.name && !draft.name) patch.name = res.name;
+            if (res.number && !draft.number) patch.number = res.number;
+            if (res.issuer && !draft.issuer) patch.issuer = res.issuer;
+            if (res.issueDate && !draft.issueDate) patch.issueDate = res.issueDate;
+            if (res.expiryDate && !draft.expiryDate) patch.expiryDate = res.expiryDate;
+            if (res.holder && scope === 'crew' && !draft.crewId && !draft.holderName) patch.holderName = res.holder;
+            set(patch);
+            const fields = [res.name && 'name', res.number && 'number', res.issuer && 'issuer', res.issueDate && 'issue date', res.expiryDate && 'expiry'].filter(Boolean).join(', ');
+            setAiNote(`Read: ${fields || 'nothing'}${res.unreadable ? ` · could not read: ${res.unreadable}` : ''}. Check the fields below.`);
+          } catch (e: any) {
+            Alert.alert('AI scan', String(e?.message ?? e));
+          } finally {
+            setAiScanning(false);
+          }
+        },
+      },
+      {
+        text: 'Photo library',
+        onPress: async () => {
+          const f = await pickFromLibrary();
+          if (!f) return;
+          setAiScanning(true);
+          setAiNote(null);
+          try {
+            const dataUri = await toDataUri(f.uri, f.name ?? 'cert.jpg');
+            const mediaType = dataUri.slice(5, dataUri.indexOf(';'));
+            const data = dataUri.slice(dataUri.indexOf(',') + 1);
+            const res = await aiCall<CertAiResult>('cert', { mediaType, data, scope });
+            const patch: Partial<typeof draft> = {};
+            if (res.name && !draft.name) patch.name = res.name;
+            if (res.number && !draft.number) patch.number = res.number;
+            if (res.issuer && !draft.issuer) patch.issuer = res.issuer;
+            if (res.issueDate && !draft.issueDate) patch.issueDate = res.issueDate;
+            if (res.expiryDate && !draft.expiryDate) patch.expiryDate = res.expiryDate;
+            if (res.holder && scope === 'crew' && !draft.crewId && !draft.holderName) patch.holderName = res.holder;
+            set(patch);
+            const fields = [res.name && 'name', res.number && 'number', res.issuer && 'issuer', res.issueDate && 'issue date', res.expiryDate && 'expiry'].filter(Boolean).join(', ');
+            setAiNote(`Read: ${fields || 'nothing'}${res.unreadable ? ` · could not read: ${res.unreadable}` : ''}. Check the fields below.`);
+          } catch (e: any) {
+            Alert.alert('AI scan', String(e?.message ?? e));
+          } finally {
+            setAiScanning(false);
+          }
+        },
+      },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
@@ -257,7 +326,21 @@ export default function CertificateDetailSc() {
             <View style={styles.titleRow}>
               <MciIcon name={scope === 'crew' ? 'card-account-details' : scope === 'vessel' ? 'ferry' : 'certificate'} size={32} />
               {!isNew ? <StatusPill status={status} /> : null}
+              {aiReady(sync.enrolled) ? (
+                <TouchableOpacity
+                  style={styles.aiBtn}
+                  onPress={aiScanning ? undefined : scanCert}
+                  disabled={aiScanning}
+                  hitSlop={10}
+                >
+                  {aiScanning
+                    ? <ActivityIndicator size="small" color={COLORS.primary} />
+                    : <><MciIcon name="camera-outline" size={16} color={COLORS.primary} /><Text style={styles.aiBtnText}> Scan with AI</Text></>
+                  }
+                </TouchableOpacity>
+              ) : null}
             </View>
+            {aiNote ? <Text style={styles.aiNote}>{aiNote}</Text> : null}
 
             {scope === 'crew' ? (
               <View style={styles.fieldWrap}>
@@ -441,7 +524,10 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   },
   headerBtn: { fontSize: SIZES.h5, color: COLORS.text },
   headerTitle: { fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginBottom: SIZES.md },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginBottom: SIZES.xs, flexWrap: 'wrap' },
+  aiBtn: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: COLORS.primary, borderRadius: 999, paddingHorizontal: SIZES.sm, paddingVertical: 5, marginLeft: 'auto' },
+  aiBtnText: { color: COLORS.primary, fontSize: SIZES.small, fontWeight: '600' },
+  aiNote: { fontSize: SIZES.small, color: COLORS.textLight, marginBottom: SIZES.md, lineHeight: 18 },
   emoji: { fontSize: 34 },
   fieldWrap: { marginBottom: SIZES.md },
   input: {

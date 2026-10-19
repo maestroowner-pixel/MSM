@@ -32,7 +32,7 @@ export interface MenuGroup {
 // top, then equipment, safety, security, MARPOL, crew, operations, papers.
 export const MENU_GROUPS: MenuGroup[] = [
   { key: 'home', label: '', routes: ['Dashboard'] },
-  { key: 'equipment', label: 'Equipment & maintenance', routes: ['Equipment', 'Rounds', 'Maintenance', 'Spares', 'Stores'] },
+  { key: 'equipment', label: 'Equipment & maintenance', routes: ['Equipment', 'Rounds', 'Maintenance', 'Spares', 'Stores', 'Orders'] },
   { key: 'safety', label: 'Safety', routes: ['Drills', 'Safety'] },
   // The ship's hospital on its own, under Safety (17 Oct 2026: "out of Crew, its own section").
   { key: 'medical', label: 'Medical', routes: ['Hospital'] },
@@ -193,6 +193,7 @@ export const MENU_LABEL: Record<string, string> = {
   Hospital: 'Hospital',
   Passengers: 'Passengers',
   Stores: 'Stores',
+  Orders: 'Purchase orders',
   Rounds: 'Inspection rounds',
   Fuel: 'Fuel',
   Garbage: 'Garbage record book',

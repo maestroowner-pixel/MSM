@@ -162,7 +162,7 @@ export const GLASS = {
 };
 
 export const APP_CONFIG = {
-  name: 'ISMpilot',
+  name: 'ISM AI Pilot',
   tagline: 'Marine Safety Manager',
   // Read from app.json rather than repeated here. The version used to live in
   // four places — app.json, this file, android/build.gradle, ios/Info.plist —

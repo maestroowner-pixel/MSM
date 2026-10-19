@@ -34,12 +34,15 @@ import { vesselHeader } from '../services/export';
 import { todayIso } from '../services/pms';
 import { deliverFile, onWeb } from '../utils/fileShare';
 import { saveFileWeb } from '../utils/webSave';
+import { nextOrderNo } from '../services/orders';
+import { ORDER_DEPTS, ORDER_DEPT_LABEL, OrderLine, PurchaseOrder } from '../types/orders';
+import * as storage from '../services/storage';
 
 export default function SparesSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
-  const { spares, spareMoves, pmsJobs, machines, pmsDeferrals, vessel, addSpareMoves } = useData();
+  const { spares, spareMoves, pmsJobs, machines, pmsDeferrals, vessel, purchaseOrders, saveRow, addSpareMoves } = useData();
   const { signer, picker } = useSigner('COUNTED BY');
   const confirmSign = useSignConfirm();
   // Parts the coming PMS jobs will use that are not on the shelf (services/sparesNeed).
@@ -125,6 +128,90 @@ export default function SparesSc() {
       Alert.alert('Requisition', String(e?.message ?? e));
     }
   };
+  const newOrderFromSpares = () => {
+    const lowOnly = rows.filter((r) => r.status !== 'ok' && !needs.some((n) => n.part.id === r.p.id));
+    const allNeeds = needs;
+    const allLow = lowOnly;
+    const total = allNeeds.length + allLow.length;
+    if (total === 0) {
+      Alert.alert('New order', 'Nothing to order — all jobs are covered and every part is above its re-order level.');
+      return;
+    }
+
+    // Group lines by department assigned to each spare. Parts with no dept go into
+    // a catch-all 'engine' order (most common on a vessel).
+    const linesByDept = new Map<string, OrderLine[]>();
+    const push = (dept: string, line: OrderLine) => {
+      if (!linesByDept.has(dept)) linesByDept.set(dept, []);
+      linesByDept.get(dept)!.push(line);
+    };
+    for (const n of allNeeds) {
+      push(n.part.dept ?? 'engine', {
+        id: uid('ol'),
+        description: n.part.name,
+        qty: Math.max(n.order, orderQty(n.part, n.onHand - n.need)),
+        unit: n.part.unit ?? 'pcs',
+        partNo: n.part.partNo,
+        impa: n.part.impa,
+        maker: n.part.maker,
+        notes: n.forJobs.join('; '),
+        spareId: n.part.id,
+      });
+    }
+    for (const r of allLow) {
+      push(r.p.dept ?? 'engine', {
+        id: uid('ol'),
+        description: r.p.name,
+        qty: orderQty(r.p, r.onHand),
+        unit: r.p.unit ?? 'pcs',
+        partNo: r.p.partNo,
+        impa: r.p.impa,
+        maker: r.p.maker,
+        spareId: r.p.id,
+      });
+    }
+
+    const deptKeys = ORDER_DEPTS.filter((d) => linesByDept.has(d));
+    // Also capture any keys not in ORDER_DEPTS (shouldn't happen but be safe)
+    for (const k of linesByDept.keys()) if (!deptKeys.includes(k as any)) deptKeys.push(k as any);
+
+    const summary = deptKeys.map((d) => `${ORDER_DEPT_LABEL[d] ?? d}: ${linesByDept.get(d)!.length} line${linesByDept.get(d)!.length === 1 ? '' : 's'}`).join('\n');
+    Alert.alert(
+      'Create orders',
+      `${deptKeys.length} separate order${deptKeys.length === 1 ? '' : 's'} will be created:\n\n${summary}`,
+      [
+        {
+          text: 'Create',
+          onPress: () => void (async () => {
+            // nextOrderNo must be called sequentially to avoid duplicate numbers
+            let nos = purchaseOrders;
+            let firstId: string | null = null;
+            for (const dept of deptKeys) {
+              const lines = linesByDept.get(dept)!;
+              const order: PurchaseOrder = {
+                id: uid('po'),
+                no: nextOrderNo(nos, dept),
+                dept,
+                status: 'draft',
+                date: today,
+                by: '',
+                lines,
+                at: Date.now(),
+                updatedAt: Date.now(),
+              };
+              await saveRow(storage.PURCHASE_ORDERS_KEY, order);
+              // Simulate the saved order being in the list for the next no calculation
+              nos = [...nos, order];
+              if (!firstId) firstId = order.id;
+            }
+            if (firstId) nav.navigate('Order', { id: firstId });
+          })(),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  };
+
   const out = rows.filter((r) => r.status === 'out').length;
   const low = rows.filter((r) => r.status === 'low').length;
 
@@ -168,6 +255,7 @@ export default function SparesSc() {
             <Text style={styles.needTitle}>{`For jobs ahead · ${needs.length}`}</Text>
             <Dropdown caption="WITHIN" value={horizon} onChange={setHorizon} options={[30, 60, 90].map((d) => ({ value: d, label: `${d} days` }))} style={{ minWidth: 150 }} />
             <TouchableOpacity style={styles.reqBtn} onPress={() => void requisition()}><Text style={styles.reqBtnText}>Requisition (Excel)</Text></TouchableOpacity>
+            {moduleOn('orders') ? <TouchableOpacity style={[styles.reqBtn, styles.reqBtnFill]} onPress={newOrderFromSpares}><Text style={[styles.reqBtnText, styles.reqBtnFillText]}>→ New order</Text></TouchableOpacity> : null}
           </View>
           {saved ? <Text style={{ color: COLORS.success, fontWeight: '700', fontSize: 12 }}>{`✓ ${saved}`}</Text> : null}
           {needs.map((n) => (
@@ -276,6 +364,8 @@ const makeStyles = (COLORS: Palette) =>
     needTitle: { flex: 1, fontSize: SIZES.body, fontWeight: '800', color: COLORS.textDark },
     reqBtn: { borderWidth: 1, borderColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 8, paddingHorizontal: SIZES.md },
     reqBtnText: { color: COLORS.primary, fontWeight: '800' },
+    reqBtnFill: { backgroundColor: COLORS.primary },
+    reqBtnFillText: { color: COLORS.textWhite },
     needRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.borderLight },
     needName: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.textDark },
     needSub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },

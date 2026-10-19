@@ -21,8 +21,8 @@
 // ordinary tab bar is kept, unchanged for vessels using it today.
 // ===================================
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -194,6 +194,15 @@ function MenuList({
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const insets = useSafeAreaInsets();
   const [editing, setEditing] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [searchQ, setSearchQ] = useState('');
+  const searchRef = useRef<TextInput>(null);
+  const toggleSearch = () => {
+    if (searching) { setSearching(false); setSearchQ(''); }
+    else { setSearching(true); setEditing(false); setTimeout(() => searchRef.current?.focus(), 80); }
+  };
+  const toggleEdit = () => { setEditing((e) => !e); setSearching(false); setSearchQ(''); };
+
   // Stores: one sub-item per store — the two built-in ones and those the vessel
   // added with the gear (15 Oct 2026, types/stores.ts StoreRoom).
   const { storeRoomList } = useData();
@@ -204,25 +213,49 @@ function MenuList({
   // Entries with sub-items open on a tap; the one on screen starts open.
   const [openParents, setOpenParents] = useState<string[]>(MENU_CHILDREN[current] ? [current] : []);
   const toggle = (r: string) => setOpenParents((o) => (o.includes(r) ? o.filter((x) => x !== r) : [...o, r]));
+  const needle = searchQ.trim().toLowerCase();
+  const visibleGroups = grouped(order)
+    .map(({ group, routes }) => ({
+      group,
+      routes: needle ? routes.filter((r) => labelOf(r).toLowerCase().includes(needle)) : routes,
+    }))
+    .filter(({ routes }) => routes.length > 0);
+
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: insets.top + SIZES.md, paddingBottom: SIZES.xl }}>
       <View style={styles.menuHead}>
         <Text style={styles.menuTitle}>ISMpilot</Text>
-        <View style={{ flexDirection: 'row', gap: SIZES.md }}>
+        <View style={{ flexDirection: 'row', gap: SIZES.xs }}>
+          <TouchableOpacity style={[styles.iconBtn, searching && styles.iconBtnOn]} onPress={toggleSearch} hitSlop={4} accessibilityLabel="Search menu">
+            <MciIcon name="magnify" size={20} color={searching ? COLORS.primary : COLORS.textDark} />
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.iconBtn, editing && styles.iconBtnOn]} onPress={toggleEdit} hitSlop={4} accessibilityLabel={editing ? 'Done editing order' : 'Edit order'}>
+            <MciIcon name="sort" size={20} color={editing ? COLORS.primary : COLORS.textDark} />
+          </TouchableOpacity>
           {canPin ? (
-            <TouchableOpacity onPress={() => { setPinned(!pinned); onClose(); }} hitSlop={8} accessibilityLabel={pinned ? 'Unpin menu' : 'Pin menu'}>
-              <MciIcon name={pinned ? 'pin-off-outline' : 'pin-outline'} size={20} color={COLORS.textLight} />
+            <TouchableOpacity style={[styles.iconBtn, pinned && styles.iconBtnOn]} onPress={() => { setPinned(!pinned); if (!pinned) onClose(); }} hitSlop={4} accessibilityLabel={pinned ? 'Unpin menu' : 'Pin menu'}>
+              <MciIcon name={pinned ? 'pin' : 'pin-outline'} size={20} color={pinned ? COLORS.primary : COLORS.textDark} />
             </TouchableOpacity>
           ) : null}
-          <TouchableOpacity onPress={() => setEditing((e) => !e)} hitSlop={8}>
-            <Text style={styles.edit}>{editing ? 'Done' : 'Edit order'}</Text>
-          </TouchableOpacity>
         </View>
       </View>
-      {Platform.OS !== 'web' && !editing ? <Text style={styles.hint}>The first four are on the bar below.</Text> : null}
+      {searching ? (
+        <TextInput
+          ref={searchRef}
+          style={styles.searchInput}
+          value={searchQ}
+          onChangeText={setSearchQ}
+          placeholder="Search…"
+          placeholderTextColor={COLORS.textLight}
+          returnKeyType="search"
+          clearButtonMode="while-editing"
+          autoCorrect={false}
+        />
+      ) : null}
+      {Platform.OS !== 'web' && !editing && !searching ? <Text style={styles.hint}>The first four are on the bar below.</Text> : null}
       {/* On a phone the menu is the way in: what is kept comes first (17 Oct 2026). */}
-      {Platform.OS !== 'web' && !editing ? <FavMenuSection onPicked={onClose} itemStyle={styles.item} textStyle={styles.itemText} headStyle={styles.groupHead} /> : null}
-      {grouped(order).map(({ group, routes }) => (
+      {Platform.OS !== 'web' && !editing && !searching ? <FavMenuSection onPicked={onClose} itemStyle={styles.item} textStyle={styles.itemText} headStyle={styles.groupHead} /> : null}
+      {visibleGroups.map(({ group, routes }) => (
         <View key={group.key}>
           {group.label ? <Text style={styles.groupHead}>{group.label}</Text> : group.key === 'home' ? null : <View style={styles.sep} />}
           {routes.map((r, i) => {
@@ -308,6 +341,15 @@ const makeStyles = (COLORS: Palette) =>
     menuHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SIZES.lg, marginBottom: SIZES.sm },
     menuTitle: { fontSize: SIZES.h4, fontWeight: '800', color: COLORS.textDark },
     edit: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
+    iconBtn: { width: 40, height: 40, borderRadius: 10, backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },
+    iconBtnOn: { backgroundColor: COLORS.primary + '28', borderColor: COLORS.primary },
+    searchInput: {
+      marginHorizontal: SIZES.lg, marginBottom: SIZES.sm,
+      ...COLORS.glassInput,
+      borderRadius: SIZES.radiusMd,
+      paddingHorizontal: SIZES.md, paddingVertical: 9,
+      fontSize: SIZES.body, color: COLORS.text,
+    },
     hint: { fontSize: SIZES.tiny, color: COLORS.textLight, paddingHorizontal: SIZES.lg, marginBottom: SIZES.xs },
     groupHead: { fontSize: SIZES.tiny, fontWeight: '800', color: COLORS.textLight, textTransform: 'uppercase', letterSpacing: 0.6, paddingHorizontal: SIZES.lg, marginTop: SIZES.md, marginBottom: 2 },
     sep: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.borderLight, marginVertical: SIZES.xs, marginHorizontal: SIZES.lg },

@@ -681,6 +681,16 @@ service cloud.firestore {
         allow write: if isAdmin(v);
       }
 
+      // Purchase orders — any officer may raise and update; received/cancelled orders
+      // keep the record but cannot be changed further. Crew may read (to see what was ordered).
+      match /purchase_orders/{id} {
+        allow read: if reader(v);
+        allow create: if isAdmin(v);
+        allow update: if isAdmin(v)
+          && !(resource.data.status == 'received' || resource.data.status == 'cancelled');
+        allow delete: if false;
+      }
+
       // ---- server-only ------------------------------------------------------
       // The bootstrap marker and the guess counters are written by the Admin SDK
       // and must be unreachable from a client — a counter the guesser can clear

@@ -30,7 +30,7 @@ const ANTHROPIC_API_KEY = defineSecret('ANTHROPIC_API_KEY');
 const ROOT = 'safety_vessels';
 const REGION = 'europe-west1';
 // A day's allowance per vessel: the cheap tasks (fast model) generously, questions (the larger model, the vessel's records as context) less.
-const DAILY = { map: 100, table: 100, inspect: 400, ask: 60, form: 20 };
+const DAILY = { map: 100, table: 100, inspect: 400, ask: 60, form: 20, cert: 60 };
 const FAST = 'claude-haiku-5-5';
 const SMART = 'claude-sonnet-5-5';
 
@@ -141,6 +141,27 @@ RULES
 
 Return JSON only: {"title": "<the form's title, short>", "where": "bridge" | "engine", "lines": ["<line>", ...], "unreadable": "<what could not be read, or empty>"}`;
     return json(await claude(key, SMART, 'You turn a ship\'s paper checklist into the wording of a maritime safety app, exactly and without inventing. Answer with JSON only.', [block, { type: 'text', text }], 8000));
+  },
+
+  async cert(key, d) {
+    const media = String(d.mediaType || '');
+    if (!/^image\/(jpeg|png|webp|gif)$/.test(media)) throw new HttpsError('invalid-argument', 'A photo (JPEG or PNG) of the certificate.');
+    const data = String(d.data || '');
+    if (data.length > 14_000_000) throw new HttpsError('invalid-argument', 'The photo is too large — under 10 MB.');
+    const scope = String(d.scope || '');
+    const text = `This is a photo of a certificate or credential from a ship.
+
+Extract exactly what is printed on it — do NOT invent or guess:
+- name: the full title of the document (e.g. "Certificate of Competency", "Basic Safety Training Certificate", "MLC Medical Certificate"). If you see only the short form, expand it.
+- number: the certificate or document number / reference printed on it (any format).
+- issuer: the issuing authority, flag state, class society, training centre or port authority as printed.
+${scope === 'crew' ? '- holder: the full name of the person the certificate was issued to (not the issuing officer or examiner).\n' : ''}- issueDate: the date of issue as yyyy-mm-dd. A month and year alone → yyyy-mm-01. A year alone → yyyy-01-01.
+- expiryDate: the expiry / valid-until / revalidation date as yyyy-mm-dd, same rules. If the document says "no expiry" or is indefinitely valid, leave it out.
+- unreadable: anything printed that you could not read clearly, in one short line, or empty.
+
+Return JSON only — include only the keys you found:
+{"name": "…", "number": "…", "issuer": "…"${scope === 'crew' ? ', "holder": "…"' : ''}, "issueDate": "yyyy-mm-dd", "expiryDate": "yyyy-mm-dd", "unreadable": "…"}`;
+    return json(await claude(key, FAST, 'You read certificates and credentials for a maritime safety app. Extract only what is printed. Answer with JSON only.', [{ type: 'image', source: { type: 'base64', media_type: media, data } }, { type: 'text', text }], 600));
   },
 
   async ask(key, d) {

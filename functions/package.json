@@ -13,7 +13,9 @@
     "deploy": "cd .. && npx firebase-tools deploy --only functions --project marine-safety-manager",
     "logs": "cd .. && npx firebase-tools functions:log --project marine-safety-manager",
     "code": "node scripts/setup-code.js",
-    "modules": "node scripts/set-modules.js"
+    "modules": "node scripts/set-modules.js",
+    "seed:orders": "node scripts/seed-orders.js",
+    "fix:device": "node scripts/fix-device.js"
   },
   "dependencies": {
     "firebase-admin": "^12.7.0",

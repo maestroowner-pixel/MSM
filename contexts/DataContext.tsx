@@ -35,8 +35,11 @@ import { Checkpoint, Patrol, PatrolPlan } from '../types/patrols';
 import { KeyItem, KeyMove } from '../types/keys';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 import { WatchEntry, WatchTemplate } from '../types/watchLog';
+import { DeckEntry } from '../types/deckLog';
 import { InternalAudit } from '../types/audit';
 import { ItemMovement, LandingReport } from '../types/movement';
+import { OrderGroup, PurchaseOrder } from '../types/orders';
+import { GalleyOrder } from '../types/galley';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
 import { ChecklistTemplate } from '../constants/checklists';
@@ -95,6 +98,8 @@ interface DataContextType {
   watchTemplates: WatchTemplate[];
   /** Signed engine-room round entries — append-only. */
   watchLog: WatchEntry[];
+  /** Deck watch log entries — position, course, weather, watch officer signature. */
+  deckLog: DeckEntry[];
   /** Internal audits — ISM / MLC / custom (backlog #12). */
   internalAudits: InternalAudit[];
   /** Shore movement records per equipment item — append-only (#27). */
@@ -199,6 +204,12 @@ interface DataContextType {
   medOrders: MedOrder[];
   medChecks: MedCheck[];
   surveysDone: SurveyDone[];
+  /** Purchase orders / requisitions (types/orders.ts). */
+  purchaseOrders: PurchaseOrder[];
+  /** Named order groups — charters, drydocks, etc. */
+  orderGroups: OrderGroup[];
+  /** Galley (food & beverage) purchase orders. */
+  galleyOrders: GalleyOrder[];
   /**
    * Every version of an amendable log (services/versions) by storage key. The
    * lists above (fuelReadings, visitors…) hold only the live versions.
@@ -283,6 +294,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [watchTemplates, setWatchTemplates] = useState<WatchTemplate[]>([]);
   const [internalAudits, setInternalAudits] = useState<InternalAudit[]>([]);
   const [watchLog, setWatchLog] = useState<WatchEntry[]>([]);
+  const [deckLog, setDeckLog] = useState<DeckEntry[]>([]);
   const [itemMovements, setItemMovements] = useState<ItemMovement[]>([]);
   const [landings, setLandings] = useState<LandingReport[]>([]);
   const [spares, setSpares] = useState<SparePart[]>([]);
@@ -344,6 +356,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [medOrders, setMedOrders] = useState<MedOrder[]>([]);
   const [medChecks, setMedChecks] = useState<MedCheck[]>([]);
   const [surveysDone, setSurveysDone] = useState<SurveyDone[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [orderGroups, setOrderGroups] = useState<OrderGroup[]>([]);
+  const [galleyOrders, setGalleyOrders] = useState<GalleyOrder[]>([]);
   // Every version of the logs that can be amended — for the history and the struck-through lines.
   const [versions, setVersions] = useState<Record<string, any[]>>({});
   const versionsOf = useCallback((key: string) => versions[key] ?? [], [versions]);
@@ -392,6 +407,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _pmsProjects = (await storage.loadList<PmsProject>(storage.PMS_PROJECTS_KEY)).filter((x) => !x.deleted);
     const _watchTemplates = (await storage.loadList<WatchTemplate>(storage.WATCH_TEMPLATES_KEY)).filter((x) => !x.deleted);
     const _watchLog = await storage.loadList<WatchEntry>(storage.WATCH_LOG_KEY);
+    const _deckLog = await storage.loadList<DeckEntry>(storage.DECK_LOG_KEY);
     const _internalAudits = (await storage.loadList<InternalAudit>(storage.INTERNAL_AUDITS_KEY)).filter((x) => !x.deleted);
     const _itemMovements = await storage.loadList<ItemMovement>(storage.ITEM_MOVEMENTS_KEY);
     const _landings = (await storage.loadList<LandingReport>(storage.LANDINGS_KEY)).filter((x) => !x.deleted);
@@ -454,6 +470,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _medOrders = await storage.loadList<MedOrder>(storage.MED_ORDERS_KEY);
     const _medChecks = await storage.loadList<MedCheck>(storage.MED_CHECKS_KEY);
     const _surveysDone = live(await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY));
+    const _purchaseOrders = (await storage.loadList<PurchaseOrder>(storage.PURCHASE_ORDERS_KEY)).filter((x) => !x.deleted);
+    const _orderGroups1 = (await storage.loadList<OrderGroup>(storage.ORDER_GROUPS_KEY)).filter((x) => !x.deleted);
+    const _galleyOrders1 = (await storage.loadList<GalleyOrder>(storage.GALLEY_ORDERS_KEY)).filter((x) => !x.deleted);
     const _versions = Object.fromEntries(await Promise.all(VERSIONED_KEYS.map(async (k) => [k, await storage.loadList<any>(k)] as const)));
     const _templates = await storage.loadTemplates();
     const _signingPolicyState = (await storage.loadSigningPolicy()) ?? DEFAULT_POLICY;
@@ -473,6 +492,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setPmsProjects(_pmsProjects);
     setWatchTemplates(_watchTemplates);
     setWatchLog(_watchLog);
+    setDeckLog(_deckLog);
     setInternalAudits(_internalAudits);
     setItemMovements(_itemMovements);
     setLandings(_landings);
@@ -535,6 +555,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMedOrders(_medOrders);
     setMedChecks(_medChecks);
     setSurveysDone(_surveysDone);
+    setPurchaseOrders(_purchaseOrders);
+    setOrderGroups(_orderGroups1);
+    setGalleyOrders(_galleyOrders1);
     setVersions(_versions);
     setTemplates(_templates);
     setSigningPolicyState(_signingPolicyState);
@@ -701,6 +724,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _pmsProjects = (await storage.loadList<PmsProject>(storage.PMS_PROJECTS_KEY)).filter((x) => !x.deleted);
     const _watchTemplates = (await storage.loadList<WatchTemplate>(storage.WATCH_TEMPLATES_KEY)).filter((x) => !x.deleted);
     const _watchLog = await storage.loadList<WatchEntry>(storage.WATCH_LOG_KEY);
+    const _deckLog = await storage.loadList<DeckEntry>(storage.DECK_LOG_KEY);
     const _internalAudits = (await storage.loadList<InternalAudit>(storage.INTERNAL_AUDITS_KEY)).filter((x) => !x.deleted);
     const _itemMovements = await storage.loadList<ItemMovement>(storage.ITEM_MOVEMENTS_KEY);
     const _landings = (await storage.loadList<LandingReport>(storage.LANDINGS_KEY)).filter((x) => !x.deleted);
@@ -763,6 +787,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _medOrders = await storage.loadList<MedOrder>(storage.MED_ORDERS_KEY);
     const _medChecks = await storage.loadList<MedCheck>(storage.MED_CHECKS_KEY);
     const _surveysDone = live(await storage.loadList<SurveyDone>(storage.SURVEYS_DONE_KEY));
+    const _purchaseOrders = (await storage.loadList<PurchaseOrder>(storage.PURCHASE_ORDERS_KEY)).filter((x) => !x.deleted);
+    const _orderGroups2 = (await storage.loadList<OrderGroup>(storage.ORDER_GROUPS_KEY)).filter((x) => !x.deleted);
+    const _galleyOrders2 = (await storage.loadList<GalleyOrder>(storage.GALLEY_ORDERS_KEY)).filter((x) => !x.deleted);
     const _versions = Object.fromEntries(await Promise.all(VERSIONED_KEYS.map(async (k) => [k, await storage.loadList<any>(k)] as const)));
     setMachines(_machines);
     setScrappedMachines(_allMachines.filter((m) => m.scrapped));
@@ -773,6 +800,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setPmsProjects(_pmsProjects);
     setWatchTemplates(_watchTemplates);
     setWatchLog(_watchLog);
+    setDeckLog(_deckLog);
     setInternalAudits(_internalAudits);
     setItemMovements(_itemMovements);
     setLandings(_landings);
@@ -835,6 +863,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMedOrders(_medOrders);
     setMedChecks(_medChecks);
     setSurveysDone(_surveysDone);
+    setPurchaseOrders(_purchaseOrders);
+    setOrderGroups(_orderGroups2);
+    setGalleyOrders(_galleyOrders2);
     setVersions(_versions);
   }, []);
 
@@ -1077,6 +1108,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         pmsProjects,
         watchTemplates,
         watchLog,
+        deckLog,
         internalAudits,
         itemMovements,
         landings,
@@ -1153,6 +1185,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         medOrders,
         medChecks,
         surveysDone,
+        purchaseOrders,
+        orderGroups,
+        galleyOrders,
         versionsOf,
         saveRow,
         saveRows,

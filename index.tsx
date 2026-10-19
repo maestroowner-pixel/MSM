@@ -55,6 +55,8 @@ import PmsDefectSc from './screens/PmsDefectSc';
 import PmsProjectsSc, { PmsProjectSc } from './screens/PmsProjectsSc';
 import WatchLogSc from './screens/WatchLogSc';
 import WatchEntrySc from './screens/WatchEntrySc';
+import DeckLogSc from './screens/DeckLogSc';
+import DeckEntrySc from './screens/DeckEntrySc';
 import AuditsSc from './screens/AuditsSc';
 import AuditSc from './screens/AuditSc';
 import LandingsSc from './screens/LandingsSc';
@@ -115,6 +117,11 @@ import MedCountSc from './screens/MedCountSc';
 import MedLandingSc from './screens/MedLandingSc';
 import RoundsSc from './screens/RoundsSc';
 import RoundSc from './screens/RoundSc';
+import OrdersSc from './screens/OrdersSc';
+import OrderSc from './screens/OrderSc';
+import OrderGroupSc from './screens/OrderGroupSc';
+import GalleyOrdersSc from './screens/GalleyOrdersSc';
+import GalleyOrderSc from './screens/GalleyOrderSc';
 import PermitSc from './screens/PermitSc';
 import RiskSc from './screens/RiskSc';
 import CrewMatrixSc from './screens/CrewMatrixSc';
@@ -165,6 +172,7 @@ const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Passengers: PassengersSc,
   Stores: StoresSc,
   Rounds: RoundsSc,
+  Orders: OrdersSc,
   Maintenance: MaintenanceSc,
   HoursOfRest: HoursOfRestSc,
   Spares: SparesSc,
@@ -428,6 +436,7 @@ const linking = {
           Passengers: 'passengers',
           Stores: 'stores',
           Rounds: 'rounds',
+          Orders: 'orders',
           Settings: 'settings',
         },
       },
@@ -460,6 +469,8 @@ const linking = {
       PmsProject: 'pms-project/:id',
       WatchLog: 'watch-log',
       WatchEntry: 'watch-entry',
+      DeckLog: 'deck-log',
+      DeckEntry: 'deck-entry',
       InternalAudits: 'internal-audits',
       InternalAudit: 'internal-audit/:id',
       Landings: 'landings',
@@ -473,6 +484,7 @@ const linking = {
       Treatment: 'treatment/:id',
       MedOrder: 'medical-order/:id',
       MedCount: 'medical-inventory/:id',
+      Order: 'order/:id',
       MedLanding: 'medical-landing/:id',
       SparePart: 'spare/:id',
       Doc: 'document/:id',
@@ -680,6 +692,8 @@ function Root() {
         <Stack.Screen name="PmsProject" component={PmsProjectSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="WatchLog" component={WatchLogSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="WatchEntry" component={WatchEntrySc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="DeckLog" component={DeckLogSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="DeckEntry" component={DeckEntrySc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="InternalAudits" component={AuditsSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="InternalAudit" component={AuditSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Landings" component={LandingsSc} options={{ presentation: 'modal' }} />
@@ -693,6 +707,10 @@ function Root() {
         <Stack.Screen name="Treatment" component={TreatmentSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="MedOrder" component={MedOrderSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="MedCount" component={MedCountSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Order" component={OrderSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="OrderGroup" component={OrderGroupSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="GalleyOrders" component={GalleyOrdersSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="GalleyOrder" component={GalleyOrderSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="MedLanding" component={MedLandingSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="SparePart" component={SparePartSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Doc" component={DocSc} options={{ presentation: 'modal' }} />

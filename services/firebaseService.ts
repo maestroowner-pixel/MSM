@@ -1325,6 +1325,8 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'passengers', key: storage.PASSENGERS_KEY, module: 'passengers', toCloud: passengerToCloud, fromCloud: passengerFromCloud },
   // The patient's name never leaves the vessel: the cloud holds its first and last letter.
   { sub: 'med_treatments', key: storage.MED_TREATMENTS_KEY, module: 'hospital', officers: true, toCloud: treatmentToCloud, fromCloud: treatmentFromCloud, resend: 'mask1' },
+  // Purchase orders / requisitions — raised aboard, received aboard.
+  { sub: 'purchase_orders', key: storage.PURCHASE_ORDERS_KEY, module: 'orders' },
 ];
 
 /**

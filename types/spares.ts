@@ -1,3 +1,5 @@
+import { OrderDept } from './orders';
+
 // ===================================
 // Spare parts — what is in the stores, and every movement in and out.
 //
@@ -39,6 +41,8 @@ export interface SparePart {
   suppliers?: SpareSupplier[];
   /** Machines it fits (types/pms Machine ids). */
   machineIds?: string[];
+  /** Which department orders this part (used to split purchase orders). */
+  dept?: OrderDept;
   notes?: string;
   deleted?: boolean;
   updatedAt: number;

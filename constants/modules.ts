@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -161,6 +161,14 @@ export const MODULES: Record<ModuleKey, boolean> = {
   /** Bridge and engine checklists — watch handover (STCW A-VIII/2) first, on the DP checklist engine (17 Oct 2026). */
   // Released 18 Oct 2026.
   watchChecks: true,
+  /**
+   * Purchase orders / requisitions — department folders (Bridge / Engine / Deck /
+   * Accommodation / Galley) with a register and delivery tracking (Oct 2026).
+   * Closes the "Закупки и поставщики" gap vs. IDEA/Seahub.
+   */
+  orders: true,
+  /** Deck watch log (вахтенный журнал мостика) — position, course, speed, weather, watch officer signature (Oct 2026). */
+  deckLog: true,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------
