@@ -18,6 +18,8 @@ import { SIZES } from '../theme';
 export interface DropdownOption<T> {
   value: T;
   label: string;
+  /** Short label shown in the button after selection; falls back to label. */
+  short?: string;
   /** A MaterialCommunityIcons name shown before the label. */
   icon?: string;
 }
@@ -40,7 +42,7 @@ export function Dropdown<T>({
   const ref = useRef<View>(null);
   const [at, setAt] = useState<{ x: number; y: number; w: number } | null>(null);
   const cur = options.find((o) => o.value === value);
-  const current = cur?.label ?? '';
+  const current = cur ? (cur.short ?? cur.label) : '';
 
   const open = () =>
     ref.current?.measureInWindow((x, y, w, h) => {

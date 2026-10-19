@@ -25,6 +25,8 @@ import { signatureLine } from '../types/crew';
 import { useSigner, Signer } from '../components/SignerChoice';
 import { useSignConfirm, SignResult } from '../components/SignConfirm';
 import { ItemMovement, LandingReport, MovementDir, nextLandingNo, MOVEMENT_DIR_LABEL } from '../types/movement';
+import { DeckEntry } from '../types/deckLog';
+import * as storage from '../services/storage';
 import { EquipmentItem } from '../types/equipment';
 import { CATEGORY_MAP } from '../constants/categories';
 import { readInspectLink } from '../services/firebaseService';
@@ -35,7 +37,7 @@ export default function LandingReportSc() {
   const nav = useNavigation<any>();
   const route = useRoute<any>();
   const COLORS = useTheme();
-  const { landings, itemMovements, saveLanding, saveItem, flat, vessel } = useData();
+  const { landings, itemMovements, saveLanding, saveItem, saveRow, flat, vessel } = useData();
   const sync = useSync();
   const canEdit = !sync.enrolled || roleAtLeast(sync.role, 'admin');
 
@@ -213,6 +215,20 @@ export default function LandingReportSc() {
       };
 
       await saveLanding(report, movs);
+
+      // Auto deck-log entry when a signed landing report is created.
+      if (signed && by) {
+        const dirWord = dir === 'out' ? 'sent ashore' : dir === 'in' ? 'returned aboard' : 'received aboard';
+        const itemList = movs.map((m) => m.itemSnap).filter(Boolean).join('; ');
+        const deckEntry: DeckEntry = {
+          id: uid(), date, time: new Date().toTimeString().slice(0, 5), period: 'port', mode: 'port',
+          remarks: `Landing Report ${report.no}: ${movs.length} item(s) ${dirWord}${report.to ? ` — ${report.to}` : ''}.${itemList ? ` Items: ${itemList}.` : ''}${report.notes ? ` ${report.notes}` : ''}`,
+          landingRef: report.id,
+          landingNo: report.no,
+          by: by ?? '', byRank: byRank, at: Date.now(), updatedAt: Date.now(),
+        };
+        await saveRow(storage.DECK_LOG_KEY, deckEntry);
+      }
 
       // For return reports, update each item's nextInspection date.
       if (dir === 'in') {

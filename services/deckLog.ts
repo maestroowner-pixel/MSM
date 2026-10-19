@@ -9,6 +9,19 @@ export const PERIOD_LABEL: Record<WatchPeriod, string> = {
   '20-00': '20:00 – 00:00',
   noon: 'Noon',
   other: 'Other',
+  port: 'Port',
+};
+
+export const PERIOD_SHORT: Record<WatchPeriod, string> = {
+  '00-04': '00–04',
+  '04-08': '04–08',
+  '08-12': '08–12',
+  '12-16': '12–16',
+  '16-20': '16–20',
+  '20-00': '20–00',
+  noon: 'Noon',
+  other: 'Other',
+  port: 'Port',
 };
 
 export const WIND_DIRS: WindDir[] = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
@@ -56,6 +69,13 @@ export function weatherSummary(e: DeckEntry): string {
 
 /** Position string for list view. */
 export function positionStr(e: DeckEntry): string {
+  if (e.latDeg !== undefined && e.latMin !== undefined) {
+    const lat = `${e.latDeg}°${e.latMin.toFixed(1)}'${e.latHem ?? 'N'}`;
+    const lon = e.lonDeg !== undefined
+      ? `  ${String(e.lonDeg).padStart(3, '0')}°${(e.lonMin ?? 0).toFixed(1)}'${e.lonHem ?? 'E'}`
+      : '';
+    return lat + lon;
+  }
   if (e.lat && e.lon) return `${e.lat}  ${e.lon}`;
   return '';
 }

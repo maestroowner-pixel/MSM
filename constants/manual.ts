@@ -659,6 +659,20 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '📖',
+      title: "Deck watch log",
+      body: [
+        "The Deck Watch Log (menu → Deck watch log) is the bridge logbook: one entry per watch period, signed by the watch officer.",
+        "Each entry records the mode — At Sea (course, speed, position) or In Port — plus weather (wind direction and Beaufort force, Douglas sea state, visibility, barometric pressure) and a free-text Remarks field for events, orders and observations.",
+        "Navigation: position is entered as degrees and decimal minutes with N/S and E/W. Gyro and magnetic courses, variation, deviation, speed over ground, distance run since the previous entry and engine RPM are all optional. Wind and sea state use standard scales; visibility is Good / Moderate / Poor / Fog.",
+        "Save vs Sign: tapping Save records a draft immediately and returns to the log list — the entry is visible but marked Unsigned. A draft can be reopened and edited. Tapping Sign locks the entry permanently; after signing it cannot be changed. Sign is normally done at the end of the day or watch.",
+        "Date navigation: the calendar icon at the top opens a picker with day, month and year wheels. The ← and → arrows step one day back or forward.",
+        "Automatic entries: the Security module creates a deck log entry when a visitor signs on or off at the gangway. The landing report module creates one when a landing report is signed. These entries carry the full text and appear on the day they were made; a 📎 paperclip icon links back to the source report — tap it to open.",
+        "Port autocomplete: when editing the vessel's port in Security settings, type the first letters and the app suggests ports from the world port list.",
+        "Sharing: tap the share icon in the top bar (visible when entries exist for the selected day) to save or print a signed page as an HTML file.",
+      ],
+    },
+    {
       emoji: '🏢',
       title: "Fleet console (superintendent)",
       body: [
@@ -1298,6 +1312,20 @@ const ru: ManualContent = {
         "Каждому разрешению нужна оценка риска: скопируйте её из библиотеки судна под работу и поправьте. В оценке каждая опасность оценивается по матрице 5 × 5 до и после мер контроля; всё, что осталось High или Extreme, выделяется. Библиотеку можно начать с шести стартовых оценок и доработать под судно.",
         "Разрешение с истёкшим окном показывается как Overdue: закройте его или выпустите новое.",
         "Toolbox meeting: перед началом работы проведите его в пермите — место и работа берутся из пермита; отметьте всех присутствующих, отметьте, что разобрано (опасности и меры из оценки рисков, СИЗ, связь, аварийные действия, право остановить работу), запишите вопросы, подпишите. Работу нельзя начать, пока не отмечены все из бригады; если место или работа изменились — проведите заново. Закрытие: укажите дату и время окончания работы (по умолчанию — сейчас; раньше, если подписываете позже, но не раньше начала) и подпишите — это записывается в пермит вместе с подписью.",
+      ],
+    },
+    {
+      emoji: '📖',
+      title: "Вахтенный журнал мостика (Deck watch log)",
+      body: [
+        "Вахтенный журнал мостика (меню → Deck watch log) — судовой журнал: одна запись на вахтенный период, подписанная вахтенным помощником.",
+        "Каждая запись фиксирует режим — В море (At Sea: курс, скорость, позиция) или В порту (In Port) — плюс погоду (направление и сила ветра по шкале Бофора, волнение по шкале Дугласа, видимость, барометрическое давление) и поле Remarks для событий, распоряжений и наблюдений.",
+        "Навигация: позиция вводится в градусах и десятых долях минут с N/S и E/W. Гирокомпасный и магнитный курсы, склонение, девиация, скорость, расстояние с предыдущей записи и обороты — все опциональны. Ветер и волнение — по стандартным шкалам; видимость — Good / Moderate / Poor / Fog.",
+        "Save и Sign: кнопка Save сохраняет запись как черновик и сразу возвращает в список — запись видна, но помечена «Unsigned». Черновик можно открыть и исправить. Sign фиксирует запись навсегда; после подписи её нельзя изменить. Подпись, как правило, ставится в конце дня или вахты.",
+        "Навигация по датам: иконка календаря вверху открывает выбор с колёсами числа, месяца и года. Стрелки ← и → переключают на день назад или вперёд.",
+        "Автоматические записи: модуль Security создаёт запись в журнале, когда посетитель проходит регистрацию на трапе или уходит. Модуль Landing Reports создаёт запись при подписании сопроводительного листа. Эти записи содержат полный текст и появляются датой события; иконка 📎 скрепки ссылается на исходный отчёт — нажмите, чтобы открыть.",
+        "Автодополнение порта: при редактировании порта стоянки в настройках Security введите первые буквы — приложение предложит варианты из мирового списка портов.",
+        "Публикация: нажмите иконку поделиться в верхней панели (появляется, когда есть записи за выбранный день), чтобы сохранить или распечатать подписанную страницу в виде HTML-файла.",
       ],
     },
     {
@@ -1943,6 +1971,20 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '📖',
+      title: "Cuaderno de guardia (Deck watch log)",
+      body: [
+        "El cuaderno de guardia de puente (menú → Deck watch log) es el libro de a bordo: una entrada por período de guardia, firmada por el oficial de guardia.",
+        "Cada entrada registra el modo — En el mar (At Sea: rumbo, velocidad, posición) o En puerto (In Port) — además del tiempo (dirección e intensidad del viento en escala Beaufort, estado de la mar en escala Douglas, visibilidad, presión barométrica) y el campo Remarks para eventos, órdenes y observaciones.",
+        "Navegación: la posición se introduce en grados y décimas de milla con N/S y E/W. Rumbos giroscópico y magnético, variación, desvío, velocidad, distancia desde la entrada anterior y RPM son todos opcionales.",
+        "Save y Sign: Save guarda un borrador y vuelve al listado — la entrada aparece marcada como «Unsigned». El borrador puede abrirse y corregirse. Sign fija la entrada definitivamente; una vez firmada no puede cambiarse. La firma se hace normalmente al final del día o de la guardia.",
+        "Navegación por fechas: el icono del calendario abre un selector con ruedas de día, mes y año. Las flechas ← y → avanzan o retroceden un día.",
+        "Entradas automáticas: el módulo Security crea una entrada cuando un visitante se registra o abandona el buque en la pasarela. El módulo Landing Reports crea una al firmar un landing report. Estas entradas incluyen el texto completo y aparecen con su fecha; el icono 📎 enlaza al informe de origen — pulse para abrirlo.",
+        "Autocompletar puerto: al editar el puerto de escala en los ajustes de Security, escriba las primeras letras y la app sugiere puertos de la lista mundial.",
+        "Compartir: pulse el icono de compartir en la barra superior (visible cuando hay entradas para el día seleccionado) para guardar o imprimir la página firmada como archivo HTML.",
+      ],
+    },
+    {
       emoji: '🏢',
       title: "Consola de flota (superintendente)",
       body: [
@@ -2585,6 +2627,20 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '📖',
+      title: "Вахтовий журнал містка (Deck watch log)",
+      body: [
+        "Вахтовий журнал містка (меню → Deck watch log) — судновий журнал: один запис на вахтовий період, підписаний вахтовим помічником.",
+        "Кожен запис фіксує режим — У морі (At Sea: курс, швидкість, позиція) або В порту (In Port) — плюс погоду (напрямок і сила вітру за шкалою Бофора, хвилювання за шкалою Дугласа, видимість, барометричний тиск) і поле Remarks для подій, розпоряджень і спостережень.",
+        "Навігація: позиція вводиться в градусах і десятих хвилини з N/S і E/W. Гірокомпасний і магнітний курси, схилення, девіація, швидкість, відстань із попереднього запису та оберти — всі опційні.",
+        "Save і Sign: Save зберігає запис як чернетку й повертає до списку — запис видно, але позначено «Unsigned». Чернетку можна відкрити та виправити. Sign фіксує запис назавжди; після підпису змінити його неможливо. Підпис, як правило, ставиться наприкінці дня або вахти.",
+        "Навігація за датами: іконка календаря вгорі відкриває вибір із колесами числа, місяця й року. Стрілки ← і → переключають на день назад або вперед.",
+        "Автоматичні записи: модуль Security створює запис у журналі, коли відвідувач проходить реєстрацію на трапі або іде. Модуль Landing Reports створює запис при підписанні супровідного листа. Ці записи містять повний текст і з'являються датою події; іконка 📎 скріпки посилається на вихідний звіт — натисніть, щоб відкрити.",
+        "Автодоповнення порту: при редагуванні порту стоянки в налаштуваннях Security введіть перші букви — застосунок запропонує варіанти зі світового списку портів.",
+        "Публікація: натисніть іконку поділитися у верхній панелі (з'являється, коли є записи за вибраний день), щоб зберегти або надрукувати підписану сторінку у вигляді HTML-файлу.",
+      ],
+    },
+    {
       emoji: '🏢',
       title: "Берегова консоль (суперінтендант)",
       body: [
@@ -2651,6 +2707,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Drills', module: 'drills' },
   { title: 'Safety observations & NC', module: 'qhse' },
   { title: 'Fleet console (superintendent)', module: 'fleet' },
+  { title: 'Deck watch log', module: 'deckLog' },
 ];
 
 /** The manual as this build should show it: sections of switched-off modules removed. */

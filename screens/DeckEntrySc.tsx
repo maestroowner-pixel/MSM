@@ -1,11 +1,8 @@
-// ===================================
-// Fill in a deck watch entry and sign it — or view a completed one.
-// New entry: route params {}
-// Read-only: route params { entryId }
-// ===================================
-
-import React, { useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Alert, ScrollView, StyleSheet, Text, TextInput,
+  TouchableOpacity, View,
+} from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,32 +14,94 @@ import { useSigner } from '../components/SignerChoice';
 import { useSignConfirm } from '../components/SignConfirm';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
+import { isAboard, crewLabel } from '../types/crew';
+import { shareDeckEntry } from '../services/deckLogReport';
 import { SIZES, Palette } from '../theme';
 import {
-  DeckEntry, VISIBILITY_LABEL, WATCH_PERIODS, Visibility, WindDir,
+  DeckEntry, LatHem, LonHem, VISIBILITY_LABEL,
+  WATCH_PERIODS, Visibility, WindDir,
 } from '../types/deckLog';
 import {
-  BEAUFORT_LABEL, PERIOD_LABEL, SEA_STATE_LABEL, WIND_DIRS,
+  BEAUFORT_LABEL, PERIOD_LABEL, PERIOD_SHORT, SEA_STATE_LABEL, WIND_DIRS,
   currentPeriod, nowTime, todayStr,
 } from '../services/deckLog';
 import * as storage from '../services/storage';
+import { setActiveWatch, clearActiveWatch, drainPendingEvents } from '../services/watchTracker';
 import { formatDate, formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 
-// ─── Small helpers ────────────────────────────────────────────────────────────
+// ─── Compact cell helpers (module-level so they don't reset focus) ────────────
 
-function SectionLabel({ text }: { text: string }) {
+function CellLabel({ text }: { text: string }) {
   const C = useTheme();
   return (
-    <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', color: C.primary, marginTop: SIZES.lg, marginBottom: SIZES.xs ?? 4 }}>
+    <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 0.7, textTransform: 'uppercase', color: C.textLight, marginBottom: 3 }}>
       {text}
     </Text>
   );
 }
 
-function Row2({ children }: { children: React.ReactNode }) {
-  return <View style={{ flexDirection: 'row', gap: SIZES.sm, alignItems: 'flex-start' }}>{children}</View>;
+interface CIProps {
+  value: string;
+  onChangeText: (v: string) => void;
+  placeholder?: string;
+  keyboardType?: 'decimal-pad' | 'number-pad' | 'default';
+  maxLength?: number;
+  style?: object;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  multiline?: boolean;
+  numberOfLines?: number;
+}
+function CI({ style, ...rest }: CIProps) {
+  const C = useTheme();
+  return (
+    <TextInput
+      style={[{
+        backgroundColor: C.card,
+        borderRadius: 6,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: C.border,
+        paddingHorizontal: 7,
+        paddingVertical: 7,
+        color: C.text,
+        fontSize: 14,
+      }, style]}
+      placeholderTextColor={C.textLight}
+      {...rest}
+    />
+  );
+}
+
+function HemToggle({ value, onPress }: { value: string; onPress: () => void }) {
+  const C = useTheme();
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        backgroundColor: C.primary + '22',
+        borderRadius: 6,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: C.primary,
+        paddingHorizontal: 7,
+        paddingVertical: 7,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 30,
+      }}
+    >
+      <Text style={{ color: C.primary, fontWeight: '700', fontSize: 13 }}>{value}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function DegSym() {
+  const C = useTheme();
+  return <Text style={{ color: C.textLight, fontSize: 13, alignSelf: 'center', paddingBottom: 1 }}>°</Text>;
+}
+function MinSym() {
+  const C = useTheme();
+  return <Text style={{ color: C.textLight, fontSize: 13, alignSelf: 'center', paddingBottom: 1, marginLeft: 1 }}>'</Text>;
 }
 
 // ─── Main screen ─────────────────────────────────────────────────────────────
@@ -52,68 +111,145 @@ export default function DeckEntrySc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { deckLog, saveRow } = useData();
-  const { signer, picker } = useSigner('WATCH OFFICER');
+  const { deckLog, saveRow, crew, vessel } = useData();
+  const { signer, picker } = useSigner('WATCH OFFICER', { forceDropdown: true });
   const confirmSign = useSignConfirm();
 
-  const { entryId } = route.params ?? {};
-  const readOnly = !!entryId;
+  const people = useMemo(() => crew.filter(isAboard), [crew]);
+  const [masterPickedId, setMasterPickedId] = useState('');
+  const [masterSaving, setMasterSaving] = useState(false);
 
+  const backToDeckLog = () => {
+    if (nav.canGoBack()) { nav.goBack(); return; }
+    try { nav.navigate('Main', { screen: 'DeckLog' }); } catch { /* already there */ }
+  };
+
+  const { entryId } = route.params ?? {};
   const existing = useMemo<DeckEntry | undefined>(
     () => (entryId ? deckLog.find((e) => e.id === entryId) : undefined),
     [entryId, deckLog],
   );
+  // Drafts open in the form so they can be completed and signed.
+  const readOnly = !!entryId && !existing?.draft;
 
-  const [period, setPeriod] = useState(existing?.period ?? currentPeriod());
+  // Row 1 — watch params
   const [date, setDate] = useState(existing?.date ?? todayStr());
+  const [period, setPeriod] = useState(existing?.period ?? currentPeriod());
+  const [distLog, setDistLog] = useState(existing?.distanceRun?.toString() ?? '');
+  const [courseGyro, setCourseGyro] = useState((existing?.courseGyro ?? existing?.course)?.toString() ?? '');
+  const [courseMag, setCourseMag] = useState(existing?.courseMagnetic?.toString() ?? '');
+  const [variation, setVariation] = useState(existing?.variation?.toString() ?? '');
+  const [deviation, setDeviation] = useState(existing?.deviation?.toString() ?? '');
+  const [engLoadPort, setEngLoadPort] = useState(existing?.engLoadPort?.toString() ?? '');
+  const [engLoadStbd, setEngLoadStbd] = useState(existing?.engLoadStbd?.toString() ?? '');
+
+  // Row 2 — time + position + event
   const [time, setTime] = useState(existing?.time ?? nowTime());
-  const [lat, setLat] = useState(existing?.lat ?? '');
-  const [lon, setLon] = useState(existing?.lon ?? '');
-  const [course, setCourse] = useState(existing?.course?.toString() ?? '');
-  const [speed, setSpeed] = useState(existing?.speed?.toString() ?? '');
-  const [distanceRun, setDistanceRun] = useState(existing?.distanceRun?.toString() ?? '');
-  const [rpm, setRpm] = useState(existing?.rpm?.toString() ?? '');
+  const [latDeg, setLatDeg] = useState(existing?.latDeg?.toString() ?? '');
+  const [latMin, setLatMin] = useState(existing?.latMin?.toString() ?? '');
+  const [latHem, setLatHem] = useState<LatHem>(existing?.latHem ?? 'N');
+  const [lonDeg, setLonDeg] = useState(existing?.lonDeg?.toString() ?? '');
+  const [lonMin, setLonMin] = useState(existing?.lonMin?.toString() ?? '');
+  const [lonHem, setLonHem] = useState<LonHem>(existing?.lonHem ?? 'E');
+  const [remarks, setRemarks] = useState(existing?.remarks ?? '');
+
+  // Weather
   const [windDir, setWindDir] = useState<WindDir | ''>(existing?.windDir ?? '');
   const [windBft, setWindBft] = useState(existing?.windBft?.toString() ?? '');
   const [seaState, setSeaState] = useState(existing?.seaState?.toString() ?? '');
   const [visibility, setVisibility] = useState<Visibility | ''>(existing?.visibility ?? '');
   const [pressure, setPressure] = useState(existing?.pressure?.toString() ?? '');
   const [tempAir, setTempAir] = useState(existing?.tempAir?.toString() ?? '');
-  const [remarks, setRemarks] = useState(existing?.remarks ?? '');
+  const [speed, setSpeed] = useState(existing?.speed?.toString() ?? '');
+  const [rpm, setRpm] = useState(existing?.rpm?.toString() ?? '');
+
+  // Mode: at sea (full nav + watch periods) vs in port (time+event, simplified weather)
+  const [portMode, setPortMode] = useState(existing?.mode === 'port');
+  const [wxCondition, setWxCondition] = useState(existing?.wxCondition ?? '');
+
   const [saving, setSaving] = useState(false);
+  const [draftSaving, setDraftSaving] = useState(false);
+  const [autoTrack, setAutoTrack] = useState(false);
+  // For a draft opened for editing, reuse its id so we overwrite rather than duplicate.
+  const entryIdRef = useRef(existing?.draft ? existing.id : uid());
+
+  // Start / stop active-watch tracking
+  useEffect(() => {
+    if (autoTrack) {
+      setActiveWatch({ id: entryIdRef.current, period, date, startedAt: Date.now() });
+    } else {
+      clearActiveWatch();
+    }
+  }, [autoTrack, period, date]);
+
+  // Always clear on unmount
+  useEffect(() => () => { clearActiveWatch(); }, []);
 
   const num = (s: string) => { const n = parseFloat(s); return isNaN(n) ? undefined : n; };
+  // "300" → 30.0 (no decimal, ≥100): last digit is tenths, no need to type the dot
+  const parseMin = (s: string) => { const n = parseFloat(s); if (isNaN(n)) return undefined; return (!s.includes('.') && n >= 100) ? n / 10 : n; };
 
   const sign = async () => {
     if (!signer) return Alert.alert('No signer', 'Choose the watch officer signing this entry.');
     if (saving) return;
+
+    // Required fields check
+    const missing: string[] = [];
+    if (!time.trim()) missing.push('Time');
+    if (!remarks.trim()) missing.push('Event / Remarks');
+    if (missing.length > 0) {
+      const ok = await new Promise<boolean>((resolve) => {
+        Alert.alert(
+          'Not all fields filled',
+          `${missing.join(' and ')} ${missing.length === 1 ? 'is' : 'are'} empty. Save anyway?`,
+          [
+            { text: 'Go back', style: 'cancel', onPress: () => resolve(false) },
+            { text: 'Save', onPress: () => resolve(true) },
+          ],
+        );
+      });
+      if (!ok) return;
+    }
+
     setSaving(true);
     try {
       const sig = await confirmSign({
         personKey: signer.key,
         name: signer.name,
         ownDevice: signer.own,
-        what: `Deck log — ${PERIOD_LABEL[period]} ${date}`,
+        what: `Deck log — ${portMode ? 'Port' : PERIOD_LABEL[period]} ${date}`,
       });
       if (!sig) { setSaving(false); return; }
+      const finalRemarks = await drainPendingEvents(remarks.trim());
       const entry: DeckEntry = {
-        id: uid(),
+        id: entryIdRef.current,
         date,
         time,
-        period,
-        lat: lat.trim() || undefined,
-        lon: lon.trim() || undefined,
-        course: num(course),
-        speed: num(speed),
-        distanceRun: num(distanceRun),
-        rpm: num(rpm),
+        period: portMode ? 'port' : period,
+        mode: portMode ? 'port' : undefined,
+        wxCondition: portMode ? (wxCondition || undefined) : undefined,
+        distanceRun: portMode ? undefined : num(distLog),
+        courseGyro: portMode ? undefined : num(courseGyro),
+        courseMagnetic: portMode ? undefined : num(courseMag),
+        variation: portMode ? undefined : num(variation),
+        deviation: portMode ? undefined : num(deviation),
+        latDeg: portMode ? undefined : num(latDeg),
+        latMin: portMode ? undefined : parseMin(latMin),
+        latHem: (portMode || !latDeg.trim()) ? undefined : latHem,
+        lonDeg: portMode ? undefined : num(lonDeg),
+        lonMin: portMode ? undefined : parseMin(lonMin),
+        lonHem: (portMode || !lonDeg.trim()) ? undefined : lonHem,
+        engLoadPort: portMode ? undefined : num(engLoadPort),
+        engLoadStbd: portMode ? undefined : num(engLoadStbd),
         windDir: (windDir as WindDir) || undefined,
         windBft: num(windBft),
-        seaState: num(seaState),
-        visibility: (visibility as Visibility) || undefined,
-        pressure: num(pressure),
+        seaState: portMode ? undefined : num(seaState),
+        visibility: portMode ? undefined : ((visibility as Visibility) || undefined),
+        pressure: portMode ? undefined : num(pressure),
         tempAir: num(tempAir),
-        remarks: remarks.trim() || undefined,
+        speed: portMode ? undefined : num(speed),
+        rpm: portMode ? undefined : num(rpm),
+        remarks: finalRemarks || undefined,
         by: signer.name,
         byRank: signer.rank,
         at: Date.now(),
@@ -121,7 +257,7 @@ export default function DeckEntrySc() {
         updatedAt: Date.now(),
       };
       await saveRow(storage.DECK_LOG_KEY, entry);
-      goBackOr(nav, 'DeckLog');
+      backToDeckLog();
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? String(e));
     } finally {
@@ -129,7 +265,81 @@ export default function DeckEntrySc() {
     }
   };
 
-  // ── Read-only view ───────────────────────────────────────────────────────
+  const saveDraft = async () => {
+    if (draftSaving) return;
+    setDraftSaving(true);
+    try {
+      const draft: DeckEntry = {
+        id: entryIdRef.current,
+        date,
+        time,
+        period: portMode ? 'port' : period,
+        mode: portMode ? 'port' : undefined,
+        wxCondition: portMode ? (wxCondition || undefined) : undefined,
+        distanceRun: portMode ? undefined : num(distLog),
+        courseGyro: portMode ? undefined : num(courseGyro),
+        courseMagnetic: portMode ? undefined : num(courseMag),
+        variation: portMode ? undefined : num(variation),
+        deviation: portMode ? undefined : num(deviation),
+        latDeg: portMode ? undefined : num(latDeg),
+        latMin: portMode ? undefined : parseMin(latMin),
+        latHem: (portMode || !latDeg.trim()) ? undefined : latHem,
+        lonDeg: portMode ? undefined : num(lonDeg),
+        lonMin: portMode ? undefined : parseMin(lonMin),
+        lonHem: (portMode || !lonDeg.trim()) ? undefined : lonHem,
+        engLoadPort: portMode ? undefined : num(engLoadPort),
+        engLoadStbd: portMode ? undefined : num(engLoadStbd),
+        windDir: (windDir as WindDir) || undefined,
+        windBft: num(windBft),
+        seaState: portMode ? undefined : num(seaState),
+        visibility: portMode ? undefined : ((visibility as Visibility) || undefined),
+        pressure: portMode ? undefined : num(pressure),
+        tempAir: num(tempAir),
+        speed: portMode ? undefined : num(speed),
+        rpm: portMode ? undefined : num(rpm),
+        remarks: remarks.trim() || undefined,
+        by: '',
+        at: 0,
+        draft: true,
+        updatedAt: Date.now(),
+      };
+      await saveRow(storage.DECK_LOG_KEY, draft);
+      backToDeckLog();
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? String(e));
+    } finally {
+      setDraftSaving(false);
+    }
+  };
+
+  const signMaster = async (e: DeckEntry) => {
+    const person = people.find((p) => p.id === masterPickedId);
+    if (!person || masterSaving) return;
+    setMasterSaving(true);
+    try {
+      const sig = await confirmSign({
+        personKey: person.id,
+        name: person.name,
+        ownDevice: false,
+        what: `Master review — ${PERIOD_LABEL[e.period]} ${e.date}`,
+      });
+      if (!sig) { setMasterSaving(false); return; }
+      await saveRow(storage.DECK_LOG_KEY, {
+        ...e,
+        masterBy: person.name,
+        masterByRank: person.rank,
+        masterAt: Date.now(),
+        masterSignedWith: sig.proof,
+        updatedAt: Date.now(),
+      });
+    } catch (err: any) {
+      Alert.alert('Error', err?.message ?? String(err));
+    } finally {
+      setMasterSaving(false);
+    }
+  };
+
+  // ── Read-only view ─────────────────────────────────────────────────────────
   if (readOnly && existing) {
     const e = existing;
     const row = (label: string, val: string) => (
@@ -138,33 +348,52 @@ export default function DeckEntrySc() {
         <Text style={styles.readVal}>{val}</Text>
       </View>
     );
+    const gyr = e.courseGyro ?? e.course;
     return (
       <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
           <ScrollView contentContainerStyle={styles.scroll}>
-            <BackButton onPress={() => goBackOr(nav, 'DeckLog')} fav={false} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: SIZES.sm }}>
+              <BackButton onPress={backToDeckLog} fav={false} />
+              <TouchableOpacity
+                onPress={() => shareDeckEntry(e, vessel).catch((err) => Alert.alert('Error', err?.message ?? String(err)))}
+                hitSlop={8}
+                style={{ marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 5,
+                  backgroundColor: COLORS.primary + '22', borderRadius: 8, borderWidth: 1, borderColor: COLORS.primary,
+                  paddingVertical: 5, paddingHorizontal: 10 }}
+              >
+                <MciIcon name="share-outline" size={16} color={COLORS.primary} />
+                <Text style={{ fontSize: 11, fontWeight: '700', color: COLORS.primary }}>Share</Text>
+              </TouchableOpacity>
+            </View>
             <Text style={styles.titleText}>{PERIOD_LABEL[e.period]}</Text>
             <Text style={styles.sub}>{formatDate(e.date)} · {e.time}</Text>
 
-            {(e.lat || e.lon) && (
+            {(e.latDeg !== undefined || e.lat) && (
               <>
-                <SectionLabel text="Position" />
-                {row('Lat', e.lat ?? '—')}
-                {row('Lon', e.lon ?? '—')}
+                <Text style={styles.sectionLbl}>Navigation</Text>
+                {e.latDeg !== undefined && row('Position', `${e.latDeg}°${e.latMin?.toFixed(1) ?? '0'}'${e.latHem ?? 'N'}  ${String(e.lonDeg ?? 0).padStart(3,'0')}°${e.lonMin?.toFixed(1) ?? '0'}'${e.lonHem ?? 'E'}`)}
+                {e.lat && !e.latDeg && row('Position', `${e.lat}  ${e.lon ?? ''}`)}
+                {e.distanceRun !== undefined && row('Dist log', `${e.distanceRun} nm`)}
+                {gyr !== undefined && row('Gyro', `${gyr}°T`)}
+                {e.courseMagnetic !== undefined && row('Magnetic', `${e.courseMagnetic}°`)}
+                {e.variation !== undefined && row('Variation', `${e.variation}°`)}
+                {e.deviation !== undefined && row('Deviation', `${e.deviation}°`)}
               </>
             )}
-            {(e.course !== undefined || e.speed !== undefined || e.distanceRun !== undefined || e.rpm !== undefined) && (
+            {(gyr !== undefined || e.distanceRun !== undefined) && !e.latDeg && !e.lat && (
               <>
-                <SectionLabel text="Navigation" />
-                {e.course !== undefined && row('Course', `${e.course}° T`)}
-                {e.speed !== undefined && row('Speed', `${e.speed} kn`)}
-                {e.distanceRun !== undefined && row('Dist run', `${e.distanceRun} nm`)}
-                {e.rpm !== undefined && row('ME RPM', String(e.rpm))}
+                <Text style={styles.sectionLbl}>Navigation</Text>
+                {e.distanceRun !== undefined && row('Dist log', `${e.distanceRun} nm`)}
+                {gyr !== undefined && row('Gyro', `${gyr}°T`)}
+                {e.courseMagnetic !== undefined && row('Magnetic', `${e.courseMagnetic}°`)}
+                {e.variation !== undefined && row('Variation', `${e.variation}°`)}
+                {e.deviation !== undefined && row('Deviation', `${e.deviation}°`)}
               </>
             )}
             {(e.windDir || e.windBft !== undefined || e.seaState !== undefined || e.visibility || e.pressure !== undefined || e.tempAir !== undefined) && (
               <>
-                <SectionLabel text="Weather" />
+                <Text style={styles.sectionLbl}>Weather</Text>
                 {e.windDir && row('Wind', `${e.windDir}${e.windBft !== undefined ? ' ' + BEAUFORT_LABEL[e.windBft] : ''}`)}
                 {e.seaState !== undefined && row('Sea state', SEA_STATE_LABEL[e.seaState])}
                 {e.visibility && row('Visibility', VISIBILITY_LABEL[e.visibility])}
@@ -172,167 +401,329 @@ export default function DeckEntrySc() {
                 {e.tempAir !== undefined && row('Air temp', `${e.tempAir}°C`)}
               </>
             )}
+            {(e.speed !== undefined || e.rpm !== undefined) && (
+              <>
+                <Text style={styles.sectionLbl}>Performance</Text>
+                {e.speed !== undefined && row('Speed', `${e.speed} kn`)}
+                {e.rpm !== undefined && row('ME RPM', String(e.rpm))}
+              </>
+            )}
             {!!e.remarks && (
               <>
-                <SectionLabel text="Events / Remarks" />
+                <Text style={styles.sectionLbl}>Events / Remarks</Text>
                 <Text style={styles.remarkText}>{e.remarks}</Text>
               </>
             )}
-            <SectionLabel text="Signed by" />
+            <Text style={styles.sectionLbl}>Signed by</Text>
             {row('Name', e.by)}
             {e.byRank ? row('Rank', e.byRank) : null}
             <Text style={styles.sub}>{formatDateTime(e.at)}</Text>
+
+            <Text style={styles.sectionLbl}>Master review</Text>
+            {e.masterAt ? (
+              <>
+                {row('Name', e.masterBy ?? '')}
+                {e.masterByRank ? row('Rank', e.masterByRank) : null}
+                <Text style={styles.sub}>{formatDateTime(e.masterAt)}</Text>
+              </>
+            ) : (
+              <View style={[styles.logCard, { marginTop: 4 }]}>
+                {people.length ? (
+                  <Dropdown
+                    caption="MASTER / CAPTAIN"
+                    value={masterPickedId}
+                    onChange={setMasterPickedId}
+                    options={[{ value: '', label: 'Choose…' }, ...people.map((p) => ({ value: p.id, label: crewLabel(p) }))]}
+                    style={{ maxWidth: 420 }}
+                  />
+                ) : (
+                  <Text style={{ fontSize: 13, color: COLORS.textLight }}>No crew on board.</Text>
+                )}
+                <TouchableOpacity
+                  style={[styles.signBtn, { marginTop: SIZES.sm }, (!masterPickedId || masterSaving) && styles.signBtnDisabled]}
+                  onPress={() => signMaster(e)}
+                  disabled={!masterPickedId || masterSaving}
+                  activeOpacity={0.8}
+                >
+                  <MciIcon name="pen" size={16} color="#fff" />
+                  <Text style={styles.signText}>{masterSaving ? 'Saving…' : 'Endorse'}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </ScrollView>
         </SafeAreaView>
       </LinearGradient>
     );
   }
 
-  // ── New entry form ───────────────────────────────────────────────────────
+  // ── New entry form ─────────────────────────────────────────────────────────
   return (
     <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <BackButton onPress={() => goBackOr(nav, 'DeckLog')} fav={false} />
-          <Text style={styles.titleText}>New Watch Entry</Text>
+          <BackButton onPress={backToDeckLog} fav={false} />
 
-          {/* Watch period */}
-          <SectionLabel text="Watch period" />
-          <Dropdown
-            caption="PERIOD"
-            value={period}
-            options={WATCH_PERIODS.map((p) => ({ value: p, label: PERIOD_LABEL[p] }))}
-            onChange={(v) => setPeriod(v as typeof period)}
-          />
+          {/* ── Header: title + mode toggle + auto-track ── */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginBottom: SIZES.sm }}>
+            <Text style={[styles.titleText, { flex: 1, marginBottom: 0 }]}>New Watch Entry</Text>
+            {/* At Sea / In Port toggle */}
+            <TouchableOpacity
+              onPress={() => setPortMode((v) => !v)}
+              activeOpacity={0.7}
+              style={{
+                flexDirection: 'row', alignItems: 'center', gap: 5,
+                backgroundColor: portMode ? COLORS.warning + '22' : COLORS.primary + '22',
+                borderRadius: 8, borderWidth: 1,
+                borderColor: portMode ? COLORS.warning : COLORS.primary,
+                paddingVertical: 5, paddingHorizontal: 10,
+              }}
+            >
+              <MciIcon name={portMode ? 'anchor' : 'sail-boat'} size={15} color={portMode ? COLORS.warning : COLORS.primary} />
+              <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.5, color: portMode ? COLORS.warning : COLORS.primary }}>
+                {portMode ? 'IN PORT' : 'AT SEA'}
+              </Text>
+            </TouchableOpacity>
+            {/* Auto-track (at sea only) */}
+            {!portMode && (
+              <TouchableOpacity
+                onPress={() => setAutoTrack((v) => !v)}
+                activeOpacity={0.7}
+                style={{
+                  flexDirection: 'row', alignItems: 'center', gap: 5,
+                  backgroundColor: autoTrack ? COLORS.primary + '22' : COLORS.card,
+                  borderRadius: 8, borderWidth: 1,
+                  borderColor: autoTrack ? COLORS.primary : COLORS.border,
+                  paddingVertical: 5, paddingHorizontal: 10,
+                }}
+              >
+                <MciIcon name="radar" size={15} color={autoTrack ? COLORS.primary : COLORS.textLight} />
+                <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.5, color: autoTrack ? COLORS.primary : COLORS.textLight }}>
+                  {autoTrack ? 'LIVE' : 'AUTO'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
-          {/* Date / time */}
-          <SectionLabel text="Date & time" />
-          <Row2>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fieldLabel}>DATE</Text>
-              <TextInput style={styles.input} value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" placeholderTextColor={COLORS.textLight} />
+          {/* ── Row 1: watch parameters (At Sea only) ── */}
+          {!portMode && (
+            <View style={styles.logCard}>
+              <View style={styles.logRow}>
+                <View style={{ marginRight: 8 }}>
+                  <CellLabel text="DATE" />
+                  <CI value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" style={{ width: 112 }} />
+                </View>
+                <View style={{ marginRight: 8, width: 104 }}>
+                  <CellLabel text="PERIOD" />
+                  <Dropdown
+                    caption=""
+                    value={period}
+                    options={WATCH_PERIODS.filter((p) => p !== 'port').map((p) => ({ value: p, label: PERIOD_SHORT[p] }))}
+                    onChange={(v) => setPeriod(v as typeof period)}
+                  />
+                </View>
+                <View style={{ marginRight: 8 }}>
+                  <CellLabel text="LOG nm" />
+                  <CI value={distLog} onChangeText={setDistLog} keyboardType="decimal-pad" placeholder="48.0" style={{ width: 64 }} />
+                </View>
+                <View style={{ marginRight: 8 }}>
+                  <CellLabel text="GYRO °T" />
+                  <CI value={courseGyro} onChangeText={setCourseGyro} keyboardType="decimal-pad" placeholder="270" style={{ width: 64 }} />
+                </View>
+                <View style={{ marginRight: 8 }}>
+                  <CellLabel text="MAG °" />
+                  <CI value={courseMag} onChangeText={setCourseMag} keyboardType="decimal-pad" placeholder="272" style={{ width: 64 }} />
+                </View>
+                <View style={{ marginRight: 8 }}>
+                  <CellLabel text="VAR °" />
+                  <CI value={variation} onChangeText={setVariation} keyboardType="decimal-pad" placeholder="2" style={{ width: 52 }} />
+                </View>
+                <View style={{ marginRight: 8 }}>
+                  <CellLabel text="DEV °" />
+                  <CI value={deviation} onChangeText={setDeviation} keyboardType="decimal-pad" placeholder="-1" style={{ width: 52 }} />
+                </View>
+                <View style={{ marginRight: 8 }}>
+                  <CellLabel text="PORT %" />
+                  <CI value={engLoadPort} onChangeText={setEngLoadPort} keyboardType="decimal-pad" placeholder="85" style={{ width: 52 }} />
+                </View>
+                <View>
+                  <CellLabel text="STBD %" />
+                  <CI value={engLoadStbd} onChangeText={setEngLoadStbd} keyboardType="decimal-pad" placeholder="85" style={{ width: 52 }} />
+                </View>
+              </View>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fieldLabel}>TIME (LOCAL)</Text>
-              <TextInput style={styles.input} value={time} onChangeText={setTime} placeholder="HH:MM" placeholderTextColor={COLORS.textLight} />
-            </View>
-          </Row2>
+          )}
 
-          {/* Position */}
-          <SectionLabel text="Position" />
-          <Row2>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fieldLabel}>LAT</Text>
-              <TextInput style={styles.input} value={lat} onChangeText={setLat} placeholder="55°30.5'N" placeholderTextColor={COLORS.textLight} autoCapitalize="characters" />
+          {/* ── Row 2: Weather ── */}
+          <View style={[styles.logCard, { marginTop: portMode ? 0 : 6 }]}>
+            <View style={[styles.logRow, { flexWrap: 'wrap', gap: 8 }]}>
+              <View style={{ width: 96 }}>
+                <CellLabel text="WIND DIR" />
+                <Dropdown
+                  caption=""
+                  value={windDir}
+                  options={[{ value: '', label: '—' }, ...WIND_DIRS.map((d) => ({ value: d, label: d }))]}
+                  onChange={(v) => setWindDir(v as WindDir | '')}
+                />
+              </View>
+              <View style={{ width: 80 }}>
+                <CellLabel text="BEAUFORT" />
+                <Dropdown
+                  caption=""
+                  value={windBft}
+                  options={[{ value: '', label: '—' }, ...Array.from({ length: 13 }, (_, i) => ({ value: String(i), label: BEAUFORT_LABEL[i], short: String(i) }))]}
+                  onChange={setWindBft}
+                />
+              </View>
+              {!portMode && (
+                <View style={{ width: 80 }}>
+                  <CellLabel text="SEA STATE" />
+                  <Dropdown
+                    caption=""
+                    value={seaState}
+                    options={[{ value: '', label: '—' }, ...Array.from({ length: 10 }, (_, i) => ({ value: String(i), label: SEA_STATE_LABEL[i], short: String(i) }))]}
+                    onChange={setSeaState}
+                  />
+                </View>
+              )}
+              {!portMode && (
+                <View style={{ width: 120 }}>
+                  <CellLabel text="VISIBILITY" />
+                  <Dropdown
+                    caption=""
+                    value={visibility}
+                    options={[
+                      { value: '', label: '—' },
+                      { value: 'good', label: VISIBILITY_LABEL.good, short: 'Good' },
+                      { value: 'moderate', label: VISIBILITY_LABEL.moderate, short: 'Moderate' },
+                      { value: 'poor', label: VISIBILITY_LABEL.poor, short: 'Poor' },
+                      { value: 'fog', label: VISIBILITY_LABEL.fog, short: 'Fog' },
+                    ]}
+                    onChange={(v) => setVisibility(v as Visibility | '')}
+                  />
+                </View>
+              )}
+              {portMode && (
+                <View style={{ width: 130 }}>
+                  <CellLabel text="CONDITIONS" />
+                  <Dropdown
+                    caption=""
+                    value={wxCondition}
+                    options={[
+                      { value: '', label: '—' },
+                      { value: 'Clear', label: 'Clear' },
+                      { value: 'Cloudy', label: 'Cloudy' },
+                      { value: 'Overcast', label: 'Overcast' },
+                      { value: 'Rain', label: 'Rain' },
+                      { value: 'Drizzle', label: 'Drizzle' },
+                      { value: 'Fog', label: 'Fog' },
+                      { value: 'Mist', label: 'Mist' },
+                      { value: 'Snow', label: 'Snow' },
+                      { value: 'Thunder', label: 'Thunder' },
+                    ]}
+                    onChange={setWxCondition}
+                  />
+                </View>
+              )}
+              <View>
+                <CellLabel text="AIR °C" />
+                <CI value={tempAir} onChangeText={setTempAir} keyboardType="decimal-pad" placeholder="18" style={{ width: 60 }} />
+              </View>
+              {!portMode && (
+                <>
+                  <View>
+                    <CellLabel text="PRES hPa" />
+                    <CI value={pressure} onChangeText={setPressure} keyboardType="decimal-pad" placeholder="1013" style={{ width: 72 }} />
+                  </View>
+                  <View>
+                    <CellLabel text="SPD kn" />
+                    <CI value={speed} onChangeText={setSpeed} keyboardType="decimal-pad" placeholder="12.5" style={{ width: 64 }} />
+                  </View>
+                  <View>
+                    <CellLabel text="ME RPM" />
+                    <CI value={rpm} onChangeText={setRpm} keyboardType="decimal-pad" placeholder="105" style={{ width: 60 }} />
+                  </View>
+                </>
+              )}
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fieldLabel}>LON</Text>
-              <TextInput style={styles.input} value={lon} onChangeText={setLon} placeholder="012°30.5'E" placeholderTextColor={COLORS.textLight} autoCapitalize="characters" />
-            </View>
-          </Row2>
+          </View>
 
-          {/* Navigation */}
-          <SectionLabel text="Navigation" />
-          <Row2>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fieldLabel}>COURSE (°T)</Text>
-              <TextInput style={styles.input} value={course} onChangeText={setCourse} keyboardType="decimal-pad" placeholder="270" placeholderTextColor={COLORS.textLight} />
+          {/* ── Row 3: time + (position — at sea only) + event ── */}
+          <View style={[styles.logCard, { marginTop: 6 }]}>
+            <View style={[styles.logRow, { alignItems: 'flex-start', flexWrap: 'wrap' }]}>
+              <View style={{ marginRight: 8 }}>
+                <CellLabel text="TIME" />
+                <CI value={time} onChangeText={setTime} placeholder="HH:MM" style={{ width: 66 }} />
+              </View>
+              {portMode && (
+                <View style={{ marginRight: 8 }}>
+                  <CellLabel text="DATE" />
+                  <CI value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" style={{ width: 112 }} />
+                </View>
+              )}
+              {!portMode && (
+                <>
+                  <View style={{ marginRight: 10 }}>
+                    <CellLabel text="LAT" />
+                    <View style={styles.coordRow}>
+                      <CI value={latDeg} onChangeText={setLatDeg} keyboardType="number-pad" placeholder="55" maxLength={2} style={{ width: 42 }} />
+                      <DegSym />
+                      <CI value={latMin} onChangeText={setLatMin} keyboardType="decimal-pad" placeholder="30.0" maxLength={5} style={{ width: 54, marginLeft: 2 }} />
+                      <MinSym />
+                      <View style={{ width: 6 }} />
+                      <HemToggle value={latHem} onPress={() => setLatHem((h) => (h === 'N' ? 'S' : 'N'))} />
+                    </View>
+                  </View>
+                  <View style={{ marginRight: 10 }}>
+                    <CellLabel text="LON" />
+                    <View style={styles.coordRow}>
+                      <CI value={lonDeg} onChangeText={setLonDeg} keyboardType="number-pad" placeholder="012" maxLength={3} style={{ width: 48 }} />
+                      <DegSym />
+                      <CI value={lonMin} onChangeText={setLonMin} keyboardType="decimal-pad" placeholder="30.0" maxLength={5} style={{ width: 54, marginLeft: 2 }} />
+                      <MinSym />
+                      <View style={{ width: 6 }} />
+                      <HemToggle value={lonHem} onPress={() => setLonHem((h) => (h === 'E' ? 'W' : 'E'))} />
+                    </View>
+                  </View>
+                </>
+              )}
+              <View style={{ flex: 1, minWidth: 160 }}>
+                <CellLabel text="EVENT / REMARKS *" />
+                <CI
+                  value={remarks}
+                  onChangeText={setRemarks}
+                  multiline
+                  numberOfLines={portMode ? 4 : 3}
+                  placeholder={portMode ? 'Cargo operations, visitors, events…' : 'Altered course, passed vessel, safety events…'}
+                  style={{ minHeight: portMode ? 84 : 70, textAlignVertical: 'top' } as object}
+                />
+              </View>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fieldLabel}>SPEED (kn)</Text>
-              <TextInput style={styles.input} value={speed} onChangeText={setSpeed} keyboardType="decimal-pad" placeholder="12.5" placeholderTextColor={COLORS.textLight} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fieldLabel}>DIST RUN (nm)</Text>
-              <TextInput style={styles.input} value={distanceRun} onChangeText={setDistanceRun} keyboardType="decimal-pad" placeholder="48" placeholderTextColor={COLORS.textLight} />
-            </View>
-          </Row2>
-          <Text style={styles.fieldLabel}>ME RPM</Text>
-          <TextInput style={styles.input} value={rpm} onChangeText={setRpm} keyboardType="decimal-pad" placeholder="105" placeholderTextColor={COLORS.textLight} />
+          </View>
 
-          {/* Weather */}
-          <SectionLabel text="Weather" />
-          <Row2>
-            <View style={{ flex: 1 }}>
-              <Dropdown
-                caption="WIND DIR"
-                value={windDir}
-                options={[{ value: '', label: '—' }, ...WIND_DIRS.map((d) => ({ value: d, label: d }))]}
-                onChange={(v) => setWindDir(v as WindDir | '')}
-              />
+          {/* ── Signer + Save draft + Sign ── */}
+          <View style={[styles.logCard, { marginTop: 6, gap: SIZES.sm }]}>
+            <View>{picker}</View>
+            <View style={{ flexDirection: 'row', gap: SIZES.sm }}>
+              <TouchableOpacity
+                style={[styles.saveBtn, draftSaving && styles.signBtnDisabled]}
+                onPress={saveDraft}
+                disabled={draftSaving}
+                activeOpacity={0.8}
+              >
+                <MciIcon name="content-save-outline" size={16} color={COLORS.text} />
+                <Text style={styles.saveText}>{draftSaving ? 'Saving…' : 'Save'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.signBtn, { flex: 1 }, (!signer || saving) && styles.signBtnDisabled]}
+                onPress={sign}
+                disabled={!signer || saving}
+                activeOpacity={0.8}
+              >
+                <MciIcon name="pen" size={16} color="#fff" />
+                <Text style={styles.signText}>{saving ? 'Saving…' : 'Sign'}</Text>
+              </TouchableOpacity>
             </View>
-            <View style={{ flex: 1 }}>
-              <Dropdown
-                caption="BEAUFORT"
-                value={windBft}
-                options={[{ value: '', label: '—' }, ...Array.from({ length: 13 }, (_, i) => ({ value: String(i), label: BEAUFORT_LABEL[i] }))]}
-                onChange={setWindBft}
-              />
-            </View>
-          </Row2>
-
-          <Row2>
-            <View style={{ flex: 1 }}>
-              <Dropdown
-                caption="SEA STATE"
-                value={seaState}
-                options={[{ value: '', label: '—' }, ...Array.from({ length: 10 }, (_, i) => ({ value: String(i), label: SEA_STATE_LABEL[i] }))]}
-                onChange={setSeaState}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Dropdown
-                caption="VISIBILITY"
-                value={visibility}
-                options={[
-                  { value: '', label: '—' },
-                  { value: 'good', label: VISIBILITY_LABEL.good },
-                  { value: 'moderate', label: VISIBILITY_LABEL.moderate },
-                  { value: 'poor', label: VISIBILITY_LABEL.poor },
-                  { value: 'fog', label: VISIBILITY_LABEL.fog },
-                ]}
-                onChange={(v) => setVisibility(v as Visibility | '')}
-              />
-            </View>
-          </Row2>
-
-          <Row2>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fieldLabel}>PRESSURE (hPa)</Text>
-              <TextInput style={styles.input} value={pressure} onChangeText={setPressure} keyboardType="decimal-pad" placeholder="1013" placeholderTextColor={COLORS.textLight} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fieldLabel}>AIR TEMP (°C)</Text>
-              <TextInput style={styles.input} value={tempAir} onChangeText={setTempAir} keyboardType="decimal-pad" placeholder="18" placeholderTextColor={COLORS.textLight} />
-            </View>
-          </Row2>
-
-          {/* Events */}
-          <SectionLabel text="Events / Remarks" />
-          <TextInput
-            style={[styles.input, styles.remarks]}
-            value={remarks}
-            onChangeText={setRemarks}
-            multiline
-            numberOfLines={4}
-            placeholder="Altered course, passed vessel, changed speed, safety events…"
-            placeholderTextColor={COLORS.textLight}
-          />
-
-          {/* Signer */}
-          <SectionLabel text="Watch Officer" />
-          {picker}
-
-          {/* Sign button */}
-          <TouchableOpacity
-            style={[styles.signBtn, (!signer || saving) && styles.signBtnDisabled]}
-            onPress={sign}
-            disabled={!signer || saving}
-            activeOpacity={0.8}
-          >
-            <MciIcon name="pen" size={18} color="#fff" />
-            <Text style={styles.signText}>{saving ? 'Saving…' : 'Sign Watch Entry'}</Text>
-          </TouchableOpacity>
+          </View>
 
           <View style={{ height: SIZES.xl }} />
         </ScrollView>
@@ -343,32 +734,33 @@ export default function DeckEntrySc() {
 
 function makeStyles(C: Palette) {
   return StyleSheet.create({
-    scroll: { padding: SIZES.lg, paddingBottom: SIZES.xxxl ?? SIZES.xl },
-    titleText: { fontSize: 22, fontWeight: '700', color: C.text, marginTop: SIZES.sm },
-    sub: { fontSize: 13, color: C.textLight, marginTop: 2, marginBottom: SIZES.sm },
-    fieldLabel: {
-      fontSize: 11, fontWeight: '700', letterSpacing: 0.6,
-      textTransform: 'uppercase', color: C.textLight, marginBottom: 4,
-    },
-    input: {
+    scroll: { padding: SIZES.md, paddingBottom: SIZES.xxxl ?? SIZES.xl },
+    titleText: { fontSize: 20, fontWeight: '700', color: C.text, marginTop: SIZES.sm, marginBottom: SIZES.sm },
+    sub: { fontSize: 13, color: C.textLight, marginBottom: SIZES.sm },
+    sectionLbl: { fontSize: 10, fontWeight: '700', letterSpacing: 0.7, textTransform: 'uppercase', color: C.primary, marginTop: SIZES.md, marginBottom: 4 },
+    weatherLbl: { fontSize: 10, fontWeight: '700', letterSpacing: 0.7, textTransform: 'uppercase', color: C.textLight, marginBottom: 8 },
+    logCard: {
       backgroundColor: C.card,
-      borderRadius: 8,
+      borderRadius: 10,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: C.border,
-      paddingHorizontal: SIZES.sm,
-      paddingVertical: 10,
-      color: C.text,
-      fontSize: 14,
-      marginBottom: SIZES.sm,
+      padding: SIZES.sm,
     },
-    remarks: { minHeight: 90, textAlignVertical: 'top' },
+    logRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 0 },
+    coordRow: { flexDirection: 'row', alignItems: 'center', gap: 0 },
     signBtn: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
       gap: SIZES.sm, backgroundColor: C.primary, borderRadius: 10,
-      paddingVertical: 14, marginTop: SIZES.lg,
+      paddingVertical: 14, marginTop: SIZES.md,
     },
     signBtnDisabled: { opacity: 0.4 },
     signText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    saveBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      gap: SIZES.sm, borderWidth: 1.5, borderColor: C.border,
+      borderRadius: 10, paddingVertical: 14, marginTop: SIZES.md, flex: 1,
+    },
+    saveText: { color: C.text, fontWeight: '600', fontSize: 15 },
     // read-only
     readRow: { flexDirection: 'row', paddingVertical: 5, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
     readLabel: { width: 110, fontSize: 13, color: C.textLight },

@@ -24,7 +24,7 @@ export interface Signer {
 /** The name last chosen on this device — kept while the app is open, so moving between screens does not ask again. */
 let lastPicked = '';
 
-export function useSigner(caption = 'SIGNING AS'): { signer: Signer | null; picker: React.ReactElement | null } {
+export function useSigner(caption = 'SIGNING AS', { forceDropdown = false } = {}): { signer: Signer | null; picker: React.ReactElement | null } {
   const COLORS = useTheme();
   const { crew, prefs } = useData();
   const sync = useSync();
@@ -34,7 +34,7 @@ export function useSigner(caption = 'SIGNING AS'): { signer: Signer | null; pick
     lastPicked = id;
     setPicked(id);
   };
-  if (sync.me) {
+  if (sync.me && !forceDropdown) {
     return { signer: { key: `device:${sync.me.id}`, name: personName(sync.me), rank: sync.me.position || undefined, own: true }, picker: null };
   }
   const picked = people.find((p) => p.id === pickedId);

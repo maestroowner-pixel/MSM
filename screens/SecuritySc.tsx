@@ -53,6 +53,8 @@ import { exportVisitorExcel, exportVisitorPdf, movesOf, visitsOf, vlogTitle } fr
 import { formatDate, formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
+import { DeckEntry } from '../types/deckLog';
+import { searchPorts } from '../constants/ports';
 
 import MeetingsSc from './MeetingsSc';
 import SearchesSc from './SearchesSc';
@@ -242,6 +244,17 @@ function SecuritySc() {
       ...(f.photo ? { photo: f.photo } : {}),
     };
     await saveRow(storage.VISITORS_KEY, v);
+    // Auto deck-log entry: visitor boarded.
+    await saveRow(storage.DECK_LOG_KEY, {
+      id: uid(), date: today, time: v.timeIn, period: 'port', mode: 'port',
+      remarks: [
+        `${v.name}${v.company ? ` (${v.company})` : ''} boarded — ${v.purpose}.`,
+        v.passNo ? `Pass ${v.passNo} issued.` : '',
+        v.host ? `Hosted by ${v.host}.` : '',
+      ].filter(Boolean).join(' '),
+      by: signer.name, byRank: (signer as any).rank ?? '',
+      at: Date.now(), updatedAt: Date.now(),
+    } as DeckEntry);
     setF(blank);
     setAdding(false);
     playSuccessSound();
@@ -251,16 +264,35 @@ function SecuritySc() {
   const signOff = async (v: Visitor, time: string) => {
     if (!signer) return Alert.alert('Gangway watch', 'Choose the watch first.');
     if (!/^\d{2}:\d{2}$/.test(time)) return Alert.alert('Time out', 'The time the visitor left, hh:mm.');
-    await saveRow(storage.VISITORS_KEY, { ...v, timeOut: time, ...(v.date !== today ? { dateOut: today } : {}), outBy: signer.name });
+    const dateOut = v.date !== today ? today : undefined;
+    await saveRow(storage.VISITORS_KEY, { ...v, timeOut: time, ...(dateOut ? { dateOut } : {}), outBy: signer.name });
+    // Auto deck-log entry: visitor departed.
+    await saveRow(storage.DECK_LOG_KEY, {
+      id: uid(), date: dateOut ?? v.date, time, period: 'port', mode: 'port',
+      remarks: `${v.name}${v.company ? ` (${v.company})` : ''} departed.${v.passNo ? ` Pass ${v.passNo} returned.` : ''}`,
+      by: signer.name, byRank: (signer as any).rank ?? '',
+      at: Date.now(), updatedAt: Date.now(),
+    } as DeckEntry);
     setLeaving(null);
     playSuccessSound();
   };
   // Port and berth of the vessel now — kept with the vessel's details, synced.
   const [portF, setPortF] = useState({ port: vessel?.port ?? '', berth: vessel?.berth ?? '' });
   useEffect(() => setPortF({ port: vessel?.port ?? '', berth: vessel?.berth ?? '' }), [vessel?.port, vessel?.berth]);
+  const [portSugg, setPortSugg] = useState<string[]>([]);
   const savePort = () => {
+    setPortSugg([]);
     if (portF.port.trim() === (vessel?.port ?? '') && portF.berth.trim() === (vessel?.berth ?? '')) return;
     void setVessel({ ...(vessel ?? {}), port: portF.port.trim(), berth: portF.berth.trim() });
+  };
+  const onPortChange = (v: string) => {
+    setPortF({ ...portF, port: v });
+    setPortSugg(searchPorts(v));
+  };
+  const pickPort = (p: string) => {
+    setPortF({ ...portF, port: p });
+    setPortSugg([]);
+    void setVessel({ ...(vessel ?? {}), port: p, berth: portF.berth.trim() });
   };
 
   // ---- logbook ----
@@ -383,7 +415,27 @@ function SecuritySc() {
       {/* Gangway logbook and Drills are separate pages, reached from the menu (no chips here). */}
       {view === 'gangway' ? (
         <View style={styles.portRow}>
-          <TextInput style={[styles.input, styles.portInput]} value={portF.port} onChangeText={(v) => setPortF({ ...portF, port: v })} onBlur={savePort} onSubmitEditing={savePort} placeholder="Port ★" placeholderTextColor={COLORS.textLight} />
+          <View style={{ flex: 1 }}>
+            <TextInput
+              style={[styles.input, styles.portInput]}
+              value={portF.port}
+              onChangeText={onPortChange}
+              onBlur={savePort}
+              onSubmitEditing={savePort}
+              placeholder="Port ★"
+              placeholderTextColor={COLORS.textLight}
+            />
+            {portSugg.length > 0 && (
+              <View style={[styles.sugg, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
+                {portSugg.map((p) => (
+                  <TouchableOpacity key={p} style={styles.suggRow} onPress={() => pickPort(p)}>
+                    <MciIcon name="anchor" size={12} color={COLORS.textLight} />
+                    <Text style={[styles.suggText, { color: COLORS.text }]}>{p}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
           <TextInput style={[styles.input, styles.portInput]} value={portF.berth} onChangeText={(v) => setPortF({ ...portF, berth: v })} onBlur={savePort} onSubmitEditing={savePort} placeholder="Berth / anchorage ★" placeholderTextColor={COLORS.textLight} />
           <Text style={styles.portDate}>{formatDate(today)}</Text>
         </View>
@@ -662,9 +714,15 @@ const makeStyles = (COLORS: Palette) =>
     thumb: { width: 40, height: 40, borderRadius: 6, marginRight: SIZES.sm },
     thumbBig: { width: 64, height: 64, borderRadius: 8 },
     portrait: { width: 160, height: 160, borderRadius: 10, backgroundColor: COLORS.border },
-    portRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, flexWrap: 'wrap', marginBottom: SIZES.sm },
+    portRow: { flexDirection: 'row', alignItems: 'flex-start', gap: SIZES.sm, flexWrap: 'wrap', marginBottom: SIZES.sm },
     portInput: { flex: 1, minWidth: 160, marginTop: 0 },
-    portDate: { fontSize: SIZES.body, fontWeight: '800', color: COLORS.textDark },
+    portDate: { fontSize: SIZES.body, fontWeight: '800', color: COLORS.textDark, marginTop: 10 },
+    sugg: {
+      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 99,
+      borderWidth: 1, borderRadius: 8, overflow: 'hidden', marginTop: 2,
+    },
+    suggRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 10 },
+    suggText: { fontSize: 13 },
     seg: { flexDirection: 'row', borderWidth: 1, borderColor: COLORS.border, borderRadius: 999, overflow: 'hidden', marginLeft: SIZES.sm },
     segBtn: { paddingVertical: 5, paddingHorizontal: SIZES.md },
     segOn: { backgroundColor: COLORS.borderLight },
