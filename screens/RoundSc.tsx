@@ -21,7 +21,10 @@ import { CategoryKey } from '../types/equipment';
 import { roundProgress, roundTitle, walkGroups } from '../services/rounds';
 import { setActiveRound, useActiveRound } from '../services/activeRound';
 import { exportReportPdf, exportReportXlsx, roundSignoffLine } from '../services/inspectionReport';
+import { DeckEntry } from '../types/deckLog';
 import * as storage from '../services/storage';
+import { todayIso } from '../services/pms';
+import { uid } from '../utils/id';
 import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
 import { formatDateTime } from '../utils/dates';
 import { goBackOr } from '../utils/nav';
@@ -77,6 +80,17 @@ export default function RoundSc() {
       ...round, closedAt: now, closedBy: signer.name, ...(signer.rank ? { closedByRank: signer.rank } : {}),
       ...(sig.proof ? { closedWith: sig.proof } : {}), ...(closing.trim() ? { closeNote: closing.trim() } : {}), updatedAt: now,
     });
+    await saveRow(storage.DECK_LOG_KEY, {
+      id: uid('dl'),
+      date: todayIso(),
+      time: new Date().toTimeString().slice(0, 5),
+      period: 'other',
+      remarks: `${title} — ${all.done.size}/${all.scope.length} inspected${closing.trim() ? ` · ${closing.trim()}` : ''}`,
+      by: signer.name,
+      ...(signer.rank ? { byRank: signer.rank } : {}),
+      at: now,
+      updatedAt: now,
+    } as DeckEntry);
     if (active === round.id) await setActiveRound(null);
     setClosing(null);
   };

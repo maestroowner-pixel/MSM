@@ -42,6 +42,7 @@ import { personName, roleAtLeast } from '../types/role';
 import { isAboard } from '../types/crew';
 import { ABSENCE_REASONS, Attendee, DRILL_TYPES, DRILL_TYPE_MAP, Drill, OWN_INTERVALS, QUICK_STEPS, ScenarioStep, drillKind, drillTitle } from '../types/drills';
 import { DRILL_THEORY } from '../constants/drillTheory';
+import { DeckEntry } from '../types/deckLog';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { proofShort } from '../services/signature';
@@ -235,6 +236,17 @@ export default function DrillSc() {
     };
     dirty.current = false;
     await saveRow(storage.DRILLS_KEY, out);
+    await saveRow(storage.DECK_LOG_KEY, {
+      id: uid('dl'),
+      date: out.date,
+      time: out.endTime || out.time || new Date().toTimeString().slice(0, 5),
+      period: 'other',
+      remarks: `Drill ${out.no ? `${out.no} — ` : ''}${drillTitle(out)}${out.time && out.endTime ? ` · ${out.time}–${out.endTime}` : ''} · ${present} persons`,
+      by: out.doneBy!,
+      ...(out.doneByRank ? { byRank: out.doneByRank } : {}),
+      at: out.doneAt!,
+      updatedAt: out.doneAt!,
+    } as DeckEntry);
     setDraft(out);
     playSuccessSound();
   };

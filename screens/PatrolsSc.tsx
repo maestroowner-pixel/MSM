@@ -26,6 +26,7 @@ import { SIZES } from '../theme';
 import { roleAtLeast } from '../types/role';
 import { STORE_CODE_RE } from '../types/stores';
 import { Checkpoint, KIND_LABEL, Patrol, PatrolKind, PatrolPlan } from '../types/patrols';
+import { DeckEntry } from '../types/deckLog';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { STARTER_CHECKPOINTS, STARTER_PLANS, dayRounds, livePlans, missedPoints, nextCode, slotFor } from '../services/patrols';
@@ -112,6 +113,17 @@ export default function PatrolsSc() {
         updatedAt: now,
       };
       await saveRow(storage.PATROLS_KEY, rec);
+      await saveRow(storage.DECK_LOG_KEY, {
+        id: uid('dl'),
+        date: rec.date,
+        time: hm(rec.finishedAt),
+        period: 'other',
+        remarks: `Security round — ${rec.planName}${rec.slot ? ` (${rec.slot})` : ''} · ${rec.visits.length}/${rec.visits.length + rec.missed.length} checkpoints${rec.missed.length ? ` · missed: ${rec.missed.map((m) => m.code).join(', ')}` : ''}`,
+        by: rec.by,
+        ...(rec.byRank ? { byRank: rec.byRank } : {}),
+        at: rec.finishedAt,
+        updatedAt: rec.finishedAt,
+      } as DeckEntry);
       await saveLive(null);
       playSuccessSound();
       setSaved(`${plan.name} filed — ${rec.visits.length} of ${rec.visits.length + rec.missed.length} checkpoints`);
