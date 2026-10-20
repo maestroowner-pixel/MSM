@@ -33,6 +33,7 @@ import { stockByPart, toOrderCounts } from './spares';
 import { toRead } from './docs';
 import { isOverdue } from './permits';
 import { openDefects, windowFor } from './inspections';
+import { gmdssCheckStatus } from './gmdssService';
 import { crewIssues } from './crewIssues';
 import { robTotal } from './fuel';
 import { fuelDaily } from './fuelDaily';
@@ -177,6 +178,7 @@ export interface BoardInput {
   storeItems?: StoreItem[];
   storeMoves?: StoreMove[];
   storeRoomList?: StoreRoom[];
+  gmdssLog?: import('../types/gmdss').GmdssEntry[];
 }
 
 const RANK: Record<Level, number> = { red: 0, amber: 1, blue: 2 };
@@ -585,6 +587,22 @@ export function buildBoard(x: BoardInput): Board {
     if (fresh) n.push({ key: 'obs:new', level: 'amber', who: 'officer', icon: 'eye-outline', route: 'Safety', title: `${plural(fresh, 'observation card')} to review` });
     const open = ncs.filter((v) => !v.closedAt).length;
     tiles.push({ key: 'qhse', label: 'Safety', icon: 'shield-check-outline', route: 'Safety', level: lvl(red, amber || fresh), line: [open ? `${open} NC open` : 'No NC open', fresh ? `${fresh} new cards` : null].filter(Boolean).join(' · ') });
+  }
+
+  // ---- GMDSS log check reminders ----------------------------------------
+  if (x.on('gmdss') && x.gmdssLog) {
+    const daily   = gmdssCheckStatus(x.gmdssLog, 'daily');
+    const weekly  = gmdssCheckStatus(x.gmdssLog, 'weekly');
+    const monthly = gmdssCheckStatus(x.gmdssLog, 'monthly');
+    let red = 0; let amber = 0;
+    if (daily.overdue)   { red++;   n.push({ key: 'gmdss:daily',   level: 'red',   who: 'officer', icon: 'radio-tower', route: 'Gmdss', title: 'GMDSS daily check overdue',   sub: daily.lastDate   ? `Last: ${dm(daily.lastDate)}`   : 'Never done' }); }
+    else if (daily.dueSoon)  { amber++; n.push({ key: 'gmdss:daily',  level: 'amber', who: 'officer', icon: 'radio-tower', route: 'Gmdss', title: 'GMDSS daily check due today' }); }
+    if (weekly.overdue)  { red++;   n.push({ key: 'gmdss:weekly',  level: 'red',   who: 'officer', icon: 'radio-tower', route: 'Gmdss', title: 'GMDSS weekly check overdue',  sub: weekly.lastDate  ? `Last: ${dm(weekly.lastDate)}`  : 'Never done' }); }
+    else if (weekly.dueSoon) { amber++; n.push({ key: 'gmdss:weekly', level: 'amber', who: 'officer', icon: 'radio-tower', route: 'Gmdss', title: 'GMDSS weekly check due soon' }); }
+    if (monthly.overdue) { red++;   n.push({ key: 'gmdss:monthly', level: 'red',   who: 'officer', icon: 'radio-tower', route: 'Gmdss', title: 'GMDSS monthly inspection overdue', sub: monthly.lastDate ? `Last: ${dm(monthly.lastDate)}` : 'Never done' }); }
+    else if (monthly.dueSoon){ amber++; n.push({ key: 'gmdss:monthly',level: 'amber', who: 'officer', icon: 'radio-tower', route: 'Gmdss', title: 'GMDSS monthly inspection due soon' }); }
+    const last = [...x.gmdssLog].sort((a, b) => b.at - a.at)[0];
+    tiles.push({ key: 'gmdss', label: 'GMDSS Log', icon: 'radio-tower', route: 'Gmdss', level: lvl(red, amber), line: red ? `${red} check overdue` : amber ? 'check due today' : last ? `Last entry ${dm(last.date)}` : 'No entries yet' });
   }
 
   // Passengers where Documents were, Documents where Passengers were (13 Oct 2026: "swap passengers and documents").

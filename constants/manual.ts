@@ -2662,7 +2662,1174 @@ const uk: ManualContent = {
   ],
 };
 
-export const MANUAL: Record<Lang, ManualContent> = { en, ru, es, uk };
+// ----------------------------------------------------------- Norsk (Bokmål) ----
+const no: ManualContent = {
+  screenTitle: 'Brukerveiledning',
+  screenSubtitle: 'Slik bruker du appen',
+  sections: [
+    {
+      emoji: '⚓',
+      title: 'Kom i gang',
+      body: [
+        `${APP_CONFIG.name} samler fartøyets redningsutstyr (LSA) og brannslukkingsutstyr (FFE/FIFI) på ett sted, med sporing av inspeksjoner og utløpsdatoer.`,
+        'Utstyret er delt inn i fire registre: LSA, FFE, Annet og Løfte- og fortøyingsutstyr. Hvert utstyr har eget nummer, type og størrelse, fabrikat, serie-/ID-nummer, dekk og plassering, samt datoene som styrer etterlevelse.',
+        'Raskeste start: Settings → Import from Excel. Ta med den eksisterende listen som den er – ett ark med kolonner som #, Dekk, Plassering, Beskrivelse, Fabrikat, Type, Størrelse, Serienummer og Exp/Inspc. sorteres automatisk i kategorier – eller trykk på «Last ned blank mal» (ett ark per kategori) og fyll den ut. Uansett viser du en forhåndsvisning av det som ble funnet, før noe lagres. All data lagres på enheten og kan eventuelt synkroniseres til skyen.',
+      ],
+    },
+    {
+      emoji: '⚙️',
+      title: 'Innstillinger – hva er hva',
+      body: [
+        'Vessel – fartøyets navn, IMO, flagg, kallesignal og MMSI, trykkes på hver rapport. This device – melde seg inn på fartøyet (første enhet blir Master) og melde seg av.',
+        'Inspection photos – når bilder forlater fartøyet: bare Wi-Fi (standard), alle tilkoblinger eller aldri; antall som venter; Fotoarkiv. Superintendent – Fleet console. Reports folder – hvor rapporter lagres på en datamaskin, når en rapport bruker det.',
+        'Crew & accounts – besetningslisten, kontoer (navn og PIN-koder Master utsteder), Access (hvilke skjermer hver enhet viser), Kategorier, Skriv ut QR-etiketter, Sjekklister og signeringsreglene: Skann QR-etikett før signering, Skann etter kategori, Signer som enhetens konto, og signeringsPIN-koder.',
+        'Data – importmalene, Import from Excel, Export backup (.msm), Rull tilbake, Lagre en kopi som fil, Gjenopprett backup og Tilbakestill alle data. Modules – Utløpspåminnelser, Lyder, BA-kompressorlogg. Help – denne veiledningen, Personvern og Brukervilkår. Sol/måne/stjerne øverst bytter tema.',
+      ],
+    },
+    {
+      emoji: '🧭',
+      title: 'Navigere i appen',
+      body: [
+        'Menyen (☰) grupperer skjermer etter formål: Inspeksjoner og vedlikehold, Miljø, Sikkerhet, Besetning, Dokumenter og tillatelser, og Innstillinger nederst. Elementer med undersider (Fuel, Security) åpner dem. Rediger rekkefølge i menyen på denne enheten.',
+        'Favoritter (★ i topplinjen): «Legg til denne siden» lagrer der du er – en seksjon, en sidetype, en utstyrskategori, en sjekkliste – og listen åpner den igjen med to klikk; på en post (dokument, sertifikat, utstyr) gjør ☆ ved Tilbake det samme. Rediger for å gi nytt navn, sortere og fjerne. På en telefon vises favoritter øverst i menyen.',
+        '← øverst går tilbake. På et nettbrett eller telefon gjør sveip fra venstre kant det samme. ? øverst på en skjerm åpner veiledningen for den delen. En skjerm Master har slått av for din enhet (Access) er ikke i menyen.',
+      ],
+    },
+    {
+      emoji: '🔑',
+      title: 'Melde seg inn, kontoer og roller',
+      body: [
+        'Fartøyet identifiseres av IMO-nummeret (Settings → Vessel). Alt annet følger av det, og kortet øverst i Settings viser alltid neste steg.',
+        'FØRSTE enhet melder seg inn med oppstartskoden som følger med lisensen og blir Master.',
+        'Master utsteder deretter en konto til hvert besetningsmedlem i Settings → Accounts: navn og 8-sifret PIN. PIN-en er lesbar i listen slik at den kan gis på nytt, og kan tilbakekalles for én person av gangen.',
+        'Alle andre taster inn IMO, melder seg deretter inn fra kortet «This device» øverst i Settings med navn og PIN. Enheten venter i en kø; Master godkjenner i Accounts → Devices, og den ventende enheten merker det selv innen sekunder – uten omstart.',
+        'Tre roller: Crew registrerer inspeksjoner, Officer lukker også defekter, Master utsteder også kontoer og setter roller. Roller håndheves av serveren, ikke bare appen.',
+        'Mistet en enhet? Master slår den av i Accounts → Devices. Ingen andre forstyrres og ingen passord endres.',
+        'En invitasjon kan også bære personens RANG OM BORD – Third Officer, Bosun, Chief Engineer. Det er bevisst ikke det samme som rollen: en maskinist kan ha Crew-konto og en kadet Officer-konto, slik at forfremmelse om bord ikke er en endring av tillatelser. Rangen følger med inn på påmeldingsskjermen og i signeringslisten, slik at verken navn eller rang noensinne tastes to ganger.',
+        'Etter at en enhet har meldt seg inn, viser Settings → This device hvem den signerer som: navn, rang og om den er godkjent. Det leses direkte fra fartøyet, slik at en rang Master endrer en time senere dukker opp av seg selv.',
+        '«Sign off this device» forlater fartøyet fra den enheten. Det stanser synkronisering øyeblikkelig og enheten kan ikke melde seg inn igjen uten ny invitasjon og Masters godkjenning. «Sign off & erase» sletter også registeret på den enheten – for en enhet som overdras eller selges.',
+        'Grensesnittet følger rangen. Kontoer, besetningslisten og enhetslisten er Masters og tilbys ikke til andre. Serveren avslår uansett slike skrivinger; en knapp som alltid feiler forteller deg bare noe usant om din egen myndighet.',
+      ],
+    },
+    {
+      emoji: '🧭',
+      title: 'Access – hvilke faner hver enhet viser',
+      body: [
+        'Settings → Masters side (kun Master) er én tabell over alt som kan tillates eller delegeres: én kolonne per enhet med dens rang øverst (trykk: Crew ↔ Officer), én rad per menypunkt, sidene under det, ⚙ tannhjulet på det, og hva rangen bestemmer der. En prikk lyser når enheten har det, dimmet når ikke – trykk for å bytte. Under tabellen er fartøyets signeringsregler.',
+        'Bruk det til å begrense hver skjerm til det innehaveren trenger: en dekksmanns telefon uten motorromets vedlikeholdsplan, en maskinists uten besetningssertifikatene.',
+        'Dashbord, Utstyr og Innstillinger er alltid på. En Masters enhet viser alltid alle faner. En enhet Master aldri har stilt inn viser alle faner, slik at ingenting forsvinner ved en oppdatering.',
+        'Dette er ryddighet, ikke en lås: hva en enhet kan endre bestemmes fortsatt av dens rang i Accounts, og håndheves av serveren.',
+      ],
+    },
+    {
+      emoji: '✍️',
+      title: 'Bekreftede signaturer',
+      body: [
+        'Enhver signatur – en inspeksjon, en defektretting, et vedlikeholdsjobb, en lagerbevegelse, en drivstoffmåling, en søppelregistrering – bekreftes av signatoren på én av tre måter: egen PIN-kode, fingeravtrykk eller håndskrevet signatur på skjermen med finger eller penn. Face ID brukes ikke: et ansikt er ikke en signatur.',
+        'Å endre en signert post – i Fuel, Garbage, SOPEP, gangway-loggboken, sikkerhetsdrill og Surveys – er utelukkende Masters ansvar (Rediger / Slett; grå for alle andre) og krever årsak og Masters signatur; originalen forblir i loggen, gjennomstreket ved sletting, med tidligere versjoner ett trykk unna.',
+        'Fingeravtrykk tilbys bare når enheten signerer som sin egen konto og har fingeravtrykksleser. En telefon vet at et registrert fingeravtrykk berørte den, ikke hvems – så på et delt nettbrett signerer alle med PIN eller for hånd. PIN-er er bak en lås i besetningsmatrisen (🔒 ved hvert navn). Master-PIN er 0000 til Master endrer den der – endre den først.',
+        'Første gang du signerer på en enhet velger du en signeringspin på 4–6 siffer. Det er ikke din konto-PIN, lagres bare som hash, og ingen kan lese den – ikke engang Master. Fem feil forsøk låser den i fem minutter. Glemt? Master tilbakestiller den i Settings, og du velger en ny.',
+        'Rapporten viser hvordan hver signatur ble bekreftet (PIN eller biometri) ved siden av navnet.',
+      ],
+    },
+    {
+      emoji: '☁️',
+      title: 'Skysynkronisering og inspeksjonsbilder',
+      body: [
+        'Når en enhet har meldt seg inn, holder synkroniseringen seg selv oppdatert – ingen Push/Pull-knapper. Signer en post og den er på fartøyets andre enheter på sekunder; appen fungerer fullt ut offline og tar igjen når tilkoblingen er tilbake.',
+        'Inspeksjonsregistreringer er kun-tillegg, slik at to offiserer som arbeider en runde på to telefoner ikke kan overskrive hverandre. Utstyrsregisteret er ett delt dokument: hvis to redigerer SAMME utstyr samtidig, vinner den siste endringen.',
+        'Dokumentasjonsbilder krympes ved opptak og settes deretter i kø. Settings → Inspection photos velger Kun Wi-Fi (standard), alle tilkoblinger eller aldri – til sjøs er lufttidbillingen fartøyets, så posten reiser straks og bildene følger i havn.',
+        'Skyen lagrer et bilde i 90 dager. Etter det er det fartøyets ansvar å beholde: Settings → Inspection photos → Fotoarkiv lagrer den måneden som en ZIP – bildene, pluss et register som lister utstyr, runde, resultat og hvem som signerte.',
+        'Vedlagte filer reiser fortsatt i en .msm-sikkerhetskopi, som forblir måten å flytte alt mellom enheter uten tilkobling.',
+      ],
+    },
+    {
+      emoji: '📥',
+      title: 'Importere fra Excel',
+      body: [
+        'Settings → Import from Excel → velg din .xlsx-arbeidsbok. Et arbeidsark kalt etter en kategori (Liferafts, Lifejackets, Fire extinguishers…) knyttes til den kategorien automatisk.',
+        'Eget oppsett fungerer også. Et ark som ikke er kalt etter en kategori leses etter kolonneoverskrifter (#, Dekk, Plassering, Beskrivelse, Fabrikat, Type, Størrelse, Serienummer, Exp/Inspc., Kommentarer…), og hver rad sorteres i kategori etter hva utstyret er. Noe som ikke kan gjenkjennes, havner i Other Safety Equipment.',
+        '«#» leses som varenummer når arket også har en Seriekolonne, og som serie når det ikke har det. «Exp / Inspc.» fyller den datoen kategorien bedømmes etter – neste inspeksjon eller utløp. Seksjonrader mellom utstyrene hoppes over.',
+        'Ingen arbeidsbok ennå? Trykk «Last ned blank mal (.xlsx)» på importskjermen – ett ark per kategori med riktige kolonneoverskrifter – fyll den ut og importer den tilbake.',
+        'Du får en forhåndsvisning av antall utstyr per kategori funnet, før noe lagres.',
+        'Velg «Update» for å oppdatere et eksisterende register med filen: hver rad finner utstyret den allerede er (etter MSM ID, deretter serie, deretter nummer og plassering), endrede celler brukes, nye rader legges til.',
+        '"Replace all" overskriver registeret med filen; "Add as new" legger til alle rader ved siden av det som allerede er der.',
+        'Datoer skrevet som Excel-serier, år (f.eks. «2034»), DD/MM/ÅÅÅÅ eller måned og år (f.eks. «Jun/26») konverteres automatisk.',
+      ],
+    },
+    {
+      emoji: '📋',
+      title: 'Egne kategorier og sjekklister',
+      body: [
+        'De innebygde kategoriene og sjekklistene er et utgangspunkt, ikke en grense. Et fartøy som bruker andre ord eller sjekker ting ingen andre spør om, setter begge opp selv i Settings.',
+        'Settings → Categories legger til egne overskrifter: Nødbelysning, Rømningsveier, Alarmsystemer – hva du faktisk går rundt. Hver tar en gruppe (LSA/FFE/Annet) og et ikon. En overskrift oppfører seg som en innebygd: eget register, QR-etiketter, sjekklister, rapporter og eget ark i blank importmal.',
+        'Hvert kategori kan gis nytt navn – kategorien identifiseres av en nøkkel som aldri endres, slik at utstyr, historikk, QR-etiketter og sertifikater forblir akkurat der de er uansett hva det kalles på skjermen. Et kategori fartøyet ikke fører kan slås av: Equipment → «Vis eller skjul kategorier» (kun Master).',
+        'Rapporten signerer seg selv: «Kontrollert av / Rang / Dato» nederst på en inspeksjonsrapport fylles ut fra personene som faktisk signerte inspeksjonene i den. Der en runde ble delt, navngis alle som signerte.',
+        'Settings → Checklists formulerer spørsmålene. Åpne en runde og du får sjekklisten allerede fylt ut – gi en linje nytt ord, sorter dem, slett det som ikke gjelder ditt skip, legg til det SMS-en krever.',
+        'Hvilke runder en kategori skylder, bestemmer du – ukentlig, månedlig, kvartalsvis og årlig, per kategori. Settings → Checklists lister hver runde ved siden av en bryter.',
+      ],
+    },
+    {
+      emoji: '💾',
+      title: 'Sikkerhetskopi og gjenoppretting',
+      body: [
+        'Settings → Export backup (.msm) skriver én fil med alt på enheten: utstyr, sertifikater, kompressorlogger, fartøyinfo og vedlagte filer innebygd (MSM_backup_DDMMÅÅ.msm).',
+        'Restore backup (.msm) gjenskaper data på en annen enhet eller etter en reinstallering – det erstatter alle gjeldende data, så gjenopprett på en fersk enhet.',
+        'Sikkerhetskopier fungerer uten skyen. Enhetspreferanser er ikke en del av sikkerhetskopien.',
+        'Appen tar et ØYEBLIKKSBILDE av postene hver gang den åpnes og beholder de tre siste på enheten. Settings → Data → «Rull tilbake til …» navngir øyeblikket det vil ta deg tilbake til.',
+        'Et øyeblikksbilde bærer POSTENE, ikke filene. Bilder og dokumenter forblir på enheten under egne navn og forblir koblet, slik at en tilbakeruller ikke er en erstatning for en ordentlig sikkerhetskopi tatt til en annen maskin.',
+        'Gjenopprett og Rull tilbake tilhører Master – de erstatter registeret og leverer det til fartøyet.',
+      ],
+    },
+    {
+      emoji: '🗑️',
+      title: 'Tilbakestill alle data',
+      note: 'Gjør en Export backup (.msm) først hvis det er noen sjanse for at du trenger dataene igjen – en tilbakestilling kan ikke angres.',
+      body: [
+        'Nederst i Settings sletter «Tilbakestill alle data» permanent hvert utstyr, sertifikat, kompressorlogg, vedlagt fil og fartøyinfo på denne enheten.',
+        'Det er passordbeskyttet: skriv passordet «Reset all data» nøyaktig for å aktivere bekreftknappen.',
+        'Enhetspreferanser og din aksept av Personvern/Vilkår beholdes; bare sikkerhetsregisterdata fjernes.',
+        'Tilbakestilling er Masters, og på en synkroniserende enhet tømmer det ikke en enhet – det tømmer SKIPET.',
+        'For å tømme bare denne enheten, forlat fartøyet først: Settings → This device → «Sign off & erase».',
+      ],
+    },
+    {
+      emoji: '🔔',
+      title: 'Utløpspåminnelser',
+      body: [
+        'Settings → Modules → Expiry reminders planlegger lokale varsler 60, 30 og 7 dager før hvert utstyrs inspeksjons- eller utløpsdato.',
+        'Første gang du slår det på, tillat varsler når det spørres. Påminnelser holdes automatisk synkronisert når du legger til, redigerer eller importerer utstyr.',
+        'De er enhetsbundne (ingen internett nødvendig). Med et stort register planlegges de snarte påminnelsene først.',
+      ],
+    },
+    {
+      emoji: '🎨',
+      title: 'Utseende (temaer)',
+      body: [
+        'Settings → Appearance bytter fargetema: Lys (standard), Mørk og Fargerik.',
+        'Settings → Modules → Sounds slår alle lydspor av eller på – skipsbjellen ved oppstart og toner ved lagring, signering og feil.',
+        'Fargerik farger utstyrsikoner etter gruppe – LSA grønn, FFE rød, Annet teal.',
+        'På nettbrett viser Dashbord, Utstyr, Sertifikater og Rapporter to kolonner automatisk.',
+      ],
+    },
+    {
+      emoji: '👑',
+      title: 'Fartøylisens',
+      body: [
+        'ISMpilot Pro er lisensiert til FARTØYET etter IMO-nummer – ikke per person og ikke per enhet. Alle offiserer og alle enheter som har meldt seg inn på fartøyet, dekkes av én lisens.',
+        'Hvert fartøy har 60 dager til å prøve appen før grensen på 15 utstyr per kategori trer i kraft.',
+        'Priser og flåtelisenser: mail@ismpilot.com.',
+        'Lisensen kjøpes én gang av den som administrerer fartøyet og aktiveres på skipets konto: Settings → ISMpilot Pro → Aktiver fartøylisensen.',
+        'Uten lisens etter prøveperioden fortsetter appen å fungere, men registeret er begrenset til 15 utstyr per kategori.',
+        'En enhet som melder seg inn på et lisensiert fartøy plukker opp lisensen av seg selv.',
+      ],
+    },
+    {
+      emoji: '📋',
+      title: 'Oppslagstavle (Board)',
+      body: [
+        'Med oppslagstavlen på er Dashbordet fartøyets kunngjøringstavle på tvers av alle moduler: statuslinjen (ISPS-nivå, personer om bord, drivstoff om bord), Needs attention – alt som trenger noen, rødt først – Plan, Dagens oversikt og én flis per seksjon.',
+        'Needs attention følger rangen: besetningen ser sine oppgaver (dokumenter å lese, utstyr, defekter), offiserene fartøyet, Master alt, inkludert måneder som fortsatt skal signeres.',
+        'Plan viser rundene for denne uken, måneden, kvartalet og året med antall fullførte, og undersøkelsene og revisjonene med åpent vindu. Dagens oversikt krysser av dagens rutine.',
+      ],
+    },
+    {
+      emoji: '📊',
+      title: 'Dashbord og statuser',
+      body: [
+        'Dashbordet lister hvert utstyr med en dato, sortert etter forfallsdato, slik at den mest presserende oppgaven er øverst.',
+        `Statusfarger: rød = Utløpt (dato i fortiden), gul = Forfaller snart (innen ${DUE_SOON_DAYS} dager), grønn = Gyldig.`,
+        'Trykk en teller (Utløpt / Forfaller snart / Gyldig) for å filtrere listen til den statusen; trykk igjen for å fjerne.',
+        'Filtrer etter gruppe (Alle · LSA · FFE · Annet) og sorter etter Utløpsdato, Plassering, Navn eller Type.',
+        'Hver rad har TO merker, ett i hver kant. Venstre strek er datoen – utløpt, forfaller snart, gyldig. Høyre strek er gjeldende runde: blå ikke inspektert ennå, grønn signert og klar, gul perioden stenger, rød en defekt fortsatt utestående.',
+        'Rød på høyre side fjernes ikke av kalenderen. En defekt reist i mars er fortsatt en defekt i juni, slik at merket forblir rødt til retting er signert.',
+      ],
+    },
+    {
+      emoji: '🔎',
+      title: 'Skann, flagg og nylig skannede',
+      body: [
+        'Skann en QR-etikett eller et serienummer fra QR-knappen i overskriften på Dashbordet eller Utstyr-fanen. En treff åpner utstyret umiddelbart; en produsents strekkode eller et registrert serienummer finner det også.',
+        'Skriv ut etikett (på utstyrsskjermen) lager QR-klistremerkene. Hele etiketten bærer type og størrelse, utstyrsnummer og serie, neste inspeksjon eller utløpsdato, og kategorien med dekk og plassering.',
+        'Skriv ut alle etiketter på en gang fra merknapp-knappen ved siden av QR-skanneren på Utstyr-fanen (eller Settings → Print QR labels).',
+        'Flagg «kom tilbake til dette»: åpne et utstyr og trykk Flagg-knappen ved statusen. Et flagg er ikke en etterlevelsestilstand.',
+        'På en nettleser når skanneren ikke kameraet før du ber om det. På en mobiltelefon åpner skanneren og ser etter med én gang, som før.',
+      ],
+    },
+    {
+      emoji: '🧰',
+      title: 'Utstyr og kategorier',
+      body: [
+        'Utstyr-fanen viser et rutenett av alle kategorier med utstyrstellere og en farget prikk for den verste statusen inni.',
+        'Trykk på en kategori for å se utstyret – hvert rad begynner med utstyrnummeret, f.eks. «Nr. 01-SD — CO2 5kg». Søk etter nummer, type, fabrikat, størrelse, serienummer, dekk eller plassering. Trykk ＋ for å legge til nytt utstyr manuelt.',
+        'Et utstyr registrerer sitt Nr., Type/Beskrivelse, Fabrikat, Størrelse, Serienr./ID, Dekk og Plassering, antall eller personer, dets datoer og Kommentarer.',
+        'Datoer settes med en kalendervelger – trykk feltet, deretter velg år, måned og dag. For å fjerne en dato oppgitt ved feil, trykk × i slutten av feltet og Lagre.',
+        'Etter en service, sett de samme datoene på mange utstyr samtidig: hold inne ett utstyr (eller trykk merknapp), kryss av de andre eller trykk Alle, deretter Sett datoer.',
+        'Legg til flere identiske utstyr – en rekke dykkerflasker, en bunke redningsvester? Lagre det første, trykk deretter Dupliser utstyr nederst på skjermen.',
+      ],
+    },
+    {
+      emoji: '📎',
+      title: 'Bilder og dokumenter',
+      body: [
+        'Hvert utstyr kan ha opptil 4 vedlegg – bilder eller dokumenter (PDF osv.) – i «Bilder og dokumenter»-blokken på utstyrsskjermen.',
+        'Trykk det stiplede ＋ Legg til spor for å ta bilde, velge fra biblioteket eller velge et dokument.',
+        'Trykk et bilde for å åpne det i full skjerm (Åpne / Del); trykk et dokument for å åpne det i systemviseren.',
+        'Hold inne et vedlegg for redigeringsmenyen – Last ned/Del, Gi nytt navn, Erstatt eller Slett.',
+      ],
+    },
+    {
+      emoji: '🛟',
+      title: 'Inspeksjonsintervaller – LSA',
+      note: 'Kun veiledende. Bekreft alltid mot fartøyets flaggstat, klassifikasjonsselskap, produsentens instruksjoner og gjeldende SOLAS / LSA Code / MSC-sirkulærer. Appen registrerer datoer – den håndhever ikke intervaller.',
+      rows: [
+        { k: 'Oppblåsbare livflåter', v: 'Service på godkjent stasjon hver 12. måned (forlengelse mulig under flagggodkjent ordning).', ref: 'SOLAS III/20; LSA Code' },
+        { k: 'Livflåte HRU (hydrostatisk utløser)', v: 'Bytt/service etter produsent; engangstyper (f.eks. Hammar H20) hvert 2. år.', ref: 'SOLAS III/20; produsent' },
+        { k: 'Redningsvester', v: 'Månedlig visuell; grundig årlig inspeksjon. Lys og oppblåsbare enheter servises årlig; patron/batteri byttes ved utløp.', ref: 'SOLAS III/20; MSC.1/Circ.1304' },
+        { k: 'Nedkjølings-/eksponeringsdrakter', v: 'Årlig inspeksjon; lufttrykktest (søm) med intervaller ≤ 3 år for gjeldende typer.', ref: 'MSC.1/Circ.1047' },
+        { k: 'Livbøyer', v: 'Månedlig inspeksjon; selvantennende lys og røyksignaler byttes ved utløp.', ref: 'SOLAS III/20' },
+        { k: 'EPIRB', v: 'Månedlig selvtest; årlig ytelsestest; landbasert vedlikehold og batterifornyelse innen batteriutløp (≤ 5 år).', ref: 'SOLAS IV/15; MSC.1/Circ.1040' },
+        { k: 'SART', v: 'Månedlig sjekk; batteri byttes ved utløp.', ref: 'SOLAS IV' },
+        { k: 'Pyroteknisk (raketter, nødbluss, røyk)', v: 'Bytt ved utløp – normalt 3 år fra produksjon.', ref: 'SOLAS III; LSA Code' },
+        { k: 'Mann-over-bord-båt + davit', v: 'Ukentlige og månedlige sjekker; grundig årlig undersøkelse og driftstest; 5-årig bremsetest og overholing.', ref: 'SOLAS III/20; Res. MSC.402(96)' },
+        { k: 'Sjøsettingsinnretninger / daviter', v: 'Grundig årlig undersøkelse; 5-årig last­test av vinsjbrems.', ref: 'SOLAS III/20; MSC.402(96)' },
+        { k: 'Fallsikring', v: 'Inspisert av kompetent person i henhold til produsentens intervall (vanligvis 6–12 måneder).', ref: 'produsent / SMS' },
+        { k: 'Nødutganger (luker, ruter)', v: 'Ukentlig: ruten fri, luke åpner fritt, skilt og nødbelysning; månedlig: tetninger, stiger, tilhørende utstyr.', ref: 'SOLAS II-2/13; ISM / SMS' },
+      ],
+    },
+    {
+      emoji: '🧯',
+      title: 'Inspeksjonsintervaller – FFE',
+      note: 'Kun veiledende. Bekreft mot flagg, klasse, produsent og gjeldende SOLAS kap. II-2 / FSS Code og MSC.1/Circ.1432.',
+      rows: [
+        { k: 'Bærbare brannslukningsapparater', v: 'Månedlig visuell; årlig inspeksjon/service; periodisk deponering og påfylling; CO₂-sylindre trykktest hvert 10. år.', ref: 'SOLAS II-2/14; FSS Code; MSC.1/Circ.1432' },
+        { k: 'Faste CO₂/gassanlegg', v: 'Årlig inspeksjon; sylindre veies (påfyll ved tap > 10%); 10-årig trykktest; rørledninger blåses gjennom.', ref: 'FSS Code kap. 5; MSC.1/Circ.1432' },
+        { k: 'Branndeteksjon og alarm', v: 'Periodisk funksjonstest av detektorer/manuelle kall-punkter; full systemtest årlig.', ref: 'SOLAS II-2; FSS Code kap. 9' },
+        { k: 'Brannspjeld', v: 'Funksjonstest periodisk (typisk årlig).', ref: 'MSC.1/Circ.1432' },
+        { k: 'Hydranter, slanger, brannkasser, dyser', v: 'Månedlig inspeksjon; brannslanger trykktestes årlig.', ref: 'SOLAS II-2/14; MSC.1/Circ.1432' },
+        { k: 'BA-apparater (SCBA)', v: 'Månedlig sylindertrykkontroll; grundig årlig sjekk; sylinder trykktest etter produsent (stål ~5 år; kompositt etter stempel).', ref: 'FSS Code kap. 3; produsent' },
+        { k: 'EEBD', v: 'Månedlig sjekk; årlig inspeksjon; byttes ved merket levetidsdato.', ref: 'SOLAS II-2/13; FSS Code kap. 3' },
+        { k: 'Brannmannsdrakt / brannfilt / skumapplikator', v: 'Årlig inspeksjon.', ref: 'FSS Code kap. 3; MSC.1/Circ.1432' },
+      ],
+    },
+    {
+      emoji: '🧪',
+      title: 'Inspeksjonsintervaller – Annet',
+      rows: [
+        { k: 'Øyeskyllstasjoner', v: 'Periodisk sjekk; skylleflasker byttes ved utløp.', ref: 'produsent / SMS' },
+        { k: 'Førstehjelp / medisinsk utstyr', v: 'Etter flaggstat/MLC; innhold byttes ved utløp.', ref: 'flagg; WHO IMGS' },
+        { k: 'Gassmålere', v: 'Bump-test før bruk; kalibrering etter produsent (f.eks. hvert 6. mnd.) med årlig verifikasjon.', ref: 'produsent / SMS' },
+        { k: 'Kjemikaliedresser / gastette dresser', v: 'Periodisk trykktest etter produsent.', ref: 'produsent' },
+        { k: 'SOPEP-skap', v: 'Periodisk beholdningskontroll; absorberende materiell/gjenstander etterfylles etter bruk.', ref: 'MARPOL; SMS' },
+      ],
+    },
+    {
+      emoji: '✅',
+      title: 'Inspeksjoner – revisjonssporet',
+      body: [
+        'Åpne et utstyr – skann QR-etiketten eller finn det i en kategori – og trykk Ukentlig, Månedlig, Kvartalsvis eller Årlig. Bare de rundene den kategorien skylder på dette fartøyet tilbys.',
+        'Hver linje er BESTÅTT / MISLYKTES / N/A. «Alle bestått» fyller listen med ett trykk og du nedgraderer det som faktisk er galt; ingenting er forhåndsutfylt, fordi en uberørt sjekkliste aldri må se ut som en inspisert.',
+        '«Nullstill alt» ved siden av «Alle bestått» starter runden på nytt: hvert svar, kommentaren og defektnotatet slettes etter én bekreftelse.',
+        'Velg hvem som signerer fra fartøyets besetningsliste før du begynner – det navnet går på posten. Legg til kommentarer og opptil fire dokumentasjonsbilder.',
+        'Signering stempler nøyaktig dato og tidspunkt, besetningsmedlemmet og sjekkliste­versjonen. En signert post kan ikke redigeres eller slettes av noen, inkludert Master: en feil rettes ved å inspisere utstyret på nytt, og begge postene forblir i filen.',
+        'Ethvert MISLYKTES reiser en defekt mot det utstyret, og det forblir utestående til noen registrerer retting.',
+        'Skann før signering (Settings → Scan QR label before signing, sett av Master). Når det er på, kan Crew og Officers signere en inspeksjon bare etter å ha skannet utstyrets QR-etikett med app-skanneren.',
+      ],
+    },
+    {
+      emoji: '🛠️',
+      title: 'Defekter',
+      body: [
+        'Åpne defekter-strimmelen på Dashbordet lister alt som fortsatt venter på arbeid – filtrerbart etter LSA/FFE, nyeste først, med alderen på hver.',
+        'En defekt er ikke et flagg på utstyret; det ER den mislykkede inspeksjonen som reiste det, slik at det alltid svarer på hva som er galt, hvem som fant det og når.',
+        'Åpne en og trykk «Registrer retting» når arbeidet er gjort – det signeres og stemples i sin tur. Rettede defekter er tilgjengelige bak en bryter: på en revisjon er «vi fant det og fikset det» en bedre fortelling enn stillhet.',
+        'Hver defekt bærer sin årsak: sjekklistelinjene som mislyktes. De er på kortet, på Dashbord-strimmelen og i rapportens «Hva mislyktes»-kolonne.',
+      ],
+    },
+    {
+      emoji: '🪝',
+      title: 'Løfte- og fortøyingsutstyr',
+      body: [
+        'Løfte- og fortøyingsutstyr bor i samme app som LSA og FFE – én konto, én besetningsliste, ett sett QR-etiketter, ett sted bevisene lagres.',
+        'Åtte kategorier: Fortøyingsutstyr, Arbeid i høyde, Kraner, Kroker og kabler, Dekkslings og sjekler, Maskin­løfteutstyr, Arbeid i høyde-ankere, Innvendige løfteøyer og bjelker.',
+        'Hvert kategori har en ÅRLIG runde – undersøkelsen sertifikatet hviler på: utstyret matcher løfteregisteret (ID, SWL/WLL, plassering), grundig undersøkelse/prøvebelastning er i dato, sertifikatet er vedlagt og lesbart.',
+        'Fortøyingsutstyr og Arbeid i høyde har også en KVARTALSVIS runde.',
+        'Registrer neste undersøkelsesdato slik at fartøyets sertifisering forfaller i én årlig periode.',
+      ],
+    },
+    {
+      emoji: '⏱️',
+      title: 'BA-kompressorlogg',
+      body: [
+        'En valgfri modul for puste­luftkompressoren i FIFI-utstyret – slå den på i Settings → Modules → BA Compressor log.',
+        'Åpne den fra Settings → Open compressor log, eller fra kategorien «FIFI-utstyr og BA-sett».',
+        'Logg en kjøring: velg «Running», velg dato, tast inn kjøretid (timer/minutter) og merknad.',
+        'Logg service: velg Maintenance, Service eller Inspection med dato og merknad.',
+      ],
+    },
+    {
+      emoji: '📋',
+      title: 'Inspeksjonsrunder',
+      body: [
+        'En inspeksjonsrunde er en delt gjøremålsliste for én periode – denne uken, denne måneden – og kategoriene den dekker. En offiser eller Master starter den; alle arbeider i den, på enhver enhet. Den utestående listen leses som Utstyr-seksjonen: Dekk, deretter Plassering, deretter utstyrsnummer. Et utstyr tas av listen så snart noen signerer det; fremdriften leses 75/100.',
+        'En inspeksjon teller for den åpne runden med samme periode som dekker dens kategori, uansett hvordan utstyret ble nådd – fra runden, Dashbordet, skanneren eller telefonwidgeten. Ferdige elementer viser hvem, rang, dato og tid. For å avslutte signerer en offiser eller Master runden av – gjennomgått og fullført, signert med PIN, fingeravtrykk eller for hånd, med merknader om elementer er igjen. Runderapport (PDF/Excel) lister hvem som utførte hver inspeksjon og bærer signering nederst.',
+      ],
+    },
+    {
+      emoji: '⚙️',
+      title: 'Planlagt vedlikehold',
+      body: [
+        'Planen – systemer, jobber, intervaller – settes av Master eller ledelsessuperintendenten; alle andre registrerer utført arbeid og telleavlesninger. Last ned Mal (Excel) for å laste inn en hel plan.',
+        'PMS-fanen holder maskineri – hovedmotorer, generatorer, vannmaker, kompressorer, pumper, stabilisatorer – hver med sin driftstimesteller og sine jobber.',
+        'Systemer grupperes etter avdeling – Maskin, Dekk, Sikkerhet, Bro & kommunikasjon, Interiør, AV/IT, Skrog & tørrdokk.',
+        'En jobb har et intervall i driftstimer, dager eller begge, og forfaller etter det som inntreffer først. Sett når den sist ble utført – dato og teller – én gang; etter det flytter Registrer som utført den for deg.',
+        'Forfall snart er de siste 10 % av intervallet – ikke 60 dagene brukt for utstyr.',
+        'Registrer som utført signerer en utførelse – dato, teller, merknad, navn – inn i maskinens historikk. Som en inspeksjon kan det ikke redigeres eller slettes etterpå.',
+      ],
+    },
+    {
+      emoji: '📦',
+      title: 'Reservedeler',
+      body: [
+        'Reservedeler-fanen er lageret: hver linje har navn, delenummer, produsent, lagringssted og et minimumslagernivå.',
+        'Beholdning skrives aldri over. Åpne en del og bruk + Mottatt for en leveranse, − Brukt for en del tatt utenfor vedlikeholdsplanen, eller Inventar for det som fysisk finnes på hylla.',
+        'Merk hvilke maskiner en del passer til: maskinens skjerm lister dens reservedeler med beholdning. På en vedlikeholdsjobb lister Parts used hva jobben tar; Registrer som utført tar dem ut av lageret.',
+      ],
+    },
+    {
+      emoji: '📤',
+      title: 'Rapporter og eksport',
+      body: [
+        'Åpne Rapporter-fanen og trykk kategoripanelene for å velge hvilke som skal inkluderes. Tellen viser hvor mange utstyr som vil eksporteres.',
+        'Eksporter som PDF eller XLSX: utstyrsnummer, type, størrelse, serie, plassering, datoer, status og kommentarer.',
+        'Eksporter ZIP (PDF + bilder) samler PDF, alle vedlagte bilder/dokumenter og sertifikatfiler i MSM_backup_DDMMÅÅ.zip.',
+        'Rapporter → Inspeksjoner er registeret over hva som ble gjort. Velg gruppe (LSA, FFE, Annet eller Alle) og Ukentlig eller Månedlig, steg deretter tilbake til en tidligere måned eller uke med ‹ ›.',
+        'Under gruppen listes kategoriene med sin fremdrift. Trykk for å inkludere eller utelate en; hold inne for å rapportere på den kategorien ALENE.',
+        'Rapporten åpnes med sitt vesentlige – f.eks. «September 2026 Månedlig inspeksjon – Fullført – Bestått», eller «Ufullstendig» og «Mislyktes» når det er sannheten.',
+      ],
+    },
+    {
+      emoji: '⛽',
+      title: 'Drivstoff',
+      body: [
+        'Drivstoffskjermen holder yachtens diesel i liter: dagens måling tank for tank, bunkring, overføringer mellom tanker og måneden.',
+        'Forbruk tastes aldri inn: det er gårsdagens ROB pluss det mottatte, minus dagens.',
+        '+ Bunkring registrerer havn, leverandør, liter, tetthet, svovel, BDN-nummer og liter i hver tank.',
+        'Månedlig rapport: PDF eller Excel – åpnings-ROB, mottatt, forbrukt, avslutnings-ROB, dagene, bunkring, overføringer og signaturlinjer.',
+      ],
+    },
+    {
+      emoji: '🛢️',
+      title: 'Oljeloggbok (ORB)',
+      body: [
+        'Oljeloggbok er del I av ORB (MARPOL vedlegg I, maskinkammer): én post per operasjon under sin kode – A/B oljedrivstofftanker, C slam beholdt eller avhendet, D/E bilgevann, F oljefilterutstyrssvikt, G utilsiktet utslipp, H bunkring, I andre merknader.',
+        'En bunkring registrert i Drivstoff kan overtas for H med ett trykk. Hver post signeres av offiseren ansvarlig; Master signerer hver måned.',
+      ],
+    },
+    {
+      emoji: '🗑️',
+      title: 'Søppelregistreringsbok',
+      body: [
+        'Søppelskjermen er Garbage Record Book, del I (MARPOL vedlegg V): leveranser til mottaksanlegg, forbrenning, utslipp til sjøen og utilsiktede tap, etter kategori A–I.',
+        'Appen advarer om utslipp til sjøen som vedlegg V forbyr: plast, husholdningsavfall, matolje, forbrenningsaske, driftsavfall aldri; matavfall kun 12 nm eller mer fra land.',
+        'Kun Master kan Redigere eller Slette (avbryte) en post – knappene er grå for alle andre.',
+      ],
+    },
+    {
+      emoji: '🚽',
+      title: 'Kloakkregistrering',
+      body: [
+        'Kloakkregistrering (MARPOL vedlegg IV): utslipp gjennom godkjent renseanlegg, oppmalete og desinfiserte kloakk (minst 3 nm fra land), ubehandlet fra oppsamlingstank (minst 12 nm, underveis med minst 4 knop), leveranser i land med kvittering, oppsamlingstanknivåer og anleggsfeil.',
+        'Før signering advarer skjemaet når avstand eller hastighet er mot reglene.',
+      ],
+    },
+    {
+      emoji: '🌊',
+      title: 'Ballastvannsregister',
+      body: [
+        'Ballastvannregistreringsbok (BWM-konvensjonen): inntak, sirkulasjon eller behandling, utskifting med posisjonene ved start og slutt, utslipp til sjøen, til mottaksanlegg, utilsiktet inntak eller utslipp.',
+        'En utskifting sjekkes mot D-1: minst 50 nm fra land (200 nm der det er mulig) og 200 m vanndybde.',
+      ],
+    },
+    {
+      emoji: '🛢️',
+      title: 'SOPEP',
+      body: [
+        'SOPEP-skjermen holder oljesøl-skapet: hvert element med den mengden planen krever og hvor det er.',
+        'Beholdningskontroll: tell hver linje, merk alt som skal byttes, signer. Øvelser: velg scenario, merk hvem som deltok, legg til lærdom, signer.',
+        'Flere skap: et fartøy kan holde SOPEP-utstyr på mer enn ett sted – + Nytt skap.',
+      ],
+    },
+    {
+      emoji: '🛂',
+      title: 'Sikkerhet (ISPS)',
+      body: [
+        'Sikkerhetsskjermen er den digitale gangveiloggboken. ISPS-sikkerhetsnivået er den lille 1·2·3-bryteren i hjørnet – normalt 1. Velg gangveivakten fra rullegardinmenyen.',
+        'Gangveivakten signerer hver besøkende inn – navn, selskap, formål, legitimasjon, passnummer, hvem som tar imot – og signerer dem ut. «Om bord nå» lister alle besøkende som ikke er signert ut ennå.',
+        'Besøkende signerer på skjermen med finger. Besøkende pass: skriv ut nummererte pass (VISITOR 01–20) og hold dem ved gangveien.',
+        'Sikkerhetsrunder (Sikkerhet → Sikkerhetsrunder): morgenåpningsrunden, dagsrunder og kveldslukkerunden, hver forfaller til sine tider. Start en runde: pliktene og påminnelsene er øverst – gå til hvert sjekkpunkt og skann QR-etiketten.',
+        'Nøkkelregister (Sikkerhet → Nøkkelregister): hver nøkkel med ID, hva den åpner og hvor den oppbevares; signer den ut til et besetningsmedlem.',
+      ],
+    },
+    {
+      emoji: '🤝',
+      title: 'Månedlig sikkerhetsmøte',
+      body: [
+        'Månedlig sikkerhetsmøte (meny → Sikkerhet): sikkerhetsutvalget om bord møtes hver måned. Et nytt møte legger frem standardagendaen – forrige møtes åpne tiltak, ulykker og nestenulykker, øvelser, NC-er og inspeksjoner, hvileregimer, helse, verneutstyr, nye prosedyrer og sikkerhetsvarslinger.',
+        'Fremmøteliste: alle om bord er på den; kryss av hvem som er tilstede, gi årsak for resten, og hver person signerer sin linje på denne enheten.',
+        'Tiltak: hvem gjør hva innen når. Åpne tiltak kommer tilbake til neste møte til de er avkrysset som gjort.',
+      ],
+    },
+    {
+      emoji: '✨',
+      title: 'AI-assistent',
+      body: [
+        'Smart import: Settings → Import from Excel → Bilde eller PDF av papirregister (AI) leser en fotografert eller skannet liste inn i importforhåndsvisningen.',
+        'På en inspeksjon: Si hva du fant – tal (tastaturets mikrofon, eller Speak i en nettleser) eller skriv, på ethvert språk – deretter Fyll fra hva jeg sa; eller legg til et bilde og trykk Fra bildet. AI-en merker sjekklistelinjene den kan se, skriver merknaden på engelsk og en defekt når noe er galt. Den foreslår bare: sjekk hver linje, deretter signer.',
+        'Spør ISMpilot (på Oppslagstavlen): et spørsmål med vanlige ord – «hva utløper neste måned?», «når var siste lukket rom-øvelse?» – besvart fra fartøyets registre.',
+      ],
+    },
+    {
+      emoji: '🏬',
+      title: 'Lager',
+      body: [
+        'Lager (meny → Lager): verneutstyrslager og proviant, holdt på samme måte – hvert element med et minimum, hva som er tilgjengelig batch for batch, hva som er under minimumslagernivå eller utgått.',
+        'Verneutstyrslager: kjeledresser, støvler, hansker, briller, hørsels- og åndedrettsvern, seler – én linje per størrelse.',
+        'Proviant: tørrlager, kjølt, frysevarer, drikkevarer, bakeri, ferske frukter og grønnsaker, rengjøring – med best før-datoer.',
+      ],
+    },
+    {
+      emoji: '🛳️',
+      title: 'Passasjerer',
+      body: [
+        'Passasjerer (meny → Besetning → Passasjerer): gjestene om bord, utenom besetningen – navn som i passet, gruppe (eier, eierens gjest, chartergjest), lugar, nasjonalitet, når og hvor de gikk om bord og gikk av.',
+        'Gangvei: hver passasjer og besetningsmedlem har en knapp som viser hvor de er nå – Om bord (grønn) eller I land (gul).',
+        'Dokumenter – legitimasjonsdokument, utløp, fødselsdato, telefon og kontakt i land – beholdes av offiserene og Master kun.',
+      ],
+    },
+    {
+      emoji: '🏥',
+      title: 'Sykestue',
+      body: [
+        'Sykestue holder medisinkabinettet, bestillinger, beholdning og medisinsk logg.',
+        'Register: hvert legemiddel, utstyr og bandasje med antall om bord og i dato mot skalaen, snarest utløp, hva som mangler og hva som er på bestilling.',
+        'Bestillinger: bestill det som mangler eller utløper med ett trykk.',
+        'Medisinsk logg: kun for Master og offiserer – besetningen og land ser den aldri. Pasient, klage, vitale tegn, funn, diagnose, behandling, legemidler gitt, rådgivning fra sjøfartsmedisiner, utfall, oppfølging.',
+        'Pasientens navn forlater aldri fartøyet: på skyen bærer en medisinsk loggpost bare første og siste bokstav av navnet («A…e»).',
+      ],
+    },
+    {
+      emoji: '🧯',
+      title: 'Øvelser',
+      body: [
+        'Øvelser planlegger og registrerer nødøvelsene. Tidsplan: alle øvelser SOLAS, ISPS og MARPOL krever – generell nødsituasjon og mønstering, forlat skipet og brann månedlig, lukket rom hvert to. mnd., nødrorstakelse, sikkerhet og oljesøl hvert kvartal – med når den sist ble holdt og når den er neste forfalt.',
+        'Planlegg en øvelse: velg øvelsestype, gi emnet besetningen vil høre, dato, starttid og sted. Innhold: hva øvelsen dekker, ett punkt per linje.',
+        'På dagen: Start → Nå, og under øvelsen trykk «Ferdig nå» på hvert steg. Fremmøte lister alle om bord: kryss av hvem som er der.',
+        'Rapporter: øvelsesrapporten (PDF) – øvelse, emne, tid, sted, innhold, scenario, fremmøte med signaturkolonne, debrief og signatur.',
+      ],
+    },
+    {
+      emoji: '🦺',
+      title: 'Sikkerhetsobs. og NC',
+      body: [
+        'Observasjonskort: alle om bord leverer ett inn, på et halvt minutt – en usikker tilstand, en usikker handling, en nestenulykke eller god praksis verdt å dele.',
+        'Avvik (ISM-koden 9 og 10): fra revisjon, PSC, flagg, hendelse eller observasjonskort. Hvert får et nummer – NC-2026-001 – en alvorlighetsgrad, hva som ble funnet og kravet som ikke ble møtt.',
+      ],
+    },
+    {
+      emoji: '👥',
+      title: 'Besetningsliste og sertifikatmatrise',
+      body: [
+        'Settings → Crew, eller Besetningsmatrise fra Hvileregistrering og Sertifikater. Master og offiserene (Første offiser) holder den.',
+        'Besetningsmatrise: alle mot hvert sertifikat, utløpet i hvert felt – rødt utløpt, gult innen 60 dager.',
+        'Besetningsliste (IMO FAL Form 5): Settings → Crew → Besetningsliste (PDF), med havn og dato for ankomst eller avgang.',
+      ],
+    },
+    {
+      emoji: '🛏️',
+      title: 'Hviletid',
+      body: [
+        'Hvile-fanen registrerer hver persons arbeid og hvile, halvtime for halvtime, i skipstid.',
+        'Trykk en dag, velg pennen (Tap marks WORK / Tap marks REST) og trykk gjennom timene – eller fyll dagen med ett trykk: Same as previous day, Day work 08–17, de tre vaktmønstrene, Day off.',
+        'Reglene sjekkes mens du redigerer: minst 10 t hvile i enhver 24 t og 77 t i enhver 7 dager (MLC 2006 Reg. 2.3, STCW A-VIII/1).',
+        'Månedlig register (PDF) skriver ut måneden i standardoppsett med signaturlinjer.',
+      ],
+    },
+    {
+      emoji: '📚',
+      title: 'ISM-dokumenter',
+      body: [
+        'Docs-fanen holder fartøyets kontrollerte dokumenter – SMS-håndbok, prosedyrer, sirkulærer, Masters faste ordrer, retningslinjer, skjemaer – hver med nummer, revisjon, utstedelsesdato og revisjonsdato.',
+        'Øverst er hva personen på denne enheten fortsatt har å lese. Åpne dokumentet, les det, og trykk Jeg har lest og forstått: det er en signatur for gjeldende revisjon.',
+        'Offiserer og Master legger til og redigerer dokumenter. Ny revisjon flytter den til Rev N+1 og ber alle lese og signere på nytt.',
+      ],
+    },
+    {
+      emoji: '📜',
+      title: 'Sertifikater',
+      body: [
+        'Sertifikater-fanen holder dokumenter som dekker mange utstyr på en gang – f.eks. ett livflåteservicesertifikat som gjelder for flere flåter («gruppesertifikat»).',
+        'Åpne et sertifikat for å sette nummer, utstedt/utløpsdatoer og vedlagt fil, og koble utstyret det dekker.',
+        'Fra en servicerapport (på Utstyr-fanen): AI-en leser sertifikatnummeret, stasjonen, datoene og utstyrslinjene.',
+        'Tre faner: Utstyr, Besetning og Fartøy. Besetningssertifikater tilhører EN PERSON – STCW, kompetansebevis, ENG1/medisinsk, pass, sjømannsbok, visum.',
+        'Fartøyets sertifikater er skipets egne papirer – register, SMC, DOC, ISSC, MLC, lastlinje, sikkerhetsutstyr, radio, IOPP, klasse, forsikring.',
+      ],
+    },
+    {
+      emoji: '🗓️',
+      title: 'Undersøkelser og revisjoner',
+      body: [
+        'Surveys & audits holder planen over klasse-, flagg- og ISM-hendelser – årlige undersøkelser, mellomliggende og fornyelse, fribord, tørrdokk, interne og eksterne ISM-revisjoner, MLC.',
+        'Hvert har en forfallsdato eller jubileum, et vindu på begge sider (vanligvis ±3 måneder) og en gjentakelse.',
+        'Gjennomført registrerer dato, rapportnummer og funn, signert, og går planen videre.',
+      ],
+    },
+    {
+      emoji: '🔎',
+      title: 'Inspeksjonsberedskap',
+      body: [
+        'Inspeksjonsberedskap svarer på ett spørsmål: hva ville en inspektør finne hvis de kom om bord på en gitt dag? Velg Port State Control, Flagginspeksjon eller Klasseundersøkelse, og datoen.',
+        'Rødt er hva som ville bli funnet den dagen. Gult er verdt å gjøre først.',
+        'Hver linje åpner posten som retter det. Områder uten noe å rapportere vises med hake, slik at «Klar» betyr kontrollert og rent.',
+        'Overlevering (lenken under dommen) lager rapporten for mannskapsbytte.',
+      ],
+    },
+    {
+      emoji: '🎯',
+      title: 'Dynamisk posisjonering',
+      body: [
+        'Dynamisk posisjonering (meny → Dynamisk posisjonering) har tre sider: DP-sjekklister, DP-tid og bekreftelsesbrevet.',
+        'DP-sjekklister er fartøyets egne – satt opp av ISMpilot fra fartøyets skjemaer: vaktoverdragelse/overtagelse, feltankomst med DP-prøver, og andre.',
+        'DP-tid: velg DP-operatøren og dagen, deretter Aktiv (i kontroll) eller Passiv (observerer) og trykk halvtimene i vakten.',
+        'Bekreftelsesbrevsbrevet: brevet til Nautical Institute for en DPOs DP-sertifikat.',
+      ],
+    },
+    {
+      emoji: '📋',
+      title: 'Bro- og maskinsjekklister',
+      body: [
+        'Bro- og maskinsjekklister (meny → Operasjoner → Bro- og maskinsjekklister) har to mapper: Bro­sjekklister og Maskin­sjekklister. Hver holder vaktoverdragelse og av/på-vakt-overdragelse ved mannskapsbytte.',
+        'Familiarisering (meny → Operasjoner → Familiarisering) har Sikkerhets­familiarisering, Bro, Maskin, Prosjektbesetning og Passasjerfamiliarisering.',
+      ],
+    },
+    {
+      emoji: '🦺',
+      title: 'Arbeidstillatelser og risikovurderinger',
+      body: [
+        'Tillatelser-skjermen holder arbeidstillatelser – generell tillatelse, varmt arbeid, adgang til lukkede rom, arbeid i høyde/over siden, elektrisk isolering, kaldt arbeid, dykking – og risikovurderingene bak dem.',
+        'En tillatelse går Utkast → Forespurt → Godkjent → Pågår → Lukket, hvert steg signert.',
+        'Hver tillatelse trenger en risikovurdering: kopier en fra fartøyets bibliotek for jobben og juster den.',
+      ],
+    },
+    {
+      emoji: '📖',
+      title: 'Dekksvaktsjournal',
+      body: [
+        'Dekksvaktsjournalen (meny → Dekksvaktsjournal) er bruloggboken: én post per vaktperiode, signert av vakthavende offiser.',
+        'Hver post registrerer modus – Til sjøs (kurs, fart, posisjon) eller I havn – pluss vær og et fritekst-merknadsefelt for hendelser, ordrer og observasjoner.',
+        'Lagre vs. Signer: trykk Lagre registrerer et utkast umiddelbart. Et utkast kan åpnes på nytt og redigeres. Trykk Signer låser posten permanent.',
+        'Automatiske poster: Sikkerhetsmodulen lager en loggpost når en besøkende signerer inn eller ut ved gangveien.',
+      ],
+    },
+    {
+      emoji: '🏢',
+      title: 'Flåtekonsoll (superintendent)',
+      body: [
+        'For en superintendent på kontoret: én konsoll med hvert fartøy de tar seg av, verste først – utløpt og forfaller snart utstyr, sertifikater, vedlikehold, reservedeler og ISM-dokumenter som fortsatt skal signeres.',
+        'Tilgang gis av hvert fartøys Master: i Accounts, utsted en konto av typen Superintendent (kyst).',
+        'Åpne et fartøy for å legge til og redigere dets sertifikater og ISM-dokumenter, utstede ny revisjon, og se hvem som ikke har signert.',
+      ],
+    },
+    {
+      emoji: 'ℹ️',
+      title: 'Om',
+      body: [
+        aboutLine('no'),
+        'Denne appen er et hjelpemiddel for registrering. Den erstatter ikke fartøyets offisielle sikkerhetsdokumentasjon, lovpålagte inspeksjoner eller klasse-/flaggkrav. Følg alltid ditt selskaps SMS og gjeldende reguleringer.',
+      ],
+      link: APP_CONFIG.website,
+      watermark: true,
+    },
+  ],
+};
+
+// --------------------------------------------------------- Português (BR) ----
+const pt: ManualContent = {
+  screenTitle: 'Manual do Usuário',
+  screenSubtitle: 'Como usar o aplicativo',
+  sections: [
+    {
+      emoji: '⚓',
+      title: 'Primeiros passos',
+      body: [
+        `${APP_CONFIG.name} reúne os Equipamentos de Salvatagem (LSA) e de Combate a Incêndio (FFE/FIFI) da embarcação em um só lugar, com rastreamento de inspeções e datas de validade.`,
+        'Os equipamentos são agrupados em quatro registros: LSA, FFE, Outros e Equipamentos de Içamento e Amarração. Cada item tem seu próprio número, tipo e tamanho, fabricante, número de série/ID, convés e localização, além das datas que controlam a conformidade.',
+        'Forma mais rápida de começar: Settings → Import from Excel. Traga sua lista existente como ela é – uma planilha com colunas como #, Convés, Localização, Descrição, Fabricante, Tipo, Tamanho, Série e Exp/Inspc. é automaticamente classificada por categoria – ou toque em «Baixar modelo em branco» e preencha-o. Independente da escolha, você vê uma prévia do que foi encontrado antes de qualquer dado ser salvo.',
+      ],
+    },
+    {
+      emoji: '⚙️',
+      title: 'Configurações – o que está onde',
+      body: [
+        'Vessel – nome da embarcação, IMO, bandeira, indicativo de chamada e MMSI, impressos em cada relatório. This device – ingressar na embarcação (o primeiro dispositivo torna-se o Mestre) e sair.',
+        'Inspection photos – quando as fotos saem da embarcação: Somente Wi-Fi (padrão), Qualquer conexão ou Nunca; quantas estão aguardando; Arquivo de fotos. Superintendent – Consola de frota. Reports folder – onde os relatórios são salvos em um computador.',
+        'Crew & accounts – lista da tripulação, contas (nomes e PINs emitidos pelo Mestre), Access (quais telas cada dispositivo mostra), Categorias, Imprimir etiquetas QR, Listas de verificação e regras de assinatura.',
+        'Data – modelos de importação, Import from Excel, Export backup (.msm), Reverter, Salvar cópia como arquivo, Restaurar backup e Redefinir todos os dados. Modules – Lembretes de validade, Sons, Registro do compressor BA. Help – este manual, Política de Privacidade e Termos de Uso.',
+      ],
+    },
+    {
+      emoji: '🧭',
+      title: 'Navegando no aplicativo',
+      body: [
+        'O menu (☰) agrupa as telas por finalidade: Inspeções e manutenção, Meio ambiente, Segurança, Tripulação, Documentos e licenças, e Configurações ao final. Entradas com páginas (Combustível, Segurança) abrem para elas.',
+        'Favoritos (★ na barra superior): «Adicionar esta página» mantém onde você está – uma seção, uma de suas páginas, uma categoria de equipamento, uma lista de verificação. No telefone, os favoritos ficam no topo do menu.',
+        'A seta ← no topo volta para onde você veio. Em um tablet ou telefone, deslizar da borda esquerda faz o mesmo. O ? no topo de uma tela abre este manual naquela parte.',
+      ],
+    },
+    {
+      emoji: '🔑',
+      title: 'Ingressar na embarcação, contas e funções',
+      body: [
+        'A embarcação é identificada pelo número IMO (Settings → Vessel). Tudo o mais decorre disso, e o cartão no topo de Settings sempre indica o próximo passo.',
+        'O PRIMEIRO dispositivo ingressa com o código de inicialização fornecido com sua licença e torna-se o Mestre.',
+        'O Mestre então emite uma conta para cada membro da tripulação em Settings → Accounts: nome e PIN de 8 dígitos.',
+        'Todos os outros inserem o IMO e ingressam pelo cartão «This device» no topo de Settings com nome e PIN. O dispositivo aguarda em fila; o Mestre aprova em Accounts → Devices, e o dispositivo em espera percebe por si mesmo em segundos.',
+        'Três funções: Tripulação registra inspeções, Oficial também fecha defeitos, Mestre também emite contas e define funções.',
+        'Perdeu um dispositivo? O Mestre o desativa em Accounts → Devices. Ninguém mais é perturbado e nenhuma senha é alterada.',
+        'Um convite também pode incluir a PATENTE A BORDO – Terceiro Oficial, Contramestre, Chefe de Máquinas. Isso é deliberadamente diferente da função: um engenheiro pode ter conta de Tripulação e um cadete de Oficial.',
+        '«Sign off this device» sai da embarcação naquele dispositivo. Isso para a sincronização imediatamente e não pode retornar sem novo convite e aprovação do Mestre.',
+      ],
+    },
+    {
+      emoji: '🧭',
+      title: 'Access – quais abas cada dispositivo mostra',
+      body: [
+        'Settings → Página do Mestre (somente Mestre) é uma tabela de tudo que pode ser permitido ou delegado: uma coluna por dispositivo com sua patente no topo, uma linha por item de menu.',
+        'Use para manter cada tela ao que seu detentor precisa: o telefone de um marinheiro sem o plano de manutenção da sala de máquinas.',
+        'Painel, Equipamentos e Configurações estão sempre ativos. Um dispositivo do Mestre sempre mostra todas as abas.',
+        'Isso é organização, não um bloqueio: o que um dispositivo pode alterar ainda é decidido por sua função em Accounts, e aplicado pelo servidor.',
+      ],
+    },
+    {
+      emoji: '✍️',
+      title: 'Assinaturas confirmadas',
+      body: [
+        'Cada assinatura – uma inspeção, um defeito corrigido, um trabalho de manutenção, uma movimentação de estoque, uma sondagem de combustível, um registro de lixo – é confirmada pelo signatário de uma das três formas: PIN de assinatura próprio, impressão digital ou assinatura desenhada na tela com o dedo ou caneta.',
+        'Alterar um registro assinado – em Combustível, Lixo, SOPEP, o livro de registro da prancha, exercícios de segurança e Vistorias – é exclusividade do Mestre e requer motivo e assinatura do Mestre.',
+        'A impressão digital só é oferecida quando o dispositivo assina como sua própria conta e possui leitor de digitais.',
+        'Na primeira vez que você assina em um dispositivo, escolhe um PIN de assinatura de 4 a 6 dígitos. Cinco tentativas erradas bloqueiam por cinco minutos. Esqueceu? O Mestre redefine em Configurações.',
+        'O relatório mostra como cada assinatura foi confirmada (PIN ou biométrica) ao lado do nome.',
+      ],
+    },
+    {
+      emoji: '☁️',
+      title: 'Sincronização em nuvem e fotos de inspeção',
+      body: [
+        'Assim que um dispositivo ingressa, a sincronização se mantém atualizada – sem botões Push/Pull. Assine um registro e ele estará nos outros dispositivos da embarcação em segundos.',
+        'Registros de inspeção são apenas de adição, para que dois oficiais trabalhando uma ronda em dois telefones não possam sobrescrever um ao outro.',
+        'Fotos de evidências são redimensionadas na captura e então enfileiradas. Settings → Inspection photos escolhe Somente Wi-Fi (padrão), qualquer conexão, ou nunca.',
+        'A nuvem mantém uma foto por 90 dias. Depois disso, é da embarcação para guardar: Settings → Inspection photos → Arquivo de fotos salva aquele mês como um ZIP.',
+      ],
+    },
+    {
+      emoji: '📥',
+      title: 'Importar do Excel',
+      body: [
+        'Settings → Import from Excel → escolha sua pasta de trabalho .xlsx. Uma planilha nomeada após uma categoria (Liferafts, Lifejackets, Fire extinguishers…) é mapeada para essa categoria automaticamente.',
+        'Seu próprio layout também funciona. Uma planilha que não leva o nome de uma categoria é lida por seus cabeçalhos de coluna (#, Convés, Localização, Descrição, Fabricante, Tipo, Tamanho, Série, Exp/Inspc., Comentários…).',
+        'Ainda sem pasta de trabalho? Toque em «Baixar modelo em branco (.xlsx)» na tela de importação – uma planilha por categoria com os cabeçalhos corretos.',
+        'Você vê uma prévia de quantos itens foram encontrados por categoria antes que qualquer dado seja salvo.',
+        'Escolha «Update» para atualizar um registro existente com o arquivo.',
+        '"Replace all" substitui o registro pelo arquivo; "Add as new" adiciona cada linha ao lado do que já existe.',
+        'Datas escritas como séries do Excel, anos (ex.: «2034»), DD/MM/AAAA ou mês e ano (ex.: «Jun/26») são convertidas automaticamente.',
+      ],
+    },
+    {
+      emoji: '📋',
+      title: 'Categorias e listas de verificação próprias',
+      body: [
+        'As categorias integradas e as listas de verificação por trás delas são um ponto de partida, não um limite. Uma embarcação que usa termos diferentes – ou que inspeciona coisas que ninguém mais pergunta – configura ambas em Configurações.',
+        'Settings → Categories adiciona títulos próprios: Iluminação de emergência, Rotas de fuga, Sistemas de alarme – o que você realmente percorre.',
+        'Cada categoria pode ser renomeada, inclusive as integradas – uma categoria é identificada por uma chave que nunca muda.',
+        'Settings → Checklists formula as perguntas. Abra uma ronda e você recebe a lista já preenchida – reformule uma linha, reordene-as, exclua o que não se aplica ao seu navio, adicione o que seu SMS exige.',
+        'Quais rondas uma categoria deve é sua decisão – semanal, mensal, trimestral e anual, por categoria.',
+      ],
+    },
+    {
+      emoji: '💾',
+      title: 'Backup e restauração',
+      body: [
+        'Settings → Export backup (.msm) grava um arquivo com tudo no dispositivo: itens, certificados, registros do compressor, informações da embarcação e arquivos anexados incorporados (MSM_backup_DDMMAA.msm).',
+        'Restore backup (.msm) recria os dados em outro dispositivo ou após uma reinstalação.',
+        'Backups funcionam sem nuvem.',
+        'O aplicativo também faz um SNAPSHOT dos registros toda vez que é aberto e mantém os três últimos no dispositivo. Settings → Data → «Reverter para …» nomeia o momento para o qual ele voltaria.',
+        'Restaurar e Reverter pertencem ao Mestre.',
+      ],
+    },
+    {
+      emoji: '🗑️',
+      title: 'Redefinir todos os dados',
+      note: 'Faça um Export backup (.msm) primeiro se houver qualquer chance de precisar dos dados novamente – uma redefinição não pode ser desfeita.',
+      body: [
+        'No final de Configurações, «Redefinir todos os dados» exclui permanentemente cada item, certificado, registro do compressor, arquivo anexado e informações da embarcação neste dispositivo.',
+        'É protegido por senha: digite a senha «Reset all data» exatamente para ativar o botão de confirmação.',
+        'Preferências do dispositivo e sua aceitação da Política de Privacidade/Termos são mantidas; apenas os dados do registro de segurança são removidos.',
+        'Redefinir é do Mestre, e em um dispositivo sincronizando não limpa um dispositivo – limpa o NAVIO.',
+        'Para esvaziar apenas este dispositivo, saia da embarcação primeiro: Settings → This device → «Sign off & erase».',
+      ],
+    },
+    {
+      emoji: '🔔',
+      title: 'Lembretes de validade',
+      body: [
+        'Settings → Modules → Expiry reminders agenda notificações locais 60, 30 e 7 dias antes da data de inspeção ou validade de cada item.',
+        'Na primeira vez que você ativar, permita notificações quando solicitado.',
+        'São apenas para o dispositivo (sem necessidade de internet).',
+      ],
+    },
+    {
+      emoji: '🎨',
+      title: 'Aparência (temas)',
+      body: [
+        'Settings → Appearance alterna o tema de cores: Claro (padrão), Escuro e Colorido.',
+        'Settings → Modules → Sounds desativa ou ativa todos os sons – o sino do navio ao iniciar e os tins ao salvar, assinar e em erros.',
+        'Colorido colore os ícones de equipamentos por grupo – LSA verde, FFE vermelho, Outros azul-petróleo.',
+        'Em tablets, o Painel, Equipamentos, Certificados e Relatórios mostram duas colunas automaticamente.',
+      ],
+    },
+    {
+      emoji: '👑',
+      title: 'Licença da embarcação',
+      body: [
+        'O ISMpilot Pro é licenciado para a EMBARCAÇÃO pelo número IMO – não por pessoa e não por dispositivo. Todos os oficiais e todos os dispositivos que ingressaram na embarcação são cobertos por uma licença.',
+        'Cada embarcação tem 60 dias para experimentar o aplicativo antes que o limite de 15 itens por categoria se aplique.',
+        'Preços e licenças de frota: mail@ismpilot.com.',
+        'A licença é comprada uma vez por quem gerencia a embarcação e ativada na conta do navio: Settings → ISMpilot Pro → Ativar licença da embarcação.',
+        'Sem licença após o período gratuito, o aplicativo continua funcionando, mas o registro é limitado a 15 itens por categoria.',
+      ],
+    },
+    {
+      emoji: '📋',
+      title: 'Quadro de avisos (Board)',
+      body: [
+        'Com o quadro ativado, o Painel é o mural de avisos da embarcação em todos os módulos: a linha de status (nível ISPS, pessoas a bordo, combustível a bordo), Requer atenção – tudo que precisa de alguém, vermelho primeiro – Plano, Hoje e um bloco por seção.',
+        'Requer atenção segue a função: a tripulação vê o que é dela, os Oficiais veem a embarcação, o Mestre vê tudo.',
+        'O Plano mostra as rondas desta semana, mês, trimestre e ano com quantos itens estão feitos.',
+      ],
+    },
+    {
+      emoji: '📊',
+      title: 'Painel e status',
+      body: [
+        'O Painel lista cada item que tem uma data, ordenado pelo mais próximo primeiro, para que o trabalho mais urgente fique no topo.',
+        `Cores de status: vermelho = Vencido (data no passado), âmbar = Vence em breve (dentro de ${DUE_SOON_DAYS} dias), verde = Válido.`,
+        'Toque em um contador (Vencido / Vence em breve / Válido) para filtrar a lista para esse status.',
+        'Filtre por grupo (Todos · LSA · FFE · Outros) e ordene por Data de validade, Posição, Nome ou Tipo.',
+        'Cada linha tem DUAS marcações, uma em cada borda. A barra esquerda é a data. A barra direita é a ronda atual.',
+        'Vermelho na direita não é apagado pelo calendário. Um defeito levantado em março ainda é um defeito em junho.',
+      ],
+    },
+    {
+      emoji: '🔎',
+      title: 'Escanear, marcar e recém-escaneados',
+      body: [
+        'Escaneie uma etiqueta QR ou um número de série pelo botão QR no cabeçalho do Painel ou da aba Equipamentos.',
+        'Imprimir etiqueta (na tela do equipamento) cria o adesivo QR. A etiqueta completa mostra o tipo e tamanho, número e série do item, data de inspeção ou validade.',
+        'Imprima todas as etiquetas de uma vez pelo botão de tag ao lado do scanner QR na aba Equipamentos (ou Settings → Print QR labels).',
+        'Marcar «voltar a isto»: abra um equipamento e toque no botão Marcar ao lado do status.',
+      ],
+    },
+    {
+      emoji: '🧰',
+      title: 'Equipamentos e categorias',
+      body: [
+        'A aba Equipamentos mostra uma grade de todas as categorias com contagem de itens e um ponto colorido para o pior status.',
+        'Toque em uma categoria para ver seus itens – cada linha começa com o número do item, ex.: «Nº 01-SD — CO2 5kg». Pesquise por número, tipo, fabricante, tamanho, série, convés ou localização. Toque ＋ para adicionar um novo item manualmente.',
+        'Um item registra seu Nº, Tipo/Descrição, Fabricante, Tamanho, Série/ID, Convés e Localização, quantidade ou pessoas, suas datas e Comentários.',
+        'Datas são definidas com um seletor de calendário. Para remover uma data inserida por engano, toque × no final do campo e Salvar.',
+        'Após um serviço, defina as mesmas datas em vários itens de uma vez: segure um item, marque os outros ou toque em Todos, então Definir datas.',
+        'Adicionando vários itens idênticos? Salve o primeiro e toque em Duplicar item na parte inferior da tela.',
+      ],
+    },
+    {
+      emoji: '📎',
+      title: 'Fotos e documentos',
+      body: [
+        'Cada item pode ter até 4 anexos – fotos ou documentos (PDF etc.) – no bloco «Fotos e documentos» da tela do item.',
+        'Toque no espaço ＋ pontilhado para tirar foto, escolher da biblioteca ou selecionar um documento.',
+        'Toque em uma foto para abri-la em tela cheia (Abrir / Compartilhar); toque em um documento para abri-lo no visualizador do sistema.',
+        'Segure qualquer anexo para seu menu de edição – Baixar/Compartilhar, Renomear, Substituir ou Excluir.',
+      ],
+    },
+    {
+      emoji: '🛟',
+      title: 'Intervalos de inspeção – LSA',
+      note: 'Apenas indicativo. Sempre verifique com o Estado de bandeira da embarcação, sociedade classificadora, instruções do fabricante e SOLAS/Código LSA/circulares MSC vigentes. O aplicativo registra datas – não impõe intervalos.',
+      rows: [
+        { k: 'Balsas infláveis', v: 'Revisão em estação aprovada a cada 12 meses (prorrogação possível sob esquema aprovado pela bandeira).', ref: 'SOLAS III/20; Código LSA' },
+        { k: 'HRU da balsa (gatilho hidrostático)', v: 'Substituir/revisar conforme fabricante; tipos descartáveis (ex.: Hammar H20) a cada 2 anos.', ref: 'SOLAS III/20; fabricante' },
+        { k: 'Coletes salva-vidas', v: 'Visual mensal; inspeção anual completa. Luzes e unidades infláveis revisadas anualmente; cartucho/bateria substituídos ao vencer.', ref: 'SOLAS III/20; MSC.1/Circ.1304' },
+        { k: 'Macacões de imersão / antiexposição', v: 'Inspeção anual; teste de pressão de ar (costuras) a intervalos ≤ 3 anos para os tipos aplicáveis.', ref: 'MSC.1/Circ.1047' },
+        { k: 'Bóias salva-vidas', v: 'Inspeção mensal; luzes autoativadas e sinais de fumaça substituídos ao vencer.', ref: 'SOLAS III/20' },
+        { k: 'EPIRB', v: 'Autoteste mensal; teste de desempenho anual; manutenção em terra e renovação de bateria dentro da validade da bateria (≤ 5 anos).', ref: 'SOLAS IV/15; MSC.1/Circ.1040' },
+        { k: 'SART', v: 'Verificação mensal; bateria substituída ao vencer.', ref: 'SOLAS IV' },
+        { k: 'Pirotécnicos (foguetes, sinalizadores, fumaça)', v: 'Substituir ao vencer – normalmente 3 anos após a fabricação.', ref: 'SOLAS III; Código LSA' },
+        { k: 'Bote salva-vidas MOB + davit', v: 'Verificações semanais e mensais; exame e teste operacional anuais; teste dinâmico do freio do guincho a cada 5 anos.', ref: 'SOLAS III/20; Res. MSC.402(96)' },
+        { k: 'Aparelhos de lançamento / davits', v: 'Exame anual; teste de carga do freio do guincho a cada 5 anos.', ref: 'SOLAS III/20; MSC.402(96)' },
+        { k: 'Cintos de segurança / trava-quedas', v: 'Inspecionados por pessoa competente no intervalo do fabricante (geralmente 6–12 meses).', ref: 'fabricante / SMS' },
+        { k: 'Saídas de emergência (escotilhas, rotas)', v: 'Semanal: rota livre, escotilha abre livremente, sinalização e iluminação de emergência; mensal: vedações, escadas, equipamentos associados.', ref: 'SOLAS II-2/13; ISM / SMS' },
+      ],
+    },
+    {
+      emoji: '🧯',
+      title: 'Intervalos de inspeção – FFE',
+      note: 'Apenas indicativo. Verifique com a bandeira, classe, fabricante e o SOLAS Cap. II-2/Código FSS e MSC.1/Circ.1432 vigentes.',
+      rows: [
+        { k: 'Extintores portáteis', v: 'Visual mensal; inspeção/manutenção anual; teste de descarga e recarga periódicos; cilindros CO₂ teste hidrostático a cada 10 anos.', ref: 'SOLAS II-2/14; Código FSS; MSC.1/Circ.1432' },
+        { k: 'Sistemas fixos de CO₂/gás', v: 'Inspeção anual; cilindros pesados (recarregar se perda > 10%); teste hidrostático a cada 10 anos; purga da tubulação.', ref: 'Código FSS Cap. 5; MSC.1/Circ.1432' },
+        { k: 'Detecção e alarme de incêndio', v: 'Teste funcional periódico de detectores/acionadores manuais; teste completo do sistema anual.', ref: 'SOLAS II-2; Código FSS Cap. 9' },
+        { k: 'Dampers de incêndio', v: 'Teste operacional periódico (geralmente anual).', ref: 'MSC.1/Circ.1432' },
+        { k: 'Hidrantes, mangueiras, caixas de incêndio, esguichos', v: 'Inspeção mensal; mangueiras de incêndio testadas sob pressão anualmente.', ref: 'SOLAS II-2/14; MSC.1/Circ.1432' },
+        { k: 'Aparelhos de respiração (SCBA)', v: 'Verificação mensal da pressão do cilindro e funcionamento; verificação anual completa; teste hidrostático do cilindro conforme fabricante.', ref: 'Código FSS Cap. 3; fabricante' },
+        { k: 'EEBD', v: 'Verificação mensal; inspeção anual; substituir na data de vida marcada.', ref: 'SOLAS II-2/13; Código FSS Cap. 3' },
+        { k: 'Traje de bombeiro / manta anti-chamas / aplicador de espuma', v: 'Inspeção anual.', ref: 'Código FSS Cap. 3; MSC.1/Circ.1432' },
+      ],
+    },
+    {
+      emoji: '🧪',
+      title: 'Intervalos de inspeção – Outros',
+      rows: [
+        { k: 'Lava-olhos', v: 'Verificação periódica; frascos de lavagem substituídos ao vencer.', ref: 'fabricante / SMS' },
+        { k: 'Kits de primeiros socorros / medicina', v: 'Conforme Estado de bandeira/MLC; conteúdo substituído ao vencer.', ref: 'bandeira; WHO IMGS' },
+        { k: 'Detectores de gás', v: 'Teste de resposta antes do uso; calibração conforme fabricante (ex.: a cada 6 meses) com verificação anual.', ref: 'fabricante / SMS' },
+        { k: 'Trajes químicos / resistentes ao gás', v: 'Teste de pressão periódico conforme fabricante.', ref: 'fabricante' },
+        { k: 'Armário SOPEP', v: 'Verificação periódica do inventário; absorventes/itens repostos conforme usado.', ref: 'MARPOL; SMS' },
+      ],
+    },
+    {
+      emoji: '✅',
+      title: 'Inspeções – a trilha de auditoria',
+      body: [
+        'Abra um equipamento – escaneie a etiqueta QR ou encontre-o em uma categoria – e toque em Semanal, Mensal, Trimestral ou Anual. Apenas as rondas que aquela categoria deve nesta embarcação são oferecidas.',
+        'Cada linha é APROVADO / REPROVADO / N/A. «Todos aprovados» preenche a lista com um toque e você rebaixa o que está realmente errado.',
+        '«Limpar tudo» ao lado de «Todos aprovados» reinicia a ronda.',
+        'Escolha quem está assinando na lista de tripulação da embarcação antes de começar. Adicione comentários e até quatro fotos de evidência.',
+        'A assinatura registra a data e hora exatas, o membro da tripulação e a versão da lista de verificação. Um registro assinado não pode ser editado ou excluído por ninguém.',
+        'Qualquer REPROVADO levanta um defeito contra aquele equipamento.',
+        'Escanear antes de assinar (Settings → Scan QR label before signing). Quando ativado, Tripulação e Oficiais só podem assinar uma inspeção após escanear a etiqueta QR do item com o scanner do aplicativo.',
+      ],
+    },
+    {
+      emoji: '🛠️',
+      title: 'Defeitos',
+      body: [
+        'A faixa de Defeitos abertos no Painel lista tudo que ainda aguarda trabalho – filtrável por LSA/FFE, mais recente primeiro, com a idade de cada um.',
+        'Um defeito não é uma marcação no equipamento; ele É a inspeção reprovada que o gerou.',
+        'Abra um e toque em «Registrar retificação» quando o trabalho estiver concluído.',
+        'Cada defeito carrega seu motivo: as linhas da lista de verificação que reprovaram.',
+      ],
+    },
+    {
+      emoji: '🪝',
+      title: 'Equipamentos de içamento e amarração',
+      body: [
+        'Equipamentos de içamento e amarração ficam no mesmo aplicativo que LSA e FFE – uma conta, uma lista de tripulação, um conjunto de etiquetas QR.',
+        'Oito categorias: Equipamento de Amarração, Trabalho em Altura, Guindastes, Ganchos e Cabos, Talhas e Manilhas de Convés, Equipamento de Içamento de Máquinas, Âncoras para Trabalho em Altura, Olhais e Vigas de Içamento Internos.',
+        'Cada categoria tem uma ronda ANUAL. Equipamento de Amarração e Trabalho em Altura também têm uma ronda TRIMESTRAL.',
+        'Registre a data do próximo exame para que a certificação da embarcação vença em um único período anual.',
+      ],
+    },
+    {
+      emoji: '⏱️',
+      title: 'Registro do compressor BA',
+      body: [
+        'Um módulo opcional para o compressor de ar respirável (BA) do equipamento FIFI – ative em Settings → Modules → BA Compressor log.',
+        'Abra pelo Settings → Open compressor log, ou pela categoria «Equipamento FIFI e conjuntos BA».',
+        'Registre uma operação: escolha «Running», selecione a data, insira o tempo de operação (horas/minutos) e uma observação.',
+        'Registre manutenção: escolha Maintenance, Service ou Inspection com data e observação.',
+      ],
+    },
+    {
+      emoji: '📋',
+      title: 'Rondas de inspeção',
+      body: [
+        'Uma ronda de inspeção é uma lista de tarefas compartilhada para um período – esta semana, este mês – e as categorias que ela cobre. Um oficial ou o Mestre a inicia; todos trabalham nela, em qualquer dispositivo.',
+        'Uma inspeção conta para a ronda aberta do mesmo período que cobre sua categoria, independente de como o item foi acessado – da ronda, do Painel, do scanner ou do widget do telefone. Para finalizar, um Oficial ou o Mestre assina a ronda – revisada e concluída. Relatório de ronda (PDF/Excel).',
+      ],
+    },
+    {
+      emoji: '⚙️',
+      title: 'Manutenção planejada',
+      body: [
+        'O plano – sistemas, tarefas, intervalos – é definido pelo Mestre ou superintendente; todos os demais registram o trabalho executado e leituras de contadores.',
+        'A aba PMS contém os maquinários – motores principais, geradores, dessalinizador, compressores, bombas, estabilizadores.',
+        'Os sistemas são agrupados por departamento – Máquinas, Convés, Segurança, Ponte e comunicações, Interior, AV/TI, Casco e dique seco.',
+        'Uma tarefa tem um intervalo em horas de operação, dias ou ambos, e vence pelo que ocorrer primeiro.',
+        'Registrar como concluída assina uma execução – data, contador, observação, nome – no histórico da máquina.',
+      ],
+    },
+    {
+      emoji: '📦',
+      title: 'Sobressalentes',
+      body: [
+        'A aba Sobressalentes é o depósito: cada linha tem nome, número da peça, fabricante, localização e um nível mínimo de reposição.',
+        'O estoque nunca é sobrescrito. Abra uma peça e use + Recebido para uma entrega, − Usado para uma peça retirada fora do plano de manutenção, ou Inventário para o que está fisicamente na prateleira.',
+        'Marque quais máquinas uma peça serve: a tela da máquina lista suas peças sobressalentes com o estoque.',
+      ],
+    },
+    {
+      emoji: '📤',
+      title: 'Relatórios e exportação',
+      body: [
+        'Abra a aba Relatórios e toque nos painéis de categoria para escolher quais incluir. O contador mostra quantos itens serão exportados.',
+        'Exporte como PDF ou XLSX: número do item, tipo, tamanho, série, localização, datas, status e comentários.',
+        'Exportar ZIP (PDF + fotos) agrupa o PDF, todas as fotos/documentos anexados e arquivos de certificados em MSM_backup_DDMMAA.zip.',
+        'Relatórios → Inspeções é o registro do que foi feito. Escolha o grupo (LSA, FFE, Outros ou Todos) e Semanal ou Mensal.',
+        'O relatório abre com seu veredicto – por exemplo «Setembro 2026 Inspeção Mensal – Concluída – Aprovada», ou «Incompleta» e «Reprovada» quando essa for a verdade.',
+      ],
+    },
+    {
+      emoji: '⛽',
+      title: 'Combustível',
+      body: [
+        'A tela de Combustível mantém o diesel do iate em litros: a sondagem do dia tanque por tanque, abastecimentos, transferências entre tanques e o mês.',
+        'O consumo nunca é digitado: é o ROB de ontem mais o recebido, menos o de hoje.',
+        '+ Abastecimento registra porto, fornecedor, litros, densidade, enxofre, número do BDN e litros em cada tanque.',
+        'Relatório mensal: PDF ou Excel – ROB de abertura, recebido, consumido, ROB de fechamento, os dias, abastecimentos e linhas de assinatura.',
+      ],
+    },
+    {
+      emoji: '🛢️',
+      title: 'Livro de Registro de Óleo (ORB)',
+      body: [
+        'Livro de Registro de Óleo é a Parte I do ORB (MARPOL Anexo I, espaço de máquinas): um lançamento por operação sob seu código – A/B tanques de combustível óleo, C lodo retido ou descartado, D/E água de bilge, F falha do equipamento separador de óleo, G descarga acidental, H abastecimento, I outras observações.',
+        'Um abastecimento registrado em Combustível pode ser importado para H com um toque.',
+      ],
+    },
+    {
+      emoji: '🗑️',
+      title: 'Livro de Registro de Lixo',
+      body: [
+        'A tela de Lixo é o Livro de Registro de Lixo, Parte I (MARPOL Anexo V): cada entrega a instalação receptora, incineração, descarga no mar e perda acidental, por categoria A–I.',
+        'O aplicativo avisa sobre descargas no mar que o Anexo V proíbe: plásticos, lixo doméstico, óleo de cozinha, cinzas de incinerador, resíduos operacionais nunca; resíduos alimentares apenas a 12 mn ou mais da costa.',
+        'Somente o Mestre pode Editar ou Excluir (cancelar) um lançamento.',
+      ],
+    },
+    {
+      emoji: '🚽',
+      title: 'Registro de esgoto',
+      body: [
+        'Registro de esgoto (MARPOL Anexo IV): descargas pelo sistema de tratamento aprovado, esgoto triturado e desinfetado (pelo menos 3 mn da costa), não tratado do tanque de retenção (pelo menos 12 mn, em trânsito a pelo menos 4 nós), entregas em terra com recibo.',
+        'Antes de assinar, o formulário avisa quando a distância ou a velocidade contrariam as regras.',
+      ],
+    },
+    {
+      emoji: '🌊',
+      title: 'Água de lastro',
+      body: [
+        'Livro de Registro de Água de Lastro (Convenção BWM): captação, circulação ou tratamento, troca com posições no início e fim, descarga no mar, para instalação receptora, captação ou descarga acidental.',
+        'Uma troca é verificada contra D-1: pelo menos 50 mn da costa (200 mn onde possível) e 200 m de água.',
+      ],
+    },
+    {
+      emoji: '🛢️',
+      title: 'SOPEP',
+      body: [
+        'A tela SOPEP mantém o armário anti-poluição: cada item com a quantidade que o plano exige e onde está.',
+        'Verificação de inventário: conte cada linha, marque o que precisa ser substituído, assine. Exercícios: escolha o cenário, marque quem participou, adicione as lições, assine.',
+        'Vários armários: uma embarcação pode manter equipamentos SOPEP em mais de um local – + Novo armário.',
+      ],
+    },
+    {
+      emoji: '🛂',
+      title: 'Segurança (ISPS)',
+      body: [
+        'A tela de Segurança é o livro de registro digital da prancha de embarque. O nível de segurança ISPS é o pequeno interruptor 1·2·3 no canto – normalmente 1.',
+        'A guarda da prancha assina cada visitante na entrada – nome, empresa, propósito, documento de identidade, número do passe, quem os recebe – e os assina na saída.',
+        'Rondas de segurança (Segurança → Rondas de segurança): a ronda de abertura matinal, rondas diurnas e a ronda de fechamento noturno, cada uma vencendo em seus horários.',
+        'Registro de chaves (Segurança → Registro de chaves): cada chave com seu ID, o que abre e onde é guardada.',
+      ],
+    },
+    {
+      emoji: '🤝',
+      title: 'Reunião mensal de segurança',
+      body: [
+        'Reunião mensal de segurança (menu → Segurança): o comitê de segurança a bordo se reúne mensalmente. Uma nova reunião apresenta a pauta padrão.',
+        'Lista de presença: todos a bordo estão nela; marque quem está presente, dê um motivo para quem não está.',
+        'Ações: quem faz o quê e quando. Ações abertas retornam à próxima reunião até serem marcadas como concluídas.',
+      ],
+    },
+    {
+      emoji: '✨',
+      title: 'Assistente de IA',
+      body: [
+        'Importação inteligente: Settings → Import from Excel → Foto ou PDF de registro em papel (IA) lê uma lista fotografada ou escaneada para a prévia de importação.',
+        'Em uma inspeção: Diga o que encontrou – fale (o microfone do teclado, ou Falar em um navegador) ou escreva, em qualquer idioma – depois Preencher com o que eu disse.',
+        'Perguntar ao ISMpilot (no Quadro): uma pergunta em linguagem simples – «o que vence no próximo mês?», «quando foi o último exercício em espaço confinado?» – respondida a partir dos registros da embarcação.',
+      ],
+    },
+    {
+      emoji: '🏬',
+      title: 'Suprimentos',
+      body: [
+        'Suprimentos (menu → Suprimentos): o depósito de EPIs e as provisões, mantidos da mesma forma.',
+        'Depósito de EPIs: macacões, botas, luvas, óculos, proteção auricular e respiratória, cintos – uma linha por tamanho.',
+        'Provisões: despensa, refrigerado, congelado, bebidas, padaria, frutas e legumes frescos, limpeza – com datas de validade.',
+      ],
+    },
+    {
+      emoji: '🛳️',
+      title: 'Passageiros',
+      body: [
+        'Passageiros (menu → Tripulação → Passageiros): os hóspedes a bordo, além da tripulação – nome como no passaporte, grupo (proprietário, hóspede do proprietário, hóspede de charter), camarote, nacionalidade.',
+        'Prancha: cada passageiro e membro da tripulação tem um botão que mostra onde está agora – A bordo (verde) ou Em terra (amarelo).',
+        'Documentos – documento de identidade, validade, data de nascimento, telefone e contato em terra – são mantidos apenas por oficiais e Mestre.',
+      ],
+    },
+    {
+      emoji: '🏥',
+      title: 'Enfermaria',
+      body: [
+        'A Enfermaria mantém o estojo de medicamentos, pedidos, inventário e o diário médico.',
+        'Registro: cada medicamento, equipamento e curativo com quantos estão a bordo e dentro do prazo em relação à escala.',
+        'Pedidos: peça o que está faltando ou vencendo com um toque.',
+        'Diário médico: apenas para Mestre e oficiais – a tripulação e o exterior nunca veem. Paciente, queixa, sinais vitais, achados, diagnóstico, tratamento, medicamentos administrados.',
+        'O nome do paciente nunca sai da embarcação: na nuvem, um registro do diário médico carrega apenas a primeira e a última letra do nome («A…e»).',
+      ],
+    },
+    {
+      emoji: '🧯',
+      title: 'Exercícios de emergência',
+      body: [
+        'Exercícios planeja e registra os exercícios de emergência. Calendário: todos os exercícios que SOLAS, ISPS e MARPOL exigem – emergência geral e reunião no ponto de encontro, abandono de navio e incêndio mensal, espaço confinado a cada dois meses, governo de emergência, segurança e derrame de óleo a cada trimestre.',
+        'Planejar um exercício: escolha o tipo, dê o tema que a tripulação ouvirá, data, hora de início e local.',
+        'No dia: Iniciar → Agora, depois durante o exercício toque em «Concluído agora» em cada etapa. Presença lista todos a bordo.',
+        'Relatórios: o relatório do exercício (PDF) – exercício, tema, hora, local, conteúdo, cenário, presença com coluna de assinatura, debrief e assinatura.',
+      ],
+    },
+    {
+      emoji: '🦺',
+      title: 'Obs. de segurança e NC',
+      body: [
+        'Cartões de observação: qualquer pessoa a bordo entrega um, em meio minuto – uma condição insegura, um ato inseguro, um quase acidente ou boa prática digna de compartilhar.',
+        'Não conformidades (Código ISM 9 e 10): de uma auditoria, PSC, bandeira, incidente ou cartão de observação. Cada uma recebe um número – NC-2026-001 – um grau.',
+      ],
+    },
+    {
+      emoji: '👥',
+      title: 'Lista de tripulação e matriz de certificados',
+      body: [
+        'Settings → Crew, ou Matriz de tripulação em Horas de descanso e Certificados.',
+        'Matriz de tripulação: todos versus cada certificado, a validade em cada célula – vermelho vencido, âmbar dentro de 60 dias.',
+        'Lista de tripulação (IMO FAL Form 5): Settings → Crew → Lista de tripulação (PDF), com o porto e a data de chegada ou saída.',
+      ],
+    },
+    {
+      emoji: '🛏️',
+      title: 'Horas de descanso',
+      body: [
+        'A aba Descanso registra o trabalho e o descanso de cada pessoa, meia hora a meia hora, no horário do navio.',
+        'Toque em um dia, escolha a caneta (Tap marks WORK / Tap marks REST) e toque pelas horas.',
+        'As regras são verificadas conforme você edita: pelo menos 10h de descanso em qualquer 24h e 77h em qualquer 7 dias (MLC 2006 Reg. 2.3, STCW A-VIII/1).',
+        'Registro mensal (PDF) imprime o mês no layout padrão com linhas de assinatura.',
+      ],
+    },
+    {
+      emoji: '📚',
+      title: 'Documentos ISM',
+      body: [
+        'A aba Docs mantém os documentos controlados da embarcação – manual SMS, procedimentos, circulares, ordens permanentes do Mestre, políticas, formulários.',
+        'No topo está o que a pessoa neste dispositivo ainda precisa ler. Abra o documento, leia-o e toque em Li e compreendi.',
+        'Oficiais e Mestre adicionam e editam documentos. Nova revisão move para Rev N+1 e solicita que todos leiam e assinem novamente.',
+      ],
+    },
+    {
+      emoji: '📜',
+      title: 'Certificados',
+      body: [
+        'A aba Certificados mantém documentos que cobrem muitos itens de uma vez – ex.: um único certificado de revisão de balsa aplicável a várias balsas («certificado de grupo»).',
+        'Do relatório de serviço (na aba Equipamentos): a IA lê o número do certificado, a estação, as datas e as linhas de item.',
+        'Três abas: Equipamentos, Tripulação e Embarcação. Certificados de tripulação pertencem a UMA PESSOA – STCW, Certificado de Competência, ENG1/médico, passaporte, caderneta do marítimo, visto.',
+        'Os certificados da embarcação são os papéis próprios do navio – registro, SMC, DOC, ISSC, MLC, linha de carga, equipamento de segurança, rádio, IOPP, classe, seguro.',
+      ],
+    },
+    {
+      emoji: '🗓️',
+      title: 'Vistorias e auditorias',
+      body: [
+        'Surveys & audits mantém o plano de eventos de classe, bandeira e ISM – vistorias anuais, intermediárias e de renovação, linha de carga, dique seco, auditorias ISM internas e externas, MLC.',
+        'Realizado registra a data, o número do relatório e os achados, assinados, e avança o plano.',
+      ],
+    },
+    {
+      emoji: '🔎',
+      title: 'Prontidão para inspeção',
+      body: [
+        'Prontidão para inspeção responde a uma pergunta: o que um inspetor encontraria se viesse a bordo em determinado dia? Escolha Controle do Estado do Porto, Inspeção da bandeira ou Vistoria de classe, e a data.',
+        'Vermelho é o que seria encontrado no dia. Âmbar vale fazer primeiro.',
+        'Cada linha abre o registro que o corrige. Áreas sem nada a relatar são mostradas com um sinal de verificação.',
+      ],
+    },
+    {
+      emoji: '🎯',
+      title: 'Posicionamento dinâmico',
+      body: [
+        'Posicionamento dinâmico (menu → Posicionamento dinâmico) tem três páginas: Listas de verificação DP, Horas DP e a carta de confirmação.',
+        'Listas de verificação DP são as próprias da embarcação – configuradas pelo ISMpilot a partir dos formulários da embarcação.',
+        'Horas DP: escolha o operador DP e o dia, depois Ativo (no controle) ou Passivo (observando) e toque nas meias horas do turno.',
+        'Carta de confirmação: a carta ao Nautical Institute para o certificado DP de um operador.',
+      ],
+    },
+    {
+      emoji: '📋',
+      title: 'Listas de verificação de ponte e máquinas',
+      body: [
+        'Listas de verificação de ponte e máquinas (menu → Operações → Listas de verificação de ponte e máquinas) tem duas pastas: Listas de ponte e Listas de máquinas.',
+        'Familiarização (menu → Operações → Familiarização) tem Familiarização de segurança, Ponte, Máquinas, Tripulação de projeto e Familiarização de passageiros.',
+      ],
+    },
+    {
+      emoji: '🦺',
+      title: 'Autorizações de trabalho e avaliações de risco',
+      body: [
+        'A tela de Autorizações mantém autorizações de trabalho – autorização geral, trabalho a quente, entrada em espaço confinado, trabalho em altura/borda, isolamento elétrico, trabalho a frio, mergulho – e as avaliações de risco por trás delas.',
+        'Uma autorização passa por Rascunho → Solicitado → Aprovado → Em andamento → Fechado, cada etapa assinada.',
+        'Cada autorização precisa de uma avaliação de risco: copie uma da biblioteca da embarcação para o trabalho e ajuste-a.',
+      ],
+    },
+    {
+      emoji: '📖',
+      title: 'Diário de quarto de convés',
+      body: [
+        'O Diário de Quarto de Convés (menu → Diário de quarto de convés) é o livro de registro da ponte: um lançamento por período de quarto, assinado pelo oficial de quarto.',
+        'Cada lançamento registra o modo – No Mar (rumo, velocidade, posição) ou No Porto – mais o tempo e um campo de Observações em texto livre.',
+        'Salvar vs. Assinar: tocar em Salvar registra um rascunho imediatamente. Tocar em Assinar bloqueia o lançamento permanentemente.',
+        'Lançamentos automáticos: o módulo de Segurança cria um lançamento no diário quando um visitante assina na entrada ou saída na prancha.',
+      ],
+    },
+    {
+      emoji: '🏢',
+      title: 'Console de frota (superintendente)',
+      body: [
+        'Para um superintendente no escritório: um console com cada embarcação que gerenciam, pior primeiro – equipamentos vencidos e com vencimento próximo, certificados, manutenção, sobressalentes e documentos ISM ainda para assinar.',
+        'O acesso é concedido pelo Mestre de cada embarcação: em Accounts, emita uma conta do tipo Superintendent (shore).',
+        'Abra uma embarcação para adicionar e editar seus certificados e documentos ISM.',
+      ],
+    },
+    {
+      emoji: 'ℹ️',
+      title: 'Sobre',
+      body: [
+        aboutLine('pt'),
+        'Este aplicativo é um auxílio de manutenção de registros. Não substitui a documentação oficial de segurança da embarcação, inspeções estatutárias ou requisitos de classe/bandeira. Sempre siga o SMS de sua empresa e as regulamentações aplicáveis.',
+      ],
+      link: APP_CONFIG.website,
+      watermark: true,
+    },
+  ],
+};
+
+export const MANUAL: Record<Lang, ManualContent> = { en, ru, es, uk, no, pt };
 
 // ---- Modules that ship dark --------------------------------------------------
 // A module that is off (constants/modules.ts) has no screen, so the manual must

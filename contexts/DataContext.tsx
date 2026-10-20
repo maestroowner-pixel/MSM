@@ -36,6 +36,7 @@ import { KeyItem, KeyMove } from '../types/keys';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 import { WatchEntry, WatchTemplate } from '../types/watchLog';
 import { DeckEntry } from '../types/deckLog';
+import { GmdssEntry } from '../types/gmdss';
 import { InternalAudit } from '../types/audit';
 import { ItemMovement, LandingReport } from '../types/movement';
 import { OrderGroup, PurchaseOrder } from '../types/orders';
@@ -100,6 +101,8 @@ interface DataContextType {
   watchLog: WatchEntry[];
   /** Deck watch log entries — position, course, weather, watch officer signature. */
   deckLog: DeckEntry[];
+  /** GMDSS journal — daily/weekly/monthly checks, radar events, signed entries. */
+  gmdssLog: GmdssEntry[];
   /** Internal audits — ISM / MLC / custom (backlog #12). */
   internalAudits: InternalAudit[];
   /** Shore movement records per equipment item — append-only (#27). */
@@ -295,6 +298,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [internalAudits, setInternalAudits] = useState<InternalAudit[]>([]);
   const [watchLog, setWatchLog] = useState<WatchEntry[]>([]);
   const [deckLog, setDeckLog] = useState<DeckEntry[]>([]);
+  const [gmdssLog, setGmdssLog] = useState<GmdssEntry[]>([]);
   const [itemMovements, setItemMovements] = useState<ItemMovement[]>([]);
   const [landings, setLandings] = useState<LandingReport[]>([]);
   const [spares, setSpares] = useState<SparePart[]>([]);
@@ -408,6 +412,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _watchTemplates = (await storage.loadList<WatchTemplate>(storage.WATCH_TEMPLATES_KEY)).filter((x) => !x.deleted);
     const _watchLog = await storage.loadList<WatchEntry>(storage.WATCH_LOG_KEY);
     const _deckLog = await storage.loadList<DeckEntry>(storage.DECK_LOG_KEY);
+    const _gmdssLog = await storage.loadList<GmdssEntry>(storage.GMDSS_KEY);
     const _internalAudits = (await storage.loadList<InternalAudit>(storage.INTERNAL_AUDITS_KEY)).filter((x) => !x.deleted);
     const _itemMovements = await storage.loadList<ItemMovement>(storage.ITEM_MOVEMENTS_KEY);
     const _landings = (await storage.loadList<LandingReport>(storage.LANDINGS_KEY)).filter((x) => !x.deleted);
@@ -493,6 +498,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setWatchTemplates(_watchTemplates);
     setWatchLog(_watchLog);
     setDeckLog(_deckLog);
+    setGmdssLog(_gmdssLog);
     setInternalAudits(_internalAudits);
     setItemMovements(_itemMovements);
     setLandings(_landings);
@@ -725,6 +731,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _watchTemplates = (await storage.loadList<WatchTemplate>(storage.WATCH_TEMPLATES_KEY)).filter((x) => !x.deleted);
     const _watchLog = await storage.loadList<WatchEntry>(storage.WATCH_LOG_KEY);
     const _deckLog = await storage.loadList<DeckEntry>(storage.DECK_LOG_KEY);
+    const _gmdssLog = await storage.loadList<GmdssEntry>(storage.GMDSS_KEY);
     const _internalAudits = (await storage.loadList<InternalAudit>(storage.INTERNAL_AUDITS_KEY)).filter((x) => !x.deleted);
     const _itemMovements = await storage.loadList<ItemMovement>(storage.ITEM_MOVEMENTS_KEY);
     const _landings = (await storage.loadList<LandingReport>(storage.LANDINGS_KEY)).filter((x) => !x.deleted);
@@ -801,6 +808,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setWatchTemplates(_watchTemplates);
     setWatchLog(_watchLog);
     setDeckLog(_deckLog);
+    setGmdssLog(_gmdssLog);
     setInternalAudits(_internalAudits);
     setItemMovements(_itemMovements);
     setLandings(_landings);
@@ -1109,6 +1117,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         watchTemplates,
         watchLog,
         deckLog,
+        gmdssLog,
         internalAudits,
         itemMovements,
         landings,

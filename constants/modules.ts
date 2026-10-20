@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -171,6 +171,8 @@ export const MODULES: Record<ModuleKey, boolean> = {
   deckLog: true,
   /** Engine-room rounds / daily log — readings, machinery state, watch signature (Oct 2026). */
   watchLog: false,
+  /** GMDSS Log — daily/weekly/monthly checks, battery log, radar periods, events (Oct 2026). */
+  gmdss: true,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------

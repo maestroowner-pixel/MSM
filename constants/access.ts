@@ -31,7 +31,7 @@
 
 import { ModuleKey, moduleOn } from './modules';
 
-export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'stores' | 'orders' | 'reports' | 'maintenance' | 'spares' | 'rest' | 'readiness' | 'dp' | 'watch' | 'familiar';
+export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'stores' | 'orders' | 'reports' | 'maintenance' | 'spares' | 'rest' | 'readiness' | 'dp' | 'watch' | 'familiar' | 'deckLog' | 'watchLog' | 'gmdss';
 
 export interface OptionalTab {
   key: TabKey;
@@ -51,6 +51,9 @@ export const OPTIONAL_TABS: OptionalTab[] = [
   { key: 'certificates', route: 'Certificates', label: 'Certificates', column: 'Certs', icon: 'certificate' },
   { key: 'permits', module: 'ptw', route: 'Permits', label: 'Permits', column: 'PTW', icon: 'clipboard-alert-outline' },
   { key: 'documents', module: 'docs', route: 'Documents', label: 'Docs', column: 'Docs', icon: 'book-open-page-variant' },
+  { key: 'deckLog', module: 'deckLog', route: 'DeckLog', label: 'Deck Log', column: 'DLG', icon: 'ferry' },
+  { key: 'watchLog', module: 'watchLog', route: 'WatchLog', label: 'Engine Log', column: 'ELG', icon: 'engine-outline' },
+  { key: 'gmdss', module: 'gmdss', route: 'Gmdss', label: 'GMDSS Log', column: 'GDL', icon: 'radio-tower' },
   { key: 'maintenance', module: 'pms', route: 'Maintenance', label: 'PMS', column: 'PMS', icon: 'engine' },
   { key: 'fuel', module: 'fuel', route: 'Fuel', label: 'Fuel', column: 'Fuel', icon: 'gas-station' },
   { key: 'garbage', module: 'garbage', route: 'Garbage', label: 'Garbage', column: 'GRB', icon: 'trash-can-outline' },

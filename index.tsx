@@ -56,6 +56,7 @@ import PmsProjectsSc, { PmsProjectSc } from './screens/PmsProjectsSc';
 import WatchLogSc from './screens/WatchLogSc';
 import WatchEntrySc from './screens/WatchEntrySc';
 import DeckLogSc from './screens/DeckLogSc';
+import GmdssSc from './screens/GmdssSc';
 import DeckEntrySc from './screens/DeckEntrySc';
 import AuditsSc from './screens/AuditsSc';
 import AuditSc from './screens/AuditSc';
@@ -173,6 +174,9 @@ const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Stores: StoresSc,
   Rounds: RoundsSc,
   Orders: OrdersSc,
+  DeckLog: DeckLogSc,
+  WatchLog: WatchLogSc,
+  Gmdss: GmdssSc,
   Maintenance: MaintenanceSc,
   HoursOfRest: HoursOfRestSc,
   Spares: SparesSc,
@@ -437,6 +441,9 @@ const linking = {
           Stores: 'stores',
           Rounds: 'rounds',
           Orders: 'orders',
+          DeckLog: 'deck-log',
+          WatchLog: 'watch-log',
+          Gmdss: 'gmdss-log',
           Settings: 'settings',
         },
       },
@@ -467,9 +474,7 @@ const linking = {
       PmsDefect: 'pms-defect/:id',
       PmsProjects: 'pms-projects',
       PmsProject: 'pms-project/:id',
-      WatchLog: 'watch-log',
       WatchEntry: 'watch-entry',
-      DeckLog: 'deck-log',
       DeckEntry: 'deck-entry',
       InternalAudits: 'internal-audits',
       InternalAudit: 'internal-audit/:id',
@@ -514,6 +519,8 @@ function Root() {
   const hideSplash = useCallback(() => setShowSplash(false), []);
   // null = still loading the stored flag; false = must show; true = accepted
   const [legalAccepted, setLegalAccepted] = useState<boolean | null>(null);
+  // Route to navigate to right after the consent gate clears ('Settings' or 'Enrol').
+  const [pendingOnboard, setPendingOnboard] = useState<string | null>(null);
 
   // A MSM sticker's QR is `msm://item/<id>`, and `msm` is this app's URL scheme
   // (app.json), so scanning it with the PHONE'S camera opens the app. The home-
@@ -543,7 +550,8 @@ function Root() {
     ensureTrialStarted();
   }, []);
 
-  const acceptLegal = async () => {
+  const acceptLegal = async (route: string) => {
+    setPendingOnboard(route);
     setLegalAccepted(true);
     try {
       await AsyncStorage.setItem(LEGAL_ACCEPTED_KEY, '1');
@@ -551,6 +559,25 @@ function Root() {
       /* ignore */
     }
   };
+
+  // Navigate to the onboarding destination once the consent gate has cleared and
+  // the navigator is mounted. We wait for legalAccepted to flip to true (the
+  // consent screen is still covering everything at that point, so we need a tick
+  // after it unmounts before the nav ref is usable).
+  useEffect(() => {
+    if (!pendingOnboard || legalAccepted !== true) return;
+    const route = pendingOnboard;
+    setPendingOnboard(null);
+    // Give React one frame to unmount ConsentSc and mount the navigator.
+    const t = setTimeout(() => {
+      try {
+        navigationRef.current?.navigate(route as never);
+      } catch {
+        /* navigator not ready yet — user can navigate manually */
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [pendingOnboard, legalAccepted]);
 
   const navTheme = {
     ...DefaultTheme,
@@ -690,9 +717,7 @@ function Root() {
         <Stack.Screen name="PmsDefect" component={PmsDefectSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsProjects" component={PmsProjectsSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsProject" component={PmsProjectSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="WatchLog" component={WatchLogSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="WatchEntry" component={WatchEntrySc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="DeckLog" component={DeckLogSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="DeckEntry" component={DeckEntrySc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="InternalAudits" component={AuditsSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="InternalAudit" component={AuditSc} options={{ presentation: 'modal' }} />

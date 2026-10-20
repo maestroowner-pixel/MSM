@@ -175,7 +175,7 @@ const uk: GettingStartedContent = {
   manualLink: 'Відкрити повний посібник користувача',
 };
 
-export const GETTING_STARTED: Record<Lang, GettingStartedContent> = { en, ru, es, uk };
+export const GETTING_STARTED: Record<Lang, GettingStartedContent> = { en, ru, es, uk, no: en, pt: en };
 
 /** Getting-started content in the device language (ru/es/uk), else English. */
 export function gettingStarted(): GettingStartedContent {

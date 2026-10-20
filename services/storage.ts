@@ -97,6 +97,7 @@ export const VESSEL_MODULES_KEY = `${PREFIX}vessel_modules`;
 export const WATCH_TEMPLATES_KEY = `${PREFIX}watch_templates`;
 export const WATCH_LOG_KEY = `${PREFIX}watch_log`;
 export const DECK_LOG_KEY = `${PREFIX}deck_log`;
+export const GMDSS_KEY = `${PREFIX}gmdss`;
 export const INTERNAL_AUDITS_KEY = `${PREFIX}internal_audits`;
 /** Shore movements and landing reports (#27, Oct 2026). */
 export const ITEM_MOVEMENTS_KEY = `${PREFIX}item_movements`;
