@@ -175,11 +175,11 @@ export const MODULES: Record<ModuleKey, boolean> = {
   gmdss: true,
   /**
    * Interface languages — the Manual's six (en, ru, es, uk, no, pt), via
-   * utils/i18n `t()`. Off: the app is English everywhere and Settings has no
-   * language picker (20 Oct 2026: «пока приложение останется на английском —
-   * позже включим»). Screens are moved onto t() one module at a time meanwhile.
+   * utils/i18n `t()`, picked in Settings (default: the device's language).
+   * Released in 2.66 (21 Oct 2026) once every screen was on t(). PDF / Excel
+   * reports and saved records stay English.
    */
-  i18n: false,
+  i18n: true,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------
