@@ -18,6 +18,7 @@
 
 import { ComplianceStatus } from '../types/equipment';
 import { HoursReading, Machine, PmsDeferral, PmsDone, PmsJob, READINGS_KEPT } from '../types/pms';
+import { t, tn } from '../utils/t';
 
 export interface JobDue {
   status: ComplianceStatus;
@@ -60,10 +61,10 @@ export function todayIso(): string {
  */
 export function checkReading(m: Pick<Machine, 'hours' | 'hoursDate'>, date: string, total: number): { ok: true } | { ok: false; why: string } {
   if (m.hours == null || !m.hoursDate) return { ok: true };
-  if (total < m.hours) return { ok: false, why: `Lower than the last reading (${m.hours} h on ${m.hoursDate.split('-').reverse().join('.')}).` };
+  if (total < m.hours) return { ok: false, why: t('pms.rdLower', { h: m.hours, date: m.hoursDate.split('-').reverse().join('.') }) };
   const days = Math.max(0, daysBetween(m.hoursDate, date));
   const most = (days + 1) * 24 + 12;
-  if (total - m.hours > most) return { ok: false, why: `${Math.round(total - m.hours)} h more than the last reading, in ${days} day${days === 1 ? '' : 's'} — more than the machine could have run.` };
+  if (total - m.hours > most) return { ok: false, why: t('pms.rdTooMuch', { h: Math.round(total - m.hours), days: tn('n.day', days) }) };
   return { ok: true };
 }
 
@@ -212,6 +213,35 @@ export function intervalText(job: Pick<PmsJob, 'intervalHours' | 'intervalDays'>
   const d = job.intervalDays;
   const days = !d ? null : d % 365 === 0 ? `${d / 365} y` : d % 30 === 0 ? `${d / 30} mo` : `${d} d`;
   return [job.intervalHours ? `${job.intervalHours} h` : null, days].filter(Boolean).join(' or ') || 'no interval';
+}
+
+// The same three in the interface language, for the screens. The English ones
+// above stay for the PDF / Excel reports (services/pmsHistory, pmsKpi).
+const uH = (n: number) => t('pms.u.h', { n });
+const uD = (n: number) => t('pms.u.d', { n });
+
+export function dueLabel(d: JobDue): string {
+  if (d.noBaseline) return t('pms.neverDone');
+  const pre = d.deferred ? `${t('pj.deferred')} · ` : '';
+  const parts: string[] = [];
+  if (d.hoursLeft != null) {
+    parts.push(d.hoursLeft < 0 ? t('pms.over', { x: uH(Math.abs(Math.round(d.hoursLeft))) }) : t('pms.left', { x: uH(Math.round(d.hoursLeft)) }));
+    if (d.estDaysForHours != null && d.hoursLeft >= 0) parts.push(t('pms.atRate', { x: uD(d.estDaysForHours) }));
+  }
+  if (d.daysLeft != null) parts.push(d.daysLeft < 0 ? t('pms.over', { x: uD(Math.abs(d.daysLeft)) }) : t('pms.left', { x: uD(d.daysLeft) }));
+  return pre + (parts.join(' · ') || t('pms.noIntervalSet'));
+}
+
+export function scheduleLabel(job: Pick<PmsJob, 'intervalHours' | 'intervalDays' | 'oneOff' | 'dueDate' | 'dueHours' | 'fixed'>): string {
+  if (!job.oneOff) return `${t('pms.every', { x: intervalLabel(job) })}${job.fixed ? ` · ${t('pms.fixed')}` : ''}`;
+  const by = [job.dueDate ? job.dueDate.split('-').reverse().join('.') : null, job.dueHours != null ? uH(job.dueHours) : null].filter(Boolean).join(` ${t('pms.or')} `);
+  return by ? t('pms.oneOffBy', { x: by }) : t('pms.oneOff');
+}
+
+export function intervalLabel(job: Pick<PmsJob, 'intervalHours' | 'intervalDays'>): string {
+  const d = job.intervalDays;
+  const days = !d ? null : d % 365 === 0 ? t('pms.u.y', { n: d / 365 }) : d % 30 === 0 ? t('pms.u.mo', { n: d / 30 }) : uD(d);
+  return [job.intervalHours ? uH(job.intervalHours) : null, days].filter(Boolean).join(` ${t('pms.or')} `) || t('pms.noInterval');
 }
 
 const RANK: Record<ComplianceStatus, number> = { expired: 0, due: 1, ok: 2, none: 3 };

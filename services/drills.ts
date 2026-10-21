@@ -8,6 +8,7 @@ import type { SopepDrill } from '../types/sopep';
 import type { SecurityDrill } from '../types/security';
 import type { SignProof } from './signature';
 import { DRILL_THEORY } from '../constants/drillTheory';
+import { t, tk } from '../utils/t';
 
 export function nextDrillNo(list: Drill[], date: string): string {
   const y = date.slice(0, 4);
@@ -172,6 +173,17 @@ export function byMonth(list: Drill[]): { month: string; drills: Drill[] }[] {
 }
 
 export const everyLabel = (days: number) => (!days ? 'not on a cycle' : days === 30 ? 'monthly' : days === 60 ? 'every 2 months' : days === 90 ? 'every 3 months' : days === 180 ? 'every 6 months' : days === 365 ? 'yearly' : `every ${days} days`);
+
+// ---- on screen, in the interface language (reports keep the English above) ----
+const CYCLES = [30, 60, 90, 180, 365];
+export const everyText = (days: number) => (!days ? t('dr.every.0') : CYCLES.includes(days) ? tk(`dr.every.${days}`) : t('dr.everyN', { n: days }));
+/** OWN_INTERVALS' label — "Monthly", "Not on a cycle". */
+export const intervalName = (days?: number) => (days && CYCLES.includes(days) ? tk(`dr.int.${days}`) : t('dr.noCycle'));
+export const drillTypeName = (id: string) => (DRILL_TYPE_MAP[id] ? tk(`dr.type.${id}`) : t('dr.otherDrill'));
+export const drillName = (d: Pick<Drill, 'type' | 'title'>) => (d.type === 'other' ? d.title?.trim() || t('dr.otherDrill') : drillTypeName(d.type));
+/** A schedule / archive kind — an own drill keeps the name it was given. */
+export const kindName = (kind: string, title: string) => (kind.startsWith('other:') ? title : drillTypeName(kind));
+export const drillStateName = (s: DrillState) => tk(`dr.st.${s}`);
 
 // ---- reports ----
 

@@ -46,7 +46,7 @@ import { DeckEntry } from '../types/deckLog';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { proofShort } from '../services/signature';
-import { DRILL_STATE_LABEL, attendanceSig, clockAt, contentLines, drillState, lastOfType, minutesBetween, nextDrillNo, nextStepMin, nowHm, sortSteps } from '../services/drills';
+import { attendanceSig, drillName, drillStateName, drillTypeName, intervalName, clockAt, contentLines, drillState, lastOfType, minutesBetween, nextDrillNo, nextStepMin, nowHm, sortSteps } from '../services/drills';
 import { exportDrillPdf } from '../services/drillReport';
 import { formatDate, formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
@@ -54,6 +54,7 @@ import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles as safetyStyles } from './SafetySc';
 import { t, useT } from '../utils/i18n';
+import { uiLang } from '../utils/locale';
 
 /** "930", "9.30", "9:3" → "09:30"; anything else is left for the officer to fix. */
 function hm(v: string): string {
@@ -289,8 +290,8 @@ export default function DrillSc() {
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav)} />
       <ScreenTitle
-        title={`${d.no ? `${d.no} · ` : ''}${isOwn ? drillTitle(d) : t('dr.titleFmt', { title: drillTitle(d) })}`}
-        subtitle={done ? `${t('dr.carriedOn', { date: formatDate(d.date) })} · ${t('dr.signedAtBy', { when: formatDateTime(d.doneAt!), by: d.doneByRank ? `${d.doneBy} (${d.doneByRank})` : d.doneBy ?? '' })}${d.doneWith ? ` · ${proofShort(d.doneWith)}` : ''}` : `${DRILL_STATE_LABEL[st]}${DRILL_TYPE_MAP[d.type] ? ` · ${DRILL_TYPE_MAP[d.type].reg}` : d.reg?.trim() ? ` · ${d.reg.trim()}` : isOwn ? ` · ${t('dr.ownL')}` : ''}`}
+        title={`${d.no ? `${d.no} · ` : ''}${isOwn ? drillName(d) : t('dr.titleFmt', { title: drillName(d) })}`}
+        subtitle={done ? `${t('dr.carriedOn', { date: formatDate(d.date) })} · ${t('dr.signedAtBy', { when: formatDateTime(d.doneAt!), by: d.doneByRank ? `${d.doneBy} (${d.doneByRank})` : d.doneBy ?? '' })}${d.doneWith ? ` · ${proofShort(d.doneWith)}` : ''}` : `${drillStateName(st)}${DRILL_TYPE_MAP[d.type] ? ` · ${DRILL_TYPE_MAP[d.type].reg}` : d.reg?.trim() ? ` · ${d.reg.trim()}` : isOwn ? ` · ${t('dr.ownL')}` : ''}`}
         help="Drills"
       />
       {!ro && savedNote ? <Text style={[styles.sub, { color: COLORS.success }]}>{savedNote}</Text> : null}
@@ -299,11 +300,11 @@ export default function DrillSc() {
       <Card>
         <Label>{t('dr.theDrill')}</Label>
         {!ro ? (
-          <Dropdown caption={t('dr.drillCap')} value={d.type} onChange={(v: string) => set({ type: v, theory: !!DRILL_THEORY[v] || (v === 'other' && !!d.theoryText?.trim()) })} options={[...DRILL_TYPES.map((t) => ({ value: t.id, label: t.title })), { value: 'other', label: t('dr.otherOwn') }]} />
+          <Dropdown caption={t('dr.drillCap')} value={d.type} onChange={(v: string) => set({ type: v, theory: !!DRILL_THEORY[v] || (v === 'other' && !!d.theoryText?.trim()) })} options={[...DRILL_TYPES.map((x) => ({ value: x.id, label: drillTypeName(x.id) })), { value: 'other', label: t('dr.otherOwn') }]} />
         ) : null}
         {isOwn ? (
           ro ? (
-            <Text style={styles.sub}>{[d.reg?.trim() || t('dr.own'), OWN_INTERVALS.find((x) => x.days === d.everyDays)?.label ?? t('dr.noCycle')].join(' · ')}</Text>
+            <Text style={styles.sub}>{[d.reg?.trim() || t('dr.own'), intervalName(d.everyDays)].join(' · ')}</Text>
           ) : (
             <>
               {field({ value: d.title, onChange: (v) => set({ title: v }), placeholder: t('dr.namePh'), style: { fontWeight: '700' } })}
@@ -312,7 +313,7 @@ export default function DrillSc() {
               <View style={styles.chips}>
                 {OWN_INTERVALS.map((x) => (
                   <TouchableOpacity key={x.label} style={[styles.chip, d.everyDays === x.days && styles.chipOn]} onPress={() => set({ everyDays: x.days })}>
-                    <Text style={[styles.chipText, d.everyDays === x.days && styles.chipTextOn]}>{x.label}</Text>
+                    <Text style={[styles.chipText, d.everyDays === x.days && styles.chipTextOn]}>{intervalName(x.days)}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -356,7 +357,7 @@ export default function DrillSc() {
         ) : (
           <>
             <TextInput style={[styles.input, { minHeight: 80 }]} value={d.content ?? ''} onChangeText={(v) => set({ content: v })} multiline placeholder={t('dr.contentPh')} placeholderTextColor={COLORS.textLight} />
-            {theory?.checklist ? <TouchableOpacity onPress={insertChecklist}><Text style={styles.link}>{`+ Insert the ${drillTitle(d).toLowerCase()} checklist (${theory.checklist.length} parts)`}</Text></TouchableOpacity> : null}
+            {theory?.checklist ? <TouchableOpacity onPress={insertChecklist}><Text style={styles.link}>{t('dr.insertCl', { title: uiLang() === 'en' ? drillName(d).toLowerCase() : drillName(d), n: theory.checklist.length })}</Text></TouchableOpacity> : null}
           </>
         )}
       </Card>

@@ -24,12 +24,11 @@ import { current, live } from '../services/versions';
 import * as storage from '../services/storage';
 import { EvidencePhoto } from '../components/EvidencePhoto';
 import { categoryColor } from './PmsDefectSc';
-import { CONDITION, DEFECT_CATEGORY } from '../types/pms';
-import { conditionText, machineHistory, openDefects } from '../services/pmsHistory';
+import { machineHistory, openDefects } from '../services/pmsHistory';
 import { exportPmsHistory } from '../services/pmsHistoryReport';
 import { SIZES, Palette } from '../theme';
 import { DEPTS, Machine, PmsDone, PmsJob, deptOf, hasCounter } from '../types/pms';
-import { activeDeferral, dueText, hoursPerDay, jobDue, sortJobsByDue, todayIso, withReading, scheduleText , checkReading , lastCondition , cancellable, jobAfterCancel } from '../services/pms';
+import { activeDeferral, dueLabel, hoursPerDay, jobDue, sortJobsByDue, todayIso, withReading, scheduleLabel , checkReading , lastCondition , cancellable, jobAfterCancel } from '../services/pms';
 import { CATALOGUE } from '../services/pmsCatalogue';
 import { formatDate } from '../utils/dates';
 import { qtyText, stockByPart, stockStatus } from '../services/spares';
@@ -41,6 +40,10 @@ import { Dropdown } from '../components/Dropdown';
 import { MACHINE_FIELDS, changeText, planDiff, withChanges } from '../services/planLog';
 import { playSuccessSound } from '../utils/sound';
 import { t, tk, tn, useT } from '../utils/i18n';
+
+/** services/pmsHistory conditionText, in the interface language (the report keeps the English one). */
+const condLabel = (d: Pick<PmsDone, 'conditionBefore' | 'conditionAfter'>) =>
+  `${d.conditionBefore ? tk(`pms.cond.${d.conditionBefore}`) : ''} → ${d.conditionAfter ? tk(`pms.cond.${d.conditionAfter}`) : '—'}`.trim();
 
 export default function MachineSc() {
   useT();
@@ -461,7 +464,7 @@ export default function MachineSc() {
             const lc = lastCondition(id, pmsDone);
             return lc ? (
               <Text style={[styles.sub, { marginTop: SIZES.sm, fontWeight: '700', color: lc.conditionAfter === 'out' || lc.conditionAfter === 'poor' ? COLORS.warning : COLORS.textDark }]}>
-                {`${t('mch.lastCond')}: ${CONDITION[lc.conditionAfter!]} · ${formatDate(lc.date)} · ${lc.jobTitle}`}
+                {`${t('mch.lastCond')}: ${tk(`pms.cond.${lc.conditionAfter!}`)} · ${formatDate(lc.date)} · ${lc.jobTitle}`}
               </Text>
             ) : null;
           })()}
@@ -506,7 +509,7 @@ export default function MachineSc() {
                 <View style={[styles.bar, { backgroundColor: statusColor(d.status) }]} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowTitle} numberOfLines={1}>{j.title}</Text>
-                  <Text style={styles.sub} numberOfLines={2}>{`${scheduleText(j)} · ${dueText(d)}`}</Text>
+                  <Text style={styles.sub} numberOfLines={2}>{`${scheduleLabel(j)} · ${dueLabel(d)}`}</Text>
                 </View>
                 {d.status !== 'none' ? <StatusPill status={d.status} /> : null}
               </TouchableOpacity>
@@ -542,7 +545,7 @@ export default function MachineSc() {
               <View style={[styles.bar, { backgroundColor: categoryColor(COLORS, x.category) }]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle} numberOfLines={2}>{x.description}</Text>
-                <Text style={styles.sub}>{`${DEFECT_CATEGORY[x.category]} · ${formatDate(x.date)} · ${x.by}`}</Text>
+                <Text style={styles.sub}>{`${tk(`pms.defcat.${x.category}`)} · ${formatDate(x.date)} · ${x.by}`}</Text>
               </View>
             </TouchableOpacity>
           ))}
@@ -583,7 +586,7 @@ export default function MachineSc() {
               </View>
               {h.cancelled ? <Text style={[styles.sub, { color: COLORS.danger }]}>{`${t('mch.cancelled')} — ${h.editReason ?? ''} · ${h.editedByRank ? `${h.editedBy} (${h.editedByRank})` : h.editedBy ?? ''}`}</Text> : null}
               <Text style={styles.sub}>
-                {[formatDate(h.date), h.hours != null ? t('hor.hours', { n: h.hours }) : null, conditionText(h) || null, h.manHours != null ? t('mch.manH', { n: h.manHours }) : null, h.doneBy ? t('mch.doneBy', { who: `${h.doneBy}${h.doneByRank ? ` (${h.doneByRank})` : ''}` }) : null, h.doneBy ? t('mch.signedOutBy', { who: h.byRank ? `${h.by} (${h.byRank})` : h.by }) : h.byRank ? `${h.by} (${h.byRank})` : h.by].filter(Boolean).join(' · ')}
+                {[formatDate(h.date), h.hours != null ? t('hor.hours', { n: h.hours }) : null, condLabel(h) || null, h.manHours != null ? t('mch.manH', { n: h.manHours }) : null, h.doneBy ? t('mch.doneBy', { who: `${h.doneBy}${h.doneByRank ? ` (${h.doneByRank})` : ''}` }) : null, h.doneBy ? t('mch.signedOutBy', { who: h.byRank ? `${h.by} (${h.byRank})` : h.by }) : h.byRank ? `${h.by} (${h.byRank})` : h.by].filter(Boolean).join(' · ')}
               </Text>
               {h.note ? <Text style={styles.note}>{h.note}</Text> : null}
               {h.photos?.length ? (

@@ -23,7 +23,7 @@ import { DEFECT_CATEGORY, DefectCategory, PmsDefect } from '../types/pms';
 import { Attachment } from '../types/equipment';
 import * as storage from '../services/storage';
 import * as photoQueue from '../services/photoQueue';
-import { scheduleText, todayIso } from '../services/pms';
+import { scheduleLabel, todayIso } from '../services/pms';
 import { plansPms } from '../types/role';
 import { formatDate, formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
@@ -105,7 +105,7 @@ export default function PmsDefectSc() {
         <>
           <Card>
             <View style={styles.headRow}>
-              <Text style={[styles.cat, { backgroundColor: categoryColor(COLORS, existing.category) }]}>{DEFECT_CATEGORY[existing.category]}</Text>
+              <Text style={[styles.cat, { backgroundColor: categoryColor(COLORS, existing.category) }]}>{tk(`pms.defcat.${existing.category}`)}</Text>
               <Text style={[styles.state, { color: existing.closed ? COLORS.success : COLORS.danger }]}>{existing.closed ? t('pd.closed') : t('pd.open')}</Text>
             </View>
             <Text style={styles.text}>{existing.description}</Text>
@@ -123,7 +123,7 @@ export default function PmsDefectSc() {
                 <Label>{t('pd.corrective')}</Label>
                 {open.map((j) => (
                   <TouchableOpacity key={j.id} onPress={() => nav.navigate('PmsJob', { id: j.id })}>
-                    <Text style={styles.link}>{`${j.title} · ${scheduleText(j)}`}</Text>
+                    <Text style={styles.link}>{`${j.title} · ${scheduleLabel(j)}`}</Text>
                   </TouchableOpacity>
                 ))}
                 {done.map((d) => (

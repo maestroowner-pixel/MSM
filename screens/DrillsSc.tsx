@@ -18,9 +18,9 @@ import { SIZES } from '../theme';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { roleAtLeast } from '../types/role';
-import { DRILL_TYPES, drillTitle } from '../types/drills';
+import { DRILL_TYPES } from '../types/drills';
 import { todayIso } from '../services/pms';
-import { DRILL_STATE_LABEL, archive, archiveKinds, archiveYears, byMonth, drillSchedule, drillState, everyLabel, minutesBetween, sortDrills } from '../services/drills';
+import { archive, archiveKinds, archiveYears, byMonth, drillName, drillSchedule, drillState, drillStateName, drillTypeName, everyText, kindName, minutesBetween, sortDrills } from '../services/drills';
 import { exportDrillRegisterExcel, exportDrillRegisterPdf } from '../services/drillReport';
 import { formatDate } from '../utils/dates';
 import { DrillCalendar } from '../components/DrillCalendar';
@@ -105,7 +105,7 @@ export default function DrillsSc() {
             <View style={styles.chips}>
               {DRILL_TYPES.map((t) => (
                 <TouchableOpacity key={t.id} style={styles.chip} onPress={() => plan(t.id)}>
-                  <Text style={styles.chipText}>{t.title}</Text>
+                  <Text style={styles.chipText}>{drillTypeName(t.id)}</Text>
                 </TouchableOpacity>
               ))}
               <TouchableOpacity style={styles.chip} onPress={() => plan('other')}>
@@ -128,8 +128,8 @@ export default function DrillsSc() {
           {schedule.map((r) => (
             <TouchableOpacity key={r.type} style={[styles.item, { borderLeftColor: dueColor(r.left, r.everyDays) }]} activeOpacity={0.7}
               onPress={() => (r.planned ? nav.navigate('Drill', { id: r.planned.id }) : canPlan ? (r.own ? plan('other', r.own.title) : plan(r.type)) : undefined)}>
-              <Text style={styles.name}>{r.title}</Text>
-              <Text style={styles.sub}>{`${r.reg} · ${everyLabel(r.everyDays)}`}</Text>
+              <Text style={styles.name}>{kindName(r.type, r.title)}</Text>
+              <Text style={styles.sub}>{`${r.own ? r.own.reg ?? t('dr.own') : r.reg} · ${everyText(r.everyDays)}`}</Text>
               <Text style={[styles.sub, { color: dueColor(r.left, r.everyDays), fontWeight: '700' }]}>
                 {r.last ? `${t('drills.last', { date: formatDate(r.last) })}${r.due ? ` · ${(r.left ?? 0) < 0 ? t('drills.overdueSince', { date: formatDate(r.due) }) : t('drills.nextBy', { date: formatDate(r.due) })}` : ''}` : r.everyDays ? t('drills.neverDue') : t('drills.notYet')}
               </Text>
@@ -159,7 +159,7 @@ export default function DrillsSc() {
               </TouchableOpacity>
               {kinds.map((k) => (
                 <TouchableOpacity key={k.kind} style={[styles.chip, kind === k.kind && styles.chipOn]} onPress={() => setKind(kind === k.kind ? '' : k.kind)}>
-                  <Text style={[styles.chipText, kind === k.kind && styles.chipTextOn]}>{`${k.title} · ${k.n}`}</Text>
+                  <Text style={[styles.chipText, kind === k.kind && styles.chipTextOn]}>{`${kindName(k.kind, k.title)} · ${k.n}`}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -174,7 +174,7 @@ export default function DrillsSc() {
                 const present = d.attendance.filter((a) => a.present).length;
                 return (
                   <TouchableOpacity key={d.id} style={[styles.item, { borderLeftColor: COLORS.success }]} onPress={() => nav.navigate('Drill', { id: d.id })} activeOpacity={0.7}>
-                    <Text style={styles.name}>{`${d.no} · ${drillTitle(d)}`}</Text>
+                    <Text style={styles.name}>{`${d.no} · ${drillName(d)}`}</Text>
                     <Text style={styles.sub}>{[d.topic, `${formatDate(d.date)}${d.time ? ` ${d.time}` : ''}`, len != null ? t('common.min', { n: len }) : null, d.location].filter(Boolean).join(' · ')}</Text>
                     <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{[`${present}/${d.attendance.length} present`, signed ? `${signed} signed the list` : null, d.doneBy].filter(Boolean).join(' · ')}</Text>
                   </TouchableOpacity>
@@ -192,10 +192,10 @@ export default function DrillsSc() {
             const len = minutesBetween(d.time, d.endTime);
             return (
               <TouchableOpacity key={d.id} style={[styles.item, { borderLeftColor: color }]} onPress={() => nav.navigate('Drill', { id: d.id })} activeOpacity={0.7}>
-                <Text style={styles.name}>{`${d.no} · ${d.topic || drillTitle(d)}`}</Text>
-                <Text style={styles.sub}>{[drillTitle(d), `${formatDate(d.date)}${d.time ? ` ${d.time}` : ''}`, len != null ? t('common.min', { n: len }) : null, d.location].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.name}>{`${d.no} · ${d.topic || drillName(d)}`}</Text>
+                <Text style={styles.sub}>{[drillName(d), `${formatDate(d.date)}${d.time ? ` ${d.time}` : ''}`, len != null ? t('common.min', { n: len }) : null, d.location].filter(Boolean).join(' · ')}</Text>
                 <Text style={[styles.sub, { color, fontWeight: '700' }]}>
-                  {[DRILL_STATE_LABEL[st], st === 'done' ? t('drills.present', { k: d.attendance.filter((a) => a.present).length, n: d.attendance.length }) : t('drills.steps', { n: d.scenario.length }), st === 'done' ? d.doneBy : null].filter(Boolean).join(' · ')}
+                  {[drillStateName(st), st === 'done' ? t('drills.present', { k: d.attendance.filter((a) => a.present).length, n: d.attendance.length }) : t('drills.steps', { n: d.scenario.length }), st === 'done' ? d.doneBy : null].filter(Boolean).join(' · ')}
                 </Text>
               </TouchableOpacity>
             );

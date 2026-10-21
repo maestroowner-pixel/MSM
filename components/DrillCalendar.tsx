@@ -25,7 +25,7 @@ import { personName, roleAtLeast } from '../types/role';
 import { DRILL_TYPES } from '../types/drills';
 import { Dropdown } from './Dropdown';
 import * as storage from '../services/storage';
-import { ScheduleRow, everyLabel } from '../services/drills';
+import { ScheduleRow, drillTypeName, everyLabel, everyText, kindName } from '../services/drills';
 import { Cell, DrillYearPlan, MONTHS, calendarRows, cellOf, dayIn, proposeYear, toggleSlot, yearCounts } from '../services/drillPlan';
 import { exportDocPdf } from '../services/hospitalReport';
 import { vesselHeader } from '../services/export';
@@ -71,7 +71,7 @@ export function DrillCalendar({ schedule, today, onSaved }: { schedule: Schedule
     const t = DRILL_TYPES.find((x) => x.id === type);
     if (!t) return;
     const slots = proposeYear(year, [{ type: t.id, title: t.title, reg: t.reg, everyDays: t.everyDays }], today);
-    if (!slots.length) return Alert.alert(t.title, tr('dcal.nothingLeft'));
+    if (!slots.length) return Alert.alert(drillTypeName(t.id), tr('dcal.nothingLeft'));
     const base: DrillYearPlan = plan ?? { id: String(year), slots: [], updatedAt: 0 };
     void savePlan({ ...base, slots: [...base.slots, ...slots], updatedAt: Date.now() });
   };
@@ -79,13 +79,13 @@ export function DrillCalendar({ schedule, today, onSaved }: { schedule: Schedule
 
   const tap = (r: { kind: string; title: string }, month: number, c: Cell) => {
     const done = c.done.find((d) => d.drill)?.drill;
-    if (c.state === 'done') return done ? nav.navigate('Drill', { id: done.id }) : Alert.alert(r.title, tr(r.kind === 'oilspill' ? 'dcal.doneSopep' : 'dcal.doneSecurity', { dates: c.done.map((d) => formatDate(d.date)).join(', ') }));
+    if (c.state === 'done') return done ? nav.navigate('Drill', { id: done.id }) : Alert.alert(kindName(r.kind, r.title), tr(r.kind === 'oilspill' ? 'dcal.doneSopep' : 'dcal.doneSecurity', { dates: c.done.map((d) => formatDate(d.date)).join(', ') }));
     if (c.scheduled) return nav.navigate('Drill', { id: c.scheduled.id });
     if (!officer) return;
     const base: DrillYearPlan = plan ?? { id: String(year), slots: [], updatedAt: 0 };
     const planIt = () => nav.navigate('Drill', { id: 'new', type: r.kind.startsWith('other:') ? 'other' : r.kind, ...(r.kind.startsWith('other:') ? { title: r.title } : {}), date: dayIn(year, month, today) });
     if (c.inPlan) {
-      return Alert.alert(`${r.title} — ${monthName(month - 1)} ${year}`, c.state === 'missed' ? tr('dcal.notHeld') : tr('dcal.inPlan'), [
+      return Alert.alert(`${kindName(r.kind, r.title)} — ${monthName(month - 1)} ${year}`, c.state === 'missed' ? tr('dcal.notHeld') : tr('dcal.inPlan'), [
         { text: tr('dcal.planDay'), onPress: planIt },
         { text: tr('dcal.takeOff'), style: 'destructive', onPress: () => void savePlan(toggleSlot(base, r.kind, r.title, month)) },
         { text: tr('common.cancel'), style: 'cancel' },
@@ -136,8 +136,8 @@ export function DrillCalendar({ schedule, today, onSaved }: { schedule: Schedule
           {rows.map((r) => (
             <View key={r.kind} style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: COLORS.border }}>
               <View style={{ width: NAME_W, paddingVertical: 6, paddingRight: SIZES.sm }}>
-                <Text style={[styles.name, { fontSize: SIZES.small }]} numberOfLines={2}>{r.title}</Text>
-                {r.everyDays ? <Text style={[styles.sub, { marginTop: 0, fontSize: 11 }]}>{everyLabel(r.everyDays)}</Text> : null}
+                <Text style={[styles.name, { fontSize: SIZES.small }]} numberOfLines={2}>{kindName(r.kind, r.title)}</Text>
+                {r.everyDays ? <Text style={[styles.sub, { marginTop: 0, fontSize: 11 }]}>{everyText(r.everyDays)}</Text> : null}
               </View>
               {MONTHS.map((m, i) => {
                 const c = cellOf(r.kind, year, i + 1, ctx);
@@ -147,7 +147,7 @@ export function DrillCalendar({ schedule, today, onSaved }: { schedule: Schedule
                     key={m}
                     onPress={() => tap(r, i + 1, c)}
                     style={{ width: CELL_W, height: 40, alignItems: 'center', justifyContent: 'center', backgroundColor: thisMonth === i + 1 ? COLORS.primary + '0D' : 'transparent' }}
-                    accessibilityLabel={`${r.title}, ${monthName(i)} ${year}`}
+                    accessibilityLabel={`${kindName(r.kind, r.title)}, ${monthName(i)} ${year}`}
                   >
                     <View style={{ minWidth: 30, height: 26, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: k.bg, borderWidth: c.state === 'empty' ? 1 : 0, borderColor: COLORS.border }}>
                       <Text style={{ color: k.fg, fontWeight: '800', fontSize: c.state === 'scheduled' ? 11 : 14 }}>{k.t}</Text>
@@ -160,7 +160,7 @@ export function DrillCalendar({ schedule, today, onSaved }: { schedule: Schedule
         </View>
       </ScrollView>
       {officer && others.length && year >= Number(today.slice(0, 4)) ? (
-        <Dropdown caption={tr('dcal.addTo', { year })} value="" onChange={(v: string) => v && addKind(v)} options={[{ value: '', label: tr('common.choose') }, ...others.map((t) => ({ value: t.id, label: `${t.title} · ${everyLabel(t.everyDays)}` }))]} style={{ marginTop: SIZES.sm, maxWidth: 480 }} />
+        <Dropdown caption={tr('dcal.addTo', { year })} value="" onChange={(v: string) => v && addKind(v)} options={[{ value: '', label: tr('common.choose') }, ...others.map((t) => ({ value: t.id, label: `${drillTypeName(t.id)} · ${everyText(t.everyDays)}` }))]} style={{ marginTop: SIZES.sm, maxWidth: 480 }} />
       ) : null}
       <Text style={[styles.sub, { marginTop: SIZES.sm }]}>
         {tr('dcal.key') + (officer ? tr('dcal.keyOfficer') : '')}

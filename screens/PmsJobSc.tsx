@@ -35,7 +35,7 @@ import { Dropdown } from '../components/Dropdown';
 import * as storage from '../services/storage';
 import { crewLabel } from '../types/crew';
 import { personName, plansPms, roleAtLeast } from '../types/role';
-import { activeDeferral, dueText, jobAfter, jobCycle, jobDue, todayIso, withReading , noteForNext } from '../services/pms';
+import { activeDeferral, dueLabel, jobAfter, jobCycle, jobDue, todayIso, withReading , noteForNext } from '../services/pms';
 import { movesForJob, qtyText, stockByPart } from '../services/spares';
 import { JobPart } from '../types/spares';
 import { moduleOn } from '../constants/modules';
@@ -365,7 +365,7 @@ export default function PmsJobSc() {
           {!isNew ? (
             <View style={styles.dueRow}>
               {due.status !== 'none' ? <StatusPill status={due.status} /> : null}
-              <Text style={styles.dueText}>{dueText(due)}</Text>
+              <Text style={styles.dueText}>{dueLabel(due)}</Text>
             </View>
           ) : null}
           {/* Deferral: the Master moves the job to a later date / counter reading, with the reason, signed. */}

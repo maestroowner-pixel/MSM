@@ -29,12 +29,12 @@ import { planImport } from '../services/pmsImport';
 import { exportPlanTemplate, pickPlanSheet } from '../services/pmsTemplate';
 import { SIZES, Palette } from '../theme';
 import { ComplianceStatus } from '../types/equipment';
-import { activeDeferral, dueText, jobAfter, jobDue, multiSignable, sortJobsByDue, todayIso, worse , jobsAhead } from '../services/pms';
+import { activeDeferral, dueLabel, jobAfter, jobDue, multiSignable, sortJobsByDue, todayIso, worse , jobsAhead } from '../services/pms';
 import { useSigner } from '../components/SignerChoice';
 import { useSignConfirm } from '../components/SignConfirm';
 import { playSuccessSound } from '../utils/sound';
 import { PmsDone } from '../types/pms';
-import { DEFECT_CATEGORY, DEPTS, Dept, JOB_TYPE, Machine, PmsJob, deptOf, hasCounter } from '../types/pms';
+import { DEPTS, Dept, Machine, PmsJob, deptOf, hasCounter } from '../types/pms';
 import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { t, tk, tn, useT } from '../utils/i18n';
@@ -279,7 +279,7 @@ export default function MaintenanceSc() {
           <View style={[styles.bar, { backgroundColor: categoryColor(COLORS, x.category) }]} />
           <View style={{ flex: 1 }}>
             <Text style={styles.title} numberOfLines={1}>{x.description}</Text>
-            <Text style={styles.sub} numberOfLines={1}>{`${DEFECT_CATEGORY[x.category]} · ${x.machineName} · ${formatDate(x.date)}`}</Text>
+            <Text style={styles.sub} numberOfLines={1}>{`${tk(`pms.defcat.${x.category}`)} · ${x.machineName} · ${formatDate(x.date)}`}</Text>
           </View>
         </TouchableOpacity>
       ))}
@@ -325,7 +325,7 @@ export default function MaintenanceSc() {
             <View style={[styles.bar, { backgroundColor: statusColor(d.status) }]} />
             <View style={{ flex: 1 }}>
               <Text style={styles.title} numberOfLines={1}>{`${m.critical ? '⚑ ' : ''}${j.title}`}</Text>
-              <Text style={styles.sub} numberOfLines={1}>{[m.critical ? 'CRITICAL' : null, m.name, j.type ? JOB_TYPE[j.type] : null, dueText(d)].filter(Boolean).join(' · ')}</Text>
+              <Text style={styles.sub} numberOfLines={1}>{[m.critical ? t('pms.crit') : null, m.name, j.type ? tk(`pms.type.${j.type}`) : null, dueLabel(d)].filter(Boolean).join(' · ')}</Text>
             </View>
             <StatusPill status={d.status} />
           </TouchableOpacity>
