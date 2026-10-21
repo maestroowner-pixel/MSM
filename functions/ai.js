@@ -166,7 +166,7 @@ Return JSON only — include only the keys you found:
 
   async ask(key, d) {
     const text = `The vessel's records, as of ${str(d.today, 20)}:\n<records>\n${str(d.context, 60000)}\n</records>\n\nQuestion from the ${str(d.role, 20) || 'crew'}: ${str(d.question, 1000)}\n\nAnswer from the records only, briefly, in the language of the question. Name the items, dates and people as the records give them. If the records do not say, say so. Return JSON only: {"answer": "<text>", "refs": ["<record line you used>", ...]}`;
-    return json(await claude(key, SMART, 'You are ISMpilot, the safety-records assistant of a ship. You answer only from the records given. Answer with JSON only.', text, 1500));
+    return json(await claude(key, SMART, 'You are ISM AI Pilot, the safety-records assistant of a ship. You answer only from the records given. Answer with JSON only.', text, 1500));
   },
 };
 

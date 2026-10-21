@@ -1,4 +1,5 @@
 import { moduleOn, type ModuleKey } from '../constants/modules';
+import { t, tk } from './t';
 // The person's screen order for the menu (components/NavMenu) — pure, so `npm run check:access` can test it.
 
 /** The saved order applied to the screens this device shows; new ones go last. */
@@ -30,19 +31,28 @@ export interface MenuGroup {
 
 // By the ship's own work (17 Oct 2026: "the side menu is chaos"): the board on
 // top, then equipment, safety, security, MARPOL, crew, operations, papers.
+/** A group whose heading follows the interface language. */
+function group(key: string, labelKey: string | null, routes: string[]): MenuGroup {
+  return Object.defineProperty({ key, routes } as MenuGroup, 'label', { get: () => (labelKey ? tk(labelKey) : ''), enumerable: true });
+}
+/** A sub-item whose name follows the interface language. */
+function kid(labelKey: string, c: Omit<MenuChild, 'label'>): MenuChild {
+  return Object.defineProperty({ ...c } as MenuChild, 'label', { get: () => tk(labelKey), enumerable: true });
+}
+
 export const MENU_GROUPS: MenuGroup[] = [
-  { key: 'home', label: '', routes: ['Dashboard'] },
-  { key: 'logs', label: 'Logs', routes: ['DeckLog', 'WatchLog', 'Gmdss'] },
-  { key: 'equipment', label: 'Equipment & maintenance', routes: ['Equipment', 'Rounds', 'Maintenance', 'Spares', 'Stores', 'Orders'] },
-  { key: 'safety', label: 'Safety', routes: ['Drills', 'Safety'] },
+  group('home', null, ['Dashboard']),
+  group('logs', 'menu.group.logs', ['DeckLog', 'WatchLog', 'Gmdss']),
+  group('equipment', 'menu.group.equipment', ['Equipment', 'Rounds', 'Maintenance', 'Spares', 'Stores', 'Orders']),
+  group('safety', 'menu.group.safety', ['Drills', 'Safety']),
   // The ship's hospital on its own, under Safety (17 Oct 2026: "out of Crew, its own section").
-  { key: 'medical', label: 'Medical', routes: ['Hospital'] },
-  { key: 'security', label: 'Security', routes: ['Security'] },
-  { key: 'env', label: 'Environment (MARPOL)', routes: ['OilRecord', 'Garbage', 'Sewage', 'Ballast', 'Fuel', 'Sopep'] },
-  { key: 'crew', label: 'Crew', routes: ['Crew', 'CrewMatrix', 'HoursOfRest', 'Passengers'] },
-  { key: 'ops', label: 'Operations', routes: ['Watch', 'Familiar', 'Dp', 'Readiness'] },
-  { key: 'docs', label: 'Documents & compliance', routes: ['Certificates', 'Documents', 'Permits', 'Surveys', 'Reports'] },
-  { key: 'system', label: '', routes: ['Settings'] },
+  group('medical', 'menu.group.medical', ['Hospital']),
+  group('security', 'menu.group.security', ['Security']),
+  group('env', 'menu.group.env', ['OilRecord', 'Garbage', 'Sewage', 'Ballast', 'Fuel', 'Sopep']),
+  group('crew', 'menu.group.crew', ['Crew', 'CrewMatrix', 'HoursOfRest', 'Passengers']),
+  group('ops', 'menu.group.ops', ['Watch', 'Familiar', 'Dp', 'Readiness']),
+  group('docs', 'menu.group.docs', ['Certificates', 'Documents', 'Permits', 'Surveys', 'Reports']),
+  group('system', null, ['Settings']),
 ];
 
 const OTHER = 'equipment';
@@ -71,73 +81,76 @@ export interface MenuChild {
 }
 
 /** Entries with a gear beside them (15 Oct 2026): it opens the page that keeps their places — `view: 'manage'`. */
-export const MENU_GEAR: Record<string, string> = { Stores: 'Manage stores', Sopep: 'Manage SOPEP lockers' };
+export const MENU_GEAR: Record<string, string> = {
+  get Stores() { return t('menu.gear.Stores'); },
+  get Sopep() { return t('menu.gear.Sopep'); },
+};
 export const MENU_CHILDREN: Record<string, MenuChild[]> = {
   Security: [
-    { view: 'gangway', label: 'Gangway logbook', icon: 'ferry' },
-    { view: 'drills', label: 'ISPS drills', icon: 'run-fast' },
-    { view: 'searches', label: 'Searches — stowaway, bomb', icon: 'magnify-scan', module: 'searches' },
-    { view: 'patrols', label: 'Security rounds', icon: 'walk', module: 'patrols' },
-    { view: 'keys', label: 'Key register', icon: 'key-chain-variant', module: 'keys' },
-    { view: 'ssp', label: 'Ship Security Plan', icon: 'shield-lock-outline', officers: true, module: 'ssp' },
+    kid('menu.Security.gangway', { view: 'gangway', icon: 'ferry' }),
+    kid('menu.Security.drills', { view: 'drills', icon: 'run-fast' }),
+    kid('menu.Security.searches', { view: 'searches', icon: 'magnify-scan', module: 'searches' }),
+    kid('menu.Security.patrols', { view: 'patrols', icon: 'walk', module: 'patrols' }),
+    kid('menu.Security.keys', { view: 'keys', icon: 'key-chain-variant', module: 'keys' }),
+    kid('menu.Security.ssp', { view: 'ssp', icon: 'shield-lock-outline', officers: true, module: 'ssp' }),
   ],
   // Safety (17 Oct 2026): the observations and NCs, and the safety meeting and IMCA flashes,
   // which used to sit under Security. The meeting and the flashes keep their pages (and their
   // Master's-page keys) on the Security screen.
   Safety: [
-    { view: 'cards', label: 'Safety observations', icon: 'eye-check-outline' },
-    { view: 'ncs', label: 'Non-conformities', icon: 'alert-octagon-outline' },
-    { view: 'meetings', label: 'Monthly safety meeting', icon: 'account-group-outline', route: 'Security', module: 'meetings' },
-    { view: 'flashes', label: 'Safety flashes (IMCA)', icon: 'flash-alert-outline', route: 'Security' },
+    kid('menu.Safety.cards', { view: 'cards', icon: 'eye-check-outline' }),
+    kid('menu.Safety.ncs', { view: 'ncs', icon: 'alert-octagon-outline' }),
+    kid('menu.Safety.meetings', { view: 'meetings', icon: 'account-group-outline', route: 'Security', module: 'meetings' }),
+    kid('menu.Safety.flashes', { view: 'flashes', icon: 'flash-alert-outline', route: 'Security' }),
   ],
   Hospital: [
-    { view: 'register', label: 'Register', icon: 'clipboard-list-outline' },
-    { view: 'orders', label: 'Orders', icon: 'truck-delivery-outline' },
-    { view: 'archive', label: 'Orders archive', icon: 'archive-outline' },
-    { view: 'inventory', label: 'Inventory', icon: 'counter' },
-    { view: 'log', label: 'Medical log', icon: 'notebook-outline' },
-    { view: 'reference', label: 'Medicine reference', icon: 'book-open-variant' },
+    kid('menu.Hospital.register', { view: 'register', icon: 'clipboard-list-outline' }),
+    kid('menu.Hospital.orders', { view: 'orders', icon: 'truck-delivery-outline' }),
+    kid('menu.Hospital.archive', { view: 'archive', icon: 'archive-outline' }),
+    kid('menu.Hospital.inventory', { view: 'inventory', icon: 'counter' }),
+    kid('menu.Hospital.log', { view: 'log', icon: 'notebook-outline' }),
+    kid('menu.Hospital.reference', { view: 'reference', icon: 'book-open-variant' }),
   ],
   // Stores: built from the vessel's stores (components/NavMenu, types/stores.ts storeRooms) — these two until it adds its own.
   Stores: [
-    { view: 'ppe', label: 'PPE store', icon: 'hard-hat' },
-    { view: 'provisions', label: 'Provisions', icon: 'food-apple-outline' },
+    kid('menu.Stores.ppe', { view: 'ppe', icon: 'hard-hat' }),
+    kid('menu.Stores.provisions', { view: 'provisions', icon: 'food-apple-outline' }),
   ],
   // SOPEP (15 Oct 2026): the lockers and their checks, the drills, and the plan's documents for the officers.
   Sopep: [
-    { view: 'inventory', label: 'SOPEP stores (inventory)', icon: 'archive-outline' },
-    { view: 'drills', label: 'SOPEP drills', icon: 'run-fast' },
-    { view: 'docs', label: 'SOPEP docs', icon: 'file-lock-outline', officers: true },
+    kid('menu.Sopep.inventory', { view: 'inventory', icon: 'archive-outline' }),
+    kid('menu.Sopep.drills', { view: 'drills', icon: 'run-fast' }),
+    kid('menu.Sopep.docs', { view: 'docs', icon: 'file-lock-outline', officers: true }),
   ],
   // Every drill in one place: the schedule, and the SOPEP and ISPS drills kept on their own pages.
   // Bridge and engine checklists (17 Oct 2026): two folders, the watch handover first.
   Watch: [
-    { view: 'bridge', label: 'Bridge checklists', icon: 'ferry' },
-    { view: 'engine', label: 'Engine checklists', icon: 'engine-outline' },
-    { view: 'emergency', label: 'Emergency cards', icon: 'alarm-light-outline' },
+    kid('menu.Watch.bridge', { view: 'bridge', icon: 'ferry' }),
+    kid('menu.Watch.engine', { view: 'engine', icon: 'engine-outline' }),
+    kid('menu.Watch.emergency', { view: 'emergency', icon: 'alarm-light-outline' }),
   ],
   // Familiarisation on joining (17 Oct 2026): bridge and engine.
   Familiar: [
-    { view: 'fam-safety', label: 'Safety familiarisation', icon: 'lifebuoy' },
-    { view: 'fam-bridge', label: 'Bridge familiarisation', icon: 'ferry' },
-    { view: 'fam-engine', label: 'Engine familiarisation', icon: 'engine-outline' },
-    { view: 'fam-project', label: 'Project crew familiarisation', icon: 'account-hard-hat' },
-    { view: 'fam-pax', label: 'Passenger familiarisation', icon: 'account-group-outline' },
+    kid('menu.Familiar.fam-safety', { view: 'fam-safety', icon: 'lifebuoy' }),
+    kid('menu.Familiar.fam-bridge', { view: 'fam-bridge', icon: 'ferry' }),
+    kid('menu.Familiar.fam-engine', { view: 'fam-engine', icon: 'engine-outline' }),
+    kid('menu.Familiar.fam-project', { view: 'fam-project', icon: 'account-hard-hat' }),
+    kid('menu.Familiar.fam-pax', { view: 'fam-pax', icon: 'account-group-outline' }),
   ],
   Dp: [
-    { view: 'checklists', label: 'DP checklists', icon: 'clipboard-check-outline' },
-    { view: 'time', label: 'DP time', icon: 'timer-outline' },
-    { view: 'letter', label: 'Confirmation letter', icon: 'email-outline' },
+    kid('menu.Dp.checklists', { view: 'checklists', icon: 'clipboard-check-outline' }),
+    kid('menu.Dp.time', { view: 'time', icon: 'timer-outline' }),
+    kid('menu.Dp.letter', { view: 'letter', icon: 'email-outline' }),
   ],
   Drills: [
-    { view: 'list', label: 'Drills & schedule', icon: 'format-list-checks' },
-    { view: 'calendar', label: 'Drill calendar', icon: 'calendar-month-outline' },
-    { view: 'drills', label: 'SOPEP drills', icon: 'oil', route: 'Sopep', module: 'sopep' },
-    { view: 'drills', label: 'ISPS drills', icon: 'shield-account-outline', route: 'Security', module: 'security' },
+    kid('menu.Drills.list', { view: 'list', icon: 'format-list-checks' }),
+    kid('menu.Drills.calendar', { view: 'calendar', icon: 'calendar-month-outline' }),
+    kid('menu.Drills.drills.Sopep', { view: 'drills', icon: 'oil', route: 'Sopep', module: 'sopep' }),
+    kid('menu.Drills.drills.Security', { view: 'drills', icon: 'shield-account-outline', route: 'Security', module: 'security' }),
   ],
   Fuel: [
-    { view: 'sounding', label: 'Sounding', icon: 'ruler' },
-    { view: 'daily', label: 'Daily report', icon: 'clipboard-text-clock-outline' },
+    kid('menu.Fuel.sounding', { view: 'sounding', icon: 'ruler' }),
+    kid('menu.Fuel.daily', { view: 'daily', icon: 'clipboard-text-clock-outline' }),
   ],
 };
 
@@ -169,41 +182,18 @@ export function moveInGroup(order: string[], name: string, dir: -1 | 1): string[
   return out;
 }
 
-/** The menu's names for its entries (index.tsx, and the Master's page). */
-export const MENU_LABEL: Record<string, string> = {
-  // A getter: `board` may be switched on for one vessel after this file loads.
-  get Dashboard() { return moduleOn('board') ? 'Board' : 'Dashboard'; },
-  DeckLog: 'Deck Log',
-  WatchLog: 'Engine Log',
-  Gmdss: 'GMDSS Log',
-  Equipment: 'Equipment',
-  Certificates: 'Certificates',
-  Documents: 'Documents',
-  Maintenance: 'Maintenance (PMS)',
-  Spares: 'Spare parts',
-  HoursOfRest: 'Hours of rest',
-  Crew: 'Crew list',
-  CrewMatrix: 'Crew matrix',
-  Permits: 'Permits, TBT & RA',
-  Sopep: 'SOPEP',
-  Security: 'Security (ISPS)',
-  Surveys: 'Surveys & audits',
-  Readiness: 'Inspection readiness',
-  Dp: 'Dynamic positioning',
-  Watch: 'Bridge & engine checklists',
-  Familiar: 'Familiarisation',
-  Safety: 'Safety observations & NC',
-  Drills: 'Drills',
-  Hospital: 'Hospital',
-  Passengers: 'Passengers',
-  Stores: 'Stores',
-  Orders: 'Purchase orders',
-  Rounds: 'Inspection rounds',
-  Fuel: 'Fuel',
-  Garbage: 'Garbage record book',
-  OilRecord: 'Oil record book',
-  Sewage: 'Sewage record',
-  Ballast: 'Ballast water',
-  Reports: 'Reports',
-  Settings: 'Settings',
-};
+/** The menu's names for its entries (index.tsx, and the Master's page) — in the interface language. */
+export const MENU_LABEL: Record<string, string> = new Proxy({} as Record<string, string>, {
+  get: (_, r) => {
+    if (typeof r !== 'string') return undefined;
+    // `board` may be switched on for one vessel after this file loads.
+    if (r === 'Dashboard') return tk(moduleOn('board') ? 'menu.Board' : 'menu.Dashboard');
+    return MENU_ROUTES.includes(r) ? tk(`menu.${r}`) : undefined;
+  },
+  has: (_, r) => r === 'Dashboard' || MENU_ROUTES.includes(r as string),
+  ownKeys: () => ['Dashboard', ...MENU_ROUTES],
+  getOwnPropertyDescriptor: (_, r) => ({ enumerable: true, configurable: true, value: tk(r === 'Dashboard' ? 'menu.Dashboard' : `menu.${String(r)}`) }),
+});
+
+/** Every entry with a name in the menu (keys `menu.<route>` in constants/i18n/en.ts). */
+export const MENU_ROUTES: string[] = ["DeckLog", "WatchLog", "Gmdss", "Equipment", "Certificates", "Documents", "Maintenance", "Spares", "HoursOfRest", "Crew", "CrewMatrix", "Permits", "Sopep", "Security", "Surveys", "Readiness", "Dp", "Watch", "Familiar", "Safety", "Drills", "Hospital", "Passengers", "Stores", "Orders", "Rounds", "Fuel", "Garbage", "OilRecord", "Sewage", "Ballast", "Reports", "Settings"];

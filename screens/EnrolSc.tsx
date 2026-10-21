@@ -32,8 +32,10 @@ import { clearAttachmentsDir } from '../services/attachments';
 import * as snapshot from '../services/snapshot';
 import { playErrorSound, playSuccessSound } from '../utils/sound';
 import { goBackOr } from '../utils/nav';
+import { t, t as tt, tn, useT } from '../utils/i18n';
 
 export default function EnrolSc() {
+  useT();
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -117,15 +119,14 @@ export default function EnrolSc() {
       setMe(null);
       playSuccessSound();
       Alert.alert(
-        'Signed off',
+        t('en.signedOff'),
         wipe
-          ? 'This device has left the vessel and its local copy of the register has been erased.'
-          : 'This device has left the vessel. The register it already holds stays on it, but it ' +
-            'will not receive anything further.'
+          ? t('en.signedOffWiped')
+          : t('en.signedOffKept')
       );
     } catch (e: any) {
       playErrorSound();
-      Alert.alert('Could not sign off', e?.message ?? String(e));
+      Alert.alert(t('en.couldNotSignOff'), e?.message ?? String(e));
     } finally {
       setSigningOff(false);
     }
@@ -136,18 +137,16 @@ export default function EnrolSc() {
     const trialLine = !t
       ? ''
       : t.expired
-        ? '\n\nThe free trial on this vessel has ended, so rejoining will not start another one.'
-        : `\n\nThe vessel's trial has ${t.daysLeft} day${t.daysLeft === 1 ? '' : 's'} left. Signing ` +
-          'off does not pause or restart it.';
+        ? `\n\n${tt('en.trialEnded')}`
+        : `\n\n${tt('en.trialLeft', { x: tn('n.day', t.daysLeft) })}`;
     Alert.alert(
-      'Sign off this device?',
-      'It will stop syncing at once and will not be able to let itself back in — rejoining needs ' +
-        'a fresh invitation from the Master and their approval.' +
+      tt('en.signOffQ'),
+      tt('en.signOffBody') +
         trialLine,
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign off', style: 'destructive', onPress: () => void signOff(false) },
-        { text: 'Sign off & erase', style: 'destructive', onPress: () => void signOff(true) },
+        { text: tt('common.cancel'), style: 'cancel' },
+        { text: tt('en.signOff'), style: 'destructive', onPress: () => void signOff(false) },
+        { text: tt('en.signOffErase'), style: 'destructive', onPress: () => void signOff(true) },
       ]
     );
   };
@@ -170,21 +169,17 @@ export default function EnrolSc() {
    */
   const offerTakeover = () =>
     Alert.alert(
-      'Take over as Master?',
-      'Only do this if you manage this vessel and it has no Master left — a cleared browser, a ' +
-        'lost or wiped phone, or a Master device that was demoted or removed by mistake.\n\n' +
-        'This device becomes the Master. Everything on the vessel is kept; the other devices stay ' +
-        'as they are and can be reviewed in Accounts → Devices.\n\nIt needs the vessel setup code ' +
-        'in the PIN field above.',
+      t('en.takeoverQ'),
+      t('en.takeoverBody'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Take over', style: 'destructive', onPress: () => void submit(true) },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('en.takeover'), style: 'destructive', onPress: () => void submit(true) },
       ]
     );
 
   const takeoverButton = (
     <TouchableOpacity style={styles.recoverBtn} onPress={offerTakeover}>
-      <Text style={styles.recoverText}>I am the Master and have the setup code</Text>
+      <Text style={styles.recoverText}>{t('en.iAmMaster')}</Text>
     </TouchableOpacity>
   );
 
@@ -217,16 +212,15 @@ export default function EnrolSc() {
   return (
     <Screen scroll>
       <ScreenTitle
-        title={enrolled ? 'This vessel' : 'Join this vessel'}
-        subtitle={enrolled ? 'Who this device signs as' : 'With the name and PIN the Master gave you'}
+        title={enrolled ? t('en.thisVessel') : t('cs.join')}
+        subtitle={enrolled ? t('en.whoSigns') : t('en.withName')}
       />
 
       {!imo ? (
         <Card>
-          <Label>Vessel IMO required</Label>
+          <Label>{t('en.imoReq')}</Label>
           <Text style={styles.note}>
-            Set the vessel's IMO number in Settings → Vessel first — it is what identifies the
-            register you are joining.
+            {t('en.imoBody')}
           </Text>
         </Card>
       ) : null}
@@ -234,21 +228,20 @@ export default function EnrolSc() {
       {/* Already aboard: identity, not a form. */}
       {enrolled && me ? (
         <Card>
-          <Label>This device</Label>
-          <Text style={styles.who}>{personName(me) || 'Name not recorded'}</Text>
+          <Label>{t('en.thisDevice')}</Label>
+          <Text style={styles.who}>{personName(me) || t('en.noName')}</Text>
           {me.position ? <Text style={styles.position}>{me.position}</Text> : null}
           <Text style={styles.note}>
             {ROLE_LABEL[me.role]}
             {me.disabled && !me.retiredAt
-              ? ' · switched off by the Master'
+              ? ` · ${t('en.switchedOff')}`
               : me.approved
-                ? ' · approved'
-                : ' · waiting for the Master to approve'}
-            {status === 'synced' ? ' · syncing' : ''}
+                ? ` · ${t('en.approvedL')}`
+                : ` · ${t('en.waitingL')}`}
+            {status === 'synced' ? ` · ${t('en.syncing')}` : ''}
           </Text>
           <Text style={styles.note}>
-            The name and rank come from the account you were issued — the Master changes them, not
-            this screen.
+            {t('en.nameFromAccount')}
           </Text>
           <TouchableOpacity
             style={[styles.recoverBtn, signingOff && { opacity: 0.5 }]}
@@ -256,7 +249,7 @@ export default function EnrolSc() {
             onPress={() => void confirmSignOff()}
           >
             <MciIcon name="logout" size={18} color={COLORS.danger} />
-            <Text style={styles.recoverText}>Sign off this device</Text>
+            <Text style={styles.recoverText}>{t('en.signOffDevice')}</Text>
           </TouchableOpacity>
         </Card>
       ) : null}
@@ -265,11 +258,10 @@ export default function EnrolSc() {
           offline). Say so rather than showing a form that would enrol twice. */}
       {enrolled && !me ? (
         <Card>
-          <Label>This device has joined</Label>
+          <Label>{t('en.joined')}</Label>
           <Text style={styles.note}>
-            {role ? `Enrolled as ${ROLE_LABEL[role]}. ` : ''}
-            Its record has not come back from the vessel yet — that is normal while a device is
-            waiting for approval, or while it is offline.
+            {role ? `${t('en.enrolledAs', { role: ROLE_LABEL[role] })} ` : ''}
+            {t('en.recordNotBack')}
           </Text>
           <TouchableOpacity
             style={[styles.recoverBtn, signingOff && { opacity: 0.5 }]}
@@ -277,23 +269,22 @@ export default function EnrolSc() {
             onPress={() => void confirmSignOff()}
           >
             <MciIcon name="logout" size={18} color={COLORS.danger} />
-            <Text style={styles.recoverText}>Sign off this device</Text>
+            <Text style={styles.recoverText}>{t('en.signOffDevice')}</Text>
           </TouchableOpacity>
         </Card>
       ) : null}
 
       {!enrolled ? (
       <Card>
-        <Label>Your details</Label>
+        <Label>{t('en.details')}</Label>
         <Text style={styles.note}>
-          Spell your name the way it appears on the invitation. If it was issued as "Jez", "Jeremy"
-          will not be recognised.
+          {t('en.spell')}
         </Text>
         <TextInput
           style={styles.input}
           value={firstName}
           onChangeText={setFirstName}
-          placeholder="First name"
+          placeholder={t('common.firstName')}
           placeholderTextColor={COLORS.textLight}
           autoCapitalize="words"
           autoCorrect={false}
@@ -302,7 +293,7 @@ export default function EnrolSc() {
           style={styles.input}
           value={lastName}
           onChangeText={setLastName}
-          placeholder="Last name"
+          placeholder={t('common.lastName')}
           placeholderTextColor={COLORS.textLight}
           autoCapitalize="words"
           autoCorrect={false}
@@ -311,7 +302,7 @@ export default function EnrolSc() {
           style={[styles.input, styles.pin]}
           value={pin}
           onChangeText={(v) => setPin(v.replace(/\D/g, '').slice(0, BOOTSTRAP_MAX))}
-          placeholder={`${PIN_LENGTH}-digit PIN`}
+          placeholder={t('en.pinPh', { n: PIN_LENGTH })}
           placeholderTextColor={COLORS.textLight}
           keyboardType="number-pad"
           maxLength={BOOTSTRAP_MAX}
@@ -326,7 +317,7 @@ export default function EnrolSc() {
             onPress={() => void submit()}
           >
             <MciIcon name="login" size={18} color={COLORS.textWhite} />
-            <Text style={styles.primaryBtnText}>Join</Text>
+            <Text style={styles.primaryBtnText}>{t('en.join')}</Text>
           </TouchableOpacity>
         )}
       </Card>
@@ -334,14 +325,14 @@ export default function EnrolSc() {
 
       {result?.status === 'ok' ? (
         <Card>
-          <Label>You are in</Label>
+          <Label>{t('en.youAreIn')}</Label>
           <Text style={styles.note}>
-            This device is enrolled as {ROLE_LABEL[result.role]}
-            {result.firstName ? ` for ${result.firstName} ${result.lastName ?? ''}`.trimEnd() : ''}
+            {t('en.enrolledAsL', { role: ROLE_LABEL[result.role] })}
+            {result.firstName ? ` ${t('en.forName', { name: `${result.firstName} ${result.lastName ?? ''}`.trimEnd() })}` : ''}
             {result.position ? `, ${result.position}` : ''}.
           </Text>
           <TouchableOpacity style={styles.primaryBtn} onPress={() => goBackOr(nav)}>
-            <Text style={styles.primaryBtnText}>Done</Text>
+            <Text style={styles.primaryBtnText}>{t('common.done')}</Text>
           </TouchableOpacity>
         </Card>
       ) : null}
@@ -352,21 +343,19 @@ export default function EnrolSc() {
           instead of being told to reopen the app. */}
       {result?.status === 'pending' && status === 'synced' ? (
         <Card>
-          <Label>Approved</Label>
+          <Label>{t('en.approved')}</Label>
           <Text style={styles.note}>
-            A Master has let this device in. It is syncing with the vessel now — nothing else is
-            needed here.
+            {t('en.approvedBody')}
           </Text>
           <TouchableOpacity style={styles.primaryBtn} onPress={() => goBackOr(nav)}>
-            <Text style={styles.primaryBtnText}>Done</Text>
+            <Text style={styles.primaryBtnText}>{t('common.done')}</Text>
           </TouchableOpacity>
         </Card>
       ) : result?.status === 'pending' ? (
         <Card>
-          <Label>Waiting for approval</Label>
+          <Label>{t('en.waiting')}</Label>
           <Text style={styles.note}>
-            Your details were recognised and this device is in the queue. A Master has to let it in
-            from Settings → Accounts. This screen updates by itself as soon as they do.
+            {t('en.waitingBody')}
           </Text>
           <ActivityIndicator color={COLORS.primary} style={{ marginTop: SIZES.md }} />
 
@@ -379,21 +368,19 @@ export default function EnrolSc() {
 
       {result?.status === 'reenrol' ? (
         <Card>
-          <Label>Enrol again</Label>
+          <Label>{t('en.again')}</Label>
           <Text style={styles.note}>
-            This device was registered under an older scheme, so there is nothing left to recognise
-            it by. Enter your name and PIN above once more.
+            {t('en.againBody')}
           </Text>
         </Card>
       ) : null}
 
       {result?.status === 'refused' ? (
         <Card>
-          <Label>Not recognised</Label>
+          <Label>{t('en.refused')}</Label>
           <Text style={styles.note}>{result.message}</Text>
           <Text style={styles.note}>
-            The usual cause is the spelling of the name rather than the PIN. Ask the Master to read
-            the invitation back to you — they can see it in full.
+            {t('en.refusedBody')}
           </Text>
           {/* And the unusual cause, which no amount of re-typing will fix: there
               is no Master left to ask. See `offerTakeover`. */}

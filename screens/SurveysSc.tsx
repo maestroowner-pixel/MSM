@@ -28,16 +28,18 @@ import { formatDate } from '../utils/dates';
 import { annualCoveredBy, defaultScheme, planForCertificate, renewedExpiry } from '../services/certSurveys';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
+import { t, tn, useT } from '../utils/i18n';
 
 const isIso = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(s));
 
 export default function SurveysSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { surveys, surveysDone, saveRow, saveRows, appendRow, versionsOf, certificates, saveCertificate } = useData();
   const amend = useAmend();
   const allDone = versionsOf(storage.SURVEYS_DONE_KEY) as SurveyDone[];
-  const doneLine = (h: SurveyDone) => [formatDate(h.date), h.ref ? `No. ${h.ref}` : null, h.byRank ? `${h.by} (${h.byRank})` : h.by, h.note].filter(Boolean).join(' · ');
+  const doneLine = (h: SurveyDone) => [formatDate(h.date), h.ref ? t('round.no', { n: h.ref }) : null, h.byRank ? `${h.by} (${h.byRank})` : h.by, h.note].filter(Boolean).join(' · ');
   const sync = useSync();
   const canEdit = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const isMaster = !sync.enrolled || sync.role === 'superadmin';
@@ -59,11 +61,11 @@ export default function SurveysSc() {
 
   const color: Record<SurveyState, string> = { overdue: COLORS.danger, open: COLORS.warning, soon: COLORS.primary, planned: COLORS.textLight, done: COLORS.success };
   const label = (st: ReturnType<typeof sortSurveys>[number]['st']) =>
-    st.state === 'overdue' ? `Overdue — window closed ${formatDate(st.closes)}`
-    : st.state === 'open' ? `Window open until ${formatDate(st.closes)} · ${st.days} days left`
-    : st.state === 'soon' ? `Window opens ${formatDate(st.opens)} · in ${st.days} days`
-    : st.state === 'done' ? 'Carried out'
-    : `Window ${formatDate(st.opens)} – ${formatDate(st.closes)}`;
+    st.state === 'overdue' ? t('sv.overdue', { date: formatDate(st.closes) })
+    : st.state === 'open' ? t('sv.open', { date: formatDate(st.closes), n: st.days })
+    : st.state === 'soon' ? t('sv.soon', { date: formatDate(st.opens), n: st.days })
+    : st.state === 'done' ? t('sv.done')
+    : t('sv.window', { from: formatDate(st.opens), to: formatDate(st.closes) });
 
   const addTemplate = (t: (typeof SURVEY_TEMPLATES)[number]) => {
     setAdding(false);
@@ -71,18 +73,18 @@ export default function SurveysSc() {
   };
   const saveEdit = async () => {
     if (!edit) return;
-    if (!edit.name.trim()) return Alert.alert('Survey', 'Give it a name.');
-    if (!isIso(edit.due)) return Alert.alert('Due date', edit.anniversary ? 'Enter the anniversary date, yyyy-mm-dd.' : 'Enter the due date, yyyy-mm-dd.');
+    if (!edit.name.trim()) return Alert.alert(t('sv.survey'), t('sv.needName'));
+    if (!isIso(edit.due)) return Alert.alert(t('sv.dueDate'), edit.anniversary ? t('sv.enterAnniv') : t('sv.enterDue'));
     await saveRow(storage.SURVEYS_KEY, { ...edit, name: edit.name.trim() });
     setEdit(null);
     playSuccessSound();
   };
   const carriedOut = async () => {
     if (!doing) return;
-    if (!isIso(doing.date) || doing.date > today) return Alert.alert('Date', 'The date it was carried out, yyyy-mm-dd — not in the future.');
+    if (!isIso(doing.date) || doing.date > today) return Alert.alert(t('nc.date'), t('sv.dateDone'));
     const renewing = doing.s.kind === 'renewal' ? certOf(doing.s) : undefined;
-    if (renewing && (!isIso(doing.expiry) || doing.expiry <= doing.date)) return Alert.alert('New expiry', 'The renewed certificate’s expiry date, yyyy-mm-dd.');
-    if (!signer) return Alert.alert('Who is recording it?', 'Choose your name below.');
+    if (renewing && (!isIso(doing.expiry) || doing.expiry <= doing.date)) return Alert.alert(t('sv.newExpiry'), t('sv.newExpiryBody'));
+    if (!signer) return Alert.alert(t('sv.whoRecords'), t('pd.chooseName'));
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${doing.s.name} — carried out ${formatDate(doing.date)}` });
     if (!sig) return;
     const now = Date.now();
@@ -109,7 +111,7 @@ export default function SurveysSc() {
       const nextIds = new Set(next.map((x) => x.id));
       const left = surveys.filter((x) => x.certId === renewing.id && !x.deleted && x.id !== doing.s.id && !nextIds.has(x.id) && !surveysDone.some((d) => d.surveyId === x.id && d.forDue === x.due)).map((x) => ({ ...x, deleted: true, updatedAt: now }));
       if (next.length + left.length) await saveRows(storage.SURVEYS_KEY, [...next, ...left]);
-      Alert.alert('Certificate renewed', `${renewing.name}: valid to ${formatDate(doing.expiry)}; ${next.length} survey${next.length === 1 ? '' : 's'} planned for the new cycle. Attach the new certificate on its card.`);
+      Alert.alert(t('sv.renewed'), t('sv.renewedBody', { name: renewing.name, date: formatDate(doing.expiry), x: tn('n.survey', next.length) }));
     }
     setDoing(null);
     playSuccessSound();
@@ -121,47 +123,47 @@ export default function SurveysSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Surveys & audits" subtitle="Class, flag, ISM audits, dry-dock — windows and next dates" help="Surveys & audits" />
+      <ScreenTitle title={t('sv.title')} subtitle={t('sv.sub')} help="Surveys & audits" />
 
       {canEdit ? (
         <View style={styles.row}>
-          <TouchableOpacity style={styles.btn} onPress={() => setAdding((v) => !v)}><Text style={styles.btnText}>{adding ? 'Close' : '+ Add'}</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.btn} onPress={() => setAdding((v) => !v)}><Text style={styles.btnText}>{adding ? t('common.close') : `+ ${t('common.add')}`}</Text></TouchableOpacity>
         </View>
       ) : null}
       {adding ? (
         <Card>
-          <Label>Choose what applies to the vessel</Label>
+          <Label>{t('sv.choose')}</Label>
           <View style={styles.chips}>
             {SURVEY_TEMPLATES.filter((t) => !surveys.some((s) => s.name === t.name)).map((t) => (
               <TouchableOpacity key={t.name} style={styles.chip} onPress={() => addTemplate(t)}><Text style={styles.chipText}>{t.name}</Text></TouchableOpacity>
             ))}
-            <TouchableOpacity style={[styles.chip, { borderStyle: 'dashed' }]} onPress={() => addTemplate({ name: '', before: 0, after: 0, repeat: 12, anniversary: false })}><Text style={styles.chipText}>Own…</Text></TouchableOpacity>
+            <TouchableOpacity style={[styles.chip, { borderStyle: 'dashed' }]} onPress={() => addTemplate({ name: '', before: 0, after: 0, repeat: 12, anniversary: false })}><Text style={styles.chipText}>{t('sv.own')}</Text></TouchableOpacity>
           </View>
         </Card>
       ) : null}
 
       {edit ? (
         <Card>
-          <TextInput style={styles.input} value={edit.name} onChangeText={(v) => setEdit({ ...edit, name: v })} placeholder="Name" placeholderTextColor={COLORS.textLight} />
+          <TextInput style={styles.input} value={edit.name} onChangeText={(v) => setEdit({ ...edit, name: v })} placeholder={t('ho.namePh')} placeholderTextColor={COLORS.textLight} />
           <View style={styles.pair}>
-            <TextInput style={styles.input} value={edit.due} onChangeText={(v) => setEdit({ ...edit, due: v })} placeholder={edit.anniversary ? 'Anniversary date yyyy-mm-dd' : 'Due date yyyy-mm-dd'} placeholderTextColor={COLORS.textLight} />
-            <TextInput style={styles.input} value={edit.by ?? ''} onChangeText={(v) => setEdit({ ...edit, by: v })} placeholder="By — class, flag, auditor" placeholderTextColor={COLORS.textLight} />
+            <TextInput style={styles.input} value={edit.due} onChangeText={(v) => setEdit({ ...edit, due: v })} placeholder={edit.anniversary ? t('sv.annivPh') : t('sv.duePh')} placeholderTextColor={COLORS.textLight} />
+            <TextInput style={styles.input} value={edit.by ?? ''} onChangeText={(v) => setEdit({ ...edit, by: v })} placeholder={t('sv.byPh')} placeholderTextColor={COLORS.textLight} />
           </View>
           <View style={styles.pair}>
-            <Text style={styles.sub}>Window, months before</Text><N v={edit.before} on={(n) => setEdit({ ...edit, before: n })} />
-            <Text style={styles.sub}>after</Text><N v={edit.after} on={(n) => setEdit({ ...edit, after: n })} />
-            <Text style={styles.sub}>Repeat every (months, 0 = once)</Text><N v={edit.repeat} on={(n) => setEdit({ ...edit, repeat: n })} />
+            <Text style={styles.sub}>{t('sv.before')}</Text><N v={edit.before} on={(n) => setEdit({ ...edit, before: n })} />
+            <Text style={styles.sub}>{t('sv.after')}</Text><N v={edit.after} on={(n) => setEdit({ ...edit, after: n })} />
+            <Text style={styles.sub}>{t('sv.repeat')}</Text><N v={edit.repeat} on={(n) => setEdit({ ...edit, repeat: n })} />
           </View>
           <View style={styles.toggle}>
-            <Text style={styles.toggleText}>Anniversary-based — the next one stays on the anniversary date</Text>
+            <Text style={styles.toggleText}>{t('sv.annivBased')}</Text>
             <Switch value={edit.anniversary} onValueChange={(v) => setEdit({ ...edit, anniversary: v })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
           </View>
           <View style={styles.row}>
-            <TouchableOpacity style={styles.btn} onPress={() => void saveEdit()}><Text style={styles.btnText}>Save</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => setEdit(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btn} onPress={() => void saveEdit()}><Text style={styles.btnText}>{t('common.save')}</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setEdit(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
             {surveys.some((s) => s.id === edit.id) ? (
-              <TouchableOpacity onPress={() => Alert.alert('Remove', `Remove “${edit.name}” from the plan? What was carried out stays in the history.`, [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => { void saveRow(storage.SURVEYS_KEY, { ...edit, deleted: true }); setEdit(null); } }])}>
-                <Text style={[styles.link, { color: COLORS.danger }]}>Remove</Text>
+              <TouchableOpacity onPress={() => Alert.alert(t('common.remove'), t('sv.removeBody', { name: edit.name }), [{ text: t('common.cancel'), style: 'cancel' }, { text: t('common.remove'), style: 'destructive', onPress: () => { void saveRow(storage.SURVEYS_KEY, { ...edit, deleted: true }); setEdit(null); } }])}>
+                <Text style={[styles.link, { color: COLORS.danger }]}>{t('common.remove')}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -170,34 +172,34 @@ export default function SurveysSc() {
 
       {doing ? (
         <Card>
-          <Label>{`${doing.s.name} — carried out`}</Label>
+          <Label>{`${doing.s.name} — ${t('sv.carriedL')}`}</Label>
           <View style={styles.pair}>
             <TextInput style={styles.input} value={doing.date} onChangeText={(v) => setDoing({ ...doing, date: v })} placeholder="yyyy-mm-dd" placeholderTextColor={COLORS.textLight} />
-            <TextInput style={styles.input} value={doing.ref} onChangeText={(v) => setDoing({ ...doing, ref: v })} placeholder="Report / endorsement No." placeholderTextColor={COLORS.textLight} />
+            <TextInput style={styles.input} value={doing.ref} onChangeText={(v) => setDoing({ ...doing, ref: v })} placeholder={t('sv.refPh')} placeholderTextColor={COLORS.textLight} />
           </View>
-          <TextInput style={styles.input} value={doing.note} onChangeText={(v) => setDoing({ ...doing, note: v })} placeholder="Findings, conditions of class, remarks" placeholderTextColor={COLORS.textLight} multiline />
+          <TextInput style={styles.input} value={doing.note} onChangeText={(v) => setDoing({ ...doing, note: v })} placeholder={t('sv.notePh')} placeholderTextColor={COLORS.textLight} multiline />
           {doing.s.kind === 'renewal' && certOf(doing.s) ? (
             <>
-              <Text style={styles.sub}>{`The renewed ${certOf(doing.s)!.name}`}</Text>
+              <Text style={styles.sub}>{t('sv.renewedCert', { name: certOf(doing.s)!.name })}</Text>
               <View style={styles.pair}>
-                <TextInput style={styles.input} value={doing.expiry} onChangeText={(v) => setDoing({ ...doing, expiry: v })} placeholder="New expiry yyyy-mm-dd" placeholderTextColor={COLORS.textLight} />
-                <TextInput style={styles.input} value={doing.number} onChangeText={(v) => setDoing({ ...doing, number: v })} placeholder="New certificate No." placeholderTextColor={COLORS.textLight} />
+                <TextInput style={styles.input} value={doing.expiry} onChangeText={(v) => setDoing({ ...doing, expiry: v })} placeholder={t('sv.newExpiryPh')} placeholderTextColor={COLORS.textLight} />
+                <TextInput style={styles.input} value={doing.number} onChangeText={(v) => setDoing({ ...doing, number: v })} placeholder={t('sv.newNo')} placeholderTextColor={COLORS.textLight} />
               </View>
             </>
           ) : null}
           {doing.s.kind === 'intermediate' && isIso(doing.date) && annualCoveredBy(doing.s, doing.date, surveys, surveysDone) ? (
-            <Text style={styles.sub}>{`Also records the ${annualCoveredBy(doing.s, doing.date, surveys, surveysDone)!.name.split(' — ').pop()} — the intermediate takes its place.`}</Text>
+            <Text style={styles.sub}>{t('sv.alsoRecords', { name: annualCoveredBy(doing.s, doing.date, surveys, surveysDone)!.name.split(' — ').pop() ?? '' })}</Text>
           ) : null}
-          {doing.s.repeat ? <Text style={styles.sub}>{`Next: ${formatDate(nextDue(doing.s, isIso(doing.date) ? doing.date : today))}`}</Text> : null}
-          {picker ? <><Text style={styles.sub}>Recorded by</Text>{picker}</> : null}
+          {doing.s.repeat ? <Text style={styles.sub}>{t('sv.next', { date: formatDate(nextDue(doing.s, isIso(doing.date) ? doing.date : today)) })}</Text> : null}
+          {picker ? <><Text style={styles.sub}>{t('sv.recordedBy')}</Text>{picker}</> : null}
           <View style={styles.row}>
-            <TouchableOpacity style={styles.btn} onPress={() => void carriedOut()}><Text style={styles.btnText}>Sign</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => setDoing(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btn} onPress={() => void carriedOut()}><Text style={styles.btnText}>{t('common.sign')}</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setDoing(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
           </View>
         </Card>
       ) : null}
 
-      {!rows.length && !edit ? <Empty text={canEdit ? 'Nothing planned yet. Tap + Add and choose the surveys and audits that apply to the vessel.' : 'Nothing planned yet.'} /> : null}
+      {!rows.length && !edit ? <Empty text={canEdit ? t('sv.empty') : t('sv.emptyCrew')} /> : null}
       {rows.map(({ s, st }) => {
         const hist = latestVersions(allDone).filter((d) => d.surveyId === s.id).sort((a, b) => b.date.localeCompare(a.date));
         return (
@@ -206,10 +208,10 @@ export default function SurveysSc() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{s.name}</Text>
                 <Text style={[styles.sub, { color: color[st.state], fontWeight: '700' }]}>{label(st)}</Text>
-                <Text style={styles.sub}>{[`${s.anniversary ? 'Anniversary' : 'Due'} ${formatDate(s.due)}`, s.repeat ? `every ${s.repeat % 12 ? `${s.repeat} months` : `${s.repeat / 12} year${s.repeat > 12 ? 's' : ''}`}` : 'once', s.by].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.sub}>{[`${s.anniversary ? t('sv.anniv') : t('sv.due')} ${formatDate(s.due)}`, s.repeat ? (s.repeat % 12 ? tn('sv.everyMonths', s.repeat) : tn('sv.everyYears', s.repeat / 12)) : t('sv.once'), s.by].filter(Boolean).join(' · ')}</Text>
               </View>
               {canEdit && st.state !== 'done' ? (
-                <TouchableOpacity style={styles.small} onPress={() => startDoing(s)}><Text style={styles.smallText}>Carried out</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.small} onPress={() => startDoing(s)}><Text style={styles.smallText}>{t('sv.done')}</Text></TouchableOpacity>
               ) : null}
               {canEdit ? <TouchableOpacity onPress={() => setEdit(s)} hitSlop={8}><MciIcon name="pencil-outline" size={18} color={COLORS.textLight} /></TouchableOpacity> : null}
             </TouchableOpacity>
@@ -225,7 +227,7 @@ export default function SurveysSc() {
                       <AmendButtons
                         row
                         isMaster={isMaster}
-                        onEdit={() => amend.edit({ store: storage.SURVEYS_DONE_KEY, record: h, what: `${h.name} — carried out ${formatDate(h.date)}`, fields: [{ key: 'date', label: 'Date carried out (yyyy-mm-dd)' }, { key: 'ref', label: 'Report / endorsement No.' }, { key: 'note', label: 'Findings, remarks', kind: 'multiline' }] })}
+                        onEdit={() => amend.edit({ store: storage.SURVEYS_DONE_KEY, record: h, what: `${h.name} — carried out ${formatDate(h.date)}`, fields: [{ key: 'date', label: t('sv.fDate') }, { key: 'ref', label: t('sv.refPh') }, { key: 'note', label: t('sv.fNote'), kind: 'multiline' }] })}
                         onDelete={() =>
                           amend.remove({
                             store: storage.SURVEYS_DONE_KEY,
@@ -242,7 +244,7 @@ export default function SurveysSc() {
                   </View>
                 ))
               ) : (
-                <Text style={styles.hist}>Not carried out in the app yet.</Text>
+                <Text style={styles.hist}>{t('sv.notYet')}</Text>
               )
             ) : null}
           </View>

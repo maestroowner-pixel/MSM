@@ -59,8 +59,8 @@ async function credentialId(): Promise<Uint8Array | 'created' | null> {
   const cred: any = await navigator.credentials.create({
     publicKey: {
       challenge: rand(32),
-      rp: { name: 'ISMpilot', id: location.hostname },
-      user: { id: rand(16), name: 'ismpilot-signature', displayName: 'ISMpilot signature' },
+      rp: { name: 'ISM AI Pilot', id: location.hostname },
+      user: { id: rand(16), name: 'ismpilot-signature', displayName: 'ISM AI Pilot signature' },
       pubKeyCredParams: [
         { type: 'public-key', alg: -7 },
         { type: 'public-key', alg: -257 },

@@ -30,6 +30,7 @@ import { RestDay } from '../types/rest';
 import { analyseRest, RULE_LABEL } from '../services/restHours';
 import { exportRestPdf } from '../services/restReport';
 import { RestBar } from '../components/RestBar';
+import { t, useT, dateLocale } from '../utils/i18n';
 
 function todayIso(): string {
   const d = new Date();
@@ -39,6 +40,7 @@ function todayIso(): string {
 
 
 export default function HoursOfRestSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -119,22 +121,22 @@ export default function HoursOfRestSc() {
         vessel,
       });
       if (typeof where === 'string') {
-        setSavedTo(where === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${where}”`);
+        setSavedTo(where === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: where }));
         setTimeout(() => setSavedTo(null), 6000);
       }
     } catch (e: any) {
-      Alert.alert('Report', e?.message ?? 'Could not create the report.');
+      Alert.alert(t('keys.report'), e?.message ?? t('hor.couldNot'));
     }
   };
 
   if (!people.length) {
     return (
       <Screen>
-        <ScreenTitle title="Hours of rest" subtitle="MLC 2006 · STCW A-VIII/1" />
-        <Empty text="Nobody is on board in the crew list. The Master or an officer adds people and signs them on; each person then records their own hours here." />
+        <ScreenTitle title={t('rest.title')} subtitle="MLC 2006 · STCW A-VIII/1" />
+        <Empty text={t('hor.nobody')} />
         {canEditCrew ? (
           <TouchableOpacity onPress={() => nav.navigate('CrewMatrix')} style={{ alignSelf: 'center', marginTop: SIZES.md }}>
-            <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Open the crew list</Text>
+            <Text style={{ color: COLORS.primary, fontWeight: '700' }}>{t('hor.openCrew')}</Text>
           </TouchableOpacity>
         ) : null}
       </Screen>
@@ -146,14 +148,14 @@ export default function HoursOfRestSc() {
     // without `scroll` here nothing moved at all, by wheel or by finger.
     <Screen scroll>
       <ScreenTitle
-        title={`Hours of rest — ${monthName(month)}`}
-        subtitle="MLC 2006 · STCW A-VIII/1 · ship's time"
+        title={`${t('rest.title')} — ${monthName(month)}`}
+        subtitle={t('hor.sub')}
         help="Hours of rest"
         actions={<MonthPicker value={month} onChange={setMonth} months={[...new Set(rest.map((d: any) => String(d.date).slice(0, 7)))]} />}
       />
       {canEditCrew ? (
         <TouchableOpacity onPress={() => nav.navigate('CrewMatrix')} style={{ alignSelf: 'flex-end', marginTop: -SIZES.sm, marginBottom: SIZES.sm }} hitSlop={8}>
-          <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small }}>Crew on board — add / sign on / sign off ›</Text>
+          <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small }}>{t('hor.crewLink')}</Text>
         </TouchableOpacity>
       ) : null}
 
@@ -216,22 +218,22 @@ export default function HoursOfRestSc() {
 
       <Card>
         <View style={styles.stats}>
-          <Stat label="Recorded" value={`${recorded}/${summary.length}`} />
-          <Stat label="Days with a breach" value={String(badDays)} danger={badDays > 0} />
-          <Stat label="Work this month" value={`${workTotal} h`} />
+          <Stat label={t('hor.recorded')} value={`${recorded}/${summary.length}`} />
+          <Stat label={t('hor.breachDays')} value={String(badDays)} danger={badDays > 0} />
+          <Stat label={t('hor.workMonth')} value={t('hor.hours', { n: workTotal })} />
         </View>
         <TouchableOpacity style={styles.reportBtn} onPress={onReport}>
           <MciIcon name="file-pdf-box" size={18} color={COLORS.primary} />
-          <Text style={styles.reportText}>Monthly record (PDF) for signature</Text>
+          <Text style={styles.reportText}>{t('hor.pdf')}</Text>
         </TouchableOpacity>
         {savedTo ? <Text style={styles.savedTo}>{`✓ ${savedTo}`}</Text> : null}
         {canRememberFolder() ? (
           <TouchableOpacity
-            onPress={() => void chooseFolder('rest').then((n) => n && setSavedTo(`Hours of rest files now go to the folder “${n}”`))}
+            onPress={() => void chooseFolder('rest').then((n) => n && setSavedTo(t('hor.folderNow', { folder: n })))}
             hitSlop={8}
             style={{ alignSelf: 'center', marginTop: SIZES.xs }}
           >
-            <Text style={{ color: COLORS.textLight, fontSize: SIZES.small, fontWeight: '600' }}>Change folder</Text>
+            <Text style={{ color: COLORS.textLight, fontSize: SIZES.small, fontWeight: '600' }}>{t('hor.changeFolder')}</Text>
           </TouchableOpacity>
         ) : null}
       </Card>
@@ -250,14 +252,14 @@ export default function HoursOfRestSc() {
               onPress={() => nav.navigate('RestDay', { crewId: personId, date: s.date })}
             >
               <View style={styles.dateCol}>
-                <Text style={styles.dow}>{d.toLocaleString('en-GB', { weekday: 'short', timeZone: 'UTC' })}</Text>
+                <Text style={styles.dow}>{d.toLocaleString(dateLocale(), { weekday: 'short', timeZone: 'UTC' })}</Text>
                 <Text style={[styles.dom, s.date === today && { color: COLORS.primary }]}>{s.date.slice(8)}</Text>
               </View>
               <View style={{ flex: 1, gap: 4 }}>
-                {rec ? <RestBar work={rec.work} height={12} /> : <Text style={styles.missing}>Not recorded — tap to fill in</Text>}
+                {rec ? <RestBar work={rec.work} height={12} /> : <Text style={styles.missing}>{t('hor.notRecorded')}</Text>}
                 {rec ? (
                   <Text style={styles.meta}>
-                    {`Rest ${s.restHours} h · work ${s.workHours} h`}
+                    {t('hor.restWork', { r: s.restHours, w: s.workHours })}
                     {s.violations.length ? '' : ' · ✓'}
                   </Text>
                 ) : null}
@@ -267,7 +269,7 @@ export default function HoursOfRestSc() {
                   </Text>
                 ))}
               </View>
-              {s.violations.length ? <StatusPill status="expired" text="Breach" /> : null}
+              {s.violations.length ? <StatusPill status="expired" text={t('hor.breach')} /> : null}
             </TouchableOpacity>
           );
         }}

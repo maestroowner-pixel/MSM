@@ -29,11 +29,13 @@ import * as storage from '../services/storage';
 import { formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
+import { t, useT } from '../utils/i18n';
 
 const PERIODS: InspectionPeriod[] = ['weekly', 'monthly', 'quarterly', 'annual'];
 export const labelOf = (c: CategoryKey) => CATEGORY_MAP[c]?.label ?? String(c);
 
 export default function RoundsSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -64,8 +66,8 @@ export default function RoundsSc() {
 
   const start = async () => {
     if (startingNow.current) return;
-    if (!cats.size) return Alert.alert('Categories', 'Choose what the round covers.');
-    if (!signer) return Alert.alert('Who is starting it?', 'Choose your name.');
+    if (!cats.size) return Alert.alert(t('rounds.cats'), t('rounds.needCats'));
+    if (!signer) return Alert.alert(t('rounds.whoStarts'), t('round.chooseName'));
     startingNow.current = true;
     try {
       // One open round per period and category: an inspection signed anywhere counts
@@ -76,7 +78,7 @@ export default function RoundsSc() {
       setChecking(false);
       if (fresh) await reload();
       const clash = overlappingRound(fresh ?? rounds, period, [...cats]);
-      if (clash) return Alert.alert('Already open', `${roundTitle(clash, labelOf)} is open${clash.startedBy ? ` (started by ${clash.startedBy}, ${formatDateTime(clash.startedAt)})` : ''} and covers ${clash.categories.filter((c) => cats.has(c)).map(labelOf).join(', ')}. Work in it, or close it first.`);
+      if (clash) return Alert.alert(t('rounds.already'), t('rounds.alreadyBody', { round: roundTitle(clash, labelOf), who: clash.startedBy ? ` (${t('rounds.startedBy', { by: clash.startedBy, when: formatDateTime(clash.startedAt) })})` : '', cats: clash.categories.filter((c) => cats.has(c)).map(labelOf).join(', ') }));
       const w = windowFor(period);
       const now = Date.now();
       const r: InspectionRound = {
@@ -99,7 +101,7 @@ export default function RoundsSc() {
   // signed; what was inspected counts in the round kept (roundFor picks it).
   const dups = duplicateRounds(rounds);
   const closeDuplicate = async (keep: InspectionRound, extra: InspectionRound) => {
-    if (!signer) return Alert.alert('Who is closing it?', 'Choose your name.');
+    if (!signer) return Alert.alert(t('rounds.whoCloses'), t('round.chooseName'));
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${roundTitle(extra, labelOf)} — closed as a duplicate` });
     if (!sig) return;
     const now = Date.now();
@@ -117,7 +119,7 @@ export default function RoundsSc() {
       <TouchableOpacity key={r.id} style={styles.row} onPress={() => nav.navigate('Round', { id: r.id })} activeOpacity={0.7}>
         <View style={{ flex: 1 }}>
           <Text style={styles.title} numberOfLines={2}>{roundTitle(r, labelOf)}</Text>
-          <Text style={styles.sub}>{`${p.done.size} / ${p.scope.length} inspected · ${p.outstanding.length} outstanding · started ${formatDateTime(r.startedAt)} by ${r.startedBy}${r.closedAt ? ` · closed ${formatDateTime(r.closedAt)}` : ''}`}</Text>
+          <Text style={styles.sub}>{`${t('rounds.rowProgress', { done: p.done.size, n: p.scope.length, left: p.outstanding.length })} · ${t('rounds.startedBy', { by: r.startedBy, when: formatDateTime(r.startedAt) })}${r.closedAt ? ` · ${t('round.closedAt', { when: formatDateTime(r.closedAt) })}` : ''}`}</Text>
           <View style={styles.bar}><View style={[styles.barFill, { width: `${pct}%`, backgroundColor: pct === 100 ? COLORS.success : COLORS.primary }]} /></View>
         </View>
         <Text style={styles.chev}>›</Text>
@@ -127,11 +129,11 @@ export default function RoundsSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Inspection rounds" subtitle="Shared to-do lists — what is still to be inspected, on every device" help="Inspection rounds" />
+      <ScreenTitle title={t('rounds.title')} subtitle={t('rounds.sub')} help="Inspection rounds" />
       {canRun ? (
         starting ? (
           <Card>
-            <Label>Period</Label>
+            <Label>{t('rounds.period')}</Label>
             <View style={styles.chips}>
               {PERIODS.map((p) => (
                 <TouchableOpacity key={p} style={[styles.chip, period === p && styles.chipOn]} onPress={() => { setPeriod(p); setCats(new Set()); }}>
@@ -140,9 +142,9 @@ export default function RoundsSc() {
               ))}
             </View>
             <View style={styles.labelRow}>
-              <Label>{`Categories (${cats.size}/${offered.length})`}</Label>
+              <Label>{t('rounds.catsN', { k: cats.size, n: offered.length })}</Label>
               <TouchableOpacity onPress={() => setCats(cats.size === offered.length ? new Set() : new Set(offered.map((c) => c.key)))}>
-                <Text style={styles.link}>{cats.size === offered.length ? 'None' : 'All'}</Text>
+                <Text style={styles.link}>{cats.size === offered.length ? t('rounds.none') : t('rounds.allBtn')}</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.chips}>
@@ -151,37 +153,37 @@ export default function RoundsSc() {
                   <Text style={[styles.chipText, cats.has(c.key) && styles.chipTextOn]}>{`${c.label} · ${(byCategory[c.key] ?? []).length}`}</Text>
                 </TouchableOpacity>
               ))}
-              {!offered.length ? <Text style={styles.sub}>No category has a checklist for this period.</Text> : null}
+              {!offered.length ? <Text style={styles.sub}>{t('rounds.noCats')}</Text> : null}
             </View>
             {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
             <View style={styles.btnRow}>
-              <TouchableOpacity style={[styles.btn, checking && { opacity: 0.5 }]} disabled={checking} onPress={() => void start()}><Text style={styles.btnText}>{checking ? 'Checking the vessel’s rounds…' : 'Start the round'}</Text></TouchableOpacity>
-              <TouchableOpacity onPress={() => setStarting(false)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.btn, checking && { opacity: 0.5 }]} disabled={checking} onPress={() => void start()}><Text style={styles.btnText}>{checking ? t('rounds.checking') : t('rounds.start')}</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setStarting(false)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
             </View>
           </Card>
         ) : (
           <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginBottom: SIZES.md }]} onPress={() => setStarting(true)}>
-            <Text style={styles.btnText}>+ Start a round</Text>
+            <Text style={styles.btnText}>{t('rounds.startNew')}</Text>
           </TouchableOpacity>
         )
       ) : null}
 
       {dups.map(({ keep, extra }) => (
         <Card key={extra.id} style={{ borderLeftWidth: 4, borderLeftColor: COLORS.warning }}>
-          <Text style={[styles.title, { color: COLORS.warning }]}>Two rounds cover the same</Text>
-          <Text style={styles.sub}>{`${roundTitle(extra, labelOf)}, started ${formatDateTime(extra.startedAt)} by ${extra.startedBy}, repeats the one started ${formatDateTime(keep.startedAt)} by ${keep.startedBy}. Close the later one: every inspection counts in the round kept, nothing is lost.`}</Text>
+          <Text style={[styles.title, { color: COLORS.warning }]}>{t('rounds.dupTitle')}</Text>
+          <Text style={styles.sub}>{t('rounds.dupBody', { round: roundTitle(extra, labelOf), when: formatDateTime(extra.startedAt), by: extra.startedBy, when2: formatDateTime(keep.startedAt), by2: keep.startedBy })}</Text>
           {canRun ? (
             <>
               {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
-              <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.sm }]} onPress={() => void closeDuplicate(keep, extra)}><Text style={styles.btnText}>Close the duplicate</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.sm }]} onPress={() => void closeDuplicate(keep, extra)}><Text style={styles.btnText}>{t('rounds.closeDup')}</Text></TouchableOpacity>
             </>
-          ) : <Text style={styles.sub}>An officer or the Master closes it.</Text>}
+          ) : <Text style={styles.sub}>{t('rounds.officerCloses')}</Text>}
         </Card>
       ))}
-      <Label>{`Open (${open.length})`}</Label>
+      <Label>{t('common.openN', { n: open.length })}</Label>
       {open.map(row)}
-      {!open.length ? <Text style={styles.sub}>{canRun ? 'No round open. Start one for this week or month.' : 'No round open — an officer starts one.'}</Text> : null}
-      {closed.length ? <Label>{`Closed (${closed.length})`}</Label> : null}
+      {!open.length ? <Text style={styles.sub}>{canRun ? t('rounds.noneOpen') : t('rounds.noneOpenCrew')}</Text> : null}
+      {closed.length ? <Label>{t('common.closedN', { n: closed.length })}</Label> : null}
       {closed.map(row)}
     </Screen>
   );

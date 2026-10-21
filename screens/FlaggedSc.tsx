@@ -16,7 +16,10 @@ import { CATEGORY_MAP } from '../constants/categories';
 import { computeStatus } from '../utils/dates';
 import { EquipmentItem } from '../types/equipment';
 
+import { t, tn, useT } from '../utils/i18n';
+
 export default function FlaggedSc() {
+  useT();
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const { flat, saveItem } = useData();
@@ -38,8 +41,8 @@ export default function FlaggedSc() {
   return (
     <Screen>
       <ScreenTitle
-        title="Flagged"
-        subtitle={`${flagged.length} item${flagged.length === 1 ? '' : 's'} marked for a second look`}
+        title={t('flagged.title')}
+        subtitle={t('flagged.sub', { x: tn('n.item', flagged.length) })}
       />
       <FlatList
         data={flagged}
@@ -49,7 +52,7 @@ export default function FlaggedSc() {
         columnWrapperStyle={cols > 1 ? { gap: SIZES.sm } : undefined}
         contentContainerStyle={{ paddingBottom: SIZES.xxxl }}
         ListEmptyComponent={
-          <Empty text={'Nothing is flagged.\nOpen an item and tap the flag to mark it.'} />
+          <Empty text={t('flagged.empty')} />
         }
         renderItem={({ item }) => {
           const meta = CATEGORY_MAP[item.category];
@@ -74,7 +77,7 @@ export default function FlaggedSc() {
               <View style={{ alignItems: 'flex-end', gap: SIZES.xs }}>
                 <StatusPill status={computeStatus(item)} />
                 <TouchableOpacity onPress={() => void saveItem({ ...item, flagged: false, flagNote: undefined })}>
-                  <Text style={styles.clear}>Clear flag</Text>
+                  <Text style={styles.clear}>{t('flagged.clear')}</Text>
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>

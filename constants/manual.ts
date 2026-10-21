@@ -23,7 +23,7 @@ export interface Section {
   note?: string;
   rows?: IntervalRow[];
   link?: string;
-  /** The ISMpilot shield, faint, behind the section (was the KukaLab octopus). */
+  /** The ISM AI Pilot shield, faint, behind the section (was the KukaLab octopus). */
   watermark?: boolean;
 }
 
@@ -199,10 +199,10 @@ const en: ManualContent = {
       emoji: '👑',
       title: "Vessel licence",
       body: [
-        "ISMpilot Pro is licensed to the VESSEL by its IMO number — not per person and not per device. Every officer and every handset that has joined the vessel is covered by the one licence.",
+        "ISM AI Pilot Pro is licensed to the VESSEL by its IMO number — not per person and not per device. Every officer and every handset that has joined the vessel is covered by the one licence.",
         "Every vessel has 60 days to try the app before the 15-items-per-category limit applies.",
         "Pricing and fleet licences: mail@ismpilot.com.",
-        "The licence is bought once by whoever manages the vessel and activated on the ship's account: Settings → ISMpilot Pro → Activate the vessel licence. From that moment every enrolled device has full access; a crew member buys nothing and needs no store account.",
+        "The licence is bought once by whoever manages the vessel and activated on the ship's account: Settings → ISM AI Pilot Pro → Activate the vessel licence. From that moment every enrolled device has full access; a crew member buys nothing and needs no store account.",
         "Without a licence after the free period the app keeps working, but the register is capped at 15 items per category — enough to try it, not enough to run a ship.",
         "A device that joins a licensed vessel picks the licence up by itself. If one still shows the activation page, open it and tap Restore the vessel licence.",
       ],
@@ -234,7 +234,7 @@ const en: ManualContent = {
       emoji: '🔎',
       title: 'Scan, flag & recently scanned',
       body: [
-        'Scan a QR label or a serial from the QR button in the header of the Dashboard or the Categories tab. A match opens the item straight away; a maker\'s barcode or a recorded serial finds it too. Use the in-app button rather than the phone\'s own camera — an ISMpilot QR is a private link the camera app cannot open by itself. If a code is too damaged to scan and you can still read the digits, type them in — same lookup.',
+        'Scan a QR label or a serial from the QR button in the header of the Dashboard or the Categories tab. A match opens the item straight away; a maker\'s barcode or a recorded serial finds it too. Use the in-app button rather than the phone\'s own camera — an ISM AI Pilot QR is a private link the camera app cannot open by itself. If a code is too damaged to scan and you can still read the digits, type them in — same lookup.',
         "Print label (on the item screen) makes the QR sticker. The full-size label carries the type and size (\"CO2 5kg\"), the item number and serial (\"No. 01-SD · S/N C001111\"), the next inspection or expiry date, and the category with deck and location. The smallest stocks keep the type, the number and the serial.",
         "Print all the labels at once from the tag button beside the QR scanner on the Categories tab (or Settings → Print QR labels). Pick a group, tick decks and categories, and the button says how many stickers that is; the next screen chooses the stock and where to print — the Xprinter over Bluetooth, a thermal roll, an A4 sheet of labels with cut lines on the office printer, or a PDF for another printer's own app. Labels come off deck by deck, then by category and item number, so a roll follows the walk round the ship. Inside one category, long-press an item to pick a few by hand instead.",
         'Flag "come back to this": open an item and tap the Flag button by the status. A flag is not a compliance state — an item can be perfectly in date and still need a second look (rust, a sticky pin, a doubt). Add a short note on why, if it helps the next person.',
@@ -503,7 +503,7 @@ const en: ManualContent = {
       body: [
         "Smart import: Settings → Import from Excel → Photo or PDF of a paper register (AI) reads a photographed or scanned list into the import preview — nothing is saved until you import it. Crew, Passengers, Stores and the medicine chest have Any list (AI): a spreadsheet with its own column names (an agent's guest list, a supplier's sheet) — the AI sees only the headings and the shape of a few rows (\"P…a\", \"99/99/9999\"), never the names or numbers, and the app reads the file itself. Stores and the medicine chest also take a photo or PDF.",
         "On an inspection: Say what you found — speak (the keyboard's microphone, or Speak in a browser) or type, in any language — then Fill from what I said; or add a photograph and tap From the photo. The AI marks the checklist lines it can see, writes the remark in English and a defect when something is wrong. It only suggests: check every line, then sign.",
-        "Ask ISMpilot (on the Board): a question in plain words — \"what expires next month?\", \"when was the last enclosed space drill?\" — answered from the vessel's records (equipment, certificates, defects, inspections, drills, the Board), with the lines it used. Patients' and guests' records never go to the AI. It works when the vessel syncs; each vessel has a daily allowance.",
+        "Ask ISM AI Pilot (on the Board): a question in plain words — \"what expires next month?\", \"when was the last enclosed space drill?\" — answered from the vessel's records (equipment, certificates, defects, inspections, drills, the Board), with the lines it used. Patients' and guests' records never go to the AI. It works when the vessel syncs; each vessel has a daily allowance.",
       ],
     },
     {
@@ -556,6 +556,16 @@ const en: ManualContent = {
       body: [
         "Observation cards: anyone on board hands one in, in half a minute — an unsafe condition, an unsafe act, a near miss, or good practice worth sharing; what it is about, where, what was done there and then, and whether the work was stopped. With your name, or anonymous: an anonymous card does not carry the name. New cards come first; an officer reviews each one — \"Reviewed\" with a word on what was done, or \"Raise an NC\". The line above the list counts this month's cards, near misses and good practice — the figures for the monthly safety meeting.",
         "Non-conformities (ISM Code 9 and 10): from an audit, PSC, flag or class, an incident, a near miss or an observation card. Each gets a number — NC-2026-001 — a grade (observation, non-conformity, major NC), what was found, the requirement not met and the root cause. Then the actions: the correction made, the corrective action against the cause, a preventive one elsewhere — each with by whom and by when. Whoever did it signs it done (PIN, fingerprint or by hand). When every action is done the Master closes the NC, signed, with a word on whether it worked; a closed NC does not change. Overdue actions and NCs waiting to be closed are on the Dashboard. QHSE register (PDF / Excel) prints both lists.",
+      ],
+    },
+    {
+      emoji: '🧾',
+      title: "Internal audits",
+      body: [
+        "Internal audits (Safety → Internal audits ›) are the vessel's own ISM and MLC audits. Officers and the Master start and carry them out; everyone sees the list.",
+        "Choose the type and Start audit: ISM Internal Audit (the 12 elements of the ISM Code), MLC Compliance Audit (the MLC 2006 regulations, minimum age to the DMLC) or Custom Audit (an empty list — Add item for your own reference and requirement). Each audit is numbered IA-year-NN.",
+        "Write the scope — areas, departments, the period covered — then go through the items: OK, Observation, NC / Finding or N/A, with a comment or the evidence seen. Everything is saved as you go; the audit stays Open until it is closed.",
+        "Close & sign audit: choose the auditor and sign; the audit is then read-only. Under each NC or Observation, Raise NC / finding › opens a new non-conformity in Safety observations & NC, where the corrective action, who does it and by when are followed up. The list shows how many NCs and observations each audit found.",
       ],
     },
     {
@@ -632,7 +642,7 @@ const en: ManualContent = {
       title: "Dynamic positioning",
       body: [
         "Dynamic positioning (menu → Dynamic positioning) has three pages: DP checklists, DP time and the confirmation letter.",
-        "DP checklists are the vessel's own — set up by ISMpilot from the vessel's forms (DP Operations Manual, ASOG): the watch handover / takeover, field arrival with the DP trials, and others. Open one, fill it in and sign.",
+        "DP checklists are the vessel's own — set up by ISM AI Pilot from the vessel's forms (DP Operations Manual, ASOG): the watch handover / takeover, field arrival with the DP trials, and others. Open one, fill it in and sign.",
         "Every DP checklist needs the position it is done at (degrees, minutes and N/S, E/W from the DGPS, or as the last checklist); the date and time are the moment of signing, in ship's time and UTC. The tables are laid out as on the paper: tap the answer, write readings in the cells; \"Other\" opens a cell to write in; a wrong answer turns the row red. \"Draw the schematic\" opens a window to draw own vessel, rig, wind and current with a stylus (Undo takes back a stroke).",
         "Two officers sign — handing over and taking over (on field arrival: the SDPO and the DPO): each chooses their name and signs with their PIN or by hand; on their own phone also with the fingerprint. Then Save the signed checklist; it is never changed and opens as a PDF. Leaving a checklist unsaved keeps it as a draft on this device; opening it again offers to restore it. Devices keep the last 90 days of signed checklists; older ones open from the cloud under the list.",
         "DP time: choose the DPO and the day, then Active (in control) or Passive (watching) and tap the half-hours of the watch. A day with 2 hours or more is a DP day. The list below shows each DPO's DP days, active and passive hours.",
@@ -644,7 +654,7 @@ const en: ManualContent = {
       title: "Bridge and engine checklists",
       body: [
         "Bridge and engine checklists (menu → Operations → Bridge & engine checklists) has two folders: Bridge checklists and Engine checklists. Each holds the watch handover and the sign-on / sign-off handover at crew change (the job, papers and keys, familiarisation under ISM 6.3 and STCW I/14; signed by the one signing off and the one signing on). The watch handover is what the relieving officer must know under STCW Code A-VIII/2: on the bridge the position and track, weather, compass errors, steering, every navigational aid, traffic and hazards, the Master's orders; in the engine room the propulsion, generators, systems, tanks, alarms and the Chief Engineer's orders.",
-        "Familiarisation (menu → Operations → Familiarisation) has Safety familiarisation (everyone boarding — a seafarer or a visitor — within 24 hours and before sailing, STCW A-VI/1), Bridge, Engine, Project crew and Passenger familiarisation: what a newcomer is shown on joining (STCW I/14, ISM 6.3; project personnel under the IP / SPS Code; the guests' safety briefing, SOLAS III/19.2) — signed by the one familiarised (ratings too; a project hand or a guest not on the crew list by name, by hand) and the one who familiarised them. A guest's name goes to the cloud only as its first and last letters. They work as the DP checklists: the position and the time of signing are required, tables as on the paper, two officers sign — handing over and taking over — by PIN or by hand, drafts are kept, and the signed checklist is never changed; open it for the PDF or Print. The vessel's own forms are set up by ISMpilot.",
+        "Familiarisation (menu → Operations → Familiarisation) has Safety familiarisation (everyone boarding — a seafarer or a visitor — within 24 hours and before sailing, STCW A-VI/1), Bridge, Engine, Project crew and Passenger familiarisation: what a newcomer is shown on joining (STCW I/14, ISM 6.3; project personnel under the IP / SPS Code; the guests' safety briefing, SOLAS III/19.2) — signed by the one familiarised (ratings too; a project hand or a guest not on the crew list by name, by hand) and the one who familiarised them. A guest's name goes to the cloud only as its first and last letters. They work as the DP checklists: the position and the time of signing are required, tables as on the paper, two officers sign — handing over and taking over — by PIN or by hand, drafts are kept, and the signed checklist is never changed; open it for the PDF or Print. The vessel's own forms are set up by ISM AI Pilot.",
       ],
     },
     {
@@ -670,6 +680,16 @@ const en: ManualContent = {
         "Automatic entries: the Security module creates a deck log entry when a visitor signs on or off at the gangway. The landing report module creates one when a landing report is signed. These entries carry the full text and appear on the day they were made; a 📎 paperclip icon links back to the source report — tap it to open.",
         "Port autocomplete: when editing the vessel's port in Security settings, type the first letters and the app suggests ports from the world port list.",
         "Sharing: tap the share icon in the top bar (visible when entries exist for the selected day) to save or print a signed page as an HTML file.",
+      ],
+    },
+    {
+      emoji: '📡',
+      title: "GMDSS Log",
+      body: [
+        "The GMDSS Log (menu → Logs → GMDSS Log) is the radio log: the radio watch and the equipment tests, one signed line each. Officers and the Master make the entries; a signed entry is never changed.",
+        "Daily check: VHF watch (channel), MF DSC watch (frequency), NAVTEX, and the GMDSS batteries — OK, Charging or Charged, with the voltage (type 130 for 13.0 V). Weekly check adds the DSC tests on VHF and MF/HF (the MMSI and the station called), the EPIRB indicator light and self-test, and the SART self-test. Monthly inspection adds the ATIS code, the ship's MMSI in every set, antennas and coax, the GMDSS clocks on UTC and the log itself. Tick what was done; anything left unticked is written ✗ in the log.",
+        "Radar: Radar ON or Radar OFF, X-band or S-band, with a note. Switching off in port, turn on Radio watch closed — the line is marked in red. Event / note is for everything else: a distress received and relayed, a test call, a NAVTEX warning.",
+        "The three marks at the top show when each check was last done: green — in time, amber — due, red — overdue (daily after a day, weekly after 7 days, monthly after 31). The same reminders go to the officers on the Board. Choose the month, and the PDF button makes that month's log to print or file.",
       ],
     },
     {
@@ -857,10 +877,10 @@ const ru: ManualContent = {
       emoji: '👑',
       title: "Лицензия на судно",
       body: [
-        "ISMpilot Pro лицензируется на СУДНО. Лицензия привязана к кораблю по номеру IMO, не к человеку и не к устройству. Все офицеры и все телефоны, вступившие на судно, покрыты одной лицензией.",
+        "ISM AI Pilot Pro лицензируется на СУДНО. Лицензия привязана к кораблю по номеру IMO, не к человеку и не к устройству. Все офицеры и все телефоны, вступившие на судно, покрыты одной лицензией.",
         "У каждого судна есть 60 дней, чтобы попробовать приложение, прежде чем начнёт действовать лимит 15 позиций на категорию.",
         "Цены и лицензии для флота: mail@ismpilot.com.",
-        "Лицензию покупает один раз тот, кто ведёт судно, и активирует её на аккаунте корабля: Настройки → ISMpilot Pro → Activate the vessel licence. С этого момента полный доступ есть у всех вступивших устройств; члену экипажа покупать нечего.",
+        "Лицензию покупает один раз тот, кто ведёт судно, и активирует её на аккаунте корабля: Настройки → ISM AI Pilot Pro → Activate the vessel licence. С этого момента полный доступ есть у всех вступивших устройств; члену экипажа покупать нечего.",
         "Без лицензии после бесплатного периода приложение продолжает работать, но реестр ограничен 15 позициями на категорию — этого хватает попробовать, но не хватает вести судно.",
         "Устройство, подключённое к судну с лицензией, получает её автоматически. Если оно всё же показывает страницу активации, откройте её и нажмите Restore the vessel licence.",
       ],
@@ -892,7 +912,7 @@ const ru: ManualContent = {
       emoji: '🔎',
       title: 'Сканирование, флаги и недавно отсканированные',
       body: [
-        'Сканируйте QR-этикетку или серийный номер кнопкой QR в шапке экрана Dashboard или вкладки Categories. Совпадение сразу открывает позицию; заводской штрихкод или записанный серийный номер тоже её найдут. Пользуйтесь кнопкой в приложении, а не системной камерой — QR формата ISMpilot это приватная ссылка, которую камера сама открыть не может. Если код повреждён, а цифры ещё читаются, введите их вручную — поиск тот же.',
+        'Сканируйте QR-этикетку или серийный номер кнопкой QR в шапке экрана Dashboard или вкладки Categories. Совпадение сразу открывает позицию; заводской штрихкод или записанный серийный номер тоже её найдут. Пользуйтесь кнопкой в приложении, а не системной камерой — QR формата ISM AI Pilot это приватная ссылка, которую камера сама открыть не может. Если код повреждён, а цифры ещё читаются, введите их вручную — поиск тот же.',
         "Print label (на экране позиции) печатает QR-этикетку. Полноразмерная этикетка содержит тип и размер (\"CO2 5kg\"), номер позиции и серийный номер (\"No. 01-SD · S/N C001111\"), дату следующей проверки или срока годности, а также категорию с палубой и расположением. На самых маленьких этикетках остаются тип, номер и серийный номер.",
         "Все этикетки сразу печатаются кнопкой с ярлыком рядом с QR-сканером на вкладке Categories (или Settings → Print QR labels). Выберите группу, отметьте палубы и категории — кнопка покажет, сколько это наклеек; следующий экран выбирает размер и куда печатать: на Xprinter по Bluetooth, на термо-рулон, на лист A4 с линиями отреза на офисном принтере или в PDF для приложения другого принтера. Этикетки выходят палуба за палубой, затем по категории и номеру позиции, так что рулон повторяет обход судна. Внутри одной категории вместо этого можно долгим нажатием отметить несколько позиций вручную.",
         'Флаг «вернуться к этому»: откройте позицию и нажмите кнопку Flag рядом со статусом. Флаг — не статус соответствия: позиция может быть полностью в сроке и всё равно требовать второго взгляда (ржавчина, залипающий палец, сомнение). При желании добавьте короткую заметку почему.',
@@ -1159,7 +1179,7 @@ const ru: ManualContent = {
       body: [
         "Умный импорт: Settings → Import from Excel → Photo or PDF of a paper register (AI) читает сфотографированный или отсканированный список в предпросмотр импорта — ничего не сохраняется, пока вы не импортируете. В Crew, Passengers, Stores и аптечке есть Any list (AI): таблица со своими названиями колонок (список гостей от агента, лист поставщика) — AI видит только заголовки и форму нескольких строк («P…a», «99/99/9999»), но не имена и номера, а сам файл читает приложение. Stores и аптечка принимают ещё фото или PDF.",
         "При проверке оборудования: Say what you found — скажите (микрофон клавиатуры или Speak в браузере) или напишите на любом языке, затем Fill from what I said; или добавьте фото и нажмите From the photo. AI отмечает пункты чек-листа, которые видит, пишет комментарий на английском и дефект, если что-то не так. Это только подсказка: проверьте каждый пункт и подпишите.",
-        "Ask ISMpilot (на Board): вопрос обычными словами — «что истекает в следующем месяце?», «когда была последняя тревога по enclosed space?» — ответ по записям судна (оборудование, сертификаты, дефекты, проверки, учения, Board) со строками, на которые он опирается. Записи пациентов и гостей в AI не уходят. Работает, когда судно синхронизируется; у каждого судна дневной лимит.",
+        "Ask ISM AI Pilot (на Board): вопрос обычными словами — «что истекает в следующем месяце?», «когда была последняя тревога по enclosed space?» — ответ по записям судна (оборудование, сертификаты, дефекты, проверки, учения, Board) со строками, на которые он опирается. Записи пациентов и гостей в AI не уходят. Работает, когда судно синхронизируется; у каждого судна дневной лимит.",
       ],
     },
     {
@@ -1212,6 +1232,16 @@ const ru: ManualContent = {
       body: [
         "Карточки наблюдений: любой на борту подаёт карточку за полминуты — опасное условие, опасное действие, почти-происшествие (near miss) или хорошая практика, которой стоит поделиться; о чём, где, что сделано на месте и была ли остановлена работа. С именем или анонимно — анонимная карточка имени не содержит. Новые карточки идут первыми; офицер разбирает каждую — «Reviewed» с комментарием или «Raise an NC». Строка над списком считает карточки, near miss и хорошую практику за месяц — цифры для ежемесячного собрания по безопасности.",
         "Несоответствия (ISM, разделы 9 и 10): из аудита, PSC, флага или класса, инцидента, near miss или карточки наблюдения. У каждого номер — NC-2026-001, — степень (замечание, несоответствие, крупное несоответствие), что обнаружено, какое требование нарушено и коренная причина. Дальше действия: исправление, корректирующее действие против причины, предупреждающее — у каждого исполнитель и срок. Исполнитель подписывает выполнение (PIN, отпечаток или рукой). Когда всё выполнено, Мастер закрывает NC с подписью и оценкой, сработали ли меры; закрытое NC больше не меняется. Просроченные действия и NC, ждущие закрытия, видны на главном экране. QHSE register (PDF / Excel) печатает оба списка.",
+      ],
+    },
+    {
+      emoji: '🧾',
+      title: "Внутренние аудиты (Internal audits)",
+      body: [
+        "Внутренние аудиты (Safety → Internal audits ›) — собственные аудиты судна по ISM и MLC. Начинают и проводят их офицеры и капитан; список видят все.",
+        "Выберите вид и нажмите Start audit: ISM Internal Audit (12 элементов Кодекса ISM), MLC Compliance Audit (правила MLC 2006 — от минимального возраста до DMLC) или Custom Audit (пустой список: Add item — своя ссылка и требование). Каждому аудиту присваивается номер IA-год-NN.",
+        "Запишите охват (scope) — участки, службы, проверяемый период — и пройдите пункты: OK, Observation, NC / Finding или N/A, с комментарием или увиденным подтверждением. Всё сохраняется по ходу; аудит остаётся открытым (Open), пока его не закроют.",
+        "Close & sign audit: выберите аудитора и подпишите — после этого аудит только для чтения. Под каждым NC или Observation кнопка Raise NC / finding › открывает новое несоответствие в разделе «Наблюдения и несоответствия», где ведутся корректирующее действие, исполнитель и срок. В списке видно, сколько NC и наблюдений нашёл каждый аудит.",
       ],
     },
     {
@@ -1288,7 +1318,7 @@ const ru: ManualContent = {
       title: "Динамическое позиционирование (Dynamic positioning)",
       body: [
         "Dynamic positioning (меню → Dynamic positioning) — три страницы: DP checklists, DP time и Confirmation letter.",
-        "DP-чеклисты — свои у каждого судна: их настраивает ISMpilot по формам судна (DP Operations Manual, ASOG) — передача/приём вахты, прибытие на месторождение с DP trials и другие. Откройте, заполните и подпишите.",
+        "DP-чеклисты — свои у каждого судна: их настраивает ISM AI Pilot по формам судна (DP Operations Manual, ASOG) — передача/приём вахты, прибытие на месторождение с DP trials и другие. Откройте, заполните и подпишите.",
         "Каждый DP-чеклист требует позицию места заполнения (градусы, минуты и N/S, E/W с DGPS или как в прошлом чеклисте); дата и время — момент подписи, в судовом времени и UTC. Таблицы — как на бумаге: нажмите ответ, впишите показания; «Other» открывает поле для ввода; неправильный ответ подсвечивает строку красным. «Draw the schematic» открывает окно для схемы стилусом (своё судно, установка, ветер, течение; Undo убирает штрих).",
         "Подписывают два офицера — сдающий и принимающий вахту (при прибытии — SDPO и DPO): каждый выбирает своё имя и подписывает PIN или от руки; на своём телефоне — и отпечатком. Затем «Save the signed checklist»; подписанный не меняется и открывается в PDF. Если выйти без сохранения — черновик остаётся на устройстве, при открытии предлагается восстановить. На устройствах хранятся чеклисты за 90 дней; старые открываются из облака под списком.",
         "DP time: выберите DPO и день, затем Active (управляет) или Passive (наблюдает) и отметьте получасы вахты. День с 2 часами и больше — DP-день. Ниже список: DP-дни каждого DPO, часы активные и пассивные.",
@@ -1300,7 +1330,7 @@ const ru: ManualContent = {
       title: "Чеклисты мостика и машины (Bridge and engine checklists)",
       body: [
         "Bridge and engine checklists (меню → Operations → Bridge & engine checklists) — две папки: Bridge checklists и Engine checklists. В каждой — передача вахты и передача дел при смене экипажа (Sign-on / sign-off: дела, документы и ключи, ознакомление по ISM 6.3 и STCW I/14; подписывают сдающий и принимающий дела). Передача вахты — что должен знать принимающий по STCW Code A-VIII/2 — на мостике позиция и путь, погода, поправки компасов, рулевое, навигационное оборудование, суда и опасности, распоряжения капитана; в машине — пропульсия, генераторы, системы, танки, тревоги и распоряжения старшего механика.",
-        "Familiarisation (меню → Operations → Familiarisation) — Safety familiarisation (каждый, кто прибыл на борт, моряк или посетитель, — в течение 24 часов и до выхода, STCW A-VI/1), Bridge, Engine, Project crew и Passenger familiarisation: ознакомление при приходе (STCW I/14, ISM 6.3; проектный персонал — IP / SPS Code; инструктаж гостей — SOLAS III/19.2); подписывают ознакомленный (в т.ч. рядовой; проектный работник или гость — по имени, рукой) и тот, кто знакомил. Имя гостя уходит в облако только первой и последней буквой. Работают как DP-чеклисты: позиция и время подписи обязательны, таблицы как на бумаге, подписывают двое — сдающий и принимающий — PIN или рукой, черновик сохраняется, подписанный не меняется; PDF или Print. Свои бланки судна настраивает ISMpilot.",
+        "Familiarisation (меню → Operations → Familiarisation) — Safety familiarisation (каждый, кто прибыл на борт, моряк или посетитель, — в течение 24 часов и до выхода, STCW A-VI/1), Bridge, Engine, Project crew и Passenger familiarisation: ознакомление при приходе (STCW I/14, ISM 6.3; проектный персонал — IP / SPS Code; инструктаж гостей — SOLAS III/19.2); подписывают ознакомленный (в т.ч. рядовой; проектный работник или гость — по имени, рукой) и тот, кто знакомил. Имя гостя уходит в облако только первой и последней буквой. Работают как DP-чеклисты: позиция и время подписи обязательны, таблицы как на бумаге, подписывают двое — сдающий и принимающий — PIN или рукой, черновик сохраняется, подписанный не меняется; PDF или Print. Свои бланки судна настраивает ISM AI Pilot.",
       ],
     },
     {
@@ -1326,6 +1356,16 @@ const ru: ManualContent = {
         "Автоматические записи: модуль Security создаёт запись в журнале, когда посетитель проходит регистрацию на трапе или уходит. Модуль Landing Reports создаёт запись при подписании сопроводительного листа. Эти записи содержат полный текст и появляются датой события; иконка 📎 скрепки ссылается на исходный отчёт — нажмите, чтобы открыть.",
         "Автодополнение порта: при редактировании порта стоянки в настройках Security введите первые буквы — приложение предложит варианты из мирового списка портов.",
         "Публикация: нажмите иконку поделиться в верхней панели (появляется, когда есть записи за выбранный день), чтобы сохранить или распечатать подписанную страницу в виде HTML-файла.",
+      ],
+    },
+    {
+      emoji: '📡',
+      title: "Журнал ГМССБ (GMDSS Log)",
+      body: [
+        "Журнал ГМССБ (меню → Logs → GMDSS Log) — радиожурнал: радиовахта и проверки оборудования, каждая — одна подписанная строка. Записи делают офицеры и капитан; подписанная запись не меняется.",
+        "Daily check: VHF watch (канал), MF DSC watch (частота), NAVTEX и аккумуляторы ГМССБ — OK, Charging или Charged, с напряжением (введите 130 для 13,0 В). Weekly check добавляет тесты DSC на VHF и MF/HF (MMSI и вызванная станция), индикатор и самотест EPIRB, самотест SART. Monthly inspection добавляет код ATIS, MMSI судна во всех станциях, антенны и кабели, часы ГМССБ по UTC и сам журнал. Отметьте сделанное; неотмеченное попадает в журнал с ✗.",
+        "Radar: Radar ON или Radar OFF, X-band или S-band, с примечанием. При выключении в порту включите Radio watch closed — строка отмечается красным. Event / note — для всего остального: принятый и ретранслированный сигнал бедствия, тестовый вызов, предупреждение NAVTEX.",
+        "Три отметки вверху показывают, когда каждая проверка была сделана последний раз: зелёная — в срок, жёлтая — пора, красная — просрочено (ежедневная — через сутки, еженедельная — через 7 дней, ежемесячная — через 31). Те же напоминания получают офицеры на доске (Board). Выберите месяц — кнопка PDF делает журнал за этот месяц для печати или архива.",
       ],
     },
     {
@@ -1513,10 +1553,10 @@ const es: ManualContent = {
       emoji: '👑',
       title: "Licencia por buque",
       body: [
-        "ISMpilot Pro se licencia por BUQUE — ligada al barco por su número IMO, no por persona ni por dispositivo. Todos los oficiales y todos los móviles unidos al buque quedan cubiertos por la misma licencia.",
+        "ISM AI Pilot Pro se licencia por BUQUE — ligada al barco por su número IMO, no por persona ni por dispositivo. Todos los oficiales y todos los móviles unidos al buque quedan cubiertos por la misma licencia.",
         "Cada buque tiene 60 días para probar la aplicación antes de que se aplique el límite de 15 elementos por categoría.",
         "Precios y licencias para flotas: mail@ismpilot.com.",
-        "La licencia la compra una vez quien gestiona el buque y se activa en la cuenta del barco: Ajustes → ISMpilot Pro → Activate the vessel licence. Desde ese momento todos los dispositivos inscritos tienen acceso completo.",
+        "La licencia la compra una vez quien gestiona el buque y se activa en la cuenta del barco: Ajustes → ISM AI Pilot Pro → Activate the vessel licence. Desde ese momento todos los dispositivos inscritos tienen acceso completo.",
         "Sin licencia tras el periodo gratuito la aplicación sigue funcionando, pero el registro se limita a 15 elementos por categoría.",
         "Un dispositivo que se une a un buque con licencia la recibe por sí solo. Si aún muestra la página de activación, ábrala y pulse Restore the vessel licence.",
       ],
@@ -1548,7 +1588,7 @@ const es: ManualContent = {
       emoji: '🔎',
       title: 'Escaneo, marcas y escaneados recientes',
       body: [
-        'Escanee una etiqueta QR o un número de serie con el botón QR en la cabecera del Panel o de la pestaña Categories. Una coincidencia abre el equipo de inmediato; un código de barras del fabricante o un número de serie registrado también lo encuentran. Use el botón de la app y no la cámara del teléfono: un QR de ISMpilot es un enlace privado que la cámara no puede abrir por sí sola. Si el código está muy dañado y aún puede leer los dígitos, escríbalos — la misma búsqueda.',
+        'Escanee una etiqueta QR o un número de serie con el botón QR en la cabecera del Panel o de la pestaña Categories. Una coincidencia abre el equipo de inmediato; un código de barras del fabricante o un número de serie registrado también lo encuentran. Use el botón de la app y no la cámara del teléfono: un QR de ISM AI Pilot es un enlace privado que la cámara no puede abrir por sí sola. Si el código está muy dañado y aún puede leer los dígitos, escríbalos — la misma búsqueda.',
         "Print label (en la pantalla del elemento) crea la etiqueta QR. La etiqueta de tamaño completo lleva el tipo y tamaño (\"CO2 5kg\"), el número y la serie (\"No. 01-SD · S/N C001111\"), la fecha de la próxima inspección o de caducidad, y la categoría con cubierta y ubicación. Los formatos más pequeños conservan el tipo, el número y la serie.",
         "Imprima todas las etiquetas de una vez con el botón de etiquetas junto al escáner QR en la pestaña Categories (o Settings → Print QR labels). Elija un grupo, marque cubiertas y categorías, y el botón dice cuántas pegatinas son; la siguiente pantalla elige el formato y dónde imprimir: la Xprinter por Bluetooth, un rollo térmico, una hoja A4 de etiquetas con líneas de corte en la impresora de la oficina, o un PDF para la app de otra impresora. Las etiquetas salen cubierta por cubierta, luego por categoría y número, de modo que el rollo sigue el recorrido del barco. Dentro de una categoría, mantenga pulsado un elemento para elegir unos pocos a mano.",
         'Marque «volver a esto»: abra un equipo y pulse el botón Flag junto al estado. Una marca no es un estado de cumplimiento: un equipo puede estar en fecha y aun así necesitar una segunda mirada (óxido, un pasador duro, una duda). Añada una nota breve del motivo si ayuda.',
@@ -1815,7 +1855,7 @@ const es: ManualContent = {
       body: [
         "Importación inteligente: Settings → Import from Excel → Photo or PDF of a paper register (AI) lee una lista fotografiada o escaneada en la vista previa — no se guarda nada hasta importar. Crew, Passengers, Stores y el botiquín tienen Any list (AI): una hoja con sus propios nombres de columna (la lista de invitados del agente, la de un proveedor) — la IA solo ve los encabezados y la forma de unas filas («P…a», «99/99/9999»), nunca los nombres ni los números, y el archivo lo lee la app. Stores y el botiquín aceptan también foto o PDF.",
         "En una inspección: Say what you found — hable (micrófono del teclado, o Speak en el navegador) o escriba, en cualquier idioma — y luego Fill from what I said; o añada una foto y pulse From the photo. La IA marca las líneas que ve, escribe la observación en inglés y un defecto si algo está mal. Solo sugiere: revise cada línea y firme.",
-        "Ask ISMpilot (en el Board): una pregunta con palabras normales — «¿qué caduca el mes que viene?», «¿cuándo fue el último simulacro de espacio cerrado?» — respondida con los registros del buque (equipos, certificados, defectos, inspecciones, simulacros, el Board), con las líneas usadas. Los registros de pacientes e invitados nunca van a la IA. Funciona cuando el buque sincroniza; cada buque tiene un límite diario.",
+        "Ask ISM AI Pilot (en el Board): una pregunta con palabras normales — «¿qué caduca el mes que viene?», «¿cuándo fue el último simulacro de espacio cerrado?» — respondida con los registros del buque (equipos, certificados, defectos, inspecciones, simulacros, el Board), con las líneas usadas. Los registros de pacientes e invitados nunca van a la IA. Funciona cuando el buque sincroniza; cada buque tiene un límite diario.",
       ],
     },
     {
@@ -1868,6 +1908,16 @@ const es: ManualContent = {
       body: [
         "Tarjetas de observación: cualquiera a bordo entrega una en medio minuto — una condición insegura, un acto inseguro, un casi accidente o una buena práctica que vale la pena compartir; de qué trata, dónde, qué se hizo en el momento y si se detuvo el trabajo. Con nombre o anónima: la tarjeta anónima no lleva el nombre. Las nuevas aparecen primero; un oficial revisa cada una — \"Reviewed\" con un comentario, o \"Raise an NC\". La línea sobre la lista cuenta las tarjetas, casi accidentes y buenas prácticas del mes, las cifras para la reunión mensual de seguridad.",
         "No conformidades (Código IGS, secciones 9 y 10): de una auditoría, PSC, bandera o clase, un incidente, un casi accidente o una tarjeta. Cada una tiene número — NC-2026-001 — grado (observación, no conformidad, NC mayor), lo encontrado, el requisito incumplido y la causa raíz. Luego las acciones: la corrección, la acción correctiva contra la causa y una preventiva, cada una con responsable y plazo. Quien la realiza la firma como hecha (PIN, huella o a mano). Con todas hechas, el Master cierra la NC firmando y valorando si funcionó; una NC cerrada no cambia. Las acciones vencidas y las NC por cerrar aparecen en el panel. QHSE register (PDF / Excel) imprime ambas listas.",
+      ],
+    },
+    {
+      emoji: '🧾',
+      title: "Auditorías internas (Internal audits)",
+      body: [
+        "Las auditorías internas (Safety → Internal audits ›) son las auditorías ISM y MLC del propio buque. Las inician y realizan los oficiales y el Capitán; todos ven la lista.",
+        "Elija el tipo y pulse Start audit: ISM Internal Audit (los 12 elementos del Código IGS), MLC Compliance Audit (las reglas del MLC 2006, de la edad mínima a la DMLC) o Custom Audit (una lista vacía: Add item para su propia referencia y requisito). Cada auditoría recibe el número IA-año-NN.",
+        "Escriba el alcance (scope) — zonas, departamentos, periodo cubierto — y recorra los puntos: OK, Observation, NC / Finding o N/A, con un comentario o la evidencia vista. Todo se guarda sobre la marcha; la auditoría queda abierta (Open) hasta cerrarla.",
+        "Close & sign audit: elija al auditor y firme; la auditoría queda entonces solo de lectura. Bajo cada NC u Observation, Raise NC / finding › abre una nueva no conformidad en Observaciones y no conformidades, donde se sigue la acción correctiva, quién la hace y para cuándo. La lista muestra cuántas NC y observaciones encontró cada auditoría.",
       ],
     },
     {
@@ -1944,7 +1994,7 @@ const es: ManualContent = {
       title: "Posicionamiento dinámico (Dynamic positioning)",
       body: [
         "Dynamic positioning (menú → Dynamic positioning) tiene tres páginas: DP checklists, DP time y Confirmation letter.",
-        "Los checklists DP son los del buque: ISMpilot los prepara con los formularios del buque (DP Operations Manual, ASOG) — relevo de guardia, llegada al campo con las pruebas DP y otros. Ábralo, rellénelo y fírmelo.",
+        "Los checklists DP son los del buque: ISM AI Pilot los prepara con los formularios del buque (DP Operations Manual, ASOG) — relevo de guardia, llegada al campo con las pruebas DP y otros. Ábralo, rellénelo y fírmelo.",
         "Cada checklist DP requiere la posición (grados, minutos y N/S, E/W del DGPS, o como el último checklist); la fecha y hora son el momento de firmar, en hora del buque y UTC. Las tablas son como en papel: toque la respuesta, escriba las lecturas; «Other» abre una celda; una respuesta incorrecta marca la fila en rojo. «Draw the schematic» abre una ventana para dibujar con lápiz (buque, plataforma, viento, corriente; Undo quita un trazo).",
         "Firman dos oficiales — quien entrega y quien recibe la guardia (en la llegada: el SDPO y el DPO): cada uno elige su nombre y firma con PIN o a mano. Luego «Save the signed checklist»; no se cambia y se abre en PDF. Si sale sin guardar, queda un borrador en el dispositivo y se ofrece restaurarlo. Los dispositivos guardan 90 días; los más antiguos se abren desde la nube bajo la lista.",
         "DP time: elija el DPO y el día, luego Active (en control) o Passive (vigilando) y marque las medias horas de la guardia. Un día con 2 horas o más es un día DP. Abajo, los días DP de cada DPO y sus horas activas y pasivas.",
@@ -1956,7 +2006,7 @@ const es: ManualContent = {
       title: "Checklists de puente y máquinas (Bridge and engine checklists)",
       body: [
         "Bridge and engine checklists (menú → Operations → Bridge & engine checklists) tiene dos carpetas: Bridge checklists y Engine checklists. Cada una tiene el relevo de guardia y el relevo por cambio de tripulación (Sign-on / sign-off: trabajo, documentos y llaves, familiarización según ISM 6.3 y STCW I/14). El relevo de guardia es lo que el oficial entrante debe saber según el Código STCW A-VIII/2: en el puente la posición y derrota, el tiempo, errores de compás, gobierno, equipos náuticos, tráfico y peligros, órdenes del Capitán; en máquinas la propulsión, generadores, sistemas, tanques, alarmas y órdenes del Jefe de Máquinas.",
-        "Familiarisation (menú → Operations → Familiarisation) tiene Safety familiarisation (todo el que embarca, marino o visitante, en 24 horas y antes de zarpar, STCW A-VI/1), Bridge, Engine, Project crew y Passenger familiarisation: la familiarización al embarcar (STCW I/14, ISM 6.3; personal de proyecto — IP / SPS Code; instrucción de seguridad a los huéspedes — SOLAS III/19.2), firmada por el familiarizado y quien lo familiarizó. Funcionan como los checklists DP: posición y hora de firma obligatorias, tablas como en papel, firman dos oficiales — quien entrega y quien recibe — con PIN o a mano, se guarda el borrador y el firmado no cambia; PDF o Print. ISMpilot configura los formularios del buque.",
+        "Familiarisation (menú → Operations → Familiarisation) tiene Safety familiarisation (todo el que embarca, marino o visitante, en 24 horas y antes de zarpar, STCW A-VI/1), Bridge, Engine, Project crew y Passenger familiarisation: la familiarización al embarcar (STCW I/14, ISM 6.3; personal de proyecto — IP / SPS Code; instrucción de seguridad a los huéspedes — SOLAS III/19.2), firmada por el familiarizado y quien lo familiarizó. Funcionan como los checklists DP: posición y hora de firma obligatorias, tablas como en papel, firman dos oficiales — quien entrega y quien recibe — con PIN o a mano, se guarda el borrador y el firmado no cambia; PDF o Print. ISM AI Pilot configura los formularios del buque.",
       ],
     },
     {
@@ -1982,6 +2032,16 @@ const es: ManualContent = {
         "Entradas automáticas: el módulo Security crea una entrada cuando un visitante se registra o abandona el buque en la pasarela. El módulo Landing Reports crea una al firmar un landing report. Estas entradas incluyen el texto completo y aparecen con su fecha; el icono 📎 enlaza al informe de origen — pulse para abrirlo.",
         "Autocompletar puerto: al editar el puerto de escala en los ajustes de Security, escriba las primeras letras y la app sugiere puertos de la lista mundial.",
         "Compartir: pulse el icono de compartir en la barra superior (visible cuando hay entradas para el día seleccionado) para guardar o imprimir la página firmada como archivo HTML.",
+      ],
+    },
+    {
+      emoji: '📡',
+      title: "Diario GMDSS (GMDSS Log)",
+      body: [
+        "El Diario GMDSS (menú → Logs → GMDSS Log) es el diario radioeléctrico: la escucha radio y las pruebas de los equipos, cada una una línea firmada. Las anotaciones las hacen los oficiales y el Capitán; una anotación firmada no se cambia nunca.",
+        "Daily check: VHF watch (canal), MF DSC watch (frecuencia), NAVTEX y las baterías GMDSS — OK, Charging o Charged, con el voltaje (escriba 130 para 13,0 V). Weekly check añade las pruebas DSC en VHF y MF/HF (el MMSI y la estación llamada), la luz indicadora y la autoprueba de la EPIRB y la autoprueba del SART. Monthly inspection añade el código ATIS, el MMSI del buque en todos los equipos, antenas y coaxial, los relojes GMDSS en UTC y el propio diario. Marque lo hecho; lo no marcado se anota con ✗.",
+        "Radar: Radar ON o Radar OFF, X-band o S-band, con una nota. Al apagarlo en puerto, active Radio watch closed — la línea se marca en rojo. Event / note es para todo lo demás: un socorro recibido y retransmitido, una llamada de prueba, un aviso NAVTEX.",
+        "Las tres marcas de arriba muestran cuándo se hizo cada prueba por última vez: verde — en plazo, ámbar — toca, rojo — vencida (la diaria tras un día, la semanal tras 7, la mensual tras 31). Los oficiales reciben los mismos avisos en el Board. Elija el mes y el botón PDF genera el diario de ese mes para imprimir o archivar.",
       ],
     },
     {
@@ -2169,10 +2229,10 @@ const uk: ManualContent = {
       emoji: '👑',
       title: "Ліцензія на судно",
       body: [
-        "ISMpilot Pro ліцензується на СУДНО. Ліцензія прив'язана до корабля за номером IMO, не до людини й не до пристрою. Усі офіцери та всі телефони, що приєдналися до судна, покриті однією ліцензією.",
+        "ISM AI Pilot Pro ліцензується на СУДНО. Ліцензія прив'язана до корабля за номером IMO, не до людини й не до пристрою. Усі офіцери та всі телефони, що приєдналися до судна, покриті однією ліцензією.",
         "Кожне судно має 60 днів, щоб спробувати застосунок, перш ніж почне діяти ліміт 15 позицій на категорію.",
         "Ціни та ліцензії для флоту: mail@ismpilot.com.",
-        "Ліцензію купує один раз той, хто веде судно, і активує її на акаунті корабля: Налаштування → ISMpilot Pro → Activate the vessel licence. Відтоді повний доступ мають усі приєднані пристрої.",
+        "Ліцензію купує один раз той, хто веде судно, і активує її на акаунті корабля: Налаштування → ISM AI Pilot Pro → Activate the vessel licence. Відтоді повний доступ мають усі приєднані пристрої.",
         "Без ліцензії після безкоштовного періоду застосунок працює далі, але реєстр обмежений 15 позиціями на категорію.",
         "Пристрій, приєднаний до судна з ліцензією, отримує її автоматично. Якщо він усе ж показує сторінку активації, відкрийте її та натисніть Restore the vessel licence.",
       ],
@@ -2204,7 +2264,7 @@ const uk: ManualContent = {
       emoji: '🔎',
       title: 'Сканування, позначки та нещодавно відскановані',
       body: [
-        'Скануйте QR-етикетку або серійний номер кнопкою QR у шапці екрана Dashboard або вкладки Categories. Збіг одразу відкриває позицію; заводський штрихкод або записаний серійний номер теж її знайдуть. Користуйтеся кнопкою в застосунку, а не системною камерою — QR формату ISMpilot це приватне посилання, яке камера сама відкрити не може. Якщо код пошкоджено, а цифри ще читаються, введіть їх вручну — той самий пошук.',
+        'Скануйте QR-етикетку або серійний номер кнопкою QR у шапці екрана Dashboard або вкладки Categories. Збіг одразу відкриває позицію; заводський штрихкод або записаний серійний номер теж її знайдуть. Користуйтеся кнопкою в застосунку, а не системною камерою — QR формату ISM AI Pilot це приватне посилання, яке камера сама відкрити не може. Якщо код пошкоджено, а цифри ще читаються, введіть їх вручну — той самий пошук.',
         "Print label (на екрані позиції) друкує QR-етикетку. Повнорозмірна етикетка містить тип і розмір (\"CO2 5kg\"), номер позиції та серійний номер (\"No. 01-SD · S/N C001111\"), дату наступної перевірки або терміну придатності, а також категорію з палубою та розташуванням. На найменших етикетках залишаються тип, номер і серійний номер.",
         "Усі етикетки одразу друкуються кнопкою з ярликом поряд із QR-сканером на вкладці Categories (або Settings → Print QR labels). Оберіть групу, позначте палуби та категорії — кнопка покаже, скільки це наклейок; наступний екран обирає розмір і куди друкувати: на Xprinter по Bluetooth, на термо-рулон, на аркуш A4 з лініями відрізу на офісному принтері або в PDF для застосунку іншого принтера. Етикетки виходять палуба за палубою, потім за категорією та номером позиції, тож рулон повторює обхід судна. Усередині однієї категорії натомість можна довгим натисканням позначити кілька позицій вручну.",
         'Позначка «повернутися до цього»: відкрийте позицію та натисніть кнопку Flag поряд зі статусом. Позначка — не статус відповідності: позиція може бути повністю в терміні й усе одно потребувати другого погляду (іржа, тугий палець, сумнів). За бажанням додайте коротку нотатку чому.',
@@ -2471,7 +2531,7 @@ const uk: ManualContent = {
       body: [
         "Розумний імпорт: Settings → Import from Excel → Photo or PDF of a paper register (AI) читає сфотографований чи відсканований список у попередній перегляд — нічого не зберігається, доки ви не імпортуєте. У Crew, Passengers, Stores і аптечці є Any list (AI): таблиця зі своїми назвами колонок (список гостей від агента, аркуш постачальника) — AI бачить лише заголовки й форму кількох рядків («P…a», «99/99/9999»), але не імена й номери, а сам файл читає застосунок. Stores і аптечка приймають ще фото або PDF.",
         "Під час перевірки обладнання: Say what you found — скажіть (мікрофон клавіатури або Speak у браузері) чи напишіть будь-якою мовою, потім Fill from what I said; або додайте фото й натисніть From the photo. AI позначає пункти чек-листа, які бачить, пише коментар англійською і дефект, якщо щось не так. Це лише підказка: перевірте кожен пункт і підпишіть.",
-        "Ask ISMpilot (на Board): питання звичайними словами — «що спливає наступного місяця?», «коли була остання тривога enclosed space?» — відповідь за записами судна (обладнання, сертифікати, дефекти, перевірки, навчання, Board) з рядками, на які вона спирається. Записи пацієнтів і гостей до AI не потрапляють. Працює, коли судно синхронізується; у кожного судна денний ліміт.",
+        "Ask ISM AI Pilot (на Board): питання звичайними словами — «що спливає наступного місяця?», «коли була остання тривога enclosed space?» — відповідь за записами судна (обладнання, сертифікати, дефекти, перевірки, навчання, Board) з рядками, на які вона спирається. Записи пацієнтів і гостей до AI не потрапляють. Працює, коли судно синхронізується; у кожного судна денний ліміт.",
       ],
     },
     {
@@ -2524,6 +2584,16 @@ const uk: ManualContent = {
       body: [
         "Картки спостережень: будь-хто на борту подає картку за пів хвилини — небезпечна умова, небезпечна дія, майже-подія (near miss) або добра практика, якою варто поділитися; про що, де, що зроблено на місці і чи було зупинено роботу. З іменем або анонімно — анонімна картка імені не містить. Нові картки йдуть першими; офіцер розглядає кожну — «Reviewed» з коментарем або «Raise an NC». Рядок над списком рахує картки, near miss і добру практику за місяць — цифри для щомісячних зборів з безпеки.",
         "Невідповідності (ISM, розділи 9 і 10): з аудиту, PSC, прапора чи класу, інциденту, near miss або картки спостереження. Кожна має номер — NC-2026-001, — ступінь (зауваження, невідповідність, суттєва невідповідність), що виявлено, яку вимогу порушено і корінну причину. Далі дії: виправлення, коригувальна дія проти причини, запобіжна — у кожної виконавець і строк. Виконавець підписує виконання (PIN, відбиток або рукою). Коли все виконано, Майстер закриває NC з підписом і оцінкою, чи спрацювали заходи; закрита NC більше не змінюється. Прострочені дії та NC, що чекають закриття, видно на головному екрані. QHSE register (PDF / Excel) друкує обидва списки.",
+      ],
+    },
+    {
+      emoji: '🧾',
+      title: "Внутрішні аудити (Internal audits)",
+      body: [
+        "Внутрішні аудити (Safety → Internal audits ›) — власні аудити судна за ISM і MLC. Починають і проводять їх офіцери та капітан; список бачать усі.",
+        "Оберіть вид і натисніть Start audit: ISM Internal Audit (12 елементів Кодексу ISM), MLC Compliance Audit (правила MLC 2006 — від мінімального віку до DMLC) або Custom Audit (порожній список: Add item — власне посилання й вимога). Кожен аудит отримує номер IA-рік-NN.",
+        "Запишіть обсяг (scope) — ділянки, служби, період, що перевіряється, — і пройдіть пункти: OK, Observation, NC / Finding або N/A, з коментарем чи побаченим підтвердженням. Усе зберігається по ходу; аудит лишається відкритим (Open), доки його не закриють.",
+        "Close & sign audit: оберіть аудитора й підпишіть — після цього аудит лише для читання. Під кожним NC чи Observation кнопка Raise NC / finding › відкриває нову невідповідність у розділі «Спостереження та невідповідності», де ведуться коригувальна дія, виконавець і строк. У списку видно, скільки NC і спостережень знайшов кожен аудит.",
       ],
     },
     {
@@ -2600,7 +2670,7 @@ const uk: ManualContent = {
       title: "Динамічне позиціонування (Dynamic positioning)",
       body: [
         "Dynamic positioning (меню → Dynamic positioning) — три сторінки: DP checklists, DP time і Confirmation letter.",
-        "DP-чеклісти — свої в кожного судна: їх налаштовує ISMpilot за формами судна (DP Operations Manual, ASOG) — передача/прийом вахти, прибуття на родовище з DP trials та інші. Відкрийте, заповніть і підпишіть.",
+        "DP-чеклісти — свої в кожного судна: їх налаштовує ISM AI Pilot за формами судна (DP Operations Manual, ASOG) — передача/прийом вахти, прибуття на родовище з DP trials та інші. Відкрийте, заповніть і підпишіть.",
         "Кожен DP-чекліст потребує позицію місця заповнення (градуси, мінути і N/S, E/W з DGPS або як у попередньому чеклісті); дата і час — момент підпису, у судновому часі та UTC. Таблиці — як на папері: натисніть відповідь, впишіть показники; «Other» відкриває поле; неправильна відповідь підсвічує рядок червоним. «Draw the schematic» відкриває вікно для схеми стилусом (Undo прибирає штрих).",
         "Підписують два офіцери — той, хто здає, і той, хто приймає вахту (при прибутті — SDPO і DPO): кожен обирає своє ім'я і підписує PIN або від руки. Потім «Save the signed checklist»; підписаний не змінюється і відкривається в PDF. Якщо вийти без збереження — чернетка лишається на пристрої, при відкритті пропонується відновити. На пристроях зберігаються чеклісти за 90 днів; старші відкриваються з хмари під списком.",
         "DP time: виберіть DPO і день, потім Active (керує) або Passive (спостерігає) і позначте півгодини вахти. День із 2 годинами й більше — DP-день. Нижче — DP-дні кожного DPO, активні й пасивні години.",
@@ -2612,7 +2682,7 @@ const uk: ManualContent = {
       title: "Чеклісти містка і машини (Bridge and engine checklists)",
       body: [
         "Bridge and engine checklists (меню → Operations → Bridge & engine checklists) — дві папки: Bridge checklists і Engine checklists. У кожній — передача вахти і передача справ при зміні екіпажу (Sign-on / sign-off: справи, документи і ключі, ознайомлення за ISM 6.3 і STCW I/14). Передача вахти — що має знати той, хто приймає, за STCW Code A-VIII/2 — на містку позиція і шлях, погода, поправки компасів, стернове, навігаційне обладнання, судна і небезпеки, розпорядження капітана; у машині — пропульсія, генератори, системи, танки, тривоги і розпорядження старшого механіка.",
-        "Familiarisation (меню → Operations → Familiarisation) — Safety familiarisation (кожен, хто прибув на борт, моряк чи відвідувач, — протягом 24 годин і до виходу, STCW A-VI/1), Bridge, Engine, Project crew і Passenger familiarisation: ознайомлення при прибутті (STCW I/14, ISM 6.3; проектний персонал — IP / SPS Code; інструктаж гостей — SOLAS III/19.2); підписують ознайомлений і той, хто знайомив. Працюють як DP-чеклісти: позиція і час підпису обов'язкові, таблиці як на папері, підписують двоє — PIN або від руки, чернетка зберігається, підписаний не змінюється; PDF або Print. Свої бланки судна налаштовує ISMpilot.",
+        "Familiarisation (меню → Operations → Familiarisation) — Safety familiarisation (кожен, хто прибув на борт, моряк чи відвідувач, — протягом 24 годин і до виходу, STCW A-VI/1), Bridge, Engine, Project crew і Passenger familiarisation: ознайомлення при прибутті (STCW I/14, ISM 6.3; проектний персонал — IP / SPS Code; інструктаж гостей — SOLAS III/19.2); підписують ознайомлений і той, хто знайомив. Працюють як DP-чеклісти: позиція і час підпису обов'язкові, таблиці як на папері, підписують двоє — PIN або від руки, чернетка зберігається, підписаний не змінюється; PDF або Print. Свої бланки судна налаштовує ISM AI Pilot.",
       ],
     },
     {
@@ -2638,6 +2708,16 @@ const uk: ManualContent = {
         "Автоматичні записи: модуль Security створює запис у журналі, коли відвідувач проходить реєстрацію на трапі або іде. Модуль Landing Reports створює запис при підписанні супровідного листа. Ці записи містять повний текст і з'являються датою події; іконка 📎 скріпки посилається на вихідний звіт — натисніть, щоб відкрити.",
         "Автодоповнення порту: при редагуванні порту стоянки в налаштуваннях Security введіть перші букви — застосунок запропонує варіанти зі світового списку портів.",
         "Публікація: натисніть іконку поділитися у верхній панелі (з'являється, коли є записи за вибраний день), щоб зберегти або надрукувати підписану сторінку у вигляді HTML-файлу.",
+      ],
+    },
+    {
+      emoji: '📡',
+      title: "Журнал ГМЗЛБ (GMDSS Log)",
+      body: [
+        "Журнал ГМЗЛБ (меню → Logs → GMDSS Log) — радіожурнал: радіовахта та перевірки обладнання, кожна — один підписаний рядок. Записи роблять офіцери та капітан; підписаний запис не змінюється.",
+        "Daily check: VHF watch (канал), MF DSC watch (частота), NAVTEX і акумулятори ГМЗЛБ — OK, Charging або Charged, з напругою (введіть 130 для 13,0 В). Weekly check додає тести DSC на VHF і MF/HF (MMSI та викликана станція), індикатор і самотест EPIRB, самотест SART. Monthly inspection додає код ATIS, MMSI судна в усіх станціях, антени й кабелі, годинники ГМЗЛБ за UTC і сам журнал. Позначте зроблене; непозначене потрапляє до журналу з ✗.",
+        "Radar: Radar ON або Radar OFF, X-band або S-band, з приміткою. Вимикаючи в порту, увімкніть Radio watch closed — рядок позначається червоним. Event / note — для всього іншого: прийнятий і ретрансльований сигнал лиха, тестовий виклик, попередження NAVTEX.",
+        "Три позначки вгорі показують, коли кожну перевірку робили востаннє: зелена — вчасно, жовта — час, червона — прострочено (щоденна — через добу, щотижнева — через 7 днів, щомісячна — через 31). Ті самі нагадування отримують офіцери на дошці (Board). Оберіть місяць — кнопка PDF робить журнал за цей місяць для друку чи архіву.",
       ],
     },
     {
@@ -2816,10 +2896,10 @@ const no: ManualContent = {
       emoji: '👑',
       title: 'Fartøylisens',
       body: [
-        'ISMpilot Pro er lisensiert til FARTØYET etter IMO-nummer – ikke per person og ikke per enhet. Alle offiserer og alle enheter som har meldt seg inn på fartøyet, dekkes av én lisens.',
+        'ISM AI Pilot Pro er lisensiert til FARTØYET etter IMO-nummer – ikke per person og ikke per enhet. Alle offiserer og alle enheter som har meldt seg inn på fartøyet, dekkes av én lisens.',
         'Hvert fartøy har 60 dager til å prøve appen før grensen på 15 utstyr per kategori trer i kraft.',
         'Priser og flåtelisenser: mail@ismpilot.com.',
-        'Lisensen kjøpes én gang av den som administrerer fartøyet og aktiveres på skipets konto: Settings → ISMpilot Pro → Aktiver fartøylisensen.',
+        'Lisensen kjøpes én gang av den som administrerer fartøyet og aktiveres på skipets konto: Settings → ISM AI Pilot Pro → Aktiver fartøylisensen.',
         'Uten lisens etter prøveperioden fortsetter appen å fungere, men registeret er begrenset til 15 utstyr per kategori.',
         'En enhet som melder seg inn på et lisensiert fartøy plukker opp lisensen av seg selv.',
       ],
@@ -3086,7 +3166,7 @@ const no: ManualContent = {
       body: [
         'Smart import: Settings → Import from Excel → Bilde eller PDF av papirregister (AI) leser en fotografert eller skannet liste inn i importforhåndsvisningen.',
         'På en inspeksjon: Si hva du fant – tal (tastaturets mikrofon, eller Speak i en nettleser) eller skriv, på ethvert språk – deretter Fyll fra hva jeg sa; eller legg til et bilde og trykk Fra bildet. AI-en merker sjekklistelinjene den kan se, skriver merknaden på engelsk og en defekt når noe er galt. Den foreslår bare: sjekk hver linje, deretter signer.',
-        'Spør ISMpilot (på Oppslagstavlen): et spørsmål med vanlige ord – «hva utløper neste måned?», «når var siste lukket rom-øvelse?» – besvart fra fartøyets registre.',
+        'Spør ISM AI Pilot (på Oppslagstavlen): et spørsmål med vanlige ord – «hva utløper neste måned?», «når var siste lukket rom-øvelse?» – besvart fra fartøyets registre.',
       ],
     },
     {
@@ -3134,6 +3214,16 @@ const no: ManualContent = {
       body: [
         'Observasjonskort: alle om bord leverer ett inn, på et halvt minutt – en usikker tilstand, en usikker handling, en nestenulykke eller god praksis verdt å dele.',
         'Avvik (ISM-koden 9 og 10): fra revisjon, PSC, flagg, hendelse eller observasjonskort. Hvert får et nummer – NC-2026-001 – en alvorlighetsgrad, hva som ble funnet og kravet som ikke ble møtt.',
+      ],
+    },
+    {
+      emoji: '🧾',
+      title: "Interne revisjoner",
+      body: [
+        "Interne revisjoner (Safety → Internal audits ›) er fartøyets egne ISM- og MLC-revisjoner. Offiserer og Master starter og gjennomfører dem; alle ser listen.",
+        "Velg type og trykk Start audit: ISM Internal Audit (de 12 elementene i ISM-koden), MLC Compliance Audit (MLC 2006-reglene, fra minstealder til DMLC) eller Custom Audit (en tom liste – Add item for egen referanse og eget krav). Hver revisjon får nummer IA-år-NN.",
+        "Skriv omfanget (scope) – områder, avdelinger, perioden som dekkes – og gå gjennom punktene: OK, Observation, NC / Finding eller N/A, med en kommentar eller bevis som ble sett. Alt lagres underveis; revisjonen står som Open til den lukkes.",
+        "Close & sign audit: velg revisor og signer; revisjonen kan da bare leses. Under hver NC eller Observation åpner Raise NC / finding › et nytt avvik i Sikkerhetsobs. og NC, der korrigerende tiltak, hvem som gjør det og frist følges opp. Listen viser hvor mange NC og observasjoner hver revisjon fant.",
       ],
     },
     {
@@ -3199,7 +3289,7 @@ const no: ManualContent = {
       title: 'Dynamisk posisjonering',
       body: [
         'Dynamisk posisjonering (meny → Dynamisk posisjonering) har tre sider: DP-sjekklister, DP-tid og bekreftelsesbrevet.',
-        'DP-sjekklister er fartøyets egne – satt opp av ISMpilot fra fartøyets skjemaer: vaktoverdragelse/overtagelse, feltankomst med DP-prøver, og andre.',
+        'DP-sjekklister er fartøyets egne – satt opp av ISM AI Pilot fra fartøyets skjemaer: vaktoverdragelse/overtagelse, feltankomst med DP-prøver, og andre.',
         'DP-tid: velg DP-operatøren og dagen, deretter Aktiv (i kontroll) eller Passiv (observerer) og trykk halvtimene i vakten.',
         'Bekreftelsesbrevsbrevet: brevet til Nautical Institute for en DPOs DP-sertifikat.',
       ],
@@ -3229,6 +3319,16 @@ const no: ManualContent = {
         'Hver post registrerer modus – Til sjøs (kurs, fart, posisjon) eller I havn – pluss vær og et fritekst-merknadsefelt for hendelser, ordrer og observasjoner.',
         'Lagre vs. Signer: trykk Lagre registrerer et utkast umiddelbart. Et utkast kan åpnes på nytt og redigeres. Trykk Signer låser posten permanent.',
         'Automatiske poster: Sikkerhetsmodulen lager en loggpost når en besøkende signerer inn eller ut ved gangveien.',
+      ],
+    },
+    {
+      emoji: '📡',
+      title: "GMDSS-logg",
+      body: [
+        "GMDSS-loggen (meny → Logs → GMDSS Log) er radiologgen: radiovakten og utstyrstestene, én signert linje hver. Offiserer og Master fører inn; en signert innføring endres aldri.",
+        "Daily check: VHF watch (kanal), MF DSC watch (frekvens), NAVTEX og GMDSS-batteriene – OK, Charging eller Charged, med spenning (skriv 130 for 13,0 V). Weekly check legger til DSC-testene på VHF og MF/HF (MMSI og stasjonen som ble anropt), EPIRB-indikatorlys og selvtest og SART-selvtest. Monthly inspection legger til ATIS-koden, skipets MMSI i alle sett, antenner og koaks, GMDSS-klokkene på UTC og selve loggen. Huk av det som ble gjort; det som ikke er avhuket, skrives med ✗ i loggen.",
+        "Radar: Radar ON eller Radar OFF, X-band eller S-band, med en merknad. Slår du av i havn, slå på Radio watch closed – linjen merkes rødt. Event / note er for alt annet: et nødanrop mottatt og videresendt, et testanrop, en NAVTEX-varsling.",
+        "De tre merkene øverst viser når hver kontroll sist ble gjort: grønn – i tide, gul – forfaller, rød – forfalt (daglig etter ett døgn, ukentlig etter 7 dager, månedlig etter 31). Offiserene får de samme påminnelsene på Board. Velg måned, og PDF-knappen lager månedens logg for utskrift eller arkiv.",
       ],
     },
     {
@@ -3401,10 +3501,10 @@ const pt: ManualContent = {
       emoji: '👑',
       title: 'Licença da embarcação',
       body: [
-        'O ISMpilot Pro é licenciado para a EMBARCAÇÃO pelo número IMO – não por pessoa e não por dispositivo. Todos os oficiais e todos os dispositivos que ingressaram na embarcação são cobertos por uma licença.',
+        'O ISM AI Pilot Pro é licenciado para a EMBARCAÇÃO pelo número IMO – não por pessoa e não por dispositivo. Todos os oficiais e todos os dispositivos que ingressaram na embarcação são cobertos por uma licença.',
         'Cada embarcação tem 60 dias para experimentar o aplicativo antes que o limite de 15 itens por categoria se aplique.',
         'Preços e licenças de frota: mail@ismpilot.com.',
-        'A licença é comprada uma vez por quem gerencia a embarcação e ativada na conta do navio: Settings → ISMpilot Pro → Ativar licença da embarcação.',
+        'A licença é comprada uma vez por quem gerencia a embarcação e ativada na conta do navio: Settings → ISM AI Pilot Pro → Ativar licença da embarcação.',
         'Sem licença após o período gratuito, o aplicativo continua funcionando, mas o registro é limitado a 15 itens por categoria.',
       ],
     },
@@ -3665,7 +3765,7 @@ const pt: ManualContent = {
       body: [
         'Importação inteligente: Settings → Import from Excel → Foto ou PDF de registro em papel (IA) lê uma lista fotografada ou escaneada para a prévia de importação.',
         'Em uma inspeção: Diga o que encontrou – fale (o microfone do teclado, ou Falar em um navegador) ou escreva, em qualquer idioma – depois Preencher com o que eu disse.',
-        'Perguntar ao ISMpilot (no Quadro): uma pergunta em linguagem simples – «o que vence no próximo mês?», «quando foi o último exercício em espaço confinado?» – respondida a partir dos registros da embarcação.',
+        'Perguntar ao ISM AI Pilot (no Quadro): uma pergunta em linguagem simples – «o que vence no próximo mês?», «quando foi o último exercício em espaço confinado?» – respondida a partir dos registros da embarcação.',
       ],
     },
     {
@@ -3713,6 +3813,16 @@ const pt: ManualContent = {
       body: [
         'Cartões de observação: qualquer pessoa a bordo entrega um, em meio minuto – uma condição insegura, um ato inseguro, um quase acidente ou boa prática digna de compartilhar.',
         'Não conformidades (Código ISM 9 e 10): de uma auditoria, PSC, bandeira, incidente ou cartão de observação. Cada uma recebe um número – NC-2026-001 – um grau.',
+      ],
+    },
+    {
+      emoji: '🧾',
+      title: "Auditorias internas",
+      body: [
+        "As auditorias internas (Safety → Internal audits ›) são as auditorias ISM e MLC do próprio navio. Oficiais e o Comandante as iniciam e conduzem; todos veem a lista.",
+        "Escolha o tipo e toque em Start audit: ISM Internal Audit (os 12 elementos do Código ISM), MLC Compliance Audit (as regras da MLC 2006, da idade mínima à DMLC) ou Custom Audit (uma lista vazia — Add item para sua própria referência e requisito). Cada auditoria recebe o número IA-ano-NN.",
+        "Escreva o escopo (scope) — áreas, departamentos, período coberto — e percorra os itens: OK, Observation, NC / Finding ou N/A, com um comentário ou a evidência vista. Tudo é salvo à medida que avança; a auditoria fica aberta (Open) até ser encerrada.",
+        "Close & sign audit: escolha o auditor e assine; a auditoria passa a ser somente leitura. Sob cada NC ou Observation, Raise NC / finding › abre uma nova não conformidade em Obs. de segurança e NC, onde a ação corretiva, o responsável e o prazo são acompanhados. A lista mostra quantas NC e observações cada auditoria encontrou.",
       ],
     },
     {
@@ -3775,7 +3885,7 @@ const pt: ManualContent = {
       title: 'Posicionamento dinâmico',
       body: [
         'Posicionamento dinâmico (menu → Posicionamento dinâmico) tem três páginas: Listas de verificação DP, Horas DP e a carta de confirmação.',
-        'Listas de verificação DP são as próprias da embarcação – configuradas pelo ISMpilot a partir dos formulários da embarcação.',
+        'Listas de verificação DP são as próprias da embarcação – configuradas pelo ISM AI Pilot a partir dos formulários da embarcação.',
         'Horas DP: escolha o operador DP e o dia, depois Ativo (no controle) ou Passivo (observando) e toque nas meias horas do turno.',
         'Carta de confirmação: a carta ao Nautical Institute para o certificado DP de um operador.',
       ],
@@ -3805,6 +3915,16 @@ const pt: ManualContent = {
         'Cada lançamento registra o modo – No Mar (rumo, velocidade, posição) ou No Porto – mais o tempo e um campo de Observações em texto livre.',
         'Salvar vs. Assinar: tocar em Salvar registra um rascunho imediatamente. Tocar em Assinar bloqueia o lançamento permanentemente.',
         'Lançamentos automáticos: o módulo de Segurança cria um lançamento no diário quando um visitante assina na entrada ou saída na prancha.',
+      ],
+    },
+    {
+      emoji: '📡',
+      title: "Diário GMDSS",
+      body: [
+        "O Diário GMDSS (menu → Logs → GMDSS Log) é o diário de rádio: a escuta radioelétrica e os testes dos equipamentos, cada um uma linha assinada. Oficiais e o Comandante fazem os registros; um registro assinado nunca é alterado.",
+        "Daily check: VHF watch (canal), MF DSC watch (frequência), NAVTEX e as baterias GMDSS — OK, Charging ou Charged, com a tensão (digite 130 para 13,0 V). Weekly check acrescenta os testes DSC em VHF e MF/HF (o MMSI e a estação chamada), a luz indicadora e o autoteste do EPIRB e o autoteste do SART. Monthly inspection acrescenta o código ATIS, o MMSI do navio em todos os equipamentos, antenas e cabo coaxial, os relógios GMDSS em UTC e o próprio diário. Marque o que foi feito; o que ficar desmarcado é registrado com ✗.",
+        "Radar: Radar ON ou Radar OFF, X-band ou S-band, com uma observação. Ao desligar no porto, ative Radio watch closed — a linha fica marcada em vermelho. Event / note é para todo o resto: um pedido de socorro recebido e retransmitido, uma chamada de teste, um aviso NAVTEX.",
+        "As três marcas no topo mostram quando cada verificação foi feita pela última vez: verde — em dia, âmbar — vence, vermelho — vencida (diária após um dia, semanal após 7 dias, mensal após 31). Os oficiais recebem os mesmos lembretes no Board. Escolha o mês e o botão PDF gera o diário desse mês para imprimir ou arquivar.",
       ],
     },
     {
@@ -3875,6 +3995,8 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Safety observations & NC', module: 'qhse' },
   { title: 'Fleet console (superintendent)', module: 'fleet' },
   { title: 'Deck watch log', module: 'deckLog' },
+  { title: 'Internal audits', module: 'qhse' },
+  { title: 'GMDSS Log', module: 'gmdss' },
 ];
 
 /** The manual as this build should show it: sections of switched-off modules removed. */

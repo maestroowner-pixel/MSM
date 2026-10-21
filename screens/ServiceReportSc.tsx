@@ -27,11 +27,12 @@ import { canAddCertificate } from '../services/trial';
 import { aiCall, aiReady } from '../services/ai';
 import { PickedFile, pickDocument, pickFromCamera, pickFromLibrary, toDataUri } from '../services/attachments';
 import { AI_FIELDS, Match, ReportPick, ServiceReport, applyReport, certificateFor, emptyReport, fromAiRows, matchReport } from '../services/serviceReport';
+import { t, tk, tn, useT } from '../utils/i18n';
 
-const HOW: Record<Match['how'], string> = { serial: 'by serial', no: 'by No', category: 'whole category' };
 const MAX_AI_BYTES = 10 * 1024 * 1024;
 
 export default function ServiceReportSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -71,45 +72,44 @@ export default function ServiceReportSc() {
 
   const readAi = async () => {
     if (!file) return;
-    setBusy('The AI is reading the report…');
+    setBusy(t('sr.reading'));
     setAiNote(null);
     try {
       const dataUri = await toDataUri(file.uri, file.name ?? 'report.pdf');
       const mediaType = dataUri.slice(5, dataUri.indexOf(';'));
       const data = dataUri.slice(dataUri.indexOf(',') + 1);
-      if (data.length * 0.75 > MAX_AI_BYTES) throw new Error('The file is over 10 MB — fill in the fields by hand, or attach a smaller scan.');
+      if (data.length * 0.75 > MAX_AI_BYTES) throw new Error(t('sr.tooBig'));
       const res = await aiCall<{ rows?: Record<string, unknown>[]; unreadable?: string }>('table', { target: 'service certificate', fields: AI_FIELDS, mediaType, data });
       const r = fromAiRows(res.rows ?? []);
       setRep(r);
       setTicks({});
       setFieldPick(null);
       setAiNote(
-        `Read: ${r.lines.length ? `${r.lines.length} line${r.lines.length === 1 ? '' : 's'}` : 'no item lines (one certificate for the category)'}${res.unreadable ? ` · could not read: ${res.unreadable}` : ''}. Check the fields below against the paper.`
+        `${t('sr.read', { what: r.lines.length ? tn('n.line', r.lines.length) : t('sr.noLines') })}${res.unreadable ? ` · ${t('dpt.couldNot', { what: res.unreadable })}` : ''}. ${t('sr.check')}`
       );
     } catch (e: any) {
-      Alert.alert('Service report', String(e?.message ?? e));
+      Alert.alert(t('sr.title'), String(e?.message ?? e));
     } finally {
       setBusy(null);
     }
   };
 
   const apply = () => {
-    if (!picks.length) return Alert.alert('Service report', 'Tick the items the report is about.');
-    if (!rep.nextDate && !rep.lines.some((l) => l.next)) return Alert.alert('Service report', 'Put in the next service date.');
+    if (!picks.length) return Alert.alert(t('sr.title'), t('sr.tick'));
+    if (!rep.nextDate && !rep.lines.some((l) => l.next)) return Alert.alert(t('sr.title'), t('sr.needNext'));
     const bad = picks.filter((p) => p.line != null && ['condemned', 'fail'].includes(rep.lines[p.line].result)).length;
     Alert.alert(
-      `Update ${picks.length} item${picks.length === 1 ? '' : 's'}?`,
-      `${field === 'expiry' ? 'Expiry' : 'Next inspection'} → the date of the report, and one line in each item's remarks${bad ? `; ${bad} condemned or failed keep their old date` : ''}. ` +
-        'The items keep their QR labels, photos and history. A certificate with the PDF is filed and linked to them.\n\nA copy of the register as it is now is kept in Settings → Data.',
+      tn('sr.updateQ', picks.length),
+      `${t('sr.updateBody', { field: field === 'expiry' ? t('sr.expiry') : t('sr.nextInsp') })}${bad ? `; ${t('sr.keepOld', { n: bad })}` : ''}. ${t('sr.updateKeep')}`,
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Update', onPress: () => void doApply() },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('sr.update'), onPress: () => void doApply() },
       ]
     );
   };
 
   const doApply = async () => {
-    setBusy('Updating the register…');
+    setBusy(t('sr.updating'));
     try {
       const newId = uid('cert');
       const cert = certificateFor(rep, picks.map((p) => p.itemId), file ? { fileUri: file.uri, fileName: file.name, fileKind: file.kind } : null, certificates, newId);
@@ -131,16 +131,16 @@ export default function ServiceReportSc() {
       await saveCertificate(cert);
       await reload();
       setBusy(null);
-      Alert.alert('Done', `${changed} item${changed === 1 ? '' : 's'} updated; certificate ${cert.number || cert.name} filed.`);
+      Alert.alert(t('common.done'), t('sr.doneBody', { x: tn('n.item', changed), cert: cert.number || cert.name }));
       nav.replace('CertificateDetail', { id: cert.id });
     } catch (e: any) {
       setBusy(null);
-      Alert.alert('Could not update', String(e?.message ?? e));
+      Alert.alert(t('sr.couldNot'), String(e?.message ?? e));
     }
   };
 
   const itemLine = (it?: EquipmentItem) =>
-    it ? [CATEGORY_MAP[it.category]?.short, it.type, it.no != null && it.no !== '' ? `No ${it.no}` : null, it.serial ? `S/N ${it.serial}` : null, it.position].filter(Boolean).join(' · ') : 'Item no longer in the register';
+    it ? [CATEGORY_MAP[it.category]?.short, it.type, it.no != null && it.no !== '' ? t('round.no', { n: it.no }) : null, it.serial ? `S/N ${it.serial}` : null, it.position].filter(Boolean).join(' · ') : t('sr.gone');
 
   const row = (id: string, checked: boolean, sub: string, tone?: string) => (
     <TouchableOpacity key={id} style={styles.row} onPress={() => setTicks((t) => ({ ...t, [id]: !checked }))} activeOpacity={0.7}>
@@ -153,36 +153,36 @@ export default function ServiceReportSc() {
   );
 
   // Registered for every vessel; a link to it must not open a module this vessel does not have.
-  if (!moduleOn('serviceReport')) return <Screen><Empty text="Not available on this vessel." /></Screen>;
+  if (!moduleOn('serviceReport')) return <Screen><Empty text={t('common.notAvailable')} /></Screen>;
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Service report" subtitle="The station's PDF into the register — dates, remarks and the certificate, in one go" help="Certificates" />
+      <ScreenTitle title={t('sr.title')} subtitle={t('sr.sub')} help="Certificates" />
 
-      <Label>1 · The station's report or certificate</Label>
+      <Label>{`1 · ${t('sr.step1')}`}</Label>
       <View style={styles.chips}>
         <TouchableOpacity style={styles.chip} onPress={attach(pickDocument)}>
-          <Text style={styles.chipText}>PDF / document</Text>
+          <Text style={styles.chipText}>{t('sr.pdfDoc')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.chip} onPress={attach(pickFromLibrary)}>
-          <Text style={styles.chipText}>Photo</Text>
+          <Text style={styles.chipText}>{t('sr.photo')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.chip} onPress={attach(pickFromCamera)}>
-          <Text style={styles.chipText}>Camera</Text>
+          <Text style={styles.chipText}>{t('pick.camera')}</Text>
         </TouchableOpacity>
       </View>
       {file ? (
         <View style={styles.fileRow}>
           <MciIcon name={file.kind === 'photo' ? 'image-outline' : 'file-pdf-box'} size={20} color={COLORS.primary} />
-          <Text style={[styles.title, { flex: 1 }]} numberOfLines={1}>{file.name ?? 'Attached'}</Text>
+          <Text style={[styles.title, { flex: 1 }]} numberOfLines={1}>{file.name ?? t('dl.attached')}</Text>
           {aiReady(sync.enrolled) ? (
             <TouchableOpacity style={styles.btn} onPress={readAi} disabled={!!busy}>
-              <Text style={styles.btnText}>Read it with AI</Text>
+              <Text style={styles.btnText}>{t('sr.readAi')}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
       ) : (
-        <Text style={styles.sub}>Optional, but keep it: the PDF is filed with the certificate.</Text>
+        <Text style={styles.sub}>{t('sr.optional')}</Text>
       )}
       {aiNote ? <Text style={[styles.sub, { color: COLORS.success, marginTop: SIZES.xs }]}>{aiNote}</Text> : null}
       {busy ? (
@@ -192,16 +192,16 @@ export default function ServiceReportSc() {
         </View>
       ) : null}
 
-      <Label style={{ marginTop: SIZES.md }}>2 · The certificate</Label>
-      <Field label="Name" value={rep.name} onChange={(v) => set({ name: v })} placeholder="Fire extinguishers — annual service" styles={styles} COLORS={COLORS} />
+      <Label style={{ marginTop: SIZES.md }}>{`2 · ${t('sr.step2')}`}</Label>
+      <Field label={t('ho.namePh')} value={rep.name} onChange={(v) => set({ name: v })} placeholder={t('sr.namePh')} styles={styles} COLORS={COLORS} />
       <View style={styles.pair}>
-        <Field label="Certificate No" value={rep.number} onChange={(v) => set({ number: v })} placeholder="4471" styles={styles} COLORS={COLORS} />
-        <Field label="Service station" value={rep.issuer} onChange={(v) => set({ issuer: v })} placeholder="Firemaster Palma" styles={styles} COLORS={COLORS} />
+        <Field label={t('sr.certNo')} value={rep.number} onChange={(v) => set({ number: v })} placeholder="4471" styles={styles} COLORS={COLORS} />
+        <Field label={t('sr.station')} value={rep.issuer} onChange={(v) => set({ issuer: v })} placeholder="Firemaster Palma" styles={styles} COLORS={COLORS} />
       </View>
-      <SimpleDatePicker label="Service date" value={rep.serviceDate} onChange={(d) => set({ serviceDate: d || undefined })} />
-      <SimpleDatePicker label="Next service ★" value={rep.nextDate} onChange={(d) => set({ nextDate: d || undefined })} defaultYear={new Date().getFullYear() + 1} />
+      <SimpleDatePicker label={t('sr.serviceDate')} value={rep.serviceDate} onChange={(d) => set({ serviceDate: d || undefined })} />
+      <SimpleDatePicker label={t('sr.nextService')} value={rep.nextDate} onChange={(d) => set({ nextDate: d || undefined })} defaultYear={new Date().getFullYear() + 1} />
 
-      <Label>Equipment</Label>
+      <Label>{t('cat.title')}</Label>
       <View style={styles.chips}>
         {usedCats.map((c) => (
           <TouchableOpacity key={c.key} style={[styles.chip, rep.category === c.key && styles.chipOn]} onPress={() => { set({ category: c.key }); setTicks({}); setFieldPick(null); }}>
@@ -210,38 +210,38 @@ export default function ServiceReportSc() {
         ))}
       </View>
 
-      <Label style={{ marginTop: SIZES.md }}>3 · The items</Label>
-      {!rep.category && !rep.lines.length ? <Text style={styles.sub}>Choose the equipment above — or let the AI read the report.</Text> : null}
+      <Label style={{ marginTop: SIZES.md }}>{`3 · ${t('sr.step3')}`}</Label>
+      {!rep.category && !rep.lines.length ? <Text style={styles.sub}>{t('sr.chooseAbove')}</Text> : null}
       {m.matches.map((x) => {
         const l = x.line != null ? rep.lines[x.line] : undefined;
         const broken = l?.result === 'condemned' || l?.result === 'fail';
-        const sub = [HOW[x.how], l?.result ? l.result.toUpperCase() : null, l?.next ? `next ${l.next.split('-').reverse().join('.')}` : null, l?.remark].filter(Boolean).join(' · ');
+        const sub = [tk(`sr.how.${x.how}`), l?.result ? l.result.toUpperCase() : null, l?.next ? t('sr.nextL', { date: l.next.split('-').reverse().join('.') }) : null, l?.remark].filter(Boolean).join(' · ');
         return row(x.itemId, on(x.itemId, true), sub, broken ? COLORS.danger : undefined);
       })}
       {m.unmatched.length ? (
         <View style={styles.warn}>
-          <Text style={[styles.title, { color: COLORS.warning }]}>{`Not found in the register (${m.unmatched.length})`}</Text>
+          <Text style={[styles.title, { color: COLORS.warning }]}>{t('sr.notFound', { n: m.unmatched.length })}</Text>
           {m.unmatched.map((i) => {
             const l = rep.lines[i];
             return (
               <Text key={i} style={styles.sub}>
-                {[l.description, l.no ? `No ${l.no}` : null, l.serial ? `S/N ${l.serial}` : null, l.result ? l.result.toUpperCase() : null].filter(Boolean).join(' · ')}
+                {[l.description, l.no ? t('round.no', { n: l.no }) : null, l.serial ? `S/N ${l.serial}` : null, l.result ? l.result.toUpperCase() : null].filter(Boolean).join(' · ')}
               </Text>
             );
           })}
-          <Text style={[styles.sub, { marginTop: SIZES.xs }]}>Tick the item below if it is one of these under another number, or add it to the register first.</Text>
+          <Text style={[styles.sub, { marginTop: SIZES.xs }]}>{t('sr.tickBelow')}</Text>
         </View>
       ) : null}
-      {m.others.length ? <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{`Also in ${CATEGORY_MAP[rep.category!]?.short ?? 'the category'} — not in the report:`}</Text> : null}
-      {m.others.map((id) => row(id, on(id, false), 'tick if the report covers it'))}
+      {m.others.length ? <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{t('sr.alsoIn', { cat: CATEGORY_MAP[rep.category!]?.short ?? t('sr.theCat') })}</Text> : null}
+      {m.others.map((id) => row(id, on(id, false), t('sr.tickIf')))}
 
       {picks.length ? (
         <>
-          <Label style={{ marginTop: SIZES.md }}>The next date goes into</Label>
+          <Label style={{ marginTop: SIZES.md }}>{t('sr.goesInto')}</Label>
           <View style={styles.chips}>
             {(['nextInspection', 'expiry'] as const).map((f) => (
               <TouchableOpacity key={f} style={[styles.chip, field === f && styles.chipOn]} onPress={() => setFieldPick(f)}>
-                <Text style={[styles.chipText, field === f && styles.chipTextOn]}>{f === 'expiry' ? 'Expiry' : 'Next inspection'}</Text>
+                <Text style={[styles.chipText, field === f && styles.chipTextOn]}>{f === 'expiry' ? t('sr.expiry') : t('sr.nextInsp')}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -249,7 +249,7 @@ export default function ServiceReportSc() {
       ) : null}
 
       <TouchableOpacity style={[styles.apply, (!picks.length || !!busy) && { opacity: 0.5 }]} onPress={apply} disabled={!picks.length || !!busy}>
-        <Text style={styles.btnText}>{picks.length ? `Apply to ${picks.length} item${picks.length === 1 ? '' : 's'}` : 'Apply'}</Text>
+        <Text style={styles.btnText}>{picks.length ? t('sr.applyTo', { x: tn('n.item', picks.length) }) : t('sr.apply')}</Text>
       </TouchableOpacity>
       <Text style={[styles.sub, { marginTop: SIZES.sm }]}>
         The station never gets access to the vessel: you bring its paper in. Condemned or failed items keep their old date and get a remark, so they stay on the list until replaced.

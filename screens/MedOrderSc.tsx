@@ -34,10 +34,12 @@ import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
+import { t, tn, useT } from '../utils/i18n';
 
 type Rec = Record<string, { qty: string; batchNo: string; expiry: string }>;
 
 export default function MedOrderSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -71,7 +73,7 @@ export default function MedOrderSc() {
     return (
       <Screen scroll>
         <BackButton onPress={() => goBackOr(nav)} />
-        <Text style={styles.sub}>This order is not on this device yet — it arrives with the next sync.</Text>
+        <Text style={styles.sub}>{t('mo.notHere')}</Text>
       </Screen>
     );
   }
@@ -87,12 +89,12 @@ export default function MedOrderSc() {
 
   const save = async () => {
     const d = draft!;
-    if (!d.lines.length) return Alert.alert('Order', 'Add what is ordered.');
-    if (d.lines.some((l) => !(l.qty > 0))) return Alert.alert('Order', 'Every line needs a quantity.');
+    if (!d.lines.length) return Alert.alert(t('mo.order'), t('mo.addWhat'));
+    if (d.lines.some((l) => !(l.qty > 0))) return Alert.alert(t('mo.order'), t('mo.needQty'));
     const now = Date.now();
     let out: MedOrder = { ...d, updatedAt: now };
     if (!stored) {
-      if (!signer) return Alert.alert('Who is ordering?', 'Choose your name.');
+      if (!signer) return Alert.alert(t('mo.whoOrders'), t('round.chooseName'));
       out = { ...out, no: nextNo('MO', medOrders, d.date), by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now };
     }
     await saveRow(storage.MED_ORDERS_KEY, out);
@@ -104,11 +106,11 @@ export default function MedOrderSc() {
   const receive = async () => {
     if (!rec) return;
     const take = o.lines.map((l) => ({ l, r: rec[l.id] })).filter((x) => x.r && Number(x.r.qty.replace(',', '.')) > 0);
-    if (!take.length) return Alert.alert('Delivery', 'How many came of each line?');
-    for (const { l, r } of take) if (r.expiry.trim() && !normExpiry(r.expiry)) return Alert.alert('Expiry', `${l.name}: write it as 2027-03, 03/2027 or 2027-03-31.`);
-    if (!signer) return Alert.alert('Who is receiving?', 'Choose your name.');
+    if (!take.length) return Alert.alert(t('mo.delivery'), t('mo.howMany'));
+    for (const { l, r } of take) if (r.expiry.trim() && !normExpiry(r.expiry)) return Alert.alert(t('mc.expiry'), `${l.name}: ${t('mc.expiryFmt')}`);
+    if (!signer) return Alert.alert(t('mo.whoReceives'), t('round.chooseName'));
     const cd = take.some(({ l }) => items.find((i) => i.id === l.itemId)?.controlled);
-    if (cd && !witness.picked) return Alert.alert('Controlled drug', 'The delivery has a controlled drug — choose the witness.');
+    if (cd && !witness.picked) return Alert.alert(t('mo.cd'), t('mo.cdWitness'));
     const what = `${o.no} — delivery of ${take.length} line${take.length > 1 ? 's' : ''}`;
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what });
     if (!sig) return;
@@ -133,8 +135,8 @@ export default function MedOrderSc() {
 
   const close = async () => {
     if (closing === null) return;
-    if (!closing.trim()) return Alert.alert('Close the order', 'Say what did not come and why — not available, cancelled, re-ordered as …');
-    if (!signer) return Alert.alert('Who is closing it?', 'Choose your name.');
+    if (!closing.trim()) return Alert.alert(t('mo.closeQ'), t('mo.closeWhy'));
+    if (!signer) return Alert.alert(t('rounds.whoCloses'), t('round.chooseName'));
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${o.no} — closed, not all delivered` });
     if (!sig) return;
     await saveRow(storage.MED_ORDERS_KEY, { ...o, closedAt: Date.now(), closedBy: signer.name, ...(signer.rank ? { closedByRank: signer.rank } : {}), closeNote: closing.trim(), updatedAt: Date.now() });
@@ -145,9 +147,9 @@ export default function MedOrderSc() {
   const pdf = async () => {
     try {
       const w = await exportOrderPdf(o, medMoves, vessel);
-      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
-      Alert.alert('Order', String(e?.message ?? e));
+      Alert.alert(t('mo.order'), String(e?.message ?? e));
     }
   };
 
@@ -156,15 +158,15 @@ export default function MedOrderSc() {
   return (
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav)} />
-      <ScreenTitle title={o.no ? `Order ${o.no}` : 'New medical order'} subtitle={o.no ? `${ORDER_STATE_LABEL[st]}${late ? ' · OVERDUE' : ''}` : 'What to order — quantities can be changed'} help="Hospital" />
+      <ScreenTitle title={o.no ? t('mo.orderNo', { no: o.no }) : t('mo.new')} subtitle={o.no ? `${ORDER_STATE_LABEL[st]}${late ? ` · ${t('mo.overdueCaps')}` : ''}` : t('mo.newSub')} help="Hospital" />
 
       {draft ? (
         <Card>
-          <TextInput style={styles.input} value={draft.supplier ?? ''} onChangeText={(v) => set({ supplier: v })} placeholder="Supplier / agent" placeholderTextColor={COLORS.textLight} />
-          <TextInput style={styles.input} value={draft.ref ?? ''} onChangeText={(v) => set({ ref: v })} placeholder="Reference / PO number" placeholderTextColor={COLORS.textLight} />
-          <TextInput style={styles.input} value={draft.port ?? ''} onChangeText={(v) => set({ port: v })} placeholder="Deliver to — port, agent" placeholderTextColor={COLORS.textLight} />
-          <View style={{ marginTop: SIZES.sm }}><SimpleDatePicker label="Expected" value={draft.due} onChange={(v) => set({ due: v })} onClear={() => set({ due: undefined })} /></View>
-          <Label>{`Lines · ${draft.lines.length}`}</Label>
+          <TextInput style={styles.input} value={draft.supplier ?? ''} onChangeText={(v) => set({ supplier: v })} placeholder={t('mo.supplier')} placeholderTextColor={COLORS.textLight} />
+          <TextInput style={styles.input} value={draft.ref ?? ''} onChangeText={(v) => set({ ref: v })} placeholder={t('mo.ref')} placeholderTextColor={COLORS.textLight} />
+          <TextInput style={styles.input} value={draft.port ?? ''} onChangeText={(v) => set({ port: v })} placeholder={t('mo.deliverTo')} placeholderTextColor={COLORS.textLight} />
+          <View style={{ marginTop: SIZES.sm }}><SimpleDatePicker label={t('mo.expected')} value={draft.due} onChange={(v) => set({ due: v })} onClear={() => set({ due: undefined })} /></View>
+          <Label>{t('mo.linesN', { n: draft.lines.length })}</Label>
           {draft.lines.map((l) => (
             <View key={l.id} style={[styles.row, { marginVertical: 2 }]}>
               <Text style={[styles.body, { flex: 1, minWidth: 160 }]}>{`${l.name}${l.strength ? ` · ${l.strength}` : ''}`}</Text>
@@ -175,35 +177,35 @@ export default function MedOrderSc() {
           ))}
           {adding != null ? (
             <>
-              <TextInput style={styles.input} value={adding} onChangeText={setAdding} placeholder="Find in the register" placeholderTextColor={COLORS.textLight} autoFocus />
+              <TextInput style={styles.input} value={adding} onChangeText={setAdding} placeholder={t('mo.find')} placeholderTextColor={COLORS.textLight} autoFocus />
               {found.map((i) => (
                 <TouchableOpacity key={i.id} onPress={() => { set({ lines: [...draft.lines, { id: uid('ol'), itemId: i.id, name: i.name, ...(i.strength ? { strength: i.strength } : {}), unit: i.unit, qty: i.required || 1 }] }); setAdding(null); }}>
                   <Text style={[styles.body, { paddingVertical: 4 }]}>{`+ ${i.name}${i.strength ? ` · ${i.strength}` : ''}`}</Text>
                 </TouchableOpacity>
               ))}
-              <TouchableOpacity onPress={() => setAdding(null)}><Text style={styles.link}>Done</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setAdding(null)}><Text style={styles.link}>{t('common.done')}</Text></TouchableOpacity>
             </>
           ) : (
-            <TouchableOpacity onPress={() => setAdding('')}><Text style={styles.link}>+ Add from the register</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setAdding('')}><Text style={styles.link}>{t('mo.addFrom')}</Text></TouchableOpacity>
           )}
-          <TextInput style={styles.input} value={draft.note ?? ''} onChangeText={(v) => set({ note: v })} placeholder="Note" placeholderTextColor={COLORS.textLight} />
+          <TextInput style={styles.input} value={draft.note ?? ''} onChangeText={(v) => set({ note: v })} placeholder={t('mo.note')} placeholderTextColor={COLORS.textLight} />
           {!stored && picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
           <View style={styles.row}>
-            <TouchableOpacity style={styles.btn} onPress={() => void save()}><Text style={styles.btnText}>{stored ? 'Save' : 'Place the order'}</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => (stored ? setDraft(null) : goBackOr(nav))}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btn} onPress={() => void save()}><Text style={styles.btnText}>{stored ? t('common.save') : t('mo.place')}</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => (stored ? setDraft(null) : goBackOr(nav))}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
           </View>
         </Card>
       ) : (
         <>
           <View style={[styles.item, { borderLeftColor: color }]}>
-            <Text style={styles.sub}>{[`ordered ${formatDate(o.date)} by ${who(o.by, o.byRank)}`, o.supplier, o.ref ? `ref ${o.ref}` : null, o.port].filter(Boolean).join(' · ')}</Text>
-            {o.due ? <Text style={[styles.sub, late ? { color: COLORS.danger, fontWeight: '700' } : null]}>{`Expected ${formatDate(o.due)}${late ? ' — overdue' : ''}`}</Text> : null}
+            <Text style={styles.sub}>{[t('mo.orderedBy', { date: formatDate(o.date), who: who(o.by, o.byRank) }), o.supplier, o.ref ? t('mo.refN', { ref: o.ref }) : null, o.port].filter(Boolean).join(' · ')}</Text>
+            {o.due ? <Text style={[styles.sub, late ? { color: COLORS.danger, fontWeight: '700' } : null]}>{`${t('mo.expectedOn', { date: formatDate(o.due) })}${late ? ` — ${t('mo.overdue')}` : ''}`}</Text> : null}
             {o.note ? <Text style={styles.body}>{o.note}</Text> : null}
-            {o.closedAt ? <Text style={[styles.body, { color: COLORS.textLight }]}>{`Closed ${formatDateTime(o.closedAt)} by ${who(o.closedBy, o.closedByRank)}: ${o.closeNote}`}</Text> : null}
-            {officer && !final ? <TouchableOpacity onPress={() => setDraft(o)}><Text style={styles.link}>Edit — lines, dates</Text></TouchableOpacity> : null}
+            {o.closedAt ? <Text style={[styles.body, { color: COLORS.textLight }]}>{`${t('mo.closedBy', { when: formatDateTime(o.closedAt), who: who(o.closedBy, o.closedByRank) })}: ${o.closeNote}`}</Text> : null}
+            {officer && !final ? <TouchableOpacity onPress={() => setDraft(o)}><Text style={styles.link}>{t('mo.edit')}</Text></TouchableOpacity> : null}
           </View>
 
-          <Label>Lines</Label>
+          <Label>{t('mo.lines')}</Label>
           {o.lines.map((l) => {
             const n = got.get(l.id) ?? 0;
             const full = n >= l.qty;
@@ -211,12 +213,12 @@ export default function MedOrderSc() {
             return (
               <View key={l.id} style={[styles.item, { borderLeftColor: full ? COLORS.success : n ? COLORS.warning : COLORS.border }]}>
                 <Text style={styles.name}>{`${l.name}${l.strength ? ` · ${l.strength}` : ''}`}</Text>
-                <Text style={[styles.sub, { color: full ? COLORS.success : n ? COLORS.warning : COLORS.textLight, fontWeight: '700' }]}>{`${n} of ${l.qty} ${l.unit} received${full ? '' : ` · ${l.qty - n} to come`}`}</Text>
+                <Text style={[styles.sub, { color: full ? COLORS.success : n ? COLORS.warning : COLORS.textLight, fontWeight: '700' }]}>{`${t('mo.received', { n, k: l.qty, unit: l.unit })}${full ? '' : ` · ${t('mo.toCome', { n: l.qty - n })}`}`}</Text>
                 {r ? (
                   <View style={styles.row}>
-                    <TextInput style={[styles.input, { width: 80, marginTop: 0 }]} value={r.qty} onChangeText={(v) => setRec({ ...rec!, [l.id]: { ...r, qty: v } })} keyboardType="decimal-pad" placeholder="Qty" placeholderTextColor={COLORS.textLight} />
-                    <TextInput style={[styles.input, { flex: 1, minWidth: 90, marginTop: 0 }]} value={r.expiry} onChangeText={(v) => setRec({ ...rec!, [l.id]: { ...r, expiry: v } })} placeholder="Expiry MM/YY" placeholderTextColor={COLORS.textLight} />
-                    <TextInput style={[styles.input, { flex: 1, minWidth: 90, marginTop: 0 }]} value={r.batchNo} onChangeText={(v) => setRec({ ...rec!, [l.id]: { ...r, batchNo: v } })} placeholder="Lot (optional)" placeholderTextColor={COLORS.textLight} />
+                    <TextInput style={[styles.input, { width: 80, marginTop: 0 }]} value={r.qty} onChangeText={(v) => setRec({ ...rec!, [l.id]: { ...r, qty: v } })} keyboardType="decimal-pad" placeholder={t('mc.qty')} placeholderTextColor={COLORS.textLight} />
+                    <TextInput style={[styles.input, { flex: 1, minWidth: 90, marginTop: 0 }]} value={r.expiry} onChangeText={(v) => setRec({ ...rec!, [l.id]: { ...r, expiry: v } })} placeholder={t('mc.expiryPh')} placeholderTextColor={COLORS.textLight} />
+                    <TextInput style={[styles.input, { flex: 1, minWidth: 90, marginTop: 0 }]} value={r.batchNo} onChangeText={(v) => setRec({ ...rec!, [l.id]: { ...r, batchNo: v } })} placeholder={t('mc.lotPh')} placeholderTextColor={COLORS.textLight} />
                   </View>
                 ) : null}
               </View>
@@ -226,38 +228,38 @@ export default function MedOrderSc() {
           {officer && !final ? (
             rec ? (
               <Card>
-                <Text style={styles.sub}>Fill in what came — leave a line empty if nothing of it came this time. One batch per line; a second batch of the same line is a second delivery.</Text>
+                <Text style={styles.sub}>{t('mo.fillHint')}</Text>
                 {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
                 {o.lines.some((l) => items.find((i) => i.id === l.itemId)?.controlled) ? <View style={{ marginTop: SIZES.sm }}>{witness.picker}</View> : null}
                 <View style={styles.row}>
-                  <TouchableOpacity style={styles.btn} onPress={() => void receive()}><Text style={styles.btnText}>Sign the delivery</Text></TouchableOpacity>
-                  <TouchableOpacity onPress={() => setRec(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.btn} onPress={() => void receive()}><Text style={styles.btnText}>{t('mo.signDelivery')}</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => setRec(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
                 </View>
               </Card>
             ) : closing !== null ? (
               <Card>
-                <Label>Close — not all delivered</Label>
-                <TextInput style={[styles.input, { minHeight: 50 }]} value={closing} onChangeText={setClosing} multiline placeholder="What did not come and why ★" placeholderTextColor={COLORS.textLight} />
+                <Label>{t('mo.closeHead')}</Label>
+                <TextInput style={[styles.input, { minHeight: 50 }]} value={closing} onChangeText={setClosing} multiline placeholder={t('mo.closePh')} placeholderTextColor={COLORS.textLight} />
                 {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
                 <View style={styles.row}>
-                  <TouchableOpacity style={styles.btn} onPress={() => void close()}><Text style={styles.btnText}>Sign and close</Text></TouchableOpacity>
-                  <TouchableOpacity onPress={() => setClosing(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.btn} onPress={() => void close()}><Text style={styles.btnText}>{t('mo.signClose')}</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => setClosing(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
                 </View>
               </Card>
             ) : (
               <View style={styles.row}>
-                <TouchableOpacity style={styles.btn} onPress={() => setRec(Object.fromEntries(o.lines.filter((l) => (got.get(l.id) ?? 0) < l.qty).map((l) => [l.id, { qty: String(l.qty - (got.get(l.id) ?? 0)), batchNo: '', expiry: '' }])))}><Text style={styles.btnText}>Receive a delivery</Text></TouchableOpacity>
-                <TouchableOpacity onPress={() => setClosing('')}><Text style={styles.link}>Close — the rest will not come…</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.btn} onPress={() => setRec(Object.fromEntries(o.lines.filter((l) => (got.get(l.id) ?? 0) < l.qty).map((l) => [l.id, { qty: String(l.qty - (got.get(l.id) ?? 0)), batchNo: '', expiry: '' }])))}><Text style={styles.btnText}>{t('mo.receive')}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setClosing('')}><Text style={styles.link}>{t('mo.closeRest')}</Text></TouchableOpacity>
               </View>
             )
           ) : null}
 
-          {deliveries.length ? <Label>{`Deliveries · ${deliveries.length}`}</Label> : null}
+          {deliveries.length ? <Label>{t('mo.deliveriesN', { n: deliveries.length })}</Label> : null}
           {deliveries.map((m) => (
-            <Text key={m.id} style={styles.sub}>{[formatDate(m.date), `${o.lines.find((l) => l.id === m.lineId)?.name ?? ''} ${m.qty}`, m.expiry || m.batchNo ? batchLabel(m) : null, who(m.by, m.byRank), m.witness ? `witness ${m.witness}` : null].filter(Boolean).join(' · ')}</Text>
+            <Text key={m.id} style={styles.sub}>{[formatDate(m.date), `${o.lines.find((l) => l.id === m.lineId)?.name ?? ''} ${m.qty}`, m.expiry || m.batchNo ? batchLabel(m) : null, who(m.by, m.byRank), m.witness ? t('mo.witnessL', { who: m.witness }) : null].filter(Boolean).join(' · ')}</Text>
           ))}
 
-          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }]} onPress={() => void pdf()}><Text style={styles.btnText}>Order (PDF)</Text></TouchableOpacity>
+          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }]} onPress={() => void pdf()}><Text style={styles.btnText}>{t('mo.pdf')}</Text></TouchableOpacity>
           {saved ? <Text style={styles.sub}>{saved}</Text> : null}
         </>
       )}

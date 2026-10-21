@@ -32,8 +32,10 @@ import { CATEGORY_MAP } from '../constants/categories';
 import { readInspectLink } from '../services/firebaseService';
 import { printLandingReport } from '../services/landingReport';
 import SimpleDatePicker from '../components/SimpleDatePicker';
+import { t, useT } from '../utils/i18n';
 
 export default function LandingReportSc() {
+  useT();
   const nav = useNavigation<any>();
   const route = useRoute<any>();
   const COLORS = useTheme();
@@ -172,7 +174,7 @@ export default function LandingReportSc() {
 
   const handleSave = async (signed = false) => {
     if (selectedItemIds.size === 0) {
-      Alert.alert('No items', 'Select at least one item for the report.');
+      Alert.alert(t('lr.noItems'), t('lr.selectOne'));
       return;
     }
     setSaving(true);
@@ -246,14 +248,14 @@ export default function LandingReportSc() {
   };
 
   const handlePrint = async () => {
-    if (!existing) { Alert.alert('Save first', 'Save the report before printing.'); return; }
+    if (!existing) { Alert.alert(t('lr.saveFirst'), t('lr.saveBefore')); return; }
     setPrinting(true);
     try {
       const movIds = new Set(existing.movementIds);
       const movs = itemMovements.filter((m) => movIds.has(m.id));
       await printLandingReport(existing, movs, itemsById, vesselName, imo, inspectToken);
     } catch (e: any) {
-      Alert.alert('Print error', e?.message ?? String(e));
+      Alert.alert(t('lr.printError'), e?.message ?? String(e));
     } finally {
       setPrinting(false);
     }
@@ -267,14 +269,14 @@ export default function LandingReportSc() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScreenTitle title={existing?.no ?? (dir === 'received' ? 'New Receiving Report' : 'New Landing Report')} />
+      <ScreenTitle title={existing?.no ?? (dir === 'received' ? t('lr.newRecv') : t('lr.newLanding'))} />
       <BackButton onPress={() => nav.goBack()} fav={false} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
         {/* Direction */}
         {isNew && (
           <View style={styles.field}>
-            <Label style={styles.label}>Type</Label>
+            <Label style={styles.label}>{t('fv.type')}</Label>
             <View style={styles.segRow}>
               {(['out', 'in', 'received'] as const).map((d) => (
                 <TouchableOpacity
@@ -283,7 +285,7 @@ export default function LandingReportSc() {
                   onPress={() => { setDir(d); setSelectedItemIds(new Set()); }}
                 >
                   <Text style={[styles.segText, dir === d && { color: '#fff' }]}>
-                    {d === 'out' ? 'Send ashore' : d === 'in' ? 'Return aboard' : 'Receive'}
+                    {d === 'out' ? t('lr.sendAshore') : d === 'in' ? t('lr.returnAboard') : t('st.receive')}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -293,38 +295,38 @@ export default function LandingReportSc() {
 
         {/* Date */}
         <View style={styles.field}>
-          <Label style={styles.label}>Date</Label>
+          <Label style={styles.label}>{t('nc.date')}</Label>
           {isReadOnly
             ? <Text style={styles.value}>{formatDate(date)}</Text>
-            : <SimpleDatePicker label="Date" value={date} onChange={setDate} />}
+            : <SimpleDatePicker label={t('nc.date')} value={date} onChange={setDate} />}
         </View>
 
         {/* Port */}
         <View style={styles.field}>
-          <Label style={styles.label}>Port / Location</Label>
+          <Label style={styles.label}>{t('lr.portLoc')}</Label>
           {isReadOnly
             ? <Text style={styles.value}>{existing?.port || '—'}</Text>
-            : <TextInput style={styles.input} value={port} onChangeText={setPort} placeholder="Port name" placeholderTextColor={COLORS.textLight} />}
+            : <TextInput style={styles.input} value={port} onChangeText={setPort} placeholder={t('lr.portPh')} placeholderTextColor={COLORS.textLight} />}
         </View>
 
         {/* To / From / Supplier */}
         {dir !== 'received' ? (
           <View style={styles.field}>
-            <Label style={styles.label}>{dir === 'out' ? 'To (service station)' : 'From (service station)'}</Label>
+            <Label style={styles.label}>{dir === 'out' ? t('lr.toStation') : t('lr.fromStation')}</Label>
             {isReadOnly
               ? <Text style={styles.value}>{existing?.to || '—'}</Text>
-              : <TextInput style={styles.input} value={to} onChangeText={setTo} placeholder="Service station name" placeholderTextColor={COLORS.textLight} />}
+              : <TextInput style={styles.input} value={to} onChangeText={setTo} placeholder={t('lr.stationPh')} placeholderTextColor={COLORS.textLight} />}
           </View>
         ) : (
           <>
             <View style={styles.field}>
-              <Label style={styles.label}>Supplier / Manufacturer</Label>
+              <Label style={styles.label}>{t('lr.supplier')}</Label>
               {isReadOnly
                 ? <Text style={styles.value}>{existing?.supplier || '—'}</Text>
-                : <TextInput style={styles.input} value={supplier} onChangeText={setSupplier} placeholder="Supplier name" placeholderTextColor={COLORS.textLight} />}
+                : <TextInput style={styles.input} value={supplier} onChangeText={setSupplier} placeholder={t('lr.supplierPh')} placeholderTextColor={COLORS.textLight} />}
             </View>
             <View style={styles.field}>
-              <Label style={styles.label}>Invoice / Delivery Note Ref</Label>
+              <Label style={styles.label}>{t('lr.invoice')}</Label>
               {isReadOnly
                 ? <Text style={styles.value}>{existing?.invoiceRef || '—'}</Text>
                 : <TextInput style={styles.input} value={invoiceRef} onChangeText={setInvoiceRef} placeholder="INV-2026-001" placeholderTextColor={COLORS.textLight} />}
@@ -334,12 +336,12 @@ export default function LandingReportSc() {
 
         {/* Items */}
         <Label style={[styles.label, { marginHorizontal: SIZES.md }]}>
-          {isNew ? `Items (${selectedItemIds.size} selected)` : `Items (${myMovements.length})`}
+          {isNew ? t('lr.itemsSel', { n: selectedItemIds.size }) : t('lr.items', { n: myMovements.length })}
         </Label>
 
         {isNew && (
           <TouchableOpacity style={styles.addBtn} onPress={() => setPickerOpen(true)}>
-            <Text style={styles.addBtnText}>Select items…</Text>
+            <Text style={styles.addBtnText}>{t('lr.selectItems')}</Text>
           </TouchableOpacity>
         )}
 
@@ -366,7 +368,7 @@ export default function LandingReportSc() {
                     style={[styles.input, { marginTop: 4 }]}
                     value={itemReasons[item.id] ?? ''}
                     onChangeText={(v) => setItemReasons((p) => ({ ...p, [item.id]: v }))}
-                    placeholder="Reason (optional)"
+                    placeholder={t('lr.reasonPh')}
                     placeholderTextColor={COLORS.textLight}
                   />
                   {dir === 'in' && (
@@ -375,11 +377,11 @@ export default function LandingReportSc() {
                         style={[styles.input, { marginTop: 4 }]}
                         value={itemServiceRefs[item.id] ?? ''}
                         onChangeText={(v) => setItemServiceRefs((p) => ({ ...p, [item.id]: v }))}
-                        placeholder="Service certificate ref (optional)"
+                        placeholder={t('lr.certPh')}
                         placeholderTextColor={COLORS.textLight}
                       />
                       <SimpleDatePicker
-                        label="New next inspection"
+                        label={t('lr.newNext')}
                         value={itemNewDates[item.id] ?? ''}
                         onChange={(v) => setItemNewDates((p) => ({ ...p, [item.id]: v }))}
                       />
@@ -399,16 +401,16 @@ export default function LandingReportSc() {
 
         {/* Notes */}
         <View style={styles.field}>
-          <Label style={styles.label}>Notes</Label>
+          <Label style={styles.label}>{t('og.notes')}</Label>
           {isReadOnly
             ? <Text style={styles.value}>{existing?.notes || '—'}</Text>
-            : <TextInput style={[styles.input, { height: 70 }]} value={notes} onChangeText={setNotes} multiline placeholder="Notes…" placeholderTextColor={COLORS.textLight} />}
+            : <TextInput style={[styles.input, { height: 70 }]} value={notes} onChangeText={setNotes} multiline placeholder={`${t('og.notes')}…`} placeholderTextColor={COLORS.textLight} />}
         </View>
 
         {/* Signature */}
         {existing?.by && (
           <View style={styles.field}>
-            <Label style={styles.label}>Signed by</Label>
+            <Label style={styles.label}>{t('lr.signedBy')}</Label>
             <Text style={styles.value}>{signatureLine(existing.by, existing.byRank)}</Text>
           </View>
         )}
@@ -421,14 +423,14 @@ export default function LandingReportSc() {
               onPress={() => handleSave(false)}
               disabled={saving}
             >
-              {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Save</Text>}
+              {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('common.save')}</Text>}
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.btn, { backgroundColor: '#22c55e', marginTop: SIZES.xs }]}
               onPress={() => handleSave(true)}
               disabled={saving}
             >
-              <Text style={styles.btnText}>Sign & Save</Text>
+              <Text style={styles.btnText}>{t('lr.signSave')}</Text>
             </TouchableOpacity>
           </>
         )}
@@ -438,7 +440,7 @@ export default function LandingReportSc() {
             style={[styles.btn, { backgroundColor: '#22c55e', marginTop: SIZES.xs }]}
             onPress={() => nav.navigate('LandingReport', { id: 'new', returnFrom: existing.id })}
           >
-            <Text style={styles.btnText}>↩ Return these items aboard</Text>
+            <Text style={styles.btnText}>{`↩ ${t('lr.returnThese')}`}</Text>
           </TouchableOpacity>
         )}
 
@@ -450,7 +452,7 @@ export default function LandingReportSc() {
           >
             {printing
               ? <ActivityIndicator color={COLORS.primary} />
-              : <Text style={[styles.btnText, { color: COLORS.primary }]}>Print / Export PDF</Text>}
+              : <Text style={[styles.btnText, { color: COLORS.primary }]}>{t('lr.print')}</Text>}
           </TouchableOpacity>
         )}
 
@@ -464,7 +466,7 @@ export default function LandingReportSc() {
               Select items ({selectedItemIds.size})
             </Text>
             <TouchableOpacity onPress={() => setPickerOpen(false)}>
-              <Text style={{ color: COLORS.primary, fontSize: 16 }}>Done</Text>
+              <Text style={{ color: COLORS.primary, fontSize: 16 }}>{t('common.done')}</Text>
             </TouchableOpacity>
           </View>
           <FlatList

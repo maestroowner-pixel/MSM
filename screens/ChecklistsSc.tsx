@@ -41,6 +41,7 @@ import {
   vesselRow,
 } from '../constants/checklists';
 import { uid } from '../utils/id';
+import { t, tk, useT } from '../utils/i18n';
 
 /**
  * Which existing round a new one is copied from: the nearest shorter frequency,
@@ -76,6 +77,7 @@ const ADDABLE: InspectionPeriod[] = ['weekly', 'monthly', 'quarterly'];
 
 
 export default function ChecklistsSc() {
+  useT();
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -131,17 +133,12 @@ export default function ChecklistsSc() {
     if (round.on) {
       const meta = CATEGORY_MAP[category];
       Alert.alert(
-        `Stop the ${PERIOD_LABEL[round.period].toLowerCase()} round?`,
-        `${meta?.label ?? 'This category'} will no longer be offered a ${PERIOD_LABEL[
-          round.period
-        ].toLowerCase()} inspection, and the ${PERIOD_LABEL[
-          round.period
-        ].toLowerCase()} report will stop counting it as due. Inspections already signed stay on file ` +
-          'and still print. You can switch it back on at any time.',
+        t('cl.stopQ', { period: tk(`period.${round.period}`).toLowerCase() }),
+        t('cl.stopBody', { cat: meta?.label ?? t('cl.thisCatCap'), period: tk(`period.${round.period}`).toLowerCase() }),
         [
-          { text: 'Keep it', style: 'cancel' },
+          { text: t('cat.keep'), style: 'cancel' },
           {
-            text: 'Switch off',
+            text: t('dpt.switchOff'),
             style: 'destructive',
             onPress: () => void setRoundEnabled(category, round.period, false),
           },
@@ -183,17 +180,15 @@ export default function ChecklistsSc() {
   };
 
   const confirmAddRound = (category: CategoryKey, period: InspectionPeriod) => {
-    const label = CATEGORY_MAP[category]?.label ?? 'this category';
-    const p = PERIOD_LABEL[period].toLowerCase();
+    const label = CATEGORY_MAP[category]?.label ?? t('cle.thisCat');
+    const p = tk(`period.${period}`).toLowerCase();
     Alert.alert(
-      `Add a ${p} round?`,
-      `${label} will owe a ${p} inspection from now on, starting from the checks it already has — ` +
-        `so it is ready to use straight away. Word it whenever you like, and the switch on its row ` +
-        `takes it off again.`,
+      t('cl.addQ', { period: p }),
+      t('cl.addBody', { cat: label, period: p }),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Add', onPress: () => void addRound(category, period, false) },
-        { text: 'Add and word it', onPress: () => void addRound(category, period, true) },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.add'), onPress: () => void addRound(category, period, false) },
+        { text: t('cl.addWord'), onPress: () => void addRound(category, period, true) },
       ]
     );
   };
@@ -206,12 +201,12 @@ export default function ChecklistsSc() {
   return (
     <Screen>
       <ScreenTitle
-        title="Checklists"
+        title={t('cl.title')}
         subtitle={
           [
-            ownCount ? `${ownCount} written by this vessel` : 'The standard rounds',
-            offCount ? `${offCount} switched off` : null,
-            ownCount || offCount ? null : 'open one to word it, or switch one off',
+            ownCount ? t('cl.own', { n: ownCount }) : t('cl.standard'),
+            offCount ? t('cl.off', { n: offCount }) : null,
+            ownCount || offCount ? null : t('cl.hint'),
           ]
             .filter(Boolean)
             .join(' · ')
@@ -220,10 +215,9 @@ export default function ChecklistsSc() {
 
       {!canEdit ? (
         <Card>
-          <Label>Read only</Label>
+          <Label>{t('cl.readOnly')}</Label>
           <Text style={styles.note}>
-            An Officer or the Master edits the vessel's checklists. You can read every round
-            here — this is what will be asked when you carry one out.
+            {t('cl.readOnlyBody')}
           </Text>
         </Card>
       ) : null}
@@ -239,16 +233,16 @@ export default function ChecklistsSc() {
             if (!canEdit) return null;
             return (
               <View style={styles.addRow}>
-                <Text style={styles.addLabel}>Add a round</Text>
+                <Text style={styles.addLabel}>{t('cl.addRound')}</Text>
                 {item.periods.map((p) => (
                   <TouchableOpacity
                     key={p}
                     style={styles.addPill}
                     hitSlop={6}
-                    accessibilityLabel={`Add a ${PERIOD_LABEL[p].toLowerCase()} round`}
+                    accessibilityLabel={t('cl.addA', { period: tk(`period.${p}`).toLowerCase() })}
                     onPress={() => confirmAddRound(item.category, p)}
                   >
-                    <Text style={styles.addPillText}>＋ {PERIOD_LABEL[p]}</Text>
+                    <Text style={styles.addPillText}>＋ {tk(`period.${p}`)}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -289,7 +283,7 @@ export default function ChecklistsSc() {
                   {/* "Added" for a round the app does not ship at all, "Edited" for
                       one whose words this vessel changed — the two are different
                       facts and the pill is the only place either is said. */}
-                  <Text style={styles.ownPillText}>{round.added ? 'Added' : 'Edited'}</Text>
+                  <Text style={styles.ownPillText}>{round.added ? t('cl.added') : t('cl.edited')}</Text>
                 </View>
               ) : null}
               <MciIcon name="chevron-right" size={22} color={COLORS.textLight} />

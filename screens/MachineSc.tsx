@@ -40,8 +40,10 @@ import { copyJobsTo, copyMachine, parentChoices, predecessors, replaceMachine, s
 import { Dropdown } from '../components/Dropdown';
 import { MACHINE_FIELDS, changeText, planDiff, withChanges } from '../services/planLog';
 import { playSuccessSound } from '../utils/sound';
+import { t, tk, tn, useT } from '../utils/i18n';
 
 export default function MachineSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -114,14 +116,14 @@ export default function MachineSc() {
   const saveDetails = async (extra: Partial<Machine> = {}) => {
     const name = (extra.name ?? draft.name).trim();
     if (!name) {
-      Alert.alert('Name required', 'Name it — "Main engine PS", "Tender", "Galley", "Wi-Fi network".');
+      Alert.alert(t('crew.nameReq'), t('mch.nameIt'));
       return false;
     }
     const next = { ...(existing ?? draft), ...draft, ...extra, name };
     // The change log (services/planLog.ts): critical, class item or code changed says why.
     const diff = planDiff(existing, next, MACHINE_FIELDS);
     if (diff.some((d) => d.needsReason) && changeReason.trim().length < 3) {
-      Alert.alert('Reason for the change', `Say why — ${diff.filter((d) => d.needsReason).map((d) => d.label.toLowerCase()).join(', ')} changed. It is kept in the change log.`);
+      Alert.alert(t('gb.reasonChange'), t('mch.sayWhy', { what: diff.filter((d) => d.needsReason).map((d) => d.label.toLowerCase()).join(', ') }));
       return false;
     }
     const now = Date.now();
@@ -149,7 +151,7 @@ export default function MachineSc() {
   const offset = (existing ?? draft).counterOffset ?? 0;
   const putReading = async (total: number, reason?: string, extra: Partial<Machine> = {}) => {
     const base = existing ?? draft;
-    if (!draft.name.trim()) return Alert.alert('Name required', 'Name the machine first.');
+    if (!draft.name.trim()) return Alert.alert(t('crew.nameReq'), t('mch.nameFirst'));
     const next = withReading({ ...base, ...extra, ...(canPlan ? { ...draft, name: draft.name.trim() } : {}) }, today, total, { reason, by: meName });
     await saveMachine(next);
     setDraft(next);
@@ -161,7 +163,7 @@ export default function MachineSc() {
   };
   const onReading = async () => {
     const h = Number(reading.replace(',', '.'));
-    if (!reading.trim() || !Number.isFinite(h) || h < 0) return Alert.alert('Counter', 'Enter the hours shown on the counter.');
+    if (!reading.trim() || !Number.isFinite(h) || h < 0) return Alert.alert(t('mch.counter'), t('mch.enterHours'));
     const total = h + offset;
     const c = checkReading(existing ?? draft, today, total);
     if (!c.ok) return setDoubt({ total, why: c.why });
@@ -170,8 +172,8 @@ export default function MachineSc() {
   const onReplaced = async () => {
     const shows = Number((replacing ?? '').replace(',', '.'));
     const base = existing ?? draft;
-    if (!replacing?.trim() || !Number.isFinite(shows) || shows < 0) return Alert.alert('New counter', 'Enter what the new counter shows now.');
-    if (base.hours == null) return Alert.alert('New counter', 'There is no reading yet — just enter the counter.');
+    if (!replacing?.trim() || !Number.isFinite(shows) || shows < 0) return Alert.alert(t('mch.newCounter'), t('mch.enterNew'));
+    if (base.hours == null) return Alert.alert(t('mch.newCounter'), t('mch.noReading'));
     await putReading(base.hours, `Counter replaced — new counter at ${shows} h, machine at ${base.hours} h`, { counterOffset: base.hours - shows });
   };
 
@@ -222,20 +224,20 @@ export default function MachineSc() {
     nav.push('Machine', { id: c.machine.id });
   };
   const onCopyJobs = async () => {
-    if (!copyTo?.size) return Alert.alert('Copy jobs', 'Tick the systems to copy the jobs to.');
+    if (!copyTo?.size) return Alert.alert(t('mch.copyJobs'), t('mch.tickSystems'));
     const add = copyJobsTo(id, [...copyTo], pmsJobs, Date.now(), uid);
     if (add.length) await savePlan([], add);
     setCopyTo(null);
     playSuccessSound();
-    Alert.alert('Copy jobs', add.length ? `${add.length} job${add.length === 1 ? '' : 's'} added — not yet done; set when each was last done on its job.` : 'They already have these jobs.');
+    Alert.alert(t('mch.copyJobs'), add.length ? t('mch.jobsAdded', { x: tn('n.job', add.length) }) : t('mch.already'));
   };
   const onRetire = async () => {
     if (!retire || !existing) return;
     const isIso = /^\d{4}-\d{2}-\d{2}$/.test(retire.date) && !isNaN(Date.parse(retire.date));
-    if (!isIso || retire.date > today) return Alert.alert('Date', 'The day it was taken out, yyyy-mm-dd — not in the future.');
-    if (retire.reason.trim().length < 3) return Alert.alert('Reason', 'Say why — worn out, failed, replaced at refit…');
+    if (!isIso || retire.date > today) return Alert.alert(t('nc.date'), t('mch.dayOut'));
+    if (retire.reason.trim().length < 3) return Alert.alert(t('gb.reason'), t('mch.whyOut'));
     const hours = Number(retire.hours.replace(',', '.') || '0');
-    if (retire.replace && hasCounter(existing) && (!Number.isFinite(hours) || hours < 0)) return Alert.alert('New unit', 'The hours on the new unit\'s counter — 0 for a new one.');
+    if (retire.replace && hasCounter(existing) && (!Number.isFinite(hours) || hours < 0)) return Alert.alert(t('mch.newUnit'), t('mch.newUnitHours'));
     const r = { date: retire.date, reason: retire.reason.trim(), by: meName ?? 'Officer', ...(sync.me?.position ? { byRank: sync.me.position } : {}), now: Date.now() };
     if (retire.replace) {
       const out = replaceMachine(existing, pmsJobs, { ...r, id: uid('mc'), serial: retire.serial, hours, uid });
@@ -255,11 +257,11 @@ export default function MachineSc() {
 
   const onDelete = () => {
     if (isNew) return goBackOr(nav);
-    if (hasHistory) return Alert.alert('Remove', 'It has a history of work done — scrap it instead, so the history stays where it can be read.');
-    Alert.alert('Remove', 'Remove this system and its jobs from the plan? The history of work done is kept.', [
-      { text: 'Cancel', style: 'cancel' },
+    if (hasHistory) return Alert.alert(t('common.remove'), t('mch.hasHistory'));
+    Alert.alert(t('common.remove'), t('mch.removeBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Remove',
+        text: t('common.remove'),
         style: 'destructive',
         onPress: async () => {
           for (const j of pmsJobs.filter((x) => x.machineId === id)) await savePmsJob({ ...j, deleted: true, updatedAt: Date.now() });
@@ -275,10 +277,10 @@ export default function MachineSc() {
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
           <BackButton onPress={() => goBackOr(nav)} />
-          <Text style={styles.headerTitle} numberOfLines={1}>{isNew ? 'New system' : draft.name || 'System'}</Text>
+          <Text style={styles.headerTitle} numberOfLines={1}>{isNew ? t('mch.new') : draft.name || t('mch.system')}</Text>
           {canPlan ? (
             <TouchableOpacity onPress={onSave} hitSlop={12}>
-              <Text style={styles.save}>Save</Text>
+              <Text style={styles.save}>{t('common.save')}</Text>
             </TouchableOpacity>
           ) : <View style={{ width: 40 }} />}
         </View>
@@ -286,48 +288,48 @@ export default function MachineSc() {
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
           {retired?.scrapped ? (
             <View style={[styles.doubt, { borderColor: COLORS.danger, marginTop: 0, marginBottom: SIZES.md }]}>
-              <Text style={[styles.rowTitle, { color: COLORS.danger }]}>{`Scrapped ${formatDate(retired.scrapped.date)}`}</Text>
+              <Text style={[styles.rowTitle, { color: COLORS.danger }]}>{t('mch.scrappedOn', { date: formatDate(retired.scrapped.date) })}</Text>
               <Text style={styles.sub}>{[retired.scrapped.reason, retired.scrapped.byRank ? `${retired.scrapped.by} (${retired.scrapped.byRank})` : retired.scrapped.by].join(' · ')}</Text>
               {retired.scrapped.replacedBy && allMachines.some((m) => m.id === retired.scrapped!.replacedBy) ? (
                 <TouchableOpacity onPress={() => nav.push('Machine', { id: retired.scrapped!.replacedBy })} hitSlop={8}>
-                  <Text style={[styles.link, { marginTop: SIZES.xs }]}>{`Replaced by ${allMachines.find((m) => m.id === retired.scrapped!.replacedBy)!.serial ? `S/N ${allMachines.find((m) => m.id === retired.scrapped!.replacedBy)!.serial}` : 'the new unit'} →`}</Text>
+                  <Text style={[styles.link, { marginTop: SIZES.xs }]}>{`${t('mch.replacedBy', { unit: allMachines.find((m) => m.id === retired.scrapped!.replacedBy)!.serial ? `S/N ${allMachines.find((m) => m.id === retired.scrapped!.replacedBy)!.serial}` : t('mch.theNewUnit') })} →`}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
           ) : !canPlan ? <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>{PLAN_LOCKED}</Text> : null}
           {before.length ? (
             <View style={[styles.card, { marginBottom: SIZES.md }]}>
-              <Text style={styles.sub}>{existing?.installed ? `Fitted ${formatDate(existing.installed)} — it replaced:` : 'It replaced:'}</Text>
+              <Text style={styles.sub}>{existing?.installed ? t('mch.fittedReplaced', { date: formatDate(existing.installed) }) : t('mch.itReplaced')}</Text>
               {before.map((m) => (
                 <TouchableOpacity key={m.id} onPress={() => nav.push('Machine', { id: m.id })} hitSlop={6}>
-                  <Text style={[styles.link, { marginTop: 2 }]}>{`${m.serial ? `S/N ${m.serial}` : m.name}${m.scrapped ? ` · scrapped ${formatDate(m.scrapped.date)} — ${m.scrapped.reason}` : ''} · its history →`}</Text>
+                  <Text style={[styles.link, { marginTop: 2 }]}>{`${m.serial ? `S/N ${m.serial}` : m.name}${m.scrapped ? ` · ${t('mch.scrappedL', { date: formatDate(m.scrapped.date) })} — ${m.scrapped.reason}` : ''} · ${t('mch.itsHistory')} →`}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           ) : null}
           <View pointerEvents={canPlan ? 'auto' : 'none'} style={!canPlan && { opacity: 0.6 }}>
-          <Label>Department</Label>
+          <Label>{t('spp.dept')}</Label>
           <View style={styles.depts}>
             {DEPTS.map((d) => (
               <TouchableOpacity key={d.key} style={[styles.dept, deptOf(draft) === d.key && styles.deptOn]} onPress={() => set({ dept: d.key })}>
-                <Text style={[styles.deptText, deptOf(draft) === d.key && styles.deptTextOn]}>{d.label}</Text>
+                <Text style={[styles.deptText, deptOf(draft) === d.key && styles.deptTextOn]}>{tk(`dept.${d.key}`)}</Text>
               </TouchableOpacity>
             ))}
           </View>
-          <Field label="Name ★" value={draft.name} onChange={(v) => set({ name: v })} placeholder={deptOf(draft) === 'engineering' ? 'Main engine PS' : 'Tender, Galley, Wi-Fi network…'} />
-          <Field label="Location" value={draft.location} onChange={(v) => set({ location: v })} placeholder="Engine room" />
+          <Field label={t('mt.namePh')} value={draft.name} onChange={(v) => set({ name: v })} placeholder={deptOf(draft) === 'engineering' ? t('mch.namePhEng') : t('mch.namePh')} />
+          <Field label={t('risk.location')} value={draft.location} onChange={(v) => set({ location: v })} placeholder={t('dpt.engine')} />
           <View style={{ flexDirection: 'row', gap: SIZES.sm }}>
-            <View style={{ flex: 1 }}><Field label="Maker" value={draft.maker} onChange={(v) => set({ maker: v })} /></View>
-            <View style={{ flex: 1 }}><Field label="Model" value={draft.model} onChange={(v) => set({ model: v })} /></View>
+            <View style={{ flex: 1 }}><Field label={t('spp.maker')} value={draft.maker} onChange={(v) => set({ maker: v })} /></View>
+            <View style={{ flex: 1 }}><Field label={t('mch.model')} value={draft.model} onChange={(v) => set({ model: v })} /></View>
           </View>
-          <Field label="Serial" value={draft.serial} onChange={(v) => set({ serial: v })} />
+          <Field label={t('mch.serial')} value={draft.serial} onChange={(v) => set({ serial: v })} />
           {(() => {
             const choices = parentChoices(draft, machines);
             const parent = machines.find((m) => m.id === draft.parentId);
             return choices.length ? (
               <View style={{ marginBottom: SIZES.md }}>
                 <Dropdown
-                  caption="PART OF"
+                  caption={t('mch.partOf')}
                   value={draft.parentId ?? ''}
                   onChange={(v: string) => set({ parentId: v || undefined, ...(v ? {} : { followsParent: undefined }) })}
                   options={[{ value: '', label: '— a system of its own' }, ...choices.map((m) => ({ value: m.id, label: m.name }))]}
@@ -335,8 +337,8 @@ export default function MachineSc() {
                 {parent && hasCounter(parent) ? (
                   <View style={styles.counterRow}>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.rowTitle}>{`Running hours from ${parent.name}`}</Text>
-                      <Text style={styles.sub}>Each reading of it adds the same hours here, from this one's own figure. Off if it has a counter of its own.</Text>
+                      <Text style={styles.rowTitle}>{t('mch.hoursFrom', { name: parent.name })}</Text>
+                      <Text style={styles.sub}>{t('mch.followHint')}</Text>
                     </View>
                     <Switch value={!!draft.followsParent} onValueChange={(v) => set({ followsParent: v || undefined, ...(v ? { counter: true } : {}) })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
                   </View>
@@ -347,39 +349,39 @@ export default function MachineSc() {
 
           <View style={styles.counterRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.rowTitle}>Running-hours counter</Text>
-              <Text style={styles.sub}>Off for systems serviced by the calendar only — galley, network, hull.</Text>
+              <Text style={styles.rowTitle}>{t('mch.counterTitle')}</Text>
+              <Text style={styles.sub}>{t('mch.counterHint')}</Text>
             </View>
             <Switch value={hasCounter(draft)} onValueChange={(v) => set({ counter: v })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
           </View>
           <View style={styles.counterRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.rowTitle}>Critical equipment</Text>
-              <Text style={styles.sub}>Steering, propulsion, fire-fighting, safety systems — its jobs are done on time and cannot be deferred.</Text>
+              <Text style={styles.rowTitle}>{t('mch.critical')}</Text>
+              <Text style={styles.sub}>{t('mch.criticalHint')}</Text>
             </View>
             <Switch value={!!draft.critical} onValueChange={(v) => set({ critical: v })} trackColor={{ true: COLORS.danger, false: COLORS.border }} />
           </View>
           <View style={styles.counterRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.rowTitle}>Class item</Text>
-              <Text style={styles.sub}>Surveyed by class (continuous survey of machinery) — its jobs count as class evidence.</Text>
+              <Text style={styles.rowTitle}>{t('mch.classItem')}</Text>
+              <Text style={styles.sub}>{t('mch.classHint')}</Text>
             </View>
             <Switch value={!!draft.classItem} onValueChange={(v) => set({ classItem: v || undefined })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
           </View>
-          {draft.classItem ? <Field label="Class code" value={draft.classCode} onChange={(v) => set({ classCode: v })} placeholder="The society's item code" /> : null}
-          {!isNew ? <Field label="Reason for the change" value={changeReason} onChange={setChangeReason} placeholder="Needed when critical, class item or class code changes" /> : null}
+          {draft.classItem ? <Field label={t('mch.classCode')} value={draft.classCode} onChange={(v) => set({ classCode: v })} placeholder={t('mch.classCodePh')} /> : null}
+          {!isNew ? <Field label={t('gb.reasonChange')} value={changeReason} onChange={setChangeReason} placeholder={t('mch.reasonPh')} /> : null}
           </View>
 
           {hasCounter(draft) ? (
           <View style={styles.card}>
-            <Label>Running hours</Label>
+            <Label>{t('mch.runningHours')}</Label>
             <Text style={styles.hours}>
-              {(existing ?? draft).hours != null ? `${(existing ?? draft).hours} h` : 'No reading yet'}
+              {(existing ?? draft).hours != null ? t('hor.hours', { n: (existing ?? draft).hours! }) : t('mch.noReadingYet')}
             </Text>
             <Text style={styles.sub}>
               {[
-                (existing ?? draft).hoursDate ? `read ${formatDate((existing ?? draft).hoursDate!)}` : null,
-                rate ? `≈ ${Math.round(rate * 10) / 10} h a day` : null,
+                (existing ?? draft).hoursDate ? t('mch.readOn', { date: formatDate((existing ?? draft).hoursDate!) }) : null,
+                rate ? t('mch.perDay', { n: Math.round(rate * 10) / 10 }) : null,
               ].filter(Boolean).join(' · ')}
             </Text>
             <View style={styles.readRow}>
@@ -387,41 +389,41 @@ export default function MachineSc() {
                 style={[styles.input, { flex: 1, marginTop: 0 }]}
                 value={reading}
                 onChangeText={setReading}
-                placeholder="Today's counter"
+                placeholder={t('mch.todayCounter')}
                 placeholderTextColor={COLORS.textLight}
                 keyboardType="decimal-pad"
               />
               <TouchableOpacity style={styles.btn} onPress={onReading}>
-                <Text style={styles.btnText}>Save reading</Text>
+                <Text style={styles.btnText}>{t('mch.saveReading')}</Text>
               </TouchableOpacity>
             </View>
-            {offset ? <Text style={styles.sub}>{`Counter replaced: ${offset} h are added to what it shows.`}</Text> : null}
+            {offset ? <Text style={styles.sub}>{t('mch.offsetNote', { n: offset })}</Text> : null}
             {draft.followsParent && machines.find((m) => m.id === draft.parentId) ? (
-              <Text style={styles.sub}>{`Follows ${machines.find((m) => m.id === draft.parentId)!.name}: its readings add here. Enter a figure only to set this one's own (0 when fitted new).`}</Text>
+              <Text style={styles.sub}>{t('mch.followsNote', { name: machines.find((m) => m.id === draft.parentId)!.name })}</Text>
             ) : null}
             {doubt ? (
               <View style={styles.doubt}>
                 <Text style={[styles.sub, { color: COLORS.warning, fontWeight: '700' }]}>{`⚠ ${doubt.total} h — ${doubt.why}`}</Text>
-                <TextInput style={[styles.input, { marginTop: SIZES.xs }]} value={doubtReason} onChangeText={setDoubtReason} placeholder="Reason ★ — counter misread last time, engine on shore power test…" placeholderTextColor={COLORS.textLight} />
+                <TextInput style={[styles.input, { marginTop: SIZES.xs }]} value={doubtReason} onChangeText={setDoubtReason} placeholder={t('mch.doubtPh')} placeholderTextColor={COLORS.textLight} />
                 <View style={{ flexDirection: 'row', gap: SIZES.md, alignItems: 'center', marginTop: SIZES.xs }}>
-                  <TouchableOpacity style={styles.btn} onPress={() => (doubtReason.trim().length < 3 ? Alert.alert('Reason', 'Say why the reading is right.') : void putReading(doubt.total, doubtReason.trim()))}>
-                    <Text style={styles.btnText}>Save with the reason</Text>
+                  <TouchableOpacity style={styles.btn} onPress={() => (doubtReason.trim().length < 3 ? Alert.alert(t('gb.reason'), t('mch.whyRight')) : void putReading(doubt.total, doubtReason.trim()))}>
+                    <Text style={styles.btnText}>{t('mch.saveReason')}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => setDoubt(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => setDoubt(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
                 </View>
               </View>
             ) : null}
             {replacing != null ? (
               <View style={styles.doubt}>
-                <Text style={styles.sub}>{`The machine is at ${(existing ?? draft).hours ?? 0} h. What does the new counter show now? The difference is added to it from now on, so the jobs keep their due hours.`}</Text>
+                <Text style={styles.sub}>{t('mch.replaceHint', { n: (existing ?? draft).hours ?? 0 })}</Text>
                 <View style={[styles.readRow, { marginTop: SIZES.xs }]}>
-                  <TextInput style={[styles.input, { flex: 1, marginTop: 0 }]} value={replacing} onChangeText={setReplacing} placeholder="New counter shows, h" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
-                  <TouchableOpacity style={styles.btn} onPress={() => void onReplaced()}><Text style={styles.btnText}>Save</Text></TouchableOpacity>
+                  <TextInput style={[styles.input, { flex: 1, marginTop: 0 }]} value={replacing} onChangeText={setReplacing} placeholder={t('mch.newShowsPh')} placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
+                  <TouchableOpacity style={styles.btn} onPress={() => void onReplaced()}><Text style={styles.btnText}>{t('common.save')}</Text></TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={() => setReplacing(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setReplacing(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
               </View>
             ) : (existing ?? draft).hours != null ? (
-              <TouchableOpacity onPress={() => setReplacing('')} hitSlop={8}><Text style={[styles.link, { marginTop: SIZES.xs }]}>Counter replaced…</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setReplacing('')} hitSlop={8}><Text style={[styles.link, { marginTop: SIZES.xs }]}>{t('mch.counterReplaced')}</Text></TouchableOpacity>
             ) : null}
             {((existing ?? draft).readings ?? []).filter((r) => r.reason).slice(-3).map((r) => (
               <Text key={`${r.date}-${r.hours}-${r.reason}`} style={styles.sub}>{`${formatDate(r.date)} · ${r.hours} h — ${r.reason}${r.by ? ` (${r.by})` : ''}`}</Text>
@@ -432,10 +434,10 @@ export default function MachineSc() {
           {!isNew ? (
             <>
               <View style={styles.jobsHead}>
-                <Label>{`Components (${machines.filter((m) => m.parentId === id).length})`}</Label>
+                <Label>{t('mch.components', { n: machines.filter((m) => m.parentId === id).length })}</Label>
                 {canPlan ? (
                   <TouchableOpacity onPress={async () => { if (await saveDetails()) nav.push('Machine', { id: uid('mach'), isNew: true, dept: deptOf(draft), parentId: id, follows: hasCounter(draft) }); }} hitSlop={8}>
-                    <Text style={styles.link}>+ Add component</Text>
+                    <Text style={styles.link}>{t('mch.addComponent')}</Text>
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -444,7 +446,7 @@ export default function MachineSc() {
                   <View style={[styles.bar, { backgroundColor: COLORS.primary }]} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.rowTitle} numberOfLines={1}>{c.name}</Text>
-                    <Text style={styles.sub} numberOfLines={1}>{[c.serial ? `S/N ${c.serial}` : null, hasCounter(c) && c.hours != null ? `${c.hours} h${c.followsParent ? ' (follows)' : ''}` : null, `${pmsJobs.filter((j) => j.machineId === c.id && !j.deleted).length} jobs`].filter(Boolean).join(' · ')}</Text>
+                    <Text style={styles.sub} numberOfLines={1}>{[c.serial ? `S/N ${c.serial}` : null, hasCounter(c) && c.hours != null ? `${t('hor.hours', { n: c.hours })}${c.followsParent ? ` (${t('mch.follows')})` : ''}` : null, tn('n.job', pmsJobs.filter((j) => j.machineId === c.id && !j.deleted).length)].filter(Boolean).join(' · ')}</Text>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -452,22 +454,22 @@ export default function MachineSc() {
           ) : null}
           {draft.parentId && machines.find((m) => m.id === draft.parentId) ? (
             <TouchableOpacity onPress={() => nav.push('Machine', { id: draft.parentId })} hitSlop={8}>
-              <Text style={[styles.link, { marginTop: SIZES.xs }]}>{`↑ Part of ${machines.find((m) => m.id === draft.parentId)!.name}`}</Text>
+              <Text style={[styles.link, { marginTop: SIZES.xs }]}>{`↑ ${t('mch.partOfL', { name: machines.find((m) => m.id === draft.parentId)!.name })}`}</Text>
             </TouchableOpacity>
           ) : null}
           {(() => {
             const lc = lastCondition(id, pmsDone);
             return lc ? (
               <Text style={[styles.sub, { marginTop: SIZES.sm, fontWeight: '700', color: lc.conditionAfter === 'out' || lc.conditionAfter === 'poor' ? COLORS.warning : COLORS.textDark }]}>
-                {`Last condition: ${CONDITION[lc.conditionAfter!]} · ${formatDate(lc.date)} · ${lc.jobTitle}`}
+                {`${t('mch.lastCond')}: ${CONDITION[lc.conditionAfter!]} · ${formatDate(lc.date)} · ${lc.jobTitle}`}
               </Text>
             ) : null;
           })()}
           <View style={styles.jobsHead}>
-            <Label>{`Jobs (${jobs.length})`}</Label>
+            <Label>{t('mch.jobsN', { n: jobs.length })}</Label>
             <View pointerEvents={canPlan ? 'auto' : 'none'} style={[{ flexDirection: 'row', gap: SIZES.md }, !canPlan && { opacity: 0.35 }]}>
               <TouchableOpacity onPress={() => setShowTypes((v) => !v)} hitSlop={8}>
-                <Text style={styles.link}>Typical jobs</Text>
+                <Text style={styles.link}>{t('mch.typical')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={async () => {
@@ -475,7 +477,7 @@ export default function MachineSc() {
                 }}
                 hitSlop={8}
               >
-                <Text style={styles.link}>+ Add job</Text>
+                <Text style={styles.link}>{t('mch.addJob')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={async () => {
@@ -483,16 +485,16 @@ export default function MachineSc() {
                 }}
                 hitSlop={8}
               >
-                <Text style={styles.link}>+ One-off</Text>
+                <Text style={styles.link}>{t('mch.oneOff')}</Text>
               </TouchableOpacity>
             </View>
           </View>
           {showTypes ? (
             <View style={styles.types}>
-              <Text style={styles.sub}>Adds the usual jobs for this kind of system, without a last-done date. Check each interval against the maker's manual.</Text>
+              <Text style={styles.sub}>{t('mch.typicalHint')}</Text>
               {CATALOGUE.filter((t) => t.dept === deptOf(draft)).map((t) => (
                 <TouchableOpacity key={t.key} style={styles.type} onPress={() => addTypical(t.key)}>
-                  <Text style={styles.typeText}>{`${t.label} · ${t.jobs.length} jobs`}</Text>
+                  <Text style={styles.typeText}>{`${t.label} · ${tn('n.job', t.jobs.length)}`}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -511,7 +513,7 @@ export default function MachineSc() {
             );
           })}
 
-          {fitting.length ? <Label>{`Spares for this machine (${fitting.length})`}</Label> : null}
+          {fitting.length ? <Label>{t('mch.spares', { n: fitting.length })}</Label> : null}
           {fitting.map((p) => {
             const have = stock.get(p.id) ?? 0;
             const st = stockStatus(p, have);
@@ -528,10 +530,10 @@ export default function MachineSc() {
           })}
 
           <View style={styles.jobsHead}>
-            <Label>{`Open defects (${defects.length})`}</Label>
+            <Label>{t('mt2.openDefects', { n: defects.length })}</Label>
             {!isNew ? (
               <TouchableOpacity onPress={() => nav.navigate('PmsDefect', { id: uid('new'), machineId: id })} hitSlop={8}>
-                <Text style={styles.link}>+ Report defect</Text>
+                <Text style={styles.link}>{t('mch.reportDefect')}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -550,38 +552,38 @@ export default function MachineSc() {
               <TouchableOpacity
                 onPress={() =>
                   void exportPmsHistory('Maintenance history', `Maintenance history-${draft.name}`, vessel, [machineHistory(existing ?? draft, pmsJobs, pmsDone, pmsDeferrals, pmsDefects, today)])
-                    .then((w) => typeof w === 'string' && setHistSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`))
-                    .catch((e) => Alert.alert('History', String(e?.message ?? e)))
+                    .then((w) => typeof w === 'string' && setHistSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w })))
+                    .catch((e) => Alert.alert(t('mch.history'), String(e?.message ?? e)))
                 }
                 hitSlop={8}
               >
-                <Text style={styles.link}>History for the surveyor (PDF)</Text>
+                <Text style={styles.link}>{t('mch.histPdf')}</Text>
               </TouchableOpacity>
               {histSaved ? <Text style={[styles.sub, { color: COLORS.success }]}>{`✓ ${histSaved}`}</Text> : null}
             </View>
           ) : null}
 
           <View style={styles.jobsHead}>
-            <Label>{history.length ? 'Recent work' : 'Work done'}</Label>
+            <Label>{history.length ? t('mch.recent') : t('mch.workDone')}</Label>
             {!isNew ? (
               <TouchableOpacity onPress={() => nav.navigate('PmsJob', { id: uid('srv'), machineId: id, unplanned: true })} hitSlop={8}>
-                <Text style={styles.link}>+ Unplanned work</Text>
+                <Text style={styles.link}>{t('mch.unplanned')}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
           {history.map((h) => (
             <View key={h.id} style={[styles.hist, h.cancelled && { opacity: 0.6 }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm }}>
-                <Text style={[styles.rowTitle, { flex: 1 }, h.cancelled && { textDecorationLine: 'line-through' }]} numberOfLines={1}>{`${h.unplanned ? 'Unplanned · ' : ''}${h.jobTitle}`}</Text>
+                <Text style={[styles.rowTitle, { flex: 1 }, h.cancelled && { textDecorationLine: 'line-through' }]} numberOfLines={1}>{`${h.unplanned ? `${t('mch.unplannedL')} · ` : ''}${h.jobTitle}`}</Text>
                 {!h.cancelled && cancellable(h) ? (
                   <TouchableOpacity disabled={!isMaster} style={!isMaster && { opacity: 0.35 }} onPress={() => cancelDone(h)} hitSlop={8}>
-                    <Text style={[styles.link, { color: COLORS.danger }]}>Cancel</Text>
+                    <Text style={[styles.link, { color: COLORS.danger }]}>{t('common.cancel')}</Text>
                   </TouchableOpacity>
                 ) : null}
               </View>
-              {h.cancelled ? <Text style={[styles.sub, { color: COLORS.danger }]}>{`Cancelled — ${h.editReason ?? ''} · ${h.editedByRank ? `${h.editedBy} (${h.editedByRank})` : h.editedBy ?? ''}`}</Text> : null}
+              {h.cancelled ? <Text style={[styles.sub, { color: COLORS.danger }]}>{`${t('mch.cancelled')} — ${h.editReason ?? ''} · ${h.editedByRank ? `${h.editedBy} (${h.editedByRank})` : h.editedBy ?? ''}`}</Text> : null}
               <Text style={styles.sub}>
-                {[formatDate(h.date), h.hours != null ? `${h.hours} h` : null, conditionText(h) || null, h.manHours != null ? `${h.manHours} man-h` : null, h.doneBy ? `done by ${h.doneBy}${h.doneByRank ? ` (${h.doneByRank})` : ''}` : null, h.doneBy ? `signed out by ${h.byRank ? `${h.by} (${h.byRank})` : h.by}` : h.byRank ? `${h.by} (${h.byRank})` : h.by].filter(Boolean).join(' · ')}
+                {[formatDate(h.date), h.hours != null ? t('hor.hours', { n: h.hours }) : null, conditionText(h) || null, h.manHours != null ? t('mch.manH', { n: h.manHours }) : null, h.doneBy ? t('mch.doneBy', { who: `${h.doneBy}${h.doneByRank ? ` (${h.doneByRank})` : ''}` }) : null, h.doneBy ? t('mch.signedOutBy', { who: h.byRank ? `${h.by} (${h.byRank})` : h.by }) : h.byRank ? `${h.by} (${h.byRank})` : h.by].filter(Boolean).join(' · ')}
               </Text>
               {h.note ? <Text style={styles.note}>{h.note}</Text> : null}
               {h.photos?.length ? (
@@ -595,7 +597,7 @@ export default function MachineSc() {
           {existing?.changes?.length ? (
             <View style={{ marginTop: SIZES.md }}>
               <TouchableOpacity onPress={() => setShowLog((v) => !v)} hitSlop={8}>
-                <Text style={styles.link}>{`${showLog ? 'Hide' : 'Show'} the change log (${existing.changes.length})`}</Text>
+                <Text style={styles.link}>{t(showLog ? 'mch.hideLog' : 'mch.showLog', { n: existing.changes.length })}</Text>
               </TouchableOpacity>
               {showLog
                 ? [...existing.changes].reverse().map((c, i) => (
@@ -606,18 +608,18 @@ export default function MachineSc() {
           ) : null}
           {!isNew && canPlan ? (
             <View style={[styles.jobsHead, { marginTop: SIZES.lg, justifyContent: 'flex-start', gap: SIZES.lg, flexWrap: 'wrap' }]}>
-              <TouchableOpacity onPress={() => void onCopy()} hitSlop={8}><Text style={styles.link}>Copy this system</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => void onCopy()} hitSlop={8}><Text style={styles.link}>{t('mch.copySystem')}</Text></TouchableOpacity>
               {jobs.some((j) => !j.oneOff) ? (
-                <TouchableOpacity onPress={() => setCopyTo(copyTo ? null : new Set())} hitSlop={8}><Text style={styles.link}>Copy jobs to…</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setCopyTo(copyTo ? null : new Set())} hitSlop={8}><Text style={styles.link}>{t('mch.copyJobsTo')}</Text></TouchableOpacity>
               ) : null}
               <TouchableOpacity onPress={() => setRetire(retire ? null : { date: today, reason: '', replace: true, serial: '', hours: '0' })} hitSlop={8}>
-                <Text style={[styles.link, { color: COLORS.danger }]}>Scrap / replace…</Text>
+                <Text style={[styles.link, { color: COLORS.danger }]}>{t('mch.scrapReplace')}</Text>
               </TouchableOpacity>
             </View>
           ) : null}
           {copyTo ? (
             <View style={styles.types}>
-              <Text style={styles.sub}>Its recurring jobs are added to the systems ticked — not yet done; a job a system already has by that name is skipped.</Text>
+              <Text style={styles.sub}>{t('mch.copyHint')}</Text>
               {machines.filter((m) => m.id !== id).sort((a, b) => Number(deptOf(b) === deptOf(draft)) - Number(deptOf(a) === deptOf(draft)) || a.name.localeCompare(b.name)).map((m) => {
                 const on = copyTo.has(m.id);
                 return (
@@ -627,45 +629,45 @@ export default function MachineSc() {
                 );
               })}
               <View style={{ flexDirection: 'row', gap: SIZES.md, alignItems: 'center' }}>
-                <TouchableOpacity style={styles.btn} onPress={() => void onCopyJobs()}><Text style={styles.btnText}>{`Copy to ${copyTo.size}`}</Text></TouchableOpacity>
-                <TouchableOpacity onPress={() => setCopyTo(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.btn} onPress={() => void onCopyJobs()}><Text style={styles.btnText}>{t('mch.copyToN', { n: copyTo.size })}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setCopyTo(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
               </View>
             </View>
           ) : null}
           {retire ? (
             <View style={[styles.doubt, { borderColor: COLORS.danger }]}>
-              <Text style={styles.sub}>Off the plan, with its history kept under Scrapped. Its jobs come off the due lists.</Text>
+              <Text style={styles.sub}>{t('mch.scrapHint')}</Text>
               <View style={styles.readRow}>
-                <TextInput style={[styles.input, { flex: 1, marginTop: 0 }]} value={retire.date} onChangeText={(v) => setRetire({ ...retire, date: v })} placeholder="Date yyyy-mm-dd" placeholderTextColor={COLORS.textLight} />
+                <TextInput style={[styles.input, { flex: 1, marginTop: 0 }]} value={retire.date} onChangeText={(v) => setRetire({ ...retire, date: v })} placeholder={t('mch.datePh')} placeholderTextColor={COLORS.textLight} />
               </View>
-              <TextInput style={styles.input} value={retire.reason} onChangeText={(v) => setRetire({ ...retire, reason: v })} placeholder="Reason ★ — worn out, failed, replaced at refit…" placeholderTextColor={COLORS.textLight} />
+              <TextInput style={styles.input} value={retire.reason} onChangeText={(v) => setRetire({ ...retire, reason: v })} placeholder={t('mch.reasonOutPh')} placeholderTextColor={COLORS.textLight} />
               <View style={styles.counterRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowTitle}>Replaced by a new unit</Text>
-                  <Text style={styles.sub}>A new record takes its place and its jobs, counted from the day it was fitted. The old unit's history stays its own.</Text>
+                  <Text style={styles.rowTitle}>{t('mch.replacedNew')}</Text>
+                  <Text style={styles.sub}>{t('mch.replacedNewHint')}</Text>
                 </View>
                 <Switch value={retire.replace} onValueChange={(v) => setRetire({ ...retire, replace: v })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
               </View>
               {retire.replace ? (
                 <View style={styles.readRow}>
-                  <TextInput style={[styles.input, { flex: 1, marginTop: 0 }]} value={retire.serial} onChangeText={(v) => setRetire({ ...retire, serial: v })} placeholder="New unit's serial" placeholderTextColor={COLORS.textLight} />
+                  <TextInput style={[styles.input, { flex: 1, marginTop: 0 }]} value={retire.serial} onChangeText={(v) => setRetire({ ...retire, serial: v })} placeholder={t('mch.newSerial')} placeholderTextColor={COLORS.textLight} />
                   {hasCounter(draft) ? (
-                    <TextInput style={[styles.input, { flex: 1, marginTop: 0 }]} value={retire.hours} onChangeText={(v) => setRetire({ ...retire, hours: v })} placeholder="Its counter, h" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
+                    <TextInput style={[styles.input, { flex: 1, marginTop: 0 }]} value={retire.hours} onChangeText={(v) => setRetire({ ...retire, hours: v })} placeholder={t('mch.itsCounter')} placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
                   ) : null}
                 </View>
               ) : null}
               <View style={{ flexDirection: 'row', gap: SIZES.md, alignItems: 'center', marginTop: SIZES.sm }}>
                 <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.danger }]} onPress={() => void onRetire()}>
-                  <Text style={styles.btnText}>{retire.replace ? 'Scrap and fit the new unit' : 'Scrap'}</Text>
+                  <Text style={styles.btnText}>{retire.replace ? t('mch.scrapFit') : t('mch.scrap')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setRetire(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setRetire(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
               </View>
             </View>
           ) : null}
 
           {!retired ? (
             <TouchableOpacity disabled={!canPlan} style={[styles.deleteBtn, !canPlan && { opacity: 0.35 }]} onPress={onDelete}>
-              <Text style={styles.deleteText}>{isNew ? 'Discard' : hasHistory ? 'Remove (no history only)' : 'Remove — entered by mistake'}</Text>
+              <Text style={styles.deleteText}>{isNew ? t('doc.discard') : hasHistory ? t('mch.removeNoHist') : t('mch.removeMistake')}</Text>
             </TouchableOpacity>
           ) : null}
         </ScrollView>

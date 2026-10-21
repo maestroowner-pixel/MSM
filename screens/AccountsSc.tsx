@@ -21,18 +21,25 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { EnrolledDevice, Invite, ROLE_LABEL, ROLE_ORDER, Role, personName, olderConnections } from '../types/role';
+import { EnrolledDevice, Invite, ROLE_ORDER, Role, personName, olderConnections } from '../types/role';
 import * as accounts from '../services/accounts';
 import * as fb from '../services/firebaseService';
 import { formatDateTime } from '../utils/dates';
-import { newestVersion, versionLabel, versionStanding } from '../utils/version';
+import { newestVersion, versionStanding } from '../utils/version';
 import { APP_CONFIG } from '../theme';
 import { moduleOn } from '../constants/modules';
+import { t, tk, tn, useT } from '../utils/i18n';
 
 type Tab = 'invites' | 'devices';
 
+// ROLE_LABEL (types/role) stays English for records and PDFs; the screen shows the role translated.
+const roleName = (r: Role) => tk(`role.${r}`);
+const verText = (s: ReturnType<typeof versionStanding>) =>
+  s.kind === 'current' ? t('acc.verCurrent', { v: s.version }) : s.kind === 'behind' ? t('acc.verBehind', { v: s.version, newest: s.newest }) : t('acc.verUnknown');
+
 export default function AccountsSc() {
   const COLORS = useTheme();
+  useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { vessel, signingPolicy } = useData();
   const imo = (vessel?.imo ?? '').replace(/\D/g, '');
@@ -133,12 +140,11 @@ export default function AccountsSc() {
       // Shown rather than merely written, because the next thing that happens is
       // the Master reading it out to somebody standing in front of them.
       Alert.alert(
-        `Account issued — ${personName(inv)}`,
-        `PIN: ${inv.pin}\n\nThey enter their name and this PIN on their own device. ` +
-          `You can read it back from this list at any time.`
+        t('acc.issuedTitle', { name: personName(inv) }),
+        t('acc.issuedBody', { pin: inv.pin })
       );
     } catch (e: any) {
-      Alert.alert('Could not issue', e?.message ?? String(e));
+      Alert.alert(t('acc.couldNotIssue'), e?.message ?? String(e));
     }
   }, [firstName, lastName, role, position, imo]);
 
@@ -155,23 +161,20 @@ export default function AccountsSc() {
   const confirmDeleteInvite = (inv: Invite) => {
     const used = inv.activations?.length ?? 0;
     Alert.alert(
-      'Delete this account?',
-      `${personName(inv)} will be taken off the list for good, and the PIN will never work again.\n\n` +
-        (used
-          ? `It was used on ${used} device${used === 1 ? '' : 's'}. Those stay under Devices until ` +
-            'you remove them there (Devices → the device → Remove from list).\n\n'
-          : '') +
-        'Signed inspections are untouched — they carry the name, not the account.',
+      t('acc.deleteQ'),
+      t('acc.deleteBody', { name: personName(inv) }) + '\n\n' +
+        (used ? t('acc.deleteUsed', { devices: tn('n.device', used) }) + '\n\n' : '') +
+        t('acc.signedUntouched'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await accounts.deleteInvite(imo, inv.id);
             } catch (e: any) {
-              Alert.alert('Could not delete', e?.message ?? String(e));
+              Alert.alert(t('acc.couldNotDelete'), e?.message ?? String(e));
             }
           },
         },
@@ -184,32 +187,32 @@ export default function AccountsSc() {
     const used = inv.activations?.length ?? 0;
     Alert.alert(
       personName(inv),
-      `PIN ${inv.pin} · ${ROLE_LABEL[inv.role]}\n` +
-        (used ? `Used on ${used} device${used === 1 ? '' : 's'}.` : 'Not used yet.'),
+      `PIN ${inv.pin} · ${roleName(inv.role)}\n` +
+        (used ? t('acc.usedOn', { devices: tn('n.device', used) }) : t('acc.notUsed')),
       // Three buttons either way — Android's native dialog shows no more. A
       // revoked account trades "New PIN" for "Delete": Restore brings the PIN
       // options back, and a new PIN on an account being cleared out is no use.
       inv.revoked
         ? [
-            { text: 'Close', style: 'cancel' },
-            { text: 'Restore', onPress: () => void accounts.restoreInvite(imo, inv.id) },
-            { text: 'Delete', style: 'destructive' as const, onPress: () => confirmDeleteInvite(inv) },
+            { text: t('common.close'), style: 'cancel' },
+            { text: t('acc.restore'), onPress: () => void accounts.restoreInvite(imo, inv.id) },
+            { text: t('common.delete'), style: 'destructive' as const, onPress: () => confirmDeleteInvite(inv) },
           ]
         : [
-            { text: 'Close', style: 'cancel' },
+            { text: t('common.close'), style: 'cancel' },
             {
-              text: 'New PIN',
+              text: t('acc.newPin'),
               onPress: async () => {
                 try {
                   const pin = await accounts.reissuePin(imo, inv.id);
-                  Alert.alert('New PIN', `${personName(inv)}: ${pin}`);
+                  Alert.alert(t('acc.newPin'), `${personName(inv)}: ${pin}`);
                 } catch (e: any) {
-                  Alert.alert('Failed', e?.message ?? String(e));
+                  Alert.alert(t('acc.failed'), e?.message ?? String(e));
                 }
               },
             },
             {
-              text: 'Revoke',
+              text: t('acc.revoke'),
               style: 'destructive' as const,
               onPress: () => void accounts.revokeInvite(imo, inv.id),
             },
@@ -238,7 +241,7 @@ export default function AccountsSc() {
       // telling the user something they are looking at.
       setRenaming(null);
     } catch (e: any) {
-      Alert.alert('Could not rename', e?.message ?? String(e));
+      Alert.alert(t('acc.couldNotRename'), e?.message ?? String(e));
     } finally {
       setRnBusy(false);
     }
@@ -258,21 +261,18 @@ export default function AccountsSc() {
   const confirmRemove = (d: EnrolledDevice) => {
     const who = personName(d) || d.id;
     Alert.alert(
-      'Remove this device?',
-      `${who} will be taken off the list and will lose access at once.\n\n` +
-        'This erases the record of the device rather than switching it off, and it can enrol ' +
-        'again with a new invitation. Signed inspections it has already made are untouched — ' +
-        'they carry the signature, not the device.',
+      t('acc.removeQ'),
+      t('acc.removeBody', { who }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('common.remove'),
           style: 'destructive',
           onPress: async () => {
             try {
               await accounts.removeDevice(imo, d.id);
             } catch (e: any) {
-              Alert.alert('Could not remove', e?.message ?? String(e));
+              Alert.alert(t('acc.couldNotRemove'), e?.message ?? String(e));
             }
           },
         },
@@ -286,11 +286,11 @@ export default function AccountsSc() {
     if (!isMaster) {
       Alert.alert(
         personName(d) || d.id,
-        `${ROLE_LABEL[d.role]} · ${d.approved ? 'approved' : 'waiting for approval'}` +
-          (d.disabled ? ' · switched off' : '') +
-          (d.id === myDeviceId ? '\n\nThis is the device you are using.' : '') +
-          '\n\nOnly the Master can approve, re-rank or remove a device.',
-        [{ text: 'Close', style: 'cancel' }]
+        `${roleName(d.role)} · ${d.approved ? t('acc.approved') : t('acc.waitingApproval')}` +
+          (d.disabled ? t('acc.switchedOffLc') : '') +
+          (d.id === myDeviceId ? t('acc.youUse') : '') +
+          t('acc.onlyMaster'),
+        [{ text: t('common.close'), style: 'cancel' }]
       );
       return;
     }
@@ -313,21 +313,21 @@ export default function AccountsSc() {
       d.role === 'superadmin' &&
       devices.filter((x) => x.role === 'superadmin' && x.approved && !x.disabled).length <= 1;
 
-    const buttons: any[] = [{ text: 'Close', style: 'cancel' }];
-    if (!d.approved) buttons.push({ text: 'Approve', onPress: () => void accounts.approveDevice(imo, d.id) });
+    const buttons: any[] = [{ text: t('common.close'), style: 'cancel' }];
+    if (!d.approved) buttons.push({ text: t('acc.approve'), onPress: () => void accounts.approveDevice(imo, d.id) });
     // The Master's, and only the Master's — with `signAsDevice` on, the name on a
     // device IS the signature it files (firestore.rules says the same).
-    if (isMaster) buttons.push({ text: 'Rename', onPress: () => startRename(d) });
+    if (isMaster) buttons.push({ text: t('acc.rename'), onPress: () => startRename(d) });
     if (!lastMaster) {
       // A shore account is not a device aboard and a device aboard is not a shore
       // account: neither is turned into the other here (functions/index.js).
       for (const r of ROLE_ORDER) {
         if (r !== d.role && r !== 'shore' && d.role !== 'shore') {
-          buttons.push({ text: `Make ${ROLE_LABEL[r]}`, onPress: () => void accounts.setDeviceRole(imo, d.id, r) });
+          buttons.push({ text: t('acc.make', { role: roleName(r) }), onPress: () => void accounts.setDeviceRole(imo, d.id, r) });
         }
       }
       buttons.push({
-        text: d.disabled ? 'Switch on' : 'Switch off',
+        text: d.disabled ? t('acc.switchOn') : t('acc.switchOff'),
         style: d.disabled ? 'default' : ('destructive' as const),
         onPress: () => void accounts.disableDevice(imo, d.id, !d.disabled),
       });
@@ -336,17 +336,13 @@ export default function AccountsSc() {
     // alone on board would lock the vessel out of its own accounts with one tap,
     // and no one left aboard could undo it.
     if (d.id !== myDeviceId) {
-      buttons.push({ text: 'Remove from list', style: 'destructive' as const, onPress: () => confirmRemove(d) });
+      buttons.push({ text: t('acc.removeFromList'), style: 'destructive' as const, onPress: () => confirmRemove(d) });
     }
     Alert.alert(
       personName(d) || d.id,
-      `${ROLE_LABEL[d.role]} · ${d.approved ? 'approved' : 'waiting'}` +
-        (d.id === myDeviceId ? ' · this device' : '') +
-        (lastMaster
-          ? '\n\nThis is the vessel\'s only Master, so its rank cannot be changed and it cannot ' +
-            'be switched off here — there would be nobody left who could undo it. Make another ' +
-            'device a Master first, and this one is then free to change.'
-          : ''),
+      `${roleName(d.role)} · ${d.approved ? t('acc.approved') : t('acc.waitingLc')}` +
+        (d.id === myDeviceId ? t('acc.thisDeviceLc') : '') +
+        (lastMaster ? t('acc.lastMaster') : ''),
       buttons
     );
   };
@@ -354,13 +350,10 @@ export default function AccountsSc() {
   if (!imo) {
     return (
       <Screen scroll>
-        <ScreenTitle title="Accounts" subtitle="Who may use this vessel's register" />
+        <ScreenTitle title={t('acc.title')} subtitle={t('acc.sub')} />
         <Card>
-          <Label>Vessel IMO required</Label>
-          <Text style={styles.note}>
-            Accounts are issued per vessel, and the IMO number is what identifies it. Set it in
-            Settings → Vessel first.
-          </Text>
+          <Label>{t('acc.imoRequired')}</Label>
+          <Text style={styles.note}>{t('acc.imoBody')}</Text>
         </Card>
       </Screen>
     );
@@ -369,24 +362,21 @@ export default function AccountsSc() {
   return (
     <Screen>
       <ScreenTitle
-        title="Accounts"
-        subtitle={isMaster ? 'Issue, revoke and approve' : 'Who is aboard this vessel'}
+        title={t('acc.title')}
+        subtitle={isMaster ? t('acc.subMaster') : t('acc.subCrew')}
       />
 
       {error ? (
         <Card>
-          <Label>Not available</Label>
+          <Label>{t('acc.notAvailable')}</Label>
           <Text style={styles.note}>{error}</Text>
         </Card>
       ) : null}
 
       {!rankKnown ? (
         <Card>
-          <Label>Working out what this device may do</Label>
-          <Text style={styles.note}>
-            Accounts open once the vessel has confirmed this device's rank. If it stays like this,
-            the device has not joined yet — the “This device” card at the top of Settings.
-          </Text>
+          <Label>{t('acc.rankUnknown')}</Label>
+          <Text style={styles.note}>{t('acc.rankUnknownBody')}</Text>
         </Card>
       ) : null}
 
@@ -396,27 +386,24 @@ export default function AccountsSc() {
           their own device stands instead of being shown a locked door. */}
       {rankKnown && !isMaster ? (
         <Card>
-          <Label>{ROLE_LABEL[myRole]} — read only</Label>
-          <Text style={styles.note}>
-            Accounts, approvals and ranks are the Master's. Your own device — its name, rank and
-            whether it is approved — is under Settings → This device.
-          </Text>
+          <Label>{t('acc.readOnly', { role: roleName(myRole) })}</Label>
+          <Text style={styles.note}>{t('acc.readOnlyBody')}</Text>
         </Card>
       ) : null}
 
       <View style={styles.tabs}>
-        {(isMaster ? (['invites', 'devices'] as Tab[]) : (['devices'] as Tab[])).map((t) => (
-          <TouchableOpacity key={t} style={[styles.tab, shownTab === t && styles.tabOn]} onPress={() => setTab(t)}>
-            <Text style={[styles.tabText, shownTab === t && styles.tabTextOn]}>
-              {t === 'invites' ? `Invitations (${invites.length})` : `Devices (${devices.length})`}
+        {(isMaster ? (['invites', 'devices'] as Tab[]) : (['devices'] as Tab[])).map((tb) => (
+          <TouchableOpacity key={tb} style={[styles.tab, shownTab === tb && styles.tabOn]} onPress={() => setTab(tb)}>
+            <Text style={[styles.tabText, shownTab === tb && styles.tabTextOn]}>
+              {tb === 'invites' ? t('acc.invitationsN', { n: invites.length }) : t('acc.devicesN', { n: devices.length })}
             </Text>
           </TouchableOpacity>
         ))}
         {isMaster ? (
-          <TouchableOpacity style={[styles.tab, styles.tabIssue]} onPress={() => setIssuing(true)} accessibilityLabel="Issue an account">
+          <TouchableOpacity style={[styles.tab, styles.tabIssue]} onPress={() => setIssuing(true)} accessibilityLabel={t('acc.issue')}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <MciIcon name="account-plus" size={16} color={COLORS.textWhite} />
-              <Text style={[styles.tabText, styles.tabTextOn]}>Issue an account</Text>
+              <Text style={[styles.tabText, styles.tabTextOn]}>{t('acc.issue')}</Text>
             </View>
           </TouchableOpacity>
         ) : null}
@@ -429,7 +416,7 @@ export default function AccountsSc() {
             data={invites}
             keyExtractor={(i) => i.id}
             contentContainerStyle={{ paddingBottom: SIZES.xxxl }}
-            ListEmptyComponent={<Empty text={'No accounts issued yet.'} />}
+            ListEmptyComponent={<Empty text={t('acc.noInvites')} />}
             renderItem={({ item }) => (
               <TouchableOpacity onPress={() => inviteActions(item)}>
                 <Card>
@@ -446,11 +433,11 @@ export default function AccountsSc() {
                       <Text style={styles.meta}>
                         {[
                           item.position || null,
-                          ROLE_LABEL[item.role],
-                          item.revoked ? 'Revoked' : null,
+                          roleName(item.role),
+                          item.revoked ? t('acc.revoked') : null,
                           item.activations?.length
-                            ? `${item.activations.length} device${item.activations.length === 1 ? '' : 's'}`
-                            : 'Unused',
+                            ? tn('n.device', item.activations.length)
+                            : t('acc.unused'),
                         ]
                           .filter(Boolean)
                           .join(' · ')}
@@ -470,16 +457,16 @@ export default function AccountsSc() {
             switches them all off; the one in use, and this device, stay. */}
         {isMaster && older.size ? (
           <Card>
-            <Text style={styles.name}>{`${older.size} older connection${older.size === 1 ? '' : 's'}`}</Text>
-            <Text style={styles.meta}>The same person, rank and kind of device joined again — from another browser address, after clearing the browser, or a reinstalled phone. The one seen last is kept (this device always). The server switches such connections off by itself after three days unused; one opened again comes back.</Text>
+            <Text style={styles.name}>{tn('n.olderConn', older.size)}</Text>
+            <Text style={styles.meta}>{t('acc.olderBody')}</Text>
             <TouchableOpacity
               style={[styles.waitPill, { alignSelf: 'flex-start', marginTop: SIZES.sm }]}
-              onPress={() => Alert.alert('Switch off the older connections?', [...older.keys()].map((id) => { const d = devices.find((x) => x.id === id); return d ? `${personName(d)} · ${d.platform ?? ''} · last seen ${d.lastSeenAt ? formatDateTime(d.lastSeenAt) : '—'}` : id; }).join('\n'), [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Switch off', style: 'destructive', onPress: () => void accounts.retireDevices(imo, older).catch((e) => Alert.alert('Devices', String(e?.message ?? e))) },
+              onPress={() => Alert.alert(t('acc.switchOffOlderQ'), [...older.keys()].map((id) => { const d = devices.find((x) => x.id === id); return d ? `${personName(d)} · ${d.platform ?? ''} · ${t('acc.lastSeen', { when: d.lastSeenAt ? formatDateTime(d.lastSeenAt) : '—' })}` : id; }).join('\n'), [
+                { text: t('common.cancel'), style: 'cancel' },
+                { text: t('acc.switchOff'), style: 'destructive', onPress: () => void accounts.retireDevices(imo, older).catch((e) => Alert.alert(t('acc.devicesErr'), String(e?.message ?? e))) },
               ])}
             >
-              <Text style={styles.waitText}>SWITCH THEM OFF</Text>
+              <Text style={styles.waitText}>{t('acc.switchThemOff')}</Text>
             </TouchableOpacity>
           </Card>
         ) : null}
@@ -488,11 +475,11 @@ export default function AccountsSc() {
           keyExtractor={(d) => d.id}
           ListFooterComponent={retired.length ? (
             <TouchableOpacity onPress={() => setShowRetired(!showRetired)} style={{ paddingVertical: SIZES.sm }}>
-              <Text style={styles.meta}>{showRetired ? 'Hide the older connections switched off automatically' : `${retired.length} older connection${retired.length === 1 ? '' : 's'} switched off automatically — they come back if used again. Show ›`}</Text>
+              <Text style={styles.meta}>{showRetired ? t('acc.hideRetired') : t('acc.showRetired', { conns: tn('n.olderConn', retired.length) })}</Text>
             </TouchableOpacity>
           ) : null}
           contentContainerStyle={{ paddingBottom: SIZES.xxxl }}
-          ListEmptyComponent={<Empty text={'No devices have enrolled yet.'} />}
+          ListEmptyComponent={<Empty text={t('acc.noDevices')} />}
           renderItem={({ item }) => (
             <Card>
               {/* Two controls side by side, NOT one inside the other. A rename
@@ -511,11 +498,11 @@ export default function AccountsSc() {
                     <Text style={styles.meta}>
                       {[
                         item.position || null,
-                        ROLE_LABEL[item.role],
-                        item.disabled ? (item.retiredAt ? 'Older connection, switched off automatically' : 'Switched off') : item.approved ? 'Approved' : 'Waiting',
+                        roleName(item.role),
+                        item.disabled ? (item.retiredAt ? t('acc.retiredAuto') : t('acc.switchedOff')) : item.approved ? t('acc.approvedCap') : t('acc.waiting'),
                         item.platform,
                         item.lastSeenAt ? formatDateTime(item.lastSeenAt) : null,
-                        older.has(item.id) ? 'Older connection' : null,
+                        older.has(item.id) ? t('acc.olderConn') : null,
                       ]
                         .filter(Boolean)
                         .join(' · ')}
@@ -528,12 +515,12 @@ export default function AccountsSc() {
                         up? Amber only when something is behind; a fleet that is
                         current should look quiet. */}
                     <Text style={[styles.meta, versionStanding(item.appVersion, newest).kind === 'behind' && styles.behind]}>
-                      {versionLabel(versionStanding(item.appVersion, newest))}
+                      {verText(versionStanding(item.appVersion, newest))}
                     </Text>
                   </View>
                   {!item.approved && !item.disabled ? (
                     <View style={styles.waitPill}>
-                      <Text style={styles.waitText}>APPROVE</Text>
+                      <Text style={styles.waitText}>{t('acc.approveCaps')}</Text>
                     </View>
                   ) : null}
                 </TouchableOpacity>
@@ -544,7 +531,7 @@ export default function AccountsSc() {
                   <TouchableOpacity
                     style={styles.iconBtn}
                     hitSlop={8}
-                    accessibilityLabel={`Rename ${personName(item) || item.id}`}
+                    accessibilityLabel={t('acc.renameWho', { who: personName(item) || item.id })}
                     onPress={() => startRename(item)}
                   >
                     <MciIcon name="account-edit" size={22} color={COLORS.primary} />
@@ -562,15 +549,15 @@ export default function AccountsSc() {
           backdrop-as-sibling arrangement as the rename sheet below. */}
       <Modal visible={issuing} transparent animationType="slide" onRequestClose={() => setIssuing(false)}>
         <View style={styles.backdrop}>
-          <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close" onPress={() => setIssuing(false)} />
+          <Pressable style={StyleSheet.absoluteFill} accessibilityLabel={t('common.close')} onPress={() => setIssuing(false)} />
           <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>Issue an account</Text>
-            <Text style={styles.note}>A name and a PIN the person enters on their own device. The PIN is shown once issued, and kept under Invitations.</Text>
+            <Text style={styles.sheetTitle}>{t('acc.issue')}</Text>
+            <Text style={styles.note}>{t('acc.issueNote')}</Text>
             <TextInput
               style={styles.input}
               value={firstName}
               onChangeText={setFirstName}
-              placeholder="First name"
+              placeholder={t('common.firstName')}
               placeholderTextColor={COLORS.textLight}
               autoCapitalize="words"
               autoFocus
@@ -579,7 +566,7 @@ export default function AccountsSc() {
               style={styles.input}
               value={lastName}
               onChangeText={setLastName}
-              placeholder="Last name"
+              placeholder={t('common.lastName')}
               placeholderTextColor={COLORS.textLight}
               autoCapitalize="words"
             />
@@ -587,7 +574,7 @@ export default function AccountsSc() {
               style={styles.input}
               value={position}
               onChangeText={setPosition}
-              placeholder="Rank aboard (Third Officer, Bosun…) — optional"
+              placeholder={t('acc.rankPh')}
               placeholderTextColor={COLORS.textLight}
               autoCapitalize="words"
             />
@@ -603,7 +590,7 @@ export default function AccountsSc() {
                   style={[styles.roleBtn, role === r && styles.roleBtnOn]}
                   onPress={() => setRole(r)}
                 >
-                  <Text style={[styles.roleText, role === r && styles.roleTextOn]}>{ROLE_LABEL[r]}</Text>
+                  <Text style={[styles.roleText, role === r && styles.roleTextOn]}>{roleName(r)}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -614,10 +601,10 @@ export default function AccountsSc() {
                 onPress={issue}
               >
                 <MciIcon name="account-plus" size={18} color={COLORS.textWhite} />
-                <Text style={styles.primaryBtnText}>Issue</Text>
+                <Text style={styles.primaryBtnText}>{t('acc.issueBtn')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.secondaryBtn} onPress={() => setIssuing(false)}>
-                <Text style={styles.tabText}>Cancel</Text>
+                <Text style={styles.tabText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -648,21 +635,17 @@ export default function AccountsSc() {
               platform, with nothing to get right. */}
           <Pressable
             style={StyleSheet.absoluteFill}
-            accessibilityLabel="Close"
+            accessibilityLabel={t('common.close')}
             onPress={() => setRenaming(null)}
           />
           <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>Rename this device</Text>
-            <Text style={styles.note}>
-              What this device is called in the list, and on its own “This device” card. Use a
-              rank — “Third Officer” — for a shared computer that changes hands at every crew
-              change.
-            </Text>
+            <Text style={styles.sheetTitle}>{t('acc.renameTitle')}</Text>
+            <Text style={styles.note}>{t('acc.renameNote')}</Text>
             <TextInput
               style={styles.input}
               value={rnFirst}
               onChangeText={setRnFirst}
-              placeholder="First name"
+              placeholder={t('common.firstName')}
               placeholderTextColor={COLORS.textLight}
               autoCapitalize="words"
               autoCorrect={false}
@@ -671,7 +654,7 @@ export default function AccountsSc() {
               style={styles.input}
               value={rnLast}
               onChangeText={setRnLast}
-              placeholder="Last name"
+              placeholder={t('common.lastName')}
               placeholderTextColor={COLORS.textLight}
               autoCapitalize="words"
               autoCorrect={false}
@@ -680,7 +663,7 @@ export default function AccountsSc() {
               style={styles.input}
               value={rnPosition}
               onChangeText={setRnPosition}
-              placeholder="Rank aboard (Third Officer, Bosun…) — optional"
+              placeholder={t('acc.rankPh')}
               placeholderTextColor={COLORS.textLight}
               autoCapitalize="words"
             />
@@ -692,12 +675,8 @@ export default function AccountsSc() {
                 signer is picked from the crew list and this is just a label. */}
             <Text style={styles.note}>
               {signingPolicy.signAsDevice
-                ? 'This vessel signs inspections as the device\'s account, so this name is what the ' +
-                  'next round signed on this device will carry — and what its report will print. ' +
-                  'Rename it at a crew change and the signature follows immediately. Inspections ' +
-                  'already signed keep the name they were signed with.'
-                : 'Signatures are not affected — those are chosen from the crew list when a round is ' +
-                  'signed, and inspections already signed keep the name they carry.'}
+                ? t('acc.renameSignDevice')
+                : t('acc.renameSignCrew')}
             </Text>
             <View style={styles.sheetBtns}>
               <TouchableOpacity
@@ -705,7 +684,7 @@ export default function AccountsSc() {
                 disabled={rnBusy}
                 onPress={() => setRenaming(null)}
               >
-                <Text style={styles.secondaryBtnText}>Cancel</Text>
+                <Text style={styles.secondaryBtnText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
@@ -717,7 +696,7 @@ export default function AccountsSc() {
                 onPress={() => void saveRename()}
               >
                 <MciIcon name="content-save" size={18} color={COLORS.textWhite} />
-                <Text style={styles.primaryBtnText}>Save</Text>
+                <Text style={styles.primaryBtnText}>{t('common.save')}</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -1,11 +1,13 @@
 // ===================================
 // System-language detection (no native dependency).
-// The app UI stays English; only the in-app Manual is localized. If the device
-// language is Russian, Spanish, Ukrainian, Norwegian or Portuguese we switch
-// the Manual to it — anything else falls back to English.
+// The Manual follows the device language — Russian, Spanish, Ukrainian,
+// Norwegian or Portuguese, anything else English. The interface (utils/i18n)
+// stays English until the `i18n` module is on; then it follows the device too,
+// or the language chosen in Settings, and the Manual follows that choice.
 // ===================================
 
 import { NativeModules, Platform } from 'react-native';
+import { moduleOn } from '../constants/modules';
 
 export type Lang = 'en' | 'ru' | 'es' | 'uk' | 'no' | 'pt';
 
@@ -23,8 +25,32 @@ function systemLocale(): string {
   }
 }
 
-/** The Manual language: matches device locale, else en. */
+export const LANGS: Lang[] = ['en', 'ru', 'es', 'uk', 'no', 'pt'];
+
+/** Each language in its own words — how a picker should name it. */
+export const LANG_NAMES: Record<Lang, string> = {
+  en: 'English', ru: 'Русский', es: 'Español', uk: 'Українська', no: 'Norsk', pt: 'Português',
+};
+
+// The language picked in Settings (null = as the device). Kept here rather than
+// in utils/i18n so the Manual can honour it without importing the dictionaries.
+let chosen: Lang | null = null;
+export function chosenLang(): Lang | null { return chosen; }
+export function setChosenLangValue(l: Lang | null) { chosen = l; }
+
+/** The interface language: English until the `i18n` module is released. */
+export function uiLang(): Lang {
+  if (!moduleOn('i18n')) return 'en';
+  return chosen ?? deviceLang();
+}
+
+/** The Manual language: the one chosen in Settings (with `i18n` on), else the device's. */
 export function manualLang(): Lang {
+  return moduleOn('i18n') && chosen ? chosen : deviceLang();
+}
+
+/** The device's language if the app has it, else en. */
+export function deviceLang(): Lang {
   const full = systemLocale().toLowerCase();
   const code = full.slice(0, 2);
   if (code === 'ru') return 'ru';

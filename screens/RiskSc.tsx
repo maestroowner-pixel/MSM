@@ -28,8 +28,10 @@ import { formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
+import { t, tn, useT } from '../utils/i18n';
 
 export default function RiskSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -61,7 +63,7 @@ export default function RiskSc() {
   const setHazard = (hid: string, x: Partial<Hazard>) => set({ hazards: r.hazards.map((h) => (h.id === hid ? { ...h, ...x } : h)) });
 
   const save = async () => {
-    if (!r.title.trim()) return Alert.alert('Title required', 'Name the task — “Enclosed space entry”.');
+    if (!r.title.trim()) return Alert.alert(t('risk.titleReq'), t('risk.nameTask'));
     const out = { ...r, title: r.title.trim(), no: r.no ?? (r.generic ? undefined : nextNumber('RA', new Date().getFullYear(), risks.map((x) => x.no))), updatedAt: Date.now() };
     if (!out.no) delete out.no;
     await saveRisk(out);
@@ -71,9 +73,9 @@ export default function RiskSc() {
   };
 
   const approve = async () => {
-    if (!officer) return Alert.alert('Approval', 'A risk assessment is approved by an Officer or the Master.');
-    if (!r.hazards.length) return Alert.alert('No hazards', 'Add the hazards first.');
-    if (!signer) return Alert.alert('Who is signing?', 'Choose your name below.');
+    if (!officer) return Alert.alert(t('risk.approval'), t('risk.officerOnly'));
+    if (!r.hazards.length) return Alert.alert(t('risk.noHaz'), t('risk.addHazFirst'));
+    if (!signer) return Alert.alert(t('sign.who'), t('pd.chooseName'));
     const bad = unacceptable(r);
     const go = async () => {
       const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Approve the risk assessment — ${r.title}` });
@@ -85,9 +87,9 @@ export default function RiskSc() {
       playSuccessSound();
     };
     if (bad.length) {
-      Alert.alert('Risk still high', `${bad.length} hazard${bad.length === 1 ? ' is' : 's are'} still High or Extreme with the controls in place. Approve anyway?`, [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Approve', style: 'destructive', onPress: () => void go() },
+      Alert.alert(t('risk.stillHigh'), tn('risk.stillHighBody', bad.length), [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('risk.approve'), style: 'destructive', onPress: () => void go() },
       ]);
     } else await go();
   };
@@ -115,55 +117,55 @@ export default function RiskSc() {
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
           <BackButton onPress={() => goBackOr(nav)} />
-          <Text style={styles.headerTitle} numberOfLines={1}>{r.no ?? (r.generic ? 'Library assessment' : 'Risk assessment')}</Text>
+          <Text style={styles.headerTitle} numberOfLines={1}>{r.no ?? (r.generic ? t('risk.lib') : t('risk.ra'))}</Text>
           <TouchableOpacity onPress={() => void save()} hitSlop={12}>
-            <Text style={styles.save}>Save</Text>
+            <Text style={styles.save}>{t('common.save')}</Text>
           </TouchableOpacity>
         </View>
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
-          <Label>Task ★</Label>
-          <TextInput style={styles.input} value={r.title} onChangeText={(v) => set({ title: v })} placeholder="Enclosed space entry" placeholderTextColor={COLORS.textLight} />
-          <Label>Description</Label>
-          <TextInput style={styles.input} value={r.task ?? ''} onChangeText={(v) => set({ task: v })} placeholder="What is done, how, by whom" placeholderTextColor={COLORS.textLight} multiline />
-          <Label>Location</Label>
+          <Label>{t('risk.task')}</Label>
+          <TextInput style={styles.input} value={r.title} onChangeText={(v) => set({ title: v })} placeholder={t('risk.taskPh')} placeholderTextColor={COLORS.textLight} />
+          <Label>{t('risk.desc')}</Label>
+          <TextInput style={styles.input} value={r.task ?? ''} onChangeText={(v) => set({ task: v })} placeholder={t('risk.descPh')} placeholderTextColor={COLORS.textLight} multiline />
+          <Label>{t('risk.location')}</Label>
           <TextInput style={styles.input} value={r.location ?? ''} onChangeText={(v) => set({ location: v })} placeholder="—" placeholderTextColor={COLORS.textLight} />
           <View style={styles.toggle}>
-            <Text style={[styles.sub, { flex: 1 }]}>Keep in the library (a template copied for each job)</Text>
+            <Text style={[styles.sub, { flex: 1 }]}>{t('risk.keepLib')}</Text>
             <Switch value={r.generic} onValueChange={(v) => set({ generic: v })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
           </View>
 
           <View style={styles.summary}>
-            <Text style={styles.sumText}>{`${r.hazards.length} hazard${r.hazards.length === 1 ? '' : 's'}`}</Text>
-            {worst ? <Text style={[styles.level, { backgroundColor: RISK_COLOR[worst] }]}>{`Residual risk: ${RISK_LABEL[worst]}`}</Text> : null}
+            <Text style={styles.sumText}>{tn('n.hazard', r.hazards.length)}</Text>
+            {worst ? <Text style={[styles.level, { backgroundColor: RISK_COLOR[worst] }]}>{t('risk.residual', { level: RISK_LABEL[worst] })}</Text> : null}
           </View>
 
           {r.hazards.map((h, i) => (
             <View key={h.id} style={styles.hazard}>
               <View style={styles.hazHead}>
                 <Text style={styles.hazNo}>{i + 1}</Text>
-                <TextInput style={[styles.input, { flex: 1, marginBottom: 0 }]} value={h.hazard} onChangeText={(v) => setHazard(h.id, { hazard: v })} placeholder="Hazard" placeholderTextColor={COLORS.textLight} />
+                <TextInput style={[styles.input, { flex: 1, marginBottom: 0 }]} value={h.hazard} onChangeText={(v) => setHazard(h.id, { hazard: v })} placeholder={t('risk.hazard')} placeholderTextColor={COLORS.textLight} />
                 <TouchableOpacity onPress={() => set({ hazards: r.hazards.filter((x) => x.id !== h.id) })} hitSlop={8}>
                   <Text style={{ color: COLORS.danger, fontWeight: '800' }}>✕</Text>
                 </TouchableOpacity>
               </View>
-              <TextInput style={styles.input} value={h.consequence ?? ''} onChangeText={(v) => setHazard(h.id, { consequence: v })} placeholder="Consequence — who could be harmed and how" placeholderTextColor={COLORS.textLight} />
+              <TextInput style={styles.input} value={h.consequence ?? ''} onChangeText={(v) => setHazard(h.id, { consequence: v })} placeholder={t('risk.conseqPh')} placeholderTextColor={COLORS.textLight} />
               <View style={styles.rateRow}>
-                <Text style={styles.rateLabel}>Before</Text>
+                <Text style={styles.rateLabel}>{t('risk.before')}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.small}>Likelihood</Text>
+                  <Text style={styles.small}>{t('risk.likelihood')}</Text>
                   <Scale value={h.likelihood} onChange={(n) => setHazard(h.id, { likelihood: n })} labels={LIKELIHOOD} />
-                  <Text style={styles.small}>Severity</Text>
+                  <Text style={styles.small}>{t('risk.severity')}</Text>
                   <Scale value={h.severity} onChange={(n) => setHazard(h.id, { severity: n })} labels={SEVERITY} />
                 </View>
                 <Level l={h.likelihood} s={h.severity} />
               </View>
-              <TextInput style={[styles.input, { minHeight: 50 }]} value={h.controls ?? ''} onChangeText={(v) => setHazard(h.id, { controls: v })} placeholder="Controls — what is done to reduce it" placeholderTextColor={COLORS.textLight} multiline />
+              <TextInput style={[styles.input, { minHeight: 50 }]} value={h.controls ?? ''} onChangeText={(v) => setHazard(h.id, { controls: v })} placeholder={t('risk.controlsPh')} placeholderTextColor={COLORS.textLight} multiline />
               <View style={styles.rateRow}>
-                <Text style={styles.rateLabel}>With controls</Text>
+                <Text style={styles.rateLabel}>{t('risk.withControls')}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.small}>Likelihood</Text>
+                  <Text style={styles.small}>{t('risk.likelihood')}</Text>
                   <Scale value={h.residualLikelihood} onChange={(n) => setHazard(h.id, { residualLikelihood: n })} labels={LIKELIHOOD} />
-                  <Text style={styles.small}>Severity</Text>
+                  <Text style={styles.small}>{t('risk.severity')}</Text>
                   <Scale value={h.residualSeverity} onChange={(n) => setHazard(h.id, { residualSeverity: n })} labels={SEVERITY} />
                 </View>
                 <Level l={h.residualLikelihood} s={h.residualSeverity} />
@@ -171,24 +173,24 @@ export default function RiskSc() {
             </View>
           ))}
           <TouchableOpacity onPress={() => set({ hazards: [...r.hazards, { id: uid('hz'), hazard: '', likelihood: 3, severity: 3 }] })} style={{ marginVertical: SIZES.md }}>
-            <Text style={styles.link}>+ Add a hazard</Text>
+            <Text style={styles.link}>{t('risk.addHaz')}</Text>
           </TouchableOpacity>
 
-          <Text style={styles.section}>Approval</Text>
+          <Text style={styles.section}>{t('risk.approval')}</Text>
           {r.approved ? (
-            <Text style={styles.stamp}>{`Approved: ${r.approved.byRank ? `${r.approved.by} (${r.approved.byRank})` : r.approved.by} · ${formatDateTime(r.approved.at)}`}</Text>
+            <Text style={styles.stamp}>{`${t('risk.approved', { by: r.approved.byRank ? `${r.approved.by} (${r.approved.byRank})` : r.approved.by })} · ${formatDateTime(r.approved.at)}`}</Text>
           ) : (
             <>
               {picker ? (
                 <>
-                  <Label>Signing as</Label>
+                  <Label>{t('risk.signingAs')}</Label>
                   {picker}
                 </>
               ) : null}
               <TouchableOpacity style={[styles.act, !officer && { opacity: 0.5 }]} onPress={() => void approve()}>
-                <Text style={styles.actText}>Approve the assessment</Text>
+                <Text style={styles.actText}>{t('risk.approveAss')}</Text>
               </TouchableOpacity>
-              <Text style={styles.sub}>Save first if you changed anything. Any later change clears the approval.</Text>
+              <Text style={styles.sub}>{t('risk.saveFirst')}</Text>
             </>
           )}
         </ScrollView>

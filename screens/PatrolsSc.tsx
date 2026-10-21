@@ -39,12 +39,14 @@ import { getSavedPrinter, printTspl, SavedPrinter } from '../services/blePrinter
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
+import { t, tk, tn, useT } from '../utils/i18n';
 
 type Page = 'today' | 'points' | 'plans' | 'reports';
 const hm = (t = Date.now()) => new Date(t).toTimeString().slice(0, 5);
 const TIME_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
 
 export default function PatrolsSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -71,7 +73,7 @@ export default function PatrolsSc() {
   }, []);
 
   const done = (w: string | null | void) => {
-    if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+    if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
   };
   const fail = (e: any) => Alert.alert('PDF', String(e?.message ?? e));
 
@@ -80,13 +82,13 @@ export default function PatrolsSc() {
 
   // ---- a round ----------------------------------------------------------------
   const start = (p: PatrolPlan) => {
-    if (!p.checkpointIds.length) return Alert.alert(p.name, officer ? 'Choose its checkpoints first (Rounds).' : 'This round has no checkpoints yet — an officer sets them in Rounds.');
+    if (!p.checkpointIds.length) return Alert.alert(p.name, officer ? t('pat.chooseCps') : t('pat.noCps'));
     const slot = slotFor(p, hm(), due.filter((d) => d.plan.id === p.id && d.done).map((d) => d.slot)) ?? undefined;
     void saveLive({ planId: p.id, slot, date: today, startedAt: Date.now(), dutiesDone: false, visits: [], remarks: '' });
   };
   const finish = async () => {
     if (!live || !plan) return;
-    if (!signer) return Alert.alert('Security round', 'Choose who did the round.');
+    if (!signer) return Alert.alert(t('pat.round'), t('pat.whoDid'));
     const missed = missedPoints(plan, points, live.visits.map((v) => v.checkpointId));
     const go = async () => {
       const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${plan.name}${live.slot ? ` — ${live.slot}` : ''}` });
@@ -129,20 +131,20 @@ export default function PatrolsSc() {
       setSaved(`${plan.name} filed — ${rec.visits.length} of ${rec.visits.length + rec.missed.length} checkpoints`);
     };
     if (missed.length || !live.dutiesDone) {
-      Alert.alert('Finish the round?', [missed.length ? `Not visited: ${missed.map((c) => c.code).join(', ')}.` : '', live.dutiesDone ? '' : 'The duties are not confirmed.', 'It is filed as it is and printed so.'].filter(Boolean).join(' '), [
-        { text: 'Go on with it', style: 'cancel' },
-        { text: 'Finish', onPress: () => void go() },
+      Alert.alert(t('pat.finishQ'), [missed.length ? t('pat.notVisited', { codes: missed.map((c) => c.code).join(', ') }) : '', live.dutiesDone ? '' : t('pat.dutiesNot'), t('pat.filedAsIs')].filter(Boolean).join(' '), [
+        { text: t('pat.goOn'), style: 'cancel' },
+        { text: t('pat.finish'), onPress: () => void go() },
       ]);
     } else void go();
   };
   const abandon = () =>
-    Alert.alert('Drop this round?', 'Nothing of it is kept. The time it was due shows as missed unless another round is done for it.', [
-      { text: 'Keep it', style: 'cancel' },
-      { text: 'Drop', style: 'destructive', onPress: () => void saveLive(null) },
+    Alert.alert(t('pat.dropQ'), t('pat.dropBody'), [
+      { text: t('cat.keep'), style: 'cancel' },
+      { text: t('pat.drop'), style: 'destructive', onPress: () => void saveLive(null) },
     ]);
   const typeId = (code: string) => {
     const c = points.find((x) => x.code.toUpperCase() === code.trim().toUpperCase() && plan?.checkpointIds.includes(x.id));
-    if (!c) return Alert.alert('Checkpoint', `${code.trim().toUpperCase()} is not on this round.`);
+    if (!c) return Alert.alert(t('pat.cp'), t('pat.notOnRound', { code: code.trim().toUpperCase() }));
     if (!live || live.visits.some((v) => v.checkpointId === c.id)) return;
     void saveLive({ ...live, visits: [...live.visits, { checkpointId: c.id, code: c.code, name: c.name, at: Date.now(), how: 'typed' }] });
   };
@@ -151,21 +153,21 @@ export default function PatrolsSc() {
     const onRound = plan.checkpointIds.map((id) => points.find((c) => c.id === id)).filter((c): c is Checkpoint => !!c);
     return (
       <Screen scroll>
-        <ScreenTitle title={plan.name} subtitle={`${live.slot ? `Due ${live.slot} · ` : ''}started ${hm(live.startedAt)} · ${live.visits.length} of ${onRound.length} checkpoints`} help="Security (ISPS)" />
+        <ScreenTitle title={plan.name} subtitle={`${live.slot ? `${t('pat.due', { time: live.slot })} · ` : ''}${t('pat.started', { time: hm(live.startedAt) })} · ${t('pat.cpProgress', { k: live.visits.length, n: onRound.length })}`} help="Security (ISPS)" />
         <Card>
-          <Label>Duties of this round</Label>
+          <Label>{t('pat.duties')}</Label>
           {plan.duties.map((d, i) => (
             <Text key={i} style={[styles.body, { marginBottom: 4 }]}>{`${i + 1}. ${d}`}</Text>
           ))}
           <TouchableOpacity style={[styles.chip, live.dutiesDone && styles.chipOn, { alignSelf: 'flex-start', marginTop: SIZES.xs }]} onPress={() => void saveLive({ ...live, dutiesDone: !live.dutiesDone })}>
-            <Text style={[styles.chipText, live.dutiesDone && styles.chipTextOn]}>{live.dutiesDone ? '✓ Read and done' : 'Read and done'}</Text>
+            <Text style={[styles.chipText, live.dutiesDone && styles.chipTextOn]}>{live.dutiesDone ? `✓ ${t('pat.readDone')}` : t('pat.readDone')}</Text>
           </TouchableOpacity>
         </Card>
         <TouchableOpacity style={[styles.btn, { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginVertical: SIZES.sm }]} onPress={() => nav.navigate('Scan', { patrol: 1 })}>
           <MciIcon name="qrcode-scan" size={20} color={COLORS.textWhite} />
-          <Text style={styles.btnText}>Scan a checkpoint</Text>
+          <Text style={styles.btnText}>{t('pat.scan')}</Text>
         </TouchableOpacity>
-        <Label>Checkpoints</Label>
+        <Label>{t('pat.cps')}</Label>
         {onRound.map((c) => {
           const v = live.visits.find((x) => x.checkpointId === c.id);
           return (
@@ -173,34 +175,34 @@ export default function PatrolsSc() {
               <MciIcon name={v ? 'check-circle' : 'map-marker-outline'} size={20} color={v ? COLORS.success : COLORS.textLight} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{`${c.code} · ${c.name}`}</Text>
-                <Text style={styles.sub}>{v ? `${v.how === 'scan' ? 'Scanned' : 'ID typed'} ${hm(v.at)}` : c.location || 'not yet'}</Text>
+                <Text style={styles.sub}>{v ? `${v.how === 'scan' ? t('pat.scanned') : t('pat.typed')} ${hm(v.at)}` : c.location || t('pat.notYet')}</Text>
               </View>
               {!v ? (
-                <TouchableOpacity style={styles.small} onPress={() => Alert.alert(c.code, 'The label could not be scanned — record it by its ID? The report says so.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Record', onPress: () => typeId(c.code) }])}>
-                  <Text style={styles.smallText}>Label unreadable</Text>
+                <TouchableOpacity style={styles.small} onPress={() => Alert.alert(c.code, t('pat.unreadableBody'), [{ text: t('common.cancel'), style: 'cancel' }, { text: t('gb.record'), onPress: () => typeId(c.code) }])}>
+                  <Text style={styles.smallText}>{t('pat.unreadable')}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
           );
         })}
-        <Label>Remarks</Label>
-        <TextInput style={[styles.input, { minHeight: 60 }]} value={live.remarks} onChangeText={(t) => setLive({ ...live, remarks: t })} onEndEditing={() => void saveLive(live)} onBlur={() => void saveLive(live)} multiline accessibilityLabel="Remarks" />
+        <Label>{t('book.remarks')}</Label>
+        <TextInput style={[styles.input, { minHeight: 60 }]} value={live.remarks} onChangeText={(t) => setLive({ ...live, remarks: t })} onEndEditing={() => void saveLive(live)} onBlur={() => void saveLive(live)} multiline accessibilityLabel={t('book.remarks')} />
         {picker}
         <TouchableOpacity style={[styles.btn, { marginTop: SIZES.sm }]} onPress={() => void finish()}>
-          <Text style={styles.btnText}>{signer ? `Finish and sign — ${signer.name}` : 'Finish and sign'}</Text>
+          <Text style={styles.btnText}>{signer ? `${t('pat.finishSign')} — ${signer.name}` : t('pat.finishSign')}</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={abandon} style={{ marginTop: SIZES.md }}>
-          <Text style={[styles.link, { color: COLORS.danger }]}>Drop this round</Text>
+          <Text style={[styles.link, { color: COLORS.danger }]}>{t('pat.dropThis')}</Text>
         </TouchableOpacity>
       </Screen>
     );
   }
 
-  const PAGES: [Page, string][] = [['today', 'Today'], ...(officer ? ([['points', 'Checkpoints'], ['plans', 'Rounds']] as [Page, string][]) : []), ['reports', 'Reports']];
+  const PAGES: [Page, string][] = [['today', t('ready.today')], ...(officer ? ([['points', t('pat.cps')], ['plans', t('pat.rounds')]] as [Page, string][]) : []), ['reports', t('pat.reports')]];
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Security rounds" subtitle="Opening, daytime and closing rounds — each checkpoint scanned where it is" help="Security (ISPS)" />
+      <ScreenTitle title={t('pat.title')} subtitle={t('pat.sub')} help="Security (ISPS)" />
       <View style={styles.chips}>
         {PAGES.map(([k, l]) => (
           <TouchableOpacity key={k} style={[styles.chip, page === k && styles.chipOn]} onPress={() => setPage(k)}>
@@ -212,17 +214,17 @@ export default function PatrolsSc() {
 
       {page === 'today' ? (
         <>
-          {!points.length ? <Text style={[styles.sub, { marginVertical: SIZES.sm }]}>{officer ? 'No checkpoints yet — add the places in Checkpoints, print their labels, then choose them for each round.' : 'No checkpoints yet — an officer sets them up.'}</Text> : null}
+          {!points.length ? <Text style={[styles.sub, { marginVertical: SIZES.sm }]}>{officer ? t('pat.emptyOfficer') : t('pat.emptyCrew')}</Text> : null}
           {due.map((d) => (
             <View key={`${d.plan.id}${d.slot}`} style={[styles.item, { borderLeftColor: d.done ? COLORS.success : !d.pending ? COLORS.danger : d.slot <= hm() ? COLORS.warning : COLORS.border, flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, flexWrap: 'wrap' }]}>
               <Text style={[styles.name, { width: 52 }]}>{d.slot}</Text>
               <View style={{ flex: 1, minWidth: 180 }}>
                 <Text style={styles.name}>{d.plan.name}</Text>
-                <Text style={styles.sub}>{d.done ? `Done ${hm(d.done.startedAt)}–${hm(d.done.finishedAt)} · ${d.done.by} · ${d.done.visits.length}/${d.done.visits.length + d.done.missed.length}${d.done.missed.length ? ` · missed ${d.done.missed.map((m) => m.code).join(', ')}` : ''}` : !d.pending ? 'Missed — not done within two hours of its time' : d.slot <= hm() ? 'Due now' : 'Later today'}</Text>
+                <Text style={styles.sub}>{d.done ? `${t('pat.doneAt', { from: hm(d.done.startedAt), to: hm(d.done.finishedAt) })} · ${d.done.by} · ${d.done.visits.length}/${d.done.visits.length + d.done.missed.length}${d.done.missed.length ? ` · ${t('pat.missedL', { codes: d.done.missed.map((m) => m.code).join(', ') })}` : ''}` : !d.pending ? t('pat.missed') : d.slot <= hm() ? t('pat.dueNow') : t('pat.later')}</Text>
               </View>
               {!d.done ? (
                 <TouchableOpacity style={styles.btn} onPress={() => start(d.plan)}>
-                  <Text style={styles.btnText}>Start</Text>
+                  <Text style={styles.btnText}>{t('srch.start')}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -241,6 +243,7 @@ export default function PatrolsSc() {
 // ---- checkpoints -----------------------------------------------------------------
 
 function Points({ done, fail }: { done: (w: string | null | void) => void; fail: (e: any) => void }) {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { checkpoints: points, vessel, saveRow, saveRows } = useData();
@@ -253,8 +256,8 @@ function Points({ done, fail }: { done: (w: string | null | void) => void; fail:
 
   const save = async () => {
     if (!edit) return;
-    if (!edit.name.trim()) return Alert.alert('Checkpoint', 'Name the place — Gangway, Tender garage.');
-    if (!STORE_CODE_RE.test(code)) return Alert.alert('ID', 'Letters, digits, - and _ only — CP-04.');
+    if (!edit.name.trim()) return Alert.alert(t('pat.cp'), t('pat.namePlace'));
+    if (!STORE_CODE_RE.test(code)) return Alert.alert(t('keys.id'), t('pat.idRule'));
     if (taken) return Alert.alert('ID', `${code} is another checkpoint’s ID.`);
     await saveRow(storage.CHECKPOINTS_KEY, { ...edit, name: edit.name.trim(), code, location: edit.location?.trim() || undefined, updatedAt: Date.now() });
     setEdit(null);
@@ -267,15 +270,15 @@ function Points({ done, fail }: { done: (w: string | null | void) => void; fail:
   const send = async (printer: SavedPrinter, specs: TsplLabelSpec[]) => {
     try {
       await printTspl(printer.id, labelsToTspl(specs));
-      Alert.alert('Sent to printer', `${specs.length} label${specs.length === 1 ? '' : 's'} sent to ${printer.name}.`);
+      Alert.alert(t('print.sent'), t('keys.tagsSent', { x: tn('n.label', specs.length), printer: printer.name }));
     } catch (e: any) {
-      Alert.alert('Could not print to the Xprinter', String(e?.message ?? e));
+      Alert.alert(t('print.xprinterFail'), String(e?.message ?? e));
     } finally {
       setPending(null);
     }
   };
   const toXprinter = (list: Checkpoint[]) =>
-    Alert.alert('Label size', 'The roll loaded in the printer.', [
+    Alert.alert(t('print.labelSize'), t('print.roll'), [
       ...GANGWAY_STOCKS.map((sz) => ({
         text: `${GANGWAY_STOCK_MM[sz].widthMm} × ${GANGWAY_STOCK_MM[sz].heightMm} mm`,
         onPress: async () => {
@@ -286,22 +289,22 @@ function Points({ done, fail }: { done: (w: string | null | void) => void; fail:
           setPrinterOpen(true);
         },
       })),
-      { text: 'Cancel', style: 'cancel' as const },
+      { text: t('common.cancel'), style: 'cancel' as const },
     ]);
 
   const form = edit ? (
     <Card>
-      <Label>{isNew ? 'New checkpoint' : `Checkpoint — ${edit.code}`}</Label>
-      <Text style={styles.sub}>Name</Text>
-      <TextInput style={styles.input} value={edit.name} onChangeText={(v) => setEdit({ ...edit, name: v })} autoFocus={isNew} accessibilityLabel="Checkpoint name" />
-      <Text style={styles.sub}>Where it is</Text>
-      <TextInput style={styles.input} value={edit.location ?? ''} onChangeText={(v) => setEdit({ ...edit, location: v })} accessibilityLabel="Where it is" />
-      <Text style={styles.sub}>ID — on the label</Text>
-      <TextInput style={[styles.input, { width: 160 }]} value={edit.code} onChangeText={(v) => setEdit({ ...edit, code: v })} autoCapitalize="characters" autoCorrect={false} accessibilityLabel="Checkpoint ID" />
-      {taken ? <Text style={[styles.sub, { color: COLORS.danger }]}>Another checkpoint has this ID.</Text> : null}
+      <Label>{isNew ? t('pat.newCp') : `${t('pat.cp')} — ${edit.code}`}</Label>
+      <Text style={styles.sub}>{t('wl.name')}</Text>
+      <TextInput style={styles.input} value={edit.name} onChangeText={(v) => setEdit({ ...edit, name: v })} autoFocus={isNew} accessibilityLabel={t('pat.cpName')} />
+      <Text style={styles.sub}>{t('pat.where')}</Text>
+      <TextInput style={styles.input} value={edit.location ?? ''} onChangeText={(v) => setEdit({ ...edit, location: v })} accessibilityLabel={t('pat.where')} />
+      <Text style={styles.sub}>{t('pat.idLabel')}</Text>
+      <TextInput style={[styles.input, { width: 160 }]} value={edit.code} onChangeText={(v) => setEdit({ ...edit, code: v })} autoCapitalize="characters" autoCorrect={false} accessibilityLabel={t('pat.cpId')} />
+      {taken ? <Text style={[styles.sub, { color: COLORS.danger }]}>{t('pat.idTaken')}</Text> : null}
       <View style={styles.row}>
-        <TouchableOpacity style={styles.btn} onPress={() => void save()}><Text style={styles.btnText}>Save</Text></TouchableOpacity>
-        <TouchableOpacity onPress={() => setEdit(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.btn} onPress={() => void save()}><Text style={styles.btnText}>{t('common.save')}</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => setEdit(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
       </View>
     </Card>
   ) : null;
@@ -309,16 +312,16 @@ function Points({ done, fail }: { done: (w: string | null | void) => void; fail:
   return (
     <>
       <PrinterModal visible={printerOpen} onClose={() => { setPrinterOpen(false); setPending(null); }} onPicked={(p) => { setPrinterOpen(false); if (pending) void send(p, pending); }} />
-      <Text style={[styles.sub, { marginVertical: SIZES.sm }]}>Each place gets a QR label fixed where the watch must go. The label carries the checkpoint itself — renaming it or changing its ID does not need a new label.</Text>
+      <Text style={[styles.sub, { marginVertical: SIZES.sm }]}>{t('pat.cpHint')}</Text>
       <View style={[styles.row, { marginTop: 0, gap: SIZES.xs }]}>
-        <TouchableOpacity style={styles.btn} onPress={() => setEdit({ id: uid('cp'), code: nextCode('CP-', points), name: '', order: points.length, updatedAt: Date.now() })}><Text style={styles.btnText}>+ New checkpoint</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.btn} onPress={() => setEdit({ id: uid('cp'), code: nextCode('CP-', points), name: '', order: points.length, updatedAt: Date.now() })}><Text style={styles.btnText}>{`+ ${t('pat.newCp')}`}</Text></TouchableOpacity>
         {points.length ? (
           <>
             <TouchableOpacity style={styles.small} onPress={() => void exportCheckpointLabels(points, vessel).then(done, fail)}><Text style={styles.smallText}>{`QR labels — all (PDF) · ${points.length}`}</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.small} onPress={() => toXprinter(points)}><Text style={styles.smallText}>Xprinter — all</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.small} onPress={() => toXprinter(points)}><Text style={styles.smallText}>{t('keys.xprinterAll')}</Text></TouchableOpacity>
           </>
         ) : (
-          <TouchableOpacity style={styles.small} onPress={() => void starter()}><Text style={styles.smallText}>Start from a typical yacht (8 places)</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.small} onPress={() => void starter()}><Text style={styles.smallText}>{t('pat.starter')}</Text></TouchableOpacity>
         )}
       </View>
       {isNew ? form : null}
@@ -331,12 +334,12 @@ function Points({ done, fail }: { done: (w: string | null | void) => void; fail:
               <Text style={[styles.name, { color: COLORS.primary }]}>{c.code}</Text>
               <View style={{ flex: 1, minWidth: 160 }}>
                 <Text style={styles.name}>{c.name}</Text>
-                <Text style={styles.sub}>{c.location || 'place not set'}</Text>
+                <Text style={styles.sub}>{c.location || t('pat.noPlace')}</Text>
               </View>
-              <TouchableOpacity style={styles.small} onPress={() => setEdit(c)}><Text style={styles.smallText}>Edit</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.small} onPress={() => void exportCheckpointLabels([c], vessel).then(done, fail)}><Text style={styles.smallText}>QR label (PDF)</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.small} onPress={() => setEdit(c)}><Text style={styles.smallText}>{t('common.edit')}</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.small} onPress={() => void exportCheckpointLabels([c], vessel).then(done, fail)}><Text style={styles.smallText}>{t('pat.qrPdf')}</Text></TouchableOpacity>
               <TouchableOpacity style={styles.small} onPress={() => toXprinter([c])}><Text style={styles.smallText}>Xprinter</Text></TouchableOpacity>
-              <TouchableOpacity onPress={() => Alert.alert('Remove checkpoint', `Remove ${c.code} ${c.name}? Its label stops counting; rounds done keep it.`, [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => void saveRow(storage.CHECKPOINTS_KEY, { ...c, deleted: true, updatedAt: Date.now() }) }])} hitSlop={8} accessibilityLabel={`Remove ${c.code}`}>
+              <TouchableOpacity onPress={() => Alert.alert(t('pat.removeCp'), t('pat.removeCpBody', { cp: `${c.code} ${c.name}` }), [{ text: t('common.cancel'), style: 'cancel' }, { text: t('common.remove'), style: 'destructive', onPress: () => void saveRow(storage.CHECKPOINTS_KEY, { ...c, deleted: true, updatedAt: Date.now() }) }])} hitSlop={8} accessibilityLabel={`${t('common.remove')} ${c.code}`}>
                 <MciIcon name="trash-can-outline" size={20} color={COLORS.danger} />
               </TouchableOpacity>
             </View>
@@ -350,6 +353,7 @@ function Points({ done, fail }: { done: (w: string | null | void) => void; fail:
 // ---- rounds (plans) ------------------------------------------------------------------
 
 function Plans({ plans }: { plans: PatrolPlan[] }) {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { checkpoints: points, saveRow } = useData();
@@ -360,8 +364,8 @@ function Plans({ plans }: { plans: PatrolPlan[] }) {
     if (!edit) return;
     const times = edit.times.split(/[,\s]+/).map((t) => t.trim()).filter(Boolean).map((t) => (t.length === 4 && !t.includes(':') ? `${t.slice(0, 2)}:${t.slice(2)}` : t));
     const bad = times.filter((t) => !TIME_RE.test(t));
-    if (!edit.p.name.trim()) return Alert.alert('Round', 'Name it.');
-    if (!times.length || bad.length) return Alert.alert('When it is due', bad.length ? `Not a time: ${bad.join(', ')}. Write 07:00, 13:30.` : 'At least one time — 07:00.');
+    if (!edit.p.name.trim()) return Alert.alert(t('pat.roundL'), t('mi.nameIt'));
+    if (!times.length || bad.length) return Alert.alert(t('pat.whenDue'), bad.length ? t('pat.notTime', { times: bad.join(', ') }) : t('pat.oneTime'));
     const norm = times.map((t) => t.padStart(5, '0'));
     await saveRow(storage.PATROL_PLANS_KEY, { ...edit.p, name: edit.p.name.trim(), times: [...new Set(norm)].sort(), duties: edit.duties.split('\n').map((d) => d.trim()).filter(Boolean), updatedAt: Date.now() });
     setEdit(null);
@@ -373,20 +377,20 @@ function Plans({ plans }: { plans: PatrolPlan[] }) {
     const set = (patch: Partial<PatrolPlan>) => setEdit({ ...edit, p: { ...p, ...patch } });
     return (
       <Card>
-        <Label>Round</Label>
-        <Text style={styles.sub}>Name</Text>
-        <TextInput style={styles.input} value={p.name} onChangeText={(v) => set({ name: v })} accessibilityLabel="Round name" />
-        <Text style={styles.sub}>Kind</Text>
+        <Label>{t('pat.roundL')}</Label>
+        <Text style={styles.sub}>{t('wl.name')}</Text>
+        <TextInput style={styles.input} value={p.name} onChangeText={(v) => set({ name: v })} accessibilityLabel={t('pat.roundName')} />
+        <Text style={styles.sub}>{t('fv.kind')}</Text>
         <View style={styles.chips}>
           {(Object.keys(KIND_LABEL) as PatrolKind[]).map((k) => (
             <TouchableOpacity key={k} style={[styles.chip, p.kind === k && styles.chipOn]} onPress={() => set({ kind: k })}>
-              <Text style={[styles.chipText, p.kind === k && styles.chipTextOn]}>{KIND_LABEL[k]}</Text>
+              <Text style={[styles.chipText, p.kind === k && styles.chipTextOn]}>{tk(`pat.k.${k}`)}</Text>
             </TouchableOpacity>
           ))}
         </View>
-        <Text style={styles.sub}>Due at (ship’s time, comma between)</Text>
-        <TextInput style={[styles.input, { maxWidth: 360 }]} value={edit.times} onChangeText={(v) => setEdit({ ...edit, times: v })} accessibilityLabel="Due at" />
-        <Text style={styles.sub}>{`Checkpoints on this round (${p.checkpointIds.length})`}</Text>
+        <Text style={styles.sub}>{t('pat.dueAt')}</Text>
+        <TextInput style={[styles.input, { maxWidth: 360 }]} value={edit.times} onChangeText={(v) => setEdit({ ...edit, times: v })} accessibilityLabel={t('pat.dueAtA')} />
+        <Text style={styles.sub}>{t('pat.onRound', { n: p.checkpointIds.length })}</Text>
         <View style={styles.chips}>
           {points.map((c) => {
             const on = p.checkpointIds.includes(c.id);
@@ -396,13 +400,13 @@ function Plans({ plans }: { plans: PatrolPlan[] }) {
               </TouchableOpacity>
             );
           })}
-          {!points.length ? <Text style={styles.sub}>Add the checkpoints first.</Text> : null}
+          {!points.length ? <Text style={styles.sub}>{t('pat.addCpsFirst')}</Text> : null}
         </View>
-        <Text style={[styles.sub, { marginTop: SIZES.sm }]}>Duties and reminders — one a line, shown at the top of the round and printed</Text>
-        <TextInput style={[styles.input, { minHeight: 140 }]} value={edit.duties} onChangeText={(v) => setEdit({ ...edit, duties: v })} multiline accessibilityLabel="Duties" />
+        <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{t('pat.dutiesHint')}</Text>
+        <TextInput style={[styles.input, { minHeight: 140 }]} value={edit.duties} onChangeText={(v) => setEdit({ ...edit, duties: v })} multiline accessibilityLabel={t('pat.dutiesA')} />
         <View style={styles.row}>
-          <TouchableOpacity style={styles.btn} onPress={() => void save()}><Text style={styles.btnText}>Save</Text></TouchableOpacity>
-          <TouchableOpacity onPress={() => setEdit(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.btn} onPress={() => void save()}><Text style={styles.btnText}>{t('common.save')}</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => setEdit(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
         </View>
       </Card>
     );
@@ -410,21 +414,21 @@ function Plans({ plans }: { plans: PatrolPlan[] }) {
 
   return (
     <>
-      <Text style={[styles.sub, { marginVertical: SIZES.sm }]}>When each round is due, which checkpoints the watch scans, and the duties shown at its top.</Text>
+      <Text style={[styles.sub, { marginVertical: SIZES.sm }]}>{t('pat.plansHint')}</Text>
       {plans.map((p) => (
         <View key={p.id} style={[styles.item, { borderLeftColor: p.off ? COLORS.border : COLORS.primary, opacity: p.off ? 0.55 : 1 }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, flexWrap: 'wrap' }}>
             <View style={{ flex: 1, minWidth: 200 }}>
               <Text style={styles.name}>{p.name}</Text>
-              <Text style={styles.sub}>{`${p.times.join(', ') || 'no time'} · ${p.checkpointIds.length} checkpoints · ${p.duties.length} duties${p.off ? ' · off' : ''}`}</Text>
+              <Text style={styles.sub}>{`${p.times.join(', ') || t('pat.noTime')} · ${t('pat.cpsN', { n: p.checkpointIds.length })} · ${t('pat.dutiesN', { n: p.duties.length })}${p.off ? ` · ${t('dpt.off')}` : ''}`}</Text>
             </View>
-            <TouchableOpacity style={styles.small} onPress={() => open(p)}><Text style={styles.smallText}>Edit</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.small} onPress={() => void saveRow(storage.PATROL_PLANS_KEY, { ...p, off: !p.off, updatedAt: Date.now() })}><Text style={styles.smallText}>{p.off ? 'Switch on' : 'Switch off'}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.small} onPress={() => open(p)}><Text style={styles.smallText}>{t('common.edit')}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.small} onPress={() => void saveRow(storage.PATROL_PLANS_KEY, { ...p, off: !p.off, updatedAt: Date.now() })}><Text style={styles.smallText}>{p.off ? t('dpt.switchOn') : t('dpt.switchOff')}</Text></TouchableOpacity>
           </View>
         </View>
       ))}
       <TouchableOpacity style={[styles.btn, { marginTop: SIZES.sm, alignSelf: 'flex-start' }]} onPress={() => open({ id: uid('pp'), name: '', kind: 'daytime', times: [], checkpointIds: [], duties: [], updatedAt: 0 })}>
-        <Text style={styles.btnText}>+ New round</Text>
+        <Text style={styles.btnText}>{t('pat.newRound')}</Text>
       </TouchableOpacity>
     </>
   );
@@ -433,6 +437,7 @@ function Plans({ plans }: { plans: PatrolPlan[] }) {
 // ---- reports ------------------------------------------------------------------------
 
 function Reports({ plans, done, fail }: { plans: PatrolPlan[]; done: (w: string | null | void) => void; fail: (e: any) => void }) {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { patrols, vessel } = useData();
@@ -448,7 +453,7 @@ function Reports({ plans, done, fail }: { plans: PatrolPlan[]; done: (w: string 
   const r = dayRounds(day, plans, patrols.filter((p) => p.date === day), { date: today, hhmm: hm() });
   return (
     <>
-      <Label>A day</Label>
+      <Label>{t('pat.aDay')}</Label>
       <View style={[styles.row, { alignItems: 'center' }]}>
         <TouchableOpacity onPress={() => setDay(dayShift(day, -1))} hitSlop={8}><Text style={styles.link}>‹</Text></TouchableOpacity>
         <Text style={styles.name}>{day}</Text>
@@ -456,14 +461,14 @@ function Reports({ plans, done, fail }: { plans: PatrolPlan[]; done: (w: string 
         <Text style={styles.sub}>{`${r.filter((x) => x.done).length} of ${r.length} done`}</Text>
         <TouchableOpacity style={styles.btn} onPress={() => void exportPatrolDay(day, plans, patrols, vessel).then(done, fail)}><Text style={styles.btnText}>PDF</Text></TouchableOpacity>
       </View>
-      <Label style={{ marginTop: SIZES.md }}>A month</Label>
+      <Label style={{ marginTop: SIZES.md }}>{t('pat.aMonth')}</Label>
       <View style={[styles.row, { alignItems: 'center' }]}>
         <TouchableOpacity onPress={() => setMonth(shift(month, -1))} hitSlop={8}><Text style={styles.link}>‹</Text></TouchableOpacity>
         <Text style={styles.name}>{month}</Text>
         <TouchableOpacity onPress={() => month < today.slice(0, 7) && setMonth(shift(month, 1))} hitSlop={8}><Text style={[styles.link, month >= today.slice(0, 7) && { opacity: 0.3 }]}>›</Text></TouchableOpacity>
         <TouchableOpacity style={styles.btn} onPress={() => void exportPatrolMonth(month, today, plans, patrols, vessel).then(done, fail)}><Text style={styles.btnText}>PDF</Text></TouchableOpacity>
       </View>
-      <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{`Rounds due, done and missed; who did each and when; checkpoints missed; each round’s duties. ${livePlans(plans).length} rounds in use.`}</Text>
+      <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{`${t('pat.reportHint')} ${t('pat.inUse', { n: livePlans(plans).length })}`}</Text>
     </>
   );
 }

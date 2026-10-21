@@ -47,6 +47,7 @@ import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
+import { t, t as tt, tk, tn, useT } from '../utils/i18n';
 
 export type HospitalView = 'register' | 'orders' | 'archive' | 'inventory' | 'log' | 'reference';
 type Filter = 'all' | 'expired' | 'soon' | 'short' | 'empty' | 'low' | 'controlled';
@@ -62,6 +63,7 @@ const TITLE: Record<HospitalView, [string, string]> = {
 
 
 export default function HospitalSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => ({ ...makeStyles(COLORS), ...StyleSheet.create({ badgeBox: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, minWidth: 54, alignItems: 'center' }, badgeQty: { fontSize: SIZES.small, fontWeight: '800' }, badgeExp: { fontSize: 10, fontWeight: '700' }, infoBtn: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' }, infoBtnText: { fontSize: 12, fontWeight: '800', fontStyle: 'italic', fontFamily: 'Georgia', lineHeight: 14 }, infoBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: SIZES.md }, infoCard: { borderRadius: SIZES.radiusLg, padding: SIZES.lg, width: '100%', maxWidth: 560 } }) }), [COLORS]);
   const nav = useNavigation<any>();
@@ -128,7 +130,7 @@ export default function HospitalSc() {
   const run = async (what: string, f: () => Promise<string | null | void>) => {
     try {
       const w = await f();
-      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
       Alert.alert(what, String(e?.message ?? e));
     }
@@ -151,20 +153,20 @@ export default function HospitalSc() {
       if (how === 'sheet') {
         const file = await pickSheetRows();
         if (!file) return;
-        setSaved('The AI is reading the columns…');
+        setSaved(t('pax.aiReading'));
         const r = await aiRenameHeadings(file.rows, 'medicine');
         setSaved(null);
         return load({ name: file.name, rows: r.rows }, `Columns read by the AI: ${r.mapped.map((m) => `${m.from} → ${m.to}`).join('; ')}.`);
       }
       const doc = await pickDocForAi();
       if (!doc) return;
-      setSaved(`The AI is reading “${doc.name}”…`);
+      setSaved(t('st.aiReadingDoc', { name: doc.name }));
       const r = await aiReadDocument(doc.dataUri, 'medicine');
       setSaved(null);
       return load({ name: doc.name, rows: r.rows }, `Read by the AI — check the lines.${r.unreadable ? ` Not readable: ${r.unreadable}` : ''}`);
     } catch (e: any) {
       setSaved(null);
-      Alert.alert('Medicine chest', String(e?.message ?? e));
+      Alert.alert(t('hos.chest'), String(e?.message ?? e));
     }
   };
 
@@ -172,7 +174,7 @@ export default function HospitalSc() {
     const f = given ?? (await pickChestSheet());
     if (!f) return;
     const { lines, skipped } = readSheet(f.rows);
-    if (!lines.length) return Alert.alert('Medicine chest', `No items found in “${f.name}”. The first row needs a “Name” column — download the Excel list to see the layout.`);
+    if (!lines.length) return Alert.alert(t('hos.chest'), t('hos.noItems', { file: f.name }));
     const plan = planImport(lines, medItems);
     const go = async () => {
       setBusy(true);
@@ -195,11 +197,11 @@ export default function HospitalSc() {
       await saveRows(storage.MED_MOVES_KEY, counted);
       setBusy(false);
       playSuccessSound();
-      Alert.alert('Medicine chest', `${plan.add.length} added, ${plan.update.length} updated, ${plan.counts.length} batches counted${skipped ? `; ${skipped} rows without a name skipped` : ''}.`);
+      Alert.alert(t('hos.chest'), `${t('hos.loaded', { a: plan.add.length, u: plan.update.length, c: plan.counts.length })}${skipped ? `; ${t('hos.skipped', { n: skipped })}` : ''}.`);
     };
-    Alert.alert('Load the list', `${note ? `${note}\n\n` : ''}${f.name}: ${plan.add.length} new items, ${plan.update.length} to update, ${plan.counts.length} batches with a quantity (counted as aboard now).`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Load', onPress: () => void go() },
+    Alert.alert(t('hos.loadList'), `${note ? `${note}\n\n` : ''}${f.name}: ${t('hos.loadSummary', { a: plan.add.length, u: plan.update.length, c: plan.counts.length })}`, [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('mt2.load'), onPress: () => void go() },
     ]);
   };
 
@@ -220,17 +222,17 @@ export default function HospitalSc() {
   );
 
   const pages: [HospitalView, string][] = [
-    ['register', `Register · ${rows.length}`],
-    ['orders', `Orders · ${open.length}`],
-    ['archive', `Archive · ${archived.length}`],
-    ['inventory', 'Inventory'],
-    ...(officer ? [['log', `Log${due.length ? ` · ${due.length} follow-up` : ''}`] as [HospitalView, string]] : []),
-    ['reference', 'Reference'],
+    ['register', t('hos.tabRegister', { n: rows.length })],
+    ['orders', t('hos.tabOrders', { n: open.length })],
+    ['archive', t('drills.archiveN', { n: archived.length })],
+    ['inventory', t('mc.inventory')],
+    ...(officer ? [['log', `${t('hos.log')}${due.length ? ` · ${t('hos.followUps', { n: due.length })}` : ''}`] as [HospitalView, string]] : []),
+    ['reference', t('hos.reference')],
   ];
 
   return (
     <Screen scroll>
-      <ScreenTitle title={TITLE[shownView][0]} subtitle={TITLE[shownView][1]} help="Hospital" />
+      <ScreenTitle title={tk(`hos.t.${shownView}`)} subtitle={tk(`hos.t.${shownView}.sub`)} help="Hospital" />
       <View style={styles.chips}>
         {pages.map(([k, l]) => <Chip key={k} on={shownView === k} label={l} onPress={() => setView(k)} />)}
       </View>
@@ -239,31 +241,31 @@ export default function HospitalSc() {
         <>
           {rows.length ? (
             <>
-              <TextInput style={[styles.input, { marginTop: 0, marginBottom: SIZES.sm }]} value={q} onChangeText={setQ} placeholder="Search — name, indication, ATC, list No., cabinet" placeholderTextColor={COLORS.textLight} />
+              <TextInput style={[styles.input, { marginTop: 0, marginBottom: SIZES.sm }]} value={q} onChangeText={setQ} placeholder={t('hos.searchPh')} placeholderTextColor={COLORS.textLight} />
               {/* Group, what to show and the order — three drop-downs side by side (13 Oct 2026: "filters and sorting as drop-down menus"). */}
               <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.sm, gap: SIZES.xs }]}>
-                <Dropdown caption="GROUP" value={group ?? ''} onChange={(v: string) => setGroup(v || null)} options={[{ value: '', label: `All · ${rows.length}`, icon: 'pill' }, ...groups.map(([g, n]) => ({ value: g, label: `${g} · ${n}`, icon: purposeIcon(g) }))]} style={{ flex: 1, minWidth: 200 }} />
-                <Dropdown caption="SHOW" value={filter} onChange={setFilter} style={{ flex: 1, minWidth: 200 }} options={[
-                  { value: 'all' as Filter, label: 'All' },
-                  { value: 'expired' as Filter, label: `Out of date · ${counts.expired}` },
-                  { value: 'soon' as Filter, label: `Expiring ≤ 30 d · ${counts.soon}` },
-                  { value: 'empty' as Filter, label: `Out of stock · ${levels.empty}` },
-                  { value: 'low' as Filter, label: `Low stock · ${levels.low}` },
-                  { value: 'short' as Filter, label: `Below scale · ${counts.short}` },
-                  ...(controlled.length ? [{ value: 'controlled' as Filter, label: `Controlled · ${controlled.length}` }] : []),
+                <Dropdown caption={t('pax.group')} value={group ?? ''} onChange={(v: string) => setGroup(v || null)} options={[{ value: '', label: t('pax.showAll', { n: rows.length }), icon: 'pill' }, ...groups.map(([g, n]) => ({ value: g, label: `${g} · ${n}`, icon: purposeIcon(g) }))]} style={{ flex: 1, minWidth: 200 }} />
+                <Dropdown caption={t('pax.show')} value={filter} onChange={setFilter} style={{ flex: 1, minWidth: 200 }} options={[
+                  { value: 'all' as Filter, label: t('lb.all') },
+                  { value: 'expired' as Filter, label: t('st.showExpired', { n: counts.expired }) },
+                  { value: 'soon' as Filter, label: t('hos.fSoon', { n: counts.soon }) },
+                  { value: 'empty' as Filter, label: t('hos.fEmpty', { n: levels.empty }) },
+                  { value: 'low' as Filter, label: t('hos.fLow', { n: levels.low }) },
+                  { value: 'short' as Filter, label: t('hos.fShort', { n: counts.short }) },
+                  ...(controlled.length ? [{ value: 'controlled' as Filter, label: t('hos.fCd', { n: controlled.length }) }] : []),
                 ]} />
-                <Dropdown caption="SORT" value={sortBy} onChange={setSortBy} style={{ flex: 1, minWidth: 200 }} options={([['attention', 'Attention'], ['purpose', 'Purpose'], ['expiry', 'Expiry'], ['name', 'A–Z'], ['place', 'Location'], ['list', 'List No.']] as [ChestSort, string][]).map(([value, label]) => ({ value, label }))} />
+                <Dropdown caption={t('docs.sort')} value={sortBy} onChange={setSortBy} style={{ flex: 1, minWidth: 200 }} options={([['attention', t('hos.sAttention')], ['purpose', t('hos.sPurpose')], ['expiry', t('mc.expiry')], ['name', 'A–Z'], ['place', t('risk.location')], ['list', t('hos.sList')]] as [ChestSort, string][]).map(([value, label]) => ({ value, label }))} />
               </View>
               {filter === 'controlled' ? (
                 <Text style={[styles.sub, { marginBottom: SIZES.sm, color: !lastCount || daysTo(lastCount, today) > 31 ? COLORS.warning : COLORS.textLight }]}>
-                  {`${lastCount ? `Last counted ${formatDate(lastCount)}` : 'Never counted'} — the Master counts them monthly, with a witness (Inventory). Every move of a controlled drug is witnessed.`}
+                  {`${lastCount ? t('hos.lastCounted', { date: formatDate(lastCount) }) : t('hos.neverCounted')} — ${t('hos.cdNote')}`}
                 </Text>
               ) : null}
               {filter === 'expired' && officer && (expiredLines.other || expiredLines.cd) ? (
                 <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.sm }]}>
-                  <Text style={[styles.sub, { flexBasis: '100%' }]}>Out-of-date stock goes ashore for destruction with a landing report — handed over and received, both signed.</Text>
-                  {expiredLines.other ? <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedLanding', { id: 'new' })}><Text style={styles.smallText}>{`Landing report — expired · ${expiredLines.other}`}</Text></TouchableOpacity> : null}
-                  {expiredLines.cd ? <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedLanding', { id: 'new', mode: 'cd' })}><Text style={styles.smallText}>{`Landing report — controlled drugs · ${expiredLines.cd}`}</Text></TouchableOpacity> : null}
+                  <Text style={[styles.sub, { flexBasis: '100%' }]}>{t('hos.expiredNote')}</Text>
+                  {expiredLines.other ? <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedLanding', { id: 'new' })}><Text style={styles.smallText}>{`${t('ml.titleExp')} · ${expiredLines.other}`}</Text></TouchableOpacity> : null}
+                  {expiredLines.cd ? <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedLanding', { id: 'new', mode: 'cd' })}><Text style={styles.smallText}>{`${t('ml.titleCd')} · ${expiredLines.cd}`}</Text></TouchableOpacity> : null}
                 </View>
               ) : null}
             </>
@@ -282,21 +284,21 @@ export default function HospitalSc() {
                   <MciIcon name={purposeIcon(purposeOf(r.item))} size={18} color={COLORS.primary} />
                   <Text style={[styles.name, { flexShrink: 1 }]} numberOfLines={1}>{r.item.name}</Text>
                   {r.item.controlled ? <MciIcon name="lock" size={15} color={COLORS.warning} /> : null}
-                  <TouchableOpacity onPress={() => setInfo(r)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Reference — ${r.item.name}`} style={[styles.infoBtn, { borderColor: COLORS.primary }]}>
+                  <TouchableOpacity onPress={() => setInfo(r)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`${t('hos.reference')} — ${r.item.name}`} style={[styles.infoBtn, { borderColor: COLORS.primary }]}>
                     <Text style={[styles.infoBtnText, { color: COLORS.primary }]}>i</Text>
                   </TouchableOpacity>
                 </View>
-                <Text style={styles.sub}>{[r.item.listNo ? `No. ${r.item.listNo}` : null, r.item.strength].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.sub}>{[r.item.listNo ? t('round.no', { n: r.item.listNo }) : null, r.item.strength].filter(Boolean).join(' · ')}</Text>
                 {placeText(r.item) ? <Place text={placeText(r.item)} /> : null}
-                <Text style={[styles.sub, { color: stateColor(r), fontWeight: '700' }]}>{[`${r.usable} / ${r.item.required} ${r.item.unit}`, STOCK_LEVEL_LABEL[stockLevel(r)], r.short ? `${r.short} short` : null, r.expired ? `${r.expired} out of date` : r.nextState === 'soon' ? 'expiring' : null].filter(Boolean).join(' · ')}</Text>
+                <Text style={[styles.sub, { color: stateColor(r), fontWeight: '700' }]}>{[`${r.usable} / ${r.item.required} ${r.item.unit}`, STOCK_LEVEL_LABEL[stockLevel(r)], r.short ? t('sop.short', { n: r.short }) : null, r.expired ? t('st.outOfDate', { n: r.expired }) : r.nextState === 'soon' ? t('hos.expiring') : null].filter(Boolean).join(' · ')}</Text>
                 {coming ? <Text style={[styles.sub, { color: COLORS.primary }]}>{`${coming} on order`}</Text> : null}
-                {sortBy === 'expiry' && exp ? <Text style={[styles.sub, { color: expiryState(today, exp) === 'expired' ? COLORS.danger : COLORS.textLight }]}>{`Soonest expiry ${formatDate(exp)}`}</Text> : null}
+                {sortBy === 'expiry' && exp ? <Text style={[styles.sub, { color: expiryState(today, exp) === 'expired' ? COLORS.danger : COLORS.textLight }]}>{t('hos.soonest', { date: formatDate(exp) })}</Text> : null}
                 {sortBy === 'purpose' ? <Text style={styles.sub} numberOfLines={1}>{scaleEntry(r.item).med?.indication ?? ''}</Text> : null}
                 </View>
                 {/* One row on the right (13 Oct 2026): the out-of-date batches, then those in date (quantity and MM/YY, as MHM), then Issue. */}
                 <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center', alignSelf: 'center' }}>
                   {!r.batches.length ? (
-                    <View style={[styles.badgeBox, { borderColor: COLORS.danger }]}><Text style={[styles.badgeQty, { color: COLORS.danger }]}>0</Text><Text style={[styles.badgeExp, { color: COLORS.danger }]}>EMPTY</Text></View>
+                    <View style={[styles.badgeBox, { borderColor: COLORS.danger }]}><Text style={[styles.badgeQty, { color: COLORS.danger }]}>0</Text><Text style={[styles.badgeExp, { color: COLORS.danger }]}>{t('hos.empty')}</Text></View>
                   ) : (
                     [...r.batches].sort((x, y) => (expiryState(today, x.expiry) === 'expired' ? 0 : 1) - (expiryState(today, y.expiry) === 'expired' ? 0 : 1)).slice(0, 3).map((b) => {
                       const s = expiryState(today, b.expiry);
@@ -304,12 +306,12 @@ export default function HospitalSc() {
                       return <View key={b.key} style={[styles.badgeBox, { borderColor: c }]}><Text style={[styles.badgeQty, { color: c }]}>{b.qty}</Text><Text style={[styles.badgeExp, { color: c }]}>{mmYY(b.expiry)}</Text></View>;
                     })
                   )}
-                  {r.batches.length > 3 ? <View style={[styles.badgeBox, { borderColor: COLORS.border }]}><Text style={[styles.badgeQty, { color: COLORS.textLight }]}>{`+${r.batches.length - 3}`}</Text><Text style={[styles.badgeExp, { color: COLORS.textLight }]}>more</Text></View> : null}
+                  {r.batches.length > 3 ? <View style={[styles.badgeBox, { borderColor: COLORS.border }]}><Text style={[styles.badgeQty, { color: COLORS.textLight }]}>{`+${r.batches.length - 3}`}</Text><Text style={[styles.badgeExp, { color: COLORS.textLight }]}>{t('hos.more')}</Text></View> : null}
                   {/* Issue: a new entry in the medical log with this item already in it. */}
                   {officer && r.usable > 0 ? (
                     <TouchableOpacity onPress={() => nav.navigate('Treatment', { id: 'new', issue: r.item.id })} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Issue — ${r.item.name}`} style={[styles.badgeBox, { borderColor: COLORS.primary, backgroundColor: COLORS.primary }]}>
                       <MciIcon name="hand-heart-outline" size={15} color={COLORS.textWhite} />
-                      <Text style={[styles.badgeExp, { color: COLORS.textWhite }]}>ISSUE</Text>
+                      <Text style={[styles.badgeExp, { color: COLORS.textWhite }]}>{t('hos.issue')}</Text>
                     </TouchableOpacity>
                   ) : null}
                 </View>
@@ -317,45 +319,45 @@ export default function HospitalSc() {
               </React.Fragment>
             );
           })}
-          {rows.length && !shown.length ? <Text style={styles.sub}>Nothing here.</Text> : null}
+          {rows.length && !shown.length ? <Text style={styles.sub}>{t('st.nothingHere')}</Text> : null}
           {!rows.length ? (
             <Card>
-              <Text style={styles.body}>No medicine chest list yet.</Text>
-              <Text style={styles.sub}>Start from the WHO IMGS scale for the vessel’s hospital category — medicines with the quantity required, and the medical equipment — or load your own list from Excel (Name, Strength / form, Unit, Required, Location, Controlled, Batch, Expiry, Quantity). Edit the quantities to your flag’s scale afterwards.</Text>
+              <Text style={styles.body}>{t('hos.noList')}</Text>
+              <Text style={styles.sub}>{t('hos.noListBody')}</Text>
               {officer ? (
                 choosingCat ? (
                   <View style={{ marginTop: SIZES.sm, gap: SIZES.xs }}>
                     {(['C', 'B', 'A'] as HospitalCategory[]).map((c) => (
                       <TouchableOpacity key={c} style={styles.small} disabled={busy} onPress={() => void addScale(c)}><Text style={styles.smallText}>{HOSPITAL_CATEGORY_LABEL[c]}</Text></TouchableOpacity>
                     ))}
-                    <TouchableOpacity onPress={() => setChoosingCat(false)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => setChoosingCat(false)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
                   </View>
                 ) : (
                   <View style={styles.row}>
-                    <TouchableOpacity style={styles.btn} disabled={busy} onPress={() => setChoosingCat(true)}><Text style={styles.btnText}>Start from the WHO IMGS scale</Text></TouchableOpacity>
-                    <TouchableOpacity style={styles.small} disabled={busy} onPress={() => void load()}><Text style={styles.smallText}>Load from Excel</Text></TouchableOpacity>
+                    <TouchableOpacity style={styles.btn} disabled={busy} onPress={() => setChoosingCat(true)}><Text style={styles.btnText}>{t('hos.startScale')}</Text></TouchableOpacity>
+                    <TouchableOpacity style={styles.small} disabled={busy} onPress={() => void load()}><Text style={styles.smallText}>{t('hos.loadExcel')}</Text></TouchableOpacity>
                     {aiReady(sync.enrolled) ? <><TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} disabled={busy} onPress={() => void loadAi('sheet')}><MciIcon name="creation" size={14} color={COLORS.primary} /><Text style={styles.smallText}>Any list (AI)</Text></TouchableOpacity><TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} disabled={busy} onPress={() => void loadAi('doc')}><MciIcon name="camera-outline" size={14} color={COLORS.primary} /><Text style={styles.smallText}>Photo / PDF (AI)</Text></TouchableOpacity></> : null}
-                    <TouchableOpacity onPress={() => void run('Excel list', () => exportChestTemplate([]))}><Text style={styles.link}>Excel layout</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => void run(t('hos.excelList'), () => exportChestTemplate([]))}><Text style={styles.link}>{t('hos.excelLayout')}</Text></TouchableOpacity>
                   </View>
                 )
               ) : null}
-              {busy ? <Text style={styles.sub}>Adding…</Text> : null}
+              {busy ? <Text style={styles.sub}>{t('hos.adding')}</Text> : null}
               <Text style={[styles.sub, { fontSize: 11, marginTop: SIZES.sm }]}>{WHO_NOTICE}</Text>
             </Card>
           ) : null}
           {officer && rows.length ? (
             <View style={styles.row}>
               <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedItem', { id: 'new' })}><Text style={styles.smallText}>+ Item</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.small} disabled={busy} onPress={() => void load()}><Text style={styles.smallText}>Load from Excel</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.small} disabled={busy} onPress={() => void load()}><Text style={styles.smallText}>{t('hos.loadExcel')}</Text></TouchableOpacity>
                     {aiReady(sync.enrolled) ? <><TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} disabled={busy} onPress={() => void loadAi('sheet')}><MciIcon name="creation" size={14} color={COLORS.primary} /><Text style={styles.smallText}>Any list (AI)</Text></TouchableOpacity><TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} disabled={busy} onPress={() => void loadAi('doc')}><MciIcon name="camera-outline" size={14} color={COLORS.primary} /><Text style={styles.smallText}>Photo / PDF (AI)</Text></TouchableOpacity></> : null}
-              <TouchableOpacity onPress={() => void run('Excel list', () => exportChestTemplate(rows))}><Text style={styles.link}>Excel list to fill in</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => void run(t('hos.excelList'), () => exportChestTemplate(rows))}><Text style={styles.link}>{t('hos.excelFill')}</Text></TouchableOpacity>
             </View>
           ) : null}
           {rows.length ? (
             <View style={styles.row}>
-              <TouchableOpacity style={styles.btn} onPress={() => void run('Medicine chest', () => exportChestPdf(rows, today, vessel))}><Text style={styles.btnText}>Inventory & to order (PDF)</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.btn} onPress={() => void run('Medicine chest', () => exportChestExcel(rows, today, vessel))}><Text style={styles.btnText}>Excel</Text></TouchableOpacity>
-              {controlled.length ? <TouchableOpacity style={styles.btn} onPress={() => void run('Controlled drugs', () => exportControlledPdf(medItems, medMoves, today, vessel))}><Text style={styles.btnText}>Controlled drugs register (PDF)</Text></TouchableOpacity> : null}
+              <TouchableOpacity style={styles.btn} onPress={() => void run(t('hos.chest'), () => exportChestPdf(rows, today, vessel))}><Text style={styles.btnText}>{t('hos.invPdf')}</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.btn} onPress={() => void run(t('hos.chest'), () => exportChestExcel(rows, today, vessel))}><Text style={styles.btnText}>Excel</Text></TouchableOpacity>
+              {controlled.length ? <TouchableOpacity style={styles.btn} onPress={() => void run(t('med.cd'), () => exportControlledPdf(medItems, medMoves, today, vessel))}><Text style={styles.btnText}>{`${t('mi.cdRegister')} (PDF)`}</Text></TouchableOpacity> : null}
             </View>
           ) : null}
         </>
@@ -363,8 +365,8 @@ export default function HospitalSc() {
         <>
           {shownView === 'orders' && officer ? (
             <View style={[styles.row, { marginTop: 0 }]}>
-              <TouchableOpacity style={styles.btn} onPress={() => nav.navigate('MedOrder', { id: 'new', fill: 'short' })}><Text style={styles.btnText}>+ Order what is short or expiring</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedOrder', { id: 'new' })}><Text style={styles.smallText}>+ Empty order</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.btn} onPress={() => nav.navigate('MedOrder', { id: 'new', fill: 'short' })}><Text style={styles.btnText}>{t('hos.orderShort')}</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedOrder', { id: 'new' })}><Text style={styles.smallText}>{t('hos.emptyOrder')}</Text></TouchableOpacity>
             </View>
           ) : null}
           {(shownView === 'orders' ? open : archived).map(({ o, st }) => {
@@ -376,12 +378,12 @@ export default function HospitalSc() {
             return (
               <TouchableOpacity key={o.id} style={[styles.item, { borderLeftColor: color }]} onPress={() => nav.navigate('MedOrder', { id: o.id })} activeOpacity={0.7}>
                 <Text style={styles.name}>{`${o.no}${o.supplier ? ` · ${o.supplier}` : ''}`}</Text>
-                <Text style={styles.sub}>{[`ordered ${formatDate(o.date)}`, o.ref, o.port, o.due ? `expected ${formatDate(o.due)}` : null].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.sub}>{[t('hos.ordered', { date: formatDate(o.date) }), o.ref, o.port, o.due ? t('hos.expected', { date: formatDate(o.due) }) : null].filter(Boolean).join(' · ')}</Text>
                 <Text style={[styles.sub, { color, fontWeight: '700' }]}>{[ORDER_STATE_LABEL[st], `${full} of ${lines} lines in full`, late ? 'OVERDUE' : null].filter(Boolean).join(' · ')}</Text>
               </TouchableOpacity>
             );
           })}
-          {!(shownView === 'orders' ? open : archived).length ? <Text style={styles.sub}>{shownView === 'orders' ? 'Nothing on order.' : 'No order completed or closed yet.'}</Text> : null}
+          {!(shownView === 'orders' ? open : archived).length ? <Text style={styles.sub}>{shownView === 'orders' ? t('hos.nothingOrder') : t('hos.noArchive')}</Text> : null}
         </>
       ) : shownView === 'reference' ? (
         <>
@@ -390,11 +392,11 @@ export default function HospitalSc() {
             <Text style={[styles.sub, { marginTop: SIZES.xs }]}>{WHO_NOTICE}</Text>
           </View>
           <View style={styles.chips}>
-            <Chip on={refPart === 'medicines'} label={`Medicines · ${IMGS_REFERENCE.length}`} onPress={() => setRefPart('medicines')} />
-            <Chip on={refPart === 'scale'} label={`Scale A / B / C · ${MED_SCALE.length}`} onPress={() => setRefPart('scale')} />
-            <Chip on={refPart === 'equipment'} label={`Equipment · ${NURSING_SCALE.length}`} onPress={() => setRefPart('equipment')} />
+            <Chip on={refPart === 'medicines'} label={`${t('tr.medicines')} · ${IMGS_REFERENCE.length}`} onPress={() => setRefPart('medicines')} />
+            <Chip on={refPart === 'scale'} label={`${t('hos.scale')} A / B / C · ${MED_SCALE.length}`} onPress={() => setRefPart('scale')} />
+            <Chip on={refPart === 'equipment'} label={`${t('cat.title')} · ${NURSING_SCALE.length}`} onPress={() => setRefPart('equipment')} />
           </View>
-          <TextInput style={[styles.input, { marginTop: 0, marginBottom: SIZES.sm }]} value={q} onChangeText={setQ} placeholder="Search — name, use, ATC, code" placeholderTextColor={COLORS.textLight} />
+          <TextInput style={[styles.input, { marginTop: 0, marginBottom: SIZES.sm }]} value={q} onChangeText={setQ} placeholder={t('hos.refSearchPh')} placeholderTextColor={COLORS.textLight} />
           {(refPart === 'medicines'
             ? IMGS_REFERENCE.map((r) => ({ key: r.name, title: r.name, sub: r.text.split('\n')[1] ?? '', text: r.text }))
             : refPart === 'scale'
@@ -412,34 +414,34 @@ export default function HospitalSc() {
         </>
       ) : shownView === 'inventory' ? (
         <>
-          <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>Counting the chest against the books. Inventory: go round the cabinets with the list, change only what you count differently — the books then follow the count, and the differences print. Controlled drugs: the Master’s monthly count with a witness, and the handover when the responsible officer changes — the outgoing and the incoming count together and both sign. Landing report: out-of-date stock handed ashore for destruction — you hand over, the person ashore signs by hand; the controlled drugs on their own report, with a witness.</Text>
+          <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>{t('hos.invIntro')}</Text>
           {officer && rows.length ? (
             <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.md }]}>
-              <TouchableOpacity style={styles.btn} onPress={() => nav.navigate('MedCount', { id: 'new' })}><Text style={styles.btnText}>Start an inventory</Text></TouchableOpacity>
-              {controlled.length ? <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedCount', { id: 'new', mode: 'cd' })}><Text style={styles.smallText}>Controlled drugs count</Text></TouchableOpacity> : null}
-              {controlled.length ? <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedCount', { id: 'new', mode: 'handover' })}><Text style={styles.smallText}>Controlled drugs handover</Text></TouchableOpacity> : null}
+              <TouchableOpacity style={styles.btn} onPress={() => nav.navigate('MedCount', { id: 'new' })}><Text style={styles.btnText}>{t('hos.startInv')}</Text></TouchableOpacity>
+              {controlled.length ? <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedCount', { id: 'new', mode: 'cd' })}><Text style={styles.smallText}>{t('mc.titleCd')}</Text></TouchableOpacity> : null}
+              {controlled.length ? <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedCount', { id: 'new', mode: 'handover' })}><Text style={styles.smallText}>{t('mc.titleHo')}</Text></TouchableOpacity> : null}
             </View>
           ) : null}
           {officer && rows.length ? (
             <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.md }]}>
-              <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedLanding', { id: 'new' })}><Text style={styles.smallText}>{`Landing report — expired${expiredLines.other ? ` · ${expiredLines.other}` : ''}`}</Text></TouchableOpacity>
-              {controlled.length ? <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedLanding', { id: 'new', mode: 'cd' })}><Text style={styles.smallText}>{`Landing report — controlled drugs${expiredLines.cd ? ` · ${expiredLines.cd}` : ''}`}</Text></TouchableOpacity> : null}
+              <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedLanding', { id: 'new' })}><Text style={styles.smallText}>{`${t('ml.titleExp')}${expiredLines.other ? ` · ${expiredLines.other}` : ''}`}</Text></TouchableOpacity>
+              {controlled.length ? <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedLanding', { id: 'new', mode: 'cd' })}><Text style={styles.smallText}>{`${t('ml.titleCd')}${expiredLines.cd ? ` · ${expiredLines.cd}` : ''}`}</Text></TouchableOpacity> : null}
             </View>
           ) : null}
-          {!rows.length ? <Text style={styles.sub}>Make the register first — then count it here.</Text> : null}
+          {!rows.length ? <Text style={styles.sub}>{t('hos.makeFirst')}</Text> : null}
           {checks.map((c) => {
             const diff = differences(c).length;
             return (
               <TouchableOpacity key={c.id} style={[styles.item, { borderLeftColor: isLanding(c) ? COLORS.primary : diff ? COLORS.warning : COLORS.success }]} onPress={() => nav.navigate(isLanding(c) ? 'MedLanding' : 'MedCount', { id: c.id })} activeOpacity={0.7}>
                 <Text style={styles.name}>{`${c.no} · ${CHECK_KIND_LABEL[c.kind ?? 'inventory']} · ${formatDate(c.date)}`}</Text>
-                <Text style={styles.sub}>{isLanding(c) ? [`${c.lines.length} lines`, c.port, `${c.by} → ${[c.receiver, c.receiverOrg].filter(Boolean).join(', ')}`].filter(Boolean).join(' · ') : [`${c.lines.length} lines`, diff ? `${diff} differences` : 'as the books', c.kind === 'handover' ? `${c.by} → ${c.witness}` : c.witness ? `witness ${c.witness}` : null, c.kind === 'handover' ? null : c.byRank ? `${c.by} (${c.byRank})` : c.by].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.sub}>{isLanding(c) ? [t('mc.lines', { n: c.lines.length }), c.port, `${c.by} → ${[c.receiver, c.receiverOrg].filter(Boolean).join(', ')}`].filter(Boolean).join(' · ') : [t('mc.lines', { n: c.lines.length }), diff ? t('mc.diffs', { n: diff }) : t('mc.asBooks'), c.kind === 'handover' ? `${c.by} → ${c.witness}` : c.witness ? t('mo.witnessL', { who: c.witness }) : null, c.kind === 'handover' ? null : c.byRank ? `${c.by} (${c.byRank})` : c.by].filter(Boolean).join(' · ')}</Text>
               </TouchableOpacity>
             );
           })}
         </>
       ) : (
         <>
-          <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>Confidential — the Master and the officers see the medical log; the crew and the shore do not.</Text>
+          <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>{t('hos.logConf')}</Text>
           <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginBottom: SIZES.md }]} onPress={() => nav.navigate('Treatment', { id: 'new' })}><Text style={styles.btnText}>+ New treatment</Text></TouchableOpacity>
           {due.map((t) => (
             <TouchableOpacity key={`fu-${t.id}`} style={[styles.item, { borderLeftColor: COLORS.primary }]} onPress={() => nav.navigate('Treatment', { id: 'new', followUpOf: t.id })}>
@@ -451,14 +453,14 @@ export default function HospitalSc() {
             <TouchableOpacity key={t.id} style={[styles.item, { borderLeftColor: t.outcome === 'fit' ? COLORS.success : t.outcome === 'light' ? COLORS.warning : COLORS.danger }]} onPress={() => nav.navigate('Treatment', { id: t.id })} activeOpacity={0.7}>
               <Text style={styles.name}>{`${t.no} · ${t.patient}`}</Text>
               <Text style={styles.sub}>{[`${formatDate(t.date)}${t.time ? ` ${t.time}` : ''}`, t.complaint, t.diagnosis].filter(Boolean).join(' · ')}</Text>
-              <Text style={styles.sub}>{[OUTCOME_LABEL[t.outcome], t.issued.length ? `${t.issued.length} medicine${t.issued.length > 1 ? 's' : ''}` : null, t.tmas ? 'radio advice' : null, t.files?.length ? `${t.files.length} file${t.files.length > 1 ? 's' : ''}` : null, t.byRank ? `${t.by} (${t.byRank})` : t.by].filter(Boolean).join(' · ')}</Text>
+              <Text style={styles.sub}>{[tk(`tr.out.${t.outcome}`), t.issued.length ? tn('hos.medsN', t.issued.length) : null, t.tmas ? tt('hos.radio') : null, t.files?.length ? tn('n.file', t.files.length) : null, t.byRank ? `${t.by} (${t.byRank})` : t.by].filter(Boolean).join(' · ')}</Text>
             </TouchableOpacity>
           ))}
-          {!log.length ? <Text style={styles.sub}>No treatment recorded.</Text> : null}
+          {!log.length ? <Text style={styles.sub}>{t('hos.noTreatment')}</Text> : null}
           {log.length ? (
             <View style={styles.row}>
-              <TouchableOpacity style={styles.btn} onPress={() => void run('Medical log', () => exportMedLogPdf(medTreatments, today, vessel))}><Text style={styles.btnText}>Medical log (PDF)</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.btn} onPress={() => void run('Medical log', () => exportMedLogExcel(medTreatments, today, vessel))}><Text style={styles.btnText}>Excel</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.btn} onPress={() => void run(t('hos.medLog'), () => exportMedLogPdf(medTreatments, today, vessel))}><Text style={styles.btnText}>{`${t('hos.medLog')} (PDF)`}</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.btn} onPress={() => void run(t('hos.medLog'), () => exportMedLogExcel(medTreatments, today, vessel))}><Text style={styles.btnText}>Excel</Text></TouchableOpacity>
             </View>
           ) : null}
         </>
@@ -480,14 +482,14 @@ export default function HospitalSc() {
                   {placeText(info.item) ? <Place text={placeText(info.item)} /> : null}
                   {ref.facts.length ? <Text style={[styles.sub, { color: COLORS.textDark, marginTop: SIZES.xs }]}>{ref.facts.join(' · ')}</Text> : null}
                   <ScrollView style={{ maxHeight: 360, marginTop: SIZES.sm }}>
-                    <Text style={[styles.body, { lineHeight: 21 }]}>{ref.text || 'No entry in the WHO IMGS reference for this item.'}</Text>
+                    <Text style={[styles.body, { lineHeight: 21 }]}>{ref.text || t('hos.noRef')}</Text>
                     {ref.text ? <Text style={[styles.sub, { marginTop: SIZES.sm, fontWeight: '700' }]}>{MED_INFO_NOTICE}</Text> : null}
                     {ref.text ? <Text style={[styles.sub, { fontSize: 11, marginTop: SIZES.xs }]}>{WHO_NOTICE}</Text> : null}
                   </ScrollView>
                   <View style={[styles.row, { marginTop: SIZES.md }]}>
                     <TouchableOpacity style={styles.btn} onPress={() => { const id = info.item.id; setInfo(null); nav.navigate('MedItem', { id }); }}><Text style={styles.btnText}>Open the item</Text></TouchableOpacity>
-                    <TouchableOpacity style={styles.small} onPress={() => { const n = info.item.name; setInfo(null); setQ(n); setRefPart(scaleEntry(info.item).nursing ? 'equipment' : 'medicines'); setView('reference'); }}><Text style={styles.smallText}>In the reference</Text></TouchableOpacity>
-                    <TouchableOpacity onPress={() => setInfo(null)}><Text style={styles.link}>Close</Text></TouchableOpacity>
+                    <TouchableOpacity style={styles.small} onPress={() => { const n = info.item.name; setInfo(null); setQ(n); setRefPart(scaleEntry(info.item).nursing ? 'equipment' : 'medicines'); setView('reference'); }}><Text style={styles.smallText}>{t('hos.inRef')}</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => setInfo(null)}><Text style={styles.link}>{t('common.close')}</Text></TouchableOpacity>
                   </View>
                 </>
               );

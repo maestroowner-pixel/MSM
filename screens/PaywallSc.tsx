@@ -1,5 +1,5 @@
 // ===================================
-// Paywall — ISMpilot Pro upsell. The 2-month free trial is the app's own auto counter
+// Paywall — ISM AI Pilot Pro upsell. The 2-month free trial is the app's own auto counter
 // (services/trial.ts, starts at install — no button); this screen sells the paid
 // yearly subscription that unlocks everything once that trial has ended.
 // Talks only to services/purchases (RevenueCat plugs in there later); prices
@@ -28,6 +28,7 @@ import {
   onEntitlementChange,
   Offer,
 } from '../services/purchases';
+import { t, tk, useT } from '../utils/i18n';
 
 const onWeb = Platform.OS === 'web';
 
@@ -42,6 +43,7 @@ const FEATURES: Feature[] = [
 ];
 
 export default function PaywallSc() {
+  useT();
   const nav = useNavigation<any>();
   const { refreshLocks } = useData();
   const COLORS = useTheme();
@@ -83,13 +85,11 @@ export default function PaywallSc() {
     // device.
     if (!signedIn && !isSignedIn()) {
       Alert.alert(
-        'Join the vessel first',
-        'The licence attaches to the ship, not to this device, so this device has to be on the ' +
-          'vessel before it can carry one.\n\nJoin it from the “This device” card at the top of ' +
-          'Settings, then come back here.',
+        t('pw.joinFirst'),
+        t('pw.joinFirstBody'),
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Open Settings', onPress: () => nav.navigate('Enrol') },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('cs.openSettings'), onPress: () => nav.navigate('Enrol') },
         ]
       );
       return;
@@ -102,26 +102,26 @@ export default function PaywallSc() {
         // moment ago and must open up without a restart.
         await refreshLocks().catch(() => {});
         setLicenseKey('');
-        Alert.alert('ISMpilot Pro activated', 'The licence is active on this vessel. Every enrolled device now has full access.');
+        Alert.alert(t('pw.activated'), t('pw.activatedBody'));
         goBackOr(nav);
       } else {
-        Alert.alert('Could not activate', res.message ?? 'Please check your license key.');
+        Alert.alert(t('pw.couldNot'), res.message ?? t('pw.checkKey'));
       }
     } finally {
       setActivating(false);
     }
   };
 
-  // The UNIT belongs in the price. ISMpilot Pro is licensed per VESSEL — the account
+  // The UNIT belongs in the price. ISM AI Pilot Pro is licensed per VESSEL — the account
   // is the ship, keyed by its IMO, and every enrolled device on board is
   // covered by the one subscription. A bare "/ year" beside a single figure reads
   // as a per-person price, which is what it used to be.
-  const priceLine = offer ? `${offer.priceString} / year` : '…';
-  const priceUnit = 'per vessel — covers every device on board';
+  const priceLine = offer ? t('pw.perYear', { price: offer.priceString }) : '…';
+  const priceUnit = t('pw.unit');
 
   const onSubscribe = async () => {
     if (!offer?.available) {
-      Alert.alert('Coming soon', 'Subscriptions are not available yet — this update only previews the plan.');
+      Alert.alert(t('pw.soon'), t('pw.soonBody'));
       return;
     }
     if (onWeb) {
@@ -129,8 +129,8 @@ export default function PaywallSc() {
       // email, then the user activates it in the field below.
       await purchaseYearly();
       Alert.alert(
-        'Checkout opened',
-        'Complete your purchase in the new tab. You\'ll get a license key by email — paste it below and tap "Activate license".'
+        t('pw.checkout'),
+        t('pw.checkoutBody')
       );
       return;
     }
@@ -139,13 +139,13 @@ export default function PaywallSc() {
       const ok = await purchaseYearly();
       if (ok) {
         await refreshLocks(); // lift the free-tier overflow lock immediately
-        Alert.alert('Welcome to ISMpilot Pro', 'Your subscription is active. Thank you!');
+        Alert.alert(t('pw.welcome'), t('pw.welcomeBody'));
         goBackOr(nav);
       } else {
-        Alert.alert('Not completed', 'The purchase was not completed.');
+        Alert.alert(t('pw.notCompleted'), t('pw.notCompletedBody'));
       }
     } catch (e: any) {
-      Alert.alert('Purchase failed', String(e?.message ?? e));
+      Alert.alert(t('pw.failed'), String(e?.message ?? e));
     } finally {
       setBusy(false);
     }
@@ -163,16 +163,16 @@ export default function PaywallSc() {
       const ok = await restore();
       if (ok) await refreshLocks();
       Alert.alert(
-        ok ? 'Restored' : 'Nothing to restore',
+        ok ? t('pw.restored') : t('pw.nothingRestore'),
         ok
-          ? "This device now has ISMpilot Pro through the vessel's licence."
+          ? t('pw.restoredBody')
           : signedIn
-            ? 'No active licence is attached to this vessel. Enter the licence key it was issued.'
-            : 'Join the vessel first (Settings → the “This device” card), so its licence can reach this device.'
+            ? t('pw.noLicence')
+            : t('pw.joinToRestore')
       );
       if (ok) goBackOr(nav);
     } catch (e: any) {
-      Alert.alert('Restore failed', String(e?.message ?? e));
+      Alert.alert(t('pw.restoreFailed'), String(e?.message ?? e));
     } finally {
       setBusy(false);
     }
@@ -186,13 +186,13 @@ export default function PaywallSc() {
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <Image source={require('../assets/msm-logo.png')} style={styles.logo} resizeMode="contain" />
           <Text style={styles.title}>{APP_CONFIG.name} Pro</Text>
-          <Text style={styles.subtitle}>Everything you need to keep the ship's LSA & FFE register in order.</Text>
+          <Text style={styles.subtitle}>{t('pw.subtitle')}</Text>
 
           <View style={styles.card}>
             {FEATURES.map((f, i) => (
               <View key={f.text} style={styles.featureRow}>
                 <MciIcon name={f.icon} size={22} color={featureColor(i)} style={{ width: 28 }} />
-                <Text style={styles.featureText}>{f.text}</Text>
+                <Text style={styles.featureText}>{tk(`pw.f.${i}`)}</Text>
               </View>
             ))}
           </View>
@@ -200,56 +200,50 @@ export default function PaywallSc() {
           {licensed ? (
             <View style={styles.planCard}>
               <View style={[styles.trialPill, { backgroundColor: COLORS.success }]}>
-                <Text style={styles.trialPillText}>Active</Text>
+                <Text style={styles.trialPillText}>{t('pw.active')}</Text>
               </View>
               <Text style={styles.planUnit}>
-                ISMpilot Pro is active on this vessel. Every enrolled device — this one included — has
-                full access, and nothing further is needed here.
+                {t('pw.activeBody')}
               </Text>
               <Text style={styles.planNote}>
-                A yearly subscription — it renews on its own, and the licence follows the ship, so a
-                new phone joining the vessel inherits it. Manage or cancel it from the LemonSqueezy
-                receipt you were emailed.
+                {t('pw.yearlyNote')}
               </Text>
             </View>
           ) : onWeb ? (
             <View style={styles.planCard}>
               <View style={styles.trialPill}>
-                <Text style={styles.trialPillText}>Full access</Text>
+                <Text style={styles.trialPillText}>{t('pw.full')}</Text>
               </View>
               <Text style={styles.planPrice}>{priceLine}</Text>
               <Text style={styles.planUnit}>{priceUnit}</Text>
-              <Text style={styles.planNote}>Billed yearly. Auto-renews — cancel anytime.</Text>
+              <Text style={styles.planNote}>{t('pw.billed')}</Text>
             </View>
           ) : (
             <View style={styles.planCard}>
               <View style={styles.trialPill}>
-                <Text style={styles.trialPillText}>Vessel licence</Text>
+                <Text style={styles.trialPillText}>{t('pw.vesselLicence')}</Text>
               </View>
               <Text style={styles.planUnit}>
-                ISMpilot Pro is licensed to the vessel. Once the licence is on this ship's account, every
-                enrolled device — this one included — has full access.
+                {t('pw.licensedBody')}
               </Text>
               <Text style={styles.planNote}>
-                Ask whoever manages the vessel's licence for the key, or sign in on a device that
-                already has it.
+                {t('pw.askKey')}
               </Text>
             </View>
           )}
 
-          {/* Licence activation everywhere. ISMpilot Pro is a per-vessel licence bought
+          {/* Licence activation everywhere. ISM AI Pilot Pro is a per-vessel licence bought
               once by the operator; a crew phone does not buy anything, it enters
               the key (or simply inherits it from the vessel account). */}
           {licensed ? null : (
           <View style={styles.licenseCard}>
             <Text style={styles.licenseTitle}>
-              {onWeb ? 'Already bought? Activate your licence' : 'Activate the vessel licence'}
+              {onWeb ? t('pw.alreadyBought') : t('pw.activateVessel')}
             </Text>
               {!signedIn && (
                 <TouchableOpacity onPress={() => nav.navigate('Main', { screen: 'Settings' })}>
                   <Text style={styles.signinHint}>
-                    Join the vessel first — the “This device” card at the top of Settings — so the licence attaches to
-                    the ship rather than to this handset. Tap to open Settings.
+                    {t('pw.joinHint')}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -271,7 +265,7 @@ export default function PaywallSc() {
                 {activating ? (
                   <ActivityIndicator color={COLORS.primary} />
                 ) : (
-                  <Text style={styles.activateText}>Activate licence</Text>
+                  <Text style={styles.activateText}>{t('pw.activate')}</Text>
                 )}
               </TouchableOpacity>
           </View>
@@ -291,7 +285,7 @@ export default function PaywallSc() {
               {busy ? (
                 <ActivityIndicator color={COLORS.textWhite} />
               ) : (
-                <Text style={styles.ctaText}>{`Get ISMpilot Pro — ${priceLine}`}</Text>
+                <Text style={styles.ctaText}>{t('pw.get', { price: priceLine })}</Text>
               )}
             </TouchableOpacity>
           ) : null}
@@ -299,28 +293,26 @@ export default function PaywallSc() {
           <View style={styles.linksRow}>
             <TouchableOpacity onPress={onRestore} hitSlop={8} disabled={busy}>
               <Text style={styles.restore}>
-                {onWeb ? 'Restore purchase' : 'Restore the vessel licence'}
+                {onWeb ? t('pw.restore') : t('pw.restoreVessel')}
               </Text>
             </TouchableOpacity>
           </View>
 
           <Text style={styles.fine}>
             {onWeb
-              ? 'Purchase is handled securely by LemonSqueezy. Your license unlocks ISMpilot Pro on your vessel account across devices.'
+              ? t('pw.lsNote')
               : // Apple's IAP disclosure belongs on a screen that SELLS through IAP.
                 // This one does not any more — nothing is charged to a store account
                 // here — so saying it would be plainly untrue to the person reading it.
-                'ISMpilot Pro is licensed to the vessel, not to this device or to your store account. ' +
-                'Nothing is purchased here: enter the licence key the vessel was issued, or open ' +
-                'the app on a device already signed in to a licensed vessel.'}
+                t('pw.nativeNote')}
           </Text>
           <View style={styles.legalRow}>
             <TouchableOpacity onPress={() => nav.navigate('Legal', { doc: 'terms' })} hitSlop={8}>
-              <Text style={styles.legalLink}>Terms</Text>
+              <Text style={styles.legalLink}>{t('pw.terms')}</Text>
             </TouchableOpacity>
             <Text style={styles.legalDot}>·</Text>
             <TouchableOpacity onPress={() => nav.navigate('Legal', { doc: 'privacy' })} hitSlop={8}>
-              <Text style={styles.legalLink}>Privacy</Text>
+              <Text style={styles.legalLink}>{t('pw.privacy')}</Text>
             </TouchableOpacity>
           </View>
         </View>

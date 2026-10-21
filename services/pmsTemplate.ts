@@ -16,7 +16,7 @@ import { saveFileWeb } from '../utils/webSave';
 const MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 export async function exportPlanTemplate(machines: Machine[], jobs: PmsJob[]): Promise<string | null | void> {
-  const name = 'ISMpilot_Maintenance_Plan.xlsx';
+  const name = 'ISM_AI_Pilot_Maintenance_Plan.xlsx';
   const b64 = XLSX.write(planWorkbook(machines, jobs), { type: 'base64', bookType: 'xlsx' });
   if (onWeb) {
     const bin = atob(b64);

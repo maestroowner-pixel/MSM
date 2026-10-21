@@ -30,8 +30,8 @@ export async function exportReadinessPdf(r: Readiness, vessel: VesselInfo | null
 export async function exportCalendarIcs(r: Readiness, vessel: VesselInfo | null): Promise<{ count: number; where: string | null | void }> {
   const name = (vessel?.vessel_name ?? '').trim();
   const events = icsEvents(r, name);
-  const text = toIcs(events, `ISMpilot${name ? ` — ${name}` : ''}`, new Date());
-  const file = `ISMpilot due dates${name ? ` ${name.replace(/[\\/:*?"<>|]+/g, ' ')}` : ''} ${r.today}.ics`;
+  const text = toIcs(events, `ISM AI Pilot${name ? ` — ${name}` : ''}`, new Date());
+  const file = `ISM AI Pilot due dates${name ? ` ${name.replace(/[\\/:*?"<>|]+/g, ' ')}` : ''} ${r.today}.ics`;
   const where = onWeb ? await saveFileWeb(new Blob([text], { type: ICS_MIME }), file, 'reports') : await deliverFile(file, text, false, ICS_MIME);
   return { count: events.length, where };
 }

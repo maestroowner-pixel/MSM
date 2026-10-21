@@ -78,7 +78,7 @@ export function toIcs(events: IcsEvent[], calName: string, stamp: Date): string 
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//ISMpilot//Due dates//EN',
+    'PRODID:-//ISM AI Pilot//Due dates//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${esc(calName)}`,

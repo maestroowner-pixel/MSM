@@ -38,8 +38,10 @@ import { statusFromDate } from '../utils/dates';
 import { useSync } from '../contexts/SyncContext';
 import * as accounts from '../services/accounts';
 import { EnrolledDevice, personName } from '../types/role';
+import { t, tn, useT } from '../utils/i18n';
 
 export default function CrewSc() {
+  useT();
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -121,12 +123,12 @@ export default function CrewSc() {
   const listGaps = useMemo(() => crewListGaps(listRows), [listRows]);
 
   const makeList = async () => {
-    if (!listRows.length) return Alert.alert('Crew list', 'Nobody is on board in the crew list.');
+    if (!listRows.length) return Alert.alert(t('crw.list'), t('crw.nobody'));
     try {
       const where = await exportCrewListPdf({ vessel, arrival, port: port.trim(), date: listDate, rows: listRows });
-      if (typeof where === 'string') setListSaved(where === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${where}”`);
+      if (typeof where === 'string') setListSaved(where === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: where }));
     } catch (e: any) {
-      Alert.alert('Crew list', String(e?.message ?? e));
+      Alert.alert(t('crw.list'), String(e?.message ?? e));
     }
   };
 
@@ -135,13 +137,13 @@ export default function CrewSc() {
     try {
       const file = await pickSheetRows();
       if (!file) return;
-      setListSaved('The AI is reading the columns…');
+      setListSaved(t('pax.aiReading'));
       const r = await aiRenameHeadings(file.rows, 'crew');
       setListSaved(null);
       await importSheet({ name: file.name, rows: parseCrewWorkbook(rowsToWorkbook(r.rows)) }, `Columns read by the AI: ${r.mapped.map((m) => `${m.from} → ${m.to}`).join('; ')}.`);
     } catch (e: any) {
       setListSaved(null);
-      Alert.alert('Import', String(e?.message ?? e));
+      Alert.alert(t('pax.import'), String(e?.message ?? e));
     }
   };
 
@@ -149,27 +151,27 @@ export default function CrewSc() {
     try {
       const picked = given ?? (await pickCrewSheet());
       if (!picked) return;
-      if (!picked.rows.length) return Alert.alert('Import', `No crew found in “${picked.name}”. Use the crew list template.`);
+      if (!picked.rows.length) return Alert.alert(t('pax.import'), t('crw.noneFound', { file: picked.name }));
       const plan = planCrewImport(picked.rows, crew, crewPrivate);
       const unknown = picked.rows.filter((r) => r.nationalityUnknown).map((r) => `${r.name}: “${r.nationalityUnknown}”`);
       const apply = async () => {
         for (const m of plan.members) await saveCrewMember(m);
         for (const p of plan.privates) await saveCrewPrivate(JSON.parse(JSON.stringify(p)));
-        Alert.alert('Crew imported', `${plan.added.length} added, ${plan.updated.length} updated — all signed on.`);
+        Alert.alert(t('crw.imported'), t('crw.importedBody', { a: plan.added.length, u: plan.updated.length }));
       };
       Alert.alert(
-        `Import ${picked.rows.length} from “${picked.name}”?`,
+        t('pax.importQ', { n: picked.rows.length, file: picked.name }),
         [
           note ?? null,
-          plan.added.length ? `New: ${plan.added.join(', ')}.` : null,
-          plan.updated.length ? `Updated (already on the list): ${plan.updated.join(', ')}.` : null,
-          'Everyone in the sheet is signed on. Empty cells leave what the app already has.',
-          unknown.length ? `Nationality not recognised — enter the 2-letter code: ${unknown.join('; ')}.` : null,
+          plan.added.length ? t('pax.new', { names: plan.added.join(', ') }) : null,
+          plan.updated.length ? t('pax.updated', { names: plan.updated.join(', ') }) : null,
+          t('crw.allSignedOn'),
+          unknown.length ? t('crw.natUnknown', { list: unknown.join('; ') }) : null,
         ].filter(Boolean).join('\n\n'),
-        [{ text: 'Cancel', style: 'cancel' }, { text: 'Import', onPress: () => void apply() }]
+        [{ text: t('common.cancel'), style: 'cancel' }, { text: t('pax.import'), onPress: () => void apply() }]
       );
     } catch (e: any) {
-      Alert.alert('Import failed', String(e?.message ?? e));
+      Alert.alert(t('pax.importFailed'), String(e?.message ?? e));
     }
   };
 
@@ -228,14 +230,14 @@ export default function CrewSc() {
   const confirmDelete = (c: CrewMember) => {
     const n = signedCount.get(c.id) ?? 0;
     Alert.alert(
-      'Remove from crew list',
+      t('crw.removeQ'),
       n > 0
-        ? `${c.name} has signed ${n} inspection${n === 1 ? '' : 's'}. Those records keep the name and stay exactly as they are — but the link back to this entry is lost. Retiring instead keeps everything joined up.`
-        : `Remove ${c.name} from the crew list?`,
+        ? t('crw.removeSigned', { name: c.name, x: tn('n.inspection', n) })
+        : t('crw.removeBody', { name: c.name }),
       [
-        { text: 'Cancel', style: 'cancel' },
-        ...(c.active ? [{ text: 'Retire instead', onPress: () => void toggleActive(c) }] : []),
-        { text: 'Remove', style: 'destructive' as const, onPress: () => void removeCrewMember(c.id) },
+        { text: t('common.cancel'), style: 'cancel' },
+        ...(c.active ? [{ text: t('crw.retire'), onPress: () => void toggleActive(c) }] : []),
+        { text: t('common.remove'), style: 'destructive' as const, onPress: () => void removeCrewMember(c.id) },
       ]
     );
   };
@@ -273,8 +275,8 @@ export default function CrewSc() {
           <View style={{ flex: 1 }}>
             <Text style={[styles.name, !c.active && { color: COLORS.textLight }]}>{c.name}</Text>
             <Text style={styles.meta}>
-              {[c.rank, c.cabin ? `cabin ${c.cabin}` : null, c.active ? null : 'Retired', crewMgmt && c.active && c.onBoard === false ? 'Signed off' : null, n ? `${n} signed` : null].filter(Boolean).join(' · ') ||
-                'No rank set'}
+              {[c.rank, c.cabin ? t('pax.cabinN', { n: c.cabin }) : null, c.active ? null : t('crw.retired'), crewMgmt && c.active && c.onBoard === false ? t('cm.signedOff') : null, n ? t('crw.signedN', { n }) : null].filter(Boolean).join(' · ') ||
+                t('crw.noRank')}
             </Text>
             {(() => {
               const iss = c.active && c.onBoard !== false ? issuesOf(c) : [];
@@ -292,10 +294,10 @@ export default function CrewSc() {
                 ]}
               >
                 {p
-                  ? [`${p.total} certificate${p.total === 1 ? '' : 's'}`, p.expired ? `${p.expired} expired` : null, p.due ? `${p.due} due soon` : null]
+                  ? [tn('n.certificate', p.total), p.expired ? t('crw.expiredN', { n: p.expired }) : null, p.due ? t('crw.dueN', { n: p.due }) : null]
                       .filter(Boolean)
                       .join(' · ')
-                  : 'No certificates recorded'}
+                  : t('crw.noCerts')}
               </Text>
             </TouchableOpacity>
             ) : null}
@@ -325,40 +327,40 @@ export default function CrewSc() {
   return (
     <Screen scroll>
       <ScreenTitle
-        title={crewMgmt ? 'Crew list' : 'Crew'}
+        title={crewMgmt ? t('crw.list') : t('cm.crew')}
         subtitle={
           isMaster
-            ? 'Who can sign an inspection. Names go on the record.'
-            : 'Who can sign an inspection on this vessel.'
+            ? t('crw.sub')
+            : t('crw.subShort')
         }
       />
 
       {crewMgmt && isMaster ? (
         <Card>
-          <Label>Crew list</Label>
-          <Text style={styles.meta}>The IMO FAL Form 5 for port, agent and immigration — everyone on board. Or load the crew from Excel: fill the template on a computer and import it — or export the crew, correct it in Excel and import it back. A list from the agent reads too (Surname / Given names, Passport, DOB).</Text>
+          <Label>{t('crw.list')}</Label>
+          <Text style={styles.meta}>{t('crw.listHint')}</Text>
           <View style={styles.listBtns}>
             <TouchableOpacity style={styles.listBtn} onPress={() => setListing((v) => !v)}>
               <MciIcon name="file-pdf-box" size={18} color={COLORS.textWhite} />
-              <Text style={styles.listBtnText}>Crew list (PDF)</Text>
+              <Text style={styles.listBtnText}>{t('crw.listPdf')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.listBtnOutline} onPress={() => void exportCrewTemplate().catch((e) => Alert.alert('Template', String(e?.message ?? e)))}>
-              <Text style={styles.listBtnOutlineText}>Excel template</Text>
+            <TouchableOpacity style={styles.listBtnOutline} onPress={() => void exportCrewTemplate().catch((e) => Alert.alert(t('pax.template'), String(e?.message ?? e)))}>
+              <Text style={styles.listBtnOutlineText}>{t('pax.template')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.listBtnOutline} onPress={() => void importSheet()}>
-              <Text style={styles.listBtnOutlineText}>Import from Excel</Text>
+              <Text style={styles.listBtnOutlineText}>{t('pax.fromExcel')}</Text>
             </TouchableOpacity>
             {aiReady(isEnrolled) ? (
               <TouchableOpacity style={styles.listBtnOutline} onPress={() => void importAi()}>
                 <MciIcon name="creation" size={16} color={COLORS.primary} />
-                <Text style={styles.listBtnOutlineText}>Any list (AI)</Text>
+                <Text style={styles.listBtnOutlineText}>{t('crw.anyList')}</Text>
               </TouchableOpacity>
             ) : null}
-            <TouchableOpacity style={styles.listBtnOutline} onPress={() => void exportCrewSheet(crew, crewPrivate, vessel).then((w) => { if (typeof w === 'string') setListSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`); }).catch((e) => Alert.alert('Export', String(e?.message ?? e)))}>
-              <Text style={styles.listBtnOutlineText}>Export to Excel</Text>
+            <TouchableOpacity style={styles.listBtnOutline} onPress={() => void exportCrewSheet(crew, crewPrivate, vessel).then((w) => { if (typeof w === 'string') setListSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w })); }).catch((e) => Alert.alert(t('crw.export'), String(e?.message ?? e)))}>
+              <Text style={styles.listBtnOutlineText}>{t('pax.toExcel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.listBtnOutline} onPress={() => void importSdm()}>
-              <Text style={styles.listBtnOutlineText}>Import SDM file (.sdm)</Text>
+              <Text style={styles.listBtnOutlineText}>{t('crw.sdm')}</Text>
             </TouchableOpacity>
           </View>
           {listing ? (
@@ -366,19 +368,19 @@ export default function CrewSc() {
               <View style={styles.listBtns}>
                 {[true, false].map((a) => (
                   <TouchableOpacity key={String(a)} style={[styles.chip, arrival === a && styles.chipOn]} onPress={() => setArrival(a)}>
-                    <Text style={[styles.chipText, arrival === a && styles.chipTextOn]}>{a ? 'Arrival' : 'Departure'}</Text>
+                    <Text style={[styles.chipText, arrival === a && styles.chipTextOn]}>{a ? t('crw.arrival') : t('crw.departure')}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
-              <TextInput style={styles.input} value={port} onChangeText={setPort} placeholder={`Port of ${arrival ? 'arrival' : 'departure'}`} placeholderTextColor={COLORS.textLight} />
+              <TextInput style={styles.input} value={port} onChangeText={setPort} placeholder={arrival ? t('crw.portArr') : t('crw.portDep')} placeholderTextColor={COLORS.textLight} />
               <View style={{ marginTop: SIZES.sm }}>
-                <SimpleDatePicker label={`Date of ${arrival ? 'arrival' : 'departure'}`} value={listDate} onChange={setListDate} />
+                <SimpleDatePicker label={arrival ? t('crw.dateArr') : t('crw.dateDep')} value={listDate} onChange={setListDate} />
               </View>
               {listGaps.length ? (
-                <Text style={[styles.meta, { color: COLORS.warning, marginTop: SIZES.sm }]}>{`Missing — ${listGaps.slice(0, 6).join('; ')}${listGaps.length > 6 ? `; and ${listGaps.length - 6} more` : ''}`}</Text>
+                <Text style={[styles.meta, { color: COLORS.warning, marginTop: SIZES.sm }]}>{`${t('crw.missing')} — ${listGaps.slice(0, 6).join('; ')}${listGaps.length > 6 ? `; ${t('st.andMore', { n: listGaps.length - 6 })}` : ''}`}</Text>
               ) : null}
               <TouchableOpacity style={[styles.primaryBtn, { marginTop: SIZES.md }]} onPress={() => void makeList()}>
-                <Text style={styles.primaryBtnText}>{`Create the crew list — ${listRows.length} on board`}</Text>
+                <Text style={styles.primaryBtnText}>{t('crw.create', { n: listRows.length })}</Text>
               </TouchableOpacity>
               {listSaved ? <Text style={[styles.meta, { color: COLORS.success, fontWeight: '700', textAlign: 'center' }]}>{`✓ ${listSaved}`}</Text> : null}
             </View>
@@ -389,16 +391,16 @@ export default function CrewSc() {
       {crewMgmt ? (
         <TouchableOpacity style={styles.matrixLink} onPress={() => nav.navigate('CrewMatrix')}>
           <MciIcon name="table-large" size={20} color={COLORS.primary} />
-          <Text style={styles.matrixText}>Crew matrix — certificates, on board, sign on / off</Text>
+          <Text style={styles.matrixText}>{t('crw.matrix')}</Text>
           <Text style={styles.matrixText}>›</Text>
         </TouchableOpacity>
       ) : null}
 
       {!rankKnown ? (
         <Card>
-          <Label>Working out what this device may do</Label>
+          <Label>{t('crw.working')}</Label>
           <Text style={styles.meta}>
-            The list opens once the vessel has confirmed this device's rank.
+            {t('crw.workingBody')}
           </Text>
         </Card>
       ) : null}
@@ -406,21 +408,18 @@ export default function CrewSc() {
       {/* Reachable by URL even though Settings no longer offers it to a member. */}
       {rankKnown && !isMaster ? (
         <Card>
-          <Label>The Master keeps this list</Label>
+          <Label>{t('crw.masterKeeps')}</Label>
           <Text style={styles.meta}>
-            You are already on it — your name and rank came from the account you were issued, and
-            you can sign an inspection without doing anything here. Additions and changes are the
-            Master's.
+            {t('crw.masterKeepsBody')}
           </Text>
         </Card>
       ) : null}
 
       {isMaster && missing.length ? (
         <Card>
-          <Label>Already enrolled, not yet a signer</Label>
+          <Label>{t('crw.enrolledNot')}</Label>
           <Text style={styles.meta}>
-            These people have a device on this vessel. Adding them here takes the name from their
-            account, so it cannot be spelled two ways.
+            {t('crw.enrolledNotBody')}
           </Text>
           {missing.map((d) => (
             <TouchableOpacity key={d.id} style={styles.enrolRow} onPress={() => void addEnrolled(d)}>
@@ -429,7 +428,7 @@ export default function CrewSc() {
                 <Text style={styles.name}>{personName(d)}</Text>
                 {d.position ? <Text style={styles.meta}>{d.position}</Text> : null}
               </View>
-              <Text style={styles.meta}>Add</Text>
+              <Text style={styles.meta}>{t('common.add')}</Text>
             </TouchableOpacity>
           ))}
         </Card>
@@ -437,12 +436,12 @@ export default function CrewSc() {
 
       {isMaster ? (
       <Card>
-        <Label>{editing ? 'Edit crew member' : 'Add crew member'}</Label>
+        <Label>{editing ? t('crw.edit') : t('crw.add')}</Label>
         <TextInput
           style={styles.input}
           value={name}
           onChangeText={setName}
-          placeholder="Full name"
+          placeholder={t('crw.fullName')}
           placeholderTextColor={COLORS.textLight}
           autoCapitalize="words"
         />
@@ -450,7 +449,7 @@ export default function CrewSc() {
           style={styles.input}
           value={rank}
           onChangeText={setRank}
-          placeholder="Rank / role (Third Officer, Bosun…)"
+          placeholder={t('crw.rankPh')}
           placeholderTextColor={COLORS.textLight}
           autoCapitalize="words"
           onSubmitEditing={submit}
@@ -458,7 +457,7 @@ export default function CrewSc() {
         <View style={styles.formBtns}>
           {editing ? (
             <TouchableOpacity style={styles.secondaryBtn} onPress={reset}>
-              <Text style={styles.secondaryBtnText}>Cancel</Text>
+              <Text style={styles.secondaryBtnText}>{t('common.cancel')}</Text>
             </TouchableOpacity>
           ) : null}
           <TouchableOpacity
@@ -466,7 +465,7 @@ export default function CrewSc() {
             onPress={submit}
             disabled={!name.trim()}
           >
-            <Text style={styles.primaryBtnText}>{editing ? 'Save' : 'Add'}</Text>
+            <Text style={styles.primaryBtnText}>{editing ? t('common.save') : t('common.add')}</Text>
           </TouchableOpacity>
         </View>
       </Card>
@@ -481,8 +480,8 @@ export default function CrewSc() {
         <Empty
           text={
             isMaster
-              ? 'No crew yet.\nAdd the people who will be carrying out the rounds.'
-              : 'The Master has not named any signers yet.'
+              ? t('crw.empty')
+              : t('crw.emptyCrew')
           }
         />
       )}

@@ -45,6 +45,7 @@ import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
+import { t, tk, tn, useT } from '../utils/i18n';
 
 type Show = 'all' | 'short' | 'expired' | 'soon';
 type Act = { kind: StoreMoveKind; qty: string; expiry: string; to: string; note: string; batchKey?: string };
@@ -57,6 +58,7 @@ const ICONS: Record<string, string> = {
 };
 
 export default function StoresSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const route = useRoute<any>();
@@ -108,7 +110,7 @@ export default function StoresSc() {
     .sort((a, b) => (a.item.category ?? '~').localeCompare(b.item.category ?? '~') || a.item.name.localeCompare(b.item.name) || (a.item.size ?? '').localeCompare(b.item.size ?? '', undefined, { numeric: true }));
   const held = useMemo(() => heldByPerson(items, moves), [items, moves]);
 
-  const done = (w: string | null | void) => typeof w === 'string' && setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+  const done = (w: string | null | void) => typeof w === 'string' && setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
   const fail = (e: any) => Alert.alert(room.name, String(e?.message ?? e));
   const color = (r: StoreStatus) => (r.expired || r.usable <= 0 ? COLORS.danger : r.short || r.soon ? COLORS.warning : COLORS.success);
 
@@ -118,11 +120,11 @@ export default function StoresSc() {
     const out: StoreItem[] = [];
     for (const s of PPE_STARTER) for (const size of s.sizes ?? [undefined]) out.push({ id: uid('sto'), store, ...own, name: s.name, category: s.category, ...(size ? { size } : {}), unit: s.unit, min: s.min, order: out.length, updatedAt: now });
     await saveRows(storage.STORE_ITEMS_KEY, out);
-    setSaved(`${out.length} lines added — edit the minimums to the vessel's needs`);
+    setSaved(t('st.added', { n: out.length }));
   };
   const saveItem = async () => {
     if (!edit) return;
-    if (!edit.name.trim()) return Alert.alert('Item', 'Name it.');
+    if (!edit.name.trim()) return Alert.alert(t('def.item'), t('mi.nameIt'));
     const clean = Object.fromEntries(Object.entries({ ...edit, name: edit.name.trim() }).filter(([, v]) => v !== '' && v !== undefined)) as unknown as StoreItem;
     await saveRow(storage.STORE_ITEMS_KEY, clean);
     setEdit(null);
@@ -133,22 +135,22 @@ export default function StoresSc() {
   const doMove = async (r: StoreStatus) => {
     if (!act) return;
     const qty = Number(act.qty.replace(',', '.'));
-    if (!(qty >= 0) || (act.kind !== 'count' && !(qty > 0))) return Alert.alert(MOVE_TEXT[act.kind], 'How many?');
-    if (!signer) return Alert.alert('Who is signing?', 'Choose your name.');
+    if (!(qty >= 0) || (act.kind !== 'count' && !(qty > 0))) return Alert.alert(tk(`st.move.${act.kind}`), t('mc.howMany'));
+    if (!signer) return Alert.alert(t('sign.who'), t('round.chooseName'));
     let expiry = act.expiry.trim() ? normExpiry(act.expiry) : undefined;
-    if (act.expiry.trim() && !expiry) return Alert.alert('Best before', 'Write it as 11/27, 2027-11 or 30.11.2027.');
+    if (act.expiry.trim() && !expiry) return Alert.alert(t('st.bestBefore'), t('st.bbFmt'));
     let batchNo: string | undefined;
     if (act.kind === 'issued' || act.kind === 'disposed' || act.kind === 'count') {
       const b = act.batchKey ? r.batches.find((x) => x.key === act.batchKey) : act.kind === 'issued' ? batchToIssue(r.batches, today) : r.batches.length === 1 ? r.batches[0] : undefined;
-      if (act.kind !== 'count' && !b) return Alert.alert(MOVE_TEXT[act.kind], 'None on hand.');
+      if (act.kind !== 'count' && !b) return Alert.alert(tk(`st.move.${act.kind}`), t('st.noneOnHand'));
       if (b) {
-        if (act.kind !== 'count' && qty > b.qty) return Alert.alert(MOVE_TEXT[act.kind], `Only ${b.qty} in that batch.`);
+        if (act.kind !== 'count' && qty > b.qty) return Alert.alert(tk(`st.move.${act.kind}`), t('mi.only', { n: b.qty }));
         expiry = b.expiry;
         batchNo = b.batchNo;
       }
     }
     const person = ppe && (act.kind === 'issued' || act.kind === 'returned') ? people.find((p) => p.id === act.to) : undefined;
-    if (ppe && (act.kind === 'issued' || act.kind === 'returned') && !person) return Alert.alert(MOVE_TEXT[act.kind], ppe && act.kind === 'issued' ? 'Who receives it?' : 'Who returns it?');
+    if (ppe && (act.kind === 'issued' || act.kind === 'returned') && !person) return Alert.alert(tk(`st.move.${act.kind}`), ppe && act.kind === 'issued' ? t('st.whoReceives') : t('st.whoReturns'));
     const what = `${MOVE_TEXT[act.kind]} — ${storeItemTitle(r.item)} ${qty} ${r.item.unit}${person ? ` · ${person.name}` : ''}`;
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what });
     if (!sig) return;
@@ -174,20 +176,20 @@ export default function StoresSc() {
       if (how === 'sheet') {
         const file = await pickSheetRows();
         if (!file) return;
-        setSaved('The AI is reading the columns…');
+        setSaved(t('pax.aiReading'));
         const r = await aiRenameHeadings(file.rows, ppe ? 'ppe' : 'provisions');
         setSaved(null);
         return importSheet({ name: file.name, rows: r.rows }, `Columns read by the AI: ${r.mapped.map((m) => `${m.from} → ${m.to}`).join('; ')}.`);
       }
       const doc = await pickDocForAi();
       if (!doc) return;
-      setSaved(`The AI is reading “${doc.name}”…`);
+      setSaved(t('st.aiReadingDoc', { name: doc.name }));
       const r = await aiReadDocument(doc.dataUri, ppe ? 'ppe' : 'provisions');
       setSaved(null);
       return importSheet({ name: doc.name, rows: r.rows }, `Read by the AI from the ${/pdf/.test(doc.dataUri.slice(0, 30)) ? 'PDF' : 'photo'} — check the lines before importing.${r.unreadable ? ` Not readable: ${r.unreadable}` : ''}`);
     } catch (e: any) {
       setSaved(null);
-      Alert.alert('Import', String(e?.message ?? e));
+      Alert.alert(t('pax.import'), String(e?.message ?? e));
     }
   };
 
@@ -196,7 +198,7 @@ export default function StoresSc() {
       const picked = given ?? (await pickSheetRows());
       if (!picked) return;
       const lines = readStoreSheet(picked.rows);
-      if (!lines.length) return Alert.alert('Import', `Nothing found in “${picked.name}”. Use the template.`);
+      if (!lines.length) return Alert.alert(t('pax.import'), t('st.nothingFound', { file: picked.name }));
       const plan = planStoreImport(lines, storeItems, into);
       const apply = async () => {
         await saveRows(storage.STORE_ITEMS_KEY, plan.save);
@@ -206,9 +208,9 @@ export default function StoresSc() {
         playSuccessSound();
         setSaved(`${into.name}: ${plan.added.length} added, ${plan.updated.length} updated, ${plan.counts.length} quantities counted — from “${picked.name}”`);
       };
-      Alert.alert(`Import ${lines.length} lines from “${picked.name}” into ${into.name}?`, [note ?? null, plan.added.length ? `New: ${plan.added.slice(0, 12).join(', ')}${plan.added.length > 12 ? ` and ${plan.added.length - 12} more` : ''}.` : null, plan.updated.length ? `Updated: ${plan.updated.length}.` : null, plan.counts.length ? `Quantities in the sheet are counted into the store (by best-before).` : null].filter(Boolean).join('\n\n'), [{ text: 'Cancel', style: 'cancel' }, { text: 'Import', onPress: () => void apply() }]);
+      Alert.alert(t('st.importQ', { n: lines.length, file: picked.name, into: into.name }), [note ?? null, plan.added.length ? t('pax.new', { names: `${plan.added.slice(0, 12).join(', ')}${plan.added.length > 12 ? ` ${t('st.andMore', { n: plan.added.length - 12 })}` : ''}` }) : null, plan.updated.length ? t('st.updatedN', { n: plan.updated.length }) : null, plan.counts.length ? t('st.qtyCounted') : null].filter(Boolean).join('\n\n'), [{ text: t('common.cancel'), style: 'cancel' }, { text: t('pax.import'), onPress: () => void apply() }]);
     } catch (e: any) {
-      Alert.alert('Import failed', String(e?.message ?? e));
+      Alert.alert(t('pax.importFailed'), String(e?.message ?? e));
     }
   };
   const orderSheet = () => saveSheet([['Item', 'Size', 'Category', 'Unit', 'On hand (in date)', 'Minimum', 'To order'], ...toOrder(rows).map((o) => { const r = rows.find((x) => x.item.id === o.item.id)!; return [o.item.name, o.item.size ?? '', o.item.category ?? '', o.item.unit, r.usable, o.item.min, o.need]; })], 'To order', `${room.name} — to order ${today}`, vessel).then(done, fail);
@@ -233,9 +235,9 @@ export default function StoresSc() {
   if (manage) {
     return (
       <Screen scroll>
-        <ScreenTitle title="Stores" subtitle={`${rooms.length} stores · IDs, places, QR labels, lists`} help="Stores" />
+        <ScreenTitle title={t('st.title')} subtitle={t('st.sub', { n: rooms.length })} help="Stores" />
         {!sync.canManage('stores') ? (
-          <Text style={styles.sub}>Managing the stores — adding one, its ID, its label, loading its list — is for those the Master allows (Settings → Access).</Text>
+          <Text style={styles.sub}>{t('st.manageDenied')}</Text>
         ) : <StoreRooms onOpen={(id) => nav.setParams({ view: id })} onImport={(r) => void importSheet(undefined, undefined, r)} done={done} fail={fail} />}
         {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700', marginTop: SIZES.sm }]}>{`✓ ${saved}`}</Text> : null}
       </Screen>
@@ -243,13 +245,13 @@ export default function StoresSc() {
   }
   return (
     <Screen scroll>
-      <ScreenTitle title={title} subtitle={[room.code, room.location, `${counts.items} items`, counts.short ? `${counts.short} below minimum` : null, counts.expired ? `${counts.expired} out of date` : null, counts.soon ? `${counts.soon} expiring` : null].filter(Boolean).join(' · ')} help="Stores" />
-      {unknownRoom ? <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700', marginBottom: SIZES.sm }]}>That label is not a store of this vessel (another vessel’s, or the store was removed) — showing the first store.</Text> : null}
+      <ScreenTitle title={title} subtitle={[room.code, room.location, tn('n.item', counts.items), counts.short ? t('st.belowMin', { n: counts.short }) : null, counts.expired ? t('st.outOfDate', { n: counts.expired }) : null, counts.soon ? t('st.expiringN', { n: counts.soon }) : null].filter(Boolean).join(' · ')} help="Stores" />
+      {unknownRoom ? <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700', marginBottom: SIZES.sm }]}>{t('st.unknown')}</Text> : null}
       {ppe ? (
         <View style={styles.chips}>
           {(['stock', 'crew'] as const).map((k) => (
             <TouchableOpacity key={k} style={[styles.chip, page === k && styles.chipOn]} onPress={() => setPage(k)}>
-              <Text style={[styles.chipText, page === k && styles.chipTextOn]}>{k === 'stock' ? `Stock · ${items.length}` : `Issued to crew · ${held.size}`}</Text>
+              <Text style={[styles.chipText, page === k && styles.chipTextOn]}>{k === 'stock' ? t('st.stock', { n: items.length }) : t('st.issuedCrew', { n: held.size })}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -257,16 +259,16 @@ export default function StoresSc() {
 
       {page === 'crew' && ppe ? (
         <>
-          <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>What each person holds from the PPE store — issued less returned, each issue signed for by the person on this device.</Text>
+          <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>{t('st.crewHint')}</Text>
           {people.map((p) => {
             const list = held.get(p.name) ?? [];
             return (
               <View key={p.id} style={[styles.item, { borderLeftColor: list.length ? COLORS.primary : COLORS.border }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm }}>
                   <Text style={[styles.name, { flex: 1 }]}>{[p.name, p.rank].filter(Boolean).join(' · ')}</Text>
-                  <TouchableOpacity style={styles.small} onPress={() => void personPdf(p.name)}><Text style={styles.smallText}>PPE record (PDF)</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.small} onPress={() => void personPdf(p.name)}><Text style={styles.smallText}>{t('st.ppePdf')}</Text></TouchableOpacity>
                 </View>
-                <Text style={styles.sub}>{list.length ? list.map((h) => `${storeItemTitle(h.item)} × ${h.qty}`).join(' · ') : 'Nothing issued'}</Text>
+                <Text style={styles.sub}>{list.length ? list.map((h) => `${storeItemTitle(h.item)} × ${h.qty}`).join(' · ') : t('st.nothingIssued')}</Text>
               </View>
             );
           })}
@@ -275,54 +277,54 @@ export default function StoresSc() {
       ) : (
         <>
           <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.sm, gap: SIZES.xs }]}>
-            <TextInput style={[styles.input, { flex: 2, minWidth: 200, marginTop: 0 }]} value={q} onChangeText={setQ} placeholder={ppe ? 'Search — item, size, place' : general ? 'Search — item, kind, shelf' : 'Search — item, section, place'} placeholderTextColor={COLORS.textLight} />
-            <Dropdown caption={ppe || general ? 'TYPE' : 'SECTION'} value={cat} onChange={setCat} style={{ flex: 1, minWidth: 200 }} options={[{ value: '', label: `All · ${rows.length}` }, ...cats.map((c) => ({ value: c, label: `${c} · ${rows.filter((r) => r.item.category === c).length}`, icon: ICONS[c] }))]} />
-            <Dropdown caption="SHOW" value={show} onChange={setShow} style={{ flex: 1, minWidth: 200 }} options={[
-              { value: 'all' as Show, label: 'All' },
-              { value: 'short' as Show, label: `Below minimum · ${counts.short}` },
-              { value: 'expired' as Show, label: `Out of date · ${counts.expired}` },
-              { value: 'soon' as Show, label: `Expiring · ${counts.soon}` },
+            <TextInput style={[styles.input, { flex: 2, minWidth: 200, marginTop: 0 }]} value={q} onChangeText={setQ} placeholder={ppe ? t('st.searchPpe') : general ? t('st.searchGen') : t('st.searchProv')} placeholderTextColor={COLORS.textLight} />
+            <Dropdown caption={ppe || general ? t('docs.type') : t('st.section')} value={cat} onChange={setCat} style={{ flex: 1, minWidth: 200 }} options={[{ value: '', label: t('pax.showAll', { n: rows.length }) }, ...cats.map((c) => ({ value: c, label: `${c} · ${rows.filter((r) => r.item.category === c).length}`, icon: ICONS[c] }))]} />
+            <Dropdown caption={t('pax.show')} value={show} onChange={setShow} style={{ flex: 1, minWidth: 200 }} options={[
+              { value: 'all' as Show, label: t('lb.all') },
+              { value: 'short' as Show, label: t('st.showShort', { n: counts.short }) },
+              { value: 'expired' as Show, label: t('st.showExpired', { n: counts.expired }) },
+              { value: 'soon' as Show, label: t('st.showSoon', { n: counts.soon }) },
             ]} />
           </View>
           <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.sm }]}>
-            <TouchableOpacity style={styles.btn} onPress={() => setEdit({ id: uid('sto'), store, ...own, name: '', unit: store === 'provisions' ? 'packs' : 'pcs', min: 0, order: items.length, updatedAt: Date.now(), ...(cat ? { category: cat } : {}) })}><Text style={styles.btnText}>+ Item</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.small} disabled={!counts.short} onPress={() => void orderSheet()}><Text style={styles.smallText}>{`To order (Excel) · ${counts.short}`}</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.small} onPress={() => void importSheet()}><Text style={styles.smallText}>Import from Excel</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btn} onPress={() => setEdit({ id: uid('sto'), store, ...own, name: '', unit: store === 'provisions' ? 'packs' : 'pcs', min: 0, order: items.length, updatedAt: Date.now(), ...(cat ? { category: cat } : {}) })}><Text style={styles.btnText}>{`+ ${t('def.item')}`}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.small} disabled={!counts.short} onPress={() => void orderSheet()}><Text style={styles.smallText}>{t('st.toOrder', { n: counts.short })}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.small} onPress={() => void importSheet()}><Text style={styles.smallText}>{t('pax.fromExcel')}</Text></TouchableOpacity>
             {aiReady(sync.enrolled) ? (
               <>
                 <TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} onPress={() => void importAi('sheet')}><MciIcon name="creation" size={14} color={COLORS.primary} /><Text style={styles.smallText}>Any list (AI)</Text></TouchableOpacity>
                 <TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} onPress={() => void importAi('doc')}><MciIcon name="camera-outline" size={14} color={COLORS.primary} /><Text style={styles.smallText}>Photo / PDF (AI)</Text></TouchableOpacity>
               </>
             ) : null}
-            <TouchableOpacity style={styles.small} onPress={() => saveSheet(storeSheet(rows), title, `${title} ${today}`, vessel).then(done, fail)}><Text style={styles.smallText}>Export to Excel</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.small} onPress={() => saveSheet(storeTemplateRows(store), title, `${title} template`, vessel).then(done, fail)}><Text style={styles.smallText}>Excel template</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.small} onPress={() => saveSheet(storeSheet(rows), title, `${title} ${today}`, vessel).then(done, fail)}><Text style={styles.smallText}>{t('pax.toExcel')}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.small} onPress={() => saveSheet(storeTemplateRows(store), title, `${title} template`, vessel).then(done, fail)}><Text style={styles.smallText}>{t('pax.template')}</Text></TouchableOpacity>
           </View>
           {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700', marginBottom: SIZES.sm }]}>{`✓ ${saved}`}</Text> : null}
 
           {edit ? (
             <Card>
-              <Label>{items.some((i) => i.id === edit.id) ? 'Item' : 'New item'}</Label>
-              <TextInput style={styles.input} value={edit.name} onChangeText={(v) => setEdit({ ...edit, name: v })} placeholder={ppe ? 'Name ★ — Coveralls' : general ? 'Name ★ — Shackle, galvanised 16 mm' : 'Name ★ — Pasta, penne 500 g'} placeholderTextColor={COLORS.textLight} autoFocus />
+              <Label>{items.some((i) => i.id === edit.id) ? t('def.item') : t('mi.new')}</Label>
+              <TextInput style={styles.input} value={edit.name} onChangeText={(v) => setEdit({ ...edit, name: v })} placeholder={ppe ? t('st.namePpe') : general ? t('st.nameGen') : t('st.nameProv')} placeholderTextColor={COLORS.textLight} autoFocus />
               <View style={styles.row}>
-                <Dropdown caption={ppe || general ? 'TYPE' : 'SECTION'} value={edit.category ?? ''} onChange={(v: string) => setEdit({ ...edit, category: v || undefined })} options={[{ value: '', label: '—' }, ...cats.map((c) => ({ value: c, label: c, icon: ICONS[c] }))]} style={{ flex: 1, minWidth: 200 }} />
-                {ppe ? <TextInput style={[styles.input, { width: 90, marginTop: 0 }]} value={edit.size ?? ''} onChangeText={(v) => setEdit({ ...edit, size: v })} placeholder="Size" placeholderTextColor={COLORS.textLight} /> : null}
-                <TextInput style={[styles.input, { width: 100, marginTop: 0 }]} value={edit.unit} onChangeText={(v) => setEdit({ ...edit, unit: v })} placeholder="Unit" placeholderTextColor={COLORS.textLight} />
-                <TextInput style={[styles.input, { width: 110, marginTop: 0 }]} value={String(edit.min)} onChangeText={(v) => setEdit({ ...edit, min: Number(v.replace(',', '.')) || 0 })} keyboardType="number-pad" placeholder="Minimum" placeholderTextColor={COLORS.textLight} />
+                <Dropdown caption={ppe || general ? t('docs.type') : t('st.section')} value={edit.category ?? ''} onChange={(v: string) => setEdit({ ...edit, category: v || undefined })} options={[{ value: '', label: '—' }, ...cats.map((c) => ({ value: c, label: c, icon: ICONS[c] }))]} style={{ flex: 1, minWidth: 200 }} />
+                {ppe ? <TextInput style={[styles.input, { width: 90, marginTop: 0 }]} value={edit.size ?? ''} onChangeText={(v) => setEdit({ ...edit, size: v })} placeholder={t('st.size')} placeholderTextColor={COLORS.textLight} /> : null}
+                <TextInput style={[styles.input, { width: 100, marginTop: 0 }]} value={edit.unit} onChangeText={(v) => setEdit({ ...edit, unit: v })} placeholder={t('st.unit')} placeholderTextColor={COLORS.textLight} />
+                <TextInput style={[styles.input, { width: 110, marginTop: 0 }]} value={String(edit.min)} onChangeText={(v) => setEdit({ ...edit, min: Number(v.replace(',', '.')) || 0 })} keyboardType="number-pad" placeholder={t('st.minimum')} placeholderTextColor={COLORS.textLight} />
               </View>
-              <Text style={styles.sub}>Minimum — keep at least this many; below it the item goes on the list to order.</Text>
-              <TextInput style={styles.input} value={edit.location ?? ''} onChangeText={(v) => setEdit({ ...edit, location: v })} placeholder="Where — store, shelf" placeholderTextColor={COLORS.textLight} />
+              <Text style={styles.sub}>{t('st.minHint')}</Text>
+              <TextInput style={styles.input} value={edit.location ?? ''} onChangeText={(v) => setEdit({ ...edit, location: v })} placeholder={t('st.wherePh')} placeholderTextColor={COLORS.textLight} />
               <View style={styles.row}>
-                <TouchableOpacity style={styles.btn} onPress={() => void saveItem()}><Text style={styles.btnText}>Save</Text></TouchableOpacity>
-                <TouchableOpacity onPress={() => setEdit(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
-                {items.some((i) => i.id === edit.id) ? <TouchableOpacity onPress={() => void saveRow(storage.STORE_ITEMS_KEY, { ...edit, deleted: true }).then(() => { setEdit(null); setOpen(null); })}><Text style={[styles.link, { color: COLORS.danger }]}>Remove</Text></TouchableOpacity> : null}
+                <TouchableOpacity style={styles.btn} onPress={() => void saveItem()}><Text style={styles.btnText}>{t('common.save')}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setEdit(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
+                {items.some((i) => i.id === edit.id) ? <TouchableOpacity onPress={() => void saveRow(storage.STORE_ITEMS_KEY, { ...edit, deleted: true }).then(() => { setEdit(null); setOpen(null); })}><Text style={[styles.link, { color: COLORS.danger }]}>{t('common.remove')}</Text></TouchableOpacity> : null}
               </View>
             </Card>
           ) : null}
 
           {!items.length ? (
             <Card>
-              <Text style={styles.sub}>{ppe ? 'No PPE on the list yet. Start from a typical yacht PPE store (coveralls and boots in sizes, gloves, glasses, hearing, breathing, harnesses), load it from Excel, or add items one by one.' : general ? `Nothing on the list of ${room.name} yet. Load its list from Excel (Import from Excel — the template has the columns), or add items one by one.` : 'No provisions on the list yet. Load the provision list from Excel (the template has the columns: name, section, unit, minimum, place, quantity, best before), or add items one by one.'}</Text>
-              {ppe ? <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void addStarter()}><Text style={styles.btnText}>Add the typical PPE list</Text></TouchableOpacity> : null}
+              <Text style={styles.sub}>{ppe ? t('st.emptyPpe') : general ? t('st.emptyGen', { name: room.name }) : t('st.emptyProv')}</Text>
+              {ppe ? <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void addStarter()}><Text style={styles.btnText}>{t('st.addPpe')}</Text></TouchableOpacity> : null}
             </Card>
           ) : null}
 
@@ -342,8 +344,8 @@ export default function StoresSc() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, flexWrap: 'wrap' }}>
                     <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 200, minWidth: 0 }}>
                       <Text style={styles.name}>{storeItemTitle(r.item)}</Text>
-                      <Text style={styles.sub}>{[r.item.location, `min ${r.item.min} ${r.item.unit}`].filter(Boolean).join(' · ')}</Text>
-                      <Text style={[styles.sub, { color: color(r), fontWeight: '700' }]}>{[`${r.usable} ${r.item.unit} in date`, r.short ? `${r.short} below minimum` : null, r.expired ? `${r.expired} out of date` : r.soon && r.next ? `expires ${formatDate(r.next)}` : null].filter(Boolean).join(' · ')}</Text>
+                      <Text style={styles.sub}>{[r.item.location, t('st.minL', { n: r.item.min, unit: r.item.unit })].filter(Boolean).join(' · ')}</Text>
+                      <Text style={[styles.sub, { color: color(r), fontWeight: '700' }]}>{[t('st.inDate', { n: r.usable, unit: r.item.unit }), r.short ? t('st.belowMin', { n: r.short }) : null, r.expired ? t('st.outOfDate', { n: r.expired }) : r.soon && r.next ? t('crew.expires', { date: formatDate(r.next) }) : null].filter(Boolean).join(' · ')}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', gap: 4, marginLeft: 'auto' }}>
                       {r.batches.slice(0, 3).map((b) => {
@@ -365,31 +367,31 @@ export default function StoresSc() {
                     <View style={styles.row}>
                       {(ppe ? (['received', 'issued', 'returned', 'count', 'disposed'] as StoreMoveKind[]) : (['received', 'issued', 'count', 'disposed'] as StoreMoveKind[])).map((k2) => (
                         <TouchableOpacity key={k2} style={[styles.small, act?.kind === k2 && { backgroundColor: COLORS.primary }]} onPress={() => { const old = k2 === 'disposed' ? r.batches.find((b) => expiryState(today, b.expiry) === 'expired') : undefined; setAct({ kind: k2, qty: k2 === 'count' ? String(r.onHand) : old ? String(old.qty) : '', expiry: '', to: '', note: old ? 'Out of date' : '', ...(old ? { batchKey: old.key } : {}) }); }}>
-                          <Text style={[styles.smallText, act?.kind === k2 && { color: COLORS.textWhite }]}>{k2 === 'received' ? 'Receive' : k2 === 'issued' ? (ppe ? 'Issue to crew' : general ? 'Issue' : 'Issue to galley') : k2 === 'returned' ? 'Return' : k2 === 'count' ? 'Count' : 'Dispose'}</Text>
+                          <Text style={[styles.smallText, act?.kind === k2 && { color: COLORS.textWhite }]}>{k2 === 'received' ? t('st.receive') : k2 === 'issued' ? (ppe ? t('st.issueCrew') : general ? t('st.issue') : t('st.issueGalley')) : k2 === 'returned' ? t('st.return') : k2 === 'count' ? t('sop.count') : t('mi.dispose')}</Text>
                         </TouchableOpacity>
                       ))}
-                      <TouchableOpacity onPress={() => setEdit(r.item)}><Text style={styles.link}>Edit</Text></TouchableOpacity>
+                      <TouchableOpacity onPress={() => setEdit(r.item)}><Text style={styles.link}>{t('common.edit')}</Text></TouchableOpacity>
                     </View>
                     {act ? (
                       <>
-                        <TextInput style={styles.input} value={act.qty} onChangeText={(v) => setAct({ ...act, qty: v })} keyboardType="decimal-pad" placeholder={`How many ${r.item.unit} ★`} placeholderTextColor={COLORS.textLight} autoFocus />
-                        {act.kind === 'received' ? <TextInput style={styles.input} value={act.expiry} onChangeText={(v) => setAct({ ...act, expiry: v })} placeholder={store === 'provisions' ? 'Best before — 11/27' : 'Expiry if it has one — 11/31'} placeholderTextColor={COLORS.textLight} /> : null}
+                        <TextInput style={styles.input} value={act.qty} onChangeText={(v) => setAct({ ...act, qty: v })} keyboardType="decimal-pad" placeholder={t('mi.howMany', { unit: r.item.unit })} placeholderTextColor={COLORS.textLight} autoFocus />
+                        {act.kind === 'received' ? <TextInput style={styles.input} value={act.expiry} onChangeText={(v) => setAct({ ...act, expiry: v })} placeholder={store === 'provisions' ? t('st.bbPh') : t('st.expPh')} placeholderTextColor={COLORS.textLight} /> : null}
                         {(act.kind === 'disposed' || act.kind === 'count') && r.batches.length > 1 ? (
-                          <Dropdown caption="BATCH" value={act.batchKey ?? ''} onChange={(v: string) => setAct({ ...act, batchKey: v || undefined, ...(act.kind === 'count' ? { qty: String(r.batches.find((b) => b.key === v)?.qty ?? act.qty) } : {}) })} options={[{ value: '', label: act.kind === 'count' ? 'New batch' : 'Choose…' }, ...r.batches.map((b) => ({ value: b.key, label: `${batchLabel(b)} — ${b.qty} ${r.item.unit}` }))]} style={{ marginTop: SIZES.xs }} />
+                          <Dropdown caption={t('st.batch')} value={act.batchKey ?? ''} onChange={(v: string) => setAct({ ...act, batchKey: v || undefined, ...(act.kind === 'count' ? { qty: String(r.batches.find((b) => b.key === v)?.qty ?? act.qty) } : {}) })} options={[{ value: '', label: act.kind === 'count' ? t('st.newBatch') : t('common.choose') }, ...r.batches.map((b) => ({ value: b.key, label: `${batchLabel(b)} — ${b.qty} ${r.item.unit}` }))]} style={{ marginTop: SIZES.xs }} />
                         ) : null}
                         {ppe && (act.kind === 'issued' || act.kind === 'returned') ? (
-                          <Dropdown caption={act.kind === 'issued' ? 'TO' : 'FROM'} value={act.to} onChange={(v: string) => setAct({ ...act, to: v })} options={[{ value: '', label: 'Choose…' }, ...people.map((p) => ({ value: p.id, label: p.rank ? `${p.name} · ${p.rank}` : p.name }))]} style={{ marginTop: SIZES.xs }} />
+                          <Dropdown caption={act.kind === 'issued' ? t('st.toCap') : t('st.fromCap')} value={act.to} onChange={(v: string) => setAct({ ...act, to: v })} options={[{ value: '', label: t('common.choose') }, ...people.map((p) => ({ value: p.id, label: p.rank ? `${p.name} · ${p.rank}` : p.name }))]} style={{ marginTop: SIZES.xs }} />
                         ) : null}
-                        <TextInput style={styles.input} value={act.note} onChangeText={(v) => setAct({ ...act, note: v })} placeholder={act.kind === 'received' ? 'From — supplier, delivery note' : act.kind === 'disposed' ? 'Why — out of date, damaged' : general && act.kind === 'issued' ? 'To whom, what for' : 'Note'} placeholderTextColor={COLORS.textLight} />
+                        <TextInput style={styles.input} value={act.note} onChangeText={(v) => setAct({ ...act, note: v })} placeholder={act.kind === 'received' ? t('st.fromPh') : act.kind === 'disposed' ? t('st.whyPh') : general && act.kind === 'issued' ? t('st.toWhomPh') : t('mo.note')} placeholderTextColor={COLORS.textLight} />
                         {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
-                        {ppe && act.kind === 'issued' ? <Text style={styles.sub}>The crew member signs for it on this device after you — PIN or by hand.</Text> : null}
+                        {ppe && act.kind === 'issued' ? <Text style={styles.sub}>{t('st.crewSigns')}</Text> : null}
                         <View style={styles.row}>
-                          <TouchableOpacity style={styles.btn} onPress={() => void doMove(r)}><Text style={styles.btnText}>Sign</Text></TouchableOpacity>
-                          <TouchableOpacity onPress={() => setAct(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+                          <TouchableOpacity style={styles.btn} onPress={() => void doMove(r)}><Text style={styles.btnText}>{t('common.sign')}</Text></TouchableOpacity>
+                          <TouchableOpacity onPress={() => setAct(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
                         </View>
                       </>
                     ) : null}
-                    {last.length ? <Label>Last moves</Label> : null}
+                    {last.length ? <Label>{t('st.lastMoves')}</Label> : null}
                     {last.map((m) => (
                       <Text key={m.id} style={styles.sub}>{`${formatDate(m.date)} · ${MOVE_TEXT[m.kind]} ${m.qty} ${r.item.unit}${m.expiry ? ` · ${mmYY(m.expiry)}` : ''}${m.to ? ` · ${m.to}${m.toWith ? ' (signed for)' : ''}` : ''}${m.note ? ` · ${m.note}` : ''} · ${m.by}`}</Text>
                     ))}
@@ -398,7 +400,7 @@ export default function StoresSc() {
               </React.Fragment>
             );
           })}
-          {items.length && !shown.length ? <Text style={styles.sub}>Nothing here.</Text> : null}
+          {items.length && !shown.length ? <Text style={styles.sub}>{t('st.nothingHere')}</Text> : null}
         </>
       )}
     </Screen>

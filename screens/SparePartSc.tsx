@@ -40,10 +40,12 @@ import { formatDate } from '../utils/dates';
 const addDays = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
+import { t, tk, useT } from '../utils/i18n';
 
 const UNITS = ['pcs', 'set', 'l', 'm', 'kg'];
 
 export default function SparePartSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -106,8 +108,8 @@ export default function SparePartSc() {
   };
 
   const onSave = async () => {
-    if (!draft.name.trim()) return Alert.alert('Name required', 'Say what the part is — "Raw-water pump impeller".');
-    if (draft.maxQty != null && draft.minQty != null && draft.maxQty <= draft.minQty) return Alert.alert('Order up to', 'The maximum is above the re-order level.');
+    if (!draft.name.trim()) return Alert.alert(t('crew.nameReq'), t('spp.nameBody'));
+    if (draft.maxQty != null && draft.minQty != null && draft.maxQty <= draft.minQty) return Alert.alert(t('spp.orderUpTo'), t('spp.maxAbove'));
     const sups = (draft.suppliers ?? []).filter((x) => x.name.trim()).map((x) => ({ ...x, name: x.name.trim() }));
     const part = { ...draft, name: draft.name.trim(), ...(sups.length ? { suppliers: sups } : { suppliers: undefined }), updatedAt: Date.now() };
     await saveSpare(part);
@@ -122,10 +124,10 @@ export default function SparePartSc() {
   const onMove = async () => {
     if (!existing || !moving) return;
     const n = num(amount);
-    if (n == null || (moving !== 'count' && n === 0)) return Alert.alert('Quantity', 'Enter how many.');
-    if (!signer) return Alert.alert('Who is this?', 'Choose your name.');
+    if (n == null || (moving !== 'count' && n === 0)) return Alert.alert(t('spp.qty'), t('spp.enterHowMany'));
+    if (!signer) return Alert.alert(t('spp.whoIs'), t('round.chooseName'));
     const exp = moving === 'received' ? expiry.trim() : '';
-    if (exp && !(/^\d{4}-\d{2}-\d{2}$/.test(exp) && !isNaN(Date.parse(exp)))) return Alert.alert('Expiry', 'yyyy-mm-dd, or leave it empty.');
+    if (exp && !(/^\d{4}-\d{2}-\d{2}$/.test(exp) && !isNaN(Date.parse(exp)))) return Alert.alert(t('mc.expiry'), t('spp.expiryFmt'));
     const sig = await confirmSign({
       personKey: me && sync.me ? `device:${sync.me.id}` : picked ? picked.id : `name:${signer.by}`,
       name: signer.by,
@@ -136,7 +138,7 @@ export default function SparePartSc() {
     if (moving === 'used' && n > onHand) {
       // Allowed — the part is in the engineer's hand whatever the book says — but
       // said, so the next stocktake is not a surprise.
-      Alert.alert('More than the book shows', `The book shows ${qtyText(onHand, existing)}. Recorded anyway; a stocktake will put the count right.`);
+      Alert.alert(t('spp.moreThan'), t('spp.moreThanBody', { qty: qtyText(onHand, existing) }));
     }
     const move = makeMove(existing, moving, n, onHand, signer, todayIso(), { note: note.trim() || undefined, ...(exp ? { expiry: exp } : {}) });
     await addSpareMoves([sig.proof ? { ...move, signedWith: sig.proof } : move]);
@@ -149,10 +151,10 @@ export default function SparePartSc() {
 
   const onDelete = () => {
     if (isNew) return goBackOr(nav);
-    Alert.alert('Remove part', 'Remove this line from the stores? Its movements are kept.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('spp.removeQ'), t('spp.removeBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Remove',
+        text: t('common.remove'),
         style: 'destructive',
         onPress: async () => {
           await saveSpare({ ...existing!, deleted: true, updatedAt: Date.now() });
@@ -173,35 +175,35 @@ export default function SparePartSc() {
         <View style={styles.header}>
           <BackButton onPress={() => (moving ? setMoving(null) : goBackOr(nav))} />
           <Text style={styles.headerTitle} numberOfLines={1}>
-            {moving ? MOVE_LABEL[moving] : isNew ? 'New part' : 'Spare part'}
+            {moving ? tk(`spp.mv.${moving}`) : isNew ? t('spp.new') : t('spp.part')}
           </Text>
           <TouchableOpacity onPress={moving ? onMove : onSave} hitSlop={12}>
-            <Text style={styles.save}>{moving ? 'Record' : 'Save'}</Text>
+            <Text style={styles.save}>{moving ? t('spp.record') : t('common.save')}</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
           {!isNew ? (
             <View style={styles.stockCard}>
-              <Text style={styles.stockLabel}>On hand</Text>
+              <Text style={styles.stockLabel}>{t('spp.onHand')}</Text>
               <Text style={[styles.stock, { color: qtyColor }]}>{qtyText(onHand, existing!)}</Text>
               <Text style={styles.sub}>
-                {status === 'out' ? 'Out of stock' : status === 'low' ? `At or below the re-order level (${existing!.minQty})` : existing!.minQty != null ? `Re-order at ${existing!.minQty}` : 'No re-order level set'}
+                {status === 'out' ? t('sp.out') : status === 'low' ? t('spp.atLevel', { n: existing!.minQty ?? 0 }) : existing!.minQty != null ? t('spp.reorderAt', { n: existing!.minQty }) : t('spp.noLevel')}
                 {orderQty(existing!, onHand) ? ` · order ${qtyText(orderQty(existing!, onHand), existing!)}${existing!.maxQty != null ? ' (up to the maximum)' : ''}` : ''}
               </Text>
               {shelf ? (
                 <Text style={[styles.sub, { textAlign: 'center', fontWeight: '700', color: shelf.expiry! < todayIso() ? COLORS.danger : shelf.expiry! <= addDays(todayIso(), 90) ? COLORS.warning : COLORS.textLight }]}>
-                  {`${shelf.expiry! < todayIso() ? 'Expired' : 'Expires'} ${formatDate(shelf.expiry)} · ${qtyText(shelf.qty, existing!)}`}
+                  {`${shelf.expiry! < todayIso() ? t('sp.expired', { date: formatDate(shelf.expiry) }) : t('sp.expires', { date: formatDate(shelf.expiry) })} · ${qtyText(shelf.qty, existing!)}`}
                 </Text>
               ) : null}
               {used.some((u) => u.used) ? (
-                <Text style={[styles.sub, { textAlign: 'center' }]}>{`Used: ${used.map((u) => `${u.year} · ${u.used}`).join('   ')}`}</Text>
+                <Text style={[styles.sub, { textAlign: 'center' }]}>{`${t('spp.used')}: ${used.map((u) => `${u.year} · ${u.used}`).join('   ')}`}</Text>
               ) : null}
               {!moving ? (
                 <View style={styles.moveBtns}>
                   {(['received', 'used', 'count'] as MoveKind[]).map((k) => (
                     <TouchableOpacity key={k} style={styles.moveBtn} onPress={() => { setMoving(k); setAmount(k === 'count' ? String(onHand) : ''); }}>
-                      <Text style={styles.moveBtnText}>{k === 'received' ? '+ Received' : k === 'used' ? '− Used' : 'Stocktake'}</Text>
+                      <Text style={styles.moveBtnText}>{k === 'received' ? `+ ${t('spp.mv.received')}` : k === 'used' ? `− ${t('spp.mv.used')}` : t('spp.mv.count')}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -212,23 +214,23 @@ export default function SparePartSc() {
           {moving ? (
             <>
               <Text style={styles.partTitle}>{existing?.name}</Text>
-              <Label>{moving === 'count' ? `Counted on the shelf (${unitOf(draft)})` : `How many (${unitOf(draft)})`}</Label>
+              <Label>{moving === 'count' ? t('spp.counted', { unit: unitOf(draft) }) : t('spp.howMany', { unit: unitOf(draft) })}</Label>
               <TextInput style={styles.input} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" autoFocus placeholder="0" placeholderTextColor={COLORS.textLight} />
               {moving === 'count' && num(amount) != null ? (
-                <Text style={styles.sub}>{`The book shows ${qtyText(onHand, draft)}; this records ${num(amount)! - onHand >= 0 ? '+' : '−'}${qtyText(Math.abs(num(amount)! - onHand), draft)}.`}</Text>
+                <Text style={styles.sub}>{t('spp.bookShows', { qty: qtyText(onHand, draft), diff: `${num(amount)! - onHand >= 0 ? '+' : '−'}${qtyText(Math.abs(num(amount)! - onHand), draft)}` })}</Text>
               ) : null}
               <View style={{ height: SIZES.md }} />
-              <Label>{moving === 'received' ? 'Note (supplier, order no.)' : moving === 'used' ? 'Note (what for)' : 'Note'}</Label>
+              <Label>{moving === 'received' ? t('spp.noteRecv') : moving === 'used' ? t('spp.noteUsed') : t('mo.note')}</Label>
               <TextInput style={styles.input} value={note} onChangeText={setNote} placeholder="—" placeholderTextColor={COLORS.textLight} />
               {moving === 'received' ? (
                 <>
                   <View style={{ height: SIZES.md }} />
-                  <Label>Expiry, if it has one (yyyy-mm-dd)</Label>
-                  <TextInput style={styles.input} value={expiry} onChangeText={setExpiry} placeholder="Sealant, chemicals, filters with a shelf life" placeholderTextColor={COLORS.textLight} />
+                  <Label>{t('spp.expiryLbl')}</Label>
+                  <TextInput style={styles.input} value={expiry} onChangeText={setExpiry} placeholder={t('spp.expiryPh')} placeholderTextColor={COLORS.textLight} />
                 </>
               ) : null}
               <View style={{ height: SIZES.md }} />
-              <Label>Recorded by</Label>
+              <Label>{t('sv.recordedBy')}</Label>
               {me ? (
                 <Text style={styles.signer}>{sync.me?.position ? `${me} (${sync.me.position})` : me}</Text>
               ) : people.length ? (
@@ -240,33 +242,33 @@ export default function SparePartSc() {
                   ))}
                 </View>
               ) : (
-                <TextInput style={styles.input} value={typedName} onChangeText={setTypedName} placeholder="Your name" placeholderTextColor={COLORS.textLight} />
+                <TextInput style={styles.input} value={typedName} onChangeText={setTypedName} placeholder={t('spp.yourName')} placeholderTextColor={COLORS.textLight} />
               )}
-              <Text style={[styles.sub, { marginTop: SIZES.md }]}>Movements are kept and cannot be edited. A wrong one is put right by a stocktake.</Text>
+              <Text style={[styles.sub, { marginTop: SIZES.md }]}>{t('spp.kept')}</Text>
             </>
           ) : (
             <>
-              <Label>Part ★</Label>
-              <TextInput style={styles.input} value={draft.name} onChangeText={(v) => set({ name: v })} placeholder="Raw-water pump impeller" placeholderTextColor={COLORS.textLight} />
+              <Label>{t('spp.partReq')}</Label>
+              <TextInput style={styles.input} value={draft.name} onChangeText={(v) => set({ name: v })} placeholder={t('spp.namePh')} placeholderTextColor={COLORS.textLight} />
               <View style={styles.pair}>
                 <View style={{ flex: 1 }}>
-                  <Label>Part number</Label>
+                  <Label>{t('spp.partNo')}</Label>
                   <TextInput style={styles.input} value={draft.partNo ?? ''} onChangeText={(v) => set({ partNo: v })} placeholder="—" placeholderTextColor={COLORS.textLight} autoCapitalize="characters" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Label>Maker</Label>
+                  <Label>{t('spp.maker')}</Label>
                   <TextInput style={styles.input} value={draft.maker ?? ''} onChangeText={(v) => set({ maker: v })} placeholder="—" placeholderTextColor={COLORS.textLight} />
                 </View>
               </View>
               <View style={{ height: SIZES.md }} />
-              <Label>IMPA / ISSA No.</Label>
-              <TextInput style={styles.input} value={draft.impa ?? ''} onChangeText={(v) => set({ impa: v })} placeholder="What a chandler orders by" placeholderTextColor={COLORS.textLight} />
+              <Label>{t('spp.impa')}</Label>
+              <TextInput style={styles.input} value={draft.impa ?? ''} onChangeText={(v) => set({ impa: v })} placeholder={t('spp.impaPh')} placeholderTextColor={COLORS.textLight} />
               <View style={{ height: SIZES.md }} />
-              <Label>Location (store, shelf, box)</Label>
+              <Label>{t('spp.location')}</Label>
               <TextInput style={styles.input} value={draft.location ?? ''} onChangeText={(v) => set({ location: v })} placeholder="ER store · B3" placeholderTextColor={COLORS.textLight} />
               <View style={styles.pair}>
                 <View style={{ flex: 1 }}>
-                  <Label>Re-order at</Label>
+                  <Label>{t('spp.reorder')}</Label>
                   <TextInput
                     style={styles.input}
                     value={draft.minQty != null ? String(draft.minQty) : ''}
@@ -277,7 +279,7 @@ export default function SparePartSc() {
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Label>Order up to</Label>
+                  <Label>{t('spp.orderUpTo')}</Label>
                   <TextInput
                     style={styles.input}
                     value={draft.maxQty != null ? String(draft.maxQty) : ''}
@@ -289,13 +291,13 @@ export default function SparePartSc() {
                 </View>
                 {isNew ? (
                   <View style={{ flex: 1 }}>
-                    <Label>On hand now</Label>
+                    <Label>{t('spp.onHandNow')}</Label>
                     <TextInput style={styles.input} value={opening} onChangeText={setOpening} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={COLORS.textLight} />
                   </View>
                 ) : null}
               </View>
               <View style={{ height: SIZES.sm }} />
-              <Label>Unit</Label>
+              <Label>{t('st.unit')}</Label>
               <View style={styles.chips}>
                 {UNITS.map((u) => (
                   <TouchableOpacity key={u} style={[styles.chip, styles.chipSmall, unitOf(draft) === u && styles.chipOn]} onPress={() => set({ unit: u })}>
@@ -307,7 +309,7 @@ export default function SparePartSc() {
               {moduleOn('pms') && machines.length ? (
                 <>
                   <View style={{ height: SIZES.md }} />
-                  <Label>Fits</Label>
+                  <Label>{t('spp.fits')}</Label>
                   <View style={styles.chips}>
                     {machines.map((m) => (
                       <TouchableOpacity key={m.id} style={[styles.chip, styles.chipSmall, fits.has(m.id) && styles.chipOn]} onPress={() => toggleFit(m.id)}>
@@ -321,7 +323,7 @@ export default function SparePartSc() {
               {moduleOn('orders') ? (
                 <>
                   <View style={{ height: SIZES.md }} />
-                  <Label>Department</Label>
+                  <Label>{t('spp.dept')}</Label>
                   <View style={styles.chips}>
                     {ORDER_DEPTS.map((d) => (
                       <TouchableOpacity key={d} style={[styles.chip, styles.chipSmall, draft.dept === d && styles.chipOn]} onPress={() => set({ dept: draft.dept === d ? undefined : d })}>
@@ -334,45 +336,45 @@ export default function SparePartSc() {
 
               <View style={{ height: SIZES.md }} />
               <View style={styles.supHead}>
-                <Label>Suppliers</Label>
+                <Label>{t('spp.suppliers')}</Label>
                 <TouchableOpacity onPress={() => set({ suppliers: [...suppliers, { name: '' }] })} hitSlop={8}>
-                  <Text style={styles.supAdd}>+ Add supplier</Text>
+                  <Text style={styles.supAdd}>{t('spp.addSupplier')}</Text>
                 </TouchableOpacity>
               </View>
               {suppliers.map((x, i) => (
                 <View key={i} style={styles.sup}>
                   <View style={styles.supRow}>
-                    <Text style={styles.supTag}>{i === 0 ? 'Usual' : `${i + 1}`}</Text>
-                    <TextInput style={[styles.input, styles.supName]} value={x.name} onChangeText={(v) => setSupplier(i, { name: v })} placeholder="Supplier" placeholderTextColor={COLORS.textLight} />
+                    <Text style={styles.supTag}>{i === 0 ? t('spp.usual') : `${i + 1}`}</Text>
+                    <TextInput style={[styles.input, styles.supName]} value={x.name} onChangeText={(v) => setSupplier(i, { name: v })} placeholder={t('spp.supplier')} placeholderTextColor={COLORS.textLight} />
                     <TouchableOpacity onPress={() => set({ suppliers: suppliers.filter((_, j) => j !== i) })} hitSlop={8}><Text style={styles.supX}>✕</Text></TouchableOpacity>
                   </View>
                   <View style={styles.supRow}>
-                    <TextInput style={[styles.input, styles.supField]} value={x.ref ?? ''} onChangeText={(v) => setSupplier(i, { ref: v || undefined })} placeholder="Their ref." placeholderTextColor={COLORS.textLight} />
-                    <TextInput style={[styles.input, styles.supField]} value={x.price != null ? String(x.price) : ''} onChangeText={(v) => setSupplier(i, { price: num(v), priceDate: todayIso() })} keyboardType="decimal-pad" placeholder="Price" placeholderTextColor={COLORS.textLight} />
+                    <TextInput style={[styles.input, styles.supField]} value={x.ref ?? ''} onChangeText={(v) => setSupplier(i, { ref: v || undefined })} placeholder={t('spp.theirRef')} placeholderTextColor={COLORS.textLight} />
+                    <TextInput style={[styles.input, styles.supField]} value={x.price != null ? String(x.price) : ''} onChangeText={(v) => setSupplier(i, { price: num(v), priceDate: todayIso() })} keyboardType="decimal-pad" placeholder={t('spp.price')} placeholderTextColor={COLORS.textLight} />
                     <TextInput style={[styles.input, styles.supCur]} value={x.currency ?? ''} onChangeText={(v) => setSupplier(i, { currency: v.toUpperCase() || undefined })} placeholder="EUR" placeholderTextColor={COLORS.textLight} autoCapitalize="characters" maxLength={3} />
-                    <TextInput style={[styles.input, styles.supField]} value={x.leadDays != null ? String(x.leadDays) : ''} onChangeText={(v) => setSupplier(i, { leadDays: num(v) })} keyboardType="number-pad" placeholder="Lead, days" placeholderTextColor={COLORS.textLight} />
+                    <TextInput style={[styles.input, styles.supField]} value={x.leadDays != null ? String(x.leadDays) : ''} onChangeText={(v) => setSupplier(i, { leadDays: num(v) })} keyboardType="number-pad" placeholder={t('spp.lead')} placeholderTextColor={COLORS.textLight} />
                   </View>
                   {x.price != null || x.leadDays != null || x.ref ? (
                     <Text style={styles.sub}>
-                      {[x.ref ? `ref. ${x.ref}` : null, x.price != null ? `${priceText(x)}${x.priceDate ? ` quoted ${formatDate(x.priceDate)}` : ''}` : null, x.leadDays != null ? `${x.leadDays} days to deliver` : null].filter(Boolean).join(' · ')}
+                      {[x.ref ? t('mo.refN', { ref: x.ref }) : null, x.price != null ? `${priceText(x)}${x.priceDate ? ` ${t('spp.quoted', { date: formatDate(x.priceDate) })}` : ''}` : null, x.leadDays != null ? t('spp.daysDeliver', { n: x.leadDays }) : null].filter(Boolean).join(' · ')}
                     </Text>
                   ) : null}
                 </View>
               ))}
               <View style={{ height: SIZES.md }} />
-              <Label>Notes</Label>
-              <TextInput style={[styles.input, { minHeight: 60 }]} value={draft.notes ?? ''} onChangeText={(v) => set({ notes: v })} multiline placeholder="Supplier, alternative part numbers…" placeholderTextColor={COLORS.textLight} />
+              <Label>{t('og.notes')}</Label>
+              <TextInput style={[styles.input, { minHeight: 60 }]} value={draft.notes ?? ''} onChangeText={(v) => set({ notes: v })} multiline placeholder={t('spp.notesPh')} placeholderTextColor={COLORS.textLight} />
 
               {history.length ? (
                 <>
                   <View style={{ height: SIZES.lg }} />
-                  <Label>Movements</Label>
+                  <Label>{t('spp.movements')}</Label>
                   {history.map((m) => (
                     <View key={m.id} style={styles.moveRow}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.moveText}>{moveText(m, draft)}</Text>
                         <Text style={styles.sub} numberOfLines={2}>
-                          {[formatDate(m.date), m.by, m.jobTitle ? `${m.machineName ? `${m.machineName}: ` : ''}${m.jobTitle}` : null, m.expiry ? `use by ${formatDate(m.expiry)}` : null, m.note].filter(Boolean).join(' · ')}
+                          {[formatDate(m.date), m.by, m.jobTitle ? `${m.machineName ? `${m.machineName}: ` : ''}${m.jobTitle}` : null, m.expiry ? t('spp.useBy', { date: formatDate(m.expiry) }) : null, m.note].filter(Boolean).join(' · ')}
                         </Text>
                       </View>
                     </View>
@@ -381,7 +383,7 @@ export default function SparePartSc() {
               ) : null}
 
               <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
-                <Text style={styles.deleteText}>{isNew ? 'Discard' : 'Remove part'}</Text>
+                <Text style={styles.deleteText}>{isNew ? t('doc.discard') : t('spp.removeQ')}</Text>
               </TouchableOpacity>
             </>
           )}

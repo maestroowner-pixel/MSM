@@ -24,6 +24,8 @@ import { DP_KEEP_DAYS } from '../services/firebaseService';
 import { CheckBook, DpCheck, bookOf } from '../types/dp';
 import { shipAndUtc } from '../utils/shipTime';
 
+import { t, tk, tn, useT } from '../utils/i18n';
+
 type Folder = { key: string; label: string; icon: string; sub: string; books: Exclude<CheckBook, 'dp'>[] };
 // Two menu entries share this screen: Bridge & engine checklists, and Familiarisation.
 const SETS: Record<'Watch' | 'Familiar', Folder[]> = {
@@ -43,6 +45,7 @@ const SETS: Record<'Watch' | 'Familiar', Folder[]> = {
 };
 
 export default function WatchChecksSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -58,7 +61,7 @@ export default function WatchChecksSc() {
   const [olderBusy, setOlderBusy] = useState(false);
   const [olderEnd, setOlderEnd] = useState(false);
 
-  if (!moduleOn('watchChecks')) return <Screen><Empty text="Not available on this vessel." /></Screen>;
+  if (!moduleOn('watchChecks')) return <Screen><Empty text={t('common.notAvailable')} /></Screen>;
 
   const more = async () => {
     setOlderBusy(true);
@@ -74,27 +77,27 @@ export default function WatchChecksSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title={meta.label} subtitle={meta.sub} help="Bridge and engine checklists" />
+      <ScreenTitle title={tk(`wc.f.${meta.key}`)} subtitle={tk(`wc.f.${meta.key}.sub`)} help="Bridge and engine checklists" />
       <View style={styles.chips}>
         {BOOKS.map((b) => (
           <TouchableOpacity key={b.key} style={[styles.chip, b.key === meta.key && styles.chipOn]} onPress={() => nav.setParams({ view: b.key })}>
-            <Text style={[styles.chipText, b.key === meta.key && styles.chipTextOn]}>{b.label}</Text>
+            <Text style={[styles.chipText, b.key === meta.key && styles.chipTextOn]}>{tk(`wc.f.${b.key}`)}</Text>
           </TouchableOpacity>
         ))}
       </View>
-      <Label>Start a checklist</Label>
+      <Label>{t('wc.start')}</Label>
       {templates.map((tp) => (
         <TouchableOpacity key={tp.id} style={styles.row} onPress={() => nav.navigate('DpCheck', { templateId: tp.id })} activeOpacity={0.7}>
           <MciIcon name={meta.icon} size={20} color={COLORS.primary} />
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>{tp.title}</Text>
-            <Text style={styles.sub}>{`${tp.lines.filter((l) => !l.head && !l.kind).length} items`}</Text>
+            <Text style={styles.sub}>{tn('n.item', tp.lines.filter((l) => !l.head && !l.kind).length)}</Text>
           </View>
           <MciIcon name="chevron-right" size={18} color={COLORS.textLight} />
         </TouchableOpacity>
       ))}
-      <Label style={{ marginTop: SIZES.md }}>Signed</Label>
-      {!signed.length && !older.length ? <Text style={styles.sub}>None yet.</Text> : null}
+      <Label style={{ marginTop: SIZES.md }}>{t('wc.signed')}</Label>
+      {!signed.length && !older.length ? <Text style={styles.sub}>{t('common.noneYet')}</Text> : null}
       {[...signed, ...older].map((c) => {
         const o = checkOutcome(c);
         return (
@@ -110,7 +113,7 @@ export default function WatchChecksSc() {
       })}
       {sync.enrolled ? (
         <TouchableOpacity onPress={() => void more()} disabled={olderBusy || olderEnd} style={{ marginVertical: SIZES.sm }}>
-          <Text style={[styles.link, (olderBusy || olderEnd) && { opacity: 0.5 }]}>{olderBusy ? 'Loading…' : olderEnd ? 'No older checklists' : `Older than ${DP_KEEP_DAYS} days — from the cloud →`}</Text>
+          <Text style={[styles.link, (olderBusy || olderEnd) && { opacity: 0.5 }]}>{olderBusy ? t('common.loading') : olderEnd ? t('wc.noOlder') : t('wc.older', { n: DP_KEEP_DAYS })}</Text>
         </TouchableOpacity>
       ) : null}
     </Screen>

@@ -28,10 +28,12 @@ import { OrderGroup } from '../types/orders';
 import { todayIso } from '../services/pms';
 import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
+import { t, tk, tn, useT } from '../utils/i18n';
 
 const DEPTS: OrderDept[] = ['bridge', 'engine', 'deck', 'accommodation', 'medical'];
 
 export default function OrdersSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -46,7 +48,7 @@ export default function OrdersSc() {
   type SortMode = 'date-desc' | 'date-asc' | 'pct-asc' | 'pct-desc';
   const SORT_CYCLE: SortMode[] = ['date-desc', 'date-asc', 'pct-asc', 'pct-desc'];
   const SORT_LABEL: Record<SortMode, string> = {
-    'date-desc': 'Date ↓', 'date-asc': 'Date ↑', 'pct-asc': '% ↑', 'pct-desc': '% ↓',
+    'date-desc': `${t('nc.date')} ↓`, 'date-asc': `${t('nc.date')} ↑`, 'pct-asc': '% ↑', 'pct-desc': '% ↓',
   };
   const [sort, setSort] = useState<SortMode>('date-desc');
   const cycleSort = () => setSort((s) => SORT_CYCLE[(SORT_CYCLE.indexOf(s) + 1) % SORT_CYCLE.length]);
@@ -86,7 +88,7 @@ export default function OrdersSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Purchase orders" subtitle="Requisitions by department" />
+      <ScreenTitle title={t('ord.title')} subtitle={t('ord.sub')} />
 
       {/* Department tiles */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.deptRow}>
@@ -96,7 +98,7 @@ export default function OrdersSc() {
           activeOpacity={0.7}
         >
           <Text style={[styles.deptCount, dept === 'all' && styles.deptCountOn]}>{journal.filter((o) => DEPTS.includes(o.dept)).length}</Text>
-          <Text style={[styles.deptLabel, dept === 'all' && styles.deptLabelOn]}>All</Text>
+          <Text style={[styles.deptLabel, dept === 'all' && styles.deptLabelOn]}>{t('lb.all')}</Text>
         </TouchableOpacity>
         {DEPTS.map((d) => {
           const cnt = ordersForDept(purchaseOrders, d).length;
@@ -111,7 +113,7 @@ export default function OrdersSc() {
               >
                 <MciIcon name={ORDER_DEPT_ICON[d]} size={20} color={COLORS.primary} style={{ marginBottom: 4 }} />
                 <Text style={styles.deptCount}>{cnt}</Text>
-                <Text style={[styles.deptLabel, { color: COLORS.primary }]}>{ORDER_DEPT_LABEL[d]}</Text>
+                <Text style={[styles.deptLabel, { color: COLORS.primary }]}>{tk(`od.${d}`)}</Text>
               </TouchableOpacity>
             );
           }
@@ -124,7 +126,7 @@ export default function OrdersSc() {
             >
               <MciIcon name={ORDER_DEPT_ICON[d]} size={20} color={on ? COLORS.cardSolid : COLORS.primary} style={{ marginBottom: 4 }} />
               <Text style={[styles.deptCount, on && styles.deptCountOn]}>{cnt}</Text>
-              <Text style={[styles.deptLabel, on && styles.deptLabelOn]}>{ORDER_DEPT_LABEL[d]}</Text>
+              <Text style={[styles.deptLabel, on && styles.deptLabelOn]}>{tk(`od.${d}`)}</Text>
             </TouchableOpacity>
           );
         })}
@@ -132,15 +134,15 @@ export default function OrdersSc() {
 
       {/* Groups */}
       <View style={styles.addRow}>
-        <Label>Groups</Label>
+        <Label>{t('ord.groups')}</Label>
         {officer ? (
           <TouchableOpacity onPress={() => nav.navigate('OrderGroup', { id: 'new' })} hitSlop={10}>
-            <Text style={styles.addBtn}>+ New group</Text>
+            <Text style={styles.addBtn}>{`+ ${t('og.new')}`}</Text>
           </TouchableOpacity>
         ) : null}
       </View>
       {orderGroups.length === 0 ? (
-        <Text style={styles.emptyGroups}>Groups let you track a drydock, charter or any batch of orders together.</Text>
+        <Text style={styles.emptyGroups}>{t('ord.groupsHint')}</Text>
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', gap: SIZES.sm, paddingBottom: SIZES.sm }}>
           {orderGroups.map((grp) => {
@@ -151,7 +153,7 @@ export default function OrdersSc() {
             return (
               <TouchableOpacity key={grp.id} style={styles.groupCard} onPress={() => nav.navigate('OrderGroup', { id: grp.id })} activeOpacity={0.7}>
                 <Text style={styles.groupName} numberOfLines={2}>{grp.name}</Text>
-                <Text style={styles.groupSub}>{`${grpOrders.length} order${grpOrders.length === 1 ? '' : 's'}`}</Text>
+                <Text style={styles.groupSub}>{tn('n.order', grpOrders.length)}</Text>
                 <View style={[styles.progressTrack, { marginTop: 6 }]}>
                   <View style={[styles.progressFill, { width: `${pct}%` as any, backgroundColor: pct === 100 ? COLORS.success : pct > 0 ? COLORS.warning : COLORS.border }]} />
                 </View>
@@ -168,15 +170,15 @@ export default function OrdersSc() {
           style={styles.searchInput}
           value={searchQ}
           onChangeText={setSearchQ}
-          placeholder="Search by name, IMPA…"
+          placeholder={t('ord.searchPh')}
           placeholderTextColor={COLORS.textLight}
           returnKeyType="search"
         />
         <View style={styles.filterDate}>
-          <SimpleDatePicker label="" showLabel={false} compact value={filterFrom} onChange={setFilterFrom} onClear={() => setFilterFrom('')} placeholder="From…" />
+          <SimpleDatePicker label="" showLabel={false} compact value={filterFrom} onChange={setFilterFrom} onClear={() => setFilterFrom('')} placeholder={`${t('common.from')}…`} />
         </View>
         <View style={styles.filterDate}>
-          <SimpleDatePicker label="" showLabel={false} compact value={filterTo} onChange={setFilterTo} onClear={() => setFilterTo('')} placeholder="To…" />
+          <SimpleDatePicker label="" showLabel={false} compact value={filterTo} onChange={setFilterTo} onClear={() => setFilterTo('')} placeholder={`${t('common.to')}…`} />
         </View>
         <TouchableOpacity style={styles.sortBtn} onPress={cycleSort} activeOpacity={0.7}>
           <MciIcon name="sort" size={14} color={COLORS.primary} />
@@ -187,18 +189,18 @@ export default function OrdersSc() {
       {/* New order button */}
       {officer ? (
         <View style={styles.addRow}>
-          <Label>{dept === 'all' ? 'All orders' : `${ORDER_DEPT_LABEL[dept]} orders`}</Label>
+          <Label>{dept === 'all' ? t('galley.all') : t('ord.deptOrders', { dept: tk(`od.${dept}`) })}</Label>
           <TouchableOpacity onPress={newOrder} hitSlop={10}>
-            <Text style={styles.addBtn}>+ New order</Text>
+            <Text style={styles.addBtn}>{t('galley.new')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
-        <Label>{dept === 'all' ? 'All orders' : `${ORDER_DEPT_LABEL[dept]} orders`}</Label>
+        <Label>{dept === 'all' ? t('galley.all') : t('ord.deptOrders', { dept: tk(`od.${dept}`) })}</Label>
       )}
 
       {/* Order list */}
       {visible.length === 0 ? (
-        <Empty text={dept === 'all' ? 'No orders yet. Tap "+ New order" to raise the first requisition.' : `No ${ORDER_DEPT_LABEL[dept].toLowerCase()} orders yet.`} />
+        <Empty text={dept === 'all' ? t('ord.empty') : t('ord.emptyDept', { dept: tk(`od.${dept}`).toLowerCase() })} />
       ) : (
         visible.map((o) => (
           <TouchableOpacity
@@ -220,13 +222,13 @@ export default function OrdersSc() {
               {/* Chronology for closed orders */}
               {(o.status === 'received' || o.status === 'cancelled') ? (() => {
                 const steps: string[] = [];
-                if (o.sentAt) steps.push(`Sent ${formatDate(o.sentAt)}`);
+                if (o.sentAt) steps.push(t('galley.sent', { date: formatDate(o.sentAt) }));
                 if (o.deliveries && o.deliveries.length > 0 && o.status === 'received') {
                   const firstPartial = o.deliveries[0];
-                  if (firstPartial) steps.push(`Part. ${formatDate(firstPartial.date)}`);
+                  if (firstPartial) steps.push(t('ord.part', { date: formatDate(firstPartial.date) }));
                 }
-                if (o.receivedAt) steps.push(`Rcvd ${formatDate(o.receivedAt)}`);
-                if (o.cancelledAt) steps.push(`Cancelled ${formatDate(o.cancelledAt)}`);
+                if (o.receivedAt) steps.push(t('galley.rcvd', { date: formatDate(o.receivedAt) }));
+                if (o.cancelledAt) steps.push(t('galley.cancelled', { date: formatDate(o.cancelledAt) }));
                 if (!steps.length) return null;
                 return (
                   <Text style={styles.timeline} numberOfLines={2}>{steps.join(' → ')}</Text>

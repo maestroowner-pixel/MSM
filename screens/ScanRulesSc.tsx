@@ -29,10 +29,12 @@ import { GROUP_LABEL, GROUP_ORDER, visibleCategories } from '../constants/catego
 import { CategoryKey, Group } from '../types/equipment';
 import { writeSigningPolicy } from '../services/policy';
 import { scanRequiredByDefault, scanRequiredFor } from '../services/signingPolicy';
+import { t, tn, useT } from '../utils/i18n';
 
 
 
 export default function ScanRulesSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { signingPolicy, setSigningPolicy, byCategory, categories: ownCats } = useData();
@@ -83,8 +85,8 @@ export default function ScanRulesSc() {
     );
     if (error) {
       Alert.alert(
-        'Saved on this device only',
-        `The vessel did not accept the change: ${error}. It will be sent again when this device reconnects.`
+        t('common.savedLocalOnly'),
+        t('common.notAccepted', { error })
       );
     }
   };
@@ -92,33 +94,28 @@ export default function ScanRulesSc() {
   return (
     <Screen>
       <ScreenTitle
-        title="Scan by category"
+        title={t('scan.title')}
         subtitle={
           signingPolicy.requireScan
-            ? `${shown.length - exemptCount} of ${shown.length} categories need the label scanned`
-            : 'The scan rule is off for this vessel'
+            ? t('scan.sub', { k: shown.length - exemptCount, n: shown.length })
+            : t('scan.subOff')
         }
       />
 
       {!signingPolicy.requireScan ? (
         <Card>
-          <Label>The rule is off</Label>
+          <Label>{t('scan.offTitle')}</Label>
           <Text style={styles.note}>
-            Nothing here has any effect until "Scan QR label before signing" is on in Settings.
-            What you set now is kept, and applies from the moment it is switched on.
+            {t('scan.offBody')}
           </Text>
         </Card>
       ) : null}
 
       <Card>
-        <Label>What off means</Label>
+        <Label>{t('scan.meansTitle')}</Label>
         <Text style={styles.note}>
-          Off for a category: its items are inspected and signed from the equipment list, with no
-          label to scan — right for an inventory like the rescue boat's equipment, where the check is
-          that every item is present and serviceable. It does not lower the standard of the record:
-          a scan made anyway is still stamped on it, and the report's Scan column still says which
-          items were reached by their label.
-          {isMaster ? '' : ' Only the Master can change this.'}
+          {t('scan.meansBody')}
+          {isMaster ? '' : ` ${t('scan.masterOnly')}`}
         </Text>
       </Card>
 
@@ -139,8 +136,8 @@ export default function ScanRulesSc() {
                   {item.label}
                 </Text>
                 <Text style={styles.rowSub}>
-                  {count === 1 ? '1 item' : `${count} items`} ·{' '}
-                  {required ? 'scan the label' : 'sign from the list'}
+                  {tn('n.item', count)} ·{' '}
+                  {required ? t('scan.scanLabel') : t('scan.fromList')}
                 </Text>
               </View>
               <Switch

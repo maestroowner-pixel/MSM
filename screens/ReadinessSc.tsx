@@ -25,6 +25,7 @@ import { KIND_LABEL, ReadinessKind, buildReadiness, verdict } from '../services/
 import { buildCalendar, ICS_REMIND_DAYS } from '../services/calendarIcs';
 import { exportCalendarIcs, exportReadinessPdf } from '../services/readinessReport';
 import { ICS_BASE_URL, INSPECT_LINK_BASE, readIcsLink, readInspectLink, revokeIcsLink, revokeInspectLink, saveIcsLink, saveInspectLink } from '../services/firebaseService';
+import { t, tn, useT } from '../utils/i18n';
 
 const addDays = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
 const SOON = [0, 7, 14, 30];
@@ -34,6 +35,7 @@ const INSPECT_DAYS = [7, 30, 90] as const;
 type InspectDays = typeof INSPECT_DAYS[number];
 
 export default function ReadinessSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -60,7 +62,7 @@ export default function ReadinessSc() {
 
   const generateInspectLink = async () => {
     const imo = data.vessel?.imo?.replace(/\D/g, '') ?? '';
-    if (!imo) return Alert.alert('IMO not set', 'Set the vessel IMO in Settings first.');
+    if (!imo) return Alert.alert(t('saf.noImo'), t('saf.setImo'));
     const token = Array.from({ length: 24 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
     const expiry = Date.now() + inspectDays * 86400000;
     await saveInspectLink(imo, token, expiry);
@@ -70,9 +72,9 @@ export default function ReadinessSc() {
   const doRevoke = () => {
     const imo = data.vessel?.imo?.replace(/\D/g, '') ?? '';
     if (!imo) return;
-    Alert.alert('Revoke link', 'Anyone with the current link will no longer be able to open it.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Revoke', style: 'destructive', onPress: async () => { await revokeInspectLink(imo); setInspectLink(null); } },
+    Alert.alert(t('ready.revokeLinkQ'), t('ready.revokeLinkBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('ready.revoke'), style: 'destructive', onPress: async () => { await revokeInspectLink(imo); setInspectLink(null); } },
     ]);
   };
 
@@ -88,7 +90,7 @@ export default function ReadinessSc() {
 
   const generateIcsLink = async () => {
     const imo = data.vessel?.imo?.replace(/\D/g, '') ?? '';
-    if (!imo) return Alert.alert('IMO not set', 'Set the vessel IMO in Settings first.');
+    if (!imo) return Alert.alert(t('saf.noImo'), t('saf.setImo'));
     const token = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
     await saveIcsLink(imo, token);
     setIcsToken(token);
@@ -97,9 +99,9 @@ export default function ReadinessSc() {
   const revokeIcs = () => {
     const imo = data.vessel?.imo?.replace(/\D/g, '') ?? '';
     if (!imo) return;
-    Alert.alert('Revoke calendar', 'Calendar apps that subscribed will stop receiving updates.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Revoke', style: 'destructive', onPress: async () => { await revokeIcsLink(imo); setIcsToken(null); } },
+    Alert.alert(t('ready.revokeCalQ'), t('ready.revokeCalBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('ready.revoke'), style: 'destructive', onPress: async () => { await revokeIcsLink(imo); setIcsToken(null); } },
     ]);
   };
 
@@ -123,9 +125,9 @@ export default function ReadinessSc() {
   const pdf = async () => {
     try {
       const w = await exportReadinessPdf(r, data.vessel);
-      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
-      Alert.alert('Inspection readiness', String(e?.message ?? e));
+      Alert.alert(t('ready.title'), String(e?.message ?? e));
     }
   };
 
@@ -140,17 +142,17 @@ export default function ReadinessSc() {
         ...data,
       });
       const { count, where } = await exportCalendarIcs(c, data.vessel);
-      const place = typeof where === 'string' ? (where === 'Downloads' ? ' to Downloads' : ` to the folder “${where}”`) : '';
-      if (typeof where === 'string' || !onWebPlatform) setSaved(`${count} due date${count === 1 ? '' : 's'} saved${place} — open the file in Outlook, Google or Apple Calendar`);
+      const place = typeof where === 'string' ? (where === 'Downloads' ? t('ready.toDownloads') : t('ready.toFolder', { folder: where })) : '';
+      if (typeof where === 'string' || !onWebPlatform) setSaved(`${tn('ready.dueDates', count, { place })} — ${t('ready.openIn')}`);
     } catch (e: any) {
-      Alert.alert('Calendar', String(e?.message ?? e));
+      Alert.alert(t('drills.calendar'), String(e?.message ?? e));
     }
   };
 
   const tone = r.red ? COLORS.danger : r.amber ? COLORS.warning : COLORS.success;
   return (
     <Screen scroll>
-      <ScreenTitle title="Inspection readiness" subtitle="What an inspector would find on the day — put it right before they come" help="Inspection readiness" />
+      <ScreenTitle title={t('ready.title')} subtitle={t('ready.sub')} help="Inspection readiness" />
 
       <View style={styles.chips}>
         {(Object.keys(KIND_LABEL) as ReadinessKind[]).map((k) => (
@@ -164,12 +166,12 @@ export default function ReadinessSc() {
           const d = addDays(today, n);
           return (
             <TouchableOpacity key={n} style={[styles.chip, when === d && styles.chipOn]} onPress={() => setDate(d)}>
-              <Text style={[styles.chipText, when === d && styles.chipTextOn]}>{n === 0 ? 'Today' : `In ${n} days`}</Text>
+              <Text style={[styles.chipText, when === d && styles.chipTextOn]}>{n === 0 ? t('ready.today') : t('ready.inDays', { n })}</Text>
             </TouchableOpacity>
           );
         })}
       </View>
-      <SimpleDatePicker label="Inspection date" value={when} onChange={(d) => setDate(d || today)} />
+      <SimpleDatePicker label={t('ready.date')} value={when} onChange={(d) => setDate(d || today)} />
 
       <View style={[styles.verdict, { borderColor: tone }]}>
         <MciIcon name={r.red ? 'alert-octagon-outline' : r.amber ? 'alert-outline' : 'check-decagram-outline'} size={26} color={tone} />
@@ -184,38 +186,38 @@ export default function ReadinessSc() {
       {saved ? <Text style={[styles.sub, { color: COLORS.success, marginBottom: SIZES.sm }]}>{`✓ ${saved}`}</Text> : null}
       <TouchableOpacity style={styles.handover} onPress={() => nav.navigate('Handover')} activeOpacity={0.7}>
         <MciIcon name="swap-horizontal-bold" size={18} color={COLORS.primary} />
-        <Text style={styles.handoverText}>Crew change? Make the handover report</Text>
+        <Text style={styles.handoverText}>{t('ready.handover')}</Text>
         <MciIcon name="chevron-right" size={18} color={COLORS.primary} />
       </TouchableOpacity>
       <TouchableOpacity style={styles.handover} onPress={calendar} activeOpacity={0.7}>
         <MciIcon name="calendar-export" size={18} color={COLORS.primary} />
-        <Text style={styles.handoverText}>{`Due dates to your calendar (.ics) — a year ahead, reminder ${ICS_REMIND_DAYS} days before`}</Text>
+        <Text style={styles.handoverText}>{t('ready.ics', { n: ICS_REMIND_DAYS })}</Text>
         <MciIcon name="download" size={18} color={COLORS.primary} />
       </TouchableOpacity>
       {isMaster && sync.enrolled ? (
         <View style={styles.inspectBox}>
           <TouchableOpacity style={styles.handover} onPress={() => setInspectOpen((v) => !v)} activeOpacity={0.7}>
             <MciIcon name="shield-account-outline" size={18} color={COLORS.primary} />
-            <Text style={styles.handoverText}>Inspector / PSC read-only link</Text>
+            <Text style={styles.handoverText}>{t('ready.link')}</Text>
             <MciIcon name={inspectOpen ? 'chevron-up' : 'chevron-down'} size={18} color={COLORS.primary} />
           </TouchableOpacity>
           {inspectOpen ? (
             inspectLink && inspectLink !== 'loading' ? (
               <View style={{ gap: SIZES.xs }}>
-                <Text style={[styles.sub, { fontWeight: '700' }]}>{`Valid until ${new Date(inspectLink.expiry).toISOString().slice(0, 10).split('-').reverse().join('.')}`}</Text>
+                <Text style={[styles.sub, { fontWeight: '700' }]}>{t('ready.validUntil', { date: new Date(inspectLink.expiry).toISOString().slice(0, 10).split('-').reverse().join('.') })}</Text>
                 <Text style={[styles.sub, { fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }]} numberOfLines={2} selectable>{`${INSPECT_LINK_BASE}${inspectLink.token}`}</Text>
                 <View style={{ flexDirection: 'row', gap: SIZES.md, marginTop: SIZES.xs }}>
-                  <TouchableOpacity onPress={() => { Clipboard.setString(`${INSPECT_LINK_BASE}${inspectLink.token}`); setSaved('Link copied'); }} hitSlop={8}>
-                    <Text style={styles.action}>Copy link</Text>
+                  <TouchableOpacity onPress={() => { Clipboard.setString(`${INSPECT_LINK_BASE}${inspectLink.token}`); setSaved(t('ready.copied')); }} hitSlop={8}>
+                    <Text style={styles.action}>{t('ready.copy')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={doRevoke} hitSlop={8}>
-                    <Text style={[styles.action, { color: COLORS.danger }]}>Revoke</Text>
+                    <Text style={[styles.action, { color: COLORS.danger }]}>{t('ready.revoke')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             ) : (
               <View style={{ gap: SIZES.xs }}>
-                <Text style={styles.sub}>A link valid for N days — share it with an inspector or DPA. Anyone with it can see the compliance summary without installing the app.</Text>
+                <Text style={styles.sub}>{t('ready.linkHint')}</Text>
                 <View style={[styles.inspectChips, { marginTop: SIZES.xs }]}>
                   {INSPECT_DAYS.map((d) => (
                     <TouchableOpacity key={d} style={[styles.chip, inspectDays === d && styles.chipOn]} onPress={() => setInspectDays(d)}>
@@ -224,7 +226,7 @@ export default function ReadinessSc() {
                   ))}
                 </View>
                 <TouchableOpacity style={styles.genBtn} onPress={() => void generateInspectLink()}>
-                  <Text style={styles.genBtnText}>Generate link</Text>
+                  <Text style={styles.genBtnText}>{t('ready.gen')}</Text>
                 </TouchableOpacity>
               </View>
             )
@@ -236,31 +238,31 @@ export default function ReadinessSc() {
         <View style={styles.inspectBox}>
           <TouchableOpacity style={styles.handover} onPress={() => setIcsOpen((v) => !v)} activeOpacity={0.7}>
             <MciIcon name="calendar-sync-outline" size={18} color={COLORS.primary} />
-            <Text style={styles.handoverText}>Calendar subscription (webcal)</Text>
+            <Text style={styles.handoverText}>{t('ready.calSub')}</Text>
             <MciIcon name={icsOpen ? 'chevron-up' : 'chevron-down'} size={18} color={COLORS.primary} />
           </TouchableOpacity>
           {icsOpen ? (
             icsToken && icsToken !== 'loading' ? (
               <View style={{ gap: SIZES.xs }}>
-                <Text style={styles.sub}>Subscribe in iOS Calendar, Google or Outlook — it updates automatically every 12 hours.</Text>
+                <Text style={styles.sub}>{t('ready.calHint')}</Text>
                 <Text style={[styles.sub, { fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 11 }]} numberOfLines={3} selectable>{`${ICS_BASE_URL}${icsToken}`}</Text>
                 <View style={{ flexDirection: 'row', gap: SIZES.md, marginTop: SIZES.xs, flexWrap: 'wrap' }}>
-                  <TouchableOpacity onPress={() => { Clipboard.setString(`webcal://${ICS_BASE_URL.replace('https://', '')}${icsToken}`); setSaved('webcal:// link copied'); }} hitSlop={8}>
-                    <Text style={styles.action}>Copy webcal://</Text>
+                  <TouchableOpacity onPress={() => { Clipboard.setString(`webcal://${ICS_BASE_URL.replace('https://', '')}${icsToken}`); setSaved(`webcal:// — ${t('ready.copied')}`); }} hitSlop={8}>
+                    <Text style={styles.action}>{`${t('ready.copyL')} webcal://`}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => { Clipboard.setString(`${ICS_BASE_URL}${icsToken}`); setSaved('https:// link copied'); }} hitSlop={8}>
-                    <Text style={styles.action}>Copy https://</Text>
+                  <TouchableOpacity onPress={() => { Clipboard.setString(`${ICS_BASE_URL}${icsToken}`); setSaved(`https:// — ${t('ready.copied')}`); }} hitSlop={8}>
+                    <Text style={styles.action}>{`${t('ready.copyL')} https://`}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={revokeIcs} hitSlop={8}>
-                    <Text style={[styles.action, { color: COLORS.danger }]}>Revoke</Text>
+                    <Text style={[styles.action, { color: COLORS.danger }]}>{t('ready.revoke')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             ) : (
               <View style={{ gap: SIZES.xs }}>
-                <Text style={styles.sub}>A permanent live link — equipment due dates, vessel certificates and drills, 12 months ahead. Add it once and your calendar stays in sync.</Text>
+                <Text style={styles.sub}>{t('ready.calPerm')}</Text>
                 <TouchableOpacity style={styles.genBtn} onPress={() => void generateIcsLink()}>
-                  <Text style={styles.genBtnText}>Generate calendar link</Text>
+                  <Text style={styles.genBtnText}>{t('ready.genCal')}</Text>
                 </TouchableOpacity>
               </View>
             )
@@ -289,7 +291,7 @@ export default function ReadinessSc() {
               <MciIcon name="chevron-right" size={18} color={COLORS.textLight} />
             </TouchableOpacity>
           ))}
-          {!s.gaps.length ? <Text style={[styles.sub, { color: COLORS.success }]}>Nothing to put right.</Text> : null}
+          {!s.gaps.length ? <Text style={[styles.sub, { color: COLORS.success }]}>{t('ready.nothing')}</Text> : null}
         </View>
       ))}
       <Text style={[styles.sub, { marginTop: SIZES.md }]}>

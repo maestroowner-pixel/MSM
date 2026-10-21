@@ -30,6 +30,7 @@ import { uid } from '../utils/id';
 import { PositionInput } from '../components/PositionInput';
 import { parsePosition } from '../utils/position';
 import { playSuccessSound } from '../utils/sound';
+import { t, useT } from '../utils/i18n';
 
 const CODES = Object.keys(ORB_CODE) as OrbCode[];
 const METHODS_FOR: Partial<Record<OrbCode, OrbMethod[]>> = {
@@ -41,6 +42,7 @@ const hhmm = () => new Date().toTimeString().slice(0, 5);
 const num = (v: string) => (v.trim() === '' ? undefined : Number(v.replace(',', '.')));
 
 export default function OrbSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { orbSigns, versionsOf, appendRow, vessel, fuelBunkers, fuelTanks } = useData();
@@ -86,8 +88,8 @@ export default function OrbSc() {
     setF({ ...blank, code: 'H', date: b.date, time: b.time ?? hhmm(), place: b.port, grade: 'MGO', quantity: String(Math.round(b.litres) / 1000), tank: Object.keys(b.into).map((id) => fuelTanks.find((t) => t.id === id)?.name ?? id).join(', ') || '', bdnNo: b.bdnNo ?? '' });
 
   const save = async () => {
-    if (!signer) return Alert.alert('Who is signing?', 'Choose your name below.');
-    if (problem) return Alert.alert('Oil Record Book', problem);
+    if (!signer) return Alert.alert(t('sign.who'), t('pd.chooseName'));
+    if (problem) return Alert.alert(t('orb.title'), problem);
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Oil Record Book — code ${f.code}` });
     if (!sig) return;
     const now = Date.now();
@@ -99,7 +101,7 @@ export default function OrbSc() {
   };
 
   const masterSign = async () => {
-    if (!signer) return Alert.alert('Who is signing?', 'Choose your name below.');
+    if (!signer) return Alert.alert(t('sign.who'), t('pd.chooseName'));
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Master's signature — Oil Record Book, ${month}` });
     if (!sig) return;
     const now = Date.now();
@@ -110,9 +112,9 @@ export default function OrbSc() {
   const report = async (kind: 'pdf' | 'xlsx') => {
     try {
       const w = kind === 'pdf' ? await exportOrbPdf(book, month, vessel, sign) : await exportOrbExcel(book, month, vessel, sign);
-      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
-      Alert.alert('Oil Record Book', String(e?.message ?? e));
+      Alert.alert(t('orb.title'), String(e?.message ?? e));
     }
   };
 
@@ -128,13 +130,13 @@ export default function OrbSc() {
   return (
     <Screen scroll>
       <ScreenTitle
-        title={`Oil Record Book — ${monthName(month)}`}
-        subtitle="Part I · machinery space operations · MARPOL Annex I"
+        title={`${t('orb.title')} — ${monthName(month)}`}
+        subtitle={t('orb.sub')}
         help="Oil Record Book"
         actions={<MonthPicker value={month} onChange={setMonth} months={[...new Set(all.map((e) => e.date.slice(0, 7)))]} />}
       />
       <View style={styles.row}>
-        <TouchableOpacity style={styles.btn} onPress={() => { setF({ ...blank, time: hhmm() }); setAdding((v) => !v); }}><Text style={styles.btnText}>{adding ? 'Close' : '+ New entry'}</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.btn} onPress={() => { setF({ ...blank, time: hhmm() }); setAdding((v) => !v); }}><Text style={styles.btnText}>{adding ? t('common.close') : t('book.newEntry')}</Text></TouchableOpacity>
         <TouchableOpacity style={styles.btnOutline} onPress={() => void report('pdf')}><Text style={styles.btnOutlineText}>PDF</Text></TouchableOpacity>
         <TouchableOpacity style={styles.btnOutline} onPress={() => void report('xlsx')}><Text style={styles.btnOutlineText}>Excel</Text></TouchableOpacity>
         {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{`✓ ${saved}`}</Text> : null}
@@ -142,24 +144,24 @@ export default function OrbSc() {
 
       {adding ? (
         <Card>
-          <Label>Code</Label>
+          <Label>{t('orb.code')}</Label>
           <View style={styles.chips}>
             {CODES.map((c) => <Chip key={c} on={f.code === c} label={`${c} · ${ORB_CODE[c]}`} onPress={() => setF({ ...f, code: c, method: '' })} />)}
           </View>
           {f.code === 'H' && fromFuel.length ? (
             <View style={styles.chips}>
-              {fromFuel.map((b) => <Chip key={b.id} on={false} label={`From Fuel: ${formatDate(b.date)} · ${b.port} · ${b.litres} L`} onPress={() => takeBunker(b)} />)}
+              {fromFuel.map((b) => <Chip key={b.id} on={false} label={`${t('orb.fromFuel')}: ${formatDate(b.date)} · ${b.port} · ${b.litres} L`} onPress={() => takeBunker(b)} />)}
             </View>
           ) : null}
           <View style={styles.pair}>
             {T({ k: "date",  ph: "yyyy-mm-dd" })}
             {T({ k: "time",  ph: "hh:mm" })}
           </View>
-          {fields.includes('tank') ? T({ k: 'tank', ph: f.code === 'H' ? 'Tank(s) bunkered into' : f.code === 'C' ? 'Sludge / residue tank' : f.code === 'D' ? 'Bilge holding tank / bilge' : 'Tank(s)' }) : null}
+          {fields.includes('tank') ? T({ k: 'tank', ph: f.code === 'H' ? t('orb.phTankH') : f.code === 'C' ? t('orb.phTankC') : f.code === 'D' ? t('orb.phTankD') : t('log.tank') }) : null}
           <View style={styles.pair}>
-            {fields.includes('retained') ? T({ k: "retained",  ph: "C 11 — retained, m³",  kb: "decimal-pad" }) : null}
-            {fields.includes('quantity') ? T({ k: 'quantity', ph: f.code === 'C' ? 'C 12 — disposed of, m³' : f.code === 'H' ? `Quantity, ${f.unit === 't' ? 't' : 'm³'}` : 'Quantity, m³', kb: 'decimal-pad' }) : null}
-            {f.code === 'H' ? <Chip on={f.unit === 't'} label={f.unit === 't' ? 'tonnes' : 'm³'} onPress={() => setF({ ...f, unit: f.unit === 't' ? 'm3' : 't' })} /> : null}
+            {fields.includes('retained') ? T({ k: "retained",  ph: t('orb.phRetained'),  kb: "decimal-pad" }) : null}
+            {fields.includes('quantity') ? T({ k: 'quantity', ph: f.code === 'C' ? t('orb.phDisposed') : f.code === 'H' ? t('orb.phQty', { unit: f.unit === 't' ? 't' : 'm³' }) : t('log.quantity'), kb: 'decimal-pad' }) : null}
+            {f.code === 'H' ? <Chip on={f.unit === 't'} label={f.unit === 't' ? t('orb.tonnes') : 'm³'} onPress={() => setF({ ...f, unit: f.unit === 't' ? 'm3' : 't' })} /> : null}
           </View>
           {fields.includes('method') ? (
             <View style={styles.chips}>
@@ -171,28 +173,28 @@ export default function OrbSc() {
               position={parsePosition(f.place) ? f.place : ''}
               port={parsePosition(f.place) ? '' : f.place}
               onChange={(pos, port) => setF((x) => ({ ...x, place: pos || port }))}
-              portPlaceholder={f.code === 'H' ? 'Port of bunkering' : 'Port'}
+              portPlaceholder={f.code === 'H' ? t('orb.portBunker') : t('ml.port')}
             />
           ) : null}
           <View style={styles.pair}>
-            {fields.includes('start') ? T({ k: "start",  ph: f.code === 'F' ? 'Time of failure' : f.code === 'E' ? 'Into automatic, hh:mm' : 'Start, hh:mm' }) : null}
-            {fields.includes('stop') ? T({ k: "stop",  ph: f.code === 'F' ? 'Back in operation, hh:mm' : f.code === 'E' ? 'Back to manual, hh:mm' : 'Stop, hh:mm' }) : null}
+            {fields.includes('start') ? T({ k: "start",  ph: f.code === 'F' ? t('orb.phFail') : f.code === 'E' ? t('orb.phAuto') : t('orb.phStart') }) : null}
+            {fields.includes('stop') ? T({ k: "stop",  ph: f.code === 'F' ? t('orb.phBack') : f.code === 'E' ? t('orb.phManual') : t('orb.phStop') }) : null}
           </View>
           <View style={styles.pair}>
-            {fields.includes('grade') ? T({ k: "grade",  ph: "Grade — MGO DMA, lube oil SAE 40…" }) : null}
+            {fields.includes('grade') ? T({ k: "grade",  ph: t('orb.phGrade') }) : null}
             {fields.includes('bdnNo') ? T({ k: "bdnNo",  ph: "BDN No." }) : null}
-            {fields.includes('receiptNo') ? T({ k: "receiptNo",  ph: "Reception facility receipt No." }) : null}
+            {fields.includes('receiptNo') ? T({ k: "receiptNo",  ph: t('log.receiptNo') }) : null}
           </View>
-          <TextInput style={[styles.input, { minHeight: 50 }]} value={f.remarks} onChangeText={(v) => setF({ ...f, remarks: v })} placeholder={f.code === 'F' || f.code === 'G' ? 'What happened, cause, action taken ★' : f.code === 'I' ? 'Remark ★' : 'Remarks'} placeholderTextColor={COLORS.textLight} multiline />
-          <Text style={styles.previewLabel}>In the book</Text>
+          <TextInput style={[styles.input, { minHeight: 50 }]} value={f.remarks} onChangeText={(v) => setF({ ...f, remarks: v })} placeholder={f.code === 'F' || f.code === 'G' ? t('orb.phWhat') : f.code === 'I' ? t('orb.phRemarkReq') : t('book.remarks')} placeholderTextColor={COLORS.textLight} multiline />
+          <Text style={styles.previewLabel}>{t('book.inBook')}</Text>
           <Text style={styles.preview}>{`${f.code} · ${preview || '—'}`}</Text>
           {problem ? <Text style={styles.problem}>{`⚠ ${problem}`}</Text> : null}
-          {picker ? <><Text style={styles.sub}>Officer in charge</Text>{picker}</> : null}
-          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }, problem && { opacity: 0.5 }]} onPress={() => void save()}><Text style={styles.btnText}>Sign the entry</Text></TouchableOpacity>
+          {picker ? <><Text style={styles.sub}>{t('book.oic')}</Text>{picker}</> : null}
+          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }, problem && { opacity: 0.5 }]} onPress={() => void save()}><Text style={styles.btnText}>{t('book.signEntry')}</Text></TouchableOpacity>
         </Card>
       ) : null}
 
-      <Label>{`Entries (${book.length})`}</Label>
+      <Label>{t('book.entries', { n: book.length })}</Label>
       {book.map((e) => (
         <View key={e.id} style={[styles.entry, e.cancelled && { opacity: 0.6 }]}>
           <View style={[styles.code, e.code === 'G' && { backgroundColor: COLORS.danger }]}><Text style={styles.codeText}>{e.code}</Text></View>
@@ -204,20 +206,20 @@ export default function OrbSc() {
           {!e.cancelled ? (
             <AmendButtons
               isMaster={isMaster}
-              onEdit={() => amend.edit({ store: storage.ORB_KEY, record: e, what: `Oil Record Book ${e.code}, ${formatDate(e.date)}`, fields: [{ key: 'date', label: 'Date (yyyy-mm-dd)' }, { key: 'time', label: 'Time' }, { key: 'text', label: 'Record of operations (as in the book)', kind: 'multiline' }] })}
+              onEdit={() => amend.edit({ store: storage.ORB_KEY, record: e, what: `Oil Record Book ${e.code}, ${formatDate(e.date)}`, fields: [{ key: 'date', label: t('book.fDate') }, { key: 'time', label: t('book.fTime') }, { key: 'text', label: t('book.fText'), kind: 'multiline' }] })}
               onDelete={() => amend.remove({ store: storage.ORB_KEY, record: e, what: `Oil Record Book ${e.code}, ${formatDate(e.date)}` })}
             />
           ) : null}
         </View>
       ))}
-      {!book.length ? <Text style={styles.sub}>No entries this month.</Text> : null}
+      {!book.length ? <Text style={styles.sub}>{t('book.noneMonth')}</Text> : null}
 
-      <Label>Master</Label>
+      <Label>{t('book.master')}</Label>
       {sign ? (
-        <Text style={styles.text}>{`Signed for ${month}: ${sign.byRank ? `${sign.by} (${sign.byRank})` : sign.by} · ${formatDateTime(sign.at)}`}</Text>
+        <Text style={styles.text}>{`${t('book.signedFor', { month, by: sign.byRank ? `${sign.by} (${sign.byRank})` : sign.by })} · ${formatDateTime(sign.at)}`}</Text>
       ) : (
         <TouchableOpacity disabled={!isMaster} style={[styles.btnOutline, { alignSelf: 'flex-start', opacity: isMaster ? 1 : 0.35 }]} onPress={() => void masterSign()}>
-          <Text style={styles.btnOutlineText}>Sign the month as Master</Text>
+          <Text style={styles.btnOutlineText}>{t('book.signMonth')}</Text>
         </TouchableOpacity>
       )}
       {amend.ui}

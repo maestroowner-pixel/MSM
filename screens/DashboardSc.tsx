@@ -27,6 +27,7 @@ import { ComplianceStatus, EquipmentItem, Group } from '../types/equipment';
 import * as inspections from '../services/inspections';
 import { worstRoundMark, RoundMark } from '../services/inspections';
 import { periodsFor } from '../constants/checklists';
+import { t, tk, tn, useT } from '../utils/i18n';
 
 /** Same four states as the category list — see services/inspections.roundMark. */
 const ROUND_COLOR = (m: RoundMark, C: Palette) =>
@@ -41,24 +42,14 @@ const NO_POSITION = '— No position';
 // Follows the registers this build has — a module switched on appears in the
 // filter without anybody remembering this line (constants/categories).
 const GROUP_FILTERS: GroupFilter[] = ['ALL', ...GROUP_ORDER];
-const GROUP_FILTER_LABEL: Record<GroupFilter, string> = { ALL: 'All groups', ...GROUP_SHORT };
+// Labels in the interface language (constants/i18n `dash.*`).
+const groupFilterLabel = (g: GroupFilter) => (g === 'ALL' ? t('dash.allGroups') : GROUP_SHORT[g]);
 const SORT_ORDER: SortBy[] = ['date', 'position', 'name', 'type', 'round'];
-const SORT_LABEL: Record<SortBy, string> = {
-  date: 'Expiry date',
-  position: 'Position',
-  name: 'Name',
-  type: 'Type',
-  round: 'This period',
-};
+const sortLabel = (s: SortBy) => tk(`dash.sort.${s}`);
 
 /** Worst first — the list is read to find what still needs doing. */
 const ROUND_ORDER: RoundMark[] = ['fail', 'due', 'open', 'done'];
-const ROUND_GROUP: Record<RoundMark, string> = {
-  fail: 'Failed — defect outstanding',
-  due: 'Period closing — not inspected',
-  open: 'Not inspected yet',
-  done: 'Inspected this period',
-};
+const roundGroup = (m: RoundMark) => tk(`dash.round.${m}`);
 
 const titleOf = (it: EquipmentItem) => (it.type || (it.no != null ? `#${it.no}` : '')).toLowerCase();
 
@@ -69,12 +60,12 @@ const STRIP_CAP = 5;
 function relScanned(ts?: number): string {
   if (!ts) return '';
   const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
-  if (s < 60) return 'just now';
+  if (s < 60) return t('dash.justNow');
   const m = Math.round(s / 60);
-  if (m < 60) return `${m}m ago`;
+  if (m < 60) return t('dash.mAgo', { n: m });
   const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.round(h / 24)}d ago`;
+  if (h < 24) return t('dash.hAgo', { n: h });
+  return t('dash.dAgo', { n: Math.round(h / 24) });
 }
 
 interface Scored {
@@ -127,6 +118,7 @@ export default function DashboardSc() {
     return { overdue, due };
   }, [machines, pmsJobs]);
   const nav = useNavigation<any>();
+  const lang = useT(); // redraw on a language change
   const COLORS = useTheme();
   const styles = useS();
   const certItemIds = useMemo(() => {
@@ -170,7 +162,7 @@ export default function DashboardSc() {
           .filter((r) => worstRoundMark(trail, r.it.id, periodsFor(r.it.category, templates)) === mark)
           .sort(byDays);
         if (!group.length) continue;
-        listData.push({ kind: 'header', key: `h:${mark}`, position: ROUND_GROUP[mark], count: group.length, icon: 'clipboard-text-outline' });
+        listData.push({ kind: 'header', key: `h:${mark}`, position: roundGroup(mark), count: group.length, icon: 'clipboard-text-outline' });
         for (const r of group) listData.push({ kind: 'row', key: r.it.id, ...r });
       }
     } else {
@@ -202,7 +194,7 @@ export default function DashboardSc() {
     return { listData, stats, total: rows.length };
     // `trail` is in here because the round grouping reads it — without it the
     // list would keep yesterday's marks after an inspection is signed.
-  }, [flat, group, status, sortBy, trail]);
+  }, [flat, group, status, sortBy, trail, lang]);
 
   // Two quick-access strips above the list: things a human flagged to revisit, and
   // the labels just scanned on this device (ScanSc → services/scanHistory). Both are
@@ -357,8 +349,8 @@ export default function DashboardSc() {
           <MciIcon name="engine-outline" size={15} color={COLORS.textLight} />
           <Text style={styles.posHeaderText} numberOfLines={1}>
             {pmsOwed.overdue + pmsOwed.due
-              ? [pmsOwed.overdue ? `${pmsOwed.overdue} maintenance job${pmsOwed.overdue === 1 ? '' : 's'} overdue` : null, pmsOwed.due ? `${pmsOwed.due} due soon` : null].filter(Boolean).join(' · ')
-              : 'Maintenance — nothing owed'}
+              ? [pmsOwed.overdue ? t('b.overdueX', { x: tn('n.maintJob', pmsOwed.overdue) }) : null, pmsOwed.due ? t('b.dueSoonN', { n: pmsOwed.due }) : null].filter(Boolean).join(' · ')
+              : t('dash.pmsNothing')}
           </Text>
           {pmsOwed.overdue ? <Text style={[styles.posHeaderCount, { color: COLORS.danger }]}>{pmsOwed.overdue}</Text> : null}
           <Text style={styles.posHeaderChevron}>›</Text>
@@ -367,7 +359,7 @@ export default function DashboardSc() {
       {docsToRead > 0 && tabs.has('documents') ? (
         <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('Documents')} activeOpacity={0.7}>
           <MciIcon name="book-open-page-variant" size={15} color={COLORS.textLight} />
-          <Text style={styles.posHeaderText} numberOfLines={1}>{`${docsToRead} document${docsToRead === 1 ? '' : 's'} to read and sign`}</Text>
+          <Text style={styles.posHeaderText} numberOfLines={1}>{t('b.docs.toSign', { x: tn('n.document', docsToRead) })}</Text>
           <Text style={[styles.posHeaderCount, { color: COLORS.warning }]}>{docsToRead}</Text>
           <Text style={styles.posHeaderChevron}>›</Text>
         </TouchableOpacity>
@@ -376,7 +368,7 @@ export default function DashboardSc() {
         <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('Spares')} activeOpacity={0.7}>
           <MciIcon name="package-variant-closed" size={15} color={COLORS.textLight} />
           <Text style={styles.posHeaderText} numberOfLines={1}>
-            {[sparesOwed.out ? `${sparesOwed.out} spare${sparesOwed.out === 1 ? '' : 's'} out of stock` : null, sparesOwed.low ? `${sparesOwed.low} low` : null].filter(Boolean).join(' · ')}
+            {[sparesOwed.out ? t('b.outOfStockX', { x: tn('n.spare', sparesOwed.out) }) : null, sparesOwed.low ? t('b.lowN', { n: sparesOwed.low }) : null].filter(Boolean).join(' · ')}
           </Text>
           {sparesOwed.out ? <Text style={[styles.posHeaderCount, { color: COLORS.danger }]}>{sparesOwed.out}</Text> : null}
           <Text style={styles.posHeaderChevron}>›</Text>
@@ -387,9 +379,9 @@ export default function DashboardSc() {
           <MciIcon name="cart-outline" size={15} color={COLORS.textLight} />
           <Text style={styles.posHeaderText} numberOfLines={1}>
             {[
-              `${ordersStats.total} order${ordersStats.total === 1 ? '' : 's'}`,
-              ordersStats.standby ? `${ordersStats.standby} on hold` : null,
-              ordersStats.partial ? `${ordersStats.partial} partial` : null,
+              tn('n.order', ordersStats.total),
+              ordersStats.standby ? t('dash.onHoldN', { n: ordersStats.standby }) : null,
+              ordersStats.partial ? t('dash.partialN', { n: ordersStats.partial }) : null,
             ].filter(Boolean).join(' · ')}
           </Text>
           {ordersStats.partial > 0
@@ -402,7 +394,7 @@ export default function DashboardSc() {
       ) : null}
       <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('Defects')} activeOpacity={0.7}>
         <MciIcon name="wrench-outline" size={15} color={COLORS.textLight} />
-        <Text style={styles.posHeaderText} numberOfLines={1}>Open defects</Text>
+        <Text style={styles.posHeaderText} numberOfLines={1}>{t('dash.openDefects')}</Text>
         {openDefectCount > 0 ? <Text style={styles.posHeaderCount}>{openDefectCount}</Text> : null}
         <Text style={styles.posHeaderChevron}>›</Text>
       </TouchableOpacity>
@@ -410,14 +402,14 @@ export default function DashboardSc() {
         openDefectItems.map((it) => stripRow(it, 'd:', undefined, defectReasons.get(it.id) || undefined))
       ) : (
         <Text style={styles.stripEmpty}>
-          Nothing outstanding — a failed check raises a defect and it appears here.
+          {t('dash.noDefects')}
         </Text>
       )}
       {flaggedRecent.length > 0 ? (
         <>
           <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('Flagged')} activeOpacity={0.7}>
             <MciIcon name="flag-outline" size={15} color={COLORS.textLight} />
-            <Text style={styles.posHeaderText} numberOfLines={1}>Flagged</Text>
+            <Text style={styles.posHeaderText} numberOfLines={1}>{t('dash.flagged')}</Text>
             <Text style={styles.posHeaderCount}>{flaggedRecent.length}</Text>
             <Text style={styles.posHeaderChevron}>›</Text>
           </TouchableOpacity>
@@ -426,12 +418,12 @@ export default function DashboardSc() {
       ) : null}
       <TouchableOpacity style={styles.posHeader} onPress={() => nav.navigate('RecentScans')} activeOpacity={0.7}>
         <MciIcon name="camera-outline" size={15} color={COLORS.textLight} />
-        <Text style={styles.posHeaderText} numberOfLines={1}>Recently scanned</Text>
+        <Text style={styles.posHeaderText} numberOfLines={1}>{t('dash.recent')}</Text>
         {recentScanned.length > 0 ? <Text style={styles.posHeaderCount}>{recentScanned.length}</Text> : null}
         <Text style={styles.posHeaderChevron}>›</Text>
       </TouchableOpacity>
       {recentScanned.length === 0 ? (
-        <Text style={styles.stripEmpty}>Nothing scanned yet — scan a label to jump back to it here.</Text>
+        <Text style={styles.stripEmpty}>{t('dash.noScans')}</Text>
       ) : (
         recentScanned.map((r) => stripRow(r.it, 's:', relScanned(r.at)))
       )}
@@ -441,8 +433,8 @@ export default function DashboardSc() {
   return (
     <Screen contentStyle={{ paddingBottom: 0 }}>
       <ScreenTitle
-        title="Dashboard"
-        subtitle="Inspections & expiries, soonest first"
+        title={t('menu.Dashboard')}
+        subtitle={t('dash.subtitle')}
         help="Dashboard & statuses"
         onScan={() => nav.navigate('Scan')}
       />
@@ -453,16 +445,16 @@ export default function DashboardSc() {
           list is showing — below an advert. They are the same act (choose what
           this list contains), so they belong side by side and first. */}
       <View style={styles.controlsRow}>
-        <StatBox label="Expired" value={stats.expired} color={COLORS.danger} active={status === 'expired'} onPress={() => toggleStatus('expired')} />
-        <StatBox label="Due soon" value={stats.due} color={COLORS.warning} active={status === 'due'} onPress={() => toggleStatus('due')} />
-        <StatBox label="Valid" value={stats.ok} color={COLORS.success} active={status === 'ok'} onPress={() => toggleStatus('ok')} />
+        <StatBox label={t('dash.expired')} value={stats.expired} color={COLORS.danger} active={status === 'expired'} onPress={() => toggleStatus('expired')} />
+        <StatBox label={t('dash.dueSoon')} value={stats.due} color={COLORS.warning} active={status === 'due'} onPress={() => toggleStatus('due')} />
+        <StatBox label={t('dash.valid')} value={stats.ok} color={COLORS.success} active={status === 'ok'} onPress={() => toggleStatus('ok')} />
         <TouchableOpacity style={styles.cycleBtn} onPress={cycleGroup} activeOpacity={0.8}>
-          <Text style={styles.cycleCaption}>GROUP</Text>
-          <Text style={styles.cycleValue} numberOfLines={1}>{GROUP_FILTER_LABEL[group]}</Text>
+          <Text style={styles.cycleCaption}>{t('dash.group')}</Text>
+          <Text style={styles.cycleValue} numberOfLines={1}>{groupFilterLabel(group)}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.cycleBtn} onPress={cycleSort} activeOpacity={0.8}>
-          <Text style={styles.cycleCaption}>SORT</Text>
-          <Text style={styles.cycleValue} numberOfLines={1}>{SORT_LABEL[sortBy]}</Text>
+          <Text style={styles.cycleCaption}>{t('dash.sort')}</Text>
+          <Text style={styles.cycleValue} numberOfLines={1}>{sortLabel(sortBy)}</Text>
         </TouchableOpacity>
       </View>
 
@@ -482,7 +474,7 @@ export default function DashboardSc() {
           showsVerticalScrollIndicator={Platform.OS !== 'web'}
           ListHeaderComponent={strips}
           ListEmptyComponent={
-            <Empty text={status || group !== 'ALL' ? 'No items match the current filters.' : 'No items with dates yet. Import the LSA/FFE workbook from Settings.'} />
+            <Empty text={status || group !== 'ALL' ? t('dash.noMatch') : t('dash.noItems')} />
           }
           ListFooterComponent={
             renderData.length > PREVIEW_COUNT ? (
@@ -493,8 +485,8 @@ export default function DashboardSc() {
               >
                 <Text style={styles.showMoreText}>
                   {listExpanded
-                    ? 'Show less ↑'
-                    : `Show ${renderData.length - PREVIEW_COUNT} more ↓`}
+                    ? t('common.showLess')
+                    : t('common.showMore', { n: renderData.length - PREVIEW_COUNT })}
                 </Text>
               </TouchableOpacity>
             ) : null
@@ -604,7 +596,7 @@ function DashRow({
   const meta = CATEGORY_MAP[item.category];
   const title = item.type || (item.no != null ? `#${item.no}` : meta.short);
   const daysText =
-    days == null ? '' : days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? 'today' : `in ${days}d`;
+    days == null ? '' : days < 0 ? t('dash.dOverdue', { n: Math.abs(days) }) : days === 0 ? t('dash.today') : t('dash.inD', { n: days });
   const attCount = item.attachments?.length ?? 0;
   return (
     <TouchableOpacity style={[styles.row, fill && { flex: 1 }, locked && { opacity: 0.55 }]} onPress={onPress} activeOpacity={0.7}>

@@ -68,6 +68,7 @@ import { getSavedPrinter, printTspl, SavedPrinter } from '../services/blePrinter
 import { PrinterModal } from '../components/PrinterModal';
 import { loadPrefs, savePrefs } from '../services/storage';
 import { goBackOr } from '../utils/nav';
+import { t, tn, useT } from '../utils/i18n';
 
 /** pt → mm, so the preview's type scales by the same rule as the printed sheet. */
 const PT_MM = 25.4 / 72;
@@ -221,6 +222,7 @@ function Stepper({
 }
 
 export default function LabelSc() {
+  useT();
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const route = useRoute<any>();
@@ -306,7 +308,7 @@ export default function LabelSc() {
     return (
       <Screen>
         <BackButton onPress={() => goBackOr(nav)} />
-        <ScreenTitle title="Nothing to label" subtitle="These items are no longer in the register." />
+        <ScreenTitle title={t('lbl.nothing')} subtitle={t('lbl.gone')} />
       </Screen>
     );
   }
@@ -337,7 +339,7 @@ export default function LabelSc() {
       // A cancelled print dialog is not a failure; anything else the user needs to
       // know about, because a silent no-op looks exactly like a printed label.
       const msg = String(e?.message ?? e);
-      if (!/cancel/i.test(msg)) Alert.alert('Could not print the labels', msg);
+      if (!/cancel/i.test(msg)) Alert.alert(t('lbl.couldNot'), msg);
     } finally {
       setBusy(null);
     }
@@ -349,11 +351,11 @@ export default function LabelSc() {
       const tspl = labelsToTspl(items.map((it) => itemToTsplSpec(it, size, labelText[it.id], overrides, custom)));
       await printTspl(printer.id, tspl);
       Alert.alert(
-        'Sent to printer',
-        `${items.length} label${items.length === 1 ? '' : 's'} sent to ${printer.name}.`
+        t('print.sent'),
+        t('lbl.sentTo', { x: tn('n.label', items.length), printer: printer.name })
       );
     } catch (e: any) {
-      Alert.alert('Could not print to the Xprinter', String(e?.message ?? e));
+      Alert.alert(t('print.xprinterFail'), String(e?.message ?? e));
     } finally {
       setBusy(null);
     }
@@ -379,20 +381,20 @@ export default function LabelSc() {
       <View style={styles.head}>
         <View style={{ flex: 1 }}>
           <ScreenTitle
-            title={items.length === 1 ? 'Print label' : `Print ${items.length} labels`}
+            title={items.length === 1 ? t('lbl.printOne') : t('lb.print', { x: tn('n.label', items.length) })}
             subtitle={
               items.length === 1
                 ? labelTitle(items[0])
-                : 'Preview shows the first label — all use this layout.'
+                : t('lbl.previewFirst')
             }
           />
         </View>
       </View>
 
       <Card>
-        <Label>Print to</Label>
+        <Label>{t('lbl.printTo')}</Label>
         <View style={styles.toggle}>
-          {([['roll', 'Thermal roll'], ['a4', 'A4 sheet']] as const).map(([mode, lbl]) => (
+          {([['roll', t('lbl.roll')], ['a4', t('lbl.a4')]] as const).map(([mode, lbl]) => (
             <TouchableOpacity
               key={mode}
               style={[styles.toggleBtn, pageMode === mode && { backgroundColor: COLORS.primary, borderColor: COLORS.primary }]}
@@ -410,13 +412,13 @@ export default function LabelSc() {
         </View>
         <Text style={styles.note}>
           {pageMode === 'roll'
-            ? 'Label printer (e.g. Xprinter) — one sticker per page, page sized to the label.'
-            : `Plain paper on an office printer — ${grid.cols} × ${grid.rows} = ${grid.perPage} labels per A4 sheet, with cut lines. ${items.length === 1 ? 'One label on the sheet.' : `${items.length} labels → ${sheets} sheet${sheets > 1 ? 's' : ''}.`}`}
+            ? t('lbl.rollNote')
+            : `${t('lbl.a4Note', { cols: grid.cols, rows: grid.rows, x: tn('n.label', grid.perPage) })} ${items.length === 1 ? t('lbl.oneOnSheet') : `${tn('n.label', items.length)} → ${tn('n.sheet', sheets)}.`}`}
         </Text>
       </Card>
 
       <Card>
-        <Label>Label stock</Label>
+        <Label>{t('lbl.stock')}</Label>
         <View style={styles.toggle}>
           {LABEL_SIZES.map((s) => (
             <TouchableOpacity
@@ -429,7 +431,7 @@ export default function LabelSc() {
                 adjustsFontSizeToFit
                 style={[styles.toggleText, size === s && { color: COLORS.textWhite }]}
               >
-                {s === 'custom' ? 'Custom' : s.replace('x', '×')}
+                {s === 'custom' ? t('lbl.custom') : s.replace('x', '×')}
               </Text>
             </TouchableOpacity>
           ))}
@@ -441,7 +443,7 @@ export default function LabelSc() {
         {size === 'custom' ? (
           <View style={styles.customRow}>
             <View style={styles.customField}>
-              <Text style={styles.customCaption}>Width, mm</Text>
+              <Text style={styles.customCaption}>{t('lbl.widthMm')}</Text>
               <TextInput
                 style={styles.customInput}
                 value={String(custom.widthMm)}
@@ -453,7 +455,7 @@ export default function LabelSc() {
             </View>
             <Text style={styles.customTimes}>×</Text>
             <View style={styles.customField}>
-              <Text style={styles.customCaption}>Height, mm</Text>
+              <Text style={styles.customCaption}>{t('lbl.heightMm')}</Text>
               <TextInput
                 style={styles.customInput}
                 value={String(custom.heightMm)}
@@ -469,29 +471,27 @@ export default function LabelSc() {
       </Card>
 
       <Card>
-        <Label>Preview — actual proportions</Label>
+        <Label>{t('lbl.preview')}</Label>
         <View style={styles.previewWrap}>
           <LabelPreview item={items[0]} size={size} custom={custom} width={previewW} style={style} text={labelText[items[0].id]} />
         </View>
         <Text style={styles.note}>
-          The QR carries {itemQrPayload(items[0].id)} — the item's permanent id. Reprint it as often
-          as a sticker is lost or scraped: the code never changes, so a reprint can never split one
-          item into two.
+          {t('lbl.qrNote', { id: itemQrPayload(items[0].id) })}
         </Text>
       </Card>
 
       {items.length === 1 ? (
         <Card>
           <View style={styles.tuneHead}>
-            <Label>Label text</Label>
+            <Label>{t('lbl.text')}</Label>
             {labelText[items[0].id]?.name || labelText[items[0].id]?.note ? (
               <TouchableOpacity onPress={() => applyText(items[0].id, { name: '', note: '' })}>
-                <Text style={styles.reset}>Reset</Text>
+                <Text style={styles.reset}>{t('lbl.reset')}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
 
-          <Text style={styles.fieldLabel}>Name on the sticker</Text>
+          <Text style={styles.fieldLabel}>{t('lbl.nameOn')}</Text>
           <TextInput
             style={styles.input}
             value={labelText[items[0].id]?.name ?? ''}
@@ -500,34 +500,33 @@ export default function LabelSc() {
             placeholderTextColor={COLORS.textLight}
           />
 
-          <Text style={[styles.fieldLabel, { marginTop: SIZES.sm }]}>Extra line (optional)</Text>
+          <Text style={[styles.fieldLabel, { marginTop: SIZES.sm }]}>{t('lbl.extra')}</Text>
           <TextInput
             style={styles.input}
             value={labelText[items[0].id]?.note ?? ''}
             onChangeText={(t) => applyText(items[0].id, { note: t })}
-            placeholder="e.g. Bridge, port side"
+            placeholder={t('lbl.extraPh')}
             placeholderTextColor={COLORS.textLight}
           />
 
           <Text style={styles.note}>
-            Changes only what the sticker SAYS — the item in the register is untouched. Saved on this
-            device for this item. Leave the name blank to print the item's own type.
+            {t('lbl.textNote')}
           </Text>
         </Card>
       ) : null}
 
       <Card>
         <View style={styles.tuneHead}>
-          <Label>Fine-tune this label</Label>
+          <Label>{t('lbl.tune')}</Label>
           {tuned ? (
             <TouchableOpacity onPress={() => applyOverride(null)}>
-              <Text style={styles.reset}>Reset</Text>
+              <Text style={styles.reset}>{t('lbl.reset')}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
 
         <Stepper
-          label="QR size"
+          label={t('lbl.qrSize')}
           display={`${style.qrMm} mm`}
           onDec={() => applyOverride({ qrMm: style.qrMm - LABEL_STYLE_LIMITS.qrMm.step })}
           onInc={() => applyOverride({ qrMm: style.qrMm + LABEL_STYLE_LIMITS.qrMm.step })}
@@ -535,7 +534,7 @@ export default function LabelSc() {
           COLORS={COLORS}
         />
         <Stepper
-          label="Name font"
+          label={t('lbl.nameFont')}
           display={`${style.nameSize} pt`}
           onDec={() => applyOverride({ nameSize: style.nameSize - LABEL_STYLE_LIMITS.nameSize.step })}
           onInc={() => applyOverride({ nameSize: style.nameSize + LABEL_STYLE_LIMITS.nameSize.step })}
@@ -543,7 +542,7 @@ export default function LabelSc() {
           COLORS={COLORS}
         />
         <Stepper
-          label="Serial font"
+          label={t('lbl.serialFont')}
           display={isQr ? '—' : `${style.idSize} pt`}
           onDec={() => applyOverride({ idSize: style.idSize - LABEL_STYLE_LIMITS.idSize.step })}
           onInc={() => applyOverride({ idSize: style.idSize + LABEL_STYLE_LIMITS.idSize.step })}
@@ -553,9 +552,9 @@ export default function LabelSc() {
         />
 
         <View style={styles.stepRow}>
-          <Text style={styles.stepLabel}>QR position</Text>
+          <Text style={styles.stepLabel}>{t('lbl.qrPos')}</Text>
           <View style={styles.posToggle}>
-            {([['left', 'Left', false], ['top', 'Top', true]] as const).map(([key, lbl, vert]) => (
+            {([['left', t('lbl.left'), false], ['top', t('lbl.top'), true]] as const).map(([key, lbl, vert]) => (
               <TouchableOpacity
                 key={key}
                 style={[styles.posBtn, style.vertical === vert && { backgroundColor: COLORS.primary, borderColor: COLORS.primary }]}
@@ -569,8 +568,8 @@ export default function LabelSc() {
 
         <Text style={styles.note}>
           {tuned
-            ? `Custom for ${stock.label} (default was QR ${defaults.qrMm} mm, name ${defaults.nameSize} pt). Saved for next time.`
-            : 'Adjust the QR and text for this stock size. Changes preview live and are saved per size.'}
+            ? t('lbl.customFor', { stock: stock.label, qr: defaults.qrMm, name: defaults.nameSize })
+            : t('lbl.adjust')}
         </Text>
       </Card>
 
@@ -583,7 +582,7 @@ export default function LabelSc() {
               <>
                 <MciIcon name="printer" size={18} color={COLORS.textWhite} />
                 <Text style={styles.primaryBtnText}>
-                  Print {items.length === 1 ? 'label' : `${items.length} labels`}
+                  {items.length === 1 ? t('lbl.printOne') : t('lb.print', { x: tn('n.label', items.length) })}
                 </Text>
               </>
             )}
@@ -596,7 +595,7 @@ export default function LabelSc() {
               ) : (
                 <>
                   <MciIcon name="bluetooth" size={18} color={COLORS.primary} />
-                  <Text style={styles.secondaryBtnText}>Print to Xprinter</Text>
+                  <Text style={styles.secondaryBtnText}>{t('lbl.toXprinter')}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -613,7 +612,7 @@ export default function LabelSc() {
               {busy === 'png' ? (
                 <ActivityIndicator color={COLORS.primary} />
               ) : (
-                <Text style={styles.secondaryBtnText}>Save as image (600 dpi)</Text>
+                <Text style={styles.secondaryBtnText}>{t('lbl.saveImage')}</Text>
               )}
             </TouchableOpacity>
           ) : null}
@@ -623,27 +622,26 @@ export default function LabelSc() {
               {busy === 'pdf' ? (
                 <ActivityIndicator color={COLORS.primary} />
               ) : (
-                <Text style={styles.secondaryBtnText}>Save as PDF</Text>
+                <Text style={styles.secondaryBtnText}>{t('lbl.savePdf')}</Text>
               )}
             </TouchableOpacity>
           ) : null}
 
           <Text style={styles.note}>
             {pageMode === 'roll'
-              ? `Print goes to the printer's dialog at ${stock.label}.`
-              : `Print goes to the printer's dialog as A4 sheets — ${grid.perPage} labels of ${stock.label} per sheet.`}
+              ? t('lbl.goesRoll', { stock: stock.label })
+              : t('lbl.goesA4', { x: tn('n.label', grid.perPage), stock: stock.label })}
             {canSaveLabelsPdf
-              ? ' Save as PDF is the route to a printer this phone cannot see — the ship’s office, or the label stock’s own driver on a laptop.'
+              ? ` ${t('lbl.pdfNote')}`
               : canSaveLabelsPng
-                ? ` Save as image writes a ${stock.widthMm} × ${stock.heightMm} mm PNG at 600 dpi — the file to load into another make of thermal printer's own app. Its size is in the file name, because an image carries no page size: set that app to print it at ${stock.widthMm} × ${stock.heightMm} mm, not "fit to page".`
-                : ' In the browser, use the print dialog’s own “Save as PDF” if you need a file.'}
+                ? ` ${t('lbl.pngNote', { w: stock.widthMm, h: stock.heightMm })}`
+                : ` ${t('lbl.browserNote')}`}
           </Text>
         </>
       ) : (
         <Card>
           <Text style={styles.note}>
-            Printing is not available on Windows — the same limit as the PDF report and the ZIP
-            export. Print this item's label from the phone app.
+            {t('lbl.noWindows')}
           </Text>
         </Card>
       )}

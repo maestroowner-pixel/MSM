@@ -45,6 +45,7 @@ import { moduleOn } from '../constants/modules';
 import { isAboard } from '../types/crew';
 import { personName } from '../types/role';
 import * as storage from '../services/storage';
+import { t, useT } from '../utils/i18n';
 
 /** No expo-camera on Windows — see the module header. */
 const HAS_CAMERA = Platform.OS !== 'windows';
@@ -60,6 +61,7 @@ const HAS_CAMERA = Platform.OS !== 'windows';
 const CAMERA_ON_OPEN = Platform.OS !== 'web';
 
 export default function ScanSc() {
+  useT();
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const route = useRoute<any>();
@@ -103,12 +105,12 @@ export default function ScanSc() {
         ? checkpoints.find((c) => c.id === parseCheckpointQr(code)) ?? (via === 'typed' ? checkpoints.find((c) => c.code.toUpperCase() === code.trim().toUpperCase()) : undefined)
         : undefined;
       if (cp || parseCheckpointQr(code)) {
-        if (!cp) return hold({ name: 'Checkpoint', text: moduleOn('patrols') ? 'Not a checkpoint of this vessel (removed, or another vessel’s label).' : 'Security rounds are not switched on for this vessel.', ok: false });
+        if (!cp) return hold({ name: t('pat.cp'), text: moduleOn('patrols') ? t('scn.notCp') : t('scn.patrolsOff'), ok: false });
         void visitCheckpoint(cp, via === 'camera' ? 'scan' : 'typed').then((r) => {
-          if (!r) return hold({ name: `${cp.code} · ${cp.name}`, text: 'No round under way on this device — start one in Security → Security rounds.', ok: false }, 3000);
+          if (!r) return hold({ name: `${cp.code} · ${cp.name}`, text: t('scn.noRound'), ok: false }, 3000);
           const at = new Date(r.live.visits.find((v) => v.checkpointId === cp.id)!.at).toTimeString().slice(0, 5);
           if (!onRound) return nav.replace('Main', { screen: 'Security', params: { view: 'patrols' } });
-          hold({ name: `${cp.code} · ${cp.name}`, text: r.already ? `Already recorded on this round at ${at}.` : `Recorded ${at} · ${r.live.visits.length} visited`, ok: true });
+          hold({ name: `${cp.code} · ${cp.name}`, text: r.already ? t('scn.already', { at }) : t('scn.recorded', { at, n: r.live.visits.length }), ok: true });
         });
         return;
       }
@@ -118,7 +120,7 @@ export default function ScanSc() {
         ? keyList.find((k) => k.id === parseKeyQr(code)) ?? (via === 'typed' ? keyList.find((k) => k.code.toUpperCase() === code.trim().toUpperCase()) : undefined)
         : undefined;
       if (key) return nav.replace('Main', { screen: 'Security', params: { view: 'keys', key: key.id } });
-      if (parseKeyQr(code)) return hold({ name: 'Key tag', text: moduleOn('keys') ? 'Not a key of this vessel (removed, or another vessel’s tag).' : 'The key register is not switched on for this vessel.', ok: false });
+      if (parseKeyQr(code)) return hold({ name: t('scn.keyTag'), text: moduleOn('keys') ? t('scn.notKey') : t('scn.keysOff'), ok: false });
 
       // A SOPEP locker's label (msm://sopep/<id>): what is in that locker (14 Oct 2026, as
       // InventoryLens opens a locker). The id only — a renamed or moved locker keeps its label.
@@ -126,7 +128,7 @@ export default function ScanSc() {
       const lockerId = parseSopepQr(code) ?? (via === 'typed' && moduleOn('sopep') ? sopepLockers(sopepLockerList).find((l) => lockerCode(l).toUpperCase() === code.trim().toUpperCase())?.id : undefined);
       if (lockerId) {
         if (moduleOn('sopep')) return nav.replace('Main', { screen: 'Sopep', params: { locker: lockerId } });
-        setCrewHit({ name: 'SOPEP locker', text: 'The SOPEP module is not switched on for this vessel.', ok: false });
+        setCrewHit({ name: t('scn.sopepLocker'), text: t('scn.sopepOff'), ok: false });
         setTimeout(() => {
           locked.current = false;
         }, 2500);
@@ -140,7 +142,7 @@ export default function ScanSc() {
       const storeId = parseStoreQr(code) ?? (via === 'typed' && moduleOn('stores') ? roomByCode(storeRooms(storeRoomList), code)?.id : undefined);
       if (storeId) {
         if (moduleOn('stores')) return nav.replace('Main', { screen: 'Stores', params: { view: storeId } });
-        setCrewHit({ name: 'Store', text: 'The Stores module is not switched on for this vessel.', ok: false });
+        setCrewHit({ name: t('scn.store'), text: t('scn.storesOff'), ok: false });
         setTimeout(() => {
           locked.current = false;
         }, 2500);
@@ -157,7 +159,7 @@ export default function ScanSc() {
         if (member) return nav.replace('CrewMember', { id: member.id });
         const guest = moduleOn('passengers') ? passengers.find((x) => x.id === crewId && !x.deleted) : undefined;
         if (guest) return nav.replace('Main', { screen: 'Passengers', params: { open: guest.id } });
-        setCrewHit({ name: 'Unknown card', text: 'Not on the crew or passenger list of this vessel (another vessel’s card, or removed).', ok: false });
+        setCrewHit({ name: t('scn.unknownCard'), text: t('scn.notOnList'), ok: false });
         setTimeout(() => {
           locked.current = false;
         }, 2500);
@@ -173,12 +175,12 @@ export default function ScanSc() {
             locked.current = false;
           }, 2500);
         };
-        if (!c) return show({ name: 'Unknown card', text: 'Not on the crew or passenger list of this vessel (signed off, disembarked, or another vessel’s card).', ok: false });
-        if (isDoubleScan(c.id, crewMoves)) return show({ name: c.name, text: 'Already recorded a moment ago.', ok: true });
+        if (!c) return show({ name: t('scn.unknownCard'), text: t('scn.notOnList2'), ok: false });
+        if (isDoubleScan(c.id, crewMoves)) return show({ name: c.name, text: t('scn.moment'), ok: true });
         const by = sync.me ? personName(sync.me) : 'Gangway';
         const m = nextMove(c, crewMoves, by, via === 'camera' ? 'qr' : 'manual');
         void appendRow(storage.CREW_MOVES_KEY, m);
-        show({ name: c.rank ? `${c.name} · ${c.rank}` : c.name, text: `${m.dir === 'ashore' ? 'ASHORE' : 'BACK ABOARD'} · ${m.time}`, ok: true });
+        show({ name: c.rank ? `${c.name} · ${c.rank}` : c.name, text: `${m.dir === 'ashore' ? t('scn.ashore') : t('scn.backAboard')} · ${m.time}`, ok: true });
         return;
       }
 
@@ -188,8 +190,8 @@ export default function ScanSc() {
       // officer's card open a fire extinguisher (11 Oct 2026).
       if ((crewId || parsePassQr(code)) && !moduleOn('security')) {
         setCrewHit({
-          name: crewId ? 'Crew card' : 'Visitor pass',
-          text: 'Gangway control is not switched on for this vessel — nothing is recorded.',
+          name: crewId ? t('scn.crewCard') : t('scn.visitorPass'),
+          text: t('scn.gangwayOff'),
           ok: false,
         });
         setTimeout(() => {
@@ -264,7 +266,7 @@ export default function ScanSc() {
     if (Platform.OS === 'web') {
       const md: any = (globalThis as any).navigator?.mediaDevices;
       if (!md?.getUserMedia) {
-        setCamError('This browser does not give web pages a camera. Type the code below instead.');
+        setCamError(t('scn.noBrowserCam'));
         return;
       }
       try {
@@ -273,7 +275,7 @@ export default function ScanSc() {
         // granted, which is not the same as "no camera" — only a populated list
         // with no video input is proof there is nothing to open.
         if (Array.isArray(devices) && devices.length && !devices.some((d: any) => d.kind === 'videoinput')) {
-          setCamError('No camera is connected to this computer. Type the code below instead.');
+          setCamError(t('scn.noCamConnected'));
           return;
         }
       } catch {
@@ -286,13 +288,13 @@ export default function ScanSc() {
       if (res && !res.granted) {
         setCamError(
           res.canAskAgain === false
-            ? 'The camera is blocked for this site. Allow it in the address bar, then try again.'
-            : 'Camera access was refused. Type the code below instead.'
+            ? t('scn.camBlocked')
+            : t('scn.camRefused')
         );
         setWantCamera(false);
       }
     } catch {
-      setCamError('The camera could not be opened. Type the code below instead.');
+      setCamError(t('scn.camFailed'));
       setWantCamera(false);
     }
   };
@@ -302,33 +304,31 @@ export default function ScanSc() {
       <BackButton onPress={() => goBackOr(nav)} />
       <View style={styles.head}>
         <View style={{ flex: 1 }}>
-          <ScreenTitle title={atGangway ? 'Scan at the gangway' : 'Scan'} subtitle={atGangway ? 'A crew or passenger card records going ashore or coming back aboard; a visitor pass signs the visitor off.' : 'An ISMpilot QR label, or a serial / asset tag. A crew or passenger card opens the person — crossings are recorded from the gangway page.'} />
+          <ScreenTitle title={atGangway ? t('scn.gangwayTitle') : t('scn.title')} subtitle={atGangway ? t('scn.gangwaySub') : t('scn.sub')} />
         </View>
       </View>
 
       {!HAS_CAMERA ? (
         <Card>
-          <Label>No camera here</Label>
+          <Label>{t('scn.noCamHere')}</Label>
           <Text style={styles.note}>
-            Scanning is a phone job — this build has no camera. Type the code or the serial below
-            instead; the lookup is exactly the one the scanner uses.
+            {t('scn.noCamBody')}
           </Text>
         </Card>
       ) : !wantCamera ? (
         <Card>
-          <Label>Camera</Label>
+          <Label>{t('pick.camera')}</Label>
           <Text style={styles.note}>
             {camError ??
-              "This computer's camera can read a label held up to it. On a desk machine the code is " +
-                'usually easier to type — the box below runs exactly the same lookup.'}
+              t('scn.deskCam')}
           </Text>
           <TouchableOpacity style={styles.primaryBtn} onPress={() => void useCamera()}>
-            <Text style={styles.primaryBtnText}>{camError ? 'Try the camera again' : 'Use the camera'}</Text>
+            <Text style={styles.primaryBtnText}>{camError ? t('scn.tryAgain') : t('scn.useCam')}</Text>
           </TouchableOpacity>
         </Card>
       ) : !permission ? null : !permission.granted ? (
         <Card>
-          <Label>Camera access</Label>
+          <Label>{t('scn.camAccess')}</Label>
           {/* THE ANSWER HAS ALREADY BEEN GIVEN — say so and move on.
               `canAskAgain === false` means the person said no and the system will
               not ask again. Repeating the offer here is the 5.1.1(iv) refusal in
@@ -341,12 +341,9 @@ export default function ScanSc() {
           <Text style={styles.note}>
             {permission.canAskAgain === false
               ? Platform.OS === 'web'
-                ? 'Your browser has blocked the camera for this site — it can be allowed from the ' +
-                  'address bar. Either way, typing the code below runs exactly the same lookup.'
-                : 'The camera is off for MSM, so a label cannot be read by holding it up. Typing ' +
-                  'the code or the serial below runs exactly the same lookup.'
-              : 'ISMpilot needs the camera to read QR labels and barcodes off equipment. Nothing is ' +
-                'recorded — the frame is decoded and discarded.'}
+                ? t('scn.browserBlocked')
+                : t('scn.camOff')
+              : t('scn.needCam')}
           </Text>
           {/* "Continue", NOT "Allow camera". App Review reads a custom screen whose
               button uses the system dialog's own verb as pressuring the user
@@ -356,7 +353,7 @@ export default function ScanSc() {
               and only while the system will still show it. */}
           {permission.canAskAgain === false ? null : (
             <TouchableOpacity style={styles.primaryBtn} onPress={() => void requestPermission()}>
-              <Text style={styles.primaryBtnText}>Continue</Text>
+              <Text style={styles.primaryBtnText}>{t('cs.continue')}</Text>
             </TouchableOpacity>
           )}
         </Card>
@@ -376,55 +373,51 @@ export default function ScanSc() {
 
       {crewHit ? (
         <Card style={{ borderLeftWidth: 6, borderLeftColor: crewHit.ok ? COLORS.success : COLORS.danger }}>
-          <Label>Gangway</Label>
+          <Label>{t('pax.gangway')}</Label>
           <Text style={{ fontSize: SIZES.h3, fontWeight: '900', color: COLORS.textDark }}>{crewHit.name}</Text>
           <Text style={{ fontSize: SIZES.h4, fontWeight: '800', color: crewHit.ok ? COLORS.success : COLORS.danger, marginTop: 4 }}>{crewHit.text}</Text>
-          <Text style={styles.note}>Ready for the next card.</Text>
+          <Text style={styles.note}>{t('scn.ready')}</Text>
         </Card>
       ) : null}
 
       {result?.kind === 'stale' ? (
         <Card>
-          <Label>This label is not in the register</Label>
+          <Label>{t('scn.staleTitle')}</Label>
           <Text style={styles.note}>
-            The sticker is one of ours, but the item it points to is gone — deleted, or this device
-            is holding an older copy of the register than the vessel is. Check the category list, and
-            the sync state, before re-creating anything: re-adding it here would put back, as a new
-            item, something somebody removed on purpose.
+            {t('scn.staleBody')}
           </Text>
           <Text style={styles.code}>{result.itemId}</Text>
           <TouchableOpacity style={styles.secondaryBtn} onPress={again}>
-            <Text style={styles.secondaryBtnText}>Scan again</Text>
+            <Text style={styles.secondaryBtnText}>{t('scn.again')}</Text>
           </TouchableOpacity>
         </Card>
       ) : null}
 
       {result?.kind === 'unknown' ? (
         <Card>
-          <Label>Not on file</Label>
+          <Label>{t('scn.unknownTitle')}</Label>
           <Text style={styles.note}>
-            Nothing in the register carries this code. If it is the maker's own barcode, open the
-            item and put it in the “Serial / ID” field — then this code will find it next time.
+            {t('scn.unknownBody')}
           </Text>
           <Text style={styles.code}>{result.code}</Text>
           <TouchableOpacity style={styles.secondaryBtn} onPress={again}>
-            <Text style={styles.secondaryBtnText}>Scan again</Text>
+            <Text style={styles.secondaryBtnText}>{t('scn.again')}</Text>
           </TouchableOpacity>
         </Card>
       ) : null}
 
       {!result ? (
         <Card>
-          <Label>Or type the code</Label>
+          <Label>{t('scn.orType')}</Label>
           <Text style={styles.note}>
-            For a label too scraped or faded to scan, if the characters are still readable.
+            {t('scn.orTypeBody')}
           </Text>
           <View style={styles.manualRow}>
             <TextInput
               style={styles.input}
               value={manual}
               onChangeText={setManual}
-              placeholder="Serial / ID number"
+              placeholder={t('scn.serialPh')}
               placeholderTextColor={COLORS.textLight}
               autoCapitalize="characters"
               autoCorrect={false}

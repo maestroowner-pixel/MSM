@@ -17,8 +17,10 @@ import {
 import { currentVesselKey } from '../services/firebaseService';
 import { formatDateTime } from '../utils/dates';
 import { playSuccessSound, playErrorSound } from '../utils/sound';
+import { t, tn, useT } from '../utils/i18n';
 
 export default function EmailReportSc() {
+  useT();
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -46,7 +48,7 @@ export default function EmailReportSc() {
       playSuccessSound();
     } catch (e: any) {
       playErrorSound();
-      Alert.alert('Could not save', e?.message ?? String(e));
+      Alert.alert(t('common.couldNotSave'), e?.message ?? String(e));
     } finally {
       setSaving(false);
     }
@@ -55,7 +57,7 @@ export default function EmailReportSc() {
   const addRecipient = () => {
     const email = recipientInput.trim().toLowerCase();
     if (!email.includes('@')) {
-      Alert.alert('Invalid email', 'Enter a valid email address.');
+      Alert.alert(t('email.invalid'), t('email.invalidBody'));
       return;
     }
     if (settings.recipients.includes(email)) {
@@ -72,16 +74,16 @@ export default function EmailReportSc() {
 
   const onSendNow = async () => {
     if (!settings.recipients.length) {
-      Alert.alert('No recipients', 'Add at least one email address first.');
+      Alert.alert(t('email.noRecip'), t('email.noRecipBody'));
       return;
     }
     Alert.alert(
-      'Send report now?',
-      `The monthly safety digest will be sent to ${settings.recipients.length} recipient${settings.recipients.length === 1 ? '' : 's'}.`,
+      t('email.sendQ'),
+      t('email.sendBody', { x: tn('n.recipient', settings.recipients.length) }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Send',
+          text: t('email.send'),
           onPress: async () => {
             setSending(true);
             try {
@@ -91,10 +93,10 @@ export default function EmailReportSc() {
               playSuccessSound();
               const updated = await getEmailReportSettings();
               if (updated) setSettings(updated);
-              Alert.alert('Sent', 'The safety report has been sent.');
+              Alert.alert(t('email.sent'), t('email.sentBody'));
             } catch (e: any) {
               playErrorSound();
-              Alert.alert('Could not send', e?.message ?? String(e));
+              Alert.alert(t('email.couldNotSend'), e?.message ?? String(e));
             } finally {
               setSending(false);
             }
@@ -107,7 +109,7 @@ export default function EmailReportSc() {
   if (loading) {
     return (
       <Screen>
-        <ScreenTitle title="Email Report" />
+        <ScreenTitle title={t('email.title')} />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator color={COLORS.primary} />
         </View>
@@ -117,22 +119,21 @@ export default function EmailReportSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Email Report" subtitle="Monthly safety digest" />
+      <ScreenTitle title={t('email.title')} subtitle={t('email.sub')} />
 
       <Card>
-        <Label>Monthly digest</Label>
+        <Label>{t('email.digest')}</Label>
         <Text style={styles.body}>
-          A summary of expired equipment, upcoming certificates, open defects, non-conformities,
-          overdue drills and safety observations — sent to the owner or DPA on the 1st of each month at 08:00 UTC.
+          {t('email.about')}
         </Text>
         <View style={styles.toggleRow}>
           <MciIcon name="email-outline" size={20} color={COLORS.primary} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.rowTitle}>Enable monthly email</Text>
+            <Text style={styles.rowTitle}>{t('email.enable')}</Text>
             {settings.lastSentAt ? (
-              <Text style={styles.rowSub}>Last sent: {formatDateTime(settings.lastSentAt)}</Text>
+              <Text style={styles.rowSub}>{t('email.lastSent', { when: formatDateTime(settings.lastSentAt) })}</Text>
             ) : (
-              <Text style={styles.rowSub}>Not sent yet</Text>
+              <Text style={styles.rowSub}>{t('email.notSent')}</Text>
             )}
           </View>
           <Switch
@@ -145,21 +146,21 @@ export default function EmailReportSc() {
       </Card>
 
       <Card>
-        <Label>Recipients</Label>
-        <Text style={styles.body}>Who receives the digest — the owner, DPA or their office email.</Text>
+        <Label>{t('email.recipients')}</Label>
+        <Text style={styles.body}>{t('email.who')}</Text>
 
         {settings.recipients.map((email) => (
           <View key={email} style={styles.recipientRow}>
             <MciIcon name="email-check-outline" size={18} color={COLORS.primary} />
             <Text style={[styles.rowTitle, { flex: 1 }]} numberOfLines={1}>{email}</Text>
             <TouchableOpacity onPress={() => removeRecipient(email)} hitSlop={8}>
-              <Text style={{ color: COLORS.danger, fontWeight: '700' }}>Remove</Text>
+              <Text style={{ color: COLORS.danger, fontWeight: '700' }}>{t('common.remove')}</Text>
             </TouchableOpacity>
           </View>
         ))}
 
         {!settings.recipients.length ? (
-          <Text style={styles.rowSub}>No recipients yet.</Text>
+          <Text style={styles.rowSub}>{t('email.noneYet')}</Text>
         ) : null}
 
         <View style={styles.addRow}>
@@ -180,7 +181,7 @@ export default function EmailReportSc() {
             onPress={addRecipient}
             disabled={!recipientInput.includes('@')}
           >
-            <Text style={styles.addBtnText}>Add</Text>
+            <Text style={styles.addBtnText}>{t('common.add')}</Text>
           </TouchableOpacity>
         </View>
       </Card>
@@ -195,7 +196,7 @@ export default function EmailReportSc() {
         ) : (
           <>
             <MciIcon name="send-outline" size={18} color="#fff" />
-            <Text style={styles.sendBtnText}>Send report now</Text>
+            <Text style={styles.sendBtnText}>{t('email.sendNow')}</Text>
           </>
         )}
       </TouchableOpacity>

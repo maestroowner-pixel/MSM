@@ -30,7 +30,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { CrewMove, LEVEL_TEXT, SECURITY_DRILL_DAYS, SECURITY_SCENARIOS, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
+import { CrewMove, SECURITY_DRILL_DAYS, SECURITY_SCENARIOS, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
 import { isAboard } from '../types/crew';
 import { roleAtLeast } from '../types/role';
 import * as storage from '../services/storage';
@@ -54,6 +54,7 @@ import { formatDate, formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { DeckEntry } from '../types/deckLog';
+import { tk, tn, useT } from '../utils/i18n';
 import { searchPorts } from '../constants/ports';
 
 import MeetingsSc from './MeetingsSc';
@@ -65,6 +66,8 @@ import { OfficerDocs } from '../components/OfficerDocs';
 type Tab = 'board' | 'log' | 'drills';
 const hhmm = () => new Date().toTimeString().slice(0, 5);
 const ID_TYPES = ['Passport', 'ID card', 'Driving licence', "Seaman's book", 'Company ID'];
+/** The document's name in the interface language; the record keeps the English, an amended free text shows as typed. */
+const idName = (x: string) => (ID_TYPES.includes(x) ? tk(`sec.id.${x}`) : x);
 
 /** The menu's Security pages: gangway and drills here; the safety flashes, meetings, searches and the Ship Security Plan on their own. */
 export default function SecurityRoute() {
@@ -81,10 +84,11 @@ export default function SecurityRoute() {
 
 /** The Ship Security Plan and its papers — the Master and the officers only (ISPS A/9.7; types/officerDocs.ts). */
 function SspSc() {
+  const t = useT();
   return (
     <Screen scroll>
-      <ScreenTitle title="Ship Security Plan" subtitle="ISPS — the approved plan and its papers, officers only" help="Security (ISPS)" />
-      <OfficerDocs shelf="ssp" intro="The approved SSP, the assessment, the ISSC and the security contacts. Confidential: not shown to the crew, not sent to the shore." />
+      <ScreenTitle title={t('menu.Security.ssp')} subtitle={t('sec.sspSub')} help="Security (ISPS)" />
+      <OfficerDocs shelf="ssp" intro={t('sec.sspIntro')} />
     </Screen>
   );
 }
@@ -92,12 +96,13 @@ function SspSc() {
 function SecuritySc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+  const t = useT();
   const nav = useNavigation<any>();
   const { visitors, securityLevels, securityDrills, crewMoves, crew, vessel, setVessel, saveRow, appendRow, versionsOf, passengers } = useData();
   const amend = useAmend();
   const allVisitors = versionsOf(storage.VISITORS_KEY) as Visitor[];
   const allDrills = versionsOf(storage.SECURITY_DRILLS_KEY) as SecurityDrill[];
-  const visitorLine = (v: Visitor) => [v.company ? `${v.name} · ${v.company}` : v.name, `${v.timeIn} → ${v.timeOut ?? 'on board'}`, v.purpose, v.idNo ? `${v.idType} ${v.idNo}` : null, v.passNo ? `pass ${v.passNo}` : null].filter(Boolean).join(' · ');
+  const visitorLine = (v: Visitor) => [v.company ? `${v.name} · ${v.company}` : v.name, `${v.timeIn} → ${v.timeOut ?? t('sec.stOnBoard')}`, v.purpose, v.idNo ? `${v.idType ? idName(v.idType) : ''} ${v.idNo}`.trim() : null, v.passNo ? t('sec.pass', { n: v.passNo }) : null].filter(Boolean).join(' · ');
   const sync = useSync();
   const isMaster = !sync.enrolled || sync.role === 'superadmin';
   const confirmSign = useSignConfirm();
@@ -113,9 +118,9 @@ function SecuritySc() {
   const tab: Tab = view === 'drills' ? 'drills' : sub;
   const [saved, setSaved] = useState<string | null>(null);
   const done = (where: string | null | void) => {
-    if (typeof where === 'string') setSaved(where === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${where}”`);
+    if (typeof where === 'string') setSaved(where === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: where }));
   };
-  const fail = (e: any) => Alert.alert('Security', String(e?.message ?? e));
+  const fail = (e: any) => Alert.alert(t('sec.security'), String(e?.message ?? e));
 
   // ---- level ----
   const level = useMemo(() => [...securityLevels].sort((a, b) => b.since - a.since)[0], [securityLevels]);
@@ -123,20 +128,20 @@ function SecuritySc() {
   const levelColor = (l: number) => (l === 1 ? COLORS.success : l === 2 ? COLORS.warning : COLORS.danger);
   const setLevel = (l: 1 | 2 | 3) => {
     if (l === current) return;
-    if (!officer) return Alert.alert('Security level', 'Set by the Master or the Ship Security Officer.');
-    if (!signer) return Alert.alert('Who is setting it?', 'Choose the watch first.');
+    if (!officer) return Alert.alert(t('sec.levelTitle'), t('sec.levelWho'));
+    if (!signer) return Alert.alert(t('sec.whoSets'), t('sec.watchFirst'));
     const go = async () => {
       const r: SecurityLevelRec = { id: `level_${Date.now()}`, level: l, since: Date.now(), by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), updatedAt: Date.now() };
       await appendRow(storage.SECURITY_LEVEL_KEY, r);
       playSuccessSound();
     };
-    Alert.alert(`Security level ${l}`, LEVEL_TEXT[l], [{ text: 'Cancel', style: 'cancel' }, { text: `Set level ${l}`, onPress: () => void go() }]);
+    Alert.alert(t('sec.levelN', { n: l }), tk(`sec.lvl.${l}`), [{ text: t('common.cancel'), style: 'cancel' }, { text: t('sec.setLevel', { n: l }), onPress: () => void go() }]);
   };
   const levelSwitch = (
     <View style={styles.lvl}>
       <Text style={styles.lvlText}>ISPS</Text>
       {([1, 2, 3] as const).map((l) => (
-        <TouchableOpacity key={l} onPress={() => setLevel(l)} hitSlop={4} accessibilityLabel={`Security level ${l}`} style={[styles.lvlBtn, current === l && { backgroundColor: levelColor(l), borderColor: levelColor(l) }]}>
+        <TouchableOpacity key={l} onPress={() => setLevel(l)} hitSlop={4} accessibilityLabel={t('sec.levelN', { n: l })} style={[styles.lvlBtn, current === l && { backgroundColor: levelColor(l), borderColor: levelColor(l) }]}>
           <Text style={[styles.lvlBtnText, current === l && { color: COLORS.textWhite }]}>{l}</Text>
         </TouchableOpacity>
       ))}
@@ -154,7 +159,7 @@ function SecuritySc() {
   const moveCrew = async (id: string) => {
     const c = people.find((p) => p.id === id) ?? guests.find((p) => p.id === id);
     if (!c) return;
-    if (!signer) return Alert.alert('Gangway watch', 'Choose the watch first.');
+    if (!signer) return Alert.alert(t('pax.gangwayWatch'), t('sec.watchFirst'));
     await appendRow(storage.CREW_MOVES_KEY, nextMove(c, crewMoves, signer.name, 'manual'));
     playSuccessSound();
   };
@@ -193,7 +198,7 @@ function SecuritySc() {
   const usePhoto = async (uri: string) => {
     setCamOpen(false);
     const photo = await portraitDataUri(uri);
-    if (!photo) return Alert.alert('Photo', 'The photograph could not be used — try again.');
+    if (!photo) return Alert.alert(t('sec.photo'), t('sec.photoFail'));
     setF((x) => ({ ...x, photo }));
   };
 
@@ -225,13 +230,13 @@ function SecuritySc() {
   }, [officer, visitors.length, today]);
 
   const signOn = async () => {
-    if (!signer) return Alert.alert('Gangway watch', 'Choose the watch first.');
-    if (!f.name.trim() || !f.purpose.trim()) return Alert.alert('Visitor', 'Name and purpose of the visit are needed.');
-    if (!/^\d{2}:\d{2}$/.test(f.timeIn)) return Alert.alert('Time in', 'The time the visitor came aboard, hh:mm.');
-    if (!vessel?.port?.trim() || !vessel?.berth?.trim()) return Alert.alert('Port and berth', 'Enter the port and the berth at the top of the logbook first.');
-    if (current >= 2 && !f.idNo.trim()) return Alert.alert('Identity', `At security level ${current} the identity document must be checked and recorded.`);
+    if (!signer) return Alert.alert(t('pax.gangwayWatch'), t('sec.watchFirst'));
+    if (!f.name.trim() || !f.purpose.trim()) return Alert.alert(t('sec.visitor'), t('sec.needNamePurpose'));
+    if (!/^\d{2}:\d{2}$/.test(f.timeIn)) return Alert.alert(t('sec.timeIn'), t('sec.timeInHint'));
+    if (!vessel?.port?.trim() || !vessel?.berth?.trim()) return Alert.alert(t('sec.portBerth'), t('sec.portBerthFirst'));
+    if (current >= 2 && !f.idNo.trim()) return Alert.alert(t('sec.identity'), t('sec.idRequired', { n: current }));
     const holder = f.passNo.trim() ? onBoard.find((v) => samePass(v.passNo, f.passNo)) : undefined;
-    if (holder) return Alert.alert('Pass in use', `Pass ${f.passNo.trim()} is still with ${holder.name} (on board since ${holder.timeIn}). Sign them off first, or give another pass.`);
+    if (holder) return Alert.alert(t('sec.passInUse'), t('sec.passInUseBody', { pass: f.passNo.trim(), name: holder.name, time: holder.timeIn }));
     const v: Visitor = {
       id: uid('vis'), date: today, timeIn: f.timeIn, name: f.name.trim(), purpose: f.purpose.trim(), inBy: signer.name, updatedAt: Date.now(),
       port: vessel.port.trim(), berth: vessel.berth.trim(),
@@ -262,8 +267,8 @@ function SecuritySc() {
   // Signing off asks the time the visitor left — now by default.
   const [leaving, setLeaving] = useState<{ id: string; time: string } | null>(null);
   const signOff = async (v: Visitor, time: string) => {
-    if (!signer) return Alert.alert('Gangway watch', 'Choose the watch first.');
-    if (!/^\d{2}:\d{2}$/.test(time)) return Alert.alert('Time out', 'The time the visitor left, hh:mm.');
+    if (!signer) return Alert.alert(t('pax.gangwayWatch'), t('sec.watchFirst'));
+    if (!/^\d{2}:\d{2}$/.test(time)) return Alert.alert(t('sec.timeOut'), t('sec.timeOutHint'));
     const dateOut = v.date !== today ? today : undefined;
     await saveRow(storage.VISITORS_KEY, { ...v, timeOut: time, ...(dateOut ? { dateOut } : {}), outBy: signer.name });
     // Auto deck-log entry: visitor departed.
@@ -330,8 +335,8 @@ function SecuritySc() {
   const drillLate = !nextDue || nextDue < today;
   const [d, setD] = useState({ scenario: SECURITY_SCENARIOS[0], minutes: '', findings: '', team: [] as string[] });
   const saveDrill = async () => {
-    if (!signer) return Alert.alert('Who conducted it?', 'Choose the watch first.');
-    if (!d.team.length) return Alert.alert('Drill', 'Mark who took part.');
+    if (!signer) return Alert.alert(t('sec.whoConducted'), t('sec.watchFirst'));
+    if (!d.team.length) return Alert.alert(t('sec.drill'), t('sec.markTeam'));
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `ISPS drill — ${d.scenario}` });
     if (!sig) return;
     const now = Date.now();
@@ -358,15 +363,15 @@ function SecuritySc() {
   const sendLabels = async (printer: SavedPrinter, job: { specs: TsplLabelSpec[]; what: string }) => {
     try {
       await printTspl(printer.id, labelsToTspl(job.specs));
-      Alert.alert('Sent to printer', `${job.what} sent to ${printer.name}.`);
+      Alert.alert(t('print.sent'), t('sec.sentTo', { what: job.what, printer: printer.name }));
     } catch (e: any) {
-      Alert.alert('Could not print to the Xprinter', String(e?.message ?? e));
+      Alert.alert(t('print.xprinterFail'), String(e?.message ?? e));
     } finally {
       setPending(null);
     }
   };
   const pickSize = (make: (size: (typeof GANGWAY_STOCKS)[number]) => { specs: TsplLabelSpec[]; what: string }) =>
-    Alert.alert('Label size', 'The roll loaded in the printer.', [
+    Alert.alert(t('print.labelSize'), t('print.roll'), [
       ...GANGWAY_STOCKS.map((sz) => ({
         text: `${GANGWAY_STOCK_MM[sz].widthMm} × ${GANGWAY_STOCK_MM[sz].heightMm} mm`,
         onPress: async () => {
@@ -377,22 +382,22 @@ function SecuritySc() {
           setPrinterOpen(true);
         },
       })),
-      { text: 'Cancel', style: 'cancel' as const },
+      { text: t('common.cancel'), style: 'cancel' as const },
     ]);
   const toXprinter = () =>
-    Alert.alert('Print to Xprinter', 'Stickers with the gangway QR — for a card holder or a lanyard tag.', [
-      { text: `Crew cards (${people.length})`, onPress: () => (people.length ? pickSize((sz) => ({ specs: crewCardSpecs(people, vessel, sz), what: `${people.length} crew card${people.length === 1 ? '' : 's'}` })) : Alert.alert('Crew cards', 'The crew list is empty.')) },
-      { text: 'Visitor passes 01–20', onPress: () => pickSize((sz) => ({ specs: visitorPassSpecs(20, vessel, sz), what: '20 visitor passes' })) },
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('lbl.toXprinter'), t('sec.stickers'), [
+      { text: t('sec.crewCardsN', { n: people.length }), onPress: () => (people.length ? pickSize((sz) => ({ specs: crewCardSpecs(people, vessel, sz), what: tn('n.crewCard', people.length) })) : Alert.alert(t('sec.crewCards'), t('sec.crewEmpty'))) },
+      { text: t('sec.passes20'), onPress: () => pickSize((sz) => ({ specs: visitorPassSpecs(20, vessel, sz), what: t('sec.passes20what') })) },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
 
   return (
     <Screen scroll>
       <PrinterModal visible={printerOpen} onClose={() => { setPrinterOpen(false); setPending(null); }} onPicked={(p) => { setPrinterOpen(false); if (pending) void sendLabels(p, pending); }} />
-      <PhotoCamera visible={camOpen} title="Visitor photo" onClose={() => setCamOpen(false)} onTaken={(u) => void usePhoto(u)} />
+      <PhotoCamera visible={camOpen} title={t('sec.visitorPhoto')} onClose={() => setCamOpen(false)} onTaken={(u) => void usePhoto(u)} />
       <ScreenTitle
-        title={view === 'drills' ? 'ISPS drills' : 'Gangway logbook'}
-        subtitle={view === 'drills' ? 'ISPS Code — at least one every three months' : 'ISPS Code — who is on board, visitors in and out'}
+        title={view === 'drills' ? t('menu.Security.drills') : t('menu.Security.gangway')}
+        subtitle={view === 'drills' ? t('sec.drillsSub') : t('sec.gwSub')}
         help="Security (ISPS)"
         onScan={view === 'gangway' ? () => nav.navigate('Scan', { gangway: 1 }) : undefined}
         actions={
@@ -408,7 +413,7 @@ function SecuritySc() {
       />
       {current > 1 && level ? (
         <Text style={[styles.alert, { color: levelColor(current), borderColor: levelColor(current) }]}>
-          {`Security level ${current} since ${formatDateTime(level.since)} — ${LEVEL_TEXT[current]}. Identity document required for every visitor.`}
+          {t('sec.levelBanner', { n: current, when: formatDateTime(level.since), text: tk(`sec.lvl.${current}`) })}
         </Text>
       ) : null}
 
@@ -422,7 +427,7 @@ function SecuritySc() {
               onChangeText={onPortChange}
               onBlur={savePort}
               onSubmitEditing={savePort}
-              placeholder="Port ★"
+              placeholder={t('sec.portPh')}
               placeholderTextColor={COLORS.textLight}
             />
             {portSugg.length > 0 && (
@@ -436,7 +441,7 @@ function SecuritySc() {
               </View>
             )}
           </View>
-          <TextInput style={[styles.input, styles.portInput]} value={portF.berth} onChangeText={(v) => setPortF({ ...portF, berth: v })} onBlur={savePort} onSubmitEditing={savePort} placeholder="Berth / anchorage ★" placeholderTextColor={COLORS.textLight} />
+          <TextInput style={[styles.input, styles.portInput]} value={portF.berth} onChangeText={(v) => setPortF({ ...portF, berth: v })} onBlur={savePort} onSubmitEditing={savePort} placeholder={t('sec.berthPh')} placeholderTextColor={COLORS.textLight} />
           <Text style={styles.portDate}>{formatDate(today)}</Text>
         </View>
       ) : null}
@@ -444,7 +449,7 @@ function SecuritySc() {
         <View style={styles.chips}>
           {view === 'gangway' ? (
             <View style={styles.seg}>
-              {([['board', `On board · ${pob.total}`], ['log', 'Log']] as const).map(([k, l]) => (
+              {([['board', t('sec.onBoardN', { n: pob.total })], ['log', t('sec.log')]] as const).map(([k, l]) => (
                 <TouchableOpacity key={k} onPress={() => setSub(k)} style={[styles.segBtn, sub === k && styles.segOn]}>
                   <Text style={[styles.segText, sub === k && styles.segTextOn]}>{l}</Text>
                 </TouchableOpacity>
@@ -457,30 +462,30 @@ function SecuritySc() {
 
       {tab === 'board' ? (
         <>
-          <Text style={styles.pob}>{`${pob.total} persons on board — crew ${pob.crewAboard} of ${pob.crewTotal}${pob.paxTotal ? `, passengers ${pob.paxAboard} of ${pob.paxTotal}` : ''}${pob.visitors ? `, visitors ${pob.visitors}` : ''}`}</Text>
+          <Text style={styles.pob}>{`${t('sec.pob', { total: pob.total, a: pob.crewAboard, b: pob.crewTotal })}${pob.paxTotal ? t('sec.pobPax', { a: pob.paxAboard, b: pob.paxTotal }) : ''}${pob.visitors ? t('sec.pobVisitors', { n: pob.visitors }) : ''}`}</Text>
           <View style={styles.actions}>
-            <TouchableOpacity style={styles.btn} onPress={() => { if (!adding) setF({ ...blank, timeIn: hhmm() }); setAdding((v) => !v); }}><Text style={styles.btnText}>{adding ? 'Close' : '+ Visitor'}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btn} onPress={() => { if (!adding) setF({ ...blank, timeIn: hhmm() }); setAdding((v) => !v); }}><Text style={styles.btnText}>{adding ? t('common.close') : t('sec.addVisitor')}</Text></TouchableOpacity>
             <TouchableOpacity style={styles.btnOutline} onPress={() => nav.navigate('Scan', { gangway: 1 })}>
               <MciIcon name="qrcode-scan" size={16} color={COLORS.primary} />
-              <Text style={styles.btnOutlineText}>Scan card or pass</Text>
+              <Text style={styles.btnOutlineText}>{t('sec.scanCard')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.btnOutline} onPress={() => exportVisitorPasses(20, vessel).then(done, fail)}>
               <MciIcon name="badge-account-horizontal-outline" size={16} color={COLORS.primary} />
-              <Text style={styles.btnOutlineText}>Print visitor passes</Text>
+              <Text style={styles.btnOutlineText}>{t('sec.printPasses')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.btnOutline} onPress={() => exportCrewCards(people, vessel).then(done, fail)}>
               <MciIcon name="card-account-details-outline" size={16} color={COLORS.primary} />
-              <Text style={styles.btnOutlineText}>Print crew cards</Text>
+              <Text style={styles.btnOutlineText}>{t('sec.printCrewCards')}</Text>
             </TouchableOpacity>
             {/* For a plastic card printer — CR80, photo, both sides (17 Oct 2026). */}
             <TouchableOpacity style={styles.btnOutline} onPress={() => void loadCrewPhotos().then((ph) => exportIdCards(people.map((c) => ({ id: c.id, name: c.name, rank: c.rank, cabin: c.cabin, photo: ph[c.id] })), vessel)).then(done, fail)}>
               <MciIcon name="card-account-details-star-outline" size={16} color={COLORS.primary} />
-              <Text style={styles.btnOutlineText}>ID cards — card printer (CR80)</Text>
+              <Text style={styles.btnOutlineText}>{t('sec.idCards')}</Text>
             </TouchableOpacity>
             {Platform.OS === 'ios' || Platform.OS === 'android' ? (
               <TouchableOpacity style={styles.btnOutline} onPress={toXprinter}>
                 <MciIcon name="bluetooth" size={16} color={COLORS.primary} />
-                <Text style={styles.btnOutlineText}>Print to Xprinter</Text>
+                <Text style={styles.btnOutlineText}>{t('lbl.toXprinter')}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -489,12 +494,12 @@ function SecuritySc() {
           {adding ? (
             <Card>
               <View style={styles.pair}>
-                <TextInput style={styles.input} value={f.name} onChangeText={(v) => setF({ ...f, name: v })} placeholder="Full name ★" placeholderTextColor={COLORS.textLight} />
+                <TextInput style={styles.input} value={f.name} onChangeText={(v) => setF({ ...f, name: v })} placeholder={t('sec.fullName')} placeholderTextColor={COLORS.textLight} />
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: SIZES.xs }}>
-                  <Text style={styles.sub}>{`${formatDate(today)} · Time in ★`}</Text>
+                  <Text style={styles.sub}>{t('sec.dateTimeIn', { date: formatDate(today) })}</Text>
                   <TextInput style={[styles.input, { flex: 0, minWidth: 80, width: 80, marginTop: 0, textAlign: 'center' }]} value={f.timeIn} onChangeText={(v) => setF({ ...f, timeIn: v })} placeholder="hh:mm" placeholderTextColor={COLORS.textLight} />
                 </View>
-                <TextInput style={styles.input} value={f.company} onChangeText={(v) => setF({ ...f, company: v })} placeholder="Company" placeholderTextColor={COLORS.textLight} />
+                <TextInput style={styles.input} value={f.company} onChangeText={(v) => setF({ ...f, company: v })} placeholder={t('sec.company')} placeholderTextColor={COLORS.textLight} />
               </View>
               {known.length ? (
                 <View style={styles.chips}>
@@ -505,24 +510,24 @@ function SecuritySc() {
                   ))}
                 </View>
               ) : null}
-              <TextInput style={styles.input} value={f.purpose} onChangeText={(v) => setF({ ...f, purpose: v })} placeholder="Purpose of the visit ★" placeholderTextColor={COLORS.textLight} />
+              <TextInput style={styles.input} value={f.purpose} onChangeText={(v) => setF({ ...f, purpose: v })} placeholder={t('sec.purposePh')} placeholderTextColor={COLORS.textLight} />
               <View style={styles.pair}>
-                <Dropdown caption="ID" value={f.idType} onChange={(v) => setF({ ...f, idType: v })} options={ID_TYPES.map((t) => ({ value: t, label: t }))} style={{ flex: 1, minWidth: 180, marginTop: SIZES.xs }} />
-                <TextInput style={styles.input} value={f.idNo} onChangeText={(v) => setF({ ...f, idNo: v })} placeholder={`Document No.${current >= 2 ? ' ★' : ''}`} placeholderTextColor={COLORS.textLight} />
-                <TextInput style={styles.input} value={f.passNo} onChangeText={(v) => setF({ ...f, passNo: v })} placeholder="Visitor pass No." placeholderTextColor={COLORS.textLight} />
+                <Dropdown caption={t('sec.idCaption')} value={f.idType} onChange={(v) => setF({ ...f, idType: v })} options={ID_TYPES.map((x) => ({ value: x, label: idName(x) }))} style={{ flex: 1, minWidth: 180, marginTop: SIZES.xs }} />
+                <TextInput style={styles.input} value={f.idNo} onChangeText={(v) => setF({ ...f, idNo: v })} placeholder={`${t('sec.docNo')}${current >= 2 ? ' ★' : ''}`} placeholderTextColor={COLORS.textLight} />
+                <TextInput style={styles.input} value={f.passNo} onChangeText={(v) => setF({ ...f, passNo: v })} placeholder={t('sec.passNoPh')} placeholderTextColor={COLORS.textLight} />
               </View>
               <View style={styles.pair}>
-                <Dropdown caption="HOST" value={f.host} onChange={(v) => setF({ ...f, host: v })} options={[{ value: '', label: '—' }, ...people.map((p) => ({ value: p.name, label: p.name }))]} style={{ flex: 1, minWidth: 180, marginTop: SIZES.xs }} />
-                <TextInput style={[styles.input, { flex: 2 }]} value={f.remarks} onChangeText={(v) => setF({ ...f, remarks: v })} placeholder="Remarks — tools, bags searched, areas allowed" placeholderTextColor={COLORS.textLight} />
+                <Dropdown caption={t('sec.hostCaption')} value={f.host} onChange={(v) => setF({ ...f, host: v })} options={[{ value: '', label: '—' }, ...people.map((p) => ({ value: p.name, label: p.name }))]} style={{ flex: 1, minWidth: 180, marginTop: SIZES.xs }} />
+                <TextInput style={[styles.input, { flex: 2 }]} value={f.remarks} onChangeText={(v) => setF({ ...f, remarks: v })} placeholder={t('sec.remarksPh')} placeholderTextColor={COLORS.textLight} />
               </View>
               <View style={[styles.pair, { alignItems: 'center', marginTop: SIZES.sm }]}>
                 {f.photo ? <Image source={{ uri: f.photo }} style={styles.thumbBig} /> : null}
-                <TouchableOpacity style={styles.small} onPress={() => void takePhoto()}><Text style={styles.smallText}>{f.photo ? 'Retake photo' : '📷 Photo'}</Text></TouchableOpacity>
-                {f.photo ? <TouchableOpacity onPress={() => setF({ ...f, photo: '' })}><Text style={[styles.smallText, { color: COLORS.danger }]}>Remove</Text></TouchableOpacity> : null}
-                <Text style={[styles.sub, { flex: 1, minWidth: 160 }]}>{`So the crew can check who holds the pass. Kept ${VISITOR_PHOTO_DAYS} days after the visit — tell the visitor.`}</Text>
+                <TouchableOpacity style={styles.small} onPress={() => void takePhoto()}><Text style={styles.smallText}>{f.photo ? t('sec.retake') : t('sec.takePhoto')}</Text></TouchableOpacity>
+                {f.photo ? <TouchableOpacity onPress={() => setF({ ...f, photo: '' })}><Text style={[styles.smallText, { color: COLORS.danger }]}>{t('common.remove')}</Text></TouchableOpacity> : null}
+                <Text style={[styles.sub, { flex: 1, minWidth: 160 }]}>{t('sec.photoNote', { n: VISITOR_PHOTO_DAYS })}</Text>
               </View>
               <SignaturePad value={f.signature} onChange={setSig} />
-              <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }]} onPress={() => void signOn()}><Text style={styles.btnText}>Sign on</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }]} onPress={() => void signOn()}><Text style={styles.btnText}>{t('sec.signOn')}</Text></TouchableOpacity>
             </Card>
           ) : null}
 
@@ -533,48 +538,48 @@ function SecuritySc() {
             return (
               <Card>
                 <View style={{ flexDirection: 'row', gap: SIZES.md, flexWrap: 'wrap' }}>
-                  {v.photo ? <Image source={{ uri: v.photo }} style={styles.portrait} /> : <View style={[styles.portrait, { alignItems: 'center', justifyContent: 'center' }]}><MciIcon name="account" size={64} color={COLORS.textLight} /><Text style={styles.sub}>No photo</Text></View>}
+                  {v.photo ? <Image source={{ uri: v.photo }} style={styles.portrait} /> : <View style={[styles.portrait, { alignItems: 'center', justifyContent: 'center' }]}><MciIcon name="account" size={64} color={COLORS.textLight} /><Text style={styles.sub}>{t('sec.noPhoto')}</Text></View>}
                   <View style={{ flex: 1, minWidth: 180 }}>
-                    <Text style={[styles.sub, { color: aboard ? COLORS.success : COLORS.danger, fontWeight: '800' }]}>{aboard ? `ON BOARD · pass ${v.passNo ?? '—'}` : `SIGNED OFF ${v.dateOut ? `${formatDate(v.dateOut)} ` : ''}${v.timeOut}`}</Text>
+                    <Text style={[styles.sub, { color: aboard ? COLORS.success : COLORS.danger, fontWeight: '800' }]}>{aboard ? t('sec.onBoardPass', { pass: v.passNo ?? '—' }) : t('sec.signedOff', { when: `${v.dateOut ? `${formatDate(v.dateOut)} ` : ''}${v.timeOut}` })}</Text>
                     <Text style={[styles.name, { fontSize: 20 }]}>{v.name}</Text>
                     {v.company ? <Text style={styles.name}>{v.company}</Text> : null}
                     <Text style={styles.sub}>{v.purpose}</Text>
-                    <Text style={styles.sub}>{[`in ${v.date !== today ? `${formatDate(v.date)} ` : ''}${v.timeIn}`, v.host ? `visiting ${v.host}` : null, `signed on by ${v.inBy}`].filter(Boolean).join(' · ')}</Text>
-                    {v.idNo ? <Text style={styles.sub}>{`${v.idType ?? 'ID'} ${v.idNo}`}</Text> : null}
+                    <Text style={styles.sub}>{[t('sec.in', { when: `${v.date !== today ? `${formatDate(v.date)} ` : ''}${v.timeIn}` }), v.host ? t('sec.visiting', { host: v.host }) : null, t('sec.signedOnBy', { name: v.inBy })].filter(Boolean).join(' · ')}</Text>
+                    {v.idNo ? <Text style={styles.sub}>{`${v.idType ? idName(v.idType) : t('sec.idCaption')} ${v.idNo}`}</Text> : null}
                     {v.remarks ? <Text style={styles.sub}>{v.remarks}</Text> : null}
                   </View>
                 </View>
                 <View style={[styles.pair, { marginTop: SIZES.md }]}>
                   {aboard ? (
-                    <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.warning }]} onPress={() => { void signOff(v, hhmm()).then(() => setIdent(null)); }}><Text style={styles.btnText}>Sign off now — leaving the vessel</Text></TouchableOpacity>
+                    <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.warning }]} onPress={() => { void signOff(v, hhmm()).then(() => setIdent(null)); }}><Text style={styles.btnText}>{t('sec.signOffNow')}</Text></TouchableOpacity>
                   ) : null}
-                  <TouchableOpacity onPress={() => setIdent(null)}><Text style={styles.smallText}>Close</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => setIdent(null)}><Text style={styles.smallText}>{t('common.close')}</Text></TouchableOpacity>
                 </View>
               </Card>
             );
           })()}
 
-          <Label>{`Visitors on board (${onBoard.length})`}</Label>
+          <Label>{t('sec.visitorsOnBoard', { n: onBoard.length })}</Label>
           {onBoard.map((v) => (
             <View key={v.id} style={[styles.row, { borderLeftColor: COLORS.warning }]}>
               {v.photo ? <TouchableOpacity onPress={() => setIdent(v.id)}><Image source={{ uri: v.photo }} style={styles.thumb} /></TouchableOpacity> : null}
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{v.company ? `${v.name} · ${v.company}` : v.name}</Text>
-                <Text style={styles.sub}>{[`in ${v.date !== today ? `${formatDate(v.date)} ` : ''}${v.timeIn}`, v.purpose, v.passNo ? `pass ${v.passNo}` : null, v.host ? `with ${v.host}` : null].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.sub}>{[t('sec.in', { when: `${v.date !== today ? `${formatDate(v.date)} ` : ''}${v.timeIn}` }), v.purpose, v.passNo ? t('sec.pass', { n: v.passNo }) : null, v.host ? t('sec.with', { host: v.host }) : null].filter(Boolean).join(' · ')}</Text>
               </View>
               {leaving?.id === v.id ? (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <TextInput style={[styles.input, { flex: 0, minWidth: 80, width: 80, marginTop: 0, textAlign: 'center' }]} value={leaving.time} onChangeText={(t) => setLeaving({ ...leaving, time: t })} placeholder="hh:mm" placeholderTextColor={COLORS.textLight} />
-                  <TouchableOpacity style={[styles.small, { backgroundColor: COLORS.primary }]} onPress={() => void signOff(v, leaving.time)}><Text style={[styles.smallText, { color: COLORS.textWhite }]}>Time out ✓</Text></TouchableOpacity>
+                  <TouchableOpacity style={[styles.small, { backgroundColor: COLORS.primary }]} onPress={() => void signOff(v, leaving.time)}><Text style={[styles.smallText, { color: COLORS.textWhite }]}>{t('sec.timeOutOk')}</Text></TouchableOpacity>
                 </View>
               ) : (
-                <TouchableOpacity style={styles.small} onPress={() => setLeaving({ id: v.id, time: hhmm() })}><Text style={styles.smallText}>Sign off</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.small} onPress={() => setLeaving({ id: v.id, time: hhmm() })}><Text style={styles.smallText}>{t('sec.signOff')}</Text></TouchableOpacity>
               )}
             </View>
           ))}
-          {!onBoard.length ? <Text style={styles.sub}>No visitors on board.</Text> : null}
+          {!onBoard.length ? <Text style={styles.sub}>{t('sec.noVisitorsOnBoard')}</Text> : null}
 
-          <Label>{`Crew (${pob.crewAboard} aboard${pob.ashore.length ? `, ${pob.ashore.length} ashore` : ''})`}</Label>
+          <Label>{pob.ashore.length ? t('sec.crewHeadAshore', { a: pob.crewAboard, b: pob.ashore.length }) : t('sec.crewHead', { a: pob.crewAboard })}</Label>
           {people.map((c) => {
             const away = isAshore(c.id, last);
             const m = last.get(c.id);
@@ -582,13 +587,13 @@ function SecuritySc() {
             return (
               <View key={c.id} style={[styles.row, { borderLeftColor: away ? COLORS.textLight : COLORS.success }]}>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.name, away && { color: COLORS.textLight }]}>{[c.name, c.rank, c.cabin ? `cabin ${c.cabin}` : null].filter(Boolean).join(' · ')}</Text>
-                  <Text style={styles.sub}>{away ? `ashore since ${when}` : m ? `aboard since ${when}` : 'aboard'}</Text>
+                  <Text style={[styles.name, away && { color: COLORS.textLight }]}>{[c.name, c.rank, c.cabin ? t('sec.cabin', { n: c.cabin }) : null].filter(Boolean).join(' · ')}</Text>
+                  <Text style={styles.sub}>{away ? t('sec.ashoreSince', { when }) : m ? t('sec.aboardSince', { when }) : t('sec.aboard')}</Text>
                 </View>
                 {/* The button shows where the person IS — on board green, ashore yellow — and a tap changes it (13 Oct 2026: "write the current state on the button"). */}
-                <TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: away ? COLORS.warning : COLORS.success, borderColor: away ? COLORS.warning : COLORS.success }]} onPress={() => void moveCrew(c.id)} accessibilityLabel={`${c.name}: ${away ? 'ashore' : 'on board'} — tap to change`}>
+                <TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: away ? COLORS.warning : COLORS.success, borderColor: away ? COLORS.warning : COLORS.success }]} onPress={() => void moveCrew(c.id)} accessibilityLabel={t('sec.tapToChange', { name: c.name, state: away ? t('sec.stAshore') : t('sec.stOnBoard') })}>
                   <MciIcon name="swap-horizontal" size={14} color={COLORS.textWhite} />
-                <Text style={[styles.smallText, { color: COLORS.textWhite }]}>{away ? 'Ashore' : 'On board'}</Text>
+                <Text style={[styles.smallText, { color: COLORS.textWhite }]}>{away ? t('pax.ashore') : t('pax.onBoard')}</Text>
                 </TouchableOpacity>
               </View>
             );
@@ -597,8 +602,8 @@ function SecuritySc() {
           {paxOn ? (
             <>
               <View style={[styles.row, { borderLeftWidth: 0, paddingLeft: 0, alignItems: 'center' }]}>
-                <View style={{ flex: 1 }}><Label>{`Passengers (${pob.paxAboard} aboard${pob.paxAshore.length ? `, ${pob.paxAshore.length} ashore` : ''})`}</Label></View>
-                <TouchableOpacity onPress={() => nav.navigate('Passengers')}><Text style={styles.btnOutlineText}>Passenger list ›</Text></TouchableOpacity>
+                <View style={{ flex: 1 }}><Label>{pob.paxAshore.length ? t('sec.paxHeadAshore', { a: pob.paxAboard, b: pob.paxAshore.length }) : t('sec.paxHead', { a: pob.paxAboard })}</Label></View>
+                <TouchableOpacity onPress={() => nav.navigate('Passengers')}><Text style={styles.btnOutlineText}>{t('sec.paxList')}</Text></TouchableOpacity>
               </View>
               {guests.map((c) => {
                 const away = isAshore(c.id, last);
@@ -607,17 +612,17 @@ function SecuritySc() {
                 return (
                   <View key={c.id} style={[styles.row, { borderLeftColor: away ? COLORS.textLight : COLORS.success }]}>
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.name, away && { color: COLORS.textLight }]}>{c.cabin ? `${c.name} · cabin ${c.cabin}` : c.name}</Text>
-                      <Text style={styles.sub}>{away ? `ashore since ${when}` : m ? `aboard since ${when}` : 'aboard'}</Text>
+                      <Text style={[styles.name, away && { color: COLORS.textLight }]}>{c.cabin ? `${c.name} · ${t('sec.cabin', { n: c.cabin })}` : c.name}</Text>
+                      <Text style={styles.sub}>{away ? t('sec.ashoreSince', { when }) : m ? t('sec.aboardSince', { when }) : t('sec.aboard')}</Text>
                     </View>
-                    <TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: away ? COLORS.warning : COLORS.success, borderColor: away ? COLORS.warning : COLORS.success }]} onPress={() => void moveCrew(c.id)} accessibilityLabel={`${c.name}: ${away ? 'ashore' : 'on board'} — tap to change`}>
+                    <TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: away ? COLORS.warning : COLORS.success, borderColor: away ? COLORS.warning : COLORS.success }]} onPress={() => void moveCrew(c.id)} accessibilityLabel={t('sec.tapToChange', { name: c.name, state: away ? t('sec.stAshore') : t('sec.stOnBoard') })}>
                       <MciIcon name="swap-horizontal" size={14} color={COLORS.textWhite} />
-                <Text style={[styles.smallText, { color: COLORS.textWhite }]}>{away ? 'Ashore' : 'On board'}</Text>
+                <Text style={[styles.smallText, { color: COLORS.textWhite }]}>{away ? t('pax.ashore') : t('pax.onBoard')}</Text>
                     </TouchableOpacity>
                   </View>
                 );
               })}
-              {!guests.length ? <Text style={styles.sub}>No passengers on board.</Text> : null}
+              {!guests.length ? <Text style={styles.sub}>{t('sec.noPax')}</Text> : null}
             </>
           ) : null}
         </>
@@ -629,20 +634,20 @@ function SecuritySc() {
             <TouchableOpacity onPress={() => shift(1)} disabled={atEnd} hitSlop={10}>
               <MciIcon name="chevron-right" size={26} color={atEnd ? COLORS.border : COLORS.primary} />
             </TouchableOpacity>
-            <Dropdown caption="SHOW" value={byMonth ? 'm' : 'd'} onChange={(v) => setByMonth(v === 'm')} options={[{ value: 'd', label: 'Day' }, { value: 'm', label: 'Month' }]} style={{ minWidth: 150 }} />
+            <Dropdown caption={t('sec.show')} value={byMonth ? 'm' : 'd'} onChange={(v) => setByMonth(v === 'm')} options={[{ value: 'd', label: t('sec.day') }, { value: 'm', label: t('sec.month') }]} style={{ minWidth: 150 }} />
             <TouchableOpacity style={styles.btnOutline} onPress={() => exportVisitorPdf(latestVersions(allVisitors), crewMoves, period, vessel).then(done, fail)}><Text style={styles.btnOutlineText}>PDF</Text></TouchableOpacity>
             <TouchableOpacity style={styles.btnOutline} onPress={() => exportVisitorExcel(latestVersions(allVisitors), crewMoves, period, vessel).then(done, fail)}><Text style={styles.btnOutlineText}>Excel</Text></TouchableOpacity>
           </View>
           {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{`✓ ${saved}`}</Text> : null}
 
-          <Label>{`Visitors (${book.length})`}</Label>
+          <Label>{t('sec.visitorsN', { n: book.length })}</Label>
           {book.map((v, i) => (
             <View key={v.id} style={[styles.row, v.cancelled && { opacity: 0.6 }]}>
               <Text style={styles.no}>{i + 1}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.name, v.cancelled && { textDecorationLine: 'line-through' }]}>{v.company ? `${v.name} · ${v.company}` : v.name}</Text>
                 <Text style={styles.sub}>
-                  {[byMonth ? formatDate(v.date) : null, [v.port, v.berth].filter(Boolean).join(' / ') || null, `${v.timeIn} → ${v.timeOut ?? 'on board'}`, v.purpose, v.idNo ? `${v.idType} ${v.idNo}` : null, v.passNo ? `pass ${v.passNo}` : null, v.host ? `with ${v.host}` : null, `watch ${v.outBy && v.outBy !== v.inBy ? `${v.inBy} / ${v.outBy}` : v.inBy}`].filter(Boolean).join(' · ')}
+                  {[byMonth ? formatDate(v.date) : null, [v.port, v.berth].filter(Boolean).join(' / ') || null, `${v.timeIn} → ${v.timeOut ?? t('sec.stOnBoard')}`, v.purpose, v.idNo ? `${v.idType ? idName(v.idType) : ''} ${v.idNo}`.trim() : null, v.passNo ? t('sec.pass', { n: v.passNo }) : null, v.host ? t('sec.with', { host: v.host }) : null, t('sec.watchBy', { names: v.outBy && v.outBy !== v.inBy ? `${v.inBy} / ${v.outBy}` : v.inBy })].filter(Boolean).join(' · ')}
                 </Text>
                 <AmendNote rec={v} all={allVisitors} summary={visitorLine} />
               </View>
@@ -650,53 +655,53 @@ function SecuritySc() {
               {!v.cancelled ? (
                 <AmendButtons
                   isMaster={isMaster}
-                  onEdit={() => amend.edit({ store: storage.VISITORS_KEY, record: v, what: `Visitor ${v.name}, ${formatDate(v.date)}`, fields: [{ key: 'name', label: 'Name' }, { key: 'company', label: 'Company' }, { key: 'purpose', label: 'Purpose' }, { key: 'idType', label: 'ID document' }, { key: 'idNo', label: 'Document No.' }, { key: 'passNo', label: 'Pass No.' }, { key: 'host', label: 'Host' }, { key: 'timeIn', label: 'Time in (hh:mm)' }, { key: 'timeOut', label: 'Time out (hh:mm)' }, { key: 'remarks', label: 'Remarks', kind: 'multiline' }] })}
+                  onEdit={() => amend.edit({ store: storage.VISITORS_KEY, record: v, what: `Visitor ${v.name}, ${formatDate(v.date)}`, fields: [{ key: 'name', label: t('sec.fName') }, { key: 'company', label: t('sec.company') }, { key: 'purpose', label: t('sec.fPurpose') }, { key: 'idType', label: t('sec.fIdDoc') }, { key: 'idNo', label: t('sec.docNo') }, { key: 'passNo', label: t('sec.fPassNo') }, { key: 'host', label: t('sec.fHost') }, { key: 'timeIn', label: t('sec.fTimeIn') }, { key: 'timeOut', label: t('sec.fTimeOut') }, { key: 'remarks', label: t('book.remarks'), kind: 'multiline' }] })}
                   onDelete={() => amend.remove({ store: storage.VISITORS_KEY, record: v, what: `Visitor ${v.name}, ${formatDate(v.date)}` })}
                 />
               ) : null}
             </View>
           ))}
-          {!book.length ? <Text style={styles.sub}>No visitors.</Text> : null}
+          {!book.length ? <Text style={styles.sub}>{t('sec.noVisitors')}</Text> : null}
 
-          <Label>{`Crew ashore / back aboard (${bookMoves.length})`}</Label>
+          <Label>{t('sec.movesN', { n: bookMoves.length })}</Label>
           {bookMoves.map((m: CrewMove) => (
             <Text key={m.id} style={styles.move}>
-              {`${byMonth ? `${formatDate(m.date)} ` : ''}${m.time}  ${m.name} — ${m.dir === 'ashore' ? 'ashore' : 'back aboard'} · ${m.via === 'qr' ? 'card' : m.by}`}
+              {`${byMonth ? `${formatDate(m.date)} ` : ''}${m.time}  ${m.name} — ${m.dir === 'ashore' ? t('sec.stAshore') : t('sec.backAboard')} · ${m.via === 'qr' ? t('sec.viaCard') : m.by}`}
             </Text>
           ))}
-          {!bookMoves.length ? <Text style={styles.sub}>No crew movements.</Text> : null}
+          {!bookMoves.length ? <Text style={styles.sub}>{t('sec.noMoves')}</Text> : null}
         </>
       ) : (
         <>
           <Text style={[styles.sub, drillLate && { color: COLORS.danger, fontWeight: '700' }]}>
-            {nextDue ? `Next drill ${drillLate ? 'overdue since' : 'by'} ${formatDate(nextDue)} — ISPS: at least every three months.` : 'No security drill recorded yet — ISPS: at least every three months.'}
+            {nextDue ? (drillLate ? t('sec.overdueSince', { date: formatDate(nextDue) }) : t('sec.nextBy', { date: formatDate(nextDue) })) : t('sec.noDrillYet')}
           </Text>
           <Card>
             <View style={styles.pair}>
-              <Dropdown caption="SCENARIO" value={SECURITY_SCENARIOS.includes(d.scenario) ? d.scenario : ''} onChange={(v) => setD({ ...d, scenario: v || SECURITY_SCENARIOS[0] })} options={[...SECURITY_SCENARIOS.map((x) => ({ value: x, label: x })), { value: '', label: 'Other…' }]} style={{ flex: 1, minWidth: 260, marginTop: SIZES.xs }} />
-              <TextInput style={[styles.input, { maxWidth: 140 }]} value={d.minutes} onChangeText={(v) => setD({ ...d, minutes: v })} placeholder="Minutes" placeholderTextColor={COLORS.textLight} keyboardType="number-pad" />
+              <Dropdown caption={t('sec.scenarioCaption')} value={SECURITY_SCENARIOS.includes(d.scenario) ? d.scenario : ''} onChange={(v) => setD({ ...d, scenario: v || SECURITY_SCENARIOS[0] })} options={[...SECURITY_SCENARIOS.map((x) => ({ value: x, label: x })), { value: '', label: t('sec.other') }]} style={{ flex: 1, minWidth: 260, marginTop: SIZES.xs }} />
+              <TextInput style={[styles.input, { maxWidth: 140 }]} value={d.minutes} onChangeText={(v) => setD({ ...d, minutes: v })} placeholder={t('sop.minutes')} placeholderTextColor={COLORS.textLight} keyboardType="number-pad" />
             </View>
-            <TextInput style={styles.input} value={SECURITY_SCENARIOS.includes(d.scenario) ? '' : d.scenario} onChangeText={(v) => setD({ ...d, scenario: v || SECURITY_SCENARIOS[0] })} placeholder="…or describe another scenario" placeholderTextColor={COLORS.textLight} />
-            <Text style={[styles.sub, { marginTop: SIZES.sm }]}>Who took part</Text>
+            <TextInput style={styles.input} value={SECURITY_SCENARIOS.includes(d.scenario) ? '' : d.scenario} onChangeText={(v) => setD({ ...d, scenario: v || SECURITY_SCENARIOS[0] })} placeholder={t('sec.otherScenario')} placeholderTextColor={COLORS.textLight} />
+            <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{t('sop.whoTook')}</Text>
             <View style={styles.chips}>
               {people.map((p) => <Chip key={p.id} on={d.team.includes(p.name)} label={p.name} onPress={() => setD({ ...d, team: d.team.includes(p.name) ? d.team.filter((n) => n !== p.name) : [...d.team, p.name] })} />)}
-              {people.length ? <Chip on={false} label={d.team.length === people.length ? 'None' : 'All'} onPress={() => setD({ ...d, team: d.team.length === people.length ? [] : people.map((p) => p.name) })} /> : null}
+              {people.length ? <Chip on={false} label={d.team.length === people.length ? t('rounds.none') : t('rounds.allBtn')} onPress={() => setD({ ...d, team: d.team.length === people.length ? [] : people.map((p) => p.name) })} /> : null}
             </View>
-            <TextInput style={styles.input} value={d.findings} onChangeText={(v) => setD({ ...d, findings: v })} placeholder="Areas searched, findings, what to improve" placeholderTextColor={COLORS.textLight} multiline />
-            <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }]} onPress={() => void saveDrill()}><Text style={styles.btnText}>Sign the drill</Text></TouchableOpacity>
+            <TextInput style={styles.input} value={d.findings} onChangeText={(v) => setD({ ...d, findings: v })} placeholder={t('sec.findingsPh')} placeholderTextColor={COLORS.textLight} multiline />
+            <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }]} onPress={() => void saveDrill()}><Text style={styles.btnText}>{t('sec.signDrill')}</Text></TouchableOpacity>
           </Card>
           {drillsShown.map((x) => (
             <View key={x.id} style={[styles.row, x.cancelled && { opacity: 0.6 }]}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.name, x.cancelled && { textDecorationLine: 'line-through' }]}>{x.scenario}</Text>
-                <Text style={styles.sub}>{[`${formatDate(x.date)} ${x.time ?? ''}`, `${x.participants.length} took part`, x.minutes ? `${x.minutes} min` : null, x.byRank ? `${x.by} (${x.byRank})` : x.by].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.sub}>{[`${formatDate(x.date)} ${x.time ?? ''}`, t('sec.tookPart', { n: x.participants.length }), x.minutes ? t('common.min', { n: x.minutes }) : null, x.byRank ? `${x.by} (${x.byRank})` : x.by].filter(Boolean).join(' · ')}</Text>
                 {x.findings ? <Text style={styles.sub}>{x.findings}</Text> : null}
-                <AmendNote rec={x} all={allDrills} summary={(p) => [p.scenario, formatDate(p.date), p.minutes ? `${p.minutes} min` : null, p.findings].filter(Boolean).join(' · ')} />
+                <AmendNote rec={x} all={allDrills} summary={(p) => [p.scenario, formatDate(p.date), p.minutes ? t('common.min', { n: p.minutes }) : null, p.findings].filter(Boolean).join(' · ')} />
               </View>
               {!x.cancelled ? (
                 <AmendButtons
                   isMaster={isMaster}
-                  onEdit={() => amend.edit({ store: storage.SECURITY_DRILLS_KEY, record: x, what: `Security drill ${formatDate(x.date)}`, fields: [{ key: 'scenario', label: 'Scenario' }, { key: 'minutes', label: 'Minutes', kind: 'number' }, { key: 'findings', label: 'Areas searched, findings', kind: 'multiline' }] })}
+                  onEdit={() => amend.edit({ store: storage.SECURITY_DRILLS_KEY, record: x, what: `Security drill ${formatDate(x.date)}`, fields: [{ key: 'scenario', label: t('sop.scenario') }, { key: 'minutes', label: t('sop.minutes'), kind: 'number' }, { key: 'findings', label: t('sec.fFindings'), kind: 'multiline' }] })}
                   onDelete={() => amend.remove({ store: storage.SECURITY_DRILLS_KEY, record: x, what: `Security drill ${formatDate(x.date)}` })}
                 />
               ) : null}

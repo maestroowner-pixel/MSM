@@ -18,7 +18,7 @@ import { isAboard, crewLabel } from '../types/crew';
 import { shareDeckEntry } from '../services/deckLogReport';
 import { SIZES, Palette } from '../theme';
 import {
-  DeckEntry, LatHem, LonHem, VISIBILITY_LABEL,
+  DeckEntry, LatHem, LonHem,
   WATCH_PERIODS, Visibility, WindDir,
 } from '../types/deckLog';
 import {
@@ -30,6 +30,7 @@ import { setActiveWatch, clearActiveWatch, drainPendingEvents } from '../service
 import { formatDate, formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
+import { t, tk, useT } from '../utils/i18n';
 
 // ─── Compact cell helpers (module-level so they don't reset focus) ────────────
 
@@ -95,6 +96,13 @@ function HemToggle({ value, onPress }: { value: string; onPress: () => void }) {
   );
 }
 
+// Labels from services/deckLog stay English there (PDF); the screen shows them translated.
+const perLabel = (p: string) => (p === 'noon' || p === 'other' || p === 'port' ? tk(`de.per.${p}`) : PERIOD_LABEL[p as keyof typeof PERIOD_LABEL] ?? p);
+const perShort = (p: string) => (p === 'noon' || p === 'other' || p === 'port' ? tk(`de.per.${p}`) : PERIOD_SHORT[p as keyof typeof PERIOD_SHORT] ?? p);
+const bftLabel = (n: number) => (BEAUFORT_LABEL[n] ? tk(`de.bft.${n}`) : String(n));
+const ssLabel = (n: number) => (SEA_STATE_LABEL[n] ? tk(`de.ss.${n}`) : String(n));
+const WX = ['Clear', 'Cloudy', 'Overcast', 'Rain', 'Drizzle', 'Fog', 'Mist', 'Snow', 'Thunder'];
+
 function DegSym() {
   const C = useTheme();
   return <Text style={{ color: C.textLight, fontSize: 13, alignSelf: 'center', paddingBottom: 1 }}>°</Text>;
@@ -108,11 +116,12 @@ function MinSym() {
 
 export default function DeckEntrySc() {
   const COLORS = useTheme();
+  useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
   const { deckLog, saveRow, crew, vessel } = useData();
-  const { signer, picker } = useSigner('WATCH OFFICER', { forceDropdown: true });
+  const { signer, picker } = useSigner(t('de.watchOfficer'), { forceDropdown: true });
   const confirmSign = useSignConfirm();
 
   const people = useMemo(() => crew.filter(isAboard), [crew]);
@@ -190,21 +199,21 @@ export default function DeckEntrySc() {
   const parseMin = (s: string) => { const n = parseFloat(s); if (isNaN(n)) return undefined; return (!s.includes('.') && n >= 100) ? n / 10 : n; };
 
   const sign = async () => {
-    if (!signer) return Alert.alert('No signer', 'Choose the watch officer signing this entry.');
+    if (!signer) return Alert.alert(t('sign.noSigner'), t('de.chooseOfficer'));
     if (saving) return;
 
     // Required fields check
     const missing: string[] = [];
-    if (!time.trim()) missing.push('Time');
-    if (!remarks.trim()) missing.push('Event / Remarks');
+    if (!time.trim()) missing.push(t('de.time'));
+    if (!remarks.trim()) missing.push(t('de.remarks'));
     if (missing.length > 0) {
       const ok = await new Promise<boolean>((resolve) => {
         Alert.alert(
-          'Not all fields filled',
-          `${missing.join(' and ')} ${missing.length === 1 ? 'is' : 'are'} empty. Save anyway?`,
+          t('de.notAllFilled'),
+          missing.length === 1 ? t('de.oneEmpty', { f: missing[0] }) : t('de.bothEmpty'),
           [
-            { text: 'Go back', style: 'cancel', onPress: () => resolve(false) },
-            { text: 'Save', onPress: () => resolve(true) },
+            { text: t('de.goBack'), style: 'cancel', onPress: () => resolve(false) },
+            { text: t('common.save'), onPress: () => resolve(true) },
           ],
         );
       });
@@ -259,7 +268,7 @@ export default function DeckEntrySc() {
       await saveRow(storage.DECK_LOG_KEY, entry);
       backToDeckLog();
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? String(e));
+      Alert.alert(t('common.error'), e?.message ?? String(e));
     } finally {
       setSaving(false);
     }
@@ -306,7 +315,7 @@ export default function DeckEntrySc() {
       await saveRow(storage.DECK_LOG_KEY, draft);
       backToDeckLog();
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? String(e));
+      Alert.alert(t('common.error'), e?.message ?? String(e));
     } finally {
       setDraftSaving(false);
     }
@@ -333,7 +342,7 @@ export default function DeckEntrySc() {
         updatedAt: Date.now(),
       });
     } catch (err: any) {
-      Alert.alert('Error', err?.message ?? String(err));
+      Alert.alert(t('common.error'), err?.message ?? String(err));
     } finally {
       setMasterSaving(false);
     }
@@ -356,88 +365,88 @@ export default function DeckEntrySc() {
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: SIZES.sm }}>
               <BackButton onPress={backToDeckLog} fav={false} />
               <TouchableOpacity
-                onPress={() => shareDeckEntry(e, vessel).catch((err) => Alert.alert('Error', err?.message ?? String(err)))}
+                onPress={() => shareDeckEntry(e, vessel).catch((err) => Alert.alert(t('common.error'), err?.message ?? String(err)))}
                 hitSlop={8}
                 style={{ marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 5,
                   backgroundColor: COLORS.primary + '22', borderRadius: 8, borderWidth: 1, borderColor: COLORS.primary,
                   paddingVertical: 5, paddingHorizontal: 10 }}
               >
                 <MciIcon name="share-outline" size={16} color={COLORS.primary} />
-                <Text style={{ fontSize: 11, fontWeight: '700', color: COLORS.primary }}>Share</Text>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: COLORS.primary }}>{t('de.share')}</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.titleText}>{PERIOD_LABEL[e.period]}</Text>
+            <Text style={styles.titleText}>{perLabel(e.period)}</Text>
             <Text style={styles.sub}>{formatDate(e.date)} · {e.time}</Text>
 
             {(e.latDeg !== undefined || e.lat) && (
               <>
-                <Text style={styles.sectionLbl}>Navigation</Text>
-                {e.latDeg !== undefined && row('Position', `${e.latDeg}°${e.latMin?.toFixed(1) ?? '0'}'${e.latHem ?? 'N'}  ${String(e.lonDeg ?? 0).padStart(3,'0')}°${e.lonMin?.toFixed(1) ?? '0'}'${e.lonHem ?? 'E'}`)}
-                {e.lat && !e.latDeg && row('Position', `${e.lat}  ${e.lon ?? ''}`)}
-                {e.distanceRun !== undefined && row('Dist log', `${e.distanceRun} nm`)}
-                {gyr !== undefined && row('Gyro', `${gyr}°T`)}
-                {e.courseMagnetic !== undefined && row('Magnetic', `${e.courseMagnetic}°`)}
-                {e.variation !== undefined && row('Variation', `${e.variation}°`)}
-                {e.deviation !== undefined && row('Deviation', `${e.deviation}°`)}
+                <Text style={styles.sectionLbl}>{t('de.navigation')}</Text>
+                {e.latDeg !== undefined && row(t('de.position'), `${e.latDeg}°${e.latMin?.toFixed(1) ?? '0'}'${e.latHem ?? 'N'}  ${String(e.lonDeg ?? 0).padStart(3,'0')}°${e.lonMin?.toFixed(1) ?? '0'}'${e.lonHem ?? 'E'}`)}
+                {e.lat && !e.latDeg && row(t('de.position'), `${e.lat}  ${e.lon ?? ''}`)}
+                {e.distanceRun !== undefined && row(t('de.distLog'), `${e.distanceRun} nm`)}
+                {gyr !== undefined && row(t('de.gyro'), `${gyr}°T`)}
+                {e.courseMagnetic !== undefined && row(t('de.magnetic'), `${e.courseMagnetic}°`)}
+                {e.variation !== undefined && row(t('de.variation'), `${e.variation}°`)}
+                {e.deviation !== undefined && row(t('de.deviation'), `${e.deviation}°`)}
               </>
             )}
             {(gyr !== undefined || e.distanceRun !== undefined) && !e.latDeg && !e.lat && (
               <>
-                <Text style={styles.sectionLbl}>Navigation</Text>
-                {e.distanceRun !== undefined && row('Dist log', `${e.distanceRun} nm`)}
-                {gyr !== undefined && row('Gyro', `${gyr}°T`)}
-                {e.courseMagnetic !== undefined && row('Magnetic', `${e.courseMagnetic}°`)}
-                {e.variation !== undefined && row('Variation', `${e.variation}°`)}
-                {e.deviation !== undefined && row('Deviation', `${e.deviation}°`)}
+                <Text style={styles.sectionLbl}>{t('de.navigation')}</Text>
+                {e.distanceRun !== undefined && row(t('de.distLog'), `${e.distanceRun} nm`)}
+                {gyr !== undefined && row(t('de.gyro'), `${gyr}°T`)}
+                {e.courseMagnetic !== undefined && row(t('de.magnetic'), `${e.courseMagnetic}°`)}
+                {e.variation !== undefined && row(t('de.variation'), `${e.variation}°`)}
+                {e.deviation !== undefined && row(t('de.deviation'), `${e.deviation}°`)}
               </>
             )}
             {(e.windDir || e.windBft !== undefined || e.seaState !== undefined || e.visibility || e.pressure !== undefined || e.tempAir !== undefined) && (
               <>
-                <Text style={styles.sectionLbl}>Weather</Text>
-                {e.windDir && row('Wind', `${e.windDir}${e.windBft !== undefined ? ' ' + BEAUFORT_LABEL[e.windBft] : ''}`)}
-                {e.seaState !== undefined && row('Sea state', SEA_STATE_LABEL[e.seaState])}
-                {e.visibility && row('Visibility', VISIBILITY_LABEL[e.visibility])}
-                {e.pressure !== undefined && row('Pressure', `${e.pressure} hPa`)}
-                {e.tempAir !== undefined && row('Air temp', `${e.tempAir}°C`)}
+                <Text style={styles.sectionLbl}>{t('de.weather')}</Text>
+                {e.windDir && row(t('de.wind'), `${e.windDir}${e.windBft !== undefined ? ' ' + bftLabel(e.windBft) : ''}`)}
+                {e.seaState !== undefined && row(t('de.seaState'), ssLabel(e.seaState))}
+                {e.visibility && row(t('de.visibility'), tk(`de.vis.${e.visibility}`))}
+                {e.pressure !== undefined && row(t('de.pressure'), `${e.pressure} hPa`)}
+                {e.tempAir !== undefined && row(t('de.airTemp'), `${e.tempAir}°C`)}
               </>
             )}
             {(e.speed !== undefined || e.rpm !== undefined) && (
               <>
-                <Text style={styles.sectionLbl}>Performance</Text>
-                {e.speed !== undefined && row('Speed', `${e.speed} kn`)}
-                {e.rpm !== undefined && row('ME RPM', String(e.rpm))}
+                <Text style={styles.sectionLbl}>{t('de.performance')}</Text>
+                {e.speed !== undefined && row(t('de.speed'), `${e.speed} kn`)}
+                {e.rpm !== undefined && row(t('de.meRpm'), String(e.rpm))}
               </>
             )}
             {!!e.remarks && (
               <>
-                <Text style={styles.sectionLbl}>Events / Remarks</Text>
+                <Text style={styles.sectionLbl}>{t('de.events')}</Text>
                 <Text style={styles.remarkText}>{e.remarks}</Text>
               </>
             )}
-            <Text style={styles.sectionLbl}>Signed by</Text>
-            {row('Name', e.by)}
-            {e.byRank ? row('Rank', e.byRank) : null}
+            <Text style={styles.sectionLbl}>{t('de.signedBy')}</Text>
+            {row(t('de.name'), e.by)}
+            {e.byRank ? row(t('de.rank'), e.byRank) : null}
             <Text style={styles.sub}>{formatDateTime(e.at)}</Text>
 
-            <Text style={styles.sectionLbl}>Master review</Text>
+            <Text style={styles.sectionLbl}>{t('de.masterReview')}</Text>
             {e.masterAt ? (
               <>
-                {row('Name', e.masterBy ?? '')}
-                {e.masterByRank ? row('Rank', e.masterByRank) : null}
+                {row(t('de.name'), e.masterBy ?? '')}
+                {e.masterByRank ? row(t('de.rank'), e.masterByRank) : null}
                 <Text style={styles.sub}>{formatDateTime(e.masterAt)}</Text>
               </>
             ) : (
               <View style={[styles.logCard, { marginTop: 4 }]}>
                 {people.length ? (
                   <Dropdown
-                    caption="MASTER / CAPTAIN"
+                    caption={t('de.masterCaption')}
                     value={masterPickedId}
                     onChange={setMasterPickedId}
-                    options={[{ value: '', label: 'Choose…' }, ...people.map((p) => ({ value: p.id, label: crewLabel(p) }))]}
+                    options={[{ value: '', label: t('common.choose') }, ...people.map((p) => ({ value: p.id, label: crewLabel(p) }))]}
                     style={{ maxWidth: 420 }}
                   />
                 ) : (
-                  <Text style={{ fontSize: 13, color: COLORS.textLight }}>No crew on board.</Text>
+                  <Text style={{ fontSize: 13, color: COLORS.textLight }}>{t('de.noCrew')}</Text>
                 )}
                 <TouchableOpacity
                   style={[styles.signBtn, { marginTop: SIZES.sm }, (!masterPickedId || masterSaving) && styles.signBtnDisabled]}
@@ -446,7 +455,7 @@ export default function DeckEntrySc() {
                   activeOpacity={0.8}
                 >
                   <MciIcon name="pen" size={16} color="#fff" />
-                  <Text style={styles.signText}>{masterSaving ? 'Saving…' : 'Endorse'}</Text>
+                  <Text style={styles.signText}>{masterSaving ? t('common.saving') : t('de.endorse')}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -465,7 +474,7 @@ export default function DeckEntrySc() {
 
           {/* ── Header: title + mode toggle + auto-track ── */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginBottom: SIZES.sm }}>
-            <Text style={[styles.titleText, { flex: 1, marginBottom: 0 }]}>New Watch Entry</Text>
+            <Text style={[styles.titleText, { flex: 1, marginBottom: 0 }]}>{t('de.newTitle')}</Text>
             {/* At Sea / In Port toggle */}
             <TouchableOpacity
               onPress={() => setPortMode((v) => !v)}
@@ -480,7 +489,7 @@ export default function DeckEntrySc() {
             >
               <MciIcon name={portMode ? 'anchor' : 'sail-boat'} size={15} color={portMode ? COLORS.warning : COLORS.primary} />
               <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.5, color: portMode ? COLORS.warning : COLORS.primary }}>
-                {portMode ? 'IN PORT' : 'AT SEA'}
+                {portMode ? t('de.inPort') : t('de.atSea')}
               </Text>
             </TouchableOpacity>
             {/* Auto-track (at sea only) */}
@@ -498,7 +507,7 @@ export default function DeckEntrySc() {
               >
                 <MciIcon name="radar" size={15} color={autoTrack ? COLORS.primary : COLORS.textLight} />
                 <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.5, color: autoTrack ? COLORS.primary : COLORS.textLight }}>
-                  {autoTrack ? 'LIVE' : 'AUTO'}
+                  {autoTrack ? t('de.live') : t('de.auto')}
                 </Text>
               </TouchableOpacity>
             )}
@@ -509,44 +518,44 @@ export default function DeckEntrySc() {
             <View style={styles.logCard}>
               <View style={styles.logRow}>
                 <View style={{ marginRight: 8 }}>
-                  <CellLabel text="DATE" />
-                  <CI value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" style={{ width: 112 }} />
+                  <CellLabel text={t('de.cDate')} />
+                  <CI value={date} onChangeText={setDate} placeholder={t('de.datePh')} style={{ width: 112 }} />
                 </View>
                 <View style={{ marginRight: 8, width: 104 }}>
-                  <CellLabel text="PERIOD" />
+                  <CellLabel text={t('de.cPeriod')} />
                   <Dropdown
                     caption=""
                     value={period}
-                    options={WATCH_PERIODS.filter((p) => p !== 'port').map((p) => ({ value: p, label: PERIOD_SHORT[p] }))}
+                    options={WATCH_PERIODS.filter((p) => p !== 'port').map((p) => ({ value: p, label: perShort(p) }))}
                     onChange={(v) => setPeriod(v as typeof period)}
                   />
                 </View>
                 <View style={{ marginRight: 8 }}>
-                  <CellLabel text="LOG nm" />
+                  <CellLabel text={t('de.cLog')} />
                   <CI value={distLog} onChangeText={setDistLog} keyboardType="decimal-pad" placeholder="48.0" style={{ width: 64 }} />
                 </View>
                 <View style={{ marginRight: 8 }}>
-                  <CellLabel text="GYRO °T" />
+                  <CellLabel text={t('de.cGyro')} />
                   <CI value={courseGyro} onChangeText={setCourseGyro} keyboardType="decimal-pad" placeholder="270" style={{ width: 64 }} />
                 </View>
                 <View style={{ marginRight: 8 }}>
-                  <CellLabel text="MAG °" />
+                  <CellLabel text={t('de.cMag')} />
                   <CI value={courseMag} onChangeText={setCourseMag} keyboardType="decimal-pad" placeholder="272" style={{ width: 64 }} />
                 </View>
                 <View style={{ marginRight: 8 }}>
-                  <CellLabel text="VAR °" />
+                  <CellLabel text={t('de.cVar')} />
                   <CI value={variation} onChangeText={setVariation} keyboardType="decimal-pad" placeholder="2" style={{ width: 52 }} />
                 </View>
                 <View style={{ marginRight: 8 }}>
-                  <CellLabel text="DEV °" />
+                  <CellLabel text={t('de.cDev')} />
                   <CI value={deviation} onChangeText={setDeviation} keyboardType="decimal-pad" placeholder="-1" style={{ width: 52 }} />
                 </View>
                 <View style={{ marginRight: 8 }}>
-                  <CellLabel text="PORT %" />
+                  <CellLabel text={t('de.cPort')} />
                   <CI value={engLoadPort} onChangeText={setEngLoadPort} keyboardType="decimal-pad" placeholder="85" style={{ width: 52 }} />
                 </View>
                 <View>
-                  <CellLabel text="STBD %" />
+                  <CellLabel text={t('de.cStbd')} />
                   <CI value={engLoadStbd} onChangeText={setEngLoadStbd} keyboardType="decimal-pad" placeholder="85" style={{ width: 52 }} />
                 </View>
               </View>
@@ -557,7 +566,7 @@ export default function DeckEntrySc() {
           <View style={[styles.logCard, { marginTop: portMode ? 0 : 6 }]}>
             <View style={[styles.logRow, { flexWrap: 'wrap', gap: 8 }]}>
               <View style={{ width: 96 }}>
-                <CellLabel text="WIND DIR" />
+                <CellLabel text={t('de.cWindDir')} />
                 <Dropdown
                   caption=""
                   value={windDir}
@@ -566,37 +575,37 @@ export default function DeckEntrySc() {
                 />
               </View>
               <View style={{ width: 80 }}>
-                <CellLabel text="BEAUFORT" />
+                <CellLabel text={t('de.cBeaufort')} />
                 <Dropdown
                   caption=""
                   value={windBft}
-                  options={[{ value: '', label: '—' }, ...Array.from({ length: 13 }, (_, i) => ({ value: String(i), label: BEAUFORT_LABEL[i], short: String(i) }))]}
+                  options={[{ value: '', label: '—' }, ...Array.from({ length: 13 }, (_, i) => ({ value: String(i), label: bftLabel(i), short: String(i) }))]}
                   onChange={setWindBft}
                 />
               </View>
               {!portMode && (
                 <View style={{ width: 80 }}>
-                  <CellLabel text="SEA STATE" />
+                  <CellLabel text={t('de.cSeaState')} />
                   <Dropdown
                     caption=""
                     value={seaState}
-                    options={[{ value: '', label: '—' }, ...Array.from({ length: 10 }, (_, i) => ({ value: String(i), label: SEA_STATE_LABEL[i], short: String(i) }))]}
+                    options={[{ value: '', label: '—' }, ...Array.from({ length: 10 }, (_, i) => ({ value: String(i), label: ssLabel(i), short: String(i) }))]}
                     onChange={setSeaState}
                   />
                 </View>
               )}
               {!portMode && (
                 <View style={{ width: 120 }}>
-                  <CellLabel text="VISIBILITY" />
+                  <CellLabel text={t('de.cVisibility')} />
                   <Dropdown
                     caption=""
                     value={visibility}
                     options={[
                       { value: '', label: '—' },
-                      { value: 'good', label: VISIBILITY_LABEL.good, short: 'Good' },
-                      { value: 'moderate', label: VISIBILITY_LABEL.moderate, short: 'Moderate' },
-                      { value: 'poor', label: VISIBILITY_LABEL.poor, short: 'Poor' },
-                      { value: 'fog', label: VISIBILITY_LABEL.fog, short: 'Fog' },
+                      { value: 'good', label: t('de.vis.good'), short: t('de.visS.good') },
+                      { value: 'moderate', label: t('de.vis.moderate'), short: t('de.visS.moderate') },
+                      { value: 'poor', label: t('de.vis.poor'), short: t('de.visS.poor') },
+                      { value: 'fog', label: t('de.vis.fog'), short: t('de.visS.fog') },
                     ]}
                     onChange={(v) => setVisibility(v as Visibility | '')}
                   />
@@ -604,42 +613,34 @@ export default function DeckEntrySc() {
               )}
               {portMode && (
                 <View style={{ width: 130 }}>
-                  <CellLabel text="CONDITIONS" />
+                  <CellLabel text={t('de.cConditions')} />
                   <Dropdown
                     caption=""
                     value={wxCondition}
                     options={[
                       { value: '', label: '—' },
-                      { value: 'Clear', label: 'Clear' },
-                      { value: 'Cloudy', label: 'Cloudy' },
-                      { value: 'Overcast', label: 'Overcast' },
-                      { value: 'Rain', label: 'Rain' },
-                      { value: 'Drizzle', label: 'Drizzle' },
-                      { value: 'Fog', label: 'Fog' },
-                      { value: 'Mist', label: 'Mist' },
-                      { value: 'Snow', label: 'Snow' },
-                      { value: 'Thunder', label: 'Thunder' },
+                      ...WX.map((w) => ({ value: w, label: tk(`de.wx.${w}`) })),
                     ]}
                     onChange={setWxCondition}
                   />
                 </View>
               )}
               <View>
-                <CellLabel text="AIR °C" />
+                <CellLabel text={t('de.cAir')} />
                 <CI value={tempAir} onChangeText={setTempAir} keyboardType="decimal-pad" placeholder="18" style={{ width: 60 }} />
               </View>
               {!portMode && (
                 <>
                   <View>
-                    <CellLabel text="PRES hPa" />
+                    <CellLabel text={t('de.cPres')} />
                     <CI value={pressure} onChangeText={setPressure} keyboardType="decimal-pad" placeholder="1013" style={{ width: 72 }} />
                   </View>
                   <View>
-                    <CellLabel text="SPD kn" />
+                    <CellLabel text={t('de.cSpd')} />
                     <CI value={speed} onChangeText={setSpeed} keyboardType="decimal-pad" placeholder="12.5" style={{ width: 64 }} />
                   </View>
                   <View>
-                    <CellLabel text="ME RPM" />
+                    <CellLabel text={t('de.cRpm')} />
                     <CI value={rpm} onChangeText={setRpm} keyboardType="decimal-pad" placeholder="105" style={{ width: 60 }} />
                   </View>
                 </>
@@ -651,19 +652,19 @@ export default function DeckEntrySc() {
           <View style={[styles.logCard, { marginTop: 6 }]}>
             <View style={[styles.logRow, { alignItems: 'flex-start', flexWrap: 'wrap' }]}>
               <View style={{ marginRight: 8 }}>
-                <CellLabel text="TIME" />
-                <CI value={time} onChangeText={setTime} placeholder="HH:MM" style={{ width: 66 }} />
+                <CellLabel text={t('de.cTime')} />
+                <CI value={time} onChangeText={setTime} placeholder={t('de.timePh')} style={{ width: 66 }} />
               </View>
               {portMode && (
                 <View style={{ marginRight: 8 }}>
-                  <CellLabel text="DATE" />
-                  <CI value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" style={{ width: 112 }} />
+                  <CellLabel text={t('de.cDate')} />
+                  <CI value={date} onChangeText={setDate} placeholder={t('de.datePh')} style={{ width: 112 }} />
                 </View>
               )}
               {!portMode && (
                 <>
                   <View style={{ marginRight: 10 }}>
-                    <CellLabel text="LAT" />
+                    <CellLabel text={t('de.cLat')} />
                     <View style={styles.coordRow}>
                       <CI value={latDeg} onChangeText={setLatDeg} keyboardType="number-pad" placeholder="55" maxLength={2} style={{ width: 42 }} />
                       <DegSym />
@@ -674,7 +675,7 @@ export default function DeckEntrySc() {
                     </View>
                   </View>
                   <View style={{ marginRight: 10 }}>
-                    <CellLabel text="LON" />
+                    <CellLabel text={t('de.cLon')} />
                     <View style={styles.coordRow}>
                       <CI value={lonDeg} onChangeText={setLonDeg} keyboardType="number-pad" placeholder="012" maxLength={3} style={{ width: 48 }} />
                       <DegSym />
@@ -687,13 +688,13 @@ export default function DeckEntrySc() {
                 </>
               )}
               <View style={{ flex: 1, minWidth: 160 }}>
-                <CellLabel text="EVENT / REMARKS *" />
+                <CellLabel text={t('de.cRemarks')} />
                 <CI
                   value={remarks}
                   onChangeText={setRemarks}
                   multiline
                   numberOfLines={portMode ? 4 : 3}
-                  placeholder={portMode ? 'Cargo operations, visitors, events…' : 'Altered course, passed vessel, safety events…'}
+                  placeholder={portMode ? t('de.portPh') : t('de.seaPh')}
                   style={{ minHeight: portMode ? 84 : 70, textAlignVertical: 'top' } as object}
                 />
               </View>
@@ -711,7 +712,7 @@ export default function DeckEntrySc() {
                 activeOpacity={0.8}
               >
                 <MciIcon name="content-save-outline" size={16} color={COLORS.text} />
-                <Text style={styles.saveText}>{draftSaving ? 'Saving…' : 'Save'}</Text>
+                <Text style={styles.saveText}>{draftSaving ? t('common.saving') : t('common.save')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.signBtn, { flex: 1 }, (!signer || saving) && styles.signBtnDisabled]}
@@ -720,7 +721,7 @@ export default function DeckEntrySc() {
                 activeOpacity={0.8}
               >
                 <MciIcon name="pen" size={16} color="#fff" />
-                <Text style={styles.signText}>{saving ? 'Saving…' : 'Sign'}</Text>
+                <Text style={styles.signText}>{saving ? t('common.saving') : t('common.sign')}</Text>
               </TouchableOpacity>
             </View>
           </View>

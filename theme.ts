@@ -1,7 +1,7 @@
 // ===================================
 // THEME CONFIGURATION
-// ISMpilot — Marine Safety Manager
-// Brand colours from the ISMpilot logo (8 Oct 2026): navy #0B2545, teal
+// ISM AI Pilot — Marine Safety Manager
+// Brand colours from the ISM AI Pilot logo (8 Oct 2026): navy #0B2545, teal
 // #13A89E, orange #F26B1D. Layout and tokens unchanged; only the values moved.
 // ===================================
 
@@ -11,9 +11,9 @@ import type { Group } from './types/equipment';
 
 export const COLORS = {
   // Primary Colors
-  primary: '#0B2545',      // ISMpilot navy — buttons, links, active tab
+  primary: '#0B2545',      // ISM AI Pilot navy — buttons, links, active tab
   primaryDark: '#071A31',
-  primaryLight: '#13A89E', // ISMpilot teal
+  primaryLight: '#13A89E', // ISM AI Pilot teal
 
   // Secondary Colors
   secondary: '#3498DB',
@@ -63,7 +63,7 @@ export const COLORS = {
   // Splash Screen
   splashBackground: '#0B2545',
   splashText: '#FFFFFF',
-  splashAccent: '#F26B1D', // ISMpilot orange (the logo's tick)
+  splashAccent: '#F26B1D', // ISM AI Pilot orange (the logo's tick)
 };
 
 export const SIZES = {

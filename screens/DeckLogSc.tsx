@@ -19,8 +19,10 @@ import { DeckEntry } from '../types/deckLog';
 import { PERIOD_LABEL, positionStr, sortDeckEntries, weatherSummary } from '../services/deckLog';
 import { shareDeckLogPage } from '../services/deckLogReport';
 import { seedDeckLog, clearDeckLog, seedInspectorVisit } from '../services/deckLogSeed';
+import { t, useT } from '../utils/i18n';
 
 export default function DeckLogSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -69,7 +71,7 @@ export default function DeckLogSc() {
             <Text style={styles.period}>{PERIOD_LABEL[item.period] ?? item.period}</Text>
             <View style={[styles.modeBadge, item.mode === 'port' ? styles.modeBadgePort : styles.modeBadgeSea]}>
               <Text style={[styles.modeText, item.mode === 'port' ? styles.modeTextPort : styles.modeTextSea]}>
-                {item.mode === 'port' ? 'In Port' : 'At Sea'}
+                {item.mode === 'port' ? t('dl.inPort') : t('dl.atSea')}
               </Text>
             </View>
           </View>
@@ -90,7 +92,7 @@ export default function DeckLogSc() {
             >
               <MciIcon name="paperclip" size={12} color={COLORS.primary} />
               <Text style={[styles.linkText, { color: COLORS.primary }]}>
-                {item.landingNo ?? item.attachmentName ?? 'Attached'}
+                {item.landingNo ?? item.attachmentName ?? t('dl.attached')}
               </Text>
             </TouchableOpacity>
           )}
@@ -99,7 +101,7 @@ export default function DeckLogSc() {
           {item.draft ? (
             <View style={styles.draftBadge}>
               <MciIcon name="pencil-outline" size={11} color={COLORS.textLight} />
-              <Text style={styles.draftText}>Unsigned</Text>
+              <Text style={styles.draftText}>{t('dl.unsigned')}</Text>
             </View>
           ) : (
             <>
@@ -120,12 +122,12 @@ export default function DeckLogSc() {
         {/* ── Header ── */}
         <View style={styles.header}>
           <MciIcon name="book-open-outline" size={20} color={COLORS.primary} />
-          <Text style={styles.headerTitle}>Deck Watch Log</Text>
+          <Text style={styles.headerTitle}>{t('dl.title')}</Text>
           <View style={{ marginLeft: 'auto', flexDirection: 'row', gap: SIZES.sm, alignItems: 'center' }}>
             {dayEntries.length > 0 && (
               <TouchableOpacity
                 hitSlop={8}
-                onPress={() => shareDeckLogPage(dayEntries, selectedDate, vessel).catch((e) => Alert.alert('Error', e?.message ?? String(e)))}
+                onPress={() => shareDeckLogPage(dayEntries, selectedDate, vessel).catch((e) => Alert.alert(t('common.error'), e?.message ?? String(e)))}
               >
                 <MciIcon name="share-outline" size={20} color={COLORS.textLight} />
               </TouchableOpacity>
@@ -184,14 +186,14 @@ export default function DeckLogSc() {
         {dayEntries.length === 0 ? (
           <View style={styles.empty}>
             <MciIcon name="book-outline" size={44} color={COLORS.textLight} />
-            <Text style={styles.emptyTitle}>No entries for this day</Text>
+            <Text style={styles.emptyTitle}>{t('dl.noneDay')}</Text>
             <TouchableOpacity
               style={styles.emptyBtn}
               onPress={() => nav.navigate('DeckEntry', {})}
               activeOpacity={0.8}
             >
               <MciIcon name="plus-circle-outline" size={18} color={COLORS.textWhite} />
-              <Text style={styles.emptyBtnText}>New watch entry</Text>
+              <Text style={styles.emptyBtnText}>{t('dl.new')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -208,7 +210,7 @@ export default function DeckLogSc() {
                 activeOpacity={0.75}
               >
                 <MciIcon name="plus-circle-outline" size={18} color={COLORS.primary} />
-                <Text style={styles.addRowText}>New watch entry</Text>
+                <Text style={styles.addRowText}>{t('dl.new')}</Text>
               </TouchableOpacity>
             )}
           />

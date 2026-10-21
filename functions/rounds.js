@@ -49,7 +49,7 @@ async function closeDuplicates(vessel) {
   for (const { round, keep } of todo) {
     await db.doc(`${ROOT}/${vessel}/rounds/${round.id}`).update({
       closedAt: now,
-      closedBy: 'ISMpilot (automatic)',
+      closedBy: 'ISM AI Pilot (automatic)',
       closeNote: `Duplicate of the round started ${stamp(keep.startedAt)} by ${keep.startedBy || '—'} — closed automatically; its inspections count in that round.`,
       updatedAt: now,
     });

@@ -41,8 +41,10 @@ import {
 } from '../constants/checklists';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
+import { t, tk, tn, useT } from '../utils/i18n';
 
 export default function ChecklistEditSc() {
+  useT();
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const route = useRoute<any>();
@@ -123,7 +125,7 @@ export default function ChecklistEditSc() {
   const onSave = async () => {
     const clean = lines.map((l) => ({ ...l, text: l.text.trim() })).filter((l) => l.text);
     if (!clean.length) {
-      Alert.alert('Nothing to ask', 'A checklist needs at least one line.');
+      Alert.alert(t('cle.nothing'), t('cle.needLine'));
       return;
     }
     const next: ChecklistTemplate = {
@@ -148,15 +150,15 @@ export default function ChecklistEditSc() {
 
   const onReset = () => {
     Alert.alert(
-      noStandard ? `Remove the ${PERIOD_LABEL[period].toLowerCase()} round?` : 'Use the standard checklist again?',
+      noStandard ? t('cle.removeQ', { period: tk(`period.${period}`).toLowerCase() }) : t('cle.standardQ'),
       (noStandard
-        ? 'This vessel added this round; removing it means it is no longer asked or reported. '
-        : 'This vessel’s wording is removed and the round goes back to the checklist the app ships. ') +
-        'Inspections already signed are untouched — each one carries the questions it was signed against.',
+        ? `${t('cle.removeBody')} `
+        : `${t('cle.standardBody')} `) +
+        t('cle.signedKept'),
       [
-        { text: 'Keep ours', style: 'cancel' },
+        { text: t('cle.keepOurs'), style: 'cancel' },
         {
-          text: noStandard ? 'Remove' : 'Use the standard',
+          text: noStandard ? t('common.remove') : t('cle.useStandard'),
           style: 'destructive',
           onPress: async () => {
             await removeTemplate(current.id);
@@ -172,12 +174,12 @@ export default function ChecklistEditSc() {
   return (
     <Screen>
       <ScreenTitle
-        title={meta?.label ?? 'Checklist'}
-        subtitle={`${PERIOD_LABEL[period]} round · ${lines.length} lines`}
+        title={meta?.label ?? t('cle.checklist')}
+        subtitle={`${tk(`round.p.${period}`)} · ${tn('n.line', lines.length)}`}
       />
 
       <Card>
-        <Label>Title</Label>
+        <Label>{t('dpt.fTitle')}</Label>
         <TextInput
           value={title}
           onChangeText={(v) => {
@@ -186,23 +188,19 @@ export default function ChecklistEditSc() {
           }}
           editable={canEdit}
           style={styles.input}
-          placeholder="Monthly check"
+          placeholder={t('cle.titlePh')}
           placeholderTextColor={COLORS.textLight}
         />
         <Text style={styles.note}>
           {adding
-            ? `A new ${PERIOD_LABEL[period].toLowerCase()} round for ${meta?.label ?? 'this category'}, ` +
-              'started from its existing checks. Remove or reword lines, then save — from then on it is ' +
-              'offered when inspecting and appears in the ' + PERIOD_LABEL[period].toLowerCase() + ' report.'
+            ? t('cle.newRound', { period: tk(`period.${period}`).toLowerCase(), cat: meta?.label ?? t('cle.thisCat') })
             : isOwn
-            ? 'This vessel wrote this checklist. Editing it changes what the next round asks; ' +
-              'rounds already signed keep the questions they were signed against.'
-            : 'This is the standard checklist. Saving any change makes a copy for this vessel — ' +
-              'the standard one stays available underneath.'}
+            ? t('cle.ours')
+            : t('cle.standard')}
         </Text>
       </Card>
 
-      <Label style={styles.linesLabel}>Lines</Label>
+      <Label style={styles.linesLabel}>{t('mo.lines')}</Label>
       <ScrollView keyboardShouldPersistTaps="handled">
         {lines.map((line, i) => (
           <View key={line.id} style={styles.lineRow}>
@@ -232,7 +230,7 @@ export default function ChecklistEditSc() {
               editable={canEdit}
               multiline
               style={[styles.input, styles.lineInput]}
-              placeholder="What is checked"
+              placeholder={t('cle.linePh')}
               placeholderTextColor={COLORS.textLight}
             />
             {canEdit ? (
@@ -246,7 +244,7 @@ export default function ChecklistEditSc() {
         {canEdit ? (
           <TouchableOpacity style={styles.addBtn} onPress={addLine}>
             <MciIcon name="plus" size={18} color={COLORS.primary} />
-            <Text style={styles.addBtnText}>Add a line</Text>
+            <Text style={styles.addBtnText}>{t('cle.addLine')}</Text>
           </TouchableOpacity>
         ) : null}
 
@@ -256,14 +254,14 @@ export default function ChecklistEditSc() {
             onPress={onSave}
             disabled={!dirty}
           >
-            <Text style={styles.saveBtnText}>Save for this vessel</Text>
+            <Text style={styles.saveBtnText}>{t('cle.save')}</Text>
           </TouchableOpacity>
         ) : null}
 
         {canEdit && isOwn ? (
           <TouchableOpacity style={styles.resetBtn} onPress={onReset}>
             <Text style={styles.resetBtnText}>
-              {noStandard ? `Remove this ${PERIOD_LABEL[period].toLowerCase()} round` : 'Use the standard checklist again'}
+              {noStandard ? t('cle.removeThis', { period: tk(`period.${period}`).toLowerCase() }) : t('cle.useStandardAgain')}
             </Text>
           </TouchableOpacity>
         ) : null}

@@ -128,7 +128,7 @@ function htmlPage({ name, flag, imo, callSign, expiry, byCat, openDefects, openN
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ISMpilot — ${name}</title>
+<title>ISM AI Pilot — ${name}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,sans-serif;background:#f8fafc;color:#0f172a;font-size:15px;line-height:1.5}
@@ -156,7 +156,7 @@ footer{padding:20px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;te
 </style>
 </head>
 <body>
-<header><p>ISMpilot · Compliance view</p></header>
+<header><p>ISM AI Pilot · Compliance view</p></header>
 <div class="vessel">
   <h1>${name}</h1>
   ${sub ? `<p>${sub}</p>` : ''}
@@ -171,14 +171,14 @@ footer{padding:20px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;te
 </table>
 ${defLine}${ncLine}
 <footer>
-  Read-only view · Generated ${dmy(today)} · Valid until ${dmy(expiry)} · ISMpilot by Kuka Soft
+  Read-only view · Generated ${dmy(today)} · Valid until ${dmy(expiry)} · ISM AI Pilot by Kuka Soft
 </footer>
 </body>
 </html>`;
 }
 
 function htmlError(msg) {
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ISMpilot</title><style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f8fafc;color:#64748b;text-align:center;padding:20px}p{max-width:320px;line-height:1.6}</style></head><body><p>${msg}</p></body></html>`;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ISM AI Pilot</title><style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f8fafc;color:#64748b;text-align:center;padding:20px}p{max-width:320px;line-height:1.6}</style></head><body><p>${msg}</p></body></html>`;
 }
 
 module.exports = {

@@ -33,11 +33,13 @@ import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
+import { t, t as tt, tn, useT } from '../utils/i18n';
 
 const hhmm = (t = Date.now()) => new Date(t).toTimeString().slice(0, 5);
 const KIND_ICON: Record<SearchKind, string> = { stowaway: 'account-search-outline', bomb: 'bomb' };
 
 export default function SearchesSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { searchPlans, searches, crew, vessel, saveRow } = useData();
@@ -67,17 +69,17 @@ export default function SearchesSc() {
   };
 
   const mark = async (s: SecuritySearch, areaId: string, result: 'clear' | 'found' | undefined) => {
-    if (result && !who) return Alert.alert('Who searched it?', 'Choose your name below.');
+    if (result && !who) return Alert.alert(t('srch.whoSearched'), t('pd.chooseName'));
     const k = `${s.id}:${areaId}`;
-    if (result === 'found' && !(notes[k] ?? '').trim()) return Alert.alert('Found', 'Write what was found and where — then press Found.');
+    if (result === 'found' && !(notes[k] ?? '').trim()) return Alert.alert(t('srch.found'), t('srch.foundNote'));
     const areas = s.areas.map((a) => (a.areaId !== areaId ? a : result ? { ...a, result, by: who, at: Date.now(), ...((notes[k] ?? '').trim() ? { note: notes[k].trim() } : {}) } : { areaId: a.areaId, name: a.name, ...(a.team ? { team: a.team } : {}) }));
     await saveRow(storage.SEARCHES_KEY, { ...s, areas });
-    if (result === 'found') Alert.alert('Report to the bridge now', s.kind === 'bomb' ? 'Do not touch it. Clear and close off the area; no radios or phones near it.' : 'Keep them in sight; do not approach alone.');
+    if (result === 'found') Alert.alert(t('srch.reportBridge'), s.kind === 'bomb' ? t('srch.bombDont') : t('srch.stowDont'));
   };
 
   const close = async (s: SecuritySearch) => {
-    if (!officer) return Alert.alert('Close the search', 'The SSO or the Master closes it.');
-    if (!signer) return Alert.alert('Who is signing?', 'Choose your name below.');
+    if (!officer) return Alert.alert(t('srch.closeQ'), t('srch.ssoCloses'));
+    if (!signer) return Alert.alert(t('sign.who'), t('pd.chooseName'));
     const left = s.areas.length - searchDone(s);
     const found = s.areas.filter((a) => a.result === 'found').length;
     const text = (outcome[s.id] ?? '').trim() || (found ? `${found} area${found === 1 ? '' : 's'} with findings — see the areas` : 'All areas searched — nothing found');
@@ -87,7 +89,7 @@ export default function SearchesSc() {
       await saveRow(storage.SEARCHES_KEY, { ...s, closed: { by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: Date.now(), ...(sig.proof ? { signedWith: sig.proof } : {}), outcome: text } });
       playSuccessSound();
     };
-    if (left) return Alert.alert('Areas not searched', `${left} area${left === 1 ? '' : 's'} not marked. Close the search anyway?`, [{ text: 'Cancel', style: 'cancel' }, { text: 'Close', onPress: () => void go() }]);
+    if (left) return Alert.alert(t('srch.notSearched'), t('srch.notMarked', { x: tn('n.area', left) }), [{ text: t('common.cancel'), style: 'cancel' }, { text: t('common.close'), onPress: () => void go() }]);
     await go();
   };
 
@@ -100,7 +102,7 @@ export default function SearchesSc() {
         { title: 'Areas', table: { head: ['Area', 'Team', 'Result', 'By', 'Time', 'Note'], rows: s.areas.map((a) => [a.name, a.team ?? '', a.result === 'found' ? 'FOUND' : a.result === 'clear' ? 'Clear' : 'not searched', a.by ?? '', a.at ? hhmm(a.at) : '', a.note ?? '']) } },
         { title: 'Signature', signatures: [{ role: 'Search led by (SSO / Master)', name: s.closed ? `${s.closed.by}${s.closed.byRank ? ` · ${s.closed.byRank}` : ''}` : '', detail: s.closed ? `${formatDate(new Date(s.closed.at).toISOString().slice(0, 10))} ${hhmm(s.closed.at)}` : '' }] },
       ],
-    }, `${SEARCH_LABEL[s.kind]} ${s.date}`, vessel).then((w) => typeof w === 'string' && setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`), (e) => Alert.alert('PDF', String(e?.message ?? e)));
+    }, `${SEARCH_LABEL[s.kind]} ${s.date}`, vessel).then((w) => typeof w === 'string' && setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w })), (e) => Alert.alert('PDF', String(e?.message ?? e)));
 
   // ---- plan ----
   const editPlan = draft ?? plan;
@@ -114,11 +116,11 @@ export default function SearchesSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Searches" subtitle="Stowaway and bomb searches — every area, by team" help="Security (ISPS)" />
+      <ScreenTitle title={t('srch.title')} subtitle={t('srch.sub')} help="Security (ISPS)" />
       <View style={styles.chips}>
         {(['search', 'plan'] as const).map((k) => (
           <TouchableOpacity key={k} style={[styles.chip, page === k && styles.chipOn]} onPress={() => setPage(k)}>
-            <Text style={[styles.chipText, page === k && styles.chipTextOn]}>{k === 'search' ? `Searches · ${open.length ? `${open.length} open` : closed.length}` : `Areas and teams · ${plan.areas.length}`}</Text>
+            <Text style={[styles.chipText, page === k && styles.chipTextOn]}>{k === 'search' ? `${t('srch.title')} · ${open.length ? t('srch.openN', { n: open.length }) : closed.length}` : t('srch.areasTeamsN', { n: plan.areas.length })}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -126,10 +128,10 @@ export default function SearchesSc() {
       {page === 'plan' ? (
         <>
           <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>Who searches where. A new search copies these areas with their teams.{officer ? '' : ' Kept by the SSO and the officers.'}</Text>
-          <Label>Teams</Label>
+          <Label>{t('srch.teams')}</Label>
           {editPlan.teams.map((t) => (
             <Card key={t.id}>
-              <TextInput style={[styles.input, { marginTop: 0, fontWeight: '700' }]} editable={officer} value={t.name} onChangeText={(v) => setDraft({ ...editPlan, teams: editPlan.teams.map((x) => (x.id === t.id ? { ...x, name: v } : x)) })} placeholder="Team name" placeholderTextColor={COLORS.textLight} />
+              <TextInput style={[styles.input, { marginTop: 0, fontWeight: '700' }]} editable={officer} value={t.name} onChangeText={(v) => setDraft({ ...editPlan, teams: editPlan.teams.map((x) => (x.id === t.id ? { ...x, name: v } : x)) })} placeholder={tt('srch.teamName')} placeholderTextColor={COLORS.textLight} />
               <View style={styles.chips}>
                 {people.map((p) => {
                   const on = t.members.includes(p.name);
@@ -139,29 +141,29 @@ export default function SearchesSc() {
                     </TouchableOpacity>
                   );
                 })}
-                {!people.length ? <Text style={styles.sub}>The crew list is empty.</Text> : null}
+                {!people.length ? <Text style={styles.sub}>{tt('cm.emptyCrew')}</Text> : null}
               </View>
               <Text style={styles.sub}>{`${editPlan.areas.filter((a) => a.teamId === t.id).length} areas`}</Text>
             </Card>
           ))}
-          {officer ? <TouchableOpacity onPress={() => setDraft({ ...editPlan, teams: [...editPlan.teams, { id: uid('tm'), name: `Team ${editPlan.teams.length + 1}`, members: [] }] })}><Text style={styles.link}>+ Team</Text></TouchableOpacity> : null}
+          {officer ? <TouchableOpacity onPress={() => setDraft({ ...editPlan, teams: [...editPlan.teams, { id: uid('tm'), name: `Team ${editPlan.teams.length + 1}`, members: [] }] })}><Text style={styles.link}>{`+ ${t('srch.team')}`}</Text></TouchableOpacity> : null}
 
-          <Label>Areas</Label>
+          <Label>{t('srch.areas')}</Label>
           {editPlan.areas.map((a) => (
             <View key={a.id} style={[styles.row, { marginVertical: 2, gap: SIZES.xs }]}>
-              <TextInput style={[styles.input, { flex: 2, minWidth: 200, marginTop: 0 }]} editable={officer} value={a.name} onChangeText={(v) => setArea(a.id, { name: v })} placeholder="Area" placeholderTextColor={COLORS.textLight} />
-              <Dropdown caption="TEAM" value={a.teamId ?? ''} onChange={(v: string) => officer && setArea(a.id, { teamId: v || undefined })} options={[{ value: '', label: '—' }, ...editPlan.teams.map((t) => ({ value: t.id, label: t.name }))]} style={{ flex: 1, minWidth: 160 }} />
-              <Dropdown caption="IN" value={a.only ?? ''} onChange={(v: string) => officer && setArea(a.id, { only: (v || undefined) as SearchKind | undefined })} options={[{ value: '', label: 'Both searches' }, { value: 'stowaway', label: 'Stowaway only' }, { value: 'bomb', label: 'Bomb only' }]} style={{ flex: 1, minWidth: 160 }} />
+              <TextInput style={[styles.input, { flex: 2, minWidth: 200, marginTop: 0 }]} editable={officer} value={a.name} onChangeText={(v) => setArea(a.id, { name: v })} placeholder={t('srch.area')} placeholderTextColor={COLORS.textLight} />
+              <Dropdown caption={t('srch.teamCap')} value={a.teamId ?? ''} onChange={(v: string) => officer && setArea(a.id, { teamId: v || undefined })} options={[{ value: '', label: '—' }, ...editPlan.teams.map((t) => ({ value: t.id, label: t.name }))]} style={{ flex: 1, minWidth: 160 }} />
+              <Dropdown caption={t('srch.inCap')} value={a.only ?? ''} onChange={(v: string) => officer && setArea(a.id, { only: (v || undefined) as SearchKind | undefined })} options={[{ value: '', label: t('srch.both') }, { value: 'stowaway', label: t('srch.stowOnly') }, { value: 'bomb', label: t('srch.bombOnly') }]} style={{ flex: 1, minWidth: 160 }} />
               {officer ? <TouchableOpacity onPress={() => setDraft({ ...editPlan, areas: editPlan.areas.filter((x) => x.id !== a.id) })} hitSlop={8} accessibilityLabel={`Remove area — ${a.name}`}><MciIcon name="delete-outline" size={20} color={COLORS.textLight} /></TouchableOpacity> : null}
             </View>
           ))}
           {officer ? (
             <View style={styles.row}>
-              <TouchableOpacity onPress={() => setDraft({ ...editPlan, areas: [...editPlan.areas, { id: uid('ar'), name: '', teamId: editPlan.teams[0]?.id }] })}><Text style={styles.link}>+ Area</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setDraft({ ...editPlan, areas: [...editPlan.areas, { id: uid('ar'), name: '', teamId: editPlan.teams[0]?.id }] })}><Text style={styles.link}>{`+ ${t('srch.area')}`}</Text></TouchableOpacity>
               {draft ? (
                 <>
-                  <TouchableOpacity style={styles.btn} onPress={() => void savePlan()}><Text style={styles.btnText}>Save the plan</Text></TouchableOpacity>
-                  <TouchableOpacity onPress={() => setDraft(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.btn} onPress={() => void savePlan()}><Text style={styles.btnText}>{t('srch.savePlan')}</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => setDraft(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
                 </>
               ) : null}
             </View>
@@ -174,7 +176,7 @@ export default function SearchesSc() {
               {(['stowaway', 'bomb'] as SearchKind[]).map((k) => (
                 <TouchableOpacity key={k} style={[styles.btn, { flexDirection: 'row', alignItems: 'center', gap: 6 }, k === 'bomb' && { backgroundColor: COLORS.danger }]} onPress={() => setStart({ kind: k, reason: k === 'stowaway' ? 'Before departure' : '' })}>
                   <MciIcon name={KIND_ICON[k]} size={16} color={COLORS.textWhite} />
-                  <Text style={styles.btnText}>{`Start a ${SEARCH_LABEL[k].toLowerCase()}`}</Text>
+                  <Text style={styles.btnText}>{k === 'bomb' ? t('srch.startBomb') : t('srch.startStow')}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -182,17 +184,17 @@ export default function SearchesSc() {
             <Card>
               <Label>{SEARCH_LABEL[start.kind]}</Label>
               {SEARCH_GUIDANCE[start.kind].map((g) => <Text key={g} style={styles.sub}>{`• ${g}`}</Text>)}
-              <TextInput style={styles.input} value={start.reason} onChangeText={(v) => setStart({ ...start, reason: v })} placeholder={start.kind === 'bomb' ? 'Why — threat by phone at 14:20, suspect bag found…' : 'Why — before departure from…'} placeholderTextColor={COLORS.textLight} />
+              <TextInput style={styles.input} value={start.reason} onChangeText={(v) => setStart({ ...start, reason: v })} placeholder={start.kind === 'bomb' ? t('srch.whyBomb') : t('srch.whyStow')} placeholderTextColor={COLORS.textLight} />
               <Text style={styles.sub}>{`${areasFor(plan, start.kind).length} areas, ${plan.teams.length} teams — from Areas and teams.`}</Text>
               <View style={styles.row}>
-                <TouchableOpacity style={styles.btn} onPress={() => void begin()}><Text style={styles.btnText}>Start</Text></TouchableOpacity>
-                <TouchableOpacity onPress={() => setStart(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.btn} onPress={() => void begin()}><Text style={styles.btnText}>{t('srch.start')}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setStart(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
               </View>
             </Card>
           )}
 
           {/* Who is ticking the areas on this phone — at the top, before the long list of areas. */}
-          {open.length && picker ? <View style={{ marginVertical: SIZES.sm }}><Text style={styles.sub}>Searching as</Text>{picker}</View> : null}
+          {open.length && picker ? <View style={{ marginVertical: SIZES.sm }}><Text style={styles.sub}>{t('srch.as')}</Text>{picker}</View> : null}
           {open.map((s) => {
             const teams = [...new Set(s.areas.map((a) => a.team ?? 'No team'))];
             const found = s.areas.filter((a) => a.result === 'found');
@@ -201,11 +203,11 @@ export default function SearchesSc() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm }}>
                   <MciIcon name={KIND_ICON[s.kind]} size={22} color={s.kind === 'bomb' ? COLORS.danger : COLORS.primary} />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.name}>{`${SEARCH_LABEL[s.kind]} — started ${s.time}`}</Text>
-                    <Text style={styles.sub}>{[s.reason, `${searchDone(s)} of ${s.areas.length} areas searched`].filter(Boolean).join(' · ')}</Text>
+                    <Text style={styles.name}>{`${SEARCH_LABEL[s.kind]} — ${t('srch.startedAt', { time: s.time })}`}</Text>
+                    <Text style={styles.sub}>{[s.reason, t('srch.progress', { k: searchDone(s), n: s.areas.length })].filter(Boolean).join(' · ')}</Text>
                   </View>
                 </View>
-                {found.length ? <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '800' }]}>{`FOUND: ${found.map((a) => `${a.name} — ${a.note ?? ''}`).join('; ')}`}</Text> : null}
+                {found.length ? <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '800' }]}>{`${t('srch.foundCaps')}: ${found.map((a) => `${a.name} — ${a.note ?? ''}`).join('; ')}`}</Text> : null}
                 {SEARCH_GUIDANCE[s.kind].slice(1, 4).map((g) => <Text key={g} style={styles.sub}>{`• ${g}`}</Text>)}
                 {teams.map((t) => {
                   const team = plan.teams.find((x) => x.name === t);
@@ -220,16 +222,16 @@ export default function SearchesSc() {
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, flexWrap: 'wrap' }}>
                               <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 200, minWidth: 0 }}>
                                 <Text style={styles.name}>{a.name}</Text>
-                                {a.result ? <Text style={[styles.sub, { color: c, fontWeight: '700' }]}>{`${a.result === 'clear' ? 'Clear' : 'FOUND'} · ${a.by ?? ''} ${a.at ? hhmm(a.at) : ''}${a.note ? ` · ${a.note}` : ''}`}</Text> : null}
+                                {a.result ? <Text style={[styles.sub, { color: c, fontWeight: '700' }]}>{`${a.result === 'clear' ? tt('srch.clear') : tt('srch.foundCaps')} · ${a.by ?? ''} ${a.at ? hhmm(a.at) : ''}${a.note ? ` · ${a.note}` : ''}`}</Text> : null}
                               </View>
                               {!a.result ? (
                                 <>
-                                  <TextInput style={[styles.input, { flexBasis: 160, flexGrow: 1, marginTop: 0 }]} value={notes[k] ?? ''} onChangeText={(v) => setNotes({ ...notes, [k]: v })} placeholder="Note (what was found)" placeholderTextColor={COLORS.textLight} />
-                                  <TouchableOpacity style={[styles.small, { borderColor: COLORS.success }]} onPress={() => void mark(s, a.areaId, 'clear')}><Text style={[styles.smallText, { color: COLORS.success }]}>Clear</Text></TouchableOpacity>
-                                  <TouchableOpacity style={[styles.small, { borderColor: COLORS.danger }]} onPress={() => void mark(s, a.areaId, 'found')}><Text style={[styles.smallText, { color: COLORS.danger }]}>Found</Text></TouchableOpacity>
+                                  <TextInput style={[styles.input, { flexBasis: 160, flexGrow: 1, marginTop: 0 }]} value={notes[k] ?? ''} onChangeText={(v) => setNotes({ ...notes, [k]: v })} placeholder={tt('srch.notePh')} placeholderTextColor={COLORS.textLight} />
+                                  <TouchableOpacity style={[styles.small, { borderColor: COLORS.success }]} onPress={() => void mark(s, a.areaId, 'clear')}><Text style={[styles.smallText, { color: COLORS.success }]}>{tt('srch.clear')}</Text></TouchableOpacity>
+                                  <TouchableOpacity style={[styles.small, { borderColor: COLORS.danger }]} onPress={() => void mark(s, a.areaId, 'found')}><Text style={[styles.smallText, { color: COLORS.danger }]}>{tt('srch.found')}</Text></TouchableOpacity>
                                 </>
                               ) : (
-                                <TouchableOpacity onPress={() => void mark(s, a.areaId, undefined)}><Text style={styles.link}>Undo</Text></TouchableOpacity>
+                                <TouchableOpacity onPress={() => void mark(s, a.areaId, undefined)}><Text style={styles.link}>{tt('srch.undo')}</Text></TouchableOpacity>
                               )}
                             </View>
                           </View>
@@ -240,9 +242,9 @@ export default function SearchesSc() {
                 })}
                 {officer ? (
                   <>
-                    <TextInput style={styles.input} value={outcome[s.id] ?? ''} onChangeText={(v) => setOutcome({ ...outcome, [s.id]: v })} placeholder="Outcome — all clear; or what was found and what was done" placeholderTextColor={COLORS.textLight} multiline />
+                    <TextInput style={styles.input} value={outcome[s.id] ?? ''} onChangeText={(v) => setOutcome({ ...outcome, [s.id]: v })} placeholder={t('srch.outcomePh')} placeholderTextColor={COLORS.textLight} multiline />
                     <View style={styles.row}>
-                      <TouchableOpacity style={styles.btn} onPress={() => void close(s)}><Text style={styles.btnText}>Close and sign</Text></TouchableOpacity>
+                      <TouchableOpacity style={styles.btn} onPress={() => void close(s)}><Text style={styles.btnText}>{t('srch.closeSign')}</Text></TouchableOpacity>
                       <TouchableOpacity style={styles.small} onPress={() => void pdf(s)}><Text style={styles.smallText}>PDF</Text></TouchableOpacity>
                     </View>
                   </>
@@ -252,7 +254,7 @@ export default function SearchesSc() {
           })}
           {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{`✓ ${saved}`}</Text> : null}
 
-          {closed.length ? <Label>Searches done</Label> : null}
+          {closed.length ? <Label>{t('srch.done')}</Label> : null}
           {closed.map((s) => {
             const found = s.areas.some((a) => a.result === 'found');
             return (
@@ -261,14 +263,14 @@ export default function SearchesSc() {
                   <MciIcon name={KIND_ICON[s.kind]} size={18} color={COLORS.textDark} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.name}>{`${SEARCH_LABEL[s.kind]} · ${formatDate(s.date)} ${s.time}`}</Text>
-                    <Text style={styles.sub}>{[s.reason, `${searchDone(s)}/${s.areas.length} areas`, s.closed!.outcome, `signed ${s.closed!.by}`].filter(Boolean).join(' · ')}</Text>
+                    <Text style={styles.sub}>{[s.reason, t('srch.areasN', { k: searchDone(s), n: s.areas.length }), s.closed!.outcome, t('srch.signedBy', { by: s.closed!.by })].filter(Boolean).join(' · ')}</Text>
                   </View>
                   <TouchableOpacity style={styles.small} onPress={() => void pdf(s)}><Text style={styles.smallText}>PDF</Text></TouchableOpacity>
                 </View>
               </View>
             );
           })}
-          {!open.length && !closed.length && !start ? <Text style={styles.sub}>No searches recorded. Set the areas and teams first (Areas and teams), then start one before sailing.</Text> : null}
+          {!open.length && !closed.length && !start ? <Text style={styles.sub}>{t('srch.empty')}</Text> : null}
         </>
       )}
     </Screen>

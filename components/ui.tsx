@@ -19,13 +19,14 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useT } from '../utils/i18n';
 import { MciIcon } from './MciIcon';
 import { COLORS, SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { ComplianceStatus, CategoryKey } from '../types/equipment';
 import { CATEGORY_MAP } from '../constants/categories';
 import { HelpButton } from './HelpButton';
-import { FavToggle } from './Favourites';
+import { FavPageChip, FavToggle } from './Favourites';
 
 type GlyphName = React.ComponentProps<typeof MciIcon>['name'];
 
@@ -227,6 +228,7 @@ export function ScreenTitle({
   onScan,
   onLabels,
   onAsk,
+  onPdf,
   actions,
 }: {
   title: string;
@@ -236,8 +238,10 @@ export function ScreenTitle({
   /** Batch QR-label printing — the other half of the scan button, on the
    *  Categories tab only: labels are printed a deck at a time, scanned one at a time. */
   onLabels?: () => void;
-  /** Ask ISMpilot — AI questions answered from the vessel's records. */
+  /** Ask ISM AI Pilot — AI questions answered from the vessel's records. */
   onAsk?: () => void;
+  /** Export the screen's report as a PDF — same chip as the scan button. */
+  onPdf?: () => void;
   /** Small controls placed BEFORE the help button — see Settings' theme picker. */
   actions?: React.ReactNode;
 }) {
@@ -251,10 +255,17 @@ export function ScreenTitle({
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>
       {actions}
+      {/* On a phone: keep this page in the favourites (components/Favourites). */}
+      <FavPageChip style={styles.scanBtn} />
       {help !== undefined ? <HelpButton section={help} /> : null}
       {onAsk ? (
-        <Pressable style={({ hovered }: any) => [styles.scanBtn, hovered && styles.scanBtnHover]} onPress={onAsk} hitSlop={10} accessibilityLabel="Ask ISMpilot">
+        <Pressable style={({ hovered }: any) => [styles.scanBtn, hovered && styles.scanBtnHover]} onPress={onAsk} hitSlop={10} accessibilityLabel="Ask ISM AI Pilot">
           <MciIcon name="creation" size={20} color={c.primary} />
+        </Pressable>
+      ) : null}
+      {onPdf ? (
+        <Pressable style={({ hovered }: any) => [styles.scanBtn, hovered && styles.scanBtnHover]} onPress={onPdf} hitSlop={10} accessibilityLabel="Export PDF">
+          <MciIcon name="file-pdf-box" size={22} color={c.primary} />
         </Pressable>
       ) : null}
       {onLabels ? (
@@ -288,7 +299,7 @@ export function ScreenTitle({
  */
 export function BackButton({
   onPress,
-  label = 'Back',
+  label,
   style,
   fav = true,
 }: {
@@ -299,6 +310,8 @@ export function BackButton({
   style?: StyleProp<ViewStyle>;
 }) {
   const c = useTheme();
+  const tr = useT();
+  const text = label ?? tr('common.back');
   const styles = useStyles();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -306,11 +319,11 @@ export function BackButton({
         onPress={onPress}
         hitSlop={12}
         accessibilityRole="button"
-        accessibilityLabel={label}
+        accessibilityLabel={text}
         style={[styles.backBtn, style]}
       >
         <MciIcon name="arrow-left" size={22} color={c.primary} />
-        <Text style={styles.backText}>{label}</Text>
+        <Text style={styles.backText}>{text}</Text>
       </TouchableOpacity>
       {/* A record can be kept in the favourites from here (components/Favourites). */}
       {fav ? <FavToggle /> : null}

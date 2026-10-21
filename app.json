@@ -2,7 +2,7 @@
   "expo": {
     "name": "ISM AI Pilot",
     "slug": "marine-safety-manager",
-    "version": "2.64",
+    "version": "2.65",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "msm",
@@ -52,7 +52,7 @@
     },
     "android": {
       "package": "com.kukalab.msm",
-      "versionCode": 20640,
+      "versionCode": 20650,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -85,14 +85,14 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow ISMpilot to attach photos of equipment and certificates.",
-          "cameraPermission": "Allow ISMpilot to photograph equipment and certificates."
+          "photosPermission": "Allow ISM AI Pilot to attach photos of equipment and certificates.",
+          "cameraPermission": "Allow ISM AI Pilot to photograph equipment and certificates."
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow ISMpilot to scan QR labels and barcodes on equipment."
+          "cameraPermission": "Allow ISM AI Pilot to scan QR labels and barcodes on equipment."
         }
       ],
       "expo-secure-store",
@@ -110,7 +110,7 @@
           "widgets": [
             {
               "name": "Scan",
-              "label": "ISMpilot \u00b7 Scan",
+              "label": "ISM AI Pilot \u00b7 Scan",
               "description": "Open the scanner",
               "previewImage": "./assets/widgets/scan-preview.png",
               "minWidth": "80dp",
@@ -121,7 +121,7 @@
             },
             {
               "name": "Flagged",
-              "label": "ISMpilot \u00b7 Scan + Flagged",
+              "label": "ISM AI Pilot \u00b7 Scan + Flagged",
               "description": "Scanner and the latest flagged items",
               "previewImage": "./assets/widgets/flagged-preview.png",
               "minWidth": "250dp",
@@ -138,7 +138,7 @@
         "react-native-ble-plx",
         {
           "isBackgroundEnabled": false,
-          "bluetoothAlwaysPermission": "ISMpilot connects to the label printer over Bluetooth."
+          "bluetoothAlwaysPermission": "ISM AI Pilot connects to the label printer over Bluetooth."
         }
       ]
     ]

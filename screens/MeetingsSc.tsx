@@ -19,8 +19,10 @@ import { todayIso } from '../services/pms';
 import { heldMeetings, meetingDue, openActions } from '../services/meetings';
 import { formatDate } from '../utils/dates';
 import { makeStyles } from './SafetySc';
+import { t, tn, useT } from '../utils/i18n';
 
 export default function MeetingsSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -36,45 +38,45 @@ export default function MeetingsSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Monthly safety meeting" subtitle={due.last ? `Last held ${formatDate(due.last.date)} · ${due.last.no}` : 'None held yet'} help="Security (ISPS)" />
+      <ScreenTitle title={t('meet.title')} subtitle={due.last ? t('meet.lastHeld', { date: formatDate(due.last.date), no: due.last.no }) : t('meet.noneYet')} help="Security (ISPS)" />
       <View style={[styles.item, { borderLeftColor: due.overdue ? COLORS.danger : due.due ? COLORS.warning : COLORS.success }]}>
-        <Text style={styles.name}>{due.due ? (due.overdue ? 'Overdue — no meeting for more than a month' : 'Due this month') : 'Held this month'}</Text>
-        <Text style={styles.sub}>The safety committee meets every month: the agenda, who took part (each signs his own line), what was said and the actions — who does what by when. Signed by the Master, the record is final; open actions come back at the next meeting.</Text>
+        <Text style={styles.name}>{due.due ? (due.overdue ? t('meet.overdue') : t('meet.dueMonth')) : t('meet.heldMonth')}</Text>
+        <Text style={styles.sub}>{t('meet.about')}</Text>
         {officer && !drafts.length ? (
-          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.sm }]} onPress={() => nav.navigate('Meeting', { id: 'new' })}><Text style={styles.btnText}>+ New meeting</Text></TouchableOpacity>
+          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.sm }]} onPress={() => nav.navigate('Meeting', { id: 'new' })}><Text style={styles.btnText}>{t('meet.new')}</Text></TouchableOpacity>
         ) : null}
       </View>
 
       {drafts.map((m) => (
         <TouchableOpacity key={m.id} style={[styles.item, { borderLeftColor: COLORS.primary }]} onPress={() => nav.navigate('Meeting', { id: m.id })}>
-          <Text style={styles.name}>{`${m.no || 'New meeting'} · ${formatDate(m.date)} — not signed yet`}</Text>
-          <Text style={styles.sub}>{`${m.attendance.filter((a) => a.present).length} present · ${m.actions.length} actions`}</Text>
+          <Text style={styles.name}>{t('meet.draftRow', { no: m.no || t('meet.newName'), date: formatDate(m.date) })}</Text>
+          <Text style={styles.sub}>{`${t('meet.present', { n: m.attendance.filter((a) => a.present).length })} · ${tn('n.action', m.actions.length)}`}</Text>
         </TouchableOpacity>
       ))}
 
       {open.length ? (
         <>
-          <Label>{`Open actions · ${open.length}`}</Label>
+          <Label>{t('meet.openActions', { n: open.length })}</Label>
           {open.map((a) => (
             <View key={a.id} style={{ flexDirection: 'row', gap: SIZES.sm, paddingVertical: 4 }}>
               <MciIcon name="checkbox-blank-outline" size={18} color={a.due && a.due < today ? COLORS.danger : COLORS.textLight} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.body}>{a.text}</Text>
-                <Text style={[styles.sub, a.due && a.due < today ? { color: COLORS.danger, fontWeight: '700' } : null]}>{[a.who, a.due ? `by ${formatDate(a.due)}` : null, a.fromNo].filter(Boolean).join(' · ')}</Text>
+                <Text style={[styles.sub, a.due && a.due < today ? { color: COLORS.danger, fontWeight: '700' } : null]}>{[a.who, a.due ? t('meet.by', { date: formatDate(a.due) }) : null, a.fromNo].filter(Boolean).join(' · ')}</Text>
               </View>
             </View>
           ))}
         </>
       ) : null}
 
-      <Label>{`Meetings held · ${held.length}`}</Label>
+      <Label>{t('meet.held', { n: held.length })}</Label>
       {held.map((m) => (
         <TouchableOpacity key={m.id} style={[styles.item, { borderLeftColor: COLORS.success }]} onPress={() => nav.navigate('Meeting', { id: m.id })}>
           <Text style={styles.name}>{`${m.no} · ${formatDate(m.date)}`}</Text>
-          <Text style={styles.sub}>{[`${m.attendance.filter((a) => a.present).length} present`, `${m.actions.length} new actions`, m.carried.length ? `${m.carried.filter((c) => c.done).length} of ${m.carried.length} carried closed` : null, m.doneBy ? `signed by ${m.doneBy}` : null].filter(Boolean).join(' · ')}</Text>
+          <Text style={styles.sub}>{[t('meet.present', { n: m.attendance.filter((a) => a.present).length }), t('meet.newActions', { n: m.actions.length }), m.carried.length ? t('meet.carriedClosed', { done: m.carried.filter((c) => c.done).length, n: m.carried.length }) : null, m.doneBy ? t('meet.signedBy', { name: m.doneBy }) : null].filter(Boolean).join(' · ')}</Text>
         </TouchableOpacity>
       ))}
-      {!held.length ? <Text style={styles.sub}>No meeting held yet.</Text> : null}
+      {!held.length ? <Text style={styles.sub}>{t('meet.noneHeld')}</Text> : null}
     </Screen>
   );
 }

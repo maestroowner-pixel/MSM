@@ -15,6 +15,7 @@ import { useSync } from '../contexts/SyncContext';
 import { MciIcon } from '../components/MciIcon';
 import { computeStatus } from '../utils/dates';
 import { CategoryKey, ComplianceStatus, EquipmentItem, Group } from '../types/equipment';
+import { t, tn, useT } from '../utils/i18n';
 
 const STATUS_RANK: Record<ComplianceStatus, number> = { expired: 3, due: 2, ok: 1, none: 0 };
 
@@ -28,6 +29,7 @@ function worstStatus(items: EquipmentItem[]): ComplianceStatus {
 
 
 export default function CategoriesSc() {
+  useT();
   const { byCategory, categories: ownCats, setCategoryHidden } = useData();
   const sync = useSync();
   /**
@@ -69,13 +71,11 @@ export default function CategoriesSc() {
       return;
     }
     Alert.alert(
-      `Hide ${c.label}?`,
-      `It holds ${count} item${count === 1 ? '' : 's'}. They stay on file with their history, ` +
-        'labels and certificates — the heading is simply not shown, and the rounds and reports ' +
-        'stop asking for it. You can bring it back here at any time.',
+      t('cat.hideQ', { name: c.label }),
+      t('cat.hideBody', { x: tn('n.item', count) }),
       [
-        { text: 'Keep it', style: 'cancel' },
-        { text: 'Hide', onPress: () => void setCategoryHidden(c.key, true) },
+        { text: t('cat.keep'), style: 'cancel' },
+        { text: t('cat.hide'), onPress: () => void setCategoryHidden(c.key, true) },
       ]
     );
   };
@@ -83,8 +83,8 @@ export default function CategoriesSc() {
   return (
     <Screen scroll>
       <ScreenTitle
-        title="Equipment"
-        subtitle="Browse safety equipment by category"
+        title={t('cat.title')}
+        subtitle={t('cat.sub')}
         help="Equipment & categories"
         onScan={() => nav.navigate('Scan')}
         onLabels={() => nav.navigate('LabelBatch')}
@@ -94,10 +94,10 @@ export default function CategoriesSc() {
           <MciIcon name={tidying ? 'check' : 'eye-settings-outline'} size={18} color={COLORS.primary} />
           <Text style={styles.tidyText}>
             {tidying
-              ? 'Done — tap a category to show or hide it'
+              ? t('cat.tidyDone')
               : hiddenCount
-                ? `Show or hide categories · ${hiddenCount} hidden`
-                : 'Show or hide categories'}
+                ? t('cat.tidyHidden', { n: hiddenCount })
+                : t('cat.tidy')}
           </Text>
         </TouchableOpacity>
       ) : null}

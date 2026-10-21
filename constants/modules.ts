@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -147,7 +147,7 @@ export const MODULES: Record<ModuleKey, boolean> = {
   dp: true,
   /**
    * The DP checklist editor and the AI reading of a vessel's paper form — ours,
-   * not the vessel's (17 Oct 2026: "nobody aboard will do this"). ISMpilot sets
+   * not the vessel's (17 Oct 2026: "nobody aboard will do this"). ISM AI Pilot sets
    * a vessel's checklists up when it joins: `modules.dpEditor = true` on that
    * vessel in the console, set them up, then remove it.
    */
@@ -173,6 +173,13 @@ export const MODULES: Record<ModuleKey, boolean> = {
   watchLog: false,
   /** GMDSS Log — daily/weekly/monthly checks, battery log, radar periods, events (Oct 2026). */
   gmdss: true,
+  /**
+   * Interface languages — the Manual's six (en, ru, es, uk, no, pt), via
+   * utils/i18n `t()`. Off: the app is English everywhere and Settings has no
+   * language picker (20 Oct 2026: «пока приложение останется на английском —
+   * позже включим»). Screens are moved onto t() one module at a time meanwhile.
+   */
+  i18n: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------

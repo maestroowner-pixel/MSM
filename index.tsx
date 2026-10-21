@@ -59,6 +59,7 @@ import DeckLogSc from './screens/DeckLogSc';
 import GmdssSc from './screens/GmdssSc';
 import DeckEntrySc from './screens/DeckEntrySc';
 import AuditsSc from './screens/AuditsSc';
+import { loadUiLang } from './utils/i18n';
 import AuditSc from './screens/AuditSc';
 import LandingsSc from './screens/LandingsSc';
 import LandingReportSc from './screens/LandingReportSc';
@@ -131,8 +132,10 @@ import FleetVesselSc from './screens/FleetVesselSc';
 import { OPTIONAL_TABS } from './constants/access';
 import { FEW, MENU_WIDTH, NavMenuBar, PIN_WIDTH, flatGrouped, useNavPrefs } from './components/NavMenu';
 import { FavStar } from './components/Favourites';
+import { UpdatePrompt } from './components/UpdatePrompt';
 import { navRef } from './utils/favourites';
 import { MENU_LABEL } from './utils/navOrder';
+import { t, tk, useT } from './utils/i18n';
 import { moduleOn } from './constants/modules';
 import EnrolSc from './screens/EnrolSc';
 import { recordScanProof } from './services/signingPolicy';
@@ -254,7 +257,9 @@ function MainTabs() {
   // the long ones are shortened; on a laptop they stay whole.
   const { width: screenW } = useWindowDimensions();
   const crowded = screenW / tabOrder.length < 72;
-  const SHORT: Record<string, string> = { Dashboard: 'Home', Equipment: 'Equip', Certificates: 'Certs' };
+  const tr = useT();
+  // Tab names in the interface language (constants/i18n `tab.*`); English as before.
+  const SHORT: Record<string, string> = { Dashboard: tr('tab.short.Dashboard'), Equipment: tr('tab.short.Equipment'), Certificates: tr('tab.short.Certificates') };
   // Past FEW screens the tab bar gives way to the menu, in the person's own order.
   // The menu also lists screens that are not tabs — the crew matrix, under Crew.
   // Crew list (FAL Form 5, import) and the crew matrix — Officers and the Master
@@ -363,7 +368,7 @@ function MainTabs() {
             tabBarInactiveTintColor: COLORS.tabInactive,
             tabBarStyle: tabBarStyle as any,
             tabBarLabelStyle: { fontSize: SIZES.tiny, fontWeight: '600' },
-            ...(crowded && SHORT[route.name] ? { tabBarLabel: SHORT[route.name] } : {}),
+            tabBarLabel: crowded && SHORT[route.name] ? SHORT[route.name] : tk(`tab.${route.name}`),
             tabBarIcon: ({ focused }) => <TabIcon route={route.name} focused={focused} />,
           })}
         >
@@ -376,7 +381,7 @@ function MainTabs() {
           {shown.map((t) => {
             const Sc = OPTIONAL_SCREENS[t.route];
             return (
-              <Tab.Screen key={t.route} name={t.route} options={{ tabBarLabel: t.label, title: t.label }}>
+              <Tab.Screen key={t.route} name={t.route} options={{ title: tk(`tab.${t.route}`) }}>
                 {() => <TabFade><Sc /></TabFade>}
               </Tab.Screen>
             );
@@ -539,6 +544,9 @@ function Root() {
     return () => sub.remove();
   }, []);
 
+  // The interface language chosen in Settings (dark until the `i18n` module).
+  React.useEffect(() => { void loadUiLang(); }, []);
+
   React.useEffect(() => {
     AsyncStorage.getItem(LEGAL_ACCEPTED_KEY)
       .then((v) => setLegalAccepted(v === '1'))
@@ -672,7 +680,7 @@ function Root() {
       ref={navigationRef}
       theme={navTheme}
       linking={linking as any}
-      // Browser tab: "Dashboard · ISMpilot" rather than the bare screen name.
+      // Browser tab: "Dashboard · ISM AI Pilot" rather than the bare screen name.
       documentTitle={{ formatter: (o, route) => `${o?.title ?? route?.name ?? 'Home'} · ${APP_CONFIG.name}` }}
     >
       <StatusBar style={showSplash ? 'light' : COLORS.statusBar} />
@@ -756,8 +764,8 @@ function Root() {
         <Stack.Screen name="DpCheck" component={DpCheckSc} options={webHeader('Checklist')} />
         <Stack.Screen name="DpTemplates" component={DpTemplatesSc} options={webHeader('DP checklists', { screen: 'Main', params: { screen: 'Dp' } } as any)} />
         {/* With the notice board on, the old Dashboard — LSA / FFE / lifting by expiry — is this screen. */}
-        <Stack.Screen name="Expiries" component={DashboardSc} options={webHeader('LSA / FFE expiries')} />
-        <Stack.Screen name="Accounts" component={AccountsSc} options={webHeader('Accounts', toTab('Settings'))} />
+        <Stack.Screen name="Expiries" component={DashboardSc} options={webHeader(t('dash.expiriesTitle'))} />
+        <Stack.Screen name="Accounts" component={AccountsSc} options={webHeader(t('acc.title'), toTab('Settings'))} />
         <Stack.Screen name="EmailReport" component={EmailReportSc} options={webHeader('Email Report', toTab('Settings'))} />
         <Stack.Screen name="Enrol" component={EnrolSc} options={webHeader('Join this vessel', toTab('Settings'))} />
       </Stack.Navigator>
@@ -770,6 +778,8 @@ function Root() {
           <ConsentSc onAccept={acceptLegal} />
         </View>
       ) : null}
+      {/* A newer version — the store's on a phone, a redeploy on web (components/UpdatePrompt). */}
+      {!showSplash && legalAccepted === true ? <UpdatePrompt /> : null}
     </NavigationContainer>
   );
 }

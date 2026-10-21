@@ -1,5 +1,5 @@
 // ===================================
-// Ask ISMpilot (AI no. 3, 14 Oct 2026): a question in plain words — "what
+// Ask ISM AI Pilot (AI no. 3, 14 Oct 2026): a question in plain words — "what
 // expires next month?", "when was the last enclosed space drill?" — answered
 // from the vessel's own records (services/aiContext; no patients, no guests),
 // with the lines it used. Questions and answers live on this screen only.
@@ -29,9 +29,12 @@ import { ASK_EXAMPLES, askContext } from '../services/aiContext';
 import { goBackOr } from '../utils/nav';
 import { makeStyles } from './SafetySc';
 
+import { t, t as tt, useT } from '../utils/i18n';
+
 type Turn = { q: string; a?: string; refs?: string[]; error?: string };
 
 export default function AskSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -67,8 +70,8 @@ export default function AskSc() {
     return (
       <Screen scroll>
         <BackButton onPress={() => goBackOr(nav)} />
-        <ScreenTitle title="Ask ISMpilot" subtitle="Questions about the vessel's records" />
-        <Text style={styles.sub}>The AI works when the vessel syncs (Settings → Sync).</Text>
+        <ScreenTitle title={t('ask.title')} subtitle={t('ask.subShort')} />
+        <Text style={styles.sub}>{t('ask.needSync')}</Text>
       </Screen>
     );
   }
@@ -76,7 +79,7 @@ export default function AskSc() {
   return (
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav)} />
-      <ScreenTitle title="Ask ISMpilot" subtitle="Questions about the vessel's records — answered from them, nothing else" />
+      <ScreenTitle title={t('ask.title')} subtitle={t('ask.sub')} />
       {!turns.length ? (
         <View style={[styles.chips, { marginBottom: SIZES.sm }]}>
           {ASK_EXAMPLES.map((x) => (
@@ -90,23 +93,23 @@ export default function AskSc() {
             <Text style={{ color: COLORS.textWhite, fontSize: SIZES.body }}>{t.q}</Text>
           </View>
           <Card style={{ marginTop: SIZES.xs }}>
-            {t.a ? <Text style={[styles.body, { lineHeight: 21 }]}>{t.a}</Text> : t.error ? <Text style={[styles.body, { color: COLORS.danger }]}>{t.error}</Text> : <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}><ActivityIndicator color={COLORS.primary} /><Text style={styles.sub}>Reading the records…</Text></View>}
+            {t.a ? <Text style={[styles.body, { lineHeight: 21 }]}>{t.a}</Text> : t.error ? <Text style={[styles.body, { color: COLORS.danger }]}>{t.error}</Text> : <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}><ActivityIndicator color={COLORS.primary} /><Text style={styles.sub}>{tt('ask.reading')}</Text></View>}
             {t.refs?.length ? (
-              <TouchableOpacity onPress={() => setOpenRefs(openRefs === i ? null : i)}><Text style={[styles.link, { marginTop: SIZES.xs }]}>{openRefs === i ? 'Hide the records used' : `From ${t.refs.length} record lines`}</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setOpenRefs(openRefs === i ? null : i)}><Text style={[styles.link, { marginTop: SIZES.xs }]}>{openRefs === i ? tt('ask.hideRefs') : tt('ask.fromRefs', { n: t.refs.length })}</Text></TouchableOpacity>
             ) : null}
             {openRefs === i ? t.refs!.map((r, k) => <Text key={k} style={styles.sub}>{r}</Text>) : null}
           </Card>
         </View>
       ))}
       <View style={{ flexDirection: 'row', gap: SIZES.sm, alignItems: 'center', flexWrap: 'wrap' }}>
-        <TextInput style={[styles.input, { flex: 1, minWidth: 220, marginTop: 0 }]} value={q} onChangeText={setQ} onSubmitEditing={() => void ask(q)} placeholder="Ask in any language" placeholderTextColor={COLORS.textLight} returnKeyType="send" />
+        <TextInput style={[styles.input, { flex: 1, minWidth: 220, marginTop: 0 }]} value={q} onChangeText={setQ} onSubmitEditing={() => void ask(q)} placeholder={t('ask.placeholder')} placeholderTextColor={COLORS.textLight} returnKeyType="send" />
         <VoiceInput onText={(t) => setQ((x) => (x ? `${x} ${t}` : t))} />
         <TouchableOpacity style={[styles.btn, { marginTop: 0, flexDirection: 'row', alignItems: 'center', gap: 6 }, busy && { opacity: 0.5 }]} disabled={busy} onPress={() => void ask(q)}>
           <MciIcon name="send" size={16} color={COLORS.textWhite} />
-          <Text style={styles.btnText}>Ask</Text>
+          <Text style={styles.btnText}>{t('ask.ask')}</Text>
         </TouchableOpacity>
       </View>
-      <Text style={[styles.sub, { marginTop: SIZES.sm }]}>The answer comes from the vessel's records on this device — equipment, certificates, defects, inspections, drills, the Board. Not from patients' or guests' records, which never leave the vessel. Check what matters in the record itself.</Text>
+      <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{t('ask.foot')}</Text>
     </Screen>
   );
 }

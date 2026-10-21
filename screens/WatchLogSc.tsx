@@ -21,6 +21,7 @@ import { WatchEntry, WatchParam, WatchTemplate } from '../types/watchLog';
 import { defaultTemplate, fmtValue, normalStatus } from '../services/watchLog';
 import * as storage from '../services/storage';
 import { uid } from '../utils/id';
+import { t, useT } from '../utils/i18n';
 
 // ─── Template editor ─────────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ function TemplateEditor({
   COLORS: Palette;
   styles: ReturnType<typeof makeStyles>;
 }) {
+  useT();
   const [params, setParams] = useState<WatchParam[]>(template.params);
   const [editingParam, setEditingParam] = useState<WatchParam | null>(null);
   const [draftName, setDraftName] = useState(template.name);
@@ -52,24 +54,24 @@ function TemplateEditor({
   if (editingParam) {
     return (
       <View style={styles.editor}>
-        <Text style={styles.editorTitle}>{params.find((x) => x.id === editingParam.id) ? 'Edit parameter' : 'New parameter'}</Text>
-        <Label>Name</Label>
+        <Text style={styles.editorTitle}>{params.find((x) => x.id === editingParam.id) ? t('wl.editParam') : t('wl.newParam')}</Text>
+        <Label>{t('wl.name')}</Label>
         <TextInput style={styles.input} value={editingParam.name}
           onChangeText={(v) => setEditingParam({ ...editingParam, name: v })}
-          placeholder="e.g. ME Cooling Water Temp In" placeholderTextColor={COLORS.textLight} autoFocus />
-        <Label>Unit (leave blank for text)</Label>
+          placeholder={t('wl.namePh')} placeholderTextColor={COLORS.textLight} autoFocus />
+        <Label>{t('wl.unit')}</Label>
         <TextInput style={styles.input} value={editingParam.unit}
           onChangeText={(v) => setEditingParam({ ...editingParam, unit: v })}
           placeholder="°C / bar / rpm / kW / ..." placeholderTextColor={COLORS.textLight} />
         <View style={{ flexDirection: 'row', gap: SIZES.sm }}>
           <View style={{ flex: 1 }}>
-            <Label>Normal min</Label>
+            <Label>{t('wl.min')}</Label>
             <TextInput style={styles.input} keyboardType="numeric" placeholder="—" placeholderTextColor={COLORS.textLight}
               value={editingParam.normalMin != null ? String(editingParam.normalMin) : ''}
               onChangeText={(v) => setEditingParam({ ...editingParam, normalMin: v.trim() ? parseFloat(v) : undefined })} />
           </View>
           <View style={{ flex: 1 }}>
-            <Label>Normal max</Label>
+            <Label>{t('wl.max')}</Label>
             <TextInput style={styles.input} keyboardType="numeric" placeholder="—" placeholderTextColor={COLORS.textLight}
               value={editingParam.normalMax != null ? String(editingParam.normalMax) : ''}
               onChangeText={(v) => setEditingParam({ ...editingParam, normalMax: v.trim() ? parseFloat(v) : undefined })} />
@@ -77,10 +79,10 @@ function TemplateEditor({
         </View>
         <View style={{ flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.sm }}>
           <TouchableOpacity style={[styles.btn, { flex: 1, backgroundColor: COLORS.primary }]} onPress={() => saveParam(editingParam)}>
-            <Text style={styles.btnText}>Save</Text>
+            <Text style={styles.btnText}>{t('common.save')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.btn, { flex: 1, backgroundColor: COLORS.cardSolid }]} onPress={() => setEditingParam(null)}>
-            <Text style={[styles.btnText, { color: COLORS.textDark }]}>Cancel</Text>
+            <Text style={[styles.btnText, { color: COLORS.textDark }]}>{t('common.cancel')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -89,15 +91,15 @@ function TemplateEditor({
 
   return (
     <View style={styles.editor}>
-      <Text style={styles.editorTitle}>Round template</Text>
-      <Label>Template name</Label>
+      <Text style={styles.editorTitle}>{t('wl.template')}</Text>
+      <Label>{t('wl.templateName')}</Label>
       <TextInput style={styles.input} value={draftName} onChangeText={setDraftName} placeholderTextColor={COLORS.textLight} />
-      <Label style={{ marginTop: SIZES.sm }}>Parameters</Label>
+      <Label style={{ marginTop: SIZES.sm }}>{t('wl.params')}</Label>
       {params.map((p) => (
         <View key={p.id} style={styles.paramRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.paramName}>{p.name}</Text>
-            <Text style={styles.paramUnit}>{p.unit || (p.type === 'text' ? 'text' : 'number')}</Text>
+            <Text style={styles.paramUnit}>{p.unit || (p.type === 'text' ? t('wl.text') : t('wl.number'))}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: SIZES.sm }}>
             <TouchableOpacity onPress={() => setEditingParam({ ...p })} hitSlop={8}>
@@ -111,15 +113,15 @@ function TemplateEditor({
       ))}
       <TouchableOpacity style={styles.addParamBtn} onPress={addParam}>
         <MciIcon name="plus-circle-outline" size={18} color={COLORS.primary} />
-        <Text style={[styles.paramName, { color: COLORS.primary }]}>Add parameter</Text>
+        <Text style={[styles.paramName, { color: COLORS.primary }]}>{t('wl.addParam')}</Text>
       </TouchableOpacity>
       <View style={{ flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.md }}>
         <TouchableOpacity style={[styles.btn, { flex: 1, backgroundColor: COLORS.primary }]}
           onPress={() => onSave({ ...template, name: draftName || template.name, params, updatedAt: Date.now() })}>
-          <Text style={styles.btnText}>Save template</Text>
+          <Text style={styles.btnText}>{t('wl.saveTemplate')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.btn, { flex: 1, backgroundColor: COLORS.cardSolid }]} onPress={onClose}>
-          <Text style={[styles.btnText, { color: COLORS.textDark }]}>Cancel</Text>
+          <Text style={[styles.btnText, { color: COLORS.textDark }]}>{t('common.cancel')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -150,6 +152,7 @@ function EntryRow({ entry, onPress, COLORS, styles }: {
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function WatchLogSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -203,7 +206,7 @@ export default function WatchLogSc() {
         {/* ── Header ── */}
         <View style={styles.header}>
           <MciIcon name="engine-outline" size={20} color={COLORS.primary} />
-          <Text style={styles.headerTitle}>Engine Room Log</Text>
+          <Text style={styles.headerTitle}>{t('wl.title')}</Text>
           <View style={{ marginLeft: 'auto', flexDirection: 'row', gap: SIZES.sm, alignItems: 'center' }}>
             {canEdit && (
               <TouchableOpacity onPress={() => setEditingTemplate((v) => !v)} hitSlop={8}>
@@ -245,14 +248,14 @@ export default function WatchLogSc() {
             {dayEntries.length === 0 ? (
               <View style={styles.empty}>
                 <MciIcon name="engine-outline" size={44} color={COLORS.textLight} />
-                <Text style={styles.emptyTitle}>No rounds for this day</Text>
+                <Text style={styles.emptyTitle}>{t('wl.noneDay')}</Text>
                 <TouchableOpacity
                   style={styles.emptyBtn}
                   onPress={() => nav.navigate('WatchEntry', { templateId: template.id })}
                   activeOpacity={0.8}
                 >
                   <MciIcon name="plus-circle-outline" size={18} color={COLORS.textWhite} />
-                  <Text style={styles.emptyBtnText}>Start new round</Text>
+                  <Text style={styles.emptyBtnText}>{t('wl.start')}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -276,7 +279,7 @@ export default function WatchLogSc() {
                     activeOpacity={0.75}
                   >
                     <MciIcon name="plus-circle-outline" size={18} color={COLORS.primary} />
-                    <Text style={styles.addRowText}>Start new round</Text>
+                    <Text style={styles.addRowText}>{t('wl.start')}</Text>
                   </TouchableOpacity>
                 )}
               />

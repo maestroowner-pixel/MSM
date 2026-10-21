@@ -33,6 +33,7 @@ import { statusFromDate } from '../utils/dates';
 import { todayIso } from '../services/pms';
 import { uid } from '../utils/id';
 import { crewIssues, worstIssue } from '../services/crewIssues';
+import { t, useT } from '../utils/i18n';
 
 const NAME_W = 180;
 const COL_W = 104;
@@ -41,6 +42,7 @@ const ROW_H = 54;
 const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
 
 export default function CrewMatrixSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -105,42 +107,42 @@ export default function CrewMatrixSc() {
 
   const signOn = (p: CrewMember) => saveCrewMember({ ...p, onBoard: true, signOn: todayIso(), signOff: undefined });
 
-  const short = (iso?: string) => (iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(2, 4)}` : 'no expiry');
+  const short = (iso?: string) => (iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(2, 4)}` : t('cm.noExpiry'));
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Crew matrix" subtitle={`${people.on.length} on board${people.off.length ? ` · ${people.off.length} signed off` : ''} · certificates by person`} help="Crew list and certificate matrix" />
+      <ScreenTitle title={t('cm.title')} subtitle={`${t('cm.onBoard', { n: people.on.length })}${people.off.length ? ` · ${t('cm.signedOffN', { n: people.off.length })}` : ''} · ${t('cm.byPerson')}`} help="Crew list and certificate matrix" />
 
       {attention ? (
         <Text style={[styles.sub, { color: COLORS.warning, fontWeight: '700', fontSize: SIZES.small, marginBottom: SIZES.sm }]}>
-          {`⚠ ${attention} of ${people.on.length} on board need attention — documents expired or due, or details missing. Open a name to see what.`}
+          {t('cm.attention', { k: attention, n: people.on.length })}
         </Text>
       ) : null}
       <View style={styles.tools}>
         {people.off.length ? (
           <TouchableOpacity onPress={() => setShowOff((v) => !v)} hitSlop={8}>
-            <Text style={styles.link}>{showOff ? 'Hide signed off' : `Show signed off (${people.off.length})`}</Text>
+            <Text style={styles.link}>{showOff ? t('cm.hideOff') : t('cm.showOff', { n: people.off.length })}</Text>
           </TouchableOpacity>
         ) : <View />}
         {signing ? (
         <TouchableOpacity onPress={() => changePin({ key: ADMIN_KEY, name: 'Master' }, { onDone: loadPins })} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <MciIcon name="lock" size={16} color={pins.has(ADMIN_KEY) ? COLORS.success : COLORS.warning} />
-          <Text style={[styles.link, !pins.has(ADMIN_KEY) && isMaster && { color: COLORS.warning }]}>{pins.has(ADMIN_KEY) || !isMaster ? 'Master PIN' : 'Master PIN is 0000 — change it'}</Text>
+          <Text style={[styles.link, !pins.has(ADMIN_KEY) && isMaster && { color: COLORS.warning }]}>{pins.has(ADMIN_KEY) || !isMaster ? t('cm.masterPin') : t('cm.masterPin0')}</Text>
         </TouchableOpacity>
         ) : null}
         {canEdit ? (
           <TouchableOpacity onPress={() => nav.navigate('CrewMember', { id: uid('crew'), isNew: true })} hitSlop={8}>
-            <Text style={styles.link}>+ Add crew member</Text>
+            <Text style={styles.link}>{t('cm.add')}</Text>
           </TouchableOpacity>
         ) : null}
       </View>
 
       {rows.length === 0 ? (
-        <Empty text={canEdit ? 'Nobody on board yet. Add the crew — once. At the next crew change people are signed off and on, not typed again.' : 'The crew list is empty.'} />
+        <Empty text={canEdit ? t('cm.empty') : t('cm.emptyCrew')} />
       ) : (
         <View style={styles.table}>
           <View style={{ width: NAME_W }}>
-            <View style={styles.head}><Text style={styles.headText}>Crew</Text></View>
+            <View style={styles.head}><Text style={styles.headText}>{t('cm.crew')}</Text></View>
             {rows.map((p) => {
               const off = !isAboard(p);
               return (
@@ -153,15 +155,15 @@ export default function CrewMatrixSc() {
                     {p.name}
                   </Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.xs }}>
-                    <Text style={styles.sub} numberOfLines={1}>{off ? 'Signed off' : p.rank || '—'}</Text>
+                    <Text style={styles.sub} numberOfLines={1}>{off ? t('cm.signedOff') : p.rank || '—'}</Text>
                     {!off && signing ? (
-                      <TouchableOpacity onPress={() => changePin({ key: p.id, name: p.name }, { onDone: loadPins })} hitSlop={6} accessibilityLabel={`Signing PIN of ${p.name}`}>
+                      <TouchableOpacity onPress={() => changePin({ key: p.id, name: p.name }, { onDone: loadPins })} hitSlop={6} accessibilityLabel={t('cm.pinOf', { name: p.name })}>
                         <MciIcon name={pins.has(p.id) ? 'lock' : 'lock-open-outline'} size={14} color={pins.has(p.id) ? COLORS.success : COLORS.textLight} />
                       </TouchableOpacity>
                     ) : null}
                     {off && canEdit ? (
                       <TouchableOpacity onPress={() => void signOn(p)} hitSlop={6}>
-                        <Text style={[styles.link, { fontSize: SIZES.tiny }]}>Sign on</Text>
+                        <Text style={[styles.link, { fontSize: SIZES.tiny }]}>{t('cm.signOn')}</Text>
                       </TouchableOpacity>
                     ) : null}
                   </View>
@@ -177,7 +179,7 @@ export default function CrewMatrixSc() {
                     <Text style={styles.headText} numberOfLines={3}>{c.label}</Text>
                   </View>
                 ))}
-                {cols.length === 0 ? <View style={[styles.colHead, { width: 220 }]}><Text style={styles.headText}>No crew certificates yet — open a person to add them.</Text></View> : null}
+                {cols.length === 0 ? <View style={[styles.colHead, { width: 220 }]}><Text style={styles.headText}>{t('cm.noCerts')}</Text></View> : null}
               </View>
               {rows.map((p) => (
                 <View key={p.id} style={[styles.cell, { flexDirection: 'row' }]}>

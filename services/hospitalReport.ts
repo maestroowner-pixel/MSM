@@ -102,7 +102,7 @@ export async function exportChestTemplate(rows: ItemStatus[]) {
   const data = rows.length ? (sheetOf(rows) as any[][]) : [SHEET_HEAD, ['Paracetamol', '500 mg tablets', 'tablets', 100, 'medicine', 'Hospital', '', 'AB123', '2028-03', 100], ['Morphine sulphate', '10 mg/1 ml ampoule', 'ampoules', 10, 'medicine', 'Hospital safe', 'yes', 'M4471', '2027-11', 10]];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), 'Medicine chest');
-  return saveXlsx(wb, 'ISMpilot_Medicine_Chest.xlsx');
+  return saveXlsx(wb, 'ISM_AI_Pilot_Medicine_Chest.xlsx');
 }
 
 /** Pick a filled-in list. Null when cancelled. */

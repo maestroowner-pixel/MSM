@@ -42,12 +42,14 @@ import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
+import { t, useT } from '../utils/i18n';
 
 type Show = 'aboard' | 'expected' | 'left' | 'all';
 const ID_TYPES = ['Passport', 'ID card', 'Driving licence', 'Other'];
 type Draft = Passenger & { priv: PassengerPrivate };
 
 export default function PassengersSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -85,15 +87,15 @@ export default function PassengersSc() {
     .filter((p) => words.every((w) => `${p.name} ${p.cabin ?? ''} ${p.nationality ?? ''} ${p.group ?? ''}`.toLowerCase().includes(w)))
     .sort((a, b) => (a.cabin ?? '~').localeCompare(b.cabin ?? '~', undefined, { numeric: true }) || a.name.localeCompare(b.name));
 
-  const done = (w: string | null | void) => typeof w === 'string' && setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
-  const fail = (e: any) => Alert.alert('Passengers', String(e?.message ?? e));
+  const done = (w: string | null | void) => typeof w === 'string' && setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
+  const fail = (e: any) => Alert.alert(t('pax.title'), String(e?.message ?? e));
 
   const cross = async (p: Passenger) => {
-    if (!signer) return Alert.alert('Gangway watch', 'Choose the watch first.');
+    if (!signer) return Alert.alert(t('pax.gangwayWatch'), t('pax.chooseWatch'));
     const m = nextMove(p, crewMoves, signer.name, 'manual');
     await appendRow(storage.CREW_MOVES_KEY, m);
     playSuccessSound();
-    setSaved(`${p.name} — ${m.dir === 'ashore' ? 'ashore' : 'back aboard'} ${m.time}`);
+    setSaved(`${p.name} — ${m.dir === 'ashore' ? t('pax.wentAshore') : t('pax.backAboard')} ${m.time}`);
   };
 
   const blank = (): Draft => ({ id: uid('pax'), name: '', embarked: today, addedAt: Date.now(), updatedAt: Date.now(), priv: { id: '', updatedAt: Date.now() } });
@@ -103,7 +105,7 @@ export default function PassengersSc() {
 
   const save = async (extra?: Partial<Passenger>) => {
     if (!draft) return;
-    if (!draft.name.trim()) return Alert.alert('Passenger', 'The full name, as in the passport.');
+    if (!draft.name.trim()) return Alert.alert(t('pax.one'), t('pax.needName'));
     const { priv, ...p } = { ...draft, ...extra };
     const clean = Object.fromEntries(Object.entries({ ...p, name: p.name.trim() }).filter(([, v]) => v !== '' && v !== undefined)) as unknown as Passenger;
     await saveRow(storage.PASSENGERS_KEY, clean);
@@ -115,9 +117,9 @@ export default function PassengersSc() {
   };
   const remove = () =>
     draft &&
-    Alert.alert('Remove passenger', `Remove “${draft.name}” from the list? A passenger who has left is better kept, with the date they left.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => void save({ deleted: true }) },
+    Alert.alert(t('pax.removeQ'), t('pax.removeBody', { name: draft.name }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.remove'), style: 'destructive', onPress: () => void save({ deleted: true }) },
     ]);
 
   const listPdf = () => {
@@ -135,13 +137,13 @@ export default function PassengersSc() {
     try {
       const file = await pickSheetRows();
       if (!file) return;
-      setSaved('The AI is reading the columns…');
+      setSaved(t('pax.aiReading'));
       const r = await aiRenameHeadings(file.rows, 'passengers');
       setSaved(null);
       await importSheet({ name: file.name, rows: readPaxRows(r.rows) }, `Columns read by the AI: ${r.mapped.map((m) => `${m.from} → ${m.to}`).join('; ')}.`);
     } catch (e: any) {
       setSaved(null);
-      Alert.alert('Import', String(e?.message ?? e));
+      Alert.alert(t('pax.import'), String(e?.message ?? e));
     }
   };
 
@@ -149,7 +151,7 @@ export default function PassengersSc() {
     try {
       const picked = given ?? (await pickPaxSheet());
       if (!picked) return;
-      if (!picked.rows.length) return Alert.alert('Import', `No passengers found in “${picked.name}”. Use the passenger list template.`);
+      if (!picked.rows.length) return Alert.alert(t('pax.import'), t('pax.noneFound', { file: picked.name }));
       const plan = planPaxImport(picked.rows, passengers, passengersPrivate, today);
       const apply = async () => {
         await saveRows(storage.PASSENGERS_KEY, plan.passengers);
@@ -157,79 +159,79 @@ export default function PassengersSc() {
         playSuccessSound();
         setSaved(`${plan.added.length} added, ${plan.updated.length} updated from “${picked.name}”`);
       };
-      Alert.alert(`Import ${picked.rows.length} from “${picked.name}”?`, [note ?? null, plan.added.length ? `New: ${plan.added.join(', ')}.` : null, plan.updated.length ? `Updated (already on the list): ${plan.updated.join(', ')}.` : null, 'Empty cells leave what the app already has.'].filter(Boolean).join('\n\n'), [{ text: 'Cancel', style: 'cancel' }, { text: 'Import', onPress: () => void apply() }]);
+      Alert.alert(t('pax.importQ', { n: picked.rows.length, file: picked.name }), [note ?? null, plan.added.length ? t('pax.new', { names: plan.added.join(', ') }) : null, plan.updated.length ? t('pax.updated', { names: plan.updated.join(', ') }) : null, t('pax.emptyCells')].filter(Boolean).join('\n\n'), [{ text: t('common.cancel'), style: 'cancel' }, { text: t('pax.import'), onPress: () => void apply() }]);
     } catch (e: any) {
-      Alert.alert('Import failed', String(e?.message ?? e));
+      Alert.alert(t('pax.importFailed'), String(e?.message ?? e));
     }
   };
 
   const SHOW_OPTS: { value: Show; label: string }[] = [
-    { value: 'aboard', label: `Current guests · ${passengers.filter((p) => state(p) === 'aboard').length}` },
-    { value: 'expected', label: `Expected · ${passengers.filter((p) => state(p) === 'expected').length}` },
-    { value: 'left', label: `Disembarked · ${passengers.filter((p) => state(p) === 'left').length}` },
-    { value: 'all', label: `All · ${passengers.length}` },
+    { value: 'aboard', label: t('pax.showAboard', { n: passengers.filter((p) => state(p) === 'aboard').length }) },
+    { value: 'expected', label: t('pax.showExpected', { n: passengers.filter((p) => state(p) === 'expected').length }) },
+    { value: 'left', label: t('pax.showLeft', { n: passengers.filter((p) => state(p) === 'left').length }) },
+    { value: 'all', label: t('pax.showAll', { n: passengers.length }) },
   ];
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Passengers" subtitle={`${aboardList.length - ashore.length} on board${ashore.length ? ` · ${ashore.length} ashore now` : ''}`} help="Passengers" onScan={() => nav.navigate('Scan')} />
+      <ScreenTitle title={t('pax.title')} subtitle={`${t('cm.onBoard', { n: aboardList.length - ashore.length })}${ashore.length ? ` · ${t('pax.ashoreNow', { n: ashore.length })}` : ''}`} help="Passengers" onScan={() => nav.navigate('Scan')} />
       <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.sm, gap: SIZES.xs }]}>
-        <TextInput style={[styles.input, { flex: 2, minWidth: 220, marginTop: 0 }]} value={q} onChangeText={setQ} placeholder="Search — name, cabin, nationality" placeholderTextColor={COLORS.textLight} />
-        <Dropdown caption="SHOW" value={show} onChange={setShow} options={SHOW_OPTS} style={{ flex: 1, minWidth: 200 }} />
+        <TextInput style={[styles.input, { flex: 2, minWidth: 220, marginTop: 0 }]} value={q} onChangeText={setQ} placeholder={t('pax.searchPh')} placeholderTextColor={COLORS.textLight} />
+        <Dropdown caption={t('pax.show')} value={show} onChange={setShow} options={SHOW_OPTS} style={{ flex: 1, minWidth: 200 }} />
         {picker ? <View style={{ flex: 1, minWidth: 220 }}>{picker}</View> : null}
       </View>
       <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.sm }]}>
-        {officer ? <TouchableOpacity style={styles.btn} onPress={() => open()}><Text style={styles.btnText}>+ Passenger</Text></TouchableOpacity> : null}
-        <TouchableOpacity style={styles.small} onPress={() => nav.navigate('Main', { screen: 'Security', params: { view: 'gangway' } })}><Text style={styles.smallText}>Gangway ›</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.small} disabled={!aboardList.length} onPress={() => exportPassengerCards(aboardList, vessel).then(done, fail)}><Text style={styles.smallText}>Print passenger cards</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.small} onPress={() => void listPdf()}><Text style={styles.smallText}>Passenger list (PDF)</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.small} onPress={() => savePaxSheet(paxSheet(shown, passengersPrivate, officer), `Passenger list ${today}`, vessel).then(done, fail)}><Text style={styles.smallText}>Export to Excel</Text></TouchableOpacity>
-        {officer ? <TouchableOpacity style={styles.small} onPress={() => void importSheet()}><Text style={styles.smallText}>Import from Excel</Text></TouchableOpacity> : null}
+        {officer ? <TouchableOpacity style={styles.btn} onPress={() => open()}><Text style={styles.btnText}>{`+ ${t('pax.one')}`}</Text></TouchableOpacity> : null}
+        <TouchableOpacity style={styles.small} onPress={() => nav.navigate('Main', { screen: 'Security', params: { view: 'gangway' } })}><Text style={styles.smallText}>{`${t('pax.gangway')} ›`}</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.small} disabled={!aboardList.length} onPress={() => exportPassengerCards(aboardList, vessel).then(done, fail)}><Text style={styles.smallText}>{t('pax.cards')}</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.small} onPress={() => void listPdf()}><Text style={styles.smallText}>{t('pax.listPdf')}</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.small} onPress={() => savePaxSheet(paxSheet(shown, passengersPrivate, officer), `Passenger list ${today}`, vessel).then(done, fail)}><Text style={styles.smallText}>{t('pax.toExcel')}</Text></TouchableOpacity>
+        {officer ? <TouchableOpacity style={styles.small} onPress={() => void importSheet()}><Text style={styles.smallText}>{t('pax.fromExcel')}</Text></TouchableOpacity> : null}
         {officer && aiReady(sync.enrolled) ? <TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} onPress={() => void importAi()}><MciIcon name="creation" size={14} color={COLORS.primary} /><Text style={styles.smallText}>Any list (AI)</Text></TouchableOpacity> : null}
-        {officer ? <TouchableOpacity style={styles.small} onPress={() => savePaxSheet(paxTemplateRows(), 'Passenger list template', vessel).then(done, fail)}><Text style={styles.smallText}>Excel template</Text></TouchableOpacity> : null}
+        {officer ? <TouchableOpacity style={styles.small} onPress={() => savePaxSheet(paxTemplateRows(), 'Passenger list template', vessel).then(done, fail)}><Text style={styles.smallText}>{t('pax.template')}</Text></TouchableOpacity> : null}
       </View>
       {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700', marginBottom: SIZES.sm }]}>{`✓ ${saved}`}</Text> : null}
 
       {draft ? (
         <Card>
-          <Label>{passengers.some((p) => p.id === draft.id) ? 'Passenger' : 'New passenger'}</Label>
-          <TextInput style={styles.input} value={draft.name} onChangeText={(v) => set({ name: v })} placeholder="Full name as in the passport ★" placeholderTextColor={COLORS.textLight} autoFocus />
+          <Label>{passengers.some((p) => p.id === draft.id) ? t('pax.one') : t('pax.newOne')}</Label>
+          <TextInput style={styles.input} value={draft.name} onChangeText={(v) => set({ name: v })} placeholder={t('pax.namePh')} placeholderTextColor={COLORS.textLight} autoFocus />
           <View style={styles.row}>
-            <Dropdown caption="GROUP" value={draft.group ?? ''} onChange={(v: string) => set({ group: v || undefined })} options={[{ value: '', label: '—' }, ...PASSENGER_GROUPS.map((g) => ({ value: g, label: g }))]} style={{ flex: 1, minWidth: 200 }} />
-            <TextInput style={[styles.input, { flex: 1, minWidth: 120, marginTop: 0 }]} value={draft.cabin ?? ''} onChangeText={(v) => set({ cabin: v })} placeholder="Cabin No." placeholderTextColor={COLORS.textLight} />
-            <TextInput style={[styles.input, { flex: 1, minWidth: 140, marginTop: 0 }]} value={draft.nationality ?? ''} onChangeText={(v) => set({ nationality: v })} placeholder="Nationality" placeholderTextColor={COLORS.textLight} />
+            <Dropdown caption={t('pax.group')} value={draft.group ?? ''} onChange={(v: string) => set({ group: v || undefined })} options={[{ value: '', label: '—' }, ...PASSENGER_GROUPS.map((g) => ({ value: g, label: g }))]} style={{ flex: 1, minWidth: 200 }} />
+            <TextInput style={[styles.input, { flex: 1, minWidth: 120, marginTop: 0 }]} value={draft.cabin ?? ''} onChangeText={(v) => set({ cabin: v })} placeholder={t('pax.cabin')} placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { flex: 1, minWidth: 140, marginTop: 0 }]} value={draft.nationality ?? ''} onChangeText={(v) => set({ nationality: v })} placeholder={t('pax.nationality')} placeholderTextColor={COLORS.textLight} />
           </View>
           <View style={styles.row}>
-            <View style={{ flex: 1, minWidth: 200 }}><SimpleDatePicker label="Embarked" value={draft.embarked} onChange={(v) => set({ embarked: v })} /></View>
-            <TextInput style={[styles.input, { flex: 1, minWidth: 160 }]} value={draft.embarkPort ?? ''} onChangeText={(v) => set({ embarkPort: v })} placeholder="Port embarked" placeholderTextColor={COLORS.textLight} />
+            <View style={{ flex: 1, minWidth: 200 }}><SimpleDatePicker label={t('pax.embarked')} value={draft.embarked} onChange={(v) => set({ embarked: v })} /></View>
+            <TextInput style={[styles.input, { flex: 1, minWidth: 160 }]} value={draft.embarkPort ?? ''} onChangeText={(v) => set({ embarkPort: v })} placeholder={t('pax.portIn')} placeholderTextColor={COLORS.textLight} />
           </View>
           <View style={styles.row}>
-            <View style={{ flex: 1, minWidth: 200 }}><SimpleDatePicker label="Disembarked" value={draft.disembarked} onChange={(v) => set({ disembarked: v })} onClear={() => set({ disembarked: undefined })} placeholder="Still aboard" /></View>
-            <TextInput style={[styles.input, { flex: 1, minWidth: 160 }]} value={draft.disembarkPort ?? ''} onChangeText={(v) => set({ disembarkPort: v })} placeholder="Port disembarked" placeholderTextColor={COLORS.textLight} />
+            <View style={{ flex: 1, minWidth: 200 }}><SimpleDatePicker label={t('pax.disembarked')} value={draft.disembarked} onChange={(v) => set({ disembarked: v })} onClear={() => set({ disembarked: undefined })} placeholder={t('pax.stillAboard')} /></View>
+            <TextInput style={[styles.input, { flex: 1, minWidth: 160 }]} value={draft.disembarkPort ?? ''} onChangeText={(v) => set({ disembarkPort: v })} placeholder={t('pax.portOut')} placeholderTextColor={COLORS.textLight} />
           </View>
-          <TextInput style={styles.input} value={draft.notes ?? ''} onChangeText={(v) => set({ notes: v })} placeholder="Notes — diet, allergies told to the chef, mobility" placeholderTextColor={COLORS.textLight} />
+          <TextInput style={styles.input} value={draft.notes ?? ''} onChangeText={(v) => set({ notes: v })} placeholder={t('pax.notesPh')} placeholderTextColor={COLORS.textLight} />
           {officer ? (
             <>
-              <Label>Documents — officers and the Master only</Label>
+              <Label>{t('pax.docs')}</Label>
               <View style={styles.row}>
                 <Dropdown caption="ID" value={draft.priv.idType ?? 'Passport'} onChange={(v: string) => setP({ idType: v })} options={ID_TYPES.map((t) => ({ value: t, label: t }))} style={{ flex: 1, minWidth: 180 }} />
-                <TextInput style={[styles.input, { flex: 1, minWidth: 150, marginTop: 0 }]} value={draft.priv.idNo ?? ''} onChangeText={(v) => setP({ idNo: v, idType: draft.priv.idType ?? 'Passport' })} placeholder="Document No." placeholderTextColor={COLORS.textLight} />
+                <TextInput style={[styles.input, { flex: 1, minWidth: 150, marginTop: 0 }]} value={draft.priv.idNo ?? ''} onChangeText={(v) => setP({ idNo: v, idType: draft.priv.idType ?? 'Passport' })} placeholder={t('pax.docNo')} placeholderTextColor={COLORS.textLight} />
               </View>
               <View style={styles.row}>
-                <View style={{ flex: 1, minWidth: 200 }}><SimpleDatePicker label="Document expires" value={draft.priv.idExpiry} onChange={(v) => setP({ idExpiry: v })} onClear={() => setP({ idExpiry: undefined })} /></View>
-                <View style={{ flex: 1, minWidth: 200 }}><SimpleDatePicker label="Date of birth" value={draft.priv.dateOfBirth} onChange={(v) => setP({ dateOfBirth: v })} onClear={() => setP({ dateOfBirth: undefined })} defaultYear={1980} /></View>
+                <View style={{ flex: 1, minWidth: 200 }}><SimpleDatePicker label={t('pax.docExp')} value={draft.priv.idExpiry} onChange={(v) => setP({ idExpiry: v })} onClear={() => setP({ idExpiry: undefined })} /></View>
+                <View style={{ flex: 1, minWidth: 200 }}><SimpleDatePicker label={t('pax.dob')} value={draft.priv.dateOfBirth} onChange={(v) => setP({ dateOfBirth: v })} onClear={() => setP({ dateOfBirth: undefined })} defaultYear={1980} /></View>
               </View>
               <View style={styles.row}>
-                <TextInput style={[styles.input, { flex: 1, minWidth: 160 }]} value={draft.priv.phone ?? ''} onChangeText={(v) => setP({ phone: v })} placeholder="Phone" placeholderTextColor={COLORS.textLight} />
-                <TextInput style={[styles.input, { flex: 2, minWidth: 220 }]} value={draft.priv.emergencyContact ?? ''} onChangeText={(v) => setP({ emergencyContact: v })} placeholder="Contact ashore — name, phone" placeholderTextColor={COLORS.textLight} />
+                <TextInput style={[styles.input, { flex: 1, minWidth: 160 }]} value={draft.priv.phone ?? ''} onChangeText={(v) => setP({ phone: v })} placeholder={t('pax.phone')} placeholderTextColor={COLORS.textLight} />
+                <TextInput style={[styles.input, { flex: 2, minWidth: 220 }]} value={draft.priv.emergencyContact ?? ''} onChangeText={(v) => setP({ emergencyContact: v })} placeholder={t('pax.contact')} placeholderTextColor={COLORS.textLight} />
               </View>
             </>
           ) : null}
           <View style={styles.row}>
-            <TouchableOpacity style={styles.btn} onPress={() => void save()}><Text style={styles.btnText}>Save</Text></TouchableOpacity>
-            {passengers.some((p) => p.id === draft.id) && !draft.disembarked ? <TouchableOpacity style={styles.small} onPress={() => void save({ disembarked: today })}><Text style={styles.smallText}>Disembarked today</Text></TouchableOpacity> : null}
-            <TouchableOpacity onPress={() => setDraft(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
-            {passengers.some((p) => p.id === draft.id) ? <TouchableOpacity onPress={remove}><Text style={[styles.link, { color: COLORS.danger }]}>Remove</Text></TouchableOpacity> : null}
+            <TouchableOpacity style={styles.btn} onPress={() => void save()}><Text style={styles.btnText}>{t('common.save')}</Text></TouchableOpacity>
+            {passengers.some((p) => p.id === draft.id) && !draft.disembarked ? <TouchableOpacity style={styles.small} onPress={() => void save({ disembarked: today })}><Text style={styles.smallText}>{t('pax.leftToday')}</Text></TouchableOpacity> : null}
+            <TouchableOpacity onPress={() => setDraft(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
+            {passengers.some((p) => p.id === draft.id) ? <TouchableOpacity onPress={remove}><Text style={[styles.link, { color: COLORS.danger }]}>{t('common.remove')}</Text></TouchableOpacity> : null}
           </View>
         </Card>
       ) : null}
@@ -245,21 +247,21 @@ export default function PassengersSc() {
             <MciIcon name={p.group === 'Owner' ? 'crown-outline' : 'account-outline'} size={20} color={COLORS.primary} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.name}>{p.name}</Text>
-              <Text style={styles.sub}>{[p.group, p.cabin ? `cabin ${p.cabin}` : null, p.nationality].filter(Boolean).join(' · ') || '—'}</Text>
-              <Text style={styles.sub}>{[p.embarked ? `embarked ${formatDate(p.embarked)}${p.embarkPort ? ` ${p.embarkPort}` : ''}` : null, p.disembarked ? `${st === 'left' ? 'left' : 'leaves'} ${formatDate(p.disembarked)}${p.disembarkPort ? ` ${p.disembarkPort}` : ''}` : null].filter(Boolean).join(' · ')}</Text>
-              {expiring ? <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700' }]}>{`${x?.idType ?? 'Document'} expired ${formatDate(x!.idExpiry!)}`}</Text> : null}
-              {st === 'aboard' ? <Text style={[styles.sub, { color: away ? COLORS.warning : COLORS.success, fontWeight: '700' }]}>{away ? `Ashore since ${m?.date === today ? m.time : m ? `${formatDate(m.date)} ${m.time}` : '—'}` : 'Aboard'}</Text> : null}
+              <Text style={styles.sub}>{[p.group, p.cabin ? t('pax.cabinN', { n: p.cabin }) : null, p.nationality].filter(Boolean).join(' · ') || '—'}</Text>
+              <Text style={styles.sub}>{[p.embarked ? `${t('pax.embarkedL')} ${formatDate(p.embarked)}${p.embarkPort ? ` ${p.embarkPort}` : ''}` : null, p.disembarked ? `${st === 'left' ? t('pax.leftL') : t('pax.leavesL')} ${formatDate(p.disembarked)}${p.disembarkPort ? ` ${p.disembarkPort}` : ''}` : null].filter(Boolean).join(' · ')}</Text>
+              {expiring ? <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700' }]}>{t('pax.docExpired', { doc: x?.idType ?? t('pax.document'), date: formatDate(x!.idExpiry!) })}</Text> : null}
+              {st === 'aboard' ? <Text style={[styles.sub, { color: away ? COLORS.warning : COLORS.success, fontWeight: '700' }]}>{away ? t('pax.ashoreSince', { when: m?.date === today ? m.time : m ? `${formatDate(m.date)} ${m.time}` : '—' }) : t('pax.aboard')}</Text> : null}
             </View>
             {st === 'aboard' ? (
-              <TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: away ? COLORS.warning : COLORS.success, borderColor: away ? COLORS.warning : COLORS.success }]} onPress={() => void cross(p)} accessibilityLabel={`${p.name}: ${away ? 'ashore' : 'on board'} — tap to change`}>
+              <TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: away ? COLORS.warning : COLORS.success, borderColor: away ? COLORS.warning : COLORS.success }]} onPress={() => void cross(p)} accessibilityLabel={`${p.name}: ${away ? t('pax.ashoreL') : t('pax.onBoardL')} — ${t('pax.tapChange')}`}>
                 <MciIcon name="swap-horizontal" size={14} color={COLORS.textWhite} />
-                <Text style={[styles.smallText, { color: COLORS.textWhite }]}>{away ? 'Ashore' : 'On board'}</Text>
+                <Text style={[styles.smallText, { color: COLORS.textWhite }]}>{away ? t('pax.ashore') : t('pax.onBoard')}</Text>
               </TouchableOpacity>
             ) : null}
           </TouchableOpacity>
         );
       })}
-      {!shown.length ? <Text style={styles.sub}>{passengers.length ? 'Nobody here.' : officer ? 'No passengers yet — add them as they join: the name as in the passport, the cabin.' : 'No passengers on the list.'}</Text> : null}
+      {!shown.length ? <Text style={styles.sub}>{passengers.length ? t('pax.nobody') : officer ? t('pax.empty') : t('pax.emptyCrew')}</Text> : null}
     </Screen>
   );
 }

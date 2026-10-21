@@ -39,6 +39,7 @@ import { todayIso } from '../services/pms';
 import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
+import { t, tk, tn, useT } from '../utils/i18n';
 
 type Tab = 'locker' | 'check';
 type View_ = 'inventory' | 'drills' | 'docs' | 'manage';
@@ -46,6 +47,7 @@ type View_ = 'inventory' | 'drills' | 'docs' | 'manage';
 const SCENARIOS = ['Overflow / spill during bunkering', 'Hydraulic oil leak on deck', 'Leak from the hull or a fuel tank', 'Oil in the bilge discharged by mistake', 'Spill during oil change / transfer'];
 
 export default function SopepSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { sopepItems: items, sopepLockers: lockerList, sopepChecks, sopepDrills, crew, vessel, saveRow, appendRow, versionsOf } = useData();
@@ -56,7 +58,7 @@ export default function SopepSc() {
   const amend = useAmend();
   const allChecks = versionsOf(storage.SOPEP_CHECKS_KEY) as SopepCheck[];
   const allDrills = versionsOf(storage.SOPEP_DRILLS_KEY) as SopepDrill[];
-  const checkLine = (c: SopepCheck) => `${formatDate(c.date)} · ${c.by}${items.filter((i) => (c.counted[i.id] ?? 0) < i.required).length ? ` · ${items.filter((i) => (c.counted[i.id] ?? 0) < i.required).length} short` : ' · complete'}${c.remarks ? ` · ${c.remarks}` : ''}`;
+  const checkLine = (c: SopepCheck) => `${formatDate(c.date)} · ${c.by}${items.filter((i) => (c.counted[i.id] ?? 0) < i.required).length ? ` · ${t('sop.short', { n: items.filter((i) => (c.counted[i.id] ?? 0) < i.required).length })}` : ` · ${t('sop.complete')}`}${c.remarks ? ` · ${c.remarks}` : ''}`;
   const confirmSign = useSignConfirm();
   const { signer, picker } = useSigner();
   const [tab, setTab] = useState<Tab>('locker');
@@ -77,7 +79,7 @@ export default function SopepSc() {
   const unknownLocker = sel !== 'all' && !lockers.some((l) => l.id === sel);
   const shown = sel === 'all' || unknownLocker ? lockers : lockers.filter((l) => l.id === sel);
   const [saved, setSaved] = useState<string | null>(null);
-  const done = (w: string | null | void) => typeof w === 'string' && setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+  const done = (w: string | null | void) => typeof w === 'string' && setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
   const fail = (e: any) => Alert.alert('SOPEP', String(e?.message ?? e));
   const addLocker = async () => {
     const l: SopepLocker = { id: uid('lk'), name: `SOPEP locker ${lockers.length + 1}`, code: nextLockerCode(lockers), order: lockers.length, updatedAt: Date.now() };
@@ -95,7 +97,7 @@ export default function SopepSc() {
 
   const stamp = async (what: string) => {
     if (!signer) {
-      Alert.alert('Who is signing?', 'Choose your name below.');
+      Alert.alert(t('sign.who'), t('pd.chooseName'));
       return null;
     }
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what });
@@ -120,7 +122,7 @@ export default function SopepSc() {
     const counted: Record<string, number> = { ...(countItems.length < items.length ? lastCheck?.counted ?? {} : {}) };
     for (const i of countItems) {
       const v = Number((counts[i.id] ?? '').replace(',', '.'));
-      if ((counts[i.id] ?? '').trim() === '' || !Number.isFinite(v)) return Alert.alert('Inventory', `Count “${i.name}”.`);
+      if ((counts[i.id] ?? '').trim() === '' || !Number.isFinite(v)) return Alert.alert(t('mc.inventory'), t('mc.countIt', { name: i.name }));
       counted[i.id] = v;
     }
     const s = await stamp(countLocker ? `SOPEP inventory check — ${countLocker.name}` : 'SOPEP inventory check');
@@ -141,7 +143,7 @@ export default function SopepSc() {
   const [d, setD] = useState({ scenario: SCENARIOS[0], minutes: '', lessons: '', team: [] as string[] });
   const people = crew.filter(isAboard);
   const saveDrill = async () => {
-    if (!d.team.length) return Alert.alert('Drill', 'Mark who took part.');
+    if (!d.team.length) return Alert.alert(t('sop.drill'), t('mt.markWho'));
     const s = await stamp(`SOPEP drill — ${d.scenario}`);
     if (!s) return;
     const r: SopepDrill = {
@@ -162,24 +164,24 @@ export default function SopepSc() {
   return (
     <Screen scroll>
       <ScreenTitle
-        title={view === 'drills' ? 'SOPEP drills' : view === 'docs' ? 'SOPEP docs' : view === 'manage' ? 'SOPEP lockers' : 'SOPEP stores'}
-        subtitle={view === 'drills' ? 'Oil spill drills — scenario, who took part, lessons' : view === 'docs' ? 'The plan and its contacts — officers only' : view === 'manage' ? `${lockers.length} lockers · IDs, places, QR labels, lists` : 'Oil spill lockers and their inventory checks'}
+        title={view === 'drills' ? t('sop.tDrills') : view === 'docs' ? t('sop.tDocs') : view === 'manage' ? t('sop.tLockers') : t('sop.tStores')}
+        subtitle={view === 'drills' ? t('sop.sDrills') : view === 'docs' ? t('sop.sDocs') : view === 'manage' ? t('sop.sLockers', { n: lockers.length }) : t('sop.sStores')}
         help="SOPEP"
       />
       {view === 'manage' && !mayManage ? (
-        <Text style={styles.sub}>Managing the SOPEP lockers — adding one, its ID, its label, loading its list — is for those the Master allows (Settings → Access).</Text>
+        <Text style={styles.sub}>{t('sop.manageDenied')}</Text>
       ) : view === 'manage' ? (
         <SopepLockers onOpen={(id) => { setSel(id); setTab('locker'); nav.setParams({ view: 'inventory' }); }} done={done} fail={fail} />
       ) : view === 'docs' ? (
-        <OfficerDocs shelf="sopep" intro="The approved SOPEP, its contact lists and drawings — kept for the Master and the officers." />
+        <OfficerDocs shelf="sopep" intro={t('sop.docsIntro')} />
       ) : (<>
       <View style={styles.summary}>
-        <Text style={[styles.sumItem, shortCount ? { color: COLORS.danger } : null]}>{lastCheck ? `Last check ${formatDate(lastCheck.date)}${shortCount ? ` · ${shortCount} short` : ' · complete'}` : 'Never checked'}</Text>
-        <Text style={styles.sumItem}>{lastDrill ? `Last drill ${formatDate(lastDrill.date)}` : 'No drill recorded'}</Text>
+        <Text style={[styles.sumItem, shortCount ? { color: COLORS.danger } : null]}>{lastCheck ? `${t('sop.lastCheck', { date: formatDate(lastCheck.date) })}${shortCount ? ` · ${t('sop.short', { n: shortCount })}` : ` · ${t('sop.complete')}`}` : t('sop.never')}</Text>
+        <Text style={styles.sumItem}>{lastDrill ? t('sop.lastDrill', { date: formatDate(lastDrill.date) }) : t('sop.noDrill')}</Text>
       </View>
       {view === 'inventory' ? (
       <View style={styles.tabs}>
-        {([['locker', `Lockers · ${lockers.length} · ${items.length} items`], ['check', 'Inventory check']] as [Tab, string][]).map(([k, l]) => (
+        {([['locker', `${t('sop.lockersN', { n: lockers.length })} · ${tn('n.item', items.length)}`], ['check', t('sop.invCheck')]] as [Tab, string][]).map(([k, l]) => (
           <Chip key={k} on={tab === k} label={l} onPress={() => setTab(k)} />
         ))}
       </View>
@@ -189,15 +191,15 @@ export default function SopepSc() {
         <>
           {/* Several lockers, each named and placed, each with its QR label (14 Oct 2026). */}
           <View style={[styles.chips, { alignItems: 'center' }]}>
-            <Dropdown caption="LOCKER" value={sel} onChange={setSel} style={{ minWidth: 240, flexGrow: 1 }} options={[{ value: 'all', label: `All lockers · ${lockers.length}` }, ...lockers.map((l) => ({ value: l.id, label: `${l.name} · ${items.filter((i) => lockerOf(i) === l.id).length}` }))]} />
-            {mayManage ? <TouchableOpacity style={styles.btnOutline} onPress={() => void addLocker()}><Text style={styles.btnOutlineText}>+ New locker</Text></TouchableOpacity> : null}
+            <Dropdown caption={t('sop.locker')} value={sel} onChange={setSel} style={{ minWidth: 240, flexGrow: 1 }} options={[{ value: 'all', label: t('sop.allLockers', { n: lockers.length }) }, ...lockers.map((l) => ({ value: l.id, label: `${l.name} · ${items.filter((i) => lockerOf(i) === l.id).length}` }))]} />
+            {mayManage ? <TouchableOpacity style={styles.btnOutline} onPress={() => void addLocker()}><Text style={styles.btnOutlineText}>{t('sop.newLocker')}</Text></TouchableOpacity> : null}
             <TouchableOpacity style={styles.btnOutline} onPress={() => void exportLockerLabels(shown.map((l) => ({ ...l, code: lockerCode(l) })), vessel).then(done, fail)}>
               <MciIcon name="qrcode" size={16} color={COLORS.primary} />
               <Text style={styles.btnOutlineText}>{shown.length > 1 ? `QR labels (${shown.length})` : 'QR label'}</Text>
             </TouchableOpacity>
           </View>
           {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{`✓ ${saved}`}</Text> : null}
-          {unknownLocker ? <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700' }]}>That label is not a locker of this vessel (another vessel's, or the locker was removed).</Text> : null}
+          {unknownLocker ? <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700' }]}>{t('sop.unknown')}</Text> : null}
           {shown.map((l) => {
             const inIt = items.filter((i) => lockerOf(i) === l.id);
             return (
@@ -208,19 +210,19 @@ export default function SopepSc() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <TextInput key={`n-${l.id}`} style={styles.lockerName} editable={mayManage} defaultValue={l.name} onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v && v !== l.name) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, name: v }); }} onEndEditing={(e) => { const v = e.nativeEvent.text.trim(); if (v && v !== l.name) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, name: v }); }} />
-                    <TextInput key={`p-${l.id}`} style={styles.sub} editable={mayManage} defaultValue={l.location ?? ''} placeholder="Where it is — engine room stbd, bunker station, bow locker" placeholderTextColor={COLORS.textLight} onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v !== (l.location ?? '')) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, location: v }); }} onEndEditing={(e) => { const v = e.nativeEvent.text.trim(); if (v !== (l.location ?? '')) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, location: v }); }} />
+                    <TextInput key={`p-${l.id}`} style={styles.sub} editable={mayManage} defaultValue={l.location ?? ''} placeholder={t('sop.wherePh')} placeholderTextColor={COLORS.textLight} onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v !== (l.location ?? '')) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, location: v }); }} onEndEditing={(e) => { const v = e.nativeEvent.text.trim(); if (v !== (l.location ?? '')) void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, location: v }); }} />
                   </View>
                   {inIt.length ? (
-                    <TouchableOpacity style={styles.btnOutline} onPress={() => { setSel(l.id); setTab('check'); }} accessibilityLabel={`Count ${l.name}`}>
+                    <TouchableOpacity style={styles.btnOutline} onPress={() => { setSel(l.id); setTab('check'); }} accessibilityLabel={t('sop.countL', { name: l.name })}>
                       <MciIcon name="counter" size={16} color={COLORS.primary} />
-                      <Text style={styles.btnOutlineText}>Count</Text>
+                      <Text style={styles.btnOutlineText}>{t('sop.count')}</Text>
                     </TouchableOpacity>
                   ) : null}
                   <TouchableOpacity onPress={() => void exportLockerLabels([{ ...l, code: lockerCode(l) }], vessel).then(done, fail)} hitSlop={8} accessibilityLabel={`QR label — ${l.name}`}>
                     <MciIcon name="qrcode" size={22} color={COLORS.primary} />
                   </TouchableOpacity>
                   {mayManage && l.id !== MAIN_LOCKER && !inIt.length ? (
-                    <TouchableOpacity onPress={() => void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, deleted: true }).then(() => setSel('all'))} hitSlop={8} accessibilityLabel={`Remove locker — ${l.name}`}>
+                    <TouchableOpacity onPress={() => void saveRow(storage.SOPEP_LOCKERS_KEY, { ...l, deleted: true }).then(() => setSel('all'))} hitSlop={8} accessibilityLabel={`${t('sop.removeLocker')} — ${l.name}`}>
                       <MciIcon name="delete-outline" size={20} color={COLORS.textLight} />
                     </TouchableOpacity>
                   ) : null}
@@ -230,7 +232,7 @@ export default function SopepSc() {
                     {/* Name and place first; the locker, count, quantity and unit beside it — or under it on a phone. */}
                     <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 220, minWidth: 0 }}>
                       <TextInput style={styles.itemName} defaultValue={i.name} onEndEditing={(e) => e.nativeEvent.text.trim() && void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, name: e.nativeEvent.text.trim() })} onBlur={(e: any) => { const v = String(e?.target?.value ?? '').trim(); if (v && v !== i.name) void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, name: v }); }} />
-                      <TextInput style={styles.sub} defaultValue={i.location ?? ''} placeholder="Shelf / place in the locker" placeholderTextColor={COLORS.textLight} onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v !== (i.location ?? '')) void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, location: v }); }} onEndEditing={(e) => void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, location: e.nativeEvent.text.trim() })} />
+                      <TextInput style={styles.sub} defaultValue={i.location ?? ''} placeholder={t('sop.shelfPh')} placeholderTextColor={COLORS.textLight} onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v !== (i.location ?? '')) void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, location: v }); }} onEndEditing={(e) => void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, location: e.nativeEvent.text.trim() })} />
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 'auto', flexShrink: 1, maxWidth: '100%' }}>
                     {lockers.length > 1 ? (
@@ -238,13 +240,13 @@ export default function SopepSc() {
                     ) : null}
                     {/* The quantity the plan requires and its unit, corrected here (14 Oct 2026); the count on hand comes from the last check. */}
                     {lastCheck ? <Text style={[styles.qty, { minWidth: 36, textAlign: 'right' }, short(i) ? { color: COLORS.danger } : null]} numberOfLines={1}>{`${lastCheck.counted[i.id] ?? 0} /`}</Text> : null}
-                    <TextInput key={`q-${i.id}`} style={[styles.qtyInput, short(i) ? { borderColor: COLORS.danger } : null]} defaultValue={String(i.required)} keyboardType="number-pad" selectTextOnFocus accessibilityLabel={`Quantity required — ${i.name}`}
+                    <TextInput key={`q-${i.id}`} style={[styles.qtyInput, short(i) ? { borderColor: COLORS.danger } : null]} defaultValue={String(i.required)} keyboardType="number-pad" selectTextOnFocus accessibilityLabel={`${t('sop.qtyReq')} — ${i.name}`}
                       onBlur={(e: any) => { const v = Number(String(e?.target?.value ?? e?.nativeEvent?.text ?? '').replace(',', '.')); if (Number.isFinite(v) && v >= 0 && v !== i.required) void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, required: v }); }}
                       onEndEditing={(e) => { const v = Number(e.nativeEvent.text.replace(',', '.')); if (Number.isFinite(v) && v >= 0 && v !== i.required) void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, required: v }); }} />
-                    <TextInput key={`u-${i.id}`} style={styles.unitInput} defaultValue={i.unit ?? ''} placeholder="unit" placeholderTextColor={COLORS.textLight} accessibilityLabel={`Unit — ${i.name}`}
+                    <TextInput key={`u-${i.id}`} style={styles.unitInput} defaultValue={i.unit ?? ''} placeholder={t('sop.unit')} placeholderTextColor={COLORS.textLight} accessibilityLabel={`${t('sop.unit')} — ${i.name}`}
                       onBlur={(e: any) => { const v = String(e?.target?.value ?? e?.nativeEvent?.text ?? '').trim(); if (v !== (i.unit ?? '')) void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, unit: v }); }}
                       onEndEditing={(e) => { const v = e.nativeEvent.text.trim(); if (v !== (i.unit ?? '')) void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, unit: v }); }} />
-                    <TouchableOpacity onPress={() => Alert.alert('Remove', `Remove “${i.name}” from the locker list?`, [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, deleted: true }) }])} hitSlop={8}>
+                    <TouchableOpacity onPress={() => Alert.alert(t('common.remove'), t('sop.removeItem', { name: i.name }), [{ text: t('common.cancel'), style: 'cancel' }, { text: t('common.remove'), style: 'destructive', onPress: () => void saveRow(storage.SOPEP_ITEMS_KEY, { ...i, deleted: true }) }])} hitSlop={8}>
                       <MciIcon name="delete-outline" size={20} color={COLORS.textLight} />
                     </TouchableOpacity>
                     </View>
@@ -256,19 +258,19 @@ export default function SopepSc() {
                   </TouchableOpacity>
                 ) : (
                   <>
-                    <Text style={styles.sub}>No locker list yet. Start from a typical yacht SOPEP locker (16 items) and edit it to the vessel’s plan.</Text>
-                    <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void addStarter()}><Text style={styles.btnText}>Add the typical list</Text></TouchableOpacity>
+                    <Text style={styles.sub}>{t('sop.noList')}</Text>
+                    <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void addStarter()}><Text style={styles.btnText}>{t('sop.addTypical')}</Text></TouchableOpacity>
                   </>
                 )}
               </Card>
             );
           })}
-          {lastCheck?.defective?.length ? <Text style={[styles.sub, { color: COLORS.warning }]}>{`To replace: ${lastCheck.defective.map((id) => items.find((i) => i.id === id)?.name).filter(Boolean).join(', ')}`}</Text> : null}
+          {lastCheck?.defective?.length ? <Text style={[styles.sub, { color: COLORS.warning }]}>{`${t('sop.toReplace')}: ${lastCheck.defective.map((id) => items.find((i) => i.id === id)?.name).filter(Boolean).join(', ')}`}</Text> : null}
         </>
       ) : view === 'inventory' ? (
         <Card>
-          <Label>{countLocker ? `Count ${countLocker.name}` : 'Count the lockers'}</Label>
-          {countLocker ? <Text style={styles.sub}>{`Only ${countLocker.name}${countLocker.location ? ` (${countLocker.location})` : ''} — the other lockers keep their last count. Choose All lockers on the Lockers tab to count everything.`}</Text> : null}
+          <Label>{countLocker ? t('sop.countL', { name: countLocker.name }) : t('sop.countAll')}</Label>
+          {countLocker ? <Text style={styles.sub}>{t('sop.onlyThis', { name: `${countLocker.name}${countLocker.location ? ` (${countLocker.location})` : ''}` })}</Text> : null}
           {(countLocker ? [countLocker] : lockers).flatMap((l) => {
             const inIt = items.filter((i) => lockerOf(i) === l.id);
             return inIt.length && lockers.length > 1 ? [<Text key={`h-${l.id}`} style={[styles.sub, { fontWeight: '800', color: COLORS.textDark, marginTop: SIZES.sm }]}>{`${l.name}${l.location ? ` · ${l.location}` : ''}`}</Text>, ...inIt] : inIt;
@@ -277,14 +279,14 @@ export default function SopepSc() {
               <Text style={styles.countName} numberOfLines={2}>{`${i.name} (${i.required} ${i.unit ?? ''})`}</Text>
               <TextInput style={styles.countInput} value={counts[i.id] ?? ''} onChangeText={(v) => setCounts({ ...counts, [i.id]: v })} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={COLORS.textLight} />
               <TouchableOpacity onPress={() => setBad(bad.includes(i.id) ? bad.filter((x) => x !== i.id) : [...bad, i.id])} style={[styles.badBtn, bad.includes(i.id) && { backgroundColor: COLORS.warning, borderColor: COLORS.warning }]}>
-                <Text style={[styles.badText, bad.includes(i.id) && { color: COLORS.textWhite }]}>Replace</Text>
+                <Text style={[styles.badText, bad.includes(i.id) && { color: COLORS.textWhite }]}>{t('sop.replace')}</Text>
               </TouchableOpacity>
             </View>
           )))}
-          <TextInput style={styles.input} value={remarks} onChangeText={setRemarks} placeholder="Remarks" placeholderTextColor={COLORS.textLight} />
-          {picker ? <><Text style={styles.sub}>Checked by</Text>{picker}</> : null}
-          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void saveCheck()}><Text style={styles.btnText}>Sign the check</Text></TouchableOpacity>
-          {allChecks.length ? <Label>Previous checks</Label> : null}
+          <TextInput style={styles.input} value={remarks} onChangeText={setRemarks} placeholder={t('book.remarks')} placeholderTextColor={COLORS.textLight} />
+          {picker ? <><Text style={styles.sub}>{t('sop.checkedBy')}</Text>{picker}</> : null}
+          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void saveCheck()}><Text style={styles.btnText}>{t('sop.signCheck')}</Text></TouchableOpacity>
+          {allChecks.length ? <Label>{t('sop.previous')}</Label> : null}
           {current(allChecks).sort((a, b) => b.at - a.at).map((c) => (
             <View key={c.id} style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginBottom: 4 }}>
               <View style={{ flex: 1 }}>
@@ -295,7 +297,7 @@ export default function SopepSc() {
                 <AmendButtons
                   row
                   isMaster={isMaster}
-                  onEdit={() => amend.edit({ store: storage.SOPEP_CHECKS_KEY, record: c, what: `SOPEP check ${formatDate(c.date)}`, fields: [...items.map((i) => ({ key: `counted.${i.id}`, label: `${i.name} (${i.required} ${i.unit ?? ''})`, kind: 'number' as const })), { key: 'remarks', label: 'Remarks', kind: 'multiline' }] })}
+                  onEdit={() => amend.edit({ store: storage.SOPEP_CHECKS_KEY, record: c, what: `SOPEP check ${formatDate(c.date)}`, fields: [...items.map((i) => ({ key: `counted.${i.id}`, label: `${i.name} (${i.required} ${i.unit ?? ''})`, kind: 'number' as const })), { key: 'remarks', label: t('book.remarks'), kind: 'multiline' }] })}
                   onDelete={() => amend.remove({ store: storage.SOPEP_CHECKS_KEY, record: c, what: `SOPEP check ${formatDate(c.date)}` })}
                 />
               ) : null}
@@ -305,34 +307,34 @@ export default function SopepSc() {
       ) : (
         <>
           <Card>
-            <Label>Record a drill — today</Label>
+            <Label>{t('sop.recordDrill')}</Label>
             <View style={styles.chips}>
-              {SCENARIOS.map((s) => <Chip key={s} on={d.scenario === s} label={s} onPress={() => setD({ ...d, scenario: s })} />)}
+              {SCENARIOS.map((s, k) => <Chip key={s} on={d.scenario === s} label={tk(`sop.sc.${k}`)} onPress={() => setD({ ...d, scenario: s })} />)}
             </View>
-            <TextInput style={styles.input} value={SCENARIOS.includes(d.scenario) ? '' : d.scenario} onChangeText={(v) => setD({ ...d, scenario: v || SCENARIOS[0] })} placeholder="…or describe another scenario" placeholderTextColor={COLORS.textLight} />
-            <Label>Who took part</Label>
+            <TextInput style={styles.input} value={SCENARIOS.includes(d.scenario) ? '' : d.scenario} onChangeText={(v) => setD({ ...d, scenario: v || SCENARIOS[0] })} placeholder={t('sop.otherScenario')} placeholderTextColor={COLORS.textLight} />
+            <Label>{t('sop.whoTook')}</Label>
             <View style={styles.chips}>
               {people.map((p) => <Chip key={p.id} on={d.team.includes(p.name)} label={p.name} onPress={() => setD({ ...d, team: d.team.includes(p.name) ? d.team.filter((n) => n !== p.name) : [...d.team, p.name] })} />)}
             </View>
             <View style={styles.pair}>
-              <TextInput style={[styles.input, { maxWidth: 140 }]} value={d.minutes} onChangeText={(v) => setD({ ...d, minutes: v })} placeholder="Minutes" placeholderTextColor={COLORS.textLight} keyboardType="number-pad" />
-              <TextInput style={[styles.input, { flex: 3 }]} value={d.lessons} onChangeText={(v) => setD({ ...d, lessons: v })} placeholder="Lessons learned, actions" placeholderTextColor={COLORS.textLight} multiline />
+              <TextInput style={[styles.input, { maxWidth: 140 }]} value={d.minutes} onChangeText={(v) => setD({ ...d, minutes: v })} placeholder={t('sop.minutes')} placeholderTextColor={COLORS.textLight} keyboardType="number-pad" />
+              <TextInput style={[styles.input, { flex: 3 }]} value={d.lessons} onChangeText={(v) => setD({ ...d, lessons: v })} placeholder={t('sop.lessons')} placeholderTextColor={COLORS.textLight} multiline />
             </View>
-            {picker ? <><Text style={styles.sub}>Drill conducted by</Text>{picker}</> : null}
-            <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void saveDrill()}><Text style={styles.btnText}>Sign the drill</Text></TouchableOpacity>
+            {picker ? <><Text style={styles.sub}>{t('sop.conductedBy')}</Text>{picker}</> : null}
+            <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void saveDrill()}><Text style={styles.btnText}>{t('sop.signDrill')}</Text></TouchableOpacity>
           </Card>
           {current(allDrills).sort((a, b) => b.at - a.at).map((x) => (
             <View key={x.id} style={[styles.item, x.cancelled && { opacity: 0.6 }]}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.itemTitle, x.cancelled && { textDecorationLine: 'line-through' }]}>{x.scenario}</Text>
-                <Text style={styles.sub}>{[`${formatDate(x.date)} ${x.time ?? ''}`, `${x.participants.length} took part`, x.minutes ? `${x.minutes} min` : null, x.by].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.sub}>{[`${formatDate(x.date)} ${x.time ?? ''}`, t('sop.tookPart', { n: x.participants.length }), x.minutes ? t('common.min', { n: x.minutes }) : null, x.by].filter(Boolean).join(' · ')}</Text>
                 {x.lessons ? <Text style={styles.sub}>{x.lessons}</Text> : null}
                 <AmendNote rec={x} all={allDrills} summary={(p) => [p.scenario, formatDate(p.date), p.minutes ? `${p.minutes} min` : null, p.lessons].filter(Boolean).join(' · ')} />
               </View>
               {!x.cancelled ? (
                 <AmendButtons
                   isMaster={isMaster}
-                  onEdit={() => amend.edit({ store: storage.SOPEP_DRILLS_KEY, record: x, what: `Oil-spill drill ${formatDate(x.date)}`, fields: [{ key: 'scenario', label: 'Scenario' }, { key: 'minutes', label: 'Minutes', kind: 'number' }, { key: 'lessons', label: 'Lessons learned, actions', kind: 'multiline' }] })}
+                  onEdit={() => amend.edit({ store: storage.SOPEP_DRILLS_KEY, record: x, what: `Oil-spill drill ${formatDate(x.date)}`, fields: [{ key: 'scenario', label: t('sop.scenario') }, { key: 'minutes', label: t('sop.minutes'), kind: 'number' }, { key: 'lessons', label: t('sop.lessons'), kind: 'multiline' }] })}
                   onDelete={() => amend.remove({ store: storage.SOPEP_DRILLS_KEY, record: x, what: `Oil-spill drill ${formatDate(x.date)}` })}
                 />
               ) : null}

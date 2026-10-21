@@ -53,6 +53,7 @@ import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles as safetyStyles } from './SafetySc';
+import { t, useT } from '../utils/i18n';
 
 /** "930", "9.30", "9:3" → "09:30"; anything else is left for the officer to fix. */
 function hm(v: string): string {
@@ -65,6 +66,7 @@ function hm(v: string): string {
 }
 
 export default function DrillSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => ({ ...safetyStyles(COLORS), ...makeStyles(COLORS) }), [COLORS]);
   const nav = useNavigation<any>();
@@ -119,7 +121,7 @@ export default function DrillSc() {
     const out: Drill = { ...d, no, plannedBy, ...(!d.plannedBy && signer?.rank ? { plannedByRank: signer.rank } : {}), updatedAt: Date.now() };
     await saveRow(storage.DRILLS_KEY, out);
     if (!d.no) setDraft((p) => (p && !p.no ? { ...p, no, plannedBy: out.plannedBy, ...(out.plannedByRank ? { plannedByRank: out.plannedByRank } : {}), updatedAt: out.updatedAt } : p));
-    setSavedNote(`Saved ${nowHm()}`);
+    setSavedNote(t('mt.savedAt', { time: nowHm() }));
   };
 
   // Saves as it is typed — a moment after the last keystroke, and on leaving.
@@ -141,7 +143,7 @@ export default function DrillSc() {
     return (
       <Screen scroll>
         <BackButton onPress={() => goBackOr(nav)} />
-        <Text style={styles.sub}>This drill is not on this device yet — it arrives with the next sync.</Text>
+        <Text style={styles.sub}>{t('dr.notHere')}</Text>
       </Screen>
     );
   }
@@ -221,12 +223,12 @@ export default function DrillSc() {
   };
 
   const sign = async () => {
-    if (!d.time) return Alert.alert('Drill', 'When did it start? Fill in the start time.');
-    if (!present) return Alert.alert('Attendance', 'Mark who took part.');
-    if (isOwn && !d.title?.trim()) return Alert.alert('Drill', 'Give your drill a name.');
-    if (!signer) return Alert.alert('Who conducted it?', 'Choose your name.');
+    if (!d.time) return Alert.alert(t('sop.drill'), t('dr.needStart'));
+    if (!present) return Alert.alert(t('mt.attendance'), t('mt.markWho'));
+    if (isOwn && !d.title?.trim()) return Alert.alert(t('sop.drill'), t('dr.needName'));
+    if (!signer) return Alert.alert(t('dr.whoConducted'), t('round.chooseName'));
     const unsigned = d.attendance.filter((a) => a.present && !a.signedAt).length;
-    if (unsigned && !(await new Promise<boolean>((ok) => Alert.alert('Attendance list', `${unsigned} of ${present} present have not signed the list. Their lines stay unsigned once the drill is signed.`, [{ text: 'Back to the list', style: 'cancel', onPress: () => ok(false) }, { text: 'Sign the drill anyway', onPress: () => ok(true) }])))) return;
+    if (unsigned && !(await new Promise<boolean>((ok) => Alert.alert(t('mt.list'), t('dr.unsigned', { k: unsigned, n: present }), [{ text: t('mt.backList'), style: 'cancel', onPress: () => ok(false) }, { text: t('dr.signAnyway'), onPress: () => ok(true) }])))) return;
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${d.no || 'Drill'} — ${drillTitle(d)} — carried out` });
     if (!sig) return;
     const now = Date.now();
@@ -252,10 +254,10 @@ export default function DrillSc() {
   };
 
   const drop = () =>
-    Alert.alert('Delete the plan', 'Delete this drill plan? It was not carried out.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('dr.deletePlan'), t('dr.deleteBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete', style: 'destructive', onPress: async () => {
+        text: t('common.delete'), style: 'destructive', onPress: async () => {
           dirty.current = false;
           if (d.no) await saveRow(storage.DRILLS_KEY, { ...d, deleted: true, updatedAt: Date.now() });
           goBackOr(nav);
@@ -267,9 +269,9 @@ export default function DrillSc() {
     try {
       if (dirty.current) await persist(d);
       const w = await exportDrillPdf({ ...d, no: d.no || nextDrillNo(drills, d.date) }, vessel, listOnly);
-      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
-      Alert.alert('Drill report', String(e?.message ?? e));
+      Alert.alert(t('dr.report'), String(e?.message ?? e));
     }
   };
 
@@ -287,26 +289,26 @@ export default function DrillSc() {
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav)} />
       <ScreenTitle
-        title={`${d.no ? `${d.no} · ` : ''}${drillTitle(d)}${isOwn ? '' : ' drill'}`}
-        subtitle={done ? `Carried out ${formatDate(d.date)} · signed ${formatDateTime(d.doneAt!)} by ${d.doneByRank ? `${d.doneBy} (${d.doneByRank})` : d.doneBy}${d.doneWith ? ` · ${proofShort(d.doneWith)}` : ''}` : `${DRILL_STATE_LABEL[st]}${DRILL_TYPE_MAP[d.type] ? ` · ${DRILL_TYPE_MAP[d.type].reg}` : d.reg?.trim() ? ` · ${d.reg.trim()}` : isOwn ? ' · own drill' : ''}`}
+        title={`${d.no ? `${d.no} · ` : ''}${isOwn ? drillTitle(d) : t('dr.titleFmt', { title: drillTitle(d) })}`}
+        subtitle={done ? `${t('dr.carriedOn', { date: formatDate(d.date) })} · ${t('dr.signedAtBy', { when: formatDateTime(d.doneAt!), by: d.doneByRank ? `${d.doneBy} (${d.doneByRank})` : d.doneBy ?? '' })}${d.doneWith ? ` · ${proofShort(d.doneWith)}` : ''}` : `${DRILL_STATE_LABEL[st]}${DRILL_TYPE_MAP[d.type] ? ` · ${DRILL_TYPE_MAP[d.type].reg}` : d.reg?.trim() ? ` · ${d.reg.trim()}` : isOwn ? ` · ${t('dr.ownL')}` : ''}`}
         help="Drills"
       />
       {!ro && savedNote ? <Text style={[styles.sub, { color: COLORS.success }]}>{savedNote}</Text> : null}
 
       {/* ---- the drill ---- */}
       <Card>
-        <Label>The drill</Label>
+        <Label>{t('dr.theDrill')}</Label>
         {!ro ? (
-          <Dropdown caption="DRILL" value={d.type} onChange={(v: string) => set({ type: v, theory: !!DRILL_THEORY[v] || (v === 'other' && !!d.theoryText?.trim()) })} options={[...DRILL_TYPES.map((t) => ({ value: t.id, label: t.title })), { value: 'other', label: 'Other — your own drill' }]} />
+          <Dropdown caption={t('dr.drillCap')} value={d.type} onChange={(v: string) => set({ type: v, theory: !!DRILL_THEORY[v] || (v === 'other' && !!d.theoryText?.trim()) })} options={[...DRILL_TYPES.map((t) => ({ value: t.id, label: t.title })), { value: 'other', label: t('dr.otherOwn') }]} />
         ) : null}
         {isOwn ? (
           ro ? (
-            <Text style={styles.sub}>{[d.reg?.trim() || 'Own drill', OWN_INTERVALS.find((x) => x.days === d.everyDays)?.label ?? 'Not on a cycle'].join(' · ')}</Text>
+            <Text style={styles.sub}>{[d.reg?.trim() || t('dr.own'), OWN_INTERVALS.find((x) => x.days === d.everyDays)?.label ?? t('dr.noCycle')].join(' · ')}</Text>
           ) : (
             <>
-              {field({ value: d.title, onChange: (v) => set({ title: v }), placeholder: 'Name of the drill ★ — e.g. Lifeboat release gear, Gas leak in the galley', style: { fontWeight: '700' } })}
-              {field({ value: d.reg, onChange: (v) => set({ reg: v }), placeholder: 'Required by — e.g. SMS 8.2, flag circular, charterer' })}
-              <Text style={[styles.sub, { marginTop: SIZES.sm }]}>How often</Text>
+              {field({ value: d.title, onChange: (v) => set({ title: v }), placeholder: t('dr.namePh'), style: { fontWeight: '700' } })}
+              {field({ value: d.reg, onChange: (v) => set({ reg: v }), placeholder: t('dr.regPh') })}
+              <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{t('dr.howOften')}</Text>
               <View style={styles.chips}>
                 {OWN_INTERVALS.map((x) => (
                   <TouchableOpacity key={x.label} style={[styles.chip, d.everyDays === x.days && styles.chipOn]} onPress={() => set({ everyDays: x.days })}>
@@ -317,43 +319,43 @@ export default function DrillSc() {
             </>
           )
         ) : null}
-        {field({ value: d.topic, onChange: (v) => set({ topic: v }), placeholder: `Topic — e.g. ${d.type === 'fire' ? 'Fire in the galley' : d.type === 'mob' ? 'Man overboard from the aft deck' : 'what the crew is told'}`, style: ro ? { fontWeight: '700' } : null })}
+        {field({ value: d.topic, onChange: (v) => set({ topic: v }), placeholder: `${t('dr.topic')} — ${d.type === 'fire' ? t('dr.topicFire') : d.type === 'mob' ? t('dr.topicMob') : t('dr.topicOther')}`, style: ro ? { fontWeight: '700' } : null })}
         {ro ? (
           <Text style={styles.sub}>{[`${formatDate(d.date)} ${[d.time, d.endTime].filter(Boolean).join('–')}`, len != null ? `${len} min` : null, d.location].filter(Boolean).join(' · ')}</Text>
         ) : (
           <>
-            <View style={{ marginTop: SIZES.sm }}><SimpleDatePicker label="Date ★" value={d.date} onChange={(v) => set({ date: v })} /></View>
+            <View style={{ marginTop: SIZES.sm }}><SimpleDatePicker label={t('dr.dateReq')} value={d.date} onChange={(v) => set({ date: v })} /></View>
             <View style={styles.row}>
               <View style={styles.timeBox}>
-                <Text style={styles.sub}>Start</Text>
+                <Text style={styles.sub}>{t('log.start').split(',')[0]}</Text>
                 <TextInput style={styles.time} value={d.time ?? ''} onChangeText={(v) => set({ time: v })} onBlur={() => d.time && set({ time: hm(d.time) })} placeholder="hh:mm" placeholderTextColor={COLORS.textLight} keyboardType="numbers-and-punctuation" />
-                <TouchableOpacity onPress={() => set({ time: nowHm(), ...(d.date !== today ? { date: today } : {}) })}><Text style={styles.link}>Now</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => set({ time: nowHm(), ...(d.date !== today ? { date: today } : {}) })}><Text style={styles.link}>{t('log.now')}</Text></TouchableOpacity>
               </View>
               <View style={styles.timeBox}>
-                <Text style={styles.sub}>End</Text>
+                <Text style={styles.sub}>{t('log.end')}</Text>
                 <TextInput style={styles.time} value={d.endTime ?? ''} onChangeText={(v) => set({ endTime: v })} onBlur={() => d.endTime && set({ endTime: hm(d.endTime) })} placeholder="hh:mm" placeholderTextColor={COLORS.textLight} keyboardType="numbers-and-punctuation" />
-                <TouchableOpacity onPress={() => set({ endTime: nowHm() })}><Text style={styles.link}>Now</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => set({ endTime: nowHm() })}><Text style={styles.link}>{t('log.now')}</Text></TouchableOpacity>
               </View>
             </View>
-            {field({ value: d.location, onChange: (v) => set({ location: v }), placeholder: 'Where — e.g. Galley, Deck 2; muster at the aft deck' })}
+            {field({ value: d.location, onChange: (v) => set({ location: v }), placeholder: t('dr.wherePh') })}
           </>
         )}
         {prev ? (
           <TouchableOpacity style={[styles.hint, { borderColor: COLORS.primary }]} onPress={copyPrev}>
             <MciIcon name="content-copy" size={18} color={COLORS.primary} />
-            <Text style={[styles.sub, { flex: 1, color: COLORS.primary, marginTop: 0 }]}>{`Start from the last one — ${prev.no} ${formatDate(prev.date)}${prev.topic ? ` “${prev.topic}”` : ''}: its scenario (${prev.scenario.length} steps), content and place`}</Text>
+            <Text style={[styles.sub, { flex: 1, color: COLORS.primary, marginTop: 0 }]}>{t('dr.fromLast', { prev: `${prev.no} ${formatDate(prev.date)}${prev.topic ? ` “${prev.topic}”` : ''}`, n: prev.scenario.length })}</Text>
           </TouchableOpacity>
         ) : null}
       </Card>
 
       {/* ---- content ---- */}
       <Card>
-        <Label>Content of the drill</Label>
+        <Label>{t('dr.content')}</Label>
         {ro ? (
           contentLines(d).length ? contentLines(d).map((c, i) => <Text key={i} style={styles.body}>{`• ${c}`}</Text>) : <Text style={styles.sub}>—</Text>
         ) : (
           <>
-            <TextInput style={[styles.input, { minHeight: 80 }]} value={d.content ?? ''} onChangeText={(v) => set({ content: v })} multiline placeholder={'What the drill covers — a point per line:\nRaise the alarm and report the fire\nBoundary cooling, ventilation closed\nBA team: pressure check, lifeline signals'} placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { minHeight: 80 }]} value={d.content ?? ''} onChangeText={(v) => set({ content: v })} multiline placeholder={t('dr.contentPh')} placeholderTextColor={COLORS.textLight} />
             {theory?.checklist ? <TouchableOpacity onPress={insertChecklist}><Text style={styles.link}>{`+ Insert the ${drillTitle(d).toLowerCase()} checklist (${theory.checklist.length} parts)`}</Text></TouchableOpacity> : null}
           </>
         )}
@@ -361,7 +363,7 @@ export default function DrillSc() {
 
       {/* ---- scenario ---- */}
       <Card>
-        <Label>{`Scenario — minute by minute${steps.length ? ` · ${steps.length} steps` : ''}`}</Label>
+        <Label>{`${t('dr.scenario')}${steps.length ? ` · ${t('drills.steps', { n: steps.length })}` : ''}`}</Label>
         {!steps.length && ro ? <Text style={styles.sub}>—</Text> : null}
         {steps.map((s) => (
           <View key={s.id} style={styles.step}>
@@ -385,8 +387,8 @@ export default function DrillSc() {
                 </>
               ) : (
                 <>
-                  <TextInput autoFocus={s.id === focusId} style={[styles.input, styles.stepText]} value={s.text} onChangeText={(v) => setStep(s.id, { text: v })} multiline placeholder="What happens — e.g. Smoke reported in the galley; alarm sounded" placeholderTextColor={COLORS.textLight} />
-                  <TextInput style={[styles.input, styles.stepWho]} value={s.who ?? ''} onChangeText={(v) => setStep(s.id, { who: v || undefined })} placeholder="Who — Bridge, Fire party, 2/O…" placeholderTextColor={COLORS.textLight} />
+                  <TextInput autoFocus={s.id === focusId} style={[styles.input, styles.stepText]} value={s.text} onChangeText={(v) => setStep(s.id, { text: v })} multiline placeholder={t('dr.stepPh')} placeholderTextColor={COLORS.textLight} />
+                  <TextInput style={[styles.input, styles.stepWho]} value={s.who ?? ''} onChangeText={(v) => setStep(s.id, { who: v || undefined })} placeholder={t('dr.whoPh')} placeholderTextColor={COLORS.textLight} />
                 </>
               )}
             </View>
@@ -396,7 +398,7 @@ export default function DrillSc() {
                   <Text style={[styles.atOn, { color: COLORS.success }]}>{`✓ ${s.at}`}</Text>
                 </TouchableOpacity>
               ) : !ro && started ? (
-                <TouchableOpacity style={styles.atBtn} onPress={() => setStep(s.id, { at: nowHm() })}><Text style={styles.atText}>Done now</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.atBtn} onPress={() => setStep(s.id, { at: nowHm() })}><Text style={styles.atText}>{t('dr.doneNow')}</Text></TouchableOpacity>
               ) : null}
               {!ro ? (
                 <TouchableOpacity hitSlop={8} onPress={() => set({ scenario: d.scenario.filter((x) => x.id !== s.id) })}>
@@ -409,9 +411,9 @@ export default function DrillSc() {
         {!ro ? (
           <>
             <TouchableOpacity style={[styles.small, { alignSelf: 'flex-start', marginTop: SIZES.sm }]} onPress={() => addStep()}>
-              <Text style={styles.smallText}>{`+ Step at T+${nextStepMin(d.scenario)}`}</Text>
+              <Text style={styles.smallText}>{t('dr.stepAt', { n: nextStepMin(d.scenario) })}</Text>
             </TouchableOpacity>
-            <Text style={[styles.sub, { marginTop: SIZES.sm }]}>Add with one tap:</Text>
+            <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{t('dr.oneTap')}</Text>
             <View style={styles.chips}>
               {QUICK_STEPS.map((q) => (
                 <TouchableOpacity key={q.text} style={styles.chip} onPress={() => addStep(q.text, q.who)}>
@@ -419,7 +421,7 @@ export default function DrillSc() {
                 </TouchableOpacity>
               ))}
             </View>
-            {started && !done ? <Text style={styles.sub}>During the drill tap “Done now” on each step — the report shows the planned clock and the actual time side by side.</Text> : <Text style={styles.sub}>Steps keep to their minute; change it with − / + or type it. With the start time filled in, each step shows its clock time.</Text>}
+            {started && !done ? <Text style={styles.sub}>{t('dr.duringHint')}</Text> : <Text style={styles.sub}>{t('dr.stepsHint')}</Text>}
           </>
         ) : null}
       </Card>
@@ -427,15 +429,15 @@ export default function DrillSc() {
       {/* ---- theory ---- */}
       {isOwn ? (
         <Card>
-          <Label>Theory briefing</Label>
+          <Label>{t('dr.theory')}</Label>
           {ro ? (
             d.theoryText?.trim() ? <Text style={[styles.body, { lineHeight: 21 }]}>{d.theoryText}</Text> : <Text style={styles.sub}>—</Text>
           ) : (
-            <TextInput style={[styles.input, { minHeight: 110 }]} value={d.theoryText ?? ''} onChangeText={(v) => set({ theoryText: v, ...(v.trim() && !d.theoryText?.trim() ? { theory: true } : {}) })} multiline placeholder={'What the crew is told before the drill — the hazard, the equipment, who does what, the signals. A paragraph per line.\nIt is kept with the drill and comes back the next time you plan it.'} placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { minHeight: 110 }]} value={d.theoryText ?? ''} onChangeText={(v) => set({ theoryText: v, ...(v.trim() && !d.theoryText?.trim() ? { theory: true } : {}) })} multiline placeholder={t('dr.theoryPh')} placeholderTextColor={COLORS.textLight} />
           )}
           {d.theoryText?.trim() ? (
             <View style={styles.toggle}>
-              <Text style={[styles.toggleText, { fontWeight: '700' }]}>Theory briefing given — printed as the report’s annex</Text>
+              <Text style={[styles.toggleText, { fontWeight: '700' }]}>{t('dr.theoryGiven')}</Text>
               <Switch value={d.theory} onValueChange={(v) => set({ theory: v })} disabled={ro} />
             </View>
           ) : null}
@@ -443,11 +445,11 @@ export default function DrillSc() {
       ) : theory ? (
         <Card>
           <View style={styles.toggle}>
-            <Text style={[styles.toggleText, { fontWeight: '700' }]}>Theory briefing given — printed as the report’s annex</Text>
+            <Text style={[styles.toggleText, { fontWeight: '700' }]}>{t('dr.theoryGiven')}</Text>
             <Switch value={d.theory} onValueChange={(v) => set({ theory: v })} disabled={ro} />
           </View>
           <TouchableOpacity onPress={() => setTheoryOpen(!theoryOpen)}>
-            <Text style={styles.link}>{theoryOpen ? 'Hide the briefing' : `Read the briefing — ${theory.title} (${theory.text.length} parts)`}</Text>
+            <Text style={styles.link}>{theoryOpen ? t('dr.hideBrief') : t('dr.readBrief', { title: theory.title, n: theory.text.length })}</Text>
           </TouchableOpacity>
           {theoryOpen ? theory.text.map((p, i) => <Text key={i} style={[styles.body, { marginTop: SIZES.sm, lineHeight: 21 }]}>{p}</Text>) : null}
         </Card>
@@ -455,13 +457,13 @@ export default function DrillSc() {
 
       {/* ---- attendance ---- */}
       <Card>
-        <Label>{`Attendance · ${present} of ${d.attendance.length} present${present ? ` · ${d.attendance.filter((a) => a.signedAt).length} signed` : ''}`}</Label>
-        {!done && present ? <Text style={styles.sub}>On this device, each person signs his own line — his signing PIN, or by hand on the screen. Taking a tick off takes the signature with it.</Text> : null}
+        <Label>{`${t('mt.attendance')} · ${t('mt.presentOf', { k: present, n: d.attendance.length })}${present ? ` · ${t('mt.signedN', { n: d.attendance.filter((a) => a.signedAt).length })}` : ''}`}</Label>
+        {!done && present ? <Text style={styles.sub}>{t('dr.eachSigns')}</Text> : null}
         {!ro ? (
           <View style={styles.row}>
-            <TouchableOpacity style={styles.small} onPress={() => set({ attendance: d.attendance.map((a) => ({ ...a, present: true, reason: undefined })) })}><Text style={styles.smallText}>All present</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.small} onPress={() => set({ attendance: d.attendance.map((a) => ({ ...a, present: false })) })}><Text style={styles.smallText}>Clear</Text></TouchableOpacity>
-            {people.some((p) => !d.attendance.some((a) => a.name === p.name)) ? <TouchableOpacity style={styles.small} onPress={addMissingCrew}><Text style={styles.smallText}>+ New crew aboard</Text></TouchableOpacity> : null}
+            <TouchableOpacity style={styles.small} onPress={() => set({ attendance: d.attendance.map((a) => ({ ...a, present: true, reason: undefined })) })}><Text style={styles.smallText}>{t('mt.allPresent')}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.small} onPress={() => set({ attendance: d.attendance.map((a) => ({ ...a, present: false })) })}><Text style={styles.smallText}>{t('mt.clear')}</Text></TouchableOpacity>
+            {people.some((p) => !d.attendance.some((a) => a.name === p.name)) ? <TouchableOpacity style={styles.small} onPress={addMissingCrew}><Text style={styles.smallText}>{t('dr.newCrew')}</Text></TouchableOpacity> : null}
           </View>
         ) : null}
         {d.attendance.map((a, i) => (
@@ -470,7 +472,7 @@ export default function DrillSc() {
               <View style={[styles.box, a.present && { backgroundColor: COLORS.success, borderColor: COLORS.success }]}>{a.present ? <MciIcon name="check" size={16} color={COLORS.textWhite} /> : null}</View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={styles.name}>{a.name}</Text>
-                <Text style={styles.sub}>{[a.rank, a.extra ? 'not on the crew list' : null].filter(Boolean).join(' · ') || ' '}</Text>
+                <Text style={styles.sub}>{[a.rank, a.extra ? t('mt.notOnList') : null].filter(Boolean).join(' · ') || ' '}</Text>
               </View>
               {a.signedAt ? (
                 <View style={{ alignItems: 'flex-end' }}>
@@ -478,7 +480,7 @@ export default function DrillSc() {
                   {a.signedWith?.drawing ? <SigLine path={a.signedWith.drawing} color={COLORS.textDark} /> : null}
                 </View>
               ) : canSignLine(a) && (a.present || !canEdit) ? (
-                <TouchableOpacity style={styles.signBtn} onPress={() => void signLine(i)}><Text style={styles.signText}>Sign</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.signBtn} onPress={() => void signLine(i)}><Text style={styles.signText}>{t('common.sign')}</Text></TouchableOpacity>
               ) : !a.present && (done || st === 'running') ? (
                 <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700' }]}>{a.reason || 'absent'}</Text>
               ) : null}
@@ -490,52 +492,52 @@ export default function DrillSc() {
                     <Text style={[styles.chipText, { fontSize: 11 }, a.reason === r && styles.chipTextOn]}>{r}</Text>
                   </TouchableOpacity>
                 ))}
-                {a.extra ? <TouchableOpacity onPress={() => set({ attendance: d.attendance.filter((_, k) => k !== i) })}><Text style={[styles.link, { marginTop: 4 }]}>Remove</Text></TouchableOpacity> : null}
+                {a.extra ? <TouchableOpacity onPress={() => set({ attendance: d.attendance.filter((_, k) => k !== i) })}><Text style={[styles.link, { marginTop: 4 }]}>{t('common.remove')}</Text></TouchableOpacity> : null}
               </View>
             ) : null}
           </View>
         ))}
-        {!d.attendance.length ? <Text style={styles.sub}>Nobody on the crew list is aboard. Add the crew under Crew, or add people here.</Text> : null}
+        {!d.attendance.length ? <Text style={styles.sub}>{t('dr.nobody')}</Text> : null}
         {!ro ? (
           guest ? (
             <View style={styles.row}>
-              <TextInput style={[styles.input, { flex: 2, minWidth: 140, marginTop: 0 }]} value={guest.name} onChangeText={(v) => setGuest({ ...guest, name: v })} placeholder="Name ★" placeholderTextColor={COLORS.textLight} />
-              <TextInput style={[styles.input, { flex: 1, minWidth: 100, marginTop: 0 }]} value={guest.rank} onChangeText={(v) => setGuest({ ...guest, rank: v })} placeholder="Rank / company" placeholderTextColor={COLORS.textLight} />
-              <TouchableOpacity style={styles.btn} onPress={() => { if (!guest.name.trim()) return; set({ attendance: [...d.attendance, { name: guest.name.trim(), ...(guest.rank.trim() ? { rank: guest.rank.trim() } : {}), present: true, extra: true }] }); setGuest(null); }}><Text style={styles.btnText}>Add</Text></TouchableOpacity>
-              <TouchableOpacity onPress={() => setGuest(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+              <TextInput style={[styles.input, { flex: 2, minWidth: 140, marginTop: 0 }]} value={guest.name} onChangeText={(v) => setGuest({ ...guest, name: v })} placeholder={t('mt.namePh')} placeholderTextColor={COLORS.textLight} />
+              <TextInput style={[styles.input, { flex: 1, minWidth: 100, marginTop: 0 }]} value={guest.rank} onChangeText={(v) => setGuest({ ...guest, rank: v })} placeholder={t('mt.rankPh')} placeholderTextColor={COLORS.textLight} />
+              <TouchableOpacity style={styles.btn} onPress={() => { if (!guest.name.trim()) return; set({ attendance: [...d.attendance, { name: guest.name.trim(), ...(guest.rank.trim() ? { rank: guest.rank.trim() } : {}), present: true, extra: true }] }); setGuest(null); }}><Text style={styles.btnText}>{t('common.add')}</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setGuest(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity onPress={() => setGuest({ name: '', rank: '' })}><Text style={styles.link}>+ Someone not on the crew list (cadet, contractor, guest)</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setGuest({ name: '', rank: '' })}><Text style={styles.link}>{t('dr.addGuest')}</Text></TouchableOpacity>
           )
         ) : null}
       </Card>
 
       {/* ---- debrief ---- */}
       <Card>
-        <Label>Debrief — lessons and actions</Label>
-        {ro ? <Text style={styles.body}>{d.debrief || '—'}</Text> : <TextInput style={[styles.input, { minHeight: 70 }]} value={d.debrief ?? ''} onChangeText={(v) => set({ debrief: v })} multiline placeholder="What went well, what to improve, who does what by when" placeholderTextColor={COLORS.textLight} />}
+        <Label>{t('dr.debrief')}</Label>
+        {ro ? <Text style={styles.body}>{d.debrief || '—'}</Text> : <TextInput style={[styles.input, { minHeight: 70 }]} value={d.debrief ?? ''} onChangeText={(v) => set({ debrief: v })} multiline placeholder={t('dr.debriefPh')} placeholderTextColor={COLORS.textLight} />}
       </Card>
 
       {/* ---- reports ---- */}
       <View style={styles.row}>
-        <TouchableOpacity style={styles.btn} onPress={() => void print(false)}><Text style={styles.btnText}>{done ? 'Drill report (PDF)' : 'Drill plan (PDF)'}</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.btn} onPress={() => void print(true)}><Text style={styles.btnText}>Attendance list (PDF)</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.btn} onPress={() => void print(false)}><Text style={styles.btnText}>{done ? t('dr.reportPdf') : t('dr.planPdf')}</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.btn} onPress={() => void print(true)}><Text style={styles.btnText}>{t('mt.listPdf')}</Text></TouchableOpacity>
       </View>
       {saved ? <Text style={styles.sub}>{saved}</Text> : null}
 
       {/* ---- sign ---- */}
       {!ro ? (
         <Card>
-          <Label>Carried out</Label>
-          <Text style={styles.sub}>Sign when the drill is over: the start time, who took part and the debrief go on the record, and it cannot be changed afterwards.</Text>
+          <Label>{t('sv.done')}</Label>
+          <Text style={styles.sub}>{t('dr.signHint')}</Text>
           {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
           <View style={styles.row}>
-            <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.success }]} onPress={() => void sign()}><Text style={styles.btnText}>Sign as carried out</Text></TouchableOpacity>
-            <TouchableOpacity onPress={drop}><Text style={[styles.link, { color: COLORS.danger }]}>Delete the plan</Text></TouchableOpacity>
+            <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.success }]} onPress={() => void sign()}><Text style={styles.btnText}>{t('dr.signDone')}</Text></TouchableOpacity>
+            <TouchableOpacity onPress={drop}><Text style={[styles.link, { color: COLORS.danger }]}>{t('dr.deletePlan')}</Text></TouchableOpacity>
           </View>
         </Card>
       ) : !done ? (
-        <Text style={[styles.sub, { color: stateColor }]}>An officer or the Master plans and signs drills.</Text>
+        <Text style={[styles.sub, { color: stateColor }]}>{t('dr.officerPlans')}</Text>
       ) : null}
     </Screen>
   );

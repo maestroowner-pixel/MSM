@@ -31,8 +31,10 @@ import { stepPeriod, windowFor } from '../services/inspections';
 import { periodsFor } from '../constants/checklists';
 import { CategoryKey, EquipmentItem } from '../types/equipment';
 import { dueWithinDays } from '../utils/dates';
+import { t, tk, tn, useT } from '../utils/i18n';
 
 export default function ReportsSc() {
+  useT();
   const { byCategory, vessel, certificates, flat, templates, inspections: trail } = useData();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -119,7 +121,7 @@ export default function ReportsSc() {
       else if (kind === 'xlsx') await exportReportXlsx(flat, trail, vessel, opts);
       else await printInspectionReport(flat, trail, vessel, opts);
     } catch (e: any) {
-      Alert.alert('Export failed', String(e?.message ?? e));
+      Alert.alert(t('rep.failed'), String(e?.message ?? e));
     } finally {
       setBusy(false);
     }
@@ -196,7 +198,7 @@ export default function ReportsSc() {
   const run = async (kind: 'pdf' | 'xlsx' | 'zip') => {
     const only = Array.from(selected);
     if (!only.length) {
-      Alert.alert('Nothing selected', 'Tap at least one category to include in the report.');
+      Alert.alert(t('rep.nothingSel'), t('rep.tapOne'));
       return;
     }
     setBusy(true);
@@ -212,7 +214,7 @@ export default function ReportsSc() {
         Alert.alert('ZIP ready', `PDF report + ${parts.join(' + ')} bundled.`);
       }
     } catch (e: any) {
-      Alert.alert('Export failed', String(e?.message ?? e));
+      Alert.alert(t('rep.failed'), String(e?.message ?? e));
     } finally {
       setBusy(false);
     }
@@ -221,9 +223,9 @@ export default function ReportsSc() {
   if (!nonEmpty.length) {
     return (
       <Screen scroll>
-        <ScreenTitle title="Reports" subtitle="Export the safety register" help="Reports & export" />
+        <ScreenTitle title={t('pat.reports')} subtitle={t('rep.subExport')} help="Reports & export" />
         <Card>
-          <Text style={styles.empty}>No equipment yet. Import or add items first, then export a report.</Text>
+          <Text style={styles.empty}>{t('rep.noEquipment')}</Text>
         </Card>
       </Screen>
     );
@@ -238,7 +240,7 @@ export default function ReportsSc() {
           onPress={() => setMode(m)}
         >
           <Text style={[styles.modeText, mode === m && styles.modeTextOn]}>
-            {m === 'register' ? 'Register' : 'Inspections'}
+            {m === 'register' ? t('rep.register') : t('rep.inspections')}
           </Text>
         </TouchableOpacity>
       ))}
@@ -248,10 +250,10 @@ export default function ReportsSc() {
   if (mode === 'inspections') {
     return (
       <Screen scroll>
-        <ScreenTitle title="Reports" subtitle="What was inspected, by whom, and when" help="Reports & export" />
+        <ScreenTitle title={t('pat.reports')} subtitle={t('rep.subInsp')} help="Reports & export" />
         {modeSwitch}
 
-        <Text style={styles.sectionLabel}>Equipment group</Text>
+        <Text style={styles.sectionLabel}>{t('lb.group')}</Text>
         <View style={styles.chipRow}>
           {/* OTHER belongs here. The report engine has always handled it — it is a
               Group like any other, and SCOPE_LABEL names it — but this row offered
@@ -267,13 +269,13 @@ export default function ReportsSc() {
               onPress={() => setScope(g)}
             >
               <Text style={[styles.chipText, scope === g && styles.chipTextOn]}>
-                {g === 'ALL' ? 'All' : GROUP_SHORT[g]}
+                {g === 'ALL' ? t('lb.all') : GROUP_SHORT[g]}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        <Text style={styles.sectionLabel}>Period</Text>
+        <Text style={styles.sectionLabel}>{t('rounds.period')}</Text>
         <View style={styles.chipRow}>
           {/* Quarterly sits beside weekly and monthly because a vessel works to all
               three, per category (Settings → Checklists). A period no category owes
@@ -288,7 +290,7 @@ export default function ReportsSc() {
               onPress={() => setPeriod(p)}
             >
               <Text style={[styles.chipText, period === p && styles.chipTextOn]}>
-                {PERIOD_LABEL[p]}
+                {tk(`period.${p}`)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -302,7 +304,7 @@ export default function ReportsSc() {
               </Text>
               {catSel ? (
                 <TouchableOpacity onPress={() => setCatSel(null)} hitSlop={8}>
-                  <Text style={styles.selectAll}>Whole group</Text>
+                  <Text style={styles.selectAll}>{t('rep.wholeGroup')}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -337,21 +339,21 @@ export default function ReportsSc() {
                 );
               })}
             </View>
-            <Text style={styles.pickerHint}>Tap to include or leave out; press and hold to report on that category alone.</Text>
+            <Text style={styles.pickerHint}>{t('rep.pickHint')}</Text>
           </>
         ) : null}
 
         {/* The numbers, before anything is generated — including the ones a
             vessel would rather not see. That is the point of showing them. */}
         <View style={styles.navRow}>
-          <TouchableOpacity style={styles.navBtn} onPress={() => step(-1)} hitSlop={8} accessibilityLabel="Previous period">
+          <TouchableOpacity style={styles.navBtn} onPress={() => step(-1)} hitSlop={8} accessibilityLabel={t('rep.prevPeriod')}>
             <Text style={styles.navBtnText}>‹</Text>
           </TouchableOpacity>
           <View style={{ flex: 1, alignItems: 'center' }}>
             <Text style={styles.windowLabel} numberOfLines={1}>{preview.periodName}</Text>
             {!isCurrent ? (
               <TouchableOpacity onPress={() => setRef(new Date())} hitSlop={8}>
-                <Text style={styles.selectAll}>Back to current</Text>
+                <Text style={styles.selectAll}>{t('rep.backCurrent')}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -360,7 +362,7 @@ export default function ReportsSc() {
             onPress={() => step(1)}
             disabled={isCurrent}
             hitSlop={8}
-            accessibilityLabel="Next period"
+            accessibilityLabel={t('rep.nextPeriod')}
           >
             <Text style={styles.navBtnText}>›</Text>
           </TouchableOpacity>
@@ -383,10 +385,10 @@ export default function ReportsSc() {
             {preview.headline}
           </Text>
           <View style={styles.statRow}>
-            <Stat label="In scope" value={preview.inScope.length} />
-            <Stat label="Inspected" value={preview.done.length} />
-            <Stat label="Outstanding" value={preview.missed.length} bad={preview.missed.length > 0} />
-            <Stat label="Defects" value={preview.defects.length} bad={preview.defects.length > 0} />
+            <Stat label={t('rep.inScope')} value={preview.inScope.length} />
+            <Stat label={t('rep.inspected')} value={preview.done.length} />
+            <Stat label={t('def.outstanding')} value={preview.missed.length} bad={preview.missed.length > 0} />
+            <Stat label={t('def.title')} value={preview.defects.length} bad={preview.defects.length > 0} />
           </View>
         </Card>
 
@@ -399,30 +401,26 @@ export default function ReportsSc() {
                 style={[styles.btn, styles.outlineBtn]}
                 onPress={() => runInspectionReport('pdf')}
               >
-                <Text style={[styles.btnText, styles.outlineText]}>Export PDF</Text>
+                <Text style={[styles.btnText, styles.outlineText]}>{t('rep.exportPdf')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.btn, styles.outlineBtn]}
                 onPress={() => runInspectionReport('xlsx')}
               >
-                <Text style={[styles.btnText, styles.outlineText]}>Export XLSX</Text>
+                <Text style={[styles.btnText, styles.outlineText]}>{t('rep.exportXlsx')}</Text>
               </TouchableOpacity>
             </View>
             <TouchableOpacity
               style={[styles.btn, styles.zipBtn]}
               onPress={() => runInspectionReport('print')}
             >
-              <Text style={styles.btnText}>Print</Text>
+              <Text style={styles.btnText}>{t('rep.print')}</Text>
             </TouchableOpacity>
           </>
         )}
 
         <Text style={styles.help}>
-          The report covers {categories ? (categories.length === 1 ? 'one category' : `${categories.length} categories`) : 'the whole group'} and
-          opens with the period's status — completed or not, passed or failed — then lists
-          every inspection signed in it: item number, location, type, size, serial, result, comments, the
-          inspector's initials, date and time. After that come the items still outstanding, and every
-          defect left open.
+          {t('rep.inspHelp', { scope: categories ? tn('n.category', categories.length) : t('rep.wholeGroupL') })}
         </Text>
       </Screen>
     );
@@ -430,10 +428,10 @@ export default function ReportsSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Reports" subtitle="Choose what to include, then export" help="Reports & export" />
+      <ScreenTitle title={t('pat.reports')} subtitle={t('rep.subChoose')} help="Reports & export" />
       {modeSwitch}
 
-      <Text style={styles.sectionLabel}>Coming due</Text>
+      <Text style={styles.sectionLabel}>{t('rep.comingDue')}</Text>
       <View style={styles.chipRow}>
         {HORIZONS.map((h) => (
           <TouchableOpacity
@@ -441,7 +439,7 @@ export default function ReportsSc() {
             style={[styles.chip, horizon === h.days && styles.chipOn]}
             onPress={() => setHorizon(h.days)}
           >
-            <Text style={[styles.chipText, horizon === h.days && styles.chipTextOn]}>{h.label}</Text>
+            <Text style={[styles.chipText, horizon === h.days && styles.chipTextOn]}>{tk(`rep.h.${h.days ?? 'all'}`)}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -451,7 +449,7 @@ export default function ReportsSc() {
           Included categories ({selected.size}/{nonEmpty.length})
         </Text>
         <TouchableOpacity onPress={toggleAll} hitSlop={8}>
-          <Text style={styles.selectAll}>{allOn ? 'Clear all' : 'Select all'}</Text>
+          <Text style={styles.selectAll}>{allOn ? t('lb.clearAll') : t('lb.selectAll')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -485,26 +483,23 @@ export default function ReportsSc() {
         <>
           <View style={styles.btnRow}>
             <TouchableOpacity style={[styles.btn, styles.outlineBtn]} onPress={() => run('pdf')}>
-              <Text style={[styles.btnText, styles.outlineText]}>Export PDF</Text>
+              <Text style={[styles.btnText, styles.outlineText]}>{t('rep.exportPdf')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.btn, styles.outlineBtn]} onPress={() => run('xlsx')}>
-              <Text style={[styles.btnText, styles.outlineText]}>Export XLSX</Text>
+              <Text style={[styles.btnText, styles.outlineText]}>{t('rep.exportXlsx')}</Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={[styles.btn, styles.zipBtn]} onPress={() => run('zip')}>
             <MciIcon name="package-variant" size={16} color={COLORS.textWhite} />
-            <Text style={styles.btnText}>Export ZIP (PDF + photos)</Text>
+            <Text style={styles.btnText}>{t('rep.zip')}</Text>
           </TouchableOpacity>
         </>
       )}
 
       <Text style={styles.help}>
-        {totalItems} item{totalItems === 1 ? '' : 's'} will be exported. Reports include each item's type, serial,
-        position, dates and compliance status, and open your device's share sheet.
+        {t('rep.regHelp', { x: tn('n.item', totalItems) })}
         {horizon != null
-          ? ` Only equipment already overdue or falling due within ${
-              HORIZONS.find((h) => h.days === horizon)!.label
-            } is listed, and the report says so on its heading — the sheet to walk round with before an inspection.`
+          ? ` ${t('rep.horizonHelp', { within: tk(`rep.h.${horizon}`) })}`
           : ''}
       </Text>
     </Screen>

@@ -21,6 +21,8 @@ import { useTheme, useThemeName } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { moduleOn } from '../constants/modules';
+import { setUiLang, useT } from '../utils/i18n';
+import { LANGS, LANG_NAMES, Lang, chosenLang, deviceLang } from '../utils/locale';
 import { canRememberFolder, chooseFolder, forgetFolder, rememberedFolders } from '../utils/webSave';
 import { ADMIN_KEY, PinHolder, pinHolders, resetPin } from '../services/signature';
 import { usePinChange } from '../components/PinChange';
@@ -69,6 +71,7 @@ export default function SettingsSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { name: themeName, setTheme } = useThemeName();
+  const tr = useT();
   // A button that fills the line is right on a phone, where the line IS the
   // button's natural size. On the web build the card is over a metre of pixels
   // wide and the same rule turns "Save vessel info" into a banner, so past
@@ -183,7 +186,7 @@ export default function SettingsSc() {
     }
     const ok = await requestPermission();
     if (!ok) {
-      Alert.alert('Permission needed', 'Allow notifications for ISMpilot in system settings to receive expiry reminders.');
+      Alert.alert('Permission needed', 'Allow notifications for ISM AI Pilot in system settings to receive expiry reminders.');
       return;
     }
     await setPrefs({ notificationsEnabled: true });
@@ -539,7 +542,7 @@ export default function SettingsSc() {
             <TouchableOpacity
               onPress={() => nav.navigate('Paywall')}
               hitSlop={8}
-              accessibilityLabel={pro ? 'ISMpilot Pro is active' : 'Get ISMpilot Pro'}
+              accessibilityLabel={pro ? 'ISM AI Pilot Pro is active' : 'Get ISM AI Pilot Pro'}
               style={[styles.proPill, { backgroundColor: pro ? COLORS.success : COLORS.primary }]}
             >
               <Text style={styles.proPillText}>PRO</Text>
@@ -566,6 +569,23 @@ export default function SettingsSc() {
       />
 
       <ConnectionCard />
+
+      {/* Interface language — only once the `i18n` module is released. */}
+      {moduleOn('i18n') ? (
+        <Card>
+          <Label>{tr('settings.language.label')}</Label>
+          <Dropdown
+            caption={tr('settings.language.caption')}
+            value={chosenLang() ?? ''}
+            onChange={(v: string) => void setUiLang(v ? (v as Lang) : null)}
+            options={[
+              { value: '', label: tr('settings.language.auto', { lang: LANG_NAMES[deviceLang()] }) },
+              ...LANGS.map((l) => ({ value: l, label: LANG_NAMES[l] })),
+            ]}
+          />
+          <Text style={{ fontSize: SIZES.small, color: COLORS.textLight, marginTop: 4 }}>{tr('settings.language.note')}</Text>
+        </Card>
+      ) : null}
 
       <Card>
         <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('vessel')} activeOpacity={0.7}>

@@ -38,10 +38,12 @@ import { todayIso } from '../services/pms';
 import { formatDate, formatDateTime } from '../utils/dates';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
+import { t, useT } from '../utils/i18n';
 
 const CATEGORIES = Object.keys(DOC_CATEGORY_LABEL) as DocCategory[];
 
 export default function DocSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -105,7 +107,7 @@ export default function DocSc() {
 
   const onSign = async () => {
     if (!existing) return;
-    if (!signer) return Alert.alert('Who is signing?', 'Choose your name.');
+    if (!signer) return Alert.alert(t('sign.who'), t('round.chooseName'));
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Read and understood: ${existing.title} (Rev ${existing.revision})` });
     if (!sig) return;
     const now = Date.now();
@@ -127,9 +129,9 @@ export default function DocSc() {
   };
 
   const onSave = async () => {
-    if (!draft.title.trim()) return Alert.alert('Title required', 'Name the document — "Enclosed space entry procedure".');
+    if (!draft.title.trim()) return Alert.alert(t('risk.titleReq'), t('doc.nameIt'));
     if (!draft.body?.trim() && !draft.fileUri && !newFile && !heldHere) {
-      return Alert.alert('Nothing to read', 'Attach the file, or write the text of the document.');
+      return Alert.alert(t('fv.nothingRead'), t('doc.attachOrWrite'));
     }
     const revision = bumping ? (existing?.revision ?? 1) + 1 : draft.revision;
     const doSave = async () => {
@@ -160,7 +162,7 @@ export default function DocSc() {
         await saveDoc(out);
         playSuccessSound();
         if (filePending) {
-          Alert.alert('Saved — file not shared yet', 'The document is saved, but its file could not be uploaded (no connection, or this device has not joined the vessel). It stays on this device; open the document again when connected and save to share it.');
+          Alert.alert(t('doc.savedNotShared'), t('doc.savedNotSharedBody'));
         }
         setEditing(false);
         setBumping(false);
@@ -173,19 +175,19 @@ export default function DocSc() {
     };
     if (bumping && existing) {
       Alert.alert(
-        `Issue Rev ${revision}`,
-        'Everyone will be asked to read and sign again. Signatures for earlier revisions are kept in the history.',
-        [{ text: 'Cancel', style: 'cancel' }, { text: 'Issue', onPress: () => void doSave() }]
+        t('fv.issueRev', { n: revision }),
+        t('doc.issueBody'),
+        [{ text: t('common.cancel'), style: 'cancel' }, { text: t('fv.issue'), onPress: () => void doSave() }]
       );
     } else await doSave();
   };
 
   const onRemove = () => {
     if (!existing) return goBackOr(nav);
-    Alert.alert('Withdraw document', 'Withdraw this document? It leaves the list; its signatures are kept.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('fv.withdraw'), t('doc.withdrawBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Withdraw',
+        text: t('fv.withdrawBtn'),
         style: 'destructive',
         onPress: async () => {
           await saveDoc({ ...existing, deleted: true, updatedAt: Date.now() });
@@ -204,14 +206,14 @@ export default function DocSc() {
     setNewFile({ uri: f.uri, name });
     // Take the words out of a PDF so the document can be searched by them.
     if (/\.pdf$/i.test(name)) {
-      setIndexing('Reading the document’s text…');
+      setIndexing(t('doc.reading'));
       const text = await pdfText(await toDataUri(f.uri, name)).catch(() => null);
       if (text) {
         set({ text });
-        setIndexing(`Text read — ${text.split(' ').length} words, searchable`);
+        setIndexing(t('doc.textRead', { n: text.split(' ').length }));
       } else {
         set({ text: undefined });
-        setIndexing(onWeb ? 'The text could not be read (a scan?) — found by title and number only' : null);
+        setIndexing(onWeb ? t('doc.notRead') : null);
       }
     }
   };
@@ -223,14 +225,14 @@ export default function DocSc() {
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
           <BackButton onPress={() => (editing && !isNew ? (setEditing(false), setBumping(false), setDraft(existing!)) : goBackOr(nav))} />
-          <Text style={styles.headerTitle} numberOfLines={1}>{isNew ? 'New document' : editing ? (bumping ? `Rev ${doc.revision + 1}` : 'Edit') : 'Document'}</Text>
+          <Text style={styles.headerTitle} numberOfLines={1}>{isNew ? t('fv.newDoc') : editing ? (bumping ? t('docs.rev', { n: doc.revision + 1 }) : t('common.edit')) : t('pax.document')}</Text>
           {editing ? (
             <TouchableOpacity onPress={() => void onSave()} disabled={busy} hitSlop={12}>
-              <Text style={[styles.save, busy && { opacity: 0.5 }]}>{busy ? 'Saving…' : bumping ? 'Issue' : 'Save'}</Text>
+              <Text style={[styles.save, busy && { opacity: 0.5 }]}>{busy ? t('common.saving') : bumping ? t('fv.issue') : t('common.save')}</Text>
             </TouchableOpacity>
           ) : canEdit ? (
             <TouchableOpacity onPress={() => setEditing(true)} hitSlop={12}>
-              <Text style={styles.save}>Edit</Text>
+              <Text style={styles.save}>{t('common.edit')}</Text>
             </TouchableOpacity>
           ) : <View style={{ width: 40 }} />}
         </View>
@@ -238,20 +240,20 @@ export default function DocSc() {
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
           {editing ? (
             <>
-              <Label>Title ★</Label>
-              <TextInput style={styles.input} value={draft.title} onChangeText={(v) => set({ title: v })} placeholder="Enclosed space entry procedure" placeholderTextColor={COLORS.textLight} />
+              <Label>{t('fv.titleReq')}</Label>
+              <TextInput style={styles.input} value={draft.title} onChangeText={(v) => set({ title: v })} placeholder={t('fv.docPh')} placeholderTextColor={COLORS.textLight} />
               <View style={styles.pair}>
                 <View style={{ flex: 1 }}>
-                  <Label>Document no.</Label>
+                  <Label>{t('docs.no')}</Label>
                   <TextInput style={styles.input} value={draft.docNo ?? ''} onChangeText={(v) => set({ docNo: v })} placeholder="SMS-07-03" placeholderTextColor={COLORS.textLight} autoCapitalize="characters" />
                 </View>
                 <View style={{ width: 90 }}>
-                  <Label>Revision</Label>
+                  <Label>{t('doc.revision')}</Label>
                   <Text style={styles.rev}>{bumping ? draft.revision + 1 : draft.revision}</Text>
                 </View>
               </View>
               <View style={{ height: SIZES.md }} />
-              <Label>Type</Label>
+              <Label>{t('fv.type')}</Label>
               <View style={styles.chips}>
                 {CATEGORIES.map((c) => (
                   <TouchableOpacity key={c} style={[styles.chip, draft.category === c && styles.chipOn]} onPress={() => set({ category: c })}>
@@ -261,37 +263,37 @@ export default function DocSc() {
               </View>
               <View style={styles.pair}>
                 <View style={{ flex: 1 }}>
-                  <SimpleDatePicker label="Issued" value={bumping ? todayIso() : draft.issued} onChange={(v) => set({ issued: v })} disabled={bumping} />
+                  <SimpleDatePicker label={t('fv.issued')} value={bumping ? todayIso() : draft.issued} onChange={(v) => set({ issued: v })} disabled={bumping} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <SimpleDatePicker label="Review due" value={draft.reviewDue} onChange={(v) => set({ reviewDue: v })} onClear={() => set({ reviewDue: undefined })} />
+                  <SimpleDatePicker label={t('docs.reviewDueCap')} value={draft.reviewDue} onChange={(v) => set({ reviewDue: v })} onClear={() => set({ reviewDue: undefined })} />
                 </View>
               </View>
               <View style={{ height: SIZES.md }} />
-              <Label>File (PDF from the office)</Label>
+              <Label>{t('doc.fileLabel')}</Label>
               <TouchableOpacity style={styles.fileBtn} onPress={() => void attach()}>
                 <MciIcon name="paperclip" size={18} color={COLORS.primary} />
-                <Text style={styles.fileText} numberOfLines={1}>{fileLabel ? `${fileLabel} — replace` : 'Attach a file'}</Text>
+                <Text style={styles.fileText} numberOfLines={1}>{fileLabel ? `${fileLabel} — ${t('fv.replace')}` : t('doc.attach')}</Text>
               </TouchableOpacity>
-              {indexing ? <Text style={styles.sub}>{indexing}</Text> : draft.text ? <Text style={styles.sub}>{`Searchable text: ${draft.text.split(' ').length} words`}</Text> : null}
+              {indexing ? <Text style={styles.sub}>{indexing}</Text> : draft.text ? <Text style={styles.sub}>{t('doc.searchable', { n: draft.text.split(' ').length })}</Text> : null}
               <View style={{ height: SIZES.md }} />
-              <Label>Text (for a circular or orders written aboard)</Label>
+              <Label>{t('doc.textLabel')}</Label>
               <TextInput style={[styles.input, { minHeight: 140, textAlignVertical: 'top' }]} value={draft.body ?? ''} onChangeText={(v) => set({ body: v })} multiline placeholder="—" placeholderTextColor={COLORS.textLight} />
               <View style={styles.toggle}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.toggleTitle}>Crew must read and sign</Text>
-                  <Text style={styles.sub}>Off for reference documents nobody has to sign for.</Text>
+                  <Text style={styles.toggleTitle}>{t('docs.mustRead')}</Text>
+                  <Text style={styles.sub}>{t('doc.offRef')}</Text>
                 </View>
                 <Switch value={draft.mustRead !== false} onValueChange={(v) => set({ mustRead: v })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
               </View>
               {!isNew && !bumping ? (
                 <TouchableOpacity style={styles.outlineBtn} onPress={() => setBumping(true)}>
-                  <Text style={styles.outlineText}>{`New revision (Rev ${draft.revision + 1})`}</Text>
+                  <Text style={styles.outlineText}>{t('doc.newRev', { n: draft.revision + 1 })}</Text>
                 </TouchableOpacity>
               ) : null}
-              {bumping ? <Text style={styles.warn}>{`Saving issues Rev ${draft.revision + 1}: everyone is asked to read and sign again.`}</Text> : null}
+              {bumping ? <Text style={styles.warn}>{t('doc.savingIssues', { n: draft.revision + 1 })}</Text> : null}
               <TouchableOpacity style={styles.deleteBtn} onPress={onRemove}>
-                <Text style={styles.deleteText}>{isNew ? 'Discard' : 'Withdraw document'}</Text>
+                <Text style={styles.deleteText}>{isNew ? t('doc.discard') : t('fv.withdraw')}</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -299,19 +301,19 @@ export default function DocSc() {
               <Text style={styles.meta}>{[doc.docNo, DOC_CATEGORY_LABEL[doc.category]].filter(Boolean).join(' · ')}</Text>
               <Text style={styles.docTitle}>{doc.title}</Text>
               <Text style={styles.sub}>
-                {[`Rev ${doc.revision}`, `issued ${formatDate(doc.issued)}`, doc.reviewDue ? `review ${formatDate(doc.reviewDue)}` : null, doc.by ? `by ${doc.by}` : null].filter(Boolean).join(' · ')}
+                {[t('docs.rev', { n: doc.revision }), t('doc.issuedOn', { date: formatDate(doc.issued) }), doc.reviewDue ? t('doc.reviewOn', { date: formatDate(doc.reviewDue) }) : null, doc.by ? t('doc.byL', { who: doc.by }) : null].filter(Boolean).join(' · ')}
               </Text>
 
               {doc.fileUri || heldHere ? (
                 <TouchableOpacity style={styles.fileBtn} onPress={() => void onOpenFile()}>
                   <MciIcon name="file-pdf-box" size={20} color={COLORS.primary} />
-                  <Text style={styles.fileText} numberOfLines={1}>{`Open ${doc.fileName ?? heldHere?.name ?? 'file'}`}</Text>
+                  <Text style={styles.fileText} numberOfLines={1}>{t('doc.open', { name: doc.fileName ?? heldHere?.name ?? t('doc.fileL') })}</Text>
                 </TouchableOpacity>
               ) : doc.filePending ? (
-                <Text style={styles.warn}>The file has not been shared yet by the device that attached it.</Text>
+                <Text style={styles.warn}>{t('doc.notSharedYet')}</Text>
               ) : null}
               {heldHere && doc.filePending ? (
-                <Text style={styles.sub}>Only this device has the file so far — Edit and Save when connected to share it with the vessel.</Text>
+                <Text style={styles.sub}>{t('doc.onlyHere')}</Text>
               ) : null}
 
               {doc.fileUri || heldHere ? (
@@ -328,22 +330,22 @@ export default function DocSc() {
                     <>
                       {!meName ? (
                         <>
-                          <Label>Who is signing?</Label>
+                          <Label>{t('sign.who')}</Label>
                           <View style={styles.chips}>
                             {people.map((p) => (
                               <TouchableOpacity key={p.id} style={[styles.chip, signerId === p.id && styles.chipOn]} onPress={() => setSignerId(p.id)}>
                                 <Text style={[styles.chipText, signerId === p.id && styles.chipTextOn]}>{crewLabel(p)}</Text>
                               </TouchableOpacity>
                             ))}
-                            {people.length === 0 ? <Text style={styles.sub}>The crew list is empty — the Master adds people in Settings → Crew.</Text> : null}
+                            {people.length === 0 ? <Text style={styles.sub}>{t('doc.crewEmpty')}</Text> : null}
                           </View>
                         </>
                       ) : null}
                       <TouchableOpacity style={[styles.signBtn, !signer && { opacity: 0.5 }]} onPress={() => void onSign()}>
                         <MciIcon name="draw-pen" size={20} color={COLORS.textWhite} />
-                        <Text style={styles.signText}>I have read and understood</Text>
+                        <Text style={styles.signText}>{t('doc.readUnderstood')}</Text>
                       </TouchableOpacity>
-                      <Text style={styles.sub}>{`Signs for Rev ${existing.revision}${signer ? ` as ${signer.name}` : ''}. A signature cannot be withdrawn.`}</Text>
+                      <Text style={styles.sub}>{`${t('doc.signsFor', { n: existing.revision })}${signer ? ` ${t('doc.asName', { name: signer.name })}` : ''}. ${t('doc.cannotWithdraw')}`}</Text>
                     </>
                   )}
                 </View>
@@ -351,11 +353,11 @@ export default function DocSc() {
 
               {status && doc.mustRead !== false ? (
                 <>
-                  <Label>{`Read by ${status.read.length} of ${status.required}`}</Label>
+                  <Label>{t('doc.readBy', { k: status.read.length, n: status.required })}</Label>
                   {status.unread.length ? (
-                    <Text style={styles.unread}>{`Not yet: ${status.unread.map((p) => p.name).join(', ')}`}</Text>
+                    <Text style={styles.unread}>{t('doc.notYet', { names: status.unread.map((p) => p.name).join(', ') })}</Text>
                   ) : status.required ? (
-                    <Text style={styles.signed}>Everyone on the crew list has signed this revision.</Text>
+                    <Text style={styles.signed}>{t('doc.allSigned')}</Text>
                   ) : null}
                 </>
               ) : null}
@@ -363,14 +365,14 @@ export default function DocSc() {
               {history.length ? (
                 <>
                   <View style={{ height: SIZES.md }} />
-                  <Label>Signatures</Label>
+                  <Label>{t('doc.signatures')}</Label>
                   {history.map((a) => (
                     <View key={a.id} style={styles.histRow}>
                       <Text style={[styles.histName, a.revision !== doc.revision && { color: COLORS.textLight }]}>
                         {a.byRank ? `${a.by} (${a.byRank})` : a.by}
                       </Text>
                       <Text style={styles.sub}>
-                        {[`Rev ${a.revision}`, formatDateTime(a.at), a.signedWith ? proofShort(a.signedWith) : null].filter(Boolean).join(' · ')}
+                        {[t('docs.rev', { n: a.revision }), formatDateTime(a.at), a.signedWith ? proofShort(a.signedWith) : null].filter(Boolean).join(' · ')}
                       </Text>
                     </View>
                   ))}

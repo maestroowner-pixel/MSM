@@ -38,6 +38,7 @@ import {
 } from '../constants/categories';
 import { Group } from '../types/equipment';
 import { uid } from '../utils/id';
+import { t, tk, tn, useT } from '../utils/i18n';
 
 
 
@@ -81,6 +82,7 @@ const ICONS = [
 ];
 
 export default function CategoriesEditSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { categories, byCategory, saveVesselCategory, removeVesselCategory, setCategoryHidden } = useData();
@@ -118,7 +120,7 @@ export default function CategoriesEditSc() {
   const onSave = async () => {
     const name = label.trim();
     if (!name) {
-      Alert.alert('Name it first', 'A heading needs a name — "Emergency Lighting", say.');
+      Alert.alert(t('ce.nameFirst'), t('ce.needName'));
       return;
     }
     // Editing a built-in one is a CHANGE to it, not a new heading: same key, and
@@ -165,15 +167,14 @@ export default function CategoriesEditSc() {
   const onDelete = (c: CategoryMeta) => {
     const count = (byCategory as any)[c.key]?.length ?? 0;
     Alert.alert(
-      `Remove "${c.label}"?`,
+      t('ce.removeQ', { name: c.label }),
       count
-        ? `The heading goes, and the ${count} item${count === 1 ? '' : 's'} under it stay in storage ` +
-          'along with their inspection history. Adding the heading back brings them back.'
-        : 'The heading is removed. Nothing else changes.',
+        ? t('ce.removeBody', { x: tn('n.item', count) })
+        : t('ce.removeEmpty'),
       [
-        { text: 'Keep it', style: 'cancel' },
+        { text: t('cat.keep'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('common.remove'),
           style: 'destructive',
           onPress: async () => {
             await removeVesselCategory(String(c.key));
@@ -187,31 +188,31 @@ export default function CategoriesEditSc() {
   return (
     <Screen>
       <ScreenTitle
-        title="Categories"
+        title={t('ce.title')}
         subtitle={
           categories.length
-            ? `${categories.length} added by this vessel, on top of the 23 built in`
-            : 'Add headings of your own, on top of the 23 built in'
+            ? t('ce.added', { n: categories.length })
+            : t('ce.addOwn')
         }
       />
 
       {!canEdit ? (
         <Card>
-          <Label>Read only</Label>
-          <Text style={styles.note}>An Officer or the Master adds headings.</Text>
+          <Label>{t('cl.readOnly')}</Label>
+          <Text style={styles.note}>{t('ce.officerAdds')}</Text>
         </Card>
       ) : (
         <Card>
-          <Label>{editing ? 'Rename this heading' : 'New heading'}</Label>
+          <Label>{editing ? t('ce.rename') : t('ce.new')}</Label>
           <TextInput
             value={label}
             onChangeText={setLabel}
             style={styles.input}
-            placeholder="Emergency Lighting"
+            placeholder={t('ce.namePh')}
             placeholderTextColor={COLORS.textLight}
           />
 
-          <Text style={styles.fieldLabel}>Group</Text>
+          <Text style={styles.fieldLabel}>{t('og.group')}</Text>
           <View style={styles.chipRow}>
             {GROUP_ORDER.map((g) => (
               <TouchableOpacity
@@ -229,7 +230,7 @@ export default function CategoriesEditSc() {
             The group decides which report the heading is printed in — LSA, FFE, or Other.
           </Text>
 
-          <Text style={styles.fieldLabel}>Icon</Text>
+          <Text style={styles.fieldLabel}>{t('ce.icon')}</Text>
           <View style={styles.chipRow}>
             {ICONS.map((n) => (
               <TouchableOpacity
@@ -248,22 +249,22 @@ export default function CategoriesEditSc() {
 
           <View style={styles.formBtns}>
             <TouchableOpacity style={styles.saveBtn} onPress={onSave}>
-              <Text style={styles.saveBtnText}>{editing ? 'Save changes' : 'Add heading'}</Text>
+              <Text style={styles.saveBtnText}>{editing ? t('og.saveChanges') : t('ce.add')}</Text>
             </TouchableOpacity>
             {editing ? (
               <TouchableOpacity style={styles.cancelBtn} onPress={reset}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
+                <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
         </Card>
       )}
 
-      <Label style={styles.listLabel}>All categories</Label>
+      <Label style={styles.listLabel}>{t('ce.all')}</Label>
       <FlatList
         data={allCategories}
         keyExtractor={(c) => String(c.key)}
-        ListEmptyComponent={<Empty text="None yet — the 23 built-in categories are all in use." />}
+        ListEmptyComponent={<Empty text={t('ce.none')} />}
         renderItem={({ item }) => {
           const count = (byCategory as any)[item.key]?.length ?? 0;
           return (
@@ -285,7 +286,7 @@ export default function CategoriesEditSc() {
                   <TouchableOpacity
                     onPress={() => void setCategoryHidden(item.key, !item.hidden)}
                     hitSlop={8}
-                    accessibilityLabel={item.hidden ? `Show ${item.label}` : `Hide ${item.label}`}
+                    accessibilityLabel={item.hidden ? t('ce.show', { name: item.label }) : t('ce.hide', { name: item.label })}
                   >
                     <MciIcon
                       name={item.hidden ? 'eye-off-outline' : 'eye-outline'}

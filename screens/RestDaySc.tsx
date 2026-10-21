@@ -29,6 +29,7 @@ import { emptyDay, RestDay, restDayId, SLOTS_PER_DAY } from '../types/rest';
 import { analyseRest, countWork, presetWork, REST_PRESETS, RULE_LABEL } from '../services/restHours';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
+import { t, useT, dateLocale } from '../utils/i18n';
 
 function shiftDay(iso: string, n: number): string {
   const d = new Date(`${iso}T00:00:00Z`);
@@ -45,6 +46,7 @@ const ROWS = 4; // 6 hours a row
 const PER_ROW = SLOTS_PER_DAY / ROWS;
 
 export default function RestDaySc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -125,36 +127,36 @@ export default function RestDaySc() {
         <View style={styles.header}>
           <BackButton onPress={() => goBackOr(nav)} />
           <Text style={styles.headerTitle} numberOfLines={1}>
-            {person?.name ?? saved?.holderName ?? 'Hours of rest'}
+            {person?.name ?? saved?.holderName ?? t('rest.title')}
           </Text>
           <TouchableOpacity onPress={onSave} hitSlop={12}>
-            <Text style={styles.save}>Save</Text>
+            <Text style={styles.save}>{t('common.save')}</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
           <View style={styles.dayRow}>
-            <TouchableOpacity onPress={() => go(-1)} hitSlop={12} accessibilityLabel="Previous day">
+            <TouchableOpacity onPress={() => go(-1)} hitSlop={12} accessibilityLabel={t('rest.prev')}>
               <MciIcon name="chevron-left" size={30} color={COLORS.primary} />
             </TouchableOpacity>
             <View style={{ alignItems: 'center' }}>
               <Text style={styles.dayTitle}>
-                {d.toLocaleString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })}
+                {d.toLocaleString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })}
               </Text>
-              <Text style={styles.daySub}>{`Work ${workSlots / 2} h · rest ${(SLOTS_PER_DAY - workSlots) / 2} h`}</Text>
+              <Text style={styles.daySub}>{t('rest.daySub', { w: workSlots / 2, r: (SLOTS_PER_DAY - workSlots) / 2 })}</Text>
             </View>
-            <TouchableOpacity onPress={() => go(1)} hitSlop={12} disabled={date >= todayIso()} accessibilityLabel="Next day">
+            <TouchableOpacity onPress={() => go(1)} hitSlop={12} disabled={date >= todayIso()} accessibilityLabel={t('rest.next')}>
               <MciIcon name="chevron-right" size={30} color={date >= todayIso() ? COLORS.border : COLORS.primary} />
             </TouchableOpacity>
           </View>
 
-          {isFuture ? <Text style={styles.warn}>This date is in the future.</Text> : null}
+          {isFuture ? <Text style={styles.warn}>{t('rest.future')}</Text> : null}
 
           <View style={styles.pens}>
             {(['1', '0'] as const).map((p) => (
               <TouchableOpacity key={p} style={[styles.pen, pen === p && styles.penOn]} onPress={() => setPen(p)} accessibilityRole="radio" accessibilityState={{ selected: pen === p }}>
                 <View style={[styles.swatch, { backgroundColor: p === '1' ? COLORS.primary : 'transparent' }]} />
-                <Text style={[styles.penText, pen === p && styles.penTextOn]}>{p === '1' ? 'Tap marks WORK' : 'Tap marks REST'}</Text>
+                <Text style={[styles.penText, pen === p && styles.penTextOn]}>{p === '1' ? t('rest.penWork') : t('rest.penRest')}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -176,7 +178,7 @@ export default function RestDaySc() {
                         key={i}
                         onPress={() => setCell(i)}
                         style={[styles.cell, c % 2 === 0 && styles.cellHour, isWork && { backgroundColor: COLORS.primary }]}
-                        accessibilityLabel={`${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'} ${isWork ? 'work' : 'rest'}`}
+                        accessibilityLabel={`${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'} ${isWork ? t('rest.work') : t('rest.rest')}`}
                       />
                     );
                   })}
@@ -185,11 +187,11 @@ export default function RestDaySc() {
             ))}
           </View>
 
-          <Label>Fill the day</Label>
+          <Label>{t('rest.fill')}</Label>
           <View style={styles.presets}>
             {prev ? (
               <TouchableOpacity style={styles.preset} onPress={() => edit(prev.work)}>
-                <Text style={styles.presetText}>Same as previous day</Text>
+                <Text style={styles.presetText}>{t('rest.same')}</Text>
               </TouchableOpacity>
             ) : null}
             {REST_PRESETS.map((p) => (
@@ -207,14 +209,14 @@ export default function RestDaySc() {
             ) : (
               <Text style={styles.checkOkText}>
                 {check?.minRest24h != null
-                  ? `Within the rest-hour rules · least rest in any 24 h: ${check.minRest24h} h`
-                  : 'Within the rest-hour rules for this day'}
+                  ? t('rest.okMin', { h: check.minRest24h })
+                  : t('rest.ok')}
               </Text>
             )}
-            <Text style={styles.checkNote}>Checked with the days around it · indicative (MLC 2.3, STCW A-VIII/1)</Text>
+            <Text style={styles.checkNote}>{t('rest.checkNote')}</Text>
           </View>
 
-          <Label>Note (drill, emergency, exception)</Label>
+          <Label>{t('rest.note')}</Label>
           <TextInput
             style={styles.input}
             value={note}
@@ -227,7 +229,7 @@ export default function RestDaySc() {
             multiline
           />
           {saved?.updatedBy ? (
-            <Text style={styles.meta}>{`Last saved by ${saved.updatedBy} · ${new Date(saved.updatedAt).toLocaleString()}`}</Text>
+            <Text style={styles.meta}>{`${t('rest.lastSaved', { who: saved.updatedBy })} · ${new Date(saved.updatedAt).toLocaleString()}`}</Text>
           ) : null}
         </ScrollView>
       </SafeAreaView>

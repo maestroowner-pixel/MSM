@@ -38,8 +38,10 @@ import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles as safetyStyles } from './SafetySc';
+import { t, useT } from '../utils/i18n';
 
 export default function MeetingSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => ({ ...safetyStyles(COLORS), ...makeStyles(COLORS) }), [COLORS]);
   const nav = useNavigation<any>();
@@ -75,7 +77,7 @@ export default function MeetingSc() {
     const out: SafetyMeeting = { ...m, no, plannedBy: m.plannedBy || signer?.name || '', updatedAt: Date.now() };
     await saveRow(storage.SAFETY_MEETINGS_KEY, out);
     if (!m.no) setDraft((p) => (p && !p.no ? { ...p, no, plannedBy: out.plannedBy, updatedAt: out.updatedAt } : p));
-    setSavedNote(`Saved ${nowHm()}`);
+    setSavedNote(t('mt.savedAt', { time: nowHm() }));
   };
   useEffect(() => {
     if (!dirty.current || !draft || draft.doneAt) return;
@@ -95,7 +97,7 @@ export default function MeetingSc() {
     return (
       <Screen scroll>
         <BackButton onPress={() => goBackOr(nav)} />
-        <Text style={styles.sub}>This meeting is not on this device yet — it arrives with the next sync.</Text>
+        <Text style={styles.sub}>{t('mt.notHere')}</Text>
       </Screen>
     );
   }
@@ -138,10 +140,10 @@ export default function MeetingSc() {
   };
 
   const sign = async () => {
-    if (!present) return Alert.alert('Attendance', 'Mark who took part.');
-    if (!signer) return Alert.alert('Who chaired it?', 'Choose your name — the Master or who chaired the meeting.');
+    if (!present) return Alert.alert(t('mt.attendance'), t('mt.markWho'));
+    if (!signer) return Alert.alert(t('mt.whoChaired'), t('mt.chooseChair'));
     const unsigned = m.attendance.filter((a) => a.present && !a.signedAt).length;
-    if (unsigned && !(await new Promise<boolean>((ok) => Alert.alert('Attendance list', `${unsigned} of ${present} present have not signed the list. Their lines stay unsigned once the meeting is signed.`, [{ text: 'Back to the list', style: 'cancel', onPress: () => ok(false) }, { text: 'Sign anyway', onPress: () => ok(true) }])))) return;
+    if (unsigned && !(await new Promise<boolean>((ok) => Alert.alert(t('mt.list'), t('mt.unsigned', { k: unsigned, n: present }), [{ text: t('mt.backList'), style: 'cancel', onPress: () => ok(false) }, { text: t('mt.signAnyway'), onPress: () => ok(true) }])))) return;
     const no = m.no || nextMeetingNo(safetyMeetings, m.date);
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Safety meeting ${no} — held` });
     if (!sig) return;
@@ -154,42 +156,42 @@ export default function MeetingSc() {
   };
 
   const drop = () =>
-    Alert.alert('Delete', 'Delete this meeting? It was not signed.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => { dirty.current = false; if (m.no) await saveRow(storage.SAFETY_MEETINGS_KEY, { ...m, deleted: true, updatedAt: Date.now() }); goBackOr(nav); } },
+    Alert.alert(t('common.delete'), t('mt.deleteQ'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: async () => { dirty.current = false; if (m.no) await saveRow(storage.SAFETY_MEETINGS_KEY, { ...m, deleted: true, updatedAt: Date.now() }); goBackOr(nav); } },
     ]);
 
   const print = async (list: boolean) => {
     try {
       const doc = list ? attendanceDoc(m, vesselHeader(vessel)) : meetingDoc(m, vesselHeader(vessel));
       const w = await exportDocPdf(doc, `${m.no || 'Safety meeting'} ${list ? 'Attendance' : 'Safety meeting'} ${m.date}`, vessel);
-      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
-      Alert.alert('Safety meeting', String(e?.message ?? e));
+      Alert.alert(t('mt.title'), String(e?.message ?? e));
     }
   };
 
   return (
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav)} />
-      <ScreenTitle title={`Safety meeting ${m.no}`.trim()} subtitle={done ? `Held ${formatDate(m.date)} · signed by ${m.doneBy} ${formatDateTime(m.doneAt!)}` : `${formatDate(m.date)} · not signed yet${savedNote ? ` · ${savedNote}` : ''}`} help="Security (ISPS)" />
+      <ScreenTitle title={`${t('mt.title')} ${m.no}`.trim()} subtitle={done ? `${t('mt.held', { date: formatDate(m.date) })} · ${t('meet.signedBy', { name: m.doneBy ?? '' })} ${formatDateTime(m.doneAt!)}` : `${formatDate(m.date)} · ${t('mt.notSigned')}${savedNote ? ` · ${savedNote}` : ''}`} help="Security (ISPS)" />
 
       <Card>
         <View style={styles.row}>
-          <View style={{ flex: 1, minWidth: 200 }}>{ro ? <Text style={styles.body}>{formatDate(m.date)}</Text> : <SimpleDatePicker label="Date" value={m.date} onChange={(v) => set({ date: v })} />}</View>
+          <View style={{ flex: 1, minWidth: 200 }}>{ro ? <Text style={styles.body}>{formatDate(m.date)}</Text> : <SimpleDatePicker label={t('nc.date')} value={m.date} onChange={(v) => set({ date: v })} />}</View>
           <TextInput editable={!ro} style={[styles.input, { width: 90 }]} value={m.time ?? ''} onChangeText={(v) => set({ time: v })} placeholder="hh:mm" placeholderTextColor={COLORS.textLight} />
-          <TextInput editable={!ro} style={[styles.input, { flex: 1, minWidth: 160 }]} value={m.location ?? ''} onChangeText={(v) => set({ location: v })} placeholder="Place — crew mess, bridge" placeholderTextColor={COLORS.textLight} />
+          <TextInput editable={!ro} style={[styles.input, { flex: 1, minWidth: 160 }]} value={m.location ?? ''} onChangeText={(v) => set({ location: v })} placeholder={t('mt.placePh')} placeholderTextColor={COLORS.textLight} />
         </View>
       </Card>
 
       {/* ---- attendance list ---- */}
       <Card>
-        <Label>{`Attendance list · ${present} of ${m.attendance.length} present${present ? ` · ${m.attendance.filter((a) => a.signedAt).length} signed` : ''}`}</Label>
-        {!done && present ? <Text style={styles.sub}>On this device, each person signs his own line — his signing PIN, or by hand on the screen.</Text> : null}
+        <Label>{`${t('mt.list')} · ${t('mt.presentOf', { k: present, n: m.attendance.length })}${present ? ` · ${t('mt.signedN', { n: m.attendance.filter((a) => a.signedAt).length })}` : ''}`}</Label>
+        {!done && present ? <Text style={styles.sub}>{t('mt.eachSigns')}</Text> : null}
         {!ro ? (
           <View style={styles.row}>
-            <TouchableOpacity style={styles.small} onPress={() => set({ attendance: m.attendance.map((a) => ({ ...a, present: true, reason: undefined })) })}><Text style={styles.smallText}>All present</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.small} onPress={() => set({ attendance: m.attendance.map((a) => ({ ...a, present: false })) })}><Text style={styles.smallText}>Clear</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.small} onPress={() => set({ attendance: m.attendance.map((a) => ({ ...a, present: true, reason: undefined })) })}><Text style={styles.smallText}>{t('mt.allPresent')}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.small} onPress={() => set({ attendance: m.attendance.map((a) => ({ ...a, present: false })) })}><Text style={styles.smallText}>{t('mt.clear')}</Text></TouchableOpacity>
           </View>
         ) : null}
         {m.attendance.map((a, i) => (
@@ -198,12 +200,12 @@ export default function MeetingSc() {
               <View style={[styles.box, a.present && { backgroundColor: COLORS.success, borderColor: COLORS.success }]}>{a.present ? <MciIcon name="check" size={16} color={COLORS.textWhite} /> : null}</View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={styles.name}>{a.name}</Text>
-                <Text style={styles.sub}>{[a.rank, a.extra ? 'not on the crew list' : null].filter(Boolean).join(' · ') || ' '}</Text>
+                <Text style={styles.sub}>{[a.rank, a.extra ? t('mt.notOnList') : null].filter(Boolean).join(' · ') || ' '}</Text>
               </View>
               {a.signedAt ? (
                 <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700', marginTop: 0 }]}>{`✓ ${attendanceSig(a) || 'signed'}`}</Text>
               ) : !done && (a.present || !canEdit) ? (
-                <TouchableOpacity style={styles.signBtn} onPress={() => void signLine(i)}><Text style={styles.signText}>Sign</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.signBtn} onPress={() => void signLine(i)}><Text style={styles.signText}>{t('common.sign')}</Text></TouchableOpacity>
               ) : !a.present && a.reason ? (
                 <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700' }]}>{a.reason}</Text>
               ) : null}
@@ -215,7 +217,7 @@ export default function MeetingSc() {
                     <Text style={[styles.chipText, { fontSize: 11 }, a.reason === r && styles.chipTextOn]}>{r}</Text>
                   </TouchableOpacity>
                 ))}
-                {a.extra ? <TouchableOpacity onPress={() => set({ attendance: m.attendance.filter((_, k) => k !== i) })}><Text style={[styles.link, { marginTop: 4 }]}>Remove</Text></TouchableOpacity> : null}
+                {a.extra ? <TouchableOpacity onPress={() => set({ attendance: m.attendance.filter((_, k) => k !== i) })}><Text style={[styles.link, { marginTop: 4 }]}>{t('common.remove')}</Text></TouchableOpacity> : null}
               </View>
             ) : null}
           </View>
@@ -223,54 +225,54 @@ export default function MeetingSc() {
         {!ro ? (
           guest ? (
             <View style={styles.row}>
-              <TextInput style={[styles.input, { flex: 2, minWidth: 140, marginTop: 0 }]} value={guest.name} onChangeText={(v) => setGuest({ ...guest, name: v })} placeholder="Name ★" placeholderTextColor={COLORS.textLight} />
-              <TextInput style={[styles.input, { flex: 1, minWidth: 100, marginTop: 0 }]} value={guest.rank} onChangeText={(v) => setGuest({ ...guest, rank: v })} placeholder="Rank / company" placeholderTextColor={COLORS.textLight} />
-              <TouchableOpacity style={styles.btn} onPress={() => { if (!guest.name.trim()) return; set({ attendance: [...m.attendance, { name: guest.name.trim(), ...(guest.rank.trim() ? { rank: guest.rank.trim() } : {}), present: true, extra: true }] }); setGuest(null); }}><Text style={styles.btnText}>Add</Text></TouchableOpacity>
-              <TouchableOpacity onPress={() => setGuest(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+              <TextInput style={[styles.input, { flex: 2, minWidth: 140, marginTop: 0 }]} value={guest.name} onChangeText={(v) => setGuest({ ...guest, name: v })} placeholder={t('mt.namePh')} placeholderTextColor={COLORS.textLight} />
+              <TextInput style={[styles.input, { flex: 1, minWidth: 100, marginTop: 0 }]} value={guest.rank} onChangeText={(v) => setGuest({ ...guest, rank: v })} placeholder={t('mt.rankPh')} placeholderTextColor={COLORS.textLight} />
+              <TouchableOpacity style={styles.btn} onPress={() => { if (!guest.name.trim()) return; set({ attendance: [...m.attendance, { name: guest.name.trim(), ...(guest.rank.trim() ? { rank: guest.rank.trim() } : {}), present: true, extra: true }] }); setGuest(null); }}><Text style={styles.btnText}>{t('common.add')}</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setGuest(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity onPress={() => setGuest({ name: '', rank: '' })}><Text style={styles.link}>+ Someone not on the crew list (superintendent, contractor)</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setGuest({ name: '', rank: '' })}><Text style={styles.link}>{t('mt.addGuest')}</Text></TouchableOpacity>
           )
         ) : null}
       </Card>
 
       {/* ---- agenda ---- */}
       <Card>
-        <Label>Agenda — what was said on each point</Label>
+        <Label>{t('mt.agenda')}</Label>
         {m.agenda.map((g, i) => (
           <View key={g.id} style={{ marginBottom: SIZES.sm }}>
             <Text style={styles.name}>{`${i + 1}. ${g.topic}`}</Text>
             {ro ? (g.notes ? <Text style={styles.body}>{g.notes}</Text> : <Text style={styles.sub}>—</Text>) : (
-              <TextInput style={[styles.input, { minHeight: 40, marginTop: 4 }]} value={g.notes ?? ''} onChangeText={(v) => set({ agenda: m.agenda.map((x) => (x.id === g.id ? tidy({ ...x, notes: v || undefined }) : x)) })} multiline placeholder="Nothing to report / what was said" placeholderTextColor={COLORS.textLight} />
+              <TextInput style={[styles.input, { minHeight: 40, marginTop: 4 }]} value={g.notes ?? ''} onChangeText={(v) => set({ agenda: m.agenda.map((x) => (x.id === g.id ? tidy({ ...x, notes: v || undefined }) : x)) })} multiline placeholder={t('mt.agendaPh')} placeholderTextColor={COLORS.textLight} />
             )}
           </View>
         ))}
-        {!ro ? <TouchableOpacity onPress={() => set({ agenda: [...m.agenda, { id: uid('ag'), topic: 'Other' }] })}><Text style={styles.link}>+ Another point</Text></TouchableOpacity> : null}
+        {!ro ? <TouchableOpacity onPress={() => set({ agenda: [...m.agenda, { id: uid('ag'), topic: 'Other' }] })}><Text style={styles.link}>{t('mt.another')}</Text></TouchableOpacity> : null}
       </Card>
 
       {/* ---- actions ---- */}
       {m.carried.length ? (
         <Card>
-          <Label>{`Actions from earlier meetings · ${m.carried.filter((c) => c.done).length} of ${m.carried.length} closed`}</Label>
+          <Label>{t('mt.carried', { k: m.carried.filter((c) => c.done).length, n: m.carried.length })}</Label>
           {m.carried.map((c) => (
             <TouchableOpacity key={c.id} disabled={ro} style={{ flexDirection: 'row', gap: SIZES.sm, paddingVertical: 4 }} onPress={() => set({ carried: m.carried.map((x) => (x.id === c.id ? { ...x, done: !x.done } : x)) })}>
               <MciIcon name={c.done ? 'checkbox-marked' : 'checkbox-blank-outline'} size={20} color={c.done ? COLORS.success : COLORS.textLight} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.body, c.done && { textDecorationLine: 'line-through', color: COLORS.textLight }]}>{c.text}</Text>
-                <Text style={styles.sub}>{[c.fromNo, c.who, c.due ? `by ${formatDate(c.due)}` : null, c.done ? 'done' : 'still open — comes back next month'].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.sub}>{[c.fromNo, c.who, c.due ? t('meet.by', { date: formatDate(c.due) }) : null, c.done ? t('mt.done') : t('mt.stillOpen')].filter(Boolean).join(' · ')}</Text>
               </View>
             </TouchableOpacity>
           ))}
         </Card>
       ) : null}
       <Card>
-        <Label>{`New actions · ${m.actions.length}`}</Label>
+        <Label>{t('mt.newActions', { n: m.actions.length })}</Label>
         {m.actions.map((a, i) => (
           <View key={a.id} style={{ flexDirection: 'row', gap: SIZES.sm, paddingVertical: 4, alignItems: 'center' }}>
             <Text style={styles.name}>{`${i + 1}.`}</Text>
             <View style={{ flex: 1 }}>
               <Text style={styles.body}>{a.text}</Text>
-              <Text style={styles.sub}>{[a.who, a.due ? `by ${formatDate(a.due)}` : null].filter(Boolean).join(' · ') || '—'}</Text>
+              <Text style={styles.sub}>{[a.who, a.due ? t('meet.by', { date: formatDate(a.due) }) : null].filter(Boolean).join(' · ') || '—'}</Text>
             </View>
             {!ro ? <TouchableOpacity onPress={() => set({ actions: m.actions.filter((x) => x.id !== a.id) })}><Text style={[styles.link, { color: COLORS.danger }]}>✕</Text></TouchableOpacity> : null}
           </View>
@@ -278,45 +280,45 @@ export default function MeetingSc() {
         {!ro ? (
           act ? (
             <>
-              <TextInput style={styles.input} value={act.text} onChangeText={(v) => setAct({ ...act, text: v })} placeholder="What is to be done ★" placeholderTextColor={COLORS.textLight} autoFocus />
+              <TextInput style={styles.input} value={act.text} onChangeText={(v) => setAct({ ...act, text: v })} placeholder={t('nc.todoPh')} placeholderTextColor={COLORS.textLight} autoFocus />
               <View style={styles.row}>
-                <Dropdown caption="WHO" value={act.who} onChange={(v: string) => setAct({ ...act, who: v })} options={[{ value: '', label: '—' }, ...people.map((p) => ({ value: p.name, label: p.rank ? `${p.name} · ${p.rank}` : p.name }))]} style={{ flex: 1, minWidth: 200 }} />
-                <View style={{ flex: 1, minWidth: 200 }}><SimpleDatePicker label="By" value={act.due} onChange={(v) => setAct({ ...act, due: v })} onClear={() => setAct({ ...act, due: undefined })} /></View>
+                <Dropdown caption={t('mt.who')} value={act.who} onChange={(v: string) => setAct({ ...act, who: v })} options={[{ value: '', label: '—' }, ...people.map((p) => ({ value: p.name, label: p.rank ? `${p.name} · ${p.rank}` : p.name }))]} style={{ flex: 1, minWidth: 200 }} />
+                <View style={{ flex: 1, minWidth: 200 }}><SimpleDatePicker label={t('mt.by')} value={act.due} onChange={(v) => setAct({ ...act, due: v })} onClear={() => setAct({ ...act, due: undefined })} /></View>
               </View>
               <View style={styles.row}>
-                <TouchableOpacity style={styles.btn} onPress={addAction}><Text style={styles.btnText}>Add the action</Text></TouchableOpacity>
-                <TouchableOpacity onPress={() => setAct(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.btn} onPress={addAction}><Text style={styles.btnText}>{t('nc.addAction')}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setAct(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
               </View>
             </>
           ) : (
-            <TouchableOpacity onPress={() => setAct({ text: '', who: '' })}><Text style={styles.link}>+ An action — who does what by when</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setAct({ text: '', who: '' })}><Text style={styles.link}>{t('mt.addAction')}</Text></TouchableOpacity>
           )
         ) : null}
       </Card>
 
       <Card>
-        <Label>Other business</Label>
-        {ro ? <Text style={styles.body}>{m.minutes || '—'}</Text> : <TextInput style={[styles.input, { minHeight: 60 }]} value={m.minutes ?? ''} onChangeText={(v) => set({ minutes: v })} multiline placeholder="Anything else said" placeholderTextColor={COLORS.textLight} />}
+        <Label>{t('mt.other')}</Label>
+        {ro ? <Text style={styles.body}>{m.minutes || '—'}</Text> : <TextInput style={[styles.input, { minHeight: 60 }]} value={m.minutes ?? ''} onChangeText={(v) => set({ minutes: v })} multiline placeholder={t('mt.otherPh')} placeholderTextColor={COLORS.textLight} />}
       </Card>
 
       <View style={styles.row}>
-        <TouchableOpacity style={styles.btn} onPress={() => void print(false)}><Text style={styles.btnText}>{done ? 'Minutes (PDF)' : 'Draft minutes (PDF)'}</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.btn} onPress={() => void print(true)}><Text style={styles.btnText}>Attendance list (PDF)</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.btn} onPress={() => void print(false)}><Text style={styles.btnText}>{done ? t('mt.minutesPdf') : t('mt.draftPdf')}</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.btn} onPress={() => void print(true)}><Text style={styles.btnText}>{t('mt.listPdf')}</Text></TouchableOpacity>
       </View>
       {saved ? <Text style={styles.sub}>{saved}</Text> : null}
 
       {!ro ? (
         <Card>
-          <Label>Held</Label>
-          <Text style={styles.sub}>Sign when the meeting is over: the attendance, what was said and the actions go on the record, and it cannot be changed afterwards.</Text>
+          <Label>{t('mt.heldHead')}</Label>
+          <Text style={styles.sub}>{t('mt.signHint')}</Text>
           {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
           <View style={styles.row}>
-            <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.success }]} onPress={() => void sign()}><Text style={styles.btnText}>Sign the meeting</Text></TouchableOpacity>
-            <TouchableOpacity onPress={drop}><Text style={[styles.link, { color: COLORS.danger }]}>Delete</Text></TouchableOpacity>
+            <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.success }]} onPress={() => void sign()}><Text style={styles.btnText}>{t('mt.sign')}</Text></TouchableOpacity>
+            <TouchableOpacity onPress={drop}><Text style={[styles.link, { color: COLORS.danger }]}>{t('common.delete')}</Text></TouchableOpacity>
           </View>
         </Card>
       ) : !done ? (
-        <Text style={styles.sub}>An officer or the Master writes and signs the meeting; anyone signs his own attendance line here.</Text>
+        <Text style={styles.sub}>{t('mt.crewHint')}</Text>
       ) : null}
     </Screen>
   );

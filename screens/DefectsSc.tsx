@@ -26,11 +26,13 @@ import { Inspection, PERIOD_LABEL } from '../types/inspection';
 import { signatureLine } from '../types/crew';
 import { formatDateTime } from '../utils/dates';
 import { failedLines } from '../services/inspections';
+import { t, useT } from '../utils/i18n';
 
 type Filter = 'open' | 'closed';
 const GROUPS: Array<Group | 'ALL'> = ['ALL', 'LSA', 'FFE'];
 
 export default function DefectsSc() {
+  useT();
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -64,7 +66,7 @@ export default function DefectsSc() {
             <CategoryBadge category={insp.category} size={22} />
             <View style={{ flex: 1 }}>
               <Text style={styles.name} numberOfLines={1}>
-                {equip?.type || equip?.serial || meta?.label || 'Item'}
+                {equip?.type || equip?.serial || meta?.label || t('def.item')}
               </Text>
               <Text style={styles.meta} numberOfLines={1}>
                 {[meta?.label, equip?.position].filter(Boolean).join(' · ')}
@@ -72,7 +74,7 @@ export default function DefectsSc() {
             </View>
             {insp.defect?.open ? (
               <View style={styles.agePill}>
-                <Text style={styles.agePillText}>{age === 0 ? 'today' : `${age}d`}</Text>
+                <Text style={styles.agePillText}>{age === 0 ? t('def.today') : t('def.days', { n: age })}</Text>
               </View>
             ) : (
               <MciIcon name="check-decagram" size={20} color={COLORS.success} />
@@ -116,11 +118,11 @@ export default function DefectsSc() {
   return (
     <Screen>
       <ScreenTitle
-        title="Defects"
+        title={t('def.title')}
         subtitle={
           openCount
-            ? `${openCount} outstanding across the vessel`
-            : 'Nothing outstanding — every defect has been rectified'
+            ? t('def.sub', { n: openCount })
+            : t('def.subNone')
         }
       />
 
@@ -132,7 +134,7 @@ export default function DefectsSc() {
             onPress={() => setFilter(f)}
           >
             <Text style={[styles.chipText, filter === f && styles.chipTextOn]}>
-              {f === 'open' ? 'Outstanding' : 'Rectified'}
+              {f === 'open' ? t('def.outstanding') : t('def.rectified')}
             </Text>
           </TouchableOpacity>
         ))}
@@ -156,8 +158,8 @@ export default function DefectsSc() {
           <Empty
             text={
               filter === 'open'
-                ? 'No outstanding defects.'
-                : 'Nothing rectified yet.'
+                ? t('def.emptyOpen')
+                : t('def.emptyClosed')
             }
           />
         }

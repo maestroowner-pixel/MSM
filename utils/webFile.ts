@@ -48,7 +48,7 @@ export function downloadFileWeb(
  *
  * `fileName` is what "Save as PDF" offers. The browser takes it from the TOP
  * page's title, not the printed frame's, so a monthly rest record was saved as
- * "Rest · ISMpilot.pdf" (9 Oct 2026). The title is swapped for the print and put
+ * "Rest · ISM AI Pilot.pdf" (9 Oct 2026). The title is swapped for the print and put
  * back after — `print()` returns once the dialog is closed.
  */
 export function printHtmlWeb(html: string, fileName?: string): void {
@@ -66,7 +66,7 @@ export function printHtmlWeb(html: string, fileName?: string): void {
       if (fileName) {
         // Put back only once the dialog is CLOSED. Chrome blocks in print(), but
         // Opera returns at once and reads the title afterwards — restoring it
-        // straight away saved the file as "Rest · ISMpilot.pdf" again.
+        // straight away saved the file as "Rest · ISM AI Pilot.pdf" again.
         g.document.title = fileName.replace(/\.pdf$/i, '');
         let restored = false;
         const restore = () => {

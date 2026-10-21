@@ -24,6 +24,7 @@ import { formatDate, formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { PositionInput } from '../components/PositionInput';
 import { playSuccessSound } from '../utils/sound';
+import { t, tn, useT } from '../utils/i18n';
 
 const CATS = Object.keys(GARBAGE_CATEGORY) as GarbageCategory[];
 const METHODS = Object.keys(GARBAGE_METHOD) as GarbageMethod[];
@@ -33,6 +34,7 @@ const hhmm = () => {
 };
 
 export default function GarbageSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { garbage, garbageSigns, addGarbage, signGarbageMonth, vessel } = useData();
@@ -68,8 +70,8 @@ export default function GarbageSc() {
   };
   const cancelEntry = async () => {
     if (!cancelling) return;
-    if (!signer) return Alert.alert('Who is signing?', 'Choose your name below.');
-    if (reason.trim().length < 3) return Alert.alert('Reason', 'Say why the entry is cancelled.');
+    if (!signer) return Alert.alert(t('sign.who'), t('pd.chooseName'));
+    if (reason.trim().length < 3) return Alert.alert(t('gb.reason'), t('gb.whyCancel'));
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Cancel garbage entry ${formatDate(cancelling.date)} — ${reason.trim()}` });
     if (!sig) return;
     const now = Date.now();
@@ -87,14 +89,14 @@ export default function GarbageSc() {
   const problem = picked.length ? seaDischargeProblem({ category: picked[0], method: f.method, distanceNm: distance, comminuted: f.comminuted, items }) : null;
 
   const save = async () => {
-    if (!signer) return Alert.alert('Who is signing?', 'Choose your name below.');
-    if (!picked.length) return Alert.alert('Category', 'Tap the categories in this operation.');
+    if (!signer) return Alert.alert(t('sign.who'), t('pd.chooseName'));
+    if (!picked.length) return Alert.alert(t('pd.category'), t('gb.tapCats'));
     const noAmount = items.filter((i) => !(i.volume > 0)).map((i) => i.category);
-    if (noAmount.length) return Alert.alert('Amount', `Enter the estimated amount in m³ for ${noAmount.join(', ')}.`);
+    if (noAmount.length) return Alert.alert(t('gb.amount'), t('gb.enterAmount', { cats: noAmount.join(', ') }));
     if (f.atSea || f.method === 'sea') {
-      if (!f.position.trim()) return Alert.alert('Position', 'Enter the ship’s position.');
-    } else if (!f.port.trim()) return Alert.alert('Port', 'Enter the port.');
-    if (editing && reason.trim().length < 3) return Alert.alert('Reason for the change', 'Say why the entry is being changed — it is kept in the book with your signature.');
+      if (!f.position.trim()) return Alert.alert(t('log.position'), t('gb.enterPos'));
+    } else if (!f.port.trim()) return Alert.alert(t('ml.port'), t('gb.enterPort'));
+    if (editing && reason.trim().length < 3) return Alert.alert(t('gb.reasonChange'), t('gb.whyChange'));
     const go = async () => {
       const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: editing ? `Amend garbage entry — ${reason.trim()}` : `Garbage Record Book — ${items.map((i) => `${i.category} ${i.volume}`).join(', ')} m³` });
       if (!sig) return;
@@ -117,12 +119,12 @@ export default function GarbageSc() {
       playSuccessSound();
     };
     if (problem && f.method === 'sea') {
-      Alert.alert('Not allowed at sea', `${problem}\n\nRecord it anyway?`, [{ text: 'Cancel', style: 'cancel' }, { text: 'Record', style: 'destructive', onPress: () => void go() }]);
+      Alert.alert(t('gb.notAllowed'), `${problem}\n\n${t('gb.recordAnyway')}`, [{ text: t('common.cancel'), style: 'cancel' }, { text: t('gb.record'), style: 'destructive', onPress: () => void go() }]);
     } else await go();
   };
 
   const masterSign = async () => {
-    if (!signer) return Alert.alert('Who is signing?', 'Choose your name below.');
+    if (!signer) return Alert.alert(t('sign.who'), t('pd.chooseName'));
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Master's signature — Garbage Record Book, ${month}` });
     if (!sig) return;
     const now = Date.now();
@@ -133,9 +135,9 @@ export default function GarbageSc() {
   const report = async (kind: 'pdf' | 'xlsx') => {
     try {
       const where = kind === 'pdf' ? await exportGarbagePdf(garbage, month, vessel, sign) : await exportGarbageExcel(garbage, month, vessel);
-      if (typeof where === 'string') setSaved(where === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${where}”`);
+      if (typeof where === 'string') setSaved(where === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: where }));
     } catch (e: any) {
-      Alert.alert('Garbage Record Book', String(e?.message ?? e));
+      Alert.alert(t('gb.book'), String(e?.message ?? e));
     }
   };
 
@@ -148,14 +150,14 @@ export default function GarbageSc() {
   return (
     <Screen scroll>
       <ScreenTitle
-        title={`Garbage — ${monthName(month)}`}
-        subtitle="Garbage Record Book — Part I · MARPOL Annex V"
+        title={`${t('gb.title')} — ${monthName(month)}`}
+        subtitle={t('gb.sub')}
         help="Garbage Record Book"
         actions={<MonthPicker value={month} onChange={setMonth} months={[...new Set(garbage.map((e) => e.date.slice(0, 7)))]} counts={currentEntries(garbage).reduce((c: Record<string, number>, e) => ((c[e.date.slice(0, 7)] = (c[e.date.slice(0, 7)] ?? 0) + 1), c), {})} />}
       />
 
       <View style={styles.row}>
-        <TouchableOpacity style={styles.btn} onPress={() => { setAdding((v) => !v); setEditing(null); setReason(''); setF(blank); }}><Text style={styles.btnText}>{adding ? 'Close' : '+ New entry'}</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.btn} onPress={() => { setAdding((v) => !v); setEditing(null); setReason(''); setF(blank); }}><Text style={styles.btnText}>{adding ? t('common.close') : t('book.newEntry')}</Text></TouchableOpacity>
         <TouchableOpacity style={styles.btnOutline} onPress={() => void report('pdf')}><Text style={styles.btnOutlineText}>PDF</Text></TouchableOpacity>
         <TouchableOpacity style={styles.btnOutline} onPress={() => void report('xlsx')}><Text style={styles.btnOutlineText}>Excel</Text></TouchableOpacity>
         {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{`✓ ${saved}`}</Text> : null}
@@ -163,7 +165,7 @@ export default function GarbageSc() {
 
       {adding ? (
         <Card>
-          <Label>Category</Label>
+          <Label>{t('pd.category')}</Label>
           <View style={styles.chips}>
             {CATS.map((c) => (
               <Chip
@@ -179,7 +181,7 @@ export default function GarbageSc() {
               />
             ))}
           </View>
-          {picked.length ? <Label>Amount, m³</Label> : null}
+          {picked.length ? <Label>{t('gb.amountM3')}</Label> : null}
           <View style={styles.amounts}>
             {picked.map((c) => (
               <View key={c} style={styles.amountRow}>
@@ -187,27 +189,27 @@ export default function GarbageSc() {
                 <TextInput style={[styles.input, styles.amountInput]} value={f.amounts[c] ?? ''} onChangeText={(v) => setF({ ...f, amounts: { ...f.amounts, [c]: v } })} placeholder="m³" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
               </View>
             ))}
-            {picked.length > 1 ? <Text style={styles.sub}>{`Total ${volume} m³`}</Text> : null}
+            {picked.length > 1 ? <Text style={styles.sub}>{t('gb.total', { n: volume })}</Text> : null}
           </View>
-          <Label>How</Label>
+          <Label>{t('gb.how')}</Label>
           <View style={styles.chips}>
             {METHODS.map((k) => <Chip key={k} on={f.method === k} label={GARBAGE_METHOD[k]} onPress={() => setF({ ...f, method: k, atSea: k === 'sea' ? true : f.atSea })} color={k === 'accidental' ? COLORS.danger : undefined} />)}
           </View>
           <View style={styles.toggle}>
-            <Text style={styles.toggleText}>At sea</Text>
+            <Text style={styles.toggleText}>{t('gb.atSea')}</Text>
             <Switch value={f.atSea || f.method === 'sea'} disabled={f.method === 'sea'} onValueChange={(v) => setF({ ...f, atSea: v })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
           </View>
           {f.atSea || f.method === 'sea' ? (
             <>
               <PositionInput portAllowed={false} position={f.position} onChange={(pos) => setF((x) => ({ ...x, position: pos }))} />
-              <TextInput style={styles.input} value={f.distance} onChangeText={(v) => setF({ ...f, distance: v })} placeholder="nm from land" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
+              <TextInput style={styles.input} value={f.distance} onChangeText={(v) => setF({ ...f, distance: v })} placeholder={t('gb.nmPh')} placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
             </>
           ) : (
-            <TextInput style={styles.input} value={f.port} onChangeText={(v) => setF({ ...f, port: v })} placeholder="Port" placeholderTextColor={COLORS.textLight} />
+            <TextInput style={styles.input} value={f.port} onChangeText={(v) => setF({ ...f, port: v })} placeholder={t('ml.port')} placeholderTextColor={COLORS.textLight} />
           )}
           {picked.includes('B') && f.method === 'sea' ? (
             <View style={styles.toggle}>
-              <Text style={styles.toggleText}>Comminuted (ground below 25 mm)</Text>
+              <Text style={styles.toggleText}>{t('gb.comminuted')}</Text>
               <Switch value={f.comminuted} onValueChange={(v) => setF({ ...f, comminuted: v })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
             </View>
           ) : null}
@@ -216,40 +218,40 @@ export default function GarbageSc() {
             <TextInput style={styles.input} value={f.time} onChangeText={(v) => setF({ ...f, time: v })} placeholder="hh:mm" placeholderTextColor={COLORS.textLight} />
           </View>
           <View style={styles.pair}>
-            <TextInput style={styles.input} value={f.container} onChangeText={(v) => setF({ ...f, container: v })} placeholder="Container No." placeholderTextColor={COLORS.textLight} />
-            {f.method === 'shore' ? <TextInput style={[styles.input, { flex: 2 }]} value={f.receipt} onChangeText={(v) => setF({ ...f, receipt: v })} placeholder="Reception facility receipt No." placeholderTextColor={COLORS.textLight} /> : null}
+            <TextInput style={styles.input} value={f.container} onChangeText={(v) => setF({ ...f, container: v })} placeholder={t('gb.container')} placeholderTextColor={COLORS.textLight} />
+            {f.method === 'shore' ? <TextInput style={[styles.input, { flex: 2 }]} value={f.receipt} onChangeText={(v) => setF({ ...f, receipt: v })} placeholder={t('log.receiptNo')} placeholderTextColor={COLORS.textLight} /> : null}
           </View>
-          <TextInput style={styles.input} value={f.remarks} onChangeText={(v) => setF({ ...f, remarks: v })} placeholder={f.method === 'accidental' ? 'What happened, and what was done' : 'Remarks'} placeholderTextColor={COLORS.textLight} />
+          <TextInput style={styles.input} value={f.remarks} onChangeText={(v) => setF({ ...f, remarks: v })} placeholder={f.method === 'accidental' ? t('gb.accidentPh') : t('book.remarks')} placeholderTextColor={COLORS.textLight} />
           {problem ? <Text style={styles.problem}>{`⚠ ${problem}`}</Text> : null}
           {picker ? (
             <>
-              <Text style={styles.sub}>Officer in charge</Text>
+              <Text style={styles.sub}>{t('book.oic')}</Text>
               {picker}
             </>
           ) : null}
           {editing ? (
-            <TextInput style={[styles.input, { borderColor: COLORS.warning, borderWidth: 1 }]} value={reason} onChangeText={setReason} placeholder="Reason for the change ★ — e.g. amount misread, wrong category" placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { borderColor: COLORS.warning, borderWidth: 1 }]} value={reason} onChangeText={setReason} placeholder={t('gb.reasonChangePh')} placeholderTextColor={COLORS.textLight} />
           ) : null}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.md, marginTop: SIZES.md }}>
             <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void save()}>
-              <Text style={styles.btnText}>{editing ? 'Sign the change' : 'Sign the entry'}</Text>
+              <Text style={styles.btnText}>{editing ? t('gb.signChange') : t('book.signEntry')}</Text>
             </TouchableOpacity>
-            {editing ? <TouchableOpacity onPress={() => { setEditing(null); setAdding(false); setF(blank); }}><Text style={{ color: COLORS.primary, fontWeight: '700' }}>Cancel</Text></TouchableOpacity> : null}
+            {editing ? <TouchableOpacity onPress={() => { setEditing(null); setAdding(false); setF(blank); }}><Text style={{ color: COLORS.primary, fontWeight: '700' }}>{t('common.cancel')}</Text></TouchableOpacity> : null}
           </View>
-          <Text style={styles.sub}>{editing ? `Changing the entry of ${formatDate(editing.date)} ${editing.time}. The original stays in the book; the change carries your reason and signature.` : 'A change later keeps the original: it needs the reason and the signature of whoever changes it.'}</Text>
+          <Text style={styles.sub}>{editing ? t('gb.changing', { when: `${formatDate(editing.date)} ${editing.time}` }) : t('gb.changeLater')}</Text>
         </Card>
       ) : null}
 
-      <Label>{`Entries (${m.entries.length})`}</Label>
+      <Label>{t('book.entries', { n: m.entries.length })}</Label>
       {cancelling ? (
         <Card>
-          <Label>{`Cancel the entry of ${formatDate(cancelling.date)} ${cancelling.time}`}</Label>
-          <Text style={styles.sub}>It stays in the book, struck through and out of the totals, with your reason and signature.</Text>
-          <TextInput style={[styles.input, { borderColor: COLORS.warning, borderWidth: 1 }]} value={reason} onChangeText={setReason} placeholder="Reason ★ — e.g. entered twice" placeholderTextColor={COLORS.textLight} />
+          <Label>{t('gb.cancelEntry', { when: `${formatDate(cancelling.date)} ${cancelling.time}` })}</Label>
+          <Text style={styles.sub}>{t('gb.struck')}</Text>
+          <TextInput style={[styles.input, { borderColor: COLORS.warning, borderWidth: 1 }]} value={reason} onChangeText={setReason} placeholder={t('gb.reasonPh')} placeholderTextColor={COLORS.textLight} />
           {picker}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.md, marginTop: SIZES.md }}>
-            <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.danger }]} onPress={() => void cancelEntry()}><Text style={styles.btnText}>Sign — cancel the entry</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => { setCancelling(null); setReason(''); }}><Text style={{ color: COLORS.primary, fontWeight: '700' }}>Keep it</Text></TouchableOpacity>
+            <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.danger }]} onPress={() => void cancelEntry()}><Text style={styles.btnText}>{t('gb.signCancel')}</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => { setCancelling(null); setReason(''); }}><Text style={{ color: COLORS.primary, fontWeight: '700' }}>{t('cat.keep')}</Text></TouchableOpacity>
           </View>
         </Card>
       ) : null}
@@ -260,11 +262,11 @@ export default function GarbageSc() {
             <View style={[styles.cat, e.method === 'accidental' && { backgroundColor: COLORS.danger }, e.cancelled && { backgroundColor: COLORS.textLight }]}><Text style={styles.catText} numberOfLines={1}>{entryItems(e).map((i) => i.category).join('')}</Text></View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.entryTitle, e.cancelled && { textDecorationLine: 'line-through' }]}>{`${itemsText(e, (c) => GARBAGE_CATEGORY[c])} m³ · ${GARBAGE_METHOD[e.method]}`}</Text>
-              <Text style={styles.sub}>{[`${formatDate(e.date)} ${e.time}`, placeText(e), e.containerNo ? `container ${e.containerNo}` : null, e.receiptNo ? `receipt ${e.receiptNo}` : null, e.remarks, e.byRank ? `${e.by} (${e.byRank})` : e.by].filter(Boolean).join(' · ')}</Text>
+              <Text style={styles.sub}>{[`${formatDate(e.date)} ${e.time}`, placeText(e), e.containerNo ? t('gb.containerL', { n: e.containerNo }) : null, e.receiptNo ? t('gb.receiptL', { n: e.receiptNo }) : null, e.remarks, e.byRank ? `${e.by} (${e.byRank})` : e.by].filter(Boolean).join(' · ')}</Text>
               {e.supersedes ? (
                 <TouchableOpacity onPress={() => setOpenHist(openHist === e.id ? null : e.id)}>
                   <Text style={[styles.sub, { color: e.cancelled ? COLORS.danger : COLORS.warning, fontWeight: '700' }]}>
-                    {`${e.cancelled ? 'Cancelled' : 'Amended'} ${formatDateTime(e.at)} by ${e.byRank ? `${e.by} (${e.byRank})` : e.by} — ${e.editReason ?? ''} · ${prev.length} earlier version${prev.length === 1 ? '' : 's'} ${openHist === e.id ? '▴' : '▾'}`}
+                    {`${e.cancelled ? t('gb.cancelledBy', { when: formatDateTime(e.at), by: e.byRank ? `${e.by} (${e.byRank})` : e.by }) : t('gb.amendedBy', { when: formatDateTime(e.at), by: e.byRank ? `${e.by} (${e.byRank})` : e.by })} — ${e.editReason ?? ''} · ${tn('n.version', prev.length)} ${openHist === e.id ? '▴' : '▾'}`}
                   </Text>
                 </TouchableOpacity>
               ) : null}
@@ -280,24 +282,24 @@ export default function GarbageSc() {
               // Changing the book is the Master's (10 Oct 2026): everyone else sees
               // the controls greyed out. The server refuses it too (firestore.rules).
               <View style={{ gap: 6, opacity: isMaster ? 1 : 0.35 }} accessibilityState={{ disabled: !isMaster }}>
-                <TouchableOpacity disabled={!isMaster} onPress={() => startEdit(e)} hitSlop={6}><Text style={{ color: isMaster ? COLORS.primary : COLORS.textLight, fontWeight: '700', fontSize: SIZES.small }}>Edit</Text></TouchableOpacity>
-                <TouchableOpacity disabled={!isMaster} onPress={() => { setCancelling(e); setReason(''); setEditing(null); }} hitSlop={6}><Text style={{ color: isMaster ? COLORS.danger : COLORS.textLight, fontWeight: '700', fontSize: SIZES.small }}>Delete</Text></TouchableOpacity>
+                <TouchableOpacity disabled={!isMaster} onPress={() => startEdit(e)} hitSlop={6}><Text style={{ color: isMaster ? COLORS.primary : COLORS.textLight, fontWeight: '700', fontSize: SIZES.small }}>{t('common.edit')}</Text></TouchableOpacity>
+                <TouchableOpacity disabled={!isMaster} onPress={() => { setCancelling(e); setReason(''); setEditing(null); }} hitSlop={6}><Text style={{ color: isMaster ? COLORS.danger : COLORS.textLight, fontWeight: '700', fontSize: SIZES.small }}>{t('common.delete')}</Text></TouchableOpacity>
               </View>
             ) : null}
           </View>
         );
       })}
-      {!m.entries.length ? <Text style={styles.sub}>No entries this month.</Text> : null}
+      {!m.entries.length ? <Text style={styles.sub}>{t('book.noneMonth')}</Text> : null}
 
-      <Label>Master</Label>
+      <Label>{t('book.master')}</Label>
       {sign ? (
-        <Text style={styles.stamp}>{`Signed for ${month}: ${sign.byRank ? `${sign.by} (${sign.byRank})` : sign.by} · ${formatDateTime(sign.at)}`}</Text>
+        <Text style={styles.stamp}>{`${t('book.signedFor', { month, by: sign.byRank ? `${sign.by} (${sign.byRank})` : sign.by })} · ${formatDateTime(sign.at)}`}</Text>
       ) : isMaster ? (
         <TouchableOpacity style={[styles.btnOutline, { alignSelf: 'flex-start' }]} onPress={() => void masterSign()}>
-          <Text style={styles.btnOutlineText}>Sign the month as Master</Text>
+          <Text style={styles.btnOutlineText}>{t('book.signMonth')}</Text>
         </TouchableOpacity>
       ) : (
-        <Text style={styles.sub}>Not signed by the Master yet.</Text>
+        <Text style={styles.sub}>{t('gb.notSigned')}</Text>
       )}
     </Screen>
   );

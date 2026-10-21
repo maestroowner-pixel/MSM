@@ -29,6 +29,7 @@ import { loadOlder } from '../services/dpArchive';
 import { DP_KEEP_DAYS } from '../services/firebaseService';
 import { isAboard } from '../types/crew';
 import { roleAtLeast } from '../types/role';
+import { t, tk, tn, useT } from '../utils/i18n';
 
 type View_ = 'checklists' | 'time' | 'letter';
 const VIEWS: { key: View_; label: string }[] = [
@@ -40,6 +41,7 @@ const dmy = (iso?: string) => (iso ? iso.split('-').reverse().join('.') : '');
 const hhmm = (i: number) => `${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`;
 
 export default function DpSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -101,9 +103,9 @@ export default function DpSc() {
   };
   const removeDay = () =>
     stored &&
-    Alert.alert('Remove this day?', `${person?.name ?? ''} · ${dmy(date)}`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => void saveRow(storage.DP_DAYS_KEY, { ...stored, deleted: true, updatedAt: Date.now() }) },
+    Alert.alert(t('dp.removeDayQ'), `${person?.name ?? ''} · ${dmy(date)}`, [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.remove'), style: 'destructive', onPress: () => void saveRow(storage.DP_DAYS_KEY, { ...stored, deleted: true, updatedAt: Date.now() }) },
     ]);
 
   // ---- letter ----
@@ -128,19 +130,19 @@ export default function DpSc() {
   });
   const saveInfo = async () => {
     await saveRow(storage.DP_INFO_KEY, { ...info, id: 'info', updatedAt: Date.now() });
-    Alert.alert('Saved', 'The letter details are kept for every DPO.');
+    Alert.alert(t('dp.saved'), t('dp.savedBody'));
   };
   const [saved, setSaved] = useState<string | null>(null);
   const makeLetter = async () => {
     try {
       const w = await exportDpLetter(letter);
-      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
-      Alert.alert('Confirmation letter', String(e?.message ?? e));
+      Alert.alert(t('dp.v.letter'), String(e?.message ?? e));
     }
   };
 
-  if (!moduleOn('dp')) return <Screen><Empty text="Not available on this vessel." /></Screen>;
+  if (!moduleOn('dp')) return <Screen><Empty text={t('common.notAvailable')} /></Screen>;
 
   const chip = (on: boolean, label: string, onPress: () => void, key?: string) => (
     <TouchableOpacity key={key ?? label} style={[styles.chip, on && styles.chipOn]} onPress={onPress}>
@@ -150,35 +152,35 @@ export default function DpSc() {
   const dpoChips = (
     <>
       <Label>DPO</Label>
-      {aboard.length ? <View style={styles.chips}>{aboard.map((c) => chip(c.id === who, c.rank ? `${c.name} · ${c.rank}` : c.name, () => setDpo(c.id), c.id))}</View> : <Text style={styles.sub}>Add the crew first (Crew).</Text>}
+      {aboard.length ? <View style={styles.chips}>{aboard.map((c) => chip(c.id === who, c.rank ? `${c.name} · ${c.rank}` : c.name, () => setDpo(c.id), c.id))}</View> : <Text style={styles.sub}>{t('dp.addCrew')}</Text>}
     </>
   );
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Dynamic positioning" subtitle="DP checklists, DPOs' DP time and the confirmation letter" help="Dynamic positioning" />
-      <View style={styles.chips}>{VIEWS.map((v) => chip(view === v.key, v.label, () => setView(v.key), v.key))}</View>
+      <ScreenTitle title={t('dp.title')} subtitle={t('dp.sub')} help="Dynamic positioning" />
+      <View style={styles.chips}>{VIEWS.map((v) => chip(view === v.key, tk(`dp.v.${v.key}`), () => setView(v.key), v.key))}</View>
 
       {view === 'checklists' ? (
         <>
-          <Label>Start a checklist</Label>
+          <Label>{t('wc.start')}</Label>
           {templates.map((tp) => (
             <TouchableOpacity key={tp.id} style={styles.row} onPress={() => nav.navigate('DpCheck', { templateId: tp.id })} activeOpacity={0.7}>
               <MciIcon name={tp.where === 'engine' ? 'engine-outline' : 'ferry'} size={20} color={COLORS.primary} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.title}>{tp.title}</Text>
-                <Text style={styles.sub}>{`${tp.lines.filter((l) => !l.head && !l.kind).length} items · ${tp.where === 'engine' ? 'engine room' : 'bridge'}`}</Text>
+                <Text style={styles.sub}>{`${tn('n.item', tp.lines.filter((l) => !l.head && !l.kind).length)} · ${tp.where === 'engine' ? t('dp.engineL') : t('dp.bridgeL')}`}</Text>
               </View>
               <MciIcon name="chevron-right" size={18} color={COLORS.textLight} />
             </TouchableOpacity>
           ))}
           {officer && moduleOn('dpEditor') ? (
             <TouchableOpacity onPress={() => nav.navigate('DpTemplates')} style={{ marginVertical: SIZES.sm }}>
-              <Text style={styles.link}>Set up the vessel's DP checklists (ISMpilot) →</Text>
+              <Text style={styles.link}>{t('dp.setUp')}</Text>
             </TouchableOpacity>
           ) : null}
-          <Label style={{ marginTop: SIZES.md }}>Signed</Label>
-          {!signed.length ? <Text style={styles.sub}>None yet.</Text> : null}
+          <Label style={{ marginTop: SIZES.md }}>{t('wc.signed')}</Label>
+          {!signed.length ? <Text style={styles.sub}>{t('common.noneYet')}</Text> : null}
           {[...signed, ...older].map((c) => {
             const o = checkOutcome(c);
             return (
@@ -198,7 +200,7 @@ export default function DpSc() {
           {sync.enrolled ? (
             <TouchableOpacity onPress={() => void more()} disabled={olderBusy || olderEnd} style={{ marginVertical: SIZES.sm }}>
               <Text style={[styles.link, (olderBusy || olderEnd) && { opacity: 0.5 }]}>
-                {olderBusy ? 'Loading…' : olderEnd ? (older.length ? 'No older checklists' : `No checklists older than ${DP_KEEP_DAYS} days`) : older.length ? 'More from the cloud →' : `Older than ${DP_KEEP_DAYS} days — from the cloud →`}
+                {olderBusy ? t('common.loading') : olderEnd ? (older.length ? t('wc.noOlder') : t('dp.noneOlder', { n: DP_KEEP_DAYS })) : older.length ? t('dp.more') : t('wc.older', { n: DP_KEEP_DAYS })}
               </Text>
             </TouchableOpacity>
           ) : null}
@@ -209,12 +211,12 @@ export default function DpSc() {
       {view === 'time' ? (
         <>
           {dpoChips}
-          <SimpleDatePicker label="Day" value={date} onChange={(d) => setDate(d || today)} />
+          <SimpleDatePicker label={t('dp.day')} value={date} onChange={(d) => setDate(d || today)} />
           <View style={styles.chips}>
-            {chip(brush === 1, 'Active — in control', () => setBrush(1))}
-            {chip(brush === 2, 'Passive — watching', () => setBrush(2))}
+            {chip(brush === 1, t('dp.active'), () => setBrush(1))}
+            {chip(brush === 2, t('dp.passive'), () => setBrush(2))}
           </View>
-          <Text style={styles.sub}>Tap the half-hours of the watch; tap again to clear.</Text>
+          <Text style={styles.sub}>{t('dp.tapHint')}</Text>
           <View style={styles.grid}>
             {Array.from({ length: SLOTS }, (_, i) => (
               <TouchableOpacity key={i} onPress={() => tap(i)} style={[styles.cell, slots[i] === 1 && { backgroundColor: COLORS.primary }, slots[i] === 2 && { backgroundColor: COLORS.warning }]}>
@@ -223,22 +225,22 @@ export default function DpSc() {
             ))}
           </View>
           <Text style={[styles.title, { marginTop: SIZES.sm, color: isDpDay(slots) ? COLORS.success : COLORS.textLight }]}>
-            {`Active ${hours(slots, 1)} h · Passive ${hours(slots, 2)} h — ${isDpDay(slots) ? 'a DP day' : `not a DP day (2 h or more)`}`}
+            {`${t('dp.activePassive', { a: hours(slots, 1), p: hours(slots, 2) })} — ${isDpDay(slots) ? t('dp.isDay') : t('dp.notDay')}`}
           </Text>
           {stored ? (
             <TouchableOpacity onPress={removeDay}>
-              <Text style={[styles.link, { color: COLORS.danger, marginTop: SIZES.xs }]}>Remove this day</Text>
+              <Text style={[styles.link, { color: COLORS.danger, marginTop: SIZES.xs }]}>{t('dp.removeDay')}</Text>
             </TouchableOpacity>
           ) : null}
 
-          <Label style={{ marginTop: SIZES.md }}>DP time on board</Label>
-          {!totals.length ? <Text style={styles.sub}>None recorded yet.</Text> : null}
+          <Label style={{ marginTop: SIZES.md }}>{t('dp.timeOnBoard')}</Label>
+          {!totals.length ? <Text style={styles.sub}>{t('dp.noneRecorded')}</Text> : null}
           {totals.map((x) => (
             <TouchableOpacity key={x.crewId} style={styles.row} onPress={() => { setDpo(x.crewId); if (x.last) setDate(x.last); }} activeOpacity={0.7}>
               <MciIcon name="account-tie-outline" size={20} color={COLORS.primary} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.title}>{x.rank ? `${x.name} · ${x.rank}` : x.name}</Text>
-                <Text style={styles.sub}>{`${x.dpDays} DP days · active ${x.active} h · passive ${x.passive} h · ${dmy(x.first)} – ${dmy(x.last)}`}</Text>
+                <Text style={styles.sub}>{`${t('dp.totals', { d: x.dpDays, a: x.active, p: x.passive })} · ${dmy(x.first)} – ${dmy(x.last)}`}</Text>
               </View>
             </TouchableOpacity>
           ))}
@@ -250,16 +252,16 @@ export default function DpSc() {
           {dpoChips}
           <View style={styles.pair}>
             <View style={{ flex: 1, minWidth: 200 }}>
-              <SimpleDatePicker label="From" value={from || mine[0]?.date} onChange={(d) => setFrom(d || '')} />
+              <SimpleDatePicker label={t('common.from')} value={from || mine[0]?.date} onChange={(d) => setFrom(d || '')} />
             </View>
             <View style={{ flex: 1, minWidth: 200 }}>
-              <SimpleDatePicker label="To" value={to || mine[mine.length - 1]?.date} onChange={(d) => setTo(d || '')} />
+              <SimpleDatePicker label={t('common.to')} value={to || mine[mine.length - 1]?.date} onChange={(d) => setTo(d || '')} />
             </View>
           </View>
-          <Label>Scheme</Label>
+          <Label>{t('dp.scheme')}</Label>
           <View style={styles.chips}>
-            {chip(scheme === 'new', 'New Scheme (grey logbook, after 1 Jan 2015)', () => setScheme('new'))}
-            {chip(scheme === 'old', 'Old Scheme (before 2015)', () => setScheme('old'))}
+            {chip(scheme === 'new', t('dp.newScheme'), () => setScheme('new'))}
+            {chip(scheme === 'old', t('dp.oldScheme'), () => setScheme('old'))}
           </View>
 
           <View style={styles.card}>
@@ -267,15 +269,15 @@ export default function DpSc() {
             {letter.dates.map(([k, v]) => (
               <Text key={k} style={styles.sub}>{`${k}: ${v}`}</Text>
             ))}
-            {letter.missing.length ? <Text style={[styles.sub, { color: COLORS.warning, fontWeight: '700' }]}>{`Missing: ${letter.missing.join(', ')}`}</Text> : null}
+            {letter.missing.length ? <Text style={[styles.sub, { color: COLORS.warning, fontWeight: '700' }]}>{t('dp.missing', { what: letter.missing.join(', ') })}</Text> : null}
             <TouchableOpacity style={[styles.btn, { marginTop: SIZES.sm }]} onPress={makeLetter}>
-              <Text style={styles.btnText}>Make the letter (PDF)</Text>
+              <Text style={styles.btnText}>{t('dp.makeLetter')}</Text>
             </TouchableOpacity>
             {saved ? <Text style={[styles.sub, { color: COLORS.success }]}>{`✓ ${saved}`}</Text> : null}
-            <Text style={styles.sub}>Printed with 35 mm free at the top — print it on the company's letterhead, sign and stamp.</Text>
+            <Text style={styles.sub}>{t('dp.letterHint')}</Text>
           </View>
 
-          <Label style={{ marginTop: SIZES.md }}>Letter details — the same for every DPO</Label>
+          <Label style={{ marginTop: SIZES.md }}>{t('dp.details')}</Label>
           {(
             [
               ['company', 'Company (employer)', 'Ocean Co Ltd'],
@@ -287,24 +289,24 @@ export default function DpSc() {
             ] as [keyof DpInfo, string, string][]
           ).map(([k, label, ph]) => (
             <View key={k}>
-              <Label>{label}</Label>
+              <Label>{tk(`dp.f.${k}`)}</Label>
               <TextInput
                 style={[styles.input, k === 'contacts' && { minHeight: 70 }]}
                 value={String(info[k] ?? '')}
                 editable={officer}
                 multiline={k === 'contacts'}
                 onChangeText={(v) => setInfo((x) => ({ ...x, [k]: v }))}
-                placeholder={ph}
+                placeholder={tk(`dp.f.${k}.ph`)}
                 placeholderTextColor={COLORS.textLight}
               />
             </View>
           ))}
           {officer ? (
             <TouchableOpacity style={styles.btnOutline} onPress={saveInfo}>
-              <Text style={styles.link}>Save the details</Text>
+              <Text style={styles.link}>{t('dp.saveDetails')}</Text>
             </TouchableOpacity>
           ) : (
-            <Text style={styles.sub}>The officers keep these details.</Text>
+            <Text style={styles.sub}>{t('dp.officersKeep')}</Text>
           )}
         </>
       ) : null}

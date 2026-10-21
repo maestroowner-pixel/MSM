@@ -27,6 +27,7 @@ import { todayIso } from '../services/pms';
 import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
+import { t, tk, useT } from '../utils/i18n';
 
 const RESULTS: AuditItemResult[] = ['ok', 'observation', 'nc', 'na'];
 
@@ -38,6 +39,7 @@ const RESULT_COLOR: Record<AuditItemResult, string> = {
 };
 
 export default function AuditSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -65,7 +67,7 @@ export default function AuditSc() {
       <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
         <SafeAreaView style={{ flex: 1 }}>
           <BackButton onPress={() => goBackOr(nav, 'InternalAudits')} fav={false} />
-          <Text style={{ color: COLORS.textDark, padding: SIZES.lg }}>Audit not found.</Text>
+          <Text style={{ color: COLORS.textDark, padding: SIZES.lg }}>{t('aud.notFound')}</Text>
         </SafeAreaView>
       </LinearGradient>
     );
@@ -95,7 +97,7 @@ export default function AuditSc() {
   };
 
   const sign = async () => {
-    if (!signer) return Alert.alert('No auditor', 'Choose who is conducting this audit.');
+    if (!signer) return Alert.alert(t('aud.noAuditor'), t('aud.chooseAuditor'));
     if (saving) return;
     setSaving(true);
     try {
@@ -104,7 +106,7 @@ export default function AuditSc() {
       await save({ closeDate: todayIso(), by: signer.name, byRank: signer.rank, signedWith: sig.proof });
       goBackOr(nav, 'InternalAudits');
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? String(e));
+      Alert.alert(t('common.error'), e?.message ?? String(e));
     } finally {
       setSaving(false);
     }
@@ -123,11 +125,11 @@ export default function AuditSc() {
           <BackButton onPress={() => goBackOr(nav, 'InternalAudits')} fav={false} />
 
           <Text style={styles.no}>{audit.no}</Text>
-          <Text style={styles.title}>{AUDIT_TYPE_LABEL[audit.type]}</Text>
+          <Text style={styles.title}>{tk(`audits.t.${audit.type}`)}</Text>
           <Text style={styles.meta}>
             {formatDate(audit.startDate)}
-            {closed && audit.by ? ` · Audited by ${audit.by}${audit.byRank ? ` (${audit.byRank})` : ''}` : ''}
-            {closed ? ' · Closed' : ' · In progress'}
+            {closed && audit.by ? ` · ${t('aud.by', { who: `${audit.by}${audit.byRank ? ` (${audit.byRank})` : ''}` })}` : ''}
+            {closed ? ` · ${t('audits.closed')}` : ` · ${t('aud.inProgress')}`}
           </Text>
 
           {/* Scope */}
@@ -138,7 +140,7 @@ export default function AuditSc() {
               style={styles.scopeInput}
               value={scope}
               onChangeText={setScope}
-              placeholder="Scope — areas, departments, time period covered…"
+              placeholder={t('aud.scopePh')}
               placeholderTextColor={COLORS.textLight}
               multiline
               onBlur={() => save()}
@@ -149,9 +151,9 @@ export default function AuditSc() {
           {closed ? (
             <View style={styles.summary}>
               {ncs > 0 ? <Text style={[styles.summaryText, { color: RESULT_COLOR.nc }]}>NC: {ncs}</Text> : null}
-              {obs > 0 ? <Text style={[styles.summaryText, { color: RESULT_COLOR.observation }]}>Obs: {obs}</Text> : null}
+              {obs > 0 ? <Text style={[styles.summaryText, { color: RESULT_COLOR.observation }]}>{t('aud.obsN', { n: obs })}</Text> : null}
               {na > 0  ? <Text style={[styles.summaryText, { color: RESULT_COLOR.na }]}>N/A: {na}</Text> : null}
-              {ncs === 0 && obs === 0 ? <Text style={[styles.summaryText, { color: RESULT_COLOR.ok }]}>No findings</Text> : null}
+              {ncs === 0 && obs === 0 ? <Text style={[styles.summaryText, { color: RESULT_COLOR.ok }]}>{t('aud.noFindings')}</Text> : null}
             </View>
           ) : null}
 
@@ -181,7 +183,7 @@ export default function AuditSc() {
           {!readOnly && audit.type === 'custom' ? (
             <TouchableOpacity style={styles.addBtn} onPress={addCustomItem}>
               <MciIcon name="plus" size={16} color={COLORS.primary} />
-              <Text style={styles.addBtnText}>Add item</Text>
+              <Text style={styles.addBtnText}>{t('aud.addItem')}</Text>
             </TouchableOpacity>
           ) : null}
 
@@ -196,7 +198,7 @@ export default function AuditSc() {
                 activeOpacity={0.8}
               >
                 <MciIcon name="pencil" size={18} color={COLORS.textWhite} />
-                <Text style={styles.signBtnText}>{saving ? 'Saving…' : 'Close & sign audit'}</Text>
+                <Text style={styles.signBtnText}>{saving ? t('common.saving') : t('aud.closeSign')}</Text>
               </TouchableOpacity>
             </View>
           ) : null}
@@ -232,7 +234,7 @@ function ItemRow({
                 style={styles.refInput}
                 value={item.ref}
                 onChangeText={onRefChange}
-                placeholder="Reference (e.g. ISM 10)"
+                placeholder={t('aud.refPh')}
                 placeholderTextColor={COLORS.textLight}
               />
             )
@@ -244,7 +246,7 @@ function ItemRow({
               style={[styles.refInput, { marginTop: 2 }]}
               value={item.requirement}
               onChangeText={onReqChange}
-              placeholder="Requirement"
+              placeholder={t('nc.requirement')}
               placeholderTextColor={COLORS.textLight}
             />
           ) : (
@@ -266,7 +268,7 @@ function ItemRow({
                   onPress={() => onResult(r)}
                 >
                   <Text style={[styles.resultChipText, item.result === r && { color: '#fff' }]}>
-                    {AUDIT_ITEM_RESULT_LABEL[r]}
+                    {tk(`aud.res.${r}`)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -282,7 +284,7 @@ function ItemRow({
               value={item.comment ?? ''}
               onChangeText={onComment}
               onBlur={onCommentBlur}
-              placeholder="Comment / evidence…"
+              placeholder={t('aud.commentPh')}
               placeholderTextColor={COLORS.textLight}
               multiline
             />
@@ -291,7 +293,7 @@ function ItemRow({
           {/* Raise NC (closed audit only) */}
           {readOnly && hasFinding ? (
             <TouchableOpacity style={styles.raiseNc} onPress={onRaiseNc}>
-              <Text style={styles.raiseNcText}>Raise NC / finding ›</Text>
+              <Text style={styles.raiseNcText}>{t('aud.raiseNc')}</Text>
             </TouchableOpacity>
           ) : null}
         </View>

@@ -31,6 +31,7 @@ import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
+import { t, tk, useT } from '../utils/i18n';
 
 // Column widths — tight but readable
 const W = { pack: 62, stock: 46, order: 46, price: 58 };
@@ -47,6 +48,7 @@ function emptyOrder(no: string, by: string, date: string): GalleyOrder {
 }
 
 export default function GalleyOrderSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -125,9 +127,9 @@ export default function GalleyOrderSc() {
   const changeStatus = async (s: GalleyOrder['status']) => {
     if (!o || s === o.status) return;
     if (s === 'cancelled') {
-      Alert.alert('Cancel order', 'Mark this galley order as cancelled?', [
-        { text: 'Keep', style: 'cancel' },
-        { text: 'Cancel', style: 'destructive', onPress: async () => {
+      Alert.alert(t('go.cancelQ'), t('go.cancelBody'), [
+        { text: t('cat.keep'), style: 'cancel' },
+        { text: t('common.cancel'), style: 'destructive', onPress: async () => {
           await saveRow(GALLEY_ORDERS_KEY, { ...o, status: 'cancelled', cancelledAt: today, updatedAt: Date.now() });
           goBackOr(nav, 'Main', { screen: 'Orders' });
         }},
@@ -158,22 +160,22 @@ export default function GalleyOrderSc() {
         : { ...(await importGalleyXlsx(uri)), groupCount: 0 };
 
       if (!lines.length) {
-        Alert.alert('Import', warnings.join('\n') || 'No products found.');
+        Alert.alert(t('pax.import'), warnings.join('\n') || t('go.noProducts'));
         return;
       }
 
       const warnMsg = warnings.length ? `\n\n${warnings.join('\n')}` : '';
       const countMsg = aiEnabled && groupCount > 0
-        ? `Found ${lines.length} products in ${groupCount} groups.`
-        : `Found ${lines.length} products.`;
+        ? t('go.foundGroups', { n: lines.length, g: groupCount })
+        : t('go.found', { n: lines.length });
 
       Alert.alert(
-        'Import products',
-        `${countMsg}${warnMsg}\n\nAdd to this order?`,
+        t('go.importQ'),
+        `${countMsg}${warnMsg}\n\n${t('go.addToOrder')}`,
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           {
-            text: 'Add',
+            text: t('common.add'),
             onPress: () => {
               const base = draft ?? { ...o! };
               setDraft({ ...base, lines: [...base.lines, ...lines], updatedAt: Date.now() });
@@ -182,7 +184,7 @@ export default function GalleyOrderSc() {
         ],
       );
     } catch (e: any) {
-      Alert.alert('Import error', e.message ?? 'Could not read file.');
+      Alert.alert(t('go.importError'), e.message ?? t('go.couldNotRead'));
     } finally {
       setImporting(false);
     }
@@ -192,7 +194,7 @@ export default function GalleyOrderSc() {
     return (
       <View style={[styles.root, { paddingTop: insets.top }]}>
         <BackButton onPress={() => goBackOr(nav, 'Main', { screen: 'Orders' })} />
-        <Text style={{ color: COLORS.textLight, margin: SIZES.md }}>Order not found.</Text>
+        <Text style={{ color: COLORS.textLight, margin: SIZES.md }}>{t('go.notFound')}</Text>
       </View>
     );
   }
@@ -310,7 +312,7 @@ export default function GalleyOrderSc() {
       <Text style={styles.sectionCount}>{section.data.length} items</Text>
       {editable && !q ? (
         <TouchableOpacity onPress={() => addLineToGroup(section.title)} hitSlop={8} style={{ marginLeft: SIZES.xs }}>
-          <Text style={styles.addGroupBtn}>+ Add</Text>
+          <Text style={styles.addGroupBtn}>{`+ ${t('common.add')}`}</Text>
         </TouchableOpacity>
       ) : null}
     </View>
@@ -318,12 +320,12 @@ export default function GalleyOrderSc() {
 
   const colHeader = (
     <View style={styles.colHeader}>
-      <Text style={[styles.colLabel, { flex: 1 }]}>Product</Text>
-      <Text style={[styles.colLabel, { width: W.pack }]}>Pack</Text>
-      <Text style={[styles.colLabel, { width: W.stock }, { textAlign: 'center' }]}>Stk</Text>
-      <Text style={[styles.colLabel, { width: W.order }, { textAlign: 'center' }]}>Ord</Text>
+      <Text style={[styles.colLabel, { flex: 1 }]}>{t('go.product')}</Text>
+      <Text style={[styles.colLabel, { width: W.pack }]}>{t('go.pack')}</Text>
+      <Text style={[styles.colLabel, { width: W.stock }, { textAlign: 'center' }]}>{t('go.stk')}</Text>
+      <Text style={[styles.colLabel, { width: W.order }, { textAlign: 'center' }]}>{t('go.ord')}</Text>
       <Text style={[styles.colLabel, { width: W.price }, { textAlign: 'right' }]}>{currency}</Text>
-      <Text style={[styles.colLabel, styles.colTotal]}>Total</Text>
+      <Text style={[styles.colLabel, styles.colTotal]}>{t('go.total')}</Text>
       <View style={{ width: 22 }} />
     </View>
   );
@@ -340,7 +342,7 @@ export default function GalleyOrderSc() {
         {/* Grand total */}
         {total > 0 ? (
           <View style={styles.totalBadge}>
-            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalLabel}>{t('go.total')}</Text>
             <Text style={styles.totalValue}>{`${currency} ${total.toFixed(2)}`}</Text>
           </View>
         ) : null}
@@ -360,7 +362,7 @@ export default function GalleyOrderSc() {
                 activeOpacity={officer ? 0.7 : 1}
               >
                 <Text style={[styles.statusChipText, { color: active ? COLORS.cardSolid : color }]}>
-                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                  {tk(`go.st.${s}`)}
                 </Text>
               </TouchableOpacity>
             );
@@ -375,7 +377,7 @@ export default function GalleyOrderSc() {
           style={styles.searchInput}
           value={search}
           onChangeText={setSearch}
-          placeholder="Search products…"
+          placeholder={t('go.searchPh')}
           placeholderTextColor={COLORS.textLight}
           clearButtonMode="while-editing"
           returnKeyType="search"
@@ -385,14 +387,14 @@ export default function GalleyOrderSc() {
             style={styles.addGroupPick}
             onPress={() => {
               Alert.alert(
-                'Add to group',
+                t('go.addToGroup'),
                 '',
-                GALLEY_GROUPS.map((g) => ({ text: g, onPress: () => addLineToGroup(g) })).concat([{ text: 'Cancel', style: 'cancel' } as any]),
+                GALLEY_GROUPS.map((g) => ({ text: g, onPress: () => addLineToGroup(g) })).concat([{ text: t('common.cancel'), style: 'cancel' } as any]),
               );
             }}
             activeOpacity={0.7}
           >
-            <Text style={styles.addGroupPickText}>+ Product</Text>
+            <Text style={styles.addGroupPickText}>{`+ ${t('go.product')}`}</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -405,20 +407,20 @@ export default function GalleyOrderSc() {
       <View style={styles.actions}>
         {draft != null ? (
           <TouchableOpacity style={styles.btn} onPress={() => void save()}>
-            <Text style={styles.btnText}>Save order</Text>
+            <Text style={styles.btnText}>{t('go.save')}</Text>
           </TouchableOpacity>
         ) : null}
 
         {!draft && !isNew ? (
           <TouchableOpacity style={styles.btnOutline} onPress={() => void exportGalleyXlsx(o)}>
-            <Text style={styles.btnOutlineText}>Export XLSX</Text>
+            <Text style={styles.btnOutlineText}>{t('rep.exportXlsx')}</Text>
           </TouchableOpacity>
         ) : null}
 
         {editable && !isNew ? (
           <TouchableOpacity style={styles.btnOutline} onPress={() => void doImport()} disabled={importing}>
             <Text style={styles.btnOutlineText}>
-              {importing ? 'Importing…' : aiEnabled ? 'AI Import XLSX' : 'Import from XLSX'}
+              {importing ? t('go.importing') : aiEnabled ? t('go.aiImport') : t('go.importXlsx')}
             </Text>
           </TouchableOpacity>
         ) : null}
@@ -427,24 +429,24 @@ export default function GalleyOrderSc() {
           <TouchableOpacity
             style={styles.btnDelete}
             onPress={() =>
-              Alert.alert('Delete', `Delete ${o.no} from the journal?`, [
-                { text: 'Keep', style: 'cancel' },
-                { text: 'Delete', style: 'destructive', onPress: async () => {
+              Alert.alert(t('common.delete'), t('go.deleteBody', { no: o.no }), [
+                { text: t('cat.keep'), style: 'cancel' },
+                { text: t('common.delete'), style: 'destructive', onPress: async () => {
                   await saveRow(GALLEY_ORDERS_KEY, { ...o, deleted: true, updatedAt: Date.now() });
                   goBackOr(nav, 'Main', { screen: 'Orders' });
                 }},
               ])
             }
           >
-            <Text style={styles.btnDeleteText}>Delete order</Text>
+            <Text style={styles.btnDeleteText}>{t('go.delete')}</Text>
           </TouchableOpacity>
         ) : null}
       </View>
 
       {/* Audit trail */}
-      {o.sentAt ? <Text style={styles.trail}>{`Sent ${formatDate(o.sentAt)}`}</Text> : null}
-      {o.receivedAt ? <Text style={styles.trail}>{`Received ${formatDate(o.receivedAt)}`}</Text> : null}
-      {o.cancelledAt ? <Text style={styles.trail}>{`Cancelled ${formatDate(o.cancelledAt)}`}</Text> : null}
+      {o.sentAt ? <Text style={styles.trail}>{t('galley.sent', { date: formatDate(o.sentAt) })}</Text> : null}
+      {o.receivedAt ? <Text style={styles.trail}>{t('go.received', { date: formatDate(o.receivedAt) })}</Text> : null}
+      {o.cancelledAt ? <Text style={styles.trail}>{t('galley.cancelled', { date: formatDate(o.cancelledAt) })}</Text> : null}
     </View>
   );
 
@@ -466,7 +468,7 @@ export default function GalleyOrderSc() {
         ListEmptyComponent={
           <View style={{ alignItems: 'center', paddingVertical: SIZES.xl }}>
             <Text style={{ color: COLORS.textLight }}>
-              {search ? 'No products match the search.' : 'No products yet. Tap "+ Product" to add.'}
+              {search ? t('go.noMatch') : t('go.empty')}
             </Text>
           </View>
         }

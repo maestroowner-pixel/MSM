@@ -17,18 +17,21 @@ import { computeStatus, formatDateTime } from '../utils/dates';
 import { EquipmentItem } from '../types/equipment';
 
 /** "just now" / "12m ago" / "3h ago" / "2d ago". */
+import { t, tn, useT } from '../utils/i18n';
+
 function relScanned(ts?: number): string {
   if (!ts) return '';
   const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
-  if (s < 60) return 'just now';
+  if (s < 60) return t('dash.justNow');
   const m = Math.round(s / 60);
-  if (m < 60) return `${m}m ago`;
+  if (m < 60) return t('dash.mAgo', { n: m });
   const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.round(h / 24)}d ago`;
+  if (h < 24) return t('dash.hAgo', { n: h });
+  return t('dash.dAgo', { n: Math.round(h / 24) });
 }
 
 export default function RecentScansSc() {
+  useT();
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const { flat, recentScans } = useData();
@@ -54,8 +57,8 @@ export default function RecentScansSc() {
   return (
     <Screen>
       <ScreenTitle
-        title="Recently scanned"
-        subtitle={`${scanned.length} item${scanned.length === 1 ? '' : 's'} opened from a label`}
+        title={t('recent.title')}
+        subtitle={t('recent.sub', { x: tn('n.item', scanned.length) })}
       />
       <FlatList
         data={scanned}
@@ -65,7 +68,7 @@ export default function RecentScansSc() {
         columnWrapperStyle={cols > 1 ? { gap: SIZES.sm } : undefined}
         contentContainerStyle={{ paddingBottom: SIZES.xxxl }}
         ListEmptyComponent={
-          <Empty text={'Nothing scanned yet.\nScan a label to jump back to it here.'} />
+          <Empty text={t('recent.empty')} />
         }
         renderItem={({ item: { it: item, at } }) => {
           const meta = CATEGORY_MAP[item.category];

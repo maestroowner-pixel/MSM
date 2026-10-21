@@ -1,13 +1,13 @@
 // ===================================
 // Favourites on screen (utils/favourites.ts): the ★ in the top bar with its
 // drop-down — add the page you are on, open a kept one, rename, reorder,
-// remove — the small ☆ beside Back on a record, and the list at the top of the
-// menu on a phone.
+// remove — the small ☆ beside Back on a record, the ☆ beside a page's title on
+// a phone, and the list at the top of the menu on a phone.
 // ===================================
 
-import React, { useMemo, useState } from 'react';
+import React, { useContext, useMemo, useState } from 'react';
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { NavigationRouteContext, useRoute } from '@react-navigation/native';
 
 import { MciIcon } from './MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
@@ -184,6 +184,42 @@ export function FavToggle() {
       accessibilityLabel={kept ? 'Remove from favourites' : 'Add to favourites'}
     >
       <MciIcon name={kept ? 'star' : 'star-outline'} size={20} color={kept ? COLORS.warning : COLORS.textLight} />
+    </TouchableOpacity>
+  );
+}
+
+/**
+ * The ☆ beside a page's title on a phone — a section or one of its pages
+ * (Equipment, Drills → Calendar …). The phone has no top bar with the ★, so
+ * without it only a record could be kept. A record keeps its ☆ beside Back.
+ */
+export function FavPageChip({ style }: { style?: any }) {
+  const COLORS = useTheme();
+  const route = useContext(NavigationRouteContext) as any;
+  const favs = useFavourites();
+  const name = useNamer();
+  if (Platform.OS === 'web' || !route) return null;
+  const params = cleanParams(route.params);
+  if (route.params?.isNew || params?.id || params?.category || params?.templateId) return null;
+  const root = navRef.isReady() ? navRef.getRootState() : undefined;
+  const tab = !!MENU_LABEL[route.name] && root?.routes?.[root.index ?? 0]?.name === 'Main';
+  const place: Place = { tab, route: route.name, params };
+  const kept = findFavourite(favs, place);
+  return (
+    <TouchableOpacity
+      onPress={() => {
+        if (kept) removeFavourite(kept.id);
+        else {
+          const d = name(place);
+          addFavourite(place, d.label, d.icon);
+        }
+      }}
+      hitSlop={10}
+      style={style}
+      accessibilityRole="button"
+      accessibilityLabel={kept ? 'Remove from favourites' : 'Add to favourites'}
+    >
+      <MciIcon name={kept ? 'star' : 'star-outline'} size={22} color={kept ? COLORS.warning : COLORS.primary} />
     </TouchableOpacity>
   );
 }

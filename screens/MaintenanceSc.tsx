@@ -37,8 +37,10 @@ import { PmsDone } from '../types/pms';
 import { DEFECT_CATEGORY, DEPTS, Dept, JOB_TYPE, Machine, PmsJob, deptOf, hasCounter } from '../types/pms';
 import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
+import { t, tk, tn, useT } from '../utils/i18n';
 
 export default function MaintenanceSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -55,19 +57,19 @@ export default function MaintenanceSc() {
       const today = todayIso();
       const since = `${Number(today.slice(0, 4)) - 1}${today.slice(4)}`;
       const w = await exportPmsHistory('Class survey pack', `Class survey pack-${today}`, vessel, classPack(machines, pmsJobs, pmsDone, pmsDeferrals, pmsDefects, today, since));
-      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
-      Alert.alert('Class pack', String(e?.message ?? e));
+      Alert.alert(t('mt2.classPack'), String(e?.message ?? e));
     }
   };
   const surveyPack = async () => {
     try {
       const list = packMachines(machines).map((m) => machineHistory(m, pmsJobs, pmsDone, pmsDeferrals, pmsDefects, todayIso()));
-      if (!list.length) return Alert.alert('Survey pack', 'No systems in the plan yet.');
+      if (!list.length) return Alert.alert(t('mt2.surveyPack'), t('mt2.noSystems'));
       const w = await exportPmsHistory('Survey pack — maintenance history', `Survey pack-${todayIso()}`, vessel, list);
-      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
-      Alert.alert('Survey pack', String(e?.message ?? e));
+      Alert.alert(t('mt2.surveyPack'), String(e?.message ?? e));
     }
   };
   const sync = useSync();
@@ -77,9 +79,9 @@ export default function MaintenanceSc() {
   const downloadTemplate = async () => {
     try {
       const w = await exportPlanTemplate(machines, pmsJobs);
-      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
-      Alert.alert('Plan template', String(e?.message ?? e));
+      Alert.alert(t('mt2.planTemplate'), String(e?.message ?? e));
     }
   };
   const loadPlan = async () => {
@@ -88,23 +90,23 @@ export default function MaintenanceSc() {
       if (!picked) return;
       const r = planImport(picked.rows, machines, pmsJobs, uid);
       if (!r.machines.length && !r.jobs.length) {
-        return Alert.alert('Load the plan', ['Nothing new or changed in the sheet.', ...r.errors.slice(0, 12)].join('\n'));
+        return Alert.alert(t('mt2.loadPlan'), [t('mt2.nothingNew'), ...r.errors.slice(0, 12)].join('\n'));
       }
       const apply = async () => {
         await savePlan(r.machines, r.jobs);
-        setSaved(`Plan loaded: ${r.addedSystems.length} systems and ${r.addedJobs} jobs added, ${r.updatedJobs} jobs updated`);
+        setSaved(t('mt2.loaded', { s: r.addedSystems.length, a: r.addedJobs, u: r.updatedJobs }));
       };
       Alert.alert(
-        `Load the plan from “${picked.name}”?`,
+        t('mt2.loadQ', { file: picked.name }),
         [
-          r.addedSystems.length ? `New systems (${r.addedSystems.length}): ${r.addedSystems.slice(0, 15).join(', ')}${r.addedSystems.length > 15 ? '…' : ''}.` : null,
-          `Jobs: ${r.addedJobs} new, ${r.updatedJobs} updated. Nothing is removed.`,
-          r.errors.length ? `Not read (${r.errors.length}):\n${r.errors.slice(0, 12).join('\n')}${r.errors.length > 12 ? '\n…' : ''}` : null,
+          r.addedSystems.length ? `${t('mt2.newSystems', { n: r.addedSystems.length })}: ${r.addedSystems.slice(0, 15).join(', ')}${r.addedSystems.length > 15 ? '…' : ''}.` : null,
+          t('mt2.jobsSummary', { a: r.addedJobs, u: r.updatedJobs }),
+          r.errors.length ? `${t('mt2.notRead', { n: r.errors.length })}:\n${r.errors.slice(0, 12).join('\n')}${r.errors.length > 12 ? '\n…' : ''}` : null,
         ].filter(Boolean).join('\n\n'),
-        [{ text: 'Cancel', style: 'cancel' }, { text: 'Load', onPress: () => void apply() }]
+        [{ text: t('common.cancel'), style: 'cancel' }, { text: t('mt2.load'), onPress: () => void apply() }]
       );
     } catch (e: any) {
-      Alert.alert('Load the plan', String(e?.message ?? e));
+      Alert.alert(t('mt2.loadPlan'), String(e?.message ?? e));
     }
   };
   // The month's report: completion %, done, deferred, overdue — PDF / Excel.
@@ -114,7 +116,7 @@ export default function MaintenanceSc() {
   const exportReport = async (kind: 'pdf' | 'xlsx') => {
     try {
       const w = kind === 'pdf' ? await exportPmsPdf(report, vessel) : await exportPmsExcel(report, vessel);
-      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
       Alert.alert('PMS report', String(e?.message ?? e));
     }
@@ -149,8 +151,8 @@ export default function MaintenanceSc() {
     setMulti({ ...multi, ids: multi.ids.includes(j.id) ? multi.ids.filter((x) => x !== j.id) : [...multi.ids, j.id] });
   };
   const signMulti = async () => {
-    if (!multi?.ids.length) return Alert.alert('Sign together', 'Tick the jobs done.');
-    if (!signer) return Alert.alert('Who did them?', 'Choose your name.');
+    if (!multi?.ids.length) return Alert.alert(t('mt2.signTogether'), t('mt2.tickJobs'));
+    if (!signer) return Alert.alert(t('mt2.whoDid'), t('round.chooseName'));
     // From all jobs, not the list as filtered now — a filter changed after ticking must not drop one.
     const list = multi.ids.map((id) => pmsJobs.find((j) => j.id === id && !j.deleted)).filter(Boolean) as PmsJob[];
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${list.length} jobs done: ${list.map((j) => j.title).join(', ')}` });
@@ -191,50 +193,50 @@ export default function MaintenanceSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Maintenance" subtitle="Planned maintenance · every department" help="Planned maintenance" />
+      <ScreenTitle title={t('mt2.title')} subtitle={t('mt2.sub')} help="Planned maintenance" />
       <View style={styles.reportRow}>
         <MonthPicker value={repMonth} onChange={setRepMonth} months={[...new Set([...pmsDone.map((d) => d.date.slice(0, 7))])]} />
         <Text style={styles.kpi}>{`${report.completion.all == null ? '—' : `${report.completion.all} %`} done${report.completion.critical != null ? ` · critical ${report.completion.critical} %` : ''}`}</Text>
-        <TouchableOpacity style={styles.repBtn} onPress={() => void exportReport('pdf')}><Text style={styles.repBtnText}>Report PDF</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.repBtn} onPress={() => void exportReport('pdf')}><Text style={styles.repBtnText}>{t('mt2.reportPdf')}</Text></TouchableOpacity>
         <TouchableOpacity style={styles.repBtn} onPress={() => void exportReport('xlsx')}><Text style={styles.repBtnText}>Excel</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.repBtn} onPress={() => void surveyPack()}><Text style={styles.repBtnText}>Survey pack (PDF)</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.repBtn} onPress={() => void classSurveyPack()}><Text style={styles.repBtnText}>Class pack (PDF)</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.repBtn} onPress={() => void surveyPack()}><Text style={styles.repBtnText}>{t('mt2.surveyPackPdf')}</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.repBtn} onPress={() => void classSurveyPack()}><Text style={styles.repBtnText}>{t('mt2.classPackPdf')}</Text></TouchableOpacity>
       </View>
       <View style={[styles.reportRow, !canPlan && { opacity: 0.35 }]} pointerEvents={canPlan ? 'auto' : 'none'}>
-        <Text style={styles.kpi}>Plan</Text>
-        <TouchableOpacity style={styles.repBtn} onPress={() => void downloadTemplate()}><Text style={styles.repBtnText}>Template (Excel)</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.repBtn} onPress={() => void loadPlan()}><Text style={styles.repBtnText}>Load plan (Excel)</Text></TouchableOpacity>
+        <Text style={styles.kpi}>{t('mt2.plan')}</Text>
+        <TouchableOpacity style={styles.repBtn} onPress={() => void downloadTemplate()}><Text style={styles.repBtnText}>{t('mt2.templateXls')}</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.repBtn} onPress={() => void loadPlan()}><Text style={styles.repBtnText}>{t('mt2.loadXls')}</Text></TouchableOpacity>
         {!canPlan ? <Text style={styles.sub}>{PLAN_LOCKED}</Text> : null}
       </View>
       <TouchableOpacity onPress={() => nav.navigate('PmsProjects')} style={{ alignSelf: 'flex-start', marginBottom: SIZES.sm }}>
-        <Text style={[styles.repBtnText, { color: COLORS.primary }]}>{`Projects — yard / dry dock${pmsProjects.filter((p) => !p.closedAt).length ? ` (${pmsProjects.filter((p) => !p.closedAt).length})` : ''} ›`}</Text>
+        <Text style={[styles.repBtnText, { color: COLORS.primary }]}>{`${t('mt2.projects')}${pmsProjects.filter((p) => !p.closedAt).length ? ` (${pmsProjects.filter((p) => !p.closedAt).length})` : ''} ›`}</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={() => nav.navigate('WatchLog')} style={{ alignSelf: 'flex-start', marginBottom: SIZES.sm }}>
-        <Text style={[styles.repBtnText, { color: COLORS.primary }]}>Engine room log ›</Text>
+        <Text style={[styles.repBtnText, { color: COLORS.primary }]}>{`${t('wl.title')} ›`}</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={() => nav.navigate('DeckLog')} style={{ alignSelf: 'flex-start', marginBottom: SIZES.sm }}>
-        <Text style={[styles.repBtnText, { color: COLORS.primary }]}>Deck watch log ›</Text>
+        <Text style={[styles.repBtnText, { color: COLORS.primary }]}>{`${t('dl.title')} ›`}</Text>
       </TouchableOpacity>
       {saved ? <Text style={{ color: COLORS.success, fontWeight: '700', fontSize: SIZES.small, marginBottom: SIZES.sm }}>{`✓ ${saved}`}</Text> : null}
 
       <Card>
         <View style={styles.stats}>
-          <Stat value={String(overdue)} label="Overdue" color={overdue ? COLORS.danger : COLORS.textDark} />
-          <Stat value={String(owed.length - overdue)} label="Due soon" color={owed.length - overdue ? COLORS.warning : COLORS.textDark} />
-          <Stat value={String(machines.length)} label="Systems" color={COLORS.textDark} />
-          <Stat value={String(liveJobs.length)} label="Jobs" color={COLORS.textDark} />
+          <Stat value={String(overdue)} label={t('mt2.overdue')} color={overdue ? COLORS.danger : COLORS.textDark} />
+          <Stat value={String(owed.length - overdue)} label={t('mt2.dueSoon')} color={owed.length - overdue ? COLORS.warning : COLORS.textDark} />
+          <Stat value={String(machines.length)} label={t('mt2.systems')} color={COLORS.textDark} />
+          <Stat value={String(liveJobs.length)} label={t('mt2.jobs')} color={COLORS.textDark} />
         </View>
       </Card>
 
       <View style={styles.filters}>
         {(['critical', 'class'] as const).map((k) => (
           <TouchableOpacity key={k} style={[styles.filter, flag === k && styles.filterOn]} onPress={() => setFlag(flag === k ? null : k)}>
-            <Text style={[styles.filterText, flag === k && styles.filterTextOn]}>{k === 'critical' ? '⚑ Critical' : 'Class'}</Text>
+            <Text style={[styles.filterText, flag === k && styles.filterTextOn]}>{k === 'critical' ? `⚑ ${t('mt2.critical')}` : t('mt2.class')}</Text>
           </TouchableOpacity>
         ))}
         {[3, 6, 12].map((n) => (
           <TouchableOpacity key={n} style={[styles.filter, ahead === n && styles.filterOn]} onPress={() => setAhead(ahead === n ? null : (n as 3 | 6 | 12))}>
-            <Text style={[styles.filterText, ahead === n && styles.filterTextOn]}>{`Plan ahead · ${n} mo`}</Text>
+            <Text style={[styles.filterText, ahead === n && styles.filterTextOn]}>{t('mt2.ahead', { n })}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -254,24 +256,24 @@ export default function MaintenanceSc() {
               ))}
             </View>
           ))}
-          {!jobsAhead(machines, liveJobs, pmsDeferrals, today, ahead).length ? <Text style={styles.sub}>Nothing falls due in this period.</Text> : null}
+          {!jobsAhead(machines, liveJobs, pmsDeferrals, today, ahead).length ? <Text style={styles.sub}>{t('mt2.nothingDue')}</Text> : null}
         </>
       ) : null}
 
       {present.size > 1 ? (
         <View style={styles.filters}>
           <TouchableOpacity style={[styles.filter, !only && styles.filterOn]} onPress={() => setOnly(null)}>
-            <Text style={[styles.filterText, !only && styles.filterTextOn]}>All</Text>
+            <Text style={[styles.filterText, !only && styles.filterTextOn]}>{t('lb.all')}</Text>
           </TouchableOpacity>
           {DEPTS.filter((d) => present.has(d.key)).map((d) => (
             <TouchableOpacity key={d.key} style={[styles.filter, only === d.key && styles.filterOn]} onPress={() => setOnly(only === d.key ? null : d.key)}>
-              <Text style={[styles.filterText, only === d.key && styles.filterTextOn]}>{d.label}</Text>
+              <Text style={[styles.filterText, only === d.key && styles.filterTextOn]}>{tk(`dept.${d.key}`)}</Text>
             </TouchableOpacity>
           ))}
         </View>
       ) : null}
 
-      {defectsOpen.length ? <Label>{`Open defects (${defectsOpen.length})`}</Label> : null}
+      {defectsOpen.length ? <Label>{t('mt2.openDefects', { n: defectsOpen.length })}</Label> : null}
       {defectsOpen.map((x) => (
         <TouchableOpacity key={x.id} style={styles.row} onPress={() => nav.navigate('PmsDefect', { id: x.id })} activeOpacity={0.7}>
           <View style={[styles.bar, { backgroundColor: categoryColor(COLORS, x.category) }]} />
@@ -283,7 +285,7 @@ export default function MaintenanceSc() {
       ))}
 
       {/* Written up by whoever did them, waiting for an officer to sign out (PmsJob.prepared). */}
-      {awaiting.length ? <Label>{`Awaiting sign-off (${awaiting.length})`}</Label> : null}
+      {awaiting.length ? <Label>{t('mt2.awaiting', { n: awaiting.length })}</Label> : null}
       {awaiting.map((j) => (
         <TouchableOpacity key={j.id} style={styles.row} onPress={() => nav.navigate('PmsJob', { id: j.id })} activeOpacity={0.7}>
           <View style={[styles.bar, { backgroundColor: COLORS.warning }]} />
@@ -296,20 +298,20 @@ export default function MaintenanceSc() {
 
       {owed.length ? (
         <View style={styles.machHead}>
-          <Label>Owed now</Label>
+          <Label>{t('mt2.owedNow')}</Label>
           {signable.length > 1 && !multi ? (
-            <TouchableOpacity onPress={() => setMulti({ ids: [], note: '' })} hitSlop={8}><Text style={styles.add}>Sign several…</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setMulti({ ids: [], note: '' })} hitSlop={8}><Text style={styles.add}>{t('mt2.signSeveral')}</Text></TouchableOpacity>
           ) : null}
         </View>
       ) : null}
       {multi ? (
         <Card>
-          <Text style={styles.sub}>Tick routine jobs of one type done today — calendar jobs, not on critical equipment, with no permit, documents or parts. One signature for all; each is recorded on its own.</Text>
-          <TextInput style={styles.multiNote} value={multi.note} onChangeText={(v) => setMulti({ ...multi, note: v })} placeholder="Note for all — e.g. tested, all in order" placeholderTextColor={COLORS.textLight} />
+          <Text style={styles.sub}>{t('mt2.multiHint')}</Text>
+          <TextInput style={styles.multiNote} value={multi.note} onChangeText={(v) => setMulti({ ...multi, note: v })} placeholder={t('mt2.notePh')} placeholderTextColor={COLORS.textLight} />
           <View style={[styles.reportRow, { marginTop: SIZES.sm, marginBottom: 0 }]}>
             {picker}
-            <TouchableOpacity style={styles.repBtn} onPress={() => void signMulti()}><Text style={styles.repBtnText}>{`Sign ${multi.ids.length}`}</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => setMulti(null)}><Text style={styles.add}>Cancel</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.repBtn} onPress={() => void signMulti()}><Text style={styles.repBtnText}>{t('mt2.signN', { n: multi.ids.length })}</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setMulti(null)}><Text style={styles.add}>{t('common.cancel')}</Text></TouchableOpacity>
           </View>
         </Card>
       ) : null}
@@ -331,7 +333,7 @@ export default function MaintenanceSc() {
       })}
 
       {machineRows.length === 0 && !only ? (
-        <Empty text="Nothing in the plan yet. Add the vessel's systems by department — engines and generators, the tender and the cranes, the galley, the network, the hull — then their jobs, or start each from the typical jobs." />
+        <Empty text={t('mt2.empty')} />
       ) : null}
       {DEPTS.filter((d) => (only ? d.key === only : true)).map((d) => {
         // Each system followed by its components (services/pmsMachines treeOrder).
@@ -341,10 +343,10 @@ export default function MaintenanceSc() {
             <View style={styles.machHead}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <MciIcon name={d.icon} size={16} color={COLORS.textLight} />
-                <Label>{rows.length ? `${d.label} (${rows.length})` : d.label}</Label>
+                <Label>{rows.length ? `${tk(`dept.${d.key}`)} (${rows.length})` : tk(`dept.${d.key}`)}</Label>
               </View>
               <TouchableOpacity disabled={!canPlan} style={!canPlan && { opacity: 0.35 }} onPress={() => addMachine(d.key)} hitSlop={10}>
-                <Text style={styles.add}>+ Add</Text>
+                <Text style={styles.add}>{`+ ${t('common.add')}`}</Text>
               </TouchableOpacity>
             </View>
             {rows.map(({ m, jobs, worst, depth }) => (
@@ -354,8 +356,8 @@ export default function MaintenanceSc() {
                   <Text style={styles.title} numberOfLines={1}>{`${depth ? '↳ ' : ''}${m.name}`}</Text>
                   <Text style={styles.sub} numberOfLines={1}>
                     {[
-                      hasCounter(m) ? (m.hours != null ? `${m.hours} h${m.hoursDate ? ` on ${formatDate(m.hoursDate)}` : ''}` : 'No counter reading') : null,
-                      `${jobs} job${jobs === 1 ? '' : 's'}`,
+                      hasCounter(m) ? (m.hours != null ? `${t('hor.hours', { n: m.hours })}${m.hoursDate ? ` ${t('mt2.onDate', { date: formatDate(m.hoursDate) })}` : ''}` : t('mt2.noCounter')) : null,
+                      tn('n.job', jobs),
                       m.location,
                     ].filter(Boolean).join(' · ')}
                   </Text>
@@ -370,8 +372,8 @@ export default function MaintenanceSc() {
       {/* Taken out of service: off the plan, kept for their history (services/pmsMachines.ts). */}
       {scrappedMachines.length ? (
         <TouchableOpacity style={styles.machHead} onPress={() => setShowScrapped((v) => !v)} hitSlop={8}>
-          <Label>{`Scrapped (${scrappedMachines.length})`}</Label>
-          <Text style={styles.add}>{showScrapped ? 'Hide' : 'Show'}</Text>
+          <Label>{t('mt2.scrappedN', { n: scrappedMachines.length })}</Label>
+          <Text style={styles.add}>{showScrapped ? t('mt2.hide') : t('mt2.show')}</Text>
         </TouchableOpacity>
       ) : null}
       {showScrapped
@@ -380,7 +382,7 @@ export default function MaintenanceSc() {
               <View style={[styles.bar, { backgroundColor: COLORS.textLight }]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.title} numberOfLines={1}>{`${m.name}${m.serial ? ` · S/N ${m.serial}` : ''}`}</Text>
-                <Text style={styles.sub} numberOfLines={1}>{`${m.scrapped?.replacedBy ? 'Replaced' : 'Scrapped'} ${formatDate(m.scrapped?.date)} — ${m.scrapped?.reason ?? ''}`}</Text>
+                <Text style={styles.sub} numberOfLines={1}>{`${m.scrapped?.replacedBy ? t('mt2.replaced') : t('mt2.scrapped')} ${formatDate(m.scrapped?.date)} — ${m.scrapped?.reason ?? ''}`}</Text>
               </View>
             </TouchableOpacity>
           ))

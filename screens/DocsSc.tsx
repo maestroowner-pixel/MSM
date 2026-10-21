@@ -28,8 +28,10 @@ import { shareDocFile } from '../services/docFiles';
 import { pdfText } from '../utils/pdfText';
 import { todayIso } from '../services/pms';
 import { uid } from '../utils/id';
+import { t, tn, useT } from '../utils/i18n';
 
 export default function DocsSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -92,7 +94,7 @@ export default function DocsSc() {
     for (let i = 0; i < batch.length; i++) {
       const { file, parsed, match } = batch[i];
       const name = file.name ?? 'Document';
-      setUploading(`Uploading ${i + 1} of ${batch.length}: ${name}`);
+      setUploading(t('docs.uploading', { k: i + 1, n: batch.length, name }));
       const id = match?.id ?? uid('doc');
       const revision = match ? match.revision + 1 : 1;
       const dataUri = await toDataUri(file.uri, name).catch(() => file.uri);
@@ -137,7 +139,7 @@ export default function DocsSc() {
         <View style={{ flex: 1 }}>
           <Text style={styles.title} numberOfLines={2}>{d.title}</Text>
           <Text style={styles.sub} numberOfLines={1}>
-            {[d.docNo, `Rev ${d.revision}`, DOC_CATEGORY_LABEL[d.category], rv === 'overdue' ? 'review overdue' : rv === 'soon' ? 'review due' : null]
+            {[d.docNo, t('docs.rev', { n: d.revision }), DOC_CATEGORY_LABEL[d.category], rv === 'overdue' ? t('docs.reviewOverdue') : rv === 'soon' ? t('docs.reviewDue') : null]
               .filter(Boolean)
               .join(' · ')}
           </Text>
@@ -154,21 +156,21 @@ export default function DocsSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Documents" subtitle="SMS, procedures, circulars — read and sign" help="ISM documents" />
+      <ScreenTitle title={t('docs.title')} subtitle={t('docs.sub')} help="ISM documents" />
 
       <View style={styles.searchRow}>
         <TextInput
           style={[styles.search, { flex: 2 }]}
           value={q}
           onChangeText={setQ}
-          placeholder="Search by word — in the title and inside the document"
+          placeholder={t('docs.searchPh')}
           placeholderTextColor={COLORS.textLight}
         />
         <TextInput
           style={[styles.search, { flex: 1 }]}
           value={num}
           onChangeText={setNum}
-          placeholder="Document no."
+          placeholder={t('docs.no')}
           placeholderTextColor={COLORS.textLight}
           autoCapitalize="characters"
         />
@@ -176,22 +178,22 @@ export default function DocsSc() {
       {/* Sort and type side by side, as drop-downs (components/Dropdown). */}
       <View style={styles.dropRow}>
         <Dropdown
-          caption="SORT"
+          caption={t('docs.sort')}
           value={sortBy}
           onChange={setSortBy}
           options={[
-            { value: 'number', label: 'Document no.' },
-            { value: 'title', label: 'Title' },
-            { value: 'issued', label: 'Newest first' },
-            { value: 'review', label: 'Review due' },
+            { value: 'number', label: t('docs.no') },
+            { value: 'title', label: t('dpt.fTitle') },
+            { value: 'issued', label: t('docs.newest') },
+            { value: 'review', label: t('docs.reviewDueCap') },
           ]}
           style={{ flex: 1 }}
         />
         <Dropdown
-          caption="TYPE"
+          caption={t('docs.type')}
           value={cat}
           onChange={setCat}
-          options={[{ value: null as DocCategory | null, label: 'All types' }, ...presentCats.map((c) => ({ value: c as DocCategory | null, label: DOC_CATEGORY_LABEL[c] }))]}
+          options={[{ value: null as DocCategory | null, label: t('docs.allTypes') }, ...presentCats.map((c) => ({ value: c as DocCategory | null, label: DOC_CATEGORY_LABEL[c] }))]}
           style={{ flex: 1 }}
         />
       </View>
@@ -200,48 +202,48 @@ export default function DocsSc() {
         <View style={styles.uploadRow}>
           <TouchableOpacity style={styles.uploadBtn} onPress={() => void pickBatch()} disabled={!!uploading}>
             <MciIcon name="upload-multiple" size={18} color={COLORS.textWhite} />
-            <Text style={styles.uploadText}>Upload documents</Text>
+            <Text style={styles.uploadText}>{t('docs.upload')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => nav.navigate('Doc', { id: uid('doc'), isNew: true })} hitSlop={10}>
-            <Text style={styles.add}>+ Write one here</Text>
+            <Text style={styles.add}>{t('docs.write')}</Text>
           </TouchableOpacity>
         </View>
       ) : null}
 
       {batch ? (
         <View style={styles.batch}>
-          <Text style={styles.title}>{`${batch.length} file${batch.length === 1 ? '' : 's'} selected`}</Text>
+          <Text style={styles.title}>{t('docs.selected', { x: tn('n.file', batch.length) })}</Text>
           {batch.map((b) => (
             <View key={b.file.name} style={styles.batchRow}>
               <Text style={styles.batchName} numberOfLines={1}>{[b.parsed.docNo, b.parsed.title].filter(Boolean).join(' · ')}</Text>
               <Text style={[styles.batchTag, b.match ? { color: COLORS.warning } : { color: COLORS.success }]}>
-                {b.match ? `new revision of Rev ${b.match.revision}` : 'new'}
+                {b.match ? t('docs.newRev', { n: b.match.revision }) : t('docs.new')}
               </Text>
             </View>
           ))}
           <View style={styles.batchOpts}>
             <Dropdown
-              caption="TYPE"
+              caption={t('docs.type')}
               value={batchCat}
               onChange={setBatchCat}
               options={(Object.keys(DOC_CATEGORY_LABEL) as DocCategory[]).map((c) => ({ value: c, label: DOC_CATEGORY_LABEL[c] }))}
               style={{ flex: 1 }}
             />
             <View style={styles.mustRow}>
-              <Text style={styles.sub}>Crew must read and sign</Text>
+              <Text style={styles.sub}>{t('docs.mustRead')}</Text>
               <Switch value={batchMust} onValueChange={setBatchMust} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
             </View>
           </View>
-          <Text style={styles.sub}>Number and title are taken from each file name — edit any document afterwards. A file whose number (or title) matches an existing document becomes its next revision, and the crew are asked to sign again.</Text>
+          <Text style={styles.sub}>{t('docs.batchHint')}</Text>
           {uploading ? (
             <Text style={[styles.sub, { color: COLORS.primary, fontWeight: '700' }]}>{uploading}</Text>
           ) : (
             <View style={styles.uploadRow}>
               <TouchableOpacity style={styles.uploadBtn} onPress={() => void runBatch()}>
-                <Text style={styles.uploadText}>{`Upload ${batch.length}`}</Text>
+                <Text style={styles.uploadText}>{t('docs.uploadN', { n: batch.length })}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setBatch(null)} hitSlop={8}>
-                <Text style={[styles.add, { color: COLORS.textLight }]}>Cancel</Text>
+                <Text style={[styles.add, { color: COLORS.textLight }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -251,7 +253,7 @@ export default function DocsSc() {
 
       {mine.length && !searching ? (
         <>
-          <Label>{`To read — ${me!.name} (${mine.length})`}</Label>
+          <Label>{t('docs.toRead', { name: me!.name, n: mine.length })}</Label>
           {mine.map((d) => <Row key={`m${d.id}`} d={d} highlight />)}
         </>
       ) : me && docs.length && !searching ? (
@@ -260,15 +262,15 @@ export default function DocsSc() {
 
 
       <View style={styles.head}>
-        <Label>{searching ? `Found ${shown.length} of ${docs.length}` : `All documents (${shown.length})`}</Label>
+        <Label>{searching ? t('docs.found', { k: shown.length, n: docs.length }) : t('docs.all', { n: shown.length })}</Label>
       </View>
-      {docs.length > 0 && shown.length === 0 ? <Empty text="No document matches." /> : null}
+      {docs.length > 0 && shown.length === 0 ? <Empty text={t('docs.noMatch')} /> : null}
       {docs.length === 0 ? (
         <Empty
           text={
             canEdit
-              ? 'No documents yet. Add the SMS manual and procedures from the office (PDF), or write a circular or standing orders here — the crew then read and sign for each.'
-              : 'No documents yet. Officers add the SMS, procedures and circulars here.'
+              ? t('docs.empty')
+              : t('docs.emptyCrew')
           }
         />
       ) : (

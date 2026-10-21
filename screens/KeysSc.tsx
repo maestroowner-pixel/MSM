@@ -39,10 +39,12 @@ import { getSavedPrinter, printTspl, SavedPrinter } from '../services/blePrinter
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
+import { t, tn, useT } from '../utils/i18n';
 
 const when = (t: number) => `${new Date(t).toISOString().slice(0, 10)} ${new Date(t).toTimeString().slice(0, 5)}`;
 
 export default function KeysSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const route = useRoute<any>();
@@ -72,7 +74,7 @@ export default function KeysSc() {
   }, [route.params?.key]);
 
   const done = (w: string | null | void) => {
-    if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+    if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
   };
   const fail = (e: any) => Alert.alert('PDF', String(e?.message ?? e));
   const recorder = sync.me ? personName(sync.me) : 'Key cabinet';
@@ -80,7 +82,7 @@ export default function KeysSc() {
   const issue = async (k: KeyItem) => {
     const p = people.find((x) => x.id === to);
     const name = p?.name ?? toName.trim();
-    if (!name) return Alert.alert(k.code, 'Who takes it? Choose the name, or write it (a contractor, a guest).');
+    if (!name) return Alert.alert(k.code, t('keys.whoTakes'));
     const sig = await confirmSign({ personKey: p ? p.id : `name:${name}`, name, ownDevice: false, what: `Key ${k.code} — ${k.name} — taken`, always: true, handOnly: !p });
     if (!sig) return;
     const now = Date.now();
@@ -106,8 +108,8 @@ export default function KeysSc() {
   const saveKey = async () => {
     if (!edit) return;
     const code = edit.code.trim().toUpperCase();
-    if (!edit.name.trim()) return Alert.alert('Key', 'What does it open — Tender garage, Bonded store.');
-    if (!STORE_CODE_RE.test(code)) return Alert.alert('ID', 'Letters, digits, - and _ only — K-07.');
+    if (!edit.name.trim()) return Alert.alert(t('keys.key'), t('keys.whatOpens'));
+    if (!STORE_CODE_RE.test(code)) return Alert.alert(t('keys.id'), t('keys.idRule'));
     if (keys.some((k) => k.id !== edit.id && k.code.toUpperCase() === code)) return Alert.alert('ID', `${code} is another key’s ID.`);
     await saveRow(storage.KEYS_KEY, { ...edit, code, name: edit.name.trim(), location: edit.location?.trim() || undefined, updatedAt: Date.now() });
     setEdit(null);
@@ -116,15 +118,15 @@ export default function KeysSc() {
   const send = async (printer: SavedPrinter, specs: TsplLabelSpec[]) => {
     try {
       await printTspl(printer.id, labelsToTspl(specs));
-      Alert.alert('Sent to printer', `${specs.length} tag${specs.length === 1 ? '' : 's'} sent to ${printer.name}.`);
+      Alert.alert(t('print.sent'), t('keys.tagsSent', { x: tn('n.tag', specs.length), printer: printer.name }));
     } catch (e: any) {
-      Alert.alert('Could not print to the Xprinter', String(e?.message ?? e));
+      Alert.alert(t('print.xprinterFail'), String(e?.message ?? e));
     } finally {
       setPending(null);
     }
   };
   const toXprinter = (list: KeyItem[]) =>
-    Alert.alert('Label size', 'The roll loaded in the printer.', [
+    Alert.alert(t('print.labelSize'), t('print.roll'), [
       ...GANGWAY_STOCKS.map((sz) => ({
         text: `${GANGWAY_STOCK_MM[sz].widthMm} × ${GANGWAY_STOCK_MM[sz].heightMm} mm`,
         onPress: async () => {
@@ -135,23 +137,23 @@ export default function KeysSc() {
           setPrinterOpen(true);
         },
       })),
-      { text: 'Cancel', style: 'cancel' as const },
+      { text: t('common.cancel'), style: 'cancel' as const },
     ]);
 
   const shown = keys.filter((k) => !filter.trim() || `${k.code} ${k.name} ${k.location ?? ''} ${status.get(k.id)?.dir === 'out' ? status.get(k.id)!.person : ''}`.toLowerCase().includes(filter.trim().toLowerCase()));
 
   const keyForm = edit ? (
     <Card>
-      <Label>{keys.some((k) => k.id === edit.id) ? `Key — ${edit.code}` : 'New key'}</Label>
-      <Text style={styles.sub}>What it opens</Text>
-      <TextInput style={styles.input} value={edit.name} onChangeText={(v) => setEdit({ ...edit, name: v })} accessibilityLabel="What it opens" />
-      <Text style={styles.sub}>Where it is kept</Text>
-      <TextInput style={styles.input} value={edit.location ?? ''} onChangeText={(v) => setEdit({ ...edit, location: v })} accessibilityLabel="Where it is kept" />
-      <Text style={styles.sub}>ID — on the tag</Text>
-      <TextInput style={[styles.input, { width: 160 }]} value={edit.code} onChangeText={(v) => setEdit({ ...edit, code: v })} autoCapitalize="characters" autoCorrect={false} accessibilityLabel="Key ID" />
+      <Label>{keys.some((k) => k.id === edit.id) ? t('keys.keyCode', { code: edit.code }) : t('keys.newKey')}</Label>
+      <Text style={styles.sub}>{t('keys.opens')}</Text>
+      <TextInput style={styles.input} value={edit.name} onChangeText={(v) => setEdit({ ...edit, name: v })} accessibilityLabel={t('keys.opens')} />
+      <Text style={styles.sub}>{t('keys.kept')}</Text>
+      <TextInput style={styles.input} value={edit.location ?? ''} onChangeText={(v) => setEdit({ ...edit, location: v })} accessibilityLabel={t('keys.kept')} />
+      <Text style={styles.sub}>{t('keys.idTag')}</Text>
+      <TextInput style={[styles.input, { width: 160 }]} value={edit.code} onChangeText={(v) => setEdit({ ...edit, code: v })} autoCapitalize="characters" autoCorrect={false} accessibilityLabel={t('keys.keyId')} />
       <View style={styles.row}>
-        <TouchableOpacity style={styles.btn} onPress={() => void saveKey()}><Text style={styles.btnText}>Save</Text></TouchableOpacity>
-        <TouchableOpacity onPress={() => setEdit(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.btn} onPress={() => void saveKey()}><Text style={styles.btnText}>{t('common.save')}</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => setEdit(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
       </View>
     </Card>
   ) : null;
@@ -159,36 +161,36 @@ export default function KeysSc() {
   return (
     <Screen scroll>
       <PrinterModal visible={printerOpen} onClose={() => { setPrinterOpen(false); setPending(null); }} onPicked={(p) => { setPrinterOpen(false); if (pending) void send(p, pending); }} />
-      <ScreenTitle title="Key register" subtitle={`${keys.length} keys · ${out.length} out now`} help="Security (ISPS)" />
+      <ScreenTitle title={t('keys.title')} subtitle={`${tn('n.key', keys.length)} · ${t('keys.outNowN', { n: out.length })}`} help="Security (ISPS)" />
       {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700', marginBottom: SIZES.xs }]}>{`✓ ${saved}`}</Text> : null}
 
       {out.length ? (
         <>
-          <Label>Out now</Label>
+          <Label>{t('keys.outNow')}</Label>
           {out.map((o) => (
             <TouchableOpacity key={o.key.id} style={[styles.item, { borderLeftColor: o.move.dueBack && o.move.dueBack < todayIso() ? COLORS.danger : COLORS.warning }]} onPress={() => setOpen(o.key.id)}>
               <Text style={styles.name}>{`${o.key.code} · ${o.key.name}`}</Text>
-              <Text style={styles.sub}>{`${o.move.person}${o.move.personRank ? ` (${o.move.personRank})` : ''} · since ${when(o.move.at)}${o.days ? ` · ${o.days} day${o.days === 1 ? '' : 's'}` : ''}${o.move.dueBack ? ` · due back ${o.move.dueBack}` : ''}`}</Text>
+              <Text style={styles.sub}>{`${o.move.person}${o.move.personRank ? ` (${o.move.personRank})` : ''} · ${t('keys.since', { when: when(o.move.at) })}${o.days ? ` · ${tn('n.day', o.days)}` : ''}${o.move.dueBack ? ` · ${t('keys.dueBack', { date: o.move.dueBack })}` : ''}`}</Text>
             </TouchableOpacity>
           ))}
         </>
       ) : null}
 
-      <Label style={{ marginTop: SIZES.md }}>Keys</Label>
+      <Label style={{ marginTop: SIZES.md }}>{t('keys.keys')}</Label>
       <View style={[styles.row, { marginTop: 0, gap: SIZES.xs, alignItems: 'center' }]}>
-        <TextInput style={[styles.input, { flex: 1, minWidth: 180, marginTop: 0 }]} value={filter} onChangeText={setFilter} accessibilityLabel="Find a key" />
-        {officer ? <TouchableOpacity style={styles.btn} onPress={() => setEdit({ id: uid('key'), code: nextCode('K-', keys), name: '', updatedAt: Date.now() })}><Text style={styles.btnText}>+ New key</Text></TouchableOpacity> : null}
+        <TextInput style={[styles.input, { flex: 1, minWidth: 180, marginTop: 0 }]} value={filter} onChangeText={setFilter} accessibilityLabel={t('keys.find')} />
+        {officer ? <TouchableOpacity style={styles.btn} onPress={() => setEdit({ id: uid('key'), code: nextCode('K-', keys), name: '', updatedAt: Date.now() })}><Text style={styles.btnText}>{`+ ${t('keys.newKey')}`}</Text></TouchableOpacity> : null}
         {officer && keys.length ? (
           <>
-            <TouchableOpacity style={styles.small} onPress={() => void exportKeyTags(keys, vessel).then(done, fail)}><Text style={styles.smallText}>Key tags — all (PDF)</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.small} onPress={() => toXprinter(keys)}><Text style={styles.smallText}>Xprinter — all</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.small} onPress={() => void exportKeyTagCards(keys, vessel).then(done, fail)}><Text style={styles.smallText}>Card printer — 3 tags a card (CR80)</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.small} onPress={() => void exportEngravingSvg(keys, vessel).then(done, fail)}><Text style={styles.smallText}>Laser engraving file (SVG)</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.small} onPress={() => void exportKeyTags(keys, vessel).then(done, fail)}><Text style={styles.smallText}>{t('keys.tagsAll')}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.small} onPress={() => toXprinter(keys)}><Text style={styles.smallText}>{t('keys.xprinterAll')}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.small} onPress={() => void exportKeyTagCards(keys, vessel).then(done, fail)}><Text style={styles.smallText}>{t('keys.card')}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.small} onPress={() => void exportEngravingSvg(keys, vessel).then(done, fail)}><Text style={styles.smallText}>{t('keys.laser')}</Text></TouchableOpacity>
           </>
         ) : null}
       </View>
       {edit && !keys.some((k) => k.id === edit.id) ? keyForm : null}
-      {!keys.length ? <Text style={[styles.sub, { marginVertical: SIZES.sm }]}>{officer ? 'No keys yet — add them with their ID and what they open, then print the tags.' : 'No keys yet — an officer adds them.'}</Text> : null}
+      {!keys.length ? <Text style={[styles.sub, { marginVertical: SIZES.sm }]}>{officer ? t('keys.empty') : t('keys.emptyCrew')}</Text> : null}
 
       {shown.map((k) => {
         if (edit?.id === k.id) return <React.Fragment key={k.id}>{keyForm}</React.Fragment>;
@@ -201,39 +203,39 @@ export default function KeysSc() {
               <MciIcon name={isOut ? 'key-arrow-right' : 'key-variant'} size={20} color={isOut ? COLORS.warning : COLORS.success} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{`${k.code} · ${k.name}`}</Text>
-                <Text style={styles.sub}>{isOut ? `Out — ${m!.person} since ${when(m!.at)}` : `On the board${k.location ? ` · ${k.location}` : ''}`}</Text>
+                <Text style={styles.sub}>{isOut ? t('keys.outRow', { who: m!.person, when: when(m!.at) }) : `${t('keys.onBoard')}${k.location ? ` · ${k.location}` : ''}`}</Text>
               </View>
             </TouchableOpacity>
             {expanded ? (
               <View style={{ marginTop: SIZES.sm }}>
                 {isOut ? (
                   <>
-                    <Text style={styles.sub}>Note (optional)</Text>
-                    <TextInput style={styles.input} value={note} onChangeText={setNote} accessibilityLabel="Note" />
-                    <TouchableOpacity style={styles.btn} onPress={() => void back(k, m!)}><Text style={styles.btnText}>{`Back on the board — from ${m!.person}`}</Text></TouchableOpacity>
+                    <Text style={styles.sub}>{t('keys.note')}</Text>
+                    <TextInput style={styles.input} value={note} onChangeText={setNote} accessibilityLabel={t('keys.note')} />
+                    <TouchableOpacity style={styles.btn} onPress={() => void back(k, m!)}><Text style={styles.btnText}>{t('keys.back', { who: m!.person })}</Text></TouchableOpacity>
                   </>
                 ) : (
                   <>
-                    <Dropdown caption="TAKEN BY" value={to} onChange={(v: string) => setTo(v)} options={[{ value: '', label: 'Choose…' }, ...people.map((p) => ({ value: p.id, label: crewLabel(p) }))]} style={{ maxWidth: 420 }} />
+                    <Dropdown caption={t('keys.takenByCap')} value={to} onChange={(v: string) => setTo(v)} options={[{ value: '', label: t('common.choose') }, ...people.map((p) => ({ value: p.id, label: crewLabel(p) }))]} style={{ maxWidth: 420 }} />
                     {!to ? (
                       <>
-                        <Text style={[styles.sub, { marginTop: SIZES.xs }]}>…or someone not on the crew list (contractor, guest)</Text>
-                        <TextInput style={styles.input} value={toName} onChangeText={setToName} accessibilityLabel="Taken by — name" />
+                        <Text style={[styles.sub, { marginTop: SIZES.xs }]}>{t('keys.orSomeone')}</Text>
+                        <TextInput style={styles.input} value={toName} onChangeText={setToName} accessibilityLabel={t('keys.takenByName')} />
                       </>
                     ) : null}
-                    <SimpleDatePicker label="Due back (optional)" value={dueBack} onChange={(d) => setDueBack(d || undefined)} onClear={() => setDueBack(undefined)} />
-                    <Text style={styles.sub}>Note (optional)</Text>
-                    <TextInput style={styles.input} value={note} onChangeText={setNote} accessibilityLabel="Note" />
-                    <TouchableOpacity style={styles.btn} onPress={() => void issue(k)}><Text style={styles.btnText}>Sign it out</Text></TouchableOpacity>
+                    <SimpleDatePicker label={t('keys.dueBackOpt')} value={dueBack} onChange={(d) => setDueBack(d || undefined)} onClear={() => setDueBack(undefined)} />
+                    <Text style={styles.sub}>{t('keys.note')}</Text>
+                    <TextInput style={styles.input} value={note} onChangeText={setNote} accessibilityLabel={t('keys.note')} />
+                    <TouchableOpacity style={styles.btn} onPress={() => void issue(k)}><Text style={styles.btnText}>{t('keys.signOut')}</Text></TouchableOpacity>
                   </>
                 )}
                 {officer ? (
                   <View style={[styles.row, { gap: SIZES.xs }]}>
-                    <TouchableOpacity style={styles.small} onPress={() => setEdit(k)}><Text style={styles.smallText}>Edit</Text></TouchableOpacity>
-                    <TouchableOpacity style={styles.small} onPress={() => void exportKeyTags([k], vessel).then(done, fail)}><Text style={styles.smallText}>Tag (PDF)</Text></TouchableOpacity>
+                    <TouchableOpacity style={styles.small} onPress={() => setEdit(k)}><Text style={styles.smallText}>{t('common.edit')}</Text></TouchableOpacity>
+                    <TouchableOpacity style={styles.small} onPress={() => void exportKeyTags([k], vessel).then(done, fail)}><Text style={styles.smallText}>{t('keys.tagPdf')}</Text></TouchableOpacity>
                     <TouchableOpacity style={styles.small} onPress={() => toXprinter([k])}><Text style={styles.smallText}>Xprinter</Text></TouchableOpacity>
                     {!isOut ? (
-                      <TouchableOpacity onPress={() => Alert.alert('Remove key', `Remove ${k.code} ${k.name} from the register? Its history stays in the reports.`, [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => void saveRow(storage.KEYS_KEY, { ...k, deleted: true, updatedAt: Date.now() }) }])} hitSlop={8} accessibilityLabel={`Remove ${k.code}`}>
+                      <TouchableOpacity onPress={() => Alert.alert(t('keys.removeQ'), t('keys.removeBody', { key: `${k.code} ${k.name}` }), [{ text: t('common.cancel'), style: 'cancel' }, { text: t('common.remove'), style: 'destructive', onPress: () => void saveRow(storage.KEYS_KEY, { ...k, deleted: true, updatedAt: Date.now() }) }])} hitSlop={8} accessibilityLabel={`${t('common.remove')} ${k.code}`}>
                         <MciIcon name="trash-can-outline" size={20} color={COLORS.danger} />
                       </TouchableOpacity>
                     ) : null}
@@ -245,13 +247,13 @@ export default function KeysSc() {
         );
       })}
 
-      <Label style={{ marginTop: SIZES.md }}>Report</Label>
+      <Label style={{ marginTop: SIZES.md }}>{t('keys.report')}</Label>
       <View style={[styles.row, { alignItems: 'flex-end', gap: SIZES.sm }]}>
-        <View style={{ minWidth: 160 }}><SimpleDatePicker label="From" value={from} onChange={(d) => setFrom(d || from)} /></View>
-        <View style={{ minWidth: 160 }}><SimpleDatePicker label="To" value={until} onChange={(d) => setUntil(d || until)} /></View>
+        <View style={{ minWidth: 160 }}><SimpleDatePicker label={t('common.from')} value={from} onChange={(d) => setFrom(d || from)} /></View>
+        <View style={{ minWidth: 160 }}><SimpleDatePicker label={t('common.to')} value={until} onChange={(d) => setUntil(d || until)} /></View>
         <TouchableOpacity style={styles.btn} onPress={() => void exportKeyReport(from, until, keyList, keyMoves, vessel).then(done, fail)}><Text style={styles.btnText}>PDF</Text></TouchableOpacity>
       </View>
-      <Text style={styles.sub}>Keys out now, the register, and every issue and return in the period.</Text>
+      <Text style={styles.sub}>{t('keys.reportNote')}</Text>
     </Screen>
   );
 }

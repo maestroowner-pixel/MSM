@@ -70,8 +70,8 @@ function dpCheckPage(c: DpCheck) {
     title: 'Signatures',
 
     rows: [
-      [signRoles(c)[0], c.by, c.byRank ?? '', `${proofShort(c.byWith) || 'signed'} in ISMpilot, ${shipAndUtc(c.at, c.shipOffset).ship} LT`, ''],
-      [signRoles(c)[1], c.by2 ?? '', c.by2Rank ?? '', c.by2 ? `${proofShort(c.by2With) || 'signed'} in ISMpilot, ${shipAndUtc(c.at, c.shipOffset).ship} LT` : '', ''],
+      [signRoles(c)[0], c.by, c.byRank ?? '', `${proofShort(c.byWith) || 'signed'} in ISM AI Pilot, ${shipAndUtc(c.at, c.shipOffset).ship} LT`, ''],
+      [signRoles(c)[1], c.by2 ?? '', c.by2Rank ?? '', c.by2 ? `${proofShort(c.by2With) || 'signed'} in ISM AI Pilot, ${shipAndUtc(c.at, c.shipOffset).ship} LT` : '', ''],
     ],
     head: ['', 'Name', 'Position', 'How signed', 'Signature'],
     widths: { 0: 40, 1: 70, 2: 50, 3: 83, 4: 30 },

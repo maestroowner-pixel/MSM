@@ -35,11 +35,14 @@ import {
   GMDSS_EQUIPMENT, PERIOD_LABEL, blankBatteries, blankCheckItems,
   formatVoltage, gmdssCheckStatus, gmdssEntryText, parseVoltageInput,
 } from '../services/gmdssService';
+import { exportGmdssPdf } from '../services/gmdssReport';
+import { MonthPicker, monthName } from '../components/MonthPicker';
 import * as storage from '../services/storage';
 import { uid } from '../utils/id';
 import { formatDate, formatDateTime } from '../utils/dates';
 import { goBackOr } from '../utils/nav';
 import { todayIso } from '../services/pms';
+import { t, t as tt, tk, useT } from '../utils/i18n';
 
 // ─── Tiny helpers ─────────────────────────────────────────────────────────────
 
@@ -69,7 +72,7 @@ function EntryRow({ entry, COLORS, styles }: {
         <Text style={styles.rowTime}>{`${formatDate(entry.date)} ${entry.time}`}</Text>
         <Text style={styles.rowText}>{entry.text}</Text>
         {entry.radioWatchClosed ? (
-          <Text style={[styles.rowAlert, { color: COLORS.danger }]}>Radio watch closed</Text>
+          <Text style={[styles.rowAlert, { color: COLORS.danger }]}>{t('gm.watchClosed')}</Text>
         ) : null}
         <Text style={styles.rowBy}>{entry.byRank ? `${entry.by} (${entry.byRank})` : entry.by}</Text>
       </View>
@@ -83,7 +86,7 @@ function StatusPill({ label, overdue, dueSoon, last, COLORS }: {
   label: string; overdue: boolean; dueSoon: boolean; last: string | null; COLORS: Palette;
 }) {
   const bg = overdue ? COLORS.danger : dueSoon ? COLORS.warning : COLORS.success;
-  const sub = last ? `Last: ${formatDate(last)}` : 'Not done';
+  const sub = last ? t('gm.last', { date: formatDate(last) }) : t('gm.notDone');
   return (
     <View style={{ alignItems: 'center', marginRight: 8 }}>
       <View style={{ backgroundColor: bg, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, marginBottom: 2 }}>
@@ -110,8 +113,8 @@ function BatteryRow({ bat, onChange, COLORS }: {
 
   const statuses: { key: GmdssBattery['status']; label: string }[] = [
     { key: 'ok',       label: 'OK' },
-    { key: 'charging', label: 'Charging' },
-    { key: 'charged',  label: 'Charged' },
+    { key: 'charging', label: t('gm.charging') },
+    { key: 'charged',  label: t('gm.charged') },
   ];
 
   return (
@@ -239,7 +242,7 @@ function CheckForm({ period, items, batteries, note, onItems, onBatteries, onNot
 
       {period === 'daily' && batteries.length > 0 ? (
         <View style={{ marginTop: 8 }}>
-          <Label>BATTERIES</Label>
+          <Label>{t('gm.batteries')}</Label>
           {batteries.map((bat, idx) => (
             <BatteryRow
               key={bat.id}
@@ -252,7 +255,7 @@ function CheckForm({ period, items, batteries, note, onItems, onBatteries, onNot
       ) : null}
 
       <View style={{ marginTop: 8 }}>
-        <Label>NOTE</Label>
+        <Label>{t('gm.note')}</Label>
         <TextInput
           style={{
             borderWidth: 1, borderColor: COLORS.border, borderRadius: 8,
@@ -261,7 +264,7 @@ function CheckForm({ period, items, batteries, note, onItems, onBatteries, onNot
             minHeight: 56, textAlignVertical: 'top',
           }}
           multiline
-          placeholder="Optional remarks"
+          placeholder={t('gm.optRemarks')}
           placeholderTextColor={COLORS.textLight}
           value={note}
           onChangeText={onNote}
@@ -274,10 +277,12 @@ function CheckForm({ period, items, batteries, note, onItems, onBatteries, onNot
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
 export default function GmdssSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const { gmdssLog, vessel, saveRow } = useData();
+  const [exporting, setExporting] = useState(false);
   const sync = useSync();
   const canEdit = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const confirmSign = useSignConfirm();
@@ -301,13 +306,44 @@ export default function GmdssSc() {
   // Event note state
   const [eventNote, setEventNote] = useState('');
 
+  const doExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      await exportGmdssPdf(sorted, vessel, month);
+    } catch (e: any) {
+      Alert.alert(t('rep.failed'), e?.message ?? String(e));
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const todayMonth = todayIso().slice(0, 7);
+  const [month, setMonth] = useState(todayMonth);
+
+  const monthsWithData = useMemo(() =>
+    [...new Set(gmdssLog.map((e) => e.date.slice(0, 7)))],
+    [gmdssLog]
+  );
+
+  const monthCounts = useMemo(() =>
+    gmdssLog.reduce((c: Record<string, number>, e) => {
+      const m = e.date.slice(0, 7);
+      c[m] = (c[m] ?? 0) + 1;
+      return c;
+    }, {}),
+    [gmdssLog]
+  );
+
   const dailyStatus  = useMemo(() => gmdssCheckStatus(gmdssLog, 'daily'),   [gmdssLog]);
   const weeklyStatus = useMemo(() => gmdssCheckStatus(gmdssLog, 'weekly'),  [gmdssLog]);
   const monthlyStatus= useMemo(() => gmdssCheckStatus(gmdssLog, 'monthly'), [gmdssLog]);
 
   const sorted = useMemo(() =>
-    [...gmdssLog].sort((a, b) => b.at - a.at),
-    [gmdssLog]
+    [...gmdssLog]
+      .filter((e) => e.date.slice(0, 7) === month)
+      .sort((a, b) => b.at - a.at),
+    [gmdssLog, month]
   );
 
   // Open a modal and initialise its state
@@ -330,7 +366,7 @@ export default function GmdssSc() {
 
   const save = async () => {
     if (!signer) {
-      Alert.alert('Who is recording?', 'Choose your name first.');
+      Alert.alert(t('fuel.whoRecords'), t('gm.chooseFirst'));
       return;
     }
     if (!modal) return;
@@ -350,7 +386,7 @@ export default function GmdssSc() {
       text = gmdssEntryText({ type, band, radioWatchClosed: rwc, note: radarNote.trim() || undefined });
     } else {
       if (!eventNote.trim()) {
-        Alert.alert('Empty note', 'Please write something before saving.');
+        Alert.alert(t('gm.emptyNote'), t('gm.writeSomething'));
         return;
       }
       text = gmdssEntryText({ type: 'event', note: eventNote.trim() });
@@ -386,14 +422,24 @@ export default function GmdssSc() {
       {/* Header */}
       <View style={styles.header}>
         <BackButton onPress={() => goBackOr(nav)} />
-        <ScreenTitle title="GMDSS Log" subtitle="Radio watch & equipment checks" />
+        <ScreenTitle
+          title={`${t('gm.title')} — ${monthName(month)}`}
+          subtitle={t('gm.sub')}
+          help="GMDSS Log"
+          actions={
+            <View style={{ marginRight: 8 }}>
+              <MonthPicker value={month} onChange={setMonth} months={monthsWithData} counts={monthCounts} />
+            </View>
+          }
+          onPdf={doExport}
+        />
       </View>
 
       {/* Status pills */}
       <View style={styles.pills}>
-        <StatusPill label="Daily"   {...dailyStatus}   last={dailyStatus.lastDate}   COLORS={COLORS} />
-        <StatusPill label="Weekly"  {...weeklyStatus}  last={weeklyStatus.lastDate}  COLORS={COLORS} />
-        <StatusPill label="Monthly" {...monthlyStatus} last={monthlyStatus.lastDate} COLORS={COLORS} />
+        <StatusPill label={t('gm.daily')}   {...dailyStatus}   last={dailyStatus.lastDate}   COLORS={COLORS} />
+        <StatusPill label={t('gm.weekly')}  {...weeklyStatus}  last={weeklyStatus.lastDate}  COLORS={COLORS} />
+        <StatusPill label={t('gm.monthly')} {...monthlyStatus} last={monthlyStatus.lastDate} COLORS={COLORS} />
       </View>
 
       {/* Action buttons */}
@@ -402,16 +448,16 @@ export default function GmdssSc() {
           {(['daily', 'weekly', 'monthly'] as const).map((p) => (
             <TouchableOpacity key={p} style={styles.actionBtn} onPress={() => openModal(p)}>
               <MciIcon name="check-circle-outline" size={16} color="#fff" />
-              <Text style={styles.actionText}>{PERIOD_LABEL[p]}</Text>
+              <Text style={styles.actionText}>{tk(`gm.${p}`)}</Text>
             </TouchableOpacity>
           ))}
           <TouchableOpacity style={[styles.actionBtn, { backgroundColor: COLORS.warning }]} onPress={() => openModal('radar_on')}>
             <MciIcon name="radar" size={16} color="#fff" />
-            <Text style={styles.actionText}>Radar</Text>
+            <Text style={styles.actionText}>{t('gm.radar')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.actionBtn, { backgroundColor: COLORS.textLight }]} onPress={() => openModal('event')}>
             <MciIcon name="note-outline" size={16} color="#fff" />
-            <Text style={styles.actionText}>Event / note</Text>
+            <Text style={styles.actionText}>{t('gm.event')}</Text>
           </TouchableOpacity>
         </View>
       ) : null}
@@ -423,7 +469,7 @@ export default function GmdssSc() {
         contentContainerStyle={{ padding: SIZES.md, paddingBottom: 60 }}
         ListEmptyComponent={
           <Text style={{ color: COLORS.textLight, textAlign: 'center', marginTop: 40 }}>
-            No entries yet. Start with a daily check.
+            {t('gm.empty')}
           </Text>
         }
         renderItem={({ item }) => (
@@ -439,11 +485,11 @@ export default function GmdssSc() {
               <MciIcon name="close" size={24} color={COLORS.textLight} />
             </TouchableOpacity>
             <Text style={[styles.modalTitle, { color: COLORS.text }]}>
-              {modal === 'daily'     ? 'Daily check' :
-               modal === 'weekly'   ? 'Weekly check' :
-               modal === 'monthly'  ? 'Monthly inspection' :
-               modal === 'radar_on' || modal === 'radar_off' ? 'Radar event' :
-               'Event / note'}
+              {modal === 'daily'     ? t('gm.dailyCheck') :
+               modal === 'weekly'   ? t('gm.weeklyCheck') :
+               modal === 'monthly'  ? t('gm.monthlyInsp') :
+               modal === 'radar_on' || modal === 'radar_off' ? t('gm.radarEvent') :
+               t('gm.event')}
             </Text>
             <View style={{ width: 24 }} />
           </View>
@@ -467,7 +513,7 @@ export default function GmdssSc() {
             {/* ── Radar form ── */}
             {(modal === 'radar_on' || modal === 'radar_off') ? (
               <View>
-                <Label>TYPE</Label>
+                <Label>{t('docs.type')}</Label>
                 <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
                   {(['radar_on', 'radar_off'] as const).map((t) => (
                     <TouchableOpacity
@@ -476,13 +522,13 @@ export default function GmdssSc() {
                       onPress={() => { setRadarType(t); setModal(t); }}
                     >
                       <Text style={[styles.chipText, radarType === t && styles.chipTextOn]}>
-                        {t === 'radar_on' ? 'Radar ON' : 'Radar OFF'}
+                        {t === 'radar_on' ? tt('gm.radarOn') : tt('gm.radarOff')}
                       </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
 
-                <Label>BAND</Label>
+                <Label>{t('gm.band')}</Label>
                 <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
                   {(['xband', 'sband'] as const).map((b) => (
                     <TouchableOpacity
@@ -500,8 +546,8 @@ export default function GmdssSc() {
                 {radarType === 'radar_off' ? (
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.text }}>Radio watch closed</Text>
-                      <Text style={{ fontSize: 12, color: COLORS.textLight }}>Mark when closing the radio watch in port</Text>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.text }}>{t('gm.watchClosed')}</Text>
+                      <Text style={{ fontSize: 12, color: COLORS.textLight }}>{t('gm.watchHint')}</Text>
                     </View>
                     <Switch
                       value={radioWatchClosed}
@@ -511,11 +557,11 @@ export default function GmdssSc() {
                   </View>
                 ) : null}
 
-                <Label>NOTE (optional)</Label>
+                <Label>{t('gm.noteOpt')}</Label>
                 <TextInput
                   style={[styles.noteInput, { color: COLORS.text, backgroundColor: COLORS.card, borderColor: COLORS.border }]}
                   multiline
-                  placeholder="e.g. fault reported, course change…"
+                  placeholder={t('gm.radarPh')}
                   placeholderTextColor={COLORS.textLight}
                   value={radarNote}
                   onChangeText={setRadarNote}
@@ -526,11 +572,11 @@ export default function GmdssSc() {
             {/* ── Event / note form ── */}
             {modal === 'event' ? (
               <View>
-                <Label>NOTE</Label>
+                <Label>{t('gm.note')}</Label>
                 <TextInput
                   style={[styles.noteInput, { color: COLORS.text, backgroundColor: COLORS.card, borderColor: COLORS.border, minHeight: 80 }]}
                   multiline
-                  placeholder="e.g. MAYDAY received from MV XXXX, MMSI 123456789 at 14:32 UTC on Ch 16. Relayed to MRCC Oslo."
+                  placeholder={t('gm.eventPh')}
                   placeholderTextColor={COLORS.textLight}
                   value={eventNote}
                   onChangeText={setEventNote}
@@ -541,12 +587,12 @@ export default function GmdssSc() {
 
             {/* Signer */}
             <View style={{ marginTop: 16 }}>
-              <Label>RECORDED BY</Label>
+              <Label>{t('gm.recordedBy')}</Label>
               {picker}
             </View>
 
             <TouchableOpacity style={[styles.saveBtn, { backgroundColor: COLORS.primary }]} onPress={save}>
-              <Text style={styles.saveBtnText}>Sign and save</Text>
+              <Text style={styles.saveBtnText}>{t('lr.signSave')}</Text>
             </TouchableOpacity>
 
             <View style={{ height: 40 }} />

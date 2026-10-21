@@ -38,6 +38,7 @@ import { exportDpCheckPdf, printDpCheck } from '../services/dpReport';
 import { archived } from '../services/dpArchive';
 import { clearDraft, loadDraft, saveDraft } from '../services/dpDraft';
 import { AsogStatus, CheckBook, DpCheck, DpConditions, DpLine, DpResult, bookOf } from '../types/dp';
+import { t, tk, useT } from '../utils/i18n';
 
 // As the paper checklist lays them out: a value, then its direction, each with
 // its name in front of the cell and its unit after it ("the operator is used to it").
@@ -67,6 +68,7 @@ const RES: { key: DpResult; label: string }[] = [
 ];
 
 export default function DpCheckSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -114,9 +116,9 @@ export default function DpCheckSc() {
         return;
       }
       const when = new Date(d.at).toISOString().slice(0, 16).replace('T', ' ');
-      Alert.alert('Unsaved checklist', `This checklist was filled in on this device and not signed (${when} UTC). Restore it?`, [
+      Alert.alert(t('dpc.unsaved'), t('dpc.unsavedBody', { when }), [
         {
-          text: 'Start new',
+          text: t('dpc.startNew'),
           style: 'destructive',
           onPress: () => {
             void clearDraft(draftId);
@@ -124,7 +126,7 @@ export default function DpCheckSc() {
           },
         },
         {
-          text: 'Restore',
+          text: t('dpc.restore'),
           onPress: () => {
             setOperation(d.operation);
             setUnit(d.unit);
@@ -173,14 +175,14 @@ export default function DpCheckSc() {
   const rowPeople = (row: 0 | 1) => (row === 0 && tplBook === 'fam-pax' ? guests : people);
 
   const book: CheckBook = bookOf(done ?? tpl ?? {});
-  const KIND = book === 'bridge' ? 'Bridge checklist' : book === 'engine' ? 'Engine checklist' : book === 'fam-bridge' ? 'Bridge familiarisation' : book === 'fam-engine' ? 'Engine familiarisation' : book === 'fam-project' ? 'Project crew familiarisation' : book === 'fam-pax' ? 'Passenger familiarisation' : book === 'fam-dp' ? 'DP familiarisation' : book === 'fam-safety' ? 'Safety familiarisation' : book === 'emergency' ? 'Emergency card' : String(book).startsWith('bridge-') ? 'Bridge checklist' : 'DP checklist';
-  if (!moduleOn(book === 'dp' ? 'dp' : 'watchChecks')) return <Screen><Empty text="Not available on this vessel." /></Screen>;
+  const KIND = tk(`dpc.kind.${String(book).startsWith('bridge-') ? 'bridge' : book}`);
+  if (!moduleOn(book === 'dp' ? 'dp' : 'watchChecks')) return <Screen><Empty text={t('common.notAvailable')} /></Screen>;
   const here = positionFromText(posT);
   const lat = here?.lat;
   const lon = here?.lon;
   const offset = vessel?.ship_utc_offset;
   const c: DpCheck | null = done ?? (tpl ? { id: '', templateId: tpl.id, title: tpl.title, where: tpl.where, at: now, shipOffset: offset, position: { lat: lat ?? NaN, lon: lon ?? NaN }, operation, unit, conditions: cond, asog, lines: tpl.lines, results, values, remarks, by: '', updatedAt: 0 } : null);
-  if (!c) return <Screen><Empty text="This checklist is not on this device." /></Screen>;
+  if (!c) return <Screen><Empty text={t('dpc.notHere')} /></Screen>;
   const ro = !!done;
   const o = checkOutcome(c);
   const ROLE = signRoles(c);
@@ -188,12 +190,12 @@ export default function DpCheckSc() {
   const inTable = sectionCols(c.lines);
   const plainLines = c.lines.filter((l) => !l.head && !l.kind && !l.options && !l.value && !inTable.get(l.id));
   const signRow = async (row: 0 | 1) => {
-    if (lat == null || lon == null) return Alert.alert(KIND, 'Enter the position first — degrees, minutes and N/S, E/W from the GNSS / DGPS.');
+    if (lat == null || lon == null) return Alert.alert(KIND, t('dpc.posFirst'));
     const typed = row === 0 && outsider && !pickIds[0] && typedName.trim() ? { id: `name:${typedName.trim()}`, name: typedName.trim(), rank: book === 'fam-pax' ? 'Guest' : book === 'fam-safety' ? 'Visitor' : 'Project crew', own: false } : undefined;
     const p = typed ?? rowPeople(row).find((x) => x.id === pickIds[row]);
-    if (!p) return Alert.alert(KIND, `Choose the name — ${ROLE[row]}.`);
+    if (!p) return Alert.alert(KIND, t('dpc.chooseName', { role: ROLE[row] }));
     const other = sigs[1 - row];
-    if (other && (other.key === p.id || other.name === p.name)) return Alert.alert(KIND, `Two different people sign: ${ROLE[0]} and ${ROLE[1]}.`);
+    if (other && (other.key === p.id || other.name === p.name)) return Alert.alert(KIND, t('dpc.twoPeople', { a: ROLE[0], b: ROLE[1] }));
     // A guest or a project hand has no PIN on this device: by hand.
     const res = await confirmSign({ personKey: p.id, name: p.name, ownDevice: p.own, what: `${c.title} — ${ROLE[row]}`, always: true, handOnly: row === 0 && outsider && !p.own && (book === 'fam-pax' || p.id.startsWith('name:') || p.id.startsWith('pax:')) });
     if (!res) return;
@@ -203,8 +205,8 @@ export default function DpCheckSc() {
   };
   const save = async () => {
     const [a, b] = sigs;
-    if (lat == null || lon == null) return Alert.alert(KIND, 'Enter the position the checklist is done at — degrees, minutes and N/S, E/W from the GNSS / DGPS.');
-    if (!a || !b) return Alert.alert(KIND, `Both sign before it is saved: ${ROLE[0]} and ${ROLE[1]}.`);
+    if (lat == null || lon == null) return Alert.alert(KIND, t('dpc.posAt'));
+    if (!a || !b) return Alert.alert(KIND, t('dpc.bothSign', { a: ROLE[0], b: ROLE[1] }));
     const finish = async () => {
       const clean = (r: Record<string, string>) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v));
       const cc = clean(cond as Record<string, string>);
@@ -217,16 +219,16 @@ export default function DpCheckSc() {
       await clearDraft(c.templateId);
       nav.replace('DpCheck', { id: rec.id });
     };
-    const warn = [o.open ? `${o.open} not answered` : '', o.fail ? `${o.fail} answered No` : ''].filter(Boolean).join(', ');
-    Alert.alert('Save the signed checklist?', `${warn ? `${warn}. ` : ''}A signed checklist cannot be changed.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Save', onPress: () => void finish() },
+    const warn = [o.open ? t('dpc.notAnswered', { n: o.open }) : '', o.fail ? t('dpc.answeredNo', { n: o.fail }) : ''].filter(Boolean).join(', ');
+    Alert.alert(t('dpc.saveQ'), `${warn ? `${warn}. ` : ''}${t('dpc.cannotChange')}`, [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.save'), onPress: () => void finish() },
     ]);
   };
   const pdf = async () => {
     try {
       const w = await exportDpCheckPdf(c, vessel);
-      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
       Alert.alert(KIND, String(e?.message ?? e));
     }
@@ -234,7 +236,7 @@ export default function DpCheckSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title={c.title} subtitle={ro ? `Signed by ${c.by}${c.byRank ? ` (${c.byRank})` : ''}${c.by2 ? ` and ${c.by2}${c.by2Rank ? ` (${c.by2Rank})` : ''}` : ''}` : c.where === 'engine' ? 'Engine room' : 'Bridge'} help="Dynamic positioning" />
+      <ScreenTitle title={c.title} subtitle={ro ? t('dpc.signedBy', { who: `${c.by}${c.byRank ? ` (${c.byRank})` : ''}${c.by2 ? ` ${t('dpc.and')} ${c.by2}${c.by2Rank ? ` (${c.by2Rank})` : ''}` : ''}` }) : c.where === 'engine' ? t('dpt.engine') : t('dpt.bridge')} help="Dynamic positioning" />
 
       {ownFields.length ? (
         <View style={styles.pair}>
@@ -248,48 +250,48 @@ export default function DpCheckSc() {
       ) : (
       <View style={styles.pair}>
         <View style={styles.half}>
-          <Label>Field</Label>
+          <Label>{t('dpc.field')}</Label>
           {ro ? <Text style={styles.value}>{c.operation || '—'}</Text> : <TextInput style={styles.input} value={operation} onChangeText={setOperation} />}
         </View>
         <View style={styles.half}>
-          <Label>Offshore unit</Label>
+          <Label>{t('dpc.unit')}</Label>
           {ro ? <Text style={styles.value}>{c.unit || '—'}</Text> : <TextInput style={styles.input} value={unit} onChangeText={setUnit} />}
         </View>
       </View>
       )}
-      <Label>Date and time ★</Label>
+      <Label>{t('dpc.dateTime')}</Label>
       <Text style={styles.value}>{`${shipAndUtc(c.at, c.shipOffset).line}${ro ? '' : ' — set when signed'}`}</Text>
       {ro ? (
         <>
-          <Label>Position ★</Label>
+          <Label>{t('dpc.position')}</Label>
           <Text style={styles.value}>{positionText(c.position)}</Text>
         </>
       ) : (
         <>
-          <PositionInput label={book === 'dp' ? 'Position ★ (from the DGPS)' : 'Position ★ (from the GNSS)'} portAllowed={false} position={posT} onChange={(v) => setPosT(v)} />
+          <PositionInput label={book === 'dp' ? t('dpc.posDgps') : t('dpc.posGnss')} portAllowed={false} position={posT} onChange={(v) => setPosT(v)} />
           <View style={styles.chips}>
             {last ? (
               <TouchableOpacity style={styles.chip} onPress={() => setPosT(positionText(last.position))}>
-                <Text style={styles.chipText}>{`As the last checklist (${shipAndUtc(last.at, last.shipOffset).ship.slice(5)})`}</Text>
+                <Text style={styles.chipText}>{t('dpc.asLast', { when: shipAndUtc(last.at, last.shipOffset).ship.slice(5) })}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
         </>
       )}
 
-      {ownFields.length ? null : <Label>Conditions</Label>}
+      {ownFields.length ? null : <Label>{t('dpc.conditions')}</Label>}
       {ownFields.length ? null : ro ? (
         <Text style={styles.value}>{conditionsText(c.conditions) || '—'}</Text>
       ) : (
         <View>
           {COND.map((r) => (
             <View key={r.key} style={styles.condRow}>
-              <Text style={styles.condLabel}>{r.label}</Text>
+              <Text style={styles.condLabel}>{tk(`dpc.c.${r.key}`)}</Text>
               <TextInput style={[styles.input, styles.cell]} value={cond[r.key] ?? ''} onChangeText={(v) => setCond((x) => ({ ...x, [r.key]: v }))} accessibilityLabel={r.label} />
               <Text style={styles.unit}>{r.unit}</Text>
               {r.dir ? (
                 <>
-                  <Text style={[styles.condLabel, styles.dirLabel]}>direction</Text>
+                  <Text style={[styles.condLabel, styles.dirLabel]}>{t('dpc.direction')}</Text>
                   <TextInput style={[styles.input, styles.cell]} value={cond[r.dir] ?? ''} onChangeText={(v) => setCond((x) => ({ ...x, [r.dir!]: v }))} accessibilityLabel={`${r.label.split(' ')[0]} direction`} />
                   <Text style={styles.unit}>°</Text>
                 </>
@@ -298,7 +300,7 @@ export default function DpCheckSc() {
           ))}
         </View>
       )}
-      <Label>DP status (ASOG)</Label>
+      <Label>{t('dpc.asog')}</Label>
       <View style={styles.chips}>
         {(Object.keys(ASOG_LABEL) as AsogStatus[]).map((k) => {
           const on = (ro ? c.asog : asog) === k;
@@ -312,10 +314,10 @@ export default function DpCheckSc() {
       </View>
 
       <View style={styles.headRow}>
-        <Label>{`Items (${c.lines.filter((l) => !l.head && !l.kind).length})`}</Label>
+        <Label>{t('lr.items', { n: c.lines.filter((l) => !l.head && !l.kind).length })}</Label>
         {!ro && plainLines.length ? (
           <TouchableOpacity onPress={() => setResults((x) => ({ ...x, ...Object.fromEntries(plainLines.map((l) => [l.id, x[l.id] ?? 'pass'])) }))}>
-            <Text style={styles.link}>All Yes / No items yes — then change what is not</Text>
+            <Text style={styles.link}>{t('dpc.allYes')}</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -341,7 +343,7 @@ export default function DpCheckSc() {
                   {title}
                   {!ro && yesCol >= 0 ? (
                     <TouchableOpacity onPress={() => setResults((x) => ({ ...x, ...Object.fromEntries(sec.lines.map((l) => [cellKey(l.id, yesCol), x[cellKey(l.id, yesCol)] || 'Yes'])) }))} hitSlop={6}>
-                      <Text style={styles.small}>{`All ${cols[yesCol].name} — Yes`}</Text>
+                      <Text style={styles.small}>{t('dpc.allColYes', { col: cols[yesCol].name })}</Text>
                     </TouchableOpacity>
                   ) : null}
                 </View>
@@ -422,7 +424,7 @@ export default function DpCheckSc() {
                           const red = on && answerIsBad(r.key, l);
                           return (
                             <TouchableOpacity key={r.key} disabled={ro} style={[styles.chip, on && styles.chipOn, red && { backgroundColor: COLORS.danger, borderColor: COLORS.danger }]} onPress={() => setResults((x) => ({ ...x, [l.id]: r.key }))}>
-                              <Text style={[styles.chipText, on && styles.chipTextOn]}>{r.label}</Text>
+                              <Text style={[styles.chipText, on && styles.chipTextOn]}>{r.key === 'pass' || r.key === 'fail' || r.key === 'na' ? tk(`dpc.res.${r.key}`) : r.label}</Text>
                             </TouchableOpacity>
                           );
                         })}
@@ -469,20 +471,20 @@ export default function DpCheckSc() {
             <View>
               {values[l.id] ? <SignatureView path={values[l.id]} height={140} boxW={SKETCH_W} boxH={SKETCH_H} color={COLORS.textDark} /> : null}
               <TouchableOpacity style={[styles.chip, { alignSelf: 'flex-start', marginTop: SIZES.xs }]} onPress={() => { setSketchDraft(values[l.id] ?? ''); setSketchFor(l.id); }}>
-                <Text style={styles.chipText}>{values[l.id] ? 'Redraw the schematic' : 'Draw the schematic'}</Text>
+                <Text style={styles.chipText}>{values[l.id] ? t('dpc.redraw') : t('dpc.draw')}</Text>
               </TouchableOpacity>
             </View>
           )}
         </View>
       ))}
 
-      <Label>Remarks</Label>
+      <Label>{t('book.remarks')}</Label>
       {ro ? <Text style={styles.value}>{c.remarks || '—'}</Text> : <TextInput style={[styles.input, { minHeight: 70 }]} value={remarks} onChangeText={setRemarks} multiline />}
 
       <Text style={[styles.sub, { marginVertical: SIZES.sm }]}>{`${o.pass} yes · ${o.fail} no · ${o.na} n/a${o.open ? ` · ${o.open} not answered` : ''}`}</Text>
       {ro ? (
         <>
-          <Label>Signatures</Label>
+          <Label>{t('doc.signatures')}</Label>
           {[
             { role: ROLE[0], name: c.by, rank: c.byRank, proof: c.byWith },
             { role: ROLE[1], name: c.by2, rank: c.by2Rank, proof: c.by2With },
@@ -499,18 +501,18 @@ export default function DpCheckSc() {
             <TouchableOpacity style={[styles.btn, { flex: 1 }]} onPress={pdf}>
               <Text style={styles.btnText}>PDF</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.btn, { flex: 1 }]} onPress={() => void printDpCheck(c, vessel).catch((e) => Alert.alert('Print', String(e?.message ?? e)))}>
-              <Text style={styles.btnText}>Print</Text>
+            <TouchableOpacity style={[styles.btn, { flex: 1 }]} onPress={() => void printDpCheck(c, vessel).catch((e) => Alert.alert(t('rep.print'), String(e?.message ?? e)))}>
+              <Text style={styles.btnText}>{t('rep.print')}</Text>
             </TouchableOpacity>
           </View>
           {saved ? <Text style={[styles.sub, { color: COLORS.success }]}>{`✓ ${saved}`}</Text> : null}
           <TouchableOpacity onPress={() => goBackOr(nav)} style={{ marginTop: SIZES.md }}>
-            <Text style={styles.link}>← Dynamic positioning</Text>
+            <Text style={styles.link}>{`← ${t('dp.title')}`}</Text>
           </TouchableOpacity>
         </>
       ) : (
         <>
-          <Label>Signatures ★</Label>
+          <Label>{`${t('doc.signatures')} ★`}</Label>
           {([0, 1] as const).map((row) => {
             const done = sigs[row];
             const taken = sigs[1 - row];
@@ -524,34 +526,34 @@ export default function DpCheckSc() {
                   </View>
                 ) : (
                   <Dropdown
-                    caption="NAME"
+                    caption={t('dpc.nameCap')}
                     value={pickIds[row]}
                     onChange={(v: string) => setPickIds((x) => x.map((y, i) => (i === row ? v : y)))}
-                    options={[{ value: '', label: 'Choose the name…' }, ...rowPeople(row).filter((p) => !taken || (p.id !== taken.key && p.name !== taken.name)).map((p) => ({ value: p.id, label: p.own ? `${crewLabel(p)} — this device` : crewLabel(p) }))]}
+                    options={[{ value: '', label: t('dpc.chooseNameL') }, ...rowPeople(row).filter((p) => !taken || (p.id !== taken.key && p.name !== taken.name)).map((p) => ({ value: p.id, label: p.own ? `${crewLabel(p)} — ${t('dpc.thisDevice')}` : crewLabel(p) }))]}
                     style={{ flex: 1, minWidth: 200, maxWidth: 360 }}
                   />
                 )}
                 {!done && row === 0 && outsider && !pickIds[0] ? (
                   <>
-                    <Text style={styles.sub}>or write the name</Text>
-                    <TextInput style={[styles.input, { flex: 1, minWidth: 180, marginBottom: 0 }]} value={typedName} onChangeText={setTypedName} accessibilityLabel="Or write the name" />
+                    <Text style={styles.sub}>{t('dpc.orWrite')}</Text>
+                    <TextInput style={[styles.input, { flex: 1, minWidth: 180, marginBottom: 0 }]} value={typedName} onChangeText={setTypedName} accessibilityLabel={t('dpc.orWrite')} />
                   </>
                 ) : null}
                 {done ? (
                   <TouchableOpacity onPress={() => setSigs((x) => x.map((v, i) => (i === row ? null : v)))} hitSlop={8}>
-                    <Text style={styles.link}>Undo</Text>
+                    <Text style={styles.link}>{t('srch.undo')}</Text>
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity style={[styles.signBtn, !pickIds[row] && { opacity: 0.5 }]} onPress={() => void signRow(row)}>
-                    <Text style={styles.btnText}>Sign</Text>
+                    <Text style={styles.btnText}>{t('common.sign')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
             );
           })}
-          {people.length < 2 ? <Text style={styles.sub}>Two officers sign — the crew list (Crew) needs the officers aboard with their rank (Master, Chief Officer, DPO, Engineer…).</Text> : null}
+          {people.length < 2 ? <Text style={styles.sub}>{t('dpc.twoOfficers')}</Text> : null}
           <TouchableOpacity style={[styles.btn, !(sigs[0] && sigs[1]) && { opacity: 0.5 }]} onPress={save}>
-            <Text style={styles.btnText}>Save the signed checklist</Text>
+            <Text style={styles.btnText}>{t('dpc.saveSigned')}</Text>
           </TouchableOpacity>
         </>
       )}
@@ -559,22 +561,22 @@ export default function DpCheckSc() {
       <Modal visible={!!sketchFor} transparent animationType="fade" onRequestClose={() => setSketchFor(null)}>
         <View style={styles.modalBack}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{c.lines.find((l) => l.id === sketchFor)?.text ?? 'Schematic'}</Text>
-            <SignaturePad big hint="Own vessel, rig, wind and current" value={sketchDraft} onChange={setSketchDraft} boxW={SKETCH_W} boxH={SKETCH_H} />
+            <Text style={styles.modalTitle}>{c.lines.find((l) => l.id === sketchFor)?.text ?? t('dpc.schematic')}</Text>
+            <SignaturePad big hint={t('dpc.sketchHint')} value={sketchDraft} onChange={setSketchDraft} boxW={SKETCH_W} boxH={SKETCH_H} />
             <View style={styles.modalBtns}>
               {/* Undo takes back the last stroke: each starts with M in the path. */}
               <TouchableOpacity onPress={() => setSketchDraft((d) => d.replace(/M[^M]*$/, ''))} disabled={!sketchDraft} hitSlop={8}>
-                <Text style={[styles.link, !sketchDraft && { opacity: 0.4 }]}>↶ Undo</Text>
+                <Text style={[styles.link, !sketchDraft && { opacity: 0.4 }]}>{`↶ ${t('srch.undo')}`}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setSketchDraft('')} hitSlop={8}>
-                <Text style={[styles.link, { color: COLORS.danger }]}>Clear</Text>
+                <Text style={[styles.link, { color: COLORS.danger }]}>{t('mt.clear')}</Text>
               </TouchableOpacity>
               <View style={{ flex: 1 }} />
               <TouchableOpacity onPress={() => setSketchFor(null)} hitSlop={8}>
-                <Text style={styles.link}>Cancel</Text>
+                <Text style={styles.link}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.signBtn} onPress={() => { const id = sketchFor!; setValues((x) => ({ ...x, [id]: sketchDraft })); setSketchFor(null); }}>
-                <Text style={styles.btnText}>Done</Text>
+                <Text style={styles.btnText}>{t('common.done')}</Text>
               </TouchableOpacity>
             </View>
           </View>

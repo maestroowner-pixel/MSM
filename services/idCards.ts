@@ -294,7 +294,7 @@ export function engravingSvg(keys: TagKey[], v: VesselInfo | null): string {
     .join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}mm" height="${H}mm" viewBox="0 0 ${W} ${H}">
-<!-- ISMpilot key tags for laser engraving: red = outline and hole (not engraved), black = engrave. ${ENGRAVE_W} x ${ENGRAVE_H} mm tags. -->
+<!-- ISM AI Pilot key tags for laser engraving: red = outline and hole (not engraved), black = engrave. ${ENGRAVE_W} x ${ENGRAVE_H} mm tags. -->
 ${tags}
 </svg>`;
 }

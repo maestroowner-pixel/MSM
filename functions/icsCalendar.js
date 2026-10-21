@@ -96,10 +96,10 @@ function buildIcs({ vesselName, imo, events }) {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    `PRODID:-//ISMpilot//Equipment Calendar//EN`,
+    `PRODID:-//ISM AI Pilot//Equipment Calendar//EN`,
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    fold(`X-WR-CALNAME:ISMpilot — ${icsText(vesselName)}`),
+    fold(`X-WR-CALNAME:ISM AI Pilot — ${icsText(vesselName)}`),
     'X-WR-TIMEZONE:UTC',
     'X-PUBLISHED-TTL:PT12H',
     ...events,

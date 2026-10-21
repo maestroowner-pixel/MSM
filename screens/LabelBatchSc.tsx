@@ -25,10 +25,12 @@ import { CATEGORIES, visibleCategories } from '../constants/categories';
 import { CategoryKey, Group } from '../types/equipment';
 import { SIZES, Palette } from '../theme';
 import { listDecks, selectLabelItems } from '../services/labelBatch';
+import { t, tn, useT } from '../utils/i18n';
 
 type GroupPick = Group | 'ALL';
 
 export default function LabelBatchSc() {
+  useT();
   const { flat, byCategory, categories: ownCats } = useData();
   const nav = useNavigation<any>();
   const COLORS = useTheme();
@@ -114,9 +116,9 @@ export default function LabelBatchSc() {
   if (!flat.length) {
     return (
       <Screen scroll>
-        <ScreenTitle title="QR labels" subtitle="Print stickers for many items at once" help="Scan, flag & recently scanned" />
+        <ScreenTitle title={t('lb.title')} subtitle={t('lb.subShort')} help="Scan, flag & recently scanned" />
         <Card>
-          <Text style={styles.empty}>No equipment yet. Import or add items first, then print their labels.</Text>
+          <Text style={styles.empty}>{t('lb.empty')}</Text>
         </Card>
       </Screen>
     );
@@ -124,21 +126,21 @@ export default function LabelBatchSc() {
 
   const deckSummary =
     deckSel === null
-      ? 'all decks'
+      ? t('lb.allDecksL')
       : deckSel.size === 0
-        ? 'no deck selected'
+        ? t('lb.noDeck')
         : decks.filter((d) => deckSel.has(d.key)).map((d) => d.label).join(', ');
 
   return (
     <Screen scroll>
-      <ScreenTitle title="QR labels" subtitle="Print stickers for a category, a deck or a whole group at once" help="Scan, flag & recently scanned" />
+      <ScreenTitle title={t('lb.title')} subtitle={t('lb.sub')} help="Scan, flag & recently scanned" />
 
-      <Text style={styles.sectionLabel}>Equipment group</Text>
+      <Text style={styles.sectionLabel}>{t('lb.group')}</Text>
       <View style={styles.chipRow}>
         {(['ALL', 'LSA', 'FFE', 'OTHER'] as GroupPick[]).map((g) => (
           <TouchableOpacity key={g} style={[styles.chip, group === g && styles.chipOn]} onPress={() => setGroup(g)}>
             <Text style={[styles.chipText, group === g && styles.chipTextOn]}>
-              {g === 'ALL' ? 'All' : g === 'OTHER' ? 'Other' : g}
+              {g === 'ALL' ? t('lb.all') : g === 'OTHER' ? t('lb.other') : g}
             </Text>
           </TouchableOpacity>
         ))}
@@ -147,10 +149,10 @@ export default function LabelBatchSc() {
       {decks.length ? (
         <>
           <View style={styles.headRow}>
-            <Text style={styles.sectionLabel}>Decks</Text>
+            <Text style={styles.sectionLabel}>{t('lb.decks')}</Text>
             {deckSel !== null ? (
               <TouchableOpacity onPress={() => setDeckSel(null)} hitSlop={8}>
-                <Text style={styles.selectAll}>All decks</Text>
+                <Text style={styles.selectAll}>{t('lb.allDecks')}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -175,7 +177,7 @@ export default function LabelBatchSc() {
           Categories ({catSel.size}/{inGroup.length})
         </Text>
         <TouchableOpacity onPress={toggleAllCats} hitSlop={8}>
-          <Text style={styles.selectAll}>{allCats ? 'Clear all' : 'Select all'}</Text>
+          <Text style={styles.selectAll}>{allCats ? t('lb.clearAll') : t('lb.selectAll')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -209,15 +211,12 @@ export default function LabelBatchSc() {
       <TouchableOpacity style={[styles.printBtn, !picked.length && { opacity: 0.4 }]} disabled={!picked.length} onPress={print}>
         <MciIcon name="printer" size={18} color={COLORS.textWhite} />
         <Text style={styles.printText}>
-          {picked.length ? `Print ${picked.length} label${picked.length === 1 ? '' : 's'}` : 'Nothing to print'}
+          {picked.length ? t('lb.print', { x: tn('n.label', picked.length) }) : t('lb.nothing')}
         </Text>
       </TouchableOpacity>
 
       <Text style={styles.help}>
-        {picked.length} label{picked.length === 1 ? '' : 's'} — {deckSummary}, {catSel.size} categor{catSel.size === 1 ? 'y' : 'ies'}.
-        Labels print deck by deck, then by category and item number, so a roll comes off in the order you walk
-        the ship. The next screen chooses the sticker size and where to print: the Xprinter, a thermal roll,
-        an A4 sheet on the office printer, or a PDF for another printer's app.
+        {tn('n.label', picked.length)} — {deckSummary}, {tn('n.category', catSel.size)}. {t('lb.help')}
       </Text>
     </Screen>
   );

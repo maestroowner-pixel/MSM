@@ -5,6 +5,7 @@
 // and only where confirmed signatures are in use.
 import React, { useCallback, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { t } from '../utils/i18n';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 import { MciIcon } from './MciIcon';
@@ -31,8 +32,8 @@ export function MasterPinBanner() {
     <TouchableOpacity onPress={() => nav.navigate('CrewMatrix')} activeOpacity={0.8} style={[styles.bar, { borderColor: COLORS.warning, backgroundColor: COLORS.cardSolid }]}>
       <MciIcon name="lock-alert" size={22} color={COLORS.warning} />
       <View style={{ flex: 1 }}>
-        <Text style={[styles.title, { color: COLORS.textDark }]}>The Master PIN is still 0000</Text>
-        <Text style={[styles.sub, { color: COLORS.textLight }]}>Change it on this device — until then anyone can set or change a crew member’s signing PIN. Crew matrix → 🔒 Master PIN.</Text>
+        <Text style={[styles.title, { color: COLORS.textDark }]}>{t('pin.title')}</Text>
+        <Text style={[styles.sub, { color: COLORS.textLight }]}>{t('pin.sub')}</Text>
       </View>
       <MciIcon name="chevron-right" size={20} color={COLORS.textLight} />
     </TouchableOpacity>

@@ -23,8 +23,10 @@ import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
 import * as storage from '../services/storage';
+import { t, useT } from '../utils/i18n';
 
 export default function OrderGroupSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -48,7 +50,7 @@ export default function OrderGroupSc() {
     return (
       <Screen scroll>
         <BackButton onPress={() => goBackOr(nav)} />
-        <Text style={{ color: COLORS.textLight, marginTop: SIZES.md }}>Group not found.</Text>
+        <Text style={{ color: COLORS.textLight, marginTop: SIZES.md }}>{t('og.notFound')}</Text>
       </Screen>
     );
   }
@@ -60,17 +62,17 @@ export default function OrderGroupSc() {
 
   const save = async () => {
     if (!draft) return;
-    if (!draft.name.trim()) return Alert.alert('Group', 'Give this group a name.');
+    if (!draft.name.trim()) return Alert.alert(t('og.group'), t('og.needName'));
     await saveRow(storage.ORDER_GROUPS_KEY, { ...draft, name: draft.name.trim() });
     setDraft(null);
     playSuccessSound();
   };
 
   const deleteGroup = () =>
-    Alert.alert('Delete group', 'Remove this group? The orders inside are not deleted.', [
-      { text: 'Keep', style: 'cancel' },
+    Alert.alert(t('og.delete'), t('og.deleteBody'), [
+      { text: t('cat.keep'), style: 'cancel' },
       {
-        text: 'Delete group',
+        text: t('og.delete'),
         style: 'destructive',
         onPress: async () => {
           await saveRow(storage.ORDER_GROUPS_KEY, { ...g, deleted: true, updatedAt: Date.now() });
@@ -104,44 +106,44 @@ export default function OrderGroupSc() {
   return (
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav)} />
-      <ScreenTitle title={isNew ? 'New group' : g.name || 'Group'} subtitle="Order group" />
+      <ScreenTitle title={isNew ? t('og.new') : g.name || t('og.group')} subtitle={t('og.sub')} />
 
       <Card>
-        <Label>Name ★</Label>
+        <Label>{t('mt.namePh')}</Label>
         {officer || draft ? (
           <TextInput
             style={styles.input}
             value={(draft ?? g).name}
             onChangeText={(v) => set({ name: v })}
-            placeholder="Drydock Oct 2026 · Charter #4"
+            placeholder={t('og.namePh')}
             placeholderTextColor={COLORS.textLight}
           />
         ) : (
           <Text style={styles.fieldVal}>{g.name}</Text>
         )}
 
-        <Label style={{ marginTop: SIZES.sm }}>Date</Label>
+        <Label style={{ marginTop: SIZES.sm }}>{t('nc.date')}</Label>
         {officer || draft ? (
-          <SimpleDatePicker label="Date" value={(draft ?? g).date ?? todayIso()} onChange={(v) => set({ date: v })} />
+          <SimpleDatePicker label={t('nc.date')} value={(draft ?? g).date ?? todayIso()} onChange={(v) => set({ date: v })} />
         ) : g.date ? (
           <Text style={styles.fieldVal}>{formatDate(g.date)}</Text>
         ) : null}
 
         {(officer || draft) ? (
           <>
-            <Label style={{ marginTop: SIZES.sm }}>Notes</Label>
+            <Label style={{ marginTop: SIZES.sm }}>{t('og.notes')}</Label>
             <TextInput
               style={[styles.input, { minHeight: 56 }]}
               value={(draft ?? g).notes ?? ''}
               onChangeText={(v) => set({ notes: v })}
-              placeholder="Port, voyage, remarks…"
+              placeholder={t('og.notesPh')}
               placeholderTextColor={COLORS.textLight}
               multiline
             />
           </>
         ) : g.notes ? (
           <>
-            <Label style={{ marginTop: SIZES.sm }}>Notes</Label>
+            <Label style={{ marginTop: SIZES.sm }}>{t('og.notes')}</Label>
             <Text style={styles.fieldVal}>{g.notes}</Text>
           </>
         ) : null}
@@ -159,17 +161,17 @@ export default function OrderGroupSc() {
 
       {/* Orders in this group */}
       <View style={styles.sectionHead}>
-        <Label>{`Orders (${g.orderIds.length})`}</Label>
+        <Label>{t('og.orders', { n: g.orderIds.length })}</Label>
         {officer ? (
           <TouchableOpacity onPress={() => setAddingOrders((x) => !x)} hitSlop={10}>
-            <Text style={styles.addLink}>{addingOrders ? 'Done' : '+ Add / remove'}</Text>
+            <Text style={styles.addLink}>{addingOrders ? t('common.done') : t('og.addRemove')}</Text>
           </TouchableOpacity>
         ) : null}
       </View>
 
       {addingOrders ? (
         allOrders.length === 0 ? (
-          <Empty text="No orders yet." />
+          <Empty text={t('og.noOrders')} />
         ) : (
           allOrders.map((o) => {
             const on = g.orderIds.includes(o.id);
@@ -185,7 +187,7 @@ export default function OrderGroupSc() {
           })
         )
       ) : groupOrders.length === 0 ? (
-        <Empty text='Tap "+ Add / remove" to add orders to this group.' />
+        <Empty text={t('og.tapAdd')} />
       ) : (
         groupOrders.map((o) => {
           const pct = completionPct(o);
@@ -224,15 +226,15 @@ export default function OrderGroupSc() {
       <View style={styles.actions}>
         {draft != null ? (
           <TouchableOpacity style={styles.btn} onPress={() => void save()}>
-            <Text style={styles.btnText}>{isNew ? 'Create group' : 'Save changes'}</Text>
+            <Text style={styles.btnText}>{isNew ? t('og.create') : t('og.saveChanges')}</Text>
           </TouchableOpacity>
         ) : officer ? (
           <>
             <TouchableOpacity style={styles.btn} onPress={() => set({ name: g.name })}>
-              <Text style={styles.btnText}>Edit</Text>
+              <Text style={styles.btnText}>{t('common.edit')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.btnDanger} onPress={deleteGroup}>
-              <Text style={styles.btnDangerText}>Delete group</Text>
+              <Text style={styles.btnDangerText}>{t('og.delete')}</Text>
             </TouchableOpacity>
           </>
         ) : null}

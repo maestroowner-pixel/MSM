@@ -33,6 +33,7 @@ import { todayIso } from '../services/pms';
 import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
+import { t as tt, tk, useT, dateLocale } from '../utils/i18n';
 
 const nf = (x?: number) => (x == null ? '—' : `${x.toLocaleString('en-GB', { maximumFractionDigits: 1 })} L`);
 const num = (v: string) => {
@@ -47,6 +48,7 @@ const hhmm = () => {
 type Panel = 'none' | 'bunker' | 'transfer' | 'tanks';
 
 export default function FuelSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { fuelTanks: allTanks, fuelReadings, fuelBunkers, fuelTransfers, saveFuel, vessel, versionsOf } = useData();
@@ -62,7 +64,7 @@ export default function FuelSc() {
   const allBunkers = useMemo(() => allBunkersAll.filter((b) => (b.kind ?? 'diesel') === kind), [allBunkersAll, kind]);
   const kindBunkers = useMemo(() => fuelBunkers.filter((b) => (b.kind ?? 'diesel') === kind), [fuelBunkers, kind]);
 
-  const tankFields = () => tanks.map((t) => ({ key: `tanks.${t.id}`, label: `${t.name}, litres`, kind: 'number' as const }));
+  const tankFields = () => tanks.map((t) => ({ key: `tanks.${t.id}`, label: tt('fuel.tankL', { name: t.name }), kind: 'number' as const }));
   const editReading = (r: FuelReading) => amend.edit({ store: storage.FUEL_READINGS_KEY, record: r, what: `Fuel sounding ${formatDate(r.date)}`, fields: tankFields() });
   const removeReading = (r: FuelReading) => amend.remove({ store: storage.FUEL_READINGS_KEY, record: r, what: `Fuel sounding ${formatDate(r.date)}` });
   const { signer, picker } = useSigner();
@@ -89,7 +91,7 @@ export default function FuelSc() {
     return { by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), ...(sig.proof ? { signedWith: sig.proof } : {}) };
   };
   const needSigner = () => {
-    Alert.alert('Who is recording?', 'Choose your name below.');
+    Alert.alert(tt('fuel.whoRecords'), tt('pd.chooseName'));
     return null;
   };
 
@@ -106,7 +108,7 @@ export default function FuelSc() {
     const vals: Record<string, number> = {};
     for (const t of tanks) {
       const v = num(robValue(t));
-      if (v == null) return Alert.alert('Sounding', `Enter the litres in ${t.name}.`);
+      if (v == null) return Alert.alert(tt('fuel.sounding'), tt('fuel.enterLitres', { name: t.name }));
       vals[t.id] = v;
     }
     const who = await by('Fuel sounding');
@@ -122,7 +124,7 @@ export default function FuelSc() {
   const saveBunker = async () => {
     if (!signer) return needSigner();
     const litres = num(bk.litres);
-    if (!bk.port.trim() || !litres) return Alert.alert('Bunkering', 'Port/location and quantity are needed.');
+    if (!bk.port.trim() || !litres) return Alert.alert(tt('fuel.bunkering'), tt('fuel.needPort'));
     const into: Record<string, number> = {};
     for (const t of tanks) {
       const v = num(bk.into[t.id] ?? '');
@@ -130,7 +132,7 @@ export default function FuelSc() {
     }
     if (!Object.keys(into).length && tanks.length === 1) into[tanks[0].id] = litres;
     const split = Object.values(into).reduce((a, b) => a + b, 0);
-    if (Object.keys(into).length && Math.abs(split - litres) > 1) return Alert.alert('Bunkering', `The tanks add up to ${split} L, not ${litres} L.`);
+    if (Object.keys(into).length && Math.abs(split - litres) > 1) return Alert.alert(tt('fuel.bunkering'), tt('fuel.addUp', { split, litres }));
     const who = await by(`${FUEL_KIND_LABEL[kind]} — ${litres} L at ${bk.port.trim()}`);
     if (!who) return;
     const b: FuelBunker = {
@@ -154,7 +156,7 @@ export default function FuelSc() {
   const saveTransfer = async () => {
     if (!signer) return needSigner();
     const litres = num(tf.litres);
-    if (!tf.from || !tf.to || tf.from === tf.to || !litres) return Alert.alert('Transfer', 'Choose two different tanks and the litres moved.');
+    if (!tf.from || !tf.to || tf.from === tf.to || !litres) return Alert.alert(tt('fuel.transfer'), tt('fuel.twoTanks'));
     const who = await by(`Fuel transfer — ${litres} L`);
     if (!who) return;
     const t: FuelTransfer = { id: uid('xfer'), date: today, time: hhmm(), fromTankId: tf.from, toTankId: tf.to, litres, ...who, updatedAt: Date.now() };
@@ -167,9 +169,9 @@ export default function FuelSc() {
   const report = async (kind: 'pdf' | 'xlsx') => {
     try {
       const where = kind === 'pdf' ? await exportFuelPdf(m, tanks, vessel) : await exportFuelExcel(m, tanks, vessel);
-      if (typeof where === 'string') setSaved(where === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${where}”`);
+      if (typeof where === 'string') setSaved(where === 'Downloads' ? tt('common.savedDownloads') : tt('common.savedFolder', { folder: where }));
     } catch (e: any) {
-      Alert.alert('Fuel report', String(e?.message ?? e));
+      Alert.alert(tt('fuel.report'), String(e?.message ?? e));
     }
   };
 
@@ -177,20 +179,20 @@ export default function FuelSc() {
     <View style={styles.views}>
       {(Object.keys(FUEL_KIND_LABEL) as FuelKind[]).map((k) => (
         <TouchableOpacity key={k} onPress={() => { setKind(k); setPanel('none'); }} style={[styles.viewChip, kind === k && { backgroundColor: COLORS.primary }]}>
-          <Text style={[styles.viewChipText, kind === k && { color: COLORS.textWhite }]}>{k === 'diesel' ? 'MGO' : k === 'petrol' ? 'Petrol' : k === 'freshwater' ? 'Water' : 'Oils'}</Text>
+          <Text style={[styles.viewChipText, kind === k && { color: COLORS.textWhite }]}>{k === 'diesel' ? 'MGO' : k === 'petrol' ? tt('fuel.petrol') : k === 'freshwater' ? tt('fuel.water') : tt('fuel.oils')}</Text>
         </TouchableOpacity>
       ))}
     </View>
   );
 
   if (!tanks.length) {
-    const setupLabel = kind === 'diesel' ? 'Set up two diesel tanks' : `Add first ${FUEL_KIND_LABEL[kind]} tank`;
+    const setupLabel = kind === 'diesel' ? tt('fuel.setupTwo') : tt('fuel.addFirst', { kind: tk(`fk.${kind}`) });
     const hint = kind === 'diesel'
-      ? 'No diesel tanks yet. Start with port and starboard — rename, add or remove to match the vessel.'
-      : `No ${FUEL_KIND_LABEL[kind].toLowerCase()} tanks yet. Add one to start tracking.`;
+      ? tt('fuel.noDiesel')
+      : tt('fuel.noKind', { kind: tk(`fk.${kind}`).toLowerCase() });
     return (
       <Screen scroll>
-        <ScreenTitle title="Fuel" subtitle={FUEL_KIND_LABEL[kind]} help="Fuel" />
+        <ScreenTitle title={tt('fuel.title')} subtitle={tk(`fk.${kind}`)} help="Fuel" />
         {kindChips}
         <Empty text={hint} />
         <TouchableOpacity style={[styles.btn, { alignSelf: 'center' }]} onPress={() => void setupTanks()}>
@@ -206,7 +208,7 @@ export default function FuelSc() {
   // Fuel sub-items, or from these chips (the phone's bar has no sub-items).
   const viewSwitch = (
     <View style={styles.views}>
-      {([['sounding', 'Sounding'], ['daily', 'Daily report']] as const).map(([k, l]) => (
+      {([['sounding', tt('fuel.sounding')], ['daily', tt('fuel.daily')]] as const).map(([k, l]) => (
         <TouchableOpacity key={k} onPress={() => setView(k)} style={[styles.viewChip, view === k && { backgroundColor: COLORS.primary }]}>
           <Text style={[styles.viewChipText, view === k && { color: COLORS.textWhite }]}>{l}</Text>
         </TouchableOpacity>
@@ -216,7 +218,7 @@ export default function FuelSc() {
   if (view === 'daily' && kind === 'diesel') {
     return (
       <Screen scroll>
-        <ScreenTitle title="Fuel — daily report" subtitle="The noon report: consumption over the last day, from the soundings" help="Fuel" />
+        <ScreenTitle title={tt('fuel.dailyTitle')} subtitle={tt('fuel.dailySub')} help="Fuel" />
         {kindChips}
         {viewSwitch}
         <FuelDaily onSounding={() => setView('sounding')} />
@@ -227,8 +229,8 @@ export default function FuelSc() {
   return (
     <Screen scroll>
       <ScreenTitle
-        title="Fuel"
-        subtitle={FUEL_KIND_LABEL[kind]}
+        title={tt('fuel.title')}
+        subtitle={tk(`fk.${kind}`)}
         help="Fuel"
         actions={<MonthPicker value={month} onChange={setMonth} months={[...new Set([...fuelReadings.map((r) => r.date.slice(0, 7)), ...kindBunkers.map((b) => b.date.slice(0, 7))])]} />}
       />
@@ -237,11 +239,11 @@ export default function FuelSc() {
 
       {/* Today's sounding */}
       <Card>
-        <Label>{todays ? `Today's sounding — ${todays.time ?? ''} by ${todays.by}` : "Today's sounding"}</Label>
+        <Label>{todays ? tt('fuel.todayBy', { time: todays.time ?? '', by: todays.by }) : tt('fuel.today')}</Label>
         {tanks.map((t) => (
           <View key={t.id} style={styles.tankRow}>
             <Text style={styles.tankName} numberOfLines={1}>{t.name}</Text>
-            <TextInput style={[styles.litres, todays && { opacity: 0.7 }]} value={robValue(t)} onChangeText={(v) => setRob({ ...rob, [t.id]: v })} editable={!todays} keyboardType="decimal-pad" placeholder="litres" placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.litres, todays && { opacity: 0.7 }]} value={robValue(t)} onChangeText={(v) => setRob({ ...rob, [t.id]: v })} editable={!todays} keyboardType="decimal-pad" placeholder={tt('fuel.litresL')} placeholderTextColor={COLORS.textLight} />
             {t.capacity && num(robValue(t)) != null ? <Text style={styles.pct}>{`${Math.round((num(robValue(t))! / t.capacity) * 100)} %`}</Text> : <View style={{ width: 44 }} />}
           </View>
         ))}
@@ -252,22 +254,22 @@ export default function FuelSc() {
             <AmendButtons row isMaster={isMaster} onEdit={() => editReading(todays)} onDelete={() => removeReading(todays)} />
           ) : (
             <TouchableOpacity style={styles.btn} onPress={() => void saveSounding()}>
-              <Text style={styles.btnText}>Save sounding</Text>
+              <Text style={styles.btnText}>{tt('fuel.saveSounding')}</Text>
             </TouchableOpacity>
           )}
         </View>
         {picker ? (
           <>
-            <Text style={styles.sub}>Recording as</Text>
+            <Text style={styles.sub}>{tt('fuel.recordingAs')}</Text>
             {picker}
           </>
         ) : null}
       </Card>
 
       {/* Month — picked in the title */}
-      <Text style={styles.monthHead}>{new Date(`${month}-01T00:00:00Z`).toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' })}</Text>
+      <Text style={styles.monthHead}>{new Date(`${month}-01T00:00:00Z`).toLocaleString(dateLocale(), { month: 'long', year: 'numeric', timeZone: 'UTC' })}</Text>
       <View style={styles.stats}>
-        {([['Opening ROB', m.opening], ['Received', m.received], ['Consumed', m.consumed], ['Closing ROB', m.closing]] as [string, number | undefined][]).map(([l, v]) => (
+        {([[tt('fuel.openRob'), m.opening], [tt('fuel.received'), m.received], [tt('fuel.consumed'), m.consumed], [tt('fuel.closeRob'), m.closing]] as [string, number | undefined][]).map(([l, v]) => (
           <View key={l} style={styles.stat}>
             <Text style={styles.statVal}>{nf(v)}</Text>
             <Text style={styles.sub}>{l}</Text>
@@ -275,16 +277,16 @@ export default function FuelSc() {
         ))}
       </View>
       <View style={styles.reportRow}>
-        <TouchableOpacity style={styles.btn} onPress={() => void report('pdf')}><Text style={styles.btnText}>Monthly report (PDF)</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.btn} onPress={() => void report('pdf')}><Text style={styles.btnText}>{tt('fuel.monthlyPdf')}</Text></TouchableOpacity>
         <TouchableOpacity style={styles.btnOutline} onPress={() => void report('xlsx')}><Text style={styles.btnOutlineText}>Excel</Text></TouchableOpacity>
         {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{`✓ ${saved}`}</Text> : null}
       </View>
 
-      <Label>Day by day</Label>
+      <Label>{tt('fuel.dayByDay')}</Label>
       {shownDays.length ? (
         <View style={styles.table}>
           <View style={[styles.tr, styles.th]}>
-            {['Date', 'ROB', 'Received', 'Consumed'].map((h) => <Text key={h} style={[styles.td, styles.thText]}>{h}</Text>)}
+            {[tt('nc.date'), 'ROB', tt('fuel.received'), tt('fuel.consumed')].map((h) => <Text key={h} style={[styles.td, styles.thText]}>{h}</Text>)}
             <View style={{ width: 96 }} />
           </View>
           {shownDays.map((d) => (
@@ -305,96 +307,96 @@ export default function FuelSc() {
           ))}
         </View>
       ) : (
-        <Text style={styles.sub}>No soundings this month.</Text>
+        <Text style={styles.sub}>{tt('fuel.noSoundings')}</Text>
       )}
 
       {/* Bunkering, transfers, tanks */}
       <View style={styles.reportRow}>
         <TouchableOpacity style={[styles.btnOutline, panel === 'bunker' && styles.btnOn]} onPress={() => setPanel(panel === 'bunker' ? 'none' : 'bunker')}>
           <Text style={[styles.btnOutlineText, panel === 'bunker' && { color: COLORS.textWhite }]}>
-            {kind === 'petrol' ? '+ Fuelling' : kind === 'freshwater' ? '+ Water delivery' : kind === 'lube_oil' ? '+ Oil delivery' : '+ Bunkering'}
+            {`+ ${kind === 'petrol' ? tt('fuel.fuelling') : kind === 'freshwater' ? tt('fuel.waterDel') : kind === 'lube_oil' ? tt('fuel.oilDel') : tt('fuel.bunkering')}`}
           </Text>
         </TouchableOpacity>
         {kind === 'diesel' ? (
-          <TouchableOpacity style={[styles.btnOutline, panel === 'transfer' && styles.btnOn]} onPress={() => setPanel(panel === 'transfer' ? 'none' : 'transfer')}><Text style={[styles.btnOutlineText, panel === 'transfer' && { color: COLORS.textWhite }]}>+ Transfer</Text></TouchableOpacity>
+          <TouchableOpacity style={[styles.btnOutline, panel === 'transfer' && styles.btnOn]} onPress={() => setPanel(panel === 'transfer' ? 'none' : 'transfer')}><Text style={[styles.btnOutlineText, panel === 'transfer' && { color: COLORS.textWhite }]}>{`+ ${tt('fuel.transfer')}`}</Text></TouchableOpacity>
         ) : null}
-        <TouchableOpacity style={[styles.btnOutline, panel === 'tanks' && styles.btnOn]} onPress={() => setPanel(panel === 'tanks' ? 'none' : 'tanks')}><Text style={[styles.btnOutlineText, panel === 'tanks' && { color: COLORS.textWhite }]}>Tanks</Text></TouchableOpacity>
+        <TouchableOpacity style={[styles.btnOutline, panel === 'tanks' && styles.btnOn]} onPress={() => setPanel(panel === 'tanks' ? 'none' : 'tanks')}><Text style={[styles.btnOutlineText, panel === 'tanks' && { color: COLORS.textWhite }]}>{tt('fuel.tanks')}</Text></TouchableOpacity>
       </View>
 
       {panel === 'bunker' ? (
         <Card>
-          <Label>{kind === 'petrol' ? 'Fuelling — today' : kind === 'freshwater' ? 'Water delivery — today' : kind === 'lube_oil' ? 'Oil delivery — today' : 'Bunkering — today'}</Label>
+          <Label>{`${kind === 'petrol' ? tt('fuel.fuelling') : kind === 'freshwater' ? tt('fuel.waterDel') : kind === 'lube_oil' ? tt('fuel.oilDel') : tt('fuel.bunkering')} — ${tt('fuel.todayL')}`}</Label>
           <View style={styles.pair}>
-            <TextInput style={[styles.input, { flex: 2 }]} value={bk.port} onChangeText={(v) => setBk({ ...bk, port: v })} placeholder={kind === 'lube_oil' ? 'Location ★' : 'Port ★'} placeholderTextColor={COLORS.textLight} />
-            <TextInput style={[styles.input, { flex: 2 }]} value={bk.supplier} onChangeText={(v) => setBk({ ...bk, supplier: v })} placeholder="Supplier" placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { flex: 2 }]} value={bk.port} onChangeText={(v) => setBk({ ...bk, port: v })} placeholder={kind === 'lube_oil' ? tt('fuel.locationReq') : tt('fuel.portReq')} placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { flex: 2 }]} value={bk.supplier} onChangeText={(v) => setBk({ ...bk, supplier: v })} placeholder={tt('spp.supplier')} placeholderTextColor={COLORS.textLight} />
           </View>
           {kind === 'petrol' && (
-            <TextInput style={styles.input} value={bk.craft} onChangeText={(v) => setBk({ ...bk, craft: v })} placeholder="Craft (FRC / Tender 1 / Scooter…)" placeholderTextColor={COLORS.textLight} />
+            <TextInput style={styles.input} value={bk.craft} onChangeText={(v) => setBk({ ...bk, craft: v })} placeholder={tt('fuel.craftPh')} placeholderTextColor={COLORS.textLight} />
           )}
           {kind === 'lube_oil' && (
-            <TextInput style={styles.input} value={bk.grade} onChangeText={(v) => setBk({ ...bk, grade: v })} placeholder="Grade (SAE 40, HV 46, Shell Rimula…)" placeholderTextColor={COLORS.textLight} />
+            <TextInput style={styles.input} value={bk.grade} onChangeText={(v) => setBk({ ...bk, grade: v })} placeholder={tt('fuel.gradePh')} placeholderTextColor={COLORS.textLight} />
           )}
           <View style={styles.pair}>
-            <TextInput style={styles.input} value={bk.litres} onChangeText={(v) => setBk({ ...bk, litres: v })} placeholder="Litres ★" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
+            <TextInput style={styles.input} value={bk.litres} onChangeText={(v) => setBk({ ...bk, litres: v })} placeholder={tt('fuel.litresReq')} placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
             {kind === 'diesel' && (
               <>
-                <TextInput style={styles.input} value={bk.density} onChangeText={(v) => setBk({ ...bk, density: v })} placeholder="Density kg/L" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
-                <TextInput style={styles.input} value={bk.sulphur} onChangeText={(v) => setBk({ ...bk, sulphur: v })} placeholder="Sulphur %" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
-                <TextInput style={styles.input} value={bk.bdn} onChangeText={(v) => setBk({ ...bk, bdn: v })} placeholder="BDN No." placeholderTextColor={COLORS.textLight} />
+                <TextInput style={styles.input} value={bk.density} onChangeText={(v) => setBk({ ...bk, density: v })} placeholder={tt('fuel.density')} placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
+                <TextInput style={styles.input} value={bk.sulphur} onChangeText={(v) => setBk({ ...bk, sulphur: v })} placeholder={tt('fuel.sulphur')} placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
+                <TextInput style={styles.input} value={bk.bdn} onChangeText={(v) => setBk({ ...bk, bdn: v })} placeholder={tt('fuel.bdn')} placeholderTextColor={COLORS.textLight} />
               </>
             )}
           </View>
           {tanks.length > 1 ? (
             <View style={styles.pair}>
               {tanks.map((t) => (
-                <TextInput key={t.id} style={styles.input} value={bk.into[t.id] ?? ''} onChangeText={(v) => setBk({ ...bk, into: { ...bk.into, [t.id]: v } })} placeholder={`Into ${t.name}, L`} placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
+                <TextInput key={t.id} style={styles.input} value={bk.into[t.id] ?? ''} onChangeText={(v) => setBk({ ...bk, into: { ...bk.into, [t.id]: v } })} placeholder={tt('fuel.into', { name: t.name })} placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
               ))}
             </View>
           ) : null}
-          <TextInput style={styles.input} value={bk.note} onChangeText={(v) => setBk({ ...bk, note: v })} placeholder="Note" placeholderTextColor={COLORS.textLight} />
-          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void saveBunker()}><Text style={styles.btnText}>Record</Text></TouchableOpacity>
+          <TextInput style={styles.input} value={bk.note} onChangeText={(v) => setBk({ ...bk, note: v })} placeholder={tt('mo.note')} placeholderTextColor={COLORS.textLight} />
+          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void saveBunker()}><Text style={styles.btnText}>{tt('gb.record')}</Text></TouchableOpacity>
         </Card>
       ) : null}
 
       {panel === 'transfer' ? (
         <Card>
-          <Label>Transfer between tanks — today</Label>
+          <Label>{tt('fuel.transferHead')}</Label>
           <View style={styles.pair}>
-            <Dropdown caption="FROM" value={tf.from} onChange={(v) => setTf({ ...tf, from: v })} options={[{ value: '', label: '—' }, ...tanks.map((t) => ({ value: t.id, label: t.name }))]} style={{ flex: 1 }} />
-            <Dropdown caption="TO" value={tf.to} onChange={(v) => setTf({ ...tf, to: v })} options={[{ value: '', label: '—' }, ...tanks.map((t) => ({ value: t.id, label: t.name }))]} style={{ flex: 1 }} />
-            <TextInput style={[styles.input, { flex: 1 }]} value={tf.litres} onChangeText={(v) => setTf({ ...tf, litres: v })} placeholder="Litres" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
+            <Dropdown caption={tt('st.fromCap')} value={tf.from} onChange={(v) => setTf({ ...tf, from: v })} options={[{ value: '', label: '—' }, ...tanks.map((t) => ({ value: t.id, label: t.name }))]} style={{ flex: 1 }} />
+            <Dropdown caption={tt('st.toCap')} value={tf.to} onChange={(v) => setTf({ ...tf, to: v })} options={[{ value: '', label: '—' }, ...tanks.map((t) => ({ value: t.id, label: t.name }))]} style={{ flex: 1 }} />
+            <TextInput style={[styles.input, { flex: 1 }]} value={tf.litres} onChangeText={(v) => setTf({ ...tf, litres: v })} placeholder={tt('fuel.litres')} placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
           </View>
-          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void saveTransfer()}><Text style={styles.btnText}>Record transfer</Text></TouchableOpacity>
+          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void saveTransfer()}><Text style={styles.btnText}>{tt('fuel.recordTransfer')}</Text></TouchableOpacity>
         </Card>
       ) : null}
 
       {panel === 'tanks' ? (
         <Card>
-          <Label>Tanks</Label>
+          <Label>{tt('fuel.tanks')}</Label>
           {tanks.map((t) => (
             <View key={t.id} style={styles.pair}>
               <TextInput style={[styles.input, { flex: 3 }]} defaultValue={t.name} onEndEditing={(e) => e.nativeEvent.text.trim() && void saveFuel('tank', { ...t, name: e.nativeEvent.text.trim() })} onBlur={(e: any) => { const v = e?.target?.value ?? e?.nativeEvent?.text; if (v && v.trim() && v.trim() !== t.name) void saveFuel('tank', { ...t, name: v.trim() }); }} placeholder="Tank name" placeholderTextColor={COLORS.textLight} />
               <TextInput style={[styles.input, { flex: 1 }]} defaultValue={t.capacity ? String(t.capacity) : ''} onEndEditing={(e) => void saveFuel('tank', { ...t, capacity: num(e.nativeEvent.text) })} onBlur={(e: any) => { const v = num(String(e?.target?.value ?? '')); if (v !== t.capacity) void saveFuel('tank', { ...t, capacity: v }); }} placeholder="Capacity, L" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
-              <TouchableOpacity onPress={() => Alert.alert('Remove tank', `Remove ${t.name}? Its past soundings stay in the records.`, [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => void saveFuel('tank', { ...t, deleted: true }) }])} hitSlop={8}>
+              <TouchableOpacity onPress={() => Alert.alert(tt('fuel.removeTank'), tt('fuel.removeTankBody', { name: t.name }), [{ text: tt('common.cancel'), style: 'cancel' }, { text: tt('common.remove'), style: 'destructive', onPress: () => void saveFuel('tank', { ...t, deleted: true }) }])} hitSlop={8}>
                 <MciIcon name="delete-outline" size={22} color={COLORS.danger} />
               </TouchableOpacity>
             </View>
           ))}
           <TouchableOpacity onPress={() => void saveFuel('tank', { id: uid('tank'), name: `Tank ${tanks.length + 1}`, order: tanks.length, kind })}>
-            <Text style={styles.link}>+ Add a tank</Text>
+            <Text style={styles.link}>{tt('fuel.addTank')}</Text>
           </TouchableOpacity>
         </Card>
       ) : null}
 
       {current(allReadings).filter((r) => r.supersedes && r.date.startsWith(month)).map((r) => (
         <View key={r.id} style={styles.entry}>
-          <Text style={[styles.entryHead, r.cancelled && { textDecorationLine: 'line-through' }]}>{`Sounding ${formatDate(r.date)} · ROB ${nf(robTotal(r, tanks))}`}</Text>
+          <Text style={[styles.entryHead, r.cancelled && { textDecorationLine: 'line-through' }]}>{`${tt('fuel.sounding')} ${formatDate(r.date)} · ROB ${nf(robTotal(r, tanks))}`}</Text>
           <AmendNote rec={r} all={allReadings} summary={(p) => `${formatDate(p.date)} · ROB ${nf(robTotal(p, tanks))} · ${p.by}`} />
         </View>
       ))}
       {current(allBunkers).some((b) => b.date.startsWith(month)) ? (
         <>
-          <Label>{kind === 'diesel' ? 'Bunkering this month — Oil Record Book entries' : `${FUEL_KIND_LABEL[kind]} deliveries this month`}</Label>
+          <Label>{kind === 'diesel' ? tt('fuel.bunkerMonth') : tt('fuel.delMonth', { kind: tk(`fk.${kind}`) })}</Label>
           {current(allBunkers).filter((b) => b.date.startsWith(month)).sort((a, b) => a.date.localeCompare(b.date)).map((b) => (
             <View key={b.id} style={[styles.entry, { flexDirection: 'row', gap: SIZES.sm }]}>
               <View style={{ flex: 1 }}>
@@ -419,7 +421,7 @@ export default function FuelSc() {
       ) : null}
       {current(allTransfers).some((t) => t.date.startsWith(month)) ? (
         <>
-          <Label>Transfers this month</Label>
+          <Label>{tt('fuel.transfersMonth')}</Label>
           {current(allTransfers).filter((t) => t.date.startsWith(month)).map((t) => (
             <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginBottom: 4 }}>
               <View style={{ flex: 1 }}>

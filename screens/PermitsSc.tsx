@@ -25,10 +25,12 @@ import { PERMIT_TYPES, PERMIT_TYPE_MAP } from '../constants/permitTypes';
 import { RISK_LIBRARY } from '../constants/riskLibrary';
 import { RISK_COLOR, RISK_LABEL, isOverdue, nowLocal, worstResidual } from '../services/permits';
 import { uid } from '../utils/id';
+import { t, tn, useT } from '../utils/i18n';
 
 type Tab = 'permits' | 'risks';
 
 export default function PermitsSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -91,7 +93,7 @@ export default function PermitsSc() {
             {[p.no, def.label, p.location, p.from ? `${p.from.replace('T', ' ')} → ${(p.to ?? '').slice(11)}` : null].filter(Boolean).join(' · ')}
           </Text>
         </View>
-        <Text style={[styles.status, { color }]}>{late ? 'Overdue' : PERMIT_STATUS_LABEL[p.status]}</Text>
+        <Text style={[styles.status, { color }]}>{late ? t('permits.overdue') : PERMIT_STATUS_LABEL[p.status]}</Text>
       </TouchableOpacity>
     );
   };
@@ -104,7 +106,7 @@ export default function PermitsSc() {
         <View style={{ flex: 1 }}>
           <Text style={styles.title} numberOfLines={1}>{r.title}</Text>
           <Text style={styles.sub} numberOfLines={1}>
-            {[r.no, `${r.hazards.length} hazard${r.hazards.length === 1 ? '' : 's'}`, r.approved ? `approved by ${r.approved.by}` : 'not approved'].filter(Boolean).join(' · ')}
+            {[r.no, tn('n.hazard', r.hazards.length), r.approved ? t('permits.approvedBy', { by: r.approved.by }) : t('permits.notApproved')].filter(Boolean).join(' · ')}
           </Text>
         </View>
         {w ? <Text style={[styles.status, { color: RISK_COLOR[w] }]}>{RISK_LABEL[w]}</Text> : null}
@@ -115,13 +117,13 @@ export default function PermitsSc() {
   return (
     <Screen scroll>
       <ScreenTitle
-        title={archive && tab === 'permits' ? `Permits — ${monthName(month)}` : 'Permits, TBT & RA'}
-        subtitle={archive && tab === 'permits' ? `Archive · ${ofMonth.length} permit${ofMonth.length === 1 ? '' : 's'} this month` : 'Permits to work, toolbox talks and risk assessments'}
+        title={archive && tab === 'permits' ? t('permits.titleMonth', { month: monthName(month) }) : t('permits.title')}
+        subtitle={archive && tab === 'permits' ? t('permits.archiveSub', { x: tn('n.permit', ofMonth.length) }) : t('permits.sub')}
         help="Permits to work and risk assessments"
         actions={archive && tab === 'permits' ? <MonthPicker value={month} onChange={setMonth} months={permitMonths} counts={permitCounts} /> : undefined}
       />
       <View style={styles.tabs}>
-        {([['permits', `Permits to work · ${open.length} open`], ['risks', `Risk assessments · ${risks.length}`]] as [Tab, string][]).map(([k, l]) => (
+        {([['permits', t('permits.tabPermits', { n: open.length })], ['risks', t('permits.tabRisks', { n: risks.length })]] as [Tab, string][]).map(([k, l]) => (
           <TouchableOpacity key={k} style={[styles.tab, tab === k && styles.tabOn]} onPress={() => setTab(k)}>
             <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>{l}</Text>
           </TouchableOpacity>
@@ -132,31 +134,31 @@ export default function PermitsSc() {
         <>
           <View style={styles.newRow}>
             <Dropdown
-              caption="NEW"
+              caption={t('permits.newCap')}
               value={newType}
               onChange={setNewType}
               options={PERMIT_TYPES.map((t) => ({ value: t.key, label: t.label }))}
               style={{ flex: 1 }}
             />
             <TouchableOpacity style={styles.btn} onPress={newPermit}>
-              <Text style={styles.btnText}>+ New permit</Text>
+              <Text style={styles.btnText}>{t('permits.new')}</Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={[styles.archiveBtn, archive && styles.tabOn]} onPress={() => setArchive((v) => !v)}>
             <MciIcon name="archive-outline" size={18} color={archive ? COLORS.textWhite : COLORS.primary} />
-            <Text style={[styles.tabText, archive && styles.tabTextOn]}>{archive ? 'Back to open permits' : 'Archive — by month'}</Text>
+            <Text style={[styles.tabText, archive && styles.tabTextOn]}>{archive ? t('permits.backOpen') : t('permits.archive')}</Text>
           </TouchableOpacity>
           {archive ? (
             <>
               {ofMonth.map((p) => <PermitRow key={p.id} p={p} />)}
-              {!ofMonth.length ? <Empty text="No permits this month." /> : null}
+              {!ofMonth.length ? <Empty text={t('permits.noneMonth')} /> : null}
             </>
           ) : (
             <>
-              <Label>{`Open (${open.length})`}</Label>
+              <Label>{t('common.openN', { n: open.length })}</Label>
               {openSorted.map((p) => <PermitRow key={p.id} p={p} />)}
-              {!open.length ? <Empty text="No open permits. Choose the kind of work and tap “New permit”." /> : null}
-              {history.length ? <Label>Recently closed</Label> : null}
+              {!open.length ? <Empty text={t('permits.noneOpen')} /> : null}
+              {history.length ? <Label>{t('permits.recent')}</Label> : null}
               {history.map((p) => <PermitRow key={p.id} p={p} />)}
             </>
           )}
@@ -165,22 +167,22 @@ export default function PermitsSc() {
         <>
           <View style={styles.newRow}>
             <TouchableOpacity style={styles.btn} onPress={() => newRisk(false)}>
-              <Text style={styles.btnText}>+ For a job</Text>
+              <Text style={styles.btnText}>{t('permits.forJob')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.btnOutline} onPress={() => newRisk(true)}>
-              <Text style={styles.btnOutlineText}>+ Library assessment</Text>
+              <Text style={styles.btnOutlineText}>{t('permits.libNew')}</Text>
             </TouchableOpacity>
           </View>
-          <Label>{`For jobs (${jobRisks.length})`}</Label>
+          <Label>{t('permits.forJobs', { n: jobRisks.length })}</Label>
           {jobRisks.map((r) => <RiskRow key={r.id} r={r} />)}
-          {!jobRisks.length ? <Text style={styles.sub}>A job’s assessment is usually a copy of one in the library, made from the permit.</Text> : null}
-          <Label>{`Library (${library.length})`}</Label>
+          {!jobRisks.length ? <Text style={styles.sub}>{t('permits.jobNote')}</Text> : null}
+          <Label>{t('permits.library', { n: library.length })}</Label>
           {library.map((r) => <RiskRow key={r.id} r={r} />)}
           {!library.length ? (
             <View style={styles.starter}>
-              <Text style={styles.sub}>The vessel’s library is empty. Start from six common assessments — enclosed space, hot work, working aloft, mooring, tender, bunkering — and edit them to the vessel.</Text>
+              <Text style={styles.sub}>{t('permits.libEmpty')}</Text>
               <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.sm }]} onPress={() => void addStarterLibrary()}>
-                <Text style={styles.btnText}>Add the starter library</Text>
+                <Text style={styles.btnText}>{t('permits.starter')}</Text>
               </TouchableOpacity>
             </View>
           ) : null}

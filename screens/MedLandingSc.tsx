@@ -36,11 +36,13 @@ import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
+import { t, useT } from '../utils/i18n';
 
 type Row = CheckLine & { key: string; text: string };
 const REASONS: LandingReason[] = ['expired', 'damaged', 'recalled', 'other'];
 
 export default function MedLandingSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -74,7 +76,7 @@ export default function MedLandingSc() {
   const [receiverOrg, setReceiverOrg] = useState('');
   const [note, setNote] = useState('');
   const [saved, setSaved] = useState<string | null>(null);
-  const title = cd ? 'Landing report — controlled drugs' : 'Landing report — expired';
+  const title = cd ? t('ml.titleCd') : t('ml.titleExp');
 
   if (stored) {
     const total = stored.lines.reduce((n, l) => n + l.counted, 0);
@@ -82,27 +84,27 @@ export default function MedLandingSc() {
     const pdf = async () => {
       try {
         const w = await exportLandingPdf(stored, vessel);
-        if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+        if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
       } catch (e: any) {
-        Alert.alert('Landing report', String(e?.message ?? e));
+        Alert.alert(t('ml.report'), String(e?.message ?? e));
       }
     };
     const who = (by?: string, rank?: string) => (rank ? `${by} (${rank})` : by ?? '');
     return (
       <Screen scroll>
         <BackButton onPress={() => goBackOr(nav)} />
-        <ScreenTitle title={`${scd ? 'Landing report — controlled drugs' : 'Landing report'} ${stored.no}`} subtitle={`${formatDate(stored.date)}${stored.port ? ` · ${stored.port}` : ''} · ${stored.lines.length} lines · ${total} units`} help="Hospital" />
+        <ScreenTitle title={`${scd ? t('ml.titleCd') : t('ml.report')} ${stored.no}`} subtitle={`${formatDate(stored.date)}${stored.port ? ` · ${stored.port}` : ''} · ${t('med.linesUnits', { n: stored.lines.length, u: total })}`} help="Hospital" />
         <View style={[styles.item, { borderLeftColor: COLORS.success }]}>
-          <Text style={styles.sub}>{`Handed over by ${who(stored.by, stored.byRank)} · ${formatDateTime(stored.at)}${stored.signedWith ? ` · ${proofShort(stored.signedWith)}` : ''}`}</Text>
-          {stored.witness ? <Text style={styles.sub}>{`Witness ${who(stored.witness, stored.witnessRank)}${stored.witnessWith ? ` · ${proofShort(stored.witnessWith)}` : ''}`}</Text> : null}
-          <Text style={styles.sub}>{`Received ashore by ${[stored.receiver, stored.receiverRole, stored.receiverOrg].filter(Boolean).join(', ')}${stored.receivedWith ? ` · ${proofShort(stored.receivedWith)}` : ''}`}</Text>
+          <Text style={styles.sub}>{`${t('med.handedBy', { who: who(stored.by, stored.byRank) })} · ${formatDateTime(stored.at)}${stored.signedWith ? ` · ${proofShort(stored.signedWith)}` : ''}`}</Text>
+          {stored.witness ? <Text style={styles.sub}>{`${t('med.witness', { who: who(stored.witness, stored.witnessRank) })}${stored.witnessWith ? ` · ${proofShort(stored.witnessWith)}` : ''}`}</Text> : null}
+          <Text style={styles.sub}>{`${t('ml.receivedBy', { who: [stored.receiver, stored.receiverRole, stored.receiverOrg].filter(Boolean).join(', ') })}${stored.receivedWith ? ` · ${proofShort(stored.receivedWith)}` : ''}`}</Text>
           {stored.note ? <Text style={styles.body}>{stored.note}</Text> : null}
         </View>
-        <Label>Landed</Label>
+        <Label>{t('ml.landed')}</Label>
         {stored.lines.map((l, i) => (
           <Text key={i} style={[styles.body, { paddingVertical: 2 }]}>{`${l.listNo ? `${l.listNo} · ` : ''}${l.name}${l.strength ? ` ${l.strength}` : ''} · ${batchLabel(l)} — ${l.counted} ${l.unit ?? ''} · ${LANDING_REASON_LABEL[l.reason ?? 'expired']}`}</Text>
         ))}
-        <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }]} onPress={() => void pdf()}><Text style={styles.btnText}>Landing report (PDF)</Text></TouchableOpacity>
+        <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }]} onPress={() => void pdf()}><Text style={styles.btnText}>{t('ml.pdf')}</Text></TouchableOpacity>
         {saved ? <Text style={styles.sub}>{saved}</Text> : null}
       </Screen>
     );
@@ -111,7 +113,7 @@ export default function MedLandingSc() {
     return (
       <Screen scroll>
         <BackButton onPress={() => goBackOr(nav)} />
-        <Text style={styles.sub}>{officer ? 'This landing report is not on this device yet — it arrives with the next sync.' : 'An officer or the Master lands the medical stores.'}</Text>
+        <Text style={styles.sub}>{officer ? t('ml.notHere') : t('ml.officerOnly')}</Text>
       </Screen>
     );
   }
@@ -130,14 +132,14 @@ export default function MedLandingSc() {
   const total = rows.reduce((n, r) => n + (Number(r.text.replace(',', '.')) || 0), 0);
 
   const sign = async () => {
-    if (!rows.length) return Alert.alert('Landing report', 'Nothing to land.');
+    if (!rows.length) return Alert.alert(t('ml.report'), t('ml.nothing'));
     for (const r of rows) {
       const n = Number(r.text.replace(',', '.'));
-      if (!(n > 0) || n > r.expected) return Alert.alert('Landing report', `“${r.name}” — between 1 and ${r.expected} ${r.unit ?? ''}.`);
+      if (!(n > 0) || n > r.expected) return Alert.alert(t('ml.report'), t('ml.between', { name: r.name, n: r.expected, unit: r.unit ?? '' }));
     }
-    if (!receiver.trim()) return Alert.alert('Received by', 'Who receives it ashore — the name.');
-    if (!signer) return Alert.alert('Handed over by', 'Choose your name.');
-    if (cd && !witness.picked) return Alert.alert('Controlled drugs', 'They are handed over with a witness — choose the second person present.');
+    if (!receiver.trim()) return Alert.alert(t('ml.receivedByQ'), t('ml.receiverName'));
+    if (!signer) return Alert.alert(t('ml.handedByQ'), t('round.chooseName'));
+    if (cd && !witness.picked) return Alert.alert(t('med.cd'), t('ml.cdWitness'));
     const no = nextNo('LND', medChecks, today);
     const what = `${title} ${no}`;
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Handed over — ${what}`, always: true });
@@ -168,20 +170,20 @@ export default function MedLandingSc() {
   return (
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav)} />
-      <ScreenTitle title={title} subtitle={`${rows.length} ${rows.length === 1 ? 'line' : 'lines'} · ${total} units`} help="Hospital" />
+      <ScreenTitle title={title} subtitle={t('med.linesUnits', { n: rows.length, u: total })} help="Hospital" />
       <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>
         {cd
-          ? 'Out-of-date controlled drugs handed ashore for destruction — a pharmacy, a doctor or the authority. Count them with a witness; you sign as handing over, the witness signs, the person ashore signs by hand on this screen. The register shows them as disposed of.'
-          : 'Out-of-date medicines and medical stores handed ashore for destruction — the agent, a pharmacy or the port reception. You sign as handing over, the person ashore signs by hand on this screen. The books show them as disposed of. Controlled drugs go on their own report.'}
+          ? t('ml.aboutCd')
+          : t('ml.about')}
       </Text>
-      {!rows.length ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{cd ? 'No controlled drug is out of date.' : 'Nothing is out of date.'} Add a damaged or recalled batch below if there is one.</Text> : null}
+      {!rows.length ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{cd ? t('ml.noneCd') : t('ml.none')} {t('ml.addBelow')}</Text> : null}
       {rows.map((r) => {
         const diff = Number(r.text.replace(',', '.')) !== r.expected;
         return (
           <View key={r.key} style={[styles.row, { marginVertical: 2, borderBottomWidth: 0.5, borderBottomColor: COLORS.borderLight, paddingBottom: 6, alignItems: 'center' }]}>
             <View style={{ flex: 1, minWidth: 180 }}>
               <Text style={styles.name}>{`${r.listNo ? `${r.listNo} · ` : ''}${r.name}${r.strength ? ` ${r.strength}` : ''}${r.controlled ? ' · CD' : ''}`}</Text>
-              <Text style={[styles.sub, expiryState(today, r.expiry) === 'expired' ? { color: COLORS.danger, fontWeight: '700' } : null]}>{`${batchLabel(r)} · on the books ${r.expected} ${r.unit ?? ''}${r.place ? ` · ${r.place}` : ''}`}</Text>
+              <Text style={[styles.sub, expiryState(today, r.expiry) === 'expired' ? { color: COLORS.danger, fontWeight: '700' } : null]}>{`${batchLabel(r)} · ${t('ml.onBooks', { n: r.expected, unit: r.unit ?? '' })}${r.place ? ` · ${r.place}` : ''}`}</Text>
               <View style={[styles.row, { marginTop: 4, gap: 4 }]}>
                 {REASONS.map((x) => (
                   <TouchableOpacity key={x} style={[styles.chip, r.reason === x && styles.chipOn]} onPress={() => set(r.key, { reason: x })}>
@@ -195,28 +197,28 @@ export default function MedLandingSc() {
           </View>
         );
       })}
-      <TextInput style={[styles.input, { marginTop: SIZES.md }]} value={q} onChangeText={setQ} placeholder={cd ? 'Add another controlled drug batch — damaged, recalled' : 'Add another batch — damaged, recalled'} placeholderTextColor={COLORS.textLight} />
+      <TextInput style={[styles.input, { marginTop: SIZES.md }]} value={q} onChangeText={setQ} placeholder={cd ? t('ml.addCdPh') : t('ml.addPh')} placeholderTextColor={COLORS.textLight} />
       {more.map(({ s, b }) => (
         <TouchableOpacity key={`${s.item.id}|${b.batchNo ?? ''}|${b.expiry ?? ''}`} onPress={() => { setRows([...rows, { ...landingLine(s, b, expiryState(today, b.expiry) === 'expired' ? 'expired' : 'damaged'), key: `a${Date.now()}`, text: String(b.qty) }]); setQ(''); }}>
           <Text style={styles.link}>{`+ ${s.item.name}${s.item.strength ? ` ${s.item.strength}` : ''} · ${batchLabel(b)} · ${b.qty} ${s.item.unit}`}</Text>
         </TouchableOpacity>
       ))}
       <Card>
-        <Label>Received ashore by</Label>
-        <TextInput style={styles.input} value={receiver} onChangeText={setReceiver} placeholder="Name" placeholderTextColor={COLORS.textLight} />
+        <Label>{t('ml.receivedHead')}</Label>
+        <TextInput style={styles.input} value={receiver} onChangeText={setReceiver} placeholder={t('ho.namePh')} placeholderTextColor={COLORS.textLight} />
         <View style={styles.row}>
-          <TextInput style={[styles.input, { flex: 1, minWidth: 140 }]} value={receiverRole} onChangeText={setReceiverRole} placeholder="Position — pharmacist, agent" placeholderTextColor={COLORS.textLight} />
-          <TextInput style={[styles.input, { flex: 1, minWidth: 140 }]} value={receiverOrg} onChangeText={setReceiverOrg} placeholder="Company / authority" placeholderTextColor={COLORS.textLight} />
+          <TextInput style={[styles.input, { flex: 1, minWidth: 140 }]} value={receiverRole} onChangeText={setReceiverRole} placeholder={t('ml.rolePh')} placeholderTextColor={COLORS.textLight} />
+          <TextInput style={[styles.input, { flex: 1, minWidth: 140 }]} value={receiverOrg} onChangeText={setReceiverOrg} placeholder={t('ml.orgPh')} placeholderTextColor={COLORS.textLight} />
         </View>
-        <TextInput style={styles.input} value={port} onChangeText={setPort} placeholder="Port" placeholderTextColor={COLORS.textLight} />
-        <TextInput style={styles.input} value={note} onChangeText={setNote} placeholder="Remarks — receipt No., how it will be destroyed" placeholderTextColor={COLORS.textLight} />
+        <TextInput style={styles.input} value={port} onChangeText={setPort} placeholder={t('ml.port')} placeholderTextColor={COLORS.textLight} />
+        <TextInput style={styles.input} value={note} onChangeText={setNote} placeholder={t('ml.notePh')} placeholderTextColor={COLORS.textLight} />
         {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
         {cd ? <View style={{ marginTop: SIZES.sm }}>{witness.picker}</View> : null}
         <View style={styles.row}>
-          <TouchableOpacity style={styles.btn} onPress={() => void sign()}><Text style={styles.btnText}>Sign the landing</Text></TouchableOpacity>
-          <TouchableOpacity onPress={() => goBackOr(nav)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.btn} onPress={() => void sign()}><Text style={styles.btnText}>{t('ml.sign')}</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => goBackOr(nav)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
         </View>
-        <Text style={styles.sub}>{cd ? 'Signing order: you, the witness, then the person ashore by hand.' : 'Signing order: you, then the person ashore by hand.'}</Text>
+        <Text style={styles.sub}>{cd ? t('ml.orderCd') : t('ml.order')}</Text>
       </Card>
     </Screen>
   );

@@ -9,6 +9,7 @@ import React, { useEffect, useState } from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
 
 import { MciIcon } from './MciIcon';
+import { t } from '../utils/i18n';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES } from '../theme';
@@ -34,7 +35,7 @@ export function ShipClock() {
     <View style={{ marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: SIZES.sm }} accessibilityLabel={`Ship's time ${s.ship} ${s.zone}, ${s.utc} UTC`}>
       <MciIcon name="clock-outline" size={18} color={COLORS.textLight} />
       <Text style={{ fontSize: SIZES.small, fontWeight: '800', color: COLORS.tabActive, fontVariant: ['tabular-nums'] }} numberOfLines={1}>
-        {wide ? `${day} ${s.ship.slice(11)}${sec} ship (${s.zone})` : `${s.ship.slice(11)}${sec} ship`}
+        {wide ? `${day} ${s.ship.slice(11)}${sec} ${t('clock.ship')} (${s.zone})` : `${s.ship.slice(11)}${sec} ${t('clock.ship')}`}
       </Text>
       <Text style={{ fontSize: SIZES.small, color: COLORS.textLight, fontVariant: ['tabular-nums'] }} numberOfLines={1}>{`· ${s.utc.slice(11)}${sec} UTC`}</Text>
     </View>

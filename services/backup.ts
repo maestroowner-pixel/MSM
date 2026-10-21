@@ -315,12 +315,12 @@ export function parseBackup(text: string, fileName?: string): BackupFile {
   }
   if (data.app !== BACKUP_MAGIC) {
     throw new Error(
-      `${who} is not an ISMpilot backup` +
+      `${who} is not an ISM AI Pilot backup` +
         (data.app ? ` — it says it belongs to "${String(data.app).slice(0, 40)}".` : '.')
     );
   }
   if (!data.categories) {
-    throw new Error(`${who} is an ISMpilot backup but carries no register.`);
+    throw new Error(`${who} is an ISM AI Pilot backup but carries no register.`);
   }
   return data as BackupFile;
 }

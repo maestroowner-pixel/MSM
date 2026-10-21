@@ -23,11 +23,13 @@ import { useTheme } from '../contexts/ThemeContext';
 import { MciIcon } from '../components/MciIcon';
 import { DISCLAIMER_POINTS, PRIVACY_POLICY, TERMS_OF_USE } from '../constants/legal';
 import LegalBody from '../components/LegalBody';
+import { t, useT } from '../utils/i18n';
 
 type ConsentView = 'main' | 'privacy' | 'terms' | 'role' | 'guide';
 type OnboardRole = 'master' | 'crew';
 
 export default function ConsentSc({ onAccept }: { onAccept: (route: string) => void }) {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const [view, setView] = useState<ConsentView>('main');
@@ -41,7 +43,7 @@ export default function ConsentSc({ onAccept }: { onAccept: (route: string) => v
       <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
           <TouchableOpacity style={styles.back} onPress={() => setView('main')} hitSlop={12}>
-            <Text style={styles.backText}>‹ Back</Text>
+            <Text style={styles.backText}>{`‹ ${t('common.back')}`}</Text>
           </TouchableOpacity>
           <ScrollView contentContainerStyle={styles.docScroll} showsVerticalScrollIndicator>
             <View style={styles.card}>
@@ -61,8 +63,8 @@ export default function ConsentSc({ onAccept }: { onAccept: (route: string) => v
           <View style={styles.headerRow}>
             <MciIcon name="account-circle-outline" size={34} color={COLORS.primaryDark} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.title}>Your role on board</Text>
-              <Text style={styles.subtitle}>Choose how you are joining</Text>
+              <Text style={styles.title}>{t('cs.role')}</Text>
+              <Text style={styles.subtitle}>{t('cs.roleSub')}</Text>
             </View>
           </View>
 
@@ -75,10 +77,10 @@ export default function ConsentSc({ onAccept }: { onAccept: (route: string) => v
               <MciIcon name="star-circle-outline" size={32} color={role === 'master' ? COLORS.textWhite : COLORS.primary} />
               <View style={{ flex: 1, marginLeft: SIZES.sm }}>
                 <Text style={[styles.roleTitle, role === 'master' && { color: COLORS.textWhite }]}>
-                  Master / vessel manager
+                  {t('cs.master')}
                 </Text>
                 <Text style={[styles.roleBody, role === 'master' && { color: COLORS.textWhite }]}>
-                  Setting up the app for this vessel for the first time. You have the setup code from your licence email.
+                  {t('cs.masterBody')}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -91,10 +93,10 @@ export default function ConsentSc({ onAccept }: { onAccept: (route: string) => v
               <MciIcon name="account-outline" size={32} color={role === 'crew' ? COLORS.textWhite : COLORS.primary} />
               <View style={{ flex: 1, marginLeft: SIZES.sm }}>
                 <Text style={[styles.roleTitle, role === 'crew' && { color: COLORS.textWhite }]}>
-                  Officer / crew member
+                  {t('cs.crew')}
                 </Text>
                 <Text style={[styles.roleBody, role === 'crew' && { color: COLORS.textWhite }]}>
-                  The Master already set up the vessel. You have the 8-digit PIN they issued to you.
+                  {t('cs.crewBody')}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -107,7 +109,7 @@ export default function ConsentSc({ onAccept }: { onAccept: (route: string) => v
               disabled={!role}
               onPress={() => { if (role) setView('guide'); }}
             >
-              <Text style={styles.acceptText}>Continue</Text>
+              <Text style={styles.acceptText}>{t('cs.continue')}</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -120,21 +122,21 @@ export default function ConsentSc({ onAccept }: { onAccept: (route: string) => v
     const isMaster = role === 'master';
     const steps = isMaster
       ? [
-          { icon: 'ferry',           text: 'Open Settings → Vessel and fill in the vessel name, IMO number, flag and call sign.' },
-          { icon: 'key-variant',     text: 'Tap the Join this vessel card at the top of Settings, enter your first and last name, and the setup code from your licence email.' },
-          { icon: 'check-circle-outline', text: 'The app creates the vessel account. All other devices join by entering their name and the PIN you issue them in Settings → Accounts.' },
+          { icon: 'ferry',           text: t('cs.m1') },
+          { icon: 'key-variant',     text: t('cs.m2') },
+          { icon: 'check-circle-outline', text: t('cs.m3') },
         ]
       : [
-          { icon: 'ferry',           text: 'Ask your Master for the vessel IMO number. Open Settings → Vessel and enter it.' },
-          { icon: 'account-key-outline', text: 'Tap the Join this vessel card at the top of Settings and enter your first name, last name, and the 8-digit PIN your Master gave you.' },
-          { icon: 'clock-check-outline', text: 'Your Master approves the request in Settings → Accounts. The app connects automatically — no restart needed.' },
+          { icon: 'ferry',           text: t('cs.c1') },
+          { icon: 'account-key-outline', text: t('cs.c2') },
+          { icon: 'clock-check-outline', text: t('cs.c3') },
         ];
 
     return (
       <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
           <TouchableOpacity style={styles.back} onPress={() => setView('role')} hitSlop={12}>
-            <Text style={styles.backText}>‹ Back</Text>
+            <Text style={styles.backText}>{`‹ ${t('common.back')}`}</Text>
           </TouchableOpacity>
 
           <View style={[styles.headerRow, { paddingTop: SIZES.sm }]}>
@@ -145,9 +147,9 @@ export default function ConsentSc({ onAccept }: { onAccept: (route: string) => v
             />
             <View style={{ flex: 1 }}>
               <Text style={styles.title}>
-                {isMaster ? 'Setting up the vessel' : 'Joining the vessel'}
+                {isMaster ? t('cs.setting') : t('cs.joining')}
               </Text>
-              <Text style={styles.subtitle}>Three steps to get started</Text>
+              <Text style={styles.subtitle}>{t('cs.three')}</Text>
             </View>
           </View>
 
@@ -167,8 +169,8 @@ export default function ConsentSc({ onAccept }: { onAccept: (route: string) => v
             <View style={[styles.card, { marginTop: SIZES.md, backgroundColor: COLORS.primaryDark + '18' }]}>
               <Text style={[styles.para, { color: COLORS.textLight, fontStyle: 'italic' }]}>
                 {isMaster
-                  ? 'You can change vessel details and invite crew at any time in Settings.'
-                  : 'Your PIN can only be used once. Once you are enrolled, you sign with it on this device.'}
+                  ? t('cs.mNote')
+                  : t('cs.cNote')}
               </Text>
             </View>
           </ScrollView>
@@ -181,7 +183,7 @@ export default function ConsentSc({ onAccept }: { onAccept: (route: string) => v
             >
               <MciIcon name={isMaster ? 'cog-outline' : 'login'} size={18} color={COLORS.textWhite} />
               <Text style={[styles.acceptText, { marginLeft: 8 }]}>
-                {isMaster ? 'Open Settings' : 'Join this vessel'}
+                {isMaster ? t('cs.openSettings') : t('cs.join')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -197,14 +199,14 @@ export default function ConsentSc({ onAccept }: { onAccept: (route: string) => v
         <View style={styles.headerRow}>
           <MciIcon name="anchor" size={34} color={COLORS.primaryDark} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Welcome aboard</Text>
+            <Text style={styles.title}>{t('cs.welcome')}</Text>
             <Text style={styles.subtitle}>{APP_CONFIG.name}</Text>
           </View>
         </View>
 
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator>
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Before you start</Text>
+            <Text style={styles.cardTitle}>{t('cs.before')}</Text>
             {DISCLAIMER_POINTS.map((p, i) => (
               <View key={i} style={styles.point}>
                 <Text style={styles.bullet}>•</Text>
@@ -222,13 +224,13 @@ export default function ConsentSc({ onAccept }: { onAccept: (route: string) => v
               {agreed ? <Text style={styles.checkmark}>✓</Text> : null}
             </View>
             <Text style={styles.agreeText}>
-              I have read and agree to the{' '}
+              {t('cs.agreePre')}{' '}
               <Text style={styles.link} onPress={() => setView('privacy')}>
-                Privacy Policy
+                {t('cs.privacy')}
               </Text>{' '}
-              and{' '}
+              {t('cs.and')}{' '}
               <Text style={styles.link} onPress={() => setView('terms')}>
-                Terms of Use
+                {t('cs.terms')}
               </Text>
               .
             </Text>
@@ -242,7 +244,7 @@ export default function ConsentSc({ onAccept }: { onAccept: (route: string) => v
             disabled={!agreed}
             onPress={() => setView('role')}
           >
-            <Text style={styles.acceptText}>Agree &amp; continue</Text>
+            <Text style={styles.acceptText}>{t('cs.agree')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

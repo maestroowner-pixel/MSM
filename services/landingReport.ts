@@ -134,7 +134,7 @@ ${report.notes ? `<p style="margin-top:4mm"><strong>Notes:</strong> ${report.not
 ${sigBlock}
 
 <div class="footer">
-  ISMpilot · Marine Safety Manager · ${new Date().toISOString().slice(0, 10)} · ${report.no}
+  ISM AI Pilot · Marine Safety Manager · ${new Date().toISOString().slice(0, 10)} · ${report.no}
 </div>
 </body></html>`;
 }

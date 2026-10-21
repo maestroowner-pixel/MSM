@@ -56,7 +56,7 @@ function rowsFor(items: EquipmentItem[]) {
 }
 
 export function vesselHeader(vessel: VesselInfo | null): string {
-  if (!vessel) return 'ISMpilot';
+  if (!vessel) return 'ISM AI Pilot';
   const parts = [
     vessel.vessel_name,
     vessel.imo ? `IMO ${vessel.imo}` : null,
@@ -64,7 +64,7 @@ export function vesselHeader(vessel: VesselInfo | null): string {
     vessel.call_sign ? `Call sign ${vessel.call_sign}` : null,
     vessel.mmsi ? `MMSI ${vessel.mmsi}` : null,
   ].filter(Boolean);
-  return parts.join(' · ') || 'ISMpilot';
+  return parts.join(' · ') || 'ISM AI Pilot';
 }
 
 /** Build the set of categories to include (a selection, or all when omitted). */
@@ -527,7 +527,7 @@ export async function exportTemplate(group?: Group): Promise<void> {
   }
   const plain = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
   const b64 = await paintTabs(plain, colours);
-  const fileName = group === 'LIFTING' ? 'ISMpilot_Lifting_Template.xlsx' : 'ISMpilot_Import_Template.xlsx';
+  const fileName = group === 'LIFTING' ? 'ISM_AI_Pilot_Lifting_Template.xlsx' : 'ISM_AI_Pilot_Import_Template.xlsx';
   await deliverFile(fileName, b64, true, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 

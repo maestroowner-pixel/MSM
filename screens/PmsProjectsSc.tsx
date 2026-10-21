@@ -29,8 +29,10 @@ import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
+import { t, tn, useT } from '../utils/i18n';
 
 export default function PmsProjectsSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -41,8 +43,8 @@ export default function PmsProjectsSc() {
   const [f, setF] = useState({ name: '', dueDate: '', description: '' });
 
   const create = async () => {
-    if (!canPlan) return Alert.alert('Projects', PLAN_LOCKED);
-    if (!f.name.trim() || !f.dueDate) return Alert.alert('Project', 'Give it a name and the date it is planned for.');
+    if (!canPlan) return Alert.alert(t('prj.titles'), PLAN_LOCKED);
+    if (!f.name.trim() || !f.dueDate) return Alert.alert(t('prj.title'), t('prj.needName'));
     const now = Date.now();
     const p: PmsProject = { id: uid('prj'), name: f.name.trim(), dueDate: f.dueDate, ...(f.description.trim() ? { description: f.description.trim() } : {}), createdBy: sync.me ? personName(sync.me) : 'Master', createdAt: now, updatedAt: now };
     await saveRow(storage.PMS_PROJECTS_KEY, p);
@@ -55,20 +57,20 @@ export default function PmsProjectsSc() {
   return (
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav)} />
-      <ScreenTitle title="Projects" subtitle="Yard periods and dry docks — jobs deferred to one date" help="Planned maintenance" />
+      <ScreenTitle title={t('prj.titles')} subtitle={t('prj.sub')} help="Planned maintenance" />
       {canPlan ? (
         adding ? (
           <Card>
-            <TextInput style={styles.input} value={f.name} onChangeText={(v) => setF({ ...f, name: v })} placeholder="Name ★ — Yard period Feb 2027" placeholderTextColor={COLORS.textLight} />
-            <View style={{ marginTop: SIZES.sm }}><SimpleDatePicker label="Planned for ★" value={f.dueDate} onChange={(v) => setF({ ...f, dueDate: v })} /></View>
-            <TextInput style={[styles.input, { minHeight: 60 }]} value={f.description} onChangeText={(v) => setF({ ...f, description: v })} multiline placeholder="Yard, scope, notes" placeholderTextColor={COLORS.textLight} />
+            <TextInput style={styles.input} value={f.name} onChangeText={(v) => setF({ ...f, name: v })} placeholder={t('prj.namePh')} placeholderTextColor={COLORS.textLight} />
+            <View style={{ marginTop: SIZES.sm }}><SimpleDatePicker label={t('prj.plannedFor')} value={f.dueDate} onChange={(v) => setF({ ...f, dueDate: v })} /></View>
+            <TextInput style={[styles.input, { minHeight: 60 }]} value={f.description} onChangeText={(v) => setF({ ...f, description: v })} multiline placeholder={t('prj.descPh')} placeholderTextColor={COLORS.textLight} />
             <View style={styles.btnRow}>
-              <TouchableOpacity style={styles.btn} onPress={() => void create()}><Text style={styles.btnText}>Create the project</Text></TouchableOpacity>
-              <TouchableOpacity onPress={() => setAdding(false)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.btn} onPress={() => void create()}><Text style={styles.btnText}>{t('prj.create')}</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setAdding(false)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
             </View>
           </Card>
         ) : (
-          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginBottom: SIZES.md }]} onPress={() => setAdding(true)}><Text style={styles.btnText}>+ New project</Text></TouchableOpacity>
+          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginBottom: SIZES.md }]} onPress={() => setAdding(true)}><Text style={styles.btnText}>{t('prj.new')}</Text></TouchableOpacity>
         )
       ) : null}
       {list.map((p) => {
@@ -77,18 +79,19 @@ export default function PmsProjectsSc() {
           <TouchableOpacity key={p.id} style={[styles.row, !!p.closedAt && { opacity: 0.6 }]} onPress={() => nav.navigate('PmsProject', { id: p.id })} activeOpacity={0.7}>
             <View style={{ flex: 1 }}>
               <Text style={styles.title}>{p.name}</Text>
-              <Text style={styles.sub}>{`${formatDate(p.dueDate)} · ${pj.pending.length} to do · ${pj.done.length} done${p.closedAt ? ' · closed' : ''}`}</Text>
+              <Text style={styles.sub}>{`${formatDate(p.dueDate)} · ${t('prj.toDo', { n: pj.pending.length })} · ${t('prj.doneN', { n: pj.done.length })}${p.closedAt ? ` · ${t('prj.closed')}` : ''}`}</Text>
             </View>
             <Text style={styles.chev}>›</Text>
           </TouchableOpacity>
         );
       })}
-      {!list.length ? <Text style={styles.sub}>No project yet. Create one for the next yard period, then defer jobs to it from the job (Defer → To the project).</Text> : null}
+      {!list.length ? <Text style={styles.sub}>{t('prj.empty')}</Text> : null}
     </Screen>
   );
 }
 
 export function PmsProjectSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -102,7 +105,7 @@ export function PmsProjectSc() {
     return (
       <Screen scroll>
         <BackButton onPress={() => goBackOr(nav)} />
-        <Text style={styles.sub}>This project is not on this device yet.</Text>
+        <Text style={styles.sub}>{t('prj.notHere')}</Text>
       </Screen>
     );
   }
@@ -112,9 +115,9 @@ export function PmsProjectSc() {
   const pdf = async () => {
     try {
       const w = await exportPmsHistory('Yard list', stem, vessel, [list]);
-      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
-      Alert.alert('Yard list', String(e?.message ?? e));
+      Alert.alert(t('prj.yardList'), String(e?.message ?? e));
     }
   };
   const excel = async () => {
@@ -129,22 +132,22 @@ export function PmsProjectSc() {
       const bytes = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
       const w = await saveFileWeb(new Blob([bytes], { type: mime }), name, 'reports');
-      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
       return;
     }
     await deliverFile(name, b64, true, mime);
   };
   const close = () =>
-    Alert.alert('Close the project?', `${pj.pending.length} jobs still deferred to it stay deferred to its date until they are done or deferred again.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Close', onPress: () => void saveRow(storage.PMS_PROJECTS_KEY, { ...p, closedAt: Date.now(), updatedAt: Date.now() }) },
+    Alert.alert(t('prj.closeQ'), t('prj.closeBody', { n: pj.pending.length }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.close'), onPress: () => void saveRow(storage.PMS_PROJECTS_KEY, { ...p, closedAt: Date.now(), updatedAt: Date.now() }) },
     ]);
 
   return (
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav)} />
-      <ScreenTitle title={p.name} subtitle={`Planned ${formatDate(p.dueDate)}${p.description ? ` · ${p.description}` : ''}${p.closedAt ? ' · closed' : ''}`} help="Planned maintenance" />
-      <Label>{`To be done (${pj.pending.length})`}</Label>
+      <ScreenTitle title={p.name} subtitle={`${t('prj.planned', { date: formatDate(p.dueDate) })}${p.description ? ` · ${p.description}` : ''}${p.closedAt ? ` · ${t('prj.closed')}` : ''}`} help="Planned maintenance" />
+      <Label>{t('prj.toBeDone', { n: pj.pending.length })}</Label>
       {pj.pending.map(({ job, machine, deferral }) => (
         <TouchableOpacity key={job.id} style={styles.row} onPress={() => nav.navigate('PmsJob', { id: job.id })} activeOpacity={0.7}>
           <View style={{ flex: 1 }}>
@@ -154,8 +157,8 @@ export function PmsProjectSc() {
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
       ))}
-      {!pj.pending.length ? <Text style={styles.sub}>Nothing deferred to it — defer a job from its screen: Defer → To this project.</Text> : null}
-      {pj.done.length ? <Label>{`Done (${pj.done.length})`}</Label> : null}
+      {!pj.pending.length ? <Text style={styles.sub}>{t('prj.nothing')}</Text> : null}
+      {pj.done.length ? <Label>{t('prj.doneHead', { n: pj.done.length })}</Label> : null}
       {pj.done.map(({ done }) => (
         <View key={done.id} style={styles.row}>
           <View style={{ flex: 1 }}>
@@ -165,9 +168,9 @@ export function PmsProjectSc() {
         </View>
       ))}
       <View style={[styles.btnRow, { flexWrap: 'wrap' }]}>
-        <TouchableOpacity style={styles.btn} onPress={() => void pdf()}><Text style={styles.btnText}>Yard list (PDF)</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.btn} onPress={() => void pdf()}><Text style={styles.btnText}>{t('prj.yardPdf')}</Text></TouchableOpacity>
         <TouchableOpacity style={styles.btn} onPress={() => void excel()}><Text style={styles.btnText}>Excel</Text></TouchableOpacity>
-        {canPlan && !p.closedAt ? <TouchableOpacity onPress={close}><Text style={[styles.link, { color: COLORS.danger }]}>Close the project</Text></TouchableOpacity> : null}
+        {canPlan && !p.closedAt ? <TouchableOpacity onPress={close}><Text style={[styles.link, { color: COLORS.danger }]}>{t('prj.close')}</Text></TouchableOpacity> : null}
         {saved ? <Text style={[styles.sub, { color: COLORS.success }]}>{`✓ ${saved}`}</Text> : null}
       </View>
     </Screen>

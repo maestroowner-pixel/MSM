@@ -1,6 +1,6 @@
 // ===================================
 // Splash screen — shown on app start.
-// The ISMpilot logo on its own navy (8 Oct 2026): it scales and fades in, the
+// The ISM AI Pilot logo on its own navy (8 Oct 2026): it scales and fades in, the
 // ship's bell rings as it arrives, then the whole screen fades out and calls
 // onDone. One phase — the octopus → MSM cube cross-fade it replaces belonged to
 // the old KukaLab / MSM marks.

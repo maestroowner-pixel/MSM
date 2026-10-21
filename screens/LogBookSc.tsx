@@ -31,28 +31,18 @@ import { uid } from '../utils/id';
 import { PositionInput } from '../components/PositionInput';
 import { parsePosition } from '../utils/position';
 import { playSuccessSound } from '../utils/sound';
+import { t, tk, useT } from '../utils/i18n';
 
 const STORE: Record<BookKey, { key: string; signs: string }> = {
   sewage: { key: storage.SEWAGE_KEY, signs: storage.SEWAGE_SIGNS_KEY },
   ballast: { key: storage.BALLAST_KEY, signs: storage.BALLAST_SIGNS_KEY },
-};
-const PH: Record<Exclude<LogField, 'method' | 'treated'>, string> = {
-  tank: 'Tank(s)',
-  quantity: 'Quantity, m³',
-  place: 'Position at start, or port',
-  placeEnd: 'Position at end',
-  start: 'Started, hh:mm',
-  stop: 'Ended, hh:mm',
-  distance: 'Distance from nearest land, nm',
-  speed: 'Ship’s speed, kn',
-  depth: 'Water depth, m',
-  receiptNo: 'Reception facility receipt No.',
 };
 const NUMERIC: LogField[] = ['quantity', 'distance', 'speed', 'depth'];
 const hhmm = () => new Date().toTimeString().slice(0, 5);
 const num = (v: string) => (v.trim() === '' ? undefined : Number(v.replace(',', '.')));
 
 export default function LogBookSc() {
+  useT();
   const route = useRoute();
   const bookKey: BookKey = route.name === 'Ballast' ? 'ballast' : 'sewage';
   const spec = BOOKS[bookKey];
@@ -98,7 +88,7 @@ export default function LogBookSc() {
   const preview = spec.text(draft);
 
   const save = async () => {
-    if (!signer) return Alert.alert('Who is signing?', 'Choose your name below.');
+    if (!signer) return Alert.alert(t('sign.who'), t('pd.chooseName'));
     if (problem) return Alert.alert(spec.title, problem);
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${spec.title} record — ${f.code}` });
     if (!sig) return;
@@ -111,7 +101,7 @@ export default function LogBookSc() {
   };
 
   const masterSign = async () => {
-    if (!signer) return Alert.alert('Who is signing?', 'Choose your name below.');
+    if (!signer) return Alert.alert(t('sign.who'), t('pd.chooseName'));
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Master's signature — ${spec.title} record, ${month}` });
     if (!sig) return;
     const now = Date.now();
@@ -122,7 +112,7 @@ export default function LogBookSc() {
   const report = async (kind: 'pdf' | 'xlsx') => {
     try {
       const w = kind === 'pdf' ? await exportLogPdf(spec, book, month, vessel, sign) : await exportLogExcel(spec, book, month, vessel, sign);
-      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
       Alert.alert(spec.title, String(e?.message ?? e));
     }
@@ -131,12 +121,12 @@ export default function LogBookSc() {
   // A plain function, not a component: a component declared here would remount
   // its TextInput on every keystroke and lose the focus.
   const input = (k: Exclude<LogField, 'method' | 'treated'>) => (
-    <TextInput key={k} style={styles.input} value={f[k]} onChangeText={(v) => setF({ ...f, [k]: v })} placeholder={PH[k]} placeholderTextColor={COLORS.textLight} keyboardType={NUMERIC.includes(k) ? 'decimal-pad' : undefined} />
+    <TextInput key={k} style={styles.input} value={f[k]} onChangeText={(v) => setF({ ...f, [k]: v })} placeholder={tk(`log.${k}`)} placeholderTextColor={COLORS.textLight} keyboardType={NUMERIC.includes(k) ? 'decimal-pad' : undefined} />
   );
   const timeRow = (k: 'start' | 'stop') => (
     <View key={k} style={[styles.pair, { alignItems: 'center' }]}>
       {input(k)}
-      <TouchableOpacity onPress={() => setF((x) => ({ ...x, [k]: hhmm() }))} hitSlop={8}><Text style={{ color: COLORS.primary, fontWeight: '800', marginTop: SIZES.xs }}>Now</Text></TouchableOpacity>
+      <TouchableOpacity onPress={() => setF((x) => ({ ...x, [k]: hhmm() }))} hitSlop={8}><Text style={{ color: COLORS.primary, fontWeight: '800', marginTop: SIZES.xs }}>{t('log.now')}</Text></TouchableOpacity>
     </View>
   );
   const chip = (on: boolean, label: string, onPress: () => void, key?: string) => (
@@ -153,7 +143,7 @@ export default function LogBookSc() {
         actions={<MonthPicker value={month} onChange={setMonth} months={[...new Set(all.map((e) => e.date.slice(0, 7)))]} />}
       />
       <View style={styles.row}>
-        <TouchableOpacity style={styles.btn} onPress={() => { setF(blank()); setAdding((v) => !v); }}><Text style={styles.btnText}>{adding ? 'Close' : '+ New entry'}</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.btn} onPress={() => { setF(blank()); setAdding((v) => !v); }}><Text style={styles.btnText}>{adding ? t('common.close') : t('book.newEntry')}</Text></TouchableOpacity>
         <TouchableOpacity style={styles.btnOutline} onPress={() => void report('pdf')}><Text style={styles.btnOutlineText}>PDF</Text></TouchableOpacity>
         <TouchableOpacity style={styles.btnOutline} onPress={() => void report('xlsx')}><Text style={styles.btnOutlineText}>Excel</Text></TouchableOpacity>
         {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{`✓ ${saved}`}</Text> : null}
@@ -161,7 +151,7 @@ export default function LogBookSc() {
 
       {adding ? (
         <Card>
-          <Label>Operation</Label>
+          <Label>{t('log.operation')}</Label>
           <View style={styles.chips}>{codes.map((c) => chip(f.code === c, spec.codes[c].label, () => setF({ ...f, code: c, method: '' }), c))}</View>
           <View style={styles.pair}>
             <TextInput style={styles.input} value={f.date} onChangeText={(v) => setF({ ...f, date: v })} placeholder="yyyy-mm-dd" placeholderTextColor={COLORS.textLight} />
@@ -170,28 +160,28 @@ export default function LogBookSc() {
           {has('tank') ? input('tank') : null}
           {has('quantity') ? input('quantity') : null}
           {has('method') && cs.methods ? <View style={styles.chips}>{Object.entries(cs.methods).map(([k, l]) => chip(f.method === k, l, () => setF({ ...f, method: k }), k))}</View> : null}
-          {has('treated') ? <View style={styles.chips}>{chip(f.treated === true, 'Treated (BWMS)', () => setF({ ...f, treated: true }))}{chip(f.treated === false, 'Not treated', () => setF({ ...f, treated: false }))}</View> : null}
+          {has('treated') ? <View style={styles.chips}>{chip(f.treated === true, t('log.treated'), () => setF({ ...f, treated: true }))}{chip(f.treated === false, t('log.notTreated'), () => setF({ ...f, treated: false }))}</View> : null}
           {/* An operation at sea with a start and an end: each is a time and a
               position (13 Oct 2026). Otherwise: position or port, and the times. */}
           {has('placeEnd') ? (
             <>
-              <Label>Start</Label>
+              <Label>{t('log.start')}</Label>
               {has('start') ? timeRow('start') : null}
               <PositionInput
-                label="Position at start"
+                label={t('log.posStart')}
                 position={parsePosition(f.place) ? f.place : ''}
                 port={parsePosition(f.place) ? '' : f.place}
                 onChange={(pos, port) => setF((x) => ({ ...x, place: pos || port }))}
               />
-              <Label>End</Label>
+              <Label>{t('log.end')}</Label>
               {has('stop') ? timeRow('stop') : null}
-              <PositionInput label="Position at end" portAllowed={false} position={f.placeEnd} onChange={(pos) => setF((x) => ({ ...x, placeEnd: pos }))} />
+              <PositionInput label={t('log.placeEnd')} portAllowed={false} position={f.placeEnd} onChange={(pos) => setF((x) => ({ ...x, placeEnd: pos }))} />
             </>
           ) : (
             <>
               {has('place') ? (
                 <PositionInput
-                  label="Position"
+                  label={t('log.position')}
                   position={parsePosition(f.place) ? f.place : ''}
                   port={parsePosition(f.place) ? '' : f.place}
                   onChange={(pos, port) => setF((x) => ({ ...x, place: pos || port }))}
@@ -209,16 +199,16 @@ export default function LogBookSc() {
             {has('depth') ? input('depth') : null}
           </View>
           {has('receiptNo') ? input('receiptNo') : null}
-          <TextInput style={[styles.input, { minHeight: 50 }]} value={f.remarks} onChangeText={(v) => setF({ ...f, remarks: v })} placeholder="Remarks" placeholderTextColor={COLORS.textLight} multiline />
-          <Text style={styles.previewLabel}>In the book</Text>
+          <TextInput style={[styles.input, { minHeight: 50 }]} value={f.remarks} onChangeText={(v) => setF({ ...f, remarks: v })} placeholder={t('book.remarks')} placeholderTextColor={COLORS.textLight} multiline />
+          <Text style={styles.previewLabel}>{t('book.inBook')}</Text>
           <Text style={styles.preview}>{`${f.code} · ${preview || '—'}`}</Text>
           {problem ? <Text style={styles.problem}>{`⚠ ${problem}`}</Text> : null}
-          {picker ? <><Text style={styles.sub}>Officer in charge</Text>{picker}</> : null}
-          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }, problem && { opacity: 0.5 }]} onPress={() => void save()}><Text style={styles.btnText}>Sign the entry</Text></TouchableOpacity>
+          {picker ? <><Text style={styles.sub}>{t('book.oic')}</Text>{picker}</> : null}
+          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }, problem && { opacity: 0.5 }]} onPress={() => void save()}><Text style={styles.btnText}>{t('book.signEntry')}</Text></TouchableOpacity>
         </Card>
       ) : null}
 
-      <Label>{`Entries (${book.length})`}</Label>
+      <Label>{t('book.entries', { n: book.length })}</Label>
       {book.map((e) => (
         <View key={e.id} style={[styles.entry, e.cancelled && { opacity: 0.6 }]}>
           <View style={styles.code}><Text style={styles.codeText} numberOfLines={1}>{e.code}</Text></View>
@@ -230,20 +220,20 @@ export default function LogBookSc() {
           {!e.cancelled ? (
             <AmendButtons
               isMaster={isMaster}
-              onEdit={() => amend.edit({ store: store.key, record: e, what: `${spec.title} ${e.code}, ${formatDate(e.date)}`, fields: [{ key: 'date', label: 'Date (yyyy-mm-dd)' }, { key: 'time', label: 'Time' }, { key: 'text', label: 'Record of operations (as in the book)', kind: 'multiline' }] })}
+              onEdit={() => amend.edit({ store: store.key, record: e, what: `${spec.title} ${e.code}, ${formatDate(e.date)}`, fields: [{ key: 'date', label: t('book.fDate') }, { key: 'time', label: t('book.fTime') }, { key: 'text', label: t('book.fText'), kind: 'multiline' }] })}
               onDelete={() => amend.remove({ store: store.key, record: e, what: `${spec.title} ${e.code}, ${formatDate(e.date)}` })}
             />
           ) : null}
         </View>
       ))}
-      {!book.length ? <Text style={styles.sub}>No entries this month.</Text> : null}
+      {!book.length ? <Text style={styles.sub}>{t('book.noneMonth')}</Text> : null}
 
-      <Label>Master</Label>
+      <Label>{t('book.master')}</Label>
       {sign ? (
-        <Text style={styles.text}>{`Signed for ${month}: ${sign.byRank ? `${sign.by} (${sign.byRank})` : sign.by} · ${formatDateTime(sign.at)}`}</Text>
+        <Text style={styles.text}>{`${t('book.signedFor', { month, by: sign.byRank ? `${sign.by} (${sign.byRank})` : sign.by })} · ${formatDateTime(sign.at)}`}</Text>
       ) : (
         <TouchableOpacity disabled={!isMaster} style={[styles.btnOutline, { alignSelf: 'flex-start', opacity: isMaster ? 1 : 0.35 }]} onPress={() => void masterSign()}>
-          <Text style={styles.btnOutlineText}>Sign the month as Master</Text>
+          <Text style={styles.btnOutlineText}>{t('book.signMonth')}</Text>
         </TouchableOpacity>
       )}
       {amend.ui}

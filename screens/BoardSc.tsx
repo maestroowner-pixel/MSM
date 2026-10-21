@@ -33,10 +33,12 @@ import { aiReady } from '../services/ai';
 import { todayIso } from '../services/pms';
 import { nowLocal } from '../services/permits';
 import { formatDate } from '../utils/dates';
+import { useT } from '../utils/i18n';
 
 export default function BoardSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+  const t = useT();
   const nav = useNavigation<any>();
   const data = useData();
   const sync = useSync();
@@ -69,7 +71,7 @@ export default function BoardSc() {
         ...data,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, role, me, tick]
+    [data, role, me, tick, t]
   );
 
   const color = (l?: Level) => (l === 'red' ? COLORS.danger : l === 'amber' ? COLORS.warning : l === 'blue' ? COLORS.primary : COLORS.success);
@@ -78,8 +80,8 @@ export default function BoardSc() {
   const statusBits = [
     data.vessel?.vessel_name || null,
     st.isps ? `ISPS ${st.isps}` : null,
-    st.pob ? `${st.pob.total} on board${st.pob.visitors ? ` (${st.pob.visitors} visitor${st.pob.visitors > 1 ? 's' : ''})` : ''}` : null,
-    st.pob?.ashore ? `${st.pob.ashore} ashore` : null,
+    st.pob ? `${t('b.onBoardN', { n: st.pob.total })}${st.pob.visitors ? ` ${t('board.visitorsN', { n: st.pob.visitors })}` : ''}` : null,
+    st.pob?.ashore ? t('b.ashoreN', { n: st.pob.ashore }) : null,
     st.rob ? `ROB ${Math.round(st.rob.litres).toLocaleString('en-GB').replace(/,/g, ' ')} L${st.rob.daysLeft != null ? ` ≈ ${st.rob.daysLeft} d` : ''}` : null,
   ].filter(Boolean);
 
@@ -89,7 +91,7 @@ export default function BoardSc() {
 
   const attention = (
     <View style={styles.block}>
-      <Text style={styles.head}>{board.attention.length ? `Needs attention · ${board.attention.length}` : 'Needs attention'}</Text>
+      <Text style={styles.head}>{board.attention.length ? t('board.attentionN', { n: board.attention.length }) : t('board.attention')}</Text>
       {visibleAttention.map((a) => (
         <TouchableOpacity key={a.key} style={styles.notice} onPress={() => go(a.route, a.params)} activeOpacity={0.7}>
           <View style={[styles.dot, { backgroundColor: color(a.level) }]} />
@@ -104,14 +106,14 @@ export default function BoardSc() {
       {board.attention.length > ATTENTION_PREVIEW ? (
         <TouchableOpacity style={styles.showMoreBtn} onPress={() => setAttentionExpanded((v) => !v)} activeOpacity={0.7}>
           <Text style={styles.showMoreText}>
-            {attentionExpanded ? 'Show less ↑' : `Show ${board.attention.length - ATTENTION_PREVIEW} more ↓`}
+            {attentionExpanded ? t('common.showLess') : t('common.showMore', { n: board.attention.length - ATTENTION_PREVIEW })}
           </Text>
         </TouchableOpacity>
       ) : null}
       {!board.attention.length ? (
         <View style={styles.allGood}>
           <MciIcon name="check-circle-outline" size={20} color={COLORS.success} />
-          <Text style={[styles.noticeText, { color: COLORS.success }]}>Nothing outstanding.</Text>
+          <Text style={[styles.noticeText, { color: COLORS.success }]}>{t('board.nothing')}</Text>
         </View>
       ) : null}
     </View>
@@ -119,7 +121,7 @@ export default function BoardSc() {
 
   const plan = board.plan.length ? (
     <View style={styles.block}>
-      <Text style={styles.head}>Plan</Text>
+      <Text style={styles.head}>{t('board.plan')}</Text>
       {board.plan.map((p) => (
         <TouchableOpacity key={p.key} style={styles.planRow} onPress={() => go(p.route, p.params)} activeOpacity={0.7}>
           <MciIcon name={p.icon} size={18} color={p.level ? color(p.level) : COLORS.textLight} />
@@ -139,7 +141,7 @@ export default function BoardSc() {
 
   const today = board.today.length ? (
     <View style={styles.block}>
-      <Text style={styles.head}>{`Today · ${formatDate(todayIso())}`}</Text>
+      <Text style={styles.head}>{t('board.today', { date: formatDate(todayIso()) })}</Text>
       {board.today.map((t) => (
         <TouchableOpacity key={t.key} style={styles.todayRow} onPress={() => go(t.route, t.params)} activeOpacity={0.7}>
           <MciIcon name={t.done ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'} size={20} color={t.done ? COLORS.success : COLORS.textLight} />
@@ -185,7 +187,7 @@ export default function BoardSc() {
 
   const tiles = (
     <View style={styles.block}>
-      <Text style={styles.head}>Sections</Text>
+      <Text style={styles.head}>{t('board.sections')}</Text>
       <View style={styles.tiles}>
         {board.tiles.map((t) => (
           <TouchableOpacity key={t.key} style={[styles.tile, { borderTopColor: t.level ? color(t.level) : COLORS.borderLight }]} onPress={() => go(t.route, t.params)} activeOpacity={0.8}>
@@ -200,7 +202,7 @@ export default function BoardSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Board" subtitle={statusBits.length ? statusBits.join(' · ') : 'The vessel at a glance'} help="Board" onScan={() => nav.navigate('Scan')} onAsk={aiReady(sync.enrolled) ? () => go('Ask') : undefined} />
+      <ScreenTitle title={t('menu.Board')} subtitle={statusBits.length ? statusBits.join(' · ') : t('board.subtitle')} help="Board" onScan={() => nav.navigate('Scan')} onAsk={aiReady(sync.enrolled) ? () => go('Ask') : undefined} />
       <TrialBanner />
       <MasterPinBanner />
       {wide ? (

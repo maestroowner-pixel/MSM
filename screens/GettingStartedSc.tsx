@@ -14,6 +14,8 @@ import { gettingStarted } from '../constants/gettingStarted';
 import { exportTemplate } from '../services/export';
 import { playErrorSound } from '../utils/sound';
 
+import { t } from '../utils/i18n';
+
 export default function GettingStartedSc() {
   const styles = useS();
   const COLORS = useTheme();
@@ -25,7 +27,7 @@ export default function GettingStartedSc() {
       await exportTemplate();
     } catch (e: any) {
       playErrorSound();
-      Alert.alert('Template failed', String(e?.message ?? e));
+      Alert.alert(t('gs.templateFailed'), String(e?.message ?? e));
     }
   };
 

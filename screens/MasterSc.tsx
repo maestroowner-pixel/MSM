@@ -38,6 +38,7 @@ import { Row, masterCell, masterRows } from '../services/masterPage';
 import { moduleOn } from '../constants/modules';
 import { writeSigningPolicy } from '../services/policy';
 import * as accounts from '../services/accounts';
+import { t, tk, useT } from '../utils/i18n';
 
 const NAME_W = 230;
 /** Widest a column gets; narrower to fit the window (15 Oct 2026: the right-hand columns were cut off). */
@@ -46,6 +47,7 @@ const COL_MIN = 44;
 const ROW_H = 40;
 
 export default function MasterSc() {
+  useT();
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const { vessel, storeRoomList, signingPolicy, setSigningPolicy } = useData();
@@ -106,22 +108,22 @@ export default function MasterSc() {
   const flipManage = (d: EnrolledDevice, k: ManageKey) => { const manage = toggleManage(d.manage, k); void write(d, { manage }, () => accounts.setDeviceManage(imo, d.id, manage)); };
   const flipRank = (d: EnrolledDevice) => {
     const to: Role = d.role === 'admin' ? 'user' : 'admin';
-    Alert.alert(`${label(d)} — ${ROLE_LABEL[to]}?`, to === 'admin' ? 'An Officer plans drills, signs searches, rectifies defects and sees the officers’ documents.' : 'Back to Crew: no officers’ documents, no planning.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: `Make ${ROLE_LABEL[to]}`, onPress: () => void write(d, { role: to }, () => accounts.setDeviceRole(imo, d.id, to)) },
+    Alert.alert(`${label(d)} — ${ROLE_LABEL[to]}?`, to === 'admin' ? t('master.toOfficer') : t('master.toCrew'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('master.make', { role: ROLE_LABEL[to] }), onPress: () => void write(d, { role: to }, () => accounts.setDeviceRole(imo, d.id, to)) },
     ]);
   };
 
   const policy = async (patch: Partial<typeof signingPolicy>) => {
     const { error: e } = await writeSigningPolicy(signingPolicy, patch as any, setSigningPolicy, { synced: sync.status === 'synced', isMaster: true });
-    if (e) Alert.alert('Saved on this device only', `The vessel did not accept the change: ${e}. It will be sent again when this device reconnects.`);
+    if (e) Alert.alert(t('common.savedLocalOnly'), t('common.notAccepted', { error: e }));
   };
 
   if (!moduleOn('access') || !isMaster) {
     return (
       <Screen scroll>
-        <ScreenTitle title="Master's page" subtitle="Who may see and do what" />
-        <Empty text={!sync.enrolled ? 'Join this device to the vessel as the Master first (Settings → Vessel) — the page sets what each device aboard may see and do.' : 'For the Master only.'} />
+        <ScreenTitle title={t('master.title')} subtitle={t('master.subShort')} />
+        <Empty text={!sync.enrolled ? t('master.joinFirst') : t('master.only')} />
       </Screen>
     );
   }
@@ -145,7 +147,7 @@ export default function MasterSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Master's page" subtitle="Who may see and do what — every device, every menu, page and button" help="Access — which tabs each device shows" />
+      <ScreenTitle title={t('master.title')} subtitle={t('master.sub')} help="Access — which tabs each device shows" />
       <Text style={styles.lead}>
         Tap a dot: it glows when that device has it, dim when not. Pages and the ⚙ gear follow their menu entry. Rows marked by rank follow the rank — tap the rank on top to change it. The phone follows on its next sync.
       </Text>
@@ -157,14 +159,14 @@ export default function MasterSc() {
       ) : null}
 
       {!imo ? (
-        <Empty text="Set the vessel's IMO number in Settings and connect it first." />
+        <Empty text={t('master.setImo')} />
       ) : !cols.length ? (
-        <Empty text="No approved devices yet. Issue accounts in Settings → Accounts; each device that joins appears here." />
+        <Empty text={t('master.noDevices')} />
       ) : (
         <View style={styles.table} onLayout={(e) => setTableW(e.nativeEvent.layout.width)}>
           <View style={{ width: NAME_W }}>
-            <View style={[styles.head, { alignItems: 'flex-start' }]}><Text style={styles.headText}>Menu · page · button</Text></View>
-            <View style={[styles.row, styles.rankRow]}><Text style={styles.rowStrong}>Rank</Text></View>
+            <View style={[styles.head, { alignItems: 'flex-start' }]}><Text style={styles.headText}>{t('master.menuPage')}</Text></View>
+            <View style={[styles.row, styles.rankRow]}><Text style={styles.rowStrong}>{t('ho.rank')}</Text></View>
             {rows.map((r) => (
               <View key={r.id} style={[styles.row, r.kind === 'group' && styles.groupRow, (r.kind === 'page' || r.kind === 'manage' || r.kind === 'rank') && { paddingLeft: SIZES.lg }]}>
                 {r.kind === 'group' ? (
@@ -173,7 +175,7 @@ export default function MasterSc() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     {'icon' in r ? <MciIcon name={r.icon} size={r.kind === 'page' ? 14 : 18} color={r.kind === 'page' ? COLORS.textLight : COLORS.textDark} /> : null}
                     <Text style={[r.kind === 'tab' || r.kind === 'fixed' ? styles.rowStrong : styles.rowText, r.kind === 'manage' && { color: COLORS.primary }, r.kind === 'rank' && { fontStyle: 'italic' }]} numberOfLines={1}>
-                      {r.kind === 'rank' ? `${r.label} · by rank` : r.kind === 'page' && r.officers ? `${r.label}` : r.label}
+                      {r.kind === 'rank' ? `${r.label} · ${t('master.byRank')}` : r.kind === 'page' && r.officers ? `${r.label}` : r.label}
                     </Text>
                   </View>
                 )}
@@ -191,7 +193,7 @@ export default function MasterSc() {
               </View>
               <View style={[styles.row, styles.rankRow, { flexDirection: 'row', paddingHorizontal: 0 }]}>
                 {cols.map((d) => (
-                  <TouchableOpacity key={d.id} style={styles.cellBox} disabled={d.role === 'superadmin'} onPress={() => flipRank(d)} accessibilityLabel={`Rank — ${label(d)}: ${ROLE_LABEL[d.role]}`}>
+                  <TouchableOpacity key={d.id} style={styles.cellBox} disabled={d.role === 'superadmin'} onPress={() => flipRank(d)} accessibilityLabel={`${t('ho.rank')} — ${label(d)}: ${ROLE_LABEL[d.role]}`}>
                     <View style={[styles.rankChip, d.role !== 'user' ? styles.rankOn : styles.rankOff]}>
                       <Text style={[styles.rankText, { color: d.role !== 'user' ? COLORS.textWhite : COLORS.textDark }]}>{ROLE_LABEL[d.role]}</Text>
                     </View>
@@ -209,21 +211,23 @@ export default function MasterSc() {
       )}
 
       <Card>
-        <Label>The whole vessel</Label>
+        <Label>{t('master.whole')}</Label>
         {([
           ['requireScan', 'Scan the QR label before signing', 'Crew and Officers scan the item before they sign its inspection'],
           ['signAsDevice', 'Each device signs as its own account', 'No picking a colleague’s name — the account is the signature'],
           ...(moduleOn('signConfirm') ? [['confirmSignature', 'Confirm every signature', 'PIN, fingerprint or face — the signer’s own'] as const] : []),
-        ] as const).map(([k, t, sub]) => {
+        ] as const).map(([k]) => {
+          const title = tk(`master.pol.${k}`);
+          const sub = tk(`master.pol.${k}.sub`);
           const on = !!(signingPolicy as any)[k];
           return (
             <View key={k} style={styles.ruleRow}>
               <View style={[styles.dot, on ? styles.dotOn : styles.dotOff]} />
               <View style={{ flex: 1 }}>
-                <Text style={[styles.rowStrong, !on && { color: COLORS.textLight }]}>{t}</Text>
+                <Text style={[styles.rowStrong, !on && { color: COLORS.textLight }]}>{title}</Text>
                 <Text style={styles.rowText}>{sub}</Text>
               </View>
-              <Switch value={on} onValueChange={(v) => void policy({ [k]: v } as any)} accessibilityLabel={t} />
+              <Switch value={on} onValueChange={(v) => void policy({ [k]: v } as any)} accessibilityLabel={title} />
             </View>
           );
         })}
@@ -233,8 +237,8 @@ export default function MasterSc() {
         <TouchableOpacity style={styles.ruleRow} onPress={() => nav.navigate('Accounts')}>
           <MciIcon name="key" size={18} color={COLORS.primary} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.rowStrong}>Accounts</Text>
-            <Text style={styles.rowText}>Issue a name + PIN, approve a device, make a Master, switch a device off</Text>
+            <Text style={styles.rowStrong}>{t('master.accounts')}</Text>
+            <Text style={styles.rowText}>{t('master.accountsSub')}</Text>
           </View>
           <Text style={styles.rowText}>›</Text>
         </TouchableOpacity>
@@ -243,7 +247,7 @@ export default function MasterSc() {
   );
 }
 
-const label = (d: EnrolledDevice) => personName(d) || 'Unnamed device';
+const label = (d: EnrolledDevice) => personName(d) || t('master.unnamed');
 const rankOrder = (r: Role) => (r === 'superadmin' ? 0 : r === 'admin' ? 1 : 2);
 
 const makeStyles = (COLORS: Palette, COL_W: number = COL_MAX) =>

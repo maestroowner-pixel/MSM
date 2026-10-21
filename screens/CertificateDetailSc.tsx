@@ -43,8 +43,10 @@ import { certSurveySummary, worstOf } from '../services/certSurveys';
 import { todayIso } from '../services/pms';
 import { aiCall, aiReady, CertAiResult } from '../services/ai';
 import { useSync } from '../contexts/SyncContext';
+import { t, useT } from '../utils/i18n';
 
 export default function CertificateDetailSc() {
+  useT();
   const route = useRoute<any>();
   const nav = useNavigation<any>();
   const COLORS = useTheme();
@@ -109,11 +111,11 @@ export default function CertificateDetailSc() {
 
   const onSave = async () => {
     if (!draft.name.trim()) {
-      Alert.alert('Name required', 'Give the certificate a name.');
+      Alert.alert(t('crew.nameReq'), t('fv.nameCert'));
       return;
     }
     if (scope === 'crew' && !draft.crewId && !draft.holderName?.trim()) {
-      Alert.alert('Whose certificate?', 'Choose the crew member who holds it.');
+      Alert.alert(t('cd.whose'), t('cd.chooseHolder'));
       return;
     }
     // The holder's name travels with the certificate, so it still reads right on a
@@ -126,10 +128,10 @@ export default function CertificateDetailSc() {
 
   const onDelete = () => {
     if (isNew) return goBackOr(nav);
-    Alert.alert('Delete certificate', 'Remove this certificate? The items it covered are not deleted.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('cd.delete'), t('cd.deleteBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           await deleteFile(draft.fileUri);
@@ -148,18 +150,18 @@ export default function CertificateDetailSc() {
   };
 
   const chooseFile = () => {
-    Alert.alert('Attach file', 'Choose a source', [
-      { text: 'Document (PDF…)', onPress: attach(pickDocument) },
-      { text: 'Photo Library', onPress: attach(pickFromLibrary) },
-      { text: 'Camera', onPress: attach(pickFromCamera) },
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('cd.attach'), t('cd.source'), [
+      { text: t('pick.document'), onPress: attach(pickDocument) },
+      { text: t('pick.library'), onPress: attach(pickFromLibrary) },
+      { text: t('pick.camera'), onPress: attach(pickFromCamera) },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 
   const scanCert = () => {
-    Alert.alert('Scan certificate with AI', 'Take a clear photo of the certificate — both sides if the expiry is on the back.', [
+    Alert.alert(t('cd.scanAi'), t('cd.scanAiBody'), [
       {
-        text: 'Camera',
+        text: t('pick.camera'),
         onPress: async () => {
           const f = await pickFromCamera();
           if (!f) return;
@@ -179,7 +181,7 @@ export default function CertificateDetailSc() {
             if (res.holder && scope === 'crew' && !draft.crewId && !draft.holderName) patch.holderName = res.holder;
             set(patch);
             const fields = [res.name && 'name', res.number && 'number', res.issuer && 'issuer', res.issueDate && 'issue date', res.expiryDate && 'expiry'].filter(Boolean).join(', ');
-            setAiNote(`Read: ${fields || 'nothing'}${res.unreadable ? ` · could not read: ${res.unreadable}` : ''}. Check the fields below.`);
+            setAiNote(`${t('sr.read', { what: fields || t('cd.nothing') })}${res.unreadable ? ` · ${t('dpt.couldNot', { what: res.unreadable })}` : ''}. ${t('cd.checkFields')}`);
           } catch (e: any) {
             Alert.alert('AI scan', String(e?.message ?? e));
           } finally {
@@ -188,7 +190,7 @@ export default function CertificateDetailSc() {
         },
       },
       {
-        text: 'Photo library',
+        text: t('pick.library'),
         onPress: async () => {
           const f = await pickFromLibrary();
           if (!f) return;
@@ -208,7 +210,7 @@ export default function CertificateDetailSc() {
             if (res.holder && scope === 'crew' && !draft.crewId && !draft.holderName) patch.holderName = res.holder;
             set(patch);
             const fields = [res.name && 'name', res.number && 'number', res.issuer && 'issuer', res.issueDate && 'issue date', res.expiryDate && 'expiry'].filter(Boolean).join(', ');
-            setAiNote(`Read: ${fields || 'nothing'}${res.unreadable ? ` · could not read: ${res.unreadable}` : ''}. Check the fields below.`);
+            setAiNote(`${t('sr.read', { what: fields || t('cd.nothing') })}${res.unreadable ? ` · ${t('dpt.couldNot', { what: res.unreadable })}` : ''}. ${t('cd.checkFields')}`);
           } catch (e: any) {
             Alert.alert('AI scan', String(e?.message ?? e));
           } finally {
@@ -216,7 +218,7 @@ export default function CertificateDetailSc() {
           }
         },
       },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 
@@ -249,7 +251,7 @@ export default function CertificateDetailSc() {
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
           <View style={styles.header}>
             <BackButton onPress={() => goBackOr(nav)} />
-            <Text style={styles.headerTitle} numberOfLines={1}>Certificate</Text>
+            <Text style={styles.headerTitle} numberOfLines={1}>{t('fv.cert')}</Text>
             <View style={{ width: 24 }} />
           </View>
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: SIZES.lg }}>
@@ -257,8 +259,7 @@ export default function CertificateDetailSc() {
               <ActivityIndicator color={COLORS.primary} />
             ) : (
               <Text style={{ color: COLORS.textLight, textAlign: 'center' }}>
-                This certificate is no longer in the register — it may have been deleted, or this
-                device is holding an older copy than the vessel is.
+                {t('cd.gone')}
               </Text>
             )}
           </View>
@@ -273,15 +274,15 @@ export default function CertificateDetailSc() {
         <View style={styles.header}>
           <BackButton onPress={() => (picking ? setPicking(false) : goBackOr(nav))} />
           <Text style={styles.headerTitle} numberOfLines={1}>
-            {picking ? 'Link items' : `${isNew ? 'New' : 'Edit'} ${scope === 'crew' ? 'crew certificate' : scope === 'vessel' ? 'vessel certificate' : 'certificate'}`}
+            {picking ? t('cd.linkItems') : t(`cd.h.${isNew ? 'new' : 'edit'}.${scope === 'crew' ? 'crew' : scope === 'vessel' ? 'vessel' : 'equipment'}` as any)}
           </Text>
           {picking ? (
             <TouchableOpacity onPress={() => setPicking(false)} hitSlop={12}>
-              <Text style={[styles.headerBtn, { color: COLORS.primary, fontWeight: '700' }]}>Done</Text>
+              <Text style={[styles.headerBtn, { color: COLORS.primary, fontWeight: '700' }]}>{t('common.done')}</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity onPress={onSave} hitSlop={12}>
-              <Text style={[styles.headerBtn, { color: COLORS.primary, fontWeight: '700' }]}>Save</Text>
+              <Text style={[styles.headerBtn, { color: COLORS.primary, fontWeight: '700' }]}>{t('common.save')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -290,7 +291,7 @@ export default function CertificateDetailSc() {
           <>
             <TextInput
               style={[styles.input, { marginHorizontal: SIZES.lg }]}
-              placeholder="Search items to link…"
+              placeholder={t('cd.searchPh')}
               placeholderTextColor={COLORS.textLight}
               value={search}
               onChangeText={setSearch}
@@ -335,7 +336,7 @@ export default function CertificateDetailSc() {
                 >
                   {aiScanning
                     ? <ActivityIndicator size="small" color={COLORS.primary} />
-                    : <><MciIcon name="camera-outline" size={16} color={COLORS.primary} /><Text style={styles.aiBtnText}> Scan with AI</Text></>
+                    : <><MciIcon name="camera-outline" size={16} color={COLORS.primary} /><Text style={styles.aiBtnText}>{` ${t('cd.scanWithAi')}`}</Text></>
                   }
                 </TouchableOpacity>
               ) : null}
@@ -344,7 +345,7 @@ export default function CertificateDetailSc() {
 
             {scope === 'crew' ? (
               <View style={styles.fieldWrap}>
-                <Label>Holder ★</Label>
+                <Label>{t('cd.holderReq')}</Label>
                 {people.length === 0 ? (
                   // No crew list on this device (not joined to a vessel yet, or not
                   // synced): the holder is typed instead of picked, and the name is
@@ -353,7 +354,7 @@ export default function CertificateDetailSc() {
                     style={styles.input}
                     value={draft.holderName ?? ''}
                     onChangeText={(v) => set({ holderName: v, crewId: undefined })}
-                    placeholder="Full name"
+                    placeholder={t('crw.fullName')}
                     placeholderTextColor={COLORS.textLight}
                   />
                 ) : (
@@ -377,7 +378,7 @@ export default function CertificateDetailSc() {
               </View>
             ) : null}
 
-            <Field label="Certificate name ★" value={draft.name} onChange={(v) => set({ name: v })} />
+            <Field label={t('cd.nameReq')} value={draft.name} onChange={(v) => set({ name: v })} />
             {scope !== 'equipment' ? (
               <View style={[styles.chips, { marginTop: -SIZES.sm, marginBottom: SIZES.md }]}>
                 {(scope === 'crew' ? CREW_CERT_TYPES : VESSEL_CERT_TYPES).map((t) => (
@@ -387,18 +388,18 @@ export default function CertificateDetailSc() {
                 ))}
               </View>
             ) : null}
-            <Field label="Number" value={draft.number} onChange={(v) => set({ number: v })} />
+            <Field label={t('fv.number')} value={draft.number} onChange={(v) => set({ number: v })} />
             <Field
-              label={scope === 'crew' ? 'Issued by (flag, MCA, training centre)' : scope === 'vessel' ? 'Issued by (flag, class, RO)' : 'Issuer / station'}
+              label={scope === 'crew' ? t('cd.issuerCrew') : scope === 'vessel' ? t('cd.issuerVessel') : t('cd.issuerEq')}
               value={draft.issuer}
               onChange={(v) => set({ issuer: v })}
             />
-            <DateField label="Issue date" value={draft.issueDate} onChange={(v) => set({ issueDate: v })} />
-            <DateField label="Expiry date ★" value={draft.expiryDate} onChange={(v) => set({ expiryDate: v })} defaultYear={new Date().getFullYear() + 5} />
+            <DateField label={t('cd.issueDate')} value={draft.issueDate} onChange={(v) => set({ issueDate: v })} />
+            <DateField label={t('cd.expiryReq')} value={draft.expiryDate} onChange={(v) => set({ expiryDate: v })} defaultYear={new Date().getFullYear() + 5} />
 
             {/* File */}
             <View style={styles.card}>
-              <Label>Certificate file</Label>
+              <Label>{t('cd.file')}</Label>
               {draft.fileUri ? (
                 <View style={{ marginTop: SIZES.sm }}>
                   {draft.fileKind === 'photo' ? (
@@ -407,16 +408,16 @@ export default function CertificateDetailSc() {
                     <View style={styles.docRow}>
                       <MciIcon name="file-document" size={28} color={COLORS.primaryDark} />
                       <Text style={styles.docName} numberOfLines={1}>
-                        {draft.fileName ?? 'Document'}
+                        {draft.fileName ?? t('pax.document')}
                       </Text>
                     </View>
                   )}
                   <View style={styles.fileBtns}>
                     <TouchableOpacity style={styles.smallBtn} onPress={() => openFile(draft.fileUri!, draft.fileName)}>
-                      <Text style={styles.smallBtnText}>Open</Text>
+                      <Text style={styles.smallBtnText}>{t('cd.open')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.smallBtn} onPress={chooseFile}>
-                      <Text style={styles.smallBtnText}>Replace</Text>
+                      <Text style={styles.smallBtnText}>{t('sop.replace')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.smallBtn, { borderColor: COLORS.danger }]}
@@ -425,13 +426,13 @@ export default function CertificateDetailSc() {
                         set({ fileUri: undefined, fileName: undefined, fileKind: undefined });
                       }}
                     >
-                      <Text style={[styles.smallBtnText, { color: COLORS.danger }]}>Remove</Text>
+                      <Text style={[styles.smallBtnText, { color: COLORS.danger }]}>{t('common.remove')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
               ) : (
                 <TouchableOpacity style={styles.attachBtn} onPress={chooseFile}>
-                  <Text style={styles.attachText}>+ Attach document or photo</Text>
+                  <Text style={styles.attachText}>{t('cd.attachDoc')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -442,13 +443,13 @@ export default function CertificateDetailSc() {
             {scope === 'equipment' ? (
             <View style={styles.card}>
               <View style={styles.linkHead}>
-                <Label>Covered items ({draft.itemIds.length})</Label>
+                <Label>{t('cd.covered', { n: draft.itemIds.length })}</Label>
                 <TouchableOpacity onPress={() => setPicking(true)}>
-                  <Text style={styles.linkAdd}>+ Link items</Text>
+                  <Text style={styles.linkAdd}>{`+ ${t('cd.linkItems')}`}</Text>
                 </TouchableOpacity>
               </View>
               {linkedItems.length === 0 ? (
-                <Text style={styles.empty}>No items linked. Tap “Link items” to attach this certificate to a group of items.</Text>
+                <Text style={styles.empty}>{t('cd.noLinked')}</Text>
               ) : (
                 linkedItems.map((it) => {
                   const meta = CATEGORY_MAP[it.category];
@@ -475,7 +476,7 @@ export default function CertificateDetailSc() {
             ) : null}
 
             <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
-              <Text style={styles.deleteText}>{isNew ? 'Discard' : 'Delete certificate'}</Text>
+              <Text style={styles.deleteText}>{isNew ? t('doc.discard') : t('cd.delete')}</Text>
             </TouchableOpacity>
           </ScrollView>
         )}

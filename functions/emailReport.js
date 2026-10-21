@@ -189,7 +189,7 @@ ${!ncRows.length ? '<p class="none">No open non-conformities</p>' : ''}
 ${!drillRows.length ? '<p class="none">No overdue drills</p>' : ''}
 <h2>Safety observations</h2><p style="font-size:13px;margin:4px 0">${obsLine}</p>
 </div>
-<div class="ft">ISMpilot · <a href="https://app.ismpilot.com">app.ismpilot.com</a></div>
+<div class="ft">ISM AI Pilot · <a href="https://app.ismpilot.com">app.ismpilot.com</a></div>
 </div></body></html>`;
 }
 
@@ -236,7 +236,7 @@ async function sendForVessel(vesselId, db, smtpUser, smtpPass) {
 
   const transport = makeTransport(smtpUser, smtpPass);
   await transport.sendMail({
-    from: `ISMpilot <${smtpUser}>`,
+    from: `ISM AI Pilot <${smtpUser}>`,
     to: recipients.join(', '),
     subject: `${vesselName} — Monthly Safety Report · ${date}`,
     html,

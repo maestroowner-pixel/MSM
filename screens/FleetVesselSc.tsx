@@ -32,6 +32,7 @@ import { DOC_CATEGORY_LABEL, DocCategory, IsmDoc } from '../types/docs';
 import { computeStatus, formatDate, statusFromDate } from '../utils/dates';
 import { CATEGORY_MAP } from '../constants/categories';
 import { uid } from '../utils/id';
+import { t, tk, useT } from '../utils/i18n';
 
 type Tab = 'certs' | 'docs' | 'equipment';
 const SCOPES: { key: CertificateScope; label: string }[] = [
@@ -41,6 +42,7 @@ const SCOPES: { key: CertificateScope; label: string }[] = [
 ];
 
 export default function FleetVesselSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const imo: string = useRoute<any>().params?.imo;
@@ -74,7 +76,7 @@ export default function FleetVesselSc() {
   if (!v) {
     return (
       <Screen>
-        <ScreenTitle title="Vessel" subtitle={`IMO ${imo}`} />
+        <ScreenTitle title={t('certs.tab.vessel')} subtitle={`IMO ${imo}`} />
         {error ? <Text style={{ color: COLORS.danger }}>{error}</Text> : <ActivityIndicator color={COLORS.primary} />}
       </Screen>
     );
@@ -89,9 +91,9 @@ export default function FleetVesselSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title={v.name} subtitle={`IMO ${v.imo} · superintendent`} />
+      <ScreenTitle title={v.name} subtitle={`IMO ${v.imo} · ${t('fv.supt')}`} />
       <View style={styles.tabs}>
-        {([['certs', `Certificates · ${certs.length}`], ['docs', `Documents · ${docs.length}`], ['equipment', `Equipment · ${owed.length}`]] as [Tab, string][]).map(([k, l]) => (
+        {([['certs', `${t('fleet.certs')} · ${certs.length}`], ['docs', `${t('docs.title')} · ${docs.length}`], ['equipment', `${t('cat.title')} · ${owed.length}`]] as [Tab, string][]).map(([k, l]) => (
           <TouchableOpacity key={k} style={[styles.tab, tab === k && styles.tabOn]} onPress={() => setTab(k)}>
             <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>{l}</Text>
           </TouchableOpacity>
@@ -101,7 +103,7 @@ export default function FleetVesselSc() {
       {tab === 'certs' ? (
         <>
           <TouchableOpacity onPress={() => setCert({ id: uid('cert'), name: '', scope: 'vessel', itemIds: [], createdAt: Date.now(), updatedAt: Date.now() })} style={styles.addRow}>
-            <Text style={styles.link}>+ Add certificate</Text>
+            <Text style={styles.link}>{t('crew.addCert')}</Text>
           </TouchableOpacity>
           {SCOPES.map(({ key, label }) => {
             const list = certs.filter((c) => scopeOf(c) === key);
@@ -114,7 +116,7 @@ export default function FleetVesselSc() {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.title} numberOfLines={1}>{c.name}</Text>
                       <Text style={styles.sub} numberOfLines={1}>
-                        {[c.holderName, c.number, c.issuer, c.expiryDate ? `expires ${formatDate(c.expiryDate)}` : 'no expiry'].filter(Boolean).join(' · ')}
+                        {[c.holderName, c.number, c.issuer, c.expiryDate ? t('crew.expires', { date: formatDate(c.expiryDate) }) : t('cm.noExpiry')].filter(Boolean).join(' · ')}
                       </Text>
                     </View>
                     <StatusPill status={statusFromDate(c.expiryDate)} />
@@ -123,7 +125,7 @@ export default function FleetVesselSc() {
               </View>
             );
           })}
-          {!certs.length ? <Empty text="No certificates on this vessel yet." /> : null}
+          {!certs.length ? <Empty text={t('fv.noCerts')} /> : null}
         </>
       ) : tab === 'docs' ? (
         <>
@@ -131,7 +133,7 @@ export default function FleetVesselSc() {
             onPress={() => setDocEdit({ isNew: true, doc: { id: uid('doc'), title: '', category: 'procedure', revision: 1, issued: todayIso(), mustRead: true, updatedAt: Date.now() } })}
             style={styles.addRow}
           >
-            <Text style={styles.link}>+ Add document</Text>
+            <Text style={styles.link}>{t('fv.addDoc')}</Text>
           </TouchableOpacity>
           {docs.map((d) => {
             const st = readStatus(d, v.acks, v.crew);
@@ -140,7 +142,7 @@ export default function FleetVesselSc() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.title} numberOfLines={1}>{d.title}</Text>
                   <Text style={styles.sub} numberOfLines={2}>
-                    {[d.docNo, `Rev ${d.revision}`, DOC_CATEGORY_LABEL[d.category]].filter(Boolean).join(' · ')}
+                    {[d.docNo, t('docs.rev', { n: d.revision }), DOC_CATEGORY_LABEL[d.category]].filter(Boolean).join(' · ')}
                     {d.mustRead !== false && st.unread.length ? `\nNot signed: ${st.unread.map((p) => p.name).join(', ')}` : ''}
                   </Text>
                 </View>
@@ -150,20 +152,20 @@ export default function FleetVesselSc() {
               </TouchableOpacity>
             );
           })}
-          {!docs.length ? <Empty text="No ISM documents on this vessel yet. Add the SMS, procedures and circulars here; the crew read and sign aboard." /> : null}
+          {!docs.length ? <Empty text={t('fv.noDocs')} /> : null}
         </>
       ) : (
         <>
           {owed.map(({ it, st }) => (
             <View key={it.id} style={styles.row}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.title} numberOfLines={1}>{(it as any).name || (it as any).description || (it as any).serial || 'Item'}</Text>
+                <Text style={styles.title} numberOfLines={1}>{(it as any).name || (it as any).description || (it as any).serial || t('def.item')}</Text>
                 <Text style={styles.sub} numberOfLines={1}>{[CATEGORY_MAP[(it as any).category]?.label, (it as any).location].filter(Boolean).join(' · ')}</Text>
               </View>
               <StatusPill status={st} />
             </View>
           ))}
-          {!owed.length ? <Empty text="Nothing expired or due on this vessel's equipment." /> : null}
+          {!owed.length ? <Empty text={t('fv.noOwed')} /> : null}
         </>
       )}
 
@@ -176,6 +178,7 @@ export default function FleetVesselSc() {
 // ---- certificate editor ---------------------------------------------------------
 
 function CertEditor({ imo, cert, crew, onClose, onSaved }: { imo: string; cert: Certificate; crew: VesselData['crew']; onClose: () => void; onSaved: () => void }) {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const [c, setC] = useState<Certificate>(cert);
@@ -185,13 +188,13 @@ function CertEditor({ imo, cert, crew, onClose, onSaved }: { imo: string; cert: 
   const people = crew.filter((p) => p.active && !p.deleted);
 
   const save = async (remove = false) => {
-    if (!remove && !c.name.trim()) return Alert.alert('Name required', 'Name the certificate.');
+    if (!remove && !c.name.trim()) return Alert.alert(t('crew.nameReq'), t('fv.nameCert'));
     setBusy(true);
     try {
       await shore.saveCertificate(imo, { ...c, name: c.name.trim() }, remove);
       onSaved();
     } catch (e: any) {
-      Alert.alert('Not saved', e?.message ?? String(e));
+      Alert.alert(t('fv.notSaved'), e?.message ?? String(e));
     } finally {
       setBusy(false);
     }
@@ -205,25 +208,25 @@ function CertEditor({ imo, cert, crew, onClose, onSaved }: { imo: string; cert: 
       const url = await shore.uploadFile(imo, c.id, `cert_${c.id}`, await toDataUri(f.uri, f.name ?? 'file'));
       set({ fileUri: url, fileName: f.name ?? 'file', fileKind: f.kind });
     } catch (e: any) {
-      Alert.alert('File not uploaded', e?.message ?? String(e));
+      Alert.alert(t('fv.notUploaded'), e?.message ?? String(e));
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <Sheet title={isNew ? 'New certificate' : 'Certificate'} onClose={onClose} onSave={() => void save()} busy={busy}>
-      <Label>Kind</Label>
+    <Sheet title={isNew ? t('fv.newCert') : t('fv.cert')} onClose={onClose} onSave={() => void save()} busy={busy}>
+      <Label>{t('fv.kind')}</Label>
       <View style={styles.chips}>
         {SCOPES.map((s) => (
           <TouchableOpacity key={s.key} style={[styles.chip, scopeOf(c) === s.key && styles.chipOn]} onPress={() => set({ scope: s.key })}>
-            <Text style={[styles.chipText, scopeOf(c) === s.key && styles.chipTextOn]}>{s.label}</Text>
+            <Text style={[styles.chipText, scopeOf(c) === s.key && styles.chipTextOn]}>{tk(`certs.tab.${s.key}`)}</Text>
           </TouchableOpacity>
         ))}
       </View>
       {scopeOf(c) === 'crew' ? (
         <>
-          <Label>Holder</Label>
+          <Label>{t('fv.holder')}</Label>
           <View style={styles.chips}>
             {people.map((p) => (
               <TouchableOpacity key={p.id} style={[styles.chip, c.crewId === p.id && styles.chipOn]} onPress={() => set({ crewId: p.id, holderName: p.name })}>
@@ -233,26 +236,26 @@ function CertEditor({ imo, cert, crew, onClose, onSaved }: { imo: string; cert: 
           </View>
         </>
       ) : null}
-      <Label>Name ★</Label>
-      <TextInput style={styles.input} value={c.name} onChangeText={(t) => set({ name: t })} placeholder="Safety Management Certificate" placeholderTextColor={COLORS.textLight} />
-      <Label>Number</Label>
+      <Label>{t('mt.namePh')}</Label>
+      <TextInput style={styles.input} value={c.name} onChangeText={(t) => set({ name: t })} placeholder={t('fv.certPh')} placeholderTextColor={COLORS.textLight} />
+      <Label>{t('fv.number')}</Label>
       <TextInput style={styles.input} value={c.number ?? ''} onChangeText={(t) => set({ number: t })} placeholder="—" placeholderTextColor={COLORS.textLight} />
-      <Label>Issued by</Label>
-      <TextInput style={styles.input} value={c.issuer ?? ''} onChangeText={(t) => set({ issuer: t })} placeholder="Flag / class / station" placeholderTextColor={COLORS.textLight} />
+      <Label>{t('fv.issuedBy')}</Label>
+      <TextInput style={styles.input} value={c.issuer ?? ''} onChangeText={(t) => set({ issuer: t })} placeholder={t('fv.issuerPh')} placeholderTextColor={COLORS.textLight} />
       <View style={{ flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.sm }}>
-        <View style={{ flex: 1 }}><SimpleDatePicker label="Issued" value={c.issueDate} onChange={(d) => set({ issueDate: d })} /></View>
-        <View style={{ flex: 1 }}><SimpleDatePicker label="Expires" value={c.expiryDate} onChange={(d) => set({ expiryDate: d })} onClear={() => set({ expiryDate: undefined })} /></View>
+        <View style={{ flex: 1 }}><SimpleDatePicker label={t('fv.issued')} value={c.issueDate} onChange={(d) => set({ issueDate: d })} /></View>
+        <View style={{ flex: 1 }}><SimpleDatePicker label={t('fv.expires')} value={c.expiryDate} onChange={(d) => set({ expiryDate: d })} onClear={() => set({ expiryDate: undefined })} /></View>
       </View>
       <TouchableOpacity style={styles.fileBtn} onPress={() => void attach()}>
         <MciIcon name="paperclip" size={18} color={COLORS.primary} />
-        <Text style={styles.link} numberOfLines={1}>{c.fileName ? `${c.fileName} — replace` : 'Attach the certificate (PDF / photo)'}</Text>
+        <Text style={styles.link} numberOfLines={1}>{c.fileName ? `${c.fileName} — ${t('fv.replace')}` : t('fv.attachCert')}</Text>
       </TouchableOpacity>
       {!isNew ? (
         <TouchableOpacity
           style={styles.delete}
-          onPress={() => Alert.alert('Remove certificate', 'Remove it from this vessel? The crew aboard lose it on their next sync.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => void save(true) }])}
+          onPress={() => Alert.alert(t('fv.removeCert'), t('fv.removeCertBody'), [{ text: t('common.cancel'), style: 'cancel' }, { text: t('common.remove'), style: 'destructive', onPress: () => void save(true) }])}
         >
-          <Text style={{ color: COLORS.danger, fontWeight: '700' }}>Remove certificate</Text>
+          <Text style={{ color: COLORS.danger, fontWeight: '700' }}>{t('fv.removeCert')}</Text>
         </TouchableOpacity>
       ) : null}
     </Sheet>
@@ -262,6 +265,7 @@ function CertEditor({ imo, cert, crew, onClose, onSaved }: { imo: string; cert: 
 // ---- document editor -------------------------------------------------------------
 
 function DocEditor({ imo, start, isNew, onClose, onSaved }: { imo: string; start: IsmDoc; isNew: boolean; onClose: () => void; onSaved: () => void }) {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const [d, setD] = useState<IsmDoc>(start);
@@ -281,15 +285,15 @@ function DocEditor({ imo, start, isNew, onClose, onSaved }: { imo: string; start
       const text = await pdfText(dataUri).catch(() => null);
       set({ fileUri: url, fileName: f.name ?? 'document.pdf', filePending: false, ...(text ? { text } : {}) });
     } catch (e: any) {
-      Alert.alert('File not uploaded', e?.message ?? String(e));
+      Alert.alert(t('fv.notUploaded'), e?.message ?? String(e));
     } finally {
       setBusy(false);
     }
   };
 
   const save = async (withdraw = false) => {
-    if (!withdraw && !d.title.trim()) return Alert.alert('Title required', 'Name the document.');
-    if (!withdraw && !d.body?.trim() && !d.fileUri) return Alert.alert('Nothing to read', 'Attach the file, or write the text.');
+    if (!withdraw && !d.title.trim()) return Alert.alert(t('risk.titleReq'), t('fv.nameDoc'));
+    if (!withdraw && !d.body?.trim() && !d.fileUri) return Alert.alert(t('fv.nothingRead'), t('fv.attachOrWrite'));
     setBusy(true);
     try {
       await shore.saveDoc(imo, {
@@ -302,19 +306,19 @@ function DocEditor({ imo, start, isNew, onClose, onSaved }: { imo: string; start
       });
       onSaved();
     } catch (e: any) {
-      Alert.alert('Not saved', e?.message ?? String(e));
+      Alert.alert(t('fv.notSaved'), e?.message ?? String(e));
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <Sheet title={isNew ? 'New document' : bump ? `Issue Rev ${revision}` : 'Document'} onClose={onClose} onSave={() => void save()} busy={busy} saveLabel={bump ? 'Issue' : 'Save'}>
-      <Label>Title ★</Label>
-      <TextInput style={styles.input} value={d.title} onChangeText={(t) => set({ title: t })} placeholder="Enclosed space entry procedure" placeholderTextColor={COLORS.textLight} />
-      <Label>Document no.</Label>
+    <Sheet title={isNew ? t('fv.newDoc') : bump ? t('fv.issueRev', { n: revision }) : t('pax.document')} onClose={onClose} onSave={() => void save()} busy={busy} saveLabel={bump ? t('fv.issue') : t('common.save')}>
+      <Label>{t('fv.titleReq')}</Label>
+      <TextInput style={styles.input} value={d.title} onChangeText={(t) => set({ title: t })} placeholder={t('fv.docPh')} placeholderTextColor={COLORS.textLight} />
+      <Label>{t('docs.no')}</Label>
       <TextInput style={styles.input} value={d.docNo ?? ''} onChangeText={(t) => set({ docNo: t })} placeholder="SMS-07-03" placeholderTextColor={COLORS.textLight} />
-      <Label>Type</Label>
+      <Label>{t('fv.type')}</Label>
       <View style={styles.chips}>
         {(Object.keys(DOC_CATEGORY_LABEL) as DocCategory[]).map((k) => (
           <TouchableOpacity key={k} style={[styles.chip, d.category === k && styles.chipOn]} onPress={() => set({ category: k })}>
@@ -323,28 +327,28 @@ function DocEditor({ imo, start, isNew, onClose, onSaved }: { imo: string; start
         ))}
       </View>
       <View style={{ marginTop: SIZES.sm }}>
-        <SimpleDatePicker label="Review due" value={d.reviewDue} onChange={(x) => set({ reviewDue: x })} onClear={() => set({ reviewDue: undefined })} />
+        <SimpleDatePicker label={t('docs.reviewDueCap')} value={d.reviewDue} onChange={(x) => set({ reviewDue: x })} onClear={() => set({ reviewDue: undefined })} />
       </View>
       <TouchableOpacity style={styles.fileBtn} onPress={() => void attach()}>
         <MciIcon name="paperclip" size={18} color={COLORS.primary} />
-        <Text style={styles.link} numberOfLines={1}>{d.fileName ? `${d.fileName} — replace` : 'Attach the file (PDF)'}</Text>
+        <Text style={styles.link} numberOfLines={1}>{d.fileName ? `${d.fileName} — ${t('fv.replace')}` : t('fv.attachFile')}</Text>
       </TouchableOpacity>
-      <Label>Text</Label>
+      <Label>{t('fv.text')}</Label>
       <TextInput style={[styles.input, { minHeight: 110, textAlignVertical: 'top' }]} value={d.body ?? ''} onChangeText={(t) => set({ body: t })} multiline placeholder="—" placeholderTextColor={COLORS.textLight} />
       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: SIZES.md }}>
-        <Text style={[styles.title, { flex: 1 }]}>Crew must read and sign</Text>
+        <Text style={[styles.title, { flex: 1 }]}>{t('docs.mustRead')}</Text>
         <Switch value={d.mustRead !== false} onValueChange={(x) => set({ mustRead: x })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
       </View>
       {!isNew ? (
         <>
           <TouchableOpacity style={styles.outline} onPress={() => setBump((b) => !b)}>
-            <Text style={styles.link}>{bump ? `Keep Rev ${start.revision}` : `New revision (Rev ${start.revision + 1}) — everyone signs again`}</Text>
+            <Text style={styles.link}>{bump ? t('fv.keepRev', { n: start.revision }) : t('fv.newRev', { n: start.revision + 1 })}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.delete}
-            onPress={() => Alert.alert('Withdraw document', 'Withdraw it from this vessel? Its signatures are kept.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Withdraw', style: 'destructive', onPress: () => void save(true) }])}
+            onPress={() => Alert.alert(t('fv.withdraw'), t('fv.withdrawBody'), [{ text: t('common.cancel'), style: 'cancel' }, { text: t('fv.withdrawBtn'), style: 'destructive', onPress: () => void save(true) }])}
           >
-            <Text style={{ color: COLORS.danger, fontWeight: '700' }}>Withdraw document</Text>
+            <Text style={{ color: COLORS.danger, fontWeight: '700' }}>{t('fv.withdraw')}</Text>
           </TouchableOpacity>
         </>
       ) : null}
@@ -352,7 +356,7 @@ function DocEditor({ imo, start, isNew, onClose, onSaved }: { imo: string; start
   );
 }
 
-function Sheet({ title, children, onClose, onSave, busy, saveLabel = 'Save' }: { title: string; children: React.ReactNode; onClose: () => void; onSave: () => void; busy: boolean; saveLabel?: string }) {
+function Sheet({ title, children, onClose, onSave, busy, saveLabel = t('common.save') }: { title: string; children: React.ReactNode; onClose: () => void; onSave: () => void; busy: boolean; saveLabel?: string }) {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   return (
@@ -360,7 +364,7 @@ function Sheet({ title, children, onClose, onSave, busy, saveLabel = 'Save' }: {
       <View style={styles.backdrop}>
         <View style={styles.sheet}>
           <View style={styles.sheetHead}>
-            <TouchableOpacity onPress={onClose} hitSlop={8}><Text style={[styles.link, { color: COLORS.textLight }]}>Cancel</Text></TouchableOpacity>
+            <TouchableOpacity onPress={onClose} hitSlop={8}><Text style={[styles.link, { color: COLORS.textLight }]}>{t('common.cancel')}</Text></TouchableOpacity>
             <Text style={styles.sheetTitle}>{title}</Text>
             <TouchableOpacity onPress={onSave} disabled={busy} hitSlop={8}><Text style={[styles.link, busy && { opacity: 0.5 }]}>{busy ? '…' : saveLabel}</Text></TouchableOpacity>
           </View>

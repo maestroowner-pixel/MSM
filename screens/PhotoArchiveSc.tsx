@@ -39,6 +39,7 @@ import { exportMonthArchive } from '../services/photoArchiveExport';
 import { writePhotoArchive } from '../services/policy';
 import { formatDate } from '../utils/dates';
 import { onWindows } from '../utils/fileShare';
+import { t, tn, useT } from '../utils/i18n';
 
 function mb(bytes: number): string {
   const m = bytes / (1024 * 1024);
@@ -46,6 +47,7 @@ function mb(bytes: number): string {
 }
 
 export default function PhotoArchiveSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { inspections: trail, flat, vessel, photoArchive, setPhotoArchive } = useData();
@@ -70,9 +72,8 @@ export default function PhotoArchiveSc() {
     );
     if (error) {
       Alert.alert(
-        'Saved on this device only',
-        `The vessel did not accept it: ${error}. It will be sent again when this device reconnects, ` +
-          'and nothing is deleted until it arrives.'
+        t('common.savedLocalOnly'),
+        t('pa.notAccepted', { error })
       );
     }
   };
@@ -84,24 +85,19 @@ export default function PhotoArchiveSc() {
       const res = await exportMonthArchive(month, trail, flat, vessel, setProgress);
       const mayMark = isMaster && canMarkArchived(months, month);
       Alert.alert(
-        `${month.label} — ${res.photos} photograph${res.photos === 1 ? '' : 's'} saved`,
+        `${month.label} — ${tn('pa.saved', res.photos)}`,
         `${res.fileName}` +
-          (res.missing
-            ? `\n\n${res.missing} could not be found on any device or in the cloud. They are listed in index.csv as NOT FOUND — there is nothing left to save for them.`
-            : '') +
-          (mayMark
-            ? '\n\nKeep this file where the ship keeps its records. Once you confirm, the photographs from ' +
-              `${month.label} may be deleted from cloud storage — this archive and whatever is on the crew's own devices become the only copies.`
-            : ''),
+          (res.missing ? `\n\n${t('pa.missing', { n: res.missing })}` : '') +
+          (mayMark ? `\n\n${t('pa.keep', { month: month.label })}` : ''),
         mayMark
           ? [
-              { text: 'Not yet', style: 'cancel' },
-              { text: 'Saved — mark archived', onPress: () => void markArchived(month) },
+              { text: t('pa.notYet'), style: 'cancel' },
+              { text: t('pa.mark'), onPress: () => void markArchived(month) },
             ]
           : [{ text: 'OK' }]
       );
     } catch (e: any) {
-      Alert.alert('Could not build the archive', String(e?.message ?? e));
+      Alert.alert(t('pa.couldNot'), String(e?.message ?? e));
     } finally {
       setBusy(null);
       setProgress(null);
@@ -113,23 +109,17 @@ export default function PhotoArchiveSc() {
   return (
     <Screen>
       <ScreenTitle
-        title="Photo archive"
-        subtitle={`Cloud storage keeps inspection photographs for ${RETENTION_DAYS} days`}
+        title={t('pa.title')}
+        subtitle={t('pa.sub', { n: RETENTION_DAYS })}
       />
 
       <Card>
-        <Label>How this works</Label>
+        <Label>{t('pa.how')}</Label>
         <Text style={styles.note}>
-          A photograph stays in the vessel's cloud storage for {RETENTION_DAYS} days, so any device
-          aboard can see it. After that it is the vessel's to keep: save the month's archive here,
-          confirm it, and those photographs are cleared from the cloud overnight. Nothing is ever
-          deleted from a period you have not confirmed — and nothing is deleted from the phones and
-          tablets themselves.
+          {t('pa.how1', { n: RETENTION_DAYS })}
         </Text>
         <Text style={styles.note}>
-          The signed records — who inspected what, when, and the result — are never touched by any
-          of this. They stay in the app, in the reports and in the .msm backup. This is the
-          photographs only.
+          {t('pa.how2')}
         </Text>
       </Card>
 
@@ -137,7 +127,7 @@ export default function PhotoArchiveSc() {
         <View style={styles.statRow}>
           <MciIcon name="cloud-check-outline" size={18} color={COLORS.success} />
           <Text style={styles.stat}>
-            {inCloud} photograph{inCloud === 1 ? '' : 's'} inside the {RETENTION_DAYS}-day window
+            {tn('pa.inCloud', inCloud, { days: RETENTION_DAYS })}
           </Text>
         </View>
         <View style={styles.statRow}>
@@ -148,56 +138,52 @@ export default function PhotoArchiveSc() {
           />
           <Text style={styles.stat}>
             {waiting
-              ? `${waiting} older photograph${waiting === 1 ? '' : 's'} not yet archived`
-              : 'Everything older than the window is archived'}
+              ? tn('pa.waiting', waiting)
+              : t('pa.allArchived')}
           </Text>
         </View>
         {archivedThrough ? (
           <Text style={styles.note}>
-            Archived up to {formatDate(new Date(archivedThrough - 1).toISOString().slice(0, 10))}
-            {photoArchive.setBy ? ` · set by the ${photoArchive.setBy}` : ''}.
+            {t('pa.upTo', { date: formatDate(new Date(archivedThrough - 1).toISOString().slice(0, 10)) })}
+            {photoArchive.setBy ? ` · ${t('pa.setBy', { who: photoArchive.setBy })}` : ''}.
           </Text>
         ) : (
           <Text style={styles.note}>
-            Nothing has been archived yet, so nothing is being deleted. Cloud storage is holding
-            every photograph the vessel has uploaded.
+            {t('pa.nothingYet')}
           </Text>
         )}
         {photoArchive.lastSweepAt ? (
           <Text style={styles.note}>
-            Last cleared from the cloud: {new Date(photoArchive.lastSweepAt).toLocaleDateString()} ·{' '}
-            {photoArchive.lastSweepDeleted ?? 0} file
-            {photoArchive.lastSweepDeleted === 1 ? '' : 's'}.
+            {t('pa.lastSweep', { date: new Date(photoArchive.lastSweepAt).toLocaleDateString() })} ·{' '}
+            {tn('n.file', photoArchive.lastSweepDeleted ?? 0)}.
           </Text>
         ) : null}
       </Card>
 
       {onWindows ? (
         <Card>
-          <Label>Not available here</Label>
+          <Label>{t('pa.notHere')}</Label>
           <Text style={styles.note}>
-            Build the archive from the web app — this build cannot write a ZIP.
+            {t('pa.useWeb')}
           </Text>
         </Card>
       ) : null}
 
       {!isMaster ? (
         <Card>
-          <Label>You can save, the Master confirms</Label>
+          <Label>{t('pa.youSave')}</Label>
           <Text style={styles.note}>
-            Anyone may save a copy of the vessel's photographs. Confirming that a month is archived
-            is what allows the originals to be deleted, so that stays with the Master.
+            {t('pa.youSaveBody')}
           </Text>
         </Card>
       ) : null}
 
-      <Label style={styles.group}>Months to archive</Label>
+      <Label style={styles.group}>{t('pa.months')}</Label>
       <ScrollView contentContainerStyle={{ paddingBottom: SIZES.xxl }}>
         {!months.length ? (
           <Card>
             <Text style={styles.note}>
-              Nothing to archive. A month appears here once it is completely older than{' '}
-              {RETENTION_DAYS} days and has photographs that are not archived yet.
+              {t('pa.nothing', { n: RETENTION_DAYS })}
             </Text>
           </Card>
         ) : null}
@@ -210,18 +196,17 @@ export default function PhotoArchiveSc() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle}>{m.label}</Text>
                 <Text style={styles.rowSub}>
-                  {m.photos} photograph{m.photos === 1 ? '' : 's'} · {m.inspections} inspection
-                  {m.inspections === 1 ? '' : 's'} · {mb(m.approxBytes)}
+                  {tn('n.photo', m.photos)} · {tn('n.inspection', m.inspections)} · {mb(m.approxBytes)}
                 </Text>
                 {/* Said on the row rather than discovered at the confirmation:
                     the order is not a suggestion, it is what keeps the watermark
                     from skipping a month nobody has saved. */}
                 {!first ? (
-                  <Text style={styles.rowNote}>Archive the earlier months first</Text>
+                  <Text style={styles.rowNote}>{t('pa.earlierFirst')}</Text>
                 ) : null}
                 {working && progress ? (
                   <Text style={styles.rowNote}>
-                    Collecting {progress.done} of {progress.total}…
+                    {t('pa.collecting', { k: progress.done, n: progress.total })}
                   </Text>
                 ) : null}
               </View>
@@ -235,7 +220,7 @@ export default function PhotoArchiveSc() {
                 ) : (
                   <>
                     <MciIcon name="folder-zip-outline" size={16} color={COLORS.textWhite} />
-                    <Text style={styles.saveText}>Save</Text>
+                    <Text style={styles.saveText}>{t('common.save')}</Text>
                   </>
                 )}
               </TouchableOpacity>

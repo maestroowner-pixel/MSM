@@ -76,7 +76,7 @@ export async function exportCrewListPdf(i: CrewListInput): Promise<string | null
 }
 
 export async function exportCrewTemplate(): Promise<void> {
-  await deliverFile('ISMpilot_Crew_List_Template.xlsx', crewTemplateBase64(), true, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  await deliverFile('ISM_AI_Pilot_Crew_List_Template.xlsx', crewTemplateBase64(), true, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
 /** The crew as it stands, in the template's layout — edit it and import it back. */

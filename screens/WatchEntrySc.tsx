@@ -24,8 +24,10 @@ import * as storage from '../services/storage';
 import { formatDate, formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
+import { t, useT } from '../utils/i18n';
 
 export default function WatchEntrySc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -64,7 +66,7 @@ export default function WatchEntrySc() {
   const setValue = (id: string, v: string) => setValues((prev) => ({ ...prev, [id]: v }));
 
   const sign = async () => {
-    if (!signer) return Alert.alert('No signer', 'Choose who is signing this round.');
+    if (!signer) return Alert.alert(t('sign.noSigner'), t('we.chooseSigner'));
     if (saving) return;
     setSaving(true);
     try {
@@ -86,7 +88,7 @@ export default function WatchEntrySc() {
       await saveRow(storage.WATCH_LOG_KEY, entry);
       goBackOr(nav, 'WatchLog');
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? String(e));
+      Alert.alert(t('common.error'), e?.message ?? String(e));
     } finally {
       setSaving(false);
     }
@@ -159,7 +161,7 @@ export default function WatchEntrySc() {
                 activeOpacity={0.8}
               >
                 <MciIcon name="pencil" size={18} color={COLORS.textWhite} />
-                <Text style={styles.signBtnText}>{saving ? 'Saving…' : 'Sign & save round'}</Text>
+                <Text style={styles.signBtnText}>{saving ? t('common.saving') : t('we.sign')}</Text>
               </TouchableOpacity>
             </View>
           ) : null}

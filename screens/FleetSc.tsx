@@ -20,8 +20,10 @@ import * as shore from '../services/shore';
 import { moduleOn } from '../constants/modules';
 import { Count, VesselSummary, fleetOrder, summarise } from '../services/fleetSummary';
 import { formatDateTime } from '../utils/dates';
+import { t, tn, useT } from '../utils/i18n';
 
 export default function FleetSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -72,8 +74,8 @@ export default function FleetSc() {
   if (!moduleOn('fleet')) {
     return (
       <Screen>
-        <ScreenTitle title="Fleet" subtitle="Superintendent's console" />
-        <Empty text="The fleet console is not available yet." />
+        <ScreenTitle title={t('fleet.title')} subtitle={t('fleet.sub')} />
+        <Empty text={t('fleet.notYet')} />
       </Screen>
     );
   }
@@ -81,7 +83,7 @@ export default function FleetSc() {
   if (loading && !session) {
     return (
       <Screen>
-        <ScreenTitle title="Fleet" subtitle="Superintendent's console" />
+        <ScreenTitle title={t('fleet.title')} subtitle={t('fleet.sub')} />
         <ActivityIndicator color={COLORS.primary} />
       </Screen>
     );
@@ -90,11 +92,10 @@ export default function FleetSc() {
   if (!session) {
     return (
       <Screen scroll>
-        <ScreenTitle title="Fleet" subtitle="Superintendent's console" help="Fleet console (superintendent)" />
+        <ScreenTitle title={t('fleet.title')} subtitle={t('fleet.sub')} help="Fleet console (superintendent)" />
         {error ? <Text style={styles.err}>{error}</Text> : null}
         <Text style={styles.lead}>
-          See every vessel you look after in one place, and keep their ISM documents and certificates up to date from the office.
-          Each vessel's Master lets you in: ask for an account of the type “Superintendent (shore)”.
+          {t('fleet.lead')}
         </Text>
         <JoinForm onJoined={onJoined} styles={styles} />
       </Screen>
@@ -103,18 +104,18 @@ export default function FleetSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Fleet" subtitle={`${session.name || 'Superintendent'} · ${session.vessels.length} vessel${session.vessels.length === 1 ? '' : 's'}`} help="Fleet console (superintendent)" />
+      <ScreenTitle title="Fleet" subtitle={`${session.name || t('fleet.supt')} · ${tn('n.vessel', session.vessels.length)}`} help="Fleet console (superintendent)" />
       <View style={styles.tools}>
         <TouchableOpacity onPress={() => void load(session)} hitSlop={8}>
-          <Text style={styles.link}>{loading ? 'Loading…' : 'Refresh'}</Text>
+          <Text style={styles.link}>{loading ? t('common.loading') : t('fleet.refresh')}</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setAdding((v) => !v)} hitSlop={8}>
-          <Text style={styles.link}>{adding ? 'Cancel' : '+ Add vessel'}</Text>
+          <Text style={styles.link}>{adding ? t('common.cancel') : `+ ${t('fleet.add')}`}</Text>
         </TouchableOpacity>
       </View>
       {adding ? <JoinForm onJoined={onJoined} styles={styles} /> : null}
 
-      {rows.length === 0 && !loading ? <Empty text="No vessel is open to this account any more — a Master may have switched it off." /> : null}
+      {rows.length === 0 && !loading ? <Empty text={t('fleet.noneOpen')} /> : null}
       {rows.map((r) => (
         <TouchableOpacity key={r.imo} style={styles.vessel} onPress={() => nav.navigate('FleetVessel', { imo: r.imo })} activeOpacity={0.75}>
           <View style={styles.vesselHead}>
@@ -122,19 +123,19 @@ export default function FleetSc() {
             <Text style={styles.sub}>{`IMO ${r.imo} · synced ${r.registerAt ? formatDateTime(r.registerAt) : 'never'}`}</Text>
           </View>
           <View style={styles.chips}>
-            <Pill label="Equipment" c={r.equipment} styles={styles} COLORS={COLORS} />
-            <Pill label="Certificates" c={r.certs} styles={styles} COLORS={COLORS} />
-            <Pill label="Vessel certs" c={r.vesselCerts} styles={styles} COLORS={COLORS} />
-            <Pill label="Crew certs" c={r.crewCerts} styles={styles} COLORS={COLORS} />
+            <Pill label={t('cat.title')} c={r.equipment} styles={styles} COLORS={COLORS} />
+            <Pill label={t('fleet.certs')} c={r.certs} styles={styles} COLORS={COLORS} />
+            <Pill label={t('fleet.vesselCerts')} c={r.vesselCerts} styles={styles} COLORS={COLORS} />
+            <Pill label={t('fleet.crewCerts')} c={r.crewCerts} styles={styles} COLORS={COLORS} />
             <Pill label="PMS" c={r.pms} styles={styles} COLORS={COLORS} />
             {r.sparesOut + r.sparesLow ? (
               <Text style={[styles.pill, { color: r.sparesOut ? COLORS.danger : COLORS.warning, borderColor: r.sparesOut ? COLORS.danger : COLORS.warning }]}>
-                {`Spares ${r.sparesOut} out · ${r.sparesLow} low`}
+                {t('fleet.spares', { out: r.sparesOut, low: r.sparesLow })}
               </Text>
             ) : null}
             {r.docsOutstanding ? (
               <Text style={[styles.pill, { color: COLORS.warning, borderColor: COLORS.warning }]}>
-                {`Docs: ${r.signaturesMissing} signature${r.signaturesMissing === 1 ? '' : 's'} missing`}
+                {t('fleet.docs', { x: tn('n.signature', r.signaturesMissing) })}
               </Text>
             ) : null}
           </View>
@@ -142,7 +143,7 @@ export default function FleetSc() {
       ))}
 
       <TouchableOpacity onPress={() => void shore.forget().then(() => { setSession(null); setRows([]); })} style={{ marginTop: SIZES.xl }}>
-        <Text style={[styles.link, { color: COLORS.textLight }]}>Sign out of the fleet console on this browser</Text>
+        <Text style={[styles.link, { color: COLORS.textLight }]}>{t('fleet.signOut')}</Text>
       </TouchableOpacity>
     </Screen>
   );
@@ -180,16 +181,16 @@ function JoinForm({ onJoined, styles }: { onJoined: (s: shore.ShoreSession) => v
   };
   return (
     <Card>
-      <Label>Add a vessel</Label>
-      <TextInput style={styles.input} value={imo} onChangeText={setImo} placeholder="IMO number" placeholderTextColor={COLORS.textLight} keyboardType="number-pad" />
+      <Label>{t('fleet.addHead')}</Label>
+      <TextInput style={styles.input} value={imo} onChangeText={setImo} placeholder={t('fleet.imo')} placeholderTextColor={COLORS.textLight} keyboardType="number-pad" />
       <View style={{ flexDirection: 'row', gap: SIZES.sm }}>
-        <TextInput style={[styles.input, { flex: 1 }]} value={first} onChangeText={setFirst} placeholder="First name" placeholderTextColor={COLORS.textLight} />
-        <TextInput style={[styles.input, { flex: 1 }]} value={last} onChangeText={setLast} placeholder="Last name" placeholderTextColor={COLORS.textLight} />
+        <TextInput style={[styles.input, { flex: 1 }]} value={first} onChangeText={setFirst} placeholder={t('common.firstName')} placeholderTextColor={COLORS.textLight} />
+        <TextInput style={[styles.input, { flex: 1 }]} value={last} onChangeText={setLast} placeholder={t('common.lastName')} placeholderTextColor={COLORS.textLight} />
       </View>
-      <TextInput style={styles.input} value={pin} onChangeText={(t) => setPin(t.replace(/\D/g, ''))} placeholder="PIN from the Master" placeholderTextColor={COLORS.textLight} keyboardType="number-pad" secureTextEntry />
+      <TextInput style={styles.input} value={pin} onChangeText={(t) => setPin(t.replace(/\D/g, ''))} placeholder={t('fleet.pin')} placeholderTextColor={COLORS.textLight} keyboardType="number-pad" secureTextEntry />
       {err ? <Text style={styles.err}>{err}</Text> : null}
       <TouchableOpacity style={[styles.btn, (!ready || busy) && { opacity: 0.5 }]} disabled={!ready || busy} onPress={() => void go()}>
-        <Text style={styles.btnText}>{busy ? 'Checking…' : 'Add vessel'}</Text>
+        <Text style={styles.btnText}>{busy ? t('common.checking') : t('fleet.add')}</Text>
       </TouchableOpacity>
     </Card>
   );

@@ -47,6 +47,7 @@ import { RETENTION_DAYS, isArchived } from '../services/photoArchive';
 import { formatDateTime } from '../utils/dates';
 import { goBackOr } from '../utils/nav';
 import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
+import { t, tk, useT, dateLocale } from '../utils/i18n';
 
 const RESULT_META: Record<CheckResult, { label: string; icon: string }> = {
   pass: { label: 'PASS', icon: 'check-circle' },
@@ -55,6 +56,7 @@ const RESULT_META: Record<CheckResult, { label: string; icon: string }> = {
 };
 
 export default function InspectionDetailSc() {
+  useT();
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const route = useRoute<any>();
@@ -76,13 +78,12 @@ export default function InspectionDetailSc() {
     return (
       <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
-          <Header title="Inspection" onClose={() => goBackOr(nav)} />
+          <Header title={t('id.inspection')} onClose={() => goBackOr(nav)} />
           <View style={{ padding: SIZES.lg }}>
             <Card>
-              <Label>Record not found</Label>
+              <Label>{t('id.notFound')}</Label>
               <Text style={styles.note}>
-                This record is not on this device. If the vessel has several devices, pull the latest
-                data in Settings → Cloud sync.
+                {t('id.notFoundBody')}
               </Text>
             </Card>
           </View>
@@ -106,13 +107,12 @@ export default function InspectionDetailSc() {
     if (rectifying.current) return;
     rectifying.current = true;
     Alert.alert(
-      'Record rectification',
-      `Close this defect as rectified, signed by ${crewLabel(signer)} at ${new Date().toLocaleString()}?\n\n` +
-        'The original failed inspection stays on file exactly as it is — this adds the rectification to it.',
+      t('id.recordRect'),
+      `${t('id.closeQ', { who: crewLabel(signer), when: new Date().toLocaleString() })}\n\n${t('id.original')}`,
       [
-        { text: 'Cancel', style: 'cancel', onPress: () => { rectifying.current = false; } },
+        { text: t('common.cancel'), style: 'cancel', onPress: () => { rectifying.current = false; } },
         {
-          text: 'Confirm',
+          text: t('id.confirm'),
           onPress: async () => {
             // The rectification is a signature like any other: PIN, fingerprint or by hand.
             const sig = await confirmSign({ personKey: signer.id, name: signer.name, ownDevice: false, what: 'Defect rectified' });
@@ -135,7 +135,7 @@ export default function InspectionDetailSc() {
   return (
     <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
-        <Header title={`${PERIOD_LABEL[insp.period]} inspection`} onClose={() => goBackOr(nav)} />
+        <Header title={tk(`id.p.${insp.period}`)} onClose={() => goBackOr(nav)} />
 
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
           {/* Outcome first — it is the one thing a reader is looking for. */}
@@ -154,7 +154,7 @@ export default function InspectionDetailSc() {
           </View>
 
           <Card>
-            <Label>Equipment</Label>
+            <Label>{t('cat.title')}</Label>
             <TouchableOpacity
               style={styles.itemRow}
               onPress={() =>
@@ -165,16 +165,16 @@ export default function InspectionDetailSc() {
               <CategoryBadge category={insp.category} size={24} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.itemName}>
-                  {[itemNumber(item) && `No. ${itemNumber(item)}`, typeWithSize(item) || item?.serial]
+                  {[itemNumber(item) && t('round.no', { n: itemNumber(item) }), typeWithSize(item) || item?.serial]
                     .filter(Boolean)
-                    .join(' — ') || CATEGORY_MAP[insp.category]?.label || 'Item'}
+                    .join(' — ') || CATEGORY_MAP[insp.category]?.label || t('def.item')}
                 </Text>
                 <Text style={styles.meta}>
                   {item
                     ? [CATEGORY_MAP[insp.category]?.label, itemLocation(item), item.serial ? `S/N ${item.serial}` : null]
                         .filter(Boolean)
                         .join(' · ')
-                    : 'No longer in the register'}
+                    : t('id.gone')}
                 </Text>
               </View>
               {item ? <MciIcon name="chevron-right" size={22} color={COLORS.textLight} /> : null}
@@ -183,7 +183,7 @@ export default function InspectionDetailSc() {
 
           {/* The audit trail proper: who, exactly when, under which checklist. */}
           <Card>
-            <Label>Signed</Label>
+            <Label>{t('wc.signed')}</Label>
             <Row icon="account-check" text={signatureLine(insp.by, insp.byRank)} />
             <Row icon="clock-outline" text={formatDateTime(insp.at)} />
             {insp.signedWith ? <Row icon={insp.signedWith.method === 'biometric' ? 'fingerprint' : insp.signedWith.method === 'drawn' ? 'draw' : 'dialpad'} text={proofText(insp.signedWith) ?? ''} /> : null}
@@ -193,7 +193,7 @@ export default function InspectionDetailSc() {
                 text={
                   insp.verification.method === 'override'
                     ? verificationText(insp.verification, formatDateTime)
-                    : `Label scanned ${insp.verification.method === 'qr-link' ? 'with the phone camera' : 'in the app'}` +
+                    : (insp.verification.method === 'qr-link' ? t('id.scannedPhone') : t('id.scannedApp')) +
                       (insp.verification.scannedAt ? ` · ${formatDateTime(insp.verification.scannedAt)}` : '')
                 }
               />
@@ -202,11 +202,11 @@ export default function InspectionDetailSc() {
               icon="clipboard-list"
               text={`${template?.title ?? insp.templateId} · v${insp.templateVersion}`}
             />
-            {insp.deviceId ? <Row icon="cellphone" text={`Device ${insp.deviceId.slice(0, 8)}`} /> : null}
+            {insp.deviceId ? <Row icon="cellphone" text={t('id.device', { id: insp.deviceId.slice(0, 8) })} /> : null}
           </Card>
 
           <Card>
-            <Label>Checklist</Label>
+            <Label>{t('cle.checklist')}</Label>
             {/* Read through `checklistRows`, which prefers the wording snapshotted
                 onto the record over anything the template says today, and keeps
                 the order the questions were actually put in. */}
@@ -226,14 +226,14 @@ export default function InspectionDetailSc() {
 
           {insp.comment ? (
             <Card>
-              <Label>Comments</Label>
+              <Label>{t('id.comments')}</Label>
               <Text style={styles.body}>{insp.comment}</Text>
             </Card>
           ) : null}
 
           {insp.photos?.length ? (
             <Card>
-              <Label>Photographs</Label>
+              <Label>{t('id.photos')}</Label>
               <View style={styles.photoRow}>
                 {insp.photos.map((p) => (
                   <EvidencePhoto
@@ -251,9 +251,7 @@ export default function InspectionDetailSc() {
                   rule having done exactly what it was told to. */}
               {archived ? (
                 <Text style={styles.archivedNote}>
-                  Older than the {RETENTION_DAYS}-day window: these photographs are in the vessel's
-                  own archive for {archiveMonthLabel(insp.at)}, and on the device that took them.
-                  Settings → Inspection photos → Photo archive.
+                  {t('id.archived', { n: RETENTION_DAYS, month: archiveMonthLabel(insp.at) })}
                 </Text>
               ) : null}
             </Card>
@@ -262,7 +260,7 @@ export default function InspectionDetailSc() {
           {insp.defect ? (
             <View style={[styles.card, { borderWidth: 1, borderColor: insp.defect.open ? COLORS.danger : COLORS.border }]}>
               <Label style={{ color: insp.defect.open ? COLORS.danger : COLORS.textLight }}>
-                {insp.defect.open ? 'Defect — outstanding' : 'Defect — rectified'}
+                {insp.defect.open ? t('id.defectOpen') : t('id.defectClosed')}
               </Label>
               <Text style={styles.body}>{insp.defect.note}</Text>
 
@@ -273,23 +271,23 @@ export default function InspectionDetailSc() {
                       style={[styles.input, styles.multiline]}
                       value={closeNote}
                       onChangeText={setCloseNote}
-                      placeholder="What was done to rectify it"
+                      placeholder={t('id.rectPh')}
                       placeholderTextColor={COLORS.textLight}
                       multiline
                     />
                     <View style={styles.btnRow}>
                       <TouchableOpacity style={styles.secondaryBtn} onPress={() => setClosing(false)}>
-                        <Text style={styles.secondaryBtnText}>Cancel</Text>
+                        <Text style={styles.secondaryBtnText}>{t('common.cancel')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity style={styles.primaryBtn} onPress={() => setPickingSigner(true)}>
-                        <Text style={styles.primaryBtnText}>Sign off</Text>
+                        <Text style={styles.primaryBtnText}>{t('id.signOff')}</Text>
                       </TouchableOpacity>
                     </View>
                   </>
                 ) : (
                   <TouchableOpacity style={styles.primaryBtn} onPress={() => setClosing(true)}>
                     <MciIcon name="wrench" size={18} color={COLORS.textWhite} />
-                    <Text style={styles.primaryBtnText}>Record rectification</Text>
+                    <Text style={styles.primaryBtnText}>{t('id.recordRect')}</Text>
                   </TouchableOpacity>
                 )
               ) : (
@@ -311,7 +309,7 @@ export default function InspectionDetailSc() {
         <SignerPicker
           visible={pickingSigner}
           crew={activeCrew}
-          title="Who carried out the rectification?"
+          title={t('id.whoRect')}
           onSelect={(id) => {
             setPickingSigner(false);
             rectify(id);
@@ -323,15 +321,9 @@ export default function InspectionDetailSc() {
   );
 }
 
-const ARCHIVE_MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
 /** "September 2026" — the archive is filed by month, so the note names one. */
 function archiveMonthLabel(at: number): string {
-  const d = new Date(at);
-  return `${ARCHIVE_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  return new Date(at).toLocaleString(dateLocale(), { month: 'long', year: 'numeric' });
 }
 
 function Header({ title, onClose }: { title: string; onClose: () => void }) {

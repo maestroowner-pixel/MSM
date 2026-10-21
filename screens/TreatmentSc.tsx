@@ -45,11 +45,13 @@ import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
+import { t as tt, tk, useT } from '../utils/i18n';
 
 const VITALS: [keyof Vitals, string, string][] = [['temp', 'Temp °C', 'decimal-pad'], ['pulse', 'Pulse /min', 'number-pad'], ['bp', 'BP mmHg', 'numbers-and-punctuation'], ['rr', 'Resp /min', 'number-pad'], ['spo2', 'SpO2 %', 'number-pad']];
 const OTHER = '__other';
 
 export default function TreatmentSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -89,7 +91,7 @@ export default function TreatmentSc() {
     return (
       <Screen scroll>
         <BackButton onPress={() => goBackOr(nav)} />
-        <Text style={styles.sub}>The medical log is kept by the Master and the officers.</Text>
+        <Text style={styles.sub}>{tt('tr.officersOnly')}</Text>
       </Screen>
     );
   }
@@ -97,12 +99,12 @@ export default function TreatmentSc() {
   // ---- a file, before or after signing ----
   const attach = async (how: 'file' | 'photo') => {
     try {
-      setBusy(how === 'file' ? 'Compressing…' : 'Taking the photo…');
+      setBusy(how === 'file' ? tt('tr.compressing') : tt('tr.taking'));
       const f = how === 'file' ? await pickMedFile() : await photoMedFile();
       setBusy(null);
       if (!f) return;
       if (!stored) return setFiles([...files, f]);
-      setBusy('Saving the file…');
+      setBusy(tt('tr.savingFile'));
       const fid = uid('mf');
       const url = await keepMedFile(vessel?.imo, sync.enrolled, stored.id, fid, f);
       const mf: MedFile = { id: fid, name: f.name, url, bytes: f.bytes, addedBy: signer?.name ?? 'Officer', addedAt: Date.now() };
@@ -112,7 +114,7 @@ export default function TreatmentSc() {
       playSuccessSound();
     } catch (e: any) {
       setBusy(null);
-      Alert.alert('File', String(e?.message ?? e));
+      Alert.alert(tt('tr.file'), String(e?.message ?? e));
     }
   };
 
@@ -122,9 +124,9 @@ export default function TreatmentSc() {
     const pdf = async () => {
       try {
         const w = await exportTreatmentPdf(t, vessel);
-        if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+        if (typeof w === 'string') setSaved(w === 'Downloads' ? tt('common.savedDownloads') : tt('common.savedFolder', { folder: w }));
       } catch (e: any) {
-        Alert.alert('Medical report', String(e?.message ?? e));
+        Alert.alert(tt('tr.report'), String(e?.message ?? e));
       }
     };
     const back = returnedFor(t.id, medMoves);
@@ -134,10 +136,10 @@ export default function TreatmentSc() {
       if (!x) return;
       const qty = Number(ret.qty.replace(',', '.'));
       const left = x.qty - (back.get(x.itemId) ?? 0);
-      if (!(qty > 0) || qty > left) return Alert.alert('Return', `Between 1 and ${left} ${x.unit}.`);
-      if (!signer) return Alert.alert('Who takes it back?', 'Choose your name — an officer or the Master.');
+      if (!(qty > 0) || qty > left) return Alert.alert(tt('st.return'), tt('tr.between', { n: left, unit: x.unit }));
+      if (!signer) return Alert.alert(tt('tr.whoTakesBack'), tt('tr.chooseOfficer'));
       const isCd = !!medItems.find((i) => i.id === x.itemId)?.controlled;
-      if (isCd && !witness.picked) return Alert.alert('Controlled drug', 'Choose the witness — the second person present.');
+      if (isCd && !witness.picked) return Alert.alert(tt('mo.cd'), tt('mi.chooseWitness'));
       const what = `${t.no} — ${x.name} ${qty} ${x.unit} returned unused`;
       const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what });
       if (!sig) return;
@@ -158,27 +160,27 @@ export default function TreatmentSc() {
     return (
       <Screen scroll>
         <BackButton onPress={() => goBackOr(nav)} />
-        <ScreenTitle title={`${t.no} · ${t.patient}`} subtitle={`${formatDate(t.date)}${t.time ? ` ${t.time}` : ''} · ${OUTCOME_LABEL[t.outcome]} · confidential`} help="Hospital" />
+        <ScreenTitle title={`${t.no} · ${t.patient}`} subtitle={`${formatDate(t.date)}${t.time ? ` ${t.time}` : ''} · ${tk(`tr.out.${t.outcome}`)} · ${tt('tr.confidential')}`} help="Hospital" />
         <Card>
-          {line('Rank', t.patientRank)}
-          {line('Complaint', t.complaint)}
-          {line('History', t.history)}
-          {Object.keys(v).length ? line('Vital signs', VITALS.filter(([k]) => v[k]).map(([k, l]) => `${l.split(' ')[0]} ${v[k]}`).join(' · ')) : null}
-          {line('Findings', t.findings)}
-          {line('Diagnosis', t.diagnosis)}
-          {line('Treatment', t.treatment)}
-          {t.issued.length ? line('Medicines', t.issued.map(issuedText).join('; ')) : null}
-          {back.size ? line('Returned unused', t.issued.filter((x) => back.get(x.itemId)).map((x) => `${x.name} ${back.get(x.itemId)} ${x.unit}`).join('; ')) : null}
-          {t.tmas ? line('Radio medical advice', [t.tmas.centre, t.tmas.ref, t.tmas.advice].filter(Boolean).join(' · ')) : null}
+          {line(tt('ho.rank'), t.patientRank)}
+          {line(tt('tr.complaint'), t.complaint)}
+          {line(tt('tr.history'), t.history)}
+          {Object.keys(v).length ? line(tt('tr.vitals'), VITALS.filter(([k]) => v[k]).map(([k]) => `${tk(`tr.v.${k}`).split(' ')[0]} ${v[k]}`).join(' · ')) : null}
+          {line(tt('tr.findings'), t.findings)}
+          {line(tt('tr.diagnosis'), t.diagnosis)}
+          {line(tt('tr.treatment'), t.treatment)}
+          {t.issued.length ? line(tt('tr.medicines'), t.issued.map(issuedText).join('; ')) : null}
+          {back.size ? line(tt('tr.returnedUnused'), t.issued.filter((x) => back.get(x.itemId)).map((x) => `${x.name} ${back.get(x.itemId)} ${x.unit}`).join('; ')) : null}
+          {t.tmas ? line(tt('tr.tmas'), [t.tmas.centre, t.tmas.ref, t.tmas.advice].filter(Boolean).join(' · ')) : null}
           {line('Follow-up', t.followUp ? formatDate(t.followUp) : undefined)}
-          {prior ? line('Follows', `${prior.no} ${prior.complaint}`) : null}
-          <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{`Signed by ${who(t.by, t.byRank)} · ${formatDateTime(t.at)}${t.signedWith ? ` · ${proofShort(t.signedWith)}` : ''}`}</Text>
-          {t.witness ? <Text style={styles.sub}>{`Witness ${who(t.witness, t.witnessRank)}${t.witnessWith ? ` · ${proofShort(t.witnessWith)}` : ''}`}</Text> : null}
+          {prior ? line(tt('tr.follows'), `${prior.no} ${prior.complaint}`) : null}
+          <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{`${tt('tr.signedBy', { who: who(t.by, t.byRank) })} · ${formatDateTime(t.at)}${t.signedWith ? ` · ${proofShort(t.signedWith)}` : ''}`}</Text>
+          {t.witness ? <Text style={styles.sub}>{`${tt('med.witness', { who: who(t.witness, t.witnessRank) })}${t.witnessWith ? ` · ${proofShort(t.witnessWith)}` : ''}`}</Text> : null}
         </Card>
         {t.issued.some((x) => (back.get(x.itemId) ?? 0) < x.qty) ? (
           <Card>
-            <Label>Return from the patient</Label>
-            <Text style={styles.sub}>Medicine given but not used — the patient gives it back, it goes back into its batch in the chest. A controlled drug comes back with a witness.</Text>
+            <Label>{tt('tr.returnHead')}</Label>
+            <Text style={styles.sub}>{tt('tr.returnHint')}</Text>
             {ret ? (
               <>
                 {(() => {
@@ -186,37 +188,37 @@ export default function TreatmentSc() {
                   const left = x.qty - (back.get(x.itemId) ?? 0);
                   return <Text style={[styles.name, { marginTop: SIZES.sm }]}>{`${x.name} — given ${x.qty} ${x.unit}, can return up to ${left}`}</Text>;
                 })()}
-                <TextInput style={styles.input} value={ret.qty} onChangeText={(v) => setRet({ ...ret, qty: v })} keyboardType="decimal-pad" placeholder="How many come back ★" placeholderTextColor={COLORS.textLight} />
+                <TextInput style={styles.input} value={ret.qty} onChangeText={(v) => setRet({ ...ret, qty: v })} keyboardType="decimal-pad" placeholder={tt('tr.howManyBack')} placeholderTextColor={COLORS.textLight} />
                 {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
                 {medItems.find((i) => i.id === ret.itemId)?.controlled ? <View style={{ marginTop: SIZES.sm }}>{witness.picker}</View> : null}
                 <View style={styles.row}>
-                  <TouchableOpacity style={styles.btn} onPress={() => void giveBack()}><Text style={styles.btnText}>Sign the return</Text></TouchableOpacity>
-                  <TouchableOpacity onPress={() => setRet(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.btn} onPress={() => void giveBack()}><Text style={styles.btnText}>{tt('tr.signReturn')}</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => setRet(null)}><Text style={styles.link}>{tt('common.cancel')}</Text></TouchableOpacity>
                 </View>
               </>
             ) : (
               <View style={styles.row}>
                 {t.issued.filter((x) => (back.get(x.itemId) ?? 0) < x.qty).map((x) => (
-                  <TouchableOpacity key={x.itemId} style={styles.small} onPress={() => setRet({ itemId: x.itemId, qty: String(x.qty - (back.get(x.itemId) ?? 0)) })}><Text style={styles.smallText}>{`Return ${x.name}…`}</Text></TouchableOpacity>
+                  <TouchableOpacity key={x.itemId} style={styles.small} onPress={() => setRet({ itemId: x.itemId, qty: String(x.qty - (back.get(x.itemId) ?? 0)) })}><Text style={styles.smallText}>{tt('tr.returnX', { name: x.name })}</Text></TouchableOpacity>
                 ))}
               </View>
             )}
           </Card>
         ) : null}
-        <Label>{`Files · ${t.files?.length ?? 0}`}</Label>
+        <Label>{tt('tr.filesN', { n: t.files?.length ?? 0 })}</Label>
         {(t.files ?? []).map((f) => (
-          <TouchableOpacity key={f.id} style={[styles.item, { borderLeftColor: COLORS.primary }]} onPress={() => void openMedFile(f.url, f.name).catch((e) => Alert.alert('File', String(e?.message ?? e)))}>
+          <TouchableOpacity key={f.id} style={[styles.item, { borderLeftColor: COLORS.primary }]} onPress={() => void openMedFile(f.url, f.name).catch((e) => Alert.alert(tt('tr.file'), String(e?.message ?? e)))}>
             <Text style={styles.name}>{f.name}</Text>
             <Text style={styles.sub}>{`${sizeText(f.bytes)} · added by ${f.addedBy} ${formatDateTime(f.addedAt)}`}</Text>
           </TouchableOpacity>
         ))}
         <View style={styles.row}>
-          <TouchableOpacity style={styles.small} disabled={!!busy} onPress={() => void attach('file')}><Text style={styles.smallText}>+ Medical advice (PDF)</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.small} disabled={!!busy} onPress={() => void attach('photo')}><Text style={styles.smallText}>+ Photograph it</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.small} disabled={!!busy} onPress={() => void attach('file')}><Text style={styles.smallText}>{tt('tr.addAdvice')}</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.small} disabled={!!busy} onPress={() => void attach('photo')}><Text style={styles.smallText}>{tt('tr.addPhoto')}</Text></TouchableOpacity>
         </View>
         {busy ? <Text style={styles.sub}>{busy}</Text> : null}
         <View style={styles.row}>
-          <TouchableOpacity style={styles.btn} onPress={() => void pdf()}><Text style={styles.btnText}>Medical report (PDF)</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.btn} onPress={() => void pdf()}><Text style={styles.btnText}>{tt('tr.reportPdf')}</Text></TouchableOpacity>
           <TouchableOpacity style={styles.small} onPress={() => nav.navigate('Treatment', { id: 'new', followUpOf: t.id })}><Text style={styles.smallText}>Follow-up…</Text></TouchableOpacity>
         </View>
         {saved ? <Text style={styles.sub}>{saved}</Text> : null}
@@ -234,15 +236,15 @@ export default function TreatmentSc() {
 
   const sign = async () => {
     const patient = d.patient.trim();
-    if (!patient) return Alert.alert('Patient', 'Who is the patient?');
-    if (!d.complaint.trim()) return Alert.alert('Complaint', 'What is the complaint or the injury?');
-    if (d.issued.some((x) => !(x.qty > 0))) return Alert.alert('Medicines', 'Each medicine given needs a quantity.');
+    if (!patient) return Alert.alert(tt('tr.patient'), tt('tr.whoPatient'));
+    if (!d.complaint.trim()) return Alert.alert(tt('tr.complaint'), tt('tr.whatComplaint'));
+    if (d.issued.some((x) => !(x.qty > 0))) return Alert.alert(tt('tr.medicines'), tt('tr.needQty'));
     for (const x of d.issued) {
       const r = status.find((s) => s.item.id === x.itemId);
-      if (!r || r.usable < x.qty) return Alert.alert('Medicines', `${x.name}: only ${r?.usable ?? 0} in date aboard.`);
+      if (!r || r.usable < x.qty) return Alert.alert(tt('tr.medicines'), tt('tr.onlyInDate', { name: x.name, n: r?.usable ?? 0 }));
     }
-    if (!signer) return Alert.alert('Who treated?', 'Choose your name — an officer or the Master.');
-    if (cdGiven && !witness.picked) return Alert.alert('Controlled drug', 'Choose the witness — the second person present when it was given.');
+    if (!signer) return Alert.alert(tt('tr.whoTreated'), tt('tr.chooseOfficer'));
+    if (cdGiven && !witness.picked) return Alert.alert(tt('mo.cd'), tt('tr.witnessGiven'));
     const no = nextMedNo(medTreatments, d.date);
     const what = `${no} — ${patient}`;
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what });
@@ -281,7 +283,7 @@ export default function TreatmentSc() {
           const fid = uid('mf');
           kept.push({ id: fid, name: f.name, url: await keepMedFile(vessel?.imo, sync.enrolled, clean.id, fid, f), bytes: f.bytes, addedBy: signer.name, addedAt: now });
         } catch (e: any) {
-          Alert.alert('File', `${f.name}: ${String(e?.message ?? e)} — add it again from the entry.`);
+          Alert.alert(tt('tr.file'), `${f.name}: ${String(e?.message ?? e)} — ${tt('tr.addAgain')}`);
         }
       }
       if (kept.length) await saveRow(storage.MED_TREATMENTS_KEY, { ...clean, files: kept, updatedAt: Date.now() });
@@ -293,39 +295,39 @@ export default function TreatmentSc() {
   return (
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav)} />
-      <ScreenTitle title={prior ? `Follow-up — ${prior.patient}` : 'New treatment'} subtitle="Medical log — confidential, the Master and the officers only" help="Hospital" />
-      {prior ? <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>{`Follows ${prior.no} of ${formatDate(prior.date)}: ${prior.complaint}${prior.diagnosis ? ` — ${prior.diagnosis}` : ''}`}</Text> : null}
+      <ScreenTitle title={prior ? `${tt('tr.followUp')} — ${prior.patient}` : tt('tr.new')} subtitle={tt('tr.sub')} help="Hospital" />
+      {prior ? <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>{`${tt('tr.followsOf', { no: prior.no, date: formatDate(prior.date) })}: ${prior.complaint}${prior.diagnosis ? ` — ${prior.diagnosis}` : ''}`}</Text> : null}
       <Card>
-        <Label>Patient</Label>
-        <Dropdown caption="PATIENT" value={patientPick} onChange={(v: string) => { setPatientPick(v); const p = people.find((x) => x.id === v); set(p ? { patient: p.name, ...(p.rank ? { patientRank: p.rank } : { patientRank: undefined }) } : { patient: '', patientRank: undefined }); }} options={[{ value: '', label: 'Choose…' }, ...people.map((p) => ({ value: p.id, label: p.rank ? `${p.name} · ${p.rank}` : p.name })), { value: OTHER, label: 'Someone else — guest, contractor' }]} />
+        <Label>{tt('tr.patient')}</Label>
+        <Dropdown caption={tt('tr.patientCap')} value={patientPick} onChange={(v: string) => { setPatientPick(v); const p = people.find((x) => x.id === v); set(p ? { patient: p.name, ...(p.rank ? { patientRank: p.rank } : { patientRank: undefined }) } : { patient: '', patientRank: undefined }); }} options={[{ value: '', label: tt('common.choose') }, ...people.map((p) => ({ value: p.id, label: p.rank ? `${p.name} · ${p.rank}` : p.name })), { value: OTHER, label: 'Someone else — guest, contractor' }]} />
         {patientPick === OTHER ? (
           <View style={styles.row}>
-            <TextInput style={[styles.input, { flex: 2, minWidth: 150, marginTop: 0 }]} value={d.patient} onChangeText={(v) => set({ patient: v })} placeholder="Name ★" placeholderTextColor={COLORS.textLight} />
-            <TextInput style={[styles.input, { flex: 1, minWidth: 100, marginTop: 0 }]} value={d.patientRank ?? ''} onChangeText={(v) => set({ patientRank: v })} placeholder="Role / company" placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { flex: 2, minWidth: 150, marginTop: 0 }]} value={d.patient} onChangeText={(v) => set({ patient: v })} placeholder={tt('mt.namePh')} placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { flex: 1, minWidth: 100, marginTop: 0 }]} value={d.patientRank ?? ''} onChangeText={(v) => set({ patientRank: v })} placeholder={tt('tr.rolePh')} placeholderTextColor={COLORS.textLight} />
           </View>
         ) : null}
         <View style={styles.row}>
-          <View style={{ flex: 1, minWidth: 160 }}><SimpleDatePicker label="Date" value={d.date} onChange={(v) => set({ date: v })} /></View>
+          <View style={{ flex: 1, minWidth: 160 }}><SimpleDatePicker label={tt('nc.date')} value={d.date} onChange={(v) => set({ date: v })} /></View>
           <TextInput style={[styles.input, { width: 80, marginTop: 0, textAlign: 'center' }]} value={d.time ?? ''} onChangeText={(v) => set({ time: v })} placeholder="hh:mm" placeholderTextColor={COLORS.textLight} />
         </View>
-        <TextInput style={[styles.input, { minHeight: 50 }]} value={d.complaint} onChangeText={(v) => set({ complaint: v })} multiline placeholder="Complaint or injury ★" placeholderTextColor={COLORS.textLight} />
-        <TextInput style={[styles.input, { minHeight: 50 }]} value={d.history ?? ''} onChangeText={(v) => set({ history: v })} multiline placeholder="How it happened, history, allergies, medicines taken" placeholderTextColor={COLORS.textLight} />
+        <TextInput style={[styles.input, { minHeight: 50 }]} value={d.complaint} onChangeText={(v) => set({ complaint: v })} multiline placeholder={tt('tr.complaintPh')} placeholderTextColor={COLORS.textLight} />
+        <TextInput style={[styles.input, { minHeight: 50 }]} value={d.history ?? ''} onChangeText={(v) => set({ history: v })} multiline placeholder={tt('tr.historyPh')} placeholderTextColor={COLORS.textLight} />
       </Card>
 
       <Card>
-        <Label>Vital signs</Label>
+        <Label>{tt('tr.vitals')}</Label>
         <View style={styles.row}>
           {VITALS.map(([k, l, kb]) => (
-            <TextInput key={k} style={[styles.input, { width: 100, marginTop: 0 }]} value={d.vitals?.[k] ?? ''} onChangeText={(v) => setV(k, v)} placeholder={l} placeholderTextColor={COLORS.textLight} keyboardType={kb as any} />
+            <TextInput key={k} style={[styles.input, { width: 100, marginTop: 0 }]} value={d.vitals?.[k] ?? ''} onChangeText={(v) => setV(k, v)} placeholder={tk(`tr.v.${k}`)} placeholderTextColor={COLORS.textLight} keyboardType={kb as any} />
           ))}
         </View>
-        <TextInput style={[styles.input, { minHeight: 50 }]} value={d.findings ?? ''} onChangeText={(v) => set({ findings: v })} multiline placeholder="Examination — what was found" placeholderTextColor={COLORS.textLight} />
-        <TextInput style={styles.input} value={d.diagnosis ?? ''} onChangeText={(v) => set({ diagnosis: v })} placeholder="Diagnosis (working)" placeholderTextColor={COLORS.textLight} />
-        <TextInput style={[styles.input, { minHeight: 50 }]} value={d.treatment ?? ''} onChangeText={(v) => set({ treatment: v })} multiline placeholder="Treatment given — wound cleaned and closed, splint, rest…" placeholderTextColor={COLORS.textLight} />
+        <TextInput style={[styles.input, { minHeight: 50 }]} value={d.findings ?? ''} onChangeText={(v) => set({ findings: v })} multiline placeholder={tt('tr.findingsPh')} placeholderTextColor={COLORS.textLight} />
+        <TextInput style={styles.input} value={d.diagnosis ?? ''} onChangeText={(v) => set({ diagnosis: v })} placeholder={tt('tr.diagnosisPh')} placeholderTextColor={COLORS.textLight} />
+        <TextInput style={[styles.input, { minHeight: 50 }]} value={d.treatment ?? ''} onChangeText={(v) => set({ treatment: v })} multiline placeholder={tt('tr.treatmentPh')} placeholderTextColor={COLORS.textLight} />
       </Card>
 
       <Card>
-        <Label>{`Medicines given · ${d.issued.length}`}</Label>
+        <Label>{tt('tr.givenN', { n: d.issued.length })}</Label>
         {d.issued.map((x) => {
           const item = medItems.find((i) => i.id === x.itemId);
           const ref = item ? scaleEntry(item) : {};
@@ -337,9 +339,9 @@ export default function TreatmentSc() {
                 <Text style={styles.sub}>{x.unit}</Text>
                 <TouchableOpacity onPress={() => set({ issued: d.issued.filter((y) => y.itemId !== x.itemId) })}><Text style={[styles.link, { color: COLORS.danger }]}>✕</Text></TouchableOpacity>
               </View>
-              <TextInput style={[styles.input, { marginTop: 4 }]} value={x.dose ?? ''} onChangeText={(v) => set({ issued: d.issued.map((y) => (y.itemId === x.itemId ? { ...y, dose: v } : y)) })} placeholder="Dose and how — 1 g orally every 6 h for 3 days" placeholderTextColor={COLORS.textLight} />
+              <TextInput style={[styles.input, { marginTop: 4 }]} value={x.dose ?? ''} onChangeText={(v) => set({ issued: d.issued.map((y) => (y.itemId === x.itemId ? { ...y, dose: v } : y)) })} placeholder={tt('tr.dosePh')} placeholderTextColor={COLORS.textLight} />
               {ref.med?.ref ? (
-                <TouchableOpacity onPress={() => setRefFor(refFor === x.itemId ? null : x.itemId)}><Text style={styles.link}>{refFor === x.itemId ? 'Hide the IMGS note' : 'IMGS note — dosage, cautions'}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setRefFor(refFor === x.itemId ? null : x.itemId)}><Text style={styles.link}>{refFor === x.itemId ? tt('tr.hideImgs') : tt('tr.showImgs')}</Text></TouchableOpacity>
               ) : null}
               {refFor === x.itemId && ref.med?.ref ? (
                 <>
@@ -352,7 +354,7 @@ export default function TreatmentSc() {
         })}
         {adding != null ? (
           <>
-            <TextInput style={styles.input} value={adding} onChangeText={setAdding} placeholder="Find in the chest" placeholderTextColor={COLORS.textLight} autoFocus />
+            <TextInput style={styles.input} value={adding} onChangeText={setAdding} placeholder={tt('tr.findPh')} placeholderTextColor={COLORS.textLight} autoFocus />
             <Text style={styles.sub}>{`${found.length} in date aboard${adding ? ' — found' : ''}`}</Text>
             <ScrollView style={{ maxHeight: 420 }} nestedScrollEnabled>
               {found.map((r) => (
@@ -363,50 +365,50 @@ export default function TreatmentSc() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            {adding && !found.length ? <Text style={styles.sub}>Nothing in date aboard by that name.</Text> : null}
-            <TouchableOpacity onPress={() => setAdding(null)}><Text style={styles.link}>Done</Text></TouchableOpacity>
+            {adding && !found.length ? <Text style={styles.sub}>{tt('tr.noneByName')}</Text> : null}
+            <TouchableOpacity onPress={() => setAdding(null)}><Text style={styles.link}>{tt('common.done')}</Text></TouchableOpacity>
           </>
         ) : (
-          <TouchableOpacity onPress={() => setAdding('')}><Text style={styles.link}>+ A medicine from the chest</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => setAdding('')}><Text style={styles.link}>{tt('tr.addMed')}</Text></TouchableOpacity>
         )}
-        {d.issued.length ? <Text style={styles.sub}>Taken from the batch that expires first; the chest goes down when the entry is signed.</Text> : null}
+        {d.issued.length ? <Text style={styles.sub}>{tt('tr.fefo')}</Text> : null}
       </Card>
 
       <Card>
-        <TouchableOpacity onPress={() => setTmas(!tmas)}><Text style={styles.link}>{tmas ? '− Radio medical advice' : '+ Radio medical advice (TMAS / CIRM)'}</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => setTmas(!tmas)}><Text style={styles.link}>{tmas ? `− ${tt('tr.tmas')}` : `+ ${tt('tr.tmas')} (TMAS / CIRM)`}</Text></TouchableOpacity>
         {tmas ? (
           <>
-            <TextInput style={styles.input} value={d.tmas?.centre ?? ''} onChangeText={(v) => set({ tmas: { ...(d.tmas ?? {}), centre: v } })} placeholder="Centre — CIRM Rome, Radio Medico Spain…" placeholderTextColor={COLORS.textLight} />
-            <TextInput style={styles.input} value={d.tmas?.ref ?? ''} onChangeText={(v) => set({ tmas: { ...(d.tmas ?? {}), ref: v } })} placeholder="Reference / case number" placeholderTextColor={COLORS.textLight} />
-            <TextInput style={[styles.input, { minHeight: 50 }]} value={d.tmas?.advice ?? ''} onChangeText={(v) => set({ tmas: { ...(d.tmas ?? {}), advice: v } })} multiline placeholder="What was advised" placeholderTextColor={COLORS.textLight} />
+            <TextInput style={styles.input} value={d.tmas?.centre ?? ''} onChangeText={(v) => set({ tmas: { ...(d.tmas ?? {}), centre: v } })} placeholder={tt('tr.centrePh')} placeholderTextColor={COLORS.textLight} />
+            <TextInput style={styles.input} value={d.tmas?.ref ?? ''} onChangeText={(v) => set({ tmas: { ...(d.tmas ?? {}), ref: v } })} placeholder={tt('tr.refPh')} placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { minHeight: 50 }]} value={d.tmas?.advice ?? ''} onChangeText={(v) => set({ tmas: { ...(d.tmas ?? {}), advice: v } })} multiline placeholder={tt('tr.advicePh')} placeholderTextColor={COLORS.textLight} />
           </>
         ) : null}
-        <Label>Files</Label>
+        <Label>{tt('tr.files')}</Label>
         {files.map((f, i) => <Text key={i} style={styles.sub}>{`${f.name} · ${sizeText(f.bytes)}${f.note ? ` · ${f.note}` : ''}`}</Text>)}
         <View style={styles.row}>
-          <TouchableOpacity style={styles.small} disabled={!!busy} onPress={() => void attach('file')}><Text style={styles.smallText}>+ Medical advice (PDF)</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.small} disabled={!!busy} onPress={() => void attach('photo')}><Text style={styles.smallText}>+ Photograph it</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.small} disabled={!!busy} onPress={() => void attach('file')}><Text style={styles.smallText}>{tt('tr.addAdvice')}</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.small} disabled={!!busy} onPress={() => void attach('photo')}><Text style={styles.smallText}>{tt('tr.addPhoto')}</Text></TouchableOpacity>
         </View>
         {busy ? <Text style={styles.sub}>{busy}</Text> : null}
       </Card>
 
       <Card>
-        <Label>Outcome</Label>
+        <Label>{tt('tr.outcome')}</Label>
         <View style={styles.chips}>
           {(Object.keys(OUTCOME_LABEL) as MedOutcome[]).map((k) => (
             <TouchableOpacity key={k} style={[styles.chip, d.outcome === k && styles.chipOn]} onPress={() => set({ outcome: k })}>
-              <Text style={[styles.chipText, d.outcome === k && styles.chipTextOn]}>{OUTCOME_LABEL[k]}</Text>
+              <Text style={[styles.chipText, d.outcome === k && styles.chipTextOn]}>{tk(`tr.out.${k}`)}</Text>
             </TouchableOpacity>
           ))}
         </View>
-        <SimpleDatePicker label="Follow-up" value={d.followUp} onChange={(v) => set({ followUp: v })} onClear={() => set({ followUp: undefined })} />
+        <SimpleDatePicker label={tt('tr.followUp')} value={d.followUp} onChange={(v) => set({ followUp: v })} onClear={() => set({ followUp: undefined })} />
         {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
         {cdGiven ? <View style={{ marginTop: SIZES.sm }}>{witness.picker}</View> : null}
         <View style={styles.row}>
-          <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.success }]} onPress={() => void sign()}><Text style={styles.btnText}>Sign the entry</Text></TouchableOpacity>
-          <TouchableOpacity onPress={() => goBackOr(nav)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+          <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.success }]} onPress={() => void sign()}><Text style={styles.btnText}>{tt('book.signEntry')}</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => goBackOr(nav)}><Text style={styles.link}>{tt('common.cancel')}</Text></TouchableOpacity>
         </View>
-        <Text style={styles.sub}>Signed, the entry does not change; files can still be added to it.</Text>
+        <Text style={styles.sub}>{tt('tr.signedNote')}</Text>
       </Card>
     </Screen>
   );

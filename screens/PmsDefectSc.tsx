@@ -29,10 +29,12 @@ import { formatDate, formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
+import { t, tk, useT } from '../utils/i18n';
 
 export const categoryColor = (COLORS: Palette, c: DefectCategory) => (c === 'safety' ? COLORS.danger : c === 'class' ? COLORS.warning : COLORS.primary);
 
 export default function PmsDefectSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -60,8 +62,8 @@ export default function PmsDefectSc() {
 
   const raise = async () => {
     if (!machine) return;
-    if (description.trim().length < 3) return Alert.alert('Defect', 'Describe what is wrong.');
-    if (!signer) return Alert.alert('Who is reporting?', 'Choose your name below.');
+    if (description.trim().length < 3) return Alert.alert(t('pd.defect'), t('pd.needDesc'));
+    if (!signer) return Alert.alert(t('pd.whoReports'), t('pd.chooseName'));
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Defect on ${machine.name}` });
     if (!sig) return;
     const now = Date.now();
@@ -78,8 +80,8 @@ export default function PmsDefectSc() {
 
   const close = async () => {
     if (!existing) return;
-    if (closeNote.trim().length < 3) return Alert.alert('Rectification', 'Say what was done.');
-    if (!signer) return Alert.alert('Who is signing?', 'Choose your name below.');
+    if (closeNote.trim().length < 3) return Alert.alert(t('pd.rect'), t('pd.needDone'));
+    if (!signer) return Alert.alert(t('sign.who'), t('pd.chooseName'));
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Close the defect on ${existing.machineName}` });
     if (!sig) return;
     const now = Date.now();
@@ -98,16 +100,16 @@ export default function PmsDefectSc() {
   return (
     <Screen scroll>
       <View style={{ alignSelf: 'flex-start', marginBottom: SIZES.sm }}><BackButton onPress={() => goBackOr(nav)} /></View>
-      <ScreenTitle title={existing ? 'Defect' : 'Report a defect'} subtitle={machine?.name ?? existing?.machineName ?? ''} />
+      <ScreenTitle title={existing ? t('pd.defect') : t('pd.report')} subtitle={machine?.name ?? existing?.machineName ?? ''} />
       {existing ? (
         <>
           <Card>
             <View style={styles.headRow}>
               <Text style={[styles.cat, { backgroundColor: categoryColor(COLORS, existing.category) }]}>{DEFECT_CATEGORY[existing.category]}</Text>
-              <Text style={[styles.state, { color: existing.closed ? COLORS.success : COLORS.danger }]}>{existing.closed ? 'Closed' : 'Open'}</Text>
+              <Text style={[styles.state, { color: existing.closed ? COLORS.success : COLORS.danger }]}>{existing.closed ? t('pd.closed') : t('pd.open')}</Text>
             </View>
             <Text style={styles.text}>{existing.description}</Text>
-            <Text style={styles.sub}>{[formatDate(existing.date), existing.jobTitle ? `found doing “${existing.jobTitle}”` : null, existing.byRank ? `${existing.by} (${existing.byRank})` : existing.by].filter(Boolean).join(' · ')}</Text>
+            <Text style={styles.sub}>{[formatDate(existing.date), existing.jobTitle ? t('pd.foundDoing', { job: existing.jobTitle }) : null, existing.byRank ? `${existing.by} (${existing.byRank})` : existing.by].filter(Boolean).join(' · ')}</Text>
             {existing.photos?.length ? (
               <View style={styles.photos}>{existing.photos.map((p) => <EvidencePhoto key={p.id} vessel={imo} inspectionId={existing.id} photo={p} />)}</View>
             ) : null}
@@ -118,7 +120,7 @@ export default function PmsDefectSc() {
             if (!open.length && !done.length && (existing.closed || !canPlan)) return null;
             return (
               <Card>
-                <Label>Corrective job</Label>
+                <Label>{t('pd.corrective')}</Label>
                 {open.map((j) => (
                   <TouchableOpacity key={j.id} onPress={() => nav.navigate('PmsJob', { id: j.id })}>
                     <Text style={styles.link}>{`${j.title} · ${scheduleText(j)}`}</Text>
@@ -129,16 +131,16 @@ export default function PmsDefectSc() {
                 ))}
                 {!existing.closed && canPlan && !open.length ? (
                   <TouchableOpacity onPress={() => nav.navigate('PmsJob', { id: uid('job'), machineId: existing.machineId, isNew: true, oneOff: true, defectId: existing.id, title: existing.description.slice(0, 80) })}>
-                    <Text style={styles.link}>+ Plan a corrective job</Text>
+                    <Text style={styles.link}>{t('pd.planCorrective')}</Text>
                   </TouchableOpacity>
                 ) : null}
-                {done.length && !existing.closed ? <Text style={styles.sub}>The job is done — close the defect below with what was done.</Text> : null}
+                {done.length && !existing.closed ? <Text style={styles.sub}>{t('pd.jobDone')}</Text> : null}
               </Card>
             );
           })()}
           {existing.closed ? (
             <Card>
-              <Label>Rectified</Label>
+              <Label>{t('pd.rectified')}</Label>
               <Text style={styles.text}>{existing.closed.note}</Text>
               <Text style={styles.sub}>{`${formatDate(existing.closed.date)} · ${existing.closed.byRank ? `${existing.closed.by} (${existing.closed.byRank})` : existing.closed.by} · signed ${formatDateTime(existing.closed.at)}`}</Text>
               {existing.closed.photos?.length ? (
@@ -147,31 +149,31 @@ export default function PmsDefectSc() {
             </Card>
           ) : canClose ? (
             <Card>
-              <Label>Close the defect</Label>
-              <TextInput style={[styles.input, { minHeight: 70 }]} value={closeNote} onChangeText={setCloseNote} multiline placeholder="What was done ★ — part renewed, adjusted, tested" placeholderTextColor={COLORS.textLight} />
-              <PhotoPicker photos={closePhotos} onChange={setClosePhotos} hint="Photo of the repair (optional)." />
+              <Label>{t('pd.closeHead')}</Label>
+              <TextInput style={[styles.input, { minHeight: 70 }]} value={closeNote} onChangeText={setCloseNote} multiline placeholder={t('pd.donePh')} placeholderTextColor={COLORS.textLight} />
+              <PhotoPicker photos={closePhotos} onChange={setClosePhotos} hint={t('pd.repairPhoto')} />
               {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
-              <TouchableOpacity style={[styles.btn, { marginTop: SIZES.md }]} onPress={() => void close()}><Text style={styles.btnText}>Sign the rectification</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.btn, { marginTop: SIZES.md }]} onPress={() => void close()}><Text style={styles.btnText}>{t('pd.signRect')}</Text></TouchableOpacity>
             </Card>
           ) : (
-            <Text style={styles.sub}>An officer or the Master closes the defect when it is rectified.</Text>
+            <Text style={styles.sub}>{t('pd.officerCloses')}</Text>
           )}
         </>
       ) : (
         <Card>
-          <Label>Category</Label>
+          <Label>{t('pd.category')}</Label>
           <View style={styles.chips}>
             {(Object.keys(DEFECT_CATEGORY) as DefectCategory[]).map((c) => (
               <TouchableOpacity key={c} style={[styles.chip, category === c && { backgroundColor: categoryColor(COLORS, c), borderColor: categoryColor(COLORS, c) }]} onPress={() => setCategory(c)}>
-                <Text style={[styles.chipText, category === c && { color: COLORS.textWhite }]}>{DEFECT_CATEGORY[c]}</Text>
+                <Text style={[styles.chipText, category === c && { color: COLORS.textWhite }]}>{tk(`pd.cat.${c}`)}</Text>
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={styles.sub}>Safety-critical goes to the Master on the board at once.</Text>
-          <TextInput style={[styles.input, { minHeight: 80 }]} value={description} onChangeText={setDescription} multiline placeholder="What is wrong ★" placeholderTextColor={COLORS.textLight} />
-          <PhotoPicker photos={photos} onChange={setPhotos} hint="Photograph the defect." />
+          <Text style={styles.sub}>{t('pd.safetyNote')}</Text>
+          <TextInput style={[styles.input, { minHeight: 80 }]} value={description} onChangeText={setDescription} multiline placeholder={t('pd.whatWrong')} placeholderTextColor={COLORS.textLight} />
+          <PhotoPicker photos={photos} onChange={setPhotos} hint={t('pd.photo')} />
           {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
-          <TouchableOpacity style={[styles.btn, { marginTop: SIZES.md }]} onPress={() => void raise()}><Text style={styles.btnText}>Sign and report</Text></TouchableOpacity>
+          <TouchableOpacity style={[styles.btn, { marginTop: SIZES.md }]} onPress={() => void raise()}><Text style={styles.btnText}>{t('pd.signReport')}</Text></TouchableOpacity>
         </Card>
       )}
     </Screen>

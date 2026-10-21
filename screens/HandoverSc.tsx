@@ -24,7 +24,10 @@ import { todayIso } from '../services/pms';
 import { AHEAD_CHOICES, HandoverDraft, buildHandover, emptyDraft } from '../services/handover';
 import { exportHandoverPdf, loadDraft, saveDraft } from '../services/handoverReport';
 
+import { t, tn, useT } from '../utils/i18n';
+
 export default function HandoverSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -67,9 +70,9 @@ export default function HandoverSc() {
   const pdf = async () => {
     try {
       const w = await exportHandoverPdf(d, r, data.vessel);
-      if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+      if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
-      Alert.alert('Handover', String(e?.message ?? e));
+      Alert.alert(t('ho.title'), String(e?.message ?? e));
     }
   };
   const clear = () => {
@@ -92,29 +95,29 @@ export default function HandoverSc() {
   );
 
   // Registered for every vessel; a link to it must not open a module this vessel does not have.
-  if (!moduleOn('readiness')) return <Screen><Empty text="Not available on this vessel." /></Screen>;
+  if (!moduleOn('readiness')) return <Screen><Empty text={t('common.notAvailable')} /></Screen>;
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Handover" subtitle="For the relief at crew change — what is overdue, what falls due, your notes" help="Inspection readiness" />
+      <ScreenTitle title={t('ho.title')} subtitle={t('ho.sub')} help="Inspection readiness" />
 
-      {field('What is handed over', 'area', 'Deck — Chief Officer, Engine room, Whole vessel…')}
+      {field(t('ho.area'), 'area', t('ho.areaPh'))}
       <View style={styles.pair}>
-        {field('Outgoing — name', 'fromName', 'Name')}
-        {field('Rank', 'fromRank', 'Chief Officer')}
+        {field(t('ho.from'), 'fromName', t('ho.namePh'))}
+        {field(t('ho.rank'), 'fromRank', t('ho.rankPh'))}
       </View>
       <View style={styles.pair}>
-        {field('Incoming — name', 'toName', 'Name')}
-        {field('Rank', 'toRank', 'Chief Officer')}
+        {field(t('ho.to'), 'toName', t('ho.namePh'))}
+        {field(t('ho.rank'), 'toRank', t('ho.rankPh'))}
       </View>
-      {field('Work in progress', 'progress', 'One item a line — e.g. Liferaft No 2 ashore for service, back 30 Oct', true)}
-      {field('For the relief', 'remarks', 'Things to watch, where things are, who to call', true)}
+      {field(t('ho.progress'), 'progress', t('ho.progressPh'), true)}
+      {field(t('ho.remarks'), 'remarks', t('ho.remarksPh'), true)}
 
-      <Label>List what falls due in the next</Label>
+      <Label>{t('ho.ahead')}</Label>
       <View style={styles.chips}>
         {AHEAD_CHOICES.map((n) => (
           <TouchableOpacity key={n} style={[styles.chip, d.ahead === n && styles.chipOn]} onPress={() => set({ ahead: n })}>
-            <Text style={[styles.chipText, d.ahead === n && styles.chipTextOn]}>{`${n} days`}</Text>
+            <Text style={[styles.chipText, d.ahead === n && styles.chipTextOn]}>{tn('n.day', n)}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -122,8 +125,8 @@ export default function HandoverSc() {
       <View style={styles.summary}>
         <MciIcon name="swap-horizontal-bold" size={24} color={COLORS.primary} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.sumText}>{`${r.red ? `${r.red} overdue or open now` : 'Nothing overdue'} · ${r.amber ? `${r.amber} falling due in ${d.ahead} days` : `nothing due in ${d.ahead} days`}`}</Text>
-          <Text style={styles.sub}>{`${r.sections.length} areas checked · signatures of both and the Master on the PDF`}</Text>
+          <Text style={styles.sumText}>{`${r.red ? t('ho.red', { n: r.red }) : t('ho.noRed')} · ${r.amber ? t('ho.amber', { n: r.amber, days: d.ahead }) : t('ho.noAmber', { days: d.ahead })}`}</Text>
+          <Text style={styles.sub}>{t('ho.areas', { n: r.sections.length })}</Text>
         </View>
         <TouchableOpacity style={styles.btn} onPress={pdf}>
           <Text style={styles.btnText}>PDF</Text>
@@ -133,13 +136,13 @@ export default function HandoverSc() {
 
       <View style={styles.links}>
         <TouchableOpacity onPress={() => nav.navigate('Main', { screen: 'Readiness' })}>
-          <Text style={styles.link}>See the list on screen →</Text>
+          <Text style={styles.link}>{t('ho.seeList')}</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={clear}>
-          <Text style={[styles.link, { color: COLORS.textLight }]}>Start a new handover</Text>
+          <Text style={[styles.link, { color: COLORS.textLight }]}>{t('ho.new')}</Text>
         </TouchableOpacity>
       </View>
-      <Text style={[styles.sub, { marginTop: SIZES.md }]}>The notes stay on this device until you print them; nothing here is sent to the other devices.</Text>
+      <Text style={[styles.sub, { marginTop: SIZES.md }]}>{t('ho.local')}</Text>
     </Screen>
   );
 }

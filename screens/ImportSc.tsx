@@ -32,6 +32,7 @@ import * as snapshot from '../services/snapshot';
 import { itemIdentifiers, itemLocation } from '../utils/itemText';
 import { playSuccessSound, playErrorSound } from '../utils/sound';
 import { goBackOr } from '../utils/nav';
+import { t, tk, tn, useT } from '../utils/i18n';
 
 type Mode = 'update' | 'replace' | 'append';
 
@@ -43,6 +44,7 @@ function rowName(it: EquipmentItem): string {
 }
 
 export default function ImportSc() {
+  useT();
   const nav = useNavigation<any>();
   const { reload, flat, byCategory, vessel, inspections: trail } = useData();
   const COLORS = useTheme();
@@ -90,17 +92,17 @@ export default function ImportSc() {
       const doc = await pickDocForAi();
       if (!doc) return;
       setBusy(true);
-      setAiNote(`The AI is reading “${doc.name}” — a page takes about half a minute…`);
+      setAiNote(t('imp.aiReading', { name: doc.name }));
       const r = await aiReadDocument(doc.dataUri, 'equipment');
       const n = r.rows.length - 1;
-      if (!n) throw new Error(`No equipment found in “${doc.name}”.${r.unreadable ? ` ${r.unreadable}` : ''}`);
+      if (!n) throw new Error(`${t('imp.noEquipment', { name: doc.name })}${r.unreadable ? ` ${r.unreadable}` : ''}`);
       setFileName(`${doc.name} (read by the AI)`);
       setPreview(parseWorkbookBytes(rowsToWorkbook(r.rows)));
       setAiNote(`${n} lines read by the AI — check them below before importing.${r.unreadable ? ` Not readable: ${r.unreadable}` : ''}`);
     } catch (e: any) {
       setAiNote(null);
       playErrorSound();
-      Alert.alert('Read with AI', String(e?.message ?? e));
+      Alert.alert(t('imp.readAi'), String(e?.message ?? e));
     } finally {
       setBusy(false);
     }
@@ -148,7 +150,7 @@ export default function ImportSc() {
       setPreview(pv);
     } catch (e: any) {
       playErrorSound();
-      Alert.alert('Import failed', String(e?.message ?? e));
+      Alert.alert(t('pax.importFailed'), String(e?.message ?? e));
     } finally {
       setBusy(false);
     }
@@ -167,7 +169,7 @@ export default function ImportSc() {
       await exportTemplate(group);
     } catch (e: any) {
       playErrorSound();
-      Alert.alert('Template failed', String(e?.message ?? e));
+      Alert.alert(t('gs.templateFailed'), String(e?.message ?? e));
     }
   };
 
@@ -177,18 +179,18 @@ export default function ImportSc() {
       const kept = replacePlan.changed.length + replacePlan.unchanged.length;
       const lost = unlinked(replacePlan.missing);
       Alert.alert(
-        'Replace the register?',
+        t('imp.replaceQ'),
         [
-          `${kept} item${kept === 1 ? '' : 's'} found in the file keep their identity — labels, inspections and defects stay linked.`,
-          `${replacePlan.added.length} new.`,
+          tn('imp.kept', kept),
+          t('imp.newN', { n: replacePlan.added.length }),
           replacePlan.missing.length
-            ? `${replacePlan.missing.length} not in the file will be removed${lost ? ` — ${lost} signed inspection${lost === 1 ? '' : 's'} of theirs will no longer show in reports` : ''}.`
+            ? `${t('imp.willRemove', { n: replacePlan.missing.length })}${lost ? ` — ${tn('imp.lostInsp', lost)}` : ''}.`
             : null,
-          'A copy of the register as it is now is kept in Settings → Save a copy as a file.',
+          t('imp.copyKept'),
         ].filter(Boolean).join('\n\n'),
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Replace', style: 'destructive', onPress: () => void run() },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('imp.replace'), style: 'destructive', onPress: () => void run() },
         ]
       );
       return;
@@ -196,11 +198,11 @@ export default function ImportSc() {
     if (plan && removeMissing && plan.missing.length) {
       const lost = unlinked(plan.missing);
       Alert.alert(
-        `Remove ${plan.missing.length} item${plan.missing.length === 1 ? '' : 's'}?`,
-        `They are not in this file. Their printed labels will stop working.${lost ? ` ${lost} signed inspection${lost === 1 ? '' : 's'} of theirs stay on record but will no longer show in reports.` : ' Signed inspections stay on record.'}`,
+        t('imp.removeQ', { x: tn('n.item', plan.missing.length) }),
+        `${t('imp.notInFile')}${lost ? ` ${tn('imp.lostStay', lost)}` : ` ${t('imp.signedStay')}`}`,
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Remove and update', style: 'destructive', onPress: () => void run() },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('imp.removeUpdate'), style: 'destructive', onPress: () => void run() },
         ]
       );
       return;
@@ -225,8 +227,8 @@ export default function ImportSc() {
           await storage.replaceCategory(meta.key as CategoryKey, next[meta.key] ?? []);
         }
         message =
-          `${replacePlan.changed.length + replacePlan.unchanged.length} kept, ${replacePlan.added.length} added` +
-          (replacePlan.missing.length ? `, ${replacePlan.missing.length} removed.` : '.');
+          t('imp.doneKept', { k: replacePlan.changed.length + replacePlan.unchanged.length, a: replacePlan.added.length }) +
+          (replacePlan.missing.length ? `, ${t('imp.removedN', { n: replacePlan.missing.length })}.` : '.');
       } else if (mode === 'update' && plan) {
         const next = applyPlan(byCategory, plan, removeMissing);
         for (const [cat, list] of Object.entries(next)) {
@@ -234,8 +236,8 @@ export default function ImportSc() {
         }
         const removed = removeMissing ? plan.missing.length : 0;
         message =
-          `${plan.changed.length} updated, ${plan.added.length} added` +
-          (removed ? `, ${removed} removed.` : '.');
+          t('imp.doneUpd', { u: plan.changed.length, a: plan.added.length }) +
+          (removed ? `, ${t('imp.removedN', { n: removed })}.` : '.');
       } else {
         // Rows exported from MSM keep their MSM ID even here, so a full replace
         // of our own export leaves printed labels pointing at the same items.
@@ -251,16 +253,16 @@ export default function ImportSc() {
             await storage.replaceCategory(meta.key as CategoryKey, [...existing, ...parsed]);
           }
         }
-        message = `${preview.total} items imported.`;
+        message = t('imp.imported', { n: preview.total });
       }
       await reload();
       playSuccessSound();
-      Alert.alert('Import complete', message, [
+      Alert.alert(t('imp.complete'), message, [
         { text: 'OK', onPress: () => goBackOr(nav) },
       ]);
     } catch (e: any) {
       playErrorSound();
-      Alert.alert('Import failed', String(e?.message ?? e));
+      Alert.alert(t('pax.importFailed'), String(e?.message ?? e));
     } finally {
       setBusy(false);
     }
@@ -269,39 +271,39 @@ export default function ImportSc() {
   const nothingToDo = !!plan && !plan.changed.length && !plan.added.length && !(removeMissing && plan.missing.length);
   const applyLabel = plan
     ? nothingToDo
-      ? 'Register already matches this file'
-      : 'Apply update'
-    : `Import ${preview?.total ?? 0} items`;
+      ? t('imp.matches')
+      : t('imp.apply')
+    : t('imp.importN', { n: preview?.total ?? 0 });
 
   return (
     <Screen scroll>
       {/* This screen had no way back at all: a modal, so no stack header, and
           nothing of its own — the browser's back button was the only exit. */}
       <BackButton onPress={() => goBackOr(nav)} />
-      <ScreenTitle title="Import from Excel" subtitle="LSA / FFE Inventories workbook (.xlsx)" help="Importing from Excel" />
+      <ScreenTitle title={t('pax.fromExcel')} subtitle={t('imp.sub')} help="Importing from Excel" />
 
       <TouchableOpacity style={styles.pickBtn} onPress={pick} disabled={busy}>
-        <Text style={styles.pickBtnText}>{fileName ? 'Choose a different file' : 'Choose .xlsx file'}</Text>
+        <Text style={styles.pickBtnText}>{fileName ? t('imp.chooseOther') : t('imp.choose')}</Text>
       </TouchableOpacity>
 
       {/* A paper register — photographed, or a scanned PDF: the AI reads it into rows, the preview below shows them before anything is saved (14 Oct 2026). */}
       {aiReady(sync.enrolled) ? (
         <TouchableOpacity style={[styles.templateBtn, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]} onPress={() => void pickAi()} disabled={busy}>
           <MciIcon name="creation" size={18} color={COLORS.primary} />
-          <Text style={styles.templateBtnText}>Photo or PDF of a paper register (AI)</Text>
+          <Text style={styles.templateBtnText}>{t('imp.paperAi')}</Text>
         </TouchableOpacity>
       ) : null}
       {aiNote ? <Text style={{ color: COLORS.textLight, fontSize: SIZES.small, marginTop: SIZES.xs }}>{aiNote}</Text> : null}
 
       <TouchableOpacity style={styles.templateBtn} onPress={() => void downloadTemplate()} disabled={busy}>
         <Text style={styles.templateBtnText}>
-          {hasLifting ? 'Download blank LSA / FFE template (.xlsx)' : 'Download blank template (.xlsx)'}
+          {hasLifting ? t('imp.tplLsa') : t('imp.tpl')}
         </Text>
       </TouchableOpacity>
 
       {hasLifting ? (
         <TouchableOpacity style={styles.templateBtn} onPress={() => void downloadTemplate('LIFTING')} disabled={busy}>
-          <Text style={styles.templateBtnText}>Download blank lifting &amp; mooring template (.xlsx)</Text>
+          <Text style={styles.templateBtnText}>{t('imp.tplLifting')}</Text>
         </TouchableOpacity>
       ) : null}
 
@@ -316,8 +318,8 @@ export default function ImportSc() {
       {preview ? (
         <>
           <Card>
-            <Text style={styles.total}>{preview.total} items found</Text>
-            <Text style={styles.totalSub}>across {preview.counts.filter((c) => c.count > 0).length} categories</Text>
+            <Text style={styles.total}>{t('imp.found', { n: preview.total })}</Text>
+            <Text style={styles.totalSub}>{t('imp.across', { n: preview.counts.filter((c) => c.count > 0).length })}</Text>
           </Card>
 
           <View style={styles.modeRow}>
@@ -327,25 +329,25 @@ export default function ImportSc() {
                 style={[styles.modeChip, mode === m && styles.modeChipActive]}
                 onPress={() => setMode(m)}
               >
-                <Text style={[styles.modeText, mode === m && styles.modeTextActive]}>{MODE_LABEL[m]}</Text>
+                <Text style={[styles.modeText, mode === m && styles.modeTextActive]}>{tk(`imp.mode.${m}`)}</Text>
               </TouchableOpacity>
             ))}
           </View>
           <Text style={styles.modeHint}>
             {mode === 'update'
-              ? 'Matches each row to the item already in the register (by MSM ID, then serial, then number and location). Items keep their QR labels, photos and inspection history.'
+              ? t('imp.hintUpdate')
               : mode === 'replace'
-                ? 'Everything in the register is replaced by this file. Items without an MSM ID get new QR labels.'
-                : 'Every row is added as a new item, next to what is already there.'}
+                ? t('imp.hintReplace')
+                : t('imp.hintAppend')}
           </Text>
 
           {plan ? (
             <Card>
               <View style={styles.planRow}>
-                <PlanStat n={plan.changed.length} label="to update" styles={styles} />
-                <PlanStat n={plan.added.length} label="new" styles={styles} />
-                <PlanStat n={plan.unchanged.length} label="unchanged" styles={styles} />
-                <PlanStat n={plan.missing.length} label="not in file" styles={styles} />
+                <PlanStat n={plan.changed.length} label={t('imp.toUpdate')} styles={styles} />
+                <PlanStat n={plan.added.length} label={t('docs.new')} styles={styles} />
+                <PlanStat n={plan.unchanged.length} label={t('imp.unchanged')} styles={styles} />
+                <PlanStat n={plan.missing.length} label={t('imp.notInFileL')} styles={styles} />
               </View>
               {plan.matchedBy.id === 0 && flat.length > 0 ? (
                 <Text style={styles.planNote}>
@@ -356,7 +358,7 @@ export default function ImportSc() {
 
               {plan.changed.length ? (
                 <>
-                  <Text style={styles.planHead}>Will be updated</Text>
+                  <Text style={styles.planHead}>{t('imp.willUpdate')}</Text>
                   {(showAll === 'changed' ? plan.changed : plan.changed.slice(0, 6)).map((c) => (
                     <Text key={c.before.id} style={styles.planItem} numberOfLines={2}>
                       {rowName(c.after)} — <Text style={styles.planFields}>{c.fields.join(', ')}</Text>
@@ -364,7 +366,7 @@ export default function ImportSc() {
                   ))}
                   {plan.changed.length > 6 && showAll !== 'changed' ? (
                     <Text style={styles.planMore} onPress={() => setShowAll('changed')}>
-                      Show all {plan.changed.length}
+                      {t('imp.showAll', { n: plan.changed.length })}
                     </Text>
                   ) : null}
                 </>
@@ -372,7 +374,7 @@ export default function ImportSc() {
 
               {plan.missing.length ? (
                 <>
-                  <Text style={styles.planHead}>In the register, not in this file</Text>
+                  <Text style={styles.planHead}>{t('imp.inRegNotFile')}</Text>
                   {(showAll === 'missing' ? plan.missing : plan.missing.slice(0, 6)).map((it) => (
                     <Text key={it.id} style={styles.planItem} numberOfLines={1}>
                       {rowName(it)}
@@ -380,19 +382,19 @@ export default function ImportSc() {
                   ))}
                   {plan.missing.length > 6 && showAll !== 'missing' ? (
                     <Text style={styles.planMore} onPress={() => setShowAll('missing')}>
-                      Show all {plan.missing.length}
+                      {t('imp.showAll', { n: plan.missing.length })}
                     </Text>
                   ) : null}
                   <View style={styles.removeRow}>
                     <Text style={styles.removeText}>
-                      {plan.missing.length === 1 ? 'Remove this item' : `Remove these ${plan.missing.length}`} from the register
+                      {plan.missing.length === 1 ? t('imp.removeThis') : t('imp.removeThese', { n: plan.missing.length })}
                     </Text>
                     <Switch value={removeMissing} onValueChange={setRemoveMissing} />
                   </View>
                   <Text style={styles.planNote}>
                     {removeMissing
-                      ? 'They will be deleted. Signed inspections of them stay on record.'
-                      : 'Off: they are kept as they are.'}
+                      ? t('imp.willDelete')
+                      : t('imp.offKept')}
                   </Text>
                 </>
               ) : null}
@@ -411,13 +413,12 @@ export default function ImportSc() {
 
           {preview.sortedSheets.length ? (
             <Text style={styles.sorted}>
-              Sorted by description from: {preview.sortedSheets.join(', ')}. Anything that could not be
-              recognised is under Other Safety Equipment.
+              {t('imp.sorted', { sheets: preview.sortedSheets.join(', ') })}
             </Text>
           ) : null}
 
           {preview.missingSheets.length ? (
-            <Text style={styles.missing}>Sheets not found: {preview.missingSheets.join(', ')}</Text>
+            <Text style={styles.missing}>{t('imp.sheetsMissing', { sheets: preview.missingSheets.join(', ') })}</Text>
           ) : null}
 
           <TouchableOpacity

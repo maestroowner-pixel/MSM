@@ -84,7 +84,7 @@ const cal = buildCalendar(base({ flat: [item('k1', plus(200)), item('k2', plus(-
 const ev = icsEvents(cal, 'DreamBoat');
 ok(ev.length === 1 && ev[0].date === plus(200) && ev[0].uid === 'eq:k1@ismpilot.com', 'ics: 200 days out listed; past and beyond a year left out');
 ok(ev[0].summary.endsWith(' — DreamBoat') && !/in \d+ days/.test(ev[0].description), 'ics: vessel in the title, no "in N days" that goes stale');
-const ics = toIcs([...ev, { uid: 'x@ismpilot.com', date: '2027-01-31', summary: 'Fire, door; "A", B\\C', description: 'line1\nline2 ' + 'é'.repeat(60) }], 'ISMpilot — DreamBoat', new Date('2026-10-16T08:00:00Z'));
+const ics = toIcs([...ev, { uid: 'x@ismpilot.com', date: '2027-01-31', summary: 'Fire, door; "A", B\\C', description: 'line1\nline2 ' + 'é'.repeat(60) }], 'ISM AI Pilot — DreamBoat', new Date('2026-10-16T08:00:00Z'));
 const lines = ics.split('\r\n');
 ok(ics.startsWith('BEGIN:VCALENDAR\r\nVERSION:2.0') && ics.endsWith('END:VCALENDAR\r\n'), 'ics: CRLF calendar envelope');
 ok(lines.includes('DTSTART;VALUE=DATE:20270131') && lines.includes('DTEND;VALUE=DATE:20270201') && lines.includes('DTSTAMP:20261016T080000Z'), 'ics: all-day event, end the next day, stamp in UTC');

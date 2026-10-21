@@ -17,8 +17,10 @@ import { GalleyOrder } from '../types/galley';
 import { galleyTotal } from '../services/galley';
 import { formatDate } from '../utils/dates';
 import { goBackOr } from '../utils/nav';
+import { t, useT } from '../utils/i18n';
 
 export default function GalleyOrdersSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -41,21 +43,21 @@ export default function GalleyOrdersSc() {
   return (
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav, 'Main', { screen: 'Orders' })} />
-      <ScreenTitle title="Galley orders" subtitle="Food & beverage requisitions" />
+      <ScreenTitle title={t('galley.title')} subtitle={t('galley.sub')} />
 
       {officer ? (
         <View style={styles.addRow}>
-          <Label>All orders</Label>
+          <Label>{t('galley.all')}</Label>
           <TouchableOpacity onPress={() => nav.navigate('GalleyOrder', { id: 'new' })} hitSlop={10}>
-            <Text style={styles.addBtn}>+ New order</Text>
+            <Text style={styles.addBtn}>{t('galley.new')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
-        <Label>All orders</Label>
+        <Label>{t('galley.all')}</Label>
       )}
 
       {list.length === 0 ? (
-        <Empty text={'No galley orders yet. Tap "+ New order" to create the first one.'} />
+        <Empty text={t('galley.empty')} />
       ) : (
         list.map((o) => {
           const total = galleyTotal(o);
@@ -63,9 +65,9 @@ export default function GalleyOrdersSc() {
           const color = statusColor(o.status);
           // Timeline for closed orders
           const timeline: string[] = [];
-          if (o.sentAt) timeline.push(`Sent ${formatDate(o.sentAt)}`);
-          if (o.receivedAt) timeline.push(`Rcvd ${formatDate(o.receivedAt)}`);
-          if (o.cancelledAt) timeline.push(`Cancelled ${formatDate(o.cancelledAt)}`);
+          if (o.sentAt) timeline.push(t('galley.sent', { date: formatDate(o.sentAt) }));
+          if (o.receivedAt) timeline.push(t('galley.rcvd', { date: formatDate(o.receivedAt) }));
+          if (o.cancelledAt) timeline.push(t('galley.cancelled', { date: formatDate(o.cancelledAt) }));
 
           return (
             <TouchableOpacity

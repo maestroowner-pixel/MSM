@@ -31,13 +31,14 @@ import { ShipClock } from './ShipClock';
 import { FavMenuSection, FavStar } from './Favourites';
 import { MciIcon } from './MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
-import { SIZES, Palette } from '../theme';
+import { APP_CONFIG, SIZES, Palette } from '../theme';
 import { moduleOn } from '../constants/modules';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { roleAtLeast } from '../types/role';
 import { MANAGE_ROUTE } from '../constants/access';
 import { StoreKind, storeRooms } from '../types/stores';
+import { useT } from '../utils/i18n';
 import { MENU_CHILDREN, MENU_GEAR, MenuChild, applyOrder, flatGrouped, grouped, move, moveInGroup } from '../utils/navOrder';
 export { applyOrder, move, flatGrouped };
 
@@ -101,6 +102,7 @@ export function NavMenuBar(props: Props) {
   const { width } = useWindowDimensions();
   const [open, setOpen] = useState(false);
   const { state, navigation, order, icons, labelOf, pinned } = props;
+  const t = useT();
   const current = state.routes[state.index]?.name;
   const currentView: string | undefined = (state.routes[state.index]?.params as any)?.view;
   const go = (name: string, params?: object) => {
@@ -126,7 +128,7 @@ export function NavMenuBar(props: Props) {
             </TouchableOpacity>
           ) : null}
           {!docked ? (
-            <TouchableOpacity onPress={() => setOpen(true)} hitSlop={10} style={styles.burger} accessibilityLabel="Menu">
+            <TouchableOpacity onPress={() => setOpen(true)} hitSlop={10} style={styles.burger} accessibilityLabel={t('nav.menu')}>
               <MciIcon name="menu" size={26} color={COLORS.tabActive} />
             </TouchableOpacity>
           ) : null}
@@ -193,6 +195,7 @@ function MenuList({
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const insets = useSafeAreaInsets();
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [searching, setSearching] = useState(false);
   const [searchQ, setSearchQ] = useState('');
@@ -224,16 +227,16 @@ function MenuList({
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: insets.top + SIZES.md, paddingBottom: SIZES.xl }}>
       <View style={styles.menuHead}>
-        <Text style={styles.menuTitle}>ISMpilot</Text>
+        <Text style={styles.menuTitle}>{APP_CONFIG.name}</Text>
         <View style={{ flexDirection: 'row', gap: SIZES.xs }}>
-          <TouchableOpacity style={[styles.iconBtn, searching && styles.iconBtnOn]} onPress={toggleSearch} hitSlop={4} accessibilityLabel="Search menu">
+          <TouchableOpacity style={[styles.iconBtn, searching && styles.iconBtnOn]} onPress={toggleSearch} hitSlop={4} accessibilityLabel={t('nav.searchA11y')}>
             <MciIcon name="magnify" size={20} color={searching ? COLORS.primary : COLORS.textDark} />
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.iconBtn, editing && styles.iconBtnOn]} onPress={toggleEdit} hitSlop={4} accessibilityLabel={editing ? 'Done editing order' : 'Edit order'}>
+          <TouchableOpacity style={[styles.iconBtn, editing && styles.iconBtnOn]} onPress={toggleEdit} hitSlop={4} accessibilityLabel={editing ? t('nav.editDone') : t('nav.edit')}>
             <MciIcon name="sort" size={20} color={editing ? COLORS.primary : COLORS.textDark} />
           </TouchableOpacity>
           {canPin ? (
-            <TouchableOpacity style={[styles.iconBtn, pinned && styles.iconBtnOn]} onPress={() => { setPinned(!pinned); if (!pinned) onClose(); }} hitSlop={4} accessibilityLabel={pinned ? 'Unpin menu' : 'Pin menu'}>
+            <TouchableOpacity style={[styles.iconBtn, pinned && styles.iconBtnOn]} onPress={() => { setPinned(!pinned); if (!pinned) onClose(); }} hitSlop={4} accessibilityLabel={pinned ? t('nav.unpin') : t('nav.pin')}>
               <MciIcon name={pinned ? 'pin' : 'pin-outline'} size={20} color={pinned ? COLORS.primary : COLORS.textDark} />
             </TouchableOpacity>
           ) : null}
@@ -245,14 +248,14 @@ function MenuList({
           style={styles.searchInput}
           value={searchQ}
           onChangeText={setSearchQ}
-          placeholder="Search…"
+          placeholder={t('nav.search')}
           placeholderTextColor={COLORS.textLight}
           returnKeyType="search"
           clearButtonMode="while-editing"
           autoCorrect={false}
         />
       ) : null}
-      {Platform.OS !== 'web' && !editing && !searching ? <Text style={styles.hint}>The first four are on the bar below.</Text> : null}
+      {Platform.OS !== 'web' && !editing && !searching ? <Text style={styles.hint}>{t('nav.barHint')}</Text> : null}
       {/* On a phone the menu is the way in: what is kept comes first (17 Oct 2026). */}
       {Platform.OS !== 'web' && !editing && !searching ? <FavMenuSection onPicked={onClose} itemStyle={styles.item} textStyle={styles.itemText} headStyle={styles.groupHead} /> : null}
       {visibleGroups.map(({ group, routes }) => (
@@ -277,10 +280,10 @@ function MenuList({
                 {kids && !editing ? <MciIcon name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={COLORS.textLight} /> : null}
                 {editing && routes.length > 1 ? (
                   <View style={{ flexDirection: 'row', gap: SIZES.xs }}>
-                    <TouchableOpacity onPress={() => setOrder(moveInGroup(order, r, -1))} disabled={i === 0} hitSlop={6} style={[styles.arrow, i === 0 && { opacity: 0.25 }]} accessibilityLabel={`Move ${labelOf(r)} up`}>
+                    <TouchableOpacity onPress={() => setOrder(moveInGroup(order, r, -1))} disabled={i === 0} hitSlop={6} style={[styles.arrow, i === 0 && { opacity: 0.25 }]} accessibilityLabel={t('nav.moveUp', { name: labelOf(r) })}>
                       <MciIcon name="arrow-up" size={18} color={COLORS.primary} />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setOrder(moveInGroup(order, r, 1))} disabled={i === routes.length - 1} hitSlop={6} style={[styles.arrow, i === routes.length - 1 && { opacity: 0.25 }]} accessibilityLabel={`Move ${labelOf(r)} down`}>
+                    <TouchableOpacity onPress={() => setOrder(moveInGroup(order, r, 1))} disabled={i === routes.length - 1} hitSlop={6} style={[styles.arrow, i === routes.length - 1 && { opacity: 0.25 }]} accessibilityLabel={t('nav.moveDown', { name: labelOf(r) })}>
                       <MciIcon name="arrow-down" size={18} color={COLORS.primary} />
                     </TouchableOpacity>
                   </View>
@@ -305,7 +308,7 @@ function MenuList({
       ))}
       {editing ? (
         <TouchableOpacity onPress={reset} style={{ padding: SIZES.md }}>
-          <Text style={[styles.edit, { color: COLORS.textLight }]}>Reset to the standard order</Text>
+          <Text style={[styles.edit, { color: COLORS.textLight }]}>{t('nav.reset')}</Text>
         </TouchableOpacity>
       ) : null}
     </ScrollView>

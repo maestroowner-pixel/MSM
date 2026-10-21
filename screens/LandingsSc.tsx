@@ -13,14 +13,16 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { roleAtLeast } from '../types/role';
 import { LandingReport } from '../types/movement';
+import { t, tn, useT, type UiKey } from '../utils/i18n';
 
-const DIR_CFG: Record<'out' | 'in' | 'received', { bg: string; text: string; label: string }> = {
-  out:      { bg: '#fef3c7', text: '#92400e', label: 'Sent ashore' },
-  in:       { bg: '#dcfce7', text: '#166534', label: 'Returned' },
-  received: { bg: '#dbeafe', text: '#1e40af', label: 'Received' },
+const DIR_CFG: Record<'out' | 'in' | 'received', { bg: string; text: string; label: UiKey }> = {
+  out:      { bg: '#fef3c7', text: '#92400e', label: 'land.dir.out' },
+  in:       { bg: '#dcfce7', text: '#166534', label: 'land.dir.in' },
+  received: { bg: '#dbeafe', text: '#1e40af', label: 'land.dir.received' },
 };
 
 export default function LandingsSc() {
+  useT();
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const { landings } = useData();
@@ -51,9 +53,9 @@ export default function LandingsSc() {
       <TouchableOpacity style={styles.card} onPress={() => nav.navigate('LandingReport', { id: r.id })}>
         <View style={styles.row}>
           <Text style={styles.no}>{r.no}</Text>
-          <Text style={[styles.dir, { backgroundColor: cfg.bg, color: cfg.text }]}>{cfg.label}</Text>
+          <Text style={[styles.dir, { backgroundColor: cfg.bg, color: cfg.text }]}>{t(cfg.label)}</Text>
         </View>
-        <Text style={styles.sub}>{r.date} · {dest} · {count} item{count !== 1 ? 's' : ''}</Text>
+        <Text style={styles.sub}>{r.date} · {dest} · {tn('n.item', count)}</Text>
         {r.notes ? <Text style={[styles.sub, { marginTop: 3 }]}>{r.notes}</Text> : null}
       </TouchableOpacity>
     );
@@ -61,15 +63,15 @@ export default function LandingsSc() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScreenTitle title="Equipment Records" />
+      <ScreenTitle title={t('land.title')} />
       <BackButton onPress={() => nav.goBack()} fav={false} />
       {canEdit && (
         <View style={styles.btnRow}>
           <TouchableOpacity style={styles.btn} onPress={() => nav.navigate('LandingReport', { id: 'new' })}>
-            <Text style={styles.btnText}>+ Landing report</Text>
+            <Text style={styles.btnText}>{t('land.newLanding')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.btn2} onPress={() => nav.navigate('LandingReport', { id: 'new', initDir: 'received' })}>
-            <Text style={styles.btnText}>+ Receiving report</Text>
+            <Text style={styles.btnText}>{t('land.newReceiving')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -78,7 +80,7 @@ export default function LandingsSc() {
         keyExtractor={(r) => r.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={<Empty text="No records yet" />}
+        ListEmptyComponent={<Empty text={t('land.empty')} />}
       />
     </SafeAreaView>
   );

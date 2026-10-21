@@ -24,6 +24,7 @@ import {
   COMPRESSOR_EVENT_META,
   MAX_COMPRESSORS,
 } from '../types/compressor';
+import { t, t as tt, tk, useT } from '../utils/i18n';
 
 const TYPE_COLOR: Record<CompressorEventType, string> = {
   run: COLORS.primary,
@@ -47,6 +48,7 @@ function fmtDuration(min: number): string {
 }
 
 export default function CompressorSc() {
+  useT();
   const nav = useNavigation<any>();
   const COLORS = useTheme();
   const styles = useS();
@@ -126,10 +128,10 @@ export default function CompressorSc() {
 
   const removeCompressor = () => {
     if (!active) return;
-    Alert.alert('Delete compressor', `Remove "${active.name}" and its entire log?`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('cmp.deleteQ'), t('cmp.deleteBody', { name: active.name }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: () => {
           const next = compressors.filter((c) => c.id !== active.id);
@@ -154,7 +156,7 @@ export default function CompressorSc() {
     if (!active) return;
     const minutes = (parseInt(hours || '0', 10) || 0) * 60 + (parseInt(mins || '0', 10) || 0);
     if (type === 'run' && minutes <= 0) {
-      Alert.alert('Running time needed', 'Enter how long the compressor ran (hours / minutes).');
+      Alert.alert(t('cmp.needTime'), t('cmp.needTimeBody'));
       return;
     }
     const baseEntry: CompressorEntry = editingId
@@ -176,10 +178,10 @@ export default function CompressorSc() {
   };
 
   const removeEntry = (e: CompressorEntry) => {
-    Alert.alert('Delete entry', 'Remove this log entry?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('cmp.deleteEntry'), t('cmp.deleteEntryBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: () => {
           updateActive({ entries: entries.filter((x) => x.id !== e.id) });
@@ -198,9 +200,9 @@ export default function CompressorSc() {
     <Screen scroll>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => goBackOr(nav)} hitSlop={12}>
-          <Text style={styles.back}>‹ Back</Text>
+          <Text style={styles.back}>{`‹ ${t('common.back')}`}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>BA Compressors</Text>
+        <Text style={styles.headerTitle}>{t('cmp.title')}</Text>
         <View style={{ width: 48 }} />
       </View>
 
@@ -219,7 +221,7 @@ export default function CompressorSc() {
         ))}
         {compressors.length < MAX_COMPRESSORS ? (
           <TouchableOpacity style={styles.addChip} onPress={addCompressor}>
-            <Text style={styles.addChipText}>+ Add compressor</Text>
+            <Text style={styles.addChipText}>{t('cmp.add')}</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -239,7 +241,7 @@ export default function CompressorSc() {
                 style={styles.nameInput}
                 value={active.name}
                 onChangeText={(t) => updateActive({ name: t })}
-                placeholder="Compressor name"
+                placeholder={t('cmp.namePh')}
                 placeholderTextColor={COLORS.textLight}
               />
               <TouchableOpacity style={styles.unitDel} onPress={removeCompressor} hitSlop={8}>
@@ -247,18 +249,18 @@ export default function CompressorSc() {
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.totalLabel}>Total running time</Text>
+            <Text style={styles.totalLabel}>{t('cmp.total')}</Text>
             <Text style={styles.totalValue}>{fmtDuration(totalMinutes)}</Text>
             <Text style={styles.totalSub}>
               {runCount} run{runCount === 1 ? '' : 's'} logged
               {baseline > 0 ? ` · incl. ${fmtDuration(baseline)} initial` : ''}
             </Text>
             <TouchableOpacity onPress={() => setShowBaseline((s) => !s)} hitSlop={8}>
-              <Text style={styles.baselineToggle}>{showBaseline ? 'Hide' : 'Adjust starting counter'}</Text>
+              <Text style={styles.baselineToggle}>{showBaseline ? t('mt2.hide') : t('cmp.adjust')}</Text>
             </TouchableOpacity>
             {showBaseline ? (
               <View style={styles.baselineRow}>
-                <Text style={styles.baselineHint}>Counter before logging started:</Text>
+                <Text style={styles.baselineHint}>{t('cmp.before')}</Text>
                 <View style={styles.hmRow}>
                   <HM
                     value={baseline ? String(Math.floor(baseline / 60)) : ''}
@@ -278,7 +280,7 @@ export default function CompressorSc() {
 
           {/* Add / edit entry */}
           <Card>
-            <Label>{editingId ? 'Edit entry' : 'Add entry'}</Label>
+            <Label>{editingId ? t('cmp.editEntry') : t('cmp.addEntry')}</Label>
             <View style={styles.typeRow}>
               {TYPE_ORDER.map((t) => (
                 <TouchableOpacity
@@ -287,34 +289,34 @@ export default function CompressorSc() {
                   onPress={() => setType(t)}
                 >
                   <Text style={[styles.typeChipText, type === t && styles.typeChipTextOn]}>
-                    {COMPRESSOR_EVENT_META[t].emoji} {COMPRESSOR_EVENT_META[t].label}
+                    {COMPRESSOR_EVENT_META[t].emoji} {tk(`cmp.ev.${t}`)}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            <SimpleDatePicker label="Date" value={date} onChange={setDate} />
+            <SimpleDatePicker label={tt('nc.date')} value={date} onChange={setDate} />
 
             {type === 'run' ? (
               <View style={{ marginTop: SIZES.sm }}>
-                <Label>Running time</Label>
+                <Label>{tt('cmp.running')}</Label>
                 <View style={styles.hmRow}>
-                  <HM value={hours} placeholder="hours" onChange={setHours} wide />
+                  <HM value={hours} placeholder={tt('cmp.hours')} onChange={setHours} wide />
                   <Text style={styles.colon}>h</Text>
-                  <HM value={mins} placeholder="min" onChange={setMins} wide />
+                  <HM value={mins} placeholder={tt('cmp.min')} onChange={setMins} wide />
                   <Text style={styles.colon}>m</Text>
                 </View>
               </View>
             ) : null}
 
             <View style={{ marginTop: SIZES.sm }}>
-              <Label>Note</Label>
+              <Label>{tt('mo.note')}</Label>
               <TextInput
                 style={[styles.input, { height: 64, textAlignVertical: 'top' }]}
                 value={note}
                 onChangeText={setNote}
                 multiline
-                placeholder={type === 'run' ? 'e.g. Charging bottles 2, 6 & 9' : 'e.g. 2nd stage filter changed'}
+                placeholder={type === 'run' ? tt('cmp.runPh') : tt('cmp.maintPh')}
                 placeholderTextColor={COLORS.textLight}
               />
             </View>
@@ -322,11 +324,11 @@ export default function CompressorSc() {
             <View style={styles.formBtns}>
               {editingId ? (
                 <TouchableOpacity style={[styles.btn, styles.btnGhost]} onPress={resetForm}>
-                  <Text style={styles.btnGhostText}>Cancel</Text>
+                  <Text style={styles.btnGhostText}>{tt('common.cancel')}</Text>
                 </TouchableOpacity>
               ) : null}
               <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.primary, flex: 1 }]} onPress={submit}>
-                <Text style={styles.btnText}>{editingId ? 'Update entry' : 'Add entry'}</Text>
+                <Text style={styles.btnText}>{editingId ? tt('cmp.updateEntry') : tt('cmp.addEntry')}</Text>
               </TouchableOpacity>
             </View>
           </Card>
@@ -335,7 +337,7 @@ export default function CompressorSc() {
           <Label style={{ marginBottom: SIZES.sm }}>Log ({entries.length})</Label>
           {sorted.length === 0 ? (
             <Card>
-              <Text style={styles.empty}>No entries yet. Log a compressor run or a maintenance event above.</Text>
+              <Text style={styles.empty}>{tt('cmp.empty')}</Text>
             </Card>
           ) : (
             sorted.map((e) => {
@@ -355,13 +357,13 @@ export default function CompressorSc() {
                         <Text style={[styles.entryDur, { color: TYPE_COLOR.run }]}>{fmtDuration(e.minutes ?? 0)}</Text>
                       ) : (
                         <Text style={[styles.entryTag, { color: TYPE_COLOR[e.type] }]}>
-                          {meta.emoji} {meta.label}
+                          {meta.emoji} {tk(`cmp.ev.${e.type}`)}
                         </Text>
                       )}
                     </View>
                     {e.note ? <Text style={styles.entryNote}>{e.note}</Text> : null}
                     {e.type === 'run' && cumulative[e.id] != null ? (
-                      <Text style={styles.entryCumulative}>Σ {fmtDuration(cumulative[e.id])} total</Text>
+                      <Text style={styles.entryCumulative}>{tt('cmp.cum', { d: fmtDuration(cumulative[e.id]) })}</Text>
                     ) : null}
                   </View>
                   <TouchableOpacity style={styles.entryDel} onPress={() => removeEntry(e)} hitSlop={8}>

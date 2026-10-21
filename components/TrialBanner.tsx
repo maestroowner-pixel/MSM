@@ -20,6 +20,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MciIcon } from './MciIcon';
+import { t, tn } from '../utils/i18n';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { ENFORCE_LIMITS, getTrialInfo } from '../services/trial';
@@ -98,15 +99,15 @@ export function TrialBanner() {
       />
       <View style={{ flex: 1 }}>
         <Text style={styles.title}>
-          {expired ? 'Free trial ended' : `Free trial · ${state.daysLeft} ${state.daysLeft === 1 ? 'day' : 'days'} left`}
+          {expired ? t('trial.ended') : t('trial.left', { days: tn('n.day', state.daysLeft) })}
         </Text>
         <Text style={styles.sub}>
           {expired
-            ? `Trial ended ${state.endsAt}. Subscribe to keep adding items & certificates.`
-            : `Ends ${state.endsAt} · then ${state.priceString}/year per vessel. Tap to upgrade to Pro.`}
+            ? t('trial.endedSub', { date: state.endsAt })
+            : t('trial.sub', { date: state.endsAt, price: state.priceString })}
         </Text>
       </View>
-      <Text style={styles.cta}>{expired ? 'Upgrade' : '›'}</Text>
+      <Text style={styles.cta}>{expired ? t('trial.upgrade') : '›'}</Text>
     </TouchableOpacity>
   );
 }

@@ -25,8 +25,10 @@ import { MciIcon } from '../components/MciIcon';
 import { moduleOn } from '../constants/modules';
 import { certSurveySummary, worstOf } from '../services/certSurveys';
 import { todayIso } from '../services/pms';
+import { t, tk, tn, useT } from '../utils/i18n';
 
 export default function CertificatesSc() {
+  useT();
   const { certificates, crew } = useData();
   const { modulesRev } = useSync();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -56,7 +58,7 @@ export default function CertificatesSc() {
   const crewById = useMemo(() => new Map(crew.map((m) => [m.id, m])), [crew]);
   const holderOf = (c: Certificate) => {
     const m = c.crewId ? crewById.get(c.crewId) : undefined;
-    return m && !m.deleted ? crewLabel(m) : c.holderName || 'No holder';
+    return m && !m.deleted ? crewLabel(m) : c.holderName || t('certs.noHolder');
   };
 
   const list = useMemo(() => {
@@ -117,7 +119,7 @@ export default function CertificatesSc() {
 
       <View style={styles.head}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>Certificates</Text>
+          <Text style={styles.title}>{t('fleet.certs')}</Text>
           <Text style={styles.sub}>{SUBTITLE[tab](counts[tab])}</Text>
         </View>
         <HelpButton section="Certificates" />
@@ -137,7 +139,7 @@ export default function CertificatesSc() {
             accessibilityState={{ selected: tab === t.key }}
           >
             <Text style={[styles.tabText, tab === t.key && styles.tabTextOn]}>
-              {t.label}{counts[t.key] ? ` · ${counts[t.key]}` : ''}
+              {tk(`certs.tab.${t.key}`)}{counts[t.key] ? ` · ${counts[t.key]}` : ''}
             </Text>
           </TouchableOpacity>
         ))}
@@ -147,7 +149,7 @@ export default function CertificatesSc() {
       {counts[tab] > 0 ? (
         <TextInput
           style={styles.search}
-          placeholder={tab === 'crew' ? 'Search person, certificate, number…' : 'Search name, number, issuer…'}
+          placeholder={tab === 'crew' ? t('certs.searchCrew') : t('certs.search')}
           placeholderTextColor={COLORS.textLight}
           value={q}
           onChangeText={setQ}
@@ -157,19 +159,19 @@ export default function CertificatesSc() {
       {tab === 'equipment' && moduleOn('serviceReport') ? (
         <TouchableOpacity onPress={() => nav.navigate('ServiceReport')} style={styles.svcRow} hitSlop={8}>
           <MciIcon name="file-certificate-outline" size={18} color={COLORS.primary} />
-          <Text style={styles.svcText}>From a service report — the station's PDF sets the items' dates</Text>
+          <Text style={styles.svcText}>{t('certs.fromService')}</Text>
           <MciIcon name="chevron-right" size={18} color={COLORS.primary} />
         </TouchableOpacity>
       ) : null}
 
       {tab === 'crew' ? (
         <TouchableOpacity onPress={() => nav.navigate('CrewMatrix')} style={{ alignSelf: 'flex-end', marginBottom: SIZES.sm }} hitSlop={8}>
-          <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small }}>Crew matrix ›</Text>
+          <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small }}>{`${t('cm.title')} ›`}</Text>
         </TouchableOpacity>
       ) : null}
 
       {list.length === 0 ? (
-        <Empty text={EMPTY[tab]} />
+        <Empty text={tk(`certs.empty.${tab}`)} />
       ) : tab === 'crew' ? (
         <SectionList
           sections={sections}
@@ -229,6 +231,7 @@ const EMPTY: Record<CertificateScope, string> = {
 };
 
 function CertRow({ item, wide, onPress }: { item: Certificate; wide?: boolean; onPress: () => void }) {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { surveys, surveysDone } = useData();
@@ -238,11 +241,11 @@ function CertRow({ item, wide, onPress }: { item: Certificate; wide?: boolean; o
   const status = sv ? worstOf(statusFromDate(item.expiryDate), sv.status) : statusFromDate(item.expiryDate);
   const next = sv?.next;
   const nextLine = next
-    ? `${next.s.name.split(' — ').slice(1).join(' — ').replace(/^./, (ch) => ch.toUpperCase())}: ${next.st.state === 'overdue' ? `overdue since ${formatDate(next.st.closes)}` : next.st.state === 'open' ? `window open until ${formatDate(next.st.closes)}` : `window opens ${formatDate(next.st.opens)}`}`
+    ? `${next.s.name.split(' — ').slice(1).join(' — ').replace(/^./, (ch) => ch.toUpperCase())}: ${next.st.state === 'overdue' ? t('drills.overdueSince', { date: formatDate(next.st.closes) }) : next.st.state === 'open' ? t('certs.windowOpen', { date: formatDate(next.st.closes) }) : t('certs.windowOpens', { date: formatDate(next.st.opens) })}`
     : undefined;
   const sub =
     scope === 'equipment'
-      ? [item.number && `№ ${item.number}`, `${item.itemIds.length} item${item.itemIds.length === 1 ? '' : 's'}`]
+      ? [item.number && `№ ${item.number}`, tn('n.item', item.itemIds.length)]
       : [item.number && `№ ${item.number}`, item.issuer];
   return (
     <TouchableOpacity style={[styles.row, wide && { flex: 1 }]} activeOpacity={0.7} onPress={onPress}>
@@ -252,7 +255,7 @@ function CertRow({ item, wide, onPress }: { item: Certificate; wide?: boolean; o
       </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.rowTitle} numberOfLines={1}>
-          {item.name || 'Untitled certificate'}
+          {item.name || t('certs.untitled')}
         </Text>
         {sub.some(Boolean) ? (
           <Text style={styles.rowSub} numberOfLines={1}>

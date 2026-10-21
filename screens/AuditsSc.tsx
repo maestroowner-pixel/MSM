@@ -22,6 +22,8 @@ import { todayIso } from '../services/pms';
 import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 
+import { t, tk, tn, useT } from '../utils/i18n';
+
 const AUDIT_TYPES: { value: AuditType; label: string }[] = [
   { value: 'ism', label: 'ISM Internal Audit' },
   { value: 'mlc', label: 'MLC Compliance Audit' },
@@ -29,6 +31,7 @@ const AUDIT_TYPES: { value: AuditType; label: string }[] = [
 ];
 
 export default function AuditsSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -62,7 +65,7 @@ export default function AuditsSc() {
       await saveRow(storage.INTERNAL_AUDITS_KEY, audit);
       nav.navigate('InternalAudit', { id: audit.id });
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? String(e));
+      Alert.alert(t('common.error'), e?.message ?? String(e));
     } finally {
       setCreating(false);
     }
@@ -70,33 +73,33 @@ export default function AuditsSc() {
 
   return (
     <Screen>
-      <ScreenTitle title="Internal Audits" subtitle="ISM · MLC · custom checklist" help="Internal audits" />
+      <ScreenTitle title={t('audits.title')} subtitle={t('audits.sub')} help="Internal audits" />
 
       {canEdit ? (
         <View style={styles.newRow}>
           <View style={{ flex: 1 }}>
             <Dropdown
-              caption="AUDIT TYPE"
+              caption={t('audits.type')}
               value={newType}
               onChange={(v: AuditType) => setNewType(v)}
-              options={AUDIT_TYPES}
+              options={AUDIT_TYPES.map((o) => ({ ...o, label: tk(`audits.t.${o.value}`) }))}
             />
           </View>
           <TouchableOpacity style={[styles.btn, creating && { opacity: 0.5 }]} onPress={startAudit} disabled={creating}>
             <MciIcon name="plus" size={16} color={COLORS.textWhite} />
-            <Text style={styles.btnText}>Start audit</Text>
+            <Text style={styles.btnText}>{t('audits.start')}</Text>
           </TouchableOpacity>
         </View>
       ) : null}
 
       {sorted.length === 0 ? (
-        <Empty text="No internal audits yet. Start an ISM or MLC audit — findings are raised as NCs." />
+        <Empty text={t('audits.empty')} />
       ) : (
         sorted.map((a) => <AuditRow key={a.id} audit={a} onPress={() => nav.navigate('InternalAudit', { id: a.id })} styles={styles} COLORS={COLORS} />)
       )}
 
       {openCount > 0 ? (
-        <Label style={{ marginTop: SIZES.md }}>{`${openCount} audit${openCount === 1 ? '' : 's'} in progress`}</Label>
+        <Label style={{ marginTop: SIZES.md }}>{tn('n.auditInProgress', openCount)}</Label>
       ) : null}
     </Screen>
   );
@@ -114,12 +117,12 @@ function AuditRow({ audit, onPress, styles, COLORS }: { audit: InternalAudit; on
         <Text style={styles.rowMeta}>
           {formatDate(audit.startDate)}
           {audit.by ? ` · ${audit.by}` : ''}
-          {closed ? ' · Closed' : ' · Open'}
+          {closed ? ` · ${t('audits.closed')}` : ` · ${t('audits.open')}`}
         </Text>
       </View>
       <View style={styles.badges}>
         {ncs > 0 ? <View style={[styles.badge, { backgroundColor: COLORS.danger }]}><Text style={styles.badgeText}>NC {ncs}</Text></View> : null}
-        {obs > 0 ? <View style={[styles.badge, { backgroundColor: COLORS.warning }]}><Text style={styles.badgeText}>Obs {obs}</Text></View> : null}
+        {obs > 0 ? <View style={[styles.badge, { backgroundColor: COLORS.warning }]}><Text style={styles.badgeText}>{t('audits.obs', { n: obs })}</Text></View> : null}
       </View>
       <MciIcon name="chevron-right" size={18} color={COLORS.textLight} />
     </TouchableOpacity>

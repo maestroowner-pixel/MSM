@@ -37,8 +37,10 @@ import { saveFileWeb } from '../utils/webSave';
 import { nextOrderNo } from '../services/orders';
 import { ORDER_DEPTS, ORDER_DEPT_LABEL, OrderLine, PurchaseOrder } from '../types/orders';
 import * as storage from '../services/storage';
+import { t, tn, useT } from '../utils/i18n';
 
 export default function SparesSc() {
+  useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
@@ -72,9 +74,9 @@ export default function SparesSc() {
   const saveCount = async () => {
     if (!counting) return;
     const changed = rows.filter((r) => counting.qty[r.p.id] != null).map((r) => ({ r, n: Number(counting.qty[r.p.id].replace(',', '.')) }));
-    if (changed.some((c) => !counting.qty[c.r.p.id].trim() || !Number.isFinite(c.n) || c.n < 0)) return Alert.alert('Stocktake', 'Every line needs what is on the shelf — 0 when empty.');
+    if (changed.some((c) => !counting.qty[c.r.p.id].trim() || !Number.isFinite(c.n) || c.n < 0)) return Alert.alert(t('sp.stocktake'), t('sp.everyLine'));
     const diff = changed.filter((c) => c.n !== c.r.onHand);
-    if (!signer) return Alert.alert('Who counted?', 'Choose your name.');
+    if (!signer) return Alert.alert(t('mc.whoCounted'), t('round.chooseName'));
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Stocktake: ${counting.loc} — ${changed.length} line${changed.length === 1 ? '' : 's'}` });
     if (!sig) return;
     // Every line counted is recorded — an unchanged count is the evidence it was checked.
@@ -85,7 +87,7 @@ export default function SparesSc() {
     await addSpareMoves(moves);
     setCounting(null);
     playSuccessSound();
-    Alert.alert('Stocktake', `${changed.length} line${changed.length === 1 ? '' : 's'} counted · ${diff.length} differed from the book.`);
+    Alert.alert(t('sp.stocktake'), t('sp.counted', { x: tn('n.line', changed.length), n: diff.length }));
   };
   const needs = useMemo(() => (moduleOn('pms') ? upcomingNeeds(pmsJobs, machines, pmsDeferrals, spares, stock, horizon) : []), [pmsJobs, machines, pmsDeferrals, spares, stock, horizon]);
   const requisition = async () => {
@@ -122,10 +124,10 @@ export default function SparesSc() {
         const bytes = new Uint8Array(bin.length);
         for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
         const w = await saveFileWeb(new Blob([bytes], { type: mime }), name, 'reports');
-        if (typeof w === 'string') setSaved(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+        if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
       } else await deliverFile(name, b64, true, mime);
     } catch (e: any) {
-      Alert.alert('Requisition', String(e?.message ?? e));
+      Alert.alert(t('sp.requisition'), String(e?.message ?? e));
     }
   };
   const newOrderFromSpares = () => {
@@ -134,7 +136,7 @@ export default function SparesSc() {
     const allLow = lowOnly;
     const total = allNeeds.length + allLow.length;
     if (total === 0) {
-      Alert.alert('New order', 'Nothing to order — all jobs are covered and every part is above its re-order level.');
+      Alert.alert(t('sp.newOrder'), t('sp.nothingToOrder'));
       return;
     }
 
@@ -175,13 +177,13 @@ export default function SparesSc() {
     // Also capture any keys not in ORDER_DEPTS (shouldn't happen but be safe)
     for (const k of linesByDept.keys()) if (!deptKeys.includes(k as any)) deptKeys.push(k as any);
 
-    const summary = deptKeys.map((d) => `${ORDER_DEPT_LABEL[d] ?? d}: ${linesByDept.get(d)!.length} line${linesByDept.get(d)!.length === 1 ? '' : 's'}`).join('\n');
+    const summary = deptKeys.map((d) => `${ORDER_DEPT_LABEL[d] ?? d}: ${tn('n.line', linesByDept.get(d)!.length)}`).join('\n');
     Alert.alert(
-      'Create orders',
-      `${deptKeys.length} separate order${deptKeys.length === 1 ? '' : 's'} will be created:\n\n${summary}`,
+      t('sp.createOrders'),
+      `${tn('sp.willCreate', deptKeys.length)}\n\n${summary}`,
       [
         {
-          text: 'Create',
+          text: t('sp.create'),
           onPress: () => void (async () => {
             // nextOrderNo must be called sequentially to avoid duplicate numbers
             let nos = purchaseOrders;
@@ -207,7 +209,7 @@ export default function SparesSc() {
             if (firstId) nav.navigate('Order', { id: firstId });
           })(),
         },
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
       ],
     );
   };
@@ -238,24 +240,24 @@ export default function SparesSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Spares" subtitle="Spare parts and stores" help="Spare parts" />
+      <ScreenTitle title={t('sp.title')} subtitle={t('sp.sub')} help="Spare parts" />
 
       <Card>
         <View style={styles.stats}>
-          <Stat value={String(out)} label="Out of stock" color={out ? COLORS.danger : COLORS.textDark} />
-          <Stat value={String(low)} label="Low" color={low ? COLORS.warning : COLORS.textDark} />
-          <Stat value={String(expiring)} label="Expiring ≤ 90 d" color={expiring ? COLORS.warning : COLORS.textDark} />
-          <Stat value={String(spares.length)} label="Lines" color={COLORS.textDark} />
+          <Stat value={String(out)} label={t('sp.out')} color={out ? COLORS.danger : COLORS.textDark} />
+          <Stat value={String(low)} label={t('sp.low')} color={low ? COLORS.warning : COLORS.textDark} />
+          <Stat value={String(expiring)} label={t('sp.expiring')} color={expiring ? COLORS.warning : COLORS.textDark} />
+          <Stat value={String(spares.length)} label={t('mo.lines')} color={COLORS.textDark} />
         </View>
       </Card>
 
       {moduleOn('pms') ? (
         <Card>
           <View style={styles.needHead}>
-            <Text style={styles.needTitle}>{`For jobs ahead · ${needs.length}`}</Text>
-            <Dropdown caption="WITHIN" value={horizon} onChange={setHorizon} options={[30, 60, 90].map((d) => ({ value: d, label: `${d} days` }))} style={{ minWidth: 150 }} />
-            <TouchableOpacity style={styles.reqBtn} onPress={() => void requisition()}><Text style={styles.reqBtnText}>Requisition (Excel)</Text></TouchableOpacity>
-            {moduleOn('orders') ? <TouchableOpacity style={[styles.reqBtn, styles.reqBtnFill]} onPress={newOrderFromSpares}><Text style={[styles.reqBtnText, styles.reqBtnFillText]}>→ New order</Text></TouchableOpacity> : null}
+            <Text style={styles.needTitle}>{t('sp.forJobs', { n: needs.length })}</Text>
+            <Dropdown caption={t('sp.within')} value={horizon} onChange={setHorizon} options={[30, 60, 90].map((d) => ({ value: d, label: tn('n.day', d) }))} style={{ minWidth: 150 }} />
+            <TouchableOpacity style={styles.reqBtn} onPress={() => void requisition()}><Text style={styles.reqBtnText}>{t('sp.reqExcel')}</Text></TouchableOpacity>
+            {moduleOn('orders') ? <TouchableOpacity style={[styles.reqBtn, styles.reqBtnFill]} onPress={newOrderFromSpares}><Text style={[styles.reqBtnText, styles.reqBtnFillText]}>{`→ ${t('sp.newOrder')}`}</Text></TouchableOpacity> : null}
           </View>
           {saved ? <Text style={{ color: COLORS.success, fontWeight: '700', fontSize: 12 }}>{`✓ ${saved}`}</Text> : null}
           {needs.map((n) => (
@@ -264,10 +266,10 @@ export default function SparesSc() {
                 <Text style={styles.needName}>{`${n.part.name}${n.part.partNo ? ` · ${n.part.partNo}` : ''}`}</Text>
                 <Text style={styles.needSub} numberOfLines={2}>{n.forJobs.join(' · ')}</Text>
               </View>
-              <Text style={styles.needQty}>{`need ${n.need} · have ${n.onHand} · order ${n.order}`}</Text>
+              <Text style={styles.needQty}>{t('sp.needHave', { need: n.need, have: n.onHand, order: n.order })}</Text>
             </TouchableOpacity>
           ))}
-          {!needs.length ? <Text style={styles.needSub}>{`Everything the PMS jobs of the next ${horizon} days use is on the shelf.`}</Text> : null}
+          {!needs.length ? <Text style={styles.needSub}>{t('sp.allOnShelf', { n: horizon })}</Text> : null}
         </Card>
       ) : null}
 
@@ -276,7 +278,7 @@ export default function SparesSc() {
           style={styles.search}
           value={q}
           onChangeText={setQ}
-          placeholder="Search name, part no., maker, location…"
+          placeholder={t('sp.searchPh')}
           placeholderTextColor={COLORS.textLight}
         />
         <TouchableOpacity style={[styles.chip, toOrder && styles.chipOn]} onPress={() => setToOrder((v) => !v)}>
@@ -285,29 +287,29 @@ export default function SparesSc() {
       </View>
 
       <View style={styles.head}>
-        <Label>Parts</Label>
+        <Label>{t('sp.parts')}</Label>
         <TouchableOpacity onPress={addPart} hitSlop={10}>
-          <Text style={styles.add}>+ Add part</Text>
+          <Text style={styles.add}>{t('sp.addPart')}</Text>
         </TouchableOpacity>
       </View>
 
       {spares.length === 0 ? (
-        <Empty text="No spare parts yet. Add what the vessel keeps — filters, impellers, belts, oil — with where it is stored and the level at which to re-order." />
+        <Empty text={t('sp.empty')} />
       ) : groups.length === 0 ? (
-        <Empty text={toOrder ? 'Nothing to order — every line is above its re-order level.' : 'No part matches.'} />
+        <Empty text={toOrder ? t('sp.nothingBelow') : t('sp.noMatch')} />
       ) : (
         groups.map(({ loc, list }) => (
           <View key={loc}>
             <View style={styles.locHead}>
-              <Text style={styles.loc}>{loc}</Text>
+              <Text style={styles.loc}>{loc === 'No location' ? t('sp.noLoc') : loc}</Text>
               {counting?.loc === loc ? null : (
                 <TouchableOpacity onPress={() => startCount(loc, list)} hitSlop={8} disabled={!!counting}>
-                  <Text style={[styles.add, !!counting && { opacity: 0.35 }]}>Stocktake</Text>
+                  <Text style={[styles.add, !!counting && { opacity: 0.35 }]}>{t('sp.stocktake')}</Text>
                 </TouchableOpacity>
               )}
             </View>
             {counting?.loc === loc ? (
-              <Text style={styles.sub}>What is on the shelf, line by line — prefilled with the book. Every line is recorded as counted.</Text>
+              <Text style={styles.sub}>{t('sp.countHint')}</Text>
             ) : null}
             {list.map(({ p, onHand, status, exp }) => (
               <TouchableOpacity key={p.id} style={styles.row} onPress={() => (counting?.loc === loc ? undefined : nav.navigate('SparePart', { id: p.id }))} activeOpacity={0.7}>
@@ -315,10 +317,10 @@ export default function SparesSc() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.title} numberOfLines={1}>{p.name}</Text>
                   <Text style={styles.sub} numberOfLines={1}>
-                    {[p.partNo, p.maker, p.minQty != null ? `min ${p.minQty}` : null, p.maxQty != null ? `max ${p.maxQty}` : null].filter(Boolean).join(' · ') || '—'}
+                    {[p.partNo, p.maker, p.minQty != null ? t('sp.min', { n: p.minQty }) : null, p.maxQty != null ? t('sp.max', { n: p.maxQty }) : null].filter(Boolean).join(' · ') || '—'}
                   </Text>
                   {exp && exp.expiry! <= soon ? (
-                    <Text style={[styles.sub, { color: exp.expiry! < today ? COLORS.danger : COLORS.warning, fontWeight: '700' }]}>{`${exp.expiry! < today ? 'Expired' : 'Expires'} ${formatDate(exp.expiry)} · ${qtyText(exp.qty, p)}`}</Text>
+                    <Text style={[styles.sub, { color: exp.expiry! < today ? COLORS.danger : COLORS.warning, fontWeight: '700' }]}>{`${exp.expiry! < today ? t('sp.expired', { date: formatDate(exp.expiry) }) : t('sp.expires', { date: formatDate(exp.expiry) })} · ${qtyText(exp.qty, p)}`}</Text>
                   ) : null}
                 </View>
                 {counting?.loc === loc ? (
@@ -337,8 +339,8 @@ export default function SparesSc() {
             {counting?.loc === loc ? (
               <View style={styles.countBar}>
                 {picker}
-                <TouchableOpacity style={styles.reqBtn} onPress={() => void saveCount()}><Text style={styles.reqBtnText}>Record the count</Text></TouchableOpacity>
-                <TouchableOpacity onPress={() => setCounting(null)}><Text style={styles.add}>Cancel</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.reqBtn} onPress={() => void saveCount()}><Text style={styles.reqBtnText}>{t('sp.record')}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setCounting(null)}><Text style={styles.add}>{t('common.cancel')}</Text></TouchableOpacity>
               </View>
             ) : null}
           </View>

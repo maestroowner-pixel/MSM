@@ -25,6 +25,7 @@ import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
 import { groupByPlace, usesDecks } from '../services/placeGroups';
 import { applyBulk, BulkPatch, isEmptyPatch } from '../services/bulkEdit';
 import SimpleDatePicker from '../components/SimpleDatePicker';
+import { t, tk, tn, useT } from '../utils/i18n';
 
 type SortBy = 'date' | 'position' | 'name' | 'type' | 'round';
 const SORT_ORDER: SortBy[] = ['position', 'date', 'name', 'type', 'round'];
@@ -67,6 +68,7 @@ type ListEntry =
   | ({ kind: 'row'; key: string } & Scored);
 
 export default function CategoryItemsSc() {
+  useT();
   const route = useRoute<any>();
   const nav = useNavigation<any>();
   const category: CategoryKey = route.params.category;
@@ -145,7 +147,7 @@ export default function CategoryItemsSc() {
       for (const mark of order) {
         const rows = scored.filter((r) => r.round === mark).sort(byDays);
         if (!rows.length) continue;
-        out.push({ kind: 'header', key: `h_${mark}`, position: ROUND_GROUP[mark], count: rows.length, icon: 'clipboard-text-outline' });
+        out.push({ kind: 'header', key: `h_${mark}`, position: tk(`ci.rg.${mark}`), count: rows.length, icon: 'clipboard-text-outline' });
         rows.forEach((r) => out.push({ kind: 'row', key: r.it.id, ...r }));
       }
       return out;
@@ -217,17 +219,12 @@ export default function CategoryItemsSc() {
     if (!count) return;
     const syncing = sync.status === 'synced' || sync.status === 'pending';
     Alert.alert(
-      `Clear ${meta.label}?`,
-      `All ${count} item${count === 1 ? '' : 's'} in this category will be deleted` +
-        (syncing ? ' — on the vessel and on every device aboard, not just this one' : '') +
-        '.\n\nTheir photos, certificate links and printed QR labels go with them. Signed ' +
-        'inspections stay on record but no longer show in reports — loading the list again ' +
-        'creates new items. To change items, use Import → Update instead. Other categories are not touched.\n\n' +
-        'A copy of the register as it is now is kept in Settings → Save a copy as a file.',
+      t('ci.clearQ', { name: meta.label }),
+      `${t('ci.allDeleted', { x: tn('n.item', count) })}${syncing ? ` — ${t('ci.everywhere')}` : ''}.\n\n${t('ci.clearBody')}\n\n${t('imp.copyKept')}`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: `Delete ${count} item${count === 1 ? '' : 's'}`,
+          text: t('ci.deleteN', { x: tn('n.item', count) }),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -238,7 +235,7 @@ export default function CategoryItemsSc() {
               await storage.replaceCategory(category, []);
               await reload();
             } catch (e: any) {
-              Alert.alert('Could not clear', String(e?.message ?? e));
+              Alert.alert(t('ci.couldNotClear'), String(e?.message ?? e));
             }
           },
         },
@@ -288,21 +285,19 @@ export default function CategoryItemsSc() {
     const n = ids.size;
     const said = (f: 'nextInspection' | 'expiry', name: string) => {
       const v = bulk[f];
-      return v === null ? `clears the ${name} date` : v ? `sets the ${name} to ${formatDate(v)}` : '';
+      return v === null ? t('ci.clears', { name }) : v ? t('ci.sets', { name, date: formatDate(v) }) : '';
     };
-    const acts = [said('nextInspection', 'next inspection'), said('expiry', 'expiry'), bulk.note?.trim() ? 'adds your comment' : '']
+    const acts = [said('nextInspection', t('ci.nextInspL')), said('expiry', t('ci.expiryL')), bulk.note?.trim() ? t('ci.addsComment') : '']
       .filter(Boolean);
-    const joined = acts.length > 1 ? `${acts.slice(0, -1).join(', ')} and ${acts[acts.length - 1]}` : acts[0];
+    const joined = acts.length > 1 ? `${acts.slice(0, -1).join(', ')} ${t('dpc.and')} ${acts[acts.length - 1]}` : acts[0];
     const what = joined[0].toUpperCase() + joined.slice(1);
     Alert.alert(
-      `Update ${n} item${n === 1 ? '' : 's'}?`,
-      `${what} — on the ${n} selected item${n === 1 ? '' : 's'}. Nothing else changes: ` +
-        'the same items, the same QR labels, photos, certificates and inspection history.\n\n' +
-        'A copy of the register as it is now is kept in Settings → Data, so this can be rolled back.',
+      tn('sr.updateQ', n),
+      `${what} — ${t('ci.onSelected', { x: tn('n.item', n) })} ${t('ci.nothingElse')}\n\n${t('ci.rollback')}`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Update',
+          text: t('sr.update'),
           onPress: async () => {
             try {
               await snapshot.takeSnapshot(vessel).catch(() => null);
@@ -314,9 +309,9 @@ export default function CategoryItemsSc() {
               setBulkOpen(false);
               setBulk({});
               stopSelecting();
-              Alert.alert('Done', changed ? `${changed} item${changed === 1 ? '' : 's'} updated.` : 'Those items already had these dates.');
+              Alert.alert(t('common.done'), changed ? t('ci.updatedN', { x: tn('n.item', changed) }) : t('ci.alreadyDates'));
             } catch (e: any) {
-              Alert.alert('Could not update', String(e?.message ?? e));
+              Alert.alert(t('sr.couldNot'), String(e?.message ?? e));
             }
           },
         },
@@ -360,7 +355,7 @@ export default function CategoryItemsSc() {
       <View style={{ flex: 1 }}>
         <View style={styles.titleRow}>
           <Text style={styles.rowTitle} numberOfLines={1}>
-            {[itemNumber(e.it) && `No. ${itemNumber(e.it)}`, typeWithSize(e.it)].filter(Boolean).join(' — ') || 'Item'}
+            {[itemNumber(e.it) && t('round.no', { n: itemNumber(e.it) }), typeWithSize(e.it)].filter(Boolean).join(' — ') || t('def.item')}
           </Text>
           {e.it.flagged ? (
             <View style={styles.flagBadge}>
@@ -414,11 +409,11 @@ export default function CategoryItemsSc() {
       <View style={styles.head}>
         <CategoryBadge category={category} size={28} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>{selecting ? `${selected.size} selected` : meta.label}</Text>
+          <Text style={styles.title}>{selecting ? t('ci.selected', { n: selected.size }) : meta.label}</Text>
           <Text style={styles.sub}>
             {selecting
-              ? 'Tap items to select — then print labels or set dates'
-              : `${meta.group} · ${(byCategory[category] ?? []).length} items`}
+              ? t('ci.tapSelect')
+              : `${meta.group} · ${tn('n.item', (byCategory[category] ?? []).length)}`}
           </Text>
         </View>
         {selecting ? (
@@ -434,11 +429,11 @@ export default function CategoryItemsSc() {
               }
             >
               <Text style={styles.ghostBtnText}>
-                {selected.size === filtered.length && filtered.length > 0 ? 'None' : 'All'}
+                {selected.size === filtered.length && filtered.length > 0 ? t('rounds.none') : t('rounds.allBtn')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.ghostBtn} onPress={stopSelecting}>
-              <Text style={styles.ghostBtnText}>Cancel</Text>
+              <Text style={styles.ghostBtnText}>{t('common.cancel')}</Text>
             </TouchableOpacity>
           </>
         ) : (
@@ -453,7 +448,7 @@ export default function CategoryItemsSc() {
               </TouchableOpacity>
             ) : null}
             {canClear && (byCategory[category] ?? []).length > 0 ? (
-              <TouchableOpacity style={styles.iconBtn} onPress={clearCategory} accessibilityLabel={`Clear ${meta.label}`}>
+              <TouchableOpacity style={styles.iconBtn} onPress={clearCategory} accessibilityLabel={t('ci.clearA', { name: meta.label })}>
                 <MciIcon name="delete-sweep-outline" size={18} color={COLORS.danger} />
               </TouchableOpacity>
             ) : null}
@@ -470,8 +465,8 @@ export default function CategoryItemsSc() {
         <TouchableOpacity style={styles.compressorBtn} onPress={() => nav.navigate('Compressor')}>
           <MciIcon name="timer-outline" size={22} color={COLORS.primaryDark} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.compressorTitle}>BA Compressor log</Text>
-            <Text style={styles.compressorSub}>Running-time counter · maintenance / service / inspection</Text>
+            <Text style={styles.compressorTitle}>{t('ci.compLog')}</Text>
+            <Text style={styles.compressorSub}>{t('ci.compSub')}</Text>
           </View>
           <Text style={styles.compressorChev}>›</Text>
         </TouchableOpacity>
@@ -480,19 +475,19 @@ export default function CategoryItemsSc() {
       <View style={styles.controlRow}>
         <TextInput
           style={[styles.search, { flex: 1, marginBottom: 0 }]}
-          placeholder="Search type, serial, position…"
+          placeholder={t('ci.searchPh')}
           placeholderTextColor={COLORS.textLight}
           value={q}
           onChangeText={setQ}
         />
         <TouchableOpacity style={styles.cycleBtn} onPress={cycleSort} activeOpacity={0.8}>
-          <Text style={styles.cycleCaption}>SORT</Text>
-          <Text style={styles.cycleValue} numberOfLines={1}>{SORT_LABEL[sortBy]}</Text>
+          <Text style={styles.cycleCaption}>{t('docs.sort')}</Text>
+          <Text style={styles.cycleValue} numberOfLines={1}>{tk(`ci.sort.${sortBy}`)}</Text>
         </TouchableOpacity>
       </View>
 
       {filtered.length === 0 ? (
-        <Empty text="No items. Tap + to add one, or import the workbook from Settings." />
+        <Empty text={t('ci.empty')} />
       ) : (
         <FlatList
           data={renderData}
@@ -528,7 +523,7 @@ export default function CategoryItemsSc() {
             onPress={() => setBulkOpen(true)}
           >
             <MciIcon name="calendar-edit" size={18} color={COLORS.primary} />
-            <Text style={[styles.printBtnText, { color: COLORS.primary }]}>Set dates</Text>
+            <Text style={[styles.printBtnText, { color: COLORS.primary }]}>{t('ci.setDates')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.printBtn, { flex: 1 }, selected.size === 0 && { opacity: 0.4 }]}
@@ -538,8 +533,8 @@ export default function CategoryItemsSc() {
             <MciIcon name="printer" size={18} color={COLORS.textWhite} />
             <Text style={styles.printBtnText} numberOfLines={1}>
               {selected.size === 0
-                ? 'Select items'
-                : `Print ${selected.size} label${selected.size === 1 ? '' : 's'}`}
+                ? t('ci.selectItems')
+                : t('lb.print', { x: tn('n.label', selected.size) })}
             </Text>
           </TouchableOpacity>
         </View>
@@ -548,13 +543,12 @@ export default function CategoryItemsSc() {
       <Modal visible={bulkOpen} transparent animationType="fade" onRequestClose={() => setBulkOpen(false)}>
         <View style={styles.sheetBackdrop}>
           <View style={styles.sheet}>
-            <Text style={styles.title}>Set dates</Text>
+            <Text style={styles.title}>{t('ci.setDates')}</Text>
             <Text style={[styles.sub, { marginBottom: SIZES.md }]}>
-              {selected.size} selected item{selected.size === 1 ? '' : 's'}. Fill in only what changes — a field left
-              blank keeps each item's own value.
+              {t('ci.setHint', { x: tn('n.item', selected.size) })}
             </Text>
             {(['nextInspection', 'expiry'] as const).map((f) => {
-              const name = f === 'expiry' ? 'Expiry' : 'Next inspection';
+              const name = f === 'expiry' ? t('sr.expiry') : t('sr.nextInsp');
               const clearing = bulk[f] === null;
               return (
                 <View key={f}>
@@ -562,7 +556,7 @@ export default function CategoryItemsSc() {
                     label={meta.dateField === f ? `${name} ★` : name}
                     value={bulk[f] ?? undefined}
                     disabled={clearing}
-                    placeholder={clearing ? 'Will be cleared on every selected item' : undefined}
+                    placeholder={clearing ? t('ci.willClear') : undefined}
                     onChange={(v) => setBulk((p) => ({ ...p, [f]: v }))}
                     onClear={() => setBulk((p) => ({ ...p, [f]: undefined }))}
                   />
@@ -570,7 +564,7 @@ export default function CategoryItemsSc() {
                   <TouchableOpacity
                     style={styles.clearRow}
                     onPress={() => setBulk((p) => ({ ...p, [f]: clearing ? undefined : null }))}
-                    accessibilityLabel={`Clear ${name} on all selected`}
+                    accessibilityLabel={t('ci.clearOnAll', { name })}
                   >
                     <MciIcon
                       name={clearing ? 'checkbox-marked' : 'checkbox-blank-outline'}
@@ -578,7 +572,7 @@ export default function CategoryItemsSc() {
                       color={clearing ? COLORS.danger : COLORS.textLight}
                     />
                     <Text style={[styles.clearRowText, clearing && { color: COLORS.danger }]}>
-                      Clear this date on all selected
+                      {t('ci.clearDate')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -586,7 +580,7 @@ export default function CategoryItemsSc() {
             })}
             <TextInput
               style={[styles.search, { marginTop: SIZES.sm }]}
-              placeholder="Add a comment (optional) — e.g. Serviced by … on …"
+              placeholder={t('ci.commentPh')}
               placeholderTextColor={COLORS.textLight}
               value={bulk.note ?? ''}
               onChangeText={(note) => setBulk((p) => ({ ...p, note }))}
@@ -596,7 +590,7 @@ export default function CategoryItemsSc() {
                 style={[styles.printBtn, styles.outlineBtn, { flex: 1 }]}
                 onPress={() => { setBulkOpen(false); setBulk({}); }}
               >
-                <Text style={[styles.printBtnText, { color: COLORS.primary }]}>Cancel</Text>
+                <Text style={[styles.printBtnText, { color: COLORS.primary }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.printBtn, { flex: 1 }, isEmptyPatch(bulk) && { opacity: 0.4 }]}
