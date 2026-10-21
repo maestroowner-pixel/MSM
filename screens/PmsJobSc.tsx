@@ -34,7 +34,7 @@ import * as photoQueue from '../services/photoQueue';
 import { Dropdown } from '../components/Dropdown';
 import * as storage from '../services/storage';
 import { crewLabel } from '../types/crew';
-import { PLAN_LOCKED, personName, plansPms, roleAtLeast } from '../types/role';
+import { personName, plansPms, roleAtLeast } from '../types/role';
 import { activeDeferral, dueText, jobAfter, jobCycle, jobDue, todayIso, withReading , noteForNext } from '../services/pms';
 import { movesForJob, qtyText, stockByPart } from '../services/spares';
 import { JobPart } from '../types/spares';
@@ -46,18 +46,15 @@ import { useSignConfirm } from '../components/SignConfirm';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
+import { t, tk, useT } from '../utils/i18n';
 
-const DAY_CHIPS: { label: string; days: number }[] = [
-  { label: '1 week', days: 7 },
-  { label: '1 month', days: 30 },
-  { label: '3 months', days: 90 },
-  { label: '6 months', days: 180 },
-  { label: '1 year', days: 365 },
-  { label: '2 years', days: 730 },
-];
+const DAY_CHIPS = [7, 30, 90, 180, 365, 730];
+// CONDITION / JOB_TYPE / DEFECT_CATEGORY (types/pms) stay English for records and PDFs; the screen shows them translated.
+const condName = (c: Condition) => tk(`pms.cond.${c}`);
 
 export default function PmsJobSc() {
   const COLORS = useTheme();
+  useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
@@ -133,12 +130,12 @@ export default function PmsJobSc() {
   const [defer, setDefer] = useState<{ date: string; hours: string; reason: string; projectId?: string } | null>(null);
   const signDeferral = async () => {
     if (!existing || !defer) return;
-    if (machine?.critical) return Alert.alert('Critical equipment', 'Jobs on critical equipment cannot be deferred.');
+    if (machine?.critical) return Alert.alert(t('mch.critical'), t('pj.noDeferCritical'));
     const untilHours = num(defer.hours);
-    if (!defer.date && untilHours == null) return Alert.alert('Defer until', 'Give a date, a counter reading, or both.');
-    if (defer.date && defer.date < todayIso()) return Alert.alert('Defer until', 'The date is in the past.');
-    if (defer.reason.trim().length < 3) return Alert.alert('Reason', 'Say why the job is deferred.');
-    if (!signer) return Alert.alert('Who is signing?', 'Choose your name.');
+    if (!defer.date && untilHours == null) return Alert.alert(t('pj.deferUntil'), t('pj.giveDateOrCounter'));
+    if (defer.date && defer.date < todayIso()) return Alert.alert(t('pj.deferUntil'), t('pj.datePast'));
+    if (defer.reason.trim().length < 3) return Alert.alert(t('pj.reason'), t('pj.sayWhyDeferred'));
+    if (!signer) return Alert.alert(t('sign.who'), t('round.chooseName'));
     const sig = await confirmSign({ personKey: me && sync.me ? `device:${sync.me.id}` : signerId ?? signer.name, name: signer.name, ownDevice: !!me, what: `Defer "${existing.title}" — ${defer.reason.trim()}` });
     if (!sig) return;
     const now = Date.now();
@@ -158,12 +155,12 @@ export default function PmsJobSc() {
   };
 
   const onSave = async () => {
-    if (!canPlan) return Alert.alert('Maintenance plan', PLAN_LOCKED);
-    if (!draft.title.trim()) return Alert.alert('Title required', 'Say what the job is — "Oil and filter change".');
+    if (!canPlan) return Alert.alert(t('pj.maintPlan'), t('pms.planLocked'));
+    if (!draft.title.trim()) return Alert.alert(t('pj.titleRequired'), t('pj.titleHint'));
     if (draft.oneOff) {
-      if (!draft.dueDate && draft.dueHours == null) return Alert.alert('Due', counter ? 'Give the date, the counter reading, or both, it must be done by.' : 'Give the date it must be done by.');
-    } else if (!draft.intervalHours && !draft.intervalDays) return Alert.alert('Interval', counter ? 'Give an interval in hours, in days, or both.' : 'Give an interval in days.');
-    if (!draft.oneOff && draft.fixed && draft.intervalDays && !draft.anchorDate) return Alert.alert('Fixed schedule', 'Give the date the schedule runs from — e.g. the 1st of next month.');
+      if (!draft.dueDate && draft.dueHours == null) return Alert.alert(t('pj.due'), counter ? t('pj.dueGiveBoth') : t('pj.dueGiveDate'));
+    } else if (!draft.intervalHours && !draft.intervalDays) return Alert.alert(t('pj.interval'), counter ? t('pj.intervalBoth') : t('pj.intervalDays'));
+    if (!draft.oneOff && draft.fixed && draft.intervalDays && !draft.anchorDate) return Alert.alert(t('pj.fixedSchedule'), t('pj.fixedNeedDate'));
     const { intervalHours, intervalDays, dueDate, dueHours, fixed, anchorDate, anchorHours, warnDays, warnHours, ...rest } = draft;
     const clean: PmsJob = draft.oneOff
       ? { ...rest, ...(dueDate ? { dueDate } : {}), ...(dueHours != null ? { dueHours } : {}) }
@@ -178,7 +175,7 @@ export default function PmsJobSc() {
     const next = { ...clean, title: draft.title.trim() };
     // The change log (services/planLog.ts): an interval, a due date, class or permit changed says why.
     const diff = planDiff(existing, next, JOB_FIELDS);
-    if (diff.some((d) => d.needsReason) && changeReason.trim().length < 3) return Alert.alert('Reason for the change', `Say why — ${diff.filter((d) => d.needsReason).map((d) => d.label.toLowerCase()).join(', ')} changed. It is kept in the job's change log.`);
+    if (diff.some((d) => d.needsReason) && changeReason.trim().length < 3) return Alert.alert(t('pj.reasonChange'), t('pj.reasonChangeBody', { what: diff.filter((d) => d.needsReason).map((d) => d.label.toLowerCase()).join(', ') }));
     const now = Date.now();
     await savePmsJob({ ...next, ...(diff.length ? { changes: withChanges(existing?.changes, diff, { by: me || 'Master', ...(meRank ? { byRank: meRank } : {}) }, changeReason, now) } : {}), updatedAt: now });
     playSuccessSound();
@@ -222,12 +219,12 @@ export default function PmsJobSc() {
   };
   const onPrepare = async () => {
     if (!existing) return;
-    if (!signer) return Alert.alert('Who did it?', 'Choose your name.');
+    if (!signer) return Alert.alert(t('nc.whoDid'), t('round.chooseName'));
     const hours = num(doneHours);
-    if (counter && (existing.intervalHours || existing.dueHours != null) && hours == null) return Alert.alert('Counter', 'Enter the counter reading when the job was done.');
-    if (doneDate > todayIso()) return Alert.alert('Date', 'The date is in the future.');
+    if (counter && (existing.intervalHours || existing.dueHours != null) && hours == null) return Alert.alert(t('pj.counter'), t('pj.enterCounter'));
+    if (doneDate > todayIso()) return Alert.alert(t('pj.date'), t('pj.dateFuture'));
     const mh = num(manHours);
-    if (manHours.trim() && mh == null) return Alert.alert('Man-hours', 'Enter the man-hours as a number, e.g. 1.5.');
+    if (manHours.trim() && mh == null) return Alert.alert(t('pj.manHours'), t('pj.manHoursNum'));
     const pr: PmsPrepared = {
       date: doneDate, ...(hours != null ? { hours } : {}), ...(doneNote.trim() ? { note: doneNote.trim() } : {}),
       ...(condBefore ? { conditionBefore: condBefore } : {}), ...(condAfter ? { conditionAfter: condAfter } : {}),
@@ -249,21 +246,21 @@ export default function PmsJobSc() {
   };
 
   const onDone = async () => {
-    if (!existing && !unplanned) return Alert.alert('Save first', 'Save the job, then record it as done.');
+    if (!existing && !unplanned) return Alert.alert(t('pj.saveFirst'), t('pj.saveFirstBody'));
     const jobTitle = unplanned ? draft.title.trim() : existing!.title;
-    if (!jobTitle) return Alert.alert('What was done?', 'Say what the work was — "Raw-water pump seal renewed".');
-    if (unplanned && !doneNote.trim()) return Alert.alert('Report', 'Describe the work in the note — what failed, what was done.');
-    if (!signer) return Alert.alert('Who did it?', 'Choose your name.');
+    if (!jobTitle) return Alert.alert(t('pj.whatDoneQ'), t('pj.whatDoneHint'));
+    if (unplanned && !doneNote.trim()) return Alert.alert(t('pj.report'), t('pj.reportHint'));
+    if (!signer) return Alert.alert(t('nc.whoDid'), t('round.chooseName'));
     const hours = num(doneHours);
-    if (counter && (existing?.intervalHours || existing?.dueHours != null) && hours == null) return Alert.alert('Counter', 'Enter the counter reading when the job was done.');
-    if (doneDate > todayIso()) return Alert.alert('Date', 'The date is in the future.');
-    if (machine?.critical && !donePhotos.length) return Alert.alert('Evidence', 'Critical equipment: add at least one photo of the work — before and after, clearances, parts replaced.');
-    if (defect && defect.description.trim().length < 3) return Alert.alert('Defect', 'Describe the defect found, or untick it.');
-    if (gate.permitMissing) return Alert.alert('Permit to work', `This job needs a ${(PERMIT_TYPE_MAP[existing!.permitType!]?.label ?? '').toLowerCase()} permit raised for it, approved or open, before it is signed out.`);
-    if (gate.unread.length) return Alert.alert('Read first', `${signer.name} has not read: ${gate.unread.map((d) => `${d.title} (Rev ${d.revision})`).join(', ')}.`);
-    if (condAfter === 'out' && !defect) return Alert.alert('Out of service', 'Equipment left out of service is a defect — tick "Found a defect" and describe it.');
+    if (counter && (existing?.intervalHours || existing?.dueHours != null) && hours == null) return Alert.alert(t('pj.counter'), t('pj.enterCounter'));
+    if (doneDate > todayIso()) return Alert.alert(t('pj.date'), t('pj.dateFuture'));
+    if (machine?.critical && !donePhotos.length) return Alert.alert(t('pj.evidence'), t('pj.evidenceHint'));
+    if (defect && defect.description.trim().length < 3) return Alert.alert(t('pj.defect'), t('pj.defectHint'));
+    if (gate.permitMissing) return Alert.alert(t('pj.permitToWork'), t('pj.permitNeeded', { type: PERMIT_TYPE_MAP[existing!.permitType!]?.label ?? '' }));
+    if (gate.unread.length) return Alert.alert(t('pj.readFirst'), t('pj.notRead', { name: signer.name, docs: gate.unread.map((d) => t('pj.docRev', { doc: d.title, rev: d.revision })).join(', ') }));
+    if (condAfter === 'out' && !defect) return Alert.alert(t('pj.outOfService'), t('pj.outIsDefect'));
     const mh = num(manHours);
-    if (manHours.trim() && mh == null) return Alert.alert('Man-hours', 'Enter the man-hours as a number, e.g. 1.5.');
+    if (manHours.trim() && mh == null) return Alert.alert(t('pj.manHours'), t('pj.manHoursNum'));
     const sig = await confirmSign({
       personKey: me && sync.me ? `device:${sync.me.id}` : signerId ?? signer.name,
       name: signer.name,
@@ -331,10 +328,10 @@ export default function PmsJobSc() {
 
   const onDelete = () => {
     if (isNew) return goBackOr(nav);
-    Alert.alert('Remove job', 'Remove this job from the plan? The record of past work is kept.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('pj.removeTitle'), t('pj.removeBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Remove',
+        text: t('common.remove'),
         style: 'destructive',
         onPress: async () => {
           await savePmsJob({ ...existing!, deleted: true, updatedAt: Date.now() });
@@ -349,20 +346,20 @@ export default function PmsJobSc() {
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
           <BackButton onPress={() => (doing && !unplanned ? setDoing(false) : goBackOr(nav))} />
-          <Text style={styles.headerTitle} numberOfLines={1}>{unplanned ? 'Unplanned work' : doing ? 'Record as done' : isNew ? (draft.oneOff ? 'New one-off job' : 'New job') : draft.oneOff ? 'One-off job' : 'Job'}</Text>
+          <Text style={styles.headerTitle} numberOfLines={1}>{unplanned ? t('pj.hUnplanned') : doing ? t('pj.hRecord') : isNew ? (draft.oneOff ? t('pj.hNewOneOff') : t('pj.hNew')) : draft.oneOff ? t('pj.hOneOff') : t('pj.hJob')}</Text>
           {doing || canPlan ? (
             <TouchableOpacity onPress={doing ? onDone : onSave} hitSlop={12}>
-              <Text style={styles.save}>{doing ? 'Sign' : 'Save'}</Text>
+              <Text style={styles.save}>{doing ? t('common.sign') : t('common.save')}</Text>
             </TouchableOpacity>
           ) : <View style={{ width: 40 }} />}
         </View>
 
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
-          <Text style={styles.machine}>{machine?.name ?? 'Machine'}</Text>
-          {machine?.critical ? <Text style={styles.critical}>CRITICAL EQUIPMENT</Text> : null}
+          <Text style={styles.machine}>{machine?.name ?? t('pj.machine')}</Text>
+          {machine?.critical ? <Text style={styles.critical}>{t('pj.criticalCaps')}</Text> : null}
           {linkedDefect ? (
             <TouchableOpacity onPress={() => nav.navigate('PmsDefect', { id: linkedDefect.id })} hitSlop={8} style={{ marginBottom: SIZES.xs }}>
-              <Text style={[styles.sub, { color: COLORS.warning, fontWeight: '700' }]}>{`Corrective job · ${DEFECT_CATEGORY[linkedDefect.category]} defect ${linkedDefect.date.split('-').reverse().join('.')}: ${linkedDefect.description}`}</Text>
+              <Text style={[styles.sub, { color: COLORS.warning, fontWeight: '700' }]}>{t('pj.corrective', { cat: tk(`pms.defcat.${linkedDefect.category}`), date: linkedDefect.date.split('-').reverse().join('.'), desc: linkedDefect.description })}</Text>
             </TouchableOpacity>
           ) : null}
           {!isNew ? (
@@ -374,26 +371,26 @@ export default function PmsJobSc() {
           {/* Deferral: the Master moves the job to a later date / counter reading, with the reason, signed. */}
           {!isNew && !doing && existing ? (
             deferral ? (
-              <Text style={styles.deferNote}>{`Deferred${deferral.untilDate ? ` until ${deferral.untilDate}` : ''}${deferral.untilHours != null ? `${deferral.untilDate ? ' or' : ' until'} ${deferral.untilHours} h` : ''} — ${deferral.reason} · ${deferral.byRank ? `${deferral.by} (${deferral.byRank})` : deferral.by}`}</Text>
+              <Text style={styles.deferNote}>{`${t('pj.deferred')}${deferral.untilDate ? t('pj.untilDate', { date: deferral.untilDate }) : ''}${deferral.untilHours != null ? t(deferral.untilDate ? 'pj.orHours' : 'pj.untilHours', { h: deferral.untilHours }) : ''} — ${deferral.reason} · ${deferral.byRank ? `${deferral.by} (${deferral.byRank})` : deferral.by}`}</Text>
             ) : machine?.critical ? (
-              <Text style={styles.sub}>Critical equipment — this job cannot be deferred.</Text>
+              <Text style={styles.sub}>{t('pj.criticalNoDefer')}</Text>
             ) : defer ? (
               <View style={styles.deferBox}>
                 {pmsProjects.filter((pj) => !pj.closedAt && pj.dueDate >= todayIso()).length ? (
                   <View style={[styles.chips, { marginTop: 0 }]}>
                     {pmsProjects.filter((pj) => !pj.closedAt && pj.dueDate >= todayIso()).map((pj) => (
                       <TouchableOpacity key={pj.id} style={[styles.chip, styles.chipSmall, defer.projectId === pj.id && styles.chipOn]} onPress={() => setDefer(defer.projectId === pj.id ? { ...defer, projectId: undefined } : { ...defer, projectId: pj.id, date: pj.dueDate, hours: '' })}>
-                        <Text style={[styles.chipSmallText, defer.projectId === pj.id && styles.chipTextOn]}>{`To ${pj.name} · ${pj.dueDate.split('-').reverse().join('.')}`}</Text>
+                        <Text style={[styles.chipSmallText, defer.projectId === pj.id && styles.chipTextOn]}>{t('pj.toProject', { name: pj.name, date: pj.dueDate.split('-').reverse().join('.') })}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
                 ) : null}
-                <Label>Defer until — date and / or counter reading</Label>
-                <SimpleDatePicker label="Until" value={defer.date} onChange={(v) => setDefer({ ...defer, date: v })} />
+                <Label>{t('pj.deferLabel')}</Label>
+                <SimpleDatePicker label={t('pj.until')} value={defer.date} onChange={(v) => setDefer({ ...defer, date: v })} />
                 {counter ? (
-                  <TextInput style={[styles.input, { marginTop: SIZES.sm }]} value={defer.hours} onChangeText={(v) => setDefer({ ...defer, hours: v })} placeholder="…or until counter reading, h" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
+                  <TextInput style={[styles.input, { marginTop: SIZES.sm }]} value={defer.hours} onChangeText={(v) => setDefer({ ...defer, hours: v })} placeholder={t('pj.untilCounterPh')} placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
                 ) : null}
-                <TextInput style={[styles.input, { marginTop: SIZES.sm, borderColor: COLORS.warning, borderWidth: 1 }]} value={defer.reason} onChangeText={(v) => setDefer({ ...defer, reason: v })} placeholder="Reason ★ — e.g. spares on order, vessel on charter" placeholderTextColor={COLORS.textLight} />
+                <TextInput style={[styles.input, { marginTop: SIZES.sm, borderColor: COLORS.warning, borderWidth: 1 }]} value={defer.reason} onChangeText={(v) => setDefer({ ...defer, reason: v })} placeholder={t('pj.deferReasonPh')} placeholderTextColor={COLORS.textLight} />
                 {!me ? (
                   <View style={styles.chips}>
                     {people.map((pp) => (
@@ -404,13 +401,13 @@ export default function PmsJobSc() {
                   </View>
                 ) : null}
                 <View style={{ flexDirection: 'row', gap: SIZES.md, alignItems: 'center', marginTop: SIZES.sm }}>
-                  <TouchableOpacity style={styles.deferBtn} onPress={() => void signDeferral()}><Text style={styles.deferBtnText}>Sign the deferral</Text></TouchableOpacity>
-                  <TouchableOpacity onPress={() => setDefer(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.deferBtn} onPress={() => void signDeferral()}><Text style={styles.deferBtnText}>{t('pj.signDeferral')}</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => setDefer(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
                 </View>
               </View>
             ) : (
               <TouchableOpacity disabled={!isMaster} style={{ opacity: isMaster ? 1 : 0.35, alignSelf: 'flex-start' }} onPress={() => setDefer({ date: todayIso(), hours: '', reason: '' })}>
-                <Text style={styles.link}>Defer the job (Master)</Text>
+                <Text style={styles.link}>{t('pj.deferJob')}</Text>
               </TouchableOpacity>
             )
           ) : null}
@@ -421,34 +418,34 @@ export default function PmsJobSc() {
                 const n = noteForNext(existing.id, pmsDone)!;
                 return (
                   <View style={[styles.deferBox, { marginBottom: SIZES.md }]}>
-                    <Text style={[styles.sub, { fontWeight: '800' }]}>{`From last time · ${n.date.split('-').reverse().join('.')} · ${n.byRank ? `${n.by} (${n.byRank})` : n.by}`}</Text>
+                    <Text style={[styles.sub, { fontWeight: '800' }]}>{t('pj.fromLast', { date: n.date.split('-').reverse().join('.'), who: n.byRank ? `${n.by} (${n.byRank})` : n.by })}</Text>
                     <Text style={styles.signer}>{n.nextNote}</Text>
                   </View>
                 );
               })() : null}
               {preparedBy ? (
                 <View style={[styles.deferBox, { marginBottom: SIZES.md }]}>
-                  <Text style={[styles.sub, { fontWeight: '800' }]}>{`Written up by ${preparedBy.byRank ? `${preparedBy.by} (${preparedBy.byRank})` : preparedBy.by} · ${preparedBy.date.split('-').reverse().join('.')}`}</Text>
-                  <Text style={styles.sub}>Check it, add the photos, and sign it out.</Text>
+                  <Text style={[styles.sub, { fontWeight: '800' }]}>{t('pj.writtenBy', { who: preparedBy.byRank ? `${preparedBy.by} (${preparedBy.byRank})` : preparedBy.by, date: preparedBy.date.split('-').reverse().join('.') })}</Text>
+                  <Text style={styles.sub}>{t('pj.checkSign')}</Text>
                 </View>
               ) : !unplanned && lastDone ? (
                 <TouchableOpacity onPress={copyLast} hitSlop={8} style={{ marginBottom: SIZES.sm }}>
-                  <Text style={styles.link}>{`Same as last time (${lastDone.date.split('-').reverse().join('.')}) — copy its note, condition and man-hours`}</Text>
+                  <Text style={styles.link}>{t('pj.sameAsLast', { date: lastDone.date.split('-').reverse().join('.') })}</Text>
                 </TouchableOpacity>
               ) : null}
               {unplanned ? (
                 <>
-                  <Label>What was done ★</Label>
-                  <TextInput style={[styles.input, { marginBottom: SIZES.md }]} value={draft.title} onChangeText={(v) => set({ title: v })} placeholder="Raw-water pump seal renewed" placeholderTextColor={COLORS.textLight} />
+                  <Label>{t('pj.whatDone')}</Label>
+                  <TextInput style={[styles.input, { marginBottom: SIZES.md }]} value={draft.title} onChangeText={(v) => set({ title: v })} placeholder={t('pj.whatDonePh')} placeholderTextColor={COLORS.textLight} />
                 </>
               ) : (
                 <Text style={styles.jobTitle}>{existing?.title}</Text>
               )}
               <View style={{ marginBottom: SIZES.md }}>
-                <SimpleDatePicker label="Done on" value={doneDate} onChange={setDoneDate} />
+                <SimpleDatePicker label={t('pj.doneOn')} value={doneDate} onChange={setDoneDate} />
               </View>
               {counter ? (<>
-              <Label>{`Counter reading${existing?.intervalHours ? ' ★' : ''}`}</Label>
+              <Label>{`${t('pj.counterReading')}${existing?.intervalHours ? ' ★' : ''}`}</Label>
               <TextInput
                 style={styles.input}
                 value={doneHours}
@@ -457,81 +454,81 @@ export default function PmsJobSc() {
                   setDoneHours(v);
                 }}
                 keyboardType="decimal-pad"
-                placeholder="h"
+                placeholder={t('pj.hUnit')}
                 placeholderTextColor={COLORS.textLight}
               />
               </>) : null}
               <View style={{ height: SIZES.md }} />
-              <Label>Condition before → after</Label>
+              <Label>{t('pj.condBA')}</Label>
               {(['before', 'after'] as const).map((w) => {
                 const v = w === 'before' ? condBefore : condAfter;
                 const setV = w === 'before' ? setCondBefore : setCondAfter;
                 return (
                   <View key={w} style={[styles.chips, { marginTop: 4 }]}>
-                    <Text style={[styles.sub, { width: 52 }]}>{w === 'before' ? 'Before' : 'After'}</Text>
+                    <Text style={[styles.sub, { width: 52 }]}>{w === 'before' ? t('pj.before') : t('pj.after')}</Text>
                     {(Object.keys(CONDITION) as Condition[]).map((c) => (
                       <TouchableOpacity key={c} style={[styles.chip, styles.chipSmall, v === c && { backgroundColor: c === 'out' || c === 'poor' ? COLORS.warning : COLORS.primary, borderColor: c === 'out' || c === 'poor' ? COLORS.warning : COLORS.primary }]} onPress={() => setV(v === c ? null : c)}>
-                        <Text style={[styles.chipSmallText, v === c && styles.chipTextOn]}>{CONDITION[c]}</Text>
+                        <Text style={[styles.chipSmallText, v === c && styles.chipTextOn]}>{condName(c)}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
                 );
               })}
               <View style={{ height: SIZES.md }} />
-              <Label>Man-hours</Label>
-              <TextInput style={[styles.input, { width: 140 }]} value={manHours} onChangeText={setManHours} keyboardType="decimal-pad" placeholder="e.g. 2.5" placeholderTextColor={COLORS.textLight} />
+              <Label>{t('pj.manHours')}</Label>
+              <TextInput style={[styles.input, { width: 140 }]} value={manHours} onChangeText={setManHours} keyboardType="decimal-pad" placeholder={t('pj.mhPh')} placeholderTextColor={COLORS.textLight} />
               <View style={{ height: SIZES.md }} />
-              <Label>Note (parts used, findings)</Label>
+              <Label>{t('pj.noteDone')}</Label>
               <TextInput style={[styles.input, { minHeight: 70 }]} value={doneNote} onChangeText={setDoneNote} multiline placeholder="—" placeholderTextColor={COLORS.textLight} />
               <View style={{ height: SIZES.md }} />
-              <Label>Note for next time</Label>
-              <TextInput style={[styles.input, { minHeight: 50 }]} value={nextNote} onChangeText={setNextNote} multiline placeholder="Shown to whoever does this job next — e.g. order a spare gasket, the seal is weeping" placeholderTextColor={COLORS.textLight} />
+              <Label>{t('pj.noteNext')}</Label>
+              <TextInput style={[styles.input, { minHeight: 50 }]} value={nextNote} onChangeText={setNextNote} multiline placeholder={t('pj.noteNextPh')} placeholderTextColor={COLORS.textLight} />
               <View style={{ height: SIZES.md }} />
-              <Label>{`Photos${machine?.critical ? ' ★' : ''}`}</Label>
-              <PhotoPicker photos={donePhotos} onChange={setDonePhotos} hint={machine?.critical ? 'Critical equipment — at least one photo of the work.' : 'Before and after, clearances, parts replaced.'} />
+              <Label>{`${t('pj.photos')}${machine?.critical ? ' ★' : ''}`}</Label>
+              <PhotoPicker photos={donePhotos} onChange={setDonePhotos} hint={machine?.critical ? t('pj.photoHintCrit') : t('pj.photoHint')} />
               <View style={{ height: SIZES.md }} />
               <TouchableOpacity style={styles.defectToggle} onPress={() => setDefect(defect ? null : { category: 'operational', description: '' })}>
                 <Text style={[styles.defectBox, defect && { backgroundColor: COLORS.warning, color: COLORS.textWhite }]}>{defect ? '✓' : ''}</Text>
-                <Text style={styles.signer}>Found a defect</Text>
+                <Text style={styles.signer}>{t('pj.foundDefect')}</Text>
               </TouchableOpacity>
               {defect ? (
                 <View style={{ marginTop: SIZES.sm }}>
                   <View style={styles.chips}>
                     {(Object.keys(DEFECT_CATEGORY) as DefectCategory[]).map((c) => (
                       <TouchableOpacity key={c} style={[styles.chip, defect.category === c && styles.chipOn]} onPress={() => setDefect({ ...defect, category: c })}>
-                        <Text style={[styles.chipText, defect.category === c && styles.chipTextOn]}>{DEFECT_CATEGORY[c]}</Text>
+                        <Text style={[styles.chipText, defect.category === c && styles.chipTextOn]}>{tk(`pms.defcat.${c}`)}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
-                  <TextInput style={[styles.input, { minHeight: 60, borderColor: COLORS.warning, borderWidth: 1 }]} value={defect.description} onChangeText={(v) => setDefect({ ...defect, description: v })} multiline placeholder="What is wrong ★ — it goes to the defect list until an officer closes it" placeholderTextColor={COLORS.textLight} />
+                  <TextInput style={[styles.input, { minHeight: 60, borderColor: COLORS.warning, borderWidth: 1 }]} value={defect.description} onChangeText={(v) => setDefect({ ...defect, description: v })} multiline placeholder={t('pj.defectPh')} placeholderTextColor={COLORS.textLight} />
                 </View>
               ) : null}
               {existing?.permitType && moduleOn('ptw') ? (
                 <View style={[styles.deferBox, { marginTop: SIZES.md }]}>
-                  <Text style={[styles.sub, { fontWeight: '800' }]}>{`Permit to work · ${PERMIT_TYPE_MAP[existing.permitType]?.label ?? existing.permitType}`}</Text>
+                  <Text style={[styles.sub, { fontWeight: '800' }]}>{t('pj.permitLine', { type: PERMIT_TYPE_MAP[existing.permitType]?.label ?? existing.permitType })}</Text>
                   {gate.permit ? (
                     <TouchableOpacity onPress={() => nav.navigate('Permit', { id: gate.permit!.id })}>
-                      <Text style={[styles.signer, { color: COLORS.success }]}>{`✓ ${gate.permit.no ?? 'Permit'} · ${gate.permit.status}`}</Text>
+                      <Text style={[styles.signer, { color: COLORS.success }]}>{`✓ ${gate.permit.no ?? t('pj.permit')} · ${gate.permit.status}`}</Text>
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity onPress={() => nav.navigate('Permit', { id: uid('ptw'), isNew: true, type: existing.permitType, work: `${machine?.name ?? ''} — ${existing.title}`, location: machine?.location ?? '', pmsJobId: existing.id })}>
-                      <Text style={[styles.signer, { color: COLORS.warning }]}>None raised for this job yet — Raise a permit ›</Text>
+                      <Text style={[styles.signer, { color: COLORS.warning }]}>{t('pj.raisePermit')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
               ) : null}
               {gate.unread.length ? (
                 <View style={[styles.deferBox, { marginTop: SIZES.md }]}>
-                  <Text style={[styles.sub, { fontWeight: '800' }]}>Read before signing</Text>
+                  <Text style={[styles.sub, { fontWeight: '800' }]}>{t('pj.readBefore')}</Text>
                   {gate.unread.map((d) => (
                     <TouchableOpacity key={d.id} onPress={() => nav.navigate('Doc', { id: d.id })}>
-                      <Text style={[styles.signer, { color: COLORS.warning }]}>{`${d.title} (Rev ${d.revision}) — Read ›`}</Text>
+                      <Text style={[styles.signer, { color: COLORS.warning }]}>{t('pj.readDoc', { doc: d.title, rev: d.revision })}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               ) : null}
               <View style={{ height: SIZES.md }} />
-              <Label>Signed by</Label>
+              <Label>{t('pj.signedBy')}</Label>
               {me ? (
                 <Text style={styles.signer}>{meRank ? `${me} (${meRank})` : me}</Text>
               ) : (
@@ -541,19 +538,19 @@ export default function PmsJobSc() {
                       <Text style={[styles.chipText, signerId === p.id && styles.chipTextOn]}>{crewLabel(p)}</Text>
                     </TouchableOpacity>
                   ))}
-                  {people.length === 0 ? <Text style={styles.sub}>The crew list is empty — the Master adds people in Settings → Crew.</Text> : null}
+                  {people.length === 0 ? <Text style={styles.sub}>{t('pj.crewEmpty')}</Text> : null}
                 </View>
               )}
               {!unplanned && existing && !preparedBy ? (
                 <TouchableOpacity style={[styles.deferBox, { marginTop: SIZES.md, alignItems: 'center' }]} onPress={() => void onPrepare()}>
-                  <Text style={styles.link}>Done — for an officer to sign</Text>
-                  <Text style={styles.sub}>Saves what you wrote; it shows as awaiting sign-off until an officer signs it out.</Text>
+                  <Text style={styles.link}>{t('pj.prepare')}</Text>
+                  <Text style={styles.sub}>{t('pj.prepareHint')}</Text>
                 </TouchableOpacity>
               ) : null}
               {sparesOn && Object.keys(take).length ? (
                 <>
                   <View style={{ height: SIZES.md }} />
-                  <Label>Taken from the stores</Label>
+                  <Label>{t('pj.takenStores')}</Label>
                   {Object.entries(take).map(([partId, qty]) => {
                     const p = partById.get(partId);
                     if (!p) return null;
@@ -562,46 +559,46 @@ export default function PmsJobSc() {
                       <View key={partId} style={styles.partRow}>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.partName} numberOfLines={1}>{p.name}</Text>
-                          <Text style={[styles.sub, qty > have && { color: COLORS.warning }]}>{`On hand ${qtyText(have, p)}${qty > have ? ' — less than needed' : ''}`}</Text>
+                          <Text style={[styles.sub, qty > have && { color: COLORS.warning }]}>{`${t('pj.onHand', { qty: qtyText(have, p) })}${qty > have ? t('pj.lessThanNeeded') : ''}`}</Text>
                         </View>
-                        <Stepper value={qty} onChange={(v) => setTake((t) => ({ ...t, [partId]: v }))} styles={styles} />
+                        <Stepper value={qty} onChange={(v) => setTake((tk0) => ({ ...tk0, [partId]: v }))} styles={styles} />
                       </View>
                     );
                   })}
-                  <Text style={styles.sub}>Set a part to 0 if it was not used this time.</Text>
+                  <Text style={styles.sub}>{t('pj.setZero')}</Text>
                 </>
               ) : null}
-              <Text style={[styles.sub, { marginTop: SIZES.md }]}>Signing adds the record to the machine's history. It cannot be edited afterwards; a mistake is corrected by recording the job again.</Text>
+              <Text style={[styles.sub, { marginTop: SIZES.md }]}>{t('pj.signingNote')}</Text>
             </>
           ) : (
             <>
-              {!canPlan ? <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>{PLAN_LOCKED}</Text> : null}
+              {!canPlan ? <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>{t('pms.planLocked')}</Text> : null}
               <View pointerEvents={canPlan ? 'auto' : 'none'} style={!canPlan && { opacity: 0.6 }}>
               {isNew ? (
                 <View style={[styles.chips, { marginTop: 0, marginBottom: SIZES.sm }]}>
-                  {[{ k: false, l: 'Recurring' }, { k: true, l: 'One-off (corrective)' }].map((o) => (
+                  {[{ k: false, l: t('pj.recurring') }, { k: true, l: t('pj.oneOffCorr') }].map((o) => (
                     <TouchableOpacity key={o.l} style={[styles.chip, !!draft.oneOff === o.k && styles.chipOn]} onPress={() => set({ oneOff: o.k || undefined })}>
                       <Text style={[styles.chipText, !!draft.oneOff === o.k && styles.chipTextOn]}>{o.l}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               ) : null}
-              <Label>Job ★</Label>
-              <TextInput style={styles.input} value={draft.title} onChangeText={(v) => set({ title: v })} placeholder="Oil and filter change" placeholderTextColor={COLORS.textLight} />
-              <Dropdown caption="TYPE" value={draft.type ?? ''} onChange={(v) => set({ type: (v || undefined) as JobType | undefined })} options={[{ value: '', label: '—' }, ...(Object.keys(JOB_TYPE) as JobType[]).map((k) => ({ value: k, label: JOB_TYPE[k] }))]} style={{ marginTop: SIZES.sm }} />
+              <Label>{t('pj.jobLabel')}</Label>
+              <TextInput style={styles.input} value={draft.title} onChangeText={(v) => set({ title: v })} placeholder={t('pj.jobPh')} placeholderTextColor={COLORS.textLight} />
+              <Dropdown caption={t('pj.typeCaps')} value={draft.type ?? ''} onChange={(v) => set({ type: (v || undefined) as JobType | undefined })} options={[{ value: '', label: '—' }, ...(Object.keys(JOB_TYPE) as JobType[]).map((k) => ({ value: k, label: tk(`pms.type.${k}`) }))]} style={{ marginTop: SIZES.sm }} />
               <View style={{ height: SIZES.md }} />
               {draft.oneOff ? (
                 <>
-                  <Label>Must be done by</Label>
-                  <SimpleDatePicker label="Date" value={draft.dueDate} onChange={(v) => set({ dueDate: v })} />
+                  <Label>{t('pj.mustBy')}</Label>
+                  <SimpleDatePicker label={t('pj.date')} value={draft.dueDate} onChange={(v) => set({ dueDate: v })} />
                   {counter ? (
-                    <TextInput style={[styles.input, { marginTop: SIZES.sm }]} value={draft.dueHours != null ? String(draft.dueHours) : ''} onChangeText={(v) => set({ dueHours: num(v) })} keyboardType="decimal-pad" placeholder={`…or by counter reading, h${machine?.hours != null ? ` (now ${machine.hours})` : ''}`} placeholderTextColor={COLORS.textLight} />
+                    <TextInput style={[styles.input, { marginTop: SIZES.sm }]} value={draft.dueHours != null ? String(draft.dueHours) : ''} onChangeText={(v) => set({ dueHours: num(v) })} keyboardType="decimal-pad" placeholder={`${t('pj.byCounterPh')}${machine?.hours != null ? t('pj.nowH', { h: machine.hours }) : ''}`} placeholderTextColor={COLORS.textLight} />
                   ) : null}
-                  <Text style={styles.sub}>Done once. Recording it as done takes it off the plan; it stays in the machine's history.</Text>
+                  <Text style={styles.sub}>{t('pj.oneOffNote')}</Text>
                 </>
               ) : (<>
               {counter ? (<>
-              <Label>Every … running hours</Label>
+              <Label>{t('pj.everyHours')}</Label>
               <TextInput
                 style={styles.input}
                 value={draft.intervalHours != null ? String(draft.intervalHours) : ''}
@@ -612,7 +609,7 @@ export default function PmsJobSc() {
               />
               <View style={{ height: SIZES.md }} />
               </>) : null}
-              <Label>{counter ? '…or every … days, whichever comes first' : 'Every … days'}</Label>
+              <Label>{counter ? t('pj.orEveryDays') : t('pj.everyDays')}</Label>
               <TextInput
                 style={styles.input}
                 value={draft.intervalDays != null ? String(draft.intervalDays) : ''}
@@ -622,23 +619,23 @@ export default function PmsJobSc() {
                 placeholderTextColor={COLORS.textLight}
               />
               <View style={styles.chips}>
-                {DAY_CHIPS.map((c) => (
-                  <TouchableOpacity key={c.days} style={[styles.chip, styles.chipSmall, draft.intervalDays === c.days && styles.chipOn]} onPress={() => set({ intervalDays: c.days })}>
-                    <Text style={[styles.chipSmallText, draft.intervalDays === c.days && styles.chipTextOn]}>{c.label}</Text>
+                {DAY_CHIPS.map((days) => (
+                  <TouchableOpacity key={days} style={[styles.chip, styles.chipSmall, draft.intervalDays === days && styles.chipOn]} onPress={() => set({ intervalDays: days })}>
+                    <Text style={[styles.chipSmallText, draft.intervalDays === days && styles.chipTextOn]}>{tk(`pj.d.${days}`)}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
               <View style={{ height: SIZES.md }} />
               <TouchableOpacity style={styles.defectToggle} onPress={() => set({ classJob: !draft.classJob || undefined })}>
                 <Text style={[styles.defectBox, { borderColor: COLORS.primary }, draft.classJob && { backgroundColor: COLORS.primary, color: COLORS.textWhite }]}>{draft.classJob ? '✓' : ''}</Text>
-                <Text style={styles.signer}>{`Class job${machine?.classCode ? ` · ${machine.classCode}` : ''}`}</Text>
+                <Text style={styles.signer}>{`${t('pj.classJob')}${machine?.classCode ? ` · ${machine.classCode}` : ''}`}</Text>
               </TouchableOpacity>
               {moduleOn('ptw') ? (
-                <Dropdown caption="REQUIRES PERMIT" value={draft.permitType ?? ''} onChange={(v) => set({ permitType: (v || undefined) as PmsJob['permitType'] })} options={[{ value: '', label: 'None' }, ...PERMIT_TYPES.map((t) => ({ value: t.key, label: t.label }))]} style={{ marginTop: SIZES.sm }} />
+                <Dropdown caption={t('pj.requiresPermit')} value={draft.permitType ?? ''} onChange={(v) => set({ permitType: (v || undefined) as PmsJob['permitType'] })} options={[{ value: '', label: t('pj.none') }, ...PERMIT_TYPES.map((pt) => ({ value: pt.key, label: pt.label }))]} style={{ marginTop: SIZES.sm }} />
               ) : null}
               {moduleOn('docs') && docs.length ? (
                 <>
-                  <Text style={[styles.sub, { marginTop: SIZES.sm }]}>Read before doing — the person signing must have read these</Text>
+                  <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{t('pj.readBeforeDoing')}</Text>
                   <View style={styles.chips}>
                     {docs.map((d) => {
                       const on = (draft.docIds ?? []).includes(d.id);
@@ -653,36 +650,36 @@ export default function PmsJobSc() {
               ) : null}              <View style={{ height: SIZES.md }} />
               <TouchableOpacity style={styles.defectToggle} onPress={() => set({ fixed: !draft.fixed || undefined })}>
                 <Text style={[styles.defectBox, { borderColor: COLORS.primary }, draft.fixed && { backgroundColor: COLORS.primary, color: COLORS.textWhite }]}>{draft.fixed ? '✓' : ''}</Text>
-                <Text style={styles.signer}>Fixed schedule</Text>
+                <Text style={styles.signer}>{t('pj.fixedSchedule')}</Text>
               </TouchableOpacity>
-              <Text style={styles.sub}>Due on set dates or counter marks — the 1st of every month, every 500 h — whenever it was actually done.</Text>
+              <Text style={styles.sub}>{t('pj.fixedNote')}</Text>
               {draft.fixed ? (
                 <View style={{ flexDirection: 'row', gap: SIZES.sm, alignItems: 'flex-end', marginTop: SIZES.xs }}>
                   {draft.intervalDays ? (
                     <View style={{ flex: 1 }}>
-                      <SimpleDatePicker label="Due dates from" value={draft.anchorDate} onChange={(v) => set({ anchorDate: v })} />
+                      <SimpleDatePicker label={t('pj.dueFrom')} value={draft.anchorDate} onChange={(v) => set({ anchorDate: v })} />
                     </View>
                   ) : null}
                   {counter && draft.intervalHours ? (
                     <View style={{ width: 160 }}>
-                      <TextInput style={styles.input} value={draft.anchorHours != null ? String(draft.anchorHours) : ''} onChangeText={(v) => set({ anchorHours: num(v) })} keyboardType="decimal-pad" placeholder={`First at … h (${draft.intervalHours})`} placeholderTextColor={COLORS.textLight} />
+                      <TextInput style={styles.input} value={draft.anchorHours != null ? String(draft.anchorHours) : ''} onChangeText={(v) => set({ anchorHours: num(v) })} keyboardType="decimal-pad" placeholder={t('pj.firstAtPh', { h: draft.intervalHours })} placeholderTextColor={COLORS.textLight} />
                     </View>
                   ) : null}
                 </View>
               ) : null}
               <View style={{ height: SIZES.md }} />
-              <Label>Warn before due</Label>
+              <Label>{t('pj.warnBefore')}</Label>
               <View style={{ flexDirection: 'row', gap: SIZES.sm }}>
-                <TextInput style={[styles.input, { flex: 1 }]} value={draft.warnDays != null ? String(draft.warnDays) : ''} onChangeText={(v) => set({ warnDays: num(v) })} keyboardType="number-pad" placeholder={`… days (default ${Math.max(1, Math.round((draft.intervalDays ?? 0) * 0.1))})`} placeholderTextColor={COLORS.textLight} />
+                <TextInput style={[styles.input, { flex: 1 }]} value={draft.warnDays != null ? String(draft.warnDays) : ''} onChangeText={(v) => set({ warnDays: num(v) })} keyboardType="number-pad" placeholder={t('pj.warnDaysPh', { n: Math.max(1, Math.round((draft.intervalDays ?? 0) * 0.1)) })} placeholderTextColor={COLORS.textLight} />
                 {counter ? (
-                  <TextInput style={[styles.input, { flex: 1 }]} value={draft.warnHours != null ? String(draft.warnHours) : ''} onChangeText={(v) => set({ warnHours: num(v) })} keyboardType="number-pad" placeholder={`… hours (default ${Math.max(1, Math.round((draft.intervalHours ?? 0) * 0.1))})`} placeholderTextColor={COLORS.textLight} />
+                  <TextInput style={[styles.input, { flex: 1 }]} value={draft.warnHours != null ? String(draft.warnHours) : ''} onChangeText={(v) => set({ warnHours: num(v) })} keyboardType="number-pad" placeholder={t('pj.warnHoursPh', { n: Math.max(1, Math.round((draft.intervalHours ?? 0) * 0.1)) })} placeholderTextColor={COLORS.textLight} />
                 ) : null}
               </View>
               <View style={{ height: SIZES.md }} />
-              <Label>Last done</Label>
+              <Label>{t('pj.lastDone')}</Label>
               <View style={{ flexDirection: 'row', gap: SIZES.sm, alignItems: 'flex-end' }}>
                 <View style={{ flex: 1 }}>
-                  <SimpleDatePicker label="Date" value={draft.lastDoneDate} onChange={(v) => set({ lastDoneDate: v })} />
+                  <SimpleDatePicker label={t('pj.date')} value={draft.lastDoneDate} onChange={(v) => set({ lastDoneDate: v })} />
                 </View>
                 {counter ? <View style={{ width: 120 }}>
                   <TextInput
@@ -690,23 +687,23 @@ export default function PmsJobSc() {
                     value={draft.lastDoneHours != null ? String(draft.lastDoneHours) : ''}
                     onChangeText={(v) => set({ lastDoneHours: num(v) })}
                     keyboardType="decimal-pad"
-                    placeholder="at … h"
+                    placeholder={t('pj.atHPh')}
                     placeholderTextColor={COLORS.textLight}
                   />
                 </View> : null}
               </View>
-              <Text style={styles.sub}>The starting point the next due date is counted from. After this, "Record as done" moves it for you.</Text>
+              <Text style={styles.sub}>{t('pj.lastDoneNote')}</Text>
               </>)}
               <View style={{ height: SIZES.md }} />
-              <Label>Notes (parts, consumables, maker's reference)</Label>
+              <Label>{t('pj.notesPlan')}</Label>
               <TextInput style={[styles.input, { minHeight: 70 }]} value={draft.notes ?? ''} onChangeText={(v) => set({ notes: v })} multiline placeholder="—" placeholderTextColor={COLORS.textLight} />
 
               {sparesOn ? (
                 <>
                   <View style={styles.partsHead}>
-                    <Label>Parts used each time</Label>
+                    <Label>{t('pj.partsEach')}</Label>
                     <TouchableOpacity onPress={() => setPickPart((v) => !v)} hitSlop={10}>
-                      <Text style={styles.addPart}>{pickPart ? 'Done' : '+ Add part'}</Text>
+                      <Text style={styles.addPart}>{pickPart ? t('common.done') : t('pj.addPart')}</Text>
                     </TouchableOpacity>
                   </View>
                   {(draft.parts ?? []).map((jp) => {
@@ -714,15 +711,15 @@ export default function PmsJobSc() {
                     return (
                       <View key={jp.partId} style={styles.partRow}>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.partName} numberOfLines={1}>{p?.name ?? 'Removed from the stores'}</Text>
-                          {p ? <Text style={styles.sub}>{`On hand ${qtyText(stock.get(p.id) ?? 0, p)}${p.partNo ? ` · ${p.partNo}` : ''}`}</Text> : null}
+                          <Text style={styles.partName} numberOfLines={1}>{p?.name ?? t('pj.removedStores')}</Text>
+                          {p ? <Text style={styles.sub}>{`${t('pj.onHand', { qty: qtyText(stock.get(p.id) ?? 0, p) })}${p.partNo ? ` · ${p.partNo}` : ''}`}</Text> : null}
                         </View>
                         <Stepper value={jp.qty} onChange={(v) => bumpJobPart(jp.partId, v - jp.qty)} styles={styles} />
                       </View>
                     );
                   })}
                   {!(draft.parts ?? []).length && !pickPart ? (
-                    <Text style={styles.sub}>Add the parts this job takes and "Record as done" will take them out of the stores.</Text>
+                    <Text style={styles.sub}>{t('pj.addPartsHint')}</Text>
                   ) : null}
                   {pickPart ? (
                     <View style={styles.chips}>
@@ -734,7 +731,7 @@ export default function PmsJobSc() {
                             <Text style={styles.chipSmallText}>{`${(p.machineIds ?? []).includes(machineId) ? '★ ' : ''}${p.name}`}</Text>
                           </TouchableOpacity>
                         ))}
-                      {spares.length === 0 ? <Text style={styles.sub}>The stores are empty — add parts on the Spares tab first.</Text> : null}
+                      {spares.length === 0 ? <Text style={styles.sub}>{t('pj.storesEmpty')}</Text> : null}
                     </View>
                   ) : null}
                 </>
@@ -743,14 +740,14 @@ export default function PmsJobSc() {
 
               {existing && canPlan ? (
                 <View style={{ marginTop: SIZES.md }}>
-                  <Label>Reason for the change</Label>
-                  <TextInput style={styles.input} value={changeReason} onChangeText={setChangeReason} placeholder="Needed when the interval, due date, class or permit changes — maker's bulletin, running experience…" placeholderTextColor={COLORS.textLight} />
+                  <Label>{t('pj.reasonChange')}</Label>
+                  <TextInput style={styles.input} value={changeReason} onChangeText={setChangeReason} placeholder={t('pj.reasonChangePh')} placeholderTextColor={COLORS.textLight} />
                 </View>
               ) : null}
               {existing?.changes?.length ? (
                 <View style={{ marginTop: SIZES.md }}>
                   <TouchableOpacity onPress={() => setShowLog((v) => !v)} hitSlop={8}>
-                    <Text style={styles.link}>{`${showLog ? 'Hide' : 'Show'} the change log (${existing.changes.length})`}</Text>
+                    <Text style={styles.link}>{t(showLog ? 'pj.hideLog' : 'pj.showLog', { n: existing.changes.length })}</Text>
                   </TouchableOpacity>
                   {showLog
                     ? [...existing.changes].reverse().map((c, i) => (
@@ -761,17 +758,17 @@ export default function PmsJobSc() {
               ) : null}
               {existing?.prepared ? (
                 <View style={[styles.deferBox, { marginTop: SIZES.md }]}>
-                  <Text style={[styles.sub, { fontWeight: '800', color: COLORS.warning }]}>{`Done ${existing.prepared.date.split('-').reverse().join('.')} by ${existing.prepared.byRank ? `${existing.prepared.by} (${existing.prepared.byRank})` : existing.prepared.by} — awaiting sign-off`}</Text>
+                  <Text style={[styles.sub, { fontWeight: '800', color: COLORS.warning }]}>{t('pj.awaiting', { date: existing.prepared.date.split('-').reverse().join('.'), who: existing.prepared.byRank ? `${existing.prepared.by} (${existing.prepared.byRank})` : existing.prepared.by })}</Text>
                   {existing.prepared.note ? <Text style={styles.sub}>{existing.prepared.note}</Text> : null}
                 </View>
               ) : null}
               {!isNew ? (
                 <TouchableOpacity style={styles.doneBtn} onPress={startDoing}>
-                  <Text style={styles.doneText}>{existing?.prepared ? (isOfficer ? 'Review and sign' : 'Open the write-up') : 'Record as done'}</Text>
+                  <Text style={styles.doneText}>{existing?.prepared ? (isOfficer ? t('pj.reviewSign') : t('pj.openWriteup')) : t('pj.hRecord')}</Text>
                 </TouchableOpacity>
               ) : null}
               <TouchableOpacity disabled={!canPlan} style={[styles.deleteBtn, !canPlan && { opacity: 0.35 }]} onPress={onDelete}>
-                <Text style={styles.deleteText}>{isNew ? 'Discard' : 'Remove job'}</Text>
+                <Text style={styles.deleteText}>{isNew ? t('doc.discard') : t('pj.removeTitle')}</Text>
               </TouchableOpacity>
             </>
           )}

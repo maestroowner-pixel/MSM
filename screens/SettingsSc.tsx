@@ -21,7 +21,7 @@ import { useTheme, useThemeName } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { moduleOn } from '../constants/modules';
-import { setUiLang, useT } from '../utils/i18n';
+import { setUiLang, tn, useT } from '../utils/i18n';
 import { LANGS, LANG_NAMES, Lang, chosenLang, deviceLang } from '../utils/locale';
 import { canRememberFolder, chooseFolder, forgetFolder, rememberedFolders } from '../utils/webSave';
 import { ADMIN_KEY, PinHolder, pinHolders, resetPin } from '../services/signature';
@@ -122,8 +122,8 @@ export default function SettingsSc() {
     });
     if (error) {
       Alert.alert(
-        'Saved on this device only',
-        `The vessel did not accept the change: ${error}. It will be sent again when this device reconnects.`
+        tr('common.savedLocalOnly'),
+        tr('common.notAccepted', { error })
       );
     }
   };
@@ -181,22 +181,22 @@ export default function SettingsSc() {
       return;
     }
     if (!notificationsSupported()) {
-      Alert.alert('Not available', 'Reminders need a development or production build (not available in Expo Go).');
+      Alert.alert(tr('set.notAvail'), tr('set.notAvailBody'));
       return;
     }
     const ok = await requestPermission();
     if (!ok) {
-      Alert.alert('Permission needed', 'Allow notifications for ISM AI Pilot in system settings to receive expiry reminders.');
+      Alert.alert(tr('set.permNeeded'), tr('set.permBody'));
       return;
     }
     await setPrefs({ notificationsEnabled: true });
     const n = await rescheduleExpiryReminders(flat, certificates);
     playSuccessSound();
     Alert.alert(
-      'Reminders on',
+      tr('set.remOn'),
       n > 0
-        ? `Scheduled ${n} upcoming reminder${n === 1 ? '' : 's'} (60 / 30 / 7 days before each date).`
-        : 'Reminders enabled — they will be scheduled as items with dates are added.'
+        ? tr('set.remScheduled', { what: tn('n.reminder', n) })
+        : tr('set.remEnabled')
     );
   };
 
@@ -245,7 +245,7 @@ export default function SettingsSc() {
       await exportTemplate(group);
     } catch (e: any) {
       playErrorSound();
-      Alert.alert('Template failed', String(e?.message ?? e));
+      Alert.alert(tr('set.templateFailed'), String(e?.message ?? e));
     }
   };
 
@@ -262,12 +262,12 @@ export default function SettingsSc() {
       const s = await exportBackup(vessel ?? form);
       playSuccessSound();
       Alert.alert(
-        'Backup created',
-        `${s.items} items, ${s.certificates} certificates and ${s.files} file${s.files === 1 ? '' : 's'} saved to a .msm file.`
+        tr('set.backupCreated'),
+        tr('set.backupBody', { items: tn('n.item', s.items), certs: tn('n.certificate', s.certificates), files: tn('n.file', s.files) })
       );
     } catch (e: any) {
       playErrorSound();
-      Alert.alert('Backup failed', String(e?.message ?? e));
+      Alert.alert(tr('set.backupFailed'), String(e?.message ?? e));
     } finally {
       setBusy(false);
     }
@@ -279,20 +279,20 @@ export default function SettingsSc() {
       if (!picked) return; // cancelled — the picker only reports a real cancel now
       const { backup, summary } = picked;
       Alert.alert(
-        'Restore backup?',
-        (summary.fileName ? `Read ${summary.fileName}.\n\n` : '') +
-          `This replaces ALL data on this device with:\n\n` +
-          `• ${summary.items} items in ${summary.categories} categories\n` +
-          `• ${summary.certificates} certificates\n` +
-          `• ${summary.inspections} signed inspection${summary.inspections === 1 ? '' : 's'}\n` +
-          `• ${summary.crew} crew member${summary.crew === 1 ? '' : 's'}\n` +
-          `• ${summary.files} attached file${summary.files === 1 ? '' : 's'}\n` +
-          (summary.vessel ? `• Vessel: ${summary.vessel}\n` : '') +
-          `\nThis cannot be undone.`,
+        tr('set.restoreQ'),
+        (summary.fileName ? tr('set.read', { file: summary.fileName }) + '\n\n' : '') +
+          tr('set.replacesAll') + '\n\n' +
+          `• ${tr('set.itemsIn', { items: tn('n.item', summary.items), cats: tn('n.category', summary.categories) })}\n` +
+          `• ${tn('n.certificate', summary.certificates)}\n` +
+          `• ${tn('n.signedInspection', summary.inspections)}\n` +
+          `• ${tn('n.crewMember', summary.crew)}\n` +
+          `• ${tn('n.attachedFile', summary.files)}\n` +
+          (summary.vessel ? `• ${tr('set.vesselIs', { name: summary.vessel })}\n` : '') +
+          '\n' + tr('set.cannotUndo'),
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: tr('common.cancel'), style: 'cancel' },
           {
-            text: 'Restore',
+            text: tr('set.restore'),
             style: 'destructive',
             onPress: async () => {
               setBusy(true);
@@ -306,15 +306,15 @@ export default function SettingsSc() {
                 const shared = await sync.pushLocalNow().catch(() => false);
                 playSuccessSound();
                 Alert.alert(
-                  'Restored',
-                  `${summary.items} items restored from backup.\n\n` +
+                  tr('set.restored'),
+                  tr('set.restoredBody', { items: tn('n.item', summary.items) }) + '\n\n' +
                     (shared
-                      ? 'The vessel now holds this register — the other devices on board will pick it up.'
-                      : 'This device only: it is not currently syncing, so the vessel still holds its own copy.')
+                      ? tr('set.restoredShared')
+                      : tr('set.restoredLocal'))
                 );
               } catch (e: any) {
                 playErrorSound();
-                Alert.alert('Restore failed', String(e?.message ?? e));
+                Alert.alert(tr('set.restoreFailed'), String(e?.message ?? e));
               } finally {
                 setBusy(false);
               }
@@ -324,7 +324,7 @@ export default function SettingsSc() {
       );
     } catch (e: any) {
       playErrorSound();
-      Alert.alert('Restore failed', String(e?.message ?? e));
+      Alert.alert(tr('set.restoreFailed'), String(e?.message ?? e));
     }
   };
 
@@ -346,19 +346,19 @@ export default function SettingsSc() {
    */
   const saveCopy = () => {
     const all = [...importSnaps, ...snaps].sort((a, b) => b.at - a.at);
-    if (!all.length) return Alert.alert('No copies yet', 'The app keeps a copy each time it opens, and another before every Excel import.');
+    if (!all.length) return Alert.alert(tr('set.noCopies'), tr('set.noCopiesBody'));
     Alert.alert(
-      'Save a copy as a file',
-      'Choose the copy. It is saved as a .msm file to send on — nothing on this device changes. Records only, no photos.',
+      tr('set.saveCopy'),
+      tr('set.saveCopyBody'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: tr('common.cancel'), style: 'cancel' },
         ...all.map((c) => ({
-          text: `${c.kind === 'import' ? 'Before import' : 'On opening'} · ${formatDateTime(c.at)} (${c.items} items, ${c.inspections} inspections)`,
+          text: `${c.kind === 'import' ? tr('set.beforeImport') : tr('set.onOpening')} · ${formatDateTime(c.at)} (${tn('n.item', c.items)}, ${tn('n.inspection', c.inspections)})`,
           onPress: async () => {
             try {
               await saveCopyAsFile(await snapshot.snapshotBody(c.slot, c.kind));
             } catch (e: any) {
-              Alert.alert('Could not save', e?.message ?? String(e));
+              Alert.alert(tr('common.couldNotSave'), e?.message ?? String(e));
             }
           },
         })),
@@ -369,29 +369,24 @@ export default function SettingsSc() {
   const restoreSnapshot = () => {
     if (!snaps.length) {
       Alert.alert(
-        'Nothing to roll back to',
-        'A snapshot is saved automatically each time the app opens, once there is something to save. ' +
-          'The first one will be there next time you open the app.'
+        tr('set.nothingRoll'),
+        tr('set.nothingRollBody')
       );
       return;
     }
     const newest = snaps[0];
     const reaches = isMaster
-      ? 'Anything entered since is lost, and on a syncing device the roll-back reaches the vessel too.'
-      : "Anything entered since is lost ON THIS DEVICE. The vessel's register is not changed — " +
-        'this repairs the handset in your hand, and the next sync reconciles it with the ship. ' +
-        'Ask the Master if the vessel\'s own copy is the problem.';
+      ? tr('set.reachesMaster')
+      : tr('set.reachesOfficer');
     Alert.alert(
-      `Roll back to ${formatDateTime(newest.at)}?`,
-      `Everything on this device goes back to how it was then: ${newest.items} items, ` +
-        `${newest.certificates} certificates, ${newest.inspections} inspections, ${newest.crew} crew.\n\n` +
+      tr('set.rollQ', { when: formatDateTime(newest.at) }),
+      tr('set.rollBody', { items: tn('n.item', newest.items), certs: tn('n.certificate', newest.certificates), insp: tn('n.inspection', newest.inspections), crew: newest.crew }) + '\n\n' +
         reaches +
-        '\n\nPhotographs and documents are not part of a snapshot — the files on this device ' +
-        'stay where they are and remain linked.',
+        '\n\n' + tr('set.rollFiles'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: tr('common.cancel'), style: 'cancel' },
         ...snaps.map((s, i) => ({
-          text: i === 0 ? 'Roll back' : `Older · ${formatDateTime(s.at)} (${s.items})`,
+          text: i === 0 ? tr('set.rollBack') : tr('set.older', { when: formatDateTime(s.at), n: s.items }),
           style: 'destructive' as const,
           onPress: async () => {
             setBusy(true);
@@ -416,18 +411,17 @@ export default function SettingsSc() {
               }
               playSuccessSound();
               Alert.alert(
-                'Rolled back',
-                `${done.items} items, ${done.inspections} inspections and ${done.crew} crew from ` +
-                  `${formatDateTime(done.at)}.\n\n` +
+                tr('set.rolledBack'),
+                tr('set.rolledBody', { items: tn('n.item', done.items), insp: tn('n.inspection', done.inspections), crew: done.crew, when: formatDateTime(done.at) }) + '\n\n' +
                   (isMaster
                     ? shared
-                      ? 'The vessel now holds this register.'
-                      : 'This device only — it is not currently syncing.'
-                    : "This device only. The vessel's register is unchanged.")
+                      ? tr('set.nowHolds')
+                      : tr('set.localNotSync')
+                    : tr('set.localUnchanged'))
               );
             } catch (e: any) {
               playErrorSound();
-              Alert.alert('Could not restore', e?.message ?? String(e));
+              Alert.alert(tr('set.couldNotRestore'), e?.message ?? String(e));
             } finally {
               setBusy(false);
             }
@@ -446,7 +440,7 @@ export default function SettingsSc() {
   const doReset = async () => {
     if (resetPw.trim() !== RESET_PASSWORD) {
       playErrorSound();
-      Alert.alert('Incorrect password', 'The data was NOT reset.');
+      Alert.alert(tr('set.badPw'), tr('set.notReset'));
       return;
     }
     setResetVisible(false);
@@ -459,13 +453,11 @@ export default function SettingsSc() {
     if (sync.status === 'synced' || sync.status === 'pending') {
       const go = await new Promise<boolean>((resolve) => {
         Alert.alert(
-          'This erases the whole vessel',
-          'This device is syncing, so clearing it here clears the register on the vessel and on ' +
-            "every other device aboard — not just this one.\n\nTo clear only this handset, " +
-            'leave the vessel first: the “This device” card in Settings → Sign off & erase.',
+          tr('set.erasesVessel'),
+          tr('set.erasesVesselBody'),
           [
-            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-            { text: 'Erase everywhere', style: 'destructive', onPress: () => resolve(true) },
+            { text: tr('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
+            { text: tr('set.eraseEverywhere'), style: 'destructive', onPress: () => resolve(true) },
           ]
         );
       });
@@ -489,10 +481,10 @@ export default function SettingsSc() {
       await reload();
       setForm({});
       playSuccessSound();
-      Alert.alert('Data reset', 'All equipment, certificates, compressor logs, attached files and vessel info were removed.');
+      Alert.alert(tr('set.dataReset'), tr('set.dataResetBody'));
     } catch (e: any) {
       playErrorSound();
-      Alert.alert('Reset failed', String(e?.message ?? e));
+      Alert.alert(tr('set.resetFailed'), String(e?.message ?? e));
     } finally {
       setBusy(false);
     }
@@ -502,17 +494,17 @@ export default function SettingsSc() {
     const required: (keyof VesselInfo)[] = ['vessel_name', 'imo', 'flag', 'call_sign', 'mmsi'];
     if (required.some((k) => !String(form[k] ?? '').trim())) {
       playErrorSound();
-      Alert.alert('All fields required', 'Please fill in every vessel field before saving.');
+      Alert.alert(tr('set.allReq'), tr('set.allReqBody'));
       return;
     }
     if (!/^\d{7}$/.test(String(form.imo).trim())) {
       playErrorSound();
-      Alert.alert('Invalid IMO', 'IMO number must be exactly 7 digits.');
+      Alert.alert(tr('set.badImo'), tr('set.badImoBody'));
       return;
     }
     if (!/^\d{9}$/.test(String(form.mmsi).trim())) {
       playErrorSound();
-      Alert.alert('Invalid MMSI', 'MMSI must be exactly 9 digits.');
+      Alert.alert(tr('set.badMmsi'), tr('set.badMmsiBody'));
       return;
     }
     await setVessel(form);
@@ -520,7 +512,7 @@ export default function SettingsSc() {
     // Collapse the card like the other sections once saved.
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setOpen((o) => ({ ...o, vessel: false }));
-    Alert.alert('Saved', 'Vessel info updated.');
+    Alert.alert(tr('set.saved'), tr('set.vesselUpdated'));
   };
 
   return (
@@ -530,8 +522,8 @@ export default function SettingsSc() {
           the appearance of the app is not a setting you go looking for, it is one
           you flick. Three marks say it without a word: sun, moon, star. */}
       <ScreenTitle
-        title="Settings"
-        subtitle={`${flat.length} items on this device`}
+        title={tr('tab.Settings')}
+        subtitle={tr('set.onDevice', { items: tn('n.item', flat.length) })}
         help="Getting started"
         actions={
           <View style={styles.headerActions}>
@@ -542,7 +534,7 @@ export default function SettingsSc() {
             <TouchableOpacity
               onPress={() => nav.navigate('Paywall')}
               hitSlop={8}
-              accessibilityLabel={pro ? 'ISM AI Pilot Pro is active' : 'Get ISM AI Pilot Pro'}
+              accessibilityLabel={pro ? tr('set.proActive') : tr('set.getPro')}
               style={[styles.proPill, { backgroundColor: pro ? COLORS.success : COLORS.primary }]}
             >
               <Text style={styles.proPillText}>PRO</Text>
@@ -553,7 +545,7 @@ export default function SettingsSc() {
                 key={t}
                 onPress={() => setTheme(t)}
                 hitSlop={8}
-                accessibilityLabel={THEME_LABELS[t]}
+                accessibilityLabel={tr(`set.theme.${t}` as any)}
                 style={[styles.themeIcon, themeName === t && styles.themeIconOn]}
               >
                 <MciIcon
@@ -589,7 +581,7 @@ export default function SettingsSc() {
 
       <Card>
         <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('vessel')} activeOpacity={0.7}>
-          <Label>Vessel</Label>
+          <Label>{tr('certs.tab.vessel')}</Label>
           {/* Collapsed, the card still has to say WHICH vessel — otherwise closing
               it by default hides the one fact a person opens Settings to check. */}
           {!open.vessel && vesselComplete(vessel) ? (
@@ -601,20 +593,20 @@ export default function SettingsSc() {
         </TouchableOpacity>
         {open.vessel ? (
           <>
-        <FormField label="Vessel name" value={form.vessel_name} onChange={(v) => setForm({ ...form, vessel_name: v })} />
-        <FormField label="IMO number" value={form.imo} onChange={(v) => setForm({ ...form, imo: v })} keyboard="number-pad" />
-        <FormField label="Flag" value={form.flag} onChange={(v) => setForm({ ...form, flag: v })} />
-        <FormField label="Call sign" value={form.call_sign} onChange={(v) => setForm({ ...form, call_sign: v })} />
+        <FormField label={tr('set.vesselName')} value={form.vessel_name} onChange={(v) => setForm({ ...form, vessel_name: v })} />
+        <FormField label={tr('set.imo')} value={form.imo} onChange={(v) => setForm({ ...form, imo: v })} keyboard="number-pad" />
+        <FormField label={tr('set.flag')} value={form.flag} onChange={(v) => setForm({ ...form, flag: v })} />
+        <FormField label={tr('set.callSign')} value={form.call_sign} onChange={(v) => setForm({ ...form, call_sign: v })} />
         <FormField label="MMSI" value={form.mmsi} onChange={(v) => setForm({ ...form, mmsi: v })} keyboard="number-pad" />
         {/* Ship's time — the reports' header shows it beside UTC (13 Oct 2026). */}
         <View style={{ marginTop: SIZES.sm }}>
           <Dropdown
-            caption="SHIP'S TIME"
+            caption={tr('set.shipTime')}
             value={form.ship_utc_offset ?? ''}
             onChange={(v: string) => setForm({ ...form, ship_utc_offset: v || undefined })}
-            options={[{ value: '', label: `As this device (UTC${offsetText(-new Date().getTimezoneOffset())})` }, ...(form.ship_utc_offset && !OFFSETS.includes(form.ship_utc_offset) ? [form.ship_utc_offset] : []).concat(OFFSETS).map((o) => ({ value: o, label: `UTC${o}` }))]}
+            options={[{ value: '', label: tr('set.asDevice', { utc: `UTC${offsetText(-new Date().getTimezoneOffset())}` }) }, ...(form.ship_utc_offset && !OFFSETS.includes(form.ship_utc_offset) ? [form.ship_utc_offset] : []).concat(OFFSETS).map((o) => ({ value: o, label: `UTC${o}` }))]}
           />
-          <Text style={{ fontSize: SIZES.small, color: COLORS.textLight, marginTop: 4 }}>{`Now: ${shipAndUtc(Date.now(), form.ship_utc_offset).line}`}</Text>
+          <Text style={{ fontSize: SIZES.small, color: COLORS.textLight, marginTop: 4 }}>{tr('set.now', { line: shipAndUtc(Date.now(), form.ship_utc_offset).line })}</Text>
         </View>
         {/* Nothing to save is said by the button itself. A live "Save" beside five
             filled fields is the app asking for something it already has. */}
@@ -624,7 +616,7 @@ export default function SettingsSc() {
           onPress={saveVesselInfo}
         >
           <Text style={styles.primaryBtnText}>
-            {vesselComplete(vessel) ? (vesselDirty ? 'Save changes' : 'Saved') : 'Save vessel info'}
+            {vesselComplete(vessel) ? (vesselDirty ? tr('set.saveChanges') : tr('set.saved')) : tr('set.saveVessel')}
           </Text>
         </TouchableOpacity>
 
@@ -640,14 +632,14 @@ export default function SettingsSc() {
           Settings behind the crew list. */}
       {moduleOn('fleet') ? (
         <Card>
-          <Label>Superintendent</Label>
+          <Label>{tr('set.super')}</Label>
           {/* The office side: a shore account a Master lets into this vessel
               (Accounts → Superintendent). Its own sign-in; see screens/FleetSc. */}
           <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Fleet')}>
             <IconChip name="ferry" size={18} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.linkTitle}>Fleet console</Text>
-              <Text style={styles.linkSub}>For superintendents: every vessel you look after, its documents and certificates</Text>
+              <Text style={styles.linkTitle}>{tr('set.fleet')}</Text>
+              <Text style={styles.linkSub}>{tr('set.fleetSub')}</Text>
             </View>
             <Text style={styles.chev}>›</Text>
           </TouchableOpacity>
@@ -657,10 +649,10 @@ export default function SettingsSc() {
           gangway) use it — none of them is on, nothing to choose. */}
       {canRememberFolder() && (['rest', 'crewCerts', 'fuel', 'garbage', 'security'] as const).some((m) => moduleOn(m)) ? (
         <Card>
-          <Label>Folders</Label>
+          <Label>{tr('set.folders')}</Label>
           {/* A folder per section on this computer (utils/webSave): the first save in a section asks for it. */}
-          <Text style={[styles.linkSub, { marginBottom: SIZES.xs }]}>Each section saves its files to its own folder — DP, Security, Drills… The first file saved in a section asks for its folder.</Text>
-          {!folders.length ? <Text style={styles.linkSub}>No folder chosen yet.</Text> : null}
+          <Text style={[styles.linkSub, { marginBottom: SIZES.xs }]}>{tr('set.foldersSub')}</Text>
+          {!folders.length ? <Text style={styles.linkSub}>{tr('set.noFolder')}</Text> : null}
           {folders.map((f) => (
             <View key={f.kind} style={styles.linkRow}>
               <IconChip name="folder-outline" size={18} />
@@ -669,10 +661,10 @@ export default function SettingsSc() {
                 <Text style={styles.linkSub}>{`→ ${f.folder}`}</Text>
               </View>
               <TouchableOpacity onPress={() => void chooseFolder(f.kind).then(readFolders)} hitSlop={8}>
-                <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Change</Text>
+                <Text style={{ color: COLORS.primary, fontWeight: '700' }}>{tr('set.change')}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => void forgetFolder(f.kind).then(readFolders)} hitSlop={8}>
-                <Text style={{ color: COLORS.textLight, fontWeight: '700', marginLeft: SIZES.sm }}>Forget</Text>
+                <Text style={{ color: COLORS.textLight, fontWeight: '700', marginLeft: SIZES.sm }}>{tr('prn.forget')}</Text>
               </TouchableOpacity>
             </View>
           ))}
@@ -682,7 +674,7 @@ export default function SettingsSc() {
           shown per device as the Master sets on Access (constants/access.ts). */}
       {sync.role === 'superadmin' || (moduleOn('crewCerts') && (sync.role === 'admin' || !sync.enrolled)) ? (
       <Card>
-        <Label>Crew &amp; accounts</Label>
+        <Label>{tr('set.crewAccounts')}</Label>
         {/* Master only. The crew list is a MANAGEMENT screen — for anyone else it
             is a page with nothing to do on it, and often nothing on it at all,
             since a vessel that adds its signers from enrolled people keeps the
@@ -692,14 +684,14 @@ export default function SettingsSc() {
           <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Crew')}>
             <IconChip name="account-multiple" size={18} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.linkTitle}>Crew</Text>
+              <Text style={styles.linkTitle}>{tr('menu.group.crew')}</Text>
               {/* A vessel asked what this list is for (2 Oct 2026) — fairly: with
                   "Sign as the device's account" on, the names it changes in
                   Accounts ARE the signatures and this list is not consulted. */}
               <Text style={styles.linkSub}>
                 {signingPolicy.signAsDevice
-                  ? 'Not in use — each device signs as its own account'
-                  : 'Who can sign an inspection'}
+                  ? tr('set.crewNotUsed')
+                  : tr('set.crewSub')}
               </Text>
             </View>
             <Text style={styles.chev}>›</Text>
@@ -715,8 +707,8 @@ export default function SettingsSc() {
           <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('MasterPage')}>
             <IconChip name="shield-crown-outline" size={18} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.linkTitle}>Master's page</Text>
-              <Text style={styles.linkSub}>Who may see and do what — menus, pages, buttons, ranks, signing</Text>
+              <Text style={styles.linkTitle}>{tr('master.title')}</Text>
+              <Text style={styles.linkSub}>{tr('set.masterSub')}</Text>
             </View>
             <Text style={styles.chev}>›</Text>
           </TouchableOpacity>
@@ -725,8 +717,8 @@ export default function SettingsSc() {
           <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Accounts')}>
             <IconChip name="key" size={18} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.linkTitle}>Accounts</Text>
-              <Text style={styles.linkSub}>Issue a name + PIN; approve devices and set ranks</Text>
+              <Text style={styles.linkTitle}>{tr('acc.title')}</Text>
+              <Text style={styles.linkSub}>{tr('set.accountsSub')}</Text>
             </View>
             <Text style={styles.chev}>›</Text>
           </TouchableOpacity>
@@ -735,8 +727,8 @@ export default function SettingsSc() {
           <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('EmailReport')}>
             <IconChip name="email-outline" size={18} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.linkTitle}>Email report</Text>
-              <Text style={styles.linkSub}>Monthly safety digest to owner / DPA</Text>
+              <Text style={styles.linkTitle}>{tr('set.emailReport')}</Text>
+              <Text style={styles.linkSub}>{tr('set.emailSub')}</Text>
             </View>
             <Text style={styles.chev}>›</Text>
           </TouchableOpacity>
@@ -753,27 +745,27 @@ export default function SettingsSc() {
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('CategoriesEdit')}>
           <IconChip name="view-grid-outline" size={18} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Categories</Text>
-            <Text style={styles.linkSub}>Headings of your own, on top of the 24 built in</Text>
+            <Text style={styles.linkTitle}>{tr('ce.title')}</Text>
+            <Text style={styles.linkSub}>{tr('set.catsSub')}</Text>
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('LabelBatch')}>
           <IconChip name="tag-outline" size={18} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Print QR labels</Text>
-            <Text style={styles.linkSub}>All the stickers for a category, a deck or a group in one go</Text>
+            <Text style={styles.linkTitle}>{tr('ui.labels')}</Text>
+            <Text style={styles.linkSub}>{tr('set.labelsSub')}</Text>
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Checklists')}>
           <IconChip name="clipboard-text-outline" size={18} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Checklists</Text>
+            <Text style={styles.linkTitle}>{tr('cl.title')}</Text>
             <Text style={styles.linkSub}>
               {sync.role === 'admin' || sync.role === 'superadmin'
-                ? 'What each round asks — word them for this vessel'
-                : 'What each round asks'}
+                ? tr('set.clSubOfficer')
+                : tr('set.clSub')}
             </Text>
           </View>
           <Text style={styles.chev}>›</Text>
@@ -784,13 +776,13 @@ export default function SettingsSc() {
         <View style={styles.toggleRow}>
           <IconChip name="qrcode-scan" size={18} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Scan QR label before signing</Text>
+            <Text style={styles.linkTitle}>{tr('set.scanFirst')}</Text>
             <Text style={styles.linkSub}>
               {isMaster
-                ? 'Crew and Officers can sign an inspection only after scanning the item. You can sign without a scan, with a reason.'
+                ? tr('set.scanMaster')
                 : signingPolicy.requireScan
-                  ? 'On for this vessel — scan the item\'s label, then inspect. Set by the Master.'
-                  : 'Off for this vessel. Set by the Master.'}
+                  ? tr('set.scanOn')
+                  : tr('set.scanOff')}
             </Text>
           </View>
           <Switch
@@ -808,13 +800,11 @@ export default function SettingsSc() {
           <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('ScanRules')}>
             <IconChip name="qrcode-edit" size={18} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.linkTitle}>Scan by category</Text>
+              <Text style={styles.linkTitle}>{tr('scan.title')}</Text>
               <Text style={styles.linkSub}>
                 {scanExemptCount
-                  ? `${scanExemptCount} ${
-                      scanExemptCount === 1 ? 'category is' : 'categories are'
-                    } signed from the list instead — rescue boat inventories and the like`
-                  : 'Every category needs the label scanned — name the inventories that do not'}
+                  ? tn('n.exemptCat', scanExemptCount)
+                  : tr('set.allScan')}
               </Text>
             </View>
             <Text style={styles.chev}>›</Text>
@@ -827,13 +817,13 @@ export default function SettingsSc() {
         <View style={styles.toggleRow}>
           <IconChip name="cellphone" size={18} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Sign as the device's account</Text>
+            <Text style={styles.linkTitle}>{tr('set.signAsDevice')}</Text>
             <Text style={styles.linkSub}>
               {isMaster
-                ? 'Each enrolled device signs inspections as the person it was issued to — no picking a colleague\'s name. Rename a device in Accounts.'
+                ? tr('set.sadMaster')
                 : signingPolicy.signAsDevice
-                  ? 'On for this vessel — this device signs as its own account. Set by the Master.'
-                  : 'Off for this vessel — the signer is picked from the crew list. Set by the Master.'}
+                  ? tr('set.sadOn')
+                  : tr('set.sadOff')}
             </Text>
           </View>
           <Switch
@@ -850,10 +840,8 @@ export default function SettingsSc() {
             <View style={styles.toggleRow}>
               <IconChip name="fingerprint" size={18} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.linkTitle}>Signatures are confirmed</Text>
-                <Text style={styles.linkSub}>
-                  Every signature asks the signer for their own signing PIN, their fingerprint on their own device, or their signature drawn on the screen. A name alone never signs.
-                </Text>
+                <Text style={styles.linkTitle}>{tr('set.confirmed')}</Text>
+                <Text style={styles.linkSub}>{tr('set.confirmedSub')}</Text>
               </View>
             </View>
             {/* Setting or changing a PIN (components/PinChange): the Master PIN opens
@@ -862,18 +850,18 @@ export default function SettingsSc() {
               <TouchableOpacity style={styles.linkRow} onPress={() => changePin({ key: `device:${sync.me!.id}`, name: personName(sync.me!) }, { onDone: () => void pinHolders().then(setPinHoldersHere) })}>
                 <IconChip name="dialpad" size={18} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.linkTitle}>My signing PIN</Text>
-                  <Text style={styles.linkSub}>{pinHoldersHere.some((h) => h.key === `device:${sync.me!.id}`) ? 'Set — change it with your PIN or the Master PIN' : 'Not set — the Master PIN opens it'}</Text>
+                  <Text style={styles.linkTitle}>{tr('set.myPin')}</Text>
+                  <Text style={styles.linkSub}>{pinHoldersHere.some((h) => h.key === `device:${sync.me!.id}`) ? tr('set.myPinSet') : tr('set.myPinNotSet')}</Text>
                 </View>
                 <Text style={styles.chev}>›</Text>
               </TouchableOpacity>
             ) : null}
             {isMaster ? (
-              <TouchableOpacity style={styles.linkRow} onPress={() => changePin({ key: ADMIN_KEY, name: 'Master' }, { onDone: () => void pinHolders().then(setPinHoldersHere) })}>
+              <TouchableOpacity style={styles.linkRow} onPress={() => changePin({ key: ADMIN_KEY, name: tr('role.superadmin') }, { onDone: () => void pinHolders().then(setPinHoldersHere) })}>
                 <IconChip name="lock" size={18} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.linkTitle}>Master PIN</Text>
-                  <Text style={[styles.linkSub, !pinHoldersHere.some((h) => h.key === ADMIN_KEY) && { color: COLORS.warning, fontWeight: '700' }]}>{pinHoldersHere.some((h) => h.key === ADMIN_KEY) ? 'Changed from the default — opens everyone’s PIN on this device' : 'Still the default 0000 — change it'}</Text>
+                  <Text style={styles.linkTitle}>{tr('pc.masterPin')}</Text>
+                  <Text style={[styles.linkSub, !pinHoldersHere.some((h) => h.key === ADMIN_KEY) && { color: COLORS.warning, fontWeight: '700' }]}>{pinHoldersHere.some((h) => h.key === ADMIN_KEY) ? tr('set.masterPinChanged') : tr('set.masterPinDefault')}</Text>
                 </View>
                 <Text style={styles.chev}>›</Text>
               </TouchableOpacity>
@@ -882,28 +870,28 @@ export default function SettingsSc() {
               <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('CrewMatrix')}>
                 <IconChip name="account-lock-outline" size={18} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.linkTitle}>Crew signing PINs</Text>
-                  <Text style={styles.linkSub}>Crew matrix — the 🔒 by each name sets or changes that person’s PIN</Text>
+                  <Text style={styles.linkTitle}>{tr('set.crewPins')}</Text>
+                  <Text style={styles.linkSub}>{tr('set.crewPinsSub')}</Text>
                 </View>
                 <Text style={styles.chev}>›</Text>
               </TouchableOpacity>
             ) : null}
             {isMaster && pinHoldersHere.filter((h) => h.key !== ADMIN_KEY).length ? (
               <View style={{ marginTop: SIZES.sm }}>
-                <Text style={styles.linkSub}>Signing PINs on this device — reset one that has been forgotten; its holder chooses a new one at their next signature.</Text>
+                <Text style={styles.linkSub}>{tr('set.pinsHere')}</Text>
                 {pinHoldersHere.filter((h) => h.key !== ADMIN_KEY).map((h) => (
                   <View key={h.key} style={[styles.linkRow, { paddingVertical: SIZES.xs }]}>
                     <Text style={[styles.linkTitle, { flex: 1 }]} numberOfLines={1}>{h.name}</Text>
                     <TouchableOpacity
                       hitSlop={8}
                       onPress={() =>
-                        Alert.alert('Reset signing PIN', `${h.name} will choose a new PIN the next time they sign on this device.`, [
-                          { text: 'Cancel', style: 'cancel' },
-                          { text: 'Reset', style: 'destructive', onPress: async () => { await resetPin(h.key); setPinHoldersHere(await pinHolders()); } },
+                        Alert.alert(tr('set.resetPinT'), tr('set.resetPinBody', { name: h.name }), [
+                          { text: tr('common.cancel'), style: 'cancel' },
+                          { text: tr('set.reset'), style: 'destructive', onPress: async () => { await resetPin(h.key); setPinHoldersHere(await pinHolders()); } },
                         ])
                       }
                     >
-                      <Text style={{ color: COLORS.danger, fontWeight: '700' }}>Reset</Text>
+                      <Text style={{ color: COLORS.danger, fontWeight: '700' }}>{tr('set.reset')}</Text>
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -916,7 +904,7 @@ export default function SettingsSc() {
       {canHandleData ? (
       <Card>
         <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('data')} activeOpacity={0.7}>
-          <Label>Data</Label>
+          <Label>{tr('set.data')}</Label>
           <Text style={styles.sectionChev}>{open.data ? '▾' : '▸'}</Text>
         </TouchableOpacity>
         {open.data ? (
@@ -925,9 +913,9 @@ export default function SettingsSc() {
           <IconChip name="tray-arrow-down" size={18} />
           <View style={{ flex: 1 }}>
             <Text style={styles.linkTitle}>
-              {hasLifting ? 'Download LSA / FFE template' : 'Download import template'}
+              {hasLifting ? tr('set.tplLsa') : tr('set.tplImport')}
             </Text>
-            <Text style={styles.linkSub}>Blank .xlsx — one sheet per category</Text>
+            <Text style={styles.linkSub}>{tr('set.tplSub')}</Text>
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
@@ -935,10 +923,8 @@ export default function SettingsSc() {
           <TouchableOpacity style={styles.linkRow} onPress={() => void downloadTemplate('LIFTING')}>
             <IconChip name="tray-arrow-down" size={18} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.linkTitle}>Download lifting & mooring template</Text>
-              <Text style={styles.linkSub}>
-                Blank .xlsx — SWL, breaking load, certificates and test dates
-              </Text>
+              <Text style={styles.linkTitle}>{tr('set.tplLifting')}</Text>
+              <Text style={styles.linkSub}>{tr('set.tplLiftingSub')}</Text>
             </View>
             <Text style={styles.chev}>›</Text>
           </TouchableOpacity>
@@ -946,16 +932,16 @@ export default function SettingsSc() {
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Import')}>
           <IconChip name="tray-arrow-down" size={18} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Import from Excel</Text>
-            <Text style={styles.linkSub}>Load a workbook, or update the register from an edited copy</Text>
+            <Text style={styles.linkTitle}>{tr('set.importXl')}</Text>
+            <Text style={styles.linkSub}>{tr('set.importXlSub')}</Text>
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={backupExport} disabled={busy}>
           <IconChip name="content-save" size={18} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Export backup (.msm)</Text>
-            <Text style={styles.linkSub}>Items, certificates, inspections, crew & attached files</Text>
+            <Text style={styles.linkTitle}>{tr('set.exportBk')}</Text>
+            <Text style={styles.linkSub}>{tr('set.exportBkSub')}</Text>
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
@@ -976,12 +962,12 @@ export default function SettingsSc() {
                   the dialog to find out whether it is worth anything; the moment
                   it would take them back to answers that on the row itself. */}
               <Text style={styles.linkTitle}>
-                {snaps.length ? `Roll back to ${formatDateTime(snaps[0].at)}` : 'Nothing to roll back to yet'}
+                {snaps.length ? tr('set.rollTo', { when: formatDateTime(snaps[0].at) }) : tr('set.nothingRollYet')}
               </Text>
               <Text style={styles.linkSub}>
                 {snaps.length
-                  ? `${snaps[0].items} items, ${snaps[0].inspections} inspections · saved when the app opened`
-                  : 'A snapshot is saved automatically each time the app opens'}
+                  ? tr('set.snapSub', { items: tn('n.item', snaps[0].items), insp: tn('n.inspection', snaps[0].inspections) })
+                  : tr('set.snapAuto')}
               </Text>
             </View>
             <Text style={styles.chev}>›</Text>
@@ -991,9 +977,9 @@ export default function SettingsSc() {
           <TouchableOpacity style={[styles.linkRow, !(snaps.length + importSnaps.length) && { opacity: 0.45 }]} onPress={saveCopy} disabled={busy}>
             <IconChip name="content-save-outline" size={18} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.linkTitle}>Save a copy as a file</Text>
+              <Text style={styles.linkTitle}>{tr('set.saveCopy')}</Text>
               <Text style={styles.linkSub}>
-                {`${snaps.length + importSnaps.length} cop${snaps.length + importSnaps.length === 1 ? 'y' : 'ies'} on this device${importSnaps.length ? ` · before import ${formatDateTime(importSnaps[0].at)}` : ''} — nothing is rolled back`}
+                {tn('n.copyHere', snaps.length + importSnaps.length) + (importSnaps.length ? tr('set.beforeImportAt', { when: formatDateTime(importSnaps[0].at) }) : '') + tr('set.noRollback')}
               </Text>
             </View>
             <Text style={styles.chev}>›</Text>
@@ -1006,8 +992,8 @@ export default function SettingsSc() {
           <TouchableOpacity style={styles.linkRow} onPress={backupImport} disabled={busy}>
             <IconChip name="backup-restore" size={18} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.linkTitle}>Restore backup (.msm)</Text>
-              <Text style={styles.linkSub}>Replace all data from a .msm file</Text>
+              <Text style={styles.linkTitle}>{tr('set.restoreBk')}</Text>
+              <Text style={styles.linkSub}>{tr('set.restoreBkSub')}</Text>
             </View>
             <Text style={styles.chev}>›</Text>
           </TouchableOpacity>
@@ -1019,7 +1005,7 @@ export default function SettingsSc() {
 
       <Card>
         <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('modules')} activeOpacity={0.7}>
-          <Label>Modules</Label>
+          <Label>{tr('set.modules')}</Label>
           <Text style={styles.sectionChev}>{open.modules ? '▾' : '▸'}</Text>
         </TouchableOpacity>
         {open.modules ? (
@@ -1027,8 +1013,8 @@ export default function SettingsSc() {
         <View style={styles.toggleRow}>
           <IconChip name="bell-ring" size={18} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Expiry reminders</Text>
-            <Text style={styles.linkSub}>Notify 60 / 30 / 7 days before inspection or expiry</Text>
+            <Text style={styles.linkTitle}>{tr('set.reminders')}</Text>
+            <Text style={styles.linkSub}>{tr('set.remindersSub')}</Text>
           </View>
           <Switch
             value={!!prefs.notificationsEnabled}
@@ -1039,8 +1025,8 @@ export default function SettingsSc() {
         <View style={styles.toggleRow}>
           <IconChip name="volume-high" size={18} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Sounds</Text>
-            <Text style={styles.linkSub}>The ship's bell on launch and the chimes on save, sign and error</Text>
+            <Text style={styles.linkTitle}>{tr('set.sounds')}</Text>
+            <Text style={styles.linkSub}>{tr('set.soundsSub')}</Text>
           </View>
           <Switch
             value={!prefs.soundsMuted}
@@ -1051,8 +1037,8 @@ export default function SettingsSc() {
         <View style={styles.toggleRow}>
           <IconChip name="timer-outline" size={18} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>BA Compressor log</Text>
-            <Text style={styles.linkSub}>Running-time counter & maintenance (FIFI outfit)</Text>
+            <Text style={styles.linkTitle}>{tr('set.compLog')}</Text>
+            <Text style={styles.linkSub}>{tr('set.compLogSub')}</Text>
           </View>
           <Switch
             value={!!prefs.compressorEnabled}
@@ -1064,8 +1050,8 @@ export default function SettingsSc() {
           <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Compressor')}>
             <IconChip name="chart-line" size={18} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.linkTitle}>Open compressor log</Text>
-              <Text style={styles.linkSub}>Also available from the FIFI / BA category</Text>
+              <Text style={styles.linkTitle}>{tr('set.compOpen')}</Text>
+              <Text style={styles.linkSub}>{tr('set.compOpenSub')}</Text>
             </View>
             <Text style={styles.chev}>›</Text>
           </TouchableOpacity>
@@ -1076,7 +1062,7 @@ export default function SettingsSc() {
 
       <Card>
         <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('help')} activeOpacity={0.7}>
-          <Label>Help</Label>
+          <Label>{tr('hb.help')}</Label>
           <Text style={styles.sectionChev}>{open.help ? '▾' : '▸'}</Text>
         </TouchableOpacity>
         {open.help ? (
@@ -1084,22 +1070,22 @@ export default function SettingsSc() {
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Manual')}>
           <IconChip name="book-open-variant" size={18} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>User Manual</Text>
-            <Text style={styles.linkSub}>How to use the app</Text>
+            <Text style={styles.linkTitle}>{tr('set.manual')}</Text>
+            <Text style={styles.linkSub}>{tr('set.manualSub')}</Text>
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Legal', { doc: 'privacy' })}>
           <IconChip name="lock" size={18} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Privacy Policy</Text>
+            <Text style={styles.linkTitle}>{tr('set.privacy')}</Text>
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Legal', { doc: 'terms' })}>
           <IconChip name="certificate" size={18} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.linkTitle}>Terms of Use</Text>
+            <Text style={styles.linkTitle}>{tr('set.terms')}</Text>
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
@@ -1114,7 +1100,7 @@ export default function SettingsSc() {
           vessel's copy alone. */}
       {isMaster ? (
         <TouchableOpacity style={[styles.resetBtn, wide && styles.btnCompact, wide && { alignSelf: 'center' }]} onPress={() => { setResetPw(''); setResetVisible(true); }} disabled={busy}>
-          <Text style={styles.resetBtnText}>Reset all data</Text>
+          <Text style={styles.resetBtnText}>{tr('set.resetAll')}</Text>
         </TouchableOpacity>
       ) : null}
 
@@ -1140,20 +1126,19 @@ export default function SettingsSc() {
                 hold focus, and Reset could not be typed at all. */}
             <TouchableWithoutFeedback onPress={Platform.OS === 'web' ? () => {} : Keyboard.dismiss}>
           <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>Reset all data</Text>
+            <Text style={styles.modalTitle}>{tr('set.resetAll')}</Text>
             <Text style={styles.modalText}>
-              This permanently deletes every equipment item, certificate, compressor log, attached file and the
-              vessel info on this device. This cannot be undone.
-              {sync.status === 'synced' ? ' While this device is syncing it clears the vessel and every other device aboard as well.' : ''}
+              {tr('set.resetBody')}
+              {sync.status === 'synced' ? tr('set.resetSynced') : ''}
             </Text>
             <Text style={styles.modalText}>
-              Type the password <Text style={{ fontWeight: '800' }}>Reset all data</Text> to confirm.
+              {tr('set.typePw1')}<Text style={{ fontWeight: '800' }}>{RESET_PASSWORD}</Text>{tr('set.typePw2')}
             </Text>
             <TextInput
               style={styles.input}
               value={resetPw}
               onChangeText={setResetPw}
-              placeholder="Password"
+              placeholder={tr('set.password')}
               placeholderTextColor={COLORS.textLight}
               autoCapitalize="none"
               autoCorrect={false}
@@ -1163,14 +1148,14 @@ export default function SettingsSc() {
                 style={[styles.modalBtn, { borderWidth: 1, borderColor: COLORS.border }]}
                 onPress={closeReset}
               >
-                <Text style={styles.modalBtnCancel}>Cancel</Text>
+                <Text style={styles.modalBtnCancel}>{tr('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalBtn, { backgroundColor: COLORS.danger, opacity: resetPw.trim() === RESET_PASSWORD ? 1 : 0.5 }]}
                 onPress={doReset}
                 disabled={resetPw.trim() !== RESET_PASSWORD}
               >
-                <Text style={styles.modalBtnConfirm}>Delete everything</Text>
+                <Text style={styles.modalBtnConfirm}>{tr('set.deleteAll')}</Text>
               </TouchableOpacity>
             </View>
           </View>

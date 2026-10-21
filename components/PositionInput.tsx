@@ -12,6 +12,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { useTheme } from '../contexts/ThemeContext';
+import { t, useT } from '../utils/i18n';
 import { SIZES, Palette } from '../theme';
 import { Coords, EMPTY_COORDS, coordsError, formatPosition, parsePosition } from '../utils/position';
 
@@ -19,9 +20,9 @@ export function PositionInput({
   position,
   port,
   onChange,
-  label = 'Position',
+  label,
   portAllowed = true,
-  portPlaceholder = 'Port — name',
+  portPlaceholder,
 }: {
   position?: string;
   port?: string;
@@ -31,6 +32,7 @@ export function PositionInput({
   portPlaceholder?: string;
 }) {
   const COLORS = useTheme();
+  useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const [mode, setMode] = useState<'sea' | 'port'>(() => (portAllowed && !position?.trim() && port?.trim() ? 'port' : 'sea'));
   const [c, setC] = useState<Coords>(() => parsePosition(position) ?? EMPTY_COORDS);
@@ -68,32 +70,32 @@ export function PositionInput({
     <View style={styles.wrap}>
       {portAllowed ? (
         <View style={styles.seg}>
-          {([['sea', label], ['port', 'Port']] as const).map(([k, l]) => (
+          {([['sea', label ?? t('pos.position')], ['port', t('pos.port')]] as const).map(([k, l]) => (
             <TouchableOpacity key={k} onPress={() => pick(k)} style={[styles.segBtn, mode === k && styles.segOn]}>
               <Text style={[styles.segText, mode === k && styles.segTextOn]}>{l}</Text>
             </TouchableOpacity>
           ))}
         </View>
       ) : (
-        <Text style={styles.label}>{label}</Text>
+        <Text style={styles.label}>{label ?? t('pos.position')}</Text>
       )}
       {mode === 'sea' ? (
         <>
           <View style={styles.line}>
-            <Text style={styles.axis}>Lat</Text>
-            <TextInput style={[styles.cell, { width: 46 }]} value={c.latDeg} onChangeText={(v) => setCell({ latDeg: num(v).slice(0, 2) })} placeholder="dd" placeholderTextColor={COLORS.textLight} keyboardType="number-pad" maxLength={2} accessibilityLabel="Latitude degrees" />
+            <Text style={styles.axis}>{t('pos.lat')}</Text>
+            <TextInput style={[styles.cell, { width: 46 }]} value={c.latDeg} onChangeText={(v) => setCell({ latDeg: num(v).slice(0, 2) })} placeholder="dd" placeholderTextColor={COLORS.textLight} keyboardType="number-pad" maxLength={2} accessibilityLabel={t('pos.latDeg')} />
             <Text style={styles.mark}>°</Text>
-            <TextInput style={[styles.cell, { width: 60 }]} value={c.latMin} onChangeText={(v) => setCell({ latMin: num(v).slice(0, 4) })} placeholder="mm.m" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" maxLength={4} accessibilityLabel="Latitude minutes" />
+            <TextInput style={[styles.cell, { width: 60 }]} value={c.latMin} onChangeText={(v) => setCell({ latMin: num(v).slice(0, 4) })} placeholder="mm.m" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" maxLength={4} accessibilityLabel={t('pos.latMin')} />
             <Text style={styles.mark}>'</Text>
             {(['N', 'S'] as const).map((h) => (
               <TouchableOpacity key={h} onPress={() => setCell({ ns: h })} style={[styles.hemi, c.ns === h && styles.hemiOn]}><Text style={[styles.hemiText, c.ns === h && styles.hemiTextOn]}>{h}</Text></TouchableOpacity>
             ))}
           </View>
           <View style={styles.line}>
-            <Text style={styles.axis}>Lon</Text>
-            <TextInput style={[styles.cell, { width: 46 }]} value={c.lonDeg} onChangeText={(v) => setCell({ lonDeg: num(v).slice(0, 3) })} placeholder="ddd" placeholderTextColor={COLORS.textLight} keyboardType="number-pad" maxLength={3} accessibilityLabel="Longitude degrees" />
+            <Text style={styles.axis}>{t('pos.lon')}</Text>
+            <TextInput style={[styles.cell, { width: 46 }]} value={c.lonDeg} onChangeText={(v) => setCell({ lonDeg: num(v).slice(0, 3) })} placeholder="ddd" placeholderTextColor={COLORS.textLight} keyboardType="number-pad" maxLength={3} accessibilityLabel={t('pos.lonDeg')} />
             <Text style={styles.mark}>°</Text>
-            <TextInput style={[styles.cell, { width: 60 }]} value={c.lonMin} onChangeText={(v) => setCell({ lonMin: num(v).slice(0, 4) })} placeholder="mm.m" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" maxLength={4} accessibilityLabel="Longitude minutes" />
+            <TextInput style={[styles.cell, { width: 60 }]} value={c.lonMin} onChangeText={(v) => setCell({ lonMin: num(v).slice(0, 4) })} placeholder="mm.m" placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" maxLength={4} accessibilityLabel={t('pos.lonMin')} />
             <Text style={styles.mark}>'</Text>
             {(['E', 'W'] as const).map((h) => (
               <TouchableOpacity key={h} onPress={() => setCell({ ew: h })} style={[styles.hemi, c.ew === h && styles.hemiOn]}><Text style={[styles.hemiText, c.ew === h && styles.hemiTextOn]}>{h}</Text></TouchableOpacity>
@@ -102,7 +104,7 @@ export function PositionInput({
           {err ? <Text style={styles.err}>{err}</Text> : formatPosition(c) ? <Text style={styles.ok}>{formatPosition(c)}</Text> : null}
         </>
       ) : (
-        <TextInput style={styles.port} value={port ?? ''} onChangeText={(v) => onChange('', v)} placeholder={portPlaceholder} placeholderTextColor={COLORS.textLight} />
+        <TextInput style={styles.port} value={port ?? ''} onChangeText={(v) => onChange('', v)} placeholder={portPlaceholder ?? t('pos.portPh')} placeholderTextColor={COLORS.textLight} />
       )}
     </View>
   );

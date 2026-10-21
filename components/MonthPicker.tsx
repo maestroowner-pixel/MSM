@@ -10,12 +10,11 @@
 import React, { useMemo } from 'react';
 
 import { Dropdown } from './Dropdown';
-
-const NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+import { monthName as uiMonth } from '../utils/i18n';
 
 export function monthName(month: string, thisYear = new Date().getFullYear()): string {
   const [y, m] = month.split('-').map(Number);
-  return y === thisYear ? NAMES[m - 1] : `${NAMES[m - 1]} ${y}`;
+  return y === thisYear ? uiMonth(m - 1) : `${uiMonth(m - 1)} ${y}`;
 }
 
 /** The months to offer: those with records, the current one and the one picked, newest first. */

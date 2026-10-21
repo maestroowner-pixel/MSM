@@ -62,7 +62,7 @@ import { roundFor, roundTakes } from '../services/rounds';
 import { useActiveRound } from '../services/activeRound';
 import { moduleOn } from '../constants/modules';
 
-import { CheckResult, InspectionPeriod, PERIOD_LABEL } from '../types/inspection';
+import { CheckResult, InspectionPeriod } from '../types/inspection';
 import { Attachment, EquipmentItem } from '../types/equipment';
 import { crewLabel } from '../types/crew';
 import * as inspections from '../services/inspections';
@@ -78,6 +78,7 @@ import { onWeb } from '../utils/fileShare';
 import { uid } from '../utils/id';
 import { playErrorSound, playSuccessSound } from '../utils/sound';
 import { goBackOr } from '../utils/nav';
+import { t, tk, useT } from '../utils/i18n';
 import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
 
 const MAX_PHOTOS = 4;
@@ -87,11 +88,17 @@ const MAX_PHOTOS = 4;
 function itemTitle(item: EquipmentItem): string {
   const no = itemNumber(item);
   const name = typeWithSize(item) || (item.serial ? `S/N ${item.serial}` : '');
-  return [no && `No. ${no}`, name].filter(Boolean).join(' — ') || 'Item';
+  return [no && t('ins.no', { n: no }), name].filter(Boolean).join(' — ') || t('ins.item');
 }
+
+// PERIOD_LABEL (types/inspection) stays English for the report; the screen shows the period translated.
+const perName = (p: string) => tk(`period.${p}`);
+const perTitle = (p: string) => tk(`ins.per.${p}`);
+const RESULT_KEY: Record<CheckResult, string> = { pass: 'ins.res.pass', fail: 'ins.res.fail', na: 'ins.res.na' };
 
 export default function InspectionSc() {
   const COLORS = useTheme();
+  useT();
   const nav = useNavigation<any>();
   const route = useRoute<any>();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -235,14 +242,12 @@ export default function InspectionSc() {
     const filled = Object.keys(results).length + (comment.trim() ? 1 : 0) + (defectNote.trim() ? 1 : 0);
     if (!filled) return;
     Alert.alert(
-      'Clear this round?',
-      'Every answer, the comment and the defect note are cleared so you can start again. ' +
-        'Nothing has been signed yet, so nothing on file changes.' +
-        (photos.length ? ' Photos you have added stay — remove those individually.' : ''),
+      t('ins.clearQ'),
+      t('ins.clearBody') + (photos.length ? t('ins.clearPhotos') : ''),
       [
-        { text: 'Keep it', style: 'cancel' },
+        { text: t('cat.keep'), style: 'cancel' },
         {
-          text: 'Clear all',
+          text: t('ins.clearAll'),
           style: 'destructive',
           onPress: () => {
             setResults({});
@@ -270,10 +275,10 @@ export default function InspectionSc() {
 
   const choosePhoto = () => {
     if (onWeb) return void addPhoto(pickDocument)();
-    Alert.alert('Add evidence', 'Photograph what you found', [
-      { text: 'Camera', onPress: addPhoto(pickFromCamera) },
-      { text: 'Photo Library', onPress: addPhoto(pickFromLibrary) },
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('ins.addEvidence'), t('ins.photographWhat'), [
+      { text: t('pick.camera'), onPress: addPhoto(pickFromCamera) },
+      { text: t('pick.library'), onPress: addPhoto(pickFromLibrary) },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 
@@ -285,10 +290,10 @@ export default function InspectionSc() {
   const askAi = async (withPhoto: boolean) => {
     if (!item || !template) return;
     const shot = withPhoto ? [...photos].reverse().find((p) => p.kind === 'photo') : undefined;
-    if (withPhoto && !shot) return Alert.alert('Photo', 'Add a photograph of the item below first.');
-    if (!withPhoto && !said.trim()) return Alert.alert('What did you find?', 'Say it or type it in any language — the AI writes it up in English.');
+    if (withPhoto && !shot) return Alert.alert(t('ins.photo'), t('ins.addPhotoFirst'));
+    if (!withPhoto && !said.trim()) return Alert.alert(t('ins.whatFound'), t('ins.sayAny'));
     try {
-      setAiBusy(withPhoto ? 'The AI is looking at the photo…' : 'The AI is reading what you said…');
+      setAiBusy(withPhoto ? t('ins.aiPhoto') : t('ins.aiWords'));
       const image = shot ? await imageToDataUri(resolveUri(shot.uri) ?? shot.uri) : undefined;
       const out = await aiCall<{ answers?: Record<string, CheckResult | null>; remark?: string; defect?: string; seen?: string }>('inspect', {
         item: { name: typeWithSize(item) || CATEGORY_MAP[item.category]?.label, number: itemNumber(item), category: CATEGORY_MAP[item.category]?.label, location: itemLocation(item) },
@@ -300,9 +305,9 @@ export default function InspectionSc() {
       setResults((prev) => ({ ...prev, ...Object.fromEntries(got) }));
       if (out.remark?.trim()) setComment((c) => [c.trim(), `${out.remark!.trim()} (AI-assisted from the inspector's ${withPhoto ? 'photo' : 'words'})`].filter(Boolean).join('\n'));
       if (out.defect?.trim()) setDefectNote((d) => d.trim() || out.defect!.trim());
-      setAiDone(`${got.length} of ${template.lines.length} lines filled${out.seen ? ` · seen: ${out.seen}` : ''} — check every line before you sign.`);
+      setAiDone(t('ins.aiFilled', { k: got.length, n: template.lines.length, seen: out.seen ? t('ins.aiSeen', { what: out.seen }) : '' }));
     } catch (e: any) {
-      Alert.alert('AI', String(e?.message ?? e));
+      Alert.alert(t('ins.ai'), String(e?.message ?? e));
     } finally {
       setAiBusy(null);
     }
@@ -355,7 +360,7 @@ export default function InspectionSc() {
       // completed checklist behind a guard that will never lift.
       signed.current = false;
       playErrorSound();
-      Alert.alert('Could not sign', e?.message ?? String(e));
+      Alert.alert(t('ins.couldNotSign'), e?.message ?? String(e));
     } finally {
       setSaving(false);
     }
@@ -366,46 +371,45 @@ export default function InspectionSc() {
     if (gate.kind === 'blocked') return;
     if (gate.kind === 'override' && !overrideReason.trim()) {
       Alert.alert(
-        'Why was the label not scanned?',
-        'This vessel requires a QR scan before signing. A Master may sign without one, but the reason is printed in the report beside the signature.'
+        t('ins.whyNoScan'),
+        t('ins.whyNoScanBody')
       );
       return;
     }
     if (!signer) {
       if (rule.kind === 'waiting') {
         Alert.alert(
-          'Waiting for your account',
-          "This vessel signs inspections as the device's account, and this device's name has not loaded yet. Check the connection in Settings, or ask the Master to confirm this device is approved."
+          t('ins.waitAccount'),
+          t('ins.waitAccountBody')
         );
         return;
       }
-      Alert.alert('Who is signing?', 'Pick the crew member carrying out this inspection.');
+      Alert.alert(t('sign.who'), t('ins.pickCrew'));
       setPickingSigner(true);
       return;
     }
     if (!complete) {
       Alert.alert(
-        'Checklist not complete',
-        `${answered} of ${template?.lines.length} lines answered. Every line needs a result — use N/A for anything that does not apply to this item.`
+        t('ins.notComplete'),
+        t('ins.notCompleteBody', { k: answered, n: template?.lines.length ?? 0 })
       );
       return;
     }
     // Spelled out, because it cannot be undone afterwards.
     Alert.alert(
-      anyFail ? 'Sign as FAILED' : 'Sign as passed',
-      `${PERIOD_LABEL[period]} inspection of ${item ? itemTitle(item) : 'Item'}, ` +
-        `signed by ${crewLabel(signer)} at ${new Date().toLocaleString()}.\n` +
+      anyFail ? t('ins.signFailed') : t('ins.signPassed'),
+      t('ins.confirmBody', { title: perTitle(period), item: item ? itemTitle(item) : t('ins.item'), who: crewLabel(signer), when: new Date().toLocaleString() }) + '\n' +
         (proof
-          ? `Label scanned at ${new Date(proof.at).toLocaleTimeString()}.\n`
+          ? t('ins.scannedAt', { time: new Date(proof.at).toLocaleTimeString() }) + '\n'
           : gate.kind === 'override'
-            ? `Signed WITHOUT a scan: ${overrideReason.trim()}\n`
+            ? t('ins.noScanSigned', { reason: overrideReason.trim() }) + '\n'
             : '') +
         '\n' +
-        'A signed record cannot be edited or deleted. To correct a mistake, inspect the item again.',
+        t('ins.cannotEdit'),
       [
-        { text: 'Back', style: 'cancel', onPress: () => { confirming.current = false; } },
+        { text: t('common.back'), style: 'cancel', onPress: () => { confirming.current = false; } },
         {
-          text: 'Sign',
+          text: t('common.sign'),
           style: anyFail ? 'destructive' : 'default',
           onPress: () => {
             confirming.current = false;
@@ -423,16 +427,13 @@ export default function InspectionSc() {
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
           <View style={styles.header}>
             <BackButton onPress={() => goBackOr(nav)} />
-            <Text style={styles.headerTitle}>Inspection</Text>
+            <Text style={styles.headerTitle}>{t('ins.title')}</Text>
             <View style={{ width: 24 }} />
           </View>
           <View style={{ padding: SIZES.lg }}>
             <Card>
-              <Label>Item not found</Label>
-              <Text style={styles.note}>
-                This item is no longer in the register — it may have been deleted, or this device is
-                holding an older copy than the vessel is.
-              </Text>
+              <Label>{t('ins.notFound')}</Label>
+              <Text style={styles.note}>{t('ins.notFoundBody')}</Text>
             </Card>
           </View>
         </SafeAreaView>
@@ -448,27 +449,23 @@ export default function InspectionSc() {
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
           <View style={styles.header}>
             <BackButton onPress={() => goBackOr(nav)} />
-            <Text style={styles.headerTitle}>Inspection</Text>
+            <Text style={styles.headerTitle}>{t('ins.title')}</Text>
             <View style={{ width: 24 }} />
           </View>
           <View style={{ padding: SIZES.lg }}>
             <View style={styles.card}>
               <View style={styles.gateHead}>
                 <MciIcon name="qrcode-scan" size={28} color={COLORS.primary} />
-                <Text style={styles.gateTitle}>Scan the label to inspect</Text>
+                <Text style={styles.gateTitle}>{t('ins.scanToInspect')}</Text>
               </View>
               <Text style={styles.itemName}>{itemTitle(item)}</Text>
               <Text style={styles.itemMeta}>
                 {[meta.label, itemLocation(item)].filter(Boolean).join(' · ')}
               </Text>
-              <Text style={styles.note}>
-                This vessel requires the item's QR label to be scanned before an inspection is signed — the
-                scan shows the inspection was done at the equipment. Go to the item and scan its label with
-                the app. A scan counts for {SCAN_PROOF_MINUTES} minutes; typing the code in does not count.
-              </Text>
+              <Text style={styles.note}>{t('ins.scanRequired', { n: SCAN_PROOF_MINUTES })}</Text>
               <TouchableOpacity style={[styles.saveBtn, { marginTop: SIZES.lg }]} onPress={() => nav.replace('Scan')}>
                 <MciIcon name="qrcode-scan" size={20} color={COLORS.textWhite} />
-                <Text style={styles.saveBtnText}>Scan label</Text>
+                <Text style={styles.saveBtnText}>{t('ins.scanLabel')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -483,10 +480,10 @@ export default function InspectionSc() {
         <View style={styles.header}>
           <BackButton onPress={() => goBackOr(nav)} />
           <Text style={styles.headerTitle} numberOfLines={1}>
-            {PERIOD_LABEL[period]} inspection
+            {perTitle(period)}
           </Text>
           <TouchableOpacity onPress={confirmSave} hitSlop={12} disabled={saving}>
-            <Text style={[styles.headerBtn, styles.signBtn, saving && { opacity: 0.4 }]}>Sign</Text>
+            <Text style={[styles.headerBtn, styles.signBtn, saving && { opacity: 0.4 }]}>{t('common.sign')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -497,7 +494,7 @@ export default function InspectionSc() {
           {round && moduleOn('rounds') ? (
             <View style={[styles.card, { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, paddingVertical: SIZES.sm }]}>
               <MciIcon name="clipboard-check-outline" size={18} color={COLORS.success} />
-              <Text style={[styles.itemMeta, { flex: 1, color: COLORS.success, fontWeight: '700' }]}>{`Counts towards the ${round.period} round · ${round.label}`}</Text>
+              <Text style={[styles.itemMeta, { flex: 1, color: COLORS.success, fontWeight: '700' }]}>{t('ins.countsRound', { per: perName(round.period).toLowerCase(), label: round.label })}</Text>
             </View>
           ) : null}
           {/* What is being inspected — never in doubt, because the scan chose it. */}
@@ -524,7 +521,7 @@ export default function InspectionSc() {
                   onPress={() => changePeriod(p)}
                 >
                   <Text style={[styles.periodText, p === period && styles.periodTextOn]}>
-                    {PERIOD_LABEL[p]}
+                    {perName(p)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -535,22 +532,18 @@ export default function InspectionSc() {
             <View style={styles.verifiedRow}>
               <MciIcon name="qrcode-scan" size={18} color={COLORS.success} />
               <Text style={styles.verifiedText}>
-                Label scanned at {new Date(proof.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} — recorded
-                with this inspection
+                {t('ins.scannedRow', { time: new Date(proof.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })}
               </Text>
             </View>
           ) : gate.kind === 'override' ? (
             <View style={[styles.card, styles.overrideCard]}>
-              <Label style={{ color: COLORS.warning }}>Not scanned</Label>
-              <Text style={styles.note}>
-                This vessel requires a QR scan before signing. As Master you may sign without one — say why.
-                The reason is printed in the report beside the signature.
-              </Text>
+              <Label style={{ color: COLORS.warning }}>{t('ins.notScanned')}</Label>
+              <Text style={styles.note}>{t('ins.notScannedBody')}</Text>
               <TextInput
                 style={styles.input}
                 value={overrideReason}
                 onChangeText={setOverrideReason}
-                placeholder="e.g. label missing, item out of reach"
+                placeholder={t('ins.noScanPh')}
                 placeholderTextColor={COLORS.textLight}
               />
             </View>
@@ -563,9 +556,9 @@ export default function InspectionSc() {
             <TouchableOpacity style={styles.signerRow} onPress={() => setPickingSigner(true)}>
               <MciIcon name="account-check" size={22} color={COLORS.primary} />
               <View style={{ flex: 1 }}>
-                <Label>Inspected by</Label>
+                <Label>{t('ins.inspectedBy')}</Label>
                 <Text style={[styles.signerName, !signer && { color: COLORS.textLight }]}>
-                  {signer ? crewLabel(signer) : 'Tap to choose…'}
+                  {signer ? crewLabel(signer) : t('ins.tapChoose')}
                 </Text>
               </View>
               <MciIcon name="chevron-right" size={22} color={COLORS.textLight} />
@@ -577,9 +570,9 @@ export default function InspectionSc() {
             <View style={styles.signerRow}>
               <MciIcon name={rule.kind === 'device' ? 'cellphone-check' : 'cellphone-off'} size={22} color={rule.kind === 'device' ? COLORS.primary : COLORS.warning} />
               <View style={{ flex: 1 }}>
-                <Label>Inspected by · this device's account</Label>
+                <Label>{t('ins.inspectedByDevice')}</Label>
                 <Text style={[styles.signerName, !signer && { color: COLORS.textLight }]}>
-                  {signer ? crewLabel(signer) : 'Waiting for this device\'s name from the vessel…'}
+                  {signer ? crewLabel(signer) : t('ins.waitDeviceName')}
                 </Text>
               </View>
             </View>
@@ -589,28 +582,28 @@ export default function InspectionSc() {
             <View style={styles.card}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <MciIcon name="creation" size={18} color={COLORS.primary} />
-                <Label style={{ flex: 1 }}>Say what you found — the AI fills the checklist</Label>
-                <VoiceInput onText={(t) => setSaid((x) => (x ? `${x} ${t}` : t))} />
+                <Label style={{ flex: 1 }}>{t('ins.aiHead')}</Label>
+                <VoiceInput onText={(v) => setSaid((x) => (x ? `${x} ${v}` : v))} />
               </View>
               <TextInput
                 style={[styles.input, styles.multiline]}
                 value={said}
                 onChangeText={setSaid}
-                placeholder="Any language — “pressure in the green, pin and seal in place, bracket loose”. On a phone, the keyboard’s microphone."
+                placeholder={t('ins.aiPh')}
                 placeholderTextColor={COLORS.textLight}
                 multiline
               />
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.sm, marginTop: SIZES.sm }}>
                 <TouchableOpacity style={[styles.allPassBtn, aiBusy && { opacity: 0.5 }]} disabled={!!aiBusy} onPress={() => void askAi(false)}>
                   <MciIcon name="text-box-check-outline" size={16} color={COLORS.textWhite} />
-                  <Text style={styles.allPassText}>Fill from what I said</Text>
+                  <Text style={styles.allPassText}>{t('ins.fillSaid')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.allPassBtn, aiBusy && { opacity: 0.5 }]} disabled={!!aiBusy} onPress={() => void askAi(true)}>
                   <MciIcon name="camera-outline" size={16} color={COLORS.textWhite} />
-                  <Text style={styles.allPassText}>From the photo</Text>
+                  <Text style={styles.allPassText}>{t('ins.fromPhoto')}</Text>
                 </TouchableOpacity>
               </View>
-              {aiBusy ? <Text style={styles.note}>{aiBusy}</Text> : aiDone ? <Text style={[styles.note, { color: COLORS.success, fontWeight: '700' }]}>{aiDone}</Text> : <Text style={styles.note}>For the photo: add it under Photographs, then tap From the photo. The AI only suggests — nothing is signed until you sign.</Text>}
+              {aiBusy ? <Text style={styles.note}>{aiBusy}</Text> : aiDone ? <Text style={[styles.note, { color: COLORS.success, fontWeight: '700' }]}>{aiDone}</Text> : <Text style={styles.note}>{t('ins.aiNote')}</Text>}
             </View>
           ) : null}
 
@@ -619,18 +612,18 @@ export default function InspectionSc() {
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Label numberOfLines={1}>{template.title}</Label>
                 <Text style={styles.progress}>
-                  {answered} of {template.lines.length} answered
+                  {t('ins.answered', { k: answered, n: template.lines.length })}
                 </Text>
               </View>
               {answered ? (
                 <TouchableOpacity style={styles.clearBtn} onPress={clearAll}>
                   <MciIcon name="close" size={16} color={COLORS.textLight} />
-                  <Text style={styles.clearText}>Clear all</Text>
+                  <Text style={styles.clearText}>{t('ins.clearAll')}</Text>
                 </TouchableOpacity>
               ) : null}
               <TouchableOpacity style={styles.allPassBtn} onPress={markAllPass}>
                 <MciIcon name="check-all" size={16} color={COLORS.textWhite} />
-                <Text style={styles.allPassText}>All pass</Text>
+                <Text style={styles.allPassText}>{t('ins.allPass')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -652,10 +645,10 @@ export default function InspectionSc() {
                           ]}
                           onPress={() => setLine(line.id, r)}
                           accessibilityRole="button"
-                          accessibilityLabel={`${line.text}: ${RESULT_LABEL[r]}`}
+                          accessibilityLabel={`${line.text}: ${tk(RESULT_KEY[r])}`}
                         >
                           <Text style={[styles.resultText, on && { color: COLORS.textWhite }]}>
-                            {RESULT_LABEL[r]}
+                            {tk(RESULT_KEY[r])}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -670,16 +663,13 @@ export default function InspectionSc() {
               "FAIL" alone leaves the next person nothing to act on. */}
           {anyFail ? (
             <View style={[styles.card, styles.defectCard]}>
-              <Label style={{ color: COLORS.danger }}>Defect raised</Label>
-              <Text style={styles.note}>
-                This inspection will be filed as FAILED and the defect stays open against this item
-                until somebody records the rectification.
-              </Text>
+              <Label style={{ color: COLORS.danger }}>{t('ins.defectRaised')}</Label>
+              <Text style={styles.note}>{t('ins.defectBody')}</Text>
               <TextInput
                 style={[styles.input, styles.multiline]}
                 value={defectNote}
                 onChangeText={setDefectNote}
-                placeholder="What is wrong, and what is needed"
+                placeholder={t('ins.defectPh')}
                 placeholderTextColor={COLORS.textLight}
                 multiline
               />
@@ -687,22 +677,20 @@ export default function InspectionSc() {
           ) : null}
 
           <View style={styles.card}>
-            <Label>Comments</Label>
+            <Label>{t('id.comments')}</Label>
             <TextInput
               style={[styles.input, styles.multiline]}
               value={comment}
               onChangeText={setComment}
-              placeholder="Readings taken, work done, anything worth the next person knowing"
+              placeholder={t('ins.commentsPh')}
               placeholderTextColor={COLORS.textLight}
               multiline
             />
           </View>
 
           <View style={styles.card}>
-            <Label>Photographs</Label>
-            <Text style={styles.note}>
-              Evidence for this inspection — kept on the record, not on the item's general photos.
-            </Text>
+            <Label>{t('id.photos')}</Label>
+            <Text style={styles.note}>{t('ins.photosNote')}</Text>
             <View style={styles.photoRow}>
               {photos.map((p) => (
                 <TouchableOpacity
@@ -723,7 +711,7 @@ export default function InspectionSc() {
                 </TouchableOpacity>
               ) : null}
             </View>
-            {photos.length ? <Text style={styles.hint}>Long-press a photo to remove it</Text> : null}
+            {photos.length ? <Text style={styles.hint}>{t('ins.longPress')}</Text> : null}
           </View>
 
           <TouchableOpacity
@@ -733,13 +721,10 @@ export default function InspectionSc() {
           >
             <MciIcon name="draw-pen" size={20} color={COLORS.textWhite} />
             <Text style={styles.saveBtnText}>
-              {anyFail ? 'Sign as FAILED' : 'Sign inspection'}
+              {anyFail ? t('ins.signFailed') : t('ins.signInspection')}
             </Text>
           </TouchableOpacity>
-          <Text style={styles.finalNote}>
-            The date, exact time and your name are stamped on the record when you sign. It cannot be
-            edited afterwards.
-          </Text>
+          <Text style={styles.finalNote}>{t('ins.finalNote')}</Text>
         </ScrollView>
 
         <SignerPicker
@@ -761,7 +746,6 @@ export default function InspectionSc() {
   );
 }
 
-const RESULT_LABEL: Record<CheckResult, string> = { pass: 'PASS', fail: 'FAIL', na: 'N/A' };
 const RESULT_COLOR = (c: Palette): Record<CheckResult, string> => ({
   pass: c.success,
   fail: c.danger,

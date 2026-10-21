@@ -8,6 +8,7 @@ import { Modal, Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } 
 import { Picker } from '@react-native-picker/picker';
 import { MciIcon } from './MciIcon';
 import { Palette, SIZES } from '../theme';
+import { currentLang, dateLocale, monthName, t, useT, weekdayName } from '../utils/i18n';
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
@@ -44,15 +45,20 @@ export interface DayLabel {
   full: string;
 }
 
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 export function isoLabel(iso: string): DayLabel {
   const d = parseISO(iso);
   return {
-    weekday: WD[d.getDay()],
-    weekdayS: WD[d.getDay()].slice(0, 3),
+    weekday: weekdayName(d.getDay()),
+    weekdayS: weekdayName(d.getDay(), 'short'),
     dayNum: d.getDate(),
-    monthFull: MON[d.getMonth()],
+    monthFull: monthName(d.getMonth()),
     year: d.getFullYear(),
-    full: `${WD[d.getDay()]}, ${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()}`,
+    // Other languages decline the month inside a date ("3 апреля"), so Intl writes it whole.
+    full: currentLang() === 'en'
+      ? `${WD[d.getDay()]}, ${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()}`
+      : cap(d.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })),
   };
 }
 
@@ -77,6 +83,7 @@ export interface DateNavProps {
 }
 
 export function DateNav({ selected, days, onPrev, onNext, COLORS, onPick }: DateNavProps) {
+  useT();
   const lbl = isoLabel(selected);
   const today = parseISO(todayISO());
   const selDate = parseISO(selected);
@@ -145,11 +152,11 @@ export function DateNav({ selected, days, onPrev, onNext, COLORS, onPick }: Date
         <View style={[styles.sheet, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
           <View style={styles.sheetHeader}>
             <TouchableOpacity onPress={() => setOpen(false)} hitSlop={8}>
-              <Text style={[styles.sheetBtn, { color: COLORS.textLight }]}>Cancel</Text>
+              <Text style={[styles.sheetBtn, { color: COLORS.textLight }]}>{t('common.cancel')}</Text>
             </TouchableOpacity>
-            <Text style={[styles.sheetTitle, { color: COLORS.text }]}>Select Date</Text>
+            <Text style={[styles.sheetTitle, { color: COLORS.text }]}>{t('sdp.selectT')}</Text>
             <TouchableOpacity onPress={confirm} hitSlop={8}>
-              <Text style={[styles.sheetBtn, { color: COLORS.primary, fontWeight: '700' }]}>Done</Text>
+              <Text style={[styles.sheetBtn, { color: COLORS.primary, fontWeight: '700' }]}>{t('common.done')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -174,7 +181,7 @@ export function DateNav({ selected, days, onPrev, onNext, COLORS, onPick }: Date
               itemStyle={[styles.wheelItem, { color: COLORS.text }]}
             >
               {MON.map((m, i) => (
-                <Picker.Item key={m} label={m} value={i} />
+                <Picker.Item key={m} label={monthName(i)} value={i} />
               ))}
             </Picker>
 

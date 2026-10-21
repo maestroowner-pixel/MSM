@@ -11,10 +11,12 @@ import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } fr
 import { CameraView, useCameraPermissions } from 'expo-camera';
 
 import { useTheme } from '../contexts/ThemeContext';
+import { t, useT } from '../utils/i18n';
 import { SIZES } from '../theme';
 
-export function PhotoCamera({ visible, onTaken, onClose, title = 'Photo' }: { visible: boolean; onTaken: (uri: string) => void; onClose: () => void; title?: string }) {
+export function PhotoCamera({ visible, onTaken, onClose, title }: { visible: boolean; onTaken: (uri: string) => void; onClose: () => void; title?: string }) {
   const COLORS = useTheme();
+  useT();
   const cam = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<'front' | 'back'>('front');
@@ -38,14 +40,14 @@ export function PhotoCamera({ visible, onTaken, onClose, title = 'Photo' }: { vi
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={s.back}>
         <View style={[s.card, { backgroundColor: COLORS.cardSolid }]}>
-          <Text style={[s.title, { color: COLORS.text }]}>{title}</Text>
+          <Text style={[s.title, { color: COLORS.text }]}>{title ?? t('ins.photo')}</Text>
           {!permission ? (
             <ActivityIndicator color={COLORS.primary} />
           ) : !permission.granted ? (
             <View style={{ gap: SIZES.sm }}>
-              <Text style={{ color: COLORS.textLight }}>The camera is needed to take the photo.</Text>
+              <Text style={{ color: COLORS.textLight }}>{t('cam.needed')}</Text>
               <TouchableOpacity style={[s.btn, { backgroundColor: COLORS.primary }]} onPress={() => void requestPermission()}>
-                <Text style={s.btnText}>Allow the camera</Text>
+                <Text style={s.btnText}>{t('cam.allow')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -58,16 +60,16 @@ export function PhotoCamera({ visible, onTaken, onClose, title = 'Photo' }: { vi
           {err ? <Text style={{ color: COLORS.danger, marginTop: SIZES.xs }}>{err}</Text> : null}
           <View style={s.row}>
             <TouchableOpacity onPress={onClose} hitSlop={8}>
-              <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Cancel</Text>
+              <Text style={{ color: COLORS.primary, fontWeight: '700' }}>{t('common.cancel')}</Text>
             </TouchableOpacity>
             <View style={{ flex: 1 }} />
             {permission?.granted ? (
               <>
                 <TouchableOpacity onPress={() => setFacing((f) => (f === 'front' ? 'back' : 'front'))} hitSlop={8}>
-                  <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Flip</Text>
+                  <Text style={{ color: COLORS.primary, fontWeight: '700' }}>{t('cam.flip')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[s.btn, { backgroundColor: COLORS.primary, opacity: busy ? 0.6 : 1 }]} onPress={() => void capture()} disabled={busy}>
-                  <Text style={s.btnText}>{busy ? 'Taking…' : 'Capture'}</Text>
+                  <Text style={s.btnText}>{busy ? t('cam.taking') : t('cam.capture')}</Text>
                 </TouchableOpacity>
               </>
             ) : null}

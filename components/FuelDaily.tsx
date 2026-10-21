@@ -17,6 +17,7 @@ import { Card, Label } from './ui';
 import { MciIcon } from './MciIcon';
 import { useSigner } from './SignerChoice';
 import { useTheme } from '../contexts/ThemeContext';
+import { t as tr, tk, useT } from '../utils/i18n';
 import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
 import { fuelDaily, fuelDailyText } from '../services/fuelDaily';
@@ -38,6 +39,7 @@ const L = (n: number) => `${Math.round(n).toLocaleString('en-GB').replace(/,/g, 
 
 export function FuelDaily({ onSounding }: { onSounding: () => void }) {
   const COLORS = useTheme();
+  useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const data = useData();
   const { fuelTanks, fuelReadings, fuelBunkers, fuelDailySent, vessel, appendRow } = data;
@@ -79,7 +81,7 @@ export function FuelDaily({ onSounding }: { onSounding: () => void }) {
     try {
       const d = { date, kind, stamp, place, fuel: r, sections, ...(remarks.trim() ? { remarks: remarks.trim() } : {}), ...(by ? { by } : {}) };
       const w = fmt === 'pdf' ? await exportDailyPdf(d, vessel) : await exportDailyExcel(d, vessel);
-      if (typeof w === 'string') setNote(w === 'Downloads' ? 'Saved to Downloads' : `Saved to the folder “${w}”`);
+      if (typeof w === 'string') setNote(w === 'Downloads' ? tr('common.savedDownloads') : tr('common.savedFolder', { folder: w }));
     } catch (e: any) {
       setNote(String(e?.message ?? e));
     }
@@ -91,7 +93,7 @@ export function FuelDaily({ onSounding }: { onSounding: () => void }) {
 
   const ready = () => {
     if (!signer) {
-      setNote('Choose who is sending it.');
+      setNote(tr('fdl.whoSends'));
       return false;
     }
     return true;
@@ -131,9 +133,9 @@ export function FuelDaily({ onSounding }: { onSounding: () => void }) {
       try {
         await nav?.clipboard?.writeText(text);
         await log('copy');
-        setNote('Copied — paste it into the message.');
+        setNote(tr('fdl.copied'));
       } catch {
-        setNote('Could not copy — select the text below.');
+        setNote(tr('fdl.noCopy'));
       }
       return;
     }
@@ -142,14 +144,14 @@ export function FuelDaily({ onSounding }: { onSounding: () => void }) {
   };
   const sentToday = fuelDailySent.filter((x) => x.date === date).sort((a, b) => a.sentAt - b.sentAt);
   const history = useMemo(() => [...fuelDailySent].sort((a, b) => b.sentAt - a.sentAt).slice(0, 30), [fuelDailySent]);
-  const how = (x: FuelDailySent) => (x.channel === 'email' ? `e-mail${x.to ? ` → ${x.to}` : ''}` : x.channel === 'share' ? 'shared' : 'copied');
+  const how = (x: FuelDailySent) => (x.channel === 'email' ? `${tr('fdl.email')}${x.to ? ` → ${x.to}` : ''}` : x.channel === 'share' ? tr('fdl.shared') : tr('fdl.copiedL'));
   const hm = (t: number) => new Date(t).toTimeString().slice(0, 5);
 
   return (
     <>
       <View style={styles.dayRow}>
         <TouchableOpacity onPress={() => shift(-1)} hitSlop={10}><MciIcon name="chevron-left" size={28} color={COLORS.primary} /></TouchableOpacity>
-        <Text style={styles.day}>{date === today ? `Today · ${formatDate(date)}` : formatDate(date)}</Text>
+        <Text style={styles.day}>{date === today ? tr('fdl.today', { date: formatDate(date) }) : formatDate(date)}</Text>
         <TouchableOpacity onPress={() => shift(1)} disabled={date >= today} hitSlop={10}>
           <MciIcon name="chevron-right" size={28} color={date >= today ? COLORS.border : COLORS.primary} />
         </TouchableOpacity>
@@ -158,85 +160,85 @@ export function FuelDaily({ onSounding }: { onSounding: () => void }) {
       <View style={{ flexDirection: 'row', gap: SIZES.xs, marginBottom: SIZES.sm }}>
         {(['noon', 'midnight'] as ReportKind[]).map((k) => (
           <TouchableOpacity key={k} onPress={() => setKind(k)} style={[styles.btnOutline, { paddingVertical: 6 }, kind === k && { backgroundColor: COLORS.primary }]}>
-            <Text style={[styles.btnOutlineText, kind === k && { color: COLORS.textWhite }]}>{`${REPORT_LABEL[k]} · ${k === 'noon' ? 'noon to noon' : '00:00–24:00'}`}</Text>
+            <Text style={[styles.btnOutlineText, kind === k && { color: COLORS.textWhite }]}>{`${tk(`fdl.rep.${k}`)} · ${k === 'noon' ? tr('fdl.noonToNoon') : '00:00–24:00'}`}</Text>
           </TouchableOpacity>
         ))}
       </View>
       {!r.reading ? (
         <Card>
-          <Text style={styles.warn}>{`No sounding for ${formatDate(date)} yet — the fuel figures come from it.`}</Text>
-          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={onSounding}><Text style={styles.btnText}>Go to Sounding</Text></TouchableOpacity>
+          <Text style={styles.warn}>{tr('fdl.noSounding', { date: formatDate(date) })}</Text>
+          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={onSounding}><Text style={styles.btnText}>{tr('fdl.goSounding')}</Text></TouchableOpacity>
         </Card>
       ) : (
         <>
           <View style={styles.stats}>
-            <Stat label={r.previous ? `Consumed ${r.span && r.span > 1 ? `· ${r.span} days` : '· 24 h'}` : 'Consumed'} value={r.consumed != null ? L(r.consumed) : '—'} warn={r.suspect} styles={styles} COLORS={COLORS} />
-            <Stat label="ROB" value={r.rob != null ? L(r.rob) : '—'} styles={styles} COLORS={COLORS} />
-            <Stat label="Average, 7 days" value={r.avg7 != null ? `${L(r.avg7)}/day` : '—'} styles={styles} COLORS={COLORS} />
-            <Stat label="Days at this rate" value={r.daysLeft != null ? String(r.daysLeft) : '—'} styles={styles} COLORS={COLORS} />
+            <Stat label={r.previous ? `${tr('fuel.consumed')} ${r.span && r.span > 1 ? `· ${tr('fdl.days', { n: r.span })}` : '· 24 h'}` : tr('fuel.consumed')} value={r.consumed != null ? L(r.consumed) : '—'} warn={r.suspect} styles={styles} COLORS={COLORS} />
+            <Stat label={tr('fdl.rob')} value={r.rob != null ? L(r.rob) : '—'} styles={styles} COLORS={COLORS} />
+            <Stat label={tr('fdl.avg7')} value={r.avg7 != null ? tr('fdl.perDay', { v: L(r.avg7) }) : '—'} styles={styles} COLORS={COLORS} />
+            <Stat label={tr('fdl.daysLeft')} value={r.daysLeft != null ? String(r.daysLeft) : '—'} styles={styles} COLORS={COLORS} />
           </View>
-          {r.suspect ? <Text style={styles.warn}>Consumption comes out negative — a sounding or a bunkering figure is wrong.</Text> : null}
-          {!r.previous ? <Text style={styles.sub}>No earlier sounding — consumption shows from the second day.</Text> : null}
+          {r.suspect ? <Text style={styles.warn}>{tr('fdl.negative')}</Text> : null}
+          {!r.previous ? <Text style={styles.sub}>{tr('fdl.noEarlier')}</Text> : null}
         </>
       )}
 
       <Card>
         <Text style={[styles.sub, { marginTop: 0, marginBottom: SIZES.xs, fontWeight: '700' }]}>{stamp}</Text>
-        <Label>{kind === 'noon' ? 'Noon position' : 'Midnight position'}</Label>
+        <Label>{kind === 'noon' ? tr('fdl.noonPos') : tr('fdl.midPos')}</Label>
         <PositionInput position={pos.position} port={pos.port} onChange={(position, port) => setPos({ position, port })} />
       </Card>
 
       <Card>
-        <Label>{`On board ${kind === 'noon' ? `noon ${formatDate(new Date(Date.parse(`${date}T00:00:00Z`) - 86400000).toISOString().slice(0, 10))} → noon ${formatDate(date)}` : formatDate(date)} · ${sections.reduce((n, s) => n + s.rows.length, 0)} entries`}</Label>
+        <Label>{tr('fdl.onBoard', { span: kind === 'noon' ? tr('fdl.noonSpan', { from: formatDate(new Date(Date.parse(`${date}T00:00:00Z`) - 86400000).toISOString().slice(0, 10)), to: formatDate(date) }) : formatDate(date), n: sections.reduce((n, s) => n + s.rows.length, 0) })}</Label>
         {sections.map((s) => (
           <TouchableOpacity key={s.title} onPress={() => setOpenSec(openSec === s.title ? null : s.title)} activeOpacity={0.7} style={{ paddingVertical: 4 }}>
             <Text style={{ fontWeight: '700', color: COLORS.textDark }}>{`${openSec === s.title ? '▾' : '▸'} ${s.title} · ${s.rows.length}`}</Text>
             {openSec === s.title ? s.rows.map((row, i) => <Text key={i} style={styles.sub}>{row.filter(Boolean).join(' · ')}</Text>) : null}
           </TouchableOpacity>
         ))}
-        {!sections.length ? <Text style={styles.sub}>Nothing recorded in any log for this day yet.</Text> : null}
+        {!sections.length ? <Text style={styles.sub}>{tr('fdl.nothingDay')}</Text> : null}
         <View style={styles.row}>
-          <TouchableOpacity style={styles.btn} onPress={() => void doc('pdf')}><Text style={styles.btnText}>{`${REPORT_LABEL[kind]} (PDF)`}</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.btn} onPress={() => void doc('pdf')}><Text style={styles.btnText}>{`${tk(`fdl.rep.${kind}`)} (PDF)`}</Text></TouchableOpacity>
           <TouchableOpacity style={styles.btnOutline} onPress={() => void doc('xlsx')}><Text style={styles.btnOutlineText}>Excel</Text></TouchableOpacity>
         </View>
       </Card>
 
       <Card>
-        <Label>Send</Label>
+        <Label>{tr('email.send')}</Label>
         {picker}
-        <TextInput style={styles.input} value={remarks} onChangeText={setRemarks} placeholder="Remarks — at anchor, generators only, passage…" placeholderTextColor={COLORS.textLight} multiline />
-        <TextInput style={styles.input} value={to} onChangeText={setTo} placeholder="To — office@…, captain@… (remembered)" placeholderTextColor={COLORS.textLight} autoCapitalize="none" keyboardType="email-address" />
+        <TextInput style={styles.input} value={remarks} onChangeText={setRemarks} placeholder={tr('fdl.remarksPh')} placeholderTextColor={COLORS.textLight} multiline />
+        <TextInput style={styles.input} value={to} onChangeText={setTo} placeholder={tr('fdl.toPh')} placeholderTextColor={COLORS.textLight} autoCapitalize="none" keyboardType="email-address" />
         <View style={styles.row}>
           <TouchableOpacity style={styles.btn} onPress={() => void email()}>
-            <Text style={styles.btnText}>E-mail</Text>
+            <Text style={styles.btnText}>{tr('fdl.emailBtn')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.btnOutline} onPress={() => void share()}>
-            <Text style={styles.btnOutlineText}>{Platform.OS === 'web' ? 'Share / copy' : 'Share'}</Text>
+            <Text style={styles.btnOutlineText}>{Platform.OS === 'web' ? tr('fdl.shareCopy') : tr('fdl.share')}</Text>
           </TouchableOpacity>
         </View>
         {note ? <Text style={[styles.sub, { color: COLORS.primary, fontWeight: '700' }]}>{note}</Text> : null}
         {sentToday.length ? (
           <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700', marginTop: SIZES.sm }]}>
-            {`✓ Sent for ${formatDate(date)}: ${sentToday.map((x) => `${hm(x.sentAt)} ${x.by} · ${how(x)}`).join('; ')}`}
+            {tr('fdl.sentFor', { date: formatDate(date), list: sentToday.map((x) => `${hm(x.sentAt)} ${x.by} · ${how(x)}`).join('; ') })}
           </Text>
         ) : null}
         <Text style={styles.preview} selectable>{text}</Text>
       </Card>
 
-      <Label>{`Sent reports (${fuelDailySent.length})`}</Label>
+      <Label>{tr('fdl.sentReports', { n: fuelDailySent.length })}</Label>
       {history.map((x) => (
         <TouchableOpacity key={x.id} style={styles.logRow} onPress={() => setOpenLog(openLog === x.id ? null : x.id)} activeOpacity={0.7}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm }}>
             <Text style={styles.logDay}>{formatDate(x.date)}</Text>
             <Text style={[styles.sub, { flex: 1 }]} numberOfLines={1}>
-              {[x.consumed != null ? `${L(x.consumed)} burnt` : null, x.rob != null ? `ROB ${L(x.rob)}` : null, `${formatDateTime(x.sentAt)} · ${x.byRank ? `${x.by} (${x.byRank})` : x.by} · ${how(x)}`].filter(Boolean).join(' · ')}
+              {[x.consumed != null ? tr('fdl.burnt', { v: L(x.consumed) }) : null, x.rob != null ? `${tr('fdl.rob')} ${L(x.rob)}` : null, `${formatDateTime(x.sentAt)} · ${x.byRank ? `${x.by} (${x.byRank})` : x.by} · ${how(x)}`].filter(Boolean).join(' · ')}
             </Text>
             <MciIcon name={openLog === x.id ? 'chevron-up' : 'chevron-down'} size={18} color={COLORS.textLight} />
           </View>
           {openLog === x.id ? <Text style={styles.preview} selectable>{x.text}</Text> : null}
         </TouchableOpacity>
       ))}
-      {!history.length ? <Text style={styles.sub}>Nothing sent yet. Each report you send is kept here, as it went.</Text> : null}
+      {!history.length ? <Text style={styles.sub}>{tr('fdl.noneSent')}</Text> : null}
     </>
   );
 }

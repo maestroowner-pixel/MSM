@@ -21,7 +21,7 @@ import { useSigner } from '../components/SignerChoice';
 import { SIZES, Palette } from '../theme';
 import { roleAtLeast } from '../types/role';
 import {
-  Delivery, ORDER_DEPT_LABEL, ORDER_DEPTS, ORDER_STATUS_COLOR, ORDER_STATUS_LABEL,
+  Delivery, ORDER_DEPTS, ORDER_STATUS_COLOR,
   OrderDept, OrderLine, OrderStatus, PurchaseOrder,
 } from '../types/orders';
 import { allReceived, completionPct, copyOrder, derivedStatus, lineCount, nextOrderNo, orderValue, priceStr, lineTotalStr } from '../services/orders';
@@ -32,14 +32,15 @@ import { formatDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
+import { t, tk, tn, useT } from '../utils/i18n';
 import { MciIcon } from '../components/MciIcon';
 import { searchPorts } from '../constants/ports';
 
 const CURRENCIES = ['€', '$', '£', '¥'];
 const URGENCY_LEVELS = [
-  { key: 'routine', label: 'Routine', color: 'textLight' },
-  { key: 'urgent', label: 'Urgent', color: 'warning' },
-  { key: 'emergency', label: 'Emergency', color: 'danger' },
+  { key: 'routine', color: 'textLight' },
+  { key: 'urgent', color: 'warning' },
+  { key: 'emergency', color: 'danger' },
 ] as const;
 type UrgencyKey = 'routine' | 'urgent' | 'emergency';
 
@@ -56,12 +57,17 @@ const ORDER_UNITS = [
 /** Statuses the officer can set directly. Partial can be set manually or auto-derived. */
 const SETTABLE_STATUSES: OrderStatus[] = ['draft', 'standby', 'sent', 'partial', 'received', 'cancelled'];
 
+// ORDER_DEPT_LABEL / ORDER_STATUS_LABEL (types/orders) stay English for the PDF; the screen translates.
+const deptName = (d: string) => tk(`od.${d}`);
+const urgName = (u: string) => tk(`po.urg.${u}`);
+
 function emptyLine(): OrderLine {
   return { id: uid('ol'), description: '', qty: 1, unit: 'pcs' };
 }
 
 export default function OrderSc() {
   const COLORS = useTheme();
+  useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
@@ -108,7 +114,7 @@ export default function OrderSc() {
     return (
       <Screen scroll>
         <BackButton onPress={() => goBackOr(nav, 'Main', { screen: 'Orders' })} />
-        <Text style={{ color: COLORS.textLight, marginTop: SIZES.md }}>This order is not on this device yet — it arrives with the next sync.</Text>
+        <Text style={{ color: COLORS.textLight, marginTop: SIZES.md }}>{t('mo.notHere')}</Text>
       </Screen>
     );
   }
@@ -180,9 +186,9 @@ export default function OrderSc() {
 
   const save = async () => {
     if (!draft) return;
-    if (!draft.lines.length) return Alert.alert('Order', 'Add at least one line before saving.');
+    if (!draft.lines.length) return Alert.alert(t('mo.order'), t('po.needLine'));
     const noId = draft.lines.find((l) => !l.description.trim() && !l.impa?.trim());
-    if (noId) return Alert.alert('Order', `Line ${draft.lines.indexOf(noId) + 1}: enter a description or IMPA number.`);
+    if (noId) return Alert.alert(t('mo.order'), t('po.lineNeedsId', { n: draft.lines.indexOf(noId) + 1 }));
     const toSave: PurchaseOrder = { ...draft, by: signer?.name ?? draft.by };
     await saveRow(storage.PURCHASE_ORDERS_KEY, toSave);
     setSavedId(toSave.id);
@@ -197,10 +203,10 @@ export default function OrderSc() {
       return;
     }
     if (newStatus === 'cancelled') {
-      Alert.alert('Cancel order', 'Mark this order as cancelled?', [
-        { text: 'Keep', style: 'cancel' },
+      Alert.alert(t('go.cancelQ'), t('po.cancelBody'), [
+        { text: t('po.keep'), style: 'cancel' },
         {
-          text: 'Cancel order',
+          text: t('go.cancelQ'),
           style: 'destructive',
           onPress: async () => {
             await saveRow(storage.PURCHASE_ORDERS_KEY, { ...o, status: 'cancelled', cancelledAt: today, updatedAt: Date.now() });
@@ -259,7 +265,7 @@ export default function OrderSc() {
   return (
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav, 'Main', { screen: 'Orders' })} />
-      <ScreenTitle title={isNew ? 'New order' : o.no} subtitle={ORDER_DEPT_LABEL[o.dept]} />
+      <ScreenTitle title={isNew ? t('po.new') : o.no} subtitle={deptName(o.dept)} />
 
       {/* Status chips */}
       {!isNew ? (
@@ -275,7 +281,7 @@ export default function OrderSc() {
                 activeOpacity={final || !officer ? 1 : 0.7}
               >
                 <Text style={[styles.statusChipText, { color: active ? COLORS.cardSolid : color }]}>
-                  {ORDER_STATUS_LABEL[s]}
+                  {tk(`po.st.${s}`)}
                 </Text>
               </TouchableOpacity>
             );
@@ -285,7 +291,7 @@ export default function OrderSc() {
 
       <Card>
         {/* Department */}
-        <Label>Department</Label>
+        <Label>{t('po.dept')}</Label>
         {editable ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
             {ORDER_DEPTS.map((d) => (
@@ -295,48 +301,48 @@ export default function OrderSc() {
                 onPress={() => set({ dept: d })}
                 activeOpacity={0.7}
               >
-                <Text style={(draft ?? o).dept === d ? styles.chipTextOn : styles.chipText}>{ORDER_DEPT_LABEL[d]}</Text>
+                <Text style={(draft ?? o).dept === d ? styles.chipTextOn : styles.chipText}>{deptName(d)}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
         ) : (
-          <Text style={styles.fieldVal}>{ORDER_DEPT_LABEL[o.dept]}</Text>
+          <Text style={styles.fieldVal}>{deptName(o.dept)}</Text>
         )}
 
         {/* Date · Supplier · Supplier Ref — one row */}
         <View style={styles.headerFields}>
           <View style={styles.headerColDate}>
-            <Label>Date</Label>
+            <Label>{t('nc.date')}</Label>
             {editable ? (
-              <SimpleDatePicker label="Date" showLabel={false} compact value={(draft ?? o).date} onChange={(v) => set({ date: v })} />
+              <SimpleDatePicker label={t('nc.date')} showLabel={false} compact value={(draft ?? o).date} onChange={(v) => set({ date: v })} />
             ) : (
               <Text style={styles.fieldVal}>{formatDate(o.date)}</Text>
             )}
           </View>
           <View style={styles.headerColSupplier}>
-            <Label>Supplier</Label>
+            <Label>{t('spp.supplier')}</Label>
             {editable ? (
               <TextInput
                 style={styles.input}
                 value={(draft ?? o).supplier ?? ''}
                 onChangeText={(v) => set({ supplier: v })}
-                placeholder="Supplier name"
+                placeholder={t('lr.supplierPh')}
                 placeholderTextColor={COLORS.textLight}
               />
             ) : o.supplier ? (
               <Text style={styles.fieldVal}>{o.supplier}</Text>
             ) : (
-              <Text style={styles.fieldVal2}>Not set</Text>
+              <Text style={styles.fieldVal2}>{t('po.notSet')}</Text>
             )}
           </View>
           <View style={styles.headerColRef}>
-            <Label>Ref</Label>
+            <Label>{t('po.ref')}</Label>
             {editable ? (
               <TextInput
                 style={styles.input}
                 value={(draft ?? o).supplierRef ?? ''}
                 onChangeText={(v) => set({ supplierRef: v })}
-                placeholder="Quote / PO ref"
+                placeholder={t('po.refPh')}
                 placeholderTextColor={COLORS.textLight}
               />
             ) : o.supplierRef ? (
@@ -351,10 +357,10 @@ export default function OrderSc() {
         <View style={styles.deliveryFields}>
           {/* Delivery date */}
           <View style={styles.delivColDate}>
-            <Label>Delivery date</Label>
+            <Label>{t('po.deliveryDate')}</Label>
             {editable ? (
               <SimpleDatePicker
-                label="Delivery date"
+                label={t('po.deliveryDate')}
                 showLabel={false}
                 compact
                 value={(draft ?? o).deliveryDate ?? ''}
@@ -371,7 +377,7 @@ export default function OrderSc() {
 
           {/* Port */}
           <View style={styles.delivColPort}>
-            <Label>Port</Label>
+            <Label>{t('po.port')}</Label>
             {editable ? (
               <View>
                 <TextInput
@@ -384,7 +390,7 @@ export default function OrderSc() {
                   }}
                   onFocus={() => setShowPortDrop(((draft ?? o).deliveryPort ?? '').length > 0)}
                   onBlur={() => setTimeout(() => setShowPortDrop(false), 150)}
-                  placeholder="Start typing…"
+                  placeholder={t('po.startTyping')}
                   placeholderTextColor={COLORS.textLight}
                   returnKeyType="done"
                 />
@@ -416,7 +422,7 @@ export default function OrderSc() {
 
           {/* Urgency */}
           <View style={[styles.delivColUrgency, { zIndex: 15 }]}>
-            <Label>Urgency</Label>
+            <Label>{t('po.urgency')}</Label>
             {editable ? (
               <View>
                 <TouchableOpacity
@@ -431,7 +437,7 @@ export default function OrderSc() {
                     return (
                       <>
                         <Text style={[styles.urgencyTriggerText, { color: lvl ? c : COLORS.textLight }]}>
-                          {lvl ? lvl.label : '—'}
+                          {lvl ? urgName(lvl.key) : '—'}
                         </Text>
                         <MciIcon name={showUrgencyDrop ? 'chevron-up' : 'chevron-down'} size={14} color={COLORS.textLight} />
                       </>
@@ -440,7 +446,7 @@ export default function OrderSc() {
                 </TouchableOpacity>
                 {showUrgencyDrop ? (
                   <View style={styles.urgencyDropdown}>
-                    {[{ key: undefined, label: '—', color: 'textLight' as const }, ...URGENCY_LEVELS].map(({ key, label, color }) => {
+                    {[{ key: undefined, color: 'textLight' as const }, ...URGENCY_LEVELS].map(({ key, color }) => {
                       const c = COLORS[color as keyof typeof COLORS] as string ?? COLORS.textLight;
                       const active = (draft ?? o).urgency === key;
                       return (
@@ -452,7 +458,7 @@ export default function OrderSc() {
                             setShowUrgencyDrop(false);
                           }}
                         >
-                          <Text style={[styles.urgencyOptionText, { color: c }]}>{label}</Text>
+                          <Text style={[styles.urgencyOptionText, { color: c }]}>{key ? urgName(key) : '—'}</Text>
                           {active ? <MciIcon name="check" size={14} color={c} /> : null}
                         </TouchableOpacity>
                       );
@@ -461,7 +467,7 @@ export default function OrderSc() {
                 ) : null}
               </View>
             ) : (draft ?? o).urgency ? (
-              <Text style={styles.fieldVal}>{URGENCY_LEVELS.find((l) => l.key === (draft ?? o).urgency)?.label ?? ''}</Text>
+              <Text style={styles.fieldVal}>{urgName((draft ?? o).urgency!)}</Text>
             ) : (
               <Text style={styles.fieldVal2}>—</Text>
             )}
@@ -471,13 +477,13 @@ export default function OrderSc() {
         {/* Notes */}
         {(editable || o.notes) ? (
           <>
-            <Label style={{ marginTop: SIZES.sm }}>Notes</Label>
+            <Label style={{ marginTop: SIZES.sm }}>{t('og.notes')}</Label>
             {editable ? (
               <TextInput
                 style={[styles.input, { minHeight: 44 }]}
                 value={(draft ?? o).notes ?? ''}
                 onChangeText={(v) => set({ notes: v })}
-                placeholder="Special instructions…"
+                placeholder={t('po.notesPh')}
                 placeholderTextColor={COLORS.textLight}
                 multiline
               />
@@ -493,7 +499,7 @@ export default function OrderSc() {
             <View style={[styles.checkbox, allChecked && styles.checkboxOn]}>
               {allChecked ? <MciIcon name="check" size={14} color={COLORS.cardSolid} /> : null}
             </View>
-            <Text style={styles.checkAllLabel}>All items received</Text>
+            <Text style={styles.checkAllLabel}>{t('po.allReceived')}</Text>
           </TouchableOpacity>
         ) : null}
       </Card>
@@ -503,13 +509,13 @@ export default function OrderSc() {
         <Label>
           {rawLines.length > 0
             ? (lineSearch.trim() && filteredLines.length !== rawLines.length
-                ? `Lines (${filteredLines.length} of ${rawLines.length})`
-                : `Lines (${rawLines.length})`)
-            : 'Lines'}
+                ? t('po.linesOf', { k: filteredLines.length, n: rawLines.length })
+                : t('po.linesN', { n: rawLines.length }))
+            : t('mo.lines')}
         </Label>
         {editable ? (
           <TouchableOpacity onPress={addLine} hitSlop={10}>
-            <Text style={styles.addLine}>+ Add line</Text>
+            <Text style={styles.addLine}>{t('po.addLine')}</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -521,7 +527,7 @@ export default function OrderSc() {
             style={styles.lineSearchInput}
             value={lineSearch}
             onChangeText={setLineSearch}
-            placeholder="Search lines…"
+            placeholder={t('po.searchLines')}
             placeholderTextColor={COLORS.textLight}
             clearButtonMode="while-editing"
             returnKeyType="search"
@@ -546,7 +552,7 @@ export default function OrderSc() {
           {editable ? (
             <View>
               <View style={styles.lineHeader}>
-                <Text style={styles.lineNo}>{`Line ${i + 1}`}</Text>
+                <Text style={styles.lineNo}>{t('po.line', { n: i + 1 })}</Text>
                 {(draft ?? o).lines.length > 1 ? (
                   <TouchableOpacity onPress={() => removeLine(l.id)} hitSlop={10}>
                     <MciIcon name="close" size={16} color={COLORS.danger} />
@@ -558,7 +564,7 @@ export default function OrderSc() {
                 style={styles.input}
                 value={l.description}
                 onChangeText={(v) => setLine(l.id, { description: v })}
-                placeholder="Description ★"
+                placeholder={t('po.descPh')}
                 placeholderTextColor={COLORS.textLight}
               />
               {/* Qty · Part No. · IMPA · 🔍 · Maker · Price · Currency */}
@@ -567,7 +573,7 @@ export default function OrderSc() {
                   style={[styles.input, { width: 64 }]}
                   value={String(l.qty)}
                   onChangeText={(v) => setLine(l.id, { qty: Number(v.replace(',', '.')) || 1 })}
-                  placeholder="Qty"
+                  placeholder={t('mc.qty')}
                   keyboardType="numeric"
                   placeholderTextColor={COLORS.textLight}
                 />
@@ -575,7 +581,7 @@ export default function OrderSc() {
                   style={[styles.input, { flex: 1 }]}
                   value={l.partNo ?? ''}
                   onChangeText={(v) => setLine(l.id, { partNo: v })}
-                  placeholder="Part No."
+                  placeholder={t('po.partNo')}
                   placeholderTextColor={COLORS.textLight}
                 />
                 <TextInput
@@ -593,7 +599,7 @@ export default function OrderSc() {
                     const impa = l.impa?.trim();
                     const desc = l.description?.trim();
                     if (!impa && !desc) {
-                      Alert.alert('ShipServ search', 'Please enter a description or IMPA number first.');
+                      Alert.alert(t('po.shipserv'), t('po.shipservBody'));
                       return;
                     }
                     void Linking.openURL(`https://www.shipserv.com/search?q=${encodeURIComponent(impa || desc || '')}`);
@@ -607,14 +613,14 @@ export default function OrderSc() {
                   style={[styles.input, { flex: 1 }]}
                   value={l.maker ?? ''}
                   onChangeText={(v) => setLine(l.id, { maker: v })}
-                  placeholder="Maker"
+                  placeholder={t('spp.maker')}
                   placeholderTextColor={COLORS.textLight}
                 />
                 <TextInput
                   style={[styles.input, { width: 80 }]}
                   value={l.unitPrice != null ? String(l.unitPrice) : ''}
                   onChangeText={(v) => setLine(l.id, { unitPrice: v ? Number(v.replace(',', '.')) : undefined })}
-                  placeholder="Price"
+                  placeholder={t('po.price')}
                   keyboardType="numeric"
                   placeholderTextColor={COLORS.textLight}
                 />
@@ -649,7 +655,7 @@ export default function OrderSc() {
                   style={[styles.input, { width: 80 }]}
                   value={l.stockQty != null ? String(l.stockQty) : ''}
                   onChangeText={(v) => setLine(l.id, { stockQty: v ? Number(v.replace(',', '.')) : undefined })}
-                  placeholder="Stock aboard"
+                  placeholder={t('po.stock')}
                   keyboardType="numeric"
                   placeholderTextColor={COLORS.textLight}
                 />
@@ -658,14 +664,14 @@ export default function OrderSc() {
                   onPress={() => setUnitPickerFor(unitPickerFor === l.id ? (null) : l.id)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.unitBtnText, !l.unit && { color: COLORS.textLight }]} numberOfLines={1}>{l.unit || 'Unit'}</Text>
+                  <Text style={[styles.unitBtnText, !l.unit && { color: COLORS.textLight }]} numberOfLines={1}>{l.unit || t('po.unit')}</Text>
                   <MciIcon name={unitPickerFor === l.id ? 'chevron-up' : 'chevron-down'} size={12} color={COLORS.textLight} />
                 </TouchableOpacity>
                 <TextInput
                   style={[styles.input, { flex: 1 }]}
                   value={l.budget ?? ''}
                   onChangeText={(v) => setLine(l.id, { budget: v })}
-                  placeholder="Budget / cost centre"
+                  placeholder={t('po.budget')}
                   placeholderTextColor={COLORS.textLight}
                 />
               </View>
@@ -688,7 +694,7 @@ export default function OrderSc() {
                 style={styles.input}
                 value={l.notes ?? ''}
                 onChangeText={(v) => setLine(l.id, { notes: v })}
-                placeholder="Comment"
+                placeholder={t('po.comment')}
                 placeholderTextColor={COLORS.textLight}
               />
             </View>
@@ -700,13 +706,13 @@ export default function OrderSc() {
                   <Text style={styles.lineSub}>
                     {[
                       `${l.qty} ${l.unit}`,
-                      l.partNo && `PN: ${l.partNo}`,
+                      l.partNo && t('po.pn', { pn: l.partNo }),
                       l.impa && `IMPA: ${l.impa}`,
                       l.maker,
                     ].filter(Boolean).join(' · ')}
                   </Text>
                   {l.unitPrice != null ? (
-                    <Text style={styles.lineSub}>{`${priceStr(l)} / ${l.unit} · total ${lineTotalStr(l)}`}</Text>
+                    <Text style={styles.lineSub}>{t('po.priceLine', { price: priceStr(l), unit: l.unit, total: lineTotalStr(l) })}</Text>
                   ) : null}
                   {l.notes ? <Text style={styles.lineSub}>{l.notes}</Text> : null}
                   {l.qtyReceived != null && !receiving ? (() => {
@@ -715,8 +721,8 @@ export default function OrderSc() {
                     return (
                       <Text style={[styles.lineSub, { color: done ? COLORS.success : COLORS.warning }]}>
                         {done
-                          ? `✓ All ${l.qty} ${l.unit} received`
-                          : `${l.qtyReceived} ${l.unit} received · ${outstanding} outstanding`}
+                          ? t('po.allRcvd', { n: l.qty, unit: l.unit })
+                          : t('po.partRcvd', { n: l.qtyReceived, unit: l.unit, k: outstanding })}
                       </Text>
                     );
                   })() : null}
@@ -736,7 +742,7 @@ export default function OrderSc() {
               {/* Partial qty input — shown when checked but need to adjust */}
               {receiving && isLineChecked(l) ? (
                 <View style={styles.receiveRow}>
-                  <Text style={styles.lineSub}>Qty:</Text>
+                  <Text style={styles.lineSub}>{`${t('mc.qty')}:`}</Text>
                   <TextInput
                     style={styles.receiveQtyInput}
                     value={received[l.id] ?? String(l.qty)}
@@ -746,7 +752,7 @@ export default function OrderSc() {
                     selectTextOnFocus
                     placeholderTextColor={COLORS.textLight}
                   />
-                  <Text style={styles.lineSub}>{`of ${l.qty} ${l.unit}`}</Text>
+                  <Text style={styles.lineSub}>{t('po.ofQty', { n: l.qty, unit: l.unit })}</Text>
                 </View>
               ) : null}
             </View>
@@ -756,7 +762,7 @@ export default function OrderSc() {
 
       {/* Total value */}
       {val != null ? (
-        <Text style={styles.total}>{`Total: ${o.lines.find((l) => l.currency)?.currency ?? '€'} ${val.toFixed(2)}`}</Text>
+        <Text style={styles.total}>{t('po.total', { sum: `${o.lines.find((l) => l.currency)?.currency ?? '€'} ${val.toFixed(2)}` })}</Text>
       ) : null}
 
       {/* Signer */}
@@ -766,42 +772,42 @@ export default function OrderSc() {
       <View style={styles.actions}>
         {draft != null ? (
           <TouchableOpacity style={styles.btn} onPress={() => void save()}>
-            <Text style={styles.btnText}>Save order</Text>
+            <Text style={styles.btnText}>{t('go.save')}</Text>
           </TouchableOpacity>
         ) : null}
 
         {!draft && !receiving && (o.status === 'sent' || o.status === 'partial') && officer ? (
           <TouchableOpacity style={styles.btn} onPress={() => setReceiving(true)}>
-            <Text style={styles.btnText}>{o.status === 'partial' ? 'Continue receiving' : 'Confirm receipt'}</Text>
+            <Text style={styles.btnText}>{o.status === 'partial' ? t('po.continueRcv') : t('po.confirmRcpt')}</Text>
           </TouchableOpacity>
         ) : null}
 
         {!draft && receiving ? (
           <>
             <TouchableOpacity style={styles.btn} onPress={() => void confirmReceive()}>
-              <Text style={styles.btnText}>Confirm delivery</Text>
+              <Text style={styles.btnText}>{t('po.confirmDelivery')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.btnOutline} onPress={() => { setReceiving(false); setReceived({}); }}>
-              <Text style={styles.btnOutlineText}>Cancel</Text>
+              <Text style={styles.btnOutlineText}>{t('common.cancel')}</Text>
             </TouchableOpacity>
           </>
         ) : null}
 
         {!isNew && !draft ? (
           <TouchableOpacity style={styles.btnOutline} onPress={() => void doCopy()}>
-            <Text style={styles.btnOutlineText}>Copy as template</Text>
+            <Text style={styles.btnOutlineText}>{t('po.copy')}</Text>
           </TouchableOpacity>
         ) : null}
 
         {!isNew && !draft ? (
           <TouchableOpacity style={styles.btnOutline} onPress={() => void exportOrderPdf(o, vessel)}>
-            <Text style={styles.btnOutlineText}>Save order as PDF</Text>
+            <Text style={styles.btnOutlineText}>{t('po.pdf')}</Text>
           </TouchableOpacity>
         ) : null}
 
         {!isNew && !draft && o.dept !== 'galley' ? (
           <TouchableOpacity style={styles.btnOutline} onPress={() => void printBoxQrLabel(o, vessel)}>
-            <Text style={styles.btnOutlineText}>QR label for box</Text>
+            <Text style={styles.btnOutlineText}>{t('po.boxLabel')}</Text>
           </TouchableOpacity>
         ) : null}
 
@@ -809,10 +815,10 @@ export default function OrderSc() {
           <TouchableOpacity
             style={styles.btnDelete}
             onPress={() =>
-              Alert.alert('Delete order', `Delete ${o.no} permanently from the journal?`, [
-                { text: 'Keep', style: 'cancel' },
+              Alert.alert(t('go.delete'), t('po.deleteBody', { no: o.no }), [
+                { text: t('po.keep'), style: 'cancel' },
                 {
-                  text: 'Delete',
+                  text: t('common.delete'),
                   style: 'destructive',
                   onPress: async () => {
                     await saveRow(storage.PURCHASE_ORDERS_KEY, { ...o, deleted: true, updatedAt: Date.now() });
@@ -822,7 +828,7 @@ export default function OrderSc() {
               ])
             }
           >
-            <Text style={styles.btnDeleteText}>Delete order</Text>
+            <Text style={styles.btnDeleteText}>{t('go.delete')}</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -830,7 +836,7 @@ export default function OrderSc() {
       {/* Delivery history — compact: date + signer + total items received per event */}
       {o.deliveries && o.deliveries.length > 0 ? (
         <>
-          <Label style={{ marginTop: SIZES.md }}>Delivery history</Label>
+          <Label style={{ marginTop: SIZES.md }}>{t('po.history')}</Label>
           {o.deliveries.map((d, i) => {
             const totalReceived = Object.values(d.lines).reduce((s, q) => s + q, 0);
             return (
@@ -838,7 +844,7 @@ export default function OrderSc() {
                 <View style={styles.deliveryDot} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.deliveryDate}>{`${formatDate(d.date)}${d.by ? ` · ${d.by}` : ''}`}</Text>
-                  <Text style={styles.deliveryLine}>{`${totalReceived} unit${totalReceived === 1 ? '' : 's'} received`}</Text>
+                  <Text style={styles.deliveryLine}>{tn('n.unitRcvd', totalReceived)}</Text>
                 </View>
               </View>
             );
@@ -856,19 +862,19 @@ export default function OrderSc() {
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: `${pct}%` as any, backgroundColor: barColor }]} />
             </View>
-            <Text style={styles.trail}>{`${doneLines} of ${o.lines.length} line${o.lines.length === 1 ? '' : 's'} received (${pct}%)`}</Text>
+            <Text style={styles.trail}>{tn('n.lineRcvd', o.lines.length, { k: doneLines, pct })}</Text>
           </View>
         );
       })() : null}
 
       {/* Audit trail */}
-      {o.sentAt ? <Text style={styles.trail}>{`Sent ${formatDate(o.sentAt)}${o.sentBy ? ` by ${o.sentBy}` : ''}`}</Text> : null}
-      {o.receivedAt ? <Text style={styles.trail}>{`Fully received ${formatDate(o.receivedAt)}${o.receivedBy ? ` by ${o.receivedBy}` : ''}`}</Text> : null}
+      {o.sentAt ? <Text style={styles.trail}>{t('galley.sent', { date: formatDate(o.sentAt) }) + (o.sentBy ? t('po.by', { who: o.sentBy }) : '')}</Text> : null}
+      {o.receivedAt ? <Text style={styles.trail}>{t('po.fullyRcvd', { date: formatDate(o.receivedAt) }) + (o.receivedBy ? t('po.by', { who: o.receivedBy }) : '')}</Text> : null}
 
       {/* QR code — delivery receipt label (all depts except galley) */}
       {!isNew && o.dept !== 'galley' ? (
         <Card style={{ marginTop: SIZES.md, alignItems: 'center' }}>
-          <Label style={{ marginBottom: SIZES.sm }}>Delivery QR</Label>
+          <Label style={{ marginBottom: SIZES.sm }}>{t('po.qr')}</Label>
           <QRCode
             value={`po:${o.id}`}
             size={140}
@@ -876,7 +882,7 @@ export default function OrderSc() {
             backgroundColor="transparent"
           />
           <Text style={[styles.trail, { marginTop: SIZES.sm, textAlign: 'center' }]}>
-            {`${o.no} · ${ORDER_DEPT_LABEL[o.dept]}`}
+            {`${o.no} · ${deptName(o.dept)}`}
           </Text>
           {o.supplier ? <Text style={[styles.trail, { textAlign: 'center' }]}>{o.supplier}</Text> : null}
         </Card>

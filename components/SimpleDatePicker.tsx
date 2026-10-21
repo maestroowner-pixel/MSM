@@ -18,10 +18,11 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Dimensions, TouchableWithoutFeedback } from 'react-native';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
+import { t, useT, monthName } from '../utils/i18n';
 import { MciIcon } from './MciIcon';
 import { formatDate } from '../utils/dates';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
 interface Props {
   label: string;
@@ -50,6 +51,7 @@ const parseISODate = (iso: string): Date => {
 
 const SimpleDatePicker: React.FC<Props> = ({ label, value, onChange, defaultYear, disabled, onClear, placeholder, showLabel = true, compact = false }) => {
   const COLORS = useTheme();
+  useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const [visible, setVisible] = useState(false);
 
@@ -89,14 +91,14 @@ const SimpleDatePicker: React.FC<Props> = ({ label, value, onChange, defaultYear
         activeOpacity={0.7}
       >
         <Text style={[styles.triggerText, !value && styles.triggerPlaceholder]}>
-          {value ? formatDate(value) : placeholder ?? 'Select date'}
+          {value ? formatDate(value) : placeholder ?? t('sdp.select')}
         </Text>
         {value && onClear && !disabled ? (
           <TouchableOpacity
             onPress={onClear}
             hitSlop={10}
             style={styles.clearBtn}
-            accessibilityLabel={`Clear ${label}`}
+            accessibilityLabel={t('sdp.clear', { label: label ?? '' })}
           >
             <MciIcon name="close-circle" size={20} color={COLORS.textLight} />
           </TouchableOpacity>
@@ -156,7 +158,7 @@ const SimpleDatePicker: React.FC<Props> = ({ label, value, onChange, defaultYear
                         }}
                         style={[styles.monthItem, isActive && styles.activeBtn]}
                       >
-                        <Text style={[styles.itemText, isActive && styles.activeText]}>{m}</Text>
+                        <Text style={[styles.itemText, isActive && styles.activeText]}>{monthName(m, 'short')}</Text>
                       </TouchableOpacity>
                     );
                   })}

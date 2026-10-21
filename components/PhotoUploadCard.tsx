@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Card, Label } from './ui';
 import { MciIcon } from './MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
+import { t, tk, tn, useT } from '../utils/i18n';
 import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
 import * as photoQueue from '../services/photoQueue';
@@ -25,6 +26,7 @@ const POLICIES: photoQueue.UploadPolicy[] = ['wifi', 'always', 'never'];
 
 export function PhotoUploadCard() {
   const COLORS = useTheme();
+  useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const { prefs, setPrefs, vessel, inspections: trail, photoArchive } = useData();
@@ -73,16 +75,16 @@ export function PhotoUploadCard() {
       // now, which is a clearer instruction than the standing policy.
       const res = await photoQueue.flush('always');
       await refresh();
-      if (res.skipped === 'empty') Alert.alert('Nothing waiting', 'Every photo has been uploaded.');
-      else if (res.skipped === 'offline') Alert.alert('No connection', 'Try again once the vessel is online.');
+      if (res.skipped === 'empty') Alert.alert(t('puc.nothing'), t('puc.allUp'));
+      else if (res.skipped === 'offline') Alert.alert(t('puc.noConn'), t('puc.noConnBody'));
       else {
         Alert.alert(
-          'Upload finished',
-          `${res.uploaded} sent${res.remaining ? `, ${res.remaining} still waiting` : ''}.`
+          t('puc.finished'),
+          res.remaining ? t('puc.sentWaiting', { sent: res.uploaded, left: res.remaining }) : t('puc.sent', { sent: res.uploaded })
         );
       }
     } catch (e: any) {
-      Alert.alert('Upload failed', String(e?.message ?? e));
+      Alert.alert(t('puc.failed'), String(e?.message ?? e));
     } finally {
       setBusy(false);
     }
@@ -90,10 +92,9 @@ export function PhotoUploadCard() {
 
   return (
     <Card>
-      <Label>Inspection photos</Label>
+      <Label>{t('puc.title')}</Label>
       <Text style={styles.note}>
-        Records sync the moment they are signed. Photographs are larger, so they wait for a
-        connection worth spending — at sea that bill is the vessel's, not ours.
+        {t('puc.note')}
       </Text>
 
       <View style={styles.row}>
@@ -104,12 +105,12 @@ export function PhotoUploadCard() {
             onPress={() => void setPrefs({ photoUpload: p })}
           >
             <Text style={[styles.chipText, policy === p && styles.chipTextOn]}>
-              {photoQueue.POLICY_LABEL[p]}
+              {tk(`puc.pol.${p}`)}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
-      <Text style={styles.hint}>{photoQueue.POLICY_HINT[policy]}</Text>
+      <Text style={styles.hint}>{tk(`puc.hint.${policy}`)}</Text>
 
       <View style={styles.statusRow}>
         <MciIcon
@@ -118,11 +119,11 @@ export function PhotoUploadCard() {
           color={waiting ? COLORS.warning : COLORS.success}
         />
         <Text style={styles.status}>
-          {waiting ? `${waiting} photo${waiting === 1 ? '' : 's'} waiting` : 'Nothing waiting'}
+          {waiting ? tn('n.photoWaiting', waiting) : t('puc.nothing')}
         </Text>
         {waiting && left !== 0 ? (
           <TouchableOpacity onPress={uploadNow} disabled={busy} hitSlop={8}>
-            <Text style={[styles.action, busy && { opacity: 0.4 }]}>Upload now</Text>
+            <Text style={[styles.action, busy && { opacity: 0.4 }]}>{t('puc.now')}</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -132,10 +133,8 @@ export function PhotoUploadCard() {
       {left !== null ? (
         <Text style={[styles.note, left === 0 && { color: COLORS.warning }]}>
           {left > 0
-            ? `${left} of ${FREE_UPLOADS_PER_VESSEL} free uploads left on this vessel. Photographs are ` +
-              'kept on the device that took them either way — the licence is what sends them to the crew.'
-            : `This vessel has used all ${FREE_UPLOADS_PER_VESSEL} free uploads. Photographs are still ` +
-              'taken and kept here, and everything waiting goes up on the first sync after the vessel is licensed.'}
+            ? t('puc.freeLeft', { left, total: FREE_UPLOADS_PER_VESSEL })
+            : t('puc.freeUsed', { total: FREE_UPLOADS_PER_VESSEL })}
         </Text>
       ) : null}
 
@@ -150,12 +149,11 @@ export function PhotoUploadCard() {
           color={awaitingArchive ? COLORS.warning : COLORS.textLight}
         />
         <View style={{ flex: 1 }}>
-          <Text style={styles.archiveTitle}>Photo archive</Text>
+          <Text style={styles.archiveTitle}>{t('pa.title')}</Text>
           <Text style={styles.note}>
             {awaitingArchive
-              ? `${awaitingArchive} photograph${awaitingArchive === 1 ? '' : 's'} older than ` +
-                `${RETENTION_DAYS} days are not archived yet`
-              : `Cloud storage keeps photographs for ${RETENTION_DAYS} days; older ones are kept by the vessel`}
+              ? tn('n.photoUnarchived', awaitingArchive, { days: RETENTION_DAYS })
+              : t('puc.retention', { days: RETENTION_DAYS })}
           </Text>
         </View>
         <Text style={styles.chev}>›</Text>

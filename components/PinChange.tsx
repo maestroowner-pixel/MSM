@@ -8,6 +8,7 @@
 // Like every signing PIN it lives on this device only.
 // ===================================
 
+import { t, tn, useT } from '../utils/i18n';
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -28,6 +29,7 @@ export const usePinChange = (): Opener => useContext(Ctx) ?? (() => {});
 
 export function PinChangeProvider({ children }: { children: React.ReactNode }) {
   const COLORS = useTheme();
+  useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const [who, setWho] = useState<PinPerson | null>(null);
   const [step, setStep] = useState<Step>('unlock');
@@ -71,13 +73,13 @@ export function PinChangeProvider({ children }: { children: React.ReactNode }) {
     if (step === 'unlock') {
       const key = by === 'own' || isMasterPin ? who.key : ADMIN_KEY;
       const r = await checkPin(key, v);
-      if (!r.ok) return setMsg(r.lockedUntil ? `Too many wrong PINs — try again in ${Math.max(1, Math.ceil((r.lockedUntil - Date.now()) / 60000))} min.` : `Wrong PIN — ${r.left} ${r.left === 1 ? 'try' : 'tries'} left.`);
+      if (!r.ok) return setMsg(r.lockedUntil ? t('sc.locked', { min: Math.max(1, Math.ceil((r.lockedUntil - Date.now()) / 60000)) }) : t('sc.wrongPin', { left: tn('n.tryLeft', r.left) }));
       setMsg(null);
       return setStep('new1');
     }
     if (step === 'new1') {
-      if (!isValidSignPin(v)) return setMsg(`Choose ${PIN_MIN} to ${PIN_MAX} digits.`);
-      if (isWeakPin(v)) return setMsg('Too easy to guess — avoid repeats and runs like 1234.');
+      if (!isValidSignPin(v)) return setMsg(t('sc.digits', { min: PIN_MIN, max: PIN_MAX }));
+      if (isWeakPin(v)) return setMsg(t('sc.weak'));
       setFirst(v);
       setMsg(null);
       return setStep('new2');
@@ -85,7 +87,7 @@ export function PinChangeProvider({ children }: { children: React.ReactNode }) {
     if (step === 'new2') {
       if (v !== first) {
         setFirst('');
-        setMsg('The two PINs differ — choose it again.');
+        setMsg(t('sc.differ'));
         return setStep('new1');
       }
       await setPin(who.key, who.name, v);
@@ -99,17 +101,17 @@ export function PinChangeProvider({ children }: { children: React.ReactNode }) {
     ? ''
     : step === 'unlock'
     ? isMasterPin
-      ? 'Enter the current Master PIN'
+      ? t('pc.enterCurMaster')
       : by === 'own'
-      ? `${who.name}: enter your current PIN`
-      : 'Enter the Master PIN'
+      ? t('pc.enterOwn', { name: who.name })
+      : t('pc.enterMaster')
     : step === 'new1'
     ? isMasterPin
-      ? masterSet ? 'Choose the new Master PIN' : 'Set the Master PIN'
-      : ownSet ? 'Choose the new PIN' : 'Set the signing PIN'
+      ? masterSet ? t('pc.newMaster') : t('pc.setMaster')
+      : ownSet ? t('pc.newPin') : t('pc.setPin')
     : step === 'new2'
-    ? 'Repeat the PIN'
-    : 'PIN saved';
+    ? t('sc.repeat')
+    : t('pc.saved');
 
   return (
     <Ctx.Provider value={open}>
@@ -118,13 +120,13 @@ export function PinChangeProvider({ children }: { children: React.ReactNode }) {
         <View style={styles.backdrop}>
           <View style={styles.card}>
             <MciIcon name={step === 'done' ? 'lock-check' : step === 'unlock' ? 'lock' : 'lock-open-variant-outline'} size={40} color={step === 'done' ? COLORS.success : COLORS.primary} />
-            <Text style={styles.name}>{isMasterPin ? 'Master PIN' : who?.name}</Text>
+            <Text style={styles.name}>{isMasterPin ? t('pc.masterPin') : who?.name}</Text>
             <Text style={styles.title}>{title}</Text>
             {step === 'unlock' && !isMasterPin && ownSet && masterSet ? (
               <View style={styles.seg}>
                 {(['own', 'master'] as const).map((k) => (
                   <TouchableOpacity key={k} onPress={() => { setBy(k); setMsg(null); }} style={[styles.segBtn, by === k && { backgroundColor: COLORS.primary }]}>
-                    <Text style={[styles.segText, by === k && { color: COLORS.textWhite }]}>{k === 'own' ? 'Own PIN' : 'Master PIN'}</Text>
+                    <Text style={[styles.segText, by === k && { color: COLORS.textWhite }]}>{k === 'own' ? t('pc.ownPin') : t('pc.masterPin')}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -145,24 +147,24 @@ export function PinChangeProvider({ children }: { children: React.ReactNode }) {
                   placeholderTextColor={COLORS.textLight}
                 />
                 <TouchableOpacity style={[styles.primary, pin.length < PIN_MIN && { opacity: 0.5 }]} disabled={pin.length < PIN_MIN} onPress={() => void submit()}>
-                  <Text style={styles.primaryText}>{step === 'unlock' ? 'Unlock' : step === 'new1' ? 'Next' : 'Save'}</Text>
+                  <Text style={styles.primaryText}>{step === 'unlock' ? t('sc.unlock') : step === 'new1' ? t('sc.next') : t('common.save')}</Text>
                 </TouchableOpacity>
               </>
             ) : (
               <TouchableOpacity style={styles.primary} onPress={close}>
-                <Text style={styles.primaryText}>Done</Text>
+                <Text style={styles.primaryText}>{t('common.done')}</Text>
               </TouchableOpacity>
             )}
             {msg ? <Text style={styles.msg}>{msg}</Text> : null}
             {step === 'unlock' && (isMasterPin || by === 'master') && masterDefault ? (
-              <Text style={styles.hint}>The Master PIN has not been changed from the default yet — the Master should change it (Crew matrix → Master PIN).</Text>
+              <Text style={styles.hint}>{t('pc.defaultHint')}</Text>
             ) : null}
             {step === 'new1' ? (
-              <Text style={styles.hint}>{`${PIN_MIN}–${PIN_MAX} digits. Kept on this device only, as a hash — nobody can read it back.`}</Text>
+              <Text style={styles.hint}>{t('pc.newHint', { min: PIN_MIN, max: PIN_MAX })}</Text>
             ) : null}
             {step !== 'done' ? (
               <TouchableOpacity onPress={close} hitSlop={8} style={{ marginTop: SIZES.md }}>
-                <Text style={[styles.link, { color: COLORS.textLight }]}>Cancel</Text>
+                <Text style={[styles.link, { color: COLORS.textLight }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
             ) : null}
           </View>

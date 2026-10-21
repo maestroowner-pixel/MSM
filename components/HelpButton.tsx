@@ -15,6 +15,7 @@ import { Platform, View, Text, StyleSheet, Pressable, TouchableOpacity, Modal, S
 import { MciIcon } from './MciIcon';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
+import { t, useT } from '../utils/i18n';
 import { releasedManual } from '../constants/manual';
 import { manualLang } from '../utils/locale';
 
@@ -23,6 +24,7 @@ export type HelpSection = string | number;
 
 export function HelpButton({ section }: { section: HelpSection }) {
   const COLORS = useTheme();
+  useT();
   const [open, setOpen] = useState(false);
   const s = useMemo(() => {
     // The released manual: a switched-off module's section is gone (no button),
@@ -36,7 +38,7 @@ export function HelpButton({ section }: { section: HelpSection }) {
 
   return (
     <>
-      <Pressable style={({ hovered }: any) => [styles.btn, hovered && styles.btnHover]} onPress={() => setOpen(true)} accessibilityLabel="Help">
+      <Pressable style={({ hovered }: any) => [styles.btn, hovered && styles.btnHover]} onPress={() => setOpen(true)} accessibilityLabel={t('hb.help')}>
         <MciIcon name="help-circle-outline" size={20} color={COLORS.primary} />
       </Pressable>
 

@@ -8,6 +8,7 @@ import { Alert } from 'react-native';
 import { useData } from '../contexts/DataContext';
 import { SdmPlan, parseSdm, planSdmImport } from '../services/sdmImport';
 import { pickSdmFile } from '../services/crewListReport';
+import { t, tn } from '../utils/i18n';
 
 export function useSdmImport() {
   const { crew, crewPrivate, certificates, saveCrewMember, saveCrewPrivate, saveCertificates } = useData();
@@ -27,21 +28,21 @@ export function useSdmImport() {
           await saveCrewMember(plan.member);
           await saveCrewPrivate(JSON.parse(JSON.stringify(plan.priv)));
           onImported?.(plan);
-          Alert.alert('Imported', `${plan.member.name}: ${plan.certificates.length} certificate${plan.certificates.length === 1 ? '' : 's'} added or updated.`);
+          Alert.alert(t('sdm.imported'), t('sdm.importedBody', { name: plan.member.name, certs: tn('n.certificate', plan.certificates.length) }));
         };
         Alert.alert(
-          `Import “${f.name}”?`,
+          t('sdm.importQ', { file: f.name }),
           [
             ...plan.summary,
-            plan.nationalityRaw ? `Nationality “${plan.nationalityRaw}” not recognised — enter the 2-letter code by hand.` : null,
-            'Fields the file leaves empty keep what the app already has.',
+            plan.nationalityRaw ? t('sdm.nationality', { raw: plan.nationalityRaw }) : null,
+            t('sdm.emptyKeep'),
           ]
             .filter(Boolean)
             .join('\n'),
-          [{ text: 'Cancel', style: 'cancel' }, { text: 'Import', onPress: () => void apply() }]
+          [{ text: t('common.cancel'), style: 'cancel' }, { text: t('slk.import'), onPress: () => void apply() }]
         );
       } catch (e: any) {
-        Alert.alert('SDM import', String(e?.message ?? e));
+        Alert.alert(t('sdm.title'), String(e?.message ?? e));
       }
     },
     [crew, crewPrivate, certificates, saveCrewMember, saveCrewPrivate, saveCertificates]

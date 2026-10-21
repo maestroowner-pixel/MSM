@@ -11,6 +11,7 @@ import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 
 import { MciIcon } from './MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
+import { t, useT } from '../utils/i18n';
 import { SIZES, Palette } from '../theme';
 import { CrewMember, crewLabel } from '../types/crew';
 
@@ -18,7 +19,7 @@ export function SignerPicker({
   visible,
   crew,
   selectedId,
-  title = 'Who is carrying out this inspection?',
+  title,
   onSelect,
   onClose,
   onManage,
@@ -32,17 +33,15 @@ export function SignerPicker({
   onManage?: () => void;
 }) {
   const COLORS = useTheme();
+  useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
         <View style={styles.sheet}>
-          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.title}>{title ?? t('sch.whoInspects')}</Text>
           {crew.length === 0 ? (
-            <Text style={styles.note}>
-              Nobody is on the crew list yet. Inspections are signed by name, so add the crew before
-              the first round.
-            </Text>
+            <Text style={styles.note}>{t('sch.emptyCrew')}</Text>
           ) : (
             <ScrollView style={{ maxHeight: 320 }}>
               {crew.map((c) => (
@@ -60,7 +59,7 @@ export function SignerPicker({
           {onManage ? (
             <TouchableOpacity style={styles.manage} onPress={onManage}>
               <MciIcon name="account-multiple-plus" size={18} color={COLORS.primary} />
-              <Text style={styles.manageText}>Manage crew list</Text>
+              <Text style={styles.manageText}>{t('sch.manage')}</Text>
             </TouchableOpacity>
           ) : null}
         </View>

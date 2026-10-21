@@ -517,6 +517,8 @@ const linking = {
 
 function Root() {
   const COLORS = useTheme();
+  // Headers are worded at render, so a change of language redraws them.
+  useT();
   // Shared with the favourites (utils/favourites), which open places from anywhere.
   const navigationRef = navRef;
   const { flat } = useData();
@@ -699,27 +701,27 @@ function Root() {
         }}
       >
         <Stack.Screen name="Main" component={MainTabs} />
-        <Stack.Screen name="CategoryItems" component={CategoryItemsSc} options={webHeader('Equipment', toTab('Equipment'))} />
+        <Stack.Screen name="CategoryItems" component={CategoryItemsSc} options={webHeader(t('menu.Equipment'), toTab('Equipment'))} />
         <Stack.Screen name="ItemDetail" component={ItemDetailSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Import" component={ImportSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Manual" component={ManualSc} options={webHeader('Manual')} />
-        <Stack.Screen name="GettingStarted" component={GettingStartedSc} options={webHeader('Getting Started')} />
-        <Stack.Screen name="Legal" component={LegalSc} options={webHeader('Legal')} />
-        <Stack.Screen name="Compressor" component={CompressorSc} options={webHeader('BA Compressor', toTab('Settings'))} />
+        <Stack.Screen name="Manual" component={ManualSc} options={webHeader(t('hdr.manual'))} />
+        <Stack.Screen name="GettingStarted" component={GettingStartedSc} options={webHeader(t('hdr.gettingStarted'))} />
+        <Stack.Screen name="Legal" component={LegalSc} options={webHeader(t('hdr.legal'))} />
+        <Stack.Screen name="Compressor" component={CompressorSc} options={webHeader(t('hdr.compressor'), toTab('Settings'))} />
         <Stack.Screen name="Paywall" component={PaywallSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="CertificateDetail" component={CertificateDetailSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Label" component={LabelSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="LabelBatch" component={LabelBatchSc} options={webHeader('QR labels', toTab('Equipment'))} />
+        <Stack.Screen name="LabelBatch" component={LabelBatchSc} options={webHeader(t('lb.title'), toTab('Equipment'))} />
         <Stack.Screen name="Scan" component={ScanSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Flagged" component={FlaggedSc} options={webHeader('Flagged')} />
-        <Stack.Screen name="RecentScans" component={RecentScansSc} options={webHeader('Recently scanned')} />
+        <Stack.Screen name="Flagged" component={FlaggedSc} options={webHeader(t('flagged.title'))} />
+        <Stack.Screen name="RecentScans" component={RecentScansSc} options={webHeader(t('recent.title'))} />
         <Stack.Screen name="Inspection" component={InspectionSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="InspectionDetail" component={InspectionDetailSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Crew" component={CrewSc} options={webHeader(moduleOn('crewCerts') ? 'Crew list' : 'Crew', toTab('Settings'))} />
+        <Stack.Screen name="Crew" component={CrewSc} options={webHeader(moduleOn('crewCerts') ? t('crw.list') : t('menu.group.crew'), toTab('Settings'))} />
         <Stack.Screen name="RestDay" component={RestDaySc} options={{ presentation: 'modal' }} />
         {/* Access became part of the Master's page (15 Oct 2026); the old address opens it. */}
-        <Stack.Screen name="Access" component={MasterSc} options={webHeader("Master's page", toTab('Settings'))} />
-        <Stack.Screen name="MasterPage" component={MasterSc} options={webHeader("Master's page", toTab('Settings'))} />
+        <Stack.Screen name="Access" component={MasterSc} options={webHeader(t('master.title'), toTab('Settings'))} />
+        <Stack.Screen name="MasterPage" component={MasterSc} options={webHeader(t('master.title'), toTab('Settings'))} />
         <Stack.Screen name="Machine" component={MachineSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsJob" component={PmsJobSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsDefect" component={PmsDefectSc} options={{ presentation: 'modal' }} />
@@ -750,24 +752,24 @@ function Root() {
         <Stack.Screen name="CrewMember" component={CrewMemberSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Permit" component={PermitSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Risk" component={RiskSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="CrewMatrix" component={CrewMatrixSc} options={webHeader('Crew matrix')} />
-        <Stack.Screen name="Fleet" component={FleetSc} options={webHeader('Fleet')} />
-        <Stack.Screen name="FleetVessel" component={FleetVesselSc} options={webHeader('Vessel', { screen: 'Fleet' })} />
-        <Stack.Screen name="Checklists" component={ChecklistsSc} options={webHeader('Checklists', toTab('Settings'))} />
-        <Stack.Screen name="ScanRules" component={ScanRulesSc} options={webHeader('Scan by category', toTab('Settings'))} />
-        <Stack.Screen name="PhotoArchive" component={PhotoArchiveSc} options={webHeader('Photo archive', toTab('Settings'))} />
-        <Stack.Screen name="CategoriesEdit" component={CategoriesEditSc} options={webHeader('Categories', toTab('Settings'))} />
-        <Stack.Screen name="ChecklistEdit" component={ChecklistEditSc} options={webHeader('Checklist', { screen: 'Checklists' })} />
-        <Stack.Screen name="Defects" component={DefectsSc} options={webHeader('Open defects')} />
-        <Stack.Screen name="Handover" component={HandoverSc} options={webHeader('Handover', { screen: 'Main', params: { screen: 'Readiness' } } as any)} />
-        <Stack.Screen name="ServiceReport" component={ServiceReportSc} options={webHeader('Service report', { screen: 'Main', params: { screen: 'Certificates' } } as any)} />
-        <Stack.Screen name="DpCheck" component={DpCheckSc} options={webHeader('Checklist')} />
-        <Stack.Screen name="DpTemplates" component={DpTemplatesSc} options={webHeader('DP checklists', { screen: 'Main', params: { screen: 'Dp' } } as any)} />
+        <Stack.Screen name="CrewMatrix" component={CrewMatrixSc} options={webHeader(t('cm.title'))} />
+        <Stack.Screen name="Fleet" component={FleetSc} options={webHeader(t('fleet.title'))} />
+        <Stack.Screen name="FleetVessel" component={FleetVesselSc} options={webHeader(t('certs.tab.vessel'), { screen: 'Fleet' })} />
+        <Stack.Screen name="Checklists" component={ChecklistsSc} options={webHeader(t('cl.title'), toTab('Settings'))} />
+        <Stack.Screen name="ScanRules" component={ScanRulesSc} options={webHeader(t('scan.title'), toTab('Settings'))} />
+        <Stack.Screen name="PhotoArchive" component={PhotoArchiveSc} options={webHeader(t('pa.title'), toTab('Settings'))} />
+        <Stack.Screen name="CategoriesEdit" component={CategoriesEditSc} options={webHeader(t('ce.title'), toTab('Settings'))} />
+        <Stack.Screen name="ChecklistEdit" component={ChecklistEditSc} options={webHeader(t('cle.checklist'), { screen: 'Checklists' })} />
+        <Stack.Screen name="Defects" component={DefectsSc} options={webHeader(t('dash.openDefects'))} />
+        <Stack.Screen name="Handover" component={HandoverSc} options={webHeader(t('ho.title'), { screen: 'Main', params: { screen: 'Readiness' } } as any)} />
+        <Stack.Screen name="ServiceReport" component={ServiceReportSc} options={webHeader(t('sr.title'), { screen: 'Main', params: { screen: 'Certificates' } } as any)} />
+        <Stack.Screen name="DpCheck" component={DpCheckSc} options={webHeader(t('cle.checklist'))} />
+        <Stack.Screen name="DpTemplates" component={DpTemplatesSc} options={webHeader(t('dpt.title'), { screen: 'Main', params: { screen: 'Dp' } } as any)} />
         {/* With the notice board on, the old Dashboard — LSA / FFE / lifting by expiry — is this screen. */}
         <Stack.Screen name="Expiries" component={DashboardSc} options={webHeader(t('dash.expiriesTitle'))} />
         <Stack.Screen name="Accounts" component={AccountsSc} options={webHeader(t('acc.title'), toTab('Settings'))} />
-        <Stack.Screen name="EmailReport" component={EmailReportSc} options={webHeader('Email Report', toTab('Settings'))} />
-        <Stack.Screen name="Enrol" component={EnrolSc} options={webHeader('Join this vessel', toTab('Settings'))} />
+        <Stack.Screen name="EmailReport" component={EmailReportSc} options={webHeader(t('email.title'), toTab('Settings'))} />
+        <Stack.Screen name="Enrol" component={EnrolSc} options={webHeader(t('cc.join'), toTab('Settings'))} />
       </Stack.Navigator>
       {showSplash ? (
         <View style={StyleSheet.absoluteFill}>

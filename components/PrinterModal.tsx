@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 
 import { useTheme } from '../contexts/ThemeContext';
+import { t, useT } from '../utils/i18n';
 import { SIZES } from '../theme';
 import {
   FoundDevice,
@@ -37,6 +38,7 @@ interface Props {
 
 export function PrinterModal({ visible, onClose, onPicked }: Props) {
   const c = useTheme();
+  useT();
   const [saved, setSaved] = useState<SavedPrinter | null>(null);
   const [devices, setDevices] = useState<FoundDevice[]>([]);
   const [scanning, setScanning] = useState(false);
@@ -93,33 +95,33 @@ export function PrinterModal({ visible, onClose, onPicked }: Props) {
       <View style={styles.overlay}>
         <View style={styles.sheet}>
           <View style={styles.head}>
-            <Text style={styles.title}>Printer</Text>
+            <Text style={styles.title}>{t('prn.title')}</Text>
             <TouchableOpacity onPress={onClose}>
-              <Text style={styles.close}>Close</Text>
+              <Text style={styles.close}>{t('common.close')}</Text>
             </TouchableOpacity>
           </View>
 
           {saved ? (
             <View style={styles.savedRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.savedLabel}>Current printer</Text>
+                <Text style={styles.savedLabel}>{t('prn.current')}</Text>
                 <Text style={styles.savedName}>{saved.name}</Text>
               </View>
               <TouchableOpacity onPress={forget}>
-                <Text style={styles.forget}>Forget</Text>
+                <Text style={styles.forget}>{t('prn.forget')}</Text>
               </TouchableOpacity>
             </View>
           ) : null}
 
           <View style={styles.scanRow}>
             <Text style={styles.scanLabel}>
-              {scanning ? 'Scanning for Bluetooth printers…' : 'Nearby Bluetooth devices'}
+              {scanning ? t('prn.scanning') : t('prn.nearby')}
             </Text>
             {scanning ? (
               <ActivityIndicator color={c.primary} />
             ) : (
               <TouchableOpacity onPress={startScan}>
-                <Text style={styles.rescan}>Rescan</Text>
+                <Text style={styles.rescan}>{t('prn.rescan')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -138,10 +140,7 @@ export function PrinterModal({ visible, onClose, onPicked }: Props) {
             )}
             ListEmptyComponent={
               !scanning ? (
-                <Text style={styles.empty}>
-                  No devices yet. Make sure the printer is on and paired in the phone's Bluetooth
-                  settings, then Rescan.
-                </Text>
+                <Text style={styles.empty}>{t('prn.empty')}</Text>
               ) : null
             }
           />

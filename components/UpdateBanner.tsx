@@ -11,11 +11,13 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { MciIcon } from './MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
+import { t, useT } from '../utils/i18n';
 import { SIZES, Palette } from '../theme';
 import { CHECK_INTERVAL_MS, applyWebUpdate, isNewBuildAvailable, webUpdatesSupported } from '../utils/webUpdate';
 
 export function UpdateBanner() {
   const COLORS = useTheme();
+  useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const [available, setAvailable] = useState(false);
 
@@ -40,10 +42,10 @@ export function UpdateBanner() {
     <TouchableOpacity style={styles.bar} onPress={applyWebUpdate} accessibilityRole="button">
       <MciIcon name="cloud-download" size={18} color={COLORS.textWhite} />
       <View style={{ flex: 1 }}>
-        <Text style={styles.text}>A newer version is available</Text>
-        <Text style={styles.sub}>Tap to reload — nothing you have entered is lost</Text>
+        <Text style={styles.text}>{t('ub.newer')}</Text>
+        <Text style={styles.sub}>{t('ub.tap')}</Text>
       </View>
-      <Text style={styles.action}>Reload</Text>
+      <Text style={styles.action}>{t('ub.reload')}</Text>
     </TouchableOpacity>
   );
 }

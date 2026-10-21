@@ -8,6 +8,8 @@
 // and old entries open in the cells too. Pure: no React.
 // ===================================
 
+import { t } from './t';
+
 export interface Coords {
   latDeg: string;
   latMin: string;
@@ -32,15 +34,15 @@ export function parsePosition(text?: string): Coords | null {
 export function coordsError(c: Coords): string | null {
   const filled = [c.latDeg, c.latMin, c.lonDeg, c.lonMin].filter((x) => x.trim() !== '').length;
   if (!filled) return null;
-  if (filled < 4) return 'Fill in degrees and minutes of both latitude and longitude.';
+  if (filled < 4) return t('pos.errFill');
   const ld = Number(c.latDeg);
   const lm = Number(c.latMin.replace(',', '.'));
   const od = Number(c.lonDeg);
   const om = Number(c.lonMin.replace(',', '.'));
-  if (![ld, lm, od, om].every(Number.isFinite)) return 'Numbers only.';
-  if (ld < 0 || ld > 90 || (ld === 90 && lm > 0)) return 'Latitude is 0–90°.';
-  if (od < 0 || od > 180 || (od === 180 && om > 0)) return 'Longitude is 0–180°.';
-  if (lm < 0 || lm >= 60 || om < 0 || om >= 60) return 'Minutes are 0–59.9.';
+  if (![ld, lm, od, om].every(Number.isFinite)) return t('pos.errNum');
+  if (ld < 0 || ld > 90 || (ld === 90 && lm > 0)) return t('pos.errLat');
+  if (od < 0 || od > 180 || (od === 180 && om > 0)) return t('pos.errLon');
+  if (lm < 0 || lm >= 60 || om < 0 || om >= 60) return t('pos.errMin');
   return null;
 }
 

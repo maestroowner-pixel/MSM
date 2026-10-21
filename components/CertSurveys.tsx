@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Label } from './ui';
 import { MciIcon } from './MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
+import { t, useT } from '../utils/i18n';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
@@ -40,6 +41,7 @@ const boxName = (name: string) => {
 export function CertSurveys({ cert, stored, onScheme }: { cert: Certificate; stored?: Certificate; onScheme: (s: SurveyScheme) => void }) {
   const saved = !!stored;
   const COLORS = useTheme();
+  useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const { surveys, surveysDone, saveRow, saveRows, saveCertificate } = useData();
@@ -71,18 +73,18 @@ export function CertSurveys({ cert, stored, onScheme }: { cert: Certificate; sto
   return (
     <View style={styles.card}>
       <View style={styles.head}>
-        <Label>Surveys</Label>
+        <Label>{t('tab.Surveys')}</Label>
         {canEdit && saved && cert.expiryDate && !planning ? (
           <TouchableOpacity onPress={() => start()} hitSlop={8}>
-            <Text style={styles.link}>{rows.length ? 'Replan' : '+ Plan surveys'}</Text>
+            <Text style={styles.link}>{rows.length ? t('cs2.replan') : t('cs2.plan')}</Text>
           </TouchableOpacity>
         ) : null}
       </View>
 
       {!saved ? (
-        <Text style={styles.empty}>Save the certificate first, then plan its surveys.</Text>
+        <Text style={styles.empty}>{t('cs2.saveFirst')}</Text>
       ) : !cert.expiryDate ? (
-        <Text style={styles.empty}>Enter the expiry date to plan its surveys — the anniversary is its day and month.</Text>
+        <Text style={styles.empty}>{t('cs2.needExpiry')}</Text>
       ) : planning ? (
         <View>
           <View style={styles.chips}>
@@ -93,7 +95,7 @@ export function CertSurveys({ cert, stored, onScheme }: { cert: Certificate; sto
             ))}
           </View>
           <Text style={styles.sub}>{SCHEMES.find((s) => s.key === planning.scheme)?.sub}</Text>
-          {planning.list.length === 0 ? <Text style={styles.empty}>Nothing to plan.</Text> : null}
+          {planning.list.length === 0 ? <Text style={styles.empty}>{t('cs2.nothing')}</Text> : null}
           {planning.list.map((p, i) => (
             <TouchableOpacity
               key={p.survey.id}
@@ -106,26 +108,26 @@ export function CertSurveys({ cert, stored, onScheme }: { cert: Certificate; sto
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{boxName(p.survey.name)}</Text>
                 <Text style={styles.sub}>
-                  {`Window ${formatDate(surveyStatus(p.survey, today).opens)} – ${formatDate(surveyStatus(p.survey, today).closes)}`}
-                  {p.include ? '' : ' · window closed — endorsed before, or not planned'}
+                  {t('sv.window', { from: formatDate(surveyStatus(p.survey, today).opens), to: formatDate(surveyStatus(p.survey, today).closes) })}
+                  {p.include ? '' : t('cs2.closed')}
                 </Text>
               </View>
             </TouchableOpacity>
           ))}
           <View style={styles.btns}>
             <TouchableOpacity style={styles.btn} onPress={() => void save()}>
-              <Text style={styles.btnText}>{`Plan ${planning.list.filter((p) => p.include).length}`}</Text>
+              <Text style={styles.btnText}>{t('cs2.planN', { n: planning.list.filter((p) => p.include).length })}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setPlanning(null)}>
-              <Text style={styles.link}>Cancel</Text>
+              <Text style={styles.link}>{t('common.cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>
       ) : rows.length === 0 ? (
         <Text style={styles.empty}>
           {canEdit
-            ? 'Not planned. A statutory or class certificate stays valid only while each annual, intermediate and renewal survey is endorsed inside its window — plan them and the app keeps the windows.'
-            : 'No surveys planned for this certificate.'}
+            ? t('cs2.notPlanned')
+            : t('cs2.noneCrew')}
         </Text>
       ) : (
         <View>
@@ -133,10 +135,10 @@ export function CertSurveys({ cert, stored, onScheme }: { cert: Certificate; sto
             const st = surveyStatus(s, today, surveysDone);
             const d = surveysDone.find((x) => x.surveyId === s.id && x.forDue === s.due && !x.cancelled);
             const line =
-              st.state === 'done' ? `Endorsed ${d ? formatDate(d.date) : ''}${d?.ref ? ` · No. ${d.ref}` : ''}`
-              : st.state === 'overdue' ? `Overdue — window closed ${formatDate(st.closes)}`
-              : st.state === 'open' ? `Window open until ${formatDate(st.closes)} · ${st.days} days left`
-              : `Window ${formatDate(st.opens)} – ${formatDate(st.closes)}`;
+              st.state === 'done' ? `${t('cs2.endorsed', { date: d ? formatDate(d.date) : '' })}${d?.ref ? ` · ${t('ins.no', { n: d.ref })}` : ''}`
+              : st.state === 'overdue' ? t('sv.overdue', { date: formatDate(st.closes) })
+              : st.state === 'open' ? t('sv.open', { date: formatDate(st.closes), n: st.days })
+              : t('sv.window', { from: formatDate(st.opens), to: formatDate(st.closes) });
             return (
               <TouchableOpacity key={s.id} style={[styles.row, styles.planned, { borderLeftColor: color[st.state] }]} onPress={() => nav.navigate('Surveys')} activeOpacity={0.7}>
                 <View style={{ flex: 1 }}>
@@ -147,7 +149,7 @@ export function CertSurveys({ cert, stored, onScheme }: { cert: Certificate; sto
               </TouchableOpacity>
             );
           })}
-          <Text style={styles.sub}>Carried out on the Surveys screen — the endorsement is signed there.</Text>
+          <Text style={styles.sub}>{t('cs2.carriedOn')}</Text>
         </View>
       )}
     </View>

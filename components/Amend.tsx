@@ -19,6 +19,7 @@ import { SIZES } from '../theme';
 import { Versioned, amended, cancelled, previous } from '../services/versions';
 import { formatDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
+import { t, tn, useT } from '../utils/i18n';
 import { playSuccessSound } from '../utils/sound';
 
 export interface FieldSpec {
@@ -42,6 +43,7 @@ const getAt = (r: any, k: string) => (k.includes('.') ? r?.[k.split('.')[0]]?.[k
 
 export function useAmend() {
   const COLORS = useTheme();
+  useT();
   const { appendRow } = useData();
   const { signer, picker } = useSigner();
   const confirmSign = useSignConfirm();
@@ -62,8 +64,8 @@ export function useAmend() {
 
   const sign = async () => {
     if (!spec) return;
-    if (reason.trim().length < 3) return Alert.alert('Reason', spec.mode === 'edit' ? 'Say why the record is being changed.' : 'Say why the record is deleted.');
-    if (!signer) return Alert.alert('Who is signing?', 'Choose your name.');
+    if (reason.trim().length < 3) return Alert.alert(t('am.reasonT'), spec.mode === 'edit' ? t('am.whyChange') : t('am.whyDelete'));
+    if (!signer) return Alert.alert(t('sign.who'), t('am.chooseName'));
     const changes: Record<string, any> = {};
     if (spec.mode === 'edit') {
       for (const f of spec.fields ?? []) {
@@ -73,7 +75,7 @@ export function useAmend() {
           if (raw === '') v = undefined;
           else {
             v = Number(raw.replace(',', '.'));
-            if (!Number.isFinite(v)) return Alert.alert(f.label, 'Enter a number.');
+            if (!Number.isFinite(v)) return Alert.alert(f.label, t('am.enterNumber'));
           }
         }
         if (f.key.includes('.')) {
@@ -105,9 +107,9 @@ export function useAmend() {
       <View style={styles.backdrop}>
         <View style={[styles.card, { backgroundColor: COLORS.cardSolid }]}>
           <ScrollView keyboardShouldPersistTaps="handled">
-            <Text style={[styles.title, { color: COLORS.textDark }]}>{spec?.mode === 'edit' ? 'Change the record' : 'Delete the record'}</Text>
+            <Text style={[styles.title, { color: COLORS.textDark }]}>{spec?.mode === 'edit' ? t('am.changeT') : t('am.deleteT')}</Text>
             <Text style={[styles.sub, { color: COLORS.textLight }]}>{spec?.what}</Text>
-            {spec?.mode === 'remove' ? <Text style={[styles.sub, { color: COLORS.textLight }]}>It stays in the log, struck through and out of the totals, with your reason and signature.</Text> : null}
+            {spec?.mode === 'remove' ? <Text style={[styles.sub, { color: COLORS.textLight }]}>{t('am.staysHint')}</Text> : null}
             {spec?.mode === 'edit'
               ? (spec.fields ?? []).map((f) => (
                   <View key={f.key} style={{ marginTop: SIZES.sm }}>
@@ -122,15 +124,15 @@ export function useAmend() {
                   </View>
                 ))
               : null}
-            <Text style={[styles.label, { color: COLORS.warning, marginTop: SIZES.md }]}>Reason ★</Text>
-            <TextInput style={[styles.input, { color: COLORS.text, borderColor: COLORS.warning }]} value={reason} onChangeText={setReason} placeholder={spec?.mode === 'edit' ? 'e.g. figure misread, wrong tank' : 'e.g. entered twice'} placeholderTextColor={COLORS.textLight} />
+            <Text style={[styles.label, { color: COLORS.warning, marginTop: SIZES.md }]}>{t('am.reason')}</Text>
+            <TextInput style={[styles.input, { color: COLORS.text, borderColor: COLORS.warning }]} value={reason} onChangeText={setReason} placeholder={spec?.mode === 'edit' ? t('am.phChange') : t('am.phDelete')} placeholderTextColor={COLORS.textLight} />
             {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
             <View style={styles.row}>
               <TouchableOpacity style={[styles.btn, { backgroundColor: spec?.mode === 'remove' ? COLORS.danger : COLORS.primary }]} onPress={() => void sign()}>
-                <Text style={styles.btnText}>{spec?.mode === 'edit' ? 'Sign the change' : 'Sign — delete'}</Text>
+                <Text style={styles.btnText}>{spec?.mode === 'edit' ? t('am.signChange') : t('am.signDelete')}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setSpec(null)}>
-                <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Cancel</Text>
+                <Text style={{ color: COLORS.primary, fontWeight: '700' }}>{t('common.cancel')}</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -144,16 +146,17 @@ export function useAmend() {
 
 export function AmendButtons({ isMaster, onEdit, onDelete, row }: { isMaster: boolean; onEdit?: () => void; onDelete: () => void; row?: boolean }) {
   const COLORS = useTheme();
+  useT();
   // The Master's alone (11 Oct 2026); everyone else sees them greyed out.
   return (
     <View style={{ gap: row ? SIZES.md : 6, flexDirection: row ? 'row' : 'column', opacity: isMaster ? 1 : 0.35 }} accessibilityState={{ disabled: !isMaster }}>
       {onEdit ? (
         <TouchableOpacity disabled={!isMaster} onPress={onEdit} hitSlop={6}>
-          <Text style={{ color: isMaster ? COLORS.primary : COLORS.textLight, fontWeight: '700', fontSize: SIZES.small }}>Edit</Text>
+          <Text style={{ color: isMaster ? COLORS.primary : COLORS.textLight, fontWeight: '700', fontSize: SIZES.small }}>{t('common.edit')}</Text>
         </TouchableOpacity>
       ) : null}
       <TouchableOpacity disabled={!isMaster} onPress={onDelete} hitSlop={6}>
-        <Text style={{ color: isMaster ? COLORS.danger : COLORS.textLight, fontWeight: '700', fontSize: SIZES.small }}>Delete</Text>
+        <Text style={{ color: isMaster ? COLORS.danger : COLORS.textLight, fontWeight: '700', fontSize: SIZES.small }}>{t('common.delete')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -161,6 +164,7 @@ export function AmendButtons({ isMaster, onEdit, onDelete, row }: { isMaster: bo
 
 export function AmendNote<T extends Versioned>({ rec, all, summary }: { rec: T; all: T[]; summary: (r: T) => string }) {
   const COLORS = useTheme();
+  useT();
   const [open, setOpen] = useState(false);
   if (!rec.supersedes) return null;
   const prev = previous(all, rec);
@@ -168,7 +172,7 @@ export function AmendNote<T extends Versioned>({ rec, all, summary }: { rec: T; 
     <View>
       <TouchableOpacity onPress={() => setOpen((o) => !o)}>
         <Text style={[styles.sub, { color: rec.cancelled ? COLORS.danger : COLORS.warning, fontWeight: '700' }]}>
-          {`${rec.cancelled ? 'Deleted' : 'Amended'}${rec.editedAt ? ` ${formatDateTime(rec.editedAt)}` : ''}${rec.editedBy ? ` by ${rec.editedByRank ? `${rec.editedBy} (${rec.editedByRank})` : rec.editedBy}` : ''} — ${rec.editReason ?? ''} · ${prev.length} earlier version${prev.length === 1 ? '' : 's'} ${open ? '▴' : '▾'}`}
+          {`${rec.cancelled ? t('am.deleted') : t('am.amended')}${rec.editedAt ? ` ${formatDateTime(rec.editedAt)}` : ''}${rec.editedBy ? t('am.by', { who: rec.editedByRank ? `${rec.editedBy} (${rec.editedByRank})` : rec.editedBy }) : ''} — ${rec.editReason ?? ''} · ${tn('n.earlierVersion', prev.length)} ${open ? '▴' : '▾'}`}
         </Text>
       </TouchableOpacity>
       {open ? prev.map((p) => <Text key={p.id} style={[styles.sub, { color: COLORS.textLight, textDecorationLine: 'line-through' }]}>{summary(p)}</Text>) : null}

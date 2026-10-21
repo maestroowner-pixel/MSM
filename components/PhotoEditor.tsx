@@ -9,6 +9,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { useTheme } from '../contexts/ThemeContext';
+import { t, t as tr, tk, useT } from '../utils/i18n';
 import { SIZES } from '../theme';
 import { Adjust, NO_ADJUST, renderPhoto } from '../utils/photoEdit';
 
@@ -20,6 +21,7 @@ const SLIDERS: { key: keyof Adjust; label: string }[] = [
 
 export function PhotoEditor({ src, onDone, onClose }: { src: string | null; onDone: (dataUri: string) => void; onClose: () => void }) {
   const COLORS = useTheme();
+  useT();
   const [a, setA] = useState<Adjust>(NO_ADJUST);
   const [cutout, setCutout] = useState(false);
   const [view, setView] = useState<string | null>(src);
@@ -38,7 +40,7 @@ export function PhotoEditor({ src, onDone, onClose }: { src: string | null; onDo
     if (!src) return;
     let live = true;
     const t = setTimeout(() => {
-      if (cutout) setBusy('Removing the background… (the first time loads the tool, a few seconds)');
+      if (cutout) setBusy(tr('pe.removing'));
       renderPhoto(src, a, cutout)
         .then((u) => live && setView(u))
         .catch((e) => {
@@ -59,7 +61,7 @@ export function PhotoEditor({ src, onDone, onClose }: { src: string | null; onDo
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={s.back}>
         <View style={[s.card, { backgroundColor: COLORS.cardSolid }]}>
-          <Text style={[s.title, { color: COLORS.text }]}>Adjust the photo</Text>
+          <Text style={[s.title, { color: COLORS.text }]}>{t('pe.title')}</Text>
           <View style={s.body}>
             <View style={s.preview}>
               {view ? <Image source={{ uri: view }} style={{ width: '100%', height: '100%' }} resizeMode="cover" /> : null}
@@ -72,7 +74,7 @@ export function PhotoEditor({ src, onDone, onClose }: { src: string | null; onDo
             <View style={{ flex: 1, minWidth: 220, gap: SIZES.sm }}>
               {SLIDERS.map((sl) => (
                 <View key={sl.key}>
-                  <Text style={{ color: COLORS.textLight, fontSize: SIZES.small, fontWeight: '700' }}>{`${sl.label} · ${Math.round(a[sl.key] * 100)}%`}</Text>
+                  <Text style={{ color: COLORS.textLight, fontSize: SIZES.small, fontWeight: '700' }}>{`${tk(`pe.${sl.key}`)} · ${Math.round(a[sl.key] * 100)}%`}</Text>
                   {/* A plain range input — this window only opens in the browser. */}
                   {React.createElement('input', {
                     type: 'range',
@@ -80,17 +82,17 @@ export function PhotoEditor({ src, onDone, onClose }: { src: string | null; onDo
                     max: 150,
                     step: 1,
                     value: Math.round(a[sl.key] * 100),
-                    'aria-label': sl.label,
+                    'aria-label': tk(`pe.${sl.key}`),
                     onChange: (e: any) => setA((x) => ({ ...x, [sl.key]: Number(e.target.value) / 100 })),
                     style: { width: '100%', accentColor: COLORS.primary },
                   })}
                 </View>
               ))}
               <TouchableOpacity style={[s.chip, { borderColor: COLORS.primary }, cutout && { backgroundColor: COLORS.primary }]} onPress={() => setCutout((v) => !v)} disabled={!!busy}>
-                <Text style={{ color: cutout ? '#fff' : COLORS.primary, fontWeight: '700' }}>{cutout ? '✓ Background removed' : 'Remove background'}</Text>
+                <Text style={{ color: cutout ? '#fff' : COLORS.primary, fontWeight: '700' }}>{cutout ? t('pe.removed') : t('pe.remove')}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => { setA(NO_ADJUST); setCutout(false); }} hitSlop={6}>
-                <Text style={{ color: COLORS.textLight, fontWeight: '700' }}>Reset</Text>
+                <Text style={{ color: COLORS.textLight, fontWeight: '700' }}>{t('pe.reset')}</Text>
               </TouchableOpacity>
               {busy ? <Text style={{ color: COLORS.textLight, fontSize: SIZES.small }}>{busy}</Text> : null}
               {err ? <Text style={{ color: COLORS.danger, fontSize: SIZES.small }}>{err}</Text> : null}
@@ -98,11 +100,11 @@ export function PhotoEditor({ src, onDone, onClose }: { src: string | null; onDo
           </View>
           <View style={s.row}>
             <TouchableOpacity onPress={onClose} hitSlop={8}>
-              <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Cancel</Text>
+              <Text style={{ color: COLORS.primary, fontWeight: '700' }}>{t('common.cancel')}</Text>
             </TouchableOpacity>
             <View style={{ flex: 1 }} />
             <TouchableOpacity style={[s.btn, { backgroundColor: COLORS.primary, opacity: busy || !view ? 0.6 : 1 }]} disabled={!!busy || !view} onPress={() => view && onDone(view)}>
-              <Text style={s.btnText}>Use this photo</Text>
+              <Text style={s.btnText}>{t('pe.use')}</Text>
             </TouchableOpacity>
           </View>
         </View>

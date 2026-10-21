@@ -29,6 +29,7 @@ import { moduleOn } from '../constants/modules';
 import * as fb from '../services/firebaseService';
 import { BiometricKind, biometricKind, confirmBiometric } from '../services/biometric';
 import { SignaturePad } from './SignaturePad';
+import { t, tn, useT } from '../utils/i18n';
 import {
   PIN_MAX,
   PIN_MIN,
@@ -88,6 +89,7 @@ async function pinStep(personKey: string): Promise<Step> {
 
 export function SignConfirmProvider({ children }: { children: React.ReactNode }) {
   const COLORS = useTheme();
+  useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { signingPolicy } = useData();
   // Every signature is confirmed — PIN, fingerprint or by hand (10 Oct 2026: "a
@@ -124,7 +126,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
 
   const tryBio = useCallback(async (r: SignRequest) => {
     setMsg(null);
-    if (await confirmBiometric(`${r.what} as ${r.name}`)) finish(await proof('biometric'));
+    if (await confirmBiometric(t('sc.bioAs', { what: r.what, name: r.name }))) finish(await proof('biometric'));
     else setStep(await pinStep(r.personKey));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finish]);
@@ -162,7 +164,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
       // A first PIN is set only with the Master's PIN (components/PinChange).
       const r = await checkPin(ADMIN_KEY, v);
       setPinText('');
-      if (!r.ok) return setMsg(r.lockedUntil ? lockText(r.lockedUntil) : `Wrong Master PIN — ${r.left} ${r.left === 1 ? 'try' : 'tries'} left.`);
+      if (!r.ok) return setMsg(r.lockedUntil ? lockText(r.lockedUntil) : t('sc.wrongMaster', { left: tn('n.tryLeft', r.left) }));
       setMsg(null);
       return setStep('set1');
     }
@@ -170,12 +172,12 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
       const r = await checkPin(req.personKey, v);
       setPinText('');
       if (r.ok) return finish(await proof('pin'));
-      setMsg(r.lockedUntil ? lockText(r.lockedUntil) : `Wrong PIN — ${r.left} ${r.left === 1 ? 'try' : 'tries'} left.`);
+      setMsg(r.lockedUntil ? lockText(r.lockedUntil) : t('sc.wrongPin', { left: tn('n.tryLeft', r.left) }));
       return;
     }
     if (step === 'set1') {
-      if (!isValidSignPin(v)) return setMsg(`Choose ${PIN_MIN} to ${PIN_MAX} digits.`);
-      if (isWeakPin(v)) return setMsg('Too easy to guess — avoid repeats and runs like 1234.');
+      if (!isValidSignPin(v)) return setMsg(t('sc.digits', { min: PIN_MIN, max: PIN_MAX }));
+      if (isWeakPin(v)) return setMsg(t('sc.weak'));
       setFirst(v);
       setPinText('');
       setMsg(null);
@@ -185,7 +187,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
       if (v !== first) {
         setPinText('');
         setFirst('');
-        setMsg('The two PINs differ — choose it again.');
+        setMsg(t('sc.differ'));
         return setStep('set1');
       }
       await setPin(req.personKey, req.name, v);
@@ -194,18 +196,18 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
   };
 
   const title =
-    step === 'choose' ? 'How do you sign?' : step === 'bio' ? 'Confirm with your fingerprint' : step === 'draw' ? 'Sign by hand' : step === 'admin' ? 'No signing PIN yet — the Master PIN, please' : step === 'pin' ? 'Enter your signing PIN' : step === 'set1' ? 'Choose a signing PIN' : 'Repeat the PIN';
+    step === 'choose' ? t('sc.how') : step === 'bio' ? t('sc.bioTitle') : step === 'draw' ? t('sc.byHand') : step === 'admin' ? t('sc.adminTitle') : step === 'pin' ? t('sc.enterPin') : step === 'set1' ? t('sc.choosePin') : t('sc.repeat');
   const hint =
     step === 'set1'
-      ? `First signature on this device. Choose ${PIN_MIN}–${PIN_MAX} digits that only you know — not your account PIN. Nobody can read it back, the Master included.`
+      ? t('sc.firstHint', { min: PIN_MIN, max: PIN_MAX })
       : step === 'set2'
-      ? 'Type the same PIN again.'
+      ? t('sc.again')
       : step === 'admin'
-      ? `Setting a first signing PIN needs the Master.${canDraw || bio ? ` Or sign ${[canDraw ? 'by hand' : null, bio ? 'with your fingerprint' : null].filter(Boolean).join(' or ')} for now.` : ''}`
+      ? t('sc.adminHint') + (canDraw && bio ? t('sc.orHandBio') : canDraw ? t('sc.orHand') : bio ? t('sc.orBio') : '')
       : step === 'draw'
-      ? 'With a finger or a stylus, as on paper. It goes into the record with your name.'
+      ? t('sc.drawHint')
       : step === 'pin'
-      ? 'Forgotten it? The Master resets it in Settings → Signing PINs, and you choose a new one.'
+      ? t('sc.forgot')
       : null;
 
   return (
@@ -227,19 +229,19 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
                 {canDraw ? (
                   <TouchableOpacity style={styles.choice} onPress={() => { setMsg(null); setDrawing(''); setStep('draw'); }}>
                     <MciIcon name="draw-pen" size={30} color={COLORS.primary} />
-                    <Text style={styles.choiceText}>Sign by hand</Text>
+                    <Text style={styles.choiceText}>{t('sc.byHand')}</Text>
                   </TouchableOpacity>
                 ) : null}
                 {bio ? (
                   <TouchableOpacity style={styles.choice} onPress={() => { setStep('bio'); req && void tryBio(req); }}>
                     <MciIcon name="fingerprint" size={30} color={COLORS.primary} />
-                    <Text style={styles.choiceText}>Fingerprint</Text>
+                    <Text style={styles.choiceText}>{t('sc.fingerprint')}</Text>
                   </TouchableOpacity>
                 ) : null}
               </View>
             ) : step === 'bio' ? (
               <TouchableOpacity style={styles.primary} onPress={() => req && void tryBio(req)}>
-                <Text style={styles.primaryText}>Touch to sign</Text>
+                <Text style={styles.primaryText}>{t('sc.touch')}</Text>
               </TouchableOpacity>
             ) : step === 'draw' ? (
               <View style={{ alignSelf: 'stretch' }}>
@@ -248,11 +250,11 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
                 <View style={styles.drawButtons}>
                   <TouchableOpacity style={[styles.bigBtn, styles.bigOutline]} onPress={() => setDrawing('')}>
                     <MciIcon name="eraser" size={22} color={COLORS.danger} />
-                    <Text style={[styles.bigBtnText, { color: COLORS.danger }]}>Delete</Text>
+                    <Text style={[styles.bigBtnText, { color: COLORS.danger }]}>{t('common.delete')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.bigBtn, { backgroundColor: COLORS.primary }, !drawing && { opacity: 0.5 }]} disabled={!drawing} onPress={async () => finish(await proof('drawn', drawing))}>
                     <MciIcon name="check" size={22} color={COLORS.textWhite} />
-                    <Text style={[styles.bigBtnText, { color: COLORS.textWhite }]}>Sign</Text>
+                    <Text style={[styles.bigBtnText, { color: COLORS.textWhite }]}>{t('common.sign')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -272,7 +274,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
                   placeholderTextColor={COLORS.textLight}
                 />
                 <TouchableOpacity style={[styles.primary, pin.length < PIN_MIN && { opacity: 0.5 }]} disabled={pin.length < PIN_MIN} onPress={() => void submit()}>
-                  <Text style={styles.primaryText}>{step === 'set1' ? 'Next' : step === 'admin' ? 'Unlock' : 'Sign'}</Text>
+                  <Text style={styles.primaryText}>{step === 'set1' ? t('sc.next') : step === 'admin' ? t('sc.unlock') : t('common.sign')}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -282,11 +284,11 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
               {/* Back to the choice: PIN, by hand, fingerprint. */}
               {step !== 'choose' && !req?.handOnly ? (
                 <TouchableOpacity onPress={() => { setMsg(null); setPinText(''); setStep('choose'); }} hitSlop={8}>
-                  <Text style={styles.link}>Another way</Text>
+                  <Text style={styles.link}>{t('sc.another')}</Text>
                 </TouchableOpacity>
               ) : <View />}
               <TouchableOpacity onPress={() => finish(null)} hitSlop={8}>
-                <Text style={[styles.link, { color: COLORS.textLight }]}>Cancel</Text>
+                <Text style={[styles.link, { color: COLORS.textLight }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -298,7 +300,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
 
 function lockText(until: number): string {
   const min = Math.max(1, Math.ceil((until - Date.now()) / 60000));
-  return `Too many wrong PINs — try again in ${min} min.`;
+  return t('sc.locked', { min });
 }
 
 const makeStyles = (COLORS: Palette) =>

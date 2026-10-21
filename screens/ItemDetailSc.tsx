@@ -23,7 +23,7 @@ import { useData } from '../contexts/DataContext';
 import { scopeOf } from '../types/certificate';
 import { CATEGORY_MAP, GROUP_SHORT, visibleCategories } from '../constants/categories';
 import { Attachment, CategoryKey, EquipmentItem } from '../types/equipment';
-import { Inspection, PERIOD_LABEL } from '../types/inspection';
+import { Inspection } from '../types/inspection';
 import { signatureLine } from '../types/crew';
 import { periodsFor } from '../constants/checklists';
 import * as inspections from '../services/inspections';
@@ -39,8 +39,17 @@ import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
 import { useSync } from '../contexts/SyncContext';
 import { roleAtLeast } from '../types/role';
 import { scanProofFor, signingGate } from '../services/signingPolicy';
+import { t, tk, tn, useT, currentLang, dateLocale } from '../utils/i18n';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// English keeps its own three letters (en-GB writes "Sept"); other languages ask Intl.
+const monthName = (i: number) => {
+  if (currentLang() === 'en') return MONTHS[i];
+  const m = new Date(Date.UTC(2000, i, 1)).toLocaleString(dateLocale(), { month: 'short', timeZone: 'UTC' }).replace(/\.$/, '');
+  return m.charAt(0).toUpperCase() + m.slice(1);
+};
+// PERIOD_LABEL (types/inspection) stays English for the reports; the screen translates.
+const periodName = (p: string) => tk(`period.${p}`);
 
 const MAX_ATTACHMENTS = 4;
 
@@ -50,6 +59,7 @@ export default function ItemDetailSc() {
   const route = useRoute<any>();
   const nav = useNavigation<any>();
   const COLORS = useTheme();
+  useT();
   const styles = useS();
   const { byCategory, saveItem, removeItem, moveItem, certificates, saveCertificate, isLocked, inspections: trail, loading, itemMovements, saveMovement } = useData();
 
@@ -174,11 +184,11 @@ export default function ItemDetailSc() {
     // Web: the browser file dialog already lets the user pick a photo or PDF, so
     // skip the Camera/Library/Document sub-menu and open it directly.
     if (onWeb) { addAttachment(pickDocument)(); return; }
-    Alert.alert('Add attachment', 'Choose a source', [
-      { text: 'Camera', onPress: addAttachment(pickFromCamera) },
-      { text: 'Photo Library', onPress: addAttachment(pickFromLibrary) },
-      { text: 'Document (PDF…)', onPress: addAttachment(pickDocument) },
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('it.addAtt'), t('cd.source'), [
+      { text: t('pick.camera'), onPress: addAttachment(pickFromCamera) },
+      { text: t('pick.library'), onPress: addAttachment(pickFromLibrary) },
+      { text: t('pick.document'), onPress: addAttachment(pickDocument) },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 
@@ -201,11 +211,11 @@ export default function ItemDetailSc() {
 
   const chooseReplace = (att: Attachment) => {
     if (onWeb) { replaceWith(att, pickDocument)(); return; }
-    Alert.alert('Replace file', 'Choose a source', [
-      { text: 'Camera', onPress: replaceWith(att, pickFromCamera) },
-      { text: 'Photo Library', onPress: replaceWith(att, pickFromLibrary) },
-      { text: 'Document (PDF…)', onPress: replaceWith(att, pickDocument) },
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('it.replaceFile'), t('cd.source'), [
+      { text: t('pick.camera'), onPress: replaceWith(att, pickFromCamera) },
+      { text: t('pick.library'), onPress: replaceWith(att, pickFromLibrary) },
+      { text: t('pick.document'), onPress: replaceWith(att, pickDocument) },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 
@@ -221,18 +231,18 @@ export default function ItemDetailSc() {
   // multi-button Alert doesn't render on react-native-web); native uses Alert.
   const attachmentMenu = (att: Attachment) => {
     const options = [
-      { text: onWeb ? 'Open / Download' : 'Download / Share', onPress: () => openFile(att.uri, att.name) },
-      { text: 'Rename', onPress: () => { setRenameText(att.name ?? ''); setRenaming(att); } },
-      { text: 'Replace', onPress: () => chooseReplace(att) },
-      { text: 'Delete', destructive: true, onPress: () => removeAttachment(att) },
+      { text: onWeb ? t('it.openDl') : t('it.dlShare'), onPress: () => openFile(att.uri, att.name) },
+      { text: t('acc.rename'), onPress: () => { setRenameText(att.name ?? ''); setRenaming(att); } },
+      { text: t('sop.replace'), onPress: () => chooseReplace(att) },
+      { text: t('common.delete'), destructive: true, onPress: () => removeAttachment(att) },
     ];
     if (onWeb) {
-      setSheet({ title: att.name ?? 'File', options });
+      setSheet({ title: att.name ?? t('tr.file'), options });
       return;
     }
-    Alert.alert(att.name ?? 'File', undefined, [
+    Alert.alert(att.name ?? t('tr.file'), undefined, [
       ...options.map((o) => ({ text: o.text, style: o.destructive ? ('destructive' as const) : undefined, onPress: o.onPress })),
-      { text: 'Cancel', style: 'cancel' as const },
+      { text: t('common.cancel'), style: 'cancel' as const },
     ]);
   };
 
@@ -264,19 +274,14 @@ export default function ItemDetailSc() {
     const needs = target.dateField;
     const missing = !draft[needs];
     Alert.alert(
-      `Move to ${target.label}?`,
-      `It keeps its QR label, its serial, its photos and documents, every certificate that covers ` +
-        `it${history ? `, and all ${history} inspection${history === 1 ? '' : 's'} on record` : ''}.\n\n` +
-        `From now on it is inspected as ${target.label} and owes that category's rounds. Rounds ` +
-        `already signed stay filed under ${meta.label} — that is where they were carried out.` +
-        (missing
-          ? `\n\n${target.label} is judged by its ${needs === 'expiry' ? 'expiry' : 'next inspection'} date, ` +
-            `which this item does not have yet. Set it after the move or it will show as having no date.`
-          : ''),
+      t('it.moveQ', { cat: target.label }),
+      (history ? t('it.moveKeepsHist', { insp: tn('n.inspection', history) }) : t('it.moveKeeps')) + '\n\n' +
+        t('it.moveFrom', { to: target.label, from: meta.label }) +
+        (missing ? '\n\n' + t(needs === 'expiry' ? 'it.moveNoExpiry' : 'it.moveNoNext', { to: target.label }) : ''),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Move',
+          text: t('it.move'),
           onPress: async () => {
             await moveItem(draft as EquipmentItem, to);
             playSuccessSound();
@@ -294,7 +299,7 @@ export default function ItemDetailSc() {
    */
   const onDuplicate = async () => {
     if (touched.current) {
-      Alert.alert('Save first', 'Save the changes to this item, then duplicate it.');
+      Alert.alert(t('lr.saveFirst'), t('it.saveFirstBody'));
       return;
     }
     if (!(await canAddItem((byCategory[category] ?? []).length))) {
@@ -309,18 +314,18 @@ export default function ItemDetailSc() {
     const hasMovements = itemMovements.some((m) => m.itemId === draft.id && !m.deleted);
     const isDecommissioned = itemMovements.some((m) => m.itemId === draft.id && m.dir === 'decommissioned' && !m.deleted);
     const msg = hasMovements && !isDecommissioned
-      ? 'This item has movement history and has not been formally written off. Write it off first, or delete anyway?'
-      : 'Remove this item permanently?';
+      ? t('it.delMoved')
+      : t('it.delBody');
     const deleteAction = async () => {
       await removeItem(category, draft.id);
       goBackOr(nav);
     };
-    Alert.alert('Delete item', msg, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('it.delete'), msg, [
+      { text: t('common.cancel'), style: 'cancel' },
       ...(hasMovements && !isDecommissioned
-        ? [{ text: 'Write off first', onPress: () => setWriteOffOpen(true) }]
+        ? [{ text: t('it.woFirst'), onPress: () => setWriteOffOpen(true) }]
         : []),
-      { text: 'Delete anyway', style: 'destructive', onPress: deleteAction },
+      { text: t('it.delAnyway'), style: 'destructive', onPress: deleteAction },
     ]);
   };
 
@@ -356,7 +361,7 @@ export default function ItemDetailSc() {
           <View style={styles.header}>
             <BackButton onPress={() => goBackOr(nav)} />
             <Text style={styles.headerTitle} numberOfLines={1}>
-              {meta?.label ?? 'Item'}
+              {meta?.label ?? t('def.item')}
             </Text>
             <View style={{ width: 24 }} />
           </View>
@@ -374,10 +379,10 @@ export default function ItemDetailSc() {
         <View style={styles.header}>
           <BackButton onPress={() => goBackOr(nav)} />
           <Text style={styles.headerTitle} numberOfLines={1}>
-            {isNew ? (copyOf ? 'New item — copy' : 'New item') : 'Edit item'}
+            {isNew ? (copyOf ? t('it.newCopy') : t('mi.new')) : t('it.edit')}
           </Text>
           <TouchableOpacity onPress={onSave} hitSlop={12}>
-            <Text style={[styles.headerBtn, { color: COLORS.primary, fontWeight: '700' }]}>Save</Text>
+            <Text style={[styles.headerBtn, { color: COLORS.primary, fontWeight: '700' }]}>{t('common.save')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -386,9 +391,9 @@ export default function ItemDetailSc() {
             <View style={styles.copyNote}>
               <MciIcon name="content-copy" size={16} color={COLORS.primary} />
               <Text style={styles.copyNoteText}>
-                Copied from {itemNumber(source) ? `No. ${itemNumber(source)}` : typeWithSize(source) || 'an item'}. Enter
-                this one's serial number{draft.no == null ? ' and item number' : ''}, check the rest, then Save. Photos,
-                certificates and history are not copied.
+                {t(draft.no == null ? 'it.copyNoteNo' : 'it.copyNote', {
+                  src: itemNumber(source) ? t('it.noN', { n: itemNumber(source) }) : typeWithSize(source) || t('it.anItem'),
+                })}
               </Text>
             </View>
           ) : null}
@@ -398,12 +403,12 @@ export default function ItemDetailSc() {
               {/* The item number leads: forty identical extinguishers differ only by
                   it, and it is what is painted by the equipment. */}
               {itemNumber(draft) ? (
-                <Text style={styles.itemNo} numberOfLines={1}>No. {itemNumber(draft)}</Text>
+                <Text style={styles.itemNo} numberOfLines={1}>{t('it.noN', { n: itemNumber(draft) })}</Text>
               ) : null}
               <Text style={styles.catLabel}>{meta.label}</Text>
               {!isNew && (typeWithSize(draft) || draft.serial || itemLocation(draft)) ? (
                 <Text style={styles.itemSub} numberOfLines={2}>
-                  {[typeWithSize(draft), draft.serial && `S/N ${draft.serial}`, itemLocation(draft)]
+                  {[typeWithSize(draft), draft.serial && t('it.sn', { sn: draft.serial }), itemLocation(draft)]
                     .filter(Boolean)
                     .join(' · ')}
                 </Text>
@@ -418,7 +423,7 @@ export default function ItemDetailSc() {
                 style={[styles.flagBtn, draft.flagged && { backgroundColor: COLORS.warning, borderColor: COLORS.warning }]}
                 onPress={() => set({ flagged: !draft.flagged })}
                 accessibilityRole="button"
-                accessibilityLabel={draft.flagged ? 'Remove flag' : 'Flag for a second look'}
+                accessibilityLabel={draft.flagged ? t('it.unflag') : t('it.flagA11y')}
               >
                 <MciIcon
                   name={draft.flagged ? 'flag' : 'flag-outline'}
@@ -426,7 +431,7 @@ export default function ItemDetailSc() {
                   color={draft.flagged ? COLORS.textWhite : COLORS.textLight}
                 />
                 <Text style={[styles.flagText, draft.flagged && { color: COLORS.textWhite }]}>
-                  {draft.flagged ? 'Flagged' : 'Flag'}
+                  {draft.flagged ? t('it.flagged') : t('it.flag')}
                 </Text>
               </TouchableOpacity>
             ) : null}
@@ -435,7 +440,7 @@ export default function ItemDetailSc() {
           {draft.flagged ? (
             <View style={{ marginBottom: SIZES.md }}>
               <Field
-                label="Why it is flagged (note for the crew)"
+                label={t('it.flagNote')}
                 value={draft.flagNote}
                 onChange={(v) => set({ flagNote: v })}
                 multiline
@@ -449,23 +454,23 @@ export default function ItemDetailSc() {
           {!isNew ? <InspectionCard item={draft} trail={trail} /> : null}
           {!isNew ? <LifecycleCard itemId={draft.id} movements={itemMovements} onWriteOff={() => setWriteOffOpen(true)} /> : null}
 
-          <Field label="Item No." value={draft.no != null ? String(draft.no) : ''} onChange={(v) => set({ no: v })} />
-          <Field label="Type / Description" value={draft.type} onChange={(v) => set({ type: v })} />
+          <Field label={t('it.f.no')} value={draft.no != null ? String(draft.no) : ''} onChange={(v) => set({ no: v })} />
+          <Field label={t('it.f.type')} value={draft.type} onChange={(v) => set({ type: v })} />
           <View style={styles.twoCol}>
             <View style={{ flex: 1 }}>
-              <Field label="Make / Manufacturer" value={draft.make} onChange={(v) => set({ make: v })} />
+              <Field label={t('it.f.make')} value={draft.make} onChange={(v) => set({ make: v })} />
             </View>
             <View style={{ flex: 1 }}>
-              <Field label="Size (e.g. 5kg, 9L)" value={draft.size} onChange={(v) => set({ size: v })} />
+              <Field label={t('it.f.size')} value={draft.size} onChange={(v) => set({ size: v })} />
             </View>
           </View>
-          <Field label="Serial / ID" value={draft.serial} onChange={(v) => set({ serial: v })} />
+          <Field label={t('it.f.serial')} value={draft.serial} onChange={(v) => set({ serial: v })} />
           <View style={styles.twoCol}>
             <View style={{ flex: 1 }}>
-              <Field label="Deck" value={draft.deck} onChange={(v) => set({ deck: v })} />
+              <Field label={t('it.f.deck')} value={draft.deck} onChange={(v) => set({ deck: v })} />
             </View>
             <View style={{ flex: 1 }}>
-              <Field label="Location" value={draft.position} onChange={(v) => set({ position: v })} />
+              <Field label={t('it.f.loc')} value={draft.position} onChange={(v) => set({ position: v })} />
             </View>
           </View>
 
@@ -476,21 +481,21 @@ export default function ItemDetailSc() {
           {meta.group === 'LIFTING' ? (
             <>
               <Field
-                label="ID / markings / whipping"
+                label={t('it.f.marking')}
                 value={draft.marking}
                 onChange={(v) => set({ marking: v })}
               />
               <View style={styles.twoCol}>
                 <View style={{ flex: 1 }}>
                   <Field
-                    label="SWL / WLL"
+                    label={t('it.f.swl')}
                     value={draft.swl}
                     onChange={(v) => set({ swl: v })}
                   />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Field
-                    label="Min. breaking load"
+                    label={t('it.f.mbl')}
                     value={draft.mbl}
                     onChange={(v) => set({ mbl: v })}
                   />
@@ -498,33 +503,33 @@ export default function ItemDetailSc() {
               </View>
               <View style={styles.twoCol}>
                 <View style={{ flex: 1 }}>
-                  <Field label="Diameter" value={draft.diameter} onChange={(v) => set({ diameter: v })} />
+                  <Field label={t('it.f.diameter')} value={draft.diameter} onChange={(v) => set({ diameter: v })} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Field label="Material" value={draft.material} onChange={(v) => set({ material: v })} />
+                  <Field label={t('it.f.material')} value={draft.material} onChange={(v) => set({ material: v })} />
                 </View>
               </View>
               <Field
-                label="Maker's test certificate no."
+                label={t('it.f.mfrCert')}
                 value={draft.mfrCertNo}
                 onChange={(v) => set({ mfrCertNo: v })}
               />
               <Field
-                label="Annual test certificate no."
+                label={t('it.f.testCert')}
                 value={draft.testCertNo}
                 onChange={(v) => set({ testCertNo: v })}
               />
               <View style={styles.twoCol}>
                 <View style={{ flex: 1 }}>
                   <DateField
-                    label="Installed / renewed"
+                    label={t('it.f.installed')}
                     value={draft.installedDate}
                     onChange={(v) => set({ installedDate: v })}
                   />
                 </View>
                 <View style={{ flex: 1 }}>
                   <DateField
-                    label="Last inspection"
+                    label={t('it.f.lastInsp')}
                     value={draft.lastInspection}
                     onChange={(v) => set({ lastInspection: v })}
                   />
@@ -534,33 +539,33 @@ export default function ItemDetailSc() {
           ) : (
             <View style={styles.twoCol}>
               <View style={{ flex: 1 }}>
-                <NumField label="Quantity" value={draft.quantity} onChange={(n) => set({ quantity: n })} />
+                <NumField label={t('it.f.qty')} value={draft.quantity} onChange={(n) => set({ quantity: n })} />
               </View>
               <View style={{ flex: 1 }}>
-                <NumField label="Persons" value={draft.persons} onChange={(n) => set({ persons: n })} />
+                <NumField label={t('it.f.persons')} value={draft.persons} onChange={(n) => set({ persons: n })} />
               </View>
             </View>
           )}
 
           {meta.group === 'LIFTING' ? null : (
-            <DateField label="Manufacture date" value={draft.manufactureDate} onChange={(v) => set({ manufactureDate: v })} />
+            <DateField label={t('it.f.mfd')} value={draft.manufactureDate} onChange={(v) => set({ manufactureDate: v })} />
           )}
           <DateField
-            label={meta.dateField === 'nextInspection' ? 'Next inspection ★' : 'Next inspection'}
+            label={meta.dateField === 'nextInspection' ? `${t('it.f.next')} ★` : t('it.f.next')}
             value={draft.nextInspection}
             onChange={(v) => set({ nextInspection: v })}
           />
           <DateField
-            label={meta.dateField === 'expiry' ? 'Expiry ★' : 'Expiry'}
+            label={meta.dateField === 'expiry' ? `${t('it.f.expiry')} ★` : t('it.f.expiry')}
             value={draft.expiry}
             onChange={(v) => set({ expiry: v })}
           />
 
-          <Field label="Comments" value={draft.remarks} onChange={(v) => set({ remarks: v })} multiline />
+          <Field label={t('id.comments')} value={draft.remarks} onChange={(v) => set({ remarks: v })} multiline />
 
           {meta.monthly ? (
             <View style={styles.card}>
-              <Label>Monthly checks · {year}</Label>
+              <Label>{t('it.monthly', { year })}</Label>
               <View style={styles.months}>
                 {MONTHS.map((m, i) => {
                   const key = `${year}-${String(i + 1).padStart(2, '0')}`;
@@ -571,7 +576,7 @@ export default function ItemDetailSc() {
                       style={[styles.month, on && styles.monthOn]}
                       onPress={() => toggleMonth(i)}
                     >
-                      <Text style={[styles.monthText, on && styles.monthTextOn]}>{m}</Text>
+                      <Text style={[styles.monthText, on && styles.monthTextOn]}>{monthName(i)}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -581,7 +586,7 @@ export default function ItemDetailSc() {
 
           {draft.extra && Object.keys(draft.extra).length ? (
             <View style={styles.card}>
-              <Label>Additional fields (from import)</Label>
+              <Label>{t('it.extra')}</Label>
               {Object.entries(draft.extra).map(([k, v]) => (
                 <View key={k} style={styles.extraRow}>
                   <Text style={styles.extraKey}>{k}</Text>
@@ -593,7 +598,7 @@ export default function ItemDetailSc() {
 
           {/* Photos & documents — up to 4 files, fixed 4-slot grid */}
           <View style={styles.card}>
-            <Label>Photos &amp; documents</Label>
+            <Label>{t('it.att')}</Label>
             <View
               style={styles.attGrid}
               onLayout={(e) => {
@@ -621,7 +626,7 @@ export default function ItemDetailSc() {
                           <View style={[styles.attThumb, box, styles.attDoc]}>
                             <MciIcon name="file-document" size={24} color={COLORS.primaryDark} />
                             <Text style={styles.attDocName} numberOfLines={1}>
-                              {a.name ?? 'Doc'}
+                              {a.name ?? t('it.doc')}
                             </Text>
                           </View>
                         )}
@@ -634,36 +639,36 @@ export default function ItemDetailSc() {
                   return (
                     <TouchableOpacity key={`add${i}`} style={[styles.attAdd, box]} onPress={chooseAttachment}>
                       <MciIcon name="plus" size={24} color={COLORS.primary} />
-                      <Text style={styles.attAddText}>Add</Text>
+                      <Text style={styles.attAddText}>{t('common.add')}</Text>
                     </TouchableOpacity>
                   );
                 }
                 return <View key={`empty${i}`} style={[styles.attEmpty, box]} />;
               })}
             </View>
-            <Text style={styles.attHint}>Up to {MAX_ATTACHMENTS} files · long-press a file to edit</Text>
+            <Text style={styles.attHint}>{t('it.attHint', { n: MAX_ATTACHMENTS })}</Text>
           </View>
 
           {/* Linked certificates */}
           <View style={styles.card}>
             <View style={styles.certHead}>
-              <Label>Certificates ({linkedCerts.length})</Label>
+              <Label>{t('it.certs', { n: linkedCerts.length })}</Label>
               {isNew ? (
                 certTabShown ? (
                   <TouchableOpacity onPress={() => nav.navigate('Certificates')}>
-                    <Text style={styles.certManage}>Manage ›</Text>
+                    <Text style={styles.certManage}>{t('it.manage')}</Text>
                   </TouchableOpacity>
                 ) : null
               ) : (
                 <TouchableOpacity onPress={() => setCertPicker(true)}>
-                  <Text style={styles.certManage}>+ Link</Text>
+                  <Text style={styles.certManage}>{t('it.link')}</Text>
                 </TouchableOpacity>
               )}
             </View>
             {isNew ? (
-              <Text style={styles.certEmpty}>Save this item first, then link the certificates that cover it.</Text>
+              <Text style={styles.certEmpty}>{t('it.certSaveFirst')}</Text>
             ) : linkedCerts.length === 0 ? (
-              <Text style={styles.certEmpty}>No certificates cover this item. Tap “+ Link” to attach one.</Text>
+              <Text style={styles.certEmpty}>{t('it.certNone')}</Text>
             ) : (
               linkedCerts.map((c) => {
                 const st = statusFromDate(c.expiryDate);
@@ -700,26 +705,26 @@ export default function ItemDetailSc() {
           {!isNew ? (
             <TouchableOpacity style={styles.labelBtn} onPress={() => nav.navigate('Label', { id: draft.id })}>
               <MciIcon name="qrcode" size={18} color={COLORS.primary} />
-              <Text style={styles.labelBtnText}>Print label</Text>
+              <Text style={styles.labelBtnText}>{t('lbl.printOne')}</Text>
             </TouchableOpacity>
           ) : null}
 
           {!isNew ? (
             <TouchableOpacity style={styles.moveBtn} onPress={onDuplicate}>
               <MciIcon name="content-copy" size={18} color={COLORS.primary} />
-              <Text style={styles.moveBtnText}>Duplicate item</Text>
+              <Text style={styles.moveBtnText}>{t('it.duplicate')}</Text>
             </TouchableOpacity>
           ) : null}
 
           {!isNew ? (
             <TouchableOpacity style={styles.moveBtn} onPress={() => setMoving(true)}>
               <MciIcon name="folder-move-outline" size={18} color={COLORS.primary} />
-              <Text style={styles.moveBtnText}>Move to another category</Text>
+              <Text style={styles.moveBtnText}>{t('it.moveBtn')}</Text>
             </TouchableOpacity>
           ) : null}
 
           <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
-            <Text style={styles.deleteText}>{isNew ? 'Discard' : 'Delete item'}</Text>
+            <Text style={styles.deleteText}>{isNew ? t('doc.discard') : t('it.delete')}</Text>
           </TouchableOpacity>
         </ScrollView>
 
@@ -729,12 +734,11 @@ export default function ItemDetailSc() {
             taught us). */}
         <Modal visible={moving} transparent animationType="slide" onRequestClose={() => setMoving(false)}>
           <View style={styles.mvBackdrop}>
-            <Pressable style={StyleSheet.absoluteFill} onPress={() => setMoving(false)} accessibilityLabel="Close" />
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setMoving(false)} accessibilityLabel={t('common.close')} />
             <View style={styles.mvSheet}>
-              <Label>Move "{draft.type || draft.serial || 'this item'}" to</Label>
+              <Label>{t('it.moveTo', { name: draft.type || draft.serial || t('it.thisItem') })}</Label>
               <Text style={styles.mvNote}>
-                Its label, history, photos and certificates go with it. Rounds already signed stay
-                filed under {meta.label}.
+                {t('it.moveNote', { cat: meta.label })}
               </Text>
               <ScrollView style={{ maxHeight: 380 }}>
                 {visibleCategories()
@@ -767,7 +771,7 @@ export default function ItemDetailSc() {
                 </Text>
               ) : null}
               <TouchableOpacity style={styles.lbOpen} onPress={() => preview && openFile(preview.uri, preview.name)}>
-                <Text style={styles.lbOpenText}>Open / Share</Text>
+                <Text style={styles.lbOpenText}>{t('it.openShare')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -776,12 +780,12 @@ export default function ItemDetailSc() {
         <Modal visible={!!renaming} transparent animationType="fade" onRequestClose={() => setRenaming(null)}>
           <View style={styles.rnBackdrop}>
             <View style={styles.rnCard}>
-              <Text style={styles.rnTitle}>Rename file</Text>
+              <Text style={styles.rnTitle}>{t('it.renameFile')}</Text>
               <TextInput
                 style={styles.input}
                 value={renameText}
                 onChangeText={setRenameText}
-                placeholder="File name"
+                placeholder={t('it.fileName')}
                 placeholderTextColor={COLORS.textLight}
                 autoFocus
               />
@@ -813,7 +817,7 @@ export default function ItemDetailSc() {
                 </TouchableOpacity>
               ))}
               <TouchableOpacity style={styles.sheetRow} onPress={() => setSheet(null)}>
-                <Text style={[styles.sheetText, { color: COLORS.textLight }]}>Cancel</Text>
+                <Text style={[styles.sheetText, { color: COLORS.textLight }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -822,9 +826,9 @@ export default function ItemDetailSc() {
         <Modal visible={certPicker} transparent animationType="fade" onRequestClose={() => setCertPicker(false)}>
           <View style={styles.rnBackdrop}>
             <View style={[styles.rnCard, { maxHeight: '80%' }]}>
-              <Text style={styles.rnTitle}>Link certificates</Text>
+              <Text style={styles.rnTitle}>{t('it.linkCerts')}</Text>
               {equipmentCerts.length === 0 ? (
-                <Text style={styles.certEmpty}>No certificates yet. Create one in the Certificates tab first.</Text>
+                <Text style={styles.certEmpty}>{t('it.noCertsYet')}</Text>
               ) : (
                 <ScrollView style={{ marginTop: SIZES.xs }}>
                   {equipmentCerts.map((c) => {
@@ -848,7 +852,7 @@ export default function ItemDetailSc() {
               )}
               <View style={styles.rnRow}>
                 <TouchableOpacity style={[styles.rnBtn, styles.rnBtnPrimary]} onPress={() => setCertPicker(false)}>
-                  <Text style={[styles.rnBtnText, styles.rnBtnTextPrimary]}>Done</Text>
+                  <Text style={[styles.rnBtnText, styles.rnBtnTextPrimary]}>{t('common.done')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -859,15 +863,15 @@ export default function ItemDetailSc() {
         <Modal visible={writeOffOpen} transparent animationType="fade" onRequestClose={() => setWriteOffOpen(false)}>
           <View style={styles.rnBackdrop}>
             <View style={styles.rnCard}>
-              <Text style={styles.rnTitle}>Write off item</Text>
+              <Text style={styles.rnTitle}>{t('it.wo.title')}</Text>
               <Text style={{ color: COLORS.textLight, fontSize: 13, marginBottom: SIZES.sm }}>
-                This creates an official decommission record. The item stays in the register as archived.
+                {t('it.wo.body')}
               </Text>
               <TextInput
                 style={styles.input}
                 value={writeOffReason}
                 onChangeText={setWriteOffReason}
-                placeholder="Reason (e.g. End of service life, Destroyed in fire…)"
+                placeholder={t('it.wo.reasonPh')}
                 placeholderTextColor={COLORS.textLight}
                 multiline
               />
@@ -902,7 +906,7 @@ export default function ItemDetailSc() {
                 >
                   {writingOff
                     ? <ActivityIndicator color="#fff" />
-                    : <Text style={[styles.rnBtnText, styles.rnBtnTextPrimary]}>Confirm write-off</Text>}
+                    : <Text style={[styles.rnBtnText, styles.rnBtnTextPrimary]}>{t('it.wo.confirm')}</Text>}
                 </TouchableOpacity>
               </View>
             </View>
@@ -990,6 +994,7 @@ function DateField({ label, value, onChange }: { label: string; value?: string; 
  */
 function InspectionCard({ item, trail }: { item: EquipmentItem; trail: Inspection[] }) {
   const COLORS = useTheme();
+  useT();
   const nav = useNavigation<any>();
   const styles = useS();
   // Read here rather than through a prop: which periods this item owes depends on
@@ -1011,11 +1016,11 @@ function InspectionCard({ item, trail }: { item: EquipmentItem; trail: Inspectio
     <View style={styles.card}>
       <View style={styles.inspHead}>
         <View style={{ flex: 1 }}>
-          <Label>Inspections</Label>
+          <Label>{t('rep.inspections')}</Label>
           <Text style={styles.inspSub}>
             {history.length
-              ? `${history.length} on record`
-              : 'Nothing recorded against this item yet'}
+              ? t('it.onRecord', { n: history.length })
+              : t('it.noHistory')}
           </Text>
         </View>
       </View>
@@ -1028,9 +1033,9 @@ function InspectionCard({ item, trail }: { item: EquipmentItem; trail: Inspectio
         <>
           <TouchableOpacity style={[styles.inspBtn, { flex: 0, marginTop: SIZES.md }]} onPress={() => nav.navigate('Scan')}>
             <MciIcon name="qrcode-scan" size={18} color={COLORS.textWhite} />
-            <Text style={styles.inspBtnText}>Scan label to inspect</Text>
+            <Text style={styles.inspBtnText}>{t('it.scanToInsp')}</Text>
           </TouchableOpacity>
-          <Text style={styles.inspSub}>This vessel requires the item's QR label to be scanned before signing.</Text>
+          <Text style={styles.inspSub}>{t('it.scanRequired')}</Text>
         </>
       ) : (
       <View style={styles.inspBtnRow}>
@@ -1039,8 +1044,7 @@ function InspectionCard({ item, trail }: { item: EquipmentItem; trail: Inspectio
             answer: this is an inventory, checked off rather than scheduled. */}
         {!periods.length ? (
           <Text style={styles.inspSub}>
-            No round is scheduled for this category on this vessel — its items are kept as an
-            inventory. A Master or Officer can add one in Settings → Checklists.
+            {t('it.noRound')}
           </Text>
         ) : null}
         {periods.map((p) => {
@@ -1058,8 +1062,7 @@ function InspectionCard({ item, trail }: { item: EquipmentItem; trail: Inspectio
                 color={done ? COLORS.success : COLORS.textWhite}
               />
               <Text style={[styles.inspBtnText, done && { color: COLORS.success }]}>
-                {PERIOD_LABEL[p]}
-                {done ? ' done' : ''}
+                {done ? t('it.perDone', { p: periodName(p) }) : periodName(p)}
               </Text>
             </TouchableOpacity>
           );
@@ -1076,7 +1079,7 @@ function InspectionCard({ item, trail }: { item: EquipmentItem; trail: Inspectio
           <Text style={styles.defectBannerText} numberOfLines={2}>
             {open.length === 1
               ? open[0].defect?.note
-              : `${open.length} outstanding defects on this item`}
+              : tn('n.itemDefect', open.length)}
           </Text>
         </TouchableOpacity>
       ) : null}
@@ -1094,7 +1097,7 @@ function InspectionCard({ item, trail }: { item: EquipmentItem; trail: Inspectio
           />
           <View style={{ flex: 1 }}>
             <Text style={styles.histTitle} numberOfLines={1}>
-              {PERIOD_LABEL[insp.period]} · {formatDateTime(insp.at)}
+              {periodName(insp.period)} · {formatDateTime(insp.at)}
             </Text>
             <Text style={styles.histMeta} numberOfLines={1}>
               {signatureLine(insp.by, insp.byRank)}
@@ -1107,7 +1110,7 @@ function InspectionCard({ item, trail }: { item: EquipmentItem; trail: Inspectio
       {history.length > 3 ? (
         <TouchableOpacity onPress={() => setShowAll((v) => !v)} style={styles.moreBtn}>
           <Text style={styles.moreBtnText}>
-            {showAll ? 'Show less' : `Show all ${history.length}`}
+            {showAll ? t('it.showLess') : t('it.showAll', { n: history.length })}
           </Text>
         </TouchableOpacity>
       ) : null}
@@ -1121,6 +1124,7 @@ function LifecycleCard({ itemId, movements, onWriteOff }: {
   onWriteOff: () => void;
 }) {
   const COLORS = useTheme();
+  useT();
   const nav = useNavigation<any>();
   const sync = useSync();
   const canEdit = !sync.enrolled || roleAtLeast(sync.role, 'admin');
@@ -1138,32 +1142,24 @@ function LifecycleCard({ itemId, movements, onWriteOff }: {
     transfer: '#6366f1',
     decommissioned: '#9ca3af',
   };
-  const DIR_LABEL: Record<string, string> = {
-    received: 'Received',
-    ashore: 'Ashore',
-    return: 'Returned',
-    condemned: 'Condemned',
-    transfer: 'Transferred',
-    decommissioned: 'Written off',
-  };
 
   return (
     <View style={{ backgroundColor: COLORS.cardSolid, borderRadius: 10, padding: SIZES.md, marginBottom: SIZES.md, marginTop: SIZES.sm }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <Text style={{ fontWeight: '700', color: COLORS.text }}>
-          {isDecommissioned ? 'Written off ✓' : 'Item lifecycle'}
+          {isDecommissioned ? t('it.writtenOff') : t('it.lifecycle')}
         </Text>
         <TouchableOpacity onPress={() => nav.navigate('Landings')}>
-          <Text style={{ color: COLORS.primary, fontSize: 13 }}>All records ›</Text>
+          <Text style={{ color: COLORS.primary, fontSize: 13 }}>{t('it.allRecords')}</Text>
         </TouchableOpacity>
       </View>
 
       {mine.length === 0 ? (
-        <Text style={{ color: COLORS.textLight, fontSize: 13 }}>No records yet</Text>
+        <Text style={{ color: COLORS.textLight, fontSize: 13 }}>{t('land.empty')}</Text>
       ) : mine.slice(-6).map((m) => (
         <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4, borderBottomWidth: 1, borderColor: COLORS.border }}>
           <View style={{ width: 80, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: DIR_COLOR[m.dir] + '22', marginRight: 8 }}>
-            <Text style={{ fontSize: 11, fontWeight: '700', color: DIR_COLOR[m.dir] }}>{DIR_LABEL[m.dir] ?? m.dir}</Text>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: DIR_COLOR[m.dir] }}>{m.dir in DIR_COLOR ? tk(`it.dir.${m.dir}`) : m.dir}</Text>
           </View>
           <Text style={{ flex: 1, fontSize: 13, color: COLORS.text }}>{m.date}</Text>
           <Text style={{ fontSize: 12, color: COLORS.textLight }} numberOfLines={1}>
@@ -1177,7 +1173,7 @@ function LifecycleCard({ itemId, movements, onWriteOff }: {
           style={{ marginTop: SIZES.sm, paddingVertical: 6, alignItems: 'center', backgroundColor: '#fee2e2', borderRadius: 8 }}
           onPress={onWriteOff}
         >
-          <Text style={{ color: '#b91c1c', fontWeight: '600', fontSize: 13 }}>Write off (Списание)…</Text>
+          <Text style={{ color: '#b91c1c', fontWeight: '600', fontSize: 13 }}>{t('it.woBtn')}</Text>
         </TouchableOpacity>
       )}
     </View>

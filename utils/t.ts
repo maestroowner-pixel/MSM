@@ -66,3 +66,25 @@ const DATE_LOCALE: Record<Lang, string> = { en: 'en-GB', ru: 'ru-RU', es: 'es-ES
 
 /** The locale for toLocaleString — 'en-GB' while the interface is English. */
 export function dateLocale(): string { return DATE_LOCALE[resolve()]; }
+
+const MONTH_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const WEEKDAY_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/**
+ * Month i (0–11) in the interface language. English keeps its own words and
+ * three letters (en-GB writes "Sept"); other languages ask Intl, capitalised and
+ * without the abbreviation's dot.
+ */
+export function monthName(i: number, style: 'long' | 'short' = 'long'): string {
+  if (resolve() === 'en') return style === 'long' ? MONTH_EN[i] : MONTH_EN[i].slice(0, 3);
+  const m = new Date(Date.UTC(2000, i, 1)).toLocaleString(DATE_LOCALE[resolve()], { month: style, timeZone: 'UTC' }).replace(/\.$/, '');
+  return cap(m);
+}
+
+/** Weekday d (0 = Sunday) in the interface language. */
+export function weekdayName(d: number, style: 'long' | 'short' = 'long'): string {
+  if (resolve() === 'en') return style === 'long' ? WEEKDAY_EN[d] : WEEKDAY_EN[d].slice(0, 3);
+  // 2 Jan 2000 was a Sunday.
+  return cap(new Date(Date.UTC(2000, 0, 2 + d)).toLocaleString(DATE_LOCALE[resolve()], { weekday: style, timeZone: 'UTC' }).replace(/\.$/, ''));
+}

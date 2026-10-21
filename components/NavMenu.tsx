@@ -38,7 +38,7 @@ import { useSync } from '../contexts/SyncContext';
 import { roleAtLeast } from '../types/role';
 import { MANAGE_ROUTE } from '../constants/access';
 import { StoreKind, storeRooms } from '../types/stores';
-import { useT } from '../utils/i18n';
+import { t as tr, useT } from '../utils/i18n';
 import { MENU_CHILDREN, MENU_GEAR, MenuChild, applyOrder, flatGrouped, grouped, move, moveInGroup } from '../utils/navOrder';
 export { applyOrder, move, flatGrouped };
 
@@ -123,7 +123,7 @@ export function NavMenuBar(props: Props) {
       <>
         <View style={[styles.top, { paddingTop: insets.top, height: 60 + insets.top, left: docked ? MENU_WIDTH : 0 }]}>
           {current !== home ? (
-            <TouchableOpacity onPress={back} hitSlop={10} style={styles.back} accessibilityRole="button" accessibilityLabel="Back">
+            <TouchableOpacity onPress={back} hitSlop={10} style={styles.back} accessibilityRole="button" accessibilityLabel={t('common.back')}>
               <MciIcon name="arrow-left" size={24} color={COLORS.primary} />
             </TouchableOpacity>
           ) : null}
@@ -151,7 +151,7 @@ export function NavMenuBar(props: Props) {
         {onBar.map((r) => (
           <BarItem key={r} icon={icons[r]} label={labelOf(r)} on={r === current} onPress={() => go(r)} styles={styles} COLORS={COLORS} />
         ))}
-        <BarItem icon="menu" label={inMenu ? labelOf(current) : 'Menu'} on={inMenu} onPress={() => setOpen(true)} styles={styles} COLORS={COLORS} />
+        <BarItem icon="menu" label={inMenu ? labelOf(current) : t('nav.menu')} on={inMenu} onPress={() => setOpen(true)} styles={styles} COLORS={COLORS} />
       </View>
       <Drawer open={open} onClose={() => setOpen(false)} styles={styles}>{list}</Drawer>
     </>
@@ -172,7 +172,7 @@ function Drawer({ open, onClose, children, styles }: { open: boolean; onClose: (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
       <View style={{ flex: 1, flexDirection: 'row' }}>
         <View style={styles.drawer}>{children}</View>
-        <TouchableOpacity style={styles.scrim} activeOpacity={1} onPress={onClose} accessibilityLabel="Close menu" />
+        <TouchableOpacity style={styles.scrim} activeOpacity={1} onPress={onClose} accessibilityLabel={tr('nav.closeMenu')} />
       </View>
     </Modal>
   );

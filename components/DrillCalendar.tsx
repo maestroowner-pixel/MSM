@@ -17,6 +17,7 @@ import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import { useTheme } from '../contexts/ThemeContext';
+import { monthName, t as tr, useT } from '../utils/i18n';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES } from '../theme';
@@ -37,6 +38,7 @@ const CELL_W = 46;
 
 export function DrillCalendar({ schedule, today, onSaved }: { schedule: ScheduleRow[]; today: string; onSaved: (w: string | null | void) => void }) {
   const COLORS = useTheme();
+  useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const { drills, drillPlans, sopepDrills, securityDrills, vessel, saveRow } = useData();
@@ -55,12 +57,12 @@ export function DrillCalendar({ schedule, today, onSaved }: { schedule: Schedule
 
   const drawUp = () => {
     const slots = proposeYear(year, schedule, today);
-    if (!slots.length) return Alert.alert('Draw up the year', year < Number(today.slice(0, 4)) ? 'A past year is not planned.' : 'No drill on a cycle on the schedule.');
+    if (!slots.length) return Alert.alert(tr('dcal.drawYear'), year < Number(today.slice(0, 4)) ? tr('dcal.past') : tr('dcal.noCycle'));
     const go = async () => {
       await savePlan({ id: String(year), slots, updatedAt: Date.now() });
       playSuccessSound();
     };
-    if (plan?.slots.length) return Alert.alert(`Draw up ${year} again?`, `The plan's ${plan.slots.length} entries are replaced by ${slots.length} drawn from the schedule. Drills already planned on a day stay.`, [{ text: 'Cancel', style: 'cancel' }, { text: 'Replace', onPress: () => void go() }]);
+    if (plan?.slots.length) return Alert.alert(tr('dcal.againQ', { year }), tr('dcal.againBody', { old: plan.slots.length, n: slots.length }), [{ text: tr('common.cancel'), style: 'cancel' }, { text: tr('dcal.replace'), onPress: () => void go() }]);
     void go();
   };
 
@@ -69,7 +71,7 @@ export function DrillCalendar({ schedule, today, onSaved }: { schedule: Schedule
     const t = DRILL_TYPES.find((x) => x.id === type);
     if (!t) return;
     const slots = proposeYear(year, [{ type: t.id, title: t.title, reg: t.reg, everyDays: t.everyDays }], today);
-    if (!slots.length) return Alert.alert(t.title, 'Nothing left of this year to plan it in.');
+    if (!slots.length) return Alert.alert(t.title, tr('dcal.nothingLeft'));
     const base: DrillYearPlan = plan ?? { id: String(year), slots: [], updatedAt: 0 };
     void savePlan({ ...base, slots: [...base.slots, ...slots], updatedAt: Date.now() });
   };
@@ -77,16 +79,16 @@ export function DrillCalendar({ schedule, today, onSaved }: { schedule: Schedule
 
   const tap = (r: { kind: string; title: string }, month: number, c: Cell) => {
     const done = c.done.find((d) => d.drill)?.drill;
-    if (c.state === 'done') return done ? nav.navigate('Drill', { id: done.id }) : Alert.alert(r.title, `Carried out ${c.done.map((d) => formatDate(d.date)).join(', ')} — recorded on the ${r.kind === 'oilspill' ? 'SOPEP' : 'Security'} screen.`);
+    if (c.state === 'done') return done ? nav.navigate('Drill', { id: done.id }) : Alert.alert(r.title, tr(r.kind === 'oilspill' ? 'dcal.doneSopep' : 'dcal.doneSecurity', { dates: c.done.map((d) => formatDate(d.date)).join(', ') }));
     if (c.scheduled) return nav.navigate('Drill', { id: c.scheduled.id });
     if (!officer) return;
     const base: DrillYearPlan = plan ?? { id: String(year), slots: [], updatedAt: 0 };
     const planIt = () => nav.navigate('Drill', { id: 'new', type: r.kind.startsWith('other:') ? 'other' : r.kind, ...(r.kind.startsWith('other:') ? { title: r.title } : {}), date: dayIn(year, month, today) });
     if (c.inPlan) {
-      return Alert.alert(`${r.title} — ${MONTHS[month - 1]} ${year}`, c.state === 'missed' ? 'In the plan, not held.' : 'In the year’s plan.', [
-        { text: 'Plan it on a day', onPress: planIt },
-        { text: 'Take it off the plan', style: 'destructive', onPress: () => void savePlan(toggleSlot(base, r.kind, r.title, month)) },
-        { text: 'Cancel', style: 'cancel' },
+      return Alert.alert(`${r.title} — ${monthName(month - 1)} ${year}`, c.state === 'missed' ? tr('dcal.notHeld') : tr('dcal.inPlan'), [
+        { text: tr('dcal.planDay'), onPress: planIt },
+        { text: tr('dcal.takeOff'), style: 'destructive', onPress: () => void savePlan(toggleSlot(base, r.kind, r.title, month)) },
+        { text: tr('common.cancel'), style: 'cancel' },
       ]);
     }
     void savePlan(toggleSlot(base, r.kind, r.title, month));
@@ -113,12 +115,12 @@ export function DrillCalendar({ schedule, today, onSaved }: { schedule: Schedule
   return (
     <>
       <View style={[styles.row, { marginTop: 0, gap: SIZES.xs }]}>
-        <TouchableOpacity onPress={() => setYear(year - 1)} hitSlop={8} accessibilityLabel="Previous year"><Text style={[styles.link, { marginTop: 0, fontSize: 20 }]}>‹</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => setYear(year - 1)} hitSlop={8} accessibilityLabel={tr('dcal.prevYear')}><Text style={[styles.link, { marginTop: 0, fontSize: 20 }]}>‹</Text></TouchableOpacity>
         <Text style={[styles.name, { fontSize: SIZES.h4 }]}>{year}</Text>
-        <TouchableOpacity onPress={() => setYear(year + 1)} hitSlop={8} accessibilityLabel="Next year"><Text style={[styles.link, { marginTop: 0, fontSize: 20 }]}>›</Text></TouchableOpacity>
-        <Text style={[styles.sub, { flex: 1, minWidth: 200 }]}>{plan?.slots.length ? `${counts.planned} planned · ${counts.done} carried out as planned${counts.missed ? ` · ${counts.missed} missed` : ''}` : 'No plan for this year yet.'}</Text>
-        {officer ? <TouchableOpacity style={styles.btn} onPress={drawUp}><Text style={styles.btnText}>{plan?.slots.length ? `Draw up ${year} again` : `Draw up ${year}`}</Text></TouchableOpacity> : null}
-        <TouchableOpacity style={styles.small} onPress={() => void pdf()}><Text style={styles.smallText}>Plan (PDF)</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => setYear(year + 1)} hitSlop={8} accessibilityLabel={tr('dcal.nextYear')}><Text style={[styles.link, { marginTop: 0, fontSize: 20 }]}>›</Text></TouchableOpacity>
+        <Text style={[styles.sub, { flex: 1, minWidth: 200 }]}>{plan?.slots.length ? tr('dcal.counts', { planned: counts.planned, done: counts.done }) + (counts.missed ? tr('dcal.missedN', { n: counts.missed }) : '') : tr('dcal.noPlan')}</Text>
+        {officer ? <TouchableOpacity style={styles.btn} onPress={drawUp}><Text style={styles.btnText}>{plan?.slots.length ? tr('dcal.drawAgain', { year }) : tr('dcal.draw', { year })}</Text></TouchableOpacity> : null}
+        <TouchableOpacity style={styles.small} onPress={() => void pdf()}><Text style={styles.smallText}>{tr('dr.planPdf')}</Text></TouchableOpacity>
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator>
@@ -127,7 +129,7 @@ export function DrillCalendar({ schedule, today, onSaved }: { schedule: Schedule
             <View style={{ width: NAME_W }} />
             {MONTHS.map((m, i) => (
               <View key={m} style={{ width: CELL_W, alignItems: 'center', paddingVertical: 4, backgroundColor: thisMonth === i + 1 ? COLORS.primary + '14' : 'transparent' }}>
-                <Text style={[styles.sub, { marginTop: 0, fontWeight: '800', color: thisMonth === i + 1 ? COLORS.primary : COLORS.textDark }]}>{m}</Text>
+                <Text style={[styles.sub, { marginTop: 0, fontWeight: '800', color: thisMonth === i + 1 ? COLORS.primary : COLORS.textDark }]}>{monthName(i, 'short')}</Text>
               </View>
             ))}
           </View>
@@ -145,7 +147,7 @@ export function DrillCalendar({ schedule, today, onSaved }: { schedule: Schedule
                     key={m}
                     onPress={() => tap(r, i + 1, c)}
                     style={{ width: CELL_W, height: 40, alignItems: 'center', justifyContent: 'center', backgroundColor: thisMonth === i + 1 ? COLORS.primary + '0D' : 'transparent' }}
-                    accessibilityLabel={`${r.title}, ${m} ${year}: ${c.state}`}
+                    accessibilityLabel={`${r.title}, ${monthName(i)} ${year}`}
                   >
                     <View style={{ minWidth: 30, height: 26, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: k.bg, borderWidth: c.state === 'empty' ? 1 : 0, borderColor: COLORS.border }}>
                       <Text style={{ color: k.fg, fontWeight: '800', fontSize: c.state === 'scheduled' ? 11 : 14 }}>{k.t}</Text>
@@ -158,10 +160,10 @@ export function DrillCalendar({ schedule, today, onSaved }: { schedule: Schedule
         </View>
       </ScrollView>
       {officer && others.length && year >= Number(today.slice(0, 4)) ? (
-        <Dropdown caption={`+ ADD A DRILL TO ${year}`} value="" onChange={(v: string) => v && addKind(v)} options={[{ value: '', label: 'Choose…' }, ...others.map((t) => ({ value: t.id, label: `${t.title} · ${everyLabel(t.everyDays)}` }))]} style={{ marginTop: SIZES.sm, maxWidth: 480 }} />
+        <Dropdown caption={tr('dcal.addTo', { year })} value="" onChange={(v: string) => v && addKind(v)} options={[{ value: '', label: tr('common.choose') }, ...others.map((t) => ({ value: t.id, label: `${t.title} · ${everyLabel(t.everyDays)}` }))]} style={{ marginTop: SIZES.sm, maxWidth: 480 }} />
       ) : null}
       <Text style={[styles.sub, { marginTop: SIZES.sm }]}>
-        {`✓ carried out · ● in the plan · ◆ planned on a day · ! missed.${officer ? ' Tap an empty month to add the drill to the plan; tap a planned one to plan it on a day or take it off.' : ''}`}
+        {tr('dcal.key') + (officer ? tr('dcal.keyOfficer') : '')}
       </Text>
     </>
   );

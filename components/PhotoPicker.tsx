@@ -9,6 +9,7 @@ import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-na
 
 import { MciIcon } from './MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
+import { t, useT } from '../utils/i18n';
 import { SIZES, Palette } from '../theme';
 import { Attachment } from '../types/equipment';
 import { PickedFile, pickDocument, pickFromCamera, pickFromLibrary, resolveUri } from '../services/attachments';
@@ -19,6 +20,7 @@ export const MAX_EVIDENCE = 4;
 
 export function PhotoPicker({ photos, onChange, max = MAX_EVIDENCE, hint }: { photos: Attachment[]; onChange: (p: Attachment[]) => void; max?: number; hint?: string }) {
   const COLORS = useTheme();
+  useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const add = (picker: () => Promise<PickedFile | null>) => async () => {
     const f = await picker();
@@ -27,10 +29,10 @@ export function PhotoPicker({ photos, onChange, max = MAX_EVIDENCE, hint }: { ph
   };
   const choose = () => {
     if (onWeb) return void add(pickDocument)();
-    Alert.alert('Add evidence', 'Photograph the work — before and after, clearances, parts replaced', [
-      { text: 'Camera', onPress: add(pickFromCamera) },
-      { text: 'Photo Library', onPress: add(pickFromLibrary) },
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('ins.addEvidence'), t('pp.body'), [
+      { text: t('pick.camera'), onPress: add(pickFromCamera) },
+      { text: t('pick.library'), onPress: add(pickFromLibrary) },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
   return (
@@ -47,7 +49,7 @@ export function PhotoPicker({ photos, onChange, max = MAX_EVIDENCE, hint }: { ph
           </TouchableOpacity>
         ) : null}
       </View>
-      <Text style={styles.hint}>{photos.length ? 'Long-press a photo to remove it' : hint ?? ''}</Text>
+      <Text style={styles.hint}>{photos.length ? t('pp.longPress') : hint ?? ''}</Text>
     </View>
   );
 }

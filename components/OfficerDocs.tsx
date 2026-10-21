@@ -13,6 +13,7 @@ import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Card, Label } from './ui';
 import { MciIcon } from './MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
+import { t, useT } from '../utils/i18n';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES } from '../theme';
@@ -30,6 +31,7 @@ const KEY: Record<DocShelf, string> = { sopep: storage.SOPEP_DOCS_KEY, ssp: stor
 
 export function OfficerDocs({ shelf, intro }: { shelf: DocShelf; intro: string }) {
   const COLORS = useTheme();
+  useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { sopepDocs, sspDocs, vessel, saveRow } = useData();
   const sync = useSync();
@@ -44,7 +46,7 @@ export function OfficerDocs({ shelf, intro }: { shelf: DocShelf; intro: string }
       <Card>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm }}>
           <MciIcon name="lock-outline" size={22} color={COLORS.textLight} />
-          <Text style={[styles.sub, { flex: 1 }]}>For the Master and the officers only. Ask the officer on watch if you need something from it.</Text>
+          <Text style={[styles.sub, { flex: 1 }]}>{t('odc.only')}</Text>
         </View>
       </Card>
     );
@@ -52,7 +54,7 @@ export function OfficerDocs({ shelf, intro }: { shelf: DocShelf; intro: string }
 
   const save = async () => {
     if (!edit) return;
-    if (!edit.title.trim()) return Alert.alert('Document', 'Give it a title.');
+    if (!edit.title.trim()) return Alert.alert(t('pax.document'), t('odc.needTitle'));
     const clean = Object.fromEntries(Object.entries({ ...edit, title: edit.title.trim() }).filter(([, v]) => v !== '' && v !== undefined)) as unknown as OfficerDoc;
     await saveRow(KEY[shelf], clean);
     setEdit(null);
@@ -68,13 +70,13 @@ export function OfficerDocs({ shelf, intro }: { shelf: DocShelf; intro: string }
       await saveRow(KEY[shelf], { ...d, fileUri: url, fileName: f.name, by: sync.me ? personName(sync.me) : d.by });
       playSuccessSound();
     } catch (e: any) {
-      Alert.alert('File', String(e?.message ?? e));
+      Alert.alert(t('tr.file'), String(e?.message ?? e));
     } finally {
       setBusy(null);
     }
   };
 
-  const review = (d: OfficerDoc) => (d.reviewDue && d.reviewDue < today ? { text: `review overdue since ${formatDate(d.reviewDue)}`, color: COLORS.danger } : d.reviewDue ? { text: `review ${formatDate(d.reviewDue)}`, color: COLORS.textLight } : null);
+  const review = (d: OfficerDoc) => (d.reviewDue && d.reviewDue < today ? { text: t('odc.reviewOverdue', { date: formatDate(d.reviewDue) }), color: COLORS.danger } : d.reviewDue ? { text: t('odc.review', { date: formatDate(d.reviewDue) }), color: COLORS.textLight } : null);
   const missing = SHELF_STARTER[shelf].filter((t) => !docs.some((d) => d.title.toLowerCase() === t.toLowerCase()));
 
   return (
@@ -84,11 +86,11 @@ export function OfficerDocs({ shelf, intro }: { shelf: DocShelf; intro: string }
         <Text style={[styles.sub, { flex: 1, marginTop: 0 }]}>{intro}</Text>
       </View>
       <View style={[styles.row, { marginTop: 0 }]}>
-        <TouchableOpacity style={styles.btn} onPress={() => setEdit({ id: uid('odoc'), title: '', updatedAt: Date.now() })}><Text style={styles.btnText}>+ Document</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.btn} onPress={() => setEdit({ id: uid('odoc'), title: '', updatedAt: Date.now() })}><Text style={styles.btnText}>{t('odc.add')}</Text></TouchableOpacity>
       </View>
       {edit ? (
         <Card>
-          <Label>{docs.some((d) => d.id === edit.id) ? 'Document' : 'New document'}</Label>
+          <Label>{docs.some((d) => d.id === edit.id) ? t('pax.document') : t('fv.newDoc')}</Label>
           {!edit.title && missing.length ? (
             <View style={styles.chips}>
               {missing.map((t) => (
@@ -96,27 +98,27 @@ export function OfficerDocs({ shelf, intro }: { shelf: DocShelf; intro: string }
               ))}
             </View>
           ) : null}
-          <TextInput style={styles.input} value={edit.title} onChangeText={(v) => setEdit({ ...edit, title: v })} placeholder="Title ★" placeholderTextColor={COLORS.textLight} />
+          <TextInput style={styles.input} value={edit.title} onChangeText={(v) => setEdit({ ...edit, title: v })} placeholder={t('fv.titleReq')} placeholderTextColor={COLORS.textLight} />
           <View style={styles.row}>
-            <TextInput style={[styles.input, { flex: 1, minWidth: 160, marginTop: 0 }]} value={edit.docNo ?? ''} onChangeText={(v) => setEdit({ ...edit, docNo: v })} placeholder="Number / approval ref." placeholderTextColor={COLORS.textLight} />
-            <TextInput style={[styles.input, { width: 110, marginTop: 0 }]} value={edit.revision ?? ''} onChangeText={(v) => setEdit({ ...edit, revision: v })} placeholder="Revision" placeholderTextColor={COLORS.textLight} />
-            <TextInput style={[styles.input, { width: 150, marginTop: 0 }]} value={edit.issued ?? ''} onChangeText={(v) => setEdit({ ...edit, issued: v })} placeholder="Issued yyyy-mm-dd" placeholderTextColor={COLORS.textLight} />
-            <TextInput style={[styles.input, { width: 170, marginTop: 0 }]} value={edit.reviewDue ?? ''} onChangeText={(v) => setEdit({ ...edit, reviewDue: v })} placeholder="Next review yyyy-mm-dd" placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { flex: 1, minWidth: 160, marginTop: 0 }]} value={edit.docNo ?? ''} onChangeText={(v) => setEdit({ ...edit, docNo: v })} placeholder={t('odc.numberPh')} placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { width: 110, marginTop: 0 }]} value={edit.revision ?? ''} onChangeText={(v) => setEdit({ ...edit, revision: v })} placeholder={t('doc.revision')} placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { width: 150, marginTop: 0 }]} value={edit.issued ?? ''} onChangeText={(v) => setEdit({ ...edit, issued: v })} placeholder={t('odc.issuedPh')} placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { width: 170, marginTop: 0 }]} value={edit.reviewDue ?? ''} onChangeText={(v) => setEdit({ ...edit, reviewDue: v })} placeholder={t('odc.reviewPh')} placeholderTextColor={COLORS.textLight} />
           </View>
-          <TextInput style={styles.input} value={edit.notes ?? ''} onChangeText={(v) => setEdit({ ...edit, notes: v })} placeholder="Note — where the original is kept, who holds copies" placeholderTextColor={COLORS.textLight} multiline />
+          <TextInput style={styles.input} value={edit.notes ?? ''} onChangeText={(v) => setEdit({ ...edit, notes: v })} placeholder={t('odc.notePh')} placeholderTextColor={COLORS.textLight} multiline />
           <View style={styles.row}>
-            <TouchableOpacity style={styles.btn} onPress={() => void save()}><Text style={styles.btnText}>Save</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => setEdit(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btn} onPress={() => void save()}><Text style={styles.btnText}>{t('common.save')}</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setEdit(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
             {docs.some((d) => d.id === edit.id) ? (
-              <TouchableOpacity onPress={() => Alert.alert('Remove', `Remove “${edit.title}” from the shelf?`, [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => void saveRow(KEY[shelf], { ...edit, deleted: true }).then(() => setEdit(null)) }])}>
-                <Text style={[styles.link, { color: COLORS.danger }]}>Remove</Text>
+              <TouchableOpacity onPress={() => Alert.alert(t('common.remove'), t('odc.removeQ', { name: edit.title }), [{ text: t('common.cancel'), style: 'cancel' }, { text: t('common.remove'), style: 'destructive', onPress: () => void saveRow(KEY[shelf], { ...edit, deleted: true }).then(() => setEdit(null)) }])}>
+                <Text style={[styles.link, { color: COLORS.danger }]}>{t('common.remove')}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
         </Card>
       ) : null}
 
-      {!docs.length && !edit ? <Text style={styles.sub}>{`Nothing on the shelf yet. Usually: ${SHELF_STARTER[shelf].slice(0, 4).join(', ')}…`}</Text> : null}
+      {!docs.length && !edit ? <Text style={styles.sub}>{t('odc.empty', { list: SHELF_STARTER[shelf].slice(0, 4).join(', ') })}</Text> : null}
       {docs.map((d) => {
         const r = review(d);
         return (
@@ -125,26 +127,26 @@ export function OfficerDocs({ shelf, intro }: { shelf: DocShelf; intro: string }
               <MciIcon name={d.fileUri ? 'file-pdf-box' : 'file-outline'} size={22} color={d.fileUri ? COLORS.primary : COLORS.textLight} />
               <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 200, minWidth: 0 }}>
                 <Text style={styles.name}>{d.title}</Text>
-                <Text style={styles.sub}>{[d.docNo, d.revision ? `rev. ${d.revision}` : null, d.issued ? `issued ${formatDate(d.issued)}` : null].filter(Boolean).join(' · ') || '—'}</Text>
+                <Text style={styles.sub}>{[d.docNo, d.revision ? t('odc.rev', { n: d.revision }) : null, d.issued ? t('odc.issued', { date: formatDate(d.issued) }) : null].filter(Boolean).join(' · ') || '—'}</Text>
                 {r ? <Text style={[styles.sub, { color: r.color, fontWeight: r.color === COLORS.danger ? '700' : '400' }]}>{r.text}</Text> : null}
                 {d.notes ? <Text style={styles.sub}>{d.notes}</Text> : null}
               </View>
               <View style={{ flexDirection: 'row', gap: SIZES.xs, marginLeft: 'auto' }}>
                 {d.fileUri ? (
-                  <TouchableOpacity style={styles.small} onPress={() => void openMedFile(d.fileUri!, d.fileName ?? d.title).catch((e) => Alert.alert('File', String(e?.message ?? e)))}>
-                    <Text style={styles.smallText}>Open</Text>
+                  <TouchableOpacity style={styles.small} onPress={() => void openMedFile(d.fileUri!, d.fileName ?? d.title).catch((e) => Alert.alert(t('tr.file'), String(e?.message ?? e)))}>
+                    <Text style={styles.smallText}>{t('odc.open')}</Text>
                   </TouchableOpacity>
                 ) : null}
                 <TouchableOpacity style={[styles.small, busy === d.id && { opacity: 0.4 }]} disabled={busy === d.id} onPress={() => void attach(d)}>
-                  <Text style={styles.smallText}>{busy === d.id ? 'Uploading…' : d.fileUri ? 'Replace file' : 'Attach PDF / photo'}</Text>
+                  <Text style={styles.smallText}>{busy === d.id ? t('odc.uploading') : d.fileUri ? t('it.replaceFile') : t('odc.attach')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.small} onPress={() => setEdit(d)}><Text style={styles.smallText}>Edit</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.small} onPress={() => setEdit(d)}><Text style={styles.smallText}>{t('common.edit')}</Text></TouchableOpacity>
               </View>
             </View>
           </View>
         );
       })}
-      <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{`Files up to ${sizeText(8 * 1024 * 1024)}; a large PDF is compressed. Kept where only the Master and the officers can open them.`}</Text>
+      <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{t('odc.filesNote', { size: sizeText(8 * 1024 * 1024) })}</Text>
     </>
   );
 }

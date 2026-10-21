@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useT } from '../utils/i18n';
+import { t, tk, useT } from '../utils/i18n';
 import { MciIcon } from './MciIcon';
 import { COLORS, SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
@@ -259,22 +259,22 @@ export function ScreenTitle({
       <FavPageChip style={styles.scanBtn} />
       {help !== undefined ? <HelpButton section={help} /> : null}
       {onAsk ? (
-        <Pressable style={({ hovered }: any) => [styles.scanBtn, hovered && styles.scanBtnHover]} onPress={onAsk} hitSlop={10} accessibilityLabel="Ask ISM AI Pilot">
+        <Pressable style={({ hovered }: any) => [styles.scanBtn, hovered && styles.scanBtnHover]} onPress={onAsk} hitSlop={10} accessibilityLabel={t('ui.ask')}>
           <MciIcon name="creation" size={20} color={c.primary} />
         </Pressable>
       ) : null}
       {onPdf ? (
-        <Pressable style={({ hovered }: any) => [styles.scanBtn, hovered && styles.scanBtnHover]} onPress={onPdf} hitSlop={10} accessibilityLabel="Export PDF">
+        <Pressable style={({ hovered }: any) => [styles.scanBtn, hovered && styles.scanBtnHover]} onPress={onPdf} hitSlop={10} accessibilityLabel={t('ui.pdf')}>
           <MciIcon name="file-pdf-box" size={22} color={c.primary} />
         </Pressable>
       ) : null}
       {onLabels ? (
-        <Pressable style={({ hovered }: any) => [styles.scanBtn, hovered && styles.scanBtnHover]} onPress={onLabels} hitSlop={10} accessibilityLabel="Print QR labels">
+        <Pressable style={({ hovered }: any) => [styles.scanBtn, hovered && styles.scanBtnHover]} onPress={onLabels} hitSlop={10} accessibilityLabel={t('ui.labels')}>
           <MciIcon name="tag-multiple-outline" size={18} color={c.primary} />
         </Pressable>
       ) : null}
       {onScan ? (
-        <Pressable style={({ hovered }: any) => [styles.scanBtn, hovered && styles.scanBtnHover]} onPress={onScan} hitSlop={10} accessibilityLabel="Scan QR label">
+        <Pressable style={({ hovered }: any) => [styles.scanBtn, hovered && styles.scanBtnHover]} onPress={onScan} hitSlop={10} accessibilityLabel={t('ui.scan')}>
           <MciIcon name="qrcode-scan" size={22} color={c.primary} />
         </Pressable>
       ) : null}
@@ -356,7 +356,7 @@ export function StatusPill({ status, text }: { status: ComplianceStatus; text?: 
   const meta = STATUS_META[status];
   return (
     <View style={[styles.pill, { backgroundColor: meta.color }]}>
-      <Text style={styles.pillText}>{text ?? meta.label}</Text>
+      <Text style={styles.pillText}>{text ?? tk(`status.${status}`)}</Text>
     </View>
   );
 }

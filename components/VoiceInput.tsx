@@ -9,10 +9,12 @@ import { Platform, Text, TouchableOpacity } from 'react-native';
 
 import { MciIcon } from './MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
+import { t, useT } from '../utils/i18n';
 import { SIZES } from '../theme';
 
 export function VoiceInput({ onText }: { onText: (t: string) => void }) {
   const COLORS = useTheme();
+  useT();
   const [on, setOn] = useState(false);
   const rec = useRef<any>(null);
   const SR = Platform.OS === 'web' ? (globalThis as any).SpeechRecognition ?? (globalThis as any).webkitSpeechRecognition : undefined;
@@ -36,9 +38,9 @@ export function VoiceInput({ onText }: { onText: (t: string) => void }) {
     setOn(true);
   };
   return (
-    <TouchableOpacity onPress={toggle} accessibilityLabel={on ? 'Stop listening' : 'Speak'} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: on ? COLORS.danger : COLORS.primary, backgroundColor: on ? COLORS.danger : 'transparent', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 }}>
+    <TouchableOpacity onPress={toggle} accessibilityLabel={on ? t('vi.stop') : t('vi.speak')} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: on ? COLORS.danger : COLORS.primary, backgroundColor: on ? COLORS.danger : 'transparent', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 }}>
       <MciIcon name="microphone" size={16} color={on ? COLORS.textWhite : COLORS.primary} />
-      <Text style={{ fontSize: SIZES.small, fontWeight: '800', color: on ? COLORS.textWhite : COLORS.primary }}>{on ? 'Listening… tap to stop' : 'Speak'}</Text>
+      <Text style={{ fontSize: SIZES.small, fontWeight: '800', color: on ? COLORS.textWhite : COLORS.primary }}>{on ? t('vi.listening') : t('vi.speak')}</Text>
     </TouchableOpacity>
   );
 }

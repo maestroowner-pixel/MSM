@@ -11,6 +11,7 @@ import { NavigationRouteContext, useRoute } from '@react-navigation/native';
 
 import { MciIcon } from './MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
+import { t, useT } from '../utils/i18n';
 import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
 import { categoryLabel } from '../services/inspections';
@@ -55,6 +56,7 @@ function useNamer(icons?: Record<string, string>) {
 /** The ★ in the top bar, and its drop-down. */
 export function FavStar({ icons, color }: { icons?: Record<string, string>; color?: string }) {
   const COLORS = useTheme();
+  useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const favs = useFavourites();
   const name = useNamer(icons);
@@ -82,18 +84,18 @@ export function FavStar({ icons, color }: { icons?: Record<string, string>; colo
 
   return (
     <>
-      <Pressable onPress={show} hitSlop={10} style={({ hovered }: any) => [styles.starBtn, hovered && { backgroundColor: COLORS.primary + '14' }]} accessibilityRole="button" accessibilityLabel="Favourites">
+      <Pressable onPress={show} hitSlop={10} style={({ hovered }: any) => [styles.starBtn, hovered && { backgroundColor: COLORS.primary + '14' }]} accessibilityRole="button" accessibilityLabel={t('fav.title')}>
         <MciIcon name={favs.length ? 'star' : 'star-outline'} size={22} color={color ?? COLORS.tabActive} />
       </Pressable>
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <TouchableOpacity style={styles.scrim} activeOpacity={1} onPress={() => setOpen(false)} accessibilityLabel="Close favourites" />
+        <TouchableOpacity style={styles.scrim} activeOpacity={1} onPress={() => setOpen(false)} accessibilityLabel={t('fav.close')} />
         <View style={[styles.panel, Platform.OS !== 'web' && styles.panelPhone]}>
           <View style={styles.head}>
             <MciIcon name="star" size={18} color={COLORS.warning} />
-            <Text style={styles.title}>Favourites</Text>
+            <Text style={styles.title}>{t('fav.title')}</Text>
             {favs.length ? (
               <TouchableOpacity onPress={() => (setEditing((e) => !e), setRenaming(null))} hitSlop={8}>
-                <Text style={styles.link}>{editing ? 'Done' : 'Edit'}</Text>
+                <Text style={styles.link}>{editing ? t('common.done') : t('common.edit')}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -101,17 +103,17 @@ export function FavStar({ icons, color }: { icons?: Record<string, string>; colo
             kept ? (
               <TouchableOpacity style={styles.addRow} onPress={() => removeFavourite(kept.id)}>
                 <MciIcon name="star-off-outline" size={18} color={COLORS.textLight} />
-                <Text style={[styles.addText, { color: COLORS.textLight }]} numberOfLines={1}>{`Remove this page — ${kept.label}`}</Text>
+                <Text style={[styles.addText, { color: COLORS.textLight }]} numberOfLines={1}>{t('fav.removePage', { name: kept.label })}</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity style={styles.addRow} onPress={add}>
                 <MciIcon name="star-plus-outline" size={18} color={COLORS.primary} />
-                <Text style={styles.addText} numberOfLines={1}>{`Add this page — ${name(here).label}`}</Text>
+                <Text style={styles.addText} numberOfLines={1}>{t('fav.addPage', { name: name(here).label })}</Text>
               </TouchableOpacity>
             )
           ) : null}
           <ScrollView style={{ maxHeight: 420 }}>
-            {!favs.length ? <Text style={styles.empty}>Nothing kept yet. Open a folder, a document or a record and press “Add this page” — or the ☆ beside Back.</Text> : null}
+            {!favs.length ? <Text style={styles.empty}>{t('fav.empty')}</Text> : null}
             {favs.map((f, i) => (
               <View key={f.id} style={[styles.row, kept?.id === f.id && styles.rowOn]}>
                 {renaming?.id === f.id ? (
@@ -131,16 +133,16 @@ export function FavStar({ icons, color }: { icons?: Record<string, string>; colo
                 )}
                 {editing ? (
                   <View style={styles.tools}>
-                    <TouchableOpacity onPress={() => setRenaming({ id: f.id, text: f.label })} hitSlop={6} accessibilityLabel={`Rename ${f.label}`}>
+                    <TouchableOpacity onPress={() => setRenaming({ id: f.id, text: f.label })} hitSlop={6} accessibilityLabel={t('fav.rename', { name: f.label })}>
                       <MciIcon name="pencil-outline" size={18} color={COLORS.textLight} />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => moveFavourite(f.id, -1)} disabled={i === 0} hitSlop={6} style={i === 0 && { opacity: 0.25 }} accessibilityLabel={`Move ${f.label} up`}>
+                    <TouchableOpacity onPress={() => moveFavourite(f.id, -1)} disabled={i === 0} hitSlop={6} style={i === 0 && { opacity: 0.25 }} accessibilityLabel={t('nav.moveUp', { name: f.label })}>
                       <MciIcon name="arrow-up" size={18} color={COLORS.textLight} />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => moveFavourite(f.id, 1)} disabled={i === favs.length - 1} hitSlop={6} style={i === favs.length - 1 && { opacity: 0.25 }} accessibilityLabel={`Move ${f.label} down`}>
+                    <TouchableOpacity onPress={() => moveFavourite(f.id, 1)} disabled={i === favs.length - 1} hitSlop={6} style={i === favs.length - 1 && { opacity: 0.25 }} accessibilityLabel={t('nav.moveDown', { name: f.label })}>
                       <MciIcon name="arrow-down" size={18} color={COLORS.textLight} />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => removeFavourite(f.id)} hitSlop={6} accessibilityLabel={`Remove ${f.label}`}>
+                    <TouchableOpacity onPress={() => removeFavourite(f.id)} hitSlop={6} accessibilityLabel={t('fav.removeOne', { name: f.label })}>
                       <MciIcon name="close" size={18} color={COLORS.danger} />
                     </TouchableOpacity>
                   </View>
@@ -160,6 +162,7 @@ export function FavStar({ icons, color }: { icons?: Record<string, string>; colo
  */
 export function FavToggle() {
   const COLORS = useTheme();
+  useT();
   const route = useRoute<any>();
   const favs = useFavourites();
   const name = useNamer();
@@ -181,7 +184,7 @@ export function FavToggle() {
       hitSlop={10}
       style={{ marginLeft: SIZES.sm, padding: 2 }}
       accessibilityRole="button"
-      accessibilityLabel={kept ? 'Remove from favourites' : 'Add to favourites'}
+      accessibilityLabel={kept ? t('fav.removeFrom') : t('fav.addTo')}
     >
       <MciIcon name={kept ? 'star' : 'star-outline'} size={20} color={kept ? COLORS.warning : COLORS.textLight} />
     </TouchableOpacity>
@@ -195,6 +198,7 @@ export function FavToggle() {
  */
 export function FavPageChip({ style }: { style?: any }) {
   const COLORS = useTheme();
+  useT();
   const route = useContext(NavigationRouteContext) as any;
   const favs = useFavourites();
   const name = useNamer();
@@ -217,7 +221,7 @@ export function FavPageChip({ style }: { style?: any }) {
       hitSlop={10}
       style={style}
       accessibilityRole="button"
-      accessibilityLabel={kept ? 'Remove from favourites' : 'Add to favourites'}
+      accessibilityLabel={kept ? t('fav.removeFrom') : t('fav.addTo')}
     >
       <MciIcon name={kept ? 'star' : 'star-outline'} size={22} color={kept ? COLORS.warning : COLORS.primary} />
     </TouchableOpacity>
@@ -227,11 +231,12 @@ export function FavPageChip({ style }: { style?: any }) {
 /** At the top of the menu: what is kept, one tap away (on a phone the menu is the way in). */
 export function FavMenuSection({ onPicked, itemStyle, textStyle, headStyle }: { onPicked: () => void; itemStyle: any; textStyle: any; headStyle: any }) {
   const COLORS = useTheme();
+  useT();
   const favs = useFavourites();
   if (!favs.length) return null;
   return (
     <View>
-      <Text style={headStyle}>Favourites</Text>
+      <Text style={headStyle}>{t('fav.title')}</Text>
       {favs.map((f) => (
         <TouchableOpacity key={f.id} style={itemStyle} onPress={() => (onPicked(), openFavourite(f))} activeOpacity={0.7}>
           <MciIcon name={f.icon} size={20} color={COLORS.warning} />
