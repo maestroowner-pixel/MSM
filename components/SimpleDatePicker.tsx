@@ -15,7 +15,7 @@
 // ===================================
 
 import React, { useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Dimensions, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, TouchableWithoutFeedback } from 'react-native';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { t, useT, monthName } from '../utils/i18n';
@@ -226,7 +226,10 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
 
   modalOverlay: { flex: 1, backgroundColor: COLORS.overlay ?? 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
   pickerBox: {
-    width: Dimensions.get('window').width - 40,
+    // Stretch rather than a width read once: on a foldable the window changes
+    // size while the app runs, and a frozen width overflowed the folded screen.
+    alignSelf: 'stretch',
+    marginHorizontal: 20,
     borderRadius: SIZES.radiusXl,
     padding: SIZES.lg,
     backgroundColor: COLORS.cardSolid ?? '#fff',
