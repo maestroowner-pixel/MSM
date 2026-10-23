@@ -28,14 +28,14 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { Answer, GasTest, PERMIT_STATUS_LABEL, Permit, PermitType, SignStamp, ToolboxMeeting } from '../types/permits';
+import { Answer, GasTest, Permit, PermitType, SignStamp, ToolboxMeeting } from '../types/permits';
 import { GAS_LIMITS, PERMIT_TYPE_MAP } from '../constants/permitTypes';
-import { RISK_COLOR, RISK_LABEL, approvalBlockers, gasProblems, isOverdue, nextNumber, nowLocal, startBlockers, worstResidual } from '../services/permits';
-import { TOOLBOX_TOPICS } from '../constants/toolbox';
+import { RISK_COLOR, approvalBlockers, gasProblems, isOverdue, nextNumber, nowLocal, startBlockers, worstResidual } from '../services/permits';
+import { TOOLBOX_TOPICS, toolboxText } from '../constants/toolbox';
 import { exportPermitPdf } from '../services/permitReport';
 import { isAboard } from '../types/crew';
 import { roleAtLeast } from '../types/role';
-import { formatDateTime } from '../utils/dates';
+import { uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -184,7 +184,7 @@ export default function PermitSc() {
 
   const Stamp = ({ label, s }: { label: string; s?: SignStamp }) =>
     s ? (
-      <Text style={styles.stamp}>{`${tk(`ptw.st.${label}`)}: ${s.byRank ? `${s.by} (${s.byRank})` : s.by} · ${formatDateTime(s.at)}${s.signedWith ? ` · ${proofShort(s.signedWith)}` : ''}`}</Text>
+      <Text style={styles.stamp}>{`${tk(`ptw.st.${label}`)}: ${s.byRank ? `${s.by} (${s.byRank})` : s.by} · ${uiDateTime(s.at)}${s.signedWith ? ` · ${proofShort(s.signedWith)}` : ''}`}</Text>
     ) : null;
 
   return (
@@ -192,7 +192,7 @@ export default function PermitSc() {
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
           <BackButton onPress={() => goBackOr(nav)} />
-          <Text style={styles.headerTitle} numberOfLines={1}>{p.no ?? t('ptw.newPermit', { kind: def.label.toLowerCase() })}</Text>
+          <Text style={styles.headerTitle} numberOfLines={1}>{p.no ?? t('ptw.newPermit', { kind: tk(`ptw.kind.${def.key}`).toLowerCase() })}</Text>
           {/* The permit with its toolbox meeting report, as a document (services/permitReport). */}
           {existing ? (
             <TouchableOpacity
@@ -219,8 +219,8 @@ export default function PermitSc() {
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
           <View style={styles.typeRow}>
             <MciIcon name={def.icon} size={22} color={COLORS.primary} />
-            <Text style={styles.typeText}>{def.label}</Text>
-            <Text style={[styles.statusPill, { color: statusColor, borderColor: statusColor }]}>{isOverdue(p, now) ? t('ptw.overdue') : PERMIT_STATUS_LABEL[p.status]}</Text>
+            <Text style={styles.typeText}>{tk(`ptw.kind.${def.key}`)}</Text>
+            <Text style={[styles.statusPill, { color: statusColor, borderColor: statusColor }]}>{isOverdue(p, now) ? t('ptw.overdue') : tk(`ptw.status.${p.status}`)}</Text>
           </View>
 
           <Label>{t('ptw.work')}</Label>
@@ -253,7 +253,7 @@ export default function PermitSc() {
           <Text style={styles.section}>{t('ptw.precautions')}</Text>
           {def.checks.map((c) => (
             <View key={c.id} style={styles.check}>
-              <Text style={[styles.checkText, p.checks[c.id] === 'no' && { color: COLORS.danger }]}>{c.text}</Text>
+              <Text style={[styles.checkText, p.checks[c.id] === 'no' && { color: COLORS.danger }]}>{tk(`ptw.chk.${def.key}.${c.id}`)}</Text>
               <View style={styles.answers}>
                 {(['yes', 'no', 'na'] as Answer[]).map((a) => {
                   const on = p.checks[c.id] === a;
@@ -277,7 +277,7 @@ export default function PermitSc() {
                 return (
                   <View key={i} style={styles.gasRow}>
                     <Text style={[styles.gasText, { color: bad.length ? COLORS.danger : COLORS.success }]}>
-                      {`${formatDateTime(t.at)} — O₂ ${t.o2 ?? '–'} · LEL ${t.lel ?? '–'} · H₂S ${t.h2s ?? '–'} · CO ${t.co ?? '–'} · ${t.by}${t.instrument ? ` · ${t.instrument}` : ''}`}
+                      {`${uiDateTime(t.at)} — O₂ ${t.o2 ?? '–'} · LEL ${t.lel ?? '–'} · H₂S ${t.h2s ?? '–'} · CO ${t.co ?? '–'} · ${t.by}${t.instrument ? ` · ${t.instrument}` : ''}`}
                     </Text>
                     {bad.length ? <Text style={[styles.sub, { color: COLORS.danger }]}>{bad.join('; ')}</Text> : null}
                   </View>
@@ -304,7 +304,7 @@ export default function PermitSc() {
                 <Text style={styles.raTitle}>{ra.title}</Text>
                 <Text style={styles.sub}>{[ra.no, tn('n.hazard', ra.hazards.length), ra.approved ? t('ptw.approvedL') : t('permits.notApproved')].filter(Boolean).join(' · ')}</Text>
               </View>
-              {worstResidual(ra) ? <Text style={{ color: RISK_COLOR[worstResidual(ra)!], fontWeight: '800' }}>{RISK_LABEL[worstResidual(ra)!]}</Text> : null}
+              {worstResidual(ra) ? <Text style={{ color: RISK_COLOR[worstResidual(ra)!], fontWeight: '800' }}>{tk(`risk.lvl.${worstResidual(ra)!}`)}</Text> : null}
             </TouchableOpacity>
           ) : (
             <Text style={styles.sub}>{t('ptw.noneAttached')}</Text>
@@ -338,12 +338,12 @@ export default function PermitSc() {
           <Text style={styles.section}>{t('ptw.toolbox')}</Text>
           {p.toolbox && !tb.open ? (
             <View style={styles.tbBox}>
-              <Text style={styles.tbLine}>{`${formatDateTime(p.toolbox.at)} · held by ${p.toolbox.byRank ? `${p.toolbox.by} (${p.toolbox.byRank})` : p.toolbox.by}${p.toolbox.signedWith ? ` · ${proofShort(p.toolbox.signedWith)}` : ''}`}</Text>
+              <Text style={styles.tbLine}>{`${uiDateTime(p.toolbox.at)} · ${t('ptw.heldBy', { name: p.toolbox.byRank ? `${p.toolbox.by} (${p.toolbox.byRank})` : p.toolbox.by })}${p.toolbox.signedWith ? ` · ${proofShort(p.toolbox.signedWith)}` : ''}`}</Text>
               <Text style={styles.tbLine}>{`${t('ptw.place')}: ${p.toolbox.location}`}</Text>
               <Text style={styles.tbLine}>{`${t('ptw.job')}: ${p.toolbox.work}`}</Text>
               <Text style={styles.tbLine}>{`${t('ptw.present')}: ${p.toolbox.attendees.filter((a) => a.present).map((a) => a.name).join(', ') || '—'}`}</Text>
               {p.toolbox.attendees.some((a) => !a.present) ? <Text style={[styles.tbLine, { color: COLORS.danger }]}>{`${t('ptw.absent')}: ${p.toolbox.attendees.filter((a) => !a.present).map((a) => a.name).join(', ')}`}</Text> : null}
-              <Text style={styles.tbLine}>{`${t('ptw.covered')}: ${TOOLBOX_TOPICS.filter((t) => p.toolbox!.topics.includes(t.id)).map((t) => t.text).join('; ') || '—'}`}</Text>
+              <Text style={styles.tbLine}>{`${t('ptw.covered')}: ${TOOLBOX_TOPICS.filter((t) => p.toolbox!.topics.includes(t.id)).map(toolboxText).join('; ') || '—'}`}</Text>
               {p.toolbox.concerns ? <Text style={styles.tbLine}>{`${t('ptw.raised')}: ${p.toolbox.concerns}`}</Text> : null}
               {startBlockers(p).length && !final && p.status !== 'active' ? <Text style={[styles.tbLine, { color: COLORS.warning, fontWeight: '700' }]}>{startBlockers(p).join(' · ')}</Text> : null}
               {!final && p.status !== 'active' ? (
@@ -361,7 +361,7 @@ export default function PermitSc() {
                     const on = tb.present.includes(n);
                     return (
                       <TouchableOpacity key={n} style={[styles.chip, on && styles.chipOn]} onPress={() => setTb({ ...tb, present: on ? tb.present.filter((x) => x !== n) : [...tb.present, n] })}>
-                        <Text style={[styles.chipText, on && styles.chipTextOn]}>{`${on ? '✓ ' : ''}${n}${p.team.includes(n) ? '' : ' (also present)'}`}</Text>
+                        <Text style={[styles.chipText, on && styles.chipTextOn]}>{`${on ? '✓ ' : ''}${n}${p.team.includes(n) ? '' : ` (${t('ptw.alsoPresentTag')})`}`}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -380,7 +380,7 @@ export default function PermitSc() {
                   return (
                     <TouchableOpacity key={t.id} style={styles.tbTopic} onPress={() => setTb({ ...tb, topics: on ? tb.topics.filter((x) => x !== t.id) : [...tb.topics, t.id] })}>
                       <MciIcon name={on ? 'checkbox-marked' : 'checkbox-blank-outline'} size={20} color={on ? COLORS.success : COLORS.textLight} />
-                      <Text style={styles.tbTopicText}>{t.text}</Text>
+                      <Text style={styles.tbTopicText}>{toolboxText(t)}</Text>
                     </TouchableOpacity>
                   );
                 })}

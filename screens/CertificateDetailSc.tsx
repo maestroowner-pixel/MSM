@@ -31,7 +31,7 @@ import { useData } from '../contexts/DataContext';
 import { Certificate, scopeOf } from '../types/certificate';
 import { liveCrew, crewLabel } from '../types/crew';
 import { CREW_CERT_TYPES, VESSEL_CERT_TYPES } from '../constants/certificateTypes';
-import { CATEGORY_MAP } from '../constants/categories';
+import { CATEGORY_MAP, catShort } from '../constants/categories';
 import { statusFromDate, formatDate } from '../utils/dates';
 import { pickDocument, pickFromLibrary, pickFromCamera, openFile, deleteFile, resolveUri, toDataUri, PickedFile } from '../services/attachments';
 import { playSuccessSound } from '../utils/sound';
@@ -231,7 +231,7 @@ export default function CertificateDetailSc() {
     const needle = search.trim().toLowerCase();
     const base = needle
       ? flat.filter((it) =>
-          [it.type, it.serial, it.position, CATEGORY_MAP[it.category].short].some((v) =>
+          [it.type, it.serial, it.position, catShort(it.category)].some((v) =>
             v?.toLowerCase().includes(needle)
           )
         )
@@ -309,10 +309,10 @@ export default function CertificateDetailSc() {
                     <CategoryBadge category={item.category} size={18} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.pickTitle} numberOfLines={1}>
-                        {item.type || (item.no != null ? `#${item.no}` : meta.short)}
+                        {item.type || (item.no != null ? `#${item.no}` : catShort(meta))}
                       </Text>
                       <Text style={styles.pickSub} numberOfLines={1}>
-                        {meta.short}
+                        {catShort(meta)}
                         {item.serial ? ` · S/N ${item.serial}` : ''}
                         {item.position ? ` · ${item.position}` : ''}
                       </Text>
@@ -458,10 +458,10 @@ export default function CertificateDetailSc() {
                       <CategoryBadge category={it.category} size={18} />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.linkedTitle} numberOfLines={1}>
-                          {it.type || (it.no != null ? `#${it.no}` : meta.short)}
+                          {it.type || (it.no != null ? `#${it.no}` : catShort(meta))}
                         </Text>
                         <Text style={styles.linkedSub} numberOfLines={1}>
-                          {meta.short}
+                          {catShort(meta)}
                           {it.serial ? ` · S/N ${it.serial}` : ''}
                         </Text>
                       </View>

@@ -14,10 +14,10 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import * as storage from '../services/storage';
 import * as snapshot from '../services/snapshot';
-import { CATEGORY_MAP } from '../constants/categories';
+import { CATEGORY_MAP, catLabel } from '../constants/categories';
 import { periodsFor } from '../constants/checklists';
 import { worstRoundMark, RoundMark } from '../services/inspections';
-import { complianceDate, computeStatus, daysUntil, formatDate } from '../utils/dates';
+import { complianceDate, computeStatus, daysUntil, uiDate } from '../utils/dates';
 import { CategoryKey, ComplianceStatus, EquipmentItem } from '../types/equipment';
 import { uid } from '../utils/id';
 import { canAddItem } from '../services/trial';
@@ -219,7 +219,7 @@ export default function CategoryItemsSc() {
     if (!count) return;
     const syncing = sync.status === 'synced' || sync.status === 'pending';
     Alert.alert(
-      t('ci.clearQ', { name: meta.label }),
+      t('ci.clearQ', { name: catLabel(meta) }),
       `${t('ci.allDeleted', { x: tn('n.item', count) })}${syncing ? ` — ${t('ci.everywhere')}` : ''}.\n\n${t('ci.clearBody')}\n\n${t('imp.copyKept')}`,
       [
         { text: t('common.cancel'), style: 'cancel' },
@@ -285,7 +285,7 @@ export default function CategoryItemsSc() {
     const n = ids.size;
     const said = (f: 'nextInspection' | 'expiry', name: string) => {
       const v = bulk[f];
-      return v === null ? t('ci.clears', { name }) : v ? t('ci.sets', { name, date: formatDate(v) }) : '';
+      return v === null ? t('ci.clears', { name }) : v ? t('ci.sets', { name, date: uiDate(v) }) : '';
     };
     const acts = [said('nextInspection', t('ci.nextInspL')), said('expiry', t('ci.expiryL')), bulk.note?.trim() ? t('ci.addsComment') : '']
       .filter(Boolean);
@@ -386,7 +386,7 @@ export default function CategoryItemsSc() {
           <MciIcon name="lock" size={20} color={COLORS.textLight} />
         ) : (
           <>
-            {e.date ? <Text style={styles.rowDate}>{formatDate(e.date)}</Text> : null}
+            {e.date ? <Text style={styles.rowDate}>{uiDate(e.date)}</Text> : null}
             <StatusPill status={e.status} />
           </>
         )}
@@ -409,7 +409,7 @@ export default function CategoryItemsSc() {
       <View style={styles.head}>
         <CategoryBadge category={category} size={28} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>{selecting ? t('ci.selected', { n: selected.size }) : meta.label}</Text>
+          <Text style={styles.title}>{selecting ? t('ci.selected', { n: selected.size }) : catLabel(meta)}</Text>
           <Text style={styles.sub}>
             {selecting
               ? t('ci.tapSelect')
@@ -448,7 +448,7 @@ export default function CategoryItemsSc() {
               </TouchableOpacity>
             ) : null}
             {canClear && (byCategory[category] ?? []).length > 0 ? (
-              <TouchableOpacity style={styles.iconBtn} onPress={clearCategory} accessibilityLabel={t('ci.clearA', { name: meta.label })}>
+              <TouchableOpacity style={styles.iconBtn} onPress={clearCategory} accessibilityLabel={t('ci.clearA', { name: catLabel(meta) })}>
                 <MciIcon name="delete-sweep-outline" size={18} color={COLORS.danger} />
               </TouchableOpacity>
             ) : null}

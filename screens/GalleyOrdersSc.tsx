@@ -15,7 +15,7 @@ import { SIZES, Palette } from '../theme';
 import { roleAtLeast } from '../types/role';
 import { GalleyOrder } from '../types/galley';
 import { galleyTotal } from '../services/galley';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { goBackOr } from '../utils/nav';
 import { t, useT } from '../utils/i18n';
 
@@ -65,9 +65,9 @@ export default function GalleyOrdersSc() {
           const color = statusColor(o.status);
           // Timeline for closed orders
           const timeline: string[] = [];
-          if (o.sentAt) timeline.push(t('galley.sent', { date: formatDate(o.sentAt) }));
-          if (o.receivedAt) timeline.push(t('galley.rcvd', { date: formatDate(o.receivedAt) }));
-          if (o.cancelledAt) timeline.push(t('galley.cancelled', { date: formatDate(o.cancelledAt) }));
+          if (o.sentAt) timeline.push(t('galley.sent', { date: uiDate(o.sentAt) }));
+          if (o.receivedAt) timeline.push(t('galley.rcvd', { date: uiDate(o.receivedAt) }));
+          if (o.cancelledAt) timeline.push(t('galley.cancelled', { date: uiDate(o.cancelledAt) }));
 
           return (
             <TouchableOpacity
@@ -88,7 +88,7 @@ export default function GalleyOrdersSc() {
                     <Text style={styles.totalVal}>{`${currency} ${total.toFixed(2)}`}</Text>
                   ) : null}
                 </View>
-                <Text style={styles.sub}>{`${o.lines.length} items · ${formatDate(o.date)}`}</Text>
+                <Text style={styles.sub}>{`${o.lines.length} items · ${uiDate(o.date)}`}</Text>
                 {timeline.length > 0 ? (
                   <Text style={styles.timeline}>{timeline.join(' → ')}</Text>
                 ) : null}

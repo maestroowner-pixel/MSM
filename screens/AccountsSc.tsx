@@ -24,7 +24,7 @@ import { SIZES, Palette } from '../theme';
 import { EnrolledDevice, Invite, ROLE_ORDER, Role, personName, olderConnections } from '../types/role';
 import * as accounts from '../services/accounts';
 import * as fb from '../services/firebaseService';
-import { formatDateTime } from '../utils/dates';
+import { uiDateTime } from '../utils/dates';
 import { newestVersion, versionStanding } from '../utils/version';
 import { APP_CONFIG } from '../theme';
 import { moduleOn } from '../constants/modules';
@@ -461,7 +461,7 @@ export default function AccountsSc() {
             <Text style={styles.meta}>{t('acc.olderBody')}</Text>
             <TouchableOpacity
               style={[styles.waitPill, { alignSelf: 'flex-start', marginTop: SIZES.sm }]}
-              onPress={() => Alert.alert(t('acc.switchOffOlderQ'), [...older.keys()].map((id) => { const d = devices.find((x) => x.id === id); return d ? `${personName(d)} · ${d.platform ?? ''} · ${t('acc.lastSeen', { when: d.lastSeenAt ? formatDateTime(d.lastSeenAt) : '—' })}` : id; }).join('\n'), [
+              onPress={() => Alert.alert(t('acc.switchOffOlderQ'), [...older.keys()].map((id) => { const d = devices.find((x) => x.id === id); return d ? `${personName(d)} · ${d.platform ?? ''} · ${t('acc.lastSeen', { when: d.lastSeenAt ? uiDateTime(d.lastSeenAt) : '—' })}` : id; }).join('\n'), [
                 { text: t('common.cancel'), style: 'cancel' },
                 { text: t('acc.switchOff'), style: 'destructive', onPress: () => void accounts.retireDevices(imo, older).catch((e) => Alert.alert(t('acc.devicesErr'), String(e?.message ?? e))) },
               ])}
@@ -501,7 +501,7 @@ export default function AccountsSc() {
                         roleName(item.role),
                         item.disabled ? (item.retiredAt ? t('acc.retiredAuto') : t('acc.switchedOff')) : item.approved ? t('acc.approvedCap') : t('acc.waiting'),
                         item.platform,
-                        item.lastSeenAt ? formatDateTime(item.lastSeenAt) : null,
+                        item.lastSeenAt ? uiDateTime(item.lastSeenAt) : null,
                         older.has(item.id) ? t('acc.olderConn') : null,
                       ]
                         .filter(Boolean)

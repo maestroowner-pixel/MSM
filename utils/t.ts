@@ -82,6 +82,15 @@ export function monthName(i: number, style: 'long' | 'short' = 'long'): string {
   return cap(m);
 }
 
+/**
+ * Month i as it stands in a short date ("01 Apr 2025" / «01 апр. 2025»):
+ * English three letters, other languages Intl's abbreviation, lower case, dot kept.
+ */
+export function monthAbbr(i: number): string {
+  if (resolve() === 'en') return MONTH_EN[i].slice(0, 3);
+  return new Date(Date.UTC(2000, i, 1)).toLocaleString(DATE_LOCALE[resolve()], { month: 'short', timeZone: 'UTC' }).toLowerCase();
+}
+
 /** Weekday d (0 = Sunday) in the interface language. */
 export function weekdayName(d: number, style: 'long' | 'short' = 'long'): string {
   if (resolve() === 'en') return style === 'long' ? WEEKDAY_EN[d] : WEEKDAY_EN[d].slice(0, 3);

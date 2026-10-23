@@ -12,8 +12,8 @@ import { Empty, Screen, ScreenTitle, StatusPill, CategoryBadge } from '../compon
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
-import { CATEGORY_MAP } from '../constants/categories';
-import { computeStatus, formatDateTime } from '../utils/dates';
+import { CATEGORY_MAP, catShort } from '../constants/categories';
+import { computeStatus, uiDateTime } from '../utils/dates';
 import { EquipmentItem } from '../types/equipment';
 
 /** "just now" / "12m ago" / "3h ago" / "2d ago". */
@@ -51,7 +51,7 @@ export default function RecentScansSc() {
 
   const titleOf = (it: EquipmentItem) => {
     const meta = CATEGORY_MAP[it.category];
-    return it.type || (it.no != null ? `#${it.no}` : meta.short);
+    return it.type || (it.no != null ? `#${it.no}` : catShort(meta));
   };
 
   return (
@@ -82,7 +82,7 @@ export default function RecentScansSc() {
               <View style={{ flex: 1, marginLeft: SIZES.md }}>
                 <Text style={styles.title} numberOfLines={1}>{titleOf(item)}</Text>
                 <Text style={styles.sub} numberOfLines={1}>
-                  {meta.short}
+                  {catShort(meta)}
                   {item.position ? ` · ${item.position}` : ''}
                   {item.serial ? ` · ${item.serial}` : ''}
                 </Text>
@@ -90,7 +90,7 @@ export default function RecentScansSc() {
               <View style={{ alignItems: 'flex-end', gap: SIZES.xs }}>
                 <StatusPill status={computeStatus(item)} />
                 <Text style={styles.when}>{relScanned(at)}</Text>
-                <Text style={styles.whenExact}>{formatDateTime(at)}</Text>
+                <Text style={styles.whenExact}>{uiDateTime(at)}</Text>
               </View>
             </TouchableOpacity>
           );

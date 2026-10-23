@@ -30,14 +30,14 @@ import { SIZES, Palette } from '../theme';
 import { DEPTS, Machine, PmsDone, PmsJob, deptOf, hasCounter } from '../types/pms';
 import { activeDeferral, dueLabel, hoursPerDay, jobDue, sortJobsByDue, todayIso, withReading, scheduleLabel , checkReading , lastCondition , cancellable, jobAfterCancel } from '../services/pms';
 import { CATALOGUE } from '../services/pmsCatalogue';
-import { formatDate } from '../utils/dates';
+import { formatDate, uiDate } from '../utils/dates';
 import { qtyText, stockByPart, stockStatus } from '../services/spares';
 import { moduleOn } from '../constants/modules';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { copyJobsTo, copyMachine, parentChoices, predecessors, replaceMachine, scrapMachine } from '../services/pmsMachines';
 import { Dropdown } from '../components/Dropdown';
-import { MACHINE_FIELDS, changeText, planDiff, withChanges } from '../services/planLog';
+import { MACHINE_FIELDS, changeTextUi, fieldName, planDiff, withChanges } from '../services/planLog';
 import { playSuccessSound } from '../utils/sound';
 import { t, tk, tn, useT } from '../utils/i18n';
 
@@ -126,7 +126,7 @@ export default function MachineSc() {
     // The change log (services/planLog.ts): critical, class item or code changed says why.
     const diff = planDiff(existing, next, MACHINE_FIELDS);
     if (diff.some((d) => d.needsReason) && changeReason.trim().length < 3) {
-      Alert.alert(t('gb.reasonChange'), t('mch.sayWhy', { what: diff.filter((d) => d.needsReason).map((d) => d.label.toLowerCase()).join(', ') }));
+      Alert.alert(t('gb.reasonChange'), t('mch.sayWhy', { what: diff.filter((d) => d.needsReason).map((d) => fieldName(d.field).toLowerCase()).join(', ') }));
       return false;
     }
     const now = Date.now();
@@ -291,7 +291,7 @@ export default function MachineSc() {
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
           {retired?.scrapped ? (
             <View style={[styles.doubt, { borderColor: COLORS.danger, marginTop: 0, marginBottom: SIZES.md }]}>
-              <Text style={[styles.rowTitle, { color: COLORS.danger }]}>{t('mch.scrappedOn', { date: formatDate(retired.scrapped.date) })}</Text>
+              <Text style={[styles.rowTitle, { color: COLORS.danger }]}>{t('mch.scrappedOn', { date: uiDate(retired.scrapped.date) })}</Text>
               <Text style={styles.sub}>{[retired.scrapped.reason, retired.scrapped.byRank ? `${retired.scrapped.by} (${retired.scrapped.byRank})` : retired.scrapped.by].join(' · ')}</Text>
               {retired.scrapped.replacedBy && allMachines.some((m) => m.id === retired.scrapped!.replacedBy) ? (
                 <TouchableOpacity onPress={() => nav.push('Machine', { id: retired.scrapped!.replacedBy })} hitSlop={8}>
@@ -302,10 +302,10 @@ export default function MachineSc() {
           ) : !canPlan ? <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>{PLAN_LOCKED}</Text> : null}
           {before.length ? (
             <View style={[styles.card, { marginBottom: SIZES.md }]}>
-              <Text style={styles.sub}>{existing?.installed ? t('mch.fittedReplaced', { date: formatDate(existing.installed) }) : t('mch.itReplaced')}</Text>
+              <Text style={styles.sub}>{existing?.installed ? t('mch.fittedReplaced', { date: uiDate(existing.installed) }) : t('mch.itReplaced')}</Text>
               {before.map((m) => (
                 <TouchableOpacity key={m.id} onPress={() => nav.push('Machine', { id: m.id })} hitSlop={6}>
-                  <Text style={[styles.link, { marginTop: 2 }]}>{`${m.serial ? `S/N ${m.serial}` : m.name}${m.scrapped ? ` · ${t('mch.scrappedL', { date: formatDate(m.scrapped.date) })} — ${m.scrapped.reason}` : ''} · ${t('mch.itsHistory')} →`}</Text>
+                  <Text style={[styles.link, { marginTop: 2 }]}>{`${m.serial ? `S/N ${m.serial}` : m.name}${m.scrapped ? ` · ${t('mch.scrappedL', { date: uiDate(m.scrapped.date) })} — ${m.scrapped.reason}` : ''} · ${t('mch.itsHistory')} →`}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -383,7 +383,7 @@ export default function MachineSc() {
             </Text>
             <Text style={styles.sub}>
               {[
-                (existing ?? draft).hoursDate ? t('mch.readOn', { date: formatDate((existing ?? draft).hoursDate!) }) : null,
+                (existing ?? draft).hoursDate ? t('mch.readOn', { date: uiDate((existing ?? draft).hoursDate!) }) : null,
                 rate ? t('mch.perDay', { n: Math.round(rate * 10) / 10 }) : null,
               ].filter(Boolean).join(' · ')}
             </Text>
@@ -429,7 +429,7 @@ export default function MachineSc() {
               <TouchableOpacity onPress={() => setReplacing('')} hitSlop={8}><Text style={[styles.link, { marginTop: SIZES.xs }]}>{t('mch.counterReplaced')}</Text></TouchableOpacity>
             ) : null}
             {((existing ?? draft).readings ?? []).filter((r) => r.reason).slice(-3).map((r) => (
-              <Text key={`${r.date}-${r.hours}-${r.reason}`} style={styles.sub}>{`${formatDate(r.date)} · ${r.hours} h — ${r.reason}${r.by ? ` (${r.by})` : ''}`}</Text>
+              <Text key={`${r.date}-${r.hours}-${r.reason}`} style={styles.sub}>{`${uiDate(r.date)} · ${r.hours} h — ${r.reason}${r.by ? ` (${r.by})` : ''}`}</Text>
             ))}
           </View>
           ) : null}
@@ -464,7 +464,7 @@ export default function MachineSc() {
             const lc = lastCondition(id, pmsDone);
             return lc ? (
               <Text style={[styles.sub, { marginTop: SIZES.sm, fontWeight: '700', color: lc.conditionAfter === 'out' || lc.conditionAfter === 'poor' ? COLORS.warning : COLORS.textDark }]}>
-                {`${t('mch.lastCond')}: ${tk(`pms.cond.${lc.conditionAfter!}`)} · ${formatDate(lc.date)} · ${lc.jobTitle}`}
+                {`${t('mch.lastCond')}: ${tk(`pms.cond.${lc.conditionAfter!}`)} · ${uiDate(lc.date)} · ${lc.jobTitle}`}
               </Text>
             ) : null;
           })()}
@@ -545,7 +545,7 @@ export default function MachineSc() {
               <View style={[styles.bar, { backgroundColor: categoryColor(COLORS, x.category) }]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle} numberOfLines={2}>{x.description}</Text>
-                <Text style={styles.sub}>{`${tk(`pms.defcat.${x.category}`)} · ${formatDate(x.date)} · ${x.by}`}</Text>
+                <Text style={styles.sub}>{`${tk(`pms.defcat.${x.category}`)} · ${uiDate(x.date)} · ${x.by}`}</Text>
               </View>
             </TouchableOpacity>
           ))}
@@ -586,7 +586,7 @@ export default function MachineSc() {
               </View>
               {h.cancelled ? <Text style={[styles.sub, { color: COLORS.danger }]}>{`${t('mch.cancelled')} — ${h.editReason ?? ''} · ${h.editedByRank ? `${h.editedBy} (${h.editedByRank})` : h.editedBy ?? ''}`}</Text> : null}
               <Text style={styles.sub}>
-                {[formatDate(h.date), h.hours != null ? t('hor.hours', { n: h.hours }) : null, condLabel(h) || null, h.manHours != null ? t('mch.manH', { n: h.manHours }) : null, h.doneBy ? t('mch.doneBy', { who: `${h.doneBy}${h.doneByRank ? ` (${h.doneByRank})` : ''}` }) : null, h.doneBy ? t('mch.signedOutBy', { who: h.byRank ? `${h.by} (${h.byRank})` : h.by }) : h.byRank ? `${h.by} (${h.byRank})` : h.by].filter(Boolean).join(' · ')}
+                {[uiDate(h.date), h.hours != null ? t('hor.hours', { n: h.hours }) : null, condLabel(h) || null, h.manHours != null ? t('mch.manH', { n: h.manHours }) : null, h.doneBy ? t('mch.doneBy', { who: `${h.doneBy}${h.doneByRank ? ` (${h.doneByRank})` : ''}` }) : null, h.doneBy ? t('mch.signedOutBy', { who: h.byRank ? `${h.by} (${h.byRank})` : h.by }) : h.byRank ? `${h.by} (${h.byRank})` : h.by].filter(Boolean).join(' · ')}
               </Text>
               {h.note ? <Text style={styles.note}>{h.note}</Text> : null}
               {h.photos?.length ? (
@@ -604,7 +604,7 @@ export default function MachineSc() {
               </TouchableOpacity>
               {showLog
                 ? [...existing.changes].reverse().map((c, i) => (
-                    <Text key={`${c.at}-${i}`} style={styles.sub}>{`${formatDate(new Date(c.at).toISOString().slice(0, 10))} · ${c.byRank ? `${c.by} (${c.byRank})` : c.by} · ${changeText(c)}${c.reason ? ` — ${c.reason}` : ''}`}</Text>
+                    <Text key={`${c.at}-${i}`} style={styles.sub}>{`${uiDate(new Date(c.at).toISOString().slice(0, 10))} · ${c.byRank ? `${c.by} (${c.byRank})` : c.by} · ${changeTextUi(c)}${c.reason ? ` — ${c.reason}` : ''}`}</Text>
                   ))
                 : null}
             </View>

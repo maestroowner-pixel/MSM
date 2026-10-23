@@ -37,9 +37,9 @@ import {
 } from '../services/photoArchive';
 import { exportMonthArchive } from '../services/photoArchiveExport';
 import { writePhotoArchive } from '../services/policy';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { onWindows } from '../utils/fileShare';
-import { t, tn, useT } from '../utils/i18n';
+import { t, tn, useT, dateLocale } from '../utils/i18n';
 
 function mb(bytes: number): string {
   const m = bytes / (1024 * 1024);
@@ -144,7 +144,7 @@ export default function PhotoArchiveSc() {
         </View>
         {archivedThrough ? (
           <Text style={styles.note}>
-            {t('pa.upTo', { date: formatDate(new Date(archivedThrough - 1).toISOString().slice(0, 10)) })}
+            {t('pa.upTo', { date: uiDate(new Date(archivedThrough - 1).toISOString().slice(0, 10)) })}
             {photoArchive.setBy ? ` · ${t('pa.setBy', { who: photoArchive.setBy })}` : ''}.
           </Text>
         ) : (
@@ -154,7 +154,7 @@ export default function PhotoArchiveSc() {
         )}
         {photoArchive.lastSweepAt ? (
           <Text style={styles.note}>
-            {t('pa.lastSweep', { date: new Date(photoArchive.lastSweepAt).toLocaleDateString() })} ·{' '}
+            {t('pa.lastSweep', { date: uiDate(new Date(photoArchive.lastSweepAt).toISOString().slice(0, 10)) })} ·{' '}
             {tn('n.file', photoArchive.lastSweepDeleted ?? 0)}.
           </Text>
         ) : null}

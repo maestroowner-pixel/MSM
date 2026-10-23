@@ -24,7 +24,7 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { moduleOn } from '../constants/modules';
-import { CATEGORY_MAP } from '../constants/categories';
+import { catLabel } from '../constants/categories';
 import { periodsFor } from '../constants/checklists';
 import { personName } from '../types/role';
 import { CategoryKey } from '../types/equipment';
@@ -32,7 +32,7 @@ import { buildBoard, Level } from '../services/board';
 import { aiReady } from '../services/ai';
 import { todayIso } from '../services/pms';
 import { nowLocal } from '../services/permits';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { useT } from '../utils/i18n';
 
 export default function BoardSc() {
@@ -66,7 +66,7 @@ export default function BoardSc() {
         me,
         today: todayIso(),
         now: nowLocal(),
-        labelOf: (k: CategoryKey) => data.categories.find((c) => c.key === k)?.label ?? CATEGORY_MAP[k]?.label ?? String(k),
+        labelOf: (k: CategoryKey) => catLabel(data.categories.find((c) => c.key === k) ?? k),
         periodsOf: (k: CategoryKey) => periodsFor(k, data.templates),
         ...data,
       }),
@@ -141,7 +141,7 @@ export default function BoardSc() {
 
   const today = board.today.length ? (
     <View style={styles.block}>
-      <Text style={styles.head}>{t('board.today', { date: formatDate(todayIso()) })}</Text>
+      <Text style={styles.head}>{t('board.today', { date: uiDate(todayIso()) })}</Text>
       {board.today.map((t) => (
         <TouchableOpacity key={t.key} style={styles.todayRow} onPress={() => go(t.route, t.params)} activeOpacity={0.7}>
           <MciIcon name={t.done ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'} size={20} color={t.done ? COLORS.success : COLORS.textLight} />

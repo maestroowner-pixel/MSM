@@ -20,7 +20,7 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { roleAtLeast } from '../types/role';
 import { uid } from '../utils/id';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { signatureLine } from '../types/crew';
 import { useSigner, Signer } from '../components/SignerChoice';
 import { useSignConfirm, SignResult } from '../components/SignConfirm';
@@ -28,7 +28,7 @@ import { ItemMovement, LandingReport, MovementDir, nextLandingNo, MOVEMENT_DIR_L
 import { DeckEntry } from '../types/deckLog';
 import * as storage from '../services/storage';
 import { EquipmentItem } from '../types/equipment';
-import { CATEGORY_MAP } from '../constants/categories';
+import { CATEGORY_MAP, catLabel } from '../constants/categories';
 import { readInspectLink } from '../services/firebaseService';
 import { printLandingReport } from '../services/landingReport';
 import SimpleDatePicker from '../components/SimpleDatePicker';
@@ -297,7 +297,7 @@ export default function LandingReportSc() {
         <View style={styles.field}>
           <Label style={styles.label}>{t('nc.date')}</Label>
           {isReadOnly
-            ? <Text style={styles.value}>{formatDate(date)}</Text>
+            ? <Text style={styles.value}>{uiDate(date)}</Text>
             : <SimpleDatePicker label={t('nc.date')} value={date} onChange={setDate} />}
         </View>
 
@@ -346,7 +346,7 @@ export default function LandingReportSc() {
         )}
 
         {(isNew ? selectedItems : myMovements.map((m) => itemsById.get(m.itemId)).filter(Boolean) as EquipmentItem[]).map((item) => {
-          const cat = CATEGORY_MAP[item.category]?.label ?? item.category;
+          const cat = catLabel(item.category);
           const desc = [item.no, item.type || item.make].filter(Boolean).join(' ');
           const mov = isNew ? null : myMovements.find((m) => m.itemId === item.id);
           return (
@@ -392,7 +392,7 @@ export default function LandingReportSc() {
                 <>
                   {mov?.reason ? <Text style={styles.itemSub}>Reason: {mov.reason}</Text> : null}
                   {mov?.serviceRef ? <Text style={styles.itemSub}>Service ref: {mov.serviceRef}</Text> : null}
-                  {mov?.newInspectionDate ? <Text style={styles.itemSub}>Next inspection: {formatDate(mov.newInspectionDate)}</Text> : null}
+                  {mov?.newInspectionDate ? <Text style={styles.itemSub}>Next inspection: {uiDate(mov.newInspectionDate)}</Text> : null}
                 </>
               )}
             </View>
@@ -474,7 +474,7 @@ export default function LandingReportSc() {
             keyExtractor={(it) => it.id}
             renderItem={({ item }) => {
               const selected = selectedItemIds.has(item.id);
-              const cat = CATEGORY_MAP[item.category]?.label ?? item.category;
+              const cat = catLabel(item.category);
               const desc = [item.no, item.type || item.make].filter(Boolean).join(' ');
               return (
                 <TouchableOpacity

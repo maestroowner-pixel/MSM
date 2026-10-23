@@ -12,7 +12,7 @@ import { Screen, Card, Label } from '../components/ui';
 import { SIZES, Palette, COLORS } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import SimpleDatePicker from '../components/SimpleDatePicker';
@@ -352,7 +352,7 @@ export default function CompressorSc() {
                   <View style={[styles.entryBar, { backgroundColor: TYPE_COLOR[e.type] }]} />
                   <View style={{ flex: 1 }}>
                     <View style={styles.entryTop}>
-                      <Text style={styles.entryDate}>{formatDate(e.date)}</Text>
+                      <Text style={styles.entryDate}>{uiDate(e.date)}</Text>
                       {e.type === 'run' ? (
                         <Text style={[styles.entryDur, { color: TYPE_COLOR.run }]}>{fmtDuration(e.minutes ?? 0)}</Text>
                       ) : (

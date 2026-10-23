@@ -56,8 +56,8 @@ import { useSync } from '../contexts/SyncContext';
 import { SCAN_PROOF_MINUTES, scanProofFor, signerRule, signingGate } from '../services/signingPolicy';
 import { useSignConfirm } from '../components/SignConfirm';
 import { SIZES, Palette } from '../theme';
-import { CATEGORY_MAP } from '../constants/categories';
-import { periodsFor, templateFor } from '../constants/checklists';
+import { CATEGORY_MAP, catLabel } from '../constants/categories';
+import { clHint, clLine, clTitle, periodsFor, templateFor } from '../constants/checklists';
 import { roundFor, roundTakes } from '../services/rounds';
 import { useActiveRound } from '../services/activeRound';
 import { moduleOn } from '../constants/modules';
@@ -78,7 +78,7 @@ import { onWeb } from '../utils/fileShare';
 import { uid } from '../utils/id';
 import { playErrorSound, playSuccessSound } from '../utils/sound';
 import { goBackOr } from '../utils/nav';
-import { t, tk, useT } from '../utils/i18n';
+import { t, tk, useT, dateLocale } from '../utils/i18n';
 import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
 
 const MAX_PHOTOS = 4;
@@ -398,9 +398,9 @@ export default function InspectionSc() {
     // Spelled out, because it cannot be undone afterwards.
     Alert.alert(
       anyFail ? t('ins.signFailed') : t('ins.signPassed'),
-      t('ins.confirmBody', { title: perTitle(period), item: item ? itemTitle(item) : t('ins.item'), who: crewLabel(signer), when: new Date().toLocaleString() }) + '\n' +
+      t('ins.confirmBody', { title: perTitle(period), item: item ? itemTitle(item) : t('ins.item'), who: crewLabel(signer), when: new Date().toLocaleString(dateLocale()) }) + '\n' +
         (proof
-          ? t('ins.scannedAt', { time: new Date(proof.at).toLocaleTimeString() }) + '\n'
+          ? t('ins.scannedAt', { time: new Date(proof.at).toLocaleTimeString(dateLocale()) }) + '\n'
           : gate.kind === 'override'
             ? t('ins.noScanSigned', { reason: overrideReason.trim() }) + '\n'
             : '') +
@@ -460,7 +460,7 @@ export default function InspectionSc() {
               </View>
               <Text style={styles.itemName}>{itemTitle(item)}</Text>
               <Text style={styles.itemMeta}>
-                {[meta.label, itemLocation(item)].filter(Boolean).join(' · ')}
+                {[catLabel(meta), itemLocation(item)].filter(Boolean).join(' · ')}
               </Text>
               <Text style={styles.note}>{t('ins.scanRequired', { n: SCAN_PROOF_MINUTES })}</Text>
               <TouchableOpacity style={[styles.saveBtn, { marginTop: SIZES.lg }]} onPress={() => nav.replace('Scan')}>
@@ -505,7 +505,7 @@ export default function InspectionSc() {
                 {itemTitle(item)}
               </Text>
               <Text style={styles.itemMeta}>
-                {[meta.label, itemLocation(item), item.serial ? `S/N ${item.serial}` : null]
+                {[catLabel(meta), itemLocation(item), item.serial ? `S/N ${item.serial}` : null]
                   .filter(Boolean)
                   .join(' · ')}
               </Text>
@@ -532,7 +532,7 @@ export default function InspectionSc() {
             <View style={styles.verifiedRow}>
               <MciIcon name="qrcode-scan" size={18} color={COLORS.success} />
               <Text style={styles.verifiedText}>
-                {t('ins.scannedRow', { time: new Date(proof.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })}
+                {t('ins.scannedRow', { time: new Date(proof.at).toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' }) })}
               </Text>
             </View>
           ) : gate.kind === 'override' ? (
@@ -610,7 +610,7 @@ export default function InspectionSc() {
           <View style={styles.card}>
             <View style={styles.checklistHead}>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Label numberOfLines={1}>{template.title}</Label>
+                <Label numberOfLines={1}>{clTitle(template)}</Label>
                 <Text style={styles.progress}>
                   {t('ins.answered', { k: answered, n: template.lines.length })}
                 </Text>
@@ -631,8 +631,8 @@ export default function InspectionSc() {
               const value = results[line.id];
               return (
                 <View key={line.id} style={styles.line}>
-                  <Text style={styles.lineText}>{line.text}</Text>
-                  {line.hint ? <Text style={styles.lineHint}>{line.hint}</Text> : null}
+                  <Text style={styles.lineText}>{clLine(template, line)}</Text>
+                  {line.hint ? <Text style={styles.lineHint}>{clHint(template, line)}</Text> : null}
                   <View style={styles.resultRow}>
                     {(['pass', 'fail', 'na'] as CheckResult[]).map((r) => {
                       const on = value === r;
@@ -645,7 +645,7 @@ export default function InspectionSc() {
                           ]}
                           onPress={() => setLine(line.id, r)}
                           accessibilityRole="button"
-                          accessibilityLabel={`${line.text}: ${tk(RESULT_KEY[r])}`}
+                          accessibilityLabel={`${clLine(template, line)}: ${tk(RESULT_KEY[r])}`}
                         >
                           <Text style={[styles.resultText, on && { color: COLORS.textWhite }]}>
                             {tk(RESULT_KEY[r])}

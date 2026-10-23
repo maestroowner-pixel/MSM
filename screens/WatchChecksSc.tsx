@@ -25,6 +25,7 @@ import { CheckBook, DpCheck, bookOf } from '../types/dp';
 import { shipAndUtc } from '../utils/shipTime';
 
 import { t, tk, tn, useT } from '../utils/i18n';
+import { watchBuiltIn, watchText } from '../utils/watchText';
 
 type Folder = { key: string; label: string; icon: string; sub: string; books: Exclude<CheckBook, 'dp'>[] };
 // Two menu entries share this screen: Bridge & engine checklists, and Familiarisation.
@@ -90,7 +91,7 @@ export default function WatchChecksSc() {
         <TouchableOpacity key={tp.id} style={styles.row} onPress={() => nav.navigate('DpCheck', { templateId: tp.id })} activeOpacity={0.7}>
           <MciIcon name={meta.icon} size={20} color={COLORS.primary} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.title}>{tp.title}</Text>
+            <Text style={styles.title}>{watchText(tp.title, watchBuiltIn(tp.id))}</Text>
             <Text style={styles.sub}>{tn('n.item', tp.lines.filter((l) => !l.head && !l.kind).length)}</Text>
           </View>
           <MciIcon name="chevron-right" size={18} color={COLORS.textLight} />
@@ -104,8 +105,8 @@ export default function WatchChecksSc() {
           <TouchableOpacity key={c.id} style={styles.row} onPress={() => nav.navigate('DpCheck', { id: c.id })} activeOpacity={0.7}>
             <View style={[styles.dot, { backgroundColor: o.fail ? COLORS.danger : o.open ? COLORS.warning : COLORS.success }]} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.title}>{c.title}</Text>
-              <Text style={styles.sub}>{[`${shipAndUtc(c.at, c.shipOffset).ship} LT`, c.position ? positionText(c.position) : null, c.by2 ? `${c.by} / ${c.by2}` : c.by, o.fail ? `${o.fail} NO` : null].filter(Boolean).join(' · ')}</Text>
+              <Text style={styles.title}>{watchText(c.title, watchBuiltIn(c.templateId))}</Text>
+              <Text style={styles.sub}>{[t('wc.lt', { time: shipAndUtc(c.at, c.shipOffset).ship }), c.position ? positionText(c.position) : null, c.by2 ? `${c.by} / ${c.by2}` : c.by, o.fail ? t('wc.no', { n: o.fail }) : null].filter(Boolean).join(' · ')}</Text>
             </View>
             <MciIcon name="chevron-right" size={18} color={COLORS.textLight} />
           </TouchableOpacity>

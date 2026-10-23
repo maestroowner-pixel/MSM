@@ -31,7 +31,7 @@ import { todayIso } from '../services/pms';
 import { proofShort } from '../services/signature';
 import { batchLabel, chestStatus, expiryState, landingLine, landingLinesFor, nextNo } from '../services/hospital';
 import { exportLandingPdf } from '../services/hospitalReport';
-import { formatDate, formatDateTime } from '../utils/dates';
+import { uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -93,9 +93,9 @@ export default function MedLandingSc() {
     return (
       <Screen scroll>
         <BackButton onPress={() => goBackOr(nav)} />
-        <ScreenTitle title={`${scd ? t('ml.titleCd') : t('ml.report')} ${stored.no}`} subtitle={`${formatDate(stored.date)}${stored.port ? ` · ${stored.port}` : ''} · ${t('med.linesUnits', { n: stored.lines.length, u: total })}`} help="Hospital" />
+        <ScreenTitle title={`${scd ? t('ml.titleCd') : t('ml.report')} ${stored.no}`} subtitle={`${uiDate(stored.date)}${stored.port ? ` · ${stored.port}` : ''} · ${t('med.linesUnits', { n: stored.lines.length, u: total })}`} help="Hospital" />
         <View style={[styles.item, { borderLeftColor: COLORS.success }]}>
-          <Text style={styles.sub}>{`${t('med.handedBy', { who: who(stored.by, stored.byRank) })} · ${formatDateTime(stored.at)}${stored.signedWith ? ` · ${proofShort(stored.signedWith)}` : ''}`}</Text>
+          <Text style={styles.sub}>{`${t('med.handedBy', { who: who(stored.by, stored.byRank) })} · ${uiDateTime(stored.at)}${stored.signedWith ? ` · ${proofShort(stored.signedWith)}` : ''}`}</Text>
           {stored.witness ? <Text style={styles.sub}>{`${t('med.witness', { who: who(stored.witness, stored.witnessRank) })}${stored.witnessWith ? ` · ${proofShort(stored.witnessWith)}` : ''}`}</Text> : null}
           <Text style={styles.sub}>{`${t('ml.receivedBy', { who: [stored.receiver, stored.receiverRole, stored.receiverOrg].filter(Boolean).join(', ') })}${stored.receivedWith ? ` · ${proofShort(stored.receivedWith)}` : ''}`}</Text>
           {stored.note ? <Text style={styles.body}>{stored.note}</Text> : null}

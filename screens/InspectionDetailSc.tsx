@@ -37,14 +37,14 @@ import { useSignConfirm } from '../components/SignConfirm';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
-import { CATEGORY_MAP } from '../constants/categories';
-import { templateById } from '../constants/checklists';
+import { catLabel } from '../constants/categories';
+import { clTitle, templateById } from '../constants/checklists';
 import { CheckResult, PERIOD_LABEL, verificationText } from '../types/inspection';
 import { crewLabel, signatureLine } from '../types/crew';
 import { Attachment } from '../types/equipment';
 import * as inspections from '../services/inspections';
 import { RETENTION_DAYS, isArchived } from '../services/photoArchive';
-import { formatDateTime } from '../utils/dates';
+import { formatDateTime, uiDateTime } from '../utils/dates';
 import { goBackOr } from '../utils/nav';
 import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
 import { t, tk, useT, dateLocale } from '../utils/i18n';
@@ -108,7 +108,7 @@ export default function InspectionDetailSc() {
     rectifying.current = true;
     Alert.alert(
       t('id.recordRect'),
-      `${t('id.closeQ', { who: crewLabel(signer), when: new Date().toLocaleString() })}\n\n${t('id.original')}`,
+      `${t('id.closeQ', { who: crewLabel(signer), when: new Date().toLocaleString(dateLocale()) })}\n\n${t('id.original')}`,
       [
         { text: t('common.cancel'), style: 'cancel', onPress: () => { rectifying.current = false; } },
         {
@@ -167,11 +167,11 @@ export default function InspectionDetailSc() {
                 <Text style={styles.itemName}>
                   {[itemNumber(item) && t('round.no', { n: itemNumber(item) }), typeWithSize(item) || item?.serial]
                     .filter(Boolean)
-                    .join(' — ') || CATEGORY_MAP[insp.category]?.label || t('def.item')}
+                    .join(' — ') || catLabel(insp.category) || t('def.item')}
                 </Text>
                 <Text style={styles.meta}>
                   {item
-                    ? [CATEGORY_MAP[insp.category]?.label, itemLocation(item), item.serial ? `S/N ${item.serial}` : null]
+                    ? [catLabel(insp.category), itemLocation(item), item.serial ? `S/N ${item.serial}` : null]
                         .filter(Boolean)
                         .join(' · ')
                     : t('id.gone')}
@@ -185,7 +185,7 @@ export default function InspectionDetailSc() {
           <Card>
             <Label>{t('wc.signed')}</Label>
             <Row icon="account-check" text={signatureLine(insp.by, insp.byRank)} />
-            <Row icon="clock-outline" text={formatDateTime(insp.at)} />
+            <Row icon="clock-outline" text={uiDateTime(insp.at)} />
             {insp.signedWith ? <Row icon={insp.signedWith.method === 'biometric' ? 'fingerprint' : insp.signedWith.method === 'drawn' ? 'draw' : 'dialpad'} text={proofText(insp.signedWith) ?? ''} /> : null}
             {insp.verification ? (
               <Row
@@ -194,13 +194,13 @@ export default function InspectionDetailSc() {
                   insp.verification.method === 'override'
                     ? verificationText(insp.verification, formatDateTime)
                     : (insp.verification.method === 'qr-link' ? t('id.scannedPhone') : t('id.scannedApp')) +
-                      (insp.verification.scannedAt ? ` · ${formatDateTime(insp.verification.scannedAt)}` : '')
+                      (insp.verification.scannedAt ? ` · ${uiDateTime(insp.verification.scannedAt)}` : '')
                 }
               />
             ) : null}
             <Row
               icon="clipboard-list"
-              text={`${template?.title ?? insp.templateId} · v${insp.templateVersion}`}
+              text={`${template ? clTitle(template) : insp.templateId} · v${insp.templateVersion}`}
             />
             {insp.deviceId ? <Row icon="cellphone" text={t('id.device', { id: insp.deviceId.slice(0, 8) })} /> : null}
           </Card>
@@ -218,7 +218,7 @@ export default function InspectionDetailSc() {
                 <View key={id} style={styles.resultRow}>
                   <MciIcon name={meta.icon as any} size={18} color={color} />
                   <Text style={styles.resultText}>{text}</Text>
-                  <Text style={[styles.resultLabel, { color }]}>{meta.label}</Text>
+                  <Text style={[styles.resultLabel, { color }]}>{tk(`ins.res.${result}`)}</Text>
                 </View>
               );
             })}
@@ -293,7 +293,7 @@ export default function InspectionDetailSc() {
               ) : (
                 <View style={{ paddingTop: SIZES.sm }}>
                   <Row icon="account-check" text={insp.defect.closedBy ?? '—'} />
-                  <Row icon="clock-check-outline" text={formatDateTime(insp.defect.closedAt)} />
+                  <Row icon="clock-check-outline" text={uiDateTime(insp.defect.closedAt)} />
                   {insp.defect.closedNote ? <Text style={styles.body}>{insp.defect.closedNote}</Text> : null}
                 </View>
               )}

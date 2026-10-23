@@ -27,7 +27,7 @@ import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { proofShort } from '../services/signature';
 import { NC_STATE_LABEL, ncState, nextNcNo } from '../services/safety';
-import { formatDate, formatDateTime } from '../utils/dates';
+import { uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -153,7 +153,7 @@ export default function NcSc() {
   return (
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav)} />
-      <ScreenTitle title={nc.no ? `${nc.no} · ${nc.title || t('nc.nc')}` : t('nc.new')} subtitle={nc.no ? `${NC_STATE_LABEL[st]} · ${t('nc.raised', { date: formatDate(nc.date), who: who(nc.raisedBy, nc.raisedByRank) })}` : t('nc.newSub')} help="Safety observations & NC" />
+      <ScreenTitle title={nc.no ? `${nc.no} · ${nc.title || t('nc.nc')}` : t('nc.new')} subtitle={nc.no ? `${NC_STATE_LABEL[st]} · ${t('nc.raised', { date: uiDate(nc.date), who: who(nc.raisedBy, nc.raisedByRank) })}` : t('nc.newSub')} help="Safety observations & NC" />
 
       {editing && draft ? (
         <Card>
@@ -202,8 +202,8 @@ export default function NcSc() {
             return (
               <View key={a.id} style={[styles.item, { borderLeftColor: a.doneAt ? COLORS.success : late ? COLORS.danger : COLORS.warning }]}>
                 <Text style={styles.name}>{`${a.doneAt ? '✓ ' : ''}${CAPA_KIND_LABEL[a.kind]}: ${a.text}`}</Text>
-                <Text style={[styles.sub, late && { color: COLORS.danger, fontWeight: '700' }]}>{`${a.owner} · by ${formatDate(a.due)}${late ? ' · overdue' : ''}`}</Text>
-                {a.doneAt ? <Text style={[styles.sub, { color: COLORS.success }]}>{`${t('nc.doneAt', { when: formatDateTime(a.doneAt) })} · ${who(a.doneBy, a.doneByRank)}${a.doneNote ? ` — ${a.doneNote}` : ''}`}</Text> : null}
+                <Text style={[styles.sub, late && { color: COLORS.danger, fontWeight: '700' }]}>{`${a.owner} · by ${uiDate(a.due)}${late ? ' · overdue' : ''}`}</Text>
+                {a.doneAt ? <Text style={[styles.sub, { color: COLORS.success }]}>{`${t('nc.doneAt', { when: uiDateTime(a.doneAt) })} · ${who(a.doneBy, a.doneByRank)}${a.doneNote ? ` — ${a.doneNote}` : ''}`}</Text> : null}
                 {!a.doneAt && !closed ? (
                   doing?.id === a.id ? (
                     <View>
@@ -247,7 +247,7 @@ export default function NcSc() {
 
           {closed ? (
             <View style={[styles.item, { borderLeftColor: COLORS.success, marginTop: SIZES.md }]}>
-              <Text style={[styles.name, { color: COLORS.success }]}>{t('nc.closedAt', { when: formatDateTime(nc.closedAt!) })}</Text>
+              <Text style={[styles.name, { color: COLORS.success }]}>{t('nc.closedAt', { when: uiDateTime(nc.closedAt!) })}</Text>
               <Text style={styles.sub}>{`${who(nc.closedBy, nc.closedByRank)}${nc.closedWith ? ` · ${proofShort(nc.closedWith)}` : ''}`}</Text>
               {nc.effectiveness ? <Text style={styles.body}>{`${t('nc.effective')}: ${nc.effectiveness}`}</Text> : null}
             </View>

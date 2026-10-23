@@ -43,7 +43,7 @@ import { aiReadDocument, aiRenameHeadings } from '../services/aiImport';
 import { aiReady } from '../services/ai';
 import { pickDocForAi } from '../services/medFiles';
 import { exportChestExcel, exportChestPdf, exportChestTemplate, exportControlledPdf, exportMedLogExcel, exportMedLogPdf, pickChestSheet } from '../services/hospitalReport';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
@@ -258,7 +258,7 @@ export default function HospitalSc() {
               </View>
               {filter === 'controlled' ? (
                 <Text style={[styles.sub, { marginBottom: SIZES.sm, color: !lastCount || daysTo(lastCount, today) > 31 ? COLORS.warning : COLORS.textLight }]}>
-                  {`${lastCount ? t('hos.lastCounted', { date: formatDate(lastCount) }) : t('hos.neverCounted')} — ${t('hos.cdNote')}`}
+                  {`${lastCount ? t('hos.lastCounted', { date: uiDate(lastCount) }) : t('hos.neverCounted')} — ${t('hos.cdNote')}`}
                 </Text>
               ) : null}
               {filter === 'expired' && officer && (expiredLines.other || expiredLines.cd) ? (
@@ -292,7 +292,7 @@ export default function HospitalSc() {
                 {placeText(r.item) ? <Place text={placeText(r.item)} /> : null}
                 <Text style={[styles.sub, { color: stateColor(r), fontWeight: '700' }]}>{[`${r.usable} / ${r.item.required} ${r.item.unit}`, STOCK_LEVEL_LABEL[stockLevel(r)], r.short ? t('sop.short', { n: r.short }) : null, r.expired ? t('st.outOfDate', { n: r.expired }) : r.nextState === 'soon' ? t('hos.expiring') : null].filter(Boolean).join(' · ')}</Text>
                 {coming ? <Text style={[styles.sub, { color: COLORS.primary }]}>{`${coming} on order`}</Text> : null}
-                {sortBy === 'expiry' && exp ? <Text style={[styles.sub, { color: expiryState(today, exp) === 'expired' ? COLORS.danger : COLORS.textLight }]}>{t('hos.soonest', { date: formatDate(exp) })}</Text> : null}
+                {sortBy === 'expiry' && exp ? <Text style={[styles.sub, { color: expiryState(today, exp) === 'expired' ? COLORS.danger : COLORS.textLight }]}>{t('hos.soonest', { date: uiDate(exp) })}</Text> : null}
                 {sortBy === 'purpose' ? <Text style={styles.sub} numberOfLines={1}>{scaleEntry(r.item).med?.indication ?? ''}</Text> : null}
                 </View>
                 {/* One row on the right (13 Oct 2026): the out-of-date batches, then those in date (quantity and MM/YY, as MHM), then Issue. */}
@@ -378,7 +378,7 @@ export default function HospitalSc() {
             return (
               <TouchableOpacity key={o.id} style={[styles.item, { borderLeftColor: color }]} onPress={() => nav.navigate('MedOrder', { id: o.id })} activeOpacity={0.7}>
                 <Text style={styles.name}>{`${o.no}${o.supplier ? ` · ${o.supplier}` : ''}`}</Text>
-                <Text style={styles.sub}>{[t('hos.ordered', { date: formatDate(o.date) }), o.ref, o.port, o.due ? t('hos.expected', { date: formatDate(o.due) }) : null].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.sub}>{[t('hos.ordered', { date: uiDate(o.date) }), o.ref, o.port, o.due ? t('hos.expected', { date: uiDate(o.due) }) : null].filter(Boolean).join(' · ')}</Text>
                 <Text style={[styles.sub, { color, fontWeight: '700' }]}>{[ORDER_STATE_LABEL[st], `${full} of ${lines} lines in full`, late ? 'OVERDUE' : null].filter(Boolean).join(' · ')}</Text>
               </TouchableOpacity>
             );
@@ -433,7 +433,7 @@ export default function HospitalSc() {
             const diff = differences(c).length;
             return (
               <TouchableOpacity key={c.id} style={[styles.item, { borderLeftColor: isLanding(c) ? COLORS.primary : diff ? COLORS.warning : COLORS.success }]} onPress={() => nav.navigate(isLanding(c) ? 'MedLanding' : 'MedCount', { id: c.id })} activeOpacity={0.7}>
-                <Text style={styles.name}>{`${c.no} · ${CHECK_KIND_LABEL[c.kind ?? 'inventory']} · ${formatDate(c.date)}`}</Text>
+                <Text style={styles.name}>{`${c.no} · ${CHECK_KIND_LABEL[c.kind ?? 'inventory']} · ${uiDate(c.date)}`}</Text>
                 <Text style={styles.sub}>{isLanding(c) ? [t('mc.lines', { n: c.lines.length }), c.port, `${c.by} → ${[c.receiver, c.receiverOrg].filter(Boolean).join(', ')}`].filter(Boolean).join(' · ') : [t('mc.lines', { n: c.lines.length }), diff ? t('mc.diffs', { n: diff }) : t('mc.asBooks'), c.kind === 'handover' ? `${c.by} → ${c.witness}` : c.witness ? t('mo.witnessL', { who: c.witness }) : null, c.kind === 'handover' ? null : c.byRank ? `${c.by} (${c.byRank})` : c.by].filter(Boolean).join(' · ')}</Text>
               </TouchableOpacity>
             );
@@ -446,13 +446,13 @@ export default function HospitalSc() {
           {due.map((t) => (
             <TouchableOpacity key={`fu-${t.id}`} style={[styles.item, { borderLeftColor: COLORS.primary }]} onPress={() => nav.navigate('Treatment', { id: 'new', followUpOf: t.id })}>
               <Text style={styles.name}>{`Follow-up due — ${t.patient}`}</Text>
-              <Text style={styles.sub}>{`${t.no} ${t.complaint} · due ${formatDate(t.followUp)}`}</Text>
+              <Text style={styles.sub}>{`${t.no} ${t.complaint} · due ${uiDate(t.followUp)}`}</Text>
             </TouchableOpacity>
           ))}
           {log.map((t) => (
             <TouchableOpacity key={t.id} style={[styles.item, { borderLeftColor: t.outcome === 'fit' ? COLORS.success : t.outcome === 'light' ? COLORS.warning : COLORS.danger }]} onPress={() => nav.navigate('Treatment', { id: t.id })} activeOpacity={0.7}>
               <Text style={styles.name}>{`${t.no} · ${t.patient}`}</Text>
-              <Text style={styles.sub}>{[`${formatDate(t.date)}${t.time ? ` ${t.time}` : ''}`, t.complaint, t.diagnosis].filter(Boolean).join(' · ')}</Text>
+              <Text style={styles.sub}>{[`${uiDate(t.date)}${t.time ? ` ${t.time}` : ''}`, t.complaint, t.diagnosis].filter(Boolean).join(' · ')}</Text>
               <Text style={styles.sub}>{[tk(`tr.out.${t.outcome}`), t.issued.length ? tn('hos.medsN', t.issued.length) : null, t.tmas ? tt('hos.radio') : null, t.files?.length ? tn('n.file', t.files.length) : null, t.byRank ? `${t.by} (${t.byRank})` : t.by].filter(Boolean).join(' · ')}</Text>
             </TouchableOpacity>
           ))}

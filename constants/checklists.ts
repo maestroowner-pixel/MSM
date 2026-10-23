@@ -23,6 +23,7 @@ import { CategoryKey } from '../types/equipment';
 import { InspectionPeriod } from '../types/inspection';
 import { moduleOn } from './modules';
 import { LIFTING_CHECKLISTS } from './lifting';
+import { DICTS, currentLang, tk } from '../utils/t';
 
 export interface ChecklistLine {
   /** Permanent within a template — see the header. */
@@ -530,6 +531,37 @@ export function templateById(
   const m = /^(.+)\.(weekly|monthly|quarterly|annual)\.generic$/.exec(id);
   if (m) return genericTemplate(m[1] as CategoryKey, m[2] as InspectionPeriod);
   return null;
+}
+
+// ---- on screen, in the interface language --------------------------------
+// A built-in template's words come from the dictionary (`ck.<template id>.<line id>`);
+// a vessel's own template, and every report, keep the words as written. A key whose
+// English no longer matches the line here (the line was re-worded, the dictionary
+// was not) shows the English rather than an out-of-date translation.
+
+function ckBase(tpl: ChecklistTemplate): string | null {
+  if (isVesselTemplate(tpl)) return null;
+  return tpl.id.endsWith('.generic') ? 'ck.generic' : `ck.${tpl.id}`;
+}
+
+function ck(key: string | null, english: string): string {
+  if (!key || currentLang() === 'en' || (DICTS.en as Record<string, string | undefined>)[key] !== english) return english;
+  return tk(key);
+}
+
+export function clTitle(tpl: ChecklistTemplate): string {
+  const b = ckBase(tpl);
+  return ck(b && (b === 'ck.generic' ? `${b}.${tpl.period}` : `${b}.title`), tpl.title);
+}
+
+export function clLine(tpl: ChecklistTemplate, line: ChecklistLine): string {
+  const b = ckBase(tpl);
+  return ck(b && `${b}.${line.id}`, line.text);
+}
+
+export function clHint(tpl: ChecklistTemplate, line: ChecklistLine): string | undefined {
+  const b = ckBase(tpl);
+  return line.hint ? ck(b && `${b}.${line.id}.hint`, line.hint) : undefined;
 }
 
 /** Line text for a report / history row; falls back to the bare id. */

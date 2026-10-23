@@ -35,7 +35,7 @@ import { pdfText } from '../utils/pdfText';
 import { DocViewer } from '../components/DocViewer';
 import { onWeb } from '../utils/fileShare';
 import { todayIso } from '../services/pms';
-import { formatDate, formatDateTime } from '../utils/dates';
+import { uiDate, uiDateTime } from '../utils/dates';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
 import { t, useT } from '../utils/i18n';
@@ -301,7 +301,7 @@ export default function DocSc() {
               <Text style={styles.meta}>{[doc.docNo, DOC_CATEGORY_LABEL[doc.category]].filter(Boolean).join(' · ')}</Text>
               <Text style={styles.docTitle}>{doc.title}</Text>
               <Text style={styles.sub}>
-                {[t('docs.rev', { n: doc.revision }), t('doc.issuedOn', { date: formatDate(doc.issued) }), doc.reviewDue ? t('doc.reviewOn', { date: formatDate(doc.reviewDue) }) : null, doc.by ? t('doc.byL', { who: doc.by }) : null].filter(Boolean).join(' · ')}
+                {[t('docs.rev', { n: doc.revision }), t('doc.issuedOn', { date: uiDate(doc.issued) }), doc.reviewDue ? t('doc.reviewOn', { date: uiDate(doc.reviewDue) }) : null, doc.by ? t('doc.byL', { who: doc.by }) : null].filter(Boolean).join(' · ')}
               </Text>
 
               {doc.fileUri || heldHere ? (
@@ -372,7 +372,7 @@ export default function DocSc() {
                         {a.byRank ? `${a.by} (${a.byRank})` : a.by}
                       </Text>
                       <Text style={styles.sub}>
-                        {[t('docs.rev', { n: a.revision }), formatDateTime(a.at), a.signedWith ? proofShort(a.signedWith) : null].filter(Boolean).join(' · ')}
+                        {[t('docs.rev', { n: a.revision }), uiDateTime(a.at), a.signedWith ? proofShort(a.signedWith) : null].filter(Boolean).join(' · ')}
                       </Text>
                     </View>
                   ))}

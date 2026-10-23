@@ -21,7 +21,7 @@ import { Card, CategoryBadge, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
-import { CATEGORIES, visibleCategories } from '../constants/categories';
+import { CATEGORIES, visibleCategories, catLabel } from '../constants/categories';
 import { CategoryKey, Group } from '../types/equipment';
 import { SIZES, Palette } from '../theme';
 import { listDecks, selectLabelItems } from '../services/labelBatch';
@@ -194,7 +194,7 @@ export default function LabelBatchSc() {
             >
               <CategoryBadge category={c.key} size={22} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.panelTitle} numberOfLines={1}>{c.label}</Text>
+                <Text style={styles.panelTitle} numberOfLines={1}>{catLabel(c)}</Text>
                 <Text style={styles.panelSub}>
                   {count} label{count === 1 ? '' : 's'}
                   {deckSel !== null && count !== (byCategory[c.key]?.length ?? 0) ? ` of ${byCategory[c.key]?.length ?? 0}` : ''}

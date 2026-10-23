@@ -1,5 +1,7 @@
 // What a toolbox meeting goes through before a permitted job starts — the usual
 // shipboard toolbox talk (Code of Safe Working Practices, company SMS forms).
+import { tk } from '../utils/t';
+
 export const TOOLBOX_TOPICS: { id: string; text: string }[] = [
   { id: 'scope', text: 'The job, its steps and who does what' },
   { id: 'hazards', text: 'Hazards from the risk assessment and their controls' },
@@ -12,3 +14,6 @@ export const TOOLBOX_TOPICS: { id: string; text: string }[] = [
   { id: 'ops', text: 'Vessel operations, weather or sea state affecting the job' },
   { id: 'questions', text: 'Questions from the team answered' },
 ];
+
+/** The topic in the interface language, for the screen; the permit report keeps `text`. */
+export const toolboxText = (x: { id: string; text: string }) => tk(`tb.${x.id}`);

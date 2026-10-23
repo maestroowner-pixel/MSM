@@ -28,7 +28,7 @@ import { allReceived, completionPct, copyOrder, derivedStatus, lineCount, nextOr
 import { exportOrderPdf, printBoxQrLabel } from '../services/orderSheet';
 import { todayIso } from '../services/pms';
 import * as storage from '../services/storage';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -316,7 +316,7 @@ export default function OrderSc() {
             {editable ? (
               <SimpleDatePicker label={t('nc.date')} showLabel={false} compact value={(draft ?? o).date} onChange={(v) => set({ date: v })} />
             ) : (
-              <Text style={styles.fieldVal}>{formatDate(o.date)}</Text>
+              <Text style={styles.fieldVal}>{uiDate(o.date)}</Text>
             )}
           </View>
           <View style={styles.headerColSupplier}>
@@ -369,7 +369,7 @@ export default function OrderSc() {
                 placeholder="—"
               />
             ) : (draft ?? o).deliveryDate ? (
-              <Text style={styles.fieldVal}>{formatDate((draft ?? o).deliveryDate!)}</Text>
+              <Text style={styles.fieldVal}>{uiDate((draft ?? o).deliveryDate!)}</Text>
             ) : (
               <Text style={styles.fieldVal2}>—</Text>
             )}
@@ -843,7 +843,7 @@ export default function OrderSc() {
               <View key={i} style={styles.deliveryRow}>
                 <View style={styles.deliveryDot} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.deliveryDate}>{`${formatDate(d.date)}${d.by ? ` · ${d.by}` : ''}`}</Text>
+                  <Text style={styles.deliveryDate}>{`${uiDate(d.date)}${d.by ? ` · ${d.by}` : ''}`}</Text>
                   <Text style={styles.deliveryLine}>{tn('n.unitRcvd', totalReceived)}</Text>
                 </View>
               </View>
@@ -868,8 +868,8 @@ export default function OrderSc() {
       })() : null}
 
       {/* Audit trail */}
-      {o.sentAt ? <Text style={styles.trail}>{t('galley.sent', { date: formatDate(o.sentAt) }) + (o.sentBy ? t('po.by', { who: o.sentBy }) : '')}</Text> : null}
-      {o.receivedAt ? <Text style={styles.trail}>{t('po.fullyRcvd', { date: formatDate(o.receivedAt) }) + (o.receivedBy ? t('po.by', { who: o.receivedBy }) : '')}</Text> : null}
+      {o.sentAt ? <Text style={styles.trail}>{t('galley.sent', { date: uiDate(o.sentAt) }) + (o.sentBy ? t('po.by', { who: o.sentBy }) : '')}</Text> : null}
+      {o.receivedAt ? <Text style={styles.trail}>{t('po.fullyRcvd', { date: uiDate(o.receivedAt) }) + (o.receivedBy ? t('po.by', { who: o.receivedBy }) : '')}</Text> : null}
 
       {/* QR code — delivery receipt label (all depts except galley) */}
       {!isNew && o.dept !== 'galley' ? (

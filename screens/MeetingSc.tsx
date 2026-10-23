@@ -33,7 +33,7 @@ import { vesselHeader } from '../services/export';
 import { attendanceSig, nowHm } from '../services/drills';
 import { attendanceDoc, freshMeeting, meetingDoc, nextMeetingNo } from '../services/meetings';
 import { exportDocPdf } from '../services/hospitalReport';
-import { formatDate, formatDateTime } from '../utils/dates';
+import { formatDate, uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -174,11 +174,11 @@ export default function MeetingSc() {
   return (
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav)} />
-      <ScreenTitle title={`${t('mt.title')} ${m.no}`.trim()} subtitle={done ? `${t('mt.held', { date: formatDate(m.date) })} · ${t('meet.signedBy', { name: m.doneBy ?? '' })} ${formatDateTime(m.doneAt!)}` : `${formatDate(m.date)} · ${t('mt.notSigned')}${savedNote ? ` · ${savedNote}` : ''}`} help="Security (ISPS)" />
+      <ScreenTitle title={`${t('mt.title')} ${m.no}`.trim()} subtitle={done ? `${t('mt.held', { date: uiDate(m.date) })} · ${t('meet.signedBy', { name: m.doneBy ?? '' })} ${uiDateTime(m.doneAt!)}` : `${uiDate(m.date)} · ${t('mt.notSigned')}${savedNote ? ` · ${savedNote}` : ''}`} help="Security (ISPS)" />
 
       <Card>
         <View style={styles.row}>
-          <View style={{ flex: 1, minWidth: 200 }}>{ro ? <Text style={styles.body}>{formatDate(m.date)}</Text> : <SimpleDatePicker label={t('nc.date')} value={m.date} onChange={(v) => set({ date: v })} />}</View>
+          <View style={{ flex: 1, minWidth: 200 }}>{ro ? <Text style={styles.body}>{uiDate(m.date)}</Text> : <SimpleDatePicker label={t('nc.date')} value={m.date} onChange={(v) => set({ date: v })} />}</View>
           <TextInput editable={!ro} style={[styles.input, { width: 90 }]} value={m.time ?? ''} onChangeText={(v) => set({ time: v })} placeholder="hh:mm" placeholderTextColor={COLORS.textLight} />
           <TextInput editable={!ro} style={[styles.input, { flex: 1, minWidth: 160 }]} value={m.location ?? ''} onChangeText={(v) => set({ location: v })} placeholder={t('mt.placePh')} placeholderTextColor={COLORS.textLight} />
         </View>
@@ -259,7 +259,7 @@ export default function MeetingSc() {
               <MciIcon name={c.done ? 'checkbox-marked' : 'checkbox-blank-outline'} size={20} color={c.done ? COLORS.success : COLORS.textLight} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.body, c.done && { textDecorationLine: 'line-through', color: COLORS.textLight }]}>{c.text}</Text>
-                <Text style={styles.sub}>{[c.fromNo, c.who, c.due ? t('meet.by', { date: formatDate(c.due) }) : null, c.done ? t('mt.done') : t('mt.stillOpen')].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.sub}>{[c.fromNo, c.who, c.due ? t('meet.by', { date: uiDate(c.due) }) : null, c.done ? t('mt.done') : t('mt.stillOpen')].filter(Boolean).join(' · ')}</Text>
               </View>
             </TouchableOpacity>
           ))}
@@ -272,7 +272,7 @@ export default function MeetingSc() {
             <Text style={styles.name}>{`${i + 1}.`}</Text>
             <View style={{ flex: 1 }}>
               <Text style={styles.body}>{a.text}</Text>
-              <Text style={styles.sub}>{[a.who, a.due ? t('meet.by', { date: formatDate(a.due) }) : null].filter(Boolean).join(' · ') || '—'}</Text>
+              <Text style={styles.sub}>{[a.who, a.due ? t('meet.by', { date: uiDate(a.due) }) : null].filter(Boolean).join(' · ') || '—'}</Text>
             </View>
             {!ro ? <TouchableOpacity onPress={() => set({ actions: m.actions.filter((x) => x.id !== a.id) })}><Text style={[styles.link, { color: COLORS.danger }]}>✕</Text></TouchableOpacity> : null}
           </View>

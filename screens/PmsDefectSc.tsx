@@ -25,7 +25,7 @@ import * as storage from '../services/storage';
 import * as photoQueue from '../services/photoQueue';
 import { scheduleLabel, todayIso } from '../services/pms';
 import { plansPms } from '../types/role';
-import { formatDate, formatDateTime } from '../utils/dates';
+import { uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -109,7 +109,7 @@ export default function PmsDefectSc() {
               <Text style={[styles.state, { color: existing.closed ? COLORS.success : COLORS.danger }]}>{existing.closed ? t('pd.closed') : t('pd.open')}</Text>
             </View>
             <Text style={styles.text}>{existing.description}</Text>
-            <Text style={styles.sub}>{[formatDate(existing.date), existing.jobTitle ? t('pd.foundDoing', { job: existing.jobTitle }) : null, existing.byRank ? `${existing.by} (${existing.byRank})` : existing.by].filter(Boolean).join(' · ')}</Text>
+            <Text style={styles.sub}>{[uiDate(existing.date), existing.jobTitle ? t('pd.foundDoing', { job: existing.jobTitle }) : null, existing.byRank ? `${existing.by} (${existing.byRank})` : existing.by].filter(Boolean).join(' · ')}</Text>
             {existing.photos?.length ? (
               <View style={styles.photos}>{existing.photos.map((p) => <EvidencePhoto key={p.id} vessel={imo} inspectionId={existing.id} photo={p} />)}</View>
             ) : null}
@@ -127,7 +127,7 @@ export default function PmsDefectSc() {
                   </TouchableOpacity>
                 ))}
                 {done.map((d) => (
-                  <Text key={d.id} style={styles.text}>{`✓ ${d.jobTitle} — done ${formatDate(d.date)} by ${d.byRank ? `${d.by} (${d.byRank})` : d.by}${d.note ? ` · ${d.note}` : ''}`}</Text>
+                  <Text key={d.id} style={styles.text}>{`✓ ${d.jobTitle} — done ${uiDate(d.date)} by ${d.byRank ? `${d.by} (${d.byRank})` : d.by}${d.note ? ` · ${d.note}` : ''}`}</Text>
                 ))}
                 {!existing.closed && canPlan && !open.length ? (
                   <TouchableOpacity onPress={() => nav.navigate('PmsJob', { id: uid('job'), machineId: existing.machineId, isNew: true, oneOff: true, defectId: existing.id, title: existing.description.slice(0, 80) })}>
@@ -142,7 +142,7 @@ export default function PmsDefectSc() {
             <Card>
               <Label>{t('pd.rectified')}</Label>
               <Text style={styles.text}>{existing.closed.note}</Text>
-              <Text style={styles.sub}>{`${formatDate(existing.closed.date)} · ${existing.closed.byRank ? `${existing.closed.by} (${existing.closed.byRank})` : existing.closed.by} · signed ${formatDateTime(existing.closed.at)}`}</Text>
+              <Text style={styles.sub}>{`${uiDate(existing.closed.date)} · ${existing.closed.byRank ? `${existing.closed.by} (${existing.closed.byRank})` : existing.closed.by} · signed ${uiDateTime(existing.closed.at)}`}</Text>
               {existing.closed.photos?.length ? (
                 <View style={styles.photos}>{existing.closed.photos.map((p) => <EvidencePhoto key={p.id} vessel={imo} inspectionId={`${existing.id}-closed`} photo={p} />)}</View>
               ) : null}

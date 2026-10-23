@@ -1,9 +1,12 @@
 // ===================================
 // Permits to work and risk assessments — the rules, as pure functions.
+// The reasons they return are screen text, in the interface language
+// (English in check:permits); the PDF does not use them.
 // ===================================
 
 import { GAS_LIMITS, PERMIT_TYPE_MAP } from '../constants/permitTypes';
 import { GasTest, Hazard, Permit, RiskAssessment } from '../types/permits';
+import { t as tr, tk, tn } from '../utils/t';
 
 /** "PTW-2026-007": the next number for the year, from those already issued. */
 export function nextNumber(prefix: 'PTW' | 'RA', year: number, taken: (string | undefined)[]): string {
@@ -19,12 +22,12 @@ export function nextNumber(prefix: 'PTW' | 'RA', year: number, taken: (string | 
 export function gasProblems(t: GasTest): string[] {
   const L = GAS_LIMITS;
   const out: string[] = [];
-  if (t.o2 == null) out.push('O₂ not measured');
-  else if (t.o2 < L.o2Min || t.o2 > L.o2Max) out.push(`O₂ ${t.o2} % (safe ${L.o2Min}–${L.o2Max} %)`);
-  if (t.lel != null && t.lel >= L.lelMax) out.push(`LEL ${t.lel} % (must be below ${L.lelMax} %)`);
-  if (t.h2s != null && t.h2s >= L.h2sMax) out.push(`H₂S ${t.h2s} ppm (below ${L.h2sMax})`);
-  if (t.co != null && t.co >= L.coMax) out.push(`CO ${t.co} ppm (below ${L.coMax})`);
-  if (t.lel == null) out.push('LEL not measured');
+  if (t.o2 == null) out.push(tr('ptw.b.o2None'));
+  else if (t.o2 < L.o2Min || t.o2 > L.o2Max) out.push(tr('ptw.b.o2', { v: t.o2, min: L.o2Min, max: L.o2Max }));
+  if (t.lel != null && t.lel >= L.lelMax) out.push(tr('ptw.b.lel', { v: t.lel, max: L.lelMax }));
+  if (t.h2s != null && t.h2s >= L.h2sMax) out.push(tr('ptw.b.h2s', { v: t.h2s, max: L.h2sMax }));
+  if (t.co != null && t.co >= L.coMax) out.push(tr('ptw.b.co', { v: t.co, max: L.coMax }));
+  if (t.lel == null) out.push(tr('ptw.b.lelNone'));
   return out;
 }
 
@@ -39,37 +42,37 @@ export function lastGas(p: Permit): GasTest | undefined {
  */
 export function startBlockers(p: Permit): string[] {
   const t = p.toolbox;
-  if (!t) return ['no toolbox meeting held'];
+  if (!t) return [tr('ptw.b.noToolbox')];
   const out: string[] = [];
   const present = new Set(t.attendees.filter((a) => a.present).map((a) => a.name));
   const absent = p.team.filter((n) => !present.has(n));
-  if (absent.length) out.push(`not at the toolbox meeting: ${absent.join(', ')}`);
-  if (t.location.trim() !== p.location.trim() || t.work.trim() !== p.work.trim()) out.push('the place or the job changed since the toolbox meeting — hold it again');
+  if (absent.length) out.push(tr('ptw.b.notAtToolbox', { names: absent.join(', ') }));
+  if (t.location.trim() !== p.location.trim() || t.work.trim() !== p.work.trim()) out.push(tr('ptw.b.toolboxChanged'));
   return out;
 }
 
 export function approvalBlockers(p: Permit, raExists: boolean): string[] {
   const def = PERMIT_TYPE_MAP[p.type];
   const out: string[] = [];
-  if (!p.work.trim()) out.push('the work is not described');
-  if (!p.location.trim()) out.push('no location');
-  if (!p.from || !p.to) out.push('no time window');
-  else if (p.to <= p.from) out.push('the window ends before it starts');
+  if (!p.work.trim()) out.push(tr('ptw.b.noWork'));
+  if (!p.location.trim()) out.push(tr('ptw.b.noLocation'));
+  if (!p.from || !p.to) out.push(tr('ptw.b.noWindow'));
+  else if (p.to <= p.from) out.push(tr('ptw.b.badWindow'));
   else {
     const hours = (Date.parse(p.to) - Date.parse(p.from)) / 3600000;
-    if (hours > def.maxHours) out.push(`longer than ${def.maxHours} h — issue a new permit to continue`);
+    if (hours > def.maxHours) out.push(tr('ptw.b.tooLong', { h: def.maxHours }));
   }
-  if (!p.team.length) out.push('nobody named to do the work');
+  if (!p.team.length) out.push(tr('ptw.b.noTeam'));
   const open = def.checks.filter((c) => !p.checks[c.id]);
-  if (open.length) out.push(`${open.length} precaution${open.length === 1 ? '' : 's'} not answered`);
+  if (open.length) out.push(tn('ptw.b.noAnswer', open.length));
   const no = def.checks.filter((c) => p.checks[c.id] === 'no');
-  if (no.length) out.push(`“No” to: ${no.map((c) => c.text.split(/[;:,]/)[0]).join('; ')}`);
+  if (no.length) out.push(tr('ptw.b.saidNo', { list: no.map((c) => tk(`ptw.chk.${p.type}.${c.id}`).split(/[;:,]/)[0]).join('; ') }));
   if (def.gas) {
     const g = lastGas(p);
-    if (!g) out.push('no gas readings');
-    else if (gasProblems(g).length) out.push(`gas: ${gasProblems(g).join(', ')}`);
+    if (!g) out.push(tr('ptw.b.noGas'));
+    else if (gasProblems(g).length) out.push(tr('ptw.b.gas', { list: gasProblems(g).join(', ') }));
   }
-  if (!raExists) out.push('no risk assessment attached');
+  if (!raExists) out.push(tr('ptw.b.noRa'));
   return out;
 }
 

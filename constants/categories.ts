@@ -9,6 +9,7 @@ import { CategoryKey, Group } from '../types/equipment';
 import { COLORS } from '../theme';
 import { moduleOn } from './modules';
 import { LIFTING_CATEGORIES } from './lifting';
+import { DICTS, currentLang, tk } from '../utils/t';
 
 export interface CategoryMeta {
   key: CategoryKey;
@@ -242,3 +243,33 @@ export function isHiddenCategory(key: CategoryKey): boolean {
 export function categoriesByGroup(group: Group): CategoryMeta[] {
   return CATEGORIES.filter((c) => c.group === group);
 }
+
+// ---- names on screen, in the interface language --------------------------------
+// A shipped category under its shipped name reads from the dictionary
+// (`catn.<key>` / `cats.<key>`); a name the vessel gave it, a vessel's own
+// category, and every report keep the words as stored. As with checklists, a key
+// whose English no longer matches the shipped name shows the English.
+
+const SHIPPED = new Map([...BUILT_IN, ...LIFTING_CATEGORIES].map((c) => [c.key, c]));
+
+function tr(key: string, english: string): string {
+  if (currentLang() === 'en' || (DICTS.en as Record<string, string | undefined>)[key] !== english) return english;
+  return tk(key);
+}
+
+/** The category's name for a screen; accepts the meta or its key. */
+export function catLabel(c: CategoryMeta | CategoryKey | undefined): string {
+  const m = typeof c === 'string' ? CATEGORY_MAP[c] : c;
+  if (!m) return String(c ?? '');
+  return SHIPPED.get(m.key)?.label === m.label ? tr(`catn.${m.key}`, m.label) : m.label;
+}
+
+/** The short name, for chips and narrow rows. */
+export function catShort(c: CategoryMeta | CategoryKey | undefined): string {
+  const m = typeof c === 'string' ? CATEGORY_MAP[c] : c;
+  if (!m) return String(c ?? '');
+  return SHIPPED.get(m.key)?.short === m.short ? tr(`cats.${m.key}`, m.short) : m.short;
+}
+
+export const groupLabel = (g: Group): string => tr(`grp.${g}`, GROUP_LABEL[g]);
+export const groupShort = (g: Group): string => tr(`grps.${g}`, GROUP_SHORT[g]);

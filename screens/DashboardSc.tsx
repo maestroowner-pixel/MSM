@@ -20,9 +20,9 @@ import { useSync } from '../contexts/SyncContext';
 import { stockByPart, toOrderCounts } from '../services/spares';
 import { toRead } from '../services/docs';
 import { personName } from '../types/role';
-import { CATEGORY_MAP, GROUP_ORDER, GROUP_SHORT } from '../constants/categories';
+import { CATEGORY_MAP, GROUP_ORDER, catLabel, catShort, groupShort } from '../constants/categories';
 import { gettingStarted } from '../constants/gettingStarted';
-import { complianceDate, computeStatus, daysUntil, formatDate } from '../utils/dates';
+import { complianceDate, computeStatus, daysUntil, uiDate } from '../utils/dates';
 import { ComplianceStatus, EquipmentItem, Group } from '../types/equipment';
 import * as inspections from '../services/inspections';
 import { worstRoundMark, RoundMark } from '../services/inspections';
@@ -43,7 +43,7 @@ const NO_POSITION = '— No position';
 // filter without anybody remembering this line (constants/categories).
 const GROUP_FILTERS: GroupFilter[] = ['ALL', ...GROUP_ORDER];
 // Labels in the interface language (constants/i18n `dash.*`).
-const groupFilterLabel = (g: GroupFilter) => (g === 'ALL' ? t('dash.allGroups') : GROUP_SHORT[g]);
+const groupFilterLabel = (g: GroupFilter) => (g === 'ALL' ? t('dash.allGroups') : groupShort(g));
 const SORT_ORDER: SortBy[] = ['date', 'position', 'name', 'type', 'round'];
 const sortLabel = (s: SortBy) => tk(`dash.sort.${s}`);
 
@@ -170,7 +170,7 @@ export default function DashboardSc() {
       const byType = sortBy === 'type';
       const NONE = byType ? '— Other' : NO_POSITION;
       const keyOf = (r: Scored) =>
-        byType ? CATEGORY_MAP[r.it.category].label : (r.it.position ?? '').trim() || NO_POSITION;
+        byType ? catLabel(r.it.category) : (r.it.position ?? '').trim() || NO_POSITION;
       const groups = new Map<string, Scored[]>();
       for (const r of rows) {
         const k = keyOf(r) || NONE;
@@ -594,7 +594,7 @@ function DashRow({
   const styles = useS();
   const COLORS = useTheme();
   const meta = CATEGORY_MAP[item.category];
-  const title = item.type || (item.no != null ? `#${item.no}` : meta.short);
+  const title = item.type || (item.no != null ? `#${item.no}` : catShort(meta));
   const daysText =
     days == null ? '' : days < 0 ? t('dash.dOverdue', { n: Math.abs(days) }) : days === 0 ? t('dash.today') : t('dash.inD', { n: days });
   const attCount = item.attachments?.length ?? 0;
@@ -620,7 +620,7 @@ function DashRow({
           ) : null}
         </View>
         <Text style={styles.rowSub} numberOfLines={2}>
-          {subText ?? `${meta.short}${item.position ? ` · ${item.position}` : ''}`}
+          {subText ?? `${catShort(meta)}${item.position ? ` · ${item.position}` : ''}`}
         </Text>
       </View>
       <View style={{ alignItems: 'flex-end' }}>
@@ -630,7 +630,7 @@ function DashRow({
           <Text style={styles.rowDays}>{rightText}</Text>
         ) : (
           <>
-            <Text style={[styles.rowDate, { color: statusColor(status) }]}>{formatDate(date)}</Text>
+            <Text style={[styles.rowDate, { color: statusColor(status) }]}>{uiDate(date)}</Text>
             <Text style={styles.rowDays}>{daysText}</Text>
           </>
         )}

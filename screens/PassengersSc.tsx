@@ -38,7 +38,7 @@ import { pickSheetRows } from '../services/sheetFiles';
 import { aiRenameHeadings } from '../services/aiImport';
 import { aiReady } from '../services/ai';
 import { pickPaxSheet, savePaxSheet } from '../services/passengerFiles';
-import { formatDate } from '../utils/dates';
+import { formatDate, uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
@@ -248,9 +248,9 @@ export default function PassengersSc() {
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.name}>{p.name}</Text>
               <Text style={styles.sub}>{[p.group, p.cabin ? t('pax.cabinN', { n: p.cabin }) : null, p.nationality].filter(Boolean).join(' · ') || '—'}</Text>
-              <Text style={styles.sub}>{[p.embarked ? `${t('pax.embarkedL')} ${formatDate(p.embarked)}${p.embarkPort ? ` ${p.embarkPort}` : ''}` : null, p.disembarked ? `${st === 'left' ? t('pax.leftL') : t('pax.leavesL')} ${formatDate(p.disembarked)}${p.disembarkPort ? ` ${p.disembarkPort}` : ''}` : null].filter(Boolean).join(' · ')}</Text>
-              {expiring ? <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700' }]}>{t('pax.docExpired', { doc: x?.idType ?? t('pax.document'), date: formatDate(x!.idExpiry!) })}</Text> : null}
-              {st === 'aboard' ? <Text style={[styles.sub, { color: away ? COLORS.warning : COLORS.success, fontWeight: '700' }]}>{away ? t('pax.ashoreSince', { when: m?.date === today ? m.time : m ? `${formatDate(m.date)} ${m.time}` : '—' }) : t('pax.aboard')}</Text> : null}
+              <Text style={styles.sub}>{[p.embarked ? `${t('pax.embarkedL')} ${uiDate(p.embarked)}${p.embarkPort ? ` ${p.embarkPort}` : ''}` : null, p.disembarked ? `${st === 'left' ? t('pax.leftL') : t('pax.leavesL')} ${uiDate(p.disembarked)}${p.disembarkPort ? ` ${p.disembarkPort}` : ''}` : null].filter(Boolean).join(' · ')}</Text>
+              {expiring ? <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700' }]}>{t('pax.docExpired', { doc: x?.idType ?? t('pax.document'), date: uiDate(x!.idExpiry!) })}</Text> : null}
+              {st === 'aboard' ? <Text style={[styles.sub, { color: away ? COLORS.warning : COLORS.success, fontWeight: '700' }]}>{away ? t('pax.ashoreSince', { when: m?.date === today ? m.time : m ? `${uiDate(m.date)} ${m.time}` : '—' }) : t('pax.aboard')}</Text> : null}
             </View>
             {st === 'aboard' ? (
               <TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: away ? COLORS.warning : COLORS.success, borderColor: away ? COLORS.warning : COLORS.success }]} onPress={() => void cross(p)} accessibilityLabel={`${p.name}: ${away ? t('pax.ashoreL') : t('pax.onBoardL')} — ${t('pax.tapChange')}`}>

@@ -23,7 +23,7 @@ import { SIZES, Palette } from '../theme';
 import { StockStatus, firstExpiry, makeMove, orderQty, priceText, qtyText, statusRank, stockByPart, stockStatus } from '../services/spares';
 import { useSigner } from '../components/SignerChoice';
 import { useSignConfirm } from '../components/SignConfirm';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { playSuccessSound } from '../utils/sound';
 import { uid } from '../utils/id';
 import * as XLSX from 'xlsx';
@@ -320,7 +320,7 @@ export default function SparesSc() {
                     {[p.partNo, p.maker, p.minQty != null ? t('sp.min', { n: p.minQty }) : null, p.maxQty != null ? t('sp.max', { n: p.maxQty }) : null].filter(Boolean).join(' · ') || '—'}
                   </Text>
                   {exp && exp.expiry! <= soon ? (
-                    <Text style={[styles.sub, { color: exp.expiry! < today ? COLORS.danger : COLORS.warning, fontWeight: '700' }]}>{`${exp.expiry! < today ? t('sp.expired', { date: formatDate(exp.expiry) }) : t('sp.expires', { date: formatDate(exp.expiry) })} · ${qtyText(exp.qty, p)}`}</Text>
+                    <Text style={[styles.sub, { color: exp.expiry! < today ? COLORS.danger : COLORS.warning, fontWeight: '700' }]}>{`${exp.expiry! < today ? t('sp.expired', { date: uiDate(exp.expiry) }) : t('sp.expires', { date: uiDate(exp.expiry) })} · ${qtyText(exp.qty, p)}`}</Text>
                   ) : null}
                 </View>
                 {counting?.loc === loc ? (

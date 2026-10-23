@@ -26,7 +26,7 @@ import { tk, useT } from '../utils/i18n';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { formatDateTime } from '../utils/dates';
+import { uiDateTime } from '../utils/dates';
 import * as fb from '../services/firebaseService';
 
 type Step = {
@@ -101,7 +101,7 @@ export function ConnectionCard() {
         tone: 'done',
         title: role ? t('cc.connectedAs', { role: tk(`role.${role}`) }) : t('cc.connected'),
         body: lastSyncAt
-          ? t('cc.lastSynced', { when: formatDateTime(lastSyncAt) }) + ' ' + t('cc.travel')
+          ? t('cc.lastSynced', { when: uiDateTime(lastSyncAt) }) + ' ' + t('cc.travel')
           : t('cc.travel'),
         // The card is titled "This device", so the screen that says who this
         // device signs as — and how to sign off — belongs behind it. It used to be

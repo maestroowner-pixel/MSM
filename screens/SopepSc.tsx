@@ -36,7 +36,7 @@ import { exportLockerLabels } from '../services/crewCards';
 import { isAboard } from '../types/crew';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
-import { formatDate } from '../utils/dates';
+import { formatDate, uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { t, tk, tn, useT } from '../utils/i18n';
@@ -58,7 +58,7 @@ export default function SopepSc() {
   const amend = useAmend();
   const allChecks = versionsOf(storage.SOPEP_CHECKS_KEY) as SopepCheck[];
   const allDrills = versionsOf(storage.SOPEP_DRILLS_KEY) as SopepDrill[];
-  const checkLine = (c: SopepCheck) => `${formatDate(c.date)} · ${c.by}${items.filter((i) => (c.counted[i.id] ?? 0) < i.required).length ? ` · ${t('sop.short', { n: items.filter((i) => (c.counted[i.id] ?? 0) < i.required).length })}` : ` · ${t('sop.complete')}`}${c.remarks ? ` · ${c.remarks}` : ''}`;
+  const checkLine = (c: SopepCheck) => `${uiDate(c.date)} · ${c.by}${items.filter((i) => (c.counted[i.id] ?? 0) < i.required).length ? ` · ${t('sop.short', { n: items.filter((i) => (c.counted[i.id] ?? 0) < i.required).length })}` : ` · ${t('sop.complete')}`}${c.remarks ? ` · ${c.remarks}` : ''}`;
   const confirmSign = useSignConfirm();
   const { signer, picker } = useSigner();
   const [tab, setTab] = useState<Tab>('locker');
@@ -176,8 +176,8 @@ export default function SopepSc() {
         <OfficerDocs shelf="sopep" intro={t('sop.docsIntro')} />
       ) : (<>
       <View style={styles.summary}>
-        <Text style={[styles.sumItem, shortCount ? { color: COLORS.danger } : null]}>{lastCheck ? `${t('sop.lastCheck', { date: formatDate(lastCheck.date) })}${shortCount ? ` · ${t('sop.short', { n: shortCount })}` : ` · ${t('sop.complete')}`}` : t('sop.never')}</Text>
-        <Text style={styles.sumItem}>{lastDrill ? t('sop.lastDrill', { date: formatDate(lastDrill.date) }) : t('sop.noDrill')}</Text>
+        <Text style={[styles.sumItem, shortCount ? { color: COLORS.danger } : null]}>{lastCheck ? `${t('sop.lastCheck', { date: uiDate(lastCheck.date) })}${shortCount ? ` · ${t('sop.short', { n: shortCount })}` : ` · ${t('sop.complete')}`}` : t('sop.never')}</Text>
+        <Text style={styles.sumItem}>{lastDrill ? t('sop.lastDrill', { date: uiDate(lastDrill.date) }) : t('sop.noDrill')}</Text>
       </View>
       {view === 'inventory' ? (
       <View style={styles.tabs}>
@@ -327,9 +327,9 @@ export default function SopepSc() {
             <View key={x.id} style={[styles.item, x.cancelled && { opacity: 0.6 }]}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.itemTitle, x.cancelled && { textDecorationLine: 'line-through' }]}>{x.scenario}</Text>
-                <Text style={styles.sub}>{[`${formatDate(x.date)} ${x.time ?? ''}`, t('sop.tookPart', { n: x.participants.length }), x.minutes ? t('common.min', { n: x.minutes }) : null, x.by].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.sub}>{[`${uiDate(x.date)} ${x.time ?? ''}`, t('sop.tookPart', { n: x.participants.length }), x.minutes ? t('common.min', { n: x.minutes }) : null, x.by].filter(Boolean).join(' · ')}</Text>
                 {x.lessons ? <Text style={styles.sub}>{x.lessons}</Text> : null}
-                <AmendNote rec={x} all={allDrills} summary={(p) => [p.scenario, formatDate(p.date), p.minutes ? `${p.minutes} min` : null, p.lessons].filter(Boolean).join(' · ')} />
+                <AmendNote rec={x} all={allDrills} summary={(p) => [p.scenario, uiDate(p.date), p.minutes ? `${p.minutes} min` : null, p.lessons].filter(Boolean).join(' · ')} />
               </View>
               {!x.cancelled ? (
                 <AmendButtons

@@ -14,7 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Label } from './ui';
 import { MciIcon } from './MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
-import { t, useT } from '../utils/i18n';
+import { t, tk, useT } from '../utils/i18n';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
@@ -24,7 +24,7 @@ import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { SurveyState, surveyStatus } from '../services/surveys';
 import { PlannedSurvey, SCHEMES, SurveyScheme, certRows, defaultScheme, planForCertificate } from '../services/certSurveys';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { playSuccessSound } from '../utils/sound';
 
 /** The part after "SMC — ": the box it fills. */
@@ -90,11 +90,11 @@ export function CertSurveys({ cert, stored, onScheme }: { cert: Certificate; sto
           <View style={styles.chips}>
             {SCHEMES.map((s) => (
               <TouchableOpacity key={s.key} style={[styles.chip, planning.scheme === s.key && styles.chipOn]} onPress={() => start(s.key)}>
-                <Text style={[styles.chipText, planning.scheme === s.key && styles.chipTextOn]}>{s.label}</Text>
+                <Text style={[styles.chipText, planning.scheme === s.key && styles.chipTextOn]}>{tk(`cs2.sch.${s.key}`)}</Text>
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={styles.sub}>{SCHEMES.find((s) => s.key === planning.scheme)?.sub}</Text>
+          <Text style={styles.sub}>{tk(`cs2.sch.${planning.scheme}.sub`)}</Text>
           {planning.list.length === 0 ? <Text style={styles.empty}>{t('cs2.nothing')}</Text> : null}
           {planning.list.map((p, i) => (
             <TouchableOpacity
@@ -108,7 +108,7 @@ export function CertSurveys({ cert, stored, onScheme }: { cert: Certificate; sto
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{boxName(p.survey.name)}</Text>
                 <Text style={styles.sub}>
-                  {t('sv.window', { from: formatDate(surveyStatus(p.survey, today).opens), to: formatDate(surveyStatus(p.survey, today).closes) })}
+                  {t('sv.window', { from: uiDate(surveyStatus(p.survey, today).opens), to: uiDate(surveyStatus(p.survey, today).closes) })}
                   {p.include ? '' : t('cs2.closed')}
                 </Text>
               </View>
@@ -135,10 +135,10 @@ export function CertSurveys({ cert, stored, onScheme }: { cert: Certificate; sto
             const st = surveyStatus(s, today, surveysDone);
             const d = surveysDone.find((x) => x.surveyId === s.id && x.forDue === s.due && !x.cancelled);
             const line =
-              st.state === 'done' ? `${t('cs2.endorsed', { date: d ? formatDate(d.date) : '' })}${d?.ref ? ` · ${t('ins.no', { n: d.ref })}` : ''}`
-              : st.state === 'overdue' ? t('sv.overdue', { date: formatDate(st.closes) })
-              : st.state === 'open' ? t('sv.open', { date: formatDate(st.closes), n: st.days })
-              : t('sv.window', { from: formatDate(st.opens), to: formatDate(st.closes) });
+              st.state === 'done' ? `${t('cs2.endorsed', { date: d ? uiDate(d.date) : '' })}${d?.ref ? ` · ${t('ins.no', { n: d.ref })}` : ''}`
+              : st.state === 'overdue' ? t('sv.overdue', { date: uiDate(st.closes) })
+              : st.state === 'open' ? t('sv.open', { date: uiDate(st.closes), n: st.days })
+              : t('sv.window', { from: uiDate(st.opens), to: uiDate(st.closes) });
             return (
               <TouchableOpacity key={s.id} style={[styles.row, styles.planned, { borderLeftColor: color[st.state] }]} onPress={() => nav.navigate('Surveys')} activeOpacity={0.7}>
                 <View style={{ flex: 1 }}>

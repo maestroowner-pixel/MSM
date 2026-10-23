@@ -21,7 +21,7 @@ import { SIZES, Palette } from '../theme';
 import { WatchEntry, WatchParam, WatchTemplate } from '../types/watchLog';
 import { defaultTemplate, fmtValue, normalStatus, nowTime, todayStr } from '../services/watchLog';
 import * as storage from '../services/storage';
-import { formatDate, formatDateTime } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { t, useT } from '../utils/i18n';
@@ -107,10 +107,10 @@ export default function WatchEntrySc() {
           <Text style={styles.title}>{template.name}</Text>
           {existing ? (
             <Text style={styles.sub}>
-              {formatDate(existing.date)} {existing.time} · {existing.by}{existing.byRank ? ` · ${existing.byRank}` : ''}
+              {uiDate(existing.date)} {existing.time} · {existing.by}{existing.byRank ? ` · ${existing.byRank}` : ''}
             </Text>
           ) : (
-            <Text style={styles.sub}>New round · {formatDate(todayStr())} {nowTime()}</Text>
+            <Text style={styles.sub}>New round · {uiDate(todayStr())} {nowTime()}</Text>
           )}
 
           {/* Readings */}

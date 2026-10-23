@@ -29,7 +29,7 @@ import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { batchLabel, ORDER_STATE_LABEL, chestStatus, isArchived, nextNo, normExpiry, onOrderByItem, orderOverdue, orderState, receivedByLine, toOrder } from '../services/hospital';
 import { exportOrderPdf } from '../services/hospitalReport';
-import { formatDate, formatDateTime } from '../utils/dates';
+import { uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -198,10 +198,10 @@ export default function MedOrderSc() {
       ) : (
         <>
           <View style={[styles.item, { borderLeftColor: color }]}>
-            <Text style={styles.sub}>{[t('mo.orderedBy', { date: formatDate(o.date), who: who(o.by, o.byRank) }), o.supplier, o.ref ? t('mo.refN', { ref: o.ref }) : null, o.port].filter(Boolean).join(' · ')}</Text>
-            {o.due ? <Text style={[styles.sub, late ? { color: COLORS.danger, fontWeight: '700' } : null]}>{`${t('mo.expectedOn', { date: formatDate(o.due) })}${late ? ` — ${t('mo.overdue')}` : ''}`}</Text> : null}
+            <Text style={styles.sub}>{[t('mo.orderedBy', { date: uiDate(o.date), who: who(o.by, o.byRank) }), o.supplier, o.ref ? t('mo.refN', { ref: o.ref }) : null, o.port].filter(Boolean).join(' · ')}</Text>
+            {o.due ? <Text style={[styles.sub, late ? { color: COLORS.danger, fontWeight: '700' } : null]}>{`${t('mo.expectedOn', { date: uiDate(o.due) })}${late ? ` — ${t('mo.overdue')}` : ''}`}</Text> : null}
             {o.note ? <Text style={styles.body}>{o.note}</Text> : null}
-            {o.closedAt ? <Text style={[styles.body, { color: COLORS.textLight }]}>{`${t('mo.closedBy', { when: formatDateTime(o.closedAt), who: who(o.closedBy, o.closedByRank) })}: ${o.closeNote}`}</Text> : null}
+            {o.closedAt ? <Text style={[styles.body, { color: COLORS.textLight }]}>{`${t('mo.closedBy', { when: uiDateTime(o.closedAt), who: who(o.closedBy, o.closedByRank) })}: ${o.closeNote}`}</Text> : null}
             {officer && !final ? <TouchableOpacity onPress={() => setDraft(o)}><Text style={styles.link}>{t('mo.edit')}</Text></TouchableOpacity> : null}
           </View>
 
@@ -256,7 +256,7 @@ export default function MedOrderSc() {
 
           {deliveries.length ? <Label>{t('mo.deliveriesN', { n: deliveries.length })}</Label> : null}
           {deliveries.map((m) => (
-            <Text key={m.id} style={styles.sub}>{[formatDate(m.date), `${o.lines.find((l) => l.id === m.lineId)?.name ?? ''} ${m.qty}`, m.expiry || m.batchNo ? batchLabel(m) : null, who(m.by, m.byRank), m.witness ? t('mo.witnessL', { who: m.witness }) : null].filter(Boolean).join(' · ')}</Text>
+            <Text key={m.id} style={styles.sub}>{[uiDate(m.date), `${o.lines.find((l) => l.id === m.lineId)?.name ?? ''} ${m.qty}`, m.expiry || m.batchNo ? batchLabel(m) : null, who(m.by, m.byRank), m.witness ? t('mo.witnessL', { who: m.witness }) : null].filter(Boolean).join(' · ')}</Text>
           ))}
 
           <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }]} onPress={() => void pdf()}><Text style={styles.btnText}>{t('mo.pdf')}</Text></TouchableOpacity>

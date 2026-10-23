@@ -17,7 +17,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { CATEGORY_MAP, visibleCategories } from '../constants/categories';
+import { CATEGORY_MAP, visibleCategories, catShort } from '../constants/categories';
 import { moduleOn } from '../constants/modules';
 import { CategoryKey, EquipmentItem } from '../types/equipment';
 import { uid } from '../utils/id';
@@ -140,7 +140,7 @@ export default function ServiceReportSc() {
   };
 
   const itemLine = (it?: EquipmentItem) =>
-    it ? [CATEGORY_MAP[it.category]?.short, it.type, it.no != null && it.no !== '' ? t('round.no', { n: it.no }) : null, it.serial ? `S/N ${it.serial}` : null, it.position].filter(Boolean).join(' · ') : t('sr.gone');
+    it ? [catShort(it.category), it.type, it.no != null && it.no !== '' ? t('round.no', { n: it.no }) : null, it.serial ? `S/N ${it.serial}` : null, it.position].filter(Boolean).join(' · ') : t('sr.gone');
 
   const row = (id: string, checked: boolean, sub: string, tone?: string) => (
     <TouchableOpacity key={id} style={styles.row} onPress={() => setTicks((t) => ({ ...t, [id]: !checked }))} activeOpacity={0.7}>
@@ -205,7 +205,7 @@ export default function ServiceReportSc() {
       <View style={styles.chips}>
         {usedCats.map((c) => (
           <TouchableOpacity key={c.key} style={[styles.chip, rep.category === c.key && styles.chipOn]} onPress={() => { set({ category: c.key }); setTicks({}); setFieldPick(null); }}>
-            <Text style={[styles.chipText, rep.category === c.key && styles.chipTextOn]}>{c.short ?? c.label}</Text>
+            <Text style={[styles.chipText, rep.category === c.key && styles.chipTextOn]}>{catShort(c)}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -232,7 +232,7 @@ export default function ServiceReportSc() {
           <Text style={[styles.sub, { marginTop: SIZES.xs }]}>{t('sr.tickBelow')}</Text>
         </View>
       ) : null}
-      {m.others.length ? <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{t('sr.alsoIn', { cat: CATEGORY_MAP[rep.category!]?.short ?? t('sr.theCat') })}</Text> : null}
+      {m.others.length ? <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{t('sr.alsoIn', { cat: (rep.category ? catShort(rep.category) : t('sr.theCat')) })}</Text> : null}
       {m.others.map((id) => row(id, on(id, false), t('sr.tickIf')))}
 
       {picks.length ? (

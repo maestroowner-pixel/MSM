@@ -23,7 +23,7 @@ import { MciIcon } from '../components/MciIcon';
 import { exportTemplate } from '../services/export';
 import { pickFileBase64, onWindows, onWeb } from '../utils/fileShare';
 import { pickBinaryFileWeb } from '../utils/webFile';
-import { CATEGORY_MAP, GROUP_ORDER } from '../constants/categories';
+import { CATEGORY_MAP, GROUP_ORDER, catLabel } from '../constants/categories';
 import * as storage from '../services/storage';
 import { useData } from '../contexts/DataContext';
 import { CategoryKey, EquipmentItem, Group } from '../types/equipment';
@@ -40,7 +40,7 @@ const MODE_LABEL: Record<Mode, string> = { update: 'Update', replace: 'Replace a
 
 /** "Viking 16DK · #2 · VK-1002 · Boat Deck PS" — enough to recognise a row. */
 function rowName(it: EquipmentItem): string {
-  return [it.type || CATEGORY_MAP[it.category]?.label, itemIdentifiers(it), itemLocation(it)].filter(Boolean).join(' · ');
+  return [it.type || catLabel(it.category), itemIdentifiers(it), itemLocation(it)].filter(Boolean).join(' · ');
 }
 
 export default function ImportSc() {
@@ -405,7 +405,7 @@ export default function ImportSc() {
             {preview.counts.map((c) => (
               <View key={c.category} style={styles.row}>
                 <View style={styles.rowEmoji}><CategoryBadge category={c.category} size={18} /></View>
-                <Text style={styles.rowLabel}>{c.label}</Text>
+                <Text style={styles.rowLabel}>{catLabel(c.category)}</Text>
                 <Text style={[styles.rowCount, c.count === 0 && { color: COLORS.textLight }]}>{c.count}</Text>
               </View>
             ))}

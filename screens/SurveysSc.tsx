@@ -24,7 +24,7 @@ import { roleAtLeast } from '../types/role';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { SurveyState, nextDue, sortSurveys } from '../services/surveys';
-import { formatDate } from '../utils/dates';
+import { formatDate, uiDate } from '../utils/dates';
 import { annualCoveredBy, defaultScheme, planForCertificate, renewedExpiry } from '../services/certSurveys';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
@@ -39,7 +39,7 @@ export default function SurveysSc() {
   const { surveys, surveysDone, saveRow, saveRows, appendRow, versionsOf, certificates, saveCertificate } = useData();
   const amend = useAmend();
   const allDone = versionsOf(storage.SURVEYS_DONE_KEY) as SurveyDone[];
-  const doneLine = (h: SurveyDone) => [formatDate(h.date), h.ref ? t('round.no', { n: h.ref }) : null, h.byRank ? `${h.by} (${h.byRank})` : h.by, h.note].filter(Boolean).join(' · ');
+  const doneLine = (h: SurveyDone) => [uiDate(h.date), h.ref ? t('round.no', { n: h.ref }) : null, h.byRank ? `${h.by} (${h.byRank})` : h.by, h.note].filter(Boolean).join(' · ');
   const sync = useSync();
   const canEdit = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const isMaster = !sync.enrolled || sync.role === 'superadmin';
@@ -61,11 +61,11 @@ export default function SurveysSc() {
 
   const color: Record<SurveyState, string> = { overdue: COLORS.danger, open: COLORS.warning, soon: COLORS.primary, planned: COLORS.textLight, done: COLORS.success };
   const label = (st: ReturnType<typeof sortSurveys>[number]['st']) =>
-    st.state === 'overdue' ? t('sv.overdue', { date: formatDate(st.closes) })
-    : st.state === 'open' ? t('sv.open', { date: formatDate(st.closes), n: st.days })
-    : st.state === 'soon' ? t('sv.soon', { date: formatDate(st.opens), n: st.days })
+    st.state === 'overdue' ? t('sv.overdue', { date: uiDate(st.closes) })
+    : st.state === 'open' ? t('sv.open', { date: uiDate(st.closes), n: st.days })
+    : st.state === 'soon' ? t('sv.soon', { date: uiDate(st.opens), n: st.days })
     : st.state === 'done' ? t('sv.done')
-    : t('sv.window', { from: formatDate(st.opens), to: formatDate(st.closes) });
+    : t('sv.window', { from: uiDate(st.opens), to: uiDate(st.closes) });
 
   const addTemplate = (t: (typeof SURVEY_TEMPLATES)[number]) => {
     setAdding(false);
@@ -111,7 +111,7 @@ export default function SurveysSc() {
       const nextIds = new Set(next.map((x) => x.id));
       const left = surveys.filter((x) => x.certId === renewing.id && !x.deleted && x.id !== doing.s.id && !nextIds.has(x.id) && !surveysDone.some((d) => d.surveyId === x.id && d.forDue === x.due)).map((x) => ({ ...x, deleted: true, updatedAt: now }));
       if (next.length + left.length) await saveRows(storage.SURVEYS_KEY, [...next, ...left]);
-      Alert.alert(t('sv.renewed'), t('sv.renewedBody', { name: renewing.name, date: formatDate(doing.expiry), x: tn('n.survey', next.length) }));
+      Alert.alert(t('sv.renewed'), t('sv.renewedBody', { name: renewing.name, date: uiDate(doing.expiry), x: tn('n.survey', next.length) }));
     }
     setDoing(null);
     playSuccessSound();
@@ -190,7 +190,7 @@ export default function SurveysSc() {
           {doing.s.kind === 'intermediate' && isIso(doing.date) && annualCoveredBy(doing.s, doing.date, surveys, surveysDone) ? (
             <Text style={styles.sub}>{t('sv.alsoRecords', { name: annualCoveredBy(doing.s, doing.date, surveys, surveysDone)!.name.split(' — ').pop() ?? '' })}</Text>
           ) : null}
-          {doing.s.repeat ? <Text style={styles.sub}>{t('sv.next', { date: formatDate(nextDue(doing.s, isIso(doing.date) ? doing.date : today)) })}</Text> : null}
+          {doing.s.repeat ? <Text style={styles.sub}>{t('sv.next', { date: uiDate(nextDue(doing.s, isIso(doing.date) ? doing.date : today)) })}</Text> : null}
           {picker ? <><Text style={styles.sub}>{t('sv.recordedBy')}</Text>{picker}</> : null}
           <View style={styles.row}>
             <TouchableOpacity style={styles.btn} onPress={() => void carriedOut()}><Text style={styles.btnText}>{t('common.sign')}</Text></TouchableOpacity>
@@ -208,7 +208,7 @@ export default function SurveysSc() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{s.name}</Text>
                 <Text style={[styles.sub, { color: color[st.state], fontWeight: '700' }]}>{label(st)}</Text>
-                <Text style={styles.sub}>{[`${s.anniversary ? t('sv.anniv') : t('sv.due')} ${formatDate(s.due)}`, s.repeat ? (s.repeat % 12 ? tn('sv.everyMonths', s.repeat) : tn('sv.everyYears', s.repeat / 12)) : t('sv.once'), s.by].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.sub}>{[`${s.anniversary ? t('sv.anniv') : t('sv.due')} ${uiDate(s.due)}`, s.repeat ? (s.repeat % 12 ? tn('sv.everyMonths', s.repeat) : tn('sv.everyYears', s.repeat / 12)) : t('sv.once'), s.by].filter(Boolean).join(' · ')}</Text>
               </View>
               {canEdit && st.state !== 'done' ? (
                 <TouchableOpacity style={styles.small} onPress={() => startDoing(s)}><Text style={styles.smallText}>{t('sv.done')}</Text></TouchableOpacity>

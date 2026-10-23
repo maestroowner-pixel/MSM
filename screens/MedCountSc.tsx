@@ -29,7 +29,7 @@ import { todayIso } from '../services/pms';
 import { proofShort } from '../services/signature';
 import { batchLabel, CHECK_KIND_LABEL, chestStatus, checkLinesFor, expiryState, nextNo, normExpiry } from '../services/hospital';
 import { exportCheckPdf } from '../services/hospitalReport';
-import { formatDate, formatDateTime } from '../utils/dates';
+import { uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -83,9 +83,9 @@ export default function MedCountSc() {
     return (
       <Screen scroll>
         <BackButton onPress={() => goBackOr(nav)} />
-        <ScreenTitle title={`${CHECK_KIND_LABEL[stored.kind ?? 'inventory']} ${stored.no}`} subtitle={`${formatDate(stored.date)} · ${t('mc.lines', { n: stored.lines.length })} · ${diff.length ? t('mc.diffs', { n: diff.length }) : t('mc.asBooks')}`} help="Hospital" />
+        <ScreenTitle title={`${CHECK_KIND_LABEL[stored.kind ?? 'inventory']} ${stored.no}`} subtitle={`${uiDate(stored.date)} · ${t('mc.lines', { n: stored.lines.length })} · ${diff.length ? t('mc.diffs', { n: diff.length }) : t('mc.asBooks')}`} help="Hospital" />
         <View style={[styles.item, { borderLeftColor: diff.length ? COLORS.warning : COLORS.success }]}>
-          <Text style={styles.sub}>{`${stored.kind === 'handover' ? t('med.handedBy', { who: who(stored.by, stored.byRank) }) : t('mc.countedBy', { who: who(stored.by, stored.byRank) })} · ${formatDateTime(stored.at)}${stored.signedWith ? ` · ${proofShort(stored.signedWith)}` : ''}`}</Text>
+          <Text style={styles.sub}>{`${stored.kind === 'handover' ? t('med.handedBy', { who: who(stored.by, stored.byRank) }) : t('mc.countedBy', { who: who(stored.by, stored.byRank) })} · ${uiDateTime(stored.at)}${stored.signedWith ? ` · ${proofShort(stored.signedWith)}` : ''}`}</Text>
           {stored.witness ? <Text style={styles.sub}>{`${stored.kind === 'handover' ? t('mc.takenBy', { who: who(stored.witness, stored.witnessRank) }) : t('med.witness', { who: who(stored.witness, stored.witnessRank) })}${stored.witnessWith ? ` · ${proofShort(stored.witnessWith)}` : ''}`}</Text> : null}
           {stored.note ? <Text style={styles.body}>{stored.note}</Text> : null}
         </View>

@@ -40,7 +40,7 @@ import { PickedMedFile, keepMedFile, openMedFile, photoMedFile, pickMedFile, siz
 import { exportTreatmentPdf } from '../services/hospitalReport';
 import { nowHm } from '../services/drills';
 import { MED_INFO_NOTICE, WHO_NOTICE } from '../constants/medNotice';
-import { formatDate, formatDateTime } from '../utils/dates';
+import { uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -160,7 +160,7 @@ export default function TreatmentSc() {
     return (
       <Screen scroll>
         <BackButton onPress={() => goBackOr(nav)} />
-        <ScreenTitle title={`${t.no} · ${t.patient}`} subtitle={`${formatDate(t.date)}${t.time ? ` ${t.time}` : ''} · ${tk(`tr.out.${t.outcome}`)} · ${tt('tr.confidential')}`} help="Hospital" />
+        <ScreenTitle title={`${t.no} · ${t.patient}`} subtitle={`${uiDate(t.date)}${t.time ? ` ${t.time}` : ''} · ${tk(`tr.out.${t.outcome}`)} · ${tt('tr.confidential')}`} help="Hospital" />
         <Card>
           {line(tt('ho.rank'), t.patientRank)}
           {line(tt('tr.complaint'), t.complaint)}
@@ -172,9 +172,9 @@ export default function TreatmentSc() {
           {t.issued.length ? line(tt('tr.medicines'), t.issued.map(issuedText).join('; ')) : null}
           {back.size ? line(tt('tr.returnedUnused'), t.issued.filter((x) => back.get(x.itemId)).map((x) => `${x.name} ${back.get(x.itemId)} ${x.unit}`).join('; ')) : null}
           {t.tmas ? line(tt('tr.tmas'), [t.tmas.centre, t.tmas.ref, t.tmas.advice].filter(Boolean).join(' · ')) : null}
-          {line('Follow-up', t.followUp ? formatDate(t.followUp) : undefined)}
+          {line('Follow-up', t.followUp ? uiDate(t.followUp) : undefined)}
           {prior ? line(tt('tr.follows'), `${prior.no} ${prior.complaint}`) : null}
-          <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{`${tt('tr.signedBy', { who: who(t.by, t.byRank) })} · ${formatDateTime(t.at)}${t.signedWith ? ` · ${proofShort(t.signedWith)}` : ''}`}</Text>
+          <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{`${tt('tr.signedBy', { who: who(t.by, t.byRank) })} · ${uiDateTime(t.at)}${t.signedWith ? ` · ${proofShort(t.signedWith)}` : ''}`}</Text>
           {t.witness ? <Text style={styles.sub}>{`${tt('med.witness', { who: who(t.witness, t.witnessRank) })}${t.witnessWith ? ` · ${proofShort(t.witnessWith)}` : ''}`}</Text> : null}
         </Card>
         {t.issued.some((x) => (back.get(x.itemId) ?? 0) < x.qty) ? (
@@ -209,7 +209,7 @@ export default function TreatmentSc() {
         {(t.files ?? []).map((f) => (
           <TouchableOpacity key={f.id} style={[styles.item, { borderLeftColor: COLORS.primary }]} onPress={() => void openMedFile(f.url, f.name).catch((e) => Alert.alert(tt('tr.file'), String(e?.message ?? e)))}>
             <Text style={styles.name}>{f.name}</Text>
-            <Text style={styles.sub}>{`${sizeText(f.bytes)} · added by ${f.addedBy} ${formatDateTime(f.addedAt)}`}</Text>
+            <Text style={styles.sub}>{`${sizeText(f.bytes)} · added by ${f.addedBy} ${uiDateTime(f.addedAt)}`}</Text>
           </TouchableOpacity>
         ))}
         <View style={styles.row}>
@@ -296,7 +296,7 @@ export default function TreatmentSc() {
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav)} />
       <ScreenTitle title={prior ? `${tt('tr.followUp')} — ${prior.patient}` : tt('tr.new')} subtitle={tt('tr.sub')} help="Hospital" />
-      {prior ? <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>{`${tt('tr.followsOf', { no: prior.no, date: formatDate(prior.date) })}: ${prior.complaint}${prior.diagnosis ? ` — ${prior.diagnosis}` : ''}`}</Text> : null}
+      {prior ? <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>{`${tt('tr.followsOf', { no: prior.no, date: uiDate(prior.date) })}: ${prior.complaint}${prior.diagnosis ? ` — ${prior.diagnosis}` : ''}`}</Text> : null}
       <Card>
         <Label>{tt('tr.patient')}</Label>
         <Dropdown caption={tt('tr.patientCap')} value={patientPick} onChange={(v: string) => { setPatientPick(v); const p = people.find((x) => x.id === v); set(p ? { patient: p.name, ...(p.rank ? { patientRank: p.rank } : { patientRank: undefined }) } : { patient: '', patientRank: undefined }); }} options={[{ value: '', label: tt('common.choose') }, ...people.map((p) => ({ value: p.id, label: p.rank ? `${p.name} · ${p.rank}` : p.name })), { value: OTHER, label: 'Someone else — guest, contractor' }]} />

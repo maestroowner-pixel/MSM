@@ -22,7 +22,7 @@ import { DocShelf, OfficerDoc, SHELF_STARTER } from '../types/officerDocs';
 import { personName, roleAtLeast } from '../types/role';
 import { keepRestrictedFile, openMedFile, pickMedFile, sizeText } from '../services/medFiles';
 import { todayIso } from '../services/pms';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from '../screens/SafetySc';
@@ -76,7 +76,7 @@ export function OfficerDocs({ shelf, intro }: { shelf: DocShelf; intro: string }
     }
   };
 
-  const review = (d: OfficerDoc) => (d.reviewDue && d.reviewDue < today ? { text: t('odc.reviewOverdue', { date: formatDate(d.reviewDue) }), color: COLORS.danger } : d.reviewDue ? { text: t('odc.review', { date: formatDate(d.reviewDue) }), color: COLORS.textLight } : null);
+  const review = (d: OfficerDoc) => (d.reviewDue && d.reviewDue < today ? { text: t('odc.reviewOverdue', { date: uiDate(d.reviewDue) }), color: COLORS.danger } : d.reviewDue ? { text: t('odc.review', { date: uiDate(d.reviewDue) }), color: COLORS.textLight } : null);
   const missing = SHELF_STARTER[shelf].filter((t) => !docs.some((d) => d.title.toLowerCase() === t.toLowerCase()));
 
   return (
@@ -127,7 +127,7 @@ export function OfficerDocs({ shelf, intro }: { shelf: DocShelf; intro: string }
               <MciIcon name={d.fileUri ? 'file-pdf-box' : 'file-outline'} size={22} color={d.fileUri ? COLORS.primary : COLORS.textLight} />
               <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 200, minWidth: 0 }}>
                 <Text style={styles.name}>{d.title}</Text>
-                <Text style={styles.sub}>{[d.docNo, d.revision ? t('odc.rev', { n: d.revision }) : null, d.issued ? t('odc.issued', { date: formatDate(d.issued) }) : null].filter(Boolean).join(' · ') || '—'}</Text>
+                <Text style={styles.sub}>{[d.docNo, d.revision ? t('odc.rev', { n: d.revision }) : null, d.issued ? t('odc.issued', { date: uiDate(d.issued) }) : null].filter(Boolean).join(' · ') || '—'}</Text>
                 {r ? <Text style={[styles.sub, { color: r.color, fontWeight: r.color === COLORS.danger ? '700' : '400' }]}>{r.text}</Text> : null}
                 {d.notes ? <Text style={styles.sub}>{d.notes}</Text> : null}
               </View>

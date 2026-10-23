@@ -17,7 +17,7 @@ import { SIZES } from '../theme';
 import { roleAtLeast } from '../types/role';
 import { todayIso } from '../services/pms';
 import { heldMeetings, meetingDue, openActions } from '../services/meetings';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { makeStyles } from './SafetySc';
 import { t, tn, useT } from '../utils/i18n';
 
@@ -38,7 +38,7 @@ export default function MeetingsSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title={t('meet.title')} subtitle={due.last ? t('meet.lastHeld', { date: formatDate(due.last.date), no: due.last.no }) : t('meet.noneYet')} help="Security (ISPS)" />
+      <ScreenTitle title={t('meet.title')} subtitle={due.last ? t('meet.lastHeld', { date: uiDate(due.last.date), no: due.last.no }) : t('meet.noneYet')} help="Security (ISPS)" />
       <View style={[styles.item, { borderLeftColor: due.overdue ? COLORS.danger : due.due ? COLORS.warning : COLORS.success }]}>
         <Text style={styles.name}>{due.due ? (due.overdue ? t('meet.overdue') : t('meet.dueMonth')) : t('meet.heldMonth')}</Text>
         <Text style={styles.sub}>{t('meet.about')}</Text>
@@ -49,7 +49,7 @@ export default function MeetingsSc() {
 
       {drafts.map((m) => (
         <TouchableOpacity key={m.id} style={[styles.item, { borderLeftColor: COLORS.primary }]} onPress={() => nav.navigate('Meeting', { id: m.id })}>
-          <Text style={styles.name}>{t('meet.draftRow', { no: m.no || t('meet.newName'), date: formatDate(m.date) })}</Text>
+          <Text style={styles.name}>{t('meet.draftRow', { no: m.no || t('meet.newName'), date: uiDate(m.date) })}</Text>
           <Text style={styles.sub}>{`${t('meet.present', { n: m.attendance.filter((a) => a.present).length })} · ${tn('n.action', m.actions.length)}`}</Text>
         </TouchableOpacity>
       ))}
@@ -62,7 +62,7 @@ export default function MeetingsSc() {
               <MciIcon name="checkbox-blank-outline" size={18} color={a.due && a.due < today ? COLORS.danger : COLORS.textLight} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.body}>{a.text}</Text>
-                <Text style={[styles.sub, a.due && a.due < today ? { color: COLORS.danger, fontWeight: '700' } : null]}>{[a.who, a.due ? t('meet.by', { date: formatDate(a.due) }) : null, a.fromNo].filter(Boolean).join(' · ')}</Text>
+                <Text style={[styles.sub, a.due && a.due < today ? { color: COLORS.danger, fontWeight: '700' } : null]}>{[a.who, a.due ? t('meet.by', { date: uiDate(a.due) }) : null, a.fromNo].filter(Boolean).join(' · ')}</Text>
               </View>
             </View>
           ))}
@@ -72,7 +72,7 @@ export default function MeetingsSc() {
       <Label>{t('meet.held', { n: held.length })}</Label>
       {held.map((m) => (
         <TouchableOpacity key={m.id} style={[styles.item, { borderLeftColor: COLORS.success }]} onPress={() => nav.navigate('Meeting', { id: m.id })}>
-          <Text style={styles.name}>{`${m.no} · ${formatDate(m.date)}`}</Text>
+          <Text style={styles.name}>{`${m.no} · ${uiDate(m.date)}`}</Text>
           <Text style={styles.sub}>{[t('meet.present', { n: m.attendance.filter((a) => a.present).length }), t('meet.newActions', { n: m.actions.length }), m.carried.length ? t('meet.carriedClosed', { done: m.carried.filter((c) => c.done).length, n: m.carried.length }) : null, m.doneBy ? t('meet.signedBy', { name: m.doneBy }) : null].filter(Boolean).join(' · ')}</Text>
         </TouchableOpacity>
       ))}

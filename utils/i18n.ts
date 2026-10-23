@@ -17,7 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { t, setLangResolver } from './t';
 import { LANGS, Lang, chosenLang, setChosenLangValue, uiLang } from './locale';
 
-export { t, tk, tn, DICTS, currentLang, dateLocale, monthName, weekdayName } from './t';
+export { t, tk, tn, DICTS, currentLang, dateLocale, monthName, monthAbbr, weekdayName } from './t';
 export type { UiKey } from './t';
 
 export const UI_LANG_KEY = 'msm:ui_lang';

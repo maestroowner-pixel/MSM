@@ -29,7 +29,7 @@ import { crewIssues, issueSummary } from '../services/crewIssues';
 import { useSdmImport } from '../components/useSdmImport';
 import { Certificate } from '../types/certificate';
 import { roleAtLeast } from '../types/role';
-import { formatDate, statusFromDate } from '../utils/dates';
+import { statusFromDate, uiDate } from '../utils/dates';
 import { todayIso } from '../services/pms';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
@@ -278,7 +278,7 @@ export default function CrewMemberSc() {
             <TouchableOpacity key={c.id} style={styles.certRow} onPress={() => nav.navigate('CertificateDetail', { id: c.id })}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.title} numberOfLines={1}>{c.name}</Text>
-                <Text style={styles.sub}>{[c.number, c.expiryDate ? t('crew.expires', { date: formatDate(c.expiryDate) }) : t('cm.noExpiry')].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.sub}>{[c.number, c.expiryDate ? t('crew.expires', { date: uiDate(c.expiryDate) }) : t('cm.noExpiry')].filter(Boolean).join(' · ')}</Text>
               </View>
               <StatusPill status={statusFromDate(c.expiryDate)} />
             </TouchableOpacity>

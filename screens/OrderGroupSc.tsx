@@ -18,7 +18,7 @@ import { roleAtLeast } from '../types/role';
 import { OrderGroup, ORDER_DEPT_LABEL, ORDER_STATUS_COLOR, ORDER_STATUS_LABEL, OrderStatus } from '../types/orders';
 import { completionPct, journalOrders } from '../services/orders';
 import { todayIso } from '../services/pms';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -126,7 +126,7 @@ export default function OrderGroupSc() {
         {officer || draft ? (
           <SimpleDatePicker label={t('nc.date')} value={(draft ?? g).date ?? todayIso()} onChange={(v) => set({ date: v })} />
         ) : g.date ? (
-          <Text style={styles.fieldVal}>{formatDate(g.date)}</Text>
+          <Text style={styles.fieldVal}>{uiDate(g.date)}</Text>
         ) : null}
 
         {(officer || draft) ? (

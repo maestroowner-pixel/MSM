@@ -24,7 +24,7 @@ import { roleAtLeast } from '../types/role';
 import { auditSummary, defaultItems } from '../services/audit';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { t, tk, useT } from '../utils/i18n';
@@ -127,7 +127,7 @@ export default function AuditSc() {
           <Text style={styles.no}>{audit.no}</Text>
           <Text style={styles.title}>{tk(`audits.t.${audit.type}`)}</Text>
           <Text style={styles.meta}>
-            {formatDate(audit.startDate)}
+            {uiDate(audit.startDate)}
             {closed && audit.by ? ` · ${t('aud.by', { who: `${audit.by}${audit.byRank ? ` (${audit.byRank})` : ''}` })}` : ''}
             {closed ? ` · ${t('audits.closed')}` : ` · ${t('aud.inProgress')}`}
           </Text>

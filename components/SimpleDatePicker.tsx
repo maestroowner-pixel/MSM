@@ -20,7 +20,7 @@ import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { t, useT, monthName } from '../utils/i18n';
 import { MciIcon } from './MciIcon';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 
 const MONTHS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
@@ -91,7 +91,7 @@ const SimpleDatePicker: React.FC<Props> = ({ label, value, onChange, defaultYear
         activeOpacity={0.7}
       >
         <Text style={[styles.triggerText, !value && styles.triggerPlaceholder]}>
-          {value ? formatDate(value) : placeholder ?? t('sdp.select')}
+          {value ? uiDate(value) : placeholder ?? t('sdp.select')}
         </Text>
         {value && onClear && !disabled ? (
           <TouchableOpacity

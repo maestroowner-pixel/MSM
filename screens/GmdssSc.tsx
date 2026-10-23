@@ -39,7 +39,7 @@ import { exportGmdssPdf } from '../services/gmdssReport';
 import { MonthPicker, monthName } from '../components/MonthPicker';
 import * as storage from '../services/storage';
 import { uid } from '../utils/id';
-import { formatDate, formatDateTime } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { goBackOr } from '../utils/nav';
 import { todayIso } from '../services/pms';
 import { t, t as tt, tk, useT } from '../utils/i18n';
@@ -69,7 +69,7 @@ function EntryRow({ entry, COLORS, styles }: {
     <View style={styles.row}>
       <View style={[styles.dot, { backgroundColor: dot }]} />
       <View style={{ flex: 1 }}>
-        <Text style={styles.rowTime}>{`${formatDate(entry.date)} ${entry.time}`}</Text>
+        <Text style={styles.rowTime}>{`${uiDate(entry.date)} ${entry.time}`}</Text>
         <Text style={styles.rowText}>{entry.text}</Text>
         {entry.radioWatchClosed ? (
           <Text style={[styles.rowAlert, { color: COLORS.danger }]}>{t('gm.watchClosed')}</Text>
@@ -86,7 +86,7 @@ function StatusPill({ label, overdue, dueSoon, last, COLORS }: {
   label: string; overdue: boolean; dueSoon: boolean; last: string | null; COLORS: Palette;
 }) {
   const bg = overdue ? COLORS.danger : dueSoon ? COLORS.warning : COLORS.success;
-  const sub = last ? t('gm.last', { date: formatDate(last) }) : t('gm.notDone');
+  const sub = last ? t('gm.last', { date: uiDate(last) }) : t('gm.notDone');
   return (
     <View style={{ alignItems: 'center', marginRight: 8 }}>
       <View style={{ backgroundColor: bg, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, marginBottom: 2 }}>

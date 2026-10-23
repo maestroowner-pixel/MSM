@@ -29,8 +29,8 @@ import { pdfText } from '../utils/pdfText';
 import { todayIso } from '../services/pms';
 import { Certificate, CertificateScope, scopeOf } from '../types/certificate';
 import { DOC_CATEGORY_LABEL, DocCategory, IsmDoc } from '../types/docs';
-import { computeStatus, formatDate, statusFromDate } from '../utils/dates';
-import { CATEGORY_MAP } from '../constants/categories';
+import { computeStatus, statusFromDate, uiDate } from '../utils/dates';
+import { catLabel } from '../constants/categories';
 import { uid } from '../utils/id';
 import { t, tk, useT } from '../utils/i18n';
 
@@ -116,7 +116,7 @@ export default function FleetVesselSc() {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.title} numberOfLines={1}>{c.name}</Text>
                       <Text style={styles.sub} numberOfLines={1}>
-                        {[c.holderName, c.number, c.issuer, c.expiryDate ? t('crew.expires', { date: formatDate(c.expiryDate) }) : t('cm.noExpiry')].filter(Boolean).join(' · ')}
+                        {[c.holderName, c.number, c.issuer, c.expiryDate ? t('crew.expires', { date: uiDate(c.expiryDate) }) : t('cm.noExpiry')].filter(Boolean).join(' · ')}
                       </Text>
                     </View>
                     <StatusPill status={statusFromDate(c.expiryDate)} />
@@ -160,7 +160,7 @@ export default function FleetVesselSc() {
             <View key={it.id} style={styles.row}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.title} numberOfLines={1}>{(it as any).name || (it as any).description || (it as any).serial || t('def.item')}</Text>
-                <Text style={styles.sub} numberOfLines={1}>{[CATEGORY_MAP[(it as any).category]?.label, (it as any).location].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.sub} numberOfLines={1}>{[catLabel((it as any).category), (it as any).location].filter(Boolean).join(' · ')}</Text>
               </View>
               <StatusPill status={st} />
             </View>

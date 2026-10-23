@@ -15,7 +15,7 @@ import {
   sendReportNow,
 } from '../services/emailReportService';
 import { currentVesselKey } from '../services/firebaseService';
-import { formatDateTime } from '../utils/dates';
+import { uiDateTime } from '../utils/dates';
 import { playSuccessSound, playErrorSound } from '../utils/sound';
 import { t, tn, useT } from '../utils/i18n';
 
@@ -131,7 +131,7 @@ export default function EmailReportSc() {
           <View style={{ flex: 1 }}>
             <Text style={styles.rowTitle}>{t('email.enable')}</Text>
             {settings.lastSentAt ? (
-              <Text style={styles.rowSub}>{t('email.lastSent', { when: formatDateTime(settings.lastSentAt) })}</Text>
+              <Text style={styles.rowSub}>{t('email.lastSent', { when: uiDateTime(settings.lastSentAt) })}</Text>
             ) : (
               <Text style={styles.rowSub}>{t('email.notSent')}</Text>
             )}

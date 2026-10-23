@@ -15,7 +15,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { CATEGORY_MAP, visibleCategories } from '../constants/categories';
+import { CATEGORY_MAP, visibleCategories, catLabel } from '../constants/categories';
 import { periodsFor } from '../constants/checklists';
 import { CategoryKey } from '../types/equipment';
 import { InspectionPeriod, PERIOD_LABEL } from '../types/inspection';
@@ -26,13 +26,13 @@ import { freshRounds } from '../services/firebaseService';
 import { useSignConfirm } from '../components/SignConfirm';
 import { setActiveRound } from '../services/activeRound';
 import * as storage from '../services/storage';
-import { formatDateTime } from '../utils/dates';
+import { formatDateTime, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { t, useT } from '../utils/i18n';
 
 const PERIODS: InspectionPeriod[] = ['weekly', 'monthly', 'quarterly', 'annual'];
-export const labelOf = (c: CategoryKey) => CATEGORY_MAP[c]?.label ?? String(c);
+export const labelOf = (c: CategoryKey) => catLabel(c);
 
 export default function RoundsSc() {
   useT();
@@ -78,7 +78,7 @@ export default function RoundsSc() {
       setChecking(false);
       if (fresh) await reload();
       const clash = overlappingRound(fresh ?? rounds, period, [...cats]);
-      if (clash) return Alert.alert(t('rounds.already'), t('rounds.alreadyBody', { round: roundTitle(clash, labelOf), who: clash.startedBy ? ` (${t('rounds.startedBy', { by: clash.startedBy, when: formatDateTime(clash.startedAt) })})` : '', cats: clash.categories.filter((c) => cats.has(c)).map(labelOf).join(', ') }));
+      if (clash) return Alert.alert(t('rounds.already'), t('rounds.alreadyBody', { round: roundTitle(clash, labelOf), who: clash.startedBy ? ` (${t('rounds.startedBy', { by: clash.startedBy, when: uiDateTime(clash.startedAt) })})` : '', cats: clash.categories.filter((c) => cats.has(c)).map(labelOf).join(', ') }));
       const w = windowFor(period);
       const now = Date.now();
       const r: InspectionRound = {
@@ -102,7 +102,7 @@ export default function RoundsSc() {
   const dups = duplicateRounds(rounds);
   const closeDuplicate = async (keep: InspectionRound, extra: InspectionRound) => {
     if (!signer) return Alert.alert(t('rounds.whoCloses'), t('round.chooseName'));
-    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${roundTitle(extra, labelOf)} — closed as a duplicate` });
+    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${roundTitle(extra, (c) => CATEGORY_MAP[c]?.label ?? String(c))} — closed as a duplicate` });
     if (!sig) return;
     const now = Date.now();
     await saveRow(storage.ROUNDS_KEY, {
@@ -119,7 +119,7 @@ export default function RoundsSc() {
       <TouchableOpacity key={r.id} style={styles.row} onPress={() => nav.navigate('Round', { id: r.id })} activeOpacity={0.7}>
         <View style={{ flex: 1 }}>
           <Text style={styles.title} numberOfLines={2}>{roundTitle(r, labelOf)}</Text>
-          <Text style={styles.sub}>{`${t('rounds.rowProgress', { done: p.done.size, n: p.scope.length, left: p.outstanding.length })} · ${t('rounds.startedBy', { by: r.startedBy, when: formatDateTime(r.startedAt) })}${r.closedAt ? ` · ${t('round.closedAt', { when: formatDateTime(r.closedAt) })}` : ''}`}</Text>
+          <Text style={styles.sub}>{`${t('rounds.rowProgress', { done: p.done.size, n: p.scope.length, left: p.outstanding.length })} · ${t('rounds.startedBy', { by: r.startedBy, when: uiDateTime(r.startedAt) })}${r.closedAt ? ` · ${t('round.closedAt', { when: uiDateTime(r.closedAt) })}` : ''}`}</Text>
           <View style={styles.bar}><View style={[styles.barFill, { width: `${pct}%`, backgroundColor: pct === 100 ? COLORS.success : COLORS.primary }]} /></View>
         </View>
         <Text style={styles.chev}>›</Text>
@@ -150,7 +150,7 @@ export default function RoundsSc() {
             <View style={styles.chips}>
               {offered.map((c) => (
                 <TouchableOpacity key={c.key} style={[styles.chip, cats.has(c.key) && styles.chipOn]} onPress={() => toggle(c.key)}>
-                  <Text style={[styles.chipText, cats.has(c.key) && styles.chipTextOn]}>{`${c.label} · ${(byCategory[c.key] ?? []).length}`}</Text>
+                  <Text style={[styles.chipText, cats.has(c.key) && styles.chipTextOn]}>{`${catLabel(c)} · ${(byCategory[c.key] ?? []).length}`}</Text>
                 </TouchableOpacity>
               ))}
               {!offered.length ? <Text style={styles.sub}>{t('rounds.noCats')}</Text> : null}
@@ -171,7 +171,7 @@ export default function RoundsSc() {
       {dups.map(({ keep, extra }) => (
         <Card key={extra.id} style={{ borderLeftWidth: 4, borderLeftColor: COLORS.warning }}>
           <Text style={[styles.title, { color: COLORS.warning }]}>{t('rounds.dupTitle')}</Text>
-          <Text style={styles.sub}>{t('rounds.dupBody', { round: roundTitle(extra, labelOf), when: formatDateTime(extra.startedAt), by: extra.startedBy, when2: formatDateTime(keep.startedAt), by2: keep.startedBy })}</Text>
+          <Text style={styles.sub}>{t('rounds.dupBody', { round: roundTitle(extra, labelOf), when: uiDateTime(extra.startedAt), by: extra.startedBy, when2: uiDateTime(keep.startedAt), by2: keep.startedBy })}</Text>
           {canRun ? (
             <>
               {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}

@@ -19,7 +19,7 @@ import { SIZES, Palette } from '../theme';
 import * as shore from '../services/shore';
 import { moduleOn } from '../constants/modules';
 import { Count, VesselSummary, fleetOrder, summarise } from '../services/fleetSummary';
-import { formatDateTime } from '../utils/dates';
+import { uiDateTime } from '../utils/dates';
 import { t, tn, useT } from '../utils/i18n';
 
 export default function FleetSc() {
@@ -120,7 +120,7 @@ export default function FleetSc() {
         <TouchableOpacity key={r.imo} style={styles.vessel} onPress={() => nav.navigate('FleetVessel', { imo: r.imo })} activeOpacity={0.75}>
           <View style={styles.vesselHead}>
             <Text style={styles.vesselName} numberOfLines={1}>{r.name}</Text>
-            <Text style={styles.sub}>{`IMO ${r.imo} · synced ${r.registerAt ? formatDateTime(r.registerAt) : 'never'}`}</Text>
+            <Text style={styles.sub}>{`IMO ${r.imo} · synced ${r.registerAt ? uiDateTime(r.registerAt) : 'never'}`}</Text>
           </View>
           <View style={styles.chips}>
             <Pill label={t('cat.title')} c={r.equipment} styles={styles} COLORS={COLORS} />

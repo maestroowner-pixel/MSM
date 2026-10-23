@@ -10,7 +10,7 @@ import { Screen, ScreenTitle, statusColor, CategoryBadge } from '../components/u
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
-import { CATEGORIES, CategoryMeta, GROUP_LABEL, GROUP_ORDER } from '../constants/categories';
+import { CATEGORIES, CategoryMeta, GROUP_ORDER, catLabel, groupLabel } from '../constants/categories';
 import { useSync } from '../contexts/SyncContext';
 import { MciIcon } from '../components/MciIcon';
 import { computeStatus } from '../utils/dates';
@@ -71,7 +71,7 @@ export default function CategoriesSc() {
       return;
     }
     Alert.alert(
-      t('cat.hideQ', { name: c.label }),
+      t('cat.hideQ', { name: catLabel(c) }),
       t('cat.hideBody', { x: tn('n.item', count) }),
       [
         { text: t('cat.keep'), style: 'cancel' },
@@ -104,7 +104,7 @@ export default function CategoriesSc() {
 
       {sections.map((sec) => (
         <View key={sec.group} style={{ marginBottom: SIZES.lg }}>
-          <Text style={[styles.groupTitle, { color: COLORS.groupColors[sec.group] }]}>{GROUP_LABEL[sec.group]}</Text>
+          <Text style={[styles.groupTitle, { color: COLORS.groupColors[sec.group] }]}>{groupLabel(sec.group)}</Text>
           <View style={styles.grid}>
             {sec.items.map((c) => {
               const items = byCategory[c.key] ?? [];
@@ -134,9 +134,9 @@ export default function CategoriesSc() {
                       short form of its own invention, so Settings and Equipment
                       disagreed about what a category was called. */}
                   <Text style={styles.tileLabel} numberOfLines={3}>
-                    {c.label}
+                    {catLabel(c)}
                   </Text>
-                  <Text style={styles.tileCount}>{items.length} items</Text>
+                  <Text style={styles.tileCount}>{tn('n.item', items.length)}</Text>
                 </TouchableOpacity>
               );
             })}

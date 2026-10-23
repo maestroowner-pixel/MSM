@@ -16,7 +16,7 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { moduleOn } from '../constants/modules';
-import { CATEGORY_MAP } from '../constants/categories';
+import { catLabel } from '../constants/categories';
 import { periodsFor } from '../constants/checklists';
 import { CategoryKey } from '../types/equipment';
 import { personName } from '../types/role';
@@ -57,7 +57,7 @@ export default function HandoverSc() {
         {
           today,
           on: moduleOn,
-          labelOf: (k: CategoryKey) => data.categories.find((c) => c.key === k)?.label ?? CATEGORY_MAP[k]?.label ?? String(k),
+          labelOf: (k: CategoryKey) => catLabel(data.categories.find((c) => c.key === k) ?? k),
           periodsOf: (k: CategoryKey) => periodsFor(k, data.templates),
           ...data,
         },

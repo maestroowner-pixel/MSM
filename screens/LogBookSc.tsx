@@ -26,7 +26,7 @@ import { exportLogExcel, exportLogPdf } from '../services/logbookReport';
 import { current } from '../services/versions';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
-import { formatDate, formatDateTime } from '../utils/dates';
+import { formatDate, uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { PositionInput } from '../components/PositionInput';
 import { parsePosition } from '../utils/position';
@@ -214,7 +214,7 @@ export default function LogBookSc() {
           <View style={styles.code}><Text style={styles.codeText} numberOfLines={1}>{e.code}</Text></View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.text, e.cancelled && { textDecorationLine: 'line-through' }]}>{e.text}</Text>
-            <Text style={styles.sub}>{`${formatDate(e.date)}${e.time ? ` ${e.time}` : ''} · ${spec.codes[e.code]?.label ?? e.code} · ${e.byRank ? `${e.by} (${e.byRank})` : e.by}`}</Text>
+            <Text style={styles.sub}>{`${uiDate(e.date)}${e.time ? ` ${e.time}` : ''} · ${spec.codes[e.code]?.label ?? e.code} · ${e.byRank ? `${e.by} (${e.byRank})` : e.by}`}</Text>
             <AmendNote rec={e} all={all} summary={(p) => `${p.code} · ${p.text}`} />
           </View>
           {!e.cancelled ? (
@@ -230,7 +230,7 @@ export default function LogBookSc() {
 
       <Label>{t('book.master')}</Label>
       {sign ? (
-        <Text style={styles.text}>{`${t('book.signedFor', { month, by: sign.byRank ? `${sign.by} (${sign.byRank})` : sign.by })} · ${formatDateTime(sign.at)}`}</Text>
+        <Text style={styles.text}>{`${t('book.signedFor', { month, by: sign.byRank ? `${sign.by} (${sign.byRank})` : sign.by })} · ${uiDateTime(sign.at)}`}</Text>
       ) : (
         <TouchableOpacity disabled={!isMaster} style={[styles.btnOutline, { alignSelf: 'flex-start', opacity: isMaster ? 1 : 0.35 }]} onPress={() => void masterSign()}>
           <Text style={styles.btnOutlineText}>{t('book.signMonth')}</Text>

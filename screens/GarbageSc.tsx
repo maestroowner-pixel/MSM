@@ -20,7 +20,7 @@ import { GARBAGE_CATEGORY, GARBAGE_METHOD, GarbageCategory, GarbageEntry, Garbag
 import { currentEntries, entryItems, garbageMonth, itemsText, placeText, previousVersions, seaDischargeProblem } from '../services/garbage';
 import { exportGarbageExcel, exportGarbagePdf } from '../services/garbageReport';
 import { todayIso } from '../services/pms';
-import { formatDate, formatDateTime } from '../utils/dates';
+import { formatDate, uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { PositionInput } from '../components/PositionInput';
 import { playSuccessSound } from '../utils/sound';
@@ -238,14 +238,14 @@ export default function GarbageSc() {
             </TouchableOpacity>
             {editing ? <TouchableOpacity onPress={() => { setEditing(null); setAdding(false); setF(blank); }}><Text style={{ color: COLORS.primary, fontWeight: '700' }}>{t('common.cancel')}</Text></TouchableOpacity> : null}
           </View>
-          <Text style={styles.sub}>{editing ? t('gb.changing', { when: `${formatDate(editing.date)} ${editing.time}` }) : t('gb.changeLater')}</Text>
+          <Text style={styles.sub}>{editing ? t('gb.changing', { when: `${uiDate(editing.date)} ${editing.time}` }) : t('gb.changeLater')}</Text>
         </Card>
       ) : null}
 
       <Label>{t('book.entries', { n: m.entries.length })}</Label>
       {cancelling ? (
         <Card>
-          <Label>{t('gb.cancelEntry', { when: `${formatDate(cancelling.date)} ${cancelling.time}` })}</Label>
+          <Label>{t('gb.cancelEntry', { when: `${uiDate(cancelling.date)} ${cancelling.time}` })}</Label>
           <Text style={styles.sub}>{t('gb.struck')}</Text>
           <TextInput style={[styles.input, { borderColor: COLORS.warning, borderWidth: 1 }]} value={reason} onChangeText={setReason} placeholder={t('gb.reasonPh')} placeholderTextColor={COLORS.textLight} />
           {picker}
@@ -262,18 +262,18 @@ export default function GarbageSc() {
             <View style={[styles.cat, e.method === 'accidental' && { backgroundColor: COLORS.danger }, e.cancelled && { backgroundColor: COLORS.textLight }]}><Text style={styles.catText} numberOfLines={1}>{entryItems(e).map((i) => i.category).join('')}</Text></View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.entryTitle, e.cancelled && { textDecorationLine: 'line-through' }]}>{`${itemsText(e, (c) => GARBAGE_CATEGORY[c])} m³ · ${GARBAGE_METHOD[e.method]}`}</Text>
-              <Text style={styles.sub}>{[`${formatDate(e.date)} ${e.time}`, placeText(e), e.containerNo ? t('gb.containerL', { n: e.containerNo }) : null, e.receiptNo ? t('gb.receiptL', { n: e.receiptNo }) : null, e.remarks, e.byRank ? `${e.by} (${e.byRank})` : e.by].filter(Boolean).join(' · ')}</Text>
+              <Text style={styles.sub}>{[`${uiDate(e.date)} ${e.time}`, placeText(e), e.containerNo ? t('gb.containerL', { n: e.containerNo }) : null, e.receiptNo ? t('gb.receiptL', { n: e.receiptNo }) : null, e.remarks, e.byRank ? `${e.by} (${e.byRank})` : e.by].filter(Boolean).join(' · ')}</Text>
               {e.supersedes ? (
                 <TouchableOpacity onPress={() => setOpenHist(openHist === e.id ? null : e.id)}>
                   <Text style={[styles.sub, { color: e.cancelled ? COLORS.danger : COLORS.warning, fontWeight: '700' }]}>
-                    {`${e.cancelled ? t('gb.cancelledBy', { when: formatDateTime(e.at), by: e.byRank ? `${e.by} (${e.byRank})` : e.by }) : t('gb.amendedBy', { when: formatDateTime(e.at), by: e.byRank ? `${e.by} (${e.byRank})` : e.by })} — ${e.editReason ?? ''} · ${tn('n.version', prev.length)} ${openHist === e.id ? '▴' : '▾'}`}
+                    {`${e.cancelled ? t('gb.cancelledBy', { when: uiDateTime(e.at), by: e.byRank ? `${e.by} (${e.byRank})` : e.by }) : t('gb.amendedBy', { when: uiDateTime(e.at), by: e.byRank ? `${e.by} (${e.byRank})` : e.by })} — ${e.editReason ?? ''} · ${tn('n.version', prev.length)} ${openHist === e.id ? '▴' : '▾'}`}
                   </Text>
                 </TouchableOpacity>
               ) : null}
               {openHist === e.id
                 ? prev.map((v) => (
                     <Text key={v.id} style={[styles.sub, { textDecorationLine: 'line-through' }]}>
-                      {[`${itemsText(v, (c) => GARBAGE_CATEGORY[c])} m³ · ${GARBAGE_METHOD[v.method]}`, `${formatDate(v.date)} ${v.time}`, placeText(v), v.byRank ? `${v.by} (${v.byRank})` : v.by, v.editReason ? `(${v.editReason})` : null].filter(Boolean).join(' · ')}
+                      {[`${itemsText(v, (c) => GARBAGE_CATEGORY[c])} m³ · ${GARBAGE_METHOD[v.method]}`, `${uiDate(v.date)} ${v.time}`, placeText(v), v.byRank ? `${v.by} (${v.byRank})` : v.by, v.editReason ? `(${v.editReason})` : null].filter(Boolean).join(' · ')}
                     </Text>
                   ))
                 : null}
@@ -293,7 +293,7 @@ export default function GarbageSc() {
 
       <Label>{t('book.master')}</Label>
       {sign ? (
-        <Text style={styles.stamp}>{`${t('book.signedFor', { month, by: sign.byRank ? `${sign.by} (${sign.byRank})` : sign.by })} · ${formatDateTime(sign.at)}`}</Text>
+        <Text style={styles.stamp}>{`${t('book.signedFor', { month, by: sign.byRank ? `${sign.by} (${sign.byRank})` : sign.by })} · ${uiDateTime(sign.at)}`}</Text>
       ) : isMaster ? (
         <TouchableOpacity style={[styles.btnOutline, { alignSelf: 'flex-start' }]} onPress={() => void masterSign()}>
           <Text style={styles.btnOutlineText}>{t('book.signMonth')}</Text>

@@ -27,7 +27,7 @@ import { todayIso } from '../services/pms';
 import { NC_STATE_LABEL, NcState, ncState, nextActionDue, obsCounts, sortNcs, sortObservations } from '../services/safety';
 import { exportSafetyExcel, exportSafetyPdf } from '../services/safetyReport';
 import { readObsToken, saveObsToken } from '../services/firebaseService';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { t, tk, tn, useT } from '../utils/i18n';
@@ -215,7 +215,7 @@ export default function SafetySc() {
                   </View>
                   <Text style={styles.body}>{o.what}</Text>
                   {o.action ? <Text style={styles.sub}>{`${o.kind === 'good_practice' ? t('saf.note') : t('saf.doneThen')}: ${o.action}`}</Text> : null}
-                  <Text style={styles.sub}>{[formatDate(o.date), o.location, by(o), o.stoppedWork ? t('saf.workStopped') : null].filter(Boolean).join(' · ')}</Text>
+                  <Text style={styles.sub}>{[uiDate(o.date), o.location, by(o), o.stoppedWork ? t('saf.workStopped') : null].filter(Boolean).join(' · ')}</Text>
                   {o.reviewedAt ? <Text style={[styles.sub, { color: COLORS.success }]}>{`✓ Reviewed by ${o.reviewedByRank ? `${o.reviewedBy} (${o.reviewedByRank})` : o.reviewedBy}${o.review ? ` — ${o.review}` : ''}`}</Text> : null}
                 </TouchableOpacity>
                 {nc ? (
@@ -258,8 +258,8 @@ export default function SafetySc() {
             return (
               <TouchableOpacity key={n.id} style={[styles.item, { borderLeftColor: stateColor[st] }]} onPress={() => nav.navigate('Nc', { id: n.id })} activeOpacity={0.7}>
                 <Text style={styles.name}>{`${n.no} · ${n.title}`}</Text>
-                <Text style={[styles.sub, { color: stateColor[st], fontWeight: '700' }]}>{`${NC_STATE_LABEL[st]}${st !== 'closed' && n.actions.length ? ` · ${t('saf.actionsN', { k: done, n: n.actions.length })}` : ''}${due && st !== 'closed' ? ` · ${t('drills.nextBy', { date: formatDate(due) })}` : ''}`}</Text>
-                <Text style={styles.sub}>{[formatDate(n.date), NC_GRADE_LABEL[n.grade], NC_SOURCE_LABEL[n.source], n.sourceRef].filter(Boolean).join(' · ')}</Text>
+                <Text style={[styles.sub, { color: stateColor[st], fontWeight: '700' }]}>{`${NC_STATE_LABEL[st]}${st !== 'closed' && n.actions.length ? ` · ${t('saf.actionsN', { k: done, n: n.actions.length })}` : ''}${due && st !== 'closed' ? ` · ${t('drills.nextBy', { date: uiDate(due) })}` : ''}`}</Text>
+                <Text style={styles.sub}>{[uiDate(n.date), NC_GRADE_LABEL[n.grade], NC_SOURCE_LABEL[n.source], n.sourceRef].filter(Boolean).join(' · ')}</Text>
               </TouchableOpacity>
             );
           })}

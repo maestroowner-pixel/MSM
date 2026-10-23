@@ -21,13 +21,13 @@ import { BackButton, CategoryBadge, Label, StatusPill, statusColor } from '../co
 import { MciIcon } from '../components/MciIcon';
 import { useData } from '../contexts/DataContext';
 import { scopeOf } from '../types/certificate';
-import { CATEGORY_MAP, GROUP_SHORT, visibleCategories } from '../constants/categories';
+import { CATEGORY_MAP, visibleCategories, catLabel, groupShort } from '../constants/categories';
 import { Attachment, CategoryKey, EquipmentItem } from '../types/equipment';
 import { Inspection } from '../types/inspection';
 import { signatureLine } from '../types/crew';
 import { periodsFor } from '../constants/checklists';
 import * as inspections from '../services/inspections';
-import { computeStatus, statusFromDate, formatDate, formatDateTime } from '../utils/dates';
+import { computeStatus, statusFromDate, uiDate, uiDateTime } from '../utils/dates';
 import { playSuccessSound } from '../utils/sound';
 import { uid } from '../utils/id';
 import { pickDocument, pickFromLibrary, pickFromCamera, openFile, deleteFile, resolveUri, PickedFile } from '../services/attachments';
@@ -276,8 +276,8 @@ export default function ItemDetailSc() {
     Alert.alert(
       t('it.moveQ', { cat: target.label }),
       (history ? t('it.moveKeepsHist', { insp: tn('n.inspection', history) }) : t('it.moveKeeps')) + '\n\n' +
-        t('it.moveFrom', { to: target.label, from: meta.label }) +
-        (missing ? '\n\n' + t(needs === 'expiry' ? 'it.moveNoExpiry' : 'it.moveNoNext', { to: target.label }) : ''),
+        t('it.moveFrom', { to: catLabel(target), from: catLabel(meta) }) +
+        (missing ? '\n\n' + t(needs === 'expiry' ? 'it.moveNoExpiry' : 'it.moveNoNext', { to: catLabel(target) }) : ''),
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
@@ -405,7 +405,7 @@ export default function ItemDetailSc() {
               {itemNumber(draft) ? (
                 <Text style={styles.itemNo} numberOfLines={1}>{t('it.noN', { n: itemNumber(draft) })}</Text>
               ) : null}
-              <Text style={styles.catLabel}>{meta.label}</Text>
+              <Text style={styles.catLabel}>{catLabel(meta)}</Text>
               {!isNew && (typeWithSize(draft) || draft.serial || itemLocation(draft)) ? (
                 <Text style={styles.itemSub} numberOfLines={2}>
                   {[typeWithSize(draft), draft.serial && t('it.sn', { sn: draft.serial }), itemLocation(draft)]
@@ -684,7 +684,7 @@ export default function ItemDetailSc() {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.certName} numberOfLines={1}>{c.name || 'Certificate'}</Text>
                       <Text style={styles.certSub} numberOfLines={1}>
-                        {[c.number && `№ ${c.number}`, c.expiryDate && formatDate(c.expiryDate)].filter(Boolean).join(' · ')}
+                        {[c.number && `№ ${c.number}`, c.expiryDate && uiDate(c.expiryDate)].filter(Boolean).join(' · ')}
                       </Text>
                     </View>
                     <TouchableOpacity
@@ -738,7 +738,7 @@ export default function ItemDetailSc() {
             <View style={styles.mvSheet}>
               <Label>{t('it.moveTo', { name: draft.type || draft.serial || t('it.thisItem') })}</Label>
               <Text style={styles.mvNote}>
-                {t('it.moveNote', { cat: meta.label })}
+                {t('it.moveNote', { cat: catLabel(meta) })}
               </Text>
               <ScrollView style={{ maxHeight: 380 }}>
                 {visibleCategories()
@@ -747,8 +747,8 @@ export default function ItemDetailSc() {
                     <TouchableOpacity key={c.key} style={styles.mvRow} onPress={() => void onMove(c.key)}>
                       <CategoryBadge category={c.key} size={26} />
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.mvRowTitle}>{c.label}</Text>
-                        <Text style={styles.mvRowSub}>{GROUP_SHORT[c.group]}</Text>
+                        <Text style={styles.mvRowTitle}>{catLabel(c)}</Text>
+                        <Text style={styles.mvRowSub}>{groupShort(c.group)}</Text>
                       </View>
                       <MciIcon name="chevron-right" size={20} color={COLORS.textLight} />
                     </TouchableOpacity>
@@ -842,7 +842,7 @@ export default function ItemDetailSc() {
                         <View style={{ flex: 1 }}>
                           <Text style={styles.certName} numberOfLines={1}>{c.name || 'Certificate'}</Text>
                           <Text style={styles.certSub} numberOfLines={1}>
-                            {[c.number && `№ ${c.number}`, c.expiryDate && formatDate(c.expiryDate)].filter(Boolean).join(' · ')}
+                            {[c.number && `№ ${c.number}`, c.expiryDate && uiDate(c.expiryDate)].filter(Boolean).join(' · ')}
                           </Text>
                         </View>
                       </TouchableOpacity>
@@ -919,7 +919,7 @@ export default function ItemDetailSc() {
 
 function formatExtra(v: any): string {
   if (v == null) return '—';
-  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return formatDate(v);
+  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return uiDate(v);
   return String(v);
 }
 
@@ -1097,7 +1097,7 @@ function InspectionCard({ item, trail }: { item: EquipmentItem; trail: Inspectio
           />
           <View style={{ flex: 1 }}>
             <Text style={styles.histTitle} numberOfLines={1}>
-              {periodName(insp.period)} · {formatDateTime(insp.at)}
+              {periodName(insp.period)} · {uiDateTime(insp.at)}
             </Text>
             <Text style={styles.histMeta} numberOfLines={1}>
               {signatureLine(insp.by, insp.byRank)}

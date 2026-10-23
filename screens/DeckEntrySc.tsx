@@ -27,7 +27,7 @@ import {
 } from '../services/deckLog';
 import * as storage from '../services/storage';
 import { setActiveWatch, clearActiveWatch, drainPendingEvents } from '../services/watchTracker';
-import { formatDate, formatDateTime } from '../utils/dates';
+import { uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { t, tk, useT } from '../utils/i18n';
@@ -376,7 +376,7 @@ export default function DeckEntrySc() {
               </TouchableOpacity>
             </View>
             <Text style={styles.titleText}>{perLabel(e.period)}</Text>
-            <Text style={styles.sub}>{formatDate(e.date)} · {e.time}</Text>
+            <Text style={styles.sub}>{uiDate(e.date)} · {e.time}</Text>
 
             {(e.latDeg !== undefined || e.lat) && (
               <>
@@ -426,14 +426,14 @@ export default function DeckEntrySc() {
             <Text style={styles.sectionLbl}>{t('de.signedBy')}</Text>
             {row(t('de.name'), e.by)}
             {e.byRank ? row(t('de.rank'), e.byRank) : null}
-            <Text style={styles.sub}>{formatDateTime(e.at)}</Text>
+            <Text style={styles.sub}>{uiDateTime(e.at)}</Text>
 
             <Text style={styles.sectionLbl}>{t('de.masterReview')}</Text>
             {e.masterAt ? (
               <>
                 {row(t('de.name'), e.masterBy ?? '')}
                 {e.masterByRank ? row(t('de.rank'), e.masterByRank) : null}
-                <Text style={styles.sub}>{formatDateTime(e.masterAt)}</Text>
+                <Text style={styles.sub}>{uiDateTime(e.masterAt)}</Text>
               </>
             ) : (
               <View style={[styles.logCard, { marginTop: 4 }]}>

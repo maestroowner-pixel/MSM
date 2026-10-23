@@ -23,7 +23,7 @@ import { SIZES, Palette } from '../theme';
 import { fuelDaily, fuelDailyText } from '../services/fuelDaily';
 import { vesselHeader } from '../services/export';
 import { todayIso } from '../services/pms';
-import { formatDate, formatDateTime } from '../utils/dates';
+import { formatDate, uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import * as storage from '../services/storage';
 import { FuelDailySent } from '../types/fuel';
@@ -151,7 +151,7 @@ export function FuelDaily({ onSounding }: { onSounding: () => void }) {
     <>
       <View style={styles.dayRow}>
         <TouchableOpacity onPress={() => shift(-1)} hitSlop={10}><MciIcon name="chevron-left" size={28} color={COLORS.primary} /></TouchableOpacity>
-        <Text style={styles.day}>{date === today ? tr('fdl.today', { date: formatDate(date) }) : formatDate(date)}</Text>
+        <Text style={styles.day}>{date === today ? tr('fdl.today', { date: uiDate(date) }) : uiDate(date)}</Text>
         <TouchableOpacity onPress={() => shift(1)} disabled={date >= today} hitSlop={10}>
           <MciIcon name="chevron-right" size={28} color={date >= today ? COLORS.border : COLORS.primary} />
         </TouchableOpacity>
@@ -166,7 +166,7 @@ export function FuelDaily({ onSounding }: { onSounding: () => void }) {
       </View>
       {!r.reading ? (
         <Card>
-          <Text style={styles.warn}>{tr('fdl.noSounding', { date: formatDate(date) })}</Text>
+          <Text style={styles.warn}>{tr('fdl.noSounding', { date: uiDate(date) })}</Text>
           <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={onSounding}><Text style={styles.btnText}>{tr('fdl.goSounding')}</Text></TouchableOpacity>
         </Card>
       ) : (
@@ -189,7 +189,7 @@ export function FuelDaily({ onSounding }: { onSounding: () => void }) {
       </Card>
 
       <Card>
-        <Label>{tr('fdl.onBoard', { span: kind === 'noon' ? tr('fdl.noonSpan', { from: formatDate(new Date(Date.parse(`${date}T00:00:00Z`) - 86400000).toISOString().slice(0, 10)), to: formatDate(date) }) : formatDate(date), n: sections.reduce((n, s) => n + s.rows.length, 0) })}</Label>
+        <Label>{tr('fdl.onBoard', { span: kind === 'noon' ? tr('fdl.noonSpan', { from: uiDate(new Date(Date.parse(`${date}T00:00:00Z`) - 86400000).toISOString().slice(0, 10)), to: uiDate(date) }) : uiDate(date), n: sections.reduce((n, s) => n + s.rows.length, 0) })}</Label>
         {sections.map((s) => (
           <TouchableOpacity key={s.title} onPress={() => setOpenSec(openSec === s.title ? null : s.title)} activeOpacity={0.7} style={{ paddingVertical: 4 }}>
             <Text style={{ fontWeight: '700', color: COLORS.textDark }}>{`${openSec === s.title ? '▾' : '▸'} ${s.title} · ${s.rows.length}`}</Text>
@@ -219,7 +219,7 @@ export function FuelDaily({ onSounding }: { onSounding: () => void }) {
         {note ? <Text style={[styles.sub, { color: COLORS.primary, fontWeight: '700' }]}>{note}</Text> : null}
         {sentToday.length ? (
           <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700', marginTop: SIZES.sm }]}>
-            {tr('fdl.sentFor', { date: formatDate(date), list: sentToday.map((x) => `${hm(x.sentAt)} ${x.by} · ${how(x)}`).join('; ') })}
+            {tr('fdl.sentFor', { date: uiDate(date), list: sentToday.map((x) => `${hm(x.sentAt)} ${x.by} · ${how(x)}`).join('; ') })}
           </Text>
         ) : null}
         <Text style={styles.preview} selectable>{text}</Text>
@@ -229,9 +229,9 @@ export function FuelDaily({ onSounding }: { onSounding: () => void }) {
       {history.map((x) => (
         <TouchableOpacity key={x.id} style={styles.logRow} onPress={() => setOpenLog(openLog === x.id ? null : x.id)} activeOpacity={0.7}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm }}>
-            <Text style={styles.logDay}>{formatDate(x.date)}</Text>
+            <Text style={styles.logDay}>{uiDate(x.date)}</Text>
             <Text style={[styles.sub, { flex: 1 }]} numberOfLines={1}>
-              {[x.consumed != null ? tr('fdl.burnt', { v: L(x.consumed) }) : null, x.rob != null ? `${tr('fdl.rob')} ${L(x.rob)}` : null, `${formatDateTime(x.sentAt)} · ${x.byRank ? `${x.by} (${x.byRank})` : x.by} · ${how(x)}`].filter(Boolean).join(' · ')}
+              {[x.consumed != null ? tr('fdl.burnt', { v: L(x.consumed) }) : null, x.rob != null ? `${tr('fdl.rob')} ${L(x.rob)}` : null, `${uiDateTime(x.sentAt)} · ${x.byRank ? `${x.by} (${x.byRank})` : x.by} · ${how(x)}`].filter(Boolean).join(' · ')}
             </Text>
             <MciIcon name={openLog === x.id ? 'chevron-up' : 'chevron-down'} size={18} color={COLORS.textLight} />
           </View>

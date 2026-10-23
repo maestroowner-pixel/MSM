@@ -25,7 +25,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { GROUP_LABEL, GROUP_ORDER, visibleCategories } from '../constants/categories';
+import { GROUP_ORDER, visibleCategories, catLabel, groupLabel } from '../constants/categories';
 import { CategoryKey, Group } from '../types/equipment';
 import { writeSigningPolicy } from '../services/policy';
 import { scanRequiredByDefault, scanRequiredFor } from '../services/signingPolicy';
@@ -50,7 +50,7 @@ export default function ScanRulesSc() {
     () =>
       GROUP_ORDER
         .map((group) => ({
-          title: GROUP_LABEL[group],
+          title: groupLabel(group),
           data: visibleCategories().filter((c) => c.group === group),
         }))
         .filter((s) => s.data.length),
@@ -133,7 +133,7 @@ export default function ScanRulesSc() {
               <CategoryBadge category={item.key} size={30} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle} numberOfLines={1}>
-                  {item.label}
+                  {catLabel(item)}
                 </Text>
                 <Text style={styles.rowSub}>
                   {tn('n.item', count)} ·{' '}

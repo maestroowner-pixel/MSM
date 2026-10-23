@@ -25,7 +25,7 @@ import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { ENFORCE_LIMITS, getTrialInfo } from '../services/trial';
 import { getOffer, isSubscribed, onEntitlementChange } from '../services/purchases';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 
 /** The one condition — see the header. */
 const showBanner = ENFORCE_LIMITS;
@@ -63,7 +63,7 @@ export function TrialBanner() {
       // was web-only and became wrong the moment it started showing on iOS: it
       // quoted the web price (€9.99) beside a paywall charging the store price.
       const offer = await getOffer();
-      const endsAt = t.endsAt ? formatDate(new Date(t.endsAt).toISOString().slice(0, 10)) : '';
+      const endsAt = t.endsAt ? uiDate(new Date(t.endsAt).toISOString().slice(0, 10)) : '';
       setState({
         kind: t.expired ? 'expired' : 'trial',
         daysLeft: t.daysLeft,

@@ -41,7 +41,7 @@ import { aiReadDocument, aiRenameHeadings } from '../services/aiImport';
 import { aiReady } from '../services/ai';
 import { pickDocForAi } from '../services/medFiles';
 import { useSync } from '../contexts/SyncContext';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
@@ -345,7 +345,7 @@ export default function StoresSc() {
                     <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 200, minWidth: 0 }}>
                       <Text style={styles.name}>{storeItemTitle(r.item)}</Text>
                       <Text style={styles.sub}>{[r.item.location, t('st.minL', { n: r.item.min, unit: r.item.unit })].filter(Boolean).join(' · ')}</Text>
-                      <Text style={[styles.sub, { color: color(r), fontWeight: '700' }]}>{[t('st.inDate', { n: r.usable, unit: r.item.unit }), r.short ? t('st.belowMin', { n: r.short }) : null, r.expired ? t('st.outOfDate', { n: r.expired }) : r.soon && r.next ? t('crew.expires', { date: formatDate(r.next) }) : null].filter(Boolean).join(' · ')}</Text>
+                      <Text style={[styles.sub, { color: color(r), fontWeight: '700' }]}>{[t('st.inDate', { n: r.usable, unit: r.item.unit }), r.short ? t('st.belowMin', { n: r.short }) : null, r.expired ? t('st.outOfDate', { n: r.expired }) : r.soon && r.next ? t('crew.expires', { date: uiDate(r.next) }) : null].filter(Boolean).join(' · ')}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', gap: 4, marginLeft: 'auto' }}>
                       {r.batches.slice(0, 3).map((b) => {
@@ -393,7 +393,7 @@ export default function StoresSc() {
                     ) : null}
                     {last.length ? <Label>{t('st.lastMoves')}</Label> : null}
                     {last.map((m) => (
-                      <Text key={m.id} style={styles.sub}>{`${formatDate(m.date)} · ${MOVE_TEXT[m.kind]} ${m.qty} ${r.item.unit}${m.expiry ? ` · ${mmYY(m.expiry)}` : ''}${m.to ? ` · ${m.to}${m.toWith ? ' (signed for)' : ''}` : ''}${m.note ? ` · ${m.note}` : ''} · ${m.by}`}</Text>
+                      <Text key={m.id} style={styles.sub}>{`${uiDate(m.date)} · ${MOVE_TEXT[m.kind]} ${m.qty} ${r.item.unit}${m.expiry ? ` · ${mmYY(m.expiry)}` : ''}${m.to ? ` · ${m.to}${m.toWith ? ' (signed for)' : ''}` : ''}${m.note ? ` · ${m.note}` : ''} · ${m.by}`}</Text>
                     ))}
                   </Card>
                 ) : null}

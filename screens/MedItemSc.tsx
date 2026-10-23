@@ -35,7 +35,7 @@ import { todayIso } from '../services/pms';
 import { proofShort } from '../services/signature';
 import { batchLabel, mmYY, placeText, MOVE_LABEL, daysTo, expiryState, itemStatus, normExpiry, onOrderByItem, registerLines, scaleEntry, stockByItem } from '../services/hospital';
 import { MED_INFO_NOTICE, WHO_NOTICE } from '../constants/medNotice';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -197,7 +197,7 @@ export default function MedItemSc() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.name}>{`${b.expiry ? mmYY(b.expiry) : t('mi.noExpiry')} — ${b.qty} ${item.unit}`}</Text>
                   <Text style={[styles.sub, { color: color(s), fontWeight: s === 'expired' || s === 'soon' ? '700' : '400' }]}>
-                    {[b.expiry ? `${t('crew.expires', { date: formatDate(b.expiry) })}${s === 'expired' ? ` — ${t('mc.outOfDate')}` : s === 'soon' ? ` — ${t('mi.dLeft', { n: daysTo(today, b.expiry) })}` : ''}` : null, b.batchNo ? t('mi.lot', { n: b.batchNo }) : null].filter(Boolean).join(' · ')}
+                    {[b.expiry ? `${t('crew.expires', { date: uiDate(b.expiry) })}${s === 'expired' ? ` — ${t('mc.outOfDate')}` : s === 'soon' ? ` — ${t('mi.dLeft', { n: daysTo(today, b.expiry) })}` : ''}` : null, b.batchNo ? t('mi.lot', { n: b.batchNo }) : null].filter(Boolean).join(' · ')}
                   </Text>
                 </View>
                 {officer ? <TouchableOpacity style={styles.small} onPress={() => setAct({ kind: 'disposed', qty: String(b.qty), batchNo: '', expiry: '', note: s === 'expired' ? 'Out of date' : '', batchKey: b.key })}><Text style={styles.smallText}>{`${t('mi.dispose')}…`}</Text></TouchableOpacity> : null}
@@ -270,7 +270,7 @@ export default function MedItemSc() {
           {(item.controlled ? lines.map((l) => ({ m: l.move, bal: l.balance as number | undefined })) : [...moves].sort((a, b) => b.at - a.at).map((m) => ({ m, bal: undefined as number | undefined }))).map(({ m, bal }) => (
             <View key={m.id} style={[styles.item, { borderLeftColor: m.kind === 'received' || m.kind === 'returned' ? COLORS.success : m.kind === 'count' ? COLORS.primary : COLORS.warning }]}>
               <Text style={styles.name}>{`${MOVE_LABEL[m.kind]} ${m.qty} ${item.unit}${bal != null ? ` → ${t('mi.balance', { n: bal })}` : ''}`}</Text>
-              <Text style={styles.sub}>{[formatDate(m.date), m.expiry || m.batchNo ? batchLabel(m) : null, m.treatmentId ? t('mi.medLog') : null, m.orderId ? medOrders.find((o) => o.id === m.orderId)?.no : null, m.note].filter(Boolean).join(' · ')}</Text>
+              <Text style={styles.sub}>{[uiDate(m.date), m.expiry || m.batchNo ? batchLabel(m) : null, m.treatmentId ? t('mi.medLog') : null, m.orderId ? medOrders.find((o) => o.id === m.orderId)?.no : null, m.note].filter(Boolean).join(' · ')}</Text>
               <Text style={styles.sub}>{`${who(m.by, m.byRank)}${m.signedWith ? ` · ${proofShort(m.signedWith)}` : ''}${m.witness ? ` · ${t('mo.witnessL', { who: who(m.witness, m.witnessRank) })}${m.witnessWith ? ` (${proofShort(m.witnessWith)})` : ''}` : ''}`}</Text>
             </View>
           ))}

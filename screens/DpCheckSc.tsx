@@ -39,6 +39,7 @@ import { archived } from '../services/dpArchive';
 import { clearDraft, loadDraft, saveDraft } from '../services/dpDraft';
 import { AsogStatus, CheckBook, DpCheck, DpConditions, DpLine, DpResult, bookOf } from '../types/dp';
 import { t, tk, useT } from '../utils/i18n';
+import { watchBuiltIn, watchText } from '../utils/watchText';
 
 // As the paper checklist lays them out: a value, then its direction, each with
 // its name in front of the cell and its unit after it ("the operator is used to it").
@@ -50,7 +51,7 @@ const COND: { label: string; key: keyof DpConditions; unit: string; dir?: keyof 
 ];
 
 /** One width for a column's heading and every cell under it — the table lines up. */
-const colWidth = (col: { options?: string[] }) => (col.options ? col.options.reduce((w, o) => w + o.length * 8.2 + 26, 0) + (col.options.length - 1) * 4 + (col.options.some(isOther) ? 104 : 0) : 100);
+const colWidth = (col: { options?: string[] }, label: (o: string) => string = (o) => o) => (col.options ? col.options.reduce((w, o) => w + label(o).length * 8.2 + 26, 0) + (col.options.length - 1) * 4 + (col.options.some(isOther) ? 104 : 0) : 100);
 
 /** A reading named by its unit ([kn], [m]) shows the unit after the cell, as written on paper. */
 const UNITS = ['kn', 'm', '°', '°/min', '%', 's', 'bar', 'rpm'];
@@ -186,6 +187,8 @@ export default function DpCheckSc() {
   const ro = !!done;
   const o = checkOutcome(c);
   const ROLE = signRoles(c);
+  // The built-in forms' words in the interface language; the record keeps the English.
+  const w = (s: string) => watchText(s, watchBuiltIn(c.templateId));
   const ownFields = c.lines.filter((l) => l.kind === 'field');
   const inTable = sectionCols(c.lines);
   const plainLines = c.lines.filter((l) => !l.head && !l.kind && !l.options && !l.value && !inTable.get(l.id));
@@ -193,9 +196,9 @@ export default function DpCheckSc() {
     if (lat == null || lon == null) return Alert.alert(KIND, t('dpc.posFirst'));
     const typed = row === 0 && outsider && !pickIds[0] && typedName.trim() ? { id: `name:${typedName.trim()}`, name: typedName.trim(), rank: book === 'fam-pax' ? 'Guest' : book === 'fam-safety' ? 'Visitor' : 'Project crew', own: false } : undefined;
     const p = typed ?? rowPeople(row).find((x) => x.id === pickIds[row]);
-    if (!p) return Alert.alert(KIND, t('dpc.chooseName', { role: ROLE[row] }));
+    if (!p) return Alert.alert(KIND, t('dpc.chooseName', { role: w(ROLE[row]) }));
     const other = sigs[1 - row];
-    if (other && (other.key === p.id || other.name === p.name)) return Alert.alert(KIND, t('dpc.twoPeople', { a: ROLE[0], b: ROLE[1] }));
+    if (other && (other.key === p.id || other.name === p.name)) return Alert.alert(KIND, t('dpc.twoPeople', { a: w(ROLE[0]), b: w(ROLE[1]) }));
     // A guest or a project hand has no PIN on this device: by hand.
     const res = await confirmSign({ personKey: p.id, name: p.name, ownDevice: p.own, what: `${c.title} — ${ROLE[row]}`, always: true, handOnly: row === 0 && outsider && !p.own && (book === 'fam-pax' || p.id.startsWith('name:') || p.id.startsWith('pax:')) });
     if (!res) return;
@@ -206,7 +209,7 @@ export default function DpCheckSc() {
   const save = async () => {
     const [a, b] = sigs;
     if (lat == null || lon == null) return Alert.alert(KIND, t('dpc.posAt'));
-    if (!a || !b) return Alert.alert(KIND, t('dpc.bothSign', { a: ROLE[0], b: ROLE[1] }));
+    if (!a || !b) return Alert.alert(KIND, t('dpc.bothSign', { a: w(ROLE[0]), b: w(ROLE[1]) }));
     const finish = async () => {
       const clean = (r: Record<string, string>) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v));
       const cc = clean(cond as Record<string, string>);
@@ -236,14 +239,14 @@ export default function DpCheckSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title={c.title} subtitle={ro ? t('dpc.signedBy', { who: `${c.by}${c.byRank ? ` (${c.byRank})` : ''}${c.by2 ? ` ${t('dpc.and')} ${c.by2}${c.by2Rank ? ` (${c.by2Rank})` : ''}` : ''}` }) : c.where === 'engine' ? t('dpt.engine') : t('dpt.bridge')} help="Dynamic positioning" />
+      <ScreenTitle title={w(c.title)} subtitle={ro ? t('dpc.signedBy', { who: `${c.by}${c.byRank ? ` (${c.byRank})` : ''}${c.by2 ? ` ${t('dpc.and')} ${c.by2}${c.by2Rank ? ` (${c.by2Rank})` : ''}` : ''}` }) : c.where === 'engine' ? t('dpt.engine') : t('dpt.bridge')} help="Dynamic positioning" />
 
       {ownFields.length ? (
         <View style={styles.pair}>
           {ownFields.map((l) => (
             <View key={l.id} style={styles.half}>
-              <Label>{l.text}</Label>
-              {ro ? <Text style={styles.value}>{c.values?.[l.id] || '—'}</Text> : <TextInput style={styles.input} value={values[l.id] ?? ''} onChangeText={(t) => setValues((x) => ({ ...x, [l.id]: t }))} accessibilityLabel={l.text} />}
+              <Label>{w(l.text)}</Label>
+              {ro ? <Text style={styles.value}>{c.values?.[l.id] || '—'}</Text> : <TextInput style={styles.input} value={values[l.id] ?? ''} onChangeText={(t) => setValues((x) => ({ ...x, [l.id]: t }))} accessibilityLabel={w(l.text)} />}
             </View>
           ))}
         </View>
@@ -260,7 +263,10 @@ export default function DpCheckSc() {
       </View>
       )}
       <Label>{t('dpc.dateTime')}</Label>
-      <Text style={styles.value}>{`${shipAndUtc(c.at, c.shipOffset).line}${ro ? '' : ' — set when signed'}`}</Text>
+      <Text style={styles.value}>{(() => {
+        const w = shipAndUtc(c.at, c.shipOffset);
+        return `${w.ship} ${t('clock.shipTime')} (${w.zone}) · ${w.utc.slice(w.ship.slice(0, 10) === w.utc.slice(0, 10) ? 11 : 0)} UTC${ro ? '' : ` — ${t('dpc.setWhenSigned')}`}`;
+      })()}</Text>
       {ro ? (
         <>
           <Label>{t('dpc.position')}</Label>
@@ -287,12 +293,12 @@ export default function DpCheckSc() {
           {COND.map((r) => (
             <View key={r.key} style={styles.condRow}>
               <Text style={styles.condLabel}>{tk(`dpc.c.${r.key}`)}</Text>
-              <TextInput style={[styles.input, styles.cell]} value={cond[r.key] ?? ''} onChangeText={(v) => setCond((x) => ({ ...x, [r.key]: v }))} accessibilityLabel={r.label} />
+              <TextInput style={[styles.input, styles.cell]} value={cond[r.key] ?? ''} onChangeText={(v) => setCond((x) => ({ ...x, [r.key]: v }))} accessibilityLabel={tk(`dpc.c.${r.key}`)} />
               <Text style={styles.unit}>{r.unit}</Text>
               {r.dir ? (
                 <>
                   <Text style={[styles.condLabel, styles.dirLabel]}>{t('dpc.direction')}</Text>
-                  <TextInput style={[styles.input, styles.cell]} value={cond[r.dir] ?? ''} onChangeText={(v) => setCond((x) => ({ ...x, [r.dir!]: v }))} accessibilityLabel={`${r.label.split(' ')[0]} direction`} />
+                  <TextInput style={[styles.input, styles.cell]} value={cond[r.dir] ?? ''} onChangeText={(v) => setCond((x) => ({ ...x, [r.dir!]: v }))} accessibilityLabel={t('dpc.dirOf', { name: tk(`dpc.c.${r.key}`) })} />
                   <Text style={styles.unit}>°</Text>
                 </>
               ) : null}
@@ -332,7 +338,7 @@ export default function DpCheckSc() {
         let n = 0;
         const els = secs.map((sec, si) => {
           const cols = sec.head?.cols;
-          const title = sec.head ? <Text style={styles.head}>{sec.head.text}</Text> : null;
+          const title = sec.head ? <Text style={styles.head}>{w(sec.head.text)}</Text> : null;
           if (cols?.length) {
             const nameW = sec.lines.some((l) => l.text.length > 40) ? 320 : 170;
             // "All … — Yes" only where there are rows to fill at once, and never for a one-only column.
@@ -343,7 +349,7 @@ export default function DpCheckSc() {
                   {title}
                   {!ro && yesCol >= 0 ? (
                     <TouchableOpacity onPress={() => setResults((x) => ({ ...x, ...Object.fromEntries(sec.lines.map((l) => [cellKey(l.id, yesCol), x[cellKey(l.id, yesCol)] || 'Yes'])) }))} hitSlop={6}>
-                      <Text style={styles.small}>{t('dpc.allColYes', { col: cols[yesCol].name })}</Text>
+                      <Text style={styles.small}>{t('dpc.allColYes', { col: w(cols[yesCol].name) })}</Text>
                     </TouchableOpacity>
                   ) : null}
                 </View>
@@ -352,7 +358,7 @@ export default function DpCheckSc() {
                     <View style={[styles.tr, styles.th]}>
                       <Text style={[styles.tdName, styles.thText, { width: nameW }]}> </Text>
                       {cols.map((col, ci) => (
-                        <Text key={ci} style={[{ width: colWidth(col) }, styles.thText]}>{col.name}</Text>
+                        <Text key={ci} style={[{ width: colWidth(col, w) }, styles.thText]}>{w(col.name)}</Text>
                       ))}
                     </View>
                     {sec.lines.map((l) => {
@@ -360,20 +366,20 @@ export default function DpCheckSc() {
                       const rowBad = cols.some((col, ci) => col.options && answerIsBad(c.results[cellKey(l.id, ci)], col));
                       return (
                         <View key={l.id} style={[styles.tr, rowBad && styles.trBad]}>
-                          <Text style={[styles.tdName, { width: nameW }]}>{l.text}</Text>
+                          <Text style={[styles.tdName, { width: nameW }]}>{w(l.text)}</Text>
                           {cols.map((col, ci) => {
                             const k = cellKey(l.id, ci);
-                            if (!hasCell(l, col)) return <View key={ci} style={{ width: colWidth(col) }} />;
+                            if (!hasCell(l, col)) return <View key={ci} style={{ width: colWidth(col, w) }} />;
                             if (!col.options) {
                               return ro ? (
-                                <Text key={ci} style={[{ width: colWidth(col) }, styles.tdText]}>{c.values?.[k] || '—'}</Text>
+                                <Text key={ci} style={[{ width: colWidth(col, w) }, styles.tdText]}>{c.values?.[k] || '—'}</Text>
                               ) : (
-                                <TextInput key={ci} style={[styles.input, styles.tdInput, { width: colWidth(col) }]} value={values[k] ?? ''} onChangeText={(t) => setValues((x) => ({ ...x, [k]: t }))} keyboardType={col.format ? 'decimal-pad' : undefined} onBlur={col.format ? () => setValues((x) => ({ ...x, [k]: formatCell(x[k] ?? '', col.format) })) : undefined} accessibilityLabel={`${l.text} ${col.name}`} />
+                                <TextInput key={ci} style={[styles.input, styles.tdInput, { width: colWidth(col, w) }]} value={values[k] ?? ''} onChangeText={(t) => setValues((x) => ({ ...x, [k]: t }))} keyboardType={col.format ? 'decimal-pad' : undefined} onBlur={col.format ? () => setValues((x) => ({ ...x, [k]: formatCell(x[k] ?? '', col.format) })) : undefined} accessibilityLabel={`${l.text} ${col.name}`} />
                               );
                             }
                             const v = c.results[k];
                             return (
-                              <View key={ci} style={[styles.optCell, { width: colWidth(col) }]}>
+                              <View key={ci} style={[styles.optCell, { width: colWidth(col, w) }]}>
                                 {col.options.map((o) => {
                                   const on = v === o;
                                   const red = on && answerIsBad(o, col);
@@ -384,7 +390,7 @@ export default function DpCheckSc() {
                                       next[k] = x[k] === o ? '' : o;
                                       return next;
                                     })} style={[styles.mini, on && styles.chipOn, red && { backgroundColor: COLORS.danger, borderColor: COLORS.danger }]}>
-                                      <Text style={[styles.miniText, on && styles.chipTextOn]}>{o}</Text>
+                                      <Text style={[styles.miniText, on && styles.chipTextOn]}>{w(o)}</Text>
                                     </TouchableOpacity>
                                   );
                                 })}
@@ -412,11 +418,11 @@ export default function DpCheckSc() {
               {sec.lines.map((l) => {
                 n++;
                 const v = c.results[l.id];
-                const opts: { key: string; label: string }[] = l.options ? l.options.map((x) => ({ key: x, label: x })) : l.value ? [] : RES;
+                const opts: { key: string; label: string }[] = l.options ? l.options.map((x) => ({ key: x, label: w(x) })) : l.value ? [] : RES;
                 const bad = answerIsBad(v, l);
                 return (
                   <View key={l.id} style={[styles.line, bad && { borderColor: COLORS.danger }]}>
-                    <Text style={styles.lineText}>{`${n}. ${l.text}`}</Text>
+                    <Text style={styles.lineText}>{`${n}. ${w(l.text)}`}</Text>
                     {opts.length ? (
                       <View style={styles.chips}>
                         {opts.map((r) => {
@@ -439,10 +445,10 @@ export default function DpCheckSc() {
                     ) : null}
                     {l.value ? (
                       ro ? (
-                        <Text style={[styles.sub, { marginTop: 4 }]}>{`${l.value}: ${c.values?.[l.id] || '—'}`}</Text>
+                        <Text style={[styles.sub, { marginTop: 4 }]}>{`${w(l.value)}: ${c.values?.[l.id] || '—'}`}</Text>
                       ) : (
                         <View style={styles.condRow}>
-                          {UNITS.includes(l.value) ? null : <Text style={styles.readLabel}>{l.value}</Text>}
+                          {UNITS.includes(l.value) ? null : <Text style={styles.readLabel}>{w(l.value)}</Text>}
                           <TextInput style={[styles.input, styles.valueInput]} value={values[l.id] ?? ''} onChangeText={(t) => setValues((x) => ({ ...x, [l.id]: t }))} accessibilityLabel={l.value} />
                           {UNITS.includes(l.value) ? <Text style={styles.unit}>{l.value}</Text> : null}
                         </View>
@@ -462,7 +468,7 @@ export default function DpCheckSc() {
 
       {c.lines.filter((l) => l.kind === 'text' || l.kind === 'sketch').map((l) => (
         <View key={l.id}>
-          <Label>{l.text}</Label>
+          <Label>{w(l.text)}</Label>
           {l.kind === 'text' ? (
             ro ? <Text style={styles.value}>{c.values?.[l.id] || '—'}</Text> : <TextInput style={[styles.input, { minHeight: 70 }]} value={values[l.id] ?? ''} onChangeText={(t) => setValues((x) => ({ ...x, [l.id]: t }))} multiline accessibilityLabel={l.text} />
           ) : ro ? (
@@ -481,7 +487,7 @@ export default function DpCheckSc() {
       <Label>{t('book.remarks')}</Label>
       {ro ? <Text style={styles.value}>{c.remarks || '—'}</Text> : <TextInput style={[styles.input, { minHeight: 70 }]} value={remarks} onChangeText={setRemarks} multiline />}
 
-      <Text style={[styles.sub, { marginVertical: SIZES.sm }]}>{`${o.pass} yes · ${o.fail} no · ${o.na} n/a${o.open ? ` · ${o.open} not answered` : ''}`}</Text>
+      <Text style={[styles.sub, { marginVertical: SIZES.sm }]}>{`${t('dpc.tally', { pass: o.pass, fail: o.fail, na: o.na })}${o.open ? ` · ${t('dpc.tallyOpen', { n: o.open })}` : ''}`}</Text>
       {ro ? (
         <>
           <Label>{t('doc.signatures')}</Label>
@@ -490,7 +496,7 @@ export default function DpCheckSc() {
             { role: ROLE[1], name: c.by2, rank: c.by2Rank, proof: c.by2With },
           ].map((x) => (
             <View key={x.role} style={styles.sigRow}>
-              <Text style={styles.sigRole}>{x.role}</Text>
+              <Text style={styles.sigRole}>{w(x.role)}</Text>
               <View style={{ flex: 1, minWidth: 180 }}>
                 <Text style={styles.value}>{x.name ? `${x.name}${x.rank ? ` (${x.rank})` : ''}${x.proof ? ` · ${proofShort(x.proof)}` : ''}` : '—'}</Text>
                 {x.proof?.drawing ? <SignatureView path={x.proof.drawing} height={36} color={COLORS.textDark} /> : null}
@@ -507,7 +513,7 @@ export default function DpCheckSc() {
           </View>
           {saved ? <Text style={[styles.sub, { color: COLORS.success }]}>{`✓ ${saved}`}</Text> : null}
           <TouchableOpacity onPress={() => goBackOr(nav)} style={{ marginTop: SIZES.md }}>
-            <Text style={styles.link}>{`← ${t('dp.title')}`}</Text>
+            <Text style={styles.link}>{`← ${book === 'dp' ? t('dp.title') : t('common.back')}`}</Text>
           </TouchableOpacity>
         </>
       ) : (
@@ -518,7 +524,7 @@ export default function DpCheckSc() {
             const taken = sigs[1 - row];
             return (
               <View key={row} style={styles.sigRow}>
-                <Text style={styles.sigRole}>{ROLE[row]}</Text>
+                <Text style={styles.sigRole}>{w(ROLE[row])}</Text>
                 {done ? (
                   <View style={{ flex: 1, minWidth: 180 }}>
                     <Text style={styles.value}>{`✓ ${done.name}${done.rank ? ` (${done.rank})` : ''} · ${proofShort(done.proof) || 'signed'}`}</Text>
@@ -561,7 +567,7 @@ export default function DpCheckSc() {
       <Modal visible={!!sketchFor} transparent animationType="fade" onRequestClose={() => setSketchFor(null)}>
         <View style={styles.modalBack}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{c.lines.find((l) => l.id === sketchFor)?.text ?? t('dpc.schematic')}</Text>
+            <Text style={styles.modalTitle}>{w(c.lines.find((l) => l.id === sketchFor)?.text ?? '') || t('dpc.schematic')}</Text>
             <SignaturePad big hint={t('dpc.sketchHint')} value={sketchDraft} onChange={setSketchDraft} boxW={SKETCH_W} boxH={SKETCH_H} />
             <View style={styles.modalBtns}>
               {/* Undo takes back the last stroke: each starts with M in the path. */}

@@ -27,7 +27,7 @@ import {
 import { moduleOn } from '../constants/modules';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -337,7 +337,7 @@ export default function GalleyOrderSc() {
         <BackButton onPress={() => goBackOr(nav, 'Main', { screen: 'Orders' })} />
         <View style={{ flex: 1, marginLeft: SIZES.sm }}>
           <Text style={styles.orderNo}>{o.no}</Text>
-          <Text style={styles.orderMeta}>{`${formatDate(o.date)} · ${(draft ?? o).lines.length} items`}</Text>
+          <Text style={styles.orderMeta}>{`${uiDate(o.date)} · ${(draft ?? o).lines.length} items`}</Text>
         </View>
         {/* Grand total */}
         {total > 0 ? (
@@ -444,9 +444,9 @@ export default function GalleyOrderSc() {
       </View>
 
       {/* Audit trail */}
-      {o.sentAt ? <Text style={styles.trail}>{t('galley.sent', { date: formatDate(o.sentAt) })}</Text> : null}
-      {o.receivedAt ? <Text style={styles.trail}>{t('go.received', { date: formatDate(o.receivedAt) })}</Text> : null}
-      {o.cancelledAt ? <Text style={styles.trail}>{t('galley.cancelled', { date: formatDate(o.cancelledAt) })}</Text> : null}
+      {o.sentAt ? <Text style={styles.trail}>{t('galley.sent', { date: uiDate(o.sentAt) })}</Text> : null}
+      {o.receivedAt ? <Text style={styles.trail}>{t('go.received', { date: uiDate(o.receivedAt) })}</Text> : null}
+      {o.cancelledAt ? <Text style={styles.trail}>{t('galley.cancelled', { date: uiDate(o.cancelledAt) })}</Text> : null}
     </View>
   );
 

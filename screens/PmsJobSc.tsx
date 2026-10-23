@@ -39,9 +39,9 @@ import { activeDeferral, dueLabel, jobAfter, jobCycle, jobDue, todayIso, withRea
 import { movesForJob, qtyText, stockByPart } from '../services/spares';
 import { JobPart } from '../types/spares';
 import { moduleOn } from '../constants/modules';
-import { PERMIT_TYPES, PERMIT_TYPE_MAP } from '../constants/permitTypes';
+import { PERMIT_TYPES } from '../constants/permitTypes';
 import { jobGate } from '../services/jobGate';
-import { JOB_FIELDS, changeText, planDiff, withChanges } from '../services/planLog';
+import { JOB_FIELDS, changeTextUi, fieldName, planDiff, withChanges } from '../services/planLog';
 import { useSignConfirm } from '../components/SignConfirm';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
@@ -175,7 +175,7 @@ export default function PmsJobSc() {
     const next = { ...clean, title: draft.title.trim() };
     // The change log (services/planLog.ts): an interval, a due date, class or permit changed says why.
     const diff = planDiff(existing, next, JOB_FIELDS);
-    if (diff.some((d) => d.needsReason) && changeReason.trim().length < 3) return Alert.alert(t('pj.reasonChange'), t('pj.reasonChangeBody', { what: diff.filter((d) => d.needsReason).map((d) => d.label.toLowerCase()).join(', ') }));
+    if (diff.some((d) => d.needsReason) && changeReason.trim().length < 3) return Alert.alert(t('pj.reasonChange'), t('pj.reasonChangeBody', { what: diff.filter((d) => d.needsReason).map((d) => fieldName(d.field).toLowerCase()).join(', ') }));
     const now = Date.now();
     await savePmsJob({ ...next, ...(diff.length ? { changes: withChanges(existing?.changes, diff, { by: me || 'Master', ...(meRank ? { byRank: meRank } : {}) }, changeReason, now) } : {}), updatedAt: now });
     playSuccessSound();
@@ -256,7 +256,7 @@ export default function PmsJobSc() {
     if (doneDate > todayIso()) return Alert.alert(t('pj.date'), t('pj.dateFuture'));
     if (machine?.critical && !donePhotos.length) return Alert.alert(t('pj.evidence'), t('pj.evidenceHint'));
     if (defect && defect.description.trim().length < 3) return Alert.alert(t('pj.defect'), t('pj.defectHint'));
-    if (gate.permitMissing) return Alert.alert(t('pj.permitToWork'), t('pj.permitNeeded', { type: PERMIT_TYPE_MAP[existing!.permitType!]?.label ?? '' }));
+    if (gate.permitMissing) return Alert.alert(t('pj.permitToWork'), t('pj.permitNeeded', { type: existing!.permitType ? tk(`ptw.kind.${existing!.permitType}`) : '' }));
     if (gate.unread.length) return Alert.alert(t('pj.readFirst'), t('pj.notRead', { name: signer.name, docs: gate.unread.map((d) => t('pj.docRev', { doc: d.title, rev: d.revision })).join(', ') }));
     if (condAfter === 'out' && !defect) return Alert.alert(t('pj.outOfService'), t('pj.outIsDefect'));
     const mh = num(manHours);
@@ -505,7 +505,7 @@ export default function PmsJobSc() {
               ) : null}
               {existing?.permitType && moduleOn('ptw') ? (
                 <View style={[styles.deferBox, { marginTop: SIZES.md }]}>
-                  <Text style={[styles.sub, { fontWeight: '800' }]}>{t('pj.permitLine', { type: PERMIT_TYPE_MAP[existing.permitType]?.label ?? existing.permitType })}</Text>
+                  <Text style={[styles.sub, { fontWeight: '800' }]}>{t('pj.permitLine', { type: tk(`ptw.kind.${existing.permitType}`) })}</Text>
                   {gate.permit ? (
                     <TouchableOpacity onPress={() => nav.navigate('Permit', { id: gate.permit!.id })}>
                       <Text style={[styles.signer, { color: COLORS.success }]}>{`✓ ${gate.permit.no ?? t('pj.permit')} · ${gate.permit.status}`}</Text>
@@ -631,7 +631,7 @@ export default function PmsJobSc() {
                 <Text style={styles.signer}>{`${t('pj.classJob')}${machine?.classCode ? ` · ${machine.classCode}` : ''}`}</Text>
               </TouchableOpacity>
               {moduleOn('ptw') ? (
-                <Dropdown caption={t('pj.requiresPermit')} value={draft.permitType ?? ''} onChange={(v) => set({ permitType: (v || undefined) as PmsJob['permitType'] })} options={[{ value: '', label: t('pj.none') }, ...PERMIT_TYPES.map((pt) => ({ value: pt.key, label: pt.label }))]} style={{ marginTop: SIZES.sm }} />
+                <Dropdown caption={t('pj.requiresPermit')} value={draft.permitType ?? ''} onChange={(v) => set({ permitType: (v || undefined) as PmsJob['permitType'] })} options={[{ value: '', label: t('pj.none') }, ...PERMIT_TYPES.map((pt) => ({ value: pt.key, label: tk(`ptw.kind.${pt.key}`) }))]} style={{ marginTop: SIZES.sm }} />
               ) : null}
               {moduleOn('docs') && docs.length ? (
                 <>
@@ -751,7 +751,7 @@ export default function PmsJobSc() {
                   </TouchableOpacity>
                   {showLog
                     ? [...existing.changes].reverse().map((c, i) => (
-                        <Text key={`${c.at}-${i}`} style={styles.sub}>{`${new Date(c.at).toISOString().slice(0, 10).split('-').reverse().join('.')} · ${c.byRank ? `${c.by} (${c.byRank})` : c.by} · ${changeText(c)}${c.reason ? ` — ${c.reason}` : ''}`}</Text>
+                        <Text key={`${c.at}-${i}`} style={styles.sub}>{`${new Date(c.at).toISOString().slice(0, 10).split('-').reverse().join('.')} · ${c.byRank ? `${c.by} (${c.byRank})` : c.by} · ${changeTextUi(c)}${c.reason ? ` — ${c.reason}` : ''}`}</Text>
                       ))
                     : null}
                 </View>

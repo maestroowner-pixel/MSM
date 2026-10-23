@@ -48,7 +48,7 @@ import { todayIso } from '../services/pms';
 import { proofShort } from '../services/signature';
 import { attendanceSig, drillName, drillStateName, drillTypeName, intervalName, clockAt, contentLines, drillState, lastOfType, minutesBetween, nextDrillNo, nextStepMin, nowHm, sortSteps } from '../services/drills';
 import { exportDrillPdf } from '../services/drillReport';
-import { formatDate, formatDateTime } from '../utils/dates';
+import { uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -291,7 +291,7 @@ export default function DrillSc() {
       <BackButton onPress={() => goBackOr(nav)} />
       <ScreenTitle
         title={`${d.no ? `${d.no} · ` : ''}${isOwn ? drillName(d) : t('dr.titleFmt', { title: drillName(d) })}`}
-        subtitle={done ? `${t('dr.carriedOn', { date: formatDate(d.date) })} · ${t('dr.signedAtBy', { when: formatDateTime(d.doneAt!), by: d.doneByRank ? `${d.doneBy} (${d.doneByRank})` : d.doneBy ?? '' })}${d.doneWith ? ` · ${proofShort(d.doneWith)}` : ''}` : `${drillStateName(st)}${DRILL_TYPE_MAP[d.type] ? ` · ${DRILL_TYPE_MAP[d.type].reg}` : d.reg?.trim() ? ` · ${d.reg.trim()}` : isOwn ? ` · ${t('dr.ownL')}` : ''}`}
+        subtitle={done ? `${t('dr.carriedOn', { date: uiDate(d.date) })} · ${t('dr.signedAtBy', { when: uiDateTime(d.doneAt!), by: d.doneByRank ? `${d.doneBy} (${d.doneByRank})` : d.doneBy ?? '' })}${d.doneWith ? ` · ${proofShort(d.doneWith)}` : ''}` : `${drillStateName(st)}${DRILL_TYPE_MAP[d.type] ? ` · ${DRILL_TYPE_MAP[d.type].reg}` : d.reg?.trim() ? ` · ${d.reg.trim()}` : isOwn ? ` · ${t('dr.ownL')}` : ''}`}
         help="Drills"
       />
       {!ro && savedNote ? <Text style={[styles.sub, { color: COLORS.success }]}>{savedNote}</Text> : null}
@@ -322,7 +322,7 @@ export default function DrillSc() {
         ) : null}
         {field({ value: d.topic, onChange: (v) => set({ topic: v }), placeholder: `${t('dr.topic')} — ${d.type === 'fire' ? t('dr.topicFire') : d.type === 'mob' ? t('dr.topicMob') : t('dr.topicOther')}`, style: ro ? { fontWeight: '700' } : null })}
         {ro ? (
-          <Text style={styles.sub}>{[`${formatDate(d.date)} ${[d.time, d.endTime].filter(Boolean).join('–')}`, len != null ? `${len} min` : null, d.location].filter(Boolean).join(' · ')}</Text>
+          <Text style={styles.sub}>{[`${uiDate(d.date)} ${[d.time, d.endTime].filter(Boolean).join('–')}`, len != null ? `${len} min` : null, d.location].filter(Boolean).join(' · ')}</Text>
         ) : (
           <>
             <View style={{ marginTop: SIZES.sm }}><SimpleDatePicker label={t('dr.dateReq')} value={d.date} onChange={(v) => set({ date: v })} /></View>
@@ -344,7 +344,7 @@ export default function DrillSc() {
         {prev ? (
           <TouchableOpacity style={[styles.hint, { borderColor: COLORS.primary }]} onPress={copyPrev}>
             <MciIcon name="content-copy" size={18} color={COLORS.primary} />
-            <Text style={[styles.sub, { flex: 1, color: COLORS.primary, marginTop: 0 }]}>{t('dr.fromLast', { prev: `${prev.no} ${formatDate(prev.date)}${prev.topic ? ` “${prev.topic}”` : ''}`, n: prev.scenario.length })}</Text>
+            <Text style={[styles.sub, { flex: 1, color: COLORS.primary, marginTop: 0 }]}>{t('dr.fromLast', { prev: `${prev.no} ${uiDate(prev.date)}${prev.topic ? ` “${prev.topic}”` : ''}`, n: prev.scenario.length })}</Text>
           </TouchableOpacity>
         ) : null}
       </Card>

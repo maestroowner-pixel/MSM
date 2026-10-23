@@ -22,13 +22,13 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { Hazard, RiskAssessment } from '../types/permits';
-import { LIKELIHOOD, RISK_COLOR, RISK_LABEL, SEVERITY, nextNumber, riskLevel, unacceptable, worstResidual } from '../services/permits';
+import { RISK_COLOR, nextNumber, riskLevel, unacceptable, worstResidual } from '../services/permits';
 import { roleAtLeast } from '../types/role';
-import { formatDateTime } from '../utils/dates';
+import { uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
-import { t, tn, useT } from '../utils/i18n';
+import { t, tk, tn, useT } from '../utils/i18n';
 
 export default function RiskSc() {
   useT();
@@ -94,20 +94,20 @@ export default function RiskSc() {
     } else await go();
   };
 
-  const Scale = ({ value, onChange, labels }: { value?: number; onChange: (n: number) => void; labels: string[] }) => (
+  const Scale = ({ value, onChange, labels }: { value?: number; onChange: (n: number) => void; labels: 'risk.lik' | 'risk.sev' }) => (
     <View style={styles.scale}>
       {[1, 2, 3, 4, 5].map((n) => (
-        <TouchableOpacity key={n} onPress={() => onChange(n)} style={[styles.scaleBtn, value === n && styles.scaleOn]} accessibilityLabel={labels[n - 1]}>
+        <TouchableOpacity key={n} onPress={() => onChange(n)} style={[styles.scaleBtn, value === n && styles.scaleOn]} accessibilityLabel={tk(`${labels}.${n}`)}>
           <Text style={[styles.scaleText, value === n && { color: COLORS.textWhite }]}>{n}</Text>
         </TouchableOpacity>
       ))}
-      <Text style={styles.scaleLabel} numberOfLines={1}>{value ? labels[value - 1] : ''}</Text>
+      <Text style={styles.scaleLabel} numberOfLines={1}>{value ? tk(`${labels}.${value}`) : ''}</Text>
     </View>
   );
   const Level = ({ l, s }: { l?: number; s?: number }) => {
     if (!l || !s) return null;
     const lvl = riskLevel(l, s);
-    return <Text style={[styles.level, { backgroundColor: RISK_COLOR[lvl] }]}>{`${RISK_LABEL[lvl]} · ${l * s}`}</Text>;
+    return <Text style={[styles.level, { backgroundColor: RISK_COLOR[lvl] }]}>{`${tk(`risk.lvl.${lvl}`)} · ${l * s}`}</Text>;
   };
 
   const worst = worstResidual(r);
@@ -136,7 +136,7 @@ export default function RiskSc() {
 
           <View style={styles.summary}>
             <Text style={styles.sumText}>{tn('n.hazard', r.hazards.length)}</Text>
-            {worst ? <Text style={[styles.level, { backgroundColor: RISK_COLOR[worst] }]}>{t('risk.residual', { level: RISK_LABEL[worst] })}</Text> : null}
+            {worst ? <Text style={[styles.level, { backgroundColor: RISK_COLOR[worst] }]}>{t('risk.residual', { level: tk(`risk.lvl.${worst}`) })}</Text> : null}
           </View>
 
           {r.hazards.map((h, i) => (
@@ -153,9 +153,9 @@ export default function RiskSc() {
                 <Text style={styles.rateLabel}>{t('risk.before')}</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.small}>{t('risk.likelihood')}</Text>
-                  <Scale value={h.likelihood} onChange={(n) => setHazard(h.id, { likelihood: n })} labels={LIKELIHOOD} />
+                  <Scale value={h.likelihood} onChange={(n) => setHazard(h.id, { likelihood: n })} labels="risk.lik" />
                   <Text style={styles.small}>{t('risk.severity')}</Text>
-                  <Scale value={h.severity} onChange={(n) => setHazard(h.id, { severity: n })} labels={SEVERITY} />
+                  <Scale value={h.severity} onChange={(n) => setHazard(h.id, { severity: n })} labels="risk.sev" />
                 </View>
                 <Level l={h.likelihood} s={h.severity} />
               </View>
@@ -164,9 +164,9 @@ export default function RiskSc() {
                 <Text style={styles.rateLabel}>{t('risk.withControls')}</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.small}>{t('risk.likelihood')}</Text>
-                  <Scale value={h.residualLikelihood} onChange={(n) => setHazard(h.id, { residualLikelihood: n })} labels={LIKELIHOOD} />
+                  <Scale value={h.residualLikelihood} onChange={(n) => setHazard(h.id, { residualLikelihood: n })} labels="risk.lik" />
                   <Text style={styles.small}>{t('risk.severity')}</Text>
-                  <Scale value={h.residualSeverity} onChange={(n) => setHazard(h.id, { residualSeverity: n })} labels={SEVERITY} />
+                  <Scale value={h.residualSeverity} onChange={(n) => setHazard(h.id, { residualSeverity: n })} labels="risk.sev" />
                 </View>
                 <Level l={h.residualLikelihood} s={h.residualSeverity} />
               </View>
@@ -178,7 +178,7 @@ export default function RiskSc() {
 
           <Text style={styles.section}>{t('risk.approval')}</Text>
           {r.approved ? (
-            <Text style={styles.stamp}>{`${t('risk.approved', { by: r.approved.byRank ? `${r.approved.by} (${r.approved.byRank})` : r.approved.by })} · ${formatDateTime(r.approved.at)}`}</Text>
+            <Text style={styles.stamp}>{`${t('risk.approved', { by: r.approved.byRank ? `${r.approved.by} (${r.approved.byRank})` : r.approved.by })} · ${uiDateTime(r.approved.at)}`}</Text>
           ) : (
             <>
               {picker ? (

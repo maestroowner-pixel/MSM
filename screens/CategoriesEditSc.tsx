@@ -25,17 +25,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette, COLORS as THEME_COLORS } from '../theme';
-import {
-  CategoryMeta,
-  GROUP_COLORS,
-  GROUP_SHORT as GROUP_LABEL,
-  GROUP_ORDER,
-  VESSEL_CATEGORY_PREFIX,
-  CATEGORIES,
-  CATEGORY_MAP,
-  isVesselCategory,
-  uniqueSheetName,
-} from '../constants/categories';
+import { CategoryMeta, GROUP_COLORS, GROUP_SHORT as GROUP_LABEL, GROUP_ORDER, VESSEL_CATEGORY_PREFIX, CATEGORIES, CATEGORY_MAP, isVesselCategory, uniqueSheetName, catLabel, groupLabel } from '../constants/categories';
 import { Group } from '../types/equipment';
 import { uid } from '../utils/id';
 import { t, tk, tn, useT } from '../utils/i18n';
@@ -167,7 +157,7 @@ export default function CategoriesEditSc() {
   const onDelete = (c: CategoryMeta) => {
     const count = (byCategory as any)[c.key]?.length ?? 0;
     Alert.alert(
-      t('ce.removeQ', { name: c.label }),
+      t('ce.removeQ', { name: catLabel(c) }),
       count
         ? t('ce.removeBody', { x: tn('n.item', count) })
         : t('ce.removeEmpty'),
@@ -221,7 +211,7 @@ export default function CategoriesEditSc() {
                 onPress={() => setGroup(g)}
               >
                 <Text style={[styles.chipText, group === g && { color: THEME_COLORS.textWhite }]}>
-                  {GROUP_LABEL[g]}
+                  {groupLabel(g)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -271,9 +261,9 @@ export default function CategoriesEditSc() {
             <View style={styles.row}>
               <MciIcon name={item.icon} size={22} color={GROUP_COLORS[item.group]} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>{item.label}</Text>
+                <Text style={styles.rowTitle}>{catLabel(item)}</Text>
                 <Text style={styles.rowSub}>
-                  {GROUP_LABEL[item.group]} · {count} item{count === 1 ? '' : 's'}
+                  {groupLabel(item.group)} · {tn('n.item', count)}
                   {isVesselCategory(item.key) ? " · this vessel's" : ''}
                   {item.hidden ? ' · hidden' : ''}
                 </Text>

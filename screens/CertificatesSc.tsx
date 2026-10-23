@@ -15,7 +15,7 @@ import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
-import { statusFromDate, formatDate } from '../utils/dates';
+import { statusFromDate, uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { Certificate, CertificateScope, scopeOf } from '../types/certificate';
 import { crewLabel } from '../types/crew';
@@ -241,7 +241,7 @@ function CertRow({ item, wide, onPress }: { item: Certificate; wide?: boolean; o
   const status = sv ? worstOf(statusFromDate(item.expiryDate), sv.status) : statusFromDate(item.expiryDate);
   const next = sv?.next;
   const nextLine = next
-    ? `${next.s.name.split(' — ').slice(1).join(' — ').replace(/^./, (ch) => ch.toUpperCase())}: ${next.st.state === 'overdue' ? t('drills.overdueSince', { date: formatDate(next.st.closes) }) : next.st.state === 'open' ? t('certs.windowOpen', { date: formatDate(next.st.closes) }) : t('certs.windowOpens', { date: formatDate(next.st.opens) })}`
+    ? `${next.s.name.split(' — ').slice(1).join(' — ').replace(/^./, (ch) => ch.toUpperCase())}: ${next.st.state === 'overdue' ? t('drills.overdueSince', { date: uiDate(next.st.closes) }) : next.st.state === 'open' ? t('certs.windowOpen', { date: uiDate(next.st.closes) }) : t('certs.windowOpens', { date: uiDate(next.st.opens) })}`
     : undefined;
   const sub =
     scope === 'equipment'
@@ -269,7 +269,7 @@ function CertRow({ item, wide, onPress }: { item: Certificate; wide?: boolean; o
         ) : null}
       </View>
       <View style={{ alignItems: 'flex-end' }}>
-        {item.expiryDate ? <Text style={styles.rowDate}>{formatDate(item.expiryDate)}</Text> : null}
+        {item.expiryDate ? <Text style={styles.rowDate}>{uiDate(item.expiryDate)}</Text> : null}
         <StatusPill status={status} />
       </View>
     </TouchableOpacity>

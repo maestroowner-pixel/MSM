@@ -50,7 +50,7 @@ import { PrinterModal } from '../components/PrinterModal';
 import SafetyFlashesSc from './SafetyFlashesSc';
 import { samePass } from '../services/crewQr';
 import { exportVisitorExcel, exportVisitorPdf, movesOf, visitsOf, vlogTitle } from '../services/visitorLog';
-import { formatDate, formatDateTime } from '../utils/dates';
+import { formatDate, uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { DeckEntry } from '../types/deckLog';
@@ -413,7 +413,7 @@ function SecuritySc() {
       />
       {current > 1 && level ? (
         <Text style={[styles.alert, { color: levelColor(current), borderColor: levelColor(current) }]}>
-          {t('sec.levelBanner', { n: current, when: formatDateTime(level.since), text: tk(`sec.lvl.${current}`) })}
+          {t('sec.levelBanner', { n: current, when: uiDateTime(level.since), text: tk(`sec.lvl.${current}`) })}
         </Text>
       ) : null}
 
@@ -442,7 +442,7 @@ function SecuritySc() {
             )}
           </View>
           <TextInput style={[styles.input, styles.portInput]} value={portF.berth} onChangeText={(v) => setPortF({ ...portF, berth: v })} onBlur={savePort} onSubmitEditing={savePort} placeholder={t('sec.berthPh')} placeholderTextColor={COLORS.textLight} />
-          <Text style={styles.portDate}>{formatDate(today)}</Text>
+          <Text style={styles.portDate}>{uiDate(today)}</Text>
         </View>
       ) : null}
       <View style={styles.topRow}>
@@ -496,7 +496,7 @@ function SecuritySc() {
               <View style={styles.pair}>
                 <TextInput style={styles.input} value={f.name} onChangeText={(v) => setF({ ...f, name: v })} placeholder={t('sec.fullName')} placeholderTextColor={COLORS.textLight} />
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: SIZES.xs }}>
-                  <Text style={styles.sub}>{t('sec.dateTimeIn', { date: formatDate(today) })}</Text>
+                  <Text style={styles.sub}>{t('sec.dateTimeIn', { date: uiDate(today) })}</Text>
                   <TextInput style={[styles.input, { flex: 0, minWidth: 80, width: 80, marginTop: 0, textAlign: 'center' }]} value={f.timeIn} onChangeText={(v) => setF({ ...f, timeIn: v })} placeholder="hh:mm" placeholderTextColor={COLORS.textLight} />
                 </View>
                 <TextInput style={styles.input} value={f.company} onChangeText={(v) => setF({ ...f, company: v })} placeholder={t('sec.company')} placeholderTextColor={COLORS.textLight} />
@@ -540,11 +540,11 @@ function SecuritySc() {
                 <View style={{ flexDirection: 'row', gap: SIZES.md, flexWrap: 'wrap' }}>
                   {v.photo ? <Image source={{ uri: v.photo }} style={styles.portrait} /> : <View style={[styles.portrait, { alignItems: 'center', justifyContent: 'center' }]}><MciIcon name="account" size={64} color={COLORS.textLight} /><Text style={styles.sub}>{t('sec.noPhoto')}</Text></View>}
                   <View style={{ flex: 1, minWidth: 180 }}>
-                    <Text style={[styles.sub, { color: aboard ? COLORS.success : COLORS.danger, fontWeight: '800' }]}>{aboard ? t('sec.onBoardPass', { pass: v.passNo ?? '—' }) : t('sec.signedOff', { when: `${v.dateOut ? `${formatDate(v.dateOut)} ` : ''}${v.timeOut}` })}</Text>
+                    <Text style={[styles.sub, { color: aboard ? COLORS.success : COLORS.danger, fontWeight: '800' }]}>{aboard ? t('sec.onBoardPass', { pass: v.passNo ?? '—' }) : t('sec.signedOff', { when: `${v.dateOut ? `${uiDate(v.dateOut)} ` : ''}${v.timeOut}` })}</Text>
                     <Text style={[styles.name, { fontSize: 20 }]}>{v.name}</Text>
                     {v.company ? <Text style={styles.name}>{v.company}</Text> : null}
                     <Text style={styles.sub}>{v.purpose}</Text>
-                    <Text style={styles.sub}>{[t('sec.in', { when: `${v.date !== today ? `${formatDate(v.date)} ` : ''}${v.timeIn}` }), v.host ? t('sec.visiting', { host: v.host }) : null, t('sec.signedOnBy', { name: v.inBy })].filter(Boolean).join(' · ')}</Text>
+                    <Text style={styles.sub}>{[t('sec.in', { when: `${v.date !== today ? `${uiDate(v.date)} ` : ''}${v.timeIn}` }), v.host ? t('sec.visiting', { host: v.host }) : null, t('sec.signedOnBy', { name: v.inBy })].filter(Boolean).join(' · ')}</Text>
                     {v.idNo ? <Text style={styles.sub}>{`${v.idType ? idName(v.idType) : t('sec.idCaption')} ${v.idNo}`}</Text> : null}
                     {v.remarks ? <Text style={styles.sub}>{v.remarks}</Text> : null}
                   </View>
@@ -565,7 +565,7 @@ function SecuritySc() {
               {v.photo ? <TouchableOpacity onPress={() => setIdent(v.id)}><Image source={{ uri: v.photo }} style={styles.thumb} /></TouchableOpacity> : null}
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{v.company ? `${v.name} · ${v.company}` : v.name}</Text>
-                <Text style={styles.sub}>{[t('sec.in', { when: `${v.date !== today ? `${formatDate(v.date)} ` : ''}${v.timeIn}` }), v.purpose, v.passNo ? t('sec.pass', { n: v.passNo }) : null, v.host ? t('sec.with', { host: v.host }) : null].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.sub}>{[t('sec.in', { when: `${v.date !== today ? `${uiDate(v.date)} ` : ''}${v.timeIn}` }), v.purpose, v.passNo ? t('sec.pass', { n: v.passNo }) : null, v.host ? t('sec.with', { host: v.host }) : null].filter(Boolean).join(' · ')}</Text>
               </View>
               {leaving?.id === v.id ? (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -583,7 +583,7 @@ function SecuritySc() {
           {people.map((c) => {
             const away = isAshore(c.id, last);
             const m = last.get(c.id);
-            const when = m ? `${m.date !== today ? `${formatDate(m.date)} ` : ''}${m.time}` : '';
+            const when = m ? `${m.date !== today ? `${uiDate(m.date)} ` : ''}${m.time}` : '';
             return (
               <View key={c.id} style={[styles.row, { borderLeftColor: away ? COLORS.textLight : COLORS.success }]}>
                 <View style={{ flex: 1 }}>
@@ -608,7 +608,7 @@ function SecuritySc() {
               {guests.map((c) => {
                 const away = isAshore(c.id, last);
                 const m = last.get(c.id);
-                const when = m ? `${m.date !== today ? `${formatDate(m.date)} ` : ''}${m.time}` : '';
+                const when = m ? `${m.date !== today ? `${uiDate(m.date)} ` : ''}${m.time}` : '';
                 return (
                   <View key={c.id} style={[styles.row, { borderLeftColor: away ? COLORS.textLight : COLORS.success }]}>
                     <View style={{ flex: 1 }}>
@@ -647,7 +647,7 @@ function SecuritySc() {
               <View style={{ flex: 1 }}>
                 <Text style={[styles.name, v.cancelled && { textDecorationLine: 'line-through' }]}>{v.company ? `${v.name} · ${v.company}` : v.name}</Text>
                 <Text style={styles.sub}>
-                  {[byMonth ? formatDate(v.date) : null, [v.port, v.berth].filter(Boolean).join(' / ') || null, `${v.timeIn} → ${v.timeOut ?? t('sec.stOnBoard')}`, v.purpose, v.idNo ? `${v.idType ? idName(v.idType) : ''} ${v.idNo}`.trim() : null, v.passNo ? t('sec.pass', { n: v.passNo }) : null, v.host ? t('sec.with', { host: v.host }) : null, t('sec.watchBy', { names: v.outBy && v.outBy !== v.inBy ? `${v.inBy} / ${v.outBy}` : v.inBy })].filter(Boolean).join(' · ')}
+                  {[byMonth ? uiDate(v.date) : null, [v.port, v.berth].filter(Boolean).join(' / ') || null, `${v.timeIn} → ${v.timeOut ?? t('sec.stOnBoard')}`, v.purpose, v.idNo ? `${v.idType ? idName(v.idType) : ''} ${v.idNo}`.trim() : null, v.passNo ? t('sec.pass', { n: v.passNo }) : null, v.host ? t('sec.with', { host: v.host }) : null, t('sec.watchBy', { names: v.outBy && v.outBy !== v.inBy ? `${v.inBy} / ${v.outBy}` : v.inBy })].filter(Boolean).join(' · ')}
                 </Text>
                 <AmendNote rec={v} all={allVisitors} summary={visitorLine} />
               </View>
@@ -666,7 +666,7 @@ function SecuritySc() {
           <Label>{t('sec.movesN', { n: bookMoves.length })}</Label>
           {bookMoves.map((m: CrewMove) => (
             <Text key={m.id} style={styles.move}>
-              {`${byMonth ? `${formatDate(m.date)} ` : ''}${m.time}  ${m.name} — ${m.dir === 'ashore' ? t('sec.stAshore') : t('sec.backAboard')} · ${m.via === 'qr' ? t('sec.viaCard') : m.by}`}
+              {`${byMonth ? `${uiDate(m.date)} ` : ''}${m.time}  ${m.name} — ${m.dir === 'ashore' ? t('sec.stAshore') : t('sec.backAboard')} · ${m.via === 'qr' ? t('sec.viaCard') : m.by}`}
             </Text>
           ))}
           {!bookMoves.length ? <Text style={styles.sub}>{t('sec.noMoves')}</Text> : null}
@@ -674,7 +674,7 @@ function SecuritySc() {
       ) : (
         <>
           <Text style={[styles.sub, drillLate && { color: COLORS.danger, fontWeight: '700' }]}>
-            {nextDue ? (drillLate ? t('sec.overdueSince', { date: formatDate(nextDue) }) : t('sec.nextBy', { date: formatDate(nextDue) })) : t('sec.noDrillYet')}
+            {nextDue ? (drillLate ? t('sec.overdueSince', { date: uiDate(nextDue) }) : t('sec.nextBy', { date: uiDate(nextDue) })) : t('sec.noDrillYet')}
           </Text>
           <Card>
             <View style={styles.pair}>
@@ -694,9 +694,9 @@ function SecuritySc() {
             <View key={x.id} style={[styles.row, x.cancelled && { opacity: 0.6 }]}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.name, x.cancelled && { textDecorationLine: 'line-through' }]}>{x.scenario}</Text>
-                <Text style={styles.sub}>{[`${formatDate(x.date)} ${x.time ?? ''}`, t('sec.tookPart', { n: x.participants.length }), x.minutes ? t('common.min', { n: x.minutes }) : null, x.byRank ? `${x.by} (${x.byRank})` : x.by].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.sub}>{[`${uiDate(x.date)} ${x.time ?? ''}`, t('sec.tookPart', { n: x.participants.length }), x.minutes ? t('common.min', { n: x.minutes }) : null, x.byRank ? `${x.by} (${x.byRank})` : x.by].filter(Boolean).join(' · ')}</Text>
                 {x.findings ? <Text style={styles.sub}>{x.findings}</Text> : null}
-                <AmendNote rec={x} all={allDrills} summary={(p) => [p.scenario, formatDate(p.date), p.minutes ? t('common.min', { n: p.minutes }) : null, p.findings].filter(Boolean).join(' · ')} />
+                <AmendNote rec={x} all={allDrills} summary={(p) => [p.scenario, uiDate(p.date), p.minutes ? t('common.min', { n: p.minutes }) : null, p.findings].filter(Boolean).join(' · ')} />
               </View>
               {!x.cancelled ? (
                 <AmendButtons

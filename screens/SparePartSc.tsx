@@ -35,7 +35,7 @@ import { MOVE_LABEL, firstExpiry, makeMove, moveText, orderQty, priceText, qtyTe
 import { todayIso } from '../services/pms';
 import { moduleOn } from '../constants/modules';
 import { useSignConfirm } from '../components/SignConfirm';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 
 const addDays = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
 import { goBackOr } from '../utils/nav';
@@ -193,7 +193,7 @@ export default function SparePartSc() {
               </Text>
               {shelf ? (
                 <Text style={[styles.sub, { textAlign: 'center', fontWeight: '700', color: shelf.expiry! < todayIso() ? COLORS.danger : shelf.expiry! <= addDays(todayIso(), 90) ? COLORS.warning : COLORS.textLight }]}>
-                  {`${shelf.expiry! < todayIso() ? t('sp.expired', { date: formatDate(shelf.expiry) }) : t('sp.expires', { date: formatDate(shelf.expiry) })} · ${qtyText(shelf.qty, existing!)}`}
+                  {`${shelf.expiry! < todayIso() ? t('sp.expired', { date: uiDate(shelf.expiry) }) : t('sp.expires', { date: uiDate(shelf.expiry) })} · ${qtyText(shelf.qty, existing!)}`}
                 </Text>
               ) : null}
               {used.some((u) => u.used) ? (
@@ -356,7 +356,7 @@ export default function SparePartSc() {
                   </View>
                   {x.price != null || x.leadDays != null || x.ref ? (
                     <Text style={styles.sub}>
-                      {[x.ref ? t('mo.refN', { ref: x.ref }) : null, x.price != null ? `${priceText(x)}${x.priceDate ? ` ${t('spp.quoted', { date: formatDate(x.priceDate) })}` : ''}` : null, x.leadDays != null ? t('spp.daysDeliver', { n: x.leadDays }) : null].filter(Boolean).join(' · ')}
+                      {[x.ref ? t('mo.refN', { ref: x.ref }) : null, x.price != null ? `${priceText(x)}${x.priceDate ? ` ${t('spp.quoted', { date: uiDate(x.priceDate) })}` : ''}` : null, x.leadDays != null ? t('spp.daysDeliver', { n: x.leadDays }) : null].filter(Boolean).join(' · ')}
                     </Text>
                   ) : null}
                 </View>
@@ -374,7 +374,7 @@ export default function SparePartSc() {
                       <View style={{ flex: 1 }}>
                         <Text style={styles.moveText}>{moveText(m, draft)}</Text>
                         <Text style={styles.sub} numberOfLines={2}>
-                          {[formatDate(m.date), m.by, m.jobTitle ? `${m.machineName ? `${m.machineName}: ` : ''}${m.jobTitle}` : null, m.expiry ? t('spp.useBy', { date: formatDate(m.expiry) }) : null, m.note].filter(Boolean).join(' · ')}
+                          {[uiDate(m.date), m.by, m.jobTitle ? `${m.machineName ? `${m.machineName}: ` : ''}${m.jobTitle}` : null, m.expiry ? t('spp.useBy', { date: uiDate(m.expiry) }) : null, m.note].filter(Boolean).join(' · ')}
                         </Text>
                       </View>
                     </View>

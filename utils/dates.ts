@@ -5,6 +5,7 @@
 
 import { ComplianceStatus, DUE_SOON_DAYS, EquipmentItem } from '../types/equipment';
 import { CATEGORY_MAP } from '../constants/categories';
+import { monthAbbr } from './t';
 
 // Excel's epoch is 1899-12-30 (accounting for the 1900 leap-year bug).
 const EXCEL_EPOCH_MS = Date.UTC(1899, 11, 30);
@@ -173,6 +174,23 @@ export function formatDateTime(ts?: number): string {
   const hh = String(d.getHours()).padStart(2, '0');
   const mi = String(d.getMinutes()).padStart(2, '0');
   return `${dd} ${MONTHS_SHORT[d.getMonth()]} ${hh}:${mi}`;
+}
+
+/** formatDate for a screen — the month in the interface language («01 апр. 2025»).
+ *  Reports, records and `what:` lines keep formatDate: they stay English. */
+export function uiDate(iso?: string): string {
+  if (!iso) return '—';
+  const d = new Date(iso + 'T00:00:00');
+  if (isNaN(d.getTime())) return iso;
+  return `${String(d.getDate()).padStart(2, '0')} ${monthAbbr(d.getMonth())} ${d.getFullYear()}`;
+}
+
+/** formatDateTime for a screen («01 апр. 14:30»). */
+export function uiDateTime(ts?: number): string {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return '—';
+  return `${String(d.getDate()).padStart(2, '0')} ${monthAbbr(d.getMonth())} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 export function currentMonthKey(): string {

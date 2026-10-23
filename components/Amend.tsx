@@ -17,7 +17,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES } from '../theme';
 import { Versioned, amended, cancelled, previous } from '../services/versions';
-import { formatDateTime } from '../utils/dates';
+import { uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { t, tn, useT } from '../utils/i18n';
 import { playSuccessSound } from '../utils/sound';
@@ -172,7 +172,7 @@ export function AmendNote<T extends Versioned>({ rec, all, summary }: { rec: T; 
     <View>
       <TouchableOpacity onPress={() => setOpen((o) => !o)}>
         <Text style={[styles.sub, { color: rec.cancelled ? COLORS.danger : COLORS.warning, fontWeight: '700' }]}>
-          {`${rec.cancelled ? t('am.deleted') : t('am.amended')}${rec.editedAt ? ` ${formatDateTime(rec.editedAt)}` : ''}${rec.editedBy ? t('am.by', { who: rec.editedByRank ? `${rec.editedBy} (${rec.editedByRank})` : rec.editedBy }) : ''} — ${rec.editReason ?? ''} · ${tn('n.earlierVersion', prev.length)} ${open ? '▴' : '▾'}`}
+          {`${rec.cancelled ? t('am.deleted') : t('am.amended')}${rec.editedAt ? ` ${uiDateTime(rec.editedAt)}` : ''}${rec.editedBy ? t('am.by', { who: rec.editedByRank ? `${rec.editedBy} (${rec.editedByRank})` : rec.editedBy }) : ''} — ${rec.editReason ?? ''} · ${tn('n.earlierVersion', prev.length)} ${open ? '▴' : '▾'}`}
         </Text>
       </TouchableOpacity>
       {open ? prev.map((p) => <Text key={p.id} style={[styles.sub, { color: COLORS.textLight, textDecorationLine: 'line-through' }]}>{summary(p)}</Text>) : null}

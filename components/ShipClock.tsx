@@ -9,13 +9,11 @@ import React, { useEffect, useState } from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
 
 import { MciIcon } from './MciIcon';
-import { t } from '../utils/i18n';
+import { monthAbbr, t } from '../utils/i18n';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES } from '../theme';
 import { shipAndUtc } from '../utils/shipTime';
-
-const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export function ShipClock() {
   const COLORS = useTheme();
@@ -27,7 +25,7 @@ export function ShipClock() {
     return () => clearInterval(t);
   }, []);
   const s = shipAndUtc(now, vessel?.ship_utc_offset);
-  const day = `${Number(s.ship.slice(8, 10))} ${MON[Number(s.ship.slice(5, 7)) - 1]}`;
+  const day = `${Number(s.ship.slice(8, 10))} ${monthAbbr(Number(s.ship.slice(5, 7)) - 1)}`;
   const wide = width >= 720;
   // Ship's time is a whole-minute offset from UTC, so the seconds are the same in both.
   const sec = `:${String(new Date(now).getUTCSeconds()).padStart(2, '0')}`;

@@ -17,7 +17,7 @@ import { MciIcon } from '../components/MciIcon';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
-import { GROUP_ORDER, GROUP_SHORT, visibleCategories } from '../constants/categories';
+import { GROUP_ORDER, visibleCategories, catLabel, groupShort } from '../constants/categories';
 import { exportPdf, exportXlsx, exportZip } from '../services/export';
 import {
   ReportScope,
@@ -269,7 +269,7 @@ export default function ReportsSc() {
               onPress={() => setScope(g)}
             >
               <Text style={[styles.chipText, scope === g && styles.chipTextOn]}>
-                {g === 'ALL' ? t('lb.all') : GROUP_SHORT[g]}
+                {g === 'ALL' ? t('lb.all') : groupShort(g)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -325,7 +325,7 @@ export default function ReportsSc() {
                   >
                     <CategoryBadge category={c.key} size={22} />
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.panelTitle} numberOfLines={1}>{c.label}</Text>
+                      <Text style={styles.panelTitle} numberOfLines={1}>{catLabel(c)}</Text>
                       {p ? (
                         <Text style={[styles.panelSub, p.note && { color: COLORS.danger }, p.done === p.total && !p.note && { color: COLORS.success }]}>
                           {p.done} of {p.total} inspected{p.note ? ` · ${p.note}` : p.done === p.total ? ' · complete' : ''}
@@ -466,7 +466,7 @@ export default function ReportsSc() {
             >
               <CategoryBadge category={c.key} size={22} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.panelTitle} numberOfLines={1}>{c.label}</Text>
+                <Text style={styles.panelTitle} numberOfLines={1}>{catLabel(c)}</Text>
                 <Text style={styles.panelSub}>{count} item{count === 1 ? '' : 's'}</Text>
               </View>
               <View style={[styles.check, on && styles.checkOn]}>

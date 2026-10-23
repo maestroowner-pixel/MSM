@@ -25,7 +25,7 @@ import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { deliverFile, onWeb } from '../utils/fileShare';
 import { saveFileWeb } from '../utils/webSave';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -79,7 +79,7 @@ export default function PmsProjectsSc() {
           <TouchableOpacity key={p.id} style={[styles.row, !!p.closedAt && { opacity: 0.6 }]} onPress={() => nav.navigate('PmsProject', { id: p.id })} activeOpacity={0.7}>
             <View style={{ flex: 1 }}>
               <Text style={styles.title}>{p.name}</Text>
-              <Text style={styles.sub}>{`${formatDate(p.dueDate)} · ${t('prj.toDo', { n: pj.pending.length })} · ${t('prj.doneN', { n: pj.done.length })}${p.closedAt ? ` · ${t('prj.closed')}` : ''}`}</Text>
+              <Text style={styles.sub}>{`${uiDate(p.dueDate)} · ${t('prj.toDo', { n: pj.pending.length })} · ${t('prj.doneN', { n: pj.done.length })}${p.closedAt ? ` · ${t('prj.closed')}` : ''}`}</Text>
             </View>
             <Text style={styles.chev}>›</Text>
           </TouchableOpacity>
@@ -146,7 +146,7 @@ export function PmsProjectSc() {
   return (
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav)} />
-      <ScreenTitle title={p.name} subtitle={`${t('prj.planned', { date: formatDate(p.dueDate) })}${p.description ? ` · ${p.description}` : ''}${p.closedAt ? ` · ${t('prj.closed')}` : ''}`} help="Planned maintenance" />
+      <ScreenTitle title={p.name} subtitle={`${t('prj.planned', { date: uiDate(p.dueDate) })}${p.description ? ` · ${p.description}` : ''}${p.closedAt ? ` · ${t('prj.closed')}` : ''}`} help="Planned maintenance" />
       <Label>{t('prj.toBeDone', { n: pj.pending.length })}</Label>
       {pj.pending.map(({ job, machine, deferral }) => (
         <TouchableOpacity key={job.id} style={styles.row} onPress={() => nav.navigate('PmsJob', { id: job.id })} activeOpacity={0.7}>
@@ -163,7 +163,7 @@ export function PmsProjectSc() {
         <View key={done.id} style={styles.row}>
           <View style={{ flex: 1 }}>
             <Text style={styles.title} numberOfLines={1}>{`✓ ${done.jobTitle}`}</Text>
-            <Text style={styles.sub}>{`${done.machineName} · ${formatDate(done.date)} · ${done.byRank ? `${done.by} (${done.byRank})` : done.by}`}</Text>
+            <Text style={styles.sub}>{`${done.machineName} · ${uiDate(done.date)} · ${done.byRank ? `${done.by} (${done.byRank})` : done.by}`}</Text>
           </View>
         </View>
       ))}

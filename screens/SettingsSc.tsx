@@ -39,7 +39,7 @@ import { isSubscribed, onEntitlementChange } from '../services/purchases';
 import { playSuccessSound, playErrorSound } from '../utils/sound';
 import { PolicyPatch, writeSigningPolicy } from '../services/policy';
 import { requestPermission, rescheduleExpiryReminders, cancelAll, notificationsSupported } from '../services/notifications';
-import { formatDateTime } from '../utils/dates';
+import { formatDateTime, uiDateTime } from '../utils/dates';
 
 const RESET_PASSWORD = 'Reset all data';
 
@@ -353,7 +353,7 @@ export default function SettingsSc() {
       [
         { text: tr('common.cancel'), style: 'cancel' },
         ...all.map((c) => ({
-          text: `${c.kind === 'import' ? tr('set.beforeImport') : tr('set.onOpening')} · ${formatDateTime(c.at)} (${tn('n.item', c.items)}, ${tn('n.inspection', c.inspections)})`,
+          text: `${c.kind === 'import' ? tr('set.beforeImport') : tr('set.onOpening')} · ${uiDateTime(c.at)} (${tn('n.item', c.items)}, ${tn('n.inspection', c.inspections)})`,
           onPress: async () => {
             try {
               await saveCopyAsFile(await snapshot.snapshotBody(c.slot, c.kind));
@@ -379,14 +379,14 @@ export default function SettingsSc() {
       ? tr('set.reachesMaster')
       : tr('set.reachesOfficer');
     Alert.alert(
-      tr('set.rollQ', { when: formatDateTime(newest.at) }),
+      tr('set.rollQ', { when: uiDateTime(newest.at) }),
       tr('set.rollBody', { items: tn('n.item', newest.items), certs: tn('n.certificate', newest.certificates), insp: tn('n.inspection', newest.inspections), crew: newest.crew }) + '\n\n' +
         reaches +
         '\n\n' + tr('set.rollFiles'),
       [
         { text: tr('common.cancel'), style: 'cancel' },
         ...snaps.map((s, i) => ({
-          text: i === 0 ? tr('set.rollBack') : tr('set.older', { when: formatDateTime(s.at), n: s.items }),
+          text: i === 0 ? tr('set.rollBack') : tr('set.older', { when: uiDateTime(s.at), n: s.items }),
           style: 'destructive' as const,
           onPress: async () => {
             setBusy(true);
@@ -412,7 +412,7 @@ export default function SettingsSc() {
               playSuccessSound();
               Alert.alert(
                 tr('set.rolledBack'),
-                tr('set.rolledBody', { items: tn('n.item', done.items), insp: tn('n.inspection', done.inspections), crew: done.crew, when: formatDateTime(done.at) }) + '\n\n' +
+                tr('set.rolledBody', { items: tn('n.item', done.items), insp: tn('n.inspection', done.inspections), crew: done.crew, when: uiDateTime(done.at) }) + '\n\n' +
                   (isMaster
                     ? shared
                       ? tr('set.nowHolds')
@@ -606,7 +606,7 @@ export default function SettingsSc() {
             onChange={(v: string) => setForm({ ...form, ship_utc_offset: v || undefined })}
             options={[{ value: '', label: tr('set.asDevice', { utc: `UTC${offsetText(-new Date().getTimezoneOffset())}` }) }, ...(form.ship_utc_offset && !OFFSETS.includes(form.ship_utc_offset) ? [form.ship_utc_offset] : []).concat(OFFSETS).map((o) => ({ value: o, label: `UTC${o}` }))]}
           />
-          <Text style={{ fontSize: SIZES.small, color: COLORS.textLight, marginTop: 4 }}>{tr('set.now', { line: shipAndUtc(Date.now(), form.ship_utc_offset).line })}</Text>
+          <Text style={{ fontSize: SIZES.small, color: COLORS.textLight, marginTop: 4 }}>{tr('set.now', { line: ((s) => `${s.ship} ${tr('clock.shipTime')} (${s.zone}) · ${s.utc.slice(s.ship.slice(0, 10) === s.utc.slice(0, 10) ? 11 : 0)} UTC`)(shipAndUtc(Date.now(), form.ship_utc_offset)) })}</Text>
         </View>
         {/* Nothing to save is said by the button itself. A live "Save" beside five
             filled fields is the app asking for something it already has. */}
@@ -962,7 +962,7 @@ export default function SettingsSc() {
                   the dialog to find out whether it is worth anything; the moment
                   it would take them back to answers that on the row itself. */}
               <Text style={styles.linkTitle}>
-                {snaps.length ? tr('set.rollTo', { when: formatDateTime(snaps[0].at) }) : tr('set.nothingRollYet')}
+                {snaps.length ? tr('set.rollTo', { when: uiDateTime(snaps[0].at) }) : tr('set.nothingRollYet')}
               </Text>
               <Text style={styles.linkSub}>
                 {snaps.length
@@ -979,7 +979,7 @@ export default function SettingsSc() {
             <View style={{ flex: 1 }}>
               <Text style={styles.linkTitle}>{tr('set.saveCopy')}</Text>
               <Text style={styles.linkSub}>
-                {tn('n.copyHere', snaps.length + importSnaps.length) + (importSnaps.length ? tr('set.beforeImportAt', { when: formatDateTime(importSnaps[0].at) }) : '') + tr('set.noRollback')}
+                {tn('n.copyHere', snaps.length + importSnaps.length) + (importSnaps.length ? tr('set.beforeImportAt', { when: uiDateTime(importSnaps[0].at) }) : '') + tr('set.noRollback')}
               </Text>
             </View>
             <Text style={styles.chev}>›</Text>

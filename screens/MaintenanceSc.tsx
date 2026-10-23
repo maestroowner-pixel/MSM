@@ -35,7 +35,7 @@ import { useSignConfirm } from '../components/SignConfirm';
 import { playSuccessSound } from '../utils/sound';
 import { PmsDone } from '../types/pms';
 import { DEPTS, Dept, Machine, PmsJob, deptOf, hasCounter } from '../types/pms';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { t, tk, tn, useT } from '../utils/i18n';
 
@@ -250,7 +250,7 @@ export default function MaintenanceSc() {
                   <View style={[styles.bar, { backgroundColor: statusColor(dueOf(r.job, r.machine).status) }]} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.title} numberOfLines={1}>{`${r.machine.critical ? '⚑ ' : ''}${r.job.title}`}</Text>
-                    <Text style={styles.sub} numberOfLines={1}>{[formatDate(r.date) + (r.estimated ? ' (est. by hours)' : ''), r.machine.name, r.job.classJob || r.machine.classItem ? 'CLASS' : null].filter(Boolean).join(' · ')}</Text>
+                    <Text style={styles.sub} numberOfLines={1}>{[uiDate(r.date) + (r.estimated ? ' (est. by hours)' : ''), r.machine.name, r.job.classJob || r.machine.classItem ? 'CLASS' : null].filter(Boolean).join(' · ')}</Text>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -279,7 +279,7 @@ export default function MaintenanceSc() {
           <View style={[styles.bar, { backgroundColor: categoryColor(COLORS, x.category) }]} />
           <View style={{ flex: 1 }}>
             <Text style={styles.title} numberOfLines={1}>{x.description}</Text>
-            <Text style={styles.sub} numberOfLines={1}>{`${tk(`pms.defcat.${x.category}`)} · ${x.machineName} · ${formatDate(x.date)}`}</Text>
+            <Text style={styles.sub} numberOfLines={1}>{`${tk(`pms.defcat.${x.category}`)} · ${x.machineName} · ${uiDate(x.date)}`}</Text>
           </View>
         </TouchableOpacity>
       ))}
@@ -291,7 +291,7 @@ export default function MaintenanceSc() {
           <View style={[styles.bar, { backgroundColor: COLORS.warning }]} />
           <View style={{ flex: 1 }}>
             <Text style={styles.title} numberOfLines={1}>{j.title}</Text>
-            <Text style={styles.sub} numberOfLines={1}>{`${byId.get(j.machineId)?.name ?? ''} · done ${formatDate(j.prepared!.date)} by ${j.prepared!.by}`}</Text>
+            <Text style={styles.sub} numberOfLines={1}>{`${byId.get(j.machineId)?.name ?? ''} · done ${uiDate(j.prepared!.date)} by ${j.prepared!.by}`}</Text>
           </View>
         </TouchableOpacity>
       ))}
@@ -356,7 +356,7 @@ export default function MaintenanceSc() {
                   <Text style={styles.title} numberOfLines={1}>{`${depth ? '↳ ' : ''}${m.name}`}</Text>
                   <Text style={styles.sub} numberOfLines={1}>
                     {[
-                      hasCounter(m) ? (m.hours != null ? `${t('hor.hours', { n: m.hours })}${m.hoursDate ? ` ${t('mt2.onDate', { date: formatDate(m.hoursDate) })}` : ''}` : t('mt2.noCounter')) : null,
+                      hasCounter(m) ? (m.hours != null ? `${t('hor.hours', { n: m.hours })}${m.hoursDate ? ` ${t('mt2.onDate', { date: uiDate(m.hoursDate) })}` : ''}` : t('mt2.noCounter')) : null,
                       tn('n.job', jobs),
                       m.location,
                     ].filter(Boolean).join(' · ')}
@@ -382,7 +382,7 @@ export default function MaintenanceSc() {
               <View style={[styles.bar, { backgroundColor: COLORS.textLight }]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.title} numberOfLines={1}>{`${m.name}${m.serial ? ` · S/N ${m.serial}` : ''}`}</Text>
-                <Text style={styles.sub} numberOfLines={1}>{`${m.scrapped?.replacedBy ? t('mt2.replaced') : t('mt2.scrapped')} ${formatDate(m.scrapped?.date)} — ${m.scrapped?.reason ?? ''}`}</Text>
+                <Text style={styles.sub} numberOfLines={1}>{`${m.scrapped?.replacedBy ? t('mt2.replaced') : t('mt2.scrapped')} ${uiDate(m.scrapped?.date)} — ${m.scrapped?.reason ?? ''}`}</Text>
               </View>
             </TouchableOpacity>
           ))

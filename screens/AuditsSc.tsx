@@ -19,7 +19,7 @@ import { roleAtLeast } from '../types/role';
 import { auditSummary, defaultItems, nextAuditNo } from '../services/audit';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 
 import { t, tk, tn, useT } from '../utils/i18n';
@@ -115,7 +115,7 @@ function AuditRow({ audit, onPress, styles, COLORS }: { audit: InternalAudit; on
         <Text style={styles.rowNo}>{audit.no}</Text>
         <Text style={styles.rowTitle}>{audit.title}</Text>
         <Text style={styles.rowMeta}>
-          {formatDate(audit.startDate)}
+          {uiDate(audit.startDate)}
           {audit.by ? ` · ${audit.by}` : ''}
           {closed ? ` · ${t('audits.closed')}` : ` · ${t('audits.open')}`}
         </Text>

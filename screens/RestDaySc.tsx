@@ -229,7 +229,7 @@ export default function RestDaySc() {
             multiline
           />
           {saved?.updatedBy ? (
-            <Text style={styles.meta}>{`${t('rest.lastSaved', { who: saved.updatedBy })} · ${new Date(saved.updatedAt).toLocaleString()}`}</Text>
+            <Text style={styles.meta}>{`${t('rest.lastSaved', { who: saved.updatedBy })} · ${new Date(saved.updatedAt).toLocaleString(dateLocale())}`}</Text>
           ) : null}
         </ScrollView>
       </SafeAreaView>

@@ -17,7 +17,7 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { moduleOn } from '../constants/modules';
-import { CATEGORY_MAP } from '../constants/categories';
+import { catLabel } from '../constants/categories';
 import { periodsFor } from '../constants/checklists';
 import { CategoryKey } from '../types/equipment';
 import { todayIso } from '../services/pms';
@@ -114,7 +114,7 @@ export default function ReadinessSc() {
         date: when,
         today,
         on: moduleOn,
-        labelOf: (k: CategoryKey) => data.categories.find((c) => c.key === k)?.label ?? CATEGORY_MAP[k]?.label ?? String(k),
+        labelOf: (k: CategoryKey) => catLabel(data.categories.find((c) => c.key === k) ?? k),
         periodsOf: (k: CategoryKey) => periodsFor(k, data.templates),
         ...data,
       }),
@@ -137,7 +137,7 @@ export default function ReadinessSc() {
       const c = buildCalendar({
         today,
         on: moduleOn,
-        labelOf: (k: CategoryKey) => data.categories.find((x) => x.key === k)?.label ?? CATEGORY_MAP[k]?.label ?? String(k),
+        labelOf: (k: CategoryKey) => catLabel(data.categories.find((x) => x.key === k) ?? k),
         periodsOf: (k: CategoryKey) => periodsFor(k, data.templates),
         ...data,
       });

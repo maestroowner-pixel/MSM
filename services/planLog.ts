@@ -10,6 +10,7 @@
 // ===================================
 
 import type { Machine, PlanChange, PmsJob } from '../types/pms';
+import { tk } from '../utils/t';
 
 export const CHANGES_KEPT = 100;
 
@@ -73,3 +74,17 @@ export function withChanges(log: PlanChange[] | undefined, diff: PlanDiff[], who
 
 /** "Interval, hours 250 h → 500 h". */
 export const changeText = (c: PlanChange) => `${c.field}: ${c.from} → ${c.to}`;
+
+// The log stores the English label and values (it is the record, and the PDF
+// prints it); the screen names the field and yes / no in the interface language.
+const FIELD_OF = new Map<string, string>([...Object.entries(JOB_FIELDS), ...Object.entries(MACHINE_FIELDS)].map(([k, f]) => [f.label, k]));
+const uiValue = (v: string) => (v === 'yes' || v === 'no' ? tk(`pl.${v}`) : v);
+
+/** The field's name for a screen, by its key ("intervalHours"). */
+export const fieldName = (field: string) => tk(`pl.f.${field}`);
+
+/** changeText for a screen. */
+export function changeTextUi(c: PlanChange): string {
+  const k = FIELD_OF.get(c.field);
+  return `${k ? fieldName(k) : c.field}: ${uiValue(c.from)} → ${uiValue(c.to)}`;
+}

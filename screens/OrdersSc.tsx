@@ -26,7 +26,7 @@ import { completionPct, journalOrders, ordersForDept } from '../services/orders'
 import SimpleDatePicker from '../components/SimpleDatePicker';
 import { OrderGroup } from '../types/orders';
 import { todayIso } from '../services/pms';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { t, tk, tn, useT } from '../utils/i18n';
 
@@ -218,17 +218,17 @@ export default function OrdersSc() {
               </View>
               <Text style={styles.deptTag}>{ORDER_DEPT_LABEL[o.dept]}</Text>
               {o.supplier ? <Text style={styles.sub} numberOfLines={1}>{o.supplier}</Text> : null}
-              <Text style={styles.sub}>{`${o.lines.length} line${o.lines.length === 1 ? '' : 's'} · ${formatDate(o.date)}`}</Text>
+              <Text style={styles.sub}>{`${o.lines.length} line${o.lines.length === 1 ? '' : 's'} · ${uiDate(o.date)}`}</Text>
               {/* Chronology for closed orders */}
               {(o.status === 'received' || o.status === 'cancelled') ? (() => {
                 const steps: string[] = [];
-                if (o.sentAt) steps.push(t('galley.sent', { date: formatDate(o.sentAt) }));
+                if (o.sentAt) steps.push(t('galley.sent', { date: uiDate(o.sentAt) }));
                 if (o.deliveries && o.deliveries.length > 0 && o.status === 'received') {
                   const firstPartial = o.deliveries[0];
-                  if (firstPartial) steps.push(t('ord.part', { date: formatDate(firstPartial.date) }));
+                  if (firstPartial) steps.push(t('ord.part', { date: uiDate(firstPartial.date) }));
                 }
-                if (o.receivedAt) steps.push(t('galley.rcvd', { date: formatDate(o.receivedAt) }));
-                if (o.cancelledAt) steps.push(t('galley.cancelled', { date: formatDate(o.cancelledAt) }));
+                if (o.receivedAt) steps.push(t('galley.rcvd', { date: uiDate(o.receivedAt) }));
+                if (o.cancelledAt) steps.push(t('galley.cancelled', { date: uiDate(o.cancelledAt) }));
                 if (!steps.length) return null;
                 return (
                   <Text style={styles.timeline} numberOfLines={2}>{steps.join(' → ')}</Text>

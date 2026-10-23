@@ -29,7 +29,7 @@ import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { vesselHeader } from '../services/export';
 import { exportDocPdf } from '../services/hospitalReport';
-import { formatDate } from '../utils/dates';
+import { formatDate, uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
@@ -262,7 +262,7 @@ export default function SearchesSc() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm }}>
                   <MciIcon name={KIND_ICON[s.kind]} size={18} color={COLORS.textDark} />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.name}>{`${SEARCH_LABEL[s.kind]} · ${formatDate(s.date)} ${s.time}`}</Text>
+                    <Text style={styles.name}>{`${SEARCH_LABEL[s.kind]} · ${uiDate(s.date)} ${s.time}`}</Text>
                     <Text style={styles.sub}>{[s.reason, t('srch.areasN', { k: searchDone(s), n: s.areas.length }), s.closed!.outcome, t('srch.signedBy', { by: s.closed!.by })].filter(Boolean).join(' · ')}</Text>
                   </View>
                   <TouchableOpacity style={styles.small} onPress={() => void pdf(s)}><Text style={styles.smallText}>PDF</Text></TouchableOpacity>

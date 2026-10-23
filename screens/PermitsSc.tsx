@@ -20,12 +20,12 @@ import { Dropdown } from '../components/Dropdown';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
-import { PERMIT_STATUS_LABEL, Permit, PermitType, RiskAssessment } from '../types/permits';
+import { Permit, PermitType, RiskAssessment } from '../types/permits';
 import { PERMIT_TYPES, PERMIT_TYPE_MAP } from '../constants/permitTypes';
 import { RISK_LIBRARY } from '../constants/riskLibrary';
-import { RISK_COLOR, RISK_LABEL, isOverdue, nowLocal, worstResidual } from '../services/permits';
+import { RISK_COLOR, isOverdue, nowLocal, worstResidual } from '../services/permits';
 import { uid } from '../utils/id';
-import { t, tn, useT } from '../utils/i18n';
+import { t, tk, tn, useT } from '../utils/i18n';
 
 type Tab = 'permits' | 'risks';
 
@@ -88,12 +88,12 @@ export default function PermitsSc() {
         <View style={[styles.bar, { backgroundColor: color }]} />
         <MciIcon name={def.icon} size={22} color={COLORS.textLight} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.title} numberOfLines={1}>{p.work || def.label}</Text>
+          <Text style={styles.title} numberOfLines={1}>{p.work || tk(`ptw.kind.${def.key}`)}</Text>
           <Text style={styles.sub} numberOfLines={1}>
-            {[p.no, def.label, p.location, p.from ? `${p.from.replace('T', ' ')} → ${(p.to ?? '').slice(11)}` : null].filter(Boolean).join(' · ')}
+            {[p.no, tk(`ptw.kind.${def.key}`), p.location, p.from ? `${p.from.replace('T', ' ')} → ${(p.to ?? '').slice(11)}` : null].filter(Boolean).join(' · ')}
           </Text>
         </View>
-        <Text style={[styles.status, { color }]}>{late ? t('permits.overdue') : PERMIT_STATUS_LABEL[p.status]}</Text>
+        <Text style={[styles.status, { color }]}>{late ? t('permits.overdue') : tk(`ptw.status.${p.status}`)}</Text>
       </TouchableOpacity>
     );
   };
@@ -109,7 +109,7 @@ export default function PermitsSc() {
             {[r.no, tn('n.hazard', r.hazards.length), r.approved ? t('permits.approvedBy', { by: r.approved.by }) : t('permits.notApproved')].filter(Boolean).join(' · ')}
           </Text>
         </View>
-        {w ? <Text style={[styles.status, { color: RISK_COLOR[w] }]}>{RISK_LABEL[w]}</Text> : null}
+        {w ? <Text style={[styles.status, { color: RISK_COLOR[w] }]}>{tk(`risk.lvl.${w}`)}</Text> : null}
       </TouchableOpacity>
     );
   };
@@ -137,7 +137,7 @@ export default function PermitsSc() {
               caption={t('permits.newCap')}
               value={newType}
               onChange={setNewType}
-              options={PERMIT_TYPES.map((t) => ({ value: t.key, label: t.label }))}
+              options={PERMIT_TYPES.map((d) => ({ value: d.key, label: tk(`ptw.kind.${d.key}`) }))}
               style={{ flex: 1 }}
             />
             <TouchableOpacity style={styles.btn} onPress={newPermit}>

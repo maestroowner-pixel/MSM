@@ -26,7 +26,7 @@ import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { uid } from '../utils/id';
 import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
-import { formatDateTime } from '../utils/dates';
+import { uiDateTime } from '../utils/dates';
 import { goBackOr } from '../utils/nav';
 import { personName } from '../types/role';
 import { labelOf, makeStyles } from './RoundsSc';
@@ -113,7 +113,7 @@ export default function RoundSc() {
   return (
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav)} />
-      <ScreenTitle title={`${tk(`round.p.${round.period}`)} · ${round.label}`} subtitle={`${t('round.started', { when: formatDateTime(round.startedAt), by: round.startedByRank ? `${round.startedBy} (${round.startedByRank})` : round.startedBy })}${round.closedAt ? ` · ${t('round.closedAt', { when: formatDateTime(round.closedAt) })}` : ''}`} help="Inspection rounds" />
+      <ScreenTitle title={`${tk(`round.p.${round.period}`)} · ${round.label}`} subtitle={`${t('round.started', { when: uiDateTime(round.startedAt), by: round.startedByRank ? `${round.startedBy} (${round.startedByRank})` : round.startedBy })}${round.closedAt ? ` · ${t('round.closedAt', { when: uiDateTime(round.closedAt) })}` : ''}`} help="Inspection rounds" />
       <Card>
         <Text style={[styles.title, { fontSize: SIZES.h3 ?? 20 }]}>{t('round.progress', { done: all.done.size, n: all.scope.length, left: all.outstanding.length })}</Text>
         <View style={styles.bar}><View style={[styles.barFill, { width: `${pct}%`, backgroundColor: pct === 100 ? COLORS.success : COLORS.primary }]} /></View>
@@ -180,7 +180,7 @@ export default function RoundSc() {
               <TouchableOpacity key={it.id} style={styles.row} onPress={() => nav.navigate('InspectionDetail', { id: i.id })} activeOpacity={0.7}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.title} numberOfLines={1}>{`${i.outcome === 'fail' ? '✗ ' : '✓ '}${itemNumber(it) ? `${t('round.no', { n: itemNumber(it) })} — ` : ''}${typeWithSize(it) || labelOf(it.category)}`}</Text>
-                  <Text style={styles.sub} numberOfLines={1}>{`${i.byRank ? `${i.by} (${i.byRank})` : i.by} · ${formatDateTime(i.at)} · ${itemLocation(it)}`}</Text>
+                  <Text style={styles.sub} numberOfLines={1}>{`${i.byRank ? `${i.by} (${i.byRank})` : i.by} · ${uiDateTime(i.at)} · ${itemLocation(it)}`}</Text>
                 </View>
                 <Text style={styles.chev}>›</Text>
               </TouchableOpacity>

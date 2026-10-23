@@ -29,7 +29,7 @@ import { ScheduleRow, drillTypeName, everyLabel, everyText, kindName } from '../
 import { Cell, DrillYearPlan, MONTHS, calendarRows, cellOf, dayIn, proposeYear, toggleSlot, yearCounts } from '../services/drillPlan';
 import { exportDocPdf } from '../services/hospitalReport';
 import { vesselHeader } from '../services/export';
-import { formatDate } from '../utils/dates';
+import { uiDate } from '../utils/dates';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from '../screens/SafetySc';
 
@@ -79,7 +79,7 @@ export function DrillCalendar({ schedule, today, onSaved }: { schedule: Schedule
 
   const tap = (r: { kind: string; title: string }, month: number, c: Cell) => {
     const done = c.done.find((d) => d.drill)?.drill;
-    if (c.state === 'done') return done ? nav.navigate('Drill', { id: done.id }) : Alert.alert(kindName(r.kind, r.title), tr(r.kind === 'oilspill' ? 'dcal.doneSopep' : 'dcal.doneSecurity', { dates: c.done.map((d) => formatDate(d.date)).join(', ') }));
+    if (c.state === 'done') return done ? nav.navigate('Drill', { id: done.id }) : Alert.alert(kindName(r.kind, r.title), tr(r.kind === 'oilspill' ? 'dcal.doneSopep' : 'dcal.doneSecurity', { dates: c.done.map((d) => uiDate(d.date)).join(', ') }));
     if (c.scheduled) return nav.navigate('Drill', { id: c.scheduled.id });
     if (!officer) return;
     const base: DrillYearPlan = plan ?? { id: String(year), slots: [], updatedAt: 0 };

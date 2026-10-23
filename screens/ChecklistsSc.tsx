@@ -29,11 +29,12 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { CATEGORY_MAP, GROUP_LABEL, GROUP_ORDER, visibleCategories } from '../constants/categories';
+import { CATEGORY_MAP, GROUP_ORDER, visibleCategories, catLabel, groupLabel } from '../constants/categories';
 import { CategoryKey } from '../types/equipment';
 import { InspectionPeriod, PERIOD_LABEL } from '../types/inspection';
 import {
   ChecklistTemplate,
+  clTitle,
   Round,
   VESSEL_TEMPLATE_PREFIX,
   roundsFor,
@@ -41,7 +42,7 @@ import {
   vesselRow,
 } from '../constants/checklists';
 import { uid } from '../utils/id';
-import { t, tk, useT } from '../utils/i18n';
+import { t, tk, tn, useT } from '../utils/i18n';
 
 /**
  * Which existing round a new one is copied from: the nearest shorter frequency,
@@ -106,7 +107,7 @@ export default function ChecklistsSc() {
       // here either — one decision, taken once, showing everywhere.
       const inGroup = visibleCategories().filter((c) => c.group === group);
       if (!inGroup.length) continue;
-      out.push({ kind: 'header', key: `h:${group}`, header: GROUP_LABEL[group] });
+      out.push({ kind: 'header', key: `h:${group}`, header: groupLabel(group) });
       for (const meta of inGroup) {
         const rounds = roundsFor(meta.key, templates);
         for (const round of rounds) {
@@ -180,7 +181,7 @@ export default function ChecklistsSc() {
   };
 
   const confirmAddRound = (category: CategoryKey, period: InspectionPeriod) => {
-    const label = CATEGORY_MAP[category]?.label ?? t('cle.thisCat');
+    const label = CATEGORY_MAP[category] ? catLabel(category) : t('cle.thisCat');
     const p = tk(`period.${period}`).toLowerCase();
     Alert.alert(
       t('cl.addQ', { period: p }),
@@ -269,13 +270,13 @@ export default function ChecklistsSc() {
               <CategoryBadge category={item.category} size={30} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.rowTitle, !round.on && styles.rowOff]} numberOfLines={1}>
-                  {round.template.title}
+                  {clTitle(round.template)}
                 </Text>
                 <Text style={styles.rowSub}>
                   {round.on
-                    ? `${PERIOD_LABEL[round.period]} · ${round.template.lines.length} lines` +
-                      (round.own ? " · this vessel's" : '')
-                    : `${PERIOD_LABEL[round.period]} · not required on this vessel`}
+                    ? `${tk(`period.${round.period}`)} · ${tn('n.line', round.template.lines.length)}` +
+                      (round.own ? ` · ${t('cl.rowOwn')}` : '')
+                    : `${tk(`period.${round.period}`)} · ${t('cl.notRequired')}`}
                 </Text>
               </View>
               {round.own && round.on ? (

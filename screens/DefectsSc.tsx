@@ -20,11 +20,11 @@ import { MciIcon } from '../components/MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
-import { CATEGORY_MAP } from '../constants/categories';
+import { CATEGORY_MAP, catLabel } from '../constants/categories';
 import { Group } from '../types/equipment';
 import { Inspection, PERIOD_LABEL } from '../types/inspection';
 import { signatureLine } from '../types/crew';
-import { formatDateTime } from '../utils/dates';
+import { uiDateTime } from '../utils/dates';
 import { failedLines } from '../services/inspections';
 import { t, useT } from '../utils/i18n';
 
@@ -66,10 +66,10 @@ export default function DefectsSc() {
             <CategoryBadge category={insp.category} size={22} />
             <View style={{ flex: 1 }}>
               <Text style={styles.name} numberOfLines={1}>
-                {equip?.type || equip?.serial || meta?.label || t('def.item')}
+                {equip?.type || equip?.serial || (meta ? catLabel(meta) : '') || t('def.item')}
               </Text>
               <Text style={styles.meta} numberOfLines={1}>
-                {[meta?.label, equip?.position].filter(Boolean).join(' · ')}
+                {[meta ? catLabel(meta) : null, equip?.position].filter(Boolean).join(' · ')}
               </Text>
             </View>
             {insp.defect?.open ? (
@@ -97,7 +97,7 @@ export default function DefectsSc() {
           <View style={styles.footer}>
             <MciIcon name="account-check" size={14} color={COLORS.textLight} />
             <Text style={styles.footerText} numberOfLines={1}>
-              {signatureLine(insp.by, insp.byRank)} · {formatDateTime(insp.at)} ·{' '}
+              {signatureLine(insp.by, insp.byRank)} · {uiDateTime(insp.at)} ·{' '}
               {PERIOD_LABEL[insp.period]}
             </Text>
           </View>
@@ -106,7 +106,7 @@ export default function DefectsSc() {
             <View style={styles.footer}>
               <MciIcon name="wrench" size={14} color={COLORS.success} />
               <Text style={styles.footerText} numberOfLines={1}>
-                Rectified by {insp.defect.closedBy} · {formatDateTime(insp.defect.closedAt)}
+                Rectified by {insp.defect.closedBy} · {uiDateTime(insp.defect.closedAt)}
               </Text>
             </View>
           ) : null}

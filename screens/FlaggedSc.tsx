@@ -12,7 +12,7 @@ import { Empty, Screen, ScreenTitle, StatusPill, CategoryBadge } from '../compon
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
-import { CATEGORY_MAP } from '../constants/categories';
+import { CATEGORY_MAP, catShort } from '../constants/categories';
 import { computeStatus } from '../utils/dates';
 import { EquipmentItem } from '../types/equipment';
 
@@ -35,7 +35,7 @@ export default function FlaggedSc() {
 
   const titleOf = (it: EquipmentItem) => {
     const meta = CATEGORY_MAP[it.category];
-    return it.type || (it.no != null ? `#${it.no}` : meta.short);
+    return it.type || (it.no != null ? `#${it.no}` : catShort(meta));
   };
 
   return (
@@ -66,7 +66,7 @@ export default function FlaggedSc() {
               <View style={{ flex: 1, marginLeft: SIZES.md }}>
                 <Text style={styles.title} numberOfLines={1}>{titleOf(item)}</Text>
                 <Text style={styles.sub} numberOfLines={1}>
-                  {meta.short}
+                  {catShort(meta)}
                   {item.position ? ` · ${item.position}` : ''}
                   {item.serial ? ` · ${item.serial}` : ''}
                 </Text>
