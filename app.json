@@ -2,7 +2,7 @@
   "expo": {
     "name": "ISM AI Pilot",
     "slug": "marine-safety-manager",
-    "version": "2.66",
+    "version": "2.67",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "msm",
@@ -20,7 +20,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.kukalab.msm",
       "appleTeamId": "LAGTN99698",
-      "buildNumber": "20660",
+      "buildNumber": "20670",
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.kukalab.msm"
@@ -54,7 +54,7 @@
     },
     "android": {
       "package": "com.kukalab.msm",
-      "versionCode": 20660,
+      "versionCode": 20670,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",

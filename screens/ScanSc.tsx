@@ -14,6 +14,18 @@
 // bolted on — it is what is needed when a code is too scraped to scan and the
 // digits are still readable, and it runs the identical lookup.
 //
+// Quick pass (Sven, 24 Oct 2026): on a vessel where defects are months apart, the
+// round is a walk past labels that are all fine, and five taps per item made it
+// slower than the Excel sheet it replaced. Switched on, every equipment label
+// scanned is signed at once as PASSED on every checklist line — no item screen,
+// no checklist, no confirmation — and the scanner re-arms with a sound and a buzz.
+// The signature is confirmed ONCE, when the mode is switched on, for the person
+// who signs. It refuses what it cannot honestly pass: an item with an open defect,
+// one already done this period, a category with no check for the period, and a
+// TYPED code where the vessel requires a scan. Each record says it was a quick
+// pass, so the report shows how the item was checked. A defect found afterwards
+// is a normal inspection of the item — tap it in the list.
+//
 // Windows: expo-camera has no Windows build and is swapped for mocks/expo-camera.js
 // by metro.config.js. The stub reports permission permanently denied, and the guard
 // below turns the screen into manual entry — which still works, because the lookup
@@ -21,7 +33,7 @@
 // ===================================
 
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Switch, Text, TextInput, TouchableOpacity, Vibration, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 
@@ -32,7 +44,17 @@ import { useData } from '../contexts/DataContext';
 import { SCAN_BARCODE_TYPES, ScanMatch, lookupScan } from '../services/barcode';
 import { SIZES, Palette } from '../theme';
 import { goBackOr } from '../utils/nav';
-import { recordScanProof } from '../services/signingPolicy';
+import { recordScanProof, signerRule, signingGate } from '../services/signingPolicy';
+import { useSignConfirm, SignResult } from '../components/SignConfirm';
+import { SignerPicker } from '../components/SignerPicker';
+import * as inspections from '../services/inspections';
+import { roundFor } from '../services/rounds';
+import { useActiveRound } from '../services/activeRound';
+import { periodsFor, templateFor } from '../constants/checklists';
+import { CATEGORY_MAP, catLabel } from '../constants/categories';
+import { CheckResult, InspectionPeriod } from '../types/inspection';
+import { itemNumber, typeWithSize } from '../utils/itemText';
+import { playErrorSound, playSuccessSound } from '../utils/sound';
 import { parseCheckpointQr, parseCrewQr, parseKeyQr, parsePassQr, samePass, parseSopepQr, parseStoreQr } from '../services/crewQr';
 import { visit as visitCheckpoint } from '../services/patrolLive';
 import { roomByCode, storeRooms } from '../types/stores';
@@ -45,7 +67,7 @@ import { moduleOn } from '../constants/modules';
 import { isAboard } from '../types/crew';
 import { personName } from '../types/role';
 import * as storage from '../services/storage';
-import { t, useT } from '../utils/i18n';
+import { t, tk, useT } from '../utils/i18n';
 
 /** No expo-camera on Windows — see the module header. */
 const HAS_CAMERA = Platform.OS !== 'windows';
@@ -60,13 +82,35 @@ const HAS_CAMERA = Platform.OS !== 'windows';
  */
 const CAMERA_ON_OPEN = Platform.OS !== 'web';
 
+const QUICK_PERIODS: InspectionPeriod[] = ['weekly', 'monthly', 'quarterly', 'annual'];
+/** On the record, in English like the rest of it — what the report prints as the remark. */
+const QUICK_NOTE = {
+  camera: 'Quick pass: label scanned, all lines passed, no checklist opened.',
+  typed: 'Quick pass: code typed, all lines passed, no checklist opened.',
+};
+/** The camera keeps reading a sticker it is still pointed at; the same code is ignored this long. */
+const SAME_CODE_MS = 4000;
+
+interface QuickRow {
+  key: string;
+  itemId?: string;
+  title: string;
+  text: string;
+  ok: boolean;
+}
+
+const quickTitle = (it: { no?: string; type?: string; size?: string; serial?: string } & any) =>
+  [itemNumber(it) && `#${itemNumber(it)}`, typeWithSize(it) || (it.serial ? `S/N ${it.serial}` : '')].filter(Boolean).join(' ') || t('ins.item');
+
 export default function ScanSc() {
   useT();
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { flat, recordScan, crew, crewMoves, appendRow, visitors, saveRow, passengers, storeRoomList, sopepLockers: sopepLockerList, checkpoints, keyList } = useData();
+  const { flat, recordScan, crew, crewMoves, appendRow, visitors, saveRow, passengers, storeRoomList, sopepLockers: sopepLockerList, checkpoints, keyList, inspections: trail, templates, rounds, signingPolicy, prefs, setPrefs, addInspection } = useData();
   const sync = useSync();
+  const confirmSign = useSignConfirm();
+  const activeRoundId = useActiveRound();
   /** Opened from the gangway page: a crew or passenger card records the crossing. */
   const atGangway = ['1', 'true', true, 1].includes(route.params?.gangway);
   /** Opened from a security round: each checkpoint scanned is recorded and the scanner stays open for the next. */
@@ -87,10 +131,127 @@ export default function ScanSc() {
   // from opening one screen twice.
   const locked = useRef(false);
 
+  // ---- Quick pass (see the header) ----
+  const quickAllowed = !atGangway && !onRound;
+  const [quick, setQuick] = useState(false);
+  const [quickPeriod, setQuickPeriod] = useState<InspectionPeriod>(
+    () => rounds.find((r) => r.id === activeRoundId && !r.closedAt)?.period as InspectionPeriod ?? 'monthly'
+  );
+  const [quickRows, setQuickRows] = useState<QuickRow[]>([]);
+  const [quickCount, setQuickCount] = useState(0);
+  const [pickingSigner, setPickingSigner] = useState(false);
+  /** The signature confirmed when the mode was switched on — carried by every record it signs. */
+  const quickSig = useRef<{ signer: { id: string; name: string; rank?: string }; result: NonNullable<SignResult> } | null>(null);
+  const lastCode = useRef<{ code: string; at: number } | null>(null);
+  /** Records are written one after another: two appends racing would read the same list and drop one. */
+  const writes = useRef<Promise<void>>(Promise.resolve());
+  /** Items passed in this session — the trail in context lags the write by a render. */
+  const passedNow = useRef(new Set<string>());
+
+  const rule = signerRule(signingPolicy, sync.enrolled, sync.me);
+  const activeCrew = useMemo(() => crew.filter((c) => c.active), [crew]);
+
+  const startQuick = async (pickedId?: string) => {
+    let signer: { id: string; name: string; rank?: string } | undefined;
+    if (rule.kind === 'device') signer = rule.signer;
+    else if (rule.kind === 'pick') {
+      const id = pickedId ?? prefs.lastCrewId;
+      signer = activeCrew.find((c) => c.id === id) ?? (activeCrew.length === 1 ? activeCrew[0] : undefined);
+      if (!signer) return setPickingSigner(true);
+    } else return setQuickRows([{ key: 'wait', title: t('qp.title'), text: t('ins.waitAccountBody'), ok: false }]);
+    const sig = await confirmSign({ personKey: signer.id, name: signer.name, ownDevice: rule.kind === 'device', what: t('qp.signWhat') });
+    if (!sig) return;
+    if (rule.kind === 'pick') void setPrefs({ lastCrewId: signer.id });
+    quickSig.current = { signer, result: sig };
+    passedNow.current = new Set();
+    setQuickRows([]);
+    setQuickCount(0);
+    setQuick(true);
+  };
+
+  const stopQuick = () => {
+    quickSig.current = null;
+    setQuick(false);
+  };
+
+  const quickPass = (code: string, via: 'camera' | 'typed') => {
+    const now = Date.now();
+    if (via === 'camera' && lastCode.current?.code === code && now - lastCode.current.at < SAME_CODE_MS) {
+      locked.current = false;
+      return;
+    }
+    lastCode.current = { code, at: now };
+    const done = (row: Omit<QuickRow, 'key'>) => {
+      setQuickRows((prev) => [{ ...row, key: `${now}` }, ...prev].slice(0, 12));
+      if (row.ok) {
+        playSuccessSound();
+        Vibration.vibrate(60);
+      } else {
+        playErrorSound();
+        Vibration.vibrate([0, 90, 80, 90]);
+      }
+      setManual('');
+      setTimeout(() => {
+        locked.current = false;
+      }, row.ok ? 700 : 1500);
+    };
+    const s = quickSig.current;
+    if (!s) return done({ title: t('qp.title'), text: t('qp.notStarted'), ok: false });
+
+    const match = lookupScan(code, flat);
+    if (match.kind !== 'item') return done({ title: code, text: match.kind === 'stale' ? t('scn.staleTitle') : t('qp.notItem'), ok: false });
+    const item = match.item;
+    const title = quickTitle(item);
+    if (!periodsFor(item.category, templates).includes(quickPeriod)) {
+      return done({ itemId: item.id, title, text: t('qp.noCheck', { per: tk(`period.${quickPeriod}`).toLowerCase(), cat: catLabel(CATEGORY_MAP[item.category]) }), ok: false });
+    }
+    const template = templateFor(item.category, quickPeriod, templates);
+    if (!template) return done({ itemId: item.id, title, text: t('qp.noCheck', { per: tk(`period.${quickPeriod}`).toLowerCase(), cat: catLabel(CATEGORY_MAP[item.category]) }), ok: false });
+    if (inspections.openDefectsForItem(trail, item.id).length) return done({ itemId: item.id, title, text: t('qp.openDefect'), ok: false });
+    if (passedNow.current.has(item.id) || inspections.roundStatus(trail, item.id, quickPeriod) === 'done') {
+      return done({ itemId: item.id, title, text: t('qp.already', { per: tk(`period.${quickPeriod}`).toLowerCase() }), ok: false });
+    }
+    // A typed code is not proof the label was in front of the phone — where the vessel
+    // requires a scan, only the camera may pass an item with no checklist opened.
+    if (via === 'camera') recordScanProof(item.id, 'qr-camera', now);
+    const proof = via === 'camera' ? { itemId: item.id, at: now, method: 'qr-camera' as const } : null;
+    const gate = signingGate(signingPolicy, sync.role, sync.enrolled, proof, item.category);
+    if (gate.kind === 'blocked' || gate.kind === 'override') return done({ itemId: item.id, title, text: t('qp.scanNeeded'), ok: false });
+
+    const round = moduleOn('rounds') ? roundFor(rounds, item, quickPeriod, activeRoundId) : null;
+    const record = {
+      ...inspections.create({
+        item,
+        template,
+        results: Object.fromEntries(template.lines.map((l) => [l.id, 'pass' as CheckResult])),
+        by: s.signer.name,
+        byRank: s.signer.rank,
+        byId: s.signer.id,
+        comment: QUICK_NOTE[via],
+        ...(round ? { roundId: round.id } : {}),
+        verification: proof ? { method: proof.method, scannedAt: proof.at } : undefined,
+        at: now,
+      }),
+      ...(s.result.proof ? { signedWith: s.result.proof } : {}),
+    };
+    passedNow.current.add(item.id);
+    writes.current = writes.current
+      .then(() => addInspection(record))
+      .catch(() => {
+        passedNow.current.delete(item.id);
+        setQuickRows((prev) => [{ key: `${now}e`, itemId: item.id, title, text: t('ins.couldNotSign'), ok: false }, ...prev]);
+        playErrorSound();
+      });
+    void recordScan(item.id);
+    setQuickCount((n) => n + 1);
+    done({ itemId: item.id, title, text: t('qp.passed', { per: tk(`period.${quickPeriod}`).toLowerCase(), time: new Date(now).toTimeString().slice(0, 5) }), ok: true });
+  };
+
   const handle = useCallback(
     (code: string, via: 'camera' | 'typed') => {
       if (locked.current) return;
       locked.current = true;
+      if (quick) return quickPass(code, via);
 
       const hold = (hit: { name: string; text: string; ok: boolean }, ms = 2200) => {
         setCrewHit(hit);
@@ -235,7 +396,7 @@ export default function ScanSc() {
       }
       setResult(match);
     },
-    [flat, nav, recordScan, crew, crewMoves, appendRow, visitors, saveRow, sync.me, passengers, storeRoomList, sopepLockerList]
+    [flat, nav, recordScan, crew, crewMoves, appendRow, visitors, saveRow, sync.me, passengers, storeRoomList, sopepLockerList, quick, quickPass]
   );
 
   const again = () => {
@@ -359,6 +520,26 @@ export default function ScanSc() {
         </Card>
       ) : null}
 
+      {quickAllowed && HAS_CAMERA ? (
+        <Card style={quick ? { borderLeftWidth: 6, borderLeftColor: COLORS.success } : undefined}>
+          <View style={styles.quickHead}>
+            <View style={{ flex: 1 }}>
+              <Label>{t('qp.title')}</Label>
+              <Text style={styles.note}>{quick ? t('qp.onBody', { who: quickSig.current?.signer.name ?? '' }) : t('qp.offBody')}</Text>
+            </View>
+            <Switch value={quick} onValueChange={(v) => (v ? void startQuick() : stopQuick())} />
+          </View>
+          <View style={styles.periodRow}>
+            {QUICK_PERIODS.map((p) => (
+              <TouchableOpacity key={p} style={[styles.periodBtn, p === quickPeriod && styles.periodBtnOn]} onPress={() => setQuickPeriod(p)}>
+                <Text style={[styles.periodText, p === quickPeriod && { color: COLORS.textWhite }]}>{tk(`period.${p}`)}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {quick ? <Text style={styles.quickCount}>{t('qp.count', { n: quickCount })}</Text> : null}
+        </Card>
+      ) : null}
+
       {cameraReady ? (
         <View style={styles.cameraBox}>
           <CameraView
@@ -369,6 +550,29 @@ export default function ScanSc() {
           />
           <View style={styles.reticle} pointerEvents="none" />
         </View>
+      ) : null}
+
+      {quick && quickRows.length ? (
+        <Card>
+          {quickRows.map((r) => (
+            <TouchableOpacity
+              key={r.key}
+              disabled={!r.itemId}
+              style={styles.quickRow}
+              onPress={() => r.itemId && nav.navigate('Inspection', { itemId: r.itemId, period: quickPeriod })}
+            >
+              <MciIcon name={r.ok ? 'check-circle' : 'alert-circle'} size={20} color={r.ok ? COLORS.success : COLORS.danger} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.quickTitle} numberOfLines={1}>{r.title}</Text>
+                <Text style={[styles.note, { paddingTop: 0 }]}>{r.text}</Text>
+              </View>
+              {r.itemId ? (
+                r.ok ? <Text style={styles.quickDefect}>{t('qp.defect')}</Text> : <MciIcon name="chevron-right" size={20} color={COLORS.textLight} />
+              ) : null}
+            </TouchableOpacity>
+          ))}
+          <Text style={styles.note}>{t('qp.defectHint')}</Text>
+        </Card>
       ) : null}
 
       {crewHit ? (
@@ -434,6 +638,16 @@ export default function ScanSc() {
           </View>
         </Card>
       ) : null}
+      <SignerPicker
+        visible={pickingSigner}
+        crew={activeCrew}
+        title={t('sign.who')}
+        onSelect={(id) => {
+          setPickingSigner(false);
+          void startQuick(id);
+        }}
+        onClose={() => setPickingSigner(false)}
+      />
     </Screen>
   );
 }
@@ -441,6 +655,15 @@ export default function ScanSc() {
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
     head: { flexDirection: 'row', alignItems: 'flex-start' },
+    quickHead: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md },
+    quickCount: { color: COLORS.success, fontWeight: '800', fontSize: SIZES.h5, paddingTop: SIZES.sm },
+    quickRow: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, paddingVertical: SIZES.xs },
+    quickTitle: { color: COLORS.textDark, fontWeight: '700', fontSize: SIZES.body },
+    quickDefect: { color: COLORS.danger, fontWeight: '700', fontSize: SIZES.small },
+    periodRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.xs, paddingTop: SIZES.sm },
+    periodBtn: { borderWidth: 1, borderColor: COLORS.border, borderRadius: SIZES.radiusMd, paddingHorizontal: SIZES.md, paddingVertical: SIZES.xs },
+    periodBtnOn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    periodText: { color: COLORS.text, fontWeight: '600', fontSize: SIZES.small },
     cameraBox: {
       height: 320,
       borderRadius: SIZES.radiusLg,
