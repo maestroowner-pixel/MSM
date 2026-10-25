@@ -53,6 +53,7 @@ import MachineSc from './screens/MachineSc';
 import PmsJobSc from './screens/PmsJobSc';
 import PmsDefectSc from './screens/PmsDefectSc';
 import PmsProjectsSc, { PmsProjectSc } from './screens/PmsProjectsSc';
+import AmsHoursSc from './screens/AmsHoursSc';
 import WatchLogSc from './screens/WatchLogSc';
 import WatchEntrySc from './screens/WatchEntrySc';
 import DeckLogSc from './screens/DeckLogSc';
@@ -478,6 +479,7 @@ const linking = {
       PmsJob: 'pms-job/:id',
       PmsDefect: 'pms-defect/:id',
       PmsProjects: 'pms-projects',
+      AmsHours: 'ams-hours',
       PmsProject: 'pms-project/:id',
       WatchEntry: 'watch-entry',
       DeckEntry: 'deck-entry',
@@ -726,6 +728,7 @@ function Root() {
         <Stack.Screen name="PmsJob" component={PmsJobSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsDefect" component={PmsDefectSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsProjects" component={PmsProjectsSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="AmsHours" component={AmsHoursSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsProject" component={PmsProjectSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="WatchEntry" component={WatchEntrySc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="DeckEntry" component={DeckEntrySc} options={{ presentation: 'modal' }} />

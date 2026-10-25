@@ -253,5 +253,54 @@ import { projectJobs, yardList } from '../services/pmsProjects';
   const m: Machine = { id: 'm', name: 'Steering', updatedAt: 0 };
   ok(planDiff(m, { ...m, classItem: true, classCode: 'SG-1' }, MACHINE_FIELDS).every((x) => x.needsReason), 'class item and code changes need a reason');
 }
+// Running hours from the AMS (services/amsHours.ts)
+import { hoursCell, readAms } from '../services/amsHours';
+{
+  ok(hoursCell('12 345,6') === 12345.6 && hoursCell('12,345.6') === 12345.6 && hoursCell('1.234') === 1234 && hoursCell('812.5 h') === 812.5 && hoursCell(900) === 900, 'hours cells: 12 345,6 · 12,345.6 · 1.234 · 812.5 h · 900');
+  ok(hoursCell('abc') === undefined && hoursCell('') === undefined && hoursCell(-5) === undefined, 'not hours: text, empty, negative');
+  const D = '2026-10-24';
+  const ms: Machine[] = [
+    { id: 'me', name: 'Main engine PS', dept: 'engineering', hours: 12000, hoursDate: '2026-10-20', updatedAt: 0 },
+    { id: 'dg1', name: 'Generator 1', dept: 'engineering', serial: 'CAT-77', amsTag: 'DG1_RH', hours: 5000, hoursDate: '2026-10-20', updatedAt: 0 },
+    { id: 'dg2', name: 'Generator 2', dept: 'engineering', hours: 4000, hoursDate: '2026-10-20', counterOffset: 3000, updatedAt: 0 },
+    { id: 'tc', name: 'Turbocharger PS', dept: 'engineering', parentId: 'me', followsParent: true, hours: 100, updatedAt: 0 },
+    { id: 'wm', name: 'Watermaker', dept: 'engineering', hours: 300, hoursDate: '2026-10-20', updatedAt: 0 },
+  ];
+  const f = readAms([
+    ['AMS export', '', '', '', ''],
+    ['Tag', 'Description', 'Value', 'Unit', 'Timestamp'],
+    ['ME_PS_RH', 'Main engine PS', '12 050,5', 'h', '23.10.2026 08:00'],
+    ['ME_PS_RH', 'Main engine PS', '12 060', 'h', '24.10.2026 08:00'],
+    ['DG1_RH', 'Gen 1 running', '5040', 'h', '24.10.2026'],
+    ['GEN2', 'CAT-?', '1100', 'h', '24.10.2026'],
+    ['TC_PS', 'Turbocharger PS', '200', 'h', ''],
+    ['WM_RH', 'Watermaker', '250', 'h', ''],
+    ['ME_PS_RPM', 'Main engine PS', '720', 'rpm', ''],
+    ['', '', '', '', ''],
+    ['BAD', 'Something', 'n/a', 'h', ''],
+  ], ms, D);
+  const by = (k: string) => f.rows.find((r) => r.key === k)!;
+  ok(by('ME_PS_RH').status === 'ok' && by('ME_PS_RH').total === 12060 && by('ME_PS_RH').date === D && by('ME_PS_RH').how === 'name', 'by name, header below a title line, newest of two lines, time dropped');
+  ok(by('DG1_RH').status === 'ok' && by('DG1_RH').how === 'tag' && by('DG1_RH').machineId === 'dg1', 'by the remembered tag, whatever the description');
+  ok(by('GEN2').status === 'unmatched', 'nothing to match: left for the user');
+  const hand = readAms([['Tag', 'Value'], ['GEN2', '1100']], ms, D, { GEN2: 'dg2' }).rows[0];
+  ok(hand.how === 'hand' && hand.status === 'ok' && hand.total === 4100, 'picked by hand; the counter offset added (1100 + 3000)');
+  ok(by('TC_PS').status === 'follows', 'a component following its parent is not read');
+  ok(by('WM_RH').status === 'doubt' && !!by('WM_RH').why, 'lower than the last reading: waits for a reason');
+  ok(f.skipped.length === 2 && f.skipped.some((x) => x.includes('rpm')), 'rpm line and unreadable line listed as not read; the empty line ignored');
+  const many = readAms([['Tag', 'Hours'], ['A', '12400']], [{ ...ms[0], amsTag: 'A' }], D).rows[0];
+  ok(many.status === 'doubt', 'more hours than 4 days allow: waits for a reason');
+  const older = readAms([['Tag', 'Hours', 'Date'], ['DG1_RH', '5001', '2026-10-19']], ms, D).rows[0];
+  ok(older.status === 'older', 'older than the machine\'s last reading: not taken');
+  const same = readAms([['Tag', 'Hours', 'Date'], ['DG1_RH', '5000', '2026-10-20']], ms, D).rows[0];
+  ok(same.status === 'same', 'the same figure on the same day: unchanged');
+  const dup = readAms([['Tag', 'Description', 'Hours'], ['X1', 'Generator 1', '5010'], ['DG1_RH', 'Generator one', '5011']], ms, D).rows;
+  ok(dup.filter((r) => r.status === 'dup').length === 1, 'two lines for one machine: the second is a duplicate');
+  const bare = readAms([['Main engine PS', 12070], ['Watermaker', 310]], ms, D).rows;
+  ok(bare.length === 2 && bare[0].machineId === 'me' && bare[0].status === 'ok', 'no header: name and number columns');
+  const future = readAms([['Tag', 'Hours', 'Time'], ['DG1_RH', '5010', '2027-01-01']], ms, D).rows[0];
+  ok(future.date === D, 'a time in the future is read as today');
+  ok(readAms([['a', 'b'], ['c', 'd']], ms, D).skipped.length === 1, 'no hours anywhere: one message, no rows');
+}
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

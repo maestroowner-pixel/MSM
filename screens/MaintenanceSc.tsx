@@ -211,6 +211,9 @@ export default function MaintenanceSc() {
       <TouchableOpacity onPress={() => nav.navigate('PmsProjects')} style={{ alignSelf: 'flex-start', marginBottom: SIZES.sm }}>
         <Text style={[styles.repBtnText, { color: COLORS.primary }]}>{`${t('mt2.projects')}${pmsProjects.filter((p) => !p.closedAt).length ? ` (${pmsProjects.filter((p) => !p.closedAt).length})` : ''} ›`}</Text>
       </TouchableOpacity>
+      <TouchableOpacity onPress={() => nav.navigate('AmsHours')} style={{ alignSelf: 'flex-start', marginBottom: SIZES.sm }}>
+        <Text style={[styles.repBtnText, { color: COLORS.primary }]}>{`${t('ams.title')} ›`}</Text>
+      </TouchableOpacity>
       <TouchableOpacity onPress={() => nav.navigate('WatchLog')} style={{ alignSelf: 'flex-start', marginBottom: SIZES.sm }}>
         <Text style={[styles.repBtnText, { color: COLORS.primary }]}>{`${t('wl.title')} ›`}</Text>
       </TouchableOpacity>

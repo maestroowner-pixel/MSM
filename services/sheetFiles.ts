@@ -10,6 +10,9 @@ import { pickBinaryFileWeb } from '../utils/webFile';
 import { saveFileWeb } from '../utils/webSave';
 
 const MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+// A CSV is read as text, as written: left to guess, SheetJS turns "05.10.2026" into 10 May and
+// "1.234" into 1.234. The caller reads its own numbers and dates. UTF-8, for names in Cyrillic.
+const asText = (name: string): XLSX.ParsingOptions => (/\.(csv|txt)$/i.test(name) ? { raw: true, codepage: 65001 } : {});
 
 export async function saveSheet(rows: unknown[][], sheetName: string, stem: string, vessel: VesselInfo | null): Promise<string | null | void> {
   const wb = XLSX.utils.book_new();
@@ -28,15 +31,16 @@ export async function saveSheet(rows: unknown[][], sheetName: string, stem: stri
   await deliverFile(name, b64, true, MIME);
 }
 
-export async function pickSheetRows(): Promise<{ name: string; rows: unknown[][] } | null> {
+/** `csv`: also take a .csv file — an AMS export (screens/AmsHoursSc). SheetJS reads both. */
+export async function pickSheetRows(opts: { csv?: boolean } = {}): Promise<{ name: string; rows: unknown[][] } | null> {
   const read = (wb: XLSX.WorkBook) => XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: '' }) as unknown[][];
   if (onWeb) {
-    const f = await pickBinaryFileWeb('.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel');
+    const f = await pickBinaryFileWeb(`.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel${opts.csv ? ',.csv,text/csv' : ''}`);
     if (!f?.bytes) return null;
-    return { name: f.name, rows: read(XLSX.read(f.bytes, { type: 'array', cellDates: true })) };
+    return { name: f.name, rows: read(XLSX.read(f.bytes, { type: 'array', cellDates: true, ...asText(f.name) })) };
   }
-  const res = await DocumentPicker.getDocumentAsync({ type: [MIME, 'application/vnd.ms-excel', '*/*'], copyToCacheDirectory: true });
+  const res = await DocumentPicker.getDocumentAsync({ type: [MIME, 'application/vnd.ms-excel', ...(opts.csv ? ['text/csv', 'text/comma-separated-values'] : []), '*/*'], copyToCacheDirectory: true });
   if (res.canceled || !res.assets?.length) return null;
   const b64 = await FileSystem.readAsStringAsync(res.assets[0].uri, { encoding: 'base64' as any });
-  return { name: res.assets[0].name, rows: read(XLSX.read(b64, { type: 'base64', cellDates: true })) };
+  return { name: res.assets[0].name, rows: read(XLSX.read(b64, { type: 'base64', cellDates: true, ...asText(res.assets[0].name) })) };
 }

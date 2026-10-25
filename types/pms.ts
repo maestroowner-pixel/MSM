@@ -89,6 +89,8 @@ export interface Machine {
    * replaced", so the jobs' due hours carry on unchanged.
    */
   counterOffset?: number;
+  /** Its tag in the AMS export, remembered at the first import (services/amsHours.ts). */
+  amsTag?: string;
   /**
    * A component of another machine (TM Master comparison, item 6): the
    * turbocharger of the main engine, the pump of the watermaker. Listed under it.
