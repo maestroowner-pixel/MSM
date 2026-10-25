@@ -19,6 +19,7 @@
 import { ComplianceStatus } from '../types/equipment';
 import { HoursReading, Machine, PmsDeferral, PmsDone, PmsJob, READINGS_KEPT } from '../types/pms';
 import { t, tn } from '../utils/t';
+import { shipToday } from '../utils/shipTime';
 
 export interface JobDue {
   status: ComplianceStatus;
@@ -49,9 +50,9 @@ function daysBetween(a: string, b: string): number {
   return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
 }
 
+/** Today in ship's time (utils/shipTime) — every screen's "today" comes from here. */
 export function todayIso(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return shipToday();
 }
 
 /**

@@ -680,6 +680,18 @@ const en: ManualContent = {
         "Automatic entries: the Security module creates a deck log entry when a visitor signs on or off at the gangway. The landing report module creates one when a landing report is signed. These entries carry the full text and appear on the day they were made; a 📎 paperclip icon links back to the source report — tap it to open.",
         "Port autocomplete: when editing the vessel's port in Security settings, type the first letters and the app suggests ports from the world port list.",
         "Sharing: tap the share icon in the top bar (visible when entries exist for the selected day) to save or print a signed page as an HTML file.",
+        "Clock changes: the Master plans each change of ship's time ahead in Settings → Vessel → Clock changes — the date and time by the ship's clock, then Retard 1 h or Advance 1 h. At that moment every device switches by itself, and the Deck Log gets the entry \"Ship's time changed UTC+02:00 → UTC+01:00 (clocks retarded 1 h)\". Twelve hours before, the change is shown in the Deck Log and the top line. Changes already made stay listed: a report for a past day is worked out in the zone the ship kept that day, and the day of the change is 23 or 25 hours long.",
+      ],
+    },
+    {
+      emoji: '⚙️',
+      title: "Engine room log",
+      body: [
+        "The Engine Room Log (menu → Logs → Engine Log, or Maintenance → Engine Room Log) is the engine-room logbook: one round of readings per watch, signed by the watch engineer. A signed round is never changed.",
+        "A round: pick the watch period (00–04 … 20–00, or Other), type each reading and add remarks — machinery running, changeovers, alarms, anything worth the Chief Engineer's attention. Beside every reading the app shows the last round's figure and an arrow (↑ ↓ →); a figure outside the normal range turns orange. Signing a round with a reading out of range and no remark asks for the reason first.",
+        "The template (gear icon, Officers and the Master): the readings the vessel takes — name, unit, number or text, and the normal minimum and maximum. Changing it never alters past rounds: each round keeps the readings as they were when signed.",
+        "Trends (chart icon): the last 14 readings of every numeric figure as a line, the normal range shaded green, out-of-range points in orange, with the latest value, minimum and maximum.",
+        "The day's page: the share icon saves the day as a PDF in the paper layout — a reading per row, a round per column, out-of-range figures in red, then each round's remarks and signature. Open a single round for its own page.",
       ],
     },
     {
@@ -1356,6 +1368,18 @@ const ru: ManualContent = {
         "Автоматические записи: модуль Security создаёт запись в журнале, когда посетитель проходит регистрацию на трапе или уходит. Модуль Landing Reports создаёт запись при подписании сопроводительного листа. Эти записи содержат полный текст и появляются датой события; иконка 📎 скрепки ссылается на исходный отчёт — нажмите, чтобы открыть.",
         "Автодополнение порта: при редактировании порта стоянки в настройках Security введите первые буквы — приложение предложит варианты из мирового списка портов.",
         "Публикация: нажмите иконку поделиться в верхней панели (появляется, когда есть записи за выбранный день), чтобы сохранить или распечатать подписанную страницу в виде HTML-файла.",
+        "Перевод часов: капитан заранее планирует каждый перевод судового времени в Settings → Vessel → Clock changes — дата и время по судовым часам, затем «Назад на 1 ч» или «Вперёд на 1 ч». В этот момент все устройства переключаются сами, а в Deck Log появляется запись «Ship's time changed UTC+02:00 → UTC+01:00 (clocks retarded 1 h)». За 12 часов перевод показывается в Deck Log и в верхней строке. Сделанные переводы остаются в списке: отчёт за прошедший день считается в том поясе, в котором судно было в тот день, а сутки перевода длятся 23 или 25 часов.",
+      ],
+    },
+    {
+      emoji: '⚙️',
+      title: "Машинный журнал (Engine Log)",
+      body: [
+        "Машинный журнал (меню → Logs → Engine Log или ТО → Машинный журнал) — вахтенный журнал машинного отделения: один обход с показаниями за вахту, подписанный вахтенным механиком. Подписанный обход не меняется.",
+        "Обход: выберите вахту (00–04 … 20–00 или «Другое»), введите показания и примечания — что работает, переходы, аварийные сигналы, всё, на что стоит обратить внимание старшего механика. Рядом с каждым показанием — цифра прошлого обхода и стрелка (↑ ↓ →); значение вне нормы выделяется оранжевым. Если показание вне нормы, а примечания нет, перед подписью приложение спросит причину.",
+        "Шаблон (шестерёнка, офицеры и капитан): какие показания снимает судно — название, единица, число или текст, нижняя и верхняя граница нормы. Изменение шаблона не меняет прошлые обходы: каждый хранит показания такими, какими они были при подписи.",
+        "Тренды (значок графика): последние 14 показаний каждого числового параметра линией, норма — зелёной полосой, точки вне нормы — оранжевым; рядом последнее значение, минимум и максимум.",
+        "Лист за день: значок «Поделиться» сохраняет день в PDF в бумажном виде — показание в строке, обход в столбце, значения вне нормы красным, ниже примечания и подпись каждого обхода. Отдельный обход открывается своим листом.",
       ],
     },
     {
@@ -2032,6 +2056,18 @@ const es: ManualContent = {
         "Entradas automáticas: el módulo Security crea una entrada cuando un visitante se registra o abandona el buque en la pasarela. El módulo Landing Reports crea una al firmar un landing report. Estas entradas incluyen el texto completo y aparecen con su fecha; el icono 📎 enlaza al informe de origen — pulse para abrirlo.",
         "Autocompletar puerto: al editar el puerto de escala en los ajustes de Security, escriba las primeras letras y la app sugiere puertos de la lista mundial.",
         "Compartir: pulse el icono de compartir en la barra superior (visible cuando hay entradas para el día seleccionado) para guardar o imprimir la página firmada como archivo HTML.",
+        "Cambios de hora: el Capitán planifica cada cambio de la hora del buque con antelación en Settings → Vessel → Clock changes — fecha y hora según el reloj del buque, luego Atrasar 1 h o Adelantar 1 h. En ese momento todos los dispositivos cambian solos y el Deck Log recibe la anotación \"Ship's time changed UTC+02:00 → UTC+01:00 (clocks retarded 1 h)\". Doce horas antes el cambio aparece en el Deck Log y en la línea superior. Los cambios ya hechos siguen en la lista: el informe de un día pasado se calcula en el huso que el buque llevaba ese día, y el día del cambio dura 23 o 25 horas.",
+      ],
+    },
+    {
+      emoji: '⚙️',
+      title: "Diario de máquinas (Engine Log)",
+      body: [
+        "El Diario de máquinas (menú → Logs → Engine Log, o Mantenimiento → Diario de máquinas) es el libro de la sala de máquinas: una ronda de lecturas por guardia, firmada por el maquinista de guardia. Una ronda firmada no se cambia nunca.",
+        "Una ronda: elija la guardia (00–04 … 20–00, u Otro), anote cada lectura y las observaciones — máquinas en marcha, cambios, alarmas, lo que merezca la atención del Jefe de Máquinas. Junto a cada lectura se ve la cifra de la ronda anterior y una flecha (↑ ↓ →); un valor fuera del rango normal se pone naranja. Si una lectura está fuera de rango y no hay observación, la app pide el motivo antes de firmar.",
+        "La plantilla (icono del engranaje, Oficiales y Capitán): las lecturas que toma el buque — nombre, unidad, número o texto, y el mínimo y máximo normales. Cambiarla no altera las rondas pasadas: cada una conserva las lecturas tal como se firmaron.",
+        "Tendencias (icono del gráfico): las últimas 14 lecturas de cada parámetro numérico como línea, el rango normal sombreado en verde, los puntos fuera de rango en naranja, con el último valor, el mínimo y el máximo.",
+        "La hoja del día: el icono de compartir guarda el día en PDF con el formato del papel — una lectura por fila, una ronda por columna, valores fuera de rango en rojo, y debajo las observaciones y la firma de cada ronda. Una ronda sola se abre con su propia hoja.",
       ],
     },
     {
@@ -2708,6 +2744,18 @@ const uk: ManualContent = {
         "Автоматичні записи: модуль Security створює запис у журналі, коли відвідувач проходить реєстрацію на трапі або іде. Модуль Landing Reports створює запис при підписанні супровідного листа. Ці записи містять повний текст і з'являються датою події; іконка 📎 скріпки посилається на вихідний звіт — натисніть, щоб відкрити.",
         "Автодоповнення порту: при редагуванні порту стоянки в налаштуваннях Security введіть перші букви — застосунок запропонує варіанти зі світового списку портів.",
         "Публікація: натисніть іконку поділитися у верхній панелі (з'являється, коли є записи за вибраний день), щоб зберегти або надрукувати підписану сторінку у вигляді HTML-файлу.",
+        "Переведення годинника: капітан заздалегідь планує кожне переведення суднового часу в Settings → Vessel → Clock changes — дата й час за судновим годинником, потім «Назад на 1 год» або «Вперед на 1 год». У цей момент усі пристрої перемикаються самі, а в Deck Log з'являється запис «Ship's time changed UTC+02:00 → UTC+01:00 (clocks retarded 1 h)». За 12 годин переведення показується в Deck Log і у верхньому рядку. Зроблені переведення залишаються у списку: звіт за минулий день рахується в тому поясі, у якому судно було того дня, а доба переведення триває 23 або 25 годин.",
+      ],
+    },
+    {
+      emoji: '⚙️',
+      title: "Машинний журнал (Engine Log)",
+      body: [
+        "Машинний журнал (меню → Logs → Engine Log або ТО → Машинний журнал) — вахтовий журнал машинного відділення: один обхід із показаннями за вахту, підписаний вахтовим механіком. Підписаний обхід не змінюється.",
+        "Обхід: оберіть вахту (00–04 … 20–00 або «Інше»), введіть показання та примітки — що працює, переходи, аварійні сигнали, усе, на що варто звернути увагу старшого механіка. Поруч із кожним показанням — цифра попереднього обходу і стрілка (↑ ↓ →); значення поза нормою виділяється помаранчевим. Якщо показання поза нормою, а примітки немає, перед підписом застосунок запитає причину.",
+        "Шаблон (шестірня, офіцери та капітан): які показання знімає судно — назва, одиниця, число чи текст, нижня й верхня межа норми. Зміна шаблону не змінює минулі обходи: кожен зберігає показання такими, якими вони були під час підпису.",
+        "Тренди (значок графіка): останні 14 показань кожного числового параметра лінією, норма — зеленою смугою, точки поза нормою — помаранчевим; поруч останнє значення, мінімум і максимум.",
+        "Аркуш за день: значок «Поділитися» зберігає день у PDF у паперовому вигляді — показання в рядку, обхід у стовпці, значення поза нормою червоним, нижче примітки та підпис кожного обходу. Окремий обхід відкривається власним аркушем.",
       ],
     },
     {
@@ -3319,6 +3367,18 @@ const no: ManualContent = {
         'Hver post registrerer modus – Til sjøs (kurs, fart, posisjon) eller I havn – pluss vær og et fritekst-merknadsefelt for hendelser, ordrer og observasjoner.',
         'Lagre vs. Signer: trykk Lagre registrerer et utkast umiddelbart. Et utkast kan åpnes på nytt og redigeres. Trykk Signer låser posten permanent.',
         'Automatiske poster: Sikkerhetsmodulen lager en loggpost når en besøkende signerer inn eller ut ved gangveien.',
+        "Klokkeomstilling: Master planlegger hver endring av skipstid på forhånd i Settings → Vessel → Clock changes — dato og klokkeslett etter skipets klokke, deretter Still tilbake 1 t eller Still frem 1 t. I det øyeblikket skifter alle enheter selv, og Deck Log får innføringen \"Ship's time changed UTC+02:00 → UTC+01:00 (clocks retarded 1 h)\". Tolv timer før vises endringen i Deck Log og i topplinjen. Utførte endringer står fortsatt i listen: en rapport for en tidligere dag regnes i den sonen skipet holdt den dagen, og omstillingsdagen er 23 eller 25 timer lang.",
+      ],
+    },
+    {
+      emoji: '⚙️',
+      title: "Maskinlogg",
+      body: [
+        "Maskinloggen (meny → Logs → Engine Log, eller Vedlikehold → Maskinlogg) er maskinromsjournalen: én runde med avlesninger per vakt, signert av vakthavende maskinist. En signert runde endres aldri.",
+        "En runde: velg vakten (00–04 … 20–00, eller Annet), før inn hver avlesning og merknader — maskineri i drift, omlegginger, alarmer, alt som maskinsjefen bør se. Ved hver avlesning vises forrige rundes tall og en pil (↑ ↓ →); et tall utenfor normalområdet blir oransje. Er en avlesning utenfor normalen uten merknad, spør appen om årsaken før signering.",
+        "Malen (tannhjulet, offiserer og Master): avlesningene fartøyet tar — navn, enhet, tall eller tekst, og normal minimum og maksimum. Endringer i malen endrer aldri tidligere runder: hver runde beholder avlesningene slik de var da den ble signert.",
+        "Trender (graf-ikonet): de siste 14 avlesningene for hver numeriske parameter som en linje, normalområdet skyggelagt grønt, punkter utenfor i oransje, med siste verdi, minimum og maksimum.",
+        "Dagens side: del-ikonet lagrer dagen som PDF i papirformatet — én avlesning per rad, én runde per kolonne, tall utenfor normalen i rødt, deretter hver rundes merknader og signatur. En enkelt runde åpnes som sin egen side.",
       ],
     },
     {
@@ -3915,6 +3975,18 @@ const pt: ManualContent = {
         'Cada lançamento registra o modo – No Mar (rumo, velocidade, posição) ou No Porto – mais o tempo e um campo de Observações em texto livre.',
         'Salvar vs. Assinar: tocar em Salvar registra um rascunho imediatamente. Tocar em Assinar bloqueia o lançamento permanentemente.',
         'Lançamentos automáticos: o módulo de Segurança cria um lançamento no diário quando um visitante assina na entrada ou saída na prancha.',
+        "Mudanças de hora: o Comandante planeja cada mudança da hora de bordo com antecedência em Settings → Vessel → Clock changes — data e hora pelo relógio de bordo, depois Atrasar 1 h ou Adiantar 1 h. Nesse momento todos os dispositivos mudam sozinhos e o Deck Log recebe o registro \"Ship's time changed UTC+02:00 → UTC+01:00 (clocks retarded 1 h)\". Doze horas antes a mudança aparece no Deck Log e na linha superior. As mudanças já feitas continuam na lista: o relatório de um dia passado é calculado no fuso que o navio mantinha nesse dia, e o dia da mudança tem 23 ou 25 horas.",
+      ],
+    },
+    {
+      emoji: '⚙️',
+      title: "Diário de máquinas",
+      body: [
+        "O Diário de máquinas (menu → Logs → Engine Log, ou Manutenção → Diário de máquinas) é o livro da praça de máquinas: uma ronda de leituras por quarto, assinada pelo maquinista de quarto. Uma ronda assinada nunca é alterada.",
+        "Uma ronda: escolha o quarto (00–04 … 20–00, ou Outro), registre cada leitura e as observações — máquinas em operação, trocas, alarmes, o que merecer a atenção do Chefe de Máquinas. Ao lado de cada leitura aparece o número da ronda anterior e uma seta (↑ ↓ →); um valor fora da faixa normal fica laranja. Se uma leitura estiver fora da faixa sem observação, o app pede o motivo antes de assinar.",
+        "O modelo (ícone de engrenagem, Oficiais e Comandante): as leituras que o navio faz — nome, unidade, número ou texto, e o mínimo e máximo normais. Alterá-lo nunca muda as rondas anteriores: cada uma guarda as leituras como estavam ao ser assinada.",
+        "Tendências (ícone de gráfico): as últimas 14 leituras de cada parâmetro numérico como linha, a faixa normal sombreada em verde, os pontos fora dela em laranja, com o último valor, o mínimo e o máximo.",
+        "A folha do dia: o ícone de compartilhar salva o dia em PDF no formato do papel — uma leitura por linha, uma ronda por coluna, valores fora da faixa em vermelho, e abaixo as observações e a assinatura de cada ronda. Uma ronda sozinha abre como folha própria.",
       ],
     },
     {
@@ -3997,6 +4069,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Deck watch log', module: 'deckLog' },
   { title: 'Internal audits', module: 'qhse' },
   { title: 'GMDSS Log', module: 'gmdss' },
+  { title: 'Engine room log', module: 'watchLog' },
 ];
 
 /** The manual as this build should show it: sections of switched-off modules removed. */

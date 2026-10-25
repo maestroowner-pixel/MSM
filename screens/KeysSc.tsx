@@ -40,8 +40,9 @@ import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
 import { t, tn, useT } from '../utils/i18n';
+import { shipStamp } from '../utils/shipTime';
 
-const when = (t: number) => `${new Date(t).toISOString().slice(0, 10)} ${new Date(t).toTimeString().slice(0, 5)}`;
+const when = (t: number) => shipStamp(t);
 
 export default function KeysSc() {
   useT();

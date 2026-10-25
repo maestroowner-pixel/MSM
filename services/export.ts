@@ -19,6 +19,7 @@ import { downloadPdfWeb } from '../utils/webPdf';
 import { ensureLocalFile, resolveUri } from './attachments';
 import { VesselInfo } from './storage';
 import { registerSheetRows, templateHeadings } from './registerSheet';
+import { shipToday } from '../utils/shipTime';
 
 const STATUS_LABEL: Record<string, string> = {
   expired: 'EXPIRED',
@@ -84,7 +85,7 @@ function buildHtml(
   vessel: VesselInfo | null,
   title: string
 ): string {
-  const today = formatDate(new Date().toISOString().slice(0, 10));
+  const today = formatDate(shipToday());
   const sections = groups
     .map((g) => {
       const body = rowsFor(g.items)
@@ -163,7 +164,7 @@ export async function exportPdf(
     downloadPdfWeb({
       title,
       vesselHeader: vesselHeader(vessel),
-      today: formatDate(new Date().toISOString().slice(0, 10)),
+      today: formatDate(shipToday()),
       fileName: `MSM_report_${fileDateStamp()}.pdf`,
       statusLabel: STATUS_LABEL,
       statusHex: STATUS_HEX,
@@ -213,7 +214,7 @@ export async function exportXlsx(
 ): Promise<void> {
   const groups = selectedCategories(byCategory, only);
   if (!groups.length) throw new Error('No items to export.');
-  const today = formatDate(new Date().toISOString().slice(0, 10));
+  const today = formatDate(shipToday());
   // The note rides in the vessel header line, which sits above the column
   // headings — so a filtered sheet says on its face that it is filtered, and the
   // importer still reads it as an update (those rows classify as data).
@@ -341,7 +342,7 @@ export async function exportZip(
     zip.file(
       'certificates/INDEX.txt',
       `Certificates in this archive and the items they cover\n` +
-        `Generated ${formatDate(new Date().toISOString().slice(0, 10))}\n\n` +
+        `Generated ${formatDate(shipToday())}\n\n` +
         manifest.join('\n')
     );
   }

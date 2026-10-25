@@ -31,6 +31,7 @@ import { goBackOr } from '../utils/nav';
 import { personName } from '../types/role';
 import { labelOf, makeStyles } from './RoundsSc';
 import { t, tk, useT } from '../utils/i18n';
+import { shipHm } from '../utils/shipTime';
 
 export default function RoundSc() {
   useT();
@@ -85,7 +86,7 @@ export default function RoundSc() {
     await saveRow(storage.DECK_LOG_KEY, {
       id: uid('dl'),
       date: todayIso(),
-      time: new Date().toTimeString().slice(0, 5),
+      time: shipHm(),
       period: 'other',
       remarks: `${title} — ${all.done.size}/${all.scope.length} inspected${closing.trim() ? ` · ${closing.trim()}` : ''}`,
       by: signer.name,

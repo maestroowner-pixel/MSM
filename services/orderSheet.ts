@@ -13,6 +13,7 @@ import { ORDER_DEPT_LABEL, ORDER_STATUS_LABEL, PurchaseOrder } from '../types/or
 import { qrSvg } from './qrLabel';
 import { formatDate } from '../utils/dates';
 import { VesselInfo } from './storage';
+import { shipToday } from '../utils/shipTime';
 
 function esc(s: string | undefined | null): string {
   return (s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -119,7 +120,7 @@ function buildOrderHtml(o: PurchaseOrder, vessel: VesselInfo | null): string {
 
 <div class="footer">
   <span>${vesselName ? esc(vesselName) + ' · ' : ''}${esc(o.no)} · ${esc(dept)}</span>
-  <span>Generated ${new Date().toISOString().slice(0, 10)}</span>
+  <span>Generated ${shipToday()}</span>
 </div>
 </body>
 </html>`;

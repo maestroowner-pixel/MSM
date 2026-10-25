@@ -55,6 +55,7 @@ import { playSuccessSound } from '../utils/sound';
 import { makeStyles as safetyStyles } from './SafetySc';
 import { t, useT } from '../utils/i18n';
 import { uiLang } from '../utils/locale';
+import { shipHm } from '../utils/shipTime';
 
 /** "930", "9.30", "9:3" → "09:30"; anything else is left for the officer to fix. */
 function hm(v: string): string {
@@ -242,7 +243,7 @@ export default function DrillSc() {
     await saveRow(storage.DECK_LOG_KEY, {
       id: uid('dl'),
       date: out.date,
-      time: out.endTime || out.time || new Date().toTimeString().slice(0, 5),
+      time: out.endTime || out.time || shipHm(),
       period: 'other',
       remarks: `Drill ${out.no ? `${out.no} — ` : ''}${drillTitle(out)}${out.time && out.endTime ? ` · ${out.time}–${out.endTime}` : ''} · ${present} persons`,
       by: out.doneBy!,

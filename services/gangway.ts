@@ -10,6 +10,7 @@ import { CrewMember, isAboard } from '../types/crew';
 import { CrewMove, Visitor } from '../types/security';
 import { Passenger, passengerAboard } from '../types/passengers';
 import { uid } from '../utils/id';
+import { shipHm, shipToday } from '../utils/shipTime';
 
 /** Last move of each crew member, by crew id. */
 export function lastMoves(moves: CrewMove[]): Map<string, CrewMove> {
@@ -40,23 +41,20 @@ export function personsOnBoard(crew: CrewMember[], moves: CrewMove[], visitors: 
 }
 
 function localToday(): string {
-  const d = new Date();
-  const z = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+  return shipToday();
 }
 
 /** The move a scan or a tap makes: the opposite of where the person is now. */
 export function nextMove(c: Pick<CrewMember, 'id' | 'name'>, moves: CrewMove[], by: string, via: 'qr' | 'manual', now = new Date()): CrewMove {
   const ashore = isAshore(c.id, lastMoves(moves));
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const date = shipToday(now.getTime());
   return {
     id: uid('mv'),
     crewId: c.id,
     name: c.name,
     dir: ashore ? 'aboard' : 'ashore',
     date,
-    time: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
+    time: shipHm(now.getTime()),
     at: now.getTime(),
     by,
     via,

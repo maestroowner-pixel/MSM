@@ -8,11 +8,14 @@
 // ===================================
 
 import { Dropdown } from '../components/Dropdown';
-import { OFFSETS, offsetText, shipAndUtc } from '../utils/shipTime';
+import { OFFSETS, deviceOffset, offsetAt, offsetText, shipAndUtc } from '../utils/shipTime';
+import { ClockChanges } from '../components/ClockChanges';
+import { uid as newId } from '../utils/id';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Switch, Modal, TouchableWithoutFeedback, Keyboard, Linking, Image, LayoutAnimation, Platform, UIManager, useWindowDimensions } from 'react-native';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
-import { Screen, ScreenTitle, Card, Label, IconChip } from '../components/ui';
+import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
+import { Screen, ScreenTitle, Card, Label, IconChip, BackButton } from '../components/ui';
+import { goBackOr } from '../utils/nav';
 import { MciIcon } from '../components/MciIcon';
 import { PhotoUploadCard } from '../components/PhotoUploadCard';
 import { ConnectionCard } from '../components/ConnectionCard';
@@ -21,7 +24,7 @@ import { useTheme, useThemeName } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { moduleOn } from '../constants/modules';
-import { setUiLang, tn, useT } from '../utils/i18n';
+import { setUiLang, tk, tn, useT } from '../utils/i18n';
 import { LANGS, LANG_NAMES, Lang, chosenLang, deviceLang } from '../utils/locale';
 import { canRememberFolder, chooseFolder, forgetFolder, rememberedFolders } from '../utils/webSave';
 import { ADMIN_KEY, PinHolder, pinHolders, resetPin } from '../services/signature';
@@ -66,10 +69,30 @@ function vesselComplete(v: VesselInfo | null | undefined): boolean {
   );
 }
 
+/**
+ * Settings in groups (25 Oct 2026: "very many items — organise it as cards of
+ * types, each opening a card with cards of the items"). The tab shows one card
+ * per group; a group opens as its own page (route SettingsGroup) where every
+ * item is a card of its own. The same component draws both, so each item keeps
+ * its state and logic in one place.
+ */
+export type SettingsGroup = 'vessel' | 'crew' | 'signing' | 'data' | 'app' | 'help';
+const GROUPS: { key: SettingsGroup; icon: string }[] = [
+  { key: 'vessel', icon: 'ferry' },
+  { key: 'crew', icon: 'account-group-outline' },
+  { key: 'signing', icon: 'clipboard-check-outline' },
+  { key: 'data', icon: 'database-outline' },
+  { key: 'app', icon: 'tune-variant' },
+  { key: 'help', icon: 'help-circle-outline' },
+];
+
 export default function SettingsSc() {
   const nav = useNavigation<any>();
+  const route = useRoute<any>();
+  const grp: SettingsGroup | undefined = route.params?.group;
+  const show = (g: SettingsGroup) => grp === g;
   const COLORS = useTheme();
-  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+  const styles = useMemo(() => makeStyles(COLORS, !!grp), [COLORS, grp]);
   const { name: themeName, setTheme } = useThemeName();
   const tr = useT();
   // A button that fills the line is right on a phone, where the line IS the
@@ -162,6 +185,8 @@ export default function SettingsSc() {
    * finger.
    */
   const [open, setOpen] = useState<Record<string, boolean>>({ vessel: !vesselComplete(vessel) });
+  // Inside a group every card is open — the page IS the section.
+  const opened: Record<string, boolean> = grp ? { vessel: true, data: true, modules: true, help: true } : open;
   const touched = useRef(false);
   const toggleSection = (k: string) => {
     if (k === 'vessel') touched.current = true;
@@ -507,12 +532,30 @@ export default function SettingsSc() {
       Alert.alert(tr('set.badMmsi'), tr('set.badMmsiBody'));
       return;
     }
-    await setVessel(form);
+    // Ship's time changed by hand: kept in the history too, so past days keep their zone.
+    const was = offsetAt(Date.now(), vessel);
+    const changed = (form.ship_utc_offset ?? '') !== (was ?? '') && (was || form.ship_utc_offset || (vessel?.ship_time_changes ?? []).length);
+    await setVessel(changed
+      ? { ...form, ship_time_changes: [...(vessel?.ship_time_changes ?? []), { id: newId('clk'), at: Date.now(), from: was ?? deviceOffset(), to: form.ship_utc_offset ?? deviceOffset(), madeAt: Date.now() }] }
+      : form);
     playSuccessSound();
     // Collapse the card like the other sections once saved.
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setOpen((o) => ({ ...o, vessel: false }));
     Alert.alert(tr('set.saved'), tr('set.vesselUpdated'));
+  };
+
+  // Crew & accounts is a management group: the Master, or an officer keeping the crew list, or the office console.
+  const crewTile = sync.role === 'superadmin' || (moduleOn('crewCerts') && (sync.role === 'admin' || !sync.enrolled)) || moduleOn('fleet');
+  /** What a group card says about itself — the vessel's own facts first. */
+  const tileSub = (g: SettingsGroup): string => {
+    if (g === 'vessel') {
+      if (!vesselComplete(vessel)) return tr('setg.vesselFill');
+      const off = offsetAt(Date.now(), vessel);
+      return `${vessel?.vessel_name ?? ''} · IMO ${vessel?.imo ?? ''} · UTC${off ?? deviceOffset()}`;
+    }
+    if (g === 'help') return `${tk('setg.helpSub')} · v${APP_CONFIG.version}`;
+    return tk(`setg.${g}Sub`);
   };
 
   return (
@@ -521,47 +564,84 @@ export default function SettingsSc() {
           panel at the top of Settings that a person reads once and never again —
           the appearance of the app is not a setting you go looking for, it is one
           you flick. Three marks say it without a word: sun, moon, star. */}
+      {grp ? (
+        <>
+          {Platform.OS !== 'web' ? <BackButton onPress={() => goBackOr(nav)} /> : null}
+          <ScreenTitle title={tk(`setg.${grp}`)} subtitle={tk(`setg.${grp}Sub`)} />
+        </>
+      ) : (
       <ScreenTitle
-        title={tr('tab.Settings')}
-        subtitle={tr('set.onDevice', { items: tn('n.item', flat.length) })}
-        help="Getting started"
-        actions={
-          <View style={styles.headerActions}>
-            {/* PRO, as a badge rather than a card. Green when the vessel is
-                licensed, blue when it is not — the state is the whole message,
-                and a card three lines long was spending the top of the screen to
-                say it. Still opens the same screen. */}
-            <TouchableOpacity
-              onPress={() => nav.navigate('Paywall')}
-              hitSlop={8}
-              accessibilityLabel={pro ? tr('set.proActive') : tr('set.getPro')}
-              style={[styles.proPill, { backgroundColor: pro ? COLORS.success : COLORS.primary }]}
-            >
-              <Text style={styles.proPillText}>PRO</Text>
-            </TouchableOpacity>
-          <View style={styles.themeIcons}>
-            {THEME_ORDER.map((t) => (
+          title={tr('tab.Settings')}
+          subtitle={tr('set.onDevice', { items: tn('n.item', flat.length) })}
+          help="Getting started"
+          actions={
+            <View style={styles.headerActions}>
+              {/* PRO, as a badge rather than a card. Green when the vessel is
+                  licensed, blue when it is not — the state is the whole message,
+                  and a card three lines long was spending the top of the screen to
+                  say it. Still opens the same screen. */}
               <TouchableOpacity
-                key={t}
-                onPress={() => setTheme(t)}
+                onPress={() => nav.navigate('Paywall')}
                 hitSlop={8}
-                accessibilityLabel={tr(`set.theme.${t}` as any)}
-                style={[styles.themeIcon, themeName === t && styles.themeIconOn]}
+                accessibilityLabel={pro ? tr('set.proActive') : tr('set.getPro')}
+                style={[styles.proPill, { backgroundColor: pro ? COLORS.success : COLORS.primary }]}
               >
-                <MciIcon
-                  name={THEME_ICON[t]}
-                  size={20}
-                  color={themeName === t ? COLORS.textWhite : COLORS.textLight}
-                />
+                <Text style={styles.proPillText}>PRO</Text>
+              </TouchableOpacity>
+            <View style={styles.themeIcons}>
+              {THEME_ORDER.map((t) => (
+                <TouchableOpacity
+                  key={t}
+                  onPress={() => setTheme(t)}
+                  hitSlop={8}
+                  accessibilityLabel={tr(`set.theme.${t}` as any)}
+                  style={[styles.themeIcon, themeName === t && styles.themeIconOn]}
+                >
+                  <MciIcon
+                    name={THEME_ICON[t]}
+                    size={20}
+                    color={themeName === t ? COLORS.textWhite : COLORS.textLight}
+                  />
               </TouchableOpacity>
             ))}
           </View>
           </View>
         }
       />
+      )}
 
+      {!grp ? (
+        <>
       <ConnectionCard />
 
+        </>
+      ) : null}
+
+      {!grp ? (
+        <View style={[styles.tiles, wide && styles.tilesWide]}>
+          {GROUPS.filter((g) => g.key !== 'crew' || crewTile).map((g) => {
+            const warn = g.key === 'vessel' && !vesselComplete(vessel);
+            return (
+              <TouchableOpacity
+                key={g.key}
+                style={[styles.tile, wide && styles.tileWide, warn && { borderColor: COLORS.warning }]}
+                onPress={() => nav.navigate('SettingsGroup', { group: g.key })}
+                activeOpacity={0.8}
+              >
+                <IconChip name={g.icon} size={22} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.tileTitle}>{tk(`setg.${g.key}`)}</Text>
+                  <Text style={[styles.linkSub, warn && { color: COLORS.warning, fontWeight: '700' }]} numberOfLines={2}>{tileSub(g.key)}</Text>
+                </View>
+                <Text style={styles.chev}>›</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      ) : null}
+
+      {show('app') ? (
+        <>
       {/* Interface language — only once the `i18n` module is released. */}
       {moduleOn('i18n') ? (
         <Card>
@@ -578,20 +658,24 @@ export default function SettingsSc() {
           <Text style={{ fontSize: SIZES.small, color: COLORS.textLight, marginTop: 4 }}>{tr('settings.language.note')}</Text>
         </Card>
       ) : null}
+        </>
+      ) : null}
 
+      {show('vessel') ? (
+        <>
       <Card>
         <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('vessel')} activeOpacity={0.7}>
           <Label>{tr('certs.tab.vessel')}</Label>
           {/* Collapsed, the card still has to say WHICH vessel — otherwise closing
               it by default hides the one fact a person opens Settings to check. */}
-          {!open.vessel && vesselComplete(vessel) ? (
+          {!opened.vessel && vesselComplete(vessel) ? (
             <Text style={styles.sectionSummary} numberOfLines={1}>
               {vessel?.vessel_name} · IMO {vessel?.imo}
             </Text>
           ) : null}
-          <Text style={styles.sectionChev}>{open.vessel ? '▾' : '▸'}</Text>
+          <Text style={styles.sectionChev}>{opened.vessel ? '▾' : '▸'}</Text>
         </TouchableOpacity>
-        {open.vessel ? (
+        {opened.vessel ? (
           <>
         <FormField label={tr('set.vesselName')} value={form.vessel_name} onChange={(v) => setForm({ ...form, vessel_name: v })} />
         <FormField label={tr('set.imo')} value={form.imo} onChange={(v) => setForm({ ...form, imo: v })} keyboard="number-pad" />
@@ -607,6 +691,7 @@ export default function SettingsSc() {
             options={[{ value: '', label: tr('set.asDevice', { utc: `UTC${offsetText(-new Date().getTimezoneOffset())}` }) }, ...(form.ship_utc_offset && !OFFSETS.includes(form.ship_utc_offset) ? [form.ship_utc_offset] : []).concat(OFFSETS).map((o) => ({ value: o, label: `UTC${o}` }))]}
           />
           <Text style={{ fontSize: SIZES.small, color: COLORS.textLight, marginTop: 4 }}>{tr('set.now', { line: ((s) => `${s.ship} ${tr('clock.shipTime')} (${s.zone}) · ${s.utc.slice(s.ship.slice(0, 10) === s.utc.slice(0, 10) ? 11 : 0)} UTC`)(shipAndUtc(Date.now(), form.ship_utc_offset)) })}</Text>
+          <ClockChanges />
         </View>
         {/* Nothing to save is said by the button itself. A live "Save" beside five
             filled fields is the app asking for something it already has. */}
@@ -623,57 +708,15 @@ export default function SettingsSc() {
           </>
         ) : null}
       </Card>
-
-      <PhotoUploadCard />
-
-      {/* Crew and accounts — both Master-only, so the whole card is. Defects
-          moved to the Dashboard: an open defect is work waiting, and work
-          waiting belongs where the officer already looks, not filed under
-          Settings behind the crew list. */}
-      {moduleOn('fleet') ? (
-        <Card>
-          <Label>{tr('set.super')}</Label>
-          {/* The office side: a shore account a Master lets into this vessel
-              (Accounts → Superintendent). Its own sign-in; see screens/FleetSc. */}
-          <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Fleet')}>
-            <IconChip name="ferry" size={18} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.linkTitle}>{tr('set.fleet')}</Text>
-              <Text style={styles.linkSub}>{tr('set.fleetSub')}</Text>
-            </View>
-            <Text style={styles.chev}>›</Text>
-          </TouchableOpacity>
-        </Card>
+        </>
       ) : null}
-      {/* Only the reports that save into a folder (rest, crew list, fuel, garbage,
-          gangway) use it — none of them is on, nothing to choose. */}
-      {canRememberFolder() && (['rest', 'crewCerts', 'fuel', 'garbage', 'security'] as const).some((m) => moduleOn(m)) ? (
-        <Card>
-          <Label>{tr('set.folders')}</Label>
-          {/* A folder per section on this computer (utils/webSave): the first save in a section asks for it. */}
-          <Text style={[styles.linkSub, { marginBottom: SIZES.xs }]}>{tr('set.foldersSub')}</Text>
-          {!folders.length ? <Text style={styles.linkSub}>{tr('set.noFolder')}</Text> : null}
-          {folders.map((f) => (
-            <View key={f.kind} style={styles.linkRow}>
-              <IconChip name="folder-outline" size={18} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.linkTitle}>{f.name}</Text>
-                <Text style={styles.linkSub}>{`→ ${f.folder}`}</Text>
-              </View>
-              <TouchableOpacity onPress={() => void chooseFolder(f.kind).then(readFolders)} hitSlop={8}>
-                <Text style={{ color: COLORS.primary, fontWeight: '700' }}>{tr('set.change')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => void forgetFolder(f.kind).then(readFolders)} hitSlop={8}>
-                <Text style={{ color: COLORS.textLight, fontWeight: '700', marginLeft: SIZES.sm }}>{tr('prn.forget')}</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-        </Card>
-      ) : null}
+
+      {show('crew') ? (
+        <>
       {/* Planned maintenance and Hours of rest were cards here; they are tabs now,
           shown per device as the Master sets on Access (constants/access.ts). */}
       {sync.role === 'superadmin' || (moduleOn('crewCerts') && (sync.role === 'admin' || !sync.enrolled)) ? (
-      <Card>
+      <Card style={grp ? styles.flatCard : undefined}>
         <Label>{tr('set.crewAccounts')}</Label>
         {/* Master only. The crew list is a MANAGEMENT screen — for anyone else it
             is a page with nothing to do on it, and often nothing on it at all,
@@ -735,13 +778,41 @@ export default function SettingsSc() {
         ) : null}
       </Card>
       ) : null}
+        </>
+      ) : null}
 
+      {show('crew') ? (
+        <>
+      {/* Crew and accounts — both Master-only, so the whole card is. Defects
+          moved to the Dashboard: an open defect is work waiting, and work
+          waiting belongs where the officer already looks, not filed under
+          Settings behind the crew list. */}
+      {moduleOn('fleet') ? (
+        <Card style={grp ? styles.flatCard : undefined}>
+          <Label>{tr('set.super')}</Label>
+          {/* The office side: a shore account a Master lets into this vessel
+              (Accounts → Superintendent). Its own sign-in; see screens/FleetSc. */}
+          <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Fleet')}>
+            <IconChip name="ferry" size={18} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkTitle}>{tr('set.fleet')}</Text>
+              <Text style={styles.linkSub}>{tr('set.fleetSub')}</Text>
+            </View>
+            <Text style={styles.chev}>›</Text>
+          </TouchableOpacity>
+        </Card>
+      ) : null}
+        </>
+      ) : null}
+
+      {show('signing') ? (
+        <>
       {/* Shown to EVERY rank, unlike Crew and Accounts above. Those are management
           screens with nothing on them for a crew member; this one answers a
           question anybody about to do a round has — what am I going to be asked?
           Editing is gated inside the screen (and by firestore.rules), so the door
           is not being held open on something that will refuse them. */}
-      <Card>
+      <Card style={grp ? styles.flatCard : undefined}>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('CategoriesEdit')}>
           <IconChip name="view-grid-outline" size={18} />
           <View style={{ flex: 1 }}>
@@ -900,14 +971,18 @@ export default function SettingsSc() {
           </>
         ) : null}
       </Card>
+        </>
+      ) : null}
 
+      {show('data') ? (
+        <>
       {canHandleData ? (
-      <Card>
+      <Card style={grp ? styles.flatCard : undefined}>
         <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('data')} activeOpacity={0.7}>
           <Label>{tr('set.data')}</Label>
-          <Text style={styles.sectionChev}>{open.data ? '▾' : '▸'}</Text>
+          <Text style={styles.sectionChev}>{opened.data ? '▾' : '▸'}</Text>
         </TouchableOpacity>
-        {open.data ? (
+        {opened.data ? (
           <>
         <TouchableOpacity style={styles.linkRow} onPress={() => void downloadTemplate()}>
           <IconChip name="tray-arrow-down" size={18} />
@@ -1002,13 +1077,53 @@ export default function SettingsSc() {
         ) : null}
       </Card>
       ) : null}
+        </>
+      ) : null}
 
-      <Card>
+      {show('data') ? (
+        <>
+      <PhotoUploadCard />
+        </>
+      ) : null}
+
+      {show('data') ? (
+        <>
+      {/* Only the reports that save into a folder (rest, crew list, fuel, garbage,
+          gangway) use it — none of them is on, nothing to choose. */}
+      {canRememberFolder() && (['rest', 'crewCerts', 'fuel', 'garbage', 'security'] as const).some((m) => moduleOn(m)) ? (
+        <Card style={grp ? styles.flatCard : undefined}>
+          <Label>{tr('set.folders')}</Label>
+          {/* A folder per section on this computer (utils/webSave): the first save in a section asks for it. */}
+          <Text style={[styles.linkSub, { marginBottom: SIZES.xs }]}>{tr('set.foldersSub')}</Text>
+          {!folders.length ? <Text style={styles.linkSub}>{tr('set.noFolder')}</Text> : null}
+          {folders.map((f) => (
+            <View key={f.kind} style={styles.linkRow}>
+              <IconChip name="folder-outline" size={18} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.linkTitle}>{f.name}</Text>
+                <Text style={styles.linkSub}>{`→ ${f.folder}`}</Text>
+              </View>
+              <TouchableOpacity onPress={() => void chooseFolder(f.kind).then(readFolders)} hitSlop={8}>
+                <Text style={{ color: COLORS.primary, fontWeight: '700' }}>{tr('set.change')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => void forgetFolder(f.kind).then(readFolders)} hitSlop={8}>
+                <Text style={{ color: COLORS.textLight, fontWeight: '700', marginLeft: SIZES.sm }}>{tr('prn.forget')}</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </Card>
+      ) : null}
+        </>
+      ) : null}
+
+      {show('app') ? (
+        <>
+      <Card style={grp ? styles.flatCard : undefined}>
         <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('modules')} activeOpacity={0.7}>
           <Label>{tr('set.modules')}</Label>
-          <Text style={styles.sectionChev}>{open.modules ? '▾' : '▸'}</Text>
+          <Text style={styles.sectionChev}>{opened.modules ? '▾' : '▸'}</Text>
         </TouchableOpacity>
-        {open.modules ? (
+        {opened.modules ? (
           <>
         <View style={styles.toggleRow}>
           <IconChip name="bell-ring" size={18} />
@@ -1059,13 +1174,17 @@ export default function SettingsSc() {
           </>
         ) : null}
       </Card>
+        </>
+      ) : null}
 
-      <Card>
+      {show('help') ? (
+        <>
+      <Card style={grp ? styles.flatCard : undefined}>
         <TouchableOpacity style={styles.sectionHead} onPress={() => toggleSection('help')} activeOpacity={0.7}>
           <Label>{tr('hb.help')}</Label>
-          <Text style={styles.sectionChev}>{open.help ? '▾' : '▸'}</Text>
+          <Text style={styles.sectionChev}>{opened.help ? '▾' : '▸'}</Text>
         </TouchableOpacity>
-        {open.help ? (
+        {opened.help ? (
           <>
         <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('Manual')}>
           <IconChip name="book-open-variant" size={18} />
@@ -1092,8 +1211,11 @@ export default function SettingsSc() {
           </>
         ) : null}
       </Card>
+        </>
+      ) : null}
 
-
+      {show('help') ? (
+        <>
       {/* Master only, and it is the most destructive control in the app: on a
           syncing device it does not clear a handset, it clears the ship. Anyone
           who wants their own device empty has Sign off & erase, which leaves the
@@ -1103,7 +1225,11 @@ export default function SettingsSc() {
           <Text style={styles.resetBtnText}>{tr('set.resetAll')}</Text>
         </TouchableOpacity>
       ) : null}
+        </>
+      ) : null}
 
+      {!grp ? (
+        <>
       <View style={styles.aboutBox}>
         <Image source={require('../assets/ismpilot-mark.png')} style={styles.footMark} resizeMode="contain" />
         <Text style={styles.about}>
@@ -1113,6 +1239,9 @@ export default function SettingsSc() {
           <Text style={styles.website}>{APP_CONFIG.website}</Text>
         </TouchableOpacity>
       </View>
+
+        </>
+      ) : null}
 
       {/* Password-gated reset confirmation */}
       <Modal visible={resetVisible} transparent animationType="fade" onRequestClose={closeReset}>
@@ -1198,7 +1327,13 @@ function FormField({
   );
 }
 
-const makeStyles = (COLORS: Palette) => StyleSheet.create({
+/** An item as a card of its own, inside a group page. */
+const itemCard = (COLORS: Palette) => ({
+  backgroundColor: COLORS.card, borderRadius: SIZES.radiusMd, borderWidth: 1, borderColor: COLORS.border,
+  paddingHorizontal: SIZES.md, paddingVertical: SIZES.md, marginBottom: SIZES.sm,
+});
+
+const makeStyles = (COLORS: Palette, asCards = false) => StyleSheet.create({
   headerActions: { flexDirection: 'row', alignItems: 'center' },
   proPill: {
     paddingHorizontal: 10,
@@ -1229,7 +1364,7 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   primaryBtnText: { color: COLORS.textWhite, fontWeight: '700', fontSize: SIZES.body },
   // Roughly a quarter of a wide card, floored so the label never wraps.
   btnCompact: { alignSelf: 'flex-start', maxWidth: '25%', minWidth: 180, paddingHorizontal: SIZES.xl },
-  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sectionHead: asCards ? { display: 'none' } : { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   // What a collapsed card says about itself, on the right of its heading.
   sectionSummary: {
     flex: 1,
@@ -1239,8 +1374,15 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
     marginRight: SIZES.sm,
   },
   sectionChev: { fontSize: SIZES.h5, color: COLORS.textLight, fontWeight: '700' },
-  linkRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: SIZES.sm, gap: SIZES.sm },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: SIZES.sm, gap: SIZES.sm },
+  linkRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: SIZES.sm, gap: SIZES.sm, ...(asCards ? itemCard(COLORS) : null) },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: SIZES.sm, gap: SIZES.sm, ...(asCards ? itemCard(COLORS) : null) },
+  // Inside a group the card around the items goes; each item is the card.
+  flatCard: { backgroundColor: 'transparent', borderWidth: 0, padding: 0, shadowOpacity: 0, elevation: 0 },
+  tiles: { gap: SIZES.sm, marginBottom: SIZES.md },
+  tilesWide: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  tile: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, padding: SIZES.md, borderRadius: SIZES.radiusLg, backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border },
+  tileWide: { width: '49.6%', minHeight: 84 },
+  tileTitle: { fontSize: SIZES.h5, color: COLORS.textDark, fontWeight: '700' },
   linkEmoji: { fontSize: 22 },
   linkTitle: { fontSize: SIZES.h5, color: COLORS.textDark, fontWeight: '600' },
   linkSub: { fontSize: SIZES.small, color: COLORS.textLight },

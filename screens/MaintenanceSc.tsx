@@ -38,6 +38,7 @@ import { DEPTS, Dept, Machine, PmsJob, deptOf, hasCounter } from '../types/pms';
 import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { t, tk, tn, useT } from '../utils/i18n';
+import { moduleOn } from '../constants/modules';
 
 export default function MaintenanceSc() {
   useT();
@@ -214,9 +215,11 @@ export default function MaintenanceSc() {
       <TouchableOpacity onPress={() => nav.navigate('AmsHours')} style={{ alignSelf: 'flex-start', marginBottom: SIZES.sm }}>
         <Text style={[styles.repBtnText, { color: COLORS.primary }]}>{`${t('ams.title')} ›`}</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => nav.navigate('WatchLog')} style={{ alignSelf: 'flex-start', marginBottom: SIZES.sm }}>
-        <Text style={[styles.repBtnText, { color: COLORS.primary }]}>{`${t('wl.title')} ›`}</Text>
-      </TouchableOpacity>
+      {moduleOn('watchLog') ? (
+        <TouchableOpacity onPress={() => nav.navigate('WatchLog')} style={{ alignSelf: 'flex-start', marginBottom: SIZES.sm }}>
+          <Text style={[styles.repBtnText, { color: COLORS.primary }]}>{`${t('wl.title')} ›`}</Text>
+        </TouchableOpacity>
+      ) : null}
       <TouchableOpacity onPress={() => nav.navigate('DeckLog')} style={{ alignSelf: 'flex-start', marginBottom: SIZES.sm }}>
         <Text style={[styles.repBtnText, { color: COLORS.primary }]}>{`${t('dl.title')} ›`}</Text>
       </TouchableOpacity>

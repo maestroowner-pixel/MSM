@@ -33,6 +33,7 @@ import { readInspectLink } from '../services/firebaseService';
 import { printLandingReport } from '../services/landingReport';
 import SimpleDatePicker from '../components/SimpleDatePicker';
 import { t, useT } from '../utils/i18n';
+import { shipHm, shipToday } from '../utils/shipTime';
 
 export default function LandingReportSc() {
   useT();
@@ -54,7 +55,7 @@ export default function LandingReportSc() {
   const [dir, setDir] = useState<'out' | 'in' | 'received'>(
     existing?.dir ?? (returnFrom ? 'in' : (initDir ?? 'out'))
   );
-  const [date, setDate] = useState(existing?.date ?? new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(existing?.date ?? shipToday());
   const [port, setPort] = useState(existing?.port ?? '');
   const [to, setTo] = useState(existing?.to ?? (returnFromReport?.to ?? ''));
   const [supplier, setSupplier] = useState(existing?.supplier ?? '');
@@ -223,7 +224,7 @@ export default function LandingReportSc() {
         const dirWord = dir === 'out' ? 'sent ashore' : dir === 'in' ? 'returned aboard' : 'received aboard';
         const itemList = movs.map((m) => m.itemSnap).filter(Boolean).join('; ');
         const deckEntry: DeckEntry = {
-          id: uid(), date, time: new Date().toTimeString().slice(0, 5), period: 'port', mode: 'port',
+          id: uid(), date, time: shipHm(), period: 'port', mode: 'port',
           remarks: `Landing Report ${report.no}: ${movs.length} item(s) ${dirWord}${report.to ? ` — ${report.to}` : ''}.${itemList ? ` Items: ${itemList}.` : ''}${report.notes ? ` ${report.notes}` : ''}`,
           landingRef: report.id,
           landingNo: report.no,

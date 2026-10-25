@@ -93,6 +93,8 @@ export interface DeckEntry {
   attachmentUri?: string;
   /** Display name for the attachment. */
   attachmentName?: string;
+  /** The clock change this entry records (utils/shipTime.ts) — written once per change. */
+  clockRef?: string;
 
   // ─── Mode ────────────────────────────────────────────────────────────────
   /** 'sea' (default/undefined) — underway; 'port' — alongside/anchored. */

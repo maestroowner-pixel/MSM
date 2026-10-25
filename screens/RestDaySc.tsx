@@ -26,10 +26,11 @@ import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { personName } from '../types/role';
 import { emptyDay, RestDay, restDayId, SLOTS_PER_DAY } from '../types/rest';
-import { analyseRest, countWork, presetWork, REST_PRESETS, RULE_LABEL } from '../services/restHours';
+import { analyseRest, countWork, dayLabels, fitDay, presetWork, REST_PRESETS, RULE_LABEL } from '../services/restHours';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
 import { t, useT, dateLocale } from '../utils/i18n';
+import { shipToday } from '../utils/shipTime';
 
 function shiftDay(iso: string, n: number): string {
   const d = new Date(`${iso}T00:00:00Z`);
@@ -38,12 +39,10 @@ function shiftDay(iso: string, n: number): string {
 }
 
 function todayIso(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return shipToday();
 }
 
-const ROWS = 4; // 6 hours a row
-const PER_ROW = SLOTS_PER_DAY / ROWS;
+const PER_ROW = 12; // 6 hours a row — a day of 25 hours has a fifth, short one
 
 export default function RestDaySc() {
   useT();
@@ -51,7 +50,7 @@ export default function RestDaySc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { crew, rest, saveRestDay } = useData();
+  const { crew, rest, saveRestDay, vessel } = useData();
   const sync = useSync();
 
   const crewId: string = route.params?.crewId;
@@ -59,7 +58,10 @@ export default function RestDaySc() {
   const person = crew.find((c) => c.id === crewId);
 
   const saved = rest.find((d) => d.id === restDayId(crewId, date));
-  const [work, setWork] = useState<string>(saved?.work ?? emptyDay());
+  // The day's real half hours: 50 the day the clocks go back, 46 when they go forward.
+  const labels = useMemo(() => dayLabels(date, vessel), [date, vessel]);
+  const fit = (w?: string) => fitDay(w ?? emptyDay(), labels);
+  const [work, setWork] = useState<string>(fit(saved?.work));
   const [note, setNote] = useState<string>(saved?.note ?? '');
   const [pen, setPen] = useState<'1' | '0'>('1');
   const dirty = useRef(false);
@@ -67,9 +69,9 @@ export default function RestDaySc() {
   // Load the day when the date changes (or when it arrives by sync).
   useEffect(() => {
     if (dirty.current) return;
-    setWork(saved?.work ?? emptyDay());
+    setWork(fit(saved?.work));
     setNote(saved?.note ?? '');
-  }, [saved?.work, saved?.note, date]);
+  }, [saved?.work, saved?.note, date, labels]);
 
   const edit = (w: string) => {
     dirty.current = true;
@@ -113,8 +115,8 @@ export default function RestDaySc() {
   const check = useMemo(() => {
     const others = rest.filter((d) => d.crewId === crewId && d.date !== date);
     const draft: RestDay = { id: restDayId(crewId, date), crewId, holderName: '', date, work, updatedAt: 0 };
-    return analyseRest([...others, draft], date, date)[0];
-  }, [rest, crewId, date, work]);
+    return analyseRest([...others, draft], date, date, vessel)[0];
+  }, [rest, crewId, date, work, vessel]);
 
   const prev = rest.find((d) => d.id === restDayId(crewId, shiftDay(date, -1)));
   const workSlots = countWork(work);
@@ -143,7 +145,10 @@ export default function RestDaySc() {
               <Text style={styles.dayTitle}>
                 {d.toLocaleString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })}
               </Text>
-              <Text style={styles.daySub}>{t('rest.daySub', { w: workSlots / 2, r: (SLOTS_PER_DAY - workSlots) / 2 })}</Text>
+              <Text style={styles.daySub}>{t('rest.daySub', { w: workSlots / 2, r: (labels.length - workSlots) / 2 })}</Text>
+              {labels.length !== SLOTS_PER_DAY ? (
+                <Text style={[styles.daySub, { color: COLORS.warning, fontWeight: '700' }]}>{t(labels.length > SLOTS_PER_DAY ? 'rest.day25' : 'rest.day23', { h: labels.length / 2 })}</Text>
+              ) : null}
             </View>
             <TouchableOpacity onPress={() => go(1)} hitSlop={12} disabled={date >= todayIso()} accessibilityLabel={t('rest.next')}>
               <MciIcon name="chevron-right" size={30} color={date >= todayIso() ? COLORS.border : COLORS.primary} />
@@ -162,40 +167,45 @@ export default function RestDaySc() {
           </View>
 
           <View style={styles.grid}>
-            {Array.from({ length: ROWS }, (_, r) => (
-              <View key={r} style={{ marginBottom: SIZES.sm }}>
-                <View style={styles.hours}>
-                  {Array.from({ length: PER_ROW / 2 }, (_, h) => (
-                    <Text key={h} style={styles.hourText}>{String(r * 6 + h).padStart(2, '0')}</Text>
-                  ))}
+            {Array.from({ length: Math.ceil(labels.length / PER_ROW) }, (_, r) => {
+              const row = labels.slice(r * PER_ROW, (r + 1) * PER_ROW);
+              // The second time a wall-clock hour comes round, when the clocks went back.
+              const again = (i: number) => labels.indexOf(labels[i]) !== i;
+              return (
+                <View key={r} style={{ marginBottom: SIZES.sm }}>
+                  <View style={[styles.hours, row.length < PER_ROW && { width: `${(row.length / PER_ROW) * 100}%` }]}>
+                    {Array.from({ length: Math.ceil(row.length / 2) }, (_, h) => (
+                      <Text key={h} style={[styles.hourText, again(r * PER_ROW + h * 2) && { color: COLORS.warning, fontWeight: '800' }]}>{row[h * 2].slice(0, 2)}</Text>
+                    ))}
+                  </View>
+                  <View style={[styles.cells, row.length < PER_ROW && { width: `${(row.length / PER_ROW) * 100}%` }]}>
+                    {row.map((label, c) => {
+                      const i = r * PER_ROW + c;
+                      const isWork = work[i] === '1';
+                      return (
+                        <TouchableOpacity
+                          key={i}
+                          onPress={() => setCell(i)}
+                          style={[styles.cell, c % 2 === 0 && styles.cellHour, isWork && { backgroundColor: COLORS.primary }]}
+                          accessibilityLabel={`${label}${again(i) ? ' (2)' : ''} ${isWork ? t('rest.work') : t('rest.rest')}`}
+                        />
+                      );
+                    })}
+                  </View>
                 </View>
-                <View style={styles.cells}>
-                  {Array.from({ length: PER_ROW }, (_, c) => {
-                    const i = r * PER_ROW + c;
-                    const isWork = work[i] === '1';
-                    return (
-                      <TouchableOpacity
-                        key={i}
-                        onPress={() => setCell(i)}
-                        style={[styles.cell, c % 2 === 0 && styles.cellHour, isWork && { backgroundColor: COLORS.primary }]}
-                        accessibilityLabel={`${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'} ${isWork ? t('rest.work') : t('rest.rest')}`}
-                      />
-                    );
-                  })}
-                </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
 
           <Label>{t('rest.fill')}</Label>
           <View style={styles.presets}>
             {prev ? (
-              <TouchableOpacity style={styles.preset} onPress={() => edit(prev.work)}>
+              <TouchableOpacity style={styles.preset} onPress={() => edit(fit(prev.work))}>
                 <Text style={styles.presetText}>{t('rest.same')}</Text>
               </TouchableOpacity>
             ) : null}
             {REST_PRESETS.map((p) => (
-              <TouchableOpacity key={p.key} style={styles.preset} onPress={() => edit(presetWork(p.key))}>
+              <TouchableOpacity key={p.key} style={styles.preset} onPress={() => edit(presetWork(p.key, labels))}>
                 <Text style={styles.presetText}>{p.label}</Text>
               </TouchableOpacity>
             ))}

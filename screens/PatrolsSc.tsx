@@ -40,9 +40,10 @@ import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
 import { t, tk, tn, useT } from '../utils/i18n';
+import { shipHm } from '../utils/shipTime';
 
 type Page = 'today' | 'points' | 'plans' | 'reports';
-const hm = (t = Date.now()) => new Date(t).toTimeString().slice(0, 5);
+const hm = (t = Date.now()) => shipHm(t);
 const TIME_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
 
 export default function PatrolsSc() {

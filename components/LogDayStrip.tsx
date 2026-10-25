@@ -9,6 +9,7 @@ import { Picker } from '@react-native-picker/picker';
 import { MciIcon } from './MciIcon';
 import { Palette, SIZES } from '../theme';
 import { currentLang, dateLocale, monthName, t, useT, weekdayName } from '../utils/i18n';
+import { shipToday } from '../utils/shipTime';
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
@@ -16,10 +17,9 @@ const WD  = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', '
 const MON = ['January', 'February', 'March', 'April', 'May', 'June',
              'July', 'August', 'September', 'October', 'November', 'December'];
 
-/** Today as local "YYYY-MM-DD". */
+/** Today as "YYYY-MM-DD" in ship's time. */
 export function todayISO(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return shipToday();
 }
 
 /** Parse "YYYY-MM-DD" as local date (noon, avoids DST edge). */

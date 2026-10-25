@@ -9,6 +9,7 @@ import { uid } from '../utils/id';
 import type { MedDoc, SigBox } from './hospitalReport';
 import type { SignProof } from './signature';
 import { attendanceSig } from './drills';
+import { shipStamp } from '../utils/shipTime';
 
 export function nextMeetingNo(list: Pick<SafetyMeeting, 'no'>[], date: string): string {
   const y = date.slice(0, 4);
@@ -50,9 +51,7 @@ export const MEETING_STATE_LABEL = { planned: 'Not signed yet', done: 'Held and 
 
 /** Ship's time, as on every other record — never UTC. */
 const localStamp = (at: number) => {
-  const d = new Date(at);
-  const z = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`;
+  return shipStamp(at);
 };
 
 // As services/signature proofShort — kept here so this file stays free of storage.

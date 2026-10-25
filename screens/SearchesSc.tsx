@@ -34,8 +34,9 @@ import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
 import { t, t as tt, tn, useT } from '../utils/i18n';
+import { shipHm } from '../utils/shipTime';
 
-const hhmm = (t = Date.now()) => new Date(t).toTimeString().slice(0, 5);
+const hhmm = (t = Date.now()) => shipHm(t);
 const KIND_ICON: Record<SearchKind, string> = { stowaway: 'account-search-outline', bomb: 'bomb' };
 
 export default function SearchesSc() {

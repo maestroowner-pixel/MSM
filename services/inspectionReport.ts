@@ -41,6 +41,7 @@ import { initialsOf, itemLocation, itemNumber } from '../utils/itemText';
 import { InspectionRound } from '../types/round';
 
 import { MON, ReportData, ReportScope, buildRoundReport, periodNameFor, roundSignoffLine } from './reportData';
+import { shipStamp, shipToday } from '../utils/shipTime';
 export type { ReportData, ReportScope } from './reportData';
 export { periodNameFor, roundSignoffLine } from './reportData';
 
@@ -176,12 +177,11 @@ export function buildReport(
 
 /** "13 Sep 2026" and "14:05" as separate cells — the vessel's own sheet has a Date column. */
 function dateOnly(ts: number): string {
-  const d = new Date(ts);
-  return `${String(d.getDate()).padStart(2, '0')} ${MON[d.getMonth()]} ${d.getFullYear()}`;
+  const s = shipStamp(ts);
+  return `${s.slice(8, 10)} ${MON[Number(s.slice(5, 7)) - 1]} ${s.slice(0, 4)}`;
 }
 function timeOnly(ts: number): string {
-  const d = new Date(ts);
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return shipStamp(ts).slice(11, 16);
 }
 
 // ---- Row shaping (shared by both formats) ----------------------------------
@@ -300,7 +300,7 @@ function signatureKey(data: ReportData, trail: Inspection[]): Array<{ initials: 
 // ---- PDF -------------------------------------------------------------------
 
 function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[], vessel: VesselInfo | null): string {
-  const today = formatDate(new Date().toISOString().slice(0, 10));
+  const today = formatDate(shipToday());
   // Items inspected, not records: an item signed twice is one item done.
   const itemsDone = data.inScope.length - data.missed.length;
   const pct = data.inScope.length ? Math.round((itemsDone / data.inScope.length) * 100) : 0;
@@ -548,7 +548,7 @@ export async function exportReportXlsx(
 ): Promise<ReportData> {
   const data = buildReport(flat, trail, opts);
   const header = vesselHeader(vessel);
-  const today = formatDate(new Date().toISOString().slice(0, 10));
+  const today = formatDate(shipToday());
   const wb = XLSX.utils.book_new();
 
   const summary = [

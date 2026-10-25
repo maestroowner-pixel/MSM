@@ -45,6 +45,15 @@ import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
 import { ChecklistTemplate } from '../constants/checklists';
 import { CategoryMeta, setVesselCategories } from '../constants/categories';
+import { setShipClock } from '../utils/shipTime';
+
+// A browser can read the vessel before the first render, so a page opened by its
+// own link (a new Deck Log entry) is stamped in ship's time from the start, not
+// the device's until the register loads. Native loads it behind the splash.
+try {
+  const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('msm:vessel_info') : null;
+  if (raw) setShipClock(JSON.parse(raw));
+} catch {}
 import { CATEGORIES, CATEGORY_MAP } from '../constants/categories';
 import * as storage from '../services/storage';
 import { followerReadings } from '../services/pmsMachines';
@@ -282,6 +291,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [flat, setFlat] = useState<EquipmentItem[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [vessel, setVesselState] = useState<storage.VesselInfo | null>(null);
+  // Every record's "today" and "now" is ship's time (utils/shipTime setShipClock).
+  useEffect(() => setShipClock(vessel), [vessel]);
   const [compressor, setCompressorState] = useState<CompressorState>({ compressors: [] });
   const [prefs, setPrefsState] = useState<storage.Prefs>({});
   const [inspections, setInspections] = useState<Inspection[]>([]);
@@ -483,6 +494,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _signingPolicyState = (await storage.loadSigningPolicy()) ?? DEFAULT_POLICY;
     const _photoArchiveState = (await storage.loadPhotoArchive()) ?? DEFAULT_ARCHIVE;
     const _recentScans = await loadScanHistory();
+    setShipClock(_vesselState);
     setVesselState(_vesselState);
     setCompressorState(_compressorState);
     setInspections(_inspections);
@@ -1082,6 +1094,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const setVessel = useCallback(
     async (info: storage.VesselInfo) => {
       await storage.saveVessel(info);
+      setShipClock(info);
       setVesselState(info);
     },
     []

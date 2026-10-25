@@ -33,7 +33,7 @@ import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { ASOG_LABEL, answerIsBad, cellKey, checkOutcome, signRoles, hasCell, formatCell, isOther, otherKey, sectionCols, conditionsText, positionFromText, positionText, templatesNow } from '../services/dp';
 import { PositionInput } from '../components/PositionInput';
-import { shipAndUtc } from '../utils/shipTime';
+import { offsetAt, shipAndUtc } from '../utils/shipTime';
 import { exportDpCheckPdf, printDpCheck } from '../services/dpReport';
 import { archived } from '../services/dpArchive';
 import { clearDraft, loadDraft, saveDraft } from '../services/dpDraft';
@@ -181,7 +181,7 @@ export default function DpCheckSc() {
   const here = positionFromText(posT);
   const lat = here?.lat;
   const lon = here?.lon;
-  const offset = vessel?.ship_utc_offset;
+  const offset = offsetAt(now, vessel);
   const c: DpCheck | null = done ?? (tpl ? { id: '', templateId: tpl.id, title: tpl.title, where: tpl.where, at: now, shipOffset: offset, position: { lat: lat ?? NaN, lon: lon ?? NaN }, operation, unit, conditions: cond, asog, lines: tpl.lines, results, values, remarks, by: '', updatedAt: 0 } : null);
   if (!c) return <Screen><Empty text={t('dpc.notHere')} /></Screen>;
   const ro = !!done;

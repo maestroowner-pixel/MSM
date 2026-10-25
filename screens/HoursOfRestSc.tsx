@@ -31,10 +31,10 @@ import { analyseRest, RULE_LABEL } from '../services/restHours';
 import { exportRestPdf } from '../services/restReport';
 import { RestBar } from '../components/RestBar';
 import { t, useT, dateLocale } from '../utils/i18n';
+import { shipToday } from '../utils/shipTime';
 
 function todayIso(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return shipToday();
 }
 
 
@@ -89,7 +89,7 @@ export default function HoursOfRestSc() {
     })();
     if (`${month}-01` > today) return out;
     for (const c of people) {
-      const sum = analyseRest(rest.filter((d) => d.crewId === c.id), `${month}-01`, last);
+      const sum = analyseRest(rest.filter((d) => d.crewId === c.id), `${month}-01`, last, vessel);
       out.set(c.id, { recorded: sum.filter((x) => x.recorded).length, days: sum.length, breaches: sum.filter((x) => x.violations.length).length });
     }
     return out;
@@ -102,7 +102,7 @@ export default function HoursOfRestSc() {
       return `${month}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, '0')}`;
     })();
     if (`${month}-01` > today) return [];
-    return analyseRest(mineDays, `${month}-01`, last).reverse();
+    return analyseRest(mineDays, `${month}-01`, last, vessel).reverse();
   }, [mineDays, month, today]);
 
   const recorded = summary.filter((s) => s.recorded).length;

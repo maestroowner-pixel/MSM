@@ -31,6 +31,7 @@ import { PositionInput } from '../components/PositionInput';
 import { parsePosition } from '../utils/position';
 import { playSuccessSound } from '../utils/sound';
 import { t, useT } from '../utils/i18n';
+import { shipHm } from '../utils/shipTime';
 
 const CODES = Object.keys(ORB_CODE) as OrbCode[];
 const METHODS_FOR: Partial<Record<OrbCode, OrbMethod[]>> = {
@@ -38,7 +39,7 @@ const METHODS_FOR: Partial<Record<OrbCode, OrbMethod[]>> = {
   C: ['shore', 'incinerator', 'tank'],
   D: ['ows', 'holding', 'shore'],
 };
-const hhmm = () => new Date().toTimeString().slice(0, 5);
+const hhmm = () => shipHm();
 const num = (v: string) => (v.trim() === '' ? undefined : Number(v.replace(',', '.')));
 
 export default function OrbSc() {

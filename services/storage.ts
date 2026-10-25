@@ -185,6 +185,8 @@ export interface VesselInfo {
   berth?: string;
   /** Ship's time as an offset from UTC ("+02:00"); unset — the device's own zone (utils/shipTime.ts). */
   ship_utc_offset?: string;
+  /** Clock changes, planned and made — the history behind ship's time (utils/shipTime.ts, 25 Oct 2026). */
+  ship_time_changes?: import('../utils/shipTime').ClockChange[];
 }
 
 export const VESSEL_KEY = `${PREFIX}vessel_info`;

@@ -27,7 +27,7 @@ import type { NonConformity, SafetyObservation } from '../types/safety';
 import type { MedItem, MedMove, MedTreatment } from '../types/hospital';
 import type { SurveyDone } from '../types/survey';
 import { drillTitle } from '../types/drills';
-import { shipInstant } from '../utils/shipTime';
+import { shipAt, ShipClockInfo, shipHm, shipInstant, shipInstantAt } from '../utils/shipTime';
 
 export interface DaySection {
   title: string;
@@ -80,7 +80,7 @@ export const dayOf = (at: number) => {
   const d = new Date(at);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
-const hm = (at?: number) => (at ? new Date(at).toTimeString().slice(0, 5) : '');
+const hm = (at?: number) => (at ? shipHm(at) : '');
 const who = (by?: string, rank?: string) => (rank ? `${by} (${rank})` : by ?? '');
 const live = <T extends { cancelled?: boolean }>(l: T[] = []) => l.filter((x) => !x.cancelled);
 const sortT = (rows: string[][]) => rows.sort((a, b) => a[0].localeCompare(b[0]));
@@ -89,17 +89,19 @@ export type ReportKind = 'noon' | 'midnight';
 export const REPORT_LABEL: Record<ReportKind, string> = { noon: 'Noon report', midnight: 'Midnight report' };
 
 /** Noon: from noon the day before to noon on the day. Midnight: the calendar day, 00:00 to 24:00. */
-export function reportWindow(kind: ReportKind, date: string, shipOffset?: string): { from: number; to: number } {
+export function reportWindow(kind: ReportKind, date: string, ship?: string | ShipClockInfo | null): { from: number; to: number } {
+  // A vessel with clock changes: each end of the day in the zone in force then (a 23- or 25-hour day).
+  const at = (d: string, hhmm: string) => (ship != null && typeof ship === 'object' ? shipInstantAt(d, hhmm, ship as ShipClockInfo) : shipInstant(d, hhmm, (ship as string | undefined) || undefined));
   const next = new Date(Date.parse(`${date}T00:00:00Z`) + 86400000).toISOString().slice(0, 10);
   const prev = new Date(Date.parse(`${date}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
   // In ship's time (Settings → Vessel → Ship's time); unset, the device's zone.
   return kind === 'noon'
-    ? { from: shipInstant(prev, '12:00', shipOffset), to: shipInstant(date, '12:00', shipOffset) }
-    : { from: shipInstant(date, '00:00', shipOffset), to: shipInstant(next, '00:00', shipOffset) };
+    ? { from: at(prev, '12:00'), to: at(date, '12:00') }
+    : { from: at(date, '00:00'), to: at(next, '00:00') };
 }
 
 /** When a record happened: its date and hh:mm in ship's time (no time = the start of the day). */
-const tOf = (date: string, time?: string) => new Date(`${date}T${time && /^\d{1,2}:\d{2}$/.test(time) ? time.padStart(5, '0') : '00:00'}:00`).getTime();
+const tOf = (date: string, time?: string) => shipAt(date, time && /^\d{1,2}:\d{2}$/.test(time) ? time.padStart(5, '0') : '00:00');
 
 export function dailyActivity(x: DayInput): DaySection[] {
   const win = x.from != null && x.to != null ? { from: x.from, to: x.to } : reportWindow('midnight', x.date);

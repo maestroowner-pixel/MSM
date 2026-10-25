@@ -55,6 +55,8 @@
     "check:board": "rm -rf .check-board && tsc scripts/check-board.ts --outDir .check-board --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-board/ && node .check-board/scripts/check-board.js; s=$?; rm -rf .check-board; exit $s",
     "check:rest": "rm -rf .check-rest && tsc scripts/check-rest-hours.ts --outDir .check-rest --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-rest/scripts/check-rest-hours.js; s=$?; rm -rf .check-rest; exit $s",
     "check:bulk": "rm -rf .check-bulk && tsc scripts/check-bulk-edit.ts --outDir .check-bulk --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-bulk/ && node .check-bulk/scripts/check-bulk-edit.js; s=$?; rm -rf .check-bulk; exit $s",
+    "check:shiptime": "rm -rf .check-st && tsc scripts/check-shiptime.ts --outDir .check-st --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-st/ && node .check-st/scripts/check-shiptime.js; s=$?; rm -rf .check-st; exit $s",
+    "check:watchlog": "rm -rf .check-wl && tsc scripts/check-watchlog.ts --outDir .check-wl --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-wl/scripts/check-watchlog.js; s=$?; rm -rf .check-wl; exit $s",
     "check:patrols": "rm -rf .check-pat && tsc scripts/check-patrols.ts --outDir .check-pat --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-pat/scripts/check-patrols.js; s=$?; rm -rf .check-pat; exit $s"
   },
   "keywords": [

@@ -28,6 +28,7 @@ import { deliverFile, onWeb, onWindows } from '../utils/fileShare';
 import { pickBinaryFileWeb } from '../utils/webFile';
 import { saveFileWeb } from '../utils/webSave';
 import { medPdfBlob } from '../utils/medPdf';
+import { shipStamp } from '../utils/shipTime';
 
 const MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const clean = (s: string) => s.replace(/[\\/:*?"<>|]+/g, ' ').trim();
@@ -38,9 +39,7 @@ const stem = (name: string, vessel: VesselInfo | null) => {
 const who = (by?: string, rank?: string) => (rank ? `${by} (${rank})` : by ?? '');
 /** Ship's time, as on every other record — never UTC. */
 const localStamp = (at: number) => {
-  const d = new Date(at);
-  const z = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`;
+  return shipStamp(at);
 };
 
 async function saveXlsx(wb: XLSX.WorkBook, name: string): Promise<string | null | void> {

@@ -6,6 +6,7 @@
 import { ComplianceStatus, DUE_SOON_DAYS, EquipmentItem } from '../types/equipment';
 import { CATEGORY_MAP } from '../constants/categories';
 import { monthAbbr } from './t';
+import { shipStamp, shipToday } from './shipTime';
 
 // Excel's epoch is 1899-12-30 (accounting for the 1900 leap-year bug).
 const EXCEL_EPOCH_MS = Date.UTC(1899, 11, 30);
@@ -168,12 +169,10 @@ export function formatDate(iso?: string): string {
 /** Date + 24h time for logs/device lists, e.g. "01 Apr 14:30". */
 export function formatDateTime(ts?: number): string {
   if (!ts) return '—';
-  const d = new Date(ts);
-  if (isNaN(d.getTime())) return '—';
-  const dd = String(d.getDate()).padStart(2, '0');
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mi = String(d.getMinutes()).padStart(2, '0');
-  return `${dd} ${MONTHS_SHORT[d.getMonth()]} ${hh}:${mi}`;
+  if (isNaN(new Date(ts).getTime())) return '—';
+  // Ship's time (utils/shipTime) — the device's zone when the vessel sets none.
+  const s = shipStamp(ts);
+  return `${s.slice(8, 10)} ${MONTHS_SHORT[Number(s.slice(5, 7)) - 1]} ${s.slice(11, 16)}`;
 }
 
 /** formatDate for a screen — the month in the interface language («01 апр. 2025»).
@@ -188,14 +187,13 @@ export function uiDate(iso?: string): string {
 /** formatDateTime for a screen («01 апр. 14:30»). */
 export function uiDateTime(ts?: number): string {
   if (!ts) return '—';
-  const d = new Date(ts);
-  if (isNaN(d.getTime())) return '—';
-  return `${String(d.getDate()).padStart(2, '0')} ${monthAbbr(d.getMonth())} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  if (isNaN(new Date(ts).getTime())) return '—';
+  const s = shipStamp(ts);
+  return `${s.slice(8, 10)} ${monthAbbr(Number(s.slice(5, 7)) - 1)} ${s.slice(11, 16)}`;
 }
 
 export function currentMonthKey(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  return shipToday().slice(0, 7);
 }
 
 /** Compact date stamp for file names: DDMMYY (e.g. 060626). */

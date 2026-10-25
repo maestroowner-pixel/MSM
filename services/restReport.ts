@@ -12,7 +12,7 @@
 import * as Print from 'expo-print';
 import * as FileSystem from 'expo-file-system/legacy';
 import { RestDay, SLOTS_PER_DAY } from '../types/rest';
-import { analyseRest, RULE_LABEL, RULES } from './restHours';
+import { analyseRest, dayLabels, fitDay, RULE_LABEL, RULES, toWall } from './restHours';
 import { VesselInfo } from './storage';
 import { esc, share, vesselHeader } from './export';
 import { onWeb, onWindows } from '../utils/fileShare';
@@ -42,9 +42,21 @@ function monthRange(month: string): { from: string; to: string; label: string } 
  */
 const RULE_CODE: Record<string, string> = { '24h': '10h/24h', '7d': '77h/7d', split: 'periods', gap: '14h gap' };
 
+/** The day on the form's 48 columns — a repeated hour merged, a skipped one 'x' (services/restHours). */
+function wallOf(rec: RestDay, input: RestReportInput): string {
+  const labels = dayLabels(rec.date, input.vessel);
+  return toWall(fitDay(rec.work, labels), labels);
+}
+
+/** The note, after "25 h day (clocks retarded)" on the day the clocks changed. */
+function noteOf(dayHours: number | undefined, note?: string): string {
+  const d = dayHours ? `${dayHours} h day (clocks ${dayHours > 24 ? 'retarded' : 'advanced'})` : '';
+  return [d, note ?? ''].filter(Boolean).join('. ');
+}
+
 export function buildRestHtml(input: RestReportInput): string {
   const { from, to, label } = monthRange(input.month);
-  const summary = analyseRest(input.days, from, to);
+  const summary = analyseRest(input.days, from, to, input.vessel);
   const byDate = new Map(input.days.map((d) => [d.date, d]));
   const breaches = summary.flatMap((s) => s.violations);
 
@@ -52,15 +64,16 @@ export function buildRestHtml(input: RestReportInput): string {
   const rows = summary
     .map((s) => {
       const rec = byDate.get(s.date);
+      const wall = rec ? wallOf(rec, input) : '';
       const cells = rec
-        ? Array.from({ length: SLOTS_PER_DAY }, (_, i) => `<td class="${rec.work[i] === '1' ? 'w' : 'r'}${i % 2 ? '' : ' h'}"></td>`).join('')
+        ? Array.from({ length: SLOTS_PER_DAY }, (_, i) => `<td class="${wall[i] === '1' ? 'w' : wall[i] === 'x' ? 'x' : 'r'}${i % 2 ? '' : ' h'}"></td>`).join('')
         : `<td colspan="${SLOTS_PER_DAY}" class="nr">not recorded</td>`;
       const bad = s.violations.length ? ' class="bad"' : '';
       return `<tr${bad}><td class="d">${s.date.slice(8)}</td>${cells}
         <td class="n">${rec ? s.workHours : ''}</td><td class="n">${rec ? s.restHours : ''}</td>
         <td class="n">${s.minRest24h ?? ''}</td>
         <td class="b">${[...new Set(s.violations.map((v) => RULE_CODE[v.rule] ?? v.rule))].map(esc).join(' ')}</td>
-        <td class="note">${rec?.note ? esc(rec.note) : ''}</td></tr>`;
+        <td class="note">${esc(noteOf(s.dayHours, rec?.note))}</td></tr>`;
     })
     .join('');
 
@@ -80,7 +93,7 @@ export function buildRestHtml(input: RestReportInput): string {
     td, th { border: 0.5px solid #c8d0db; padding: 0; height: 14px; overflow: hidden; }
     th { font-size: 7px; font-weight: 600; background: #eef2f7; line-height: 1.1; }
     td.d { text-align: center; font-weight: 600; }
-    td.w { background: #0B2545; } td.r { background: #fff; } td.h { border-left: 0.8px solid #8a96a8; }
+    td.w { background: #0B2545; } td.r { background: #fff; } td.x { background: repeating-linear-gradient(45deg, #c8d0db 0 1px, #fff 1px 3px); } td.h { border-left: 0.8px solid #8a96a8; }
     td.nr { color: #9aa6b5; text-align: center; font-style: italic; }
     td.n { text-align: center; }
     td.b { padding: 0 2px; font-size: 7px; white-space: nowrap; text-align: center; }
@@ -126,7 +139,7 @@ export function restReportFileName(input: Pick<RestReportInput, 'holderName' | '
 /** The record as data for the web's jsPDF drawing (utils/restPdf.web). */
 export function restPdfData(input: RestReportInput): RestPdfData {
   const { from, to, label } = monthRange(input.month);
-  const summary = analyseRest(input.days, from, to);
+  const summary = analyseRest(input.days, from, to, input.vessel);
   const byDate = new Map(input.days.map((d) => [d.date, d]));
   return {
     title: `Record of hours of rest — ${label}`,
@@ -136,12 +149,12 @@ export function restPdfData(input: RestReportInput): RestPdfData {
       const rec = byDate.get(s.date);
       return {
         day: s.date.slice(8),
-        work: rec ? rec.work : null,
+        work: rec ? wallOf(rec, input) : null,
         workH: rec ? s.workHours : undefined,
         restH: rec ? s.restHours : undefined,
         minRest: s.minRest24h ?? undefined,
         breach: [...new Set(s.violations.map((v) => RULE_CODE[v.rule] ?? v.rule))].join(' '),
-        note: rec?.note ?? '',
+        note: noteOf(s.dayHours, rec?.note),
         bad: s.violations.length > 0,
       };
     }),

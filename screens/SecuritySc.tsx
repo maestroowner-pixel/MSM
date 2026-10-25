@@ -62,9 +62,10 @@ import SearchesSc from './SearchesSc';
 import PatrolsSc from './PatrolsSc';
 import KeysSc from './KeysSc';
 import { OfficerDocs } from '../components/OfficerDocs';
+import { shipHm } from '../utils/shipTime';
 
 type Tab = 'board' | 'log' | 'drills';
-const hhmm = () => new Date().toTimeString().slice(0, 5);
+const hhmm = () => shipHm();
 const ID_TYPES = ['Passport', 'ID card', 'Driving licence', "Seaman's book", 'Company ID'];
 /** The document's name in the interface language; the record keeps the English, an amended free text shows as typed. */
 const idName = (x: string) => (ID_TYPES.includes(x) ? tk(`sec.id.${x}`) : x);

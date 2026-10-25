@@ -20,6 +20,7 @@ import { PERIOD_LABEL, positionStr, sortDeckEntries, weatherSummary } from '../s
 import { shareDeckLogPage } from '../services/deckLogReport';
 import { seedDeckLog, clearDeckLog, seedInspectorVisit } from '../services/deckLogSeed';
 import { t, useT } from '../utils/i18n';
+import { nextChangeSoon } from '../utils/shipTime';
 
 export default function DeckLogSc() {
   useT();
@@ -29,6 +30,7 @@ export default function DeckLogSc() {
   const { deckLog, vessel, saveRows, flat } = useData();
 
   const [selectedDate, setSelectedDate] = useState(todayISO);
+  const soon = nextChangeSoon(vessel);
 
   const sorted = useMemo(() => sortDeckEntries(deckLog), [deckLog]);
 
@@ -171,6 +173,14 @@ export default function DeckLogSc() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* ── A planned clock change within 12 hours ── */}
+        {soon ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: SIZES.lg, paddingBottom: SIZES.xs }}>
+            <MciIcon name="clock-alert-outline" size={16} color={COLORS.warning} />
+            <Text style={{ fontSize: SIZES.small, fontWeight: '700', color: COLORS.warning }}>{t('clk.soon', { time: soon.time, to: soon.change.to })}</Text>
+          </View>
+        ) : null}
 
         {/* ── Date nav + picker ── */}
         <DateNav

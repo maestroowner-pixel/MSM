@@ -31,7 +31,8 @@
 // different problem from a breach and is reported as "not recorded".
 // ===================================
 
-import { RestDay, SLOTS_PER_DAY } from '../types/rest';
+import { RestDay, SLOTS_PER_DAY, slotLabel } from '../types/rest';
+import { ShipClockInfo, clockChanges, shipAndUtcAt, shipInstantAt } from '../utils/shipTime';
 
 export type RestRule = '24h' | '7d' | 'split' | 'gap';
 
@@ -47,6 +48,8 @@ export interface RestDaySummary {
   recorded: boolean;
   restHours: number;
   workHours: number;
+  /** 23 or 25 — only on the day the ship's clocks changed. */
+  dayHours?: number;
   /** Least rest found in any 24h window starting on this day (hours), if judged. */
   minRest24h?: number;
   violations: RestViolation[];
@@ -74,6 +77,61 @@ function daysBetween(a: string, b: string): number {
   return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
 }
 
+// ---- Days of 23 and 25 hours (25 Oct 2026) ---------------------------------
+//
+// The day a ship's clocks go back has 25 hours of real time, the day they go
+// forward 23. A record keeps one character per REAL half hour — 50 or 46 then —
+// so the rules, which are about real hours of rest, count what happened. Each
+// slot carries the wall-clock label it showed: the repeated hour appears twice,
+// the skipped hour not at all.
+
+const STD = Array.from({ length: SLOTS_PER_DAY }, (_, i) => slotLabel(i));
+const HALF = 1800000;
+
+/** The wall-clock label of each real half hour of a ship's day. */
+export function dayLabels(date: string, clock?: ShipClockInfo | null): string[] {
+  if (!clock || !clockChanges(clock).length) return STD;
+  const from = shipInstantAt(date, '00:00', clock);
+  const to = shipInstantAt(addDays(date, 1), '00:00', clock);
+  const n = Math.round((to - from) / HALF);
+  if (n === SLOTS_PER_DAY && shipAndUtcAt(from, clock).ship.slice(11) === '00:00') {
+    const labels = Array.from({ length: n }, (_, j) => half(shipAndUtcAt(from + j * HALF, clock).ship.slice(11)));
+    if (labels.every((l, i) => l === STD[i])) return STD;
+    return labels;
+  }
+  return Array.from({ length: n }, (_, j) => half(shipAndUtcAt(from + j * HALF, clock).ship.slice(11)));
+}
+
+/** "02:17" → "02:00": a slot is named by the half hour it starts in. */
+const half = (hhmm: string) => `${hhmm.slice(0, 2)}:${Number(hhmm.slice(3, 5)) < 30 ? '00' : '30'}`;
+
+/** The 48-slot position of a wall-clock label. */
+export const wallIndex = (label: string) => Number(label.slice(0, 2)) * 2 + (label.slice(3) === '30' ? 1 : 0);
+
+/**
+ * A stored day fitted to the day's real half hours. A 48-slot record (made
+ * before the change was planned, or on an older app) takes the repeated hour
+ * twice and drops the skipped one.
+ */
+export function fitDay(work: string, labels: string[]): string {
+  if (work.length === labels.length) return work;
+  if (work.length === SLOTS_PER_DAY) return labels.map((l) => (work[wallIndex(l)] === '1' ? '1' : '0')).join('');
+  return (work + '0'.repeat(labels.length)).slice(0, labels.length);
+}
+
+/**
+ * The day on the paper form's 48 columns: '1' worked in that wall half hour
+ * (either time, if it came twice), '0' rest, 'x' a half hour the clocks skipped.
+ */
+export function toWall(work: string, labels: string[]): string {
+  const out: string[] = new Array(SLOTS_PER_DAY).fill('x');
+  labels.forEach((l, i) => {
+    const w = wallIndex(l);
+    out[w] = work[i] === '1' || out[w] === '1' ? '1' : '0';
+  });
+  return out.join('');
+}
+
 export function hours(slots: number): number {
   return slots / H;
 }
@@ -97,7 +155,7 @@ function restRuns(timeline: (0 | 1 | null)[], from: number, to: number): number[
  * Check one person's days. `days` may be any subset, in any order, of one
  * person's records; `from`..`to` (inclusive) is the range reported on.
  */
-export function analyseRest(days: RestDay[], from: string, to: string): RestDaySummary[] {
+export function analyseRest(days: RestDay[], from: string, to: string, ship?: ShipClockInfo | null): RestDaySummary[] {
   // A timeline from a week before `from` (so the 7-day windows at the start of
   // the month can be judged) to a day after `to` (for 24h windows that start on
   // the last day and run into the next).
@@ -106,12 +164,28 @@ export function analyseRest(days: RestDay[], from: string, to: string): RestDayS
   const nDays = daysBetween(start, end) + 1;
   const byDate = new Map(days.map((d) => [d.date, d]));
 
-  const timeline: (0 | 1 | null)[] = new Array(nDays * DAY).fill(null);
+  // Each day as many real half hours as it had — 46, 48 or 50.
+  const labelsOf: string[][] = [];
+  const dayStart: number[] = [];
+  let len = 0;
+  for (let di = 0; di < nDays; di++) {
+    const l = dayLabels(addDays(start, di), ship);
+    labelsOf.push(l);
+    dayStart.push(len);
+    len += l.length;
+  }
+  const timeline: (0 | 1 | null)[] = new Array(len).fill(null);
   for (let di = 0; di < nDays; di++) {
     const rec = byDate.get(addDays(start, di));
     if (!rec) continue;
-    for (let s = 0; s < DAY; s++) timeline[di * DAY + s] = rec.work[s] === '1' ? 1 : 0;
+    const work = fitDay(rec.work, labelsOf[di]);
+    for (let s = 0; s < work.length; s++) timeline[dayStart[di] + s] = work[s] === '1' ? 1 : 0;
   }
+  const dayOf = (slot: number) => {
+    let d = 0;
+    while (d + 1 < dayStart.length && dayStart[d + 1] <= slot) d++;
+    return d;
+  };
 
   // Prefix sums of rest and of unknown slots — every window is then O(1).
   const restPre = new Array(timeline.length + 1).fill(0);
@@ -130,7 +204,7 @@ export function analyseRest(days: RestDay[], from: string, to: string): RestDayS
     for (let i = 0; i <= timeline.length; i++) {
       if (i < timeline.length && timeline[i] === 1) run += 1;
       else {
-        if (run > RULES.maxWorkStretch * H) gaps.push({ len: run, endDay: Math.floor((i - 1) / DAY) });
+        if (run > RULES.maxWorkStretch * H) gaps.push({ len: run, endDay: dayOf(i - 1) });
         run = 0;
       }
     }
@@ -143,12 +217,15 @@ export function analyseRest(days: RestDay[], from: string, to: string): RestDayS
   for (let di = reportFrom; di <= reportTo; di++) {
     const date = addDays(start, di);
     const rec = byDate.get(date);
-    const base = di * DAY;
+    const base = dayStart[di];
+    const n = labelsOf[di].length;
+    const at = (slot: number) => labelsOf[di][slot - base] ?? clock(slot - base);
     const summary: RestDaySummary = {
       date,
       recorded: !!rec,
-      restHours: rec ? hours(rest(base, base + DAY)) : 0,
-      workHours: rec ? hours(DAY - rest(base, base + DAY)) : 0,
+      restHours: rec ? hours(rest(base, base + n)) : 0,
+      workHours: rec ? hours(n - rest(base, base + n)) : 0,
+      ...(n !== DAY ? { dayHours: n / H } : {}),
       violations: [],
     };
     if (!rec) {
@@ -161,7 +238,7 @@ export function analyseRest(days: RestDay[], from: string, to: string): RestDayS
     let min24: number | null = null;
     let minAt = 0;
     let splitBad: { at: number; longest: number; two: number } | null = null;
-    for (let s = base; s < base + DAY; s++) {
+    for (let s = base; s < base + n; s++) {
       if (!known(s, s + DAY)) continue;
       const r = rest(s, s + DAY);
       if (min24 === null || r < min24) {
@@ -183,7 +260,7 @@ export function analyseRest(days: RestDay[], from: string, to: string): RestDayS
         summary.violations.push({
           rule: '24h',
           date,
-          detail: `${hours(min24)} h rest in the 24 h from ${clock(minAt - base)} (minimum ${RULES.minRest24h})`,
+          detail: `${hours(min24)} h rest in the 24 h from ${at(minAt)} (minimum ${RULES.minRest24h})`,
         });
       }
     }
@@ -193,15 +270,15 @@ export function analyseRest(days: RestDay[], from: string, to: string): RestDayS
         date,
         detail:
           splitBad.longest < RULES.longestPeriod * H
-            ? `longest rest ${hours(splitBad.longest)} h in the 24 h from ${clock(splitBad.at - base)} (one period must be at least ${RULES.longestPeriod} h)`
-            : `rest split into more than two periods in the 24 h from ${clock(splitBad.at - base)}`,
+            ? `longest rest ${hours(splitBad.longest)} h in the 24 h from ${at(splitBad.at)} (one period must be at least ${RULES.longestPeriod} h)`
+            : `rest split into more than two periods in the 24 h from ${at(splitBad.at)}`,
       });
     }
 
     // 7 days — the window ending at the end of this day, and every window ending
     // inside it, judged only when all seven days are recorded.
     let min7: number | null = null;
-    for (let e = base + 1; e <= base + DAY; e++) {
+    for (let e = base + 1; e <= base + n; e++) {
       const s = e - WEEK;
       if (!known(s, e)) continue;
       const r = rest(s, e);
@@ -241,7 +318,7 @@ function clock(slot: number): string {
 /** Set slots [from, to) to work ('1') or rest ('0'). */
 export function paint(work: string, from: number, to: number, isWork: boolean): string {
   const a = work.split('');
-  for (let i = Math.max(0, from); i < Math.min(SLOTS_PER_DAY, to); i++) a[i] = isWork ? '1' : '0';
+  for (let i = Math.max(0, from); i < Math.min(a.length, to); i++) a[i] = isWork ? '1' : '0';
   return a.join('');
 }
 
@@ -254,11 +331,10 @@ export const REST_PRESETS: { key: string; label: string; work: [number, number][
   { key: 'off', label: 'Day off', work: [] },
 ];
 
-export function presetWork(key: string): string {
+/** A pattern laid on the day's half hours by the clock — the repeated hour worked twice if it falls in a watch. */
+export function presetWork(key: string, labels: string[] = STD): string {
   const p = REST_PRESETS.find((x) => x.key === key);
-  let w = '0'.repeat(SLOTS_PER_DAY);
-  for (const [a, b] of p?.work ?? []) w = paint(w, a * 2, b * 2, true);
-  return w;
+  return labels.map((l) => (p?.work ?? []).some(([a, b]) => wallIndex(l) >= a * 2 && wallIndex(l) < b * 2) ? '1' : '0').join('');
 }
 
 export function countWork(work: string): number {

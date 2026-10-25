@@ -13,7 +13,7 @@ import { monthAbbr, t } from '../utils/i18n';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES } from '../theme';
-import { shipAndUtc } from '../utils/shipTime';
+import { nextChangeSoon, shipAndUtcAt } from '../utils/shipTime';
 
 export function ShipClock() {
   const COLORS = useTheme();
@@ -24,7 +24,9 @@ export function ShipClock() {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
-  const s = shipAndUtc(now, vessel?.ship_utc_offset);
+  const s = shipAndUtcAt(now, vessel);
+  // A planned clock change within 12 hours (Settings → Vessel → Clock changes); a narrow window has no room — the Deck Log says it.
+  const soon = nextChangeSoon(vessel, now);
   const day = `${Number(s.ship.slice(8, 10))} ${monthAbbr(Number(s.ship.slice(5, 7)) - 1)}`;
   const wide = width >= 720;
   // Ship's time is a whole-minute offset from UTC, so the seconds are the same in both.
@@ -36,6 +38,9 @@ export function ShipClock() {
         {wide ? `${day} ${s.ship.slice(11)}${sec} ${t('clock.ship')} (${s.zone})` : `${s.ship.slice(11)}${sec} ${t('clock.ship')}`}
       </Text>
       <Text style={{ fontSize: SIZES.small, color: COLORS.textLight, fontVariant: ['tabular-nums'] }} numberOfLines={1}>{`· ${s.utc.slice(11)}${sec} UTC`}</Text>
+      {soon && wide ? (
+        <Text style={{ fontSize: SIZES.small, fontWeight: '700', color: COLORS.warning }} numberOfLines={1}>{`· ${t('clk.soon', { time: soon.time, to: soon.change.to })}`}</Text>
+      ) : null}
     </View>
   );
 }

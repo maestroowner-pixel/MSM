@@ -169,8 +169,11 @@ export const MODULES: Record<ModuleKey, boolean> = {
   orders: true,
   /** Deck watch log (вахтенный журнал мостика) — position, course, speed, weather, watch officer signature (Oct 2026). */
   deckLog: true,
-  /** Engine-room rounds / daily log — readings, machinery state, watch signature (Oct 2026). */
-  watchLog: false,
+  /**
+   * Engine-room rounds / daily log — readings, machinery state, watch signature (Oct 2026).
+   * Released in 2.68 with watch periods, remarks, previous readings, trends and the day's PDF.
+   */
+  watchLog: true,
   /** GMDSS Log — daily/weekly/monthly checks, battery log, radar periods, events (Oct 2026). */
   gmdss: true,
   /**

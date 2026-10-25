@@ -39,6 +39,7 @@ import { useSync } from '../contexts/SyncContext';
 import * as accounts from '../services/accounts';
 import { EnrolledDevice, personName } from '../types/role';
 import { t, tn, useT } from '../utils/i18n';
+import { shipToday } from '../utils/shipTime';
 
 export default function CrewSc() {
   useT();
@@ -117,7 +118,7 @@ export default function CrewSc() {
   const [listing, setListing] = useState(false);
   const [arrival, setArrival] = useState(true);
   const [port, setPort] = useState('');
-  const [listDate, setListDate] = useState(new Date().toISOString().slice(0, 10));
+  const [listDate, setListDate] = useState(shipToday());
   const [listSaved, setListSaved] = useState<string | null>(null);
   const listRows = useMemo(() => crewListRows(crew, crewPrivate), [crew, crewPrivate]);
   const listGaps = useMemo(() => crewListGaps(listRows), [listRows]);

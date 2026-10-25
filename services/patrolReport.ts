@@ -12,10 +12,11 @@ import { dayRounds, keyStatus, keysOut, livePlans, monthSummary } from './patrol
 import { todayIso } from './pms';
 import { Patrol, PatrolPlan } from '../types/patrols';
 import { KeyItem, KeyMove } from '../types/keys';
+import { shipHm, shipToday } from '../utils/shipTime';
 
-const hm = (t: number) => new Date(t).toTimeString().slice(0, 5);
+const hm = (t: number) => shipHm(t);
 const dmy = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
-const stamp = (t: number) => `${dmy(new Date(t - new Date(t).getTimezoneOffset() * 60000).toISOString().slice(0, 10))} ${hm(t)}`;
+const stamp = (t: number) => `${dmy(shipToday(t))} ${hm(t)}`;
 type T = { title: string; head: string[]; rows: string[][]; widths?: Record<number, number>; sigs?: Record<string, string> };
 
 const roundRow = (p: Patrol, total: number) => [
@@ -72,7 +73,7 @@ export function exportKeyReport(from: string, to: string, keys: KeyItem[], moves
   const live = keys.filter((k) => !k.deleted);
   const st = keyStatus(live, moves);
   const out = keysOut(live, moves, Date.now());
-  const period = moves.filter((m) => { const d = new Date(m.at - new Date(m.at).getTimezoneOffset() * 60000).toISOString().slice(0, 10); return d >= from && d <= to; }).sort((a, b) => a.at - b.at);
+  const period = moves.filter((m) => { const d = shipToday(m.at); return d >= from && d <= to; }).sort((a, b) => a.at - b.at);
   const facts = [`${live.length} keys`, `${out.length} out now`, `${period.length} movements ${dmy(from)} – ${dmy(to)}`];
   const tables: T[] = [
     { title: 'Out now', head: ['Key', 'Opens', 'Held by', 'Since', 'Days', 'Due back'], rows: out.map((o) => [o.key.code, o.key.name, o.move.personRank ? `${o.move.person} (${o.move.personRank})` : o.move.person, stamp(o.move.at), String(o.days), o.move.dueBack ? dmy(o.move.dueBack) : '—']), widths: { 0: 20, 1: 80, 2: 70, 3: 40, 4: 15, 5: 48 } },

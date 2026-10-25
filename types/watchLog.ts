@@ -8,6 +8,7 @@
 // ===================================
 
 import type { SignProof } from '../services/signature';
+import type { WatchPeriod } from './deckLog';
 
 export type WatchParamType = 'number' | 'text';
 
@@ -45,6 +46,10 @@ export interface WatchEntry {
   date: string;
   /** HH:MM (local) */
   time: string;
+  /** Watch period (00-04 … 20-00, or other) — absent on entries made before 25 Oct 2026. */
+  period?: WatchPeriod;
+  /** Machinery state, events, the reason a reading is out of range. */
+  remarks?: string;
   by: string;
   byRank?: string;
   at: number;

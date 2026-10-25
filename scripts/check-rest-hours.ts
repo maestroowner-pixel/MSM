@@ -1,5 +1,5 @@
 // npm run check:rest — the hours-of-rest rules against hand-worked cases.
-import { analyseRest, presetWork, paint } from '../services/restHours';
+import { analyseRest, dayLabels, fitDay, presetWork, paint, toWall } from '../services/restHours';
 import { RestDay, SLOTS_PER_DAY } from '../types/rest';
 
 let failed = 0;
@@ -66,6 +66,31 @@ const rules = (r: ReturnType<typeof analyseRest>, date: string) => (r.find((x) =
   const r = analyseRest([day('2026-10-01', d1), day('2026-10-02', d2), day('2026-10-03', presetWork('off'))], '2026-10-01', '2026-10-02');
   ok(rules(r, '2026-10-02').includes('gap'), 'work 08:00 to 02:00 next day: gap breach on the day it ends');
   ok(rules(r, '2026-10-01').includes('24h'), 'work 08:00 to 02:00: 24 h window from the morning has < 10 h rest');
+}
+
+// 8. The ship's clocks change (25 Oct 2026): 26 Oct 02:00 back to UTC+1 (a 25-hour day), 28 Oct 02:00 forward (23 hours).
+{
+  const v = { ship_utc_offset: '+02:00', ship_time_changes: [
+    { id: 'a', at: Date.parse('2026-10-26T00:00:00Z'), from: '+02:00', to: '+01:00', madeAt: 0 },
+    { id: 'b', at: Date.parse('2026-10-28T01:00:00Z'), from: '+01:00', to: '+02:00', madeAt: 0 },
+  ] };
+  const back = dayLabels('2026-10-26', v);
+  const fwd = dayLabels('2026-10-28', v);
+  ok(back.length === 50 && back.slice(2, 6).join() === '01:00,01:30,01:00,01:30', 'the day the clocks go back: 50 half hours, 01:00–02:00 twice');
+  ok(fwd.length === 46 && !fwd.includes('02:00') && fwd[4] === '03:00', 'the day they go forward: 46, 02:00–03:00 skipped');
+  ok(dayLabels('2026-10-27', v).length === SLOTS_PER_DAY && dayLabels('2026-10-26').length === SLOTS_PER_DAY, 'other days, and a vessel with no changes: 48');
+  const old = presetWork('w04'); // a 48-slot record from before the change was planned
+  ok(fitDay(old, back).length === 50 && fitDay(old, back)[2] === '1' && fitDay(old, back)[4] === '1', 'a 48-slot record fits the 25-hour day: the repeated hour as it was');
+  ok(presetWork('day', back).split('').filter((c) => c === '1').length === 16 && presetWork('off', fwd).length === 46, 'patterns laid on the clock');
+  const ds = dates('2026-10-19', 10);
+  const r = analyseRest(ds.map((d) => day(d, presetWork('day', dayLabels(d, v)))), '2026-10-26', '2026-10-28', v);
+  const s26 = r.find((x) => x.date === '2026-10-26')!, s28 = r.find((x) => x.date === '2026-10-28')!;
+  ok(s26.dayHours === 25 && s26.restHours === 17 && s26.workHours === 8, '25-hour day: 8 h work, 17 h rest');
+  ok(s28.dayHours === 23 && s28.restHours === 15 && !r.find((x) => x.date === '2026-10-27')!.dayHours, '23-hour day: 15 h rest; a normal day has no dayHours');
+  ok(r.every((x) => x.violations.length === 0), 'day work through both changes: no breach');
+  // Watch 00–04 / 12–16 on the 25-hour day: the repeated hour is worked twice — 9 h of work.
+  const w = presetWork('w04', back);
+  ok(w.split('').filter((c) => c === '1').length === 18 && toWall(w, back).length === SLOTS_PER_DAY && toWall(presetWork('off', fwd), fwd)[4] === 'x', 'the paper form: 48 columns, the skipped hour marked');
 }
 
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');

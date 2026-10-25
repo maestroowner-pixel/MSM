@@ -32,13 +32,14 @@ import { PositionInput } from '../components/PositionInput';
 import { parsePosition } from '../utils/position';
 import { playSuccessSound } from '../utils/sound';
 import { t, tk, useT } from '../utils/i18n';
+import { shipHm } from '../utils/shipTime';
 
 const STORE: Record<BookKey, { key: string; signs: string }> = {
   sewage: { key: storage.SEWAGE_KEY, signs: storage.SEWAGE_SIGNS_KEY },
   ballast: { key: storage.BALLAST_KEY, signs: storage.BALLAST_SIGNS_KEY },
 };
 const NUMERIC: LogField[] = ['quantity', 'distance', 'speed', 'depth'];
-const hhmm = () => new Date().toTimeString().slice(0, 5);
+const hhmm = () => shipHm();
 const num = (v: string) => (v.trim() === '' ? undefined : Number(v.replace(',', '.')));
 
 export default function LogBookSc() {

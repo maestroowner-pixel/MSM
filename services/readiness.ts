@@ -44,6 +44,7 @@ import { ncState } from './safety';
 import { drillSchedule } from './drills';
 import { chestStatus } from './hospital';
 import { analyseRest } from './restHours';
+import { shipToday } from '../utils/shipTime';
 
 export type ReadinessKind = 'psc' | 'flag' | 'class';
 export const KIND_LABEL: Record<ReadinessKind, string> = { psc: 'Port State Control', flag: 'Flag inspection', class: 'Class survey' };
@@ -127,8 +128,7 @@ const addDays = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00
 const dmy = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const localIso = (ms: number) => {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return shipToday(ms);
 };
 
 /**

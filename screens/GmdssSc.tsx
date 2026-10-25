@@ -43,10 +43,11 @@ import { uiDate } from '../utils/dates';
 import { goBackOr } from '../utils/nav';
 import { todayIso } from '../services/pms';
 import { t, t as tt, tk, useT } from '../utils/i18n';
+import { shipHm } from '../utils/shipTime';
 
 // ─── Tiny helpers ─────────────────────────────────────────────────────────────
 
-function nowHm(): string { return new Date().toTimeString().slice(0, 5); }
+function nowHm(): string { return shipHm(); }
 
 // ─── Journal row ─────────────────────────────────────────────────────────────
 

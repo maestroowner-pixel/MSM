@@ -40,6 +40,7 @@ import { formatDate, uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { t, tk, tn, useT } from '../utils/i18n';
+import { shipHm } from '../utils/shipTime';
 
 type Tab = 'locker' | 'check';
 type View_ = 'inventory' | 'drills' | 'docs' | 'manage';
@@ -147,7 +148,7 @@ export default function SopepSc() {
     const s = await stamp(`SOPEP drill — ${d.scenario}`);
     if (!s) return;
     const r: SopepDrill = {
-      id: uid('sopd'), date: today, time: new Date().toTimeString().slice(0, 5), scenario: d.scenario, participants: d.team,
+      id: uid('sopd'), date: today, time: shipHm(), scenario: d.scenario, participants: d.team,
       ...(Number(d.minutes) > 0 ? { minutes: Number(d.minutes) } : {}), ...(d.lessons.trim() ? { lessons: d.lessons.trim() } : {}), ...s, updatedAt: Date.now(),
     };
     await appendRow(storage.SOPEP_DRILLS_KEY, r);

@@ -15,7 +15,7 @@
 
 export interface RestPdfRow {
   day: string;
-  /** 48 chars, '1' = work; null = not recorded. */
+  /** 48 chars, '1' = work, 'x' = skipped by advancing clocks; null = not recorded. */
   work: string | null;
   workH?: number;
   restH?: number;
@@ -99,6 +99,9 @@ export function restPdfBlob(d: RestPdfData): Blob {
     if (r.work) {
       doc.setFillColor(...NAVY);
       for (let i = 0; i < 48; i++) if (r.work[i] === '1') doc.rect(gridX + i * slotW, y, slotW, rowH, 'F');
+      // A half hour the clocks skipped (advanced) — grey, neither work nor rest.
+      doc.setFillColor(200, 208, 219);
+      for (let i = 0; i < 48; i++) if (r.work[i] === 'x') doc.rect(gridX + i * slotW, y, slotW, rowH, 'F');
     } else {
       doc.setFontSize(6);
       doc.setTextColor(154, 166, 181);

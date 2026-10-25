@@ -40,6 +40,7 @@ import { useSync } from '../contexts/SyncContext';
 import { roleAtLeast } from '../types/role';
 import { scanProofFor, signingGate } from '../services/signingPolicy';
 import { t, tk, tn, useT, currentLang, dateLocale } from '../utils/i18n';
+import { shipToday } from '../utils/shipTime';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 // English keeps its own three letters (en-GB writes "Sept"); other languages ask Intl.
@@ -893,7 +894,7 @@ export default function ItemDetailSc() {
                         itemCategory: draft.category,
                         itemSnap: snap,
                         dir: 'decommissioned',
-                        date: new Date().toISOString().slice(0, 10),
+                        date: shipToday(),
                         reason: writeOffReason.trim() || undefined,
                         updatedAt: Date.now(),
                       });

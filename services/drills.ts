@@ -9,6 +9,7 @@ import type { SecurityDrill } from '../types/security';
 import type { SignProof } from './signature';
 import { DRILL_THEORY } from '../constants/drillTheory';
 import { t, tk } from '../utils/t';
+import { shipHm, shipStamp } from '../utils/shipTime';
 
 export function nextDrillNo(list: Drill[], date: string): string {
   const y = date.slice(0, 4);
@@ -29,7 +30,7 @@ export function clockAt(start: string | undefined, min: number): string {
   return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
 }
 
-export const nowHm = (d = new Date()) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+export const nowHm = (d = new Date()) => shipHm(d.getTime());
 
 /** Minutes between two hh:mm (next day when the end is earlier). */
 export function minutesBetween(a?: string, b?: string): number | undefined {
@@ -197,7 +198,7 @@ export function scenarioRows(d: Drill): string[][] {
 /** The signature cell: how and when they signed; a hand signature is drawn over it (drillDoc.attSigs). */
 export function attendanceSig(a: Attendee): string {
   if (!a.signedAt) return '';
-  const hm = new Date(a.signedAt).toTimeString().slice(0, 5);
+  const hm = shipHm(a.signedAt);
   return a.signedWith?.method === 'drawn' ? hm : `${proofLabel(a.signedWith) || 'signed'} · ${hm}`;
 }
 
@@ -239,9 +240,7 @@ export function scheduleRows(rows: ScheduleRow[]): string[][] {
 
 const proofLabel = (p?: SignProof) => (!p ? '' : p.method === 'biometric' ? 'signed biometrically' : p.method === 'drawn' ? 'signed by hand' : 'signed by PIN');
 const stamp = (at: number) => {
-  const x = new Date(at);
-  const z = (n: number) => String(n).padStart(2, '0');
-  return `${x.getFullYear()}-${z(x.getMonth() + 1)}-${z(x.getDate())} ${z(x.getHours())}:${z(x.getMinutes())}`;
+  return shipStamp(at);
 };
 
 export interface DrillDoc {

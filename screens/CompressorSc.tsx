@@ -25,6 +25,7 @@ import {
   MAX_COMPRESSORS,
 } from '../types/compressor';
 import { t, t as tt, tk, useT } from '../utils/i18n';
+import { shipToday } from '../utils/shipTime';
 
 const TYPE_COLOR: Record<CompressorEventType, string> = {
   run: COLORS.primary,
@@ -35,7 +36,7 @@ const TYPE_COLOR: Record<CompressorEventType, string> = {
 const TYPE_ORDER: CompressorEventType[] = ['run', 'maintenance', 'service', 'inspection'];
 
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return shipToday();
 }
 
 function fmtDuration(min: number): string {

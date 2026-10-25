@@ -12,6 +12,7 @@ import { CATEGORY_MAP } from '../constants/categories';
 import * as inspections from './inspections';
 import { roundProgress } from './rounds';
 import { formatDate } from '../utils/dates';
+import { shipStamp } from '../utils/shipTime';
 
 export type ReportScope = Group | 'ALL';
 
@@ -122,7 +123,7 @@ const proofShort = (p?: { method?: string }) => (!p ? '' : p.method === 'biometr
 /** The round's final sign-off as one line, for the PDF and the spreadsheet. */
 export function roundSignoffLine(r: InspectionRound): string {
   if (!r.closedAt) return '';
-  const d = new Date(r.closedAt);
-  const when = `${formatDate(d.toISOString().slice(0, 10))} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const s = shipStamp(r.closedAt);
+  const when = `${formatDate(s.slice(0, 10))} ${s.slice(11, 16)}`;
   return [`${signatureLine(r.closedBy ?? '', r.closedByRank)}`, when, r.closedWith ? proofShort(r.closedWith) : null].filter(Boolean).join(' · ');
 }

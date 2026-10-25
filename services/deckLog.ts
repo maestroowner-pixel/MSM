@@ -1,4 +1,5 @@
 import { DeckEntry, Visibility, WatchPeriod, WindDir } from '../types/deckLog';
+import { shipHm, shipHour, shipToday } from '../utils/shipTime';
 
 export const PERIOD_LABEL: Record<WatchPeriod, string> = {
   '00-04': '00:00 – 04:00',
@@ -89,19 +90,19 @@ export function sortDeckEntries(entries: DeckEntry[]): DeckEntry[] {
   });
 }
 
-/** Today in YYYY-MM-DD. */
+/** Today in YYYY-MM-DD, ship's time. */
 export function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
+  return shipToday();
 }
 
-/** Current local time as HH:MM. */
+/** Ship's time as HH:MM. */
 export function nowTime(): string {
-  return new Date().toTimeString().slice(0, 5);
+  return shipHm();
 }
 
 /** Guess the current watch period from the local time. */
 export function currentPeriod(): WatchPeriod {
-  const h = new Date().getHours();
+  const h = shipHour();
   if (h < 4) return '00-04';
   if (h < 8) return '04-08';
   if (h < 12) return '08-12';

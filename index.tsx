@@ -56,6 +56,7 @@ import PmsProjectsSc, { PmsProjectSc } from './screens/PmsProjectsSc';
 import AmsHoursSc from './screens/AmsHoursSc';
 import WatchLogSc from './screens/WatchLogSc';
 import WatchEntrySc from './screens/WatchEntrySc';
+import { ClockKeeper } from './components/ClockKeeper';
 import DeckLogSc from './screens/DeckLogSc';
 import GmdssSc from './screens/GmdssSc';
 import DeckEntrySc from './screens/DeckEntrySc';
@@ -464,6 +465,7 @@ const linking = {
       GettingStarted: 'getting-started',
       Legal: 'legal/:doc',
       Compressor: 'compressor',
+      SettingsGroup: 'settings/:group',
       Paywall: 'pro',
       CertificateDetail: 'certificate/:id',
       Label: 'label',
@@ -758,6 +760,8 @@ function Root() {
         <Stack.Screen name="CrewMatrix" component={CrewMatrixSc} options={webHeader(t('cm.title'))} />
         <Stack.Screen name="Fleet" component={FleetSc} options={webHeader(t('fleet.title'))} />
         <Stack.Screen name="FleetVessel" component={FleetVesselSc} options={webHeader(t('certs.tab.vessel'), { screen: 'Fleet' })} />
+        {/* A group of Settings as its own page (screens/SettingsSc, 25 Oct 2026). */}
+        <Stack.Screen name="SettingsGroup" component={SettingsSc} options={webHeader(t('tab.Settings'), toTab('Settings'))} />
         <Stack.Screen name="Checklists" component={ChecklistsSc} options={webHeader(t('cl.title'), toTab('Settings'))} />
         <Stack.Screen name="ScanRules" component={ScanRulesSc} options={webHeader(t('scan.title'), toTab('Settings'))} />
         <Stack.Screen name="PhotoArchive" component={PhotoArchiveSc} options={webHeader(t('pa.title'), toTab('Settings'))} />
@@ -785,6 +789,8 @@ function Root() {
       ) : null}
       {/* A newer version — the store's on a phone, a redeploy on web (components/UpdatePrompt). */}
       {!showSplash && legalAccepted === true ? <UpdatePrompt /> : null}
+      {/* Planned clock changes: applied on time, written into the Deck Log (components/ClockKeeper). */}
+      <ClockKeeper />
     </NavigationContainer>
   );
 }

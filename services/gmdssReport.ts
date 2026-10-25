@@ -13,6 +13,7 @@ import { onWeb, onWindows } from '../utils/fileShare';
 import { fileDateStamp, formatDate } from '../utils/dates';
 import { GMDSS_EQUIPMENT } from './gmdssService';
 import { monthName } from '../components/MonthPicker';
+import { shipToday } from '../utils/shipTime';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -72,7 +73,7 @@ function checkDetailRows(entry: GmdssEntry): string {
 
 function buildHtml(entries: GmdssEntry[], vessel: VesselInfo | null, period?: string): string {
   const sorted = [...entries].sort((a, b) => b.at - a.at);
-  const today = formatDate(new Date().toISOString().slice(0, 10));
+  const today = formatDate(shipToday());
   const header = esc(vesselHeader(vessel));
   const periodLabel = period ? esc(monthName(period)) : null;
 

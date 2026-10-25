@@ -25,13 +25,11 @@ import { uid } from '../utils/id';
 import { PositionInput } from '../components/PositionInput';
 import { playSuccessSound } from '../utils/sound';
 import { t, tn, useT } from '../utils/i18n';
+import { shipHm } from '../utils/shipTime';
 
 const CATS = Object.keys(GARBAGE_CATEGORY) as GarbageCategory[];
 const METHODS = Object.keys(GARBAGE_METHOD) as GarbageMethod[];
-const hhmm = () => {
-  const d = new Date();
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-};
+const hhmm = () => shipHm();
 
 export default function GarbageSc() {
   useT();

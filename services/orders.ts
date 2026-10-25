@@ -5,6 +5,7 @@
 
 import { ORDER_DEPT_CODE, OrderDept, OrderLine, OrderStatus, PurchaseOrder } from '../types/orders';
 import { uid } from '../utils/id';
+import { shipToday } from '../utils/shipTime';
 
 /** Next PO number for a department and year: PO-BR-001-2026, per-dept sequence. */
 export function nextOrderNo(existing: PurchaseOrder[], dept: OrderDept, year = new Date().getFullYear()): string {
@@ -55,7 +56,7 @@ export function copyOrder(o: PurchaseOrder, existing: PurchaseOrder[]): Purchase
     id: uid('po'),
     no: nextOrderNo(existing, o.dept),
     status: 'draft',
-    date: new Date().toISOString().slice(0, 10),
+    date: shipToday(),
     by: '',
     byRank: undefined,
     sentAt: undefined,

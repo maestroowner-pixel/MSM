@@ -16,6 +16,7 @@ import { EquipmentItem } from '../types/equipment';
 import { CATEGORY_MAP } from '../constants/categories';
 import { INSPECT_LINK_BASE } from './firebaseService';
 import { signatureLine } from '../types/crew';
+import { shipToday } from '../utils/shipTime';
 
 function svgToDataUri(svg: string): string {
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
@@ -134,7 +135,7 @@ ${report.notes ? `<p style="margin-top:4mm"><strong>Notes:</strong> ${report.not
 ${sigBlock}
 
 <div class="footer">
-  ISM AI Pilot · Marine Safety Manager · ${new Date().toISOString().slice(0, 10)} · ${report.no}
+  ISM AI Pilot · Marine Safety Manager · ${shipToday()} · ${report.no}
 </div>
 </body></html>`;
 }

@@ -28,7 +28,7 @@ import { uid } from '../utils/id';
 import * as storage from '../services/storage';
 import { FuelDailySent } from '../types/fuel';
 import { PositionInput } from './PositionInput';
-import { shipAndUtc } from '../utils/shipTime';
+import { shipAndUtcAt, shipHm, shipHour } from '../utils/shipTime';
 import { moduleOn } from '../constants/modules';
 import { CATEGORY_MAP } from '../constants/categories';
 import { REPORT_LABEL, ReportKind, activityLines, dailyActivity, reportWindow } from '../services/dailyActivity';
@@ -58,7 +58,7 @@ export function FuelDaily({ onSounding }: { onSounding: () => void }) {
   const r = useMemo(() => fuelDaily(date, fuelTanks, fuelReadings, fuelBunkers), [date, fuelTanks, fuelReadings, fuelBunkers]);
   // Noon position or port — the last one sent for the day comes back.
   // Noon report (noon to noon) or midnight report (the calendar day) — 13 Oct 2026.
-  const [kind, setKind] = useState<ReportKind>(() => (new Date().getHours() >= 18 || new Date().getHours() < 6 ? 'midnight' : 'noon'));
+  const [kind, setKind] = useState<ReportKind>(() => (shipHour() >= 18 || shipHour() < 6 ? 'midnight' : 'noon'));
   const [pos, setPos] = useState<{ position: string; port: string }>({ position: '', port: '' });
   useEffect(() => {
     const last = [...fuelDailySent].filter((x) => x.date === date && (x.kind ?? 'noon') === kind).sort((a, b) => b.sentAt - a.sentAt)[0];
@@ -66,11 +66,11 @@ export function FuelDaily({ onSounding }: { onSounding: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, kind]);
   const sections = useMemo(
-    () => dailyActivity({ ...(data as any), date, ...reportWindow(kind, date, vessel?.ship_utc_offset), on: moduleOn, labelOf: (k: string) => data.categories.find((c: any) => c.key === k)?.label ?? (CATEGORY_MAP as any)[k]?.label ?? k, flat: data.flat, inspections: data.inspections }),
+    () => dailyActivity({ ...(data as any), date, ...reportWindow(kind, date, vessel), on: moduleOn, labelOf: (k: string) => data.categories.find((c: any) => c.key === k)?.label ?? (CATEGORY_MAP as any)[k]?.label ?? k, flat: data.flat, inspections: data.inspections }),
     [data, date, kind]
   );
   // The report's moment in ship's time and UTC — the end of its window (noon, or 24:00).
-  const at = shipAndUtc(reportWindow(kind, date, vessel?.ship_utc_offset).to, vessel?.ship_utc_offset);
+  const at = shipAndUtcAt(reportWindow(kind, date, vessel).to, vessel);
   const stamp = kind === 'midnight' ? `${date} 24:00 ship's time (${at.zone}) · ${at.utc} UTC` : at.line;
   const [openSec, setOpenSec] = useState<string | null>(null);
   const by = signer ? (signer.rank ? `${signer.name}, ${signer.rank}` : signer.name) : '';
@@ -145,7 +145,7 @@ export function FuelDaily({ onSounding }: { onSounding: () => void }) {
   const sentToday = fuelDailySent.filter((x) => x.date === date).sort((a, b) => a.sentAt - b.sentAt);
   const history = useMemo(() => [...fuelDailySent].sort((a, b) => b.sentAt - a.sentAt).slice(0, 30), [fuelDailySent]);
   const how = (x: FuelDailySent) => (x.channel === 'email' ? `${tr('fdl.email')}${x.to ? ` → ${x.to}` : ''}` : x.channel === 'share' ? tr('fdl.shared') : tr('fdl.copiedL'));
-  const hm = (t: number) => new Date(t).toTimeString().slice(0, 5);
+  const hm = (t: number) => shipHm(t);
 
   return (
     <>

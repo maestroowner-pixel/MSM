@@ -34,16 +34,14 @@ import { formatDate, uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { t as tt, tk, useT, dateLocale } from '../utils/i18n';
+import { shipHm } from '../utils/shipTime';
 
 const nf = (x?: number) => (x == null ? '—' : `${x.toLocaleString('en-GB', { maximumFractionDigits: 1 })} L`);
 const num = (v: string) => {
   const x = Number(v.replace(/\s/g, '').replace(',', '.'));
   return v.trim() && Number.isFinite(x) && x >= 0 ? x : undefined;
 };
-const hhmm = () => {
-  const d = new Date();
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-};
+const hhmm = () => shipHm();
 
 type Panel = 'none' | 'bunker' | 'transfer' | 'tanks';
 

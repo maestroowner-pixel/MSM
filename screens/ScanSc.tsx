@@ -68,6 +68,7 @@ import { isAboard } from '../types/crew';
 import { personName } from '../types/role';
 import * as storage from '../services/storage';
 import { t, tk, useT } from '../utils/i18n';
+import { shipHm } from '../utils/shipTime';
 
 /** No expo-camera on Windows — see the module header. */
 const HAS_CAMERA = Platform.OS !== 'windows';
@@ -244,7 +245,7 @@ export default function ScanSc() {
       });
     void recordScan(item.id);
     setQuickCount((n) => n + 1);
-    done({ itemId: item.id, title, text: t('qp.passed', { per: tk(`period.${quickPeriod}`).toLowerCase(), time: new Date(now).toTimeString().slice(0, 5) }), ok: true });
+    done({ itemId: item.id, title, text: t('qp.passed', { per: tk(`period.${quickPeriod}`).toLowerCase(), time: shipHm(now) }), ok: true });
   };
 
   const handle = useCallback(
@@ -269,7 +270,7 @@ export default function ScanSc() {
         if (!cp) return hold({ name: t('pat.cp'), text: moduleOn('patrols') ? t('scn.notCp') : t('scn.patrolsOff'), ok: false });
         void visitCheckpoint(cp, via === 'camera' ? 'scan' : 'typed').then((r) => {
           if (!r) return hold({ name: `${cp.code} · ${cp.name}`, text: t('scn.noRound'), ok: false }, 3000);
-          const at = new Date(r.live.visits.find((v) => v.checkpointId === cp.id)!.at).toTimeString().slice(0, 5);
+          const at = shipHm(r.live.visits.find((v) => v.checkpointId === cp.id)!.at);
           if (!onRound) return nav.replace('Main', { screen: 'Security', params: { view: 'patrols' } });
           hold({ name: `${cp.code} · ${cp.name}`, text: r.already ? t('scn.already', { at }) : t('scn.recorded', { at, n: r.live.visits.length }), ok: true });
         });

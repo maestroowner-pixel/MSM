@@ -9,7 +9,7 @@ export function RestBar({ work, height = 10 }: { work: string; height?: number }
   const COLORS = useTheme();
   return (
     <View style={{ flexDirection: 'row', height, borderRadius: 3, overflow: 'hidden', borderWidth: 1, borderColor: COLORS.border }}>
-      {Array.from({ length: SLOTS_PER_DAY }, (_, i) => (
+      {Array.from({ length: work.length || SLOTS_PER_DAY }, (_, i) => (
         <View
           key={i}
           style={{
