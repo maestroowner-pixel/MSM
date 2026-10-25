@@ -128,6 +128,11 @@ app mirrors. Bundle id `com.kukalab.msm`.
 - Audio: `expo-av` — ship's bell on app start (`utils/sound.ts` → `playShipBellSound`,
   asset `assets/sounds/ship-bell.mp3`), mirrors MHM. Shown via `screens/SplashSc.tsx`, an
   overlay in `index.tsx` (`showSplash` state) that animates the logo and calls `onDone` after ~2.2s.
+  **On the web the splash is a video** (`MSM Win Web/public/splash.mp4`, 10 s, 3.5 MB): the logo
+  surfaces from water and ends on the app's navy; its own audio track is the ship's bell once,
+  as the logo clears (~3.3 s). The frames are painted into a `<canvas>` over the video: shown as a
+  `<video>`, Opera on macOS drew a thin vertical blue line through its hardware video path. Browsers allow sound only on an engaged site — otherwise it
+  plays muted. Tap skips; no playback within 4 s or an error → the logo splash.
 - Cloud (optional): Firebase JS SDK (`firebase`) — Firestore + Storage + Cloud Functions, live
   `onSnapshot` sync; the session comes from a custom token minted by `functions/enrol`
 - **Home-screen widgets** (ported from DEM) — a small **Scan** widget (one tap → in-app scanner)

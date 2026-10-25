@@ -37,6 +37,12 @@ function soundDisabled(): boolean {
   return muted || (onWeb && (globalThis as any).__MSM_NO_SOUND__ === true);
 }
 
+/** Whether sound may play — for media that carries its own audio (the web splash video). */
+export async function soundAllowed(): Promise<boolean> {
+  await mutedReady;
+  return !soundDisabled();
+}
+
 // Audio mode: play even when the device is on silent (iOS), duck others on Android.
 // (Skipped on Windows/web, where expo-av audio mode isn't used.)
 if (!onWindows && !onWeb) {
