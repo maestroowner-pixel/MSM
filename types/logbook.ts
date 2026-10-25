@@ -46,6 +46,8 @@ export interface LogEntry extends Versioned {
   text: string;
   by: string;
   byRank?: string;
+  /** The signer's id (crew id or `device:<id>`) — the user ID a true copy prints (MEPC.312 §6.3). */
+  byId?: string;
   at: number;
   signedWith?: SignProof;
   updatedAt: number;
@@ -59,5 +61,11 @@ export interface LogMonthSign {
   byRank?: string;
   at: number;
   signedWith?: SignProof;
+  /** The entry versions this signature verified (services/verification) — absent before 2.68. */
+  covers?: string[];
+  /** contentHash of each covered version (services/seal), since 2.69. */
+  coverHashes?: string[];
+  /** The Master's id — checked against the key register. */
+  byId?: string;
   updatedAt: number;
 }

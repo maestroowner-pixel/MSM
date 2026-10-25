@@ -12,7 +12,9 @@ import React, { useState } from 'react';
 import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { useSigner } from './SignerChoice';
-import { useSignConfirm } from './SignConfirm';
+import { useSignConfirm, withSeal } from './SignConfirm';
+import { chainHead } from '../services/seal';
+import * as storage from '../services/storage';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES } from '../theme';
@@ -41,10 +43,13 @@ interface Spec {
 
 const getAt = (r: any, k: string) => (k.includes('.') ? r?.[k.split('.')[0]]?.[k.split('.')[1]] : r?.[k]);
 
+/** The MARPOL record books — their versions are chained and sealed (services/seal). */
+const SEALED_BOOKS = [storage.ORB_KEY, storage.SEWAGE_KEY, storage.BALLAST_KEY, storage.GARBAGE_KEY];
+
 export function useAmend() {
   const COLORS = useTheme();
   useT();
-  const { appendRow } = useData();
+  const { appendRow, versionsOf } = useData();
   const { signer, picker } = useSigner();
   const confirmSign = useSignConfirm();
   const [spec, setSpec] = useState<(Spec & { mode: 'edit' | 'remove' }) | null>(null);
@@ -92,10 +97,13 @@ export function useAmend() {
     }
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${spec.mode === 'edit' ? 'Change' : 'Delete'} — ${spec.what}: ${reason.trim()}` });
     if (!sig) return;
-    const by = { name: signer.name, ...(signer.rank ? { rank: signer.rank } : {}), ...(sig.proof ? { proof: sig.proof } : {}) };
+    const by = { name: signer.name, ...(signer.rank ? { rank: signer.rank } : {}), id: signer.key, ...(sig.proof ? { proof: sig.proof } : {}) };
     const id = uid(spec.record.id.split('_')[0] || 'rec');
     let next: any = spec.mode === 'edit' ? amended(spec.record, changes, id, reason.trim(), by) : cancelled(spec.record, id, reason.trim(), by);
-    next = Object.fromEntries(Object.entries(next).filter(([, v]) => v !== undefined));
+    // In a record book the new version joins the book's chain where it stands now, and the amender seals it (services/seal).
+    const book = SEALED_BOOKS.includes(spec.store);
+    next = Object.fromEntries(Object.entries(book ? { ...next, prev: chainHead(versionsOf(spec.store)) } : next).filter(([, v]) => v !== undefined));
+    if (book) next = withSeal(next, sig, 'editedWith');
     await appendRow(spec.store, next);
     await spec.onDone?.(next, spec.mode);
     setSpec(null);

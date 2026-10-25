@@ -55,9 +55,11 @@
     "check:board": "rm -rf .check-board && tsc scripts/check-board.ts --outDir .check-board --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-board/ && node .check-board/scripts/check-board.js; s=$?; rm -rf .check-board; exit $s",
     "check:rest": "rm -rf .check-rest && tsc scripts/check-rest-hours.ts --outDir .check-rest --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-rest/scripts/check-rest-hours.js; s=$?; rm -rf .check-rest; exit $s",
     "check:bulk": "rm -rf .check-bulk && tsc scripts/check-bulk-edit.ts --outDir .check-bulk --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-bulk/ && node .check-bulk/scripts/check-bulk-edit.js; s=$?; rm -rf .check-bulk; exit $s",
+    "check:verification": "rm -rf .check-ver && tsc scripts/check-verification.ts --outDir .check-ver --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck --resolveJsonModule && cp app.json .check-ver/ && node .check-ver/scripts/check-verification.js; s=$?; rm -rf .check-ver; exit $s",
     "check:shiptime": "rm -rf .check-st && tsc scripts/check-shiptime.ts --outDir .check-st --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-st/ && node .check-st/scripts/check-shiptime.js; s=$?; rm -rf .check-st; exit $s",
     "check:watchlog": "rm -rf .check-wl && tsc scripts/check-watchlog.ts --outDir .check-wl --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-wl/scripts/check-watchlog.js; s=$?; rm -rf .check-wl; exit $s",
-    "check:patrols": "rm -rf .check-pat && tsc scripts/check-patrols.ts --outDir .check-pat --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-pat/scripts/check-patrols.js; s=$?; rm -rf .check-pat; exit $s"
+    "check:patrols": "rm -rf .check-pat && tsc scripts/check-patrols.ts --outDir .check-pat --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-pat/scripts/check-patrols.js; s=$?; rm -rf .check-pat; exit $s",
+    "check:seal": "rm -rf .check-seal && tsc scripts/check-seal.ts --outDir .check-seal --module commonjs --target es2020 --moduleResolution node --esModuleInterop --skipLibCheck --resolveJsonModule --types node && cp app.json .check-seal/ && node .check-seal/scripts/check-seal.js; s=$?; rm -rf .check-seal; exit $s"
   },
   "keywords": [
     "maritime",
@@ -79,6 +81,9 @@
     "@bacons/apple-targets": "^5.0.0",
     "@expo/vector-icons": "^15.0.3",
     "@mdi/js": "^7.4.47",
+    "@noble/ciphers": "1.3.0",
+    "@noble/curves": "1.9.7",
+    "@noble/hashes": "1.8.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/netinfo": "11.4.1",
     "@react-native-picker/picker": "2.11.1",
@@ -90,6 +95,7 @@
     "expo-av": "~16.0.8",
     "expo-build-properties": "~1.0.10",
     "expo-camera": "~17.0.10",
+    "expo-crypto": "~15.0.9",
     "expo-document-picker": "~14.0.8",
     "expo-file-system": "~19.0.21",
     "expo-font": "~14.0.12",

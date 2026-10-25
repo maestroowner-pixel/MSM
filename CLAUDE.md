@@ -85,6 +85,31 @@ app mirrors. Bundle id `com.kukalab.msm`.
   as its own account (`SyncContext.me`, watched live from the vessel's device list) and the picker
   is gone — `signerRule` in signingPolicy.ts, pure, checked in `check:inspections`. A device on no
   vessel still picks; an account not yet loaded HOLDS the signature rather than falling back.
+- **Record books: the Master's verification and the true copy** (25 Oct 2026, for flag approval
+  under MEPC.312(74) — `services/verification.ts`, `components/Verification.tsx`,
+  `services/trueCopy.ts` + `utils/trueCopyPdf.ts`, `npm run check:verification`). ORB, Garbage,
+  Sewage and Ballast: a Master's signature lists the entry VERSIONS it verified (`covers`), so an
+  amendment (a new id, services/versions) is "awaiting re-verification" until signed again; a
+  pre-2.68 signature without `covers` counts for every version of its month written before it.
+  The month's first signature keeps the id `<book>_<yyyy-mm>` so 2.67 still sees the month signed.
+  The PDF is drawn with jsPDF on every platform (it has to number its pages) — earlier versions
+  struck under their replacement, signer ID and UTC times, and on each page print time, software
+  version, "Page n of N" and a true-copy line; phones fall back to the old HTML page if jsPDF fails.
+  Plan and requirement-by-requirement gaps: `/Users/Oxford/MarineSafetyManager/research/flag-erb-recognition.md`.
+- **Record books: seals, chain, signed copy** (25 Oct 2026, stage 2 — `services/seal.ts`,
+  `services/signKeys.ts`, `services/bookAccess.ts`, `services/signedCopy.ts`, `npm run check:seal`).
+  Every signer has an ECDSA P-256 key per device (`@noble/curves`, pure JS; randomness from
+  `expo-crypto` on phones — a NATIVE module, so `pod install` and a store build; without it no key,
+  the record is simply unsealed). The PIN key is stored AES-GCM-encrypted under the stretched PIN;
+  the fingerprint key (own device) and the device key (hand-drawn signatures) are kept plain in the
+  Keychain/Keystore. `withSeal` (components/SignConfirm) signs `contentHash(record)` — canonical
+  JSON without `updatedAt`/`signedWith`/`editedWith` — into `signedWith.seal` (an amendment's into
+  `editedWith.seal`); each entry carries `prev` = hash of the book's latest version; a Master's
+  verification seals `coverHashes`. Public keys go to `sign_keys` (append-only, synced), opens and
+  exports to `book_access`. Changing/resetting a PIN drops the person's keys (a new one appears in the
+  register). **Never add a field to a sealed record after signing** — it breaks the seal; add it
+  before `withSeal`. Signed copy = ZIP (PDF + records.json + manifest sealed by the Master);
+  "Check a copy" runs `checkCopy`. Rules for `sign_keys`/`book_access` need `npm run deploy:rules`.
 - **Checklists** (`constants/checklists.ts`): 30 templates keyed `<category>.<period>`, weekly
   and/or monthly, plus a `genericTemplate` fallback so no category can refuse a round. **Line ids
   are permanent** — they are the keys of every stored `results` map, so re-word freely but never

@@ -14,7 +14,9 @@ import { useRoute } from '@react-navigation/native';
 import { Card, Label, Screen, ScreenTitle } from '../components/ui';
 import { MonthPicker, monthName } from '../components/MonthPicker';
 import { AmendButtons, AmendNote, useAmend } from '../components/Amend';
-import { useSignConfirm } from '../components/SignConfirm';
+import { useVerification } from '../components/Verification';
+import { useSignConfirm, withSeal } from '../components/SignConfirm';
+import { chainHead } from '../services/seal';
 import { useSigner } from '../components/SignerChoice';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
@@ -22,11 +24,11 @@ import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { BookKey, LogEntry, LogField } from '../types/logbook';
 import { BOOKS } from '../services/logbooks';
-import { exportLogExcel, exportLogPdf } from '../services/logbookReport';
+import { exportLogExcel, exportLogPdf, logCopy } from '../services/logbookReport';
 import { current } from '../services/versions';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
-import { formatDate, uiDate, uiDateTime } from '../utils/dates';
+import { formatDate, uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { PositionInput } from '../components/PositionInput';
 import { parsePosition } from '../utils/position';
@@ -60,13 +62,14 @@ export default function LogBookSc() {
   const { signer, picker } = useSigner();
   const amend = useAmend();
   const today = todayIso();
-  const [month, setMonth] = useState(today.slice(0, 7));
+  // The board's "awaiting verification" opens the month it is in.
+  const [month, setMonth] = useState<string>((route.params as any)?.month ?? today.slice(0, 7));
   const [adding, setAdding] = useState(false);
   const [saved, setSaved] = useState<string | null>(null);
 
   const all = versionsOf(store.key) as LogEntry[];
   const book = useMemo(() => current(all).filter((e) => e.date.startsWith(month)).sort((a, b) => `${a.date}${a.time ?? ''}`.localeCompare(`${b.date}${b.time ?? ''}`)), [all, month]);
-  const sign = signs.find((s) => s.month === month);
+  const ver = useVerification({ all, book, signs, month, prefix: bookKey, what: `${spec.title} record`, isMaster, signer, picker, save: (x) => appendRow(store.signs, x), copy: () => { const c = logCopy(spec, book, month, vessel, signs, all); return { copy: c.copy, name: c.name }; } });
 
   // ---- the form: text values, numbers parsed for the draft ----
   type Form = { code: string; date: string; time: string; method: string; treated: boolean | null; remarks: string } & Record<Exclude<LogField, 'method' | 'treated'>, string>;
@@ -94,25 +97,18 @@ export default function LogBookSc() {
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${spec.title} record — ${f.code}` });
     if (!sig) return;
     const now = Date.now();
-    const e: LogEntry = { id: uid(bookKey), book: bookKey, ...(draft as any), text: preview, by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now };
+    const head = chainHead(all);
+    const e: LogEntry = withSeal({ id: uid(bookKey), book: bookKey, ...(draft as any), text: preview, by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), byId: signer.key, at: now, ...(head ? { prev: head } : {}), ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now }, sig);
     await appendRow(store.key, e);
     setF(blank());
     setAdding(false);
     playSuccessSound();
   };
 
-  const masterSign = async () => {
-    if (!signer) return Alert.alert(t('sign.who'), t('pd.chooseName'));
-    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Master's signature — ${spec.title} record, ${month}` });
-    if (!sig) return;
-    const now = Date.now();
-    await appendRow(store.signs, { id: `${bookKey}_${month}`, month, by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now });
-    playSuccessSound();
-  };
-
   const report = async (kind: 'pdf' | 'xlsx') => {
     try {
-      const w = kind === 'pdf' ? await exportLogPdf(spec, book, month, vessel, sign) : await exportLogExcel(spec, book, month, vessel, sign);
+      void ver.note(kind);
+      const w = kind === 'pdf' ? await exportLogPdf(spec, book, month, vessel, signs, all) : await exportLogExcel(spec, book, month, vessel, signs, all);
       if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
       Alert.alert(spec.title, String(e?.message ?? e));
@@ -217,6 +213,7 @@ export default function LogBookSc() {
             <Text style={[styles.text, e.cancelled && { textDecorationLine: 'line-through' }]}>{e.text}</Text>
             <Text style={styles.sub}>{`${uiDate(e.date)}${e.time ? ` ${e.time}` : ''} · ${spec.codes[e.code]?.label ?? e.code} · ${e.byRank ? `${e.by} (${e.byRank})` : e.by}`}</Text>
             <AmendNote rec={e} all={all} summary={(p) => `${p.code} · ${p.text}`} />
+            {ver.stage(e)}
           </View>
           {!e.cancelled ? (
             <AmendButtons
@@ -229,14 +226,7 @@ export default function LogBookSc() {
       ))}
       {!book.length ? <Text style={styles.sub}>{t('book.noneMonth')}</Text> : null}
 
-      <Label>{t('book.master')}</Label>
-      {sign ? (
-        <Text style={styles.text}>{`${t('book.signedFor', { month, by: sign.byRank ? `${sign.by} (${sign.byRank})` : sign.by })} · ${uiDateTime(sign.at)}`}</Text>
-      ) : (
-        <TouchableOpacity disabled={!isMaster} style={[styles.btnOutline, { alignSelf: 'flex-start', opacity: isMaster ? 1 : 0.35 }]} onPress={() => void masterSign()}>
-          <Text style={styles.btnOutlineText}>{t('book.signMonth')}</Text>
-        </TouchableOpacity>
-      )}
+      {ver.section}
       {amend.ui}
     </Screen>
   );

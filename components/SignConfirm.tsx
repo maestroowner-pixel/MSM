@@ -7,6 +7,7 @@
 //   const res = await confirmSign({ personKey, name, ownDevice, what: 'Sign the inspection' });
 //   if (!res) return;                 // cancelled
 //   record.signedWith = res.proof;    // undefined when the vessel does not ask
+//   record = withSeal(record, res);   // the record books: seal the words (services/seal)
 //
 // When the vessel does not ask for confirmation (module off, or the Master's
 // `confirmSignature` off) it resolves at once with no proof, so callers need no
@@ -16,6 +17,11 @@
 //   - otherwise → the signer's signing PIN; the first time on this device they
 //     choose it (twice), and from then on it is asked for.
 // Rules and storage: services/signature.ts.
+//
+// Each way also opens the signer's KEY (services/signKeys, 25 Oct 2026): the PIN
+// decrypts theirs, the fingerprint opens their own phone's, a hand-drawn
+// signature gets the device's. `withSeal` signs a record's hash with it; a key
+// made just now is added to the vessel's key register here.
 // ===================================
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
@@ -43,6 +49,9 @@ import {
   ADMIN_KEY,
   hasAdminPin,
 } from '../services/signature';
+import { OpenKey, openBioKey, openDeviceKey, openPinKey } from '../services/signKeys';
+import type { SignKeyRec } from '../services/seal';
+import * as storage from '../services/storage';
 
 export interface SignRequest {
   /** Stable id of the person: crew id, or `device:<id>` for an account. */
@@ -65,7 +74,19 @@ export interface SignRequest {
   handOnly?: boolean;
 }
 
-export type SignResult = { proof?: SignProof } | null;
+export type SignResult = { proof?: SignProof; key?: OpenKey } | null;
+
+/**
+ * `rec` with its seal in `field` (the proof already there, or the result's): the
+ * signer's key signs the hash of everything else the record says. No key (an old
+ * build, no generator) — the record as it was.
+ */
+export function withSeal<T extends object>(rec: T, sig: SignResult, field: 'signedWith' | 'editedWith' = 'signedWith'): T {
+  if (!sig?.key) return rec;
+  const proof = (rec as any)[field] ?? sig.proof;
+  if (!proof) return rec;
+  return { ...rec, [field]: { ...proof, seal: sig.key.seal(rec) } };
+}
 
 type Step = 'choose' | 'bio' | 'pin' | 'admin' | 'set1' | 'set2' | 'draw';
 
@@ -91,7 +112,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
   const COLORS = useTheme();
   useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { signingPolicy } = useData();
+  const { signingPolicy, appendRow, signKeys } = useData();
   // Every signature is confirmed — PIN, fingerprint or by hand (10 Oct 2026: "a
   // signature with nothing asked is not acceptable"). The old per-vessel switch
   // (signingPolicy.confirmSignature) no longer turns it off.
@@ -105,6 +126,10 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
   const [first, setFirst] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
   const resolver = useRef<((r: SignResult) => void) | null>(null);
+  // tryBio is memoised: the request and the register are read through refs, not its first render.
+  const reqRef = useRef<SignRequest | null>(null);
+  const keysRef = useRef(signKeys);
+  keysRef.current = signKeys;
 
   const finish = useCallback((r: SignResult) => {
     resolver.current?.(r);
@@ -114,9 +139,35 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
 
   // Firestore refuses `undefined` outright, so the device id is left out rather
   // than sent empty when it cannot be read.
-  const proof = async (method: SignProof['method'], drawn?: string): Promise<SignResult> => {
+  // The key is opened with what was just proved: the PIN typed, the finger, or —
+  // by hand — the device's own. A key failing to open never stops the signature.
+  const proof = async (method: SignProof['method'], drawn?: string, pinTyped?: string): Promise<SignResult> => {
     const deviceId = await fb.getLocalDeviceId().catch(() => undefined);
-    return { proof: { method, ...(drawn ? { drawing: drawn } : {}), ...(deviceId ? { deviceId } : {}), at: Date.now() } };
+    let key: OpenKey | null = null;
+    const req = reqRef.current;
+    if (req) {
+      try {
+        key = method === 'pin' && pinTyped ? await openPinKey(req.personKey, pinTyped) : method === 'biometric' ? await openBioKey(req.personKey) : method === 'drawn' ? await openDeviceKey(deviceId ?? '') : null;
+      } catch (e: any) {
+        console.warn('[seal] key not opened:', e?.message ?? e);
+      }
+      if (key && (key.fresh || !keysRef.current.some((k) => k.id === key!.id))) {
+        const now = Date.now();
+        const rec: SignKeyRec = {
+          id: key.id,
+          person: key.kind === 'device' ? `dev:${deviceId ?? ''}` : req.personKey,
+          name: key.kind === 'device' ? 'This device' : req.name,
+          kind: key.kind,
+          pub: key.pub,
+          ...(key.opens ? { opens: key.opens } : {}),
+          ...(deviceId ? { deviceId } : {}),
+          at: now,
+          updatedAt: now,
+        };
+        await appendRow(storage.SIGN_KEYS_KEY, rec).catch(() => {});
+      }
+    }
+    return { proof: { method, ...(drawn ? { drawing: drawn } : {}), ...(deviceId ? { deviceId } : {}), at: Date.now() }, ...(key ? { key } : {}) };
   };
   const toPin = async () => {
     if (!req) return;
@@ -140,6 +191,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
         setDrawing('');
         setFirst('');
         setMsg(null);
+        reqRef.current = r;
         setReq(r);
         void (async () => {
           // The signer chooses: PIN, by hand, or the fingerprint on their own device (11 Oct 2026).
@@ -171,7 +223,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
     if (step === 'pin') {
       const r = await checkPin(req.personKey, v);
       setPinText('');
-      if (r.ok) return finish(await proof('pin'));
+      if (r.ok) return finish(await proof('pin', undefined, v));
       setMsg(r.lockedUntil ? lockText(r.lockedUntil) : t('sc.wrongPin', { left: tn('n.tryLeft', r.left) }));
       return;
     }
@@ -191,7 +243,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
         return setStep('set1');
       }
       await setPin(req.personKey, req.name, v);
-      finish(await proof('pin'));
+      finish(await proof('pin', undefined, v));
     }
   };
 

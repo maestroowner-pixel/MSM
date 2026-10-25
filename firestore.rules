@@ -360,6 +360,19 @@ service cloud.firestore {
       }
       // Oil Record Book Part I: entries written once; a change or deletion is a
       // new version, the Master's; the Master signs each month.
+      // The record books' signing keys (services/seal): each signer's public key,
+      // written once by the device that made it; and who opened or exported a
+      // book (services/bookAccess) — written once, never changed.
+      match /sign_keys/{id} {
+        allow read: if reader(v);
+        allow create: if member(v) && request.resource.data.id == id;
+        allow update, delete: if false;
+      }
+      match /book_access/{id} {
+        allow read: if reader(v);
+        allow create: if member(v);
+        allow update, delete: if false;
+      }
       match /orb/{id} {
         allow read: if reader(v);
         allow create: if member(v) && (plainRecord() || isSuper(v));

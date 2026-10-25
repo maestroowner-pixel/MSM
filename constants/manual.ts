@@ -434,7 +434,7 @@ const en: ManualContent = {
       title: "Oil Record Book",
       body: [
         "Oil Record Book is Part I of the ORB (MARPOL Annex I, machinery spaces): one entry per operation under its code — A/B oil fuel tanks, C sludge retained or disposed of, D/E bilge water (through 15 ppm, to a holding tank, ashore; times and position), F oil filtering equipment failure, G accidental discharge, H bunkering, I other remarks.",
-        "The form asks for what the code needs and shows the line as it will read in the book, with the item numbers. A bunkering recorded in Fuel can be taken over for H in one tap. Each entry is signed by the officer in charge; the Master signs each month and alone can change or delete an entry, with the reason. PDF and Excel print the month as the book's page.",
+        "The form asks for what the code needs and shows the line as it will read in the book, with the item numbers. A bunkering recorded in Fuel can be taken over for H in one tap. Each entry is signed by the officer in charge; the Master verifies the entries (see Master's verification and the true copy) and alone can change or delete an entry, with the reason. PDF and Excel print the month as the book's page.",
       ],
     },
     {
@@ -444,6 +444,16 @@ const en: ManualContent = {
         "The Garbage screen is the Garbage Record Book, Part I (MARPOL Annex V, form of MEPC.295(71)): every delivery to a reception facility, incineration, discharge into the sea and accidental loss, by category A–I, with the amount in m³, the port or the ship's position, the receipt number, and the officer's signature. One entry is one operation: tap every category it carries and give each its amount — it is one line in the book.",
         "The app warns about discharges into the sea that Annex V forbids: plastics, domestic waste, cooking oil, incinerator ash, operational waste, fishing gear and e-waste never; food waste only 12 nm or more from land (3 nm if comminuted); animal carcasses 100 nm or more. An accidental loss is always recorded as such.",
         "The Master alone can Edit an entry or Delete (cancel) it — the buttons are greyed out for everyone else; each needs the reason and the signature of whoever does it; the original stays in the book (Amended / Cancelled, earlier versions one tap away) and a cancelled entry is struck through and left out of the totals. The Master signs each month. PDF and Excel print the month as the book's page, with totals by category.",
+      ],
+    },
+    {
+      emoji: '🔏',
+      title: "Master's verification and the true copy",
+      body: [
+        "Every entry in the Oil Record Book, the Garbage Record Book, Sewage and Ballast water shows its stage under it: Awaiting the Master's verification, Verified (with the time), or Amended — awaiting re-verification. The Master taps Verify at the foot of the month and signs once for all the entries still waiting; an entry changed after that goes back to wait for the Master again. The board reminds the Master of entries waiting longer than a day.",
+        "PDF is a certified true copy for an inspector: each entry with who made it (name, rank, their ID) and when it was entered, every earlier version printed struck through under the one that replaced it, each entry's stage, and the Master's signatures. Every page carries the print time (UTC), the app's name and version, \"Page n of N\" and a line for the Master to sign the page as a true copy.",
+        "Each signature also SEALS the entry: the signer's own key, made on the device the first time they sign there and opened only by their PIN (or their fingerprint on their own phone), signs the exact words of the entry. Change one figure afterwards and the entry shows in red — Changed after signing. Each entry also carries the hash of the one before it, so an entry taken out of the book shows too. Signed by hand, the entry is sealed by the device instead. The vessel keeps every public key in its register; a Master resetting someone's PIN destroys that person's key on the device, and the new one appears in the register with its date.",
+        "Signed copy (Master): one ZIP with the PDF, every record of the month with its seal, the keys and the access log, and a manifest signed with the Master's key — the offline copy the guidelines ask for. Change any byte of it and Check a copy says what was changed. Access log: who opened the month and who printed or exported it.",
       ],
     },
     {
@@ -1135,6 +1145,16 @@ const ru: ManualContent = {
       ],
     },
     {
+      emoji: '🔏',
+      title: "Подтверждение капитаном и заверенная копия",
+      body: [
+        "У каждой записи в журнале нефтяных операций (ORB), журнале операций с мусором, Sewage и Ballast water виден её статус: «Ждёт подтверждения капитана», «Подтверждено» (со временем) или «Изменено — ждёт повторного подтверждения». Капитан нажимает «Подтвердить» внизу месяца и одной подписью подтверждает все ждущие записи; запись, изменённая после этого, снова ждёт капитана. Доска напоминает капитану о записях, которые ждут дольше суток.",
+        "PDF — заверенная копия для инспектора: у каждой записи — кто её внёс (имя, должность, ID) и когда, все прежние версии зачёркнуты под той, что их заменила, статус каждой записи и подписи капитана. На каждой странице — время печати (UTC), название и версия приложения, «Page n of N» и строка, где капитан подписывает страницу как true copy.",
+        "Каждая подпись теперь ЗАПЕЧАТЫВАЕТ запись: личный ключ подписанта — он создаётся на устройстве при первой подписи там и открывается только его PIN-кодом (или отпечатком на его собственном телефоне) — подписывает точный текст записи. Измените потом хоть одну цифру — запись станет красной: «Изменено после подписи». Каждая запись хранит ещё и хэш предыдущей, поэтому видно и запись, изъятую из журнала. При подписи рукой запись запечатывает устройство. Судно хранит все открытые ключи в реестре; когда капитан сбрасывает чей-то PIN, ключ этого человека на устройстве уничтожается, а новый появляется в реестре со своей датой.",
+        "Подписанная копия (капитан): один ZIP — PDF, все записи месяца с печатями, ключи и журнал доступа, и манифест, подписанный ключом капитана, — офлайн-копия, которую требуют правила. Измените в нём любой байт — «Проверить копию» скажет, что именно изменено. Журнал доступа: кто открывал месяц и кто печатал или выгружал.",
+      ],
+    },
+    {
       emoji: '🚽',
       title: "Журнал сточных вод (Sewage)",
       body: [
@@ -1820,6 +1840,16 @@ const es: ManualContent = {
         "La pantalla Garbage es el Libro registro de basuras, Parte I (MARPOL Anexo V, formulario MEPC.295(71)): cada entrega a instalación de recepción, incineración, descarga al mar y pérdida accidental, por categoría A–I, con la cantidad en m³, el puerto o la posición del buque, el número de recibo y la firma del oficial. Una anotación es una operación: marque todas las categorías que incluye y la cantidad de cada una — es una sola línea en el libro.",
         "La app avisa de las descargas al mar que el Anexo V prohíbe: plásticos, desechos domésticos, aceite de cocina, cenizas del incinerador, desechos operacionales, artes de pesca y residuos electrónicos nunca; restos de comida solo a 12 millas o más de tierra (3 millas si están triturados); cadáveres de animales a 100 millas o más. Una pérdida accidental siempre se registra como tal.",
         "Solo el Master puede cambiar (Edit) o anular (Delete) una anotación — para los demás los botones están desactivados; cada uno exige el motivo y la firma de quien lo hace; el original queda en el libro (Amended / Cancelled, versiones anteriores a un toque) y una anotación anulada aparece tachada y fuera de los totales. El Master firma cada mes. PDF y Excel imprimen el mes como la página del libro, con totales por categoría.",
+      ],
+    },
+    {
+      emoji: '🔏',
+      title: "Verificación del capitán y copia certificada",
+      body: [
+        "Cada anotación del Libro registro de hidrocarburos, del Libro registro de basuras, Sewage y Ballast water muestra su estado: Pendiente de verificación del capitán, Verificado (con la hora) o Modificado — pendiente de nueva verificación. El capitán pulsa Verificar al pie del mes y firma una vez todas las anotaciones pendientes; una anotación modificada después vuelve a esperar al capitán. El tablón recuerda al capitán las anotaciones que esperan más de un día.",
+        "El PDF es una copia certificada para el inspector: cada anotación con quién la hizo (nombre, cargo, su ID) y cuándo, cada versión anterior tachada bajo la que la sustituyó, el estado de cada anotación y las firmas del capitán. Cada página lleva la hora de impresión (UTC), el nombre y la versión de la aplicación, «Page n of N» y una línea para que el capitán la firme como copia fiel.",
+        "Cada firma además SELLA la anotación: la clave propia del firmante — creada en el dispositivo la primera vez que firma allí y que solo abre su PIN (o su huella en su propio teléfono) — firma el texto exacto de la anotación. Si después se cambia una sola cifra, la anotación aparece en rojo: Modificado después de firmar. Cada anotación lleva también el hash de la anterior, así que también se ve una anotación retirada del libro. Firmada a mano, la sella el dispositivo. El buque guarda todas las claves públicas en su registro; si el capitán restablece el PIN de alguien, la clave de esa persona en el dispositivo se destruye y la nueva aparece en el registro con su fecha.",
+        "Copia firmada (capitán): un ZIP con el PDF, todos los asientos del mes con su sello, las claves y el registro de accesos, y un manifiesto firmado con la clave del capitán — la copia fuera de línea que piden las directrices. Cambie cualquier byte y Comprobar una copia dirá qué se cambió. Registro de accesos: quién abrió el mes y quién lo imprimió o exportó.",
       ],
     },
     {
@@ -2511,6 +2541,16 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🔏',
+      title: "Підтвердження капітаном і завірена копія",
+      body: [
+        "У кожного запису в журналі нафтових операцій (ORB), журналі операцій зі сміттям, Sewage і Ballast water видно його статус: «Чекає підтвердження капітана», «Підтверджено» (з часом) або «Змінено — чекає повторного підтвердження». Капітан натискає «Підтвердити» внизу місяця й одним підписом підтверджує всі записи, що чекають; запис, змінений після цього, знову чекає капітана. Дошка нагадує капітанові про записи, що чекають понад добу.",
+        "PDF — завірена копія для інспектора: у кожного запису — хто його вніс (ім'я, посада, ID) і коли, усі попередні версії закреслені під тією, що їх замінила, статус кожного запису й підписи капітана. На кожній сторінці — час друку (UTC), назва й версія застосунку, «Page n of N» і рядок, де капітан підписує сторінку як true copy.",
+        "Кожен підпис тепер ЗАПЕЧАТУЄ запис: особистий ключ підписанта — він створюється на пристрої під час першого підпису там і відкривається лише його PIN-кодом (або відбитком на його власному телефоні) — підписує точний текст запису. Змініть потім хоч одну цифру — запис стане червоним: «Змінено після підпису». Кожен запис зберігає ще й хеш попереднього, тож видно й запис, вилучений із журналу. При підписі рукою запис запечатує пристрій. Судно зберігає всі відкриті ключі в реєстрі; коли капітан скидає чийсь PIN, ключ цієї людини на пристрої знищується, а новий з'являється в реєстрі зі своєю датою.",
+        "Підписана копія (капітан): один ZIP — PDF, усі записи місяця з печатками, ключі й журнал доступу, і маніфест, підписаний ключем капітана, — офлайн-копія, якої вимагають правила. Змініть у ньому будь-який байт — «Перевірити копію» скаже, що саме змінено. Журнал доступу: хто відкривав місяць і хто друкував або вивантажував.",
+      ],
+    },
+    {
       emoji: '🚽',
       title: "Журнал стічних вод (Sewage)",
       body: [
@@ -3164,6 +3204,16 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '🔏',
+      title: "Kapteinens verifisering og bekreftet kopi",
+      body: [
+        "Hver innføring i oljedagboken, søppeldagboken, Sewage og Ballast water viser status under seg: Venter på kapteinens verifisering, Verifisert (med tid) eller Endret — venter på ny verifisering. Kapteinen trykker Verifiser nederst i måneden og signerer én gang for alle innføringer som venter; en innføring som endres etterpå, venter på kapteinen igjen. Tavlen minner kapteinen om innføringer som har ventet mer enn ett døgn.",
+        "PDF er en bekreftet kopi for inspektøren: hver innføring med hvem som gjorde den (navn, stilling, ID) og når, hver tidligere versjon gjennomstreket under den som erstattet den, status for hver innføring og kapteinens signaturer. Hver side har utskriftstid (UTC), appens navn og versjon, «Page n of N» og en linje der kapteinen signerer siden som bekreftet kopi.",
+        "Hver signatur FORSEGLER nå innføringen: signatarens egen nøkkel — laget på enheten første gang de signerer der og åpnet bare med deres PIN (eller fingeravtrykk på egen telefon) — signerer den nøyaktige teksten. Endres ett tall etterpå, vises innføringen i rødt: Endret etter signering. Hver innføring har også hashen til den forrige, så en innføring som er tatt ut av boken, vises også. Signert for hånd forsegles innføringen av enheten. Fartøyet har alle offentlige nøkler i sitt register; når kapteinen tilbakestiller noens PIN, slettes personens nøkkel på enheten, og den nye vises i registeret med dato.",
+        "Signert kopi (kaptein): én ZIP med PDF-en, alle månedens innføringer med forsegling, nøklene og tilgangsloggen, og et manifest signert med kapteinens nøkkel — frakoblet kopi slik retningslinjene krever. Endres én byte, sier Kontroller en kopi hva som ble endret. Tilgangslogg: hvem som åpnet måneden og hvem som skrev ut eller eksporterte.",
+      ],
+    },
+    {
       emoji: '🚽',
       title: 'Kloakkregistrering',
       body: [
@@ -3773,6 +3823,16 @@ const pt: ManualContent = {
         'A tela de Lixo é o Livro de Registro de Lixo, Parte I (MARPOL Anexo V): cada entrega a instalação receptora, incineração, descarga no mar e perda acidental, por categoria A–I.',
         'O aplicativo avisa sobre descargas no mar que o Anexo V proíbe: plásticos, lixo doméstico, óleo de cozinha, cinzas de incinerador, resíduos operacionais nunca; resíduos alimentares apenas a 12 mn ou mais da costa.',
         'Somente o Mestre pode Editar ou Excluir (cancelar) um lançamento.',
+      ],
+    },
+    {
+      emoji: '🔏',
+      title: "Verificação do comandante e cópia certificada",
+      body: [
+        "Cada registo do Livro de registo de óleos, do Livro de registo de lixo, Sewage e Ballast water mostra o seu estado: A aguardar verificação do comandante, Verificado (com a hora) ou Alterado — a aguardar nova verificação. O comandante toca em Verificar no fim do mês e assina uma vez todos os registos pendentes; um registo alterado depois volta a aguardar o comandante. O quadro lembra o comandante dos registos que esperam há mais de um dia.",
+        "O PDF é uma cópia certificada para o inspetor: cada registo com quem o fez (nome, cargo, ID) e quando, cada versão anterior riscada sob a que a substituiu, o estado de cada registo e as assinaturas do comandante. Cada página tem a hora de impressão (UTC), o nome e a versão da aplicação, «Page n of N» e uma linha para o comandante a assinar como cópia fiel.",
+        "Cada assinatura também SELA o registo: a chave própria do signatário — criada no dispositivo na primeira vez que assina ali e aberta só pelo seu PIN (ou impressão digital no seu próprio telemóvel) — assina o texto exato do registo. Altere depois um só número e o registo fica a vermelho: Alterado depois de assinado. Cada registo leva também o hash do anterior, por isso também se vê um registo retirado do livro. Assinado à mão, é selado pelo dispositivo. O navio guarda todas as chaves públicas no seu registo; se o comandante repõe o PIN de alguém, a chave dessa pessoa no dispositivo é destruída e a nova aparece no registo com a data.",
+        "Cópia assinada (comandante): um ZIP com o PDF, todos os registos do mês com o selo, as chaves e o registo de acessos, e um manifesto assinado com a chave do comandante — a cópia offline que as diretrizes pedem. Altere qualquer byte e Verificar uma cópia diz o que foi alterado. Registo de acessos: quem abriu o mês e quem imprimiu ou exportou.",
       ],
     },
     {

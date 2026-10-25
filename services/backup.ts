@@ -31,6 +31,8 @@ import { Permit, RiskAssessment } from '../types/permits';
 import { FuelBunker, FuelDailySent, FuelReading, FuelTank, FuelTransfer } from '../types/fuel';
 import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
 import { OrbEntry, OrbMasterSign } from '../types/orb';
+import type { SignKeyRec } from './seal';
+import type { BookAccess } from './bookAccess';
 import { LogEntry, LogMonthSign } from '../types/logbook';
 import { InspectionRound } from '../types/round';
 import { SopepCheck, SopepDrill, SopepItem, SopepLocker } from '../types/sopep';
@@ -86,6 +88,9 @@ export interface BackupFile {
   garbage?: { entries: GarbageEntry[]; signs: GarbageMasterSign[] };
   /** Oil Record Book Part I. */
   orb?: { entries: OrbEntry[]; signs: OrbMasterSign[] };
+  /** The record books' key register and access log (services/seal, services/bookAccess) — a seal is checked against the register. */
+  signKeys?: SignKeyRec[];
+  bookAccess?: BookAccess[];
   /** Inspection rounds. */
   rounds?: InspectionRound[];
   /** Sewage and Ballast Water record books. */
@@ -228,6 +233,8 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   const sewage = { entries: await storage.loadList<LogEntry>(storage.SEWAGE_KEY), signs: await storage.loadList<LogMonthSign>(storage.SEWAGE_SIGNS_KEY) };
   const ballast = { entries: await storage.loadList<LogEntry>(storage.BALLAST_KEY), signs: await storage.loadList<LogMonthSign>(storage.BALLAST_SIGNS_KEY) };
   const orb = { entries: await storage.loadList<OrbEntry>(storage.ORB_KEY), signs: await storage.loadList<OrbMasterSign>(storage.ORB_SIGNS_KEY) };
+  const signKeys = await storage.loadList<SignKeyRec>(storage.SIGN_KEYS_KEY);
+  const bookAccess = await storage.loadList<BookAccess>(storage.BOOK_ACCESS_KEY);
   const garbage = { entries: await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY), signs: await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY) };
   const qhse = { observations: await storage.loadList<SafetyObservation>(storage.OBSERVATIONS_KEY), ncs: await storage.loadList<NonConformity>(storage.NCS_KEY) };
   const drills = await storage.loadList<Drill>(storage.DRILLS_KEY);
@@ -273,6 +280,8 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     fuel,
     garbage,
     orb,
+    signKeys,
+    bookAccess,
     rounds,
     sewage,
     ballast,
@@ -477,6 +486,12 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
   if (backup.ballast) {
     await storage.saveList(storage.BALLAST_KEY, backup.ballast.entries ?? []);
     await storage.saveList(storage.BALLAST_SIGNS_KEY, backup.ballast.signs ?? []);
+  }
+  // Union, not replace: a key or an access line is never taken away.
+  for (const [key, rows] of [[storage.SIGN_KEYS_KEY, backup.signKeys], [storage.BOOK_ACCESS_KEY, backup.bookAccess]] as const) {
+    if (!rows?.length) continue;
+    const have = await storage.loadList<{ id: string }>(key);
+    await storage.saveList(key, [...have, ...rows.filter((r) => !have.some((h) => h.id === r.id))]);
   }
   if (backup.orb) {
     await storage.saveList(storage.ORB_KEY, backup.orb.entries ?? []);

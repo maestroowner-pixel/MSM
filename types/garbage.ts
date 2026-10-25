@@ -61,6 +61,8 @@ export interface GarbageEntry {
    * leaves it in the book, struck through. Reason and signer are required.
    */
   supersedes?: string;
+  /** The hash of the book's entry before this one (services/seal chainHead), since 2.69. */
+  prev?: string;
   cancelled?: boolean;
   editReason?: string;
   /** In port: its name. */
@@ -78,6 +80,8 @@ export interface GarbageEntry {
   remarks?: string;
   by: string;
   byRank?: string;
+  /** The signer's id (crew id or `device:<id>`) — the user ID a true copy prints (MEPC.312 §6.3). */
+  byId?: string;
   at: number;
   signedWith?: SignProof;
   updatedAt: number;
@@ -92,5 +96,11 @@ export interface GarbageMasterSign {
   byRank?: string;
   at: number;
   signedWith?: SignProof;
+  /** The entry versions this signature verified (services/verification) — absent before 2.68. */
+  covers?: string[];
+  /** contentHash of each covered version (services/seal), since 2.69. */
+  coverHashes?: string[];
+  /** The Master's id — checked against the key register. */
+  byId?: string;
   updatedAt: number;
 }

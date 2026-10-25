@@ -23,6 +23,8 @@ import { DocAck, IsmDoc } from '../types/docs';
 import { Permit } from '../types/permits';
 import { FuelDailySent, FuelReading, FuelTank } from '../types/fuel';
 import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
+import { OrbEntry, OrbMasterSign } from '../types/orb';
+import { LogEntry, LogMonthSign } from '../types/logbook';
 import { SopepCheck, SopepDrill, SopepItem } from '../types/sopep';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
 import { Survey, SurveyDone } from '../types/survey';
@@ -51,6 +53,8 @@ import { storeCounts, storeStatus } from './stores';
 import { meetingDue, openActions } from './meetings';
 import { chestCounts, chestStatus, followUpsDue, isArchived, isLanding, landingLinesFor, lastControlledCount, orderOverdue, orderState, stockLevel } from './hospital';
 import { currentEntries } from './garbage';
+import { current } from './versions';
+import { awaiting, verifiedIds } from './verification';
 import { t, tn } from '../utils/t';
 
 export type Level = 'red' | 'amber' | 'blue';
@@ -157,6 +161,13 @@ export interface BoardInput {
   fuelDailySent: FuelDailySent[];
   garbage: GarbageEntry[];
   garbageSigns: GarbageMasterSign[];
+  /** The other MARPOL-style books — optional, so older callers (checks) need not pass them. */
+  orb?: OrbEntry[];
+  orbSigns?: OrbMasterSign[];
+  sewage?: LogEntry[];
+  sewageSigns?: LogMonthSign[];
+  ballast?: LogEntry[];
+  ballastSigns?: LogMonthSign[];
   sopepItems: SopepItem[];
   sopepChecks: SopepCheck[];
   sopepDrills: SopepDrill[];
@@ -185,11 +196,6 @@ export interface BoardInput {
 const RANK: Record<Level, number> = { red: 0, amber: 1, blue: 2 };
 const daysAgo = (today: string, iso: string) => Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${iso}T00:00:00Z`)) / 86400000);
 const dm = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`;
-const prevMonth = (today: string) => {
-  const [y, m] = today.split('-').map(Number);
-  const d = new Date(Date.UTC(y, m - 2, 1));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-};
 
 export function buildBoard(x: BoardInput): Board {
   const n: Notice[] = [];
@@ -369,12 +375,28 @@ export function buildBoard(x: BoardInput): Board {
   // ---- Garbage ----
   if (x.on('garbage')) {
     const book = currentEntries(x.garbage).filter((e) => !e.cancelled);
-    const pm = prevMonth(x.today);
-    if (book.some((e) => e.date.startsWith(pm)) && !x.garbageSigns.some((s) => s.month === pm)) n.push({ key: 'grb:sign', level: 'amber', who: 'master', icon: 'trash-can-outline', route: 'Garbage', title: t('b.grb.unsigned', { month: pm }) });
     const m = book.filter((e) => e.date.startsWith(x.today.slice(0, 7)));
     const acc = m.filter((e) => e.method === 'accidental').length;
     if (acc) n.push({ key: 'grb:acc', level: 'red', who: 'officer', icon: 'trash-can-outline', route: 'Garbage', title: t('b.grb.accidental', { x: tn('n.accidental', acc) }) });
     tiles.push({ key: 'grb', label: t('b.grb'), icon: 'trash-can-outline', route: 'Garbage', level: acc ? 'red' : undefined, line: t('b.thisMonthX', { x: tn('n.entry', m.length) }) });
+  }
+
+  // ---- The Master's verification of the record books (MEPC.312 §4.3.10) ----
+  // An entry signed more than a day ago and not verified is the Master's to do —
+  // amended ones included, they need verifying again.
+  {
+    const books = [
+      { on: x.on('orb'), key: 'orb', label: t('orb.title'), icon: 'oil', route: 'OilRecord', all: x.orb ?? [], signs: x.orbSigns ?? [] },
+      { on: x.on('garbage'), key: 'grb', label: t('gb.book'), icon: 'trash-can-outline', route: 'Garbage', all: x.garbage, signs: x.garbageSigns },
+      { on: x.on('sewage'), key: 'sewage', label: t('menu.Sewage'), icon: 'water-outline', route: 'Sewage', all: x.sewage ?? [], signs: x.sewageSigns ?? [] },
+      { on: x.on('ballast'), key: 'ballast', label: t('menu.Ballast'), icon: 'waves', route: 'Ballast', all: x.ballast ?? [], signs: x.ballastSigns ?? [] },
+    ];
+    const dayAgo = Date.parse(`${x.now}:00`) - 86_400_000;
+    for (const b of books) {
+      if (!b.on) continue;
+      const late = awaiting(current(b.all as any[]), verifiedIds(b.all, b.signs)).filter((e) => e.at < dayAgo);
+      if (late.length) n.push({ key: `${b.key}:verify`, level: 'amber', who: 'master', icon: b.icon, route: b.route, params: { month: [...late].sort((p, q) => p.date.localeCompare(q.date))[0].date.slice(0, 7) }, title: t('b.book.unverified', { book: b.label, x: tn('n.entry', late.length) }) });
+    }
   }
 
   // ---- SOPEP ----

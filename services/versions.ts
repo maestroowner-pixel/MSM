@@ -15,10 +15,14 @@ import type { SignProof } from './signature';
 export interface Versioned {
   id: string;
   supersedes?: string;
+  /** In a record book: the hash of the book's entry before this one (services/seal chainHead), since 2.69. */
+  prev?: string;
   cancelled?: boolean;
   editReason?: string;
   editedBy?: string;
   editedByRank?: string;
+  /** The amender's id (crew id or `device:<id>`), since 2.69 — their key is checked against the register (services/seal). */
+  editedById?: string;
   editedAt?: number;
   editedWith?: SignProof;
 }
@@ -48,7 +52,7 @@ export function previous<T extends Versioned>(list: T[], r: T): T[] {
 }
 
 /** A new version of `r` with `changes`, signed by the editor. */
-export function amended<T extends Versioned>(r: T, changes: Partial<T>, newId: string, reason: string, by: { name: string; rank?: string; proof?: SignProof }, at = Date.now()): T {
+export function amended<T extends Versioned>(r: T, changes: Partial<T>, newId: string, reason: string, by: { name: string; rank?: string; id?: string; proof?: SignProof }, at = Date.now()): T {
   return {
     ...r,
     ...changes,
@@ -57,6 +61,7 @@ export function amended<T extends Versioned>(r: T, changes: Partial<T>, newId: s
     editReason: reason,
     editedBy: by.name,
     ...(by.rank ? { editedByRank: by.rank } : {}),
+    ...(by.id ? { editedById: by.id } : {}),
     editedAt: at,
     ...(by.proof ? { editedWith: by.proof } : {}),
     updatedAt: at,
@@ -64,6 +69,6 @@ export function amended<T extends Versioned>(r: T, changes: Partial<T>, newId: s
 }
 
 /** A cancelling version of `r`. */
-export function cancelled<T extends Versioned>(r: T, newId: string, reason: string, by: { name: string; rank?: string; proof?: SignProof }, at = Date.now()): T {
+export function cancelled<T extends Versioned>(r: T, newId: string, reason: string, by: { name: string; rank?: string; id?: string; proof?: SignProof }, at = Date.now()): T {
   return { ...amended(r, {} as Partial<T>, newId, reason, by, at), cancelled: true };
 }

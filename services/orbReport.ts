@@ -3,6 +3,12 @@
 // columns: date, code, item / record of operations, signature of the officer in
 // charge) and Excel. Amended and deleted entries are marked; the Master's
 // signature for the month at the foot.
+//
+// Since 2.68 the PDF is a certified true copy (utils/trueCopyPdf, MEPC.312 §6.3):
+// every earlier version printed struck under the entry that replaced it, who
+// entered each one with their ID and the time, each entry's verification stage,
+// and on every page the print time, the software version and "Page n of N".
+// The HTML page below is kept only as a phone's fallback if jsPDF fails there.
 // ===================================
 
 import * as Print from 'expo-print';
@@ -14,7 +20,9 @@ import { esc, share, vesselHeader } from './export';
 import { OrbEntry, OrbMasterSign } from '../types/orb';
 import { deliverFile, onWeb, onWindows } from '../utils/fileShare';
 import { saveFileWeb } from '../utils/webSave';
-import { orbPdfBlob } from '../utils/orbPdf';
+import { deliverTrueCopy } from '../utils/trueCopyPdf';
+import { awaiting, copyRows, integrityLines, monthIntegrity, verificationLines, verifiedIds } from './verification';
+import type { TrueCopy } from './trueCopy';
 
 const dmy = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
 export const ORB_HEAD = ['Date', 'Code', 'Item No. / record of operations', 'Signature of officer in charge'];
@@ -27,6 +35,10 @@ export function orbRows(entries: OrbEntry[]): string[][] {
     e.byRank ? `${e.by} (${e.byRank})` : e.by,
   ]);
 }
+
+/** The true copy's columns and rows: each entry, then its earlier versions struck. */
+export const ORB_COPY_HEAD = ['Date', 'Code', 'Item No. / record of operations', 'Officer in charge', "Master's verification"];
+export const orbCopyRows = (book: OrbEntry[], all: OrbEntry[], signs: OrbMasterSign[]) => copyRows(book, all, signs, (r) => orbRows([r])[0].slice(0, 3), 2);
 
 export function orbMonthLabel(month: string) {
   const [y, m] = month.split('-').map(Number);
@@ -53,10 +65,36 @@ function html(entries: OrbEntry[], month: string, vessel: VesselInfo | null, sig
   </body></html>`;
 }
 
-export async function exportOrbPdf(entries: OrbEntry[], month: string, vessel: VesselInfo | null, sign?: OrbMasterSign): Promise<string | null | void> {
-  if (onWindows) throw new Error('PDF export is not available on Windows.');
+/** The month's certified true copy and its file name — the PDF, and the Master's signed copy (services/signedCopy). */
+export function orbCopy(entries: OrbEntry[], month: string, vessel: VesselInfo | null, signs: OrbMasterSign[], all: OrbEntry[]): { copy: TrueCopy; name: string } {
   const name = fileName(vessel, month, 'pdf');
-  if (onWeb) return saveFileWeb(orbPdfBlob(entries, month, vesselHeader(vessel), sign), name, 'reports');
+  const { rows, struck } = orbCopyRows(entries, all, signs);
+  const copy = {
+    title: `Oil Record Book — Part I · ${orbMonthLabel(month)}`,
+    subtitle: `${vesselHeader(vessel)} · Machinery space operations (MARPOL Annex I)`,
+    vessel: [vessel?.vessel_name, vessel?.imo ? `IMO ${vessel.imo}` : null].filter(Boolean).join(' · ') || 'Vessel',
+    orientation: 'portrait' as const,
+    head: ORB_COPY_HEAD,
+    rows,
+    struck,
+    columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 10, halign: 'center' }, 3: { cellWidth: 40 }, 4: { cellWidth: 32 } },
+    verifications: verificationLines(signs.filter((s) => s.month === month)),
+    integrity: integrityLines(monthIntegrity(entries, all, signs, month)),
+    awaiting: awaiting(entries, verifiedIds(all, signs)).length,
+  };
+  return { copy, name };
+}
+
+export async function exportOrbPdf(entries: OrbEntry[], month: string, vessel: VesselInfo | null, signs: OrbMasterSign[], all: OrbEntry[]): Promise<string | null | void> {
+  if (onWindows) throw new Error('PDF export is not available on Windows.');
+  const { copy, name } = orbCopy(entries, month, vessel, signs, all);
+  if (onWeb) return deliverTrueCopy(copy, name);
+  try {
+    return await deliverTrueCopy(copy, name);
+  } catch {
+    // jsPDF failed on this phone: the plain page, without the true-copy footer.
+  }
+  const sign = signs[signs.length - 1];
   const { uri } = await Print.printToFileAsync({ html: html(entries, month, vessel, sign), width: 595, height: 842 });
   const dest = `${FileSystem.cacheDirectory}${name}`;
   try {
@@ -68,9 +106,9 @@ export async function exportOrbPdf(entries: OrbEntry[], month: string, vessel: V
   }
 }
 
-export async function exportOrbExcel(entries: OrbEntry[], month: string, vessel: VesselInfo | null, sign?: OrbMasterSign): Promise<string | null | void> {
-  const ws = XLSX.utils.aoa_to_sheet([[`Oil Record Book — Part I · ${orbMonthLabel(month)}`], [vesselHeader(vessel)], [], ORB_HEAD, ...orbRows(entries), [], [masterLine(sign)]]);
-  ws['!cols'] = [{ wch: 16 }, { wch: 6 }, { wch: 90 }, { wch: 26 }];
+export async function exportOrbExcel(entries: OrbEntry[], month: string, vessel: VesselInfo | null, signs: OrbMasterSign[], all: OrbEntry[]): Promise<string | null | void> {
+  const ws = XLSX.utils.aoa_to_sheet([[`Oil Record Book — Part I · ${orbMonthLabel(month)}`], [vesselHeader(vessel)], [], ORB_COPY_HEAD, ...orbCopyRows(entries, all, signs).rows, [], ...verificationLines(signs.filter((s) => s.month === month)).map((l) => [l])]);
+  ws['!cols'] = [{ wch: 16 }, { wch: 6 }, { wch: 90 }, { wch: 34 }, { wch: 34 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Part I');
   const name = fileName(vessel, month, 'xlsx');

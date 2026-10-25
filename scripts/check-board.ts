@@ -35,11 +35,11 @@ ok(!b.tiles.some((t) => t.key === 'sec'), 'module off → no tile');
 b = buildBoard(base({ on: (m) => m === 'surveys', surveys: [{ id: 's', name: 'Class annual', due: plus(20), before: 3, after: 0, repeat: 12, anniversary: true, order: 0, updatedAt: 0 }] as any }));
 ok(b.plan.some((p) => p.key === 'sv:s') && b.attention.some((x) => x.key === 'sv:s:n'), 'survey window closing in 20 days → plan + notice');
 
-b = buildBoard(base({ role: 'user', on: (m) => m === 'garbage' || m === 'security', garbage: [{ date: `${pm}-05`, method: 'shore' }] as any }));
-ok(!b.attention.some((x) => x.key === 'grb:sign'), 'crew do not see the Master’s unsigned month');
+b = buildBoard(base({ role: 'user', on: (m) => m === 'garbage' || m === 'security', garbage: [{ id: 'g1', date: `${pm}-05`, method: 'shore', at: Date.parse(`${pm}-05T10:00:00`) }] as any }));
+ok(!b.attention.some((x) => x.key === 'grb:verify'), 'crew do not see the Master’s verification');
 ok(!b.attention.some((x) => x.key === 'isps:drill'), 'crew do not see officer items');
-b = buildBoard(base({ role: 'superadmin', on: (m) => m === 'garbage', garbage: [{ date: `${pm}-05`, method: 'shore' }] as any }));
-ok(b.attention.some((x) => x.key === 'grb:sign'), 'the Master sees it');
+b = buildBoard(base({ role: 'superadmin', on: (m) => m === 'garbage', garbage: [{ id: 'g1', date: `${pm}-05`, method: 'shore', at: Date.parse(`${pm}-05T10:00:00`) }] as any }));
+ok(b.attention.some((x) => x.key === 'grb:verify'), 'the Master sees it');
 b = buildBoard(base({ role: 'user', on: (m) => m === 'pms', machines: [{ id: 'm', name: 'Steering gear', updatedAt: 0 }] as any, pmsJobs: [{ id: 'j', machineId: 'm', title: 'x', intervalDays: 30, lastDoneDate: plus(0), updatedAt: 0 }] as any, pmsDefects: [{ id: 'd', machineId: 'm', machineName: 'Steering gear', category: 'safety', description: 'Ram seal leaking', date: plus(0), by: 'x', at: 0, updatedAt: 0 }, { id: 'e', machineId: 'm', machineName: 'Steering gear', category: 'class', description: 'y', date: plus(0), by: 'x', at: 0, updatedAt: 0 }] as any }));
 ok(b.attention.some((a) => a.key === 'pms:defect-safety' && /Steering gear/.test(a.title)) && !b.attention.some((a) => a.key === 'pms:defect-class'), 'safety-critical defect shown to crew; class-affecting only to officers');
 // on board is not signed on: those ashore apart (13 Oct 2026); passengers count too

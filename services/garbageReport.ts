@@ -4,6 +4,10 @@
 // category, estimated amount (m³) into the sea / to a reception facility /
 // incinerated / accidental, remarks, the officer's signature; the Master's
 // signature for the month at the foot.
+//
+// Since 2.68 the PDF is a certified true copy (utils/trueCopyPdf, MEPC.312 §6.3)
+// — earlier versions struck under their replacement, the officer's ID and entry
+// time, each entry's verification stage, and the true-copy footer on every page.
 // ===================================
 
 import * as Print from 'expo-print';
@@ -16,7 +20,9 @@ import { entryItems, garbageMonth, placeText } from './garbage';
 import { GARBAGE_CATEGORY, GarbageEntry, GarbageMasterSign } from '../types/garbage';
 import { deliverFile, onWeb, onWindows } from '../utils/fileShare';
 import { saveFileWeb } from '../utils/webSave';
-import { garbagePdfBlob } from '../utils/garbagePdf';
+import { deliverTrueCopy } from '../utils/trueCopyPdf';
+import { awaiting, copyRows, integrityLines, monthIntegrity, verificationLines, verifiedIds } from './verification';
+import type { TrueCopy } from './trueCopy';
 
 export const gDmy = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
 export function gMonthLabel(month: string) {
@@ -47,6 +53,10 @@ export function grbRows(entries: GarbageEntry[]): string[][] {
 
 export const GRB_HEAD = ['Date / time', 'Position of the ship / port', 'Category', 'Into sea, m³', 'To reception facility, m³', 'Incinerated, m³', 'Accidental, m³', 'Remarks', 'Officer in charge'];
 
+/** The true copy: the book's columns, the officer with ID and time, and the Master's verification. */
+export const GRB_COPY_HEAD = [...GRB_HEAD.slice(0, -1), 'Officer in charge', "Master's verification"];
+export const grbCopyRows = (book: GarbageEntry[], all: GarbageEntry[], signs: GarbageMasterSign[]) => copyRows(book, all, signs, (r) => grbRows([r])[0].slice(0, -1), 7);
+
 export function grbFileName(vessel: VesselInfo | null, month: string, ext: 'pdf' | 'xlsx') {
   const v = (vessel?.vessel_name ?? '').replace(/[\\/:*?"<>|]+/g, ' ').trim();
   return `Garbage record book-${month.slice(5, 7)}${month.slice(2, 4)}${v ? `-${v}` : ''}.${ext}`;
@@ -67,12 +77,38 @@ function html(entries: GarbageEntry[], month: string, vessel: VesselInfo | null,
   </body></html>`;
 }
 
-export async function exportGarbagePdf(all: GarbageEntry[], month: string, vessel: VesselInfo | null, sign?: GarbageMasterSign): Promise<string | null | void> {
-  if (onWindows) throw new Error('PDF export is not available on Windows.');
+/** The month's certified true copy and its file name — the PDF, and the Master's signed copy (services/signedCopy). */
+export function grbCopy(all: GarbageEntry[], month: string, vessel: VesselInfo | null, signs: GarbageMasterSign[]): { copy: TrueCopy; fileName: string } {
   const entries = garbageMonth(all, month).entries;
   const fileName = grbFileName(vessel, month, 'pdf');
-  if (onWeb) return saveFileWeb(garbagePdfBlob(entries, month, vessel, sign), fileName, 'reports');
-  const { uri } = await Print.printToFileAsync({ html: html(entries, month, vessel, sign), width: 842, height: 595 });
+  const { rows, struck } = grbCopyRows(entries, all, signs);
+  const copy = {
+    title: `Garbage Record Book — Part I · ${gMonthLabel(month)}`,
+    subtitle: `${vesselHeader(vessel)} · MARPOL Annex V · categories A–I`,
+    vessel: [vessel?.vessel_name, vessel?.imo ? `IMO ${vessel.imo}` : null].filter(Boolean).join(' · ') || 'Vessel',
+    orientation: 'landscape' as const,
+    head: GRB_COPY_HEAD,
+    rows,
+    struck,
+    columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 36 }, 2: { cellWidth: 32 }, 3: { cellWidth: 14, halign: 'right' }, 4: { cellWidth: 18, halign: 'right' }, 5: { cellWidth: 16, halign: 'right' }, 6: { cellWidth: 16, halign: 'right' }, 8: { cellWidth: 38 }, 9: { cellWidth: 32 } },
+    verifications: verificationLines(signs.filter((s) => s.month === month)),
+    integrity: integrityLines(monthIntegrity(entries, all, signs, month)),
+    awaiting: awaiting(entries, verifiedIds(all, signs)).length,
+  };
+  return { copy, fileName };
+}
+
+export async function exportGarbagePdf(all: GarbageEntry[], month: string, vessel: VesselInfo | null, signs: GarbageMasterSign[]): Promise<string | null | void> {
+  if (onWindows) throw new Error('PDF export is not available on Windows.');
+  const { copy, fileName } = grbCopy(all, month, vessel, signs);
+  const entries = garbageMonth(all, month).entries;
+  if (onWeb) return deliverTrueCopy(copy, fileName);
+  try {
+    return await deliverTrueCopy(copy, fileName);
+  } catch {
+    // jsPDF failed on this phone: the plain page, without the true-copy footer.
+  }
+  const { uri } = await Print.printToFileAsync({ html: html(entries, month, vessel, signs[signs.length - 1]), width: 842, height: 595 });
   const dest = `${FileSystem.cacheDirectory}${fileName}`;
   try {
     await FileSystem.deleteAsync(dest, { idempotent: true });
@@ -83,11 +119,11 @@ export async function exportGarbagePdf(all: GarbageEntry[], month: string, vesse
   }
 }
 
-export async function exportGarbageExcel(all: GarbageEntry[], month: string, vessel: VesselInfo | null): Promise<string | null | void> {
+export async function exportGarbageExcel(all: GarbageEntry[], month: string, vessel: VesselInfo | null, signs: GarbageMasterSign[] = []): Promise<string | null | void> {
   const m = garbageMonth(all, month);
   const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet([[`Garbage Record Book — Part I · ${gMonthLabel(month)}`], [vesselHeader(vessel)], [], GRB_HEAD, ...grbRows(m.entries)]);
-  ws['!cols'] = GRB_HEAD.map((h) => ({ wch: Math.max(14, h.length + 2) }));
+  const ws = XLSX.utils.aoa_to_sheet([[`Garbage Record Book — Part I · ${gMonthLabel(month)}`], [vesselHeader(vessel)], [], GRB_COPY_HEAD, ...grbCopyRows(m.entries, all, signs).rows, [], ...verificationLines(signs.filter((s) => s.month === month)).map((l) => [l])]);
+  ws['!cols'] = GRB_COPY_HEAD.map((h) => ({ wch: Math.max(14, h.length + 2) }));
   XLSX.utils.book_append_sheet(wb, ws, 'Part I');
   const sum = XLSX.utils.aoa_to_sheet([['Category', 'Into sea, m³', 'To reception facility, m³', 'Incinerated, m³', 'Accidental, m³'], ...(Object.keys(m.totals) as (keyof typeof m.totals)[]).map((c) => [`${c} — ${GARBAGE_CATEGORY[c]}`, m.totals[c].sea, m.totals[c].shore, m.totals[c].incineration, m.totals[c].accidental])]);
   sum['!cols'] = [{ wch: 26 }, { wch: 14 }, { wch: 22 }, { wch: 16 }, { wch: 16 }];

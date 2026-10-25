@@ -5,20 +5,23 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
+import { useRoute } from '@react-navigation/native';
 import { Alert, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { Card, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { MonthPicker, monthName } from '../components/MonthPicker';
-import { useSignConfirm } from '../components/SignConfirm';
+import { useSignConfirm, withSeal } from '../components/SignConfirm';
+import { chainHead } from '../services/seal';
 import { useSigner } from '../components/SignerChoice';
+import { useVerification } from '../components/Verification';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { GARBAGE_CATEGORY, GARBAGE_METHOD, GarbageCategory, GarbageEntry, GarbageMethod } from '../types/garbage';
 import { currentEntries, entryItems, garbageMonth, itemsText, placeText, previousVersions, seaDischargeProblem } from '../services/garbage';
-import { exportGarbageExcel, exportGarbagePdf } from '../services/garbageReport';
+import { exportGarbageExcel, exportGarbagePdf, grbCopy } from '../services/garbageReport';
 import { todayIso } from '../services/pms';
 import { formatDate, uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
@@ -41,12 +44,14 @@ export default function GarbageSc() {
   const { signer, picker } = useSigner();
   const isMaster = !sync.enrolled || sync.role === 'superadmin';
   const today = todayIso();
-  const [month, setMonth] = useState(today.slice(0, 7));
+  // The board's "awaiting verification" opens the month it is in.
+  const route = useRoute();
+  const [month, setMonth] = useState<string>((route.params as any)?.month ?? today.slice(0, 7));
   const [adding, setAdding] = useState(false);
   const [saved, setSaved] = useState<string | null>(null);
 
   const m = useMemo(() => garbageMonth(garbage, month), [garbage, month]);
-  const sign = garbageSigns.find((s) => s.month === month);
+  const ver = useVerification({ all: garbage, book: m.entries, signs: garbageSigns, month, prefix: 'grb', what: 'Garbage Record Book', isMaster, signer, picker, save: (x) => signGarbageMonth(x), copy: () => { const c = grbCopy(garbage, month, vessel, garbageSigns); return { copy: c.copy, name: c.fileName }; } });
 
   // ---- new entry ----
   // Several categories in one operation, each with its amount (m³ as typed).
@@ -74,8 +79,9 @@ export default function GarbageSc() {
     if (!sig) return;
     const now = Date.now();
     // The cancelling version carries its own signer — not the original's rank or proof.
-    const { byRank: _r, signedWith: _s, ...base } = cancelling;
-    await addGarbage({ ...base, id: uid('grb'), supersedes: cancelling.id, cancelled: true, editReason: reason.trim(), by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now });
+    const { byRank: _r, signedWith: _s, prev: _p, ...base } = cancelling;
+    const head = chainHead(garbage);
+    await addGarbage(withSeal({ ...base, id: uid('grb'), supersedes: cancelling.id, cancelled: true, editReason: reason.trim(), by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), byId: signer.key, at: now, ...(head ? { prev: head } : {}), ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now }, sig));
     setCancelling(null);
     setReason('');
     playSuccessSound();
@@ -99,16 +105,18 @@ export default function GarbageSc() {
       const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: editing ? `Amend garbage entry — ${reason.trim()}` : `Garbage Record Book — ${items.map((i) => `${i.category} ${i.volume}`).join(', ')} m³` });
       if (!sig) return;
       const now = Date.now();
-      const e: GarbageEntry = {
+      const head = chainHead(garbage);
+      const e: GarbageEntry = withSeal({
         id: uid('grb'), date: f.date, time: f.time, category: picked[0], method: f.method, volume, items,
         ...(f.atSea || f.method === 'sea' ? { position: f.position.trim(), ...(distance != null ? { distanceNm: distance } : {}) } : { port: f.port.trim() }),
         ...(f.comminuted && picked.includes('B') ? { comminuted: true } : {}),
         ...(f.receipt.trim() ? { receiptNo: f.receipt.trim() } : {}),
         ...(f.container.trim() ? { containerNo: f.container.trim() } : {}),
         ...(f.remarks.trim() ? { remarks: f.remarks.trim() } : {}),
-        by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now,
+        by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), byId: signer.key, at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now,
         ...(editing ? { supersedes: editing.id, editReason: reason.trim() } : {}),
-      };
+        ...(head ? { prev: head } : {}),
+      }, sig);
       await addGarbage(e);
       setEditing(null);
       setReason('');
@@ -121,18 +129,10 @@ export default function GarbageSc() {
     } else await go();
   };
 
-  const masterSign = async () => {
-    if (!signer) return Alert.alert(t('sign.who'), t('pd.chooseName'));
-    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Master's signature — Garbage Record Book, ${month}` });
-    if (!sig) return;
-    const now = Date.now();
-    await signGarbageMonth({ id: `grb_${month}`, month, by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now });
-    playSuccessSound();
-  };
-
   const report = async (kind: 'pdf' | 'xlsx') => {
     try {
-      const where = kind === 'pdf' ? await exportGarbagePdf(garbage, month, vessel, sign) : await exportGarbageExcel(garbage, month, vessel);
+      void ver.note(kind);
+      const where = kind === 'pdf' ? await exportGarbagePdf(garbage, month, vessel, garbageSigns) : await exportGarbageExcel(garbage, month, vessel, garbageSigns);
       if (typeof where === 'string') setSaved(where === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: where }));
     } catch (e: any) {
       Alert.alert(t('gb.book'), String(e?.message ?? e));
@@ -275,6 +275,7 @@ export default function GarbageSc() {
                     </Text>
                   ))
                 : null}
+              {ver.stage(e)}
             </View>
             {!e.cancelled ? (
               // Changing the book is the Master's (10 Oct 2026): everyone else sees
@@ -289,16 +290,7 @@ export default function GarbageSc() {
       })}
       {!m.entries.length ? <Text style={styles.sub}>{t('book.noneMonth')}</Text> : null}
 
-      <Label>{t('book.master')}</Label>
-      {sign ? (
-        <Text style={styles.stamp}>{`${t('book.signedFor', { month, by: sign.byRank ? `${sign.by} (${sign.byRank})` : sign.by })} · ${uiDateTime(sign.at)}`}</Text>
-      ) : isMaster ? (
-        <TouchableOpacity style={[styles.btnOutline, { alignSelf: 'flex-start' }]} onPress={() => void masterSign()}>
-          <Text style={styles.btnOutlineText}>{t('book.signMonth')}</Text>
-        </TouchableOpacity>
-      ) : (
-        <Text style={styles.sub}>{t('gb.notSigned')}</Text>
-      )}
+      {ver.section}
     </Screen>
   );
 }

@@ -2,18 +2,22 @@
 // Oil Record Book — Part I (machinery space operations). One entry per
 // operation under its code A–I; the form asks for what that code needs
 // (services/orb.ts) and shows the line as it will read in the book. Signed by
-// the officer in charge; the Master signs the month, and alone changes or
+// the officer in charge; the Master verifies the entries (components/Verification
+// — each entry awaiting / verified / amended, verify again), and alone changes or
 // deletes an entry (with the reason — services/versions). Bunkerings can be
 // taken from Fuel. PDF / Excel of the month.
 // ===================================
 
 import React, { useMemo, useState } from 'react';
+import { useRoute } from '@react-navigation/native';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { Card, Label, Screen, ScreenTitle } from '../components/ui';
 import { MonthPicker, monthName } from '../components/MonthPicker';
 import { AmendButtons, AmendNote, useAmend } from '../components/Amend';
-import { useSignConfirm } from '../components/SignConfirm';
+import { useVerification } from '../components/Verification';
+import { useSignConfirm, withSeal } from '../components/SignConfirm';
+import { chainHead } from '../services/seal';
 import { useSigner } from '../components/SignerChoice';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
@@ -21,11 +25,11 @@ import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { ORB_CODE, ORB_METHOD, OrbCode, OrbEntry, OrbMethod } from '../types/orb';
 import { ORB_FIELDS, orbProblem, orbText } from '../services/orb';
-import { exportOrbExcel, exportOrbPdf } from '../services/orbReport';
+import { exportOrbExcel, exportOrbPdf, orbCopy } from '../services/orbReport';
 import { current } from '../services/versions';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
-import { formatDate, uiDate, uiDateTime } from '../utils/dates';
+import { formatDate, uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { PositionInput } from '../components/PositionInput';
 import { parsePosition } from '../utils/position';
@@ -53,13 +57,15 @@ export default function OrbSc() {
   const { signer, picker } = useSigner();
   const amend = useAmend();
   const today = todayIso();
-  const [month, setMonth] = useState(today.slice(0, 7));
+  // The board's "awaiting verification" opens the month it is in.
+  const route = useRoute();
+  const [month, setMonth] = useState<string>((route.params as any)?.month ?? today.slice(0, 7));
   const [adding, setAdding] = useState(false);
   const [saved, setSaved] = useState<string | null>(null);
 
   const all = versionsOf(storage.ORB_KEY) as OrbEntry[];
   const book = useMemo(() => current(all).filter((e) => e.date.startsWith(month)).sort((a, b) => `${a.date}${a.time ?? ''}`.localeCompare(`${b.date}${b.time ?? ''}`)), [all, month]);
-  const sign = orbSigns.find((s) => s.month === month);
+  const ver = useVerification({ all, book, signs: orbSigns, month, prefix: 'orb', what: 'Oil Record Book', isMaster, signer, picker, save: (x) => appendRow(storage.ORB_SIGNS_KEY, x), copy: () => { const c = orbCopy(book, month, vessel, orbSigns, all); return { copy: c.copy, name: c.name }; } });
 
   // ---- the form ----
   const blank = { code: 'D' as OrbCode, date: today, time: hhmm(), tank: '', quantity: '', unit: 'm3' as 'm3' | 't', retained: '', method: '' as OrbMethod | '', place: '', start: '', stop: '', grade: '', bdnNo: '', receiptNo: '', remarks: '' };
@@ -94,25 +100,18 @@ export default function OrbSc() {
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Oil Record Book — code ${f.code}` });
     if (!sig) return;
     const now = Date.now();
-    const e: OrbEntry = { id: uid('orb'), ...(draft as any), text: preview, by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now };
+    const head = chainHead(all);
+    const e: OrbEntry = withSeal({ id: uid('orb'), ...(draft as any), text: preview, by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), byId: signer.key, at: now, ...(head ? { prev: head } : {}), ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now }, sig);
     await appendRow(storage.ORB_KEY, e);
     setF({ ...blank, time: hhmm() });
     setAdding(false);
     playSuccessSound();
   };
 
-  const masterSign = async () => {
-    if (!signer) return Alert.alert(t('sign.who'), t('pd.chooseName'));
-    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Master's signature — Oil Record Book, ${month}` });
-    if (!sig) return;
-    const now = Date.now();
-    await appendRow(storage.ORB_SIGNS_KEY, { id: `orb_${month}`, month, by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now });
-    playSuccessSound();
-  };
-
   const report = async (kind: 'pdf' | 'xlsx') => {
     try {
-      const w = kind === 'pdf' ? await exportOrbPdf(book, month, vessel, sign) : await exportOrbExcel(book, month, vessel, sign);
+      void ver.note(kind);
+      const w = kind === 'pdf' ? await exportOrbPdf(book, month, vessel, orbSigns, all) : await exportOrbExcel(book, month, vessel, orbSigns, all);
       if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
       Alert.alert(t('orb.title'), String(e?.message ?? e));
@@ -203,6 +202,7 @@ export default function OrbSc() {
             <Text style={[styles.text, e.cancelled && { textDecorationLine: 'line-through' }]}>{e.text}</Text>
             <Text style={styles.sub}>{`${uiDate(e.date)}${e.time ? ` ${e.time}` : ''} · ${e.byRank ? `${e.by} (${e.byRank})` : e.by}`}</Text>
             <AmendNote rec={e} all={all} summary={(p) => `${p.code} · ${p.text}`} />
+            {ver.stage(e)}
           </View>
           {!e.cancelled ? (
             <AmendButtons
@@ -215,14 +215,7 @@ export default function OrbSc() {
       ))}
       {!book.length ? <Text style={styles.sub}>{t('book.noneMonth')}</Text> : null}
 
-      <Label>{t('book.master')}</Label>
-      {sign ? (
-        <Text style={styles.text}>{`${t('book.signedFor', { month, by: sign.byRank ? `${sign.by} (${sign.byRank})` : sign.by })} · ${uiDateTime(sign.at)}`}</Text>
-      ) : (
-        <TouchableOpacity disabled={!isMaster} style={[styles.btnOutline, { alignSelf: 'flex-start', opacity: isMaster ? 1 : 0.35 }]} onPress={() => void masterSign()}>
-          <Text style={styles.btnOutlineText}>{t('book.signMonth')}</Text>
-        </TouchableOpacity>
-      )}
+      {ver.section}
       {amend.ui}
     </Screen>
   );

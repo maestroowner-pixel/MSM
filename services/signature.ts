@@ -31,6 +31,8 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { PIN_MAX, PIN_MIN, isValidSignPin, stretch } from './pinHash';
+import { resetKeys } from './signKeys';
+import type { Seal } from './seal';
 export { PIN_MAX, PIN_MIN, isValidSignPin, isWeakPin } from './pinHash';
 
 /** What a signed record carries about HOW its signer confirmed. */
@@ -46,6 +48,8 @@ export interface SignProof {
   /** The device it was signed on (firebaseService.getLocalDeviceId). */
   deviceId?: string;
   at: number;
+  /** The signer's key over the record's hash (services/seal) — the record books, since 2.69. */
+  seal?: Seal;
 }
 
 export const MAX_TRIES = 5;
@@ -125,6 +129,8 @@ export async function setPin(personKey: string, name: string, pin: string): Prom
   if (!isValidSignPin(pin)) throw new Error(`The PIN is ${PIN_MIN}–${PIN_MAX} digits.`);
   const salt = randomHex(16);
   await setRaw(slot(personKey), JSON.stringify({ salt, hash: stretch(pin, salt) }));
+  // The key was locked with the old PIN: a new one is made at the next signature.
+  await resetKeys(personKey);
   await clearFails(personKey);
   const list = (await pinHolders()).filter((h) => h.key !== personKey);
   await saveHolders([...list, { key: personKey, name, setAt: Date.now() }]);
@@ -147,6 +153,7 @@ export const adminPinIsDefault = async () => !(await hasPin(ADMIN_KEY));
 /** The Master's reset: the holder chooses a new PIN the next time they sign. */
 export async function resetPin(personKey: string): Promise<void> {
   await setRaw(slot(personKey), null);
+  await resetKeys(personKey);
   await clearFails(personKey);
   await saveHolders((await pinHolders()).filter((h) => h.key !== personKey));
 }
