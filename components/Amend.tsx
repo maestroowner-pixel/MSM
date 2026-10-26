@@ -44,7 +44,7 @@ interface Spec {
 const getAt = (r: any, k: string) => (k.includes('.') ? r?.[k.split('.')[0]]?.[k.split('.')[1]] : r?.[k]);
 
 /** The MARPOL record books — their versions are chained and sealed (services/seal). */
-const SEALED_BOOKS = [storage.ORB_KEY, storage.SEWAGE_KEY, storage.BALLAST_KEY, storage.GARBAGE_KEY];
+const SEALED_BOOKS = [storage.ORB_KEY, storage.SEWAGE_KEY, storage.BALLAST_KEY, storage.GARBAGE_KEY, storage.FUEL_CHANGE_KEY, storage.ODS_KEY];
 
 export function useAmend() {
   const COLORS = useTheme();

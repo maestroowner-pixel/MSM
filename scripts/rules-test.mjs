@@ -140,6 +140,12 @@ await t(true, 'Officer records a sewage entry', setDoc(R(officer, 'sewage', 's1'
 await t(false, 'A ballast entry cannot be amended by an Officer', setDoc(R(officer, 'ballast', 'b2'), { id: 'b2', supersedes: 'b1' }));
 await t(true, 'The Master signs the ballast month', setDoc(R(master, 'ballast_signs', 'ballast_2026-10'), { id: 'ballast_2026-10' }));
 await t(false, 'An Officer cannot sign the sewage month', setDoc(R(officer, 'sewage_signs', 'sewage_2026-10'), { id: 'sewage_2026-10' }));
+await t(true, 'Officer records a fuel changeover', setDoc(R(officer, 'fuel_changeover', 'f1'), { id: 'f1', code: 'IN' }));
+await t(false, 'A fuel changeover entry is never rewritten', setDoc(R(officer, 'fuel_changeover', 'f1'), { id: 'f1', code: 'OUT' }));
+await t(false, 'An Officer cannot sign the fuel changeover month', setDoc(R(officer, 'fuel_changeover_signs', 'fuelChange_2026-10'), { id: 'fuelChange_2026-10' }));
+await t(true, 'Officer records an ODS entry', setDoc(R(officer, 'ods', 'o1'), { id: 'o1', code: 'PART' }));
+await t(false, 'An ODS entry cannot be amended by an Officer', setDoc(R(officer, 'ods', 'o2'), { id: 'o2', supersedes: 'o1' }));
+await t(false, 'An Officer cannot sign the ODS month', setDoc(R(officer, 'ods_signs', 'ods_2026-10'), { id: 'ods_2026-10' }));
 
 // The maintenance plan: the Master or the superintendent; the crew records the work.
 await t(true, 'The Master adds a machine to the plan', setDoc(R(master, 'pms_machines', 'mc1'), { id: 'mc1', name: 'Main engine PS', hours: 100 }));

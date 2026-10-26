@@ -70,7 +70,7 @@ import { DEFAULT_ARCHIVE, PhotoArchiveState } from '../services/photoArchive';
 import { setSoundsMuted } from '../utils/sound';
 
 /** The logs whose records are changed by versions (Edit / Delete, Master only). */
-const VERSIONED_KEYS = [storage.PMS_DONE_KEY, storage.SEWAGE_KEY, storage.BALLAST_KEY, storage.ORB_KEY, storage.FUEL_READINGS_KEY, storage.FUEL_BUNKERS_KEY, storage.FUEL_TRANSFERS_KEY, storage.SOPEP_CHECKS_KEY, storage.SOPEP_DRILLS_KEY, storage.VISITORS_KEY, storage.SECURITY_DRILLS_KEY, storage.SURVEYS_DONE_KEY];
+const VERSIONED_KEYS = [storage.PMS_DONE_KEY, storage.SEWAGE_KEY, storage.BALLAST_KEY, storage.FUEL_CHANGE_KEY, storage.ODS_KEY, storage.ORB_KEY, storage.FUEL_READINGS_KEY, storage.FUEL_BUNKERS_KEY, storage.FUEL_TRANSFERS_KEY, storage.SOPEP_CHECKS_KEY, storage.SOPEP_DRILLS_KEY, storage.VISITORS_KEY, storage.SECURITY_DRILLS_KEY, storage.SURVEYS_DONE_KEY];
 
 interface DataContextType {
   loading: boolean;
@@ -168,6 +168,11 @@ interface DataContextType {
   sewageSigns: LogMonthSign[];
   ballast: LogEntry[];
   ballastSigns: LogMonthSign[];
+  /** Fuel oil changeover (Annex VI reg. 14.6) and the ODS Record Book (reg. 12.6). */
+  fuelChange: LogEntry[];
+  fuelChangeSigns: LogMonthSign[];
+  ods: LogEntry[];
+  odsSigns: LogMonthSign[];
   /** The vessel's signing-key register (services/seal) and who opened / exported a record book (services/bookAccess). */
   signKeys: SignKeyRec[];
   bookAccess: BookAccess[];
@@ -337,6 +342,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [sewageSigns, setSewageSigns] = useState<LogMonthSign[]>([]);
   const [ballast, setBallast] = useState<LogEntry[]>([]);
   const [ballastSigns, setBallastSigns] = useState<LogMonthSign[]>([]);
+  const [fuelChange, setFuelChange] = useState<LogEntry[]>([]);
+  const [fuelChangeSigns, setFuelChangeSigns] = useState<LogMonthSign[]>([]);
+  const [ods, setOds] = useState<LogEntry[]>([]);
+  const [odsSigns, setOdsSigns] = useState<LogMonthSign[]>([]);
   const [signKeys, setSignKeys] = useState<SignKeyRec[]>([]);
   const [bookAccess, setBookAccess] = useState<BookAccess[]>([]);
   const [garbageSigns, setGarbageSigns] = useState<GarbageMasterSign[]>([]);
@@ -454,6 +463,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _sewageSigns = await storage.loadList<LogMonthSign>(storage.SEWAGE_SIGNS_KEY);
     const _ballast = live(await storage.loadList<LogEntry>(storage.BALLAST_KEY));
     const _ballastSigns = await storage.loadList<LogMonthSign>(storage.BALLAST_SIGNS_KEY);
+    const _fuelChange = live(await storage.loadList<LogEntry>(storage.FUEL_CHANGE_KEY));
+    const _fuelChangeSigns = await storage.loadList<LogMonthSign>(storage.FUEL_CHANGE_SIGNS_KEY);
+    const _ods = live(await storage.loadList<LogEntry>(storage.ODS_KEY));
+    const _odsSigns = await storage.loadList<LogMonthSign>(storage.ODS_SIGNS_KEY);
     const _signKeys = await storage.loadList<SignKeyRec>(storage.SIGN_KEYS_KEY);
     const _bookAccess = await storage.loadList<BookAccess>(storage.BOOK_ACCESS_KEY);
     const _garbageSigns = await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY);
@@ -543,6 +556,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSewageSigns(_sewageSigns);
     setBallast(_ballast);
     setBallastSigns(_ballastSigns);
+    setFuelChange(_fuelChange);
+    setFuelChangeSigns(_fuelChangeSigns);
+    setOds(_ods);
+    setOdsSigns(_odsSigns);
     setSignKeys(_signKeys);
     setKeyRegister(_signKeys);
     setBookAccess(_bookAccess);
@@ -779,6 +796,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _sewageSigns = await storage.loadList<LogMonthSign>(storage.SEWAGE_SIGNS_KEY);
     const _ballast = live(await storage.loadList<LogEntry>(storage.BALLAST_KEY));
     const _ballastSigns = await storage.loadList<LogMonthSign>(storage.BALLAST_SIGNS_KEY);
+    const _fuelChange = live(await storage.loadList<LogEntry>(storage.FUEL_CHANGE_KEY));
+    const _fuelChangeSigns = await storage.loadList<LogMonthSign>(storage.FUEL_CHANGE_SIGNS_KEY);
+    const _ods = live(await storage.loadList<LogEntry>(storage.ODS_KEY));
+    const _odsSigns = await storage.loadList<LogMonthSign>(storage.ODS_SIGNS_KEY);
     const _signKeys = await storage.loadList<SignKeyRec>(storage.SIGN_KEYS_KEY);
     const _bookAccess = await storage.loadList<BookAccess>(storage.BOOK_ACCESS_KEY);
     const _garbageSigns = await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY);
@@ -858,6 +879,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSewageSigns(_sewageSigns);
     setBallast(_ballast);
     setBallastSigns(_ballastSigns);
+    setFuelChange(_fuelChange);
+    setFuelChangeSigns(_fuelChangeSigns);
+    setOds(_ods);
+    setOdsSigns(_odsSigns);
     setSignKeys(_signKeys);
     setKeyRegister(_signKeys);
     setBookAccess(_bookAccess);
@@ -1183,6 +1208,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         sewageSigns,
         ballast,
         ballastSigns,
+        fuelChange,
+        fuelChangeSigns,
+        ods,
+        odsSigns,
         signKeys,
         bookAccess,
         garbageSigns,

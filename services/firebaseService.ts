@@ -1274,6 +1274,10 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'sewage_signs', key: storage.SEWAGE_SIGNS_KEY, appendOnly: true, module: 'sewage' },
   { sub: 'ballast', key: storage.BALLAST_KEY, appendOnly: true, module: 'ballast' },
   { sub: 'ballast_signs', key: storage.BALLAST_SIGNS_KEY, appendOnly: true, module: 'ballast' },
+  { sub: 'fuel_changeover', key: storage.FUEL_CHANGE_KEY, appendOnly: true, module: 'fuelChange' },
+  { sub: 'fuel_changeover_signs', key: storage.FUEL_CHANGE_SIGNS_KEY, appendOnly: true, module: 'fuelChange' },
+  { sub: 'ods', key: storage.ODS_KEY, appendOnly: true, module: 'ods' },
+  { sub: 'ods_signs', key: storage.ODS_SIGNS_KEY, appendOnly: true, module: 'ods' },
   // The record books' seals: every signer's public key, and who opened / exported a book (services/seal).
   { sub: 'sign_keys', key: storage.SIGN_KEYS_KEY, appendOnly: true, module: 'signConfirm' },
   { sub: 'book_access', key: storage.BOOK_ACCESS_KEY, appendOnly: true, module: 'signConfirm' },

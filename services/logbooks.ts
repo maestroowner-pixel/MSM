@@ -10,6 +10,14 @@
 //   Ballast   BWM Convention, BWRB (Appendix II): uptake, circulation /
 //             treatment, exchange (D-1: ≥ 200 nm and ≥ 200 m deep, else ≥ 50 nm),
 //             discharge, to a reception facility, accidental, BWMS failure.
+//   Fuel      MARPOL Annex VI reg. 14.6: the volume of compliant fuel in each
+//   changeover tank, date, time and position when a changeover is completed
+//             before entering an ECA or commenced after leaving one; ECA fuel
+//             ≤ 0.10 % S (reg. 14.4). EU ports at berth > 2 h: ≤ 0.10 % S
+//             (Directive (EU) 2016/802 art. 7) — the changeover times too.
+//   ODS       Annex VI reg. 12.6: recharge (full / partial), repair or
+//             maintenance, deliberate and non-deliberate discharge to the
+//             atmosphere, to a reception facility, supply to the ship — by mass (kg).
 // ===================================
 
 import { BookKey, LogEntry, LogField } from '../types/logbook';
@@ -31,6 +39,8 @@ export interface BookSpec {
   text: (e: Partial<LogEntry> & { code: string }) => string;
 }
 
+const kg = (n?: number) => (n == null ? '' : `${Math.round(n * 1000) / 1000} kg`);
+const pct = (n?: number) => (n == null ? '' : `${n} % S`);
 const m3 = (n?: number) => (n == null ? '' : `${Math.round(n * 1000) / 1000} m³`);
 const join = (xs: (string | false | null | undefined)[]) => xs.filter(Boolean).join('; ');
 const span = (e: Partial<LogEntry>) => (e.start && e.stop ? `${e.start}–${e.stop}` : e.start ?? '');
@@ -162,4 +172,131 @@ export const BALLAST: BookSpec = {
   },
 };
 
-export const BOOKS: Record<BookKey, BookSpec> = { sewage: SEWAGE, ballast: BALLAST };
+const ECAS: Record<string, string> = {
+  baltic: 'Baltic Sea',
+  north: 'North Sea',
+  na: 'North American',
+  usc: 'US Caribbean',
+  med: 'Mediterranean Sea',
+  arctic: 'Canadian Arctic',
+  norw: 'Norwegian Sea',
+  other: 'Other (see remarks)',
+};
+const ecaOf = (e: Partial<LogEntry>) => (e.method ? `${ECAS[e.method] ?? e.method} ECA` : 'the ECA');
+const tanks = (e: Partial<LogEntry>) => [e.tank, m3(e.quantity)].filter(Boolean).join(' ');
+
+export const FUEL_CHANGE: BookSpec = {
+  key: 'fuelChange',
+  title: 'Fuel oil changeover',
+  subtitle: 'Fuel oil changeover record · MARPOL Annex VI reg. 14.6',
+  help: 'Fuel oil changeover',
+  codes: {
+    // The compliant fuel in each tank — one entry per changeover, the tanks
+    // and volumes in one line ("DB 3 P/S 24.5") when there are several.
+    IN: { label: 'Changeover to compliant fuel completed — before entering an ECA', fields: ['method', 'tank', 'quantity', 'sulphur', 'place'], methods: ECAS },
+    ENTER: { label: 'Entered the ECA', fields: ['method', 'place'], methods: ECAS },
+    EXIT: { label: 'Left the ECA', fields: ['method', 'place'], methods: ECAS },
+    OUT: { label: 'Changeover from compliant fuel commenced — after leaving an ECA', fields: ['method', 'tank', 'quantity', 'sulphur', 'place'], methods: ECAS },
+    BERTH: { label: 'At berth (EU port, over 2 h): changeover to ≤ 0.10 % S completed', fields: ['tank', 'quantity', 'sulphur', 'place'] },
+    DEPART: { label: 'Before departure (EU port): changeover from ≤ 0.10 % S commenced', fields: ['tank', 'quantity', 'sulphur', 'place'] },
+  },
+  problem: (e) => {
+    switch (e.code) {
+      case 'IN':
+      case 'OUT':
+        if (!e.method) return 'Which ECA.';
+        if (!e.tank || e.quantity == null || !e.place) return 'Tanks, the volume of compliant fuel in them, and the position (reg. 14.6).';
+        if (!e.time) return 'Time the changeover was ' + (e.code === 'IN' ? 'completed.' : 'commenced.');
+        if (e.code === 'IN' && e.sulphur == null) return 'Sulphur content of the fuel changed to, % m/m.';
+        return e.code === 'IN' && e.sulphur! > 0.1 && !e.remarks ? 'Inside an ECA: fuel of at most 0.10 % S (reg. 14.4) — or say why in the remarks (non-availability report).' : null;
+      case 'ENTER':
+      case 'EXIT':
+        if (!e.method) return 'Which ECA.';
+        return !e.place || !e.time ? 'Time and position at the boundary.' : null;
+      case 'BERTH':
+        if (!e.tank || e.quantity == null || !e.place || !e.time) return 'Tanks, quantity, port and the time the changeover was completed.';
+        if (e.sulphur == null) return 'Sulphur content of the fuel changed to, % m/m.';
+        return e.sulphur > 0.1 && !e.remarks ? 'At berth in an EU port: fuel of at most 0.10 % S (Directive (EU) 2016/802) — or say why in the remarks.' : null;
+      case 'DEPART':
+        return !e.tank || e.quantity == null || !e.place || !e.time ? 'Tanks, quantity, port and the time the changeover commenced.' : null;
+      default:
+        return null;
+    }
+  },
+  text: (e) => {
+    switch (e.code) {
+      case 'IN':
+        return join([`Changeover to ${pct(e.sulphur) || 'compliant fuel'} completed before entering ${ecaOf(e)}`, e.place, tanks(e), e.remarks]);
+      case 'ENTER':
+        return join([`Entered ${ecaOf(e)}`, e.place, e.remarks]);
+      case 'EXIT':
+        return join([`Left ${ecaOf(e)}`, e.place, e.remarks]);
+      case 'OUT':
+        return join([`Changeover${e.sulphur != null ? ` to ${pct(e.sulphur)}` : ''} commenced after leaving ${ecaOf(e)}`, e.place, tanks(e), e.remarks]);
+      case 'BERTH':
+        return join([`At berth: changeover to ${pct(e.sulphur)} completed`, e.place, tanks(e), e.remarks]);
+      case 'DEPART':
+        return join([`Before departure: changeover${e.sulphur != null ? ` to ${pct(e.sulphur)}` : ''} commenced`, e.place, tanks(e), e.remarks]);
+      default:
+        return e.remarks ?? '';
+    }
+  },
+};
+
+export const ODS: BookSpec = {
+  key: 'ods',
+  title: 'Ozone-depleting substances',
+  subtitle: 'Ozone-depleting Substances Record Book · MARPOL Annex VI reg. 12.6',
+  help: 'Ozone-depleting substances',
+  codes: {
+    FULL: { label: 'Recharge, full, of equipment containing ODS', fields: ['equipment', 'substance', 'mass'] },
+    PART: { label: 'Recharge, partial, of equipment containing ODS', fields: ['equipment', 'substance', 'mass'] },
+    REP: { label: 'Repair or maintenance of equipment containing ODS', fields: ['equipment', 'substance', 'mass'] },
+    DELIB: { label: 'Discharge of ODS to the atmosphere — deliberate', fields: ['equipment', 'substance', 'mass'] },
+    LEAK: { label: 'Discharge of ODS to the atmosphere — non-deliberate (leak)', fields: ['equipment', 'substance', 'mass'] },
+    SHORE: { label: 'Discharge of ODS to a land-based reception facility', fields: ['substance', 'mass', 'place', 'receiptNo'] },
+    SUPPLY: { label: 'Supply of ODS to the ship', fields: ['substance', 'mass', 'place'] },
+  },
+  problem: (e) => {
+    switch (e.code) {
+      case 'FULL':
+      case 'PART':
+        return !e.equipment || !e.substance || e.mass == null ? 'Equipment, substance and the mass charged, kg.' : null;
+      case 'REP':
+        if (!e.equipment || !e.substance) return 'Equipment and substance.';
+        return !e.remarks ? 'Say what was repaired or serviced.' : null;
+      case 'DELIB':
+      case 'LEAK':
+        if (!e.equipment || !e.substance || e.mass == null) return 'Equipment, substance and the mass lost, kg.';
+        return !e.remarks ? (e.code === 'DELIB' ? 'Deliberate emissions are prohibited (reg. 12.2) — say why it happened.' : 'Say how it was found and what was done.') : null;
+      case 'SHORE':
+      case 'SUPPLY':
+        return !e.substance || e.mass == null || !e.place ? 'Substance, mass in kg and the port.' : null;
+      default:
+        return null;
+    }
+  },
+  text: (e) => {
+    const what = [e.substance, kg(e.mass)].filter(Boolean).join(' ');
+    switch (e.code) {
+      case 'FULL':
+        return join([`Full recharge of ${e.equipment}: ${what}`, e.remarks]);
+      case 'PART':
+        return join([`Partial recharge of ${e.equipment}: ${what}`, e.remarks]);
+      case 'REP':
+        return join([`Repair / maintenance of ${e.equipment}${e.substance ? ` (${e.substance})` : ''}`, e.mass != null && `${kg(e.mass)} recovered`, e.remarks]);
+      case 'DELIB':
+        return join([`Deliberate discharge to atmosphere from ${e.equipment}: ${what}`, e.remarks]);
+      case 'LEAK':
+        return join([`Non-deliberate discharge (leak) from ${e.equipment}: ${what}`, e.remarks]);
+      case 'SHORE':
+        return join([`To reception facility: ${what}`, e.place, e.receiptNo && `receipt ${e.receiptNo}`, e.remarks]);
+      case 'SUPPLY':
+        return join([`Supplied to the ship: ${what}`, e.place, e.remarks]);
+      default:
+        return e.remarks ?? '';
+    }
+  },
+};
+
+export const BOOKS: Record<BookKey, BookSpec> = { sewage: SEWAGE, ballast: BALLAST, fuelChange: FUEL_CHANGE, ods: ODS };

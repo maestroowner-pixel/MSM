@@ -8,7 +8,7 @@
 // (PDF, Excel, the Master's signed copy) is noted each time.
 // ===================================
 
-export type BookKey = 'orb' | 'grb' | 'sewage' | 'ballast';
+export type BookKey = 'orb' | 'grb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods';
 export type AccessWhat = 'open' | 'pdf' | 'xlsx' | 'copy';
 
 export interface BookAccess {

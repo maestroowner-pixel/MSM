@@ -31,7 +31,7 @@
 
 import { ModuleKey, moduleOn } from './modules';
 
-export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'stores' | 'orders' | 'reports' | 'maintenance' | 'spares' | 'rest' | 'readiness' | 'dp' | 'watch' | 'familiar' | 'deckLog' | 'watchLog' | 'gmdss';
+export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'stores' | 'orders' | 'reports' | 'maintenance' | 'spares' | 'rest' | 'readiness' | 'dp' | 'watch' | 'familiar' | 'deckLog' | 'watchLog' | 'gmdss';
 
 export interface OptionalTab {
   key: TabKey;
@@ -60,6 +60,8 @@ export const OPTIONAL_TABS: OptionalTab[] = [
   { key: 'orb', module: 'orb', route: 'OilRecord', label: 'Oil Record Book', column: 'ORB', icon: 'oil' },
   { key: 'sewage', module: 'sewage', route: 'Sewage', label: 'Sewage record', column: 'Sew', icon: 'water-pump' },
   { key: 'ballast', module: 'ballast', route: 'Ballast', label: 'Ballast water', column: 'BW', icon: 'waves' },
+  { key: 'fuelChange', module: 'fuelChange', route: 'FuelChangeover', label: 'Fuel changeover', column: 'FCO', icon: 'swap-horizontal' },
+  { key: 'ods', module: 'ods', route: 'Ods', label: 'ODS record', column: 'ODS', icon: 'snowflake' },
   { key: 'rounds', module: 'rounds', route: 'Rounds', label: 'Inspection rounds', column: 'RND', icon: 'clipboard-check-outline' },
   { key: 'surveys', module: 'surveys', route: 'Surveys', label: 'Surveys', column: 'SRV', icon: 'calendar-check-outline' },
   { key: 'hospital', module: 'hospital', route: 'Hospital', label: 'Hospital', column: 'MED', icon: 'medical-bag' },

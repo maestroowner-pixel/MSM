@@ -1,6 +1,6 @@
 // ===================================
 // The Master's verification on a record book's screen (services/verification,
-// 25 Oct 2026) — shared by the Oil Record Book, Garbage, Sewage and Ballast.
+// 25 Oct 2026) — shared by the Oil Record Book, Garbage, Sewage, Ballast, Fuel oil changeover and ODS.
 //
 //   useVerification(...) → { stage(entry), section, note(what) }
 //     stage     the entry's lines under it: "Awaiting verification" (amber),
@@ -48,7 +48,7 @@ interface Args<E extends VerifiableEntry, S extends MonthVerification> {
   book: E[];
   signs: S[];
   month: string;
-  /** Id prefix of the book's signatures, and the book in the access log: `orb`, `grb`, `sewage`, `ballast`. */
+  /** Id prefix of the book's signatures, and the book in the access log: `orb`, `grb`, `sewage`, `ballast`, `fuelChange`, `ods`. */
   prefix: BookKey;
   /** "Oil Record Book" — for the signature dialog. */
   what: string;

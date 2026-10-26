@@ -473,6 +473,22 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🔄',
+      title: "Fuel oil changeover",
+      body: [
+        "Fuel oil changeover record (MARPOL Annex VI reg. 14.6): the changeover to compliant fuel completed before entering an Emission Control Area, and the changeover back commenced after leaving it — with the ECA, the time, the position, the tanks with the volume of compliant fuel in them, and the sulphur content. The crossings of the ECA boundary can be recorded too. In EU ports, where a ship at berth for more than two hours burns fuel of at most 0.10 % sulphur, the changeover after arrival and the one before departure are recorded the same way.",
+        "Before signing, the form warns when fuel for an ECA or an EU berth has more than 0.10 % sulphur — such an entry is signed only with the reason in the remarks (a fuel oil non-availability report, for example). Signing, the Master's verification, changes by the Master only, the seal, PDF and Excel work as in the other record books.",
+      ],
+    },
+    {
+      emoji: '❄️',
+      title: "Ozone-depleting substances",
+      body: [
+        "Ozone-depleting Substances Record Book (MARPOL Annex VI reg. 12.6): full and partial recharge of equipment containing ODS, repair or maintenance, deliberate and non-deliberate discharge to the atmosphere, discharge to a land-based reception facility, and supply of ODS to the ship — each with the equipment, the substance (R-22, Halon 1301 …) and the mass in kilograms.",
+        "Deliberate emissions are prohibited (reg. 12.2): such an entry, and a leak, are signed only with the circumstances in the remarks. Signing, the Master's verification, changes by the Master only, the seal, PDF and Excel work as in the other record books.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: "SOPEP",
       body: [
@@ -1168,6 +1184,22 @@ const ru: ManualContent = {
       body: [
         "Журнал балластных вод (Конвенция BWM): приём, циркуляция или обработка, замена (последовательная, проточная, разбавлением) с координатами начала и конца, сброс в море, сдача на приёмное сооружение, случайный приём или сброс, неисправность системы обработки (BWMS).",
         "Замена проверяется по D-1: не ближе 50 миль от берега (по возможности 200) и глубина не меньше 200 м. Подписи, подпись Мастера за месяц, исправления только Мастером, PDF и Excel — как в других журналах.",
+      ],
+    },
+    {
+      emoji: '🔄',
+      title: "Переход на другое топливо (Fuel oil changeover)",
+      body: [
+        "Журнал перехода на другое топливо (MARPOL Annex VI, правило 14.6): переход на соответствующее топливо, законченный до входа в район контроля выбросов (ECA), и обратный переход, начатый после выхода из него, — с указанием района, времени, координат, танков с объёмом соответствующего топлива в них и содержания серы. Можно записывать и пересечение границы ECA. В портах ЕС, где судно у причала дольше двух часов работает на топливе не более 0,10 % серы, переход после прихода и перед отходом записывается так же.",
+        "Перед подписью форма предупреждает, если у топлива для ECA или стоянки в порту ЕС больше 0,10 % серы, — такую запись можно подписать только с причиной в примечаниях (например, отчёт о недоступности топлива). Подписи, подтверждение Мастера, исправления только Мастером, печать, PDF и Excel — как в других журналах.",
+      ],
+    },
+    {
+      emoji: '❄️',
+      title: "Озоноразрушающие вещества (ODS)",
+      body: [
+        "Журнал озоноразрушающих веществ (MARPOL Annex VI, правило 12.6): полная и частичная заправка оборудования, содержащего ОРВ, ремонт или обслуживание, преднамеренный и непреднамеренный выброс в атмосферу, сдача на береговое приёмное сооружение, получение ОРВ на судно — каждая запись с оборудованием, веществом (R-22, Halon 1301 …) и массой в килограммах.",
+        "Преднамеренные выбросы запрещены (правило 12.2): такую запись, как и утечку, можно подписать только с обстоятельствами в примечаниях. Подписи, подтверждение Мастера, исправления только Мастером, печать, PDF и Excel — как в других журналах.",
       ],
     },
     {
@@ -1869,6 +1901,22 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🔄',
+      title: "Cambio de combustible (Fuel oil changeover)",
+      body: [
+        "Registro de cambio de combustible (MARPOL Anexo VI, regla 14.6): el cambio a combustible conforme terminado antes de entrar en una zona de control de emisiones (ECA) y el cambio de vuelta iniciado tras salir de ella — con la ECA, la hora, la posición, los tanques con el volumen de combustible conforme y el contenido de azufre. También pueden registrarse los cruces del límite de la ECA. En puertos de la UE, donde un buque atracado más de dos horas usa combustible de 0,10 % de azufre como máximo, el cambio tras la llegada y antes de la salida se registra igual.",
+        "Antes de firmar, el formulario avisa si el combustible para una ECA o un atraque en la UE tiene más de 0,10 % de azufre — esa anotación solo se firma con el motivo en las observaciones (por ejemplo, un informe de no disponibilidad de combustible). Firmas, verificación del capitán, cambios solo por el capitán, el sello, PDF y Excel funcionan como en los demás libros.",
+      ],
+    },
+    {
+      emoji: '❄️',
+      title: "Sustancias que agotan el ozono (ODS)",
+      body: [
+        "Libro registro de sustancias que agotan la capa de ozono (MARPOL Anexo VI, regla 12.6): recarga completa y parcial de equipos que contienen SAO, reparación o mantenimiento, descarga deliberada y no deliberada a la atmósfera, descarga a una instalación receptora en tierra y suministro de SAO al buque — cada una con el equipo, la sustancia (R-22, Halon 1301 …) y la masa en kilogramos.",
+        "Las emisiones deliberadas están prohibidas (regla 12.2): esa anotación, igual que una fuga, solo se firma con las circunstancias en las observaciones. Firmas, verificación del capitán, cambios solo por el capitán, el sello, PDF y Excel funcionan como en los demás libros.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: "SOPEP",
       body: [
@@ -2567,6 +2615,22 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🔄',
+      title: "Перехід на інше паливо (Fuel oil changeover)",
+      body: [
+        "Журнал переходу на інше паливо (MARPOL Annex VI, правило 14.6): перехід на відповідне паливо, завершений до входу в район контролю викидів (ECA), і зворотний перехід, розпочатий після виходу з нього, — із зазначенням району, часу, координат, танків з об'ємом відповідного палива в них і вмісту сірки. Можна записувати й перетин межі ECA. У портах ЄС, де судно біля причалу довше двох годин працює на паливі не більше 0,10 % сірки, перехід після приходу й перед відходом записується так само.",
+        "Перед підписом форма попереджає, якщо в палива для ECA або стоянки в порту ЄС понад 0,10 % сірки, — такий запис можна підписати лише з причиною в примітках (наприклад, звіт про недоступність палива). Підписи, підтвердження Мастера, виправлення лише Мастером, печатка, PDF і Excel — як в інших журналах.",
+      ],
+    },
+    {
+      emoji: '❄️',
+      title: "Озоноруйнівні речовини (ODS)",
+      body: [
+        "Журнал озоноруйнівних речовин (MARPOL Annex VI, правило 12.6): повна й часткова заправка обладнання, що містить ОРР, ремонт або обслуговування, навмисний і ненавмисний викид в атмосферу, здача на берегову приймальну споруду, отримання ОРР на судно — кожен запис з обладнанням, речовиною (R-22, Halon 1301 …) і масою в кілограмах.",
+        "Навмисні викиди заборонені (правило 12.2): такий запис, як і витік, можна підписати лише з обставинами в примітках. Підписи, підтвердження Мастера, виправлення лише Мастером, печатка, PDF і Excel — як в інших журналах.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: "SOPEP",
       body: [
@@ -3230,6 +3294,22 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '🔄',
+      title: "Drivstoffomlegging (Fuel oil changeover)",
+      body: [
+        "Journal for drivstoffomlegging (MARPOL vedlegg VI regel 14.6): omleggingen til samsvarende drivstoff fullført før innseiling i et utslippskontrollområde (ECA), og omleggingen tilbake påbegynt etter utseiling — med ECA, tid, posisjon, tankene med volumet av samsvarende drivstoff og svovelinnholdet. Passering av ECA-grensen kan også føres. I EU-havner, der et skip ved kai i mer enn to timer bruker drivstoff med høyst 0,10 % svovel, føres omleggingen etter ankomst og før avgang på samme måte.",
+        "Før signering varsler skjemaet når drivstoff for en ECA eller kai i EU har mer enn 0,10 % svovel — en slik innføring signeres bare med årsaken i merknadene (for eksempel en rapport om manglende tilgjengelighet av drivstoff). Signering, kapteinens verifisering, endringer kun av kapteinen, forseglingen, PDF og Excel virker som i de andre journalene.",
+      ],
+    },
+    {
+      emoji: '❄️',
+      title: "Ozonnedbrytende stoffer (ODS)",
+      body: [
+        "Journal for ozonnedbrytende stoffer (MARPOL vedlegg VI regel 12.6): full og delvis påfylling av utstyr som inneholder ODS, reparasjon eller vedlikehold, tilsiktet og utilsiktet utslipp til atmosfæren, levering til mottaksanlegg i land og forsyning av ODS til skipet — hver med utstyret, stoffet (R-22, Halon 1301 …) og massen i kilo.",
+        "Tilsiktede utslipp er forbudt (regel 12.2): en slik innføring, og en lekkasje, signeres bare med omstendighetene i merknadene. Signering, kapteinens verifisering, endringer kun av kapteinen, forseglingen, PDF og Excel virker som i de andre journalene.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: 'SOPEP',
       body: [
@@ -3852,6 +3932,22 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '🔄',
+      title: "Mudança de combustível (Fuel oil changeover)",
+      body: [
+        "Registo de mudança de combustível (MARPOL Anexo VI, regra 14.6): a mudança para combustível conforme concluída antes de entrar numa zona de controlo de emissões (ECA) e a mudança de volta iniciada depois de sair dela — com a ECA, a hora, a posição, os tanques com o volume de combustível conforme e o teor de enxofre. As passagens do limite da ECA também podem ser registadas. Em portos da UE, onde um navio atracado mais de duas horas usa combustível com no máximo 0,10 % de enxofre, a mudança após a chegada e antes da partida regista-se da mesma forma.",
+        "Antes de assinar, o formulário avisa quando o combustível para uma ECA ou atracação na UE tem mais de 0,10 % de enxofre — esse registo só é assinado com o motivo nas observações (por exemplo, um relatório de indisponibilidade de combustível). Assinaturas, verificação do comandante, alterações só pelo comandante, o selo, PDF e Excel funcionam como nos outros livros.",
+      ],
+    },
+    {
+      emoji: '❄️',
+      title: "Substâncias que empobrecem o ozono (ODS)",
+      body: [
+        "Livro de registo de substâncias que empobrecem a camada de ozono (MARPOL Anexo VI, regra 12.6): recarga completa e parcial de equipamento que contém SDO, reparação ou manutenção, descarga deliberada e não deliberada para a atmosfera, descarga para uma instalação de recepção em terra e fornecimento de SDO ao navio — cada uma com o equipamento, a substância (R-22, Halon 1301 …) e a massa em quilogramas.",
+        "As emissões deliberadas são proibidas (regra 12.2): esse registo, tal como uma fuga, só é assinado com as circunstâncias nas observações. Assinaturas, verificação do comandante, alterações só pelo comandante, o selo, PDF e Excel funcionam como nos outros livros.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: 'SOPEP',
       body: [
@@ -4106,6 +4202,8 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Oil Record Book', module: 'orb' },
   { title: 'Sewage record', module: 'sewage' },
   { title: 'Ballast water', module: 'ballast' },
+  { title: 'Fuel oil changeover', module: 'fuelChange' },
+  { title: 'Ozone-depleting substances', module: 'ods' },
   { title: 'SOPEP', module: 'sopep' },
   { title: 'Board', module: 'board' },
   { title: 'Surveys & audits', module: 'surveys' },

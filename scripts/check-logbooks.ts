@@ -1,5 +1,5 @@
-// npm run check:logbooks — Sewage and Ballast Water record books: rules and lines.
-import { BALLAST, SEWAGE } from '../services/logbooks';
+// npm run check:logbooks — Sewage, Ballast Water, Fuel oil changeover and ODS record books: rules and lines.
+import { BALLAST, FUEL_CHANGE, ODS, SEWAGE } from '../services/logbooks';
 
 let fail = 0;
 const ok = (c: boolean, m: string) => { if (!c) { fail++; console.log('✗', m); } else console.log('✓', m); };
@@ -16,5 +16,21 @@ ok(/200 m/.test(BALLAST.problem({ code: 'EXCH', tank: 'DB 1 P/S', quantity: 120,
 ok(BALLAST.problem({ code: 'EXCH', tank: 'DB 1 P/S', quantity: 120, method: 'seq', place: 'a', placeEnd: 'b', distance: 220, depth: 3000 }) === null, 'exchange 220 nm out, 3000 m deep');
 ok(/Exchange \(Sequential\) 120 m³ in DB 1 P\/S/.test(BALLAST.text({ code: 'EXCH', tank: 'DB 1 P/S', quantity: 120, method: 'seq', place: 'a', placeEnd: 'b', start: '08:00', stop: '11:30' })), 'exchange line names the method');
 ok(BALLAST.text({ code: 'UP', tank: 'Fore peak', quantity: 40, place: 'Palma', treated: true }).includes('treated (BWMS)'), 'uptake treated');
+const IN = { code: 'IN', method: 'med', tank: 'DB 3 P/S', quantity: 24.5, place: "43°10.0'N 007°20.0'E", time: '12:40' };
+ok(/Sulphur/.test(FUEL_CHANGE.problem(IN) ?? ''), 'changeover into an ECA needs the sulphur content');
+ok(FUEL_CHANGE.problem({ ...IN, sulphur: 0.08 }) === null, 'changeover to 0.08 % S before the ECA is fine');
+ok(/0\.10 % S/.test(FUEL_CHANGE.problem({ ...IN, sulphur: 0.5 }) ?? ''), '0.50 % S inside an ECA → warned');
+ok(FUEL_CHANGE.problem({ ...IN, sulphur: 0.5, remarks: 'FONAR sent' }) === null, '…unless the reason is in the remarks');
+ok(/Which ECA/.test(FUEL_CHANGE.problem({ ...IN, method: undefined, sulphur: 0.08 }) ?? ''), 'the ECA is named');
+ok(/Time/.test(FUEL_CHANGE.problem({ ...IN, time: undefined, sulphur: 0.08 }) ?? ''), 'the time is required (reg. 14.6)');
+ok(FUEL_CHANGE.text({ ...IN, sulphur: 0.08 }) === "Changeover to 0.08 % S completed before entering Mediterranean Sea ECA; 43°10.0'N 007°20.0'E; DB 3 P/S 24.5 m³", 'changeover line');
+ok(/0\.10 % S/.test(FUEL_CHANGE.problem({ code: 'BERTH', tank: 'DB 3', quantity: 10, sulphur: 0.5, place: 'Antibes', time: '09:00' }) ?? ''), 'EU berth with 0.50 % S → warned');
+ok(FUEL_CHANGE.problem({ code: 'DEPART', tank: 'DB 3', quantity: 10, place: 'Antibes', time: '17:00' }) === null, 'before departure, no sulphur needed');
+ok(/Left North Sea ECA/.test(FUEL_CHANGE.text({ code: 'EXIT', method: 'north', place: 'x', time: '01:00' })), 'leaving the ECA');
+ok(/kg/.test(ODS.problem({ code: 'PART', equipment: 'Provision plant', substance: 'R-22' }) ?? ''), 'a recharge needs the mass');
+ok(ODS.text({ code: 'PART', equipment: 'Provision plant', substance: 'R-22', mass: 2.5 }) === 'Partial recharge of Provision plant: R-22 2.5 kg', 'ODS line');
+ok(/prohibited/.test(ODS.problem({ code: 'DELIB', equipment: 'A/C 2', substance: 'R-22', mass: 1 }) ?? ''), 'a deliberate discharge needs the reason');
+ok(ODS.problem({ code: 'LEAK', equipment: 'A/C 2', substance: 'R-22', mass: 1, remarks: 'found by leak test, valve replaced' }) === null, 'a leak with remarks is fine');
+ok(/port/.test(ODS.problem({ code: 'SHORE', substance: 'Halon 1301', mass: 40 }) ?? ''), 'to a reception facility needs the port');
 console.log(fail ? `${fail} failed` : 'all passed');
 process.exit(fail ? 1 : 0);

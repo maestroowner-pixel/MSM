@@ -96,6 +96,9 @@ export interface BackupFile {
   /** Sewage and Ballast Water record books. */
   sewage?: { entries: LogEntry[]; signs: LogMonthSign[] };
   ballast?: { entries: LogEntry[]; signs: LogMonthSign[] };
+  /** Fuel oil changeover and the ODS Record Book (26 Oct 2026). */
+  fuelChange?: { entries: LogEntry[]; signs: LogMonthSign[] };
+  ods?: { entries: LogEntry[]; signs: LogMonthSign[] };
   /** SOPEP locker, checks, drills; ISPS visitor log and security levels. */
   sopep?: { lockers?: SopepLocker[]; items: SopepItem[]; checks: SopepCheck[]; drills: SopepDrill[]; docs?: OfficerDoc[] };
   /** Surveys & audits: the plan and what was carried out. */
@@ -232,6 +235,8 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   const rounds = await storage.loadList<InspectionRound>(storage.ROUNDS_KEY);
   const sewage = { entries: await storage.loadList<LogEntry>(storage.SEWAGE_KEY), signs: await storage.loadList<LogMonthSign>(storage.SEWAGE_SIGNS_KEY) };
   const ballast = { entries: await storage.loadList<LogEntry>(storage.BALLAST_KEY), signs: await storage.loadList<LogMonthSign>(storage.BALLAST_SIGNS_KEY) };
+  const fuelChange = { entries: await storage.loadList<LogEntry>(storage.FUEL_CHANGE_KEY), signs: await storage.loadList<LogMonthSign>(storage.FUEL_CHANGE_SIGNS_KEY) };
+  const ods = { entries: await storage.loadList<LogEntry>(storage.ODS_KEY), signs: await storage.loadList<LogMonthSign>(storage.ODS_SIGNS_KEY) };
   const orb = { entries: await storage.loadList<OrbEntry>(storage.ORB_KEY), signs: await storage.loadList<OrbMasterSign>(storage.ORB_SIGNS_KEY) };
   const signKeys = await storage.loadList<SignKeyRec>(storage.SIGN_KEYS_KEY);
   const bookAccess = await storage.loadList<BookAccess>(storage.BOOK_ACCESS_KEY);
@@ -285,6 +290,8 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     rounds,
     sewage,
     ballast,
+    fuelChange,
+    ods,
     sopep,
     security,
     surveys,
@@ -486,6 +493,14 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
   if (backup.ballast) {
     await storage.saveList(storage.BALLAST_KEY, backup.ballast.entries ?? []);
     await storage.saveList(storage.BALLAST_SIGNS_KEY, backup.ballast.signs ?? []);
+  }
+  if (backup.fuelChange) {
+    await storage.saveList(storage.FUEL_CHANGE_KEY, backup.fuelChange.entries ?? []);
+    await storage.saveList(storage.FUEL_CHANGE_SIGNS_KEY, backup.fuelChange.signs ?? []);
+  }
+  if (backup.ods) {
+    await storage.saveList(storage.ODS_KEY, backup.ods.entries ?? []);
+    await storage.saveList(storage.ODS_SIGNS_KEY, backup.ods.signs ?? []);
   }
   // Union, not replace: a key or an access line is never taken away.
   for (const [key, rows] of [[storage.SIGN_KEYS_KEY, backup.signKeys], [storage.BOOK_ACCESS_KEY, backup.bookAccess]] as const) {

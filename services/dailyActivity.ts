@@ -3,7 +3,7 @@
 // together all the vessel's activity from every log — xlsx / pdf").
 //
 // One section per record kept that day, each a small table: inspections and
-// rounds, maintenance done and defects, the Oil / Garbage / Sewage / Ballast
+// rounds, maintenance done and defects, the Oil / Garbage / Sewage / Ballast / fuel changeover / ODS
 // books, fuel, permits, drills, the gangway, SOPEP, QHSE, surveys, the hospital
 // (stock only — the medical log says no more than how many were seen, because
 // the daily report goes to the office). Only switched-on modules are read.
@@ -55,6 +55,8 @@ export interface DayInput {
   garbage?: GarbageEntry[];
   sewage?: LogEntry[];
   ballast?: LogEntry[];
+  fuelChange?: LogEntry[];
+  ods?: LogEntry[];
   fuelTanks?: FuelTank[];
   fuelReadings?: FuelReading[];
   fuelBunkers?: FuelBunker[];
@@ -150,6 +152,8 @@ export function dailyActivity(x: DayInput): DaySection[] {
   }
   if (x.on('sewage')) book('Sewage record', x.sewage);
   if (x.on('ballast')) book('Ballast water record', x.ballast);
+  if (x.on('fuelChange')) book('Fuel oil changeover record', x.fuelChange);
+  if (x.on('ods')) book('ODS Record Book', x.ods);
 
   // ---- fuel ----
   if (x.on('fuel')) {

@@ -48,7 +48,7 @@ export const MENU_GROUPS: MenuGroup[] = [
   // The ship's hospital on its own, under Safety (17 Oct 2026: "out of Crew, its own section").
   group('medical', 'menu.group.medical', ['Hospital']),
   group('security', 'menu.group.security', ['Security']),
-  group('env', 'menu.group.env', ['OilRecord', 'Garbage', 'Sewage', 'Ballast', 'Fuel', 'Sopep']),
+  group('env', 'menu.group.env', ['OilRecord', 'Garbage', 'Sewage', 'Ballast', 'FuelChangeover', 'Ods', 'Fuel', 'Sopep']),
   group('crew', 'menu.group.crew', ['Crew', 'CrewMatrix', 'HoursOfRest', 'Passengers']),
   group('ops', 'menu.group.ops', ['Watch', 'Familiar', 'Dp', 'Readiness']),
   group('docs', 'menu.group.docs', ['Certificates', 'Documents', 'Permits', 'Surveys', 'Reports']),
@@ -196,4 +196,4 @@ export const MENU_LABEL: Record<string, string> = new Proxy({} as Record<string,
 });
 
 /** Every entry with a name in the menu (keys `menu.<route>` in constants/i18n/en.ts). */
-export const MENU_ROUTES: string[] = ["DeckLog", "WatchLog", "Gmdss", "Equipment", "Certificates", "Documents", "Maintenance", "Spares", "HoursOfRest", "Crew", "CrewMatrix", "Permits", "Sopep", "Security", "Surveys", "Readiness", "Dp", "Watch", "Familiar", "Safety", "Drills", "Hospital", "Passengers", "Stores", "Orders", "Rounds", "Fuel", "Garbage", "OilRecord", "Sewage", "Ballast", "Reports", "Settings"];
+export const MENU_ROUTES: string[] = ["DeckLog", "WatchLog", "Gmdss", "Equipment", "Certificates", "Documents", "Maintenance", "Spares", "HoursOfRest", "Crew", "CrewMatrix", "Permits", "Sopep", "Security", "Surveys", "Readiness", "Dp", "Watch", "Familiar", "Safety", "Drills", "Hospital", "Passengers", "Stores", "Orders", "Rounds", "Fuel", "Garbage", "OilRecord", "Sewage", "Ballast", "FuelChangeover", "Ods", "Reports", "Settings"];

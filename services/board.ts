@@ -168,6 +168,10 @@ export interface BoardInput {
   sewageSigns?: LogMonthSign[];
   ballast?: LogEntry[];
   ballastSigns?: LogMonthSign[];
+  fuelChange?: LogEntry[];
+  fuelChangeSigns?: LogMonthSign[];
+  ods?: LogEntry[];
+  odsSigns?: LogMonthSign[];
   sopepItems: SopepItem[];
   sopepChecks: SopepCheck[];
   sopepDrills: SopepDrill[];
@@ -390,6 +394,8 @@ export function buildBoard(x: BoardInput): Board {
       { on: x.on('garbage'), key: 'grb', label: t('gb.book'), icon: 'trash-can-outline', route: 'Garbage', all: x.garbage, signs: x.garbageSigns },
       { on: x.on('sewage'), key: 'sewage', label: t('menu.Sewage'), icon: 'water-outline', route: 'Sewage', all: x.sewage ?? [], signs: x.sewageSigns ?? [] },
       { on: x.on('ballast'), key: 'ballast', label: t('menu.Ballast'), icon: 'waves', route: 'Ballast', all: x.ballast ?? [], signs: x.ballastSigns ?? [] },
+      { on: x.on('fuelChange'), key: 'fuelChange', label: t('menu.FuelChangeover'), icon: 'swap-horizontal', route: 'FuelChangeover', all: x.fuelChange ?? [], signs: x.fuelChangeSigns ?? [] },
+      { on: x.on('ods'), key: 'ods', label: t('menu.Ods'), icon: 'snowflake', route: 'Ods', all: x.ods ?? [], signs: x.odsSigns ?? [] },
     ];
     const dayAgo = Date.parse(`${x.now}:00`) - 86_400_000;
     for (const b of books) {

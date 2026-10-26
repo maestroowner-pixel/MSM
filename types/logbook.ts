@@ -2,7 +2,9 @@
 // Record books kept the same way — one screen, one record shape, a spec per
 // book (services/logbooks.ts). Sewage (MARPOL Annex IV) and Ballast Water
 // (BWM Convention, Appendix II), asked for on 11 Oct 2026 after the Oil and
-// Garbage Record Books.
+// Garbage Record Books. Fuel oil changeover (MARPOL Annex VI reg. 14.6) and
+// the ODS Record Book (Annex VI reg. 12.6) joined on 26 Oct 2026, for flag
+// approval of the electronic record books.
 //
 // One entry is one operation under one code; `text` is the line as it reads in
 // the book. Signed by the officer in charge; the Master signs each month and
@@ -12,10 +14,10 @@
 import type { SignProof } from '../services/signature';
 import type { Versioned } from '../services/versions';
 
-export type BookKey = 'sewage' | 'ballast';
+export type BookKey = 'sewage' | 'ballast' | 'fuelChange' | 'ods';
 
 /** Every field a book's codes may ask for. */
-export type LogField = 'tank' | 'quantity' | 'method' | 'place' | 'placeEnd' | 'start' | 'stop' | 'distance' | 'speed' | 'depth' | 'treated' | 'receiptNo';
+export type LogField = 'tank' | 'quantity' | 'method' | 'place' | 'placeEnd' | 'start' | 'stop' | 'distance' | 'speed' | 'depth' | 'treated' | 'receiptNo' | 'sulphur' | 'equipment' | 'substance' | 'mass';
 
 export interface LogEntry extends Versioned {
   id: string;
@@ -42,6 +44,14 @@ export interface LogEntry extends Versioned {
   /** Treated by the approved system (BWMS / STP). */
   treated?: boolean;
   receiptNo?: string;
+  /** Sulphur content of the fuel changed to, % m/m. */
+  sulphur?: number;
+  /** The equipment an ODS entry concerns (as in the IAPP list). */
+  equipment?: string;
+  /** The substance, e.g. R-22, Halon 1301. */
+  substance?: string;
+  /** kg — ODS are recorded by mass. */
+  mass?: number;
   remarks?: string;
   text: string;
   by: string;

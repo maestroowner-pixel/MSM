@@ -47,6 +47,10 @@ export const SEWAGE_KEY = `${PREFIX}sewage`;
 export const SEWAGE_SIGNS_KEY = `${PREFIX}sewage_signs`;
 export const BALLAST_KEY = `${PREFIX}ballast`;
 export const BALLAST_SIGNS_KEY = `${PREFIX}ballast_signs`;
+export const FUEL_CHANGE_KEY = `${PREFIX}fuel_changeover`;
+export const FUEL_CHANGE_SIGNS_KEY = `${PREFIX}fuel_changeover_signs`;
+export const ODS_KEY = `${PREFIX}ods`;
+export const ODS_SIGNS_KEY = `${PREFIX}ods_signs`;
 /** The vessel's signing-key register (services/seal SignKeyRec) — written once. */
 export const SIGN_KEYS_KEY = `${PREFIX}sign_keys`;
 /** Who opened and exported a record book (services/bookAccess) — written once. */
@@ -771,6 +775,10 @@ export async function resetAllData(): Promise<void> {
     SEWAGE_SIGNS_KEY,
     BALLAST_KEY,
     BALLAST_SIGNS_KEY,
+    FUEL_CHANGE_KEY,
+    FUEL_CHANGE_SIGNS_KEY,
+    ODS_KEY,
+    ODS_SIGNS_KEY,
     SIGN_KEYS_KEY,
     BOOK_ACCESS_KEY,
     SOPEP_ITEMS_KEY,

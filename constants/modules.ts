@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -107,6 +107,12 @@ export const MODULES: Record<ModuleKey, boolean> = {
   /** Ballast Water Record Book (BWM Convention). */
   // Released 18 Oct 2026.
   ballast: true,
+  /** Fuel oil changeover record (MARPOL Annex VI reg. 14.6) — ECA and EU-berth changeovers (26 Oct 2026). */
+  // Released in 2.69.
+  fuelChange: true,
+  /** Ozone-depleting Substances Record Book (MARPOL Annex VI reg. 12.6) (26 Oct 2026). */
+  // Released in 2.69.
+  ods: true,
   /** Inspection rounds — shared weekly / monthly to-do lists (Jez, 11 Oct 2026). */
   rounds: true,
   /** QHSE: safety observation cards and non-conformities with corrective actions (NC / CAPA). */

@@ -96,6 +96,12 @@ app mirrors. Bundle id `com.kukalab.msm`.
   struck under their replacement, signer ID and UTC times, and on each page print time, software
   version, "Page n of N" and a true-copy line; phones fall back to the old HTML page if jsPDF fails.
   Plan and requirement-by-requirement gaps: `/Users/Oxford/MarineSafetyManager/research/flag-erb-recognition.md`.
+- **Fuel oil changeover and ODS record books** (26 Oct 2026, stage 4 — flags `fuelChange`, `ods`, on from 2.69):
+  two more specs in `services/logbooks.ts` on the shared `LogBookSc` (routes `FuelChangeover`, `Ods`),
+  so they inherit verification, seals, true copy, signed copy and the access log. Changeover (Annex VI
+  reg. 14.6): IN / ENTER / EXIT / OUT per ECA (`method` = the ECA) + EU berth BERTH / DEPART; > 0.10 % S
+  signs only with a reason in the remarks. ODS (reg. 12.6): by MASS in kg (`mass`, not `quantity`).
+  Firestore `fuel_changeover(_signs)`, `ods(_signs)` — need `npm run deploy:rules`. `npm run check:logbooks`.
 - **Record books: seals, chain, signed copy** (25 Oct 2026, stage 2 — `services/seal.ts`,
   `services/signKeys.ts`, `services/bookAccess.ts`, `services/signedCopy.ts`, `npm run check:seal`).
   Every signer has an ECDSA P-256 key per device (`@noble/curves`, pure JS; randomness from

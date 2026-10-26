@@ -1,6 +1,7 @@
 // ===================================
-// The record books kept alike — Sewage (MARPOL Annex IV) and Ballast water
-// (BWM Convention). The book comes from the route (Sewage / Ballast); its codes,
+// The record books kept alike — Sewage (MARPOL Annex IV), Ballast water
+// (BWM Convention), Fuel oil changeover and ODS (Annex VI). The book comes from
+// the route (Sewage / Ballast / FuelChangeover / Ods); its codes,
 // fields, rules and lines from services/logbooks. One entry per operation,
 // signed by the officer in charge; the form warns when the operation is against
 // the rules (distance, speed, depth) before it can be signed. The Master signs
@@ -39,15 +40,19 @@ import { shipHm } from '../utils/shipTime';
 const STORE: Record<BookKey, { key: string; signs: string }> = {
   sewage: { key: storage.SEWAGE_KEY, signs: storage.SEWAGE_SIGNS_KEY },
   ballast: { key: storage.BALLAST_KEY, signs: storage.BALLAST_SIGNS_KEY },
+  fuelChange: { key: storage.FUEL_CHANGE_KEY, signs: storage.FUEL_CHANGE_SIGNS_KEY },
+  ods: { key: storage.ODS_KEY, signs: storage.ODS_SIGNS_KEY },
 };
-const NUMERIC: LogField[] = ['quantity', 'distance', 'speed', 'depth'];
+const ROUTE_BOOK: Record<string, BookKey> = { Sewage: 'sewage', Ballast: 'ballast', FuelChangeover: 'fuelChange', Ods: 'ods' };
+const SIGNS: Record<BookKey, 'sewageSigns' | 'ballastSigns' | 'fuelChangeSigns' | 'odsSigns'> = { sewage: 'sewageSigns', ballast: 'ballastSigns', fuelChange: 'fuelChangeSigns', ods: 'odsSigns' };
+const NUMERIC: LogField[] = ['quantity', 'distance', 'speed', 'depth', 'sulphur', 'mass'];
 const hhmm = () => shipHm();
 const num = (v: string) => (v.trim() === '' ? undefined : Number(v.replace(',', '.')));
 
 export default function LogBookSc() {
   useT();
   const route = useRoute();
-  const bookKey: BookKey = route.name === 'Ballast' ? 'ballast' : 'sewage';
+  const bookKey: BookKey = ROUTE_BOOK[route.name] ?? 'sewage';
   const spec = BOOKS[bookKey];
   const store = STORE[bookKey];
   const codes = Object.keys(spec.codes);
@@ -55,7 +60,7 @@ export default function LogBookSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const data = useData();
   const { versionsOf, appendRow, vessel } = data;
-  const signs = bookKey === 'ballast' ? data.ballastSigns : data.sewageSigns;
+  const signs = data[SIGNS[bookKey]];
   const sync = useSync();
   const isMaster = !sync.enrolled || sync.role === 'superadmin';
   const confirmSign = useSignConfirm();
@@ -73,7 +78,7 @@ export default function LogBookSc() {
 
   // ---- the form: text values, numbers parsed for the draft ----
   type Form = { code: string; date: string; time: string; method: string; treated: boolean | null; remarks: string } & Record<Exclude<LogField, 'method' | 'treated'>, string>;
-  const blank = (): Form => ({ code: codes[0], date: today, time: hhmm(), method: '', treated: null, remarks: '', tank: '', quantity: '', place: '', placeEnd: '', start: '', stop: '', distance: '', speed: '', depth: '', receiptNo: '' });
+  const blank = (): Form => ({ code: codes[0], date: today, time: hhmm(), method: '', treated: null, remarks: '', tank: '', quantity: '', place: '', placeEnd: '', start: '', stop: '', distance: '', speed: '', depth: '', receiptNo: '', sulphur: '', equipment: '', substance: '', mass: '' });
   const [f, setF] = useState<Form>(blank);
   const cs = spec.codes[f.code] ?? spec.codes[codes[0]];
   const draft: Partial<LogEntry> & { code: string } = { code: f.code, date: f.date, time: f.time };
@@ -154,9 +159,24 @@ export default function LogBookSc() {
             <TextInput style={styles.input} value={f.date} onChangeText={(v) => setF({ ...f, date: v })} placeholder="yyyy-mm-dd" placeholderTextColor={COLORS.textLight} />
             <TextInput style={styles.input} value={f.time} onChangeText={(v) => setF({ ...f, time: v })} placeholder="hh:mm" placeholderTextColor={COLORS.textLight} />
           </View>
+          {/* Which ECA comes first in the changeover book — it is what the entry is about. */}
+          {bookKey === 'fuelChange' && has('method') && cs.methods ? (
+            <>
+              <Label>{t('log.eca')}</Label>
+              <View style={styles.chips}>{Object.entries(cs.methods).map(([k, l]) => chip(f.method === k, l, () => setF({ ...f, method: k }), k))}</View>
+            </>
+          ) : null}
+          {has('equipment') ? input('equipment') : null}
+          <View style={styles.pair}>
+            {has('substance') ? input('substance') : null}
+            {has('mass') ? input('mass') : null}
+          </View>
           {has('tank') ? input('tank') : null}
-          {has('quantity') ? input('quantity') : null}
-          {has('method') && cs.methods ? <View style={styles.chips}>{Object.entries(cs.methods).map(([k, l]) => chip(f.method === k, l, () => setF({ ...f, method: k }), k))}</View> : null}
+          <View style={styles.pair}>
+            {has('quantity') ? input('quantity') : null}
+            {has('sulphur') ? input('sulphur') : null}
+          </View>
+          {bookKey !== 'fuelChange' && has('method') && cs.methods ? <View style={styles.chips}>{Object.entries(cs.methods).map(([k, l]) => chip(f.method === k, l, () => setF({ ...f, method: k }), k))}</View> : null}
           {has('treated') ? <View style={styles.chips}>{chip(f.treated === true, t('log.treated'), () => setF({ ...f, treated: true }))}{chip(f.treated === false, t('log.notTreated'), () => setF({ ...f, treated: false }))}</View> : null}
           {/* An operation at sea with a start and an end: each is a time and a
               position (13 Oct 2026). Otherwise: position or port, and the times. */}
