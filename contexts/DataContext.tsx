@@ -43,6 +43,7 @@ import { OrderGroup, PurchaseOrder } from '../types/orders';
 import { GalleyOrder } from '../types/galley';
 import { ApaEntry, ApaFund, BudgetLine } from '../types/finance';
 import { OilPoint, OilSample } from '../types/oil';
+import { WarrantyClaim, YardJob } from '../types/yard';
 import { Supplier } from '../types/suppliers';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
@@ -242,6 +243,9 @@ interface DataContextType {
   /** Oil analysis (types/oil.ts): sampling points, samples. */
   oilPoints: OilPoint[];
   oilSamples: OilSample[];
+  /** Yard periods (types/yard.ts): work-list jobs, warranty claims. */
+  yardJobs: YardJob[];
+  warrantyClaims: WarrantyClaim[];
   /** Supplier directory (types/suppliers.ts). */
   suppliers: Supplier[];
   /**
@@ -407,6 +411,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [budgetLines, setBudgetLines] = useState<BudgetLine[]>([]);
   const [oilPoints, setOilPoints] = useState<OilPoint[]>([]);
   const [oilSamples, setOilSamples] = useState<OilSample[]>([]);
+  const [yardJobs, setYardJobs] = useState<YardJob[]>([]);
+  const [warrantyClaims, setWarrantyClaims] = useState<WarrantyClaim[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   // Every version of the logs that can be amended — for the history and the struck-through lines.
   const [versions, setVersions] = useState<Record<string, any[]>>({});
@@ -534,6 +540,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _budget1 = await storage.loadList<BudgetLine>(storage.BUDGET_KEY);
     const _oilPoints1 = (await storage.loadList<OilPoint>(storage.OIL_POINTS_KEY)).filter((x) => !x.deleted);
     const _oilSamples1 = await storage.loadList<OilSample>(storage.OIL_SAMPLES_KEY);
+    const _yardJobs1 = await storage.loadList<YardJob>(storage.YARD_JOBS_KEY);
+    const _claims1 = await storage.loadList<WarrantyClaim>(storage.WARRANTY_CLAIMS_KEY);
     const _suppliers1 = (await storage.loadList<Supplier>(storage.SUPPLIERS_KEY)).filter((x) => !x.deleted);
     const _versions = Object.fromEntries(await Promise.all(VERSIONED_KEYS.map(async (k) => [k, await storage.loadList<any>(k)] as const)));
     const _templates = await storage.loadTemplates();
@@ -634,6 +642,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setBudgetLines(_budget1);
     setOilPoints(_oilPoints1);
     setOilSamples(_oilSamples1);
+    setYardJobs(_yardJobs1);
+    setWarrantyClaims(_claims1);
     setSuppliers(_suppliers1);
     setVersions(_versions);
     setTemplates(_templates);
@@ -879,6 +889,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _budget2 = await storage.loadList<BudgetLine>(storage.BUDGET_KEY);
     const _oilPoints2 = (await storage.loadList<OilPoint>(storage.OIL_POINTS_KEY)).filter((x) => !x.deleted);
     const _oilSamples2 = await storage.loadList<OilSample>(storage.OIL_SAMPLES_KEY);
+    const _yardJobs2 = await storage.loadList<YardJob>(storage.YARD_JOBS_KEY);
+    const _claims2 = await storage.loadList<WarrantyClaim>(storage.WARRANTY_CLAIMS_KEY);
     const _suppliers2 = (await storage.loadList<Supplier>(storage.SUPPLIERS_KEY)).filter((x) => !x.deleted);
     const _versions = Object.fromEntries(await Promise.all(VERSIONED_KEYS.map(async (k) => [k, await storage.loadList<any>(k)] as const)));
     setMachines(_machines);
@@ -969,6 +981,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setBudgetLines(_budget2);
     setOilPoints(_oilPoints2);
     setOilSamples(_oilSamples2);
+    setYardJobs(_yardJobs2);
+    setWarrantyClaims(_claims2);
     setSuppliers(_suppliers2);
     setVersions(_versions);
   }, []);
@@ -1305,6 +1319,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         budgetLines,
         oilPoints,
         oilSamples,
+        yardJobs,
+        warrantyClaims,
         suppliers,
         versionsOf,
         saveRow,

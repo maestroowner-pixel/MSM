@@ -35,6 +35,7 @@ import type { SignKeyRec } from './seal';
 import type { BookAccess } from './bookAccess';
 import { ApaEntry, ApaFund, BudgetLine } from '../types/finance';
 import { OilPoint, OilSample } from '../types/oil';
+import { WarrantyClaim, YardJob } from '../types/yard';
 import { Supplier } from '../types/suppliers';
 import { LogEntry, LogMonthSign } from '../types/logbook';
 import { InspectionRound } from '../types/round';
@@ -122,6 +123,8 @@ export interface BackupFile {
   finance?: { funds: ApaFund[]; entries: ApaEntry[]; budget: BudgetLine[] };
   /** Oil analysis: sampling points and samples. */
   oil?: { points: OilPoint[]; samples: OilSample[] };
+  /** Yard periods: work-list jobs and warranty claims (the projects travel with the PMS). */
+  yard?: { jobs: YardJob[]; claims: WarrantyClaim[] };
   /** Supplier directory. */
   suppliers?: Supplier[];
   files?: Record<string, string>; // basename -> base64 of the file contents
@@ -250,6 +253,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   const signKeys = await storage.loadList<SignKeyRec>(storage.SIGN_KEYS_KEY);
   const finance = { funds: await storage.loadList<ApaFund>(storage.APA_FUNDS_KEY), entries: await storage.loadList<ApaEntry>(storage.APA_ENTRIES_KEY), budget: await storage.loadList<BudgetLine>(storage.BUDGET_KEY) };
   const oil = { points: await storage.loadList<OilPoint>(storage.OIL_POINTS_KEY), samples: await storage.loadList<OilSample>(storage.OIL_SAMPLES_KEY) };
+  const yard = { jobs: await storage.loadList<YardJob>(storage.YARD_JOBS_KEY), claims: await storage.loadList<WarrantyClaim>(storage.WARRANTY_CLAIMS_KEY) };
   const bookAccess = await storage.loadList<BookAccess>(storage.BOOK_ACCESS_KEY);
   const suppliers = await storage.loadList<Supplier>(storage.SUPPLIERS_KEY);
   const garbage = { entries: await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY), signs: await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY) };
@@ -306,6 +310,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     ods,
     finance,
     oil,
+    yard,
     suppliers,
     sopep,
     security,
@@ -518,6 +523,10 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     await storage.saveList(storage.ODS_SIGNS_KEY, backup.ods.signs ?? []);
   }
   if (backup.suppliers) await storage.saveList(storage.SUPPLIERS_KEY, backup.suppliers);
+  if (backup.yard) {
+    await storage.saveList(storage.YARD_JOBS_KEY, backup.yard.jobs ?? []);
+    await storage.saveList(storage.WARRANTY_CLAIMS_KEY, backup.yard.claims ?? []);
+  }
   if (backup.oil) {
     await storage.saveList(storage.OIL_POINTS_KEY, backup.oil.points ?? []);
     await storage.saveList(storage.OIL_SAMPLES_KEY, backup.oil.samples ?? []);

@@ -758,6 +758,23 @@ service cloud.firestore {
                       && (!('review' in request.resource.data) || isAdmin(v));
         allow delete: if false;
       }
+      // Yard periods (types/yard.ts). The work list is kept by the officers and the
+      // superintendent; an accepted job is signed off — after that only its final
+      // price and invoice may change. Cancelled, never deleted. A warranty claim is
+      // the officers' until it is closed (signed), then frozen.
+      match /yard_jobs/{id} {
+        allow read: if reader(v);
+        allow create: if (isAdmin(v) || plans(v)) && !('accepted' in request.resource.data);
+        allow update: if (isAdmin(v) || plans(v))
+                      && (!('accepted' in resource.data) || onlyChanges(['final', 'invoice', 'updatedAt']));
+        allow delete: if false;
+      }
+      match /warranty_claims/{id} {
+        allow read: if reader(v);
+        allow create: if isAdmin(v) && !('closed' in request.resource.data);
+        allow update: if isAdmin(v) && !('closed' in resource.data);
+        allow delete: if false;
+      }
       match /purchase_orders/{id} {
         allow read: if reader(v);
         allow create: if isAdmin(v);

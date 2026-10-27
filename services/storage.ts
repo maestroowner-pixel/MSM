@@ -125,6 +125,9 @@ export const BUDGET_KEY = `${PREFIX}budget`;
 /** Oil analysis (types/oil.ts): the sampling points and the samples. */
 export const OIL_POINTS_KEY = `${PREFIX}oil_points`;
 export const OIL_SAMPLES_KEY = `${PREFIX}oil_samples`;
+/** Yard periods (types/yard.ts): the work lists' jobs and the warranty claims. */
+export const YARD_JOBS_KEY = `${PREFIX}yard_jobs`;
+export const WARRANTY_CLAIMS_KEY = `${PREFIX}warranty_claims`;
 /** Supplier directory (types/suppliers.ts) — quotes and awards live on the purchase orders. */
 export const SUPPLIERS_KEY = `${PREFIX}suppliers`;
 /**
@@ -829,6 +832,8 @@ export async function resetAllData(): Promise<void> {
     BUDGET_KEY,
     OIL_POINTS_KEY,
     OIL_SAMPLES_KEY,
+    YARD_JOBS_KEY,
+    WARRANTY_CLAIMS_KEY,
     SUPPLIERS_KEY,
     'msm:patrol_live', // services/patrolLive.ts — a round under way on this device
     'msm:crew_photos', // services/crewPhotos.ts — ID card photos, this device only

@@ -126,6 +126,10 @@ import FinanceSc from './screens/FinanceSc';
 import OilSc from './screens/OilSc';
 import OilPointSc from './screens/OilPointSc';
 import OilSampleSc from './screens/OilSampleSc';
+import YardSc from './screens/YardSc';
+import YardProjectSc from './screens/YardProjectSc';
+import YardJobSc from './screens/YardJobSc';
+import WarrantyClaimSc from './screens/WarrantyClaimSc';
 import OrderSc from './screens/OrderSc';
 import OrderGroupSc from './screens/OrderGroupSc';
 import SuppliersSc from './screens/SuppliersSc';
@@ -190,6 +194,7 @@ const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Orders: OrdersSc,
   Finance: FinanceSc,
   OilAnalysis: OilSc,
+  Yard: YardSc,
   DeckLog: DeckLogSc,
   WatchLog: WatchLogSc,
   Gmdss: GmdssSc,
@@ -463,6 +468,7 @@ const linking = {
           Orders: 'orders',
           Finance: 'finance',
           OilAnalysis: 'oil-analysis',
+          Yard: 'yard',
           DeckLog: 'deck-log',
           WatchLog: 'watch-log',
           Gmdss: 'gmdss-log',
@@ -518,6 +524,9 @@ const linking = {
       Supplier: 'supplier/:id',
       OilPoint: 'oil-point/:id',
       OilSample: 'oil-sample/:id',
+      YardProject: 'yard-project/:id',
+      YardJob: 'yard-job/:id',
+      WarrantyClaim: 'warranty-claim/:id',
       Quote: 'order/:po/quote/:id',
       MedLanding: 'medical-landing/:id',
       SparePart: 'spare/:id',
@@ -774,6 +783,9 @@ function Root() {
         <Stack.Screen name="Quote" component={QuoteSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="OilPoint" component={OilPointSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="OilSample" component={OilSampleSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="YardProject" component={YardProjectSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="YardJob" component={YardJobSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="WarrantyClaim" component={WarrantyClaimSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="GalleyOrders" component={GalleyOrdersSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="GalleyOrder" component={GalleyOrderSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="MedLanding" component={MedLandingSc} options={{ presentation: 'modal' }} />

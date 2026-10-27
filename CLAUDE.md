@@ -131,6 +131,18 @@ app mirrors. Bundle id `com.kukalab.msm`.
   frozen (rules). Verdict = worst of each value vs its limit, "rising" (up ×1.5 and past half the caution limit,
   only while below the limit) and the lab's own verdict. Firestore `oil_points` (officers), `oil_samples`
   (members until reviewed) — need `npm run deploy:rules`. `npm run check:oil`.
+- **Yard periods and warranty** (27 Oct 2026 — flag `yard`, on from 2.69): built ON the PMS project (`PmsProject` gains kind,
+  yard, place, endDate, startedOn/finishedOn, currency, budget — same `pms_projects`, rules `plans`), not a second project
+  type. `screens/YardSc` (route `Yard`, also linked from Maintenance; PmsProjectsSc opens `YardProject` when the flag is on),
+  `YardProjectSc`, `YardJobSc`, `WarrantyClaimSc`; `types/yard.ts`, pure `services/yard.ts`, papers `services/yardReport.ts`.
+  A work-list job (`yard_jobs`) goes planned → started → done → accepted (signed; may close its PMS defect with the same
+  signature); after acceptance only `final` / `invoice` change (rules `onlyChanges`); cancelled, never deleted; numbers never
+  re-used. Open defects and deferred PMS jobs become jobs in one step (deterministic ids, so two devices do not double them).
+  Specification Excel has `Job ID` + `Yard price` / `Yard remarks`; `readSpecPrices` reads the yard's filled sheet (European
+  and English number formats); `specRows` lives in the pure file so the round trip is checked. Warranty = accepted job's
+  `warrantyMonths` (`addMonths` clamps to month end) or a claim's own `coverUntil`; amber 60 days before. Claims
+  (`warranty_claims`, officers, frozen once closed) draft → submitted → answered → closed (signed), `WC-<year>-<nnn>`.
+  Needs `npm run deploy:rules` before the flag. `npm run check:yard`.
 - **Record books: seals, chain, signed copy** (25 Oct 2026, stage 2 — `services/seal.ts`,
   `services/signKeys.ts`, `services/bookAccess.ts`, `services/signedCopy.ts`, `npm run check:seal`).
   Every signer has an ECDSA P-256 key per device (`@noble/curves`, pure JS; randomness from

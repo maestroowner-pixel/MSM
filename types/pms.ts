@@ -352,5 +352,19 @@ export interface PmsProject {
   /** Closed once the yard period is over; its list stays. */
   closedAt?: number;
   deleted?: boolean;
+  // ---- the yard period itself (module `yard`, types/yard.ts — 27 Oct 2026) ----
+  kind?: import('./yard').ProjectKind;
+  /** The yard or the main contractor — a name from the supplier directory or typed. */
+  yard?: string;
+  /** "Barcelona, MB92". */
+  place?: string;
+  /** yyyy-mm-dd — planned end (redelivery). */
+  endDate?: string;
+  /** yyyy-mm-dd — actual arrival / redelivery. */
+  startedOn?: string;
+  finishedOn?: string;
+  /** ISO currency of the quotes and the budget. */
+  currency?: string;
+  budget?: number;
   updatedAt: number;
 }

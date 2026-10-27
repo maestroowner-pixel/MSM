@@ -17,6 +17,7 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { PmsProject } from '../types/pms';
+import { moduleOn } from '../constants/modules';
 import { personName, plansPms, PLAN_LOCKED } from '../types/role';
 import { projectJobs, yardList } from '../services/pmsProjects';
 import { exportPmsHistory } from '../services/pmsHistoryReport';
@@ -76,7 +77,7 @@ export default function PmsProjectsSc() {
       {list.map((p) => {
         const pj = projectJobs(p, pmsJobs, machines, pmsDeferrals, pmsDone);
         return (
-          <TouchableOpacity key={p.id} style={[styles.row, !!p.closedAt && { opacity: 0.6 }]} onPress={() => nav.navigate('PmsProject', { id: p.id })} activeOpacity={0.7}>
+          <TouchableOpacity key={p.id} style={[styles.row, !!p.closedAt && { opacity: 0.6 }]} onPress={() => nav.navigate(moduleOn('yard') ? 'YardProject' : 'PmsProject', { id: p.id })} activeOpacity={0.7}>
             <View style={{ flex: 1 }}>
               <Text style={styles.title}>{p.name}</Text>
               <Text style={styles.sub}>{`${uiDate(p.dueDate)} · ${t('prj.toDo', { n: pj.pending.length })} · ${t('prj.doneN', { n: pj.done.length })}${p.closedAt ? ` · ${t('prj.closed')}` : ''}`}</Text>

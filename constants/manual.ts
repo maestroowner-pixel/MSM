@@ -506,6 +506,15 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🛠️',
+      title: "Yard periods and warranty",
+      body: [
+        "Yard & warranty (in the menu, and from Maintenance) carries a refit or dry dock from the work list to the warranty. The Master or the superintendent opens a yard period — its kind, the yard (named from the supplier directory or typed), the place, the planned and actual dates, the currency and the budget. A project opened under Maintenance → Projects is the same project: the PMS jobs deferred to it stay there.",
+        "The officers build the work list: each job says what is to be done, on which machine, by whom (the yard, a contractor, the maker's service or the crew), whether class or flag must witness it, the specification, the quoted price and the warranty in months. Open defects and the PMS jobs deferred to the project are added in one step. Print the specification as PDF for the yards, or send it as Excel: they fill in the Yard price and Yard remarks columns, keep the Job ID column, and Read yard prices puts their prices onto the jobs. Each job goes planned → started → done → accepted; the acceptance is signed with what was checked, the final price, the invoice and photos, and it can close the job's defect with the same signature. After acceptance only the final price and the invoice can change. A job is cancelled with the reason, never deleted. The project shows quoted, final and forecast against the budget; Progress PDF is the report for the owner.",
+        "An accepted job with a warranty is listed under Warranty until it runs out (amber 60 days before). A warranty claim is made against the yard, a contractor or the maker — from the job, or on its own for equipment bought new, with the warranty dates. It goes draft → sent → their answer (accepted, partly, rejected, with their reference) → closed, signed, with how it ended: repaired, replaced, credited, refused or withdrawn. The claim PDF is what is sent; a claim found outside the warranty says so. Warranty register PDF lists everything under warranty and every claim.",
+      ],
+    },
+    {
       emoji: '🧾',
       title: "Suppliers and quotations",
       body: [
@@ -1242,6 +1251,15 @@ const ru: ManualContent = {
         "Анализ масел (в меню и с экрана ТО) следит за маслом в механизмах. Офицер добавляет точку отбора для каждого места, откуда берут пробу, — картер каждого двигателя, редуктор, гидравлика стабилизаторов — на механизме PMS (ради моточасов), с маслом, лабораторией, периодичностью (дни и/или моточасы — что наступит раньше), вязкостью, TBN и TAN свежего масла и пределами производителя двигателя, если они есть; иначе действуют рекомендуемые значения для узла.",
         "Взять пробу: дата, моточасы (подставляются со счётчика), часы на масле, доливка и номер флакона; затем отметить отправку. Когда лаборатория ответит, загрузите её выгрузку Excel или CSV — проба находится по номеру флакона или дате, либо её выбирают из строк файла — или введите значения вручную и сфотографируйте отчёт. Каждое значение сразу сравнивается с пределом; металл износа или загрязнение, выросшие в полтора раза с прошлой пробы, отмечаются как растущие; учитывается и оценка самой лаборатории — берётся худшая.",
         "Офицер оценивает результат: вердикт и что сделано или решено (замена масла, ранняя повторная проба…), с подписью. Оценённую пробу изменить нельзя. При «Внимании» или «Действии» можно завести дефект на механизм. В списке сначала самое срочное: пора или просрочено, «Действие», «Внимание», результаты на оценку, пробы, задержавшиеся в лаборатории (21 день). PDF по точке с трендом каждого параметра (C — внимание, A — действие) и Excel; PDF статуса по всему судну.",
+      ],
+    },
+    {
+      emoji: '🛠️',
+      title: "Верфь и гарантия",
+      body: [
+        "Верфь и гарантия (в меню и с экрана ТО) ведёт ремонт или докование от ведомости работ до гарантии. Капитан или суперинтендант открывает стоянку: вид, верфь (из справочника поставщиков или вручную), место, плановые и фактические даты, валюту и бюджет. Проект, открытый в ТО → Проекты, — тот же самый: отложенные на него работы PMS остаются в нём.",
+        "Офицеры составляют ведомость: в каждой работе — что сделать, на каком механизме, кто делает (верфь, подрядчик, сервис изготовителя или экипаж), нужен ли класс или флаг, спецификация, цена по котировке и гарантия в месяцах. Открытые дефекты и отложенные на проект работы PMS добавляются в один шаг. Спецификацию можно напечатать в PDF для верфей или отправить в Excel: верфь заполняет колонки Yard price и Yard remarks, не трогая Job ID, а «Цены верфи из Excel» переносит её цены в работы. Работа идёт: в плане → начато → выполнено → принято. Приёмка подписывается с тем, что проверено, окончательной ценой, счётом и фото, и может той же подписью закрыть дефект работы. После приёмки меняются только окончательная цена и счёт. Работу отменяют с причиной, но не удаляют. Проект показывает котировки, окончательные цены и прогноз против бюджета; «Ход работ PDF» — отчёт для владельца.",
+        "Принятая работа с гарантией видна в разделе «Гарантия», пока гарантия не кончится (жёлтым за 60 дней). Гарантийная претензия предъявляется верфи, подрядчику или изготовителю — из работы или отдельно, для нового оборудования, с датами гарантии. Она идёт: черновик → отправлена → их ответ (принята, частично, отклонена, с их номером) → закрыта с подписью и итогом: отремонтировано, заменено, компенсировано, отказ или отозвана. PDF претензии — то, что отправляют; если неисправность обнаружена вне гарантии, это сказано. «Реестр гарантий PDF» — всё на гарантии и все претензии.",
       ],
     },
     {
@@ -1984,6 +2002,15 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🛠️',
+      title: "Astillero y garantía",
+      body: [
+        "Astillero y garantía (en el menú y desde Mantenimiento) lleva un refit o una varada desde la lista de trabajos hasta la garantía. El capitán o el superintendente abre un periodo en astillero: tipo, astillero (del directorio de proveedores o escrito), lugar, fechas previstas y reales, moneda y presupuesto. Un proyecto abierto en Mantenimiento → Proyectos es el mismo proyecto: los trabajos PMS aplazados a él siguen ahí.",
+        "Los oficiales preparan la lista de trabajos: cada trabajo indica qué hacer, en qué equipo, quién lo hace (el astillero, un contratista, el servicio del fabricante o la tripulación), si debe presenciarlo la clase o la bandera, la especificación, el precio cotizado y la garantía en meses. Los defectos abiertos y los trabajos PMS aplazados al proyecto se añaden de una vez. Imprima la especificación en PDF para los astilleros o envíela en Excel: rellenan las columnas Yard price y Yard remarks, mantienen la columna Job ID, y Leer precios del astillero pasa sus precios a los trabajos. Cada trabajo va previsto → empezado → hecho → aceptado; la aceptación se firma con lo comprobado, el precio final, la factura y fotos, y puede cerrar el defecto del trabajo con la misma firma. Después solo cambian el precio final y la factura. Un trabajo se cancela con el motivo, nunca se borra. El proyecto muestra lo cotizado, lo final y la previsión frente al presupuesto; Progreso PDF es el informe para el armador.",
+        "Un trabajo aceptado con garantía aparece en Garantía hasta que vence (en ámbar 60 días antes). Una reclamación de garantía se hace al astillero, a un contratista o al fabricante, desde el trabajo o aparte para equipo nuevo, con las fechas de garantía. Va borrador → enviada → su respuesta (aceptada, en parte, rechazada, con su referencia) → cerrada, firmada, con el resultado: reparado, sustituido, abonado, rechazado o retirada. El PDF de la reclamación es lo que se envía; si la avería se detectó fuera de garantía, lo dice. El Registro de garantías PDF lista todo lo que está en garantía y todas las reclamaciones.",
+      ],
+    },
+    {
       emoji: '🧾',
       title: "Proveedores y cotizaciones",
       body: [
@@ -2723,6 +2750,15 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🛠️',
+      title: "Верф і гарантія",
+      body: [
+        "Верф і гарантія (у меню та з екрана ТО) веде ремонт або докування від відомості робіт до гарантії. Капітан або суперінтендант відкриває стоянку: вид, верф (з довідника постачальників або вручну), місце, планові й фактичні дати, валюту й бюджет. Проєкт, відкритий у ТО → Проєкти, — той самий: відкладені на нього роботи PMS залишаються в ньому.",
+        "Офіцери складають відомість: у кожній роботі — що зробити, на якому механізмі, хто виконує (верф, підрядник, сервіс виробника або екіпаж), чи потрібен клас або прапор, специфікація, ціна за котируванням і гарантія в місяцях. Відкриті дефекти та відкладені на проєкт роботи PMS додаються за один крок. Специфікацію можна надрукувати в PDF для верфей або надіслати в Excel: верф заповнює колонки Yard price і Yard remarks, не чіпаючи Job ID, а «Ціни верфі з Excel» переносить її ціни в роботи. Робота йде: у плані → розпочато → виконано → прийнято. Приймання підписується з тим, що перевірено, остаточною ціною, рахунком і фото, і може тим самим підписом закрити дефект роботи. Після приймання змінюються лише остаточна ціна й рахунок. Роботу скасовують із причиною, але не видаляють. Проєкт показує котирування, остаточні ціни й прогноз проти бюджету; «Хід робіт PDF» — звіт для власника.",
+        "Прийнята робота з гарантією видна в розділі «Гарантія», доки гарантія не спливе (жовтим за 60 днів). Гарантійну претензію пред'являють верфі, підряднику або виробнику — з роботи або окремо, для нового обладнання, з датами гарантії. Вона йде: чернетка → надіслана → їхня відповідь (прийнята, частково, відхилена, з їхнім номером) → закрита з підписом і підсумком: відремонтовано, замінено, компенсовано, відмова або відкликана. PDF претензії — те, що надсилають; якщо несправність виявлено поза гарантією, це сказано. «Реєстр гарантій PDF» — усе на гарантії та всі претензії.",
+      ],
+    },
+    {
       emoji: '🧾',
       title: "Постачальники та котирування",
       body: [
@@ -3427,6 +3463,15 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '🛠️',
+      title: "Verft og garanti",
+      body: [
+        "Verft og garanti (i menyen og fra Vedlikehold) følger en refit eller dokking fra arbeidslisten til garantien. Kapteinen eller inspektøren oppretter et verftsopphold: type, verft (fra leverandørregisteret eller skrevet inn), sted, planlagte og faktiske datoer, valuta og budsjett. Et prosjekt opprettet under Vedlikehold → Prosjekter er det samme prosjektet: PMS-jobbene utsatt til det blir der.",
+        "Offiserene lager arbeidslisten: hver jobb sier hva som skal gjøres, på hvilken maskin, av hvem (verftet, en underleverandør, produsentens service eller mannskapet), om klasse eller flagg skal være til stede, spesifikasjonen, tilbudt pris og garanti i måneder. Åpne avvik og PMS-jobber utsatt til prosjektet legges til i ett steg. Skriv ut spesifikasjonen som PDF til verftene, eller send den som Excel: de fyller ut kolonnene Yard price og Yard remarks, beholder kolonnen Job ID, og Les verftets priser fører prisene inn på jobbene. Hver jobb går planlagt → startet → utført → godkjent; godkjenningen signeres med hva som ble kontrollert, endelig pris, faktura og bilder, og kan lukke jobbens avvik med samme signatur. Etterpå kan bare endelig pris og faktura endres. En jobb kanselleres med grunn, slettes aldri. Prosjektet viser tilbudt, endelig og prognose mot budsjettet; Fremdrift PDF er rapporten til rederiet.",
+        "En godkjent jobb med garanti står under Garanti til den utløper (gul 60 dager før). Et garantikrav rettes mot verftet, en underleverandør eller produsenten — fra jobben, eller for seg selv for nytt utstyr, med garantidatoene. Det går utkast → sendt → deres svar (godtatt, delvis, avvist, med deres referanse) → lukket, signert, med utfallet: reparert, erstattet, kreditert, avslått eller trukket. Kravets PDF er det som sendes; er feilen oppdaget utenfor garantien, står det. Garantiregister PDF viser alt under garanti og alle krav.",
+      ],
+    },
+    {
       emoji: '🧾',
       title: "Leverandører og tilbud",
       body: [
@@ -4090,6 +4135,15 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '🛠️',
+      title: "Estaleiro e garantia",
+      body: [
+        "Estaleiro e garantia (no menu e a partir da Manutenção) acompanha uma reparação ou docagem desde a lista de trabalhos até à garantia. O comandante ou o superintendente abre um período em estaleiro: tipo, estaleiro (do diretório de fornecedores ou escrito), local, datas previstas e reais, moeda e orçamento. Um projeto aberto em Manutenção → Projetos é o mesmo projeto: os trabalhos PMS adiados para ele ficam lá.",
+        "Os oficiais preparam a lista de trabalhos: cada trabalho diz o que fazer, em que equipamento, quem o faz (o estaleiro, um empreiteiro, a assistência do fabricante ou a tripulação), se a classe ou a bandeira deve presenciar, a especificação, o preço cotado e a garantia em meses. Os defeitos abertos e os trabalhos PMS adiados para o projeto são adicionados de uma vez. Imprima a especificação em PDF para os estaleiros ou envie-a em Excel: eles preenchem as colunas Yard price e Yard remarks, mantêm a coluna Job ID, e Ler preços do estaleiro passa os preços para os trabalhos. Cada trabalho segue previsto → começado → feito → aceite; a aceitação é assinada com o que foi verificado, o preço final, a fatura e fotos, e pode fechar o defeito do trabalho com a mesma assinatura. Depois só mudam o preço final e a fatura. Um trabalho é cancelado com o motivo, nunca apagado. O projeto mostra o cotado, o final e a previsão face ao orçamento; Progresso PDF é o relatório para o armador.",
+        "Um trabalho aceite com garantia aparece em Garantia até terminar (âmbar 60 dias antes). Uma reclamação de garantia é feita ao estaleiro, a um empreiteiro ou ao fabricante, a partir do trabalho ou à parte para equipamento novo, com as datas da garantia. Segue rascunho → enviada → resposta deles (aceite, em parte, rejeitada, com a referência deles) → fechada, assinada, com o desfecho: reparado, substituído, creditado, recusado ou retirada. O PDF da reclamação é o que se envia; se a avaria foi detetada fora da garantia, isso fica dito. O Registo de garantias PDF lista tudo o que está em garantia e todas as reclamações.",
+      ],
+    },
+    {
       emoji: '🧾',
       title: "Fornecedores e cotações",
       body: [
@@ -4357,6 +4411,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'APA and budget', module: 'finance' },
   { title: 'Suppliers and quotations', module: 'suppliers' },
   { title: 'Oil analysis', module: 'oil' },
+  { title: 'Yard periods and warranty', module: 'yard' },
   { title: 'SOPEP', module: 'sopep' },
   { title: 'Board', module: 'board' },
   { title: 'Surveys & audits', module: 'surveys' },

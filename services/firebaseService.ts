@@ -1341,6 +1341,9 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   // Oil analysis: the points are the officers'; a sample is anyone's until an officer reviews it.
   { sub: 'oil_points', key: storage.OIL_POINTS_KEY, module: 'oil' },
   { sub: 'oil_samples', key: storage.OIL_SAMPLES_KEY, module: 'oil' },
+  // Yard periods: the work list is the officers' and the superintendent's; an accepted job keeps only its price and invoice open.
+  { sub: 'yard_jobs', key: storage.YARD_JOBS_KEY, module: 'yard' },
+  { sub: 'warranty_claims', key: storage.WARRANTY_CLAIMS_KEY, module: 'yard' },
   // Supplier directory — the officers keep it; quotes and awards travel on the purchase orders.
   { sub: 'suppliers', key: storage.SUPPLIERS_KEY, module: 'suppliers' },
 ];
