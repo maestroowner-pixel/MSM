@@ -8,7 +8,7 @@
 // ===================================
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, ActivityIndicator, TextInput, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, ActivityIndicator, TextInput, Platform, Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,14 +19,11 @@ import { useTheme, useThemeName } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { goBackOr } from '../utils/nav';
 import {
-  getOffer,
-  purchaseYearly,
   restore,
   activateLicense,
   isSignedIn,
   isSubscribed,
   onEntitlementChange,
-  Offer,
 } from '../services/purchases';
 import { t, tk, useT } from '../utils/i18n';
 
@@ -42,10 +39,13 @@ const FEATURES: Feature[] = [
   { icon: 'ferry', text: 'One licence covers the vessel — every officer and device' },
 ];
 
+/** Where a quote is asked for — receive-only, routed by Cloudflare. */
+const QUOTE_EMAIL = 'mail@kuka-soft.com';
+
 export default function PaywallSc() {
   useT();
   const nav = useNavigation<any>();
-  const { refreshLocks } = useData();
+  const { refreshLocks, vessel } = useData();
   const COLORS = useTheme();
   const { name: themeName } = useThemeName();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -57,7 +57,6 @@ export default function PaywallSc() {
       ? [COLORS.groupColors.LSA, COLORS.groupColors.FFE, COLORS.groupColors.OTHER]
       : null;
   const featureColor = (i: number) => (accents ? accents[i % accents.length] : COLORS.primary);
-  const [offer, setOffer] = useState<Offer | null>(null);
   const [busy, setBusy] = useState(false);
   // Web: LemonSqueezy license activation.
   const [licenseKey, setLicenseKey] = useState('');
@@ -67,10 +66,6 @@ export default function PaywallSc() {
   // so after activating a key it went on advertising the plan as if nothing had
   // happened — the one moment the user is certain to be looking at it.
   const [licensed, setLicensed] = useState(false);
-
-  useEffect(() => {
-    getOffer().then(setOffer).catch(() => {});
-  }, []);
 
   useEffect(() => {
     const check = () => { void isSubscribed().then(setLicensed).catch(() => {}); };
@@ -112,43 +107,14 @@ export default function PaywallSc() {
     }
   };
 
-  // The UNIT belongs in the price. ISM AI Pilot Pro is licensed per VESSEL — the account
-  // is the ship, keyed by its IMO, and every enrolled device on board is
-  // covered by the one subscription. A bare "/ year" beside a single figure reads
-  // as a per-person price, which is what it used to be.
-  const priceLine = offer ? t('pw.perYear', { price: offer.priceString }) : '…';
-  const priceUnit = t('pw.unit');
-
-  const onSubscribe = async () => {
-    if (!offer?.available) {
-      Alert.alert(t('pw.soon'), t('pw.soonBody'));
-      return;
-    }
-    if (onWeb) {
-      // Opens the LemonSqueezy checkout in a new tab; the license key arrives by
-      // email, then the user activates it in the field below.
-      await purchaseYearly();
-      Alert.alert(
-        t('pw.checkout'),
-        t('pw.checkoutBody')
-      );
-      return;
-    }
-    setBusy(true);
-    try {
-      const ok = await purchaseYearly();
-      if (ok) {
-        await refreshLocks(); // lift the free-tier overflow lock immediately
-        Alert.alert(t('pw.welcome'), t('pw.welcomeBody'));
-        goBackOr(nav);
-      } else {
-        Alert.alert(t('pw.notCompleted'), t('pw.notCompletedBody'));
-      }
-    } catch (e: any) {
-      Alert.alert(t('pw.failed'), String(e?.message ?? e));
-    } finally {
-      setBusy(false);
-    }
+  // The price is on request (27 Oct 2026): it depends on the vessel's size and
+  // the modules it uses, so the web asks for a quote instead of selling a figure.
+  // The licence key the operator is then issued is activated below, as before.
+  const onQuote = () => {
+    const who = [vessel?.vessel_name, vessel?.imo ? `IMO ${vessel.imo}` : ''].filter(Boolean).join(', ');
+    const subject = encodeURIComponent(`ISMpilot quote${who ? ` — ${who}` : ''}`);
+    const body = encodeURIComponent(t('pw.quoteMail', { vessel: who || '—' }));
+    void Linking.openURL(`mailto:${QUOTE_EMAIL}?subject=${subject}&body=${body}`).catch(() => Alert.alert(t('pw.quote'), QUOTE_EMAIL));
   };
 
   const onRestore = async () => {
@@ -214,9 +180,9 @@ export default function PaywallSc() {
               <View style={styles.trialPill}>
                 <Text style={styles.trialPillText}>{t('pw.full')}</Text>
               </View>
-              <Text style={styles.planPrice}>{priceLine}</Text>
-              <Text style={styles.planUnit}>{priceUnit}</Text>
-              <Text style={styles.planNote}>{t('pw.billed')}</Text>
+              <Text style={styles.planPrice}>{t('pw.onRequest')}</Text>
+              <Text style={styles.planUnit}>{t('pw.unit')}</Text>
+              <Text style={styles.planNote}>{t('pw.quoteNote')}</Text>
             </View>
           ) : (
             <View style={styles.planCard}>
@@ -281,12 +247,8 @@ export default function PaywallSc() {
               accepts a licence key the operator was given. The store listing, not
               the app, is where the commercial arrangement is described. */}
           {onWeb && !licensed ? (
-            <TouchableOpacity style={styles.cta} onPress={onSubscribe} disabled={busy} activeOpacity={0.85}>
-              {busy ? (
-                <ActivityIndicator color={COLORS.textWhite} />
-              ) : (
-                <Text style={styles.ctaText}>{t('pw.get', { price: priceLine })}</Text>
-              )}
+            <TouchableOpacity style={styles.cta} onPress={onQuote} activeOpacity={0.85}>
+              <Text style={styles.ctaText}>{t('pw.quote')}</Text>
             </TouchableOpacity>
           ) : null}
 
@@ -300,7 +262,7 @@ export default function PaywallSc() {
 
           <Text style={styles.fine}>
             {onWeb
-              ? t('pw.lsNote')
+              ? t('pw.quoteFine')
               : // Apple's IAP disclosure belongs on a screen that SELLS through IAP.
                 // This one does not any more — nothing is charged to a store account
                 // here — so saying it would be plainly untrue to the person reading it.

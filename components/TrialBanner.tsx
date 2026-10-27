@@ -17,14 +17,14 @@
 // ===================================
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MciIcon } from './MciIcon';
 import { t, tn } from '../utils/i18n';
 import { SIZES, Palette } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { ENFORCE_LIMITS, getTrialInfo } from '../services/trial';
-import { getOffer, isSubscribed, onEntitlementChange } from '../services/purchases';
+import { isSubscribed, onEntitlementChange } from '../services/purchases';
 import { uiDate } from '../utils/dates';
 
 /** The one condition — see the header. */
@@ -35,8 +35,6 @@ interface State {
   kind: Kind;
   daysLeft: number;
   endsAt: string; // formatted date
-  /** Localized, PER PLATFORM — see the load() note. */
-  priceString: string;
 }
 
 export function TrialBanner() {
@@ -57,18 +55,13 @@ export function TrialBanner() {
         return;
       }
       const t = await getTrialInfo();
-      // The price comes from services/purchases, which answers per platform — the
-      // App Store's localized string on iOS, LemonSqueezy's on web. This banner
-      // used to import the LemonSqueezy string directly, which was right while it
-      // was web-only and became wrong the moment it started showing on iOS: it
-      // quoted the web price (€9.99) beside a paywall charging the store price.
-      const offer = await getOffer();
+      // No price: the licence is priced on request (27 Oct 2026), and a store app
+      // may not quote one anyway (App Store 3.1.1) — RevenueCat answered $9.00 here.
       const endsAt = t.endsAt ? uiDate(new Date(t.endsAt).toISOString().slice(0, 10)) : '';
       setState({
         kind: t.expired ? 'expired' : 'trial',
         daysLeft: t.daysLeft,
         endsAt,
-        priceString: offer.priceString,
       });
     } catch {
       setState(null);
@@ -104,11 +97,8 @@ export function TrialBanner() {
         <Text style={styles.sub}>
           {expired
             ? t('trial.endedSub', { date: state.endsAt })
-            : Platform.OS === 'web'
-              ? t('trial.sub', { date: state.endsAt, price: state.priceString })
-              // No price in the store apps (App Store 3.1.1): the licence is bought outside them, and
-              // the store may still answer with an old product's price ($9.00 on the simulator, 27 Oct 2026).
-              : t('trial.subStore', { date: state.endsAt })}
+            // No price anywhere: on request since 27 Oct 2026, and never in the store apps (App Store 3.1.1).
+            : t('trial.subStore', { date: state.endsAt })}
         </Text>
       </View>
       <Text style={styles.cta}>{expired ? t('trial.upgrade') : '›'}</Text>

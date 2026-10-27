@@ -51,6 +51,7 @@ export const LS_PRODUCT_IDS: number[] = [1197509, 1205672];
  * Raise it here — and in constants/manual.ts, four languages — in the same hour
  * the dashboard changes.
  */
+// Not shown anywhere since 27 Oct 2026: the licence is priced on request (PaywallSc asks for a quote).
 export const LS_PRICE_STRING = '€99';
 
 export function isLemonConfigured(): boolean {
