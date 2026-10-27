@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -206,6 +206,15 @@ export const MODULES: Record<ModuleKey, boolean> = {
    */
   // Released in 2.69.
   suppliers: true,
+  /**
+   * Oil analysis — sampling points on the PMS machines, samples taken / sent /
+   * resulted (typed or read from the lab's Excel or CSV), judged against guide or
+   * own limits and the lab's verdict, trends, and an officer's signed review
+   * (types/oil.ts, services/oil.ts, 27 Oct 2026). Needs `npm run deploy:rules`
+   * first (oil_points, oil_samples).
+   */
+  // Released in 2.69.
+  oil: true,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------

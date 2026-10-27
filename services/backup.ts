@@ -34,6 +34,7 @@ import { OrbEntry, OrbMasterSign } from '../types/orb';
 import type { SignKeyRec } from './seal';
 import type { BookAccess } from './bookAccess';
 import { ApaEntry, ApaFund, BudgetLine } from '../types/finance';
+import { OilPoint, OilSample } from '../types/oil';
 import { Supplier } from '../types/suppliers';
 import { LogEntry, LogMonthSign } from '../types/logbook';
 import { InspectionRound } from '../types/round';
@@ -119,6 +120,8 @@ export interface BackupFile {
   security?: { visitors: Visitor[]; levels: SecurityLevelRec[]; drills?: SecurityDrill[]; crewMoves?: CrewMove[]; ssp?: OfficerDoc[]; searchPlan?: SearchPlan[]; searches?: SecuritySearch[]; checkpoints?: Checkpoint[]; patrolPlans?: PatrolPlan[]; patrols?: Patrol[]; keys?: KeyItem[]; keyMoves?: KeyMove[] };
   /** Finance: APA funds and entries, budget lines. */
   finance?: { funds: ApaFund[]; entries: ApaEntry[]; budget: BudgetLine[] };
+  /** Oil analysis: sampling points and samples. */
+  oil?: { points: OilPoint[]; samples: OilSample[] };
   /** Supplier directory. */
   suppliers?: Supplier[];
   files?: Record<string, string>; // basename -> base64 of the file contents
@@ -246,6 +249,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   const orb = { entries: await storage.loadList<OrbEntry>(storage.ORB_KEY), signs: await storage.loadList<OrbMasterSign>(storage.ORB_SIGNS_KEY) };
   const signKeys = await storage.loadList<SignKeyRec>(storage.SIGN_KEYS_KEY);
   const finance = { funds: await storage.loadList<ApaFund>(storage.APA_FUNDS_KEY), entries: await storage.loadList<ApaEntry>(storage.APA_ENTRIES_KEY), budget: await storage.loadList<BudgetLine>(storage.BUDGET_KEY) };
+  const oil = { points: await storage.loadList<OilPoint>(storage.OIL_POINTS_KEY), samples: await storage.loadList<OilSample>(storage.OIL_SAMPLES_KEY) };
   const bookAccess = await storage.loadList<BookAccess>(storage.BOOK_ACCESS_KEY);
   const suppliers = await storage.loadList<Supplier>(storage.SUPPLIERS_KEY);
   const garbage = { entries: await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY), signs: await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY) };
@@ -301,6 +305,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     fuelChange,
     ods,
     finance,
+    oil,
     suppliers,
     sopep,
     security,
@@ -513,6 +518,10 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     await storage.saveList(storage.ODS_SIGNS_KEY, backup.ods.signs ?? []);
   }
   if (backup.suppliers) await storage.saveList(storage.SUPPLIERS_KEY, backup.suppliers);
+  if (backup.oil) {
+    await storage.saveList(storage.OIL_POINTS_KEY, backup.oil.points ?? []);
+    await storage.saveList(storage.OIL_SAMPLES_KEY, backup.oil.samples ?? []);
+  }
   if (backup.finance) {
     await storage.saveList(storage.APA_FUNDS_KEY, backup.finance.funds ?? []);
     await storage.saveList(storage.APA_ENTRIES_KEY, backup.finance.entries ?? []);

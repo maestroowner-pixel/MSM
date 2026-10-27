@@ -742,6 +742,22 @@ service cloud.firestore {
         allow create, update: if isAdmin(v);
         allow delete: if false;
       }
+      // Oil analysis (types/oil.ts). The sampling points — what is sampled, how
+      // often, the limits — are the officers'. A sample is taken, sent and its
+      // result entered by any member; the review is an officer's, and a reviewed
+      // sample is frozen: the review is the signed statement. Never deleted.
+      match /oil_points/{id} {
+        allow read: if reader(v);
+        allow create, update: if isAdmin(v);
+        allow delete: if false;
+      }
+      match /oil_samples/{id} {
+        allow read: if reader(v);
+        allow create: if member(v) && !('review' in request.resource.data);
+        allow update: if member(v) && !('review' in resource.data)
+                      && (!('review' in request.resource.data) || isAdmin(v));
+        allow delete: if false;
+      }
       match /purchase_orders/{id} {
         allow read: if reader(v);
         allow create: if isAdmin(v);

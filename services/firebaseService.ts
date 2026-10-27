@@ -1338,6 +1338,9 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'apa_funds', key: storage.APA_FUNDS_KEY, module: 'finance', officers: true },
   { sub: 'apa_entries', key: storage.APA_ENTRIES_KEY, appendOnly: true, module: 'finance', officers: true },
   { sub: 'budget', key: storage.BUDGET_KEY, module: 'finance', officers: true },
+  // Oil analysis: the points are the officers'; a sample is anyone's until an officer reviews it.
+  { sub: 'oil_points', key: storage.OIL_POINTS_KEY, module: 'oil' },
+  { sub: 'oil_samples', key: storage.OIL_SAMPLES_KEY, module: 'oil' },
   // Supplier directory — the officers keep it; quotes and awards travel on the purchase orders.
   { sub: 'suppliers', key: storage.SUPPLIERS_KEY, module: 'suppliers' },
 ];

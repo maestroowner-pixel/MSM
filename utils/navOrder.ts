@@ -43,7 +43,7 @@ function kid(labelKey: string, c: Omit<MenuChild, 'label'>): MenuChild {
 export const MENU_GROUPS: MenuGroup[] = [
   group('home', null, ['Dashboard']),
   group('logs', 'menu.group.logs', ['DeckLog', 'WatchLog', 'Gmdss']),
-  group('equipment', 'menu.group.equipment', ['Equipment', 'Rounds', 'Maintenance', 'Spares', 'Stores', 'Orders', 'Finance']),
+  group('equipment', 'menu.group.equipment', ['Equipment', 'Rounds', 'Maintenance', 'OilAnalysis', 'Spares', 'Stores', 'Orders', 'Finance']),
   group('safety', 'menu.group.safety', ['Drills', 'Safety']),
   // The ship's hospital on its own, under Safety (17 Oct 2026: "out of Crew, its own section").
   group('medical', 'menu.group.medical', ['Hospital']),
@@ -196,4 +196,4 @@ export const MENU_LABEL: Record<string, string> = new Proxy({} as Record<string,
 });
 
 /** Every entry with a name in the menu (keys `menu.<route>` in constants/i18n/en.ts). */
-export const MENU_ROUTES: string[] = ["DeckLog", "WatchLog", "Gmdss", "Equipment", "Certificates", "Documents", "Maintenance", "Spares", "HoursOfRest", "Crew", "CrewMatrix", "Permits", "Sopep", "Security", "Surveys", "Readiness", "Dp", "Watch", "Familiar", "Safety", "Drills", "Hospital", "Passengers", "Stores", "Orders", "Finance", "Rounds", "Fuel", "Garbage", "OilRecord", "Sewage", "Ballast", "FuelChangeover", "Ods", "Reports", "Settings"];
+export const MENU_ROUTES: string[] = ["DeckLog", "WatchLog", "Gmdss", "Equipment", "Certificates", "Documents", "Maintenance", "OilAnalysis", "Spares", "HoursOfRest", "Crew", "CrewMatrix", "Permits", "Sopep", "Security", "Surveys", "Readiness", "Dp", "Watch", "Familiar", "Safety", "Drills", "Hospital", "Passengers", "Stores", "Orders", "Finance", "Rounds", "Fuel", "Garbage", "OilRecord", "Sewage", "Ballast", "FuelChangeover", "Ods", "Reports", "Settings"];

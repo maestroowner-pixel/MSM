@@ -123,6 +123,9 @@ import RoundsSc from './screens/RoundsSc';
 import RoundSc from './screens/RoundSc';
 import OrdersSc from './screens/OrdersSc';
 import FinanceSc from './screens/FinanceSc';
+import OilSc from './screens/OilSc';
+import OilPointSc from './screens/OilPointSc';
+import OilSampleSc from './screens/OilSampleSc';
 import OrderSc from './screens/OrderSc';
 import OrderGroupSc from './screens/OrderGroupSc';
 import SuppliersSc from './screens/SuppliersSc';
@@ -186,6 +189,7 @@ const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Rounds: RoundsSc,
   Orders: OrdersSc,
   Finance: FinanceSc,
+  OilAnalysis: OilSc,
   DeckLog: DeckLogSc,
   WatchLog: WatchLogSc,
   Gmdss: GmdssSc,
@@ -458,6 +462,7 @@ const linking = {
           Rounds: 'rounds',
           Orders: 'orders',
           Finance: 'finance',
+          OilAnalysis: 'oil-analysis',
           DeckLog: 'deck-log',
           WatchLog: 'watch-log',
           Gmdss: 'gmdss-log',
@@ -511,6 +516,8 @@ const linking = {
       Order: 'order/:id',
       Suppliers: 'suppliers',
       Supplier: 'supplier/:id',
+      OilPoint: 'oil-point/:id',
+      OilSample: 'oil-sample/:id',
       Quote: 'order/:po/quote/:id',
       MedLanding: 'medical-landing/:id',
       SparePart: 'spare/:id',
@@ -765,6 +772,8 @@ function Root() {
         <Stack.Screen name="Suppliers" component={SuppliersSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Supplier" component={SupplierSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Quote" component={QuoteSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="OilPoint" component={OilPointSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="OilSample" component={OilSampleSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="GalleyOrders" component={GalleyOrdersSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="GalleyOrder" component={GalleyOrderSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="MedLanding" component={MedLandingSc} options={{ presentation: 'modal' }} />

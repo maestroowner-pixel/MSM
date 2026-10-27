@@ -215,6 +215,11 @@ export default function MaintenanceSc() {
       <TouchableOpacity onPress={() => nav.navigate('AmsHours')} style={{ alignSelf: 'flex-start', marginBottom: SIZES.sm }}>
         <Text style={[styles.repBtnText, { color: COLORS.primary }]}>{`${t('ams.title')} ›`}</Text>
       </TouchableOpacity>
+      {moduleOn('oil') ? (
+        <TouchableOpacity onPress={() => nav.navigate('OilAnalysis')} style={{ alignSelf: 'flex-start', marginBottom: SIZES.sm }}>
+          <Text style={[styles.repBtnText, { color: COLORS.primary }]}>{`${t('oil.title')} ›`}</Text>
+        </TouchableOpacity>
+      ) : null}
       {moduleOn('watchLog') ? (
         <TouchableOpacity onPress={() => nav.navigate('WatchLog')} style={{ alignSelf: 'flex-start', marginBottom: SIZES.sm }}>
           <Text style={[styles.repBtnText, { color: COLORS.primary }]}>{`${t('wl.title')} ›`}</Text>

@@ -42,6 +42,7 @@ import { ItemMovement, LandingReport } from '../types/movement';
 import { OrderGroup, PurchaseOrder } from '../types/orders';
 import { GalleyOrder } from '../types/galley';
 import { ApaEntry, ApaFund, BudgetLine } from '../types/finance';
+import { OilPoint, OilSample } from '../types/oil';
 import { Supplier } from '../types/suppliers';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
@@ -238,6 +239,9 @@ interface DataContextType {
   apaFunds: ApaFund[];
   apaEntries: ApaEntry[];
   budgetLines: BudgetLine[];
+  /** Oil analysis (types/oil.ts): sampling points, samples. */
+  oilPoints: OilPoint[];
+  oilSamples: OilSample[];
   /** Supplier directory (types/suppliers.ts). */
   suppliers: Supplier[];
   /**
@@ -401,6 +405,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [apaFunds, setApaFunds] = useState<ApaFund[]>([]);
   const [apaEntries, setApaEntries] = useState<ApaEntry[]>([]);
   const [budgetLines, setBudgetLines] = useState<BudgetLine[]>([]);
+  const [oilPoints, setOilPoints] = useState<OilPoint[]>([]);
+  const [oilSamples, setOilSamples] = useState<OilSample[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   // Every version of the logs that can be amended — for the history and the struck-through lines.
   const [versions, setVersions] = useState<Record<string, any[]>>({});
@@ -526,6 +532,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _apaFunds1 = (await storage.loadList<ApaFund>(storage.APA_FUNDS_KEY)).filter((x) => !x.deleted);
     const _apaEntries1 = await storage.loadList<ApaEntry>(storage.APA_ENTRIES_KEY);
     const _budget1 = await storage.loadList<BudgetLine>(storage.BUDGET_KEY);
+    const _oilPoints1 = (await storage.loadList<OilPoint>(storage.OIL_POINTS_KEY)).filter((x) => !x.deleted);
+    const _oilSamples1 = await storage.loadList<OilSample>(storage.OIL_SAMPLES_KEY);
     const _suppliers1 = (await storage.loadList<Supplier>(storage.SUPPLIERS_KEY)).filter((x) => !x.deleted);
     const _versions = Object.fromEntries(await Promise.all(VERSIONED_KEYS.map(async (k) => [k, await storage.loadList<any>(k)] as const)));
     const _templates = await storage.loadTemplates();
@@ -624,6 +632,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setApaFunds(_apaFunds1);
     setApaEntries(_apaEntries1);
     setBudgetLines(_budget1);
+    setOilPoints(_oilPoints1);
+    setOilSamples(_oilSamples1);
     setSuppliers(_suppliers1);
     setVersions(_versions);
     setTemplates(_templates);
@@ -867,6 +877,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _apaFunds2 = (await storage.loadList<ApaFund>(storage.APA_FUNDS_KEY)).filter((x) => !x.deleted);
     const _apaEntries2 = await storage.loadList<ApaEntry>(storage.APA_ENTRIES_KEY);
     const _budget2 = await storage.loadList<BudgetLine>(storage.BUDGET_KEY);
+    const _oilPoints2 = (await storage.loadList<OilPoint>(storage.OIL_POINTS_KEY)).filter((x) => !x.deleted);
+    const _oilSamples2 = await storage.loadList<OilSample>(storage.OIL_SAMPLES_KEY);
     const _suppliers2 = (await storage.loadList<Supplier>(storage.SUPPLIERS_KEY)).filter((x) => !x.deleted);
     const _versions = Object.fromEntries(await Promise.all(VERSIONED_KEYS.map(async (k) => [k, await storage.loadList<any>(k)] as const)));
     setMachines(_machines);
@@ -955,6 +967,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setApaFunds(_apaFunds2);
     setApaEntries(_apaEntries2);
     setBudgetLines(_budget2);
+    setOilPoints(_oilPoints2);
+    setOilSamples(_oilSamples2);
     setSuppliers(_suppliers2);
     setVersions(_versions);
   }, []);
@@ -1289,6 +1303,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         apaFunds,
         apaEntries,
         budgetLines,
+        oilPoints,
+        oilSamples,
         suppliers,
         versionsOf,
         saveRow,

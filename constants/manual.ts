@@ -497,6 +497,15 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🛢️',
+      title: "Oil analysis",
+      body: [
+        "Oil analysis (in the menu, and from Maintenance) follows the oil in the machinery. An officer adds a sampling point for each place oil is sampled from — the crankcase of each engine, a reduction gear, the stabiliser hydraulics — on its PMS machine (for the running hours), with the oil, the lab, how often it is sampled (days and / or running hours, whichever first), the new oil's viscosity, TBN and TAN, and the engine maker's limits if you have them; otherwise the compartment's guide values apply.",
+        "Take a sample: the date, the running hours (filled in from the counter), the hours on the oil, any top-up and the bottle number; then mark it sent. When the lab replies, load its Excel or CSV export — the sample is found by the bottle number or the date, or you pick it from the rows in the file — or type the values, and photograph the report. Each value is judged against its limit as it is entered; a wear metal or contaminant up by half since the last sample is flagged as rising; the lab's own verdict counts too, and the worst wins.",
+        "An officer reviews the result: the verdict and what was done or decided (oil changed, resample early…), signed. A reviewed sample cannot be changed. From a caution or an action, a defect can be raised on the machine. The list shows the most urgent first: due or overdue, action, caution, results to review, samples late from the lab (21 days). PDF per point with the trend of every parameter (C = caution, A = action) and Excel; a status PDF for the whole vessel.",
+      ],
+    },
+    {
       emoji: '🧾',
       title: "Suppliers and quotations",
       body: [
@@ -1224,6 +1233,15 @@ const ru: ManualContent = {
       body: [
         "APA и бюджет (в меню) ведут офицеры и Мастер. Фонд — это деньги, из которых судно платит и за которые отчитывается: счёт владельца или APA (Advance Provisioning Allowance) чартера, в своей валюте; называйте его без имён гостей. Записывайте поступления и каждый платёж: дата, сумма, статья расходов, поставщик, способ оплаты, номер чека и фото чека; платёж в другой валюте вводится с курсом. Сверху — баланс и расходы по статьям. Запись никогда не правится: ошибка сторнируется с причиной, и обе строки остаются в выписке. Выписка: период в PDF для владельца (входящий остаток, все записи с текущим остатком, расходы по статьям, строки для подписей) или в Excel для бухгалтера. Фонд чартера закройте, когда расчёт завершён.",
         "Вкладка «Бюджет»: бюджет года по каждой статье, в одной валюте, вводится прямо в строке. Потрачено = платежи из APA плюс полученное по заявкам; обязательства = то, что ещё придёт по уже отправленным заявкам; остаток = бюджет − потрачено − обязательства, красным при превышении. Платёж, в котором указана оплаченная заявка, считается один раз. Поле «Budget» в строке заявки может указать статью; иначе статью определяет отдел заявки (Accommodation → Интерьер). Суммы в другой валюте наугад не пересчитываются — экран показывает, сколько их не учтено. PDF и Excel.",
+      ],
+    },
+    {
+      emoji: '🛢️',
+      title: "Анализ масел",
+      body: [
+        "Анализ масел (в меню и с экрана ТО) следит за маслом в механизмах. Офицер добавляет точку отбора для каждого места, откуда берут пробу, — картер каждого двигателя, редуктор, гидравлика стабилизаторов — на механизме PMS (ради моточасов), с маслом, лабораторией, периодичностью (дни и/или моточасы — что наступит раньше), вязкостью, TBN и TAN свежего масла и пределами производителя двигателя, если они есть; иначе действуют рекомендуемые значения для узла.",
+        "Взять пробу: дата, моточасы (подставляются со счётчика), часы на масле, доливка и номер флакона; затем отметить отправку. Когда лаборатория ответит, загрузите её выгрузку Excel или CSV — проба находится по номеру флакона или дате, либо её выбирают из строк файла — или введите значения вручную и сфотографируйте отчёт. Каждое значение сразу сравнивается с пределом; металл износа или загрязнение, выросшие в полтора раза с прошлой пробы, отмечаются как растущие; учитывается и оценка самой лаборатории — берётся худшая.",
+        "Офицер оценивает результат: вердикт и что сделано или решено (замена масла, ранняя повторная проба…), с подписью. Оценённую пробу изменить нельзя. При «Внимании» или «Действии» можно завести дефект на механизм. В списке сначала самое срочное: пора или просрочено, «Действие», «Внимание», результаты на оценку, пробы, задержавшиеся в лаборатории (21 день). PDF по точке с трендом каждого параметра (C — внимание, A — действие) и Excel; PDF статуса по всему судну.",
       ],
     },
     {
@@ -1957,6 +1975,15 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🛢️',
+      title: "Análisis de aceite",
+      body: [
+        "Análisis de aceite (en el menú y desde Mantenimiento) sigue el aceite de la maquinaria. Un oficial añade un punto de muestreo por cada lugar del que se toma aceite — el cárter de cada motor, una reductora, la hidráulica de los estabilizadores — sobre su máquina del PMS (por las horas de funcionamiento), con el aceite, el laboratorio, cada cuánto se muestrea (días y/u horas, lo que llegue antes), la viscosidad, TBN y TAN del aceite nuevo y los límites del fabricante del motor si los tiene; si no, rigen los valores de guía del compartimento.",
+        "Tomar una muestra: la fecha, las horas (del contador), las horas del aceite, el rellenado y el número de frasco; después márquela como enviada. Cuando responda el laboratorio, cargue su exportación Excel o CSV — la muestra se encuentra por el número de frasco o la fecha, o se elige entre las filas del archivo — o escriba los valores, y fotografíe el informe. Cada valor se juzga contra su límite al introducirlo; un metal de desgaste o contaminante que sube la mitad desde la última muestra se marca como en aumento; también cuenta el veredicto del laboratorio, y gana el peor.",
+        "Un oficial revisa el resultado: el veredicto y lo que se hizo o decidió (cambio de aceite, nueva muestra antes…), firmado. Una muestra revisada no se puede cambiar. Desde una precaución o una acción se puede abrir un defecto en la máquina. La lista muestra primero lo más urgente: vencido o por vencer, acción, precaución, resultados por revisar, muestras retrasadas en el laboratorio (21 días). PDF por punto con la tendencia de cada parámetro (C = precaución, A = acción) y Excel; un PDF de estado de todo el buque.",
+      ],
+    },
+    {
       emoji: '🧾',
       title: "Proveedores y cotizaciones",
       body: [
@@ -2687,6 +2714,15 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🛢️',
+      title: "Аналіз мастил",
+      body: [
+        "Аналіз мастил (у меню та з екрана ТО) стежить за мастилом у механізмах. Офіцер додає точку відбору для кожного місця, звідки беруть пробу, — картер кожного двигуна, редуктор, гідравліка стабілізаторів — на механізмі PMS (заради мотогодин), з мастилом, лабораторією, періодичністю (дні та/або мотогодини — що настане раніше), в'язкістю, TBN і TAN свіжого мастила та межами виробника двигуна, якщо вони є; інакше діють рекомендовані значення для вузла.",
+        "Взяти пробу: дата, мотогодини (підставляються з лічильника), години на мастилі, доливання і номер флакона; потім позначити відправку. Коли лабораторія відповість, завантажте її вивантаження Excel або CSV — проба знаходиться за номером флакона або датою, або її вибирають із рядків файлу — або введіть значення вручну і сфотографуйте звіт. Кожне значення одразу порівнюється з межею; метал зносу чи забруднення, що зросли в півтора раза від минулої проби, позначаються як зростаючі; враховується й оцінка самої лабораторії — береться гірша.",
+        "Офіцер оцінює результат: вердикт і що зроблено або вирішено (заміна мастила, рання повторна проба…), з підписом. Оцінену пробу змінити не можна. При «Увазі» або «Дії» можна завести дефект на механізм. У списку спершу найтерміновіше: час або прострочено, «Дія», «Увага», результати на оцінку, проби, що затрималися в лабораторії (21 день). PDF по точці з трендом кожного параметра (C — увага, A — дія) і Excel; PDF статусу по всьому судну.",
+      ],
+    },
+    {
       emoji: '🧾',
       title: "Постачальники та котирування",
       body: [
@@ -3382,6 +3418,15 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '🛢️',
+      title: "Oljeanalyse",
+      body: [
+        "Oljeanalyse (i menyen og fra Vedlikehold) følger oljen i maskineriet. En offiser legger til et prøvepunkt for hvert sted det tas oljeprøve fra — veivhuset på hver motor, et reduksjonsgir, stabilisatorhydraulikken — på PMS-maskinen (for driftstimene), med oljen, laboratoriet, hvor ofte det tas prøve (dager og/eller driftstimer, det som kommer først), ny oljes viskositet, TBN og TAN, og motorprodusentens grenser hvis dere har dem; ellers gjelder veiledende verdier for delen.",
+        "Ta en prøve: datoen, driftstimene (fylles inn fra telleren), timene på oljen, eventuell etterfylling og flaskenummeret; merk den så som sendt. Når laboratoriet svarer, last inn eksporten deres i Excel eller CSV — prøven finnes på flaskenummeret eller datoen, eller du velger den blant radene i filen — eller skriv inn verdiene, og ta bilde av rapporten. Hver verdi vurderes mot grensen sin mens den skrives inn; et slitasjemetall eller en forurensning som har steget med halvparten siden forrige prøve, merkes som stigende; laboratoriets egen vurdering teller også, og den verste gjelder.",
+        "En offiser gjennomgår resultatet: vurderingen og hva som ble gjort eller besluttet (olje skiftet, ny prøve tidligere…), signert. En gjennomgått prøve kan ikke endres. Fra et varsel eller et tiltak kan det opprettes et avvik på maskinen. Listen viser det mest presserende først: forfalt eller snart forfall, tiltak, varsel, resultater til vurdering, prøver forsinket hos laboratoriet (21 dager). PDF per punkt med trenden for hver parameter (C = varsel, A = tiltak) og Excel; en status-PDF for hele fartøyet.",
+      ],
+    },
+    {
       emoji: '🧾',
       title: "Leverandører og tilbud",
       body: [
@@ -4036,6 +4081,15 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '🛢️',
+      title: "Análise de óleo",
+      body: [
+        "Análise de óleo (no menu e a partir da Manutenção) acompanha o óleo das máquinas. Um oficial adiciona um ponto de amostragem por cada local de onde se recolhe óleo — o cárter de cada motor, um redutor, a hidráulica dos estabilizadores — na sua máquina do PMS (pelas horas de funcionamento), com o óleo, o laboratório, a frequência de recolha (dias e/ou horas, o que vier primeiro), a viscosidade, TBN e TAN do óleo novo e os limites do fabricante do motor, se os tiver; caso contrário aplicam-se os valores de referência do compartimento.",
+        "Recolher uma amostra: a data, as horas (do contador), as horas do óleo, o atesto e o número do frasco; depois marque-a como enviada. Quando o laboratório responder, carregue a exportação Excel ou CSV — a amostra é encontrada pelo número do frasco ou pela data, ou escolhida entre as linhas do ficheiro — ou escreva os valores, e fotografe o relatório. Cada valor é avaliado face ao seu limite ao ser introduzido; um metal de desgaste ou contaminante que subiu metade desde a última amostra é marcado como a subir; o veredicto do próprio laboratório também conta, e prevalece o pior.",
+        "Um oficial revê o resultado: o veredicto e o que foi feito ou decidido (troca de óleo, nova amostra mais cedo…), assinado. Uma amostra revista não pode ser alterada. A partir de uma atenção ou ação pode abrir-se um defeito na máquina. A lista mostra primeiro o mais urgente: em falta ou atrasado, ação, atenção, resultados por rever, amostras atrasadas no laboratório (21 dias). PDF por ponto com a tendência de cada parâmetro (C = atenção, A = ação) e Excel; um PDF de estado de todo o navio.",
+      ],
+    },
+    {
       emoji: '🧾',
       title: "Fornecedores e cotações",
       body: [
@@ -4302,6 +4356,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Ozone-depleting substances', module: 'ods' },
   { title: 'APA and budget', module: 'finance' },
   { title: 'Suppliers and quotations', module: 'suppliers' },
+  { title: 'Oil analysis', module: 'oil' },
   { title: 'SOPEP', module: 'sopep' },
   { title: 'Board', module: 'board' },
   { title: 'Surveys & audits', module: 'surveys' },

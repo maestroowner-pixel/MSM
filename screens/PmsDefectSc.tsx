@@ -51,7 +51,7 @@ export default function PmsDefectSc() {
   const machine = machines.find((m) => m.id === (existing?.machineId ?? route.params?.machineId));
 
   const [category, setCategory] = useState<DefectCategory>('operational');
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState<string>(route.params?.description ?? '');
   const [photos, setPhotos] = useState<Attachment[]>([]);
   const [closeNote, setCloseNote] = useState('');
   const [closePhotos, setClosePhotos] = useState<Attachment[]>([]);

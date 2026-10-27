@@ -155,6 +155,14 @@ await t(true, 'Officer adds a supplier', setDoc(R(officer, 'suppliers', 'sup1'),
 await t(true, 'Crew reads the suppliers', getDoc(R(crew, 'suppliers', 'sup1')));
 await t(false, 'Crew cannot change a supplier', setDoc(R(crew, 'suppliers', 'sup1'), { id: 'sup1', name: 'Mine' }));
 await t(false, 'A supplier is never deleted', deleteDoc(R(officer, 'suppliers', 'sup1')));
+await t(false, 'Crew cannot add an oil sampling point', setDoc(R(crew, 'oil_points', 'op1'), { id: 'op1', name: 'Crankcase', compartment: 'engine' }));
+await t(true, 'Officer adds an oil sampling point', setDoc(R(officer, 'oil_points', 'op1'), { id: 'op1', name: 'Crankcase', compartment: 'engine' }));
+await t(true, 'Crew takes an oil sample', setDoc(R(crew, 'oil_samples', 'os1'), { id: 'os1', pointId: 'op1', date: '2026-10-01' }));
+await t(true, "Crew enters the lab's result", setDoc(R(crew, 'oil_samples', 'os1'), { id: 'os1', pointId: 'op1', date: '2026-10-01', result: { date: '2026-10-08', values: { fe: 60 } } }));
+await t(false, 'Crew cannot review an oil sample', setDoc(R(crew, 'oil_samples', 'os1'), { id: 'os1', pointId: 'op1', date: '2026-10-01', review: { verdict: 'normal' } }));
+await t(true, 'Officer reviews an oil sample', setDoc(R(officer, 'oil_samples', 'os1'), { id: 'os1', pointId: 'op1', date: '2026-10-01', review: { verdict: 'caution', action: 'Resample' } }));
+await t(false, 'A reviewed oil sample is frozen', setDoc(R(officer, 'oil_samples', 'os1'), { id: 'os1', pointId: 'op1', date: '2026-10-01', review: { verdict: 'normal', action: 'x' } }));
+await t(false, 'A sample cannot arrive already reviewed', setDoc(R(crew, 'oil_samples', 'os2'), { id: 'os2', review: { verdict: 'normal' } }));
 await t(true, 'Officer records an ODS entry', setDoc(R(officer, 'ods', 'o1'), { id: 'o1', code: 'PART' }));
 await t(false, 'An ODS entry cannot be amended by an Officer', setDoc(R(officer, 'ods', 'o2'), { id: 'o2', supersedes: 'o1' }));
 await t(false, 'An Officer cannot sign the ODS month', setDoc(R(officer, 'ods_signs', 'ods_2026-10'), { id: 'ods_2026-10' }));

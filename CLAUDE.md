@@ -122,6 +122,15 @@ app mirrors. Bundle id `com.kukalab.msm`.
   give every column one; its font has no ★ or − (use * and -). Supplier record (quotes won, reply days,
   on time, one delivery, last prices) is computed from the orders (`supplierStats`), not stored.
   Needs `npm run deploy:rules` before the flag. `npm run check:rfq`.
+- **Oil analysis** (27 Oct 2026 — flag `oil`, on from 2.69): `screens/OilSc` (route `OilAnalysis`, also linked from
+  Maintenance), `OilPointSc`, `OilSampleSc`; `types/oil.ts`, pure `services/oil.ts`, reports `services/oilReport.ts`.
+  A point sits on a PMS machine (running hours), with oil, lab, interval (days and/or hours, whichever first),
+  new-oil V40/V100/TBN/TAN and own limits over the compartment's `GUIDE`. A sample goes taken → sent → result
+  (typed, or the lab's Excel/CSV via `readLabSheet` — header row found by ≥3 parameter names, water in ppm → %,
+  row matched by bottle no., then date, else the user picks) → an officer's signed review, after which it is
+  frozen (rules). Verdict = worst of each value vs its limit, "rising" (up ×1.5 and past half the caution limit,
+  only while below the limit) and the lab's own verdict. Firestore `oil_points` (officers), `oil_samples`
+  (members until reviewed) — need `npm run deploy:rules`. `npm run check:oil`.
 - **Record books: seals, chain, signed copy** (25 Oct 2026, stage 2 — `services/seal.ts`,
   `services/signKeys.ts`, `services/bookAccess.ts`, `services/signedCopy.ts`, `npm run check:seal`).
   Every signer has an ECDSA P-256 key per device (`@noble/curves`, pure JS; randomness from
