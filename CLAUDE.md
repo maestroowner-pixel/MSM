@@ -110,6 +110,18 @@ app mirrors. Bundle id `com.kukalab.msm`.
   once; amounts in another currency are skipped and counted, never converted by guess. PO line currency
   is a symbol (€ $ £ ¥) → `isoCurrency()`. Officers + Master only (`officers: true`, rules `isAdmin`),
   shore reads. Firestore `apa_funds`, `apa_entries`, `budget` — need `npm run deploy:rules`. `npm run check:finance`.
+- **Suppliers and quotations** (27 Oct 2026 — flag `suppliers`, on from 2.69): directory `types/suppliers.ts`
+  (`screens/SuppliersSc`, `SupplierSc`; Firestore `suppliers`, officers write, never deleted — `deleted`),
+  and on a PO (`components/RfqPanel` in OrderSc, `screens/QuoteSc`) `quotes` / `quoteBy` / `award` ON THE
+  ORDER — no new collection, the PO's sync/rules/backup carry them. Pure maths `services/rfq.ts`: total =
+  Σ price × qty − discount + delivery; ranked only within the currency most quotes came in (never
+  converted); cheapest = lowest COMPLETE quote; any other award needs a reason; awarding writes supplier,
+  ref and prices onto the lines (ISO → symbol for € $ £ ¥). Papers `services/rfqSheet.ts` (English): RFQ
+  PDF/Excel per supplier — the Excel's `Line ID` column is how a filled sheet is read back
+  (`quoteFromSheet`) — and the comparison PDF/Excel. jsPDF on web sizes a table to the widths GIVEN, so
+  give every column one; its font has no ★ or − (use * and -). Supplier record (quotes won, reply days,
+  on time, one delivery, last prices) is computed from the orders (`supplierStats`), not stored.
+  Needs `npm run deploy:rules` before the flag. `npm run check:rfq`.
 - **Record books: seals, chain, signed copy** (25 Oct 2026, stage 2 — `services/seal.ts`,
   `services/signKeys.ts`, `services/bookAccess.ts`, `services/signedCopy.ts`, `npm run check:seal`).
   Every signer has an ECDSA P-256 key per device (`@noble/curves`, pure JS; randomness from

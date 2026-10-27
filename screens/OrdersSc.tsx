@@ -18,6 +18,7 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { roleAtLeast } from '../types/role';
+import { moduleOn } from '../constants/modules';
 import {
   ORDER_DEPT_ICON, ORDER_DEPT_LABEL, ORDER_STATUS_COLOR, ORDER_STATUS_LABEL,
   OrderDept, OrderStatus, PurchaseOrder,
@@ -89,6 +90,12 @@ export default function OrdersSc() {
   return (
     <Screen scroll>
       <ScreenTitle title={t('ord.title')} subtitle={t('ord.sub')} />
+      {moduleOn('suppliers') ? (
+        <TouchableOpacity style={styles.suppliersBtn} onPress={() => nav.navigate('Suppliers')} activeOpacity={0.7}>
+          <MciIcon name="truck-outline" size={16} color={COLORS.primary} />
+          <Text style={styles.addBtn}>{t('sup.title')}</Text>
+        </TouchableOpacity>
+      ) : null}
 
       {/* Department tiles */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.deptRow}>
@@ -350,6 +357,13 @@ const makeStyles = (COLORS: Palette) =>
       justifyContent: 'space-between',
       marginTop: SIZES.sm,
       marginBottom: 4,
+    },
+    suppliersBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      alignSelf: 'flex-start',
+      marginBottom: SIZES.sm,
     },
     addBtn: {
       color: COLORS.primary,

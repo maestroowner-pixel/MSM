@@ -497,6 +497,14 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🧾',
+      title: "Suppliers and quotations",
+      body: [
+        "Suppliers (button at the top of Orders) is the directory of the companies the vessel buys from: name, contact, e-mail and phone, the country and ports they deliver to, the departments they supply, the currency they quote in and the payment terms. Each supplier's record is worked out from the orders themselves — quotes asked, answered and won, how many days they take to answer, orders placed and received, how many came by the delivery date and how many in one delivery — with the last price charged for each item and the list of their orders. A supplier is removed from the directory, never deleted: orders keep the name. On an order, the Supplier field suggests names from the directory.",
+        "Quotations (on a saved order, while it is a draft or on standby): set the date quotes are wanted by, then ask suppliers — from the directory or by a new name. Send each one the request as PDF, or as Excel they fill in: keep its Line ID column, and their filled sheet is read back with Read from Excel. Or type their quote: a unit price per line or Can't supply, delivery charge, discount, lead time, validity, their reference; tick Declined when they will not quote. The table shows the quotes side by side with the lowest price per line starred and the totals. Award gives the order to a supplier and writes their name, reference and prices onto the lines. The lowest complete quote — the cheapest of those that price every line — is awarded straight away; anyone else needs the reason, which stays on the order. Quotes in another currency are listed but not ranked or converted. Comparison PDF and Excel are the record that the purchase was tendered, with lines for the signatures. Once the order is sent, the quotations are read only.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: "SOPEP",
       body: [
@@ -1216,6 +1224,14 @@ const ru: ManualContent = {
       body: [
         "APA и бюджет (в меню) ведут офицеры и Мастер. Фонд — это деньги, из которых судно платит и за которые отчитывается: счёт владельца или APA (Advance Provisioning Allowance) чартера, в своей валюте; называйте его без имён гостей. Записывайте поступления и каждый платёж: дата, сумма, статья расходов, поставщик, способ оплаты, номер чека и фото чека; платёж в другой валюте вводится с курсом. Сверху — баланс и расходы по статьям. Запись никогда не правится: ошибка сторнируется с причиной, и обе строки остаются в выписке. Выписка: период в PDF для владельца (входящий остаток, все записи с текущим остатком, расходы по статьям, строки для подписей) или в Excel для бухгалтера. Фонд чартера закройте, когда расчёт завершён.",
         "Вкладка «Бюджет»: бюджет года по каждой статье, в одной валюте, вводится прямо в строке. Потрачено = платежи из APA плюс полученное по заявкам; обязательства = то, что ещё придёт по уже отправленным заявкам; остаток = бюджет − потрачено − обязательства, красным при превышении. Платёж, в котором указана оплаченная заявка, считается один раз. Поле «Budget» в строке заявки может указать статью; иначе статью определяет отдел заявки (Accommodation → Интерьер). Суммы в другой валюте наугад не пересчитываются — экран показывает, сколько их не учтено. PDF и Excel.",
+      ],
+    },
+    {
+      emoji: '🧾',
+      title: "Поставщики и котировки",
+      body: [
+        "Поставщики (кнопка вверху экрана Заявки) — справочник компаний, у которых покупает судно: название, контактное лицо, e-mail и телефон, страна и порты доставки, отделы, которые они снабжают, валюта котировок и условия оплаты. Показатели каждого поставщика считаются по самим заявкам: сколько котировок запрошено, получено и выиграно, за сколько дней он отвечает, сколько заказов размещено и получено, сколько пришло к дате поставки и сколько одной поставкой, а также последняя цена по каждой позиции и список его заявок. Поставщик убирается из справочника, но не удаляется: заявки сохраняют его имя. В заявке поле Supplier подсказывает имена из справочника.",
+        "Котировки (в сохранённой заявке, пока она черновик или на паузе): укажите, до какого числа нужны котировки, и добавьте поставщиков — из справочника или новым именем. Отправьте каждому запрос в PDF или в Excel для заполнения: колонку Line ID нужно сохранить, тогда заполненный файл загружается обратно кнопкой «Загрузить из Excel». Или внесите котировку вручную: цену за единицу по каждой строке или «Не поставляет», доставку, скидку, срок поставки, срок действия, номер котировки; если поставщик отказался — отметьте отказ. Таблица показывает котировки рядом: самая низкая цена по строке отмечена звёздочкой, внизу итоги. «Выбрать» отдаёт заказ поставщику и переносит в строки его имя, номер котировки и цены. Самая низкая полная котировка (самая дешёвая из тех, что покрывают все строки) выбирается сразу; для любой другой нужна причина, и она остаётся в заявке. Котировки в другой валюте показываются, но не сравниваются и не пересчитываются. Сравнение в PDF и Excel — документ о том, что закупка прошла через тендер, со строками для подписей. После отправки заявки котировки только для чтения.",
       ],
     },
     {
@@ -1941,6 +1957,14 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🧾',
+      title: "Proveedores y cotizaciones",
+      body: [
+        "Proveedores (botón en la parte superior de Pedidos) es el directorio de las empresas a las que compra el buque: nombre, contacto, correo y teléfono, país y puertos de entrega, departamentos que suministran, moneda en que cotizan y condiciones de pago. El historial de cada proveedor se calcula a partir de los propios pedidos: cotizaciones pedidas, respondidas y ganadas, cuántos días tarda en responder, pedidos hechos y recibidos, cuántos llegaron en la fecha de entrega y cuántos en una sola entrega, con el último precio de cada artículo y la lista de sus pedidos. Un proveedor se quita del directorio, nunca se borra: los pedidos conservan el nombre. En un pedido, el campo Supplier sugiere nombres del directorio.",
+        "Cotizaciones (en un pedido guardado, mientras es borrador o está en espera): indique hasta cuándo se quieren las cotizaciones y pida a proveedores, del directorio o con un nombre nuevo. Envíe a cada uno la solicitud en PDF o en Excel para rellenar: conserve la columna Line ID y su hoja rellenada se lee con «Leer de Excel». O introduzca la cotización: un precio unitario por línea o «No lo suministra», entrega, descuento, plazo, validez y su referencia; marque si no van a cotizar. La tabla muestra las cotizaciones lado a lado, con el precio más bajo de cada línea marcado y los totales. «Adjudicar» da el pedido a un proveedor y escribe su nombre, referencia y precios en las líneas. La cotización completa más baja (la más barata de las que cubren todas las líneas) se adjudica directamente; cualquier otra necesita el motivo, que queda en el pedido. Las cotizaciones en otra moneda se muestran pero no se clasifican ni se convierten. La comparación en PDF y Excel es el registro de que la compra se licitó, con líneas para las firmas. Una vez enviado el pedido, las cotizaciones son de solo lectura.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: "SOPEP",
       body: [
@@ -2663,6 +2687,14 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🧾',
+      title: "Постачальники та котирування",
+      body: [
+        "Постачальники (кнопка вгорі екрана Заявки) — довідник компаній, у яких купує судно: назва, контактна особа, e-mail і телефон, країна та порти доставки, відділи, які вони постачають, валюта котирувань і умови оплати. Показники кожного постачальника рахуються за самими заявками: скільки котирувань запитано, отримано й виграно, за скільки днів він відповідає, скільки замовлень розміщено й отримано, скільки надійшло до дати постачання і скільки однією поставкою, а також остання ціна за кожною позицією та список його заявок. Постачальника прибирають із довідника, але не видаляють: заявки зберігають його ім'я. У заявці поле Supplier підказує імена з довідника.",
+        "Котирування (у збереженій заявці, поки вона чернетка або на паузі): вкажіть, до якої дати потрібні котирування, і додайте постачальників — з довідника або новим ім'ям. Надішліть кожному запит у PDF або в Excel для заповнення: стовпець Line ID треба зберегти, тоді заповнений файл завантажується назад кнопкою «Завантажити з Excel». Або внесіть котирування вручну: ціну за одиницю по кожному рядку або «Не постачає», доставку, знижку, термін постачання, термін дії, номер котирування; якщо постачальник відмовився — позначте відмову. Таблиця показує котирування поруч: найнижча ціна за рядком позначена зірочкою, внизу підсумки. «Обрати» віддає замовлення постачальнику й переносить у рядки його ім'я, номер котирування та ціни. Найнижче повне котирування (найдешевше з тих, що покривають усі рядки) обирається одразу; для будь-якого іншого потрібна причина, і вона залишається в заявці. Котирування в іншій валюті показуються, але не порівнюються й не перераховуються. Порівняння в PDF та Excel — документ про те, що закупівля пройшла через тендер, з рядками для підписів. Після надсилання заявки котирування лише для читання.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: "SOPEP",
       body: [
@@ -3350,6 +3382,14 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '🧾',
+      title: "Leverandører og tilbud",
+      body: [
+        "Leverandører (knappen øverst på Ordrer) er registeret over firmaene fartøyet kjøper fra: navn, kontaktperson, e-post og telefon, land og havner de leverer til, avdelingene de leverer til, valutaen de gir tilbud i og betalingsbetingelser. Historikken for hver leverandør regnes ut fra ordrene selv: tilbud forespurt, besvart og vunnet, hvor mange dager de bruker på å svare, ordrer lagt inn og mottatt, hvor mange som kom innen leveringsdatoen og hvor mange i én leveranse — med siste pris for hver vare og listen over ordrene deres. En leverandør fjernes fra registeret, men slettes aldri: ordrene beholder navnet. På en ordre foreslår Supplier-feltet navn fra registeret.",
+        "Tilbud (på en lagret ordre, mens den er utkast eller på vent): angi når tilbudene ønskes innen, og spør leverandører — fra registeret eller med et nytt navn. Send hver forespørselen som PDF, eller som Excel de fyller ut: behold kolonnen Line ID, så leses det utfylte arket inn med «Les fra Excel». Eller skriv inn tilbudet: enhetspris per linje eller «Kan ikke levere», levering, rabatt, leveringstid, gyldighet og deres referanse; kryss av hvis de avslo. Tabellen viser tilbudene side om side, med laveste pris per linje merket og totalene. «Tildel» gir ordren til en leverandør og skriver navn, referanse og priser inn på linjene. Laveste komplette tilbud (det billigste av dem som priser alle linjer) tildeles direkte; alle andre krever en begrunnelse, som blir stående på ordren. Tilbud i annen valuta vises, men rangeres og omregnes ikke. Sammenligning som PDF og Excel er dokumentasjonen på at kjøpet ble konkurranseutsatt, med linjer for signaturer. Når ordren er sendt, kan tilbudene bare leses.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: 'SOPEP',
       body: [
@@ -3996,6 +4036,14 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '🧾',
+      title: "Fornecedores e cotações",
+      body: [
+        "Fornecedores (botão no topo de Pedidos) é o diretório das empresas a quem o navio compra: nome, pessoa de contacto, e-mail e telefone, país e portos de entrega, departamentos que fornecem, moeda em que cotam e condições de pagamento. O histórico de cada fornecedor é calculado a partir dos próprios pedidos: cotações pedidas, respondidas e ganhas, quantos dias demora a responder, pedidos feitos e recebidos, quantos chegaram na data de entrega e quantos numa só entrega — com o último preço de cada artigo e a lista dos seus pedidos. Um fornecedor é removido do diretório, nunca apagado: os pedidos mantêm o nome. Num pedido, o campo Supplier sugere nomes do diretório.",
+        "Cotações (num pedido gravado, enquanto é rascunho ou está em espera): indique até quando as cotações são precisas e peça a fornecedores — do diretório ou com um nome novo. Envie a cada um o pedido em PDF, ou em Excel para preencher: mantenha a coluna Line ID e a folha preenchida é lida com «Ler do Excel». Ou introduza a cotação: preço unitário por linha ou «Não fornece», entrega, desconto, prazo, validade e a referência deles; marque se recusaram cotar. A tabela mostra as cotações lado a lado, com o preço mais baixo de cada linha assinalado e os totais. «Adjudicar» entrega o pedido a um fornecedor e escreve o nome, a referência e os preços nas linhas. A cotação completa mais baixa (a mais barata das que cobrem todas as linhas) é adjudicada diretamente; qualquer outra precisa do motivo, que fica no pedido. Cotações noutra moeda são mostradas, mas não classificadas nem convertidas. A comparação em PDF e Excel é o registo de que a compra foi a concurso, com linhas para as assinaturas. Depois de enviado o pedido, as cotações são só de leitura.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: 'SOPEP',
       body: [
@@ -4253,6 +4301,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Fuel oil changeover', module: 'fuelChange' },
   { title: 'Ozone-depleting substances', module: 'ods' },
   { title: 'APA and budget', module: 'finance' },
+  { title: 'Suppliers and quotations', module: 'suppliers' },
   { title: 'SOPEP', module: 'sopep' },
   { title: 'Board', module: 'board' },
   { title: 'Surveys & audits', module: 'surveys' },

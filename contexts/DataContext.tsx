@@ -42,6 +42,7 @@ import { ItemMovement, LandingReport } from '../types/movement';
 import { OrderGroup, PurchaseOrder } from '../types/orders';
 import { GalleyOrder } from '../types/galley';
 import { ApaEntry, ApaFund, BudgetLine } from '../types/finance';
+import { Supplier } from '../types/suppliers';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
 import { ChecklistTemplate } from '../constants/checklists';
@@ -237,6 +238,8 @@ interface DataContextType {
   apaFunds: ApaFund[];
   apaEntries: ApaEntry[];
   budgetLines: BudgetLine[];
+  /** Supplier directory (types/suppliers.ts). */
+  suppliers: Supplier[];
   /**
    * Every version of an amendable log (services/versions) by storage key. The
    * lists above (fuelReadings, visitors…) hold only the live versions.
@@ -398,6 +401,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [apaFunds, setApaFunds] = useState<ApaFund[]>([]);
   const [apaEntries, setApaEntries] = useState<ApaEntry[]>([]);
   const [budgetLines, setBudgetLines] = useState<BudgetLine[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   // Every version of the logs that can be amended — for the history and the struck-through lines.
   const [versions, setVersions] = useState<Record<string, any[]>>({});
   const versionsOf = useCallback((key: string) => versions[key] ?? [], [versions]);
@@ -522,6 +526,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _apaFunds1 = (await storage.loadList<ApaFund>(storage.APA_FUNDS_KEY)).filter((x) => !x.deleted);
     const _apaEntries1 = await storage.loadList<ApaEntry>(storage.APA_ENTRIES_KEY);
     const _budget1 = await storage.loadList<BudgetLine>(storage.BUDGET_KEY);
+    const _suppliers1 = (await storage.loadList<Supplier>(storage.SUPPLIERS_KEY)).filter((x) => !x.deleted);
     const _versions = Object.fromEntries(await Promise.all(VERSIONED_KEYS.map(async (k) => [k, await storage.loadList<any>(k)] as const)));
     const _templates = await storage.loadTemplates();
     const _signingPolicyState = (await storage.loadSigningPolicy()) ?? DEFAULT_POLICY;
@@ -619,6 +624,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setApaFunds(_apaFunds1);
     setApaEntries(_apaEntries1);
     setBudgetLines(_budget1);
+    setSuppliers(_suppliers1);
     setVersions(_versions);
     setTemplates(_templates);
     setSigningPolicyState(_signingPolicyState);
@@ -861,6 +867,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _apaFunds2 = (await storage.loadList<ApaFund>(storage.APA_FUNDS_KEY)).filter((x) => !x.deleted);
     const _apaEntries2 = await storage.loadList<ApaEntry>(storage.APA_ENTRIES_KEY);
     const _budget2 = await storage.loadList<BudgetLine>(storage.BUDGET_KEY);
+    const _suppliers2 = (await storage.loadList<Supplier>(storage.SUPPLIERS_KEY)).filter((x) => !x.deleted);
     const _versions = Object.fromEntries(await Promise.all(VERSIONED_KEYS.map(async (k) => [k, await storage.loadList<any>(k)] as const)));
     setMachines(_machines);
     setScrappedMachines(_allMachines.filter((m) => m.scrapped));
@@ -948,6 +955,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setApaFunds(_apaFunds2);
     setApaEntries(_apaEntries2);
     setBudgetLines(_budget2);
+    setSuppliers(_suppliers2);
     setVersions(_versions);
   }, []);
 
@@ -1281,6 +1289,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         apaFunds,
         apaEntries,
         budgetLines,
+        suppliers,
         versionsOf,
         saveRow,
         saveRows,

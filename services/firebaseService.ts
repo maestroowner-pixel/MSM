@@ -1338,6 +1338,8 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'apa_funds', key: storage.APA_FUNDS_KEY, module: 'finance', officers: true },
   { sub: 'apa_entries', key: storage.APA_ENTRIES_KEY, appendOnly: true, module: 'finance', officers: true },
   { sub: 'budget', key: storage.BUDGET_KEY, module: 'finance', officers: true },
+  // Supplier directory — the officers keep it; quotes and awards travel on the purchase orders.
+  { sub: 'suppliers', key: storage.SUPPLIERS_KEY, module: 'suppliers' },
 ];
 
 /**

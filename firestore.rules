@@ -735,6 +735,13 @@ service cloud.firestore {
         allow create, update: if isAdmin(v);
         allow delete: if false;
       }
+      // Supplier directory (types/suppliers.ts): read by all, kept by the officers;
+      // a supplier is retired with `deleted`, never removed — orders name them.
+      match /suppliers/{id} {
+        allow read: if reader(v);
+        allow create, update: if isAdmin(v);
+        allow delete: if false;
+      }
       match /purchase_orders/{id} {
         allow read: if reader(v);
         allow create: if isAdmin(v);

@@ -19,7 +19,7 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { useSigner } from '../components/SignerChoice';
 import { SIZES, Palette } from '../theme';
-import { roleAtLeast } from '../types/role';
+import { personName, roleAtLeast } from '../types/role';
 import {
   Delivery, ORDER_DEPTS, ORDER_STATUS_COLOR,
   OrderDept, OrderLine, OrderStatus, PurchaseOrder,
@@ -35,6 +35,9 @@ import { playSuccessSound } from '../utils/sound';
 import { t, tk, tn, useT } from '../utils/i18n';
 import { MciIcon } from '../components/MciIcon';
 import { searchPorts } from '../constants/ports';
+import { moduleOn } from '../constants/modules';
+import { RfqPanel } from '../components/RfqPanel';
+import { findSuppliers } from '../services/rfq';
 
 const CURRENCIES = ['€', '$', '£', '¥'];
 const URGENCY_LEVELS = [
@@ -71,7 +74,7 @@ export default function OrderSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { purchaseOrders, saveRow, vessel } = useData();
+  const { purchaseOrders, saveRow, vessel, suppliers } = useData();
   const sync = useSync();
   const officer = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const { signer, picker } = useSigner();
@@ -108,6 +111,7 @@ export default function OrderSc() {
   const [showPortDrop, setShowPortDrop] = useState(false);
   const [showUrgencyDrop, setShowUrgencyDrop] = useState(false);
   const [currencyPickerFor, setCurrencyPickerFor] = useState<string | null>(null);
+  const [showSupplierDrop, setShowSupplierDrop] = useState(false);
 
   const o = draft ?? stored;
   if (!o) {
@@ -322,13 +326,31 @@ export default function OrderSc() {
           <View style={styles.headerColSupplier}>
             <Label>{t('spp.supplier')}</Label>
             {editable ? (
-              <TextInput
-                style={styles.input}
-                value={(draft ?? o).supplier ?? ''}
-                onChangeText={(v) => set({ supplier: v })}
-                placeholder={t('lr.supplierPh')}
-                placeholderTextColor={COLORS.textLight}
-              />
+              <View>
+                <TextInput
+                  style={styles.input}
+                  value={(draft ?? o).supplier ?? ''}
+                  // Typed by hand — no longer the directory entry it may have been.
+                  onChangeText={(v) => { set({ supplier: v, supplierId: undefined }); setShowSupplierDrop(v.trim().length > 0); }}
+                  onBlur={() => setTimeout(() => setShowSupplierDrop(false), 150)}
+                  placeholder={t('lr.supplierPh')}
+                  placeholderTextColor={COLORS.textLight}
+                />
+                {moduleOn('suppliers') && showSupplierDrop && findSuppliers(suppliers, (draft ?? o).supplier ?? '').length ? (
+                  <View style={styles.portDropdown}>
+                    {findSuppliers(suppliers, (draft ?? o).supplier ?? '').slice(0, 6).map((s) => (
+                      <TouchableOpacity
+                        key={s.id}
+                        style={styles.portOption}
+                        onPress={() => { set({ supplier: s.name, supplierId: s.id }); setShowSupplierDrop(false); }}
+                      >
+                        <MciIcon name="truck-outline" size={13} color={COLORS.textLight} style={{ marginRight: 6 }} />
+                        <Text style={styles.portOptionText}>{s.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : null}
+              </View>
             ) : o.supplier ? (
               <Text style={styles.fieldVal}>{o.supplier}</Text>
             ) : (
@@ -765,6 +787,15 @@ export default function OrderSc() {
         <Text style={styles.total}>{t('po.total', { sum: `${o.lines.find((l) => l.currency)?.currency ?? '€'} ${val.toFixed(2)}` })}</Text>
       ) : null}
 
+      {/* Quotations — once the order is saved; editable until it is sent */}
+      {moduleOn('suppliers') && !isNew && !draft && !receiving ? (
+        <RfqPanel
+          o={o}
+          editable={officer && (o.status === 'draft' || o.status === 'standby')}
+          by={signer?.name || (sync.me ? personName(sync.me) : 'Officer')}
+        />
+      ) : null}
+
       {/* Signer */}
       {officer && picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
 
@@ -1044,6 +1075,7 @@ const makeStyles = (COLORS: Palette) =>
       gap: SIZES.sm,
       marginTop: SIZES.sm,
       alignItems: 'flex-start',
+      zIndex: 30,
     },
     headerColDate: {
       flex: 1,
@@ -1052,6 +1084,7 @@ const makeStyles = (COLORS: Palette) =>
     headerColSupplier: {
       flex: 1.6,
       minWidth: 0,
+      zIndex: 30,
     },
     headerColRef: {
       flex: 1,

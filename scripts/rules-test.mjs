@@ -151,6 +151,10 @@ await t(false, 'Crew cannot write the budget', setDoc(R(crew, 'budget', '2026:ga
 await t(true, 'The shore reads the APA', getDoc(R(shore, 'apa_entries', 'ap1')));
 await t(false, 'The shore cannot write the APA', setDoc(R(shore, 'apa_entries', 'ap2'), { id: 'ap2' }));
 await t(true, 'Officer sets the budget', setDoc(R(officer, 'budget', '2026:galley'), { id: '2026:galley', year: 2026, centre: 'galley', amount: 20000, currency: 'EUR' }));
+await t(true, 'Officer adds a supplier', setDoc(R(officer, 'suppliers', 'sup1'), { id: 'sup1', name: 'Marine Parts Ltd' }));
+await t(true, 'Crew reads the suppliers', getDoc(R(crew, 'suppliers', 'sup1')));
+await t(false, 'Crew cannot change a supplier', setDoc(R(crew, 'suppliers', 'sup1'), { id: 'sup1', name: 'Mine' }));
+await t(false, 'A supplier is never deleted', deleteDoc(R(officer, 'suppliers', 'sup1')));
 await t(true, 'Officer records an ODS entry', setDoc(R(officer, 'ods', 'o1'), { id: 'o1', code: 'PART' }));
 await t(false, 'An ODS entry cannot be amended by an Officer', setDoc(R(officer, 'ods', 'o2'), { id: 'o2', supersedes: 'o1' }));
 await t(false, 'An Officer cannot sign the ODS month', setDoc(R(officer, 'ods_signs', 'ods_2026-10'), { id: 'ods_2026-10' }));

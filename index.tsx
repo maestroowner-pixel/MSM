@@ -125,6 +125,9 @@ import OrdersSc from './screens/OrdersSc';
 import FinanceSc from './screens/FinanceSc';
 import OrderSc from './screens/OrderSc';
 import OrderGroupSc from './screens/OrderGroupSc';
+import SuppliersSc from './screens/SuppliersSc';
+import SupplierSc from './screens/SupplierSc';
+import QuoteSc from './screens/QuoteSc';
 import GalleyOrdersSc from './screens/GalleyOrdersSc';
 import GalleyOrderSc from './screens/GalleyOrderSc';
 import PermitSc from './screens/PermitSc';
@@ -506,6 +509,9 @@ const linking = {
       MedOrder: 'medical-order/:id',
       MedCount: 'medical-inventory/:id',
       Order: 'order/:id',
+      Suppliers: 'suppliers',
+      Supplier: 'supplier/:id',
+      Quote: 'order/:po/quote/:id',
       MedLanding: 'medical-landing/:id',
       SparePart: 'spare/:id',
       Doc: 'document/:id',
@@ -756,6 +762,9 @@ function Root() {
         <Stack.Screen name="MedCount" component={MedCountSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Order" component={OrderSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="OrderGroup" component={OrderGroupSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Suppliers" component={SuppliersSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Supplier" component={SupplierSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Quote" component={QuoteSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="GalleyOrders" component={GalleyOrdersSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="GalleyOrder" component={GalleyOrderSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="MedLanding" component={MedLandingSc} options={{ presentation: 'modal' }} />

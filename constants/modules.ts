@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -197,6 +197,15 @@ export const MODULES: Record<ModuleKey, boolean> = {
    */
   // Released in 2.69.
   finance: true,
+  /**
+   * Suppliers and quotations — a supplier directory with each supplier's record
+   * (quotes won, replies, deliveries on time, last prices) and, on a purchase order,
+   * a request for quotation to several suppliers, their quotes compared line by line
+   * and the order awarded, with a reason when not to the cheapest (services/rfq.ts,
+   * 27 Oct 2026). Needs `npm run deploy:rules` first (suppliers).
+   */
+  // Released in 2.69.
+  suppliers: true,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------

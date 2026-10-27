@@ -108,6 +108,57 @@ export interface OrderGroup {
   updatedAt: number;
 }
 
+/**
+ * A supplier's answer to the request for quotation (screens/QuoteSc, services/rfq.ts).
+ * One per supplier asked; `receivedAt` empty = asked, no answer yet.
+ */
+export interface Quote {
+  id: string;
+  /** Name snapshot; `supplierId` links the directory (types/suppliers.ts) and may dangle. */
+  supplier: string;
+  supplierId?: string;
+  /** yyyy-mm-dd the request went to them. */
+  askedAt: string;
+  /** yyyy-mm-dd their quote came in. */
+  receivedAt?: string;
+  /** They answered that they will not quote. */
+  declined?: boolean;
+  /** ISO code (EUR, USD…) — quotes in different currencies are not ranked against each other. */
+  currency: string;
+  /** Unit price per order line id. */
+  prices: Record<string, number>;
+  /** Line ids they cannot supply. */
+  unavailable?: string[];
+  /** Delivery / freight charge for the whole order. */
+  delivery?: number;
+  /** Discount on the goods, per cent. */
+  discountPct?: number;
+  /** Days from order to delivery aboard. */
+  leadDays?: number;
+  /** yyyy-mm-dd the prices hold until. */
+  validUntil?: string;
+  /** Their quotation number. */
+  ref?: string;
+  notes?: string;
+}
+
+/** Who won the quotation and why — kept on the order for the audit. */
+export interface Award {
+  quoteId: string;
+  supplier: string;
+  /** yyyy-mm-dd */
+  at: string;
+  by: string;
+  total: number;
+  currency: string;
+  /** It was the lowest complete quote in its currency. */
+  cheapest: boolean;
+  /** Complete quotes compared. */
+  compared: number;
+  /** Required when it was not the cheapest. */
+  reason?: string;
+}
+
 export interface PurchaseOrder {
   id: string;
   /** Sequential: PO-2026-001 */
@@ -139,6 +190,13 @@ export interface PurchaseOrder {
   /** Port or place of delivery */
   deliveryPort?: string;
   urgency?: 'routine' | 'urgent' | 'emergency';
+  /** The directory entry of `supplier`, when chosen from it (types/suppliers.ts). */
+  supplierId?: string;
+  /** Request for quotation: suppliers asked and their answers, then the choice. */
+  quotes?: Quote[];
+  /** yyyy-mm-dd quotes are wanted by. */
+  quoteBy?: string;
+  award?: Award;
   deleted?: boolean;
   /** Epoch ms */
   at: number;
