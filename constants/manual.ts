@@ -489,6 +489,14 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '💶',
+      title: "APA and budget",
+      body: [
+        "APA & budget (in the menu) is kept by the officers and the Master. A fund is one pot of money the vessel spends from and accounts for — the owner's account, or a charter's Advance Provisioning Allowance — in its own currency; name it without any guest's name. Record money in, and each payment with the date, the amount, the cost centre, the supplier, how it was paid, the receipt number and a photo of the receipt; a payment in another currency is entered with its exchange rate. The balance and the spending by cost centre are on top. An entry is never edited: a mistake is reversed with the reason, and both lines stay on the statement. Statement: a period as PDF for the owner (opening balance, every entry with the running balance, spending by cost centre, lines for the signatures) or as Excel for the accountant. Close a charter's fund once it is settled.",
+        "Budget tab: the year's budget for each cost centre, in one currency, typed into the line. Spent = payments from the APA plus what was received on purchase orders; committed = what is still to come on orders already sent; left = budget − spent − committed, red when over. A payment that names the purchase order it paid counts once. An order line's Budget field can name the cost centre; otherwise the order's department decides (Accommodation → Interior). Amounts in another currency are not converted by guesswork — the screen says how many were left out. PDF and Excel.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: "SOPEP",
       body: [
@@ -1200,6 +1208,14 @@ const ru: ManualContent = {
       body: [
         "Журнал озоноразрушающих веществ (MARPOL Annex VI, правило 12.6): полная и частичная заправка оборудования, содержащего ОРВ, ремонт или обслуживание, преднамеренный и непреднамеренный выброс в атмосферу, сдача на береговое приёмное сооружение, получение ОРВ на судно — каждая запись с оборудованием, веществом (R-22, Halon 1301 …) и массой в килограммах.",
         "Преднамеренные выбросы запрещены (правило 12.2): такую запись, как и утечку, можно подписать только с обстоятельствами в примечаниях. Подписи, подтверждение Мастера, исправления только Мастером, печать, PDF и Excel — как в других журналах.",
+      ],
+    },
+    {
+      emoji: '💶',
+      title: "APA и бюджет",
+      body: [
+        "APA и бюджет (в меню) ведут офицеры и Мастер. Фонд — это деньги, из которых судно платит и за которые отчитывается: счёт владельца или APA (Advance Provisioning Allowance) чартера, в своей валюте; называйте его без имён гостей. Записывайте поступления и каждый платёж: дата, сумма, статья расходов, поставщик, способ оплаты, номер чека и фото чека; платёж в другой валюте вводится с курсом. Сверху — баланс и расходы по статьям. Запись никогда не правится: ошибка сторнируется с причиной, и обе строки остаются в выписке. Выписка: период в PDF для владельца (входящий остаток, все записи с текущим остатком, расходы по статьям, строки для подписей) или в Excel для бухгалтера. Фонд чартера закройте, когда расчёт завершён.",
+        "Вкладка «Бюджет»: бюджет года по каждой статье, в одной валюте, вводится прямо в строке. Потрачено = платежи из APA плюс полученное по заявкам; обязательства = то, что ещё придёт по уже отправленным заявкам; остаток = бюджет − потрачено − обязательства, красным при превышении. Платёж, в котором указана оплаченная заявка, считается один раз. Поле «Budget» в строке заявки может указать статью; иначе статью определяет отдел заявки (Accommodation → Интерьер). Суммы в другой валюте наугад не пересчитываются — экран показывает, сколько их не учтено. PDF и Excel.",
       ],
     },
     {
@@ -1917,6 +1933,14 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '💶',
+      title: "APA y presupuesto",
+      body: [
+        "APA y presupuesto (en el menú) lo llevan los oficiales y el Capitán. Un fondo es el dinero del que paga el buque y del que rinde cuentas: la cuenta del armador o el APA (Advance Provisioning Allowance) de un chárter, en su propia moneda; nómbrelo sin nombres de invitados. Registre los ingresos y cada pago con la fecha, el importe, el centro de coste, el proveedor, la forma de pago, el número de recibo y una foto del recibo; un pago en otra moneda se introduce con su tipo de cambio. Arriba están el saldo y el gasto por centro de coste. Un asiento nunca se edita: un error se anula con el motivo y ambas líneas quedan en el extracto. Extracto: un periodo en PDF para el armador (saldo inicial, cada asiento con el saldo acumulado, gasto por centro de coste, líneas para las firmas) o en Excel para el contable. Cierre el fondo de un chárter cuando esté liquidado.",
+        "Pestaña Presupuesto: el presupuesto del año para cada centro de coste, en una moneda, escrito en la línea. Gastado = pagos del APA más lo recibido en pedidos de compra; comprometido = lo que aún falta por llegar de pedidos ya enviados; disponible = presupuesto − gastado − comprometido, en rojo si se supera. Un pago que indica el pedido que pagó cuenta una vez. El campo «Budget» de una línea de pedido puede indicar el centro de coste; si no, decide el departamento del pedido (Accommodation → Interior). Los importes en otra moneda no se convierten a ojo: la pantalla dice cuántos quedaron fuera. PDF y Excel.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: "SOPEP",
       body: [
@@ -2631,6 +2655,14 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '💶',
+      title: "APA і бюджет",
+      body: [
+        "APA і бюджет (у меню) ведуть офіцери і Майстер. Фонд — це гроші, з яких судно платить і за які звітує: рахунок власника або APA (Advance Provisioning Allowance) чартеру, у власній валюті; називайте його без імен гостей. Записуйте надходження і кожен платіж: дата, сума, стаття витрат, постачальник, спосіб оплати, номер чека і фото чека; платіж в іншій валюті вводиться з курсом. Угорі — баланс і витрати за статтями. Запис ніколи не редагується: помилка сторнується з причиною, і обидва рядки залишаються у виписці. Виписка: період у PDF для власника (вхідний залишок, усі записи з поточним залишком, витрати за статтями, рядки для підписів) або в Excel для бухгалтера. Фонд чартеру закрийте, коли розрахунок завершено.",
+        "Вкладка «Бюджет»: бюджет року за кожною статтею, в одній валюті, вводиться просто в рядку. Витрачено = платежі з APA плюс отримане за заявками; зобов’язання = те, що ще надійде за вже відправленими заявками; залишок = бюджет − витрачено − зобов’язання, червоним при перевищенні. Платіж, у якому вказано оплачену заявку, рахується один раз. Поле «Budget» у рядку заявки може вказати статтю; інакше статтю визначає відділ заявки (Accommodation → Інтер’єр). Суми в іншій валюті навмання не перераховуються — екран показує, скільки їх не враховано. PDF і Excel.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: "SOPEP",
       body: [
@@ -3310,6 +3342,14 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '💶',
+      title: "APA og budsjett",
+      body: [
+        "APA og budsjett (i menyen) føres av offiserene og kapteinen. Et fond er pengene fartøyet betaler fra og står til regnskap for — eierens konto eller et charters APA (Advance Provisioning Allowance) — i sin egen valuta; gi det navn uten gjestenavn. Før innbetalinger, og hver betaling med dato, beløp, kostnadssted, leverandør, betalingsmåte, kvitteringsnummer og bilde av kvitteringen; en betaling i annen valuta føres med valutakursen. Saldoen og forbruket per kostnadssted står øverst. En postering endres aldri: en feil reverseres med grunn, og begge linjene blir stående på kontoutskriften. Kontoutskrift: en periode som PDF til eieren (inngående saldo, hver postering med løpende saldo, forbruk per kostnadssted, linjer for signaturer) eller som Excel til regnskapsføreren. Lukk et charterfond når det er gjort opp.",
+        "Fanen Budsjett: årets budsjett per kostnadssted, i én valuta, skrevet inn på linjen. Brukt = betalinger fra APA pluss det som er mottatt på innkjøpsordrer; forpliktet = det som gjenstår på ordrer som er sendt; igjen = budsjett − brukt − forpliktet, rødt ved overskridelse. En betaling som angir ordren den betalte, telles én gang. Feltet «Budget» på en ordrelinje kan angi kostnadsstedet; ellers avgjør ordrens avdeling (Accommodation → Interiør). Beløp i annen valuta regnes ikke om på gjetning — skjermen viser hvor mange som er utelatt. PDF og Excel.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: 'SOPEP',
       body: [
@@ -3948,6 +3988,14 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '💶',
+      title: "APA e orçamento",
+      body: [
+        "APA e orçamento (no menu) é mantido pelos oficiais e pelo Comandante. Um fundo é o dinheiro de que o navio paga e de que presta contas — a conta do armador ou o APA (Advance Provisioning Allowance) de um charter — na sua própria moeda; dê-lhe um nome sem nomes de hóspedes. Registe as entradas e cada pagamento com a data, o valor, o centro de custo, o fornecedor, a forma de pagamento, o número do recibo e uma foto do recibo; um pagamento noutra moeda é registado com o câmbio. O saldo e os gastos por centro de custo estão no topo. Um lançamento nunca é editado: um erro é estornado com o motivo e ambas as linhas ficam no extrato. Extrato: um período em PDF para o armador (saldo inicial, cada lançamento com o saldo corrente, gastos por centro de custo, linhas para as assinaturas) ou em Excel para o contabilista. Feche o fundo de um charter quando estiver liquidado.",
+        "Separador Orçamento: o orçamento do ano para cada centro de custo, numa moeda, escrito na linha. Gasto = pagamentos do APA mais o recebido em pedidos de compra; comprometido = o que ainda falta chegar de pedidos já enviados; disponível = orçamento − gasto − comprometido, a vermelho quando ultrapassado. Um pagamento que indica o pedido que pagou conta uma vez. O campo «Budget» de uma linha do pedido pode indicar o centro de custo; caso contrário decide o departamento do pedido (Accommodation → Interior). Valores noutra moeda não são convertidos a olho — o ecrã diz quantos ficaram de fora. PDF e Excel.",
+      ],
+    },
+    {
       emoji: '🛢️',
       title: 'SOPEP',
       body: [
@@ -4204,6 +4252,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Ballast water', module: 'ballast' },
   { title: 'Fuel oil changeover', module: 'fuelChange' },
   { title: 'Ozone-depleting substances', module: 'ods' },
+  { title: 'APA and budget', module: 'finance' },
   { title: 'SOPEP', module: 'sopep' },
   { title: 'Board', module: 'board' },
   { title: 'Surveys & audits', module: 'surveys' },

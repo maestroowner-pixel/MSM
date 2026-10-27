@@ -102,6 +102,14 @@ app mirrors. Bundle id `com.kukalab.msm`.
   reg. 14.6): IN / ENTER / EXIT / OUT per ECA (`method` = the ECA) + EU berth BERTH / DEPART; > 0.10 % S
   signs only with a reason in the remarks. ODS (reg. 12.6): by MASS in kg (`mass`, not `quantity`).
   Firestore `fuel_changeover(_signs)`, `ods(_signs)` — need `npm run deploy:rules`. `npm run check:logbooks`.
+- **Finance: APA and budget** (27 Oct 2026 — flag `finance`, on from 2.69): `screens/FinanceSc` (route `Finance`),
+  `types/finance.ts`, pure maths in `services/finance.ts`, PDF/Excel in `services/financeReport.ts`. A fund
+  (owner's account / charter APA) has its currency; entries are APPEND-ONLY — a mistake is a reversing
+  entry (`reverses`), both stay on the statement. Budget per cost centre per year: spent = APA payments +
+  received PO lines, committed = rest of sent/partial POs; a PO named by an APA payment (`poId`) counts
+  once; amounts in another currency are skipped and counted, never converted by guess. PO line currency
+  is a symbol (€ $ £ ¥) → `isoCurrency()`. Officers + Master only (`officers: true`, rules `isAdmin`),
+  shore reads. Firestore `apa_funds`, `apa_entries`, `budget` — need `npm run deploy:rules`. `npm run check:finance`.
 - **Record books: seals, chain, signed copy** (25 Oct 2026, stage 2 — `services/seal.ts`,
   `services/signKeys.ts`, `services/bookAccess.ts`, `services/signedCopy.ts`, `npm run check:seal`).
   Every signer has an ECDSA P-256 key per device (`@noble/curves`, pure JS; randomness from

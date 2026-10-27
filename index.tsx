@@ -122,6 +122,7 @@ import MedLandingSc from './screens/MedLandingSc';
 import RoundsSc from './screens/RoundsSc';
 import RoundSc from './screens/RoundSc';
 import OrdersSc from './screens/OrdersSc';
+import FinanceSc from './screens/FinanceSc';
 import OrderSc from './screens/OrderSc';
 import OrderGroupSc from './screens/OrderGroupSc';
 import GalleyOrdersSc from './screens/GalleyOrdersSc';
@@ -181,6 +182,7 @@ const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Stores: StoresSc,
   Rounds: RoundsSc,
   Orders: OrdersSc,
+  Finance: FinanceSc,
   DeckLog: DeckLogSc,
   WatchLog: WatchLogSc,
   Gmdss: GmdssSc,
@@ -452,6 +454,7 @@ const linking = {
           Stores: 'stores',
           Rounds: 'rounds',
           Orders: 'orders',
+          Finance: 'finance',
           DeckLog: 'deck-log',
           WatchLog: 'watch-log',
           Gmdss: 'gmdss-log',

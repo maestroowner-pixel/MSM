@@ -33,6 +33,7 @@ import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
 import { OrbEntry, OrbMasterSign } from '../types/orb';
 import type { SignKeyRec } from './seal';
 import type { BookAccess } from './bookAccess';
+import { ApaEntry, ApaFund, BudgetLine } from '../types/finance';
 import { LogEntry, LogMonthSign } from '../types/logbook';
 import { InspectionRound } from '../types/round';
 import { SopepCheck, SopepDrill, SopepItem, SopepLocker } from '../types/sopep';
@@ -115,6 +116,8 @@ export interface BackupFile {
   dp?: { checks: DpCheck[]; days: DpDay[]; info: DpInfo[]; templates: DpTemplate[] };
   stores?: { items: StoreItem[]; moves: StoreMove[]; rooms?: StoreRoom[] };
   security?: { visitors: Visitor[]; levels: SecurityLevelRec[]; drills?: SecurityDrill[]; crewMoves?: CrewMove[]; ssp?: OfficerDoc[]; searchPlan?: SearchPlan[]; searches?: SecuritySearch[]; checkpoints?: Checkpoint[]; patrolPlans?: PatrolPlan[]; patrols?: Patrol[]; keys?: KeyItem[]; keyMoves?: KeyMove[] };
+  /** Finance: APA funds and entries, budget lines. */
+  finance?: { funds: ApaFund[]; entries: ApaEntry[]; budget: BudgetLine[] };
   files?: Record<string, string>; // basename -> base64 of the file contents
 }
 
@@ -239,6 +242,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   const ods = { entries: await storage.loadList<LogEntry>(storage.ODS_KEY), signs: await storage.loadList<LogMonthSign>(storage.ODS_SIGNS_KEY) };
   const orb = { entries: await storage.loadList<OrbEntry>(storage.ORB_KEY), signs: await storage.loadList<OrbMasterSign>(storage.ORB_SIGNS_KEY) };
   const signKeys = await storage.loadList<SignKeyRec>(storage.SIGN_KEYS_KEY);
+  const finance = { funds: await storage.loadList<ApaFund>(storage.APA_FUNDS_KEY), entries: await storage.loadList<ApaEntry>(storage.APA_ENTRIES_KEY), budget: await storage.loadList<BudgetLine>(storage.BUDGET_KEY) };
   const bookAccess = await storage.loadList<BookAccess>(storage.BOOK_ACCESS_KEY);
   const garbage = { entries: await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY), signs: await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY) };
   const qhse = { observations: await storage.loadList<SafetyObservation>(storage.OBSERVATIONS_KEY), ncs: await storage.loadList<NonConformity>(storage.NCS_KEY) };
@@ -292,6 +296,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     ballast,
     fuelChange,
     ods,
+    finance,
     sopep,
     security,
     surveys,
@@ -501,6 +506,11 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
   if (backup.ods) {
     await storage.saveList(storage.ODS_KEY, backup.ods.entries ?? []);
     await storage.saveList(storage.ODS_SIGNS_KEY, backup.ods.signs ?? []);
+  }
+  if (backup.finance) {
+    await storage.saveList(storage.APA_FUNDS_KEY, backup.finance.funds ?? []);
+    await storage.saveList(storage.APA_ENTRIES_KEY, backup.finance.entries ?? []);
+    await storage.saveList(storage.BUDGET_KEY, backup.finance.budget ?? []);
   }
   // Union, not replace: a key or an access line is never taken away.
   for (const [key, rows] of [[storage.SIGN_KEYS_KEY, backup.signKeys], [storage.BOOK_ACCESS_KEY, backup.bookAccess]] as const) {

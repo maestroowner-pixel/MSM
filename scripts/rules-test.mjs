@@ -143,6 +143,14 @@ await t(false, 'An Officer cannot sign the sewage month', setDoc(R(officer, 'sew
 await t(true, 'Officer records a fuel changeover', setDoc(R(officer, 'fuel_changeover', 'f1'), { id: 'f1', code: 'IN' }));
 await t(false, 'A fuel changeover entry is never rewritten', setDoc(R(officer, 'fuel_changeover', 'f1'), { id: 'f1', code: 'OUT' }));
 await t(false, 'An Officer cannot sign the fuel changeover month', setDoc(R(officer, 'fuel_changeover_signs', 'fuelChange_2026-10'), { id: 'fuelChange_2026-10' }));
+await t(true, 'Officer opens an APA fund', setDoc(R(officer, 'apa_funds', 'fd1'), { id: 'fd1', name: 'Charter Jul', currency: 'EUR', opened: '2026-07-01' }));
+await t(true, 'Officer records an APA payment', setDoc(R(officer, 'apa_entries', 'ap1'), { id: 'ap1', fundId: 'fd1', kind: 'out', amount: 120, currency: 'EUR' }));
+await t(false, 'An APA entry is never rewritten', setDoc(R(officer, 'apa_entries', 'ap1'), { id: 'ap1', fundId: 'fd1', kind: 'out', amount: 12, currency: 'EUR' }));
+await t(false, 'Crew cannot read the APA', getDoc(R(crew, 'apa_entries', 'ap1')));
+await t(false, 'Crew cannot write the budget', setDoc(R(crew, 'budget', '2026:galley'), { id: '2026:galley', amount: 1 }));
+await t(true, 'The shore reads the APA', getDoc(R(shore, 'apa_entries', 'ap1')));
+await t(false, 'The shore cannot write the APA', setDoc(R(shore, 'apa_entries', 'ap2'), { id: 'ap2' }));
+await t(true, 'Officer sets the budget', setDoc(R(officer, 'budget', '2026:galley'), { id: '2026:galley', year: 2026, centre: 'galley', amount: 20000, currency: 'EUR' }));
 await t(true, 'Officer records an ODS entry', setDoc(R(officer, 'ods', 'o1'), { id: 'o1', code: 'PART' }));
 await t(false, 'An ODS entry cannot be amended by an Officer', setDoc(R(officer, 'ods', 'o2'), { id: 'o2', supersedes: 'o1' }));
 await t(false, 'An Officer cannot sign the ODS month', setDoc(R(officer, 'ods_signs', 'ods_2026-10'), { id: 'ods_2026-10' }));

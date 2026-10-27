@@ -717,6 +717,24 @@ service cloud.firestore {
 
       // Purchase orders — any officer may raise and update; received/cancelled orders
       // keep the record but cannot be changed further. Crew may read (to see what was ordered).
+      // Finance (types/finance.ts): the officers and the Master keep the APA and
+      // the budget; the shore reads them. An APA entry is written once — a
+      // mistake is taken out by a reversing entry, so a statement stays true.
+      match /apa_funds/{id} {
+        allow read: if isAdmin(v) || shore(v);
+        allow create, update: if isAdmin(v);
+        allow delete: if false;
+      }
+      match /apa_entries/{id} {
+        allow read: if isAdmin(v) || shore(v);
+        allow create: if isAdmin(v);
+        allow update, delete: if false;
+      }
+      match /budget/{id} {
+        allow read: if isAdmin(v) || shore(v);
+        allow create, update: if isAdmin(v);
+        allow delete: if false;
+      }
       match /purchase_orders/{id} {
         allow read: if reader(v);
         allow create: if isAdmin(v);

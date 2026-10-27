@@ -118,6 +118,10 @@ export const PURCHASE_ORDERS_KEY = `${PREFIX}purchase_orders`;
 export const ORDER_GROUPS_KEY = `${PREFIX}order_groups`;
 /** Galley (food & beverage) purchase orders — separate type from department POs. */
 export const GALLEY_ORDERS_KEY = `${PREFIX}galley_orders`;
+/** Finance (types/finance.ts): APA funds, their entries (written once), the budget lines. */
+export const APA_FUNDS_KEY = `${PREFIX}apa_funds`;
+export const APA_ENTRIES_KEY = `${PREFIX}apa_entries`;
+export const BUDGET_KEY = `${PREFIX}budget`;
 /**
  * CATEGORY BUCKETS THIS BUILD DOES NOT KNOW ABOUT — the keys, not the items.
  *
@@ -815,6 +819,9 @@ export async function resetAllData(): Promise<void> {
     PATROLS_KEY,
     KEYS_KEY,
     KEY_MOVES_KEY,
+    APA_FUNDS_KEY,
+    APA_ENTRIES_KEY,
+    BUDGET_KEY,
     'msm:patrol_live', // services/patrolLive.ts — a round under way on this device
     'msm:crew_photos', // services/crewPhotos.ts — ID card photos, this device only
     DRILL_PLANS_KEY,

@@ -1334,6 +1334,10 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'med_treatments', key: storage.MED_TREATMENTS_KEY, module: 'hospital', officers: true, toCloud: treatmentToCloud, fromCloud: treatmentFromCloud, resend: 'mask1' },
   // Purchase orders / requisitions — raised aboard, received aboard.
   { sub: 'purchase_orders', key: storage.PURCHASE_ORDERS_KEY, module: 'orders' },
+  // Finance: the officers and the Master only; an APA entry is written once (a mistake is reversed).
+  { sub: 'apa_funds', key: storage.APA_FUNDS_KEY, module: 'finance', officers: true },
+  { sub: 'apa_entries', key: storage.APA_ENTRIES_KEY, appendOnly: true, module: 'finance', officers: true },
+  { sub: 'budget', key: storage.BUDGET_KEY, module: 'finance', officers: true },
 ];
 
 /**

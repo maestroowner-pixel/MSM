@@ -41,6 +41,7 @@ import { InternalAudit } from '../types/audit';
 import { ItemMovement, LandingReport } from '../types/movement';
 import { OrderGroup, PurchaseOrder } from '../types/orders';
 import { GalleyOrder } from '../types/galley';
+import { ApaEntry, ApaFund, BudgetLine } from '../types/finance';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
 import { ChecklistTemplate } from '../constants/checklists';
@@ -232,6 +233,10 @@ interface DataContextType {
   orderGroups: OrderGroup[];
   /** Galley (food & beverage) purchase orders. */
   galleyOrders: GalleyOrder[];
+  /** Finance (types/finance.ts): APA funds, their entries, the budget lines. */
+  apaFunds: ApaFund[];
+  apaEntries: ApaEntry[];
+  budgetLines: BudgetLine[];
   /**
    * Every version of an amendable log (services/versions) by storage key. The
    * lists above (fuelReadings, visitors…) hold only the live versions.
@@ -390,6 +395,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [orderGroups, setOrderGroups] = useState<OrderGroup[]>([]);
   const [galleyOrders, setGalleyOrders] = useState<GalleyOrder[]>([]);
+  const [apaFunds, setApaFunds] = useState<ApaFund[]>([]);
+  const [apaEntries, setApaEntries] = useState<ApaEntry[]>([]);
+  const [budgetLines, setBudgetLines] = useState<BudgetLine[]>([]);
   // Every version of the logs that can be amended — for the history and the struck-through lines.
   const [versions, setVersions] = useState<Record<string, any[]>>({});
   const versionsOf = useCallback((key: string) => versions[key] ?? [], [versions]);
@@ -511,6 +519,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _purchaseOrders = (await storage.loadList<PurchaseOrder>(storage.PURCHASE_ORDERS_KEY)).filter((x) => !x.deleted);
     const _orderGroups1 = (await storage.loadList<OrderGroup>(storage.ORDER_GROUPS_KEY)).filter((x) => !x.deleted);
     const _galleyOrders1 = (await storage.loadList<GalleyOrder>(storage.GALLEY_ORDERS_KEY)).filter((x) => !x.deleted);
+    const _apaFunds1 = (await storage.loadList<ApaFund>(storage.APA_FUNDS_KEY)).filter((x) => !x.deleted);
+    const _apaEntries1 = await storage.loadList<ApaEntry>(storage.APA_ENTRIES_KEY);
+    const _budget1 = await storage.loadList<BudgetLine>(storage.BUDGET_KEY);
     const _versions = Object.fromEntries(await Promise.all(VERSIONED_KEYS.map(async (k) => [k, await storage.loadList<any>(k)] as const)));
     const _templates = await storage.loadTemplates();
     const _signingPolicyState = (await storage.loadSigningPolicy()) ?? DEFAULT_POLICY;
@@ -605,6 +616,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setPurchaseOrders(_purchaseOrders);
     setOrderGroups(_orderGroups1);
     setGalleyOrders(_galleyOrders1);
+    setApaFunds(_apaFunds1);
+    setApaEntries(_apaEntries1);
+    setBudgetLines(_budget1);
     setVersions(_versions);
     setTemplates(_templates);
     setSigningPolicyState(_signingPolicyState);
@@ -844,6 +858,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _purchaseOrders = (await storage.loadList<PurchaseOrder>(storage.PURCHASE_ORDERS_KEY)).filter((x) => !x.deleted);
     const _orderGroups2 = (await storage.loadList<OrderGroup>(storage.ORDER_GROUPS_KEY)).filter((x) => !x.deleted);
     const _galleyOrders2 = (await storage.loadList<GalleyOrder>(storage.GALLEY_ORDERS_KEY)).filter((x) => !x.deleted);
+    const _apaFunds2 = (await storage.loadList<ApaFund>(storage.APA_FUNDS_KEY)).filter((x) => !x.deleted);
+    const _apaEntries2 = await storage.loadList<ApaEntry>(storage.APA_ENTRIES_KEY);
+    const _budget2 = await storage.loadList<BudgetLine>(storage.BUDGET_KEY);
     const _versions = Object.fromEntries(await Promise.all(VERSIONED_KEYS.map(async (k) => [k, await storage.loadList<any>(k)] as const)));
     setMachines(_machines);
     setScrappedMachines(_allMachines.filter((m) => m.scrapped));
@@ -928,6 +945,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setPurchaseOrders(_purchaseOrders);
     setOrderGroups(_orderGroups2);
     setGalleyOrders(_galleyOrders2);
+    setApaFunds(_apaFunds2);
+    setApaEntries(_apaEntries2);
+    setBudgetLines(_budget2);
     setVersions(_versions);
   }, []);
 
@@ -1258,6 +1278,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         purchaseOrders,
         orderGroups,
         galleyOrders,
+        apaFunds,
+        apaEntries,
+        budgetLines,
         versionsOf,
         saveRow,
         saveRows,
