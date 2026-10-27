@@ -913,6 +913,7 @@ export const pt: UiDict = {
   "trial.left": "Teste gratuito · faltam {days}",
   "trial.endedSub": "O teste terminou em {date}. Assine para continuar adicionando itens e certificados.",
   "trial.sub": "Termina em {date} · depois {price}/ano por navio. Toque para mudar para o Pro.",
+  "trial.subStore": "Termina a {date} · depois, a licença do navio. Toque para introduzir a chave.",
   "trial.upgrade": "Assinar",
   "pin.title": "O PIN do Comandante ainda é 0000",
   "pin.sub": "Altere-o neste dispositivo — até lá qualquer pessoa pode definir ou alterar o PIN de assinatura de um tripulante. Crew matrix → 🔒 Master PIN.",

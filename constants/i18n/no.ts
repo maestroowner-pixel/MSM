@@ -913,6 +913,7 @@ export const no: UiDict = {
   "trial.left": "Gratis prøveperiode · {days} igjen",
   "trial.endedSub": "Prøveperioden endte {date}. Abonner for å fortsette å legge til utstyr og sertifikater.",
   "trial.sub": "Slutter {date} · deretter {price}/år per fartøy. Trykk for å oppgradere til Pro.",
+  "trial.subStore": "Slutter {date} · deretter fartøyets lisens. Trykk for lisensnøkkelen.",
   "trial.upgrade": "Oppgrader",
   "pin.title": "Master-PIN er fortsatt 0000",
   "pin.sub": "Endre den på denne enheten — inntil da kan hvem som helst sette eller endre et besetningsmedlems signerings-PIN. Crew matrix → 🔒 Master PIN.",

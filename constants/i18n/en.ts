@@ -922,6 +922,7 @@ export const en = {
   "trial.left": "Free trial · {days} left",
   "trial.endedSub": "Trial ended {date}. Subscribe to keep adding items & certificates.",
   "trial.sub": "Ends {date} · then {price}/year per vessel. Tap to upgrade to Pro.",
+  "trial.subStore": "Ends {date} · then the vessel's licence. Tap for the licence key.",
   "trial.upgrade": "Upgrade",
   "pin.title": "The Master PIN is still 0000",
   "pin.sub": "Change it on this device — until then anyone can set or change a crew member’s signing PIN. Crew matrix → 🔒 Master PIN.",
