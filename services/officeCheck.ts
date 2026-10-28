@@ -12,12 +12,21 @@
 // anything sees no "awaiting the office" notices — the first verification or
 // return is what shows the office is in the loop.
 //
+// A deferral of a PMS job (plan item 32) goes the same way: signed by the
+// Master, it holds at once — the vessel cannot wait for office hours — and the
+// office APPROVES it or REFUSES it with the reason; a refused deferral holds no
+// longer, so the job's own due date is back (services/pms activeDeferral). The
+// Master may defer again, which is a new request. Critical equipment is still
+// never deferred.
+//
 // Also here: the Board's order for open defects — criticality × age, so a
 // month-old class defect stands above yesterday's operational one.
 // ===================================
 
-import type { PmsDefect, DefectCategory } from '../types/pms';
+import type { PmsDefect, DefectCategory, PmsDeferral } from '../types/pms';
 import type { NonConformity } from '../types/safety';
+import type { PmsJob } from '../types/pms';
+import { jobCycle } from './pms';
 
 export interface OfficeCheck {
   result: 'verified' | 'returned';
@@ -46,8 +55,46 @@ export function ncAwaitsOffice(nc: NonConformity): boolean {
 }
 
 /** Has the office ever answered on this vessel — the switch for "awaiting the office" notices. */
-export function officeInLoop(defects: PmsDefect[], ncs: NonConformity[] = []): boolean {
-  return defects.some((d) => !!d.office) || ncs.some((n) => !!n.office);
+export function officeInLoop(defects: PmsDefect[], ncs: NonConformity[] = [], deferrals: PmsDeferral[] = []): boolean {
+  return defects.some((d) => !!d.office) || ncs.some((n) => !!n.office) || deferrals.some((d) => !!d.office);
+}
+
+export interface DeferralAnswer {
+  result: 'approved' | 'refused';
+  /** Required when refusing: why the job cannot wait. */
+  note?: string;
+  by: string;
+  byRank?: string;
+  at: number;
+}
+
+/** A deferral not yet answered by the office. */
+export function deferralAwaitsOffice(d: PmsDeferral): boolean {
+  return !d.office;
+}
+
+/**
+ * Deferrals waiting for the office: unanswered and still about the job's current
+ * cycle. One whose job has since been done no longer needs an answer.
+ */
+export function deferralsToAnswer(deferrals: PmsDeferral[], jobs: Pick<PmsJob, 'id' | 'lastDoneDate' | 'lastDoneHours'>[]): PmsDeferral[] {
+  const cycle = new Map(jobs.map((j) => [j.id, jobCycle(j)]));
+  return deferrals.filter((d) => deferralAwaitsOffice(d) && cycle.get(d.jobId) === d.cycle).sort((a, b) => a.at - b.at);
+}
+
+/** The office approves a deferral; it holds as signed. */
+export function approveDeferral(d: PmsDeferral, by: { name: string; rank?: string }, note: string, now: number): PmsDeferral {
+  if (d.office) throw new Error('Already answered');
+  const office: DeferralAnswer = { result: 'approved', by: by.name, ...(by.rank ? { byRank: by.rank } : {}), ...(note.trim() ? { note: note.trim() } : {}), at: now };
+  return { ...d, office, updatedAt: now };
+}
+
+/** The office refuses a deferral with the reason; the job's own due date is back. */
+export function refuseDeferral(d: PmsDeferral, by: { name: string; rank?: string }, note: string, now: number): PmsDeferral {
+  if (d.office) throw new Error('Already answered');
+  if (note.trim().length < 3) throw new Error('A reason is required');
+  const office: DeferralAnswer = { result: 'refused', by: by.name, ...(by.rank ? { byRank: by.rank } : {}), note: note.trim(), at: now };
+  return { ...d, office, updatedAt: now };
 }
 
 const WEIGHT: Record<DefectCategory, number> = { safety: 3, class: 2, operational: 1 };

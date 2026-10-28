@@ -42,7 +42,7 @@ export function pmsMonth(month: string, machines: Machine[], jobs: PmsJob[], don
       const cond = d.conditionAfter ? CONDITION[d.conditionAfter] : '';
       return [dm(d.date), `${crit(d.machineId) ? '⚑ ' : ''}${d.machineName}`, d.jobTitle, j?.type ? JOB_TYPE[j.type] : '', d.hours != null ? String(d.hours) : '', cond, d.manHours != null ? String(d.manHours) : '', d.byRank ? `${d.by} (${d.byRank})` : d.by, proofShort(d.signedWith), d.note ?? ''];
     }),
-    deferred: monthDef.map((d) => [dm(localDay(d.at)), d.machineName, d.jobTitle, [d.untilDate ? dm(d.untilDate) : null, d.untilHours != null ? `${d.untilHours} h` : null].filter(Boolean).join(' / '), d.reason, d.byRank ? `${d.by} (${d.byRank})` : d.by]),
+    deferred: monthDef.map((d) => [dm(localDay(d.at)), d.machineName, d.jobTitle, [d.untilDate ? dm(d.untilDate) : null, d.untilHours != null ? `${d.untilHours} h` : null].filter(Boolean).join(' / '), d.office?.result === 'refused' ? `${d.reason} — REFUSED by the office (${d.office.by}): ${d.office.note ?? ''}` : d.office?.result === 'approved' ? `${d.reason} — approved by the office (${d.office.by})` : d.reason, d.byRank ? `${d.by} (${d.byRank})` : d.by]),
     overdue: overdueJobs.map(({ j, d }) => [`${crit(j.machineId) ? '⚑ ' : ''}${mById.get(j.machineId)?.name ?? ''}`, j.title, j.type ? JOB_TYPE[j.type] : '', dueText(d)]),
     manHours: Math.round(monthDone.reduce((s, d) => s + (d.manHours ?? 0), 0) * 10) / 10,
     completion: {

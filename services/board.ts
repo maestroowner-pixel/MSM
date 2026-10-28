@@ -30,7 +30,7 @@ import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/sec
 import { Survey, SurveyDone } from '../types/survey';
 import { ModuleKey } from '../constants/modules';
 import { complianceDate, computeStatus, daysUntil, statusFromDate } from '../utils/dates';
-import { activeDeferral, jobDue } from './pms';
+import { activeDeferral, jobDue, refusedDeferral } from './pms';
 import { stockByPart, toOrderCounts } from './spares';
 import { toRead } from './docs';
 import { isOverdue } from './permits';
@@ -55,7 +55,7 @@ import { chestCounts, chestStatus, followUpsDue, isArchived, isLanding, landingL
 import { currentEntries } from './garbage';
 import { current } from './versions';
 import { awaiting, verifiedIds } from './verification';
-import { awaitsOffice, ncAwaitsOffice, officeInLoop, rankDefects } from './officeCheck';
+import { awaitsOffice, deferralsToAnswer, ncAwaitsOffice, officeInLoop, rankDefects } from './officeCheck';
 import { t, tn } from '../utils/t';
 
 export type Level = 'red' | 'amber' | 'blue';
@@ -323,9 +323,15 @@ export function buildBoard(x: BoardInput): Board {
       for (const d of open.filter((v) => v.office?.result === 'returned')) {
         n.push({ key: `pms:returned:${d.id}`, level: 'amber', who: 'officer', icon: 'undo-variant', route: 'PmsDefect', params: { id: d.id }, title: `${t('oc.returnedTitle')} — ${d.machineName}`, sub: d.office?.note });
       }
+      // A deferral the office refused: the job is due on its own dates again — the Master decides what next.
+      const deferrals = x.pmsDeferrals ?? [];
+      for (const j of x.pmsJobs) {
+        const r = !j.deleted && byId.has(j.machineId) ? refusedDeferral(j, deferrals) : undefined;
+        if (r) n.push({ key: `pms:refused:${r.id}`, level: 'amber', who: 'master', icon: 'calendar-remove-outline', route: 'PmsJob', params: { id: j.id }, title: `${t('od.refusedTitle')} — ${r.machineName}: ${r.jobTitle}`, sub: r.office?.note });
+      }
       const defs = x.pmsDefects ?? [];
-      const waitingOffice = defs.filter(awaitsOffice).length + (x.ncs ?? []).filter(ncAwaitsOffice).length;
-      if (waitingOffice && officeInLoop(defs, x.ncs ?? [])) n.push({ key: 'office:await', level: 'blue', who: 'master', icon: 'office-building-outline', route: 'Maintenance', title: t('oc.awaitingN', { n: waitingOffice }) });
+      const waitingOffice = defs.filter(awaitsOffice).length + (x.ncs ?? []).filter(ncAwaitsOffice).length + deferralsToAnswer(deferrals, x.pmsJobs).length;
+      if (waitingOffice && officeInLoop(defs, x.ncs ?? [], deferrals)) n.push({ key: 'office:await', level: 'blue', who: 'master', icon: 'office-building-outline', route: 'Maintenance', title: t('oc.awaitingN', { n: waitingOffice }) });
     }
     if (cls.length) n.push({ key: 'pms:defect-class', level: 'amber', who: 'officer', icon: 'alert-outline', route: 'Maintenance', title: `${cls.length > 1 ? t('b.pms.classDefects', { n: cls.length }) : t('b.pms.classDefect')} — ${cls[0].machineName}`, sub: cls[0].description });
     tiles.push({ key: 'pms', label: t('b.pms'), icon: 'engine-outline', route: 'Maintenance', level: lvl(over, due), line: over || due ? [over ? t('b.overdueN', { n: over }) : null, due ? t('b.dueN', { n: due }) : null].filter(Boolean).join(' · ') : t('b.pms.inHand', { n: x.pmsJobs.length }) });

@@ -277,7 +277,8 @@ export const JOB_TYPE: Record<JobType, string> = {
 /**
  * A job deferred — moved to a later date and/or counter reading, with the
  * reason, signed by the Master. It holds for the current cycle only (until the
- * job is next done). Critical equipment is never deferred. Append-only.
+ * job is next done). Critical equipment is never deferred. Append-only — except
+ * the office's answer, set once from Fleet (services/officeCheck).
  */
 export interface PmsDeferral {
   id: string;
@@ -296,6 +297,8 @@ export interface PmsDeferral {
   byRank?: string;
   at: number;
   signedWith?: import('../services/signature').SignProof;
+  /** The office's answer (services/officeCheck, plan item 32): approved, or refused with the reason — then it no longer holds. */
+  office?: import('../services/officeCheck').DeferralAnswer;
   updatedAt: number;
 }
 

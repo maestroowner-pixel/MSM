@@ -162,6 +162,11 @@ app mirrors. Bundle id `com.kukalab.msm`.
   anything on that vessel (`officeInLoop`) — no per-vessel switch. Open defects ranked criticality × age (`rankDefects`) on
   Maintenance and the Board. Rules: `pms_defects`, `ncs` (rules-test.mjs covers both) — `npm run deploy:rules` before the flag.
   `npm run check:officecheck`.
+  **Deferral through the office** (plan item 32, same flag and tab): a `PmsDeferral` signed by the Master holds AT ONCE (the vessel
+  cannot wait for office hours); the office sets `office` once — approved, or refused with a reason (rules: shore, only
+  `office`+`updatedAt`, refusal needs a note ≥ 3). `activeDeferral` skips a refused one, so the job is due on its own dates again;
+  `refusedDeferral` = latest of the cycle refused → amber Board notice to the Master. Re-deferring is a new record. Only deferrals
+  of the job's CURRENT cycle wait for an answer (`deferralsToAnswer`). Rules `pms_deferrals` need `npm run deploy:rules`.
 - **Record books: seals, chain, signed copy** (25 Oct 2026, stage 2 — `services/seal.ts`,
   `services/signKeys.ts`, `services/bookAccess.ts`, `services/signedCopy.ts`, `npm run check:seal`).
   Every signer has an ECDSA P-256 key per device (`@noble/curves`, pure JS; randomness from

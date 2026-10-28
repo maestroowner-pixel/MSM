@@ -1,7 +1,8 @@
 // npm run check:officecheck — verified by the office: a defect's stage, verify / return, the Board's order and its notices.
-import { awaitsOffice, defectScore, defectStage, giveBack, ncAwaitsOffice, needsPhoto, officeInLoop, rankDefects, verify, verifyNc } from '../services/officeCheck';
+import { approveDeferral, deferralAwaitsOffice, deferralsToAnswer, refuseDeferral, awaitsOffice, defectScore, defectStage, giveBack, ncAwaitsOffice, needsPhoto, officeInLoop, rankDefects, verify, verifyNc } from '../services/officeCheck';
 import { buildBoard } from '../services/board';
-import { PmsDefect } from '../types/pms';
+import { activeDeferral, jobCycle, jobDue, refusedDeferral } from '../services/pms';
+import { PmsDefect, PmsDeferral, PmsJob } from '../types/pms';
 import { NonConformity } from '../types/safety';
 
 let fail = 0;
@@ -56,6 +57,29 @@ const midSafety = D('saf', { category: 'safety', date: '2026-10-21' }); // 7 day
 ok(defectScore(oldOp, today) > defectScore(midSafety, today) && defectScore(midSafety, today) > defectScore(newCls, today), 'score: an old operational defect outranks a fresh class one');
 ok(rankDefects([newCls, midSafety, oldOp, D('c', { closed: close })], today).map((d) => d.id).join() === 'op,saf,cls', 'rank: worst first, closed left out');
 
+// Deferral through the office (plan item 32)
+const job: PmsJob = { id: 'j', machineId: 'm1', title: 'Overhaul', intervalDays: 30, lastDoneDate: '2026-08-01' } as any;
+const F = (id: string, p: Partial<PmsDeferral>): PmsDeferral => ({ id, jobId: 'j', machineId: 'm1', jobTitle: 'Overhaul', machineName: 'ME', cycle: jobCycle(job), untilDate: '2026-12-01', reason: 'Spares on order', by: 'Master', at: 10, updatedAt: 10, ...p });
+const f1 = F('f1', {});
+ok(activeDeferral(job, [f1]) === f1 && deferralAwaitsOffice(f1), 'a signed deferral holds at once and waits for the office');
+ok(jobDue(job, { id: 'm1' } as any, today, activeDeferral(job, [f1])).status === 'ok', 'pending deferral: the job is not overdue');
+threw = false;
+try { refuseDeferral(f1, supt, '', 20); } catch { threw = true; }
+ok(threw, 'refusing needs a reason');
+const fa = approveDeferral(f1, supt, '', 20);
+ok(fa.office?.result === 'approved' && activeDeferral(job, [fa]) === fa && !deferralAwaitsOffice(fa), 'approved: holds, no longer waiting');
+threw = false;
+try { refuseDeferral(fa, supt, 'later', 30); } catch { threw = true; }
+ok(threw, 'an answered deferral cannot be answered again');
+const fr = refuseDeferral(f1, supt, 'Class item — do it in Palma', 20);
+ok(!activeDeferral(job, [fr]) && refusedDeferral(job, [fr]) === fr, 'refused: holds no longer, the refusal stands');
+ok(jobDue(job, { id: 'm1' } as any, today, activeDeferral(job, [fr])).status === 'expired', 'refused: the job is overdue on its own dates again');
+const f2 = F('f2', { at: 40, updatedAt: 40, untilDate: '2026-11-15' });
+ok(activeDeferral(job, [fr, f2]) === f2 && !refusedDeferral(job, [fr, f2]), 'deferred again: the new request holds, the old refusal no longer shows');
+ok(deferralsToAnswer([fr, f2], [job]).map((d) => d.id).join() === 'f2', 'to answer: only the unanswered one');
+ok(!deferralsToAnswer([F('old', { cycle: '2026-01-01|' })], [job]).length, 'to answer: not a deferral of a cycle already done');
+ok(officeInLoop([], [], [fa]) && !officeInLoop([], [], [f1]), 'an answered deferral puts the office in the loop');
+
 // Board
 const base: any = {
   on: (m: string) => ['pms', 'officeCheck', 'qhse'].includes(m), role: 'superadmin', me: null, today, now: `${today}T10:00`,
@@ -74,6 +98,10 @@ b = buildBoard({ ...base, pmsDefects: [D('c1', { closed: close })] });
 ok(!b.attention.find((n) => n.key === 'office:await'), 'office not in the loop: no "awaiting the office" notice');
 b = buildBoard({ ...base, pmsDefects: [D('c1', { closed: close }), v], ncs: [ncc] });
 ok(b.attention.find((n) => n.key === 'office:await')?.title.includes('2') === true, 'office in the loop: one closed defect + one NC awaiting');
+b = buildBoard({ ...base, pmsJobs: [job], pmsDeferrals: [fr] });
+ok(!!b.attention.find((n) => n.key === 'pms:refused:f1' && n.who === 'master' && n.sub === 'Class item — do it in Palma'), 'refused deferral: notice to the Master with the reason');
+b = buildBoard({ ...base, pmsJobs: [job], pmsDeferrals: [fr, f2] });
+ok(!b.attention.find((n) => n.key.startsWith('pms:refused')) && b.attention.find((n) => n.key === 'office:await')?.title.includes('1') === true, 'deferred again: no refusal notice, one awaiting the office');
 b = buildBoard({ ...base, on: (m: string) => m === 'pms', pmsDefects: [r] });
 ok(!b.attention.find((n) => n.key.startsWith('pms:returned')), 'flag off: no office notices');
 

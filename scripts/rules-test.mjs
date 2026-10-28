@@ -346,6 +346,18 @@ await t(false, 'The office cannot reopen a closed NC', updateDoc(R(shore, 'ncs',
 await t(true, 'The office verifies the closed NC', updateDoc(R(shore, 'ncs', 'nc1'), { office: { result: 'verified', by: 'S', at: 4 }, updatedAt: 4 }));
 await t(false, '…once', updateDoc(R(shore, 'ncs', 'nc1'), { office: { result: 'verified', by: 'S2', at: 5 }, updatedAt: 5 }));
 
+// Deferral through the office (services/officeCheck, plan item 32)
+const DFR = { id: 'dfr1', jobId: 'j1', machineId: 'm1', jobTitle: 'Overhaul', machineName: 'ME', cycle: '2026-01-01|', untilDate: '2026-12-01', reason: 'Spares on order', by: 'Master', at: 1, updatedAt: 1 };
+await t(true, 'The Master defers a job', setDoc(R(master, 'pms_deferrals', 'dfr1'), DFR));
+await t(false, 'An officer cannot defer', setDoc(R(officer, 'pms_deferrals', 'dfr2'), { ...DFR, id: 'dfr2' }));
+await t(false, 'A deferral cannot be created already approved', setDoc(R(master, 'pms_deferrals', 'dfr3'), { ...DFR, id: 'dfr3', office: { result: 'approved', by: 'S', at: 1 } }));
+await t(false, 'The Master cannot approve his own deferral', updateDoc(R(master, 'pms_deferrals', 'dfr1'), { office: { result: 'approved', by: 'M', at: 2 }, updatedAt: 2 }));
+await t(false, 'The office cannot refuse without a reason', updateDoc(R(shore, 'pms_deferrals', 'dfr1'), { office: { result: 'refused', by: 'S', at: 2 }, updatedAt: 2 }));
+await t(false, 'The office cannot change the dates', updateDoc(R(shore, 'pms_deferrals', 'dfr1'), { untilDate: '2027-06-01', office: { result: 'approved', by: 'S', at: 2 }, updatedAt: 2 }));
+await t(true, 'The office refuses with the reason', updateDoc(R(shore, 'pms_deferrals', 'dfr1'), { office: { result: 'refused', note: 'Class item', by: 'S', at: 2 }, updatedAt: 2 }));
+await t(false, '…once — not approved afterwards', updateDoc(R(shore, 'pms_deferrals', 'dfr1'), { office: { result: 'approved', by: 'S', at: 3 }, updatedAt: 3 }));
+await t(false, 'A deferral is never deleted', deleteDoc(R(master, 'pms_deferrals', 'dfr1')));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

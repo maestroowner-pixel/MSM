@@ -267,11 +267,17 @@ service cloud.firestore {
         allow create: if member(v);
         allow update, delete: if false;
       }
-      // A job deferred — the Master's decision, signed, kept.
+      // A job deferred — the Master's decision, signed, kept. The office answers
+      // it once (services/officeCheck): approved, or refused with the reason.
       match /pms_deferrals/{id} {
         allow read: if reader(v);
-        allow create: if isSuper(v);
-        allow update, delete: if false;
+        allow create: if isSuper(v) && !('office' in request.resource.data);
+        allow update: if shore(v) && !('office' in resource.data)
+                      && onlyChanges(['office', 'updatedAt'])
+                      && (request.resource.data.office.result == 'approved'
+                          || (request.resource.data.office.result == 'refused'
+                              && request.resource.data.office.get('note', '').size() >= 3));
+        allow delete: if false;
       }
       // Spare parts: the stocked lines are edited (tombstoned, never deleted);
       // their movements are append-only, because stock is their sum.

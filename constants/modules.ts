@@ -236,8 +236,9 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * Verified by the office — a defect's responsible, "awaiting spares", and a
    * closure the superintendent verifies or returns from Fleet; NCs verified the
    * same way; open defects ranked by criticality × age on the Board
-   * (services/officeCheck.ts, 28 Oct 2026). Needs `npm run deploy:rules` first
-   * (pms_defects, ncs).
+   * (services/officeCheck.ts, 28 Oct 2026). Also PMS deferrals approved or
+   * refused by the office (plan item 32). Needs `npm run deploy:rules` first
+   * (pms_defects, ncs, pms_deferrals).
    */
   officeCheck: false,
 };

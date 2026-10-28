@@ -35,10 +35,12 @@ import { Dropdown } from '../components/Dropdown';
 import * as storage from '../services/storage';
 import { crewLabel } from '../types/crew';
 import { personName, plansPms, roleAtLeast } from '../types/role';
-import { activeDeferral, dueLabel, jobAfter, jobCycle, jobDue, todayIso, withReading , noteForNext } from '../services/pms';
+import { activeDeferral, refusedDeferral, dueLabel, jobAfter, jobCycle, jobDue, todayIso, withReading , noteForNext } from '../services/pms';
 import { movesForJob, qtyText, stockByPart } from '../services/spares';
 import { JobPart } from '../types/spares';
 import { moduleOn } from '../constants/modules';
+import { uiDate } from '../utils/dates';
+import { officeInLoop } from '../services/officeCheck';
 import { PERMIT_TYPES } from '../constants/permitTypes';
 import { jobGate } from '../services/jobGate';
 import { JOB_FIELDS, changeTextUi, fieldName, planDiff, withChanges } from '../services/planLog';
@@ -119,6 +121,9 @@ export default function PmsJobSc() {
   const signer = me ? { name: me, rank: meRank } : people.find((p) => p.id === signerId);
 
   const deferral = existing ? activeDeferral(existing, pmsDeferrals) : undefined;
+  // Deferral through the office (services/officeCheck): its answer, or the refusal that brought the due date back.
+  const office = moduleOn('officeCheck');
+  const refused = office && existing && !deferral ? refusedDeferral(existing, pmsDeferrals) : undefined;
   const linkedDefect = draft.defectId ? pmsDefects.find((d) => d.id === draft.defectId) : undefined;
   // What the job needs before it is signed out: its permit, its documents read by the signer.
   const signerKey = me && sync.me ? `device:${sync.me.id}` : signerId;
@@ -371,7 +376,10 @@ export default function PmsJobSc() {
           {/* Deferral: the Master moves the job to a later date / counter reading, with the reason, signed. */}
           {!isNew && !doing && existing ? (
             deferral ? (
-              <Text style={styles.deferNote}>{`${t('pj.deferred')}${deferral.untilDate ? t('pj.untilDate', { date: deferral.untilDate }) : ''}${deferral.untilHours != null ? t(deferral.untilDate ? 'pj.orHours' : 'pj.untilHours', { h: deferral.untilHours }) : ''} — ${deferral.reason} · ${deferral.byRank ? `${deferral.by} (${deferral.byRank})` : deferral.by}`}</Text>
+              <>
+                <Text style={styles.deferNote}>{`${t('pj.deferred')}${deferral.untilDate ? t('pj.untilDate', { date: deferral.untilDate }) : ''}${deferral.untilHours != null ? t(deferral.untilDate ? 'pj.orHours' : 'pj.untilHours', { h: deferral.untilHours }) : ''} — ${deferral.reason} · ${deferral.byRank ? `${deferral.by} (${deferral.byRank})` : deferral.by}`}</Text>
+                {office && (deferral.office || officeInLoop(pmsDefects, [], pmsDeferrals)) ? <Text style={styles.sub}>{deferral.office ? t('od.approvedBy', { who: deferral.office.by, when: uiDate(new Date(deferral.office.at).toISOString().slice(0, 10)) }) + (deferral.office.note ? ` — ${deferral.office.note}` : '') : t('od.awaiting')}</Text> : null}
+              </>
             ) : machine?.critical ? (
               <Text style={styles.sub}>{t('pj.criticalNoDefer')}</Text>
             ) : defer ? (
@@ -406,9 +414,12 @@ export default function PmsJobSc() {
                 </View>
               </View>
             ) : (
-              <TouchableOpacity disabled={!isMaster} style={{ opacity: isMaster ? 1 : 0.35, alignSelf: 'flex-start' }} onPress={() => setDefer({ date: todayIso(), hours: '', reason: '' })}>
-                <Text style={styles.link}>{t('pj.deferJob')}</Text>
-              </TouchableOpacity>
+              <>
+                {refused ? <Text style={[styles.deferNote, { color: COLORS.danger }]}>{`${t('od.refusedBy', { who: refused.office!.by, when: uiDate(new Date(refused.office!.at).toISOString().slice(0, 10)) })} — ${refused.office!.note ?? ''}`}</Text> : null}
+                <TouchableOpacity disabled={!isMaster} style={{ opacity: isMaster ? 1 : 0.35, alignSelf: 'flex-start' }} onPress={() => setDefer({ date: todayIso(), hours: '', reason: '' })}>
+                  <Text style={styles.link}>{t('pj.deferJob')}</Text>
+                </TouchableOpacity>
+              </>
             )
           ) : null}
 

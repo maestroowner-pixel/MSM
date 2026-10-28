@@ -142,7 +142,7 @@ export async function loadVessel(imo: string): Promise<VesselData> {
     blob = {};
   }
   const items: EquipmentItem[] = Object.values(blob.categories ?? {}).flatMap((l: any) => (Array.isArray(l) ? l : []));
-  const [crew, docs, acks, machines, jobs, spares, moves, defects, ncs] = await Promise.all([
+  const [crew, docs, acks, machines, jobs, spares, moves, defects, ncs, deferrals] = await Promise.all([
     list<CrewMember>(imo, 'crew'),
     list<IsmDoc>(imo, 'ism_docs'),
     list<DocAck>(imo, 'ism_doc_acks'),
@@ -152,6 +152,7 @@ export async function loadVessel(imo: string): Promise<VesselData> {
     list<any>(imo, 'spare_moves'),
     list<any>(imo, 'pms_defects'),
     list<any>(imo, 'ncs'),
+    list<any>(imo, 'pms_deferrals'),
   ]);
   return {
     imo,
@@ -168,6 +169,7 @@ export async function loadVessel(imo: string): Promise<VesselData> {
     moves,
     defects,
     ncs,
+    deferrals,
   };
 }
 
@@ -194,8 +196,8 @@ export async function myName(): Promise<string> {
   return (await AsyncStorage.getItem(NAME_KEY)) ?? '';
 }
 
-/** A defect or NC with the office's answer (services/officeCheck), written straight to the vessel (rules: `shore(v)`). */
-export async function saveOfficeCheck(imo: string, sub: 'pms_defects' | 'ncs', rec: { id: string }): Promise<void> {
+/** A defect, NC or PMS deferral with the office's answer (services/officeCheck), written straight to the vessel (rules: `shore(v)`). */
+export async function saveOfficeCheck(imo: string, sub: 'pms_defects' | 'ncs' | 'pms_deferrals', rec: { id: string }): Promise<void> {
   const clean = JSON.parse(JSON.stringify(rec));
   await setDoc(doc(db(), ROOT, imo, sub, rec.id), clean);
 }

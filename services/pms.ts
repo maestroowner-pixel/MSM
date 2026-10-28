@@ -40,10 +40,17 @@ export interface JobDue {
 /** The cycle a job is in: changes every time it is done. */
 export const jobCycle = (job: Pick<PmsJob, 'lastDoneDate' | 'lastDoneHours'>) => `${job.lastDoneDate ?? ''}|${job.lastDoneHours ?? ''}`;
 
-/** The deferral that holds for the job's current cycle, latest first. */
+/** The deferral that holds for the job's current cycle, latest first. One the office refused holds no longer. */
 export function activeDeferral(job: PmsJob, deferrals: PmsDeferral[]): PmsDeferral | undefined {
   const c = jobCycle(job);
-  return deferrals.filter((d) => d.jobId === job.id && d.cycle === c).sort((a, b) => b.at - a.at)[0];
+  return deferrals.filter((d) => d.jobId === job.id && d.cycle === c && d.office?.result !== 'refused').sort((a, b) => b.at - a.at)[0];
+}
+
+/** The office's refusal still standing for the job's current cycle: the latest deferral of the cycle was refused. */
+export function refusedDeferral(job: PmsJob, deferrals: PmsDeferral[]): PmsDeferral | undefined {
+  const c = jobCycle(job);
+  const last = deferrals.filter((d) => d.jobId === job.id && d.cycle === c).sort((a, b) => b.at - a.at)[0];
+  return last?.office?.result === 'refused' ? last : undefined;
 }
 
 function daysBetween(a: string, b: string): number {

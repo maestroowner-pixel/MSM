@@ -32,6 +32,7 @@ export interface VesselData {
   /** For the office's verification (services/officeCheck); absent from older callers. */
   defects?: import('../types/pms').PmsDefect[];
   ncs?: import('../types/safety').NonConformity[];
+  deferrals?: import('../types/pms').PmsDeferral[];
 }
 
 export interface Count {

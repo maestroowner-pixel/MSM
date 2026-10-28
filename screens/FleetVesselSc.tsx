@@ -32,8 +32,8 @@ import { DOC_CATEGORY_LABEL, DocCategory, IsmDoc } from '../types/docs';
 import { computeStatus, statusFromDate, uiDate } from '../utils/dates';
 import { catLabel } from '../constants/categories';
 import { uid } from '../utils/id';
-import { awaitsOffice, giveBack, ncAwaitsOffice, verify, verifyNc } from '../services/officeCheck';
-import { PmsDefect } from '../types/pms';
+import { approveDeferral, awaitsOffice, deferralsToAnswer, giveBack, ncAwaitsOffice, refuseDeferral, verify, verifyNc } from '../services/officeCheck';
+import { PmsDefect, PmsDeferral } from '../types/pms';
 import { NonConformity } from '../types/safety';
 import { Attachment } from '../types/equipment';
 import { t, tk, useT } from '../utils/i18n';
@@ -55,7 +55,7 @@ export default function FleetVesselSc() {
   const [error, setError] = useState<string | null>(null);
   const [cert, setCert] = useState<Certificate | null>(null);
   const [docEdit, setDocEdit] = useState<{ doc: IsmDoc; isNew: boolean } | null>(null);
-  const [check, setCheck] = useState<{ defect?: PmsDefect; nc?: NonConformity } | null>(null);
+  const [check, setCheck] = useState<{ defect?: PmsDefect; nc?: NonConformity; deferral?: PmsDeferral } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -97,8 +97,9 @@ export default function FleetVesselSc() {
   const office = moduleOn('officeCheck');
   const toVerify = (v.defects ?? []).filter(awaitsOffice).sort((a, b) => a.closed!.at - b.closed!.at);
   const ncsToVerify = (v.ncs ?? []).filter(ncAwaitsOffice).sort((a, b) => (a.closedAt ?? 0) - (b.closedAt ?? 0));
+  const toApprove = deferralsToAnswer(v.deferrals ?? [], v.jobs);
   const tabs: [Tab, string][] = [['certs', `${t('fleet.certs')} · ${certs.length}`], ['docs', `${t('docs.title')} · ${docs.length}`], ['equipment', `${t('cat.title')} · ${owed.length}`]];
-  if (office) tabs.push(['verify', `${t('oc.tab')} · ${toVerify.length + ncsToVerify.length}`]);
+  if (office) tabs.push(['verify', `${t('oc.tab')} · ${toVerify.length + ncsToVerify.length + toApprove.length}`]);
 
   return (
     <Screen scroll>
@@ -113,6 +114,14 @@ export default function FleetVesselSc() {
 
       {tab === 'verify' ? (
         <>
+          {toApprove.map((d) => (
+            <TouchableOpacity key={d.id} style={styles.row} onPress={() => setCheck({ deferral: d })}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.title} numberOfLines={1}>{`${d.machineName} — ${d.jobTitle}`}</Text>
+                <Text style={styles.sub} numberOfLines={1}>{[t('od.row', { until: deferUntil(d) }), d.byRank ? `${d.by} (${d.byRank})` : d.by, uiDate(new Date(d.at).toISOString().slice(0, 10))].join(' · ')}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
           {toVerify.map((d) => (
             <TouchableOpacity key={d.id} style={styles.row} onPress={() => setCheck({ defect: d })}>
               <View style={{ flex: 1 }}>
@@ -129,7 +138,7 @@ export default function FleetVesselSc() {
               </View>
             </TouchableOpacity>
           ))}
-          {!toVerify.length && !ncsToVerify.length ? <Empty text={t('oc.nothing')} /> : null}
+          {!toVerify.length && !ncsToVerify.length && !toApprove.length ? <Empty text={t('oc.nothing')} /> : null}
         </>
       ) : tab === 'certs' ? (
         <>
@@ -388,8 +397,13 @@ function DocEditor({ imo, start, isNew, onClose, onSaved }: { imo: string; start
   );
 }
 
-/** The superintendent's answer on one closure: verify, or (a defect) return it to the vessel with the reason. */
-function OfficeCheckSheet({ imo, check, onClose, onSaved }: { imo: string; check: { defect?: PmsDefect; nc?: NonConformity }; onClose: () => void; onSaved: () => void }) {
+/** "until 1 Dec 2026 or 12 500 h" — what a deferral moves the job to. */
+function deferUntil(d: PmsDeferral): string {
+  return [d.untilDate ? uiDate(d.untilDate) : null, d.untilHours != null ? `${d.untilHours} h` : null].filter(Boolean).join(t('od.or'));
+}
+
+/** The superintendent's answer on one closure: verify, or (a defect) return it to the vessel with the reason; on a deferral, approve or refuse. */
+function OfficeCheckSheet({ imo, check, onClose, onSaved }: { imo: string; check: { defect?: PmsDefect; nc?: NonConformity; deferral?: PmsDeferral }; onClose: () => void; onSaved: () => void }) {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const [note, setNote] = useState('');
@@ -397,6 +411,7 @@ function OfficeCheckSheet({ imo, check, onClose, onSaved }: { imo: string; check
   const [urls, setUrls] = useState<string[]>([]);
   const d = check.defect;
   const nc = check.nc;
+  const df = check.deferral;
 
   useEffect(() => {
     if (!d?.closed?.photos?.length) return;
@@ -405,12 +420,13 @@ function OfficeCheckSheet({ imo, check, onClose, onSaved }: { imo: string; check
   }, [d, imo]);
 
   const answer = async (back: boolean) => {
-    if (back && note.trim().length < 3) return Alert.alert(t('oc.return'), t('oc.needReason'));
+    if (back && note.trim().length < 3) return Alert.alert(df ? t('od.refuse') : t('oc.return'), df ? t('od.needReason') : t('oc.needReason'));
     setBusy(true);
     try {
       const me = { name: (await shore.myName()) || t('fv.supt'), rank: t('oc.office') };
       const now = Date.now();
-      if (d) await shore.saveOfficeCheck(imo, 'pms_defects', back ? giveBack(d, me, note, now) : verify(d, me, note, now));
+      if (df) await shore.saveOfficeCheck(imo, 'pms_deferrals', back ? refuseDeferral(df, me, note, now) : approveDeferral(df, me, note, now));
+      else if (d) await shore.saveOfficeCheck(imo, 'pms_defects', back ? giveBack(d, me, note, now) : verify(d, me, note, now));
       else if (nc) await shore.saveOfficeCheck(imo, 'ncs', verifyNc(nc, me, note, now));
       onSaved();
     } catch (e: any) {
@@ -422,8 +438,16 @@ function OfficeCheckSheet({ imo, check, onClose, onSaved }: { imo: string; check
 
   const who = (by?: string, rank?: string) => (rank ? `${by} (${rank})` : by ?? '');
   return (
-    <Sheet title={d ? t('pd.defect') : nc!.no} onClose={onClose} onSave={() => void answer(false)} busy={busy} saveLabel={t('oc.verify')}>
-      {d ? (
+    <Sheet title={df ? t('od.title') : d ? t('pd.defect') : nc!.no} onClose={onClose} onSave={() => void answer(false)} busy={busy} saveLabel={df ? t('od.approve') : t('oc.verify')}>
+      {df ? (
+        <>
+          <Text style={styles.title}>{`${df.machineName} — ${df.jobTitle}`}</Text>
+          <Text style={styles.sub}>{t('od.until', { until: deferUntil(df) })}</Text>
+          <Label>{t('pj.reason')}</Label>
+          <Text style={styles.title}>{df.reason}</Text>
+          <Text style={styles.sub}>{`${uiDate(new Date(df.at).toISOString().slice(0, 10))} · ${who(df.by, df.byRank)}`}</Text>
+        </>
+      ) : d ? (
         <>
           <Text style={styles.title}>{`${d.machineName} — ${tk(`pms.defcat.${d.category}`)}`}</Text>
           <Text style={styles.sub}>{`${d.description}\n${uiDate(d.date)} · ${who(d.by, d.byRank)}${d.responsible ? ` · ${t('oc.responsible')}: ${d.responsible}` : ''}`}</Text>
@@ -451,10 +475,10 @@ function OfficeCheckSheet({ imo, check, onClose, onSaved }: { imo: string; check
         </>
       ) : null}
       <Label>{t('oc.note')}</Label>
-      <TextInput style={[styles.input, { minHeight: 60 }]} value={note} onChangeText={setNote} multiline placeholder={d ? t('oc.notePh') : t('oc.noteNcPh')} placeholderTextColor={COLORS.textLight} />
-      {d ? (
+      <TextInput style={[styles.input, { minHeight: 60 }]} value={note} onChangeText={setNote} multiline placeholder={df ? t('od.notePh') : d ? t('oc.notePh') : t('oc.noteNcPh')} placeholderTextColor={COLORS.textLight} />
+      {d || df ? (
         <TouchableOpacity style={styles.delete} disabled={busy} onPress={() => void answer(true)}>
-          <Text style={{ color: COLORS.danger, fontWeight: '700' }}>{t('oc.return')}</Text>
+          <Text style={{ color: COLORS.danger, fontWeight: '700' }}>{df ? t('od.refuse') : t('oc.return')}</Text>
         </TouchableOpacity>
       ) : null}
     </Sheet>
