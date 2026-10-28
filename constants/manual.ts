@@ -775,6 +775,16 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🔌',
+      title: "Vessel API",
+      body: [
+        "For the office's systems: the vessel's due dates, equipment, vessel and equipment certificates, surveys, open defects and the machines' running hours, as JSON — for the company's reporting, BI or its own planning. Crew names, crew certificates, hours of rest and who signed never leave the vessel through the API.",
+        "Keys are issued by the Master: Settings → API access → New key. Say who uses it (Office BI, AMS PC) and whether it May write running hours — off, it only reads. The key is shown once: copy it then. The vessel keeps only a fingerprint of it, so a lost key is revoked and a new one issued. Each key shows who issued it, when it was last used and how many requests it made; Revoke stops it at once.",
+        "Running hours from the AMS: a key allowed to write posts the counter readings by the machine's AMS tag. They pass the same checks as an AMS file — a reading below the last one, or more hours than the calendar allows, is not taken and waits on the machine aboard for a reason; a turbocharger follows its engine. Written through the API lists what was taken and what was not.",
+        "Documentation for the integrator — the addresses, examples and limits (60 requests a minute per key): ismpilot.com/api.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'About',
       body: [
@@ -1521,6 +1531,16 @@ const ru: ManualContent = {
         "Доступ даёт Мастер каждого судна: в Accounts выдать аккаунт типа Superintendent (shore). Суперинтендант открывает Fleet (app.ismpilot.com/fleet), вводит IMO, имя и PIN — судно добавлено; следующие суда добавляются так же. Мастер видит этот аккаунт в Devices и может отключить его в любой момент.",
         "Откройте судно, чтобы добавлять и править его сертификаты и ISM-документы, выпускать новую ревизию и видеть, кто не подписал. Изменения приходят на устройства на борту при следующей синхронизации. Оборудование — только для просмотра: его проверяют на борту.",
         "Проверено офисом: вкладка «На проверку» — дефекты механизмов, закрытые на борту, и NC, закрытые капитаном. Откройте запись, прочитайте, что сделано, посмотрите фото ремонта и нажмите «Подтвердить» — или, для дефекта, «Вернуть на судно» с тем, чего не хватает: дефект снова открыт на борту с пометкой «Возвращён офисом», ваша причина видна на доске, а прежнее закрытие остаётся в истории. Дефект, критичный для безопасности или класса, на борту без фото ремонта не закрыть. На борту у дефекта также есть ответственный и отметка «ждёт запчасти», а открытые дефекты идут от худшего — критичность × дни открытия. На той же вкладке — работы ТО, которые перенёс капитан: перенос действует с момента подписи капитана; нажмите «Одобрить» или «Отказать» с причиной — тогда работа снова считается по своим срокам, капитан видит причину на доске и на работе и может перенести её заново новым запросом. Критичное оборудование не переносится.",
+      ],
+    },
+    {
+      emoji: '🔌',
+      title: "API судна",
+      body: [
+        "Для систем офиса: сроки, оборудование, сертификаты судна и оборудования, освидетельствования, открытые дефекты и моточасы механизмов — в JSON, для отчётности компании, BI или её собственного планирования. Имена экипажа, сертификаты экипажа, часы отдыха и кто подписал через API с судна не уходят никогда.",
+        "Ключи выдаёт капитан: Настройки → Доступ по API → Новый ключ. Укажите, кто им пользуется (BI офиса, компьютер AMS), и можно ли ему записывать моточасы — без этого ключ только читает. Ключ показывается один раз: скопируйте его сразу. Судно хранит только его отпечаток, поэтому потерянный ключ отзывают и выдают новый. У каждого ключа видно, кто его выдал, когда он использовался последний раз и сколько было запросов; «Отозвать» останавливает его сразу.",
+        "Моточасы из AMS: ключ с правом записи передаёт показания счётчиков по тегу механизма в AMS. Они проходят те же проверки, что и файл AMS: показание меньше прежнего или больше часов, чем позволяет календарь, не принимается и ждёт причины на механизме на борту; турбокомпрессор следует за своим двигателем. В «Записано через API» видно, что принято и что нет.",
+        "Документация для интегратора — адреса, примеры и ограничения (60 запросов в минуту на ключ): ismpilot.com/api.",
       ],
     },
     {
@@ -2273,6 +2293,16 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🔌',
+      title: "API del buque",
+      body: [
+        "Para los sistemas de la oficina: vencimientos, equipos, certificados del buque y de los equipos, reconocimientos, defectos abiertos y horas de funcionamiento de las máquinas, en JSON — para los informes de la compañía, BI o su propia planificación. Los nombres de la tripulación, sus certificados, las horas de descanso y quién firmó nunca salen del buque por la API.",
+        "Las claves las emite el Capitán: Ajustes → Acceso por API → Nueva clave. Indique quién la usa (BI de la oficina, PC del AMS) y si Puede escribir horas de funcionamiento — si no, solo lee. La clave se muestra una sola vez: cópiela entonces. El buque guarda solo su huella, así que una clave perdida se revoca y se emite otra. Cada clave muestra quién la emitió, cuándo se usó por última vez y cuántas peticiones hizo; Revocar la detiene al instante.",
+        "Horas de funcionamiento desde el AMS: una clave con permiso de escritura envía las lecturas de los contadores por la etiqueta AMS de la máquina. Pasan las mismas comprobaciones que un archivo AMS: una lectura menor que la anterior, o más horas de las que permite el calendario, no se acepta y espera a bordo en la máquina un motivo; un turbocompresor sigue a su motor. Escrito por la API muestra lo aceptado y lo no aceptado.",
+        "Documentación para el integrador — direcciones, ejemplos y límites (60 peticiones por minuto por clave): ismpilot.com/api.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Acerca de',
       body: [
@@ -3022,6 +3052,16 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🔌',
+      title: "API судна",
+      body: [
+        "Для систем офісу: терміни, обладнання, сертифікати судна й обладнання, огляди, відкриті дефекти та мотогодини механізмів — у JSON, для звітності компанії, BI або її власного планування. Імена екіпажу, сертифікати екіпажу, години відпочинку і хто підписав через API ніколи не залишають судно.",
+        "Ключі видає капітан: Налаштування → Доступ через API → Новий ключ. Вкажіть, хто ним користується (BI офісу, комп'ютер AMS), і чи може він записувати мотогодини — без цього ключ лише читає. Ключ показується один раз: скопіюйте його одразу. Судно зберігає лише його відбиток, тож втрачений ключ відкликають і видають новий. Біля кожного ключа видно, хто його видав, коли ним користувалися востаннє і скільки було запитів; «Відкликати» зупиняє його одразу.",
+        "Мотогодини з AMS: ключ з правом запису передає показання лічильників за тегом механізму в AMS. Вони проходять ті самі перевірки, що й файл AMS: показання, менше за попереднє, або більше годин, ніж дозволяє календар, не приймається і чекає причини на механізмі на борту; турбокомпресор іде за своїм двигуном. У «Записано через API» видно, що прийнято, а що ні.",
+        "Документація для інтегратора — адреси, приклади й обмеження (60 запитів на хвилину на ключ): ismpilot.com/api.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Про застосунок',
       body: [
@@ -3706,6 +3746,16 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '🔌',
+      title: "Fartøyets API",
+      body: [
+        "For kontorets systemer: forfallsdatoer, utstyr, fartøyets og utstyrets sertifikater, besiktelser, åpne avvik og maskinenes driftstimer som JSON — til selskapets rapportering, BI eller egen planlegging. Mannskapets navn, mannskapssertifikater, hviletimer og hvem som signerte forlater aldri fartøyet via API-et.",
+        "Nøkler utstedes av kapteinen: Innstillinger → API-tilgang → Ny nøkkel. Oppgi hvem som bruker den (kontorets BI, AMS-PC) og om den Kan skrive driftstimer — ellers leser den bare. Nøkkelen vises én gang: kopier den da. Fartøyet beholder bare et fingeravtrykk av den, så en tapt nøkkel trekkes tilbake og en ny utstedes. Hver nøkkel viser hvem som utstedte den, når den sist ble brukt og hvor mange forespørsler den har gjort; Trekk tilbake stopper den straks.",
+        "Driftstimer fra AMS: en nøkkel med skriverett sender telleravlesningene etter maskinens AMS-tagg. De går gjennom de samme kontrollene som en AMS-fil — en avlesning lavere enn den forrige, eller flere timer enn kalenderen tillater, tas ikke inn og venter på maskinen om bord på en begrunnelse; en turbolader følger motoren sin. Skrevet via API-et viser hva som ble tatt inn og hva som ikke ble det.",
+        "Dokumentasjon for integratoren — adresser, eksempler og grenser (60 forespørsler i minuttet per nøkkel): ismpilot.com/api.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Om',
       body: [
@@ -4375,6 +4425,16 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '🔌',
+      title: "API da embarcação",
+      body: [
+        "Para os sistemas do escritório: vencimentos, equipamentos, certificados da embarcação e dos equipamentos, vistorias, defeitos abertos e horas de funcionamento das máquinas, em JSON — para os relatórios da empresa, BI ou o seu próprio planejamento. Nomes da tripulação, certificados da tripulação, horas de descanso e quem assinou nunca saem da embarcação pela API.",
+        "As chaves são emitidas pelo Comandante: Configurações → Acesso por API → Nova chave. Diga quem a usa (BI do escritório, PC do AMS) e se Pode escrever horas de funcionamento — sem isso, ela só lê. A chave aparece uma única vez: copie-a nesse momento. A embarcação guarda só a impressão dela, então uma chave perdida é revogada e outra é emitida. Cada chave mostra quem a emitiu, quando foi usada pela última vez e quantos pedidos fez; Revogar a interrompe na hora.",
+        "Horas de funcionamento do AMS: uma chave com permissão de escrita envia as leituras dos contadores pela etiqueta AMS da máquina. Elas passam pelas mesmas verificações de um arquivo AMS — uma leitura menor que a anterior, ou mais horas do que o calendário permite, não é aceita e aguarda a bordo, na máquina, um motivo; um turbocompressor acompanha o seu motor. Escrito pela API mostra o que foi aceito e o que não foi.",
+        "Documentação para o integrador — endereços, exemplos e limites (60 pedidos por minuto por chave): ismpilot.com/api.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Sobre',
       body: [
@@ -4443,6 +4503,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Internal audits', module: 'qhse' },
   { title: 'GMDSS Log', module: 'gmdss' },
   { title: 'Engine room log', module: 'watchLog' },
+  { title: 'Vessel API', module: 'api' },
 ];
 
 /** The manual as this build should show it: sections of switched-off modules removed. */

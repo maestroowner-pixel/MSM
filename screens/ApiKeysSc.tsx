@@ -100,7 +100,7 @@ export default function ApiKeysSc() {
 
   return (
     <Screen>
-      <ScreenTitle title={t('api.title')} subtitle={t('api.sub')} />
+      <ScreenTitle title={t('api.title')} subtitle={t('api.sub')} help="Vessel API" />
 
       <Card>
         <Label>{t('api.whatTitle')}</Label>
