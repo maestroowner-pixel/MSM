@@ -776,6 +776,16 @@ export default function SettingsSc() {
             <Text style={styles.chev}>›</Text>
           </TouchableOpacity>
         ) : null}
+        {sync.role === 'superadmin' && sync.enrolled && moduleOn('api') ? (
+          <TouchableOpacity style={styles.linkRow} onPress={() => nav.navigate('ApiKeys')}>
+            <IconChip name="api" size={18} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkTitle}>{tr('api.title')}</Text>
+              <Text style={styles.linkSub}>{tr('set.apiSub')}</Text>
+            </View>
+            <Text style={styles.chev}>›</Text>
+          </TouchableOpacity>
+        ) : null}
       </Card>
       ) : null}
         </>

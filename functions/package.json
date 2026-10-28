@@ -15,7 +15,8 @@
     "code": "node scripts/setup-code.js",
     "modules": "node scripts/set-modules.js",
     "seed:orders": "node scripts/seed-orders.js",
-    "fix:device": "node scripts/fix-device.js"
+    "fix:device": "node scripts/fix-device.js",
+    "apikey": "node scripts/api-key.js"
   },
   "dependencies": {
     "firebase-admin": "^12.7.0",

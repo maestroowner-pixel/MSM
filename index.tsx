@@ -84,6 +84,7 @@ import InspectionDetailSc from './screens/InspectionDetailSc';
 import AccountsSc from './screens/AccountsSc';
 import MasterSc from './screens/MasterSc';
 import EmailReportSc from './screens/EmailReportSc';
+import ApiKeysSc from './screens/ApiKeysSc';
 import SparesSc from './screens/SparesSc';
 import SparePartSc from './screens/SparePartSc';
 import DocsSc from './screens/DocsSc';
@@ -540,6 +541,7 @@ const linking = {
       Defects: 'defects',
       Accounts: 'accounts',
       EmailReport: 'email-report',
+      ApiKeys: 'api-access',
       Access: 'access',
       MasterPage: 'master',
       Enrol: 'join',
@@ -813,6 +815,7 @@ function Root() {
         <Stack.Screen name="Expiries" component={DashboardSc} options={webHeader(t('dash.expiriesTitle'))} />
         <Stack.Screen name="Accounts" component={AccountsSc} options={webHeader(t('acc.title'), toTab('Settings'))} />
         <Stack.Screen name="EmailReport" component={EmailReportSc} options={webHeader(t('email.title'), toTab('Settings'))} />
+        <Stack.Screen name="ApiKeys" component={ApiKeysSc} options={webHeader(t('api.title'), toTab('Settings'))} />
         <Stack.Screen name="Enrol" component={EnrolSc} options={webHeader(t('cc.join'), toTab('Settings'))} />
       </Stack.Navigator>
       {showSplash ? (

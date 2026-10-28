@@ -794,6 +794,22 @@ service cloud.firestore {
       match /enrolAttempts/{doc} {
         allow read, write: if false;
       }
+      // API keys (functions/api.js): issued and revoked only through the
+      // apiKeyCreate / apiKeyRevoke functions. The Master sees the list —
+      // label, hint, last used — and the journal of what the API wrote.
+      match /api_keys/{id} {
+        allow read: if isSuper(v);
+        allow write: if false;
+      }
+      match /api_log/{id} {
+        allow read: if isSuper(v);
+        allow write: if false;
+      }
+    }
+
+    // key hash → vessel: the API's lookup, for the Admin SDK only.
+    match /api_keys/{hash} {
+      allow read, write: if false;
     }
   }
 }

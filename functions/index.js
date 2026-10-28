@@ -814,6 +814,11 @@ exports.submitObs = require('./submitObs').submitObs;
 exports.inspectView = require('./inspectView').inspectView;
 exports.icsCalendar = require('./icsCalendar').icsCalendar;
 
+// The vessel's API, and the Master's keys to it (api.js, 28 Oct 2026).
+exports.api = require('./api').api;
+exports.apiKeyCreate = require('./api').apiKeyCreate;
+exports.apiKeyRevoke = require('./api').apiKeyRevoke;
+
 // Monthly safety digest to owner/DPA (functions/emailReport.js).
 exports.sendMonthlyReport = require('./emailReport').sendMonthlyReport;
 exports.sendReportNow = require('./emailReport').sendReportNow;

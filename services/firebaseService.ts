@@ -1873,6 +1873,55 @@ export async function revokeIcsLink(imo: string): Promise<void> {
   await fsSetDoc(accountDoc(imo), { icsToken: null }, { merge: true });
 }
 
+// ---- API keys (functions/api.js) — issued and revoked by functions, read by the Master ----
+
+export const API_BASE_URL = 'https://europe-west1-marine-safety-manager.cloudfunctions.net/api';
+
+/** The vessel's API keys, newest first; revoked ones included. */
+export function subscribeApiKeys(imo: string, cb: (keys: ApiKeyRecord[]) => void, onError?: (e: any) => void): () => void {
+  if (!syncSupported()) return () => {};
+  return fsOnSnapshot(
+    fsCollection(requireDb(), ROOT, imo, 'api_keys'),
+    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as ApiKeyRecord)).sort((a, b) => b.createdAt - a.createdAt)),
+    (err) => { console.warn('[sync] api keys listener stopped:', err?.message ?? err); onError?.(err); }
+  );
+}
+
+/** What the API wrote lately — the journal of running hours taken from outside. */
+export function subscribeApiLog(imo: string, cb: (rows: ApiLogRow[]) => void): () => void {
+  if (!syncSupported()) return () => {};
+  return fsOnSnapshot(
+    fsQuery(fsCollection(requireDb(), ROOT, imo, 'api_log'), fsOrderBy('at', 'desc'), fsLimit(20)),
+    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as ApiLogRow))),
+    (err) => console.warn('[sync] api log listener stopped:', err?.message ?? err)
+  );
+}
+
+export interface ApiKeyRecord {
+  id: string;
+  label: string;
+  /** May post running hours; otherwise read only. */
+  write: boolean;
+  /** The first and last characters — the key itself is never stored. */
+  hint: string;
+  createdAt: number;
+  createdBy: string;
+  lastUsedAt?: number;
+  calls?: number;
+  revokedAt?: number;
+  revokedBy?: string;
+}
+
+export interface ApiLogRow {
+  id: string;
+  at: number;
+  label: string;
+  action: 'hours';
+  taken: { machineId: string; name: string; date: string; hours: number }[];
+  refused: number;
+  followers: number;
+}
+
 /** Watch it, so the sweep's own stamp and another officer's mark arrive here. */
 export function subscribePhotoArchive(uid: string, cb: (state: PhotoArchiveState | null) => void): () => void {
   if (!syncSupported()) return () => {};

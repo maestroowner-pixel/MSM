@@ -16,6 +16,7 @@
 
 const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
+const { readRegister } = require('./vesselData');
 
 const REGION = 'europe-west1';
 const ROOT = 'safety_vessels';
@@ -215,8 +216,8 @@ module.exports = {
     const expiryIso = new Date(d.inspectTokenExpiry).toISOString().slice(0, 10);
 
     // Parse the register for compliance.
-    let items = [];
-    try { items = JSON.parse(d.register || '[]'); } catch { /* empty register */ }
+    // The register is an object of categories, not a flat list (vesselData.js).
+    const items = readRegister(d).items;
     const byCat = computeCompliance(items, today, soon);
 
     // Open PMS defects.

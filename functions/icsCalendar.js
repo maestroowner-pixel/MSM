@@ -17,6 +17,7 @@
 
 const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
+const { readRegister } = require('./vesselData');
 
 const REGION = 'europe-west1';
 const ROOT = 'safety_vessels';
@@ -143,8 +144,8 @@ module.exports = {
     const events = [];
 
     // ---- Equipment items ----
-    let items = [];
-    try { items = JSON.parse(d.register || '[]'); } catch { /* empty */ }
+    // The register is an object of categories, not a flat list (vesselData.js).
+    const items = readRegister(d).items;
 
     for (const item of items) {
       if (item.deleted) continue;
@@ -177,13 +178,14 @@ module.exports = {
       for (const s of survSnap.docs) {
         const sv = s.data();
         if (sv.deleted) continue;
-        const next = sv.nextDue || sv.expiry;
+        // types/survey.ts: `name` and `due` (the anniversary), with a window around it.
+        const next = sv.due;
         if (next && inWindow(next)) {
           events.push(vevent({
             uid: `${s.id}-surv@ismpilot`,
             dtstart: next,
-            summary: `${sv.title || sv.type || 'Survey'} — due`,
-            description: sv.notes || '',
+            summary: `${sv.name || 'Survey'} — due`,
+            description: [sv.by, sv.note].filter(Boolean).join(' · '),
           }));
         }
       }

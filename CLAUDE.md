@@ -143,6 +143,16 @@ app mirrors. Bundle id `com.kukalab.msm`.
   `warrantyMonths` (`addMonths` clamps to month end) or a claim's own `coverUntil`; amber 60 days before. Claims
   (`warranty_claims`, officers, frozen once closed) draft → submitted → answered → closed (signed), `WC-<year>-<nnn>`.
   Needs `npm run deploy:rules` before the flag. `npm run check:yard`.
+- **Vessel API** (28 Oct 2026 — flag `api`): `functions/api.js` (HTTP `api` + callables `apiKeyCreate` / `apiKeyRevoke`),
+  shared reading in `functions/vesselData.js`, Master's screen `screens/ApiKeysSc` (Settings → API access), docs on the site
+  (`/Users/Oxford/MarineSafetyManager/site/api.html` → ismpilot.com/api). Bearer key `ismp_…`, shown once; only its SHA-256 is
+  kept (`api_keys/{hash}` → vessel + keyId, Admin SDK only; `safety_vessels/{v}/api_keys`, `api_log` — Master reads, nobody
+  writes). Reads: vessel, due, equipment, certificates (never crew), surveys, defects, machines — no crew names. Writes: running
+  hours only, through COPIES of checkReading / withReading / followerReadings / surveyStatus — **change them in both places**;
+  `npm run check:api` compares the copies with the app's functions. 60 requests a minute per key. Support key:
+  `cd functions && npm run apikey -- <IMO> "label" [--write]`. **The register field is an OBJECT** (`{categories, certificates…}`)
+  — read it with `vesselData.readRegister`; inspectView and icsCalendar iterated it as an array and threw until this.
+  Not in the API yet: PMS jobs due and drills (their due logic is the app's TS — bundle it rather than re-write it).
 - **Record books: seals, chain, signed copy** (25 Oct 2026, stage 2 — `services/seal.ts`,
   `services/signKeys.ts`, `services/bookAccess.ts`, `services/signedCopy.ts`, `npm run check:seal`).
   Every signer has an ECDSA P-256 key per device (`@noble/curves`, pure JS; randomness from
