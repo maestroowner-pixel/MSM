@@ -153,6 +153,15 @@ app mirrors. Bundle id `com.kukalab.msm`.
   `cd functions && npm run apikey -- <IMO> "label" [--write]`. **The register field is an OBJECT** (`{categories, certificates…}`)
   — read it with `vesselData.readRegister`; inspectView and icsCalendar iterated it as an array and threw until this.
   Not in the API yet: PMS jobs due and drills (their due logic is the app's TS — bundle it rather than re-write it).
+- **Verified by the office** (28 Oct 2026 — flag `officeCheck`, plan item 31 from JiBe): pure `services/officeCheck.ts`.
+  A machinery defect (`PmsDefect`) gains `responsible`, `awaitingSpares` (officers, while open), `office` and `closedBefore`.
+  The superintendent answers in Fleet (FleetVesselSc tab "To verify", `shore.saveOfficeCheck`): Verify, or Return with a reason —
+  `closed` moves to `closedBefore`, the defect is open again aboard ("Returned by the office", amber Board notice to officers).
+  A verified defect is final. A closed NC can be verified once (never returned — a closed NC stays final). Safety/class defects
+  close only with a repair photo. "Closures awaiting the office" (blue, Master) appears only once the office has answered
+  anything on that vessel (`officeInLoop`) — no per-vessel switch. Open defects ranked criticality × age (`rankDefects`) on
+  Maintenance and the Board. Rules: `pms_defects`, `ncs` (rules-test.mjs covers both) — `npm run deploy:rules` before the flag.
+  `npm run check:officecheck`.
 - **Record books: seals, chain, signed copy** (25 Oct 2026, stage 2 — `services/seal.ts`,
   `services/signKeys.ts`, `services/bookAccess.ts`, `services/signedCopy.ts`, `npm run check:seal`).
   Every signer has an ECDSA P-256 key per device (`@noble/curves`, pure JS; randomness from

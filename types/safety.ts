@@ -131,5 +131,7 @@ export interface NonConformity {
   closedByRank?: string;
   closedWith?: SignProof;
   effectiveness?: string;
+  /** The office's verification of the closure (services/officeCheck) — a closed NC is otherwise final. */
+  office?: import('../services/officeCheck').OfficeCheck;
   updatedAt: number;
 }

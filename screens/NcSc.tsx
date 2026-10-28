@@ -250,6 +250,7 @@ export default function NcSc() {
               <Text style={[styles.name, { color: COLORS.success }]}>{t('nc.closedAt', { when: uiDateTime(nc.closedAt!) })}</Text>
               <Text style={styles.sub}>{`${who(nc.closedBy, nc.closedByRank)}${nc.closedWith ? ` · ${proofShort(nc.closedWith)}` : ''}`}</Text>
               {nc.effectiveness ? <Text style={styles.body}>{`${t('nc.effective')}: ${nc.effectiveness}`}</Text> : null}
+              {nc.office ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{`${t('oc.verifiedBy', { who: who(nc.office.by, nc.office.byRank), when: uiDateTime(nc.office.at) })}${nc.office.note ? ` · ${nc.office.note}` : ''}`}</Text> : null}
             </View>
           ) : canClose && (st === 'ready' || (!nc.actions.length && nc.grade === 'observation')) ? (
             closing !== null ? (

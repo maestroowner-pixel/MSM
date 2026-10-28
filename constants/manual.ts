@@ -771,6 +771,7 @@ const en: ManualContent = {
         "For a superintendent in the office: one console with every vessel they look after, worst first — expired and due equipment, certificates (vessel, crew, equipment), maintenance, spares, and ISM documents still to be signed.",
         "Access is given by each vessel's Master: in Accounts, issue an account of the type Superintendent (shore). The superintendent opens Fleet (app.ismpilot.com/fleet), enters the IMO, name and PIN, and the vessel is added; further vessels are added the same way. The Master sees the account in Devices and can switch it off at any time.",
         "Open a vessel to add and edit its certificates and ISM documents, issue a new revision, and see who has not signed. Changes reach the devices aboard on their next sync. Equipment is shown read-only — it is inspected aboard.",
+        "Verified by the office: the To verify tab lists the machinery defects closed aboard and the NCs closed by the Master. Open one to read what was done and see the repair photos, then Verify — or, for a defect, Return to the vessel with what is missing: the defect is open again aboard, marked \"Returned by the office\", with your reason on the Board, and the earlier closure stays in its history. A safety-critical or class-affecting defect cannot be closed aboard without a photo of the repair. Aboard, a defect also shows who is responsible and whether it is awaiting spares, and open defects are listed worst first — criticality × days open.",
       ],
     },
     {
@@ -1519,6 +1520,7 @@ const ru: ManualContent = {
         "Для суперинтенданта в офисе: одна консоль со всеми его судами, сначала проблемные — просроченное и подходящее оборудование, сертификаты (судна, экипажа, оборудования), ТО, запчасти и ISM-документы, которые ещё не подписаны.",
         "Доступ даёт Мастер каждого судна: в Accounts выдать аккаунт типа Superintendent (shore). Суперинтендант открывает Fleet (app.ismpilot.com/fleet), вводит IMO, имя и PIN — судно добавлено; следующие суда добавляются так же. Мастер видит этот аккаунт в Devices и может отключить его в любой момент.",
         "Откройте судно, чтобы добавлять и править его сертификаты и ISM-документы, выпускать новую ревизию и видеть, кто не подписал. Изменения приходят на устройства на борту при следующей синхронизации. Оборудование — только для просмотра: его проверяют на борту.",
+        "Проверено офисом: вкладка «На проверку» — дефекты механизмов, закрытые на борту, и NC, закрытые капитаном. Откройте запись, прочитайте, что сделано, посмотрите фото ремонта и нажмите «Подтвердить» — или, для дефекта, «Вернуть на судно» с тем, чего не хватает: дефект снова открыт на борту с пометкой «Возвращён офисом», ваша причина видна на доске, а прежнее закрытие остаётся в истории. Дефект, критичный для безопасности или класса, на борту без фото ремонта не закрыть. На борту у дефекта также есть ответственный и отметка «ждёт запчасти», а открытые дефекты идут от худшего — критичность × дни открытия.",
       ],
     },
     {
@@ -2267,6 +2269,7 @@ const es: ManualContent = {
         "Para un superintendente en la oficina: una consola con todos sus buques, primero los que tienen problemas — equipos vencidos y próximos, certificados (del buque, de la tripulación, de equipos), mantenimiento, repuestos y documentos ISM aún sin firmar.",
         "El acceso lo da el Master de cada buque: en Accounts, emitir una cuenta del tipo Superintendent (shore). El superintendente abre Fleet (app.ismpilot.com/fleet), introduce el IMO, el nombre y el PIN, y el buque se añade; los demás buques, igual. El Master ve la cuenta en Devices y puede desactivarla en cualquier momento.",
         "Abra un buque para añadir y editar sus certificados y documentos ISM, emitir una nueva revisión y ver quién no ha firmado. Los cambios llegan a los dispositivos a bordo en la siguiente sincronización. Los equipos solo se ven: se inspeccionan a bordo.",
+        "Verificado por la oficina: la pestaña Por verificar muestra los defectos de maquinaria cerrados a bordo y las NC cerradas por el Capitán. Abra uno, lea lo que se hizo y vea las fotos de la reparación; luego Verificar o, para un defecto, Devolver al buque con lo que falta: el defecto vuelve a estar abierto a bordo, marcado «Devuelto por la oficina», con su motivo en el tablero, y el cierre anterior queda en su historial. Un defecto crítico para la seguridad o la clase no se puede cerrar a bordo sin foto de la reparación. A bordo, el defecto muestra también el responsable y si espera repuestos, y los defectos abiertos aparecen del peor al mejor: criticidad × días abierto.",
       ],
     },
     {
@@ -3015,6 +3018,7 @@ const uk: ManualContent = {
         "Для суперінтенданта в офісі: одна консоль з усіма його суднами, спочатку проблемні — прострочене й найближче обладнання, сертифікати (судна, екіпажу, обладнання), ТО, запчастини та ISM-документи, які ще не підписані.",
         "Доступ дає Майстер кожного судна: в Accounts видати акаунт типу Superintendent (shore). Суперінтендант відкриває Fleet (app.ismpilot.com/fleet), вводить IMO, ім'я та PIN — судно додано; наступні судна додаються так само. Майстер бачить цей акаунт у Devices і може вимкнути його будь-коли.",
         "Відкрийте судно, щоб додавати й редагувати його сертифікати та ISM-документи, випускати нову ревізію й бачити, хто не підписав. Зміни приходять на пристрої на борту під час наступної синхронізації. Обладнання — лише для перегляду: його перевіряють на борту.",
+        "Перевірено офісом: вкладка «На перевірку» — дефекти механізмів, закриті на борту, і NC, закриті капітаном. Відкрийте запис, прочитайте, що зроблено, перегляньте фото ремонту й натисніть «Підтвердити» — або, для дефекту, «Повернути на судно» з тим, чого бракує: дефект знову відкритий на борту з позначкою «Повернуто офісом», ваша причина видна на дошці, а попереднє закриття лишається в історії. Дефект, критичний для безпеки або класу, на борту без фото ремонту не закрити. На борту дефект також має відповідального й позначку «чекає запчастин», а відкриті дефекти йдуть від найгіршого — критичність × дні відкриття.",
       ],
     },
     {
@@ -3698,6 +3702,7 @@ const no: ManualContent = {
         'For en superintendent på kontoret: én konsoll med hvert fartøy de tar seg av, verste først – utløpt og forfaller snart utstyr, sertifikater, vedlikehold, reservedeler og ISM-dokumenter som fortsatt skal signeres.',
         'Tilgang gis av hvert fartøys Master: i Accounts, utsted en konto av typen Superintendent (kyst).',
         'Åpne et fartøy for å legge til og redigere dets sertifikater og ISM-dokumenter, utstede ny revisjon, og se hvem som ikke har signert.',
+        "Verifisert av kontoret: fanen Til verifisering viser maskinavvik lukket om bord og avvik (NC) lukket av kapteinen. Åpne ett, les hva som ble gjort og se bildene av reparasjonen, og trykk Verifiser — eller, for et maskinavvik, Returner til fartøyet med hva som mangler: avviket er åpent igjen om bord, merket «Returnert av kontoret», med begrunnelsen din på tavlen, og den forrige lukkingen blir i historikken. Et sikkerhetskritisk eller klassepåvirkende avvik kan ikke lukkes om bord uten bilde av reparasjonen. Om bord viser avviket også hvem som er ansvarlig og om det venter på deler, og åpne avvik står med det verste først — kritikalitet × dager åpent.",
       ],
     },
     {
@@ -4366,6 +4371,7 @@ const pt: ManualContent = {
         'Para um superintendente no escritório: um console com cada embarcação que gerenciam, pior primeiro – equipamentos vencidos e com vencimento próximo, certificados, manutenção, sobressalentes e documentos ISM ainda para assinar.',
         'O acesso é concedido pelo Mestre de cada embarcação: em Accounts, emita uma conta do tipo Superintendent (shore).',
         'Abra uma embarcação para adicionar e editar seus certificados e documentos ISM.',
+        "Verificado pelo escritório: o separador Por verificar mostra os defeitos de máquinas fechados a bordo e as NC fechadas pelo Comandante. Abra um, leia o que foi feito e veja as fotos da reparação; depois Verificar ou, para um defeito, Devolver ao navio com o que falta: o defeito volta a ficar aberto a bordo, marcado «Devolvido pelo escritório», com o seu motivo no quadro, e o fecho anterior fica no histórico. Um defeito crítico para a segurança ou a classe não pode ser fechado a bordo sem foto da reparação. A bordo, o defeito mostra também o responsável e se aguarda peças, e os defeitos abertos aparecem do pior para o melhor: criticidade × dias em aberto.",
       ],
     },
     {
@@ -4432,6 +4438,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Drills', module: 'drills' },
   { title: 'Safety observations & NC', module: 'qhse' },
   { title: 'Fleet console (superintendent)', module: 'fleet' },
+  { title: 'Fleet console (superintendent)', module: 'officeCheck', drop: [3] },
   { title: 'Deck watch log', module: 'deckLog' },
   { title: 'Internal audits', module: 'qhse' },
   { title: 'GMDSS Log', module: 'gmdss' },

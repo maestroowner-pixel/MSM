@@ -12,7 +12,7 @@
 // ===================================
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 
 import { Empty, Label, Screen, ScreenTitle, StatusPill } from '../components/ui';
@@ -32,9 +32,13 @@ import { DOC_CATEGORY_LABEL, DocCategory, IsmDoc } from '../types/docs';
 import { computeStatus, statusFromDate, uiDate } from '../utils/dates';
 import { catLabel } from '../constants/categories';
 import { uid } from '../utils/id';
+import { awaitsOffice, giveBack, ncAwaitsOffice, verify, verifyNc } from '../services/officeCheck';
+import { PmsDefect } from '../types/pms';
+import { NonConformity } from '../types/safety';
+import { Attachment } from '../types/equipment';
 import { t, tk, useT } from '../utils/i18n';
 
-type Tab = 'certs' | 'docs' | 'equipment';
+type Tab = 'certs' | 'docs' | 'equipment' | 'verify';
 const SCOPES: { key: CertificateScope; label: string }[] = [
   { key: 'vessel', label: 'Vessel' },
   { key: 'crew', label: 'Crew' },
@@ -51,6 +55,7 @@ export default function FleetVesselSc() {
   const [error, setError] = useState<string | null>(null);
   const [cert, setCert] = useState<Certificate | null>(null);
   const [docEdit, setDocEdit] = useState<{ doc: IsmDoc; isNew: boolean } | null>(null);
+  const [check, setCheck] = useState<{ defect?: PmsDefect; nc?: NonConformity } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -88,19 +93,45 @@ export default function FleetVesselSc() {
     .map((it) => ({ it, st: computeStatus(it) }))
     .filter((x) => x.st === 'expired' || x.st === 'due')
     .sort((a, b) => (a.st === b.st ? 0 : a.st === 'expired' ? -1 : 1));
+  // Verified by the office (services/officeCheck): closures waiting for this superintendent.
+  const office = moduleOn('officeCheck');
+  const toVerify = (v.defects ?? []).filter(awaitsOffice).sort((a, b) => a.closed!.at - b.closed!.at);
+  const ncsToVerify = (v.ncs ?? []).filter(ncAwaitsOffice).sort((a, b) => (a.closedAt ?? 0) - (b.closedAt ?? 0));
+  const tabs: [Tab, string][] = [['certs', `${t('fleet.certs')} · ${certs.length}`], ['docs', `${t('docs.title')} · ${docs.length}`], ['equipment', `${t('cat.title')} · ${owed.length}`]];
+  if (office) tabs.push(['verify', `${t('oc.tab')} · ${toVerify.length + ncsToVerify.length}`]);
 
   return (
     <Screen scroll>
       <ScreenTitle title={v.name} subtitle={`IMO ${v.imo} · ${t('fv.supt')}`} />
       <View style={styles.tabs}>
-        {([['certs', `${t('fleet.certs')} · ${certs.length}`], ['docs', `${t('docs.title')} · ${docs.length}`], ['equipment', `${t('cat.title')} · ${owed.length}`]] as [Tab, string][]).map(([k, l]) => (
+        {tabs.map(([k, l]) => (
           <TouchableOpacity key={k} style={[styles.tab, tab === k && styles.tabOn]} onPress={() => setTab(k)}>
             <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>{l}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {tab === 'certs' ? (
+      {tab === 'verify' ? (
+        <>
+          {toVerify.map((d) => (
+            <TouchableOpacity key={d.id} style={styles.row} onPress={() => setCheck({ defect: d })}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.title} numberOfLines={1}>{`${d.machineName} — ${d.description}`}</Text>
+                <Text style={styles.sub} numberOfLines={1}>{[tk(`pms.defcat.${d.category}`), t('oc.closedOn', { date: uiDate(d.closed!.date), who: d.closed!.byRank ? `${d.closed!.by} (${d.closed!.byRank})` : d.closed!.by }), d.closedBefore?.length ? t('oc.againN', { n: d.closedBefore.length }) : null].filter(Boolean).join(' · ')}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+          {ncsToVerify.map((nc) => (
+            <TouchableOpacity key={nc.id} style={styles.row} onPress={() => setCheck({ nc })}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.title} numberOfLines={1}>{`${nc.no} — ${nc.title}`}</Text>
+                <Text style={styles.sub} numberOfLines={1}>{t('oc.closedOn', { date: uiDate(new Date(nc.closedAt!).toISOString().slice(0, 10)), who: nc.closedByRank ? `${nc.closedBy} (${nc.closedByRank})` : nc.closedBy ?? '' })}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+          {!toVerify.length && !ncsToVerify.length ? <Empty text={t('oc.nothing')} /> : null}
+        </>
+      ) : tab === 'certs' ? (
         <>
           <TouchableOpacity onPress={() => setCert({ id: uid('cert'), name: '', scope: 'vessel', itemIds: [], createdAt: Date.now(), updatedAt: Date.now() })} style={styles.addRow}>
             <Text style={styles.link}>{t('crew.addCert')}</Text>
@@ -170,6 +201,7 @@ export default function FleetVesselSc() {
       )}
 
       {cert ? <CertEditor imo={imo} cert={cert} crew={v.crew} onClose={() => setCert(null)} onSaved={() => { setCert(null); void load(); }} /> : null}
+      {check ? <OfficeCheckSheet imo={v.imo} check={check} onClose={() => setCheck(null)} onSaved={() => { setCheck(null); void load(); }} /> : null}
       {docEdit ? <DocEditor imo={imo} start={docEdit.doc} isNew={docEdit.isNew} onClose={() => setDocEdit(null)} onSaved={() => { setDocEdit(null); void load(); }} /> : null}
     </Screen>
   );
@@ -351,6 +383,79 @@ function DocEditor({ imo, start, isNew, onClose, onSaved }: { imo: string; start
             <Text style={{ color: COLORS.danger, fontWeight: '700' }}>{t('fv.withdraw')}</Text>
           </TouchableOpacity>
         </>
+      ) : null}
+    </Sheet>
+  );
+}
+
+/** The superintendent's answer on one closure: verify, or (a defect) return it to the vessel with the reason. */
+function OfficeCheckSheet({ imo, check, onClose, onSaved }: { imo: string; check: { defect?: PmsDefect; nc?: NonConformity }; onClose: () => void; onSaved: () => void }) {
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [urls, setUrls] = useState<string[]>([]);
+  const d = check.defect;
+  const nc = check.nc;
+
+  useEffect(() => {
+    if (!d?.closed?.photos?.length) return;
+    const owner = `${d.id}-closed`;
+    void Promise.all(d.closed.photos.map((p: Attachment) => shore.photoUrl(imo, owner, p.id))).then((l) => setUrls(l.filter((u): u is string => !!u)));
+  }, [d, imo]);
+
+  const answer = async (back: boolean) => {
+    if (back && note.trim().length < 3) return Alert.alert(t('oc.return'), t('oc.needReason'));
+    setBusy(true);
+    try {
+      const me = { name: (await shore.myName()) || t('fv.supt'), rank: t('oc.office') };
+      const now = Date.now();
+      if (d) await shore.saveOfficeCheck(imo, 'pms_defects', back ? giveBack(d, me, note, now) : verify(d, me, note, now));
+      else if (nc) await shore.saveOfficeCheck(imo, 'ncs', verifyNc(nc, me, note, now));
+      onSaved();
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e?.message ?? String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const who = (by?: string, rank?: string) => (rank ? `${by} (${rank})` : by ?? '');
+  return (
+    <Sheet title={d ? t('pd.defect') : nc!.no} onClose={onClose} onSave={() => void answer(false)} busy={busy} saveLabel={t('oc.verify')}>
+      {d ? (
+        <>
+          <Text style={styles.title}>{`${d.machineName} — ${tk(`pms.defcat.${d.category}`)}`}</Text>
+          <Text style={styles.sub}>{`${d.description}\n${uiDate(d.date)} · ${who(d.by, d.byRank)}${d.responsible ? ` · ${t('oc.responsible')}: ${d.responsible}` : ''}`}</Text>
+          <Label>{t('pd.rectified')}</Label>
+          <Text style={styles.title}>{d.closed!.note}</Text>
+          <Text style={styles.sub}>{`${uiDate(d.closed!.date)} · ${who(d.closed!.by, d.closed!.byRank)}`}</Text>
+          {urls.length ? (
+            <View style={styles.chips}>{urls.map((u) => <Image key={u} source={{ uri: u }} style={{ width: 150, height: 110, borderRadius: SIZES.radiusMd }} />)}</View>
+          ) : d.closed!.photos?.length ? <Text style={styles.sub}>{t('oc.photosPending', { n: d.closed!.photos.length })}</Text> : <Text style={styles.sub}>{t('oc.noPhoto')}</Text>}
+          {d.closedBefore?.length ? (
+            <>
+              <Label>{t('oc.history')}</Label>
+              {d.closedBefore.map((c) => <Text key={c.at} style={styles.sub}>{`${uiDate(c.date)} · ${who(c.by, c.byRank)}: ${c.note}`}</Text>)}
+            </>
+          ) : null}
+        </>
+      ) : nc ? (
+        <>
+          <Text style={styles.title}>{nc.title}</Text>
+          <Text style={styles.sub}>{nc.what}</Text>
+          {nc.actions.map((a) => <Text key={a.id} style={styles.sub}>{`• ${a.text}`}</Text>)}
+          <Label>{t('pd.rectified')}</Label>
+          <Text style={styles.title}>{nc.effectiveness ?? ''}</Text>
+          <Text style={styles.sub}>{who(nc.closedBy, nc.closedByRank)}</Text>
+        </>
+      ) : null}
+      <Label>{t('oc.note')}</Label>
+      <TextInput style={[styles.input, { minHeight: 60 }]} value={note} onChangeText={setNote} multiline placeholder={d ? t('oc.notePh') : t('oc.noteNcPh')} placeholderTextColor={COLORS.textLight} />
+      {d ? (
+        <TouchableOpacity style={styles.delete} disabled={busy} onPress={() => void answer(true)}>
+          <Text style={{ color: COLORS.danger, fontWeight: '700' }}>{t('oc.return')}</Text>
+        </TouchableOpacity>
       ) : null}
     </Sheet>
   );

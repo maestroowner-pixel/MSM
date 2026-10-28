@@ -319,6 +319,33 @@ await t(true, 'The shore reads the stores', getDoc(R(shore, 'store_rooms', 'str1
 await t(false, 'A store is never deleted (removed by a mark)', deleteDoc(R(master, 'store_rooms', 'str1')));
 await t(false, 'Another vessel cannot add a store here', setDoc(doc(crew, 'safety_vessels', OTHER, 'store_rooms', 'x'), { id: 'x', code: 'X', name: 'X', kind: 'general', order: 0, updatedAt: 1 }));
 
+// Verified by the office (services/officeCheck, 28 Oct 2026)
+const DF = { id: 'df1', machineId: 'm1', machineName: 'ME', category: 'class', description: 'Leak', date: '2026-10-01', by: 'CE', at: 1, updatedAt: 1 };
+const CL = { date: '2026-10-20', note: 'Fixed', by: '2/E', at: 10 };
+await t(true, 'Crew raise a defect', setDoc(R(crew, 'pms_defects', 'df1'), DF));
+await t(false, 'A defect cannot be raised already answered by the office', setDoc(R(crew, 'pms_defects', 'df9'), { ...DF, id: 'df9', office: { result: 'verified', by: 'x', at: 1 } }));
+await t(true, 'An officer sets responsible and awaiting spares', updateDoc(R(officer, 'pms_defects', 'df1'), { responsible: '2/E', awaitingSpares: { since: '2026-10-02' }, updatedAt: 2 }));
+await t(false, 'Crew cannot set responsible', updateDoc(R(crew, 'pms_defects', 'df1'), { responsible: 'me', updatedAt: 3 }));
+await t(false, 'The office cannot verify an open defect', updateDoc(R(shore, 'pms_defects', 'df1'), { office: { result: 'verified', by: 'S', at: 3 }, updatedAt: 3 }));
+await t(true, 'An officer closes it', setDoc(R(officer, 'pms_defects', 'df1'), { ...DF, responsible: '2/E', closed: CL, updatedAt: 4 }));
+await t(false, 'An officer cannot change a closed defect', updateDoc(R(officer, 'pms_defects', 'df1'), { responsible: 'x', updatedAt: 5 }));
+await t(false, 'The office cannot verify AND rewrite the closure', updateDoc(R(shore, 'pms_defects', 'df1'), { office: { result: 'verified', by: 'S', at: 5 }, closed: { ...CL, note: 'other' }, updatedAt: 5 }));
+await t(false, 'The office cannot return and keep it closed', updateDoc(R(shore, 'pms_defects', 'df1'), { office: { result: 'returned', note: 'No photo', by: 'S', at: 5 }, updatedAt: 5 }));
+await t(true, 'The office returns it: closure to history, open again', setDoc(R(shore, 'pms_defects', 'df1'), { ...DF, responsible: '2/E', closedBefore: [CL], office: { result: 'returned', note: 'No photo', by: 'S', at: 5 }, updatedAt: 5 }));
+await t(true, 'The officer closes it again', updateDoc(R(officer, 'pms_defects', 'df1'), { closed: { ...CL, at: 20 }, updatedAt: 6 }));
+await t(false, 'Crew cannot verify', updateDoc(R(crew, 'pms_defects', 'df1'), { office: { result: 'verified', by: 'S', at: 7 }, updatedAt: 7 }));
+await t(true, 'The office verifies the new closure', updateDoc(R(shore, 'pms_defects', 'df1'), { office: { result: 'verified', by: 'S', at: 7 }, updatedAt: 7 }));
+await t(false, 'A verified defect is final — not returned afterwards', setDoc(R(shore, 'pms_defects', 'df1'), { ...DF, office: { result: 'returned', note: 'x', by: 'S', at: 8 }, updatedAt: 8 }));
+await t(false, 'A defect is never deleted', deleteDoc(R(master, 'pms_defects', 'df1')));
+const NC = { id: 'nc1', no: 'NC-2026-001', date: '2026-10-01', source: 'audit', grade: 'minor', title: 'x', what: 'y', actions: [], raisedBy: 'CO', raisedAt: 1, updatedAt: 1 };
+await t(true, 'An officer raises an NC', setDoc(R(officer, 'ncs', 'nc1'), NC));
+await t(false, 'The office cannot "verify" an open NC', updateDoc(R(shore, 'ncs', 'nc1'), { office: { result: 'verified', by: 'S', at: 2 }, updatedAt: 2 }));
+await t(true, 'The Master closes the NC', updateDoc(R(master, 'ncs', 'nc1'), { closedAt: 3, closedBy: 'Master', updatedAt: 3 }));
+await t(false, 'The office cannot return a closed NC', updateDoc(R(shore, 'ncs', 'nc1'), { office: { result: 'returned', by: 'S', at: 4 }, updatedAt: 4 }));
+await t(false, 'The office cannot reopen a closed NC', updateDoc(R(shore, 'ncs', 'nc1'), { closedAt: null, office: { result: 'verified', by: 'S', at: 4 }, updatedAt: 4 }));
+await t(true, 'The office verifies the closed NC', updateDoc(R(shore, 'ncs', 'nc1'), { office: { result: 'verified', by: 'S', at: 4 }, updatedAt: 4 }));
+await t(false, '…once', updateDoc(R(shore, 'ncs', 'nc1'), { office: { result: 'verified', by: 'S2', at: 5 }, updatedAt: 5 }));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

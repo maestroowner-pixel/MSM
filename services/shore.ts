@@ -28,6 +28,7 @@ import { Certificate } from '../types/certificate';
 import { CrewMember } from '../types/crew';
 import { DocAck, IsmDoc } from '../types/docs';
 import { EquipmentItem } from '../types/equipment';
+import { photoPath } from './photoStorage';
 
 const REGION = 'europe-west1';
 const ROOT = 'safety_vessels';
@@ -141,7 +142,7 @@ export async function loadVessel(imo: string): Promise<VesselData> {
     blob = {};
   }
   const items: EquipmentItem[] = Object.values(blob.categories ?? {}).flatMap((l: any) => (Array.isArray(l) ? l : []));
-  const [crew, docs, acks, machines, jobs, spares, moves] = await Promise.all([
+  const [crew, docs, acks, machines, jobs, spares, moves, defects, ncs] = await Promise.all([
     list<CrewMember>(imo, 'crew'),
     list<IsmDoc>(imo, 'ism_docs'),
     list<DocAck>(imo, 'ism_doc_acks'),
@@ -149,6 +150,8 @@ export async function loadVessel(imo: string): Promise<VesselData> {
     list<any>(imo, 'pms_jobs'),
     list<any>(imo, 'spares'),
     list<any>(imo, 'spare_moves'),
+    list<any>(imo, 'pms_defects'),
+    list<any>(imo, 'ncs'),
   ]);
   return {
     imo,
@@ -163,6 +166,8 @@ export async function loadVessel(imo: string): Promise<VesselData> {
     jobs,
     spares,
     moves,
+    defects,
+    ncs,
   };
 }
 
@@ -182,6 +187,26 @@ export async function saveDoc(imo: string, d: IsmDoc): Promise<void> {
   // Firestore refuses `undefined`; drop empty optionals.
   const clean = Object.fromEntries(Object.entries(d).filter(([, v]) => v !== undefined));
   await setDoc(doc(db(), ROOT, imo, 'ism_docs', d.id), clean);
+}
+
+/** The superintendent's name, as the account was issued — what an office check is signed with. */
+export async function myName(): Promise<string> {
+  return (await AsyncStorage.getItem(NAME_KEY)) ?? '';
+}
+
+/** A defect or NC with the office's answer (services/officeCheck), written straight to the vessel (rules: `shore(v)`). */
+export async function saveOfficeCheck(imo: string, sub: 'pms_defects' | 'ncs', rec: { id: string }): Promise<void> {
+  const clean = JSON.parse(JSON.stringify(rec));
+  await setDoc(doc(db(), ROOT, imo, sub, rec.id), clean);
+}
+
+/** A record's photo in Cloud Storage (services/photoStorage photoPath); null when it has not been uploaded yet. */
+export async function photoUrl(imo: string, ownerId: string, photoId: string): Promise<string | null> {
+  try {
+    return await getDownloadURL(storageRef(getStorage(app()), photoPath(imo, ownerId, photoId)));
+  } catch {
+    return null;
+  }
 }
 
 /** Upload a file (data: URI) for a document or certificate; returns its URL. */

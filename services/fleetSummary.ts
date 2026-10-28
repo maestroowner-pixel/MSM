@@ -29,6 +29,9 @@ export interface VesselData {
   jobs: PmsJob[];
   spares: SparePart[];
   moves: SpareMove[];
+  /** For the office's verification (services/officeCheck); absent from older callers. */
+  defects?: import('../types/pms').PmsDefect[];
+  ncs?: import('../types/safety').NonConformity[];
 }
 
 export interface Count {

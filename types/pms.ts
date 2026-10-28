@@ -336,7 +336,15 @@ export interface PmsDefect {
   at: number;
   signedWith?: import('../services/signature').SignProof;
   photos?: import('./equipment').Attachment[];
+  /** Who is to put it right — a rank or a name, set aboard (services/officeCheck, 28 Oct 2026). */
+  responsible?: string;
+  /** Waiting for spares since this date — set and cleared by an officer while the defect is open. */
+  awaitingSpares?: { since: string; note?: string };
   closed?: PmsDefectClose;
+  /** The office's word on the closure: verified, or returned to the vessel (then `closed` moved to `closedBefore`). */
+  office?: import('../services/officeCheck').OfficeCheck;
+  /** Closures the office returned, oldest first. */
+  closedBefore?: PmsDefectClose[];
   updatedAt: number;
 }
 

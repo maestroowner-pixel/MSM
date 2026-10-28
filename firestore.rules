@@ -213,12 +213,21 @@ service cloud.firestore {
         allow create: if member(v) && (plainRecord() || isSuper(v));
         allow update, delete: if false;
       }
-      // A defect found on machinery: raised by any member, closed (only the
-      // `closed` block) by an officer or the Master. Never deleted.
+      // A defect found on machinery: raised by any member, worked (responsible,
+      // awaiting spares) and closed by an officer or the Master while open.
+      // The office (services/officeCheck) verifies a closure or returns it —
+      // the closure then moves to `closedBefore` and the defect is open again.
+      // A verified defect is final. Never deleted.
       match /pms_defects/{id} {
         allow read: if reader(v);
-        allow create: if member(v) && !('closed' in request.resource.data);
-        allow update: if isAdmin(v) && onlyChanges(['closed', 'updatedAt']) && !('closed' in resource.data);
+        allow create: if member(v) && !('closed' in request.resource.data) && !('office' in request.resource.data);
+        allow update: if (isAdmin(v) && !('closed' in resource.data)
+                          && onlyChanges(['closed', 'responsible', 'awaitingSpares', 'updatedAt']))
+                      || (shore(v) && 'closed' in resource.data
+                          && resource.data.get('office', {}).get('result', '') != 'verified'
+                          && onlyChanges(['office', 'closed', 'closedBefore', 'updatedAt'])
+                          && ((request.resource.data.office.result == 'verified' && request.resource.data.closed == resource.data.closed)
+                              || (request.resource.data.office.result == 'returned' && !('closed' in request.resource.data))));
         allow delete: if false;
       }
       // A project (yard period, dry dock) — part of the plan: the Master's or the superintendent's.
@@ -528,10 +537,13 @@ service cloud.firestore {
       match /ncs/{id} {
         allow read: if reader(v);
         allow create: if isAdmin(v) && !('closedAt' in request.resource.data);
-        allow update: if resource.data.get('closedAt', null) == null && (
+        allow update: if (resource.data.get('closedAt', null) == null && !('office' in request.resource.data) && (
                         plans(v)
                         || (isAdmin(v) && !('closedAt' in request.resource.data))
-                        || (member(v) && onlyChanges(['actions', 'updatedAt'])));
+                        || (member(v) && onlyChanges(['actions', 'updatedAt']))))
+                      // The office verifies a closed NC once (services/officeCheck).
+                      || (shore(v) && resource.data.get('closedAt', null) != null && !('office' in resource.data)
+                          && onlyChanges(['office', 'updatedAt']) && request.resource.data.office.result == 'verified');
         allow delete: if false;
       }
       // Drills (types/drills.ts): planned and run by an officer or the Master,

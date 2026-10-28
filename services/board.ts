@@ -55,6 +55,7 @@ import { chestCounts, chestStatus, followUpsDue, isArchived, isLanding, landingL
 import { currentEntries } from './garbage';
 import { current } from './versions';
 import { awaiting, verifiedIds } from './verification';
+import { awaitsOffice, ncAwaitsOffice, officeInLoop, rankDefects } from './officeCheck';
 import { t, tn } from '../utils/t';
 
 export type Level = 'red' | 'amber' | 'blue';
@@ -312,10 +313,20 @@ export function buildBoard(x: BoardInput): Board {
     const waiting = x.pmsJobs.filter((j) => j.prepared && !j.deleted && byId.has(j.machineId)).length;
     if (waiting) n.push({ key: 'pms:await', level: 'amber', who: 'officer', icon: 'clipboard-check-outline', route: 'Maintenance', title: `${t('b.pms')} — ${t('b.pms.awaiting', { x: tn('n.job', waiting) })}` });
     // Machinery defects: safety-critical to everyone at once, class-affecting to the officers.
-    const open = (x.pmsDefects ?? []).filter((d) => !d.closed);
+    // With the office check on, worst first by criticality × age, so the line names the worst one.
+    const office = x.on('officeCheck');
+    const open = office ? rankDefects(x.pmsDefects ?? [], x.today) : (x.pmsDefects ?? []).filter((d) => !d.closed);
     const safety = open.filter((d) => d.category === 'safety');
     const cls = open.filter((d) => d.category === 'class');
     if (safety.length) n.push({ key: 'pms:defect-safety', level: 'red', who: 'all', icon: 'alert-octagon-outline', route: 'Maintenance', title: `${safety.length > 1 ? t('b.pms.safetyDefects', { n: safety.length }) : t('b.pms.safetyDefect')} — ${safety[0].machineName}`, sub: safety[0].description });
+    if (office) {
+      for (const d of open.filter((v) => v.office?.result === 'returned')) {
+        n.push({ key: `pms:returned:${d.id}`, level: 'amber', who: 'officer', icon: 'undo-variant', route: 'PmsDefect', params: { id: d.id }, title: `${t('oc.returnedTitle')} — ${d.machineName}`, sub: d.office?.note });
+      }
+      const defs = x.pmsDefects ?? [];
+      const waitingOffice = defs.filter(awaitsOffice).length + (x.ncs ?? []).filter(ncAwaitsOffice).length;
+      if (waitingOffice && officeInLoop(defs, x.ncs ?? [])) n.push({ key: 'office:await', level: 'blue', who: 'master', icon: 'office-building-outline', route: 'Maintenance', title: t('oc.awaitingN', { n: waitingOffice }) });
+    }
     if (cls.length) n.push({ key: 'pms:defect-class', level: 'amber', who: 'officer', icon: 'alert-outline', route: 'Maintenance', title: `${cls.length > 1 ? t('b.pms.classDefects', { n: cls.length }) : t('b.pms.classDefect')} — ${cls[0].machineName}`, sub: cls[0].description });
     tiles.push({ key: 'pms', label: t('b.pms'), icon: 'engine-outline', route: 'Maintenance', level: lvl(over, due), line: over || due ? [over ? t('b.overdueN', { n: over }) : null, due ? t('b.dueN', { n: due }) : null].filter(Boolean).join(' · ') : t('b.pms.inHand', { n: x.pmsJobs.length }) });
   }

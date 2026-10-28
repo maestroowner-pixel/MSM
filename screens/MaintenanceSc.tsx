@@ -22,6 +22,7 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { categoryColor } from './PmsDefectSc';
 import { classPack, machineHistory, openDefects, packMachines } from '../services/pmsHistory';
+import { rankDefects } from '../services/officeCheck';
 import { treeOrder } from '../services/pmsMachines';
 import { exportPmsHistory } from '../services/pmsHistoryReport';
 import { PLAN_LOCKED, plansPms } from '../types/role';
@@ -51,7 +52,8 @@ export default function MaintenanceSc() {
   /** Several routine jobs of one type signed out at once (services/pms multiSignable). */
   const [multi, setMulti] = useState<{ ids: string[]; note: string } | null>(null);
   const [showScrapped, setShowScrapped] = useState(false);
-  const defectsOpen = useMemo(() => openDefects(pmsDefects), [pmsDefects]);
+  // With the office check on, worst first by criticality × age (services/officeCheck).
+  const defectsOpen = useMemo(() => (moduleOn('officeCheck') ? rankDefects(pmsDefects, todayIso()) : openDefects(pmsDefects)), [pmsDefects]);
   // What a class surveyor asks for at a periodical survey, in one file — the last 12 months of work.
   const classSurveyPack = async () => {
     try {
@@ -295,7 +297,7 @@ export default function MaintenanceSc() {
           <View style={[styles.bar, { backgroundColor: categoryColor(COLORS, x.category) }]} />
           <View style={{ flex: 1 }}>
             <Text style={styles.title} numberOfLines={1}>{x.description}</Text>
-            <Text style={styles.sub} numberOfLines={1}>{`${tk(`pms.defcat.${x.category}`)} · ${x.machineName} · ${uiDate(x.date)}`}</Text>
+            <Text style={styles.sub} numberOfLines={1}>{[tk(`pms.defcat.${x.category}`), x.machineName, uiDate(x.date), x.office?.result === 'returned' ? t('oc.stage.returned') : null, x.awaitingSpares ? t('oc.stage.spares') : null, x.responsible].filter(Boolean).join(' · ')}</Text>
           </View>
         </TouchableOpacity>
       ))}

@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -232,6 +232,14 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * apiKeyCreate, apiKeyRevoke) and `npm run deploy:rules` (api_keys, api_log) first.
    */
   api: true,
+  /**
+   * Verified by the office — a defect's responsible, "awaiting spares", and a
+   * closure the superintendent verifies or returns from Fleet; NCs verified the
+   * same way; open defects ranked by criticality × age on the Board
+   * (services/officeCheck.ts, 28 Oct 2026). Needs `npm run deploy:rules` first
+   * (pms_defects, ncs).
+   */
+  officeCheck: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------
