@@ -33,6 +33,8 @@ export interface VesselData {
   defects?: import('../types/pms').PmsDefect[];
   ncs?: import('../types/safety').NonConformity[];
   deferrals?: import('../types/pms').PmsDeferral[];
+  /** The vessel's own modules (a pilot vessel's), so Fleet shows what that vessel has on. */
+  modules?: Partial<Record<import('../constants/modules').ModuleKey, boolean>>;
 }
 
 export interface Count {

@@ -29,6 +29,7 @@ import { CrewMember } from '../types/crew';
 import { DocAck, IsmDoc } from '../types/docs';
 import { EquipmentItem } from '../types/equipment';
 import { photoPath } from './photoStorage';
+import { cleanModules } from '../constants/modules';
 
 const REGION = 'europe-west1';
 const ROOT = 'safety_vessels';
@@ -170,6 +171,7 @@ export async function loadVessel(imo: string): Promise<VesselData> {
     defects,
     ncs,
     deferrals,
+    modules: cleanModules(data.modules),
   };
 }
 

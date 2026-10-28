@@ -94,7 +94,8 @@ export default function FleetVesselSc() {
     .filter((x) => x.st === 'expired' || x.st === 'due')
     .sort((a, b) => (a.st === b.st ? 0 : a.st === 'expired' ? -1 : 1));
   // Verified by the office (services/officeCheck): closures waiting for this superintendent.
-  const office = moduleOn('officeCheck');
+  // On for the build, or for this vessel (a pilot) — the superintendent has no vessel of their own to read it from.
+  const office = moduleOn('officeCheck') || v.modules?.officeCheck === true;
   const toVerify = (v.defects ?? []).filter(awaitsOffice).sort((a, b) => a.closed!.at - b.closed!.at);
   const ncsToVerify = (v.ncs ?? []).filter(ncAwaitsOffice).sort((a, b) => (a.closedAt ?? 0) - (b.closedAt ?? 0));
   const toApprove = deferralsToAnswer(v.deferrals ?? [], v.jobs);
