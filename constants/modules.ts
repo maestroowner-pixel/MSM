@@ -237,8 +237,9 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * closure the superintendent verifies or returns from Fleet; NCs verified the
    * same way; open defects ranked by criticality × age on the Board
    * (services/officeCheck.ts, 28 Oct 2026). Also PMS deferrals approved or
-   * refused by the office (plan item 32). Needs `npm run deploy:rules` first
-   * (pms_defects, ncs, pms_deferrals).
+   * refused by the office (plan item 32). Rules deployed 28 Oct 2026.
+   * Stays OFF in the build: switched on per vessel ON REQUEST
+   * (`npm run modules -- <IMO> on officeCheck`), the user's decision 28 Oct 2026.
    */
   officeCheck: false,
 };
