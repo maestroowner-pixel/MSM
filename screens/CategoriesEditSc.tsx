@@ -216,9 +216,7 @@ export default function CategoriesEditSc() {
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={styles.note}>
-            The group decides which report the heading is printed in — LSA, FFE, or Other.
-          </Text>
+          <Text style={styles.note}>{t('ce.groupNote')}</Text>
 
           <Text style={styles.fieldLabel}>{t('ce.icon')}</Text>
           <View style={styles.chipRow}>

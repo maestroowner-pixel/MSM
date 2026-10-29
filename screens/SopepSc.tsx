@@ -196,7 +196,7 @@ export default function SopepSc() {
             {mayManage ? <TouchableOpacity style={styles.btnOutline} onPress={() => void addLocker()}><Text style={styles.btnOutlineText}>{t('sop.newLocker')}</Text></TouchableOpacity> : null}
             <TouchableOpacity style={styles.btnOutline} onPress={() => void exportLockerLabels(shown.map((l) => ({ ...l, code: lockerCode(l) })), vessel).then(done, fail)}>
               <MciIcon name="qrcode" size={16} color={COLORS.primary} />
-              <Text style={styles.btnOutlineText}>{shown.length > 1 ? `QR labels (${shown.length})` : 'QR label'}</Text>
+              <Text style={styles.btnOutlineText}>{shown.length > 1 ? t('sop.qrLabelsN', { n: shown.length }) : t('sop.qrLabel')}</Text>
             </TouchableOpacity>
           </View>
           {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{`✓ ${saved}`}</Text> : null}

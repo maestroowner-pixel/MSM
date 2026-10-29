@@ -336,7 +336,7 @@ export default function HospitalSc() {
                   <View style={styles.row}>
                     <TouchableOpacity style={styles.btn} disabled={busy} onPress={() => setChoosingCat(true)}><Text style={styles.btnText}>{t('hos.startScale')}</Text></TouchableOpacity>
                     <TouchableOpacity style={styles.small} disabled={busy} onPress={() => void load()}><Text style={styles.smallText}>{t('hos.loadExcel')}</Text></TouchableOpacity>
-                    {aiReady(sync.enrolled) ? <><TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} disabled={busy} onPress={() => void loadAi('sheet')}><MciIcon name="creation" size={14} color={COLORS.primary} /><Text style={styles.smallText}>Any list (AI)</Text></TouchableOpacity><TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} disabled={busy} onPress={() => void loadAi('doc')}><MciIcon name="camera-outline" size={14} color={COLORS.primary} /><Text style={styles.smallText}>Photo / PDF (AI)</Text></TouchableOpacity></> : null}
+                    {aiReady(sync.enrolled) ? <><TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} disabled={busy} onPress={() => void loadAi('sheet')}><MciIcon name="creation" size={14} color={COLORS.primary} /><Text style={styles.smallText}>{t('crw.anyList')}</Text></TouchableOpacity><TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} disabled={busy} onPress={() => void loadAi('doc')}><MciIcon name="camera-outline" size={14} color={COLORS.primary} /><Text style={styles.smallText}>{t('common.photoPdfAi')}</Text></TouchableOpacity></> : null}
                     <TouchableOpacity onPress={() => void run(t('hos.excelList'), () => exportChestTemplate([]))}><Text style={styles.link}>{t('hos.excelLayout')}</Text></TouchableOpacity>
                   </View>
                 )
@@ -349,7 +349,7 @@ export default function HospitalSc() {
             <View style={styles.row}>
               <TouchableOpacity style={styles.small} onPress={() => nav.navigate('MedItem', { id: 'new' })}><Text style={styles.smallText}>+ Item</Text></TouchableOpacity>
               <TouchableOpacity style={styles.small} disabled={busy} onPress={() => void load()}><Text style={styles.smallText}>{t('hos.loadExcel')}</Text></TouchableOpacity>
-                    {aiReady(sync.enrolled) ? <><TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} disabled={busy} onPress={() => void loadAi('sheet')}><MciIcon name="creation" size={14} color={COLORS.primary} /><Text style={styles.smallText}>Any list (AI)</Text></TouchableOpacity><TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} disabled={busy} onPress={() => void loadAi('doc')}><MciIcon name="camera-outline" size={14} color={COLORS.primary} /><Text style={styles.smallText}>Photo / PDF (AI)</Text></TouchableOpacity></> : null}
+                    {aiReady(sync.enrolled) ? <><TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} disabled={busy} onPress={() => void loadAi('sheet')}><MciIcon name="creation" size={14} color={COLORS.primary} /><Text style={styles.smallText}>{t('crw.anyList')}</Text></TouchableOpacity><TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} disabled={busy} onPress={() => void loadAi('doc')}><MciIcon name="camera-outline" size={14} color={COLORS.primary} /><Text style={styles.smallText}>{t('common.photoPdfAi')}</Text></TouchableOpacity></> : null}
               <TouchableOpacity onPress={() => void run(t('hos.excelList'), () => exportChestTemplate(rows))}><Text style={styles.link}>{t('hos.excelFill')}</Text></TouchableOpacity>
             </View>
           ) : null}
@@ -487,7 +487,7 @@ export default function HospitalSc() {
                     {ref.text ? <Text style={[styles.sub, { fontSize: 11, marginTop: SIZES.xs }]}>{WHO_NOTICE}</Text> : null}
                   </ScrollView>
                   <View style={[styles.row, { marginTop: SIZES.md }]}>
-                    <TouchableOpacity style={styles.btn} onPress={() => { const id = info.item.id; setInfo(null); nav.navigate('MedItem', { id }); }}><Text style={styles.btnText}>Open the item</Text></TouchableOpacity>
+                    <TouchableOpacity style={styles.btn} onPress={() => { const id = info.item.id; setInfo(null); nav.navigate('MedItem', { id }); }}><Text style={styles.btnText}>{t('hos.openItem')}</Text></TouchableOpacity>
                     <TouchableOpacity style={styles.small} onPress={() => { const n = info.item.name; setInfo(null); setQ(n); setRefPart(scaleEntry(info.item).nursing ? 'equipment' : 'medicines'); setView('reference'); }}><Text style={styles.smallText}>{t('hos.inRef')}</Text></TouchableOpacity>
                     <TouchableOpacity onPress={() => setInfo(null)}><Text style={styles.link}>{t('common.close')}</Text></TouchableOpacity>
                   </View>

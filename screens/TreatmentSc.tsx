@@ -219,7 +219,7 @@ export default function TreatmentSc() {
         {busy ? <Text style={styles.sub}>{busy}</Text> : null}
         <View style={styles.row}>
           <TouchableOpacity style={styles.btn} onPress={() => void pdf()}><Text style={styles.btnText}>{tt('tr.reportPdf')}</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.small} onPress={() => nav.navigate('Treatment', { id: 'new', followUpOf: t.id })}><Text style={styles.smallText}>Follow-up…</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.small} onPress={() => nav.navigate('Treatment', { id: 'new', followUpOf: t.id })}><Text style={styles.smallText}>{tt('tr.followUp')}…</Text></TouchableOpacity>
         </View>
         {saved ? <Text style={styles.sub}>{saved}</Text> : null}
       </Screen>

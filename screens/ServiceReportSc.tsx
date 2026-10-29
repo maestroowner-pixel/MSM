@@ -251,9 +251,7 @@ export default function ServiceReportSc() {
       <TouchableOpacity style={[styles.apply, (!picks.length || !!busy) && { opacity: 0.5 }]} onPress={apply} disabled={!picks.length || !!busy}>
         <Text style={styles.btnText}>{picks.length ? t('sr.applyTo', { x: tn('n.item', picks.length) }) : t('sr.apply')}</Text>
       </TouchableOpacity>
-      <Text style={[styles.sub, { marginTop: SIZES.sm }]}>
-        The station never gets access to the vessel: you bring its paper in. Condemned or failed items keep their old date and get a remark, so they stay on the list until replaced.
-      </Text>
+      <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{t('svr.stationNote')}</Text>
     </Screen>
   );
 }

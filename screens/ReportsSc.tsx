@@ -207,11 +207,7 @@ export default function ReportsSc() {
       else if (kind === 'xlsx') await exportXlsx(dueRegister, vessel, only, horizonNote);
       else {
         const { files, certificates: certCount } = await exportZip(dueRegister, vessel, certificates, only);
-        const parts = [
-          `${files} photo${files === 1 ? '' : 's'}`,
-          `${certCount} certificate${certCount === 1 ? '' : 's'}`,
-        ];
-        Alert.alert('ZIP ready', `PDF report + ${parts.join(' + ')} bundled.`);
+        Alert.alert(t('rep.zipReady'), t('rep.zipBody', { parts: `${tn('n.photo', files)} + ${tn('n.certificate', certCount)}` }));
       }
     } catch (e: any) {
       Alert.alert(t('rep.failed'), String(e?.message ?? e));
@@ -299,9 +295,7 @@ export default function ReportsSc() {
         {roundCats.length ? (
           <>
             <View style={styles.headRow}>
-              <Text style={styles.sectionLabel}>
-                Categories ({catSel ? catSel.size : roundCats.length}/{roundCats.length})
-              </Text>
+              <Text style={styles.sectionLabel}>{t('rep.categoriesN', { n: catSel ? catSel.size : roundCats.length, total: roundCats.length })}</Text>
               {catSel ? (
                 <TouchableOpacity onPress={() => setCatSel(null)} hitSlop={8}>
                   <Text style={styles.selectAll}>{t('rep.wholeGroup')}</Text>
@@ -445,9 +439,7 @@ export default function ReportsSc() {
       </View>
 
       <View style={styles.headRow}>
-        <Text style={styles.sectionLabel}>
-          Included categories ({selected.size}/{nonEmpty.length})
-        </Text>
+        <Text style={styles.sectionLabel}>{t('rep.includedCats', { n: selected.size, total: nonEmpty.length })}</Text>
         <TouchableOpacity onPress={toggleAll} hitSlop={8}>
           <Text style={styles.selectAll}>{allOn ? t('lb.clearAll') : t('lb.selectAll')}</Text>
         </TouchableOpacity>

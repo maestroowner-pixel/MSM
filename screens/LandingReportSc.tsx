@@ -391,9 +391,9 @@ export default function LandingReportSc() {
                 </>
               ) : (
                 <>
-                  {mov?.reason ? <Text style={styles.itemSub}>Reason: {mov.reason}</Text> : null}
-                  {mov?.serviceRef ? <Text style={styles.itemSub}>Service ref: {mov.serviceRef}</Text> : null}
-                  {mov?.newInspectionDate ? <Text style={styles.itemSub}>Next inspection: {uiDate(mov.newInspectionDate)}</Text> : null}
+                  {mov?.reason ? <Text style={styles.itemSub}>{t('lr.reason', { v: mov.reason })}</Text> : null}
+                  {mov?.serviceRef ? <Text style={styles.itemSub}>{t('lr.serviceRef', { v: mov.serviceRef })}</Text> : null}
+                  {mov?.newInspectionDate ? <Text style={styles.itemSub}>{t('lr.nextInsp', { v: uiDate(mov.newInspectionDate) })}</Text> : null}
                 </>
               )}
             </View>
@@ -463,9 +463,7 @@ export default function LandingReportSc() {
       <Modal visible={pickerOpen} animationType="slide" onRequestClose={() => setPickerOpen(false)}>
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }} edges={['top']}>
           <View style={{ flexDirection: 'row', alignItems: 'center', padding: SIZES.md, borderBottomWidth: 1, borderColor: COLORS.border }}>
-            <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: COLORS.text }}>
-              Select items ({selectedItemIds.size})
-            </Text>
+            <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: COLORS.text }}>{t('lr.selectItemsN', { n: selectedItemIds.size })}</Text>
             <TouchableOpacity onPress={() => setPickerOpen(false)}>
               <Text style={{ color: COLORS.primary, fontSize: 16 }}>{t('common.done')}</Text>
             </TouchableOpacity>

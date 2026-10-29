@@ -128,7 +128,7 @@ export default function SearchesSc() {
 
       {page === 'plan' ? (
         <>
-          <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>Who searches where. A new search copies these areas with their teams.{officer ? '' : ' Kept by the SSO and the officers.'}</Text>
+          <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>{t('srch.areasLead')}{officer ? '' : ` ${t('srch.keptBy')}`}</Text>
           <Label>{t('srch.teams')}</Label>
           {editPlan.teams.map((t) => (
             <Card key={t.id}>

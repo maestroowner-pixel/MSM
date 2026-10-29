@@ -229,9 +229,7 @@ export default function CompressorSc() {
 
       {!active ? (
         <Card>
-          <Text style={styles.empty}>
-            No compressors yet. Tap “+ Add compressor” to create one (up to {MAX_COMPRESSORS}).
-          </Text>
+          <Text style={styles.empty}>{t('cmp.none', { n: MAX_COMPRESSORS })}</Text>
         </Card>
       ) : (
         <>
@@ -335,7 +333,7 @@ export default function CompressorSc() {
           </Card>
 
           {/* Log */}
-          <Label style={{ marginBottom: SIZES.sm }}>Log ({entries.length})</Label>
+          <Label style={{ marginBottom: SIZES.sm }}>{t('cmp.logN', { n: entries.length })}</Label>
           {sorted.length === 0 ? (
             <Card>
               <Text style={styles.empty}>{tt('cmp.empty')}</Text>

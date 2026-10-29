@@ -183,7 +183,7 @@ export default function CertificateDetailSc() {
             const fields = [res.name && 'name', res.number && 'number', res.issuer && 'issuer', res.issueDate && 'issue date', res.expiryDate && 'expiry'].filter(Boolean).join(', ');
             setAiNote(`${t('sr.read', { what: fields || t('cd.nothing') })}${res.unreadable ? ` · ${t('dpt.couldNot', { what: res.unreadable })}` : ''}. ${t('cd.checkFields')}`);
           } catch (e: any) {
-            Alert.alert('AI scan', String(e?.message ?? e));
+            Alert.alert(t('common.aiScan'), String(e?.message ?? e));
           } finally {
             setAiScanning(false);
           }
@@ -212,7 +212,7 @@ export default function CertificateDetailSc() {
             const fields = [res.name && 'name', res.number && 'number', res.issuer && 'issuer', res.issueDate && 'issue date', res.expiryDate && 'expiry'].filter(Boolean).join(', ');
             setAiNote(`${t('sr.read', { what: fields || t('cd.nothing') })}${res.unreadable ? ` · ${t('dpt.couldNot', { what: res.unreadable })}` : ''}. ${t('cd.checkFields')}`);
           } catch (e: any) {
-            Alert.alert('AI scan', String(e?.message ?? e));
+            Alert.alert(t('common.aiScan'), String(e?.message ?? e));
           } finally {
             setAiScanning(false);
           }

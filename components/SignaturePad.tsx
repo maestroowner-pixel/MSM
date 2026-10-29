@@ -14,6 +14,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { useTheme } from '../contexts/ThemeContext';
 import { SIZES } from '../theme';
+import { t } from '../utils/i18n';
 import { swipeLock } from '../utils/swipeLock';
 
 export const SIG_W = 300;
@@ -90,7 +91,7 @@ export function SignaturePad({ value, onChange, label = 'Visitor’s signature',
         <Text style={{ fontSize: SIZES.small, color: c.textLight }}>{label}</Text>
         {value ? (
           <TouchableOpacity onPress={() => onChange('')} hitSlop={8}>
-            <Text style={{ color: c.primary, fontWeight: '700', fontSize: SIZES.small }}>Clear</Text>
+            <Text style={{ color: c.primary, fontWeight: '700', fontSize: SIZES.small }}>{t('common.clear')}</Text>
           </TouchableOpacity>
         ) : null}
       </View>}

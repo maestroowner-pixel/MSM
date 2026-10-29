@@ -173,9 +173,7 @@ export default function LabelBatchSc() {
       ) : null}
 
       <View style={styles.headRow}>
-        <Text style={styles.sectionLabel}>
-          Categories ({catSel.size}/{inGroup.length})
-        </Text>
+        <Text style={styles.sectionLabel}>{t('rep.categoriesN', { n: catSel.size, total: inGroup.length })}</Text>
         <TouchableOpacity onPress={toggleAllCats} hitSlop={8}>
           <Text style={styles.selectAll}>{allCats ? t('lb.clearAll') : t('lb.selectAll')}</Text>
         </TouchableOpacity>

@@ -300,10 +300,7 @@ export default function InspectionDetailSc() {
             </View>
           ) : null}
 
-          <Text style={styles.finalNote}>
-            Signed records cannot be edited or deleted. A correction is made by inspecting the item
-            again, and both records stay on file.
-          </Text>
+          <Text style={styles.finalNote}>{t('ins.signedFinal')}</Text>
         </ScrollView>
 
         <SignerPicker

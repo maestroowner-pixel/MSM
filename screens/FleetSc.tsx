@@ -104,7 +104,7 @@ export default function FleetSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title="Fleet" subtitle={`${session.name || t('fleet.supt')} · ${tn('n.vessel', session.vessels.length)}`} help="Fleet console (superintendent)" />
+      <ScreenTitle title={t('fleet.title')} subtitle={`${session.name || t('fleet.supt')} · ${tn('n.vessel', session.vessels.length)}`} help="Fleet console (superintendent)" />
       <View style={styles.tools}>
         <TouchableOpacity onPress={() => void load(session)} hitSlop={8}>
           <Text style={styles.link}>{loading ? t('common.loading') : t('fleet.refresh')}</Text>

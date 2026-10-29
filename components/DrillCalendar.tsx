@@ -110,7 +110,7 @@ export function DrillCalendar({ schedule, today, onSaved }: { schedule: Schedule
         { title: 'Drills by month', table: { head: ['Drill', 'Interval', ...MONTHS], rows: rows.map((r) => [r.title, r.everyDays ? everyLabel(r.everyDays) : '', ...MONTHS.map((_, i) => { const c = cellOf(r.kind, year, i + 1, ctx); return c.state === 'empty' ? '' : mark(c).t; })]) } },
         { title: 'Approved', signatures: [{ role: 'Master', name: '', detail: '' }, { role: 'Safety officer', name: '', detail: '' }] },
       ],
-    }, `Drill plan ${year}`, vessel).then(onSaved, (e) => Alert.alert('Drill plan', String(e?.message ?? e)));
+    }, `Drill plan ${year}`, vessel).then(onSaved, (e) => Alert.alert(tr('dc.drillPlan'), String(e?.message ?? e)));
 
   return (
     <>

@@ -121,7 +121,7 @@ export default function MaintenanceSc() {
       const w = kind === 'pdf' ? await exportPmsPdf(report, vessel) : await exportPmsExcel(report, vessel);
       if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
-      Alert.alert('PMS report', String(e?.message ?? e));
+      Alert.alert(t('mt.pmsReport'), String(e?.message ?? e));
     }
   };
   const dueOf = (j: PmsJob, m: Machine | undefined) => jobDue(j, m, today, activeDeferral(j, pmsDeferrals));

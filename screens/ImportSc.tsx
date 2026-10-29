@@ -350,10 +350,7 @@ export default function ImportSc() {
                 <PlanStat n={plan.missing.length} label={t('imp.notInFileL')} styles={styles} />
               </View>
               {plan.matchedBy.id === 0 && flat.length > 0 ? (
-                <Text style={styles.planNote}>
-                  This file has no MSM ID column, so rows were matched by serial, number and location. For an exact
-                  match, export the register from Reports (Excel), edit that file and import it here.
-                </Text>
+                <Text style={styles.planNote}>{t('imp.noIdNote')}</Text>
               ) : null}
 
               {plan.changed.length ? (
@@ -430,14 +427,7 @@ export default function ImportSc() {
           </TouchableOpacity>
         </>
       ) : (
-        <Text style={styles.help}>
-          Select your “LSA FFE Inventories.xlsx”, or download the blank template above, fill it in (one
-          worksheet per category) and import it back. To change a register you already have, export it from
-          Reports as Excel, edit it and import it here with Update — items keep their labels and history. Your own list works too — one sheet with columns such
-          as #, Deck, Location, Description, Make, Type, Size, Serial and Exp / Inspc.; each row is sorted
-          into its category by its description. Each worksheet maps to an equipment category. Dates
-          are converted automatically; you can edit any item afterwards.
-        </Text>
+        <Text style={styles.help}>{t('imp.help')}</Text>
       )}
     </Screen>
   );

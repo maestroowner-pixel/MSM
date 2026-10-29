@@ -294,9 +294,7 @@ export default function ReadinessSc() {
           {!s.gaps.length ? <Text style={[styles.sub, { color: COLORS.success }]}>{t('ready.nothing')}</Text> : null}
         </View>
       ))}
-      <Text style={[styles.sub, { marginTop: SIZES.md }]}>
-        Red — would be found on the day. Amber — runs out within 30 days after it, or still open. The list checks what the app holds; it is not the inspector’s checklist.
-      </Text>
+      <Text style={[styles.sub, { marginTop: SIZES.md }]}>{t('rd.legend')}</Text>
     </Screen>
   );
 }

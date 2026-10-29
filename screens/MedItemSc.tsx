@@ -246,7 +246,7 @@ export default function MedItemSc() {
               </Card>
             ) : (
               <View style={styles.row}>
-                {st.usable > 0 ? <TouchableOpacity style={styles.btn} onPress={() => nav.navigate('Treatment', { id: 'new', issue: item.id })}><Text style={styles.btnText}>Issue — medical log</Text></TouchableOpacity> : null}
+                {st.usable > 0 ? <TouchableOpacity style={styles.btn} onPress={() => nav.navigate('Treatment', { id: 'new', issue: item.id })}><Text style={styles.btnText}>{t('mi.issueLog')}</Text></TouchableOpacity> : null}
                 <TouchableOpacity style={styles.small} onPress={() => setAct({ kind: 'received', qty: '', batchNo: '', expiry: '', note: '' })}><Text style={styles.smallText}>{t('mi.receivePlus')}</Text></TouchableOpacity>
               </View>
             )

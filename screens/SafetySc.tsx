@@ -113,7 +113,7 @@ export default function SafetySc() {
       const w = kind === 'pdf' ? await exportSafetyPdf(list, cards, today, vessel) : await exportSafetyExcel(list, cards, today, vessel);
       if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
-      Alert.alert('QHSE register', String(e?.message ?? e));
+      Alert.alert(t('saf.qhseRegister'), String(e?.message ?? e));
     }
   };
 
@@ -227,7 +227,7 @@ export default function SafetySc() {
                     {!o.reviewedAt ? <TextInput style={styles.input} value={note} onChangeText={setNote} placeholder={t('saf.reviewPh')} placeholderTextColor={COLORS.textLight} multiline /> : null}
                     <View style={styles.row}>
                       {!o.reviewedAt ? <TouchableOpacity style={styles.small} onPress={() => void markReviewed(o)}><Text style={styles.smallText}>{t('saf.reviewed')}</Text></TouchableOpacity> : null}
-                      {!o.ncId ? <TouchableOpacity style={styles.small} onPress={() => nav.navigate('Nc', { id: 'new', obsId: o.id, review: note.trim() || undefined })}><Text style={styles.smallText}>Raise an NC</Text></TouchableOpacity> : null}
+                      {!o.ncId ? <TouchableOpacity style={styles.small} onPress={() => nav.navigate('Nc', { id: 'new', obsId: o.id, review: note.trim() || undefined })}><Text style={styles.smallText}>{t('saf.raiseNc')}</Text></TouchableOpacity> : null}
                     </View>
                   </View>
                 ) : null}

@@ -105,9 +105,7 @@ export default function DefectsSc() {
           {!insp.defect?.open && insp.defect?.closedBy ? (
             <View style={styles.footer}>
               <MciIcon name="wrench" size={14} color={COLORS.success} />
-              <Text style={styles.footerText} numberOfLines={1}>
-                Rectified by {insp.defect.closedBy} · {uiDateTime(insp.defect.closedAt)}
-              </Text>
+              <Text style={styles.footerText} numberOfLines={1}>{t('def.rectifiedBy', { name: insp.defect.closedBy, when: uiDateTime(insp.defect.closedAt) })}</Text>
             </View>
           ) : null}
         </Card>

@@ -683,7 +683,7 @@ export default function ItemDetailSc() {
                     <View style={[styles.certDot, { backgroundColor: statusColor(st) }]} />
                     <MciIcon name="certificate" size={18} />
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.certName} numberOfLines={1}>{c.name || 'Certificate'}</Text>
+                      <Text style={styles.certName} numberOfLines={1}>{c.name || t('fv.cert')}</Text>
                       <Text style={styles.certSub} numberOfLines={1}>
                         {[c.number && `№ ${c.number}`, c.expiryDate && uiDate(c.expiryDate)].filter(Boolean).join(' · ')}
                       </Text>
@@ -792,7 +792,7 @@ export default function ItemDetailSc() {
               />
               <View style={styles.rnRow}>
                 <TouchableOpacity style={styles.rnBtn} onPress={() => setRenaming(null)}>
-                  <Text style={styles.rnBtnText}>Cancel</Text>
+                  <Text style={styles.rnBtnText}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.rnBtn, styles.rnBtnPrimary]}
@@ -801,7 +801,7 @@ export default function ItemDetailSc() {
                     setRenaming(null);
                   }}
                 >
-                  <Text style={[styles.rnBtnText, styles.rnBtnTextPrimary]}>Save</Text>
+                  <Text style={[styles.rnBtnText, styles.rnBtnTextPrimary]}>{t('common.save')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -841,7 +841,7 @@ export default function ItemDetailSc() {
                         </View>
                         <MciIcon name="certificate" size={18} />
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.certName} numberOfLines={1}>{c.name || 'Certificate'}</Text>
+                          <Text style={styles.certName} numberOfLines={1}>{c.name || t('fv.cert')}</Text>
                           <Text style={styles.certSub} numberOfLines={1}>
                             {[c.number && `№ ${c.number}`, c.expiryDate && uiDate(c.expiryDate)].filter(Boolean).join(' · ')}
                           </Text>
@@ -878,7 +878,7 @@ export default function ItemDetailSc() {
               />
               <View style={styles.rnRow}>
                 <TouchableOpacity style={styles.rnBtn} onPress={() => setWriteOffOpen(false)}>
-                  <Text style={styles.rnBtnText}>Cancel</Text>
+                  <Text style={styles.rnBtnText}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.rnBtn, styles.rnBtnPrimary, writingOff && { opacity: 0.6 }]}

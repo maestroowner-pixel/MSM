@@ -187,7 +187,7 @@ export default function PassengersSc() {
         <TouchableOpacity style={styles.small} onPress={() => void listPdf()}><Text style={styles.smallText}>{t('pax.listPdf')}</Text></TouchableOpacity>
         <TouchableOpacity style={styles.small} onPress={() => savePaxSheet(paxSheet(shown, passengersPrivate, officer), `Passenger list ${today}`, vessel).then(done, fail)}><Text style={styles.smallText}>{t('pax.toExcel')}</Text></TouchableOpacity>
         {officer ? <TouchableOpacity style={styles.small} onPress={() => void importSheet()}><Text style={styles.smallText}>{t('pax.fromExcel')}</Text></TouchableOpacity> : null}
-        {officer && aiReady(sync.enrolled) ? <TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} onPress={() => void importAi()}><MciIcon name="creation" size={14} color={COLORS.primary} /><Text style={styles.smallText}>Any list (AI)</Text></TouchableOpacity> : null}
+        {officer && aiReady(sync.enrolled) ? <TouchableOpacity style={[styles.small, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} onPress={() => void importAi()}><MciIcon name="creation" size={14} color={COLORS.primary} /><Text style={styles.smallText}>{t('crw.anyList')}</Text></TouchableOpacity> : null}
         {officer ? <TouchableOpacity style={styles.small} onPress={() => savePaxSheet(paxTemplateRows(), 'Passenger list template', vessel).then(done, fail)}><Text style={styles.smallText}>{t('pax.template')}</Text></TouchableOpacity> : null}
       </View>
       {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700', marginBottom: SIZES.sm }]}>{`✓ ${saved}`}</Text> : null}

@@ -202,9 +202,7 @@ export default function CrewMatrixSc() {
           </ScrollView>
         </View>
       )}
-      <Text style={styles.foot}>
-        Dates are expiries — red expired, amber within 60 days. Tap a date to open the certificate, a “+” to add one. People who sign off keep their row and their papers; “Sign on” brings them back.
-      </Text>
+      <Text style={styles.foot}>{t('cm.foot')}</Text>
     </Screen>
   );
 }

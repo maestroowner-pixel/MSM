@@ -597,7 +597,7 @@ export default function CategoryItemsSc() {
                 disabled={isEmptyPatch(bulk)}
                 onPress={applyDates}
               >
-                <Text style={styles.printBtnText}>Apply to {selected.size}</Text>
+                <Text style={styles.printBtnText}>{t('ci.applyTo', { n: selected.size })}</Text>
               </TouchableOpacity>
             </View>
           </View>

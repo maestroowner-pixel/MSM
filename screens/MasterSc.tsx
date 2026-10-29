@@ -148,9 +148,7 @@ export default function MasterSc() {
   return (
     <Screen scroll>
       <ScreenTitle title={t('master.title')} subtitle={t('master.sub')} help="Access — which tabs each device shows" />
-      <Text style={styles.lead}>
-        Tap a dot: it glows when that device has it, dim when not. Pages and the ⚙ gear follow their menu entry. Rows marked by rank follow the rank — tap the rank on top to change it. The phone follows on its next sync.
-      </Text>
+      <Text style={styles.lead}>{t('master.dotsLead')}</Text>
       {error ? <Card><Text style={{ color: COLORS.danger }}>{error}</Text></Card> : null}
       {older.size ? (
         <TouchableOpacity onPress={() => nav.navigate('Accounts')}>

@@ -282,7 +282,7 @@ export default function SparesSc() {
           placeholderTextColor={COLORS.textLight}
         />
         <TouchableOpacity style={[styles.chip, toOrder && styles.chipOn]} onPress={() => setToOrder((v) => !v)}>
-          <Text style={[styles.chipText, toOrder && styles.chipTextOn]}>To order{out + low ? ` · ${out + low}` : ''}</Text>
+          <Text style={[styles.chipText, toOrder && styles.chipTextOn]}>{t('sp.toOrder')}{out + low ? ` · ${out + low}` : ''}</Text>
         </TouchableOpacity>
       </View>
 
