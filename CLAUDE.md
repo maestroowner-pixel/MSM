@@ -167,6 +167,17 @@ app mirrors. Bundle id `com.kukalab.msm`.
   `office`+`updatedAt`, refusal needs a note ≥ 3). `activeDeferral` skips a refused one, so the job is due on its own dates again;
   `refusedDeferral` = latest of the cycle refused → amber Board notice to the Master. Re-deferring is a new record. Only deferrals
   of the job's CURRENT cycle wait for an answer (`deferralsToAnswer`). Rules `pms_deferrals` need `npm run deploy:rules`.
+- **External inspections** (29 Oct 2026 — flag `extInsp`, off; plan item 33): `types/extInspection.ts`, pure
+  `services/extInspections.ts`, papers `services/extInspectionReport.ts`, screens `ExtInspectionsSc` / `ExtInspectionSc`
+  (routes `ExtInspections`, `ExtInspection`; entry: Safety → Non-conformities). The record is the VISIT (PSC, flag, class,
+  superintendent, vetting, external ISM/MLC; date, port, authority, report no., detained / `releasedOn`), signed by whoever
+  records it, `EI-<year>-nn`, never deleted. **Findings are not stored on it**: each is an NC with `inspId` (+ `pscCode`,
+  `pscAction`) made by `findingsToNcs` — one correction action, owner and date; PSC action code sets the date (17/30 the day,
+  16 +14 d, 18 +3 months), 30 → major, 10 → the correction already done. The visit's state is derived (`inspStatus`:
+  clean / open / overdue / closed / verified). Board: a detention not lifted is the FIRST red notice for the Master; an
+  overdue finding names its inspection. Fleet: tab on the vessel + pills (detained, findings open, last PSC) from
+  `extSummary`. Rules `ext_inspections` (officers; `no`/`by`/`at` fixed) — `npm run deploy:rules` before the flag.
+  `npm run check:extinsp`.
 - **Record books: seals, chain, signed copy** (25 Oct 2026, stage 2 — `services/seal.ts`,
   `services/signKeys.ts`, `services/bookAccess.ts`, `services/signedCopy.ts`, `npm run check:seal`).
   Every signer has an ECDSA P-256 key per device (`@noble/curves`, pure JS; randomness from

@@ -19,7 +19,7 @@ import { SIZES, Palette } from '../theme';
 import * as shore from '../services/shore';
 import { moduleOn } from '../constants/modules';
 import { Count, VesselSummary, fleetOrder, summarise } from '../services/fleetSummary';
-import { uiDateTime } from '../utils/dates';
+import { uiDate, uiDateTime } from '../utils/dates';
 import { t, tn, useT } from '../utils/i18n';
 
 export default function FleetSc() {
@@ -131,6 +131,19 @@ export default function FleetSc() {
             {r.sparesOut + r.sparesLow ? (
               <Text style={[styles.pill, { color: r.sparesOut ? COLORS.danger : COLORS.warning, borderColor: r.sparesOut ? COLORS.danger : COLORS.warning }]}>
                 {t('fleet.spares', { out: r.sparesOut, low: r.sparesLow })}
+              </Text>
+            ) : null}
+            {r.ext.detained ? (
+              <Text style={[styles.pill, { color: COLORS.danger, borderColor: COLORS.danger }]}>{t('fleet.detained')}</Text>
+            ) : null}
+            {r.ext.open ? (
+              <Text style={[styles.pill, { color: r.ext.overdue ? COLORS.danger : COLORS.warning, borderColor: r.ext.overdue ? COLORS.danger : COLORS.warning }]}>
+                {[t('fleet.extOpen', { n: r.ext.open }), r.ext.overdue ? t('ei.overdueN', { n: r.ext.overdue }) : null].filter(Boolean).join(' · ')}
+              </Text>
+            ) : null}
+            {r.ext.lastPsc ? (
+              <Text style={[styles.pill, { color: COLORS.textLight, borderColor: COLORS.border }]}>
+                {t('fleet.lastPsc', { date: uiDate(r.ext.lastPsc.date), port: r.ext.lastPsc.port ?? '', n: r.ext.lastPsc.findings })}
               </Text>
             ) : null}
             {r.docsOutstanding ? (

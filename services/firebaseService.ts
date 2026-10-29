@@ -1307,6 +1307,8 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'surveys_done', key: storage.SURVEYS_DONE_KEY, appendOnly: true, module: 'surveys' },
   { sub: 'observations', key: storage.OBSERVATIONS_KEY, module: 'qhse' },
   { sub: 'ncs', key: storage.NCS_KEY, module: 'qhse' },
+  // External inspections (PSC, flag, class…): the officers record the visit; its findings are NCs.
+  { sub: 'ext_inspections', key: storage.EXT_INSP_KEY, module: 'extInsp' },
   { sub: 'drills', key: storage.DRILLS_KEY, module: 'drills' },
   // The drill calendar: one plan per year (services/drillPlan.ts).
   { sub: 'drill_plans', key: storage.DRILL_PLANS_KEY, module: 'drills' },

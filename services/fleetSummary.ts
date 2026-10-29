@@ -14,6 +14,7 @@ import { computeStatus, statusFromDate } from '../utils/dates';
 import { jobDue } from './pms';
 import { readStatus } from './docs';
 import { stockByPart, toOrderCounts } from './spares';
+import { extSummary } from './extInspections';
 
 export interface VesselData {
   imo: string;
@@ -33,6 +34,8 @@ export interface VesselData {
   defects?: import('../types/pms').PmsDefect[];
   ncs?: import('../types/safety').NonConformity[];
   deferrals?: import('../types/pms').PmsDeferral[];
+  /** External inspections — their findings are in `ncs`. */
+  extInspections?: import('../types/extInspection').ExternalInspection[];
   /** The vessel's own modules (a pilot vessel's), so Fleet shows what that vessel has on. */
   modules?: Partial<Record<import('../constants/modules').ModuleKey, boolean>>;
 }
@@ -60,6 +63,8 @@ export interface VesselSummary {
   docsOutstanding: number;
   /** Total unsigned person-documents across those. */
   signaturesMissing: number;
+  /** External inspections (shown when the module is on): the last PSC, findings open / overdue, a detention not lifted. */
+  ext: ReturnType<typeof extSummary>;
 }
 
 function count<T>(list: T[], status: (x: T) => string): Count {
@@ -106,13 +111,14 @@ export function summarise(v: VesselData): VesselSummary {
     docs: live(v.docs).length,
     docsOutstanding,
     signaturesMissing,
+    ext: extSummary(v.extInspections ?? [], v.ncs ?? [], new Date().toISOString().slice(0, 10)),
   };
 }
 
 /** Worst first: what a superintendent should look at before the coffee is cold. */
 export function fleetOrder(a: VesselSummary, b: VesselSummary): number {
   const score = (s: VesselSummary) =>
-    (s.equipment.expired + s.certs.expired + s.crewCerts.expired + s.vesselCerts.expired + s.pms.expired) * 1000 +
+    (s.equipment.expired + s.certs.expired + s.crewCerts.expired + s.vesselCerts.expired + s.pms.expired + s.ext.overdue + (s.ext.detained ? 1 : 0)) * 1000 +
     (s.equipment.due + s.certs.due + s.crewCerts.due + s.vesselCerts.due + s.pms.due + s.sparesOut + s.docsOutstanding);
   return score(b) - score(a) || a.name.localeCompare(b.name);
 }

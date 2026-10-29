@@ -225,6 +225,14 @@ await t(true, 'An Officer raises an NC', setDoc(R(officer, 'ncs', 'n1'), { id: '
 await t(true, 'Crew signs off an action', setDoc(R(crew, 'ncs', 'n1'), { id: 'n1', no: 'NC-2026-001', title: 'Guard', actions: [{ id: 'a', doneAt: 3 }], updatedAt: 3 }));
 await t(false, 'Crew cannot change the finding', setDoc(R(crew, 'ncs', 'n1'), { id: 'n1', no: 'NC-2026-001', title: 'Other', actions: [{ id: 'a', doneAt: 3 }], updatedAt: 4 }));
 await t(false, 'An Officer cannot close an NC', setDoc(R(officer, 'ncs', 'n1'), { id: 'n1', no: 'NC-2026-001', title: 'Guard', actions: [{ id: 'a', doneAt: 3 }], closedAt: 5, updatedAt: 5 }));
+// External inspections (types/extInspection.ts, plan item 33)
+await t(false, 'Crew cannot record an external inspection', setDoc(R(crew, 'ext_inspections', 'e1'), { id: 'e1', no: 'EI-2026-01', by: 'C', at: 1 }));
+await t(true, 'An Officer records a PSC inspection', setDoc(R(officer, 'ext_inspections', 'e1'), { id: 'e1', no: 'EI-2026-01', kind: 'psc', by: 'Mate', at: 1, detained: true, updatedAt: 1 }));
+await t(true, 'An Officer records the detention lifted', setDoc(R(officer, 'ext_inspections', 'e1'), { id: 'e1', no: 'EI-2026-01', kind: 'psc', by: 'Mate', at: 1, detained: true, releasedOn: '2026-10-30', updatedAt: 2 }));
+await t(false, 'Who recorded it does not change', setDoc(R(master, 'ext_inspections', 'e1'), { id: 'e1', no: 'EI-2026-01', kind: 'psc', by: 'Master', at: 1, updatedAt: 3 }));
+await t(false, 'The shore does not write an inspection', setDoc(R(shore, 'ext_inspections', 'e2'), { id: 'e2', no: 'EI-2026-02', by: 'S', at: 1 }));
+await t(false, 'An external inspection is never deleted', deleteDoc(R(master, 'ext_inspections', 'e1')));
+await t(true, 'The shore reads the inspections', getDoc(R(shore, 'ext_inspections', 'e1')));
 await t(true, 'The Master closes an NC', setDoc(R(master, 'ncs', 'n1'), { id: 'n1', no: 'NC-2026-001', title: 'Guard', actions: [{ id: 'a', doneAt: 3 }], closedAt: 5, updatedAt: 5 }));
 await t(false, 'A closed NC is final', setDoc(R(master, 'ncs', 'n1'), { id: 'n1', no: 'NC-2026-001', title: 'Guard', actions: [], updatedAt: 6 }));
 

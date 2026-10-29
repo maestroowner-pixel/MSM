@@ -56,7 +56,8 @@ import { currentEntries } from './garbage';
 import { current } from './versions';
 import { awaiting, verifiedIds } from './verification';
 import { awaitsOffice, deferralsToAnswer, ncAwaitsOffice, officeInLoop, rankDefects } from './officeCheck';
-import { t, tn } from '../utils/t';
+import { inspStatus } from './extInspections';
+import { t, tk, tn } from '../utils/t';
 
 export type Level = 'red' | 'amber' | 'blue';
 export type Audience = 'all' | 'officer' | 'master';
@@ -184,6 +185,8 @@ export interface BoardInput {
   surveysDone: SurveyDone[];
   observations?: SafetyObservation[];
   ncs?: NonConformity[];
+  /** External inspections (types/extInspection.ts) — their findings are in `ncs`. */
+  extInspections?: import('../types/extInspection').ExternalInspection[];
   drills?: Drill[];
   medItems?: MedItem[];
   medMoves?: MedMove[];
@@ -619,13 +622,25 @@ export function buildBoard(x: BoardInput): Board {
       const st = ncState(nc, x.today);
       if (st === 'overdue') {
         red++;
-        n.push({ key: `nc:${nc.id}`, level: 'red', who: 'officer', icon: 'clipboard-alert-outline', route: 'Nc', params: { id: nc.id }, title: `${nc.no} — ${t('b.nc.overdue')}`, sub: nc.title });
+        const ei = x.on('extInsp') && nc.inspId ? (x.extInspections ?? []).find((e) => e.id === nc.inspId) : undefined;
+        n.push({ key: `nc:${nc.id}`, level: 'red', who: 'officer', icon: 'clipboard-alert-outline', route: 'Nc', params: { id: nc.id }, title: `${nc.no} — ${t('b.nc.overdue')}`, sub: ei ? `${[tk(`ei.kind.${ei.kind}`), ei.port].filter(Boolean).join(' ')}: ${nc.title}` : nc.title });
       } else if (st === 'ready') {
         amber++;
         n.push({ key: `nc:${nc.id}`, level: 'amber', who: 'master', icon: 'clipboard-check-outline', route: 'Nc', params: { id: nc.id }, title: `${nc.no} — ${t('b.nc.toClose')}`, sub: nc.title });
       } else if (st === 'open') {
         const due = nextActionDue(nc);
         if (due) plan.push({ key: `nc:${nc.id}`, icon: 'clipboard-text-outline', route: 'Nc', params: { id: nc.id }, title: `${nc.no} ${nc.title}`, sub: t('b.nc.next', { date: `${dm(due)}.${due.slice(0, 4)}` }) });
+      }
+    }
+    // External inspections: a detention not lifted is the Master's, red, until the day it is.
+    if (x.on('extInsp')) {
+      for (const e of x.extInspections ?? []) {
+        const s = inspStatus(e, ncs, x.today);
+        if (s.detainedNow) {
+          red++;
+          // First of the reds (the sort is stable): nothing else aboard matters more until it is lifted.
+          n.unshift({ key: `ei:${e.id}`, level: 'red', who: 'master', icon: 'anchor', route: 'ExtInspection', params: { id: e.id }, title: t('b.ei.detained', { port: e.port ?? '' }), ...(s.total ? { sub: t('b.ei.openK', { k: s.total - s.closed, n: s.total }) } : {}) });
+        }
       }
     }
     const fresh = obs.filter((o) => !o.reviewedAt).length;

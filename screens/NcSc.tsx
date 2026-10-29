@@ -32,7 +32,7 @@ import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
-import { t, useT } from '../utils/i18n';
+import { t, tk, useT } from '../utils/i18n';
 
 type ActDraft = { kind: CapaKind; text: string; owner: string; due: string };
 
@@ -42,7 +42,7 @@ export default function NcSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { ncs, observations, saveRow } = useData();
+  const { ncs, observations, extInspections, saveRow } = useData();
   const sync = useSync();
   const canEdit = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const canClose = plansPms(sync.enrolled, sync.role);
@@ -81,6 +81,7 @@ export default function NcSc() {
     );
   }
   const st = ncState(nc, today);
+  const insp = nc.inspId ? extInspections.find((x) => x.id === nc.inspId) : undefined;
   const closed = !!nc.closedAt;
   const set = (p: Partial<NonConformity>) => setDraft({ ...(draft ?? nc), ...p });
   const who = (by?: string, rank?: string) => (rank ? `${by} (${rank})` : by ?? '');
@@ -190,6 +191,8 @@ export default function NcSc() {
           {nc.requirement ? <Text style={styles.sub}>{`${t('nc.requirement')}: ${nc.requirement}`}</Text> : null}
           <Text style={[styles.sub, !nc.rootCause && { color: COLORS.warning }]}>{nc.rootCause ? `${t('nc.rootCause')}: ${nc.rootCause}` : t('nc.rootNone')}</Text>
           {nc.obsId ? <Text style={styles.sub}>{t('nc.fromObs')}</Text> : null}
+          {nc.pscCode || nc.pscAction ? <Text style={styles.sub}>{[nc.pscCode ? `${t('ei.code')} ${nc.pscCode}` : null, nc.pscAction ? `${t('ei.actionCode')} ${nc.pscAction} · ${tk(`ei.act.${nc.pscAction}`)}` : null].filter(Boolean).join(' · ')}</Text> : null}
+          {insp ? <TouchableOpacity onPress={() => nav.navigate('ExtInspection', { id: insp.id })}><Text style={styles.link}>{`→ ${[tk(`ei.kind.${insp.kind}`), insp.port, uiDate(insp.date)].filter(Boolean).join(' · ')}`}</Text></TouchableOpacity> : null}
           {canEdit && !closed ? <TouchableOpacity onPress={() => { setDraft(nc); setEditing(true); }}><Text style={styles.link}>{t('common.edit')}</Text></TouchableOpacity> : null}
         </View>
       )}

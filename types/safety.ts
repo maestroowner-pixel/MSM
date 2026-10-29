@@ -62,7 +62,7 @@ export interface SafetyObservation {
   updatedAt: number;
 }
 
-export type NcSource = 'observation' | 'near_miss' | 'incident' | 'internal_audit' | 'external_audit' | 'psc' | 'flag_class' | 'inspection' | 'other';
+export type NcSource = 'observation' | 'near_miss' | 'incident' | 'internal_audit' | 'external_audit' | 'psc' | 'flag_class' | 'superintendent' | 'vetting' | 'inspection' | 'other';
 export const NC_SOURCES: { key: NcSource; label: string }[] = [
   { key: 'observation', label: 'Safety observation' },
   { key: 'near_miss', label: 'Near miss' },
@@ -71,6 +71,8 @@ export const NC_SOURCES: { key: NcSource; label: string }[] = [
   { key: 'external_audit', label: 'External audit (DOC / SMC)' },
   { key: 'psc', label: 'Port State Control' },
   { key: 'flag_class', label: 'Flag / class survey' },
+  { key: 'superintendent', label: 'Superintendent visit' },
+  { key: 'vetting', label: 'Vetting / charterer inspection' },
   { key: 'inspection', label: 'Inspection / drill' },
   { key: 'other', label: 'Other' },
 ];
@@ -114,6 +116,11 @@ export interface NonConformity {
   sourceRef?: string;
   /** The observation card it came from. */
   obsId?: string;
+  /** The external inspection it was found at (types/extInspection.ts). */
+  inspId?: string;
+  /** PSC: the deficiency code (07105) and the action taken code (17) of Form B. */
+  pscCode?: string;
+  pscAction?: string;
   grade: NcGrade;
   title: string;
   what: string;

@@ -785,6 +785,16 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🛂',
+      title: "External inspections",
+      body: [
+        "For everything the vessel is inspected by from outside: Port State Control, the flag, class, the superintendent's visit, vetting or a charterer, an external ISM or MLC audit. Open it from Safety → Non-conformities → External inspections.",
+        "Record the visit once: the date, port, who carried it out, the inspector and the report number (Form B, survey report), and whether the vessel was detained. Then write the findings one by one — what was found, the requirement, the grade, who puts it right and by when. For PSC, add the deficiency code and the action code: 17 sets the date to the day of the inspection (before departure), 16 to 14 days, 18 to 3 months; 30 makes it a major NC; 10 means it was rectified during the inspection, and its correction is recorded as done. No findings — save it as it is: a clean inspection is worth recording too.",
+        "Signed and saved, each finding becomes a non-conformity with its correction, owner and date, and goes the usual way: root cause, further actions, the Master's signed closure — and, where the office is in the loop, its verification. The inspection shows how many findings are closed and verified, and opens each one.",
+        "On the Board an overdue finding is red and says which inspection it came from; a detention stays red for the Master until the day it was lifted is recorded. In Fleet the superintendent sees each vessel's inspections, the last PSC, findings open and overdue, and a detention.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'About',
       body: [
@@ -1541,6 +1551,16 @@ const ru: ManualContent = {
         "Ключи выдаёт капитан: Настройки → Доступ по API → Новый ключ. Укажите, кто им пользуется (BI офиса, компьютер AMS), и можно ли ему записывать моточасы — без этого ключ только читает. Ключ показывается один раз: скопируйте его сразу. Судно хранит только его отпечаток, поэтому потерянный ключ отзывают и выдают новый. У каждого ключа видно, кто его выдал, когда он использовался последний раз и сколько было запросов; «Отозвать» останавливает его сразу.",
         "Моточасы из AMS: ключ с правом записи передаёт показания счётчиков по тегу механизма в AMS. Они проходят те же проверки, что и файл AMS: показание меньше прежнего или больше часов, чем позволяет календарь, не принимается и ждёт причины на механизме на борту; турбокомпрессор следует за своим двигателем. В «Записано через API» видно, что принято и что нет.",
         "Документация для интегратора — адреса, примеры и ограничения (60 запросов в минуту на ключ): ismpilot.com/api.",
+      ],
+    },
+    {
+      emoji: '🛂',
+      title: "Внешние проверки",
+      body: [
+        "Для всего, чем судно проверяют снаружи: Port State Control, флаг, класс, визит суперинтенданта, vetting или фрахтователь, внешний аудит ISM или MLC. Открывается из «Безопасность» → «Несоответствия» → «Внешние проверки».",
+        "Проверка записывается один раз: дата, порт, кто проводил, инспектор и номер отчёта (Form B, акт), было ли задержание. Затем замечания по одному — что найдено, требование, степень, кто устраняет и до какого числа. Для PSC добавьте код дефекта и action code: 17 ставит срок на день проверки (до отхода), 16 — 14 дней, 18 — 3 месяца; 30 делает замечание major NC; 10 — устранено во время проверки, исправление записывается выполненным. Замечаний нет — сохраните так: чистую проверку тоже стоит записать.",
+        "После подписи каждое замечание становится несоответствием со своим исправлением, ответственным и сроком и идёт обычным путём: корневая причина, дальнейшие действия, закрытие капитаном с подписью — и, если офис участвует, его проверка. В проверке видно, сколько замечаний закрыто и проверено, и каждое открывается.",
+        "На Board просроченное замечание — красное, с указанием проверки; задержание остаётся красным для капитана, пока не записан день, когда его сняли. В Fleet суперинтендант видит проверки каждого судна, последнюю PSC, открытые и просроченные замечания и задержание.",
       ],
     },
     {
@@ -2303,6 +2323,16 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🛂',
+      title: "Inspecciones externas",
+      body: [
+        "Para todo lo que inspecciona el buque desde fuera: Port State Control, la bandera, la clase, la visita del superintendente, vetting o un fletador, una auditoría ISM o MLC externa. Se abre desde Seguridad → No conformidades → Inspecciones externas.",
+        "Registre la visita una vez: fecha, puerto, quién la realizó, el inspector y el número de informe (Form B, informe de reconocimiento), y si el buque fue detenido. Luego los hallazgos uno a uno: lo encontrado, el requisito, el grado, quién lo subsana y para cuándo. Para PSC, añada el código de deficiencia y el código de acción: 17 fija la fecha en el día de la inspección (antes de la salida), 16 a 14 días, 18 a 3 meses; 30 la convierte en NC mayor; 10 significa que se rectificó durante la inspección y su corrección queda hecha. Sin hallazgos, guárdela así: una inspección limpia también se registra.",
+        "Firmado y guardado, cada hallazgo se convierte en una no conformidad con su corrección, responsable y fecha, y sigue el camino habitual: causa raíz, más acciones, el cierre firmado del Capitán y, si la oficina participa, su verificación. La inspección muestra cuántos hallazgos están cerrados y verificados, y abre cada uno.",
+        "En el Board un hallazgo vencido aparece en rojo e indica de qué inspección viene; una detención sigue en rojo para el Capitán hasta que se registre el día en que se levantó. En Fleet el superintendente ve las inspecciones de cada buque, la última PSC, los hallazgos abiertos y vencidos, y una detención.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Acerca de',
       body: [
@@ -3062,6 +3092,16 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🛂',
+      title: "Зовнішні перевірки",
+      body: [
+        "Для всього, чим судно перевіряють ззовні: Port State Control, прапор, клас, візит суперінтенданта, vetting або фрахтувальник, зовнішній аудит ISM чи MLC. Відкривається з «Безпека» → «Невідповідності» → «Зовнішні перевірки».",
+        "Перевірка записується один раз: дата, порт, хто проводив, інспектор і номер звіту (Form B, акт), чи було затримання. Потім зауваження по одному — що знайдено, вимога, ступінь, хто усуває і до якого числа. Для PSC додайте код дефекту та action code: 17 ставить строк на день перевірки (до відходу), 16 — 14 днів, 18 — 3 місяці; 30 робить зауваження major NC; 10 — усунуто під час перевірки, виправлення записується виконаним. Зауважень немає — збережіть так: чисту перевірку теж варто записати.",
+        "Після підпису кожне зауваження стає невідповідністю зі своїм виправленням, відповідальним і строком і йде звичайним шляхом: коренева причина, подальші дії, закриття капітаном з підписом — і, якщо офіс бере участь, його перевірка. У перевірці видно, скільки зауважень закрито й перевірено, і кожне відкривається.",
+        "На Board прострочене зауваження — червоне, із зазначенням перевірки; затримання лишається червоним для капітана, доки не записано день, коли його зняли. У Fleet суперінтендант бачить перевірки кожного судна, останню PSC, відкриті й прострочені зауваження та затримання.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Про застосунок',
       body: [
@@ -3756,6 +3796,16 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '🛂',
+      title: "Eksterne inspeksjoner",
+      body: [
+        "For alt fartøyet inspiseres av utenfra: havnestatskontroll, flagget, klassen, inspektørens besøk, vetting eller en befrakter, en ekstern ISM- eller MLC-revisjon. Åpnes fra Sikkerhet → Avvik → Eksterne inspeksjoner.",
+        "Registrer besøket én gang: dato, havn, hvem som utførte det, inspektøren og rapportnummeret (Form B, besiktigelsesrapport), og om fartøyet ble tilbakeholdt. Skriv så funnene ett og ett — hva som ble funnet, kravet, graden, hvem som utbedrer og innen når. For PSC legger du til mangelkoden og tiltakskoden: 17 setter fristen til inspeksjonsdagen (før avgang), 16 til 14 dager, 18 til 3 måneder; 30 gjør det til et alvorlig avvik; 10 betyr utbedret under inspeksjonen, og korrigeringen registreres som utført. Ingen funn — lagre den slik: en ren inspeksjon er også verdt å registrere.",
+        "Signert og lagret blir hvert funn et avvik med korrigering, ansvarlig og frist, og går den vanlige veien: rotårsak, flere tiltak, kapteinens signerte lukking — og, der kontoret er med, kontorets verifisering. Inspeksjonen viser hvor mange funn som er lukket og verifisert, og åpner hvert av dem.",
+        "På Board er et forfalt funn rødt og viser hvilken inspeksjon det kom fra; en tilbakeholdelse er rød for kapteinen til dagen den ble opphevet er registrert. I Fleet ser inspektøren hvert fartøys inspeksjoner, siste PSC, åpne og forfalte funn, og en tilbakeholdelse.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Om',
       body: [
@@ -4435,6 +4485,16 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '🛂',
+      title: "Inspeções externas",
+      body: [
+        "Para tudo pelo que o navio é inspecionado de fora: Port State Control, a bandeira, a classe, a visita do superintendente, vetting ou um afretador, uma auditoria ISM ou MLC externa. Abre em Segurança → Não conformidades → Inspeções externas.",
+        "Registre a visita uma vez: data, porto, quem a realizou, o inspetor e o número do relatório (Form B, relatório de vistoria), e se o navio foi detido. Depois as constatações uma a uma — o que foi constatado, o requisito, o grau, quem corrige e até quando. Para PSC, acrescente o código da deficiência e o código de ação: 17 fixa a data no dia da inspeção (antes da partida), 16 em 14 dias, 18 em 3 meses; 30 a torna uma NC maior; 10 significa retificada durante a inspeção, e a correção fica registrada como feita. Sem constatações — salve assim: uma inspeção limpa também vale o registro.",
+        "Assinada e salva, cada constatação vira uma não conformidade com sua correção, responsável e data, e segue o caminho habitual: causa raiz, mais ações, o encerramento assinado pelo Comandante — e, se o escritório participa, a sua verificação. A inspeção mostra quantas constatações estão encerradas e verificadas, e abre cada uma.",
+        "No Board uma constatação vencida fica em vermelho e diz de que inspeção veio; uma detenção fica em vermelho para o Comandante até ser registrado o dia em que foi levantada. No Fleet o superintendente vê as inspeções de cada navio, a última PSC, as constatações abertas e vencidas, e uma detenção.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Sobre',
       body: [
@@ -4504,6 +4564,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'GMDSS Log', module: 'gmdss' },
   { title: 'Engine room log', module: 'watchLog' },
   { title: 'Vessel API', module: 'api' },
+  { title: 'External inspections', module: 'extInsp' },
 ];
 
 /** The manual as this build should show it: sections of switched-off modules removed. */

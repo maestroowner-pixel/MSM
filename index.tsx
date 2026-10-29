@@ -131,6 +131,8 @@ import YardSc from './screens/YardSc';
 import YardProjectSc from './screens/YardProjectSc';
 import YardJobSc from './screens/YardJobSc';
 import WarrantyClaimSc from './screens/WarrantyClaimSc';
+import ExtInspectionsSc from './screens/ExtInspectionsSc';
+import ExtInspectionSc from './screens/ExtInspectionSc';
 import OrderSc from './screens/OrderSc';
 import OrderGroupSc from './screens/OrderGroupSc';
 import SuppliersSc from './screens/SuppliersSc';
@@ -513,6 +515,8 @@ const linking = {
       LandingReport: 'landing-report/:id',
       Round: 'round/:id',
       Nc: 'nc/:id',
+      ExtInspections: 'external-inspections',
+      ExtInspection: 'external-inspection/:id',
       Drill: 'drill/:id',
       Meeting: 'safety-meeting/:id',
       Ask: 'ask',
@@ -771,6 +775,8 @@ function Root() {
         <Stack.Screen name="LandingReport" component={LandingReportSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Round" component={RoundSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Nc" component={NcSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="ExtInspections" component={ExtInspectionsSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="ExtInspection" component={ExtInspectionSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Drill" component={DrillSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Meeting" component={MeetingSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Ask" component={AskSc} options={{ presentation: 'modal' }} />

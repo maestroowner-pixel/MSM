@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -242,6 +242,14 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * (`npm run modules -- <IMO> on officeCheck`), the user's decision 28 Oct 2026.
    */
   officeCheck: false,
+  /**
+   * External inspections — PSC, flag, class, the superintendent's visit, vetting,
+   * external ISM / MLC audits: the visit recorded once, each finding an NC with
+   * its date, the Master's closure and the office's verification; a detention
+   * until it is lifted (types/extInspection.ts, plan item 33, 29 Oct 2026). Needs
+   * the qhse module and `npm run deploy:rules` first (ext_inspections).
+   */
+  extInsp: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------

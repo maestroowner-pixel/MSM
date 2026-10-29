@@ -552,6 +552,17 @@ service cloud.firestore {
                           && onlyChanges(['office', 'updatedAt']) && request.resource.data.office.result == 'verified');
         allow delete: if false;
       }
+      // External inspections (types/extInspection.ts): PSC, flag, class, vetting —
+      // recorded by an officer and signed; its findings are NCs. The details may be
+      // corrected (a detention lifted, a report number added), never who recorded it
+      // and when; never deleted.
+      match /ext_inspections/{id} {
+        allow read: if reader(v);
+        allow create: if isAdmin(v);
+        allow update: if isAdmin(v) && request.resource.data.no == resource.data.no
+                      && request.resource.data.by == resource.data.by && request.resource.data.at == resource.data.at;
+        allow delete: if false;
+      }
       // Drills (types/drills.ts): planned and run by an officer or the Master,
       // saved as they are written; signed as carried out, a drill is final.
       // The drill calendar (services/drillPlan.ts): one plan per year, kept by the officers.

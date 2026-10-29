@@ -35,10 +35,12 @@ import { uid } from '../utils/id';
 import { approveDeferral, awaitsOffice, deferralsToAnswer, giveBack, ncAwaitsOffice, refuseDeferral, verify, verifyNc } from '../services/officeCheck';
 import { PmsDefect, PmsDeferral } from '../types/pms';
 import { NonConformity } from '../types/safety';
+import { findingsOf, inspStatus, sortInspections } from '../services/extInspections';
+import { NC_STATE_LABEL, ncState } from '../services/safety';
 import { Attachment } from '../types/equipment';
 import { t, tk, useT } from '../utils/i18n';
 
-type Tab = 'certs' | 'docs' | 'equipment' | 'verify';
+type Tab = 'certs' | 'docs' | 'equipment' | 'verify' | 'insp';
 const SCOPES: { key: CertificateScope; label: string }[] = [
   { key: 'vessel', label: 'Vessel' },
   { key: 'crew', label: 'Crew' },
@@ -101,6 +103,10 @@ export default function FleetVesselSc() {
   const toApprove = deferralsToAnswer(v.deferrals ?? [], v.jobs);
   const tabs: [Tab, string][] = [['certs', `${t('fleet.certs')} · ${certs.length}`], ['docs', `${t('docs.title')} · ${docs.length}`], ['equipment', `${t('cat.title')} · ${owed.length}`]];
   if (office) tabs.push(['verify', `${t('oc.tab')} · ${toVerify.length + ncsToVerify.length + toApprove.length}`]);
+  // External inspections (types/extInspection.ts): on for the build or for this vessel.
+  const today = todayIso();
+  const insps = moduleOn('extInsp') || v.modules?.extInsp === true ? sortInspections(v.extInspections ?? [], v.ncs ?? [], today) : null;
+  if (insps) tabs.push(['insp', `${t('ei.title')} · ${insps.length}`]);
 
   return (
     <Screen scroll>
@@ -113,7 +119,32 @@ export default function FleetVesselSc() {
         ))}
       </View>
 
-      {tab === 'verify' ? (
+      {tab === 'insp' && insps ? (
+        <>
+          {!insps.length ? <Empty text={t('ei.empty')} /> : null}
+          {insps.map((x) => {
+            const s = inspStatus(x, v.ncs ?? [], today);
+            const c = s.detainedNow || s.state === 'overdue' ? COLORS.danger : s.state === 'open' ? COLORS.warning : COLORS.success;
+            return (
+              <View key={x.id} style={{ marginBottom: SIZES.sm }}>
+                <Text style={styles.title}>{[tk(`ei.kind.${x.kind}`), x.port, uiDate(x.date)].filter(Boolean).join(' · ')}</Text>
+                <Text style={[styles.sub, { color: c, fontWeight: '700' }]}>
+                  {[s.detainedNow ? t('ei.detainedNow') : x.detained && x.releasedOn ? t('ei.wasDetained', { date: uiDate(x.releasedOn) }) : null, tk(`ei.state.${s.state}`), s.total ? t('ei.closedK', { k: s.closed, n: s.total }) : null, s.verified ? t('ei.verifiedK', { k: s.verified }) : null, s.overdue ? t('ei.overdueN', { n: s.overdue }) : null].filter(Boolean).join(' · ')}
+                </Text>
+                <Text style={styles.sub}>{[x.no, x.authority, x.inspector, x.reportNo].filter(Boolean).join(' · ')}</Text>
+                {findingsOf(x, v.ncs ?? []).map((nc) => (
+                  <TouchableOpacity key={nc.id} style={styles.row} disabled={!(office && ncAwaitsOffice(nc))} onPress={() => setCheck({ nc })}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.title} numberOfLines={2}>{`${nc.no} — ${nc.title}`}</Text>
+                      <Text style={styles.sub} numberOfLines={1}>{[NC_STATE_LABEL[ncState(nc, today)], nc.pscAction ? `${nc.pscAction} · ${tk(`ei.act.${nc.pscAction}`)}` : null, nc.office?.result === 'verified' ? t('ei.officeOk') : office && ncAwaitsOffice(nc) ? t('oc.tab') : null].filter(Boolean).join(' · ')}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            );
+          })}
+        </>
+      ) : tab === 'verify' ? (
         <>
           {toApprove.map((d) => (
             <TouchableOpacity key={d.id} style={styles.row} onPress={() => setCheck({ deferral: d })}>
