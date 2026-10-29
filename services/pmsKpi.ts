@@ -1,7 +1,8 @@
 // The planned-maintenance month as figures and rows — pure, no I/O, so it is
 // tested (scripts/check-pms) and shared by the PDF / Excel (services/pmsReport).
 import { activeDeferral, dueText, jobDue, todayIso } from './pms';
-import { CONDITION, JOB_TYPE, Machine, PmsDeferral, PmsDone, PmsJob } from '../types/pms';
+import { CONDITION, JOB_TYPE, Machine, PmsDefect, PmsDeferral, PmsDone, PmsJob } from '../types/pms';
+import { monthDowntime } from './critEq';
 
 const proofShort = (p?: { method: string }) => (!p ? '' : p.method === 'biometric' ? 'signed biometrically' : p.method === 'drawn' ? 'signed by hand' : 'signed by PIN');
 
@@ -13,6 +14,8 @@ export interface PmsMonth {
   completion: { all: number | null; critical: number | null; doneAll: number; doneCritical: number; overdueAll: number; overdueCritical: number };
   /** Man-hours recorded on the month's sign-outs. */
   manHours: number;
+  /** Machines out of service in the month (services/critEq) — only when the defects were given. */
+  downtime?: string[][];
 }
 
 const pct = (a: number, b: number) => (a + b ? Math.round((a / (a + b)) * 100) : null);
@@ -22,7 +25,7 @@ const localDay = (t: number) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-export function pmsMonth(month: string, machines: Machine[], jobs: PmsJob[], done: PmsDone[], deferrals: PmsDeferral[], today = todayIso()): PmsMonth {
+export function pmsMonth(month: string, machines: Machine[], jobs: PmsJob[], done: PmsDone[], deferrals: PmsDeferral[], today = todayIso(), defects?: PmsDefect[]): PmsMonth {
   const mById = new Map(machines.map((m) => [m.id, m]));
   const jById = new Map(jobs.map((j) => [j.id, j]));
   const crit = (machineId: string) => !!mById.get(machineId)?.critical;
@@ -44,6 +47,7 @@ export function pmsMonth(month: string, machines: Machine[], jobs: PmsJob[], don
     }),
     deferred: monthDef.map((d) => [dm(localDay(d.at)), d.machineName, d.jobTitle, [d.untilDate ? dm(d.untilDate) : null, d.untilHours != null ? `${d.untilHours} h` : null].filter(Boolean).join(' / '), d.office?.result === 'refused' ? `${d.reason} — REFUSED by the office (${d.office.by}): ${d.office.note ?? ''}` : d.office?.result === 'approved' ? `${d.reason} — approved by the office (${d.office.by})` : d.reason, d.byRank ? `${d.by} (${d.byRank})` : d.by]),
     overdue: overdueJobs.map(({ j, d }) => [`${crit(j.machineId) ? '⚑ ' : ''}${mById.get(j.machineId)?.name ?? ''}`, j.title, j.type ? JOB_TYPE[j.type] : '', dueText(d)]),
+    ...(defects ? { downtime: monthDowntime(month, machines, defects, today) } : {}),
     manHours: Math.round(monthDone.reduce((s, d) => s + (d.manHours ?? 0), 0) * 10) / 10,
     completion: {
       all: pct(monthDone.length, overdueJobs.length),

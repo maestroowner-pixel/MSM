@@ -822,3 +822,6 @@ exports.apiKeyRevoke = require('./api').apiKeyRevoke;
 // Monthly safety digest to owner/DPA (functions/emailReport.js).
 exports.sendMonthlyReport = require('./emailReport').sendMonthlyReport;
 exports.sendReportNow = require('./emailReport').sendReportNow;
+
+// Critical equipment: a defect on it, or out of service, mailed to the office at once (critAlert.js, 29 Oct 2026).
+exports.critAlert = require('./critAlert').critAlert;

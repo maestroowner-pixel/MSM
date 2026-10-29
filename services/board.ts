@@ -57,6 +57,7 @@ import { current } from './versions';
 import { awaiting, verifiedIds } from './verification';
 import { awaitsOffice, deferralsToAnswer, ncAwaitsOffice, officeInLoop, rankDefects } from './officeCheck';
 import { inspStatus } from './extInspections';
+import { critSummary, downtimeDays, outNow } from './critEq';
 import { t, tk, tn } from '../utils/t';
 
 export type Level = 'red' | 'amber' | 'blue';
@@ -338,6 +339,21 @@ export function buildBoard(x: BoardInput): Board {
     }
     if (cls.length) n.push({ key: 'pms:defect-class', level: 'amber', who: 'officer', icon: 'alert-outline', route: 'Maintenance', title: `${cls.length > 1 ? t('b.pms.classDefects', { n: cls.length }) : t('b.pms.classDefect')} — ${cls[0].machineName}`, sub: cls[0].description });
     tiles.push({ key: 'pms', label: t('b.pms'), icon: 'engine-outline', route: 'Maintenance', level: lvl(over, due), line: over || due ? [over ? t('b.overdueN', { n: over }) : null, due ? t('b.dueN', { n: due }) : null].filter(Boolean).join(' · ') : t('b.pms.inHand', { n: x.pmsJobs.length }) });
+  }
+
+  // ---- Critical equipment (services/critEq): machines out of service, defects on critical machines ----
+  if (x.on('pms') && x.on('critEq')) {
+    const defs = x.pmsDefects ?? [];
+    const cs = critSummary(x.machines, defs);
+    for (const o of cs.out.filter((v) => v.critical)) {
+      const d = outNow(o.machineId, defs)!;
+      n.push({ key: `crit:out:${o.machineId}`, level: 'red', who: 'officer', icon: 'engine-off-outline', route: 'PmsDefect', params: { id: d.id }, title: `${t('crq.outTitle')} — ${o.name}`, sub: `${t('crq.outSince', { date: dm(o.since), n: downtimeDays(d, x.today) })} · ${d.description}` });
+    }
+    const other = cs.out.filter((v) => !v.critical);
+    if (other.length) n.push({ key: 'crit:out-other', level: 'amber', who: 'officer', icon: 'engine-off-outline', route: 'Maintenance', title: t('crq.outN', { n: other.length }), sub: other.map((v) => v.name).join(', ') });
+    // Safety-critical ones are on the Board already, for everyone.
+    const critOpen = defs.filter((d) => !d.closed && d.category !== 'safety' && x.machines.some((m) => m.id === d.machineId && m.critical && !m.deleted));
+    if (critOpen.length) n.push({ key: 'crit:defects', level: 'red', who: 'officer', icon: 'alert-octagon-outline', route: critOpen.length === 1 ? 'PmsDefect' : 'Maintenance', params: critOpen.length === 1 ? { id: critOpen[0].id } : undefined, title: `${t('crq.critDefects', { n: critOpen.length })} — ${critOpen[0].machineName}`, sub: critOpen[0].description });
   }
 
   // ---- Spares ----

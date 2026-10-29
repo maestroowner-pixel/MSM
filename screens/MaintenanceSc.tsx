@@ -40,6 +40,7 @@ import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { t, tk, tn, useT } from '../utils/i18n';
 import { moduleOn } from '../constants/modules';
+import { downtimeDays, outNow } from '../services/critEq';
 
 export default function MaintenanceSc() {
   useT();
@@ -115,7 +116,7 @@ export default function MaintenanceSc() {
   // The month's report: completion %, done, deferred, overdue — PDF / Excel.
   const [repMonth, setRepMonth] = useState(todayIso().slice(0, 7));
   const [saved, setSaved] = useState<string | null>(null);
-  const report = useMemo(() => pmsMonth(repMonth, machines, pmsJobs, pmsDone, pmsDeferrals), [repMonth, machines, pmsJobs, pmsDone, pmsDeferrals]);
+  const report = useMemo(() => pmsMonth(repMonth, machines, pmsJobs, pmsDone, pmsDeferrals, todayIso(), moduleOn('critEq') ? pmsDefects : undefined), [repMonth, machines, pmsJobs, pmsDone, pmsDeferrals, pmsDefects]);
   const exportReport = async (kind: 'pdf' | 'xlsx') => {
     try {
       const w = kind === 'pdf' ? await exportPmsPdf(report, vessel) : await exportPmsExcel(report, vessel);
@@ -372,6 +373,7 @@ export default function MaintenanceSc() {
                 <View style={[styles.bar, { backgroundColor: statusColor(worst) }]} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.title} numberOfLines={1}>{`${depth ? '↳ ' : ''}${m.name}`}</Text>
+                  {moduleOn('critEq') && outNow(m.id, pmsDefects) ? <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700' }]} numberOfLines={1}>{t('crq.outSince', { date: uiDate(outNow(m.id, pmsDefects)!.outOfService!.from), n: downtimeDays(outNow(m.id, pmsDefects)!, todayIso()) })}</Text> : null}
                   <Text style={styles.sub} numberOfLines={1}>
                     {[
                       hasCounter(m) ? (m.hours != null ? `${t('hor.hours', { n: m.hours })}${m.hoursDate ? ` ${t('mt2.onDate', { date: uiDate(m.hoursDate) })}` : ''}` : t('mt2.noCounter')) : null,

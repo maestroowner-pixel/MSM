@@ -323,6 +323,23 @@ export interface PmsDefectClose {
   photos?: import('./equipment').Attachment[];
 }
 
+/**
+ * The machine taken out of service by a defect — downtime (plan item 34, 29 Oct 2026).
+ * Kept ON the defect: no downtime without a reason, one record for both.
+ */
+export interface OutOfService {
+  /** yyyy-mm-dd — out of service from. */
+  from: string;
+  /** yyyy-mm-dd — back in service; absent while it is still out. */
+  to?: string;
+  by: string;
+  byRank?: string;
+  at: number;
+  backBy?: string;
+  backByRank?: string;
+  backAt?: number;
+}
+
 export interface PmsDefect {
   id: string;
   machineId: string;
@@ -343,6 +360,8 @@ export interface PmsDefect {
   responsible?: string;
   /** Waiting for spares since this date — set and cleared by an officer while the defect is open. */
   awaitingSpares?: { since: string; note?: string };
+  /** Downtime (services/critEq): set by an officer while open; closing the defect puts the machine back in service. */
+  outOfService?: OutOfService;
   closed?: PmsDefectClose;
   /** The office's word on the closure: verified, or returned to the vessel (then `closed` moved to `closedBefore`). */
   office?: import('../services/officeCheck').OfficeCheck;

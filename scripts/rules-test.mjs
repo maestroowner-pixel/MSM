@@ -345,6 +345,13 @@ await t(false, 'Crew cannot verify', updateDoc(R(crew, 'pms_defects', 'df1'), { 
 await t(true, 'The office verifies the new closure', updateDoc(R(shore, 'pms_defects', 'df1'), { office: { result: 'verified', by: 'S', at: 7 }, updatedAt: 7 }));
 await t(false, 'A verified defect is final — not returned afterwards', setDoc(R(shore, 'pms_defects', 'df1'), { ...DF, office: { result: 'returned', note: 'x', by: 'S', at: 8 }, updatedAt: 8 }));
 await t(false, 'A defect is never deleted', deleteDoc(R(master, 'pms_defects', 'df1')));
+// Critical equipment: downtime on the defect (services/critEq, plan item 34)
+const OOS = { from: '2026-10-25', by: 'CE', at: 1 };
+await t(true, 'Crew raise a defect with the machine out of service', setDoc(R(crew, 'pms_defects', 'dfo1'), { ...DF, id: 'dfo1', outOfService: OOS }));
+await t(false, 'Crew cannot put the machine back in service', updateDoc(R(crew, 'pms_defects', 'dfo1'), { outOfService: { ...OOS, to: '2026-10-26' }, updatedAt: 2 }));
+await t(true, 'An officer puts it back in service', updateDoc(R(officer, 'pms_defects', 'dfo1'), { outOfService: { ...OOS, to: '2026-10-27', backBy: '2/E', backAt: 3 }, updatedAt: 3 }));
+await t(true, 'An officer closes a defect and ends its downtime together', setDoc(R(officer, 'pms_defects', 'dfo1'), { ...DF, id: 'dfo1', outOfService: { ...OOS, to: '2026-10-28', backBy: '2/E', backAt: 4 }, closed: CL, updatedAt: 4 }));
+await t(false, 'Downtime of a closed defect is not rewritten', updateDoc(R(officer, 'pms_defects', 'dfo1'), { outOfService: { ...OOS, to: '2026-10-26' }, updatedAt: 5 }));
 const NC = { id: 'nc1', no: 'NC-2026-001', date: '2026-10-01', source: 'audit', grade: 'minor', title: 'x', what: 'y', actions: [], raisedBy: 'CO', raisedAt: 1, updatedAt: 1 };
 await t(true, 'An officer raises an NC', setDoc(R(officer, 'ncs', 'nc1'), NC));
 await t(false, 'The office cannot "verify" an open NC', updateDoc(R(shore, 'ncs', 'nc1'), { office: { result: 'verified', by: 'S', at: 2 }, updatedAt: 2 }));

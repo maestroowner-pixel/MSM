@@ -33,6 +33,7 @@ import { CATALOGUE } from '../services/pmsCatalogue';
 import { formatDate, uiDate } from '../utils/dates';
 import { qtyText, stockByPart, stockStatus } from '../services/spares';
 import { moduleOn } from '../constants/modules';
+import { backOn, downtimeDays, isOut, machineDowntime } from '../services/critEq';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { copyJobsTo, copyMachine, parentChoices, predecessors, replaceMachine, scrapMachine } from '../services/pmsMachines';
@@ -546,9 +547,31 @@ export default function MachineSc() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle} numberOfLines={2}>{x.description}</Text>
                 <Text style={styles.sub}>{`${tk(`pms.defcat.${x.category}`)} · ${uiDate(x.date)} · ${x.by}`}</Text>
+                {moduleOn('critEq') && isOut(x) ? <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700' }]}>{t('crq.outSince', { date: uiDate(x.outOfService!.from), n: downtimeDays(x, today) })}</Text> : null}
               </View>
             </TouchableOpacity>
           ))}
+
+          {/* Downtime (services/critEq): every time the machine was out of service, from its defects. */}
+          {moduleOn('critEq') && !isNew ? (() => {
+            const dt = machineDowntime(id, pmsDefects);
+            if (!dt.length) return null;
+            const total = dt.reduce((sum, d) => sum + downtimeDays(d, today), 0);
+            return (
+              <>
+                <View style={styles.jobsHead}><Label>{t('crq.downtime', { n: total })}</Label></View>
+                {dt.map((d) => (
+                  <TouchableOpacity key={d.id} style={styles.row} onPress={() => nav.navigate('PmsDefect', { id: d.id })} activeOpacity={0.7}>
+                    <View style={[styles.bar, { backgroundColor: isOut(d) ? COLORS.danger : COLORS.border }]} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.rowTitle} numberOfLines={1}>{isOut(d) ? t('crq.outSince', { date: uiDate(d.outOfService!.from), n: downtimeDays(d, today) }) : t('crq.outWas', { from: uiDate(d.outOfService!.from), to: uiDate(backOn(d)!), n: downtimeDays(d, today) })}</Text>
+                      <Text style={styles.sub} numberOfLines={1}>{d.description}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </>
+            );
+          })() : null}
 
           {!isNew ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.md, marginTop: SIZES.md }}>

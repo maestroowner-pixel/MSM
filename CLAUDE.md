@@ -178,6 +178,24 @@ app mirrors. Bundle id `com.kukalab.msm`.
   overdue finding names its inspection. Fleet: tab on the vessel + pills (detained, findings open, last PSC) from
   `extSummary`. Rules `ext_inspections` (officers; `no`/`by`/`at` fixed) — `npm run deploy:rules` before the flag.
   `npm run check:extinsp`.
+- **Critical equipment** (29 Oct 2026 — flag `critEq`, off; plan item 34): pure `services/critEq.ts`, trigger
+  `functions/critAlert.js`. **Downtime lives on the defect** (`PmsDefect.outOfService` {from, to, by, backBy…}): no
+  out-of-service without a reason; a machine's downtime is read from its defects. Set when raising (anyone) or later by an
+  officer (rules `pms_defects`: `outOfService` joins the officers' open-defect fields); "back in service" signed by an officer;
+  closing the defect ends it the same day (`closeOut`); a job signed out with condition Out of service + Found a defect does it
+  too. Board: critical machine out = red per machine, others one amber line, defects on critical machines red (safety ones are
+  already there). Fleet: pill on the card + tab "Critical equipment" (on for the build or `modules.critEq`). Papers: machine
+  history/survey pack — "OUT OF SERVICE since" fact and a Downtime table; monthly PMS report — "Out of service this month"
+  (only when `pmsMonth` gets the defects, i.e. flag on). **Mail**: `critAlert` (onDocumentWritten pms_defects, us-central1)
+  mails the monthly report's recipients (`emailReport.recipients`, whether or not the digest is enabled) when an alert-worthy
+  defect appears (critical machine or safety-critical — `alertWorthy`, COPIED in the function: `check:criteq` compares),
+  goes out of service, or comes back; once per event (`crit_alerts/{v}_{id}_{event}` marker); rank, never the name. Until
+  `CRIT_EQ_RELEASED` in critAlert.js is flipped it mails only vessels with `modules.critEq` — flip it with the build flag.
+  Needs `npm run deploy:rules` + the `critAlert` function before the flag. `npm run check:criteq`.
+  Manual: `MODULE_PARTS` `drop` takes a NEGATIVE index (from the end) — pt/no sections are shorter than en.
+- **Web PDFs from `utils/pmsHistoryPdf.web.ts`**: a table is sized to its `widths` only when EVERY column has one (the DP
+  tables side by side); with some widths it takes the page and the rest share — before 29 Oct 2026 the sum of SOME widths
+  was the table width, and the machine history, survey/class pack and project PDFs printed Job/Note/Defect a letter a line.
 - **Record books: seals, chain, signed copy** (25 Oct 2026, stage 2 — `services/seal.ts`,
   `services/signKeys.ts`, `services/bookAccess.ts`, `services/signedCopy.ts`, `npm run check:seal`).
   Every signer has an ECDSA P-256 key per device (`@noble/curves`, pure JS; randomness from

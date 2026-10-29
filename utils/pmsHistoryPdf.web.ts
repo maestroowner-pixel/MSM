@@ -34,7 +34,11 @@ export function pmsHistoryPdfBlob(title: string, vesselLine: string, list: Machi
     let prev: { y: number; right: number; bottom: number; page: number } | null = null;
     const W = doc.internal.pageSize.getWidth();
     for (const t of h.tables) {
-      const width = Object.values(t.widths ?? {}).reduce((a, b) => a + b, 0) || W - 2 * M;
+      // Sized to its widths only when every column has one (the DP tables side by side); otherwise the
+      // page's width, and the columns without one share what is left — a sum of SOME widths squeezed
+      // the rest to a letter a line (the Job, Note and Defect columns of the machine history).
+      const full = !!t.widths && t.head.every((_, k) => t.widths![k] != null);
+      const width = full ? Object.values(t.widths!).reduce((a, b) => a + b, 0) : W - 2 * M;
       const side: boolean = !!(t.beside && prev && prev.right + 6 + width <= W - M && prev.page === doc.getNumberOfPages());
       if (!side && y > H - 25) {
         doc.addPage();
@@ -52,7 +56,7 @@ export function pmsHistoryPdfBlob(title: string, vesselLine: string, list: Machi
       autoTable(doc, {
         ...base,
         margin: { left, right: side ? W - left - width : M },
-        tableWidth: t.widths ? width : 'auto',
+        tableWidth: full ? width : 'auto',
         startY: top + 6,
         head: [t.head],
         columnStyles,

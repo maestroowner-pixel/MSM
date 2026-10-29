@@ -12,6 +12,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { BackButton, Card, Label, Screen, ScreenTitle } from '../components/ui';
 import { PhotoPicker } from '../components/PhotoPicker';
+import SimpleDatePicker from '../components/SimpleDatePicker';
 import { EvidencePhoto } from '../components/EvidencePhoto';
 import { useSignConfirm } from '../components/SignConfirm';
 import { useSigner } from '../components/SignerChoice';
@@ -27,6 +28,7 @@ import { scheduleLabel, todayIso } from '../services/pms';
 import { plansPms } from '../types/role';
 import { moduleOn } from '../constants/modules';
 import { defectStage, needsPhoto, officeInLoop } from '../services/officeCheck';
+import { alertWorthy, backOn, closeOut, downtimeDays, isOut, markBack, markOut } from '../services/critEq';
 import { uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
@@ -61,6 +63,10 @@ export default function PmsDefectSc() {
   const office = moduleOn('officeCheck');
   const [responsible, setResponsible] = useState('');
   const [editResp, setEditResp] = useState<string | null>(null);
+  // Critical equipment (services/critEq): downtime on the defect, the office mailed at once.
+  const crit = moduleOn('critEq');
+  const [outFrom, setOutFrom] = useState<string | null>(null);
+  const [backDate, setBackDate] = useState<string | null>(null);
 
   const queuePhotos = async (rec: { id: string; photos?: Attachment[] }) => {
     if (rec.photos?.length && vessel?.imo) await photoQueue.enqueueInspection(vessel.imo, rec);
@@ -76,7 +82,8 @@ export default function PmsDefectSc() {
     const d: PmsDefect = {
       id: uid('dft'), machineId: machine.id, machineName: machine.name, category, description: description.trim(), date: todayIso(),
       by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}),
-      ...(photos.length ? { photos } : {}), ...(office && responsible.trim() ? { responsible: responsible.trim() } : {}), updatedAt: now,
+      ...(photos.length ? { photos } : {}), ...(office && responsible.trim() ? { responsible: responsible.trim() } : {}),
+      ...(crit && outFrom ? { outOfService: { from: outFrom, by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now } } : {}), updatedAt: now,
     };
     await saveRow(storage.PMS_DEFECTS_KEY, d);
     await queuePhotos(d);
@@ -97,7 +104,7 @@ export default function PmsDefectSc() {
       ...(sig.proof ? { signedWith: sig.proof } : {}), ...(closePhotos.length ? { photos: closePhotos } : {}),
     };
     const { awaitingSpares: _s, ...rest } = existing;
-    await saveRow(storage.PMS_DEFECTS_KEY, { ...rest, closed, updatedAt: now });
+    await saveRow(storage.PMS_DEFECTS_KEY, { ...rest, ...closeOut(existing, closed.date, { name: signer.name, rank: signer.rank }, now), closed, updatedAt: now });
     // The closing photos travel under their own id so they do not clash with the report's.
     await queuePhotos({ id: `${existing.id}-closed`, photos: closePhotos });
     playSuccessSound();
@@ -111,9 +118,26 @@ export default function PmsDefectSc() {
     await saveRow(storage.PMS_DEFECTS_KEY, next);
   };
 
+  // Out of service / back in service: an officer's, signed like the rest of the record.
+  const downtime = async (back: boolean) => {
+    if (!existing) return;
+    if (!signer) return Alert.alert(t('sign.who'), t('pd.chooseName'));
+    const date = back ? backDate ?? todayIso() : outFrom ?? todayIso();
+    if (back && existing.outOfService && date < existing.outOfService.from) return Alert.alert(t('crq.oos'), t('crq.backBefore'));
+    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${back ? 'Back in service' : 'Out of service'}: ${existing.machineName}` });
+    if (!sig) return;
+    const who = { name: signer.name, rank: signer.rank };
+    const now = Date.now();
+    await saveRow(storage.PMS_DEFECTS_KEY, back ? markBack(existing, date, who, now) : markOut(existing, date, who, now));
+    setOutFrom(null);
+    setBackDate(null);
+    playSuccessSound();
+  };
+
   const imo = vessel?.imo ?? '';
   const stage = existing ? defectStage(existing) : 'open';
   const inLoop = officeInLoop(pmsDefects);
+  const pickerTop = crit && !!existing && !existing.closed && canClose;
   return (
     <Screen scroll>
       <View style={{ alignSelf: 'flex-start', marginBottom: SIZES.sm }}><BackButton onPress={() => goBackOr(nav)} /></View>
@@ -159,6 +183,35 @@ export default function PmsDefectSc() {
                   </TouchableOpacity>
                 ) : null}
               </View>
+            </Card>
+          ) : null}
+          {/* One signer for downtime and closing — above both, so it is chosen before either button. */}
+          {pickerTop && picker ? <View style={{ marginBottom: SIZES.sm }}>{picker}</View> : null}
+          {crit && (existing.outOfService || (!existing.closed && canClose)) ? (
+            <Card>
+              <Label>{t('crq.oos')}</Label>
+              {existing.outOfService ? (
+                <>
+                  <Text style={[styles.text, isOut(existing) && { color: COLORS.danger }]}>
+                    {isOut(existing)
+                      ? t('crq.outSince', { date: uiDate(existing.outOfService.from), n: downtimeDays(existing, todayIso()) })
+                      : t('crq.outWas', { from: uiDate(existing.outOfService.from), to: uiDate(backOn(existing)!), n: downtimeDays(existing, todayIso()) })}
+                  </Text>
+                  <Text style={styles.sub}>{[existing.outOfService.byRank ? `${existing.outOfService.by} (${existing.outOfService.byRank})` : existing.outOfService.by, existing.outOfService.backBy ? t('crq.backBy', { who: existing.outOfService.backByRank ? `${existing.outOfService.backBy} (${existing.outOfService.backByRank})` : existing.outOfService.backBy }) : null].filter(Boolean).join(' · ')}</Text>
+                  {isOut(existing) && canClose ? (
+                    <>
+                      <View style={{ marginTop: SIZES.sm }}><SimpleDatePicker label={t('crq.backOn')} value={backDate ?? todayIso()} onChange={setBackDate} /></View>
+                      <TouchableOpacity style={[styles.btn, { marginTop: SIZES.sm, backgroundColor: COLORS.success }]} onPress={() => void downtime(true)}><Text style={styles.btnText}>{t('crq.markBack')}</Text></TouchableOpacity>
+                    </>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  <Text style={styles.sub}>{t('crq.inService')}</Text>
+                  <View style={{ marginTop: SIZES.sm }}><SimpleDatePicker label={t('crq.outFrom')} value={outFrom ?? todayIso()} onChange={setOutFrom} /></View>
+                  <TouchableOpacity style={[styles.btn, { marginTop: SIZES.sm, backgroundColor: COLORS.danger }]} onPress={() => void downtime(false)}><Text style={styles.btnText}>{t('crq.markOut')}</Text></TouchableOpacity>
+                </>
+              )}
             </Card>
           ) : null}
           {(() => {
@@ -212,7 +265,7 @@ export default function PmsDefectSc() {
               <Label>{t('pd.closeHead')}</Label>
               <TextInput style={[styles.input, { minHeight: 70 }]} value={closeNote} onChangeText={setCloseNote} multiline placeholder={t('pd.donePh')} placeholderTextColor={COLORS.textLight} />
               <PhotoPicker photos={closePhotos} onChange={setClosePhotos} hint={office && needsPhoto(existing) ? t('oc.photoRequired') : t('pd.repairPhoto')} />
-              {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
+              {picker && !pickerTop ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
               <TouchableOpacity style={[styles.btn, { marginTop: SIZES.md }]} onPress={() => void close()}><Text style={styles.btnText}>{t('pd.signRect')}</Text></TouchableOpacity>
             </Card>
           ) : (
@@ -236,6 +289,18 @@ export default function PmsDefectSc() {
             <>
               <Label>{t('oc.responsible')}</Label>
               <TextInput style={styles.input} value={responsible} onChangeText={setResponsible} placeholder={t('oc.responsiblePh')} placeholderTextColor={COLORS.textLight} />
+            </>
+          ) : null}
+          {crit ? (
+            <>
+              <View style={[styles.inline, { marginTop: SIZES.md }]}>
+                <Text style={[styles.text, { flex: 1 }]}>{t('crq.oosQ')}</Text>
+                <TouchableOpacity style={[styles.chip, outFrom !== null && { backgroundColor: COLORS.danger, borderColor: COLORS.danger }]} onPress={() => setOutFrom(outFrom === null ? todayIso() : null)}>
+                  <Text style={[styles.chipText, outFrom !== null && { color: COLORS.textWhite }]}>{outFrom !== null ? t('crq.oosYes') : t('crq.oosNo')}</Text>
+                </TouchableOpacity>
+              </View>
+              {outFrom !== null ? <View style={{ marginTop: SIZES.sm }}><SimpleDatePicker label={t('crq.outFrom')} value={outFrom} onChange={setOutFrom} /></View> : null}
+              {machine && alertWorthy({ category }, machine) ? <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700' }]}>{t('crq.officeMailed')}</Text> : null}
             </>
           ) : null}
           {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}

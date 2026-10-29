@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -250,6 +250,17 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * the qhse module and `npm run deploy:rules` first (ext_inspections).
    */
   extInsp: false,
+  /**
+   * Critical equipment — a defect on a critical machine, or a safety-critical
+   * one, is emailed to the office at once (functions/critAlert.js, to the
+   * monthly report's recipients); downtime "out of service from … to …" kept on
+   * the defect, on the machine, the Board, Fleet and the reports
+   * (services/critEq.ts, plan item 34, 29 Oct 2026). Needs `npm run deploy:rules`
+   * (pms_defects.outOfService) and the critAlert function first. The function
+   * mails only for a vessel with `modules.critEq` until CRIT_EQ_RELEASED is set
+   * in functions/critAlert.js — flip both together.
+   */
+  critEq: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------

@@ -36,11 +36,12 @@ import { approveDeferral, awaitsOffice, deferralsToAnswer, giveBack, ncAwaitsOff
 import { PmsDefect, PmsDeferral } from '../types/pms';
 import { NonConformity } from '../types/safety';
 import { findingsOf, inspStatus, sortInspections } from '../services/extInspections';
+import { downtimeDays, isOut } from '../services/critEq';
 import { NC_STATE_LABEL, ncState } from '../services/safety';
 import { Attachment } from '../types/equipment';
 import { t, tk, useT } from '../utils/i18n';
 
-type Tab = 'certs' | 'docs' | 'equipment' | 'verify' | 'insp';
+type Tab = 'certs' | 'docs' | 'equipment' | 'verify' | 'insp' | 'crit';
 const SCOPES: { key: CertificateScope; label: string }[] = [
   { key: 'vessel', label: 'Vessel' },
   { key: 'crew', label: 'Crew' },
@@ -107,6 +108,12 @@ export default function FleetVesselSc() {
   const today = todayIso();
   const insps = moduleOn('extInsp') || v.modules?.extInsp === true ? sortInspections(v.extInspections ?? [], v.ncs ?? [], today) : null;
   if (insps) tabs.push(['insp', `${t('ei.title')} · ${insps.length}`]);
+  // Critical equipment (services/critEq): defects open on critical machines and every machine out of service.
+  const critIds = new Set(v.machines.filter((m) => m.critical && !m.deleted).map((m) => m.id));
+  const critList = moduleOn('critEq') || v.modules?.critEq === true
+    ? (v.defects ?? []).filter((d) => isOut(d) || (!d.closed && critIds.has(d.machineId))).sort((a, b) => Number(isOut(b)) - Number(isOut(a)) || a.at - b.at)
+    : null;
+  if (critList) tabs.push(['crit', `${t('crq.tab')} · ${critList.length}`]);
 
   return (
     <Screen scroll>
@@ -143,6 +150,20 @@ export default function FleetVesselSc() {
               </View>
             );
           })}
+        </>
+      ) : tab === 'crit' && critList ? (
+        <>
+          {critList.map((d) => (
+            <View key={d.id} style={styles.row}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.title} numberOfLines={1}>{`${critIds.has(d.machineId) ? '⚑ ' : ''}${d.machineName} — ${d.description}`}</Text>
+                <Text style={[styles.sub, isOut(d) && { color: COLORS.danger, fontWeight: '700' }]} numberOfLines={2}>
+                  {[tk(`pms.defcat.${d.category}`), t('crq.raised', { date: uiDate(d.date) }), isOut(d) ? t('crq.outSince', { date: uiDate(d.outOfService!.from), n: downtimeDays(d, today) }) : null, d.awaitingSpares ? t('oc.sparesSince', { date: uiDate(d.awaitingSpares.since) }) : null].filter(Boolean).join(' · ')}
+                </Text>
+              </View>
+            </View>
+          ))}
+          {!critList.length ? <Empty text={t('crq.nothing')} /> : null}
         </>
       ) : tab === 'verify' ? (
         <>

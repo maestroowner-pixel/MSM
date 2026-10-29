@@ -18,6 +18,7 @@ import * as XLSX from 'xlsx';
 import { VesselInfo } from './storage';
 import { esc, share, vesselHeader } from './export';
 import { PMS_HEAD, PmsMonth, completionLine, monthLabelPms } from './pmsKpi';
+import { MONTH_DOWNTIME_HEAD } from './critEq';
 export { pmsMonth, PMS_HEAD, completionLine, monthLabelPms } from './pmsKpi';
 export type { PmsMonth } from './pmsKpi';
 import { deliverFile, onWeb, onWindows } from '../utils/fileShare';
@@ -42,6 +43,7 @@ function html(r: PmsMonth, vessel: VesselInfo | null): string {
     <h2>Done this month (${r.done.length})</h2>${t(PMS_HEAD.done, r.done, 'Nothing recorded.')}
     <h2>Deferred this month (${r.deferred.length})</h2>${t(PMS_HEAD.deferred, r.deferred, 'No deferrals.')}
     <h2>Overdue now (${r.overdue.length})</h2>${t(PMS_HEAD.overdue, r.overdue, 'Nothing overdue.')}
+    ${r.downtime ? `<h2>Out of service this month (${r.downtime.length})</h2>${t(MONTH_DOWNTIME_HEAD, r.downtime, 'No machine out of service.')}` : ''}
   </body></html>`;
 }
 
@@ -71,6 +73,7 @@ export async function exportPmsExcel(r: PmsMonth, vessel: VesselInfo | null): Pr
   add('Done', PMS_HEAD.done, r.done);
   add('Deferred', PMS_HEAD.deferred, r.deferred);
   add('Overdue', PMS_HEAD.overdue, r.overdue);
+  if (r.downtime) add('Downtime', MONTH_DOWNTIME_HEAD, r.downtime);
   const fileName = pmsFileName(vessel, r.month, 'xlsx');
   const b64 = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
   const mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';

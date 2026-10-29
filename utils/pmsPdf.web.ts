@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import type { PmsMonth } from '../services/pmsKpi';
 import { PMS_HEAD, completionLine, monthLabelPms } from '../services/pmsKpi';
+import { MONTH_DOWNTIME_HEAD } from '../services/critEq';
 
 export function pmsPdfBlob(r: PmsMonth, vesselLine: string): Blob {
   const { jsPDF } = require('jspdf');
@@ -40,5 +41,6 @@ export function pmsPdfBlob(r: PmsMonth, vesselLine: string): Blob {
   section(`Done this month (${r.done.length})`, PMS_HEAD.done, r.done, 'Nothing recorded.');
   section(`Deferred this month (${r.deferred.length})`, PMS_HEAD.deferred, r.deferred, 'No deferrals.');
   section(`Overdue now (${r.overdue.length})`, PMS_HEAD.overdue, r.overdue, 'Nothing overdue.');
+  if (r.downtime) section(`Out of service this month (${r.downtime.length})`, MONTH_DOWNTIME_HEAD, r.downtime, 'No machine out of service.');
   return doc.output('blob');
 }

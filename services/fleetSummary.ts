@@ -15,6 +15,7 @@ import { jobDue } from './pms';
 import { readStatus } from './docs';
 import { stockByPart, toOrderCounts } from './spares';
 import { extSummary } from './extInspections';
+import { CritSummary, critSummary } from './critEq';
 
 export interface VesselData {
   imo: string;
@@ -65,6 +66,10 @@ export interface VesselSummary {
   signaturesMissing: number;
   /** External inspections (shown when the module is on): the last PSC, findings open / overdue, a detention not lifted. */
   ext: ReturnType<typeof extSummary>;
+  /** Critical equipment: defects open on critical machines, machines out of service now. */
+  crit: CritSummary;
+  /** The vessel has critEq on as a pilot (Fleet also shows it when the build has it on). */
+  critOn: boolean;
 }
 
 function count<T>(list: T[], status: (x: T) => string): Count {
@@ -112,13 +117,15 @@ export function summarise(v: VesselData): VesselSummary {
     docsOutstanding,
     signaturesMissing,
     ext: extSummary(v.extInspections ?? [], v.ncs ?? [], new Date().toISOString().slice(0, 10)),
+    crit: critSummary(live(v.machines), v.defects ?? []),
+    critOn: !!v.modules?.critEq,
   };
 }
 
 /** Worst first: what a superintendent should look at before the coffee is cold. */
 export function fleetOrder(a: VesselSummary, b: VesselSummary): number {
   const score = (s: VesselSummary) =>
-    (s.equipment.expired + s.certs.expired + s.crewCerts.expired + s.vesselCerts.expired + s.pms.expired + s.ext.overdue + (s.ext.detained ? 1 : 0)) * 1000 +
+    (s.equipment.expired + s.certs.expired + s.crewCerts.expired + s.vesselCerts.expired + s.pms.expired + s.ext.overdue + (s.ext.detained ? 1 : 0) + s.crit.out.filter((o) => o.critical).length) * 1000 +
     (s.equipment.due + s.certs.due + s.crewCerts.due + s.vesselCerts.due + s.pms.due + s.sparesOut + s.docsOutstanding);
   return score(b) - score(a) || a.name.localeCompare(b.name);
 }

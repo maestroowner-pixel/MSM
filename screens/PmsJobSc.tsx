@@ -39,6 +39,7 @@ import { activeDeferral, refusedDeferral, dueLabel, jobAfter, jobCycle, jobDue, 
 import { movesForJob, qtyText, stockByPart } from '../services/spares';
 import { JobPart } from '../types/spares';
 import { moduleOn } from '../constants/modules';
+import { markOut } from '../services/critEq';
 import { uiDate } from '../utils/dates';
 import { officeInLoop } from '../services/officeCheck';
 import { PERMIT_TYPES } from '../constants/permitTypes';
@@ -306,6 +307,8 @@ export default function PmsJobSc() {
           by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: done.at, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: done.at,
         }
       : null;
+    // Left out of service: the defect carries the downtime from the day of the job (services/critEq).
+    if (found && condAfter === 'out' && moduleOn('critEq')) found.outOfService = markOut(found, doneDate, { name: signer.name, rank: signer.rank }, done.at).outOfService;
     if (found) done.defectId = found.id;
     const moves = sparesOn
       ? movesForJob(

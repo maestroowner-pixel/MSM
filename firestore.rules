@@ -222,7 +222,7 @@ service cloud.firestore {
         allow read: if reader(v);
         allow create: if member(v) && !('closed' in request.resource.data) && !('office' in request.resource.data);
         allow update: if (isAdmin(v) && !('closed' in resource.data)
-                          && onlyChanges(['closed', 'responsible', 'awaitingSpares', 'updatedAt']))
+                          && onlyChanges(['closed', 'responsible', 'awaitingSpares', 'outOfService', 'updatedAt']))
                       || (shore(v) && 'closed' in resource.data
                           && resource.data.get('office', {}).get('result', '') != 'verified'
                           && onlyChanges(['office', 'closed', 'closedBefore', 'updatedAt'])

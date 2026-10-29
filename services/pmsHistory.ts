@@ -9,6 +9,7 @@
 
 import { CONDITION, DEFECT_CATEGORY, JOB_TYPE, Machine, PmsDefect, PmsDeferral, PmsDone, PmsJob, hasCounter } from '../types/pms';
 import { activeDeferral, dueText, jobDue, scheduleText } from './pms';
+import { DOWNTIME_HEAD, downtimeDays, downtimeRows, isOut, machineDowntime } from './critEq';
 
 export interface HistTable {
   title: string;
@@ -50,6 +51,10 @@ export function machineHistory(m: Machine, jobs: PmsJob[], done: PmsDone[], defe
     m.serial ? `S/N ${m.serial}` : null,
     m.location ? `Location: ${m.location}` : null,
     m.critical ? 'CRITICAL EQUIPMENT' : null,
+    (() => {
+      const o = mx.find(isOut);
+      return o ? `OUT OF SERVICE since ${dmy(o.outOfService!.from)}` : null;
+    })(),
     m.classItem ? `CLASS${m.classCode ? ` ${m.classCode}` : ''}` : null,
     hasCounter(m) ? (m.hours != null ? `Running hours ${m.hours} h (read ${dmy(m.hoursDate)})` : 'Running hours: no reading') : null,
     (() => {
@@ -90,6 +95,16 @@ export function machineHistory(m: Machine, jobs: PmsJob[], done: PmsDone[], defe
       head: ['Raised', 'Category', 'Defect', 'Raised by', 'Rectified'],
       widths: { 0: 22, 1: 30, 3: 40, 4: 80 },
       rows: mx.map((x) => [dmy(x.date), DEFECT_CATEGORY[x.category], `${x.description}${x.jobTitle ? ` (found doing “${x.jobTitle}”)` : ''}`, who(x.by, x.byRank), x.closed ? `${dmy(x.closed.date)} — ${x.closed.note} · ${who(x.closed.by, x.closed.byRank)}` : 'OPEN']),
+    });
+  }
+  // Downtime (services/critEq): every time a defect took the machine out of service.
+  const dt = machineDowntime(m.id, mx);
+  if (dt.length) {
+    tables.push({
+      title: `Downtime — ${dt.reduce((n, d) => n + downtimeDays(d, today), 0)} days in all`,
+      head: DOWNTIME_HEAD,
+      widths: { 0: 26, 1: 26, 2: 14, 4: 44 },
+      rows: downtimeRows(dt, today),
     });
   }
   return { title: m.name, facts, tables };
