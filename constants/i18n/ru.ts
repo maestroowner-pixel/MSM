@@ -6805,7 +6805,6 @@ export const ru: UiDict = {
   "poa.emergencyGo": "Отправить",
   "poa.history": "Шаги",
   "poa.notYet": "Только после одобрения офиса. До тех пор заказ остаётся черновиком.",
-  "poa.officer": "Офицер",
   "poa.cutBy": "Просили {from}, офис одобрил {to} ({who})",
   "poa.struckBy": "Вычеркнута офисом ({who})",
   "poa.linesN": "Строк: {n}",

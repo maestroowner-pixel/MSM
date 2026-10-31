@@ -6697,7 +6697,6 @@ export const no: UiDict = {
   "poa.emergencyGo": "Send nå",
   "poa.history": "Steg",
   "poa.notYet": "Først når kontoret har godkjent den. Til da er den et utkast.",
-  "poa.officer": "Offiser",
   "poa.cutBy": "Bedt om {from}, kontoret godkjente {to} ({who})",
   "poa.struckBy": "Strøket av kontoret ({who})",
   "poa.linesN": "Linjer: {n}",

@@ -6706,7 +6706,6 @@ export const en = {
   "poa.emergencyGo": "Send now",
   "poa.history": "Steps",
   "poa.notYet": "Only once the office has approved it. Until then it stays a draft.",
-  "poa.officer": "Officer",
   "poa.cutBy": "Asked {from}, the office approved {to} ({who})",
   "poa.struckBy": "Struck out by the office ({who})",
   "poa.linesN": "Lines: {n}",

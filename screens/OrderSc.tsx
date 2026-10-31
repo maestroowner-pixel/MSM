@@ -76,7 +76,7 @@ export default function OrderSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { purchaseOrders, saveRow, vessel, suppliers } = useData();
+  const { purchaseOrders, saveRow, vessel, suppliers, crew, prefs } = useData();
   const sync = useSync();
   const officer = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const master = !sync.enrolled || sync.role === 'superadmin';
@@ -84,6 +84,18 @@ export default function OrderSc() {
   const gated = moduleOn('poApproval');
   const { signer, picker } = useSigner();
   const today = todayIso();
+  // Who an approval step or a quotation is signed by. Offline the device does not
+  // know itself (sync.me comes from the live watch), so fall back to the crew member
+  // last picked here, as the Board does, and only then to the role — in English,
+  // since the step goes to the office.
+  const lastCrew = crew.find((c) => c.id === prefs?.lastCrewId && !c.deleted);
+  const who = signer?.name
+    ? { name: signer.name, rank: signer.rank }
+    : sync.me
+      ? { name: personName(sync.me), rank: sync.me.position }
+      : lastCrew
+        ? { name: lastCrew.name, rank: lastCrew.rank }
+        : { name: master ? 'Master' : 'Officer' };
 
   const [savedId, setSavedId] = useState<string | null>(null);
   const paramId = route.params?.id as string;
@@ -303,7 +315,8 @@ export default function OrderSc() {
         </ScrollView>
       ) : null}
 
-      <Card>
+      {/* Above the line cards: the urgency, port and supplier lists open over them. */}
+      <Card style={{ zIndex: 40 }}>
         {/* Department */}
         <Label>{t('po.dept')}</Label>
         {editable ? (
@@ -806,7 +819,7 @@ export default function OrderSc() {
       {gated && !isNew && !draft && !receiving ? (
         <PoApprovalPanel
           o={o}
-          who={{ name: signer?.name || (sync.me ? personName(sync.me) : t('poa.officer')), rank: signer?.rank }}
+          who={who}
           officer={officer}
           master={master}
           onSave={async (next) => { await saveRow(storage.PURCHASE_ORDERS_KEY, next); playSuccessSound(); }}
@@ -818,7 +831,7 @@ export default function OrderSc() {
         <RfqPanel
           o={o}
           editable={officer && (o.status === 'draft' || o.status === 'standby')}
-          by={signer?.name || (sync.me ? personName(sync.me) : 'Officer')}
+          by={who.name}
         />
       ) : null}
 

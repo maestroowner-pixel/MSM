@@ -6697,7 +6697,6 @@ export const pt: UiDict = {
   "poa.emergencyGo": "Enviar",
   "poa.history": "Passos",
   "poa.notYet": "Só depois de aprovada pelo escritório. Até lá fica em rascunho.",
-  "poa.officer": "Oficial",
   "poa.cutBy": "Pedido {from}, o escritório aprovou {to} ({who})",
   "poa.struckBy": "Eliminada pelo escritório ({who})",
   "poa.linesN": "Linhas: {n}",

@@ -6805,7 +6805,6 @@ export const uk: UiDict = {
   "poa.emergencyGo": "Надіслати",
   "poa.history": "Кроки",
   "poa.notYet": "Лише після погодження офісу. До того замовлення лишається чернеткою.",
-  "poa.officer": "Офіцер",
   "poa.cutBy": "Просили {from}, офіс погодив {to} ({who})",
   "poa.struckBy": "Викреслено офісом ({who})",
   "poa.linesN": "Рядків: {n}",
