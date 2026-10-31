@@ -15,6 +15,7 @@
 import { OrderLine, PurchaseOrder, Quote } from '../types/orders';
 import { Supplier } from '../types/suppliers';
 import { isoCurrency, round2 } from './finance';
+import { liveLines } from './orders';
 
 export interface QuoteTotal {
   goods: number;
@@ -35,7 +36,8 @@ export function quoteTotal(o: PurchaseOrder, q: Quote): QuoteTotal {
   let priced = 0;
   const missing: string[] = [];
   const unavailable: string[] = [];
-  for (const l of o.lines) {
+  const lines = liveLines(o);
+  for (const l of lines) {
     const p = no.has(l.id) ? undefined : q.prices[l.id];
     if (p != null && Number.isFinite(p)) {
       goods += p * l.qty;
@@ -46,7 +48,7 @@ export function quoteTotal(o: PurchaseOrder, q: Quote): QuoteTotal {
   goods = round2(goods);
   const discount = round2(goods * ((q.discountPct ?? 0) / 100));
   const delivery = round2(q.delivery ?? 0);
-  return { goods, discount, delivery, total: round2(goods - discount + delivery), priced, missing, unavailable, complete: o.lines.length > 0 && priced === o.lines.length };
+  return { goods, discount, delivery, total: round2(goods - discount + delivery), priced, missing, unavailable, complete: lines.length > 0 && priced === lines.length };
 }
 
 /** Answered with prices (not declined, not still waiting). */
@@ -82,7 +84,7 @@ export function compareQuotes(o: PurchaseOrder): Comparison {
   const other = ans.filter((q) => q.currency !== currency).map(withT);
   const cheapestId = ranked.find((r) => r.t.complete)?.q.id ?? null;
   const bestByLine: Record<string, string[]> = {};
-  for (const l of o.lines) {
+  for (const l of liveLines(o)) {
     let low = Infinity;
     let ids: string[] = [];
     for (const { q } of ranked) {

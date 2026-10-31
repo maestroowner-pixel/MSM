@@ -14,6 +14,7 @@ import { exportPmsHistory } from './pmsHistoryReport';
 import { saveSheet } from './sheetFiles';
 import { money } from './finance';
 import { compareQuotes, quoteTotal } from './rfq';
+import { liveLines } from './orders';
 import { ORDER_DEPT_LABEL, PurchaseOrder, Quote } from '../types/orders';
 
 const dmy = (iso?: string) => (iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}` : '');
@@ -40,7 +41,7 @@ export function exportRfq(o: PurchaseOrder, q: Quote, vessel: VesselInfo | null)
       {
         title: 'Items',
         head: ['#', 'Description', 'Part no. / IMPA', 'Maker', 'Qty', 'Unit', `Unit price (${q.currency})`, 'Available', 'Lead time (days)', 'Remarks'],
-        rows: o.lines.map((l, i) => [String(i + 1), [l.description, l.notes].filter(Boolean).join(' — '), ref(l), l.maker ?? '', String(l.qty), l.unit, '', '', '', '']),
+        rows: liveLines(o).map((l, i) => [String(i + 1), [l.description, l.notes].filter(Boolean).join(' — '), ref(l), l.maker ?? '', String(l.qty), l.unit, '', '', '', '']),
         // Every column: the web PDF (jsPDF) sizes the table to the widths given — 277 mm.
         widths: { 0: 7, 1: 80, 2: 34, 3: 26, 4: 12, 5: 12, 6: 26, 7: 18, 8: 20, 9: 42 },
       },
@@ -56,7 +57,7 @@ export function rfqSheet(o: PurchaseOrder, q: Quote, vessel: VesselInfo | null) 
     ...rfqFacts(o, q).map((f) => [f]),
     [],
     ['Line ID', '#', 'Description', 'Part no.', 'IMPA', 'Maker', 'Qty', 'Unit', `Unit price (${q.currency})`, 'Available (Y/N)', 'Lead time (days)', 'Remarks'],
-    ...o.lines.map((l, i) => [l.id, i + 1, l.description, l.partNo ?? '', l.impa ?? '', l.maker ?? '', l.qty, l.unit, '', '', '', '']),
+    ...liveLines(o).map((l, i) => [l.id, i + 1, l.description, l.partNo ?? '', l.impa ?? '', l.maker ?? '', l.qty, l.unit, '', '', '', '']),
     [],
     // The value goes in the Unit price column (rfq.ts quoteFromSheet reads it there).
     ['', '', 'Delivery charge', '', '', '', '', '', ''],
@@ -79,14 +80,14 @@ function comparisonTables(o: PurchaseOrder) {
     return `${num(p)}${c.bestByLine[lineId]?.includes(q.id) && c.ranked.length > 1 ? ' *' : ''}`;
   };
   const head = ['#', 'Description', 'Qty', ...all.map(({ q }) => `${q.supplier} (${q.currency})`)];
-  const lines = o.lines.map((l, i) => [String(i + 1), l.description, `${l.qty} ${l.unit}`, ...all.map(({ q }) => cell(q, l.id))]);
+  const lines = liveLines(o).map((l, i) => [String(i + 1), l.description, `${l.qty} ${l.unit}`, ...all.map(({ q }) => cell(q, l.id))]);
   const sums = (label: string, f: (t: ReturnType<typeof quoteTotal>, q: Quote) => string) => ['', label, '', ...all.map(({ q, t }) => f(t, q))];
   const totals = [
     sums('Goods', (t) => num(t.goods)),
     sums('Discount', (t, q) => (t.discount ? `-${num(t.discount)} (${q.discountPct} %)` : '')),
     sums('Delivery', (t) => (t.delivery ? num(t.delivery) : '')),
     sums('TOTAL', (t) => num(t.total)),
-    sums('Lines priced', (t) => `${t.priced} of ${o.lines.length}${t.unavailable.length ? ` · ${t.unavailable.length} n/a` : ''}`),
+    sums('Lines priced', (t) => `${t.priced} of ${liveLines(o).length}${t.unavailable.length ? ` · ${t.unavailable.length} n/a` : ''}`),
     sums('Lead time', (_t, q) => (q.leadDays != null ? `${q.leadDays} days` : '')),
     sums('Valid until', (_t, q) => dmy(q.validUntil)),
     sums('Their ref.', (_t, q) => q.ref ?? ''),

@@ -56,6 +56,7 @@ import { currentEntries } from './garbage';
 import { current } from './versions';
 import { awaiting, verifiedIds } from './verification';
 import { awaitsOffice, deferralsToAnswer, ncAwaitsOffice, officeInLoop, rankDefects } from './officeCheck';
+import { emergencyOpen, emergencyRejected, lastCuts, poStage, returnedBy } from './poApproval';
 import { inspStatus } from './extInspections';
 import { critSummary, downtimeDays, outNow } from './critEq';
 import { t, tk, tn } from '../utils/t';
@@ -200,6 +201,8 @@ export interface BoardInput {
   storeMoves?: StoreMove[];
   storeRoomList?: StoreRoom[];
   gmdssLog?: import('../types/gmdss').GmdssEntry[];
+  /** Requisitions (types/orders.ts) — for their way through the office (services/poApproval). */
+  purchaseOrders?: import('../types/orders').PurchaseOrder[];
 }
 
 const RANK: Record<Level, number> = { red: 0, amber: 1, blue: 2 };
@@ -361,6 +364,24 @@ export function buildBoard(x: BoardInput): Board {
     const o = toOrderCounts(x.spares, stockByPart(x.spareMoves));
     if (o.out || o.low) n.push({ key: 'spares', level: o.out ? 'amber' : 'blue', who: 'officer', icon: 'package-variant', route: 'Spares', title: `${t('b.spares.toOrder')} — ${[o.out ? t('b.outOfStockN', { n: o.out }) : null, o.low ? t('b.lowN', { n: o.low }) : null].filter(Boolean).join(', ')}` });
     tiles.push({ key: 'spares', label: t('b.spares'), icon: 'package-variant', route: 'Spares', level: o.out ? 'amber' : undefined, line: o.out || o.low ? t('b.toOrderN', { n: o.out + o.low }) : tn('n.part', x.spares.length) });
+  }
+
+  // ---- Requisitions through the office (services/poApproval) ----
+  if (x.on('orders') && x.on('poApproval')) {
+    const pos = (x.purchaseOrders ?? []).filter((o) => !o.deleted && o.status !== 'cancelled');
+    // A rejection is news for two weeks; the order itself keeps it.
+    const fresh = (o: { approval?: { at: number }[] }) => Date.parse(`${x.today}T00:00:00Z`) - (o.approval?.[o.approval.length - 1]?.at ?? 0) < 14 * 86400000;
+    const atMaster = pos.filter((o) => poStage(o) === 'master');
+    if (atMaster.length) n.push({ key: 'po:master', level: 'blue', who: 'master', icon: 'clipboard-check-outline', route: atMaster.length === 1 ? 'Order' : 'Orders', params: atMaster.length === 1 ? { id: atMaster[0].id } : undefined, title: t('b.po.atMaster', { n: atMaster.length }), sub: atMaster.map((o) => o.no).slice(0, 3).join(', ') });
+    for (const o of pos) {
+      const back = returnedBy(o);
+      const stage = poStage(o);
+      if (back) n.push({ key: `po:back:${o.id}`, level: 'amber', who: 'officer', icon: 'undo-variant', route: 'Order', params: { id: o.id }, title: `${back.kind === 'return' ? t('b.po.returnedOffice') : t('b.po.returnedMaster')} — ${o.no}`, sub: back.note });
+      else if (stage === 'rejected' && fresh(o)) n.push({ key: `po:rej:${o.id}`, level: 'amber', who: 'officer', icon: 'close-octagon-outline', route: 'Order', params: { id: o.id }, title: `${t('b.po.rejected')} — ${o.no}`, sub: o.approval?.[o.approval.length - 1]?.note });
+      else if (stage === 'approved') n.push({ key: `po:ok:${o.id}`, level: 'blue', who: 'officer', icon: 'check-decagram-outline', route: 'Order', params: { id: o.id }, title: `${lastCuts(o).length ? t('b.po.approvedCut', { n: lastCuts(o).length }) : t('b.po.approved')} — ${o.no}`, sub: t('b.po.place') });
+      if (emergencyOpen(o)) n.push({ key: `po:em:${o.id}`, level: 'amber', who: 'master', icon: 'alarm-light-outline', route: 'Order', params: { id: o.id }, title: `${t('b.po.emergency')} — ${o.no}` });
+      else if (emergencyRejected(o) && fresh(o)) n.push({ key: `po:emrej:${o.id}`, level: 'amber', who: 'master', icon: 'close-octagon-outline', route: 'Order', params: { id: o.id }, title: `${t('b.po.emergencyRejected')} — ${o.no}`, sub: o.approval?.[o.approval.length - 1]?.note });
+    }
   }
 
   // ---- Documents to read ----

@@ -39,9 +39,12 @@ import { findingsOf, inspStatus, sortInspections } from '../services/extInspecti
 import { downtimeDays, isOut } from '../services/critEq';
 import { NC_STATE_LABEL, ncState } from '../services/safety';
 import { Attachment } from '../types/equipment';
+import { PurchaseOrder } from '../types/orders';
+import { approvedNotPlaced, emergencyOpen, markReview, officeApprove, officeOrdered, officeQueue, officeReject, officeReturn, poStage } from '../services/poApproval';
+import { PoProgress } from '../components/PoApprovalPanel';
 import { t, tk, useT } from '../utils/i18n';
 
-type Tab = 'certs' | 'docs' | 'equipment' | 'verify' | 'insp' | 'crit';
+type Tab = 'certs' | 'docs' | 'equipment' | 'verify' | 'insp' | 'crit' | 'po';
 const SCOPES: { key: CertificateScope; label: string }[] = [
   { key: 'vessel', label: 'Vessel' },
   { key: 'crew', label: 'Crew' },
@@ -59,6 +62,7 @@ export default function FleetVesselSc() {
   const [cert, setCert] = useState<Certificate | null>(null);
   const [docEdit, setDocEdit] = useState<{ doc: IsmDoc; isNew: boolean } | null>(null);
   const [check, setCheck] = useState<{ defect?: PmsDefect; nc?: NonConformity; deferral?: PmsDeferral } | null>(null);
+  const [po, setPo] = useState<PurchaseOrder | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -114,6 +118,23 @@ export default function FleetVesselSc() {
     ? (v.defects ?? []).filter((d) => isOut(d) || (!d.closed && critIds.has(d.machineId))).sort((a, b) => Number(isOut(b)) - Number(isOut(a)) || a.at - b.at)
     : null;
   if (critList) tabs.push(['crit', `${t('crq.tab')} · ${critList.length}`]);
+  // Requisitions through the office (services/poApproval): to decide, approved but not placed, in work.
+  const orders = (v.orders ?? []).filter((o) => !o.deleted);
+  const poQueue = moduleOn('poApproval') || v.modules?.poApproval === true ? officeQueue(orders) : null;
+  const poApproved = poQueue ? approvedNotPlaced(orders) : [];
+  const poInWork = poQueue ? orders.filter((o) => o.approval?.length && (o.status === 'sent' || o.status === 'partial') && !emergencyOpen(o)).sort((a, b) => b.updatedAt - a.updatedAt) : [];
+  if (poQueue) tabs.push(['po', `${t('poa.tab')} · ${poQueue.length}`]);
+  const poRow = (o: PurchaseOrder) => (
+    <TouchableOpacity key={o.id} style={styles.row} onPress={() => setPo(o)}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.title} numberOfLines={1}>{`${o.no} · ${tk(`od.${o.dept}`)}${o.urgency && o.urgency !== 'routine' ? ` · ${tk(`po.urg.${o.urgency}`)}` : ''}`}</Text>
+        <Text style={[styles.sub, emergencyOpen(o) && { color: COLORS.warning, fontWeight: '700' }]} numberOfLines={1}>
+          {[emergencyOpen(o) ? t('poa.emergencyOpenShort') : tk(`poa.st.${poStage(o)}`), t('poa.linesN', { n: o.lines.filter((l) => l.qty > 0).length }), o.by].filter(Boolean).join(' · ')}
+        </Text>
+      </View>
+      <MciIcon name="chevron-right" size={18} color={COLORS.textLight} />
+    </TouchableOpacity>
+  );
 
   return (
     <Screen scroll>
@@ -126,7 +147,16 @@ export default function FleetVesselSc() {
         ))}
       </View>
 
-      {tab === 'insp' && insps ? (
+      {tab === 'po' && poQueue ? (
+        <>
+          {poQueue.map(poRow)}
+          {!poQueue.length ? <Empty text={t('poa.nothing')} /> : null}
+          {poApproved.length ? <Label style={{ marginTop: SIZES.md }}>{t('poa.approvedNotPlaced')}</Label> : null}
+          {poApproved.map(poRow)}
+          {poInWork.length ? <Label style={{ marginTop: SIZES.md }}>{t('poa.inWork')}</Label> : null}
+          {poInWork.slice(0, 20).map(poRow)}
+        </>
+      ) : tab === 'insp' && insps ? (
         <>
           {!insps.length ? <Empty text={t('ei.empty')} /> : null}
           {insps.map((x) => {
@@ -264,6 +294,7 @@ export default function FleetVesselSc() {
 
       {cert ? <CertEditor imo={imo} cert={cert} crew={v.crew} onClose={() => setCert(null)} onSaved={() => { setCert(null); void load(); }} /> : null}
       {check ? <OfficeCheckSheet imo={v.imo} check={check} onClose={() => setCheck(null)} onSaved={() => { setCheck(null); void load(); }} /> : null}
+      {po ? <PoSheet imo={v.imo} order={po} onClose={() => { setPo(null); void load(); }} onSaved={() => { setPo(null); void load(); }} /> : null}
       {docEdit ? <DocEditor imo={imo} start={docEdit.doc} isNew={docEdit.isNew} onClose={() => setDocEdit(null)} onSaved={() => { setDocEdit(null); void load(); }} /> : null}
     </Screen>
   );
@@ -532,6 +563,140 @@ function OfficeCheckSheet({ imo, check, onClose, onSaved }: { imo: string; check
       {d || df ? (
         <TouchableOpacity style={styles.delete} disabled={busy} onPress={() => void answer(true)}>
           <Text style={{ color: COLORS.danger, fontWeight: '700' }}>{df ? t('od.refuse') : t('oc.return')}</Text>
+        </TouchableOpacity>
+      ) : null}
+    </Sheet>
+  );
+}
+
+/**
+ * The office's decision on one requisition (services/poApproval): opening it marks it
+ * "under review" for the vessel; then approve — reducing or striking lines, each with
+ * its reason — return it for rework, or reject it; once approved, mark it placed if the
+ * office ordered it itself. An emergency already sent is approved or rejected afterwards.
+ */
+function PoSheet({ imo, order, onClose, onSaved }: { imo: string; order: PurchaseOrder; onClose: () => void; onSaved: () => void }) {
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+  const [o, setO] = useState(order);
+  const [note, setNote] = useState('');
+  const [qty, setQty] = useState<Record<string, { to: string; note: string }>>({});
+  const [busy, setBusy] = useState(false);
+  const stage = poStage(o);
+  const late = emergencyOpen(o);
+  const deciding = late || stage === 'office' || stage === 'review';
+  const cutting = deciding && !late;
+
+  const me = async () => ({ name: (await shore.myName()) || t('fv.supt'), rank: t('oc.office') });
+
+  // Opened: the vessel sees "Under review" from now on.
+  useEffect(() => {
+    if (poStage(order) !== 'office') return;
+    void (async () => {
+      try {
+        const next = markReview(order, await me(), Date.now());
+        await shore.saveOfficeCheck(imo, 'purchase_orders', next);
+        setO(next);
+      } catch {
+        /* the decision itself will say if writing fails */
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order, imo]);
+
+  const run = async (make: (who: { name: string; rank: string }) => PurchaseOrder) => {
+    setBusy(true);
+    try {
+      await shore.saveOfficeCheck(imo, 'purchase_orders', make(await me()));
+      onSaved();
+    } catch (e: any) {
+      Alert.alert(t('poa.title'), e?.message === 'A reason is required' || e?.message === 'A reason is required for each line changed' ? t('poa.needReason') : e?.message ?? String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const approve = () =>
+    void run((who) => {
+      const changes: Record<string, { to: number; note: string }> = {};
+      for (const [id, c] of Object.entries(qty)) {
+        const n = Number(c.to.replace(',', '.'));
+        if (c.to.trim() !== '' && Number.isFinite(n)) changes[id] = { to: n, note: c.note };
+      }
+      return officeApprove(o, who, Date.now(), note, changes);
+    });
+  const needNote = (fn: () => void) => (note.trim().length < 3 ? Alert.alert(t('poa.title'), t('poa.needReason')) : fn());
+  const total = o.lines.reduce((sum, l) => sum + (l.unitPrice ?? 0) * l.qty, 0);
+  const cur = o.lines.find((l) => l.currency)?.currency ?? '€';
+
+  return (
+    <Sheet
+      title={o.no}
+      onClose={onClose}
+      onSave={deciding ? approve : stage === 'approved' ? () => void run((who) => officeOrdered(o, who, Date.now(), todayIso(), note)) : onClose}
+      busy={busy}
+      saveLabel={deciding ? t('poa.approve') : stage === 'approved' ? t('poa.ordered') : t('common.close')}
+    >
+      <Text style={styles.title}>{[tk(`od.${o.dept}`), o.urgency ? tk(`po.urg.${o.urgency}`) : null, o.deliveryPort, o.deliveryDate ? uiDate(o.deliveryDate) : null].filter(Boolean).join(' · ')}</Text>
+      <Text style={styles.sub}>{[o.byRank ? `${o.by} (${o.byRank})` : o.by, uiDate(o.date), o.supplier].filter(Boolean).join(' · ')}</Text>
+      {o.notes ? <Text style={styles.sub}>{o.notes}</Text> : null}
+      {late ? <Text style={[styles.sub, { color: COLORS.warning, fontWeight: '700' }]}>{t('poa.emergencyOffice', { why: o.approval?.find((x) => x.kind === 'emergency')?.note ?? '' })}</Text> : null}
+
+      <Label>{t('poa.linesN', { n: o.lines.length })}</Label>
+      {o.lines.map((l) => {
+        const c = qty[l.id];
+        const changed = c && c.to.trim() !== '' && Number(c.to.replace(',', '.')) !== l.qty;
+        return (
+          <View key={l.id} style={[styles.row, { flexDirection: 'column', alignItems: 'stretch' }]}>
+            <Text style={[styles.title, l.qty === 0 && { textDecorationLine: 'line-through', color: COLORS.textLight }]}>{l.description}</Text>
+            <Text style={styles.sub}>{[`${l.qty} ${l.unit}`, l.partNo, l.impa ? `IMPA ${l.impa}` : null, l.maker, l.unitPrice != null ? `${l.currency ?? '€'} ${l.unitPrice}` : null, l.stockQty != null ? t('poa.stock', { n: l.stockQty }) : null].filter(Boolean).join(' · ')}</Text>
+            {l.notes ? <Text style={styles.sub}>{l.notes}</Text> : null}
+            {l.cut ? <Text style={[styles.sub, { color: COLORS.warning }]}>{`${t('poa.asked', { n: l.cut.asked })} — ${l.cut.note}`}</Text> : null}
+            {cutting ? (
+              <View style={{ flexDirection: 'row', gap: SIZES.xs, alignItems: 'center' }}>
+                <TextInput
+                  style={[styles.input, { width: 70 }]}
+                  value={c?.to ?? ''}
+                  onChangeText={(x) => setQty((q) => ({ ...q, [l.id]: { to: x, note: q[l.id]?.note ?? '' } }))}
+                  keyboardType="numeric"
+                  placeholder={String(l.qty)}
+                  placeholderTextColor={COLORS.textLight}
+                />
+                <TouchableOpacity style={[styles.chip, c?.to === '0' && styles.chipOn]} onPress={() => setQty((q) => ({ ...q, [l.id]: { to: q[l.id]?.to === '0' ? '' : '0', note: q[l.id]?.note ?? '' } }))}>
+                  <Text style={[styles.chipText, c?.to === '0' && styles.chipTextOn]}>{t('poa.strike')}</Text>
+                </TouchableOpacity>
+                {changed ? (
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    value={c?.note ?? ''}
+                    onChangeText={(x) => setQty((q) => ({ ...q, [l.id]: { to: q[l.id]?.to ?? '', note: x } }))}
+                    placeholder={t('poa.lineWhy')}
+                    placeholderTextColor={COLORS.textLight}
+                  />
+                ) : null}
+              </View>
+            ) : null}
+          </View>
+        );
+      })}
+      {total > 0 ? <Text style={styles.sub}>{t('poa.total', { sum: `${cur} ${total.toFixed(2)}` })}</Text> : null}
+
+      <Label>{t('poa.title')}</Label>
+      <PoProgress o={o} />
+
+      {deciding || stage === 'approved' ? (
+        <>
+          <Label>{t('oc.note')}</Label>
+          <TextInput style={[styles.input, { minHeight: 60 }]} value={note} onChangeText={setNote} multiline placeholder={stage === 'approved' ? t('poa.orderedPh') : t('poa.officeNotePh')} placeholderTextColor={COLORS.textLight} />
+        </>
+      ) : null}
+      {deciding && !late ? (
+        <TouchableOpacity style={styles.outline} disabled={busy} onPress={() => needNote(() => void run((who) => officeReturn(o, who, note, Date.now())))}>
+          <Text style={{ color: COLORS.primary, fontWeight: '700' }}>{t('poa.officeReturn')}</Text>
+        </TouchableOpacity>
+      ) : null}
+      {deciding ? (
+        <TouchableOpacity style={styles.delete} disabled={busy} onPress={() => needNote(() => void run((who) => officeReject(o, who, note, Date.now())))}>
+          <Text style={{ color: COLORS.danger, fontWeight: '700' }}>{t('poa.reject')}</Text>
         </TouchableOpacity>
       ) : null}
     </Sheet>

@@ -81,6 +81,8 @@ export interface OrderLine {
   notes?: string;
   /** Link to a spare part in the spares register, if the line came from there. */
   spareId?: string;
+  /** The office changed the quantity (services/poApproval): what was asked, why — qty 0 = struck out. */
+  cut?: { asked: number; note: string; by: string };
 }
 
 /** One delivery event — appended on each "Record delivery" confirmation. */
@@ -159,6 +161,35 @@ export interface Award {
   reason?: string;
 }
 
+/**
+ * One step of a requisition's approval (services/poApproval). Aboard: an officer
+ * submits it to the Master, the Master sends it to the office or returns it, or —
+ * an emergency — sends it to the supplier at once with the reason. Ashore: the
+ * office opens it (review), approves it (quantities cut with a reason), returns
+ * it for rework, rejects it, or places it with the supplier itself.
+ */
+export type PoStepKind = 'submit' | 'master' | 'masterReturn' | 'emergency' | 'review' | 'approve' | 'return' | 'reject' | 'ordered';
+
+/** The office changed one line: `to` 0 = struck out. */
+export interface PoCut {
+  lineId: string;
+  from: number;
+  to: number;
+  note: string;
+}
+
+export interface PoStep {
+  kind: PoStepKind;
+  by: string;
+  byRank?: string;
+  /** Epoch ms */
+  at: number;
+  /** The reason — required to return, reject or send without the office. */
+  note?: string;
+  /** On `approve`: lines the office changed. */
+  cuts?: PoCut[];
+}
+
 export interface PurchaseOrder {
   id: string;
   /** Sequential: PO-2026-001 */
@@ -197,6 +228,11 @@ export interface PurchaseOrder {
   /** yyyy-mm-dd quotes are wanted by. */
   quoteBy?: string;
   award?: Award;
+  /**
+   * The requisition's way through the Master and the office (services/poApproval,
+   * plan item 35): append-only steps; the stage is read from them, `status` is untouched.
+   */
+  approval?: PoStep[];
   deleted?: boolean;
   /** Epoch ms */
   at: number;

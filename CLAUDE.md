@@ -193,6 +193,24 @@ app mirrors. Bundle id `com.kukalab.msm`.
   `CRIT_EQ_RELEASED` in critAlert.js is flipped it mails only vessels with `modules.critEq` — flip it with the build flag.
   Needs `npm run deploy:rules` + the `critAlert` function before the flag. `npm run check:criteq`.
   Manual: `MODULE_PARTS` `drop` takes a NEGATIVE index (from the end) — pt/no sections are shorter than en.
+- **Requisitions through the office** (31 Oct 2026 — flag `poApproval`, off; plan item 35): pure `services/poApproval.ts`,
+  `components/PoApprovalPanel.tsx` (on OrderSc; `PoProgress` also in Fleet). The office decides on NEED, not price — there is
+  no amount ladder. The way is append-only STEPS on the order (`PurchaseOrder.approval: PoStep[]`); the stage is READ from them
+  and `status` is untouched (2.69 still reads the order). Officer `submit` → Master `master` (sends to the office; a Master
+  raising it sends it straight on) or `masterReturn` (reason) → office `review` (written when a shore user opens it in Fleet —
+  "Under review" for the vessel), `approve` (lines reduced or struck, each with a reason: `qty` changed, `OrderLine.cut`
+  {asked, note, by}, the step's `cuts`), `return` (reason; a return starts a new round), `reject` (reason), `ordered` (the office
+  placed it: status → sent). Only an approved order may go to `sent` (OrderSc `mayOrder`; rules `poSendOk`). `emergency`: the
+  Master sends an emergency-urgency order at once with a reason; the office approves/rejects afterwards (`emergencyOpen`), its
+  lines no longer cut. Progress Sent to the office → Under review → Approved → In work (status sent) → Delivered (`progress`).
+  Struck lines (`liveLines`) are left out of quotations and the PO PDF table; the PDF prints an Approvals table. Fleet: tab
+  "Requisitions" (queue, approved not placed, in work), `PoSheet`; card pill from `poSummary`. Board: Master — waiting for you,
+  sent without the office, emergency rejected; officers — returned, approved (with cuts), rejected (2 weeks). Rules
+  `purchase_orders`: one step per write, whose step decides who (`poStepAdded`, list compared with `hasAll` — rules have no
+  list slices), reason ≥ 3 for masterReturn/emergency/return/reject; shore may change only approval/lines/status/sentAt/sentBy
+  and status → sent only with `ordered`. `check:poapproval` compares the step names and the reason list with the rules.
+  Per vessel ON REQUEST (`npm run modules -- <IMO> on poApproval`) — a vessel without an office does not get it.
+  `npm run deploy:rules` before switching it on.
 - **Web PDFs from `utils/pmsHistoryPdf.web.ts`**: a table is sized to its `widths` only when EVERY column has one (the DP
   tables side by side); with some widths it takes the page and the rest share — before 29 Oct 2026 the sum of SOME widths
   was the table width, and the machine history, survey/class pack and project PDFs printed Job/Note/Defect a letter a line.

@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -261,6 +261,17 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * in functions/critAlert.js — flip both together.
    */
   critEq: false,
+  /**
+   * Requisitions through the office — an officer raises it, the Master sends it
+   * to the office, the office approves (cutting lines with the reason), returns
+   * or rejects it; only then is it placed. Progress Sent → Under review →
+   * Approved → In work → Delivered aboard and in Fleet; an emergency goes at once
+   * and is answered afterwards (services/poApproval.ts, plan item 35,
+   * 31 Oct 2026). Needs `npm run deploy:rules` (purchase_orders) first. Per
+   * vessel: `npm run modules -- <IMO> on poApproval` — a vessel without an office
+   * does not get it.
+   */
+  poApproval: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------

@@ -138,6 +138,11 @@ export default function FleetSc() {
                 {[r.crit.defects ? t('fleet.critDefects', { n: r.crit.defects }) : null, r.crit.out.length ? t('fleet.outOfService', { names: r.crit.out.map((o) => `${o.critical ? '⚑ ' : ''}${o.name}`).join(', ') }) : null].filter(Boolean).join(' · ')}
               </Text>
             ) : null}
+            {(r.poOn || moduleOn('poApproval')) && (r.po.waiting || r.po.emergency) ? (
+              <Text style={[styles.pill, { color: r.po.emergency ? COLORS.warning : COLORS.primary, borderColor: r.po.emergency ? COLORS.warning : COLORS.primary }]}>
+                {[r.po.waiting ? t('fleet.poWaiting', { n: r.po.waiting }) : null, r.po.emergency ? t('fleet.poEmergency', { n: r.po.emergency }) : null].filter(Boolean).join(' · ')}
+              </Text>
+            ) : null}
             {r.ext.detained ? (
               <Text style={[styles.pill, { color: COLORS.danger, borderColor: COLORS.danger }]}>{t('fleet.detained')}</Text>
             ) : null}

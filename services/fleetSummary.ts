@@ -16,6 +16,7 @@ import { readStatus } from './docs';
 import { stockByPart, toOrderCounts } from './spares';
 import { extSummary } from './extInspections';
 import { CritSummary, critSummary } from './critEq';
+import { poSummary } from './poApproval';
 
 export interface VesselData {
   imo: string;
@@ -37,6 +38,8 @@ export interface VesselData {
   deferrals?: import('../types/pms').PmsDeferral[];
   /** External inspections — their findings are in `ncs`. */
   extInspections?: import('../types/extInspection').ExternalInspection[];
+  /** Requisitions (services/poApproval) — what waits for the office's decision. */
+  orders?: import('../types/orders').PurchaseOrder[];
   /** The vessel's own modules (a pilot vessel's), so Fleet shows what that vessel has on. */
   modules?: Partial<Record<import('../constants/modules').ModuleKey, boolean>>;
 }
@@ -70,6 +73,9 @@ export interface VesselSummary {
   crit: CritSummary;
   /** The vessel has critEq on as a pilot (Fleet also shows it when the build has it on). */
   critOn: boolean;
+  /** Requisitions waiting for the office, and emergencies sent without it (shown with poApproval on). */
+  po: { waiting: number; emergency: number; oldest?: number };
+  poOn: boolean;
 }
 
 function count<T>(list: T[], status: (x: T) => string): Count {
@@ -119,6 +125,8 @@ export function summarise(v: VesselData): VesselSummary {
     ext: extSummary(v.extInspections ?? [], v.ncs ?? [], new Date().toISOString().slice(0, 10)),
     crit: critSummary(live(v.machines), v.defects ?? []),
     critOn: !!v.modules?.critEq,
+    po: poSummary(v.orders ?? []),
+    poOn: !!v.modules?.poApproval,
   };
 }
 

@@ -38,6 +38,8 @@ import { searchPorts } from '../constants/ports';
 import { moduleOn } from '../constants/modules';
 import { RfqPanel } from '../components/RfqPanel';
 import { findSuppliers } from '../services/rfq';
+import { PoApprovalPanel } from '../components/PoApprovalPanel';
+import { linesEditable, mayOrder } from '../services/poApproval';
 
 const CURRENCIES = ['€', '$', '£', '¥'];
 const URGENCY_LEVELS = [
@@ -77,13 +79,17 @@ export default function OrderSc() {
   const { purchaseOrders, saveRow, vessel, suppliers } = useData();
   const sync = useSync();
   const officer = !sync.enrolled || roleAtLeast(sync.role, 'admin');
+  const master = !sync.enrolled || sync.role === 'superadmin';
+  // Requisitions through the office (services/poApproval): placed only once approved.
+  const gated = moduleOn('poApproval');
   const { signer, picker } = useSigner();
   const today = todayIso();
 
   const [savedId, setSavedId] = useState<string | null>(null);
   const paramId = route.params?.id as string;
   const id = savedId ?? paramId;
-  const isNew = paramId === 'new';
+  // Once saved, the order is no longer new: its approval and quotations show at once.
+  const isNew = paramId === 'new' && !savedId;
   const stored = purchaseOrders.find((o) => o.id === id);
 
   const [draft, setDraft] = useState<PurchaseOrder | null>(() => {
@@ -123,7 +129,8 @@ export default function OrderSc() {
     );
   }
 
-  const editable = !receiving && ((draft != null) || (o.status === 'draft' || o.status === 'standby' || o.status === 'sent' || o.status === 'partial'));
+  const editable = !receiving && ((draft != null) || (o.status === 'draft' || o.status === 'standby' || o.status === 'sent' || o.status === 'partial'))
+    && (!gated || isNew || linesEditable(o));
 
   const rawLines = (draft ?? o).lines;
   const filteredLines = lineSearch.trim()
@@ -202,6 +209,9 @@ export default function OrderSc() {
 
   const changeStatus = async (newStatus: OrderStatus) => {
     if (newStatus === o.status) return;
+    if (gated && newStatus !== 'cancelled' && newStatus !== 'draft' && newStatus !== 'standby' && !mayOrder(o)) {
+      return Alert.alert(t('poa.title'), t('poa.notYet'));
+    }
     if (newStatus === 'received') {
       setReceiving(true);
       return;
@@ -724,7 +734,12 @@ export default function OrderSc() {
             <View>
               <View style={styles.lineViewHead}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.lineName}>{l.description}</Text>
+                  <Text style={[styles.lineName, l.cut && l.qty === 0 && { textDecorationLine: 'line-through', color: COLORS.textLight }]}>{l.description}</Text>
+                  {l.cut ? (
+                    <Text style={[styles.lineSub, { color: COLORS.warning }]}>
+                      {`${l.qty === 0 ? t('poa.struckBy', { who: l.cut.by }) : t('poa.cutBy', { from: l.cut.asked, to: l.qty, who: l.cut.by })} — ${l.cut.note}`}
+                    </Text>
+                  ) : null}
                   <Text style={styles.lineSub}>
                     {[
                       `${l.qty} ${l.unit}`,
@@ -785,6 +800,17 @@ export default function OrderSc() {
       {/* Total value */}
       {val != null ? (
         <Text style={styles.total}>{t('po.total', { sum: `${o.lines.find((l) => l.currency)?.currency ?? '€'} ${val.toFixed(2)}` })}</Text>
+      ) : null}
+
+      {/* The way through the Master and the office — once the order is saved */}
+      {gated && !isNew && !draft && !receiving ? (
+        <PoApprovalPanel
+          o={o}
+          who={{ name: signer?.name || (sync.me ? personName(sync.me) : t('poa.officer')), rank: signer?.rank }}
+          officer={officer}
+          master={master}
+          onSave={async (next) => { await saveRow(storage.PURCHASE_ORDERS_KEY, next); playSuccessSound(); }}
+        />
       ) : null}
 
       {/* Quotations — once the order is saved; editable until it is sent */}

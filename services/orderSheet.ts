@@ -9,7 +9,7 @@
 // ===================================
 
 import { Platform } from 'react-native';
-import { ORDER_DEPT_LABEL, ORDER_STATUS_LABEL, PurchaseOrder } from '../types/orders';
+import { ORDER_DEPT_LABEL, ORDER_STATUS_LABEL, PoStepKind, PurchaseOrder } from '../types/orders';
 import { qrSvg } from './qrLabel';
 import { formatDate } from '../utils/dates';
 import { VesselInfo } from './storage';
@@ -21,6 +21,36 @@ function esc(s: string | undefined | null): string {
 
 // ─── Full order sheet HTML ────────────────────────────────────────────────────
 
+const STEP_LABEL: Record<PoStepKind, string> = {
+  submit: 'Submitted to the Master',
+  master: 'Approved by the Master, sent to the office',
+  masterReturn: 'Returned by the Master',
+  emergency: 'EMERGENCY — sent to the supplier by the Master without office approval',
+  review: 'Under review by the office',
+  approve: 'Approved by the office',
+  return: 'Returned by the office for rework',
+  reject: 'Rejected by the office',
+  ordered: 'Placed with the supplier by the office',
+};
+
+/** The requisition's approvals (services/poApproval) — every step, and the lines the office cut. */
+function approvalsHtml(o: PurchaseOrder): string {
+  const steps = o.approval ?? [];
+  if (!steps.length) return '';
+  const name = (id: string) => o.lines.find((l) => l.id === id)?.description ?? id;
+  const rows = steps.map((s) => `<tr>
+      <td>${new Date(s.at).toISOString().slice(0, 16).replace('T', ' ')} UTC</td>
+      <td>${esc(STEP_LABEL[s.kind] ?? s.kind)}</td>
+      <td>${esc(s.by)}${s.byRank ? ` (${esc(s.byRank)})` : ''}</td>
+      <td>${s.note ? esc(s.note) : ''}${(s.cuts ?? []).map((c) => `<br><span class="sub">${esc(name(c.lineId))}: ${c.to === 0 ? 'struck out' : `${c.from} → ${c.to}`} — ${esc(c.note)}</span>`).join('')}</td>
+    </tr>`).join('');
+  return `<h3 style="font-size:11pt;margin:6mm 0 0">Approvals</h3>
+<table>
+  <thead><tr><th style="width:32mm">When</th><th style="width:52mm">Step</th><th style="width:36mm">By</th><th>Reason / changes</th></tr></thead>
+  <tbody>${rows}</tbody>
+</table>`;
+}
+
 function buildOrderHtml(o: PurchaseOrder, vessel: VesselInfo | null): string {
   const qr = qrSvg(`po:${o.id}`, 50);
   const dept = ORDER_DEPT_LABEL[o.dept];
@@ -29,13 +59,15 @@ function buildOrderHtml(o: PurchaseOrder, vessel: VesselInfo | null): string {
   const totalQty = o.lines.reduce((s, l) => s + l.qty, 0);
   const totalRecv = o.lines.reduce((s, l) => s + (l.qtyReceived ?? 0), 0);
 
-  const rows = o.lines.map((l, i) => {
+  // Lines the office struck out (services/poApproval) are not ordered: they are listed under Approvals.
+  const ordered = o.lines.filter((l) => !(l.cut && l.qty === 0));
+  const rows = ordered.map((l, i) => {
     const recv = l.qtyReceived != null
       ? `<span style="color:${l.qtyReceived >= l.qty ? '#16a34a' : '#d97706'}">${l.qtyReceived} / ${l.qty}</span>`
       : `— / ${l.qty}`;
     return `<tr>
       <td>${i + 1}</td>
-      <td>${esc(l.description)}${l.notes ? `<br><span class="sub">${esc(l.notes)}</span>` : ''}</td>
+      <td>${esc(l.description)}${l.notes ? `<br><span class="sub">${esc(l.notes)}</span>` : ''}${l.cut ? `<br><span class="sub">Asked ${l.cut.asked}, reduced by the office: ${esc(l.cut.note)}</span>` : ''}</td>
       <td class="c">${esc(l.partNo ?? '')}${l.impa ? `<br><span class="sub">IMPA: ${esc(l.impa)}</span>` : ''}</td>
       <td class="c">${esc(l.maker ?? '')}</td>
       <td class="c">${l.unitPrice != null ? `${l.currency ?? '€'} ${l.unitPrice.toFixed(2)}` : ''}</td>
@@ -110,7 +142,9 @@ function buildOrderHtml(o: PurchaseOrder, vessel: VesselInfo | null): string {
   <tbody>${rows}</tbody>
 </table>
 
-<div class="totals">Total lines: ${o.lines.length} · Total qty ordered: ${totalQty}${totalRecv > 0 ? ` · Received: ${totalRecv}` : ''}</div>
+<div class="totals">Total lines: ${ordered.length} · Total qty ordered: ${totalQty}${totalRecv > 0 ? ` · Received: ${totalRecv}` : ''}</div>
+
+${approvalsHtml(o)}
 
 <div class="sig">
   <div class="sig-block">Received by (name &amp; rank)</div>

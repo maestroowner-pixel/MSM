@@ -373,6 +373,36 @@ await t(true, 'The office refuses with the reason', updateDoc(R(shore, 'pms_defe
 await t(false, '…once — not approved afterwards', updateDoc(R(shore, 'pms_deferrals', 'dfr1'), { office: { result: 'approved', by: 'S', at: 3 }, updatedAt: 3 }));
 await t(false, 'A deferral is never deleted', deleteDoc(R(master, 'pms_deferrals', 'dfr1')));
 
+// Requisitions through the office (services/poApproval, plan item 35)
+const PO = { id: 'po1', no: 'PO-EN-001-2026', dept: 'engine', status: 'draft', date: '2026-10-31', by: '2/E', lines: [{ id: 'l1', description: 'Filter', qty: 10, unit: 'pcs' }, { id: 'l2', description: 'Paint', qty: 4, unit: 'L' }], at: 1, updatedAt: 1 };
+const S = (kind, at, extra = {}) => ({ kind, by: 'X', at, ...extra });
+await t(true, 'An officer raises a requisition', setDoc(R(officer, 'purchase_orders', 'po1'), PO));
+await t(false, 'A requisition cannot be created already approved', setDoc(R(officer, 'purchase_orders', 'po2'), { ...PO, id: 'po2', approval: [S('approve', 1)] }));
+await t(false, 'The officer cannot send it on for the Master', updateDoc(R(officer, 'purchase_orders', 'po1'), { approval: [S('master', 2)], updatedAt: 2 }));
+await t(false, 'The officer cannot approve it for the office', updateDoc(R(officer, 'purchase_orders', 'po1'), { approval: [S('approve', 2)], updatedAt: 2 }));
+await t(false, 'Two steps at once are refused', updateDoc(R(officer, 'purchase_orders', 'po1'), { approval: [S('submit', 2), S('submit', 3)], updatedAt: 3 }));
+await t(true, 'The officer submits it to the Master', updateDoc(R(officer, 'purchase_orders', 'po1'), { approval: [S('submit', 2)], updatedAt: 2 }));
+await t(false, 'The Master cannot return it without a reason', updateDoc(R(master, 'purchase_orders', 'po1'), { approval: [S('submit', 2), S('masterReturn', 3)], updatedAt: 3 }));
+await t(true, 'The Master sends it to the office', updateDoc(R(master, 'purchase_orders', 'po1'), { approval: [S('submit', 2), S('master', 3)], updatedAt: 3 }));
+await t(false, 'The vessel cannot place it before the office approved', updateDoc(R(master, 'purchase_orders', 'po1'), { status: 'sent', sentAt: '2026-10-31', updatedAt: 4 }));
+await t(false, 'The vessel cannot rewrite the steps', updateDoc(R(master, 'purchase_orders', 'po1'), { approval: [S('master', 3)], updatedAt: 4 }));
+await t(true, 'The office opens it (under review)', updateDoc(R(shore, 'purchase_orders', 'po1'), { approval: [S('submit', 2), S('master', 3), S('review', 4)], updatedAt: 4 }));
+await t(false, 'The office cannot submit for the vessel', updateDoc(R(shore, 'purchase_orders', 'po1'), { approval: [S('submit', 2), S('master', 3), S('review', 4), S('submit', 5)], updatedAt: 5 }));
+await t(false, 'The office cannot change the supplier', updateDoc(R(shore, 'purchase_orders', 'po1'), { supplier: 'Mine', approval: [S('submit', 2), S('master', 3), S('review', 4), S('approve', 5)], updatedAt: 5 }));
+await t(false, 'The office cannot reject without a reason', updateDoc(R(shore, 'purchase_orders', 'po1'), { approval: [S('submit', 2), S('master', 3), S('review', 4), S('reject', 5)], updatedAt: 5 }));
+await t(true, 'The office approves, striking a line with the reason', updateDoc(R(shore, 'purchase_orders', 'po1'), { lines: [PO.lines[0], { ...PO.lines[1], qty: 0, cut: { asked: 4, note: 'Paint in stock', by: 'S' } }], approval: [S('submit', 2), S('master', 3), S('review', 4), S('approve', 5, { cuts: [{ lineId: 'l2', from: 4, to: 0, note: 'Paint in stock' }] })], updatedAt: 5 }));
+await t(true, 'Approved: the vessel places it with the supplier', updateDoc(R(officer, 'purchase_orders', 'po1'), { status: 'sent', sentAt: '2026-10-31', sentBy: '2/E', updatedAt: 6 }));
+await t(true, 'Another requisition sent to the office', setDoc(R(master, 'purchase_orders', 'po3'), { ...PO, id: 'po3' }).then(() => updateDoc(R(master, 'purchase_orders', 'po3'), { approval: [S('master', 2)], updatedAt: 2 })));
+await t(false, 'The office cannot mark it sent without its ordered step', updateDoc(R(shore, 'purchase_orders', 'po3'), { status: 'sent', sentAt: '2026-10-31', approval: [S('master', 2), S('review', 3)], updatedAt: 3 }));
+await t(true, 'The office returns it with the reason', updateDoc(R(shore, 'purchase_orders', 'po3'), { approval: [S('master', 2), S('return', 3, { note: 'Add the part numbers' })], updatedAt: 3 }));
+await t(true, '…the officer edits it and submits again', updateDoc(R(officer, 'purchase_orders', 'po3'), { lines: [PO.lines[0]], approval: [S('master', 2), S('return', 3, { note: 'Add the part numbers' }), S('submit', 4)], updatedAt: 4 }));
+await t(false, 'An officer cannot send an emergency', setDoc(R(officer, 'purchase_orders', 'po4'), { ...PO, id: 'po4', urgency: 'emergency' }).then(() => updateDoc(R(officer, 'purchase_orders', 'po4'), { status: 'sent', approval: [S('emergency', 2, { note: 'Steering gear pump' })], updatedAt: 2 })));
+await t(false, 'The Master cannot send an emergency without the reason', updateDoc(R(master, 'purchase_orders', 'po4'), { status: 'sent', approval: [S('emergency', 2)], updatedAt: 2 }));
+await t(true, 'The Master sends an emergency at once, with the reason', updateDoc(R(master, 'purchase_orders', 'po4'), { status: 'sent', sentAt: '2026-10-31', approval: [S('emergency', 2, { note: 'Steering gear pump' })], updatedAt: 2 }));
+await t(true, 'The office approves the emergency afterwards', updateDoc(R(shore, 'purchase_orders', 'po4'), { approval: [S('emergency', 2, { note: 'Steering gear pump' }), S('approve', 3)], updatedAt: 3 }));
+await t(true, 'A vessel without the flag edits its orders as before', updateDoc(R(officer, 'purchase_orders', 'po4'), { notes: 'Delivery to the agent', updatedAt: 4 }));
+await t(false, 'A requisition is never deleted', deleteDoc(R(master, 'purchase_orders', 'po1')));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

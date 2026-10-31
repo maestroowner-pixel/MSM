@@ -24,6 +24,7 @@ import {
   OrderDept, OrderStatus, PurchaseOrder,
 } from '../types/orders';
 import { completionPct, journalOrders, ordersForDept } from '../services/orders';
+import { PoStage, emergencyOpen, poStage } from '../services/poApproval';
 import SimpleDatePicker from '../components/SimpleDatePicker';
 import { OrderGroup } from '../types/orders';
 import { todayIso } from '../services/pms';
@@ -75,6 +76,10 @@ export default function OrdersSc() {
     return list;
   }, [journal, dept, searchQ, filterFrom, filterTo, sort]);
 
+  // Requisitions through the office: the badge says where it is on its way (services/poApproval).
+  const gated = moduleOn('poApproval');
+  const stageColor = (s: PoStage): string =>
+    s === 'returned' || s === 'rejected' ? COLORS.warning : s === 'approved' || s === 'delivered' ? COLORS.success : s === 'draft' || s === 'cancelled' ? COLORS.textLight : COLORS.primary;
   const statusColor = (s: OrderStatus): string => {
     const c = ORDER_STATUS_COLOR[s];
     if (c === 'green') return COLORS.success;
@@ -219,9 +224,15 @@ export default function OrdersSc() {
             <View style={{ flex: 1 }}>
               <View style={styles.rowHead}>
                 <Text style={styles.poNo}>{o.no}</Text>
-                <View style={[styles.statusBadge, { borderColor: statusColor(o.status) }]}>
-                  <Text style={[styles.statusText, { color: statusColor(o.status) }]}>{ORDER_STATUS_LABEL[o.status]}</Text>
-                </View>
+                {gated ? (
+                  <View style={[styles.statusBadge, { borderColor: emergencyOpen(o) ? COLORS.danger : stageColor(poStage(o)) }]}>
+                    <Text style={[styles.statusText, { color: emergencyOpen(o) ? COLORS.danger : stageColor(poStage(o)) }]}>{emergencyOpen(o) ? t('poa.emergencyOpenShort') : tk(`poa.st.${poStage(o)}`)}</Text>
+                  </View>
+                ) : (
+                  <View style={[styles.statusBadge, { borderColor: statusColor(o.status) }]}>
+                    <Text style={[styles.statusText, { color: statusColor(o.status) }]}>{ORDER_STATUS_LABEL[o.status]}</Text>
+                  </View>
+                )}
               </View>
               <Text style={styles.deptTag}>{ORDER_DEPT_LABEL[o.dept]}</Text>
               {o.supplier ? <Text style={styles.sub} numberOfLines={1}>{o.supplier}</Text> : null}

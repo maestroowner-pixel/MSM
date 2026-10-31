@@ -804,11 +804,46 @@ service cloud.firestore {
         allow update: if isAdmin(v) && !('closed' in resource.data);
         allow delete: if false;
       }
+      // Requisitions through the office (services/poApproval, plan item 35): the
+      // way is an append-only list of steps, `approval`. A write adds at most ONE
+      // step, and whose step it is decides who may add it: an officer submits,
+      // the Master sends on, returns or sends an emergency; the office reviews,
+      // approves (cutting lines), returns, rejects or places it. Once steps have
+      // started, the vessel sends it to the supplier only after the office approved
+      // it — or with the Master's emergency step in the same write.
+      function poSteps(d) {
+        return d.get('approval', []);
+      }
+      function poStepAdded(kinds) {
+        let o = poSteps(resource.data);
+        let n = poSteps(request.resource.data);
+        return n.size() == o.size() + 1 && n.hasAll(o)
+               && n[o.size()].kind in kinds
+               && (!(n[o.size()].kind in ['masterReturn', 'emergency', 'return', 'reject'])
+                   || n[o.size()].get('note', '').size() >= 3);
+      }
+      function poSendOk() {
+        let n = poSteps(request.resource.data);
+        return request.resource.data.status == resource.data.status
+               || !(resource.data.status in ['draft', 'standby'])
+               || n.size() == 0
+               || n[n.size() - 1].kind in ['approve', 'emergency'];
+      }
       match /purchase_orders/{id} {
         allow read: if reader(v);
-        allow create: if isAdmin(v);
-        allow update: if isAdmin(v)
-          && !(resource.data.status == 'received' || resource.data.status == 'cancelled');
+        allow create: if isAdmin(v) && poSteps(request.resource.data).size() == 0;
+        allow update: if (isAdmin(v)
+          && !(resource.data.status == 'received' || resource.data.status == 'cancelled')
+          && (poSteps(request.resource.data) == poSteps(resource.data)
+              || poStepAdded(['submit'])
+              || (isSuper(v) && poStepAdded(['master', 'masterReturn', 'emergency'])))
+          && poSendOk())
+          || (shore(v)
+              && onlyChanges(['approval', 'lines', 'status', 'sentAt', 'sentBy', 'updatedAt'])
+              && poStepAdded(['review', 'approve', 'return', 'reject', 'ordered'])
+              && (request.resource.data.status == resource.data.status
+                  || (resource.data.status in ['draft', 'standby'] && request.resource.data.status == 'sent'
+                      && poSteps(request.resource.data)[poSteps(request.resource.data).size() - 1].kind == 'ordered')));
         allow delete: if false;
       }
 

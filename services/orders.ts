@@ -21,6 +21,9 @@ export function nextOrderNo(existing: PurchaseOrder[], dept: OrderDept, year = n
   return `${prefix}${String(next).padStart(3, '0')}${suffix}`;
 }
 
+/** The lines still ordered — without those the office struck out (services/poApproval). */
+export const liveLines = (o: Pick<PurchaseOrder, 'lines'>): OrderLine[] => o.lines.filter((l) => !(l.cut && l.qty === 0));
+
 /** Total lines across an order */
 export const lineCount = (o: PurchaseOrder): number => o.lines.length;
 
@@ -64,7 +67,8 @@ export function copyOrder(o: PurchaseOrder, existing: PurchaseOrder[]): Purchase
     receivedAt: undefined,
     receivedBy: undefined,
     deliveries: undefined,
-    lines: o.lines.map((l) => ({ ...l, id: uid('ol'), qtyReceived: undefined })),
+    approval: undefined,
+    lines: o.lines.filter((l) => l.qty > 0).map((l) => ({ ...l, id: uid('ol'), qtyReceived: undefined, cut: undefined })),
     at: Date.now(),
     updatedAt: Date.now(),
   };
