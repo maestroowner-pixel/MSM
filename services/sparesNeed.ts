@@ -6,11 +6,10 @@
 // ===================================
 
 import { Machine, PmsDeferral, PmsJob } from '../types/pms';
-import { SparePart } from '../types/spares';
+import { SparePart, SpareMove } from '../types/spares';
 import { PurchaseOrder } from '../types/orders';
 import { activeDeferral, jobDue, todayIso } from './pms';
 import { poStage } from './poApproval';
-import { orderQty } from './spares';
 
 export interface PartNeed {
   part: SparePart;
@@ -29,6 +28,8 @@ export interface NeedOpts {
   lead?: Map<string, number>;
   /** What is already on order (onOrder). */
   onOrder?: Map<string, number>;
+  /** Level to keep after the jobs, per part (reorderPoint); the re-order level when absent. */
+  keep?: Map<string, number>;
 }
 
 export function upcomingNeeds(jobs: PmsJob[], machines: Machine[], deferrals: PmsDeferral[], parts: SparePart[], stock: Map<string, number>, horizonDays = 30, today = todayIso(), opts: NeedOpts = {}): PartNeed[] {
@@ -58,7 +59,7 @@ export function upcomingNeeds(jobs: PmsJob[], machines: Machine[], deferrals: Pm
     const onHand = stock.get(id) ?? 0;
     const onOrder = opts.onOrder?.get(id) ?? 0;
     // After the jobs, keep at least the re-order level on the shelf.
-    const order = Math.max(0, n.qty + (part.minQty ?? 0) - onHand - onOrder);
+    const order = Math.max(0, n.qty + (opts.keep?.get(id) ?? part.minQty ?? 0) - onHand - onOrder);
     if (order > 0) out.push({ part, need: n.qty, onHand, order, forJobs: n.jobs, onOrder });
   }
   return out.sort((a, b) => b.order - a.order || a.part.name.localeCompare(b.part.name));
@@ -119,6 +120,54 @@ export function leadTimes(parts: SparePart[], orders: PurchaseOrder[]): Map<stri
   return out;
 }
 
+/** Days of use a fresh order should cover when the part has no maximum. */
+export const COVER_DAYS = 90;
+
+/**
+ * Average use per day over the last year — `used` movements (jobs and taken by hand).
+ * A part stocked less than a year is averaged over its own time aboard, but never
+ * under 30 days, so one impeller taken last week is not read as a daily habit.
+ */
+export function dailyUse(moves: SpareMove[], today = todayIso(), days = 365): Map<string, number> {
+  const from = dayN(today) - days;
+  const first = new Map<string, number>();
+  const used = new Map<string, number>();
+  for (const m of moves) {
+    const d = dayN(m.date);
+    first.set(m.partId, Math.min(first.get(m.partId) ?? Infinity, d));
+    if (m.kind === 'used' && d > from && d <= dayN(today)) used.set(m.partId, (used.get(m.partId) ?? 0) - m.delta);
+  }
+  const out = new Map<string, number>();
+  for (const [id, u] of used) {
+    if (!(u > 0)) continue;
+    const span = Math.max(30, Math.min(days, dayN(today) - Math.max(from, first.get(id)!)));
+    out.set(id, u / span);
+  }
+  return out;
+}
+
+export interface Levels {
+  /** Re-order point: the minimum kept as safety stock, plus what is used while an order is on its way. */
+  rop: number;
+  /** An order brings the stock (with what is on order) back to this. */
+  target: number;
+}
+
+const up = (n: number) => Math.ceil(n - 1e-9);
+
+/** Re-order point and order-up-to level from the minimum, the use per day and the lead time. */
+export function levels(part: Pick<SparePart, 'minQty' | 'maxQty'>, daily = 0, leadDays = 0): Levels {
+  const rop = (part.minQty ?? 0) + up(daily * leadDays);
+  const target = part.maxQty != null && part.maxQty > rop ? part.maxQty : rop + Math.max(1, up(daily * COVER_DAYS));
+  return { rop, target };
+}
+
+/** How many to order with `position` (on hand + on order): nothing above the re-order point (or with stock and no levels). */
+export function qtyFor(l: Levels, position: number): number {
+  if (position > l.rop) return 0;
+  return Math.round(Math.max(0, l.target - position) * 1000) / 1000;
+}
+
 /** Parts for critical machines — fitted to one, or used by one of its jobs. */
 export function criticalParts(parts: SparePart[], machines: Machine[], jobs: PmsJob[]): Set<string> {
   const crit = new Set(machines.filter((m) => m.critical && !m.deleted).map((m) => m.id));
@@ -139,6 +188,10 @@ export interface ReorderLine {
   forJobs: string[];
   critical: boolean;
   lead?: Lead;
+  /** Average use per day over the last year (dailyUse). */
+  daily: number;
+  /** Re-order point (levels). */
+  rop: number;
 }
 
 /**
@@ -149,26 +202,29 @@ export interface ReorderLine {
  */
 export function reorderList(
   jobs: PmsJob[], machines: Machine[], deferrals: PmsDeferral[], parts: SparePart[], stock: Map<string, number>, orders: PurchaseOrder[],
-  horizonDays: number, today = todayIso(), withJobs = true,
+  horizonDays: number, today = todayIso(), withJobs = true, moves: SpareMove[] = [], only?: Set<string>,
 ): ReorderLine[] {
-  const live = parts.filter((p) => !p.deleted);
+  const live = parts.filter((p) => !p.deleted && (!only || only.has(p.id)));
   const coming = onOrder(orders);
   const leads = leadTimes(live, orders);
   const crit = criticalParts(live, machines, jobs);
+  const use = dailyUse(moves, today);
+  const lv = new Map(live.map((p) => [p.id, levels(p, use.get(p.id) ?? 0, leads.get(p.id)?.days ?? 0)]));
   const lead = new Map([...leads].map(([id, l]) => [id, l.days]));
-  const needs = withJobs ? upcomingNeeds(jobs, machines, deferrals, live, stock, horizonDays, today, { lead, onOrder: coming }) : [];
-  const out: ReorderLine[] = needs.map((n) => ({
-    part: n.part, onHand: n.onHand, onOrder: n.onOrder, need: n.need, forJobs: n.forJobs,
-    qty: Math.max(n.order, orderQty(n.part, n.onHand + n.onOrder - n.need)),
-    critical: crit.has(n.part.id), lead: leads.get(n.part.id),
-  }));
+  const keep = new Map([...lv].map(([id, l]) => [id, l.rop]));
+  const needs = withJobs ? upcomingNeeds(jobs, machines, deferrals, live, stock, horizonDays, today, { lead, onOrder: coming, keep }) : [];
+  const line = (part: SparePart, onHand: number, later: number, need: number, forJobs: string[], qty: number): ReorderLine => ({
+    part, onHand, onOrder: later, need, forJobs, qty, critical: crit.has(part.id), lead: leads.get(part.id), daily: use.get(part.id) ?? 0, rop: lv.get(part.id)!.rop,
+  });
+  // Enough for the jobs, and back up to the target after them.
+  const out = needs.map((n) => line(n.part, n.onHand, n.onOrder, n.need, n.forJobs, Math.max(n.order, qtyFor(lv.get(n.part.id)!, n.onHand + n.onOrder - n.need))));
   const inJobs = new Set(out.map((x) => x.part.id));
   for (const p of live) {
     if (inJobs.has(p.id)) continue;
     const onHand = stock.get(p.id) ?? 0;
     const later = coming.get(p.id) ?? 0;
-    const qty = orderQty(p, onHand + later);
-    if (qty > 0) out.push({ part: p, onHand, onOrder: later, need: 0, qty, forJobs: [], critical: crit.has(p.id), lead: leads.get(p.id) });
+    const qty = qtyFor(lv.get(p.id)!, onHand + later);
+    if (qty > 0) out.push(line(p, onHand, later, 0, [], qty));
   }
   return out.sort((a, b) => Number(b.critical) - Number(a.critical) || Number(b.need > 0) - Number(a.need > 0) || a.part.name.localeCompare(b.part.name));
 }

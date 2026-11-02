@@ -122,5 +122,23 @@ import { criticalParts, leadTimes, onOrder, reorderList } from '../services/spar
   const r3 = reorderList(js, ms, [], cp, stock, [], 30, '2026-10-22', false);
   ok(r3.every((x) => x.need === 0) && r3.some((x) => x.part.id === 'b'), 'without PMS: only the re-order levels');
 }
+// Consumption-based levels (stocktake → draft, 2 Nov 2026).
+import { dailyUse, levels, qtyFor } from '../services/sparesNeed';
+{
+  const mv = (partId: string, kind: any, delta: number, date: string): any => ({ id: `${partId}${date}${delta}`, partId, partName: partId, kind, delta, date, by: 'A', at: 1, updatedAt: 0 });
+  const ms = [mv('f', 'received', 40, '2025-06-01'), ...Array.from({ length: 12 }, (_, i) => mv('f', 'used', -3, `2026-${String(i + 1).padStart(2, '0')}-05`)), mv('f', 'used', -10, '2025-07-01'), mv('n', 'received', 5, '2026-10-20'), mv('n', 'used', -1, '2026-10-28'), mv('f', 'count', -2, '2026-06-01'), mv('k', 'used', -1, '2026-12-25')];
+  const u = dailyUse(ms, '2026-12-31');
+  ok(Math.abs(u.get('f')! - 36 / 365) < 1e-9, 'use per day: last 365 days of used only — older use and counts left out');
+  ok(Math.abs(u.get('n')! - 1 / 72) < 1e-9 && Math.abs(u.get('k')! - 1 / 30) < 1e-9, 'a part aboard 72 days is averaged over them; one aboard 6 days over at least 30');
+  const L = levels({ minQty: 2 }, 36 / 365, 60);
+  ok(L.rop === 8 && L.target === 17, 'min 2 + 5.9 used during a 60-day lead → order at 8; no max: up to 8 + 90 days of use (9)');
+  ok(levels({ minQty: 2, maxQty: 20 }, 0.1, 30).target === 20 && levels({ minQty: 2, maxQty: 4 }, 0.1, 30).target === 5 + 9, 'a maximum below the re-order point is not a target');
+  ok(qtyFor(L, 9) === 0 && qtyFor(L, 8) === 9 && qtyFor(L, 3) === 14, 'above the re-order point nothing; at it, back up to the target');
+  ok(qtyFor(levels({}, 0, 0), 0) === 1 && qtyFor(levels({}, 0, 0), 2) === 0 && qtyFor(levels({ minQty: 2 }, 0, 0), 1) === 2, 'no use, no lead: the old re-order level rule');
+  const parts: any[] = [{ id: 'f', name: 'Filter', minQty: 2, suppliers: [{ name: 'S', leadDays: 60 }], updatedAt: 0 }, { id: 'n', name: 'Nut', updatedAt: 0 }];
+  const r = reorderList([], [], [], parts, new Map([['f', 6], ['n', 4]]), [], 30, '2026-12-31', true, ms);
+  ok(r.length === 1 && r[0].part.id === 'f' && r[0].qty === 11 && r[0].rop === 8, '6 on hand is above the minimum but below the re-order point → 11 to the target');
+  ok(reorderList([], [], [], parts, new Map([['f', 6], ['n', 0]]), [], 30, '2026-12-31', true, ms, new Set(['n'])).map((x) => x.part.id).join() === 'n', 'only the parts counted');
+}
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);
