@@ -703,6 +703,7 @@ function Root() {
       }
       if (pendingLink.type === 'scan') navigationRef.navigate('Scan');
       else if (pendingLink.type === 'flagged') navigationRef.navigate('Flagged');
+      else if (pendingLink.type === 'order') navigationRef.navigate('Order', { id: pendingLink.id, receive: true });
       else if (pendingLink.type === 'group') {
         // A group's label read by the phone's camera — the proof for the whole group.
         recordScanProof(groupProofKey(pendingLink.id), 'qr-link');

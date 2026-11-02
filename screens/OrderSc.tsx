@@ -7,7 +7,7 @@
 // be edited: add lines, update supplier, adjust quantities before it is ordered.
 // ===================================
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
@@ -26,6 +26,10 @@ import {
 } from '../types/orders';
 import { allReceived, completionPct, copyOrder, derivedStatus, lineCount, nextOrderNo, orderValue, priceStr, lineTotalStr } from '../services/orders';
 import { exportOrderPdf, printBoxQrLabel } from '../services/orderSheet';
+import { orderQrPayload } from '../services/qrLabel';
+import { receiptMoves } from '../services/orderReceipt';
+import { stockByPart } from '../services/spares';
+import { storeStatus } from '../services/stores';
 import { EXPORT_FORMATS } from '../services/orderExport';
 import { exportOrders } from '../services/orderExportFile';
 import { shipToday } from '../utils/shipTime';
@@ -79,7 +83,7 @@ export default function OrderSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { purchaseOrders, saveRow, vessel, suppliers, crew, prefs } = useData();
+  const { purchaseOrders, saveRow, saveRows, vessel, suppliers, crew, prefs, spares, spareMoves, addSpareMoves, storeItems, storeMoves } = useData();
   const sync = useSync();
   const officer = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const master = !sync.enrolled || sync.role === 'superadmin';
@@ -125,6 +129,19 @@ export default function OrderSc() {
 
   const [receiving, setReceiving] = useState(false);
   const [received, setReceived] = useState<Record<string, string>>({});
+  // Opened from the order's QR (ScanSc, a phone-camera link): straight into receiving,
+  // box by box against the line cards — when the order is out with the supplier.
+  const wantReceive = !!route.params?.receive;
+  useEffect(() => {
+    if (wantReceive && stored && officer && (stored.status === 'sent' || stored.status === 'partial')) setReceiving(true);
+  }, [wantReceive, stored?.id]);
+  // What each linked line has on the shelf now (spares by movement sum, store items in date).
+  const spareStock = useMemo(() => stockByPart(spareMoves), [spareMoves]);
+  const shelf = (l: OrderLine): number | null => {
+    if (l.spareId) return spares.some((p) => p.id === l.spareId) ? spareStock.get(l.spareId) ?? 0 : null;
+    if (l.storeItemId) { const it = storeItems.find((i) => i.id === l.storeItemId); return it ? storeStatus([it], storeMoves.filter((m) => m.itemId === it.id), today)[0]?.usable ?? 0 : null; }
+    return null;
+  };
   const [unitPickerFor, setUnitPickerFor] = useState<string | null>(null);
   const [lineSearch, setLineSearch] = useState('');
   const [lineSort, setLineSort] = useState<'default' | 'alpha' | 'price'>('default');
@@ -256,6 +273,8 @@ export default function OrderSc() {
   };
 
   const confirmReceive = async () => {
+    const linked = o.lines.some((l) => (l.spareId || l.storeItemId) && Number(received[l.id] ?? '') > (l.qtyReceived ?? 0));
+    if (linked && !signer) return Alert.alert(t('sign.who'), t('round.chooseName'));
     const deliveryLines: Record<string, number> = {};
     const updates: OrderLine[] = o.lines.map((l) => {
       const v = Number(received[l.id] ?? '');
@@ -278,9 +297,15 @@ export default function OrderSc() {
     updated.status = derivedStatus(updated);
     if (updated.status === 'partial') updated.receivedAt = undefined;
     await saveRow(storage.PURCHASE_ORDERS_KEY, updated);
+    // What came goes into stock — the spares and the stores the lines came from (services/orderReceipt).
+    const who = { by: signer?.name ?? '', ...(signer?.rank ? { byRank: signer.rank } : {}) };
+    const { spareMoves: sm, storeMoves: stm } = receiptMoves(o, deliveryLines, spares, spareStock, storeItems, who, today);
+    if (sm.length) await addSpareMoves(sm);
+    if (stm.length) await saveRows(storage.STORE_MOVES_KEY, stm);
     setReceiving(false);
     setReceived({});
     playSuccessSound();
+    if (sm.length + stm.length) Alert.alert(o.no, t('po.booked', { n: tn('n.line', sm.length + stm.length) }));
   };
 
   const doCopy = async () => {
@@ -808,6 +833,12 @@ export default function OrderSc() {
                   <Text style={styles.lineSub}>{t('po.ofQty', { n: l.qty, unit: l.unit })}</Text>
                 </View>
               ) : null}
+              {receiving && shelf(l) != null ? (() => {
+                const have = shelf(l)!;
+                const v = Number((received[l.id] ?? '').replace(',', '.'));
+                const add = isLineChecked(l) && Number.isFinite(v) ? Math.max(0, v - (l.qtyReceived ?? 0)) : 0;
+                return <Text style={[styles.lineSub, add ? { color: COLORS.success, fontWeight: '700' } : null]}>{t('po.stockAfter', { have, after: Math.round((have + add) * 1000) / 1000 })}</Text>;
+              })() : null}
             </View>
           )}
         </Card>
@@ -959,7 +990,7 @@ export default function OrderSc() {
         <Card style={{ marginTop: SIZES.md, alignItems: 'center' }}>
           <Label style={{ marginBottom: SIZES.sm }}>{t('po.qr')}</Label>
           <QRCode
-            value={`po:${o.id}`}
+            value={orderQrPayload(o.id)}
             size={140}
             color={COLORS.textDark}
             backgroundColor="transparent"

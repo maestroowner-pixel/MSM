@@ -10,7 +10,7 @@
 
 import { Platform } from 'react-native';
 import { ORDER_DEPT_LABEL, ORDER_STATUS_LABEL, PoStepKind, PurchaseOrder } from '../types/orders';
-import { qrSvg } from './qrLabel';
+import { orderQrPayload, qrSvg } from './qrLabel';
 import { formatDate } from '../utils/dates';
 import { VesselInfo } from './storage';
 import { shipToday } from '../utils/shipTime';
@@ -164,7 +164,7 @@ ${approvalsHtml(o)}
 
 function buildBoxLabelHtml(o: PurchaseOrder, vessel: VesselInfo | null): string {
   // 100×100 mm QR + order number — fits a standard label or a sheet of paper
-  const qr = qrSvg(`po:${o.id}`, 90);
+  const qr = qrSvg(orderQrPayload(o.id), 90);
   const dept = ORDER_DEPT_LABEL[o.dept];
   const vesselName = vessel?.vessel_name ?? '';
   return `<!doctype html>

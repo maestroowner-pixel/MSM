@@ -41,6 +41,27 @@ const closes = (doc.match(/<\/w:(tbl|tr|tc|p)>/g) ?? []).length;
 ok(opens === closes, `docx: every table, row, cell and paragraph closed (${opens})`);
 ok(exportName([o1], vessel, 'docx', '2026-11-02') === 'PO-EN-003-2026-M Y Test.docx' && exportName([o1, o2], null, 'json', '2026-11-02') === 'Purchase orders 021126.json', 'file names');
 
+
+// The order's QR and the delivery booked into stock.
+import { orderQrPayload, parseOrderQr } from '../services/orderQr';
+import { receiptMoves } from '../services/orderReceipt';
+{
+  ok(orderQrPayload('po_1 a') === 'msm://order/po_1%20a' && parseOrderQr(orderQrPayload('po_1 a')) === 'po_1 a', 'order QR round trip, id with a space');
+  ok(parseOrderQr('po:abc') === 'abc' && parseOrderQr('MSM://ORDER/AbC') === 'AbC' && parseOrderQr('msm://item/x') === null, 'old po: labels read; case of the id kept; an item label is not an order');
+  const o: any = { id: 'o', no: 'PO-EN-004-2026', supplier: 'Sea Parts', lines: [
+    { id: 'a', description: 'Impeller', qty: 4, unit: 'pcs', spareId: 'imp', qtyReceived: 1 },
+    { id: 'b', description: 'Pens', qty: 10, unit: 'pcs', storeItemId: 'pens' },
+    { id: 'c', description: 'Typed by hand', qty: 2, unit: 'pcs' },
+    { id: 'd', description: 'Gone part', qty: 2, unit: 'pcs', spareId: 'gone' },
+  ] };
+  const spares: any[] = [{ id: 'imp', name: 'Impeller', updatedAt: 0 }, { id: 'gone', name: 'Old', deleted: true, updatedAt: 0 }];
+  const items: any[] = [{ id: 'pens', store: 'general', name: 'Pens', unit: 'pcs', min: 10, order: 0, updatedAt: 0 }];
+  const r = receiptMoves(o, { a: 2, b: 10, c: 2, d: 2 }, spares, new Map([['imp', 3]]), items, { by: 'Bosun', byRank: 'Bosun' }, '2026-11-02', 5);
+  ok(r.spareMoves.length === 1 && r.spareMoves[0].delta === 2 && r.spareMoves[0].partId === 'imp' && r.spareMoves[0].kind === 'received' && /PO-EN-004-2026 · Sea Parts/.test(r.spareMoves[0].note ?? ''), 'spare: this delivery only (2), noted with the order');
+  ok(r.storeMoves.length === 1 && r.storeMoves[0].qty === 10 && r.storeMoves[0].itemId === 'pens' && r.storeMoves[0].by === 'Bosun', 'store item received');
+  ok(receiptMoves(o, {}, spares, new Map(), items, { by: 'B' }, '2026-11-02').spareMoves.length === 0, 'nothing came: nothing booked; hand-typed and removed parts never');
+}
+
 (async () => {
   const zip = new JSZip();
   for (const [p, x] of Object.entries(files)) zip.file(p, x);

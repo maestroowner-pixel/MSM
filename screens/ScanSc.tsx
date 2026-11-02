@@ -46,6 +46,7 @@ import { SIZES, Palette } from '../theme';
 import { goBackOr } from '../utils/nav';
 import { recordScanProof, signerRule, signingGate } from '../services/signingPolicy';
 import { findGroup, groupProofKey, parseGroupQr } from '../services/checkGroups';
+import { parseOrderQr } from '../services/qrLabel';
 import { useSignConfirm, SignResult } from '../components/SignConfirm';
 import { SignerPicker } from '../components/SignerPicker';
 import * as inspections from '../services/inspections';
@@ -109,7 +110,7 @@ export default function ScanSc() {
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { flat, recordScan, crew, crewMoves, appendRow, visitors, saveRow, passengers, storeRoomList, sopepLockers: sopepLockerList, checkpoints, keyList, inspections: trail, templates, rounds, signingPolicy, prefs, setPrefs, addInspection } = useData();
+  const { flat, purchaseOrders, recordScan, crew, crewMoves, appendRow, visitors, saveRow, passengers, storeRoomList, sopepLockers: sopepLockerList, checkpoints, keyList, inspections: trail, templates, rounds, signingPolicy, prefs, setPrefs, addInspection } = useData();
   const sync = useSync();
   const confirmSign = useSignConfirm();
   const activeRoundId = useActiveRound();
@@ -261,6 +262,14 @@ export default function ScanSc() {
           locked.current = false;
         }, ms);
       };
+
+      // A purchase order's QR (the order screen, the delivery-box label): the order opens
+      // ready to receive — each box checked against its line, the quantity that came.
+      const orderId = parseOrderQr(code);
+      if (orderId) {
+        if (!purchaseOrders.some((o) => o.id === orderId && !o.deleted)) return hold({ name: t('mo.order'), text: t('po.qrGone'), ok: false }, 3000);
+        return nav.replace('Order', { id: orderId, receive: true });
+      }
 
       // A check group's label (msm://group/<id>, services/checkGroups): scanned with the
       // camera it is the proof of presence for the whole group; the group check opens.

@@ -26,6 +26,8 @@
 // ===================================
 
 import { parseGroupQr } from './checkGroups';
+import { parseOrderQr } from './orderQr';
+export { orderQrPayload, parseOrderQr } from './orderQr';
 import * as Print from 'expo-print';
 
 import QRCode from 'qrcode';
@@ -87,7 +89,8 @@ export type DeepLink =
   | { type: 'scan' }
   | { type: 'flagged' }
   | { type: 'item'; id: string }
-  | { type: 'group'; id: string };
+  | { type: 'group'; id: string }
+  | { type: 'order'; id: string };
 
 export function parseDeepLink(url: string): DeepLink | null {
   const s = url.trim();
@@ -96,6 +99,8 @@ export function parseDeepLink(url: string): DeepLink | null {
   if (lower === 'msm://flagged' || lower === 'msm://flagged/') return { type: 'flagged' };
   const group = parseGroupQr(s);
   if (group) return { type: 'group', id: group };
+  const order = /^msm:\/\/order\//i.test(s) ? parseOrderQr(s) : null;
+  if (order) return { type: 'order', id: order };
   const id = parseItemQr(s);
   return id ? { type: 'item', id } : null;
 }
