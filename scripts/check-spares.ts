@@ -75,5 +75,52 @@ import { upcomingNeeds } from '../services/sparesNeed';
   ok(u.map((x) => `${x.year}:${x.used}`).join() === '2026:5,2025:0,2024:1', 'used per year, the last three, newest first; counts are not use');
   ok(makeMove(imp, 'received', 2, 0, S, D, { expiry: '2028-01-01' }).expiry === '2028-01-01', 'a delivery keeps its expiry');
 }
+// Plan item 36: what is on the way, lead times, critical parts first.
+import { criticalParts, leadTimes, onOrder, reorderList } from '../services/sparesNeed';
+{
+  const po = (id: string, status: any, lines: any[], extra: any = {}): any => ({ id, no: id, dept: 'engine', status, date: '2026-09-01', by: '', lines, updatedAt: 0, ...extra });
+  const orders = [
+    po('a', 'draft', [{ id: 'l1', description: 'F', qty: 3, unit: 'pcs', spareId: 'f' }]),
+    po('b', 'partial', [{ id: 'l2', description: 'F', qty: 4, qtyReceived: 3, unit: 'pcs', spareId: 'f' }]),
+    po('c', 'draft', [{ id: 'l3', description: 'F', qty: 9, unit: 'pcs', spareId: 'f' }], { approval: [{ kind: 'reject', by: 'O', at: 1, note: 'no' }] }),
+    po('d', 'cancelled', [{ id: 'l4', description: 'F', qty: 9, unit: 'pcs', spareId: 'f' }]),
+    po('e', 'received', [{ id: 'l5', description: 'F', qty: 9, qtyReceived: 9, unit: 'pcs', spareId: 'f' }]),
+    po('g', 'draft', [{ id: 'l6', description: 'F', qty: 9, unit: 'pcs', spareId: 'f' }], { deleted: true }),
+  ];
+  ok(onOrder(orders).get('f') === 4, 'on order: draft 3 + partial 1 still to come; rejected, cancelled, received, deleted bring nothing');
+
+  const hist = [
+    po('h1', 'received', [{ id: 'x', description: 'I', qty: 1, unit: 'pcs', spareId: 'i' }], { sentAt: '2026-01-01', receivedAt: '2026-01-31' }),
+    po('h2', 'received', [{ id: 'y', description: 'I', qty: 2, unit: 'pcs', spareId: 'i' }], { sentAt: '2026-03-01', receivedAt: '2026-04-30', deliveries: [{ date: '2026-03-11', by: '', lines: { y: 1 } }, { date: '2026-04-30', by: '', lines: { y: 1 } }] }),
+    po('h3', 'sent', [{ id: 'z', description: 'I', qty: 1, unit: 'pcs', spareId: 'i' }], { sentAt: '2026-05-01' }),
+  ];
+  const parts: any[] = [{ id: 'i', name: 'Impeller', updatedAt: 0, suppliers: [{ name: 'S', leadDays: 60 }] }, { id: 's', name: 'Seal', updatedAt: 0, suppliers: [{ name: 'S', leadDays: 14 }] }, { id: 'n', name: 'Nut', updatedAt: 0 }];
+  const lt = leadTimes(parts, hist);
+  ok(lt.get('i')?.days === 20 && lt.get('i')?.from === 'history', 'lead from history: 30 d and 10 d (first delivery that brought the line) → 20; an order not delivered is no history');
+  ok(lt.get('s')?.days === 14 && lt.get('s')?.from === 'supplier' && !lt.has('n'), 'no history: the supplier\'s lead time; neither: none');
+
+  const ms: any[] = [{ id: 'me', name: 'Main engine', critical: true, updatedAt: 0 }, { id: 'gen', name: 'Generator', updatedAt: 0 }];
+  const js: any[] = [
+    { id: 'j1', machineId: 'gen', title: 'Pump', intervalDays: 365, lastDoneDate: '2025-11-30', parts: [{ partId: 'i', qty: 1 }], updatedAt: 0 },
+    { id: 'j2', machineId: 'me', title: 'Seals', intervalDays: 365, lastDoneDate: '2025-01-01', parts: [{ partId: 's', qty: 2 }], updatedAt: 0 },
+  ];
+  const cp: any[] = [...parts, { id: 'b', name: 'Bolt', machineIds: ['me'], minQty: 2, updatedAt: 0 }, { id: 'a', name: 'Anode', minQty: 1, updatedAt: 0 }];
+  const crit = criticalParts(cp, ms, js);
+  ok(crit.has('s') && crit.has('b') && !crit.has('i') && !crit.has('a'), 'critical: fitted to a critical machine or used by its job');
+
+  // Impeller job is 39 d ahead: outside 30 d, inside 30 + 20 d lead.
+  const stock = new Map([['a', 0], ['b', 1]]);
+  const r0 = reorderList(js, ms, [], cp.map((p) => (p.id === 'i' ? { ...p, suppliers: undefined } : p)), stock, [], 30, '2026-10-22');
+  const r = reorderList(js, ms, [], cp, stock, hist.slice(0, 2), 30, '2026-10-22');
+  ok(!r0.some((x) => x.part.id === 'i' && x.need) && r.some((x) => x.part.id === 'i' && x.need === 1), 'no lead time: a job 39 d ahead is outside 30 d; with 20 d from history it is in');
+  ok(r[0].critical && r[1].critical && !r[r.length - 1].critical, 'critical lines first');
+  ok(r.find((x) => x.part.id === 'b')?.qty === 2 && r.find((x) => x.part.id === 'a')?.qty === 2, 'below the re-order level: one over it');
+  const withOrder = [...hist, po('o', 'draft', [{ id: 'q', description: 'B', qty: 2, unit: 'pcs', spareId: 'b' }])];
+  const r2 = reorderList(js, ms, [], cp, stock, withOrder, 30, '2026-10-22');
+  ok(!r2.some((x) => x.part.id === 'b'), 'already on a draft: not ordered again');
+  ok(!r2.some((x) => x.part.id === 'i'), 'the impeller sent and not yet aboard covers its job: not ordered again');
+  const r3 = reorderList(js, ms, [], cp, stock, [], 30, '2026-10-22', false);
+  ok(r3.every((x) => x.need === 0) && r3.some((x) => x.part.id === 'b'), 'without PMS: only the re-order levels');
+}
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

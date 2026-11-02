@@ -402,6 +402,7 @@ const en: ManualContent = {
         "A stocktake is recorded as the difference from the book, so a count taken offline does not undo a delivery booked meanwhile. A wrong movement is corrected by a stocktake; movements cannot be edited.",
         "Mark which machines a part fits: the machine's screen lists its spares with the stock. On a maintenance job, Parts used each time lists what the job takes; Record as done takes them out of the stores, and the quantities can be changed or set to 0 on the day.",
         "The Dashboard shows a line when anything is out of stock or low.",
+        "New order (or the Excel requisition) puts in one list the parts the coming jobs need and the lines below their re-order level. What is already on an open order — a draft, one with the Master or the office, one sent and not yet aboard — counts as stock, so pressing it again does not order the same part twice. A part's jobs are looked for further ahead by its lead time: the average of its last three deliveries, or the supplier's stated days. Parts for critical equipment come first, marked in the order.",
       ],
     },
     {
@@ -572,7 +573,7 @@ const en: ManualContent = {
       emoji: '🏬',
       title: "Stores",
       body: [
-        "Stores (menu → Stores): the PPE store and the provisions, kept the same way — every item with a minimum to keep, what is on hand batch by batch, what is below the minimum or out of date. Tap an item to receive, issue, count or dispose of it, or to edit it; the Board says what is short or out of date, and To order (Excel) lists what to buy.",
+        "Stores (menu → Stores): the PPE store and the provisions, kept the same way — every item with a minimum to keep, what is on hand batch by batch, what is below the minimum or out of date. Tap an item to receive, issue, count or dispose of it, or to edit it; the Board says what is short or out of date, and To order (Excel) lists what to buy; → New order makes it a draft requisition, and what is already on an open order is not listed again.",
         "PPE store: coveralls, boots, gloves, glasses, hearing and breathing protection, harnesses — one line per size. Issue to crew: the crew member signs for it on this device (PIN or by hand); Return takes it back. Issued to crew shows what each person holds, and PPE record (PDF) prints their card to sign. Start from the typical list, or load your own.",
         "Your own stores (the gear on Stores in the menu): add a bosun's store, an engine store, a paint locker — each with its name, where it is and a short ID (ST-01, or your own). QR label (PDF, or the Xprinter) for its door: scanned, it opens that store's list; the ID typed in the scanner does the same. Load list (Excel) fills it from the template's columns. Each store appears under Stores in the menu.",
         "Provisions: the dry store, chilled, frozen, beverages, bakery, fresh fruit and veg, cleaning — with best-before dates. Issue to galley takes from the batch that expires first; out-of-date stock is thrown away with Dispose, so the record shows it. Excel: the template (name, section, unit, minimum, place, quantity, best before), import — a supplier's or the chef's list reads too (Item, UoM, Par, Qty, Best before) — and export.",
@@ -1173,6 +1174,7 @@ const ru: ManualContent = {
         "Пересчёт записывается как разница с учётом, поэтому пересчёт без связи не отменит поступление, записанное в это время на другом устройстве. Ошибочное движение исправляется пересчётом; движения не редактируются.",
         "Отметьте, к каким механизмам подходит запчасть: в карточке механизма будет список его запчастей с остатком. В работе ТО раздел Parts used each time перечисляет, что она расходует; Record as done списывает это со склада, а количество можно поменять или поставить 0 в день работы.",
         "На главном экране появляется строка, когда что-то закончилось или ниже минимума.",
+        "New order (или заявка в Excel) собирает в один список запчасти для ближайших работ и позиции ниже минимального остатка. То, что уже есть в открытой заявке (черновик, у капитана или офиса, отправлена и ещё не на борту), считается как остаток, поэтому повторное нажатие не закажет ту же деталь дважды. Работы для детали ищутся дальше на её срок поставки: среднее по трём последним поставкам или срок, указанный у поставщика. Запчасти критичного оборудования идут первыми и помечены в заявке.",
       ],
     },
     {
@@ -1343,7 +1345,7 @@ const ru: ManualContent = {
       emoji: '🏬',
       title: "Склады (Stores)",
       body: [
-        "Stores (меню → Stores): склад СИЗ и провизия, устроены одинаково — у каждой позиции минимальный запас, остаток по партиям, что ниже минимума или просрочено. Нажмите на позицию: приход, выдача, пересчёт, списание или правка; Board показывает нехватку и просрочку, To order (Excel) — что заказать.",
+        "Stores (меню → Stores): склад СИЗ и провизия, устроены одинаково — у каждой позиции минимальный запас, остаток по партиям, что ниже минимума или просрочено. Нажмите на позицию: приход, выдача, пересчёт, списание или правка; Board показывает нехватку и просрочку, To order (Excel) — что заказать; → New order делает из этого черновик заявки, а то, что уже в открытой заявке, повторно не попадает.",
         "PPE store: комбинезоны, обувь, перчатки, очки, защита слуха и дыхания, страховочные пояса — по строке на размер. Issue to crew: член экипажа расписывается в получении на этом устройстве (PIN или рукой); Return — возврат. Issued to crew показывает, что у кого на руках, PPE record (PDF) печатает его карточку для подписи. Начните с типового списка или загрузите свой.",
         "Свои склады (шестерёнка у Stores в меню): боцманская, машинная кладовая, малярка — у каждого имя, место и короткий ID (ST-01 или свой). QR label (PDF или Xprinter) — этикетка на дверь: отсканировал — открылся список этого склада; ID, набранный в сканере, открывает так же. Load list (Excel) заполняет склад по колонкам шаблона. Каждый склад появляется в меню под Stores.",
         "Provisions: сухая провизия, охлаждённое, заморозка, напитки, выпечка, овощи и фрукты, моющие — со сроками годности. Issue to galley берёт из партии с ближайшим сроком; просрочка списывается через Dispose, и это остаётся в учёте. Excel: шаблон (название, раздел, единица, минимум, место, количество, срок), импорт — список поставщика или шефа тоже читается (Item, UoM, Par, Qty, Best before) — и экспорт.",
@@ -1944,6 +1946,7 @@ const es: ManualContent = {
         "Un recuento se registra como la diferencia con el libro, así que un recuento hecho sin conexión no anula una entrega registrada mientras tanto. Un movimiento erróneo se corrige con un recuento; los movimientos no se editan.",
         "Marque a qué máquinas sirve un repuesto: la pantalla de la máquina lista sus repuestos con las existencias. En un trabajo de mantenimiento, Parts used each time lista lo que consume; Record as done lo descuenta del pañol, y las cantidades se pueden cambiar o poner a 0 ese día.",
         "El Dashboard muestra una línea cuando algo está agotado o bajo.",
+        "New order (o la requisición en Excel) reúne en una lista los repuestos de los próximos trabajos y las líneas bajo su nivel de pedido. Lo que ya está en un pedido abierto — borrador, con el Capitán o la oficina, enviado y aún no a bordo — cuenta como existencia, así que pulsarlo otra vez no pide la misma pieza dos veces. Los trabajos de una pieza se buscan más adelante según su plazo de entrega: la media de sus tres últimas entregas, o los días que indica el proveedor. Los repuestos de equipos críticos van primero, marcados en el pedido.",
       ],
     },
     {
@@ -2114,7 +2117,7 @@ const es: ManualContent = {
       emoji: '🏬',
       title: "Almacenes (Stores)",
       body: [
-        "Stores (menú → Stores): el almacén de EPI y las provisiones, llevados igual — cada artículo con un mínimo, lo que hay lote a lote, lo que está bajo mínimo o caducado. Pulse un artículo para recibir, entregar, contar o dar de baja, o para editarlo; el Board avisa de faltas y caducados, y To order (Excel) lista lo que pedir.",
+        "Stores (menú → Stores): el almacén de EPI y las provisiones, llevados igual — cada artículo con un mínimo, lo que hay lote a lote, lo que está bajo mínimo o caducado. Pulse un artículo para recibir, entregar, contar o dar de baja, o para editarlo; el Board avisa de faltas y caducados, y To order (Excel) lista lo que pedir; → New order lo convierte en un borrador de pedido, y lo que ya está en un pedido abierto no se repite.",
         "PPE store: monos, botas, guantes, gafas, protección auditiva y respiratoria, arneses — una línea por talla. Issue to crew: el tripulante firma la recepción en este dispositivo (PIN o a mano); Return lo devuelve. Issued to crew muestra lo que tiene cada uno, y PPE record (PDF) imprime su ficha para firmar. Empiece con la lista típica o cargue la suya.",
         "Pañoles propios (el engranaje junto a Stores en el menú): pañol del contramaestre, de máquinas, de pintura — cada uno con nombre, ubicación y un ID corto (ST-01 o el suyo). QR label (PDF o Xprinter) para su puerta: al escanearla abre la lista de ese pañol; el ID tecleado en el escáner hace lo mismo. Load list (Excel) lo llena con las columnas de la plantilla. Cada pañol aparece bajo Stores en el menú.",
         "Provisions: despensa seca, refrigerado, congelado, bebidas, panadería, fruta y verdura, limpieza — con fechas de consumo preferente. Issue to galley saca del lote que caduca antes; lo caducado se da de baja con Dispose y queda registrado. Excel: la plantilla (nombre, sección, unidad, mínimo, lugar, cantidad, consumo preferente), importar — también se lee la lista del proveedor o del chef (Item, UoM, Par, Qty, Best before) — y exportar.",
@@ -2715,6 +2718,7 @@ const uk: ManualContent = {
         "Перерахунок записується як різниця з обліком, тож перерахунок без зв'язку не скасує надходження, записане в цей час на іншому пристрої. Помилковий рух виправляється перерахунком; рухи не редагуються.",
         "Позначте, до яких механізмів підходить запчастина: у картці механізму буде список його запчастин із залишком. У роботі ТО розділ Parts used each time перелічує, що вона витрачає; Record as done списує це зі складу, а кількість можна змінити або поставити 0 у день роботи.",
         "На головному екрані з'являється рядок, коли щось закінчилося або нижче мінімуму.",
+        "New order (або заявка в Excel) збирає в один список запчастини для найближчих робіт і позиції нижче мінімального залишку. Те, що вже є у відкритій заявці (чернетка, у капітана чи офісу, відправлена й ще не на борту), рахується як залишок, тож повторне натискання не замовить ту саму деталь двічі. Роботи для деталі шукаються далі на її термін постачання: середнє за трьома останніми поставками або термін, указаний у постачальника. Запчастини критичного обладнання йдуть першими й позначені в заявці.",
       ],
     },
     {
@@ -2885,7 +2889,7 @@ const uk: ManualContent = {
       emoji: '🏬',
       title: "Склади (Stores)",
       body: [
-        "Stores (меню → Stores): склад ЗІЗ і провізія, влаштовані однаково — у кожної позиції мінімальний запас, залишок за партіями, що нижче мінімуму або прострочене. Натисніть на позицію: прихід, видача, перерахунок, списання або правка; Board показує нестачу й прострочення, To order (Excel) — що замовити.",
+        "Stores (меню → Stores): склад ЗІЗ і провізія, влаштовані однаково — у кожної позиції мінімальний запас, залишок за партіями, що нижче мінімуму або прострочене. Натисніть на позицію: прихід, видача, перерахунок, списання або правка; Board показує нестачу й прострочення, To order (Excel) — що замовити; → New order робить із цього чернетку заявки, а те, що вже у відкритій заявці, повторно не потрапляє.",
         "PPE store: комбінезони, взуття, рукавиці, окуляри, захист слуху й дихання, страхувальні пояси — по рядку на розмір. Issue to crew: член екіпажу розписується в отриманні на цьому пристрої (PIN або рукою); Return — повернення. Issued to crew показує, що в кого на руках, PPE record (PDF) друкує його картку для підпису. Почніть з типового списку або завантажте свій.",
         "Свої склади (шестерня біля Stores у меню): боцманська, машинна комора, малярка — у кожного назва, місце і короткий ID (ST-01 або свій). QR label (PDF або Xprinter) — етикетка на двері: відскановано — відкрився список цього складу; ID, набраний у сканері, відкриває так само. Load list (Excel) заповнює склад за колонками шаблону. Кожен склад з'являється в меню під Stores.",
         "Provisions: суха провізія, охолоджене, заморожене, напої, випічка, овочі й фрукти, мийні — з термінами придатності. Issue to galley бере з партії з найближчим терміном; прострочене списується через Dispose і лишається в обліку. Excel: шаблон (назва, розділ, одиниця, мінімум, місце, кількість, термін), імпорт — список постачальника чи шефа теж читається (Item, UoM, Par, Qty, Best before) — і експорт.",
@@ -3455,6 +3459,7 @@ const no: ManualContent = {
         'Reservedeler-fanen er lageret: hver linje har navn, delenummer, produsent, lagringssted og et minimumslagernivå.',
         'Beholdning skrives aldri over. Åpne en del og bruk + Mottatt for en leveranse, − Brukt for en del tatt utenfor vedlikeholdsplanen, eller Inventar for det som fysisk finnes på hylla.',
         'Merk hvilke maskiner en del passer til: maskinens skjerm lister dens reservedeler med beholdning. På en vedlikeholdsjobb lister Parts used hva jobben tar; Registrer som utført tar dem ut av lageret.',
+        "New order (eller rekvisisjonen i Excel) samler i én liste delene de kommende jobbene trenger og linjene under minimumslageret. Det som allerede står på en åpen bestilling – utkast, hos kapteinen eller kontoret, sendt og ennå ikke om bord – regnes som beholdning, så et nytt trykk bestiller ikke samme del to ganger. Jobbene for en del letes lenger fram med delens leveringstid: snittet av de tre siste leveransene, eller leverandørens oppgitte dager. Deler til kritisk utstyr kommer først, merket i bestillingen.",
       ],
     },
     {
@@ -4151,6 +4156,7 @@ const pt: ManualContent = {
         'A aba Sobressalentes é o depósito: cada linha tem nome, número da peça, fabricante, localização e um nível mínimo de reposição.',
         'O estoque nunca é sobrescrito. Abra uma peça e use + Recebido para uma entrega, − Usado para uma peça retirada fora do plano de manutenção, ou Inventário para o que está fisicamente na prateleira.',
         'Marque quais máquinas uma peça serve: a tela da máquina lista suas peças sobressalentes com o estoque.',
+        "New order (ou a requisição em Excel) junta numa lista as peças dos próximos trabalhos e as linhas abaixo do nível de pedido. O que já está num pedido aberto — rascunho, com o Comandante ou o escritório, enviado e ainda não a bordo — conta como estoque, por isso tocar de novo não pede a mesma peça duas vezes. Os trabalhos de uma peça são procurados mais à frente pelo prazo de entrega: a média das três últimas entregas, ou os dias indicados pelo fornecedor. Peças de equipamentos críticos vêm primeiro, marcadas no pedido.",
       ],
     },
     {

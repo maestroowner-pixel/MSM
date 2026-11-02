@@ -43,6 +43,10 @@ import { pickDocForAi } from '../services/medFiles';
 import { useSync } from '../contexts/SyncContext';
 import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
+import { moduleOn } from '../constants/modules';
+import { onOrder } from '../services/sparesNeed';
+import { nextOrderNo } from '../services/orders';
+import { ORDER_DEPT_LABEL, OrderDept, PurchaseOrder } from '../types/orders';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
 import { t, tk, tn, useT } from '../utils/i18n';
@@ -63,7 +67,7 @@ export default function StoresSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const route = useRoute<any>();
   const nav = useNavigation<any>();
-  const { storeItems, storeMoves, storeRoomList, crew, vessel, saveRow, saveRows, appendRow } = useData();
+  const { storeItems, storeMoves, storeRoomList, crew, vessel, purchaseOrders, saveRow, saveRows, appendRow } = useData();
   const rooms = useMemo(() => storeRooms(storeRoomList), [storeRoomList]);
   const manage = route.params?.view === 'manage';
   // The store on screen: the one in the route (a menu entry, a scanned label), else the first.
@@ -101,6 +105,8 @@ export default function StoresSc() {
   const moves = useMemo(() => storeMoves.filter((m) => items.some((i) => i.id === m.itemId)), [storeMoves, items]);
   const rows = useMemo(() => storeStatus(items, moves, today), [items, moves, today]);
   const counts = storeCounts(rows);
+  // Below the minimum, less what is already on an open order (services/sparesNeed onOrder).
+  const toBuy = useMemo(() => toOrder(rows, onOrder(purchaseOrders, 'storeItemId')), [rows, purchaseOrders]);
   const cats = STORE_CATEGORIES[store];
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   const shown = rows
@@ -213,7 +219,28 @@ export default function StoresSc() {
       Alert.alert(t('pax.importFailed'), String(e?.message ?? e));
     }
   };
-  const orderSheet = () => saveSheet([['Item', 'Size', 'Category', 'Unit', 'On hand (in date)', 'Minimum', 'To order'], ...toOrder(rows).map((o) => { const r = rows.find((x) => x.item.id === o.item.id)!; return [o.item.name, o.item.size ?? '', o.item.category ?? '', o.item.unit, r.usable, o.item.min, o.need]; })], 'To order', `${room.name} — to order ${today}`, vessel).then(done, fail);
+  const orderSheet = () => saveSheet([['Item', 'Size', 'Category', 'Unit', 'On hand (in date)', 'Minimum', 'On order', 'To order'], ...toBuy.map((o) => { const r = rows.find((x) => x.item.id === o.item.id)!; return [o.item.name, o.item.size ?? '', o.item.category ?? '', o.item.unit, r.usable, o.item.min, o.onOrder || '', o.need]; })], 'To order', `${room.name} — to order ${today}`, vessel).then(done, fail);
+  // The list to order as a draft requisition — one per store, the department it orders through.
+  const draftOrder = () => {
+    if (!toBuy.length) return Alert.alert(t('sp.newOrder'), t('sp.nothingToOrder'));
+    const dept: OrderDept = store === 'provisions' ? 'galley' : 'deck';
+    Alert.alert(t('sp.createOrders'), `${ORDER_DEPT_LABEL[dept]}: ${tn('n.line', toBuy.length)}`, [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('sp.create'),
+        onPress: () => void (async () => {
+          const now = Date.now();
+          const order: PurchaseOrder = {
+            id: uid('po'), no: nextOrderNo(purchaseOrders, dept), dept, status: 'draft', date: today, by: '', at: now, updatedAt: now,
+            notes: room.name,
+            lines: toBuy.map((o) => ({ id: uid('ol'), description: storeItemTitle(o.item), qty: o.need, unit: o.item.unit, stockQty: rows.find((x) => x.item.id === o.item.id)?.usable, storeItemId: o.item.id })),
+          };
+          await saveRow(storage.PURCHASE_ORDERS_KEY, order);
+          nav.navigate('Order', { id: order.id });
+        })(),
+      },
+    ]);
+  };
 
   // ---- a person's PPE record ----
   const personPdf = (name: string) => {
@@ -288,7 +315,8 @@ export default function StoresSc() {
           </View>
           <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.sm }]}>
             <TouchableOpacity style={styles.btn} onPress={() => setEdit({ id: uid('sto'), store, ...own, name: '', unit: store === 'provisions' ? 'packs' : 'pcs', min: 0, order: items.length, updatedAt: Date.now(), ...(cat ? { category: cat } : {}) })}><Text style={styles.btnText}>{`+ ${t('def.item')}`}</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.small} disabled={!counts.short} onPress={() => void orderSheet()}><Text style={styles.smallText}>{t('st.toOrder', { n: counts.short })}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.small} disabled={!toBuy.length} onPress={() => void orderSheet()}><Text style={styles.smallText}>{t('st.toOrder', { n: toBuy.length })}</Text></TouchableOpacity>
+            {moduleOn('orders') && toBuy.length ? <TouchableOpacity style={styles.small} onPress={draftOrder}><Text style={styles.smallText}>{`→ ${t('sp.newOrder')}`}</Text></TouchableOpacity> : null}
             <TouchableOpacity style={styles.small} onPress={() => void importSheet()}><Text style={styles.smallText}>{t('pax.fromExcel')}</Text></TouchableOpacity>
             {aiReady(sync.enrolled) ? (
               <>

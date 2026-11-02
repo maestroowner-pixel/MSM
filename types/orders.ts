@@ -81,6 +81,8 @@ export interface OrderLine {
   notes?: string;
   /** Link to a spare part in the spares register, if the line came from there. */
   spareId?: string;
+  /** Link to a store item (types/stores), when the line came from a store's list to order. */
+  storeItemId?: string;
   /** The office changed the quantity (services/poApproval): what was asked, why — qty 0 = struck out. */
   cut?: { asked: number; note: string; by: string };
 }

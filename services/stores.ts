@@ -72,8 +72,9 @@ export function heldByPerson(items: StoreItem[], moves: StoreMove[]): Map<string
   return res;
 }
 
-/** To order: below the minimum — up to the minimum, as many as are short. */
-export const toOrder = (rows: StoreStatus[]) => rows.filter((r) => r.short > 0).map((r) => ({ item: r.item, need: r.short }));
+/** To order: below the minimum — up to the minimum, as many as are short, less what is already on order (sparesNeed onOrder). */
+export const toOrder = (rows: StoreStatus[], onOrder: Map<string, number> = new Map()) =>
+  rows.map((r) => ({ item: r.item, need: Math.max(0, r.short - (onOrder.get(r.item.id) ?? 0)), onOrder: onOrder.get(r.item.id) ?? 0 })).filter((x) => x.need > 0);
 
 export const nextStoreNo = (prefix: string, n: number) => `${prefix}-${String(n).padStart(3, '0')}`;
 

@@ -29,7 +29,7 @@ import { uid } from '../utils/id';
 import * as XLSX from 'xlsx';
 import { Dropdown } from '../components/Dropdown';
 import { moduleOn } from '../constants/modules';
-import { upcomingNeeds } from '../services/sparesNeed';
+import { ReorderLine, onOrder, reorderList } from '../services/sparesNeed';
 import { vesselHeader } from '../services/export';
 import { todayIso } from '../services/pms';
 import { deliverFile, onWeb } from '../utils/fileShare';
@@ -89,28 +89,28 @@ export default function SparesSc() {
     playSuccessSound();
     Alert.alert(t('sp.stocktake'), t('sp.counted', { x: tn('n.line', changed.length), n: diff.length }));
   };
-  const needs = useMemo(() => (moduleOn('pms') ? upcomingNeeds(pmsJobs, machines, pmsDeferrals, spares, stock, horizon) : []), [pmsJobs, machines, pmsDeferrals, spares, stock, horizon]);
+  // What to order: the coming jobs, the re-order levels, what is already on the way (services/sparesNeed).
+  const list = useMemo(
+    () => reorderList(pmsJobs, machines, pmsDeferrals, spares, stock, purchaseOrders, horizon, today, moduleOn('pms')),
+    [pmsJobs, machines, pmsDeferrals, spares, stock, purchaseOrders, horizon, today]
+  );
+  const needs = list.filter((n) => n.need > 0);
+  const onWay = useMemo(() => onOrder(purchaseOrders), [purchaseOrders]);
+  const leadText = (n: ReorderLine) => (n.lead ? (n.lead.from === 'history' ? t('sp.leadHist', { n: n.lead.days }) : t('sp.leadSup', { n: n.lead.days })) : null);
   const requisition = async () => {
     try {
-      const lowOnly = rows.filter((r) => r.status !== 'ok' && !needs.some((n) => n.part.id === r.p.id));
       // The usual supplier's reference, price and lead time — what the purchaser needs to place it.
-      const sup = (p: (typeof spares)[number], qty: number) => {
-        const x = p.suppliers?.[0];
-        return [x?.name ?? '', x?.ref ?? '', x?.price != null ? priceText(x) : '', x?.price != null ? Number((x.price * qty).toFixed(2)) : '', x?.leadDays != null ? x.leadDays : ''];
+      const sup = (n: ReorderLine) => {
+        const x = n.part.suppliers?.[0];
+        return [x?.name ?? '', x?.ref ?? '', x?.price != null ? priceText(x) : '', x?.price != null ? Number((x.price * n.qty).toFixed(2)) : '', n.lead ? n.lead.days : ''];
       };
-      const head = ['Part', 'Part No.', 'IMPA', 'Maker', 'Unit', 'Needed for jobs', 'In stock', 'Order', 'For', 'Supplier', 'Their ref.', 'Unit price', 'Line total', 'Lead, days'];
-      const body = [
-        ...needs.map((n) => {
-          // Enough for the jobs, and the line back up to its maximum when it has one.
-          const qty = Math.max(n.order, orderQty(n.part, n.onHand - n.need));
-          return [n.part.name, n.part.partNo ?? '', n.part.impa ?? '', n.part.maker ?? '', n.part.unit ?? 'pcs', n.need, n.onHand, qty, n.forJobs.join('; '), ...sup(n.part, qty)];
-        }),
-        ...lowOnly.map((r) => {
-          const qty = orderQty(r.p, r.onHand);
-          return [r.p.name, r.p.partNo ?? '', r.p.impa ?? '', r.p.maker ?? '', r.p.unit ?? 'pcs', '', r.onHand, qty, r.p.maxQty != null ? 'below re-order level — up to the maximum' : 'below re-order level', ...sup(r.p, qty)];
-        }),
-      ];
-      const ws = XLSX.utils.aoa_to_sheet([[`Spares requisition — jobs within ${horizon} days`], [vesselHeader(vessel)], [], head, ...body]);
+      const head = ['Part', 'Part No.', 'IMPA', 'Maker', 'Unit', 'Critical', 'Needed for jobs', 'In stock', 'On order', 'Order', 'For', 'Supplier', 'Their ref.', 'Unit price', 'Line total', 'Lead, days'];
+      const body = list.map((n) => [
+        n.part.name, n.part.partNo ?? '', n.part.impa ?? '', n.part.maker ?? '', n.part.unit ?? 'pcs', n.critical ? 'Yes' : '', n.need || '', n.onHand, n.onOrder || '', n.qty,
+        n.need ? n.forJobs.join('; ') : n.part.maxQty != null ? 'below re-order level — up to the maximum' : 'below re-order level',
+        ...sup(n),
+      ]);
+      const ws = XLSX.utils.aoa_to_sheet([[`Spares requisition — jobs within ${horizon} days (plus each part's lead time)`], [vesselHeader(vessel)], [], head, ...body]);
       ws['!cols'] = head.map((h) => ({ wch: h === 'For' ? 60 : 16 }));
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Requisition');
@@ -131,45 +131,29 @@ export default function SparesSc() {
     }
   };
   const newOrderFromSpares = () => {
-    const lowOnly = rows.filter((r) => r.status !== 'ok' && !needs.some((n) => n.part.id === r.p.id));
-    const allNeeds = needs;
-    const allLow = lowOnly;
-    const total = allNeeds.length + allLow.length;
-    if (total === 0) {
+    if (list.length === 0) {
       Alert.alert(t('sp.newOrder'), t('sp.nothingToOrder'));
       return;
     }
 
     // Group lines by department assigned to each spare. Parts with no dept go into
-    // a catch-all 'engine' order (most common on a vessel).
+    // a catch-all 'engine' order (most common on a vessel). The list is critical first.
     const linesByDept = new Map<string, OrderLine[]>();
-    const push = (dept: string, line: OrderLine) => {
+    for (const n of list) {
+      const dept = n.part.dept ?? 'engine';
       if (!linesByDept.has(dept)) linesByDept.set(dept, []);
-      linesByDept.get(dept)!.push(line);
-    };
-    for (const n of allNeeds) {
-      push(n.part.dept ?? 'engine', {
+      const notes = [n.critical ? 'CRITICAL EQUIPMENT' : '', n.forJobs.join('; ')].filter(Boolean).join(' — ');
+      linesByDept.get(dept)!.push({
         id: uid('ol'),
         description: n.part.name,
-        qty: Math.max(n.order, orderQty(n.part, n.onHand - n.need)),
+        qty: n.qty,
         unit: n.part.unit ?? 'pcs',
         partNo: n.part.partNo,
         impa: n.part.impa,
         maker: n.part.maker,
-        notes: n.forJobs.join('; '),
+        stockQty: n.onHand,
+        ...(notes ? { notes } : {}),
         spareId: n.part.id,
-      });
-    }
-    for (const r of allLow) {
-      push(r.p.dept ?? 'engine', {
-        id: uid('ol'),
-        description: r.p.name,
-        qty: orderQty(r.p, r.onHand),
-        unit: r.p.unit ?? 'pcs',
-        partNo: r.p.partNo,
-        impa: r.p.impa,
-        maker: r.p.maker,
-        spareId: r.p.id,
       });
     }
 
@@ -264,9 +248,11 @@ export default function SparesSc() {
             <TouchableOpacity key={n.part.id} style={styles.needRow} onPress={() => nav.navigate('SparePart', { id: n.part.id })} activeOpacity={0.7}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.needName}>{`${n.part.name}${n.part.partNo ? ` · ${n.part.partNo}` : ''}`}</Text>
+                {n.critical ? <Text style={[styles.needSub, { color: COLORS.danger, fontWeight: '800' }]}>{t('sp.critical')}</Text> : null}
                 <Text style={styles.needSub} numberOfLines={2}>{n.forJobs.join(' · ')}</Text>
+                {n.onOrder || n.lead ? <Text style={styles.needSub}>{[n.onOrder ? t('sp.onOrder', { n: n.onOrder }) : null, leadText(n)].filter(Boolean).join(' · ')}</Text> : null}
               </View>
-              <Text style={styles.needQty}>{t('sp.needHave', { need: n.need, have: n.onHand, order: n.order })}</Text>
+              <Text style={styles.needQty}>{t('sp.needHave', { need: n.need, have: n.onHand, order: n.qty })}</Text>
             </TouchableOpacity>
           ))}
           {!needs.length ? <Text style={styles.needSub}>{t('sp.allOnShelf', { n: horizon })}</Text> : null}
@@ -317,7 +303,7 @@ export default function SparesSc() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.title} numberOfLines={1}>{p.name}</Text>
                   <Text style={styles.sub} numberOfLines={1}>
-                    {[p.partNo, p.maker, p.minQty != null ? t('sp.min', { n: p.minQty }) : null, p.maxQty != null ? t('sp.max', { n: p.maxQty }) : null].filter(Boolean).join(' · ') || '—'}
+                    {[p.partNo, p.maker, p.minQty != null ? t('sp.min', { n: p.minQty }) : null, p.maxQty != null ? t('sp.max', { n: p.maxQty }) : null, onWay.get(p.id) ? t('sp.onOrder', { n: onWay.get(p.id)! }) : null].filter(Boolean).join(' · ') || '—'}
                   </Text>
                   {exp && exp.expiry! <= soon ? (
                     <Text style={[styles.sub, { color: exp.expiry! < today ? COLORS.danger : COLORS.warning, fontWeight: '700' }]}>{`${exp.expiry! < today ? t('sp.expired', { date: uiDate(exp.expiry) }) : t('sp.expires', { date: uiDate(exp.expiry) })} · ${qtyText(exp.qty, p)}`}</Text>
