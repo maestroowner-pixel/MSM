@@ -222,6 +222,15 @@ app mirrors. Bundle id `com.kukalab.msm`.
   and status → sent only with `ordered`. `check:poapproval` compares the step names and the reason list with the rules.
   Per vessel ON REQUEST (`npm run modules -- <IMO> on poApproval`) — a vessel without an office does not get it.
   `npm run deploy:rules` before switching it on.
+- **Needs attention in Fleet** (2 Nov 2026 — plan items 37 + 45, no flag: part of `fleet`): pure `services/officeInbox.ts`,
+  FleetSc opens on it (tabs Needs attention / Vessels). **Waiting for your answer** = every record waiting for the office
+  across the fleet (`inboxOf`: deferrals to answer, closures and NCs to verify, `officeQueue` requisitions) — emergencies
+  first, then oldest; a row navigates `FleetVessel {imo, tab, open: <record id>}` and FleetVesselSc opens that record's
+  sheet once (`opened` ref) — so phone and laptop answer through the same sheets. **Red today** (`redOf`/`fleetRed`): only
+  red — detention, critical machine out, critical defects, overdue findings, PMS overdue (deferral counted), expired
+  certificates/equipment; amber stays on the vessel cards. Each part shows only when its module is on for the build or
+  the vessel (`officeParts`). Nothing stored; FleetSc re-reads on focus, so an answer leaves the list. FleetVesselSc gained
+  a read-only PMS tab (overdue + due). `npm run check:inbox`.
 - **Web PDFs from `utils/pmsHistoryPdf.web.ts`**: a table is sized to its `widths` only when EVERY column has one (the DP
   tables side by side); with some widths it takes the page and the rest share — before 29 Oct 2026 the sum of SOME widths
   was the table width, and the machine history, survey/class pack and project PDFs printed Job/Note/Defect a letter a line.

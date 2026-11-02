@@ -9,9 +9,12 @@
 //   Documents     the ISM documents and who has not signed the current
 //                 revision — added, edited and re-issued here.
 //   Equipment     what is expired or due, read-only: the crew inspect it aboard.
+//   PMS           jobs overdue and due, read-only.
+// …and the office tabs when their modules are on. Opened from Fleet's "Needs
+// attention" with `tab` and `open` (a record id): that record's sheet opens at once.
 // ===================================
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 
@@ -26,7 +29,7 @@ import { VesselData } from '../services/fleetSummary';
 import { readStatus } from '../services/docs';
 import { pickDocument, toDataUri } from '../services/attachments';
 import { pdfText } from '../utils/pdfText';
-import { todayIso } from '../services/pms';
+import { activeDeferral, jobDue, todayIso } from '../services/pms';
 import { Certificate, CertificateScope, scopeOf } from '../types/certificate';
 import { DOC_CATEGORY_LABEL, DocCategory, IsmDoc } from '../types/docs';
 import { computeStatus, statusFromDate, uiDate } from '../utils/dates';
@@ -44,7 +47,7 @@ import { approvedNotPlaced, emergencyOpen, markReview, officeApprove, officeOrde
 import { PoProgress } from '../components/PoApprovalPanel';
 import { t, tk, useT } from '../utils/i18n';
 
-type Tab = 'certs' | 'docs' | 'equipment' | 'verify' | 'insp' | 'crit' | 'po';
+type Tab = 'certs' | 'docs' | 'equipment' | 'pms' | 'verify' | 'insp' | 'crit' | 'po';
 const SCOPES: { key: CertificateScope; label: string }[] = [
   { key: 'vessel', label: 'Vessel' },
   { key: 'crew', label: 'Crew' },
@@ -55,9 +58,11 @@ export default function FleetVesselSc() {
   useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const imo: string = useRoute<any>().params?.imo;
+  const params = useRoute<any>().params ?? {};
+  const imo: string = params.imo;
   const [v, setV] = useState<VesselData | null>(null);
-  const [tab, setTab] = useState<Tab>('certs');
+  const [tab, setTab] = useState<Tab>(params.tab ?? 'certs');
+  const opened = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cert, setCert] = useState<Certificate | null>(null);
   const [docEdit, setDocEdit] = useState<{ doc: IsmDoc; isNew: boolean } | null>(null);
@@ -85,6 +90,21 @@ export default function FleetVesselSc() {
     })();
   }, [load]);
 
+  // From "Needs attention": open the record's sheet once, as a tap on its row would.
+  useEffect(() => {
+    const id: string | undefined = params.open;
+    if (!v || !id || opened.current === id) return;
+    opened.current = id;
+    const df = (v.deferrals ?? []).find((x) => x.id === id);
+    const d = (v.defects ?? []).find((x) => x.id === id);
+    const nc = (v.ncs ?? []).find((x) => x.id === id);
+    const o = (v.orders ?? []).find((x) => x.id === id);
+    if (df && !df.office) setCheck({ deferral: df });
+    else if (d && awaitsOffice(d)) setCheck({ defect: d });
+    else if (nc && ncAwaitsOffice(nc)) setCheck({ nc });
+    else if (o) setPo(o);
+  }, [v, params.open]);
+
   if (!v) {
     return (
       <Screen>
@@ -106,7 +126,13 @@ export default function FleetVesselSc() {
   const toVerify = (v.defects ?? []).filter(awaitsOffice).sort((a, b) => a.closed!.at - b.closed!.at);
   const ncsToVerify = (v.ncs ?? []).filter(ncAwaitsOffice).sort((a, b) => (a.closedAt ?? 0) - (b.closedAt ?? 0));
   const toApprove = deferralsToAnswer(v.deferrals ?? [], v.jobs);
-  const tabs: [Tab, string][] = [['certs', `${t('fleet.certs')} · ${certs.length}`], ['docs', `${t('docs.title')} · ${docs.length}`], ['equipment', `${t('cat.title')} · ${owed.length}`]];
+  const machineById = new Map(v.machines.filter((m) => !m.deleted).map((m) => [m.id, m]));
+  const pmsOwed = v.jobs
+    .filter((j) => !j.deleted && machineById.has(j.machineId))
+    .map((j) => ({ j, st: jobDue(j, machineById.get(j.machineId), todayIso(), activeDeferral(j, v.deferrals ?? [])).status }))
+    .filter((x) => x.st === 'expired' || x.st === 'due')
+    .sort((a, b) => (a.st === b.st ? 0 : a.st === 'expired' ? -1 : 1));
+  const tabs: [Tab, string][] = [['certs', `${t('fleet.certs')} · ${certs.length}`], ['docs', `${t('docs.title')} · ${docs.length}`], ['equipment', `${t('cat.title')} · ${owed.length}`], ['pms', `PMS · ${pmsOwed.length}`]];
   if (office) tabs.push(['verify', `${t('oc.tab')} · ${toVerify.length + ncsToVerify.length + toApprove.length}`]);
   // External inspections (types/extInspection.ts): on for the build or for this vessel.
   const today = todayIso();
@@ -222,6 +248,19 @@ export default function FleetVesselSc() {
             </TouchableOpacity>
           ))}
           {!toVerify.length && !ncsToVerify.length && !toApprove.length ? <Empty text={t('oc.nothing')} /> : null}
+        </>
+      ) : tab === 'pms' ? (
+        <>
+          {pmsOwed.map(({ j, st }) => (
+            <View key={j.id} style={styles.row}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.title} numberOfLines={1}>{j.title}</Text>
+                <Text style={styles.sub} numberOfLines={1}>{machineById.get(j.machineId)!.name}</Text>
+              </View>
+              <StatusPill status={st} />
+            </View>
+          ))}
+          {!pmsOwed.length ? <Empty text={t('ia.noPms')} /> : null}
         </>
       ) : tab === 'certs' ? (
         <>

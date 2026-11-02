@@ -4,23 +4,29 @@
 //
 // Not a device aboard: it signs in on its own Firebase app (services/shore.ts)
 // with an invitation each vessel's Master issues as "Superintendent (shore)".
+// Opens on "Needs attention" (services/officeInbox): what waits for the office's
+// answer across the fleet, oldest first, and only what is red on each vessel;
+// "Vessels" is the card per vessel.
 // Reads everything on those vessels; edits their documents and certificates
 // (screens/FleetVesselSc). Meant for a laptop in the office — app.ismpilot.com
 // /fleet — but nothing stops it on a tablet.
 // ===================================
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 import { Card, Empty, Label, Screen, ScreenTitle } from '../components/ui';
 import { useTheme } from '../contexts/ThemeContext';
 import { SIZES, Palette } from '../theme';
 import * as shore from '../services/shore';
 import { moduleOn } from '../constants/modules';
-import { Count, VesselSummary, fleetOrder, summarise } from '../services/fleetSummary';
+import { Count, VesselData, VesselSummary, fleetOrder, summarise } from '../services/fleetSummary';
+import { InboxItem, RedLine, fleetInbox, fleetRed, officeParts } from '../services/officeInbox';
+import { todayIso } from '../services/pms';
 import { uiDate, uiDateTime } from '../utils/dates';
-import { t, tn, useT } from '../utils/i18n';
+import { MciIcon } from '../components/MciIcon';
+import { t, tk, tn, useT } from '../utils/i18n';
 
 export default function FleetSc() {
   useT();
@@ -29,6 +35,8 @@ export default function FleetSc() {
   const nav = useNavigation<any>();
   const [session, setSession] = useState<shore.ShoreSession | null>(null);
   const [rows, setRows] = useState<VesselSummary[]>([]);
+  const [data, setData] = useState<VesselData[]>([]);
+  const [view, setView] = useState<'attention' | 'vessels'>('attention');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -36,16 +44,20 @@ export default function FleetSc() {
   const load = useCallback(async (s: shore.ShoreSession) => {
     setLoading(true);
     const out: VesselSummary[] = [];
+    const all: VesselData[] = [];
     await Promise.all(
       s.vessels.map(async (imo) => {
         try {
-          out.push(summarise(await shore.loadVessel(imo)));
+          const v = await shore.loadVessel(imo);
+          all.push(v);
+          out.push(summarise(v));
         } catch (e: any) {
           console.warn(`[fleet] ${imo}: ${e?.message ?? e}`);
         }
       })
     );
     setRows(out.sort(fleetOrder));
+    setData(all);
     setLoading(false);
   }, []);
 
@@ -63,6 +75,22 @@ export default function FleetSc() {
       }
     })();
   }, [load]);
+
+  // Re-read on coming back from a vessel: an answer given there leaves the list here.
+  // The first focus is the first load (above), so only later ones re-read.
+  const focused = useRef(false);
+  const live = useRef<shore.ShoreSession | null>(null);
+  live.current = session;
+  useFocusEffect(
+    useCallback(() => {
+      if (focused.current && live.current) void load(live.current);
+      focused.current = true;
+    }, [load])
+  );
+
+  const parts = useMemo(() => data.map((v) => ({ v, on: officeParts(v, moduleOn) })), [data]);
+  const inbox = useMemo(() => fleetInbox(parts), [parts]);
+  const red = useMemo(() => fleetRed(parts, todayIso()), [parts]);
 
   const onJoined = async (s: shore.ShoreSession) => {
     setSession(s);
@@ -115,8 +143,38 @@ export default function FleetSc() {
       </View>
       {adding ? <JoinForm onJoined={onJoined} styles={styles} /> : null}
 
+      <View style={styles.tabs}>
+        {([['attention', `${t('ia.tab')} · ${inbox.length}`], ['vessels', `${t('ia.vessels')} · ${rows.length}`]] as const).map(([k, l]) => (
+          <TouchableOpacity key={k} style={[styles.tab, view === k && styles.tabOn]} onPress={() => setView(k)}>
+            <Text style={[styles.tabText, view === k && styles.tabTextOn]}>{l}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       {rows.length === 0 && !loading ? <Empty text={t('fleet.noneOpen')} /> : null}
-      {rows.map((r) => (
+      {view === 'attention' && rows.length ? (
+        <>
+          <Label>{t('ia.waiting')}</Label>
+          {inbox.map((x) => <InboxRow key={`${x.imo}/${x.kind}/${x.id}`} x={x} styles={styles} COLORS={COLORS} onPress={() => nav.navigate('FleetVessel', { imo: x.imo, tab: x.tab, open: x.id })} />)}
+          {!inbox.length && !loading ? <Empty text={t('ia.nothingWaiting')} /> : null}
+          <Label style={{ marginTop: SIZES.md }}>{t('ia.red')}</Label>
+          {red.map((r) => (
+            <View key={r.imo} style={styles.vessel}>
+              <TouchableOpacity onPress={() => nav.navigate('FleetVessel', { imo: r.imo })} hitSlop={6}>
+                <Text style={styles.vesselName} numberOfLines={1}>{r.vessel}</Text>
+              </TouchableOpacity>
+              {r.lines.map((l) => (
+                <TouchableOpacity key={l.kind} style={styles.redLine} onPress={() => nav.navigate('FleetVessel', { imo: r.imo, tab: l.tab })}>
+                  <Text style={[styles.redText, { color: COLORS.danger }]}>{redText(l)}</Text>
+                  <MciIcon name="chevron-right" size={16} color={COLORS.textLight} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          ))}
+          {!red.length && !loading ? <Empty text={t('ia.allClear')} /> : null}
+        </>
+      ) : null}
+      {view === 'vessels' && rows.map((r) => (
         <TouchableOpacity key={r.imo} style={styles.vessel} onPress={() => nav.navigate('FleetVessel', { imo: r.imo })} activeOpacity={0.75}>
           <View style={styles.vesselHead}>
             <Text style={styles.vesselName} numberOfLines={1}>{r.name}</Text>
@@ -170,6 +228,33 @@ export default function FleetSc() {
       </TouchableOpacity>
     </Screen>
   );
+}
+
+/** "3 d", "5 h" — how long a record has waited for the office. */
+function waited(since: number): string {
+  const h = Math.max(0, Math.floor((Date.now() - since) / 3600000));
+  return h < 48 ? t('ia.hours', { n: h }) : t('ia.days', { n: Math.floor(h / 24) });
+}
+
+function InboxRow({ x, styles, COLORS, onPress }: { x: InboxItem; styles: any; COLORS: Palette; onPress: () => void }) {
+  const urgent = x.kind === 'emergency';
+  return (
+    <TouchableOpacity style={styles.row} onPress={onPress}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.rowTitle} numberOfLines={2}>{x.title}</Text>
+        <Text style={[styles.sub, urgent && { color: COLORS.warning, fontWeight: '700' }]} numberOfLines={2}>
+          {[x.vessel, tk(`ia.kind.${x.kind}`), x.by, waited(x.since)].filter(Boolean).join(' · ')}
+        </Text>
+      </View>
+      <MciIcon name="chevron-right" size={18} color={COLORS.textLight} />
+    </TouchableOpacity>
+  );
+}
+
+/** One red line: what, how many, the first names — "+2" for the rest. */
+function redText(l: RedLine): string {
+  const names = l.names.length ? `${l.names.join(', ')}${l.more ? ` +${l.more}` : ''}` : '';
+  return tk(`ia.red.${l.kind}`, { n: l.n, names, date: l.since ? uiDate(l.since) : '' });
 }
 
 function Pill({ label, c, styles, COLORS }: { label: string; c: Count; styles: any; COLORS: Palette }) {
@@ -233,5 +318,14 @@ const makeStyles = (COLORS: Palette) =>
     vesselName: { fontSize: SIZES.h4, fontWeight: '800', color: COLORS.textDark },
     sub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.xs },
+    tabs: { flexDirection: 'row', gap: SIZES.xs, marginBottom: SIZES.md, flexWrap: 'wrap' },
+    tab: { paddingVertical: 7, paddingHorizontal: SIZES.md, borderRadius: 999, borderWidth: 1, borderColor: COLORS.primary },
+    tabOn: { backgroundColor: COLORS.primary },
+    tabText: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
+    tabTextOn: { color: COLORS.textWhite },
+    row: { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.md, marginBottom: SIZES.sm },
+    rowTitle: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.textDark },
+    redLine: { flexDirection: 'row', alignItems: 'center', gap: SIZES.xs, paddingVertical: 6 },
+    redText: { flex: 1, fontSize: SIZES.small, fontWeight: '700' },
     pill: { fontSize: SIZES.tiny, fontWeight: '700', borderWidth: 1, borderRadius: 999, paddingVertical: 3, paddingHorizontal: SIZES.sm, overflow: 'hidden' },
   });
