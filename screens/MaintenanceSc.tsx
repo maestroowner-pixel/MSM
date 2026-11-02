@@ -208,6 +208,7 @@ export default function MaintenanceSc() {
       </View>
       <View style={[styles.reportRow, !canPlan && { opacity: 0.35 }]} pointerEvents={canPlan ? 'auto' : 'none'}>
         <Text style={styles.kpi}>{t('mt2.plan')}</Text>
+        <TouchableOpacity style={styles.repBtn} onPress={() => nav.navigate('PmsWizard')}><Text style={styles.repBtnText}>{t('wz.open')}</Text></TouchableOpacity>
         <TouchableOpacity style={styles.repBtn} onPress={() => void downloadTemplate()}><Text style={styles.repBtnText}>{t('mt2.templateXls')}</Text></TouchableOpacity>
         <TouchableOpacity style={styles.repBtn} onPress={() => void loadPlan()}><Text style={styles.repBtnText}>{t('mt2.loadXls')}</Text></TouchableOpacity>
         {!canPlan ? <Text style={styles.sub}>{PLAN_LOCKED}</Text> : null}
@@ -352,7 +353,14 @@ export default function MaintenanceSc() {
       })}
 
       {machineRows.length === 0 && !only ? (
-        <Empty text={t('mt2.empty')} />
+        <>
+          <Empty text={t('mt2.empty')} />
+          {canPlan ? (
+            <TouchableOpacity style={styles.wizard} onPress={() => nav.navigate('PmsWizard')}>
+              <Text style={styles.wizardText}>{t('wz.start')}</Text>
+            </TouchableOpacity>
+          ) : null}
+        </>
       ) : null}
       {DEPTS.filter((d) => (only ? d.key === only : true)).map((d) => {
         // Each system followed by its components (services/pmsMachines treeOrder).
@@ -427,6 +435,8 @@ const makeStyles = (COLORS: Palette) =>
     kpi: { fontSize: SIZES.body, fontWeight: '800', color: COLORS.textDark, marginRight: SIZES.sm },
     repBtn: { borderWidth: 1, borderColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: 7, paddingHorizontal: SIZES.md },
     repBtnText: { color: COLORS.primary, fontWeight: '800' },
+    wizard: { alignSelf: 'center', backgroundColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: SIZES.md, paddingHorizontal: SIZES.xl, marginBottom: SIZES.lg },
+    wizardText: { color: COLORS.textWhite, fontWeight: '800', fontSize: SIZES.body },
     stats: { flexDirection: 'row', gap: SIZES.sm },
     row: { flexDirection: 'row', alignItems: 'center', ...COLORS.glassCard, borderRadius: SIZES.radiusMd, paddingVertical: SIZES.md, paddingRight: SIZES.md, marginBottom: SIZES.sm, overflow: 'hidden', gap: SIZES.xs },
     bar: { width: 5, alignSelf: 'stretch', marginRight: SIZES.sm },

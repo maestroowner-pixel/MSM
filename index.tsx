@@ -146,6 +146,7 @@ import RiskSc from './screens/RiskSc';
 import CrewMatrixSc from './screens/CrewMatrixSc';
 import FleetSc from './screens/FleetSc';
 import FleetVesselSc from './screens/FleetVesselSc';
+import PmsWizardSc from './screens/PmsWizardSc';
 import { OPTIONAL_TABS } from './constants/access';
 import { FEW, MENU_WIDTH, NavMenuBar, PIN_WIDTH, flatGrouped, useNavPrefs } from './components/NavMenu';
 import { FavStar } from './components/Favourites';
@@ -505,6 +506,7 @@ const linking = {
       Crew: 'crew',
       RestDay: 'rest/:crewId/:date',
       Machine: 'machine/:id',
+      PmsWizard: 'maintenance/wizard',
       PmsJob: 'pms-job/:id',
       PmsDefect: 'pms-defect/:id',
       PmsProjects: 'pms-projects',
@@ -775,6 +777,7 @@ function Root() {
         <Stack.Screen name="PmsDefect" component={PmsDefectSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsProjects" component={PmsProjectsSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="AmsHours" component={AmsHoursSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="PmsWizard" component={PmsWizardSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsProject" component={PmsProjectSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="WatchEntry" component={WatchEntrySc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="DeckEntry" component={DeckEntrySc} options={{ presentation: 'modal' }} />

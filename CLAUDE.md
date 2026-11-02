@@ -222,6 +222,14 @@ app mirrors. Bundle id `com.kukalab.msm`.
   and status → sent only with `ordered`. `check:poapproval` compares the step names and the reason list with the rules.
   Per vessel ON REQUEST (`npm run modules -- <IMO> on poApproval`) — a vessel without an office does not get it.
   `npm run deploy:rules` before switching it on.
+- **Plan wizard** (2 Nov 2026, no flag — part of `pms`): pure `services/pmsWizard.ts`, `screens/PmsWizardSc.tsx` (route
+  `PmsWizard`, Maintenance → Plan, and the big button on an empty plan; Master / superintendent, `plansPms`). Kind of vessel
+  (`KIND_SYSTEMS`: which catalogue systems are asked and default counts; the rest under More systems) → count per system →
+  each unit (`unitNames`: PS/SB/CL, No.n, bow/stern; `resize` keeps what was typed) with maker/model/serial/hours now →
+  jobs per SYSTEM (untick, interval for all its units; typed back to the catalogue figure is no change and keeps
+  `TYPICAL_NOTE`) → summary → `savePlan`. ADDS ONLY: a unit whose name (case/space-blind) is on the plan, not scrapped,
+  is skipped — so it can be re-run. Jobs get no last-done date. Maker/model on the machine are what a maker library will
+  match later. `npm run check:pmswizard`.
 - **Needs attention in Fleet** (2 Nov 2026 — plan items 37 + 45, no flag: part of `fleet`): pure `services/officeInbox.ts`,
   FleetSc opens on it (tabs Needs attention / Vessels). **Waiting for your answer** = every record waiting for the office
   across the fleet (`inboxOf`: deferrals to answer, closures and NCs to verify, `officeQueue` requisitions) — emergencies
