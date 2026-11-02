@@ -33,8 +33,8 @@ import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { vesselHeader } from '../services/export';
 import { proofShort } from '../services/signature';
-import { batchLabel, expiryState, mmYY, normExpiry } from '../services/hospital';
-import { StoreStatus, batchToIssue, heldByPerson, planStoreImport, readStoreSheet, storeCounts, storeSheet, storeStatus, storeTemplateRows, toOrder } from '../services/stores';
+import { Batch, batchLabel, expiryState, mmYY, normExpiry } from '../services/hospital';
+import { StoreStatus, batchToIssue, heldByPerson, planStoreImport, readStoreSheet, storeCounts, storeDept, storeSheet, storeStatus, storeTemplateRows, storeUse, toOrder } from '../services/stores';
 import { exportDocPdf } from '../services/hospitalReport';
 import { pickSheetRows, saveSheet } from '../services/sheetFiles';
 import { aiReadDocument, aiRenameHeadings } from '../services/aiImport';
@@ -44,9 +44,9 @@ import { useSync } from '../contexts/SyncContext';
 import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { moduleOn } from '../constants/modules';
-import { onOrder } from '../services/sparesNeed';
+import { deliveryDays, onOrder } from '../services/sparesNeed';
 import { nextOrderNo } from '../services/orders';
-import { ORDER_DEPT_LABEL, OrderDept, PurchaseOrder } from '../types/orders';
+import { ORDER_DEPTS, ORDER_DEPT_LABEL, PurchaseOrder } from '../types/orders';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
 import { t, tk, tn, useT } from '../utils/i18n';
@@ -58,7 +58,7 @@ const MOVE_TEXT: Record<StoreMoveKind, string> = { received: 'Received', issued:
 const ICONS: Record<string, string> = {
   Body: 'tshirt-crew-outline', Feet: 'shoe-formal', Hands: 'hand-back-left-outline', 'Eyes & face': 'safety-goggles', Head: 'hard-hat', Hearing: 'ear-hearing', Breathing: 'face-mask-outline', 'Fall protection': 'seatbelt', Water: 'lifebuoy',
   'Dry store': 'package-variant', Chilled: 'fridge-outline', Frozen: 'snowflake', Beverages: 'cup-water', Bakery: 'bread-slice-outline', 'Fresh fruit & veg': 'food-apple-outline', 'Cleaning & galley': 'spray-bottle',
-  Deck: 'anchor', 'Ropes & rigging': 'link-variant', Paint: 'format-paint', Engine: 'engine-outline', Electrical: 'flash-outline', Tools: 'wrench-outline', Cleaning: 'spray-bottle', Chemicals: 'flask-outline', Other: 'package-variant',
+  Deck: 'anchor', 'Ropes & rigging': 'link-variant', Paint: 'format-paint', Engine: 'engine-outline', Electrical: 'flash-outline', Tools: 'wrench-outline', Cleaning: 'spray-bottle', Chemicals: 'flask-outline', Stationery: 'pencil-outline', Other: 'package-variant',
 };
 
 export default function StoresSc() {
@@ -106,7 +106,8 @@ export default function StoresSc() {
   const rows = useMemo(() => storeStatus(items, moves, today), [items, moves, today]);
   const counts = storeCounts(rows);
   // Below the minimum, less what is already on an open order (services/sparesNeed onOrder).
-  const toBuy = useMemo(() => toOrder(rows, onOrder(purchaseOrders, 'storeItemId')), [rows, purchaseOrders]);
+  // With use on record: at the re-order point (minimum + use during the lead time).
+  const toBuy = useMemo(() => toOrder(rows, onOrder(purchaseOrders, 'storeItemId'), storeUse(moves, today), deliveryDays(purchaseOrders, 'storeItemId')), [rows, purchaseOrders, moves, today]);
   const cats = STORE_CATEGORIES[store];
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   const shown = rows
@@ -220,25 +221,73 @@ export default function StoresSc() {
     }
   };
   const orderSheet = () => saveSheet([['Item', 'Size', 'Category', 'Unit', 'On hand (in date)', 'Minimum', 'On order', 'To order'], ...toBuy.map((o) => { const r = rows.find((x) => x.item.id === o.item.id)!; return [o.item.name, o.item.size ?? '', o.item.category ?? '', o.item.unit, r.usable, o.item.min, o.onOrder || '', o.need]; })], 'To order', `${room.name} — to order ${today}`, vessel).then(done, fail);
-  // The list to order as a draft requisition — one per store, the department it orders through.
+  // Draft requisitions from a list to order — one per department (storeDept).
+  const makeDrafts = async (list: ReturnType<typeof toOrder>, note: string): Promise<PurchaseOrder[]> => {
+    let nos = purchaseOrders;
+    const made: PurchaseOrder[] = [];
+    for (const dept of ORDER_DEPTS.filter((d) => list.some((o) => storeDept(o.item) === d))) {
+      const now = Date.now();
+      const order: PurchaseOrder = {
+        id: uid('po'), no: nextOrderNo(nos, dept), dept, status: 'draft', date: today, by: '', at: now, updatedAt: now, notes: note,
+        lines: list.filter((o) => storeDept(o.item) === dept).map((o) => ({
+          id: uid('ol'), description: storeItemTitle(o.item), qty: o.need, unit: o.item.unit, stockQty: o.usable, storeItemId: o.item.id,
+          ...(o.daily ? { notes: `uses ~${Math.round(o.daily * 300) / 10}/month — re-order point ${o.rop}` } : {}),
+        })),
+      };
+      await saveRow(storage.PURCHASE_ORDERS_KEY, order);
+      nos = [...nos, order];
+      made.push(order);
+    }
+    return made;
+  };
   const draftOrder = () => {
     if (!toBuy.length) return Alert.alert(t('sp.newOrder'), t('sp.nothingToOrder'));
-    const dept: OrderDept = store === 'provisions' ? 'galley' : 'deck';
-    Alert.alert(t('sp.createOrders'), `${ORDER_DEPT_LABEL[dept]}: ${tn('n.line', toBuy.length)}`, [
+    const depts = ORDER_DEPTS.filter((d) => toBuy.some((o) => storeDept(o.item) === d));
+    Alert.alert(t('sp.createOrders'), depts.map((d) => `${ORDER_DEPT_LABEL[d]}: ${tn('n.line', toBuy.filter((o) => storeDept(o.item) === d).length)}`).join('\n'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('sp.create'),
         onPress: () => void (async () => {
-          const now = Date.now();
-          const order: PurchaseOrder = {
-            id: uid('po'), no: nextOrderNo(purchaseOrders, dept), dept, status: 'draft', date: today, by: '', at: now, updatedAt: now,
-            notes: room.name,
-            lines: toBuy.map((o) => ({ id: uid('ol'), description: storeItemTitle(o.item), qty: o.need, unit: o.item.unit, stockQty: rows.find((x) => x.item.id === o.item.id)?.usable, storeItemId: o.item.id })),
-          };
-          await saveRow(storage.PURCHASE_ORDERS_KEY, order);
-          nav.navigate('Order', { id: order.id });
+          const made = await makeDrafts(toBuy, room.name);
+          if (made.length) nav.navigate('Order', { id: made[0].id });
         })(),
       },
+    ]);
+  };
+
+  // ---- stocktake: every batch of what is shown (a category, a search), signed once ----
+  const [counting, setCounting] = useState<Record<string, string> | null>(null);
+  const countLines = useMemo(() => shown.flatMap((r): { r: StoreStatus; b?: Batch; key: string }[] => (r.batches.length ? r.batches.map((b) => ({ r, b, key: `${r.item.id}|${b.key}` })) : [{ r, b: undefined, key: `${r.item.id}|` }])), [shown]);
+  const startCount = () => setCounting(Object.fromEntries(countLines.map((l) => [l.key, String(l.b?.qty ?? 0)])));
+  const saveCount = async () => {
+    if (!counting) return;
+    const lines = countLines.filter((l) => counting[l.key] != null).map((l) => ({ ...l, n: Number(counting[l.key].replace(',', '.')) }));
+    if (lines.some((l) => !counting[l.key].trim() || !Number.isFinite(l.n) || l.n < 0)) return Alert.alert(t('sp.stocktake'), t('sp.everyLine'));
+    if (!signer) return Alert.alert(t('mc.whoCounted'), t('round.chooseName'));
+    const where = cat ? `${room.name} · ${cat}` : room.name;
+    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Stocktake: ${where} — ${lines.length} line${lines.length === 1 ? '' : 's'}` });
+    if (!sig) return;
+    const now = Date.now();
+    // Every line counted is recorded — an unchanged count is the evidence it was checked.
+    const counted: StoreMove[] = lines.filter((l) => l.n > 0 || l.b).map((l) => ({
+      id: uid('stm'), itemId: l.r.item.id, kind: 'count', qty: l.n, ...(l.b?.batchNo ? { batchNo: l.b.batchNo } : {}), ...(l.b?.expiry ? { expiry: l.b.expiry } : {}), date: today, note: `Stocktake ${where}`,
+      by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now,
+    }));
+    await saveRows(storage.STORE_MOVES_KEY, counted);
+    setCounting(null);
+    playSuccessSound();
+    const diff = lines.filter((l) => l.n !== (l.b?.qty ?? 0)).length;
+    const msg = t('sp.counted', { x: tn('n.line', lines.length), n: diff });
+    if (!moduleOn('orders')) return Alert.alert(t('sp.stocktake'), msg);
+    // What the count leaves at or below the re-order point goes straight into a draft.
+    const ids = new Set(lines.map((l) => l.r.item.id));
+    const after = [...moves, ...counted];
+    const list = toOrder(storeStatus(items, after, today).filter((r) => ids.has(r.item.id)), onOrder(purchaseOrders, 'storeItemId'), storeUse(after, today), deliveryDays(purchaseOrders, 'storeItemId'));
+    if (!list.length) return Alert.alert(t('sp.stocktake'), `${msg}\n\n${t('sp.countNoOrder')}`);
+    const made = await makeDrafts(list, `From the stocktake of ${where}, ${uiDate(today)} — ${signer.name}`);
+    Alert.alert(t('sp.stocktake'), `${msg}\n\n${t('sp.countDraft', { x: tn('n.line', list.length), nos: made.map((o) => o.no).join(', ') })}`, [
+      { text: t('common.ok'), style: 'cancel' },
+      { text: t('sp.openDraft'), onPress: () => nav.navigate('Order', { id: made[0].id }) },
     ]);
   };
 
@@ -317,6 +366,7 @@ export default function StoresSc() {
             <TouchableOpacity style={styles.btn} onPress={() => setEdit({ id: uid('sto'), store, ...own, name: '', unit: store === 'provisions' ? 'packs' : 'pcs', min: 0, order: items.length, updatedAt: Date.now(), ...(cat ? { category: cat } : {}) })}><Text style={styles.btnText}>{`+ ${t('def.item')}`}</Text></TouchableOpacity>
             <TouchableOpacity style={styles.small} disabled={!toBuy.length} onPress={() => void orderSheet()}><Text style={styles.smallText}>{t('st.toOrder', { n: toBuy.length })}</Text></TouchableOpacity>
             {moduleOn('orders') && toBuy.length ? <TouchableOpacity style={styles.small} onPress={draftOrder}><Text style={styles.smallText}>{`→ ${t('sp.newOrder')}`}</Text></TouchableOpacity> : null}
+            {shown.length && !counting ? <TouchableOpacity style={styles.small} onPress={startCount}><Text style={styles.smallText}>{t('sp.stocktake')}</Text></TouchableOpacity> : null}
             <TouchableOpacity style={styles.small} onPress={() => void importSheet()}><Text style={styles.smallText}>{t('pax.fromExcel')}</Text></TouchableOpacity>
             {aiReady(sync.enrolled) ? (
               <>
@@ -356,7 +406,28 @@ export default function StoresSc() {
             </Card>
           ) : null}
 
-          {shown.map((r, k) => {
+          {counting ? (
+            <Card>
+              <Label>{`${t('sp.stocktake')} · ${cat || room.name}`}</Label>
+              <Text style={styles.sub}>{t('sp.countHint')}</Text>
+              {countLines.map((l) => (
+                <View key={l.key} style={[styles.row, { alignItems: 'center' }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.name}>{storeItemTitle(l.r.item)}</Text>
+                    <Text style={styles.sub}>{[l.b ? batchLabel(l.b) : null, l.r.item.location, l.r.item.unit].filter(Boolean).join(' · ')}</Text>
+                  </View>
+                  <TextInput style={[styles.input, { width: 90, marginTop: 0 }]} value={counting[l.key] ?? ''} onChangeText={(v) => setCounting({ ...counting, [l.key]: v })} keyboardType="decimal-pad" selectTextOnFocus />
+                </View>
+              ))}
+              {picker}
+              <View style={styles.row}>
+                <TouchableOpacity style={styles.btn} onPress={() => void saveCount()}><Text style={styles.btnText}>{t('sp.record')}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setCounting(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
+              </View>
+            </Card>
+          ) : null}
+
+          {counting ? null : shown.map((r, k) => {
             const head = (r.item.category ?? '') !== (shown[k - 1]?.item.category ?? (k ? '' : '§')) ? r.item.category ?? 'Other' : null;
             const isOpen = open === r.item.id;
             const last = moves.filter((m) => m.itemId === r.item.id).sort((a, b) => b.at - a.at).slice(0, 6);

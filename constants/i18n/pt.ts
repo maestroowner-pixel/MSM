@@ -2592,6 +2592,8 @@ export const pt: UiDict = {
   "sp.countDraft": "Rascunho de pedido {nos} criado: {x} no ponto de pedido ou abaixo (mínimo + consumo durante o prazo de entrega).",
   "sp.openDraft": "Abrir o rascunho",
   "sp.useMonth": "consome ~{n}/mês · pedir em {r}",
+  "mc.toOrderAfter": "Após a contagem, {x} a pedir (abaixo da escala, a vencer ou usados mais rápido do que chega um pedido).",
+  "mc.openOrder": "Abrir o pedido",
   "sp.allOnShelf": "Tudo o que os trabalhos PMS dos próximos {n} dias usam está na prateleira.",
   "sp.searchPh": "Buscar nome, nº da peça, fabricante, local…",
   "sp.parts": "Peças",

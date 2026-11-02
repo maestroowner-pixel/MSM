@@ -2601,6 +2601,8 @@ export const en = {
   "sp.countDraft": "Draft requisition {nos} made: {x} at or below the re-order point (minimum + use during the lead time).",
   "sp.openDraft": "Open the draft",
   "sp.useMonth": "uses ~{n}/month · re-order at {r}",
+  "mc.toOrderAfter": "After the count, {x} to order (short of the scale, expiring, or used faster than an order arrives).",
+  "mc.openOrder": "Open the order",
   "sp.allOnShelf": "Everything the PMS jobs of the next {n} days use is on the shelf.",
   "sp.searchPh": "Search name, part no., maker, location…",
   "sp.parts": "Parts",

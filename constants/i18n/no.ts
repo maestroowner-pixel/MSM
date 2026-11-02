@@ -2592,6 +2592,8 @@ export const no: UiDict = {
   "sp.countDraft": "Utkast til rekvisisjon {nos} laget: {x} på eller under bestillingspunktet (minimum + forbruk i leveringstiden).",
   "sp.openDraft": "Åpne utkastet",
   "sp.useMonth": "bruker ~{n}/mnd · bestill ved {r}",
+  "mc.toOrderAfter": "Etter tellingen må {x} bestilles (under skalaen, går ut på dato eller brukes raskere enn en bestilling kommer).",
+  "mc.openOrder": "Åpne bestillingen",
   "sp.allOnShelf": "Alt PMS-jobbene de neste {n} dagene bruker, står på hylla.",
   "sp.searchPh": "Søk navn, delenr., produsent, plassering…",
   "sp.parts": "Deler",

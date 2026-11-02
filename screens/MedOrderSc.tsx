@@ -27,7 +27,7 @@ import { roleAtLeast } from '../types/role';
 import { MedMove, MedOrder, OrderLine } from '../types/hospital';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
-import { batchLabel, ORDER_STATE_LABEL, chestStatus, isArchived, nextNo, normExpiry, onOrderByItem, orderOverdue, orderState, receivedByLine, toOrder } from '../services/hospital';
+import { batchLabel, ORDER_STATE_LABEL, chestStatus, isArchived, nextNo, normExpiry, onOrderByItem, orderOverdue, orderState, receivedByLine, toOrder, medLeadDays, medUse } from '../services/hospital';
 import { exportOrderPdf } from '../services/hospitalReport';
 import { uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
@@ -59,7 +59,7 @@ export default function MedOrderSc() {
   const [draft, setDraft] = useState<MedOrder | null>(() => {
     if (!isNew) return null;
     const lines: OrderLine[] = route.params?.fill === 'short'
-      ? toOrder(chestStatus(medItems, medMoves, today), today, onOrderByItem(medOrders, medMoves)).map((x) => ({ id: uid('ol'), itemId: x.item.id, name: x.item.name, ...(x.item.strength ? { strength: x.item.strength } : {}), unit: x.item.unit, qty: x.need }))
+      ? toOrder(chestStatus(medItems, medMoves, today), today, onOrderByItem(medOrders, medMoves), medUse(medMoves, today), medLeadDays(medOrders, medMoves)).map((x) => ({ id: uid('ol'), itemId: x.item.id, name: x.item.name, ...(x.item.strength ? { strength: x.item.strength } : {}), unit: x.item.unit, qty: x.need }))
       : [];
     return { id: uid('mo'), no: '', date: today, lines, by: '', at: Date.now(), updatedAt: Date.now() };
   });

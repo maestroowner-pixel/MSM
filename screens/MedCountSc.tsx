@@ -27,14 +27,14 @@ import { CheckLine, MedCheck, MedMove } from '../types/hospital';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { proofShort } from '../services/signature';
-import { batchLabel, CHECK_KIND_LABEL, chestStatus, checkLinesFor, expiryState, nextNo, normExpiry } from '../services/hospital';
+import { batchLabel, CHECK_KIND_LABEL, chestStatus, checkLinesFor, expiryState, medLeadDays, medUse, nextNo, normExpiry, onOrderByItem, toOrder } from '../services/hospital';
 import { exportCheckPdf } from '../services/hospitalReport';
 import { uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
-import { t, useT } from '../utils/i18n';
+import { t, tn, useT } from '../utils/i18n';
 
 type Row = CheckLine & { key: string; text: string; found?: boolean };
 
@@ -44,7 +44,7 @@ export default function MedCountSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { medItems, medMoves, medChecks, saveRow, saveRows, vessel } = useData();
+  const { medItems, medMoves, medChecks, medOrders, saveRow, saveRows, vessel } = useData();
   const sync = useSync();
   const officer = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const confirmSign = useSignConfirm();
@@ -158,6 +158,16 @@ export default function MedCountSc() {
     await saveRows(storage.MED_MOVES_KEY, counts);
     playSuccessSound();
     setSavedId(c.id);
+    // What the chest is short of after the count (the scale, plus the use during the lead time) —
+    // the order filled in the same way (MedOrderSc fill 'short'), to check and sign.
+    const after = [...medMoves, ...counts];
+    const short = toOrder(chestStatus(medItems, after, today), today, onOrderByItem(medOrders, after), medUse(after, today), medLeadDays(medOrders, after));
+    if (short.length && mode !== 'handover') {
+      Alert.alert(t('mc.inventory'), t('mc.toOrderAfter', { x: tn('n.line', short.length) }), [
+        { text: t('common.ok'), style: 'cancel' },
+        { text: t('mc.openOrder'), onPress: () => nav.navigate('MedOrder', { id: 'new', fill: 'short' }) },
+      ]);
+    }
   };
 
   return (

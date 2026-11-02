@@ -99,23 +99,40 @@ export interface Lead { days: number; from: 'history' | 'supplier' }
  * the usual supplier's stated lead time.
  */
 export function leadTimes(parts: SparePart[], orders: PurchaseOrder[]): Map<string, Lead> {
+  const seen = deliveryDays(orders, 'spareId');
+  const out = new Map<string, Lead>();
+  for (const p of parts) {
+    const h = seen.get(p.id);
+    if (h != null) out.set(p.id, { days: h, from: 'history' });
+    else if (p.suppliers?.[0]?.leadDays != null) out.set(p.id, { days: p.suppliers[0].leadDays, from: 'supplier' });
+  }
+  return out;
+}
+
+/** Mean days from sending to the delivery that brought the line, last three per item (by `link`), rounded up. */
+export function deliveryDays(orders: PurchaseOrder[], link: 'spareId' | 'storeItemId'): Map<string, number> {
   const seen = new Map<string, { sent: string; days: number }[]>();
   for (const o of orders) {
     if (o.deleted || !o.sentAt) continue;
     for (const l of o.lines) {
-      if (!l.spareId) continue;
+      const id = l[link];
+      if (!id) continue;
       const got = (o.deliveries ?? []).filter((d) => (d.lines[l.id] ?? 0) > 0).map((d) => d.date).sort()[0] ?? (o.status === 'received' ? o.receivedAt : undefined);
       if (!got) continue;
       const days = dayN(got) - dayN(o.sentAt);
       if (!(days >= 0)) continue;
-      seen.set(l.spareId, [...(seen.get(l.spareId) ?? []), { sent: o.sentAt, days }]);
+      seen.set(id, [...(seen.get(id) ?? []), { sent: o.sentAt, days }]);
     }
   }
-  const out = new Map<string, Lead>();
-  for (const p of parts) {
-    const h = (seen.get(p.id) ?? []).sort((a, b) => b.sent.localeCompare(a.sent)).slice(0, 3);
-    if (h.length) out.set(p.id, { days: Math.ceil(h.reduce((s, x) => s + x.days, 0) / h.length), from: 'history' });
-    else if (p.suppliers?.[0]?.leadDays != null) out.set(p.id, { days: p.suppliers[0].leadDays, from: 'supplier' });
+  return meanOfLast(seen);
+}
+
+/** The mean of the newest three, rounded up — one late delivery does not set the lead time for good. */
+export function meanOfLast(seen: Map<string, { sent: string; days: number }[]>): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const [id, list] of seen) {
+    const h = [...list].sort((a, b) => b.sent.localeCompare(a.sent)).slice(0, 3);
+    out.set(id, Math.ceil(h.reduce((s, x) => s + x.days, 0) / h.length));
   }
   return out;
 }
@@ -129,13 +146,21 @@ export const COVER_DAYS = 90;
  * under 30 days, so one impeller taken last week is not read as a daily habit.
  */
 export function dailyUse(moves: SpareMove[], today = todayIso(), days = 365): Map<string, number> {
+  return dailyRate(moves.map((m) => ({ id: m.partId, date: m.date, used: m.kind === 'used' ? -m.delta : 0 })), today, days);
+}
+
+/**
+ * Use per day from any stock's movements (`used` 0 for a movement that is not use —
+ * it still dates when the item came aboard). Shared by spares, stores and the medicine chest.
+ */
+export function dailyRate(entries: { id: string; date: string; used: number }[], today = todayIso(), days = 365): Map<string, number> {
   const from = dayN(today) - days;
   const first = new Map<string, number>();
   const used = new Map<string, number>();
-  for (const m of moves) {
+  for (const m of entries) {
     const d = dayN(m.date);
-    first.set(m.partId, Math.min(first.get(m.partId) ?? Infinity, d));
-    if (m.kind === 'used' && d > from && d <= dayN(today)) used.set(m.partId, (used.get(m.partId) ?? 0) - m.delta);
+    first.set(m.id, Math.min(first.get(m.id) ?? Infinity, d));
+    if (m.used && d > from && d <= dayN(today)) used.set(m.id, (used.get(m.id) ?? 0) + m.used);
   }
   const out = new Map<string, number>();
   for (const [id, u] of used) {
@@ -153,7 +178,7 @@ export interface Levels {
   target: number;
 }
 
-const up = (n: number) => Math.ceil(n - 1e-9);
+export const up = (n: number) => Math.ceil(n - 1e-9);
 
 /** Re-order point and order-up-to level from the minimum, the use per day and the lead time. */
 export function levels(part: Pick<SparePart, 'minQty' | 'maxQty'>, daily = 0, leadDays = 0): Levels {

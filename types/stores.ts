@@ -126,7 +126,7 @@ export interface StoreMove {
 
 export const PPE_CATEGORIES = ['Body', 'Feet', 'Hands', 'Eyes & face', 'Head', 'Hearing', 'Breathing', 'Fall protection', 'Water'];
 export const PROVISION_CATEGORIES = ['Dry store', 'Chilled', 'Frozen', 'Beverages', 'Bakery', 'Fresh fruit & veg', 'Cleaning & galley'];
-export const GENERAL_CATEGORIES = ['Deck', 'Ropes & rigging', 'Paint', 'Engine', 'Electrical', 'Tools', 'Cleaning', 'Chemicals', 'Other'];
+export const GENERAL_CATEGORIES = ['Deck', 'Ropes & rigging', 'Paint', 'Engine', 'Electrical', 'Tools', 'Cleaning', 'Chemicals', 'Stationery', 'Other'];
 export const STORE_CATEGORIES: Record<StoreKind, string[]> = { ppe: PPE_CATEGORIES, provisions: PROVISION_CATEGORIES, general: GENERAL_CATEGORIES };
 
 /** A typical yacht PPE store — a starting list the vessel edits. Sized items are one line per size. */

@@ -8,6 +8,8 @@ import { Batch, daysTo, expiryState, normExpiry, stockByItem } from './hospital'
 import { StoreItem, StoreKind, StoreMove, StoreRoom, isBuiltinRoom, roomOf, storeItemTitle } from '../types/stores';
 import type { MedMove } from '../types/hospital';
 import { uid } from '../utils/id';
+import type { OrderDept } from '../types/orders';
+import { COVER_DAYS, dailyRate, up } from './sparesNeed';
 
 export interface StoreStatus {
   item: StoreItem;
@@ -72,9 +74,35 @@ export function heldByPerson(items: StoreItem[], moves: StoreMove[]): Map<string
   return res;
 }
 
-/** To order: below the minimum — up to the minimum, as many as are short, less what is already on order (sparesNeed onOrder). */
-export const toOrder = (rows: StoreStatus[], onOrder: Map<string, number> = new Map()) =>
-  rows.map((r) => ({ item: r.item, need: Math.max(0, r.short - (onOrder.get(r.item.id) ?? 0)), onOrder: onOrder.get(r.item.id) ?? 0 })).filter((x) => x.need > 0);
+/** Use per day: issued less returned (sparesNeed dailyRate). Disposed is waste, not use. */
+export const storeUse = (moves: StoreMove[], today: string) =>
+  dailyRate(moves.map((m) => ({ id: m.itemId, date: m.date, used: m.kind === 'issued' ? m.qty : m.kind === 'returned' ? -m.qty : 0 })), today);
+
+/**
+ * To order. With no use on record: below the minimum, up to it, as before. With use:
+ * at or below the re-order point (minimum + use during the lead time), up to that
+ * point plus 90 days' use. What is already on an open order counts as stock.
+ */
+export function toOrder(rows: StoreStatus[], onOrder: Map<string, number> = new Map(), use: Map<string, number> = new Map(), lead: Map<string, number> = new Map()) {
+  return rows.map((r) => {
+    const later = onOrder.get(r.item.id) ?? 0;
+    const daily = use.get(r.item.id) ?? 0;
+    const rop = r.item.min + up(daily * (lead.get(r.item.id) ?? 0));
+    const position = r.usable + later;
+    const due = position < r.item.min || (daily > 0 && position <= rop);
+    const target = daily > 0 ? rop + Math.max(1, up(daily * COVER_DAYS)) : r.item.min;
+    return { item: r.item, need: due ? Math.max(0, Math.round((target - position) * 1000) / 1000) : 0, onOrder: later, daily, rop, usable: r.usable };
+  }).filter((x) => x.need > 0);
+}
+
+/** Which department orders a store item: provisions the galley; engine and electrical stores the engine; stationery the bridge; cleaning the interior; the rest the deck. */
+export function storeDept(item: StoreItem): OrderDept {
+  if (item.store === 'provisions') return 'galley';
+  if (item.store === 'general' && (item.category === 'Engine' || item.category === 'Electrical')) return 'engine';
+  if (item.category === 'Stationery') return 'bridge';
+  if (item.category === 'Cleaning') return 'accommodation';
+  return 'deck';
+}
 
 export const nextStoreNo = (prefix: string, n: number) => `${prefix}-${String(n).padStart(3, '0')}`;
 

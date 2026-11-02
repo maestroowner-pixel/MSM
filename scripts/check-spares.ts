@@ -140,5 +140,41 @@ import { dailyUse, levels, qtyFor } from '../services/sparesNeed';
   ok(r.length === 1 && r[0].part.id === 'f' && r[0].qty === 11 && r[0].rop === 8, '6 on hand is above the minimum but below the re-order point → 11 to the target');
   ok(reorderList([], [], [], parts, new Map([['f', 6], ['n', 0]]), [], 30, '2026-12-31', true, ms, new Set(['n'])).map((x) => x.part.id).join() === 'n', 'only the parts counted');
 }
+// Stores and the medicine chest on the same rules.
+import { storeDept, storeUse, toOrder as storeToOrder } from '../services/stores';
+import { medLeadDays, medUse, toOrder as medToOrder } from '../services/hospital';
+import { deliveryDays } from '../services/sparesNeed';
+{
+  const it = (id: string, min: number, extra: any = {}): any => ({ id, store: 'general', name: id, unit: 'pcs', min, order: 0, updatedAt: 0, ...extra });
+  const row = (item: any, usable: number): any => ({ item, batches: [], onHand: usable, expired: 0, usable, short: Math.max(0, item.min - usable), soon: false });
+  const pens = it('pens', 10, { category: 'Stationery' });
+  const rope = it('rope', 2);
+  ok(storeToOrder([row(pens, 4), row(rope, 2)]).map((x) => `${x.item.id}:${x.need}`).join() === 'pens:6', 'no use on record: below the minimum, up to it (as before)');
+  ok(storeToOrder([row(pens, 4)], new Map([['pens', 4]])).map((x) => x.need).join() === '2', 'on order counts');
+  const sm = (itemId: string, kind: any, qty: number, date: string): any => ({ id: itemId + date + kind, itemId, kind, qty, date, by: 'A', at: 1, updatedAt: 0 });
+  const use = storeUse([sm('pens', 'received', 60, '2025-12-01'), sm('pens', 'issued', 40, '2026-06-01'), sm('pens', 'returned', 4, '2026-06-02'), sm('pens', 'disposed', 10, '2026-07-01')], '2026-12-01');
+  ok(Math.abs(use.get('pens')! - 36 / 365) < 1e-9, 'store use: issued less returned; disposed is not use');
+  const po: any = { id: 'p', no: 'p', dept: 'bridge', status: 'received', date: '2026-01-01', by: '', sentAt: '2026-01-01', receivedAt: '2026-01-21', lines: [{ id: 'l', description: 'Pens', qty: 10, unit: 'pcs', storeItemId: 'pens' }], updatedAt: 0 };
+  const lead = deliveryDays([po], 'storeItemId');
+  ok(lead.get('pens') === 20, 'store lead time from orders with storeItemId');
+  // 0.0986/day × 20 d = 1.97 → re-order point 12; 90 days' use = 9 → target 21.
+  const r = storeToOrder([row(pens, 12)], new Map(), use, lead);
+  ok(r.length === 1 && r[0].need === 9 && r[0].rop === 12, 'with use: at the re-order point (above the minimum) → up to it plus 90 days of use');
+  ok(!storeToOrder([row(pens, 13)], new Map(), use, lead).length, 'above the re-order point: nothing');
+  ok(storeDept(pens) === 'bridge' && storeDept(it('x', 1, { category: 'Engine' })) === 'engine' && storeDept({ ...rope, store: 'provisions' }) === 'galley' && storeDept(it('y', 1, { category: 'Cleaning' })) === 'accommodation' && storeDept(rope) === 'deck', 'store items → departments');
+
+  const med: any = { id: 'para', name: 'Paracetamol', unit: 'tab', required: 100, updatedAt: 0 };
+  const mrow = (usable: number, expiring = 0): any => ({ item: med, batches: expiring ? [{ key: 'b', qty: expiring, expiry: '2027-01-15' }] : [], onHand: usable, usable, short: Math.max(0, 100 - usable) });
+  ok(medToOrder([mrow(60)], '2026-12-01')[0].need === 40 && !medToOrder([mrow(100)], '2026-12-01').length, 'chest: short of the scale, as before');
+  ok(medToOrder([mrow(120, 50)], '2026-12-01')[0].need === 50, 'expiring within 90 days still replaced, as before');
+  const mm = (kind: any, qty: number, date: string, extra: any = {}): any => ({ id: kind + date, itemId: 'para', kind, qty, date, by: 'A', at: 1, updatedAt: 0, ...extra });
+  const mo: any = { id: 'o', no: 'MO-2026-001', date: '2026-03-01', lines: [{ id: 'ln', itemId: 'para', name: 'Paracetamol', unit: 'tab', qty: 100 }], by: 'A', at: 1, updatedAt: 0 };
+  const mv = [mm('received', 200, '2025-12-01'), mm('issued', 365, '2026-11-30'), mm('received', 100, '2026-03-31', { orderId: 'o', lineId: 'ln' })];
+  const mu = medUse(mv, '2026-12-01');
+  const ml = medLeadDays([mo], mv);
+  ok(Math.abs(mu.get('para')! - 1) < 1e-9 && ml.get('para') === 30, 'chest use 1/day; lead 30 d from the order date to its first delivery');
+  const x = medToOrder([mrow(100)], '2026-12-01', new Map(), mu, ml);
+  ok(x.length === 1 && x[0].need === 30 && x[0].extra === 30, 'at the scale but used faster than an order arrives → the use during the lead time');
+}
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

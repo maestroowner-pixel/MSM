@@ -6,6 +6,7 @@
 
 import { HospitalCategory, IMGS_REFERENCE, MED_SCALE, NURSING_SCALE, ScaleMedicine, ScaleNursing } from '../constants/medScale';
 import { isMasked, maskName } from '../utils/privacy';
+import { dailyRate, meanOfLast } from './sparesNeed';
 import { CheckLine, Issued, LandingReason, MedCheck, MedItem, MedKind, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 
 export interface Batch {
@@ -445,15 +446,43 @@ export function referenceOf(item: Pick<MedItem, 'name' | 'strength' | 'code' | '
   };
 }
 
-/** What to order: short of the scale, or expiring within 90 days — never more than the scale. */
-export function toOrder(rows: ItemStatus[], today: string, onOrder: Map<string, number> = new Map()): { item: MedItem; short: number; expiring: number; need: number }[] {
+/**
+ * What to order: short of the scale, or expiring within 90 days — never more than the
+ * scale, unless the chest is used faster than an order arrives: then the scale plus
+ * the use during the lead time (`use` per day, `lead` days — medUse, medLeadDays).
+ */
+export function toOrder(rows: ItemStatus[], today: string, onOrder: Map<string, number> = new Map(), use: Map<string, number> = new Map(), lead: Map<string, number> = new Map()): { item: MedItem; short: number; expiring: number; need: number; extra: number }[] {
   return rows
     .map((r) => {
       const expiring = r.batches.filter((b) => ['soon', 'later'].includes(expiryState(today, b.expiry))).reduce((s, b) => s + b.qty, 0);
-      const need = Math.max(0, Math.min(r.item.required, r.short + expiring) - (onOrder.get(r.item.id) ?? 0));
-      return { item: r.item, short: r.short, expiring, need };
+      const extra = Math.ceil((use.get(r.item.id) ?? 0) * (lead.get(r.item.id) ?? 0) - 1e-9);
+      const base = Math.max(Math.min(r.item.required, r.short + expiring), r.item.required + extra - (r.usable - expiring));
+      const need = Math.max(0, base - (onOrder.get(r.item.id) ?? 0));
+      return { item: r.item, short: r.short, expiring, need, extra };
     })
     .filter((x) => x.need > 0);
+}
+
+/** Use per day from the chest: issued less returned over the last year (sparesNeed dailyRate rules). */
+export function medUse(moves: MedMove[], today: string): Map<string, number> {
+  return dailyRate(moves.map((m) => ({ id: m.itemId, date: m.date, used: m.kind === 'issued' ? m.qty : m.kind === 'returned' ? -m.qty : 0 })), today);
+}
+
+/** Days from an order's date to the first delivery of each line, per item (newest three, mean). */
+export function medLeadDays(orders: MedOrder[], moves: MedMove[]): Map<string, number> {
+  const first = new Map<string, string>();
+  for (const m of moves) if (m.kind === 'received' && m.orderId && m.lineId) {
+    const k = `${m.orderId}|${m.lineId}`;
+    if (!first.has(k) || m.date < first.get(k)!) first.set(k, m.date);
+  }
+  const seen = new Map<string, { sent: string; days: number }[]>();
+  for (const o of orders) for (const l of o.lines) {
+    const got = first.get(`${o.id}|${l.id}`);
+    if (!got) continue;
+    const days = daysTo(o.date, got);
+    if (days >= 0) seen.set(l.itemId, [...(seen.get(l.itemId) ?? []), { sent: o.date, days }]);
+  }
+  return meanOfLast(seen);
 }
 
 // ---- the register's order (13 Oct 2026: "sort by purpose, by expiry, alphabetically") ----
