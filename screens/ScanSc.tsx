@@ -45,6 +45,7 @@ import { SCAN_BARCODE_TYPES, ScanMatch, lookupScan } from '../services/barcode';
 import { SIZES, Palette } from '../theme';
 import { goBackOr } from '../utils/nav';
 import { recordScanProof, signerRule, signingGate } from '../services/signingPolicy';
+import { findGroup, groupProofKey, parseGroupQr } from '../services/checkGroups';
 import { useSignConfirm, SignResult } from '../components/SignConfirm';
 import { SignerPicker } from '../components/SignerPicker';
 import * as inspections from '../services/inspections';
@@ -260,6 +261,15 @@ export default function ScanSc() {
           locked.current = false;
         }, ms);
       };
+
+      // A check group's label (msm://group/<id>, services/checkGroups): scanned with the
+      // camera it is the proof of presence for the whole group; the group check opens.
+      const groupId = parseGroupQr(code);
+      if (groupId) {
+        if (!findGroup(flat, groupId)) return hold({ name: t('gc.title'), text: t('gc.labelGone'), ok: false }, 3000);
+        if (via === 'camera') recordScanProof(groupProofKey(groupId), 'qr-camera');
+        return nav.replace('GroupCheck', { groupId });
+      }
 
       // A security round checkpoint (msm://checkpoint/<id>), or its ID typed (CP-03):
       // recorded in the round under way on this device (Jez, 17 Oct 2026).

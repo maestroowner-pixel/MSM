@@ -152,8 +152,11 @@ export interface Inspection {
  * `qr-link`   — the phone's camera read the label and opened the app on the item.
  * `override`  — the vessel requires a scan, there was none, and a Master signed
  *               anyway with a reason.
+ * `group`     — checked by eye with the rest of its check group and signed once
+ *               for all of them (services/checkGroups.ts). Each item still gets
+ *               its own record; `group` / `groupId` say which signing it was.
  */
-export type VerificationMethod = 'qr-camera' | 'qr-link' | 'override';
+export type VerificationMethod = 'qr-camera' | 'qr-link' | 'override' | 'group';
 
 export interface InspectionVerification {
   method: VerificationMethod;
@@ -161,12 +164,21 @@ export interface InspectionVerification {
   scannedAt?: number;
   /** Why no scan — required for an override, printed in the report. */
   reason?: string;
+  /** A group check: the group's name and the id shared by every record of that one signing. */
+  group?: string;
+  groupId?: string;
+  /** How many items the one signature covered. */
+  groupSize?: number;
 }
 
 /** "QR 14:02" / "No scan — label missing" — one cell in a report, one line on screen. */
 export function verificationText(v: InspectionVerification | undefined, time: (ms: number) => string): string {
   if (!v) return '';
   if (v.method === 'override') return `No scan (Master): ${v.reason ?? ''}`.trim();
+  if (v.method === 'group') {
+    const how = v.scannedAt ? ` · group label QR ${time(v.scannedAt)}` : v.reason ? ` · no scan (Master): ${v.reason}` : '';
+    return `Group check: ${v.group ?? ''}${v.groupSize ? ` (${v.groupSize} items)` : ''}${how}`;
+  }
   return v.scannedAt ? `QR ${time(v.scannedAt)}` : 'QR';
 }
 

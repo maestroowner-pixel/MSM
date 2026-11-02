@@ -454,6 +454,14 @@ export async function appendInspection(insp: Inspection): Promise<void> {
   await saveInspections([insp, ...list]);
 }
 
+/** Several at once — a group check signs one record per item (services/checkGroups). */
+export async function appendInspections(add: Inspection[]): Promise<void> {
+  const list = await loadInspections();
+  const have = new Set(list.map((i) => i.id));
+  const fresh = add.filter((i) => !have.has(i.id));
+  if (fresh.length) await saveInspections([...fresh, ...list]);
+}
+
 /**
  * Write back one record. The ONLY legitimate use is closing (or re-opening) a
  * defect — everything else about a signed record is immutable, and a correction

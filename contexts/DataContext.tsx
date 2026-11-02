@@ -288,6 +288,7 @@ interface DataContextType {
   saveCompressor: (state: CompressorState) => Promise<void>;
   /** Record a signed inspection. Records are never edited afterwards. */
   addInspection: (insp: Inspection) => Promise<void>;
+  addInspections: (list: Inspection[]) => Promise<void>;
   /** Write back a record — legitimate ONLY for opening/closing its defect. */
   saveInspection: (insp: Inspection) => Promise<void>;
   saveCrewMember: (member: CrewMember) => Promise<void>;
@@ -796,6 +797,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const addInspection = useCallback(async (insp: Inspection) => {
     await storage.appendInspection(insp);
     setInspections((prev) => (prev.some((i) => i.id === insp.id) ? prev : [insp, ...prev]));
+  }, []);
+
+  const addInspections = useCallback(async (list: Inspection[]) => {
+    await storage.appendInspections(list);
+    setInspections((prev) => {
+      const have = new Set(prev.map((i) => i.id));
+      return [...list.filter((i) => !have.has(i.id)), ...prev];
+    });
   }, []);
 
   const saveInspection = useCallback(async (insp: Inspection) => {
@@ -1351,6 +1360,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         removeCertificate,
         saveCompressor,
         addInspection,
+        addInspections,
         saveInspection,
         saveCrewMember,
         removeCrewMember,

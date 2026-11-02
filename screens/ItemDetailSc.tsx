@@ -474,6 +474,8 @@ export default function ItemDetailSc() {
               <Field label={t('it.f.loc')} value={draft.position} onChange={(v) => set({ position: v })} />
             </View>
           </View>
+          {/* Signed off together with the rest of the group (services/checkGroups). */}
+          <Field label={t('it.f.checkGroup')} value={draft.checkGroup} onChange={(v) => set({ checkGroup: v })} />
 
           {/* Lifting & Mooring. Shown for that register only: SWL means nothing on a
               lifejacket, and a form of fields that never apply is how people stop

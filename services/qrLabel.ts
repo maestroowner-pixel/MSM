@@ -25,6 +25,7 @@
 // off — it has no print and its react-native-svg/expo-print are mocks.
 // ===================================
 
+import { parseGroupQr } from './checkGroups';
 import * as Print from 'expo-print';
 
 import QRCode from 'qrcode';
@@ -85,13 +86,16 @@ export { CREW_QR_SCHEME, crewQrPayload, parseCrewQr } from './crewQr';
 export type DeepLink =
   | { type: 'scan' }
   | { type: 'flagged' }
-  | { type: 'item'; id: string };
+  | { type: 'item'; id: string }
+  | { type: 'group'; id: string };
 
 export function parseDeepLink(url: string): DeepLink | null {
   const s = url.trim();
   const lower = s.toLowerCase();
   if (lower === 'msm://scan' || lower === 'msm://scan/') return { type: 'scan' };
   if (lower === 'msm://flagged' || lower === 'msm://flagged/') return { type: 'flagged' };
+  const group = parseGroupQr(s);
+  if (group) return { type: 'group', id: group };
   const id = parseItemQr(s);
   return id ? { type: 'item', id } : null;
 }
@@ -301,6 +305,8 @@ export interface LabelOverrides {
 export interface LabelText {
   name?: string;
   note?: string;
+  /** A code other than the item's own — a check group's label (services/checkGroups). */
+  qr?: string;
 }
 
 /** The concrete numbers a resolved label is drawn from — no more `undefined`s. */
@@ -607,7 +613,7 @@ function labelCss(stock: LabelStock, style: LabelStyle, pageMode: PageMode): str
 }
 
 function labelBody(item: EquipmentItem, stock: LabelStock, style: LabelStyle, text?: LabelText): string {
-  const qr = qrSvg(itemQrPayload(item.id), style.qrMm);
+  const qr = qrSvg(text?.qr ?? itemQrPayload(item.id), style.qrMm);
   const name = esc(printedTitle(item, text));
   const note = text?.note?.trim();
   const extra = note ? `<div class="extra">${esc(note)}</div>` : '';

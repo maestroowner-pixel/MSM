@@ -61,6 +61,12 @@ export interface EquipmentItem {
   nextInspection?: string; // ISO — primary compliance date
   expiry?: string; // ISO — battery/light/pyro/bottle expiry
   remarks?: string; // shown as "Comments" — the stored key is kept so no data migrates
+  /**
+   * Check group — items looked at together and signed off once ("Crew cabin
+   * EEBDs", "Immersion suit lockers"; Jez, 2 Nov 2026). Free text, matched within
+   * the category; see services/checkGroups.ts.
+   */
+  checkGroup?: string;
 
   // ---- Lifting & Mooring ---------------------------------------------------
   //

@@ -73,6 +73,7 @@ import ScanSc from './screens/ScanSc';
 import FlaggedSc from './screens/FlaggedSc';
 import RecentScansSc from './screens/RecentScansSc';
 import InspectionSc from './screens/InspectionSc';
+import GroupCheckSc from './screens/GroupCheckSc';
 import CrewSc from './screens/CrewSc';
 import ChecklistsSc from './screens/ChecklistsSc';
 import ScanRulesSc from './screens/ScanRulesSc';
@@ -155,6 +156,7 @@ import { t, tk, useT } from './utils/i18n';
 import { moduleOn } from './constants/modules';
 import EnrolSc from './screens/EnrolSc';
 import { recordScanProof } from './services/signingPolicy';
+import { groupProofKey } from './services/checkGroups';
 
 /** A browser on a touch screen (tablet / phone) — swipe between screens works there. */
 const touchScreen = Platform.OS === 'web' && typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
@@ -498,6 +500,7 @@ const linking = {
       Flagged: 'flagged',
       RecentScans: 'recent-scans',
       Inspection: 'inspect/:itemId',
+      GroupCheck: 'group-check',
       InspectionDetail: 'inspection/:id',
       Crew: 'crew',
       RestDay: 'rest/:crewId/:date',
@@ -700,7 +703,11 @@ function Root() {
       }
       if (pendingLink.type === 'scan') navigationRef.navigate('Scan');
       else if (pendingLink.type === 'flagged') navigationRef.navigate('Flagged');
-      else {
+      else if (pendingLink.type === 'group') {
+        // A group's label read by the phone's camera — the proof for the whole group.
+        recordScanProof(groupProofKey(pendingLink.id), 'qr-link');
+        navigationRef.navigate('GroupCheck', { groupId: pendingLink.id });
+      } else {
         const found = flat.find((i) => i.id === pendingLink.id);
         // The phone's own camera read the label and opened this link — a scan,
         // for "scan before you sign", recorded as such on the inspection.
@@ -755,6 +762,7 @@ function Root() {
         <Stack.Screen name="Flagged" component={FlaggedSc} options={webHeader(t('flagged.title'))} />
         <Stack.Screen name="RecentScans" component={RecentScansSc} options={webHeader(t('recent.title'))} />
         <Stack.Screen name="Inspection" component={InspectionSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="GroupCheck" component={GroupCheckSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="InspectionDetail" component={InspectionDetailSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Crew" component={CrewSc} options={webHeader(moduleOn('crewCerts') ? t('crw.list') : t('menu.group.crew'), toTab('Settings'))} />
         <Stack.Screen name="RestDay" component={RestDaySc} options={{ presentation: 'modal' }} />

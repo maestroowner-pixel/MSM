@@ -85,6 +85,17 @@ app mirrors. Bundle id `com.kukalab.msm`.
   as its own account (`SyncContext.me`, watched live from the vessel's device list) and the picker
   is gone — `signerRule` in signingPolicy.ts, pure, checked in `check:inspections`. A device on no
   vessel still picks; an account not yet loaded HOLDS the signature rather than falling back.
+- **Check groups** (2 Nov 2026, Jez — `services/checkGroups.ts`, `screens/GroupCheckSc.tsx` route `GroupCheck`,
+  `npm run check:groups`): `EquipmentItem.checkGroup` (free text, matched case/space-blind WITHIN a category — the
+  checklist is the category's). Set from the category list's multi-select ("Group") or the item form; chips above the
+  list and a card on the round open the group check. ONE signature writes ONE RECORD PER ITEM (same answers, signer,
+  `at`; `verification` {method `group`, group, groupId, groupSize, scannedAt | reason}) — so rounds, due marks and the
+  report need no change; report Scan cell "Group QR" / "Group, no scan". PASS/N/A only: a bad unit is UNTICKED and
+  inspected on its own, where its defect is raised. **Presence is still proven**: where the vessel requires a scan, the
+  group's own label `msm://group/<encoded id>` (printed from the screen — `LabelText.qr`; ScanSc and the phone-camera
+  deep link record the proof under `group:<id>`) is scanned once; without it only the Master signs, with a reason
+  (`signingGate`, unchanged). The person who looked signs — never the officer told about it. Renaming a group changes
+  its id, so its label must be reprinted (the scanner says so).
 - **Record books: the Master's verification and the true copy** (25 Oct 2026, for flag approval
   under MEPC.312(74) — `services/verification.ts`, `components/Verification.tsx`,
   `services/trueCopy.ts` + `utils/trueCopyPdf.ts`, `npm run check:verification`). ORB, Garbage,

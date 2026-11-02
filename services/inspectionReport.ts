@@ -208,7 +208,7 @@ function commentsOf(insp: Inspection): string {
   const defect = insp.defect || insp.outcome === 'fail' ? defectReason(insp) : '';
   // A Master signing without a scan says why, and the why belongs where an
   // auditor reads — not only in a column that says "No scan".
-  const override = insp.verification?.method === 'override' ? verificationText(insp.verification, timeOnly) : '';
+  const override = insp.verification?.method === 'override' || insp.verification?.method === 'group' ? verificationText(insp.verification, timeOnly) : '';
   // Photographic evidence is part of the record; the report says it exists
   // (Jez, 11 Oct 2026: "no indication that photographs have been attached").
   const n = photoCount(insp);
@@ -224,7 +224,7 @@ export function photoCount(insp: Inspection): number {
 function scanCell(insp: Inspection): string {
   const v = insp.verification;
   if (!v) return '';
-  return v.method === 'override' ? 'No scan' : 'QR';
+  return v.method === 'override' ? 'No scan' : v.method === 'group' ? (v.scannedAt ? 'Group QR' : v.reason ? 'Group, no scan' : 'Group') : 'QR';
 }
 
 function doneRows(data: ReportData, flat: EquipmentItem[]) {

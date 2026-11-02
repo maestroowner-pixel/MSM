@@ -115,6 +115,7 @@ export function create(input: NewInspectionInput): Inspection {
           method: input.verification.method,
           scannedAt: input.verification.scannedAt,
           reason: input.verification.reason?.trim() || undefined,
+          ...(input.verification.group ? { group: input.verification.group, groupId: input.verification.groupId, groupSize: input.verification.groupSize } : {}),
         }
       : undefined,
     deviceId: input.deviceId,

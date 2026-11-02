@@ -189,9 +189,11 @@ export default function InspectionDetailSc() {
             {insp.signedWith ? <Row icon={insp.signedWith.method === 'biometric' ? 'fingerprint' : insp.signedWith.method === 'drawn' ? 'draw' : 'dialpad'} text={proofText(insp.signedWith) ?? ''} /> : null}
             {insp.verification ? (
               <Row
-                icon={insp.verification.method === 'override' ? 'qrcode-remove' : 'qrcode-scan'}
+                icon={insp.verification.method === 'override' ? 'qrcode-remove' : insp.verification.method === 'group' ? 'checkbox-multiple-marked-outline' : 'qrcode-scan'}
                 text={
-                  insp.verification.method === 'override'
+                  insp.verification.method === 'group'
+                    ? t('gc.detail', { name: insp.verification.group ?? '', n: insp.verification.groupSize ?? 1 })
+                    : insp.verification.method === 'override'
                     ? verificationText(insp.verification, formatDateTime)
                     : (insp.verification.method === 'qr-link' ? t('id.scannedPhone') : t('id.scannedApp')) +
                       (insp.verification.scannedAt ? ` · ${uiDateTime(insp.verification.scannedAt)}` : '')

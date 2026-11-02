@@ -24,6 +24,7 @@ import { canAddItem } from '../services/trial';
 import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
 import { groupByPlace, usesDecks } from '../services/placeGroups';
 import { applyBulk, BulkPatch, isEmptyPatch } from '../services/bulkEdit';
+import { applyGroup, checkGroupsOf } from '../services/checkGroups';
 import SimpleDatePicker from '../components/SimpleDatePicker';
 import { t, tk, tn, useT } from '../utils/i18n';
 
@@ -98,6 +99,10 @@ export default function CategoryItemsSc() {
   // back with the same dates (asked for 8 Oct 2026). See services/bulkEdit.ts.
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulk, setBulk] = useState<BulkPatch>({});
+  // Check group on the selection — signed off once (services/checkGroups; Jez, 2 Nov 2026).
+  const [groupOpen, setGroupOpen] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const groups = useMemo(() => checkGroupsOf(byCategory[category] ?? []), [byCategory, category]);
 
   const filtered = useMemo(() => {
     const list = byCategory[category] ?? [];
@@ -319,6 +324,24 @@ export default function CategoryItemsSc() {
     );
   };
 
+  const applyGroupName = async (name: string) => {
+    const ids = new Set(filtered.filter((it) => selected.has(it.id)).map((it) => it.id));
+    try {
+      await snapshot.takeSnapshot(vessel).catch(() => null);
+      // From storage, not the screen's copy: a sync may have landed since it rendered.
+      const fresh = await storage.loadCategory(category);
+      const { items, changed } = applyGroup(fresh, ids, name);
+      if (changed) await storage.saveCategory(category, items);
+      await reload();
+      setGroupOpen(false);
+      setGroupName('');
+      stopSelecting();
+      Alert.alert(t('common.done'), name.trim() ? t('gc.grouped', { x: tn('n.item', ids.size), name: name.trim() }) : t('gc.ungrouped', { x: tn('n.item', ids.size) }));
+    } catch (e: any) {
+      Alert.alert(t('sr.couldNot'), String(e?.message ?? e));
+    }
+  };
+
   const ItemCard = (e: Extract<ListEntry, { kind: 'row' }>, fill?: boolean) => {
     // Free-tier overflow: locked items are read-only — tap routes to the paywall
     // instead of opening, and they can't be selected for bulk actions.
@@ -378,7 +401,7 @@ export default function CategoryItemsSc() {
         </View>
         <Text style={styles.rowSub} numberOfLines={1}>
           {/* Under a deck heading the deck is already said; the location is what is left to say. */}
-          {[e.it.serial && `S/N ${e.it.serial}`, deckHeadings ? e.it.position?.trim() : itemLocation(e.it)].filter(Boolean).join(' · ') || '—'}
+          {[e.it.serial && `S/N ${e.it.serial}`, deckHeadings ? e.it.position?.trim() : itemLocation(e.it), e.it.checkGroup?.trim() && `▣ ${e.it.checkGroup.trim()}`].filter(Boolean).join(' · ') || '—'}
         </Text>
       </View>
       <View style={{ alignItems: 'flex-end' }}>
@@ -472,6 +495,18 @@ export default function CategoryItemsSc() {
         </TouchableOpacity>
       ) : null}
 
+      {/* Check groups — one tap to sign the whole group (GroupCheckSc). */}
+      {!selecting && groups.length ? (
+        <View style={styles.groupRow}>
+          {groups.map((g) => (
+            <TouchableOpacity key={g.id} style={styles.groupChip} onPress={() => nav.navigate('GroupCheck', { groupId: g.id })}>
+              <MciIcon name="checkbox-multiple-marked-outline" size={16} color={COLORS.primary} />
+              <Text style={styles.groupChipText} numberOfLines={1}>{t('gc.chip', { name: g.name, n: g.items.length })}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : null}
+
       <View style={styles.controlRow}>
         <TextInput
           style={[styles.search, { flex: 1, marginBottom: 0 }]}
@@ -526,6 +561,19 @@ export default function CategoryItemsSc() {
             <Text style={[styles.printBtnText, { color: COLORS.primary }]}>{t('ci.setDates')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            style={[styles.printBtn, styles.outlineBtn, { flex: 1 }, selected.size === 0 && { opacity: 0.4 }]}
+            disabled={selected.size === 0}
+            onPress={() => {
+              // The selection's own group, when they all share one, is the starting text.
+              const names = new Set(filtered.filter((it) => selected.has(it.id)).map((it) => it.checkGroup?.trim() ?? ''));
+              setGroupName(names.size === 1 ? [...names][0] : '');
+              setGroupOpen(true);
+            }}
+          >
+            <MciIcon name="checkbox-multiple-marked-outline" size={18} color={COLORS.primary} />
+            <Text style={[styles.printBtnText, { color: COLORS.primary }]}>{t('gc.groupBtn')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.printBtn, { flex: 1 }, selected.size === 0 && { opacity: 0.4 }]}
             disabled={selected.size === 0}
             onPress={printSelected}
@@ -539,6 +587,49 @@ export default function CategoryItemsSc() {
           </TouchableOpacity>
         </View>
       ) : null}
+
+      <Modal visible={groupOpen} transparent animationType="fade" onRequestClose={() => setGroupOpen(false)}>
+        <View style={styles.sheetBackdrop}>
+          <View style={styles.sheet}>
+            <Text style={styles.title}>{t('gc.groupTitle')}</Text>
+            <Text style={[styles.sub, { marginBottom: SIZES.md }]}>{t('gc.groupHint', { x: tn('n.item', selected.size) })}</Text>
+            <TextInput
+              style={styles.search}
+              placeholder={t('gc.groupPh')}
+              placeholderTextColor={COLORS.textLight}
+              value={groupName}
+              onChangeText={setGroupName}
+              autoFocus
+            />
+            {groups.length ? (
+              <View style={styles.groupRow}>
+                {groups.map((g) => (
+                  <TouchableOpacity key={g.id} style={[styles.groupChip, groupName.trim().toLowerCase() === g.name.toLowerCase() && styles.groupChipOn]} onPress={() => setGroupName(g.name)}>
+                    <Text style={styles.groupChipText} numberOfLines={1}>{g.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : null}
+            <View style={styles.actionRow}>
+              <TouchableOpacity style={[styles.printBtn, styles.outlineBtn, { flex: 1 }]} onPress={() => setGroupOpen(false)}>
+                <Text style={[styles.printBtnText, { color: COLORS.primary }]}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              {filtered.some((it) => selected.has(it.id) && it.checkGroup?.trim()) ? (
+                <TouchableOpacity style={[styles.printBtn, styles.outlineBtn, { flex: 1 }]} onPress={() => void applyGroupName('')}>
+                  <Text style={[styles.printBtnText, { color: COLORS.danger }]}>{t('gc.ungroup')}</Text>
+                </TouchableOpacity>
+              ) : null}
+              <TouchableOpacity
+                style={[styles.printBtn, { flex: 1 }, !groupName.trim() && { opacity: 0.4 }]}
+                disabled={!groupName.trim()}
+                onPress={() => void applyGroupName(groupName)}
+              >
+                <Text style={styles.printBtnText}>{t('ci.applyTo', { n: selected.size })}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={bulkOpen} transparent animationType="fade" onRequestClose={() => setBulkOpen(false)}>
         <View style={styles.sheetBackdrop}>
@@ -618,6 +709,10 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   ghostBtn: { paddingHorizontal: SIZES.sm, paddingVertical: SIZES.sm },
   ghostBtnText: { color: COLORS.primary, fontWeight: '700' },
   rowPicked: { borderWidth: 1, borderColor: COLORS.primary },
+  groupRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.sm, marginBottom: SIZES.sm },
+  groupChip: { flexDirection: 'row', alignItems: 'center', gap: SIZES.xs, borderWidth: 1, borderColor: COLORS.primary, borderRadius: SIZES.radiusRound, paddingHorizontal: SIZES.md, paddingVertical: SIZES.xs, backgroundColor: COLORS.cardSolid, maxWidth: '100%' },
+  groupChipOn: { borderWidth: 2 },
+  groupChipText: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small, flexShrink: 1 },
   rowLocked: { opacity: 0.55 },
   printBtn: {
     flexDirection: 'row',

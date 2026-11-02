@@ -19,6 +19,8 @@ import { useSync } from '../contexts/SyncContext';
 import { SIZES } from '../theme';
 import { CategoryKey } from '../types/equipment';
 import { roundProgress, roundTitle, walkGroups } from '../services/rounds';
+import { checkGroupsOf } from '../services/checkGroups';
+import { MciIcon } from '../components/MciIcon';
 import { setActiveRound, useActiveRound } from '../services/activeRound';
 import { exportReportPdf, exportReportXlsx, roundSignoffLine } from '../services/inspectionReport';
 import { DeckEntry } from '../types/deckLog';
@@ -109,6 +111,8 @@ export default function RoundSc() {
 
   // Outstanding as the Equipment section reads: Deck → Location → number.
   const groups = walkGroups(p.outstanding);
+  // Check groups with something outstanding — signed in one go (GroupCheckSc).
+  const checkGroups = checkGroupsOf(p.outstanding);
   const doneList = p.scope.filter((it) => p.done.has(it.id)).sort((a, b) => p.done.get(b.id)!.at - p.done.get(a.id)!.at);
 
   return (
@@ -148,6 +152,22 @@ export default function RoundSc() {
           <Text style={[styles.chipText, show === 'done' && styles.chipTextOn]}>{t('prj.doneHead', { n: p.done.size })}</Text>
         </TouchableOpacity>
       </View>
+
+      {show === 'out' && !round.closedAt && checkGroups.length ? (
+        <Card>
+          <Label>{t('gc.inRound')}</Label>
+          {checkGroups.map((g) => (
+            <TouchableOpacity key={g.id} style={styles.row} onPress={() => nav.navigate('GroupCheck', { groupId: g.id, period: round.period, roundId: round.id })} activeOpacity={0.7}>
+              <MciIcon name="checkbox-multiple-marked-outline" size={20} color={COLORS.primary} />
+              <View style={{ flex: 1, marginLeft: SIZES.sm }}>
+                <Text style={styles.title} numberOfLines={1}>{g.name}</Text>
+                <Text style={styles.sub} numberOfLines={1}>{`${labelOf(g.category)} · ${t('gc.outN', { n: g.items.length })}`}</Text>
+              </View>
+              <Text style={styles.chev}>›</Text>
+            </TouchableOpacity>
+          ))}
+        </Card>
+      ) : null}
 
       {show === 'out'
         ? groups.map((g) => (
