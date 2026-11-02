@@ -8,7 +8,7 @@
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import { Card, Empty, Label, Screen, ScreenTitle, StatusPill } from '../components/ui';
@@ -24,6 +24,9 @@ import {
   OrderDept, OrderStatus, PurchaseOrder,
 } from '../types/orders';
 import { completionPct, journalOrders, ordersForDept } from '../services/orders';
+import { EXPORT_FORMATS, OrderFormat } from '../services/orderExport';
+import { exportOrders } from '../services/orderExportFile';
+import { shipToday } from '../utils/shipTime';
 import { PoStage, emergencyOpen, poStage } from '../services/poApproval';
 import SimpleDatePicker from '../components/SimpleDatePicker';
 import { OrderGroup } from '../types/orders';
@@ -39,7 +42,11 @@ export default function OrdersSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
-  const { purchaseOrders, orderGroups } = useData();
+  const { purchaseOrders, orderGroups, vessel } = useData();
+  const [saved, setSaved] = useState<string | null>(null);
+  // The list as filtered, to a file (services/orderExport).
+  const exportList = (f: OrderFormat) =>
+    exportOrders(visible, vessel, f, shipToday()).then((w) => typeof w === 'string' && setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w })), (e) => Alert.alert(t('ord.title'), String(e?.message ?? e)));
   const sync = useSync();
   const officer = !sync.enrolled || roleAtLeast(sync.role, 'admin');
 
@@ -197,6 +204,17 @@ export default function OrdersSc() {
           <Text style={styles.sortBtnText}>{SORT_LABEL[sort]}</Text>
         </TouchableOpacity>
       </View>
+      {visible.length ? (
+        <View style={[styles.addRow, { justifyContent: 'flex-start', gap: SIZES.sm, flexWrap: 'wrap' }]}>
+          <Text style={styles.emptyGroups}>{t('ord.exportN', { n: visible.length })}</Text>
+          {EXPORT_FORMATS.map(([f, label]) => (
+            <TouchableOpacity key={f} style={styles.sortBtn} onPress={() => void exportList(f)} activeOpacity={0.7}>
+              <Text style={styles.sortBtnText}>{label}</Text>
+            </TouchableOpacity>
+          ))}
+          {saved ? <Text style={{ color: COLORS.success, fontWeight: '700', fontSize: 12 }}>{`✓ ${saved}`}</Text> : null}
+        </View>
+      ) : null}
 
       {/* New order button */}
       {officer ? (

@@ -3077,6 +3077,7 @@ export const no: UiDict = {
   "ord.groups": "Grupper",
   "ord.groupsHint": "Grupper lar deg følge et verftsopphold, et charter eller en hvilken som helst samling bestillinger samlet.",
   "ord.searchPh": "Søk etter navn, IMPA…",
+  "ord.exportN": "Eksporter {n} som",
   "ord.deptOrders": "Bestillinger: {dept}",
   "ord.empty": "Ingen bestillinger ennå. Trykk «+ Ny bestilling» for å lage den første rekvisisjonen.",
   "ord.emptyDept": "Ingen bestillinger for {dept} ennå.",

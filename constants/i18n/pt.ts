@@ -3077,6 +3077,7 @@ export const pt: UiDict = {
   "ord.groups": "Grupos",
   "ord.groupsHint": "Grupos permitem acompanhar juntos uma docagem, um fretamento ou qualquer lote de pedidos.",
   "ord.searchPh": "Buscar por nome, IMPA…",
+  "ord.exportN": "Exportar {n} como",
   "ord.deptOrders": "Pedidos de {dept}",
   "ord.empty": "Nenhum pedido ainda. Toque em \"+ Novo pedido\" para criar a primeira requisição.",
   "ord.emptyDept": "Nenhum pedido de {dept} ainda.",

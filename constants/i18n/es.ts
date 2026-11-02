@@ -3077,6 +3077,7 @@ export const es: UiDict = {
   "ord.groups": "Grupos",
   "ord.groupsHint": "Los grupos permiten seguir juntos un dique seco, un chárter o cualquier lote de pedidos.",
   "ord.searchPh": "Buscar por nombre, IMPA…",
+  "ord.exportN": "Exportar {n} como",
   "ord.deptOrders": "Pedidos de {dept}",
   "ord.empty": "Aún no hay pedidos. Toque «+ Nuevo pedido» para crear la primera solicitud.",
   "ord.emptyDept": "Aún no hay pedidos de {dept}.",

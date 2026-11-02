@@ -3086,6 +3086,7 @@ export const en = {
   "ord.groups": "Groups",
   "ord.groupsHint": "Groups let you track a drydock, charter or any batch of orders together.",
   "ord.searchPh": "Search by name, IMPA…",
+  "ord.exportN": "Export {n} as",
   "ord.deptOrders": "{dept} orders",
   "ord.empty": "No orders yet. Tap \"+ New order\" to raise the first requisition.",
   "ord.emptyDept": "No {dept} orders yet.",

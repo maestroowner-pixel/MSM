@@ -26,6 +26,9 @@ import {
 } from '../types/orders';
 import { allReceived, completionPct, copyOrder, derivedStatus, lineCount, nextOrderNo, orderValue, priceStr, lineTotalStr } from '../services/orders';
 import { exportOrderPdf, printBoxQrLabel } from '../services/orderSheet';
+import { EXPORT_FORMATS } from '../services/orderExport';
+import { exportOrders } from '../services/orderExportFile';
+import { shipToday } from '../utils/shipTime';
 import { todayIso } from '../services/pms';
 import * as storage from '../services/storage';
 import { uiDate } from '../utils/dates';
@@ -873,6 +876,16 @@ export default function OrderSc() {
           <TouchableOpacity style={styles.btnOutline} onPress={() => void exportOrderPdf(o, vessel)}>
             <Text style={styles.btnOutlineText}>{t('po.pdf')}</Text>
           </TouchableOpacity>
+        ) : null}
+
+        {!isNew && !draft ? (
+          <View style={{ flexDirection: 'row', gap: SIZES.sm }}>
+            {EXPORT_FORMATS.map(([f, label]) => (
+              <TouchableOpacity key={f} style={[styles.btnOutline, { flex: 1 }]} onPress={() => void exportOrders([o], vessel, f, shipToday()).then((w) => { if (typeof w === 'string') Alert.alert(o.no, w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w })); }, (e) => Alert.alert(o.no, String(e?.message ?? e)))}>
+                <Text style={styles.btnOutlineText}>{label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         ) : null}
 
         {!isNew && !draft && o.dept !== 'galley' ? (
