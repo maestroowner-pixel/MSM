@@ -50,7 +50,7 @@ import { CATALOGUE } from '../services/pmsCatalogue';
 }
 
 import { pmsMonth } from '../services/pmsKpi';
-import { jobGate } from '../services/jobGate';
+import { deferralRa, jobGate, raSnapshot } from '../services/jobGate';
 import { projectJobs, yardList } from '../services/pmsProjects';
 {
   const ms: any[] = [{ id: 'me', name: 'Main engine', critical: true, hours: 5000, updatedAt: 0 }, { id: 'wm', name: 'Watermaker', updatedAt: 0 }];
@@ -153,6 +153,32 @@ import { projectJobs, yardList } from '../services/pmsProjects';
   ok(!g2.permitMissing && g2.permit?.id === 'p2' && g2.unread.length === 1, 'an active permit for this cycle covers it; an old revision read does not');
   const g3 = jobGate(job, { ...base, acks: [{ docId: 'd1', revision: 2, personKey: 'crew1' } as any], ptwOn: false });
   ok(!g3.permitMissing && g3.unread.length === 0, 'with the permits module off nothing is asked; the current revision read');
+}
+// Plan item 39: a fresh risk assessment before sign-out, and one for each deferral.
+{
+  const job: any = { id: 'j', raRequired: true };
+  const appr = { by: 'A. Master', byRank: 'Master', at: 500 };
+  const hz = [{ id: 'h', hazard: 'Hot surface', likelihood: 4, severity: 3, controls: 'Cool down, gloves', residualLikelihood: 2, residualSeverity: 2 }];
+  const risks: any[] = [
+    { id: 'old', pmsJobId: 'j', hazards: hz, approved: appr, generic: false, createdAt: 100 },
+    { id: 'draft', pmsJobId: 'j', hazards: hz, generic: false, createdAt: 300 },
+    { id: 'lib', hazards: hz, approved: appr, generic: true, createdAt: 300 },
+    { id: 'dfr', pmsJobId: 'j', pmsFor: 'deferral', hazards: hz, approved: appr, generic: false, createdAt: 310 },
+  ];
+  const done: any[] = [{ id: 'x', jobId: 'j', at: 200 }];
+  const base = { permits: [] as any[], risks, done, docs: [] as any[], acks: [] as any[], ptwOn: true, docsOn: false };
+  const r1 = jobGate(job, base);
+  ok(r1.raMissing && !r1.ra, 'last cycle\'s, an unapproved, the library\'s and a deferral\'s assessment do not count');
+  const r2 = jobGate(job, { ...base, risks: [...risks, { id: 'new', no: 'RA-2026-004', pmsJobId: 'j', pmsFor: 'job', hazards: hz, approved: appr, generic: false, createdAt: 400 }] });
+  ok(!r2.raMissing && r2.ra?.id === 'new', 'one made for this cycle and approved covers the sign-out');
+  const r3 = jobGate(job, { ...base, permits: [{ id: 'p', type: 'hot', pmsJobId: 'j', status: 'active', raId: 'onp', createdAt: 350 } as any], risks: [...risks, { id: 'onp', hazards: hz, approved: appr, generic: false, createdAt: 340 }] });
+  ok(!r3.raMissing && r3.ra?.id === 'onp', 'the assessment on this cycle\'s permit for the job counts');
+  ok(!jobGate(job, { ...base, ptwOn: false }).raMissing, 'with the permits module off no assessment is asked');
+  ok(!jobGate({ id: 'j' } as any, base).raMissing, 'a job not marked asks for none');
+  ok(deferralRa('j', { risks, done, deferrals: [] })?.id === 'dfr', 'a deferral assessment after the last sign-out is found');
+  ok(!deferralRa('j', { risks, done, deferrals: [{ jobId: 'j', at: 320 } as any] }), 'after a deferral was signed, the next needs a new assessment');
+  const snap = raSnapshot(risks[3]);
+  ok(snap.worst === 'low' && snap.hazards[0].level === 'low' && snap.hazards[0].controls === 'Cool down, gloves' && snap.approvedBy === 'A. Master (Master)', 'the snapshot keeps the residual risk, controls and who approved');
 }
 // Cancelling a wrong sign-out puts the job back.
 {

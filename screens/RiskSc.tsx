@@ -6,6 +6,10 @@
 // job should not go ahead until more controls bring it down, or the Master
 // accepts it knowingly (that is the approval). An approved assessment is
 // edited by issuing it again — the approval is cleared when anything changes.
+//
+// Opened from a maintenance job (plan item 39) it arrives named for the job,
+// tied to it (`pmsJobId`, `pmsFor`), and offers the library's assessments to
+// start from — what the job's sign-out or its deferral then waits on.
 // ===================================
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -44,9 +48,22 @@ export default function RiskSc() {
 
   const id: string = route.params?.id;
   const existing = risks.find((r) => r.id === id);
+  const p = route.params ?? {};
   const [r, setR] = useState<RiskAssessment>(
-    existing ?? { id, title: '', hazards: [], generic: !!route.params?.generic, createdAt: Date.now(), updatedAt: Date.now() }
+    existing ?? {
+      id,
+      title: p.title ?? '',
+      ...(p.location ? { location: p.location } : {}),
+      ...(p.pmsJobId ? { pmsJobId: p.pmsJobId, pmsFor: p.pmsFor ?? 'job' } : {}),
+      hazards: [],
+      generic: !!p.generic,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }
   );
+  const library = r.generic || r.hazards.length || existing ? [] : risks.filter((x) => x.generic);
+  const fromLibrary = (src: RiskAssessment) =>
+    set({ fromId: src.id, ...(r.task ? {} : src.task ? { task: src.task } : {}), hazards: src.hazards.map((h) => ({ ...h, id: uid('hz') })) });
   const touched = useRef(false);
   useEffect(() => {
     if (existing && !touched.current) setR(existing);
@@ -80,7 +97,7 @@ export default function RiskSc() {
     const go = async () => {
       const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `Approve the risk assessment — ${r.title}` });
       if (!sig) return;
-      const out = { ...r, approved: { by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: Date.now(), ...(sig.proof ? { signedWith: sig.proof } : {}) }, updatedAt: Date.now() };
+      const out = { ...r, ...(r.no || r.generic ? {} : { no: nextNumber('RA', new Date().getFullYear(), risks.map((x) => x.no)) }), approved: { by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: Date.now(), ...(sig.proof ? { signedWith: sig.proof } : {}) }, updatedAt: Date.now() };
       await saveRisk(out);
       setR(out);
       touched.current = false;
@@ -133,6 +150,17 @@ export default function RiskSc() {
             <Text style={[styles.sub, { flex: 1 }]}>{t('risk.keepLib')}</Text>
             <Switch value={r.generic} onValueChange={(v) => set({ generic: v })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
           </View>
+
+          {library.length ? (
+            <View style={{ marginTop: SIZES.sm }}>
+              <Text style={styles.sub}>{t('risk.startFrom')}</Text>
+              {library.map((x) => (
+                <TouchableOpacity key={x.id} onPress={() => fromLibrary(x)} style={{ paddingVertical: 6 }}>
+                  <Text style={styles.link}>{`${x.title} · ${tn('n.hazard', x.hazards.length)}`}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : null}
 
           <View style={styles.summary}>
             <Text style={styles.sumText}>{tn('n.hazard', r.hazards.length)}</Text>

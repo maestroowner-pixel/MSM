@@ -133,11 +133,30 @@ export interface RiskAssessment {
   /** The library assessment this one was copied from. */
   fromId?: string;
   team?: string[];
+  /** Made for a planned-maintenance job (PmsJob.id) — before it is done, or for deferring it (plan item 39). */
+  pmsJobId?: string;
+  pmsFor?: 'job' | 'deferral';
   approved?: SignStamp;
   reviewDue?: string;
   deleted?: boolean;
   createdAt: number;
   updatedAt: number;
+}
+
+/**
+ * What a deferral was approved on (plan item 39): the assessment as it stood
+ * when the Master signed, kept on the deferral itself so the office answers the
+ * same thing the vessel signed, even if the assessment is issued again later.
+ */
+export interface RaSnapshot {
+  id: string;
+  no?: string;
+  title: string;
+  /** Worst risk with the controls in place. */
+  worst: 'low' | 'medium' | 'high' | 'extreme' | null;
+  hazards: { hazard: string; controls?: string; level: 'low' | 'medium' | 'high' | 'extreme' }[];
+  approvedBy: string;
+  approvedAt: number;
 }
 
 export const PERMIT_STATUS_LABEL: Record<PermitStatus, string> = {

@@ -159,6 +159,8 @@ export interface PmsJob {
   classJob?: boolean;
   /** Needs a permit to work of this type, raised for the job, before it can be signed out (TM Master comparison, item 6). */
   permitType?: import('./permits').PermitType;
+  /** A fresh risk assessment, made for this job and approved, before each sign-out (plan item 39). */
+  raRequired?: boolean;
   /** ISM documents the person signing must have read (current revision) — risk assessment, procedure. */
   docIds?: string[];
   /** Warn this many days / hours before due, instead of the last tenth of the interval. */
@@ -235,6 +237,9 @@ export interface PmsDone {
   /** The permit to work the job was done under. */
   permitId?: string;
   permitNo?: string;
+  /** The risk assessment made for this sign-out (PmsJob.raRequired). */
+  raId?: string;
+  raNo?: string;
   /** The job's baseline before this sign-out moved it — what a cancellation puts back. */
   prevLastDoneDate?: string;
   prevLastDoneHours?: number;
@@ -297,6 +302,8 @@ export interface PmsDeferral {
   byRank?: string;
   at: number;
   signedWith?: import('../services/signature').SignProof;
+  /** The risk assessment of running on without the job, as approved when deferred (plan item 39). */
+  ra?: import('./permits').RaSnapshot;
   /** The office's answer (services/officeCheck, plan item 32): approved, or refused with the reason — then it no longer holds. */
   office?: import('../services/officeCheck').DeferralAnswer;
   updatedAt: number;

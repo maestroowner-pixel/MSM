@@ -43,7 +43,7 @@ import { markOut } from '../services/critEq';
 import { uiDate } from '../utils/dates';
 import { officeInLoop } from '../services/officeCheck';
 import { PERMIT_TYPES } from '../constants/permitTypes';
-import { jobGate } from '../services/jobGate';
+import { JobGate, deferralRa, jobGate, raSnapshot } from '../services/jobGate';
 import { JOB_FIELDS, changeTextUi, fieldName, planDiff, withChanges } from '../services/planLog';
 import { useSignConfirm } from '../components/SignConfirm';
 import { uid } from '../utils/id';
@@ -61,7 +61,7 @@ export default function PmsJobSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { pmsJobs, pmsDone, pmsDefects, machines, crew, spares, spareMoves, savePmsJob, saveMachine, completePmsJob, pmsDeferrals, appendRow, saveRow, vessel, permits, docs, docAcks, pmsProjects } = useData();
+  const { pmsJobs, pmsDone, pmsDefects, machines, crew, spares, spareMoves, savePmsJob, saveMachine, completePmsJob, pmsDeferrals, appendRow, saveRow, vessel, permits, risks, docs, docAcks, pmsProjects } = useData();
   // Evidence at closure, and a defect found doing the job (ISM 10.1).
   const [donePhotos, setDonePhotos] = useState<Attachment[]>([]);
   const [defect, setDefect] = useState<{ category: DefectCategory; description: string } | null>(null);
@@ -129,8 +129,18 @@ export default function PmsJobSc() {
   // What the job needs before it is signed out: its permit, its documents read by the signer.
   const signerKey = me && sync.me ? `device:${sync.me.id}` : signerId;
   const gate = existing && !unplanned
-    ? jobGate(existing, { permits, done: pmsDone, docs, acks: docAcks, personKey: signerKey, ptwOn: moduleOn('ptw'), docsOn: moduleOn('docs') })
-    : { permitMissing: false, unread: [] as typeof docs };
+    ? jobGate(existing, { permits, risks, done: pmsDone, docs, acks: docAcks, personKey: signerKey, ptwOn: moduleOn('ptw'), docsOn: moduleOn('docs') })
+    : ({ permitMissing: false, unread: [], raMissing: false } as JobGate);
+  // Deferring through the office needs its own risk assessment, approved (plan item 39).
+  const deferRa = office && existing ? deferralRa(existing.id, { risks, done: pmsDone, deferrals: pmsDeferrals }) : undefined;
+  const newRa = (pmsFor: 'job' | 'deferral') =>
+    nav.navigate('Risk', {
+      id: uid('ra'),
+      pmsJobId: existing!.id,
+      pmsFor,
+      title: pmsFor === 'deferral' ? t('pj.raDeferTitle', { job: existing!.title, machine: machine?.name ?? '' }) : `${machine?.name ?? ''} — ${existing!.title}`,
+      location: machine?.location ?? '',
+    });
   const isMaster = !sync.enrolled || sync.role === 'superadmin';
   const canPlan = plansPms(sync.enrolled, sync.role);
   const [defer, setDefer] = useState<{ date: string; hours: string; reason: string; projectId?: string } | null>(null);
@@ -142,6 +152,7 @@ export default function PmsJobSc() {
     if (defer.date && defer.date < todayIso()) return Alert.alert(t('pj.deferUntil'), t('pj.datePast'));
     if (defer.reason.trim().length < 3) return Alert.alert(t('pj.reason'), t('pj.sayWhyDeferred'));
     if (!signer) return Alert.alert(t('sign.who'), t('round.chooseName'));
+    if (office && !deferRa) return Alert.alert(t('pj.raTitle'), t('pj.raDeferNeeded'));
     const sig = await confirmSign({ personKey: me && sync.me ? `device:${sync.me.id}` : signerId ?? signer.name, name: signer.name, ownDevice: !!me, what: `Defer "${existing.title}" — ${defer.reason.trim()}` });
     if (!sig) return;
     const now = Date.now();
@@ -149,7 +160,8 @@ export default function PmsJobSc() {
       id: uid('dfr'), jobId: existing.id, machineId, jobTitle: existing.title, machineName: machine?.name ?? '', cycle: jobCycle(existing),
       ...(defer.projectId ? { projectId: defer.projectId } : {}),
       ...(defer.date ? { untilDate: defer.date } : {}), ...(untilHours != null ? { untilHours } : {}),
-      reason: defer.reason.trim(), by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now,
+      reason: defer.reason.trim(), by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}),
+      ...(office && deferRa ? { ra: raSnapshot(deferRa) } : {}), updatedAt: now,
     });
     setDefer(null);
     playSuccessSound();
@@ -263,6 +275,7 @@ export default function PmsJobSc() {
     if (machine?.critical && !donePhotos.length) return Alert.alert(t('pj.evidence'), t('pj.evidenceHint'));
     if (defect && defect.description.trim().length < 3) return Alert.alert(t('pj.defect'), t('pj.defectHint'));
     if (gate.permitMissing) return Alert.alert(t('pj.permitToWork'), t('pj.permitNeeded', { type: existing!.permitType ? tk(`ptw.kind.${existing!.permitType}`) : '' }));
+    if (gate.raMissing) return Alert.alert(t('pj.raTitle'), t('pj.raNeeded'));
     if (gate.unread.length) return Alert.alert(t('pj.readFirst'), t('pj.notRead', { name: signer.name, docs: gate.unread.map((d) => t('pj.docRev', { doc: d.title, rev: d.revision })).join(', ') }));
     if (condAfter === 'out' && !defect) return Alert.alert(t('pj.outOfService'), t('pj.outIsDefect'));
     const mh = num(manHours);
@@ -291,6 +304,7 @@ export default function PmsJobSc() {
       ...(existing?.lastDoneDate ? { prevLastDoneDate: existing.lastDoneDate } : {}),
       ...(existing?.lastDoneHours != null ? { prevLastDoneHours: existing.lastDoneHours } : {}),
       ...(gate.permit ? { permitId: gate.permit.id, ...(gate.permit.no ? { permitNo: gate.permit.no } : {}) } : {}),
+      ...(gate.ra ? { raId: gate.ra.id, ...(gate.ra.no ? { raNo: gate.ra.no } : {}) } : {}),
       ...(condBefore ? { conditionBefore: condBefore } : {}),
       ...(condAfter ? { conditionAfter: condAfter } : {}),
       ...(mh != null ? { manHours: mh } : {}),
@@ -402,6 +416,17 @@ export default function PmsJobSc() {
                   <TextInput style={[styles.input, { marginTop: SIZES.sm }]} value={defer.hours} onChangeText={(v) => setDefer({ ...defer, hours: v })} placeholder={t('pj.untilCounterPh')} placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
                 ) : null}
                 <TextInput style={[styles.input, { marginTop: SIZES.sm, borderColor: COLORS.warning, borderWidth: 1 }]} value={defer.reason} onChangeText={(v) => setDefer({ ...defer, reason: v })} placeholder={t('pj.deferReasonPh')} placeholderTextColor={COLORS.textLight} />
+                {office ? (
+                  deferRa ? (
+                    <TouchableOpacity onPress={() => nav.navigate('Risk', { id: deferRa.id })} style={{ marginTop: SIZES.sm }}>
+                      <Text style={[styles.signer, { color: COLORS.success }]}>{t('pj.raDone', { no: deferRa.no ?? t('risk.ra') })}</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity onPress={() => newRa('deferral')} style={{ marginTop: SIZES.sm }}>
+                      <Text style={[styles.signer, { color: COLORS.warning }]}>{t('pj.raDeferMake')}</Text>
+                    </TouchableOpacity>
+                  )
+                ) : null}
                 {!me ? (
                   <View style={styles.chips}>
                     {people.map((pp) => (
@@ -531,6 +556,20 @@ export default function PmsJobSc() {
                   )}
                 </View>
               ) : null}
+              {existing?.raRequired && moduleOn('ptw') ? (
+                <View style={[styles.deferBox, { marginTop: SIZES.md }]}>
+                  <Text style={[styles.sub, { fontWeight: '800' }]}>{t('pj.raLine')}</Text>
+                  {gate.ra ? (
+                    <TouchableOpacity onPress={() => nav.navigate('Risk', { id: gate.ra!.id })}>
+                      <Text style={[styles.signer, { color: COLORS.success }]}>{t('pj.raDone', { no: gate.ra.no ?? t('risk.ra') })}</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity onPress={() => newRa('job')}>
+                      <Text style={[styles.signer, { color: COLORS.warning }]}>{t('pj.raMake')}</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ) : null}
               {gate.unread.length ? (
                 <View style={[styles.deferBox, { marginTop: SIZES.md }]}>
                   <Text style={[styles.sub, { fontWeight: '800' }]}>{t('pj.readBefore')}</Text>
@@ -645,7 +684,13 @@ export default function PmsJobSc() {
                 <Text style={styles.signer}>{`${t('pj.classJob')}${machine?.classCode ? ` · ${machine.classCode}` : ''}`}</Text>
               </TouchableOpacity>
               {moduleOn('ptw') ? (
-                <Dropdown caption={t('pj.requiresPermit')} value={draft.permitType ?? ''} onChange={(v) => set({ permitType: (v || undefined) as PmsJob['permitType'] })} options={[{ value: '', label: t('pj.none') }, ...PERMIT_TYPES.map((pt) => ({ value: pt.key, label: tk(`ptw.kind.${pt.key}`) }))]} style={{ marginTop: SIZES.sm }} />
+                <>
+                  <Dropdown caption={t('pj.requiresPermit')} value={draft.permitType ?? ''} onChange={(v) => set({ permitType: (v || undefined) as PmsJob['permitType'] })} options={[{ value: '', label: t('pj.none') }, ...PERMIT_TYPES.map((pt) => ({ value: pt.key, label: tk(`ptw.kind.${pt.key}`) }))]} style={{ marginTop: SIZES.sm }} />
+                  <TouchableOpacity style={[styles.defectToggle, { marginTop: SIZES.sm }]} onPress={() => set({ raRequired: !draft.raRequired || undefined })}>
+                    <Text style={[styles.defectBox, { borderColor: COLORS.primary }, draft.raRequired && { backgroundColor: COLORS.primary, color: COLORS.textWhite }]}>{draft.raRequired ? '✓' : ''}</Text>
+                    <Text style={styles.signer}>{t('pj.raRequired')}</Text>
+                  </TouchableOpacity>
+                </>
               ) : null}
               {moduleOn('docs') && docs.length ? (
                 <>

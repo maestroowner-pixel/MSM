@@ -37,6 +37,7 @@ import { catLabel } from '../constants/categories';
 import { uid } from '../utils/id';
 import { approveDeferral, awaitsOffice, deferralsToAnswer, giveBack, ncAwaitsOffice, refuseDeferral, verify, verifyNc } from '../services/officeCheck';
 import { PmsDefect, PmsDeferral } from '../types/pms';
+import { RISK_COLOR } from '../services/permits';
 import { NonConformity } from '../types/safety';
 import { findingsOf, inspStatus, sortInspections } from '../services/extInspections';
 import { downtimeDays, isOut } from '../services/critEq';
@@ -569,6 +570,20 @@ function OfficeCheckSheet({ imo, check, onClose, onSaved }: { imo: string; check
           <Label>{t('pj.reason')}</Label>
           <Text style={styles.title}>{df.reason}</Text>
           <Text style={styles.sub}>{`${uiDate(new Date(df.at).toISOString().slice(0, 10))} · ${who(df.by, df.byRank)}`}</Text>
+          {/* The risk assessment the Master deferred on (plan item 39), as it was approved. */}
+          <Label>{t('od.ra')}</Label>
+          {df.ra ? (
+            <>
+              <Text style={styles.title}>{`${df.ra.no ? `${df.ra.no} · ` : ''}${df.ra.title}`}</Text>
+              {df.ra.worst ? <Text style={[styles.sub, { color: RISK_COLOR[df.ra.worst], fontWeight: '800' }]}>{t('risk.residual', { level: tk(`risk.lvl.${df.ra.worst}`) })}</Text> : null}
+              {df.ra.hazards.map((h, i) => (
+                <Text key={i} style={styles.sub}>{`• ${h.hazard} — ${tk(`risk.lvl.${h.level}`)}${h.controls ? `\n   ${h.controls}` : ''}`}</Text>
+              ))}
+              <Text style={styles.sub}>{t('od.raApproved', { who: df.ra.approvedBy, when: uiDate(new Date(df.ra.approvedAt).toISOString().slice(0, 10)) })}</Text>
+            </>
+          ) : (
+            <Text style={styles.sub}>{t('od.noRa')}</Text>
+          )}
         </>
       ) : d ? (
         <>
