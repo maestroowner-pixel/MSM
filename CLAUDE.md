@@ -264,6 +264,22 @@ app mirrors. Bundle id `com.kukalab.msm`.
   (`officeParts.moc`). Rules `mocs`: one step per write, whose step decides who, the step must follow the one before
   (`mocOrderOk`), reason ≥ 3, `needsOffice` fixed after approval, final after reject/cancel/close; `check:moc` compares the step
   lists with the rules, rules-test.mjs covers the way. `npm run deploy:rules` before the flag. `npm run check:moc`.
+- **Crew appraisals** (3 Nov 2026 — flag `appraisals`, off; plan item 40; needs `crewCerts`): `types/appraisal.ts`, pure
+  `services/appraisals.ts`, paper `services/appraisalReport.ts` (the PMS-history PDF; drawn signatures printed as drawings),
+  screens `AppraisalsSc` / `AppraisalSc` (routes `Appraisals` `appraisals` (+`crewId`), `Appraisal` `appraisal/:id` (`new` +
+  `crewId`, `reason`); entry: Crew → Appraisals and the crew card's Appraisals section). **Officers and the Master only**:
+  synced `officers: true` (crew phones never get them), rules `crew_appraisals` isAdmin write, isAdmin + shore read. Due
+  (`appraisalDue`): `CrewMember.contractEnd` (new field, on the card when the flag is on; cleared on signing on again) 30 days
+  ahead, cleared by an end-of-contract appraisal whose `to` is in this trip; else annual — a year after the last appraisal's
+  `to`, or signing on, or `addedAt`; when the contract ends within 30 days after the year is up only the contract one is asked.
+  Not the Master (`isMasterRank` — the office appraises the Master); a draft does not count, a cancelled one never.
+  Criteria `CRITERIA` — **ids permanent**; `leadership` only for `isOfficerRank`. Way = append-only `steps`, stage read from
+  them: `appraiser` (content fixed from here; `asMaster` only from a Master device) → `crew` (the person, on the same device,
+  own PIN or by hand, `agree` + comment) or `refused` (reason) → `master` countersign (only the Master; on a device on no vessel
+  the picked signer must have a Master rank) — none after the Master's own appraisal; `cancel` (reason) before the person signs.
+  Rules: one step per write once signed, nothing else changes; an unchanged copy (only `updatedAt`) always passes. Board:
+  officers — who is due (red when past), Master — to countersign. `npm run check:appraisals`; rules-test.mjs covers the way.
+  `npm run deploy:rules` before the flag.
 - **Web PDFs from `utils/pmsHistoryPdf.web.ts`**: a table is sized to its `widths` only when EVERY column has one (the DP
   tables side by side); with some widths it takes the page and the rest share — before 29 Oct 2026 the sum of SOME widths
   was the table width, and the machine history, survey/class pack and project PDFs printed Job/Note/Defect a letter a line.

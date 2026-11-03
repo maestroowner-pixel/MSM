@@ -40,7 +40,9 @@ import { PhotoCamera } from '../components/PhotoCamera';
 import { PhotoEditor } from '../components/PhotoEditor';
 import { canEditPhotos } from '../utils/photoEdit';
 import { PickedFile, pickFromLibrary } from '../services/attachments';
-import { t, useT } from '../utils/i18n';
+import { moduleOn } from '../constants/modules';
+import { apStage, appraisalDue, sortAppraisals } from '../services/appraisals';
+import { t, tk, useT } from '../utils/i18n';
 
 export default function CrewMemberSc() {
   useT();
@@ -48,7 +50,7 @@ export default function CrewMemberSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { crew, crewPrivate, certificates, saveCrewMember, saveCrewPrivate } = useData();
+  const { crew, crewPrivate, certificates, appraisals, saveCrewMember, saveCrewPrivate } = useData();
   const sync = useSync();
 
   // Officers and the Master; a device not joined to any vessel is its owner's.
@@ -108,6 +110,10 @@ export default function CrewMemberSc() {
     [certificates, id]
   );
 
+  const apOn = moduleOn('appraisals');
+  const myAps = useMemo(() => sortAppraisals(appraisals.filter((a) => a.crewId === id)), [appraisals, id]);
+  const apDue = apOn && existing ? appraisalDue(existing, appraisals, todayIso()) : null;
+
   const save = async () => {
     if (!m.name.trim()) return Alert.alert(t('crew.nameReq'), t('crew.nameBody'));
     await saveCrewMember({ ...m, name: m.name.trim(), rank: m.rank?.trim() || undefined, cabin: m.cabin?.trim() || undefined });
@@ -119,7 +125,7 @@ export default function CrewMemberSc() {
   };
 
   const toggleAboard = (on: boolean) =>
-    setMember(on ? { onBoard: true, signOn: todayIso(), signOff: undefined } : { onBoard: false, signOff: todayIso() });
+    setMember(on ? { onBoard: true, signOn: todayIso(), signOff: undefined, contractEnd: undefined } : { onBoard: false, signOff: todayIso() });
 
   const addCert = () => {
     const c: Certificate = { id: uid('cert'), scope: 'crew', crewId: id, holderName: m.name, name: '', itemIds: [], createdAt: Date.now(), updatedAt: Date.now() };
@@ -219,7 +225,42 @@ export default function CrewMemberSc() {
               </View>
             </View>
             {F({ label: t('crew.portEmb'), value: m.signOnPort, onChange: (v) => setMember({ signOnPort: v }), placeholder: 'Palma de Mallorca' })}
+            {apOn ? (
+              <View style={{ marginTop: SIZES.sm }}>
+                <SimpleDatePicker label={t('ap.contractEnd')} value={m.contractEnd} onChange={(d) => setMember({ contractEnd: d })} onClear={() => setMember({ contractEnd: undefined })} disabled={!canEdit} />
+              </View>
+            ) : null}
           </View>
+
+          {apOn && canEdit && !isNew ? (
+            <>
+              <View style={styles.certHead}>
+                <Text style={styles.section}>{t('ap.title')}</Text>
+                <TouchableOpacity onPress={() => nav.navigate('Appraisals', { crewId: id })} hitSlop={8}>
+                  <Text style={styles.link}>{`${t('ap.all')} ›`}</Text>
+                </TouchableOpacity>
+              </View>
+              {apDue ? (
+                <TouchableOpacity style={styles.certRow} onPress={() => nav.navigate('Appraisal', { id: 'new', crewId: id, reason: apDue.reason })}>
+                  <Text style={[styles.title, { flex: 1, color: apDue.state === 'overdue' ? COLORS.danger : COLORS.warning }]}>{t(apDue.reason === 'contract' ? 'ap.dueContract' : 'ap.dueAnnual', { date: uiDate(apDue.date) })}</Text>
+                  <Text style={styles.link}>{`+ ${t('ap.one')}`}</Text>
+                </TouchableOpacity>
+              ) : null}
+              {myAps.slice(0, 3).map((a) => (
+                <TouchableOpacity key={a.id} style={styles.certRow} onPress={() => nav.navigate('Appraisal', { id: a.id })}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.title}>{`${tk(`ap.reason.${a.reason}`)} · ${uiDate(a.from)} – ${uiDate(a.to)}`}</Text>
+                    <Text style={styles.sub}>{tk(`ap.st.${apStage(a)}`)}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+              {!apDue && !myAps.length ? (
+                <TouchableOpacity onPress={() => nav.navigate('Appraisal', { id: 'new', crewId: id })} hitSlop={8}>
+                  <Text style={[styles.link, { marginTop: SIZES.sm }]}>{`+ ${t('ap.one')}`}</Text>
+                </TouchableOpacity>
+              ) : null}
+            </>
+          ) : null}
 
           {canEdit ? (
             <>

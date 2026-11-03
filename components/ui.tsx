@@ -155,6 +155,7 @@ const EMOJI_GLYPH: Record<string, GlyphName> = {
   '🔑': 'key',
   '💡': 'lightbulb-outline',
   '👥': 'account-multiple',
+  '⭐': 'account-star-outline',
   '🛠️': 'wrench',
   '✅': 'clipboard-check-outline',
   '⏱': 'timer-outline',

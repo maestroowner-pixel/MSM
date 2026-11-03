@@ -813,6 +813,17 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '⭐',
+      title: "Crew appraisals",
+      body: [
+        "For the crew's appraisals — at the end of the contract and, on a long trip, once a year — kept by the officers and the Master. Crew phones do not receive them; the office can read them. Open it from Crew → Appraisals, or from the crew member's card.",
+        "When one is due: set the date the contract ends on the crew member's card (Contract ends). The end-of-contract appraisal is asked for 30 days before that date. Otherwise an annual one is asked for a year after the end of the last appraisal, or a year after signing on when there is none; when the contract ends soon after the year is up, only the end-of-contract appraisal is asked. The Master is not on the list — the office appraises the Master.",
+        "The appraiser — usually the head of department — chooses the person, the reason and the period, and scores each criterion from 1 (unsatisfactory) to 5 (excellent), or N/A: professional knowledge, quality of work, safety and SMS, reliability, teamwork, communication and English, conduct, initiative, and for officers leadership. Then strengths, what to improve, training needs, whether to re-hire, and whether promotion is recommended. Save it as a draft, or sign it. Once signed, it does not change.",
+        "Next the seafarer reads it on the same device and answers whether they agree, may add a comment, and signs with their own PIN or by hand. If they will not sign, the appraiser records that, with the reason. Then the Master countersigns. An appraisal made by the Master is complete with the seafarer's signature. Before the seafarer signs, it can be cancelled with the reason; nothing is deleted.",
+        "PDF prints the appraisal with the scores, the remarks and every signature (signatures by hand as drawn) — for the seafarer's file and the crewing office. On the Board the officers see who is due (red once the date has passed), and the Master sees what waits for the countersignature.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'About',
       body: [
@@ -1597,6 +1608,17 @@ const ru: ManualContent = {
         "Если одобряет и офис, изменение затем ждёт в Fleet → Needs attention: суперинтендант видит изменение, документы, утверждённую оценку рисков и действия — и одобряет, возвращает на судно с комментарием или отклоняет.",
         "После одобрения каждый подписывает выполнение своего действия. Когда выполнены все, Master закрывает изменение — с подписью и словами о том, сработало ли оно. Если у названного документа ещё не выпущена новая редакция, приложение напомнит об этом перед закрытием. Отклонённое, отменённое или закрытое изменение больше не меняется; ничего не удаляется.",
         "На Board: изменение, ждущее одобрения или готовое к закрытию, — для Master'а; возвращённое — для офицеров; просроченное действие — красное; временное изменение с истёкшим сроком — красное для Master'а: вернуть как было или закрыть.",
+      ],
+    },
+    {
+      emoji: '⭐',
+      title: "Аттестации экипажа",
+      body: [
+        "Для аттестаций экипажа — в конце контракта и, при долгом контракте, раз в год. Ведут офицеры и капитан. На телефоны экипажа аттестации не приходят; офис может их читать. Откройте Crew → Appraisals или из карточки члена экипажа.",
+        "Когда пора: укажите в карточке члена экипажа дату окончания контракта (Contract ends). Аттестация по окончании контракта запрашивается за 30 дней до этой даты. Иначе ежегодная — через год после конца прошлой аттестации, а если её не было — через год после прибытия на судно. Если контракт заканчивается вскоре после того, как прошёл год, запрашивается только аттестация по окончании контракта. Капитана в списке нет — его аттестует офис.",
+        "Оценивающий — обычно начальник службы — выбирает человека, причину и период и ставит оценку по каждому критерию от 1 (неудовлетворительно) до 5 (отлично) или «н/п»: профессиональные знания, качество работы, безопасность и СУБ, надёжность, работа в команде, общение и английский, поведение, инициатива, а для офицеров — руководство. Затем сильные стороны, что улучшить, обучение, нанимать ли снова и рекомендуется ли повышение. Аттестацию можно сохранить черновиком или подписать. После подписи она не меняется.",
+        "Дальше моряк читает её на том же устройстве, отвечает, согласен ли, может добавить комментарий и подписывает своим PIN или от руки. Если он отказывается подписать, оценивающий отмечает это с причиной. Затем контрассигнует капитан. Аттестация, которую составил сам капитан, завершается подписью моряка. До подписи моряка аттестацию можно отменить с причиной; ничего не удаляется.",
+        "PDF печатает аттестацию с оценками, замечаниями и всеми подписями (подписи от руки — как нарисованы) — для личного дела моряка и крюинга. На Board офицеры видят, кому пора (красным, когда срок прошёл), а капитан — что ждёт его контрассигнации.",
       ],
     },
     {
@@ -2387,6 +2409,17 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '⭐',
+      title: "Evaluaciones de la tripulación",
+      body: [
+        "Para las evaluaciones de la tripulación — al final del contrato y, en un embarque largo, una vez al año — que llevan los oficiales y el Capitán. Los teléfonos de la tripulación no las reciben; la oficina puede leerlas. Ábralo en Crew → Appraisals o desde la ficha del tripulante.",
+        "Cuándo toca: indique en la ficha del tripulante la fecha en que termina el contrato (Contract ends). La evaluación de fin de contrato se pide 30 días antes. Si no, la anual se pide un año después del final de la última evaluación, o un año después del embarque si no hay ninguna; cuando el contrato termina poco después de cumplirse el año, solo se pide la de fin de contrato. El Capitán no está en la lista — lo evalúa la oficina.",
+        "El evaluador — normalmente el jefe de departamento — elige a la persona, el motivo y el periodo, y puntúa cada criterio de 1 (insatisfactorio) a 5 (excelente), o N/A: conocimientos profesionales, calidad del trabajo, seguridad y SGS, fiabilidad, trabajo en equipo, comunicación e inglés, conducta, iniciativa y, para oficiales, liderazgo. Después los puntos fuertes, qué mejorar, la formación, si se recontrata y si se recomienda el ascenso. Guárdela como borrador o fírmela. Una vez firmada, no cambia.",
+        "Después el tripulante la lee en el mismo dispositivo, responde si está de acuerdo, puede añadir un comentario y firma con su PIN o a mano. Si no quiere firmar, el evaluador lo anota con el motivo. Luego el Capitán la refrenda. Una evaluación hecha por el Capitán queda completa con la firma del tripulante. Antes de que firme el tripulante puede cancelarse con el motivo; nada se borra.",
+        "PDF imprime la evaluación con las puntuaciones, las observaciones y todas las firmas (las firmas a mano tal como se dibujaron) — para el expediente del tripulante y la oficina de tripulaciones. En el Board los oficiales ven a quién le toca (en rojo cuando ha pasado la fecha) y el Capitán lo que espera su refrendo.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Acerca de',
       body: [
@@ -3174,6 +3207,17 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '⭐',
+      title: "Атестації екіпажу",
+      body: [
+        "Для атестацій екіпажу — наприкінці контракту і, при довгому контракті, раз на рік. Ведуть офіцери і капітан. На телефони екіпажу атестації не надходять; офіс може їх читати. Відкрийте Crew → Appraisals або з картки члена екіпажу.",
+        "Коли час: вкажіть у картці члена екіпажу дату закінчення контракту (Contract ends). Атестація після закінчення контракту запитується за 30 днів до цієї дати. Інакше щорічна — через рік після кінця попередньої атестації, а якщо її не було — через рік після прибуття на судно. Якщо контракт закінчується невдовзі після того, як минув рік, запитується лише атестація після закінчення контракту. Капітана в списку немає — його атестує офіс.",
+        "Оцінювач — зазвичай начальник служби — обирає людину, причину і період і ставить оцінку за кожним критерієм від 1 (незадовільно) до 5 (відмінно) або «н/з»: професійні знання, якість роботи, безпека і СУБ, надійність, робота в команді, спілкування і англійська, поведінка, ініціатива, а для офіцерів — керівництво. Потім сильні сторони, що покращити, навчання, чи наймати знову і чи рекомендовано підвищення. Атестацію можна зберегти чернеткою або підписати. Після підпису вона не змінюється.",
+        "Далі моряк читає її на тому ж пристрої, відповідає, чи згоден, може додати коментар і підписує своїм PIN або від руки. Якщо він відмовляється підписати, оцінювач фіксує це з причиною. Потім контрасигнує капітан. Атестація, яку склав сам капітан, завершується підписом моряка. До підпису моряка атестацію можна скасувати з причиною; нічого не видаляється.",
+        "PDF друкує атестацію з оцінками, зауваженнями і всіма підписами (підписи від руки — як намальовані) — для особової справи моряка і крюїнгу. На Board офіцери бачать, кому час (червоним, коли строк минув), а капітан — що чекає його контрасигнації.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Про застосунок',
       body: [
@@ -3896,6 +3940,17 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '⭐',
+      title: "Mannskapsvurderinger",
+      body: [
+        "For mannskapets vurderinger — ved kontraktslutt og, på en lang tur, én gang i året — som føres av offiserene og skipsføreren. Mannskapets telefoner får dem ikke; kontoret kan lese dem. Åpne den fra Crew → Appraisals eller fra mannskapskortet.",
+        "Når den forfaller: sett datoen kontrakten slutter på mannskapskortet (Contract ends). Vurderingen ved kontraktslutt bes om 30 dager før. Ellers bes det om en årlig ett år etter slutten av forrige vurdering, eller ett år etter påmønstring når det ikke finnes noen; slutter kontrakten kort tid etter at året er omme, bes det bare om vurderingen ved kontraktslutt. Skipsføreren står ikke på listen — kontoret vurderer skipsføreren.",
+        "Vurdereren — vanligvis avdelingslederen — velger personen, årsaken og perioden og gir hvert kriterium en karakter fra 1 (ikke tilfredsstillende) til 5 (utmerket), eller I/A: faglig kunnskap, arbeidskvalitet, sikkerhet og SMS, pålitelighet, samarbeid, kommunikasjon og engelsk, oppførsel, initiativ, og for offiserer ledelse. Så styrker, hva som bør forbedres, opplæringsbehov, om personen skal gjenansettes og om opprykk anbefales. Lagre den som utkast, eller signer den. Når den er signert, endres den ikke.",
+        "Deretter leser sjømannen den på samme enhet, svarer om hen er enig, kan legge til en kommentar og signerer med egen PIN eller for hånd. Vil hen ikke signere, noterer vurdereren det med årsaken. Så kontrasignerer skipsføreren. En vurdering laget av skipsføreren er fullført med sjømannens signatur. Før sjømannen har signert kan den avbrytes med årsaken; ingenting slettes.",
+        "PDF skriver ut vurderingen med karakterene, merknadene og alle signaturer (håndskrevne slik de ble tegnet) — til sjømannens mappe og mannskapskontoret. På Board ser offiserene hvem som står for tur (rødt når datoen er passert), og skipsføreren ser hva som venter på kontrasignatur.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Om',
       body: [
@@ -4603,6 +4658,17 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '⭐',
+      title: "Avaliações da tripulação",
+      body: [
+        "Para as avaliações da tripulação — no fim do contrato e, num embarque longo, uma vez por ano — mantidas pelos oficiais e pelo Comandante. Os telemóveis da tripulação não as recebem; o escritório pode lê-las. Abra em Crew → Appraisals ou a partir da ficha do tripulante.",
+        "Quando cabe: indique na ficha do tripulante a data em que o contrato termina (Contract ends). A avaliação de fim de contrato é pedida 30 dias antes. Caso contrário, a anual é pedida um ano depois do fim da última avaliação, ou um ano depois do embarque se não houver nenhuma; quando o contrato termina pouco depois de completar o ano, só se pede a de fim de contrato. O Comandante não está na lista — é avaliado pelo escritório.",
+        "O avaliador — normalmente o chefe de departamento — escolhe a pessoa, o motivo e o período e pontua cada critério de 1 (insatisfatório) a 5 (excelente), ou N/A: conhecimento profissional, qualidade do trabalho, segurança e SGS, fiabilidade, trabalho em equipa, comunicação e inglês, conduta, iniciativa e, para oficiais, liderança. Depois os pontos fortes, o que melhorar, a formação, se recontratar e se a promoção é recomendada. Guarde-a como rascunho ou assine-a. Depois de assinada, não muda.",
+        "A seguir o tripulante lê-a no mesmo dispositivo, responde se concorda, pode juntar um comentário e assina com o seu PIN ou à mão. Se recusar assinar, o avaliador regista-o com o motivo. Depois o Comandante visa. Uma avaliação feita pelo Comandante fica concluída com a assinatura do tripulante. Antes de o tripulante assinar pode ser cancelada com o motivo; nada é apagado.",
+        "PDF imprime a avaliação com as pontuações, as observações e todas as assinaturas (as feitas à mão como foram desenhadas) — para o processo do tripulante e o escritório de tripulações. No Board os oficiais veem a quem cabe (a vermelho depois da data) e o Comandante o que aguarda o seu visto.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Sobre',
       body: [
@@ -4674,6 +4740,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Vessel API', module: 'api' },
   { title: 'External inspections', module: 'extInsp' },
   { title: 'Management of change', module: 'moc' },
+  { title: 'Crew appraisals', module: 'appraisals' },
   { title: 'Planned maintenance', module: 'critEq', drop: [-1] },
   { title: 'Suppliers and quotations', module: 'poApproval', drop: [-1] },
 ];

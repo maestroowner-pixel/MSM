@@ -109,6 +109,8 @@ export interface BackupFile {
   surveys?: { plan: Survey[]; done: SurveyDone[] };
   /** QHSE: observation cards and non-conformities. */
   qhse?: { observations: SafetyObservation[]; ncs: NonConformity[]; ext?: import('../types/extInspection').ExternalInspection[]; mocs?: import('../types/moc').ManagementOfChange[] };
+  /** Crew appraisals (officers only). */
+  appraisals?: import('../types/appraisal').CrewAppraisal[];
   /** Drills: planned and carried out. */
   drills?: Drill[];
   drillPlans?: DrillYearPlan[];
@@ -259,6 +261,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   const garbage = { entries: await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY), signs: await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY) };
   const qhse = { observations: await storage.loadList<SafetyObservation>(storage.OBSERVATIONS_KEY), ncs: await storage.loadList<NonConformity>(storage.NCS_KEY), ext: await storage.loadList<import('../types/extInspection').ExternalInspection>(storage.EXT_INSP_KEY), mocs: await storage.loadList<import('../types/moc').ManagementOfChange>(storage.MOCS_KEY) };
   const drills = await storage.loadList<Drill>(storage.DRILLS_KEY);
+  const appraisals = await storage.loadList<import('../types/appraisal').CrewAppraisal>(storage.APPRAISALS_KEY);
   const drillPlans = await storage.loadList<DrillYearPlan>(storage.DRILL_PLANS_KEY);
   const safetyMeetings = await storage.loadList<SafetyMeeting>(storage.SAFETY_MEETINGS_KEY);
   const dp = { checks: await storage.loadList<DpCheck>(storage.DP_CHECKS_KEY), days: await storage.loadList<DpDay>(storage.DP_DAYS_KEY), info: await storage.loadList<DpInfo>(storage.DP_INFO_KEY), templates: await storage.loadList<DpTemplate>(storage.DP_TEMPLATES_KEY) };
@@ -317,6 +320,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     surveys,
     qhse,
     drills,
+    ...(appraisals.length ? { appraisals } : {}),
     drillPlans,
     hospital,
     passengers,
@@ -557,6 +561,7 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     if (backup.qhse.mocs) await storage.saveList(storage.MOCS_KEY, backup.qhse.mocs);
   }
   if (backup.drills) await storage.saveList(storage.DRILLS_KEY, backup.drills);
+  if (backup.appraisals) await storage.saveList(storage.APPRAISALS_KEY, backup.appraisals);
   if (backup.drillPlans) await storage.saveList(storage.DRILL_PLANS_KEY, backup.drillPlans);
   if (backup.safetyMeetings) await storage.saveList(storage.SAFETY_MEETINGS_KEY, backup.safetyMeetings);
   if (backup.dp) {

@@ -40,13 +40,14 @@ import * as accounts from '../services/accounts';
 import { EnrolledDevice, personName } from '../types/role';
 import { t, tn, useT } from '../utils/i18n';
 import { shipToday } from '../utils/shipTime';
+import { dueList } from '../services/appraisals';
 
 export default function CrewSc() {
   useT();
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { crew, vessel, inspections: trail, certificates, crewPrivate, saveCrewMember, saveCrewPrivate, removeCrewMember } = useData();
+  const { crew, vessel, inspections: trail, certificates, crewPrivate, appraisals, saveCrewMember, saveCrewPrivate, removeCrewMember } = useData();
   // ID card photos on this device (services/crewPhotos) — the faces in the list.
   const [photos, setPhotos] = useState<Record<string, string>>({});
   useFocusEffect(
@@ -71,6 +72,7 @@ export default function CrewSc() {
   const crewMgmt = moduleOn('crewCerts');
   const isMaster = myRole === 'superadmin' || (crewMgmt && (myRole === 'admin' || !isEnrolled));
   const rankKnown = myRole !== null || (crewMgmt && !isEnrolled);
+  const apDue = moduleOn('appraisals') && isMaster ? dueList(crew, appraisals, shipToday()).length : 0;
 
   const imo = (vessel?.imo ?? '').replace(/\D/g, '');
   const [enrolled, setEnrolled] = useState<EnrolledDevice[]>([]);
@@ -393,6 +395,14 @@ export default function CrewSc() {
         <TouchableOpacity style={styles.matrixLink} onPress={() => nav.navigate('CrewMatrix')}>
           <MciIcon name="table-large" size={20} color={COLORS.primary} />
           <Text style={styles.matrixText}>{t('crw.matrix')}</Text>
+          <Text style={styles.matrixText}>›</Text>
+        </TouchableOpacity>
+      ) : null}
+
+      {crewMgmt && isMaster && moduleOn('appraisals') ? (
+        <TouchableOpacity style={styles.matrixLink} onPress={() => nav.navigate('Appraisals')}>
+          <MciIcon name="account-star-outline" size={20} color={COLORS.primary} />
+          <Text style={styles.matrixText}>{`${t('ap.title')}${apDue ? ` · ${t('ap.dueN', { n: apDue })}` : ''}`}</Text>
           <Text style={styles.matrixText}>›</Text>
         </TouchableOpacity>
       ) : null}

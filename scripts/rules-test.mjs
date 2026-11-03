@@ -428,6 +428,32 @@ await t(true, 'The Master raises and approves in one go', setDoc(R(master, 'mocs
 await t(true, 'The office rejects it with the reason', updateDoc(R(shore, 'mocs', 'moc2'), { steps: steps(['master', 1], ['reject', 2, 'Not class approved']), updatedAt: 2 }));
 await t(false, 'A change is never deleted', deleteDoc(R(master, 'mocs', 'moc2')));
 
+// Crew appraisals (services/appraisals, plan item 40)
+const AP = { id: 'ap1', crewId: 'c1', name: 'Jez', rank: 'AB', reason: 'contract', from: '2026-05-01', to: '2026-11-01', scores: [{ id: 'safety', score: 4 }], rehire: 'yes', steps: [], by: 'Bosun', at: 1, updatedAt: 1 };
+const ast = (...k) => k.map(([kind, at, x = {}]) => ({ kind, by: 'X', at, ...x }));
+await t(false, 'Crew cannot read an appraisal', getDoc(R(crew, 'crew_appraisals', 'ap0')));
+await t(false, 'Crew cannot write one', setDoc(R(crew, 'crew_appraisals', 'ap0'), { ...AP, id: 'ap0' }));
+await t(true, 'An officer starts a draft', setDoc(R(officer, 'crew_appraisals', 'ap1'), AP));
+await t(true, '…and edits it', updateDoc(R(officer, 'crew_appraisals', 'ap1'), { strengths: 'Careful', updatedAt: 2 }));
+await t(false, 'An officer cannot sign as the Master', updateDoc(R(officer, 'crew_appraisals', 'ap1'), { steps: ast(['appraiser', 3, { asMaster: true }]), updatedAt: 3 }));
+await t(true, 'The appraiser signs', updateDoc(R(officer, 'crew_appraisals', 'ap1'), { steps: ast(['appraiser', 3]), updatedAt: 3 }));
+await t(false, 'Signed, the scores are fixed', updateDoc(R(officer, 'crew_appraisals', 'ap1'), { scores: [{ id: 'safety', score: 5 }], updatedAt: 4 }));
+await t(false, 'The Master cannot countersign before the seafarer', updateDoc(R(master, 'crew_appraisals', 'ap1'), { steps: ast(['appraiser', 3], ['master', 4]), updatedAt: 4 }));
+await t(false, 'A refusal needs its reason', updateDoc(R(officer, 'crew_appraisals', 'ap1'), { steps: ast(['appraiser', 3], ['refused', 4]), updatedAt: 4 }));
+await t(true, 'The seafarer signs, not agreeing', updateDoc(R(officer, 'crew_appraisals', 'ap1'), { steps: ast(['appraiser', 3], ['crew', 4, { agree: false, note: 'Overtime not counted' }]), updatedAt: 4 }));
+await t(false, 'An officer cannot countersign', updateDoc(R(officer, 'crew_appraisals', 'ap1'), { steps: ast(['appraiser', 3], ['crew', 4, { agree: false, note: 'Overtime not counted' }], ['master', 5]), updatedAt: 5 }));
+await t(false, 'Signed by the seafarer, it cannot be cancelled', updateDoc(R(master, 'crew_appraisals', 'ap1'), { steps: ast(['appraiser', 3], ['crew', 4, { agree: false, note: 'Overtime not counted' }], ['cancel', 5, { note: 'Wrong' }]), updatedAt: 5 }));
+await t(true, 'The Master countersigns', updateDoc(R(master, 'crew_appraisals', 'ap1'), { steps: ast(['appraiser', 3], ['crew', 4, { agree: false, note: 'Overtime not counted' }], ['master', 5]), updatedAt: 5 }));
+await t(false, 'Countersigned, it is final', updateDoc(R(master, 'crew_appraisals', 'ap1'), { strengths: 'x', updatedAt: 6 }));
+await t(true, '…though a copy sent again unchanged goes through', updateDoc(R(officer, 'crew_appraisals', 'ap1'), { updatedAt: 7 }));
+await t(true, 'The office reads it', getDoc(R(shore, 'crew_appraisals', 'ap1')));
+await t(false, 'The office cannot write it', updateDoc(R(shore, 'crew_appraisals', 'ap1'), { updatedAt: 8 }));
+await t(true, 'The Master appraises and signs in one go', setDoc(R(master, 'crew_appraisals', 'ap2'), { ...AP, id: 'ap2', steps: ast(['appraiser', 1, { asMaster: true }]) }));
+await t(true, 'The seafarer refuses to sign — recorded with the reason', updateDoc(R(master, 'crew_appraisals', 'ap2'), { steps: ast(['appraiser', 1, { asMaster: true }], ['refused', 2, { note: 'Would not sign' }]), updatedAt: 2 }));
+await t(false, 'The Master\'s own appraisal takes no countersignature', updateDoc(R(master, 'crew_appraisals', 'ap2'), { steps: ast(['appraiser', 1, { asMaster: true }], ['refused', 2, { note: 'Would not sign' }], ['master', 3]), updatedAt: 3 }));
+await t(true, 'A signed appraisal is cancelled with the reason', setDoc(R(officer, 'crew_appraisals', 'ap3'), { ...AP, id: 'ap3', steps: ast(['appraiser', 1]) }).then(() => updateDoc(R(officer, 'crew_appraisals', 'ap3'), { steps: ast(['appraiser', 1], ['cancel', 2, { note: 'Wrong person' }]), updatedAt: 2 })));
+await t(false, 'An appraisal is never deleted', deleteDoc(R(master, 'crew_appraisals', 'ap1')));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

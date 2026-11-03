@@ -899,6 +899,51 @@ service cloud.firestore {
                           || (shore(v) && onlyChanges(['steps', 'updatedAt']) && mocStepAdded(['office', 'officeReturn', 'reject'])));
         allow delete: if false;
       }
+      // Crew appraisals (types/appraisal.ts, services/appraisals.ts): officers and
+      // the Master only — the office reads. A draft is written freely; once the
+      // appraiser signed, a write adds at most ONE step and nothing else: the
+      // person's signature (or the refusal, with the reason), the Master's
+      // countersignature (only the Master, and not when the Master appraised),
+      // or a cancellation before the person signed (with the reason). Never deleted.
+      function apSteps(d) {
+        return d.get('steps', []);
+      }
+      function apNoteOk(st) {
+        return !(st.kind in ['refused', 'cancel']) || st.get('note', '').size() >= 3;
+      }
+      // The first step: the appraiser (as the Master only from the Master's device) or a cancellation.
+      function apFirstOk(st) {
+        return apNoteOk(st) && ((st.kind == 'appraiser' && (st.get('asMaster', false) != true || isSuper(v))) || st.kind == 'cancel');
+      }
+      function apStepAdded() {
+        let o = apSteps(resource.data);
+        let n = apSteps(request.resource.data);
+        let k = n[o.size()].kind;
+        let p = o[o.size() - 1].kind;
+        let asMaster = o[0].get('asMaster', false) == true;
+        return n.size() == o.size() + 1 && n.hasAll(o) && apNoteOk(n[o.size()])
+               && ((k in ['crew', 'refused', 'cancel'] && p == 'appraiser')
+                   || (k == 'master' && isSuper(v) && !asMaster && p in ['crew', 'refused']));
+      }
+      function apOpen() {
+        let s = apSteps(resource.data);
+        return s.size() == 0 || !(s[s.size() - 1].kind in ['master', 'cancel']
+                                  || (s[s.size() - 1].kind in ['crew', 'refused'] && s[0].get('asMaster', false) == true));
+      }
+      match /crew_appraisals/{id} {
+        allow read: if isAdmin(v) || shore(v);
+        allow create: if isAdmin(v) && (apSteps(request.resource.data).size() == 0
+                        || (apSteps(request.resource.data).size() == 1 && apFirstOk(apSteps(request.resource.data)[0])));
+        // A copy sent again unchanged (a restore, a second device) is let through, final or not.
+        allow update: if isAdmin(v) && request.resource.data.crewId == resource.data.crewId && request.resource.data.at == resource.data.at
+                      && (onlyChanges(['updatedAt'])
+                          || (apOpen()
+                              && ((apSteps(resource.data).size() == 0
+                                   && (apSteps(request.resource.data).size() == 0
+                                       || (apSteps(request.resource.data).size() == 1 && apFirstOk(apSteps(request.resource.data)[0]))))
+                                  || (apSteps(resource.data).size() > 0 && onlyChanges(['steps', 'updatedAt']) && apStepAdded()))));
+        allow delete: if false;
+      }
 
       // ---- server-only ------------------------------------------------------
       // The bootstrap marker and the guess counters are written by the Admin SDK

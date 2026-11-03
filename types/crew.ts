@@ -52,6 +52,8 @@ export interface CrewMember {
   signOnPort?: string;
   /** yyyy-mm-dd left the vessel. */
   signOff?: string;
+  /** yyyy-mm-dd the current contract ends — the end-of-contract appraisal is asked for 30 days before (services/appraisals). */
+  contractEnd?: string;
 }
 
 /** Aboard and current: who records hours of rest and appears in the matrix. */

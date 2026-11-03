@@ -136,6 +136,8 @@ import ExtInspectionsSc from './screens/ExtInspectionsSc';
 import ExtInspectionSc from './screens/ExtInspectionSc';
 import MocsSc from './screens/MocsSc';
 import MocSc from './screens/MocSc';
+import AppraisalsSc from './screens/AppraisalsSc';
+import AppraisalSc from './screens/AppraisalSc';
 import OrderSc from './screens/OrderSc';
 import OrderGroupSc from './screens/OrderGroupSc';
 import SuppliersSc from './screens/SuppliersSc';
@@ -528,6 +530,8 @@ const linking = {
       ExtInspection: 'external-inspection/:id',
       Mocs: 'changes',
       Moc: 'change/:id',
+      Appraisals: 'appraisals',
+      Appraisal: 'appraisal/:id',
       Drill: 'drill/:id',
       Meeting: 'safety-meeting/:id',
       Ask: 'ask',
@@ -798,6 +802,8 @@ function Root() {
         <Stack.Screen name="ExtInspection" component={ExtInspectionSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Mocs" component={MocsSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Moc" component={MocSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Appraisals" component={AppraisalsSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Appraisal" component={AppraisalSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Drill" component={DrillSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Meeting" component={MeetingSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Ask" component={AskSc} options={{ presentation: 'modal' }} />

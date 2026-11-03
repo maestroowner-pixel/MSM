@@ -60,6 +60,7 @@ import { emergencyOpen, emergencyRejected, lastCuts, poStage, returnedBy } from 
 import { inspStatus } from './extInspections';
 import { mocStage, nextActionDue as mocNextDue, overdueActions, readyToClose, returnedBy as mocReturnedBy, tempState } from './moc';
 import { critSummary, downtimeDays, outNow } from './critEq';
+import { apStage, dueList as apDueList } from './appraisals';
 import { t, tk, tn } from '../utils/t';
 
 export type Level = 'red' | 'amber' | 'blue';
@@ -192,6 +193,8 @@ export interface BoardInput {
   extInspections?: import('../types/extInspection').ExternalInspection[];
   /** Management of change (types/moc.ts). */
   mocs?: import('../types/moc').ManagementOfChange[];
+  /** Crew appraisals (types/appraisal.ts) — on officers' devices only. */
+  appraisals?: import('../types/appraisal').CrewAppraisal[];
   drills?: Drill[];
   medItems?: MedItem[];
   medMoves?: MedMove[];
@@ -687,6 +690,23 @@ export function buildBoard(x: BoardInput): Board {
     if (fresh) n.push({ key: 'obs:new', level: 'amber', who: 'officer', icon: 'eye-outline', route: 'Safety', title: t('b.obs.toReview', { x: tn('n.obsCard', fresh) }) });
     const open = ncs.filter((v) => !v.closedAt).length;
     tiles.push({ key: 'qhse', label: t('b.safety'), icon: 'shield-check-outline', route: 'Safety', level: lvl(red, amber || fresh), line: [open ? t('b.nc.openN', { n: open }) : t('b.nc.none'), fresh ? t('b.newCardsN', { n: fresh }) : null].filter(Boolean).join(' · ') });
+  }
+
+  // ---- Crew appraisals: who is due (contract end, the year), what waits for the Master ----
+  if (x.on('appraisals') && x.on('crewCerts')) {
+    const due = apDueList(x.crew, x.appraisals ?? [], x.today);
+    const over = due.filter((d) => d.due.state === 'overdue').length;
+    if (due.length) {
+      const first = due[0];
+      n.push({
+        key: 'ap:due', level: over ? 'red' : 'amber', who: 'officer', icon: 'account-star-outline', route: 'Appraisals',
+        title: `${t('ap.title')} — ${[over ? t('b.ap.overdueN', { n: over }) : null, due.length - over ? t('b.dueSoonN', { n: due.length - over }) : null].filter(Boolean).join(', ')}`,
+        sub: due.slice(0, 3).map((d) => `${d.c.name} (${t(d.due.reason === 'contract' ? 'b.ap.contract' : 'b.ap.annual', { date: dm(d.due.date) })})`).join(', ') + (due.length > 3 ? ' …' : ''),
+        ...(due.length === 1 ? { route: 'Appraisal', params: { id: 'new', crewId: first.c.id, reason: first.due.reason } } : {}),
+      });
+    }
+    const toSign = (x.appraisals ?? []).filter((a) => apStage(a) === 'master');
+    if (toSign.length) n.push({ key: 'ap:master', level: 'amber', who: 'master', icon: 'draw-pen', route: toSign.length === 1 ? 'Appraisal' : 'Appraisals', ...(toSign.length === 1 ? { params: { id: toSign[0].id } } : {}), title: t('b.ap.toCountersign', { n: toSign.length }), sub: toSign.slice(0, 3).map((a) => a.name).join(', ') });
   }
 
   // ---- Management of change: what waits for the Master, what came back, what is late ----

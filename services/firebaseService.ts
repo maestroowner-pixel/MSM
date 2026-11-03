@@ -1242,6 +1242,8 @@ export const DP_KEEP_DAYS = 90;
 const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] = [
   // Personal details and next of kin: Officers and the Master only (rules).
   { sub: 'crew_private', key: storage.CREW_PRIVATE_KEY, module: 'crewCerts', officers: true },
+  // Crew appraisals: the Master and the officers only — never on a crew member's phone.
+  { sub: 'crew_appraisals', key: storage.APPRAISALS_KEY, module: 'appraisals', officers: true },
   { sub: 'rest', key: storage.REST_KEY, module: 'rest' },
   { sub: 'pms_machines', key: storage.PMS_MACHINES_KEY, module: 'pms', partial: ['hours', 'hoursDate', 'readings', 'counterOffset', 'updatedAt'] },
   { sub: 'pms_jobs', key: storage.PMS_JOBS_KEY, module: 'pms', partial: ['lastDoneDate', 'lastDoneHours', 'prepared', 'updatedAt'] },
