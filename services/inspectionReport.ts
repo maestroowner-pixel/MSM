@@ -39,8 +39,10 @@ import { printHtmlWeb } from '../utils/webFile';
 import { fileDateStamp, formatDate } from '../utils/dates';
 import { initialsOf, itemLocation, itemNumber } from '../utils/itemText';
 import { InspectionRound } from '../types/round';
+import { ItemMovement } from '../types/movement';
+import { changeLine, whatLine } from './replacements';
 
-import { MON, ReportData, ReportScope, buildRoundReport, periodNameFor, roundSignoffLine } from './reportData';
+import { MON, ReportData, ReportScope, auditSections, buildRoundReport, periodNameFor, roundSignoffLine } from './reportData';
 import { shipStamp, shipToday } from '../utils/shipTime';
 export type { ReportData, ReportScope } from './reportData';
 export { periodNameFor, roundSignoffLine } from './reportData';
@@ -73,6 +75,8 @@ export interface ReportOptions {
    * the round's own sign-off at the foot.
    */
   round?: InspectionRound;
+  /** The items' lifecycle (DataContext itemMovements): the report then lists what was replaced in the window. */
+  movements?: ItemMovement[];
 }
 
 
@@ -110,7 +114,12 @@ export function buildReport(
   trail: Inspection[],
   opts: ReportOptions
 ): ReportData {
-  if (opts.round) return buildRoundReport(flat, trail, opts.round);
+  const data = opts.round ? buildRoundReport(flat, trail, opts.round) : buildPeriodReport(flat, trail, opts);
+  const { from, to } = opts.round ? opts.round : inspections.windowFor(opts.period, opts.ref ?? new Date());
+  return { ...data, ...auditSections(data, trail, from, to, opts.movements) };
+}
+
+function buildPeriodReport(flat: EquipmentItem[], trail: Inspection[], opts: ReportOptions): ReportData {
   const ref = opts.ref ?? new Date();
   const window = inspections.windowFor(opts.period, ref);
 
@@ -283,6 +292,36 @@ function defectRows(data: ReportData, flat: EquipmentItem[]) {
   });
 }
 
+function rectifiedRows(data: ReportData, flat: EquipmentItem[]) {
+  return (data.rectified ?? []).map((insp) => {
+    const it = flat.find((e) => e.id === insp.itemId);
+    return {
+      ...itemCells(it),
+      raised: dateOnly(insp.at),
+      closed: dateOnly(insp.defect!.closedAt!),
+      category: CATEGORY_MAP[insp.category]?.label ?? insp.category,
+      defect: defectReason(insp),
+      fix: insp.defect!.closedNote ?? '',
+      by: insp.defect!.closedBy ?? '',
+    };
+  });
+}
+
+function replacedRows(data: ReportData, flat: EquipmentItem[]) {
+  return (data.replaced ?? []).map((m) => {
+    const it = flat.find((e) => e.id === m.itemId);
+    return {
+      ...itemCells(it),
+      date: formatDate(m.date),
+      category: CATEGORY_MAP[m.itemCategory]?.label ?? m.itemCategory,
+      what: whatLine(m),
+      change: changeLine(m),
+      reason: [m.reason, m.notes].filter(Boolean).join(' — '),
+      by: signatureLine(m.by ?? '', m.byRank),
+    };
+  });
+}
+
 /** Initials are what fit in a column; an audit still needs the names behind them. */
 function signatureKey(data: ReportData, trail: Inspection[]): Array<{ initials: string; name: string }> {
   const seen = new Map<string, string>();
@@ -449,6 +488,24 @@ function buildHtml(data: ReportData, flat: EquipmentItem[], trail: Inspection[],
         'No outstanding defects.'
       )}
 
+      ${section(
+        'Defects put right in this period',
+        (data.rectified ?? []).length,
+        '<th class="nw">Raised</th><th class="nw">Put right</th><th class="nw">No.</th><th>Location</th><th>Type</th><th>Serial</th><th>What failed</th><th>How it was put right</th><th>By</th>',
+        rectifiedRows(data, flat).map((r) => `<tr><td class="nw">${esc(r.raised)}</td><td class="nw">${esc(r.closed)}</td><td class="nw">${esc(r.no)}</td><td>${esc(r.location)}</td><td>${esc(r.item)}</td><td>${esc(r.serial)}</td><td>${esc(r.defect)}</td><td>${esc(r.fix)}</td><td>${esc(r.by)}</td></tr>`).join(''),
+        'No defect was put right in this period.'
+      )}
+
+      ${data.replaced
+        ? section(
+            'Equipment replaced in this period',
+            data.replaced.length,
+            '<th class="nw">Date</th><th class="nw">No.</th><th>Location</th><th>Category</th><th>Type</th><th>Replaced</th><th>Before → after</th><th>Reason</th><th>By</th>',
+            replacedRows(data, flat).map((r) => `<tr><td class="nw">${esc(r.date)}</td><td class="nw">${esc(r.no)}</td><td>${esc(r.location)}</td><td>${esc(r.category)}</td><td>${esc(r.item)}</td><td>${esc(r.what)}</td><td>${esc(r.change)}</td><td>${esc(r.reason)}</td><td>${esc(r.by)}</td></tr>`).join(''),
+            'Nothing was replaced in this period.'
+          )
+        : ''}
+
       ${key.length
         ? `<div class="key">Initials: ${key.map((k) => `${esc(k.initials)} = ${esc(k.name)}`).join(' · ')}</div>`
         : ''}
@@ -601,6 +658,19 @@ export async function exportReportXlsx(
     ...defectRows(data, flat).map((r) => [r.raised, r.age, r.no, r.location, r.category, r.item, r.serial, r.defect, r.comments, r.by]),
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(defects), 'Open defects');
+
+  const rectified = [
+    ['Raised', 'Put right', 'No.', 'Location', 'Category', 'Type', 'Serial', 'What failed', 'How it was put right', 'By'],
+    ...rectifiedRows(data, flat).map((r) => [r.raised, r.closed, r.no, r.location, r.category, r.item, r.serial, r.defect, r.fix, r.by]),
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rectified), 'Defects put right');
+  if (data.replaced) {
+    const replaced = [
+      ['Date', 'No.', 'Location', 'Category', 'Type', 'Serial', 'Replaced', 'Before → after', 'Reason', 'By'],
+      ...replacedRows(data, flat).map((r) => [r.date, r.no, r.location, r.category, r.item, r.serial, r.what, r.change, r.reason, r.by]),
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(replaced), 'Replaced');
+  }
 
   const b64 = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
   await deliverFile(

@@ -96,6 +96,17 @@ app mirrors. Bundle id `com.kukalab.msm`.
   deep link record the proof under `group:<id>`) is scanned once; without it only the Master signs, with a reason
   (`signingGate`, unchanged). The person who looked signs — never the officer told about it. Renaming a group changes
   its id, so its label must be reprinted (the scanner says so).
+- **Equipment replaced** (3 Nov 2026, Sven — "the auditor will check records of replaced items, defects found on the rounds"):
+  pure `services/replacements.ts`, `screens/ReplaceItemSc.tsx` (route `ReplaceItem` `replaced/:id`, from the item's Lifecycle card
+  "Replaced…"; officers/Master — rules `item_movements` isAdmin, no new collection). A replacement is an `ItemMovement` with
+  `dir: 'replaced'`: whole unit or `part`, reason, date, `before`/`after` (only changed fields of make/type/serial/made/
+  next inspection/expiry), signed; the same signature writes `after` onto the item (same id — the label stays) and may close
+  the item's open defect (`defectInspId`, closedNote = what was replaced). A whole unit needs at least one new detail.
+  ItemDetail now adopts the stored item whenever it changes and nothing is typed (a stale draft saved later would undo the
+  replacement); Replaced… asks to save first when the draft is touched. Inspection report (period and round): two more
+  sections from `reportData.auditSections` — **Defects put right in this period** (defect.closedAt in the window) and
+  **Equipment replaced in this period** (only when `opts.movements` is passed: ReportsSc, RoundSc). Old apps show the raw
+  dir "replaced" in the lifecycle. `npm run check:replacements`.
 - **Record books: the Master's verification and the true copy** (25 Oct 2026, for flag approval
   under MEPC.312(74) — `services/verification.ts`, `components/Verification.tsx`,
   `services/trueCopy.ts` + `utils/trueCopyPdf.ts`, `npm run check:verification`). ORB, Garbage,

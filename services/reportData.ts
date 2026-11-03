@@ -11,6 +11,7 @@ import { signatureLine } from '../types/crew';
 import { CATEGORY_MAP } from '../constants/categories';
 import * as inspections from './inspections';
 import { roundProgress } from './rounds';
+import { replacedIn } from './replacements';
 import { formatDate } from '../utils/dates';
 import { shipStamp } from '../utils/shipTime';
 
@@ -46,6 +47,13 @@ export interface ReportData {
   periodName: string;
   /** The round this report is of, with its final sign-off when it is closed. */
   round?: InspectionRound;
+  /**
+   * What the auditor asks for besides the round (Sven, 3 Nov 2026): defects on
+   * in-scope items put right in the window, and equipment replaced in it. `replaced`
+   * is absent when the caller did not pass the lifecycle (then the section is not printed).
+   */
+  rectified?: Inspection[];
+  replaced?: import('../types/movement').ItemMovement[];
 }
 
 const MONTH_NAMES = [
@@ -126,4 +134,28 @@ export function roundSignoffLine(r: InspectionRound): string {
   const s = shipStamp(r.closedAt);
   const when = `${formatDate(s.slice(0, 10))} ${s.slice(11, 16)}`;
   return [`${signatureLine(r.closedBy ?? '', r.closedByRank)}`, when, r.closedWith ? proofShort(r.closedWith) : null].filter(Boolean).join(' · ');
+}
+
+const localIso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/**
+ * What an auditor asks for besides the round (Sven, 3 Nov 2026): defects on the
+ * report's items put right in [from, to), and — when the lifecycle is given —
+ * equipment replaced on those days.
+ */
+export function auditSections(
+  data: Pick<ReportData, 'inScope'>,
+  trail: Inspection[],
+  from: number,
+  to: number,
+  movements?: import('../types/movement').ItemMovement[]
+): Pick<ReportData, 'rectified' | 'replaced'> {
+  const ids = new Set(data.inScope.map((it) => it.id));
+  const rectified = trail
+    .filter((i) => i.defect && !i.defect.open && i.defect.closedAt != null && i.defect.closedAt >= from && i.defect.closedAt < to && ids.has(i.itemId))
+    .sort((a, b) => a.defect!.closedAt! - b.defect!.closedAt!);
+  return {
+    rectified,
+    ...(movements ? { replaced: replacedIn(movements, ids, localIso(new Date(from)), localIso(new Date(to - 1))) } : {}),
+  };
 }

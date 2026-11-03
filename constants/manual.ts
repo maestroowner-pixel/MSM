@@ -256,6 +256,7 @@ const en: ManualContent = {
         'Checklist categories (Hydrants, BA Bottle Pressure, Fire Detectors) have monthly check toggles in the item screen.',
         'Inside a category, sort by Expiry date, Position, Name (A–Z) or Type — Position and Type group items under headers. On tablets the list shows two columns.',
         "\"Other Safety Equipment\" is the catch-all: anything the standard sheets do not name — a portable pump, a spare charge, a locker of gear nobody else counts. Add to it by hand with ＋; an imported row that cannot be recognised lands here too. It behaves like any other category — due dates, QR labels, inspections, reports.",
+        "Replaced: when a unit or a part of it is changed — an EEBD for a new one, a lifebuoy light, a cartridge, a battery — record it from the item's Lifecycle card (Replaced…), not by typing over the old details. Choose the whole unit or the part, why (expired, defective, used, lost, service exchange), the date, and the new serial number and dates; the old ones are shown beside each field. One signature records the replacement and writes the new details onto the item, which keeps its QR label; if the item has an open defect, the same signature can put it right. An officer or the Master records it. The inspection report for the period lists every replacement under Equipment replaced — before → after, why and by whom — and the defects put right under Defects put right: the records an auditor asks for.",
       ],
     },
     {
@@ -1030,6 +1031,7 @@ const ru: ManualContent = {
         'У чек-лист категорий (Hydrants, BA Bottle Pressure, Fire Detectors) в карточке есть помесячные отметки проверок.',
         'Внутри категории — сортировка по Expiry date, Position, Name (А–Я) или Type; в режимах Position и Type позиции группируются под заголовками. На планшетах список показывается в две колонки.',
         "\"Other Safety Equipment\" — категория для всего остального: того, что не названо в стандартных листах, — переносной насос, запасной заряд, рундук со снаряжением, которое больше никто не учитывает. Добавляйте в неё вручную через ＋; сюда же попадает импортированная строка, которую не удалось распознать. Она работает как любая другая категория — сроки, QR-этикетки, инспекции, отчёты.",
+        "Заменено: когда предмет или его часть меняют — EEBD на новый, огонь спасательного круга, баллончик, батарею, — запишите это в карточке «Жизненный цикл» предмета («Заменено…»), а не переписывайте старые данные поверх. Выберите: предмет целиком или часть, причину (истёк срок, неисправен, использован, утерян, обменный фонд), дату и новый серийный номер и даты; старые значения видны рядом с каждым полем. Одна подпись записывает замену и вносит новые данные в предмет, а его QR-этикетка остаётся прежней; если у предмета открыт дефект, та же подпись может его закрыть. Записывает офицер или капитан. В отчёте об осмотрах за период все замены собраны в разделе «Equipment replaced» — было → стало, причина и кто, — а устранённые дефекты в разделе «Defects put right»: именно эти записи спрашивает аудитор.",
       ],
     },
     {
@@ -1804,6 +1806,7 @@ const es: ManualContent = {
         'Las categorías de lista de control (Hydrants, BA Bottle Pressure, Fire Detectors) tienen casillas mensuales en la ficha del elemento.',
         'Dentro de una categoría, ordene por Expiry date, Position, Name (A–Z) o Type — Position y Type agrupan los elementos bajo encabezados. En tabletas la lista se muestra en dos columnas.',
         "\"Other Safety Equipment\" es el cajón de sastre: todo lo que las hojas estándar no nombran — una bomba portátil, una carga de repuesto, una taquilla de material que nadie más cuenta. Añada elementos a mano con ＋; una fila importada que no se puede reconocer también acaba aquí. Funciona como cualquier otra categoría — vencimientos, etiquetas QR, inspecciones, informes.",
+        "Sustituido: cuando se cambia una unidad o una pieza — un EEBD por uno nuevo, la luz de un aro salvavidas, un cartucho, una batería —, regístrelo desde la tarjeta Ciclo de vida del equipo (Sustituido…), en lugar de escribir encima de los datos anteriores. Elija la unidad completa o la pieza, el motivo (caducado, defectuoso, usado, perdido, intercambio de servicio), la fecha y el número de serie y las fechas nuevas; los anteriores se ven junto a cada campo. Una sola firma registra la sustitución y escribe los datos nuevos en el equipo, que conserva su etiqueta QR; si el equipo tiene un defecto abierto, la misma firma puede corregirlo. Lo registra un oficial o el capitán. El informe de inspecciones del periodo reúne cada sustitución en Equipment replaced — antes → después, motivo y quién — y los defectos corregidos en Defects put right: los registros que pide un auditor.",
       ],
     },
     {
@@ -2578,6 +2581,7 @@ const uk: ManualContent = {
         'У чек-лист категорій (Hydrants, BA Bottle Pressure, Fire Detectors) у картці є щомісячні позначки перевірок.',
         'Усередині категорії — сортування за Expiry date, Position, Name (А–Я) або Type; у режимах Position і Type позиції групуються під заголовками. На планшетах список показується у дві колонки.',
         "\"Other Safety Equipment\" — категорія для всього іншого: того, що не назване в стандартних аркушах, — переносний насос, запасний заряд, рундук зі спорядженням, яке більше ніхто не враховує. Додавайте до неї вручну через ＋; сюди ж потрапляє імпортований рядок, який не вдалося розпізнати. Вона працює як будь-яка інша категорія — терміни, QR-етикетки, інспекції, звіти.",
+        "Замінено: коли предмет або його частину міняють — EEBD на новий, вогонь рятувального круга, балончик, батарею, — запишіть це в картці «Життєвий цикл» предмета («Замінено…»), а не переписуйте старі дані поверх. Виберіть: предмет повністю чи частина, причину (минув термін, несправний, використаний, втрачений, обмінний фонд), дату та новий серійний номер і дати; старі значення видно поруч із кожним полем. Один підпис записує заміну й вносить нові дані в предмет, а його QR-етикетка лишається тією самою; якщо в предмета відкритий дефект, той самий підпис може його закрити. Записує офіцер або капітан. У звіті про огляди за період усі заміни зібрано в розділі «Equipment replaced» — було → стало, причина й хто, — а усунені дефекти в розділі «Defects put right»: саме ці записи питає аудитор.",
       ],
     },
     {
@@ -3338,6 +3342,7 @@ const no: ManualContent = {
         'Datoer settes med en kalendervelger – trykk feltet, deretter velg år, måned og dag. For å fjerne en dato oppgitt ved feil, trykk × i slutten av feltet og Lagre.',
         'Etter en service, sett de samme datoene på mange utstyr samtidig: hold inne ett utstyr (eller trykk merknapp), kryss av de andre eller trykk Alle, deretter Sett datoer.',
         'Legg til flere identiske utstyr – en rekke dykkerflasker, en bunke redningsvester? Lagre det første, trykk deretter Dupliser utstyr nederst på skjermen.',
+        "Byttet: når en enhet eller en del av den byttes – en EEBD mot en ny, lyset på en livbøye, en patron, et batteri – registrer det fra utstyrets Livssyklus-kort (Byttet…), i stedet for å skrive over de gamle opplysningene. Velg hele enheten eller delen, hvorfor (utløpt, defekt, brukt, tapt, serviceutskifting), datoen og nytt serienummer og nye datoer; de gamle vises ved hvert felt. Én signatur registrerer byttet og skriver de nye opplysningene på utstyret, som beholder QR-etiketten; har utstyret en åpen feil, kan samme signatur rette den. En offiser eller kapteinen registrerer det. Inspeksjonsrapporten for perioden samler hvert bytte under Equipment replaced – før → etter, hvorfor og av hvem – og rettede feil under Defects put right: postene en revisor spør etter.",
       ],
     },
     {
@@ -4039,6 +4044,7 @@ const pt: ManualContent = {
         'Datas são definidas com um seletor de calendário. Para remover uma data inserida por engano, toque × no final do campo e Salvar.',
         'Após um serviço, defina as mesmas datas em vários itens de uma vez: segure um item, marque os outros ou toque em Todos, então Definir datas.',
         'Adicionando vários itens idênticos? Salve o primeiro e toque em Duplicar item na parte inferior da tela.',
+        "Substituído: quando uma unidade ou uma peça é trocada — um EEBD por um novo, a luz de uma boia, um cartucho, uma bateria — registe-o no cartão Ciclo de vida do equipamento (Substituído…), em vez de escrever por cima dos dados antigos. Escolha a unidade completa ou a peça, o motivo (caducado, defeituoso, usado, perdido, troca de serviço), a data e o novo número de série e datas; os antigos aparecem junto a cada campo. Uma só assinatura regista a substituição e escreve os dados novos no equipamento, que mantém a etiqueta QR; se o equipamento tiver um defeito aberto, a mesma assinatura pode corrigi-lo. Regista-o um oficial ou o comandante. O relatório de inspeções do período reúne cada substituição em Equipment replaced — antes → depois, motivo e quem — e os defeitos corrigidos em Defects put right: os registos que um auditor pede.",
       ],
     },
     {

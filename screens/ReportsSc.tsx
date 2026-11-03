@@ -35,7 +35,7 @@ import { t, tk, tn, useT } from '../utils/i18n';
 
 export default function ReportsSc() {
   useT();
-  const { byCategory, vessel, certificates, flat, templates, inspections: trail } = useData();
+  const { byCategory, vessel, certificates, flat, templates, inspections: trail, itemMovements } = useData();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { width } = useWindowDimensions();
@@ -116,7 +116,7 @@ export default function ReportsSc() {
       // The same options as the preview — templates included. Without them the
       // file left out the rounds a vessel wrote for itself, and disagreed with
       // the numbers shown just above the button.
-      const opts = { scope, period, templates, ref, categories };
+      const opts = { scope, period, templates, ref, categories, movements: itemMovements };
       if (kind === 'pdf') await exportReportPdf(flat, trail, vessel, opts);
       else if (kind === 'xlsx') await exportReportXlsx(flat, trail, vessel, opts);
       else await printInspectionReport(flat, trail, vessel, opts);

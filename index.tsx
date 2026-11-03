@@ -147,6 +147,7 @@ import CrewMatrixSc from './screens/CrewMatrixSc';
 import FleetSc from './screens/FleetSc';
 import FleetVesselSc from './screens/FleetVesselSc';
 import PmsWizardSc from './screens/PmsWizardSc';
+import ReplaceItemSc from './screens/ReplaceItemSc';
 import { OPTIONAL_TABS } from './constants/access';
 import { FEW, MENU_WIDTH, NavMenuBar, PIN_WIDTH, flatGrouped, useNavPrefs } from './components/NavMenu';
 import { FavStar } from './components/Favourites';
@@ -487,6 +488,7 @@ const linking = {
       DpTemplates: 'dp-checklists',
       CategoryItems: 'category/:category',
       ItemDetail: 'item/:category/:id',
+      ReplaceItem: 'replaced/:id',
       Import: 'import',
       Manual: 'manual',
       GettingStarted: 'getting-started',
@@ -752,6 +754,7 @@ function Root() {
         <Stack.Screen name="Main" component={MainTabs} />
         <Stack.Screen name="CategoryItems" component={CategoryItemsSc} options={webHeader(t('menu.Equipment'), toTab('Equipment'))} />
         <Stack.Screen name="ItemDetail" component={ItemDetailSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="ReplaceItem" component={ReplaceItemSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Import" component={ImportSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Manual" component={ManualSc} options={webHeader(t('hdr.manual'))} />
         <Stack.Screen name="GettingStarted" component={GettingStartedSc} options={webHeader(t('hdr.gettingStarted'))} />

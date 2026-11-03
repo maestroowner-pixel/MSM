@@ -41,7 +41,7 @@ export default function RoundSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { rounds, flat, inspections: trail, vessel, saveRow, templates } = useData();
+  const { rounds, flat, inspections: trail, vessel, saveRow, templates, itemMovements } = useData();
   const confirmSign = useSignConfirm();
   const { signer, picker } = useSigner('SIGNED OFF BY');
   const [closing, setClosing] = useState<string | null>(null);
@@ -101,7 +101,7 @@ export default function RoundSc() {
   };
   const report = async (kind: 'pdf' | 'xlsx') => {
     try {
-      const opts = { scope: 'ALL' as const, period: round.period, round, templates };
+      const opts = { scope: 'ALL' as const, period: round.period, round, templates, movements: itemMovements };
       if (kind === 'pdf') await exportReportPdf(flat, trail, vessel, opts);
       else await exportReportXlsx(flat, trail, vessel, opts);
     } catch (e: any) {

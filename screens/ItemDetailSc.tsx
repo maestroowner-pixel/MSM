@@ -29,6 +29,7 @@ import { periodsFor } from '../constants/checklists';
 import * as inspections from '../services/inspections';
 import { computeStatus, statusFromDate, uiDate, uiDateTime } from '../utils/dates';
 import { playSuccessSound } from '../utils/sound';
+import { changeLine, whatLine } from '../services/replacements';
 import { uid } from '../utils/id';
 import { pickDocument, pickFromLibrary, pickFromCamera, openFile, deleteFile, resolveUri, PickedFile } from '../services/attachments';
 import SimpleDatePicker from '../components/SimpleDatePicker';
@@ -125,9 +126,12 @@ export default function ItemDetailSc() {
    * edit somebody is in the middle of.
    */
   const touched = useRef(false);
+  // Also when the stored item changes under an untouched screen — a replacement
+  // (ReplaceItemSc) writes a new serial and expiry, and a stale draft saved later
+  // would put the old ones back.
   useEffect(() => {
     if (!existing || touched.current) return;
-    setDraft((d) => (d.id === existing.id ? d : existing));
+    setDraft(existing);
   }, [existing]);
   // The same for a copy whose source had not loaded yet.
   useEffect(() => {
@@ -453,7 +457,7 @@ export default function ItemDetailSc() {
               A new item has no history and cannot be inspected until it is
               saved, so the whole block is hidden until then. */}
           {!isNew ? <InspectionCard item={draft} trail={trail} /> : null}
-          {!isNew ? <LifecycleCard itemId={draft.id} movements={itemMovements} onWriteOff={() => setWriteOffOpen(true)} /> : null}
+          {!isNew ? <LifecycleCard itemId={draft.id} movements={itemMovements} onWriteOff={() => setWriteOffOpen(true)} onReplace={() => (touched.current ? Alert.alert(t('lr.saveFirst'), t('rp.saveFirst')) : nav.navigate('ReplaceItem', { id: draft.id }))} /> : null}
 
           <Field label={t('it.f.no')} value={draft.no != null ? String(draft.no) : ''} onChange={(v) => set({ no: v })} />
           <Field label={t('it.f.type')} value={draft.type} onChange={(v) => set({ type: v })} />
@@ -1121,10 +1125,11 @@ function InspectionCard({ item, trail }: { item: EquipmentItem; trail: Inspectio
   );
 }
 
-function LifecycleCard({ itemId, movements, onWriteOff }: {
+function LifecycleCard({ itemId, movements, onWriteOff, onReplace }: {
   itemId: string;
   movements: import('../types/movement').ItemMovement[];
   onWriteOff: () => void;
+  onReplace: () => void;
 }) {
   const COLORS = useTheme();
   useT();
@@ -1144,6 +1149,7 @@ function LifecycleCard({ itemId, movements, onWriteOff }: {
     condemned: '#ef4444',
     transfer: '#6366f1',
     decommissioned: '#9ca3af',
+    replaced: '#0d9488',
   };
 
   return (
@@ -1165,11 +1171,20 @@ function LifecycleCard({ itemId, movements, onWriteOff }: {
             <Text style={{ fontSize: 11, fontWeight: '700', color: DIR_COLOR[m.dir] }}>{m.dir in DIR_COLOR ? tk(`it.dir.${m.dir}`) : m.dir}</Text>
           </View>
           <Text style={{ flex: 1, fontSize: 13, color: COLORS.text }}>{m.date}</Text>
-          <Text style={{ fontSize: 12, color: COLORS.textLight }} numberOfLines={1}>
-            {m.reason || m.to || ''}
+          <Text style={{ flexShrink: 1, fontSize: 12, color: COLORS.textLight }} numberOfLines={2}>
+            {m.dir === 'replaced' ? [whatLine(m), changeLine(m), m.reason].filter(Boolean).join(' · ') : m.reason || m.to || ''}
           </Text>
         </View>
       ))}
+
+      {!isDecommissioned && canEdit && (
+        <TouchableOpacity
+          style={{ marginTop: SIZES.sm, paddingVertical: 6, alignItems: 'center', borderWidth: 1, borderColor: COLORS.primary, borderRadius: 8 }}
+          onPress={onReplace}
+        >
+          <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: 13 }}>{t('rp.btn')}</Text>
+        </TouchableOpacity>
+      )}
 
       {!isDecommissioned && canEdit && (
         <TouchableOpacity

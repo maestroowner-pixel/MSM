@@ -2,7 +2,7 @@ import type { CategoryKey } from './equipment';
 import type { SignProof } from '../services/signature';
 
 // Direction of a physical movement.
-export type MovementDir = 'received' | 'ashore' | 'return' | 'condemned' | 'transfer' | 'decommissioned';
+export type MovementDir = 'received' | 'ashore' | 'return' | 'condemned' | 'transfer' | 'decommissioned' | 'replaced';
 
 export const MOVEMENT_DIR_LABEL: Record<MovementDir, string> = {
   received: 'Received aboard',
@@ -11,6 +11,7 @@ export const MOVEMENT_DIR_LABEL: Record<MovementDir, string> = {
   condemned: 'Condemned',
   transfer: 'Transferred',
   decommissioned: 'Written off',
+  replaced: 'Replaced',
 };
 
 // One movement record for a single equipment item.
@@ -37,8 +38,30 @@ export interface ItemMovement {
   by?: string;
   byRank?: string;
   notes?: string;
+  /**
+   * `replaced` (Sven, 3 Nov 2026 — the auditor asks for the record of what was
+   * replaced): the whole unit or a part of it (`part`: battery, cartridge, light…),
+   * and the item's details before and after — only the fields that changed. The
+   * item keeps its id, so its QR label and its history stay where it stands.
+   */
+  part?: string;
+  before?: ReplaceSnap;
+  after?: ReplaceSnap;
+  /** The inspection whose open defect this replacement put right. */
+  defectInspId?: string;
+  signedWith?: SignProof;
   updatedAt: number;
   deleted?: boolean;
+}
+
+/** The item's details a replacement changes. */
+export interface ReplaceSnap {
+  make?: string;
+  type?: string;
+  serial?: string;
+  manufactureDate?: string;
+  nextInspection?: string;
+  expiry?: string;
 }
 
 // A landing report groups items sent ashore or returned in one batch.
