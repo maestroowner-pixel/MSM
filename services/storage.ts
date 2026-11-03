@@ -135,6 +135,11 @@ export const MOCS_KEY = `${PREFIX}mocs`;
 export const APPRAISALS_KEY = `${PREFIX}crew_appraisals`;
 /** Watch plans (types/restPlan.ts) — one per person, the days to come. */
 export const REST_PLANS_KEY = `${PREFIX}rest_plans`;
+/** Drug and alcohol tests (types/daTest.ts): the tests, each person's result, what followed, the policy. */
+export const DA_TESTS_KEY = `${PREFIX}da_tests`;
+export const DA_RESULTS_KEY = `${PREFIX}da_results`;
+export const DA_FOLLOWUPS_KEY = `${PREFIX}da_followups`;
+export const DA_POLICY_KEY = `${PREFIX}da_policy`;
 /** Supplier directory (types/suppliers.ts) — quotes and awards live on the purchase orders. */
 export const SUPPLIERS_KEY = `${PREFIX}suppliers`;
 /**

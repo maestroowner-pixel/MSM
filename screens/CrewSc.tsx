@@ -41,13 +41,14 @@ import { EnrolledDevice, personName } from '../types/role';
 import { t, tn, useT } from '../utils/i18n';
 import { shipToday } from '../utils/shipTime';
 import { dueList } from '../services/appraisals';
+import { actionsAwaited, labsAwaited, nextUnannounced, policyOf } from '../services/daTests';
 
 export default function CrewSc() {
   useT();
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { crew, vessel, inspections: trail, certificates, crewPrivate, appraisals, saveCrewMember, saveCrewPrivate, removeCrewMember } = useData();
+  const { crew, vessel, inspections: trail, certificates, crewPrivate, appraisals, daTests, daResults, daFollowUps, daPolicy, saveCrewMember, saveCrewPrivate, removeCrewMember } = useData();
   // ID card photos on this device (services/crewPhotos) — the faces in the list.
   const [photos, setPhotos] = useState<Record<string, string>>({});
   useFocusEffect(
@@ -73,6 +74,13 @@ export default function CrewSc() {
   const isMaster = myRole === 'superadmin' || (crewMgmt && (myRole === 'admin' || !isEnrolled));
   const rankKnown = myRole !== null || (crewMgmt && !isEnrolled);
   const apDue = moduleOn('appraisals') && isMaster ? dueList(crew, appraisals, shipToday()).length : 0;
+  const daOn = moduleOn('daTests') && crewMgmt && isMaster;
+  const daLine = daOn
+    ? [
+        ['overdue', 'never'].includes(nextUnannounced(daTests, policyOf(daPolicy), shipToday()).state) ? t('da.dueShort') : null,
+        actionsAwaited(daTests, daResults, daFollowUps).length || labsAwaited(daTests, daResults, daFollowUps).length ? t('da.openShort') : null,
+      ].filter(Boolean).join(' · ')
+    : '';
 
   const imo = (vessel?.imo ?? '').replace(/\D/g, '');
   const [enrolled, setEnrolled] = useState<EnrolledDevice[]>([]);
@@ -403,6 +411,14 @@ export default function CrewSc() {
         <TouchableOpacity style={styles.matrixLink} onPress={() => nav.navigate('Appraisals')}>
           <MciIcon name="account-star-outline" size={20} color={COLORS.primary} />
           <Text style={styles.matrixText}>{`${t('ap.title')}${apDue ? ` · ${t('ap.dueN', { n: apDue })}` : ''}`}</Text>
+          <Text style={styles.matrixText}>›</Text>
+        </TouchableOpacity>
+      ) : null}
+
+      {daOn ? (
+        <TouchableOpacity style={styles.matrixLink} onPress={() => nav.navigate('DaTests')}>
+          <MciIcon name="test-tube" size={20} color={COLORS.primary} />
+          <Text style={styles.matrixText}>{`${t('da.title')}${daLine ? ` · ${daLine}` : ''}`}</Text>
           <Text style={styles.matrixText}>›</Text>
         </TouchableOpacity>
       ) : null}

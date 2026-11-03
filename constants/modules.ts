@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals' | 'restPlan';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals' | 'restPlan' | 'daTests';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -295,6 +295,15 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * 3 Nov 2026). Needs rest and `npm run deploy:rules` first (rest_plans).
    */
   restPlan: false,
+  /**
+   * Drug and alcohol tests — unannounced, random, after an incident, for cause,
+   * before joining, follow-up: breath readings against the limit, the drug
+   * screen, the laboratory, what was done about a positive (types/daTest.ts,
+   * plan item 42, 3 Nov 2026). Officers and the Master only; a result goes to
+   * the cloud with the name masked. Needs crewCerts and `npm run deploy:rules`
+   * first (da_tests, da_results, da_followups, da_policy).
+   */
+  daTests: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------

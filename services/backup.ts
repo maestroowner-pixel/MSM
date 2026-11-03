@@ -113,6 +113,8 @@ export interface BackupFile {
   appraisals?: import('../types/appraisal').CrewAppraisal[];
   /** Watch plans. */
   restPlans?: import('../types/restPlan').RestPlan[];
+  /** Drug and alcohol tests (officers only; full names, as on this device). */
+  da?: { tests: import('../types/daTest').DaTest[]; results: import('../types/daTest').DaResult[]; followUps: import('../types/daTest').DaFollowUp[]; policy: import('../types/daTest').DaPolicy[] };
   /** Drills: planned and carried out. */
   drills?: Drill[];
   drillPlans?: DrillYearPlan[];
@@ -265,6 +267,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   const drills = await storage.loadList<Drill>(storage.DRILLS_KEY);
   const appraisals = await storage.loadList<import('../types/appraisal').CrewAppraisal>(storage.APPRAISALS_KEY);
   const restPlans = await storage.loadList<import('../types/restPlan').RestPlan>(storage.REST_PLANS_KEY);
+  const da = { tests: await storage.loadList<import('../types/daTest').DaTest>(storage.DA_TESTS_KEY), results: await storage.loadList<import('../types/daTest').DaResult>(storage.DA_RESULTS_KEY), followUps: await storage.loadList<import('../types/daTest').DaFollowUp>(storage.DA_FOLLOWUPS_KEY), policy: await storage.loadList<import('../types/daTest').DaPolicy>(storage.DA_POLICY_KEY) };
   const drillPlans = await storage.loadList<DrillYearPlan>(storage.DRILL_PLANS_KEY);
   const safetyMeetings = await storage.loadList<SafetyMeeting>(storage.SAFETY_MEETINGS_KEY);
   const dp = { checks: await storage.loadList<DpCheck>(storage.DP_CHECKS_KEY), days: await storage.loadList<DpDay>(storage.DP_DAYS_KEY), info: await storage.loadList<DpInfo>(storage.DP_INFO_KEY), templates: await storage.loadList<DpTemplate>(storage.DP_TEMPLATES_KEY) };
@@ -325,6 +328,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     drills,
     ...(appraisals.length ? { appraisals } : {}),
     ...(restPlans.length ? { restPlans } : {}),
+    ...(da.tests.length || da.policy.length ? { da } : {}),
     drillPlans,
     hospital,
     passengers,
@@ -567,6 +571,12 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
   if (backup.drills) await storage.saveList(storage.DRILLS_KEY, backup.drills);
   if (backup.appraisals) await storage.saveList(storage.APPRAISALS_KEY, backup.appraisals);
   if (backup.restPlans) await storage.saveList(storage.REST_PLANS_KEY, backup.restPlans);
+  if (backup.da) {
+    await storage.saveList(storage.DA_TESTS_KEY, backup.da.tests);
+    await storage.saveList(storage.DA_RESULTS_KEY, backup.da.results);
+    await storage.saveList(storage.DA_FOLLOWUPS_KEY, backup.da.followUps);
+    await storage.saveList(storage.DA_POLICY_KEY, backup.da.policy);
+  }
   if (backup.drillPlans) await storage.saveList(storage.DRILL_PLANS_KEY, backup.drillPlans);
   if (backup.safetyMeetings) await storage.saveList(storage.SAFETY_MEETINGS_KEY, backup.safetyMeetings);
   if (backup.dp) {

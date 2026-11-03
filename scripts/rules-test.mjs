@@ -269,6 +269,23 @@ await t(true, 'An Officer signs an inventory', setDoc(R(officer, 'med_checks', '
 await t(false, 'An inventory is final', setDoc(R(master, 'med_checks', 'c1'), { id: 'c1', no: 'INV-2026-001', lines: [{ x: 1 }], by: 'Jez', updatedAt: 2 }));
 await t(false, 'A masked name is not unmasked', setDoc(R(master, 'med_treatments', 't1'), { id: 't1', no: 'MED-2026-001', patient: 'Max', complaint: 'Cut hand', issued: [], outcome: 'fit', by: 'Jez', files: [{ id: 'f', name: 'advice.pdf' }], updatedAt: 4 }));
 await t(false, 'A medical log entry is final', setDoc(R(master, 'med_treatments', 't1'), { id: 't1', no: 'MED-2026-001', patient: 'M…x', complaint: 'Other', issued: [], outcome: 'fit', by: 'Jez', updatedAt: 2 }));
+// Drug and alcohol tests: officers write once, the office reads, a result's name masked and no crew id.
+await t(true, 'An Officer records a D&A test', setDoc(R(officer, 'da_tests', 'da1'), { id: 'da1', no: 'DA-2026-001', date: '2026-11-03', reason: 'unannounced', alcohol: true, drugs: false, limit: 0.25, tester: 'Master', count: 1, by: 'Jez', at: 1, updatedAt: 1 }));
+await t(false, 'A D&A test is final', setDoc(R(master, 'da_tests', 'da1'), { id: 'da1', no: 'DA-2026-001', date: '2026-11-04', reason: 'unannounced', alcohol: true, drugs: false, limit: 0.25, tester: 'Master', count: 1, by: 'Jez', at: 1, updatedAt: 2 }));
+await t(false, 'Crew cannot record a D&A test', setDoc(R(crew, 'da_tests', 'da2'), { id: 'da2', no: 'DA-2026-002', date: '2026-11-03', reason: 'random', alcohol: true, drugs: false, limit: 0.25, tester: 'Max', count: 0, by: 'Max', at: 1, updatedAt: 1 }));
+await t(false, 'Crew cannot read D&A tests', getDoc(R(crew, 'da_tests', 'da1')));
+await t(true, 'The office reads D&A tests', getDoc(R(shore, 'da_tests', 'da1')));
+await t(true, 'A D&A result goes up masked', setDoc(R(officer, 'da_results', 'r1'), { id: 'r1', testId: 'da1', name: 'J…d', rank: 'AB', alcohol: 0, at: 1, updatedAt: 1 }));
+await t(false, 'A D&A result never carries the full name', setDoc(R(officer, 'da_results', 'r2'), { id: 'r2', testId: 'da1', name: 'Jez Dodd', alcohol: 0, at: 1, updatedAt: 1 }));
+await t(false, 'A D&A result never carries the crew id', setDoc(R(officer, 'da_results', 'r3'), { id: 'r3', testId: 'da1', crewId: 'c1', name: 'J…d', alcohol: 0, at: 1, updatedAt: 1 }));
+await t(false, 'A D&A result is final', setDoc(R(master, 'da_results', 'r1'), { id: 'r1', testId: 'da1', name: 'J…d', rank: 'AB', alcohol: 0.4, at: 1, updatedAt: 2 }));
+await t(false, 'Crew cannot read D&A results', getDoc(R(crew, 'da_results', 'r1')));
+await t(true, 'The office reads D&A results', getDoc(R(shore, 'da_results', 'r1')));
+await t(true, 'An Officer adds the laboratory result', setDoc(R(officer, 'da_followups', 'f1'), { id: 'f1', testId: 'da1', resultId: 'r1', kind: 'lab', lab: 'neg', by: 'Jez', at: 2, updatedAt: 2 }));
+await t(false, 'A follow-up carries no name', setDoc(R(officer, 'da_followups', 'f2'), { id: 'f2', testId: 'da1', resultId: 'r1', kind: 'action', name: 'Jez Dodd', note: 'Relieved', by: 'Jez', at: 2, updatedAt: 2 }));
+await t(false, 'A follow-up is final', setDoc(R(master, 'da_followups', 'f1'), { id: 'f1', testId: 'da1', resultId: 'r1', kind: 'lab', lab: 'pos', by: 'Jez', at: 2, updatedAt: 3 }));
+await t(true, 'The Master sets the D&A policy', setDoc(R(master, 'da_policy', 'policy'), { id: 'policy', months: 6, limit: 0.25, updatedAt: 1 }));
+await t(false, 'An Officer cannot change the D&A policy', setDoc(R(officer, 'da_policy', 'policy'), { id: 'policy', months: 12, limit: 0.4, updatedAt: 2 }));
 
 await t(false, 'A guest\'s full name never goes up', setDoc(R(officer, 'passengers', 'pax0'), { id: 'pax0', name: 'Sophie Martin', cabin: 'VIP', updatedAt: 1 }));
 await t(false, 'A guest\'s nationality stays on board', setDoc(R(officer, 'passengers', 'pax0'), { id: 'pax0', name: 'S…n', nationality: 'FR', updatedAt: 1 }));

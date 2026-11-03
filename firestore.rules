@@ -953,6 +953,35 @@ service cloud.firestore {
                                   || (apSteps(resource.data).size() > 0 && onlyChanges(['steps', 'updatedAt']) && apStepAdded()))));
         allow delete: if false;
       }
+      // Drug and alcohol tests (types/daTest.ts): the officers and the Master, written
+      // once; the office reads. A result is health data: its name goes up as the
+      // first and last letter ("J…d") and the crew id never — so a follow-up
+      // (the laboratory, the action taken) carries neither. The policy is the Master's.
+      match /da_tests/{id} {
+        allow read: if isAdmin(v) || shore(v);
+        allow create: if isAdmin(v) && request.resource.data.id == id;
+        allow update, delete: if false;
+      }
+      match /da_results/{id} {
+        function masked() {
+          return request.resource.data.name is string && request.resource.data.name.matches('^.(….)?$')
+            && !('crewId' in request.resource.data);
+        }
+        allow read: if isAdmin(v) || shore(v);
+        allow create: if isAdmin(v) && masked();
+        allow update, delete: if false;
+      }
+      match /da_followups/{id} {
+        allow read: if isAdmin(v) || shore(v);
+        allow create: if isAdmin(v) && !('name' in request.resource.data) && !('crewId' in request.resource.data)
+                      && request.resource.data.kind in ['lab', 'action'];
+        allow update, delete: if false;
+      }
+      match /da_policy/{id} {
+        allow read: if isAdmin(v) || shore(v);
+        allow create, update: if isSuper(v) && id == 'policy';
+        allow delete: if false;
+      }
 
       // ---- server-only ------------------------------------------------------
       // The bootstrap marker and the guess counters are written by the Admin SDK

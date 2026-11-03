@@ -61,6 +61,7 @@ import { inspStatus } from './extInspections';
 import { mocStage, nextActionDue as mocNextDue, overdueActions, readyToClose, returnedBy as mocReturnedBy, tempState } from './moc';
 import { critSummary, downtimeDays, outNow } from './critEq';
 import { apStage, dueList as apDueList } from './appraisals';
+import { actionsAwaited, labsAwaited, nextUnannounced, policyOf } from './daTests';
 import { planBreaches } from './restPlan';
 import { t, tk, tn } from '../utils/t';
 
@@ -196,6 +197,11 @@ export interface BoardInput {
   mocs?: import('../types/moc').ManagementOfChange[];
   /** Crew appraisals (types/appraisal.ts) — on officers' devices only. */
   appraisals?: import('../types/appraisal').CrewAppraisal[];
+  /** Drug and alcohol tests (types/daTest.ts) — on officers' devices only. */
+  daTests?: import('../types/daTest').DaTest[];
+  daResults?: import('../types/daTest').DaResult[];
+  daFollowUps?: import('../types/daTest').DaFollowUp[];
+  daPolicy?: import('../types/daTest').DaPolicy[];
   /** Hours of rest and the watch plans — for breaches the plan brings (services/restPlan). */
   rest?: import('../types/rest').RestDay[];
   restPlans?: import('../types/restPlan').RestPlan[];
@@ -220,6 +226,7 @@ export interface BoardInput {
 const RANK: Record<Level, number> = { red: 0, amber: 1, blue: 2 };
 const daysAgo = (today: string, iso: string) => Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${iso}T00:00:00Z`)) / 86400000);
 const dm = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`;
+const dmY = (iso: string) => `${dm(iso)}.${iso.slice(0, 4)}`;
 
 export function buildBoard(x: BoardInput): Board {
   const n: Notice[] = [];
@@ -726,6 +733,24 @@ export function buildBoard(x: BoardInput): Board {
         sub: bad.slice(0, 3).map((b) => t('b.wp.from', { name: b.name, date: dm(b.first) })).join(', ') + (bad.length > 3 ? ' …' : ''),
       });
     }
+  }
+
+  // ---- Drug and alcohol tests: the unannounced test due, the laboratory, a positive with nothing done ----
+  // Only where the lists reach (officers' devices); dates and counts, never a result's name.
+  if (x.on('daTests') && x.on('crewCerts') && x.role !== 'user') {
+    const tests = x.daTests ?? [], results = x.daResults ?? [], follow = x.daFollowUps ?? [];
+    const due = nextUnannounced(tests, policyOf(x.daPolicy ?? []), x.today);
+    if (due.state !== 'ok') {
+      n.push({
+        key: 'da:due', level: due.state === 'overdue' ? 'red' : 'amber', who: 'officer', icon: 'test-tube', route: 'DaTests',
+        title: due.state === 'never' ? t('b.da.never') : t(due.state === 'overdue' ? 'b.da.overdue' : 'b.da.soon', { date: dmY(due.due!) }),
+        sub: due.last ? t('b.da.last', { date: dmY(due.last) }) : t('b.da.neverSub'),
+      });
+    }
+    const labs = labsAwaited(tests, results, follow);
+    if (labs.length) n.push({ key: 'da:lab', level: 'amber', who: 'officer', icon: 'test-tube', route: labs.length === 1 ? 'DaTest' : 'DaTests', ...(labs.length === 1 ? { params: { id: labs[0].t.id } } : {}), title: t('b.da.labN', { n: labs.length }), sub: [...new Set(labs.map((l) => l.t.no))].slice(0, 3).join(', ') });
+    const acts = actionsAwaited(tests, results, follow);
+    if (acts.length) n.push({ key: 'da:act', level: 'red', who: 'master', icon: 'test-tube', route: acts.length === 1 ? 'DaTest' : 'DaTests', ...(acts.length === 1 ? { params: { id: acts[0].t.id } } : {}), title: t('b.da.actN', { n: acts.length }), sub: [...new Set(acts.map((l) => l.t.no))].slice(0, 3).join(', ') });
   }
 
   // ---- Management of change: what waits for the Master, what came back, what is late ----

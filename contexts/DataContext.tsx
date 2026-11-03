@@ -48,6 +48,7 @@ import { ExternalInspection } from '../types/extInspection';
 import { ManagementOfChange } from '../types/moc';
 import { CrewAppraisal } from '../types/appraisal';
 import { RestPlan } from '../types/restPlan';
+import { DaFollowUp, DaPolicy, DaResult, DaTest } from '../types/daTest';
 import { Supplier } from '../types/suppliers';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
@@ -208,6 +209,11 @@ interface DataContextType {
   appraisals: CrewAppraisal[];
   /** Watch plans (types/restPlan.ts), one per person. */
   restPlans: RestPlan[];
+  /** Drug and alcohol tests (types/daTest.ts) — officers' devices only. */
+  daTests: DaTest[];
+  daResults: DaResult[];
+  daFollowUps: DaFollowUp[];
+  daPolicy: DaPolicy[];
   drills: Drill[];
   /** The drill calendar — one plan per year (services/drillPlan.ts). */
   drillPlans: DrillYearPlan[];
@@ -392,6 +398,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [mocs, setMocs] = useState<ManagementOfChange[]>([]);
   const [appraisals, setAppraisals] = useState<CrewAppraisal[]>([]);
   const [restPlans, setRestPlans] = useState<RestPlan[]>([]);
+  const [daTests, setDaTests] = useState<DaTest[]>([]);
+  const [daResults, setDaResults] = useState<DaResult[]>([]);
+  const [daFollowUps, setDaFollowUps] = useState<DaFollowUp[]>([]);
+  const [daPolicy, setDaPolicy] = useState<DaPolicy[]>([]);
   const [drills, setDrills] = useState<Drill[]>([]);
   const [drillPlans, setDrillPlans] = useState<DrillYearPlan[]>([]);
   const [medItems, setMedItems] = useState<MedItem[]>([]);
@@ -525,6 +535,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _mocs = await storage.loadList<ManagementOfChange>(storage.MOCS_KEY);
     const _appraisals = await storage.loadList<CrewAppraisal>(storage.APPRAISALS_KEY);
     const _restPlans = await storage.loadList<RestPlan>(storage.REST_PLANS_KEY);
+    const _daTests = await storage.loadList<DaTest>(storage.DA_TESTS_KEY);
+    const _daResults = await storage.loadList<DaResult>(storage.DA_RESULTS_KEY);
+    const _daFollowUps = await storage.loadList<DaFollowUp>(storage.DA_FOLLOWUPS_KEY);
+    const _daPolicy = await storage.loadList<DaPolicy>(storage.DA_POLICY_KEY);
     const _drills = (await storage.loadList<Drill>(storage.DRILLS_KEY)).filter((x) => !x.deleted);
     const _drillPlans = await storage.loadList<DrillYearPlan>(storage.DRILL_PLANS_KEY);
     const _medItems = (await storage.loadList<MedItem>(storage.MED_ITEMS_KEY)).filter((x) => !x.deleted).sort((x, y) => x.order - y.order);
@@ -631,6 +645,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMocs(_mocs);
     setAppraisals(_appraisals);
     setRestPlans(_restPlans);
+    setDaTests(_daTests);
+    setDaResults(_daResults);
+    setDaFollowUps(_daFollowUps);
+    setDaPolicy(_daPolicy);
     setDrills(_drills);
     setDrillPlans(_drillPlans);
     setMedItems(_medItems);
@@ -890,6 +908,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _mocs = await storage.loadList<ManagementOfChange>(storage.MOCS_KEY);
     const _appraisals = await storage.loadList<CrewAppraisal>(storage.APPRAISALS_KEY);
     const _restPlans = await storage.loadList<RestPlan>(storage.REST_PLANS_KEY);
+    const _daTests = await storage.loadList<DaTest>(storage.DA_TESTS_KEY);
+    const _daResults = await storage.loadList<DaResult>(storage.DA_RESULTS_KEY);
+    const _daFollowUps = await storage.loadList<DaFollowUp>(storage.DA_FOLLOWUPS_KEY);
+    const _daPolicy = await storage.loadList<DaPolicy>(storage.DA_POLICY_KEY);
     const _drills = (await storage.loadList<Drill>(storage.DRILLS_KEY)).filter((x) => !x.deleted);
     const _drillPlans = await storage.loadList<DrillYearPlan>(storage.DRILL_PLANS_KEY);
     const _medItems = (await storage.loadList<MedItem>(storage.MED_ITEMS_KEY)).filter((x) => !x.deleted).sort((x, y) => x.order - y.order);
@@ -986,6 +1008,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMocs(_mocs);
     setAppraisals(_appraisals);
     setRestPlans(_restPlans);
+    setDaTests(_daTests);
+    setDaResults(_daResults);
+    setDaFollowUps(_daFollowUps);
+    setDaPolicy(_daPolicy);
     setDrills(_drills);
     setDrillPlans(_drillPlans);
     setMedItems(_medItems);
@@ -1328,6 +1354,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         mocs,
         appraisals,
         restPlans,
+        daTests,
+        daResults,
+        daFollowUps,
+        daPolicy,
         drills,
         drillPlans,
         medItems,

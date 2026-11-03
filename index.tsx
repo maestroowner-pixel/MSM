@@ -138,6 +138,8 @@ import MocsSc from './screens/MocsSc';
 import MocSc from './screens/MocSc';
 import AppraisalsSc from './screens/AppraisalsSc';
 import AppraisalSc from './screens/AppraisalSc';
+import DaTestsSc from './screens/DaTestsSc';
+import DaTestSc from './screens/DaTestSc';
 import RestPlanSc from './screens/RestPlanSc';
 import OrderSc from './screens/OrderSc';
 import OrderGroupSc from './screens/OrderGroupSc';
@@ -533,6 +535,8 @@ const linking = {
       Moc: 'change/:id',
       Appraisals: 'appraisals',
       Appraisal: 'appraisal/:id',
+      DaTests: 'da-tests',
+      DaTest: 'da-test/:id',
       RestPlan: 'watch-plan',
       Drill: 'drill/:id',
       Meeting: 'safety-meeting/:id',
@@ -806,6 +810,8 @@ function Root() {
         <Stack.Screen name="Moc" component={MocSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Appraisals" component={AppraisalsSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Appraisal" component={AppraisalSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="DaTests" component={DaTestsSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="DaTest" component={DaTestSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="RestPlan" component={RestPlanSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Drill" component={DrillSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Meeting" component={MeetingSc} options={{ presentation: 'modal' }} />

@@ -90,6 +90,7 @@ import { CrewMember } from '../types/crew';
 import { mergeById } from './pms';
 import { keepRecent } from './dp';
 import { treatmentFromCloud, treatmentToCloud } from './hospital';
+import { daResultFromCloud, daResultToCloud } from './daTests';
 import { isPassengerId, passengerFromCloud, passengerToCloud } from '../types/passengers';
 import { isMasked, maskName } from '../utils/privacy';
 
@@ -1247,6 +1248,12 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'rest', key: storage.REST_KEY, module: 'rest' },
   // Watch plans: everyone reads their own watches, the officers write them (rules).
   { sub: 'rest_plans', key: storage.REST_PLANS_KEY, module: 'restPlan' },
+  // Drug and alcohol tests: the officers and the Master only, written once. A result is health
+  // data — the name goes up as its first and last letter, the crew id stays on board.
+  { sub: 'da_tests', key: storage.DA_TESTS_KEY, appendOnly: true, module: 'daTests', officers: true },
+  { sub: 'da_results', key: storage.DA_RESULTS_KEY, appendOnly: true, module: 'daTests', officers: true, toCloud: daResultToCloud, fromCloud: daResultFromCloud },
+  { sub: 'da_followups', key: storage.DA_FOLLOWUPS_KEY, appendOnly: true, module: 'daTests', officers: true },
+  { sub: 'da_policy', key: storage.DA_POLICY_KEY, module: 'daTests', officers: true },
   { sub: 'pms_machines', key: storage.PMS_MACHINES_KEY, module: 'pms', partial: ['hours', 'hoursDate', 'readings', 'counterOffset', 'updatedAt'] },
   { sub: 'pms_jobs', key: storage.PMS_JOBS_KEY, module: 'pms', partial: ['lastDoneDate', 'lastDoneHours', 'prepared', 'updatedAt'] },
   { sub: 'pms_done', key: storage.PMS_DONE_KEY, appendOnly: true, module: 'pms' },

@@ -292,6 +292,19 @@ app mirrors. Bundle id `com.kukalab.msm`.
   `rest_plans` isAdmin, id = crewId), everyone reads. `npm run check:restplan`; rules-test.mjs covers it. `npm run deploy:rules` before the flag.
   The split rule (restHours) judges a rest period cut by the window's edge on its WHOLE length for the 6 h test (fixed 3 Nov 2026 —
   before, any single night under 12 h, e.g. work 06–19, was flagged daily); only hours inside the window count towards the 10.
+- **Drug and alcohol tests** (3 Nov 2026 — flag `daTests`, off; plan item 42; needs `crewCerts`): `types/daTest.ts`, pure
+  `services/daTests.ts`, paper `services/daTestReport.ts` (PMS-history PDF), screens `DaTestsSc` / `DaTestSc` (routes `DaTests`
+  `da-tests`, `DaTest` `da-test/:id` (`new`); entry: Crew → Drug and alcohol tests, Board). THREE append-only records: `da_tests`
+  (the session: reason unannounced/random/postIncident/cause/preJoining/followUp, alcohol/drugs, `limit` mg/l breath, breathalyser,
+  kit, tester, witness, `drawn` {n, of} for a random draw, `DA-<year>-nnn`, one signature), `da_results` (one per person — a
+  document of its own so the RULES can check the mask: name `^.(….)?$`, no `crewId`), `da_followups` (`lab` result of a
+  non-negative screen / `action` taken on a positive or refusal; no name, no crewId), plus `da_policy/policy` (Master: months 3/6/12,
+  limit — default 12 months, 0.25 mg/l = STCW A-VIII/1). **A result is health data**: `daResultToCloud` masks the name and drops
+  crewId; `daResultFromCloud` restores both only on the device that recorded it — other officers and the office see "J…d". Outcome
+  (`outcome`): refused → positive (the CONFIRMING reading when taken, > limit; or lab positive) → pending (non-negative, no lab) →
+  negative. Board (officers' devices, no names): unannounced test due/never (random counts; amber 30 d ahead, red past), labs
+  awaited (amber), positive/refused without an action (red, Master). Officers only: synced `officers: true`, rules isAdmin write,
+  isAdmin + shore read. `npm run check:datests`; rules-test.mjs covers it. `npm run deploy:rules` before the flag.
 - **Web PDFs from `utils/pmsHistoryPdf.web.ts`**: a table is sized to its `widths` only when EVERY column has one (the DP
   tables side by side); with some widths it takes the page and the rest share — before 29 Oct 2026 the sum of SOME widths
   was the table width, and the machine history, survey/class pack and project PDFs printed Job/Note/Defect a letter a line.

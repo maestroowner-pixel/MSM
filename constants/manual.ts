@@ -826,6 +826,17 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🧪',
+      title: "Drug and alcohol tests",
+      body: [
+        "For the vessel's drug and alcohol tests — unannounced, by random selection, after an incident, for reasonable cause, before joining, and follow-up — kept by the officers and the Master. Crew phones do not receive them; the office can read them. Open it from Crew → Drug and alcohol tests, or from the Board.",
+        "The policy: the Master sets how often an unannounced test is due (every 3, 6 or 12 months; a random selection counts too) and the alcohol limit in mg/l of breath — 0.25 mg/l by default, the STCW limit (0.05 % blood alcohol); the company's policy may set less. The screen and the Board show when the next unannounced test is due, amber 30 days ahead and red once it is overdue.",
+        "Recording a test: choose the reason (for an incident or a cause, say what it was), the date and time, which tests were done — alcohol by breath (the breathalyser: make, serial number, last calibrated) and drugs by screening kit (make, lot, expiry) — who carried it out (the Master, or an external tester) and the witness. Then the people: everyone aboard, chosen by name, or a number drawn at random — the test then records how many were drawn of how many aboard. For each person enter the alcohol reading; above the limit, a second reading taken 15–20 minutes later is asked for, and that one counts. Mark the drug screen negative or non-negative (with the sample number sent to the laboratory), or record a refusal with the reason. One signature records the test and every result. Nothing changes afterwards.",
+        "Afterwards: for a non-negative screen, enter the laboratory's result and report number when it arrives — until then the result reads Awaiting the laboratory. For a positive result or a refusal, record the action taken (relieved of duty, the company informed, signed off). Each is signed and kept as its own record. On the Board the officers see the laboratory results awaited, and the Master sees positives and refusals with no action recorded, in red.",
+        "Results are personal health data. In the cloud the person's name is kept as its first and last letter (\"Jez Dodd\" → \"J…d\") and the crew list link is not sent; the full name stays on the device the test was recorded on. Another officer's device and the office see the masked name. PDF prints the test with the readings, the laboratory, the action taken and the signature — printed from the device it was recorded on, with full names.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'About',
       body: [
@@ -1623,6 +1634,17 @@ const ru: ManualContent = {
         "Оценивающий — обычно начальник службы — выбирает человека, причину и период и ставит оценку по каждому критерию от 1 (неудовлетворительно) до 5 (отлично) или «н/п»: профессиональные знания, качество работы, безопасность и СУБ, надёжность, работа в команде, общение и английский, поведение, инициатива, а для офицеров — руководство. Затем сильные стороны, что улучшить, обучение, нанимать ли снова и рекомендуется ли повышение. Аттестацию можно сохранить черновиком или подписать. После подписи она не меняется.",
         "Дальше моряк читает её на том же устройстве, отвечает, согласен ли, может добавить комментарий и подписывает своим PIN или от руки. Если он отказывается подписать, оценивающий отмечает это с причиной. Затем контрассигнует капитан. Аттестация, которую составил сам капитан, завершается подписью моряка. До подписи моряка аттестацию можно отменить с причиной; ничего не удаляется.",
         "PDF печатает аттестацию с оценками, замечаниями и всеми подписями (подписи от руки — как нарисованы) — для личного дела моряка и крюинга. На Board офицеры видят, кому пора (красным, когда срок прошёл), а капитан — что ждёт его контрассигнации.",
+      ],
+    },
+    {
+      emoji: '🧪',
+      title: "Тесты на алкоголь и наркотики",
+      body: [
+        "Для тестов на алкоголь и наркотики на судне — внезапных, по случайной выборке, после инцидента, по подозрению, перед посадкой и повторных. Их ведут офицеры и капитан. На телефоны экипажа они не приходят; офис может их читать. Откройте раздел из Экипаж → Тесты на алкоголь и наркотики или с Board.",
+        "Политика: капитан задаёт, как часто нужен внезапный тест (раз в 3, 6 или 12 месяцев; случайная выборка тоже считается), и лимит алкоголя в мг/л выдоха — по умолчанию 0,25 мг/л, лимит STCW (0,05 % в крови); политика компании может ставить меньше. Экран и Board показывают, когда нужен следующий внезапный тест: жёлтым за 30 дней, красным после срока.",
+        "Запись теста: выберите причину (для инцидента или подозрения — напишите, что произошло), дату и время, какие тесты делали — алкоголь по выдоху (алкотестер: марка, серийный номер, последняя калибровка) и наркотики экспресс-тестом (марка, партия, срок годности), — кто проводил (капитан или внешний специалист) и свидетеля. Затем люди: все на борту, выбранные по имени или заданное число, выбранное случайно, — тогда в тесте записывается, сколько выбрано из скольких на борту. Для каждого введите показание алкотестера; выше лимита запрашивается повторный замер через 15–20 минут, и считается он. Отметьте экспресс-тест: отрицательный или не отрицательный (с номером пробы, отправленной в лабораторию), — или запишите отказ с причиной. Одна подпись записывает тест и все результаты. Потом ничего не меняется.",
+        "Дальше: для не отрицательного экспресс-теста внесите результат лаборатории и номер заключения, когда они придут, — до тех пор результат «Ждёт лабораторию». Для положительного результата или отказа запишите принятые меры (отстранён от вахты, компания извещена, списан). Каждая запись подписывается и хранится отдельно. На Board офицеры видят, чего ждут от лаборатории, а капитан — положительные результаты и отказы без записанных мер, красным.",
+        "Результаты — медицинские данные. В облаке от имени человека остаются первая и последняя буквы («Jez Dodd» → «J…d»), связь со списком экипажа не отправляется; полное имя остаётся на устройстве, где записан тест. Устройство другого офицера и офис видят имя в таком виде. PDF печатает тест с показаниями, лабораторией, мерами и подписью — с устройства, где тест записан, с полными именами.",
       ],
     },
     {
@@ -2426,6 +2448,17 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🧪',
+      title: "Pruebas de alcohol y drogas",
+      body: [
+        "Para las pruebas de alcohol y drogas del buque — sin aviso, por selección aleatoria, tras un incidente, por sospecha fundada, antes de embarcar y de seguimiento —, que llevan los oficiales y el Capitán. Los teléfonos de la tripulación no las reciben; la oficina puede leerlas. Ábralo desde Tripulación → Pruebas de alcohol y drogas, o desde el Board.",
+        "La política: el Capitán fija cada cuánto toca una prueba sin aviso (cada 3, 6 o 12 meses; una selección aleatoria también cuenta) y el límite de alcohol en mg/l de aire espirado — 0,25 mg/l por defecto, el límite STCW (0,05 % en sangre); la política de la compañía puede fijar menos. La pantalla y el Board muestran cuándo toca la próxima prueba sin aviso: en ámbar 30 días antes y en rojo una vez vencida.",
+        "Registrar una prueba: elija el motivo (para un incidente o una sospecha, diga cuál fue), la fecha y la hora, qué pruebas se hicieron — alcohol por aliento (alcoholímetro: marca, n.º de serie, última calibración) y drogas con kit de detección (marca, lote, caducidad) —, quién la realizó (el Capitán o un técnico externo) y el testigo. Después las personas: todos a bordo, elegidas por nombre o un número sorteado — la prueba registra entonces cuántos se sortearon de cuántos a bordo. Para cada persona introduzca la lectura de alcohol; por encima del límite se pide una segunda lectura a los 15–20 minutos, y esa es la que cuenta. Marque el kit como negativo o no negativo (con el n.º de la muestra enviada al laboratorio), o registre la negativa con el motivo. Una firma registra la prueba y todos los resultados. Después nada cambia.",
+        "Después: para un kit no negativo, introduzca el resultado del laboratorio y el n.º de informe cuando lleguen — hasta entonces el resultado figura como Pendiente del laboratorio. Para un positivo o una negativa, registre las medidas tomadas (relevado de guardia, compañía informada, desembarcado). Cada una se firma y se guarda como registro propio. En el Board los oficiales ven los resultados de laboratorio pendientes, y el Capitán los positivos y negativas sin medidas registradas, en rojo.",
+        "Los resultados son datos de salud. En la nube el nombre de la persona queda como su primera y última letra («Jez Dodd» → «J…d») y no se envía el enlace a la lista de tripulación; el nombre completo se queda en el dispositivo donde se registró la prueba. El dispositivo de otro oficial y la oficina ven el nombre enmascarado. PDF imprime la prueba con las lecturas, el laboratorio, las medidas y la firma — desde el dispositivo donde se registró, con los nombres completos.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Acerca de',
       body: [
@@ -3226,6 +3259,17 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🧪',
+      title: "Тести на алкоголь і наркотики",
+      body: [
+        "Для тестів на алкоголь і наркотики на судні — раптових, за випадковою вибіркою, після інциденту, за підозрою, перед посадкою і повторних. Їх ведуть офіцери і капітан. На телефони екіпажу вони не надходять; офіс може їх читати. Відкрийте розділ з Екіпаж → Тести на алкоголь і наркотики або з Board.",
+        "Політика: капітан задає, як часто потрібен раптовий тест (раз на 3, 6 або 12 місяців; випадкова вибірка теж рахується), і ліміт алкоголю в мг/л видиху — за замовчуванням 0,25 мг/л, ліміт STCW (0,05 % у крові); політика компанії може встановлювати менше. Екран і Board показують, коли потрібен наступний раптовий тест: жовтим за 30 днів, червоним після терміну.",
+        "Запис тесту: виберіть причину (для інциденту чи підозри — напишіть, що сталося), дату і час, які тести робили — алкоголь за видихом (алкотестер: марка, серійний номер, остання калібровка) і наркотики експрес-тестом (марка, партія, термін придатності), — хто проводив (капітан або зовнішній фахівець) і свідка. Потім люди: усі на борту, вибрані за іменем або задана кількість, вибрана випадково, — тоді в тесті записується, скільки вибрано з скількох на борту. Для кожного введіть показник алкотестера; вище ліміту запитується повторний замір через 15–20 хвилин, і рахується він. Позначте експрес-тест: негативний або не негативний (з номером проби, надісланої до лабораторії), — або запишіть відмову з причиною. Один підпис записує тест і всі результати. Потім нічого не змінюється.",
+        "Далі: для не негативного експрес-тесту внесіть результат лабораторії і номер висновку, коли вони надійдуть, — доти результат «Чекає на лабораторію». Для позитивного результату чи відмови запишіть вжиті заходи (відсторонено від вахти, компанію повідомлено, списано). Кожен запис підписується і зберігається окремо. На Board офіцери бачать, чого чекають від лабораторії, а капітан — позитивні результати і відмови без записаних заходів, червоним.",
+        "Результати — медичні дані. У хмарі від імені людини лишаються перша і остання літери («Jez Dodd» → «J…d»), зв'язок зі списком екіпажу не надсилається; повне ім'я лишається на пристрої, де записано тест. Пристрій іншого офіцера і офіс бачать ім'я в такому вигляді. PDF друкує тест з показниками, лабораторією, заходами і підписом — з пристрою, де тест записано, з повними іменами.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Про застосунок',
       body: [
@@ -3961,6 +4005,17 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '🧪',
+      title: "Alkohol- og narkotikatester",
+      body: [
+        "For fartøyets alkohol- og narkotikatester — uanmeldte, ved tilfeldig utvalg, etter en hendelse, ved begrunnet mistanke, før påmønstring og oppfølging — som føres av offiserene og skipsføreren. Mannskapets telefoner får dem ikke; kontoret kan lese dem. Åpne fra Mannskap → Alkohol- og narkotikatester, eller fra Board.",
+        "Policyen: skipsføreren setter hvor ofte en uanmeldt test skal tas (hver 3., 6. eller 12. måned; et tilfeldig utvalg teller også) og alkoholgrensen i mg/l utåndingsluft — 0,25 mg/l som standard, STCW-grensen (0,5 promille i blodet); rederiets policy kan sette lavere. Skjermen og Board viser når neste uanmeldte test skal tas: gult 30 dager før, rødt når fristen er passert.",
+        "Registrere en test: velg årsak (for en hendelse eller mistanke, skriv hva det gjaldt), dato og tid, hvilke tester som ble tatt — alkohol ved utånding (alkometer: merke, serienummer, sist kalibrert) og narkotika med hurtigtest (merke, lot, utløpsdato) — hvem som utførte den (skipsføreren eller en ekstern tester) og vitnet. Deretter personene: alle om bord, valgt etter navn, eller et antall trukket tilfeldig — testen registrerer da hvor mange som ble trukket av hvor mange om bord. Skriv inn alkoholavlesningen for hver person; over grensen bes det om en ny avlesning etter 15–20 minutter, og den teller. Merk hurtigtesten negativ eller ikke negativ (med prøvenummeret sendt til laboratoriet), eller registrer at personen nektet, med grunnen. Én signatur registrerer testen og alle resultatene. Ingenting endres etterpå.",
+        "Etterpå: for en hurtigtest som ikke er negativ, skriv inn laboratoriets resultat og rapportnummer når det kommer — til da står resultatet som Venter på laboratoriet. For et positivt resultat eller en nektelse, registrer tiltaket (fritatt fra vakt, rederiet varslet, avmønstret). Hver signeres og lagres som en egen post. På Board ser offiserene laboratoriesvar som ventes, og skipsføreren positive og nektelser uten registrert tiltak, i rødt.",
+        "Resultatene er helseopplysninger. I skyen lagres personens navn som første og siste bokstav («Jez Dodd» → «J…d»), og koblingen til mannskapslisten sendes ikke; fullt navn blir på enheten testen ble registrert på. En annen offisers enhet og kontoret ser det maskerte navnet. PDF skriver ut testen med avlesninger, laboratoriet, tiltak og signatur — fra enheten den ble registrert på, med fulle navn.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Om',
       body: [
@@ -4681,6 +4736,17 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '🧪',
+      title: "Testes de álcool e drogas",
+      body: [
+        "Para os testes de álcool e drogas do navio — sem aviso, por seleção aleatória, após um incidente, por suspeita fundada, antes do embarque e de acompanhamento —, mantidos pelos oficiais e pelo Comandante. Os telemóveis da tripulação não os recebem; o escritório pode lê-los. Abra em Tripulação → Testes de álcool e drogas, ou a partir do Board.",
+        "A política: o Comandante define com que frequência é devido um teste sem aviso (a cada 3, 6 ou 12 meses; uma seleção aleatória também conta) e o limite de álcool em mg/l de ar expirado — 0,25 mg/l por omissão, o limite STCW (0,05 % no sangue); a política da companhia pode fixar menos. O ecrã e o Board mostram quando é devido o próximo teste sem aviso: âmbar 30 dias antes e vermelho quando em atraso.",
+        "Registar um teste: escolha o motivo (para um incidente ou suspeita, diga qual), a data e a hora, que testes foram feitos — álcool por sopro (alcoolímetro: marca, n.º de série, última calibração) e drogas com kit de despistagem (marca, lote, validade) —, quem o realizou (o Comandante ou um técnico externo) e a testemunha. Depois as pessoas: todos a bordo, escolhidas pelo nome, ou um número sorteado — o teste regista então quantos foram sorteados de quantos a bordo. Para cada pessoa introduza a leitura de álcool; acima do limite é pedida uma segunda leitura após 15–20 minutos, e é essa que conta. Marque o kit como negativo ou não negativo (com o n.º da amostra enviada ao laboratório), ou registe a recusa com o motivo. Uma assinatura regista o teste e todos os resultados. Depois nada muda.",
+        "Depois: para um kit não negativo, introduza o resultado do laboratório e o n.º do relatório quando chegarem — até lá o resultado fica A aguardar o laboratório. Para um positivo ou uma recusa, registe as medidas tomadas (afastado do quarto, companhia informada, desembarcado). Cada uma é assinada e guardada como registo próprio. No Board os oficiais veem os resultados de laboratório em falta, e o Comandante os positivos e recusas sem medidas registadas, a vermelho.",
+        "Os resultados são dados de saúde. Na nuvem o nome da pessoa fica como a primeira e a última letra («Jez Dodd» → «J…d») e a ligação à lista de tripulação não é enviada; o nome completo fica no dispositivo onde o teste foi registado. O dispositivo de outro oficial e o escritório veem o nome mascarado. PDF imprime o teste com as leituras, o laboratório, as medidas e a assinatura — a partir do dispositivo onde foi registado, com os nomes completos.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Sobre',
       body: [
@@ -4754,6 +4820,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'External inspections', module: 'extInsp' },
   { title: 'Management of change', module: 'moc' },
   { title: 'Crew appraisals', module: 'appraisals' },
+  { title: 'Drug and alcohol tests', module: 'daTests' },
   { title: 'Planned maintenance', module: 'critEq', drop: [-1] },
   { title: 'Suppliers and quotations', module: 'poApproval', drop: [-1] },
 ];
