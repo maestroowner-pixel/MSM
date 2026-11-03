@@ -73,6 +73,7 @@
     "check:shiptime": "rm -rf .check-st && tsc scripts/check-shiptime.ts --outDir .check-st --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-st/ && node .check-st/scripts/check-shiptime.js; s=$?; rm -rf .check-st; exit $s",
     "check:watchlog": "rm -rf .check-wl && tsc scripts/check-watchlog.ts --outDir .check-wl --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-wl/scripts/check-watchlog.js; s=$?; rm -rf .check-wl; exit $s",
     "check:patrols": "rm -rf .check-pat && tsc scripts/check-patrols.ts --outDir .check-pat --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-pat/scripts/check-patrols.js; s=$?; rm -rf .check-pat; exit $s",
+    "check:moc": "rm -rf .check-moc && tsc scripts/check-moc.ts --outDir .check-moc --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck --types node && cp app.json .check-moc/ && node .check-moc/scripts/check-moc.js; s=$?; rm -rf .check-moc; exit $s",
     "check:seal": "rm -rf .check-seal && tsc scripts/check-seal.ts --outDir .check-seal --module commonjs --target es2020 --moduleResolution node --esModuleInterop --skipLibCheck --resolveJsonModule --types node && cp app.json .check-seal/ && node .check-seal/scripts/check-seal.js; s=$?; rm -rf .check-seal; exit $s"
   },
   "keywords": [

@@ -846,6 +846,59 @@ service cloud.firestore {
                       && poSteps(request.resource.data)[poSteps(request.resource.data).size() - 1].kind == 'ordered')));
         allow delete: if false;
       }
+      // Management of change (types/moc.ts, services/moc.ts): the way is an
+      // append-only list of steps, as a requisition's. A write adds at most ONE
+      // step, and whose step it is decides who: an officer submits or cancels; the
+      // Master approves, returns, rejects, cancels or closes; the office approves,
+      // returns or rejects. A reason (≥ 3) for every return, rejection,
+      // cancellation and the closure. Anyone on board signs off the action given
+      // to him. Rejected, cancelled or closed, it is final; never deleted.
+      function mocSteps(d) {
+        return d.get('steps', []);
+      }
+      function mocStepAdded(kinds) {
+        let o = mocSteps(resource.data);
+        let n = mocSteps(request.resource.data);
+        return n.size() == o.size() + 1 && n.hasAll(o)
+               && n[o.size()].kind in kinds
+               && (!(n[o.size()].kind in ['masterReturn', 'officeReturn', 'reject', 'cancel', 'close'])
+                   || n[o.size()].get('note', '').size() >= 3)
+               && mocOrderOk(n[o.size()].kind, o.size() == 0 ? 'none' : o[o.size() - 1].kind);
+      }
+      // The step follows the one before it (services/moc nextSteps): the office
+      // answers only what the Master sent it, the Master closes only what was approved.
+      function mocOrderOk(k, p) {
+        let office = resource.data.get('needsOffice', false) == true;
+        return (k in ['submit', 'master', 'cancel'] && p in ['none', 'submit', 'masterReturn', 'officeReturn'] && !(k == 'submit' && p == 'submit'))
+               || (k == 'masterReturn' && p == 'submit')
+               || (k == 'reject' && (p == 'submit' || (p == 'master' && office)))
+               || (k in ['office', 'officeReturn'] && p == 'master' && office)
+               || (k == 'close' && (p == 'office' || (p == 'master' && !office)));
+      }
+      // Once the Master approved it, whether it goes to the office is fixed.
+      function mocOfficeKept() {
+        let s = mocSteps(resource.data);
+        return request.resource.data.get('needsOffice', false) == resource.data.get('needsOffice', false)
+               || s.size() == 0 || s[s.size() - 1].kind in ['submit', 'masterReturn', 'officeReturn'];
+      }
+      function mocOpen() {
+        let s = mocSteps(resource.data);
+        return s.size() == 0 || !(s[s.size() - 1].kind in ['reject', 'cancel', 'close']);
+      }
+      match /mocs/{id} {
+        allow read: if reader(v);
+        allow create: if isAdmin(v) && (mocSteps(request.resource.data).size() == 0
+                        || (mocSteps(request.resource.data).size() == 1
+                            && (mocSteps(request.resource.data)[0].kind == 'submit'
+                                || (isSuper(v) && mocSteps(request.resource.data)[0].kind == 'master'))));
+        allow update: if mocOpen() && mocOfficeKept() && request.resource.data.no == resource.data.no && request.resource.data.at == resource.data.at
+                      && ((isAdmin(v) && (mocSteps(request.resource.data) == mocSteps(resource.data)
+                                          || mocStepAdded(['submit', 'cancel'])
+                                          || (isSuper(v) && mocStepAdded(['master', 'masterReturn', 'reject', 'close']))))
+                          || (member(v) && onlyChanges(['actions', 'updatedAt']))
+                          || (shore(v) && onlyChanges(['steps', 'updatedAt']) && mocStepAdded(['office', 'officeReturn', 'reject'])));
+        allow delete: if false;
+      }
 
       // ---- server-only ------------------------------------------------------
       // The bootstrap marker and the guess counters are written by the Admin SDK

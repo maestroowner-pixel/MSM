@@ -46,9 +46,11 @@ import { Attachment } from '../types/equipment';
 import { PurchaseOrder } from '../types/orders';
 import { approvedNotPlaced, emergencyOpen, markReview, officeApprove, officeOrdered, officeQueue, officeReject, officeReturn, poStage } from '../services/poApproval';
 import { PoProgress } from '../components/PoApprovalPanel';
+import { ManagementOfChange } from '../types/moc';
+import { mocsToAnswer, mocStage, sentToOffice, withStep } from '../services/moc';
 import { t, tk, useT } from '../utils/i18n';
 
-type Tab = 'certs' | 'docs' | 'equipment' | 'pms' | 'verify' | 'insp' | 'crit' | 'po';
+type Tab = 'certs' | 'docs' | 'equipment' | 'pms' | 'verify' | 'insp' | 'crit' | 'po' | 'moc';
 const SCOPES: { key: CertificateScope; label: string }[] = [
   { key: 'vessel', label: 'Vessel' },
   { key: 'crew', label: 'Crew' },
@@ -69,6 +71,7 @@ export default function FleetVesselSc() {
   const [docEdit, setDocEdit] = useState<{ doc: IsmDoc; isNew: boolean } | null>(null);
   const [check, setCheck] = useState<{ defect?: PmsDefect; nc?: NonConformity; deferral?: PmsDeferral } | null>(null);
   const [po, setPo] = useState<PurchaseOrder | null>(null);
+  const [moc, setMoc] = useState<ManagementOfChange | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -100,7 +103,9 @@ export default function FleetVesselSc() {
     const d = (v.defects ?? []).find((x) => x.id === id);
     const nc = (v.ncs ?? []).find((x) => x.id === id);
     const o = (v.orders ?? []).find((x) => x.id === id);
-    if (df && !df.office) setCheck({ deferral: df });
+    const mc = (v.mocs ?? []).find((x) => x.id === id);
+    if (mc) setMoc(mc);
+    else if (df && !df.office) setCheck({ deferral: df });
     else if (d && awaitsOffice(d)) setCheck({ defect: d });
     else if (nc && ncAwaitsOffice(nc)) setCheck({ nc });
     else if (o) setPo(o);
@@ -151,6 +156,19 @@ export default function FleetVesselSc() {
   const poApproved = poQueue ? approvedNotPlaced(orders) : [];
   const poInWork = poQueue ? orders.filter((o) => o.approval?.length && (o.status === 'sent' || o.status === 'partial') && !emergencyOpen(o)).sort((a, b) => b.updatedAt - a.updatedAt) : [];
   if (poQueue) tabs.push(['po', `${t('poa.tab')} · ${poQueue.length}`]);
+  // Management of change (services/moc): waiting for the office's answer, then the rest, newest first.
+  const mocQueue = moduleOn('moc') || v.modules?.moc === true ? mocsToAnswer(v.mocs ?? []) : null;
+  const mocRest = mocQueue ? (v.mocs ?? []).filter((m) => mocStage(m) !== 'office').sort((a, b) => b.updatedAt - a.updatedAt) : [];
+  if (mocQueue) tabs.push(['moc', `${t('moc.short')} · ${mocQueue.length}`]);
+  const mocRow = (m: ManagementOfChange) => (
+    <TouchableOpacity key={m.id} style={styles.row} onPress={() => setMoc(m)}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.title} numberOfLines={2}>{`${m.no} — ${m.title}`}</Text>
+        <Text style={styles.sub} numberOfLines={1}>{[tk(`moc.st.${mocStage(m)}`), tk(`moc.kind.${m.kind}`), m.until ? t('moc.untilShort', { date: uiDate(m.until) }) : null, m.raisedByRank ? `${m.raisedBy} (${m.raisedByRank})` : m.raisedBy].filter(Boolean).join(' · ')}</Text>
+      </View>
+      <MciIcon name="chevron-right" size={18} color={COLORS.textLight} />
+    </TouchableOpacity>
+  );
   const poRow = (o: PurchaseOrder) => (
     <TouchableOpacity key={o.id} style={styles.row} onPress={() => setPo(o)}>
       <View style={{ flex: 1 }}>
@@ -174,7 +192,14 @@ export default function FleetVesselSc() {
         ))}
       </View>
 
-      {tab === 'po' && poQueue ? (
+      {tab === 'moc' && mocQueue ? (
+        <>
+          {mocQueue.map(mocRow)}
+          {!mocQueue.length ? <Empty text={t('moc.nothingOffice')} /> : null}
+          {mocRest.length ? <Label style={{ marginTop: SIZES.md }}>{t('moc.title')}</Label> : null}
+          {mocRest.slice(0, 30).map(mocRow)}
+        </>
+      ) : tab === 'po' && poQueue ? (
         <>
           {poQueue.map(poRow)}
           {!poQueue.length ? <Empty text={t('poa.nothing')} /> : null}
@@ -334,6 +359,7 @@ export default function FleetVesselSc() {
 
       {cert ? <CertEditor imo={imo} cert={cert} crew={v.crew} onClose={() => setCert(null)} onSaved={() => { setCert(null); void load(); }} /> : null}
       {check ? <OfficeCheckSheet imo={v.imo} check={check} onClose={() => setCheck(null)} onSaved={() => { setCheck(null); void load(); }} /> : null}
+      {moc ? <MocSheet imo={v.imo} moc={moc} onClose={() => setMoc(null)} onSaved={() => { setMoc(null); void load(); }} /> : null}
       {po ? <PoSheet imo={v.imo} order={po} onClose={() => { setPo(null); void load(); }} onSaved={() => { setPo(null); void load(); }} /> : null}
       {docEdit ? <DocEditor imo={imo} start={docEdit.doc} isNew={docEdit.isNew} onClose={() => setDocEdit(null)} onSaved={() => { setDocEdit(null); void load(); }} /> : null}
     </Screen>
@@ -752,6 +778,79 @@ function PoSheet({ imo, order, onClose, onSaved }: { imo: string; order: Purchas
         <TouchableOpacity style={styles.delete} disabled={busy} onPress={() => needNote(() => void run((who) => officeReject(o, who, note, Date.now())))}>
           <Text style={{ color: COLORS.danger, fontWeight: '700' }}>{t('poa.reject')}</Text>
         </TouchableOpacity>
+      ) : null}
+    </Sheet>
+  );
+}
+
+/**
+ * The office's answer on one change (services/moc): approve it, return it for
+ * rework, or reject it — a return or a rejection with the reason. A change not
+ * waiting for the office opens read-only, with its way so far.
+ */
+function MocSheet({ imo, moc, onClose, onSaved }: { imo: string; moc: ManagementOfChange; onClose: () => void; onSaved: () => void }) {
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const waiting = !!sentToOffice(moc);
+  const who = (by?: string, rank?: string) => (rank ? `${by} (${rank})` : by ?? '');
+
+  const answer = async (kind: 'office' | 'officeReturn' | 'reject') => {
+    if (!waiting) return onClose();
+    if (kind !== 'office' && note.trim().length < 3) return Alert.alert(tk(`moc.step.${kind}`), t('moc.needReason'));
+    setBusy(true);
+    try {
+      const me = { name: (await shore.myName()) || t('fv.supt'), rank: t('oc.office') };
+      await shore.saveOfficeCheck(imo, 'mocs', withStep(moc, kind, me, Date.now(), note));
+      onSaved();
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e?.message ?? String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Sheet title={moc.no} onClose={onClose} onSave={() => void answer('office')} busy={busy} saveLabel={waiting ? t('moc.officeApprove') : t('common.close')}>
+      <Text style={styles.title}>{moc.title}</Text>
+      <Text style={styles.sub}>{[tk(`moc.kind.${moc.kind}`), moc.until ? t('moc.untilShort', { date: uiDate(moc.until) }) : t('moc.permanent'), tk(`moc.st.${mocStage(moc)}`)].join(' · ')}</Text>
+      <Label>{t('moc.change')}</Label>
+      <Text style={styles.title}>{moc.what}</Text>
+      {moc.why ? <Text style={styles.sub}>{`${t('moc.why')}: ${moc.why}`}</Text> : null}
+      {moc.docs?.length ? (
+        <>
+          <Label>{t('moc.docs')}</Label>
+          {moc.docs.map((d) => <Text key={d.id} style={styles.sub}>{`• ${d.docNo ? `${d.docNo} ` : ''}${d.title} · Rev ${d.rev}`}</Text>)}
+        </>
+      ) : null}
+      {/* The risk assessment the Master approved it on, as it was then. */}
+      <Label>{t('moc.ra')}</Label>
+      {moc.ra ? (
+        <>
+          <Text style={styles.title}>{`${moc.ra.no ? `${moc.ra.no} · ` : ''}${moc.ra.title}`}</Text>
+          {moc.ra.worst ? <Text style={[styles.sub, { color: RISK_COLOR[moc.ra.worst], fontWeight: '800' }]}>{t('risk.residual', { level: tk(`risk.lvl.${moc.ra.worst}`) })}</Text> : null}
+          {moc.ra.hazards.map((h, i) => <Text key={i} style={styles.sub}>{`• ${h.hazard} — ${tk(`risk.lvl.${h.level}`)}${h.controls ? `\n   ${h.controls}` : ''}`}</Text>)}
+          <Text style={styles.sub}>{t('od.raApproved', { who: moc.ra.approvedBy, when: uiDate(new Date(moc.ra.approvedAt).toISOString().slice(0, 10)) })}</Text>
+        </>
+      ) : (
+        <Text style={styles.sub}>{t('od.noRa')}</Text>
+      )}
+      <Label>{t('nc.actionsN', { k: moc.actions.filter((a) => a.doneAt).length, n: moc.actions.length })}</Label>
+      {moc.actions.map((a) => <Text key={a.id} style={styles.sub}>{`${a.doneAt ? '✓' : '•'} ${a.text} — ${a.owner}, ${uiDate(a.due)}`}</Text>)}
+      <Label>{t('moc.history')}</Label>
+      {moc.steps.map((s, i) => <Text key={i} style={styles.sub}>{`${uiDate(new Date(s.at).toISOString().slice(0, 10))} · ${tk(`moc.step.${s.kind}`)} · ${who(s.by, s.byRank)}${s.note ? ` — ${s.note}` : ''}`}</Text>)}
+      {waiting ? (
+        <>
+          <Label>{t('oc.note')}</Label>
+          <TextInput style={[styles.input, { minHeight: 60 }]} value={note} onChangeText={setNote} multiline placeholder={t('moc.officeNotePh')} placeholderTextColor={COLORS.textLight} />
+          <TouchableOpacity style={styles.delete} disabled={busy} onPress={() => void answer('officeReturn')}>
+            <Text style={{ color: COLORS.warning, fontWeight: '700' }}>{t('moc.step.officeReturn')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.delete} disabled={busy} onPress={() => void answer('reject')}>
+            <Text style={{ color: COLORS.danger, fontWeight: '700' }}>{t('moc.step.reject')}</Text>
+          </TouchableOpacity>
+        </>
       ) : null}
     </Sheet>
   );

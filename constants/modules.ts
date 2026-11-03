@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -272,6 +272,15 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * does not get it.
    */
   poApproval: false,
+  /**
+   * Management of change — a change to a procedure, equipment, the crew or the
+   * organisation assessed and approved before it is made: the risk assessment,
+   * the ISM documents it touches, the Master's approval (and the office's where
+   * it is in the loop), the actions with owners and dates, the Master's signed
+   * closure; a temporary change until its end date (types/moc.ts, plan item 38,
+   * 3 Nov 2026). Needs the qhse module and `npm run deploy:rules` first (mocs).
+   */
+  moc: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------

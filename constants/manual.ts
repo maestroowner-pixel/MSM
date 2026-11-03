@@ -801,6 +801,18 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🔀',
+      title: "Management of change",
+      body: [
+        "For a change to the way the vessel works, assessed and approved before it is made (ISM Code 1.2.2.2 and 10): a procedure, the equipment or a system (a new sensor, an alarm bypassed, a different fuel), the crew or manning, the organisation (a new manager, a new trade). Open it from Safety → Non-conformities → Management of change.",
+        "An officer writes the change: what changes, why, whether it is permanent or temporary until a date, the ISM documents it touches (each with the revision it is at), and whether the office approves it too. Then the actions that carry it out — update the procedure, brief the crew, fit the part — each with who and by when. Make the risk assessment from the change itself: it opens named for it, and can start from the library.",
+        "Submitted, it goes to the Master, who approves it, returns it with the reason, or rejects it. The Master approves only on an approved risk assessment made for this change and with at least one action; the assessment is frozen onto the change as it was approved. The Master raising a change approves it at once. Until the Master approves, it can be edited or cancelled with the reason; after that, only the actions move.",
+        "Where the office approves it too, the change then waits in Fleet → Needs attention: the superintendent reads the change, the documents, the risk assessment as approved and the actions, and approves it, returns it to the vessel with a note, or rejects it.",
+        "Approved, whoever an action was given to signs it done. When every action is done, the Master closes it — signed, with a word on whether the change worked. A document named on it that has not been issued in a new revision is pointed out before closing. Rejected, cancelled or closed, it does not change again; nothing is deleted.",
+        "On the Board: a change waiting for the Master's approval or ready to close is the Master's; a change returned is the officers'; an action overdue is red; a temporary change past its end date is red for the Master — restore it or close it.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'About',
       body: [
@@ -1573,6 +1585,18 @@ const ru: ManualContent = {
         "Проверка записывается один раз: дата, порт, кто проводил, инспектор и номер отчёта (Form B, акт), было ли задержание. Затем замечания по одному — что найдено, требование, степень, кто устраняет и до какого числа. Для PSC добавьте код дефекта и action code: 17 ставит срок на день проверки (до отхода), 16 — 14 дней, 18 — 3 месяца; 30 делает замечание major NC; 10 — устранено во время проверки, исправление записывается выполненным. Замечаний нет — сохраните так: чистую проверку тоже стоит записать.",
         "После подписи каждое замечание становится несоответствием со своим исправлением, ответственным и сроком и идёт обычным путём: корневая причина, дальнейшие действия, закрытие капитаном с подписью — и, если офис участвует, его проверка. В проверке видно, сколько замечаний закрыто и проверено, и каждое открывается.",
         "На Board просроченное замечание — красное, с указанием проверки; задержание остаётся красным для капитана, пока не записан день, когда его сняли. В Fleet суперинтендант видит проверки каждого судна, последнюю PSC, открытые и просроченные замечания и задержание.",
+      ],
+    },
+    {
+      emoji: '🔀',
+      title: "Управление изменениями",
+      body: [
+        "Для изменения в том, как работает судно, — оценённого и одобренного до того, как его вносят (ISM Code 1.2.2.2 и 10): процедура, оборудование или система (новый датчик, отключённая сигнализация, другое топливо), экипаж или комплектование, организация (новый менеджер, новый район работы). Откройте Safety → Non-conformities → Management of change.",
+        "Офицер описывает изменение: что меняется, зачем, постоянно оно или временно до какой-то даты, какие ISM-документы оно затрагивает (с текущей редакцией каждого) и одобряет ли его ещё и офис. Затем — действия, которыми оно внедряется: обновить процедуру, проинструктировать экипаж, установить деталь — у каждого исполнитель и срок. Оценку рисков составляйте прямо из изменения: она откроется с его названием, и её можно начать из библиотеки.",
+        "Переданное изменение попадает к Master'у: он одобряет, возвращает с причиной или отклоняет. Одобрить можно только при утверждённой оценке рисков, составленной для этого изменения, и хотя бы одном действии; оценка фиксируется в изменении такой, какой её утвердили. Если изменение оформляет сам Master, он одобряет сразу. До одобрения изменение можно править или отменить с причиной, после — движутся только действия.",
+        "Если одобряет и офис, изменение затем ждёт в Fleet → Needs attention: суперинтендант видит изменение, документы, утверждённую оценку рисков и действия — и одобряет, возвращает на судно с комментарием или отклоняет.",
+        "После одобрения каждый подписывает выполнение своего действия. Когда выполнены все, Master закрывает изменение — с подписью и словами о том, сработало ли оно. Если у названного документа ещё не выпущена новая редакция, приложение напомнит об этом перед закрытием. Отклонённое, отменённое или закрытое изменение больше не меняется; ничего не удаляется.",
+        "На Board: изменение, ждущее одобрения или готовое к закрытию, — для Master'а; возвращённое — для офицеров; просроченное действие — красное; временное изменение с истёкшим сроком — красное для Master'а: вернуть как было или закрыть.",
       ],
     },
     {
@@ -2351,6 +2375,18 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🔀',
+      title: "Gestión del cambio",
+      body: [
+        "Para un cambio en la forma de trabajar del buque, evaluado y aprobado antes de hacerlo (Código ISM 1.2.2.2 y 10): un procedimiento, un equipo o sistema (un sensor nuevo, una alarma puenteada, otro combustible), la tripulación o la dotación, la organización (un nuevo gestor, una nueva zona de trabajo). Ábralo en Safety → Non-conformities → Management of change.",
+        "Un oficial escribe el cambio: qué cambia, por qué, si es permanente o temporal hasta una fecha, los documentos ISM a los que afecta (cada uno con su revisión actual) y si también lo aprueba la oficina. Después, las acciones que lo llevan a cabo — actualizar el procedimiento, informar a la tripulación, montar la pieza — cada una con responsable y fecha. Haga la evaluación de riesgos desde el propio cambio: se abre con su nombre y puede partir de la biblioteca.",
+        "Enviado, llega al Capitán, que lo aprueba, lo devuelve con el motivo o lo rechaza. Solo se aprueba con una evaluación de riesgos aprobada hecha para este cambio y al menos una acción; la evaluación queda fijada en el cambio tal como se aprobó. Si lo registra el propio Capitán, lo aprueba en el acto. Hasta la aprobación puede editarse o cancelarse con el motivo; después solo avanzan las acciones.",
+        "Si también lo aprueba la oficina, el cambio espera en Fleet → Needs attention: el superintendente ve el cambio, los documentos, la evaluación de riesgos aprobada y las acciones, y lo aprueba, lo devuelve al buque con una nota o lo rechaza.",
+        "Aprobado, cada responsable firma su acción como hecha. Cuando están todas, el Capitán lo cierra — firmado, diciendo si el cambio funcionó. Si un documento nombrado aún no tiene nueva revisión, se avisa antes de cerrar. Rechazado, cancelado o cerrado, ya no cambia; no se borra nada.",
+        "En el Board: un cambio pendiente de aprobación o listo para cerrar es del Capitán; uno devuelto, de los oficiales; una acción vencida, en rojo; un cambio temporal pasada su fecha, en rojo para el Capitán: restaurar o cerrar.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Acerca de',
       body: [
@@ -3126,6 +3162,18 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🔀',
+      title: "Управління змінами",
+      body: [
+        "Для зміни в тому, як працює судно, — оціненої та схваленої до того, як її вносять (ISM Code 1.2.2.2 і 10): процедура, обладнання чи система (новий датчик, вимкнена сигналізація, інше паливо), екіпаж чи комплектування, організація (новий менеджер, новий район роботи). Відкрийте Safety → Non-conformities → Management of change.",
+        "Офіцер описує зміну: що змінюється, навіщо, постійна вона чи тимчасова до певної дати, які ISM-документи вона зачіпає (з поточною редакцією кожного) і чи схвалює її ще й офіс. Потім — дії, якими її впроваджують: оновити процедуру, проінструктувати екіпаж, встановити деталь — у кожної виконавець і термін. Оцінку ризиків складайте прямо зі зміни: вона відкриється з її назвою, і її можна почати з бібліотеки.",
+        "Передана зміна потрапляє до Master'а: він схвалює, повертає з причиною або відхиляє. Схвалити можна лише за затвердженої оцінки ризиків, складеної для цієї зміни, і хоча б однієї дії; оцінка фіксується у зміні такою, якою її затвердили. Якщо зміну оформлює сам Master, він схвалює одразу. До схвалення зміну можна редагувати чи скасувати з причиною, після — рухаються лише дії.",
+        "Якщо схвалює й офіс, зміна потім чекає у Fleet → Needs attention: суперінтендант бачить зміну, документи, затверджену оцінку ризиків і дії — і схвалює, повертає на судно з коментарем або відхиляє.",
+        "Після схвалення кожен підписує виконання своєї дії. Коли виконано всі, Master закриває зміну — з підписом і словами про те, чи спрацювала вона. Якщо в названого документа ще не випущено нову редакцію, застосунок нагадає про це перед закриттям. Відхилена, скасована чи закрита зміна більше не змінюється; нічого не видаляється.",
+        "На Board: зміна, що чекає схвалення чи готова до закриття, — для Master'а; повернута — для офіцерів; прострочена дія — червона; тимчасова зміна з простроченим терміном — червона для Master'а: повернути як було або закрити.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Про застосунок',
       body: [
@@ -3836,6 +3884,18 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '🔀',
+      title: "Endringsledelse",
+      body: [
+        "For en endring i hvordan fartøyet arbeider, vurdert og godkjent før den gjøres (ISM-koden 1.2.2.2 og 10): en prosedyre, utstyr eller et system (en ny sensor, en alarm koblet ut, et annet drivstoff), mannskap eller bemanning, organisasjonen (en ny manager, et nytt fartsområde). Åpne den fra Safety → Non-conformities → Management of change.",
+        "En offiser skriver endringen: hva som endres, hvorfor, om den er permanent eller midlertidig til en dato, ISM-dokumentene den berører (hvert med revisjonen det har nå), og om kontoret også godkjenner den. Deretter tiltakene som gjennomfører den — oppdatere prosedyren, orientere mannskapet, montere delen — hvert med hvem og innen når. Lag risikovurderingen fra selve endringen: den åpnes med endringens navn og kan starte fra biblioteket.",
+        "Sendt går den til Master, som godkjenner den, returnerer den med grunnen eller avviser den. Master godkjenner bare på en godkjent risikovurdering laget for denne endringen og med minst ett tiltak; vurderingen fryses på endringen slik den ble godkjent. Registrerer Master endringen selv, godkjennes den med en gang. Før godkjenning kan den redigeres eller avlyses med grunn; deretter er det bare tiltakene som beveger seg.",
+        "Der kontoret også godkjenner, venter endringen i Fleet → Needs attention: superintendenten ser endringen, dokumentene, risikovurderingen slik den ble godkjent og tiltakene, og godkjenner, returnerer den til fartøyet med en merknad eller avviser den.",
+        "Godkjent signerer den som fikk et tiltak det som gjort. Når alle er gjort, lukker Master den — signert, med et ord om endringen virket. Et dokument som er nevnt uten at ny revisjon er utgitt, blir påpekt før lukking. Avvist, avlyst eller lukket endres den ikke mer; ingenting slettes.",
+        "På Board: en endring som venter på godkjenning eller er klar til lukking, er Masters; en returnert endring er offiserenes; et forfalt tiltak er rødt; en midlertidig endring over sluttdatoen er rød for Master — tilbakestill eller lukk.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Om',
       body: [
@@ -4531,6 +4591,18 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '🔀',
+      title: "Gestão de mudanças",
+      body: [
+        "Para uma mudança na forma como o navio trabalha, avaliada e aprovada antes de ser feita (Código ISM 1.2.2.2 e 10): um procedimento, um equipamento ou sistema (um sensor novo, um alarme inibido, outro combustível), a tripulação ou a lotação, a organização (um novo gestor, uma nova zona de operação). Abra em Safety → Non-conformities → Management of change.",
+        "Um oficial escreve a mudança: o que muda, porquê, se é permanente ou temporária até uma data, os documentos ISM que afeta (cada um com a revisão atual) e se o escritório também aprova. Depois, as ações que a concretizam — atualizar o procedimento, informar a tripulação, montar a peça — cada uma com responsável e prazo. Faça a avaliação de riscos a partir da própria mudança: abre com o nome dela e pode partir da biblioteca.",
+        "Enviada, vai ao Comandante, que a aprova, devolve com o motivo ou rejeita. Só se aprova com uma avaliação de riscos aprovada feita para esta mudança e pelo menos uma ação; a avaliação fica fixada na mudança tal como foi aprovada. Se o próprio Comandante a regista, aprova logo. Até à aprovação pode ser editada ou cancelada com o motivo; depois, só as ações avançam.",
+        "Se o escritório também aprova, a mudança espera em Fleet → Needs attention: o superintendente vê a mudança, os documentos, a avaliação de riscos aprovada e as ações, e aprova, devolve ao navio com uma nota ou rejeita.",
+        "Aprovada, cada responsável assina a sua ação como feita. Quando estão todas, o Comandante fecha-a — assinada, dizendo se a mudança resultou. Um documento indicado que ainda não teve nova revisão é assinalado antes de fechar. Rejeitada, cancelada ou fechada, já não muda; nada é apagado.",
+        "No Board: uma mudança à espera de aprovação ou pronta a fechar é do Comandante; uma devolvida, dos oficiais; uma ação em atraso, a vermelho; uma mudança temporária depois da data, a vermelho para o Comandante: repor ou fechar.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Sobre',
       body: [
@@ -4601,6 +4673,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Engine room log', module: 'watchLog' },
   { title: 'Vessel API', module: 'api' },
   { title: 'External inspections', module: 'extInsp' },
+  { title: 'Management of change', module: 'moc' },
   { title: 'Planned maintenance', module: 'critEq', drop: [-1] },
   { title: 'Suppliers and quotations', module: 'poApproval', drop: [-1] },
 ];

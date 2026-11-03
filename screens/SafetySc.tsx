@@ -27,6 +27,7 @@ import { todayIso } from '../services/pms';
 import { NC_STATE_LABEL, NcState, ncState, nextActionDue, obsCounts, sortNcs, sortObservations } from '../services/safety';
 import { exportSafetyExcel, exportSafetyPdf } from '../services/safetyReport';
 import { inspStatus } from '../services/extInspections';
+import { mocFinal } from '../services/moc';
 import { moduleOn } from '../constants/modules';
 import { readObsToken, saveObsToken } from '../services/firebaseService';
 import { uiDate } from '../utils/dates';
@@ -43,7 +44,7 @@ export default function SafetySc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { observations, ncs, extInspections, saveRow, vessel } = useData();
+  const { observations, ncs, extInspections, mocs, saveRow, vessel } = useData();
   const sync = useSync();
   const canReview = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const { signer, picker } = useSigner('OBSERVED BY');
@@ -77,6 +78,7 @@ export default function SafetySc() {
   const openNcs = ncs.filter((n) => !n.closedAt).length;
   const extOpen = extInspections.filter((x) => inspStatus(x, ncs, today).closed < inspStatus(x, ncs, today).total).length;
   const month = obsCounts(observations, today.slice(0, 7));
+  const mocOpen = mocs.filter((m) => !mocFinal(m)).length;
 
   const kindColor: Record<ObsKind, string> = { near_miss: COLORS.danger, unsafe_act: COLORS.warning, unsafe_condition: COLORS.warning, good_practice: COLORS.success };
   const stateColor: Record<NcState, string> = { overdue: COLORS.danger, open: COLORS.warning, ready: COLORS.primary, closed: COLORS.success };
@@ -251,6 +253,11 @@ export default function SafetySc() {
               {moduleOn('extInsp') ? (
                 <TouchableOpacity style={[styles.btn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: COLORS.primary, marginTop: 6 }]} onPress={() => nav.navigate('ExtInspections')}>
                   <Text style={[styles.btnText, { color: COLORS.primary }]}>{`${t('ei.title')}${extOpen ? ` · ${t('srch.openN', { n: extOpen })}` : ''} ›`}</Text>
+                </TouchableOpacity>
+              ) : null}
+              {moduleOn('moc') ? (
+                <TouchableOpacity style={[styles.btn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: COLORS.primary, marginTop: 6 }]} onPress={() => nav.navigate('Mocs')}>
+                  <Text style={[styles.btnText, { color: COLORS.primary }]}>{`${t('moc.title')}${mocOpen ? ` · ${t('srch.openN', { n: mocOpen })}` : ''} ›`}</Text>
                 </TouchableOpacity>
               ) : null}
               <TouchableOpacity style={[styles.btn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: COLORS.primary, marginTop: 6 }]} onPress={() => nav.navigate('Landings')}>

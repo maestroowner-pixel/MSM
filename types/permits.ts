@@ -136,6 +136,8 @@ export interface RiskAssessment {
   /** Made for a planned-maintenance job (PmsJob.id) — before it is done, or for deferring it (plan item 39). */
   pmsJobId?: string;
   pmsFor?: 'job' | 'deferral';
+  /** Made for a management of change (types/moc.ts, plan item 38). */
+  mocId?: string;
   approved?: SignStamp;
   reviewDue?: string;
   deleted?: boolean;

@@ -58,6 +58,7 @@ import { awaiting, verifiedIds } from './verification';
 import { awaitsOffice, deferralsToAnswer, ncAwaitsOffice, officeInLoop, rankDefects } from './officeCheck';
 import { emergencyOpen, emergencyRejected, lastCuts, poStage, returnedBy } from './poApproval';
 import { inspStatus } from './extInspections';
+import { mocStage, nextActionDue as mocNextDue, overdueActions, readyToClose, returnedBy as mocReturnedBy, tempState } from './moc';
 import { critSummary, downtimeDays, outNow } from './critEq';
 import { t, tk, tn } from '../utils/t';
 
@@ -189,6 +190,8 @@ export interface BoardInput {
   ncs?: NonConformity[];
   /** External inspections (types/extInspection.ts) — their findings are in `ncs`. */
   extInspections?: import('../types/extInspection').ExternalInspection[];
+  /** Management of change (types/moc.ts). */
+  mocs?: import('../types/moc').ManagementOfChange[];
   drills?: Drill[];
   medItems?: MedItem[];
   medMoves?: MedMove[];
@@ -684,6 +687,48 @@ export function buildBoard(x: BoardInput): Board {
     if (fresh) n.push({ key: 'obs:new', level: 'amber', who: 'officer', icon: 'eye-outline', route: 'Safety', title: t('b.obs.toReview', { x: tn('n.obsCard', fresh) }) });
     const open = ncs.filter((v) => !v.closedAt).length;
     tiles.push({ key: 'qhse', label: t('b.safety'), icon: 'shield-check-outline', route: 'Safety', level: lvl(red, amber || fresh), line: [open ? t('b.nc.openN', { n: open }) : t('b.nc.none'), fresh ? t('b.newCardsN', { n: fresh }) : null].filter(Boolean).join(' · ') });
+  }
+
+  // ---- Management of change: what waits for the Master, what came back, what is late ----
+  if (x.on('moc') && x.on('qhse')) {
+    let red = 0;
+    let amber = 0;
+    const open = (x.mocs ?? []).filter((m) => ['draft', 'master', 'office', 'returned', 'approved'].includes(mocStage(m)));
+    for (const m of open) {
+      const st = mocStage(m);
+      const base = { route: 'Moc', params: { id: m.id }, sub: m.title };
+      const late = overdueActions(m, x.today);
+      const temp = tempState(m, x.today);
+      if (st === 'master') {
+        amber++;
+        n.push({ ...base, key: `moc:${m.id}`, level: 'amber', who: 'master', icon: 'swap-horizontal-circle-outline', title: `${m.no} — ${t('b.moc.toApprove')}` });
+      } else if (st === 'returned') {
+        amber++;
+        const r = mocReturnedBy(m)!;
+        n.push({ ...base, key: `moc:${m.id}`, level: 'amber', who: 'officer', icon: 'undo-variant', title: `${m.no} — ${t(r.kind === 'officeReturn' ? 'b.moc.officeReturned' : 'b.moc.returned')}`, sub: `${m.title}: ${r.note ?? ''}` });
+      } else if (st === 'office') {
+        plan.push({ ...base, key: `moc:${m.id}`, icon: 'office-building-outline', title: `${m.no} ${m.title}`, sub: t('b.moc.atOffice') });
+      } else if (st === 'approved') {
+        if (temp === 'over') {
+          red++;
+          n.push({ ...base, key: `moc:${m.id}:temp`, level: 'red', who: 'master', icon: 'timer-alert-outline', title: `${m.no} — ${t('b.moc.tempOver', { date: dm(m.until!) })}` });
+        } else if (temp === 'soon') {
+          amber++;
+          n.push({ ...base, key: `moc:${m.id}:temp`, level: 'amber', who: 'master', icon: 'timer-sand', title: `${m.no} — ${t('b.moc.tempEnds', { date: dm(m.until!) })}` });
+        }
+        if (late.length) {
+          red++;
+          n.push({ ...base, key: `moc:${m.id}`, level: 'red', who: 'officer', icon: 'clipboard-alert-outline', title: `${m.no} — ${t('b.moc.actionsLate', { n: late.length })}` });
+        } else if (readyToClose(m)) {
+          amber++;
+          n.push({ ...base, key: `moc:${m.id}`, level: 'amber', who: 'master', icon: 'clipboard-check-outline', title: `${m.no} — ${t('b.moc.toClose')}` });
+        } else {
+          const due = mocNextDue(m);
+          if (due) plan.push({ ...base, key: `moc:${m.id}`, icon: 'swap-horizontal', title: `${m.no} ${m.title}`, sub: t('b.nc.next', { date: `${dm(due)}.${due.slice(0, 4)}` }) });
+        }
+      }
+    }
+    if (open.length) tiles.push({ key: 'moc', label: t('moc.short'), icon: 'swap-horizontal-circle-outline', route: 'Mocs', level: lvl(red, amber), line: t('b.moc.openN', { n: open.length }) });
   }
 
   // ---- GMDSS log check reminders ----------------------------------------

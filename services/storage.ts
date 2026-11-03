@@ -130,6 +130,8 @@ export const YARD_JOBS_KEY = `${PREFIX}yard_jobs`;
 export const WARRANTY_CLAIMS_KEY = `${PREFIX}warranty_claims`;
 /** External inspections (types/extInspection.ts) — PSC, flag, class, vetting; the findings are NCs. */
 export const EXT_INSP_KEY = `${PREFIX}ext_inspections`;
+/** Management of change (types/moc.ts) — the change, its approvals, actions and closure. */
+export const MOCS_KEY = `${PREFIX}mocs`;
 /** Supplier directory (types/suppliers.ts) — quotes and awards live on the purchase orders. */
 export const SUPPLIERS_KEY = `${PREFIX}suppliers`;
 /**

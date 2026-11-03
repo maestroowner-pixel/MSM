@@ -403,6 +403,31 @@ await t(true, 'The office approves the emergency afterwards', updateDoc(R(shore,
 await t(true, 'A vessel without the flag edits its orders as before', updateDoc(R(officer, 'purchase_orders', 'po4'), { notes: 'Delivery to the agent', updatedAt: 4 }));
 await t(false, 'A requisition is never deleted', deleteDoc(R(master, 'purchase_orders', 'po1')));
 
+// Management of change (services/moc, plan item 38)
+const MOC = { id: 'moc1', no: 'MOC-2026-01', kind: 'equipment', title: 'Bypass the bilge alarm', what: 'x', why: 'y', needsOffice: true, actions: [{ id: 'a1', text: 'Fit sensor', owner: 'AB', due: '2026-11-10' }], steps: [], raisedBy: '2/E', at: 1, updatedAt: 1 };
+const steps = (...k) => k.map(([kind, at, note]) => ({ kind, by: 'X', at, ...(note ? { note } : {}) }));
+await t(false, 'Crew cannot raise a change', setDoc(R(crew, 'mocs', 'moc0'), { ...MOC, id: 'moc0' }));
+await t(false, 'An officer cannot raise it already approved', setDoc(R(officer, 'mocs', 'moc0'), { ...MOC, id: 'moc0', steps: steps(['master', 1]) }));
+await t(true, 'An officer raises a change', setDoc(R(officer, 'mocs', 'moc1'), MOC));
+await t(true, '…and submits it to the Master', updateDoc(R(officer, 'mocs', 'moc1'), { steps: steps(['submit', 2]), updatedAt: 2 }));
+await t(false, 'The officer cannot approve it', updateDoc(R(officer, 'mocs', 'moc1'), { steps: steps(['submit', 2], ['master', 3]), updatedAt: 3 }));
+await t(false, 'The Master cannot return it without a reason', updateDoc(R(master, 'mocs', 'moc1'), { steps: steps(['submit', 2], ['masterReturn', 3]), updatedAt: 3 }));
+await t(false, 'The office cannot approve before the Master', updateDoc(R(shore, 'mocs', 'moc1'), { steps: steps(['submit', 2], ['office', 3]), updatedAt: 3 }));
+await t(true, 'The Master approves it (to the office)', updateDoc(R(master, 'mocs', 'moc1'), { ra: { id: 'ra1', title: 'RA', worst: 'low', hazards: [], approvedBy: 'M', approvedAt: 3 }, steps: steps(['submit', 2], ['master', 3]), updatedAt: 3 }));
+await t(false, 'The office cannot change the change', updateDoc(R(shore, 'mocs', 'moc1'), { what: 'other', steps: steps(['submit', 2], ['master', 3], ['office', 4]), updatedAt: 4 }));
+await t(false, 'The office cannot close it', updateDoc(R(shore, 'mocs', 'moc1'), { steps: steps(['submit', 2], ['master', 3], ['close', 4, 'Works']), updatedAt: 4 }));
+await t(false, 'The Master cannot close it before the office approved', updateDoc(R(master, 'mocs', 'moc1'), { steps: steps(['submit', 2], ['master', 3], ['close', 4, 'Works']), updatedAt: 4 }));
+await t(false, 'The Master cannot take the office out after approving', updateDoc(R(master, 'mocs', 'moc1'), { needsOffice: false, updatedAt: 4 }));
+await t(true, 'The office approves it', updateDoc(R(shore, 'mocs', 'moc1'), { steps: steps(['submit', 2], ['master', 3], ['office', 4]), updatedAt: 4 }));
+await t(true, 'Crew signs his action done', updateDoc(R(crew, 'mocs', 'moc1'), { actions: [{ ...MOC.actions[0], doneAt: 5, doneBy: 'AB' }], updatedAt: 5 }));
+await t(false, 'Crew cannot close it', updateDoc(R(crew, 'mocs', 'moc1'), { steps: steps(['submit', 2], ['master', 3], ['office', 4], ['close', 6, 'Works']), updatedAt: 6 }));
+await t(false, 'The number never changes', updateDoc(R(master, 'mocs', 'moc1'), { no: 'MOC-2026-09', updatedAt: 6 }));
+await t(true, 'The Master closes it with the result', updateDoc(R(master, 'mocs', 'moc1'), { steps: steps(['submit', 2], ['master', 3], ['office', 4], ['close', 6, 'Works well']), updatedAt: 6 }));
+await t(false, 'A closed change is final', updateDoc(R(master, 'mocs', 'moc1'), { title: 'Edited', updatedAt: 7 }));
+await t(true, 'The Master raises and approves in one go', setDoc(R(master, 'mocs', 'moc2'), { ...MOC, id: 'moc2', no: 'MOC-2026-02', steps: steps(['master', 1]) }));
+await t(true, 'The office rejects it with the reason', updateDoc(R(shore, 'mocs', 'moc2'), { steps: steps(['master', 1], ['reject', 2, 'Not class approved']), updatedAt: 2 }));
+await t(false, 'A change is never deleted', deleteDoc(R(master, 'mocs', 'moc2')));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

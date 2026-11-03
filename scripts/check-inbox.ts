@@ -12,8 +12,8 @@ const base: VesselData = {
   imo: '9000001', name: 'MY Alpha', registerAt: 1, items: [], certificates: [], crew: [], docs: [], acks: [],
   machines: [], jobs: [], spares: [], moves: [],
 };
-const all = { office: true, po: true, crit: true, ext: true };
-const none = { office: false, po: false, crit: false, ext: false };
+const all = { office: true, po: true, crit: true, ext: true, moc: true };
+const none = { office: false, po: false, crit: false, ext: false, moc: false };
 
 const machines: any[] = [
   { id: 'me', name: 'Main engine', critical: true },
@@ -81,7 +81,14 @@ ok(fr.map((r) => r.vessel).join() === 'MY Alpha,MY Charlie', 'fleet red: clean v
 ok(fleetInbox([{ v: clean, on: all }, { v, on: all }]).length === 5, 'fleet inbox: all vessels in one list');
 
 const p = officeParts({ modules: { poApproval: true } }, (k) => k === 'critEq');
-ok(p.po && p.crit && !p.office && !p.ext, 'parts: the vessel\'s pilot module or the build\'s flag');
+ok(p.po && p.crit && !p.office && !p.ext && !p.moc, 'parts: the vessel\'s pilot module or the build\'s flag');
+
+// A change the Master approved for the office (plan item 38): in the inbox, oldest first; not one still aboard.
+const mc = (id: string, steps: any[]): any => ({ id, no: `MOC-2026-0${id}`, title: 'Bypass', needsOffice: true, actions: [], steps, at: 1 });
+const withMocs: VesselData = { ...clean, mocs: [mc('1', [{ kind: 'master', by: 'Anna', byRank: 'Master', at: 50 }]), mc('2', [{ kind: 'submit', by: 'Liam', at: 5 }]), mc('3', [{ kind: 'master', by: 'Anna', at: 60 }, { kind: 'office', by: 'S', at: 70 }])] };
+const mi = inboxOf(withMocs, all).filter((x) => x.kind === 'moc');
+ok(mi.length === 1 && mi[0].id === '1' && mi[0].tab === 'moc' && mi[0].by === 'Anna (Master)' && mi[0].since === 50, 'inbox: a change sent to the office, by the Master, since the approval');
+ok(!inboxOf(withMocs, { ...all, moc: false }).some((x) => x.kind === 'moc'), 'inbox: module off — no changes');
 
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

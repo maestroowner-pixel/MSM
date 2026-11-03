@@ -250,6 +250,20 @@ app mirrors. Bundle id `com.kukalab.msm`.
   certificates/equipment; amber stays on the vessel cards. Each part shows only when its module is on for the build or
   the vessel (`officeParts`). Nothing stored; FleetSc re-reads on focus, so an answer leaves the list. FleetVesselSc gained
   a read-only PMS tab (overdue + due). `npm run check:inbox`.
+- **Management of change** (3 Nov 2026 — flag `moc`, off; plan item 38): `types/moc.ts`, pure `services/moc.ts`, screens
+  `MocsSc` / `MocSc` (routes `Mocs` `changes`, `Moc` `change/:id`; entry: Safety → Non-conformities). The record is the CHANGE
+  (procedure / equipment / crew / organisation / other; what, why, `until` = temporary, ISM `docs` with the revision each was at,
+  `needsOffice`), `MOC-<year>-nn`, never deleted. The way is append-only `steps` as a requisition's — stage READ from them
+  (`mocStage`): officer `submit` → Master `master` (approve; the Master raising it approves straight from draft) / `masterReturn` /
+  `reject` → office `office` / `officeReturn` / `reject` (only when `needsOffice`) → actions signed done → Master `close`
+  (signed, the note = whether it worked); `cancel` before approval. Approval needs what, why, an action and — with `ptw` on — an
+  APPROVED risk assessment made for it (`RiskAssessment.mocId`, RiskSc takes `mocId`), frozen onto the record (`ra`, `raSnapshot`
+  from jobGate) by the approving write. Content is fixed once approved (`mocEditable`), only actions move. Closing with a named
+  document not re-issued asks first (`docsNotRevised`). Board: to approve / ready to close (Master), returned (officers), action
+  overdue red, temporary past `until` red for the Master. Fleet: tab "Changes (MOC)" + `MocSheet`, inbox kind `moc`
+  (`officeParts.moc`). Rules `mocs`: one step per write, whose step decides who, the step must follow the one before
+  (`mocOrderOk`), reason ≥ 3, `needsOffice` fixed after approval, final after reject/cancel/close; `check:moc` compares the step
+  lists with the rules, rules-test.mjs covers the way. `npm run deploy:rules` before the flag. `npm run check:moc`.
 - **Web PDFs from `utils/pmsHistoryPdf.web.ts`**: a table is sized to its `widths` only when EVERY column has one (the DP
   tables side by side); with some widths it takes the page and the rest share — before 29 Oct 2026 the sum of SOME widths
   was the table width, and the machine history, survey/class pack and project PDFs printed Job/Note/Defect a letter a line.

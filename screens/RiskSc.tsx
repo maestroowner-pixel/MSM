@@ -9,7 +9,8 @@
 //
 // Opened from a maintenance job (plan item 39) it arrives named for the job,
 // tied to it (`pmsJobId`, `pmsFor`), and offers the library's assessments to
-// start from — what the job's sign-out or its deferral then waits on.
+// start from — what the job's sign-out or its deferral then waits on. Opened
+// from a management of change (plan item 38) it is tied to it (`mocId`).
 // ===================================
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -55,6 +56,7 @@ export default function RiskSc() {
       title: p.title ?? '',
       ...(p.location ? { location: p.location } : {}),
       ...(p.pmsJobId ? { pmsJobId: p.pmsJobId, pmsFor: p.pmsFor ?? 'job' } : {}),
+      ...(p.mocId ? { mocId: p.mocId } : {}),
       hazards: [],
       generic: !!p.generic,
       createdAt: Date.now(),

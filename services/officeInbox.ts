@@ -7,7 +7,8 @@
 //   Waiting for you  every record that waits for the office's answer — PMS
 //                    deferrals (item 32), closures to verify (31), NCs closed by
 //                    the Master (31/33), requisitions sent to the office and
-//                    emergencies sent without it (35). Oldest first: what has
+//                    emergencies sent without it (35), changes the Master
+//                    approved (38). Oldest first: what has
 //                    waited longest is answered first. Each row opens the same
 //                    sheet the vessel's tab does (FleetVesselSc `open`).
 //   Red              only what is wrong now, per vessel: a detention not lifted,
@@ -23,6 +24,7 @@
 import type { VesselData } from './fleetSummary';
 import { awaitsOffice, deferralsToAnswer, ncAwaitsOffice } from './officeCheck';
 import { emergencyOpen, officeQueue, round } from './poApproval';
+import { mocsToAnswer, sentToOffice } from './moc';
 import { critSummary } from './critEq';
 import { inspStatus } from './extInspections';
 import { activeDeferral, jobDue } from './pms';
@@ -36,22 +38,24 @@ export interface OfficeParts {
   po: boolean;
   crit: boolean;
   ext: boolean;
+  moc: boolean;
 }
 
 /** On for the build (`buildOn`, constants/modules moduleOn) or for this vessel as a pilot. */
-export function officeParts(v: Pick<VesselData, 'modules'>, buildOn: (k: 'officeCheck' | 'poApproval' | 'critEq' | 'extInsp') => boolean): OfficeParts {
+export function officeParts(v: Pick<VesselData, 'modules'>, buildOn: (k: 'officeCheck' | 'poApproval' | 'critEq' | 'extInsp' | 'moc') => boolean): OfficeParts {
   const m = v.modules ?? {};
   return {
     office: buildOn('officeCheck') || m.officeCheck === true,
     po: buildOn('poApproval') || m.poApproval === true,
     crit: buildOn('critEq') || m.critEq === true,
     ext: buildOn('extInsp') || m.extInsp === true,
+    moc: buildOn('moc') || m.moc === true,
   };
 }
 
-export type InboxKind ='deferral' | 'closure' | 'nc' | 'po' | 'emergency';
+export type InboxKind = 'deferral' | 'closure' | 'nc' | 'po' | 'emergency' | 'moc';
 /** The vessel tab the row belongs to (FleetVesselSc `Tab`). */
-export type InboxTab = 'verify' | 'po';
+export type InboxTab = 'verify' | 'po' | 'moc';
 
 export interface InboxItem {
   imo: string;
@@ -88,6 +92,12 @@ export function inboxOf(v: VesselData, on: OfficeParts): InboxItem[] {
     for (const o of officeQueue(v.orders ?? [])) {
       const sent = round(o).find((x) => x.kind === 'master' || x.kind === 'emergency');
       out.push({ ...base, kind: emergencyOpen(o) ? 'emergency' : 'po', id: o.id, title: o.no, by: who(sent?.by ?? o.by, sent?.byRank ?? o.byRank), since: sent?.at ?? o.at, tab: 'po' });
+    }
+  }
+  if (on.moc) {
+    for (const m of mocsToAnswer(v.mocs ?? [])) {
+      const sent = sentToOffice(m)!;
+      out.push({ ...base, kind: 'moc', id: m.id, title: `${m.no} — ${m.title}`, by: who(sent.by, sent.byRank), since: sent.at, tab: 'moc' });
     }
   }
   return out.sort(byAge);

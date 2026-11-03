@@ -45,6 +45,7 @@ import { ApaEntry, ApaFund, BudgetLine } from '../types/finance';
 import { OilPoint, OilSample } from '../types/oil';
 import { WarrantyClaim, YardJob } from '../types/yard';
 import { ExternalInspection } from '../types/extInspection';
+import { ManagementOfChange } from '../types/moc';
 import { Supplier } from '../types/suppliers';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
@@ -199,6 +200,8 @@ interface DataContextType {
   observations: SafetyObservation[];
   ncs: NonConformity[];
   extInspections: ExternalInspection[];
+  /** Management of change (types/moc.ts). */
+  mocs: ManagementOfChange[];
   drills: Drill[];
   /** The drill calendar — one plan per year (services/drillPlan.ts). */
   drillPlans: DrillYearPlan[];
@@ -380,6 +383,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [observations, setObservations] = useState<SafetyObservation[]>([]);
   const [ncs, setNcs] = useState<NonConformity[]>([]);
   const [extInspections, setExtInspections] = useState<ExternalInspection[]>([]);
+  const [mocs, setMocs] = useState<ManagementOfChange[]>([]);
   const [drills, setDrills] = useState<Drill[]>([]);
   const [drillPlans, setDrillPlans] = useState<DrillYearPlan[]>([]);
   const [medItems, setMedItems] = useState<MedItem[]>([]);
@@ -510,6 +514,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _observations = await storage.loadList<SafetyObservation>(storage.OBSERVATIONS_KEY);
     const _ncs = await storage.loadList<NonConformity>(storage.NCS_KEY);
     const _ext = await storage.loadList<ExternalInspection>(storage.EXT_INSP_KEY);
+    const _mocs = await storage.loadList<ManagementOfChange>(storage.MOCS_KEY);
     const _drills = (await storage.loadList<Drill>(storage.DRILLS_KEY)).filter((x) => !x.deleted);
     const _drillPlans = await storage.loadList<DrillYearPlan>(storage.DRILL_PLANS_KEY);
     const _medItems = (await storage.loadList<MedItem>(storage.MED_ITEMS_KEY)).filter((x) => !x.deleted).sort((x, y) => x.order - y.order);
@@ -613,6 +618,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setObservations(_observations);
     setNcs(_ncs);
     setExtInspections(_ext);
+    setMocs(_mocs);
     setDrills(_drills);
     setDrillPlans(_drillPlans);
     setMedItems(_medItems);
@@ -869,6 +875,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _observations = await storage.loadList<SafetyObservation>(storage.OBSERVATIONS_KEY);
     const _ncs = await storage.loadList<NonConformity>(storage.NCS_KEY);
     const _ext = await storage.loadList<ExternalInspection>(storage.EXT_INSP_KEY);
+    const _mocs = await storage.loadList<ManagementOfChange>(storage.MOCS_KEY);
     const _drills = (await storage.loadList<Drill>(storage.DRILLS_KEY)).filter((x) => !x.deleted);
     const _drillPlans = await storage.loadList<DrillYearPlan>(storage.DRILL_PLANS_KEY);
     const _medItems = (await storage.loadList<MedItem>(storage.MED_ITEMS_KEY)).filter((x) => !x.deleted).sort((x, y) => x.order - y.order);
@@ -962,6 +969,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setObservations(_observations);
     setNcs(_ncs);
     setExtInspections(_ext);
+    setMocs(_mocs);
     setDrills(_drills);
     setDrillPlans(_drillPlans);
     setMedItems(_medItems);
@@ -1301,6 +1309,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         observations,
         ncs,
         extInspections,
+        mocs,
         drills,
         drillPlans,
         medItems,

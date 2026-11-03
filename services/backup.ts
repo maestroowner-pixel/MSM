@@ -108,7 +108,7 @@ export interface BackupFile {
   /** Surveys & audits: the plan and what was carried out. */
   surveys?: { plan: Survey[]; done: SurveyDone[] };
   /** QHSE: observation cards and non-conformities. */
-  qhse?: { observations: SafetyObservation[]; ncs: NonConformity[]; ext?: import('../types/extInspection').ExternalInspection[] };
+  qhse?: { observations: SafetyObservation[]; ncs: NonConformity[]; ext?: import('../types/extInspection').ExternalInspection[]; mocs?: import('../types/moc').ManagementOfChange[] };
   /** Drills: planned and carried out. */
   drills?: Drill[];
   drillPlans?: DrillYearPlan[];
@@ -257,7 +257,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   const bookAccess = await storage.loadList<BookAccess>(storage.BOOK_ACCESS_KEY);
   const suppliers = await storage.loadList<Supplier>(storage.SUPPLIERS_KEY);
   const garbage = { entries: await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY), signs: await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY) };
-  const qhse = { observations: await storage.loadList<SafetyObservation>(storage.OBSERVATIONS_KEY), ncs: await storage.loadList<NonConformity>(storage.NCS_KEY), ext: await storage.loadList<import('../types/extInspection').ExternalInspection>(storage.EXT_INSP_KEY) };
+  const qhse = { observations: await storage.loadList<SafetyObservation>(storage.OBSERVATIONS_KEY), ncs: await storage.loadList<NonConformity>(storage.NCS_KEY), ext: await storage.loadList<import('../types/extInspection').ExternalInspection>(storage.EXT_INSP_KEY), mocs: await storage.loadList<import('../types/moc').ManagementOfChange>(storage.MOCS_KEY) };
   const drills = await storage.loadList<Drill>(storage.DRILLS_KEY);
   const drillPlans = await storage.loadList<DrillYearPlan>(storage.DRILL_PLANS_KEY);
   const safetyMeetings = await storage.loadList<SafetyMeeting>(storage.SAFETY_MEETINGS_KEY);
@@ -554,6 +554,7 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     await storage.saveList(storage.OBSERVATIONS_KEY, backup.qhse.observations ?? []);
     await storage.saveList(storage.NCS_KEY, backup.qhse.ncs ?? []);
     if (backup.qhse.ext) await storage.saveList(storage.EXT_INSP_KEY, backup.qhse.ext);
+    if (backup.qhse.mocs) await storage.saveList(storage.MOCS_KEY, backup.qhse.mocs);
   }
   if (backup.drills) await storage.saveList(storage.DRILLS_KEY, backup.drills);
   if (backup.drillPlans) await storage.saveList(storage.DRILL_PLANS_KEY, backup.drillPlans);
