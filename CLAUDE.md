@@ -478,10 +478,10 @@ do not regress them:
 
 ### Licensing — one licence per VESSEL, sold outside the stores (5 Sep 2026)
 
-MSM Pro is **€99/year per vessel (one IMO)**, bought by the operator on LemonSqueezy and attached
-(€169 is agreed and written up, but NOT live: the app says what the checkout charges, and the
-LemonSqueezy dashboard still sells at €99 — raise both in the same hour, see `LS_PRICE_STRING`)
-to the vessel's Firestore account. Every enrolled device inherits it; a crew member buys nothing.
+The licence is **per vessel (one IMO), priced on request** (since 27 Oct 2026 — by length band and
+discounts, worked out in MSM Fleet → Pricing), bought by the operator on LemonSqueezy through a payment
+link made for that vessel (`custom_price` on product 1197509) and attached to the vessel's Firestore
+account. Every enrolled device inherits it; a crew member buys nothing.
 `services/purchases.ts` `activateLicense()` works on ALL platforms now (it was web-only), and
 `isSubscribed()` reads the vessel entitlement FIRST, falling back to a store subscription only for
 anyone who bought through the App Store before this. Why it changed: a store purchase is tied to
@@ -496,9 +496,11 @@ pay, accepting a key the operator was issued. Apple's IAP disclosure ("payment i
 store account…") was removed from the native paywall for the same reason — there is no store
 charge to disclose, so printing it would simply be untrue.
 
-`LS_PRICE_STRING` in `services/lemonSqueezy.ts` is the ONLY price string (purchases.ts's fallback
-now references it — they were two independent constants and had drifted to €9.99 vs €10.00).
-LemonSqueezy exposes no price API here, so **it must be kept in step with the dashboard by hand**.
+**The app holds no price and no checkout link** (3 Nov 2026): `LS_PRICE_STRING` (€99) and the public
+`LS_CHECKOUT_URL` were removed with the unused `getOffer` / `purchaseYearly` / `webCheckoutUrl` — the link sat
+in the web bundle and sold a year at the variant's base price, round the quote. The web paywall asks for a
+quote (mailto) and activates keys. Keep the variant's base price in the dashboard at the top band, so a
+bare link to it never undercuts a quote.
 
 **The trial belongs to the vessel, not the handset.** `syncTrialWithAccount()` mirrors the
 first-launch stamp to and from `safety_vessels/{imo}.trialFirstLaunch`, taking the EARLIEST of the

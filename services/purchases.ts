@@ -18,10 +18,10 @@
 //    is why `isSubscribed()` still falls back to it. Do not remove it while any
 //    of those are alive, and do not add a new store product beside it.
 //
-// The price lives in `lemonSqueezy.ts` (`LS_PRICE_STRING`) — LemonSqueezy exposes
-// no price API here, so it is kept in step with the dashboard BY HAND, and it is
-// the only price string in the app. TRIAL_DAYS below is the local free-period
-// counter (services/trial.ts); the trial belongs to the vessel, not the handset,
+// The app carries NO price and no checkout link (3 Nov 2026): the licence is
+// priced per vessel on request, and each vessel pays through its own LemonSqueezy
+// link made in MSM Fleet → Pricing; the app only activates the key. TRIAL_DAYS
+// below is the local free-period counter (services/trial.ts); the trial belongs to the vessel, not the handset,
 // and is reconciled with the account by `syncTrialWithAccount()`.
 // ===================================
 
@@ -87,29 +87,6 @@ function hasPro(info: any): boolean {
   return info?.entitlements?.active?.[ENTITLEMENT_ID] != null;
 }
 
-/**
- * Free-trial length of the product's introductory offer, in days — converted from
- * the store's period so PaywallSc renders "2 months" rather than a raw count.
- * Returns null when the product has no FREE intro offer.
- */
-function introTrialDays(product: any): number | null {
-  const intro = product?.introPrice;
-  if (!intro || intro.price !== 0) return null;
-  const n = Number(intro.periodNumberOfUnits ?? 0);
-  if (!n) return null;
-  switch (String(intro.periodUnit).toUpperCase()) {
-    case 'DAY':
-      return n;
-    case 'WEEK':
-      return n * 7;
-    case 'MONTH':
-      return n * 30;
-    case 'YEAR':
-      return n * 365;
-    default:
-      return null;
-  }
-}
 // Local cache of the account entitlement so the per-add gate (isSubscribed) is a
 // fast local read, not a network call. The authoritative copy lives on the
 // Firebase account; this is refreshed on activate / restore.
@@ -165,97 +142,8 @@ function entitlementActive(e: fb.Entitlement | null): boolean {
 
 // Identifiers to configure in RevenueCat + App Store Connect / Play Console.
 export const ENTITLEMENT_ID = 'pro';
-// App Store product id (as created in App Store Connect + RevenueCat). Reference
-// only — getOffer() reads the annual PACKAGE from the Offering, not this id.
+// App Store product id (as created in App Store Connect + RevenueCat). Reference only.
 export const YEARLY_PRODUCT_ID = 'msm_year';
-// RevenueCat Offering identifier. Used as a fallback if this offering hasn't been
-// marked "Current" in the dashboard (then offerings.current is null).
-export const OFFERING_ID = 'MSM-Year';
-
-/** The annual package to sell: the current offering, or MSM-Year by identifier. */
-function annualPackage(offerings: any): any | null {
-  const offering = offerings?.current ?? offerings?.all?.[OFFERING_ID];
-  return offering?.annual ?? null;
-}
-
-export interface Offer {
-  /** Localized price string for the period (store-formatted, per platform). */
-  priceString: string;
-  /** Billing period of the offer. */
-  period: 'year';
-  /** Free-trial length in days (intro offer). */
-  trialDays: number;
-  /** True once RevenueCat is wired AND the product is configured in the store. */
-  available: boolean;
-}
-
-// Shown before the price source answers. It matches the LemonSqueezy vessel
-// licence, because that is what MSM is sold as everywhere now — a placeholder
-// that quotes a different number is worse than a brief dash.
-const FALLBACK: Offer = {
-  priceString: ls.LS_PRICE_STRING,
-  period: 'year',
-  trialDays: TRIAL_DAYS,
-  available: false,
-};
-
-/** The yearly offer to display on the paywall. */
-export async function getOffer(): Promise<Offer> {
-  if (onWeb) {
-    // Web sells through LemonSqueezy; "available" once the checkout is configured.
-    return {
-      priceString: ls.LS_PRICE_STRING,
-      period: 'year',
-      trialDays: TRIAL_DAYS,
-      available: ls.isLemonConfigured(),
-    };
-  }
-  const P = await ensureConfigured();
-  if (!P) return FALLBACK;
-  try {
-    const offerings = await P.getOfferings();
-    const pkg = annualPackage(offerings);
-    if (!pkg?.product) return FALLBACK;
-    return {
-      priceString: pkg.product.priceString,
-      period: 'year',
-      // Store's own intro period — falls back to the local constant if the
-      // product has no free trial configured yet.
-      trialDays: introTrialDays(pkg.product) ?? TRIAL_DAYS,
-      available: true,
-    };
-  } catch {
-    return FALLBACK;
-  }
-}
-
-/**
- * Start the yearly subscription. On web this opens the LemonSqueezy checkout in
- * a new tab (the purchase completes there; the customer then activates the
- * emailed license key via activateLicenseWeb). Returns false because no
- * entitlement is active yet at this point.
- */
-export async function purchaseYearly(): Promise<boolean> {
-  if (onWeb) {
-    if (ls.isLemonConfigured()) await Linking.openURL(ls.LS_CHECKOUT_URL).catch(() => {});
-    return false;
-  }
-  const P = await ensureConfigured();
-  if (!P) return false;
-  const offerings = await P.getOfferings();
-  const pkg = annualPackage(offerings);
-  if (!pkg) return false;
-  try {
-    const res = await P.purchasePackage(pkg);
-    return hasPro(res?.customerInfo);
-  } catch (e: any) {
-    // Backing out of the store sheet is not an error — anything else is, and the
-    // paywall surfaces it so a silent no-op can't look like a completed purchase.
-    if (e?.userCancelled) return false;
-    throw e;
-  }
-}
-
 /**
  * Activate a LemonSqueezy licence key — on ANY platform.
  *
@@ -424,11 +312,6 @@ async function restoreFromStore(): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-/** Web checkout URL (or null if not on web / not configured). */
-export function webCheckoutUrl(): string | null {
-  return onWeb && ls.isLemonConfigured() ? ls.LS_CHECKOUT_URL : null;
 }
 
 /** Whether the signed-in vessel account is known (web gate needs a login to unlock). */

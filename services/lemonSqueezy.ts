@@ -1,16 +1,16 @@
 // ===================================
 // LemonSqueezy — web license activation / validation.
 //
-// The web build sells ISM AI Pilot Pro through LemonSqueezy (checkout + license keys).
-// After buying, the customer gets a license key by email and pastes it into the
-// paywall; we activate it against the LemonSqueezy License API (no secret key
-// needed — the license key authenticates itself, so this is safe from the
+// The licence is sold through LemonSqueezy, priced per vessel: each vessel pays by
+// its own link with its own price (MSM Fleet → Pricing, `custom_price`), so the app
+// holds no price and no checkout link — a public buy link in the web bundle was a way
+// round the quote (removed 3 Nov 2026). After buying, the customer gets a license
+// key by email and pastes it into the paywall; we activate it against the
+// LemonSqueezy License API (no secret key needed — the license key authenticates itself, so this is safe from the
 // browser). The resulting entitlement is stored on the vessel's Firebase account
 // (see services/purchases.ts) so it follows the vessel across devices.
 //
-// CONFIG: fill in the three constants below from your LemonSqueezy dashboard.
-//   - LS_CHECKOUT_URL: Store → Products → your product → "Share / Buy link"
-//       (e.g. https://kuka-soft.lemonsqueezy.com/buy/xxxxxxxx-xxxx-...).
+// CONFIG:
 //   - LS_STORE_ID / LS_PRODUCT_IDS: numeric ids (Settings → Stores, and the
 //       product's API id). Used to reject license keys from other products.
 //       Leave 0 / empty to skip that check.
@@ -18,16 +18,14 @@
 
 const LS_API = 'https://api.lemonsqueezy.com/v1';
 
-/** LemonSqueezy hosted checkout link for the yearly ISM AI Pilot Pro product. */
-export const LS_CHECKOUT_URL = 'https://kuka-soft.lemonsqueezy.com/checkout/buy/43d5ae44-87a1-4fd9-8eea-1253c2224651';
 /** Numeric store id — a key whose meta.store_id differs is rejected (0 = skip). */
 export const LS_STORE_ID = 374407;
 /**
  * Product ids a key may belong to — any other meta.product_id is rejected (empty = skip).
  *
- * 1197509 is what the live checkout above SELLS: its cart reads
- * `"product_id":1197509, "variant_id":1872133` for "Marine Safety Manager" at
- * €99 at the time (checked against the checkout page, 14 Sep 2026; the price moved to €169 on 29 Sep 2026 — the product id did not). The 2.2 release set this
+ * 1197509 is what the checkout SELLS (MSM Fleet's payment links are made on it): its cart reads
+ * `"product_id":1197509, "variant_id":1872133` for "Marine Safety Manager"
+ * (checked against the checkout page, 14 Sep 2026). The 2.2 release set this
  * to 1205672 alone, so every key a vessel actually bought was refused as "a
  * different product" — a customer's first licence, on 14 Sep 2026. 1205672 is
  * kept only because some key may have been issued against it; it is not what
@@ -35,28 +33,6 @@ export const LS_STORE_ID = 374407;
  * id here fails silently for every buyer and loudly for none of us.
  */
 export const LS_PRODUCT_IDS: number[] = [1197509, 1205672];
-/**
- * The vessel licence price, shown in the app. LemonSqueezy exposes no price API
- * on this path, so it is written here and MUST be kept in step with the product
- * in the LemonSqueezy dashboard — if they disagree, the customer sees one figure
- * and is charged another.
- *
- * Per VESSEL (one IMO), per year — not per person and not per device. Every
- * enrolled device on that vessel inherits the licence from the account.
- *
- * €169 IS THE AGREED PRICE AND IS NOT LIVE YET. It was written here on 29 Sep
- * 2026 and put back to €99 on 30 Sep 2026, because the web had to be deployed
- * with a bug fix before the LemonSqueezy dashboard could be changed, and a price
- * shown in the app that the checkout does not charge is worse than an old price.
- * Raise it here — and in constants/manual.ts, four languages — in the same hour
- * the dashboard changes.
- */
-// Not shown anywhere since 27 Oct 2026: the licence is priced on request (PaywallSc asks for a quote).
-export const LS_PRICE_STRING = '€99';
-
-export function isLemonConfigured(): boolean {
-  return !LS_CHECKOUT_URL.startsWith('PASTE');
-}
 
 export interface LicenseResult {
   ok: boolean;
