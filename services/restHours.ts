@@ -21,6 +21,13 @@
 // longest rest periods together must reach the 10 hours — rest that only adds up
 // to 10 hours when you collect five scraps of it is a breach.
 //
+// A period the window's edge cuts is still ONE period, so whether it reaches
+// 6 hours is judged on its whole length (through recorded rest either side);
+// only the hours inside the window count towards the 10. Before 3 Nov 2026 the
+// cut pieces were judged on their own, and a single night of rest under 12 h —
+// work 06–19, rest 19–06 — was flagged every day: a window from 00:30 holds
+// 5.5 h of it at each end and no 6 h piece.
+//
 // THESE ARE INDICATIVE. Flags may allow exceptions (drills, emergencies, a
 // collective agreement under STCW A-VIII/1 para 9), and the officer judges
 // those. The app shows what the record says; it does not decide what the flag
@@ -136,18 +143,28 @@ export function hours(slots: number): number {
   return slots / H;
 }
 
-/** Rest periods inside slots[from, to) as lengths in slots, edges clipped. */
-function restRuns(timeline: (0 | 1 | null)[], from: number, to: number): number[] {
-  const runs: number[] = [];
-  let run = 0;
+/**
+ * Rest periods inside slots[from, to): `len` clipped to the window, `whole` the
+ * period's full length — a period cut by an edge runs on through the rest
+ * recorded beyond it.
+ */
+function restRuns(timeline: (0 | 1 | null)[], from: number, to: number): { len: number; whole: number }[] {
+  const runs: { len: number; whole: number }[] = [];
+  let start = -1;
+  const close = (end: number) => {
+    let a = start;
+    let b = end;
+    if (a === from) while (a > 0 && timeline[a - 1] === 0) a--;
+    if (b === to) while (b < timeline.length && timeline[b] === 0) b++;
+    runs.push({ len: end - start, whole: b - a });
+    start = -1;
+  };
   for (let i = from; i < to; i++) {
-    if (timeline[i] === 0) run += 1;
-    else if (run) {
-      runs.push(run);
-      run = 0;
-    }
+    if (timeline[i] === 0) {
+      if (start < 0) start = i;
+    } else if (start >= 0) close(i);
   }
-  if (run) runs.push(run);
+  if (start >= 0) close(to);
   return runs;
 }
 
@@ -246,9 +263,10 @@ export function analyseRest(days: RestDay[], from: string, to: string, ship?: Sh
         minAt = s;
       }
       if (r >= RULES.minRest24h * H) {
-        const runs = restRuns(timeline, s, s + DAY).sort((a, b) => b - a);
-        const longest = runs[0] ?? 0;
-        const two = (runs[0] ?? 0) + (runs[1] ?? 0);
+        const runs = restRuns(timeline, s, s + DAY);
+        const longest = Math.max(0, ...runs.map((x) => x.whole));
+        const inWindow = runs.map((x) => x.len).sort((a, b) => b - a);
+        const two = (inWindow[0] ?? 0) + (inWindow[1] ?? 0);
         if ((longest < RULES.longestPeriod * H || two < RULES.minRest24h * H) && !splitBad) {
           splitBad = { at: s, longest, two };
         }

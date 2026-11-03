@@ -290,8 +290,8 @@ app mirrors. Bundle id `com.kukalab.msm`.
   breaches on a planned day or on a day whose 24 h runs into one. `prunePlan` keeps a week behind. Board (officers, amber): whose plan
   breaks and from when (`planBreaches`). Recording a day: "As planned" fills it from the plan. Officers/Master write (rules
   `rest_plans` isAdmin, id = crewId), everyone reads. `npm run check:restplan`; rules-test.mjs covers it. `npm run deploy:rules` before the flag.
-  NB the existing split rule (restHours), read over rolling windows, flags ANY single nightly rest under 12 h (a window cutting it in
-  two leaves no 6 h piece) — e.g. work 06–19 every day shows "Rest periods" daily; the plan inherits it.
+  The split rule (restHours) judges a rest period cut by the window's edge on its WHOLE length for the 6 h test (fixed 3 Nov 2026 —
+  before, any single night under 12 h, e.g. work 06–19, was flagged daily); only hours inside the window count towards the 10.
 - **Web PDFs from `utils/pmsHistoryPdf.web.ts`**: a table is sized to its `widths` only when EVERY column has one (the DP
   tables side by side); with some widths it takes the page and the rest share — before 29 Oct 2026 the sum of SOME widths
   was the table width, and the machine history, survey/class pack and project PDFs printed Job/Note/Defect a letter a line.

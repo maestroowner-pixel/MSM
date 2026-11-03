@@ -37,8 +37,7 @@ const w = (...spans: [number, number][]) => spans.reduce((s, [a, b]) => paint(s,
 {
   const long = w([6, 20]);
   const f = forecast('p', [], plan({ pattern: long, from: TODAY }), TODAY);
-  // (The split rule, read over rolling windows, also flags a single 10 h block — services/restHours.)
-  ok(f.every((d) => !d.ahead.some((v) => v.rule === '24h' || v.rule === 'gap')), '06–20: no 24 h or gap breach');
+  ok(f.every((d) => !d.ahead.some((v) => v.rule === '24h' || v.rule === 'gap' || v.rule === 'split')), '06–20: no 24 h, gap or split breach');
   ok(!f[0].ahead.some((v) => v.rule === '7d'), 'nothing recorded, plan from today: today\'s 7 days are not judged');
   ok(f[6].ahead.some((v) => v.rule === '7d'), '…the seventh day is: 70 h < 77 h');
   const g = forecast('p', [], plan({ pattern: long, from: addDays(TODAY, -10) }), TODAY);

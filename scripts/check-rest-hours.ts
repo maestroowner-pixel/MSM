@@ -42,6 +42,22 @@ const rules = (r: ReturnType<typeof analyseRest>, date: string) => (r.find((x) =
   const r = analyseRest([day(ds[0], presetWork('off')), day(ds[1], w), day(ds[2], presetWork('off'))], ds[1], ds[1]);
   ok(rules(r, ds[1]).includes('split'), 'rest in five 2 h pieces: split breach');
 }
+// 4b. One night of rest under 12 h: a window cutting it is still one period (3 Nov 2026).
+{
+  const ds = dates('2026-10-01', 4);
+  const w0619 = paint('0'.repeat(SLOTS_PER_DAY), 12, 38, true); // 06:00–19:00, rest 19–06 (11 h)
+  const w0620 = paint('0'.repeat(SLOTS_PER_DAY), 12, 40, true); // 06:00–20:00, rest 20–06 (10 h)
+  const a = analyseRest(ds.map((d) => day(d, w0619)), ds[1], ds[2]);
+  const b = analyseRest(ds.map((d) => day(d, w0620)), ds[1], ds[2]);
+  ok(a.every((x) => x.violations.length === 0), 'work 06–19 every day (11 h rest in one night): no breach');
+  ok(b.every((x) => x.violations.length === 0), 'work 06–20 every day (10 h rest in one night): no breach');
+  // Rest 10 h but the long period only 5 h, in two pieces: still a breach.
+  let w = '1'.repeat(SLOTS_PER_DAY);
+  w = paint(w, 2, 12, false); // 01–06 (5 h)
+  w = paint(w, 30, 40, false); // 15–20 (5 h)
+  const c = analyseRest([day(ds[0], w), day(ds[1], w), day(ds[2], w)], ds[1], ds[1]);
+  ok(rules(c, ds[1]).includes('split'), 'two 5 h periods: no 6 h period, split breach');
+}
 // 5. 7-day: 13 h work (11 h rest) every day = 77 h rest: exactly compliant; 13.5 h: breach.
 {
   const ds = dates('2026-10-01', 8);
