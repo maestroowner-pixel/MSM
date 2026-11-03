@@ -39,8 +39,8 @@ const FEATURES: Feature[] = [
   { icon: 'ferry', text: 'One licence covers the vessel — every officer and device' },
 ];
 
-/** Where a quote is asked for — receive-only, routed by Cloudflare. */
-const QUOTE_EMAIL = 'mail@kuka-soft.com';
+/** Where a quote is asked for — the product's own address, as on the site and the booklet. */
+const QUOTE_EMAIL = APP_CONFIG.email;
 
 export default function PaywallSc() {
   useT();
