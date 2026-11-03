@@ -454,6 +454,15 @@ await t(false, 'The Master\'s own appraisal takes no countersignature', updateDo
 await t(true, 'A signed appraisal is cancelled with the reason', setDoc(R(officer, 'crew_appraisals', 'ap3'), { ...AP, id: 'ap3', steps: ast(['appraiser', 1]) }).then(() => updateDoc(R(officer, 'crew_appraisals', 'ap3'), { steps: ast(['appraiser', 1], ['cancel', 2, { note: 'Wrong person' }]), updatedAt: 2 })));
 await t(false, 'An appraisal is never deleted', deleteDoc(R(master, 'crew_appraisals', 'ap1')));
 
+// Watch plans (services/restPlan, plan item 41)
+const RP = { id: 'c1', crewId: 'c1', holderName: 'Jez', pattern: '0'.repeat(48), from: '2026-11-03', days: {}, updatedAt: 1 };
+await t(false, 'Crew cannot set a watch plan', setDoc(R(crew, 'rest_plans', 'c1'), RP));
+await t(true, 'An officer sets a watch plan', setDoc(R(officer, 'rest_plans', 'c1'), RP));
+await t(true, 'Crew read their watches', getDoc(R(crew, 'rest_plans', 'c1')));
+await t(false, 'A plan is filed under its own person', setDoc(R(officer, 'rest_plans', 'c2'), RP));
+await t(true, 'The Master changes a day', updateDoc(R(master, 'rest_plans', 'c1'), { days: { '2026-11-05': { work: '1'.repeat(48) } }, updatedAt: 2 }));
+await t(false, 'A plan is never deleted', deleteDoc(R(master, 'rest_plans', 'c1')));
+
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

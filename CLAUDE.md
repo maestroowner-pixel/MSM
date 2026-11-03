@@ -280,6 +280,18 @@ app mirrors. Bundle id `com.kukalab.msm`.
   Rules: one step per write once signed, nothing else changes; an unchanged copy (only `updatedAt`) always passes. Board:
   officers — who is due (red when past), Master — to countersign. `npm run check:appraisals`; rules-test.mjs covers the way.
   `npm run deploy:rules` before the flag.
+- **Watch plan** (3 Nov 2026 — flag `restPlan`, off; plan item 41; needs `rest`): `types/restPlan.ts`, pure `services/restPlan.ts`,
+  `screens/RestPlanSc.tsx` (route `RestPlan` `watch-plan` (+`crewId`); entry: Hours of rest → "Watch plan — the next two weeks", Board).
+  ONE document per person (`rest_plans/{crewId}`): standing watch `pattern` (48 wall-clock slots, from `from`) + `days` that differ
+  (arrival, drill, day off). Drawn on RestDaySc in PLAN MODE (`plan: true`; `date: 'pattern'` = the standing watch) — it saves into the
+  plan, never into `rest`; passing through a day saves it only when edited (else every day would get a copy of the pattern).
+  `forecast` = the record where there is one, the plan where not — also for the six days BEHIND today nobody recorded, or the 7-day rule
+  could not judge a week ahead — run through `analyseRest`, plus the day after the horizon so the last day's 24 h is judged. `ahead` =
+  breaches on a planned day or on a day whose 24 h runs into one. `prunePlan` keeps a week behind. Board (officers, amber): whose plan
+  breaks and from when (`planBreaches`). Recording a day: "As planned" fills it from the plan. Officers/Master write (rules
+  `rest_plans` isAdmin, id = crewId), everyone reads. `npm run check:restplan`; rules-test.mjs covers it. `npm run deploy:rules` before the flag.
+  NB the existing split rule (restHours), read over rolling windows, flags ANY single nightly rest under 12 h (a window cutting it in
+  two leaves no 6 h piece) — e.g. work 06–19 every day shows "Rest periods" daily; the plan inherits it.
 - **Web PDFs from `utils/pmsHistoryPdf.web.ts`**: a table is sized to its `widths` only when EVERY column has one (the DP
   tables side by side); with some widths it takes the page and the rest share — before 29 Oct 2026 the sum of SOME widths
   was the table width, and the machine history, survey/class pack and project PDFs printed Job/Note/Defect a letter a line.

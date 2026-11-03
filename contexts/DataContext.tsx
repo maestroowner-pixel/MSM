@@ -47,6 +47,7 @@ import { WarrantyClaim, YardJob } from '../types/yard';
 import { ExternalInspection } from '../types/extInspection';
 import { ManagementOfChange } from '../types/moc';
 import { CrewAppraisal } from '../types/appraisal';
+import { RestPlan } from '../types/restPlan';
 import { Supplier } from '../types/suppliers';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
@@ -205,6 +206,8 @@ interface DataContextType {
   mocs: ManagementOfChange[];
   /** Crew appraisals (types/appraisal.ts) — officers' devices only. */
   appraisals: CrewAppraisal[];
+  /** Watch plans (types/restPlan.ts), one per person. */
+  restPlans: RestPlan[];
   drills: Drill[];
   /** The drill calendar — one plan per year (services/drillPlan.ts). */
   drillPlans: DrillYearPlan[];
@@ -388,6 +391,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [extInspections, setExtInspections] = useState<ExternalInspection[]>([]);
   const [mocs, setMocs] = useState<ManagementOfChange[]>([]);
   const [appraisals, setAppraisals] = useState<CrewAppraisal[]>([]);
+  const [restPlans, setRestPlans] = useState<RestPlan[]>([]);
   const [drills, setDrills] = useState<Drill[]>([]);
   const [drillPlans, setDrillPlans] = useState<DrillYearPlan[]>([]);
   const [medItems, setMedItems] = useState<MedItem[]>([]);
@@ -520,6 +524,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _ext = await storage.loadList<ExternalInspection>(storage.EXT_INSP_KEY);
     const _mocs = await storage.loadList<ManagementOfChange>(storage.MOCS_KEY);
     const _appraisals = await storage.loadList<CrewAppraisal>(storage.APPRAISALS_KEY);
+    const _restPlans = await storage.loadList<RestPlan>(storage.REST_PLANS_KEY);
     const _drills = (await storage.loadList<Drill>(storage.DRILLS_KEY)).filter((x) => !x.deleted);
     const _drillPlans = await storage.loadList<DrillYearPlan>(storage.DRILL_PLANS_KEY);
     const _medItems = (await storage.loadList<MedItem>(storage.MED_ITEMS_KEY)).filter((x) => !x.deleted).sort((x, y) => x.order - y.order);
@@ -625,6 +630,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setExtInspections(_ext);
     setMocs(_mocs);
     setAppraisals(_appraisals);
+    setRestPlans(_restPlans);
     setDrills(_drills);
     setDrillPlans(_drillPlans);
     setMedItems(_medItems);
@@ -883,6 +889,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _ext = await storage.loadList<ExternalInspection>(storage.EXT_INSP_KEY);
     const _mocs = await storage.loadList<ManagementOfChange>(storage.MOCS_KEY);
     const _appraisals = await storage.loadList<CrewAppraisal>(storage.APPRAISALS_KEY);
+    const _restPlans = await storage.loadList<RestPlan>(storage.REST_PLANS_KEY);
     const _drills = (await storage.loadList<Drill>(storage.DRILLS_KEY)).filter((x) => !x.deleted);
     const _drillPlans = await storage.loadList<DrillYearPlan>(storage.DRILL_PLANS_KEY);
     const _medItems = (await storage.loadList<MedItem>(storage.MED_ITEMS_KEY)).filter((x) => !x.deleted).sort((x, y) => x.order - y.order);
@@ -978,6 +985,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setExtInspections(_ext);
     setMocs(_mocs);
     setAppraisals(_appraisals);
+    setRestPlans(_restPlans);
     setDrills(_drills);
     setDrillPlans(_drillPlans);
     setMedItems(_medItems);
@@ -1319,6 +1327,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         extInspections,
         mocs,
         appraisals,
+        restPlans,
         drills,
         drillPlans,
         medItems,

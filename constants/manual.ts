@@ -653,6 +653,8 @@ const en: ManualContent = {
         "The rules are checked as you edit, against the days around it: at least 10 h rest in any 24 h and 77 h in any 7 days; rest in no more than two periods, one of at least 6 h; no more than 14 h between rest periods (MLC 2006 Reg. 2.3, STCW A-VIII/1). Windows are rolling, so a breach across midnight is caught. The check is indicative: exceptions the flag allows (drills, emergencies) are the Master's call — write them in the day's Note.",
         "A day with no record is shown as \"Not recorded\" and is never counted as rest.",
         "Monthly record (PDF) prints the month in the usual layout — one row per day, work shaded, totals, breaches — with signature lines for the seafarer and the Master.",
+        "Watch plan (Hours of rest → Watch plan): the Master or an officer sets each person's standing watch — one of the watch patterns, or drawn half hour by half hour — and changes the days that differ: arrival in the night, a drill, a day off. Tap a day to change it; Back to the standing watch undoes the change. Everyone sees their own watches; only officers and the Master change them.",
+        "Each of the next 14 days is checked by the same rules, with the person's recorded days behind it, so a watch bill that will break 10 h / 77 h shows as Will breach the day it is written — while it can still be changed. A day once recorded replaces the plan; a day of the last week nobody recorded counts as planned. On the Board the officers see whose plan breaks the rules and from when. When recording a day, As planned fills it from the plan in one tap.",
       ],
     },
     {
@@ -1451,6 +1453,8 @@ const ru: ManualContent = {
         "Правила проверяются во время ввода, вместе с соседними днями: не менее 10 ч отдыха за любые 24 ч и 77 ч за любые 7 дней; отдых не более чем в двух периодах, один не короче 6 ч; не более 14 ч между периодами отдыха (MLC 2006 Reg. 2.3, STCW A-VIII/1). Окна скользящие, поэтому нарушение через полночь тоже видно. Проверка ориентировочная: исключения, допускаемые флагом (учения, аварии), решает Мастер — запишите их в Note дня.",
         "День без записи показан как «Not recorded» и никогда не считается отдыхом.",
         "Monthly record (PDF) печатает месяц в привычной форме — строка на день, работа закрашена, итоги, нарушения — с местами для подписи моряка и Мастера.",
+        "План вахт (Hours of rest → Watch plan): капитан или офицер задаёт каждому постоянную вахту — один из шаблонов вахт или нарисованную по получасам — и меняет дни, которые отличаются: приход ночью, учение, выходной. Нажмите на день, чтобы изменить его; «Вернуть постоянную вахту» отменяет изменение. Свои вахты видит каждый; менять их могут только офицеры и капитан.",
+        "Каждый из ближайших 14 дней проверяется теми же правилами вместе с уже записанными днями человека, поэтому график, который нарушит 10 ч / 77 ч, помечается «Будет нарушение» в тот же день, когда его составили, — пока его ещё можно поменять. Записанный день заменяет план; незаписанный день прошлой недели считается по плану. На Board офицеры видят, чей план нарушает правила и с какого дня. При записи дня кнопка «Как по плану» заполняет его из плана одним нажатием.",
       ],
     },
     {
@@ -2249,6 +2253,8 @@ const es: ManualContent = {
         "Las reglas se comprueban al editar, junto con los días vecinos: al menos 10 h de descanso en cualquier periodo de 24 h y 77 h en cualquier periodo de 7 días; descanso en no más de dos periodos, uno de al menos 6 h; no más de 14 h entre periodos de descanso (MLC 2006 Reg. 2.3, STCW A-VIII/1). Las ventanas son móviles, así que se detecta una infracción a través de la medianoche. Es orientativo: las excepciones que permite el pabellón (ejercicios, emergencias) las decide el Master — anótelas en Note.",
         "Un día sin registro aparece como «Not recorded» y nunca cuenta como descanso.",
         "Monthly record (PDF) imprime el mes en el formato habitual — una fila por día, trabajo sombreado, totales, infracciones — con líneas de firma para el marino y el Master.",
+        "Plan de guardias (Hours of rest → Watch plan): el Capitán o un oficial fija la guardia fija de cada persona — uno de los patrones de guardia, o dibujada media hora a media hora — y cambia los días distintos: llegada de noche, un ejercicio, un día libre. Toque un día para cambiarlo; Volver a la guardia fija deshace el cambio. Cada uno ve sus guardias; solo los oficiales y el Capitán las cambian.",
+        "Cada uno de los próximos 14 días se comprueba con las mismas reglas, con los días ya registrados de la persona detrás, de modo que un cuadro de guardias que incumplirá 10 h / 77 h aparece como Incumplirá el mismo día en que se escribe, cuando aún puede cambiarse. Un día registrado sustituye al plan; un día de la última semana sin registrar cuenta como planificado. En el Board los oficiales ven qué plan incumple y desde cuándo. Al registrar un día, Según el plan lo rellena desde el plan con un toque.",
       ],
     },
     {
@@ -3047,6 +3053,8 @@ const uk: ManualContent = {
         "Правила перевіряються під час введення разом із сусідніми днями: щонайменше 10 год відпочинку за будь-які 24 год і 77 год за будь-які 7 днів; відпочинок не більше ніж у двох періодах, один не коротший за 6 год; не більше 14 год між періодами відпочинку (MLC 2006 Reg. 2.3, STCW A-VIII/1). Вікна ковзні, тож порушення через північ теж видно. Перевірка орієнтовна: винятки, дозволені прапором (навчання, аварії), вирішує Майстер — запишіть їх у Note дня.",
         "День без запису показано як «Not recorded», і він ніколи не вважається відпочинком.",
         "Monthly record (PDF) друкує місяць у звичній формі — рядок на день, робота зафарбована, підсумки, порушення — з місцями для підпису моряка й Майстра.",
+        "План вахт (Hours of rest → Watch plan): капітан або офіцер задає кожному постійну вахту — один із шаблонів вахт або намальовану по півгодинах — і змінює дні, що відрізняються: прихід уночі, навчання, вихідний. Натисніть на день, щоб змінити його; «Повернути постійну вахту» скасовує зміну. Свої вахти бачить кожен; змінювати їх можуть лише офіцери і капітан.",
+        "Кожен із найближчих 14 днів перевіряється тими самими правилами разом з уже записаними днями людини, тож графік, який порушить 10 год / 77 год, позначається «Буде порушення» того ж дня, коли його склали, — поки його ще можна змінити. Записаний день замінює план; незаписаний день минулого тижня рахується за планом. На Board офіцери бачать, чий план порушує правила і з якого дня. Під час запису дня кнопка «Як за планом» заповнює його з плану одним натисканням.",
       ],
     },
     {
@@ -3796,6 +3804,8 @@ const no: ManualContent = {
         'Trykk en dag, velg pennen (Tap marks WORK / Tap marks REST) og trykk gjennom timene – eller fyll dagen med ett trykk: Same as previous day, Day work 08–17, de tre vaktmønstrene, Day off.',
         'Reglene sjekkes mens du redigerer: minst 10 t hvile i enhver 24 t og 77 t i enhver 7 dager (MLC 2006 Reg. 2.3, STCW A-VIII/1).',
         'Månedlig register (PDF) skriver ut måneden i standardoppsett med signaturlinjer.',
+        "Vaktplan (Hours of rest → Watch plan): skipsføreren eller en offiser setter hver persons faste vakt — et av vaktmønstrene, eller tegnet halvtime for halvtime — og endrer dagene som avviker: ankomst om natten, en øvelse, en fridag. Trykk på en dag for å endre den; Tilbake til fast vakt angrer endringen. Alle ser sine egne vakter; bare offiserene og skipsføreren endrer dem.",
+        "Hver av de neste 14 dagene kontrolleres med de samme reglene, med personens registrerte dager bak seg, så en vaktliste som vil bryte 10 t / 77 t vises som Vil bryte samme dag den skrives — mens den fortsatt kan endres. En registrert dag erstatter planen; en dag i siste uke som ingen registrerte, regnes som planlagt. På Board ser offiserene hvem sin plan bryter reglene og fra når. Når en dag registreres, fyller Som planlagt den fra planen med ett trykk.",
       ],
     },
     {
@@ -4517,6 +4527,8 @@ const pt: ManualContent = {
         'Toque em um dia, escolha a caneta (Tap marks WORK / Tap marks REST) e toque pelas horas.',
         'As regras são verificadas conforme você edita: pelo menos 10h de descanso em qualquer 24h e 77h em qualquer 7 dias (MLC 2006 Reg. 2.3, STCW A-VIII/1).',
         'Registro mensal (PDF) imprime o mês no layout padrão com linhas de assinatura.',
+        "Plano de quartos (Hours of rest → Watch plan): o Comandante ou um oficial define o quarto fixo de cada pessoa — um dos padrões de quarto, ou desenhado meia hora a meia hora — e altera os dias diferentes: chegada de noite, um exercício, um dia de folga. Toque num dia para o alterar; Voltar ao quarto fixo desfaz a alteração. Cada um vê os seus quartos; só os oficiais e o Comandante os alteram.",
+        "Cada um dos próximos 14 dias é verificado pelas mesmas regras, com os dias já registados da pessoa atrás, para que uma escala que vai violar 10 h / 77 h apareça como Vai violar no próprio dia em que é escrita — enquanto ainda pode ser mudada. Um dia registado substitui o plano; um dia da última semana não registado conta como planeado. No Board os oficiais veem que plano viola as regras e desde quando. Ao registar um dia, Como planeado preenche-o a partir do plano com um toque.",
       ],
     },
     {
@@ -4694,6 +4706,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Certificates', module: 'serviceReport', drop: [4] },
   { title: 'Access — which tabs each device shows', module: 'access' },
   { title: 'Hours of rest', module: 'rest' },
+  { title: 'Hours of rest', module: 'restPlan', drop: [-2, -1] },
   { title: 'Crew list and certificate matrix', module: 'crewCerts' },
   { title: 'Planned maintenance', module: 'pms' },
   { title: 'Spare parts', module: 'spares' },

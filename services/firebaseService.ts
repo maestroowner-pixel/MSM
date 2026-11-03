@@ -1245,6 +1245,8 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   // Crew appraisals: the Master and the officers only — never on a crew member's phone.
   { sub: 'crew_appraisals', key: storage.APPRAISALS_KEY, module: 'appraisals', officers: true },
   { sub: 'rest', key: storage.REST_KEY, module: 'rest' },
+  // Watch plans: everyone reads their own watches, the officers write them (rules).
+  { sub: 'rest_plans', key: storage.REST_PLANS_KEY, module: 'restPlan' },
   { sub: 'pms_machines', key: storage.PMS_MACHINES_KEY, module: 'pms', partial: ['hours', 'hoursDate', 'readings', 'counterOffset', 'updatedAt'] },
   { sub: 'pms_jobs', key: storage.PMS_JOBS_KEY, module: 'pms', partial: ['lastDoneDate', 'lastDoneHours', 'prepared', 'updatedAt'] },
   { sub: 'pms_done', key: storage.PMS_DONE_KEY, appendOnly: true, module: 'pms' },

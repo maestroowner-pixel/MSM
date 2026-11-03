@@ -159,6 +159,12 @@ export default function HoursOfRestSc() {
         </TouchableOpacity>
       ) : null}
 
+      {moduleOn('restPlan') ? (
+        <TouchableOpacity onPress={() => nav.navigate('RestPlan', personId ? { crewId: personId } : undefined)} style={{ alignSelf: 'flex-end', marginBottom: SIZES.sm }} hitSlop={8}>
+          <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small }}>{t('wp.open')}</Text>
+        </TouchableOpacity>
+      ) : null}
+
       {/* Wide screens: the crew as a column on the left, the selected person's
           month on the right (9 Oct 2026) — the Master runs down the list and
           sees each one without hunting along a row of buttons. Phones keep

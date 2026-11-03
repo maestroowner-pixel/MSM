@@ -133,6 +133,8 @@ export const EXT_INSP_KEY = `${PREFIX}ext_inspections`;
 /** Management of change (types/moc.ts) — the change, its approvals, actions and closure. */
 export const MOCS_KEY = `${PREFIX}mocs`;
 export const APPRAISALS_KEY = `${PREFIX}crew_appraisals`;
+/** Watch plans (types/restPlan.ts) — one per person, the days to come. */
+export const REST_PLANS_KEY = `${PREFIX}rest_plans`;
 /** Supplier directory (types/suppliers.ts) — quotes and awards live on the purchase orders. */
 export const SUPPLIERS_KEY = `${PREFIX}suppliers`;
 /**

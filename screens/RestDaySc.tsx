@@ -10,6 +10,11 @@
 // The rules are checked as the day is edited, against the days around it,
 // because a breach is usually made across midnight, not inside one date.
 // Moving to the next or previous day saves the one being left.
+//
+// PLAN MODE (`plan: true`, plan item 41): the same editor draws the watch plan
+// instead of the record — `date` 'pattern' is the standing watch, a date is a
+// day that differs from it. Saved into the person's RestPlan, never into rest;
+// the check then runs over the forecast (services/restPlan).
 // ===================================
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -27,6 +32,11 @@ import { SIZES, Palette } from '../theme';
 import { personName } from '../types/role';
 import { emptyDay, RestDay, restDayId, SLOTS_PER_DAY } from '../types/rest';
 import { analyseRest, countWork, dayLabels, fitDay, presetWork, REST_PRESETS, RULE_LABEL } from '../services/restHours';
+import { emptyPlan, forecast, plannedWork, prunePlan } from '../services/restPlan';
+import { PLAN_DAYS, RestPlan } from '../types/restPlan';
+import * as storage from '../services/storage';
+import { moduleOn } from '../constants/modules';
+import { uiDate } from '../utils/dates';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
 import { t, useT, dateLocale } from '../utils/i18n';
@@ -50,28 +60,38 @@ export default function RestDaySc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { crew, rest, saveRestDay, vessel } = useData();
+  const { crew, rest, saveRestDay, vessel, restPlans, saveRow } = useData();
   const sync = useSync();
 
   const crewId: string = route.params?.crewId;
   const [date, setDate] = useState<string>(route.params?.date ?? todayIso());
   const person = crew.find((c) => c.id === crewId);
 
-  const saved = rest.find((d) => d.id === restDayId(crewId, date));
+  const planMode = route.params?.plan === true || route.params?.plan === 'true';
+  const isPattern = planMode && date === 'pattern';
+  const plan = restPlans.find((p) => p.crewId === crewId);
+  const today = todayIso();
+
+  const saved = planMode ? undefined : rest.find((d) => d.id === restDayId(crewId, date));
+  // What the editor starts from: the record, or in plan mode the plan's day / standing watch.
+  const planned = planMode ? (isPattern ? (plan?.pattern ? { work: plan.pattern, note: undefined } : null) : plannedWork(plan, date)) : null;
+  const startWork = planMode ? planned?.work : saved?.work;
+  const startNote = planMode ? planned?.note : saved?.note;
   // The day's real half hours: 50 the day the clocks go back, 46 when they go forward.
-  const labels = useMemo(() => dayLabels(date, vessel), [date, vessel]);
+  // The standing watch is any day, so always 48.
+  const labels = useMemo(() => (isPattern ? dayLabels(today, null) : dayLabels(date, vessel)), [date, vessel, isPattern, today]);
   const fit = (w?: string) => fitDay(w ?? emptyDay(), labels);
-  const [work, setWork] = useState<string>(fit(saved?.work));
-  const [note, setNote] = useState<string>(saved?.note ?? '');
+  const [work, setWork] = useState<string>(fit(startWork));
+  const [note, setNote] = useState<string>(startNote ?? '');
   const [pen, setPen] = useState<'1' | '0'>('1');
   const dirty = useRef(false);
 
   // Load the day when the date changes (or when it arrives by sync).
   useEffect(() => {
     if (dirty.current) return;
-    setWork(fit(saved?.work));
-    setNote(saved?.note ?? '');
-  }, [saved?.work, saved?.note, date, labels]);
+    setWork(fit(startWork));
+    setNote(startNote ?? '');
+  }, [startWork, startNote, date, labels]);
 
   const edit = (w: string) => {
     dirty.current = true;
@@ -83,7 +103,22 @@ export default function RestDaySc() {
     edit(work.slice(0, i) + pen + work.slice(i + 1));
   };
 
+  const savePlanDay = async (clear = false) => {
+    if (!person) return;
+    const p: RestPlan = plan ?? emptyPlan(person, today);
+    const next: RestPlan = isPattern
+      ? { ...p, pattern: work, from: p.pattern ? p.from : today }
+      : { ...p, days: { ...p.days } };
+    if (!isPattern) {
+      if (clear) delete next.days[date];
+      else next.days[date] = note.trim() ? { work, note: note.trim() } : { work };
+    }
+    await saveRow(storage.REST_PLANS_KEY, prunePlan({ ...next, holderName: person.name, updatedBy: sync.me ? personName(sync.me) : undefined, updatedAt: Date.now() }, today));
+    dirty.current = false;
+  };
+
   const save = async () => {
+    if (planMode) return savePlanDay();
     if (!person && !saved) return;
     const day: RestDay = {
       id: restDayId(crewId, date),
@@ -100,7 +135,9 @@ export default function RestDaySc() {
   };
 
   const go = async (n: number) => {
-    if (dirty.current || !saved) await save();
+    // A planned day is stored only when it was changed — passing through would
+    // otherwise copy the standing watch into every day.
+    if (dirty.current || (!planMode && !saved)) await save();
     dirty.current = false;
     setDate(shiftDay(date, n));
   };
@@ -111,17 +148,33 @@ export default function RestDaySc() {
     goBackOr(nav);
   };
 
-  // The rules, judged with this draft in place of the stored day.
+  // The rules, judged with this draft in place of the stored day — in plan mode
+  // over the forecast, with the draft in the plan (the standing watch: its first breach).
+  const planCheck = useMemo(() => {
+    if (!planMode || !person) return null;
+    const p: RestPlan = plan ?? emptyPlan(person, today);
+    const draft: RestPlan = isPattern ? { ...p, pattern: work, from: p.pattern ? p.from : today } : { ...p, days: { ...p.days, [date]: { work } } };
+    const f = forecast(crewId, rest, draft, today, vessel);
+    return isPattern ? f.find((d) => d.ahead.length) ?? null : f.find((d) => d.date === date) ?? null;
+  }, [planMode, isPattern, plan, person, rest, crewId, date, work, vessel, today]);
+
   const check = useMemo(() => {
+    if (planMode) return planCheck?.summary;
     const others = rest.filter((d) => d.crewId === crewId && d.date !== date);
     const draft: RestDay = { id: restDayId(crewId, date), crewId, holderName: '', date, work, updatedAt: 0 };
     return analyseRest([...others, draft], date, date, vessel)[0];
-  }, [rest, crewId, date, work, vessel]);
+  }, [planMode, planCheck, rest, crewId, date, work, vessel]);
 
-  const prev = rest.find((d) => d.id === restDayId(crewId, shiftDay(date, -1)));
+  const prevRec = isPattern ? undefined : rest.find((d) => d.id === restDayId(crewId, shiftDay(date, -1)));
+  const prev = isPattern ? undefined : planMode ? (plannedWork(plan, shiftDay(date, -1)) ?? prevRec) : prevRec;
+  // The record's day as the plan had it — one tap for the watchkeeper whose day went as planned.
+  const asPlanned = !planMode && moduleOn('restPlan') ? plannedWork(plan, date) : null;
   const workSlots = countWork(work);
-  const d = new Date(`${date}T00:00:00Z`);
-  const isFuture = date > todayIso();
+  const d = new Date(`${isPattern ? today : date}T00:00:00Z`);
+  const isFuture = !planMode && date > todayIso();
+  const lastPlanDay = shiftDay(today, PLAN_DAYS - 1);
+  const canPrev = !planMode || (!isPattern && date > today);
+  const canNext = planMode ? !isPattern && date < lastPlanDay : date < todayIso();
 
   return (
     <LinearGradient colors={COLORS.bgGradient} style={{ flex: 1 }}>
@@ -129,7 +182,7 @@ export default function RestDaySc() {
         <View style={styles.header}>
           <BackButton onPress={() => goBackOr(nav)} />
           <Text style={styles.headerTitle} numberOfLines={1}>
-            {person?.name ?? saved?.holderName ?? t('rest.title')}
+            {planMode ? `${t('wp.title')} · ${person?.name ?? ''}` : person?.name ?? saved?.holderName ?? t('rest.title')}
           </Text>
           <TouchableOpacity onPress={onSave} hitSlop={12}>
             <Text style={styles.save}>{t('common.save')}</Text>
@@ -138,24 +191,35 @@ export default function RestDaySc() {
 
         <ScrollView contentContainerStyle={{ padding: SIZES.lg, paddingBottom: SIZES.xxxl }}>
           <View style={styles.dayRow}>
-            <TouchableOpacity onPress={() => go(-1)} hitSlop={12} accessibilityLabel={t('rest.prev')}>
-              <MciIcon name="chevron-left" size={30} color={COLORS.primary} />
+            <TouchableOpacity onPress={() => go(-1)} hitSlop={12} disabled={!canPrev} accessibilityLabel={t('rest.prev')}>
+              <MciIcon name="chevron-left" size={30} color={canPrev ? COLORS.primary : COLORS.border} />
             </TouchableOpacity>
             <View style={{ alignItems: 'center' }}>
               <Text style={styles.dayTitle}>
-                {d.toLocaleString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })}
+                {isPattern ? t('wp.standing') : d.toLocaleString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })}
               </Text>
               <Text style={styles.daySub}>{t('rest.daySub', { w: workSlots / 2, r: (labels.length - workSlots) / 2 })}</Text>
               {labels.length !== SLOTS_PER_DAY ? (
                 <Text style={[styles.daySub, { color: COLORS.warning, fontWeight: '700' }]}>{t(labels.length > SLOTS_PER_DAY ? 'rest.day25' : 'rest.day23', { h: labels.length / 2 })}</Text>
               ) : null}
             </View>
-            <TouchableOpacity onPress={() => go(1)} hitSlop={12} disabled={date >= todayIso()} accessibilityLabel={t('rest.next')}>
-              <MciIcon name="chevron-right" size={30} color={date >= todayIso() ? COLORS.border : COLORS.primary} />
+            <TouchableOpacity onPress={() => go(1)} hitSlop={12} disabled={!canNext} accessibilityLabel={t('rest.next')}>
+              <MciIcon name="chevron-right" size={30} color={canNext ? COLORS.primary : COLORS.border} />
             </TouchableOpacity>
           </View>
 
           {isFuture ? <Text style={styles.warn}>{t('rest.future')}</Text> : null}
+          {planMode ? (
+            <Text style={styles.planNote}>
+              {isPattern
+                ? t('wp.patternHint')
+                : plan?.days?.[date]
+                  ? t('wp.dayChanged')
+                  : plan?.pattern && date >= plan.from
+                    ? t('wp.dayStanding')
+                    : t('wp.dayNew')}
+            </Text>
+          ) : null}
 
           <View style={styles.pens}>
             {(['1', '0'] as const).map((p) => (
@@ -199,6 +263,11 @@ export default function RestDaySc() {
 
           <Label>{t('rest.fill')}</Label>
           <View style={styles.presets}>
+            {asPlanned ? (
+              <TouchableOpacity style={[styles.preset, styles.presetPlan]} onPress={() => edit(fit(asPlanned.work))}>
+                <Text style={[styles.presetText, { color: COLORS.textWhite }]}>{t('wp.asPlanned')}</Text>
+              </TouchableOpacity>
+            ) : null}
             {prev ? (
               <TouchableOpacity style={styles.preset} onPress={() => edit(fit(prev.work))}>
                 <Text style={styles.presetText}>{t('rest.same')}</Text>
@@ -212,6 +281,9 @@ export default function RestDaySc() {
           </View>
 
           <View style={[styles.check, check?.violations.length ? styles.checkBad : styles.checkOk]}>
+            {isPattern && check?.violations.length ? (
+              <Text style={styles.checkBadText}>{t('wp.firstBreach', { date: uiDate(check.date) })}</Text>
+            ) : null}
             {check?.violations.length ? (
               check.violations.map((v) => (
                 <Text key={v.rule} style={styles.checkBadText}>{`${RULE_LABEL[v.rule]}: ${v.detail}`}</Text>
@@ -238,6 +310,17 @@ export default function RestDaySc() {
             placeholderTextColor={COLORS.textLight}
             multiline
           />
+          {planMode && !isPattern && plan?.days?.[date] ? (
+            <TouchableOpacity
+              style={[styles.preset, { alignSelf: 'flex-start', marginTop: SIZES.sm }]}
+              onPress={async () => {
+                await savePlanDay(true);
+                goBackOr(nav);
+              }}
+            >
+              <Text style={styles.presetText}>{plan?.pattern ? t('wp.backToStanding') : t('wp.clearDay')}</Text>
+            </TouchableOpacity>
+          ) : null}
           {saved?.updatedBy ? (
             <Text style={styles.meta}>{`${t('rest.lastSaved', { who: saved.updatedBy })} · ${new Date(saved.updatedAt).toLocaleString(dateLocale())}`}</Text>
           ) : null}
@@ -271,6 +354,8 @@ const makeStyles = (COLORS: Palette) =>
     presets: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.xs, marginTop: SIZES.xs, marginBottom: SIZES.md },
     preset: { paddingVertical: 6, paddingHorizontal: SIZES.sm, borderRadius: 999, borderWidth: 1, borderColor: COLORS.primary },
     presetText: { fontSize: SIZES.tiny, color: COLORS.primary, fontWeight: '600' },
+    presetPlan: { backgroundColor: COLORS.primary },
+    planNote: { color: COLORS.textLight, textAlign: 'center', marginBottom: SIZES.sm, fontSize: SIZES.small },
     check: { borderRadius: SIZES.radiusMd, padding: SIZES.md, marginBottom: SIZES.md, gap: 4, borderWidth: 1 },
     checkOk: { borderColor: COLORS.success },
     checkBad: { borderColor: COLORS.danger },

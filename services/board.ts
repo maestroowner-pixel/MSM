@@ -61,6 +61,7 @@ import { inspStatus } from './extInspections';
 import { mocStage, nextActionDue as mocNextDue, overdueActions, readyToClose, returnedBy as mocReturnedBy, tempState } from './moc';
 import { critSummary, downtimeDays, outNow } from './critEq';
 import { apStage, dueList as apDueList } from './appraisals';
+import { planBreaches } from './restPlan';
 import { t, tk, tn } from '../utils/t';
 
 export type Level = 'red' | 'amber' | 'blue';
@@ -195,6 +196,11 @@ export interface BoardInput {
   mocs?: import('../types/moc').ManagementOfChange[];
   /** Crew appraisals (types/appraisal.ts) — on officers' devices only. */
   appraisals?: import('../types/appraisal').CrewAppraisal[];
+  /** Hours of rest and the watch plans — for breaches the plan brings (services/restPlan). */
+  rest?: import('../types/rest').RestDay[];
+  restPlans?: import('../types/restPlan').RestPlan[];
+  /** The ship's clock changes, for days of 23 and 25 hours. */
+  vessel?: import('../utils/shipTime').ShipClockInfo | null;
   drills?: Drill[];
   medItems?: MedItem[];
   medMoves?: MedMove[];
@@ -707,6 +713,19 @@ export function buildBoard(x: BoardInput): Board {
     }
     const toSign = (x.appraisals ?? []).filter((a) => apStage(a) === 'master');
     if (toSign.length) n.push({ key: 'ap:master', level: 'amber', who: 'master', icon: 'draw-pen', route: toSign.length === 1 ? 'Appraisal' : 'Appraisals', ...(toSign.length === 1 ? { params: { id: toSign[0].id } } : {}), title: t('b.ap.toCountersign', { n: toSign.length }), sub: toSign.slice(0, 3).map((a) => a.name).join(', ') });
+  }
+
+  // ---- Watch plan: a watch bill that will break 10 h / 77 h, before it is worked ----
+  if (x.on('restPlan') && x.on('rest') && x.restPlans?.length) {
+    const bad = planBreaches(x.crew.filter(isAboard), x.rest ?? [], x.restPlans, x.today, x.vessel);
+    if (bad.length) {
+      n.push({
+        key: 'rest:plan', level: 'amber', who: 'officer', icon: 'calendar-clock', route: 'RestPlan',
+        ...(bad.length === 1 ? { params: { crewId: bad[0].crewId } } : {}),
+        title: t('b.wp.title', { n: bad.length }),
+        sub: bad.slice(0, 3).map((b) => t('b.wp.from', { name: b.name, date: dm(b.first) })).join(', ') + (bad.length > 3 ? ' …' : ''),
+      });
+    }
   }
 
   // ---- Management of change: what waits for the Master, what came back, what is late ----

@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals' | 'restPlan';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -289,6 +289,12 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * `npm run deploy:rules` first (crew_appraisals).
    */
   appraisals: false,
+  /**
+   * Watch plan — the standing watch and the days that differ, checked by the
+   * 10 h / 77 h rules before they are worked (types/restPlan.ts, plan item 41,
+   * 3 Nov 2026). Needs rest and `npm run deploy:rules` first (rest_plans).
+   */
+  restPlan: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------
