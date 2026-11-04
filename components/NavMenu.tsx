@@ -20,7 +20,9 @@
 // The group headings open and close on a tap (4 Nov 2026: "more compact"). Which
 // are open is the person's too, per device (`msm:nav_groups_open`), so it is the
 // same the next time the menu opens; until they choose, only the group of the
-// screen the app started on. A search and "Edit order" show every group.
+// screen the app started on. A search and "Edit order" show every group. A group
+// of one screen with pages goes straight to the pages: the heading opens them, no
+// row for the screen in between (Security, Hospital).
 //
 // Up to FEW screens (the app with its modules off) none of this shows: the
 // ordinary tab bar is kept, unchanged for vessels using it today.
@@ -301,11 +303,13 @@ function MenuList({
             const shown = childrenOf(r)?.filter((k) => (!k.module || moduleOn(k.module)) && sync.pageOn(`${k.route ?? r}:${k.view}`));
             // Every page hidden for this device: the entry opens its screen as one without pages.
             const kids = shown?.length ? shown : undefined;
-            const expanded = !!kids && openParents.includes(r) && !editing;
+            // The only screen of its group: the heading stands in for its row.
+            const direct = !!kids && folds && routes.length === 1;
+            const expanded = !!kids && (direct || openParents.includes(r)) && !editing;
             const on = r === current && !kids;
             return (
               <View key={r}>
-              <TouchableOpacity style={[styles.item, on && !editing && styles.itemOn]} onPress={() => (editing ? undefined : kids ? toggle(r) : onPick(r))} disabled={editing} activeOpacity={0.7} accessibilityState={kids ? { expanded } : undefined}>
+              {direct ? null : <TouchableOpacity style={[styles.item, on && !editing && styles.itemOn]} onPress={() => (editing ? undefined : kids ? toggle(r) : onPick(r))} disabled={editing} activeOpacity={0.7} accessibilityState={kids ? { expanded } : undefined}>
                 <MciIcon name={icons[r] ?? 'circle-small'} size={22} color={on || (kids && r === current) ? COLORS.primary : COLORS.textLight} />
                 <Text style={[styles.itemText, (on || (kids && r === current)) && { color: COLORS.primary }]} numberOfLines={1}>{labelOf(r)}</Text>
                 {MENU_GEAR[r] && !editing && (!MANAGE_ROUTE[r] || sync.canManage(MANAGE_ROUTE[r])) ? (
@@ -324,15 +328,15 @@ function MenuList({
                     </TouchableOpacity>
                   </View>
                 ) : null}
-              </TouchableOpacity>
+              </TouchableOpacity>}
               {expanded
                 ? kids!.map((k, j) => {
                     const to = k.route ?? r;
                     const kon = to === current && (currentView ?? (k.route ? MENU_CHILDREN[to]?.[0]?.view : kids![0].view)) === k.view;
                     return (
-                      <TouchableOpacity key={`${to}:${k.view}`} style={[styles.item, styles.child, kon && styles.itemOn]} onPress={() => onPick(to, { view: k.view })} activeOpacity={0.7}>
+                      <TouchableOpacity key={`${to}:${k.view}`} style={[styles.item, !direct && styles.child, kon && styles.itemOn]} onPress={() => onPick(to, { view: k.view })} activeOpacity={0.7}>
                         <MciIcon name={k.icon} size={18} color={kon ? COLORS.primary : COLORS.textLight} />
-                        <Text style={[styles.itemText, styles.childText, kon && { color: COLORS.primary }]} numberOfLines={1}>{k.label}</Text>
+                        <Text style={[styles.itemText, !direct && styles.childText, kon && { color: COLORS.primary }]} numberOfLines={1}>{k.label}</Text>
                       </TouchableOpacity>
                     );
                   })
