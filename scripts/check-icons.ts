@@ -64,6 +64,13 @@ const block = picker.match(/const ICONS = \[([\s\S]*?)\];/);
 if (!block) { fails++; console.log('FAIL  ICONS list not found in screens/CategoriesEditSc.tsx'); }
 else for (const m of block[1].matchAll(/'([a-z0-9-]+)'/g)) check(m[1], 'category icon picker');
 
+// The icons beside the side menu's group headings.
+const nav = require('fs').readFileSync(
+  require('path').join(process.cwd(), 'utils/navOrder.ts'),
+  'utf8'
+);
+for (const m of nav.matchAll(/^\s*group\('([a-z]+)',.*, '([a-z0-9-]+)'\),$/gm)) check(m[2], `menu group ${m[1]}`);
+
 console.log(
   fails
     ? `\n${fails} icon name(s) would draw a question mark.`

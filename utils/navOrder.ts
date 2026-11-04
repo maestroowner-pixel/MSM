@@ -26,14 +26,16 @@ export interface MenuGroup {
   key: string;
   /** Heading in the menu; empty = no heading (Settings at the foot). */
   label: string;
+  /** Beside the heading (MaterialCommunityIcons); none where there is no heading. */
+  icon?: string;
   routes: string[];
 }
 
 // By the ship's own work (17 Oct 2026: "the side menu is chaos"): the board on
 // top, then equipment, safety, security, MARPOL, crew, operations, papers.
 /** A group whose heading follows the interface language. */
-function group(key: string, labelKey: string | null, routes: string[]): MenuGroup {
-  return Object.defineProperty({ key, routes } as MenuGroup, 'label', { get: () => (labelKey ? tk(labelKey) : ''), enumerable: true });
+function group(key: string, labelKey: string | null, routes: string[], icon?: string): MenuGroup {
+  return Object.defineProperty({ key, routes, icon } as MenuGroup, 'label', { get: () => (labelKey ? tk(labelKey) : ''), enumerable: true });
 }
 /** A sub-item whose name follows the interface language. */
 function kid(labelKey: string, c: Omit<MenuChild, 'label'>): MenuChild {
@@ -42,16 +44,16 @@ function kid(labelKey: string, c: Omit<MenuChild, 'label'>): MenuChild {
 
 export const MENU_GROUPS: MenuGroup[] = [
   group('home', null, ['Dashboard']),
-  group('logs', 'menu.group.logs', ['DeckLog', 'WatchLog', 'Gmdss']),
-  group('equipment', 'menu.group.equipment', ['Equipment', 'Rounds', 'Maintenance', 'OilAnalysis', 'Yard', 'Spares', 'Stores', 'Orders', 'Finance']),
-  group('safety', 'menu.group.safety', ['Drills', 'Safety']),
+  group('logs', 'menu.group.logs', ['DeckLog', 'WatchLog', 'Gmdss'], 'notebook-edit-outline'),
+  group('equipment', 'menu.group.equipment', ['Equipment', 'Rounds', 'Maintenance', 'OilAnalysis', 'Yard', 'Spares', 'Stores', 'Orders', 'Finance'], 'wrench-outline'),
+  group('safety', 'menu.group.safety', ['Drills', 'Safety'], 'lifebuoy'),
   // The ship's hospital on its own, under Safety (17 Oct 2026: "out of Crew, its own section").
-  group('medical', 'menu.group.medical', ['Hospital']),
-  group('security', 'menu.group.security', ['Security']),
-  group('env', 'menu.group.env', ['OilRecord', 'Garbage', 'Sewage', 'Ballast', 'FuelChangeover', 'Ods', 'Fuel', 'Sopep']),
-  group('crew', 'menu.group.crew', ['Crew', 'CrewMatrix', 'HoursOfRest', 'Passengers']),
-  group('ops', 'menu.group.ops', ['Watch', 'Familiar', 'Dp', 'Readiness']),
-  group('docs', 'menu.group.docs', ['Certificates', 'Documents', 'Permits', 'Surveys', 'Reports']),
+  group('medical', 'menu.group.medical', ['Hospital'], 'medical-bag'),
+  group('security', 'menu.group.security', ['Security'], 'shield-lock-outline'),
+  group('env', 'menu.group.env', ['OilRecord', 'Garbage', 'Sewage', 'Ballast', 'FuelChangeover', 'Ods', 'Fuel', 'Sopep'], 'leaf'),
+  group('crew', 'menu.group.crew', ['Crew', 'CrewMatrix', 'HoursOfRest', 'Passengers'], 'account-group-outline'),
+  group('ops', 'menu.group.ops', ['Watch', 'Familiar', 'Dp', 'Readiness'], 'compass-outline'),
+  group('docs', 'menu.group.docs', ['Certificates', 'Documents', 'Permits', 'Surveys', 'Reports'], 'folder-text-outline'),
   group('system', null, ['Settings']),
 ];
 

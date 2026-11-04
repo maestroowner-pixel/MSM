@@ -229,14 +229,17 @@ export function FavPageChip({ style }: { style?: any }) {
 }
 
 /** At the top of the menu: what is kept, one tap away (on a phone the menu is the way in). */
-export function FavMenuSection({ onPicked, itemStyle, textStyle, headStyle }: { onPicked: () => void; itemStyle: any; textStyle: any; headStyle: any }) {
+export function FavMenuSection({ onPicked, itemStyle, textStyle, headStyle, headRowStyle, headIconStyle }: { onPicked: () => void; itemStyle: any; textStyle: any; headStyle: any; headRowStyle: any; headIconStyle: any }) {
   const COLORS = useTheme();
   useT();
   const favs = useFavourites();
   if (!favs.length) return null;
   return (
     <View>
-      <Text style={headStyle}>{t('fav.title')}</Text>
+      <View style={headRowStyle}>
+        <View style={headIconStyle}><MciIcon name="star" size={18} color={COLORS.textLight} /></View>
+        <Text style={headStyle} numberOfLines={1}>{t('fav.title')}</Text>
+      </View>
       {favs.map((f) => (
         <TouchableOpacity key={f.id} style={itemStyle} onPress={() => (onPicked(), openFavourite(f))} activeOpacity={0.7}>
           <MciIcon name={f.icon} size={20} color={COLORS.warning} />
