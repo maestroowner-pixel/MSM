@@ -286,6 +286,20 @@ await t(false, 'A follow-up carries no name', setDoc(R(officer, 'da_followups', 
 await t(false, 'A follow-up is final', setDoc(R(master, 'da_followups', 'f1'), { id: 'f1', testId: 'da1', resultId: 'r1', kind: 'lab', lab: 'pos', by: 'Jez', at: 2, updatedAt: 3 }));
 await t(true, 'The Master sets the D&A policy', setDoc(R(master, 'da_policy', 'policy'), { id: 'policy', months: 6, limit: 0.25, updatedAt: 1 }));
 await t(false, 'An Officer cannot change the D&A policy', setDoc(R(officer, 'da_policy', 'policy'), { id: 'policy', months: 12, limit: 0.4, updatedAt: 2 }));
+// Emissions: the Master's particulars; a passage like a bunkering; a statement once.
+await t(true, 'The Master sets the emissions particulars', setDoc(R(master, 'em_vessel', 'vessel'), { id: 'vessel', type: 'cruise', gt: 50000, commercial: 'yes', updatedAt: 1 }));
+await t(false, 'An Officer cannot set the emissions particulars', setDoc(R(officer, 'em_vessel', 'vessel'), { id: 'vessel', type: 'yacht', gt: 400, commercial: 'no', updatedAt: 2 }));
+await t(false, 'The particulars are one document', setDoc(R(master, 'em_vessel', 'other'), { id: 'other', type: 'yacht', updatedAt: 2 }));
+await t(true, 'Crew records a passage', setDoc(R(crew, 'em_passages', 'p1'), { id: 'p1', fromPort: 'Barcelona', toPort: 'Piraeus', distanceNm: 1000, by: 'Max', at: 1, updatedAt: 1 }));
+await t(false, 'Crew cannot write a new version of a passage', setDoc(R(crew, 'em_passages', 'p2'), { id: 'p2', supersedes: 'p1', fromPort: 'Barcelona', toPort: 'Piraeus', distanceNm: 900, by: 'Max', at: 2, updatedAt: 2 }));
+await t(true, 'The Master writes a new version of a passage', setDoc(R(master, 'em_passages', 'p3'), { id: 'p3', supersedes: 'p1', fromPort: 'Barcelona', toPort: 'Piraeus', distanceNm: 900, by: 'Max', at: 2, updatedAt: 2 }));
+await t(false, 'An Officer cannot overwrite a passage', setDoc(R(officer, 'em_passages', 'p1'), { id: 'p1', distanceNm: 1, updatedAt: 3 }));
+await t(false, 'Nobody deletes a passage', deleteDoc(R(master, 'em_passages', 'p1')));
+await t(true, 'The office reads passages', getDoc(R(shore, 'em_passages', 'p1')));
+await t(true, 'An Officer signs the year', setDoc(R(officer, 'em_statements', 's1'), { id: 's1', year: 2026, method: 'flow', by: 'Anna', at: 1, updatedAt: 1 }));
+await t(false, 'Crew cannot sign the year', setDoc(R(crew, 'em_statements', 's2'), { id: 's2', year: 2026, method: 'flow', by: 'Max', at: 1, updatedAt: 1 }));
+await t(false, 'A signed statement is final', setDoc(R(master, 'em_statements', 's1'), { id: 's1', year: 2026, method: 'tank', by: 'Anna', at: 1, updatedAt: 2 }));
+await t(true, 'The office reads statements', getDoc(R(shore, 'em_statements', 's1')));
 
 await t(false, 'A guest\'s full name never goes up', setDoc(R(officer, 'passengers', 'pax0'), { id: 'pax0', name: 'Sophie Martin', cabin: 'VIP', updatedAt: 1 }));
 await t(false, 'A guest\'s nationality stays on board', setDoc(R(officer, 'passengers', 'pax0'), { id: 'pax0', name: 'S…n', nationality: 'FR', updatedAt: 1 }));

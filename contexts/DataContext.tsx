@@ -50,6 +50,7 @@ import { ThreadMessage } from '../types/thread';
 import { CrewAppraisal } from '../types/appraisal';
 import { RestPlan } from '../types/restPlan';
 import { DaFollowUp, DaPolicy, DaResult, DaTest } from '../types/daTest';
+import { EmPassage, EmStatement, EmVessel } from '../types/emissions';
 import { Supplier } from '../types/suppliers';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
@@ -80,7 +81,7 @@ import { DEFAULT_ARCHIVE, PhotoArchiveState } from '../services/photoArchive';
 import { setSoundsMuted } from '../utils/sound';
 
 /** The logs whose records are changed by versions (Edit / Delete, Master only). */
-const VERSIONED_KEYS = [storage.PMS_DONE_KEY, storage.SEWAGE_KEY, storage.BALLAST_KEY, storage.FUEL_CHANGE_KEY, storage.ODS_KEY, storage.ORB_KEY, storage.FUEL_READINGS_KEY, storage.FUEL_BUNKERS_KEY, storage.FUEL_TRANSFERS_KEY, storage.SOPEP_CHECKS_KEY, storage.SOPEP_DRILLS_KEY, storage.VISITORS_KEY, storage.SECURITY_DRILLS_KEY, storage.SURVEYS_DONE_KEY];
+const VERSIONED_KEYS = [storage.EM_PASSAGES_KEY, storage.PMS_DONE_KEY, storage.SEWAGE_KEY, storage.BALLAST_KEY, storage.FUEL_CHANGE_KEY, storage.ODS_KEY, storage.ORB_KEY, storage.FUEL_READINGS_KEY, storage.FUEL_BUNKERS_KEY, storage.FUEL_TRANSFERS_KEY, storage.SOPEP_CHECKS_KEY, storage.SOPEP_DRILLS_KEY, storage.VISITORS_KEY, storage.SECURITY_DRILLS_KEY, storage.SURVEYS_DONE_KEY];
 
 interface DataContextType {
   loading: boolean;
@@ -217,6 +218,10 @@ interface DataContextType {
   daResults: DaResult[];
   daFollowUps: DaFollowUp[];
   daPolicy: DaPolicy[];
+  /** Emissions (types/emissions.ts): live passages (versionsOf(EM_PASSAGES_KEY) for every version). */
+  emVessel: EmVessel[];
+  emPassages: EmPassage[];
+  emStatements: EmStatement[];
   drills: Drill[];
   /** The drill calendar — one plan per year (services/drillPlan.ts). */
   drillPlans: DrillYearPlan[];
@@ -406,6 +411,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [daResults, setDaResults] = useState<DaResult[]>([]);
   const [daFollowUps, setDaFollowUps] = useState<DaFollowUp[]>([]);
   const [daPolicy, setDaPolicy] = useState<DaPolicy[]>([]);
+  const [emVessel, setEmVessel] = useState<EmVessel[]>([]);
+  const [emPassages, setEmPassages] = useState<EmPassage[]>([]);
+  const [emStatements, setEmStatements] = useState<EmStatement[]>([]);
   const [drills, setDrills] = useState<Drill[]>([]);
   const [drillPlans, setDrillPlans] = useState<DrillYearPlan[]>([]);
   const [medItems, setMedItems] = useState<MedItem[]>([]);
@@ -543,6 +551,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _daResults = await storage.loadList<DaResult>(storage.DA_RESULTS_KEY);
     const _daFollowUps = await storage.loadList<DaFollowUp>(storage.DA_FOLLOWUPS_KEY);
     const _daPolicy = await storage.loadList<DaPolicy>(storage.DA_POLICY_KEY);
+    const _emVessel = await storage.loadList<EmVessel>(storage.EM_VESSEL_KEY);
+    const _emPassages = live(await storage.loadList<EmPassage>(storage.EM_PASSAGES_KEY));
+    const _emStatements = await storage.loadList<EmStatement>(storage.EM_STATEMENTS_KEY);
     const _drills = (await storage.loadList<Drill>(storage.DRILLS_KEY)).filter((x) => !x.deleted);
     const _drillPlans = await storage.loadList<DrillYearPlan>(storage.DRILL_PLANS_KEY);
     const _medItems = (await storage.loadList<MedItem>(storage.MED_ITEMS_KEY)).filter((x) => !x.deleted).sort((x, y) => x.order - y.order);
@@ -654,6 +665,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setDaResults(_daResults);
     setDaFollowUps(_daFollowUps);
     setDaPolicy(_daPolicy);
+    setEmVessel(_emVessel);
+    setEmPassages(_emPassages);
+    setEmStatements(_emStatements);
     setDrills(_drills);
     setDrillPlans(_drillPlans);
     setMedItems(_medItems);
@@ -917,6 +931,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _daResults = await storage.loadList<DaResult>(storage.DA_RESULTS_KEY);
     const _daFollowUps = await storage.loadList<DaFollowUp>(storage.DA_FOLLOWUPS_KEY);
     const _daPolicy = await storage.loadList<DaPolicy>(storage.DA_POLICY_KEY);
+    const _emVessel = await storage.loadList<EmVessel>(storage.EM_VESSEL_KEY);
+    const _emPassages = live(await storage.loadList<EmPassage>(storage.EM_PASSAGES_KEY));
+    const _emStatements = await storage.loadList<EmStatement>(storage.EM_STATEMENTS_KEY);
     const _drills = (await storage.loadList<Drill>(storage.DRILLS_KEY)).filter((x) => !x.deleted);
     const _drillPlans = await storage.loadList<DrillYearPlan>(storage.DRILL_PLANS_KEY);
     const _medItems = (await storage.loadList<MedItem>(storage.MED_ITEMS_KEY)).filter((x) => !x.deleted).sort((x, y) => x.order - y.order);
@@ -1018,6 +1035,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setDaResults(_daResults);
     setDaFollowUps(_daFollowUps);
     setDaPolicy(_daPolicy);
+    setEmVessel(_emVessel);
+    setEmPassages(_emPassages);
+    setEmStatements(_emStatements);
     setDrills(_drills);
     setDrillPlans(_drillPlans);
     setMedItems(_medItems);
@@ -1365,6 +1385,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         daResults,
         daFollowUps,
         daPolicy,
+        emVessel,
+        emPassages,
+        emStatements,
         drills,
         drillPlans,
         medItems,

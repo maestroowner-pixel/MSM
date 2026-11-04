@@ -303,6 +303,17 @@ app mirrors. Bundle id `com.kukalab.msm`.
   notification is LOCAL (BoardSc → `notifyNow`, needs reminders on and a sync): no remote push, and no mail to the office.
   Times are the sender's clock: a ship's clock running ahead can misorder a reply and leave it read. `npm run check:threads`;
   rules-test.mjs covers it. `npm run deploy:rules` before the flag.
+- **Emissions** (4 Nov 2026 — flag `emissions`, off; plan item 44; needs `fuel`): `types/emissions.ts`, pure `services/emissions.ts`, paper
+  `services/emissionsReport.ts` (PMS-history PDF, Excel with real numbers), screens `EmissionsSc` / `EmPassageSc` (routes `Emissions` `emissions`,
+  `EmPassage` `em-passage/:id` (`new`); entry: a chip on Fuel, Board). `em_vessel/vessel` (Master: type, GT, DWT, commercial yes/no/unsure — decides
+  `applicability`: DCS >= 5000 GT; CII >= 5000 GT, listed types, no yachts or offshore; MRV commercial >= 5000 GT, offshore/general cargo >= 400 GT, `unsure` = check).
+  `em_passages` (versioned like bunkers: berth to berth in UTC, FAOP/EOSP, ROB both ends, typed miles; over the new year also ROB and miles at 31 Dec 24:00 UTC
+  because each year reports its part). `em_statements` (append-only, officers: fuel per consumer typed in tonnes, under way or not, with the method; `frozen`
+  figures; the newest of a year counts). **Distance is NOT summed from the deck log**: a noon `distanceRun` may be the total since departure. Fuel comes from
+  `fuelMonth`, diesel only (a tender's petrol is excluded, HFO is not modelled). Tonnes from the BDN density, litre-weighted, else the last before the year;
+  no density = no tonnes, never assumed. CF 3.206, CH4 0.00005, N2O 0.00018; G2/G3/G4 tables in `ciiLine`/`CII_Z` (no G5 corrections; no Z after 2030 = no rating).
+  Everything missing comes back as `EmGap` (screen `em.gap.*`, report `EM_GAP_EN`). Board `em:stmt` for officers where DCS or MRV applies and last year has passages:
+  amber to 31 March, red after. `npm run check:emissions`; rules-test.mjs covers it. `npm run deploy:rules` before the flag.
 - **Drug and alcohol tests** (3 Nov 2026 — flag `daTests`, off; plan item 42; needs `crewCerts`): `types/daTest.ts`, pure
   `services/daTests.ts`, paper `services/daTestReport.ts` (PMS-history PDF), screens `DaTestsSc` / `DaTestSc` (routes `DaTests`
   `da-tests`, `DaTest` `da-test/:id` (`new`); entry: Crew → Drug and alcohol tests, Board). THREE append-only records: `da_tests`

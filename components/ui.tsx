@@ -135,6 +135,7 @@ const EMOJI_GLYPH: Record<string, GlyphName> = {
   '🗑️': 'delete',
   '🛟': 'lifebuoy',
   '🧪': 'test-tube',
+  '🌍': 'earth',
   '🧯': 'fire-extinguisher',
   '🧰': 'toolbox',
   '♻️': 'backup-restore',

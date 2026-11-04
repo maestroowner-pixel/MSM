@@ -1254,6 +1254,10 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'da_results', key: storage.DA_RESULTS_KEY, appendOnly: true, module: 'daTests', officers: true, toCloud: daResultToCloud, fromCloud: daResultFromCloud },
   { sub: 'da_followups', key: storage.DA_FOLLOWUPS_KEY, appendOnly: true, module: 'daTests', officers: true },
   { sub: 'da_policy', key: storage.DA_POLICY_KEY, module: 'daTests', officers: true },
+  // Emissions: fuel figures and ports, nobody's private data. A passage is changed by a new version, a statement by a new one.
+  { sub: 'em_vessel', key: storage.EM_VESSEL_KEY, module: 'emissions' },
+  { sub: 'em_passages', key: storage.EM_PASSAGES_KEY, module: 'emissions' },
+  { sub: 'em_statements', key: storage.EM_STATEMENTS_KEY, appendOnly: true, module: 'emissions' },
   { sub: 'pms_machines', key: storage.PMS_MACHINES_KEY, module: 'pms', partial: ['hours', 'hoursDate', 'readings', 'counterOffset', 'updatedAt'] },
   { sub: 'pms_jobs', key: storage.PMS_JOBS_KEY, module: 'pms', partial: ['lastDoneDate', 'lastDoneHours', 'prepared', 'updatedAt'] },
   { sub: 'pms_done', key: storage.PMS_DONE_KEY, appendOnly: true, module: 'pms' },

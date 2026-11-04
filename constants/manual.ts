@@ -846,6 +846,17 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🌍',
+      title: "Emissions",
+      body: [
+        "For vessels that report fuel and emissions: IMO DCS (MARPOL Annex VI reg. 27), CII (reg. 28) and EU MRV (Regulation 2015/757). Open it from Fuel. The app keeps the vessel's record for the verifier; verification and submission stay with the company. It works for any vessel, so one below the thresholds can still see its fuel and CO₂ for the year.",
+        "What applies: the Master enters the ship type, GT, DWT and whether she carries cargo or passengers commercially. DCS: 5,000 GT and above. CII: 5,000 GT and above, listed ship types only; yachts and offshore ships are not listed. EU MRV: commercial carriage at 5,000 GT and above, and offshore and general cargo ships from 400 GT. For a yacht, commercial use can depend on the charter, so choose Not sure and confirm with the flag or the verifier.",
+        "Passages: write one on arrival, berth to berth, in UTC: when she left the berth, FAOP, EOSP, at the berth; the ROB in litres at both ends; the miles under way from the ECDIS or GPS; cargo or passengers if any; and whether each port is in the EU or EEA. A stop only for fuel, supplies, repairs, shelter or crew relief is not a port of call and does not end a passage. A passage over the new year also asks for the ROB and miles at 31 Dec 24:00 UTC, because each year reports its own part. Only the Master changes a signed passage, with a reason.",
+        "The figures: fuel comes from your daily soundings and bunkerings. Litres become tonnes at the BDN density at 15 °C, litre-weighted over the year, with no temperature correction; without a density there are no tonnes, because the app never assumes one. CO₂ is 3.206 t per tonne of fuel. The screen lists everything missing or not adding up, such as days without a sounding or days at sea in the deck log outside every passage. The CII rating is a guide: the official one is the Administration's, on verified data. Only MGO / diesel is covered; a vessel burning other fuels cannot use these figures.",
+        "The statement: when the year is over, an officer or the Master signs it. Tank soundings cannot divide fuel by consumer, so enter it in tonnes, under way and not under way, by the method in your SEEMP Part II, with shore power and any innovative technologies. If it differs from the soundings by more than 2 %, or records change after signing, the screen and the report say so; a correction is a new statement, and the newest counts. PDF and Excel are in English. The Board reminds officers of an unsigned year, in amber until 31 March and in red after it, where DCS or MRV applies.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'About',
       body: [
@@ -1663,6 +1674,17 @@ const ru: ManualContent = {
         "Запись теста: выберите причину (для инцидента или подозрения — напишите, что произошло), дату и время, какие тесты делали — алкоголь по выдоху (алкотестер: марка, серийный номер, последняя калибровка) и наркотики экспресс-тестом (марка, партия, срок годности), — кто проводил (капитан или внешний специалист) и свидетеля. Затем люди: все на борту, выбранные по имени или заданное число, выбранное случайно, — тогда в тесте записывается, сколько выбрано из скольких на борту. Для каждого введите показание алкотестера; выше лимита запрашивается повторный замер через 15–20 минут, и считается он. Отметьте экспресс-тест: отрицательный или не отрицательный (с номером пробы, отправленной в лабораторию), — или запишите отказ с причиной. Одна подпись записывает тест и все результаты. Потом ничего не меняется.",
         "Дальше: для не отрицательного экспресс-теста внесите результат лаборатории и номер заключения, когда они придут, — до тех пор результат «Ждёт лабораторию». Для положительного результата или отказа запишите принятые меры (отстранён от вахты, компания извещена, списан). Каждая запись подписывается и хранится отдельно. На Board офицеры видят, чего ждут от лаборатории, а капитан — положительные результаты и отказы без записанных мер, красным.",
         "Результаты — медицинские данные. В облаке от имени человека остаются первая и последняя буквы («Jez Dodd» → «J…d»), связь со списком экипажа не отправляется; полное имя остаётся на устройстве, где записан тест. Устройство другого офицера и офис видят имя в таком виде. PDF печатает тест с показаниями, лабораторией, мерами и подписью — с устройства, где тест записан, с полными именами.",
+      ],
+    },
+    {
+      emoji: '🌍',
+      title: "Выбросы",
+      body: [
+        "Для судов, которые отчитываются о топливе и выбросах: IMO DCS (MARPOL, Приложение VI, правило 27), CII (правило 28) и EU MRV (Регламент 2015/757). Открывается из раздела «Топливо». Приложение ведёт записи судна для верификатора; проверку и подачу выполняет компания. Работает на любом судне, так что и судно ниже порогов видит расход топлива и CO₂ за год.",
+        "Что применимо: капитан вводит тип судна, GT, DWT и указывает, перевозит ли судно грузы или пассажиров коммерчески. DCS: от 5 000 GT. CII: от 5 000 GT, только перечисленные типы; яхт и офшорных судов в списке нет. EU MRV: коммерческая перевозка от 5 000 GT, офшорные и генгрузовые суда от 400 GT. Для яхты коммерческое использование может зависеть от чартера: выберите «Неясно» и уточните у флага или верификатора.",
+        "Переходы: запись делается по приходу, от причала до причала, в UTC: отход от причала, FAOP, EOSP, приход к причалу; ROB в литрах на обоих концах; мили на ходу по ECDIS или GPS; груз или пассажиры, если есть; находится ли каждый порт в ЕС или ЕЭЗ. Заход только за топливом, снабжением, для ремонта, укрытия или смены экипажа не считается портом захода и не заканчивает переход. Для перехода через Новый год нужны ещё ROB и мили на 31 декабря 24:00 UTC, потому что каждый год отчитывается за свою часть. Подписанный переход меняет только капитан, с указанием причины.",
+        "Цифры: топливо берётся из ежедневных замеров и бункеровок. Литры переводятся в тонны по плотности из BDN при 15 °C, средневзвешенной за год, без поправки на температуру; без плотности тонн нет, приложение её не подставляет. CO₂ — 3,206 т на тонну топлива. Экран показывает всё, чего не хватает и что не сходится, например дни без замера или дни в море по палубному журналу вне всех переходов. Рейтинг CII — ориентир: официальный присваивает Администрация по проверенным данным. Учитывается только MGO / дизель; судну на другом топливе эти цифры не подходят.",
+        "Отчёт за год: после окончания года его подписывает офицер или капитан. Замеры в танках не делят топливо по потребителям, поэтому введите расход в тоннах, на ходу и не на ходу, по методу из вашей SEEMP, часть II, а также береговое питание и инновационные технологии, если есть. Если сумма расходится с замерами больше чем на 2 % или записи изменились после подписи, экран и отчёт об этом сообщат; исправление — новый отчёт, действует самый новый. PDF и Excel — на английском. Там, где применимы DCS или MRV, Board напоминает офицерам о неподписанном годе: жёлтым до 31 марта и красным после этой даты.",
       ],
     },
     {
@@ -2486,6 +2508,17 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🌍',
+      title: "Emisiones",
+      body: [
+        "Para buques que declaran combustible y emisiones: IMO DCS (MARPOL, Anexo VI, regla 27), CII (regla 28) y EU MRV (Reglamento 2015/757). Se abre desde Combustible. La app guarda el registro del buque para el verificador; la verificación y la presentación corresponden a la compañía. Funciona en cualquier buque, así que uno por debajo de los umbrales también ve su combustible y CO₂ del año.",
+        "Qué se aplica: el capitán introduce el tipo de buque, GT, DWT y si transporta carga o pasajeros comercialmente. DCS: desde 5000 GT. CII: desde 5000 GT, solo los tipos de la lista; los yates y buques offshore no figuran. EU MRV: transporte comercial desde 5000 GT, y buques offshore y de carga general desde 400 GT. En un yate, el uso comercial puede depender del chárter: elija «No está claro» y confírmelo con la bandera o el verificador.",
+        "Travesías: se escribe una al llegar, de atraque a atraque, en UTC: salida del atraque, FAOP, EOSP, llegada al atraque; el ROB en litros en ambos extremos; las millas navegando según ECDIS o GPS; carga o pasajeros, si los hay; y si cada puerto está en la UE o el EEE. Una parada solo por combustible, víveres, reparaciones, refugio o relevo no es puerto de escala y no termina la travesía. Una travesía que cruza el año nuevo pide además el ROB y las millas a las 24:00 UTC del 31 de diciembre, porque cada año declara su parte. Solo el capitán cambia una travesía firmada, indicando el motivo.",
+        "Las cifras: el combustible sale de los sondeos diarios y las tomas. Los litros pasan a toneladas con la densidad del BDN a 15 °C, ponderada por litros en el año y sin corrección de temperatura; sin densidad no hay toneladas, porque la app nunca la supone. El CO₂ es 3,206 t por tonelada de combustible. La pantalla muestra todo lo que falta o no cuadra, como días sin sondeo o días en la mar en el diario fuera de toda travesía. La calificación CII es una referencia: la oficial la da la Administración con datos verificados. Solo cubre MGO / diésel; un buque con otros combustibles no puede usar estas cifras.",
+        "La declaración: al acabar el año la firma un oficial o el capitán. Los sondeos de tanques no reparten el combustible por consumidor, así que introdúzcalo en toneladas, navegando y sin navegar, según el método de su SEEMP Parte II, junto con la energía de tierra y las tecnologías innovadoras. Si difiere de los sondeos más de un 2 % o los registros cambian tras firmar, la pantalla y el informe lo indican; una corrección es una nueva declaración y vale la más reciente. PDF y Excel en inglés. Donde se aplica DCS o MRV, el Board recuerda a los oficiales el año sin firmar: en ámbar hasta el 31 de marzo y en rojo después.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Acerca de',
       body: [
@@ -3306,6 +3339,17 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🌍',
+      title: "Викиди",
+      body: [
+        "Для суден, які звітують про паливо й викиди: IMO DCS (MARPOL, Додаток VI, правило 27), CII (правило 28) та EU MRV (Регламент 2015/757). Відкривається з розділу «Паливо». Застосунок веде записи судна для верифікатора; перевірку й подання виконує компанія. Працює на будь-якому судні, тож і судно нижче порогів бачить витрату палива та CO₂ за рік.",
+        "Що застосовується: капітан вводить тип судна, GT, DWT і вказує, чи перевозить судно вантажі або пасажирів комерційно. DCS: від 5 000 GT. CII: від 5 000 GT, лише перелічені типи; яхт і офшорних суден у переліку немає. EU MRV: комерційне перевезення від 5 000 GT, офшорні та генвантажні судна від 400 GT. Для яхти комерційне використання може залежати від чартеру: виберіть «Неясно» й уточніть у прапора або верифікатора.",
+        "Переходи: запис робиться після приходу, від причалу до причалу, в UTC: відхід від причалу, FAOP, EOSP, прихід до причалу; ROB у літрах на обох кінцях; милі на ходу за ECDIS або GPS; вантаж або пасажири, якщо є; чи розташований кожен порт у ЄС або ЄЕЗ. Захід лише за паливом, постачанням, для ремонту, укриття чи зміни екіпажу не є портом заходу й не закінчує перехід. Для переходу через Новий рік потрібні ще ROB і милі на 31 грудня 24:00 UTC, бо кожен рік звітує за свою частину. Підписаний перехід змінює лише капітан, із зазначенням причини.",
+        "Цифри: паливо береться із щоденних замірів і бункерувань. Літри переводяться в тонни за густиною з BDN при 15 °C, середньозваженою за рік, без поправки на температуру; без густини тонн немає, застосунок її не підставляє. CO₂ — 3,206 т на тонну палива. Екран показує все, чого бракує і що не сходиться, наприклад дні без заміру або дні в морі за палубним журналом поза всіма переходами. Рейтинг CII — орієнтир: офіційний надає Адміністрація за перевіреними даними. Враховується лише MGO / дизель; судну на іншому паливі ці цифри не підходять.",
+        "Звіт за рік: після закінчення року його підписує офіцер або капітан. Заміри в танках не ділять паливо за споживачами, тому введіть витрату в тоннах, на ходу й не на ходу, за методом із вашої SEEMP, частина II, а також берегове живлення й інноваційні технології, якщо є. Якщо сума розходиться із замірами більш ніж на 2 % або записи змінилися після підпису, екран і звіт про це повідомлять; виправлення — новий звіт, діє найновіший. PDF і Excel — англійською. Там, де застосовуються DCS або MRV, Board нагадує офіцерам про непідписаний рік: жовтим до 31 березня і червоним після цієї дати.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Про застосунок',
       body: [
@@ -4061,6 +4105,17 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '🌍',
+      title: "Utslipp",
+      body: [
+        "For fartøy som rapporterer drivstoff og utslipp: IMO DCS (MARPOL vedlegg VI, regel 27), CII (regel 28) og EU MRV (forordning 2015/757). Åpnes fra Drivstoff. Appen fører fartøyets oppføringer for verifikatøren; verifisering og innsending ligger hos selskapet. Den virker på alle fartøy, så også et fartøy under tersklene ser årets drivstoff og CO₂.",
+        "Hva som gjelder: kapteinen oppgir skipstype, GT, DWT og om fartøyet frakter last eller passasjerer kommersielt. DCS: fra 5000 GT. CII: fra 5000 GT, kun oppførte typer; yachter og offshorefartøy er ikke oppført. EU MRV: kommersiell frakt fra 5000 GT, og offshore- og stykkgodsskip fra 400 GT. For en yacht kan kommersiell bruk avhenge av charter: velg Usikker og bekreft med flaggstaten eller verifikatøren.",
+        "Passasjer: skriv en ved ankomst, fra kai til kai, i UTC: forlot kai, FAOP, EOSP, ved kai; ROB i liter i begge ender; distanse under fart fra ECDIS eller GPS; last eller passasjerer om noen; og om hver havn er i EU eller EØS. Stopp bare for drivstoff, forsyninger, reparasjon, ly eller mannskapsskifte er ikke anløpshavn og avslutter ikke passasjen. En passasje over nyttår ber også om ROB og distanse 31. des. kl. 24:00 UTC, siden hvert år rapporterer sin del. Bare kapteinen endrer en signert passasje, med begrunnelse.",
+        "Tallene: drivstoff kommer fra daglige peilinger og bunkringer. Liter regnes om til tonn med BDN-tetthet ved 15 °C, literveid over året og uten temperaturkorreksjon; uten tetthet blir det ingen tonn, for appen antar aldri en verdi. CO₂ er 3,206 t per tonn drivstoff. Skjermen viser alt som mangler eller ikke stemmer, som dager uten peiling eller dager i sjø i dekksloggen utenfor alle passasjer. CII-vurderingen er en veiledning: den offisielle gis av administrasjonen på verifiserte data. Bare MGO / diesel er dekket; et fartøy på annet drivstoff kan ikke bruke disse tallene.",
+        "Erklæringen: når året er over, signerer en offiser eller kapteinen. Tankpeilinger kan ikke fordele drivstoff per forbruker, så oppgi det i tonn, under fart og ikke under fart, etter metoden i SEEMP del II, sammen med landstrøm og eventuell innovativ teknologi. Avviker det over 2 % fra peilingene, eller endres oppføringer etter signering, sier skjermen og rapporten fra; en korreksjon er en ny erklæring, og den nyeste gjelder. PDF og Excel er på engelsk. Der DCS eller MRV gjelder, minner Board offiserene om et usignert år: i gult til 31. mars og i rødt etterpå.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Om',
       body: [
@@ -4801,6 +4856,17 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '🌍',
+      title: "Emissões",
+      body: [
+        "Para embarcações que declaram combustível e emissões: IMO DCS (MARPOL, Anexo VI, regra 27), CII (regra 28) e EU MRV (Regulamento 2015/757). Abre-se a partir de Combustível. A app guarda o registo do navio para o verificador; a verificação e a submissão cabem à companhia. Funciona em qualquer embarcação, por isso uma abaixo dos limiares também vê o combustível e o CO₂ do ano.",
+        "O que se aplica: o comandante introduz o tipo de navio, GT, DWT e se transporta carga ou passageiros comercialmente. DCS: a partir de 5000 GT. CII: a partir de 5000 GT, só os tipos da lista; iates e navios offshore não constam. EU MRV: transporte comercial a partir de 5000 GT, e navios offshore e de carga geral a partir de 400 GT. Num iate, o uso comercial pode depender do charter: escolha «Não é claro» e confirme com a bandeira ou o verificador.",
+        "Passagens: escreve-se uma à chegada, de cais a cais, em UTC: saída do cais, FAOP, EOSP, chegada ao cais; o ROB em litros em ambas as pontas; as milhas em navegação do ECDIS ou GPS; carga ou passageiros, se houver; e se cada porto está na UE ou no EEE. Uma paragem só para combustível, abastecimento, reparações, abrigo ou rendição não é porto de escala e não termina a passagem. Uma passagem que atravessa o ano novo pede ainda o ROB e as milhas de 31 dez. às 24:00 UTC, porque cada ano declara a sua parte. Só o comandante altera uma passagem assinada, indicando o motivo.",
+        "Os valores: o combustível vem das sondagens diárias e dos abastecimentos. Os litros passam a toneladas com a densidade do BDN a 15 °C, ponderada por litros no ano e sem correção de temperatura; sem densidade não há toneladas, porque a app nunca assume uma. O CO₂ é 3,206 t por tonelada de combustível. O ecrã mostra tudo o que falta ou não bate certo, como dias sem sondagem ou dias no mar no diário fora de qualquer passagem. A classificação CII é uma referência: a oficial é da Administração, com dados verificados. Só cobre MGO / gasóleo; um navio com outros combustíveis não pode usar estes valores.",
+        "A declaração: terminado o ano, assina-a um oficial ou o comandante. As sondagens de tanques não repartem o combustível por consumidor, por isso introduza-o em toneladas, em navegação e sem navegar, pelo método do seu SEEMP Parte II, com a energia de terra e as tecnologias inovadoras. Se diferir das sondagens mais de 2 %, ou os registos mudarem após assinar, o ecrã e o relatório indicam-no; uma correção é uma nova declaração e vale a mais recente. PDF e Excel em inglês. Onde se aplica DCS ou MRV, o Board lembra os oficiais do ano por assinar: a âmbar até 31 de março e a vermelho depois.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Sobre',
       body: [
@@ -4876,6 +4942,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Discussion on a record', module: 'threads' },
   { title: 'Crew appraisals', module: 'appraisals' },
   { title: 'Drug and alcohol tests', module: 'daTests' },
+  { title: 'Emissions', module: 'emissions' },
   { title: 'Planned maintenance', module: 'critEq', drop: [-1] },
   { title: 'Suppliers and quotations', module: 'poApproval', drop: [-1] },
 ];

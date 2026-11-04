@@ -62,6 +62,7 @@ import { mocStage, nextActionDue as mocNextDue, overdueActions, readyToClose, re
 import { critSummary, downtimeDays, outNow } from './critEq';
 import { apStage, dueList as apDueList } from './appraisals';
 import { actionsAwaited, labsAwaited, nextUnannounced, policyOf } from './daTests';
+import { statementDue } from './emissions';
 import { planBreaches } from './restPlan';
 import { THREAD_ROUTE, threadKey, unreadFromOffice, unreadMentions } from './threads';
 import { t, tk, tn } from '../utils/t';
@@ -205,6 +206,10 @@ export interface BoardInput {
   daResults?: import('../types/daTest').DaResult[];
   daFollowUps?: import('../types/daTest').DaFollowUp[];
   daPolicy?: import('../types/daTest').DaPolicy[];
+  /** Emissions (types/emissions.ts). */
+  emVessel?: import('../types/emissions').EmVessel[];
+  emPassages?: import('../types/emissions').EmPassage[];
+  emStatements?: import('../types/emissions').EmStatement[];
   /** Discussion on a record, and what this device has read of it (services/threads). */
   threads?: import('../types/thread').ThreadMessage[];
   prefs?: { threadRead?: Record<string, number> };
@@ -739,6 +744,12 @@ export function buildBoard(x: BoardInput): Board {
         sub: bad.slice(0, 3).map((b) => t('b.wp.from', { name: b.name, date: dm(b.first) })).join(', ') + (bad.length > 3 ? ' …' : ''),
       });
     }
+  }
+
+  // ---- Emissions: last year's statement, where a rule applies and the year has passages ----
+  if (x.on('emissions') && x.on('fuel') && x.role !== 'user') {
+    const owed = statementDue((x.emVessel ?? [])[0], x.emStatements ?? [], x.emPassages ?? [], x.today);
+    if (owed) n.push({ key: 'em:stmt', level: owed.late ? 'red' : 'amber', who: 'officer', icon: 'molecule-co2', route: 'Emissions', params: { year: owed.year }, title: t('b.em.stmt', { year: owed.year }), sub: t('b.em.stmtSub') });
   }
 
   // ---- Drug and alcohol tests: the unannounced test due, the laboratory, a positive with nothing done ----

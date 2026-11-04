@@ -35,6 +35,7 @@ import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { t as tt, tk, useT, dateLocale } from '../utils/i18n';
 import { shipHm } from '../utils/shipTime';
+import { moduleOn } from '../constants/modules';
 
 const nf = (x?: number) => (x == null ? '—' : `${x.toLocaleString('en-GB', { maximumFractionDigits: 1 })} L`);
 const num = (v: string) => {
@@ -211,6 +212,11 @@ export default function FuelSc() {
           <Text style={[styles.viewChipText, view === k && { color: COLORS.textWhite }]}>{l}</Text>
         </TouchableOpacity>
       ))}
+      {moduleOn('emissions') ? (
+        <TouchableOpacity onPress={() => nav.navigate('Emissions')} style={styles.viewChip}>
+          <Text style={styles.viewChipText}>{tt('em.title')}</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
   if (view === 'daily' && kind === 'diesel') {

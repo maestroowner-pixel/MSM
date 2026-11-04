@@ -142,6 +142,10 @@ export const DA_TESTS_KEY = `${PREFIX}da_tests`;
 export const DA_RESULTS_KEY = `${PREFIX}da_results`;
 export const DA_FOLLOWUPS_KEY = `${PREFIX}da_followups`;
 export const DA_POLICY_KEY = `${PREFIX}da_policy`;
+/** Emissions (types/emissions.ts): the vessel's particulars, passages berth to berth, the year's signed statements. */
+export const EM_VESSEL_KEY = `${PREFIX}em_vessel`;
+export const EM_PASSAGES_KEY = `${PREFIX}em_passages`;
+export const EM_STATEMENTS_KEY = `${PREFIX}em_statements`;
 /** Supplier directory (types/suppliers.ts) — quotes and awards live on the purchase orders. */
 export const SUPPLIERS_KEY = `${PREFIX}suppliers`;
 /**
@@ -874,6 +878,9 @@ export async function resetAllData(): Promise<void> {
     SIGNING_POLICY_KEY,
     PHOTO_ARCHIVE_KEY,
     VESSEL_MODULES_KEY,
+    EM_VESSEL_KEY,
+    EM_PASSAGES_KEY,
+    EM_STATEMENTS_KEY,
     'msm:handover_draft', // services/handover.ts — the outgoing officer's notes
   ];
   await AsyncStorage.multiRemove(keys);
