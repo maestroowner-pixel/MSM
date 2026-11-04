@@ -17,6 +17,11 @@
 // ↑ ↓ in "Edit order" — buttons rather than dragging, which needs gesture
 // machinery this app does not carry and is fiddly with gloves.
 //
+// The group headings open and close on a tap (4 Nov 2026: "more compact"). Which
+// are open is the person's too, per device (`msm:nav_groups_open`), so it is the
+// same the next time the menu opens; until they choose, only the group of the
+// screen the app started on. A search and "Edit order" show every group.
+//
 // Up to FEW screens (the app with its modules off) none of this shows: the
 // ordinary tab bar is kept, unchanged for vessels using it today.
 // ===================================
@@ -39,7 +44,7 @@ import { roleAtLeast } from '../types/role';
 import { MANAGE_ROUTE } from '../constants/access';
 import { StoreKind, storeRooms } from '../types/stores';
 import { t as tr, useT } from '../utils/i18n';
-import { MENU_CHILDREN, MENU_GEAR, MenuChild, applyOrder, flatGrouped, grouped, move, moveInGroup } from '../utils/navOrder';
+import { MENU_CHILDREN, MENU_GEAR, MenuChild, applyOrder, flatGrouped, grouped, move, moveInGroup, groupOf } from '../utils/navOrder';
 export { applyOrder, move, flatGrouped };
 
 /**
@@ -55,6 +60,9 @@ export const PIN_WIDTH = 1100;
 export const MENU_WIDTH = 248;
 
 const ORDER_KEY = 'msm:nav_order';
+const GROUPS_KEY = 'msm:nav_groups_open';
+/** The open groups as last chosen — kept here so a menu opening again starts with them, without a flash. Null: never chosen. */
+let openGroupsChosen: string[] | null = null;
 const PIN_KEY = 'msm:nav_pinned';
 
 /** The person's order and pin, remembered on this device. */
@@ -216,6 +224,25 @@ function MenuList({
   // Entries with sub-items open on a tap; the one on screen starts open.
   const [openParents, setOpenParents] = useState<string[]>(MENU_CHILDREN[current] ? [current] : []);
   const toggle = (r: string) => setOpenParents((o) => (o.includes(r) ? o.filter((x) => x !== r) : [...o, r]));
+  const [openGroups, setOpenGroups] = useState<string[]>(() => openGroupsChosen ?? [groupOf(current)]);
+  useEffect(() => {
+    if (openGroupsChosen) return;
+    AsyncStorage.getItem(GROUPS_KEY)
+      .then((v) => {
+        const saved = v ? JSON.parse(v) : null;
+        if (Array.isArray(saved)) {
+          openGroupsChosen = saved;
+          setOpenGroups(saved);
+        }
+      })
+      .catch(() => {});
+  }, []);
+  const toggleGroup = (key: string) => {
+    const next = openGroups.includes(key) ? openGroups.filter((x) => x !== key) : [...openGroups, key];
+    openGroupsChosen = next;
+    setOpenGroups(next);
+    AsyncStorage.setItem(GROUPS_KEY, JSON.stringify(next)).catch(() => {});
+  };
   const needle = searchQ.trim().toLowerCase();
   const visibleGroups = grouped(order)
     .map(({ group, routes }) => ({
@@ -258,10 +285,19 @@ function MenuList({
       {Platform.OS !== 'web' && !editing && !searching ? <Text style={styles.hint}>{t('nav.barHint')}</Text> : null}
       {/* On a phone the menu is the way in: what is kept comes first (17 Oct 2026). */}
       {Platform.OS !== 'web' && !editing && !searching ? <FavMenuSection onPicked={onClose} itemStyle={styles.item} textStyle={styles.itemText} headStyle={styles.groupHead} /> : null}
-      {visibleGroups.map(({ group, routes }) => (
+      {visibleGroups.map(({ group, routes }) => {
+        const folds = !!group.label && !editing && !searching;
+        const shut = folds && !openGroups.includes(group.key);
+        return (
         <View key={group.key}>
-          {group.label ? <Text style={styles.groupHead}>{group.label}</Text> : group.key === 'home' ? null : <View style={styles.sep} />}
-          {routes.map((r, i) => {
+          {folds ? (
+            <TouchableOpacity style={styles.groupRow} onPress={() => toggleGroup(group.key)} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ expanded: !shut }}>
+              {/* Shut, it still says where you are. */}
+              <Text style={[styles.groupHead, styles.groupHeadRow, shut && routes.includes(current) && { color: COLORS.primary }]} numberOfLines={1}>{group.label}</Text>
+              <MciIcon name={shut ? 'chevron-down' : 'chevron-up'} size={18} color={shut && routes.includes(current) ? COLORS.primary : COLORS.textLight} />
+            </TouchableOpacity>
+          ) : group.label ? <Text style={styles.groupHead}>{group.label}</Text> : group.key === 'home' ? null : <View style={styles.sep} />}
+          {shut ? null : routes.map((r, i) => {
             const shown = childrenOf(r)?.filter((k) => (!k.module || moduleOn(k.module)) && sync.pageOn(`${k.route ?? r}:${k.view}`));
             // Every page hidden for this device: the entry opens its screen as one without pages.
             const kids = shown?.length ? shown : undefined;
@@ -305,7 +341,8 @@ function MenuList({
             );
           })}
         </View>
-      ))}
+        );
+      })}
       {editing ? (
         <TouchableOpacity onPress={reset} style={{ padding: SIZES.md }}>
           <Text style={[styles.edit, { color: COLORS.textLight }]}>{t('nav.reset')}</Text>
@@ -355,6 +392,8 @@ const makeStyles = (COLORS: Palette) =>
     },
     hint: { fontSize: SIZES.tiny, color: COLORS.textLight, paddingHorizontal: SIZES.lg, marginBottom: SIZES.xs },
     groupHead: { fontSize: SIZES.tiny, fontWeight: '800', color: COLORS.textLight, textTransform: 'uppercase', letterSpacing: 0.6, paddingHorizontal: SIZES.lg, marginTop: SIZES.md, marginBottom: 2 },
+    groupRow: { flexDirection: 'row', alignItems: 'center', paddingRight: SIZES.lg, paddingVertical: SIZES.sm },
+    groupHeadRow: { flex: 1, marginTop: 0, marginBottom: 0 },
     sep: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.borderLight, marginVertical: SIZES.xs, marginHorizontal: SIZES.lg },
     item: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md, paddingVertical: 11, paddingHorizontal: SIZES.lg },
     itemOn: { backgroundColor: COLORS.primary + '14' },
