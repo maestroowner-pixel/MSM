@@ -908,6 +908,24 @@ service cloud.firestore {
                           || (shore(v) && onlyChanges(['steps', 'updatedAt']) && mocStepAdded(['office', 'officeReturn', 'reject'])));
         allow delete: if false;
       }
+      // Discussion on a record (types/thread.ts, services/threads): one document per
+      // message. Anyone aboard writes as the vessel, the office as the office; a
+      // message is never changed or deleted.
+      function threadMessageOk() {
+        let m = request.resource.data;
+        return m.keys().hasOnly(['id', 'rec', 'recId', 'title', 'text', 'by', 'byRank', 'at', 'side', 'mentions', 'office', 'updatedAt'])
+               && m.keys().hasAll(['id', 'rec', 'recId', 'title', 'text', 'by', 'at', 'side'])
+               && m.rec in ['defect', 'nc', 'po'] && m.recId is string && m.recId.size() > 0
+               && m.title is string && m.text is string && m.text.size() > 0 && m.text.size() <= 2000
+               && m.by is string && m.by.size() > 0 && m.at is number;
+      }
+      match /threads/{id} {
+        allow read: if reader(v);
+        allow create: if threadMessageOk() && request.resource.data.id == id
+                      && ((member(v) && request.resource.data.side == 'vessel')
+                          || (shore(v) && request.resource.data.side == 'office'));
+        allow update, delete: if false;
+      }
       // Crew appraisals (types/appraisal.ts, services/appraisals.ts): officers and
       // the Master only — the office reads. A draft is written freely; once the
       // appraiser signed, a write adds at most ONE step and nothing else: the

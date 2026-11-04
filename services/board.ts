@@ -63,12 +63,15 @@ import { critSummary, downtimeDays, outNow } from './critEq';
 import { apStage, dueList as apDueList } from './appraisals';
 import { actionsAwaited, labsAwaited, nextUnannounced, policyOf } from './daTests';
 import { planBreaches } from './restPlan';
+import { THREAD_ROUTE, threadKey, unreadFromOffice, unreadMentions } from './threads';
 import { t, tk, tn } from '../utils/t';
 
 export type Level = 'red' | 'amber' | 'blue';
 export type Audience = 'all' | 'officer' | 'master';
 
 export interface Notice {
+  /** Addressed to this person by name: ahead of everything, or the red lines would hide it behind "Show more". */
+  first?: boolean;
   key: string;
   level: Level;
   title: string;
@@ -202,6 +205,9 @@ export interface BoardInput {
   daResults?: import('../types/daTest').DaResult[];
   daFollowUps?: import('../types/daTest').DaFollowUp[];
   daPolicy?: import('../types/daTest').DaPolicy[];
+  /** Discussion on a record, and what this device has read of it (services/threads). */
+  threads?: import('../types/thread').ThreadMessage[];
+  prefs?: { threadRead?: Record<string, number> };
   /** Hours of rest and the watch plans — for breaches the plan brings (services/restPlan). */
   rest?: import('../types/rest').RestDay[];
   restPlans?: import('../types/restPlan').RestPlan[];
@@ -737,6 +743,25 @@ export function buildBoard(x: BoardInput): Board {
 
   // ---- Drug and alcohol tests: the unannounced test due, the laboratory, a positive with nothing done ----
   // Only where the lists reach (officers' devices); dates and counts, never a result's name.
+  // ---- Discussion on a record: who was named, and what the office wrote ----
+  if (x.on('threads')) {
+    const all = x.threads ?? [];
+    const read = x.prefs?.threadRead ?? {};
+    const named = unreadMentions(all, x.me?.name, read);
+    const namedOn = new Set(named.map((m) => threadKey(m.rec, m.recId)));
+    const seen = new Set<string>();
+    for (const m of named) {
+      const k = threadKey(m.rec, m.recId);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      n.push({ key: `th:me:${k}`, first: true, level: 'amber', who: 'all', icon: 'at', route: THREAD_ROUTE[m.rec], params: { id: m.recId }, title: t('b.th.mention', { by: m.by }), sub: m.title });
+    }
+    for (const m of unreadFromOffice(all, read)) {
+      const k = threadKey(m.rec, m.recId);
+      if (!namedOn.has(k)) n.push({ key: `th:office:${k}`, level: 'blue', who: 'officer', icon: 'message-text-outline', route: THREAD_ROUTE[m.rec], params: { id: m.recId }, title: t('b.th.office'), sub: m.title });
+    }
+  }
+
   if (x.on('daTests') && x.on('crewCerts') && x.role !== 'user') {
     const tests = x.daTests ?? [], results = x.daResults ?? [], follow = x.daFollowUps ?? [];
     const due = nextUnannounced(tests, policyOf(x.daPolicy ?? []), x.today);
@@ -820,7 +845,7 @@ export function buildBoard(x: BoardInput): Board {
   const sees = (w: Audience) => w === 'all' || (w === 'officer' && x.role !== 'user') || (w === 'master' && x.role === 'superadmin');
   return {
     status,
-    attention: n.filter((v) => sees(v.who)).sort((a, b) => RANK[a.level] - RANK[b.level]),
+    attention: n.filter((v) => sees(v.who)).sort((a, b) => Number(!!b.first) - Number(!!a.first) || RANK[a.level] - RANK[b.level]),
     plan,
     today,
     tiles,

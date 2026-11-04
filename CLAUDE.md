@@ -292,6 +292,17 @@ app mirrors. Bundle id `com.kukalab.msm`.
   `rest_plans` isAdmin, id = crewId), everyone reads. `npm run check:restplan`; rules-test.mjs covers it. `npm run deploy:rules` before the flag.
   The split rule (restHours) judges a rest period cut by the window's edge on its WHOLE length for the 6 h test (fixed 3 Nov 2026 —
   before, any single night under 12 h, e.g. work 06–19, was flagged daily); only hours inside the window count towards the 10.
+- **Discussion on a record** (4 Nov 2026 — flag `threads`, off; plan item 43): `types/thread.ts`, `services/threads.ts`,
+  `components/RecordThread.tsx` (`ThreadPanel` both sides, `RecordThread` aboard: PmsDefectSc, NcSc, OrderSc), Fleet: vessel
+  tab `talk` + `TalkSheet` (FleetVesselSc), inbox kind `thread`. One document per message in `threads` (appendOnly; rules
+  create only, `side` tied to member/shore, ≤ 2000 chars, closed field list), so the two sides never overwrite each other.
+  Mention = `@Name` of someone aboard or `@Office`, parsed by `mentionsIn`. Waits for the office (`threadsToAnswer`): last
+  word is the vessel's AND it called `@Office` since the office last wrote, or the office is already in the thread; a reply
+  clears it, nothing stored. Board: named person's line is `first` (above red, or "Show more" hides it), the office's
+  unread message goes to officers (blue). Read state is device-local (`prefs.threadRead`, `threadNotifiedAt`). The
+  notification is LOCAL (BoardSc → `notifyNow`, needs reminders on and a sync): no remote push, and no mail to the office.
+  Times are the sender's clock: a ship's clock running ahead can misorder a reply and leave it read. `npm run check:threads`;
+  rules-test.mjs covers it. `npm run deploy:rules` before the flag.
 - **Drug and alcohol tests** (3 Nov 2026 — flag `daTests`, off; plan item 42; needs `crewCerts`): `types/daTest.ts`, pure
   `services/daTests.ts`, paper `services/daTestReport.ts` (PMS-history PDF), screens `DaTestsSc` / `DaTestSc` (routes `DaTests`
   `da-tests`, `DaTest` `da-test/:id` (`new`); entry: Crew → Drug and alcohol tests, Board). THREE append-only records: `da_tests`

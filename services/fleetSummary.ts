@@ -40,6 +40,7 @@ export interface VesselData {
   extInspections?: import('../types/extInspection').ExternalInspection[];
   /** Requisitions (services/poApproval) — what waits for the office's decision. */
   mocs?: import('../types/moc').ManagementOfChange[];
+  threads?: import('../types/thread').ThreadMessage[];
   orders?: import('../types/orders').PurchaseOrder[];
   /** The vessel's own modules (a pilot vessel's), so Fleet shows what that vessel has on. */
   modules?: Partial<Record<import('../constants/modules').ModuleKey, boolean>>;

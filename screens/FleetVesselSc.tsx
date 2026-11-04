@@ -48,9 +48,13 @@ import { approvedNotPlaced, emergencyOpen, markReview, officeApprove, officeOrde
 import { PoProgress } from '../components/PoApprovalPanel';
 import { ManagementOfChange } from '../types/moc';
 import { mocsToAnswer, mocStage, sentToOffice, withStep } from '../services/moc';
+import { ThreadPanel } from '../components/RecordThread';
+import { ThreadRow, defectTitle, makeMessage, ncTitle, threadOf, threadRows, threadsToAnswer } from '../services/threads';
+import { ThreadMessage, ThreadRec } from '../types/thread';
+import { isAboard } from '../types/crew';
 import { t, tk, useT } from '../utils/i18n';
 
-type Tab = 'certs' | 'docs' | 'equipment' | 'pms' | 'verify' | 'insp' | 'crit' | 'po' | 'moc';
+type Tab = 'certs' | 'docs' | 'equipment' | 'pms' | 'verify' | 'insp' | 'crit' | 'po' | 'moc' | 'talk';
 const SCOPES: { key: CertificateScope; label: string }[] = [
   { key: 'vessel', label: 'Vessel' },
   { key: 'crew', label: 'Crew' },
@@ -65,6 +69,7 @@ export default function FleetVesselSc() {
   const imo: string = params.imo;
   const [v, setV] = useState<VesselData | null>(null);
   const [tab, setTab] = useState<Tab>(params.tab ?? 'certs');
+  const [talk, setTalk] = useState<{ rec: ThreadRec; recId: string; title: string } | null>(null);
   const opened = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cert, setCert] = useState<Certificate | null>(null);
@@ -104,7 +109,9 @@ export default function FleetVesselSc() {
     const nc = (v.ncs ?? []).find((x) => x.id === id);
     const o = (v.orders ?? []).find((x) => x.id === id);
     const mc = (v.mocs ?? []).find((x) => x.id === id);
-    if (mc) setMoc(mc);
+    const th = params.tab === 'talk' ? (v.threads ?? []).find((x) => x.recId === id) : undefined;
+    if (th) setTalk({ rec: th.rec, recId: th.recId, title: th.title });
+    else if (mc) setMoc(mc);
     else if (df && !df.office) setCheck({ deferral: df });
     else if (d && awaitsOffice(d)) setCheck({ defect: d });
     else if (nc && ncAwaitsOffice(nc)) setCheck({ nc });
@@ -156,6 +163,15 @@ export default function FleetVesselSc() {
   const poApproved = poQueue ? approvedNotPlaced(orders) : [];
   const poInWork = poQueue ? orders.filter((o) => o.approval?.length && (o.status === 'sent' || o.status === 'partial') && !emergencyOpen(o)).sort((a, b) => b.updatedAt - a.updatedAt) : [];
   if (poQueue) tabs.push(['po', `${t('poa.tab')} · ${poQueue.length}`]);
+  // Discussion on a record (services/threads): what has been said, then what is open and could be asked about.
+  const talkRows: ThreadRow[] | null = moduleOn('threads') || v.modules?.threads === true
+    ? threadRows(v.threads ?? [], [
+        ...(v.defects ?? []).filter((d) => !d.closed).map((d) => ({ rec: 'defect' as const, recId: d.id, title: defectTitle(d) })),
+        ...(v.ncs ?? []).filter((n) => !n.closedAt).map((n) => ({ rec: 'nc' as const, recId: n.id, title: ncTitle(n) })),
+        ...orders.filter((o) => o.status !== 'received' && o.status !== 'cancelled').map((o) => ({ rec: 'po' as const, recId: o.id, title: o.no })),
+      ])
+    : null;
+  if (talkRows) tabs.push(['talk', `${t('th.tab')} · ${threadsToAnswer(v.threads ?? []).length}`]);
   // Management of change (services/moc): waiting for the office's answer, then the rest, newest first.
   const mocQueue = moduleOn('moc') || v.modules?.moc === true ? mocsToAnswer(v.mocs ?? []) : null;
   const mocRest = mocQueue ? (v.mocs ?? []).filter((m) => mocStage(m) !== 'office').sort((a, b) => b.updatedAt - a.updatedAt) : [];
@@ -192,7 +208,20 @@ export default function FleetVesselSc() {
         ))}
       </View>
 
-      {tab === 'moc' && mocQueue ? (
+      {tab === 'talk' && talkRows ? (
+        <>
+          {talkRows.map((r) => (
+            <TouchableOpacity key={`${r.rec}:${r.recId}`} style={styles.row} onPress={() => setTalk({ rec: r.rec, recId: r.recId, title: r.title })}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.title} numberOfLines={2}>{r.title}</Text>
+                <Text style={styles.sub} numberOfLines={2}>{r.last ? `${r.last.by}: ${r.last.text}` : t('th.none')}</Text>
+              </View>
+              <MciIcon name="chevron-right" size={18} color={COLORS.textLight} />
+            </TouchableOpacity>
+          ))}
+          {!talkRows.length ? <Empty text={t('th.nothing')} /> : null}
+        </>
+      ) : tab === 'moc' && mocQueue ? (
         <>
           {mocQueue.map(mocRow)}
           {!mocQueue.length ? <Empty text={t('moc.nothingOffice')} /> : null}
@@ -359,6 +388,7 @@ export default function FleetVesselSc() {
 
       {cert ? <CertEditor imo={imo} cert={cert} crew={v.crew} onClose={() => setCert(null)} onSaved={() => { setCert(null); void load(); }} /> : null}
       {check ? <OfficeCheckSheet imo={v.imo} check={check} onClose={() => setCheck(null)} onSaved={() => { setCheck(null); void load(); }} /> : null}
+      {talk ? <TalkSheet imo={v.imo} talk={talk} messages={threadOf(v.threads ?? [], talk.rec, talk.recId)} people={v.crew.filter(isAboard).map((c) => c.name)} onClose={() => setTalk(null)} onPosted={(m) => setV((x) => (x ? { ...x, threads: [...(x.threads ?? []), m] } : x))} /> : null}
       {moc ? <MocSheet imo={v.imo} moc={moc} onClose={() => setMoc(null)} onSaved={() => { setMoc(null); void load(); }} /> : null}
       {po ? <PoSheet imo={v.imo} order={po} onClose={() => { setPo(null); void load(); }} onSaved={() => { setPo(null); void load(); }} /> : null}
       {docEdit ? <DocEditor imo={imo} start={docEdit.doc} isNew={docEdit.isNew} onClose={() => setDocEdit(null)} onSaved={() => { setDocEdit(null); void load(); }} /> : null}
@@ -853,6 +883,45 @@ function MocSheet({ imo, moc, onClose, onSaved }: { imo: string; moc: Management
         </>
       ) : null}
     </Sheet>
+  );
+}
+
+/** A record's discussion, from the office (services/threads). */
+function TalkSheet({ imo, talk, messages, people, onClose, onPosted }: { imo: string; talk: { rec: ThreadRec; recId: string; title: string }; messages: ThreadMessage[]; people: string[]; onClose: () => void; onPosted: (m: ThreadMessage) => void }) {
+  const send = async (text: string) => {
+    try {
+      const m = makeMessage({ ...talk, text, by: (await shore.myName()) || t('fv.supt'), byRank: t('oc.office'), side: 'office' }, people, Date.now());
+      await shore.postThreadMessage(imo, m);
+      onPosted(m);
+      return true;
+    } catch {
+      Alert.alert(t('th.title'), t('th.failed'));
+      return false;
+    }
+  };
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <TalkBody title={talk.title} onClose={onClose}>
+        <ThreadPanel messages={messages} tags={people} onSend={send} />
+      </TalkBody>
+    </Modal>
+  );
+}
+
+function TalkBody({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  const COLORS = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+  return (
+    <View style={styles.backdrop}>
+      <View style={styles.sheet}>
+        <View style={styles.sheetHead}>
+          <TouchableOpacity onPress={onClose} hitSlop={8}><Text style={[styles.link, { color: COLORS.textLight }]}>{t('common.close')}</Text></TouchableOpacity>
+          <Text style={styles.sheetTitle} numberOfLines={2}>{title}</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <ScrollView contentContainerStyle={{ paddingBottom: SIZES.lg }}>{children}</ScrollView>
+      </View>
+    </View>
   );
 }
 

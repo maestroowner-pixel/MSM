@@ -143,7 +143,7 @@ export async function loadVessel(imo: string): Promise<VesselData> {
     blob = {};
   }
   const items: EquipmentItem[] = Object.values(blob.categories ?? {}).flatMap((l: any) => (Array.isArray(l) ? l : []));
-  const [crew, docs, acks, machines, jobs, spares, moves, defects, ncs, deferrals, extInspections, orders, mocs] = await Promise.all([
+  const [crew, docs, acks, machines, jobs, spares, moves, defects, ncs, deferrals, extInspections, orders, mocs, threads] = await Promise.all([
     list<CrewMember>(imo, 'crew'),
     list<IsmDoc>(imo, 'ism_docs'),
     list<DocAck>(imo, 'ism_doc_acks'),
@@ -157,6 +157,7 @@ export async function loadVessel(imo: string): Promise<VesselData> {
     list<any>(imo, 'ext_inspections'),
     list<any>(imo, 'purchase_orders'),
     list<any>(imo, 'mocs'),
+    list<any>(imo, 'threads'),
   ]);
   return {
     imo,
@@ -177,6 +178,7 @@ export async function loadVessel(imo: string): Promise<VesselData> {
     extInspections,
     orders,
     mocs,
+    threads,
     modules: cleanModules(data.modules),
   };
 }
@@ -208,6 +210,11 @@ export async function myName(): Promise<string> {
 export async function saveOfficeCheck(imo: string, sub: 'pms_defects' | 'ncs' | 'pms_deferrals' | 'purchase_orders' | 'mocs', rec: { id: string }): Promise<void> {
   const clean = JSON.parse(JSON.stringify(rec));
   await setDoc(doc(db(), ROOT, imo, sub, rec.id), clean);
+}
+
+/** A message from the office on a record's discussion (services/threads); rules: create only. */
+export async function postThreadMessage(imo: string, m: { id: string }): Promise<void> {
+  await setDoc(doc(db(), ROOT, imo, 'threads', m.id), JSON.parse(JSON.stringify(m)));
 }
 
 /** A record's photo in Cloud Storage (services/photoStorage photoPath); null when it has not been uploaded yet. */

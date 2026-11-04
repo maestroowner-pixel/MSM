@@ -13,6 +13,8 @@ import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { BackButton, Card, Label, Screen, ScreenTitle } from '../components/ui';
+import { RecordThread } from '../components/RecordThread';
+import { ncTitle } from '../services/threads';
 import { Dropdown } from '../components/Dropdown';
 import SimpleDatePicker from '../components/SimpleDatePicker';
 import { useSignConfirm } from '../components/SignConfirm';
@@ -274,6 +276,7 @@ export default function NcSc() {
           ) : null}
         </>
       ) : null}
+      {nc.no && !isNew ? <RecordThread rec="nc" recId={nc.id} title={ncTitle(nc)} /> : null}
     </Screen>
   );
 }

@@ -13,6 +13,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
 
 import { BackButton, Card, Label, Screen, ScreenTitle } from '../components/ui';
+import { RecordThread } from '../components/RecordThread';
 import SimpleDatePicker from '../components/SimpleDatePicker';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
@@ -1001,6 +1002,7 @@ export default function OrderSc() {
           {o.supplier ? <Text style={[styles.trail, { textAlign: 'center' }]}>{o.supplier}</Text> : null}
         </Card>
       ) : null}
+      {!isNew ? <RecordThread rec="po" recId={o.id} title={o.no} /> : null}
     </Screen>
   );
 }

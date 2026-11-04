@@ -11,6 +11,8 @@ import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'reac
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { BackButton, Card, Label, Screen, ScreenTitle } from '../components/ui';
+import { RecordThread } from '../components/RecordThread';
+import { defectTitle } from '../services/threads';
 import { PhotoPicker } from '../components/PhotoPicker';
 import SimpleDatePicker from '../components/SimpleDatePicker';
 import { EvidencePhoto } from '../components/EvidencePhoto';
@@ -214,6 +216,7 @@ export default function PmsDefectSc() {
               )}
             </Card>
           ) : null}
+          <RecordThread rec="defect" recId={existing.id} title={defectTitle(existing)} />
           {(() => {
             const open = pmsJobs.filter((j) => j.defectId === existing.id);
             const done = pmsDone.filter((d) => d.forDefectId === existing.id);

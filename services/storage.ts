@@ -130,6 +130,8 @@ export const YARD_JOBS_KEY = `${PREFIX}yard_jobs`;
 export const WARRANTY_CLAIMS_KEY = `${PREFIX}warranty_claims`;
 /** External inspections (types/extInspection.ts) — PSC, flag, class, vetting; the findings are NCs. */
 export const EXT_INSP_KEY = `${PREFIX}ext_inspections`;
+/** Discussion on a record (types/thread.ts) — one document per message. */
+export const THREADS_KEY = `${PREFIX}threads`;
 /** Management of change (types/moc.ts) — the change, its approvals, actions and closure. */
 export const MOCS_KEY = `${PREFIX}mocs`;
 export const APPRAISALS_KEY = `${PREFIX}crew_appraisals`;
@@ -422,6 +424,10 @@ export interface Prefs {
   /** Every sound cue off — the bell, the success and error chimes. A user working
    *  through forty inspections asked for it. Device-local. */
   soundsMuted?: boolean;
+  /** Discussions opened on this device: thread → the latest message seen (services/threads). Device-local. */
+  threadRead?: Record<string, number>;
+  /** The latest mention this device has notified about. Device-local. */
+  threadNotifiedAt?: number;
 }
 
 export async function loadPrefs(): Promise<Prefs> {

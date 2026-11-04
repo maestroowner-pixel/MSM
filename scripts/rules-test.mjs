@@ -423,6 +423,23 @@ await t(false, 'A requisition is never deleted', deleteDoc(R(master, 'purchase_o
 // Management of change (services/moc, plan item 38)
 const MOC = { id: 'moc1', no: 'MOC-2026-01', kind: 'equipment', title: 'Bypass the bilge alarm', what: 'x', why: 'y', needsOffice: true, actions: [{ id: 'a1', text: 'Fit sensor', owner: 'AB', due: '2026-11-10' }], steps: [], raisedBy: '2/E', at: 1, updatedAt: 1 };
 const steps = (...k) => k.map(([kind, at, note]) => ({ kind, by: 'X', at, ...(note ? { note } : {}) }));
+// Discussion on a record (types/thread.ts): one document per message, never changed.
+const TH = { id: 'th1', rec: 'defect', recId: 'd1', title: 'Pump — leak', text: 'Parts ordered? @Office', by: 'Liam', at: 1, side: 'vessel', office: true };
+await t(true, 'Crew write on a record as the vessel', setDoc(R(crew, 'threads', 'th1'), TH));
+await t(true, 'A member reads the discussion', getDoc(R(crew, 'threads', 'th1')));
+await t(true, 'The office reads it', getDoc(R(shore, 'threads', 'th1')));
+await t(true, 'The office replies as the office', setDoc(R(shore, 'threads', 'th2'), { ...TH, id: 'th2', by: 'Supt', byRank: 'Office', side: 'office', office: false, at: 2 }));
+await t(false, 'The office cannot write as the vessel', setDoc(R(shore, 'threads', 'th3'), { ...TH, id: 'th3' }));
+await t(false, 'The vessel cannot write as the office', setDoc(R(officer, 'threads', 'th3'), { ...TH, id: 'th3', side: 'office' }));
+await t(false, 'A message cannot be changed', updateDoc(R(officer, 'threads', 'th1'), { text: 'Other' }));
+await t(false, 'Not by the Master either', updateDoc(R(master, 'threads', 'th1'), { text: 'Other' }));
+await t(false, 'A message cannot be deleted', deleteDoc(R(master, 'threads', 'th1')));
+await t(false, 'An empty message is refused', setDoc(R(crew, 'threads', 'th4'), { ...TH, id: 'th4', text: '' }));
+await t(false, 'A message over the limit is refused', setDoc(R(crew, 'threads', 'th5'), { ...TH, id: 'th5', text: 'x'.repeat(2001) }));
+await t(false, 'An unknown record kind is refused', setDoc(R(crew, 'threads', 'th6'), { ...TH, id: 'th6', rec: 'hospital' }));
+await t(false, 'An extra field is refused', setDoc(R(crew, 'threads', 'th7'), { ...TH, id: 'th7', crewId: 'c1' }));
+await t(false, 'The id must be the document', setDoc(R(crew, 'threads', 'th8'), { ...TH, id: 'other' }));
+
 await t(false, 'Crew cannot raise a change', setDoc(R(crew, 'mocs', 'moc0'), { ...MOC, id: 'moc0' }));
 await t(false, 'An officer cannot raise it already approved', setDoc(R(officer, 'mocs', 'moc0'), { ...MOC, id: 'moc0', steps: steps(['master', 1]) }));
 await t(true, 'An officer raises a change', setDoc(R(officer, 'mocs', 'moc1'), MOC));

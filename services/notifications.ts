@@ -44,6 +44,16 @@ export async function requestPermission(): Promise<boolean> {
   }
 }
 
+/** A notification now — someone was mentioned (services/threads). Local too: it comes when the device has synced. */
+export async function notifyNow(title: string, body: string): Promise<void> {
+  if (!N) return;
+  try {
+    await N.scheduleNotificationAsync({ content: { title, body }, trigger: null });
+  } catch {
+    /* ignore */
+  }
+}
+
 export async function cancelAll(): Promise<void> {
   if (!N) return;
   try {

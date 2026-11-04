@@ -12,8 +12,8 @@ const base: VesselData = {
   imo: '9000001', name: 'MY Alpha', registerAt: 1, items: [], certificates: [], crew: [], docs: [], acks: [],
   machines: [], jobs: [], spares: [], moves: [],
 };
-const all = { office: true, po: true, crit: true, ext: true, moc: true };
-const none = { office: false, po: false, crit: false, ext: false, moc: false };
+const all = { office: true, po: true, crit: true, ext: true, moc: true, threads: true };
+const none = { office: false, po: false, crit: false, ext: false, moc: false, threads: false };
 
 const machines: any[] = [
   { id: 'me', name: 'Main engine', critical: true },

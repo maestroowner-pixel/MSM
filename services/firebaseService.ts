@@ -1322,6 +1322,8 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'ext_inspections', key: storage.EXT_INSP_KEY, module: 'extInsp' },
   // Management of change: officers write it, the Master and the office approve it, the Master closes it.
   { sub: 'mocs', key: storage.MOCS_KEY, module: 'moc' },
+  // Discussion on a record: every message is its own document, never changed.
+  { sub: 'threads', key: storage.THREADS_KEY, module: 'threads', appendOnly: true },
   { sub: 'drills', key: storage.DRILLS_KEY, module: 'drills' },
   // The drill calendar: one plan per year (services/drillPlan.ts).
   { sub: 'drill_plans', key: storage.DRILL_PLANS_KEY, module: 'drills' },

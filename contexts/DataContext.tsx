@@ -46,6 +46,7 @@ import { OilPoint, OilSample } from '../types/oil';
 import { WarrantyClaim, YardJob } from '../types/yard';
 import { ExternalInspection } from '../types/extInspection';
 import { ManagementOfChange } from '../types/moc';
+import { ThreadMessage } from '../types/thread';
 import { CrewAppraisal } from '../types/appraisal';
 import { RestPlan } from '../types/restPlan';
 import { DaFollowUp, DaPolicy, DaResult, DaTest } from '../types/daTest';
@@ -205,6 +206,8 @@ interface DataContextType {
   extInspections: ExternalInspection[];
   /** Management of change (types/moc.ts). */
   mocs: ManagementOfChange[];
+  /** Discussion on a record (types/thread.ts). */
+  threads: ThreadMessage[];
   /** Crew appraisals (types/appraisal.ts) — officers' devices only. */
   appraisals: CrewAppraisal[];
   /** Watch plans (types/restPlan.ts), one per person. */
@@ -396,6 +399,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [ncs, setNcs] = useState<NonConformity[]>([]);
   const [extInspections, setExtInspections] = useState<ExternalInspection[]>([]);
   const [mocs, setMocs] = useState<ManagementOfChange[]>([]);
+  const [threads, setThreads] = useState<ThreadMessage[]>([]);
   const [appraisals, setAppraisals] = useState<CrewAppraisal[]>([]);
   const [restPlans, setRestPlans] = useState<RestPlan[]>([]);
   const [daTests, setDaTests] = useState<DaTest[]>([]);
@@ -643,6 +647,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setNcs(_ncs);
     setExtInspections(_ext);
     setMocs(_mocs);
+    setThreads(await storage.loadList<ThreadMessage>(storage.THREADS_KEY));
     setAppraisals(_appraisals);
     setRestPlans(_restPlans);
     setDaTests(_daTests);
@@ -1006,6 +1011,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setNcs(_ncs);
     setExtInspections(_ext);
     setMocs(_mocs);
+    setThreads(await storage.loadList<ThreadMessage>(storage.THREADS_KEY));
     setAppraisals(_appraisals);
     setRestPlans(_restPlans);
     setDaTests(_daTests);
@@ -1352,6 +1358,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         ncs,
         extInspections,
         mocs,
+        threads,
         appraisals,
         restPlans,
         daTests,

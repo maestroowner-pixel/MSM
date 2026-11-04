@@ -11,7 +11,7 @@
 // one tap away on the LSA / FFE tile.
 // ===================================
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
@@ -29,6 +29,8 @@ import { periodsFor } from '../constants/checklists';
 import { personName } from '../types/role';
 import { CategoryKey } from '../types/equipment';
 import { buildBoard, Level } from '../services/board';
+import { notifyNow } from '../services/notifications';
+import { mentionsToNotify } from '../services/threads';
 import { aiReady } from '../services/ai';
 import { todayIso } from '../services/pms';
 import { nowLocal } from '../services/permits';
@@ -73,6 +75,16 @@ export default function BoardSc() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [data, role, me, tick, t]
   );
+
+  // A mention that came in with the sync: said once on this device (services/threads).
+  useEffect(() => {
+    if (!moduleOn('threads') || !data.prefs?.notificationsEnabled) return;
+    const fresh = mentionsToNotify(data.threads, me?.name, data.prefs.threadRead, data.prefs.threadNotifiedAt);
+    if (!fresh.length) return;
+    void data.setPrefs({ threadNotifiedAt: Math.max(...fresh.map((m) => m.at)) });
+    void notifyNow(fresh.length === 1 ? t('b.th.mention', { by: fresh[0].by }) : t('b.th.mentions', { n: fresh.length }), fresh[0].title);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.threads, data.prefs?.notificationsEnabled, data.prefs?.threadRead, data.prefs?.threadNotifiedAt, me?.name]);
 
   const color = (l?: Level) => (l === 'red' ? COLORS.danger : l === 'amber' ? COLORS.warning : l === 'blue' ? COLORS.primary : COLORS.success);
   const go = (route: string, params?: Record<string, unknown>) => nav.navigate(route, params);
