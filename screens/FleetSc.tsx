@@ -191,12 +191,12 @@ export default function FleetSc() {
                 {t('fleet.spares', { out: r.sparesOut, low: r.sparesLow })}
               </Text>
             ) : null}
-            {(r.critOn || moduleOn('critEq')) && (r.crit.defects || r.crit.out.length) ? (
+            {r.critOn && (r.crit.defects || r.crit.out.length) ? (
               <Text style={[styles.pill, { color: r.crit.out.some((o) => o.critical) || r.crit.defects ? COLORS.danger : COLORS.warning, borderColor: r.crit.out.some((o) => o.critical) || r.crit.defects ? COLORS.danger : COLORS.warning }]}>
                 {[r.crit.defects ? t('fleet.critDefects', { n: r.crit.defects }) : null, r.crit.out.length ? t('fleet.outOfService', { names: r.crit.out.map((o) => `${o.critical ? '⚑ ' : ''}${o.name}`).join(', ') }) : null].filter(Boolean).join(' · ')}
               </Text>
             ) : null}
-            {(r.poOn || moduleOn('poApproval')) && (r.po.waiting || r.po.emergency) ? (
+            {r.poOn && (r.po.waiting || r.po.emergency) ? (
               <Text style={[styles.pill, { color: r.po.emergency ? COLORS.warning : COLORS.primary, borderColor: r.po.emergency ? COLORS.warning : COLORS.primary }]}>
                 {[r.po.waiting ? t('fleet.poWaiting', { n: r.po.waiting }) : null, r.po.emergency ? t('fleet.poEmergency', { n: r.po.emergency }) : null].filter(Boolean).join(' · ')}
               </Text>

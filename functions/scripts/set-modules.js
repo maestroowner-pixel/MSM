@@ -1,13 +1,15 @@
 // Set the vessel's module flags on safety_vessels/<IMO> (firestore.rules
 // refuses this field to any client — only an admin credential may write it).
 //
-// Example: `npm run modules -- 9967093 all --except dp,dpEditor`
-//          `npm run modules -- 1234567 off watchChecks,patrols,keys`
-//          `npm run modules -- 9967093 off ai`     (just that one off)
+// Example: `npm run modules -- 9967093 off dp`              (DreamBoat has no DP)
+//          `npm run modules -- 1234567 on threads`
+//          `npm run modules -- 1234567 default threads`  (back to what the build says)
+//          `npm run modules -- 1234567 all`
+//          `npm run modules -- 9967093 all --except dp,dpEditor`
 //
-// The map is REPLACED by what the script writes: a module not in the final map
-// goes dark on that vessel (unless the build itself has it true for everybody,
-// in which case cleanModules keeps it on — see constants/modules.ts).
+// `on` and `off` say so for this vessel whatever the build says; `off` takes away
+// even a module released for everybody (constants/modules.ts). The app before
+// 2.72 ignores `off` and goes by the build.
 //
 // Credentials: application default (`gcloud auth application-default login`),
 // or GOOGLE_APPLICATION_CREDENTIALS pointing at a service-account key.
@@ -32,7 +34,7 @@ function parseArgs(argv) {
   const imo = a[0].replace(/\D/g, '');
   if (!imo) usage('IMO must be digits');
   const op = a[1].toLowerCase();
-  if (!['all', 'on', 'off'].includes(op)) usage('Unknown op: ' + op);
+  if (!['all', 'on', 'off', 'default'].includes(op)) usage('Unknown op: ' + op);
   const i = a.indexOf('--except');
   const names = (i >= 0 ? a.slice(2, i).concat(a.slice(i + 1)) : a.slice(2))
     .flatMap((s) => s.split(/[\s,]+/))
@@ -46,6 +48,7 @@ function usage(msg) {
   console.error('Usage: npm run modules -- <IMO> all [--except key1,key2]');
   console.error('       npm run modules -- <IMO> on  key1,key2 …');
   console.error('       npm run modules -- <IMO> off key1,key2 …');
+  console.error('       npm run modules -- <IMO> default key1,key2 …');
   process.exit(1);
 }
 
@@ -62,8 +65,9 @@ async function main() {
   const current = snap.get('modules') || {};
 
   let next;
-  if (op === 'all') next = Object.fromEntries(keys.filter((k) => !except.includes(k)).map((k) => [k, true]));
+  if (op === 'all') next = Object.fromEntries(keys.map((k) => [k, !except.includes(k)]));
   else if (op === 'on') next = { ...current, ...Object.fromEntries(names.map((k) => [k, true])) };
+  else if (op === 'off') next = { ...current, ...Object.fromEntries(names.map((k) => [k, false])) };
   else {
     next = { ...current };
     for (const k of names) delete next[k];
@@ -74,15 +78,19 @@ async function main() {
     console.log(`safety_vessels/${imo}: already as requested, nothing to change.`);
     return;
   }
-  await ref.set({ modules: next }, { merge: true });
+  // update, not set with merge: merge keeps a key that is gone from the map.
+  await ref.update({ modules: next });
   console.log(`safety_vessels/${imo}: modules updated.`);
   for (const [k, from, to] of changed) console.log(`  ${k}: ${from} → ${to}`);
+  if (next.lifting === false) console.log('  Note: lifting: false does not take effect on the phones (constants/modules.ts).');
 }
+
+const word = (v) => (v === undefined ? 'default' : v ? 'on' : 'off');
 
 function diff(a, b) {
   const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
   const out = [];
-  for (const k of keys) if (a[k] !== b[k]) out.push([k, a[k] ? 'on' : 'off', b[k] ? 'on' : 'off']);
+  for (const k of keys) if (a[k] !== b[k]) out.push([k, word(a[k]), word(b[k])]);
   return out.sort((x, y) => x[0].localeCompare(y[0]));
 }
 

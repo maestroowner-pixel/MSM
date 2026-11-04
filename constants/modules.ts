@@ -321,24 +321,29 @@ export const MODULES: Record<ModuleKey, boolean> = {
 // client write to it, the Master's included, because which modules a vessel has
 // is the product we sell it, not a vessel setting.
 //
-// It can only ADD to this build's flags, never take one away: a module released
-// for everybody is on whatever the vessel document says.
+// `true` adds a module the build has off; `false` takes one away that the build
+// has on (4 Nov 2026: DreamBoat has no DP, and a fleet of different vessels will
+// differ the same way). No entry: as the build. What the vessel recorded stays.
+//
+// An older app ignores `false` and shows the module until it is updated.
 //
 // Read synchronously like the build flags, so every existing `moduleOn` call
 // keeps working. SyncContext installs the vessel's list (cached in
 // `msm:vessel_modules`, so a launch at sea has it before any network) and
 // re-renders its consumers when it changes. Values computed at IMPORT time —
 // the lifting categories and checklists — cannot follow it; `lifting` is
-// released for everybody, so that costs nothing today.
+// released for everybody, so that costs nothing today — but `lifting: false` does
+// not take effect on the phones, whose lists are already built by then.
 
 let vesselModules: Partial<Record<ModuleKey, boolean>> = {};
 
-/** Only known keys with `true` survive — the field is typed by hand in a console. */
+/** Only known keys with `true` or `false` survive — the field is typed by hand in a console. */
 export function cleanModules(raw: unknown): Partial<Record<ModuleKey, boolean>> {
   const out: Partial<Record<ModuleKey, boolean>> = {};
   if (!raw || typeof raw !== 'object') return out;
   for (const k of Object.keys(MODULES) as ModuleKey[]) {
-    if ((raw as any)[k] === true) out[k] = true;
+    const v = (raw as any)[k];
+    if (v === true || v === false) out[k] = v;
   }
   return out;
 }
@@ -364,9 +369,14 @@ export function setVesselModules(raw: unknown): boolean {
 
 /** The vessel's own additions (for Settings → About and diagnostics). */
 export function vesselModuleKeys(): ModuleKey[] {
-  return Object.keys(vesselModules) as ModuleKey[];
+  return (Object.keys(vesselModules) as ModuleKey[]).filter((k) => vesselModules[k]);
 }
 
 export function moduleOn(key: ModuleKey): boolean {
-  return MODULES[key] === true || vesselModules[key] === true;
+  return moduleOnFor(key, vesselModules);
+}
+
+/** The same answer for a vessel read from outside it (Fleet): the vessel's word, else the build's. */
+export function moduleOnFor(key: ModuleKey, modules: Partial<Record<ModuleKey, boolean>> | undefined | null): boolean {
+  return (modules?.[key] ?? MODULES[key]) === true;
 }

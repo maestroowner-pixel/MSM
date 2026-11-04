@@ -4,6 +4,7 @@
 // under Node (`npm run check:fleet`).
 // ===================================
 
+import { moduleOnFor } from '../constants/modules';
 import { Certificate, scopeOf } from '../types/certificate';
 import { CrewMember } from '../types/crew';
 import { DocAck, IsmDoc } from '../types/docs';
@@ -42,7 +43,7 @@ export interface VesselData {
   mocs?: import('../types/moc').ManagementOfChange[];
   threads?: import('../types/thread').ThreadMessage[];
   orders?: import('../types/orders').PurchaseOrder[];
-  /** The vessel's own modules (a pilot vessel's), so Fleet shows what that vessel has on. */
+  /** The vessel's own modules (added or taken away), so Fleet shows what that vessel has on. */
   modules?: Partial<Record<import('../constants/modules').ModuleKey, boolean>>;
 }
 
@@ -126,9 +127,9 @@ export function summarise(v: VesselData): VesselSummary {
     signaturesMissing,
     ext: extSummary(v.extInspections ?? [], v.ncs ?? [], new Date().toISOString().slice(0, 10)),
     crit: critSummary(live(v.machines), v.defects ?? []),
-    critOn: !!v.modules?.critEq,
+    critOn: moduleOnFor('critEq', v.modules),
     po: poSummary(v.orders ?? []),
-    poOn: !!v.modules?.poApproval,
+    poOn: moduleOnFor('poApproval', v.modules),
   };
 }
 

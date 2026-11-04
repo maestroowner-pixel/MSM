@@ -24,7 +24,7 @@ import { MciIcon } from '../components/MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { SIZES, Palette } from '../theme';
 import * as shore from '../services/shore';
-import { moduleOn } from '../constants/modules';
+import { moduleOn, moduleOnFor } from '../constants/modules';
 import { VesselData } from '../services/fleetSummary';
 import { readStatus } from '../services/docs';
 import { pickDocument, toDataUri } from '../services/attachments';
@@ -135,7 +135,7 @@ export default function FleetVesselSc() {
     .sort((a, b) => (a.st === b.st ? 0 : a.st === 'expired' ? -1 : 1));
   // Verified by the office (services/officeCheck): closures waiting for this superintendent.
   // On for the build, or for this vessel (a pilot) — the superintendent has no vessel of their own to read it from.
-  const office = moduleOn('officeCheck') || v.modules?.officeCheck === true;
+  const office = moduleOnFor('officeCheck', v.modules);
   const toVerify = (v.defects ?? []).filter(awaitsOffice).sort((a, b) => a.closed!.at - b.closed!.at);
   const ncsToVerify = (v.ncs ?? []).filter(ncAwaitsOffice).sort((a, b) => (a.closedAt ?? 0) - (b.closedAt ?? 0));
   const toApprove = deferralsToAnswer(v.deferrals ?? [], v.jobs);
@@ -149,22 +149,22 @@ export default function FleetVesselSc() {
   if (office) tabs.push(['verify', `${t('oc.tab')} · ${toVerify.length + ncsToVerify.length + toApprove.length}`]);
   // External inspections (types/extInspection.ts): on for the build or for this vessel.
   const today = todayIso();
-  const insps = moduleOn('extInsp') || v.modules?.extInsp === true ? sortInspections(v.extInspections ?? [], v.ncs ?? [], today) : null;
+  const insps = moduleOnFor('extInsp', v.modules) ? sortInspections(v.extInspections ?? [], v.ncs ?? [], today) : null;
   if (insps) tabs.push(['insp', `${t('ei.title')} · ${insps.length}`]);
   // Critical equipment (services/critEq): defects open on critical machines and every machine out of service.
   const critIds = new Set(v.machines.filter((m) => m.critical && !m.deleted).map((m) => m.id));
-  const critList = moduleOn('critEq') || v.modules?.critEq === true
+  const critList = moduleOnFor('critEq', v.modules)
     ? (v.defects ?? []).filter((d) => isOut(d) || (!d.closed && critIds.has(d.machineId))).sort((a, b) => Number(isOut(b)) - Number(isOut(a)) || a.at - b.at)
     : null;
   if (critList) tabs.push(['crit', `${t('crq.tab')} · ${critList.length}`]);
   // Requisitions through the office (services/poApproval): to decide, approved but not placed, in work.
   const orders = (v.orders ?? []).filter((o) => !o.deleted);
-  const poQueue = moduleOn('poApproval') || v.modules?.poApproval === true ? officeQueue(orders) : null;
+  const poQueue = moduleOnFor('poApproval', v.modules) ? officeQueue(orders) : null;
   const poApproved = poQueue ? approvedNotPlaced(orders) : [];
   const poInWork = poQueue ? orders.filter((o) => o.approval?.length && (o.status === 'sent' || o.status === 'partial') && !emergencyOpen(o)).sort((a, b) => b.updatedAt - a.updatedAt) : [];
   if (poQueue) tabs.push(['po', `${t('poa.tab')} · ${poQueue.length}`]);
   // Discussion on a record (services/threads): what has been said, then what is open and could be asked about.
-  const talkRows: ThreadRow[] | null = moduleOn('threads') || v.modules?.threads === true
+  const talkRows: ThreadRow[] | null = moduleOnFor('threads', v.modules)
     ? threadRows(v.threads ?? [], [
         ...(v.defects ?? []).filter((d) => !d.closed).map((d) => ({ rec: 'defect' as const, recId: d.id, title: defectTitle(d) })),
         ...(v.ncs ?? []).filter((n) => !n.closedAt).map((n) => ({ rec: 'nc' as const, recId: n.id, title: ncTitle(n) })),
@@ -173,7 +173,7 @@ export default function FleetVesselSc() {
     : null;
   if (talkRows) tabs.push(['talk', `${t('th.tab')} · ${threadsToAnswer(v.threads ?? []).length}`]);
   // Management of change (services/moc): waiting for the office's answer, then the rest, newest first.
-  const mocQueue = moduleOn('moc') || v.modules?.moc === true ? mocsToAnswer(v.mocs ?? []) : null;
+  const mocQueue = moduleOnFor('moc', v.modules) ? mocsToAnswer(v.mocs ?? []) : null;
   const mocRest = mocQueue ? (v.mocs ?? []).filter((m) => mocStage(m) !== 'office').sort((a, b) => b.updatedAt - a.updatedAt) : [];
   if (mocQueue) tabs.push(['moc', `${t('moc.short')} · ${mocQueue.length}`]);
   const mocRow = (m: ManagementOfChange) => (

@@ -110,6 +110,7 @@ exports.critAlert = onDocumentWritten(
     const vSnap = await db.doc(`${ROOT}/${vessel}`).get();
     if (!vSnap.exists) return;
     const v = vSnap.data();
+    if (v.modules && v.modules.critEq === false) return;
     if (!CRIT_EQ_RELEASED && !(v.modules && v.modules.critEq === true)) return;
     const recipients = ((v.emailReport && v.emailReport.recipients) || []).filter((r) => typeof r === 'string' && r.includes('@'));
     if (!recipients.length) {

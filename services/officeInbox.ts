@@ -43,16 +43,16 @@ export interface OfficeParts {
   threads: boolean;
 }
 
-/** On for the build (`buildOn`, constants/modules moduleOn) or for this vessel as a pilot. */
+/** The vessel's own word (added or taken away), else the build's (`buildOn`, constants/modules moduleOn). */
 export function officeParts(v: Pick<VesselData, 'modules'>, buildOn: (k: 'officeCheck' | 'poApproval' | 'critEq' | 'extInsp' | 'moc' | 'threads') => boolean): OfficeParts {
   const m = v.modules ?? {};
   return {
-    office: buildOn('officeCheck') || m.officeCheck === true,
-    po: buildOn('poApproval') || m.poApproval === true,
-    crit: buildOn('critEq') || m.critEq === true,
-    ext: buildOn('extInsp') || m.extInsp === true,
-    moc: buildOn('moc') || m.moc === true,
-    threads: buildOn('threads') || m.threads === true,
+    office: m.officeCheck ?? buildOn('officeCheck'),
+    po: m.poApproval ?? buildOn('poApproval'),
+    crit: m.critEq ?? buildOn('critEq'),
+    ext: m.extInsp ?? buildOn('extInsp'),
+    moc: m.moc ?? buildOn('moc'),
+    threads: m.threads ?? buildOn('threads'),
   };
 }
 
