@@ -89,6 +89,7 @@ import { Inspection } from '../types/inspection';
 import { CrewMember } from '../types/crew';
 import { mergeById } from './pms';
 import { keepRecent } from './dp';
+import { pullWindow } from './listSync';
 import { treatmentFromCloud, treatmentToCloud } from './hospital';
 import { daResultFromCloud, daResultToCloud } from './daTests';
 import { isPassengerId, passengerFromCloud, passengerToCloud } from '../types/passengers';
@@ -1255,6 +1256,12 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'da_followups', key: storage.DA_FOLLOWUPS_KEY, appendOnly: true, module: 'daTests', officers: true },
   { sub: 'da_policy', key: storage.DA_POLICY_KEY, module: 'daTests', officers: true },
   // Emissions: fuel figures and ports, nobody's private data. A passage is changed by a new version, a statement by a new one.
+  // The deck log and the GMDSS log, the only records left on one device until 4 Nov 2026 (plan item 64).
+  // The deck log goes one record at a time: a signed entry the rules refuse stays queued and holds up no other.
+  { sub: 'deck_log', key: storage.DECK_LOG_KEY, module: 'deckLog', toCloud: (r) => r },
+  { sub: 'gmdss', key: storage.GMDSS_KEY, appendOnly: true, module: 'gmdss' },
+  { sub: 'order_groups', key: storage.ORDER_GROUPS_KEY, module: 'orders' },
+  { sub: 'galley_orders', key: storage.GALLEY_ORDERS_KEY, module: 'orders' },
   { sub: 'em_vessel', key: storage.EM_VESSEL_KEY, module: 'emissions' },
   { sub: 'em_passages', key: storage.EM_PASSAGES_KEY, module: 'emissions' },
   { sub: 'em_statements', key: storage.EM_STATEMENTS_KEY, appendOnly: true, module: 'emissions' },
@@ -1485,7 +1492,9 @@ async function pullList(uid: string, l: SyncedList): Promise<number> {
     const pulledKey = `msm:pulled_${l.sub}_at`;
     const startedAt = Date.now();
     const cutoff = l.keepDays ? startedAt - l.keepDays * 86_400_000 : 0;
-    const since = Math.max(Number((await AsyncStorage.getItem(pulledKey)) ?? 0) || 0, cutoff);
+    const fullKey = `msm:pulled_${l.sub}_full`;
+    const window = pullWindow(startedAt, Number(await AsyncStorage.getItem(pulledKey)) || 0, Number(await AsyncStorage.getItem(fullKey)) || 0, cutoff);
+    const since = window.since;
     const snap = await fsGetDocs(
       fsQuery(fsCollection(requireDb(), ROOT, uid, l.sub), fsWhere('updatedAt', '>', since))
     );
@@ -1509,6 +1518,7 @@ async function pullList(uid: string, l: SyncedList): Promise<number> {
     // A little overlap, so a write that landed while this pull was running is
     // asked for again next time rather than missed.
     await AsyncStorage.setItem(pulledKey, String(startedAt - 60_000));
+    if (window.full) await AsyncStorage.setItem(fullKey, String(startedAt));
     if (cutoff) await pruneList(l, cutoff);
     return remote.length;
   } catch (e: any) {
@@ -1523,6 +1533,16 @@ async function pruneList(l: SyncedList, cutoff: number): Promise<void> {
   const raw = await AsyncStorage.getItem(`msm:pushed_${l.sub}`);
   const keep = keepRecent(list, raw ? JSON.parse(raw) : {}, cutoff);
   if (keep.length !== list.length) await storage.saveList(l.key, keep);
+}
+
+/**
+ * After this device's local copy is erased on leaving a vessel. Otherwise the marks outlive the
+ * records: `since` stays where it was, and a device that rejoins never gets the older records back.
+ * Only with an erase: with records still here, a lost pushed-map would send them all again.
+ */
+export async function forgetSyncMarks(): Promise<void> {
+  const marks = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith('msm:pulled_') || k.startsWith('msm:pushed_'));
+  await AsyncStorage.multiRemove(marks);
 }
 
 /**

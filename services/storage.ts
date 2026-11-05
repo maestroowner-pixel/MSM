@@ -778,6 +778,9 @@ export async function savePhotoArchive(state: import('./photoArchive').PhotoArch
   await AsyncStorage.setItem(PHOTO_ARCHIVE_KEY, JSON.stringify(state));
 }
 
+/** Not erased, on purpose (`npm run check:reset` holds every key to this list or the reset): it describes this device, not the vessel. */
+export const NOT_RESET = ['PREFS_KEY'];
+
 export async function resetAllData(): Promise<void> {
   const foreign = await loadForeignCategories();
   const keys = [
@@ -881,7 +884,32 @@ export async function resetAllData(): Promise<void> {
     EM_VESSEL_KEY,
     EM_PASSAGES_KEY,
     EM_STATEMENTS_KEY,
+    DECK_LOG_KEY,
+    GMDSS_KEY,
+    ORDER_GROUPS_KEY,
+    GALLEY_ORDERS_KEY,
+    WATCH_TEMPLATES_KEY,
+    WATCH_LOG_KEY,
+    INTERNAL_AUDITS_KEY,
+    ITEM_MOVEMENTS_KEY,
+    LANDINGS_KEY,
+    TEMPLATES_KEY,
+    CATEGORIES_KEY,
+    PURCHASE_ORDERS_KEY,
+    THREADS_KEY,
+    MOCS_KEY,
+    APPRAISALS_KEY,
+    REST_PLANS_KEY,
+    DA_TESTS_KEY,
+    DA_RESULTS_KEY,
+    DA_FOLLOWUPS_KEY,
+    DA_POLICY_KEY,
+    'msm:recent_scans', // services/scanHistory.ts
+    'msm:active_round', // services/activeRound.ts
+    'msm:photo_queue', // services/photoQueue.ts — its files have just gone too
+    'msm:fuel_report_to', // components/FuelDaily.tsx — the addressees of the noon report
     'msm:handover_draft', // services/handover.ts — the outgoing officer's notes
   ];
-  await AsyncStorage.multiRemove(keys);
+  const drafts = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith('msm:dp_draft:')); // services/dpDraft.ts
+  await AsyncStorage.multiRemove([...keys, ...drafts]);
 }

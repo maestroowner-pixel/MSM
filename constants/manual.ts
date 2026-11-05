@@ -748,7 +748,7 @@ const en: ManualContent = {
       emoji: '📖',
       title: "Deck watch log",
       body: [
-        "The Deck Watch Log (menu → Deck watch log) is the bridge logbook: one entry per watch period, signed by the watch officer.",
+        "The Deck Watch Log (menu → Deck watch log) is the bridge logbook: one entry per watch period, signed by the watch officer. Entries are shared with every device on the vessel and with the office, and are included in backups.",
         "Each entry records the mode — At Sea (course, speed, position) or In Port — plus weather (wind direction and Beaufort force, Douglas sea state, visibility, barometric pressure) and a free-text Remarks field for events, orders and observations.",
         "Navigation: position is entered as degrees and decimal minutes with N/S and E/W. Gyro and magnetic courses, variation, deviation, speed over ground, distance run since the previous entry and engine RPM are all optional. Wind and sea state use standard scales; visibility is Good / Moderate / Poor / Fog.",
         "Save vs Sign: tapping Save records a draft immediately and returns to the log list — the entry is visible but marked Unsigned. A draft can be reopened and edited. Tapping Sign locks the entry permanently; after signing it cannot be changed. Sign is normally done at the end of the day or watch.",
@@ -774,7 +774,7 @@ const en: ManualContent = {
       emoji: '📡',
       title: "GMDSS Log",
       body: [
-        "The GMDSS Log (menu → Logs → GMDSS Log) is the radio log: the radio watch and the equipment tests, one signed line each. Officers and the Master make the entries; a signed entry is never changed.",
+        "The GMDSS Log (menu → Logs → GMDSS Log) is the radio log: the radio watch and the equipment tests, one signed line each. Officers and the Master make the entries; a signed entry is never changed. Entries are shared with every device on the vessel and with the office, and are included in backups.",
         "Daily check: VHF watch (channel), MF DSC watch (frequency), NAVTEX, and the GMDSS batteries — OK, Charging or Charged, with the voltage (type 130 for 13.0 V). Weekly check adds the DSC tests on VHF and MF/HF (the MMSI and the station called), the EPIRB indicator light and self-test, and the SART self-test. Monthly inspection adds the ATIS code, the ship's MMSI in every set, antennas and coax, the GMDSS clocks on UTC and the log itself. Tick what was done; anything left unticked is written ✗ in the log.",
         "Radar: Radar ON or Radar OFF, X-band or S-band, with a note. Switching off in port, turn on Radio watch closed — the line is marked in red. Event / note is for everything else: a distress received and relayed, a test call, a NAVTEX warning.",
         "The three marks at the top show when each check was last done: green — in time, amber — due, red — overdue (daily after a day, weekly after 7 days, monthly after 31). The same reminders go to the officers on the Board. Choose the month, and the PDF button makes that month's log to print or file.",
@@ -1579,7 +1579,7 @@ const ru: ManualContent = {
       emoji: '📖',
       title: "Вахтенный журнал мостика (Deck watch log)",
       body: [
-        "Вахтенный журнал мостика (меню → Deck watch log) — судовой журнал: одна запись на вахтенный период, подписанная вахтенным помощником.",
+        "Вахтенный журнал мостика (меню → Deck watch log) — судовой журнал: одна запись на вахтенный период, подписанная вахтенным помощником. Записи видны на всех устройствах судна и в офисе и входят в бэкап.",
         "Каждая запись фиксирует режим — В море (At Sea: курс, скорость, позиция) или В порту (In Port) — плюс погоду (направление и сила ветра по шкале Бофора, волнение по шкале Дугласа, видимость, барометрическое давление) и поле Remarks для событий, распоряжений и наблюдений.",
         "Навигация: позиция вводится в градусах и десятых долях минут с N/S и E/W. Гирокомпасный и магнитный курсы, склонение, девиация, скорость, расстояние с предыдущей записи и обороты — все опциональны. Ветер и волнение — по стандартным шкалам; видимость — Good / Moderate / Poor / Fog.",
         "Save и Sign: кнопка Save сохраняет запись как черновик и сразу возвращает в список — запись видна, но помечена «Unsigned». Черновик можно открыть и исправить. Sign фиксирует запись навсегда; после подписи её нельзя изменить. Подпись, как правило, ставится в конце дня или вахты.",
@@ -1605,7 +1605,7 @@ const ru: ManualContent = {
       emoji: '📡',
       title: "Журнал ГМССБ (GMDSS Log)",
       body: [
-        "Журнал ГМССБ (меню → Logs → GMDSS Log) — радиожурнал: радиовахта и проверки оборудования, каждая — одна подписанная строка. Записи делают офицеры и капитан; подписанная запись не меняется.",
+        "Журнал ГМССБ (меню → Logs → GMDSS Log) — радиожурнал: радиовахта и проверки оборудования, каждая — одна подписанная строка. Записи делают офицеры и капитан; подписанная запись не меняется. Записи видны на всех устройствах судна и в офисе и входят в бэкап.",
         "Daily check: VHF watch (канал), MF DSC watch (частота), NAVTEX и аккумуляторы ГМССБ — OK, Charging или Charged, с напряжением (введите 130 для 13,0 В). Weekly check добавляет тесты DSC на VHF и MF/HF (MMSI и вызванная станция), индикатор и самотест EPIRB, самотест SART. Monthly inspection добавляет код ATIS, MMSI судна во всех станциях, антенны и кабели, часы ГМССБ по UTC и сам журнал. Отметьте сделанное; неотмеченное попадает в журнал с ✗.",
         "Radar: Radar ON или Radar OFF, X-band или S-band, с примечанием. При выключении в порту включите Radio watch closed — строка отмечается красным. Event / note — для всего остального: принятый и ретранслированный сигнал бедствия, тестовый вызов, предупреждение NAVTEX.",
         "Три отметки вверху показывают, когда каждая проверка была сделана последний раз: зелёная — в срок, жёлтая — пора, красная — просрочено (ежедневная — через сутки, еженедельная — через 7 дней, ежемесячная — через 31). Те же напоминания получают офицеры на доске (Board). Выберите месяц — кнопка PDF делает журнал за этот месяц для печати или архива.",
@@ -2410,7 +2410,7 @@ const es: ManualContent = {
       emoji: '📖',
       title: "Cuaderno de guardia (Deck watch log)",
       body: [
-        "El cuaderno de guardia de puente (menú → Deck watch log) es el libro de a bordo: una entrada por período de guardia, firmada por el oficial de guardia.",
+        "El cuaderno de guardia de puente (menú → Deck watch log) es el libro de a bordo: una entrada por período de guardia, firmada por el oficial de guardia. Las entradas se comparten con todos los dispositivos del buque y con la oficina, y se incluyen en las copias de seguridad.",
         "Cada entrada registra el modo — En el mar (At Sea: rumbo, velocidad, posición) o En puerto (In Port) — además del tiempo (dirección e intensidad del viento en escala Beaufort, estado de la mar en escala Douglas, visibilidad, presión barométrica) y el campo Remarks para eventos, órdenes y observaciones.",
         "Navegación: la posición se introduce en grados y décimas de milla con N/S y E/W. Rumbos giroscópico y magnético, variación, desvío, velocidad, distancia desde la entrada anterior y RPM son todos opcionales.",
         "Save y Sign: Save guarda un borrador y vuelve al listado — la entrada aparece marcada como «Unsigned». El borrador puede abrirse y corregirse. Sign fija la entrada definitivamente; una vez firmada no puede cambiarse. La firma se hace normalmente al final del día o de la guardia.",
@@ -2436,7 +2436,7 @@ const es: ManualContent = {
       emoji: '📡',
       title: "Diario GMDSS (GMDSS Log)",
       body: [
-        "El Diario GMDSS (menú → Logs → GMDSS Log) es el diario radioeléctrico: la escucha radio y las pruebas de los equipos, cada una una línea firmada. Las anotaciones las hacen los oficiales y el Capitán; una anotación firmada no se cambia nunca.",
+        "El Diario GMDSS (menú → Logs → GMDSS Log) es el diario radioeléctrico: la escucha radio y las pruebas de los equipos, cada una una línea firmada. Las anotaciones las hacen los oficiales y el Capitán; una anotación firmada no se cambia nunca. Las entradas se comparten con todos los dispositivos del buque y con la oficina, y se incluyen en las copias de seguridad.",
         "Daily check: VHF watch (canal), MF DSC watch (frecuencia), NAVTEX y las baterías GMDSS — OK, Charging o Charged, con el voltaje (escriba 130 para 13,0 V). Weekly check añade las pruebas DSC en VHF y MF/HF (el MMSI y la estación llamada), la luz indicadora y la autoprueba de la EPIRB y la autoprueba del SART. Monthly inspection añade el código ATIS, el MMSI del buque en todos los equipos, antenas y coaxial, los relojes GMDSS en UTC y el propio diario. Marque lo hecho; lo no marcado se anota con ✗.",
         "Radar: Radar ON o Radar OFF, X-band o S-band, con una nota. Al apagarlo en puerto, active Radio watch closed — la línea se marca en rojo. Event / note es para todo lo demás: un socorro recibido y retransmitido, una llamada de prueba, un aviso NAVTEX.",
         "Las tres marcas de arriba muestran cuándo se hizo cada prueba por última vez: verde — en plazo, ámbar — toca, rojo — vencida (la diaria tras un día, la semanal tras 7, la mensual tras 31). Los oficiales reciben los mismos avisos en el Board. Elija el mes y el botón PDF genera el diario de ese mes para imprimir o archivar.",
@@ -3241,7 +3241,7 @@ const uk: ManualContent = {
       emoji: '📖',
       title: "Вахтовий журнал містка (Deck watch log)",
       body: [
-        "Вахтовий журнал містка (меню → Deck watch log) — судновий журнал: один запис на вахтовий період, підписаний вахтовим помічником.",
+        "Вахтовий журнал містка (меню → Deck watch log) — судновий журнал: один запис на вахтовий період, підписаний вахтовим помічником. Записи видно на всіх пристроях судна й в офісі, і вони входять до резервної копії.",
         "Кожен запис фіксує режим — У морі (At Sea: курс, швидкість, позиція) або В порту (In Port) — плюс погоду (напрямок і сила вітру за шкалою Бофора, хвилювання за шкалою Дугласа, видимість, барометричний тиск) і поле Remarks для подій, розпоряджень і спостережень.",
         "Навігація: позиція вводиться в градусах і десятих хвилини з N/S і E/W. Гірокомпасний і магнітний курси, схилення, девіація, швидкість, відстань із попереднього запису та оберти — всі опційні.",
         "Save і Sign: Save зберігає запис як чернетку й повертає до списку — запис видно, але позначено «Unsigned». Чернетку можна відкрити та виправити. Sign фіксує запис назавжди; після підпису змінити його неможливо. Підпис, як правило, ставиться наприкінці дня або вахти.",
@@ -3267,7 +3267,7 @@ const uk: ManualContent = {
       emoji: '📡',
       title: "Журнал ГМЗЛБ (GMDSS Log)",
       body: [
-        "Журнал ГМЗЛБ (меню → Logs → GMDSS Log) — радіожурнал: радіовахта та перевірки обладнання, кожна — один підписаний рядок. Записи роблять офіцери та капітан; підписаний запис не змінюється.",
+        "Журнал ГМЗЛБ (меню → Logs → GMDSS Log) — радіожурнал: радіовахта та перевірки обладнання, кожна — один підписаний рядок. Записи роблять офіцери та капітан; підписаний запис не змінюється. Записи видно на всіх пристроях судна й в офісі, і вони входять до резервної копії.",
         "Daily check: VHF watch (канал), MF DSC watch (частота), NAVTEX і акумулятори ГМЗЛБ — OK, Charging або Charged, з напругою (введіть 130 для 13,0 В). Weekly check додає тести DSC на VHF і MF/HF (MMSI та викликана станція), індикатор і самотест EPIRB, самотест SART. Monthly inspection додає код ATIS, MMSI судна в усіх станціях, антени й кабелі, годинники ГМЗЛБ за UTC і сам журнал. Позначте зроблене; непозначене потрапляє до журналу з ✗.",
         "Radar: Radar ON або Radar OFF, X-band або S-band, з приміткою. Вимикаючи в порту, увімкніть Radio watch closed — рядок позначається червоним. Event / note — для всього іншого: прийнятий і ретрансльований сигнал лиха, тестовий виклик, попередження NAVTEX.",
         "Три позначки вгорі показують, коли кожну перевірку робили востаннє: зелена — вчасно, жовта — час, червона — прострочено (щоденна — через добу, щотижнева — через 7 днів, щомісячна — через 31). Ті самі нагадування отримують офіцери на дошці (Board). Оберіть місяць — кнопка PDF робить журнал за цей місяць для друку чи архіву.",
@@ -4011,7 +4011,7 @@ const no: ManualContent = {
       emoji: '📖',
       title: 'Dekksvaktsjournal',
       body: [
-        'Dekksvaktsjournalen (meny → Dekksvaktsjournal) er bruloggboken: én post per vaktperiode, signert av vakthavende offiser.',
+        'Dekksvaktsjournalen (meny → Dekksvaktsjournal) er bruloggboken: én post per vaktperiode, signert av vakthavende offiser. Oppføringene deles med alle enheter om bord og med kontoret, og er med i sikkerhetskopier.',
         'Hver post registrerer modus – Til sjøs (kurs, fart, posisjon) eller I havn – pluss vær og et fritekst-merknadsefelt for hendelser, ordrer og observasjoner.',
         'Lagre vs. Signer: trykk Lagre registrerer et utkast umiddelbart. Et utkast kan åpnes på nytt og redigeres. Trykk Signer låser posten permanent.',
         'Automatiske poster: Sikkerhetsmodulen lager en loggpost når en besøkende signerer inn eller ut ved gangveien.',
@@ -4033,7 +4033,7 @@ const no: ManualContent = {
       emoji: '📡',
       title: "GMDSS-logg",
       body: [
-        "GMDSS-loggen (meny → Logs → GMDSS Log) er radiologgen: radiovakten og utstyrstestene, én signert linje hver. Offiserer og Master fører inn; en signert innføring endres aldri.",
+        "GMDSS-loggen (meny → Logs → GMDSS Log) er radiologgen: radiovakten og utstyrstestene, én signert linje hver. Offiserer og Master fører inn; en signert innføring endres aldri. Oppføringene deles med alle enheter om bord og med kontoret, og er med i sikkerhetskopier.",
         "Daily check: VHF watch (kanal), MF DSC watch (frekvens), NAVTEX og GMDSS-batteriene – OK, Charging eller Charged, med spenning (skriv 130 for 13,0 V). Weekly check legger til DSC-testene på VHF og MF/HF (MMSI og stasjonen som ble anropt), EPIRB-indikatorlys og selvtest og SART-selvtest. Monthly inspection legger til ATIS-koden, skipets MMSI i alle sett, antenner og koaks, GMDSS-klokkene på UTC og selve loggen. Huk av det som ble gjort; det som ikke er avhuket, skrives med ✗ i loggen.",
         "Radar: Radar ON eller Radar OFF, X-band eller S-band, med en merknad. Slår du av i havn, slå på Radio watch closed – linjen merkes rødt. Event / note er for alt annet: et nødanrop mottatt og videresendt, et testanrop, en NAVTEX-varsling.",
         "De tre merkene øverst viser når hver kontroll sist ble gjort: grønn – i tide, gul – forfaller, rød – forfalt (daglig etter ett døgn, ukentlig etter 7 dager, månedlig etter 31). Offiserene får de samme påminnelsene på Board. Velg måned, og PDF-knappen lager månedens logg for utskrift eller arkiv.",
@@ -4762,7 +4762,7 @@ const pt: ManualContent = {
       emoji: '📖',
       title: 'Diário de quarto de convés',
       body: [
-        'O Diário de Quarto de Convés (menu → Diário de quarto de convés) é o livro de registro da ponte: um lançamento por período de quarto, assinado pelo oficial de quarto.',
+        'O Diário de Quarto de Convés (menu → Diário de quarto de convés) é o livro de registro da ponte: um lançamento por período de quarto, assinado pelo oficial de quarto. As entradas são partilhadas com todos os dispositivos do navio e com o escritório, e fazem parte das cópias de segurança.',
         'Cada lançamento registra o modo – No Mar (rumo, velocidade, posição) ou No Porto – mais o tempo e um campo de Observações em texto livre.',
         'Salvar vs. Assinar: tocar em Salvar registra um rascunho imediatamente. Tocar em Assinar bloqueia o lançamento permanentemente.',
         'Lançamentos automáticos: o módulo de Segurança cria um lançamento no diário quando um visitante assina na entrada ou saída na prancha.',
@@ -4784,7 +4784,7 @@ const pt: ManualContent = {
       emoji: '📡',
       title: "Diário GMDSS",
       body: [
-        "O Diário GMDSS (menu → Logs → GMDSS Log) é o diário de rádio: a escuta radioelétrica e os testes dos equipamentos, cada um uma linha assinada. Oficiais e o Comandante fazem os registros; um registro assinado nunca é alterado.",
+        "O Diário GMDSS (menu → Logs → GMDSS Log) é o diário de rádio: a escuta radioelétrica e os testes dos equipamentos, cada um uma linha assinada. Oficiais e o Comandante fazem os registros; um registro assinado nunca é alterado. As entradas são partilhadas com todos os dispositivos do navio e com o escritório, e fazem parte das cópias de segurança.",
         "Daily check: VHF watch (canal), MF DSC watch (frequência), NAVTEX e as baterias GMDSS — OK, Charging ou Charged, com a tensão (digite 130 para 13,0 V). Weekly check acrescenta os testes DSC em VHF e MF/HF (o MMSI e a estação chamada), a luz indicadora e o autoteste do EPIRB e o autoteste do SART. Monthly inspection acrescenta o código ATIS, o MMSI do navio em todos os equipamentos, antenas e cabo coaxial, os relógios GMDSS em UTC e o próprio diário. Marque o que foi feito; o que ficar desmarcado é registrado com ✗.",
         "Radar: Radar ON ou Radar OFF, X-band ou S-band, com uma observação. Ao desligar no porto, ative Radio watch closed — a linha fica marcada em vermelho. Event / note é para todo o resto: um pedido de socorro recebido e retransmitido, uma chamada de teste, um aviso NAVTEX.",
         "As três marcas no topo mostram quando cada verificação foi feita pela última vez: verde — em dia, âmbar — vence, vermelho — vencida (diária após um dia, semanal após 7 dias, mensal após 31). Os oficiais recebem os mesmos lembretes no Board. Escolha o mês e o botão PDF gera o diário desse mês para imprimir ou arquivar.",

@@ -995,6 +995,34 @@ service cloud.firestore {
                       && request.resource.data.kind in ['lab', 'action'];
         allow update, delete: if false;
       }
+      // The deck log (types/deckLog.ts). A signed entry does not change: only a draft does, and the
+      // Master's review is added to it once, from any device of the vessel, as the screen allows. Devices that each wrote the same clock change differ
+      // only in updatedAt (components/ClockKeeper).
+      match /deck_log/{id} {
+        allow read: if reader(v);
+        allow create: if member(v) && request.resource.data.id == id;
+        allow update: if member(v) && request.resource.data.id == id && (
+          resource.data.get('draft', false) == true
+          || onlyChanges(['updatedAt'])
+          || (!('masterAt' in resource.data)
+              && onlyChanges(['masterBy', 'masterByRank', 'masterAt', 'masterSignedWith', 'updatedAt'])));
+        allow delete: if false;
+      }
+      match /gmdss/{id} {
+        allow read: if reader(v);
+        allow create: if member(v);
+        allow update, delete: if false;
+      }
+      match /order_groups/{id} {
+        allow read: if reader(v);
+        allow create, update: if member(v);
+        allow delete: if false;
+      }
+      match /galley_orders/{id} {
+        allow read: if reader(v);
+        allow create, update: if member(v);
+        allow delete: if false;
+      }
       // Emissions (types/emissions.ts): the Master sets the particulars. A passage is written by anyone
       // on board and changed only by a new version (the Master's), like a bunkering. The year's
       // statement is signed by an officer or the Master, once; a correction is a new one.

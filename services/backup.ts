@@ -116,6 +116,7 @@ export interface BackupFile {
   /** Drug and alcohol tests (officers only; full names, as on this device). */
   da?: { tests: import('../types/daTest').DaTest[]; results: import('../types/daTest').DaResult[]; followUps: import('../types/daTest').DaFollowUp[]; policy: import('../types/daTest').DaPolicy[] };
   em?: { vessel: import('../types/emissions').EmVessel[]; passages: import('../types/emissions').EmPassage[]; statements: import('../types/emissions').EmStatement[] };
+  logs?: { deck: any[]; gmdss: any[]; orderGroups: any[]; galley: any[] };
   /** Drills: planned and carried out. */
   drills?: Drill[];
   drillPlans?: DrillYearPlan[];
@@ -270,6 +271,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   const restPlans = await storage.loadList<import('../types/restPlan').RestPlan>(storage.REST_PLANS_KEY);
   const da = { tests: await storage.loadList<import('../types/daTest').DaTest>(storage.DA_TESTS_KEY), results: await storage.loadList<import('../types/daTest').DaResult>(storage.DA_RESULTS_KEY), followUps: await storage.loadList<import('../types/daTest').DaFollowUp>(storage.DA_FOLLOWUPS_KEY), policy: await storage.loadList<import('../types/daTest').DaPolicy>(storage.DA_POLICY_KEY) };
   const em = { vessel: await storage.loadList<import('../types/emissions').EmVessel>(storage.EM_VESSEL_KEY), passages: await storage.loadList<import('../types/emissions').EmPassage>(storage.EM_PASSAGES_KEY), statements: await storage.loadList<import('../types/emissions').EmStatement>(storage.EM_STATEMENTS_KEY) };
+  const logs = { deck: await storage.loadList<any>(storage.DECK_LOG_KEY), gmdss: await storage.loadList<any>(storage.GMDSS_KEY), orderGroups: await storage.loadList<any>(storage.ORDER_GROUPS_KEY), galley: await storage.loadList<any>(storage.GALLEY_ORDERS_KEY) };
   const drillPlans = await storage.loadList<DrillYearPlan>(storage.DRILL_PLANS_KEY);
   const safetyMeetings = await storage.loadList<SafetyMeeting>(storage.SAFETY_MEETINGS_KEY);
   const dp = { checks: await storage.loadList<DpCheck>(storage.DP_CHECKS_KEY), days: await storage.loadList<DpDay>(storage.DP_DAYS_KEY), info: await storage.loadList<DpInfo>(storage.DP_INFO_KEY), templates: await storage.loadList<DpTemplate>(storage.DP_TEMPLATES_KEY) };
@@ -332,6 +334,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
     ...(restPlans.length ? { restPlans } : {}),
     ...(da.tests.length || da.policy.length ? { da } : {}),
     ...(em.passages.length || em.vessel.length || em.statements.length ? { em } : {}),
+    ...(logs.deck.length || logs.gmdss.length || logs.orderGroups.length || logs.galley.length ? { logs } : {}),
     drillPlans,
     hospital,
     passengers,
@@ -580,6 +583,12 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     await storage.saveList(storage.DA_RESULTS_KEY, backup.da.results);
     await storage.saveList(storage.DA_FOLLOWUPS_KEY, backup.da.followUps);
     await storage.saveList(storage.DA_POLICY_KEY, backup.da.policy);
+  }
+  if (backup.logs) {
+    await storage.saveList(storage.DECK_LOG_KEY, backup.logs.deck);
+    await storage.saveList(storage.GMDSS_KEY, backup.logs.gmdss);
+    await storage.saveList(storage.ORDER_GROUPS_KEY, backup.logs.orderGroups);
+    await storage.saveList(storage.GALLEY_ORDERS_KEY, backup.logs.galley);
   }
   if (backup.em) {
     await storage.saveList(storage.EM_VESSEL_KEY, backup.em.vessel);

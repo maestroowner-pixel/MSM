@@ -286,6 +286,26 @@ await t(false, 'A follow-up carries no name', setDoc(R(officer, 'da_followups', 
 await t(false, 'A follow-up is final', setDoc(R(master, 'da_followups', 'f1'), { id: 'f1', testId: 'da1', resultId: 'r1', kind: 'lab', lab: 'pos', by: 'Jez', at: 2, updatedAt: 3 }));
 await t(true, 'The Master sets the D&A policy', setDoc(R(master, 'da_policy', 'policy'), { id: 'policy', months: 6, limit: 0.25, updatedAt: 1 }));
 await t(false, 'An Officer cannot change the D&A policy', setDoc(R(officer, 'da_policy', 'policy'), { id: 'policy', months: 12, limit: 0.4, updatedAt: 2 }));
+// The deck log and GMDSS: a signed entry does not change.
+const deckE = { id: 'de1', date: '2026-11-04', time: '08:00', period: '08-12', remarks: 'Noon', by: 'Max', at: 1, updatedAt: 1 };
+await t(true, 'Crew signs a deck log entry', setDoc(R(crew, 'deck_log', 'de1'), deckE));
+await t(false, 'A signed deck log entry cannot be rewritten', setDoc(R(master, 'deck_log', 'de1'), { ...deckE, remarks: 'Changed', updatedAt: 2 }));
+await t(true, 'The same entry from a second device differs only in updatedAt', setDoc(R(crew, 'deck_log', 'de1'), { ...deckE, updatedAt: 2 }));
+await t(false, 'A review does not change the entry', setDoc(R(officer, 'deck_log', 'de1'), { ...deckE, remarks: 'Changed', masterBy: 'Anna', masterAt: 3, updatedAt: 3 }));
+await t(true, 'The Master review is added, from any device of the vessel', setDoc(R(crew, 'deck_log', 'de1'), { ...deckE, masterBy: 'Anna', masterByRank: 'Master', masterAt: 3, updatedAt: 3 }));
+await t(false, 'The Master review is not replaced', setDoc(R(master, 'deck_log', 'de1'), { ...deckE, masterBy: 'Other', masterAt: 4, updatedAt: 4 }));
+await t(false, 'Nobody deletes a deck log entry', deleteDoc(R(master, 'deck_log', 'de1')));
+await t(true, 'A draft is saved', setDoc(R(crew, 'deck_log', 'de2'), { id: 'de2', date: '2026-11-04', time: '12:00', period: 'noon', by: '', at: 0, draft: true, updatedAt: 1 }));
+await t(true, 'A draft is signed', setDoc(R(crew, 'deck_log', 'de2'), { id: 'de2', date: '2026-11-04', time: '12:00', period: 'noon', by: 'Max', at: 5, updatedAt: 5 }));
+await t(false, 'Once signed it is final', setDoc(R(crew, 'deck_log', 'de2'), { id: 'de2', date: '2026-11-04', time: '13:00', period: 'noon', by: 'Max', at: 5, updatedAt: 6 }));
+await t(true, 'The office reads the deck log', getDoc(R(shore, 'deck_log', 'de1')));
+await t(true, 'Crew writes a GMDSS entry', setDoc(R(crew, 'gmdss', 'g1'), { id: 'g1', type: 'daily', date: '2026-11-04', time: '08:00', at: 1, updatedAt: 1 }));
+await t(false, 'A GMDSS entry is final', setDoc(R(master, 'gmdss', 'g1'), { id: 'g1', type: 'event', updatedAt: 2 }));
+await t(true, 'The office reads the GMDSS log', getDoc(R(shore, 'gmdss', 'g1')));
+await t(true, 'Crew writes an order group', setDoc(R(crew, 'order_groups', 'og1'), { id: 'og1', name: 'Deck', updatedAt: 1 }));
+await t(true, 'Crew updates a galley order', setDoc(R(crew, 'galley_orders', 'go1'), { id: 'go1', status: 'draft', updatedAt: 1 }));
+await t(false, 'Nobody deletes a galley order', deleteDoc(R(master, 'galley_orders', 'go1')));
+
 // Emissions: the Master's particulars; a passage like a bunkering; a statement once.
 await t(true, 'The Master sets the emissions particulars', setDoc(R(master, 'em_vessel', 'vessel'), { id: 'vessel', type: 'cruise', gt: 50000, commercial: 'yes', updatedAt: 1 }));
 await t(false, 'An Officer cannot set the emissions particulars', setDoc(R(officer, 'em_vessel', 'vessel'), { id: 'vessel', type: 'yacht', gt: 400, commercial: 'no', updatedAt: 2 }));

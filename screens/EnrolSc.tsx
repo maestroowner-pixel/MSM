@@ -105,6 +105,7 @@ export default function EnrolSc() {
       disconnect();
       if (wipe) {
         await resetAllData();
+        await fb.forgetSyncMarks();
         await clearAttachmentsDir().catch(() => {});
         // The snapshots hold the register that was just erased — leaving them
         // would make "erase" untrue, exactly as it would after Reset all data.
