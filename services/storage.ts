@@ -105,6 +105,7 @@ export const VESSEL_MODULES_KEY = `${PREFIX}vessel_modules`;
 export const WATCH_TEMPLATES_KEY = `${PREFIX}watch_templates`;
 export const WATCH_LOG_KEY = `${PREFIX}watch_log`;
 export const DECK_LOG_KEY = `${PREFIX}deck_log`;
+export const SIGN_DRAFTS_KEY = `${PREFIX}sign_drafts`;
 export const GMDSS_KEY = `${PREFIX}gmdss`;
 export const INTERNAL_AUDITS_KEY = `${PREFIX}internal_audits`;
 /** Shore movements and landing reports (#27, Oct 2026). */
@@ -891,6 +892,7 @@ export async function resetAllData(): Promise<void> {
     EM_PASSAGES_KEY,
     EM_STATEMENTS_KEY,
     DECK_LOG_KEY,
+    SIGN_DRAFTS_KEY,
     GMDSS_KEY,
     ORDER_GROUPS_KEY,
     GALLEY_ORDERS_KEY,

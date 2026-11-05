@@ -68,6 +68,11 @@ await t(true, 'Master gives a device the stores gear', updateDoc(R(master, 'devi
 await t(false, 'Device cannot change its own hidden pages', updateDoc(R(crew, 'devices', 'devU'), { hidePages: [] }));
 await t(true, 'Master hides a page on a device', updateDoc(R(master, 'devices', 'devU'), { hidePages: ['Security:searches'] }));
 await t(false, 'Crew cannot read invitations (PINs)', getDoc(R(crew, 'invites', 'i1')));
+await t(true, 'A tablet leaves a form for signature', setDoc(R(crew, 'sign_drafts', 's1'), { id: 's1', kind: 'watch', title: 'ER', refId: 't', data: {}, at: 1, updatedAt: 1 }));
+await t(true, 'An officer reads it on their own device', getDoc(R(officer, 'sign_drafts', 's1')));
+await t(true, 'and marks it signed', updateDoc(R(officer, 'sign_drafts', 's1'), { done: true, updatedAt: 2 }));
+await t(false, 'It cannot be deleted', deleteDoc(R(officer, 'sign_drafts', 's1')));
+await t(false, 'The office does not read it', getDoc(R(shore, 'sign_drafts', 's1')));
 await t(false, 'A shared tablet cannot make itself a personal device', updateDoc(R(crew, 'devices', 'devU'), { shared: false }));
 await t(false, 'Nor change who is responsible', updateDoc(R(crew, 'devices', 'devU'), { responsible: 'Me' }));
 await t(true, 'The Master marks a shared tablet', updateDoc(R(master, 'devices', 'devU'), { shared: true, responsible: 'Ana' }));

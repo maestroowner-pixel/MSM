@@ -1026,6 +1026,12 @@ service cloud.firestore {
               && onlyChanges(['masterBy', 'masterByRank', 'masterAt', 'masterSignedWith', 'updatedAt'])));
         allow delete: if false;
       }
+      // Left for someone to sign on another device (types/signDraft.ts). Nothing here
+      // is a signed record; the signed one is made in its own book at the signature.
+      match /sign_drafts/{id} {
+        allow read, create, update: if member(v);
+        allow delete: if false;
+      }
       match /gmdss/{id} {
         allow read: if reader(v);
         allow create: if member(v);

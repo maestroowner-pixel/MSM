@@ -36,6 +36,7 @@ import { PositionInput } from '../components/PositionInput';
 import { offsetAt, shipAndUtc } from '../utils/shipTime';
 import { exportDpCheckPdf, printDpCheck } from '../services/dpReport';
 import { archived } from '../services/dpArchive';
+import { draftData } from '../types/signDraft';
 import { clearDraft, loadDraft, saveDraft } from '../services/dpDraft';
 import { AsogStatus, CheckBook, DpCheck, DpConditions, DpLine, DpResult, bookOf } from '../types/dp';
 import { t, tk, useT } from '../utils/i18n';
@@ -74,7 +75,7 @@ export default function DpCheckSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { dpChecks, dpTemplates, vessel, saveRow } = useData();
+  const { dpChecks, dpTemplates, vessel, saveRow, signDrafts } = useData();
   // Two signatures, each a person picked by name and confirmed by PIN or by hand
   // (16 Oct 2026: "the bridge pad cannot hold every officer's fingerprint") — the
   // device's own account is one of the names, and on an officer's own phone it may
@@ -105,7 +106,8 @@ export default function DpCheckSc() {
   // The draft: what is filled in is kept on the device as it is typed, and offered
   // back when this checklist is opened again unsaved (16 Oct 2026). Signatures are
   // not part of it.
-  const draftId = done ? undefined : (route.params?.templateId as string | undefined);
+  const left = route.params?.signDraft ? signDrafts.find((d) => d.id === route.params.signDraft) : undefined;
+  const draftId = done || route.params?.signDraft ? undefined : (route.params?.templateId as string | undefined);
   const draftReady = useRef(false);
   useEffect(() => {
     if (!draftId) return;
@@ -151,6 +153,28 @@ export default function DpCheckSc() {
     const t = setTimeout(() => void saveDraft(draftId, { operation, unit, cond, posT, asog, results, values, remarks }), 500);
     return () => clearTimeout(t);
   }, [draftId, operation, unit, cond, posT, asog, results, values, remarks]);
+  // Left for signature on another device (types/signDraft.ts).
+  const leftId = left?.id;
+  useEffect(() => {
+    if (!left) return;
+    const d = left.data;
+    setOperation(d.operation ?? '');
+    setUnit(d.unit ?? '');
+    if (d.cond) setCond(d.cond);
+    setPosT(d.posT ?? '');
+    setAsog(d.asog);
+    setResults(d.results ?? {});
+    setValues(d.values ?? {});
+    setRemarks(d.remarks ?? '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leftId]);
+  const leave = async () => {
+    if (!c) return;
+    await saveRow(storage.SIGN_DRAFTS_KEY, { ...(left ?? { id: uid('sdr'), kind: 'check', refId: c.templateId, at: Date.now() }), title: c.title, data: draftData({ operation, unit, cond, posT, asog, results, values, remarks }) });
+    draftReady.current = false;
+    await clearDraft(c.templateId);
+    goBackOr(nav, 'Dp');
+  };
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     if (done) return;
@@ -220,6 +244,7 @@ export default function DpCheckSc() {
       await saveRow(storage.DP_CHECKS_KEY, rec);
       draftReady.current = false;
       await clearDraft(c.templateId);
+      if (left) await saveRow(storage.SIGN_DRAFTS_KEY, { ...left, done: true });
       nav.replace('DpCheck', { id: rec.id });
     };
     const warn = [o.open ? t('dpc.notAnswered', { n: o.open }) : '', o.fail ? t('dpc.answeredNo', { n: o.fail }) : ''].filter(Boolean).join(', ');
@@ -560,6 +585,9 @@ export default function DpCheckSc() {
           {people.length < 2 ? <Text style={styles.sub}>{t('dpc.twoOfficers')}</Text> : null}
           <TouchableOpacity style={[styles.btn, !(sigs[0] && sigs[1]) && { opacity: 0.5 }]} onPress={save}>
             <Text style={styles.btnText}>{t('dpc.saveSigned')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => void leave()} hitSlop={8} style={{ alignSelf: 'center', marginTop: SIZES.md }}>
+            <Text style={styles.link}>{t('sd.leave')}</Text>
           </TouchableOpacity>
         </>
       )}

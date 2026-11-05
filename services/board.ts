@@ -44,7 +44,8 @@ import { surveyStatus } from './surveys';
 import { ncState, nextActionDue } from './safety';
 import { NonConformity, SafetyObservation } from '../types/safety';
 import { Drill } from '../types/drills';
-import { drillSchedule } from './drills';
+import { drillSchedule, drillState } from './drills';
+import { SignDraft, draftRoute, liveDrafts } from '../types/signDraft';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 import { Passenger, passengerAboard } from '../types/passengers';
 import { SafetyMeeting } from '../types/meetings';
@@ -231,6 +232,8 @@ export interface BoardInput {
   storeMoves?: StoreMove[];
   storeRoomList?: StoreRoom[];
   gmdssLog?: import('../types/gmdss').GmdssEntry[];
+  deckLog?: import('../types/deckLog').DeckEntry[];
+  signDrafts?: SignDraft[];
   /** Requisitions (types/orders.ts) — for their way through the office (services/poApproval). */
   purchaseOrders?: import('../types/orders').PurchaseOrder[];
 }
@@ -646,6 +649,26 @@ export function buildBoard(x: BoardInput): Board {
     if (d.overdue) n.push({ key: 'sm:due', level: 'red', who: 'officer', icon: 'account-group-outline', route: 'Security', params, title: t('b.sm.overdue'), sub: d.last ? t('b.lastHeld', { date: `${dm(d.last.date)}.${d.last.date.slice(0, 4)}` }) : t('b.noneHeld') });
     else if (d.due) plan.push({ key: 'sm:due', icon: 'account-group-outline', route: 'Security', params, title: t('b.sm'), sub: d.last ? t('b.sm.dueThisMonth', { date: dm(d.last.date) }) : t('b.noneHeld'), level: 'amber' });
     if (late.length) n.push({ key: 'sm:act', level: 'amber', who: 'officer', icon: 'clipboard-text-clock-outline', route: 'Security', params, title: t('b.sm.actions', { x: tn('n.action', late.length) }), sub: late.slice(0, 2).map((a) => a.text).join(' · ') });
+  }
+
+  // ---- Waiting for a signature (first, or red lines would fold it away): started on any device,
+  // a shared tablet's included, and signed by the officer on their own, where it is fully theirs.
+  const deckDrafts = x.on('deckLog') ? (x.deckLog ?? []).filter((e) => e.draft) : [];
+  if (deckDrafts.length) {
+    n.push({ first: true, key: 'sign:deck', level: 'amber', who: 'officer', icon: 'draw', route: deckDrafts.length === 1 ? 'DeckEntry' : 'DeckLog', ...(deckDrafts.length === 1 ? { params: { entryId: deckDrafts[0].id } } : {}), title: t('b.sign.deck', { x: tn('n.entry', deckDrafts.length) }) });
+  }
+  for (const d of liveDrafts(x.signDrafts)) {
+    n.push({ first: true, key: `sign:draft:${d.id}`, level: 'amber', who: 'officer', icon: 'draw', ...draftRoute(d), title: t('b.sign.draft', { title: d.title }) });
+  }
+  if (x.on('drills')) {
+    for (const d of (x.drills ?? []).filter((d) => drillState(d) === 'running')) {
+      n.push({ first: true, key: `sign:drill:${d.id}`, level: 'amber', who: 'officer', icon: 'draw', route: 'Drill', params: { id: d.id }, title: t('b.sign.drill', { date: dm(d.date) }) });
+    }
+  }
+  if (x.on('meetings')) {
+    for (const m of (x.safetyMeetings ?? []).filter((m) => !m.doneAt && m.attendance.some((a) => a.present))) {
+      n.push({ first: true, key: `sign:meeting:${m.id}`, level: 'amber', who: 'officer', icon: 'draw', route: 'Meeting', params: { id: m.id }, title: t('b.sign.meeting', { date: dm(m.date) }) });
+    }
   }
 
   // ---- Passengers (types/passengers.ts) ----

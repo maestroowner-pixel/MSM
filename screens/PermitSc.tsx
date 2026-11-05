@@ -28,6 +28,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
+import { draftData } from '../types/signDraft';
 import { Answer, GasTest, Permit, PermitType, SignStamp, ToolboxMeeting } from '../types/permits';
 import { GAS_LIMITS, PERMIT_TYPE_MAP } from '../constants/permitTypes';
 import { RISK_COLOR, approvalBlockers, gasProblems, isOverdue, nextNumber, nowLocal, startBlockers, worstResidual } from '../services/permits';
@@ -36,6 +37,7 @@ import { exportPermitPdf } from '../services/permitReport';
 import { isAboard } from '../types/crew';
 import { roleAtLeast } from '../types/role';
 import { uiDateTime } from '../utils/dates';
+import * as storage from '../services/storage';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -49,7 +51,7 @@ export default function PermitSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { permits, risks, crew, savePermit, saveRisk , vessel } = useData();
+  const { permits, risks, crew, savePermit, saveRisk , vessel, signDrafts, saveRow } = useData();
   const sync = useSync();
   const confirmSign = useSignConfirm();
   const { signer, picker } = useSigner();
@@ -136,6 +138,17 @@ export default function PermitSc() {
   const [tb, setTb] = useState<{ open: boolean; present: string[]; extra: string[]; topics: string[]; concerns: string }>({ open: false, present: [], extra: [], topics: [], concerns: '' });
   const openToolbox = () =>
     setTb({ open: true, present: p.toolbox ? p.toolbox.attendees.filter((a) => a.present).map((a) => a.name) : [], extra: p.toolbox ? p.toolbox.attendees.map((a) => a.name).filter((n) => !p.team.includes(n)) : [], topics: p.toolbox?.topics ?? [], concerns: p.toolbox?.concerns ?? '' });
+  // Left for signature on another device (types/signDraft.ts).
+  const leftTb = route.params?.signDraft ? signDrafts.find((d) => d.id === route.params.signDraft) : undefined;
+  const leftTbId = leftTb?.id;
+  useEffect(() => {
+    if (leftTb) setTb({ ...leftTb.data, open: true } as any);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leftTbId]);
+  const leaveToolbox = async () => {
+    await saveRow(storage.SIGN_DRAFTS_KEY, { ...(leftTb ?? { id: uid('sdr'), kind: 'toolbox', refId: p.id, at: Date.now() }), title: `${t('ptw.toolbox')}: ${p.no || p.work}`, data: draftData(tb) });
+    setTb({ ...tb, open: false });
+  };
   const holdToolbox = async () => {
     if (!p.work.trim() || !p.location.trim()) return Alert.alert(t('ptw.toolbox'), t('ptw.writeFirst'));
     const names = [...p.team, ...tb.extra.filter((n) => !p.team.includes(n))];
@@ -150,6 +163,7 @@ export default function PermitSc() {
         by: s.by, ...(s.byRank ? { byRank: s.byRank } : {}), ...(s.signedWith ? { signedWith: s.signedWith } : {}),
       };
       await persist({ ...p, toolbox: t });
+      if (leftTb) await saveRow(storage.SIGN_DRAFTS_KEY, { ...leftTb, done: true });
       setTb({ ...tb, open: false });
       playSuccessSound();
     };
@@ -390,6 +404,11 @@ export default function PermitSc() {
                 <TextInput style={[styles.input, { minHeight: 60, textAlignVertical: 'top' }]} value={tb.concerns} onChangeText={(v) => setTb({ ...tb, concerns: v })} multiline placeholder={t('ptw.concernsPh')} placeholderTextColor={COLORS.textLight} />
                 <View style={styles.actions}>
                   <Action label={t('ptw.signToolbox')} onPress={() => void holdToolbox()} styles={styles} />
+                  {existing ? (
+                    <TouchableOpacity onPress={() => void leaveToolbox()} hitSlop={8} style={{ marginTop: SIZES.sm }}>
+                      <Text style={styles.link}>{t('sd.leave')}</Text>
+                    </TouchableOpacity>
+                  ) : null}
                   <Action label={t('common.cancel')} onPress={() => setTb({ ...tb, open: false })} styles={styles} outline />
                 </View>
               </View>

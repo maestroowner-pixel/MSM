@@ -19,6 +19,7 @@ import { useSignConfirm } from '../components/SignConfirm';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
+import { draftData } from '../types/signDraft';
 import { WatchEntry, WatchTemplate } from '../types/watchLog';
 import { WATCH_PERIODS, WatchPeriod } from '../types/deckLog';
 import { PERIOD_LABEL, PERIOD_SHORT, currentPeriod } from '../services/deckLog';
@@ -43,11 +44,12 @@ export default function WatchEntrySc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { watchTemplates, watchLog, vessel, saveRow } = useData();
+  const { watchTemplates, watchLog, vessel, saveRow, signDrafts } = useData();
   const { signer, picker } = useSigner('SIGNED BY');
   const confirmSign = useSignConfirm();
 
-  const { entryId, templateId } = route.params ?? {};
+  const { entryId, templateId, signDraft } = route.params ?? {};
+  const left = signDraft ? signDrafts.find((d) => d.id === signDraft) : undefined;
   const readOnly = !!entryId;
 
   // Resolve existing entry (read-only mode).
@@ -68,9 +70,9 @@ export default function WatchEntrySc() {
   const params = template.params;
 
   // Mutable state for new entries.
-  const [values, setValues] = useState<Record<string, string>>(() => existing?.values ?? {});
-  const [period, setPeriod] = useState<WatchPeriod>(() => existing?.period ?? currentPeriod());
-  const [remarks, setRemarks] = useState(existing?.remarks ?? '');
+  const [values, setValues] = useState<Record<string, string>>(() => existing?.values ?? left?.data.values ?? {});
+  const [period, setPeriod] = useState<WatchPeriod>(() => existing?.period ?? left?.data.period ?? currentPeriod());
+  const [remarks, setRemarks] = useState(existing?.remarks ?? left?.data.remarks ?? '');
   const [saving, setSaving] = useState(false);
 
   const setValue = (id: string, v: string) => setValues((prev) => ({ ...prev, [id]: v }));
@@ -82,6 +84,13 @@ export default function WatchEntrySc() {
     for (const q of params) m[q.id] = previous(q, watchLog, before);
     return m;
   }, [params, watchLog, before]);
+
+  /** For an officer to sign on their own device; the Board shows it to them. */
+  const leave = async () => {
+    const at = Date.now();
+    await saveRow(storage.SIGN_DRAFTS_KEY, { ...(left ?? { id: uid('sdr'), kind: 'watch', refId: template.id, at }), title: template.name, data: draftData({ values, period, remarks }) });
+    goBackOr(nav, 'WatchLog');
+  };
 
   const sign = async () => {
     if (!signer) return Alert.alert(t('sign.noSigner'), t('we.chooseSigner'));
@@ -120,6 +129,7 @@ export default function WatchEntrySc() {
         updatedAt: Date.now(),
       };
       await saveRow(storage.WATCH_LOG_KEY, entry);
+      if (left) await saveRow(storage.SIGN_DRAFTS_KEY, { ...left, done: true });
       goBackOr(nav, 'WatchLog');
     } catch (e: any) {
       Alert.alert(t('common.error'), e?.message ?? String(e));
@@ -254,6 +264,9 @@ export default function WatchEntrySc() {
               >
                 <MciIcon name="pencil" size={18} color={COLORS.textWhite} />
                 <Text style={styles.signBtnText}>{saving ? t('common.saving') : t('we.sign')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => void leave()} hitSlop={8} style={{ alignSelf: 'center', marginTop: SIZES.md }}>
+                <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small }}>{t('sd.leave')}</Text>
               </TouchableOpacity>
             </View>
           )}

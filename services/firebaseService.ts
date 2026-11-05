@@ -1259,6 +1259,8 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   // The deck log and the GMDSS log, the only records left on one device until 4 Nov 2026 (plan item 64).
   // The deck log goes one record at a time: a signed entry the rules refuse stays queued and holds up no other.
   { sub: 'deck_log', key: storage.DECK_LOG_KEY, module: 'deckLog', toCloud: (r) => r },
+  // Left for someone to sign on another device (types/signDraft.ts).
+  { sub: 'sign_drafts', key: storage.SIGN_DRAFTS_KEY, module: 'signConfirm' },
   { sub: 'gmdss', key: storage.GMDSS_KEY, appendOnly: true, module: 'gmdss' },
   { sub: 'order_groups', key: storage.ORDER_GROUPS_KEY, module: 'orders' },
   { sub: 'galley_orders', key: storage.GALLEY_ORDERS_KEY, module: 'orders' },

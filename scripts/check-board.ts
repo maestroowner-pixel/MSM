@@ -21,6 +21,19 @@ const base = (o: Partial<BoardInput> = {}): BoardInput => ({
 const pm = (() => { const d = new Date(); const t = new Date(Date.UTC(d.getFullYear(), d.getMonth() - 1, 1)); return t.toISOString().slice(0, 7); })();
 const item = (id: string, expiry: string): any => ({ id, category: 'fire_extinguishers', expiryDate: expiry, nextInspection: expiry });
 
+{
+  const waiting = buildBoard(base({
+    on: (m) => m === 'deckLog' || m === 'drills' || m === 'meetings',
+    deckLog: [{ id: 'd1', draft: true }, { id: 'd2' }] as any,
+    signDrafts: [{ id: 'k1', kind: 'watch', title: 'ER', refId: 't' }, { id: 'k2', kind: 'check', title: 'DP', refId: 't', done: true }] as any,
+    drills: [{ id: 'r1', date: plus(0), type: 'fire', scenario: [], attendance: [{ present: true }] }, { id: 'r2', date: plus(9), type: 'fire', scenario: [], attendance: [] }, { id: 'r3', date: plus(-9), type: 'fire', doneAt: 1, scenario: [], attendance: [{ present: true }] }] as any,
+    safetyMeetings: [{ id: 'm1', date: plus(0), carried: [], actions: [], attendance: [{ present: true }] }, { id: 'm2', date: plus(-9), doneAt: 1, carried: [], actions: [], attendance: [{ present: true }] }] as any,
+  }));
+  const keys = waiting.attention.map((x) => x.key);
+  const ok1 = keys.includes('sign:deck') && keys.includes('sign:draft:k1') && !keys.includes('sign:draft:k2') && keys.includes('sign:drill:r1') && keys.includes('sign:meeting:m1') && !keys.some((k) => /sign:(drill:r[23]|meeting:m2)/.test(k));
+  console.log(`${ok1 ? '✓' : '✗'} waiting for a signature: unsigned only, all to officers`);
+  if (!ok1 || waiting.attention.find((x) => x.key === 'sign:deck')?.who !== 'officer') process.exitCode = 1;
+}
 let b = buildBoard(base({ flat: [item('a', plus(-3)), item('b', plus(10)), item('c', plus(200))] }));
 const eq = b.attention.find((x) => x.key === 'eq:fire_extinguishers');
 ok(!!eq && eq.level === 'red' && /1 expired, 1 due soon/.test(eq.title), 'register grouped by category: 1 expired, 1 due');
