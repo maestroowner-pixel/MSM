@@ -45,6 +45,8 @@ export interface SignProof {
   method: 'biometric' | 'pin' | 'drawn';
   /** The handwritten signature, for `drawn` (SVG path, 300 × 100 — components/SignaturePad). */
   drawing?: string;
+  /** A hand signature on a shared tablet: the officer whose PIN signature it is made under. */
+  under?: string;
   /** The device it was signed on (firebaseService.getLocalDeviceId). */
   deviceId?: string;
   at: number;
@@ -175,12 +177,22 @@ export async function checkPin(personKey: string, pin: string): Promise<PinCheck
     await clearFails(personKey);
     return { ok: true };
   }
+  const until = await countAttempt(personKey);
+  const f = await fails(personKey);
+  return { ok: false, left: until ? 0 : MAX_TRIES - f.count, lockedUntil: until };
+}
+
+/** One more wrong try against this key; the time it is locked until, when that was the last. */
+export async function countAttempt(personKey: string): Promise<number | undefined> {
   const f = await fails(personKey);
   const count = f.count + 1;
   const until = count >= MAX_TRIES ? Date.now() + LOCK_MS : undefined;
   await AsyncStorage.setItem(FAIL_PREFIX + personKey, JSON.stringify({ count: until ? 0 : count, until }));
-  return { ok: false, left: until ? 0 : MAX_TRIES - count, lockedUntil: until };
+  return until;
 }
+
+export const attempts = (personKey: string) => fails(personKey);
+export const clearAttempts = (personKey: string) => clearFails(personKey);
 
 async function fails(personKey: string): Promise<{ count: number; until?: number }> {
   try {
@@ -212,11 +224,11 @@ function randomHex(bytes: number): string {
  * hand" (on the screen). All three ways stay open to everyone.
  */
 export function proofShort(p: SignProof | undefined): string {
-  return !p ? '' : p.method === 'biometric' ? 'signed biometrically' : p.method === 'drawn' ? 'signed by hand' : 'signed by PIN';
+  return !p ? '' : p.method === 'biometric' ? 'signed biometrically' : p.method === 'drawn' ? `signed by hand${p.under ? `, under ${p.under}` : ''}` : 'signed by PIN';
 }
 
 /** The same as a sentence, for a record's own screen. */
 export function proofText(p: SignProof | undefined): string | null {
   if (!p) return null;
-  return p.method === 'biometric' ? 'Signed biometrically' : p.method === 'drawn' ? 'Signed by hand on the screen' : 'Signed by PIN';
+  return p.method === 'biometric' ? 'Signed biometrically' : p.method === 'drawn' ? `Signed by hand on the screen${p.under ? `, under ${p.under}` : ''}` : 'Signed by PIN';
 }

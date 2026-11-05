@@ -30,6 +30,7 @@ import { Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } 
 import { MciIcon } from './MciIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
+import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { moduleOn } from '../constants/modules';
 import * as fb from '../services/firebaseService';
@@ -49,6 +50,9 @@ import {
   ADMIN_KEY,
   hasAdminPin,
 } from '../services/signature';
+import { CODE_LENGTH, redeemPinCode } from '../services/pinCodes';
+import { handUnder } from '../services/pinHash';
+import { maySign } from '../types/crew';
 import { OpenKey, openBioKey, openDeviceKey, openPinKey } from '../services/signKeys';
 import type { SignKeyRec } from '../services/seal';
 import * as storage from '../services/storage';
@@ -88,7 +92,7 @@ export function withSeal<T extends object>(rec: T, sig: SignResult, field: 'sign
   return { ...rec, [field]: { ...proof, seal: sig.key.seal(rec) } };
 }
 
-type Step = 'choose' | 'bio' | 'pin' | 'admin' | 'set1' | 'set2' | 'draw';
+type Step = 'choose' | 'bio' | 'pin' | 'admin' | 'code' | 'set1' | 'set2' | 'draw';
 
 /** A phone, a tablet, or a browser on a touch screen — where a hand or a stylus can sign. */
 /** Signing by hand is offered everywhere — a stylus or finger on a tablet, a pen tablet or mouse on a computer. */
@@ -102,17 +106,33 @@ export function useSignConfirm(): (r: SignRequest) => Promise<SignResult> {
   return fn ?? (async () => ({}));
 }
 
-/** Where the PIN path starts: the PIN, or — with none yet — the Master's unlock (if there is a Master PIN). */
-async function pinStep(personKey: string): Promise<Step> {
-  if (await hasPin(personKey)) return 'pin';
-  return (await hasAdminPin()) ? 'admin' : 'set1';
+/**
+ * Where the PIN path starts: the PIN; with none yet, the Master's device asks the
+ * Master PIN, a person's own device lets them choose, and on a shared device it
+ * takes a one-time code from the Master (services/pinCodes).
+ */
+async function pinStep(r: SignRequest, masterDevice: boolean): Promise<Step> {
+  if (await hasPin(r.personKey)) return 'pin';
+  if (masterDevice) return (await hasAdminPin()) ? 'admin' : 'set1';
+  return r.ownDevice ? 'set1' : 'code';
 }
 
 export function SignConfirmProvider({ children }: { children: React.ReactNode }) {
   const COLORS = useTheme();
   useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { signingPolicy, appendRow, signKeys } = useData();
+  const { signingPolicy, appendRow, signKeys, vessel, crew } = useData();
+  const sync = useSync();
+  const masterDevice = !sync.enrolled || sync.role === 'superadmin';
+  const masterRef = useRef(masterDevice);
+  masterRef.current = masterDevice;
+  const sharedTablet = !!sync.me?.shared;
+  /** The officer who last signed with a PIN on this shared tablet. In memory: a restart shuts hand signing again. */
+  const responsible = useRef<{ name: string; at: number } | null>(null);
+  const underNow = (name?: string) => (sharedTablet && name ? handUnder(responsible.current, name, Date.now()) : null);
+  const noteResponsible = (r: SignRequest) => {
+    if (sharedTablet && crew.some((c) => c.id === r.personKey && maySign(c))) responsible.current = { name: r.name, at: Date.now() };
+  };
   // Every signature is confirmed — PIN, fingerprint or by hand (10 Oct 2026: "a
   // signature with nothing asked is not acceptable"). The old per-vessel switch
   // (signingPolicy.confirmSignature) no longer turns it off.
@@ -167,18 +187,19 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
         await appendRow(storage.SIGN_KEYS_KEY, rec).catch(() => {});
       }
     }
-    return { proof: { method, ...(drawn ? { drawing: drawn } : {}), ...(deviceId ? { deviceId } : {}), at: Date.now() }, ...(key ? { key } : {}) };
+    const under = method === 'drawn' ? underNow(req?.name) : null;
+    return { proof: { method, ...(drawn ? { drawing: drawn } : {}), ...(under ? { under } : {}), ...(deviceId ? { deviceId } : {}), at: Date.now() }, ...(key ? { key } : {}) };
   };
   const toPin = async () => {
     if (!req) return;
     setMsg(null);
-    setStep(await pinStep(req.personKey));
+    setStep(await pinStep(req, masterDevice));
   };
 
   const tryBio = useCallback(async (r: SignRequest) => {
     setMsg(null);
     if (await confirmBiometric(t('sc.bioAs', { what: r.what, name: r.name }))) finish(await proof('biometric'));
-    else setStep(await pinStep(r.personKey));
+    else setStep(await pinStep(r, masterRef.current));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finish]);
 
@@ -220,10 +241,20 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
       setMsg(null);
       return setStep('set1');
     }
+    if (step === 'code') {
+      const r = await redeemPinCode((vessel?.imo ?? '').trim(), req.personKey, req.name, v);
+      setPinText('');
+      if (!r.ok) return setMsg(r.why === 'locked' ? lockText(r.lockedUntil) : r.why === 'offline' && sharedTablet ? t('sc.codeOfflineShared') : t(`pc.code.${r.why}`));
+      setMsg(null);
+      return setStep('set1');
+    }
     if (step === 'pin') {
       const r = await checkPin(req.personKey, v);
       setPinText('');
-      if (r.ok) return finish(await proof('pin', undefined, v));
+      if (r.ok) {
+        noteResponsible(req);
+        return finish(await proof('pin', undefined, v));
+      }
       setMsg(r.lockedUntil ? lockText(r.lockedUntil) : t('sc.wrongPin', { left: tn('n.tryLeft', r.left) }));
       return;
     }
@@ -243,23 +274,30 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
         return setStep('set1');
       }
       await setPin(req.personKey, req.name, v);
+      noteResponsible(req);
       finish(await proof('pin', undefined, v));
     }
   };
 
   const title =
-    step === 'choose' ? t('sc.how') : step === 'bio' ? t('sc.bioTitle') : step === 'draw' ? t('sc.byHand') : step === 'admin' ? t('sc.adminTitle') : step === 'pin' ? t('sc.enterPin') : step === 'set1' ? t('sc.choosePin') : t('sc.repeat');
+    step === 'choose' ? t('sc.how') : step === 'bio' ? t('sc.bioTitle') : step === 'draw' ? t('sc.byHand') : step === 'code' ? t('sc.codeTitle') : step === 'admin' ? t('sc.adminTitle') : step === 'pin' ? t('sc.enterPin') : step === 'set1' ? t('sc.choosePin') : t('sc.repeat');
+  const handUnderName = underNow(req?.name);
+  const handOk = canDraw && (!sharedTablet || !!handUnderName);
   const hint =
-    step === 'set1'
+    step === 'choose' && sharedTablet && !handOk
+      ? t('sc.handAfter')
+      : step === 'set1'
       ? t('sc.firstHint', { min: PIN_MIN, max: PIN_MAX })
       : step === 'set2'
       ? t('sc.again')
       : step === 'admin'
-      ? t('sc.adminHint') + (canDraw && bio ? t('sc.orHandBio') : canDraw ? t('sc.orHand') : bio ? t('sc.orBio') : '')
+      ? t('sc.adminHint') + (handOk && bio ? t('sc.orHandBio') : handOk ? t('sc.orHand') : bio ? t('sc.orBio') : '')
       : step === 'draw'
-      ? t('sc.drawHint')
+      ? t('sc.drawHint') + (handUnderName ? ` ${t('sc.handUnder', { name: handUnderName })}` : '')
+      : step === 'code'
+      ? t('sc.codeHint') + (handOk && bio ? t('sc.orHandBio') : handOk ? t('sc.orHand') : bio ? t('sc.orBio') : '')
       : step === 'pin'
-      ? t('sc.forgot')
+      ? masterDevice ? t('sc.forgot') : t('sc.forgotCode')
       : null;
 
   return (
@@ -278,7 +316,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
                   <MciIcon name="dialpad" size={30} color={COLORS.primary} />
                   <Text style={styles.choiceText}>PIN</Text>
                 </TouchableOpacity>
-                {canDraw ? (
+                {handOk ? (
                   <TouchableOpacity style={styles.choice} onPress={() => { setMsg(null); setDrawing(''); setStep('draw'); }}>
                     <MciIcon name="draw-pen" size={30} color={COLORS.primary} />
                     <Text style={styles.choiceText}>{t('sc.byHand')}</Text>
@@ -316,22 +354,27 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
                   key={step}
                   style={styles.pin}
                   value={pin}
-                  onChangeText={(t) => setPinText(t.replace(/\D/g, '').slice(0, PIN_MAX))}
+                  onChangeText={(t) => setPinText(t.replace(/\D/g, '').slice(0, step === 'code' ? CODE_LENGTH : PIN_MAX))}
                   onSubmitEditing={() => void submit()}
                   keyboardType="number-pad"
-                  secureTextEntry
+                  secureTextEntry={step !== 'code'}
                   autoFocus
-                  maxLength={PIN_MAX}
+                  maxLength={step === 'code' ? CODE_LENGTH : PIN_MAX}
                   placeholder="• • • •"
                   placeholderTextColor={COLORS.textLight}
                 />
-                <TouchableOpacity style={[styles.primary, pin.length < PIN_MIN && { opacity: 0.5 }]} disabled={pin.length < PIN_MIN} onPress={() => void submit()}>
-                  <Text style={styles.primaryText}>{step === 'set1' ? t('sc.next') : step === 'admin' ? t('sc.unlock') : t('common.sign')}</Text>
+                <TouchableOpacity style={[styles.primary, pin.length < (step === 'code' ? CODE_LENGTH : PIN_MIN) && { opacity: 0.5 }]} disabled={pin.length < (step === 'code' ? CODE_LENGTH : PIN_MIN)} onPress={() => void submit()}>
+                  <Text style={styles.primaryText}>{step === 'set1' || step === 'code' ? t('sc.next') : step === 'admin' ? t('sc.unlock') : t('common.sign')}</Text>
                 </TouchableOpacity>
               </>
             )}
             {msg ? <Text style={styles.msg}>{msg}</Text> : null}
             {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+            {step === 'pin' && !masterDevice ? (
+              <TouchableOpacity onPress={() => { setMsg(null); setPinText(''); setStep('code'); }} hitSlop={8} style={{ marginTop: SIZES.sm }}>
+                <Text style={styles.link}>{t('pc.haveCode')}</Text>
+              </TouchableOpacity>
+            ) : null}
             <View style={styles.row}>
               {/* Back to the choice: PIN, by hand, fingerprint. */}
               {step !== 'choose' && !req?.handOnly ? (

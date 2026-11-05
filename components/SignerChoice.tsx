@@ -1,5 +1,7 @@
 // Who is signing on this device — its own account when it has joined a vessel,
 // otherwise a name picked from the crew on board (remembered as the last signer).
+// A shared tablet joins a vessel but picks too, from those with the right to sign;
+// the gangway watch is a watch's record, not a signature (`anyAboard`), and picks from everyone aboard.
 // Shared by permits, risk assessments and any other signed step.
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
@@ -11,7 +13,7 @@ import { t, useT } from '../utils/i18n';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES } from '../theme';
-import { crewLabel, isAboard } from '../types/crew';
+import { crewLabel, isAboard, maySign } from '../types/crew';
 import { personName } from '../types/role';
 
 export interface Signer {
@@ -25,18 +27,21 @@ export interface Signer {
 /** The name last chosen on this device — kept while the app is open, so moving between screens does not ask again. */
 let lastPicked = '';
 
-export function useSigner(caption?: string, { forceDropdown = false } = {}): { signer: Signer | null; picker: React.ReactElement | null } {
+export function useSigner(caption?: string, { forceDropdown = false, anyAboard = false } = {}): { signer: Signer | null; picker: React.ReactElement | null } {
   const COLORS = useTheme();
   useT();
   const { crew, prefs } = useData();
   const sync = useSync();
-  const people = useMemo(() => crew.filter(isAboard), [crew]);
-  const [pickedId, setPicked] = useState<string>(lastPicked || prefs?.lastCrewId || '');
+  // A shared tablet asks each time: yesterday's name must not sit ready for whoever picks it up next.
+  const shared = !!sync.me?.shared;
+  const people = useMemo(() => crew.filter((c) => isAboard(c) && (!shared || anyAboard || maySign(c))), [crew, shared, anyAboard]);
+  const [chosen, setPicked] = useState<string | null>(null);
+  const pickedId = chosen ?? (shared ? '' : lastPicked || prefs?.lastCrewId || '');
   const setPickedId = (id: string) => {
-    lastPicked = id;
+    if (!shared) lastPicked = id;
     setPicked(id);
   };
-  if (sync.me && !forceDropdown) {
+  if (sync.me && !forceDropdown && !shared) {
     return { signer: { key: `device:${sync.me.id}`, name: personName(sync.me), rank: sync.me.position || undefined, own: true }, picker: null };
   }
   const picked = people.find((p) => p.id === pickedId);

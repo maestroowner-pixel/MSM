@@ -19,6 +19,39 @@ export function isWeakPin(pin: string): boolean {
   return up.includes(pin) || down.includes(pin);
 }
 
+/** Where a one-time code is kept: services/pinCodes. */
+export function codeDocId(vessel: string, code: string): string {
+  return sha256(`pincode:${vessel}:${code}`);
+}
+
+/**
+ * Whether a code issued for one name is for the person using it. The crew list may
+ * say "Jez" where the account says "Jez Dodd", so one name's words within the
+ * other's is enough.
+ */
+export function sameCodeName(issued: string, person: string): boolean {
+  const words = (s: string) => s.toLowerCase().split(/\s+/).filter(Boolean);
+  const a = words(issued);
+  const b = words(person);
+  if (!a.length || !b.length) return false;
+  const [few, many] = a.length <= b.length ? [a, b] : [b, a];
+  return few.every((w) => many.includes(w));
+}
+
+/** How long a responsible officer's PIN signature lets others sign by hand on a shared tablet. */
+export const RESPONSIBLE_MS = 30 * 60_000;
+
+/**
+ * On a shared tablet the responsible officer signs with a PIN and the others may
+ * then sign by hand under them (5 Nov 2026). Returns that officer's name, or null
+ * when hand signing is shut: nobody has signed, it has run out, or it is the
+ * officer themselves, whose signature is always the PIN.
+ */
+export function handUnder(session: { name: string; at: number } | null, name: string, now: number): string | null {
+  if (!session || now - session.at >= RESPONSIBLE_MS || sameCodeName(session.name, name)) return null;
+  return session.name;
+}
+
 // No crypto library is bundled and Hermes has no WebCrypto, so SHA-256 is done
 // here. Iterated, so each guess costs something even on a copied store.
 

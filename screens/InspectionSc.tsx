@@ -64,7 +64,7 @@ import { moduleOn } from '../constants/modules';
 
 import { CheckResult, InspectionPeriod } from '../types/inspection';
 import { Attachment, EquipmentItem } from '../types/equipment';
-import { crewLabel } from '../types/crew';
+import { crewLabel, maySign } from '../types/crew';
 import * as inspections from '../services/inspections';
 import * as photoQueue from '../services/photoQueue';
 import {
@@ -193,9 +193,9 @@ export default function InspectionSc() {
   const confirming = useRef(false);
 
   // Signer: whoever used this device last, if they are still on the crew list.
-  const activeCrew = useMemo(() => crew.filter((c) => c.active), [crew]);
+  const activeCrew = useMemo(() => crew.filter((c) => c.active && (!sync.me?.shared || maySign(c))), [crew, sync.me?.shared]);
   const [signerId, setSignerId] = useState<string | undefined>(() => {
-    const last = prefs.lastCrewId && activeCrew.find((c) => c.id === prefs.lastCrewId);
+    const last = !sync.me?.shared && prefs.lastCrewId && activeCrew.find((c) => c.id === prefs.lastCrewId);
     return last ? last.id : activeCrew.length === 1 ? activeCrew[0].id : undefined;
   });
   const picked = useMemo(() => activeCrew.find((c) => c.id === signerId), [activeCrew, signerId]);

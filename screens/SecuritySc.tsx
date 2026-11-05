@@ -107,7 +107,12 @@ function SecuritySc() {
   const sync = useSync();
   const isMaster = !sync.enrolled || sync.role === 'superadmin';
   const confirmSign = useSignConfirm();
-  const { signer, picker } = useSigner('WATCH');
+  // The gangway's records are the watch's, whoever has it. On a shared tablet the
+  // security level and a drill still take someone with the right to sign.
+  const { signer, picker } = useSigner('WATCH', { anyAboard: true });
+  const signing = useSigner(t('sch.signingAs'));
+  const sharedTablet = !!sync.me?.shared;
+  const authority = sharedTablet ? signing.signer : signer;
   const officer = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const today = todayIso();
   // Two pages, as the menu's Security sub-items (and the chips on a phone):
@@ -130,9 +135,9 @@ function SecuritySc() {
   const setLevel = (l: 1 | 2 | 3) => {
     if (l === current) return;
     if (!officer) return Alert.alert(t('sec.levelTitle'), t('sec.levelWho'));
-    if (!signer) return Alert.alert(t('sec.whoSets'), t('sec.watchFirst'));
+    if (!authority) return Alert.alert(t('sec.whoSets'), t('sec.watchFirst'));
     const go = async () => {
-      const r: SecurityLevelRec = { id: `level_${Date.now()}`, level: l, since: Date.now(), by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), updatedAt: Date.now() };
+      const r: SecurityLevelRec = { id: `level_${Date.now()}`, level: l, since: Date.now(), by: authority.name, ...(authority.rank ? { byRank: authority.rank } : {}), updatedAt: Date.now() };
       await appendRow(storage.SECURITY_LEVEL_KEY, r);
       playSuccessSound();
     };
@@ -336,15 +341,15 @@ function SecuritySc() {
   const drillLate = !nextDue || nextDue < today;
   const [d, setD] = useState({ scenario: SECURITY_SCENARIOS[0], minutes: '', findings: '', team: [] as string[] });
   const saveDrill = async () => {
-    if (!signer) return Alert.alert(t('sec.whoConducted'), t('sec.watchFirst'));
+    if (!authority) return Alert.alert(t('sec.whoConducted'), t('sec.watchFirst'));
     if (!d.team.length) return Alert.alert(t('sec.drill'), t('sec.markTeam'));
-    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `ISPS drill — ${d.scenario}` });
+    const sig = await confirmSign({ personKey: authority.key, name: authority.name, ownDevice: authority.own, what: `ISPS drill — ${d.scenario}` });
     if (!sig) return;
     const now = Date.now();
     const r: SecurityDrill = {
       id: uid('secd'), date: today, time: hhmm(), scenario: d.scenario, participants: d.team,
       ...(Number(d.minutes) > 0 ? { minutes: Number(d.minutes) } : {}), ...(d.findings.trim() ? { findings: d.findings.trim() } : {}),
-      by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now,
+      by: authority.name, ...(authority.rank ? { byRank: authority.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now,
     };
     await appendRow(storage.SECURITY_DRILLS_KEY, r);
     setD({ scenario: SECURITY_SCENARIOS[0], minutes: '', findings: '', team: [] });
@@ -459,6 +464,7 @@ function SecuritySc() {
           ) : null}
         </View>
         {picker ? <View style={{ minWidth: 240, flexShrink: 1 }}>{picker}</View> : null}
+        {sharedTablet && signing.picker ? <View style={{ minWidth: 240, flexShrink: 1 }}>{signing.picker}</View> : null}
       </View>
 
       {tab === 'board' ? (

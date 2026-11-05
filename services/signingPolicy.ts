@@ -217,6 +217,7 @@ export interface DeviceIdentity {
   firstName?: string;
   lastName?: string;
   position?: string;
+  shared?: boolean;
 }
 
 export type SignerRule =
@@ -241,7 +242,7 @@ export function signerRule(
   enrolled: boolean,
   me: DeviceIdentity | null | undefined
 ): SignerRule {
-  if (!policy?.signAsDevice || !enrolled) return { kind: 'pick' };
+  if (!policy?.signAsDevice || !enrolled || me?.shared) return { kind: 'pick' };
   const name = [me?.firstName, me?.lastName].filter(Boolean).join(' ').trim();
   if (!me || !name) return { kind: 'waiting' };
   return { kind: 'device', signer: { id: `device:${me.id}`, name, rank: me.position?.trim() || undefined, source: 'device' } };

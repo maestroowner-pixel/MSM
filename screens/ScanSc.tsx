@@ -66,7 +66,7 @@ import { todayIso } from '../services/pms';
 import { passengerAboard } from '../types/passengers';
 import { useSync } from '../contexts/SyncContext';
 import { moduleOn } from '../constants/modules';
-import { isAboard } from '../types/crew';
+import { isAboard, maySign } from '../types/crew';
 import { personName } from '../types/role';
 import * as storage from '../services/storage';
 import { t, tk, useT } from '../utils/i18n';
@@ -152,13 +152,13 @@ export default function ScanSc() {
   const passedNow = useRef(new Set<string>());
 
   const rule = signerRule(signingPolicy, sync.enrolled, sync.me);
-  const activeCrew = useMemo(() => crew.filter((c) => c.active), [crew]);
+  const activeCrew = useMemo(() => crew.filter((c) => c.active && (!sync.me?.shared || maySign(c))), [crew, sync.me?.shared]);
 
   const startQuick = async (pickedId?: string) => {
     let signer: { id: string; name: string; rank?: string } | undefined;
     if (rule.kind === 'device') signer = rule.signer;
     else if (rule.kind === 'pick') {
-      const id = pickedId ?? prefs.lastCrewId;
+      const id = pickedId ?? (sync.me?.shared ? undefined : prefs.lastCrewId);
       signer = activeCrew.find((c) => c.id === id) ?? (activeCrew.length === 1 ? activeCrew[0] : undefined);
       if (!signer) return setPickingSigner(true);
     } else return setQuickRows([{ key: 'wait', title: t('qp.title'), text: t('ins.waitAccountBody'), ok: false }]);

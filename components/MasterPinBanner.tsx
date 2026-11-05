@@ -2,7 +2,9 @@
 // still the default 0000 (10 Oct 2026). Until it is changed anyone who reads the
 // manual can set or change a crew member's signing PIN. Taps through to the
 // Crew matrix, where the 🔒 Master PIN is changed. Shown to the Master only,
-// and only where confirmed signatures are in use.
+// and only where confirmed signatures are in use. On a device enrolled as the
+// Master it is no longer a reminder: the PIN is asked for and cannot be cancelled.
+// A standalone install keeps the reminder: it is not a vessel yet.
 import React, { useCallback, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { t } from '../utils/i18n';
@@ -13,7 +15,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES } from '../theme';
 import { moduleOn } from '../constants/modules';
-import { adminPinIsDefault } from '../services/signature';
+import { usePinChange } from './PinChange';
+import { ADMIN_KEY, adminPinIsDefault } from '../services/signature';
 
 export function MasterPinBanner() {
   const COLORS = useTheme();
@@ -21,11 +24,17 @@ export function MasterPinBanner() {
   const sync = useSync();
   const isMaster = !sync.enrolled || sync.role === 'superadmin';
   const [show, setShow] = useState(false);
+  const changePin = usePinChange();
   useFocusEffect(
     useCallback(() => {
       if (!isMaster || !moduleOn('signConfirm')) return setShow(false);
-      void adminPinIsDefault().then(setShow);
-    }, [isMaster])
+      void adminPinIsDefault().then((isDefault) => {
+        setShow(isDefault);
+        if (isDefault && sync.enrolled) {
+          changePin({ key: ADMIN_KEY, name: t('role.superadmin') }, { required: true, onDone: () => setShow(false) });
+        }
+      });
+    }, [isMaster, sync.enrolled, changePin])
   );
   if (!show) return null;
   return (

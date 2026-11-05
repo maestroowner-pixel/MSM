@@ -124,7 +124,7 @@ export default function CrewMatrixSc() {
             <Text style={styles.link}>{showOff ? t('cm.hideOff') : t('cm.showOff', { n: people.off.length })}</Text>
           </TouchableOpacity>
         ) : <View />}
-        {signing ? (
+        {signing && isMaster ? (
         <TouchableOpacity onPress={() => changePin({ key: ADMIN_KEY, name: 'Master' }, { onDone: loadPins })} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <MciIcon name="lock" size={16} color={pins.has(ADMIN_KEY) ? COLORS.success : COLORS.warning} />
           <Text style={[styles.link, !pins.has(ADMIN_KEY) && isMaster && { color: COLORS.warning }]}>{pins.has(ADMIN_KEY) || !isMaster ? t('cm.masterPin') : t('cm.masterPin0')}</Text>

@@ -40,7 +40,8 @@ import { SIZES, Palette } from '../theme';
 import { catLabel } from '../constants/categories';
 import { clTitle, templateById } from '../constants/checklists';
 import { CheckResult, PERIOD_LABEL, verificationText } from '../types/inspection';
-import { crewLabel, signatureLine } from '../types/crew';
+import { crewLabel, maySign, signatureLine } from '../types/crew';
+import { useSync } from '../contexts/SyncContext';
 import { Attachment } from '../types/equipment';
 import * as inspections from '../services/inspections';
 import { RETENTION_DAYS, isArchived } from '../services/photoArchive';
@@ -72,7 +73,8 @@ export default function InspectionDetailSc() {
   const rectifying = useRef(false);
   const [closeNote, setCloseNote] = useState('');
   const [pickingSigner, setPickingSigner] = useState(false);
-  const activeCrew = useMemo(() => crew.filter((c) => c.active), [crew]);
+  const sync = useSync();
+  const activeCrew = useMemo(() => crew.filter((c) => c.active && (!sync.me?.shared || maySign(c))), [crew, sync.me?.shared]);
 
   if (!insp) {
     return (

@@ -23,7 +23,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { CrewMember, CrewPrivate, NextOfKin } from '../types/crew';
+import { CrewMember, CrewPrivate, NextOfKin, isOfficerRank } from '../types/crew';
 import { isCountryCode } from '../constants/countries';
 import { crewIssues, issueSummary } from '../services/crewIssues';
 import { useSdmImport } from '../components/useSdmImport';
@@ -216,6 +216,15 @@ export default function CrewMemberSc() {
               </View>
               <Switch value={m.onBoard !== false} disabled={!canEdit} onValueChange={toggleAboard} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
             </View>
+            {!isOfficerRank(m.rank) ? (
+              <View style={styles.toggleRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.title}>{t('crew.canSign')}</Text>
+                  <Text style={styles.sub}>{t('crew.canSignHint')}</Text>
+                </View>
+                <Switch value={!!m.canSign} disabled={!canEdit} onValueChange={(v) => setMember({ canSign: v || undefined })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
+              </View>
+            ) : null}
             <View style={styles.pair}>
               <View style={{ flex: 1 }}>
                 <SimpleDatePicker label={t('crew.signedOn')} value={m.signOn} onChange={(d) => setMember({ signOn: d })} disabled={!canEdit} />

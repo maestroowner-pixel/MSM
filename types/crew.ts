@@ -52,6 +52,8 @@ export interface CrewMember {
   signOnPort?: string;
   /** yyyy-mm-dd left the vessel. */
   signOff?: string;
+  /** Has the right to sign though the rank is not an officer's (`maySign`). */
+  canSign?: boolean;
   /** yyyy-mm-dd the current contract ends — the end-of-contract appraisal is asked for 30 days before (services/appraisals). */
   contractEnd?: string;
 }
@@ -113,6 +115,11 @@ export function isOfficerRank(rank?: string): boolean {
   const r = (rank ?? '').toLowerCase();
   if (!r.trim() || /cadet|trainee|apprentice|student/.test(r)) return false;
   return /\b(master|captain|capt|officer|mate|dpo|sdpo|engineer|eto|electro[- ]?technical|c\/o|2\/o|3\/o|c\/e|2\/e|3\/e|4\/e|oow)\b/.test(r) || /^(co|2o|3o|ce|2e|3e|4e)$/.test(r.replace(/[^a-z0-9]/g, ''));
+}
+
+/** Who may be picked to sign on a shared tablet: an officer by rank, or someone the vessel has named. */
+export function maySign(c: Pick<CrewMember, 'rank' | 'canSign'>): boolean {
+  return isOfficerRank(c.rank) || !!c.canSign;
 }
 
 /** "Jez Dodd · Third Officer" — one line for a picker row or a report cell. */

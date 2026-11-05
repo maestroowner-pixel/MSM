@@ -56,6 +56,9 @@ function rng(): ((n: number) => Uint8Array) | null {
   return _rnd;
 }
 
+/** The platform's generator, or null when this build has none. */
+export const randomBytes = rng;
+
 /** 32 random bytes that make a valid key, or null when this build has no generator. */
 function newPrivate(): Uint8Array | null {
   const r = rng();

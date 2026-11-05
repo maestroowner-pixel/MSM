@@ -205,6 +205,7 @@ ok('crew merge keeps one row per id', mergeCrew([c1], [c2]).length === 1);
   ok('sign-as-device: the id names the device, never a crew id', bound.kind === 'device' && bound.signer.id === 'device:d1');
   ok('sign-as-device on, account not loaded: held, not let through', signerRule(bind, true, null).kind === 'waiting');
   ok('sign-as-device on, account with no name: held', signerRule(bind, true, { id: 'd2' }).kind === 'waiting');
+  ok('a shared tablet picks even with sign-as-device on', signerRule(bind, true, { ...meDev, shared: true }).kind === 'pick');
   ok('sign-as-device on, device on no vessel: picks (it has no account)', signerRule(bind, false, null).kind === 'pick');
   ok('sign-as-device: a blank rank is dropped', (signerRule(bind, true, { ...meDev, position: '  ' }) as any).signer.rank === undefined);
 

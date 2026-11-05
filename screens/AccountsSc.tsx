@@ -21,6 +21,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
+import { SignerPicker } from '../components/SignerPicker';
+import { isAboard, maySign } from '../types/crew';
 import { EnrolledDevice, Invite, ROLE_ORDER, Role, personName, olderConnections } from '../types/role';
 import * as accounts from '../services/accounts';
 import * as fb from '../services/firebaseService';
@@ -41,7 +43,7 @@ export default function AccountsSc() {
   const COLORS = useTheme();
   useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { vessel, signingPolicy } = useData();
+  const { vessel, signingPolicy, crew } = useData();
   const imo = (vessel?.imo ?? '').replace(/\D/g, '');
 
   /**
@@ -99,6 +101,7 @@ export default function AccountsSc() {
   );
 
   const [renaming, setRenaming] = useState<EnrolledDevice | null>(null);
+  const [sharing, setSharing] = useState<EnrolledDevice | null>(null);
   const [rnFirst, setRnFirst] = useState('');
   const [rnLast, setRnLast] = useState('');
   const [rnPosition, setRnPosition] = useState('');
@@ -318,6 +321,10 @@ export default function AccountsSc() {
     // The Master's, and only the Master's — with `signAsDevice` on, the name on a
     // device IS the signature it files (firestore.rules says the same).
     if (isMaster) buttons.push({ text: t('acc.rename'), onPress: () => startRename(d) });
+    if (isMaster && d.role !== 'superadmin' && d.role !== 'shore') {
+      buttons.push({ text: d.shared ? t('acc.changeResponsible') : t('acc.makeShared'), onPress: () => setSharing(d) });
+      if (d.shared) buttons.push({ text: t('acc.notShared'), onPress: () => void accounts.setDeviceShared(imo, d.id, null) });
+    }
     if (!lastMaster) {
       // A shore account is not a device aboard and a device aboard is not a shore
       // account: neither is turned into the other here (functions/index.js).
@@ -499,6 +506,7 @@ export default function AccountsSc() {
                       {[
                         item.position || null,
                         roleName(item.role),
+                        item.shared ? t('acc.sharedBy', { name: item.responsible ?? '' }) : null,
                         item.disabled ? (item.retiredAt ? t('acc.retiredAuto') : t('acc.switchedOff')) : item.approved ? t('acc.approvedCap') : t('acc.waiting'),
                         item.platform,
                         item.lastSeenAt ? uiDateTime(item.lastSeenAt) : null,
@@ -702,6 +710,17 @@ export default function AccountsSc() {
           </View>
         </View>
       </Modal>
+      <SignerPicker
+        visible={!!sharing}
+        crew={crew.filter((c) => isAboard(c) && maySign(c))}
+        title={t('acc.whoResponsible')}
+        onSelect={(id) => {
+          const who = crew.find((c) => c.id === id);
+          if (sharing && who) void accounts.setDeviceShared(imo, sharing.id, who.name);
+          setSharing(null);
+        }}
+        onClose={() => setSharing(null)}
+      />
     </Screen>
   );
 }

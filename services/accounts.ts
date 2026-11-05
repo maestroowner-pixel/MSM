@@ -154,6 +154,15 @@ export async function approveDevice(vessel: string, deviceId: string): Promise<v
   await setDoc(doc(db(), ROOT, vessel, 'devices', deviceId), { approved: true }, { merge: true });
 }
 
+/** A shared tablet and who answers for it; null makes it an ordinary device again. */
+export async function setDeviceShared(vessel: string, deviceId: string, responsible: string | null): Promise<void> {
+  await setDoc(
+    doc(db(), ROOT, vessel, 'devices', deviceId),
+    responsible ? { shared: true, responsible } : { shared: deleteField(), responsible: deleteField() },
+    { merge: true }
+  );
+}
+
 export async function setDeviceRole(vessel: string, deviceId: string, role: Role): Promise<void> {
   await setDoc(doc(db(), ROOT, vessel, 'devices', deviceId), { role }, { merge: true });
 }

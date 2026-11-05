@@ -166,6 +166,14 @@ export interface EnrolledDevice {
   retiredAt?: number;
   /** The connection kept in its place. */
   retiredFor?: string;
+  /**
+   * A shared tablet (5 Nov 2026): it stays in someone's charge and never signs as
+   * itself; each signature picks from those with the right to sign (types/crew
+   * `maySign`). Set by the Master on the Accounts screen.
+   */
+  shared?: boolean;
+  /** Who answers for the shared tablet, by name. */
+  responsible?: string;
 }
 
 export function personName(d: { firstName?: string; lastName?: string }): string {

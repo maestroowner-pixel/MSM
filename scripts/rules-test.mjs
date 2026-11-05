@@ -6,7 +6,7 @@
 // (13.x runs on Java 17; firebase-tools 14+ needs Java 21 — Android Studio's jbr + Homebrew firebase work.)
 
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { readFileSync } from 'fs';
 
 const V = '9000001', OTHER = '9000002';
@@ -68,6 +68,22 @@ await t(true, 'Master gives a device the stores gear', updateDoc(R(master, 'devi
 await t(false, 'Device cannot change its own hidden pages', updateDoc(R(crew, 'devices', 'devU'), { hidePages: [] }));
 await t(true, 'Master hides a page on a device', updateDoc(R(master, 'devices', 'devU'), { hidePages: ['Security:searches'] }));
 await t(false, 'Crew cannot read invitations (PINs)', getDoc(R(crew, 'invites', 'i1')));
+await t(false, 'A shared tablet cannot make itself a personal device', updateDoc(R(crew, 'devices', 'devU'), { shared: false }));
+await t(false, 'Nor change who is responsible', updateDoc(R(crew, 'devices', 'devU'), { responsible: 'Me' }));
+await t(true, 'The Master marks a shared tablet', updateDoc(R(master, 'devices', 'devU'), { shared: true, responsible: 'Ana' }));
+const pc = (o = {}) => ({ name: 'Jez', by: 'M', at: 1, expires: Date.now() + 900000, ...o });
+await t(false, 'Crew cannot issue a PIN code', setDoc(R(crew, 'pin_codes', 'x0'), pc()));
+await t(false, 'Officer cannot issue a PIN code', setDoc(R(officer, 'pin_codes', 'x0'), pc()));
+await t(false, 'A PIN code cannot live for days', setDoc(R(master, 'pin_codes', 'x0'), pc({ expires: Date.now() + 86400000 })));
+await t(true, 'Master issues a PIN code', setDoc(R(master, 'pin_codes', 'x1'), pc()));
+await t(true, 'Crew asks about the code it was told', getDoc(R(crew, 'pin_codes', 'x1')));
+await t(false, 'Crew cannot list PIN codes', getDocs(collection(crew, 'safety_vessels', V, 'pin_codes')));
+await t(false, 'Spending cannot change the name', updateDoc(R(crew, 'pin_codes', 'x1'), { name: 'Other', usedAt: 2 }));
+await t(true, 'Crew spends the code', updateDoc(R(crew, 'pin_codes', 'x1'), { usedAt: 2, usedDevice: 'devU' }));
+await t(false, 'A code is spent once', updateDoc(R(crew, 'pin_codes', 'x1'), { usedAt: 3, usedDevice: 'devX' }));
+await t(false, 'A code cannot be deleted', deleteDoc(R(master, 'pin_codes', 'x1')));
+await t(true, 'Master issues a short code', setDoc(R(master, 'pin_codes', 'x2'), pc({ expires: Date.now() - 1000 })));
+await t(false, 'An expired code cannot be spent', updateDoc(R(crew, 'pin_codes', 'x2'), { usedAt: 2, usedDevice: 'devU' }));
 await t(true, 'Superintendent reads the register of a fleet vessel', getDoc(doc(shore, 'safety_vessels', V)));
 await t(false, 'Superintendent cannot read a vessel outside the fleet', getDoc(doc(shore, 'safety_vessels', OTHER)));
 await t(true, 'Superintendent writes an ISM document', setDoc(R(shore, 'ism_docs', 'd1'), { id: 'd1', title: 'X', revision: 1 }));
