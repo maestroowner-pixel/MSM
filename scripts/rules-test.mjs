@@ -68,6 +68,10 @@ await t(true, 'Master gives a device the stores gear', updateDoc(R(master, 'devi
 await t(false, 'Device cannot change its own hidden pages', updateDoc(R(crew, 'devices', 'devU'), { hidePages: [] }));
 await t(true, 'Master hides a page on a device', updateDoc(R(master, 'devices', 'devU'), { hidePages: ['Security:searches'] }));
 await t(false, 'Crew cannot read invitations (PINs)', getDoc(R(crew, 'invites', 'i1')));
+await t(true, 'A DPO writes a line of the DP log', setDoc(R(crew, 'dp_log', 'l1'), { id: 'l1', date: '2026-11-05', time: '10:00', text: 'Auto position', initials: 'ML', name: 'Mike Lone', at: 1, updatedAt: 1 }));
+await t(false, 'A line needs initials', setDoc(R(crew, 'dp_log', 'l2'), { id: 'l2', text: 'x' }));
+await t(false, 'A line is never changed', updateDoc(R(master, 'dp_log', 'l1'), { text: 'Other' }));
+await t(false, 'Nor deleted', deleteDoc(R(master, 'dp_log', 'l1')));
 await t(true, 'A tablet leaves a form for signature', setDoc(R(crew, 'sign_drafts', 's1'), { id: 's1', kind: 'watch', title: 'ER', refId: 't', data: {}, at: 1, updatedAt: 1 }));
 await t(true, 'An officer reads it on their own device', getDoc(R(officer, 'sign_drafts', 's1')));
 await t(true, 'and marks it signed', updateDoc(R(officer, 'sign_drafts', 's1'), { done: true, updatedAt: 2 }));

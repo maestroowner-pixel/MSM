@@ -163,6 +163,27 @@ export interface DpDay {
   updatedAt: number;
 }
 
+/**
+ * One line of the DP log (5 Nov 2026): the time, what was done in a few words, the
+ * DP operator's initials. Never changed: a correction is a new line.
+ */
+export interface DpLogEntry {
+  id: string;
+  date: string; // yyyy-mm-dd
+  /** hh:mm, ship's time */
+  time: string;
+  text: string;
+  initials: string;
+  /** The operator in full, for the report's key: initials repeat. */
+  name: string;
+  at: number;
+  updatedAt: number;
+}
+
+/** "Mike Lone" → "ML". */
+export const initialsOf = (name: string) =>
+  name.trim().split(/\s+/).map((w) => w[0] ?? '').join('').toUpperCase();
+
 export interface DpInfo {
   id: 'info';
   company?: string;

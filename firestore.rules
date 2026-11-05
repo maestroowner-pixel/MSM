@@ -648,6 +648,14 @@ service cloud.firestore {
           && request.resource.data.position.lon >= -180 && request.resource.data.position.lon <= 180;
         allow update, delete: if false;
       }
+      // The DP log: a line is never changed, a correction is a new line.
+      match /dp_log/{id} {
+        allow read: if reader(v);
+        allow create: if member(v)
+                      && request.resource.data.text is string
+                      && request.resource.data.initials is string;
+        allow update, delete: if false;
+      }
       match /dp_days/{id} {
         allow read: if reader(v);
         allow create, update: if member(v);

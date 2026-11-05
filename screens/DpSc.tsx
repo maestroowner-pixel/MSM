@@ -20,10 +20,12 @@ import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { moduleOn } from '../constants/modules';
 import * as storage from '../services/storage';
+import { uid } from '../utils/id';
 import { todayIso } from '../services/pms';
 import { ASOG_LABEL, SLOTS, Scheme, buildLetter, checkOutcome, dayId, dpoTotals, emptySlots, hours, isDpDay, templatesNow, positionText } from '../services/dp';
 import { shipAndUtc } from '../utils/shipTime';
-import { exportDpLetter } from '../services/dpReport';
+import { exportDpLetter, exportDpLog } from '../services/dpReport';
+import { initialsOf } from '../types/dp';
 import { DpCheck, DpDay, DpInfo, DpSlot, bookOf } from '../types/dp';
 import { loadOlder } from '../services/dpArchive';
 import { DP_KEEP_DAYS } from '../services/firebaseService';
@@ -31,9 +33,10 @@ import { isAboard } from '../types/crew';
 import { roleAtLeast } from '../types/role';
 import { t, tk, tn, useT } from '../utils/i18n';
 
-type View_ = 'checklists' | 'time' | 'letter';
+type View_ = 'checklists' | 'log' | 'time' | 'letter';
 const VIEWS: { key: View_; label: string }[] = [
   { key: 'checklists', label: 'Checklists' },
+  { key: 'log', label: 'DP log' },
   { key: 'time', label: 'DP time' },
   { key: 'letter', label: 'Confirmation letter' },
 ];
@@ -46,7 +49,7 @@ export default function DpSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { dpChecks, dpDays, dpInfo, dpTemplates, crew, crewPrivate, vessel, saveRow } = useData();
+  const { dpChecks, dpDays, dpLog, dpInfo, dpTemplates, crew, crewPrivate, vessel, saveRow, appendRow } = useData();
   const sync = useSync();
   const officer = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const [view, setView] = useState<View_>(VIEWS.find((v) => v.key === route.params?.view)?.key ?? 'checklists');
@@ -90,6 +93,21 @@ export default function DpSc() {
   const stored = dpDays.find((d) => d.id === dayId(who, date));
   const slots: DpSlot[] = stored?.slots ?? emptySlots();
   const [brush, setBrush] = useState<DpSlot>(1);
+
+  // ---- DP log ----
+  const nowHm = () => new Date().toTimeString().slice(0, 5);
+  const [logTime, setLogTime] = useState(nowHm);
+  const [logText, setLogText] = useState('');
+  const dayLog = useMemo(() => dpLog.filter((e) => e.date === date).sort((a, b) => b.time.localeCompare(a.time) || b.at - a.at), [dpLog, date]);
+  const addLogLine = async () => {
+    if (!person) return Alert.alert(t('dp.v.log'), t('dp.log.who'));
+    if (!logText.trim()) return Alert.alert(t('dp.v.log'), t('dp.log.what'));
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(logTime.trim())) return Alert.alert(t('dp.v.log'), t('dp.log.timeBad'));
+    const at = Date.now();
+    await appendRow(storage.DP_LOG_KEY, { id: uid('dpl'), date, time: logTime.trim(), text: logText.trim(), initials: initialsOf(person.name), name: person.name, at, updatedAt: at } as any);
+    setLogText('');
+    setLogTime(nowHm());
+  };
 
   const saveDay = async (next: DpSlot[]) => {
     if (!person) return;
@@ -205,6 +223,31 @@ export default function DpSc() {
             </TouchableOpacity>
           ) : null}
           {olderErr ? <Text style={[styles.sub, { color: COLORS.danger }]}>{olderErr}</Text> : null}
+        </>
+      ) : null}
+
+      {view === 'log' ? (
+        <>
+          {dpoChips}
+          <SimpleDatePicker label={t('dp.day')} value={date} onChange={(d) => setDate(d || today)} />
+          <View style={{ flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.sm }}>
+            <TextInput style={[styles.input, { width: 80 }]} value={logTime} onChangeText={setLogTime} placeholder="HH:MM" placeholderTextColor={COLORS.textLight} accessibilityLabel={t('dp.log.time')} />
+            <TextInput style={[styles.input, { flex: 1 }]} value={logText} onChangeText={setLogText} onSubmitEditing={() => void addLogLine()} placeholder={t('dp.log.ph')} placeholderTextColor={COLORS.textLight} accessibilityLabel={t('dp.log.action')} />
+            <TouchableOpacity style={styles.btn} onPress={() => void addLogLine()}><Text style={styles.btnText}>{t('common.add')}</Text></TouchableOpacity>
+          </View>
+          <Text style={styles.sub}>{t('dp.log.hint')}</Text>
+          {dayLog.map((e) => (
+            <View key={e.id} style={{ flexDirection: 'row', gap: SIZES.sm, paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.border }}>
+              <Text style={{ width: 52, fontWeight: '700', color: COLORS.textDark }}>{e.time}</Text>
+              <Text style={{ flex: 1, color: COLORS.textDark }}>{e.text}</Text>
+              <Text style={{ fontWeight: '800', color: COLORS.textDark }} accessibilityLabel={e.name}>{e.initials}</Text>
+            </View>
+          ))}
+          {dayLog.length ? (
+            <TouchableOpacity style={[styles.btn, { marginTop: SIZES.md }]} onPress={() => exportDpLog(date, dayLog, vessel).catch((err) => Alert.alert(t('dp.v.log'), String(err?.message ?? err)))}>
+              <Text style={styles.btnText}>PDF</Text>
+            </TouchableOpacity>
+          ) : <Empty text={t('dp.log.none')} />}
         </>
       ) : null}
 

@@ -26,7 +26,7 @@ import { NonConformity, SafetyObservation } from '../types/safety';
 import { Drill } from '../types/drills';
 import { Passenger, PassengerPrivate } from '../types/passengers';
 import { SafetyMeeting } from '../types/meetings';
-import { DpCheck, DpDay, DpInfo, DpTemplate } from '../types/dp';
+import { DpCheck, DpDay, DpInfo, DpTemplate, DpLogEntry } from '../types/dp';
 import { StoreItem, StoreMove, StoreRoom } from '../types/stores';
 import { OfficerDoc } from '../types/officerDocs';
 import type { DrillYearPlan } from '../services/drillPlan';
@@ -235,6 +235,7 @@ interface DataContextType {
   /** Dynamic positioning (types/dp.ts). */
   dpChecks: DpCheck[];
   dpDays: DpDay[];
+  dpLog: DpLogEntry[];
   dpInfo: DpInfo | null;
   dpTemplates: DpTemplate[];
   storeItems: StoreItem[];
@@ -426,6 +427,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [safetyMeetings, setSafetyMeetings] = useState<SafetyMeeting[]>([]);
   const [dpChecks, setDpChecks] = useState<DpCheck[]>([]);
   const [dpDays, setDpDays] = useState<DpDay[]>([]);
+  const [dpLog, setDpLog] = useState<DpLogEntry[]>([]);
   const [dpInfo, setDpInfo] = useState<DpInfo | null>(null);
   const [dpTemplates, setDpTemplates] = useState<DpTemplate[]>([]);
   const [storeItems, setStoreItems] = useState<StoreItem[]>([]);
@@ -567,6 +569,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _safetyMeetings = (await storage.loadList<SafetyMeeting>(storage.SAFETY_MEETINGS_KEY)).filter((x) => !x.deleted);
     const _dpChecks = await storage.loadList<DpCheck>(storage.DP_CHECKS_KEY);
     const _dpDays = (await storage.loadList<DpDay>(storage.DP_DAYS_KEY)).filter((x) => !x.deleted);
+    const _dpLog = await storage.loadList<DpLogEntry>(storage.DP_LOG_KEY);
     const _dpInfo = (await storage.loadList<DpInfo>(storage.DP_INFO_KEY)).find((x) => x.id === 'info') ?? null;
     const _dpTemplates = await storage.loadList<DpTemplate>(storage.DP_TEMPLATES_KEY);
     const _storeItems = (await storage.loadList<StoreItem>(storage.STORE_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order);
@@ -682,6 +685,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSafetyMeetings(_safetyMeetings);
     setDpChecks(_dpChecks);
     setDpDays(_dpDays);
+    setDpLog(_dpLog);
     setDpInfo(_dpInfo);
     setDpTemplates(_dpTemplates);
     setStoreItems(_storeItems);
@@ -949,6 +953,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _safetyMeetings = (await storage.loadList<SafetyMeeting>(storage.SAFETY_MEETINGS_KEY)).filter((x) => !x.deleted);
     const _dpChecks = await storage.loadList<DpCheck>(storage.DP_CHECKS_KEY);
     const _dpDays = (await storage.loadList<DpDay>(storage.DP_DAYS_KEY)).filter((x) => !x.deleted);
+    const _dpLog = await storage.loadList<DpLogEntry>(storage.DP_LOG_KEY);
     const _dpInfo = (await storage.loadList<DpInfo>(storage.DP_INFO_KEY)).find((x) => x.id === 'info') ?? null;
     const _dpTemplates = await storage.loadList<DpTemplate>(storage.DP_TEMPLATES_KEY);
     const _storeItems = (await storage.loadList<StoreItem>(storage.STORE_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order);
@@ -1054,6 +1059,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSafetyMeetings(_safetyMeetings);
     setDpChecks(_dpChecks);
     setDpDays(_dpDays);
+    setDpLog(_dpLog);
     setDpInfo(_dpInfo);
     setDpTemplates(_dpTemplates);
     setStoreItems(_storeItems);
@@ -1405,6 +1411,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         safetyMeetings,
         dpChecks,
         dpDays,
+        dpLog,
         dpInfo,
         dpTemplates,
         storeItems,

@@ -12,7 +12,7 @@ import { exportPmsHistory, printPmsHistory } from './pmsHistoryReport';
 import { ASOG_LABEL, Letter, signRoles, answerText, checkOutcome, conditionsText, letterHtml, positionText, rowCells } from './dp';
 import { shipAndUtc } from '../utils/shipTime';
 import { proofShort } from './signature';
-import { DpCheck } from '../types/dp';
+import { DpCheck, DpLogEntry } from '../types/dp';
 import { onWeb, onWindows } from '../utils/fileShare';
 import { saveFileWeb } from '../utils/webSave';
 import { dpLetterPdfBlob } from '../utils/dpLetterPdf';
@@ -85,6 +85,19 @@ export function exportDpCheckPdf(c: DpCheck, vessel: VesselInfo | null) {
   const k = kindOf(c);
   const name = c.title.split(' — ')[0].replace(/\s*\/\s*/g, '-');
   return exportPmsHistory(k.title, `${name.toLowerCase().startsWith(k.stem.toLowerCase()) ? '' : `${k.stem} `}${name} ${new Date(c.at).toISOString().slice(0, 10)}`, vessel, [dpCheckPage(c)]);
+}
+
+/** The DP log for one day: time, action, initials, and whose initials they are. */
+export function exportDpLog(date: string, rows: DpLogEntry[], vessel: VesselInfo | null) {
+  const list = [...rows].sort((a, b) => a.time.localeCompare(b.time) || a.at - b.at);
+  const who = [...new Map(list.map((e) => [e.name, e.initials])).entries()].map(([n, i]) => `${i} = ${n}`).join(', ');
+  const day = date.split('-').reverse().join('.');
+  return exportPmsHistory('DP log', `DP log ${date}`, vessel, [{
+    title: `DP log ${day}`,
+    facts: who ? [who] : [],
+    tables: [{ title: 'Operations', head: ['Time', 'Action', 'DPO'], rows: list.map((e) => [e.time, e.text, e.initials]), widths: { 0: 25, 1: 220, 2: 28 } }],
+    drawings: [],
+  }] as any);
 }
 
 /** Straight to the printer (17 Oct 2026): the browser's print window, or the phone's. */

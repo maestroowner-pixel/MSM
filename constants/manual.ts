@@ -717,7 +717,7 @@ const en: ManualContent = {
       emoji: '🎯',
       title: "Dynamic positioning",
       body: [
-        "Dynamic positioning (menu → Dynamic positioning) has three pages: DP checklists, DP time and the confirmation letter.",
+        "Dynamic positioning (menu → Dynamic positioning) has four pages: DP checklists, the DP log (the time, what was done in a few words, the DPO's initials; a line is never changed, a correction is a new line), DP time and the confirmation letter.",
         "DP checklists are the vessel's own — set up by ISM AI Pilot from the vessel's forms (DP Operations Manual, ASOG): the watch handover / takeover, field arrival with the DP trials, and others. Open one, fill it in and sign.",
         "Every DP checklist needs the position it is done at (degrees, minutes and N/S, E/W from the DGPS, or as the last checklist); the date and time are the moment of signing, in ship's time and UTC. The tables are laid out as on the paper: tap the answer, write readings in the cells; \"Other\" opens a cell to write in; a wrong answer turns the row red. \"Draw the schematic\" opens a window to draw own vessel, rig, wind and current with a stylus (Undo takes back a stroke).",
         "Two officers sign — handing over and taking over (on field arrival: the SDPO and the DPO): each chooses their name and signs with their PIN or by hand; on their own phone also with the fingerprint. Then Save the signed checklist; it is never changed and opens as a PDF. Leaving a checklist unsaved keeps it as a draft on this device; opening it again offers to restore it. Devices keep the last 90 days of signed checklists; older ones open from the cloud under the list.",
@@ -1557,7 +1557,7 @@ const ru: ManualContent = {
       emoji: '🎯',
       title: "Динамическое позиционирование (Dynamic positioning)",
       body: [
-        "Dynamic positioning (меню → Dynamic positioning) — три страницы: DP checklists, DP time и Confirmation letter.",
+        "Dynamic positioning (меню → Dynamic positioning) — четыре страницы: DP checklists, DP log (время, коротко что сделано, инициалы DPO; строка не меняется, исправление — новая строка), DP time и Confirmation letter.",
         "DP-чеклисты — свои у каждого судна: их настраивает ISM AI Pilot по формам судна (DP Operations Manual, ASOG) — передача/приём вахты, прибытие на месторождение с DP trials и другие. Откройте, заполните и подпишите.",
         "Каждый DP-чеклист требует позицию места заполнения (градусы, минуты и N/S, E/W с DGPS или как в прошлом чеклисте); дата и время — момент подписи, в судовом времени и UTC. Таблицы — как на бумаге: нажмите ответ, впишите показания; «Other» открывает поле для ввода; неправильный ответ подсвечивает строку красным. «Draw the schematic» открывает окно для схемы стилусом (своё судно, установка, ветер, течение; Undo убирает штрих).",
         "Подписывают два офицера — сдающий и принимающий вахту (при прибытии — SDPO и DPO): каждый выбирает своё имя и подписывает PIN или от руки; на своём телефоне — и отпечатком. Затем «Save the signed checklist»; подписанный не меняется и открывается в PDF. Если выйти без сохранения — черновик остаётся на устройстве, при открытии предлагается восстановить. На устройствах хранятся чеклисты за 90 дней; старые открываются из облака под списком.",
@@ -2397,7 +2397,7 @@ const es: ManualContent = {
       emoji: '🎯',
       title: "Posicionamiento dinámico (Dynamic positioning)",
       body: [
-        "Dynamic positioning (menú → Dynamic positioning) tiene tres páginas: DP checklists, DP time y Confirmation letter.",
+        "Dynamic positioning (menú → Dynamic positioning) tiene cuatro páginas: DP checklists, DP log (la hora, qué se hizo en pocas palabras, las iniciales del DPO; una línea no cambia, una corrección es otra línea), DP time y Confirmation letter.",
         "Los checklists DP son los del buque: ISM AI Pilot los prepara con los formularios del buque (DP Operations Manual, ASOG) — relevo de guardia, llegada al campo con las pruebas DP y otros. Ábralo, rellénelo y fírmelo.",
         "Cada checklist DP requiere la posición (grados, minutos y N/S, E/W del DGPS, o como el último checklist); la fecha y hora son el momento de firmar, en hora del buque y UTC. Las tablas son como en papel: toque la respuesta, escriba las lecturas; «Other» abre una celda; una respuesta incorrecta marca la fila en rojo. «Draw the schematic» abre una ventana para dibujar con lápiz (buque, plataforma, viento, corriente; Undo quita un trazo).",
         "Firman dos oficiales — quien entrega y quien recibe la guardia (en la llegada: el SDPO y el DPO): cada uno elige su nombre y firma con PIN o a mano. Luego «Save the signed checklist»; no se cambia y se abre en PDF. Si sale sin guardar, queda un borrador en el dispositivo y se ofrece restaurarlo. Los dispositivos guardan 90 días; los más antiguos se abren desde la nube bajo la lista.",
@@ -3237,7 +3237,7 @@ const uk: ManualContent = {
       emoji: '🎯',
       title: "Динамічне позиціонування (Dynamic positioning)",
       body: [
-        "Dynamic positioning (меню → Dynamic positioning) — три сторінки: DP checklists, DP time і Confirmation letter.",
+        "Dynamic positioning (меню → Dynamic positioning) — чотири сторінки: DP checklists, DP log (час, коротко що зроблено, ініціали DPO; рядок не змінюється, виправлення — новий рядок), DP time і Confirmation letter.",
         "DP-чеклісти — свої в кожного судна: їх налаштовує ISM AI Pilot за формами судна (DP Operations Manual, ASOG) — передача/прийом вахти, прибуття на родовище з DP trials та інші. Відкрийте, заповніть і підпишіть.",
         "Кожен DP-чекліст потребує позицію місця заповнення (градуси, мінути і N/S, E/W з DGPS або як у попередньому чеклісті); дата і час — момент підпису, у судновому часі та UTC. Таблиці — як на папері: натисніть відповідь, впишіть показники; «Other» відкриває поле; неправильна відповідь підсвічує рядок червоним. «Draw the schematic» відкриває вікно для схеми стилусом (Undo прибирає штрих).",
         "Підписують два офіцери — той, хто здає, і той, хто приймає вахту (при прибутті — SDPO і DPO): кожен обирає своє ім'я і підписує PIN або від руки. Потім «Save the signed checklist»; підписаний не змінюється і відкривається в PDF. Якщо вийти без збереження — чернетка лишається на пристрої, при відкритті пропонується відновити. На пристроях зберігаються чеклісти за 90 днів; старші відкриваються з хмари під списком.",

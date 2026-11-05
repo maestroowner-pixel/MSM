@@ -1354,6 +1354,7 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   // Dynamic positioning: signed checklists never change; DP time and the letter's details kept by the bridge.
   { sub: 'dp_checks', key: storage.DP_CHECKS_KEY, appendOnly: true, module: 'dp', also: 'watchChecks', keepDays: DP_KEEP_DAYS },
   { sub: 'dp_days', key: storage.DP_DAYS_KEY, module: 'dp' },
+  { sub: 'dp_log', key: storage.DP_LOG_KEY, appendOnly: true, module: 'dp' },
   { sub: 'dp_info', key: storage.DP_INFO_KEY, module: 'dp' },
   { sub: 'dp_templates', key: storage.DP_TEMPLATES_KEY, also: 'watchChecks', module: 'dp' },
   // Passengers: confidential — the guest list does not leave the vessel. The cloud holds the
