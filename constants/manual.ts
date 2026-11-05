@@ -857,6 +857,15 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🪪',
+      title: "My documents",
+      body: [
+        "Your own page (menu → Crew → My documents): your certificates with their dates, what needs doing first; your trip and contract end date; your hours of rest for the last 7 days; and the drills you attended in the last 12 months. It is read only, because officers keep these records: if something is wrong, ask one. Tap a certificate to see it.",
+        "The page works out who you are from the name you joined the vessel with, which must match the crew list. The Board tells you when one of your certificates has expired or expires soon, and when an officer or the office has changed your documents; with reminders on, the device notifies you too. Passport details and next of kin are visible only to officers and the Master, so they are not shown here.",
+        "On a phone or tablet you can load your own SDM file (Seafarer Documents Manager, the .sdm backup) to see your passport, all your documents, visas, next of kin and sea service here, and what differs from the vessel's records. It stays on this device only, is not synced and is not in backups; biometrics, day rate, photo and notes are not kept. Remove it from this device when you no longer need it, and do not load it on a shared device. Not available in the browser.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'About',
       body: [
@@ -1685,6 +1694,15 @@ const ru: ManualContent = {
         "Переходы: запись делается по приходу, от причала до причала, в UTC: отход от причала, FAOP, EOSP, приход к причалу; ROB в литрах на обоих концах; мили на ходу по ECDIS или GPS; груз или пассажиры, если есть; находится ли каждый порт в ЕС или ЕЭЗ. Заход только за топливом, снабжением, для ремонта, укрытия или смены экипажа не считается портом захода и не заканчивает переход. Для перехода через Новый год нужны ещё ROB и мили на 31 декабря 24:00 UTC, потому что каждый год отчитывается за свою часть. Подписанный переход меняет только капитан, с указанием причины.",
         "Цифры: топливо берётся из ежедневных замеров и бункеровок. Литры переводятся в тонны по плотности из BDN при 15 °C, средневзвешенной за год, без поправки на температуру; без плотности тонн нет, приложение её не подставляет. CO₂ — 3,206 т на тонну топлива. Экран показывает всё, чего не хватает и что не сходится, например дни без замера или дни в море по палубному журналу вне всех переходов. Рейтинг CII — ориентир: официальный присваивает Администрация по проверенным данным. Учитывается только MGO / дизель; судну на другом топливе эти цифры не подходят.",
         "Отчёт за год: после окончания года его подписывает офицер или капитан. Замеры в танках не делят топливо по потребителям, поэтому введите расход в тоннах, на ходу и не на ходу, по методу из вашей SEEMP, часть II, а также береговое питание и инновационные технологии, если есть. Если сумма расходится с замерами больше чем на 2 % или записи изменились после подписи, экран и отчёт об этом сообщат; исправление — новый отчёт, действует самый новый. PDF и Excel — на английском. Там, где применимы DCS или MRV, Board напоминает офицерам о неподписанном годе: жёлтым до 31 марта и красным после этой даты.",
+      ],
+    },
+    {
+      emoji: '🪪',
+      title: "Мои документы",
+      body: [
+        "Ваша личная страница (меню → Экипаж → Мои документы): ваши сертификаты со сроками, сначала то, что требует внимания; рейс и дата окончания контракта; часы отдыха за 7 дней; учения, в которых вы участвовали за 12 месяцев. Страница только для чтения, эти записи ведут офицеры: если что-то неверно, обратитесь к офицеру. Нажмите на сертификат, чтобы открыть его.",
+        "Приложение определяет вас по имени, с которым вы подключились к судну; оно должно совпадать со списком экипажа. Board сообщает, когда ваш сертификат просрочен или скоро истекает и когда офицер или офис изменили ваши документы; при включённых напоминаниях придёт и уведомление. Паспортные данные и контакты родственников видны только офицерам и капитану, поэтому здесь их нет.",
+        "На телефоне или планшете можно загрузить свой файл SDM (бэкап .sdm из Seafarer Documents Manager): здесь появятся паспорт, все документы, визы, родственник и морской стаж, а также расхождения с записями судна. Файл остаётся только на этом устройстве, не синхронизируется и не входит в бэкап; биометрия, ставка, фото и заметки не сохраняются. Удалите его с устройства, когда он не нужен, и не загружайте на общее устройство. В браузере недоступно.",
       ],
     },
     {
@@ -2519,6 +2537,15 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🪪',
+      title: "Mis documentos",
+      body: [
+        "Su página personal (menú → Tripulación → Mis documentos): sus certificados con fechas, primero lo que requiere atención; su embarque y fin de contrato; sus horas de descanso de los últimos 7 días; y los ejercicios a los que asistió en los últimos 12 meses. Es solo de lectura, porque estos registros los llevan los oficiales: si algo está mal, consulte a uno. Toque un certificado para verlo.",
+        "La app le identifica por el nombre con el que se unió al buque, que debe coincidir con la lista de tripulación. El Board avisa cuando un certificado suyo ha caducado o caduca pronto, y cuando un oficial o la oficina han cambiado sus documentos; con los recordatorios activos también llega una notificación. Los datos del pasaporte y los familiares solo los ven los oficiales y el capitán, así que aquí no aparecen.",
+        "En un teléfono o tableta puede cargar su archivo SDM (copia .sdm de Seafarer Documents Manager) para ver aquí el pasaporte, todos sus documentos, visados, familiar y servicio en la mar, y lo que difiere de los registros del buque. Queda solo en este dispositivo, no se sincroniza ni entra en las copias de seguridad; no se guardan biometría, tarifa, foto ni notas. Quítelo cuando no lo necesite y no lo cargue en un dispositivo compartido. No disponible en el navegador.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Acerca de',
       body: [
@@ -3350,6 +3377,15 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🪪',
+      title: "Мої документи",
+      body: [
+        "Ваша особиста сторінка (меню → Екіпаж → Мої документи): ваші сертифікати з термінами, спершу те, що потребує уваги; рейс і дата закінчення контракту; години відпочинку за 7 днів; навчання, у яких ви брали участь за 12 місяців. Сторінка лише для читання, ці записи ведуть офіцери: якщо щось неправильно, зверніться до офіцера. Натисніть на сертифікат, щоб відкрити його.",
+        "Застосунок визначає вас за іменем, з яким ви приєдналися до судна; воно має збігатися зі списком екіпажу. Board повідомляє, коли ваш сертифікат прострочено або він скоро спливає і коли офіцер чи офіс змінили ваші документи; за увімкнених нагадувань надійде й сповіщення. Паспортні дані й контакти рідних бачать лише офіцери й капітан, тому тут їх немає.",
+        "На телефоні чи планшеті можна завантажити свій файл SDM (резервну копію .sdm із Seafarer Documents Manager): тут з’являться паспорт, усі документи, візи, родич і морський стаж, а також розбіжності із записами судна. Файл залишається лише на цьому пристрої, не синхронізується й не входить до резервної копії; біометрія, ставка, фото й нотатки не зберігаються. Видаліть його, коли він не потрібен, і не завантажуйте на спільний пристрій. У браузері недоступно.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Про застосунок',
       body: [
@@ -4116,6 +4152,15 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '🪪',
+      title: "Mine dokumenter",
+      body: [
+        "Din egen side (meny → Mannskap → Mine dokumenter): sertifikatene dine med datoer, det som haster først; turen og kontraktens sluttdato; hviletid siste 7 dager; og øvelsene du deltok på siste 12 måneder. Siden er skrivebeskyttet, siden offiserene fører disse opplysningene: er noe galt, spør en av dem. Trykk på et sertifikat for å se det.",
+        "Appen finner deg ut fra navnet du koblet til fartøyet med, og det må stemme med mannskapslisten. Board sier fra når et sertifikat er utløpt eller snart utløper, og når en offiser eller kontoret har endret dokumentene dine; med påminnelser på kommer også et varsel. Passopplysninger og pårørende ser bare offiserer og kapteinen, så de vises ikke her.",
+        "På telefon eller nettbrett kan du laste inn SDM-filen din (.sdm-sikkerhetskopi fra Seafarer Documents Manager) for å se passet, alle dokumenter, visum, pårørende og fartstid her, og hva som avviker fra fartøyets oppføringer. Den blir bare på denne enheten, synkroniseres ikke og er ikke i sikkerhetskopier; biometri, dagrate, bilde og notater lagres ikke. Fjern den når du ikke trenger den, og ikke last den inn på en delt enhet. Ikke tilgjengelig i nettleseren.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Om',
       body: [
@@ -4867,6 +4912,15 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '🪪',
+      title: "Os meus documentos",
+      body: [
+        "A sua página pessoal (menu → Tripulação → Os meus documentos): os seus certificados com datas, primeiro o que requer atenção; o embarque e o fim do contrato; as horas de descanso dos últimos 7 dias; e os exercícios em que participou nos últimos 12 meses. É só de leitura, porque estes registos são mantidos pelos oficiais: se algo estiver errado, fale com um deles. Toque num certificado para o ver.",
+        "A app identifica-o pelo nome com que se juntou ao navio, que tem de coincidir com a lista de tripulantes. O Board avisa quando um certificado seu caducou ou caduca em breve, e quando um oficial ou o escritório alterou os seus documentos; com os lembretes ligados chega também uma notificação. Os dados do passaporte e os familiares só são visíveis para oficiais e o comandante, por isso não aparecem aqui.",
+        "Num telemóvel ou tablet pode carregar o seu ficheiro SDM (cópia .sdm do Seafarer Documents Manager) para ver aqui o passaporte, todos os documentos, vistos, familiar e tempo de mar, e o que difere dos registos do navio. Fica só neste dispositivo, não é sincronizado nem entra nas cópias de segurança; biometria, tarifa, foto e notas não são guardadas. Remova-o quando não precisar e não o carregue num dispositivo partilhado. Não disponível no navegador.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Sobre',
       body: [
@@ -4943,6 +4997,8 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Crew appraisals', module: 'appraisals' },
   { title: 'Drug and alcohol tests', module: 'daTests' },
   { title: 'Emissions', module: 'emissions' },
+  { title: 'My documents', module: 'myDocs' },
+  { title: 'My documents', module: 'mySdm', drop: [2] },
   { title: 'Planned maintenance', module: 'critEq', drop: [-1] },
   { title: 'Suppliers and quotations', module: 'poApproval', drop: [-1] },
 ];

@@ -370,7 +370,7 @@ export default function CrewSc() {
             <TouchableOpacity style={styles.listBtnOutline} onPress={() => void exportCrewSheet(crew, crewPrivate, vessel).then((w) => { if (typeof w === 'string') setListSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w })); }).catch((e) => Alert.alert(t('crw.export'), String(e?.message ?? e)))}>
               <Text style={styles.listBtnOutlineText}>{t('pax.toExcel')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.listBtnOutline} onPress={() => void importSdm()}>
+            <TouchableOpacity style={styles.listBtnOutline} onPress={() => void importSdm.run()}>
               <Text style={styles.listBtnOutlineText}>{t('crw.sdm')}</Text>
             </TouchableOpacity>
           </View>
@@ -512,6 +512,7 @@ export default function CrewSc() {
           }
         />
       )}
+      {importSdm.ui}
     </Screen>
   );
 }

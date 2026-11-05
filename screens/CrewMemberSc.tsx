@@ -193,7 +193,7 @@ export default function CrewMemberSc() {
           {canEdit && !isNew ? (
             <TouchableOpacity
               onPress={() =>
-                void importSdm(id, (plan) => {
+                void importSdm.run(id, (plan) => {
                   // The form shows what was imported — and a later Save keeps it,
                   // instead of writing back what the form held before.
                   touched.current = false;
@@ -326,6 +326,7 @@ export default function CrewMemberSc() {
           ))}
         </ScrollView>
       </SafeAreaView>
+      {importSdm.ui}
     </LinearGradient>
   );
 }

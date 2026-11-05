@@ -63,6 +63,7 @@ import { critSummary, downtimeDays, outNow } from './critEq';
 import { apStage, dueList as apDueList } from './appraisals';
 import { actionsAwaited, labsAwaited, nextUnannounced, policyOf } from './daTests';
 import { statementDue } from './emissions';
+import { findMe, myCerts, myChanges } from './myDocs';
 import { planBreaches } from './restPlan';
 import { THREAD_ROUTE, threadKey, unreadFromOffice, unreadMentions } from './threads';
 import { t, tk, tn } from '../utils/t';
@@ -212,7 +213,7 @@ export interface BoardInput {
   emStatements?: import('../types/emissions').EmStatement[];
   /** Discussion on a record, and what this device has read of it (services/threads). */
   threads?: import('../types/thread').ThreadMessage[];
-  prefs?: { threadRead?: Record<string, number> };
+  prefs?: { threadRead?: Record<string, number>; myDocsSeen?: number };
   /** Hours of rest and the watch plans — for breaches the plan brings (services/restPlan). */
   rest?: import('../types/rest').RestDay[];
   restPlans?: import('../types/restPlan').RestPlan[];
@@ -743,6 +744,20 @@ export function buildBoard(x: BoardInput): Board {
         title: t('b.wp.title', { n: bad.length }),
         sub: bad.slice(0, 3).map((b) => t('b.wp.from', { name: b.name, date: dm(b.first) })).join(', ') + (bad.length > 3 ? ' …' : ''),
       });
+    }
+  }
+
+  // ---- My documents: this person's own certificates, and what was changed for them ----
+  if (x.on('myDocs')) {
+    const m = findMe(x.crew, x.me);
+    if (m) {
+      const mine = myCerts(x.certificates, m);
+      for (const c of mine) {
+        const st = statusFromDate(c.expiryDate);
+        if (st === 'expired' || st === 'due') n.push({ key: `my:cert:${c.id}`, first: true, level: st === 'expired' ? 'red' : 'amber', who: 'all', icon: 'card-account-details-outline', route: 'MyDocs', title: t(st === 'expired' ? 'b.my.expired' : 'b.my.due', { name: c.name }), sub: dmY(c.expiryDate!) });
+      }
+      const ch = myChanges(mine, m, x.prefs?.myDocsSeen);
+      if (ch.length) n.push({ key: 'my:changed', first: true, level: 'blue', who: 'all', icon: 'card-account-details-outline', route: 'MyDocs', title: t('b.my.changed'), sub: ch[0].kind === 'cert' ? ch[0].title : undefined });
     }
   }
 

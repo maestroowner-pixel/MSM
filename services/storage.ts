@@ -143,6 +143,8 @@ export const DA_RESULTS_KEY = `${PREFIX}da_results`;
 export const DA_FOLLOWUPS_KEY = `${PREFIX}da_followups`;
 export const DA_POLICY_KEY = `${PREFIX}da_policy`;
 /** Emissions (types/emissions.ts): the vessel's particulars, passages berth to berth, the year's signed statements. */
+/** A seafarer's own SDM file, this device only: not synced, not in the .msm backup (services/mySdm.ts). */
+export const MY_SDM_KEY = `${PREFIX}my_sdm`;
 export const EM_VESSEL_KEY = `${PREFIX}em_vessel`;
 export const EM_PASSAGES_KEY = `${PREFIX}em_passages`;
 export const EM_STATEMENTS_KEY = `${PREFIX}em_statements`;
@@ -432,6 +434,9 @@ export interface Prefs {
   threadRead?: Record<string, number>;
   /** The latest mention this device has notified about. Device-local. */
   threadNotifiedAt?: number;
+  /** When this person last opened My documents, and the latest change notified about (services/myDocs). Device-local. */
+  myDocsSeen?: number;
+  myDocsNotifiedAt?: number;
 }
 
 export async function loadPrefs(): Promise<Prefs> {
@@ -881,6 +886,7 @@ export async function resetAllData(): Promise<void> {
     SIGNING_POLICY_KEY,
     PHOTO_ARCHIVE_KEY,
     VESSEL_MODULES_KEY,
+    MY_SDM_KEY,
     EM_VESSEL_KEY,
     EM_PASSAGES_KEY,
     EM_STATEMENTS_KEY,

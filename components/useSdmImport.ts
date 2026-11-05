@@ -8,18 +8,23 @@ import { Alert } from 'react-native';
 import { useData } from '../contexts/DataContext';
 import { SdmPlan, parseSdm, planSdmImport } from '../services/sdmImport';
 import { pickSdmFile } from '../services/crewListReport';
+import { useSdmPassword } from './useSdmPassword';
 import { t, tn } from '../utils/i18n';
 
 export function useSdmImport() {
   const { crew, crewPrivate, certificates, saveCrewMember, saveCrewPrivate, saveCertificates } = useData();
 
-  return useCallback(
+  const password = useSdmPassword();
+
+  const run = useCallback(
     /** Resolves with what was imported once it is saved (null when cancelled), so an open form can show it. */
     async (targetId?: string, onImported?: (plan: SdmPlan) => void): Promise<void> => {
       try {
         const f = await pickSdmFile();
         if (!f) return;
-        const plan = planSdmImport(parseSdm(f.text), crew, crewPrivate, certificates, targetId);
+        const inside = await password.open(f);
+        if (inside == null) return;
+        const plan = planSdmImport(parseSdm(inside), crew, crewPrivate, certificates, targetId);
         const apply = async () => {
           // Certificates first, in one write: they were saved one by one, each with a
           // full reload, and a reload that failed part-way left a 27-document file
@@ -47,4 +52,7 @@ export function useSdmImport() {
     },
     [crew, crewPrivate, certificates, saveCrewMember, saveCrewPrivate, saveCertificates]
   );
+
+  // `ui` is the password dialog for an encrypted file: the screen renders it.
+  return { run, ui: password.ui };
 }

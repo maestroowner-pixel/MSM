@@ -140,6 +140,7 @@ import AppraisalsSc from './screens/AppraisalsSc';
 import AppraisalSc from './screens/AppraisalSc';
 import DaTestsSc from './screens/DaTestsSc';
 import DaTestSc from './screens/DaTestSc';
+import MyDocsSc from './screens/MyDocsSc';
 import EmissionsSc from './screens/EmissionsSc';
 import EmPassageSc from './screens/EmPassageSc';
 import RestPlanSc from './screens/RestPlanSc';
@@ -298,7 +299,7 @@ function MainTabs() {
   // The menu also lists screens that are not tabs — the crew matrix, under Crew.
   // Crew list (FAL Form 5, import) and the crew matrix — Officers and the Master
   // keep them, but everyone may look; the screens say what each rank can do.
-  const menuExtras = moduleOn('crewCerts') ? ['Crew', 'CrewMatrix'] : [];
+  const menuExtras = moduleOn('crewCerts') ? ['Crew', 'CrewMatrix', ...(moduleOn('myDocs') ? ['MyDocs'] : [])] : [];
   const available = useMemo(() => [...tabOrder, ...menuExtras], [tabOrder.join('|'), menuExtras.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
   const navPrefs = useNavPrefs(available);
   const many = tabOrder.length > FEW;
@@ -390,7 +391,7 @@ function MainTabs() {
                   <NavMenuBar
                     {...p}
                     {...navPrefs}
-                    icons={{ ...TAB_ICONS, Crew: 'clipboard-account-outline', CrewMatrix: 'table-account' }}
+                    icons={{ ...TAB_ICONS, Crew: 'clipboard-account-outline', CrewMatrix: 'table-account', MyDocs: 'card-account-details-outline' }}
                     labelOf={(r) => MENU_LABEL[r] ?? r}
                   />
                 )
@@ -539,6 +540,7 @@ const linking = {
       Appraisal: 'appraisal/:id',
       DaTests: 'da-tests',
       DaTest: 'da-test/:id',
+      MyDocs: 'my-documents',
       Emissions: 'emissions',
       EmPassage: 'em-passage/:id',
       RestPlan: 'watch-plan',
@@ -816,6 +818,7 @@ function Root() {
         <Stack.Screen name="Appraisal" component={AppraisalSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="DaTests" component={DaTestsSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="DaTest" component={DaTestSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="MyDocs" component={MyDocsSc} options={webHeader(t('my.title'))} />
         <Stack.Screen name="Emissions" component={EmissionsSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="EmPassage" component={EmPassageSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="RestPlan" component={RestPlanSc} options={{ presentation: 'modal' }} />

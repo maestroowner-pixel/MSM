@@ -31,6 +31,7 @@ import { CategoryKey } from '../types/equipment';
 import { buildBoard, Level } from '../services/board';
 import { notifyNow } from '../services/notifications';
 import { mentionsToNotify } from '../services/threads';
+import { findMe, myCerts, myChanges } from '../services/myDocs';
 import { aiReady } from '../services/ai';
 import { todayIso } from '../services/pms';
 import { nowLocal } from '../services/permits';
@@ -85,6 +86,20 @@ export default function BoardSc() {
     void notifyNow(fresh.length === 1 ? t('b.th.mention', { by: fresh[0].by }) : t('b.th.mentions', { n: fresh.length }), fresh[0].title);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.threads, data.prefs?.notificationsEnabled, data.prefs?.threadRead, data.prefs?.threadNotifiedAt, me?.name]);
+
+  // Something changed in this person's documents: said once on this device, and the first day never calls everything new.
+  useEffect(() => {
+    if (!moduleOn('myDocs')) return;
+    const m = findMe(data.crew, me);
+    if (!m) return;
+    if (data.prefs?.myDocsSeen == null) { void data.setPrefs({ myDocsSeen: Date.now() }); return; }
+    if (!data.prefs.notificationsEnabled) return;
+    const fresh = myChanges(myCerts(data.certificates, m), m, Math.max(data.prefs.myDocsSeen, data.prefs.myDocsNotifiedAt ?? 0));
+    if (!fresh.length) return;
+    void data.setPrefs({ myDocsNotifiedAt: fresh[0].at });
+    void notifyNow(t('b.my.changed'), fresh[0].kind === 'cert' ? fresh[0].title : m.name);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.crew, data.certificates, data.prefs?.myDocsSeen, data.prefs?.myDocsNotifiedAt, data.prefs?.notificationsEnabled, me?.name]);
 
   const color = (l?: Level) => (l === 'red' ? COLORS.danger : l === 'amber' ? COLORS.warning : l === 'blue' ? COLORS.primary : COLORS.success);
   const go = (route: string, params?: Record<string, unknown>) => nav.navigate(route, params);

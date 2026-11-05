@@ -51,7 +51,7 @@ export const MENU_GROUPS: MenuGroup[] = [
   group('medical', 'menu.group.medical', ['Hospital'], 'medical-bag'),
   group('security', 'menu.group.security', ['Security'], 'shield-lock-outline'),
   group('env', 'menu.group.env', ['OilRecord', 'Garbage', 'Sewage', 'Ballast', 'FuelChangeover', 'Ods', 'Fuel', 'Sopep'], 'leaf'),
-  group('crew', 'menu.group.crew', ['Crew', 'CrewMatrix', 'HoursOfRest', 'Passengers'], 'account-group-outline'),
+  group('crew', 'menu.group.crew', ['MyDocs', 'Crew', 'CrewMatrix', 'HoursOfRest', 'Passengers'], 'account-group-outline'),
   group('ops', 'menu.group.ops', ['Watch', 'Familiar', 'Dp', 'Readiness'], 'compass-outline'),
   group('docs', 'menu.group.docs', ['Certificates', 'Documents', 'Permits', 'Surveys', 'Reports'], 'folder-text-outline'),
   group('system', null, ['Settings']),
