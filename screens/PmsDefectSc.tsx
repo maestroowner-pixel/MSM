@@ -12,6 +12,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { BackButton, Card, Label, Screen, ScreenTitle } from '../components/ui';
 import { RecordThread } from '../components/RecordThread';
+import { DefectAiPanel } from '../components/DefectAiPanel';
+import { aiReady } from '../services/ai';
 import { defectTitle } from '../services/threads';
 import { PhotoPicker } from '../components/PhotoPicker';
 import SimpleDatePicker from '../components/SimpleDatePicker';
@@ -215,6 +217,9 @@ export default function PmsDefectSc() {
                 </>
               )}
             </Card>
+          ) : null}
+          {!existing.closed && canClose && machine && aiReady(sync.enrolled) ? (
+            <DefectAiPanel defect={existing} machine={machine} canPlan={canPlan} waited={route.params?.aiDiag} waitedKeys={route.params?.aiKeys} jobId={route.params?.aiJob} />
           ) : null}
           <RecordThread rec="defect" recId={existing.id} title={defectTitle(existing)} />
           {(() => {

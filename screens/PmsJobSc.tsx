@@ -89,6 +89,7 @@ export default function PmsJobSc() {
       id, machineId, title: route.params?.title ?? '',
       ...(route.params?.oneOff ? { oneOff: true } : {}),
       ...(route.params?.defectId ? { defectId: route.params.defectId } : {}),
+      ...(route.params?.notes ? { notes: route.params.notes } : {}),
       updatedAt: Date.now(),
     }
   );
