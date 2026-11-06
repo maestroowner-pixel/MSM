@@ -59,6 +59,8 @@ import * as storage from '../services/storage';
 import { VesselInfo } from '../services/storage';
 import { ATTACHMENTS_DIR, ensureAttachmentsDir, resolveUri } from '../services/attachments';
 import { fileDateStamp } from '../utils/dates';
+import { encryptBackup } from './backupCrypto';
+import { randomBytes } from './signKeys';
 
 const BACKUP_MAGIC = 'MarineSafetyManager';
 const BACKUP_VERSION = 3;
@@ -205,20 +207,28 @@ function collectFileUris(
   return Array.from(uris);
 }
 
+/** What goes in the file: plain JSON, or with a password when the person chose one. */
+async function backupText(b: BackupFile, password: string): Promise<string> {
+  if (!password) return JSON.stringify(b);
+  const random = randomBytes();
+  if (!random) throw new Error('This build cannot protect a backup with a password.');
+  return encryptBackup(JSON.stringify(b), password, random);
+}
+
 /**
  * Save one of the device's automatic copies as a `.msm` file, WITHOUT rolling
  * back to it — so an old register can be handed over for repair (relinking
  * inspections) while the device keeps working on today's data. Records only:
  * the copies never held photos.
  */
-export async function saveCopyAsFile(b: BackupFile): Promise<void> {
+export async function saveCopyAsFile(b: BackupFile, password = ''): Promise<void> {
   const d = new Date(b.exportedAt);
   const stamp = `${fileDateStamp(d)}-${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`;
-  await deliverFile(`MSM_copy_${stamp}.msm`, JSON.stringify(b), false, 'application/json');
+  await deliverFile(`MSM_copy_${stamp}.msm`, await backupText(b, password), false, 'application/json');
 }
 
 /** Gather everything + embedded files, then write+share a .msm file. */
-export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSummary> {
+export async function exportBackup(vessel: VesselInfo | null, password = ''): Promise<BackupSummary> {
   // Every bucket, including any this build cannot name — a backup that drops a
   // module's categories restores as a deletion. See storage.loadAllWithForeign.
   const categories = await storage.loadAllWithForeign();
@@ -345,7 +355,7 @@ export async function exportBackup(vessel: VesselInfo | null): Promise<BackupSum
   };
 
   const fileName = `MSM_backup_${fileDateStamp()}.msm`;
-  await deliverFile(fileName, JSON.stringify(backup), false, 'application/json');
+  await deliverFile(fileName, await backupText(backup, password), false, 'application/json');
   return summarize(backup);
 }
 
@@ -380,11 +390,15 @@ export function parseBackup(text: string, fileName?: string): BackupFile {
 }
 
 /** Let the user pick a .msm file and return its parsed contents + a summary. */
-export async function pickBackup(): Promise<{ backup: BackupFile; summary: BackupSummary } | null> {
+export async function pickBackup(
+  open: (f: { name: string; text: string }) => Promise<string | null>
+): Promise<{ backup: BackupFile; summary: BackupSummary } | null> {
   if (onWindows) {
     const picked = await pickFileBase64(['msm']);
     if (!picked) return null;
-    const backup = parseBackup(base64ToUtf8(picked.base64));
+    const inside = await open({ name: 'backup', text: base64ToUtf8(picked.base64) });
+    if (inside == null) return null;
+    const backup = parseBackup(inside);
     return { backup, summary: summarize(backup) };
   }
   // WEB: our own file input, filtered BY EXTENSION. expo-document-picker builds
@@ -397,7 +411,9 @@ export async function pickBackup(): Promise<{ backup: BackupFile; summary: Backu
     if (!file.text.trim()) {
       throw new Error(`"${file.name}" is empty (0 of ${file.size} bytes could be read).`);
     }
-    const backup = parseBackup(file.text, file.name);
+    const inside = await open({ name: file.name, text: file.text });
+    if (inside == null) return null;
+    const backup = parseBackup(inside, file.name);
     return { backup, summary: { ...summarize(backup), fileName: file.name } };
   }
 
@@ -407,7 +423,9 @@ export async function pickBackup(): Promise<{ backup: BackupFile; summary: Backu
   });
   if (res.canceled || !res.assets?.length) return null;
   const text = await FileSystem.readAsStringAsync(res.assets[0].uri, { encoding: 'utf8' });
-  const backup = parseBackup(text);
+  const inside = await open({ name: res.assets[0].name, text });
+  if (inside == null) return null;
+  const backup = parseBackup(inside);
   return { backup, summary: summarize(backup) };
 }
 

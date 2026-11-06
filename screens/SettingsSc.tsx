@@ -8,11 +8,12 @@
 // ===================================
 
 import { Dropdown } from '../components/Dropdown';
+import { useBackupPassword } from '../components/useBackupPassword';
 import { OFFSETS, deviceOffset, offsetAt, offsetText, shipAndUtc } from '../utils/shipTime';
 import { ClockChanges } from '../components/ClockChanges';
 import { uid as newId } from '../utils/id';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Switch, Modal, TouchableWithoutFeedback, Keyboard, Linking, Image, LayoutAnimation, Platform, UIManager, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Switch, Modal, ActivityIndicator, TouchableWithoutFeedback, Keyboard, Linking, Image, LayoutAnimation, Platform, UIManager, useWindowDimensions } from 'react-native';
 import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import { Screen, ScreenTitle, Card, Label, IconChip, BackButton } from '../components/ui';
 import { goBackOr } from '../utils/nav';
@@ -153,6 +154,8 @@ export default function SettingsSc() {
   /** How many categories the scan rule is waived for — the subtitle of its row. */
   const scanExemptCount = (signingPolicy.scanExempt ?? []).length;
   const [busy, setBusy] = useState(false);
+  const [protecting, setProtecting] = useState(false);
+  const backupPassword = useBackupPassword();
   const [snaps, setSnaps] = useState<snapshot.SnapshotInfo[]>([]);
   const [importSnaps, setImportSnaps] = useState<snapshot.SnapshotInfo[]>([]);
   /**
@@ -282,9 +285,12 @@ export default function SettingsSc() {
   const hasLifting = GROUP_ORDER.includes('LIFTING');
 
   const backupExport = async () => {
+    const password = await backupPassword.ask();
+    if (password == null) return;
     setBusy(true);
+    setProtecting(!!password);
     try {
-      const s = await exportBackup(vessel ?? form);
+      const s = await exportBackup(vessel ?? form, password);
       playSuccessSound();
       Alert.alert(
         tr('set.backupCreated'),
@@ -295,12 +301,13 @@ export default function SettingsSc() {
       Alert.alert(tr('set.backupFailed'), String(e?.message ?? e));
     } finally {
       setBusy(false);
+      setProtecting(false);
     }
   };
 
   const backupImport = async () => {
     try {
-      const picked = await pickBackup();
+      const picked = await pickBackup(backupPassword.open);
       if (!picked) return; // cancelled — the picker only reports a real cancel now
       const { backup, summary } = picked;
       Alert.alert(
@@ -381,7 +388,11 @@ export default function SettingsSc() {
           text: `${c.kind === 'import' ? tr('set.beforeImport') : tr('set.onOpening')} · ${uiDateTime(c.at)} (${tn('n.item', c.items)}, ${tn('n.inspection', c.inspections)})`,
           onPress: async () => {
             try {
-              await saveCopyAsFile(await snapshot.snapshotBody(c.slot, c.kind));
+              // iOS will not present a Modal while this alert is still leaving.
+              await new Promise((r) => setTimeout(r, 400));
+              const password = await backupPassword.ask();
+              if (password == null) return;
+              await saveCopyAsFile(await snapshot.snapshotBody(c.slot, c.kind), password);
             } catch (e: any) {
               Alert.alert(tr('common.couldNotSave'), e?.message ?? String(e));
             }
@@ -1030,6 +1041,12 @@ export default function SettingsSc() {
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
+        {protecting ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.xs, paddingVertical: SIZES.xs }}>
+            <ActivityIndicator color={COLORS.primary} />
+            <Text style={[styles.linkSub, { flex: 1 }]}>{tr('bak.slow')}</Text>
+          </View>
+        ) : null}
         {/* The automatic net, and unlike Restore it is NOT the Master's alone.
             Rolling this device back to how it was an hour ago is repairing the
             handset in your hand; replacing the register from a file somebody
@@ -1303,6 +1320,7 @@ export default function SettingsSc() {
         </TouchableWithoutFeedback>
       </Modal>
 
+      {backupPassword.ui}
     </Screen>
   );
 }

@@ -7446,6 +7446,18 @@ export const en = {
   "sdm.pwWrong": "Wrong password, or the file is damaged.",
   "sdm.pwNewer": "This file was made by a newer version of SDM. Update this app.",
   "sdm.pwBad": "This file cannot be read.",
+  "bak.askTitle": "Password for this backup",
+  "bak.askHint": "Optional. The file holds crew passports and next of kin, treatments and test results. Without a password anyone who gets the file can read them. A forgotten password cannot be recovered: the backup is then lost.",
+  "bak.pwPh": "Password, at least {n} characters",
+  "bak.pwAgain": "Repeat the password",
+  "bak.pwShort": "At least {n} characters.",
+  "bak.pwDiffer": "The two passwords differ.",
+  "bak.withPw": "Protect",
+  "bak.noPw": "No password",
+  "bak.slow": "A large backup can take a few minutes. Keep the app open.",
+  "bak.openTitle": "Protected backup",
+  "bak.openHint": "{file} is protected. Enter its password.",
+  "bak.pwNewer": "This backup was made by a newer version of the app. Update this app.",
 };
 
 export type UiKey = keyof typeof en;

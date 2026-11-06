@@ -54,6 +54,7 @@
     },
     "android": {
       "package": "com.kukalab.msm",
+      "allowBackup": false,
       "versionCode": 20720,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
@@ -98,6 +99,7 @@
         }
       ],
       "expo-secure-store",
+      "./plugins/withAttachmentsOutOfIcloud",
       [
         "expo-local-authentication",
         {
