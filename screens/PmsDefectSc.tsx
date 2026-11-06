@@ -13,6 +13,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { BackButton, Card, Label, Screen, ScreenTitle } from '../components/ui';
 import { RecordThread } from '../components/RecordThread';
 import { DefectAiPanel } from '../components/DefectAiPanel';
+import { EnglishAi } from '../components/EnglishAi';
 import { aiReady } from '../services/ai';
 import { defectTitle } from '../services/threads';
 import { PhotoPicker } from '../components/PhotoPicker';
@@ -272,6 +273,7 @@ export default function PmsDefectSc() {
             <Card>
               <Label>{t('pd.closeHead')}</Label>
               <TextInput style={[styles.input, { minHeight: 70 }]} value={closeNote} onChangeText={setCloseNote} multiline placeholder={t('pd.donePh')} placeholderTextColor={COLORS.textLight} />
+              <EnglishAi value={closeNote} onChange={setCloseNote} kind="defect" />
               <PhotoPicker photos={closePhotos} onChange={setClosePhotos} hint={office && needsPhoto(existing) ? t('oc.photoRequired') : t('pd.repairPhoto')} />
               {picker && !pickerTop ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
               <TouchableOpacity style={[styles.btn, { marginTop: SIZES.md }]} onPress={() => void close()}><Text style={styles.btnText}>{t('pd.signRect')}</Text></TouchableOpacity>
@@ -292,6 +294,7 @@ export default function PmsDefectSc() {
           </View>
           <Text style={styles.sub}>{t('pd.safetyNote')}</Text>
           <TextInput style={[styles.input, { minHeight: 80 }]} value={description} onChangeText={setDescription} multiline placeholder={t('pd.whatWrong')} placeholderTextColor={COLORS.textLight} />
+          <EnglishAi value={description} onChange={setDescription} kind="defect" />
           <PhotoPicker photos={photos} onChange={setPhotos} hint={t('pd.photo')} />
           {office ? (
             <>

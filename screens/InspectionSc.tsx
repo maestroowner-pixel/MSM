@@ -46,6 +46,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { BackButton, Card, CategoryBadge, Label } from '../components/ui';
 import { SignerPicker } from '../components/SignerPicker';
+import { EnglishAi } from '../components/EnglishAi';
 import { MciIcon } from '../components/MciIcon';
 import { VoiceInput } from '../components/VoiceInput';
 import { aiCall, aiReady } from '../services/ai';
@@ -673,6 +674,7 @@ export default function InspectionSc() {
                 placeholderTextColor={COLORS.textLight}
                 multiline
               />
+              <EnglishAi value={defectNote} onChange={setDefectNote} kind="defect" />
             </View>
           ) : null}
 
@@ -686,6 +688,7 @@ export default function InspectionSc() {
               placeholderTextColor={COLORS.textLight}
               multiline
             />
+            <EnglishAi value={comment} onChange={setComment} kind="remark" />
           </View>
 
           <View style={styles.card}>

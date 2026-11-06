@@ -336,6 +336,7 @@ const en: ManualContent = {
         "A conversation between the vessel and the office on a machinery defect, a non-conformity or a requisition: open the record and write under Discussion. Everyone aboard and the office can read it. A message cannot be changed or deleted, so write only what may be kept with the record — no medical details.",
         "Mentions: tap @ Mention and choose a person aboard or the office, or type the name after @. The person mentioned sees it on the Board and, with reminders on, gets a notification on their device once it has synced; opening the record clears it. It needs the device to be connected — there is no push from outside.",
         "In the office: Fleet lists a discussion under Waiting for you when the vessel mentioned @Office, or replied after the office wrote; replying takes it off. The vessel's Discussions tab shows everything said and every open record, so the office can start a discussion too.",
+        "In English (AI): write in your own language, then tap «In English (AI)» under the box — under a message here, a machinery defect and its rectification, an inspection's defect and comments. The English comes back beside what you wrote: «Use the English» puts it in the box, «Keep mine» leaves your words. Names do not go to the AI; they come back as you wrote them, @mentions included. It needs a connection: without one, what you wrote stays as it is.",
       ],
     },
     {
@@ -1199,6 +1200,7 @@ const ru: ManualContent = {
         "Разговор судна и офиса о дефекте механизма, несоответствии или заявке: откройте запись и напишите в разделе «Обсуждение». Это читают все на судне и офис. Сообщение нельзя изменить или удалить, поэтому пишите только то, что можно хранить вместе с записью, — без медицинских сведений.",
         "Упоминания: нажмите «@ Упомянуть» и выберите человека на судне или офис либо наберите имя после @. Упомянутый увидит это на Board, а при включённых напоминаниях получит уведомление на своём устройстве после синхронизации; открытие записи снимает отметку. Устройству нужна связь — внешних push-уведомлений нет.",
         "В офисе: Fleet показывает обсуждение в «Ждёт вашего ответа», если судно упомянуло @Office или ответило после сообщения офиса; ответ убирает его из списка. На вкладке судна «Обсуждения» — всё сказанное и все открытые записи, так что начать обсуждение может и офис.",
+        "По-английски (AI): напишите на своём языке и нажмите «По-английски (AI)» под полем — под сообщением здесь, под описанием и устранением дефекта механизма, под дефектом и комментарием обхода. Английский текст появится рядом с вашим: «Взять английский» ставит его в поле, «Оставить моё» оставляет ваш текст. Имена к AI не уходят и возвращаются так, как вы их написали, вместе с @упоминаниями. Нужна связь: без неё написанное остаётся как есть.",
       ],
     },
     {
@@ -2062,6 +2064,7 @@ const es: ManualContent = {
         "Una conversación entre el buque y la oficina sobre un defecto de maquinaria, una no conformidad o una requisición: abra el registro y escriba en Conversación. Todos a bordo y la oficina pueden leerla. Un mensaje no se puede cambiar ni borrar, así que escriba solo lo que pueda conservarse con el registro, sin datos médicos.",
         "Menciones: pulse «@ Mencionar» y elija a una persona a bordo o a la oficina, o escriba el nombre tras @. La persona mencionada lo ve en el Board y, con los recordatorios activos, recibe un aviso en su dispositivo una vez sincronizado; abrir el registro lo borra. El dispositivo necesita conexión: no hay avisos push desde fuera.",
         "En la oficina: Fleet muestra la conversación en Waiting for you cuando el buque mencionó @Office o respondió después de escribir la oficina; responder la quita de la lista. La pestaña Conversaciones del buque muestra todo lo dicho y cada registro abierto, así que la oficina también puede iniciar una conversación.",
+        "En inglés (AI): escriba en su idioma y toque «En inglés (AI)» bajo la casilla — bajo un mensaje aquí, un defecto de maquinaria y su reparación, el defecto y los comentarios de una inspección. El inglés aparece junto a lo que escribió: «Usar el inglés» lo pone en la casilla, «Dejar lo mío» conserva su texto. Los nombres no van a la AI; vuelven como los escribió, también las @menciones. Necesita conexión: sin ella, lo escrito queda como está.",
       ],
     },
     {
@@ -2925,6 +2928,7 @@ const uk: ManualContent = {
         "Розмова судна й офісу про дефект механізму, невідповідність або заявку: відкрийте запис і напишіть у розділі «Обговорення». Це читають усі на судні й офіс. Повідомлення не можна змінити чи видалити, тому пишіть лише те, що можна зберігати разом із записом, — без медичних відомостей.",
         "Згадки: натисніть «@ Згадати» й виберіть людину на судні або офіс чи наберіть ім'я після @. Згаданий побачить це на Board, а з увімкненими нагадуваннями отримає сповіщення на своєму пристрої після синхронізації; відкриття запису знімає позначку. Пристрою потрібен зв'язок — зовнішніх push-сповіщень немає.",
         "В офісі: Fleet показує обговорення у «Чекає на вашу відповідь», якщо судно згадало @Office або відповіло після повідомлення офісу; відповідь прибирає його зі списку. На вкладці судна «Обговорення» — усе сказане й усі відкриті записи, тож почати обговорення може й офіс.",
+        "Англійською (AI): напишіть своєю мовою і натисніть «Англійською (AI)» під полем — під повідомленням тут, під описом і усуненням дефекту механізму, під дефектом і коментарем обходу. Англійський текст з'явиться поруч із вашим: «Взяти англійський» ставить його в поле, «Залишити моє» залишає ваш текст. Імена до AI не йдуть і повертаються так, як ви їх написали, разом з @згадками. Потрібен зв'язок: без нього написане лишається як є.",
       ],
     },
     {
@@ -3774,6 +3778,7 @@ const no: ManualContent = {
         "En samtale mellom fartøyet og kontoret om et maskinavvik, et avvik eller en rekvisisjon: åpne posten og skriv under Diskusjon. Alle om bord og kontoret kan lese den. En melding kan ikke endres eller slettes, så skriv bare det som kan lagres med posten, uten medisinske opplysninger.",
         "Omtaler: trykk «@ Nevn» og velg en person om bord eller kontoret, eller skriv navnet etter @. Den som nevnes ser det på Board og får, med påminnelser på, et varsel på enheten sin etter synkronisering; å åpne posten fjerner det. Enheten må ha tilkobling — det finnes ikke push-varsler utenfra.",
         "På kontoret: Fleet viser diskusjonen under Waiting for you når fartøyet nevnte @Office eller svarte etter at kontoret skrev; et svar tar den av listen. Fanen Diskusjoner for fartøyet viser alt som er sagt og alle åpne poster, så kontoret også kan starte en diskusjon.",
+        "På engelsk (AI): skriv på ditt eget språk og trykk «På engelsk (AI)» under feltet — under en melding her, en maskinfeil og utbedringen, en inspeksjons feil og kommentarer. Den engelske teksten kommer ved siden av din: «Bruk engelsk» setter den i feltet, «Behold mitt» beholder teksten din. Navn går ikke til AI; de kommer tilbake slik du skrev dem, også @omtaler. Det trenger forbindelse: uten den blir det du skrev stående.",
       ],
     },
     {
@@ -4564,6 +4569,7 @@ const pt: ManualContent = {
         "Uma conversa entre o navio e o escritório sobre um defeito de máquina, uma não conformidade ou uma requisição: abra o registo e escreva em Conversa. Todos a bordo e o escritório podem lê-la. Uma mensagem não pode ser alterada nem apagada, por isso escreva apenas o que pode ficar com o registo, sem dados médicos.",
         "Menções: toque em «@ Mencionar» e escolha uma pessoa a bordo ou o escritório, ou escreva o nome depois de @. A pessoa mencionada vê-o no Board e, com os lembretes ligados, recebe uma notificação no seu dispositivo depois de sincronizar; abrir o registo limpa-a. O dispositivo precisa de ligação — não há notificações push de fora.",
         "No escritório: o Fleet mostra a conversa em Waiting for you quando o navio mencionou @Office ou respondeu depois de o escritório escrever; responder tira-a da lista. O separador Conversas do navio mostra tudo o que foi dito e cada registo aberto, por isso o escritório também pode iniciar uma conversa.",
+        "Em inglês (AI): escreva na sua língua e toque em «Em inglês (AI)» sob a caixa — sob uma mensagem aqui, uma avaria de máquina e a sua reparação, a avaria e os comentários de uma inspeção. O inglês aparece ao lado do que escreveu: «Usar o inglês» coloca-o na caixa, «Manter o meu» mantém o seu texto. Os nomes não vão para a AI; voltam como os escreveu, também as @menções. Precisa de ligação: sem ela, o que escreveu fica como está.",
       ],
     },
     {

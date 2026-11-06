@@ -7648,6 +7648,16 @@ export const en = {
   "lai.use": "Put into the entry",
   "lai.used": "Put into the entry. Check it and sign.",
   "lai.usedKept": "Put into the entry. {n} box(es) you had filled stayed as they were. Check it and sign.",
+  "eng.go": "In English (AI)",
+  "eng.working": "Putting into English…",
+  "eng.head": "In English",
+  "eng.use": "Use the English",
+  "eng.keep": "Keep mine",
+  "eng.used": "The English is in the box. Read it through before it goes.",
+  "eng.already": "It is in English already.",
+  "eng.nothing": "The AI gave nothing back. Try again.",
+  "eng.offline": "Putting into English needs a connection. What you wrote stays as it is.",
+  "eng.lost": "Not in the English: {names}. Check it.",
   "ai.logJob": "Log entry: {what}",
 };
 

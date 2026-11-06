@@ -4,6 +4,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
+import { EnglishAi } from './EnglishAi';
 import { useSigner } from './SignerChoice';
 import { Card } from './ui';
 import { useData } from '../contexts/DataContext';
@@ -22,13 +23,15 @@ const when = (at: number) => {
   return `${p(d.getDate())}.${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`;
 };
 
-export function ThreadPanel({ messages, tags, onSend, picker }: {
+export function ThreadPanel({ messages, tags, onSend, picker, english }: {
   messages: ThreadMessage[];
   /** Who can be mentioned here, without the @. */
   tags: string[];
   /** Resolves true when the message went in; false leaves the text in the box. */
   onSend: (text: string) => Promise<boolean>;
   picker?: React.ReactElement | null;
+  /** The vessel's side: "In English (AI)" under the box. */
+  english?: boolean;
 }) {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -66,6 +69,7 @@ export function ThreadPanel({ messages, tags, onSend, picker }: {
         placeholder={t('th.placeholder')}
         placeholderTextColor={COLORS.textLight}
       />
+      {english ? <EnglishAi value={text} onChange={(v) => setText(v.slice(0, THREAD_MAX))} kind="message" /> : null}
       {tagging ? (
         <View style={styles.tags}>
           {tags.map((n) => (
@@ -121,7 +125,7 @@ function Thread({ rec, recId, title }: { rec: ThreadRec; recId: string; title: s
   return (
     <Card style={{ marginTop: SIZES.md }}>
       <Text style={styles.head}>{t('th.title')}</Text>
-      <ThreadPanel messages={messages} tags={[OFFICE_TAG, ...names]} onSend={send} picker={picker} />
+      <ThreadPanel messages={messages} tags={[OFFICE_TAG, ...names]} onSend={send} picker={picker} english />
     </Card>
   );
 }
