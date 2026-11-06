@@ -8,12 +8,14 @@
 // word on whether it worked — and a closed NC does not change again.
 // ===================================
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { BackButton, Card, Label, Screen, ScreenTitle } from '../components/ui';
 import { RecordThread } from '../components/RecordThread';
+import { IncidentAiPanel } from '../components/IncidentAiPanel';
+import { aiReady } from '../services/ai';
 import { ncTitle } from '../services/threads';
 import { Dropdown } from '../components/Dropdown';
 import SimpleDatePicker from '../components/SimpleDatePicker';
@@ -69,6 +71,14 @@ export default function NcSc() {
     };
   });
   const [editing, setEditing] = useState(isNew);
+  // An AI draft that waited for a connection opens an open NC in editing, once (components/IncidentAiPanel).
+  const aiOpened = useRef(false);
+  useEffect(() => {
+    if (aiOpened.current || isNew || !route.params?.aiIncident || !stored || stored.closedAt || !canEdit) return;
+    aiOpened.current = true;
+    setDraft(stored);
+    setEditing(true);
+  }, [isNew, stored, canEdit, route.params?.aiIncident]);
   const [act, setAct] = useState<ActDraft | null>(null);
   const [doing, setDoing] = useState<{ id: string; note: string } | null>(null);
   const [closing, setClosing] = useState<string | null>(null);
@@ -158,6 +168,9 @@ export default function NcSc() {
       <BackButton onPress={() => goBackOr(nav)} />
       <ScreenTitle title={nc.no ? `${nc.no} · ${nc.title || t('nc.nc')}` : t('nc.new')} subtitle={nc.no ? `${NC_STATE_LABEL[st]} · ${t('nc.raised', { date: uiDate(nc.date), who: who(nc.raisedBy, nc.raisedByRank) })}` : t('nc.newSub')} help="Safety observations & NC" />
 
+      {editing && draft && canEdit && aiReady(sync.enrolled) ? (
+        <IncidentAiPanel nc={draft} isNew={isNew && !stored} obs={obs} onApply={setDraft} waited={route.params?.aiIncident} waitedNcs={route.params?.aiNcs} jobId={route.params?.aiJob} />
+      ) : null}
       {editing && draft ? (
         <Card>
           <View style={styles.row}>
@@ -178,6 +191,13 @@ export default function NcSc() {
           <TextInput style={styles.input} value={draft.where ?? ''} onChangeText={(v) => set({ where: v })} placeholder={t('nc.where')} placeholderTextColor={COLORS.textLight} />
           <TextInput style={styles.input} value={draft.requirement ?? ''} onChangeText={(v) => set({ requirement: v })} placeholder={t('nc.reqPh')} placeholderTextColor={COLORS.textLight} />
           <TextInput style={[styles.input, { minHeight: 50 }]} value={draft.rootCause ?? ''} onChangeText={(v) => set({ rootCause: v })} multiline placeholder={t('nc.rootPh')} placeholderTextColor={COLORS.textLight} />
+          {draft.actions.length ? <Label>{t('nc.actionsN', { k: draft.actions.filter((a) => a.doneAt).length, n: draft.actions.length })}</Label> : null}
+          {draft.actions.map((a) => (
+            <View key={a.id} style={[styles.row, { alignItems: 'flex-start' }]}>
+              <Text style={[styles.sub, { flex: 1 }]}>{`${a.doneAt ? '✓ ' : ''}${CAPA_KIND_LABEL[a.kind]}: ${a.text} — ${a.owner}, by ${uiDate(a.due)}`}</Text>
+              {!a.doneAt && !stored?.actions.some((x) => x.id === a.id) ? <TouchableOpacity onPress={() => set({ actions: draft.actions.filter((x) => x.id !== a.id) })}><Text style={[styles.link, { marginTop: 0 }]}>{t('common.delete')}</Text></TouchableOpacity> : null}
+            </View>
+          ))}
           {isNew && !stored && picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
           <View style={styles.row}>
             <TouchableOpacity style={styles.btn} onPress={() => void save()}><Text style={styles.btnText}>{isNew && !stored ? t('nc.raise') : t('common.save')}</Text></TouchableOpacity>

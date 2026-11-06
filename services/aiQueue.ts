@@ -3,7 +3,7 @@
 // good connection; without one the operation is deferred").
 //
 // Only what still means something later waits here: a question, a photographed
-// certificate, the plan for an inspection, a supplier's quotation or invoice, a maker's manual. A result comes back as a draft for someone to read and accept;
+// certificate, the plan for an inspection, a supplier's quotation or invoice, a maker's manual, an incident told for an NC. A result comes back as a draft for someone to read and accept;
 // nothing here signs or saves a record. An inspection's voice and photo do not
 // wait: the round is signed long before the answer would arrive.
 //
@@ -19,7 +19,7 @@ import { aiCall } from './ai';
 import { AI_QUEUE_KEY } from './storage';
 import { uid } from '../utils/id';
 
-export type AiJobTask = 'ask' | 'cert' | 'readiness' | 'quote' | 'invoice' | 'manual';
+export type AiJobTask = 'ask' | 'cert' | 'readiness' | 'quote' | 'invoice' | 'manual' | 'incident';
 
 export interface AiJob {
   id: string;
@@ -32,8 +32,8 @@ export interface AiJob {
   result?: any;
   error?: string;
   tries: number;
-  /** cert: where the result goes. A new certificate has no id yet, so it travels as its draft. readiness: the inspection asked about. quote, invoice: the order (and the quote). manual: the machine, its jobs under the keys, the file's name. */
-  target?: { certId?: string; draft?: unknown; kind?: string; date?: string; po?: string; quoteId?: string; lineIds?: string[]; machineId?: string; jobIds?: string[]; file?: string; docId?: string; rev?: number; compared?: boolean; listIds?: string[]; docIds?: string[] };
+  /** cert: where the result goes. A new certificate has no id yet, so it travels as its draft. readiness: the inspection asked about. quote, invoice: the order (and the quote). manual: the machine, its jobs under the keys, the file's name. incident: the NC (or 'new'), the card it came from, the past NCs under the keys. */
+  target?: { certId?: string; draft?: unknown; kind?: string; date?: string; po?: string; quoteId?: string; lineIds?: string[]; machineId?: string; jobIds?: string[]; file?: string; ncId?: string; obsId?: string; ncIds?: string[]; docId?: string; rev?: number; compared?: boolean; listIds?: string[]; docIds?: string[] };
 }
 
 /** localStorage holds about 5 MB for the whole app on the web; a queue must not take the register's room. */

@@ -7526,6 +7526,23 @@ export const en = {
   "bak.openTitle": "Protected backup",
   "bak.openHint": "{file} is protected. Enter its password.",
   "bak.pwNewer": "This backup was made by a newer version of the app. Update this app.",
+  "ai.incidentJob": "NC draft: {what}",
+  "inc.title": "Draft from what happened (AI)",
+  "inc.intro": "Tell it as you would to the Master: what, where, when, what followed. Any language, typed or said. Names on the crew and guest lists go to the AI as ranks. The draft fills only the empty fields; check it before you save.",
+  "inc.ph": "What happened…",
+  "inc.names": "{n} name(s) will go as ranks.",
+  "inc.tooShort": "Say a little more about what happened.",
+  "inc.draft": "Draft the NC",
+  "inc.again": "Draft again",
+  "inc.drafting": "Drafting…",
+  "inc.actions": "Actions — untick what you do not want",
+  "inc.similar": "Earlier NCs that look alike",
+  "inc.open": "open",
+  "inc.missing": "Still to find out",
+  "inc.check": "A draft: read it, correct it, then raise or save the NC as usual.",
+  "inc.use": "Put into the form ({n} actions)",
+  "inc.used": "Put into the form. Check it and save.",
+  "inc.usedKept": "Put into the form. {n} field(s) you had filled stayed as they were. Check it and save.",
 };
 
 export type UiKey = keyof typeof en;
