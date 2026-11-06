@@ -178,6 +178,20 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🔒',
+      title: "Security & your data",
+      body: [
+        "Who can open a vessel: a device reaches a vessel's records only after it has been invited and approved. Each vessel is apart from every other, and roles are enforced on the server, not only on the screen.",
+        "Crew: date of birth, contacts and next of kin are seen by Officers and the Master only. So are the number and scan of a passport, seaman's book, visa or medical: the crew and the shore see the type, holder and dates, which the matrix and the reminders need. The app knows these documents by their name, so choose the name from the list. These details stay readable in the cloud on purpose: the next officer or Master needs them for the crew list.",
+        "Patients and guests: the cloud holds only the first and last letter of a patient's or guest's name; the full name stays on the vessel. Guest documents are never sent. A drug and alcohol result carries the same shortened name.",
+        "When someone leaves: the Master can open their card and tap \"Erase personal details\". Passport, contacts, next of kin and the closed documents go, on the vessel and in the cloud; the row, the dates and signed records stay. A .msm made earlier still holds them, and the cloud backup until it expires.",
+        "Signatures: signed records are never changed; a correction is a new entry. The Master's device has its own Master PIN; everyone else chooses a PIN with a one-time code from the Master (one name, one use, 15 minutes). A shared tablet never signs as itself.",
+        "On the device: the app does not encrypt what it stores, so keep a screen lock on phones and tablets. On a shared computer, use Settings → This device → \"Sign off & erase\" when you leave it. Android keeps the app out of the Google backup, and on iPhone and iPad attached files stay out of the iCloud backup, so keep a .msm of your own and give it a password.",
+        "In the cloud: the database is on Google Cloud in the United States, and the server functions are in the EU. Data is encrypted in transit and at rest. The database is backed up daily and each copy kept for 5 days; attached files are not in that backup.",
+        "The AI (Claude, from Anthropic) is reached through our server. Importing a list, it gets the column headings and masked samples, not the list. Paper lists it reads are for equipment, stores and medicines only. Patients' and guests' records never go to it, and the scan button is not offered on a passport, visa or medical; if the name is still empty, do not photograph one.",
+      ],
+    },
+    {
       emoji: '🔔',
       title: 'Expiry reminders',
       body: [
@@ -1018,6 +1032,20 @@ const ru: ManualContent = {
         "Сброс — право Мастера, и на синхронизированном устройстве он очищает не аппарат, а СУДНО. Подтверждение говорит об этом прямо, а кнопка называется «Erase everywhere»: за секунды это доходит до судового регистра и до всех остальных приборов на борту.",
         "Чтобы очистить только это устройство, сначала выйдите с судна: Settings → This device → «Sign off & erase». Судовая копия остаётся нетронутой.",
         "Сброс стирает и автоматические слепки — иначе «удалить всё» было бы неправдой.",
+      ],
+    },
+    {
+      emoji: '🔒',
+      title: "Безопасность и ваши данные",
+      body: [
+        "Кто может открыть судно: устройство получает доступ к записям судна только после приглашения и одобрения. Каждое судно отделено от других, а роли проверяются на сервере, а не только на экране.",
+        "Экипаж: дату рождения, контакты и ближайших родственников видят только офицеры и Мастер. То же с номером и сканом паспорта, мореходной книжки, визы и медицинской справки: экипаж и берег видят тип, владельца и сроки, которые нужны матрице и напоминаниям. Приложение узнаёт эти документы по названию, поэтому выбирайте название из списка. В облаке эти данные намеренно остаются читаемыми: следующему офицеру или Мастеру они нужны для Crew list.",
+        "Пациенты и гости: в облаке только первая и последняя буква имени пациента или гостя, полное имя остаётся на судне. Документы гостей не отправляются никогда. В результате теста на алкоголь и наркотики имя сокращено так же.",
+        "Когда человек ушёл: Мастер открывает его карточку и нажимает «Стереть личные данные». Паспорт, контакты, родственники и закрытые документы стираются на судне и в облаке; строка, даты и подписанные записи остаются. Сделанный ранее файл .msm их сохраняет, резервная копия в облаке тоже, пока не истечёт.",
+        "Подписи: подписанные записи не меняются, исправление делается новой записью. На устройстве Мастера свой Master PIN; остальные выбирают PIN с одноразовым кодом от Мастера (одно имя, один раз, 15 минут). Общий планшет никогда не подписывает сам.",
+        "На устройстве: приложение не шифрует то, что хранит, поэтому держите блокировку экрана на телефонах и планшетах. На общем компьютере, уходя, используйте Settings → This device → «Sign off & erase». На Android приложение не входит в резервную копию Google, на iPhone и iPad вложения не входят в копию iCloud, поэтому храните свой файл .msm и ставьте на него пароль.",
+        "В облаке: база данных находится в Google Cloud в США, серверные функции в ЕС. Данные шифруются при передаче и хранении. База копируется ежедневно, каждая копия хранится 5 дней; вложенные файлы в эту копию не входят.",
+        "AI (Claude от Anthropic) вызывается через наш сервер. При импорте списка он получает заголовки колонок и замаскированные образцы, а не сам список. Бумажные списки он читает только для оборудования, склада и лекарств. Записи пациентов и гостей к нему не попадают, а кнопки скана нет на паспорте, визе и медицинской справке; пока название пустое, не фотографируйте такой документ.",
       ],
     },
     {
@@ -1862,6 +1890,20 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🔒',
+      title: "Seguridad y sus datos",
+      body: [
+        "Quién puede abrir un buque: un dispositivo accede a los registros del buque solo tras ser invitado y aprobado. Cada buque está separado de los demás, y los roles se comprueban en el servidor, no solo en la pantalla.",
+        "Tripulación: la fecha de nacimiento, los contactos y los familiares solo los ven los oficiales y el capitán. Igual el número y el escaneo de un pasaporte, libreta de marino, visado o certificado médico: la tripulación y tierra ven el tipo, el titular y las fechas, que necesitan la matriz y los avisos. La app reconoce estos documentos por su nombre, así que elija el nombre de la lista. Estos datos siguen legibles en la nube a propósito: el siguiente oficial o capitán los necesita para la lista de tripulación.",
+        "Pacientes e invitados: la nube guarda solo la primera y la última letra del nombre de un paciente o invitado; el nombre completo queda a bordo. Los documentos de los invitados nunca se envían. Un resultado de alcohol y drogas lleva el mismo nombre abreviado.",
+        "Cuando alguien se va: el capitán abre su ficha y pulsa «Borrar datos personales». El pasaporte, los contactos, los familiares y los documentos cerrados se borran a bordo y en la nube; la fila, las fechas y los registros firmados permanecen. Un .msm anterior aún los contiene, y la copia en la nube hasta que caduca.",
+        "Firmas: los registros firmados no cambian; una corrección es una entrada nueva. El dispositivo del capitán tiene su Master PIN; los demás eligen un PIN con un código de un solo uso del capitán (un nombre, un uso, 15 minutos). Una tableta compartida nunca firma por sí misma.",
+        "En el dispositivo: la app no cifra lo que guarda, así que mantenga el bloqueo de pantalla en teléfonos y tabletas. En un ordenador compartido, al dejarlo use Settings → This device → «Sign off & erase». Android deja la app fuera de la copia de Google, y en iPhone y iPad los adjuntos quedan fuera de la copia de iCloud, así que guarde su propio .msm y póngale contraseña.",
+        "En la nube: la base de datos está en Google Cloud en Estados Unidos y las funciones del servidor en la UE. Los datos se cifran en tránsito y en reposo. La base se copia a diario y cada copia se guarda 5 días; los archivos adjuntos no están en esa copia.",
+        "La IA (Claude, de Anthropic) se usa a través de nuestro servidor. Al importar una lista recibe los encabezados y muestras enmascaradas, no la lista. Las listas en papel que lee son solo de equipos, provisiones y medicamentos. Los registros de pacientes e invitados nunca le llegan, y el botón de escaneo no aparece en un pasaporte, visado o certificado médico; si el nombre sigue vacío, no fotografíe uno.",
+      ],
+    },
+    {
       emoji: '🔔',
       title: 'Recordatorios de caducidad',
       body: [
@@ -2703,6 +2745,20 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🔒',
+      title: "Безпека і ваші дані",
+      body: [
+        "Хто може відкрити судно: пристрій отримує доступ до записів судна лише після запрошення й схвалення. Кожне судно відокремлене від інших, а ролі перевіряються на сервері, а не лише на екрані.",
+        "Екіпаж: дату народження, контакти й найближчих родичів бачать лише офіцери й Майстер. Те саме з номером і сканом паспорта, мореплавної книжки, візи чи медичної довідки: екіпаж і берег бачать тип, власника й терміни, потрібні матриці та нагадуванням. Застосунок розпізнає ці документи за назвою, тому вибирайте назву зі списку. У хмарі ці дані навмисно лишаються читабельними: наступному офіцеру чи Майстру вони потрібні для Crew list.",
+        "Пацієнти й гості: у хмарі лише перша й остання літера імені пацієнта чи гостя, повне ім'я лишається на судні. Документи гостей не надсилаються ніколи. У результаті тесту на алкоголь і наркотики ім'я скорочене так само.",
+        "Коли людина пішла: Майстер відкриває її картку й натискає «Стерти особисті дані». Паспорт, контакти, родичі й закриті документи стираються на судні та в хмарі; рядок, дати й підписані записи лишаються. Раніше зроблений файл .msm їх зберігає, резервна копія в хмарі теж, доки не сплине термін.",
+        "Підписи: підписані записи не змінюються, виправлення робиться новим записом. На пристрої Майстра свій Master PIN; решта обирають PIN з одноразовим кодом від Майстра (одне ім'я, один раз, 15 хвилин). Спільний планшет ніколи не підписує сам.",
+        "На пристрої: застосунок не шифрує те, що зберігає, тому тримайте блокування екрана на телефонах і планшетах. На спільному комп'ютері, ідучи, використовуйте Settings → This device → «Sign off & erase». На Android застосунок не входить до резервної копії Google, на iPhone та iPad вкладення не входять до копії iCloud, тому зберігайте свій файл .msm і ставте на нього пароль.",
+        "У хмарі: база даних розміщена в Google Cloud у США, серверні функції в ЄС. Дані шифруються під час передавання й зберігання. Базу копіюють щодня, кожна копія зберігається 5 днів; вкладені файли до цієї копії не входять.",
+        "AI (Claude від Anthropic) викликається через наш сервер. Під час імпорту списку він отримує заголовки колонок і замасковані зразки, а не сам список. Паперові списки він читає лише для обладнання, складу й ліків. Записи пацієнтів і гостей до нього не потрапляють, а кнопки скану немає на паспорті, візі й медичній довідці; поки назва порожня, не фотографуйте такий документ.",
+      ],
+    },
+    {
       emoji: '🔔',
       title: 'Нагадування про терміни',
       body: [
@@ -3535,6 +3591,20 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '🔒',
+      title: "Sikkerhet og dine data",
+      body: [
+        "Hvem som kan åpne et fartøy: en enhet når fartøyets oppføringer først etter invitasjon og godkjenning. Hvert fartøy er adskilt fra de andre, og roller kontrolleres på serveren, ikke bare på skjermen.",
+        "Mannskap: fødselsdato, kontakter og pårørende ser bare offiserene og kapteinen. Det samme gjelder nummer og skanning av pass, sjøfartsbok, visum eller legeattest: mannskapet og land ser type, innehaver og datoer, som matrisen og påminnelsene trenger. Appen kjenner disse dokumentene på navnet, så velg navnet fra listen. Disse opplysningene er med vilje lesbare i skyen: neste offiser eller kaptein trenger dem til mannskapslisten.",
+        "Pasienter og gjester: skyen har bare første og siste bokstav i navnet til en pasient eller gjest; fullt navn blir om bord. Gjestedokumenter sendes aldri. Et resultat av alkohol- og narkotikatest har det samme forkortede navnet.",
+        "Når noen har reist: kapteinen åpner kortet og trykker «Slett personopplysninger». Pass, kontakter, pårørende og de lukkede dokumentene slettes om bord og i skyen; raden, datoene og signerte oppføringer blir stående. En tidligere .msm inneholder dem fortsatt, og sikkerhetskopien i skyen til den utløper.",
+        "Signaturer: signerte oppføringer endres aldri; en rettelse er en ny oppføring. Kapteinens enhet har sin egen Master PIN; alle andre velger PIN med en engangskode fra kapteinen (ett navn, én gang, 15 minutter). Et delt nettbrett signerer aldri selv.",
+        "På enheten: appen krypterer ikke det den lagrer, så ha skjermlås på telefoner og nettbrett. På en delt datamaskin bruker du Settings → This device → «Sign off & erase» når du går. Android holder appen utenfor Google-sikkerhetskopien, og på iPhone og iPad er vedlegg utenfor iCloud-sikkerhetskopien, så ta vare på din egen .msm og gi den passord.",
+        "I skyen: databasen ligger i Google Cloud i USA, og serverfunksjonene i EU. Data krypteres under overføring og lagring. Databasen sikkerhetskopieres daglig og hver kopi beholdes i 5 dager; vedlagte filer er ikke med i den kopien.",
+        "AI-en (Claude fra Anthropic) nås gjennom vår server. Ved import av en liste får den kolonneoverskrifter og maskerte eksempler, ikke listen. Papirlister leser den bare for utstyr, lager og medisiner. Oppføringer om pasienter og gjester når den aldri, og skanneknappen tilbys ikke på pass, visum eller legeattest; er navnet fortsatt tomt, ikke fotografer et slikt dokument.",
+      ],
+    },
+    {
       emoji: '🔔',
       title: 'Utløpspåminnelser',
       body: [
@@ -4302,6 +4372,20 @@ const pt: ManualContent = {
         'Preferências do dispositivo e sua aceitação da Política de Privacidade/Termos são mantidas; apenas os dados do registro de segurança são removidos.',
         'Redefinir é do Mestre, e em um dispositivo sincronizando não limpa um dispositivo – limpa o NAVIO.',
         'Para esvaziar apenas este dispositivo, saia da embarcação primeiro: Settings → This device → «Sign off & erase».',
+      ],
+    },
+    {
+      emoji: '🔒',
+      title: "Segurança e os seus dados",
+      body: [
+        "Quem pode abrir um navio: um dispositivo só acede aos registos do navio depois de convidado e aprovado. Cada navio está separado dos outros, e os papéis são verificados no servidor, não apenas no ecrã.",
+        "Tripulação: a data de nascimento, os contactos e os familiares só são vistos pelos oficiais e pelo comandante. O mesmo com o número e a digitalização do passaporte, cédula marítima, visto ou atestado médico: a tripulação e terra veem o tipo, o titular e as datas, de que a matriz e os lembretes precisam. A app reconhece estes documentos pelo nome, por isso escolha o nome da lista. Estes dados continuam legíveis na nuvem de propósito: o oficial ou comandante seguinte precisa deles para a lista de tripulação.",
+        "Pacientes e convidados: a nuvem guarda só a primeira e a última letra do nome de um paciente ou convidado; o nome completo fica a bordo. Os documentos dos convidados nunca são enviados. Um resultado de álcool e drogas leva o mesmo nome abreviado.",
+        "Quando alguém sai: o comandante abre a ficha e toca em «Apagar dados pessoais». O passaporte, os contactos, os familiares e os documentos fechados são apagados a bordo e na nuvem; a linha, as datas e os registos assinados ficam. Um .msm anterior ainda os contém, e a cópia na nuvem até expirar.",
+        "Assinaturas: os registos assinados nunca mudam; uma correção é uma nova entrada. O dispositivo do comandante tem o seu Master PIN; os restantes escolhem um PIN com um código de uso único do comandante (um nome, uma vez, 15 minutos). Um tablet partilhado nunca assina por si.",
+        "No dispositivo: a app não encripta o que guarda, por isso mantenha o bloqueio de ecrã nos telemóveis e tablets. Num computador partilhado, ao sair use Settings → This device → «Sign off & erase». O Android deixa a app fora da cópia da Google, e no iPhone e iPad os anexos ficam fora da cópia do iCloud, por isso guarde o seu próprio .msm e ponha-lhe uma palavra-passe.",
+        "Na nuvem: a base de dados está no Google Cloud nos Estados Unidos e as funções do servidor na UE. Os dados são encriptados em trânsito e em repouso. A base é copiada diariamente e cada cópia fica 5 dias; os ficheiros anexos não estão nessa cópia.",
+        "A IA (Claude, da Anthropic) é usada através do nosso servidor. Ao importar uma lista recebe os cabeçalhos e amostras mascaradas, não a lista. As listas em papel que lê são só de equipamento, provisões e medicamentos. Os registos de pacientes e convidados nunca lhe chegam, e o botão de digitalização não aparece num passaporte, visto ou atestado médico; se o nome ainda estiver vazio, não fotografe um.",
       ],
     },
     {
