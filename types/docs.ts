@@ -63,6 +63,17 @@ export interface IsmDoc {
   mustRead?: boolean;
   /** Who issued or uploaded it. */
   by?: string;
+  /**
+   * The revision before, as it was when this one was issued — its file and words,
+   * one step back (services/smsAi.ts prevOf). What "what changed" is read against.
+   */
+  prev?: { revision: number; issued: string; fileUri?: string; fileName?: string; text?: string; body?: string };
+  /**
+   * "What changed in this revision", for the crew before they sign. Written by an
+   * officer (or drafted by the AI and checked); shown only while `revision` is the
+   * document's own.
+   */
+  changeNote?: { revision: number; text: string; by?: string; at: number; ai?: boolean };
   deleted?: boolean;
   updatedAt: number;
 }

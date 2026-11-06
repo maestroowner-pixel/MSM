@@ -33,6 +33,9 @@ import { pendingFile, shareDocFile } from '../services/docFiles';
 import { openFile, pickDocument, toDataUri } from '../services/attachments';
 import { pdfText } from '../utils/pdfText';
 import { DocViewer } from '../components/DocViewer';
+import { DocRevAiPanel } from '../components/DocRevAiPanel';
+import { aiReady } from '../services/ai';
+import { currentNote, prevOf } from '../services/smsAi';
 import { onWeb } from '../utils/fileShare';
 import { todayIso } from '../services/pms';
 import { uiDate, uiDateTime } from '../utils/dates';
@@ -159,6 +162,13 @@ export default function DocSc() {
           updatedAt: Date.now(),
         };
         if (!fileUri) delete out.fileUri;
+        // The revision before keeps its file and words, for "what changed" (services/smsAi.ts).
+        if (bumping && existing) out.prev = prevOf(existing);
+        const noteText = (draft.changeNote?.revision === revision ? draft.changeNote.text : '').trim();
+        if (!noteText) delete out.changeNote;
+        else if (noteText !== existing?.changeNote?.text || existing?.changeNote?.revision !== revision) {
+          out.changeNote = { revision, text: noteText, ...(meName ? { by: meName } : {}), at: Date.now() };
+        }
         await saveDoc(out);
         playSuccessSound();
         if (filePending) {
@@ -287,9 +297,22 @@ export default function DocSc() {
                 <Switch value={draft.mustRead !== false} onValueChange={(v) => set({ mustRead: v })} trackColor={{ true: COLORS.primary, false: COLORS.border }} />
               </View>
               {!isNew && !bumping ? (
-                <TouchableOpacity style={styles.outlineBtn} onPress={() => setBumping(true)}>
+                <TouchableOpacity style={styles.outlineBtn} onPress={() => { setBumping(true); set({ changeNote: undefined }); }}>
                   <Text style={styles.outlineText}>{t('doc.newRev', { n: draft.revision + 1 })}</Text>
                 </TouchableOpacity>
+              ) : null}
+              {!isNew || bumping ? (
+                <>
+                  <Label>{t('doc.changeNote', { n: bumping ? draft.revision + 1 : draft.revision })}</Label>
+                  <TextInput
+                    style={[styles.input, { minHeight: 90, textAlignVertical: 'top' }]}
+                    value={draft.changeNote?.revision === (bumping ? draft.revision + 1 : draft.revision) ? draft.changeNote.text : ''}
+                    onChangeText={(v) => set({ changeNote: { revision: bumping ? draft.revision + 1 : draft.revision, text: v, at: Date.now() } })}
+                    multiline
+                    placeholder={t('doc.changeNotePh')}
+                    placeholderTextColor={COLORS.textLight}
+                  />
+                </>
               ) : null}
               {bumping ? <Text style={styles.warn}>{t('doc.savingIssues', { n: draft.revision + 1 })}</Text> : null}
               <TouchableOpacity style={styles.deleteBtn} onPress={onRemove}>
@@ -314,6 +337,19 @@ export default function DocSc() {
               ) : null}
               {heldHere && doc.filePending ? (
                 <Text style={styles.sub}>{t('doc.onlyHere')}</Text>
+              ) : null}
+
+              {currentNote(doc) ? (
+                <View style={styles.noteBox}>
+                  <Text style={styles.noteTitle}>{t('doc.changeNote', { n: doc.revision })}</Text>
+                  <Text style={styles.body}>{currentNote(doc)!.text}</Text>
+                  <Text style={styles.sub}>{[currentNote(doc)!.by, uiDate(new Date(currentNote(doc)!.at).toISOString().slice(0, 10)), currentNote(doc)!.ai ? t('doc.noteAi') : null].filter(Boolean).join(' · ')}</Text>
+                </View>
+              ) : null}
+              {doc.prev?.fileUri && doc.prev.revision < doc.revision ? (
+                <TouchableOpacity onPress={() => void openFile(doc.prev!.fileUri!, doc.prev!.fileName ?? 'document.pdf')}>
+                  <Text style={styles.prevLink}>{t('doc.prevFile', { n: doc.prev.revision, date: uiDate(doc.prev.issued) })}</Text>
+                </TouchableOpacity>
               ) : null}
 
               {doc.fileUri || heldHere ? (
@@ -360,6 +396,19 @@ export default function DocSc() {
                     <Text style={styles.signed}>{t('doc.allSigned')}</Text>
                   ) : null}
                 </>
+              ) : null}
+
+              {existing && canEdit && aiReady(sync.enrolled) ? (
+                <DocRevAiPanel
+                  doc={existing}
+                  held={heldHere}
+                  waited={route.params?.aiSms}
+                  waitedRev={route.params?.aiRev}
+                  waitedCompared={route.params?.aiCompared}
+                  waitedLists={route.params?.aiLists}
+                  waitedDocs={route.params?.aiDocs}
+                  jobId={route.params?.aiJob}
+                />
               ) : null}
 
               {history.length ? (
@@ -409,6 +458,9 @@ const makeStyles = (COLORS: Palette) =>
     docTitle: { fontSize: SIZES.h3 ?? 24, fontWeight: '800', color: COLORS.textDark, marginTop: 4 },
     body: { fontSize: SIZES.body, color: COLORS.text, lineHeight: 22, marginTop: SIZES.lg },
     signCard: { ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.md, marginVertical: SIZES.lg },
+    noteBox: { ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.md, marginTop: SIZES.md, borderLeftWidth: 4, borderLeftColor: COLORS.warning },
+    noteTitle: { fontSize: SIZES.small, fontWeight: '700', color: COLORS.textDark },
+    prevLink: { color: COLORS.primary, fontWeight: '600', fontSize: SIZES.small, marginTop: SIZES.sm },
     signBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SIZES.sm, backgroundColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: SIZES.md, marginTop: SIZES.md },
     signText: { color: COLORS.textWhite, fontWeight: '800', fontSize: SIZES.body },
     signed: { color: COLORS.success, fontWeight: '700', fontSize: SIZES.body },

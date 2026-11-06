@@ -25,6 +25,7 @@ import { personName, roleAtLeast } from '../types/role';
 import { DocSort, docFromFileName, iHaveRead, matchExisting, readStatus, reviewState, searchDocs, snippet, sortDocs } from '../services/docs';
 import { PickedFile, pickDocuments, toDataUri } from '../services/attachments';
 import { shareDocFile } from '../services/docFiles';
+import { prevOf } from '../services/smsAi';
 import { pdfText } from '../utils/pdfText';
 import { todayIso } from '../services/pms';
 import { uid } from '../utils/id';
@@ -116,6 +117,11 @@ export default function DocsSc() {
       else delete out.fileUri;
       if (text) out.text = text;
       else delete out.text;
+      // A new revision keeps the one before, for "what changed" (services/smsAi.ts); its note was the old one's.
+      if (match) {
+        out.prev = prevOf(match);
+        delete out.changeNote;
+      }
       await saveDoc(out);
       if (match) revised += 1;
       else added += 1;
