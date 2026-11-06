@@ -92,7 +92,7 @@ export default function AskSc() {
       <ScreenTitle title={t('ask.title')} subtitle={t('ask.sub')} />
       {jobs.map((j) => (
         <Card key={j.id} style={{ marginBottom: SIZES.sm }}>
-          <Text style={[styles.body, { fontWeight: '700' }]}>{j.task === 'cert' ? t('ai.certJob', { what: j.label }) : j.label}</Text>
+          <Text style={[styles.body, { fontWeight: '700' }]}>{j.task === 'cert' ? t('ai.certJob', { what: j.label }) : j.task === 'readiness' ? t('ai.readyJob', { what: j.label }) : j.label}</Text>
           <Text style={styles.sub}>{t(`ai.${j.status}`)} · {uiDateTime(j.at)}</Text>
           {j.task === 'ask' && j.result?.answer ? <Text style={[styles.body, { lineHeight: 21, marginTop: SIZES.xs }]}>{j.result.answer}</Text> : null}
           {j.task === 'ask' && j.result?.answer ? <Text style={styles.sub}>{t('ai.asOf')}</Text> : null}
@@ -100,6 +100,9 @@ export default function AskSc() {
           <View style={{ flexDirection: 'row', gap: SIZES.md, marginTop: SIZES.xs }}>
             {j.task === 'cert' && j.status === 'done' ? (
               <TouchableOpacity onPress={() => nav.navigate('CertificateDetail', { id: j.target?.certId, draft: j.target?.draft, aiResult: j.result, aiJob: j.id })}><Text style={styles.link}>{t('ai.open')}</Text></TouchableOpacity>
+            ) : null}
+            {j.task === 'readiness' && j.status === 'done' ? (
+              <TouchableOpacity onPress={() => nav.navigate('Main', { screen: 'Readiness', params: { kind: j.target?.kind, date: j.target?.date, aiResult: j.result, aiJob: j.id } })}><Text style={styles.link}>{t('ai.openPlan')}</Text></TouchableOpacity>
             ) : null}
             <TouchableOpacity onPress={() => void removeAiJob(j.id)}><Text style={styles.link}>{t(j.status === 'waiting' ? 'common.cancel' : 'ai.dismiss')}</Text></TouchableOpacity>
           </View>

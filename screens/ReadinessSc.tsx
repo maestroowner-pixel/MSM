@@ -5,9 +5,9 @@
 // and the DPA.
 // ===================================
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Clipboard, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 
 import { Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
@@ -22,13 +22,17 @@ import { periodsFor } from '../constants/checklists';
 import { CategoryKey } from '../types/equipment';
 import { todayIso } from '../services/pms';
 import { KIND_LABEL, ReadinessKind, buildReadiness, verdict } from '../services/readiness';
+import { gapsForAi, readPlan, ReadinessAiReply } from '../services/readinessAi';
+import { aiReady } from '../services/ai';
+import { aiOrLater, removeAiJob } from '../services/aiQueue';
 import { buildCalendar, ICS_REMIND_DAYS } from '../services/calendarIcs';
 import { exportCalendarIcs, exportReadinessPdf } from '../services/readinessReport';
 import { ICS_BASE_URL, INSPECT_LINK_BASE, readIcsLink, readInspectLink, revokeIcsLink, revokeInspectLink, saveIcsLink, saveInspectLink } from '../services/firebaseService';
-import { t, tn, useT } from '../utils/i18n';
+import { currentLang, t, tn, useT } from '../utils/i18n';
 
 const addDays = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
 const SOON = [0, 7, 14, 30];
+const LANG_NAME: Record<string, string> = { en: 'English', ru: 'Russian', es: 'Spanish', uk: 'Ukrainian', no: 'Norwegian', pt: 'Portuguese' };
 const onWebPlatform = Platform.OS === 'web';
 
 const INSPECT_DAYS = [7, 30, 90] as const;
@@ -44,8 +48,12 @@ export default function ReadinessSc() {
   const [tick, setTick] = useState(0);
   useFocusEffect(useCallback(() => setTick((t) => t + 1), []));
   const today = todayIso();
-  const [kind, setKind] = useState<ReadinessKind>('psc');
-  const [date, setDate] = useState(today);
+  const route = useRoute<any>();
+  const [kind, setKind] = useState<ReadinessKind>(route.params?.kind ?? 'psc');
+  const [date, setDate] = useState<string>(route.params?.date ?? today);
+  const [aiReply, setAiReply] = useState<ReadinessAiReply | null>(route.params?.aiResult ?? null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiNote, setAiNote] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const isMaster = !sync.enrolled || sync.role === 'superadmin';
 
@@ -122,6 +130,44 @@ export default function ReadinessSc() {
     [data, kind, when, today, tick]
   );
 
+  const asked = useRef(`${kind}|${when}`);
+  // A plan that waited for a connection (services/aiQueue.ts) has come in with the params; its job is done.
+  // This is a tab: it may already be open, so the first render's state does not see the params.
+  useEffect(() => {
+    const p = route.params;
+    if (!p?.aiJob) return;
+    if (p.kind) setKind(p.kind);
+    if (p.date) setDate(p.date);
+    asked.current = `${p.kind ?? kind}|${p.date && p.date > today ? p.date : p.date ? today : when}`;
+    setAiReply(p.aiResult ?? null);
+    void removeAiJob(p.aiJob);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.params?.aiJob]);
+  // A plan answers one inspection on one day; pick another and it goes.
+  useEffect(() => {
+    if (asked.current === `${kind}|${when}`) return;
+    asked.current = `${kind}|${when}`;
+    setAiReply(null);
+    setAiNote(null);
+  }, [kind, when]);
+  const plan = useMemo(() => (aiReply ? readPlan(aiReply, r) : null), [aiReply, r]);
+  const askPlan = async () => {
+    setAiBusy(true);
+    setAiNote(null);
+    try {
+      const out = await aiOrLater<ReadinessAiReply>('readiness', { kind: KIND_LABEL[kind], date: when, today, gaps: gapsForAi(r), lang: LANG_NAME[currentLang()] }, {
+        label: `${KIND_LABEL[kind]} · ${when.split('-').reverse().join('.')}`,
+        target: { kind, date: when },
+      });
+      if ('queued' in out) setAiNote(t('ai.queued'));
+      else setAiReply(out.result);
+    } catch (e: any) {
+      setAiNote(String(e?.message ?? e));
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
   const pdf = async () => {
     try {
       const w = await exportReadinessPdf(r, data.vessel);
@@ -184,6 +230,28 @@ export default function ReadinessSc() {
         </TouchableOpacity>
       </View>
       {saved ? <Text style={[styles.sub, { color: COLORS.success, marginBottom: SIZES.sm }]}>{`✓ ${saved}`}</Text> : null}
+      {aiReady(sync.enrolled) && r.red + r.amber > 0 ? (
+        <TouchableOpacity style={styles.handover} onPress={aiBusy ? undefined : () => void askPlan()} activeOpacity={0.7}>
+          <MciIcon name="robot-outline" size={18} color={COLORS.primary} />
+          <Text style={styles.handoverText}>{t(aiBusy ? 'ready.aiBusy' : 'ready.aiAsk')}</Text>
+        </TouchableOpacity>
+      ) : null}
+      {aiNote ? <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>{aiNote}</Text> : null}
+      {plan ? (
+        <View style={styles.inspectBox}>
+          <Text style={styles.handoverText}>{t('ready.aiTitle')}</Text>
+          {plan.summary ? <Text style={[styles.sub, { marginTop: SIZES.xs }]}>{plan.summary}</Text> : null}
+          {plan.steps.map((s, i) => (
+            <TouchableOpacity key={i} style={{ marginTop: SIZES.sm }} onPress={() => nav.navigate(s.gaps[0].route, s.gaps[0].params)} activeOpacity={0.7}>
+              <Text style={[styles.handoverText, { flex: 0 }]}>{`${i + 1}. ${s.action}`}</Text>
+              {s.why ? <Text style={styles.sub}>{s.why}</Text> : null}
+              <Text style={styles.sub}>{s.gaps.map((g) => g.title).join(' · ')}</Text>
+            </TouchableOpacity>
+          ))}
+          {plan.note ? <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{plan.note}</Text> : null}
+          <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{plan.left ? t('ready.aiLeft', { n: plan.left }) : t('ready.aiAll')}</Text>
+        </View>
+      ) : null}
       <TouchableOpacity style={styles.handover} onPress={() => nav.navigate('Handover')} activeOpacity={0.7}>
         <MciIcon name="swap-horizontal-bold" size={18} color={COLORS.primary} />
         <Text style={styles.handoverText}>{t('ready.handover')}</Text>
