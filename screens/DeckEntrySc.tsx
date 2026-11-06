@@ -14,6 +14,9 @@ import { useSigner } from '../components/SignerChoice';
 import { useSignConfirm } from '../components/SignConfirm';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
+import { useSync } from '../contexts/SyncContext';
+import { LogAiPanel } from '../components/LogAiPanel';
+import { aiReady } from '../services/ai';
 import { isAboard, crewLabel } from '../types/crew';
 import { shareDeckEntry } from '../services/deckLogReport';
 import { SIZES, Palette } from '../theme';
@@ -121,6 +124,7 @@ export default function DeckEntrySc() {
   const nav = useNavigation<any>();
   const route = useRoute<any>();
   const { deckLog, saveRow, crew, vessel } = useData();
+  const sync = useSync();
   const { signer, picker } = useSigner(t('de.watchOfficer'), { forceDropdown: true });
   const confirmSign = useSignConfirm();
 
@@ -138,49 +142,54 @@ export default function DeckEntrySc() {
     () => (entryId ? deckLog.find((e) => e.id === entryId) : undefined),
     [entryId, deckLog],
   );
+  // A voice draft that waited for a connection (components/LogAiPanel) opens in the form: in its own
+  // draft entry if that was saved, else in a new one — never over an entry signed meanwhile.
+  const aiLog = route.params?.aiLog;
   // Drafts open in the form so they can be completed and signed.
-  const readOnly = !!entryId && !existing?.draft;
+  const readOnly = !!entryId && !existing?.draft && !aiLog;
+  const formFrom = aiLog && !existing?.draft ? undefined : existing;
 
   // Row 1 — watch params
-  const [date, setDate] = useState(existing?.date ?? todayStr());
-  const [period, setPeriod] = useState(existing?.period ?? currentPeriod());
-  const [distLog, setDistLog] = useState(existing?.distanceRun?.toString() ?? '');
-  const [courseGyro, setCourseGyro] = useState((existing?.courseGyro ?? existing?.course)?.toString() ?? '');
-  const [courseMag, setCourseMag] = useState(existing?.courseMagnetic?.toString() ?? '');
-  const [variation, setVariation] = useState(existing?.variation?.toString() ?? '');
-  const [deviation, setDeviation] = useState(existing?.deviation?.toString() ?? '');
-  const [engLoadPort, setEngLoadPort] = useState(existing?.engLoadPort?.toString() ?? '');
-  const [engLoadStbd, setEngLoadStbd] = useState(existing?.engLoadStbd?.toString() ?? '');
+  const [date, setDate] = useState(formFrom?.date ?? route.params?.aiDate ?? todayStr());
+  const [period, setPeriod] = useState(formFrom?.period ?? currentPeriod());
+  const [distLog, setDistLog] = useState(formFrom?.distanceRun?.toString() ?? '');
+  const [courseGyro, setCourseGyro] = useState((formFrom?.courseGyro ?? formFrom?.course)?.toString() ?? '');
+  const [courseMag, setCourseMag] = useState(formFrom?.courseMagnetic?.toString() ?? '');
+  const [variation, setVariation] = useState(formFrom?.variation?.toString() ?? '');
+  const [deviation, setDeviation] = useState(formFrom?.deviation?.toString() ?? '');
+  const [engLoadPort, setEngLoadPort] = useState(formFrom?.engLoadPort?.toString() ?? '');
+  const [engLoadStbd, setEngLoadStbd] = useState(formFrom?.engLoadStbd?.toString() ?? '');
 
   // Row 2 — time + position + event
-  const [time, setTime] = useState(existing?.time ?? nowTime());
-  const [latDeg, setLatDeg] = useState(existing?.latDeg?.toString() ?? '');
-  const [latMin, setLatMin] = useState(existing?.latMin?.toString() ?? '');
-  const [latHem, setLatHem] = useState<LatHem>(existing?.latHem ?? 'N');
-  const [lonDeg, setLonDeg] = useState(existing?.lonDeg?.toString() ?? '');
-  const [lonMin, setLonMin] = useState(existing?.lonMin?.toString() ?? '');
-  const [lonHem, setLonHem] = useState<LonHem>(existing?.lonHem ?? 'E');
-  const [remarks, setRemarks] = useState(existing?.remarks ?? '');
+  const [time, setTime] = useState(formFrom?.time ?? route.params?.aiTime ?? nowTime());
+  const initialTime = useRef(time);
+  const [latDeg, setLatDeg] = useState(formFrom?.latDeg?.toString() ?? '');
+  const [latMin, setLatMin] = useState(formFrom?.latMin?.toString() ?? '');
+  const [latHem, setLatHem] = useState<LatHem>(formFrom?.latHem ?? 'N');
+  const [lonDeg, setLonDeg] = useState(formFrom?.lonDeg?.toString() ?? '');
+  const [lonMin, setLonMin] = useState(formFrom?.lonMin?.toString() ?? '');
+  const [lonHem, setLonHem] = useState<LonHem>(formFrom?.lonHem ?? 'E');
+  const [remarks, setRemarks] = useState(formFrom?.remarks ?? '');
 
   // Weather
-  const [windDir, setWindDir] = useState<WindDir | ''>(existing?.windDir ?? '');
-  const [windBft, setWindBft] = useState(existing?.windBft?.toString() ?? '');
-  const [seaState, setSeaState] = useState(existing?.seaState?.toString() ?? '');
-  const [visibility, setVisibility] = useState<Visibility | ''>(existing?.visibility ?? '');
-  const [pressure, setPressure] = useState(existing?.pressure?.toString() ?? '');
-  const [tempAir, setTempAir] = useState(existing?.tempAir?.toString() ?? '');
-  const [speed, setSpeed] = useState(existing?.speed?.toString() ?? '');
-  const [rpm, setRpm] = useState(existing?.rpm?.toString() ?? '');
+  const [windDir, setWindDir] = useState<WindDir | ''>(formFrom?.windDir ?? '');
+  const [windBft, setWindBft] = useState(formFrom?.windBft?.toString() ?? '');
+  const [seaState, setSeaState] = useState(formFrom?.seaState?.toString() ?? '');
+  const [visibility, setVisibility] = useState<Visibility | ''>(formFrom?.visibility ?? '');
+  const [pressure, setPressure] = useState(formFrom?.pressure?.toString() ?? '');
+  const [tempAir, setTempAir] = useState(formFrom?.tempAir?.toString() ?? '');
+  const [speed, setSpeed] = useState(formFrom?.speed?.toString() ?? '');
+  const [rpm, setRpm] = useState(formFrom?.rpm?.toString() ?? '');
 
   // Mode: at sea (full nav + watch periods) vs in port (time+event, simplified weather)
-  const [portMode, setPortMode] = useState(existing?.mode === 'port');
-  const [wxCondition, setWxCondition] = useState(existing?.wxCondition ?? '');
+  const [portMode, setPortMode] = useState(formFrom ? formFrom.mode === 'port' : route.params?.aiMode === 'port');
+  const [wxCondition, setWxCondition] = useState(formFrom?.wxCondition ?? '');
 
   const [saving, setSaving] = useState(false);
   const [draftSaving, setDraftSaving] = useState(false);
   const [autoTrack, setAutoTrack] = useState(false);
   // For a draft opened for editing, reuse its id so we overwrite rather than duplicate.
-  const entryIdRef = useRef(existing?.draft ? existing.id : uid());
+  const entryIdRef = useRef(existing?.draft ? existing.id : aiLog && entryId && !existing ? entryId : uid());
 
   // Start / stop active-watch tracking
   useEffect(() => {
@@ -193,6 +202,24 @@ export default function DeckEntrySc() {
 
   // Always clear on unmount
   useEffect(() => () => { clearActiveWatch(); }, []);
+
+  // The boxes as the voice draft sees them (components/LogAiPanel): a hemisphere counts only beside its degrees.
+  const aiForm: Record<string, string> = {
+    latDeg, latMin, latHem: latDeg.trim() ? latHem : '', lonDeg, lonMin, lonHem: lonDeg.trim() ? lonHem : '',
+    courseGyro, courseMagnetic: courseMag, speed, distanceRun: distLog, rpm, engLoadPort, engLoadStbd,
+    windDir, windBft, seaState, visibility, pressure, tempAir, wxCondition,
+  };
+  const aiSetters: Record<string, (v: string) => void> = {
+    latDeg: setLatDeg, latMin: setLatMin, latHem: (v) => setLatHem(v as LatHem), lonDeg: setLonDeg, lonMin: setLonMin, lonHem: (v) => setLonHem(v as LonHem),
+    courseGyro: setCourseGyro, courseMagnetic: setCourseMag, speed: setSpeed, distanceRun: setDistLog, rpm: setRpm, engLoadPort: setEngLoadPort, engLoadStbd: setEngLoadStbd,
+    windDir: (v) => setWindDir(v as WindDir), windBft: setWindBft, seaState: setSeaState, visibility: (v) => setVisibility(v as Visibility), pressure: setPressure, tempAir: setTempAir, wxCondition: setWxCondition,
+  };
+  const applyAi = (values: Record<string, string>, nextRemarks: string, at?: string) => {
+    for (const [k, v] of Object.entries(values)) if (v !== aiForm[k]) aiSetters[k]?.(v);
+    setRemarks(nextRemarks);
+    // The time said for the entry, over the clock's; a time the officer changed by hand stays.
+    if (at && time === initialTime.current) setTime(at);
+  };
 
   const num = (s: string) => { const n = parseFloat(s); return isNaN(n) ? undefined : n; };
   // "300" → 30.0 (no decimal, ≥100): last digit is tenths, no need to type the dot
@@ -512,6 +539,19 @@ export default function DeckEntrySc() {
               </TouchableOpacity>
             )}
           </View>
+
+          {aiReady(sync.enrolled) ? (
+            <LogAiPanel
+              kind="deck"
+              mode={portMode ? 'port' : 'sea'}
+              form={aiForm}
+              remarks={remarks}
+              onApply={applyAi}
+              target={{ entryId: entryIdRef.current }}
+              waited={aiLog}
+              jobId={route.params?.aiJob}
+            />
+          ) : null}
 
           {/* ── Row 1: watch parameters (At Sea only) ── */}
           {!portMode && (

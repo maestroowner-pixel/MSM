@@ -18,6 +18,9 @@ import { useSigner } from '../components/SignerChoice';
 import { useSignConfirm } from '../components/SignConfirm';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
+import { useSync } from '../contexts/SyncContext';
+import { LogAiPanel } from '../components/LogAiPanel';
+import { aiReady } from '../services/ai';
 import { SIZES, Palette } from '../theme';
 import { draftData } from '../types/signDraft';
 import { WatchEntry, WatchTemplate } from '../types/watchLog';
@@ -47,6 +50,7 @@ export default function WatchEntrySc() {
   const { watchTemplates, watchLog, vessel, saveRow, signDrafts } = useData();
   const { signer, picker } = useSigner('SIGNED BY');
   const confirmSign = useSignConfirm();
+  const sync = useSync();
 
   const { entryId, templateId, signDraft } = route.params ?? {};
   const left = signDraft ? signDrafts.find((d) => d.id === signDraft) : undefined;
@@ -179,6 +183,20 @@ export default function WatchEntrySc() {
                 </TouchableOpacity>
               ))}
             </View>
+          ) : null}
+
+          {!readOnly && aiReady(sync.enrolled) ? (
+            <LogAiPanel
+              kind="engine"
+              params={params}
+              form={values}
+              remarks={remarks}
+              onApply={(next, r) => { setValues(next); setRemarks(r); }}
+              target={{ templateId: template.id, ...(signDraft ? { signDraft } : {}) }}
+              waited={route.params?.aiLog}
+              waitedIds={route.params?.aiKeys}
+              jobId={route.params?.aiJob}
+            />
           ) : null}
 
           {/* Readings */}
