@@ -32,7 +32,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as fb from '../services/firebaseService';
 import * as storage from '../services/storage';
 import { mergeCategories, mergeCrew, mergeInspections, mergeTemplates } from '../services/inspections';
+import NetInfo from '@react-native-community/netinfo';
+
 import * as photoQueue from '../services/photoQueue';
+import { flushAiQueue } from '../services/aiQueue';
 import * as enrolment from '../services/enrolment';
 import * as trial from '../services/trial';
 import { adoptVesselLicence, revalidateLicence } from '../services/purchases';
@@ -689,6 +692,17 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     const sub = AppState.addEventListener('change', onChange);
     return () => sub.remove();
   }, [schedulePush, prefs.photoUpload]);
+
+  // AI operations waiting for a connection (services/aiQueue.ts): when one comes back, or the sync does.
+  useEffect(() => {
+    if (status === 'synced') void flushAiQueue();
+    const unsub = NetInfo.addEventListener((s) => { if (s.isConnected) void flushAiQueue(); });
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') void flushAiQueue(); });
+    return () => {
+      unsub();
+      sub.remove();
+    };
+  }, [status]);
 
   // While waiting, keep asking. One callable every 20s costs nothing and only
   // runs while the device is actually pending — approval usually happens with

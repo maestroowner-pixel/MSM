@@ -592,7 +592,7 @@ const en: ManualContent = {
       body: [
         "Smart import: Settings → Import from Excel → Photo or PDF of a paper register (AI) reads a photographed or scanned list into the import preview — nothing is saved until you import it. Crew, Passengers, Stores and the medicine chest have Any list (AI): a spreadsheet with its own column names (an agent's guest list, a supplier's sheet) — the AI sees only the headings and the shape of a few rows (\"P…a\", \"99/99/9999\"), never the names or numbers, and the app reads the file itself. Stores and the medicine chest also take a photo or PDF.",
         "On an inspection: Say what you found — speak (the keyboard's microphone, or Speak in a browser) or type, in any language — then Fill from what I said; or add a photograph and tap From the photo. The AI marks the checklist lines it can see, writes the remark in English and a defect when something is wrong. It only suggests: check every line, then sign.",
-        "Ask ISM AI Pilot (on the Board): a question in plain words — \"what expires next month?\", \"when was the last enclosed space drill?\" — answered from the vessel's records (equipment, certificates, defects, inspections, drills, the Board), with the lines it used. Patients' and guests' records never go to the AI. It works when the vessel syncs; each vessel has a daily allowance.",
+        "Ask ISM AI Pilot (on the Board): a question in plain words — \"what expires next month?\", \"when was the last enclosed space drill?\" — answered from the vessel's records (equipment, certificates, defects, inspections, drills, the Board), with the lines it used. Patients' and guests' records never go to the AI. It works when the vessel syncs; each vessel has a daily allowance. With no connection, a question or a certificate scan waits on this device and runs when the connection returns: the Board says when the result is ready, and a scan opens as a draft to check. An inspection does not wait: speak or photograph again when you have a connection.",
       ],
     },
     {
@@ -1447,7 +1447,7 @@ const ru: ManualContent = {
       body: [
         "Умный импорт: Settings → Import from Excel → Photo or PDF of a paper register (AI) читает сфотографированный или отсканированный список в предпросмотр импорта — ничего не сохраняется, пока вы не импортируете. В Crew, Passengers, Stores и аптечке есть Any list (AI): таблица со своими названиями колонок (список гостей от агента, лист поставщика) — AI видит только заголовки и форму нескольких строк («P…a», «99/99/9999»), но не имена и номера, а сам файл читает приложение. Stores и аптечка принимают ещё фото или PDF.",
         "При проверке оборудования: Say what you found — скажите (микрофон клавиатуры или Speak в браузере) или напишите на любом языке, затем Fill from what I said; или добавьте фото и нажмите From the photo. AI отмечает пункты чек-листа, которые видит, пишет комментарий на английском и дефект, если что-то не так. Это только подсказка: проверьте каждый пункт и подпишите.",
-        "Ask ISM AI Pilot (на Board): вопрос обычными словами — «что истекает в следующем месяце?», «когда была последняя тревога по enclosed space?» — ответ по записям судна (оборудование, сертификаты, дефекты, проверки, учения, Board) со строками, на которые он опирается. Записи пациентов и гостей в AI не уходят. Работает, когда судно синхронизируется; у каждого судна дневной лимит.",
+        "Ask ISM AI Pilot (на Board): вопрос обычными словами — «что истекает в следующем месяце?», «когда была последняя тревога по enclosed space?» — ответ по записям судна (оборудование, сертификаты, дефекты, проверки, учения, Board) со строками, на которые он опирается. Записи пациентов и гостей в AI не уходят. Работает, когда судно синхронизируется; у каждого судна дневной лимит. Без связи вопрос или скан сертификата ждёт на этом устройстве и выполняется, когда связь вернётся: Board сообщит о готовом результате, а скан откроется как черновик для проверки. Осмотр не ждёт: повторите голос или фото, когда связь появится.",
       ],
     },
     {
@@ -2302,7 +2302,7 @@ const es: ManualContent = {
       body: [
         "Importación inteligente: Settings → Import from Excel → Photo or PDF of a paper register (AI) lee una lista fotografiada o escaneada en la vista previa — no se guarda nada hasta importar. Crew, Passengers, Stores y el botiquín tienen Any list (AI): una hoja con sus propios nombres de columna (la lista de invitados del agente, la de un proveedor) — la IA solo ve los encabezados y la forma de unas filas («P…a», «99/99/9999»), nunca los nombres ni los números, y el archivo lo lee la app. Stores y el botiquín aceptan también foto o PDF.",
         "En una inspección: Say what you found — hable (micrófono del teclado, o Speak en el navegador) o escriba, en cualquier idioma — y luego Fill from what I said; o añada una foto y pulse From the photo. La IA marca las líneas que ve, escribe la observación en inglés y un defecto si algo está mal. Solo sugiere: revise cada línea y firme.",
-        "Ask ISM AI Pilot (en el Board): una pregunta con palabras normales — «¿qué caduca el mes que viene?», «¿cuándo fue el último simulacro de espacio cerrado?» — respondida con los registros del buque (equipos, certificados, defectos, inspecciones, simulacros, el Board), con las líneas usadas. Los registros de pacientes e invitados nunca van a la IA. Funciona cuando el buque sincroniza; cada buque tiene un límite diario.",
+        "Ask ISM AI Pilot (en el Board): una pregunta con palabras normales — «¿qué caduca el mes que viene?», «¿cuándo fue el último simulacro de espacio cerrado?» — respondida con los registros del buque (equipos, certificados, defectos, inspecciones, simulacros, el Board), con las líneas usadas. Los registros de pacientes e invitados nunca van a la IA. Funciona cuando el buque sincroniza; cada buque tiene un límite diario. Sin conexión, una pregunta o un escaneo de certificado espera en este dispositivo y se ejecuta cuando vuelve la conexión: el Board avisa cuando el resultado está listo, y el escaneo se abre como borrador para revisar. Una inspección no espera: repita la voz o la foto cuando haya conexión.",
       ],
     },
     {
@@ -3157,7 +3157,7 @@ const uk: ManualContent = {
       body: [
         "Розумний імпорт: Settings → Import from Excel → Photo or PDF of a paper register (AI) читає сфотографований чи відсканований список у попередній перегляд — нічого не зберігається, доки ви не імпортуєте. У Crew, Passengers, Stores і аптечці є Any list (AI): таблиця зі своїми назвами колонок (список гостей від агента, аркуш постачальника) — AI бачить лише заголовки й форму кількох рядків («P…a», «99/99/9999»), але не імена й номери, а сам файл читає застосунок. Stores і аптечка приймають ще фото або PDF.",
         "Під час перевірки обладнання: Say what you found — скажіть (мікрофон клавіатури або Speak у браузері) чи напишіть будь-якою мовою, потім Fill from what I said; або додайте фото й натисніть From the photo. AI позначає пункти чек-листа, які бачить, пише коментар англійською і дефект, якщо щось не так. Це лише підказка: перевірте кожен пункт і підпишіть.",
-        "Ask ISM AI Pilot (на Board): питання звичайними словами — «що спливає наступного місяця?», «коли була остання тривога enclosed space?» — відповідь за записами судна (обладнання, сертифікати, дефекти, перевірки, навчання, Board) з рядками, на які вона спирається. Записи пацієнтів і гостей до AI не потрапляють. Працює, коли судно синхронізується; у кожного судна денний ліміт.",
+        "Ask ISM AI Pilot (на Board): питання звичайними словами — «що спливає наступного місяця?», «коли була остання тривога enclosed space?» — відповідь за записами судна (обладнання, сертифікати, дефекти, перевірки, навчання, Board) з рядками, на які вона спирається. Записи пацієнтів і гостей до AI не потрапляють. Працює, коли судно синхронізується; у кожного судна денний ліміт. Без зв'язку запитання чи скан сертифіката чекає на цьому пристрої й виконується, коли зв'язок повернеться: Board повідомить про готовий результат, а скан відкриється як чернетка для перевірки. Огляд не чекає: повторіть голос чи фото, коли з'явиться зв'язок.",
       ],
     },
     {
@@ -3971,7 +3971,7 @@ const no: ManualContent = {
       body: [
         'Smart import: Settings → Import from Excel → Bilde eller PDF av papirregister (AI) leser en fotografert eller skannet liste inn i importforhåndsvisningen.',
         'På en inspeksjon: Si hva du fant – tal (tastaturets mikrofon, eller Speak i en nettleser) eller skriv, på ethvert språk – deretter Fyll fra hva jeg sa; eller legg til et bilde og trykk Fra bildet. AI-en merker sjekklistelinjene den kan se, skriver merknaden på engelsk og en defekt når noe er galt. Den foreslår bare: sjekk hver linje, deretter signer.',
-        'Spør ISM AI Pilot (på Oppslagstavlen): et spørsmål med vanlige ord – «hva utløper neste måned?», «når var siste lukket rom-øvelse?» – besvart fra fartøyets registre.',
+        'Spør ISM AI Pilot (på Oppslagstavlen): et spørsmål med vanlige ord – «hva utløper neste måned?», «når var siste lukket rom-øvelse?» – besvart fra fartøyets registre. Uten forbindelse venter et spørsmål eller en skanning av sertifikat på denne enheten og kjøres når forbindelsen er tilbake: Oppslagstavlen sier fra når resultatet er klart, og skanningen åpnes som utkast til kontroll. En inspeksjon venter ikke: gjenta tale eller bilde når du har forbindelse.',
       ],
     },
     {
@@ -4749,7 +4749,7 @@ const pt: ManualContent = {
       body: [
         'Importação inteligente: Settings → Import from Excel → Foto ou PDF de registro em papel (IA) lê uma lista fotografada ou escaneada para a prévia de importação.',
         'Em uma inspeção: Diga o que encontrou – fale (o microfone do teclado, ou Falar em um navegador) ou escreva, em qualquer idioma – depois Preencher com o que eu disse.',
-        'Perguntar ao ISM AI Pilot (no Quadro): uma pergunta em linguagem simples – «o que vence no próximo mês?», «quando foi o último exercício em espaço confinado?» – respondida a partir dos registros da embarcação.',
+        'Perguntar ao ISM AI Pilot (no Quadro): uma pergunta em linguagem simples – «o que vence no próximo mês?», «quando foi o último exercício em espaço confinado?» – respondida a partir dos registros da embarcação. Sem ligação, uma pergunta ou digitalização de certificado espera neste dispositivo e é executada quando a ligação voltar: o Quadro avisa quando o resultado está pronto, e a digitalização abre como rascunho para verificar. Uma inspeção não espera: repita a voz ou a foto quando houver ligação.',
       ],
     },
     {

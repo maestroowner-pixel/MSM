@@ -41,7 +41,7 @@ export async function aiCall<T>(task: 'map' | 'table' | 'inspect' | 'ask' | 'for
     const r = await httpsCallable<{ task: string; input: unknown }, T>(getFunctions(app, REGION), 'ai', { timeout: 125_000 })({ task, input });
     return r.data;
   } catch (e: any) {
-    throw new Error(String(e?.message ?? e).replace(/^FirebaseError:\s*/, ''));
+    throw Object.assign(new Error(String(e?.message ?? e).replace(/^FirebaseError:\s*/, '')), { code: e?.code });
   }
 }
 

@@ -28,6 +28,7 @@ import { catLabel } from '../constants/categories';
 import { periodsFor } from '../constants/checklists';
 import { personName } from '../types/role';
 import { CategoryKey } from '../types/equipment';
+import { readyCount, useAiJobs } from '../services/aiQueue';
 import { buildBoard, Level } from '../services/board';
 import { notifyNow } from '../services/notifications';
 import { mentionsToNotify } from '../services/threads';
@@ -61,6 +62,7 @@ export default function BoardSc() {
     return c ? { key: c.id, name: c.name } : null;
   }, [sync.me, data.crew, data.prefs?.lastCrewId]);
 
+  const aiJobs = useAiJobs();
   const board = useMemo(
     () =>
       buildBoard({
@@ -72,9 +74,10 @@ export default function BoardSc() {
         labelOf: (k: CategoryKey) => catLabel(data.categories.find((c) => c.key === k) ?? k),
         periodsOf: (k: CategoryKey) => periodsFor(k, data.templates),
         ...data,
+        aiReady: readyCount(aiJobs),
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, role, me, tick, t]
+    [data, role, me, tick, t, aiJobs]
   );
 
   // A mention that came in with the sync: said once on this device (services/threads).

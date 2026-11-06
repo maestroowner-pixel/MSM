@@ -24,9 +24,11 @@ import { personName } from '../types/role';
 import { buildBoard } from '../services/board';
 import { todayIso } from '../services/pms';
 import { nowLocal } from '../services/permits';
-import { aiCall, aiReady } from '../services/ai';
+import { aiReady } from '../services/ai';
+import { aiOrLater, removeAiJob, useAiJobs } from '../services/aiQueue';
 import { ASK_EXAMPLES, askContext } from '../services/aiContext';
 import { goBackOr } from '../utils/nav';
+import { uiDateTime } from '../utils/dates';
 import { makeStyles } from './SafetySc';
 
 import { t, t as tt, useT } from '../utils/i18n';
@@ -44,6 +46,7 @@ export default function AskSc() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
   const [openRefs, setOpenRefs] = useState<number | null>(null);
+  const jobs = useAiJobs();
   const role = !sync.enrolled ? 'superadmin' : (sync.role as 'user' | 'admin' | 'superadmin');
   const labelOf = (k: string) => data.categories.find((c) => c.key === k)?.label ?? CATEGORY_MAP[k as CategoryKey]?.label ?? k;
 
@@ -57,10 +60,17 @@ export default function AskSc() {
       const me = sync.me ? { key: `device:${sync.me.id}`, name: personName(sync.me) } : null;
       const board = buildBoard({ on: moduleOn, role, me, today: todayIso(), now: nowLocal(), labelOf: labelOf as any, periodsOf: (k: CategoryKey) => periodsFor(k, data.templates), ...data });
       const context = askContext({ vesselName: data.vessel?.vessel_name, today: todayIso(), board, flat: data.flat, labelOf, certificates: data.certificates, inspections: data.inspections, crew: data.crew, drills: data.drills });
-      const res = await aiCall<{ answer?: string; refs?: string[] }>('ask', { question: text, context, today: todayIso(), role: role === 'superadmin' ? 'Master' : role === 'admin' ? 'officer' : 'crew' });
+      const out = await aiOrLater<{ answer?: string; refs?: string[] }>('ask', { question: text, context, today: todayIso(), role: role === 'superadmin' ? 'Master' : role === 'admin' ? 'officer' : 'crew' }, { label: text });
+      // It went to the list above; it will be answered there.
+      if ('queued' in out) {
+        setTurns((t) => t.slice(0, -1));
+        return;
+      }
+      const res = out.result;
       setTurns((t) => t.map((x, i) => (i === t.length - 1 ? { ...x, a: res.answer ?? '—', refs: res.refs ?? [] } : x)));
     } catch (e: any) {
-      setTurns((t) => t.map((x, i) => (i === t.length - 1 ? { ...x, error: String(e?.message ?? e) } : x)));
+      const msg = String(e?.message ?? e);
+      setTurns((t) => t.map((x, i) => (i === t.length - 1 ? { ...x, error: msg === 'ai.tooBig' ? tt('ai.tooBig') : msg } : x)));
     } finally {
       setBusy(false);
     }
@@ -80,6 +90,21 @@ export default function AskSc() {
     <Screen scroll>
       <BackButton onPress={() => goBackOr(nav)} />
       <ScreenTitle title={t('ask.title')} subtitle={t('ask.sub')} />
+      {jobs.map((j) => (
+        <Card key={j.id} style={{ marginBottom: SIZES.sm }}>
+          <Text style={[styles.body, { fontWeight: '700' }]}>{j.task === 'cert' ? t('ai.certJob', { what: j.label }) : j.label}</Text>
+          <Text style={styles.sub}>{t(`ai.${j.status}`)} · {uiDateTime(j.at)}</Text>
+          {j.task === 'ask' && j.result?.answer ? <Text style={[styles.body, { lineHeight: 21, marginTop: SIZES.xs }]}>{j.result.answer}</Text> : null}
+          {j.task === 'ask' && j.result?.answer ? <Text style={styles.sub}>{t('ai.asOf')}</Text> : null}
+          {j.error && j.status === 'failed' ? <Text style={[styles.sub, { color: COLORS.danger }]}>{j.error}</Text> : null}
+          <View style={{ flexDirection: 'row', gap: SIZES.md, marginTop: SIZES.xs }}>
+            {j.task === 'cert' && j.status === 'done' ? (
+              <TouchableOpacity onPress={() => nav.navigate('CertificateDetail', { id: j.target?.certId, draft: j.target?.draft, aiResult: j.result, aiJob: j.id })}><Text style={styles.link}>{t('ai.open')}</Text></TouchableOpacity>
+            ) : null}
+            <TouchableOpacity onPress={() => void removeAiJob(j.id)}><Text style={styles.link}>{t(j.status === 'waiting' ? 'common.cancel' : 'ai.dismiss')}</Text></TouchableOpacity>
+          </View>
+        </Card>
+      ))}
       {!turns.length ? (
         <View style={[styles.chips, { marginBottom: SIZES.sm }]}>
           {ASK_EXAMPLES.map((x) => (

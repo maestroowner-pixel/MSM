@@ -41,7 +41,8 @@ import { moduleOn } from '../constants/modules';
 import { CertSurveys } from '../components/CertSurveys';
 import { certSurveySummary, worstOf } from '../services/certSurveys';
 import { todayIso } from '../services/pms';
-import { aiCall, aiReady, CertAiResult } from '../services/ai';
+import { aiReady, CertAiResult } from '../services/ai';
+import { aiOrLater, removeAiJob } from '../services/aiQueue';
 import { useSync } from '../contexts/SyncContext';
 import { roleAtLeast } from '../types/role';
 import { t, useT } from '../utils/i18n';
@@ -162,66 +163,56 @@ export default function CertificateDetailSc() {
     ]);
   };
 
+  const applyScan = (res: CertAiResult) => {
+    const patch: Partial<typeof draft> = {};
+    if (res.name && !draft.name) patch.name = res.name;
+    if (res.number && !draft.number) patch.number = res.number;
+    if (res.issuer && !draft.issuer) patch.issuer = res.issuer;
+    if (res.issueDate && !draft.issueDate) patch.issueDate = res.issueDate;
+    if (res.expiryDate && !draft.expiryDate) patch.expiryDate = res.expiryDate;
+    if (res.holder && scope === 'crew' && !draft.crewId && !draft.holderName) patch.holderName = res.holder;
+    set(patch);
+    const fields = [res.name && 'name', res.number && 'number', res.issuer && 'issuer', res.issueDate && 'issue date', res.expiryDate && 'expiry'].filter(Boolean).join(', ');
+    setAiNote(`${t('sr.read', { what: fields || t('cd.nothing') })}${res.unreadable ? ` · ${t('dpt.couldNot', { what: res.unreadable })}` : ''}`);
+  };
+
+  // A scan that waited for a connection (services/aiQueue.ts) lands here as a draft, once.
+  const aiParams = route.params?.aiResult as CertAiResult | undefined;
+  const aiApplied = useRef(false);
+  useEffect(() => {
+    if (!aiParams || aiApplied.current || missing) return;
+    aiApplied.current = true;
+    applyScan(aiParams);
+    void removeAiJob(route.params.aiJob);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiParams, missing]);
+
+  const scanFrom = async (pick: () => Promise<{ uri: string; name?: string } | null | undefined>) => {
+    const f = await pick();
+    if (!f) return;
+    setAiScanning(true);
+    setAiNote(null);
+    try {
+      const dataUri = await toDataUri(f.uri, f.name ?? 'cert.jpg');
+      const mediaType = dataUri.slice(5, dataUri.indexOf(';'));
+      const data = dataUri.slice(dataUri.indexOf(',') + 1);
+      const out = await aiOrLater<CertAiResult>('cert', { mediaType, data, scope }, {
+        label: draft.name || draft.holderName || t('cd.file'),
+        target: isNew ? { draft } : { certId: existing!.id },
+      });
+      if ('queued' in out) setAiNote(t('ai.queued'));
+      else applyScan(out.result);
+    } catch (e: any) {
+      Alert.alert(t('common.aiScan'), e?.message === 'ai.tooBig' ? t('ai.tooBig') : String(e?.message ?? e));
+    } finally {
+      setAiScanning(false);
+    }
+  };
+
   const scanCert = () => {
     Alert.alert(t('cd.scanAi'), t(scope === 'crew' ? 'cd.scanAiCrew' : 'cd.scanAiBody'), [
-      {
-        text: t('pick.camera'),
-        onPress: async () => {
-          const f = await pickFromCamera();
-          if (!f) return;
-          setAiScanning(true);
-          setAiNote(null);
-          try {
-            const dataUri = await toDataUri(f.uri, f.name ?? 'cert.jpg');
-            const mediaType = dataUri.slice(5, dataUri.indexOf(';'));
-            const data = dataUri.slice(dataUri.indexOf(',') + 1);
-            const res = await aiCall<CertAiResult>('cert', { mediaType, data, scope });
-            const patch: Partial<typeof draft> = {};
-            if (res.name && !draft.name) patch.name = res.name;
-            if (res.number && !draft.number) patch.number = res.number;
-            if (res.issuer && !draft.issuer) patch.issuer = res.issuer;
-            if (res.issueDate && !draft.issueDate) patch.issueDate = res.issueDate;
-            if (res.expiryDate && !draft.expiryDate) patch.expiryDate = res.expiryDate;
-            if (res.holder && scope === 'crew' && !draft.crewId && !draft.holderName) patch.holderName = res.holder;
-            set(patch);
-            const fields = [res.name && 'name', res.number && 'number', res.issuer && 'issuer', res.issueDate && 'issue date', res.expiryDate && 'expiry'].filter(Boolean).join(', ');
-            setAiNote(`${t('sr.read', { what: fields || t('cd.nothing') })}${res.unreadable ? ` · ${t('dpt.couldNot', { what: res.unreadable })}` : ''}. ${t('cd.checkFields')}`);
-          } catch (e: any) {
-            Alert.alert(t('common.aiScan'), String(e?.message ?? e));
-          } finally {
-            setAiScanning(false);
-          }
-        },
-      },
-      {
-        text: t('pick.library'),
-        onPress: async () => {
-          const f = await pickFromLibrary();
-          if (!f) return;
-          setAiScanning(true);
-          setAiNote(null);
-          try {
-            const dataUri = await toDataUri(f.uri, f.name ?? 'cert.jpg');
-            const mediaType = dataUri.slice(5, dataUri.indexOf(';'));
-            const data = dataUri.slice(dataUri.indexOf(',') + 1);
-            const res = await aiCall<CertAiResult>('cert', { mediaType, data, scope });
-            const patch: Partial<typeof draft> = {};
-            if (res.name && !draft.name) patch.name = res.name;
-            if (res.number && !draft.number) patch.number = res.number;
-            if (res.issuer && !draft.issuer) patch.issuer = res.issuer;
-            if (res.issueDate && !draft.issueDate) patch.issueDate = res.issueDate;
-            if (res.expiryDate && !draft.expiryDate) patch.expiryDate = res.expiryDate;
-            if (res.holder && scope === 'crew' && !draft.crewId && !draft.holderName) patch.holderName = res.holder;
-            set(patch);
-            const fields = [res.name && 'name', res.number && 'number', res.issuer && 'issuer', res.issueDate && 'issue date', res.expiryDate && 'expiry'].filter(Boolean).join(', ');
-            setAiNote(`${t('sr.read', { what: fields || t('cd.nothing') })}${res.unreadable ? ` · ${t('dpt.couldNot', { what: res.unreadable })}` : ''}. ${t('cd.checkFields')}`);
-          } catch (e: any) {
-            Alert.alert(t('common.aiScan'), String(e?.message ?? e));
-          } finally {
-            setAiScanning(false);
-          }
-        },
-      },
+      { text: t('pick.camera'), onPress: () => void scanFrom(pickFromCamera) },
+      { text: t('pick.library'), onPress: () => void scanFrom(pickFromLibrary) },
       { text: t('common.cancel'), style: 'cancel' },
     ]);
   };

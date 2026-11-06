@@ -17,6 +17,7 @@ import { uid } from '../utils/id';
 const PREFIX = 'msm:';
 export const CERTIFICATES_KEY = `${PREFIX}certificates`;
 export const CERT_PRIVATE_KEY = `${PREFIX}cert_private`;
+export const AI_QUEUE_KEY = `${PREFIX}ai_queue`;
 export const COMPRESSOR_KEY = `${PREFIX}compressor`;
 export const PREFS_KEY = `${PREFIX}prefs`;
 export const INSPECTIONS_KEY = `${PREFIX}inspections`;
@@ -854,6 +855,7 @@ export async function resetAllData(): Promise<void> {
     DOCS_KEY,
     CREW_PRIVATE_KEY,
     CERT_PRIVATE_KEY,
+    AI_QUEUE_KEY,
     PERMITS_KEY,
     RISKS_KEY,
     FUEL_TANKS_KEY,

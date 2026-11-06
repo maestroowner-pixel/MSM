@@ -234,6 +234,8 @@ export interface BoardInput {
   gmdssLog?: import('../types/gmdss').GmdssEntry[];
   deckLog?: import('../types/deckLog').DeckEntry[];
   signDrafts?: SignDraft[];
+  /** AI operations that waited for a connection and have come back (services/aiQueue.ts), on this device. */
+  aiReady?: number;
   /** Requisitions (types/orders.ts) — for their way through the office (services/poApproval). */
   purchaseOrders?: import('../types/orders').PurchaseOrder[];
 }
@@ -657,6 +659,7 @@ export function buildBoard(x: BoardInput): Board {
   if (deckDrafts.length) {
     n.push({ first: true, key: 'sign:deck', level: 'amber', who: 'officer', icon: 'draw', route: deckDrafts.length === 1 ? 'DeckEntry' : 'DeckLog', ...(deckDrafts.length === 1 ? { params: { entryId: deckDrafts[0].id } } : {}), title: t('b.sign.deck', { x: tn('n.entry', deckDrafts.length) }) });
   }
+  if (x.aiReady) n.push({ first: true, key: 'ai:ready', level: 'amber', who: 'all', icon: 'robot-outline', route: 'Ask', title: t('b.aiReady', { n: x.aiReady }) });
   for (const d of liveDrafts(x.signDrafts)) {
     n.push({ first: true, key: `sign:draft:${d.id}`, level: 'amber', who: 'officer', icon: 'draw', ...draftRoute(d), title: t('b.sign.draft', { title: d.title }) });
   }
