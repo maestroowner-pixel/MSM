@@ -1,4 +1,4 @@
-import { doc as fsDoc, getDoc as fsGetDoc, setDoc as fsSetDoc } from 'firebase/firestore';
+import { deleteField, doc as fsDoc, getDoc as fsGetDoc, setDoc as fsSetDoc, updateDoc as fsUpdateDoc } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { firebaseApp, firestoreDb, currentVesselKey } from './firebaseService';
 
@@ -9,6 +9,18 @@ export interface EmailReportSettings {
   enabled: boolean;
   recipients: string[];
   lastSentAt?: number;
+  /** The Master's note: goes with the next digest — one written after the last was sent (functions/emailReport.js). */
+  note?: EmailReportNote;
+}
+
+export interface EmailReportNote {
+  text: string;
+  /** The month it speaks of, yyyy-mm. */
+  month: string;
+  by: string;
+  at: number;
+  /** Drafted by the AI (services/briefAi.ts) and edited by the Master. */
+  ai?: boolean;
 }
 
 export async function getEmailReportSettings(): Promise<EmailReportSettings | null> {
@@ -22,6 +34,7 @@ export async function getEmailReportSettings(): Promise<EmailReportSettings | nu
     enabled: !!er.enabled,
     recipients: Array.isArray(er.recipients) ? er.recipients : [],
     lastSentAt: er.lastSentAt ?? undefined,
+    note: er.note?.text ? er.note : undefined,
   };
 }
 
@@ -34,6 +47,16 @@ export async function saveEmailReportSettings(settings: EmailReportSettings): Pr
     { merge: true }
   );
 }
+
+/** The note alone; null takes it off the next digest. */
+export async function saveEmailReportNote(note: EmailReportNote | null): Promise<void> {
+  const uid = await currentVesselKey();
+  if (!uid) throw new Error('Not connected to a vessel.');
+  await fsUpdateDoc(fsDoc(firestoreDb(), ROOT, uid), { 'emailReport.note': note ?? deleteField() });
+}
+
+/** Whether the note will go with the next digest: written after the last one was sent. */
+export const notePending = (s: EmailReportSettings) => !!s.note && s.note.at > (s.lastSentAt ?? 0);
 
 export async function sendReportNow(vessel: string): Promise<void> {
   const app = firebaseApp();

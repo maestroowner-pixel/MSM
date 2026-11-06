@@ -16,6 +16,9 @@
 //   • Open ISM non-conformities
 //   • Overdue drills
 //   • Safety observations filed this month (QR + in-app)
+//   • The Master's note (emailReport.note), when written after the last digest
+//     went — by hand or from the AI's draft on the app's screen (plan AI-7);
+//     nothing the AI writes goes out without the Master saving it.
 // ===================================
 
 const { onSchedule } = require('firebase-functions/v2/scheduler');
@@ -156,7 +159,17 @@ function table(rows) {
   return `<table>${rows.join('')}</table>`;
 }
 
-function buildHtml(name, imo, date, eq, certs, crewCerts, pmsDefects, ncs, drills, obsCount) {
+const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/** The Master's note as the digest prints it: a line a point. */
+function noteHtml(note) {
+  if (!note || !note.text) return '';
+  const lines = String(note.text).split('\n').map((l) => l.replace(/^\s*[-•*]\s*/, '').trim()).filter(Boolean).slice(0, 30);
+  if (!lines.length) return '';
+  return `<h2>From the Master</h2><ul style="font-size:13px;margin:4px 0 0;padding-left:18px">${lines.map((l) => `<li style="margin:3px 0">${escHtml(l.slice(0, 600))}</li>`).join('')}</ul>`;
+}
+
+function buildHtml(name, imo, date, eq, certs, crewCerts, pmsDefects, ncs, drills, obsCount, note) {
   const eqRows = [
     ...eq.expired.map(i => `<tr><td>${i.catLabel}</td><td>${i.label}</td><td>${badge(`Expired ${i.days}d ago`, 'red')}</td></tr>`),
     ...eq.dueSoon.map(i => `<tr><td>${i.catLabel}</td><td>${i.label}</td><td>${badge(`Due in ${i.days}d`, 'orange')}</td></tr>`),
@@ -179,6 +192,7 @@ function buildHtml(name, imo, date, eq, certs, crewCerts, pmsDefects, ncs, drill
 <body><div class="w">
 <div class="hd"><h1>${name}</h1><p>Monthly Safety Report · ${date} · IMO ${imo}</p></div>
 <div class="bd">
+${noteHtml(note)}
 <h2>Equipment — expired or due in 30 days</h2>${table(eqRows)}
 <h2>Certificates expiring in 60 days</h2>${table(certRows)}
 <h2>Open PMS defects</h2>${table(defRows.length ? defRows : [])}
@@ -232,7 +246,8 @@ async function sendForVessel(vesselId, db, smtpUser, smtpPass) {
   const obsCount = obsThisMonth(register, now);
 
   const date = new Date(now).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  const html = buildHtml(vesselName, imo, date, eq, certs, crewCerts, pmsDefects, ncs, drills, obsCount);
+  const note = er.note && er.note.at > (er.lastSentAt || 0) ? er.note : null;
+  const html = buildHtml(vesselName, imo, date, eq, certs, crewCerts, pmsDefects, ncs, drills, obsCount, note);
 
   const transport = makeTransport(smtpUser, smtpPass);
   await transport.sendMail({
@@ -297,3 +312,4 @@ exports.sendReportNow = onCall(
     return { ok: true };
   }
 );
+exports._noteHtml = noteHtml;

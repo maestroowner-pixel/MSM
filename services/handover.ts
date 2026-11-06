@@ -29,12 +29,14 @@ export interface HandoverDraft {
   progress: string;
   /** For the relief — things to watch, where things are, who to call. */
   remarks: string;
+  /** In brief — what matters most, one point a line; written by hand or from the AI's draft (services/briefAi.ts), printed first. */
+  brief: string;
 }
 
 export const AHEAD_CHOICES = [30, 60, 90];
 
 export function emptyDraft(me?: { name: string; rank?: string } | null): HandoverDraft {
-  return { area: '', fromName: me?.name ?? '', fromRank: me?.rank ?? '', toName: '', toRank: '', ahead: 60, progress: '', remarks: '' };
+  return { area: '', fromName: me?.name ?? '', fromRank: me?.rank ?? '', toName: '', toRank: '', ahead: 60, progress: '', remarks: '', brief: '' };
 }
 
 /** Everything a PSC would look at, as of today, looking `ahead` days. */
@@ -56,6 +58,7 @@ export function handoverPages(d: HandoverDraft, r: Readiness) {
     `${overdue ? `${overdue} overdue / open now` : 'nothing overdue'} · ${coming ? `${coming} falling due in the next ${d.ahead} days` : `nothing due in the next ${d.ahead} days`}`,
   ];
   const notes = [
+    ...(lines(d.brief).length ? [{ title: 'In brief', head: ['', 'What matters most'], rows: lines(d.brief).map((l, i) => [String(i + 1), l]), widths: { 0: 6, 1: 180 } }] : []),
     ...(lines(d.progress).length ? [{ title: 'Work in progress', head: ['', 'Item'], rows: lines(d.progress).map((l, i) => [String(i + 1), l]), widths: { 0: 6, 1: 180 } }] : []),
     ...(lines(d.remarks).length ? [{ title: 'For the relief', head: ['', 'Note'], rows: lines(d.remarks).map((l, i) => [String(i + 1), l]), widths: { 0: 6, 1: 180 } }] : []),
   ];

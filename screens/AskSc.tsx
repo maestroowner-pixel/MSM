@@ -92,7 +92,7 @@ export default function AskSc() {
       <ScreenTitle title={t('ask.title')} subtitle={t('ask.sub')} />
       {jobs.map((j) => (
         <Card key={j.id} style={{ marginBottom: SIZES.sm }}>
-          <Text style={[styles.body, { fontWeight: '700' }]}>{j.task === 'cert' ? t('ai.certJob', { what: j.label }) : j.task === 'readiness' ? t('ai.readyJob', { what: j.label }) : j.task === 'quote' ? t('ai.quoteJob', { what: j.label }) : j.task === 'invoice' ? t('ai.invoiceJob', { what: j.label }) : j.task === 'manual' ? t('ai.manualJob', { what: j.label }) : j.task === 'incident' ? t('ai.incidentJob', { what: j.label }) : j.task === 'sms' ? t('ai.smsJob', { what: j.label }) : j.task === 'diagnose' ? t('ai.diagJob', { what: j.label }) : j.label}</Text>
+          <Text style={[styles.body, { fontWeight: '700' }]}>{j.task === 'cert' ? t('ai.certJob', { what: j.label }) : j.task === 'readiness' ? t('ai.readyJob', { what: j.label }) : j.task === 'quote' ? t('ai.quoteJob', { what: j.label }) : j.task === 'invoice' ? t('ai.invoiceJob', { what: j.label }) : j.task === 'manual' ? t('ai.manualJob', { what: j.label }) : j.task === 'incident' ? t('ai.incidentJob', { what: j.label }) : j.task === 'sms' ? t('ai.smsJob', { what: j.label }) : j.task === 'diagnose' ? t('ai.diagJob', { what: j.label }) : j.task === 'brief' ? t('ai.briefJob', { what: j.label }) : j.label}</Text>
           <Text style={styles.sub}>{t(`ai.${j.status}`)} · {uiDateTime(j.at)}</Text>
           {j.task === 'ask' && j.result?.answer ? <Text style={[styles.body, { lineHeight: 21, marginTop: SIZES.xs }]}>{j.result.answer}</Text> : null}
           {j.task === 'ask' && j.result?.answer ? <Text style={styles.sub}>{t('ai.asOf')}</Text> : null}
@@ -121,6 +121,9 @@ export default function AskSc() {
             ) : null}
             {j.task === 'diagnose' && j.status === 'done' ? (
               <TouchableOpacity onPress={() => nav.navigate('PmsDefect', { id: j.target?.defectId, aiDiag: j.result, aiKeys: { defects: j.target?.defectIds ?? [], work: j.target?.workIds ?? [], jobs: j.target?.jobIds ?? [], parts: j.target?.partIds ?? [] }, aiJob: j.id })}><Text style={styles.link}>{t('ai.open')}</Text></TouchableOpacity>
+            ) : null}
+            {j.task === 'brief' && j.status === 'done' ? (
+              <TouchableOpacity onPress={() => nav.navigate(j.target?.kind === 'month' ? 'EmailReport' : 'Handover', { aiBrief: j.result, aiGaps: j.target?.gaps, aiJob: j.id })}><Text style={styles.link}>{t('ai.open')}</Text></TouchableOpacity>
             ) : null}
             <TouchableOpacity onPress={() => void removeAiJob(j.id)}><Text style={styles.link}>{t(j.status === 'waiting' ? 'common.cancel' : 'ai.dismiss')}</Text></TouchableOpacity>
           </View>

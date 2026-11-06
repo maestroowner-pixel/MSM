@@ -2,12 +2,13 @@
 // Handover at crew change (services/handover.ts): who hands over to whom, the
 // outgoing officer's notes, and what is overdue now or falls due over the
 // relief's trip — one PDF to sign on paper. The notes are a draft on this
-// device until printed.
+// device until printed. "In brief" goes first on the PDF: written by hand or
+// from the AI's draft (plan AI-7, components/BriefAiPanel).
 // ===================================
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { Empty, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
@@ -23,6 +24,10 @@ import { personName } from '../types/role';
 import { todayIso } from '../services/pms';
 import { AHEAD_CHOICES, HandoverDraft, buildHandover, emptyDraft } from '../services/handover';
 import { exportHandoverPdf, loadDraft, saveDraft } from '../services/handoverReport';
+import { BriefAiPanel } from '../components/BriefAiPanel';
+import { aiReady } from '../services/ai';
+import { handoverForAi } from '../services/briefAi';
+import { peopleOf } from '../services/incidentAi';
 
 import { t, tn, useT } from '../utils/i18n';
 
@@ -31,6 +36,7 @@ export default function HandoverSc() {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
+  const route = useRoute<any>();
   const data = useData();
   const sync = useSync();
   const today = todayIso();
@@ -112,6 +118,19 @@ export default function HandoverSc() {
       </View>
       {field(t('ho.progress'), 'progress', t('ho.progressPh'), true)}
       {field(t('ho.remarks'), 'remarks', t('ho.remarksPh'), true)}
+      {field(t('ho.brief'), 'brief', t('ho.briefPh'), true)}
+      {aiReady(sync.enrolled) ? (
+        <BriefAiPanel
+          kind="handover"
+          build={() => handoverForAi(r, d, peopleOf(data))}
+          label={`${t('ho.title')}${d.area.trim() ? ` · ${d.area.trim()}` : ''}`}
+          current={d.brief}
+          onPut={(text) => set({ brief: text })}
+          waited={route.params?.aiBrief}
+          waitedGaps={route.params?.aiGaps}
+          jobId={route.params?.aiJob}
+        />
+      ) : null}
 
       <Label>{t('ho.ahead')}</Label>
       <View style={styles.chips}>
