@@ -43,6 +43,7 @@ const admin = require('firebase-admin');
 const crypto = require('crypto');
 const { retireDuplicates, revive } = require('./devices');
 const { isSetupCode } = require('./setupCode');
+const { isClosedCert } = require('./closedCerts');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -644,6 +645,10 @@ exports.shoreSaveCertificate = onCall({ region: REGION }, async (req) => {
     const blob = JSON.parse(raw);
     const list = Array.isArray(blob.certificates) ? blob.certificates : [];
     const at = list.findIndex((c) => c && c.id === cert.id);
+    // A passport, visa or medical: the shore keeps the dates and adds no number or scan.
+    // Only what it sends: a number still in the register moves with close-crew-certs,
+    // and an officer on an older build holds no other copy until then.
+    if (isClosedCert({ ...list[at], ...clean })) for (const k of ['number', 'fileUri', 'fileName', 'fileKind']) delete clean[k];
     if (remove) {
       if (at >= 0) list.splice(at, 1);
     } else if (at >= 0) {

@@ -83,7 +83,7 @@ import {
 } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CategoryKey, EquipmentItem } from '../types/equipment';
-import { Certificate } from '../types/certificate';
+import { Certificate, CertPrivate } from '../types/certificate';
 import { normalizeCompressorState } from '../types/compressor';
 import { Inspection } from '../types/inspection';
 import { CrewMember } from '../types/crew';
@@ -1224,6 +1224,8 @@ interface SyncedList {
    */
   toCloud?: (r: any) => any;
   fromCloud?: (local: any, remote: any) => any;
+  /** Runs before the list is sent (a file to place, so the record can carry its address). */
+  before?: (uid: string) => Promise<void>;
   /** Bump to send every record again through `toCloud` (an older copy up there held more). */
   resend?: string;
   /**
@@ -1241,9 +1243,40 @@ interface SyncedList {
 /** Days of DP checklists a device keeps; older ones are in the cloud (`olderRecords`). */
 export const DP_KEEP_DAYS = 90;
 
+/** A scan held inline goes to the officers' own folder; the record then carries its address, once. */
+async function placeCertScans(uid: string): Promise<void> {
+  const list = await storage.loadList<CertPrivate>(storage.CERT_PRIVATE_KEY);
+  let moved = false;
+  for (const p of list) {
+    if (!p.fileUri?.startsWith('data:')) continue;
+    try {
+      p.fileUri = await attachmentStorage.uploadCrewDoc(uid, p.id, p.fileUri);
+      moved = true;
+    } catch (e: any) {
+      console.warn(`[sync] scan ${p.id} stayed on this device: ${e?.message ?? e}`);
+    }
+  }
+  if (moved) await storage.saveList(storage.CERT_PRIVATE_KEY, list);
+}
+const certPrivateToCloud = (p: CertPrivate) => (p.fileUri?.startsWith('data:') ? { ...p, fileUri: INLINE_ELSEWHERE } : p);
+const certPrivateFromCloud = (mine: CertPrivate | undefined, p: CertPrivate) => (p.fileUri === INLINE_ELSEWHERE && mine?.fileUri ? { ...p, fileUri: mine.fileUri } : p);
+
+/** The scan leaves the vessel's folder with its certificate. Nothing there, or no sync: nothing to do. */
+export async function removeCertScan(certId: string): Promise<void> {
+  const uid = await currentVesselKey();
+  if (!uid) return;
+  try {
+    await attachmentStorage.deleteCrewDoc(uid, certId);
+  } catch {
+    // no scan, or not allowed on this device
+  }
+}
+
 const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] = [
   // Personal details and next of kin: Officers and the Master only (rules).
   { sub: 'crew_private', key: storage.CREW_PRIVATE_KEY, module: 'crewCerts', officers: true },
+  // The number and scan of a passport, visa or medical: not in the register, which everyone reads.
+  { sub: 'cert_private', key: storage.CERT_PRIVATE_KEY, module: 'crewCerts', officers: true, before: placeCertScans, toCloud: certPrivateToCloud, fromCloud: certPrivateFromCloud },
   // Crew appraisals: the Master and the officers only — never on a crew member's phone.
   { sub: 'crew_appraisals', key: storage.APPRAISALS_KEY, module: 'appraisals', officers: true },
   { sub: 'rest', key: storage.REST_KEY, module: 'rest' },
@@ -1388,6 +1421,8 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
 const liveLists = async () => {
   const role = await claimedRole();
   const officer = role === 'admin' || role === 'superadmin';
+  // A crew device holds no passport numbers, whatever an older build left or sent it.
+  if (role && !officer && (await storage.loadList(storage.CERT_PRIVATE_KEY)).length) await storage.saveList(storage.CERT_PRIVATE_KEY, []);
   return SYNCED_LISTS.filter((l) => (moduleOn(l.module) || (l.also && moduleOn(l.also))) && (!l.officers || officer));
 };
 
@@ -1431,6 +1466,7 @@ async function pushPartly(uid: string, l: SyncedList, rows: { id: string; update
 
 async function pushList(uid: string, l: SyncedList): Promise<number> {
   try {
+    if (l.before) await l.before(uid);
     const list = await storage.loadList<{ id: string; updatedAt: number }>(l.key);
     const pushedKey = `msm:pushed_${l.sub}`;
     // A copy up there that held more than it may now (full names before 13 Oct 2026): send everything again, once.

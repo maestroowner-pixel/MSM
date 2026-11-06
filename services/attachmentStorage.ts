@@ -99,6 +99,17 @@ export async function uploadMedical(vessel: string, ownerId: string, fileId: str
   return await getDownloadURL(ref);
 }
 
+/** The scan of a passport, visa or medical (types/certificate.ts CertPrivate): Officers and the Master only (storage.rules `crew_docs/`). */
+export async function uploadCrewDoc(vessel: string, certId: string, dataUri: string): Promise<string> {
+  const ref = storageRef(bucket(), `${ROOT}/${vessel.replace(/\D/g, '')}/crew_docs/${certId}/scan`);
+  await uploadString(ref, dataUri, 'data_url', { contentType: mimeOf(dataUri) });
+  return await getDownloadURL(ref);
+}
+
+export async function deleteCrewDoc(vessel: string, certId: string): Promise<void> {
+  await deleteObject(storageRef(bucket(), `${ROOT}/${vessel.replace(/\D/g, '')}/crew_docs/${certId}/scan`));
+}
+
 /** An officers-only document's file (types/officerDocs.ts) — its own folder (storage.rules `restricted/`). */
 export async function uploadRestricted(vessel: string, ownerId: string, fileId: string, dataUri: string): Promise<string> {
   const ref = storageRef(bucket(), `${ROOT}/${vessel.replace(/\D/g, '')}/restricted/${ownerId}/${fileId}`);

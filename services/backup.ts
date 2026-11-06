@@ -232,7 +232,7 @@ export async function exportBackup(vessel: VesselInfo | null, password = ''): Pr
   // Every bucket, including any this build cannot name — a backup that drops a
   // module's categories restores as a deletion. See storage.loadAllWithForeign.
   const categories = await storage.loadAllWithForeign();
-  const certificates = await storage.loadCertificates();
+  const certificates = await storage.loadCertificatesFull();
   const compressor = await storage.loadCompressor();
   const inspections = await storage.loadInspections();
   const crew = await storage.loadCrew();
@@ -496,7 +496,7 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
   const certs = (backup.certificates ?? []).map((cert) =>
     cert.fileUri ? { ...cert, fileUri: relink(cert.fileUri) } : cert
   );
-  await storage.saveCertificates(certs);
+  await storage.saveCertificates(certs, { restore: true });
 
   // Inspection photos are relinked the same way the items' are — an evidence
   // photo that restores as a broken path makes the record look falsified.

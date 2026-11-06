@@ -78,7 +78,7 @@ async function collect(vessel: VesselInfo | null): Promise<BackupFile> {
     vessel: vessel ?? (await storage.loadVessel()),
     // Including buckets this build cannot name — see storage.loadAllWithForeign.
     categories: await storage.loadAllWithForeign(),
-    certificates: await storage.loadCertificates(),
+    certificates: await storage.loadCertificatesFull(),
     compressor: await storage.loadCompressor(),
     inspections: await storage.loadInspections(),
     crew: await storage.loadCrew(),

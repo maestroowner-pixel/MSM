@@ -6,7 +6,8 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { CategoryKey, EquipmentItem } from '../types/equipment';
-import { Certificate } from '../types/certificate';
+import { Certificate, isClosedCert } from '../types/certificate';
+import * as fb from '../services/firebaseService';
 import { CompressorState } from '../types/compressor';
 import { Inspection, InspectionPeriod } from '../types/inspection';
 import { CrewMember, CrewPrivate, liveCrew } from '../types/crew';
@@ -157,6 +158,7 @@ interface DataContextType {
   /** Crew personal details and next of kin — present on Officers' and the Master's devices only. */
   crewPrivate: CrewPrivate[];
   saveCrewPrivate: (p: CrewPrivate) => Promise<void>;
+  eraseCrewPersonal: (id: string) => Promise<void>;
   /** Permits to work and risk assessments — live only. */
   permits: Permit[];
   risks: RiskAssessment[];
@@ -486,7 +488,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const flatArr = CATEGORIES.flatMap((c) => all[c.key]);
     setByCategory(all);
     setFlat(flatArr);
-    const certs = await storage.loadCertificates();
+    const certs = await storage.loadCertificatesFull();
     setCertificates(certs);
     // Read everything first, then set it all in one synchronous block: a setState
     // between awaits commits on its own, and ~40 of them in a row tripped React's
@@ -821,6 +823,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const list = await storage.loadCertificates();
       const byId = new Map(list.map((c, i) => [c.id, i]));
       const now = Date.now();
+      await storage.replaceCertPrivate(certs.map((c) => ({ ...c, updatedAt: now })));
       for (const c of certs) {
         const next = { ...c, updatedAt: now };
         const i = byId.get(c.id);
@@ -838,6 +841,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const removeCertificate = useCallback(
     async (id: string) => {
+      await fb.removeCertScan(id);
       await storage.deleteCertificate(id);
       await reload();
     },
@@ -1140,6 +1144,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await loadPms();
   }, [loadPms]);
 
+  /** A signed-off person's personal details and closed documents go (plan item 60). Their row and signed records stay. */
+  const eraseCrewPersonal = useCallback(async (id: string) => {
+    const now = Date.now();
+    await storage.upsertInList(storage.CREW_PRIVATE_KEY, { id, updatedAt: now });
+    const closed = (await storage.loadCertificatesFull()).filter((c) => c.crewId === id && isClosedCert(c));
+    for (const c of closed) await fb.removeCertScan(c.id);
+    await storage.replaceCertPrivate(closed.map(({ number, fileUri, fileName, fileKind, ...lean }) => ({ ...lean, updatedAt: now })));
+    await reload();
+  }, [reload]);
+
   const savePermit = useCallback(async (x: Permit) => {
     await storage.upsertInList(storage.PERMITS_KEY, x);
     await loadPms();
@@ -1354,6 +1368,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         addDocAck,
         crewPrivate,
         saveCrewPrivate,
+        eraseCrewPersonal,
         permits,
         risks,
         fuelTanks,

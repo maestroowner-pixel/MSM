@@ -28,7 +28,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { BackButton, CategoryBadge, Label, StatusPill } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
 import { useData } from '../contexts/DataContext';
-import { Certificate, scopeOf } from '../types/certificate';
+import { Certificate, isClosedCert, scopeOf } from '../types/certificate';
 import { liveCrew, crewLabel } from '../types/crew';
 import { CREW_CERT_TYPES, VESSEL_CERT_TYPES } from '../constants/certificateTypes';
 import { CATEGORY_MAP, catShort } from '../constants/categories';
@@ -43,6 +43,7 @@ import { certSurveySummary, worstOf } from '../services/certSurveys';
 import { todayIso } from '../services/pms';
 import { aiCall, aiReady, CertAiResult } from '../services/ai';
 import { useSync } from '../contexts/SyncContext';
+import { roleAtLeast } from '../types/role';
 import { t, useT } from '../utils/i18n';
 
 export default function CertificateDetailSc() {
@@ -103,6 +104,9 @@ export default function CertificateDetailSc() {
   );
 
   const scope = scopeOf(draft);
+  // A passport, visa or medical: number and scan for Officers and the Master; never to the AI.
+  const closed = isClosedCert(draft);
+  const closedHere = closed && sync.enrolled && !roleAtLeast(sync.role, 'admin');
   const people = useMemo(
     () => liveCrew(crew).filter((m) => m.active || m.id === draft.crewId).sort((a, b) => a.name.localeCompare(b.name)),
     [crew, draft.crewId]
@@ -159,7 +163,7 @@ export default function CertificateDetailSc() {
   };
 
   const scanCert = () => {
-    Alert.alert(t('cd.scanAi'), t('cd.scanAiBody'), [
+    Alert.alert(t('cd.scanAi'), t(scope === 'crew' ? 'cd.scanAiCrew' : 'cd.scanAiBody'), [
       {
         text: t('pick.camera'),
         onPress: async () => {
@@ -327,7 +331,7 @@ export default function CertificateDetailSc() {
             <View style={styles.titleRow}>
               <MciIcon name={scope === 'crew' ? 'card-account-details' : scope === 'vessel' ? 'ferry' : 'certificate'} size={32} />
               {!isNew ? <StatusPill status={status} /> : null}
-              {aiReady(sync.enrolled) ? (
+              {aiReady(sync.enrolled) && !closed ? (
                 <TouchableOpacity
                   style={styles.aiBtn}
                   onPress={aiScanning ? undefined : scanCert}
@@ -388,7 +392,7 @@ export default function CertificateDetailSc() {
                 ))}
               </View>
             ) : null}
-            <Field label={t('fv.number')} value={draft.number} onChange={(v) => set({ number: v })} />
+            {closedHere ? <Text style={styles.aiNote}>{t('cd.closedNote')}</Text> : <Field label={t('fv.number')} value={draft.number} onChange={(v) => set({ number: v })} />}
             <Field
               label={scope === 'crew' ? t('cd.issuerCrew') : scope === 'vessel' ? t('cd.issuerVessel') : t('cd.issuerEq')}
               value={draft.issuer}
@@ -398,7 +402,7 @@ export default function CertificateDetailSc() {
             <DateField label={t('cd.expiryReq')} value={draft.expiryDate} onChange={(v) => set({ expiryDate: v })} defaultYear={new Date().getFullYear() + 5} />
 
             {/* File */}
-            <View style={styles.card}>
+            {closedHere ? null : <View style={styles.card}>
               <Label>{t('cd.file')}</Label>
               {draft.fileUri ? (
                 <View style={{ marginTop: SIZES.sm }}>
@@ -435,7 +439,7 @@ export default function CertificateDetailSc() {
                   <Text style={styles.attachText}>{t('cd.attachDoc')}</Text>
                 </TouchableOpacity>
               )}
-            </View>
+            </View>}
 
             {withSurveys ? <CertSurveys cert={draft} stored={existing} onScheme={(v) => set({ surveyScheme: v })} /> : null}
 

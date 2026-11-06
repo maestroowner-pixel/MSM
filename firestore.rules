@@ -747,6 +747,12 @@ service cloud.firestore {
         allow read, create, update: if isAdmin(v);
         allow delete: if false;
       }
+      // The number and scan of a passport, visa or medical (types/certificate.ts): the
+      // register everyone reads holds only the type, the holder and the dates. Emptied, not deleted.
+      match /cert_private/{id} {
+        allow read, create, update: if isAdmin(v);
+        allow delete: if false;
+      }
       match /ism_doc_acks/{id} {
         allow read: if reader(v);
         allow create: if member(v);

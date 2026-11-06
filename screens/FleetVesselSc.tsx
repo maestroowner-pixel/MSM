@@ -30,7 +30,7 @@ import { readStatus } from '../services/docs';
 import { pickDocument, toDataUri } from '../services/attachments';
 import { pdfText } from '../utils/pdfText';
 import { activeDeferral, jobDue, todayIso } from '../services/pms';
-import { Certificate, CertificateScope, scopeOf } from '../types/certificate';
+import { Certificate, CertificateScope, isClosedCert, scopeOf } from '../types/certificate';
 import { DOC_CATEGORY_LABEL, DocCategory, IsmDoc } from '../types/docs';
 import { computeStatus, statusFromDate, uiDate } from '../utils/dates';
 import { catLabel } from '../constants/categories';
@@ -459,18 +459,24 @@ function CertEditor({ imo, cert, crew, onClose, onSaved }: { imo: string; cert: 
       ) : null}
       <Label>{t('mt.namePh')}</Label>
       <TextInput style={styles.input} value={c.name} onChangeText={(t) => set({ name: t })} placeholder={t('fv.certPh')} placeholderTextColor={COLORS.textLight} />
-      <Label>{t('fv.number')}</Label>
-      <TextInput style={styles.input} value={c.number ?? ''} onChangeText={(t) => set({ number: t })} placeholder="—" placeholderTextColor={COLORS.textLight} />
+      {isClosedCert(c) ? <Text style={styles.sub}>{t('cd.closedNote')}</Text> : (
+        <>
+          <Label>{t('fv.number')}</Label>
+          <TextInput style={styles.input} value={c.number ?? ''} onChangeText={(t) => set({ number: t })} placeholder="—" placeholderTextColor={COLORS.textLight} />
+        </>
+      )}
       <Label>{t('fv.issuedBy')}</Label>
       <TextInput style={styles.input} value={c.issuer ?? ''} onChangeText={(t) => set({ issuer: t })} placeholder={t('fv.issuerPh')} placeholderTextColor={COLORS.textLight} />
       <View style={{ flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.sm }}>
         <View style={{ flex: 1 }}><SimpleDatePicker label={t('fv.issued')} value={c.issueDate} onChange={(d) => set({ issueDate: d })} /></View>
         <View style={{ flex: 1 }}><SimpleDatePicker label={t('fv.expires')} value={c.expiryDate} onChange={(d) => set({ expiryDate: d })} onClear={() => set({ expiryDate: undefined })} /></View>
       </View>
-      <TouchableOpacity style={styles.fileBtn} onPress={() => void attach()}>
-        <MciIcon name="paperclip" size={18} color={COLORS.primary} />
-        <Text style={styles.link} numberOfLines={1}>{c.fileName ? `${c.fileName} — ${t('fv.replace')}` : t('fv.attachCert')}</Text>
-      </TouchableOpacity>
+      {isClosedCert(c) ? null : (
+        <TouchableOpacity style={styles.fileBtn} onPress={() => void attach()}>
+          <MciIcon name="paperclip" size={18} color={COLORS.primary} />
+          <Text style={styles.link} numberOfLines={1}>{c.fileName ? `${c.fileName} — ${t('fv.replace')}` : t('fv.attachCert')}</Text>
+        </TouchableOpacity>
+      )}
       {!isNew ? (
         <TouchableOpacity
           style={styles.delete}

@@ -6,7 +6,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CategoryKey, EquipmentItem } from '../types/equipment';
-import { Certificate } from '../types/certificate';
+import { Certificate, CertPrivate, isClosedCert, joinCerts, splitCert } from '../types/certificate';
 import { CompressorState, normalizeCompressorState } from '../types/compressor';
 import { Inspection, InspectionPeriod } from '../types/inspection';
 import { CrewMember } from '../types/crew';
@@ -16,6 +16,7 @@ import { uid } from '../utils/id';
 
 const PREFIX = 'msm:';
 export const CERTIFICATES_KEY = `${PREFIX}certificates`;
+export const CERT_PRIVATE_KEY = `${PREFIX}cert_private`;
 export const COMPRESSOR_KEY = `${PREFIX}compressor`;
 export const PREFS_KEY = `${PREFIX}prefs`;
 export const INSPECTIONS_KEY = `${PREFIX}inspections`;
@@ -365,14 +366,52 @@ export async function totalCount(): Promise<number> {
 export async function loadCertificates(): Promise<Certificate[]> {
   try {
     const raw = await AsyncStorage.getItem(CERTIFICATES_KEY);
-    return raw ? (JSON.parse(raw) as Certificate[]) : [];
+    const list: Certificate[] = raw ? JSON.parse(raw) : [];
+    if (!list.some((c) => isClosedCert(c) && (c.number || c.fileUri))) return list;
+    await saveCertificates(list);
+    return list.map((c) => splitCert(c).lean);
   } catch {
     return [];
   }
 }
 
-export async function saveCertificates(list: Certificate[]): Promise<void> {
-  await AsyncStorage.setItem(CERTIFICATES_KEY, JSON.stringify(list));
+/**
+ * What this list holds is what the register carries: a closed certificate's number
+ * and scan live in CERT_PRIVATE_KEY (types/certificate.ts). A list from before that,
+ * or a register an older build sent, is taken apart here.
+ */
+export async function saveCertificates(list: Certificate[], opts: { restore?: boolean } = {}): Promise<void> {
+  const held = list.filter((c) => isClosedCert(c) && (c.number || c.fileUri));
+  if (held.length) {
+    const privates = await loadList<CertPrivate>(CERT_PRIVATE_KEY);
+    const by = new Map(privates.map((p) => [p.id, p]));
+    for (const c of held) {
+      const was = by.get(c.id);
+      if (!opts.restore && was && (c.updatedAt ?? 0) <= was.updatedAt) continue;
+      by.set(c.id, { ...splitCert(c).priv!, updatedAt: Math.max(c.updatedAt ?? 0, Date.now()) });
+    }
+    await saveList(CERT_PRIVATE_KEY, [...by.values()]);
+  }
+  await AsyncStorage.setItem(CERTIFICATES_KEY, JSON.stringify(list.map((c) => splitCert(c).lean)));
+}
+
+/** An edit: what the certificate says now replaces what was kept, an emptied number included. */
+export async function replaceCertPrivate(certs: Certificate[]): Promise<void> {
+  const privates = await loadList<CertPrivate>(CERT_PRIVATE_KEY);
+  const by = new Map(privates.map((p) => [p.id, p]));
+  let changed = false;
+  for (const c of certs) {
+    const priv = splitCert(c).priv;
+    if (!priv && !by.has(c.id)) continue;
+    by.set(c.id, { ...(priv ?? { id: c.id, crewId: c.crewId }), updatedAt: c.updatedAt ?? Date.now() });
+    changed = true;
+  }
+  if (changed) await saveList(CERT_PRIVATE_KEY, [...by.values()]);
+}
+
+/** The certificates with their numbers and scans, on a device that holds them. */
+export async function loadCertificatesFull(): Promise<Certificate[]> {
+  return joinCerts(await loadCertificates(), await loadList<CertPrivate>(CERT_PRIVATE_KEY));
 }
 
 export async function upsertCertificate(cert: Certificate): Promise<void> {
@@ -381,11 +420,14 @@ export async function upsertCertificate(cert: Certificate): Promise<void> {
   const next = { ...cert, updatedAt: Date.now() };
   if (idx >= 0) list[idx] = next;
   else list.push(next);
+  await replaceCertPrivate([next]);
   await saveCertificates(list);
 }
 
 export async function deleteCertificate(id: string): Promise<void> {
   const list = await loadCertificates();
+  const gone = list.find((c) => c.id === id);
+  if (gone) await replaceCertPrivate([{ id, crewId: gone.crewId, name: '', itemIds: [], createdAt: 0, updatedAt: Date.now() }]);
   await saveCertificates(list.filter((c) => c.id !== id));
 }
 
@@ -811,6 +853,7 @@ export async function resetAllData(): Promise<void> {
     SPARE_MOVES_KEY,
     DOCS_KEY,
     CREW_PRIVATE_KEY,
+    CERT_PRIVATE_KEY,
     PERMITS_KEY,
     RISKS_KEY,
     FUEL_TANKS_KEY,

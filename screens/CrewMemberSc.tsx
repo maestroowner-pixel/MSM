@@ -50,7 +50,7 @@ export default function CrewMemberSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { crew, crewPrivate, certificates, appraisals, saveCrewMember, saveCrewPrivate } = useData();
+  const { crew, crewPrivate, certificates, appraisals, saveCrewMember, saveCrewPrivate, eraseCrewPersonal } = useData();
   const sync = useSync();
 
   // Officers and the Master; a device not joined to any vessel is its owner's.
@@ -123,6 +123,14 @@ export default function CrewMemberSc() {
     playSuccessSound();
     goBackOr(nav);
   };
+
+  // Plan item 60: the Master, for someone who has left. Their row and signed records stay.
+  const canErase = !isNew && m.onBoard === false && (!sync.enrolled || sync.role === 'superadmin');
+  const erasePersonal = () =>
+    Alert.alert(t('crew.erase'), t('crew.eraseBody', { name: m.name }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('crew.erase'), style: 'destructive', onPress: async () => { await eraseCrewPersonal(id); setP({ id, updatedAt: Date.now() }); Alert.alert(t('crew.erase'), t('crew.eraseDone')); } },
+    ]);
 
   const toggleAboard = (on: boolean) =>
     setMember(on ? { onBoard: true, signOn: todayIso(), signOff: undefined, contractEnd: undefined } : { onBoard: false, signOff: todayIso() });
@@ -324,6 +332,11 @@ export default function CrewMemberSc() {
             ) : null}
           </View>
           {isNew ? <Text style={styles.sub}>{t('crew.saveFirst')}</Text> : null}
+          {canErase ? (
+            <TouchableOpacity onPress={erasePersonal} hitSlop={10} style={{ paddingVertical: SIZES.sm }}>
+              <Text style={{ color: COLORS.danger, fontWeight: '700' }}>{t('crew.erase')}</Text>
+            </TouchableOpacity>
+          ) : null}
           {mine.map((c) => (
             <TouchableOpacity key={c.id} style={styles.certRow} onPress={() => nav.navigate('CertificateDetail', { id: c.id })}>
               <View style={{ flex: 1 }}>

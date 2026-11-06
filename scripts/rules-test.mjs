@@ -56,6 +56,11 @@ await t(true, 'Master writes personal details', setDoc(R(master, 'crew_private',
 await t(false, 'Crew cannot read personal details', getDoc(R(crew, 'crew_private', 'c1')));
 await t(false, 'Crew cannot write personal details', setDoc(R(crew, 'crew_private', 'c9'), { id: 'c9' }));
 await t(false, 'Nobody deletes personal details', deleteDoc(R(master, 'crew_private', 'c1')));
+await t(true, 'Master keeps a passport number apart', setDoc(R(master, 'cert_private', 'cp1'), { id: 'cp1', number: 'P1', updatedAt: 1 }));
+await t(true, 'Officer reads a passport number', getDoc(R(officer, 'cert_private', 'cp1')));
+await t(true, 'Master empties a passport number', setDoc(R(master, 'cert_private', 'cp1'), { id: 'cp1', updatedAt: 2 }));
+await t(false, 'Crew cannot read a passport number', getDoc(R(crew, 'cert_private', 'cp1')));
+await t(false, 'Crew cannot write a passport number', setDoc(R(crew, 'cert_private', 'cp2'), { id: 'cp2' }));
 await t(true, 'Crew records own hours of rest', setDoc(R(crew, 'rest', 'c1_2026-10-09'), { crewId: 'c1', work: '0'.repeat(48) }));
 await t(false, 'Hours of rest cannot be deleted', deleteDoc(R(master, 'rest', 'c1_2026-10-09')));
 await t(false, 'Signed PMS completion cannot be edited', updateDoc(R(master, 'pms_done', 'p1'), { note: 'x' }));
