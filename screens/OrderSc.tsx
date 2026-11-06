@@ -47,6 +47,8 @@ import { moduleOn } from '../constants/modules';
 import { RfqPanel } from '../components/RfqPanel';
 import { findSuppliers } from '../services/rfq';
 import { PoApprovalPanel } from '../components/PoApprovalPanel';
+import { InvoiceCheckPanel } from '../components/InvoiceCheckPanel';
+import { aiReady } from '../services/ai';
 import { linesEditable, mayOrder } from '../services/poApproval';
 
 const CURRENCIES = ['€', '$', '£', '¥'];
@@ -868,6 +870,11 @@ export default function OrderSc() {
           editable={officer && (o.status === 'draft' || o.status === 'standby')}
           by={who.name}
         />
+      ) : null}
+
+      {/* A supplier's invoice against the order (plan AI-2) — once it is out with the supplier */}
+      {aiReady(sync.enrolled) && officer && !isNew && !draft && !receiving && ['sent', 'partial', 'received'].includes(o.status) ? (
+        <InvoiceCheckPanel o={o} waited={route.params?.aiInvoice} waitedLines={route.params?.aiLines} jobId={route.params?.aiJob} />
       ) : null}
 
       {/* Signer */}

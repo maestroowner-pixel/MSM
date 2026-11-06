@@ -3,12 +3,14 @@
 //
 // Typed in line by line — a unit price, or "can't supply" — with delivery,
 // discount, lead time, validity and their reference; or read from the Excel
-// request the supplier filled in (services/rfq.ts quoteFromSheet). "Declined"
+// request the supplier filled in (services/rfq.ts quoteFromSheet), or read by the
+// AI from their own PDF or a photo of it (services/purchaseAi.ts, plan AI-2) —
+// both only fill the form; the officer checks and saves. "Declined"
 // records that they will not quote. The order itself is changed only by the
 // award (components/RfqPanel), never here.
 // ===================================
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
@@ -17,6 +19,7 @@ import { Dropdown } from '../components/Dropdown';
 import SimpleDatePicker from '../components/SimpleDatePicker';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
+import { useSync } from '../contexts/SyncContext';
 import { SIZES } from '../theme';
 import { Quote } from '../types/orders';
 import { CURRENCIES } from '../types/finance';
@@ -25,6 +28,10 @@ import { todayIso } from '../services/pms';
 import { money } from '../services/finance';
 import { quoteFromSheet, quoteTotal } from '../services/rfq';
 import { pickSheetRows } from '../services/sheetFiles';
+import { aiReady } from '../services/ai';
+import { aiOrLater, removeAiJob } from '../services/aiQueue';
+import { pickDocForAi } from '../services/medFiles';
+import { AiQuote, keyIds, linesForAi, QuoteAiReply, readQuote } from '../services/purchaseAi';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
@@ -43,6 +50,7 @@ export default function QuoteSc() {
   const nav = useNavigation<any>();
   const route = useRoute<any>();
   const { purchaseOrders, saveRow } = useData();
+  const sync = useSync();
   const o = purchaseOrders.find((x) => x.id === route.params?.po);
   const stored = o?.quotes?.find((q) => q.id === route.params?.id);
 
@@ -51,6 +59,19 @@ export default function QuoteSc() {
   const [typed, setTyped] = useState<Record<string, string>>(() => Object.fromEntries(Object.entries(stored?.prices ?? {}).map(([k, v]) => [k, String(v)])));
   const [extra, setExtra] = useState(() => ({ delivery: str(stored?.delivery), discount: str(stored?.discountPct), lead: str(stored?.leadDays) }));
   const [note, setNote] = useState<string | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiNote, setAiNote] = useState<string | null>(null);
+
+  // A quotation that waited for a connection (services/aiQueue.ts) lands here, once.
+  const aiParams = route.params?.aiResult as QuoteAiReply | undefined;
+  const aiApplied = useRef(false);
+  useEffect(() => {
+    if (!aiParams || aiApplied.current || !o || !q) return;
+    aiApplied.current = true;
+    applyAi(readQuote(o, aiParams, route.params?.aiLines));
+    void removeAiJob(route.params.aiJob);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiParams, !!o, !!q]);
 
   const back = () => goBackOr(nav, 'Order', { id: route.params?.po });
   if (!o || !q) {
@@ -95,6 +116,50 @@ export default function QuoteSc() {
     }
   };
 
+  function applyAi(r: AiQuote) {
+    if (!o || !q) return;
+    setTyped((cur) => ({ ...cur, ...Object.fromEntries(Object.entries(r.prices).map(([k, v]) => [k, String(v)])) }));
+    setQ((cur) => cur && ({
+      ...cur,
+      unavailable: [...new Set([...(cur.unavailable ?? []).filter((id) => r.prices[id] == null), ...r.unavailable])],
+      ...(r.currency ? { currency: r.currency } : {}),
+      ...(r.ref ? { ref: r.ref } : {}),
+      ...(r.validUntil ? { validUntil: r.validUntil } : {}),
+    }));
+    setExtra((cur) => ({
+      delivery: r.delivery != null ? String(r.delivery) : cur.delivery,
+      discount: r.discountPct != null ? String(r.discountPct) : cur.discount,
+      lead: r.leadDays != null ? String(r.leadDays) : cur.lead,
+    }));
+    setNote(null);
+    setAiNote([
+      t('rfq.readN', { k: Object.keys(r.prices).length, n: o.lines.length, na: r.unavailable.length }),
+      r.other.length ? t('rfq.aiOther', { n: r.other.length, what: r.other.slice(0, 3).join('; ') }) : '',
+      r.unreadable ? t('dpt.couldNot', { what: r.unreadable }) : '',
+      t('rfq.aiCheck'),
+    ].filter(Boolean).join(' '));
+  }
+
+  const readAi = async () => {
+    const f = await pickDocForAi();
+    if (!f) return;
+    setAiBusy(true);
+    setAiNote(null);
+    try {
+      const comma = f.dataUri.indexOf(',');
+      const out = await aiOrLater<QuoteAiReply>('quote', { mediaType: f.dataUri.slice(5, f.dataUri.indexOf(';')), data: f.dataUri.slice(comma + 1), lines: linesForAi(o) }, {
+        label: `${q.supplier} · ${o.no}`,
+        target: { po: o.id, quoteId: q.id, lineIds: keyIds(o) },
+      });
+      if ('queued' in out) setAiNote(t('ai.queued'));
+      else applyAi(readQuote(o, out.result));
+    } catch (e: any) {
+      Alert.alert(t('rfq.aiRead'), e?.message === 'ai.tooBig' ? t('ai.tooBig') : String(e?.message ?? e));
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
   const save = async () => {
     const quote: Quote = {
       ...current,
@@ -118,8 +183,12 @@ export default function QuoteSc() {
           <View style={{ minWidth: 170 }}><SimpleDatePicker label={t('rfq.received')} value={q.receivedAt ?? todayIso()} onChange={(d) => d && set({ receivedAt: d })} /></View>
           <Dropdown caption={t('fin.currency')} value={q.currency} onChange={(c: string) => set({ currency: c })} options={[...new Set([q.currency, ...CURRENCIES])].map((c) => ({ value: c, label: c }))} style={{ width: 150 }} />
           <TouchableOpacity style={styles.small} onPress={() => void fromExcel()}><Text style={styles.smallText}>{t('rfq.fromExcel')}</Text></TouchableOpacity>
+          {aiReady(sync.enrolled) ? (
+            <TouchableOpacity style={styles.small} disabled={aiBusy} onPress={() => void readAi()}><Text style={styles.smallText}>{aiBusy ? t('rfq.aiReading') : t('rfq.aiRead')}</Text></TouchableOpacity>
+          ) : null}
         </View>
         {note ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{`✓ ${note}`}</Text> : null}
+        {aiNote ? <Text style={[styles.sub, { color: COLORS.textDark }]}>{`AI · ${aiNote}`}</Text> : null}
         <TouchableOpacity style={styles.toggle} onPress={() => set({ declined: !q.declined })}>
           <Text style={{ fontSize: 18 }}>{q.declined ? '☑' : '☐'}</Text>
           <Text style={styles.toggleText}>{t('rfq.declinedQ')}</Text>
