@@ -92,7 +92,7 @@ export default function AskSc() {
       <ScreenTitle title={t('ask.title')} subtitle={t('ask.sub')} />
       {jobs.map((j) => (
         <Card key={j.id} style={{ marginBottom: SIZES.sm }}>
-          <Text style={[styles.body, { fontWeight: '700' }]}>{j.task === 'cert' ? t('ai.certJob', { what: j.label }) : j.task === 'readiness' ? t('ai.readyJob', { what: j.label }) : j.task === 'quote' ? t('ai.quoteJob', { what: j.label }) : j.task === 'invoice' ? t('ai.invoiceJob', { what: j.label }) : j.label}</Text>
+          <Text style={[styles.body, { fontWeight: '700' }]}>{j.task === 'cert' ? t('ai.certJob', { what: j.label }) : j.task === 'readiness' ? t('ai.readyJob', { what: j.label }) : j.task === 'quote' ? t('ai.quoteJob', { what: j.label }) : j.task === 'invoice' ? t('ai.invoiceJob', { what: j.label }) : j.task === 'manual' ? t('ai.manualJob', { what: j.label }) : j.label}</Text>
           <Text style={styles.sub}>{t(`ai.${j.status}`)} · {uiDateTime(j.at)}</Text>
           {j.task === 'ask' && j.result?.answer ? <Text style={[styles.body, { lineHeight: 21, marginTop: SIZES.xs }]}>{j.result.answer}</Text> : null}
           {j.task === 'ask' && j.result?.answer ? <Text style={styles.sub}>{t('ai.asOf')}</Text> : null}
@@ -109,6 +109,9 @@ export default function AskSc() {
             ) : null}
             {j.task === 'invoice' && j.status === 'done' ? (
               <TouchableOpacity onPress={() => nav.navigate('Order', { id: j.target?.po, aiInvoice: j.result, aiLines: j.target?.lineIds, aiJob: j.id })}><Text style={styles.link}>{t('ai.open')}</Text></TouchableOpacity>
+            ) : null}
+            {j.task === 'manual' && j.status === 'done' ? (
+              <TouchableOpacity onPress={() => nav.navigate('Machine', { id: j.target?.machineId, aiManual: j.result, aiJobs: j.target?.jobIds, aiFile: j.target?.file, aiJob: j.id })}><Text style={styles.link}>{t('ai.open')}</Text></TouchableOpacity>
             ) : null}
             <TouchableOpacity onPress={() => void removeAiJob(j.id)}><Text style={styles.link}>{t(j.status === 'waiting' ? 'common.cancel' : 'ai.dismiss')}</Text></TouchableOpacity>
           </View>

@@ -32,7 +32,7 @@ export interface CertAiResult {
   unreadable?: string;
 }
 
-export async function aiCall<T>(task: 'map' | 'table' | 'inspect' | 'ask' | 'form' | 'cert' | 'readiness' | 'quote' | 'invoice', input: unknown): Promise<T> {
+export async function aiCall<T>(task: 'map' | 'table' | 'inspect' | 'ask' | 'form' | 'cert' | 'readiness' | 'quote' | 'invoice' | 'manual', input: unknown): Promise<T> {
   const m = mock();
   if (m) return (await m(task, input)) as T;
   const app = fb.firebaseApp();

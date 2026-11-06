@@ -40,6 +40,8 @@ import { copyJobsTo, copyMachine, parentChoices, predecessors, replaceMachine, s
 import { Dropdown } from '../components/Dropdown';
 import { MACHINE_FIELDS, changeTextUi, fieldName, planDiff, withChanges } from '../services/planLog';
 import { playSuccessSound } from '../utils/sound';
+import { aiReady } from '../services/ai';
+import { ManualAiPanel } from '../components/ManualAiPanel';
 import { t, tk, tn, useT } from '../utils/i18n';
 
 /** services/pmsHistory conditionText, in the interface language (the report keeps the English one). */
@@ -516,6 +518,10 @@ export default function MachineSc() {
               </TouchableOpacity>
             );
           })}
+
+          {canPlan && existing && aiReady(sync.enrolled) ? (
+            <ManualAiPanel machine={existing} waited={route.params?.aiManual} waitedJobs={route.params?.aiJobs} waitedFile={route.params?.aiFile} jobId={route.params?.aiJob} />
+          ) : null}
 
           {fitting.length ? <Label>{t('mch.spares', { n: fitting.length })}</Label> : null}
           {fitting.map((p) => {
