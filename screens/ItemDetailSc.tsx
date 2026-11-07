@@ -42,6 +42,10 @@ import { roleAtLeast } from '../types/role';
 import { scanProofFor, signingGate } from '../services/signingPolicy';
 import { t, tk, tn, useT, currentLang, dateLocale } from '../utils/i18n';
 import { shipToday } from '../utils/shipTime';
+import WireLogCard from '../components/WireLogCard';
+import { wireApplies } from '../services/wireLog';
+import { LIFTING_KEYS } from '../constants/lifting';
+import { moduleOn } from '../constants/modules';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 // English keeps its own three letters (en-GB writes "Sept"); other languages ask Intl.
@@ -96,6 +100,8 @@ export default function ItemDetailSc() {
   };
   const [draft, setDraft] = useState<EquipmentItem>(() => existing ?? blank());
   const isNew = !existing;
+  // A rope, or gear that carries one: its log and its limits (plan item 67).
+  const ropeLog = moduleOn('wires') && moduleOn('lifting') && wireApplies(draft, LIFTING_KEYS);
   const [preview, setPreview] = useState<Attachment | null>(null);
   const [renaming, setRenaming] = useState<Attachment | null>(null);
   // Web action-sheet (Alert with many buttons doesn't render on react-native-web).
@@ -457,6 +463,7 @@ export default function ItemDetailSc() {
               A new item has no history and cannot be inspected until it is
               saved, so the whole block is hidden until then. */}
           {!isNew ? <InspectionCard item={draft} trail={trail} /> : null}
+          {!isNew && ropeLog ? <WireLogCard item={draft} /> : null}
           {!isNew ? <LifecycleCard itemId={draft.id} movements={itemMovements} onWriteOff={() => setWriteOffOpen(true)} onReplace={() => (touched.current ? Alert.alert(t('lr.saveFirst'), t('rp.saveFirst')) : nav.navigate('ReplaceItem', { id: draft.id }))} /> : null}
 
           <Field label={t('it.f.no')} value={draft.no != null ? String(draft.no) : ''} onChange={(v) => set({ no: v })} />
@@ -542,6 +549,27 @@ export default function ItemDetailSc() {
                   />
                 </View>
               </View>
+              {/* The rope's limits, for its log (services/wireLog). */}
+              {ropeLog ? (
+                <>
+                  <View style={styles.twoCol}>
+                    <View style={{ flex: 1 }}>
+                      <DecField label={t('it.f.ropeLength')} value={draft.ropeLength} onChange={(n) => set({ ropeLength: n })} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <DecField label={t('it.f.minLength')} value={draft.minLength} onChange={(n) => set({ minLength: n })} />
+                    </View>
+                  </View>
+                  <View style={styles.twoCol}>
+                    <View style={{ flex: 1 }}>
+                      <DecField label={t('it.f.discardDia')} value={draft.discardDia} onChange={(n) => set({ discardDia: n })} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <DecField label={t('it.f.retireYears')} value={draft.retireYears} onChange={(n) => set({ retireYears: n })} />
+                    </View>
+                  </View>
+                </>
+              ) : null}
             </>
           ) : (
             <View style={styles.twoCol}>
@@ -951,6 +979,34 @@ function Field({
         value={value ?? ''}
         onChangeText={onChange}
         multiline={multiline}
+        placeholder="—"
+        placeholderTextColor={COLORS.textLight}
+      />
+    </View>
+  );
+}
+
+/** A figure with a decimal point (28.5 mm, 0.5 m): typed as text, kept as typed until it is a number. */
+function DecField({ label, value, onChange }: { label: string; value?: number; onChange: (n?: number) => void }) {
+  const COLORS = useTheme();
+  const styles = useS();
+  const [text, setText] = useState(value != null ? String(value) : '');
+  useEffect(() => {
+    if (value == null ? text.trim() !== '' && Number(text.replace(',', '.')) > 0 : Number(text.replace(',', '.')) !== value) setText(value != null ? String(value) : '');
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <View style={styles.fieldWrap}>
+      <Label>{label}</Label>
+      <TextInput
+        style={styles.input}
+        value={text}
+        onChangeText={(s) => {
+          const clean = s.replace(/[^0-9.,]/g, '');
+          setText(clean);
+          const n = Number(clean.replace(',', '.'));
+          onChange(clean && isFinite(n) && n > 0 ? n : undefined);
+        }}
+        keyboardType="decimal-pad"
         placeholder="—"
         placeholderTextColor={COLORS.textLight}
       />

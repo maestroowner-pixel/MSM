@@ -1302,6 +1302,8 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'em_statements', key: storage.EM_STATEMENTS_KEY, appendOnly: true, module: 'emissions' },
   // Chemicals aboard: the officers keep the cards, everyone reads them.
   { sub: 'chemicals', key: storage.CHEMICALS_KEY, module: 'chem' },
+  // Rope and wire log: signed entries, never changed.
+  { sub: 'wire_log', key: storage.WIRE_LOG_KEY, appendOnly: true, module: 'wires' },
   { sub: 'pms_machines', key: storage.PMS_MACHINES_KEY, module: 'pms', partial: ['hours', 'hoursDate', 'readings', 'counterOffset', 'updatedAt'] },
   { sub: 'pms_jobs', key: storage.PMS_JOBS_KEY, module: 'pms', partial: ['lastDoneDate', 'lastDoneHours', 'prepared', 'updatedAt'] },
   { sub: 'pms_done', key: storage.PMS_DONE_KEY, appendOnly: true, module: 'pms' },

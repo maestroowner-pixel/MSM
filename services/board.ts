@@ -67,6 +67,8 @@ import { statementDue } from './emissions';
 import { findMe, myCerts, myChanges } from './myDocs';
 import { planBreaches } from './restPlan';
 import { chemBoard } from './chemicals';
+import { wireBoard } from './wireLog';
+import { LIFTING_KEYS } from '../constants/lifting';
 import { THREAD_ROUTE, threadKey, unreadFromOffice, unreadMentions } from './threads';
 import { t, tk, tn } from '../utils/t';
 
@@ -216,6 +218,8 @@ export interface BoardInput {
   /** Chemicals aboard (types/chemicals.ts) and the risk assessments made from their cards. */
   chemicals?: import('../types/chemicals').Chemical[];
   risks?: import('../types/permits').RiskAssessment[];
+  /** Rope and wire log (types/wireLog.ts). */
+  wireLog?: import('../types/wireLog').WireEntry[];
   /** Discussion on a record, and what this device has read of it (services/threads). */
   threads?: import('../types/thread').ThreadMessage[];
   prefs?: { threadRead?: Record<string, number>; myDocsSeen?: number };
@@ -806,6 +810,15 @@ export function buildBoard(x: BoardInput): Board {
     if (b.oldSds.length) n.push({ key: 'chem:oldSds', level: 'amber', who: 'officer', icon: 'flask-outline', ...go, title: t('b.chem.oldSds', { n: b.oldSds.length }), sub: names(b.oldSds) });
     if (b.noRa.length) n.push({ key: 'chem:noRa', level: 'amber', who: 'officer', icon: 'flask-outline', ...go, title: t('b.chem.noRa', { n: b.noRa.length }), sub: names(b.noRa) });
     if (b.unchecked.length) n.push({ key: 'chem:unchecked', level: 'blue', who: 'officer', icon: 'flask-outline', ...go, title: t('b.chem.unchecked', { n: b.unchecked.length }), sub: names(b.unchecked) });
+  }
+
+  // ---- Ropes and wires: to be discarded (look, diameter, length, age, brake), and those close to it ----
+  if (x.on('wires') && x.on('lifting') && x.role !== 'user') {
+    const ropeName = (i: EquipmentItem) => [i.type || i.make, i.marking, i.no != null ? `No. ${i.no}` : null].filter(Boolean).join(' ') || i.id;
+    const b = wireBoard(x.flat, x.wireLog ?? [], x.today, LIFTING_KEYS, ropeName);
+    const names = (l: string[]) => l.slice(0, 3).join(', ') + (l.length > 3 ? '…' : '');
+    if (b.red.length) n.push({ key: 'wire:red', level: 'red', who: 'officer', icon: 'anchor', route: 'WireLog', title: t('b.wire.red', { n: b.red.length }), sub: names(b.red) });
+    if (b.amber.length) n.push({ key: 'wire:amber', level: 'amber', who: 'officer', icon: 'anchor', route: 'WireLog', title: t('b.wire.amber', { n: b.amber.length }), sub: names(b.amber) });
   }
 
   // ---- Drug and alcohol tests: the unannounced test due, the laboratory, a positive with nothing done ----

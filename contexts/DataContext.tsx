@@ -54,6 +54,7 @@ import { RestPlan } from '../types/restPlan';
 import { DaFollowUp, DaPolicy, DaResult, DaTest } from '../types/daTest';
 import { EmPassage, EmStatement, EmVessel } from '../types/emissions';
 import { Chemical } from '../types/chemicals';
+import { WireEntry } from '../types/wireLog';
 import { Supplier } from '../types/suppliers';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
@@ -274,6 +275,8 @@ interface DataContextType {
   /** Oil analysis (types/oil.ts): sampling points, samples. */
   /** Chemicals aboard (types/chemicals.ts), those still aboard. */
   chemicals: Chemical[];
+  /** Rope and wire log (types/wireLog.ts). */
+  wireLog: WireEntry[];
   oilPoints: OilPoint[];
   oilSamples: OilSample[];
   /** Yard periods (types/yard.ts): work-list jobs, warranty claims. */
@@ -458,6 +461,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [apaEntries, setApaEntries] = useState<ApaEntry[]>([]);
   const [budgetLines, setBudgetLines] = useState<BudgetLine[]>([]);
   const [chemicals, setChemicals] = useState<Chemical[]>([]);
+  const [wireLog, setWireLog] = useState<WireEntry[]>([]);
   const [oilPoints, setOilPoints] = useState<OilPoint[]>([]);
   const [oilSamples, setOilSamples] = useState<OilSample[]>([]);
   const [yardJobs, setYardJobs] = useState<YardJob[]>([]);
@@ -601,6 +605,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _apaEntries1 = await storage.loadList<ApaEntry>(storage.APA_ENTRIES_KEY);
     const _budget1 = await storage.loadList<BudgetLine>(storage.BUDGET_KEY);
     const _chem1 = (await storage.loadList<Chemical>(storage.CHEMICALS_KEY)).filter((x) => !x.deleted);
+    const _wire1 = await storage.loadList<WireEntry>(storage.WIRE_LOG_KEY);
     const _oilPoints1 = (await storage.loadList<OilPoint>(storage.OIL_POINTS_KEY)).filter((x) => !x.deleted);
     const _oilSamples1 = await storage.loadList<OilSample>(storage.OIL_SAMPLES_KEY);
     const _yardJobs1 = await storage.loadList<YardJob>(storage.YARD_JOBS_KEY);
@@ -718,6 +723,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setApaEntries(_apaEntries1);
     setBudgetLines(_budget1);
     setChemicals(_chem1);
+    setWireLog(_wire1);
     setOilPoints(_oilPoints1);
     setOilSamples(_oilSamples1);
     setYardJobs(_yardJobs1);
@@ -989,6 +995,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _apaEntries2 = await storage.loadList<ApaEntry>(storage.APA_ENTRIES_KEY);
     const _budget2 = await storage.loadList<BudgetLine>(storage.BUDGET_KEY);
     const _chem2 = (await storage.loadList<Chemical>(storage.CHEMICALS_KEY)).filter((x) => !x.deleted);
+    const _wire2 = await storage.loadList<WireEntry>(storage.WIRE_LOG_KEY);
     const _oilPoints2 = (await storage.loadList<OilPoint>(storage.OIL_POINTS_KEY)).filter((x) => !x.deleted);
     const _oilSamples2 = await storage.loadList<OilSample>(storage.OIL_SAMPLES_KEY);
     const _yardJobs2 = await storage.loadList<YardJob>(storage.YARD_JOBS_KEY);
@@ -1096,6 +1103,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setApaEntries(_apaEntries2);
     setBudgetLines(_budget2);
     setChemicals(_chem2);
+    setWireLog(_wire2);
     setOilPoints(_oilPoints2);
     setOilSamples(_oilSamples2);
     setYardJobs(_yardJobs2);
@@ -1460,6 +1468,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         apaEntries,
         budgetLines,
         chemicals,
+        wireLog,
         oilPoints,
         oilSamples,
         yardJobs,

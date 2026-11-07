@@ -362,6 +362,18 @@ await t(false, 'The SDS never inside the card', setDoc(R(master, 'chemicals', 'c
 await t(false, 'The id is the document', setDoc(R(officer, 'chemicals', 'ch3'), { ...CH, id: 'other' }));
 await t(false, 'Nobody deletes a chemical', deleteDoc(R(master, 'chemicals', 'ch1')));
 
+// Rope and wire log (types/wireLog.ts): anyone aboard records, a renewal is an officer's, nothing changes.
+const WL = { id: 'w1', itemId: 'r1', kind: 'inspect', date: '2026-11-07', rating: 'fair', diameterMm: 41, by: 'Bosun', at: 1, createdAt: 1, updatedAt: 1 };
+await t(true, 'Crew records a look at a rope', setDoc(R(crew, 'wire_log', 'w1'), WL));
+await t(true, 'Crew records cut and slip', setDoc(R(crew, 'wire_log', 'w2'), { ...WL, id: 'w2', kind: 'cutSlip', cutM: 5 }));
+await t(false, 'Crew cannot record a renewal', setDoc(R(crew, 'wire_log', 'w3'), { ...WL, id: 'w3', kind: 'renewed', lengthM: 200 }));
+await t(true, 'An Officer records a renewal', setDoc(R(officer, 'wire_log', 'w4'), { ...WL, id: 'w4', kind: 'renewed', lengthM: 200 }));
+await t(false, 'A rope entry is final', setDoc(R(master, 'wire_log', 'w1'), { ...WL, rating: 'good', updatedAt: 2 }));
+await t(false, 'Nobody deletes a rope entry', deleteDoc(R(master, 'wire_log', 'w1')));
+await t(false, 'An unknown kind is refused', setDoc(R(officer, 'wire_log', 'w5'), { ...WL, id: 'w5', kind: 'painted' }));
+await t(false, 'Unsigned is refused', setDoc(R(officer, 'wire_log', 'w6'), { ...WL, id: 'w6', by: null }));
+await t(true, 'The office reads the rope log', getDoc(R(shore, 'wire_log', 'w1')));
+
 await t(false, 'A guest\'s full name never goes up', setDoc(R(officer, 'passengers', 'pax0'), { id: 'pax0', name: 'Sophie Martin', cabin: 'VIP', updatedAt: 1 }));
 await t(false, 'A guest\'s nationality stays on board', setDoc(R(officer, 'passengers', 'pax0'), { id: 'pax0', name: 'S…n', nationality: 'FR', updatedAt: 1 }));
 await t(true, 'An Officer adds a passenger (masked)', setDoc(R(officer, 'passengers', 'pax1'), { id: 'pax1', name: 'S…n', cabin: 'VIP', updatedAt: 1 }));

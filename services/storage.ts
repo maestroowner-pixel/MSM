@@ -154,6 +154,8 @@ export const EM_PASSAGES_KEY = `${PREFIX}em_passages`;
 export const EM_STATEMENTS_KEY = `${PREFIX}em_statements`;
 /** Chemicals aboard and their SDS (types/chemicals.ts). */
 export const CHEMICALS_KEY = `${PREFIX}chemicals`;
+/** Rope and wire log (types/wireLog.ts), append-only. */
+export const WIRE_LOG_KEY = `${PREFIX}wire_log`;
 /** Supplier directory (types/suppliers.ts) — quotes and awards live on the purchase orders. */
 export const SUPPLIERS_KEY = `${PREFIX}suppliers`;
 /**
@@ -941,6 +943,7 @@ export async function resetAllData(): Promise<void> {
     EM_PASSAGES_KEY,
     EM_STATEMENTS_KEY,
     CHEMICALS_KEY,
+    WIRE_LOG_KEY,
     DECK_LOG_KEY,
     SIGN_DRAFTS_KEY,
     GMDSS_KEY,

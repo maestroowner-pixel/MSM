@@ -101,6 +101,16 @@ export interface EquipmentItem {
   installedDate?: string;
   /** ISO — the last annual inspection or thorough examination. */
   lastInspection?: string;
+  // The rope's limits, for its log (types/wireLog.ts) — the maker's or the SMS's figures,
+  // never ours: without `discardDia` the log assumes 10 % off the nominal diameter and says so.
+  /** Length as fitted, m. */
+  ropeLength?: number;
+  /** Shortest length it may be cut down to, m. */
+  minLength?: number;
+  /** Diameter at which it is discarded, mm. */
+  discardDia?: number;
+  /** Retired after this many years in service, whatever its look. */
+  retireYears?: number;
   extra?: Record<string, any>; // category-specific columns
   monthlyChecks?: Record<string, boolean>; // e.g. { "2025-07": true } for checklist sheets
   attachments?: Attachment[]; // photos / documents attached to this item

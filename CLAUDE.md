@@ -334,6 +334,20 @@ app mirrors. Bundle id `com.kukalab.msm`.
   `chemHazards` (per pictogram, card PPE/fire/spill/storage as controls; enclosed adds the vapour line only for a product that gives off one).
   `Permit.chemIds` — chips + PPE on PermitSc. Board (officers): amber no SDS / old SDS / no assessment, blue to check. Officers write, all read
   (rules `chemicals`, rules-test.mjs). `npm run check:chem`. `npm run deploy:rules` + functions `ai` before the flag.
+- **Rope and wire log** (7 Nov 2026 — flag `wires`, off; needs `lifting`; plan item 67, UniSea's "Wire Manager"): `types/wireLog.ts`,
+  pure `services/wireLog.ts` + rows `services/wireRows.ts` (pure, so check:wirelog can reach them), papers `services/wireReport.ts`
+  (PMS-history PDF + Excel Ropes/Log), `components/WireLogCard.tsx` (on ItemDetail), screens `WireEntrySc` (route `WireEntry`
+  `rope-entry/:itemId`), `WireLogSc` (route `WireLog` `ropes`; button on the rope categories' lists, Board). A log for items in
+  `WIRE_CATEGORIES` (mooring, hooks_cables, cranes) or any LIFTING item with a diameter. `wire_log` is APPEND-ONLY, one signed entry
+  each: inspect (rating, `diameterMm`, `brokenWires` wire only, findings, photos via photoQueue/EvidencePhoto like a PMS defect),
+  cutSlip, endForEnd, lube, brake (`brakeOk`), renewed (officers; rules too) — the same signature writes `installedDate`, diameter,
+  `ropeLength`, `testCertNo` onto the item (`renewItem`), and everything counts from there. Item gains `ropeLength`, `minLength`,
+  `discardDia`, `retireYears` (form shows them under Lifting when the log applies). `wireState`: loss %, mm/year by least squares
+  (the nominal on the day fitted counts as a reading; ≥ 2 points ≥ 30 days apart), discard date at that rate, length after cuts, age.
+  No `discardDia` → 10 % off nominal, said as "assumed". Red: discard look, at discard diameter, below shortest length, past years, brake
+  failed; amber: poor look, discard within 90 days, ¾ of the allowance gone, within 10 % of the shortest length, retiring within 90 days.
+  Board (officers): `wire:red`, `wire:amber`. Diameters in inches are never converted (`diaOf`). Translation keys are `rope.*` (`wl.*`
+  is the Engine room log). `npm run check:wirelog`; rules-test.mjs covers it. `npm run deploy:rules` before the flag.
 - **Drug and alcohol tests** (3 Nov 2026 — flag `daTests`, off; plan item 42; needs `crewCerts`): `types/daTest.ts`, pure
   `services/daTests.ts`, paper `services/daTestReport.ts` (PMS-history PDF), screens `DaTestsSc` / `DaTestSc` (routes `DaTests`
   `da-tests`, `DaTest` `da-test/:id` (`new`); entry: Crew → Drug and alcohol tests, Board). THREE append-only records: `da_tests`

@@ -1089,6 +1089,15 @@ service cloud.firestore {
                               && (!('sds' in request.resource.data) || request.resource.data.sds.url.matches('https://.*'));
         allow delete: if false;
       }
+      // Rope and wire log (types/wireLog.ts): signed entries, append-only. Anyone aboard records a look,
+      // cut and slip, lubrication or a brake test; a renewal (which rewrites the rope on the register) is an officer's.
+      match /wire_log/{id} {
+        allow read: if reader(v);
+        allow create: if member(v) && request.resource.data.id == id && request.resource.data.by is string
+                      && request.resource.data.kind in ['inspect', 'cutSlip', 'endForEnd', 'lube', 'brake', 'renewed']
+                      && (request.resource.data.kind != 'renewed' || isAdmin(v));
+        allow update, delete: if false;
+      }
       match /da_policy/{id} {
         allow read: if isAdmin(v) || shore(v);
         allow create, update: if isSuper(v) && id == 'policy';

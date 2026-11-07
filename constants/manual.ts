@@ -901,6 +901,17 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🪢',
+      title: "Ropes and wires",
+      body: [
+        "Every mooring line, crane wire, winch wire and hoist rope keeps its own log: Mooring Equipment, Hooks & Cables and Cranes always, other lifting gear once its diameter is typed. Open it on the item (Rope log, above the lifecycle) or see all of them in Ropes and wires — from the button on those registers or from the Board. The list puts first what is to be discarded, then what is close to a limit.",
+        "On the item, under Lifting & Mooring, type the rope's limits from the maker's certificate or your SMS: Length as fitted, Shortest length (how far cut and slip may take it), Discard diameter, and Retire after (years in service). Without a discard diameter the log takes 10 % off the nominal diameter and says so beside the figure — type the maker's figure where you have it.",
+        "Record: Condition — Good, Fair, Poor or Discard; the diameter measured (the smallest reading along the length that works); for wire, the broken wires seen; what was found (abrasion, cuts, kinks, crushing, corrosion, birdcaging, a broken strand, heat damage, hardening, a worn eye or splice); photos of the damage. Cut and slip — how much was cut off and at which end; the log shows the length before and after. End for end, Lubricated, Brake test (held or not, and the load). Renewed — officers only: the new rope's length, diameter and certificate go onto the item with the same signature, and its wear counts from that day.",
+        "Each entry is signed and never changed; a mistake is put right with a new entry. Anyone aboard can record a look, a cut, lubrication or a brake test.",
+        "From the readings the log works out how much of the diameter is gone, how fast it is wearing (mm a year, from two readings at least 30 days apart), and when at that rate it reaches the discard diameter; how much length is left; and its age. Red: discard at the last look, at the discard diameter, shorter than the shortest length, past its years, or the brake did not hold. Amber: poor at the last look, the discard diameter within 90 days, three quarters of the wear allowance gone, close to the shortest length, or retiring within 90 days. The Board tells the officers which ropes are red and which amber. PDF and Excel (English): every rope with its wear, length and age, and each rope's log.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'About',
       body: [
@@ -1773,6 +1784,17 @@ const ru: ManualContent = {
         "Если AI включён, он читает SDS сразу после добавления, на каком бы языке тот ни был, и показывает найденное рядом с карточкой по-английски. Ничего не меняется, пока вы не нажмёте «В карточку»: тогда опасности, СИЗ, первая помощь, пожар, разлив и хранение заменяются тем, что сказано в этом паспорте. Сохраните, а офицер открывает SDS, сравнивает с карточкой и подписывает «Сверено с SDS». Новый паспорт или изменение того, что дал SDS, снимает сверку.",
         "Оценка риска (если включены наряды-допуски): из карточки «Оценить: на палубе / в помещении» или «Оценить: в замкнутом пространстве» начинает обычную оценку риска с опасностями средства, оценёнными до и после мер, где меры — СИЗ, пожар, разлив и хранение из карточки. Поправьте оценки и меры под работу и утвердите как любую другую. Средство с ОПАСНО или ОСТОРОЖНО без утверждённой оценки отмечено в карточке и на Board. Наряд-допуск называет химию, которую использует работа; её сигнальное слово, пиктограммы и СИЗ видны в наряде.",
         "Board показывает офицерам средства без SDS, паспорта старше пяти лет (запросите у поставщика текущую редакцию), опасные средства без утверждённой оценки и карточки, ждущие сверки. «Убрано с судна» убирает средство из списка; наряды и оценки, где оно названо, сохраняют запись. Реестр PDF и Excel (по-английски) перечисляет все средства с местом и количеством, опасностями, СИЗ, датой SDS, сверкой и оценкой; в Excel второй лист — первая помощь, пожар и разлив, чтобы распечатать для кладовой.",
+      ],
+    },
+    {
+      emoji: '🪢',
+      title: "Тросы",
+      body: [
+        "У каждого швартовного конца, троса крана, лебёдки и подъёмника свой журнал: в Mooring Equipment, Hooks & Cables и Cranes — всегда, у другого грузоподъёмного — когда указан диаметр. Откройте его в карточке оборудования («Журнал троса», над жизненным циклом) или все сразу в «Тросы» — кнопкой в этих разделах реестра или с Board. В списке сначала то, что пора списать, затем то, что близко к пределу.",
+        "В карточке, в блоке Lifting & Mooring, укажите пределы троса по сертификату производителя или по вашей СУБ: длина при установке, минимальная длина (до какой можно обрезать), браковочный диаметр и срок службы в годах. Без браковочного диаметра журнал берёт 10 % от номинального и пишет об этом рядом с цифрой — укажите данные производителя, если они есть.",
+        "«Записать»: Состояние — хорошее, удовлетворительное, плохое или списать; измеренный диаметр (наименьший по рабочей длине); для стального троса — видимые оборванные проволоки; что обнаружено (истирание, порезы, перегибы, смятие, коррозия, «фонарь», обрыв пряди, оплавление, затвердение, износ огона или сплесня); фото повреждения. Обрезка — сколько отрезано и с какого конца; журнал показывает длину до и после. Перекладка концами, Смазка, Проверка тормоза (держит или нет, и нагрузка). Замена — только офицеры: длина, диаметр и сертификат нового троса той же подписью записываются в карточку, и износ считается с этого дня.",
+        "Каждая запись подписывается и не меняется; ошибка исправляется новой записью. Осмотр, обрезку, смазку и проверку тормоза может записать любой на борту.",
+        "По замерам журнал считает, сколько диаметра потеряно, как быстро идёт износ (мм в год, по двум замерам с разницей не меньше 30 дней) и когда при таком темпе будет браковочный диаметр; сколько осталось длины; возраст троса. Красное: «списать» на последнем осмотре, браковочный диаметр достигнут, короче минимальной длины, срок службы вышел или тормоз не держал. Жёлтое: плохое состояние на последнем осмотре, браковочный диаметр в ближайшие 90 дней, израсходовано три четверти допуска на износ, близко к минимальной длине или срок службы выходит в ближайшие 90 дней. Board показывает офицерам красные и жёлтые тросы. PDF и Excel (по-английски): все тросы с износом, длиной и возрастом и журнал каждого.",
       ],
     },
     {
@@ -2651,6 +2673,17 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🪢',
+      title: "Cabos y cables",
+      body: [
+        "Cada cabo de amarre, cable de grúa, de chigre o de izado lleva su propio registro: siempre en Mooring Equipment, Hooks & Cables y Cranes, y en el resto del equipo de izado cuando se escribe su diámetro. Ábralo en la ficha (Registro del cabo, encima del ciclo de vida) o véalos todos en Cabos y cables, desde el botón de esos registros o desde el Board. La lista pone primero lo que hay que desechar y luego lo que está cerca de un límite.",
+        "En la ficha, en Lifting & Mooring, escriba los límites del cabo según el certificado del fabricante o su SMS: Longitud instalada, Longitud mínima (hasta dónde puede llegar con los cortes), Diámetro de desecho y Retirar a los (años de servicio). Sin diámetro de desecho el registro toma un 10 % del nominal y lo indica junto a la cifra; escriba el dato del fabricante cuando lo tenga.",
+        "Registrar: Estado — Bueno, Aceptable, Malo o Desechar; el diámetro medido (la lectura más pequeña del tramo que trabaja); en cable de acero, los alambres rotos visibles; lo encontrado (abrasión, cortes, cocas, aplastamiento, corrosión, jaula de pájaro, cordón roto, daño por calor, endurecimiento, gaza o empalme desgastado); fotos del daño. Corte y corrida — cuánto se cortó y en qué extremo; el registro muestra la longitud antes y después. Invertido de extremo, Lubricado, Prueba de freno (sujetó o no, y la carga). Renovado — solo oficiales: la longitud, el diámetro y el certificado del cabo nuevo pasan a la ficha con la misma firma, y su desgaste cuenta desde ese día.",
+        "Cada entrada se firma y no se cambia; un error se corrige con una entrada nueva. Cualquiera a bordo puede registrar una revisión, un corte, la lubricación o una prueba de freno.",
+        "Con las lecturas el registro calcula cuánto diámetro se ha perdido, a qué ritmo se desgasta (mm al año, con dos lecturas separadas al menos 30 días) y cuándo, a ese ritmo, llegará al diámetro de desecho; cuánta longitud queda; y su edad. Rojo: desechar en la última revisión, en el diámetro de desecho, más corto que la longitud mínima, pasados sus años o el freno no sujetó. Ámbar: malo en la última revisión, diámetro de desecho en 90 días, tres cuartos del margen de desgaste consumidos, cerca de la longitud mínima o se retira en 90 días. El Board indica a los oficiales qué cabos están en rojo y en ámbar. PDF y Excel (en inglés): cada cabo con su desgaste, longitud y edad, y el registro de cada uno.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Acerca de',
       body: [
@@ -3526,6 +3559,17 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🪢',
+      title: "Троси",
+      body: [
+        "Кожен швартовний кінець, трос крана, лебідки й підйомника має свій журнал: у Mooring Equipment, Hooks & Cables і Cranes — завжди, в іншого вантажопідіймального — коли вказано діаметр. Відкрийте його в картці обладнання («Журнал троса», над життєвим циклом) або всі одразу в «Троси» — кнопкою в цих розділах реєстру чи з Board. У списку спершу те, що час списати, далі те, що близько до межі.",
+        "У картці, в блоці Lifting & Mooring, вкажіть межі троса за сертифікатом виробника або вашою СУБ: довжина при встановленні, мінімальна довжина (до якої можна обрізати), бракувальний діаметр і строк служби в роках. Без бракувального діаметра журнал бере 10 % від номінального й пише про це поруч із цифрою — вкажіть дані виробника, якщо вони є.",
+        "«Записати»: Стан — добрий, задовільний, поганий або списати; виміряний діаметр (найменший по робочій довжині); для сталевого троса — видимі обірвані дроти; що виявлено (стирання, порізи, перегини, зминання, корозія, «ліхтар», обрив пасма, оплавлення, затвердіння, знос вогону або сплесню); фото пошкодження. Обрізка — скільки відрізано і з якого кінця; журнал показує довжину до і після. Перекладка кінцями, Змащення, Перевірка гальма (тримає чи ні, і навантаження). Заміна — лише офіцери: довжина, діаметр і сертифікат нового троса тим самим підписом записуються в картку, і знос рахується з цього дня.",
+        "Кожен запис підписується й не змінюється; помилка виправляється новим записом. Огляд, обрізку, змащення й перевірку гальма може записати будь-хто на борту.",
+        "За замірами журнал рахує, скільки діаметра втрачено, як швидко йде знос (мм на рік, за двома замірами з різницею не менше 30 днів) і коли за такого темпу буде бракувальний діаметр; скільки лишилося довжини; вік троса. Червоне: «списати» на останньому огляді, бракувальний діаметр досягнуто, коротший за мінімальну довжину, строк служби минув або гальмо не тримало. Жовте: поганий стан на останньому огляді, бракувальний діаметр протягом 90 днів, витрачено три чверті допуску на знос, близько до мінімальної довжини або строк служби минає протягом 90 днів. Board показує офіцерам червоні й жовті троси. PDF і Excel (англійською): усі троси зі зносом, довжиною й віком і журнал кожного.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Про застосунок',
       body: [
@@ -4336,6 +4380,17 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '🪢',
+      title: "Tau og wire",
+      body: [
+        "Hver fortøyningstrosse, kranwire, vinsjwire og heisetau har sin egen logg: alltid i Mooring Equipment, Hooks & Cables og Cranes, og for annet løfteutstyr når diameteren er skrevet inn. Åpne den på enheten (Tauverkslogg, over livsløpet) eller se alle i Tau og wire — fra knappen i disse registrene eller fra Board. Listen viser først det som skal kasseres, så det som er nær en grense.",
+        "På enheten, under Lifting & Mooring, skriv tauets grenser fra produsentens sertifikat eller SMS: Lengde ved montering, Minste lengde (hvor langt kapping kan gå), Kassasjonsdiameter og Skiftes etter (år i bruk). Uten kassasjonsdiameter regner loggen 10 % av den nominelle og sier det ved tallet — skriv produsentens tall der du har det.",
+        "Registrer: Tilstand — God, Brukbar, Dårlig eller Kasser; målt diameter (minste måling langs delen som arbeider); for wire, synlige trådbrudd; hva som ble funnet (slitasje, kutt, kinker, klemming, korrosjon, fuglebur, brudd i kordell, varmeskade, herding, slitt øye eller spleis); bilder av skaden. Kapping — hvor mye som ble kappet og i hvilken ende; loggen viser lengden før og etter. Snudd ende for ende, Smurt, Bremsetest (holdt eller ikke, og lasten). Fornyet — bare offiserer: det nye tauets lengde, diameter og sertifikat føres på enheten med samme signatur, og slitasjen regnes fra den dagen.",
+        "Hver føring signeres og endres aldri; en feil rettes med en ny føring. Alle om bord kan registrere en kontroll, kapping, smøring eller bremsetest.",
+        "Ut fra målingene regner loggen ut hvor mye av diameteren som er borte, hvor fort den slites (mm i året, fra to målinger minst 30 dager fra hverandre) og når den med den takten når kassasjonsdiameteren; hvor mye lengde som er igjen; og alderen. Rødt: kasser ved siste kontroll, ved kassasjonsdiameteren, kortere enn minste lengde, over brukstiden eller bremsen holdt ikke. Gult: dårlig ved siste kontroll, kassasjonsdiameteren innen 90 dager, tre firedeler av slitasjemarginen brukt, nær minste lengde eller skiftes innen 90 dager. Board viser offiserene hvilke tau som er røde og gule. PDF og Excel (engelsk): hvert tau med slitasje, lengde og alder, og loggen for hvert.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Om',
       body: [
@@ -5131,6 +5186,17 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '🪢',
+      title: "Cabos e cabos de aço",
+      body: [
+        "Cada cabo de amarração, cabo de grua, de guincho e de elevação tem o seu próprio registo: sempre em Mooring Equipment, Hooks & Cables e Cranes, e no restante equipamento de elevação quando o diâmetro está escrito. Abra-o na ficha (Registo do cabo, acima do ciclo de vida) ou veja todos em Cabos e cabos de aço — pelo botão desses registos ou pelo Board. A lista mostra primeiro o que deve ser rejeitado e depois o que está perto de um limite.",
+        "Na ficha, em Lifting & Mooring, escreva os limites do cabo segundo o certificado do fabricante ou o seu SMS: Comprimento instalado, Comprimento mínimo (até onde os cortes podem ir), Diâmetro de rejeição e Retirar após (anos de serviço). Sem diâmetro de rejeição o registo assume 10 % do nominal e indica-o junto ao valor — escreva o valor do fabricante quando o tiver.",
+        "Registar: Estado — Bom, Razoável, Mau ou Rejeitar; o diâmetro medido (a menor leitura do troço que trabalha); em cabo de aço, os arames partidos visíveis; o que foi encontrado (abrasão, cortes, cocas, esmagamento, corrosão, gaiola de pássaro, perna partida, dano por calor, endurecimento, mão ou costura gasta); fotos do dano. Corte e corrida — quanto foi cortado e em que ponta; o registo mostra o comprimento antes e depois. Invertido de ponta, Lubrificado, Teste do travão (segurou ou não, e a carga). Renovado — só oficiais: o comprimento, o diâmetro e o certificado do cabo novo passam para a ficha com a mesma assinatura, e o desgaste conta desse dia.",
+        "Cada entrada é assinada e nunca alterada; um erro corrige-se com uma entrada nova. Qualquer pessoa a bordo pode registar uma inspeção, um corte, a lubrificação ou um teste do travão.",
+        "Com as leituras o registo calcula quanto do diâmetro se perdeu, a que ritmo se desgasta (mm por ano, com duas leituras com pelo menos 30 dias de intervalo) e quando, a esse ritmo, chega ao diâmetro de rejeição; quanto comprimento resta; e a idade. Vermelho: rejeitar na última inspeção, no diâmetro de rejeição, mais curto que o mínimo, passados os anos de serviço ou o travão não segurou. Âmbar: mau na última inspeção, diâmetro de rejeição em 90 dias, três quartos da margem de desgaste consumidos, perto do comprimento mínimo ou retira-se em 90 dias. O Board indica aos oficiais que cabos estão a vermelho e a âmbar. PDF e Excel (em inglês): cada cabo com desgaste, comprimento e idade, e o registo de cada um.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Sobre',
       body: [
@@ -5210,6 +5276,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'My documents', module: 'myDocs' },
   { title: 'My documents', module: 'mySdm', drop: [2] },
   { title: 'Chemicals and safety data sheets', module: 'chem' },
+  { title: 'Ropes and wires', module: 'wires' },
   { title: 'Chemicals and safety data sheets', module: 'ptw', drop: [3] },
   { title: 'Planned maintenance', module: 'critEq', drop: [-1] },
   { title: 'Suppliers and quotations', module: 'poApproval', drop: [-1] },

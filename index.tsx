@@ -153,6 +153,8 @@ import GalleyOrdersSc from './screens/GalleyOrdersSc';
 import GalleyOrderSc from './screens/GalleyOrderSc';
 import PermitSc from './screens/PermitSc';
 import ChemicalSc from './screens/ChemicalSc';
+import WireLogSc from './screens/WireLogSc';
+import WireEntrySc from './screens/WireEntrySc';
 import RiskSc from './screens/RiskSc';
 import CrewMatrixSc from './screens/CrewMatrixSc';
 import FleetSc from './screens/FleetSc';
@@ -568,6 +570,8 @@ const linking = {
       Permit: 'permit/:id',
       Risk: 'risk/:id',
       Chemical: 'chemical/:id',
+      WireLog: 'ropes',
+      WireEntry: 'rope-entry/:itemId',
       CrewMatrix: 'crew-matrix',
       Fleet: 'fleet',
       FleetVessel: 'fleet/:imo',
@@ -849,6 +853,8 @@ function Root() {
         <Stack.Screen name="CrewMember" component={CrewMemberSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Permit" component={PermitSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Chemical" component={ChemicalSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="WireLog" component={WireLogSc} options={webHeader(t('rope.listTitle'))} />
+        <Stack.Screen name="WireEntry" component={WireEntrySc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Risk" component={RiskSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="CrewMatrix" component={CrewMatrixSc} options={webHeader(t('cm.title'))} />
         <Stack.Screen name="Fleet" component={FleetSc} options={webHeader(t('fleet.title'))} />
