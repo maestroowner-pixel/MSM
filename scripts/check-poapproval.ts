@@ -124,7 +124,7 @@ for (const lang of ['en', 'ru', 'uk', 'es', 'pt', 'no'] as const) {
   const i = MANUAL.en.sections.findIndex((x) => x.title === 'Suppliers and quotations');
   const full = MANUAL[lang].sections[i]?.body ?? [];
   const shown = releasedManual(lang).sections.find((x) => x.title === MANUAL[lang].sections[i]?.title)?.body ?? [];
-  ok(full.length === 3 && shown.length === 2 && !shown.some((b) => b.includes('→')), `manual ${lang}: the paragraph is there and hidden with the flag off`);
+  ok(full.length >= 3 && shown.length === full.length - 1 && !shown.includes(full[full.length - 1]) && !shown.some((b) => b.includes('→')), `manual ${lang}: the paragraph is there and hidden with the flag off`);
 }
 
 console.log(fail ? `\n${fail} failed` : '\nall passed');

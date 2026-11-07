@@ -27,7 +27,7 @@ ok(/CERTIFICATES_KEY, JSON\.stringify\(list\.map\(\(c\) => splitCert\(c\)\.lean\
 const rules = fs.readFileSync('firestore.rules', 'utf8');
 ok(/match \/cert_private\/\{id\} \{\s*allow read, create, update: if isAdmin\(v\);/.test(rules), 'rules: officers and the Master only');
 const sr = fs.readFileSync('storage.rules', 'utf8');
-ok(/crew_docs\/\{certId\}\/\{file\} \{\s*allow read, delete: if member\(vessel\) && \(claims\(\)\.role == 'admin'/.test(sr), 'storage rules: officers and the Master only');
+ok(/crew_docs\/\{certId\}\/\{file\} \{\s*allow read, delete: if member\(vessel\) && officer\(vessel\);/.test(sr), 'storage rules: officers and the Master only');
 
 if (bad) { console.error(`${bad} failed`); process.exit(1); }
 console.log('All passed');
