@@ -32,6 +32,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as fb from '../services/firebaseService';
 import * as storage from '../services/storage';
 import { mergeCategories, mergeCrew, mergeInspections, mergeTemplates } from '../services/inspections';
+import { keepLocalPhotos } from '../services/inlinePhotos';
 import NetInfo from '@react-native-community/netinfo';
 
 import * as photoQueue from '../services/photoQueue';
@@ -407,7 +408,8 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       unsubs.current.push(
         fb.subscribeInspections(uid, since, async (rows) => {
           if (!rows.length) return;
-          const merged = mergeInspections(await storage.loadInspections(), rows);
+          const local = await storage.loadInspections();
+          const merged = mergeInspections(local, keepLocalPhotos(local, rows));
           await storage.saveInspections(merged);
           applyingRemote.current = true;
           try { await reload(); } finally { applyingRemote.current = false; }

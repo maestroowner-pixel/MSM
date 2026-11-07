@@ -25,11 +25,13 @@
 
 import { getStorage, ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
 import * as FileSystem from 'expo-file-system/legacy';
+import { Platform } from 'react-native';
 
 import { Attachment } from '../types/equipment';
 import { Inspection } from '../types/inspection';
 import * as fb from './firebaseService';
 import { ATTACHMENTS_DIR, ensureAttachmentsDir, resolveUri } from './attachments';
+import { INLINE_ELSEWHERE } from './inlinePhotos';
 
 const ROOT = 'safety_vessels';
 
@@ -91,7 +93,8 @@ export async function ensureLocalPhoto(
   inspectionId: string,
   photo: Attachment
 ): Promise<string | null> {
-  const local = resolveUri(photo.uri);
+  // The marker: the bytes are on the device that took it, and in Storage once its queue sent them.
+  const local = photo.uri === INLINE_ELSEWHERE ? undefined : resolveUri(photo.uri);
 
   // A photo signed in a BROWSER carries its own bytes: attachments.web.ts has no
   // files directory, so the uri is a base64 `data:` string. It is displayable as
@@ -100,6 +103,18 @@ export async function ensureLocalPhoto(
   // escaped the caller's effect, so neither the image nor the "not uploaded"
   // state was ever set and the spinner turned for ever.
   if (local?.startsWith('data:')) return local;
+
+  // A browser has no files to stat or download into: the Storage link itself is
+  // what <Image> shows. Before the cloud copy lost its bytes (services/inlinePhotos.ts)
+  // a browser only ever saw photos taken in a browser; now it sees a phone's too.
+  if (Platform.OS === 'web') {
+    if (local && /^(https?|blob):/.test(local)) return local;
+    try {
+      return await getDownloadURL(storageRef(bucket(), photoPath(vessel, inspectionId, photo.id)));
+    } catch {
+      return null;
+    }
+  }
 
   if (local) {
     try {

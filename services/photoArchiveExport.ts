@@ -88,6 +88,17 @@ async function readPhoto(vessel: string, insp: Inspection, photoId: string, uri:
     // no files directory), and expo-file-system cannot read it — nor does it
     // need to.
     if (local.startsWith('data:')) return local.slice(local.indexOf(',') + 1);
+    // In a browser a photo that is not inline comes back as its Storage link.
+    if (/^https?:/.test(local)) {
+      const blob = await (await fetch(local)).blob();
+      const dataUri: string = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(String(r.result));
+        r.onerror = () => rej(r.error);
+        r.readAsDataURL(blob);
+      });
+      return dataUri.slice(dataUri.indexOf(',') + 1);
+    }
     const info = await FileSystem.getInfoAsync(local);
     if (!info.exists) return null;
     return await FileSystem.readAsStringAsync(local, { encoding: 'base64' });

@@ -103,6 +103,7 @@ import { CATEGORIES, CategoryMeta } from '../constants/categories';
 import * as storage from './storage';
 import { ModuleKey, moduleOn } from '../constants/modules';
 import * as attachmentStorage from './attachmentStorage';
+import { INLINE_ELSEWHERE, keepLocalPhotos, photosToCloud } from './inlinePhotos';
 import * as trial from './trial';
 import { mergeCategories, mergeCrew, mergeInspections, mergeTemplates, unsentInspections } from './inspections';
 import type { SigningPolicy } from './signingPolicy';
@@ -546,12 +547,9 @@ interface RegisterBlob {
   compressor?: any;
 }
 
-/**
- * Marker left where an inline file used to be. Anything but empty, so a reader
- * can tell "this attachment exists but its bytes are not in the register" from
- * "this attachment has no file".
- */
-const INLINE_ELSEWHERE = 'msm:inline-not-synced';
+// INLINE_ELSEWHERE — the marker left where an inline file used to be. Anything but
+// empty, so a reader can tell "this attachment exists but its bytes are not in the
+// register" from "this attachment has no file". Lives in services/inlinePhotos.ts.
 
 /**
  * Take the FILE PAYLOADS out of the register before it is written.
@@ -1028,7 +1026,7 @@ async function writeInBatches(uid: string, sub: string, rows: Array<{ id: string
   for (let i = 0; i < rows.length; i += BATCH_LIMIT) {
     const batch = fsWriteBatch(d);
     for (const row of rows.slice(i, i + BATCH_LIMIT)) {
-      batch.set(fsDoc(d, ROOT, uid, sub, row.id), stripUndefined(row.data));
+      batch.set(fsDoc(d, ROOT, uid, sub, row.id), stripUndefined(photosToCloud(row.data)));
     }
     await batch.commit();
   }
@@ -1443,7 +1441,7 @@ async function pushPartly(uid: string, l: SyncedList, rows: { id: string; update
   for (const r of rows) {
     const ref = fsDoc(d, ROOT, uid, l.sub, r.id);
     try {
-      await fsSetDoc(ref, stripUndefined(r));
+      await fsSetDoc(ref, stripUndefined(photosToCloud(r)));
       continue;
     } catch (e: any) {
       if (!denied(e)) throw e;
@@ -1456,7 +1454,7 @@ async function pushPartly(uid: string, l: SyncedList, rows: { id: string; update
     const part: Record<string, any> = {};
     for (const k of l.partial ?? []) if ((r as any)[k] !== undefined) part[k] = (r as any)[k];
     try {
-      await fsSetDoc(ref, stripUndefined(part), { merge: true });
+      await fsSetDoc(ref, stripUndefined(photosToCloud(part)), { merge: true });
     } catch (e: any) {
       if (!denied(e)) throw e;
     }
@@ -1464,7 +1462,7 @@ async function pushPartly(uid: string, l: SyncedList, rows: { id: string; update
   }
   if (Object.keys(back).length) {
     const list = await storage.loadList<{ id: string; updatedAt: number }>(l.key);
-    await storage.saveList(l.key, list.map((x) => back[x.id] ?? x));
+    await storage.saveList(l.key, list.map((x) => (back[x.id] ? keepLocalPhotos([x], [back[x.id]])[0] : x)));
   }
 }
 
@@ -1486,7 +1484,7 @@ async function pushList(uid: string, l: SyncedList): Promise<number> {
       const d = requireDb();
       for (const r of fresh) {
         try {
-          await fsSetDoc(fsDoc(d, ROOT, uid, l.sub, r.id), stripUndefined(l.toCloud(r)));
+          await fsSetDoc(fsDoc(d, ROOT, uid, l.sub, r.id), stripUndefined(photosToCloud(l.toCloud(r))));
           sent[r.id] = r.updatedAt ?? 0;
         } catch (e: any) {
           if (!String(e?.code ?? e?.message ?? '').includes('permission')) throw e;
@@ -1499,7 +1497,7 @@ async function pushList(uid: string, l: SyncedList): Promise<number> {
       const d = requireDb();
       for (const r of fresh) {
         try {
-          await fsSetDoc(fsDoc(d, ROOT, uid, l.sub, r.id), stripUndefined(r));
+          await fsSetDoc(fsDoc(d, ROOT, uid, l.sub, r.id), stripUndefined(photosToCloud(r)));
         } catch (e: any) {
           if (!String(e?.code ?? e?.message ?? '').includes('permission')) throw e;
           // Refused. Either it is already in the vessel's record (an update the
@@ -1547,7 +1545,7 @@ async function pullList(uid: string, l: SyncedList): Promise<number> {
       const local = await storage.loadList<{ id: string; updatedAt: number }>(l.key);
       const mine = new Map(local.map((x) => [x.id, x]));
       const back = l.fromCloud ? remote.map((r) => l.fromCloud!(mine.get(r.id), r)) : remote;
-      await storage.saveList(l.key, mergeById(local, back));
+      await storage.saveList(l.key, mergeById(local, keepLocalPhotos(local, back)));
       // What the vessel just handed us is, by definition, already up there. Without
       // this a device that lost its pushed-map (a reinstall, a restore) re-sends
       // everything it pulls — and for `pms_done`, where the rules allow create but
@@ -1644,7 +1642,8 @@ export async function pullInspections(uid: string): Promise<number> {
   const iSnap = await fsGetDocs(fsCollection(d, ROOT, uid, 'inspections'));
   const remote: Inspection[] = [];
   iSnap.forEach((doc) => remote.push(doc.data() as Inspection));
-  const merged = mergeInspections(await storage.loadInspections(), remote);
+  const local = await storage.loadInspections();
+  const merged = mergeInspections(local, keepLocalPhotos(local, remote));
   await storage.saveInspections(merged);
   // Anything the vessel just handed us is, by definition, already up there.
   await rememberPushed(remote);
@@ -1771,7 +1770,7 @@ export function subscribeCategories(uid: string, cb: (rows: CategoryMeta[]) => v
 /** Write one signed record straight through — used the moment it is signed. */
 export async function pushOneInspection(uid: string, insp: Inspection): Promise<void> {
   if (!syncSupported()) return;
-  await fsSetDoc(fsDoc(requireDb(), ROOT, uid, 'inspections', insp.id), stripUndefined(insp));
+  await fsSetDoc(fsDoc(requireDb(), ROOT, uid, 'inspections', insp.id), stripUndefined(photosToCloud(insp)));
 }
 
 // ---- Entitlement (web subscription / license) ------------------------------
