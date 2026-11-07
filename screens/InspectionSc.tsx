@@ -47,6 +47,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { BackButton, Card, CategoryBadge, Label } from '../components/ui';
 import { SignerPicker } from '../components/SignerPicker';
 import { EnglishAi } from '../components/EnglishAi';
+import { CheckState, PhotoCheckPanel } from '../components/PhotoCheckPanel';
+import { referenceOf, signWarning } from '../services/photoCheckAi';
 import { MciIcon } from '../components/MciIcon';
 import { VoiceInput } from '../components/VoiceInput';
 import { aiCall, aiReady } from '../services/ai';
@@ -104,7 +106,7 @@ export default function InspectionSc() {
   const route = useRoute<any>();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
-  const { flat, crew, prefs, vessel, templates, addInspection, setPrefs, signingPolicy, rounds } = useData();
+  const { flat, crew, prefs, vessel, templates, addInspection, setPrefs, signingPolicy, rounds, inspections: records } = useData();
   const activeRoundId = useActiveRound();
   const confirmSign = useSignConfirm();
   const sync = useSync();
@@ -174,6 +176,9 @@ export default function InspectionSc() {
   const [comment, setComment] = useState('');
   const [defectNote, setDefectNote] = useState('');
   const [photos, setPhotos] = useState<Attachment[]>([]);
+  // The AI's look at the newest evidence photo (plan item 66) — a hint, kept only in what the inspector puts into the remark or the defect.
+  const [photoCheck, setPhotoCheck] = useState<CheckState | null>(null);
+  const refPhoto = useMemo(() => (item ? referenceOf(item, records) : null), [item, records]);
   const [saving, setSaving] = useState(false);
   /**
    * Two refs, because `saving` is state and state is too slow to guard with.
@@ -192,6 +197,8 @@ export default function InspectionSc() {
    */
   const signed = useRef(false);
   const confirming = useRef(false);
+  /** The photo check's warning was shown and answered with "sign anyway". */
+  const warned = useRef(false);
 
   // Signer: whoever used this device last, if they are still on the crew list.
   const activeCrew = useMemo(() => crew.filter((c) => c.active && (!sync.me?.shared || maySign(c))), [crew, sync.me?.shared]);
@@ -396,6 +403,24 @@ export default function InspectionSc() {
       );
       return;
     }
+    // What the photo check saw that the answers do not say — asked once, before the usual confirmation.
+    const shot = [...photos].reverse().find((p) => p.kind === 'photo');
+    const warn = photoCheck && photoCheck.photoId === shot?.id ? signWarning(photoCheck.check, results) : null;
+    if (warn && !warned.current) {
+      warned.current = true;
+      Alert.alert(
+        t('pc.signHead'),
+        [warn.notItem ? t('pc.signNotItem') : '', warn.samePhoto ? t('pc.signSamePhoto') : '', warn.major.length ? t('pc.signMajor', { what: warn.major.join('; ') }) : '']
+          .filter(Boolean)
+          .join('\n\n'),
+        [
+          { text: t('common.back'), style: 'cancel', onPress: () => { warned.current = false; } },
+          { text: t('pc.signAnyway'), onPress: () => confirmSave() },
+        ]
+      );
+      return;
+    }
+    warned.current = false;
     // Spelled out, because it cannot be undone afterwards.
     Alert.alert(
       anyFail ? t('ins.signFailed') : t('ins.signPassed'),
@@ -715,6 +740,17 @@ export default function InspectionSc() {
               ) : null}
             </View>
             {photos.length ? <Text style={styles.hint}>{t('ins.longPress')}</Text> : null}
+            <PhotoCheckPanel
+              item={item}
+              photos={photos}
+              refPhoto={refPhoto}
+              imo={vessel?.imo}
+              value={photoCheck}
+              onValue={setPhotoCheck}
+              canDefect={anyFail}
+              onRemark={(r) => setComment((c) => (c.includes(r) ? c : [c.trim(), r].filter(Boolean).join('\n')))}
+              onDefect={(d) => setDefectNote((x) => (x.trim() ? (x.includes(d) ? x : `${x.trim()}\n${d}`) : d))}
+            />
           </View>
 
           <TouchableOpacity
