@@ -2,11 +2,12 @@
 // Attachments — WEB implementation (Metro loads this instead of attachments.ts
 // on web). Browsers have no expo-file-system document directory, so instead of
 // copying files to disk we store each file INLINE as a base64 data: URI on the
-// attachment record (persisted with the item in localStorage). Data URIs render
+// attachment record (persisted with the item by AsyncStorage). Data URIs render
 // directly in <Image> and open in a new tab, so no path resolution is needed.
 //
-// NOTE: localStorage is size-limited (~5 MB/origin), so this suits a handful of
-// photos/PDFs. A larger IndexedDB-backed store is a future upgrade.
+// The web build backs AsyncStorage with IndexedDB (MSM Win Web,
+// web/shims/async-storage.js) — localStorage's ~5 MB per site held about 7
+// photographs, and after that no write succeeded at all.
 // ===================================
 
 import { uid } from '../utils/id';

@@ -36,7 +36,7 @@ export interface AiJob {
   target?: { certId?: string; draft?: unknown; kind?: string; date?: string; po?: string; quoteId?: string; lineIds?: string[]; machineId?: string; jobIds?: string[]; file?: string; ncId?: string; obsId?: string; ncIds?: string[]; docId?: string; rev?: number; compared?: boolean; listIds?: string[]; docIds?: string[]; defectId?: string; defectIds?: string[]; workIds?: string[]; partIds?: string[]; gaps?: import('./readinessAi').AiGap[]; month?: string; time?: string; mode?: 'sea' | 'port'; entryId?: string; templateId?: string; signDraft?: string };
 }
 
-/** localStorage holds about 5 MB for the whole app on the web; a queue must not take the register's room. */
+/** A job is one stored value; kept well short of what a browser will put in one write (the web store is IndexedDB, not localStorage, since 7 Nov 2026). */
 export const MAX_JOB_CHARS = 3_000_000;
 const MAX_TRIES = 3;
 
