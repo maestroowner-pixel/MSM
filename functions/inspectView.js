@@ -17,6 +17,7 @@
 const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 const { readRegister } = require('./vesselData');
+const { PUBLIC_MAX_INSTANCES, escHtml } = require('./publicLimits');
 
 const REGION = 'europe-west1';
 const ROOT = 'safety_vessels';
@@ -79,6 +80,8 @@ function computeCompliance(items, today, soon) {
 }
 
 function htmlPage({ name, flag, imo, callSign, expiry, byCat, openDefects, openNcs, today }) {
+  // Typed aboard by any member — never put into the page as HTML (plan item 61).
+  [name, flag, imo, callSign] = [name, flag, imo, callSign].map(escHtml);
   let totalRed = 0, totalAmber = 0, totalOk = 0;
   for (const v of Object.values(byCat)) {
     totalRed += v.red;
@@ -183,7 +186,8 @@ function htmlError(msg) {
 }
 
 module.exports = {
-  inspectView: onRequest({ region: REGION }, async (req, res) => {
+  htmlPage,
+  inspectView: onRequest({ region: REGION, maxInstances: PUBLIC_MAX_INSTANCES }, async (req, res) => {
     res.set('Cache-Control', 'no-store');
     const token = String(req.query.t ?? '');
     if (!token || token.length < 8) {

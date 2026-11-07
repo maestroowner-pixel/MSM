@@ -11,14 +11,22 @@
 // Anyone who reaches the URL may submit. No enrolment, no Firebase SDK on the phone.
 // The resulting observation carries `via: 'qr'` and is always anonymous unless the
 // person adds their name voluntarily.
+//
+// Since 7 Nov 2026 (plan item 61) the text is capped and a vessel takes at most
+// OBS_PER_HOUR observations an hour through its QR code (publicLimits.js) — the
+// link hangs on a mess-room wall and anyone who photographs it could fill the
+// vessel's records.
 // ===================================
 
 const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
+const { PUBLIC_MAX_INSTANCES, takeOne, capped } = require('./publicLimits');
 
 const REGION = 'europe-west1';
 const ROOT = 'safety_vessels';
 const VALID_KINDS = ['unsafe_act', 'unsafe_condition', 'near_miss', 'good_practice'];
+const OBS_PER_HOUR = 30;
+const MAX = { topic: 120, location: 120, what: 2000, name: 80 };
 const CORS_ORIGINS = ['https://app.ismpilot.com', 'http://localhost:8081', 'http://localhost:19006'];
 
 function cors(req, res) {
@@ -34,8 +42,21 @@ async function findVessel(token) {
   return snap.empty ? null : snap.docs[0];
 }
 
+/** The observation's fields from a posted body, or { error }. Pure. */
+function readObs(body) {
+  const b = body ?? {};
+  if (!VALID_KINDS.includes(b.kind)) return { error: 'invalid kind' };
+  const topic = capped(b.topic, MAX.topic);
+  if (!topic) return { error: 'topic required' };
+  if (typeof b.what !== 'string' || b.what.trim().length < 3) return { error: 'what required (min 3 chars)' };
+  if (b.what.trim().length > MAX.what) return { error: `Please keep it under ${MAX.what} characters.` };
+  return { kind: b.kind, topic, what: b.what.trim(), location: capped(b.location, MAX.location), name: capped(b.name, MAX.name) };
+}
+
 module.exports = {
-  submitObs: onRequest({ region: REGION }, async (req, res) => {
+  readObs,
+  OBS_PER_HOUR,
+  submitObs: onRequest({ region: REGION, maxInstances: PUBLIC_MAX_INSTANCES }, async (req, res) => {
     cors(req, res);
     if (req.method === 'OPTIONS') { res.sendStatus(204); return; }
 
@@ -51,29 +72,32 @@ module.exports = {
 
     if (req.method !== 'POST') { res.status(405).json({ error: 'method not allowed' }); return; }
 
-    const { kind, topic, location, what, name } = req.body ?? {};
-    if (!VALID_KINDS.includes(kind)) { res.status(400).json({ error: 'invalid kind' }); return; }
-    if (!topic || typeof topic !== 'string' || !topic.trim()) { res.status(400).json({ error: 'topic required' }); return; }
-    if (!what || typeof what !== 'string' || what.trim().length < 3) { res.status(400).json({ error: 'what required (min 3 chars)' }); return; }
+    const read = readObs(req.body);
+    if (read.error) { res.status(400).json({ error: read.error }); return; }
+    const { kind, topic, location, what, name } = read;
+    if (!(await takeOne(`${ROOT}/${doc.id}/meta/obsGuard`, OBS_PER_HOUR, 3600_000))) {
+      console.warn(`[submitObs] ${doc.id}: ${OBS_PER_HOUR} observations this hour — refused`);
+      res.status(429).json({ error: 'Too many observations from this code in the last hour. Try again later, or tell an officer.' });
+      return;
+    }
 
     const now = Date.now();
     const today = new Date().toISOString().slice(0, 10);
     const id = admin.firestore().collection('_').doc().id;
-    const nameStr = typeof name === 'string' ? name.trim() : '';
 
     const obs = {
       id,
       date: today,
       kind,
-      topic: topic.trim(),
-      what: what.trim(),
-      anonymous: !nameStr,
+      topic,
+      what,
+      anonymous: !name,
       via: 'qr',
       at: now,
       updatedAt: now,
     };
-    if (location && typeof location === 'string' && location.trim()) obs.location = location.trim();
-    if (nameStr) obs.by = nameStr;
+    if (location) obs.location = location;
+    if (name) obs.by = name;
 
     await admin.firestore().collection(ROOT).doc(doc.id).collection('observations').doc(id).set(obs);
     res.json({ ok: true });

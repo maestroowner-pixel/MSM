@@ -41,12 +41,13 @@ function getSegmenter(): Promise<any> {
   if (segmenter) return segmenter;
   segmenter = (async () => {
     // A module script that hands the library to the page (Metro does not bundle remote imports).
+    // From a blob: URL, not inline text — the site's CSP refuses inline scripts (plan item 61).
     const g: any = globalThis as any;
     if (!g.__mpVision) {
       await new Promise<void>((resolve, reject) => {
         const s = document.createElement('script');
         s.type = 'module';
-        s.textContent = `import * as v from '${LIB}/vision_bundle.mjs'; window.__mpVision = v; window.dispatchEvent(new Event('mp-vision'));`;
+        s.src = URL.createObjectURL(new Blob([`import * as v from '${LIB}/vision_bundle.mjs'; window.__mpVision = v; window.dispatchEvent(new Event('mp-vision'));`], { type: 'text/javascript' }));
         const t = setTimeout(() => reject(new Error('The background tool could not be loaded — is this computer online?')), 30000);
         window.addEventListener('mp-vision', () => { clearTimeout(t); resolve(); }, { once: true });
         document.head.appendChild(s);

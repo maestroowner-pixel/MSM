@@ -27,7 +27,7 @@ import { aiReady } from '../services/ai';
 import { aiOrLater, removeAiJob } from '../services/aiQueue';
 import { buildCalendar, ICS_REMIND_DAYS } from '../services/calendarIcs';
 import { exportCalendarIcs, exportReadinessPdf } from '../services/readinessReport';
-import { ICS_BASE_URL, INSPECT_LINK_BASE, readIcsLink, readInspectLink, revokeIcsLink, revokeInspectLink, saveIcsLink, saveInspectLink } from '../services/firebaseService';
+import { ICS_BASE_URL, INSPECT_LINK_BASE, newLinkToken, readIcsLink, readInspectLink, revokeIcsLink, revokeInspectLink, saveIcsLink, saveInspectLink } from '../services/firebaseService';
 import { currentLang, t, tn, useT } from '../utils/i18n';
 
 const addDays = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
@@ -71,7 +71,7 @@ export default function ReadinessSc() {
   const generateInspectLink = async () => {
     const imo = data.vessel?.imo?.replace(/\D/g, '') ?? '';
     if (!imo) return Alert.alert(t('saf.noImo'), t('saf.setImo'));
-    const token = Array.from({ length: 24 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    const token = newLinkToken();
     const expiry = Date.now() + inspectDays * 86400000;
     await saveInspectLink(imo, token, expiry);
     setInspectLink({ token, expiry });
@@ -99,7 +99,7 @@ export default function ReadinessSc() {
   const generateIcsLink = async () => {
     const imo = data.vessel?.imo?.replace(/\D/g, '') ?? '';
     if (!imo) return Alert.alert(t('saf.noImo'), t('saf.setImo'));
-    const token = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    const token = newLinkToken();
     await saveIcsLink(imo, token);
     setIcsToken(token);
   };

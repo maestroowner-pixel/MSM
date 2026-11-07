@@ -29,7 +29,7 @@ import { exportSafetyExcel, exportSafetyPdf } from '../services/safetyReport';
 import { inspStatus } from '../services/extInspections';
 import { mocFinal } from '../services/moc';
 import { moduleOn } from '../constants/modules';
-import { readObsToken, saveObsToken } from '../services/firebaseService';
+import { newLinkToken, readObsToken, saveObsToken } from '../services/firebaseService';
 import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
@@ -66,7 +66,7 @@ export default function SafetySc() {
   const generateObsQr = async () => {
     const imo = vessel?.imo?.replace(/\D/g, '') ?? '';
     if (!imo) return Alert.alert(t('saf.noImo'), t('saf.setImo'));
-    const token = Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    const token = newLinkToken();
     const name = vessel?.vessel_name ?? '';
     await saveObsToken(imo, token, name);
     setObsQr({ token, vesselName: name });

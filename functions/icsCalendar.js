@@ -18,6 +18,7 @@
 const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 const { readRegister } = require('./vesselData');
+const { PUBLIC_MAX_INSTANCES } = require('./publicLimits');
 
 const REGION = 'europe-west1';
 const ROOT = 'safety_vessels';
@@ -117,7 +118,7 @@ function inWindow(iso) {
 }
 
 module.exports = {
-  icsCalendar: onRequest({ region: REGION }, async (req, res) => {
+  icsCalendar: onRequest({ region: REGION, maxInstances: PUBLIC_MAX_INSTANCES }, async (req, res) => {
     res.set('Cache-Control', 'public, max-age=43200'); // 12-hour browser cache
     const token = String(req.query.t ?? '');
     if (!token || token.length < 8) {

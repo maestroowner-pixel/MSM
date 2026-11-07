@@ -105,6 +105,7 @@ import { ModuleKey, moduleOn } from '../constants/modules';
 import * as attachmentStorage from './attachmentStorage';
 import { INLINE_ELSEWHERE, keepLocalPhotos, photosToCloud } from './inlinePhotos';
 import * as trial from './trial';
+import { randomBytes } from './signKeys';
 import { mergeCategories, mergeCrew, mergeInspections, mergeTemplates, unsentInspections } from './inspections';
 import type { SigningPolicy } from './signingPolicy';
 import {
@@ -1903,6 +1904,18 @@ export async function saveSigningPolicy(uid: string, policy: SigningPolicy): Pro
 export async function savePhotoArchive(uid: string, state: PhotoArchiveState): Promise<void> {
   const { db } = ensureInit();
   await set(ref(db, `${ROOT}/${uid}/photo_archive`), state);
+}
+
+/**
+ * A token for a public link — the mess-room QR form, the inspector's view, the
+ * calendar: 128 bits from the platform's generator (Math.random only on a build
+ * that has none). Whoever holds the link reads or writes without signing in, so it
+ * must not be guessable (plan item 61).
+ */
+export function newLinkToken(): string {
+  const rnd = randomBytes();
+  const b = rnd ? rnd(16) : Uint8Array.from({ length: 16 }, () => Math.floor(Math.random() * 256));
+  return Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
 }
 
 /** Read the vessel's public observation token (null if not yet set). */

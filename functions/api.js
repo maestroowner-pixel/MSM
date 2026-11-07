@@ -41,6 +41,7 @@ const { liveCaller } = require('./access');
 const admin = require('firebase-admin');
 const crypto = require('crypto');
 const V = require('./vesselData');
+const { PUBLIC_MAX_INSTANCES } = require('./publicLimits');
 
 const REGION = 'europe-west1';
 const ROOT = 'safety_vessels';
@@ -330,7 +331,7 @@ async function route(req, auth) {
   throw new ApiError(404, `No ${req.method} ${path}. GET /v1 lists what there is.`);
 }
 
-const api = onRequest({ region: REGION }, async (req, res) => {
+const api = onRequest({ region: REGION, maxInstances: PUBLIC_MAX_INSTANCES }, async (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Headers', 'Authorization, X-API-Key, Content-Type');
