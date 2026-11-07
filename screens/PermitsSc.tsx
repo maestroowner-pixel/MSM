@@ -7,11 +7,13 @@
 // Risk assessments: the vessel's library (generic, copied for a job) and the
 // assessments made for particular jobs. The starter library (constants/
 // riskLibrary) is offered once, while the vessel's own library is empty.
+// Chemicals (plan item 65, flag `chem`): the products aboard and their SDS —
+// what is missing first, then dangerous before warning before the rest.
 // ===================================
 
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { Empty, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
@@ -25,17 +27,35 @@ import { PERMIT_TYPES, PERMIT_TYPE_MAP } from '../constants/permitTypes';
 import { RISK_LIBRARY } from '../constants/riskLibrary';
 import { RISK_COLOR, isOverdue, nowLocal, worstResidual } from '../services/permits';
 import { uid } from '../utils/id';
+import { moduleOn } from '../constants/modules';
+import { useSync } from '../contexts/SyncContext';
+import { roleAtLeast } from '../types/role';
+import { Chemical } from '../types/chemicals';
+import { chemIssues, chemMatches, sortChems } from '../services/chemicals';
+import { exportChemicalsExcel, exportChemicalsPdf } from '../services/chemicalsReport';
+import { todayIso } from '../services/pms';
+import { signalColor } from './ChemicalSc';
 import { t, tk, tn, useT } from '../utils/i18n';
 
-type Tab = 'permits' | 'risks';
+type Tab = 'permits' | 'risks' | 'chem';
 
 export default function PermitsSc() {
   useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
-  const { permits, risks, saveRisk } = useData();
-  const [tab, setTab] = useState<Tab>('permits');
+  const { permits, risks, saveRisk, chemicals, vessel } = useData();
+  const route = useRoute<any>();
+  const sync = useSync();
+  const chemOn = moduleOn('chem');
+  const [tab, setTab] = useState<Tab>(route.params?.tab === 'chem' && chemOn ? 'chem' : route.params?.tab === 'risks' ? 'risks' : 'permits');
+  const [q, setQ] = useState('');
+  const today = todayIso();
+  const ptwOn = moduleOn('ptw');
+  const chems = useMemo(() => sortChems(chemicals), [chemicals]);
+  const shown = chems.filter((c) => chemMatches(c, q));
+  const officer = !sync.enrolled || roleAtLeast(sync.role, 'admin');
+  const report = (fn: typeof exportChemicalsPdf) => void fn(chems, risks, vessel, today).catch((e: any) => Alert.alert(t('chem.report'), String(e?.message ?? e)));
   const [newType, setNewType] = useState<PermitType>('general');
   const now = nowLocal();
 
@@ -98,6 +118,21 @@ export default function PermitsSc() {
     );
   };
 
+  const ChemRow = ({ c }: { c: Chemical }) => {
+    const issues = chemIssues(c, risks, today, ptwOn).filter((i) => i !== 'unchecked');
+    return (
+      <TouchableOpacity style={styles.row} onPress={() => nav.navigate('Chemical', { id: c.id })} activeOpacity={0.7}>
+        <View style={[styles.bar, { backgroundColor: signalColor(COLORS, c.signal) }]} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title} numberOfLines={1}>{c.name}</Text>
+          <Text style={styles.sub} numberOfLines={1}>{[c.ghs?.map((g) => tk(`chem.ghs.${g}`)).join(', '), c.stock.map((s) => s.place).filter(Boolean).join(', ')].filter(Boolean).join(' · ') || tk(`chem.use.${c.use}`)}</Text>
+          {issues.length ? <Text style={[styles.sub, { color: COLORS.warning, fontWeight: '700' }]} numberOfLines={1}>{issues.map((i) => tk(`chem.issue.${i}`)).join(' · ')}</Text> : null}
+        </View>
+        {c.signal ? <Text style={[styles.status, { color: signalColor(COLORS, c.signal) }]}>{tk(`chem.signal.${c.signal}`)}</Text> : null}
+      </TouchableOpacity>
+    );
+  };
+
   const RiskRow = ({ r }: { r: RiskAssessment }) => {
     const w = worstResidual(r);
     return (
@@ -123,14 +158,33 @@ export default function PermitsSc() {
         actions={archive && tab === 'permits' ? <MonthPicker value={month} onChange={setMonth} months={permitMonths} counts={permitCounts} /> : undefined}
       />
       <View style={styles.tabs}>
-        {([['permits', t('permits.tabPermits', { n: open.length })], ['risks', t('permits.tabRisks', { n: risks.length })]] as [Tab, string][]).map(([k, l]) => (
+        {([['permits', t('permits.tabPermits', { n: open.length })], ['risks', t('permits.tabRisks', { n: risks.length })], ...(chemOn ? [['chem', t('chem.tab', { n: chems.length })]] : [])] as [Tab, string][]).map(([k, l]) => (
           <TouchableOpacity key={k} style={[styles.tab, tab === k && styles.tabOn]} onPress={() => setTab(k)}>
             <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>{l}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {tab === 'permits' ? (
+      {tab === 'chem' ? (
+        <>
+          <View style={styles.newRow}>
+            {officer ? (
+              <TouchableOpacity style={styles.btn} onPress={() => nav.navigate('Chemical', { id: 'new' })}>
+                <Text style={styles.btnText}>{t('chem.add')}</Text>
+              </TouchableOpacity>
+            ) : null}
+            {chems.length ? (
+              <>
+                <TouchableOpacity style={styles.btnOutline} onPress={() => report(exportChemicalsPdf)}><Text style={styles.btnOutlineText}>PDF</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.btnOutline} onPress={() => report(exportChemicalsExcel)}><Text style={styles.btnOutlineText}>Excel</Text></TouchableOpacity>
+              </>
+            ) : null}
+          </View>
+          {chems.length > 6 ? <TextInput style={styles.search} value={q} onChangeText={setQ} placeholder={t('chem.search')} placeholderTextColor={COLORS.textLight} /> : null}
+          {shown.map((c) => <ChemRow key={c.id} c={c} />)}
+          {!chems.length ? <Empty text={t('chem.empty')} /> : null}
+        </>
+      ) : tab === 'permits' ? (
         <>
           <View style={styles.newRow}>
             <Dropdown
@@ -212,5 +266,6 @@ const makeStyles = (COLORS: Palette) =>
     archiveBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', borderWidth: 1, borderColor: COLORS.primary, borderRadius: 999, paddingVertical: 6, paddingHorizontal: SIZES.md, marginBottom: SIZES.sm },
     monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: SIZES.sm },
     month: { fontSize: SIZES.h5, fontWeight: '800', color: COLORS.textDark },
+    search: { ...COLORS.glassInput, borderRadius: SIZES.radiusMd, paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm, color: COLORS.text, marginBottom: SIZES.sm },
     starter: { ...COLORS.glassCard, borderRadius: SIZES.radiusMd, padding: SIZES.md },
   });

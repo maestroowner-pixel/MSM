@@ -66,6 +66,7 @@ import { actionsAwaited, labsAwaited, nextUnannounced, policyOf } from './daTest
 import { statementDue } from './emissions';
 import { findMe, myCerts, myChanges } from './myDocs';
 import { planBreaches } from './restPlan';
+import { chemBoard } from './chemicals';
 import { THREAD_ROUTE, threadKey, unreadFromOffice, unreadMentions } from './threads';
 import { t, tk, tn } from '../utils/t';
 
@@ -212,6 +213,9 @@ export interface BoardInput {
   emVessel?: import('../types/emissions').EmVessel[];
   emPassages?: import('../types/emissions').EmPassage[];
   emStatements?: import('../types/emissions').EmStatement[];
+  /** Chemicals aboard (types/chemicals.ts) and the risk assessments made from their cards. */
+  chemicals?: import('../types/chemicals').Chemical[];
+  risks?: import('../types/permits').RiskAssessment[];
   /** Discussion on a record, and what this device has read of it (services/threads). */
   threads?: import('../types/thread').ThreadMessage[];
   prefs?: { threadRead?: Record<string, number>; myDocsSeen?: number };
@@ -791,6 +795,17 @@ export function buildBoard(x: BoardInput): Board {
   if (x.on('emissions') && x.on('fuel') && x.role !== 'user') {
     const owed = statementDue((x.emVessel ?? [])[0], x.emStatements ?? [], x.emPassages ?? [], x.today);
     if (owed) n.push({ key: 'em:stmt', level: owed.late ? 'red' : 'amber', who: 'officer', icon: 'molecule-co2', route: 'Emissions', params: { year: owed.year }, title: t('b.em.stmt', { year: owed.year }), sub: t('b.em.stmtSub') });
+  }
+
+  // ---- Chemicals: a product without its SDS, an SDS five years old, a dangerous one without an approved assessment ----
+  if (x.on('chem') && x.role !== 'user') {
+    const b = chemBoard(x.chemicals ?? [], x.risks ?? [], x.today, x.on('ptw'));
+    const names = (l: { name: string }[]) => l.slice(0, 3).map((c) => c.name).join(', ') + (l.length > 3 ? '…' : '');
+    const go = { route: 'Permits', params: { tab: 'chem' } };
+    if (b.noSds.length) n.push({ key: 'chem:noSds', level: 'amber', who: 'officer', icon: 'flask-outline', ...go, title: t('b.chem.noSds', { n: b.noSds.length }), sub: names(b.noSds) });
+    if (b.oldSds.length) n.push({ key: 'chem:oldSds', level: 'amber', who: 'officer', icon: 'flask-outline', ...go, title: t('b.chem.oldSds', { n: b.oldSds.length }), sub: names(b.oldSds) });
+    if (b.noRa.length) n.push({ key: 'chem:noRa', level: 'amber', who: 'officer', icon: 'flask-outline', ...go, title: t('b.chem.noRa', { n: b.noRa.length }), sub: names(b.noRa) });
+    if (b.unchecked.length) n.push({ key: 'chem:unchecked', level: 'blue', who: 'officer', icon: 'flask-outline', ...go, title: t('b.chem.unchecked', { n: b.unchecked.length }), sub: names(b.unchecked) });
   }
 
   // ---- Drug and alcohol tests: the unannounced test due, the laboratory, a positive with nothing done ----

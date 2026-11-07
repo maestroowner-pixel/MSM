@@ -1080,6 +1080,15 @@ service cloud.firestore {
         allow create: if isAdmin(v) && request.resource.data.id == id;
         allow update, delete: if false;
       }
+      // Chemicals aboard (types/chemicals.ts): the officers keep the cards, everyone reads them —
+      // the card is for whoever uses the product. Never deleted (taken off = `deleted`). The SDS
+      // travels as a link to Storage, never inside the card.
+      match /chemicals/{id} {
+        allow read: if reader(v);
+        allow create, update: if isAdmin(v) && request.resource.data.id == id
+                              && (!('sds' in request.resource.data) || request.resource.data.sds.url.matches('https://.*'));
+        allow delete: if false;
+      }
       match /da_policy/{id} {
         allow read: if isAdmin(v) || shore(v);
         allow create, update: if isSuper(v) && id == 'policy';

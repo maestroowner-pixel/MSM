@@ -42,6 +42,9 @@ import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
 import { t, tk, tn, useT } from '../utils/i18n';
+import { moduleOn } from '../constants/modules';
+import { Chemical } from '../types/chemicals';
+import { sortChems } from '../services/chemicals';
 
 const plusHours = (iso: string, h: number) => nowLocal(new Date(Date.parse(iso) + h * 3600000));
 
@@ -51,7 +54,7 @@ export default function PermitSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { permits, risks, crew, savePermit, saveRisk , vessel, signDrafts, saveRow } = useData();
+  const { permits, risks, crew, savePermit, saveRisk , vessel, signDrafts, saveRow, chemicals } = useData();
   const sync = useSync();
   const confirmSign = useSignConfirm();
   const { signer, picker } = useSigner();
@@ -77,6 +80,8 @@ export default function PermitSc() {
   const final = p.status === 'closed' || p.status === 'cancelled';
   const editable = !final && (p.status === 'draft' || p.status === 'requested');
   const ra = risks.find((r) => r.id === p.raId);
+  // The chemicals the work uses (plan item 65).
+  const used = (p.chemIds ?? []).map((cid) => chemicals.find((c) => c.id === cid)).filter((c): c is Chemical => !!c);
   const blockers = approvalBlockers(p, !!ra);
   const people = crew.filter(isAboard);
 
@@ -344,6 +349,34 @@ export default function PermitSc() {
               ))}
               {!risks.length ? <Text style={styles.sub}>{t('ptw.noRa')}</Text> : null}
             </View>
+          ) : null}
+
+          {moduleOn('chem') && (chemicals.length || p.chemIds?.length) ? (
+            <>
+              <Text style={styles.section}>{t('chem.onPermit')}</Text>
+              {used.map((c) => (
+                <TouchableOpacity key={c.id} style={styles.raRow} onPress={() => nav.navigate('Chemical', { id: c.id })}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.raTitle}>{c.name}</Text>
+                    <Text style={styles.sub}>{[c.signal ? tk(`chem.signal.${c.signal}`) : null, c.ghs?.map((g) => tk(`chem.ghs.${g}`)).join(', ')].filter(Boolean).join(' · ') || t('chem.noSignal')}</Text>
+                    {c.ppe ? <Text style={styles.sub}>{`${t('chem.ppe')}: ${c.ppe}`}</Text> : null}
+                  </View>
+                </TouchableOpacity>
+              ))}
+              {!used.length ? <Text style={styles.sub}>{t('chem.noneOnPermit')}</Text> : null}
+              {editable ? (
+                <View style={[styles.chips, { marginTop: SIZES.xs }]}>
+                  {sortChems(chemicals).map((c) => {
+                    const on = !!p.chemIds?.includes(c.id);
+                    return (
+                      <TouchableOpacity key={c.id} style={[styles.chip, on && styles.chipOn]} onPress={() => set({ chemIds: on ? p.chemIds!.filter((x) => x !== c.id) : [...(p.chemIds ?? []), c.id] })}>
+                        <Text style={[styles.chipText, on && styles.chipTextOn]}>{c.name}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ) : null}
+            </>
           ) : null}
 
           <Text style={styles.section}>{t('ptw.isolations')}</Text>

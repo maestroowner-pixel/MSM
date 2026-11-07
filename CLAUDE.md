@@ -322,6 +322,18 @@ app mirrors. Bundle id `com.kukalab.msm`.
   no density = no tonnes, never assumed. CF 3.206, CH4 0.00005, N2O 0.00018; G2/G3/G4 tables in `ciiLine`/`CII_Z` (no G5 corrections; no Z after 2030 = no rating).
   Everything missing comes back as `EmGap` (screen `em.gap.*`, report `EM_GAP_EN`). Board `em:stmt` for officers where DCS or MRV applies and last year has passages:
   amber to 31 March, red after. `npm run check:emissions`; rules-test.mjs covers it. `npm run deploy:rules` before the flag.
+- **Chemicals and SDS** (7 Nov 2026 — flag `chem`, off; plan item 65, UniSea's "Safe Chemistry"): `types/chemicals.ts`, pure `services/chemicals.ts`,
+  paper `services/chemicalsReport.ts` (PMS-history PDF + Excel with a first aid / fire / spill sheet), screen `ChemicalSc` (route `Chemical` `chemical/:id`
+  (`new`)); the list is the third tab of PermitsSc (`Permits {tab: 'chem'}`). One card per product (`chemicals`, newest wins, never deleted — `deleted`):
+  use, places + qty, the SDS file (`uploadInline` to `attachments/<chemId>/`; on a device on no vessel the data URI itself — the rules refuse anything
+  but an https link in the cloud), and what the SDS says (signal, GHS, H lines, PPE, first aid, fire, spill, storage, incompatible, UN, `sdsDate`).
+  AI task `sds` (functions/ai.js, SMART, 60/day): read right after the file is added, `readSds` keeps only the nine pictograms and a real date,
+  `applySds` REPLACES every SDS field (an old sheet's advice must not survive), name/maker only when empty, use only on a new card; `byAi` until an
+  officer signs `checked`; `sdsChanged` (file or any SDS field) drops the check on save. Missing (`chemIssues`): no SDS, SDS dated over 5 years,
+  signal word without an APPROVED `RiskAssessment.chemId` (only with `ptw`), not checked. RiskSc takes `chemId` + `enclosed` and starts from
+  `chemHazards` (per pictogram, card PPE/fire/spill/storage as controls; enclosed adds the vapour line only for a product that gives off one).
+  `Permit.chemIds` — chips + PPE on PermitSc. Board (officers): amber no SDS / old SDS / no assessment, blue to check. Officers write, all read
+  (rules `chemicals`, rules-test.mjs). `npm run check:chem`. `npm run deploy:rules` + functions `ai` before the flag.
 - **Drug and alcohol tests** (3 Nov 2026 — flag `daTests`, off; plan item 42; needs `crewCerts`): `types/daTest.ts`, pure
   `services/daTests.ts`, paper `services/daTestReport.ts` (PMS-history PDF), screens `DaTestsSc` / `DaTestSc` (routes `DaTests`
   `da-tests`, `DaTest` `da-test/:id` (`new`); entry: Crew → Drug and alcohol tests, Board). THREE append-only records: `da_tests`

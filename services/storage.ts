@@ -152,6 +152,8 @@ export const MY_SDM_KEY = `${PREFIX}my_sdm`;
 export const EM_VESSEL_KEY = `${PREFIX}em_vessel`;
 export const EM_PASSAGES_KEY = `${PREFIX}em_passages`;
 export const EM_STATEMENTS_KEY = `${PREFIX}em_statements`;
+/** Chemicals aboard and their SDS (types/chemicals.ts). */
+export const CHEMICALS_KEY = `${PREFIX}chemicals`;
 /** Supplier directory (types/suppliers.ts) — quotes and awards live on the purchase orders. */
 export const SUPPLIERS_KEY = `${PREFIX}suppliers`;
 /**
@@ -938,6 +940,7 @@ export async function resetAllData(): Promise<void> {
     EM_VESSEL_KEY,
     EM_PASSAGES_KEY,
     EM_STATEMENTS_KEY,
+    CHEMICALS_KEY,
     DECK_LOG_KEY,
     SIGN_DRAFTS_KEY,
     GMDSS_KEY,

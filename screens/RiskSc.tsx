@@ -10,7 +10,9 @@
 // Opened from a maintenance job (plan item 39) it arrives named for the job,
 // tied to it (`pmsJobId`, `pmsFor`), and offers the library's assessments to
 // start from — what the job's sign-out or its deferral then waits on. Opened
-// from a management of change (plan item 38) it is tied to it (`mocId`).
+// from a management of change (plan item 38) it is tied to it (`mocId`). Opened
+// from a chemical's card (plan item 65) it starts from the card's hazards and
+// PPE (`chemId`, services/chemicals.ts chemHazards), on deck or enclosed.
 // ===================================
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -27,6 +29,7 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { Hazard, RiskAssessment } from '../types/permits';
+import { chemHazards, chemRaTitle } from '../services/chemicals';
 import { RISK_COLOR, nextNumber, riskLevel, unacceptable, worstResidual } from '../services/permits';
 import { roleAtLeast } from '../types/role';
 import { uiDateTime } from '../utils/dates';
@@ -41,7 +44,7 @@ export default function RiskSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { risks, saveRisk } = useData();
+  const { risks, saveRisk, chemicals } = useData();
   const sync = useSync();
   const confirmSign = useSignConfirm();
   const { signer, picker } = useSigner();
@@ -50,6 +53,8 @@ export default function RiskSc() {
   const id: string = route.params?.id;
   const existing = risks.find((r) => r.id === id);
   const p = route.params ?? {};
+  const chem = !existing && p.chemId ? chemicals.find((c) => c.id === p.chemId) : undefined;
+  const fromChem = chem ? { ...chemRaTitle(chem, !!Number(p.enclosed)), chemId: chem.id, hazards: chemHazards(chem, !!Number(p.enclosed)).map((h) => ({ ...h, id: uid('hz') })) } : undefined;
   const [r, setR] = useState<RiskAssessment>(
     existing ?? {
       id,
@@ -58,6 +63,7 @@ export default function RiskSc() {
       ...(p.pmsJobId ? { pmsJobId: p.pmsJobId, pmsFor: p.pmsFor ?? 'job' } : {}),
       ...(p.mocId ? { mocId: p.mocId } : {}),
       hazards: [],
+      ...(fromChem ? { ...fromChem, location: fromChem.location || undefined } : {}),
       generic: !!p.generic,
       createdAt: Date.now(),
       updatedAt: Date.now(),

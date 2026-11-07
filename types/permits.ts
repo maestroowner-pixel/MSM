@@ -98,6 +98,8 @@ export interface Permit {
   notes?: string;
   /** The planned-maintenance job this permit is for (PmsJob.id), when raised from it. */
   pmsJobId?: string;
+  /** The chemicals the work uses (types/chemicals.ts) — their PPE and hazards on the permit. */
+  chemIds?: string[];
   /** The toolbox meeting before the work (required to start it). */
   toolbox?: ToolboxMeeting;
   deleted?: boolean;
@@ -138,6 +140,8 @@ export interface RiskAssessment {
   pmsFor?: 'job' | 'deferral';
   /** Made for a management of change (types/moc.ts, plan item 38). */
   mocId?: string;
+  /** Made from a chemical's card (types/chemicals.ts, plan item 65). */
+  chemId?: string;
   approved?: SignStamp;
   reviewDue?: string;
   deleted?: boolean;

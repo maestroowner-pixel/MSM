@@ -351,6 +351,17 @@ await t(false, 'Crew cannot sign the year', setDoc(R(crew, 'em_statements', 's2'
 await t(false, 'A signed statement is final', setDoc(R(master, 'em_statements', 's1'), { id: 's1', year: 2026, method: 'tank', by: 'Anna', at: 1, updatedAt: 2 }));
 await t(true, 'The office reads statements', getDoc(R(shore, 'em_statements', 's1')));
 
+// Chemicals aboard: officers keep the cards, everyone reads, the SDS only as a link, never deleted.
+const CH = { id: 'ch1', name: 'Pool chlorine', use: 'pool', stock: [{ place: 'Pool room', qty: 10, unit: 'kg' }], createdAt: 1, updatedAt: 1 };
+await t(true, 'An Officer adds a chemical', setDoc(R(officer, 'chemicals', 'ch1'), CH));
+await t(false, 'Crew cannot add a chemical', setDoc(R(crew, 'chemicals', 'ch2'), { ...CH, id: 'ch2' }));
+await t(true, 'Crew reads the chemicals', getDoc(R(crew, 'chemicals', 'ch1')));
+await t(true, 'The office reads the chemicals', getDoc(R(shore, 'chemicals', 'ch1')));
+await t(true, 'The SDS as a link', setDoc(R(master, 'chemicals', 'ch1'), { ...CH, sds: { url: 'https://firebasestorage.googleapis.com/x', name: 'sds.pdf', addedAt: 2 }, updatedAt: 2 }));
+await t(false, 'The SDS never inside the card', setDoc(R(master, 'chemicals', 'ch1'), { ...CH, sds: { url: 'data:application/pdf;base64,AAAA', name: 'sds.pdf', addedAt: 3 }, updatedAt: 3 }));
+await t(false, 'The id is the document', setDoc(R(officer, 'chemicals', 'ch3'), { ...CH, id: 'other' }));
+await t(false, 'Nobody deletes a chemical', deleteDoc(R(master, 'chemicals', 'ch1')));
+
 await t(false, 'A guest\'s full name never goes up', setDoc(R(officer, 'passengers', 'pax0'), { id: 'pax0', name: 'Sophie Martin', cabin: 'VIP', updatedAt: 1 }));
 await t(false, 'A guest\'s nationality stays on board', setDoc(R(officer, 'passengers', 'pax0'), { id: 'pax0', name: 'S…n', nationality: 'FR', updatedAt: 1 }));
 await t(true, 'An Officer adds a passenger (masked)', setDoc(R(officer, 'passengers', 'pax1'), { id: 'pax1', name: 'S…n', cabin: 'VIP', updatedAt: 1 }));

@@ -53,6 +53,7 @@ import { CrewAppraisal } from '../types/appraisal';
 import { RestPlan } from '../types/restPlan';
 import { DaFollowUp, DaPolicy, DaResult, DaTest } from '../types/daTest';
 import { EmPassage, EmStatement, EmVessel } from '../types/emissions';
+import { Chemical } from '../types/chemicals';
 import { Supplier } from '../types/suppliers';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
@@ -271,6 +272,8 @@ interface DataContextType {
   apaEntries: ApaEntry[];
   budgetLines: BudgetLine[];
   /** Oil analysis (types/oil.ts): sampling points, samples. */
+  /** Chemicals aboard (types/chemicals.ts), those still aboard. */
+  chemicals: Chemical[];
   oilPoints: OilPoint[];
   oilSamples: OilSample[];
   /** Yard periods (types/yard.ts): work-list jobs, warranty claims. */
@@ -454,6 +457,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [apaFunds, setApaFunds] = useState<ApaFund[]>([]);
   const [apaEntries, setApaEntries] = useState<ApaEntry[]>([]);
   const [budgetLines, setBudgetLines] = useState<BudgetLine[]>([]);
+  const [chemicals, setChemicals] = useState<Chemical[]>([]);
   const [oilPoints, setOilPoints] = useState<OilPoint[]>([]);
   const [oilSamples, setOilSamples] = useState<OilSample[]>([]);
   const [yardJobs, setYardJobs] = useState<YardJob[]>([]);
@@ -596,6 +600,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _apaFunds1 = (await storage.loadList<ApaFund>(storage.APA_FUNDS_KEY)).filter((x) => !x.deleted);
     const _apaEntries1 = await storage.loadList<ApaEntry>(storage.APA_ENTRIES_KEY);
     const _budget1 = await storage.loadList<BudgetLine>(storage.BUDGET_KEY);
+    const _chem1 = (await storage.loadList<Chemical>(storage.CHEMICALS_KEY)).filter((x) => !x.deleted);
     const _oilPoints1 = (await storage.loadList<OilPoint>(storage.OIL_POINTS_KEY)).filter((x) => !x.deleted);
     const _oilSamples1 = await storage.loadList<OilSample>(storage.OIL_SAMPLES_KEY);
     const _yardJobs1 = await storage.loadList<YardJob>(storage.YARD_JOBS_KEY);
@@ -712,6 +717,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setApaFunds(_apaFunds1);
     setApaEntries(_apaEntries1);
     setBudgetLines(_budget1);
+    setChemicals(_chem1);
     setOilPoints(_oilPoints1);
     setOilSamples(_oilSamples1);
     setYardJobs(_yardJobs1);
@@ -982,6 +988,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _apaFunds2 = (await storage.loadList<ApaFund>(storage.APA_FUNDS_KEY)).filter((x) => !x.deleted);
     const _apaEntries2 = await storage.loadList<ApaEntry>(storage.APA_ENTRIES_KEY);
     const _budget2 = await storage.loadList<BudgetLine>(storage.BUDGET_KEY);
+    const _chem2 = (await storage.loadList<Chemical>(storage.CHEMICALS_KEY)).filter((x) => !x.deleted);
     const _oilPoints2 = (await storage.loadList<OilPoint>(storage.OIL_POINTS_KEY)).filter((x) => !x.deleted);
     const _oilSamples2 = await storage.loadList<OilSample>(storage.OIL_SAMPLES_KEY);
     const _yardJobs2 = await storage.loadList<YardJob>(storage.YARD_JOBS_KEY);
@@ -1088,6 +1095,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setApaFunds(_apaFunds2);
     setApaEntries(_apaEntries2);
     setBudgetLines(_budget2);
+    setChemicals(_chem2);
     setOilPoints(_oilPoints2);
     setOilSamples(_oilSamples2);
     setYardJobs(_yardJobs2);
@@ -1451,6 +1459,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         apaFunds,
         apaEntries,
         budgetLines,
+        chemicals,
         oilPoints,
         oilSamples,
         yardJobs,

@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals' | 'restPlan' | 'daTests' | 'threads' | 'emissions' | 'myDocs' | 'mySdm';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals' | 'restPlan' | 'daTests' | 'threads' | 'emissions' | 'myDocs' | 'mySdm' | 'chem';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -330,6 +330,14 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * open it yet. Needs myDocs.
    */
   mySdm: false,
+  /**
+   * Chemicals aboard — the list of products with where they are kept and how
+   * much, each with its safety data sheet; the AI reads the SDS into the card
+   * (hazards, PPE, first aid, fire, spill, storage), an officer checks it; a risk
+   * assessment from the card, the chemicals a permit uses (types/chemicals.ts,
+   * plan item 65, 7 Nov 2026). Needs `npm run deploy:rules` first (chemicals).
+   */
+  chem: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------

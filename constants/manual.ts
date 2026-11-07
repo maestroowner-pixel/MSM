@@ -890,6 +890,17 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '🧴',
+      title: "Chemicals and safety data sheets",
+      body: [
+        "For every chemical product kept aboard — cleaning, pool and spa, paint and solvents, the engine room, the tenders, the galley, the laundry, gases. Open it from Permits → Chemicals. Everyone aboard can read the cards; the officers and the Master keep them. The list shows DANGER products first, then WARNING, then the rest, and what each card is missing.",
+        "A card: the product's name and maker, what it is used for, where it is kept and how much (one line per place), and its safety data sheet (SDS) — a PDF or a photo, which goes to the vessel's files. From the SDS the card holds what matters at the moment of use: the signal word, the GHS pictograms, the hazard statements, the PPE, first aid for eyes, skin, breathing and swallowing, what to do in a fire and with a spill, how to store it and what to keep it away from, and the UN number.",
+        "With AI on, the AI reads the SDS as soon as it is added, in whatever language it is written, and shows what it found beside the card, in English. Nothing changes until you press Put into the card: it then replaces the hazards, PPE, first aid, fire, spill and storage with what this sheet says. Save, and an officer opens the SDS, compares it with the card and signs Checked against the SDS. A new sheet, or a change to anything the SDS gave, takes the check away again.",
+        "Risk assessment (where permits are on): from the card, Assess on deck / in a room or Assess in an enclosed space starts an ordinary risk assessment with the product's hazards, rated before and after the controls, and the card's PPE, fire, spill and storage advice as the controls. Change the ratings and controls to the job, then approve it as any other. A DANGER or WARNING product without an approved assessment is shown on the card and on the Board. A permit to work names the chemicals its work uses; their signal word, pictograms and PPE show on the permit.",
+        "The Board tells the officers which products have no SDS, which SDS is over five years old (ask the supplier for the current revision), which dangerous products have no approved assessment, and which cards are waiting to be checked. Taken off the vessel removes a product from the list; permits and assessments that name it keep their record. The PDF and Excel register (English) lists every product with its place and quantity, hazards, PPE, SDS date, check and assessment; the Excel has a second sheet of first aid, fire and spill advice to print for the store.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'About',
       body: [
@@ -1751,6 +1762,17 @@ const ru: ManualContent = {
         "Ваша личная страница (меню → Экипаж → Мои документы): ваши сертификаты со сроками, сначала то, что требует внимания; рейс и дата окончания контракта; часы отдыха за 7 дней; учения, в которых вы участвовали за 12 месяцев. Страница только для чтения, эти записи ведут офицеры: если что-то неверно, обратитесь к офицеру. Нажмите на сертификат, чтобы открыть его.",
         "Приложение определяет вас по имени, с которым вы подключились к судну; оно должно совпадать со списком экипажа. Board сообщает, когда ваш сертификат просрочен или скоро истекает и когда офицер или офис изменили ваши документы; при включённых напоминаниях придёт и уведомление. Паспортные данные и контакты родственников видны только офицерам и капитану, поэтому здесь их нет.",
         "На телефоне или планшете можно загрузить свой файл SDM (бэкап .sdm из Seafarer Documents Manager): здесь появятся паспорт, все документы, визы, родственник и морской стаж, а также расхождения с записями судна. Файл остаётся только на этом устройстве, не синхронизируется и не входит в бэкап; биометрия, ставка, фото и заметки не сохраняются. Удалите его с устройства, когда он не нужен, и не загружайте на общее устройство. В браузере недоступно.",
+      ],
+    },
+    {
+      emoji: '🧴',
+      title: "Химия и паспорта безопасности",
+      body: [
+        "Для каждого химического средства на борту — уборка, бассейн и спа, краски и растворители, машинное отделение, тендеры, камбуз, прачечная, газы. Откройте Permits → Химия. Карточки видят все на борту, ведут их офицеры и капитан. В списке сначала средства с ОПАСНО, затем с ОСТОРОЖНО, затем остальные, и что в каждой карточке не хватает.",
+        "Карточка: название и производитель, для чего средство, где хранится и сколько (строка на каждое место) и его паспорт безопасности (SDS) — PDF или фото, которое уходит в файлы судна. Из SDS в карточке то, что важно в момент работы: сигнальное слово, пиктограммы GHS, характеристики опасности, СИЗ, первая помощь при попадании в глаза, на кожу, при вдыхании и проглатывании, что делать при пожаре и разливе, как хранить и вдали от чего держать, номер UN.",
+        "Если AI включён, он читает SDS сразу после добавления, на каком бы языке тот ни был, и показывает найденное рядом с карточкой по-английски. Ничего не меняется, пока вы не нажмёте «В карточку»: тогда опасности, СИЗ, первая помощь, пожар, разлив и хранение заменяются тем, что сказано в этом паспорте. Сохраните, а офицер открывает SDS, сравнивает с карточкой и подписывает «Сверено с SDS». Новый паспорт или изменение того, что дал SDS, снимает сверку.",
+        "Оценка риска (если включены наряды-допуски): из карточки «Оценить: на палубе / в помещении» или «Оценить: в замкнутом пространстве» начинает обычную оценку риска с опасностями средства, оценёнными до и после мер, где меры — СИЗ, пожар, разлив и хранение из карточки. Поправьте оценки и меры под работу и утвердите как любую другую. Средство с ОПАСНО или ОСТОРОЖНО без утверждённой оценки отмечено в карточке и на Board. Наряд-допуск называет химию, которую использует работа; её сигнальное слово, пиктограммы и СИЗ видны в наряде.",
+        "Board показывает офицерам средства без SDS, паспорта старше пяти лет (запросите у поставщика текущую редакцию), опасные средства без утверждённой оценки и карточки, ждущие сверки. «Убрано с судна» убирает средство из списка; наряды и оценки, где оно названо, сохраняют запись. Реестр PDF и Excel (по-английски) перечисляет все средства с местом и количеством, опасностями, СИЗ, датой SDS, сверкой и оценкой; в Excel второй лист — первая помощь, пожар и разлив, чтобы распечатать для кладовой.",
       ],
     },
     {
@@ -2618,6 +2640,17 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '🧴',
+      title: "Químicos y fichas de datos de seguridad",
+      body: [
+        "Para cada producto químico a bordo — limpieza, piscina y spa, pintura y disolventes, sala de máquinas, auxiliares, cocina, lavandería, gases. Ábralo desde Permits → Químicos. Todos a bordo pueden leer las fichas; las llevan los oficiales y el Capitán. La lista muestra primero los productos con PELIGRO, luego con ATENCIÓN, luego el resto, y lo que falta en cada ficha.",
+        "Una ficha: nombre y fabricante, para qué se usa, dónde se guarda y cuánto (una línea por lugar) y su ficha de datos de seguridad (SDS) — un PDF o una foto, que va a los archivos del buque. De la SDS, la ficha guarda lo que importa al usarlo: palabra de advertencia, pictogramas GHS, indicaciones de peligro, EPI, primeros auxilios para ojos, piel, inhalación e ingestión, qué hacer en un incendio y un derrame, cómo almacenarlo y de qué mantenerlo lejos, y el número UN.",
+        "Con la IA activada, la IA lee la SDS en cuanto se añade, en el idioma que sea, y muestra lo que encontró junto a la ficha, en inglés. Nada cambia hasta pulsar «A la ficha»: entonces sustituye peligros, EPI, primeros auxilios, incendio, derrame y almacenamiento por lo que dice esta hoja. Guarde, y un oficial abre la SDS, la compara con la ficha y firma «Cotejada con la SDS». Una hoja nueva, o un cambio en algo que dio la SDS, quita el cotejo.",
+        "Evaluación de riesgo (con permisos activados): desde la ficha, «Evaluar: en cubierta / en un local» o «Evaluar: en espacio cerrado» inicia una evaluación de riesgo normal con los peligros del producto, valorados antes y después de las medidas, y el EPI, incendio, derrame y almacenamiento de la ficha como medidas. Ajuste valoraciones y medidas al trabajo y apruébela como cualquier otra. Un producto con PELIGRO o ATENCIÓN sin evaluación aprobada se señala en la ficha y en el Board. Un permiso de trabajo nombra los químicos que usa; su palabra de advertencia, pictogramas y EPI aparecen en el permiso.",
+        "El Board indica a los oficiales qué productos no tienen SDS, qué SDS tiene más de cinco años (pida al proveedor la revisión vigente), qué productos peligrosos no tienen evaluación aprobada y qué fichas esperan el cotejo. «Retirado del buque» quita un producto de la lista; los permisos y evaluaciones que lo nombran conservan su registro. El registro en PDF y Excel (en inglés) lista cada producto con lugar y cantidad, peligros, EPI, fecha de la SDS, cotejo y evaluación; el Excel tiene una segunda hoja de primeros auxilios, incendio y derrame para imprimir en el pañol.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Acerca de',
       body: [
@@ -3482,6 +3515,17 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '🧴',
+      title: "Хімія та паспорти безпеки",
+      body: [
+        "Для кожного хімічного засобу на борту — прибирання, басейн і спа, фарби й розчинники, машинне відділення, тендери, камбуз, пральня, гази. Відкрийте Permits → Хімія. Картки бачать усі на борту, ведуть їх офіцери й капітан. У списку спершу засоби з НЕБЕЗПЕЧНО, потім з ОБЕРЕЖНО, потім решта, і чого бракує в кожній картці.",
+        "Картка: назва й виробник, для чого засіб, де зберігається і скільки (рядок на кожне місце) та його паспорт безпеки (SDS) — PDF або фото, що йде до файлів судна. Із SDS у картці те, що важливо під час роботи: сигнальне слово, піктограми GHS, характеристики небезпеки, ЗІЗ, перша допомога при потраплянні в очі, на шкіру, при вдиханні й ковтанні, що робити при пожежі й розливі, як зберігати і подалі від чого тримати, номер UN.",
+        "Якщо AI увімкнено, він читає SDS одразу після додавання, хоч якою мовою, і показує знайдене поруч із карткою англійською. Нічого не змінюється, доки ви не натиснете «У картку»: тоді небезпеки, ЗІЗ, перша допомога, пожежа, розлив і зберігання замінюються тим, що сказано в цьому паспорті. Збережіть, а офіцер відкриває SDS, порівнює з карткою і підписує «Звірено з SDS». Новий паспорт або зміна того, що дав SDS, знімає звіряння.",
+        "Оцінка ризику (якщо увімкнено наряди-допуски): з картки «Оцінити: на палубі / в приміщенні» або «Оцінити: у замкненому просторі» починає звичайну оцінку ризику з небезпеками засобу, оціненими до і після заходів, де заходи — ЗІЗ, пожежа, розлив і зберігання з картки. Підправте оцінки й заходи під роботу і затвердіть як будь-яку іншу. Засіб з НЕБЕЗПЕЧНО або ОБЕРЕЖНО без затвердженої оцінки позначено в картці й на Board. Наряд-допуск називає хімію, яку використовує робота; її сигнальне слово, піктограми й ЗІЗ видно в наряді.",
+        "Board показує офіцерам засоби без SDS, паспорти старші за п'ять років (запитайте в постачальника чинну редакцію), небезпечні засоби без затвердженої оцінки та картки, що чекають звіряння. «Прибрано з судна» прибирає засіб зі списку; наряди й оцінки, де його названо, зберігають запис. Реєстр PDF і Excel (англійською) перелічує всі засоби з місцем і кількістю, небезпеками, ЗІЗ, датою SDS, звірянням і оцінкою; в Excel другий аркуш — перша допомога, пожежа й розлив, щоб надрукувати для комори.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Про застосунок',
       body: [
@@ -4281,6 +4325,17 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '🧴',
+      title: "Kjemikalier og sikkerhetsdatablader",
+      body: [
+        "For hvert kjemisk produkt om bord — rengjøring, basseng og spa, maling og løsemidler, maskinrom, tendere, bysse, vaskeri, gasser. Åpne fra Permits → Kjemikalier. Alle om bord kan lese kortene; offiserene og kapteinen fører dem. Listen viser produkter med FARE først, så ADVARSEL, så resten, og hva hvert kort mangler.",
+        "Et kort: produktets navn og produsent, hva det brukes til, hvor det lagres og hvor mye (én linje per sted), og sikkerhetsdatabladet (SDS) — en PDF eller et bilde, som går til fartøyets filer. Fra SDS holder kortet det som betyr noe ved bruk: varselord, GHS-faresymboler, faresetninger, verneutstyr, førstehjelp for øyne, hud, innånding og svelging, hva som gjøres ved brann og søl, lagring og hva det holdes borte fra, og UN-nummeret.",
+        "Med AI på leser AI SDS så snart det legges til, uansett språk, og viser det den fant ved siden av kortet, på engelsk. Ingenting endres før du trykker «Inn i kortet»: da erstattes farer, verneutstyr, førstehjelp, brann, søl og lagring med det dette bladet sier. Lagre, og en offiser åpner SDS, sammenligner med kortet og signerer «Kontrollert mot SDS». Et nytt blad, eller en endring i noe SDS ga, fjerner kontrollen igjen.",
+        "Risikovurdering (der arbeidstillatelser er på): fra kortet starter «Vurder: på dekk / i et rom» eller «Vurder: i lukket rom» en vanlig risikovurdering med produktets farer, vurdert før og etter tiltak, og kortets verneutstyr, brann, søl og lagring som tiltak. Juster vurderinger og tiltak til jobben og godkjenn som enhver annen. Et produkt med FARE eller ADVARSEL uten godkjent vurdering vises på kortet og på Board. En arbeidstillatelse nevner kjemikaliene arbeidet bruker; varselord, faresymboler og verneutstyr vises på tillatelsen.",
+        "Board viser offiserene hvilke produkter som mangler SDS, hvilke SDS som er over fem år gamle (be leverandøren om gjeldende revisjon), hvilke farlige produkter som mangler godkjent vurdering, og hvilke kort som venter på kontroll. «Tatt i land» fjerner et produkt fra listen; tillatelser og vurderinger som nevner det, beholder sin registrering. Registeret i PDF og Excel (engelsk) viser hvert produkt med sted og mengde, farer, verneutstyr, SDS-dato, kontroll og vurdering; Excel har et andre ark med førstehjelp, brann og søl til utskrift for lageret.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Om',
       body: [
@@ -5065,6 +5120,17 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '🧴',
+      title: "Químicos e fichas de dados de segurança",
+      body: [
+        "Para cada produto químico a bordo — limpeza, piscina e spa, tintas e solventes, casa das máquinas, tenders, cozinha, lavandaria, gases. Abra em Permits → Químicos. Todos a bordo podem ler as fichas; os oficiais e o Comandante mantêm-nas. A lista mostra primeiro os produtos com PERIGO, depois com ATENÇÃO, depois os restantes, e o que falta em cada ficha.",
+        "Uma ficha: nome e fabricante do produto, para que serve, onde está guardado e quanto (uma linha por local) e a sua ficha de dados de segurança (SDS) — um PDF ou uma foto, que vai para os ficheiros do navio. Da SDS, a ficha guarda o que importa no momento de usar: palavra-sinal, pictogramas GHS, advertências de perigo, EPI, primeiros socorros para olhos, pele, inalação e ingestão, o que fazer num incêndio e num derrame, como armazenar e de que manter afastado, e o número UN.",
+        "Com a IA ligada, a IA lê a SDS assim que é adicionada, em qualquer língua, e mostra o que encontrou junto à ficha, em inglês. Nada muda até carregar em «Para a ficha»: então substitui perigos, EPI, primeiros socorros, incêndio, derrame e armazenagem pelo que diz esta folha. Guarde, e um oficial abre a SDS, compara-a com a ficha e assina «Conferida com a SDS». Uma folha nova, ou uma alteração ao que a SDS deu, retira a conferência.",
+        "Avaliação de risco (com autorizações de trabalho ligadas): a partir da ficha, «Avaliar: no convés / num compartimento» ou «Avaliar: em espaço confinado» inicia uma avaliação de risco normal com os perigos do produto, avaliados antes e depois das medidas, e o EPI, incêndio, derrame e armazenagem da ficha como medidas. Ajuste avaliações e medidas ao trabalho e aprove-a como qualquer outra. Um produto com PERIGO ou ATENÇÃO sem avaliação aprovada aparece na ficha e no Board. Uma autorização de trabalho nomeia os químicos que o trabalho usa; a palavra-sinal, pictogramas e EPI aparecem na autorização.",
+        "O Board indica aos oficiais que produtos não têm SDS, que SDS têm mais de cinco anos (peça ao fornecedor a revisão atual), que produtos perigosos não têm avaliação aprovada e que fichas aguardam conferência. «Retirado do navio» tira um produto da lista; as autorizações e avaliações que o nomeiam mantêm o seu registo. O registo em PDF e Excel (em inglês) lista cada produto com local e quantidade, perigos, EPI, data da SDS, conferência e avaliação; o Excel tem uma segunda folha de primeiros socorros, incêndio e derrame para imprimir para o paiol.",
+      ],
+    },
+    {
       emoji: 'ℹ️',
       title: 'Sobre',
       body: [
@@ -5143,6 +5209,8 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Emissions', module: 'emissions' },
   { title: 'My documents', module: 'myDocs' },
   { title: 'My documents', module: 'mySdm', drop: [2] },
+  { title: 'Chemicals and safety data sheets', module: 'chem' },
+  { title: 'Chemicals and safety data sheets', module: 'ptw', drop: [3] },
   { title: 'Planned maintenance', module: 'critEq', drop: [-1] },
   { title: 'Suppliers and quotations', module: 'poApproval', drop: [-1] },
 ];

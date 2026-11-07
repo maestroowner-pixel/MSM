@@ -118,6 +118,8 @@ export interface BackupFile {
   /** Drug and alcohol tests (officers only; full names, as on this device). */
   da?: { tests: import('../types/daTest').DaTest[]; results: import('../types/daTest').DaResult[]; followUps: import('../types/daTest').DaFollowUp[]; policy: import('../types/daTest').DaPolicy[] };
   em?: { vessel: import('../types/emissions').EmVessel[]; passages: import('../types/emissions').EmPassage[]; statements: import('../types/emissions').EmStatement[] };
+  /** Chemicals aboard (types/chemicals.ts); an SDS is a link, or the file itself on a device on its own. */
+  chemicals?: import('../types/chemicals').Chemical[];
   logs?: { deck: any[]; gmdss: any[]; orderGroups: any[]; galley: any[] };
   /** Drills: planned and carried out. */
   drills?: Drill[];
@@ -281,6 +283,7 @@ export async function exportBackup(vessel: VesselInfo | null, password = ''): Pr
   const restPlans = await storage.loadList<import('../types/restPlan').RestPlan>(storage.REST_PLANS_KEY);
   const da = { tests: await storage.loadList<import('../types/daTest').DaTest>(storage.DA_TESTS_KEY), results: await storage.loadList<import('../types/daTest').DaResult>(storage.DA_RESULTS_KEY), followUps: await storage.loadList<import('../types/daTest').DaFollowUp>(storage.DA_FOLLOWUPS_KEY), policy: await storage.loadList<import('../types/daTest').DaPolicy>(storage.DA_POLICY_KEY) };
   const em = { vessel: await storage.loadList<import('../types/emissions').EmVessel>(storage.EM_VESSEL_KEY), passages: await storage.loadList<import('../types/emissions').EmPassage>(storage.EM_PASSAGES_KEY), statements: await storage.loadList<import('../types/emissions').EmStatement>(storage.EM_STATEMENTS_KEY) };
+  const chemicals = await storage.loadList<import('../types/chemicals').Chemical>(storage.CHEMICALS_KEY);
   const logs = { deck: await storage.loadList<any>(storage.DECK_LOG_KEY), gmdss: await storage.loadList<any>(storage.GMDSS_KEY), orderGroups: await storage.loadList<any>(storage.ORDER_GROUPS_KEY), galley: await storage.loadList<any>(storage.GALLEY_ORDERS_KEY) };
   const drillPlans = await storage.loadList<DrillYearPlan>(storage.DRILL_PLANS_KEY);
   const safetyMeetings = await storage.loadList<SafetyMeeting>(storage.SAFETY_MEETINGS_KEY);
@@ -344,6 +347,7 @@ export async function exportBackup(vessel: VesselInfo | null, password = ''): Pr
     ...(restPlans.length ? { restPlans } : {}),
     ...(da.tests.length || da.policy.length ? { da } : {}),
     ...(em.passages.length || em.vessel.length || em.statements.length ? { em } : {}),
+    ...(chemicals.length ? { chemicals } : {}),
     ...(logs.deck.length || logs.gmdss.length || logs.orderGroups.length || logs.galley.length ? { logs } : {}),
     drillPlans,
     hospital,
@@ -613,6 +617,7 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     await storage.saveList(storage.EM_PASSAGES_KEY, backup.em.passages);
     await storage.saveList(storage.EM_STATEMENTS_KEY, backup.em.statements);
   }
+  if (backup.chemicals) await storage.saveList(storage.CHEMICALS_KEY, backup.chemicals);
   if (backup.drillPlans) await storage.saveList(storage.DRILL_PLANS_KEY, backup.drillPlans);
   if (backup.safetyMeetings) await storage.saveList(storage.SAFETY_MEETINGS_KEY, backup.safetyMeetings);
   if (backup.dp) {
