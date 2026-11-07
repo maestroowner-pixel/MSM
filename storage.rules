@@ -38,10 +38,27 @@ service firebase.storage {
       return request.auth.token;
     }
 
+    /** The token's own device record — as firestore.rules `device` / `live` (7 Nov 2026):
+     *  a device the Master switched off or removed is refused here too, whatever its
+     *  token still says. A cross-service read; the first deploy asks to grant it. */
+    function device(v) {
+      return firestore.get(/databases/(default)/documents/safety_vessels/$(v)/devices/$(claims().get('deviceId', '-')));
+    }
+    function live(d) {
+      return d != null
+             && d.data.get('approved', false) == true
+             && !(d.data.get('disabled', false) == true && !('retiredAt' in d.data));
+    }
+    function officer(v) {
+      return (claims().role == 'admin' || claims().role == 'superadmin')
+             && device(v).data.get('role', '') in ['admin', 'superadmin'];
+    }
+
     function member(v) {
       return request.auth != null
              && claims().vessel == v
-             && claims().approved == true;
+             && claims().approved == true
+             && live(device(v));
     }
 
     /** A superintendent's fleet token — see firestore.rules `shore`. */
@@ -49,7 +66,9 @@ service firebase.storage {
       return request.auth != null
              && claims().shore == true
              && claims().fleet is map
-             && claims().fleet[v] == true;
+             && claims().fleet.get(v, false) == true
+             && live(device(v))
+             && device(v).data.get('role', '') == 'shore';
     }
 
     match /safety_vessels/{vessel}/inspections/{inspectionId}/{photo} {
@@ -97,8 +116,8 @@ service firebase.storage {
     // radio medical advice. Health data: the Master and the officers only, never
     // the crew or the shore, and never replaced.
     match /safety_vessels/{vessel}/medical/{ownerId}/{file} {
-      allow read: if member(vessel) && (claims().role == 'admin' || claims().role == 'superadmin');
-      allow create: if member(vessel) && (claims().role == 'admin' || claims().role == 'superadmin')
+      allow read: if member(vessel) && officer(vessel);
+      allow create: if member(vessel) && officer(vessel)
                     && resource == null
                     && request.resource.size < 12 * 1024 * 1024
                     && (request.resource.contentType == 'application/pdf' || request.resource.contentType.matches('image/.*'));
@@ -109,8 +128,8 @@ service firebase.storage {
     // the officers only, never the crew or the shore. A working file, and it goes
     // when the person's details are erased (plan item 60).
     match /safety_vessels/{vessel}/crew_docs/{certId}/{file} {
-      allow read, delete: if member(vessel) && (claims().role == 'admin' || claims().role == 'superadmin');
-      allow write: if member(vessel) && (claims().role == 'admin' || claims().role == 'superadmin')
+      allow read, delete: if member(vessel) && officer(vessel);
+      allow write: if member(vessel) && officer(vessel)
                    && request.resource.size < 12 * 1024 * 1024
                    && (request.resource.contentType == 'application/pdf' || request.resource.contentType.matches('image/.*'));
     }
@@ -119,8 +138,8 @@ service firebase.storage {
     // The SOPEP's papers and the Ship Security Plan (types/officerDocs.ts): the
     // Master and the officers only — never the crew or the shore.
     match /safety_vessels/{vessel}/restricted/{ownerId}/{file} {
-      allow read: if member(vessel) && (claims().role == 'admin' || claims().role == 'superadmin');
-      allow create: if member(vessel) && (claims().role == 'admin' || claims().role == 'superadmin')
+      allow read: if member(vessel) && officer(vessel);
+      allow create: if member(vessel) && officer(vessel)
                     && resource == null
                     && request.resource.size < 12 * 1024 * 1024
                     && (request.resource.contentType == 'application/pdf' || request.resource.contentType.matches('image/.*'));

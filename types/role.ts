@@ -127,8 +127,31 @@ export interface Invite {
   revoked?: boolean;
   createdAt: number;
   createdBy?: string;
+  /** When the PIN was issued, by the server's clock (services/accounts) — the 48 hours of a Master or shore invitation run from it. */
+  issuedAt?: number;
   /** Written by the server when a device enrols on this invitation. */
   activations?: Array<{ deviceId: string; at: number; platform?: string | null }>;
+}
+
+/**
+ * Master and shore invitations approve their own device, so since 7 Nov 2026 they
+ * are good for 48 hours from the PIN and one device ("the Master knows an
+ * invitation is out and says so in a letter"). The server decides
+ * (functions/access.js `inviteClosed` — keep the two alike); this is what Accounts shows.
+ */
+export const INVITE_TTL_MS = 48 * 60 * 60 * 1000;
+export const selfApproving = (role: Role | string) => role === 'superadmin' || role === 'shore';
+
+export type InviteWindow = { state: 'open'; until: number } | { state: 'expired' } | { state: 'used' };
+
+/** Null for an invitation that waits for approval anyway (Crew, Officer). */
+export function inviteWindow(inv: Pick<Invite, 'role' | 'issuedAt' | 'createdAt' | 'activations'>, now = Date.now()): InviteWindow | null {
+  if (!selfApproving(inv.role)) return null;
+  // An invitation written by an older app has only its own `createdAt` (as the server reads it).
+  const issued = inv.issuedAt || inv.createdAt || 0;
+  if (!issued) return { state: 'expired' };
+  if ((inv.activations ?? []).some((a) => a.at >= issued)) return { state: 'used' };
+  return now - issued > INVITE_TTL_MS ? { state: 'expired' } : { state: 'open', until: issued + INVITE_TTL_MS };
 }
 
 /** A device as the vessel's register knows it. */

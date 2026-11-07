@@ -19,6 +19,17 @@ await env.withSecurityRulesDisabled(async (c) => {
   await setDoc(doc(d, 'safety_vessels', V), { register: '{}', registerUpdatedAt: 1, modules: { drills: true } });
   await setDoc(doc(d, 'safety_vessels', OTHER), { register: '{}' });
   await setDoc(doc(d, 'safety_vessels', V, 'devices', 'devU'), { role: 'user', approved: true, firstName: 'A' });
+  // Every token's device record — the rules read it on every request (7 Nov 2026).
+  await setDoc(doc(d, 'safety_vessels', V, 'devices', 'devS'), { role: 'superadmin', approved: true, firstName: 'M' });
+  await setDoc(doc(d, 'safety_vessels', V, 'devices', 'devA'), { role: 'admin', approved: true, firstName: 'O' });
+  await setDoc(doc(d, 'safety_vessels', V, 'devices', 'devP'), { role: 'user', approved: false, firstName: 'P' });
+  await setDoc(doc(d, 'safety_vessels', V, 'devices', 'devShore'), { role: 'shore', approved: true, firstName: 'S' });
+  await setDoc(doc(d, 'safety_vessels', '9000003', 'devices', 'devN'), { role: 'superadmin', approved: true, firstName: 'N' });
+  await setDoc(doc(d, 'safety_vessels', V, 'devices', 'devOff'), { role: 'admin', approved: true, disabled: true, firstName: 'X' });
+  await setDoc(doc(d, 'safety_vessels', V, 'devices', 'devRetired'), { role: 'user', approved: true, disabled: true, retiredAt: 1, firstName: 'R' });
+  await setDoc(doc(d, 'safety_vessels', V, 'devices', 'devDemoted'), { role: 'user', approved: true, firstName: 'D' });
+  await setDoc(doc(d, 'safety_vessels', V, 'devices', 'devPromoted'), { role: 'admin', approved: true, firstName: 'U' });
+  await setDoc(doc(d, 'safety_vessels', V, 'devices', 'devShoreOff'), { role: 'shore', approved: true, disabled: true, firstName: 'SO' });
   await setDoc(doc(d, 'safety_vessels', V, 'crew', 'c1'), { name: 'Jez', active: true });
   await setDoc(doc(d, 'safety_vessels', V, 'crew_private', 'c1'), { id: 'c1', passportNo: 'X' });
   await setDoc(doc(d, 'safety_vessels', V, 'pms_done', 'p1'), { id: 'p1' });
@@ -29,7 +40,7 @@ const master = as('m', tok('superadmin'));
 const officer = as('o', tok('admin'));
 const crew = as('u', { ...tok('user'), deviceId: 'devU' });
 const pending = as('p', { vessel: V, role: 'user', approved: false, deviceId: 'devP' });
-const shore = as('s', { shore: true, fleet: { [V]: true }, deviceId: 'devS' });
+const shore = as('s', { shore: true, fleet: { [V]: true }, deviceId: 'devShore' });
 
 let n = 0, bad = 0;
 const t = async (ok, label, p) => { n++; try { await (ok ? assertSucceeds(p) : assertFails(p)); console.log(`✓ ${label}`); } catch (e) { bad++; console.log(`✗ ${label} — ${e.message.split('\n')[0]}`); } };
@@ -583,6 +594,28 @@ await t(true, 'Crew read their watches', getDoc(R(crew, 'rest_plans', 'c1')));
 await t(false, 'A plan is filed under its own person', setDoc(R(officer, 'rest_plans', 'c2'), RP));
 await t(true, 'The Master changes a day', updateDoc(R(master, 'rest_plans', 'c1'), { days: { '2026-11-05': { work: '1'.repeat(48) } }, updatedAt: 2 }));
 await t(false, 'A plan is never deleted', deleteDoc(R(master, 'rest_plans', 'c1')));
+
+// ---- the token is not enough: the device record decides (7 Nov 2026) ----
+const off = as('x', { vessel: V, role: 'admin', approved: true, deviceId: 'devOff' });
+const removed = as('r', { vessel: V, role: 'superadmin', approved: true, deviceId: 'devGone' });
+const retired = as('t', { vessel: V, role: 'user', approved: true, deviceId: 'devRetired' });
+const demoted = as('d', { vessel: V, role: 'superadmin', approved: true, deviceId: 'devDemoted' });
+const promoted = as('q', { vessel: V, role: 'user', approved: true, deviceId: 'devPromoted' });
+const shoreOff = as('so', { shore: true, fleet: { [V]: true }, deviceId: 'devShoreOff' });
+const shoreCrewRecord = as('sc', { shore: true, fleet: { [V]: true }, deviceId: 'devU' });
+await t(false, 'Switched-off device reads nothing, whatever its token says', getDoc(doc(off, 'safety_vessels', V)));
+await t(false, '…and writes nothing', setDoc(R(off, 'crew', 'cx'), { name: 'X', active: true }));
+await t(false, 'Removed device reads nothing', getDoc(doc(removed, 'safety_vessels', V)));
+await t(false, '…nor the invitations its Master token used to open', getDocs(collection(removed, 'safety_vessels', V, 'invites')));
+await t(true, 'Retired duplicate still reads (it comes back when opened)', getDoc(doc(retired, 'safety_vessels', V)));
+await t(true, 'Demoted Master still reads as crew', getDoc(doc(demoted, 'safety_vessels', V)));
+await t(false, 'Demoted Master cannot read the invitations', getDocs(collection(demoted, 'safety_vessels', V, 'invites')));
+await t(false, 'Demoted Master cannot write the crew list', setDoc(R(demoted, 'crew', 'cd'), { name: 'D', active: true }));
+await t(true, 'Promoted device works as crew until its next token', getDoc(doc(promoted, 'safety_vessels', V)));
+await t(false, '…and is not an officer before it', setDoc(R(promoted, 'crew', 'cp'), { name: 'P', active: true }));
+await t(true, 'Superintendent reads the vessel', getDoc(doc(shore, 'safety_vessels', V)));
+await t(false, 'Switched-off superintendent reads nothing', getDoc(doc(shoreOff, 'safety_vessels', V)));
+await t(false, 'A shore token over a crew device record reads nothing', getDoc(doc(shoreCrewRecord, 'safety_vessels', V)));
 
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);

@@ -37,6 +37,7 @@
 // ===================================
 
 const { onRequest, onCall, HttpsError } = require('firebase-functions/v2/https');
+const { liveCaller } = require('./access');
 const admin = require('firebase-admin');
 const crypto = require('crypto');
 const V = require('./vesselData');
@@ -58,11 +59,12 @@ function newKey() {
 
 // ---- issuing and revoking: the Master, from the app --------------------------
 
-function master(req) {
+async function master(req) {
   const t = (req.auth && req.auth.token) || {};
   if (!t.vessel || t.approved !== true || t.role !== 'superadmin') {
     throw new HttpsError('permission-denied', 'Only the Master can manage API keys.');
   }
+  await liveCaller(t, ['superadmin']);
   return t;
 }
 
@@ -74,7 +76,7 @@ async function deviceName(vessel, deviceId) {
 }
 
 const apiKeyCreate = onCall({ region: REGION }, async (req) => {
-  const t = master(req);
+  const t = await master(req);
   const label = String((req.data && req.data.label) || '').trim().slice(0, 60);
   const write = !!(req.data && req.data.write);
   if (!label) throw new HttpsError('invalid-argument', 'Name the key — who or what will use it.');
@@ -103,7 +105,7 @@ const apiKeyCreate = onCall({ region: REGION }, async (req) => {
 });
 
 const apiKeyRevoke = onCall({ region: REGION }, async (req) => {
-  const t = master(req);
+  const t = await master(req);
   const keyId = String((req.data && req.data.keyId) || '');
   if (!keyId) throw new HttpsError('invalid-argument', 'Which key?');
   const ref = db().doc(`${ROOT}/${t.vessel}/api_keys/${keyId}`);

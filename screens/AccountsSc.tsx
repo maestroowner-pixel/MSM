@@ -23,7 +23,7 @@ import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { SignerPicker } from '../components/SignerPicker';
 import { isAboard, maySign } from '../types/crew';
-import { EnrolledDevice, Invite, ROLE_ORDER, Role, personName, olderConnections } from '../types/role';
+import { EnrolledDevice, Invite, ROLE_ORDER, Role, personName, olderConnections, inviteWindow, selfApproving } from '../types/role';
 import * as accounts from '../services/accounts';
 import * as fb from '../services/firebaseService';
 import { uiDateTime } from '../utils/dates';
@@ -38,6 +38,13 @@ type Tab = 'invites' | 'devices';
 const roleName = (r: Role) => tk(`role.${r}`);
 const verText = (s: ReturnType<typeof versionStanding>) =>
   s.kind === 'current' ? t('acc.verCurrent', { v: s.version }) : s.kind === 'behind' ? t('acc.verBehind', { v: s.version, newest: s.newest }) : t('acc.verUnknown');
+
+/** A Master or shore invitation's 48 hours (types/role inviteWindow), for the list and its dialog. */
+function windowText(inv: Invite): string | null {
+  const w = inv.revoked ? null : inviteWindow(inv);
+  if (!w) return null;
+  return w.state === 'open' ? t('acc.inviteUntil', { when: uiDateTime(w.until) }) : w.state === 'used' ? t('acc.inviteUsed') : t('acc.inviteExpired');
+}
 
 export default function AccountsSc() {
   const COLORS = useTheme();
@@ -144,7 +151,7 @@ export default function AccountsSc() {
       // the Master reading it out to somebody standing in front of them.
       Alert.alert(
         t('acc.issuedTitle', { name: personName(inv) }),
-        t('acc.issuedBody', { pin: inv.pin })
+        t('acc.issuedBody', { pin: inv.pin }) + (selfApproving(inv.role) ? `\n\n${t('acc.inviteWindowNote')}` : '')
       );
     } catch (e: any) {
       Alert.alert(t('acc.couldNotIssue'), e?.message ?? String(e));
@@ -191,7 +198,8 @@ export default function AccountsSc() {
     Alert.alert(
       personName(inv),
       `PIN ${inv.pin} · ${roleName(inv.role)}\n` +
-        (used ? t('acc.usedOn', { devices: tn('n.device', used) }) : t('acc.notUsed')),
+        (used ? t('acc.usedOn', { devices: tn('n.device', used) }) : t('acc.notUsed')) +
+        (windowText(inv) ? `\n${windowText(inv)}\n\n${t('acc.inviteWindowNote')}` : ''),
       // Three buttons either way — Android's native dialog shows no more. A
       // revoked account trades "New PIN" for "Delete": Restore brings the PIN
       // options back, and a new PIN on an account being cleared out is no use.
@@ -445,6 +453,7 @@ export default function AccountsSc() {
                           item.activations?.length
                             ? tn('n.device', item.activations.length)
                             : t('acc.unused'),
+                          windowText(item),
                         ]
                           .filter(Boolean)
                           .join(' · ')}

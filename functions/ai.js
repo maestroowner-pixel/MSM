@@ -64,6 +64,7 @@
 // ===================================
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { liveCaller } = require('./access');
 const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 
@@ -590,6 +591,7 @@ Return JSON only:
 exports.ai = onCall({ secrets: [ANTHROPIC_API_KEY], region: REGION, timeoutSeconds: 120, memory: '512MiB' }, async (req) => {
   const t = (req.auth && req.auth.token) || {};
   if (!t.vessel || t.approved !== true) throw new HttpsError('permission-denied', 'The AI works for an approved device of the vessel.');
+  await liveCaller(t);
   const { task, input } = req.data || {};
   const run = TASKS[task];
   if (!run) throw new HttpsError('invalid-argument', `Unknown task ${task}`);

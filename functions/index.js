@@ -44,6 +44,7 @@ const crypto = require('crypto');
 const { retireDuplicates, revive } = require('./devices');
 const { isSetupCode } = require('./setupCode');
 const { isClosedCert } = require('./closedCerts');
+const { inviteClosed, CLOSED_TEXT, vesselGuard, liveDevice } = require('./access');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -171,6 +172,8 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
   }
 
   const rate = await checkRate(vessel, deviceId);
+  // …and per vessel: the device id is the caller's to make up (functions/access.js).
+  const guard = await vesselGuard(vessel);
 
   const invitesRef = db.collection(`${ROOT}/${vessel}/invites`);
   const invites = await invitesRef.get();
@@ -249,6 +252,14 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
     );
   }
 
+  // A Master invitation approves its own device (below), so it is good for 48 hours
+  // and one device (functions/access.js `inviteClosed`).
+  const closed = inviteClosed(invite, deviceId);
+  if (closed) {
+    await rate.fail();
+    throw new HttpsError('failed-precondition', CLOSED_TEXT[closed]);
+  }
+
   // ---- the device's standing ----------------------------------------------
   const deviceRef = db.doc(`${ROOT}/${vessel}/devices/${deviceId}`);
   const deviceSnap = await deviceRef.get();
@@ -274,7 +285,9 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
   // — when the invitation was created; making them then approve the device is
   // asking the same question twice. It also unsticks the common case: a Master
   // whose browser data was cleared comes back as a new device id and would
-  // otherwise queue for an approval only they could grant.
+  // otherwise queue for an approval only they could grant. Since 7 Nov 2026 such an
+  // invitation is good for 48 hours and one device (checked above), so that Master
+  // comes back on a new PIN from the other Master, or on the setup code.
   if (!approved && invite?.role === 'superadmin') approved = true;
 
   // The first device on an unclaimed vessel becomes Master, because there is
@@ -338,6 +351,7 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
   }
 
   await rate.clear();
+  await guard.refund();
   console.log(
     `[enrol] ${deviceId} on ${vessel} via ${invite ? 'invitation ' + invite.id : 'the bootstrap code'} ` +
       `— role ${role}, approved ${approved}`
@@ -478,7 +492,9 @@ exports.refresh = onCall({ region: REGION }, async (req) => {
 //      `shoreSaveCertificate` below — one certificate, merged on the server.
 //
 // A vessel whose Master switches the shore device off, or removes it, drops out
-// of the next token. Tokens last an hour; the console refreshes on open.
+// of the next token — and the rules refuse it at once, reading the shore device's
+// record on every request (7 Nov 2026): a session is renewed with the SAME claims
+// for as long as the browser keeps it, so the token alone never dropped anything.
 // ===================================
 
 const SHORE = 'shore_accounts';
@@ -507,6 +523,7 @@ exports.enrolShore = onCall({ region: REGION }, async (req) => {
     throw new HttpsError('invalid-argument', 'vessel, deviceId and pin are required.');
   }
   const rate = await checkRate(vessel, deviceId);
+  const guard = await vesselGuard(vessel);
 
   const invitesRef = db.collection(`${ROOT}/${vessel}/invites`);
   const invites = await invitesRef.get();
@@ -518,6 +535,12 @@ exports.enrolShore = onCall({ region: REGION }, async (req) => {
     }
     logRefusal(invites, deviceId, vessel, firstName, lastName);
     throw new HttpsError('permission-denied', 'Those details are not recognised.');
+  }
+  // Approved at once (below), so good for 48 hours and one browser — functions/access.js.
+  const closed = inviteClosed(invite, deviceId);
+  if (closed) {
+    await rate.fail();
+    throw new HttpsError('failed-precondition', CLOSED_TEXT[closed]);
   }
 
   const accountRef = db.doc(`${SHORE}/${deviceId}`);
@@ -575,6 +598,7 @@ exports.enrolShore = onCall({ region: REGION }, async (req) => {
   const others = (invite.activations || []).filter((a) => a.deviceId !== deviceId);
   await invitesRef.doc(invite.id).set({ activations: [...others, { deviceId, at: now, platform: 'web' }] }, { merge: true });
   await rate.clear();
+  await guard.refund();
 
   const vessels = await liveShoreVessels(deviceId, [...new Set([...(account?.vessels || []), vessel])]);
   console.log(`[enrolShore] ${deviceId} joined ${vessel} — fleet of ${vessels.length}`);
@@ -627,6 +651,8 @@ exports.shoreSaveCertificate = onCall({ region: REGION }, async (req) => {
   if (!t.shore || !vessel || !(t.fleet && t.fleet[vessel] === true)) {
     throw new HttpsError('permission-denied', 'Not a superintendent of that vessel.');
   }
+  // Still let in by that vessel's Master — the token alone outlives a switch-off.
+  await liveDevice(vessel, String(t.deviceId || ''), ['shore']);
   const cert = req.data?.certificate;
   const remove = req.data?.remove === true;
   if (!cert || typeof cert.id !== 'string' || !cert.id || (!remove && (typeof cert.name !== 'string' || !cert.name.trim()))) {
@@ -813,6 +839,9 @@ exports.roundsDedupSweep = require('./rounds').roundsDedupSweep;
 
 // Duplicate connections of the same person retired on the server (functions/devices.js).
 exports.devicesDedupSweep = require('./devices').devicesDedupSweep;
+
+// A device switched off or removed: its sessions are revoked (functions/access.js).
+exports.revokeOnSwitchOff = require('./access').revokeOnSwitchOff;
 
 // Public QR form — anonymous safety observations from anyone aboard, no app needed.
 exports.submitObs = require('./submitObs').submitObs;

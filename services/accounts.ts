@@ -24,6 +24,7 @@ import {
   getDocs,
   onSnapshot,
   deleteField,
+  serverTimestamp,
   setDoc,
 } from 'firebase/firestore';
 
@@ -46,7 +47,7 @@ export function watchInvites(vessel: string, cb: (rows: Invite[]) => void): () =
     collection(db(), ROOT, vessel, 'invites'),
     (snap) => {
       const rows: Invite[] = [];
-      snap.forEach((d) => rows.push({ id: d.id, ...(d.data() as Omit<Invite, 'id'>) }));
+      snap.forEach((d) => rows.push(inviteOf(d)));
       rows.sort((a, b) => b.createdAt - a.createdAt);
       cb(rows);
     },
@@ -54,10 +55,17 @@ export function watchInvites(vessel: string, cb: (rows: Invite[]) => void): () =
   );
 }
 
+/** `issuedAt` is a server timestamp — estimated while the write is on its way, as millis. */
+function inviteOf(d: { id: string; data: (o?: any) => any }): Invite {
+  const x = d.data({ serverTimestamps: 'estimate' }) as Omit<Invite, 'id'> & { issuedAt?: any };
+  const at = x.issuedAt;
+  return { id: d.id, ...x, issuedAt: typeof at === 'number' ? at : at?.toMillis ? at.toMillis() : undefined };
+}
+
 export async function listInvites(vessel: string): Promise<Invite[]> {
   const snap = await getDocs(collection(db(), ROOT, vessel, 'invites'));
   const rows: Invite[] = [];
-  snap.forEach((d) => rows.push({ id: d.id, ...(d.data() as Omit<Invite, 'id'>) }));
+  snap.forEach((d) => rows.push(inviteOf(d)));
   return rows.sort((a, b) => b.createdAt - a.createdAt);
 }
 
@@ -87,8 +95,10 @@ export async function issueInvite(
   // `createdBy` did exactly that, and the Master could not issue an account at
   // all. Stripping is done here rather than at each call site so a future
   // optional field cannot reintroduce it.
-  await setDoc(doc(db(), ROOT, vessel, 'invites', id), stripUndefined(body));
-  return invite;
+  // The 48 hours of a Master or shore invitation (types/role inviteWindow) run from
+  // the server's clock: a ship's tablet may be hours out.
+  await setDoc(doc(db(), ROOT, vessel, 'invites', id), { ...stripUndefined(body), issuedAt: serverTimestamp() });
+  return { ...invite, issuedAt: Date.now() };
 }
 
 /** Drop keys whose value is `undefined`, recursively. See issueInvite. */
@@ -126,7 +136,8 @@ export async function deleteInvite(vessel: string, inviteId: string): Promise<vo
 /** A new PIN for the same person — when one has been read out once too often. */
 export async function reissuePin(vessel: string, inviteId: string): Promise<string> {
   const pin = generatePin();
-  await setDoc(doc(db(), ROOT, vessel, 'invites', inviteId), { pin, revoked: false }, { merge: true });
+  // A new PIN opens a new 48 hours for a Master or shore invitation (types/role inviteWindow).
+  await setDoc(doc(db(), ROOT, vessel, 'invites', inviteId), { pin, revoked: false, issuedAt: serverTimestamp() }, { merge: true });
   return pin;
 }
 

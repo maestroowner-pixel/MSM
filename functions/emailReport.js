@@ -23,6 +23,7 @@
 
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { liveCaller } = require('./access');
 const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const nodemailer = require('nodemailer');
@@ -301,6 +302,7 @@ exports.sendReportNow = onCall(
     if (!vessel || t.vessel !== vessel || t.role !== 'superadmin') {
       throw new HttpsError('permission-denied', 'Master only.');
     }
+    await liveCaller(t, ['superadmin']);
     const db = admin.firestore();
     const r = await sendForVessel(vessel, db, SMTP_USER.value(), SMTP_PASS.value());
     if (r.skipped) {

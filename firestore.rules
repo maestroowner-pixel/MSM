@@ -36,19 +36,44 @@ service cloud.firestore {
       return request.auth.token;
     }
 
+    /**
+     * The token's own device record on vessel v — read on every request (7 Nov 2026).
+     *
+     * A token's claims outlive the decision that granted them: Firebase renews the
+     * session with the same claims for as long as the install keeps it, so a device
+     * the Master switched off or removed went on reading and writing — a lost phone,
+     * a browser left in an office, the laptop of somebody who has signed off. The
+     * record says what holds NOW. One read per request (cached across the request).
+     */
+    function device(v) {
+      return get(/databases/$(database)/documents/safety_vessels/$(v)/devices/$(claims().get('deviceId', '-')));
+    }
+
+    /** Approved and not switched off. Retired as a duplicate (functions/devices.js) is
+     *  not switched off: that install comes back by itself the next time it opens. */
+    function live(d) {
+      return d != null
+             && d.data.get('approved', false) == true
+             && !(d.data.get('disabled', false) == true && !('retiredAt' in d.data));
+    }
+
     /** A device of this vessel, approved, holding a token the function issued. */
     function member(v) {
       return request.auth != null
              && claims().vessel == v
-             && claims().approved == true;
+             && claims().approved == true
+             && live(device(v));
     }
 
+    // The rank is the lower of the token's and the record's: a demotion holds at once,
+    // a promotion with the next token (the app takes one each time it starts).
     function isSuper(v) {
-      return member(v) && claims().role == 'superadmin';
+      return member(v) && claims().role == 'superadmin' && device(v).data.get('role', '') == 'superadmin';
     }
 
     function isAdmin(v) {
-      return member(v) && (claims().role == 'admin' || claims().role == 'superadmin');
+      return member(v) && (claims().role == 'admin' || claims().role == 'superadmin')
+             && device(v).data.get('role', '') in ['admin', 'superadmin'];
     }
 
     /**
@@ -61,7 +86,9 @@ service cloud.firestore {
       return request.auth != null
              && claims().shore == true
              && claims().fleet is map
-             && claims().fleet[v] == true;
+             && claims().fleet.get(v, false) == true
+             && live(device(v))
+             && device(v).data.get('role', '') == 'shore';
     }
 
     // A record that replaces another (an amendment or a deletion, services/versions)
