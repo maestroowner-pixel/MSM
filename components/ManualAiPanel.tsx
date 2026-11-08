@@ -16,6 +16,8 @@ import { SIZES } from '../theme';
 import { Machine } from '../types/pms';
 import { personName } from '../types/role';
 import { aiOrLater, removeAiJob } from '../services/aiQueue';
+import { libraryForget, libraryLookup } from '../services/ai';
+import { LibraryEntry, asManualReply, entryName, libraryFile, pairOf } from '../services/makerLibrary';
 import { pickDocForAi } from '../services/medFiles';
 import { applyManual, jobKeyIds, jobsForAi, machineForAi, makerNote, ManualAiReply, readManual } from '../services/manualAi';
 import { scheduleLabel } from '../services/pms';
@@ -33,7 +35,19 @@ export function ManualAiPanel({ machine, waited, waitedJobs, waitedFile, jobId }
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const { pmsJobs, savePlan } = useData();
   const sync = useSync();
-  const [reply, setReply] = useState<{ r: ManualAiReply; jobs: string[]; file?: string } | null>(null);
+  const [reply, setReply] = useState<{ r: ManualAiReply; jobs: string[]; file?: string; lib?: boolean } | null>(null);
+  // The makers' library (plan item 54): this maker and model read from a manual on any vessel.
+  const pair = pairOf(machine);
+  const [lib, setLib] = useState<LibraryEntry | null>(null);
+  useEffect(() => {
+    setLib(null);
+    if (!pair) return;
+    let live = true;
+    libraryLookup([pair]).then((r) => live && setLib(r[pair] ?? null)).catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [pair]);
   const [off, setOff] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -48,7 +62,10 @@ export function ManualAiPanel({ machine, waited, waitedJobs, waitedFile, jobId }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [waited, jobId]);
 
-  const read = useMemo(() => (reply ? readManual(machine, pmsJobs, reply.r, reply.jobs) : null), [machine, pmsJobs, reply]);
+  const read = useMemo(
+    () => (reply ? readManual(machine, pmsJobs, reply.r, reply.jobs, { untickNew: !!reply.lib && jobKeyIds(machine.id, pmsJobs).length > 0 }) : null),
+    [machine, pmsJobs, reply]
+  );
   // A tick is the proposal's own until the person changes it.
   const ticked = (id: string, pick: boolean) => (id in off ? !off[id] : pick);
   const picked = read ? read.proposals.filter((p) => ticked(p.id, p.pick)) : [];
@@ -65,6 +82,8 @@ export function ManualAiPanel({ machine, waited, waitedJobs, waitedFile, jobId }
         label: `${machine.name} · ${f.name}`,
         target: { machineId: machine.id, jobIds: jobs, file: f.name },
       });
+      // The read went into the library if it is for this model: ask it again next time.
+      libraryForget(pair);
       if ('queued' in out) setNote(t('ai.queued'));
       else {
         setOff({});
@@ -88,7 +107,8 @@ export function ManualAiPanel({ machine, waited, waitedJobs, waitedFile, jobId }
       const was = pmsJobs.find((x) => x.id === j.id);
       const p = picked.find((x) => x.jobId === j.id)!;
       const diff = planDiff(was, j, JOB_FIELDS);
-      return diff.length ? { ...j, changes: withChanges(was?.changes, diff, who, `${makerNote({ page: p.page }, reply?.file)} — read by the AI, checked`, now) } : j;
+      const how = reply?.lib ? 'from the makers\' library, checked' : 'read by the AI, checked';
+      return diff.length ? { ...j, changes: withChanges(was?.changes, diff, who, `${makerNote({ page: p.page }, reply?.file)} — ${how}`, now) } : j;
     });
     await savePlan([], [...fresh, ...logged]);
     playSuccessSound();
@@ -103,10 +123,17 @@ export function ManualAiPanel({ machine, waited, waitedJobs, waitedFile, jobId }
       <Text style={styles.sub}>{t('man.intro')}</Text>
       <View style={[styles.row, { gap: SIZES.xs }]}>
         <TouchableOpacity style={styles.small} disabled={busy} onPress={() => void start()}>
-          <Text style={styles.smallText}>{busy ? t('rfq.aiReading') : read ? t('man.another') : t('man.read')}</Text>
+          <Text style={styles.smallText}>{busy ? t('rfq.aiReading') : read && !reply?.lib ? t('man.another') : t('man.read')}</Text>
         </TouchableOpacity>
+        {lib && !reply?.lib ? (
+          <TouchableOpacity style={styles.small} disabled={busy} onPress={() => { setOff({}); setNote(null); setReply({ r: asManualReply(lib), jobs: [], file: libraryFile(lib), lib: true }); }}>
+            <Text style={styles.smallText}>{t('man.libCompare')}</Text>
+          </TouchableOpacity>
+        ) : null}
         {read ? <TouchableOpacity onPress={() => setReply(null)}><Text style={[styles.link, { marginTop: 0 }]}>{t('ai.dismiss')}</Text></TouchableOpacity> : null}
       </View>
+      {lib && !read ? <Text style={styles.sub}>{t('man.libHas', { name: entryName(lib), jobs: tn('n.job', lib.jobs.length), vessels: tn('n.vessel', lib.vessels) })}</Text> : null}
+      {reply?.lib && lib ? <Text style={[styles.sub, { color: COLORS.textDark }]}>{t('man.libFrom', { name: entryName(lib) })}</Text> : null}
       {note ? <Text style={[styles.sub, { color: COLORS.textDark }]}>{note}</Text> : null}
 
       {read ? (

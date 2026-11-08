@@ -12,6 +12,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 
 import * as fb from './firebaseService';
 import { moduleOn } from '../constants/modules';
+import { LibraryEntry, splitPair } from './makerLibrary';
 
 const REGION = 'europe-west1';
 type Mock = (task: string, input: unknown) => Promise<unknown>;
@@ -32,7 +33,7 @@ export interface CertAiResult {
   unreadable?: string;
 }
 
-export async function aiCall<T>(task: 'map' | 'table' | 'inspect' | 'ask' | 'form' | 'cert' | 'readiness' | 'quote' | 'invoice' | 'manual' | 'incident' | 'sms' | 'diagnose' | 'brief' | 'log' | 'english' | 'photo' | 'sds', input: unknown): Promise<T> {
+export async function aiCall<T>(task: 'map' | 'table' | 'inspect' | 'ask' | 'form' | 'cert' | 'readiness' | 'quote' | 'invoice' | 'manual' | 'incident' | 'sms' | 'diagnose' | 'brief' | 'log' | 'english' | 'photo' | 'sds' | 'library', input: unknown): Promise<T> {
   const m = mock();
   if (m) return (await m(task, input)) as T;
   const app = fb.firebaseApp();
@@ -44,6 +45,28 @@ export async function aiCall<T>(task: 'map' | 'table' | 'inspect' | 'ask' | 'for
     throw Object.assign(new Error(String(e?.message ?? e).replace(/^FirebaseError:\s*/, '')), { code: e?.code });
   }
 }
+
+// What the makers' library answered this session, by maker + model (makerLibrary.pairOf).
+const libSeen = new Map<string, LibraryEntry | null>();
+
+/**
+ * The makers' library (plan item 54) for these maker + model pairs: the schedule
+ * a manual of that model gave on any vessel, or null. One call for all not asked
+ * yet this session; without a connection the pairs stay unanswered (absent).
+ */
+export async function libraryLookup(pairs: string[]): Promise<Record<string, LibraryEntry | null>> {
+  const ask = Array.from(new Set(pairs)).filter((p) => !libSeen.has(p)).slice(0, 40);
+  if (ask.length) {
+    const r = await aiCall<{ found?: (LibraryEntry | null)[] }>('library', { units: ask.map(splitPair) });
+    ask.forEach((p, i) => libSeen.set(p, r?.found?.[i] ?? null));
+  }
+  return Object.fromEntries(pairs.filter((p) => libSeen.has(p)).map((p) => [p, libSeen.get(p)!]));
+}
+
+/** After a manual read of this model: the library may hold it now. */
+export const libraryForget = (pair: string | null) => {
+  if (pair) libSeen.delete(pair);
+};
 
 /**
  * A sample cell as the AI may see it — its SHAPE, not its value: every digit a 9

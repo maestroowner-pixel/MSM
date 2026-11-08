@@ -16,14 +16,17 @@
 // so running the wizard again on a vessel with a plan adds only what is new.
 // Intervals are the catalogue's typical ones unless changed here; those left
 // as they are say so in the job's notes, as the catalogue's always have.
-// The maker and model are kept on the machine — what a maker's library will
-// later match its jobs by.
+// The maker and model are kept on the machine, and a unit whose maker and
+// model the makers' library knows (services/makerLibrary.ts, plan item 54)
+// takes the maker's schedule from it instead of the catalogue's typical jobs —
+// unless the keeper chose the typical list for that model.
 //
 // Pure; `npm run check:pmswizard`.
 // ===================================
 
 import type { Dept, Machine, PmsJob } from '../types/pms';
 import { CATALOGUE, CatalogueSystem } from './pmsCatalogue';
+import { LibraryEntry, WizardJob, libraryJobs, pairOf } from './makerLibrary';
 
 export type VesselKind = 'motor' | 'sail' | 'merchant';
 
@@ -121,6 +124,8 @@ export interface WizardAnswers {
   off: string[];
   /** Intervals changed (jobKey) — for every unit of the system. Blank = none of that kind. */
   intervals: Record<string, { hours?: number; days?: number }>;
+  /** The library's schedule to use, by maker + model (pairOf) — only the ones the keeper kept on. */
+  makers?: Record<string, LibraryEntry>;
 }
 
 export interface WizardPlan {
@@ -130,6 +135,10 @@ export interface WizardPlan {
   skipped: string[];
   /** Systems with no job left — added as machines with no jobs. */
   empty: string[];
+  /** Units that took the maker's schedule from the library. */
+  fromLibrary: string[];
+  /** The library's jobs left out: no interval the plan can count, or a watch check. */
+  libraryLeft: number;
 }
 
 const norm = (s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase();
@@ -146,19 +155,23 @@ export function buildPlan(a: WizardAnswers, have: Machine[], newId: (prefix: str
   const jobs: PmsJob[] = [];
   const skipped: string[] = [];
   const empty: string[] = [];
+  const fromLibrary: string[] = [];
+  let libraryLeft = 0;
   for (const sys of CATALOGUE) {
     const units = (a.units[sys.key] ?? []).filter((u) => u.name.trim());
     if (!units.length) continue;
-    const list = sys.jobs
+    const list: WizardJob[] = sys.jobs
       .filter((j) => !off.has(jobKey(sys.key, j.title)))
       .map((j) => {
         const set = a.intervals[jobKey(sys.key, j.title)];
         const hours = sys.counter ? (set ? set.hours : j.hours) : undefined;
         const days = set ? set.days : j.days;
-        return { ...j, hours, days, changed: !!set };
+        return { title: j.title, ...(j.type ? { type: j.type } : {}), ...(hours ? { hours } : {}), ...(days ? { days } : {}), notes: set ? '' : TYPICAL_NOTE };
       })
       .filter((j) => j.hours || j.days);
-    if (!list.length) empty.push(short(sys.label));
+    // The library's jobs for each model of this system, worked out once.
+    const fromLib = new Map<string, ReturnType<typeof libraryJobs>>();
+    let typicalUsed = false;
     for (const u of units) {
       const name = u.name.trim().replace(/\s+/g, ' ');
       if (taken.has(norm(name))) {
@@ -166,6 +179,18 @@ export function buildPlan(a: WizardAnswers, have: Machine[], newId: (prefix: str
         continue;
       }
       taken.add(norm(name));
+      const pair = pairOf(u);
+      const entry = pair ? a.makers?.[pair] : undefined;
+      let own = list;
+      if (entry) {
+        if (!fromLib.has(pair!)) {
+          const lj = libraryJobs(entry, sys.counter);
+          fromLib.set(pair!, lj);
+          libraryLeft += lj.left;
+        }
+        own = fromLib.get(pair!)!.jobs;
+        fromLibrary.push(name);
+      } else typicalUsed = true;
       const id = newId('mach');
       const opt = (k: keyof UnitSpec) => (typeof u[k] === 'string' && (u[k] as string).trim() ? { [k]: (u[k] as string).trim() } : {});
       machines.push({
@@ -180,7 +205,7 @@ export function buildPlan(a: WizardAnswers, have: Machine[], newId: (prefix: str
         ...(sys.counter && u.hours != null && Number.isFinite(u.hours) && u.hours >= 0 ? { hours: u.hours, hoursDate: today } : {}),
         updatedAt: now,
       });
-      for (const j of list) {
+      for (const j of own) {
         jobs.push({
           id: newId('job'),
           machineId: id,
@@ -188,11 +213,12 @@ export function buildPlan(a: WizardAnswers, have: Machine[], newId: (prefix: str
           ...(j.type ? { type: j.type } : {}),
           ...(j.hours ? { intervalHours: j.hours } : {}),
           ...(j.days ? { intervalDays: j.days } : {}),
-          ...(j.changed ? {} : { notes: TYPICAL_NOTE }),
+          ...(j.notes ? { notes: j.notes } : {}),
           updatedAt: now,
         });
       }
     }
+    if (typicalUsed && !list.length) empty.push(short(sys.label));
   }
-  return { machines, jobs, skipped, empty };
+  return { machines, jobs, skipped, empty, fromLibrary, libraryLeft };
 }

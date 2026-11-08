@@ -3,6 +3,8 @@
 // (services/pmsWizard.ts): kind of vessel → how many of each system → each
 // unit's name, maker, model and counter → the jobs and their intervals →
 // what will be added. Opened from Maintenance → Plan; Master or superintendent.
+// A unit whose maker and model the makers' library knows (plan item 54) takes
+// the maker's schedule instead of the typical list, unless switched off.
 // ===================================
 
 import React, { useMemo, useState } from 'react';
@@ -19,7 +21,9 @@ import { SIZES, Palette } from '../theme';
 import { DEPTS } from '../types/pms';
 import { CATALOGUE, CatalogueSystem } from '../services/pmsCatalogue';
 import { MAX_UNITS, UnitSpec, VesselKind, WizardAnswers, buildPlan, defaultCounts, jobKey, resize, systemsFor } from '../services/pmsWizard';
-import { todayIso } from '../services/pms';
+import { scheduleLabel, todayIso } from '../services/pms';
+import { aiReady, libraryLookup } from '../services/ai';
+import { LibraryEntry, entryName, pairOf } from '../services/makerLibrary';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { t, tk, tn, useT } from '../utils/i18n';
@@ -53,6 +57,13 @@ export default function PmsWizardSc() {
   // Intervals as typed: blank = none of that kind; absent = the catalogue's.
   const [typed, setTyped] = useState<Record<string, { hours: string; days: string }>>({});
   const [busy, setBusy] = useState(false);
+  // The makers' library by maker + model (null = not in it), the models switched to the typical list, the lists opened.
+  const [lib, setLib] = useState<Record<string, LibraryEntry | null>>({});
+  const [libOff, setLibOff] = useState<Set<string>>(new Set());
+  const [libOpen, setLibOpen] = useState<Set<string>>(new Set());
+  const [libState, setLibState] = useState<'idle' | 'looking' | 'failed'>('idle');
+  const toggle = (set: React.Dispatch<React.SetStateAction<Set<string>>>, k: string) =>
+    set((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
 
   const pick = (k: VesselKind) => {
     setKind(k);
@@ -67,12 +78,34 @@ export default function PmsWizardSc() {
   const setUnit = (key: string, i: number, p: Partial<UnitSpec>) => setUnits((u) => ({ ...u, [key]: (u[key] ?? []).map((x, k) => (k === i ? { ...x, ...p } : x)) }));
 
   const fitted = CATALOGUE.filter((c) => (units[c.key]?.length ?? 0) > 0);
+  const pairs = fitted.flatMap((c) => (units[c.key] ?? []).map(pairOf)).filter((p): p is string => !!p);
+  const makers = useMemo(
+    () => Object.fromEntries(Object.entries(lib).filter(([p, e]) => e && !libOff.has(p))) as Record<string, LibraryEntry>,
+    [lib, libOff]
+  );
+
+  // Units to jobs: ask the library about the models typed, once each; without a connection the typical lists stand.
+  const toJobs = async () => {
+    const ask = pairs.filter((p) => !(p in lib));
+    if (ask.length && aiReady(sync.enrolled)) {
+      setLibState('looking');
+      try {
+        const r = await libraryLookup(ask);
+        setLib((cur) => ({ ...cur, ...r }));
+        setLibState('idle');
+      } catch {
+        setLibState('failed');
+      }
+    }
+    setStep(3);
+  };
   const answers: WizardAnswers = useMemo(
     () => ({
       kind: kind ?? 'motor',
       units,
       off: [...off],
       // Typed back to the catalogue's own figures is not a change — the job keeps its "typical" note.
+      makers,
       intervals: Object.fromEntries(
         Object.entries(typed)
           .map(([k, v]) => [k, { hours: num(v.hours), days: num(v.days) }] as const)
@@ -83,7 +116,7 @@ export default function PmsWizardSc() {
           })
       ),
     }),
-    [kind, units, off, typed]
+    [kind, units, off, typed, makers]
   );
   const plan = useMemo(() => (step === 4 ? buildPlan(answers, machines, uid, todayIso(), Date.now()) : null), [step, answers, machines]);
 
@@ -209,10 +242,52 @@ export default function PmsWizardSc() {
 
       {step === 3 ? (
         <>
-          {fitted.map((c) => (
+          {libState === 'failed' ? <Text style={styles.note}>{t('wz.libOffline')}</Text> : null}
+          {pairs.length && libState !== 'failed' && aiReady(sync.enrolled) && !pairs.some((p) => lib[p]) ? <Text style={styles.note}>{t('wz.libNone')}</Text> : null}
+          {fitted.map((c) => {
+            const list = units[c.key] ?? [];
+            // The models of this system the library knows, with the units of each.
+            const models = new Map<string, string[]>();
+            for (const u of list) {
+              const p = pairOf(u);
+              if (p && lib[p]) models.set(p, [...(models.get(p) ?? []), u.name]);
+            }
+            const typical = list.filter((u) => { const p = pairOf(u); return !(p && makers[p]); });
+            return (
             <View key={c.key}>
-              <Label>{`${c.label} × ${units[c.key]!.length}`}</Label>
-              {c.jobs.map((j) => {
+              <Label>{`${c.label} × ${list.length}`}</Label>
+              {[...models].map(([p, names]) => {
+                const e = lib[p]!;
+                const on = !libOff.has(p);
+                const open = libOpen.has(p);
+                return (
+                  <Card key={p}>
+                    <Text style={styles.title}>{t('wz.libTitle', { name: entryName(e) })}</Text>
+                    <Text style={styles.sub}>{t('wz.libSub', { jobs: tn('n.job', e.jobs.length), units: names.join(', ') })}</Text>
+                    <Text style={styles.sub}>{t('wz.libFrom', { vessels: tn('n.vessel', e.vessels) })}</Text>
+                    {e.manualModel && e.manualModel.toLowerCase() !== e.model.toLowerCase() ? <Text style={styles.sub}>{t('wz.libManual', { model: e.manualModel })}</Text> : null}
+                    <TouchableOpacity style={[styles.inputs, { alignItems: 'center', marginTop: SIZES.sm }]} onPress={() => toggle(setLibOff, p)} hitSlop={6}>
+                      <MciIcon name={on ? 'checkbox-marked' : 'checkbox-blank-outline'} size={22} color={on ? COLORS.primary : COLORS.textLight} />
+                      <Text style={[styles.title, styles.flex]}>{on ? t('wz.libUse') : t('wz.libTypical')}</Text>
+                    </TouchableOpacity>
+                    {on ? (
+                      <TouchableOpacity onPress={() => toggle(setLibOpen, p)} style={{ marginTop: SIZES.xs }}>
+                        <Text style={styles.link}>{open ? t('wz.libHide') : t('wz.libShow')}</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    {on && open
+                      ? e.jobs.map((j, i) => (
+                          <Text key={i} style={styles.item}>
+                            {`${j.title} · ${j.hours || j.days ? scheduleLabel({ intervalHours: c.counter ? j.hours ?? undefined : undefined, intervalDays: j.days ?? undefined }) : '—'}${j.page ? ` · p. ${j.page}` : ''}`}
+                          </Text>
+                        ))
+                      : null}
+                  </Card>
+                );
+              })}
+              {models.size && !typical.length ? <Text style={styles.note}>{t('wz.libAll')}</Text> : null}
+              {models.size && typical.length ? <Text style={styles.note}>{t('wz.libOthers', { units: typical.map((u) => u.name).join(', ') })}</Text> : null}
+              {typical.length ? c.jobs.map((j) => {
                 const k = jobKey(c.key, j.title);
                 const on = !off.has(k);
                 const v = typed[k];
@@ -238,9 +313,10 @@ export default function PmsWizardSc() {
                     ) : null}
                   </View>
                 );
-              })}
+              }) : null}
             </View>
-          ))}
+            );
+          })}
         </>
       ) : null}
 
@@ -250,6 +326,8 @@ export default function PmsWizardSc() {
             <Text style={styles.big}>{t('wz.summary', { s: plan.machines.length, j: plan.jobs.length })}</Text>
             {plan.skipped.length ? <Text style={styles.sub}>{`${t('wz.skipped', { n: plan.skipped.length })}: ${plan.skipped.join(', ')}`}</Text> : null}
             {plan.empty.length ? <Text style={styles.sub}>{`${t('wz.noJobs')}: ${plan.empty.join(', ')}`}</Text> : null}
+            {plan.fromLibrary.length ? <Text style={styles.sub}>{t('wz.libSummary', { n: plan.fromLibrary.length, units: plan.fromLibrary.join(', ') })}</Text> : null}
+            {plan.libraryLeft ? <Text style={styles.sub}>{t('wz.libLeft', { n: plan.libraryLeft })}</Text> : null}
           </Card>
           {DEPTS.map((d) => {
             const list = plan.machines.filter((m) => m.dept === d.key);
@@ -275,8 +353,8 @@ export default function PmsWizardSc() {
             <Text style={styles.link}>{t('common.back')}</Text>
           </TouchableOpacity>
           {step < STEPS - 1 ? (
-            <TouchableOpacity style={[styles.btn, !fitted.length && styles.dim]} disabled={!fitted.length} onPress={() => setStep((s) => s + 1)}>
-              <Text style={styles.btnText}>{t('wz.next')}</Text>
+            <TouchableOpacity style={[styles.btn, (!fitted.length || libState === 'looking') && styles.dim]} disabled={!fitted.length || libState === 'looking'} onPress={() => (step === 2 ? void toJobs() : setStep((s) => s + 1))}>
+              <Text style={styles.btnText}>{libState === 'looking' ? t('wz.libLooking') : t('wz.next')}</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={[styles.btn, (busy || !plan?.machines.length) && styles.dim]} disabled={busy || !plan?.machines.length} onPress={() => void create()}>

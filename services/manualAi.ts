@@ -97,8 +97,12 @@ const whole = (v: unknown, max: number): number | undefined => {
 };
 const sameInterval = (a: { hours?: number; days?: number }, b: { hours?: number; days?: number }) => (a.hours ?? 0) === (b.hours ?? 0) && (a.days ?? 0) === (b.days ?? 0);
 
-/** The reply against the machine's jobs as they are now. */
-export function readManual(m: Machine, jobs: PmsJob[], reply: ManualAiReply, sent?: string[]): ManualRead {
+/**
+ * The reply against the machine's jobs as they are now. `untickNew`: a new job
+ * is offered unticked — for the makers' library, which matches the plan's jobs
+ * by title only, so a job worded otherwise would come in twice.
+ */
+export function readManual(m: Machine, jobs: PmsJob[], reply: ManualAiReply, sent?: string[], opts?: { untickNew?: boolean }): ManualRead {
   const mine = planned(m.id, jobs);
   const live = new Map(mine.map((j) => [j.id, j]));
   const byKey = new Map((sent ?? mine.map((j) => j.id)).map((id, i) => [`J${i + 1}`, id] as [string, string]).filter(([, id]) => live.has(id)));
@@ -138,7 +142,7 @@ export function readManual(m: Machine, jobs: PmsJob[], reply: ManualAiReply, sen
     }
     // A second manual job on a plan job already matched may be a part of it: offered, not ticked. So is a watch check.
     const daily = !hours && !!days && days < 7;
-    out.proposals.push({ ...base, pick: !jobId && !daily, ...(daily ? { daily: true } : {}) });
+    out.proposals.push({ ...base, pick: !jobId && !daily && !opts?.untickNew, ...(daily ? { daily: true } : {}) });
   }
   const model = text(reply.model, 120);
   if (model) out.model = model;

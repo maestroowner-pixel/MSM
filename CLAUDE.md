@@ -241,6 +241,17 @@ app mirrors. Bundle id `com.kukalab.msm`.
   `TYPICAL_NOTE`) → summary → `savePlan`. ADDS ONLY: a unit whose name (case/space-blind) is on the plan, not scrapped,
   is skipped — so it can be re-run. Jobs get no last-done date. Maker/model on the machine are what a maker library will
   match later. `npm run check:pmswizard`.
+- **Makers' library** (8 Nov 2026 — plan item 54, no flag: part of `ai` + `pms`): `functions/makerLibrary.js`, pure `services/makerLibrary.ts`,
+  `libraryLookup` in `services/ai.ts`. Filled ONLY by AI-3 manual reads: after task `manual`, when the machine has maker + model and the reply
+  says `covers: 'yes'`, `remember` keeps the jobs (title, hours, days, type, parts, page) under `maker_library/{libraryKey}` (Admin SDK only, no
+  rules — no client reads it); a fuller read (more jobs with an interval) replaces a poorer one; vessels counted by a hash, never returned.
+  `libraryKey`: maker folded (accents, Inc/GmbH…, trailing Marine/Engines/Power…, aliases Caterpillar→cat, MTU Friedrichshafen→mtu, Volvo→volvopenta)
+  + model alphanumerics; another model is another key (C32 ≠ C32 ACERT). Read through task `library` of the `ai` callable (no model call, 300/day,
+  ≤ 40 units, exact keys — it cannot be listed). Wizard: step 3 → 4 asks once; a unit of a known model takes `libraryJobs` instead of the typical
+  list unless the card is unticked (`WizardAnswers.makers`); no-interval and under-a-week calendar checks are left out and counted. Machine
+  screen (`ManualAiPanel`): Compare with the library feeds `asManualReply` to `readManual` with `untickNew` (titles only — a job worded otherwise
+  must not be added twice). Poisoning risk accepted: everything stays a proposal with "check against the manual aboard". Needs deploy of `ai`.
+  `npm run check:makerlib`.
 - **Needs attention in Fleet** (2 Nov 2026 — plan items 37 + 45, no flag: part of `fleet`): pure `services/officeInbox.ts`,
   FleetSc opens on it (tabs Needs attention / Vessels). **Waiting for your answer** = every record waiting for the office
   across the fleet (`inboxOf`: deferrals to answer, closures and NCs to verify, `officeQueue` requisitions) — emergencies
