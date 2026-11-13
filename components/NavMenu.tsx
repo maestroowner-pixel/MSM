@@ -291,11 +291,11 @@ function MenuList({
         const folds = !!group.label && !editing && !searching;
         const shut = folds && !openGroups.includes(group.key);
         // Shut, it still says where you are.
-        const headColor = shut && routes.includes(current) ? COLORS.primary : COLORS.textLight;
+        const here = shut && routes.includes(current);
         const head = (
           <>
-            <View style={styles.groupIcon}><MciIcon name={group.icon ?? 'circle-small'} size={18} color={headColor} /></View>
-            <Text style={[styles.groupHead, styles.groupHeadRow, { color: headColor }]} numberOfLines={1}>{group.label}</Text>
+            <View style={styles.groupIcon}><MciIcon name={group.icon ?? 'circle-small'} size={20} color={here ? COLORS.primary : COLORS.textLight} /></View>
+            <Text style={[styles.groupHead, styles.groupHeadRow, here && { color: COLORS.primary }]} numberOfLines={1}>{group.label}</Text>
           </>
         );
         return (
@@ -303,7 +303,7 @@ function MenuList({
           {folds ? (
             <TouchableOpacity style={styles.groupRow} onPress={() => toggleGroup(group.key)} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ expanded: !shut }}>
               {head}
-              <MciIcon name={shut ? 'chevron-down' : 'chevron-up'} size={18} color={headColor} />
+              <MciIcon name={shut ? 'chevron-down' : 'chevron-up'} size={20} color={COLORS.textLight} />
             </TouchableOpacity>
           ) : group.label ? <View style={styles.groupRow}>{head}</View> : group.key === 'home' ? null : <View style={styles.sep} />}
           {shut ? null : routes.map((r, i) => {
@@ -314,17 +314,17 @@ function MenuList({
             const direct = !!kids && folds && routes.length === 1;
             const expanded = !!kids && (direct || openParents.includes(r)) && !editing;
             const on = r === current && !kids;
-            // Settings at the foot reads like the headings above it.
-            if (group.key === 'system') return (
+            // The board on top and Settings at the foot read like the headings between them.
+            if (group.key === 'system' || group.key === 'home') return (
               <TouchableOpacity key={r} style={[styles.groupRow, on && !editing && styles.itemOn]} onPress={() => (editing ? undefined : onPick(r))} disabled={editing} activeOpacity={0.7}>
-                <View style={styles.groupIcon}><MciIcon name={icons[r] ?? 'circle-small'} size={18} color={on ? COLORS.primary : COLORS.textLight} /></View>
+                <View style={styles.groupIcon}><MciIcon name={icons[r] ?? 'circle-small'} size={20} color={on ? COLORS.primary : COLORS.textLight} /></View>
                 <Text style={[styles.groupHead, styles.groupHeadRow, on && { color: COLORS.primary }]} numberOfLines={1}>{labelOf(r)}</Text>
               </TouchableOpacity>
             );
             return (
               <View key={r}>
               {direct ? null : <TouchableOpacity style={[styles.item, on && !editing && styles.itemOn]} onPress={() => (editing ? undefined : kids ? toggle(r) : onPick(r))} disabled={editing} activeOpacity={0.7} accessibilityState={kids ? { expanded } : undefined}>
-                <MciIcon name={icons[r] ?? 'circle-small'} size={22} color={on || (kids && r === current) ? COLORS.primary : COLORS.textLight} />
+                <View style={styles.groupIcon}><MciIcon name={icons[r] ?? 'circle-small'} size={18} color={on || (kids && r === current) ? COLORS.primary : COLORS.textLight} /></View>
                 <Text style={[styles.itemText, (on || (kids && r === current)) && { color: COLORS.primary }]} numberOfLines={1}>{labelOf(r)}</Text>
                 {MENU_GEAR[r] && !editing && (!MANAGE_ROUTE[r] || sync.canManage(MANAGE_ROUTE[r])) ? (
                   <TouchableOpacity onPress={() => onPick(r, { view: 'manage' })} hitSlop={8} accessibilityRole="button" accessibilityLabel={MENU_GEAR[r]}>
@@ -349,7 +349,7 @@ function MenuList({
                     const kon = to === current && (currentView ?? (k.route ? MENU_CHILDREN[to]?.[0]?.view : kids![0].view)) === k.view;
                     return (
                       <TouchableOpacity key={`${to}:${k.view}`} style={[styles.item, !direct && styles.child, kon && styles.itemOn]} onPress={() => onPick(to, { view: k.view })} activeOpacity={0.7}>
-                        <MciIcon name={k.icon} size={direct ? 22 : 18} color={kon ? COLORS.primary : COLORS.textLight} />
+                        <View style={styles.groupIcon}><MciIcon name={k.icon} size={direct ? 18 : 16} color={kon ? COLORS.primary : COLORS.textLight} /></View>
                         <Text style={[styles.itemText, !direct && styles.childText, kon && { color: COLORS.primary }]} numberOfLines={1}>{k.label}</Text>
                       </TouchableOpacity>
                     );
@@ -370,11 +370,15 @@ function MenuList({
   );
 }
 
+/** Where a screen under a heading starts: a step in from the heading. */
+const INDENT = SIZES.lg + SIZES.md;
+
 const ROOM_ICON: Record<StoreKind, string> = { ppe: 'hard-hat', provisions: 'food-apple-outline', general: 'package-variant-closed' };
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
-    child: { paddingLeft: SIZES.lg + 22, paddingVertical: 8 },
+    // A page under a screen: its icon under the screen's name.
+    child: { paddingLeft: INDENT + 22 + SIZES.md, paddingVertical: 7 },
     childText: { fontSize: SIZES.small },
     top: {
       position: 'absolute', top: 0, right: 0, flexDirection: 'row', alignItems: 'center', gap: SIZES.sm,
@@ -409,14 +413,17 @@ const makeStyles = (COLORS: Palette) =>
       fontSize: SIZES.body, color: COLORS.text,
     },
     hint: { fontSize: SIZES.tiny, color: COLORS.textLight, paddingHorizontal: SIZES.lg, marginBottom: SIZES.xs },
-    groupHead: { fontSize: SIZES.tiny, fontWeight: '800', color: COLORS.textLight, textTransform: 'uppercase', letterSpacing: 0.6, paddingHorizontal: SIZES.lg, marginTop: SIZES.md, marginBottom: 2 },
-    groupRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: SIZES.lg, paddingRight: SIZES.lg, paddingVertical: SIZES.sm },
+    // Two steps, no more (13 Nov 2026: "the menu looks ragged"): a heading is the larger,
+    // brighter line; a screen under it is smaller, greyer and set in (same day: "move the
+    // sub-menu right, headings and items are the same colour").
+    groupHead: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.textDark, paddingHorizontal: SIZES.lg, marginTop: SIZES.md, marginBottom: 2 },
+    groupRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: SIZES.lg, paddingRight: SIZES.lg, paddingVertical: 10 },
     // As wide as a row's icon, so the heading starts where the row names do.
     groupIcon: { width: 22, alignItems: 'center' },
     groupHeadRow: { flex: 1, paddingLeft: SIZES.md, paddingRight: 0, marginTop: 0, marginBottom: 0 },
     sep: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.borderLight, marginVertical: SIZES.xs, marginHorizontal: SIZES.lg },
-    item: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md, paddingVertical: 11, paddingHorizontal: SIZES.lg },
+    item: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md, paddingVertical: 8, paddingLeft: INDENT, paddingRight: SIZES.lg },
     itemOn: { backgroundColor: COLORS.primary + '14' },
-    itemText: { flex: 1, fontSize: SIZES.body, fontWeight: '600', color: COLORS.textDark },
+    itemText: { flex: 1, fontSize: 13, fontWeight: '500', color: COLORS.textLight },
     arrow: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, borderColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
   });

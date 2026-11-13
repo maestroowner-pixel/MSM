@@ -9,6 +9,7 @@ import type { SopepDrill } from '../types/sopep';
 import type { SecurityDrill } from '../types/security';
 import type { SignProof } from './signature';
 import { theoryOf } from '../constants/dpDrillTheory';
+import { moduleOn } from '../constants/modules';
 import { t, tk } from '../utils/t';
 import { shipHm, shipStamp } from '../utils/shipTime';
 
@@ -90,9 +91,9 @@ export interface ScheduleRow {
 /**
  * What is due: every drill required by SOLAS / ISPS / MARPOL, and every other
  * type the vessel has held. Oil-spill and security drills recorded on the SOPEP
- * and Security screens count too.
+ * and Security screens count too. DP drills only while the vessel has DP (13 Nov 2026).
  */
-export function drillSchedule(drills: Drill[], today: string, sopepDrills: SopepDrill[] = [], securityDrills: SecurityDrill[] = []): ScheduleRow[] {
+export function drillSchedule(drills: Drill[], today: string, sopepDrills: SopepDrill[] = [], securityDrills: SecurityDrill[] = [], dp = moduleOn('dp')): ScheduleRow[] {
   const done = drills.filter((d) => d.doneAt);
   const lastBy = new Map<string, string>();
   const see = (type: string, date: string) => {
@@ -109,7 +110,7 @@ export function drillSchedule(drills: Drill[], today: string, sopepDrills: Sopep
     const l = drills.filter((d) => d.type === t.id && !d.deleted && d.everyDays).sort((a, b) => a.date.localeCompare(b.date) || a.updatedAt - b.updatedAt).pop();
     return l?.everyDays ?? t.everyDays;
   };
-  const std: ScheduleRow[] = DRILL_TYPES.filter((t) => t.required || lastBy.has(t.id) || plannedBy.has(t.id)).map((t) => {
+  const std: ScheduleRow[] = DRILL_TYPES.filter((t) => (!t.dp || dp) && (t.required || lastBy.has(t.id) || plannedBy.has(t.id))).map((t) => {
     const last = lastBy.get(t.id);
     const every = everyOf(t);
     const due = last ? addDays(last, every) : undefined;

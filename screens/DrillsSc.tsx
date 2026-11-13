@@ -19,7 +19,7 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { roleAtLeast } from '../types/role';
 import { moduleOn } from '../constants/modules';
-import { DRILL_TYPES } from '../types/drills';
+import { DRILL_TYPES, isDpDrill } from '../types/drills';
 import { todayIso } from '../services/pms';
 import { archive, archiveKinds, archiveYears, byMonth, drillName, drillSchedule, drillState, drillStateName, drillTypeName, everyText, kindName, minutesBetween, sortDrills } from '../services/drills';
 import { exportDrillRegisterExcel, exportDrillRegisterPdf } from '../services/drillReport';
@@ -34,7 +34,11 @@ export default function DrillsSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { drills, sopepDrills, securityDrills, vessel } = useData();
+  const { drills: all, sopepDrills, securityDrills, vessel } = useData();
+  // DP drills are a page of DP (13 Nov 2026: "DP drills belong in DP and go off with it"):
+  // opened from there (view 'dp') the screen holds only them, from Drills everything else.
+  const [dp, setDp] = useState(route.params?.view === 'dp' && moduleOn('dp'));
+  const drills = useMemo(() => all.filter((d) => isDpDrill(d.type) === dp), [all, dp]);
   const sync = useSync();
   const canPlan = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const today = todayIso();
@@ -45,7 +49,8 @@ export default function DrillsSc() {
   React.useEffect(() => {
     const v = route.params?.view;
     if (v === 'calendar' || v === 'archive' || v === 'planned') setTab(v);
-    else if (v === 'list') setTab('schedule');
+    else if (v === 'list' || v === 'dp') setTab('schedule');
+    if (v) setDp(v === 'dp' && moduleOn('dp'));
   }, [route.params?.view]);
   const years = useMemo(() => archiveYears(drills), [drills]);
   const [year, setYear] = useState<string>(() => String(new Date().getFullYear()));
@@ -57,7 +62,7 @@ export default function DrillsSc() {
   const [choosing, setChoosing] = useState(false);
   const [saved, setSaved] = useState<string | null>(null);
 
-  const schedule = useMemo(() => drillSchedule(drills, today, sopepDrills, securityDrills), [drills, today, sopepDrills, securityDrills]);
+  const schedule = useMemo(() => drillSchedule(all, today, sopepDrills, securityDrills).filter((r) => !!r.dp === dp), [all, today, sopepDrills, securityDrills, dp]);
   const list = useMemo(() => sortDrills(drills).filter((d) => !d.doneAt), [drills]);
   const doneCount = drills.filter((d) => d.doneAt).length;
   const overdue = schedule.filter((r) => (r.left ?? -1) < 0).length;
@@ -83,7 +88,7 @@ export default function DrillsSc() {
 
   return (
     <Screen scroll>
-      <ScreenTitle title={t('drills.title')} subtitle={t('drills.sub')} help="Drills" />
+      <ScreenTitle title={t(dp ? 'drills.dpTitle' : 'drills.title')} subtitle={t(dp ? 'drills.dpSub' : 'drills.sub')} help="Drills" />
       <View style={styles.chips}>
         <TouchableOpacity style={[styles.chip, tab === 'schedule' && styles.chipOn]} onPress={() => setTab('schedule')}>
           <Text style={[styles.chipText, tab === 'schedule' && styles.chipTextOn]}>{`${t('drills.schedule')}${overdue ? ` · ${t('drills.due', { n: overdue })}` : ''}`}</Text>
@@ -104,14 +109,16 @@ export default function DrillsSc() {
           <Card>
             <Label>{t('drills.which')}</Label>
             <View style={styles.chips}>
-              {DRILL_TYPES.filter((x) => !x.dp || moduleOn('dp')).map((t) => (
+              {DRILL_TYPES.filter((x) => !!x.dp === dp).map((t) => (
                 <TouchableOpacity key={t.id} style={styles.chip} onPress={() => plan(t.id)}>
                   <Text style={styles.chipText}>{drillTypeName(t.id)}</Text>
                 </TouchableOpacity>
               ))}
-              <TouchableOpacity style={styles.chip} onPress={() => plan('other')}>
-                <Text style={styles.chipText}>{t('drills.other')}</Text>
-              </TouchableOpacity>
+              {dp ? null : (
+                <TouchableOpacity style={styles.chip} onPress={() => plan('other')}>
+                  <Text style={styles.chipText}>{t('drills.other')}</Text>
+                </TouchableOpacity>
+              )}
             </View>
             <TouchableOpacity onPress={() => setChoosing(false)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
           </Card>

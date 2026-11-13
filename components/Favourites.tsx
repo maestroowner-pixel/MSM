@@ -237,12 +237,12 @@ export function FavMenuSection({ onPicked, itemStyle, textStyle, headStyle, head
   return (
     <View>
       <View style={headRowStyle}>
-        <View style={headIconStyle}><MciIcon name="star" size={18} color={COLORS.textLight} /></View>
+        <View style={headIconStyle}><MciIcon name="star" size={20} color={COLORS.textLight} /></View>
         <Text style={headStyle} numberOfLines={1}>{t('fav.title')}</Text>
       </View>
       {favs.map((f) => (
         <TouchableOpacity key={f.id} style={itemStyle} onPress={() => (onPicked(), openFavourite(f))} activeOpacity={0.7}>
-          <MciIcon name={f.icon} size={20} color={COLORS.warning} />
+          <View style={headIconStyle}><MciIcon name={f.icon} size={18} color={COLORS.warning} /></View>
           <Text style={textStyle} numberOfLines={1}>{f.label}</Text>
         </TouchableOpacity>
       ))}

@@ -143,6 +143,8 @@ export const MENU_CHILDREN: Record<string, MenuChild[]> = {
     kid('menu.Dp.checklists', { view: 'checklists', icon: 'clipboard-check-outline' }),
     kid('menu.Dp.time', { view: 'time', icon: 'timer-outline' }),
     kid('menu.Dp.letter', { view: 'letter', icon: 'email-outline' }),
+    // DP drills live under DP, not Drills (13 Nov 2026), and go with it.
+    kid('menu.Dp.drills', { view: 'dp', icon: 'run-fast', route: 'Drills', module: 'drills' }),
   ],
   Drills: [
     kid('menu.Drills.list', { view: 'list', icon: 'format-list-checks' }),
