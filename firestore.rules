@@ -1125,6 +1125,34 @@ service cloud.firestore {
                       && (request.resource.data.kind != 'renewed' || isAdmin(v));
         allow update, delete: if false;
       }
+      // Crane operator's log (types/craneLog.ts): one operator, one crane, one day, confirmed by an officer;
+      // append-only — a mistake is voided by a new entry naming it.
+      match /crane_log/{id} {
+        allow read: if reader(v);
+        allow create: if isAdmin(v) && request.resource.data.id == id && request.resource.data.by is string
+                      && request.resource.data.crewId is string && request.resource.data.itemId is string
+                      && request.resource.data.hours is number && request.resource.data.hours > 0 && request.resource.data.hours <= 24;
+        allow update, delete: if false;
+      }
+      // Crane load tests and examinations (types/craneLog.ts): an officer records, nothing changes.
+      match /crane_tests/{id} {
+        allow read: if reader(v);
+        allow create: if isAdmin(v) && request.resource.data.id == id && request.resource.data.by is string
+                      && request.resource.data.itemId is string
+                      && request.resource.data.kind in ['annual', 'fiveYear', 'afterRepair', 'function', 'limits', 'brake']
+                      && request.resource.data.result in ['pass', 'fail'];
+        allow update, delete: if false;
+      }
+      // The company's own appraisal form (types/appraisal.ts ApForm): the Master or the office sets it;
+      // an appraisal keeps its own copy, so a change rewrites nothing already written.
+      match /ap_form/{id} {
+        allow read: if isAdmin(v) || shore(v);
+        allow create, update: if (isSuper(v) || shore(v)) && id == 'form'
+                              && request.resource.data.title is string && request.resource.data.scale is list
+                              && request.resource.data.scale.size() >= 2 && request.resource.data.scale.size() <= 10
+                              && request.resource.data.items is list;
+        allow delete: if false;
+      }
       match /da_policy/{id} {
         allow read: if isAdmin(v) || shore(v);
         allow create, update: if isSuper(v) && id == 'policy';
@@ -1153,10 +1181,23 @@ service cloud.firestore {
         allow read: if isSuper(v);
         allow write: if false;
       }
+      // Which link belongs to a quote (functions/quoteLink.js, plan item 48): the
+      // functions only. The quote itself carries what the officers need to see.
+      match /quote_links/{id} {
+        allow read, write: if false;
+      }
     }
 
     // key hash → vessel: the API's lookup, for the Admin SDK only.
     match /api_keys/{hash} {
+      allow read, write: if false;
+    }
+    // A supplier's quote link: token hash → vessel, order, quote; and its answers-an-hour
+    // counter (functions/quoteLink.js). The Admin SDK only.
+    match /quote_links/{hash} {
+      allow read, write: if false;
+    }
+    match /quote_guard/{hash} {
       allow read, write: if false;
     }
   }

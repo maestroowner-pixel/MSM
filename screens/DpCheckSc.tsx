@@ -31,7 +31,7 @@ import { moduleOn } from '../constants/modules';
 import * as storage from '../services/storage';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
-import { ASOG_LABEL, answerIsBad, cellKey, checkOutcome, signRoles, hasCell, formatCell, isOther, otherKey, sectionCols, conditionsText, positionFromText, positionText, templatesNow } from '../services/dp';
+import { ASOG_LABEL, answerIsBad, cellKey, dpCheckDeckEntry, checkOutcome, signRoles, hasCell, formatCell, isOther, otherKey, sectionCols, conditionsText, positionFromText, positionText, templatesNow } from '../services/dp';
 import { PositionInput } from '../components/PositionInput';
 import { offsetAt, shipAndUtc } from '../utils/shipTime';
 import { exportDpCheckPdf, printDpCheck } from '../services/dpReport';
@@ -242,6 +242,8 @@ export default function DpCheckSc() {
       // Firestore takes no undefined.
       for (const k of Object.keys(rec) as (keyof DpCheck)[]) if (rec[k] === undefined) delete rec[k];
       await saveRow(storage.DP_CHECKS_KEY, rec);
+      // The deck log keeps the time of every DP checklist (13 Nov 2026).
+      if (book === 'dp' && moduleOn('deckLog')) await saveRow(storage.DECK_LOG_KEY, dpCheckDeckEntry(rec) as any);
       draftReady.current = false;
       await clearDraft(c.templateId);
       if (left) await saveRow(storage.SIGN_DRAFTS_KEY, { ...left, done: true });

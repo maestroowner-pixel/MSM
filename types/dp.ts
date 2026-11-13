@@ -164,6 +164,22 @@ export interface DpDay {
 }
 
 /**
+ * A change of the vessel's DP status (13 Nov 2026: "the deck log records when DP
+ * setup starts, setup complete, on DP and leaving DP"). Written as a DP log line
+ * and a deck log entry; the periods between them bound the DPOs' DP time — set-up
+ * counts. **Permanent ids**: written onto every record.
+ */
+export const DP_EVENTS = ['setup', 'ready', 'on', 'off'] as const;
+export type DpEvent = (typeof DP_EVENTS)[number];
+/** For the books and the papers: English always. */
+export const DP_EVENT_EN: Record<DpEvent, string> = {
+  setup: 'DP set-up started',
+  ready: 'DP set-up complete',
+  on: 'Vessel on DP',
+  off: 'Vessel off DP',
+};
+
+/**
  * One line of the DP log (5 Nov 2026): the time, what was done in a few words, the
  * DP operator's initials. Never changed: a correction is a new line.
  */
@@ -176,6 +192,8 @@ export interface DpLogEntry {
   initials: string;
   /** The operator in full, for the report's key: initials repeat. */
   name: string;
+  /** A DP status change, when this line is one. */
+  event?: DpEvent;
   at: number;
   updatedAt: number;
 }

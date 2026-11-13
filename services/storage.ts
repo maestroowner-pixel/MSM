@@ -139,6 +139,8 @@ export const THREADS_KEY = `${PREFIX}threads`;
 /** Management of change (types/moc.ts) — the change, its approvals, actions and closure. */
 export const MOCS_KEY = `${PREFIX}mocs`;
 export const APPRAISALS_KEY = `${PREFIX}crew_appraisals`;
+/** The company's own appraisal form (types/appraisal.ts ApForm) — one row, id 'form'. */
+export const AP_FORM_KEY = `${PREFIX}ap_form`;
 /** Watch plans (types/restPlan.ts) — one per person, the days to come. */
 export const REST_PLANS_KEY = `${PREFIX}rest_plans`;
 /** Drug and alcohol tests (types/daTest.ts): the tests, each person's result, what followed, the policy. */
@@ -156,6 +158,10 @@ export const EM_STATEMENTS_KEY = `${PREFIX}em_statements`;
 export const CHEMICALS_KEY = `${PREFIX}chemicals`;
 /** Rope and wire log (types/wireLog.ts), append-only. */
 export const WIRE_LOG_KEY = `${PREFIX}wire_log`;
+/** Crane operator's log (types/craneLog.ts), append-only. */
+export const CRANE_LOG_KEY = `${PREFIX}crane_log`;
+/** Crane load tests and examinations (types/craneLog.ts), append-only. */
+export const CRANE_TESTS_KEY = `${PREFIX}crane_tests`;
 /** Supplier directory (types/suppliers.ts) — quotes and awards live on the purchase orders. */
 export const SUPPLIERS_KEY = `${PREFIX}suppliers`;
 /**
@@ -944,6 +950,8 @@ export async function resetAllData(): Promise<void> {
     EM_STATEMENTS_KEY,
     CHEMICALS_KEY,
     WIRE_LOG_KEY,
+    CRANE_LOG_KEY,
+    CRANE_TESTS_KEY,
     DECK_LOG_KEY,
     SIGN_DRAFTS_KEY,
     GMDSS_KEY,
@@ -960,6 +968,7 @@ export async function resetAllData(): Promise<void> {
     THREADS_KEY,
     MOCS_KEY,
     APPRAISALS_KEY,
+    AP_FORM_KEY,
     REST_PLANS_KEY,
     DA_TESTS_KEY,
     DA_RESULTS_KEY,
@@ -970,6 +979,7 @@ export async function resetAllData(): Promise<void> {
     'msm:photo_queue', // services/photoQueue.ts — its files have just gone too
     'msm:fuel_report_to', // components/FuelDaily.tsx — the addressees of the noon report
     'msm:handover_draft', // services/handover.ts — the outgoing officer's notes
+    'msm:psc_walk', // services/pscWalk.ts — the PSC walk-round marks
   ];
   const drafts = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith('msm:dp_draft:')); // services/dpDraft.ts
   await AsyncStorage.multiRemove([...keys, ...drafts]);

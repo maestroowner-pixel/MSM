@@ -144,6 +144,21 @@ app mirrors. Bundle id `com.kukalab.msm`.
   give every column one; its font has no ★ or − (use * and -). Supplier record (quotes won, reply days,
   on time, one delivery, last prices) is computed from the orders (`supplierStats`), not stored.
   Needs `npm run deploy:rules` before the flag. `npm run check:rfq`.
+- **Quotes by link** (8 Nov 2026 — flag `quoteLink`, plan item 48): `functions/quoteLink.js` (callables `quoteLinkSend` /
+  `quoteLinkExtend` / `quoteLinkRevoke`, public `supplierQuote`), page `MSM Win Web/public/quote.html` + `quote.js` behind
+  `/quote/**` (firebase.json rewrite, both sites), client `services/quoteLink.ts`, buttons in RfqPanel (enrolled officer).
+  Token 128 bits, shown once in the URL/mail; only its SHA-256 is kept: `quote_links/{hash}` → vessel, order, quote,
+  expiry, and `safety_vessels/{v}/quote_links/{quoteId}` → which hash (Admin SDK only, rules deny). 7 days, extendable; a
+  new link drops the old; deleting the quote revokes. The page shows vessel, PO, port, dates, lines, and maker/model/serial
+  of the machines a spare fits — never who raised it or line notes. The answer is written INTO the order in the cloud in a
+  transaction (`withAnswer`): prices per OUR unit (their unit/price/part type/lead/part no. in `Quote.lineInfo`), `charges`
+  (counted in `quoteTotal`), `file` (Storage `attachments/{quoteId}/supplier-…`, download-token URL), `link.answeredAt`.
+  Closed when expired, awarded, not draft/standby, or the quote removed (410). 20 answers an hour per link
+  (`quote_guard/{hash}`). **Sync**: purchase_orders pull through `rfq.ts foldOrder` (`fromCloud`) — an older local copy
+  keeps its edit but takes the newer answer and comes back 1 ms newer so it goes up; `pushOrderNow` folds before writing
+  the order the callable needs. Mail: same SMTP secrets as the digest. `npm run check:quotelink`; tested end to end in the
+  emulators (JDK 21: `JAVA_HOME=/opt/homebrew/opt/openjdk@21`, dummy `functions/.secret.local` — delete after).
+  Not yet: "return for rework" and the supplier confirming the PO on the same link.
 - **Oil analysis** (27 Oct 2026 — flag `oil`, on from 2.69): `screens/OilSc` (route `OilAnalysis`, also linked from
   Maintenance), `OilPointSc`, `OilSampleSc`; `types/oil.ts`, pure `services/oil.ts`, reports `services/oilReport.ts`.
   A point sits on a PMS machine (running hours), with oil, lab, interval (days and/or hours, whichever first),
@@ -252,6 +267,35 @@ app mirrors. Bundle id `com.kukalab.msm`.
   screen (`ManualAiPanel`): Compare with the library feeds `asManualReply` to `readManual` with `untickNew` (titles only — a job worded otherwise
   must not be added twice). Poisoning risk accepted: everything stays a proposal with "check against the manual aboard". Needs deploy of `ai`.
   `npm run check:makerlib`.
+- **Crane operator's log** (13 Nov 2026 — flag `craneLog`, off; needs `lifting`): `types/craneLog.ts`, pure `services/craneLog.ts`,
+  paper `services/craneReport.ts` (PMS-history PDF), `screens/CraneLogSc.tsx` (route `CraneLog` `crane-log`; button on the Cranes register).
+  One entry = one operator × one crane × one day: hours (half hours, ≤ 24), lifts (optional — totals then read "22+"), kinds of work
+  (`CRANE_OPS`, **permanent ids**), heaviest lift, note; signed by the officer who confirms it. The crane's make/type/SWL are COPIED onto the
+  entry (`craneSnap`) so the statement survives a rename or replacement. `crane_log` is APPEND-ONLY (rules: officers create, hours > 0
+  and ≤ 24, nothing changes); a mistake is a new signed entry with `voids` — `standing()` drops both. Operators tab: per crane hours,
+  lifts, days, work, dates (`operatorTotals`); Experience statement PDF (English): cranes table, Master's signature/stamp line, every
+  entry with who confirmed it; the text names the days actually worked. Synced, in .msm, erased with the device. `npm run check:cranelog`;
+  rules-test.mjs covers it. `npm run deploy:rules` before the flag.
+  **Load tests** (same flag, `components/CraneTestsPanel.tsx`, tab Tests): `crane_tests` APPEND-ONLY, officers (`CRANE_TEST_KINDS` —
+  **permanent ids**; result pass/fail). `applyTest`: a pass writes `testCertNo` and moves `nextInspection` — a due on or before the test
+  takes the new due, a later due is NEVER pushed further (a five-yearly does not excuse the annual); a fail changes nothing (red via
+  `testsDue` until passed). A test with the operator named goes on their statement ("Load tests operated") and lists them in Operators.
+- **PSC walk-round** (13 Nov 2026 — plan item 46, no flag: part of `readiness`): pure `services/pscWalk.ts` (checks + figures),
+  `services/pscWalkReport.ts` (marks + PDF), `screens/PscWalkSc.tsx` (route `PscWalk` `psc-walk`; link on Readiness when PSC is picked).
+  31 checks by place (fire, LSA, deck, bridge, engine, accommodation/MLC, papers), each with its regulation, the figure that put it on the
+  list and a link to where the app keeps the proof (only when its module is on). **Check ids are permanent** — they key the marks. Figures
+  (`PSC_STATS`) come ONLY from the MOUs' own annual reports — Tokyo MOU 2025 (Table 7 / Fig. 7–8) and Paris MoU 2025 (year report page);
+  USCG left out (its site refuses automated reading). When a new report is out, replace the year's block, never mix years.
+  Marks are a device draft (`msm:psc_walk`, in the reset list), never synced; PDF puts "To put right" first, prints blank to tick by hand.
+  Checks and figures stay English; the chrome is translated. `npm run check:pscwalk`.
+- **DP drills** (13 Nov 2026, no new flag: part of `drills` + `dp`): the standard topics are IMCA's DP drill scenarios (DP Event Bulletins,
+  M273 App. A) — nine `DRILL_TYPES` with `dp: true` (dpUps, dpAutoManual, dpDriftOff, dpBlackout, dpRefLoss, dpRedGroup, dpCooling, dpDriveOff,
+  dpThrustFull — **ids permanent**), offered only with `dp` on, NOT required (join the schedule once held/planned). Interval = `Drill.everyDays` on the
+  latest drill of the type (company DPOM), else the default. Theory in `constants/dpDrillTheory.ts` (`theoryOf` — drillTheory.ts is regenerated from
+  Drill Trainer, never put DP there), scenario bones `DP_SCENARIOS` (our wording). `Drill.mode` live/desktop/touch (desktop default — the company counts
+  it), `asog`, `postponed[]` (Master, reason ≥ 3; the plan stays amber, printed). "On DP operations" = last DP status `on` (`onDpOps`, events from DP log +
+  deck log): Board shows an overdue DP drill amber, not red; set-up / off DP is the window — the DP log page lists `dpDrillsDue` (live offered at set-up,
+  desktop off DP). Signing a DP drill appends a DP log line. Attended DP drills (by name on the list) count in the appraisal's DP facts. `npm run check:drills`.
 - **Needs attention in Fleet** (2 Nov 2026 — plan items 37 + 45, no flag: part of `fleet`): pure `services/officeInbox.ts`,
   FleetSc opens on it (tabs Needs attention / Vessels). **Waiting for your answer** = every record waiting for the office
   across the fleet (`inboxOf`: deferrals to answer, closures and NCs to verify, `officeQueue` requisitions) — emergencies
@@ -291,6 +335,19 @@ app mirrors. Bundle id `com.kukalab.msm`.
   Rules: one step per write once signed, nothing else changes; an unchanged copy (only `updatedAt`) always passes. Board:
   officers — who is due (red when past), Master — to countersign. `npm run check:appraisals`; rules-test.mjs covers the way.
   `npm run deploy:rules` before the flag.
+  **Company form** (13 Nov 2026, `screens/ApFormSc.tsx` route `ApForm` `appraisal-form`, link on AppraisalsSc): `ap_form/form` (Master or shore write;
+  scale 2–10 words, lowest first; items = `section` / criterion / `text` question, `officers` flag). Editor wording parsed by `formFromText`
+  ("Scale: a | b", "## Section", criterion, "X *officers", "@text Q"; a line keeping its text keeps its id); "Start from the standard form";
+  AI task `apform` (functions/ai.js, 20/day) reads the blank paper form → `apFormFromReply` → the editor, checked before saving. A NEW
+  appraisal takes a COPY (`CrewAppraisal.form`, `activeForm`), answers to questions in `answers`; no `form` = `STANDARD_FORM` (the nine
+  criteria, 1–5) — old records read as before. `itemsFor` drops officers-only lines for a rating and empty headings; scores above the scale are
+  refused; PDF prints a table per section on the company scale + Questions. Needs `npm run deploy:rules` and functions `ai`.
+  **Criteria by position** (13 Nov 2026, no new flag): `roleFacts` — crane when the person has standing `crane_log` entries or a load test in
+  the period (or rank /crane/), DP when they have DP time in it (or rank SDPO/JDPO/DPO); only with `craneLog` / `dp` on. Each role adds a section
+  of 3 criteria (`ROLE_CRITERIA`, **ids permanent**; translated on screens even on a company form, `isRoleItem`) after the form's items, on the
+  same scale, plus figures (`ApRoleFacts`: hours, days, lifts "n+", load tests, cranes with SWL; DP Active hours and DP days ≥ 2 h). Live while a
+  draft, written to `CrewAppraisal.roles` on save and fixed once the appraiser signs; scores of a role no longer on it are dropped on save. PDF:
+  a fact line per role + a table per role. No rules change (draft fields are free).
 - **Watch plan** (3 Nov 2026 — flag `restPlan`, off; plan item 41; needs `rest`): `types/restPlan.ts`, pure `services/restPlan.ts`,
   `screens/RestPlanSc.tsx` (route `RestPlan` `watch-plan` (+`crewId`); entry: Hours of rest → "Watch plan — the next two weeks", Board).
   ONE document per person (`rest_plans/{crewId}`): standing watch `pattern` (48 wall-clock slots, from `from`) + `days` that differ
@@ -326,7 +383,7 @@ app mirrors. Bundle id `com.kukalab.msm`.
 - **Backups and restore** (7 Nov 2026; plan item 58; `functions/RESTORE.md`): Firestore daily backup kept 5 days, delete protection on, no PITR; Storage soft delete 7 days. A backup restores only into a NEW database — restore, compare with `functions/scripts/restore-check.js <db> <snapshot time>` (read-only), copy back what was lost, delete the copy. Tried 07.11.2026: 1 282 unchanged documents identical, 0 missing.
 - **Shared tablet** (5 Nov 2026): `shared` + `responsible` on the device (Master, Accounts; rules bar the device itself). It never signs as itself: `useSigner` and `signerRule` pick from `maySign` (officer rank or `crew.canSign`), the last name is not remembered. The gangway watch is `anyAboard`. Hand signature there opens only after someone with the right to sign used a PIN on that tablet, for 30 min (`handUnder`), not for them; the proof carries `under`.
 - **Left for signature** (5 Nov 2026; `types/signDraft.ts`, `sign_drafts`): engine rounds, DP / bridge / engine checklists and toolbox meetings can be left unsigned for an officer's own device. Deliberately not a draft flag in the books: they are append-only and older builds would read it as signed. The signed record is made at the signature, the draft is marked `done`. Board: first lines to officers, with deck log drafts, running drills and unsigned meetings.
-- **DP log** (5 Nov 2026; `dp_log`, page in `DpSc`): time, action, the DPO's initials; append-only, a correction is a new line; PDF per day (`exportDpLog`).
+- **DP log** (5 Nov 2026; `dp_log`, page in `DpSc`): time, action, the DPO's initials; append-only, a correction is a new line; PDF per day (`exportDpLog`). **DP time from the records** (13 Nov 2026, `slotsFromRecords`): a watch runs from the DP handover the person signed taking over (`by2`) to the one they signed handing over (`by`) — else to/from their own last/first DP log line — plus every half-hour with their own log line; ALL Active ("while the DP log is kept there is no passive"). Ship's wall clock from each checklist's `shipOffset`. Only DP-book handovers (`isDpHandover`). **DP status** (`DP_EVENTS` setup/ready/on/off — **permanent ids**): buttons on the DP log page write a DP log line (`event`) + a deck log entry (`dpEvent`, `dl-dpe-<line id>`); a signed DP-book checklist writes `dl-dpc-<id>` (`dpCheckRef`, `dpCheckDeckEntry`) when `deckLog` is on. `offDpSpans`: off from "off" to the next setup/on; set-up counts; before the first event nothing is cut — the fill drops half-hours wholly off DP (`cut`). `npm run check:dp`.
 - **Emissions** (4 Nov 2026 — flag `emissions`, off; plan item 44; needs `fuel`): `types/emissions.ts`, pure `services/emissions.ts`, paper
   `services/emissionsReport.ts` (PMS-history PDF, Excel with real numbers), screens `EmissionsSc` / `EmPassageSc` (routes `Emissions` `emissions`,
   `EmPassage` `em-passage/:id` (`new`); entry: a chip on Fuel, Board). `em_vessel/vessel` (Master: type, GT, DWT, commercial yes/no/unsure — decides

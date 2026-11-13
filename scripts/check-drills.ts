@@ -2,7 +2,11 @@
 import { archive, archiveKinds, archiveYears, attendanceSig, byMonth, everyLabel, lastOfType, attendanceRows, clockAt, drillSchedule, drillState, minutesBetween, nextDrillNo, nextStepMin, registerRows, scenarioRows, sortDrills } from '../services/drills';
 import { drillDoc } from '../services/drills';
 import { DRILL_THEORY } from '../constants/drillTheory';
-import { DRILL_TYPES } from '../types/drills';
+import { theoryOf } from '../constants/dpDrillTheory';
+import { DRILL_TYPES, DP_SCENARIOS, isDpDrill } from '../types/drills';
+import { dpDrillsDue, drillFacts, lastPostponed } from '../services/drills';
+import { roleFacts } from '../services/appraisals';
+import { dpEventsOf, onDpOps } from '../services/dp';
 import { buildBoard } from '../services/board';
 import { calendarRows, cellOf, dayIn, proposeYear, stepMonths, toggleSlot, yearCounts } from '../services/drillPlan';
 
@@ -27,7 +31,8 @@ ok(drillState(D({ doneAt: 5 })) === 'done', 'signed = done');
 ok(sortDrills([D({ id: 'old', doneAt: 1, date: '2026-09-01' }), D({ id: 'plan', date: '2026-10-20' }), D({ id: 'new', doneAt: 2, date: '2026-10-05' })]).map((d) => d.id).join(',') === 'plan,new,old', 'plans first, then newest carried out');
 
 // every type has its theory from the trainer
-ok(DRILL_TYPES.every((t) => DRILL_THEORY[t.id]?.text.length > 3), 'every drill type has its theory briefing');
+ok(DRILL_TYPES.filter((t) => !t.dp).every((t) => DRILL_THEORY[t.id]?.text.length > 3), 'every drill type has its theory briefing');
+ok(DRILL_TYPES.filter((t) => t.dp).every((t) => (theoryOf(t.id)?.text.length ?? 0) >= 3 && (DP_SCENARIOS[t.id]?.length ?? 0) >= 5 && /IMCA/.test(t.reg)), 'every DP drill (the IMCA topics) has its briefing, a scenario and its IMCA reference');
 ok(['fire', 'enclosed', 'abandon', 'mob'].every((k) => DRILL_THEORY[k].checklist?.length), 'checklists for fire, enclosed, abandon, MOB');
 
 // schedule
@@ -102,6 +107,34 @@ try {
   ok(b.tiles.some((t: any) => t.key === 'drills'), 'board: Drills tile');
 } catch (e: any) {
   ok(false, `board builds: ${e?.message}`);
+}
+
+// ---- DP drills (13 Nov 2026: "with DP on there is usually no drill — operations run"; IMCA topics) ----
+{
+  const dps = DRILL_TYPES.filter((x) => x.dp).map((x) => x.id);
+  ok(dps.join() === 'dpUps,dpAutoManual,dpDriftOff,dpBlackout,dpRefLoss,dpRedGroup,dpCooling,dpDriveOff,dpThrustFull' && isDpDrill('dpUps') && !isDpDrill('fire'), 'the nine IMCA DP drill topics');
+  const T2 = '2026-11-13';
+  ok(!drillSchedule([], T2).some((r) => r.dp), 'DP drills are not required: none on the schedule until one is held or planned');
+  const held = drillSchedule([D({ type: 'dpUps', date: '2026-10-01', doneAt: 1 }), D({ id: 'e', type: 'dpBlackout', date: '2026-06-01', doneAt: 1, everyDays: 180 }), D({ id: 'f', type: 'dpBlackout', date: '2026-09-01', doneAt: 1 })], T2);
+  const ups = held.find((r) => r.type === 'dpUps')!;
+  const bo = held.find((r) => r.type === 'dpBlackout')!;
+  ok(!!ups.dp && ups.everyDays === 90 && ups.due === '2026-12-30' && bo.everyDays === 180 && bo.due === '2027-02-28', 'the default interval, or the company\'s set on a drill of that type');
+  const due = dpDrillsDue(drillSchedule([D({ type: 'dpUps', date: '2026-08-01', doneAt: 1 }), D({ id: 'g', type: 'dpRefLoss', date: '2026-08-20', doneAt: 1 }), D({ id: 'h', type: 'dpCooling', date: '2026-11-01', doneAt: 1 }), D({ id: 'i', type: 'fire', date: '2026-01-01', doneAt: 1 })], T2));
+  ok(due.map((r) => r.type).join() === 'dpUps,dpRefLoss', 'the window offers the DP drills due within a week or overdue, overdue first; nothing else');
+  const ev = dpEventsOf([{ date: T2, time: '06:00', event: 'setup' } as any, { date: T2, time: '07:00', event: 'on' } as any], [{ date: T2, time: '09:00', dpEvent: 'off' }]);
+  ok(onDpOps(ev.slice(0, 2)) && !onDpOps(ev) && !onDpOps([]), 'on operations = the last status is "on DP"; off DP, set-up or nothing recorded is not');
+  const pd = D({ type: 'dpRefLoss', doneAt: undefined, mode: 'desktop', asog: 'yellow', postponed: [{ reason: 'ROV dive', by: 'Anna', byRank: 'Master', at: Date.parse('2026-11-12T10:00:00Z') }] });
+  const f = drillFacts(pd);
+  ok(f.some(([k, v]) => k === 'Kind' && v === 'Desktop exercise') && f.some(([k, v]) => k === 'ASOG status' && v === 'Yellow') && f.some(([k, v]) => k === 'Postponed' && v.includes('Anna (Master) — ROV dive')) && lastPostponed(pd)?.reason === 'ROV dive', 'the report: kind, ASOG status, each postponement with who and why');
+  const old = [D({ type: 'dpUps', date: '2026-07-01', doneAt: 1 })];
+  const bb = (o: any) => buildBoard({ ...base, today: T2, now: `${T2}T10:00`, drills: old, ...o });
+  const lvl = (b: any) => b.attention.find((n: any) => n.key === 'drill:dpUps');
+  ok(lvl(bb({ dpLog: [{ date: T2, time: '07:00', event: 'on' }] }))?.level === 'amber' && lvl(bb({ dpLog: [{ date: T2, time: '07:00', event: 'off' }] }))?.level === 'red' && lvl(bb({}))?.level === 'red', 'board: an overdue DP drill is amber while on DP operations, red off DP or with no status');
+  const post = bb({ drills: [...old, D({ id: 'p', type: 'dpUps', date: T2, postponed: [{ reason: 'Crane lift', by: 'Anna', at: 1 }] })] });
+  ok(lvl(post)?.level === 'amber' && /Crane lift/.test(lvl(post)?.sub ?? ''), 'board: a postponed DP drill stays amber with the reason');
+  const dr = [D({ type: 'dpDriveOff', date: '2026-08-01', doneAt: 1, attendance: [{ name: 'Ola Berg', present: true }, { name: 'Max Lee', present: false }] }), D({ id: 'x', type: 'fire', date: '2026-08-02', doneAt: 1, attendance: [{ name: 'Ola Berg', present: true }] })];
+  const rf = roleFacts({ crewId: 'c2', name: 'Ola Berg', rank: 'AB', from: '2026-06-01', to: '2026-11-01' }, { drills: dr });
+  ok(rf.length === 1 && rf[0].role === 'dp' && rf[0].drills === 1 && !roleFacts({ crewId: 'c3', name: 'Max Lee', rank: 'AB', from: '2026-06-01', to: '2026-11-01' }, { drills: dr }).length, 'appraisal: DP drills attended count (absent does not; other drills do not)');
 }
 
 // ---- the drill calendar (15 Oct 2026) ----

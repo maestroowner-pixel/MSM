@@ -252,6 +252,13 @@ export default function ReadinessSc() {
           <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{plan.left ? t('ready.aiLeft', { n: plan.left }) : t('ready.aiAll')}</Text>
         </View>
       ) : null}
+      {kind === 'psc' ? (
+        <TouchableOpacity style={styles.handover} onPress={() => nav.navigate('PscWalk')} activeOpacity={0.7}>
+          <MciIcon name="walk" size={18} color={COLORS.primary} />
+          <Text style={styles.handoverText}>{t('ready.pscWalk')}</Text>
+          <MciIcon name="chevron-right" size={18} color={COLORS.primary} />
+        </TouchableOpacity>
+      ) : null}
       <TouchableOpacity style={styles.handover} onPress={() => nav.navigate('Handover')} activeOpacity={0.7}>
         <MciIcon name="swap-horizontal-bold" size={18} color={COLORS.primary} />
         <Text style={styles.handoverText}>{t('ready.handover')}</Text>

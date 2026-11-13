@@ -52,10 +52,83 @@ export const CRITERIA: { id: string; label: string; officers?: boolean }[] = [
   { id: 'leadership', label: 'Leadership and supervision', officers: true },
 ];
 
+/**
+ * The company's own appraisal form (13 Nov 2026: "the company's own form — its
+ * criteria and sections, or its paper form read by AI"). One per vessel
+ * (`ap_form/form`), set by the Master or the office; absent or `off` = the app's
+ * standard criteria above. A new appraisal takes a COPY (`CrewAppraisal.form`),
+ * so changing the form never rewrites one already written.
+ */
+export interface ApFormItem {
+  /** Permanent within the form: it keys the score or the answer. A line that keeps its text keeps its id. */
+  id: string;
+  text: string;
+  /** Absent = a criterion scored on the scale; `section` = a heading; `text` = a question answered in words. */
+  kind?: 'section' | 'text';
+  /** Asked only of an officer (isOfficerRank). */
+  officers?: boolean;
+}
+
+export interface ApFormSnap {
+  title: string;
+  /** The scale's words, the lowest score first (2–10 points): ["Poor", "Fair", "Good", "Excellent"]. */
+  scale: string[];
+  items: ApFormItem[];
+}
+
+export interface ApForm extends ApFormSnap {
+  id: 'form';
+  /** Back to the app's standard form; the company's wording is kept. */
+  off?: boolean;
+  by?: string;
+  updatedAt: number;
+}
+
+/**
+ * Criteria by the work done (13 Nov 2026: "criteria by position — the crane
+ * operator's hours from the log, the DPO's DP time"). A person with crane log
+ * entries or DP time in the period — or whose rank says so — is also scored on
+ * that work, and the record carries what the books say for the period.
+ * **Ids are permanent**, as CRITERIA's.
+ */
+export type ApRole = 'crane' | 'dp';
+export const AP_ROLES: ApRole[] = ['crane', 'dp'];
+export const AP_ROLE_TITLE: Record<ApRole, string> = { crane: 'Crane operation', dp: 'DP operation' };
+export const ROLE_CRITERIA: Record<ApRole, { id: string; label: string }[]> = {
+  crane: [
+    { id: 'craneSafe', label: 'Safe lifting: rigging, load and SWL limits' },
+    { id: 'craneSignals', label: 'Signals and communication with the banksman and slinger' },
+    { id: 'craneChecks', label: 'Pre-use checks and reporting crane defects' },
+  ],
+  dp: [
+    { id: 'dpWatch', label: 'DP watchkeeping and position awareness' },
+    { id: 'dpAsog', label: 'ASOG / WSOG knowledge and response to DP alarms' },
+    { id: 'dpRecords', label: 'DP checklists, log and handover' },
+  ],
+};
+
+/** What the books say for the period — copied onto the record, so the paper stays true when the log changes. */
+export interface ApRoleFacts {
+  role: ApRole;
+  /** Crane: hours at the controls; DP: Active hours. */
+  hours: number;
+  /** Days worked (crane) / DP days (≥ 2 h, as the letter counts them). */
+  days: number;
+  /** Crane: lifts counted, and the entries without a count ("120+"). */
+  lifts?: number;
+  uncounted?: number;
+  /** Crane: load tests worked at the controls. */
+  tests?: number;
+  /** DP: DP drills attended (present on the attendance list), live or desktop. */
+  drills?: number;
+  /** Crane: "Knuckle-boom crane No. 2 (Palfinger, SWL 12 t)", most hours first. */
+  cranes?: string[];
+}
+
 export interface AppraisalScore {
   id: string;
-  /** Absent = not applicable. */
-  score?: Score;
+  /** Absent = not applicable. 1 … the scale's length (5 on the standard form). */
+  score?: number;
   note?: string;
 }
 
@@ -96,6 +169,12 @@ export interface CrewAppraisal {
   from: string;
   to: string;
   scores: AppraisalScore[];
+  /** The company's form it was written on (a copy); absent = the standard criteria. */
+  form?: ApFormSnap;
+  /** Answers to the form's written questions, by item id. */
+  answers?: Record<string, string>;
+  /** The work by position (crane, DP) — its criteria are asked, its figures printed. Fixed with the rest once the appraiser signs. */
+  roles?: ApRoleFacts[];
   strengths?: string;
   improve?: string;
   training?: string;

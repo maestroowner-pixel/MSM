@@ -1,6 +1,6 @@
 // npm run check:dp — DP checklists keep their line ids; DP days count as SDM counts them; the letter says what the log says.
-import { DP_TEMPLATES, WATCH_TEMPLATES, keepRecent, signRoles, hasCell, rowCells, formatCell, otherKey, answerText, cellKey, sectionCols, buildLetter, checkOutcome, conditionsText, coordText, dayId, positionFromText, lineSource, parseCoord, parseLine, positionText, dpoTotals, emptySlots, hours, isDpDay, letterHtml, linesFromText, setRange, templatesNow } from '../services/dp';
-import { DpDay } from '../types/dp';
+import { DP_TEMPLATES, WATCH_TEMPLATES, keepRecent, signRoles, hasCell, rowCells, formatCell, otherKey, answerText, cellKey, sectionCols, buildLetter, checkOutcome, conditionsText, coordText, dayId, positionFromText, lineSource, parseCoord, parseLine, positionText, dpoTotals, emptySlots, hours, isDpDay, letterHtml, linesFromText, setRange, templatesNow, slotsFromRecords, offDpSpans, dpCheckDeckEntry, dpEventDeckEntry } from '../services/dp';
+import { DpCheck, DpDay, DpLogEntry } from '../types/dp';
 import { isOfficerRank } from '../types/crew';
 
 let fail = 0;
@@ -109,6 +109,39 @@ ok(O.dates.length === 0 && O.notes[0] === 'NOTES FOR REVALIDATION:' && O.heading
 ok(O.missing.join(', ') === 'date of birth (Crew → the person), company, DP class, who signs, a DP day (2 hours or more) in the period', 'missing listed before the letter is made');
 const H = letterHtml({ ...L, paras: ['A <b> & "c"'] });
 ok(H.includes('A &lt;b&gt; &amp; &quot;c&quot;') && H.includes('ops@ocean.example<br>+44 20 0000 0000'), 'html escaped; contacts line by line');
+
+// DP time from the records: handovers make the watch, own DP log lines add half-hours, all Active.
+const hc = (at: string, by: string, by2: string, extra: Partial<DpCheck> = {}): DpCheck => ({ id: at, templateId: 'dp.handover', title: 'DP watch handover / takeover', where: 'bridge', at: Date.parse(`${at}:00Z`), shipOffset: '+00:00', position: { lat: 0, lon: 0 }, lines: [], results: {}, by, by2, updatedAt: 0, ...extra });
+const ll = (date: string, time: string, name: string): DpLogEntry => ({ id: date + time + name, date, time, text: 'x', initials: '', name, at: 0, updatedAt: 0 });
+const ho2 = [hc('2026-11-10T08:00', 'Bob Day', 'Ann Lee'), hc('2026-11-10T12:00', 'Ann Lee', 'Bob Day'), hc('2026-11-10T20:00', 'Bob Day', 'Ann Lee'), hc('2026-11-11T00:00', 'Ann Lee', 'Bob Day')];
+const r1 = slotsFromRecords('ann lee', '2026-11-10', ho2, [ll('2026-11-10', '14:10', 'Ann Lee')]);
+ok(hours(r1.slots, 1) === 8.5 && hours(r1.slots, 2) === 0 && r1.slots[16] === 1 && r1.slots[23] === 1 && r1.slots[24] === 0 && r1.slots[28] === 1 && r1.slots[40] === 1 && r1.slots[47] === 1 && r1.watches === 2 && r1.lines === 1, `08–12 and 20–24 from handovers + 14:00 from her log line, all Active: ${hours(r1.slots, 1)} h`);
+const r2 = slotsFromRecords('Ann Lee', '2026-11-11', ho2, []);
+ok(hours(r2.slots, 'all') === 0, 'a watch ending at midnight adds nothing to the next day');
+const tz = [hc('2026-11-12T22:00', 'Bob Day', 'Ann Lee', { shipOffset: '+02:00' }), hc('2026-11-13T02:00', 'Ann Lee', 'Bob Day', { shipOffset: '+02:00' })];
+const r3a = slotsFromRecords('Ann Lee', '2026-11-12', tz, []), r3b = slotsFromRecords('Ann Lee', '2026-11-13', tz, []);
+ok(hours(r3a.slots, 'all') === 0 && hours(r3b.slots, 1) === 4 && r3b.slots[0] === 1 && r3b.slots[7] === 1 && r3b.slots[8] === 0, 'ship\'s time: 22:00–02:00 UTC at +02:00 is 00:00–04:00 on the 13th');
+const r4 = slotsFromRecords('Ann Lee', '2026-11-10', [hc('2026-11-10T08:00', 'Bob Day', 'Ann Lee')], [ll('2026-11-10', '09:00', 'Ann Lee'), ll('2026-11-10', '11:40', 'Ann Lee')]);
+ok(hours(r4.slots, 1) === 4 && r4.slots[23] === 1 && r4.slots[24] === 0, 'no handover back: the watch runs to her last log line');
+const r5 = slotsFromRecords('Ann Lee', '2026-11-10', [hc('2026-11-10T12:00', 'Ann Lee', 'Bob Day')], [ll('2026-11-10', '08:15', 'Ann Lee')]);
+ok(hours(r5.slots, 1) === 4 && r5.slots[16] === 1, 'no takeover on record: from her first log line to the handover');
+const r6 = slotsFromRecords('Ann Lee', '2026-11-10', [hc('2026-11-10T08:00', 'Bob Day', 'Ann Lee', { book: 'bridge', templateId: 'bridge.handover' })], []);
+ok(hours(r6.slots, 'all') === 0, 'a bridge watch handover is not DP time');
+
+// DP status from the deck log / DP log bounds the time: set-up counts, off DP does not; before the first event nothing is cut.
+const ev = (time: string, event: 'setup' | 'ready' | 'on' | 'off', date = '2026-11-10') => ({ date, time, event });
+const offs = offDpSpans([ev('10:00', 'off'), ev('21:00', 'setup'), ev('21:40', 'ready'), ev('22:00', 'on')]);
+ok(offs.length === 1 && offs[0][0] === Date.parse('2026-11-10T10:00:00Z') && offs[0][1] === Date.parse('2026-11-10T21:00:00Z'), 'off from "off DP" to the next set-up start (set-up counts)');
+const r7 = slotsFromRecords('Ann Lee', '2026-11-10', ho2, [ll('2026-11-10', '14:10', 'Ann Lee')], [ev('10:00', 'off'), ev('21:00', 'setup')]);
+ok(hours(r7.slots, 1) === 5 && r7.slots[19] === 1 && r7.slots[20] === 0 && r7.slots[28] === 0 && r7.slots[41] === 0 && r7.slots[42] === 1 && r7.cut === 7, `08–10 and 21–24 kept, 10–12, 14:00 and 20–21 cut: ${hours(r7.slots, 1)} h, cut ${r7.cut}`);
+const r8 = slotsFromRecords('Ann Lee', '2026-11-10', ho2, [], [ev('09:10', 'off')]);
+ok(r8.slots[18] === 1 && r8.slots[19] === 0 && r8.slots[16] === 1, 'the half-hour the vessel came off DP still counts');
+const r9 = slotsFromRecords('Ann Lee', '2026-11-10', ho2, [], [ev('20:00', 'on', '2026-11-11')]);
+ok(hours(r9.slots, 1) === 8 && r9.cut === 0, 'before the first DP status nothing is cut');
+const dc = dpCheckDeckEntry({ ...hc('2026-11-10T08:00', 'Bob Day', 'Ann Lee', { shipOffset: '+02:00', asog: 'green', id: 'dpc1' }) });
+ok(dc.id === 'dl-dpc-dpc1' && dc.date === '2026-11-10' && dc.time === '10:00' && dc.dpCheckRef === 'dpc1' && dc.remarks!.includes('"DP watch handover / takeover"') && dc.remarks!.includes('Handing over: Bob Day; Taking over: Ann Lee') && dc.remarks!.includes('ASOG Green') && !Object.values(dc).includes(undefined), `deck log line for a signed DP checklist: ${dc.remarks}`);
+const de = dpEventDeckEntry({ ...ll('2026-11-10', '21:00', 'Ann Lee'), id: 'e1', event: 'setup' }, 'DPO');
+ok(de.id === 'dl-dpe-e1' && de.dpEvent === 'setup' && de.time === '21:00' && de.remarks === "DP set-up started at 21:00 ship's time — Ann Lee" && de.byRank === 'DPO', 'deck log line for a DP status change');
 
 console.log(fail ? `\n${fail} FAILED` : '\nall passed');
 process.exit(fail ? 1 : 0);

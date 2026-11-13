@@ -15,6 +15,10 @@
           "destination": "/obs.html"
         },
         {
+          "source": "/quote/**",
+          "destination": "/quote.html"
+        },
+        {
           "source": "**",
           "destination": "/index.html"
         }
@@ -99,6 +103,10 @@
         {
           "source": "/obs/**",
           "destination": "/obs.html"
+        },
+        {
+          "source": "/quote/**",
+          "destination": "/quote.html"
         },
         {
           "source": "**",

@@ -44,7 +44,8 @@ import { surveyStatus } from './surveys';
 import { ncState, nextActionDue } from './safety';
 import { NonConformity, SafetyObservation } from '../types/safety';
 import { Drill } from '../types/drills';
-import { drillSchedule, drillState } from './drills';
+import { drillSchedule, drillState, lastPostponed } from './drills';
+import { dpEventsOf, onDpOps } from './dp';
 import { SignDraft, draftRoute, liveDrafts } from '../types/signDraft';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 import { Passenger, passengerAboard } from '../types/passengers';
@@ -241,6 +242,7 @@ export interface BoardInput {
   storeRoomList?: StoreRoom[];
   gmdssLog?: import('../types/gmdss').GmdssEntry[];
   deckLog?: import('../types/deckLog').DeckEntry[];
+  dpLog?: import('../types/dp').DpLogEntry[];
   signDrafts?: SignDraft[];
   /** AI operations that waited for a connection and have come back (services/aiQueue.ts), on this device. */
   aiReady?: number;
@@ -565,14 +567,19 @@ export function buildBoard(x: BoardInput): Board {
   if (x.on('drills')) {
     const drills = x.drills ?? [];
     const rows = drillSchedule(drills, x.today, x.sopepDrills, x.securityDrills);
+    // On DP with operations running a DP drill cannot be held (13 Nov 2026): overdue is amber then, not red.
+    const onOps = onDpOps(dpEventsOf(x.dpLog ?? [], x.deckLog ?? []));
     let red = 0;
     let amber = 0;
     for (const r of rows) {
       // An own drill off a cycle is never due — only its plan shows.
       const left = r.everyDays ? r.left ?? -1 : 9999;
       if (r.planned && r.planned.date <= x.today) {
-        n.push({ key: `drill:${r.type}`, level: left < 0 ? 'amber' : 'blue', who: 'officer', icon: 'run-fast', route: 'Drill', params: { id: r.planned.id }, title: t('b.drill.planned', { title: r.title, when: r.planned.date === x.today ? t('b.todayLc') : dm(r.planned.date) }), sub: r.planned.topic || undefined });
+        n.push({ key: `drill:${r.type}`, level: left < 0 ? 'amber' : 'blue', who: 'officer', icon: 'run-fast', route: 'Drill', params: { id: r.planned.id }, title: t('b.drill.planned', { title: r.title, when: r.planned.date === x.today ? t('b.todayLc') : dm(r.planned.date) }), sub: lastPostponed(r.planned) ? t('b.drill.postponed', { reason: lastPostponed(r.planned)!.reason }) : r.planned.topic || undefined });
         if (left < 0) amber++;
+      } else if (left < 0 && r.dp && onOps) {
+        amber++;
+        n.push({ key: `drill:${r.type}`, level: 'amber', who: 'officer', icon: 'run-fast', route: 'Drill', params: { id: 'new', type: r.type }, title: r.last ? t('b.drill.overdue', { title: r.title, date: dm(r.last) }) : t('b.drill.none', { title: r.title }), sub: t('b.drill.onDp') });
       } else if (left < 0) {
         red++;
         n.push({ key: `drill:${r.type}`, level: 'red', who: 'officer', icon: 'run-fast', route: 'Drill', params: r.own ? { id: 'new', type: 'other', title: r.own.title } : { id: 'new', type: r.type }, title: r.last ? t('b.drill.overdue', { title: r.title, date: dm(r.last) }) : t('b.drill.none', { title: r.title }), sub: r.reg });

@@ -3,8 +3,8 @@
 // (types/orders.ts Quote / Award, types/suppliers.ts). Pure functions, no side effects.
 //
 // The rules the screens rely on:
-//   - a quote's total = Σ unit price × qty − discount + delivery, over the lines
-//     it prices; it is COMPLETE only when it prices every line;
+//   - a quote's total = Σ unit price × qty − discount + delivery + other charges,
+//     over the lines it prices; it is COMPLETE only when it prices every line;
 //   - quotes are ranked only against quotes in the same currency (the one most
 //     quotes came in) — another currency is listed, never converted by guess;
 //   - the cheapest is the lowest COMPLETE quote: a cheaper quote that leaves out
@@ -12,7 +12,7 @@
 //   - awarding anyone but the cheapest needs a reason, kept on the order.
 // ===================================
 
-import { OrderLine, PurchaseOrder, Quote } from '../types/orders';
+import { OrderLine, PurchaseOrder, Quote, QuoteLink } from '../types/orders';
 import { Supplier } from '../types/suppliers';
 import { isoCurrency, round2 } from './finance';
 import { liveLines } from './orders';
@@ -21,6 +21,8 @@ export interface QuoteTotal {
   goods: number;
   discount: number;
   delivery: number;
+  /** Other charges (packing, documents…) the supplier added on the quote page. */
+  charges: number;
   total: number;
   /** Lines with a price. */
   priced: number;
@@ -48,7 +50,8 @@ export function quoteTotal(o: PurchaseOrder, q: Quote): QuoteTotal {
   goods = round2(goods);
   const discount = round2(goods * ((q.discountPct ?? 0) / 100));
   const delivery = round2(q.delivery ?? 0);
-  return { goods, discount, delivery, total: round2(goods - discount + delivery), priced, missing, unavailable, complete: lines.length > 0 && priced === lines.length };
+  const charges = round2((q.charges ?? []).reduce((s, c) => s + (Number.isFinite(c.amount) ? c.amount : 0), 0));
+  return { goods, discount, delivery, charges, total: round2(goods - discount + delivery + charges), priced, missing, unavailable, complete: lines.length > 0 && priced === lines.length };
 }
 
 /** Answered with prices (not declined, not still waiting). */
@@ -144,6 +147,55 @@ export function awardOrder(o: PurchaseOrder, quoteId: string, by: string, today:
     },
     updatedAt: Date.now(),
   };
+}
+
+// ---- the supplier's answer from the quote page (plan item 48) ----------------
+//
+// functions/quoteLink.js writes the answer straight into the order in the
+// cloud. A device holding an older copy of the order must not send it back over
+// that answer, and the sync takes the newer copy whole (updatedAt) — so the
+// purchase orders are pulled through `foldOrder`: whichever copy wins, each
+// quote keeps the newer of its two answers from the page, and the later link.
+
+/** The order with one quote's link replaced. */
+export const withLink = (o: PurchaseOrder, quoteId: string, link: QuoteLink): PurchaseOrder => ({
+  ...o,
+  quotes: (o.quotes ?? []).map((q) => (q.id === quoteId ? { ...q, link } : q)),
+});
+
+/** Is the link still open on `now`? */
+export const linkOpen = (q: Quote, now = Date.now()) => !!q.link && q.link.expires > now;
+
+const answerAt = (q?: Quote) => q?.link?.answeredAt ?? 0;
+
+/** `mine`'s quotes, each replaced by `theirs`' copy where theirs carries a newer answer from the page. */
+export function foldQuotes(mine: Quote[] = [], theirs: Quote[] = []): Quote[] {
+  const other = new Map(theirs.map((q) => [q.id, q]));
+  return mine.map((q) => {
+    const t = other.get(q.id);
+    if (!t) return q;
+    const later = (t.link?.sentAt ?? 0) > (q.link?.sentAt ?? 0) ? t.link : q.link;
+    const base = answerAt(t) > answerAt(q) ? t : q;
+    if (base === q && later === q.link) return q;
+    const link = later ? { ...later, ...(answerAt(base) ? { answeredAt: answerAt(base) } : {}), ...(base.link?.answeredBy ? { answeredBy: base.link.answeredBy } : {}) } : undefined;
+    return { ...base, ...(link ? { link } : {}) };
+  });
+}
+
+/**
+ * The record the sync keeps of a purchase order pulled from the vessel
+ * (services/firebaseService `fromCloud`): the newer copy, its quotes folded with
+ * the other's. When this device's copy is the newer and the vessel's held an
+ * answer it lacks, it comes back one millisecond newer, so it wins and goes up.
+ */
+export function foldOrder(local: PurchaseOrder | undefined, remote: PurchaseOrder): PurchaseOrder {
+  if (!local) return remote;
+  if ((remote.updatedAt ?? 0) >= (local.updatedAt ?? 0)) {
+    const quotes = foldQuotes(remote.quotes, local.quotes);
+    return quotes.some((q, i) => q !== remote.quotes?.[i]) ? { ...remote, quotes } : remote;
+  }
+  const quotes = foldQuotes(local.quotes, remote.quotes);
+  return quotes.some((q, i) => q !== local.quotes?.[i]) ? { ...local, quotes, updatedAt: (local.updatedAt ?? 0) + 1 } : local;
 }
 
 // ---- a filled-in quotation sheet back into a quote -------------------------

@@ -16,7 +16,7 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { roleAtLeast } from '../types/role';
 import { todayIso } from '../services/pms';
-import { apStage, average, dueList, sortAppraisals } from '../services/appraisals';
+import { activeForm, apStage, average, dueList, sortAppraisals } from '../services/appraisals';
 import { uiDate } from '../utils/dates';
 import { goBackOr } from '../utils/nav';
 import { makeStyles } from './SafetySc';
@@ -29,7 +29,8 @@ export default function AppraisalsSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { crew, appraisals } = useData();
+  const { crew, appraisals, apForm } = useData();
+  const company = activeForm(apForm);
   const sync = useSync();
   const canEdit = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const today = todayIso();
@@ -60,7 +61,9 @@ export default function AppraisalsSc() {
       <ScreenTitle title={person ? `${t('ap.title')} · ${person.name}` : t('ap.title')} subtitle={t('ap.sub')} help="Crew appraisals" />
       <View style={styles.row}>
         <TouchableOpacity style={styles.btn} onPress={() => nav.navigate('Appraisal', { id: 'new', ...(crewId ? { crewId } : {}) })}><Text style={styles.btnText}>{`+ ${t('ap.one')}`}</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => nav.navigate('ApForm')}><Text style={styles.link}>{t('apf.title')}</Text></TouchableOpacity>
       </View>
+      <Text style={styles.sub}>{company ? t('apf.inUse', { title: company.title }) : t('apf.standardInUse')}</Text>
 
       {due.length ? <Label>{t('ap.dueN', { n: due.length })}</Label> : null}
       {due.map(({ c, due: d }) => {

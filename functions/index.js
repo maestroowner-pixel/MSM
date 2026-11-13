@@ -859,3 +859,9 @@ exports.sendReportNow = require('./emailReport').sendReportNow;
 
 // Critical equipment: a defect on it, or out of service, mailed to the office at once (critAlert.js, 29 Oct 2026).
 exports.critAlert = require('./critAlert').critAlert;
+
+// A supplier quotes through a link, no account (quoteLink.js, plan item 48, 8 Nov 2026).
+exports.quoteLinkSend = require('./quoteLink').quoteLinkSend;
+exports.quoteLinkExtend = require('./quoteLink').quoteLinkExtend;
+exports.quoteLinkRevoke = require('./quoteLink').quoteLinkRevoke;
+exports.supplierQuote = require('./quoteLink').supplierQuote;

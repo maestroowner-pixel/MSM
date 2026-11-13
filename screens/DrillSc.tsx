@@ -40,8 +40,11 @@ import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { personName, roleAtLeast } from '../types/role';
 import { isAboard } from '../types/crew';
-import { ABSENCE_REASONS, Attendee, DRILL_TYPES, DRILL_TYPE_MAP, Drill, OWN_INTERVALS, QUICK_STEPS, ScenarioStep, drillKind, drillTitle } from '../types/drills';
-import { DRILL_THEORY } from '../constants/drillTheory';
+import { ABSENCE_REASONS, Attendee, DP_SCENARIOS, DRILL_MODES, DRILL_TYPES, DRILL_TYPE_MAP, Drill, DrillMode, OWN_INTERVALS, QUICK_STEPS, ScenarioStep, drillKind, drillTitle, isDpDrill } from '../types/drills';
+import { theoryOf } from '../constants/dpDrillTheory';
+import { moduleOn } from '../constants/modules';
+import { ASOG_LABEL } from '../services/dp';
+import { AsogStatus, DpLogEntry, initialsOf } from '../types/dp';
 import { DeckEntry } from '../types/deckLog';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
@@ -53,7 +56,7 @@ import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles as safetyStyles } from './SafetySc';
-import { t, useT } from '../utils/i18n';
+import { t, tk, useT } from '../utils/i18n';
 import { uiLang } from '../utils/locale';
 import { shipHm } from '../utils/shipTime';
 
@@ -67,15 +70,18 @@ function hm(v: string): string {
   return h < 24 && mi < 60 ? `${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}` : v.trim();
 }
 
+const DRILL_MODE_EN_LC: Record<DrillMode, string> = { live: 'live', desktop: 'desktop exercise', touch: 'touch drill' };
+
 export default function DrillSc() {
   useT();
   const COLORS = useTheme();
   const styles = useMemo(() => ({ ...safetyStyles(COLORS), ...makeStyles(COLORS) }), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { drills, crew, vessel, saveRow } = useData();
+  const { drills, crew, vessel, saveRow, appendRow } = useData();
   const sync = useSync();
   const canEdit = !sync.enrolled || roleAtLeast(sync.role, 'admin');
+  const isMaster = !sync.enrolled || sync.role === 'superadmin';
   const confirmSign = useSignConfirm();
   const { signer, picker } = useSigner('CONDUCTED BY');
   const today = todayIso();
@@ -85,6 +91,13 @@ export default function DrillSc() {
   const stored = drills.find((d) => d.id === id);
   const people = useMemo(() => crew.filter(isAboard), [crew]);
 
+  // A DP drill (13 Nov 2026): desktop unless said otherwise, the company's interval from the last one, the scenario's bones.
+  const dpSteps = (type: string): ScenarioStep[] => (DP_SCENARIOS[type] ?? []).map((x) => ({ id: uid('st'), min: x.min, text: x.text, ...(x.who ? { who: x.who } : {}) }));
+  const dpStart = (type: string, mode?: string): Partial<Drill> => {
+    if (!isDpDrill(type)) return {};
+    const every = [...drills].filter((x) => x.type === type && x.everyDays && !x.deleted).sort((a, b) => a.date.localeCompare(b.date)).pop()?.everyDays;
+    return { mode: DRILL_MODES.includes(mode as DrillMode) ? (mode as DrillMode) : 'desktop', ...(every ? { everyDays: every } : {}) };
+  };
   const fresh = (): Drill => {
     const type = route.params?.type && (DRILL_TYPE_MAP[route.params.type] || route.params.type === 'other') ? route.params.type : 'fire';
     const now = Date.now();
@@ -95,7 +108,7 @@ export default function DrillSc() {
     const own = type === 'other' ? { title: name, ...(like?.reg ? { reg: like.reg } : {}), ...(like?.everyDays ? { everyDays: like.everyDays } : {}), ...(like?.theoryText ? { theoryText: like.theoryText } : {}) } : {};
     return {
       // A day given by the drill calendar (services/drillPlan dayIn), else today.
-      id, no: '', type, ...own, topic: '', date: /^\d{4}-\d{2}-\d{2}$/.test(String(route.params?.date ?? '')) ? route.params.date : today, scenario: [], theory: !!DRILL_THEORY[type] || !!like?.theoryText,
+      id, no: '', type, ...own, ...dpStart(type, route.params?.mode), topic: '', date: /^\d{4}-\d{2}-\d{2}$/.test(String(route.params?.date ?? '')) ? route.params.date : today, scenario: dpSteps(type), theory: !!theoryOf(type) || !!like?.theoryText,
       attendance: people.map((p) => ({ name: p.name, ...(p.rank ? { rank: p.rank } : {}), present: false })),
       plannedBy: '', updatedAt: now,
     };
@@ -110,6 +123,8 @@ export default function DrillSc() {
   const [guest, setGuest] = useState<{ name: string; rank: string } | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [savedNote, setSavedNote] = useState<string | null>(null);
+  /** The Master putting the drill off — operations would not allow it. */
+  const [postpone, setPostpone] = useState<string | null>(null);
 
   // Another phone changed it and nothing is being typed here: take theirs.
   useEffect(() => {
@@ -154,7 +169,8 @@ export default function DrillSc() {
   const done = !!d.doneAt;
   const ro = done || !canEdit;
   const st = drillState(d);
-  const theory = DRILL_THEORY[d.type];
+  const theory = theoryOf(d.type);
+  const isDp = isDpDrill(d.type);
   const isOwn = d.type === 'other';
   const prev = !ro && !d.scenario.length ? lastOfType(drills, d, d.id) : undefined;
   const present = d.attendance.filter((a) => a.present).length;
@@ -251,8 +267,30 @@ export default function DrillSc() {
       at: out.doneAt!,
       updatedAt: out.doneAt!,
     } as DeckEntry);
+    // A DP drill goes into the DP log too — the book the DPOs and the client read.
+    if (isDpDrill(out.type) && moduleOn('dp')) {
+      const line: DpLogEntry = {
+        id: uid('dpl'), date: out.date, time: out.time || out.endTime || shipHm(),
+        text: `DP drill ${out.no}: ${drillTitle(out)}${out.mode ? ` (${DRILL_MODE_EN_LC[out.mode]})` : ''}${out.time && out.endTime ? ` ${out.time}-${out.endTime}` : ''}${out.asog ? `, ASOG ${ASOG_LABEL[out.asog]}` : ''}, ${present} persons`,
+        initials: initialsOf(out.doneBy!), name: out.doneBy!, at: out.doneAt!, updatedAt: out.doneAt!,
+      };
+      await appendRow(storage.DP_LOG_KEY, line);
+    }
     setDraft(out);
     playSuccessSound();
+  };
+
+  // The Master puts a due drill off (13 Nov 2026: "on DP the drill usually cannot be done — operations run"):
+  // the plan stays and stays amber until it is held; the reason prints on the report.
+  const postponeNow = async () => {
+    const reason = (postpone ?? '').trim();
+    if (reason.length < 3) return Alert.alert(t('dr.postpone'), t('moc.needReason'));
+    const by = signer ?? (sync.me ? { name: personName(sync.me), rank: sync.me.position } : null);
+    if (!by?.name) return Alert.alert(t('dr.postpone'), t('round.chooseName'));
+    const next: Drill = { ...d, postponed: [...(d.postponed ?? []), { reason, by: by.name, ...(by.rank ? { byRank: by.rank } : {}), at: Date.now() }] };
+    setDraft(next);
+    await persist(next);
+    setPostpone(null);
   };
 
   const drop = () =>
@@ -296,12 +334,15 @@ export default function DrillSc() {
         help="Drills"
       />
       {!ro && savedNote ? <Text style={[styles.sub, { color: COLORS.success }]}>{savedNote}</Text> : null}
+      {(d.postponed ?? []).map((p, i) => (
+        <Text key={i} style={[styles.sub, { color: COLORS.warning, fontWeight: i === d.postponed!.length - 1 && !done ? '700' : '400' }]}>{t('dr.postponedLine', { when: uiDateTime(p.at), by: p.byRank ? `${p.by} (${p.byRank})` : p.by, reason: p.reason })}</Text>
+      ))}
 
       {/* ---- the drill ---- */}
       <Card>
         <Label>{t('dr.theDrill')}</Label>
         {!ro ? (
-          <Dropdown caption={t('dr.drillCap')} value={d.type} onChange={(v: string) => set({ type: v, theory: !!DRILL_THEORY[v] || (v === 'other' && !!d.theoryText?.trim()) })} options={[...DRILL_TYPES.map((x) => ({ value: x.id, label: drillTypeName(x.id) })), { value: 'other', label: t('dr.otherOwn') }]} />
+          <Dropdown caption={t('dr.drillCap')} value={d.type} onChange={(v: string) => set({ type: v, theory: !!theoryOf(v) || (v === 'other' && !!d.theoryText?.trim()), ...(isDpDrill(v) ? { ...dpStart(v, d.mode), ...(d.scenario.length ? {} : { scenario: dpSteps(v) }) } : { mode: undefined, asog: undefined }) })} options={[...DRILL_TYPES.filter((x) => !x.dp || moduleOn('dp') || x.id === d.type).map((x) => ({ value: x.id, label: drillTypeName(x.id) })), { value: 'other', label: t('dr.otherOwn') }]} />
         ) : null}
         {isOwn ? (
           ro ? (
@@ -317,6 +358,42 @@ export default function DrillSc() {
                     <Text style={[styles.chipText, d.everyDays === x.days && styles.chipTextOn]}>{intervalName(x.days)}</Text>
                   </TouchableOpacity>
                 ))}
+              </View>
+            </>
+          )
+        ) : null}
+        {isDp ? (
+          ro ? (
+            <Text style={styles.sub}>{[d.mode ? tk(`dr.mode.${d.mode}`) : null, d.asog ? `ASOG ${ASOG_LABEL[d.asog]}` : null, intervalName(d.everyDays ?? DRILL_TYPE_MAP[d.type]?.everyDays)].filter(Boolean).join(' · ')}</Text>
+          ) : (
+            <>
+              <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{t('dr.mode')}</Text>
+              <View style={styles.chips}>
+                {DRILL_MODES.map((m) => (
+                  <TouchableOpacity key={m} style={[styles.chip, d.mode === m && styles.chipOn]} onPress={() => set({ mode: m })}>
+                    <Text style={[styles.chipText, d.mode === m && styles.chipTextOn]}>{tk(`dr.mode.${m}`)}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={styles.sub}>{t('dr.modeHint')}</Text>
+              <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{t('dr.asog')}</Text>
+              <View style={styles.chips}>
+                {(['green', 'blue', 'yellow', 'red'] as AsogStatus[]).map((a) => (
+                  <TouchableOpacity key={a} style={[styles.chip, d.asog === a && styles.chipOn]} onPress={() => set({ asog: d.asog === a ? undefined : a })}>
+                    <Text style={[styles.chipText, d.asog === a && styles.chipTextOn]}>{ASOG_LABEL[a]}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{t('dr.dpEvery')}</Text>
+              <View style={styles.chips}>
+                {OWN_INTERVALS.filter((x) => x.days).map((x) => {
+                  const on = (d.everyDays ?? DRILL_TYPE_MAP[d.type]?.everyDays) === x.days;
+                  return (
+                    <TouchableOpacity key={x.label} style={[styles.chip, on && styles.chipOn]} onPress={() => set({ everyDays: x.days })}>
+                      <Text style={[styles.chipText, on && styles.chipTextOn]}>{intervalName(x.days)}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </>
           )
@@ -535,8 +612,18 @@ export default function DrillSc() {
           {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
           <View style={styles.row}>
             <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.success }]} onPress={() => void sign()}><Text style={styles.btnText}>{t('dr.signDone')}</Text></TouchableOpacity>
+            {isMaster && isDp && postpone == null ? <TouchableOpacity onPress={() => setPostpone('')}><Text style={styles.link}>{`${t('dr.postpone')}…`}</Text></TouchableOpacity> : null}
             <TouchableOpacity onPress={drop}><Text style={[styles.link, { color: COLORS.danger }]}>{t('dr.deletePlan')}</Text></TouchableOpacity>
           </View>
+          {postpone != null ? (
+            <>
+              <TextInput style={[styles.input, { minHeight: 50 }]} value={postpone} onChangeText={setPostpone} multiline placeholder={t('dr.postponePh')} placeholderTextColor={COLORS.textLight} />
+              <View style={styles.row}>
+                <TouchableOpacity style={styles.btn} onPress={() => void postponeNow()}><Text style={styles.btnText}>{t('dr.postpone')}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setPostpone(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>
+              </View>
+            </>
+          ) : null}
         </Card>
       ) : !done ? (
         <Text style={[styles.sub, { color: stateColor }]}>{t('dr.officerPlans')}</Text>

@@ -144,6 +144,51 @@ export interface Quote {
   /** Their quotation number. */
   ref?: string;
   notes?: string;
+  /**
+   * The request went as a link (plan item 48): the supplier answers on
+   * app.ismpilot.com/quote/… without an account (functions/quoteLink.js). The
+   * token itself is never kept — only its hash, on the server.
+   */
+  link?: QuoteLink;
+  /** What the supplier said per line on that page; `prices` stays per OUR unit. */
+  lineInfo?: Record<string, QuoteLineInfo>;
+  /** Charges other than delivery — packing, documents, customs — in the quote's currency. */
+  charges?: QuoteCharge[];
+  /** Their own quotation or datasheet, attached on the page. */
+  file?: { uri: string; name: string; type: string };
+}
+
+export interface QuoteLink {
+  /** Epoch ms: when the link was made, and until when it opens. */
+  sentAt: number;
+  expires: number;
+  /** The address it was mailed to, when mailed. */
+  to?: string;
+  /** Epoch ms of the supplier's last answer on the page. */
+  answeredAt?: number;
+  /** Who answered, as typed on the page (the supplier's own staff). */
+  answeredBy?: string;
+}
+
+/** Original — the maker's own; OEM — made for the maker, not under its name; Replacement — another make that fits. */
+export type QuotePartKind = 'original' | 'oem' | 'replacement';
+
+export interface QuoteLineInfo {
+  kind?: QuotePartKind;
+  leadDays?: number;
+  /** Their unit and how many of OUR units it holds: "box" of 10 pcs. */
+  unit?: string;
+  per?: number;
+  /** Their price per THEIR unit, as they typed it. */
+  unitPrice?: number;
+  /** Their part number, when it is not ours. */
+  partNo?: string;
+  remark?: string;
+}
+
+export interface QuoteCharge {
+  label: string;
+  amount: number;
 }
 
 /** Who won the quotation and why — kept on the order for the audit. */

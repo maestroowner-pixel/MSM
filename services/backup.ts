@@ -113,6 +113,8 @@ export interface BackupFile {
   qhse?: { observations: SafetyObservation[]; ncs: NonConformity[]; ext?: import('../types/extInspection').ExternalInspection[]; mocs?: import('../types/moc').ManagementOfChange[]; threads?: import('../types/thread').ThreadMessage[] };
   /** Crew appraisals (officers only). */
   appraisals?: import('../types/appraisal').CrewAppraisal[];
+  /** The company's own appraisal form. */
+  apForm?: import('../types/appraisal').ApForm[];
   /** Watch plans. */
   restPlans?: import('../types/restPlan').RestPlan[];
   /** Drug and alcohol tests (officers only; full names, as on this device). */
@@ -122,6 +124,9 @@ export interface BackupFile {
   chemicals?: import('../types/chemicals').Chemical[];
   /** Rope and wire log (types/wireLog.ts). */
   wireLog?: import('../types/wireLog').WireEntry[];
+  /** Crane operator's log (types/craneLog.ts). */
+  craneLog?: import('../types/craneLog').CraneEntry[];
+  craneTests?: import('../types/craneLog').CraneTest[];
   logs?: { deck: any[]; gmdss: any[]; orderGroups: any[]; galley: any[] };
   /** Drills: planned and carried out. */
   drills?: Drill[];
@@ -282,11 +287,14 @@ export async function exportBackup(vessel: VesselInfo | null, password = ''): Pr
   const qhse = { observations: await storage.loadList<SafetyObservation>(storage.OBSERVATIONS_KEY), ncs: await storage.loadList<NonConformity>(storage.NCS_KEY), ext: await storage.loadList<import('../types/extInspection').ExternalInspection>(storage.EXT_INSP_KEY), mocs: await storage.loadList<import('../types/moc').ManagementOfChange>(storage.MOCS_KEY), threads: await storage.loadList<import('../types/thread').ThreadMessage>(storage.THREADS_KEY) };
   const drills = await storage.loadList<Drill>(storage.DRILLS_KEY);
   const appraisals = await storage.loadList<import('../types/appraisal').CrewAppraisal>(storage.APPRAISALS_KEY);
+  const apForm = await storage.loadList<import('../types/appraisal').ApForm>(storage.AP_FORM_KEY);
   const restPlans = await storage.loadList<import('../types/restPlan').RestPlan>(storage.REST_PLANS_KEY);
   const da = { tests: await storage.loadList<import('../types/daTest').DaTest>(storage.DA_TESTS_KEY), results: await storage.loadList<import('../types/daTest').DaResult>(storage.DA_RESULTS_KEY), followUps: await storage.loadList<import('../types/daTest').DaFollowUp>(storage.DA_FOLLOWUPS_KEY), policy: await storage.loadList<import('../types/daTest').DaPolicy>(storage.DA_POLICY_KEY) };
   const em = { vessel: await storage.loadList<import('../types/emissions').EmVessel>(storage.EM_VESSEL_KEY), passages: await storage.loadList<import('../types/emissions').EmPassage>(storage.EM_PASSAGES_KEY), statements: await storage.loadList<import('../types/emissions').EmStatement>(storage.EM_STATEMENTS_KEY) };
   const chemicals = await storage.loadList<import('../types/chemicals').Chemical>(storage.CHEMICALS_KEY);
   const wireLog = await storage.loadList<import('../types/wireLog').WireEntry>(storage.WIRE_LOG_KEY);
+  const craneLog = await storage.loadList<import('../types/craneLog').CraneEntry>(storage.CRANE_LOG_KEY);
+  const craneTests = await storage.loadList<import('../types/craneLog').CraneTest>(storage.CRANE_TESTS_KEY);
   const logs = { deck: await storage.loadList<any>(storage.DECK_LOG_KEY), gmdss: await storage.loadList<any>(storage.GMDSS_KEY), orderGroups: await storage.loadList<any>(storage.ORDER_GROUPS_KEY), galley: await storage.loadList<any>(storage.GALLEY_ORDERS_KEY) };
   const drillPlans = await storage.loadList<DrillYearPlan>(storage.DRILL_PLANS_KEY);
   const safetyMeetings = await storage.loadList<SafetyMeeting>(storage.SAFETY_MEETINGS_KEY);
@@ -347,11 +355,14 @@ export async function exportBackup(vessel: VesselInfo | null, password = ''): Pr
     qhse,
     drills,
     ...(appraisals.length ? { appraisals } : {}),
+    ...(apForm.length ? { apForm } : {}),
     ...(restPlans.length ? { restPlans } : {}),
     ...(da.tests.length || da.policy.length ? { da } : {}),
     ...(em.passages.length || em.vessel.length || em.statements.length ? { em } : {}),
     ...(chemicals.length ? { chemicals } : {}),
     ...(wireLog.length ? { wireLog } : {}),
+    ...(craneLog.length ? { craneLog } : {}),
+    ...(craneTests.length ? { craneTests } : {}),
     ...(logs.deck.length || logs.gmdss.length || logs.orderGroups.length || logs.galley.length ? { logs } : {}),
     drillPlans,
     hospital,
@@ -603,6 +614,7 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
   }
   if (backup.drills) await storage.saveList(storage.DRILLS_KEY, backup.drills);
   if (backup.appraisals) await storage.saveList(storage.APPRAISALS_KEY, backup.appraisals);
+  if (backup.apForm) await storage.saveList(storage.AP_FORM_KEY, backup.apForm);
   if (backup.restPlans) await storage.saveList(storage.REST_PLANS_KEY, backup.restPlans);
   if (backup.da) {
     await storage.saveList(storage.DA_TESTS_KEY, backup.da.tests);
@@ -623,6 +635,8 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
   }
   if (backup.chemicals) await storage.saveList(storage.CHEMICALS_KEY, backup.chemicals);
   if (backup.wireLog) await storage.saveList(storage.WIRE_LOG_KEY, backup.wireLog);
+  if (backup.craneLog) await storage.saveList(storage.CRANE_LOG_KEY, backup.craneLog);
+  if (backup.craneTests) await storage.saveList(storage.CRANE_TESTS_KEY, backup.craneTests);
   if (backup.drillPlans) await storage.saveList(storage.DRILL_PLANS_KEY, backup.drillPlans);
   if (backup.safetyMeetings) await storage.saveList(storage.SAFETY_MEETINGS_KEY, backup.safetyMeetings);
   if (backup.dp) {

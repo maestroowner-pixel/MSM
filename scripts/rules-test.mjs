@@ -325,6 +325,13 @@ await t(true, 'The office reads D&A results', getDoc(R(shore, 'da_results', 'r1'
 await t(true, 'An Officer adds the laboratory result', setDoc(R(officer, 'da_followups', 'f1'), { id: 'f1', testId: 'da1', resultId: 'r1', kind: 'lab', lab: 'neg', by: 'Jez', at: 2, updatedAt: 2 }));
 await t(false, 'A follow-up carries no name', setDoc(R(officer, 'da_followups', 'f2'), { id: 'f2', testId: 'da1', resultId: 'r1', kind: 'action', name: 'Jez Dodd', note: 'Relieved', by: 'Jez', at: 2, updatedAt: 2 }));
 await t(false, 'A follow-up is final', setDoc(R(master, 'da_followups', 'f1'), { id: 'f1', testId: 'da1', resultId: 'r1', kind: 'lab', lab: 'pos', by: 'Jez', at: 2, updatedAt: 3 }));
+const APF = { id: 'form', title: 'Company appraisal', scale: ['Poor', 'Fair', 'Good', 'Excellent'], items: [{ id: 'a1', text: 'Seamanship' }], updatedAt: 1 };
+await t(true, 'The Master sets the company appraisal form', setDoc(R(master, 'ap_form', 'form'), APF));
+await t(true, 'The office sets it too', setDoc(R(shore, 'ap_form', 'form'), { ...APF, updatedAt: 2 }));
+await t(false, 'An Officer cannot change it', setDoc(R(officer, 'ap_form', 'form'), { ...APF, title: 'Mine', updatedAt: 2 }));
+await t(false, 'A scale of one point is not a scale', setDoc(R(master, 'ap_form', 'form'), { ...APF, scale: ['Ok'], updatedAt: 3 }));
+await t(false, 'Only the one form', setDoc(R(master, 'ap_form', 'other'), { ...APF, id: 'other' }));
+await t(false, 'Crew does not read it', getDoc(R(crew, 'ap_form', 'form')));
 await t(true, 'The Master sets the D&A policy', setDoc(R(master, 'da_policy', 'policy'), { id: 'policy', months: 6, limit: 0.25, updatedAt: 1 }));
 await t(false, 'An Officer cannot change the D&A policy', setDoc(R(officer, 'da_policy', 'policy'), { id: 'policy', months: 12, limit: 0.4, updatedAt: 2 }));
 // The deck log and GMDSS: a signed entry does not change.
@@ -372,6 +379,22 @@ await t(true, 'The SDS as a link', setDoc(R(master, 'chemicals', 'ch1'), { ...CH
 await t(false, 'The SDS never inside the card', setDoc(R(master, 'chemicals', 'ch1'), { ...CH, sds: { url: 'data:application/pdf;base64,AAAA', name: 'sds.pdf', addedAt: 3 }, updatedAt: 3 }));
 await t(false, 'The id is the document', setDoc(R(officer, 'chemicals', 'ch3'), { ...CH, id: 'other' }));
 await t(false, 'Nobody deletes a chemical', deleteDoc(R(master, 'chemicals', 'ch1')));
+
+// Crane operator's log (types/craneLog.ts): an officer confirms; nothing changes.
+const CRL = { id: 'cl1', itemId: 'k1', crane: { label: 'Crane No. 1', swl: '12 t' }, crewId: 'c1', name: 'Max', date: '2026-11-13', hours: 2.5, lifts: 14, ops: ['cargo'], by: 'Chief Officer', at: 1, createdAt: 1, updatedAt: 1 };
+await t(false, 'Crew cannot confirm crane time', setDoc(R(crew, 'crane_log', 'cl1'), CRL));
+await t(true, 'An Officer confirms crane time', setDoc(R(officer, 'crane_log', 'cl1'), CRL));
+await t(false, 'Crane time is final', setDoc(R(master, 'crane_log', 'cl1'), { ...CRL, hours: 5, updatedAt: 2 }));
+await t(false, 'Not more than a day', setDoc(R(officer, 'crane_log', 'cl2'), { ...CRL, id: 'cl2', hours: 30 }));
+await t(false, 'Nobody deletes crane time', deleteDoc(R(master, 'crane_log', 'cl1')));
+await t(true, 'The office reads the crane log', getDoc(R(shore, 'crane_log', 'cl1')));
+
+const CT = { id: 'ct1', itemId: 'k1', crane: { label: 'Crane No. 1', swl: '12 t' }, kind: 'fiveYear', date: '2026-11-13', testLoad: '15 t', pctSwl: 125, result: 'pass', certNo: 'LT-1', by: 'Chief Officer', at: 1, createdAt: 1, updatedAt: 1 };
+await t(false, 'Crew cannot record a crane test', setDoc(R(crew, 'crane_tests', 'ct1'), CT));
+await t(true, 'An Officer records a crane test', setDoc(R(officer, 'crane_tests', 'ct1'), CT));
+await t(false, 'A crane test is final', setDoc(R(master, 'crane_tests', 'ct1'), { ...CT, result: 'fail', updatedAt: 2 }));
+await t(false, 'Only known test kinds', setDoc(R(officer, 'crane_tests', 'ct2'), { ...CT, id: 'ct2', kind: 'whatever' }));
+await t(false, 'Result is pass or fail', setDoc(R(officer, 'crane_tests', 'ct3'), { ...CT, id: 'ct3', result: 'maybe' }));
 
 // Rope and wire log (types/wireLog.ts): anyone aboard records, a renewal is an officer's, nothing changes.
 const WL = { id: 'w1', itemId: 'r1', kind: 'inspect', date: '2026-11-07', rating: 'fair', diameterMm: 41, by: 'Bosun', at: 1, createdAt: 1, updatedAt: 1 };

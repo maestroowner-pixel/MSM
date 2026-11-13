@@ -22,6 +22,7 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES } from '../theme';
 import { personName, roleAtLeast } from '../types/role';
+import { moduleOn } from '../constants/modules';
 import { DRILL_TYPES } from '../types/drills';
 import { Dropdown } from './Dropdown';
 import * as storage from '../services/storage';
@@ -75,7 +76,7 @@ export function DrillCalendar({ schedule, today, onSaved }: { schedule: Schedule
     const base: DrillYearPlan = plan ?? { id: String(year), slots: [], updatedAt: 0 };
     void savePlan({ ...base, slots: [...base.slots, ...slots], updatedAt: Date.now() });
   };
-  const others = DRILL_TYPES.filter((t) => !rows.some((r) => r.kind === t.id));
+  const others = DRILL_TYPES.filter((t) => (!t.dp || moduleOn('dp')) && !rows.some((r) => r.kind === t.id));
 
   const tap = (r: { kind: string; title: string }, month: number, c: Cell) => {
     const done = c.done.find((d) => d.drill)?.drill;

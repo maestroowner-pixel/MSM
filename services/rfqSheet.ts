@@ -76,8 +76,11 @@ function comparisonTables(o: PurchaseOrder) {
     if (q.unavailable?.includes(lineId)) return 'n/a';
     const p = q.prices[lineId];
     if (p == null) return '—';
+    // What the supplier said the part is, on the quote page (plan item 48); an original is not marked.
+    const kind = q.lineInfo?.[lineId]?.kind;
+    const tag = kind === 'oem' ? ' (OEM)' : kind === 'replacement' ? ' (repl.)' : '';
     // '*', not a star: the web PDF's built-in font has no ★.
-    return `${num(p)}${c.bestByLine[lineId]?.includes(q.id) && c.ranked.length > 1 ? ' *' : ''}`;
+    return `${num(p)}${tag}${c.bestByLine[lineId]?.includes(q.id) && c.ranked.length > 1 ? ' *' : ''}`;
   };
   const head = ['#', 'Description', 'Qty', ...all.map(({ q }) => `${q.supplier} (${q.currency})`)];
   const lines = liveLines(o).map((l, i) => [String(i + 1), l.description, `${l.qty} ${l.unit}`, ...all.map(({ q }) => cell(q, l.id))]);
@@ -86,6 +89,7 @@ function comparisonTables(o: PurchaseOrder) {
     sums('Goods', (t) => num(t.goods)),
     sums('Discount', (t, q) => (t.discount ? `-${num(t.discount)} (${q.discountPct} %)` : '')),
     sums('Delivery', (t) => (t.delivery ? num(t.delivery) : '')),
+    ...(all.some(({ t }) => t.charges) ? [sums('Other charges', (t, q) => (t.charges ? `${num(t.charges)} (${(q.charges ?? []).map((x) => x.label).join(', ')})` : ''))] : []),
     sums('TOTAL', (t) => num(t.total)),
     sums('Lines priced', (t) => `${t.priced} of ${liveLines(o).length}${t.unavailable.length ? ` · ${t.unavailable.length} n/a` : ''}`),
     sums('Lead time', (_t, q) => (q.leadDays != null ? `${q.leadDays} days` : '')),
@@ -99,6 +103,8 @@ function comparisonTables(o: PurchaseOrder) {
   return { c, head, rows: [...lines, ...totals], widths };
 }
 
+const quotesOf = (o: PurchaseOrder) => o.quotes ?? [];
+
 function awardFacts(o: PurchaseOrder): string[] {
   const c = compareQuotes(o);
   const a = o.award;
@@ -108,6 +114,7 @@ function awardFacts(o: PurchaseOrder): string[] {
     ...(c.other.length ? [`Not ranked (other currency than ${c.currency}): ${c.other.map(({ q }) => q.supplier).join(', ')}`] : []),
     ...(a ? [`Awarded to ${a.supplier} — ${money(a.total, a.currency)} — ${dmy(a.at)} by ${a.by}`, a.cheapest ? `Lowest complete quote of ${a.compared}.` : `Not the lowest complete quote. Reason: ${a.reason ?? ''}`] : ['Not awarded yet.']),
     '* lowest price for the line',
+    ...(quotesOf(o).some((q) => Object.values(q.lineInfo ?? {}).some((x) => x.kind && x.kind !== 'original')) ? ['(OEM) made for the maker, not under its name · (repl.) another make that fits — as the supplier stated'] : []),
   ];
 }
 

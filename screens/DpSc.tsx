@@ -22,12 +22,14 @@ import { moduleOn } from '../constants/modules';
 import * as storage from '../services/storage';
 import { uid } from '../utils/id';
 import { todayIso } from '../services/pms';
-import { ASOG_LABEL, SLOTS, Scheme, buildLetter, checkOutcome, dayId, dpoTotals, emptySlots, hours, isDpDay, templatesNow, positionText } from '../services/dp';
+import { ASOG_LABEL, SLOTS, Scheme, buildLetter, checkOutcome, dayId, dpoTotals, emptySlots, hours, isDpDay, templatesNow, positionText, slotsFromRecords, dpEventDeckEntry, DpEventAt, dpEventsOf, lastDpEvent } from '../services/dp';
 import { shipAndUtc } from '../utils/shipTime';
 import { exportDpLetter, exportDpLog } from '../services/dpReport';
-import { initialsOf } from '../types/dp';
+import { DP_EVENTS, DP_EVENT_EN, DpEvent, DpLogEntry, initialsOf } from '../types/dp';
 import { DpCheck, DpDay, DpInfo, DpSlot, bookOf } from '../types/dp';
 import { loadOlder } from '../services/dpArchive';
+import { dpDrillsDue, drillSchedule, kindName } from '../services/drills';
+import { isDpDrill } from '../types/drills';
 import { DP_KEEP_DAYS } from '../services/firebaseService';
 import { isAboard } from '../types/crew';
 import { roleAtLeast } from '../types/role';
@@ -49,7 +51,7 @@ export default function DpSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { dpChecks, dpDays, dpLog, dpInfo, dpTemplates, crew, crewPrivate, vessel, saveRow, appendRow } = useData();
+  const { dpChecks, dpDays, dpLog, deckLog, dpInfo, dpTemplates, crew, crewPrivate, vessel, saveRow, appendRow, drills, sopepDrills, securityDrills } = useData();
   const sync = useSync();
   const officer = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const [view, setView] = useState<View_>(VIEWS.find((v) => v.key === route.params?.view)?.key ?? 'checklists');
@@ -109,6 +111,30 @@ export default function DpSc() {
     setLogTime(nowHm());
   };
 
+  // DP status changes: a DP log line and a deck log entry at once (13 Nov 2026).
+  const addEvent = (ev: DpEvent) => {
+    if (!person) return Alert.alert(t('dp.v.log'), t('dp.log.who'));
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(logTime.trim())) return Alert.alert(t('dp.v.log'), t('dp.log.timeBad'));
+    const go = async () => {
+      const at = Date.now();
+      const line: DpLogEntry & { event: DpEvent } = { id: uid('dpl'), date, time: logTime.trim(), text: DP_EVENT_EN[ev], initials: initialsOf(person.name), name: person.name, event: ev, at, updatedAt: at };
+      await appendRow(storage.DP_LOG_KEY, line as any);
+      if (moduleOn('deckLog')) await saveRow(storage.DECK_LOG_KEY, dpEventDeckEntry(line, person.rank) as any);
+      setLogTime(nowHm());
+    };
+    Alert.alert(tk(`dp.ev.${ev}`), t('dp.ev.q', { time: `${dmy(date)} ${logTime.trim()}`, name: person.name }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.add'), onPress: () => void go() },
+    ]);
+  };
+  const dpEvents = useMemo<DpEventAt[]>(() => dpEventsOf(dpLog, deckLog), [dpLog, deckLog]);
+  const lastEvent = useMemo(() => lastDpEvent(dpEvents), [dpEvents]);
+  // A DP drill is seldom possible on operations (13 Nov 2026): set-up and off DP are the windows — say so then.
+  const drillWindow = moduleOn('drills') && !!lastEvent && lastEvent.event !== 'on';
+  const drillsNow = useMemo(() => (drillWindow ? dpDrillsDue(drillSchedule(drills, today, sopepDrills, securityDrills)) : []), [drillWindow, drills, today, sopepDrills, securityDrills]);
+  const noDpDrill = drillWindow && !drills.some((d) => isDpDrill(d.type) && !d.deleted);
+  const drillMode = lastEvent?.event === 'off' ? 'desktop' : 'live';
+
   const saveDay = async (next: DpSlot[]) => {
     if (!person) return;
     const row: DpDay = { id: dayId(person.id, date), crewId: person.id, name: person.name, rank: person.rank, date, slots: next, updatedAt: Date.now() };
@@ -118,6 +144,17 @@ export default function DpSc() {
     const next = [...slots] as DpSlot[];
     next[i] = next[i] === brush ? 0 : brush;
     void saveDay(next);
+  };
+  // From the DP watch handovers and the DP log — all Active; the half-hours stay editable.
+  const [filled, setFilled] = useState('');
+  useEffect(() => setFilled(''), [who, date]);
+  const fill = () => {
+    if (!person) return;
+    const r = slotsFromRecords(person.name, date, dpChecks, dpLog, dpEvents);
+    if (!r.watches && !r.lines) return Alert.alert(t('dp.fill'), t('dp.fill.none'));
+    const cut = r.cut ? ` ${t('dp.fill.cut', { h: r.cut / 2 })}` : '';
+    void saveDay(slots.map((v, i) => (r.slots[i] ? 1 : v)) as DpSlot[]);
+    setFilled(t('dp.fill.done', { h: hours(r.slots, 1), w: r.watches, l: r.lines }) + cut);
   };
   const removeDay = () =>
     stored &&
@@ -236,6 +273,25 @@ export default function DpSc() {
             <TouchableOpacity style={styles.btn} onPress={() => void addLogLine()}><Text style={styles.btnText}>{t('common.add')}</Text></TouchableOpacity>
           </View>
           <Text style={styles.sub}>{t('dp.log.hint')}</Text>
+          <View style={[styles.chips, { marginTop: SIZES.xs }]}>
+            {DP_EVENTS.map((ev) => chip(false, tk(`dp.ev.${ev}`), () => addEvent(ev), ev))}
+          </View>
+          {lastEvent ? <Text style={styles.sub}>{t('dp.ev.last', { what: tk(`dp.ev.${lastEvent.event}`), when: `${dmy(lastEvent.date)} ${lastEvent.time}` })}</Text> : null}
+          {drillsNow.length || noDpDrill ? (
+            <View style={{ borderWidth: 1, borderColor: COLORS.warning, borderRadius: 10, padding: SIZES.sm, marginTop: SIZES.sm }}>
+              <Text style={[styles.sub, { marginTop: 0, fontWeight: '700', color: COLORS.textDark }]}>{lastEvent?.event === 'off' ? t('dp.drill.windowOff') : t('dp.drill.windowSetup')}</Text>
+              {drillsNow.map((r) => (
+                <TouchableOpacity key={r.type} onPress={() => nav.navigate('Drill', r.planned ? { id: r.planned.id } : { id: 'new', type: r.type, mode: drillMode })}>
+                  <Text style={styles.link}>{`${kindName(r.type, r.title)} — ${r.left == null ? t('dp.drill.never') : r.left < 0 ? t('dp.drill.overdue', { n: -r.left }) : t('dp.drill.dueIn', { n: r.left })}`}</Text>
+                </TouchableOpacity>
+              ))}
+              {noDpDrill ? (
+                <TouchableOpacity onPress={() => nav.navigate('Drill', { id: 'new', type: 'dpDriftOff', mode: drillMode })}>
+                  <Text style={styles.link}>{t('dp.drill.first')}</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          ) : null}
           {dayLog.map((e) => (
             <View key={e.id} style={{ flexDirection: 'row', gap: SIZES.sm, paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.border }}>
               <Text style={{ width: 52, fontWeight: '700', color: COLORS.textDark }}>{e.time}</Text>
@@ -260,6 +316,12 @@ export default function DpSc() {
             {chip(brush === 2, t('dp.passive'), () => setBrush(2))}
           </View>
           <Text style={styles.sub}>{t('dp.tapHint')}</Text>
+          {person ? (
+            <TouchableOpacity onPress={fill} style={{ marginVertical: SIZES.xs }}>
+              <Text style={styles.link}>{t('dp.fill')}</Text>
+            </TouchableOpacity>
+          ) : null}
+          {filled ? <Text style={styles.sub}>{filled}</Text> : null}
           <View style={styles.grid}>
             {Array.from({ length: SLOTS }, (_, i) => (
               <TouchableOpacity key={i} onPress={() => tap(i)} style={[styles.cell, slots[i] === 1 && { backgroundColor: COLORS.primary }, slots[i] === 2 && { backgroundColor: COLORS.warning }]}>

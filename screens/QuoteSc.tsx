@@ -7,11 +7,13 @@
 // AI from their own PDF or a photo of it (services/purchaseAi.ts, plan AI-2) —
 // both only fill the form; the officer checks and saves. "Declined"
 // records that they will not quote. The order itself is changed only by the
-// award (components/RfqPanel), never here.
+// award (components/RfqPanel), never here. A quote the supplier answered on the
+// quote page (plan item 48) shows what they said per line — part type, lead
+// time, their unit and price, their part no. — their other charges and file.
 // ===================================
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Linking, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { BackButton, Card, Label, Screen, ScreenTitle } from '../components/ui';
@@ -21,7 +23,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES } from '../theme';
-import { Quote } from '../types/orders';
+import { Quote, QuoteLineInfo } from '../types/orders';
 import { CURRENCIES } from '../types/finance';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
@@ -42,6 +44,19 @@ const num = (v: string) => {
   return v.trim() && Number.isFinite(n) ? n : undefined;
 };
 const str = (n?: number) => (n == null ? '' : String(n));
+
+/** What the supplier said about a line on the quote page, in one line. */
+function lineSaid(x: QuoteLineInfo | undefined, ourUnit: string, cur: string): string {
+  if (!x) return '';
+  const kind = x.kind === 'original' ? t('rfq.kind.original') : x.kind === 'oem' ? t('rfq.kind.oem') : x.kind === 'replacement' ? t('rfq.kind.replacement') : '';
+  return [
+    kind,
+    x.leadDays != null ? t('rfq.leadN', { n: x.leadDays }) : '',
+    x.unit && x.per ? t('rfq.theirUnit', { price: money(x.unitPrice ?? 0, cur), unit: x.unit, per: x.per, ours: ourUnit }) : '',
+    x.partNo ? `${t('rfq.theirPart')} ${x.partNo}` : '',
+    x.remark ?? '',
+  ].filter(Boolean).join(' · ');
+}
 
 export default function QuoteSc() {
   useT();
@@ -206,6 +221,7 @@ export default function QuoteSc() {
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.name, na ? { color: COLORS.textLight, textDecorationLine: 'line-through' } : null]}>{`${i + 1}. ${l.description || l.impa || ''}`}</Text>
                     <Text style={styles.sub}>{[`${l.qty} ${l.unit}`, l.partNo, l.impa ? `IMPA ${l.impa}` : '', l.maker].filter(Boolean).join(' · ')}</Text>
+                    {lineSaid(q.lineInfo?.[l.id], l.unit, q.currency) ? <Text style={[styles.sub, { color: COLORS.textDark }]}>{lineSaid(q.lineInfo?.[l.id], l.unit, q.currency)}</Text> : null}
                   </View>
                   {!na ? (
                     <TextInput
@@ -235,7 +251,17 @@ export default function QuoteSc() {
             <Text style={styles.sub}>{t('rfq.theirRef')}</Text>
             <TextInput style={[styles.input, { maxWidth: 260 }]} value={q.ref ?? ''} onChangeText={(v) => set({ ref: v })} accessibilityLabel={t('rfq.theirRef')} />
             <Text style={[styles.name, { marginTop: SIZES.md }]}>{`${t('rfq.total')}: ${money(tt.total, q.currency)}`}</Text>
-            <Text style={styles.sub}>{`${t('rfq.goods')} ${money(tt.goods, q.currency)}${tt.discount ? ` − ${money(tt.discount, q.currency)}` : ''}${tt.delivery ? ` + ${t('rfq.delivery').toLowerCase()} ${money(tt.delivery, q.currency)}` : ''}`}</Text>
+            <Text style={styles.sub}>{`${t('rfq.goods')} ${money(tt.goods, q.currency)}${tt.discount ? ` − ${money(tt.discount, q.currency)}` : ''}${tt.delivery ? ` + ${t('rfq.delivery').toLowerCase()} ${money(tt.delivery, q.currency)}` : ''}${tt.charges ? ` + ${(q.charges ?? []).map((c) => `${c.label} ${money(c.amount, q.currency)}`).join(' + ')}` : ''}`}</Text>
+            {q.charges?.length ? (
+              <TouchableOpacity onPress={() => set({ charges: undefined })}>
+                <Text style={[styles.link, { fontSize: SIZES.small }]}>{t('rfq.dropCharges')}</Text>
+              </TouchableOpacity>
+            ) : null}
+            {q.file ? (
+              <TouchableOpacity onPress={() => void Linking.openURL(q.file!.uri)}>
+                <Text style={[styles.link, { fontSize: SIZES.small }]}>{`📎 ${q.file.name}`}</Text>
+              </TouchableOpacity>
+            ) : null}
             <Text style={[styles.sub, { color: tt.complete ? COLORS.success : COLORS.warning }]}>{tt.complete ? t('rfq.complete') : t('rfq.priced', { k: tt.priced, n: o.lines.length })}</Text>
           </Card>
         </>

@@ -95,6 +95,10 @@ export interface DeckEntry {
   attachmentName?: string;
   /** The clock change this entry records (utils/shipTime.ts) — written once per change. */
   clockRef?: string;
+  /** A DP status change this entry records (types/dp.ts DP_EVENTS) — with its DP log line. */
+  dpEvent?: 'setup' | 'ready' | 'on' | 'off';
+  /** The signed DP checklist this entry records — written once per checklist. */
+  dpCheckRef?: string;
 
   // ─── Mode ────────────────────────────────────────────────────────────────
   /** 'sea' (default/undefined) — underway; 'port' — alongside/anchored. */

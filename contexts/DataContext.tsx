@@ -49,12 +49,13 @@ import { WarrantyClaim, YardJob } from '../types/yard';
 import { ExternalInspection } from '../types/extInspection';
 import { ManagementOfChange } from '../types/moc';
 import { ThreadMessage } from '../types/thread';
-import { CrewAppraisal } from '../types/appraisal';
+import { ApForm, CrewAppraisal } from '../types/appraisal';
 import { RestPlan } from '../types/restPlan';
 import { DaFollowUp, DaPolicy, DaResult, DaTest } from '../types/daTest';
 import { EmPassage, EmStatement, EmVessel } from '../types/emissions';
 import { Chemical } from '../types/chemicals';
 import { WireEntry } from '../types/wireLog';
+import { CraneEntry, CraneTest } from '../types/craneLog';
 import { Supplier } from '../types/suppliers';
 import { live } from '../services/versions';
 import { CrewMove, SecurityDrill, SecurityLevelRec, Visitor } from '../types/security';
@@ -217,6 +218,8 @@ interface DataContextType {
   threads: ThreadMessage[];
   /** Crew appraisals (types/appraisal.ts) — officers' devices only. */
   appraisals: CrewAppraisal[];
+  /** The company's own appraisal form (one row, id 'form'). */
+  apForm: ApForm[];
   /** Watch plans (types/restPlan.ts), one per person. */
   restPlans: RestPlan[];
   /** Drug and alcohol tests (types/daTest.ts) — officers' devices only. */
@@ -277,6 +280,10 @@ interface DataContextType {
   chemicals: Chemical[];
   /** Rope and wire log (types/wireLog.ts). */
   wireLog: WireEntry[];
+  /** Crane operator's log (types/craneLog.ts). */
+  craneLog: CraneEntry[];
+  /** Crane load tests and examinations. */
+  craneTests: CraneTest[];
   oilPoints: OilPoint[];
   oilSamples: OilSample[];
   /** Yard periods (types/yard.ts): work-list jobs, warranty claims. */
@@ -418,6 +425,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [mocs, setMocs] = useState<ManagementOfChange[]>([]);
   const [threads, setThreads] = useState<ThreadMessage[]>([]);
   const [appraisals, setAppraisals] = useState<CrewAppraisal[]>([]);
+  const [apForm, setApForm] = useState<ApForm[]>([]);
   const [restPlans, setRestPlans] = useState<RestPlan[]>([]);
   const [daTests, setDaTests] = useState<DaTest[]>([]);
   const [daResults, setDaResults] = useState<DaResult[]>([]);
@@ -462,6 +470,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [budgetLines, setBudgetLines] = useState<BudgetLine[]>([]);
   const [chemicals, setChemicals] = useState<Chemical[]>([]);
   const [wireLog, setWireLog] = useState<WireEntry[]>([]);
+  const [craneLog, setCraneLog] = useState<CraneEntry[]>([]);
+  const [craneTests, setCraneTests] = useState<CraneTest[]>([]);
   const [oilPoints, setOilPoints] = useState<OilPoint[]>([]);
   const [oilSamples, setOilSamples] = useState<OilSample[]>([]);
   const [yardJobs, setYardJobs] = useState<YardJob[]>([]);
@@ -562,6 +572,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _ext = await storage.loadList<ExternalInspection>(storage.EXT_INSP_KEY);
     const _mocs = await storage.loadList<ManagementOfChange>(storage.MOCS_KEY);
     const _appraisals = await storage.loadList<CrewAppraisal>(storage.APPRAISALS_KEY);
+    const _apForm = await storage.loadList<ApForm>(storage.AP_FORM_KEY);
     const _restPlans = await storage.loadList<RestPlan>(storage.REST_PLANS_KEY);
     const _daTests = await storage.loadList<DaTest>(storage.DA_TESTS_KEY);
     const _daResults = await storage.loadList<DaResult>(storage.DA_RESULTS_KEY);
@@ -606,6 +617,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _budget1 = await storage.loadList<BudgetLine>(storage.BUDGET_KEY);
     const _chem1 = (await storage.loadList<Chemical>(storage.CHEMICALS_KEY)).filter((x) => !x.deleted);
     const _wire1 = await storage.loadList<WireEntry>(storage.WIRE_LOG_KEY);
+    const _crane1 = await storage.loadList<CraneEntry>(storage.CRANE_LOG_KEY);
+    const _ctest1 = await storage.loadList<CraneTest>(storage.CRANE_TESTS_KEY);
     const _oilPoints1 = (await storage.loadList<OilPoint>(storage.OIL_POINTS_KEY)).filter((x) => !x.deleted);
     const _oilSamples1 = await storage.loadList<OilSample>(storage.OIL_SAMPLES_KEY);
     const _yardJobs1 = await storage.loadList<YardJob>(storage.YARD_JOBS_KEY);
@@ -680,6 +693,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMocs(_mocs);
     setThreads(await storage.loadList<ThreadMessage>(storage.THREADS_KEY));
     setAppraisals(_appraisals);
+    setApForm(_apForm);
     setRestPlans(_restPlans);
     setDaTests(_daTests);
     setDaResults(_daResults);
@@ -724,6 +738,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setBudgetLines(_budget1);
     setChemicals(_chem1);
     setWireLog(_wire1);
+    setCraneLog(_crane1);
+    setCraneTests(_ctest1);
     setOilPoints(_oilPoints1);
     setOilSamples(_oilSamples1);
     setYardJobs(_yardJobs1);
@@ -952,6 +968,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _ext = await storage.loadList<ExternalInspection>(storage.EXT_INSP_KEY);
     const _mocs = await storage.loadList<ManagementOfChange>(storage.MOCS_KEY);
     const _appraisals = await storage.loadList<CrewAppraisal>(storage.APPRAISALS_KEY);
+    const _apForm = await storage.loadList<ApForm>(storage.AP_FORM_KEY);
     const _restPlans = await storage.loadList<RestPlan>(storage.REST_PLANS_KEY);
     const _daTests = await storage.loadList<DaTest>(storage.DA_TESTS_KEY);
     const _daResults = await storage.loadList<DaResult>(storage.DA_RESULTS_KEY);
@@ -996,6 +1013,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _budget2 = await storage.loadList<BudgetLine>(storage.BUDGET_KEY);
     const _chem2 = (await storage.loadList<Chemical>(storage.CHEMICALS_KEY)).filter((x) => !x.deleted);
     const _wire2 = await storage.loadList<WireEntry>(storage.WIRE_LOG_KEY);
+    const _crane2 = await storage.loadList<CraneEntry>(storage.CRANE_LOG_KEY);
+    const _ctest2 = await storage.loadList<CraneTest>(storage.CRANE_TESTS_KEY);
     const _oilPoints2 = (await storage.loadList<OilPoint>(storage.OIL_POINTS_KEY)).filter((x) => !x.deleted);
     const _oilSamples2 = await storage.loadList<OilSample>(storage.OIL_SAMPLES_KEY);
     const _yardJobs2 = await storage.loadList<YardJob>(storage.YARD_JOBS_KEY);
@@ -1060,6 +1079,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMocs(_mocs);
     setThreads(await storage.loadList<ThreadMessage>(storage.THREADS_KEY));
     setAppraisals(_appraisals);
+    setApForm(_apForm);
     setRestPlans(_restPlans);
     setDaTests(_daTests);
     setDaResults(_daResults);
@@ -1104,6 +1124,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setBudgetLines(_budget2);
     setChemicals(_chem2);
     setWireLog(_wire2);
+    setCraneLog(_crane2);
+    setCraneTests(_ctest2);
     setOilPoints(_oilPoints2);
     setOilSamples(_oilSamples2);
     setYardJobs(_yardJobs2);
@@ -1425,6 +1447,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         mocs,
         threads,
         appraisals,
+        apForm,
         restPlans,
         daTests,
         daResults,
@@ -1469,6 +1492,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         budgetLines,
         chemicals,
         wireLog,
+        craneLog,
+        craneTests,
         oilPoints,
         oilSamples,
         yardJobs,

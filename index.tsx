@@ -102,6 +102,7 @@ import SecuritySc from './screens/SecuritySc';
 import SurveysSc from './screens/SurveysSc';
 import ReadinessSc from './screens/ReadinessSc';
 import HandoverSc from './screens/HandoverSc';
+import PscWalkSc from './screens/PscWalkSc';
 import ServiceReportSc from './screens/ServiceReportSc';
 import DpSc from './screens/DpSc';
 import WatchChecksSc from './screens/WatchChecksSc';
@@ -138,6 +139,7 @@ import MocsSc from './screens/MocsSc';
 import MocSc from './screens/MocSc';
 import AppraisalsSc from './screens/AppraisalsSc';
 import AppraisalSc from './screens/AppraisalSc';
+import ApFormSc from './screens/ApFormSc';
 import DaTestsSc from './screens/DaTestsSc';
 import DaTestSc from './screens/DaTestSc';
 import MyDocsSc from './screens/MyDocsSc';
@@ -154,6 +156,7 @@ import GalleyOrderSc from './screens/GalleyOrderSc';
 import PermitSc from './screens/PermitSc';
 import ChemicalSc from './screens/ChemicalSc';
 import WireLogSc from './screens/WireLogSc';
+import CraneLogSc from './screens/CraneLogSc';
 import WireEntrySc from './screens/WireEntrySc';
 import RiskSc from './screens/RiskSc';
 import CrewMatrixSc from './screens/CrewMatrixSc';
@@ -496,6 +499,7 @@ const linking = {
         },
       },
       Handover: 'handover',
+      PscWalk: 'psc-walk',
       ServiceReport: 'service-report',
       DpCheck: 'dp-check',
       DpTemplates: 'dp-checklists',
@@ -541,6 +545,7 @@ const linking = {
       Moc: 'change/:id',
       Appraisals: 'appraisals',
       Appraisal: 'appraisal/:id',
+      ApForm: 'appraisal-form',
       DaTests: 'da-tests',
       DaTest: 'da-test/:id',
       MyDocs: 'my-documents',
@@ -571,6 +576,7 @@ const linking = {
       Risk: 'risk/:id',
       Chemical: 'chemical/:id',
       WireLog: 'ropes',
+      CraneLog: 'crane-log',
       WireEntry: 'rope-entry/:itemId',
       CrewMatrix: 'crew-matrix',
       Fleet: 'fleet',
@@ -822,6 +828,7 @@ function Root() {
         <Stack.Screen name="Moc" component={MocSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Appraisals" component={AppraisalsSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Appraisal" component={AppraisalSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="ApForm" component={ApFormSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="DaTests" component={DaTestsSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="DaTest" component={DaTestSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="MyDocs" component={MyDocsSc} options={webHeader(t('my.title'))} />
@@ -854,6 +861,7 @@ function Root() {
         <Stack.Screen name="Permit" component={PermitSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Chemical" component={ChemicalSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="WireLog" component={WireLogSc} options={webHeader(t('rope.listTitle'))} />
+        <Stack.Screen name="CraneLog" component={CraneLogSc} options={webHeader(t('crane.title'))} />
         <Stack.Screen name="WireEntry" component={WireEntrySc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Risk" component={RiskSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="CrewMatrix" component={CrewMatrixSc} options={webHeader(t('cm.title'))} />
@@ -868,6 +876,7 @@ function Root() {
         <Stack.Screen name="ChecklistEdit" component={ChecklistEditSc} options={webHeader(t('cle.checklist'), { screen: 'Checklists' })} />
         <Stack.Screen name="Defects" component={DefectsSc} options={webHeader(t('dash.openDefects'))} />
         <Stack.Screen name="Handover" component={HandoverSc} options={webHeader(t('ho.title'), { screen: 'Main', params: { screen: 'Readiness' } } as any)} />
+        <Stack.Screen name="PscWalk" component={PscWalkSc} options={webHeader(t('psc.title'), { screen: 'Main', params: { screen: 'Readiness' } } as any)} />
         <Stack.Screen name="ServiceReport" component={ServiceReportSc} options={webHeader(t('sr.title'), { screen: 'Main', params: { screen: 'Certificates' } } as any)} />
         <Stack.Screen name="DpCheck" component={DpCheckSc} options={webHeader(t('cle.checklist'))} />
         <Stack.Screen name="DpTemplates" component={DpTemplatesSc} options={webHeader(t('dpt.title'), { screen: 'Main', params: { screen: 'Dp' } } as any)} />

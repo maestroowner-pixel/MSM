@@ -19,7 +19,9 @@
 // Pure: `npm run check:dp` runs it in node.
 // ===================================
 
-import { AsogStatus, CheckBook, DpCheck, DpCol, DpConditions, DpDay, DpInfo, DpLine, DpPosition, DpSlot, DpTemplate, DpWhere } from '../types/dp';
+import { AsogStatus, CheckBook, DpCheck, DpCol, DpConditions, DpDay, DpInfo, DpLine, DpEvent, DpLogEntry, DpPosition, DpSlot, DpTemplate, DpWhere, DP_EVENT_EN, bookOf } from '../types/dp';
+import type { DeckEntry } from '../types/deckLog';
+import { offsetMinutes, shipAndUtc } from '../utils/shipTime';
 
 // ---- checklists ---------------------------------------------------------------
 
@@ -1327,6 +1329,132 @@ export function setRange(slots: DpSlot[], from: number, to: number, v: DpSlot): 
   const out = [...slots];
   for (let i = Math.max(0, from); i < Math.min(SLOTS, to); i++) out[i] = v;
   return out;
+}
+
+// ---- DP time from the records (13 Nov 2026) ----------------------------------
+// "If there is a DP log with the DP operators' signatures, DP time can be counted
+// from it." A DP watch handover is signed by the DPO handing over (`by`) and the
+// one taking over (`by2`): the watch runs from one to the other. A DP log line
+// with the person's name puts them at the desk in that half-hour. All of it is
+// ACTIVE: "Passive is not DP — where the DP log is kept there is no passive".
+// Times are ship's wall clock — a checklist through its own offset, a log line as
+// written — counted as if UTC, so a watch over midnight splits by the ship's date.
+
+const MIN30 = 30 * 60000;
+const HALF_DAY = 12 * 3600000;
+const norm = (s?: string) => (s ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+const wallOf = (c: DpCheck) => c.at + (offsetMinutes(c.shipOffset) ?? -new Date(c.at).getTimezoneOffset()) * 60000;
+const wallOfLine = (e: DpLogEntry) => Date.parse(`${e.date}T${e.time}:00Z`);
+/** A DP watch handover: the built-in, or a vessel's own form with "handover" in the title and no named roles. */
+export const isDpHandover = (c: DpCheck) => bookOf(c) === 'dp' && !!c.by2 && (c.templateId === 'dp.handover' || (!c.byRole && /hand\s*-?\s*over/i.test(c.title)));
+
+/** A DP status change at a ship's wall-clock time — from a DP log line or a deck log entry. */
+export interface DpEventAt {
+  date: string;
+  time: string;
+  event: DpEvent;
+}
+
+/** Status changes from both books — DP log lines and deck log entries (either may be kept alone). */
+export function dpEventsOf(log: Pick<DpLogEntry, 'date' | 'time' | 'event'>[], deck: { date: string; time: string; dpEvent?: DpEvent }[]): DpEventAt[] {
+  return [
+    ...log.filter((e) => e.event).map((e) => ({ date: e.date, time: e.time, event: e.event! })),
+    ...deck.filter((e) => e.dpEvent).map((e) => ({ date: e.date, time: e.time, event: e.dpEvent! })),
+  ];
+}
+
+/** The latest status change — none when the vessel has never recorded one. */
+export const lastDpEvent = (events: DpEventAt[]): DpEventAt | undefined => [...events].sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))[0];
+
+/** On DP with operations running: the last change was "on DP". Set-up, set-up complete and off DP are the windows for a drill. */
+export const onDpOps = (events: DpEventAt[]): boolean => lastDpEvent(events)?.event === 'on';
+
+/**
+ * When the vessel was OFF DP, as wall-clock spans [from, to): from each "off DP"
+ * to the next set-up or "on DP" (open = still off). Before the first event the
+ * status is unknown and nothing is cut — a vessel that starts recording today
+ * does not lose the DP time it logged before. Set-up counts as DP. Pure.
+ */
+export function offDpSpans(events: DpEventAt[]): [number, number][] {
+  const ev = events.filter((e) => /^\d{2}:\d{2}$/.test(e.time)).map((e) => ({ t: Date.parse(`${e.date}T${e.time}:00Z`), on: e.event !== 'off' })).filter((e) => Number.isFinite(e.t)).sort((a, b) => a.t - b.t);
+  const out: [number, number][] = [];
+  let offFrom: number | undefined;
+  for (const e of ev) {
+    if (!e.on && offFrom == null) offFrom = e.t;
+    else if (e.on && offFrom != null) { out.push([offFrom, e.t]); offFrom = undefined; }
+  }
+  if (offFrom != null) out.push([offFrom, Infinity]);
+  return out;
+}
+
+export interface FromRecords {
+  slots: DpSlot[];
+  /** Half-hours of watch left out because the vessel was off DP. */
+  cut: number;
+  /** Watches found from the handovers that touch the day. */
+  watches: number;
+  /** The person's own DP log lines on the day. */
+  lines: number;
+}
+
+/** One person's DP time on one day, read from the DP watch handovers and the DP log. Pure. */
+export function slotsFromRecords(name: string, date: string, checks: DpCheck[], log: DpLogEntry[], events: DpEventAt[] = []): FromRecords {
+  const me = norm(name);
+  const hand = checks.filter(isDpHandover).map((c) => ({ t: wallOf(c), by: norm(c.by), by2: norm(c.by2) })).sort((a, b) => a.t - b.t);
+  const mine = log.filter((e) => norm(e.name) === me && /^\d{2}:\d{2}$/.test(e.time)).map(wallOfLine).filter(Number.isFinite).sort((a, b) => a - b);
+  const watches: [number, number][] = [];
+  for (let i = 0; i < hand.length; i++) {
+    const h = hand[i];
+    if (h.by2 === me) {
+      // Until they hand over — unless they take over again first (a handover not recorded).
+      let end: number | undefined;
+      for (let j = i + 1; j < hand.length && hand[j].t - h.t <= 2 * HALF_DAY; j++) {
+        if (hand[j].by === me) { end = hand[j].t; break; }
+        if (hand[j].by2 === me) break;
+      }
+      // Not handed over on record: to their last own log line of that watch.
+      if (end == null) {
+        const next = hand.find((x, j) => j > i && x.by2 === me)?.t ?? Infinity;
+        const last = mine.filter((t) => t >= h.t && t < next && t - h.t <= 2 * HALF_DAY).pop();
+        if (last != null) end = last + 60000;
+      }
+      if (end != null) watches.push([h.t, end]);
+    } else if (h.by === me && !watches.some(([s, e]) => s <= h.t && h.t <= e)) {
+      // Handed over a watch whose start is not on record: from their first own log line of it.
+      const prev = [...hand.slice(0, i)].reverse().find((x) => x.by === me || x.by2 === me)?.t ?? -Infinity;
+      const first = mine.find((t) => t < h.t && t > prev && h.t - t <= HALF_DAY);
+      if (first != null) watches.push([first, h.t]);
+    }
+  }
+  const day = Date.parse(`${date}T00:00:00Z`);
+  const slots = emptySlots();
+  let n = 0;
+  for (const [s, e] of watches) {
+    if (e <= day || s >= day + SLOTS * MIN30) continue;
+    n++;
+    for (let i = 0; i < SLOTS; i++) if (day + i * MIN30 < e && day + (i + 1) * MIN30 > s) slots[i] = 1;
+  }
+  const lines = mine.filter((t) => t >= day && t < day + SLOTS * MIN30);
+  for (const t of lines) slots[Math.floor((t - day) / MIN30)] = 1;
+  // Off DP the whole half-hour: not DP time, whoever was on watch.
+  let cut = 0;
+  for (const [s, e] of offDpSpans(events)) {
+    for (let i = 0; i < SLOTS; i++) if (slots[i] && s <= day + i * MIN30 && day + (i + 1) * MIN30 <= e) { slots[i] = 0; cut++; }
+  }
+  return { slots, cut, watches: n, lines: lines.length };
+}
+
+/** The deck log entry for a DP status change, written with its DP log line. Pure. */
+export function dpEventDeckEntry(line: DpLogEntry & { event: DpEvent }, rank?: string): DeckEntry {
+  return { id: `dl-dpe-${line.id}`, date: line.date, time: line.time, period: 'other', remarks: `${DP_EVENT_EN[line.event]} at ${line.time} ship's time — ${line.name}`, dpEvent: line.event, by: line.name, ...(rank ? { byRank: rank } : {}), at: line.at, updatedAt: line.at };
+}
+
+/** The deck log entry for a signed DP checklist — once per checklist (the id is fixed). Pure. */
+export function dpCheckDeckEntry(c: DpCheck): DeckEntry {
+  const w = shipAndUtc(c.at, c.shipOffset);
+  const [r1, r2] = signRoles(c);
+  const who = [c.by && `${r1}: ${c.by}`, c.by2 && `${r2}: ${c.by2}`].filter(Boolean).join('; ');
+  return { id: `dl-dpc-${c.id}`, date: w.ship.slice(0, 10), time: w.ship.slice(11), period: 'other', remarks: `DP checklist "${c.title}" signed at ${w.ship.slice(11)} ship's time${c.asog ? ` (ASOG ${ASOG_LABEL[c.asog]})` : ''}${who ? ` — ${who}` : ''}.`, dpCheckRef: c.id, by: c.by, ...(c.byRank ? { byRank: c.byRank } : {}), at: c.at, updatedAt: c.at };
 }
 
 export interface DpoTotals {

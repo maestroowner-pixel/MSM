@@ -58,6 +58,10 @@
 //            the checklist in the app's wording (services/dp.ts parseLine), for
 //            an officer to check in the editor. Only the form's structure: what
 //            someone filled in — names, readings, ticks — is left out.
+//   apform   a photo or PDF of the company's paper appraisal form → its sections,
+//            criteria, scale and written questions in the app's wording
+//            (services/appraisals.ts formFromText), for the Master to check.
+//            Only the blank form: names, ticks and comments are left out.
 //
 // Only an approved device of a vessel may call it; each vessel has a daily
 // allowance (ai_usage/{yyyy-mm-dd}).
@@ -73,7 +77,7 @@ const ANTHROPIC_API_KEY = defineSecret('ANTHROPIC_API_KEY');
 const ROOT = 'safety_vessels';
 const REGION = 'europe-west1';
 // A day's allowance per vessel: the cheap tasks (fast model) generously, questions (the larger model, the vessel's records as context) less.
-const DAILY = { map: 100, table: 100, inspect: 400, ask: 60, form: 20, cert: 60, readiness: 30, quote: 40, invoice: 40, manual: 20, incident: 40, sms: 20, diagnose: 40, brief: 30, log: 300, english: 300, photo: 150, sds: 60, library: 300 };
+const DAILY = { map: 100, table: 100, inspect: 400, ask: 60, form: 20, cert: 60, readiness: 30, quote: 40, invoice: 40, manual: 20, incident: 40, sms: 20, diagnose: 40, brief: 30, log: 300, english: 300, photo: 150, sds: 60, library: 300, apform: 20 };
 const FAST = 'claude-haiku-5-5';
 const SMART = 'claude-sonnet-5-5';
 
@@ -294,6 +298,35 @@ RULES
 
 Return JSON only: {"title": "<the form's title, short>", "where": "bridge" | "engine", "lines": ["<line>", ...], "unreadable": "<what could not be read, or empty>"}`;
     return json(await claude(key, SMART, 'You turn a ship\'s paper checklist into the wording of a maritime safety app, exactly and without inventing. Answer with JSON only.', [block, { type: 'text', text }], 8000));
+  },
+
+  async apform(key, d) {
+    const media = String(d.mediaType || '');
+    if (!/^(image\/(jpeg|png|webp|gif)|application\/pdf)$/.test(media)) throw new HttpsError('invalid-argument', 'A photo (JPEG, PNG) or a PDF.');
+    const data = String(d.data || '');
+    if (data.length > 14_000_000) throw new HttpsError('invalid-argument', 'The file is too large — under 10 MB.');
+    const block = media === 'application/pdf' ? { type: 'document', source: { type: 'base64', media_type: media, data } } : { type: 'image', source: { type: 'base64', media_type: media, data } };
+    const text = `This is a shipping company's own paper form for appraising a seafarer (crew appraisal / performance evaluation). Write out its structure in the wording below, in the form's order, so it can be filled in an app the same way as the paper.
+
+THE WORDING (one line each)
+- A section heading:                         ## Professional competence
+- A criterion marked on the form's scale:    Knowledge of duties and equipment
+- A criterion only for officers:             Leadership and supervision *officers
+- A question answered in words:              @text Training recommended
+
+THE SCALE
+- scale: the words of the marking scale, the LOWEST (worst) mark first: ["Poor", "Fair", "Good", "Very good", "Excellent"]. If the paper has only numbers, write them as words of what they mean if printed, else the numbers themselves ("1", "2", "3", "4", "5"). If the best mark comes first on the paper, still list the worst first. 2 to 10 marks.
+
+RULES
+- Keep the form's own words for sections, criteria and questions, in English. If the form is in another language, translate each line to plain English.
+- A criterion whose paper says it is for officers only (or a separate officers' part) gets " *officers".
+- Free-text boxes (comments, strengths, weaknesses, training needs, remarks of the Master or Head of Department) are @text lines — EXCEPT these, which the app always asks itself, so leave them out: the seafarer's comments and agreement, recommended for re-hire / re-employment, recommended for promotion, signatures.
+- Leave out: the header (name, rank, vessel, dates, nationality, contract), the form's revision block, document numbers, page numbers, company names and logos, the scale's own explanation block.
+- Leave out EVERYTHING somebody filled in: names, ticks, marks, comments. Only the blank form.
+- Do not invent lines that are not on the paper.
+
+Return JSON only: {"title": "<the form's title, short>", "scale": ["<lowest>", ..., "<highest>"], "lines": ["<line>", ...], "unreadable": "<what could not be read, or empty>"}`;
+    return json(await claude(key, SMART, 'You turn a shipping company\'s paper appraisal form into the wording of a maritime app, exactly and without inventing. Answer with JSON only.', [block, { type: 'text', text }], 6000));
   },
 
   async cert(key, d) {

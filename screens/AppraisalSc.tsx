@@ -11,7 +11,7 @@
 // Master only.
 // ===================================
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
@@ -24,13 +24,14 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES } from '../theme';
-import { APPRAISAL_REASONS, AppraisalReason, AppraisalStepKind, CrewAppraisal, REHIRES, Score } from '../types/appraisal';
+import { APPRAISAL_REASONS, ApRoleFacts, AppraisalReason, AppraisalStepKind, CrewAppraisal, REHIRES } from '../types/appraisal';
 import { crewLabel, isAboard, liveCrew } from '../types/crew';
 import { roleAtLeast } from '../types/role';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { proofShort } from '../services/signature';
-import { apEditable, apStage, AppraisalStage, average, criteriaFor, isMasterRank, nextSteps, periodStart, signProblem, withStep } from '../services/appraisals';
+import { activeForm, apEditable, apStage, AppraisalStage, average, formOf, isMasterRank, isRoleItem, itemsFor, nextSteps, periodStart, roleFacts, signProblem, withStep } from '../services/appraisals';
+import { moduleOn } from '../constants/modules';
 import { exportAppraisalPdf } from '../services/appraisalReport';
 import { uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
@@ -39,10 +40,11 @@ import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
 import { t, tk, useT } from '../utils/i18n';
 
+const fmtH = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+
 export const apStageColor = (COLORS: any, st: AppraisalStage): string =>
   ({ draft: COLORS.textLight, crew: COLORS.warning, master: COLORS.warning, done: COLORS.success, cancelled: COLORS.textLight } as Record<AppraisalStage, string>)[st];
 
-const SCORES: Score[] = [1, 2, 3, 4, 5];
 
 export default function AppraisalSc() {
   useT();
@@ -50,7 +52,7 @@ export default function AppraisalSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { crew, appraisals, vessel, saveRow } = useData();
+  const { crew, appraisals, apForm, vessel, saveRow, craneLog, craneTests, dpDays, drills } = useData();
   const sync = useSync();
   const canEdit = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const isMaster = !sync.enrolled || sync.role === 'superadmin';
@@ -71,15 +73,30 @@ export default function AppraisalSc() {
       id: uid('ap'), crewId: c?.id ?? '', name: c?.name ?? '', ...(c?.rank ? { rank: c.rank } : {}), reason,
       from: periodStart(c, appraisals, today), to: reason === 'contract' && c?.contractEnd && c.contractEnd < today ? c.contractEnd : today,
       scores: [], steps: [], by: '', at: Date.now(), updatedAt: Date.now(),
+      // The company's own form, when it has one — a copy (13 Nov 2026).
+      ...(activeForm(apForm) ? { form: activeForm(apForm) } : {}),
     };
   });
+  // The company form read after the screen opened (a link straight here): a new draft nothing is written in yet takes it.
+  const company = useMemo(() => activeForm(apForm), [apForm]);
+  useEffect(() => {
+    if (company && isNew && draft && !draft.form && !draft.scores.length && !draft.answers) setDraft({ ...draft, form: company });
+  }, [company, isNew, draft]);
   // The person's own answer and comment, before they sign.
   const [answer, setAnswer] = useState<{ agree?: boolean; note: string }>({ note: '' });
   // A step that takes a reason or a remark: refused, cancel, the countersignature.
   const [asking, setAsking] = useState<{ kind: AppraisalStepKind; note: string } | null>(null);
 
   // A draft is edited in place: the stored one, or the new one.
-  const a = draft ?? stored;
+  const base = draft ?? stored;
+  // The work by position (13 Nov 2026): read from the books while it is a draft, kept as signed after.
+  const liveRoles = useMemo(() => {
+    if (!base || !base.crewId || !apEditable(base)) return undefined;
+    const r = roleFacts(base, { craneLog: moduleOn('craneLog') ? craneLog : [], craneTests: moduleOn('craneLog') ? craneTests : [], dpDays: moduleOn('dp') ? dpDays : [], drills: moduleOn('dp') ? drills : [] })
+      .filter((x) => (x.role === 'crane' ? moduleOn('craneLog') : moduleOn('dp')));
+    return r.length ? r : undefined;
+  }, [base, craneLog, craneTests, dpDays, drills]);
+  const a: CrewAppraisal | undefined = base && apEditable(base) ? { ...base, roles: liveRoles } : base;
   if (!a) {
     return (
       <Screen scroll>
@@ -102,7 +119,18 @@ export default function AppraisalSc() {
   const set = (p: Partial<CrewAppraisal>) => setDraft({ ...a, ...p });
   const who = (by?: string, rank?: string) => (rank ? `${by} (${rank})` : by ?? '');
   const me = () => (signer ? { name: signer.name, ...(signer.rank ? { rank: signer.rank } : {}) } : null);
-  const criteria = criteriaFor(a.rank, a);
+  const items = itemsFor(a.rank, a);
+  const f = formOf(a);
+  const SCORES = f.scale.map((_, i) => i + 1);
+  // The standard form is translated; a company's is shown in its own words.
+  const label = (id: string, text: string) => (isRoleItem(id) ? tk(`ap.crit.${id}`) : a.form ? text : tk(`ap.crit.${id}`));
+  const roleLine = (r: ApRoleFacts) =>
+    r.role === 'dp'
+      ? [t('ap.role.dpFacts', { h: fmtH(r.hours), d: r.days }), r.drills ? t('ap.role.drills', { n: r.drills }) : ''].filter(Boolean).join(' · ')
+      : [t('ap.role.craneFacts', { h: fmtH(r.hours), d: r.days }), r.lifts || r.uncounted ? t('ap.role.lifts', { n: `${r.lifts ?? 0}${r.uncounted ? '+' : ''}` }) : '', r.tests ? t('ap.role.tests', { n: r.tests }) : '', ...(r.cranes ?? [])].filter(Boolean).join(' · ');
+  const roleOf = (id: string) => a.roles?.find((r) => r.role === id);
+  const scoreWord = (n: number) => (a.form ? f.scale[n - 1] ?? '' : tk(`ap.score.${n}`));
+  const scaleLine = a.form ? f.scale.map((w, i) => `${i + 1} ${w}`).join(' · ') : t('ap.scale');
   const avg = average(a);
   const period = `${uiDate(a.from)} – ${uiDate(a.to)}`;
 
@@ -117,7 +145,13 @@ export default function AppraisalSc() {
     set({ crewId: c.id, name: c.name, rank: c.rank, from: periodStart(c, appraisals, today) });
   };
 
-  const setScore = (id: string, score: Score | undefined) => {
+  const setFormAnswer = (id: string, v: string) => {
+    const rest = { ...(a.answers ?? {}) };
+    if (v) rest[id] = v;
+    else delete rest[id];
+    set({ answers: Object.keys(rest).length ? rest : undefined });
+  };
+  const setScore = (id: string, score: number | undefined) => {
     const rest = a.scores.filter((s) => s.id !== id);
     const cur = a.scores.find((s) => s.id === id);
     set({ scores: [...rest, { ...(cur ?? { id }), id, score }].filter((s) => s.score || s.note) });
@@ -131,8 +165,12 @@ export default function AppraisalSc() {
   /** Save the draft; with `sign`, the appraiser signs it too. */
   const save = async (sign: boolean) => {
     if (!a.crewId) return Alert.alert(t('ap.one'), t('ap.needPerson'));
-    let out: CrewAppraisal = { ...a, strengths: a.strengths?.trim() || undefined, improve: a.improve?.trim() || undefined, training: a.training?.trim() || undefined, reasonNote: a.reason === 'other' ? a.reasonNote?.trim() || undefined : undefined };
+    const answers = Object.fromEntries(Object.entries(a.answers ?? {}).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v));
+    let out: CrewAppraisal = { ...a, roles: liveRoles, answers: Object.keys(answers).length ? answers : undefined, strengths: a.strengths?.trim() || undefined, improve: a.improve?.trim() || undefined, training: a.training?.trim() || undefined, reasonNote: a.reason === 'other' ? a.reasonNote?.trim() || undefined : undefined };
     const s = me();
+    // A role no longer on it (another person or period) takes its scores with it.
+    const asked = new Set(itemsFor(out.rank, out).map((i) => i.id));
+    out = { ...out, scores: out.scores.filter((x) => asked.has(x.id)) };
     if (!out.by) {
       if (!s) return Alert.alert(t('ap.appraiser'), t('round.chooseName'));
       out = { ...out, by: s.name, ...(s.rank ? { byRank: s.rank } : {}), at: Date.now() };
@@ -196,7 +234,7 @@ export default function AppraisalSc() {
       <BackButton onPress={() => goBackOr(nav, 'Appraisals')} />
       <ScreenTitle
         title={a.name ? `${t('ap.one')} · ${a.name}` : t('ap.new')}
-        subtitle={[tk(`ap.st.${st}`), a.rank, tk(`ap.reason.${a.reason}`), period].filter(Boolean).join(' · ')}
+        subtitle={[tk(`ap.st.${st}`), a.rank, tk(`ap.reason.${a.reason}`), period, a.form?.title].filter(Boolean).join(' · ')}
         help="Crew appraisals"
       />
 
@@ -214,12 +252,29 @@ export default function AppraisalSc() {
           </View>
 
           <Label>{t('ap.scores')}</Label>
-          <Text style={styles.sub}>{t('ap.scale')}</Text>
-          {criteria.map((c) => {
+          <Text style={styles.sub}>{scaleLine}</Text>
+          {items.map((c) => {
+            if (c.kind === 'section') {
+              const r = roleOf(c.id);
+              return (
+                <View key={c.id} style={{ marginTop: SIZES.md }}>
+                  <Text style={[styles.name, { color: COLORS.primary }]}>{label(c.id, c.text)}</Text>
+                  {r ? <Text style={styles.sub}>{roleLine(r)}</Text> : null}
+                </View>
+              );
+            }
+            if (c.kind === 'text') {
+              return (
+                <View key={c.id} style={{ marginTop: SIZES.sm }}>
+                  <Text style={styles.name}>{c.text}</Text>
+                  <TextInput style={[styles.input, { minHeight: 50 }]} value={a.answers?.[c.id] ?? ''} onChangeText={(v) => setFormAnswer(c.id, v)} multiline placeholderTextColor={COLORS.textLight} />
+                </View>
+              );
+            }
             const s = a.scores.find((x) => x.id === c.id);
             return (
               <View key={c.id} style={{ marginTop: SIZES.sm }}>
-                <Text style={styles.name}>{tk(`ap.crit.${c.id}`)}</Text>
+                <Text style={styles.name}>{label(c.id, c.text)}</Text>
                 <View style={styles.chips}>
                   {SCORES.map((n) => chip(s?.score === n, String(n), () => setScore(c.id, n), `${c.id}${n}`))}
                   {chip(!s?.score, t('ap.na'), () => setScore(c.id, undefined), `${c.id}na`)}
@@ -258,9 +313,19 @@ export default function AppraisalSc() {
             {[tk(`ap.st.${st}`), avg != null ? t('ap.avg', { n: avg.toFixed(1) }) : null, a.rehire ? `${t('ap.rehire')}: ${tk(`ap.rehire.${a.rehire}`)}` : null, a.promote ? t('ap.promoteShort') : null].filter(Boolean).join(' · ')}
           </Text>
           {a.reasonNote ? <Text style={styles.sub}>{a.reasonNote}</Text> : null}
-          {criteria.map((c) => {
+          {items.map((c) => {
+            if (c.kind === 'section') {
+              const r = roleOf(c.id);
+              return (
+                <View key={c.id} style={{ marginTop: SIZES.sm }}>
+                  <Text style={[styles.name, { color: COLORS.primary }]}>{label(c.id, c.text)}</Text>
+                  {r ? <Text style={styles.sub}>{roleLine(r)}</Text> : null}
+                </View>
+              );
+            }
+            if (c.kind === 'text') return a.answers?.[c.id] ? <Text key={c.id} style={styles.body}>{`${c.text}: ${a.answers[c.id]}`}</Text> : null;
             const s = a.scores.find((x) => x.id === c.id);
-            return <Text key={c.id} style={styles.body}>{`${tk(`ap.crit.${c.id}`)}: ${s?.score ? `${s.score} — ${tk(`ap.score.${s.score}`)}` : t('ap.na')}${s?.note ? ` · ${s.note}` : ''}`}</Text>;
+            return <Text key={c.id} style={styles.body}>{`${label(c.id, c.text)}: ${s?.score ? `${s.score} — ${scoreWord(s.score)}` : t('ap.na')}${s?.note ? ` · ${s.note}` : ''}`}</Text>;
           })}
           {a.strengths ? <Text style={styles.sub}>{`${t('ap.strengths')}: ${a.strengths}`}</Text> : null}
           {a.improve ? <Text style={styles.sub}>{`${t('ap.improve')}: ${a.improve}`}</Text> : null}

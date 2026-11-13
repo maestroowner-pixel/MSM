@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals' | 'restPlan' | 'daTests' | 'threads' | 'emissions' | 'myDocs' | 'mySdm' | 'chem' | 'wires';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals' | 'restPlan' | 'daTests' | 'threads' | 'emissions' | 'myDocs' | 'mySdm' | 'chem' | 'wires' | 'quoteLink' | 'craneLog';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -346,6 +346,22 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * `npm run deploy:rules` first (wire_log).
    */
   wires: false,
+  /**
+   * Crane operator's log — one operator, one crane (Lifting → cranes), one day: hours,
+   * lifts, the kind of work, the heaviest lift, confirmed by an officer; per operator the
+   * cranes by make, type and SWL, and the experience statement for the CV (types/craneLog.ts,
+   * 13 Nov 2026). Needs `lifting` and `npm run deploy:rules` first (crane_log).
+   */
+  craneLog: false,
+  /**
+   * A supplier quotes through a link — no account: the request mailed with a link to
+   * app.ismpilot.com/quote/…, the supplier's prices, part type, lead time per line,
+   * their own unit, charges and their file go straight into the quote
+   * (functions/quoteLink.js, plan item 48, 8 Nov 2026). Needs suppliers, the
+   * functions quoteLinkSend / quoteLinkExtend / quoteLinkRevoke / supplierQuote and a
+   * web deploy (quote.html) first.
+   */
+  quoteLink: true,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------

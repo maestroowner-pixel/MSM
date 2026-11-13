@@ -18,6 +18,7 @@ import { SIZES } from '../theme';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { roleAtLeast } from '../types/role';
+import { moduleOn } from '../constants/modules';
 import { DRILL_TYPES } from '../types/drills';
 import { todayIso } from '../services/pms';
 import { archive, archiveKinds, archiveYears, byMonth, drillName, drillSchedule, drillState, drillStateName, drillTypeName, everyText, kindName, minutesBetween, sortDrills } from '../services/drills';
@@ -103,7 +104,7 @@ export default function DrillsSc() {
           <Card>
             <Label>{t('drills.which')}</Label>
             <View style={styles.chips}>
-              {DRILL_TYPES.map((t) => (
+              {DRILL_TYPES.filter((x) => !x.dp || moduleOn('dp')).map((t) => (
                 <TouchableOpacity key={t.id} style={styles.chip} onPress={() => plan(t.id)}>
                   <Text style={styles.chipText}>{drillTypeName(t.id)}</Text>
                 </TouchableOpacity>

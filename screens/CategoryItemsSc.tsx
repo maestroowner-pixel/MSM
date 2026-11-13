@@ -29,6 +29,7 @@ import SimpleDatePicker from '../components/SimpleDatePicker';
 import { t, tk, tn, useT } from '../utils/i18n';
 import { moduleOn } from '../constants/modules';
 import { WIRE_CATEGORIES } from '../services/wireLog';
+import { CRANE_CATEGORIES } from '../services/craneLog';
 
 type SortBy = 'date' | 'position' | 'name' | 'type' | 'round';
 const SORT_ORDER: SortBy[] = ['position', 'date', 'name', 'type', 'round'];
@@ -492,6 +493,17 @@ export default function CategoryItemsSc() {
           <View style={{ flex: 1 }}>
             <Text style={styles.compressorTitle}>{t('ci.compLog')}</Text>
             <Text style={styles.compressorSub}>{t('ci.compSub')}</Text>
+          </View>
+          <Text style={styles.compressorChev}>›</Text>
+        </TouchableOpacity>
+      ) : null}
+
+      {moduleOn('craneLog') && moduleOn('lifting') && CRANE_CATEGORIES.includes(category) ? (
+        <TouchableOpacity style={styles.compressorBtn} onPress={() => nav.navigate('CraneLog')}>
+          <MciIcon name="crane" size={22} color={COLORS.primaryDark} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.compressorTitle}>{t('crane.title')}</Text>
+            <Text style={styles.compressorSub}>{t('crane.btnSub')}</Text>
           </View>
           <Text style={styles.compressorChev}>›</Text>
         </TouchableOpacity>

@@ -88,6 +88,8 @@ import { normalizeCompressorState } from '../types/compressor';
 import { Inspection } from '../types/inspection';
 import { CrewMember } from '../types/crew';
 import { mergeById } from './pms';
+import { foldOrder } from './rfq';
+import type { PurchaseOrder } from '../types/orders';
 import { keepRecent } from './dp';
 import { pullWindow } from './listSync';
 import { treatmentFromCloud, treatmentToCloud } from './hospital';
@@ -1278,6 +1280,8 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'cert_private', key: storage.CERT_PRIVATE_KEY, module: 'crewCerts', officers: true, before: placeCertScans, toCloud: certPrivateToCloud, fromCloud: certPrivateFromCloud },
   // Crew appraisals: the Master and the officers only — never on a crew member's phone.
   { sub: 'crew_appraisals', key: storage.APPRAISALS_KEY, module: 'appraisals', officers: true },
+  // The company's own appraisal form: the Master or the office sets it.
+  { sub: 'ap_form', key: storage.AP_FORM_KEY, module: 'appraisals', officers: true },
   { sub: 'rest', key: storage.REST_KEY, module: 'rest' },
   // Watch plans: everyone reads their own watches, the officers write them (rules).
   { sub: 'rest_plans', key: storage.REST_PLANS_KEY, module: 'restPlan' },
@@ -1303,6 +1307,9 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'chemicals', key: storage.CHEMICALS_KEY, module: 'chem' },
   // Rope and wire log: signed entries, never changed.
   { sub: 'wire_log', key: storage.WIRE_LOG_KEY, appendOnly: true, module: 'wires' },
+  // Crane operator's log: signed entries, never changed (a mistake is voided by a new one).
+  { sub: 'crane_log', key: storage.CRANE_LOG_KEY, appendOnly: true, module: 'craneLog' },
+  { sub: 'crane_tests', key: storage.CRANE_TESTS_KEY, appendOnly: true, module: 'craneLog' },
   { sub: 'pms_machines', key: storage.PMS_MACHINES_KEY, module: 'pms', partial: ['hours', 'hoursDate', 'readings', 'counterOffset', 'updatedAt'] },
   { sub: 'pms_jobs', key: storage.PMS_JOBS_KEY, module: 'pms', partial: ['lastDoneDate', 'lastDoneHours', 'prepared', 'updatedAt'] },
   { sub: 'pms_done', key: storage.PMS_DONE_KEY, appendOnly: true, module: 'pms' },
@@ -1399,8 +1406,9 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'passengers', key: storage.PASSENGERS_KEY, module: 'passengers', toCloud: passengerToCloud, fromCloud: passengerFromCloud },
   // The patient's name never leaves the vessel: the cloud holds its first and last letter.
   { sub: 'med_treatments', key: storage.MED_TREATMENTS_KEY, module: 'hospital', officers: true, toCloud: treatmentToCloud, fromCloud: treatmentFromCloud, resend: 'mask1' },
-  // Purchase orders / requisitions — raised aboard, received aboard.
-  { sub: 'purchase_orders', key: storage.PURCHASE_ORDERS_KEY, module: 'orders' },
+  // Purchase orders / requisitions — raised aboard, received aboard. A supplier's answer from the
+  // quote page is written into the order on the server; an older copy here must not undo it (rfq.ts foldOrder).
+  { sub: 'purchase_orders', key: storage.PURCHASE_ORDERS_KEY, module: 'orders', fromCloud: foldOrder },
   // Finance: the officers and the Master only; an APA entry is written once (a mistake is reversed).
   { sub: 'apa_funds', key: storage.APA_FUNDS_KEY, module: 'finance', officers: true },
   { sub: 'apa_entries', key: storage.APA_ENTRIES_KEY, appendOnly: true, module: 'finance', officers: true },
@@ -1967,6 +1975,22 @@ export async function saveIcsLink(imo: string, token: string): Promise<void> {
 
 export async function revokeIcsLink(imo: string): Promise<void> {
   await fsSetDoc(accountDoc(imo), { icsToken: null }, { merge: true });
+}
+
+/**
+ * One purchase order up to the vessel NOW, folded with the vessel's copy first
+ * (rfq.ts foldOrder). A quote link (plan item 48, functions/quoteLink.js) is made
+ * on the server from the order as the vessel holds it, so a quote added a moment
+ * ago must be there. Returns what was written, to be kept here too.
+ */
+export async function pushOrderNow(o: PurchaseOrder): Promise<PurchaseOrder> {
+  const vessel = await currentVesselKey();
+  if (!vessel || !currentUid()) throw new Error('offline');
+  const docRef = fsDoc(requireDb(), ROOT, vessel, 'purchase_orders', o.id);
+  const there = await fsGetDoc(docRef);
+  const merged = there.exists() ? foldOrder(o, there.data() as PurchaseOrder) : o;
+  await fsSetDoc(docRef, stripUndefined(merged));
+  return merged;
 }
 
 // ---- API keys (functions/api.js) — issued and revoked by functions, read by the Master ----
