@@ -52,9 +52,11 @@ import { ThreadPanel } from '../components/RecordThread';
 import { ThreadRow, defectTitle, makeMessage, ncTitle, threadOf, threadRows, threadsToAnswer } from '../services/threads';
 import { ThreadMessage, ThreadRec } from '../types/thread';
 import { isAboard } from '../types/crew';
+import { FleetLetters } from '../components/FleetLetters';
+import { isOpen, letterState } from '../services/correspondence';
 import { t, tk, useT } from '../utils/i18n';
 
-type Tab = 'certs' | 'docs' | 'equipment' | 'pms' | 'verify' | 'insp' | 'crit' | 'po' | 'moc' | 'talk';
+type Tab = 'certs' | 'docs' | 'equipment' | 'pms' | 'verify' | 'insp' | 'crit' | 'po' | 'moc' | 'talk' | 'letters';
 const SCOPES: { key: CertificateScope; label: string }[] = [
   { key: 'vessel', label: 'Vessel' },
   { key: 'crew', label: 'Crew' },
@@ -176,6 +178,9 @@ export default function FleetVesselSc() {
   const mocQueue = moduleOnFor('moc', v.modules) ? mocsToAnswer(v.mocs ?? []) : null;
   const mocRest = mocQueue ? (v.mocs ?? []).filter((m) => mocStage(m) !== 'office').sort((a, b) => b.updatedAt - a.updatedAt) : [];
   if (mocQueue) tabs.push(['moc', `${t('moc.short')} · ${mocQueue.length}`]);
+  // The correspondence register (types/correspondence.ts): the count is what the vessel still owes an answer to.
+  const letters = moduleOnFor('letters', v.modules) ? v.letters ?? [] : null;
+  if (letters) tabs.push(['letters', `${t('menu.Letters')} · ${letters.filter((l) => isOpen(letterState(l, letters, today))).length}`]);
   const mocRow = (m: ManagementOfChange) => (
     <TouchableOpacity key={m.id} style={styles.row} onPress={() => setMoc(m)}>
       <View style={{ flex: 1 }}>
@@ -208,7 +213,9 @@ export default function FleetVesselSc() {
         ))}
       </View>
 
-      {tab === 'talk' && talkRows ? (
+      {tab === 'letters' && letters ? (
+        <FleetLetters imo={v.imo} vesselName={v.name} letters={letters} onSent={(l) => setV((x) => (x ? { ...x, letters: [...(x.letters ?? []), l] } : x))} />
+      ) : tab === 'talk' && talkRows ? (
         <>
           {talkRows.map((r) => (
             <TouchableOpacity key={`${r.rec}:${r.recId}`} style={styles.row} onPress={() => setTalk({ rec: r.rec, recId: r.recId, title: r.title })}>

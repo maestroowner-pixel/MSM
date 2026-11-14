@@ -31,7 +31,7 @@
 
 import { ModuleKey, moduleOn } from './modules';
 
-export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'stores' | 'orders' | 'reports' | 'maintenance' | 'spares' | 'rest' | 'readiness' | 'dp' | 'watch' | 'familiar' | 'deckLog' | 'watchLog' | 'gmdss' | 'finance' | 'oil' | 'yard';
+export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'stores' | 'orders' | 'reports' | 'maintenance' | 'spares' | 'rest' | 'readiness' | 'dp' | 'watch' | 'familiar' | 'deckLog' | 'watchLog' | 'gmdss' | 'finance' | 'oil' | 'yard' | 'letters';
 
 export interface OptionalTab {
   key: TabKey;
@@ -81,6 +81,7 @@ export const OPTIONAL_TABS: OptionalTab[] = [
   { key: 'dp', module: 'dp', route: 'Dp', label: 'DP', column: 'DP', icon: 'crosshairs-gps' },
   { key: 'watch', module: 'watchChecks', route: 'Watch', label: 'Bridge & engine', column: 'B&E', icon: 'clipboard-text-outline' },
   { key: 'familiar', module: 'watchChecks', route: 'Familiar', label: 'Familiarisation', column: 'FAM', icon: 'school-outline' },
+  { key: 'letters', module: 'letters', route: 'Letters', label: 'Correspondence', column: 'COR', icon: 'email-multiple-outline' },
   { key: 'reports', route: 'Reports', label: 'Reports', column: 'Reports', icon: 'file-document' },
 ];
 

@@ -122,6 +122,8 @@ export interface BackupFile {
   em?: { vessel: import('../types/emissions').EmVessel[]; passages: import('../types/emissions').EmPassage[]; statements: import('../types/emissions').EmStatement[] };
   /** Chemicals aboard (types/chemicals.ts); an SDS is a link, or the file itself on a device on its own. */
   chemicals?: import('../types/chemicals').Chemical[];
+  /** The correspondence register (types/correspondence.ts); a file is a link, or the file itself on a device on its own. */
+  letters?: import('../types/correspondence').Letter[];
   /** Rope and wire log (types/wireLog.ts). */
   wireLog?: import('../types/wireLog').WireEntry[];
   /** Crane operator's log (types/craneLog.ts). */
@@ -292,6 +294,7 @@ export async function exportBackup(vessel: VesselInfo | null, password = ''): Pr
   const da = { tests: await storage.loadList<import('../types/daTest').DaTest>(storage.DA_TESTS_KEY), results: await storage.loadList<import('../types/daTest').DaResult>(storage.DA_RESULTS_KEY), followUps: await storage.loadList<import('../types/daTest').DaFollowUp>(storage.DA_FOLLOWUPS_KEY), policy: await storage.loadList<import('../types/daTest').DaPolicy>(storage.DA_POLICY_KEY) };
   const em = { vessel: await storage.loadList<import('../types/emissions').EmVessel>(storage.EM_VESSEL_KEY), passages: await storage.loadList<import('../types/emissions').EmPassage>(storage.EM_PASSAGES_KEY), statements: await storage.loadList<import('../types/emissions').EmStatement>(storage.EM_STATEMENTS_KEY) };
   const chemicals = await storage.loadList<import('../types/chemicals').Chemical>(storage.CHEMICALS_KEY);
+  const letters = await storage.loadList<import('../types/correspondence').Letter>(storage.LETTERS_KEY);
   const wireLog = await storage.loadList<import('../types/wireLog').WireEntry>(storage.WIRE_LOG_KEY);
   const craneLog = await storage.loadList<import('../types/craneLog').CraneEntry>(storage.CRANE_LOG_KEY);
   const craneTests = await storage.loadList<import('../types/craneLog').CraneTest>(storage.CRANE_TESTS_KEY);
@@ -360,6 +363,7 @@ export async function exportBackup(vessel: VesselInfo | null, password = ''): Pr
     ...(da.tests.length || da.policy.length ? { da } : {}),
     ...(em.passages.length || em.vessel.length || em.statements.length ? { em } : {}),
     ...(chemicals.length ? { chemicals } : {}),
+    ...(letters.length ? { letters } : {}),
     ...(wireLog.length ? { wireLog } : {}),
     ...(craneLog.length ? { craneLog } : {}),
     ...(craneTests.length ? { craneTests } : {}),
@@ -634,6 +638,7 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     await storage.saveList(storage.EM_STATEMENTS_KEY, backup.em.statements);
   }
   if (backup.chemicals) await storage.saveList(storage.CHEMICALS_KEY, backup.chemicals);
+  if (backup.letters) await storage.saveList(storage.LETTERS_KEY, backup.letters);
   if (backup.wireLog) await storage.saveList(storage.WIRE_LOG_KEY, backup.wireLog);
   if (backup.craneLog) await storage.saveList(storage.CRANE_LOG_KEY, backup.craneLog);
   if (backup.craneTests) await storage.saveList(storage.CRANE_TESTS_KEY, backup.craneTests);

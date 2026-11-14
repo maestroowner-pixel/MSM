@@ -54,6 +54,7 @@ import { RestPlan } from '../types/restPlan';
 import { DaFollowUp, DaPolicy, DaResult, DaTest } from '../types/daTest';
 import { EmPassage, EmStatement, EmVessel } from '../types/emissions';
 import { Chemical } from '../types/chemicals';
+import { Letter } from '../types/correspondence';
 import { WireEntry } from '../types/wireLog';
 import { CraneEntry, CraneTest } from '../types/craneLog';
 import { Supplier } from '../types/suppliers';
@@ -278,6 +279,8 @@ interface DataContextType {
   /** Oil analysis (types/oil.ts): sampling points, samples. */
   /** Chemicals aboard (types/chemicals.ts), those still aboard. */
   chemicals: Chemical[];
+  /** The correspondence register (types/correspondence.ts), cancelled ones included — their numbers stay taken. */
+  letters: Letter[];
   /** Rope and wire log (types/wireLog.ts). */
   wireLog: WireEntry[];
   /** Crane operator's log (types/craneLog.ts). */
@@ -469,6 +472,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [apaEntries, setApaEntries] = useState<ApaEntry[]>([]);
   const [budgetLines, setBudgetLines] = useState<BudgetLine[]>([]);
   const [chemicals, setChemicals] = useState<Chemical[]>([]);
+  const [letters, setLetters] = useState<Letter[]>([]);
   const [wireLog, setWireLog] = useState<WireEntry[]>([]);
   const [craneLog, setCraneLog] = useState<CraneEntry[]>([]);
   const [craneTests, setCraneTests] = useState<CraneTest[]>([]);
@@ -616,6 +620,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _apaEntries1 = await storage.loadList<ApaEntry>(storage.APA_ENTRIES_KEY);
     const _budget1 = await storage.loadList<BudgetLine>(storage.BUDGET_KEY);
     const _chem1 = (await storage.loadList<Chemical>(storage.CHEMICALS_KEY)).filter((x) => !x.deleted);
+    const _letters1 = await storage.loadList<Letter>(storage.LETTERS_KEY);
     const _wire1 = await storage.loadList<WireEntry>(storage.WIRE_LOG_KEY);
     const _crane1 = await storage.loadList<CraneEntry>(storage.CRANE_LOG_KEY);
     const _ctest1 = await storage.loadList<CraneTest>(storage.CRANE_TESTS_KEY);
@@ -737,6 +742,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setApaEntries(_apaEntries1);
     setBudgetLines(_budget1);
     setChemicals(_chem1);
+    setLetters(_letters1);
     setWireLog(_wire1);
     setCraneLog(_crane1);
     setCraneTests(_ctest1);
@@ -1012,6 +1018,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _apaEntries2 = await storage.loadList<ApaEntry>(storage.APA_ENTRIES_KEY);
     const _budget2 = await storage.loadList<BudgetLine>(storage.BUDGET_KEY);
     const _chem2 = (await storage.loadList<Chemical>(storage.CHEMICALS_KEY)).filter((x) => !x.deleted);
+    const _letters2 = await storage.loadList<Letter>(storage.LETTERS_KEY);
     const _wire2 = await storage.loadList<WireEntry>(storage.WIRE_LOG_KEY);
     const _crane2 = await storage.loadList<CraneEntry>(storage.CRANE_LOG_KEY);
     const _ctest2 = await storage.loadList<CraneTest>(storage.CRANE_TESTS_KEY);
@@ -1123,6 +1130,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setApaEntries(_apaEntries2);
     setBudgetLines(_budget2);
     setChemicals(_chem2);
+    setLetters(_letters2);
     setWireLog(_wire2);
     setCraneLog(_crane2);
     setCraneTests(_ctest2);
@@ -1491,6 +1499,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         apaEntries,
         budgetLines,
         chemicals,
+        letters,
         wireLog,
         craneLog,
         craneTests,

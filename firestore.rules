@@ -1116,6 +1116,25 @@ service cloud.firestore {
                               && (!('sds' in request.resource.data) || request.resource.data.sds.url.matches('https://.*'));
         allow delete: if false;
       }
+      // The correspondence register (types/correspondence.ts): officers and the Master keep it and read it,
+      // the office reads and sends letters to the vessel. Edited as a whole, never deleted (a mistake is `cancelled`); the number and the
+      // direction never change once saved. The letter travels as a link to Storage, never inside the record.
+      match /letters/{id} {
+        allow read: if isAdmin(v) || shore(v);
+        // The superintendent sends letters to the vessel: an incoming one, from the superintendent, never changed after.
+        allow create: if shore(v) && request.resource.data.id == id && request.resource.data.dir == 'in'
+                      && request.resource.data.kind == 'superintendent' && request.resource.data.by is string
+                      && request.resource.data.no is string && request.resource.data.no.matches('IN-[0-9]{4}-[0-9]+')
+                      && (!('file' in request.resource.data) || request.resource.data.file.url.matches('https://.*'));
+        allow create: if isAdmin(v) && request.resource.data.id == id && request.resource.data.dir in ['in', 'out']
+                      && request.resource.data.no is string
+                      && request.resource.data.no.matches((request.resource.data.dir == 'in' ? 'IN' : 'OUT') + '-[0-9]{4}-[0-9]+')
+                      && (!('file' in request.resource.data) || request.resource.data.file.url.matches('https://.*'));
+        allow update: if isAdmin(v) && request.resource.data.id == id
+                      && request.resource.data.no == resource.data.no && request.resource.data.dir == resource.data.dir
+                      && (!('file' in request.resource.data) || request.resource.data.file.url.matches('https://.*'));
+        allow delete: if false;
+      }
       // Rope and wire log (types/wireLog.ts): signed entries, append-only. Anyone aboard records a look,
       // cut and slip, lubrication or a brake test; a renewal (which rewrites the rope on the register) is an officer's.
       match /wire_log/{id} {

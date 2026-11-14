@@ -380,6 +380,27 @@ await t(false, 'The SDS never inside the card', setDoc(R(master, 'chemicals', 'c
 await t(false, 'The id is the document', setDoc(R(officer, 'chemicals', 'ch3'), { ...CH, id: 'other' }));
 await t(false, 'Nobody deletes a chemical', deleteDoc(R(master, 'chemicals', 'ch1')));
 
+// The correspondence register (types/correspondence.ts): officers keep it, the office reads, nobody deletes.
+const LT = { id: 'lt1', dir: 'in', no: 'IN-2026-001', date: '2026-11-14', party: 'DPA', kind: 'office', subject: 'Circular 12/2026', needsReply: true, replyBy: '2026-11-20', by: 'Chief Officer', createdAt: 1, updatedAt: 1 };
+await t(false, 'Crew cannot enter a letter', setDoc(R(crew, 'letters', 'lt1'), LT));
+await t(true, 'An Officer enters a letter', setDoc(R(officer, 'letters', 'lt1'), LT));
+await t(false, 'Crew does not read the letters', getDoc(R(crew, 'letters', 'lt1')));
+await t(true, 'The office reads the letters', getDoc(R(shore, 'letters', 'lt1')));
+await t(true, 'The Master closes it', setDoc(R(master, 'letters', 'lt1'), { ...LT, closed: { by: 'Master', at: 2, note: 'By phone' }, updatedAt: 2 }));
+await t(false, 'Its number never changes', setDoc(R(master, 'letters', 'lt1'), { ...LT, no: 'IN-2026-002', updatedAt: 3 }));
+await t(false, 'Nor its direction', setDoc(R(master, 'letters', 'lt1'), { ...LT, dir: 'out', no: 'IN-2026-001', updatedAt: 3 }));
+await t(false, 'An outgoing letter takes an OUT number', setDoc(R(officer, 'letters', 'lt2'), { ...LT, id: 'lt2', dir: 'out', no: 'IN-2026-002' }));
+await t(true, 'The letter as a link', setDoc(R(officer, 'letters', 'lt1'), { ...LT, file: { url: 'https://firebasestorage.googleapis.com/x', name: 'c12.pdf', addedAt: 4 }, updatedAt: 4 }));
+await t(false, 'The letter never inside the record', setDoc(R(officer, 'letters', 'lt1'), { ...LT, file: { url: 'data:application/pdf;base64,AAAA', name: 'c12.pdf', addedAt: 5 }, updatedAt: 5 }));
+await t(false, 'Nobody deletes a letter', deleteDoc(R(master, 'letters', 'lt1')));
+const SL = { ...LT, id: 'lt9', no: 'IN-2026-009', kind: 'superintendent', party: 'J. Smith', by: 'J. Smith', byRank: 'Superintendent' };
+await t(true, 'The superintendent sends a letter to the vessel', setDoc(R(shore, 'letters', 'lt9'), SL));
+await t(false, '…only as from the superintendent', setDoc(R(shore, 'letters', 'lt8'), { ...SL, id: 'lt8', kind: 'flag' }));
+await t(false, '…only incoming for the vessel', setDoc(R(shore, 'letters', 'lt7'), { ...SL, id: 'lt7', dir: 'out', no: 'OUT-2026-009' }));
+await t(false, '…and does not change it afterwards', setDoc(R(shore, 'letters', 'lt9'), { ...SL, subject: 'Other', updatedAt: 2 }));
+await t(true, 'The vessel closes the superintendent\'s letter', setDoc(R(officer, 'letters', 'lt9'), { ...SL, closed: { by: 'Master', at: 3, note: 'Done' }, updatedAt: 3 }));
+await t(false, 'Crew does not write as the office', setDoc(R(crew, 'letters', 'lt6'), { ...SL, id: 'lt6' }));
+
 // Crane operator's log (types/craneLog.ts): an officer confirms; nothing changes.
 const CRL = { id: 'cl1', itemId: 'k1', crane: { label: 'Crane No. 1', swl: '12 t' }, crewId: 'c1', name: 'Max', date: '2026-11-13', hours: 2.5, lifts: 14, ops: ['cargo'], by: 'Chief Officer', at: 1, createdAt: 1, updatedAt: 1 };
 await t(false, 'Crew cannot confirm crane time', setDoc(R(crew, 'crane_log', 'cl1'), CRL));

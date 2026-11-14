@@ -143,7 +143,7 @@ export async function loadVessel(imo: string): Promise<VesselData> {
     blob = {};
   }
   const items: EquipmentItem[] = Object.values(blob.categories ?? {}).flatMap((l: any) => (Array.isArray(l) ? l : []));
-  const [crew, docs, acks, machines, jobs, spares, moves, defects, ncs, deferrals, extInspections, orders, mocs, threads] = await Promise.all([
+  const [crew, docs, acks, machines, jobs, spares, moves, defects, ncs, deferrals, extInspections, orders, mocs, threads, letters] = await Promise.all([
     list<CrewMember>(imo, 'crew'),
     list<IsmDoc>(imo, 'ism_docs'),
     list<DocAck>(imo, 'ism_doc_acks'),
@@ -158,6 +158,7 @@ export async function loadVessel(imo: string): Promise<VesselData> {
     list<any>(imo, 'purchase_orders'),
     list<any>(imo, 'mocs'),
     list<any>(imo, 'threads'),
+    list<any>(imo, 'letters'),
   ]);
   return {
     imo,
@@ -179,6 +180,7 @@ export async function loadVessel(imo: string): Promise<VesselData> {
     orders,
     mocs,
     threads,
+    letters,
     modules: cleanModules(data.modules),
   };
 }
@@ -199,6 +201,11 @@ export async function saveDoc(imo: string, d: IsmDoc): Promise<void> {
   // Firestore refuses `undefined`; drop empty optionals.
   const clean = Object.fromEntries(Object.entries(d).filter(([, v]) => v !== undefined));
   await setDoc(doc(db(), ROOT, imo, 'ism_docs', d.id), clean);
+}
+
+/** A letter from the office into the vessel's correspondence register (types/correspondence.ts); rules: create only, incoming, kind superintendent. */
+export async function sendLetter(imo: string, l: { id: string }): Promise<void> {
+  await setDoc(doc(db(), ROOT, imo, 'letters', l.id), JSON.parse(JSON.stringify(l)));
 }
 
 /** The superintendent's name, as the account was issued — what an office check is signed with. */

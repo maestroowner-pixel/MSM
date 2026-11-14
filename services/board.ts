@@ -68,6 +68,7 @@ import { statementDue } from './emissions';
 import { findMe, myCerts, myChanges } from './myDocs';
 import { planBreaches } from './restPlan';
 import { chemBoard } from './chemicals';
+import { letterBoard } from './correspondence';
 import { wireBoard } from './wireLog';
 import { LIFTING_KEYS } from '../constants/lifting';
 import { THREAD_ROUTE, threadKey, unreadFromOffice, unreadMentions } from './threads';
@@ -219,6 +220,8 @@ export interface BoardInput {
   /** Chemicals aboard (types/chemicals.ts) and the risk assessments made from their cards. */
   chemicals?: import('../types/chemicals').Chemical[];
   risks?: import('../types/permits').RiskAssessment[];
+  /** The correspondence register (types/correspondence.ts) — on officers' devices only. */
+  letters?: import('../types/correspondence').Letter[];
   /** Rope and wire log (types/wireLog.ts). */
   wireLog?: import('../types/wireLog').WireEntry[];
   /** Discussion on a record, and what this device has read of it (services/threads). */
@@ -817,6 +820,16 @@ export function buildBoard(x: BoardInput): Board {
     if (b.oldSds.length) n.push({ key: 'chem:oldSds', level: 'amber', who: 'officer', icon: 'flask-outline', ...go, title: t('b.chem.oldSds', { n: b.oldSds.length }), sub: names(b.oldSds) });
     if (b.noRa.length) n.push({ key: 'chem:noRa', level: 'amber', who: 'officer', icon: 'flask-outline', ...go, title: t('b.chem.noRa', { n: b.noRa.length }), sub: names(b.noRa) });
     if (b.unchecked.length) n.push({ key: 'chem:unchecked', level: 'blue', who: 'officer', icon: 'flask-outline', ...go, title: t('b.chem.unchecked', { n: b.unchecked.length }), sub: names(b.unchecked) });
+  }
+
+  // ---- Correspondence: answers overdue, due within three days, and those waiting with no date ----
+  if (x.on('letters') && x.role !== 'user') {
+    const b = letterBoard(x.letters ?? [], x.today);
+    const lines = (l: { no: string; party: string }[]) => l.slice(0, 3).map((c) => `${c.no} ${c.party}`).join(', ') + (l.length > 3 ? '…' : '');
+    const go = { route: 'Letters', params: { tab: 'open' } };
+    if (b.overdue.length) n.push({ key: 'letters:overdue', level: 'red', who: 'officer', icon: 'email-alert-outline', ...go, title: t('b.letters.overdue', { n: b.overdue.length }), sub: lines(b.overdue) });
+    if (b.soon.length) n.push({ key: 'letters:soon', level: 'amber', who: 'officer', icon: 'email-outline', ...go, title: t('b.letters.soon', { n: b.soon.length }), sub: lines(b.soon) });
+    if (b.waiting.length) n.push({ key: 'letters:waiting', level: 'blue', who: 'officer', icon: 'email-outline', ...go, title: t('b.letters.waiting', { n: b.waiting.length }), sub: lines(b.waiting) });
   }
 
   // ---- Ropes and wires: to be discarded (look, diameter, length, age, brake), and those close to it ----

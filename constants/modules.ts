@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals' | 'restPlan' | 'daTests' | 'threads' | 'emissions' | 'myDocs' | 'mySdm' | 'chem' | 'wires' | 'quoteLink' | 'craneLog';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals' | 'restPlan' | 'daTests' | 'threads' | 'emissions' | 'myDocs' | 'mySdm' | 'chem' | 'wires' | 'quoteLink' | 'craneLog' | 'letters';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -362,6 +362,13 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * web deploy (quote.html) first.
    */
   quoteLink: true,
+  /**
+   * Correspondence register — letters in and out, numbered IN-/OUT-<year>-nnn, with from / to,
+   * subject, their reference, the file, an answer expected by a date and the letter that answered
+   * it (types/correspondence.ts, 14 Nov 2026). Officers and the Master only. Needs
+   * `npm run deploy:rules` first (letters).
+   */
+  letters: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------

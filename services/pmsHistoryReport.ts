@@ -45,6 +45,33 @@ export async function exportPmsHistory(title: string, fileStem: string, vessel: 
 }
 
 /**
+ * Share instead of saving (14 Nov 2026, the correspondence register first): on a
+ * phone the same file through the system share sheet as `exportPmsHistory`; in a
+ * browser the Web Share sheet where it takes files (Safari, Chrome on Android
+ * and Windows), else the file is saved as usual — a browser that cannot share
+ * still leaves the person with the PDF.
+ */
+export async function sharePmsHistory(title: string, fileStem: string, vessel: VesselInfo | null, list: MachineHistory[]): Promise<string | null | void> {
+  if (!onWeb) return exportPmsHistory(title, fileStem, vessel, list);
+  const v = (vessel?.vessel_name ?? '').replace(/[\\/:*?"<>|]+/g, ' ').trim();
+  const name = `${fileStem.replace(/[\\/:*?"<>|]+/g, ' ')}${v ? `-${v}` : ''}.pdf`;
+  const blob = pmsHistoryPdfBlob(title, vesselHeader(vessel), list);
+  const nav: any = typeof navigator !== 'undefined' ? navigator : null;
+  if (nav?.share && typeof File !== 'undefined') {
+    const file = new File([blob], name, { type: 'application/pdf' });
+    if (nav.canShare?.({ files: [file] })) {
+      try {
+        await nav.share({ files: [file], title });
+        return null;
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return null; // the person closed the sheet
+      }
+    }
+  }
+  return saveFileWeb(blob, name, 'reports');
+}
+
+/**
  * Print instead of saving (17 Oct 2026, the DP checklist first): in a browser
  * the PDF goes into a hidden frame and the browser's print window opens on it;
  * on a phone the system print dialog, from the same page as the PDF.

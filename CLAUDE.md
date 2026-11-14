@@ -407,6 +407,25 @@ app mirrors. Bundle id `com.kukalab.msm`.
   `chemHazards` (per pictogram, card PPE/fire/spill/storage as controls; enclosed adds the vapour line only for a product that gives off one).
   `Permit.chemIds` — chips + PPE on PermitSc. Board (officers): amber no SDS / old SDS / no assessment, blue to check. Officers write, all read
   (rules `chemicals`, rules-test.mjs). `npm run check:chem`. `npm run deploy:rules` + functions `ai` before the flag.
+- **Correspondence register** (14 Nov 2026 — flag `letters`, off): `types/correspondence.ts`, pure `services/correspondence.ts` + rows
+  `services/correspondenceRows.ts` (pure, so check:letters can reach them), paper `services/correspondenceReport.ts` (PMS-history PDF, Excel
+  Incoming/Outgoing; the year, last year or all dates), screens `LettersSc` (tab route `Letters` `correspondence`, menu Documents & compliance,
+  Access column COR; pages To answer / In / Out) and `LetterSc` (route `Letter` `letter/:id` (`new` + `dir` or `replyTo`)). One record per letter
+  (`letters`, newest wins, never deleted — `cancelled` with a reason): dir in/out, `no` IN-/OUT-<year>-nnn given at the first save
+  (`nextLetterNo`, cancelled ones counted, per direction per year; rules fix `no` and `dir` after create), date, party + `kind` (`PARTY_KINDS`,
+  **ids permanent**), subject, their `ref`, `via` (**ids permanent**), `file` (`uploadInline` to `attachments/<letterId>/`, data URI on a device on
+  no vessel; rules: https only). In: `needsReply`, `replyBy`, `actionBy`; `closed` (stamp + note ≥ 3) closes it without a letter. Out: `replyTo`
+  — a non-cancelled outgoing letter naming it answers it (`letterState`: info / answered / closed / overdue / soon ≤ 3 days / waiting). Answer
+  opens `replyDraft` (same party, "Re:"). The name is asked only when there is a crew list (a standalone device keeps its register, `by: ''`).
+  Board (officers): `letters:overdue` red, `letters:soon` amber, `letters:waiting` blue → `Letters {tab: 'open'}`. Officers only: synced
+  `officers: true`, rules isAdmin write, isAdmin + shore read (office does not write yet). In .msm, erased with the device. `npm run check:letters`;
+  rules-test.mjs covers it. `npm run deploy:rules` before the flag.
+  **Superintendent** (same day): Fleet tab `letters` (`components/FleetLetters.tsx`; `shore.loadVessel` reads `letters`, `shore.sendLetter`) — the
+  register, a letter's sheet, "+ Letter to the vessel": incoming, kind `superintendent`, `via: 'portal'`, numbered `nextLetterNo` over what Fleet
+  read, file through `shore.uploadFile`; rules: shore CREATE only that shape, never update. `replyTo` works both ways (`repliesTo` = the other
+  direction naming it): an office letter answers one of ours, and an incoming one entered aboard may name ours; owed answers are still read from
+  incoming only. **Share PDF** (`sharePmsHistory` in pmsHistoryReport): phones — the share sheet as before; web — `navigator.share({ files })` where
+  `canShare` (Opera on macOS does), else saved. One letter's page `letterSheet` (pure, correspondenceRows); the register's `shareLettersPdf`.
 - **Rope and wire log** (7 Nov 2026 — flag `wires`, off; needs `lifting`; plan item 67, UniSea's "Wire Manager"): `types/wireLog.ts`,
   pure `services/wireLog.ts` + rows `services/wireRows.ts` (pure, so check:wirelog can reach them), papers `services/wireReport.ts`
   (PMS-history PDF + Excel Ropes/Log), `components/WireLogCard.tsx` (on ItemDetail), screens `WireEntrySc` (route `WireEntry`

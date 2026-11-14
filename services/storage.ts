@@ -156,6 +156,8 @@ export const EM_PASSAGES_KEY = `${PREFIX}em_passages`;
 export const EM_STATEMENTS_KEY = `${PREFIX}em_statements`;
 /** Chemicals aboard and their SDS (types/chemicals.ts). */
 export const CHEMICALS_KEY = `${PREFIX}chemicals`;
+/** The correspondence register (types/correspondence.ts). */
+export const LETTERS_KEY = `${PREFIX}letters`;
 /** Rope and wire log (types/wireLog.ts), append-only. */
 export const WIRE_LOG_KEY = `${PREFIX}wire_log`;
 /** Crane operator's log (types/craneLog.ts), append-only. */
@@ -949,6 +951,7 @@ export async function resetAllData(): Promise<void> {
     EM_PASSAGES_KEY,
     EM_STATEMENTS_KEY,
     CHEMICALS_KEY,
+    LETTERS_KEY,
     WIRE_LOG_KEY,
     CRANE_LOG_KEY,
     CRANE_TESTS_KEY,

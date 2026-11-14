@@ -1305,6 +1305,8 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'em_statements', key: storage.EM_STATEMENTS_KEY, appendOnly: true, module: 'emissions' },
   // Chemicals aboard: the officers keep the cards, everyone reads them.
   { sub: 'chemicals', key: storage.CHEMICALS_KEY, module: 'chem' },
+  // The correspondence register: officers and the Master only — the owner's and the office's letters are not for every phone.
+  { sub: 'letters', key: storage.LETTERS_KEY, module: 'letters', officers: true },
   // Rope and wire log: signed entries, never changed.
   { sub: 'wire_log', key: storage.WIRE_LOG_KEY, appendOnly: true, module: 'wires' },
   // Crane operator's log: signed entries, never changed (a mistake is voided by a new one).

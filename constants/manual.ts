@@ -909,6 +909,19 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '✉️',
+      title: "Correspondence register",
+      body: [
+        "Every letter that comes aboard and every one that goes ashore, in one numbered register: circulars and instructions from the office, letters from the owner, the flag, class, Port State Control, the port, agents, charterers and suppliers. Open it from the menu → Documents & compliance → Correspondence. It is kept by the officers and the Master; crew phones do not hold it, the office reads it in Fleet.",
+        "+ Incoming or + Outgoing: the date it was received or sent, who it is from or to and who that is (office, flag, class…), the subject, their reference (the circular's or the letter's own number), how it came, and the letter itself — a PDF or a photo, which goes to the vessel's files. The number is given when it is first saved — IN-2026-001, OUT-2026-001, counted per year — and never changes.",
+        "An incoming letter can expect an answer: switch on An answer or action is expected, give the date and who aboard acts on it. Answer with a letter opens an outgoing letter to the same sender, \"Re:\" its subject; once saved, the incoming one reads Answered and shows the answer's number. Dealt with another way — by phone, or done as asked — Close without a letter, saying how.",
+        "To answer lists what the vessel still owes, the most urgent first. The Board tells the officers when an answer is overdue (red), due within three days (amber) or expected with no date (blue).",
+        "A letter entered in error is never deleted: Cancel this entry, with the reason. Its number stays taken, so the register has no gaps. The register goes on paper for this year, last year or all dates — PDF or Excel, incoming and outgoing separately, each with how it was answered.",
+        "The superintendent sees the vessel's register in Fleet (tab Correspondence) and sends letters to the vessel from there: + Letter to the vessel, with the subject, their reference, the file, an answer expected by a date and who aboard acts on it. It arrives as an incoming letter from the Superintendent with the vessel's own next number, and the Board asks for the answer. An office letter can answer one of the vessel's — the vessel's letter then reads Answered by it, and an incoming letter entered aboard can say which of ours it answers in the same way.",
+        "Share PDF — on a letter, its own page (the entry, how it stands, the letters it answers or that answer it); under the register, the register for the period chosen. On a phone it opens the share sheet (mail, WhatsApp, Files…); in a browser that can share files the same, otherwise the PDF is saved.",
+      ],
+    },
+    {
       emoji: '🪢',
       title: "Ropes and wires",
       body: [
@@ -1811,6 +1824,19 @@ const ru: ManualContent = {
         "Если AI включён, он читает SDS сразу после добавления, на каком бы языке тот ни был, и показывает найденное рядом с карточкой по-английски. Ничего не меняется, пока вы не нажмёте «В карточку»: тогда опасности, СИЗ, первая помощь, пожар, разлив и хранение заменяются тем, что сказано в этом паспорте. Сохраните, а офицер открывает SDS, сравнивает с карточкой и подписывает «Сверено с SDS». Новый паспорт или изменение того, что дал SDS, снимает сверку.",
         "Оценка риска (если включены наряды-допуски): из карточки «Оценить: на палубе / в помещении» или «Оценить: в замкнутом пространстве» начинает обычную оценку риска с опасностями средства, оценёнными до и после мер, где меры — СИЗ, пожар, разлив и хранение из карточки. Поправьте оценки и меры под работу и утвердите как любую другую. Средство с ОПАСНО или ОСТОРОЖНО без утверждённой оценки отмечено в карточке и на Board. Наряд-допуск называет химию, которую использует работа; её сигнальное слово, пиктограммы и СИЗ видны в наряде.",
         "Board показывает офицерам средства без SDS, паспорта старше пяти лет (запросите у поставщика текущую редакцию), опасные средства без утверждённой оценки и карточки, ждущие сверки. «Убрано с судна» убирает средство из списка; наряды и оценки, где оно названо, сохраняют запись. Реестр PDF и Excel (по-английски) перечисляет все средства с местом и количеством, опасностями, СИЗ, датой SDS, сверкой и оценкой; в Excel второй лист — первая помощь, пожар и разлив, чтобы распечатать для кладовой.",
+      ],
+    },
+    {
+      emoji: '✉️',
+      title: "Журнал переписки",
+      body: [
+        "Всё, что приходит на борт и уходит на берег, в одном пронумерованном журнале: циркуляры и указания офиса, письма владельца, флага, класса, PSC, порта, агентов, фрахтователей и поставщиков. Открывается из меню → Документы и соответствие → Переписка. Журнал ведут офицеры и Мастер; на телефонах экипажа его нет, офис читает его во Fleet.",
+        "+ Входящее или + Исходящее: дата получения или отправки, от кого или кому и кто это (офис, флаг, класс…), тема, их номер (номер циркуляра или письма), как пришло, и само письмо — PDF или фото, оно попадает в файлы судна. Номер присваивается при первом сохранении — IN-2026-001, OUT-2026-001, отдельно на каждый год — и больше не меняется.",
+        "Входящее может ждать ответа: включите «Нужен ответ или действие», укажите срок и кто на борту исполняет. «Ответить письмом» открывает исходящее тому же отправителю с «Re:» в теме; после сохранения входящее становится «Отвечено» и показывает номер ответа. Если вопрос решён иначе — по телефону или просто выполнено — «Закрыть без письма» с пояснением.",
+        "Вкладка «Ответить» показывает, что судно ещё должно, самое срочное сверху. Board сообщает офицерам, когда ответ просрочен (красный), срок в ближайшие три дня (жёлтый) или ответа ждут без срока (синий).",
+        "Ошибочно внесённое письмо не удаляется: «Отменить запись» с причиной. Номер остаётся занятым, поэтому в журнале нет пропусков. Журнал печатается за этот год, прошлый год или все даты — PDF или Excel, входящие и исходящие отдельно, с тем, как ответили.",
+        "Суперинтендант видит журнал судна во Fleet (вкладка «Переписка») и оттуда отправляет письма на судно: «+ Письмо на судно» — тема, их номер, файл, срок ответа и кто на борту исполняет. Оно приходит входящим от суперинтенданта со следующим номером судна, и Board напоминает об ответе. Письмо офиса может быть ответом на письмо судна — тогда у судна оно становится «Отвечено»; так же и входящее, внесённое на борту, может указать, на какое наше письмо оно отвечает.",
+        "«Поделиться PDF» — у письма его собственная страница (запись, статус, письма, на которые оно отвечает или которые отвечают на него); под журналом — журнал за выбранный период. На телефоне открывается «Поделиться» (почта, WhatsApp, Файлы…); в браузере, который умеет делиться файлами, так же, иначе PDF сохраняется.",
       ],
     },
     {
@@ -2719,6 +2745,19 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '✉️',
+      title: "Registro de correspondencia",
+      body: [
+        "Todas las cartas que llegan a bordo y todas las que van a tierra, en un registro numerado: circulares e instrucciones de la oficina, cartas del armador, la bandera, la clase, el control del Estado rector del puerto, el puerto, agentes, fletadores y proveedores. Se abre desde el menú → Documentos y cumplimiento → Correspondencia. Lo llevan los oficiales y el Capitán; los teléfonos de la tripulación no lo tienen, la oficina lo lee en Fleet.",
+        "+ Entrada o + Salida: la fecha de recepción o envío, de quién o para quién y quién es (oficina, bandera, clase…), el asunto, su referencia (el número de la circular o de la carta), cómo llegó, y la carta misma — un PDF o una foto, que va a los archivos del buque. El número se asigna al guardarla por primera vez — IN-2026-001, OUT-2026-001, por año — y no cambia.",
+        "Una carta de entrada puede esperar respuesta: active «Se espera respuesta o acción», indique la fecha y quién a bordo actúa. «Responder con una carta» abre una salida al mismo remitente con «Re:» en el asunto; al guardarla, la entrada pasa a «Respondida» y muestra el número de la respuesta. Si se resolvió de otro modo — por teléfono, o hecho como se pidió — «Cerrar sin carta», diciendo cómo.",
+        "«Por responder» muestra lo que el buque aún debe, lo más urgente primero. El Board avisa a los oficiales cuando una respuesta está vencida (rojo), vence en tres días (ámbar) o se espera sin fecha (azul).",
+        "Una carta registrada por error nunca se borra: «Anular este registro», con el motivo. Su número queda ocupado, así el registro no tiene huecos. El registro se imprime para este año, el anterior o todas las fechas — PDF o Excel, entradas y salidas por separado, con cómo se respondió.",
+        "El superintendente ve el registro del buque en Fleet (pestaña Correspondencia) y desde allí envía cartas al buque: «+ Carta al buque», con asunto, su referencia, el archivo, la respuesta esperada antes de una fecha y quién a bordo actúa. Llega como entrada del Superintendente con el siguiente número del buque, y el Board pide la respuesta. Una carta de la oficina puede responder a una del buque — la del buque pasa a «Respondida»; igualmente, una entrada registrada a bordo puede indicar a cuál de las nuestras responde.",
+        "«Compartir PDF» — en una carta, su propia página (el registro, su estado, las cartas a las que responde o que la responden); bajo el registro, el registro del periodo elegido. En el teléfono abre el menú de compartir (correo, WhatsApp, Archivos…); en un navegador que comparte archivos, igual; si no, el PDF se guarda.",
+      ],
+    },
+    {
       emoji: '🪢',
       title: "Cabos y cables",
       body: [
@@ -3624,6 +3663,19 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '✉️',
+      title: "Журнал листування",
+      body: [
+        "Усе, що приходить на борт і йде на берег, в одному пронумерованому журналі: циркуляри й вказівки офісу, листи власника, прапора, класу, PSC, порту, агентів, фрахтувальників і постачальників. Відкривається з меню → Документи та відповідність → Листування. Журнал ведуть офіцери та Майстер; на телефонах екіпажу його немає, офіс читає його у Fleet.",
+        "+ Вхідний або + Вихідний: дата отримання чи надсилання, від кого чи кому і хто це (офіс, прапор, клас…), тема, їхній номер (номер циркуляра чи листа), як прийшов, і сам лист — PDF або фото, він потрапляє у файли судна. Номер присвоюється під час першого збереження — IN-2026-001, OUT-2026-001, окремо на кожен рік — і більше не змінюється.",
+        "Вхідний може чекати відповіді: увімкніть «Потрібна відповідь або дія», вкажіть строк і хто на борту виконує. «Відповісти листом» відкриває вихідний тому ж відправникові з «Re:» у темі; після збереження вхідний стає «Відповідено» і показує номер відповіді. Якщо питання вирішено інакше — телефоном чи просто виконано — «Закрити без листа» з поясненням.",
+        "Вкладка «Відповісти» показує, що судно ще винне, найтерміновіше вгорі. Board повідомляє офіцерам, коли відповідь прострочена (червоний), строк у найближчі три дні (жовтий) або відповіді чекають без строку (синій).",
+        "Помилково внесений лист не видаляється: «Скасувати запис» із причиною. Номер залишається зайнятим, тому в журналі немає пропусків. Журнал друкується за цей рік, минулий рік або всі дати — PDF чи Excel, вхідні й вихідні окремо, з тим, як відповіли.",
+        "Суперінтендант бачить журнал судна у Fleet (вкладка «Листування») і звідти надсилає листи на судно: «+ Лист на судно» — тема, їхній номер, файл, строк відповіді та хто на борту виконує. Він приходить вхідним від суперінтенданта з наступним номером судна, і Board нагадує про відповідь. Лист офісу може бути відповіддю на лист судна — тоді в судна він стає «Відповідено»; так само й вхідний, внесений на борту, може вказати, на який наш лист він відповідає.",
+        "«Поділитися PDF» — у листа його власна сторінка (запис, статус, листи, на які він відповідає або які відповідають на нього); під журналом — журнал за вибраний період. На телефоні відкривається «Поділитися» (пошта, WhatsApp, Файли…); у браузері, що вміє ділитися файлами, так само, інакше PDF зберігається.",
+      ],
+    },
+    {
       emoji: '🪢',
       title: "Троси",
       body: [
@@ -4464,6 +4516,19 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '✉️',
+      title: "Korrespondanselogg",
+      body: [
+        "Hvert brev som kommer om bord og hvert som går i land, i én nummerert logg: rundskriv og instrukser fra kontoret, brev fra reder, flagg, klasse, havnestatskontroll, havn, agenter, befraktere og leverandører. Åpnes fra menyen → Dokumenter og samsvar → Korrespondanse. Den føres av offiserene og Kapteinen; mannskapets telefoner har den ikke, kontoret leser den i Fleet.",
+        "+ Innkommende eller + Utgående: datoen det ble mottatt eller sendt, fra eller til hvem og hvem det er (kontor, flagg, klasse…), emnet, deres referanse (rundskrivets eller brevets eget nummer), hvordan det kom, og selve brevet — en PDF eller et bilde, som går til fartøyets filer. Nummeret gis første gang det lagres — IN-2026-001, OUT-2026-001, per år — og endres aldri.",
+        "Et innkommende brev kan forvente svar: slå på «Svar eller tiltak forventes», oppgi fristen og hvem om bord som følger opp. «Svar med et brev» åpner et utgående brev til samme avsender med «Re:» i emnet; når det er lagret, står det innkommende som Besvart med svarets nummer. Håndtert på annen måte — på telefon, eller utført som bedt — «Lukk uten brev», og si hvordan.",
+        "«Å besvare» viser hva fartøyet fortsatt skylder, det mest presserende først. Board varsler offiserene når et svar er forfalt (rødt), forfaller innen tre dager (gult) eller forventes uten frist (blått).",
+        "Et brev ført inn ved en feil slettes aldri: «Annuller denne føringen», med grunnen. Nummeret forblir brukt, så loggen har ingen hull. Loggen skrives ut for i år, i fjor eller alle datoer — PDF eller Excel, innkommende og utgående hver for seg, med hvordan de ble besvart.",
+        "Inspektøren ser fartøyets logg i Fleet (fanen Korrespondanse) og sender brev til fartøyet derfra: «+ Brev til fartøyet», med emne, deres referanse, filen, svarfrist og hvem om bord som følger opp. Det kommer inn som innkommende fra Inspektøren med fartøyets neste nummer, og Board ber om svaret. Et brev fra kontoret kan svare på et av fartøyets — fartøyets brev står da som Besvart; på samme måte kan et innkommende brev ført om bord si hvilket av våre det svarer på.",
+        "«Del PDF» — på et brev, brevets egen side (føringen, status, brevene det svarer på eller som svarer på det); under loggen, loggen for valgt periode. På telefonen åpnes delingsarket (e-post, WhatsApp, Filer…); i en nettleser som deler filer, det samme, ellers lagres PDF-en.",
+      ],
+    },
+    {
       emoji: '🪢',
       title: "Tau og wire",
       body: [
@@ -5289,6 +5354,19 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '✉️',
+      title: "Registo de correspondência",
+      body: [
+        "Todas as cartas que chegam a bordo e todas as que seguem para terra, num registo numerado: circulares e instruções do escritório, cartas do armador, da bandeira, da classe, do controlo pelo Estado do porto, do porto, de agentes, afretadores e fornecedores. Abre-se no menu → Documentos e conformidade → Correspondência. É mantido pelos oficiais e pelo Comandante; os telefones da tripulação não o têm, o escritório lê-o no Fleet.",
+        "+ Entrada ou + Saída: a data de receção ou envio, de quem ou para quem e quem é (escritório, bandeira, classe…), o assunto, a referência deles (o número da circular ou da carta), como chegou, e a própria carta — um PDF ou uma foto, que vai para os ficheiros do navio. O número é atribuído ao guardar pela primeira vez — IN-2026-001, OUT-2026-001, por ano — e nunca muda.",
+        "Uma carta de entrada pode esperar resposta: ative «Espera-se resposta ou ação», indique a data e quem a bordo trata. «Responder com uma carta» abre uma saída para o mesmo remetente com «Re:» no assunto; ao guardar, a entrada passa a «Respondida» e mostra o número da resposta. Tratado de outra forma — por telefone, ou feito como pedido — «Fechar sem carta», dizendo como.",
+        "«Por responder» mostra o que o navio ainda deve, o mais urgente primeiro. O Board avisa os oficiais quando uma resposta está em atraso (vermelho), vence em três dias (âmbar) ou é esperada sem data (azul).",
+        "Uma carta registada por engano nunca é apagada: «Anular este registo», com o motivo. O número fica ocupado, para o registo não ter falhas. O registo imprime-se para este ano, o anterior ou todas as datas — PDF ou Excel, entradas e saídas em separado, com como foram respondidas.",
+        "O superintendente vê o registo do navio no Fleet (separador Correspondência) e daí envia cartas para o navio: «+ Carta para o navio», com assunto, a referência deles, o ficheiro, a resposta esperada até uma data e quem a bordo trata. Chega como entrada do Superintendente com o número seguinte do navio, e o Board pede a resposta. Uma carta do escritório pode responder a uma do navio — a do navio passa a «Respondida»; do mesmo modo, uma entrada registada a bordo pode indicar a qual das nossas responde.",
+        "«Partilhar PDF» — numa carta, a sua própria página (o registo, o estado, as cartas a que responde ou que lhe respondem); sob o registo, o registo do período escolhido. No telefone abre a folha de partilha (e-mail, WhatsApp, Ficheiros…); num navegador que partilha ficheiros, igual; caso contrário, o PDF é guardado.",
+      ],
+    },
+    {
       emoji: '🪢',
       title: "Cabos e cabos de aço",
       body: [
@@ -5390,6 +5468,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'My documents', module: 'myDocs' },
   { title: 'My documents', module: 'mySdm', drop: [2] },
   { title: 'Chemicals and safety data sheets', module: 'chem' },
+  { title: 'Correspondence register', module: 'letters' },
   { title: 'Ropes and wires', module: 'wires' },
   { title: "Crane operator's log", module: 'craneLog' },
   { title: 'Chemicals and safety data sheets', module: 'ptw', drop: [3] },
