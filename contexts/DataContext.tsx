@@ -49,6 +49,7 @@ import { WarrantyClaim, YardJob } from '../types/yard';
 import { ExternalInspection } from '../types/extInspection';
 import { ManagementOfChange } from '../types/moc';
 import { ThreadMessage } from '../types/thread';
+import { ChatMessage } from '../types/chat';
 import { ApForm, CrewAppraisal } from '../types/appraisal';
 import { RestPlan } from '../types/restPlan';
 import { DaFollowUp, DaPolicy, DaResult, DaTest } from '../types/daTest';
@@ -218,6 +219,8 @@ interface DataContextType {
   mocs: ManagementOfChange[];
   /** Discussion on a record (types/thread.ts). */
   threads: ThreadMessage[];
+  /** Chat (types/chat.ts): all three channels in one list (`ch`); a crew device holds only `crew`. */
+  chat: ChatMessage[];
   /** Crew appraisals (types/appraisal.ts) — officers' devices only. */
   appraisals: CrewAppraisal[];
   /** The company's own appraisal form (one row, id 'form'). */
@@ -363,6 +366,26 @@ const emptyByCategory = () =>
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+/**
+ * Changes not yet on disk laid over what was read from it. A map (chatRead,
+ * threadRead) may have been built from the empty state before the first load:
+ * it adds to the file's map rather than replacing it.
+ */
+function overPrefs(disk: storage.Prefs, patch: Partial<storage.Prefs>): storage.Prefs {
+  const next: storage.Prefs = { ...disk, ...patch };
+  for (const k of Object.keys(patch) as (keyof storage.Prefs)[]) {
+    const a = disk[k], b = patch[k];
+    if (a && b && typeof a === 'object' && typeof b === 'object' && !Array.isArray(a) && !Array.isArray(b)) (next as any)[k] = { ...a, ...b };
+  }
+  return next;
+}
+
+/** The three chat channels, one list (services/chat): each key holds one channel. */
+async function loadChat(): Promise<ChatMessage[]> {
+  const [crew, officers, office] = await Promise.all([storage.CHAT_CREW_KEY, storage.CHAT_OFFICERS_KEY, storage.CHAT_OFFICE_KEY].map((k) => storage.loadList<ChatMessage>(k)));
+  return [...crew, ...officers, ...office];
+}
+
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [byCategory, setByCategory] = useState<Record<CategoryKey, EquipmentItem[]>>(emptyByCategory());
@@ -373,6 +396,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => setShipClock(vessel), [vessel]);
   const [compressor, setCompressorState] = useState<CompressorState>({ compressors: [] });
   const [prefs, setPrefsState] = useState<storage.Prefs>({});
+  // Changes to prefs not yet on disk: a reload that read the file before they landed
+  // puts them back on top, or a chat channel just opened came back unread (14 Nov 2026).
+  const prefsPending = useRef<{ n: number; patch: Partial<storage.Prefs> }>({ n: 0, patch: {} });
+  // Until the first load the state is {} — a change saved over it would wipe the file.
+  const prefsLoaded = useRef(false);
   const [inspections, setInspections] = useState<Inspection[]>([]);
   const [crew, setCrew] = useState<CrewMember[]>([]);
   const [rest, setRest] = useState<RestDay[]>([]);
@@ -432,6 +460,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [extInspections, setExtInspections] = useState<ExternalInspection[]>([]);
   const [mocs, setMocs] = useState<ManagementOfChange[]>([]);
   const [threads, setThreads] = useState<ThreadMessage[]>([]);
+  const [chat, setChat] = useState<ChatMessage[]>([]);
   const [appraisals, setAppraisals] = useState<CrewAppraisal[]>([]);
   const [apForm, setApForm] = useState<ApForm[]>([]);
   const [restPlans, setRestPlans] = useState<RestPlan[]>([]);
@@ -708,6 +737,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setExtInspections(_ext);
     setMocs(_mocs);
     setThreads(await storage.loadList<ThreadMessage>(storage.THREADS_KEY));
+    setChat(await loadChat());
     setAppraisals(_appraisals);
     setApForm(_apForm);
     setRestPlans(_restPlans);
@@ -770,7 +800,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSigningPolicyState(_signingPolicyState);
     setPhotoArchiveState(_photoArchiveState);
     setRecentScans(_recentScans);
-    const p = await storage.loadPrefs();
+    const p = overPrefs(await storage.loadPrefs(), prefsPending.current.patch);
+    prefsLoaded.current = true;
     setPrefsState(p);
     setLoading(false);
     void computeLocks(all);
@@ -1102,6 +1133,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setExtInspections(_ext);
     setMocs(_mocs);
     setThreads(await storage.loadList<ThreadMessage>(storage.THREADS_KEY));
+    setChat(await loadChat());
     setAppraisals(_appraisals);
     setApForm(_apForm);
     setRestPlans(_restPlans);
@@ -1364,9 +1396,27 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const setPrefs = useCallback(
     async (patch: Partial<storage.Prefs>) => {
+      const pend = prefsPending.current;
+      pend.n++;
+      pend.patch = { ...pend.patch, ...patch };
+      if (!prefsLoaded.current) {
+        const next = overPrefs(await storage.loadPrefs(), pend.patch);
+        setPrefsState((prev) => ({ ...prev, ...next }));
+        await storage.savePrefs(next).finally(() => {
+          if (--pend.n === 0) pend.patch = {};
+        });
+        return;
+      }
+      let saving = false;
       setPrefsState((prev) => {
         const next = { ...prev, ...patch };
-        storage.savePrefs(next);
+        // An updater may run twice (React's strict mode): one write, one count.
+        if (!saving) {
+          saving = true;
+          void storage.savePrefs(next).finally(() => {
+            if (--pend.n === 0) pend.patch = {};
+          });
+        }
         return next;
       });
     },
@@ -1474,6 +1524,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         extInspections,
         mocs,
         threads,
+        chat,
         appraisals,
         apForm,
         restPlans,

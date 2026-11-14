@@ -7,6 +7,8 @@
 // On the web (25 Oct 2026) the splash is a video instead — the logo surfacing from
 // the water, the ship's bell ringing once as it clears (in the video's own track,
 // public/splash.mp4 of MSM Win Web). The logo splash stays as its fallback.
+// From the second launch on (14 Nov 2026) the web plays the glowing shield
+// instead (public/splash-return.mp4): the first launch keeps the full logo.
 // ===================================
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -37,8 +39,19 @@ export default function SplashSc({ onDone }: { onDone: () => void }) {
   return <LogoSplash onDone={onDone} />;
 }
 
-// The video, served at a stable path from the web project's public/ dir.
-const VIDEO_URI = '/splash.mp4';
+// The videos, served at stable paths from the web project's public/ dir.
+// `splash.mp4` is 16:9 and fills a landscape window; `splash-return.mp4` is
+// square on a flat navy, so it is always shown whole on that navy.
+const FIRST = { uri: '/splash.mp4', fill: COLORS.splashBackground, square: false };
+const AGAIN = { uri: '/splash-return.mp4', fill: '#0B2342', square: true };
+// Has this browser seen the first splash? Read once per page load.
+const SEEN_KEY = 'msm:splash_seen';
+let video = FIRST;
+try {
+  if (typeof localStorage !== 'undefined' && localStorage.getItem(SEEN_KEY)) video = AGAIN;
+} catch {
+  /* no storage: the first one */
+}
 const VIDEO_START_MS = 4000;  // not playing by then (offline, slow link) → the logo splash
 const VIDEO_SAFETY_MS = 12500; // the video is 10 s; never stay longer than this
 
@@ -74,6 +87,11 @@ function VideoSplash({ onDone, onFail }: { onDone: () => void; onFail: () => voi
       setTimeout(handoff, 600);
     };
     finishRef.current = finish;
+    try {
+      localStorage.setItem(SEEN_KEY, '1');
+    } catch {
+      /* the first one again next time */
+    }
     if (!v) {
       fail();
       return;
@@ -106,13 +124,35 @@ function VideoSplash({ onDone, onFail }: { onDone: () => void; onFail: () => voi
         const vh = v.videoHeight;
         // 16:9 fills a landscape window (the logo sits well inside the crop); a
         // portrait one would cut the logo off, so there it is letterboxed on the navy.
-        const cover = cw / ch >= 4 / 3;
+        const cover = !video.square && cw / ch >= 4 / 3;
         const k = cover ? Math.max(cw / vw, ch / vh) : Math.min(cw / vw, ch / vh);
         const dw = vw * k;
         const dh = vh * k;
-        ctx.fillStyle = COLORS.splashBackground;
+        ctx.fillStyle = video.fill;
         ctx.fillRect(0, 0, cw, ch);
-        ctx.drawImage(v, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+        const dx = (cw - dw) / 2;
+        const dy = (ch - dh) / 2;
+        ctx.drawImage(v, dx, dy, dw, dh);
+        // The square video's own navy glows a little near its edges: feather them
+        // into the fill so no seam shows where it ends.
+        if (video.square) {
+          const f = Math.min(dw, dh) * 0.14;
+          const edge = (x0: number, y0: number, x1: number, y1: number, rx: number, ry: number, rw: number, rh: number) => {
+            const g = ctx.createLinearGradient(x0, y0, x1, y1);
+            g.addColorStop(0, video.fill);
+            g.addColorStop(1, video.fill + '00');
+            ctx.fillStyle = g;
+            ctx.fillRect(rx, ry, rw, rh);
+          };
+          if (dx > 0) {
+            edge(dx, 0, dx + f, 0, dx, dy, f, dh);
+            edge(dx + dw, 0, dx + dw - f, 0, dx + dw - f, dy, f, dh);
+          }
+          if (dy > 0) {
+            edge(0, dy, 0, dy + f, dx, dy, dw, f);
+            edge(0, dy + dh, 0, dy + dh - f, dx, dy + dh - f, dw, f);
+          }
+        }
       }
       if (!done) raf = requestAnimationFrame(paint);
     };
@@ -143,19 +183,19 @@ function VideoSplash({ onDone, onFail }: { onDone: () => void; onFail: () => voi
   }, []);
 
   return (
-    <Animated.View style={[styles.fill, { opacity: container }]}>
+    <Animated.View style={[styles.fill, { opacity: container, backgroundColor: video.fill }]}>
       {/* A tap skips the rest of the video. */}
       <Pressable style={StyleSheet.absoluteFill} onPress={() => finishRef.current()} accessibilityLabel={`${APP_CONFIG.name} — ${APP_CONFIG.tagline}`}>
         {React.createElement('video', {
           ref: videoRef,
-          src: VIDEO_URI,
+          src: video.uri,
           playsInline: true,
           preload: 'auto',
           style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' },
         } as any)}
         {React.createElement('canvas', {
           ref: canvasRef,
-          style: { position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', backgroundColor: COLORS.splashBackground },
+          style: { position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', backgroundColor: video.fill },
         } as any)}
       </Pressable>
       <Animated.Text style={styles.footer}>v{APP_CONFIG.version}</Animated.Text>

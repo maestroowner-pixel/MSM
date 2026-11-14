@@ -1386,6 +1386,11 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'mocs', key: storage.MOCS_KEY, module: 'moc' },
   // Discussion on a record: every message is its own document, never changed.
   { sub: 'threads', key: storage.THREADS_KEY, module: 'threads', appendOnly: true },
+  // Chat (types/chat.ts): a collection per channel, so the rules decide who reads it. Crew: everyone aboard;
+  // officers and the office channel: officers and the Master (the office reads and writes its own in Fleet).
+  { sub: 'chat_crew', key: storage.CHAT_CREW_KEY, module: 'chat', appendOnly: true },
+  { sub: 'chat_officers', key: storage.CHAT_OFFICERS_KEY, module: 'chat', appendOnly: true, officers: true },
+  { sub: 'chat_office', key: storage.CHAT_OFFICE_KEY, module: 'chat', appendOnly: true, officers: true },
   { sub: 'drills', key: storage.DRILLS_KEY, module: 'drills' },
   // The drill calendar: one plan per year (services/drillPlan.ts).
   { sub: 'drill_plans', key: storage.DRILL_PLANS_KEY, module: 'drills' },

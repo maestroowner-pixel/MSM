@@ -932,6 +932,16 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '💬',
+      title: "Chat",
+      body: [
+        "Chat is the vessel's own talk, kept with the vessel. Open it from the menu → Chat. Three channels: Crew — everyone aboard reads and writes, the office does not see it; Officers — only the officers and the Master; Office — the officers and the Master with the office. A crew phone shows only Crew. There are no messages one to one: what is said here stays on the vessel's record.",
+        "Choose your name under Writing as, write, tap Send. A message cannot be changed or deleted, so write only what may be kept — no medical details. Tap @ Mention or type @ and a name to call someone; in the Office channel @Office calls the office. «In English (AI)» under the box puts your words into English before you send them.",
+        "Messages arrive when the device syncs — there is no instant push. A message naming you shows first on the Board and, with reminders on, as a notification on your device; new messages in a channel show as a blue line until you open it. The latest 60 messages show; «Earlier messages» brings older ones.",
+        "On paper: PDF of the last 30 days or of the whole channel, or Share PDF. In the office: Fleet → the vessel → Chat shows the Office channel and lets the superintendent answer; the vessel's messages since the office last wrote are listed under Waiting for you.",
+      ],
+    },
+    {
       emoji: '🪢',
       title: "Ropes and wires",
       body: [
@@ -1857,6 +1867,16 @@ const ru: ManualContent = {
         "Ночные распоряжения: Мастер нажимает + Распоряжения на ночь — ночь, где судно стоит или куда идёт, сами распоряжения и когда вызывать Мастера — и отмечает офицеров, несущих вахту этой ночью (сразу отмечены вахтенные помощники на борту). Каждый открывает ночь на своём устройстве и подписывает «Прочитал(а) и понял(а)»; пока ночь идёт, Доска напоминает тем, кто не подписал, и показывает Мастеру, кого не хватает. До первой подписи Мастер ещё может поправить текст, после — он остаётся как написан.",
         "Утром Мастер закрывает ночь, при необходимости с замечаниями. Ночь, не закрытая к полудню следующего дня, показывается Мастеру на Доске. Ошибочные распоряжения отменяются с причиной — они остаются в книге, зачёркнутыми. Книга ночных распоряжений печатается за этот месяц, год или за всё время: каждая ночь с распоряжениями, кто и когда подписал, кто нет и как ночь закрыта. «Поделиться PDF» отправляет одну ночь или книгу.",
         "Постоянные распоряжения: Мастер пишет их и выпускает как ревизию 1, выбирая, кто подписывает, — вахтенные помощники (и DPO) или все офицеры, включая механиков. Ревизия не меняется: + Новая ревизия начинается с действующего текста, указывает, что изменилось, и все снова подписывают. На странице — действующая ревизия, кто прочитал и кто нет, и прежние ревизии; Доска просит каждого офицера подписать и показывает Мастеру, кто ещё не подписал. PDF и «Поделиться PDF» печатают ревизию с подписями и списком ревизий. Постоянные распоряжения DP устроены так же и выключаются вместе с модулем DP.",
+      ],
+    },
+    {
+      emoji: '💬',
+      title: "Чат",
+      body: [
+        "Чат — собственный разговор судна, который хранится вместе с судном. Откройте его из меню → Чат. Три канала: Экипаж — читают и пишут все на борту, офис его не видит; Офицеры — только офицеры и Мастер; Офис — офицеры и Мастер вместе с офисом. На телефоне экипажа виден только канал Экипаж. Личных сообщений нет: всё сказанное здесь остаётся в записях судна.",
+        "Выберите своё имя в «Пишет», напишите сообщение, нажмите «Отправить». Сообщение нельзя изменить или удалить, поэтому пишите только то, что можно хранить, — без медицинских подробностей. Нажмите «@ Упомянуть» или наберите @ и имя, чтобы позвать человека; в канале Офис @Office зовёт офис. «По-английски (AI)» под полем переводит ваш текст на английский перед отправкой.",
+        "Сообщения приходят, когда устройство синхронизируется, — мгновенного push нет. Сообщение с вашим именем показывается первым на Доске и, если напоминания включены, уведомлением на устройстве; новые сообщения в канале — синей строкой, пока вы его не откроете. Видны последние 60 сообщений; «Ранние сообщения» показывает более старые.",
+        "На бумаге: PDF за последние 30 дней или за весь канал, либо «Поделиться PDF». В офисе: Fleet → судно → Чат показывает канал Офис, и суперинтендант может ответить; сообщения судна после последнего ответа офиса стоят в списке «Ждёт вашего ответа».",
       ],
     },
     {
@@ -2788,6 +2808,16 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '💬',
+      title: "Chat",
+      body: [
+        "El chat es la conversación propia del buque y se guarda con el buque. Ábralo desde el menú → Chat. Tres canales: Tripulación — todos a bordo leen y escriben, la oficina no lo ve; Oficiales — solo los oficiales y el Capitán; Oficina — los oficiales y el Capitán con la oficina. Un teléfono de la tripulación solo muestra Tripulación. No hay mensajes privados: lo que se dice aquí queda en el registro del buque.",
+        "Elija su nombre en «Escribe», escriba y pulse Enviar. Un mensaje no se puede cambiar ni borrar, así que escriba solo lo que pueda quedar guardado, sin datos médicos. Pulse @ Mencionar o escriba @ y un nombre para llamar a alguien; en el canal Oficina, @Office llama a la oficina. «En inglés (AI)» bajo el cuadro pasa su texto al inglés antes de enviarlo.",
+        "Los mensajes llegan cuando el dispositivo se sincroniza; no hay aviso instantáneo. Un mensaje que le nombra aparece primero en el Tablero y, con los recordatorios activados, como notificación en su dispositivo; los mensajes nuevos de un canal aparecen en una línea azul hasta que lo abre. Se ven los últimos 60 mensajes; «Mensajes anteriores» trae los más antiguos.",
+        "En papel: PDF de los últimos 30 días o de todo el canal, o Compartir PDF. En la oficina: Fleet → el buque → Chat muestra el canal Oficina y permite responder al superintendente; los mensajes del buque desde la última respuesta de la oficina aparecen en Espera su respuesta.",
+      ],
+    },
+    {
       emoji: '🪢',
       title: "Cabos y cables",
       body: [
@@ -3716,6 +3746,16 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '💬',
+      title: "Чат",
+      body: [
+        "Чат — власна розмова судна, яка зберігається разом із судном. Відкрийте його з меню → Чат. Три канали: Екіпаж — читають і пишуть усі на борту, офіс його не бачить; Офіцери — лише офіцери та Мастер; Офіс — офіцери та Мастер разом з офісом. На телефоні екіпажу видно лише канал Екіпаж. Особистих повідомлень немає: усе сказане тут залишається в записах судна.",
+        "Виберіть своє ім'я в «Пише», напишіть повідомлення, натисніть «Надіслати». Повідомлення не можна змінити чи видалити, тож пишіть лише те, що можна зберігати, — без медичних подробиць. Натисніть «@ Згадати» або наберіть @ та ім'я, щоб покликати людину; у каналі Офіс @Office кличе офіс. «Англійською (AI)» під полем перекладає ваш текст англійською перед надсиланням.",
+        "Повідомлення надходять, коли пристрій синхронізується, — миттєвого push немає. Повідомлення з вашим ім'ям показується першим на Дошці і, якщо нагадування увімкнені, сповіщенням на пристрої; нові повідомлення в каналі — синім рядком, доки ви його не відкриєте. Видно останні 60 повідомлень; «Ранні повідомлення» показує старіші.",
+        "На папері: PDF за останні 30 днів або за весь канал, або «Поділитися PDF». В офісі: Fleet → судно → Чат показує канал Офіс, і суперінтендант може відповісти; повідомлення судна після останньої відповіді офісу стоять у списку «Чекає на вашу відповідь».",
+      ],
+    },
+    {
       emoji: '🪢',
       title: "Троси",
       body: [
@@ -4579,6 +4619,16 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '💬',
+      title: "Chat",
+      body: [
+        "Chatten er fartøyets egen samtale, lagret med fartøyet. Åpne den fra menyen → Chat. Tre kanaler: Mannskap — alle om bord leser og skriver, kontoret ser den ikke; Offiserer — bare offiserene og kapteinen; Kontor — offiserene og kapteinen med kontoret. En mannskapstelefon viser bare Mannskap. Det finnes ingen private meldinger: det som sies her, blir i fartøyets registre.",
+        "Velg navnet ditt under «Skriver som», skriv og trykk Send. En melding kan ikke endres eller slettes, så skriv bare det som kan lagres — ingen medisinske detaljer. Trykk @ Nevn eller skriv @ og et navn for å kalle på noen; i Kontor-kanalen kaller @Office på kontoret. «På engelsk (AI)» under feltet gjør teksten om til engelsk før du sender.",
+        "Meldinger kommer når enheten synkroniserer — det finnes ingen øyeblikkelig push. En melding som nevner deg vises først på Tavlen og, med påminnelser på, som varsel på enheten; nye meldinger i en kanal vises som en blå linje til du åpner den. De siste 60 meldingene vises; «Tidligere meldinger» henter eldre.",
+        "På papir: PDF for de siste 30 dagene eller hele kanalen, eller Del PDF. På kontoret: Fleet → fartøyet → Chat viser Kontor-kanalen og lar inspektøren svare; fartøyets meldinger siden kontoret sist skrev står under Venter på ditt svar.",
+      ],
+    },
+    {
       emoji: '🪢',
       title: "Tau og wire",
       body: [
@@ -5427,6 +5477,16 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '💬',
+      title: "Chat",
+      body: [
+        "O chat é a conversa própria do navio, guardada com o navio. Abra-o no menu → Chat. Três canais: Tripulação — todos a bordo leem e escrevem, o escritório não o vê; Oficiais — só os oficiais e o Comandante; Escritório — os oficiais e o Comandante com o escritório. Um telemóvel da tripulação mostra só Tripulação. Não há mensagens privadas: o que se diz aqui fica no registo do navio.",
+        "Escolha o seu nome em «A escrever como», escreva e toque em Enviar. Uma mensagem não pode ser alterada nem apagada, por isso escreva só o que pode ficar guardado — sem detalhes médicos. Toque em @ Mencionar ou escreva @ e um nome para chamar alguém; no canal Escritório, @Office chama o escritório. «Em inglês (AI)» por baixo da caixa passa o seu texto para inglês antes de enviar.",
+        "As mensagens chegam quando o dispositivo sincroniza — não há push instantâneo. Uma mensagem com o seu nome aparece primeiro no Painel e, com lembretes ligados, como notificação no dispositivo; mensagens novas num canal aparecem numa linha azul até o abrir. Veem-se as últimas 60 mensagens; «Mensagens anteriores» traz as mais antigas.",
+        "Em papel: PDF dos últimos 30 dias ou de todo o canal, ou Partilhar PDF. No escritório: Fleet → o navio → Chat mostra o canal Escritório e deixa o superintendente responder; as mensagens do navio desde a última resposta do escritório aparecem em À espera da sua resposta.",
+      ],
+    },
+    {
       emoji: '🪢',
       title: "Cabos e cabos de aço",
       body: [
@@ -5530,6 +5590,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Chemicals and safety data sheets', module: 'chem' },
   { title: 'Correspondence register', module: 'letters' },
   { title: "The Master's orders", module: 'orderBook' },
+  { title: 'Chat', module: 'chat' },
   { title: 'Ropes and wires', module: 'wires' },
   { title: "Crane operator's log", module: 'craneLog' },
   { title: 'Chemicals and safety data sheets', module: 'ptw', drop: [3] },

@@ -29,7 +29,7 @@
 //     has nothing to open on and no way to scan a label.
 // ===================================
 
-import { ModuleKey, moduleOn } from './modules';
+import { ModuleKey, moduleListed, moduleLocked } from './modules';
 
 export type TabKey = 'certificates' | 'documents' | 'permits' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'stores' | 'orders' | 'reports' | 'maintenance' | 'spares' | 'rest' | 'readiness' | 'dp' | 'watch' | 'familiar' | 'deckLog' | 'watchLog' | 'gmdss' | 'finance' | 'oil' | 'yard' | 'letters' | 'orderBook';
 
@@ -90,8 +90,16 @@ export const ALL_TABS: TabKey[] = OPTIONAL_TABS.map((t) => t.key);
 
 /** The optional tabs this build offers at all — those whose module is on. */
 export function releasedTabs(): OptionalTab[] {
-  return OPTIONAL_TABS.filter((t) => !t.module || moduleOn(t.module));
+  return OPTIONAL_TABS.filter((t) => !t.module || moduleListed(t.module));
 }
+
+/** A tab listed with a lock: its module needs a vessel (constants/modules moduleLocked). */
+export function routeLocked(route: string): boolean {
+  const module = OPTIONAL_TABS.find((t) => t.route === route)?.module ?? MENU_SCREEN_MODULE[route];
+  return !!module && moduleLocked(module);
+}
+/** Menu entries that are stack screens, not tabs (index.tsx menuExtras). */
+const MENU_SCREEN_MODULE: Record<string, ModuleKey> = { Chat: 'chat', MyDocs: 'myDocs' };
 
 /**
  * What a device shows. `tabs` is the record's field, `isMaster` its role.

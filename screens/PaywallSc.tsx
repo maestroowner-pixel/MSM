@@ -150,7 +150,7 @@ export default function PaywallSc() {
         <BackButton onPress={() => goBackOr(nav)} style={styles.close} />
 
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <Image source={require('../assets/msm-logo.png')} style={styles.logo} resizeMode="contain" />
+          <Image source={require('../assets/ismpilot-app-icon.png')} style={styles.logo} resizeMode="contain" />
           <Text style={styles.title}>{APP_CONFIG.name} Pro</Text>
           <Text style={styles.subtitle}>{t('pw.subtitle')}</Text>
 
@@ -287,7 +287,7 @@ const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
     close: { alignSelf: 'flex-start', paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm },
     scroll: { paddingHorizontal: SIZES.xl, paddingBottom: SIZES.lg, alignItems: 'center' },
-    logo: { width: 96, height: 96, marginTop: SIZES.sm, marginBottom: SIZES.md },
+    logo: { width: 96, height: 96, borderRadius: 22, marginTop: SIZES.sm, marginBottom: SIZES.md },
     title: { fontSize: SIZES.h1, fontWeight: '800', color: COLORS.textDark, textAlign: 'center' },
     subtitle: {
       fontSize: SIZES.body,

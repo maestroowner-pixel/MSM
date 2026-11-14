@@ -26,6 +26,7 @@ import { awaitsOffice, deferralsToAnswer, ncAwaitsOffice } from './officeCheck';
 import { emergencyOpen, officeQueue, round } from './poApproval';
 import { mocsToAnswer, sentToOffice } from './moc';
 import { threadsToAnswer } from './threads';
+import { officeOwes } from './chat';
 import { critSummary } from './critEq';
 import { inspStatus } from './extInspections';
 import { activeDeferral, jobDue } from './pms';
@@ -41,10 +42,11 @@ export interface OfficeParts {
   ext: boolean;
   moc: boolean;
   threads: boolean;
+  chat: boolean;
 }
 
 /** The vessel's own word (added or taken away), else the build's (`buildOn`, constants/modules moduleOn). */
-export function officeParts(v: Pick<VesselData, 'modules'>, buildOn: (k: 'officeCheck' | 'poApproval' | 'critEq' | 'extInsp' | 'moc' | 'threads') => boolean): OfficeParts {
+export function officeParts(v: Pick<VesselData, 'modules'>, buildOn: (k: 'officeCheck' | 'poApproval' | 'critEq' | 'extInsp' | 'moc' | 'threads' | 'chat') => boolean): OfficeParts {
   const m = v.modules ?? {};
   return {
     office: m.officeCheck ?? buildOn('officeCheck'),
@@ -53,12 +55,13 @@ export function officeParts(v: Pick<VesselData, 'modules'>, buildOn: (k: 'office
     ext: m.extInsp ?? buildOn('extInsp'),
     moc: m.moc ?? buildOn('moc'),
     threads: m.threads ?? buildOn('threads'),
+    chat: m.chat ?? buildOn('chat'),
   };
 }
 
-export type InboxKind = 'deferral' | 'closure' | 'nc' | 'po' | 'emergency' | 'moc' | 'thread';
+export type InboxKind = 'deferral' | 'closure' | 'nc' | 'po' | 'emergency' | 'moc' | 'thread' | 'chat';
 /** The vessel tab the row belongs to (FleetVesselSc `Tab`). */
-export type InboxTab = 'verify' | 'po' | 'moc' | 'talk';
+export type InboxTab = 'verify' | 'po' | 'moc' | 'talk' | 'chat';
 
 export interface InboxItem {
   imo: string;
@@ -107,6 +110,10 @@ export function inboxOf(v: VesselData, on: OfficeParts): InboxItem[] {
     for (const { last, since } of threadsToAnswer(v.threads ?? [])) {
       out.push({ ...base, kind: 'thread', id: last.recId, title: last.title, by: who(last.by, last.byRank), since, tab: 'talk' });
     }
+  }
+  if (on.chat) {
+    const owed = officeOwes(v.chatOffice ?? []);
+    if (owed) out.push({ ...base, kind: 'chat', id: owed.last.id, title: owed.last.text.length > 80 ? `${owed.last.text.slice(0, 80)}…` : owed.last.text, by: who(owed.last.by, owed.last.byRank), since: owed.since, tab: 'chat' });
   }
   return out.sort(byAge);
 }

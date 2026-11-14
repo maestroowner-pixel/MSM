@@ -1,6 +1,6 @@
 // npm run check:modules — a vessel's module list adds to the build and takes away
 // from it, and Fleet's office parts agree.
-import { MODULES, ModuleKey, cleanModules, moduleOn, moduleOnFor, setVesselModules, vesselModuleKeys } from '../constants/modules';
+import { MODULES, ModuleKey, STANDALONE_MODULES, cleanModules, isStandalone, moduleListed, moduleLocked, moduleOn, moduleOnFor, setStandalone, setVesselModules, vesselModuleKeys } from '../constants/modules';
 import { officeParts } from '../services/officeInbox';
 
 let failed = 0;
@@ -24,6 +24,20 @@ ok(JSON.stringify(cleanModules(null)) === '{}', 'no field at all: nothing');
 
 ok(!moduleOnFor(released, { [released]: false }) && moduleOnFor(dark, { [dark]: true }), 'from outside the vessel: the same answer');
 ok(moduleOnFor(released, undefined) && !moduleOnFor(dark, null), 'from outside, no list: the build');
+
+// A device without a vessel: the register only.
+ok(!isStandalone(), 'no browser storage, nothing said: as the build');
+ok(setStandalone(true) === true && !moduleOn(released) && moduleOn('pms') && moduleOn('crewCerts'), 'without a vessel: the register, no DP');
+ok(!moduleOn('chat') && !moduleOn('ai') && !moduleOn('board'), 'without a vessel: no chat, AI or Board');
+ok(moduleListed(released) && moduleLocked(released) && !moduleLocked('pms'), 'without a vessel: DP listed with a lock, PMS open');
+ok(!moduleListed(dark) && !moduleLocked(dark), 'a module off in the build is not even listed');
+ok([...STANDALONE_MODULES].every((k) => MODULES[k]), 'the standalone set is all released modules');
+setVesselModules({ chat: true });
+ok(!moduleOn('chat'), 'a stale vessel list does not open a module without a vessel');
+ok(moduleOnFor(released, undefined), 'Fleet reading a vessel is not this device');
+ok(setStandalone(false) === true && moduleOn(released) && moduleOn('chat') && !moduleLocked(released), 'joined a vessel: all of it back, nothing locked');
+setVesselModules({});
+ok(setStandalone(false) === false, 'the same again changes nothing');
 
 const parts = officeParts({ modules: { poApproval: false, moc: true } }, () => true);
 ok(!parts.po && parts.moc && parts.office, 'Fleet\'s office parts: the vessel\'s word first');

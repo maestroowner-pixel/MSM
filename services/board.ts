@@ -73,6 +73,7 @@ import { orderBoard } from './orderBook';
 import { wireBoard } from './wireLog';
 import { LIFTING_KEYS } from '../constants/lifting';
 import { THREAD_ROUTE, threadKey, unreadFromOffice, unreadMentions } from './threads';
+import { CHAT_CHANNELS, chatMentions, unreadChat } from './chat';
 import { t, tk, tn } from '../utils/t';
 
 export type Level = 'red' | 'amber' | 'blue';
@@ -231,7 +232,9 @@ export interface BoardInput {
   wireLog?: import('../types/wireLog').WireEntry[];
   /** Discussion on a record, and what this device has read of it (services/threads). */
   threads?: import('../types/thread').ThreadMessage[];
-  prefs?: { threadRead?: Record<string, number>; myDocsSeen?: number };
+  /** Chat, all channels this device holds (types/chat.ts). */
+  chat?: import('../types/chat').ChatMessage[];
+  prefs?: { threadRead?: Record<string, number>; myDocsSeen?: number; chatRead?: Partial<Record<import('../types/chat').ChatChannel, number>> };
   /** Hours of rest and the watch plans — for breaches the plan brings (services/restPlan). */
   rest?: import('../types/rest').RestDay[];
   restPlans?: import('../types/restPlan').RestPlan[];
@@ -876,6 +879,26 @@ export function buildBoard(x: BoardInput): Board {
     for (const m of unreadFromOffice(all, read)) {
       const k = threadKey(m.rec, m.recId);
       if (!namedOn.has(k)) n.push({ key: `th:office:${k}`, level: 'blue', who: 'officer', icon: 'message-text-outline', route: THREAD_ROUTE[m.rec], params: { id: m.recId }, title: t('b.th.office'), sub: m.title });
+    }
+  }
+
+  // ---- Chat: who was named, and what is new in a channel (services/chat) ----
+  // A crew device holds only the crew channel, so the others never show there.
+  if (x.on('chat')) {
+    const all = x.chat ?? [];
+    const read = x.prefs?.chatRead ?? {};
+    const named = chatMentions(all, x.me?.name, read);
+    for (const ch of CHAT_CHANNELS) {
+      const who = ch === 'crew' ? 'all' : 'officer';
+      const m = named.find((y) => y.ch === ch);
+      if (m) {
+        n.push({ key: `chat:me:${ch}`, first: true, level: 'amber', who, icon: 'at', route: 'Chat', params: { ch }, title: t('b.chat.mention', { by: m.by }), sub: tk(`chat.ch.${ch}`) });
+        continue;
+      }
+      const fresh = unreadChat(all, ch, x.me?.name, read);
+      if (!fresh.length) continue;
+      const last = fresh[fresh.length - 1];
+      n.push({ key: `chat:new:${ch}`, level: 'blue', who, icon: 'chat-outline', route: 'Chat', params: { ch }, title: t(ch === 'office' && fresh.some((y) => y.side === 'office') ? 'b.chat.office' : 'b.chat.new', { n: fresh.length, ch: tk(`chat.ch.${ch}`) }), sub: `${last.by}: ${last.text.length > 80 ? `${last.text.slice(0, 80)}…` : last.text}` });
     }
   }
 

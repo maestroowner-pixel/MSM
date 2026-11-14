@@ -136,6 +136,10 @@ export const WARRANTY_CLAIMS_KEY = `${PREFIX}warranty_claims`;
 export const EXT_INSP_KEY = `${PREFIX}ext_inspections`;
 /** Discussion on a record (types/thread.ts) — one document per message. */
 export const THREADS_KEY = `${PREFIX}threads`;
+/** Chat (types/chat.ts): one list per channel, as in the cloud — append-only. */
+export const CHAT_CREW_KEY = `${PREFIX}chat_crew`;
+export const CHAT_OFFICERS_KEY = `${PREFIX}chat_officers`;
+export const CHAT_OFFICE_KEY = `${PREFIX}chat_office`;
 /** Management of change (types/moc.ts) — the change, its approvals, actions and closure. */
 export const MOCS_KEY = `${PREFIX}mocs`;
 export const APPRAISALS_KEY = `${PREFIX}crew_appraisals`;
@@ -495,6 +499,10 @@ export interface Prefs {
   threadRead?: Record<string, number>;
   /** The latest mention this device has notified about. Device-local. */
   threadNotifiedAt?: number;
+  /** Chat channels opened on this device: channel → the latest message seen (services/chat). Device-local. */
+  chatRead?: Partial<Record<'crew' | 'officers' | 'office', number>>;
+  /** The latest chat mention this device has notified about. Device-local. */
+  chatNotifiedAt?: number;
   /** When this person last opened My documents, and the latest change notified about (services/myDocs). Device-local. */
   myDocsSeen?: number;
   myDocsNotifiedAt?: number;
@@ -976,6 +984,9 @@ export async function resetAllData(): Promise<void> {
     CATEGORIES_KEY,
     PURCHASE_ORDERS_KEY,
     THREADS_KEY,
+    CHAT_CREW_KEY,
+    CHAT_OFFICERS_KEY,
+    CHAT_OFFICE_KEY,
     MOCS_KEY,
     APPRAISALS_KEY,
     AP_FORM_KEY,

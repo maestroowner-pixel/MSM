@@ -440,6 +440,20 @@ app mirrors. Bundle id `com.kukalab.msm`.
   Master — unsigned watchkeepers of a running night, nights to close, revisions not signed by all (blue). DP orders count only with `dp`.
   Fleet: read-only tab `orders` (`components/FleetOrders.tsx`; `shore.loadVessel` reads the three). In .msm, erased with the device.
   `npm run check:orders`; rules-test.mjs covers it. `npm run deploy:rules` before the flag.
+- **Chat** (14 Nov 2026 — flag `chat`, off): `types/chat.ts`, pure `services/chat.ts`, paper `services/chatReport.ts` (PMS-history PDF, last 30 days or
+  all, saved or shared), screen `ChatSc` (route `Chat` `chat`, `ch`/`view` crew|officers|office; menu: beside the Board, for everyone — `menuExtras`,
+  no Access column; pages Crew / Officers / Office, the last two `officers: true`), Fleet `components/FleetChat.tsx` (tab `chat`, office channel
+  only; `shore.postChatMessage`). Built on the discussion's engine (`ThreadPanel`, `mentionsIn`), ONE COLLECTION PER CHANNEL so the rules decide
+  who reads: `chat_crew` (members read/write, the office never reads), `chat_officers` (isAdmin, synced `officers: true`), `chat_office` (isAdmin
+  as the vessel + shore as the office; officers only aboard). Append-only, `ch` must match the collection, ≤ 2000 chars, closed field list. No
+  messages one to one (a channel stays on the vessel's record). `@Office` counts only in the office channel. The office owes an answer for every
+  vessel message since it last wrote (`officeOwes` → inbox kind `chat`). The latest `CHAT_PAGE` (60) show, "Earlier messages" adds more. Board:
+  a mention is `first` amber per channel, otherwise one blue line per channel with new messages (who: crew → all, others → officer). Read state
+  device-local (`prefs.chatRead`, `chatNotifiedAt`); notification LOCAL after a sync, no push. In .msm, erased with the device. `npm run check:chat`;
+  rules-test.mjs covers it. `npm run deploy:rules` before the flag.
+  **Prefs before the first load** (same day, DataContext `setPrefs`/`overPrefs`): a screen opened by a link set `chatRead`/`threadRead` before
+  prefs were read, and the save of `{...{}, patch}` wiped the file (lastCrewId, other channels' read marks). Until the first load `setPrefs` lays
+  the patch over the FILE, a nested map adds to the file's map, and `reload` lays changes not yet on disk over what it read.
 - **Rope and wire log** (7 Nov 2026 — flag `wires`, off; needs `lifting`; plan item 67, UniSea's "Wire Manager"): `types/wireLog.ts`,
   pure `services/wireLog.ts` + rows `services/wireRows.ts` (pure, so check:wirelog can reach them), papers `services/wireReport.ts`
   (PMS-history PDF + Excel Ropes/Log), `components/WireLogCard.tsx` (on ItemDetail), screens `WireEntrySc` (route `WireEntry`
@@ -548,6 +562,34 @@ app mirrors. Bundle id `com.kukalab.msm`.
   (see `parseDeepLink` in `qrLabel.ts`); `index.tsx` captures the link (getInitialURL + 'url' event)
   and, for `msm://item/<id>`, recovers the item's category from the register before navigating
   ItemDetail. No-op on web/Windows/Expo Go (native modules absent, wrapped in try/catch).
+
+### A device without a vessel sees the register only (14 Nov 2026)
+The owner: hide the extras from people who only install the app, so competitors don't copy them. Anyone can install the app or open
+the web, but joining a vessel needs a setup code that only we issue. So a device that holds NO device secret is "standalone".
+On it, `moduleOn` answers true only for `STANDALONE_MODULES` (constants/modules.ts): lifting, crewCerts, rest, pms, spares, docs,
+signConfirm, i18n. On top of these are the screens that are not modules (Equipment, Certificates, Reports, Settings), and the
+old Dashboard instead of the Board.
+- Web reads `msm:msm_device_secret` from localStorage at import. Phones start as the build, and SyncContext reads the secret
+  behind the splash; `connect` and `disconnect` set it again (`modulesRev` re-renders).
+- `moduleOnFor` (Fleet reading a vessel) is not affected. Windows (no sync) is left as the build.
+- Every stack screen that belongs to a module is wrapped in `gated()` (index.tsx `SCREEN_MODULES`). Before this, a direct
+  link (/da-tests, /letter/…, /chat) opened a module's screen even with the module OFF on any build.
+  A new module screen gets its entry there.
+- The menu still LISTS them, with a lock (same day, the owner's follow-up). `moduleListed` (build + vessel, ignoring standalone)
+  feeds `releasedTabs`, menuExtras and NavMenu. `moduleLocked` = listed && !on. A locked tab (`routeLocked`, constants/access) and a
+  locked stack screen (`gated()`) render components/Locked: "Available on a vessel" + Join a vessel (Enrol) / Request a quote
+  (Paywall). A module OFF in the build is neither listed nor locked: a direct link goes to the start.
+- In the STORE apps the lock screen says only "opens on a device that has joined a vessel" + Join a vessel: no trial,
+  no mail, no licence (App Store 3.1.1; we are the enterprise kind, 3.1.3(c)). The trial steps and "Request a trial" mail are web only.
+- `npm run check:modules` covers it.
+
+### Store reviewers' account (14 Nov 2026)
+App Review must reach every part (2.1). The account is a Master invitation `inv_app_review` (App Review, PIN from the script) on
+the demo vessel 1234567, with `review: true`. `functions/access.js isReviewInvite` keeps it open: no 48 hours and any number of
+devices, but ONLY on `REVIEW_VESSELS` (a Master can write any field of his own invites). Create, show or change it with
+`cd functions && npm run review-invite [-- --new-pin | --revoke]`. The details go into App Store Connect → App Review
+Information and Play Console → App access. Tests: check:enrolguard. Accounts may show the invitation as expired: that is
+cosmetic, the server lets it in.
 
 ## Architecture
 ```

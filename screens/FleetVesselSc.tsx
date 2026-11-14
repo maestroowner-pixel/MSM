@@ -54,12 +54,14 @@ import { ThreadMessage, ThreadRec } from '../types/thread';
 import { isAboard } from '../types/crew';
 import { FleetLetters } from '../components/FleetLetters';
 import { FleetOrders } from '../components/FleetOrders';
+import { FleetChat } from '../components/FleetChat';
+import { officeOwes } from '../services/chat';
 import { nowLocal } from '../services/permits';
 import { orderBoard } from '../services/orderBook';
 import { isOpen, letterState } from '../services/correspondence';
 import { t, tk, useT } from '../utils/i18n';
 
-type Tab = 'certs' | 'docs' | 'equipment' | 'pms' | 'verify' | 'insp' | 'crit' | 'po' | 'moc' | 'talk' | 'letters' | 'orders';
+type Tab = 'certs' | 'docs' | 'equipment' | 'pms' | 'verify' | 'insp' | 'crit' | 'po' | 'moc' | 'talk' | 'letters' | 'orders' | 'chat';
 const SCOPES: { key: CertificateScope; label: string }[] = [
   { key: 'vessel', label: 'Vessel' },
   { key: 'crew', label: 'Crew' },
@@ -177,6 +179,9 @@ export default function FleetVesselSc() {
       ])
     : null;
   if (talkRows) tabs.push(['talk', `${t('th.tab')} · ${threadsToAnswer(v.threads ?? []).length}`]);
+  // Chat (services/chat): the office channel only; the count is the vessel's messages since the office last wrote.
+  const chatOn = moduleOnFor('chat', v.modules);
+  if (chatOn) tabs.push(['chat', `${t('chat.title')} · ${officeOwes(v.chatOffice ?? [])?.n ?? 0}`]);
   // Management of change (services/moc): waiting for the office's answer, then the rest, newest first.
   const mocQueue = moduleOnFor('moc', v.modules) ? mocsToAnswer(v.mocs ?? []) : null;
   const mocRest = mocQueue ? (v.mocs ?? []).filter((m) => mocStage(m) !== 'office').sort((a, b) => b.updatedAt - a.updatedAt) : [];
@@ -223,7 +228,9 @@ export default function FleetVesselSc() {
         ))}
       </View>
 
-      {tab === 'orders' && ordersOn ? (
+      {tab === 'chat' && chatOn ? (
+        <FleetChat imo={v.imo} vesselName={v.name} messages={v.chatOffice ?? []} people={v.crew.filter(isAboard).map((c) => c.name)} onPosted={(m) => setV((x) => (x ? { ...x, chatOffice: [...(x.chatOffice ?? []), m] } : x))} />
+      ) : tab === 'orders' && ordersOn ? (
         <FleetOrders imo={v.imo} vesselName={v.name} nights={v.nightOrders ?? []} standing={v.standingOrders ?? []} acks={v.orderAcks ?? []} crew={v.crew ?? []} dp={dpOn} />
       ) : tab === 'letters' && letters ? (
         <FleetLetters imo={v.imo} vesselName={v.name} letters={letters} onSent={(l) => setV((x) => (x ? { ...x, letters: [...(x.letters ?? []), l] } : x))} />

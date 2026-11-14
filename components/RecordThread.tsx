@@ -23,8 +23,9 @@ const when = (at: number) => {
   return `${p(d.getDate())}.${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`;
 };
 
-export function ThreadPanel({ messages, tags, onSend, picker, english }: {
-  messages: ThreadMessage[];
+export function ThreadPanel({ messages, tags, onSend, picker, english, hint, before }: {
+  /** A record's discussion or a chat channel (types/chat.ts) — what both have. */
+  messages: Pick<ThreadMessage, 'id' | 'text' | 'by' | 'byRank' | 'at' | 'side'>[];
   /** Who can be mentioned here, without the @. */
   tags: string[];
   /** Resolves true when the message went in; false leaves the text in the box. */
@@ -32,6 +33,10 @@ export function ThreadPanel({ messages, tags, onSend, picker, english }: {
   picker?: React.ReactElement | null;
   /** The vessel's side: "In English (AI)" under the box. */
   english?: boolean;
+  /** Who reads it, under the box — a chat channel says its own (services/chat). */
+  hint?: string;
+  /** Above the messages — a chat channel's "Earlier messages". */
+  before?: React.ReactElement | null;
 }) {
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -52,6 +57,7 @@ export function ThreadPanel({ messages, tags, onSend, picker, english }: {
   };
   return (
     <>
+      {before ?? null}
       {messages.length ? null : <Text style={styles.sub}>{t('th.empty')}</Text>}
       {messages.map((m) => (
         <View key={m.id} style={[styles.msg, m.side === 'office' && styles.msgOffice]}>
@@ -89,7 +95,7 @@ export function ThreadPanel({ messages, tags, onSend, picker, english }: {
           </TouchableOpacity>
         ) : null}
       </View>
-      <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{t('th.hint')}</Text>
+      <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{hint ?? t('th.hint')}</Text>
     </>
   );
 }

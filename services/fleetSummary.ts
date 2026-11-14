@@ -46,6 +46,8 @@ export interface VesselData {
   letters?: import('../types/correspondence').Letter[];
   /** The Master's orders (types/orderBook.ts). */
   nightOrders?: import('../types/orderBook').NightOrder[];
+  /** The chat's office channel (types/chat.ts) — the only channel the office reads. */
+  chatOffice?: import('../types/chat').ChatMessage[];
   standingOrders?: import('../types/orderBook').StandingOrder[];
   orderAcks?: import('../types/orderBook').OrderAck[];
   orders?: import('../types/orders').PurchaseOrder[];

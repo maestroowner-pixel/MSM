@@ -91,13 +91,30 @@ const millis = (v) => (typeof v === 'number' ? v : v && typeof v.toMillis === 'f
  * `createdAt`, its own clock, and does not restamp a new PIN — there the 48 hours
  * run from the invitation itself.
  */
-function inviteClosed(invite, deviceId, now = Date.now()) {
+function inviteClosed(invite, deviceId, now = Date.now(), vessel = null) {
   if (!invite || !SELF_APPROVING.includes(invite.role)) return null;
+  if (isReviewInvite(invite, vessel)) return null;
   const issued = millis(invite.issuedAt) || millis(invite.createdAt);
   if (!issued) return 'expired';
   const others = (invite.activations || []).filter((a) => a.deviceId !== deviceId && millis(a.at) >= issued);
   if (others.length) return 'used';
   return now - issued > INVITE_TTL_MS ? 'expired' : null;
+}
+
+// ---- the store's reviewers (14 Nov 2026) -------------------------------------
+//
+// App Store and Play reviewers must see every part of the app (App Store 2.1),
+// and the parts open only on a device that has joined a vessel. Their account is
+// a Master invitation on our demo vessel, marked `review: true` by
+// functions/scripts/review-invite.js: it stays open (no 48 hours, any number of
+// devices), so a review a week later on two iPads still gets in. Only on the
+// vessels below — a Master anywhere can write that field on his own invitations
+// (firestore.rules lets the Master write invites), and it must mean nothing there.
+const REVIEW_VESSELS = ['1234567'];
+
+/** A store reviewer's invitation on our demo vessel (above). */
+function isReviewInvite(invite, vessel) {
+  return !!invite && invite.review === true && REVIEW_VESSELS.includes(String(vessel || ''));
 }
 
 const CLOSED_TEXT = {
@@ -152,6 +169,8 @@ module.exports = {
   liveCaller,
   revokeOnSwitchOff,
   inviteClosed,
+  isReviewInvite,
+  REVIEW_VESSELS,
   CLOSED_TEXT,
   INVITE_TTL_MS,
   SELF_APPROVING,

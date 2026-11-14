@@ -985,6 +985,35 @@ service cloud.firestore {
                           || (shore(v) && request.resource.data.side == 'office'));
         allow update, delete: if false;
       }
+      // Chat (types/chat.ts, services/chat): a collection per channel, one document per
+      // message, never changed or deleted. Crew: everyone aboard reads and writes, the
+      // office never reads it. Officers: officers and the Master only. Office: officers
+      // and the Master as the vessel, the office as the office; both read.
+      function chatMessageOk(id, ch) {
+        let m = request.resource.data;
+        return m.keys().hasOnly(['id', 'ch', 'text', 'by', 'byRank', 'at', 'side', 'mentions', 'office', 'updatedAt'])
+               && m.keys().hasAll(['id', 'ch', 'text', 'by', 'at', 'side'])
+               && m.id == id && m.ch == ch
+               && m.text is string && m.text.size() > 0 && m.text.size() <= 2000
+               && m.by is string && m.by.size() > 0 && m.at is number;
+      }
+      match /chat_crew/{id} {
+        allow read: if member(v);
+        allow create: if chatMessageOk(id, 'crew') && member(v) && request.resource.data.side == 'vessel';
+        allow update, delete: if false;
+      }
+      match /chat_officers/{id} {
+        allow read: if isAdmin(v);
+        allow create: if chatMessageOk(id, 'officers') && isAdmin(v) && request.resource.data.side == 'vessel';
+        allow update, delete: if false;
+      }
+      match /chat_office/{id} {
+        allow read: if isAdmin(v) || shore(v);
+        allow create: if chatMessageOk(id, 'office')
+                      && ((isAdmin(v) && request.resource.data.side == 'vessel')
+                          || (shore(v) && request.resource.data.side == 'office'));
+        allow update, delete: if false;
+      }
       // Crew appraisals (types/appraisal.ts, services/appraisals.ts): officers and
       // the Master only — the office reads. A draft is written freely; once the
       // appraiser signed, a write adds at most ONE step and nothing else: the

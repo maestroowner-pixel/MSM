@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals' | 'restPlan' | 'daTests' | 'threads' | 'emissions' | 'myDocs' | 'mySdm' | 'chem' | 'wires' | 'quoteLink' | 'craneLog' | 'letters' | 'orderBook';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals' | 'restPlan' | 'daTests' | 'threads' | 'emissions' | 'myDocs' | 'mySdm' | 'chem' | 'wires' | 'quoteLink' | 'craneLog' | 'letters' | 'orderBook' | 'chat';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -376,6 +376,13 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * 14 Nov 2026. Officers and the Master only. Needs `npm run deploy:rules` first.
    */
   orderBook: false,
+  /**
+   * Chat — three channels: everyone aboard, the officers and the Master, and the
+   * officers with the office (types/chat.ts, 14 Nov 2026). No messages one to one.
+   * Notifications are local, after a sync — no push. Needs `npm run deploy:rules`
+   * first (chat_crew, chat_officers, chat_office).
+   */
+  chat: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------
@@ -438,8 +445,65 @@ export function vesselModuleKeys(): ModuleKey[] {
   return (Object.keys(vesselModules) as ModuleKey[]).filter((k) => vesselModules[k]);
 }
 
+// ---- a device without a vessel (14 Nov 2026) ---------------------------------
+//
+// "Прикроем для нулевых пользователей плюшечки — боязно, что конкуренты
+// скопируют" — the owner, 14 Nov 2026. Anybody can install the app or open the
+// web one and use it on its own, a competitor as well as a tester; joining a
+// vessel needs a setup code only we issue. So a device that has not joined one
+// sees the register everybody's app has — equipment and inspections, defects,
+// certificates, PMS with spares, hours of rest, ISM documents — and nothing of
+// the rest. Joining a vessel brings the rest back at once (SyncContext); what a
+// device recorded while a module was on is kept, as for any module off.
+//
+// The menu still lists them, with a lock (same day: "в меню все пункты, но
+// экраны под замком"): `moduleListed` is what the menu and the tab list read,
+// `moduleOn` what a screen's content reads, and a listed module that is not on
+// (`moduleLocked`) opens components/Locked instead of its screen.
+//
+// It answers only `moduleOn`, this device's own question: Fleet reading a
+// vessel (`moduleOnFor`) is a shore device, which is enrolled.
+//
+// Windows has no sync and so never joins a vessel: it is left as the build.
+
+/** What a device without a vessel has. Everything else needs a vessel. */
+export const STANDALONE_MODULES: ReadonlySet<ModuleKey> = new Set<ModuleKey>(['lifting', 'crewCerts', 'rest', 'pms', 'spares', 'docs', 'signConfirm', 'i18n']);
+
+// In a browser the device secret is in localStorage (firebaseService
+// `msm:msm_device_secret`) and is read here, before the first render, for the
+// same reason as the module list above. A phone starts as the build and
+// SyncContext reads the secret behind the splash. Windows never sets it.
+let standalone = false;
+try {
+  if (typeof localStorage !== 'undefined') standalone = !localStorage.getItem('msm:msm_device_secret');
+} catch {
+  /* no storage: as the build */
+}
+
+/** Has this device joined a vessel? Returns true when it changed what is on. */
+export function setStandalone(on: boolean): boolean {
+  const changed = on !== standalone;
+  standalone = on;
+  return changed;
+}
+
+export function isStandalone(): boolean {
+  return standalone;
+}
+
 export function moduleOn(key: ModuleKey): boolean {
+  if (standalone && !STANDALONE_MODULES.has(key)) return false;
   return moduleOnFor(key, vesselModules);
+}
+
+/** In the menu: as the build and the vessel say, a device without a vessel too. */
+export function moduleListed(key: ModuleKey): boolean {
+  return moduleOnFor(key, vesselModules);
+}
+
+/** In the menu but not on this device: it has not joined a vessel. */
+export function moduleLocked(key: ModuleKey): boolean {
+  return moduleListed(key) && !moduleOn(key);
 }
 
 /** The same answer for a vessel read from outside it (Fleet): the vessel's word, else the build's. */

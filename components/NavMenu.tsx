@@ -43,7 +43,7 @@ import { moduleOn } from '../constants/modules';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { roleAtLeast } from '../types/role';
-import { MANAGE_ROUTE } from '../constants/access';
+import { MANAGE_ROUTE, routeLocked as isLocked } from '../constants/access';
 import { StoreKind, storeRooms } from '../types/stores';
 import { t as tr, useT } from '../utils/i18n';
 import { MENU_CHILDREN, MENU_GEAR, MenuChild, applyOrder, flatGrouped, grouped, move, moveInGroup, groupOf } from '../utils/navOrder';
@@ -307,7 +307,9 @@ function MenuList({
             </TouchableOpacity>
           ) : group.label ? <View style={styles.groupRow}>{head}</View> : group.key === 'home' ? null : <View style={styles.sep} />}
           {shut ? null : routes.map((r, i) => {
-            const shown = childrenOf(r)?.filter((k) => (!k.module || moduleOn(k.module)) && sync.pageOn(`${k.route ?? r}:${k.view}`));
+            // A locked entry (constants/modules moduleLocked) is one row with a lock: its pages are behind it.
+            const lock = isLocked(r);
+            const shown = lock ? undefined : childrenOf(r)?.filter((k) => (!k.module || moduleOn(k.module)) && sync.pageOn(`${k.route ?? r}:${k.view}`));
             // Every page hidden for this device: the entry opens its screen as one without pages.
             const kids = shown?.length ? shown : undefined;
             // The only screen of its group: the heading stands in for its row.
@@ -331,6 +333,7 @@ function MenuList({
                     <MciIcon name="cog-outline" size={20} color={r === current && currentView === 'manage' ? COLORS.primary : COLORS.textLight} />
                   </TouchableOpacity>
                 ) : null}
+                {lock && !editing ? <MciIcon name="lock-outline" size={16} color={COLORS.textLight} /> : null}
                 {kids && !editing ? <MciIcon name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={COLORS.textLight} /> : null}
                 {editing && routes.length > 1 ? (
                   <View style={{ flexDirection: 'row', gap: SIZES.xs }}>

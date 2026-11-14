@@ -54,10 +54,10 @@ ok(unreadFromOffice(fromOffice, { [K]: 2 }).length === 0, "the office's message 
 const rows = threadRows([M({ at: 1 }), M({ at: 9, rec: 'nc', recId: 'n1', title: 'NC-1' })], [{ rec: 'defect', recId: 'd1', title: 'Pump — leak' }, { rec: 'po', recId: 'p1', title: 'PO-1' }]);
 ok(rows.map((r) => r.recId).join() === 'n1,d1,p1' && rows[2].count === 0, 'latest first, then open records not discussed, none twice');
 const base: any = { imo: '1', name: 'V', machines: [], jobs: [], certificates: [], items: [], threads: [M({ office: true })] };
-const on = { office: false, po: false, crit: false, ext: false, moc: false, threads: true };
+const on = { office: false, po: false, crit: false, ext: false, moc: false, threads: true, chat: false };
 const row = inboxOf(base, on);
 ok(row.length === 1 && row[0].kind === 'thread' && row[0].tab === 'talk' && row[0].id === 'd1', 'in Waiting for you');
-ok(inboxOf(base, { ...on, threads: false }).length === 0, 'module off: not in the inbox');
+ok(inboxOf(base, { ...on, threads: false, chat: false }).length === 0, 'module off: not in the inbox');
 
 // The Board
 const EMPTY = {

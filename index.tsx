@@ -158,6 +158,7 @@ import ChemicalSc from './screens/ChemicalSc';
 import LettersSc from './screens/LettersSc';
 import LetterSc from './screens/LetterSc';
 import OrderBookSc from './screens/OrderBookSc';
+import ChatSc from './screens/ChatSc';
 import OrderEntrySc from './screens/OrderEntrySc';
 import WireLogSc from './screens/WireLogSc';
 import CraneLogSc from './screens/CraneLogSc';
@@ -168,14 +169,15 @@ import FleetSc from './screens/FleetSc';
 import FleetVesselSc from './screens/FleetVesselSc';
 import PmsWizardSc from './screens/PmsWizardSc';
 import ReplaceItemSc from './screens/ReplaceItemSc';
-import { OPTIONAL_TABS } from './constants/access';
+import { OPTIONAL_TABS, routeLocked } from './constants/access';
 import { FEW, MENU_WIDTH, NavMenuBar, PIN_WIDTH, flatGrouped, useNavPrefs } from './components/NavMenu';
 import { FavStar } from './components/Favourites';
 import { UpdatePrompt } from './components/UpdatePrompt';
 import { navRef } from './utils/favourites';
 import { MENU_LABEL } from './utils/navOrder';
 import { t, tk, useT } from './utils/i18n';
-import { moduleOn } from './constants/modules';
+import { moduleListed, moduleOn, type ModuleKey } from './constants/modules';
+import Locked from './components/Locked';
 import EnrolSc from './screens/EnrolSc';
 import { recordScanProof } from './services/signingPolicy';
 import { groupProofKey } from './services/checkGroups';
@@ -291,6 +293,88 @@ function TabFade({ children }: { children: React.ReactNode }) {
 // Full names for the menu, where there is room for them (components/NavMenu).
 // The menu's names: utils/navOrder.ts MENU_LABEL (shared with the Master's page).
 
+// A screen inside a module is registered whatever the module, so a link straight
+// to it (/chat, /da-tests, /letter/…) opened it with the module off — on a device
+// without a vessel too (constants/modules STANDALONE_MODULES). Each such screen
+// names its modules; with none of them on it goes back to the start — or, on a
+// device without a vessel, shows the lock (components/Locked).
+const SCREEN_MODULES: Record<string, ModuleKey[]> = {
+  Chat: ['chat'],
+  Emissions: ['emissions'],
+  EmPassage: ['emissions'],
+  RestPlan: ['restPlan'],
+  Drill: ['drills'],
+  Meeting: ['meetings'],
+  Ask: ['ai'],
+  MedItem: ['hospital'],
+  Treatment: ['hospital'],
+  MedOrder: ['hospital'],
+  MedCount: ['hospital'],
+  MedLanding: ['hospital'],
+  Order: ['orders'],
+  OrderGroup: ['orders'],
+  GalleyOrders: ['orders'],
+  GalleyOrder: ['orders'],
+  Suppliers: ['suppliers'],
+  Supplier: ['suppliers'],
+  Quote: ['suppliers'],
+  OilPoint: ['oil'],
+  OilSample: ['oil'],
+  YardProject: ['yard'],
+  YardJob: ['yard'],
+  WarrantyClaim: ['yard'],
+  Permit: ['ptw'],
+  Chemical: ['chem'],
+  Letter: ['letters'],
+  OrderEntry: ['orderBook'],
+  WireLog: ['wires'],
+  CraneLog: ['craneLog'],
+  Fleet: ['fleet'],
+  FleetVessel: ['fleet'],
+  ApiKeys: ['api'],
+  ExtInspections: ['extInsp'],
+  ExtInspection: ['extInsp'],
+  Mocs: ['moc'],
+  Moc: ['moc'],
+  Appraisals: ['appraisals'],
+  Appraisal: ['appraisals'],
+  ApForm: ['appraisals'],
+  DaTests: ['daTests'],
+  DaTest: ['daTests'],
+  InternalAudits: ['qhse'],
+  InternalAudit: ['qhse'],
+  Nc: ['qhse'],
+  Round: ['rounds'],
+  WatchEntry: ['watchLog'],
+  DeckEntry: ['deckLog'],
+  Handover: ['readiness'],
+  PscWalk: ['readiness'],
+  ServiceReport: ['serviceReport'],
+  DpCheck: ['dp', 'watchChecks'],
+  DpTemplates: ['dp'],
+  Access: ['access'],
+  MyDocs: ['myDocs'],
+};
+const gatedScreens = new Map<string, React.ComponentType<any>>();
+function gated(name: string, Screen: React.ComponentType<any>): React.ComponentType<any> {
+  let G = gatedScreens.get(name);
+  if (!G) {
+    G = function Gated(props: any) {
+      useSync(); // re-render when the vessel's modules change
+      const mods = SCREEN_MODULES[name] ?? [];
+      const on = mods.some(moduleOn);
+      // Listed but not on: a device without a vessel sees the lock, not the start.
+      const locked = !on && mods.some(moduleListed);
+      useEffect(() => {
+        if (!on && !locked) props.navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
+      }, [on, locked]); // eslint-disable-line react-hooks/exhaustive-deps
+      return on ? <Screen {...props} /> : locked ? <Locked /> : null;
+    };
+    gatedScreens.set(name, G);
+  }
+  return G;
+}
+
 function MainTabs() {
   const navigation = useNavigation<any>();
   const currentName = useRef('Dashboard');
@@ -311,7 +395,8 @@ function MainTabs() {
   // The menu also lists screens that are not tabs — the crew matrix, under Crew.
   // Crew list (FAL Form 5, import) and the crew matrix — Officers and the Master
   // keep them, but everyone may look; the screens say what each rank can do.
-  const menuExtras = moduleOn('crewCerts') ? ['Crew', 'CrewMatrix', ...(moduleOn('myDocs') ? ['MyDocs'] : [])] : [];
+  // Chat is for everyone aboard: in the menu whenever the module is on (services/chat).
+  const menuExtras = [...(moduleListed('chat') ? ['Chat'] : []), ...(moduleOn('crewCerts') ? ['Crew', 'CrewMatrix', ...(moduleListed('myDocs') ? ['MyDocs'] : [])] : [])];
   const available = useMemo(() => [...tabOrder, ...menuExtras], [tabOrder.join('|'), menuExtras.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
   const navPrefs = useNavPrefs(available);
   const many = tabOrder.length > FEW;
@@ -403,7 +488,7 @@ function MainTabs() {
                   <NavMenuBar
                     {...p}
                     {...navPrefs}
-                    icons={{ ...TAB_ICONS, Crew: 'clipboard-account-outline', CrewMatrix: 'table-account', MyDocs: 'card-account-details-outline' }}
+                    icons={{ ...TAB_ICONS, Crew: 'clipboard-account-outline', CrewMatrix: 'table-account', MyDocs: 'card-account-details-outline', Chat: 'chat-outline' }}
                     labelOf={(r) => MENU_LABEL[r] ?? r}
                   />
                 )
@@ -429,7 +514,7 @@ function MainTabs() {
             const Sc = OPTIONAL_SCREENS[t.route];
             return (
               <Tab.Screen key={t.route} name={t.route} options={{ title: tk(`tab.${t.route}`) }}>
-                {() => <TabFade><Sc /></TabFade>}
+                {() => <TabFade>{routeLocked(t.route) ? <Locked title={tk(`menu.${t.route}`)} /> : <Sc />}</TabFade>}
               </Tab.Screen>
             );
           })}
@@ -557,6 +642,7 @@ const linking = {
       DaTests: 'da-tests',
       DaTest: 'da-test/:id',
       MyDocs: 'my-documents',
+      Chat: 'chat',
       Emissions: 'emissions',
       EmPassage: 'em-passage/:id',
       RestPlan: 'watch-plan',
@@ -815,7 +901,7 @@ function Root() {
         <Stack.Screen name="Crew" component={CrewSc} options={webHeader(moduleOn('crewCerts') ? t('crw.list') : t('menu.group.crew'), toTab('Settings'))} />
         <Stack.Screen name="RestDay" component={RestDaySc} options={{ presentation: 'modal' }} />
         {/* Access became part of the Master's page (15 Oct 2026); the old address opens it. */}
-        <Stack.Screen name="Access" component={MasterSc} options={webHeader(t('master.title'), toTab('Settings'))} />
+        <Stack.Screen name="Access" component={gated('Access', MasterSc)} options={webHeader(t('master.title'), toTab('Settings'))} />
         <Stack.Screen name="MasterPage" component={MasterSc} options={webHeader(t('master.title'), toTab('Settings'))} />
         <Stack.Screen name="Machine" component={MachineSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsJob" component={PmsJobSc} options={{ presentation: 'modal' }} />
@@ -824,61 +910,62 @@ function Root() {
         <Stack.Screen name="AmsHours" component={AmsHoursSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsWizard" component={PmsWizardSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PmsProject" component={PmsProjectSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="WatchEntry" component={WatchEntrySc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="DeckEntry" component={DeckEntrySc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="InternalAudits" component={AuditsSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="InternalAudit" component={AuditSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="WatchEntry" component={gated('WatchEntry', WatchEntrySc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="DeckEntry" component={gated('DeckEntry', DeckEntrySc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="InternalAudits" component={gated('InternalAudits', AuditsSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="InternalAudit" component={gated('InternalAudit', AuditSc)} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Landings" component={LandingsSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="LandingReport" component={LandingReportSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Round" component={RoundSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Nc" component={NcSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="ExtInspections" component={ExtInspectionsSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="ExtInspection" component={ExtInspectionSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Mocs" component={MocsSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Moc" component={MocSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Appraisals" component={AppraisalsSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Appraisal" component={AppraisalSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="ApForm" component={ApFormSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="DaTests" component={DaTestsSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="DaTest" component={DaTestSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="MyDocs" component={MyDocsSc} options={webHeader(t('my.title'))} />
-        <Stack.Screen name="Emissions" component={EmissionsSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="EmPassage" component={EmPassageSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="RestPlan" component={RestPlanSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Drill" component={DrillSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Meeting" component={MeetingSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Ask" component={AskSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="MedItem" component={MedItemSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Treatment" component={TreatmentSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="MedOrder" component={MedOrderSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="MedCount" component={MedCountSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Order" component={OrderSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="OrderGroup" component={OrderGroupSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Suppliers" component={SuppliersSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Supplier" component={SupplierSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Quote" component={QuoteSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="OilPoint" component={OilPointSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="OilSample" component={OilSampleSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="YardProject" component={YardProjectSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="YardJob" component={YardJobSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="WarrantyClaim" component={WarrantyClaimSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="GalleyOrders" component={GalleyOrdersSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="GalleyOrder" component={GalleyOrderSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="MedLanding" component={MedLandingSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Round" component={gated('Round', RoundSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Nc" component={gated('Nc', NcSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="ExtInspections" component={gated('ExtInspections', ExtInspectionsSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="ExtInspection" component={gated('ExtInspection', ExtInspectionSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Mocs" component={gated('Mocs', MocsSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Moc" component={gated('Moc', MocSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Appraisals" component={gated('Appraisals', AppraisalsSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Appraisal" component={gated('Appraisal', AppraisalSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="ApForm" component={gated('ApForm', ApFormSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="DaTests" component={gated('DaTests', DaTestsSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="DaTest" component={gated('DaTest', DaTestSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="MyDocs" component={gated('MyDocs', MyDocsSc)} options={webHeader(t('my.title'))} />
+        <Stack.Screen name="Chat" component={gated('Chat', ChatSc)} options={webHeader(t('chat.title'))} />
+        <Stack.Screen name="Emissions" component={gated('Emissions', EmissionsSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="EmPassage" component={gated('EmPassage', EmPassageSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="RestPlan" component={gated('RestPlan', RestPlanSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Drill" component={gated('Drill', DrillSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Meeting" component={gated('Meeting', MeetingSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Ask" component={gated('Ask', AskSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="MedItem" component={gated('MedItem', MedItemSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Treatment" component={gated('Treatment', TreatmentSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="MedOrder" component={gated('MedOrder', MedOrderSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="MedCount" component={gated('MedCount', MedCountSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Order" component={gated('Order', OrderSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="OrderGroup" component={gated('OrderGroup', OrderGroupSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Suppliers" component={gated('Suppliers', SuppliersSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Supplier" component={gated('Supplier', SupplierSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Quote" component={gated('Quote', QuoteSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="OilPoint" component={gated('OilPoint', OilPointSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="OilSample" component={gated('OilSample', OilSampleSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="YardProject" component={gated('YardProject', YardProjectSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="YardJob" component={gated('YardJob', YardJobSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="WarrantyClaim" component={gated('WarrantyClaim', WarrantyClaimSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="GalleyOrders" component={gated('GalleyOrders', GalleyOrdersSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="GalleyOrder" component={gated('GalleyOrder', GalleyOrderSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="MedLanding" component={gated('MedLanding', MedLandingSc)} options={{ presentation: 'modal' }} />
         <Stack.Screen name="SparePart" component={SparePartSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Doc" component={DocSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="CrewMember" component={CrewMemberSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Permit" component={PermitSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Chemical" component={ChemicalSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Letter" component={LetterSc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="OrderEntry" component={OrderEntrySc} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="WireLog" component={WireLogSc} options={webHeader(t('rope.listTitle'))} />
-        <Stack.Screen name="CraneLog" component={CraneLogSc} options={webHeader(t('crane.title'))} />
+        <Stack.Screen name="Permit" component={gated('Permit', PermitSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Chemical" component={gated('Chemical', ChemicalSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="Letter" component={gated('Letter', LetterSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="OrderEntry" component={gated('OrderEntry', OrderEntrySc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="WireLog" component={gated('WireLog', WireLogSc)} options={webHeader(t('rope.listTitle'))} />
+        <Stack.Screen name="CraneLog" component={gated('CraneLog', CraneLogSc)} options={webHeader(t('crane.title'))} />
         <Stack.Screen name="WireEntry" component={WireEntrySc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Risk" component={RiskSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="CrewMatrix" component={CrewMatrixSc} options={webHeader(t('cm.title'))} />
-        <Stack.Screen name="Fleet" component={FleetSc} options={webHeader(t('fleet.title'))} />
-        <Stack.Screen name="FleetVessel" component={FleetVesselSc} options={webHeader(t('certs.tab.vessel'), { screen: 'Fleet' })} />
+        <Stack.Screen name="Fleet" component={gated('Fleet', FleetSc)} options={webHeader(t('fleet.title'))} />
+        <Stack.Screen name="FleetVessel" component={gated('FleetVessel', FleetVesselSc)} options={webHeader(t('certs.tab.vessel'), { screen: 'Fleet' })} />
         {/* A group of Settings as its own page (screens/SettingsSc, 25 Oct 2026). */}
         <Stack.Screen name="SettingsGroup" component={SettingsSc} options={webHeader(t('tab.Settings'), toTab('Settings'))} />
         <Stack.Screen name="Checklists" component={ChecklistsSc} options={webHeader(t('cl.title'), toTab('Settings'))} />
@@ -887,16 +974,16 @@ function Root() {
         <Stack.Screen name="CategoriesEdit" component={CategoriesEditSc} options={webHeader(t('ce.title'), toTab('Settings'))} />
         <Stack.Screen name="ChecklistEdit" component={ChecklistEditSc} options={webHeader(t('cle.checklist'), { screen: 'Checklists' })} />
         <Stack.Screen name="Defects" component={DefectsSc} options={webHeader(t('dash.openDefects'))} />
-        <Stack.Screen name="Handover" component={HandoverSc} options={webHeader(t('ho.title'), { screen: 'Main', params: { screen: 'Readiness' } } as any)} />
-        <Stack.Screen name="PscWalk" component={PscWalkSc} options={webHeader(t('psc.title'), { screen: 'Main', params: { screen: 'Readiness' } } as any)} />
-        <Stack.Screen name="ServiceReport" component={ServiceReportSc} options={webHeader(t('sr.title'), { screen: 'Main', params: { screen: 'Certificates' } } as any)} />
-        <Stack.Screen name="DpCheck" component={DpCheckSc} options={webHeader(t('cle.checklist'))} />
-        <Stack.Screen name="DpTemplates" component={DpTemplatesSc} options={webHeader(t('dpt.title'), { screen: 'Main', params: { screen: 'Dp' } } as any)} />
+        <Stack.Screen name="Handover" component={gated('Handover', HandoverSc)} options={webHeader(t('ho.title'), { screen: 'Main', params: { screen: 'Readiness' } } as any)} />
+        <Stack.Screen name="PscWalk" component={gated('PscWalk', PscWalkSc)} options={webHeader(t('psc.title'), { screen: 'Main', params: { screen: 'Readiness' } } as any)} />
+        <Stack.Screen name="ServiceReport" component={gated('ServiceReport', ServiceReportSc)} options={webHeader(t('sr.title'), { screen: 'Main', params: { screen: 'Certificates' } } as any)} />
+        <Stack.Screen name="DpCheck" component={gated('DpCheck', DpCheckSc)} options={webHeader(t('cle.checklist'))} />
+        <Stack.Screen name="DpTemplates" component={gated('DpTemplates', DpTemplatesSc)} options={webHeader(t('dpt.title'), { screen: 'Main', params: { screen: 'Dp' } } as any)} />
         {/* With the notice board on, the old Dashboard — LSA / FFE / lifting by expiry — is this screen. */}
         <Stack.Screen name="Expiries" component={DashboardSc} options={webHeader(t('dash.expiriesTitle'))} />
         <Stack.Screen name="Accounts" component={AccountsSc} options={webHeader(t('acc.title'), toTab('Settings'))} />
         <Stack.Screen name="EmailReport" component={EmailReportSc} options={webHeader(t('email.title'), toTab('Settings'))} />
-        <Stack.Screen name="ApiKeys" component={ApiKeysSc} options={webHeader(t('api.title'), toTab('Settings'))} />
+        <Stack.Screen name="ApiKeys" component={gated('ApiKeys', ApiKeysSc)} options={webHeader(t('api.title'), toTab('Settings'))} />
         <Stack.Screen name="Enrol" component={EnrolSc} options={webHeader(t('cc.join'), toTab('Settings'))} />
       </Stack.Navigator>
       {showSplash ? (

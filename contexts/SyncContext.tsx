@@ -46,7 +46,7 @@ import { EnrolledDevice, Role } from '../types/role';
 import * as accounts from '../services/accounts';
 import { useData } from './DataContext';
 import { ManageKey, TabKey, canManage, pageShown, releasedTabs, visibleTabs } from '../constants/access';
-import { moduleOn, setVesselModules, cleanModules } from '../constants/modules';
+import { moduleOn, setVesselModules, setStandalone, cleanModules } from '../constants/modules';
 
 /** The tabs the Master last set for this device, for a launch with no signal. */
 const MY_TABS_KEY = 'msm:my_tabs';
@@ -161,6 +161,14 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       if (raw && setVesselModules(raw)) setModulesRev((n) => n + 1);
     });
   }, []);
+  // A device that has not joined a vessel has the register only (constants/modules
+  // STANDALONE_MODULES); joining or leaving says so again below.
+  const applyStandalone = useCallback((on: boolean) => {
+    if (fb.syncSupported() && setStandalone(on)) setModulesRev((n) => n + 1);
+  }, []);
+  useEffect(() => {
+    void fb.getDeviceSecret().then((s) => applyStandalone(!s)).catch(() => {});
+  }, [applyStandalone]);
 
   useEffect(() => {
     AsyncStorage.getItem(MY_TABS_KEY)
@@ -524,6 +532,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       // it needs no PIN — only the secret issued at enrolment.
       const secret = await fb.getDeviceSecret();
       setEnrolled(!!secret);
+      applyStandalone(!secret);
       // Show the rank we last knew while the network is being asked. Without
       // this a launch with no signal renders the whole app as "rank unknown"
       // until (or unless) the call comes back.
@@ -604,7 +613,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       setLastError(msg);
       setStatus('error');
     }
-  }, [vessel?.imo, attach, pushNow]);
+  }, [vessel?.imo, attach, pushNow, applyStandalone]);
 
   /**
    * Leave the vessel. Called by Sign off, and by nothing else.
@@ -623,13 +632,14 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     lastPushed.current = null;
     // A pilot's modules belong to that vessel, not to this device.
     applyModules(null);
+    applyStandalone(true);
     setRole(null);
     setEnrolled(false);
     forgetTabs();
     setLastError(null);
     setLastSyncAt(null);
     setStatus('off');
-  }, [detach, forgetTabs, applyModules]);
+  }, [detach, forgetTabs, applyModules, applyStandalone]);
 
   connectRef.current = connect;
 

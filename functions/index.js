@@ -253,8 +253,9 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
   }
 
   // A Master invitation approves its own device (below), so it is good for 48 hours
-  // and one device (functions/access.js `inviteClosed`).
-  const closed = inviteClosed(invite, deviceId);
+  // and one device (functions/access.js `inviteClosed`) — but for the store
+  // reviewers' on our demo vessel (`isReviewInvite`).
+  const closed = inviteClosed(invite, deviceId, Date.now(), vessel);
   if (closed) {
     await rate.fail();
     throw new HttpsError('failed-precondition', CLOSED_TEXT[closed]);

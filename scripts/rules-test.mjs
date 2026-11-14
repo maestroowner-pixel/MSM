@@ -603,6 +603,33 @@ await t(false, 'A message over the limit is refused', setDoc(R(crew, 'threads', 
 await t(false, 'An unknown record kind is refused', setDoc(R(crew, 'threads', 'th6'), { ...TH, id: 'th6', rec: 'hospital' }));
 await t(false, 'An extra field is refused', setDoc(R(crew, 'threads', 'th7'), { ...TH, id: 'th7', crewId: 'c1' }));
 await t(false, 'The id must be the document', setDoc(R(crew, 'threads', 'th8'), { ...TH, id: 'other' }));
+// Chat (types/chat.ts): a collection per channel, one document per message, never changed.
+const CM = (ch, id, x = {}) => ({ id, ch, text: 'Lunch at 12', by: 'Liam', at: 1, side: 'vessel', ...x });
+await t(true, 'Crew write in the crew channel', setDoc(R(crew, 'chat_crew', 'cc1'), CM('crew', 'cc1')));
+await t(true, 'Crew read the crew channel', getDoc(R(crew, 'chat_crew', 'cc1')));
+await t(false, 'The office does not read the crew channel', getDoc(R(shore, 'chat_crew', 'cc1')));
+await t(false, 'The office does not write in the crew channel', setDoc(R(shore, 'chat_crew', 'cc2'), CM('crew', 'cc2', { side: 'office' })));
+await t(false, 'Crew cannot write as the office', setDoc(R(crew, 'chat_crew', 'cc3'), CM('crew', 'cc3', { side: 'office' })));
+await t(false, 'The channel must be the collection', setDoc(R(crew, 'chat_crew', 'cc4'), CM('officers', 'cc4')));
+await t(false, 'A chat message cannot be changed', updateDoc(R(master, 'chat_crew', 'cc1'), { text: 'Other' }));
+await t(false, 'A chat message cannot be deleted', deleteDoc(R(master, 'chat_crew', 'cc1')));
+await t(false, 'An empty chat message is refused', setDoc(R(crew, 'chat_crew', 'cc5'), CM('crew', 'cc5', { text: '' })));
+await t(false, 'A chat message over the limit is refused', setDoc(R(crew, 'chat_crew', 'cc6'), CM('crew', 'cc6', { text: 'x'.repeat(2001) })));
+await t(false, 'An extra field in chat is refused', setDoc(R(crew, 'chat_crew', 'cc7'), CM('crew', 'cc7', { crewId: 'c1' })));
+await t(false, 'The chat id must be the document', setDoc(R(crew, 'chat_crew', 'cc8'), CM('crew', 'other')));
+await t(false, 'Crew cannot write in the officers channel', setDoc(R(crew, 'chat_officers', 'co1'), CM('officers', 'co1')));
+await t(true, 'An Officer writes in the officers channel', setDoc(R(officer, 'chat_officers', 'co1'), CM('officers', 'co1')));
+await t(false, 'Crew do not read the officers channel', getDoc(R(crew, 'chat_officers', 'co1')));
+await t(false, 'The office does not read the officers channel', getDoc(R(shore, 'chat_officers', 'co1')));
+await t(true, 'The Master reads the officers channel', getDoc(R(master, 'chat_officers', 'co1')));
+await t(false, 'Crew cannot write to the office', setDoc(R(crew, 'chat_office', 'cf1'), CM('office', 'cf1')));
+await t(true, 'An Officer writes to the office', setDoc(R(officer, 'chat_office', 'cf1'), CM('office', 'cf1', { office: true })));
+await t(true, 'The office reads its channel', getDoc(R(shore, 'chat_office', 'cf1')));
+await t(false, 'Crew do not read the office channel', getDoc(R(crew, 'chat_office', 'cf1')));
+await t(true, 'The office answers as the office', setDoc(R(shore, 'chat_office', 'cf2'), CM('office', 'cf2', { by: 'Supt', byRank: 'Office', side: 'office', at: 2 })));
+await t(false, 'The office cannot write as the vessel', setDoc(R(shore, 'chat_office', 'cf3'), CM('office', 'cf3')));
+await t(false, 'An Officer cannot write as the office', setDoc(R(officer, 'chat_office', 'cf4'), CM('office', 'cf4', { side: 'office' })));
+await t(false, 'The office cannot change a message', updateDoc(R(shore, 'chat_office', 'cf2'), { text: 'Other' }));
 
 await t(false, 'Crew cannot raise a change', setDoc(R(crew, 'mocs', 'moc0'), { ...MOC, id: 'moc0' }));
 await t(false, 'An officer cannot raise it already approved', setDoc(R(officer, 'mocs', 'moc0'), { ...MOC, id: 'moc0', steps: steps(['master', 1]) }));

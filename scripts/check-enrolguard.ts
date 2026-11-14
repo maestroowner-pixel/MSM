@@ -34,6 +34,14 @@ ok(A.inviteClosed(inv('superadmin', ts(T0 - H), [{ deviceId: 'd1', at: T0 - 0.5 
 ok(A.inviteClosed(inv('superadmin', ts(T0 - H), [{ deviceId: 'd2', at: T0 - 100 * H }]), 'd1', T0) === null, 'a device from before the new PIN does not use it up');
 ok(A.inviteClosed(inv('superadmin', T0 - H), 'd1', T0) === null, 'issuedAt as millis is read too');
 
+// ---- the store reviewers' invitation on our demo vessel
+const rev = { ...inv('superadmin', ts(T0 - 500 * H), [{ deviceId: 'd2', at: T0 - 400 * H }]), review: true };
+ok(A.inviteClosed(rev, 'd1', T0, '1234567') === null, 'reviewer on the demo vessel: open after 500 h and another device');
+ok(A.inviteClosed(rev, 'd1', T0, '9967093') === 'used', 'the same field on any other vessel means nothing');
+ok(A.inviteClosed(rev, 'd1', T0) === 'used', 'no vessel given (Fleet sign-in): as any Master invitation');
+ok(A.inviteClosed({ ...rev, review: 'yes' }, 'd1', T0, '1234567') === 'used', 'only review: true counts');
+ok(!A.isReviewInvite(null, '1234567'), 'no invitation is no reviewer');
+
 // ---- the screen says what the server does
 const cases: Array<[string, number | undefined, any[]]> = [
   ['superadmin', T0 - 47 * H, []], ['superadmin', T0 - 49 * H, []], ['superadmin', undefined, []],
