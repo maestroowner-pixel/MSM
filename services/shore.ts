@@ -143,7 +143,7 @@ export async function loadVessel(imo: string): Promise<VesselData> {
     blob = {};
   }
   const items: EquipmentItem[] = Object.values(blob.categories ?? {}).flatMap((l: any) => (Array.isArray(l) ? l : []));
-  const [crew, docs, acks, machines, jobs, spares, moves, defects, ncs, deferrals, extInspections, orders, mocs, threads, letters] = await Promise.all([
+  const [crew, docs, acks, machines, jobs, spares, moves, defects, ncs, deferrals, extInspections, orders, mocs, threads, letters, nightOrders, standingOrders, orderAcks] = await Promise.all([
     list<CrewMember>(imo, 'crew'),
     list<IsmDoc>(imo, 'ism_docs'),
     list<DocAck>(imo, 'ism_doc_acks'),
@@ -159,6 +159,9 @@ export async function loadVessel(imo: string): Promise<VesselData> {
     list<any>(imo, 'mocs'),
     list<any>(imo, 'threads'),
     list<any>(imo, 'letters'),
+    list<any>(imo, 'night_orders'),
+    list<any>(imo, 'standing_orders'),
+    list<any>(imo, 'order_acks'),
   ]);
   return {
     imo,
@@ -181,6 +184,9 @@ export async function loadVessel(imo: string): Promise<VesselData> {
     mocs,
     threads,
     letters,
+    nightOrders,
+    standingOrders,
+    orderAcks,
     modules: cleanModules(data.modules),
   };
 }

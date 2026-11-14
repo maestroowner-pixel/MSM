@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals' | 'restPlan' | 'daTests' | 'threads' | 'emissions' | 'myDocs' | 'mySdm' | 'chem' | 'wires' | 'quoteLink' | 'craneLog' | 'letters';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals' | 'restPlan' | 'daTests' | 'threads' | 'emissions' | 'myDocs' | 'mySdm' | 'chem' | 'wires' | 'quoteLink' | 'craneLog' | 'letters' | 'orderBook';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -369,6 +369,13 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * `npm run deploy:rules` first (letters).
    */
   letters: false,
+  /**
+   * The Master's orders — the Night Order Book (each night's orders, signed by the officers
+   * keeping a watch, closed by the Master in the morning) and the Master's and DP Standing
+   * Orders (revisions, each signed again by every officer asked); types/orderBook.ts,
+   * 14 Nov 2026. Officers and the Master only. Needs `npm run deploy:rules` first.
+   */
+  orderBook: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------

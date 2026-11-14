@@ -401,6 +401,28 @@ await t(false, '…and does not change it afterwards', setDoc(R(shore, 'letters'
 await t(true, 'The vessel closes the superintendent\'s letter', setDoc(R(officer, 'letters', 'lt9'), { ...SL, closed: { by: 'Master', at: 3, note: 'Done' }, updatedAt: 3 }));
 await t(false, 'Crew does not write as the office', setDoc(R(crew, 'letters', 'lt6'), { ...SL, id: 'lt6' }));
 
+// The Master's orders (types/orderBook.ts): the Master writes, officers sign, the office reads.
+const NO = { id: 'no1', date: '2026-11-14', text: 'Keep 2 nm off the coast.', callMe: 'Any doubt.', watch: [{ key: 'c1', name: 'Max' }], by: 'Master', createdAt: 1, updatedAt: 1 };
+await t(false, 'An officer cannot write the night orders', setDoc(R(officer, 'night_orders', 'no1'), NO));
+await t(true, 'The Master writes the night orders', setDoc(R(master, 'night_orders', 'no1'), NO));
+await t(false, 'Crew does not read the night orders', getDoc(R(crew, 'night_orders', 'no1')));
+await t(true, 'An officer reads them', getDoc(R(officer, 'night_orders', 'no1')));
+await t(true, 'The office reads them', getDoc(R(shore, 'night_orders', 'no1')));
+await t(false, 'The night never moves to another date', setDoc(R(master, 'night_orders', 'no1'), { ...NO, date: '2026-11-15', updatedAt: 2 }));
+await t(true, 'The Master closes the night', setDoc(R(master, 'night_orders', 'no1'), { ...NO, closed: { by: 'Master', at: 3 }, updatedAt: 3 }));
+await t(false, '…and does not rewrite it after', setDoc(R(master, 'night_orders', 'no1'), { ...NO, text: 'Other', closed: { by: 'Master', at: 3 }, updatedAt: 4 }));
+await t(false, 'Nobody deletes a night', deleteDoc(R(master, 'night_orders', 'no1')));
+const SO = { id: 'so_master_r1', kind: 'master', rev: 1, issued: '2026-11-14', text: 'Call me when in doubt.', readers: 'bridge', by: 'Master', createdAt: 1, updatedAt: 1 };
+await t(false, 'An officer cannot issue standing orders', setDoc(R(officer, 'standing_orders', 'so_master_r1'), SO));
+await t(true, 'The Master issues standing orders', setDoc(R(master, 'standing_orders', 'so_master_r1'), SO));
+await t(false, '…the id names the kind and revision', setDoc(R(master, 'standing_orders', 'so_master_r9'), { ...SO, id: 'so_master_r9', rev: 2 }));
+await t(false, 'A revision never changes', setDoc(R(master, 'standing_orders', 'so_master_r1'), { ...SO, text: 'Other', updatedAt: 2 }));
+const OA = { id: 'no1_c1', orderId: 'no1', kind: 'night', personKey: 'c1', by: 'Max', at: 5, updatedAt: 5 };
+await t(false, 'Crew does not sign the orders', setDoc(R(crew, 'order_acks', 'no1_c1'), OA));
+await t(true, 'An officer signs as read', setDoc(R(officer, 'order_acks', 'no1_c1'), OA));
+await t(false, 'A signature never changes', setDoc(R(officer, 'order_acks', 'no1_c1'), { ...OA, at: 6, updatedAt: 6 }));
+await t(false, 'Nobody removes a signature', deleteDoc(R(master, 'order_acks', 'no1_c1')));
+
 // Crane operator's log (types/craneLog.ts): an officer confirms; nothing changes.
 const CRL = { id: 'cl1', itemId: 'k1', crane: { label: 'Crane No. 1', swl: '12 t' }, crewId: 'c1', name: 'Max', date: '2026-11-13', hours: 2.5, lifts: 14, ops: ['cargo'], by: 'Chief Officer', at: 1, createdAt: 1, updatedAt: 1 };
 await t(false, 'Crew cannot confirm crane time', setDoc(R(crew, 'crane_log', 'cl1'), CRL));

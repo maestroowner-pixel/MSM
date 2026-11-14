@@ -1307,6 +1307,10 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'chemicals', key: storage.CHEMICALS_KEY, module: 'chem' },
   // The correspondence register: officers and the Master only — the owner's and the office's letters are not for every phone.
   { sub: 'letters', key: storage.LETTERS_KEY, module: 'letters', officers: true },
+  // The Master's orders: officers and the Master. A standing order revision and a signature are written once.
+  { sub: 'night_orders', key: storage.NIGHT_ORDERS_KEY, module: 'orderBook', officers: true },
+  { sub: 'standing_orders', key: storage.STANDING_ORDERS_KEY, appendOnly: true, module: 'orderBook', officers: true },
+  { sub: 'order_acks', key: storage.ORDER_ACKS_KEY, appendOnly: true, module: 'orderBook', officers: true },
   // Rope and wire log: signed entries, never changed.
   { sub: 'wire_log', key: storage.WIRE_LOG_KEY, appendOnly: true, module: 'wires' },
   // Crane operator's log: signed entries, never changed (a mistake is voided by a new one).

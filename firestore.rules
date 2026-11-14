@@ -1135,6 +1135,32 @@ service cloud.firestore {
                       && (!('file' in request.resource.data) || request.resource.data.file.url.matches('https://.*'));
         allow delete: if false;
       }
+      // The Master's orders (types/orderBook.ts): officers and the Master read them, the office reads.
+      // A night is the Master's: written by the Master, put right or closed or cancelled by the Master; its date never changes.
+      match /night_orders/{id} {
+        allow read: if isAdmin(v) || shore(v);
+        allow create: if isSuper(v) && request.resource.data.id == id && request.resource.data.date is string
+                      && request.resource.data.text is string && request.resource.data.watch is list;
+        allow update: if isSuper(v) && request.resource.data.id == id && request.resource.data.date == resource.data.date
+                      && !('closed' in resource.data && request.resource.data.text != resource.data.text)
+                      && !('cancelled' in resource.data && !('cancelled' in request.resource.data));
+        allow delete: if false;
+      }
+      // A revision of standing orders is issued once by the Master and never changed: a new text is a new revision.
+      match /standing_orders/{id} {
+        allow read: if isAdmin(v) || shore(v);
+        allow create: if isSuper(v) && request.resource.data.id == id && request.resource.data.kind in ['master', 'dp']
+                      && request.resource.data.rev is int && request.resource.data.rev > 0
+                      && id == 'so_' + request.resource.data.kind + '_r' + string(request.resource.data.rev);
+        allow update, delete: if false;
+      }
+      // "I have read them": an officer signs once, nobody changes or removes it.
+      match /order_acks/{id} {
+        allow read: if isAdmin(v) || shore(v);
+        allow create: if isAdmin(v) && request.resource.data.id == id && request.resource.data.orderId is string
+                      && request.resource.data.by is string;
+        allow update, delete: if false;
+      }
       // Rope and wire log (types/wireLog.ts): signed entries, append-only. Anyone aboard records a look,
       // cut and slip, lubrication or a brake test; a renewal (which rewrites the rope on the register) is an officer's.
       match /wire_log/{id} {

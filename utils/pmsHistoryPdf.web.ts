@@ -4,7 +4,7 @@
 import type { MachineHistory } from '../services/pmsHistory';
 import { sigImage } from './sigImage';
 
-const plain = (s: string) => s.replace(/[–—]/g, '-').replace(/[“”]/g, '"').replace(/≈/g, '~').replace(/³/g, '3').replace(/·/g, '-').replace(/[′‘’]/g, "'").replace(/″/g, '"');
+const plain = (s: string) => s.replace(/[–—]/g, '-').replace(/[“”]/g, '"').replace(/≈/g, '~').replace(/³/g, '3').replace(/·/g, '-').replace(/[′‘’]/g, "'").replace(/″/g, '"').replace(/→/g, '->').replace(/←/g, '<-').replace(/…/g, '...').replace(/•/g, '-');
 
 export function pmsHistoryPdfBlob(title: string, vesselLine: string, list: MachineHistory[]): Blob {
   const { jsPDF } = require('jspdf');

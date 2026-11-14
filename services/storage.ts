@@ -158,6 +158,10 @@ export const EM_STATEMENTS_KEY = `${PREFIX}em_statements`;
 export const CHEMICALS_KEY = `${PREFIX}chemicals`;
 /** The correspondence register (types/correspondence.ts). */
 export const LETTERS_KEY = `${PREFIX}letters`;
+/** The Master's orders (types/orderBook.ts): nights, standing orders, and who read them (append-only). */
+export const NIGHT_ORDERS_KEY = `${PREFIX}night_orders`;
+export const STANDING_ORDERS_KEY = `${PREFIX}standing_orders`;
+export const ORDER_ACKS_KEY = `${PREFIX}order_acks`;
 /** Rope and wire log (types/wireLog.ts), append-only. */
 export const WIRE_LOG_KEY = `${PREFIX}wire_log`;
 /** Crane operator's log (types/craneLog.ts), append-only. */
@@ -952,6 +956,9 @@ export async function resetAllData(): Promise<void> {
     EM_STATEMENTS_KEY,
     CHEMICALS_KEY,
     LETTERS_KEY,
+    NIGHT_ORDERS_KEY,
+    STANDING_ORDERS_KEY,
+    ORDER_ACKS_KEY,
     WIRE_LOG_KEY,
     CRANE_LOG_KEY,
     CRANE_TESTS_KEY,

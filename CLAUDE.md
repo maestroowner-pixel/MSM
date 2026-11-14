@@ -426,6 +426,20 @@ app mirrors. Bundle id `com.kukalab.msm`.
   direction naming it): an office letter answers one of ours, and an incoming one entered aboard may name ours; owed answers are still read from
   incoming only. **Share PDF** (`sharePmsHistory` in pmsHistoryReport): phones — the share sheet as before; web — `navigator.share({ files })` where
   `canShare` (Opera on macOS does), else saved. One letter's page `letterSheet` (pure, correspondenceRows); the register's `shareLettersPdf`.
+- **The Master's orders** (14 Nov 2026 — flag `orderBook`, off): `types/orderBook.ts`, pure `services/orderBook.ts` + rows `services/orderBookRows.ts`,
+  paper `services/orderBookReport.ts` (PMS-history PDF, saved or shared), screens `OrderBookSc` (route `OrderBook` `orders-book`, menu Operations
+  → Master's orders with pages night / master; `view: 'dp'` also under the DP menu, only with `dp`; Access column ORD) and `OrderEntrySc` (route
+  `OrderEntry` `orders-book/:kind/:id`, `new`). THREE collections, officers only (synced `officers: true`, rules isAdmin + shore read):
+  `night_orders` (one per night: date, `where`, text, `callMe`, `watch` = OrderReader[] ticked by the Master, default `defaultWatch` = bridge
+  officers aboard; Master writes — rules isSuper, date fixed, text fixed once closed, never un-cancelled; editable in the app only until the first
+  signature (`nightEditable`); `closed` / `cancelled` stamps), `standing_orders` (APPEND-ONLY revisions, id `so_<kind>_r<rev>` checked by rules,
+  kind master/dp, `readers` bridge|officers — `standingReaders`: never the Master, bridge = mates + DPOs by rank (`isBridgeRank`)), `order_acks`
+  (APPEND-ONLY, `<orderId>_<personKey>`; matched by crew id/device key or by name like DocAck). A night is "tonight" until noon the day after its
+  date (`nightState` on local time), then "to close". Issuing, closing and cancelling need the Master's name when the device has no own account
+  and the crew list has a Master (`masterWho`). Board (`orderBoard`): the person's own unsigned night / revision in force (`first`, amber); the
+  Master — unsigned watchkeepers of a running night, nights to close, revisions not signed by all (blue). DP orders count only with `dp`.
+  Fleet: read-only tab `orders` (`components/FleetOrders.tsx`; `shore.loadVessel` reads the three). In .msm, erased with the device.
+  `npm run check:orders`; rules-test.mjs covers it. `npm run deploy:rules` before the flag.
 - **Rope and wire log** (7 Nov 2026 — flag `wires`, off; needs `lifting`; plan item 67, UniSea's "Wire Manager"): `types/wireLog.ts`,
   pure `services/wireLog.ts` + rows `services/wireRows.ts` (pure, so check:wirelog can reach them), papers `services/wireReport.ts`
   (PMS-history PDF + Excel Ropes/Log), `components/WireLogCard.tsx` (on ItemDetail), screens `WireEntrySc` (route `WireEntry`

@@ -52,7 +52,7 @@ export const MENU_GROUPS: MenuGroup[] = [
   group('security', 'menu.group.security', ['Security'], 'shield-lock-outline'),
   group('env', 'menu.group.env', ['OilRecord', 'Garbage', 'Sewage', 'Ballast', 'FuelChangeover', 'Ods', 'Fuel', 'Sopep'], 'leaf'),
   group('crew', 'menu.group.crew', ['MyDocs', 'Crew', 'CrewMatrix', 'HoursOfRest', 'Passengers'], 'account-group-outline'),
-  group('ops', 'menu.group.ops', ['Watch', 'Familiar', 'Dp', 'Readiness'], 'compass-outline'),
+  group('ops', 'menu.group.ops', ['OrderBook', 'Watch', 'Familiar', 'Dp', 'Readiness'], 'compass-outline'),
   group('docs', 'menu.group.docs', ['Certificates', 'Documents', 'Letters', 'Permits', 'Surveys', 'Reports'], 'folder-text-outline'),
   group('system', null, ['Settings']),
 ];
@@ -145,6 +145,13 @@ export const MENU_CHILDREN: Record<string, MenuChild[]> = {
     kid('menu.Dp.letter', { view: 'letter', icon: 'email-outline' }),
     // DP drills live under DP, not Drills (13 Nov 2026), and go with it.
     kid('menu.Dp.drills', { view: 'dp', icon: 'run-fast', route: 'Drills', module: 'drills' }),
+    // DP Standing Orders: a page of the Master's orders, shown under DP and gone with it (14 Nov 2026).
+    kid('menu.Dp.standing', { view: 'dp', icon: 'book-open-variant', route: 'OrderBook', module: 'orderBook', officers: true }),
+  ],
+  // The Master's orders (14 Nov 2026): the night order book and the standing orders.
+  OrderBook: [
+    kid('menu.OrderBook.night', { view: 'night', icon: 'weather-night' }),
+    kid('menu.OrderBook.master', { view: 'master', icon: 'book-open-variant' }),
   ],
   Drills: [
     kid('menu.Drills.list', { view: 'list', icon: 'format-list-checks' }),
@@ -200,4 +207,4 @@ export const MENU_LABEL: Record<string, string> = new Proxy({} as Record<string,
 });
 
 /** Every entry with a name in the menu (keys `menu.<route>` in constants/i18n/en.ts). */
-export const MENU_ROUTES: string[] = ["DeckLog", "WatchLog", "Gmdss", "Equipment", "Certificates", "Documents", "Maintenance", "OilAnalysis", "Yard", "Spares", "HoursOfRest", "Crew", "CrewMatrix", "Permits", "Sopep", "Security", "Surveys", "Letters", "Readiness", "Dp", "Watch", "Familiar", "Safety", "Drills", "Hospital", "Passengers", "Stores", "Orders", "Finance", "Rounds", "Fuel", "Garbage", "OilRecord", "Sewage", "Ballast", "FuelChangeover", "Ods", "Reports", "Settings"];
+export const MENU_ROUTES: string[] = ["DeckLog", "WatchLog", "Gmdss", "Equipment", "Certificates", "Documents", "Maintenance", "OilAnalysis", "Yard", "Spares", "HoursOfRest", "Crew", "CrewMatrix", "Permits", "Sopep", "Security", "Surveys", "Letters", "OrderBook", "Readiness", "Dp", "Watch", "Familiar", "Safety", "Drills", "Hospital", "Passengers", "Stores", "Orders", "Finance", "Rounds", "Fuel", "Garbage", "OilRecord", "Sewage", "Ballast", "FuelChangeover", "Ods", "Reports", "Settings"];

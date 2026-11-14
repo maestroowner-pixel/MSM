@@ -124,6 +124,8 @@ export interface BackupFile {
   chemicals?: import('../types/chemicals').Chemical[];
   /** The correspondence register (types/correspondence.ts); a file is a link, or the file itself on a device on its own. */
   letters?: import('../types/correspondence').Letter[];
+  /** The Master's orders (types/orderBook.ts). */
+  orderBook?: { nights: import('../types/orderBook').NightOrder[]; standing: import('../types/orderBook').StandingOrder[]; acks: import('../types/orderBook').OrderAck[] };
   /** Rope and wire log (types/wireLog.ts). */
   wireLog?: import('../types/wireLog').WireEntry[];
   /** Crane operator's log (types/craneLog.ts). */
@@ -295,6 +297,7 @@ export async function exportBackup(vessel: VesselInfo | null, password = ''): Pr
   const em = { vessel: await storage.loadList<import('../types/emissions').EmVessel>(storage.EM_VESSEL_KEY), passages: await storage.loadList<import('../types/emissions').EmPassage>(storage.EM_PASSAGES_KEY), statements: await storage.loadList<import('../types/emissions').EmStatement>(storage.EM_STATEMENTS_KEY) };
   const chemicals = await storage.loadList<import('../types/chemicals').Chemical>(storage.CHEMICALS_KEY);
   const letters = await storage.loadList<import('../types/correspondence').Letter>(storage.LETTERS_KEY);
+  const orderBook = { nights: await storage.loadList<import('../types/orderBook').NightOrder>(storage.NIGHT_ORDERS_KEY), standing: await storage.loadList<import('../types/orderBook').StandingOrder>(storage.STANDING_ORDERS_KEY), acks: await storage.loadList<import('../types/orderBook').OrderAck>(storage.ORDER_ACKS_KEY) };
   const wireLog = await storage.loadList<import('../types/wireLog').WireEntry>(storage.WIRE_LOG_KEY);
   const craneLog = await storage.loadList<import('../types/craneLog').CraneEntry>(storage.CRANE_LOG_KEY);
   const craneTests = await storage.loadList<import('../types/craneLog').CraneTest>(storage.CRANE_TESTS_KEY);
@@ -364,6 +367,7 @@ export async function exportBackup(vessel: VesselInfo | null, password = ''): Pr
     ...(em.passages.length || em.vessel.length || em.statements.length ? { em } : {}),
     ...(chemicals.length ? { chemicals } : {}),
     ...(letters.length ? { letters } : {}),
+    ...(orderBook.nights.length || orderBook.standing.length ? { orderBook } : {}),
     ...(wireLog.length ? { wireLog } : {}),
     ...(craneLog.length ? { craneLog } : {}),
     ...(craneTests.length ? { craneTests } : {}),
@@ -639,6 +643,11 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
   }
   if (backup.chemicals) await storage.saveList(storage.CHEMICALS_KEY, backup.chemicals);
   if (backup.letters) await storage.saveList(storage.LETTERS_KEY, backup.letters);
+  if (backup.orderBook) {
+    await storage.saveList(storage.NIGHT_ORDERS_KEY, backup.orderBook.nights);
+    await storage.saveList(storage.STANDING_ORDERS_KEY, backup.orderBook.standing);
+    await storage.saveList(storage.ORDER_ACKS_KEY, backup.orderBook.acks);
+  }
   if (backup.wireLog) await storage.saveList(storage.WIRE_LOG_KEY, backup.wireLog);
   if (backup.craneLog) await storage.saveList(storage.CRANE_LOG_KEY, backup.craneLog);
   if (backup.craneTests) await storage.saveList(storage.CRANE_TESTS_KEY, backup.craneTests);

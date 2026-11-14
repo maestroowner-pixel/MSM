@@ -922,6 +922,16 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '📖',
+      title: "The Master's orders",
+      body: [
+        "The bridge's order book: the Master's orders for each night, and the Master's and DP Standing Orders, each signed as read by the officers it is meant for. Open it from the menu → Operations → Master's orders; the DP Standing Orders are also under Dynamic positioning. It is kept by the officers and the Master; crew phones do not hold it, the office reads it.",
+        "Night orders: the Master writes + Tonight's orders — the night, where the ship is or where she is going, the orders themselves and when to call the Master — and ticks the officers keeping a watch tonight (the bridge officers aboard are ticked to start with). Each of them opens the night on their own device and signs I have read and understood; until the night is over, the Board reminds whoever has not signed and tells the Master who is still missing. Until the first signature the Master can still put the orders right; after that they stay as written.",
+        "In the morning the Master closes the night, with remarks if any. A night not closed by noon the next day is listed on the Board for the Master. Orders written in error are cancelled with the reason — they stay in the book, struck. The Night Order Book goes on paper for this month, this year or all dates: every night with its orders, who signed and when, who did not, and how it was closed. Share PDF sends one night or the book.",
+        "Standing orders: the Master writes them once and issues them as revision 1, choosing who signs — the bridge officers (mates and DPOs) or every officer, engineers too. A revision is never changed: + New revision starts from the text in force, says what changed, and everyone asked signs again. The page shows the revision in force, who has read it and who not, and the earlier revisions; the Board asks each officer to sign and tells the Master who is still to. PDF and Share PDF print the revision with its signatures and the list of revisions. The DP Standing Orders work the same and go with the DP module.",
+      ],
+    },
+    {
       emoji: '🪢',
       title: "Ropes and wires",
       body: [
@@ -1837,6 +1847,16 @@ const ru: ManualContent = {
         "Ошибочно внесённое письмо не удаляется: «Отменить запись» с причиной. Номер остаётся занятым, поэтому в журнале нет пропусков. Журнал печатается за этот год, прошлый год или все даты — PDF или Excel, входящие и исходящие отдельно, с тем, как ответили.",
         "Суперинтендант видит журнал судна во Fleet (вкладка «Переписка») и оттуда отправляет письма на судно: «+ Письмо на судно» — тема, их номер, файл, срок ответа и кто на борту исполняет. Оно приходит входящим от суперинтенданта со следующим номером судна, и Board напоминает об ответе. Письмо офиса может быть ответом на письмо судна — тогда у судна оно становится «Отвечено»; так же и входящее, внесённое на борту, может указать, на какое наше письмо оно отвечает.",
         "«Поделиться PDF» — у письма его собственная страница (запись, статус, письма, на которые оно отвечает или которые отвечают на него); под журналом — журнал за выбранный период. На телефоне открывается «Поделиться» (почта, WhatsApp, Файлы…); в браузере, который умеет делиться файлами, так же, иначе PDF сохраняется.",
+      ],
+    },
+    {
+      emoji: '📖',
+      title: "Распоряжения Мастера",
+      body: [
+        "Книга распоряжений мостика: распоряжения Мастера на каждую ночь, постоянные распоряжения Мастера и постоянные распоряжения DP; каждое подписывают «прочитал» те офицеры, кому оно адресовано. Откройте из меню → Операции → Распоряжения Мастера; постоянные распоряжения DP есть и в разделе Динамическое позиционирование. Ведут офицеры и Мастер; на телефонах экипажа их нет, офис читает.",
+        "Ночные распоряжения: Мастер нажимает + Распоряжения на ночь — ночь, где судно стоит или куда идёт, сами распоряжения и когда вызывать Мастера — и отмечает офицеров, несущих вахту этой ночью (сразу отмечены вахтенные помощники на борту). Каждый открывает ночь на своём устройстве и подписывает «Прочитал(а) и понял(а)»; пока ночь идёт, Доска напоминает тем, кто не подписал, и показывает Мастеру, кого не хватает. До первой подписи Мастер ещё может поправить текст, после — он остаётся как написан.",
+        "Утром Мастер закрывает ночь, при необходимости с замечаниями. Ночь, не закрытая к полудню следующего дня, показывается Мастеру на Доске. Ошибочные распоряжения отменяются с причиной — они остаются в книге, зачёркнутыми. Книга ночных распоряжений печатается за этот месяц, год или за всё время: каждая ночь с распоряжениями, кто и когда подписал, кто нет и как ночь закрыта. «Поделиться PDF» отправляет одну ночь или книгу.",
+        "Постоянные распоряжения: Мастер пишет их и выпускает как ревизию 1, выбирая, кто подписывает, — вахтенные помощники (и DPO) или все офицеры, включая механиков. Ревизия не меняется: + Новая ревизия начинается с действующего текста, указывает, что изменилось, и все снова подписывают. На странице — действующая ревизия, кто прочитал и кто нет, и прежние ревизии; Доска просит каждого офицера подписать и показывает Мастеру, кто ещё не подписал. PDF и «Поделиться PDF» печатают ревизию с подписями и списком ревизий. Постоянные распоряжения DP устроены так же и выключаются вместе с модулем DP.",
       ],
     },
     {
@@ -2758,6 +2778,16 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '📖',
+      title: "Órdenes del Capitán",
+      body: [
+        "El libro de órdenes del puente: las órdenes del Capitán para cada noche y las órdenes permanentes del Capitán y de DP, cada una firmada como leída por los oficiales a quienes va dirigida. Ábralo desde el menú → Operaciones → Órdenes del Capitán; las órdenes permanentes DP están también en Posicionamiento dinámico. Las llevan los oficiales y el Capitán; los teléfonos de la tripulación no las tienen, la oficina las lee.",
+        "Órdenes nocturnas: el Capitán pulsa + Órdenes de esta noche — la noche, dónde está o adónde va el buque, las órdenes y cuándo llamar al Capitán — y marca a los oficiales de guardia esta noche (los oficiales de puente a bordo vienen marcados). Cada uno abre la noche en su propio dispositivo y firma He leído y entendido; mientras dura la noche, el Tablero se lo recuerda a quien no ha firmado y le dice al Capitán quién falta. Hasta la primera firma el Capitán aún puede corregir las órdenes; después quedan como se escribieron.",
+        "Por la mañana el Capitán cierra la noche, con observaciones si las hay. Una noche no cerrada a mediodía del día siguiente aparece en el Tablero para el Capitán. Las órdenes escritas por error se anulan con el motivo: quedan en el libro, tachadas. El libro de órdenes nocturnas se imprime para este mes, este año o todas las fechas: cada noche con sus órdenes, quién firmó y cuándo, quién no y cómo se cerró. Compartir PDF envía una noche o el libro.",
+        "Órdenes permanentes: el Capitán las escribe y las emite como revisión 1, eligiendo quién firma: los oficiales de puente (y DPO) o todos los oficiales, maquinistas incluidos. Una revisión no se cambia nunca: + Nueva revisión parte del texto en vigor, dice qué ha cambiado y todos firman de nuevo. La página muestra la revisión en vigor, quién la ha leído y quién no, y las revisiones anteriores; el Tablero pide a cada oficial que firme y dice al Capitán quién falta. PDF y Compartir PDF imprimen la revisión con sus firmas y la lista de revisiones. Las órdenes permanentes DP funcionan igual y van con el módulo DP.",
+      ],
+    },
+    {
       emoji: '🪢',
       title: "Cabos y cables",
       body: [
@@ -3497,7 +3527,7 @@ const uk: ManualContent = {
     },
     {
       emoji: '🎯',
-      title: "Динамічне позиціонування (Dynamic positioning)",
+      title: "Динамічне позиціювання (Dynamic positioning)",
       body: [
         "Dynamic positioning (меню → Dynamic positioning) — чотири сторінки: DP checklists, DP log (час, коротко що зроблено, ініціали DPO; рядок не змінюється, виправлення — новий рядок), DP time і Confirmation letter.",
         "DP-чеклісти — свої в кожного судна: їх налаштовує ISM AI Pilot за формами судна (DP Operations Manual, ASOG) — передача/прийом вахти, прибуття на родовище з DP trials та інші. Відкрийте, заповніть і підпишіть.",
@@ -3673,6 +3703,16 @@ const uk: ManualContent = {
         "Помилково внесений лист не видаляється: «Скасувати запис» із причиною. Номер залишається зайнятим, тому в журналі немає пропусків. Журнал друкується за цей рік, минулий рік або всі дати — PDF чи Excel, вхідні й вихідні окремо, з тим, як відповіли.",
         "Суперінтендант бачить журнал судна у Fleet (вкладка «Листування») і звідти надсилає листи на судно: «+ Лист на судно» — тема, їхній номер, файл, строк відповіді та хто на борту виконує. Він приходить вхідним від суперінтенданта з наступним номером судна, і Board нагадує про відповідь. Лист офісу може бути відповіддю на лист судна — тоді в судна він стає «Відповідено»; так само й вхідний, внесений на борту, може вказати, на який наш лист він відповідає.",
         "«Поділитися PDF» — у листа його власна сторінка (запис, статус, листи, на які він відповідає або які відповідають на нього); під журналом — журнал за вибраний період. На телефоні відкривається «Поділитися» (пошта, WhatsApp, Файли…); у браузері, що вміє ділитися файлами, так само, інакше PDF зберігається.",
+      ],
+    },
+    {
+      emoji: '📖',
+      title: "Розпорядження Мастера",
+      body: [
+        "Книга розпоряджень містка: розпорядження Мастера на кожну ніч, постійні розпорядження Мастера і постійні розпорядження DP; кожне підписують «прочитав» ті офіцери, кому воно адресоване. Відкрийте з меню → Операції → Розпорядження Мастера; постійні розпорядження DP є й у розділі Динамічне позиціювання. Ведуть офіцери й Мастер; на телефонах екіпажу їх немає, офіс читає.",
+        "Нічні розпорядження: Мастер натискає + Розпорядження на ніч — ніч, де судно стоїть або куди йде, самі розпорядження і коли викликати Мастера — і позначає офіцерів, які несуть вахту цієї ночі (одразу позначені вахтові помічники на борту). Кожен відкриває ніч на своєму пристрої й підписує «Прочитав(ла) і зрозумів(ла)»; поки ніч триває, Дошка нагадує тим, хто не підписав, і показує Мастеру, кого бракує. До першого підпису Мастер ще може виправити текст, після — він лишається як написаний.",
+        "Вранці Мастер закриває ніч, за потреби із зауваженнями. Ніч, не закрита до полудня наступного дня, показується Мастеру на Дошці. Помилкові розпорядження скасовуються з причиною — вони лишаються в книзі, закресленими. Книга нічних розпоряджень друкується за цей місяць, рік або за весь час: кожна ніч із розпорядженнями, хто й коли підписав, хто ні і як ніч закрито. «Поділитися PDF» надсилає одну ніч або книгу.",
+        "Постійні розпорядження: Мастер пише їх і видає як ревізію 1, обираючи, хто підписує, — вахтові помічники (і DPO) або всі офіцери, разом із механіками. Ревізія не змінюється: + Нова ревізія починається з чинного тексту, вказує, що змінилося, і всі знову підписують. На сторінці — чинна ревізія, хто прочитав і хто ні, і попередні ревізії; Дошка просить кожного офіцера підписати й показує Мастеру, хто ще не підписав. PDF і «Поділитися PDF» друкують ревізію з підписами та переліком ревізій. Постійні розпорядження DP влаштовані так само й вимикаються разом із модулем DP.",
       ],
     },
     {
@@ -4529,6 +4569,16 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '📖',
+      title: "Kapteinens ordre",
+      body: [
+        "Broens ordrebok: kapteinens ordre for hver natt, og kapteinens og DP stående ordre, hver signert som lest av offiserene de gjelder. Åpne fra menyen → Drift → Kapteinens ordre; stående DP-ordre ligger også under Dynamisk posisjonering. Føres av offiserene og kapteinen; mannskapets telefoner har dem ikke, kontoret leser.",
+        "Nattordre: kapteinen trykker + Ordre for i natt — natten, hvor skipet ligger eller går, selve ordrene og når kapteinen skal tilkalles — og krysser av offiserene som går vakt i natt (brooffiserene om bord er krysset av fra start). Hver av dem åpner natten på egen enhet og signerer Jeg har lest og forstått; mens natten varer, minner Tavle den som ikke har signert og viser kapteinen hvem som mangler. Fram til første signatur kan kapteinen rette ordrene; etter det står de som skrevet.",
+        "Om morgenen lukker kapteinen natten, med merknader om nødvendig. En natt som ikke er lukket innen kl. 12 dagen etter, vises for kapteinen på Tavle. Ordre skrevet ved en feil annulleres med grunn — de blir stående i boken, overstrøket. Nattordreboken skrives ut for denne måneden, dette året eller alle datoer: hver natt med ordrene, hvem som signerte og når, hvem som ikke gjorde det og hvordan natten ble lukket. Del PDF sender én natt eller boken.",
+        "Stående ordre: kapteinen skriver dem og utsteder dem som revisjon 1, og velger hvem som signerer — brooffiserene (og DPO-er) eller alle offiserer, maskinister også. En revisjon endres aldri: + Ny revisjon starter fra gjeldende tekst, sier hva som er endret, og alle signerer på nytt. Siden viser gjeldende revisjon, hvem som har lest den og hvem ikke, og tidligere revisjoner; Tavle ber hver offiser signere og viser kapteinen hvem som gjenstår. PDF og Del PDF skriver ut revisjonen med signaturene og listen over revisjoner. Stående DP-ordre fungerer likt og følger DP-modulen.",
+      ],
+    },
+    {
       emoji: '🪢',
       title: "Tau og wire",
       body: [
@@ -5367,6 +5417,16 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '📖',
+      title: "Ordens do Comandante",
+      body: [
+        "O livro de ordens da ponte: as ordens do Comandante para cada noite e as ordens permanentes do Comandante e de DP, cada uma assinada como lida pelos oficiais a quem se destina. Abra no menu → Operações → Ordens do Comandante; as ordens permanentes DP estão também em Posicionamento dinâmico. São mantidas pelos oficiais e pelo Comandante; os telemóveis da tripulação não as têm, o escritório lê.",
+        "Ordens noturnas: o Comandante toca em + Ordens desta noite — a noite, onde o navio está ou para onde vai, as ordens e quando chamar o Comandante — e marca os oficiais de quarto esta noite (os oficiais de ponte a bordo já vêm marcados). Cada um abre a noite no seu dispositivo e assina Li e compreendi; enquanto a noite decorre, o Painel lembra quem não assinou e mostra ao Comandante quem falta. Até à primeira assinatura o Comandante ainda pode corrigir as ordens; depois ficam como escritas.",
+        "De manhã o Comandante fecha a noite, com observações se houver. Uma noite não fechada até ao meio-dia seguinte aparece no Painel para o Comandante. Ordens escritas por engano são anuladas com o motivo — ficam no livro, riscadas. O livro de ordens noturnas imprime-se para este mês, este ano ou todas as datas: cada noite com as ordens, quem assinou e quando, quem não assinou e como foi fechada. Partilhar PDF envia uma noite ou o livro.",
+        "Ordens permanentes: o Comandante escreve-as e emite-as como revisão 1, escolhendo quem assina — os oficiais de ponte (e DPO) ou todos os oficiais, maquinistas incluídos. Uma revisão nunca muda: + Nova revisão parte do texto em vigor, diz o que mudou e todos assinam de novo. A página mostra a revisão em vigor, quem a leu e quem não, e as revisões anteriores; o Painel pede a cada oficial que assine e mostra ao Comandante quem falta. PDF e Partilhar PDF imprimem a revisão com as assinaturas e a lista de revisões. As ordens permanentes DP funcionam da mesma forma e acompanham o módulo DP.",
+      ],
+    },
+    {
       emoji: '🪢',
       title: "Cabos e cabos de aço",
       body: [
@@ -5469,6 +5529,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'My documents', module: 'mySdm', drop: [2] },
   { title: 'Chemicals and safety data sheets', module: 'chem' },
   { title: 'Correspondence register', module: 'letters' },
+  { title: "The Master's orders", module: 'orderBook' },
   { title: 'Ropes and wires', module: 'wires' },
   { title: "Crane operator's log", module: 'craneLog' },
   { title: 'Chemicals and safety data sheets', module: 'ptw', drop: [3] },

@@ -55,6 +55,7 @@ import { DaFollowUp, DaPolicy, DaResult, DaTest } from '../types/daTest';
 import { EmPassage, EmStatement, EmVessel } from '../types/emissions';
 import { Chemical } from '../types/chemicals';
 import { Letter } from '../types/correspondence';
+import { NightOrder, OrderAck, StandingOrder } from '../types/orderBook';
 import { WireEntry } from '../types/wireLog';
 import { CraneEntry, CraneTest } from '../types/craneLog';
 import { Supplier } from '../types/suppliers';
@@ -281,6 +282,10 @@ interface DataContextType {
   chemicals: Chemical[];
   /** The correspondence register (types/correspondence.ts), cancelled ones included — their numbers stay taken. */
   letters: Letter[];
+  /** The Master's orders (types/orderBook.ts): nights, standing order revisions, signatures. */
+  nightOrders: NightOrder[];
+  standingOrders: StandingOrder[];
+  orderAcks: OrderAck[];
   /** Rope and wire log (types/wireLog.ts). */
   wireLog: WireEntry[];
   /** Crane operator's log (types/craneLog.ts). */
@@ -473,6 +478,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [budgetLines, setBudgetLines] = useState<BudgetLine[]>([]);
   const [chemicals, setChemicals] = useState<Chemical[]>([]);
   const [letters, setLetters] = useState<Letter[]>([]);
+  const [nightOrders, setNightOrders] = useState<NightOrder[]>([]);
+  const [standingOrders, setStandingOrders] = useState<StandingOrder[]>([]);
+  const [orderAcks, setOrderAcks] = useState<OrderAck[]>([]);
   const [wireLog, setWireLog] = useState<WireEntry[]>([]);
   const [craneLog, setCraneLog] = useState<CraneEntry[]>([]);
   const [craneTests, setCraneTests] = useState<CraneTest[]>([]);
@@ -621,6 +629,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _budget1 = await storage.loadList<BudgetLine>(storage.BUDGET_KEY);
     const _chem1 = (await storage.loadList<Chemical>(storage.CHEMICALS_KEY)).filter((x) => !x.deleted);
     const _letters1 = await storage.loadList<Letter>(storage.LETTERS_KEY);
+    const _nights1 = await storage.loadList<NightOrder>(storage.NIGHT_ORDERS_KEY);
+    const _standing1 = await storage.loadList<StandingOrder>(storage.STANDING_ORDERS_KEY);
+    const _oacks1 = await storage.loadList<OrderAck>(storage.ORDER_ACKS_KEY);
     const _wire1 = await storage.loadList<WireEntry>(storage.WIRE_LOG_KEY);
     const _crane1 = await storage.loadList<CraneEntry>(storage.CRANE_LOG_KEY);
     const _ctest1 = await storage.loadList<CraneTest>(storage.CRANE_TESTS_KEY);
@@ -743,6 +754,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setBudgetLines(_budget1);
     setChemicals(_chem1);
     setLetters(_letters1);
+    setNightOrders(_nights1);
+    setStandingOrders(_standing1);
+    setOrderAcks(_oacks1);
     setWireLog(_wire1);
     setCraneLog(_crane1);
     setCraneTests(_ctest1);
@@ -1019,6 +1033,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _budget2 = await storage.loadList<BudgetLine>(storage.BUDGET_KEY);
     const _chem2 = (await storage.loadList<Chemical>(storage.CHEMICALS_KEY)).filter((x) => !x.deleted);
     const _letters2 = await storage.loadList<Letter>(storage.LETTERS_KEY);
+    const _nights2 = await storage.loadList<NightOrder>(storage.NIGHT_ORDERS_KEY);
+    const _standing2 = await storage.loadList<StandingOrder>(storage.STANDING_ORDERS_KEY);
+    const _oacks2 = await storage.loadList<OrderAck>(storage.ORDER_ACKS_KEY);
     const _wire2 = await storage.loadList<WireEntry>(storage.WIRE_LOG_KEY);
     const _crane2 = await storage.loadList<CraneEntry>(storage.CRANE_LOG_KEY);
     const _ctest2 = await storage.loadList<CraneTest>(storage.CRANE_TESTS_KEY);
@@ -1131,6 +1148,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setBudgetLines(_budget2);
     setChemicals(_chem2);
     setLetters(_letters2);
+    setNightOrders(_nights2);
+    setStandingOrders(_standing2);
+    setOrderAcks(_oacks2);
     setWireLog(_wire2);
     setCraneLog(_crane2);
     setCraneTests(_ctest2);
@@ -1500,6 +1520,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         budgetLines,
         chemicals,
         letters,
+        nightOrders,
+        standingOrders,
+        orderAcks,
         wireLog,
         craneLog,
         craneTests,

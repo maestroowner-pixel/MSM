@@ -157,6 +157,8 @@ import PermitSc from './screens/PermitSc';
 import ChemicalSc from './screens/ChemicalSc';
 import LettersSc from './screens/LettersSc';
 import LetterSc from './screens/LetterSc';
+import OrderBookSc from './screens/OrderBookSc';
+import OrderEntrySc from './screens/OrderEntrySc';
 import WireLogSc from './screens/WireLogSc';
 import CraneLogSc from './screens/CraneLogSc';
 import WireEntrySc from './screens/WireEntrySc';
@@ -219,6 +221,7 @@ const OPTIONAL_SCREENS: Record<string, React.ComponentType> = {
   Orders: OrdersSc,
   Finance: FinanceSc,
   Letters: LettersSc,
+  OrderBook: OrderBookSc,
   OilAnalysis: OilSc,
   Yard: YardSc,
   DeckLog: DeckLogSc,
@@ -494,6 +497,7 @@ const linking = {
           Orders: 'orders',
           Finance: 'finance',
           Letters: 'correspondence',
+          OrderBook: 'orders-book',
           OilAnalysis: 'oil-analysis',
           Yard: 'yard',
           DeckLog: 'deck-log',
@@ -580,6 +584,7 @@ const linking = {
       Risk: 'risk/:id',
       Chemical: 'chemical/:id',
       Letter: 'letter/:id',
+      OrderEntry: 'orders-book/:kind/:id',
       WireLog: 'ropes',
       CraneLog: 'crane-log',
       WireEntry: 'rope-entry/:itemId',
@@ -866,6 +871,7 @@ function Root() {
         <Stack.Screen name="Permit" component={PermitSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Chemical" component={ChemicalSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Letter" component={LetterSc} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="OrderEntry" component={OrderEntrySc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="WireLog" component={WireLogSc} options={webHeader(t('rope.listTitle'))} />
         <Stack.Screen name="CraneLog" component={CraneLogSc} options={webHeader(t('crane.title'))} />
         <Stack.Screen name="WireEntry" component={WireEntrySc} options={{ presentation: 'modal' }} />

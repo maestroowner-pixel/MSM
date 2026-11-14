@@ -69,6 +69,7 @@ import { findMe, myCerts, myChanges } from './myDocs';
 import { planBreaches } from './restPlan';
 import { chemBoard } from './chemicals';
 import { letterBoard } from './correspondence';
+import { orderBoard } from './orderBook';
 import { wireBoard } from './wireLog';
 import { LIFTING_KEYS } from '../constants/lifting';
 import { THREAD_ROUTE, threadKey, unreadFromOffice, unreadMentions } from './threads';
@@ -222,6 +223,10 @@ export interface BoardInput {
   risks?: import('../types/permits').RiskAssessment[];
   /** The correspondence register (types/correspondence.ts) — on officers' devices only. */
   letters?: import('../types/correspondence').Letter[];
+  /** The Master's orders (types/orderBook.ts) — on officers' devices only. */
+  nightOrders?: import('../types/orderBook').NightOrder[];
+  standingOrders?: import('../types/orderBook').StandingOrder[];
+  orderAcks?: import('../types/orderBook').OrderAck[];
   /** Rope and wire log (types/wireLog.ts). */
   wireLog?: import('../types/wireLog').WireEntry[];
   /** Discussion on a record, and what this device has read of it (services/threads). */
@@ -830,6 +835,18 @@ export function buildBoard(x: BoardInput): Board {
     if (b.overdue.length) n.push({ key: 'letters:overdue', level: 'red', who: 'officer', icon: 'email-alert-outline', ...go, title: t('b.letters.overdue', { n: b.overdue.length }), sub: lines(b.overdue) });
     if (b.soon.length) n.push({ key: 'letters:soon', level: 'amber', who: 'officer', icon: 'email-outline', ...go, title: t('b.letters.soon', { n: b.soon.length }), sub: lines(b.soon) });
     if (b.waiting.length) n.push({ key: 'letters:waiting', level: 'blue', who: 'officer', icon: 'email-outline', ...go, title: t('b.letters.waiting', { n: b.waiting.length }), sub: lines(b.waiting) });
+  }
+
+  // ---- The Master's orders: what this officer has to sign, and for the Master who has not and which night is open ----
+  if (x.on('orderBook') && x.role !== 'user') {
+    const b = orderBoard({ nights: x.nightOrders ?? [], standing: x.standingOrders ?? [], acks: x.orderAcks ?? [], crew: x.crew, now: x.now, me: x.me, dp: x.on('dp') });
+    const dmo = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`;
+    const names = (l: { name: string }[]) => l.slice(0, 3).map((r) => r.name).join(', ') + (l.length > 3 ? '…' : '');
+    for (const o of b.mineNight) n.push({ key: `ob:mine:${o.id}`, first: true, level: 'amber', who: 'officer', icon: 'weather-night', route: 'OrderEntry', params: { kind: 'night', id: o.id }, title: t('b.ob.signNight', { date: dmo(o.date) }) });
+    for (const s of b.mineStanding) n.push({ key: `ob:mine:${s.id}`, first: true, level: 'amber', who: 'officer', icon: 'book-open-variant', route: 'OrderBook', params: { view: s.kind }, title: t(s.kind === 'dp' ? 'b.ob.signDp' : 'b.ob.signMaster', { rev: s.rev }) });
+    for (const u of b.unsignedNight) n.push({ key: `ob:night:${u.order.id}`, level: 'blue', who: 'master', icon: 'weather-night', route: 'OrderEntry', params: { kind: 'night', id: u.order.id }, title: t('b.ob.nightUnsigned', { date: dmo(u.order.date), n: u.who.length }), sub: names(u.who) });
+    if (b.toClose.length) n.push({ key: 'ob:close', level: 'blue', who: 'master', icon: 'weather-sunset-up', route: 'OrderBook', params: { view: 'night' }, title: t('b.ob.toClose', { n: b.toClose.length }), sub: b.toClose.slice(0, 4).map((o) => dmo(o.date)).join(', ') });
+    for (const u of b.unsignedStanding) n.push({ key: `ob:so:${u.order.id}`, level: 'blue', who: 'master', icon: 'book-open-variant', route: 'OrderBook', params: { view: u.order.kind }, title: t(u.order.kind === 'dp' ? 'b.ob.dpUnsigned' : 'b.ob.masterUnsigned', { rev: u.order.rev, n: u.who.length }), sub: names(u.who) });
   }
 
   // ---- Ropes and wires: to be discarded (look, diameter, length, age, brake), and those close to it ----
