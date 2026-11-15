@@ -92,12 +92,16 @@ export async function ensureLocalFile(uri: string, name?: string): Promise<{ uri
 }
 
 export async function openFile(uri: string, _name?: string): Promise<void> {
+  // The uri comes from a synced record any member writes: only a file's own schemes,
+  // and quoted, or a crafted one would end the attribute and add a script to a page of our origin.
+  if (!/^(https:|data:|blob:)/i.test(uri)) return;
+  const attr = uri.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   try {
     const win = g.window.open('', '_blank');
     if (win && win.document) {
       win.document.write(
         `<title>Attachment</title><body style="margin:0;background:#111">` +
-          `<iframe src="${uri}" style="border:0;width:100vw;height:100vh"></iframe></body>`
+          `<iframe src="${attr}" style="border:0;width:100vw;height:100vh"></iframe></body>`
       );
       win.document.close();
     } else {

@@ -99,17 +99,36 @@ service firebase.storage {
     // carry a reference and nothing more.
     //
     // Documents are allowed as well as images — a certificate is usually a PDF.
+    //
+    // Who may change a file (15 Nov 2026): anyone in may add a NEW file, and may
+    // send the same bytes again (a device re-sends its files with the register, so
+    // an identical upload must pass — md5 equal); only an officer or the
+    // superintendent may change what a file says, and only an officer may delete
+    // one. Before, any crew phone could overwrite a vessel certificate or a letter
+    // with something else, or delete it. The app writes a replaced file to a new
+    // path (attachmentStorage fileTag, ItemDetail Replace), so a crew member
+    // replacing a photo is not refused.
+    function fileOk() {
+      return request.resource.size < 12 * 1024 * 1024
+             && (request.resource.contentType.matches('image/.*')
+                 || request.resource.contentType.matches('application/.*')
+                 || request.resource.contentType.matches('text/.*'));
+    }
     match /safety_vessels/{vessel}/attachments/{ownerId}/{file} {
       allow read: if member(vessel) || shore(vessel);
 
       // A superintendent uploads ISM document files and certificate scans.
-      allow write: if (member(vessel) || shore(vessel))
-                   && request.resource.size < 12 * 1024 * 1024
-                   && (request.resource.contentType.matches('image/.*')
-                       || request.resource.contentType.matches('application/.*')
-                       || request.resource.contentType.matches('text/.*'));
-
-      allow delete: if member(vessel);
+      // An upload over an object that exists is judged as a CREATE (update is for
+      // metadata only), so all three cases are here: a new file; the same bytes
+      // again (size and md5 equal); or a changed file, by an officer or the office.
+      allow create: if fileOk()
+                    && (((member(vessel) || shore(vessel)) && resource == null)
+                        || (member(vessel) && officer(vessel))
+                        || shore(vessel)
+                        || (member(vessel) && request.resource.size == resource.size
+                            && request.resource.md5Hash == resource.md5Hash));
+      allow update: if (member(vessel) && officer(vessel)) || shore(vessel);
+      allow delete: if member(vessel) && officer(vessel);
     }
 
     // Hospital (13 Oct 2026): files kept with the medical log — the written

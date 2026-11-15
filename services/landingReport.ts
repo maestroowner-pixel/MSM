@@ -18,6 +18,9 @@ import { INSPECT_LINK_BASE } from './firebaseService';
 import { signatureLine } from '../types/crew';
 import { shipToday } from '../utils/shipTime';
 
+/** Everything typed by someone aboard goes in as text: in a browser the report is printed from a frame of the app's own origin. */
+const esc = (v: unknown) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
 function svgToDataUri(svg: string): string {
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
@@ -62,17 +65,17 @@ export function buildLandingHtml(
     return `
       <tr>
         <td class="qr-cell"><img src="${svgToDataUri(itemQr)}" width="40" height="40"/></td>
-        <td>${cat}</td>
-        <td>${desc || '—'}</td>
-        <td>${serial}</td>
-        <td>${loc || '—'}</td>
-        <td>${m.reason || '—'}</td>
-        <td>${m.serviceRef || ''}</td>
+        <td>${esc(cat)}</td>
+        <td>${esc(desc || '—')}</td>
+        <td>${esc(serial)}</td>
+        <td>${esc(loc || '—')}</td>
+        <td>${esc(m.reason || '—')}</td>
+        <td>${esc(m.serviceRef || '')}</td>
       </tr>`;
   }).join('');
 
   const sigBlock = report.by
-    ? `<p style="margin-top:6mm"><strong>Signed:</strong> ${signatureLine(report.by, report.byRank)}</p>`
+    ? `<p style="margin-top:6mm"><strong>Signed:</strong> ${esc(signatureLine(report.by, report.byRank))}</p>`
     : `<p style="margin-top:10mm">Signed: _____________________________ &nbsp;&nbsp; Rank: _______________ &nbsp;&nbsp; Date: ___________</p>`;
 
   const vesselQrUri = svgToDataUri(vesselQr);
@@ -109,11 +112,11 @@ export function buildLandingHtml(
 </div>
 
 <div class="meta">
-  <span><strong>Report No:</strong> ${report.no}</span>
-  <span><strong>Date:</strong> ${report.date}</span>
-  <span><strong>Vessel:</strong> ${vesselName} (IMO ${imo})</span>
-  ${report.port ? `<span><strong>Port:</strong> ${report.port}</span>` : ''}
-  ${report.to ? `<span><strong>${report.dir === 'out' ? 'To:' : 'From:'}</strong> ${report.to}</span>` : ''}
+  <span><strong>Report No:</strong> ${esc(report.no)}</span>
+  <span><strong>Date:</strong> ${esc(report.date)}</span>
+  <span><strong>Vessel:</strong> ${esc(vesselName)} (IMO ${esc(imo)})</span>
+  ${report.port ? `<span><strong>Port:</strong> ${esc(report.port)}</span>` : ''}
+  ${report.to ? `<span><strong>${report.dir === 'out' ? 'To:' : 'From:'}</strong> ${esc(report.to)}</span>` : ''}
 </div>
 
 <table>
@@ -131,11 +134,11 @@ export function buildLandingHtml(
   <tbody>${rows}</tbody>
 </table>
 
-${report.notes ? `<p style="margin-top:4mm"><strong>Notes:</strong> ${report.notes}</p>` : ''}
+${report.notes ? `<p style="margin-top:4mm"><strong>Notes:</strong> ${esc(report.notes)}</p>` : ''}
 ${sigBlock}
 
 <div class="footer">
-  ISM AI Pilot · Marine Safety Manager · ${shipToday()} · ${report.no}
+  ISM AI Pilot · Marine Safety Manager · ${shipToday()} · ${esc(report.no)}
 </div>
 </body></html>`;
 }

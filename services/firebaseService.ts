@@ -631,7 +631,7 @@ async function stripInlineFiles(
   const certificates: Certificate[] = [];
   for (const c of blob.certificates ?? []) {
     certificates.push(
-      isInline(c.fileUri) ? { ...c, fileUri: await place(c.id, `cert_${c.id}`, c.fileUri!) } : c
+      isInline(c.fileUri) ? { ...c, fileUri: await place(c.id, `cert_${c.id}_${attachmentStorage.fileTag(c.fileUri!)}`, c.fileUri!) } : c
     );
   }
   return { blob: { ...blob, categories, certificates }, uploaded, stripped };

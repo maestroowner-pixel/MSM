@@ -147,7 +147,7 @@ function idCardsHtml(people: IdCardPerson[], v: VesselInfo | null): string {
   const pages = people
     .map(
       (p) => `<section class="f"><div class="band"><b>${esc((v?.vessel_name ?? '').toUpperCase())}</b><i>CREW</i></div>
-        <div class="ph">${p.photo ? `<img src="${p.photo}">` : `<span>${esc(initials(p.name))}</span>`}</div>
+        <div class="ph">${p.photo && /^data:image\//.test(p.photo) ? `<img src="${esc(p.photo).replace(/"/g, '&quot;')}">` : `<span>${esc(initials(p.name))}</span>`}</div>
         <div class="who"><div class="nm">${esc(p.name)}</div><div class="rk">${esc(p.rank ?? '')}</div>${p.cabin ? `<div class="cb">Cabin ${esc(p.cabin)}</div>` : ''}</div>
         <div class="foot">${esc(vesselLine(v))}</div></section>
       <section class="b"><div class="qr">${q(crewQrPayload(p.id), 38)}</div><div class="bt"><b>Scan at the gangway</b><div>going ashore and coming back aboard</div><b class="vs">${esc(v?.vessel_name ?? '')}</b><div class="g">${esc(vesselLine(v))}</div><div class="g">If found, please return to the vessel.</div></div><div class="bb"></div></section>`

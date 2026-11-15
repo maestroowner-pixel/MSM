@@ -4,7 +4,7 @@
 //   firebase emulators:exec --only firestore,storage --project demo-msm-rules "node storage-rules-test.mjs <repo>/storage.rules"
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { doc, setDoc } from 'firebase/firestore';
-import { ref, uploadString, getBytes } from 'firebase/storage';
+import { ref, uploadString, getBytes, deleteObject } from 'firebase/storage';
 import { readFileSync } from 'fs';
 const V = '9000001';
 const env = await initializeTestEnvironment({
@@ -34,6 +34,21 @@ await t(false, 'demoted officer (record crew) reads no medical file', med(st('d'
 await t(false, 'crew reads no medical file', med(st('u', tok('user', 'devU'))));
 await t(true, 'superintendent reads an attachment', att(st('s', { shore: true, fleet: { [V]: true }, deviceId: 'devShore' })));
 await t(false, 'switched-off superintendent reads none', att(st('so', { shore: true, fleet: { [V]: true }, deviceId: 'devShoreOff' })));
+// Who may change a file (15 Nov 2026): crew adds new files and re-sends the same bytes; changing or deleting one is an officer's.
+const put = (s, path, body) => uploadString(ref(s, `safety_vessels/${V}/attachments/${path}`), body, 'raw', { contentType: 'text/plain' });
+const crew = () => st('u', tok('user', 'devU'));
+const officer = () => st('a', tok('admin', 'devA'));
+const shoreS = () => st('s', { shore: true, fleet: { [V]: true }, deviceId: 'devShore' });
+await t(true, 'crew adds a new file', put(crew(), 'o3/c.txt', 'first'));
+await t(true, 'crew sends the same file again', put(crew(), 'o3/c.txt', 'first'));
+await t(false, 'crew may not overwrite a file with something else', put(crew(), 'o1/a.txt', 'forged'));
+await t(false, 'crew may not overwrite with other bytes of the same size', put(crew(), 'o1/a.txt', 'yo'));
+await t(false, 'crew may not delete a file', deleteObject(ref(crew(), `safety_vessels/${V}/attachments/o1/a.txt`)));
+await t(true, 'officer replaces a file', put(officer(), 'o3/c.txt', 'second'));
+await t(true, 'superintendent replaces a certificate scan', put(shoreS(), 'o3/c.txt', 'third'));
+await t(false, 'superintendent may not delete a file', deleteObject(ref(shoreS(), `safety_vessels/${V}/attachments/o3/c.txt`)));
+await t(false, 'demoted officer (record crew) may not overwrite', put(st('d', tok('admin', 'devDem')), 'o3/c.txt', 'fourth'));
+await t(true, 'officer deletes a file', deleteObject(ref(officer(), `safety_vessels/${V}/attachments/o3/c.txt`)));
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

@@ -215,7 +215,8 @@ export default function ItemDetailSc() {
     await deleteFile(att.uri);
     set({
       attachments: (draft.attachments ?? []).map((a) =>
-        a.id === att.id ? { ...a, kind: f.kind, uri: f.uri, name: f.name, addedAt: Date.now() } : a
+        // A new id: the replaced file goes up to a new object (storage.rules lets only officers change one).
+        a.id === att.id ? { ...a, id: uid('att'), kind: f.kind, uri: f.uri, name: f.name, addedAt: Date.now() } : a
       ),
     });
   };

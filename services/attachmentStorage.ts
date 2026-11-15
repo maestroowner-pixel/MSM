@@ -62,6 +62,20 @@ export function attachmentPath(vessel: string, ownerId: string, fileId: string):
   return `${ROOT}/${vessel.replace(/\D/g, '')}/attachments/${ownerId}/${fileId}`;
 }
 
+/**
+ * A short tag of a file's content, for its path: a replaced file goes to a new
+ * object, never over the old one (storage.rules lets only officers change a file).
+ * Length plus an FNV-1a over every 61st character — enough to tell two files apart.
+ */
+export function fileTag(dataUri: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < dataUri.length; i += 61) {
+    h ^= dataUri.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return `${dataUri.length.toString(36)}${h.toString(36)}`;
+}
+
 /** MIME type out of a data: URI — `data:image/jpeg;base64,…`. */
 function mimeOf(dataUri: string): string {
   const m = /^data:([^;,]+)/.exec(dataUri);
@@ -85,7 +99,15 @@ export async function uploadInline(
   // 'data_url' hands Firebase the whole `data:` string and lets it do the
   // decoding — the same string the browser already holds, with no round trip
   // through a Blob that React Native would not survive.
-  await uploadString(ref, dataUri, 'data_url', { contentType: mimeOf(dataUri) });
+  try {
+    await uploadString(ref, dataUri, 'data_url', { contentType: mimeOf(dataUri) });
+  } catch (e) {
+    // Refused over a file already there (a crew device may not change one —
+    // storage.rules): the file in the cloud stands, as an older upload of it.
+    const url = await getDownloadURL(ref).catch(() => null);
+    if (!url) throw e;
+    return url;
+  }
   return await getDownloadURL(ref);
 }
 
