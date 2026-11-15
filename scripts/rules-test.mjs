@@ -480,7 +480,9 @@ await t(false, 'A guest\'s crossing never carries the full name', setDoc(R(crew,
 await t(true, 'The watch records a passenger going ashore', setDoc(R(crew, 'crew_moves', 'mvp1'), { id: 'mvp1', crewId: 'pax1', name: 'S…n', dir: 'ashore', date: '2026-10-13', time: '10:00', at: 1, by: 'Max', via: 'qr', updatedAt: 1 }));
 
 // Dynamic positioning.
-const DPC = { id: 'dpc1', templateId: 'dp.handover', title: 'DP watch handover', where: 'bridge', at: 1, lines: [{ id: 'dp.handover.01', text: 'DP status' }], results: { 'dp.handover.01': 'pass' }, by: 'Max', updatedAt: 1 };
+const DPC = { id: 'dpc1', templateId: 'dp.handover', title: 'DP watch handover', where: 'bridge', at: 1, lines: [{ id: 'dp.handover.01', text: 'DP status' }], results: { 'dp.handover.01': 'pass' }, by: 'Max', position: { lat: 57.5, lon: 1.75 }, updatedAt: 1 };
+await t(false, 'A DP checklist without a position is refused', setDoc(R(crew, 'dp_checks', 'dpc0'), (({ position, ...rest }) => ({ ...rest, id: 'dpc0' }))(DPC)));
+await t(false, 'A DP checklist with a position off the globe is refused', setDoc(R(crew, 'dp_checks', 'dpc0'), { ...DPC, id: 'dpc0', position: { lat: 91, lon: 1.75 } }));
 await t(true, 'Crew (a DPO) sign a DP checklist', setDoc(R(crew, 'dp_checks', 'dpc1'), DPC));
 await t(false, 'A signed DP checklist cannot be changed — even by the Master', setDoc(R(master, 'dp_checks', 'dpc1'), { ...DPC, results: { 'dp.handover.01': 'fail' }, updatedAt: 2 }));
 await t(false, 'Nobody deletes a DP checklist', deleteDoc(R(master, 'dp_checks', 'dpc1')));
