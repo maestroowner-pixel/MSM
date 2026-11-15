@@ -137,7 +137,7 @@ interface Signed {
   editedWith?: SignProof;
 }
 
-const how = (p?: SignProof) => (!p ? '' : p.method === 'biometric' ? 'biometric' : p.method === 'drawn' ? 'by hand' : 'PIN');
+const how = (p?: SignProof) => (!p ? '' : p.method === 'biometric' ? 'biometric' : p.method === 'nfc' ? 'NFC wristband' : p.method === 'drawn' ? 'by hand' : 'PIN');
 
 /** Who entered it: name (rank), their ID in the book, when and how it was signed (§6.3.1, §4.3.7), and its seal (§4.3.3). */
 export function signerCell(r: Signed): string {

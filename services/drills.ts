@@ -263,7 +263,7 @@ export function dpDrillsDue(rows: ScheduleRow[]): ScheduleRow[] {
   return rows.filter((r) => r.dp && r.everyDays && (r.left == null || r.left <= 7)).sort((a, b) => (a.left ?? -9999) - (b.left ?? -9999));
 }
 
-const proofLabel = (p?: SignProof) => (!p ? '' : p.method === 'biometric' ? 'signed biometrically' : p.method === 'drawn' ? 'signed by hand' : 'signed by PIN');
+const proofLabel = (p?: SignProof) => (!p ? '' : p.method === 'biometric' ? 'signed biometrically' : p.method === 'nfc' ? 'signed with NFC wristband' : p.method === 'drawn' ? 'signed by hand' : 'signed by PIN');
 const stamp = (at: number) => {
   return shipStamp(at);
 };

@@ -28,7 +28,8 @@ export interface PinPerson {
   key: string;
   name: string;
 }
-type Step = 'unlock' | 'code' | 'issued' | 'new1' | 'new2' | 'done';
+/** `m1`/`m2`: the Master's own PIN in place of 0000, before 0000 unlocks someone else's. */
+type Step = 'unlock' | 'code' | 'issued' | 'm1' | 'm2' | 'new1' | 'new2' | 'done';
 type Opener = (p: PinPerson, opts?: { master?: boolean; required?: boolean; onDone?: () => void }) => void;
 
 const Ctx = createContext<Opener | null>(null);
@@ -84,6 +85,20 @@ export function PinChangeProvider({ children }: { children: React.ReactNode }) {
 
   const close = () => setWho(null);
 
+  /** Unlocked: issue the one-time code asked for, or choose the new PIN. */
+  const afterUnlock = async () => {
+    if (!who) return;
+    if (issuing) {
+      try {
+        setIssued(await issuePinCode(vesselId, who.name, sync.me ? `${sync.me.firstName} ${sync.me.lastName}` : 'Master'));
+        return setStep('issued');
+      } catch {
+        return setMsg(t('pc.code.offline'));
+      }
+    }
+    return setStep('new1');
+  };
+
   const submit = async () => {
     if (!who) return;
     const v = pin.trim();
@@ -93,15 +108,27 @@ export function PinChangeProvider({ children }: { children: React.ReactNode }) {
       const r = await checkPin(key, v);
       if (!r.ok) return setMsg(r.lockedUntil ? t('sc.locked', { min: Math.max(1, Math.ceil((r.lockedUntil - Date.now()) / 60000)) }) : t('sc.wrongPin', { left: tn('n.tryLeft', r.left) }));
       setMsg(null);
-      if (issuing) {
-        try {
-          setIssued(await issuePinCode(vesselId, who.name, sync.me ? `${sync.me.firstName} ${sync.me.lastName}` : 'Master'));
-          return setStep('issued');
-        } catch {
-          return setMsg(t('pc.code.offline'));
-        }
+      // 0000 opens once: before it opens a person's PIN, the Master chooses their own.
+      if (key === ADMIN_KEY && !isMasterPin && masterDefault) return setStep('m1');
+      return afterUnlock();
+    }
+    if (step === 'm1') {
+      if (!isValidSignPin(v)) return setMsg(t('sc.digits', { min: PIN_MIN, max: PIN_MAX }));
+      if (isWeakPin(v)) return setMsg(t('sc.weak'));
+      setFirst(v);
+      setMsg(null);
+      return setStep('m2');
+    }
+    if (step === 'm2') {
+      setFirst('');
+      if (v !== first) {
+        setMsg(t('sc.differ'));
+        return setStep('m1');
       }
-      return setStep('new1');
+      await setPin(ADMIN_KEY, t('role.superadmin'), v);
+      setMasterDefault(false);
+      setMsg(null);
+      return afterUnlock();
     }
     if (step === 'code') {
       const r = await redeemPinCode(vesselId, who.key, who.name, v);
@@ -145,7 +172,9 @@ export function PinChangeProvider({ children }: { children: React.ReactNode }) {
     ? isMasterPin
       ? masterSet ? t('pc.newMaster') : t('pc.setMaster')
       : ownSet ? t('pc.newPin') : t('pc.setPin')
-    : step === 'new2'
+    : step === 'm1'
+    ? t('pin.onceTitle')
+    : step === 'new2' || step === 'm2'
     ? t('sc.repeat')
     : t('pc.saved');
 
@@ -186,7 +215,7 @@ export function PinChangeProvider({ children }: { children: React.ReactNode }) {
                   placeholderTextColor={COLORS.textLight}
                 />
                 <TouchableOpacity style={[styles.primary, pin.length < (step === 'code' ? CODE_LENGTH : PIN_MIN) && { opacity: 0.5 }]} disabled={pin.length < (step === 'code' ? CODE_LENGTH : PIN_MIN)} onPress={() => void submit()}>
-                  <Text style={styles.primaryText}>{step === 'unlock' ? t('sc.unlock') : step === 'new1' || step === 'code' ? t('sc.next') : t('common.save')}</Text>
+                  <Text style={styles.primaryText}>{step === 'unlock' ? t('sc.unlock') : step === 'new1' || step === 'code' || step === 'm1' || step === 'm2' ? t('sc.next') : t('common.save')}</Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -210,6 +239,7 @@ export function PinChangeProvider({ children }: { children: React.ReactNode }) {
             {step === 'unlock' && (isMasterPin || by === 'master') && masterDefault ? (
               <Text style={styles.hint}>{t('pc.defaultHint')}</Text>
             ) : null}
+            {step === 'm1' ? <Text style={styles.hint}>{t('pin.once')}</Text> : null}
             {step === 'new1' && required ? <Text style={styles.hint}>{t('pc.requiredHint')}</Text> : null}
             {step === 'new1' ? (
               <Text style={styles.hint}>{t('pc.newHint', { min: PIN_MIN, max: PIN_MAX })}</Text>

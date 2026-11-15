@@ -595,6 +595,26 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '📶',
+      title: "NFC wristbands and tags",
+      body: [
+        "NFC (when the vessel has it, on a phone or tablet that reads NFC — a browser cannot) is a second way, beside the QR, to say who or where: a wristband for each crew member and guest, a sticker on a security round's checkpoint, at a muster station. A tap does what a scan of the QR does — at the gangway the person goes ashore or comes back, on a round the checkpoint is recorded, at a muster the person is marked at the station.",
+        "Giving out a wristband: an officer opens the crew member's card (or the guest on the passenger list, the checkpoint, the muster station), presses Write a tag and holds a blank NTAG215 wristband or sticker to the back of the phone. The app writes the same words as the QR onto it and enters the chip's own serial number (UID) on the vessel's register. One tag per person at a time: to give another, Revoke the old one first. Revoke stops a lost wristband at once — from any device, a computer too. Nothing is deleted: the register keeps who had which tag and when. A smartwatch or a door card with access-card NFC can stand in for the wristband on Android: Register as is enters its number without writing anything (a payment card or payment watch will not do: it shows a new number at every tap).",
+        "Why the register: anyone can write words onto a blank tag, so the words prove nothing. A tap counts only when the chip's UID is on this vessel's register, not revoked, and its words name the same person or place; a tag rewritten to someone else is refused and says so. On Android the gangway, the round and the muster listen by themselves while the screen is open; on an iPhone press Tap a wristband, and the reader comes back for the next one until you cancel it. Anywhere else in the app (Android), a wristband held to the phone opens its person: on board or ashore, Went ashore / Back aboard, the card and certificates, what waits for their signature (night and standing orders, documents to read), and Revoke the wristband for an officer.",
+        "Signing with a wristband: where a signature is confirmed, a person with a wristband in force can choose NFC wristband and hold it to the phone instead of the PIN. Only their own wristband signs; the record says signed with NFC wristband. It proves the wristband was at the phone, not whose wrist it was on — like a key, so keep it on you, and revoke it if it goes missing. The PIN, the fingerprint and signing by hand stay as they were.",
+      ],
+    },
+    {
+      emoji: '🚨',
+      title: "Muster and boat landing",
+      body: [
+        "Muster (menu → Safety → Muster): the officers keep the muster stations — ID (MS-1…), name, where, and who is assigned there by the muster list; a station can have its own NFC tag. At an alarm an officer starts the muster — Drill, or Real alarm — and the persons on board at that moment (crew not ashore, guests, visitors not signed off) become the list it is counted against.",
+        "Each station leader chooses My station — or taps the station's tag — and marks every person who arrives: their wristband tapped on the phone, their crew card scanned, or their name pressed in the Missing list. Every phone shows the same count as the marks sync: accounted for of the total, who is still missing, and per station who is there and who of theirs is not. The first mark stands: a second tap, at the same station or another, only says where they were marked. Someone who was ashore when the alarm sounded is not counted — the bridge decides about them.",
+        "An officer closes the muster; with anyone still missing, the reason must be written (where they were found). Past musters lists each one with how many were accounted for and how long it took; PDF and Share PDF print who was marked where, when and how, and who was missing — for the drill record.",
+        "Boat landing (Security → Gangway, when the vessel has it): when the tender takes people ashore from a landing that is not the gangway, the watch there names the boat (Tender 1) and opens the landing. Each wristband or crew card is a crossing like at the gangway — into the boat, or back aboard — with the boat's name on it, so the persons on board stay right; the gangway page lists who is still out in which boat.",
+      ],
+    },
+    {
       emoji: '🤝',
       title: "Monthly safety meeting",
       body: [
@@ -1541,6 +1561,26 @@ const ru: ManualContent = {
         "Ship Security Plan (Security → Ship Security Plan): утверждённый SSP, оценка охраны, ISSC и контакты по охране — только для капитана и офицеров, экипажу не показывается и на берег не отправляется. У каждого документа номер, ревизия, дата пересмотра и файл (PDF или фото).",
         "Обходы безопасности (Security → Security rounds): утренний обход открытия, дневные обходы и вечерний обход закрытия — каждый в своё время. Start: сверху обязанности и напоминания — прочитать и отметить Read and done, затем пройти контрольные точки и отсканировать QR-метку каждой (Scan a checkpoint держит сканер открытым для следующей); нечитаемую метку можно отметить по ID — в отчёте это видно. Finish and sign: кто, когда, каждая точка со временем и пропущенные — записывается и не меняется. Today — что положено, сделано и осталось. Офицеры ведут Checkpoints (место, ID, QR-метка PDF или Xprinter) и Rounds (время, точки, обязанности). Reports: день или месяц в PDF — сделанные и пропущенные обходы, кто, когда, пропущенные точки, обязанности.",
         "Журнал ключей (Security → Key register): каждый ключ с ID, что открывает и где хранится; QR его бирки открывает ключ здесь. Выдать члену экипажа (или вписать имя подрядчика) с датой возврата — получатель подписывает PIN или от руки; при возврате — «Back on the board». Out now — у кого какой ключ и с какого времени; просроченные красным. Офицеры добавляют ключи и печатают бирки (PDF или Xprinter). Отчёт: ключи на руках, реестр и все выдачи/возвраты за период.",
+      ],
+    },
+    {
+      emoji: '📶',
+      title: "NFC-браслеты и метки (NFC wristbands and tags)",
+      body: [
+        "NFC (если на судне включено, на телефоне или планшете, который читает NFC; браузер не умеет) — второй способ рядом с QR сказать, кто это или где это: браслет у каждого члена экипажа и гостя, наклейка на контрольной точке обхода и на месте сбора. Касание делает то же, что скан QR: у трапа человек уходит на берег или возвращается, на обходе записывается точка, при сборе человек отмечается на месте сбора.",
+        "Выдать браслет: офицер открывает карточку члена экипажа (или гостя в списке пассажиров, контрольную точку, место сбора), нажимает «Write a tag» и подносит чистый браслет или наклейку NTAG215 к задней стороне телефона. Приложение записывает на метку то же, что в QR, и заносит заводской номер чипа (UID) в реестр судна. У человека одна метка за раз: чтобы выдать другую, сначала отзовите старую («Revoke»). «Revoke» сразу отключает потерянный браслет — с любого устройства, и с компьютера тоже. Ничего не удаляется: реестр помнит, у кого какая метка была и когда. Смарт-часы или карта доступа с NFC для дверей могут заменить браслет на Android: «Register as is» заносит их номер, ничего не записывая (платёжная карта или часы в режиме оплаты не подойдут: они при каждом касании показывают новый номер).",
+        "Зачем реестр: записать слова на чистую метку может кто угодно, поэтому слова ничего не доказывают. Касание засчитывается, только если UID чипа есть в реестре этого судна, метка не отозвана и её слова называют того же человека или то же место; метку, перезаписанную на другого, приложение отклоняет и говорит об этом. На Android трап, обход и сбор слушают сами, пока экран открыт; на iPhone нажмите «Tap a wristband» — окно чтения возвращается для следующего браслета, пока его не закроют. В любом другом месте приложения (Android) браслет, поднесённый к телефону, открывает своего человека: на борту или на берегу, «Ушёл на берег» / «Вернулся на борт», карточка и сертификаты, что ждёт его подписи (ночные и постоянные распоряжения, документы к прочтению), и для офицера — «Отвязать браслет».",
+        "Подпись браслетом: там, где подпись подтверждается, человек с действующим браслетом может выбрать «NFC wristband» и поднести его к телефону вместо PIN. Подписывает только свой браслет; в записи — «signed with NFC wristband». Это доказывает, что браслет был у телефона, но не чья это рука, — как ключ: держите его при себе и отзывайте, если пропал. PIN, отпечаток и подпись от руки остаются как были.",
+      ],
+    },
+    {
+      emoji: '🚨',
+      title: "Сбор по тревоге и посадка в лодку (Muster and boat landing)",
+      body: [
+        "Сбор по тревоге (меню → Безопасность → Сбор по тревоге): офицеры ведут места сбора — ID (MS-1…), название, где, и кто расписан туда по расписанию по тревогам; у места сбора может быть своя NFC-метка. По тревоге офицер начинает сбор — «Drill» или «Real alarm», и все, кто в этот момент на борту (экипаж не на берегу, гости, не ушедшие посетители), становятся списком, по которому идёт подсчёт.",
+        "Каждый старший на месте сбора выбирает «My station» — или прикладывает метку места — и отмечает каждого пришедшего: браслет к телефону, скан карточки экипажа или нажатие на имя в списке «Missing». Все телефоны показывают один и тот же подсчёт по мере синхронизации: сколько на месте из скольких, кого ещё нет, и по каждому месту — кто здесь и кого из своих нет. Первая отметка остаётся: второе касание, на том же месте или на другом, только показывает, где человек уже отмечен. Кто был на берегу, когда прозвучала тревога, не считается — о них решает мостик.",
+        "Сбор закрывает офицер; если кого-то нет, нужно написать причину (где нашли). В «Past musters» каждый сбор — сколько было на месте и за сколько времени; PDF и Share PDF печатают, кто где, когда и как отмечен и кого не было, — для записи об учении.",
+        "Посадка в лодку (Безопасность → Трап, если на судне включено): когда тендер возит людей на берег не с трапа, вахтенный там называет лодку (Tender 1) и открывает посадку. Каждый браслет или карточка экипажа — переход, как у трапа: в лодку или обратно на борт, с названием лодки, так что число людей на борту остаётся верным; на странице трапа видно, кто ещё в какой лодке.",
       ],
     },
     {
@@ -2493,6 +2533,26 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '📶',
+      title: "Pulseras y etiquetas NFC (NFC wristbands and tags)",
+      body: [
+        "NFC (si el buque lo tiene, en un teléfono o tableta que lea NFC; un navegador no puede) es una segunda forma, junto al QR, de decir quién o dónde: una pulsera para cada tripulante e invitado, una pegatina en un punto de control de la ronda y en un puesto de reunión. Acercarla hace lo mismo que escanear el QR: en la pasarela la persona baja a tierra o vuelve, en la ronda se registra el punto, en una reunión la persona queda marcada en el puesto.",
+        "Entregar una pulsera: un oficial abre la ficha del tripulante (o el invitado en la lista de pasajeros, el punto de control, el puesto de reunión), pulsa «Write a tag» y acerca una pulsera o pegatina NTAG215 en blanco a la parte trasera del teléfono. La app graba en ella lo mismo que el QR y anota el número de serie del chip (UID) en el registro del buque. Una etiqueta por persona a la vez: para dar otra, primero revoque la anterior (Revoke). «Revoke» anula al instante una pulsera perdida, desde cualquier dispositivo, también un ordenador. No se borra nada: el registro guarda quién tuvo qué etiqueta y cuándo. Un reloj inteligente o una tarjeta de acceso con NFC para puertas puede sustituir la pulsera en Android: Register as is registra su número sin grabar nada (una tarjeta o un reloj de pago no sirven: muestran un número nuevo en cada toque).",
+        "Por qué el registro: cualquiera puede grabar palabras en una etiqueta en blanco, así que las palabras no prueban nada. Un toque cuenta solo si el UID del chip está en el registro de este buque, no está anulado y sus palabras nombran a la misma persona o lugar; una etiqueta regrabada para otra persona se rechaza y lo dice. En Android la pasarela, la ronda y la reunión escuchan solas mientras la pantalla está abierta; en un iPhone pulse «Tap a wristband», y el lector vuelve para la siguiente hasta que lo cancele. En cualquier otro lugar de la app (Android), una pulsera acercada al teléfono abre a su persona: a bordo o en tierra, Bajó a tierra / De vuelta a bordo, la ficha y los certificados, lo que espera su firma (órdenes nocturnas y permanentes, documentos por leer) y, para un oficial, Desvincular la pulsera.",
+        "Firmar con la pulsera: donde la firma se confirma, quien tenga una pulsera vigente puede elegir «NFC wristband» y acercarla al teléfono en lugar del PIN. Solo firma su propia pulsera; el registro dice «signed with NFC wristband». Demuestra que la pulsera estaba en el teléfono, no de quién era la muñeca — como una llave: llévela siempre y anúlela si desaparece. El PIN, la huella y la firma a mano siguen igual.",
+      ],
+    },
+    {
+      emoji: '🚨',
+      title: "Reunión de emergencia y embarque en el bote (Muster and boat landing)",
+      body: [
+        "Reunión de emergencia (menú → Seguridad → Reunión de emergencia): los oficiales mantienen los puestos de reunión — ID (MS-1…), nombre, dónde y quién está asignado allí por el cuadro orgánico; un puesto puede tener su propia etiqueta NFC. En una alarma un oficial inicia la reunión — «Drill» o «Real alarm» — y las personas a bordo en ese momento (tripulación que no está en tierra, invitados, visitantes sin salida registrada) son la lista con la que se cuenta.",
+        "Cada responsable de puesto elige «My station» — o acerca la etiqueta del puesto — y marca a cada persona que llega: su pulsera en el teléfono, su tarjeta de tripulante escaneada o su nombre pulsado en la lista «Missing». Todos los teléfonos muestran el mismo recuento a medida que se sincronizan: presentes sobre el total, quién falta aún y, por puesto, quién está y quién de los suyos no. La primera marca vale: un segundo toque, en el mismo puesto u otro, solo dice dónde se marcó. Quien estaba en tierra cuando sonó la alarma no se cuenta — lo decide el puente.",
+        "Un oficial cierra la reunión; si falta alguien hay que escribir el motivo (dónde se le encontró). «Past musters» lista cada una con cuántos estaban presentes y cuánto tardó; PDF y Share PDF imprimen quién se marcó dónde, cuándo y cómo, y quién faltó — para el registro del ejercicio.",
+        "Embarque en el bote (Seguridad → Pasarela, si el buque lo tiene): cuando el tender lleva gente a tierra desde un punto que no es la pasarela, la guardia allí indica el bote (Tender 1) y abre el embarque. Cada pulsera o tarjeta de tripulante es un paso como en la pasarela — al bote o de vuelta a bordo — con el nombre del bote, así las personas a bordo siguen cuadrando; la página de la pasarela muestra quién sigue fuera y en qué bote.",
+      ],
+    },
+    {
       emoji: '🤝',
       title: "Reunión mensual de seguridad (Monthly safety meeting)",
       body: [
@@ -3442,6 +3502,26 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '📶',
+      title: "NFC-браслети й мітки (NFC wristbands and tags)",
+      body: [
+        "NFC (якщо на судні ввімкнено, на телефоні чи планшеті, що читає NFC; браузер не вміє) — другий спосіб поруч із QR сказати, хто це або де це: браслет у кожного члена екіпажу й гостя, наліпка на контрольній точці обходу та на місці збору. Дотик робить те саме, що скан QR: біля трапа людина йде на берег або повертається, на обході записується точка, під час збору людину позначають на місці збору.",
+        "Видати браслет: офіцер відкриває картку члена екіпажу (або гостя в списку пасажирів, контрольну точку, місце збору), натискає «Write a tag» і підносить чистий браслет або наліпку NTAG215 до задньої сторони телефону. Застосунок записує на мітку те саме, що в QR, і вносить заводський номер чипа (UID) до реєстру судна. У людини одна мітка за раз: щоб видати іншу, спершу відкличте стару («Revoke»). «Revoke» одразу вимикає загублений браслет — з будь-якого пристрою, і з комп'ютера теж. Нічого не видаляється: реєстр пам'ятає, у кого яка мітка була і коли. Смарт-годинник або картка доступу з NFC для дверей можуть замінити браслет на Android: «Register as is» заносить їхній номер, нічого не записуючи (платіжна картка або годинник у режимі оплати не підійдуть: вони щоразу показують новий номер).",
+        "Навіщо реєстр: записати слова на чисту мітку може будь-хто, тому слова нічого не доводять. Дотик зараховується, лише якщо UID чипа є в реєстрі цього судна, мітку не відкликано і її слова називають ту саму людину або те саме місце; мітку, перезаписану на іншого, застосунок відхиляє й каже про це. На Android трап, обхід і збір слухають самі, поки екран відкрито; на iPhone натисніть «Tap a wristband» — вікно читання повертається для наступного браслета, доки його не закриють. У будь-якому іншому місці застосунку (Android) браслет, піднесений до телефону, відкриває свою людину: на борту чи на березі, «Зійшов на берег» / «Повернувся на борт», картка й сертифікати, що чекає її підпису (нічні та постійні розпорядження, документи до прочитання), і для офіцера — «Відв'язати браслет».",
+        "Підпис браслетом: там, де підпис підтверджується, людина з чинним браслетом може вибрати «NFC wristband» і піднести його до телефону замість PIN. Підписує лише свій браслет; у записі — «signed with NFC wristband». Це доводить, що браслет був біля телефону, але не чия це рука, — як ключ: тримайте його при собі й відкликайте, якщо зник. PIN, відбиток і підпис від руки лишаються як були.",
+      ],
+    },
+    {
+      emoji: '🚨',
+      title: "Збір за тривогою і посадка в човен (Muster and boat landing)",
+      body: [
+        "Збір за тривогою (меню → Безпека → Збір за тривогою): офіцери ведуть місця збору — ID (MS-1…), назва, де, і хто розписаний туди за розкладом за тривогами; у місця збору може бути своя NFC-мітка. За тривогою офіцер починає збір — «Drill» або «Real alarm», і всі, хто в цю мить на борту (екіпаж не на березі, гості, відвідувачі, що не пішли), стають списком, за яким іде підрахунок.",
+        "Кожен старший на місці збору вибирає «My station» — або прикладає мітку місця — і позначає кожного, хто прийшов: браслет до телефону, скан картки екіпажу або натискання на ім'я в списку «Missing». Усі телефони показують той самий підрахунок у міру синхронізації: скільки на місці зі скількох, кого ще немає, і для кожного місця — хто тут і кого зі своїх немає. Перша позначка лишається: другий дотик, на тому самому місці чи на іншому, лише показує, де людину вже позначено. Хто був на березі, коли пролунала тривога, не рахується — про них вирішує місток.",
+        "Збір закриває офіцер; якщо когось немає, треба написати причину (де знайшли). У «Past musters» кожен збір — скільки було на місці й за який час; PDF і Share PDF друкують, хто де, коли і як позначений і кого не було, — для запису про навчання.",
+        "Посадка в човен (Безпека → Трап, якщо на судні ввімкнено): коли тендер возить людей на берег не з трапа, вахтовий там називає човен (Tender 1) і відкриває посадку. Кожен браслет або картка екіпажу — перехід, як біля трапа: у човен або назад на борт, із назвою човна, тож кількість людей на борту лишається правильною; на сторінці трапа видно, хто ще в якому човні.",
+      ],
+    },
+    {
       emoji: '🤝',
       title: "Щомісячні збори з безпеки (Monthly safety meeting)",
       body: [
@@ -4350,6 +4430,26 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '📶',
+      title: 'NFC-armbånd og brikker',
+      body: [
+        'NFC (når fartøyet har det, på en telefon eller et nettbrett som leser NFC — en nettleser kan ikke) er en annen måte, ved siden av QR, å si hvem eller hvor: et armbånd til hvert besetningsmedlem og hver gjest, en brikke på et kontrollpunkt for runden og ved en mønstringsstasjon. En berøring gjør det samme som å skanne QR-koden: ved landgangen går personen i land eller kommer tilbake, på runden registreres punktet, ved mønstring registreres personen på stasjonen.',
+        'Utlevere et armbånd: en offiser åpner kortet til besetningsmedlemmet (eller gjesten på passasjerlisten, kontrollpunktet, mønstringsstasjonen), trykker «Write a tag» og holder et blankt NTAG215-armbånd eller -klistremerke mot baksiden av telefonen. Appen skriver det samme som QR-koden på det og fører brikkens serienummer (UID) inn i fartøyets register. Én brikke per person om gangen: for å gi en ny, tilbakekall den gamle først (Revoke). «Revoke» stopper et mistet armbånd straks — fra hvilken som helst enhet, også en datamaskin. Ingenting slettes. En smartklokke eller et adgangskort med NFC for dører kan erstatte armbåndet på Android: Register as is registrerer nummeret uten å skrive noe (et betalingskort eller en betalingsklokke duger ikke: de viser et nytt nummer ved hver berøring).',
+        'Hvorfor registeret: hvem som helst kan skrive ord på en blank brikke, så ordene beviser ingenting. En berøring teller bare når brikkens UID står i fartøyets register, ikke er tilbakekalt, og ordene nevner samme person eller sted; en brikke som er skrevet om til en annen, avvises. På Android lytter landgangen, runden og mønstringen selv mens skjermen er åpen; på iPhone trykker du «Tap a wristband», og leseren kommer tilbake for neste til du avbryter. Andre steder i appen (Android) åpner et armbånd holdt mot telefonen personen sin: om bord eller i land, Gikk i land / Tilbake om bord, kort og sertifikater, hva som venter på signaturen deres (natt- og stående ordrer, dokumenter å lese), og for en offiser Koble fra armbåndet.',
+        'Signere med armbåndet: der en signatur bekreftes, kan en person med gyldig armbånd velge «NFC wristband» og holde det mot telefonen i stedet for PIN. Bare eget armbånd signerer; posten sier «signed with NFC wristband». Det viser at armbåndet var ved telefonen, ikke hvem som bar det — som en nøkkel: ha det på deg, og tilbakekall det om det blir borte.',
+      ],
+    },
+    {
+      emoji: '🚨',
+      title: 'Mønstring og ombordstigning i båt',
+      body: [
+        'Mønstring (meny → Sikkerhet → Mønstring): offiserene fører mønstringsstasjonene — ID (MS-1…), navn, hvor og hvem som er satt opp der etter mønstringslisten; en stasjon kan ha sin egen NFC-brikke. Ved alarm starter en offiser mønstringen — «Drill» eller «Real alarm» — og de som er om bord akkurat da (mannskap som ikke er i land, gjester, besøkende som ikke er skrevet ut) blir listen det telles mot.',
+        'Hver stasjonsleder velger «My station» — eller holder fram stasjonens brikke — og registrerer hver person som kommer: armbåndet mot telefonen, mannskapskortet skannet eller navnet trykket i listen «Missing». Alle telefoner viser samme opptelling etter hvert som de synkroniseres. Første registrering står: en ny berøring, på samme stasjon eller en annen, sier bare hvor personen ble registrert. Den som var i land da alarmen gikk, telles ikke — det avgjør broen.',
+        'En offiser avslutter mønstringen; mangler noen, må grunnen skrives (hvor de ble funnet). «Past musters» viser hver med hvor mange som ble gjort rede for og hvor lang tid det tok; PDF og Share PDF skriver ut hvem som ble registrert hvor, når og hvordan, og hvem som manglet.',
+        'Ombordstigning i båt (Sikkerhet → Landgang, når fartøyet har det): når tenderen frakter folk i land fra et annet sted enn landgangen, oppgir vakten der båten (Tender 1) og åpner ombordstigningen. Hvert armbånd eller mannskapskort er en passering som ved landgangen — i båten eller tilbake om bord — med båtens navn, så antallet om bord stemmer; landgangssiden viser hvem som fortsatt er ute i hvilken båt.',
+      ],
+    },
+    {
       emoji: '🤝',
       title: 'Månedlig sikkerhetsmøte',
       body: [
@@ -5221,6 +5321,26 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '📶',
+      title: 'Pulseiras e etiquetas NFC',
+      body: [
+        'NFC (quando o navio o tem, num telefone ou tablet que leia NFC — um navegador não consegue) é uma segunda forma, ao lado do QR, de dizer quem ou onde: uma pulseira para cada tripulante e convidado, um autocolante num ponto de controlo da ronda e num posto de reunião. Aproximá-la faz o mesmo que ler o QR: no portaló a pessoa vai a terra ou regressa, na ronda o ponto fica registado, numa reunião a pessoa fica marcada no posto.',
+        'Entregar uma pulseira: um oficial abre a ficha do tripulante (ou o convidado na lista de passageiros, o ponto de controlo, o posto de reunião), toca em «Write a tag» e aproxima uma pulseira ou autocolante NTAG215 em branco das costas do telefone. A app grava nela o mesmo que o QR e regista o número de série do chip (UID) no registo do navio. Uma etiqueta por pessoa de cada vez: para dar outra, revogue primeiro a anterior (Revoke). «Revoke» anula de imediato uma pulseira perdida, a partir de qualquer dispositivo, também um computador. Nada é apagado. Um relógio inteligente ou um cartão de acesso com NFC para portas pode substituir a pulseira no Android: Register as is regista o seu número sem gravar nada (um cartão ou relógio de pagamento não serve: mostra um número novo a cada toque).',
+        'Porquê o registo: qualquer pessoa pode gravar palavras numa etiqueta em branco, por isso as palavras não provam nada. Um toque só conta quando o UID do chip está no registo deste navio, não foi anulado e as palavras nomeiam a mesma pessoa ou local; uma etiqueta regravada para outra pessoa é recusada. No Android o portaló, a ronda e a reunião ficam à escuta enquanto o ecrã está aberto; num iPhone toque em «Tap a wristband», e o leitor volta para a seguinte até o cancelar. Em qualquer outro ponto da app (Android), uma pulseira aproximada do telefone abre a sua pessoa: a bordo ou em terra, Foi a terra / De volta a bordo, a ficha e os certificados, o que espera a sua assinatura (ordens noturnas e permanentes, documentos a ler) e, para um oficial, Desassociar a pulseira.',
+        'Assinar com a pulseira: onde a assinatura é confirmada, quem tem uma pulseira em vigor pode escolher «NFC wristband» e aproximá-la do telefone em vez do PIN. Só a própria pulseira assina; o registo diz «signed with NFC wristband». Prova que a pulseira esteve no telefone, não de quem era o pulso — como uma chave: traga-a consigo e anule-a se desaparecer.',
+      ],
+    },
+    {
+      emoji: '🚨',
+      title: 'Reunião de emergência e embarque no bote',
+      body: [
+        'Reunião de emergência (menu → Segurança → Reunião de emergência): os oficiais mantêm os postos de reunião — ID (MS-1…), nome, onde e quem está lá atribuído pelo rol de chamada; um posto pode ter a sua etiqueta NFC. Num alarme um oficial inicia a reunião — «Drill» ou «Real alarm» — e as pessoas a bordo nesse momento (tripulação que não está em terra, convidados, visitantes sem saída registada) são a lista contra a qual se conta.',
+        'Cada responsável de posto escolhe «My station» — ou aproxima a etiqueta do posto — e marca cada pessoa que chega: a pulseira no telefone, o cartão de tripulante lido ou o nome tocado na lista «Missing». Todos os telefones mostram a mesma contagem à medida que sincronizam. A primeira marca fica: um segundo toque, no mesmo posto ou noutro, só diz onde foi marcada. Quem estava em terra quando soou o alarme não conta — decide a ponte.',
+        'Um oficial fecha a reunião; se faltar alguém, tem de escrever o motivo (onde foi encontrado). «Past musters» lista cada uma com quantos estavam presentes e quanto tempo levou; PDF e Share PDF imprimem quem foi marcado onde, quando e como, e quem faltou.',
+        'Embarque no bote (Segurança → Portaló, quando o navio o tem): quando o tender leva pessoas a terra a partir de um sítio que não é o portaló, o quarto aí indica o bote (Tender 1) e abre o embarque. Cada pulseira ou cartão é uma passagem como no portaló — para o bote ou de volta a bordo — com o nome do bote, para que as pessoas a bordo continuem certas; a página do portaló mostra quem ainda está fora e em que bote.',
+      ],
+    },
+    {
       emoji: '🤝',
       title: 'Reunião mensal de segurança',
       body: [
@@ -5625,6 +5745,8 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Dynamic positioning', module: 'dp' },
   { title: 'Bridge and engine checklists', module: 'watchChecks' },
   { title: 'Security (ISPS)', module: 'security' },
+  { title: 'NFC wristbands and tags', module: 'nfc' },
+  { title: 'Muster and boat landing', module: 'muster' },
   // Paragraphs of a live section about a page that ships dark (15 Oct 2026).
   { title: 'Security (ISPS)', module: 'searches', drop: [6] },
   { title: 'Security (ISPS)', module: 'ssp', drop: [7] },

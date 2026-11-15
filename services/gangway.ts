@@ -45,7 +45,7 @@ function localToday(): string {
 }
 
 /** The move a scan or a tap makes: the opposite of where the person is now. */
-export function nextMove(c: Pick<CrewMember, 'id' | 'name'>, moves: CrewMove[], by: string, via: 'qr' | 'manual', now = new Date()): CrewMove {
+export function nextMove(c: Pick<CrewMember, 'id' | 'name'>, moves: CrewMove[], by: string, via: CrewMove['via'], now = new Date(), boat?: string): CrewMove {
   const ashore = isAshore(c.id, lastMoves(moves));
   const date = shipToday(now.getTime());
   return {
@@ -58,6 +58,7 @@ export function nextMove(c: Pick<CrewMember, 'id' | 'name'>, moves: CrewMove[], 
     at: now.getTime(),
     by,
     via,
+    ...(boat?.trim() ? { boat: boat.trim() } : {}),
     updatedAt: now.getTime(),
   };
 }
@@ -77,4 +78,27 @@ export const VISITOR_PHOTO_DAYS = 90;
 export function photosToRemove(visitors: Visitor[], today: string): Visitor[] {
   const limit = Date.parse(`${today}T00:00:00Z`) - VISITOR_PHOTO_DAYS * 86400000;
   return visitors.filter((v) => v.photo && v.timeOut && Date.parse(`${v.dateOut ?? v.date}T00:00:00Z`) < limit);
+}
+
+/**
+ * Ashore by boat (the boat landing, types/muster.ts): whose last crossing was ashore in
+ * a named boat, by boat — who is still out in the tender, and since when.
+ */
+export function outByBoat(moves: CrewMove[]): Map<string, CrewMove[]> {
+  const out = new Map<string, CrewMove[]>();
+  for (const m of lastMoves(moves).values()) {
+    if (m.dir !== 'ashore' || !m.boat) continue;
+    out.set(m.boat, [...(out.get(m.boat) ?? []), m].sort((a, b) => a.at - b.at));
+  }
+  return out;
+}
+
+/** Boats named at the landing, the most recent first — offered when the next trip is started. */
+export function recentBoats(moves: CrewMove[], max = 6): string[] {
+  const seen: string[] = [];
+  for (const m of [...moves].sort((a, b) => b.at - a.at)) {
+    if (m.boat && !seen.some((b) => b.toLowerCase() === m.boat!.toLowerCase())) seen.push(m.boat);
+    if (seen.length >= max) break;
+  }
+  return seen;
 }

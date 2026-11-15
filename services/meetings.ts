@@ -55,7 +55,7 @@ const localStamp = (at: number) => {
 };
 
 // As services/signature proofShort — kept here so this file stays free of storage.
-const proofShort = (p?: SignProof) => (!p ? '' : p.method === 'biometric' ? 'signed biometrically' : p.method === 'drawn' ? 'signed by hand' : 'signed by PIN');
+const proofShort = (p?: SignProof) => (!p ? '' : p.method === 'biometric' ? 'signed biometrically' : p.method === 'nfc' ? 'signed with NFC wristband' : p.method === 'drawn' ? 'signed by hand' : 'signed by PIN');
 
 export function meetingDoc(m: SafetyMeeting, vesselLine: string): MedDoc {
   const present = m.attendance.filter((a) => a.present);

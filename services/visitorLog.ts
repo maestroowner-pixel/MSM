@@ -50,7 +50,7 @@ export function movesOf(all: CrewMove[], period: string): CrewMove[] {
   return all.filter((m) => m.date.startsWith(period)).sort((a, b) => a.at - b.at);
 }
 export function moveRows(moves: CrewMove[]): string[][] {
-  return moves.map((m) => [vDmy(m.date), m.time, m.name, m.dir === 'ashore' ? 'ashore' : 'back aboard', m.by, m.via === 'qr' ? 'crew card QR' : 'by the watch']);
+  return moves.map((m) => [vDmy(m.date), m.time, m.name, m.dir === 'ashore' ? 'ashore' : 'back aboard', m.by, `${m.via === 'qr' ? 'crew card QR' : m.via === 'nfc' ? 'NFC wristband' : 'by the watch'}${m.boat ? `, boat: ${m.boat}` : ''}`]);
 }
 
 export function vlogTitle(period: string) {

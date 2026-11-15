@@ -16,6 +16,10 @@
 //     prompt opens by itself; "Use PIN" is always there;
 //   - otherwise → the signer's signing PIN; the first time on this device they
 //     choose it (twice), and from then on it is asked for.
+//   - NFC wristband (15 Nov 2026, module `nfc`): offered when the signer has a
+//     wristband in force on the vessel's register and this phone reads NFC. The tap
+//     must be THAT wristband (its UID — types/nfc.ts). It proves the wristband was
+//     at the phone, not whose wrist it was on: like a key, and printed as such.
 // Rules and storage: services/signature.ts.
 //
 // Each way also opens the signer's KEY (services/signKeys, 25 Oct 2026): the PIN
@@ -48,12 +52,17 @@ import {
   lockedUntil,
   setPin,
   ADMIN_KEY,
+  adminPinIsDefault,
   hasAdminPin,
 } from '../services/signature';
 import { CODE_LENGTH, redeemPinCode } from '../services/pinCodes';
 import { handUnder } from '../services/pinHash';
 import { maySign } from '../types/crew';
 import { OpenKey, openBioKey, openDeviceKey, openPinKey } from '../services/signKeys';
+import { activeTag, resolveTap } from '../services/nfcTags';
+import { cancelRead, nfcReady, readTag } from '../services/nfcReader';
+import { NfcTag } from '../types/nfc';
+import { CrewMember } from '../types/crew';
 import type { SignKeyRec } from '../services/seal';
 import * as storage from '../services/storage';
 
@@ -92,7 +101,20 @@ export function withSeal<T extends object>(rec: T, sig: SignResult, field: 'sign
   return { ...rec, [field]: { ...proof, seal: sig.key.seal(rec) } };
 }
 
-type Step = 'choose' | 'bio' | 'pin' | 'admin' | 'code' | 'set1' | 'set2' | 'draw';
+/** `m1`/`m2`: the Master's own PIN in place of 0000, before 0000 unlocks anything. */
+type Step = 'choose' | 'bio' | 'pin' | 'admin' | 'm1' | 'm2' | 'code' | 'set1' | 'set2' | 'draw' | 'nfc';
+
+/**
+ * The signer's wristband in force: theirs by crew id, or — an account signing as its
+ * device (`device:<id>`) — the crew member of the same name.
+ */
+export function signerBand(tags: NfcTag[], crew: CrewMember[], personKey: string, name: string): NfcTag | undefined {
+  const byId = activeTag(tags, 'person', personKey);
+  if (byId) return byId;
+  const norm = (x: string) => x.trim().toLowerCase().replace(/\s+/g, ' ');
+  const c = crew.find((x) => !x.deleted && norm(x.name) === norm(name));
+  return c ? activeTag(tags, 'person', c.id) : undefined;
+}
 
 /** A phone, a tablet, or a browser on a touch screen — where a hand or a stylus can sign. */
 /** Signing by hand is offered everywhere — a stylus or finger on a tablet, a pen tablet or mouse on a computer. */
@@ -121,7 +143,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
   const COLORS = useTheme();
   useT();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const { signingPolicy, appendRow, signKeys, vessel, crew } = useData();
+  const { signingPolicy, appendRow, signKeys, vessel, crew, nfcTags } = useData();
   const sync = useSync();
   const masterDevice = !sync.enrolled || sync.role === 'superadmin';
   const masterRef = useRef(masterDevice);
@@ -141,6 +163,8 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
   const [req, setReq] = useState<SignRequest | null>(null);
   const [step, setStep] = useState<Step>('pin');
   const [bio, setBio] = useState<BiometricKind | null>(null);
+  /** This phone reads NFC and the module is on — the wristband is offered to a signer who has one. */
+  const [nfcHere, setNfcHere] = useState(false);
   const [pin, setPinText] = useState('');
   const [drawing, setDrawing] = useState('');
   const [first, setFirst] = useState('');
@@ -161,13 +185,13 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
   // than sent empty when it cannot be read.
   // The key is opened with what was just proved: the PIN typed, the finger, or —
   // by hand — the device's own. A key failing to open never stops the signature.
-  const proof = async (method: SignProof['method'], drawn?: string, pinTyped?: string): Promise<SignResult> => {
+  const proof = async (method: SignProof['method'], drawn?: string, pinTyped?: string, tag?: string): Promise<SignResult> => {
     const deviceId = await fb.getLocalDeviceId().catch(() => undefined);
     let key: OpenKey | null = null;
     const req = reqRef.current;
     if (req) {
       try {
-        key = method === 'pin' && pinTyped ? await openPinKey(req.personKey, pinTyped) : method === 'biometric' ? await openBioKey(req.personKey) : method === 'drawn' ? await openDeviceKey(deviceId ?? '') : null;
+        key = method === 'pin' && pinTyped ? await openPinKey(req.personKey, pinTyped) : method === 'biometric' ? await openBioKey(req.personKey) : method === 'drawn' || method === 'nfc' ? await openDeviceKey(deviceId ?? '') : null;
       } catch (e: any) {
         console.warn('[seal] key not opened:', e?.message ?? e);
       }
@@ -188,7 +212,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
       }
     }
     const under = method === 'drawn' ? underNow(req?.name) : null;
-    return { proof: { method, ...(drawn ? { drawing: drawn } : {}), ...(under ? { under } : {}), ...(deviceId ? { deviceId } : {}), at: Date.now() }, ...(key ? { key } : {}) };
+    return { proof: { method, ...(drawn ? { drawing: drawn } : {}), ...(tag ? { tag } : {}), ...(under ? { under } : {}), ...(deviceId ? { deviceId } : {}), at: Date.now() }, ...(key ? { key } : {}) };
   };
   const toPin = async () => {
     if (!req) return;
@@ -217,12 +241,34 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
         void (async () => {
           // The signer chooses: PIN, by hand, or the fingerprint on their own device (11 Oct 2026).
           setBio(r.ownDevice ? await biometricKind() : null);
+          setNfcHere(moduleOn('nfc') && (await nfcReady()));
           setStep(r.handOnly ? 'draw' : 'choose');
         })();
       });
     },
     [required, tryBio]
   );
+
+  const band = req ? signerBand(nfcTags, crew, req.personKey, req.name) : undefined;
+  const nfcRun = useRef(0);
+  const tryNfc = async () => {
+    if (!req || !band) return;
+    const run = ++nfcRun.current;
+    setMsg(null);
+    setStep('nfc');
+    const read = await readTag(t('sc.nfcHold', { name: req.name }));
+    if (run !== nfcRun.current) return;
+    if (!read) return setStep('choose');
+    const r = resolveTap(read.uid, read.payload, nfcTags);
+    // Only the signer's own wristband in force — another person's, a revoked one or a rewritten one is refused.
+    if (!r.ok || r.tag.id !== band.id) return setMsg(r.ok ? t('sc.nfcOther', { name: r.tag.name }) : t(`nfc.why.${r.why}`));
+    noteResponsible(req);
+    finish(await proof('nfc', undefined, undefined, r.tag.uid));
+  };
+  const leaveNfc = () => {
+    nfcRun.current++;
+    void cancelRead();
+  };
 
   // Show the lockout as it stands when the PIN step opens.
   useEffect(() => {
@@ -235,9 +281,31 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
     const v = pin.trim();
     if (step === 'admin') {
       // A first PIN is set only with the Master's PIN (components/PinChange).
+      const wasDefault = await adminPinIsDefault();
       const r = await checkPin(ADMIN_KEY, v);
       setPinText('');
       if (!r.ok) return setMsg(r.lockedUntil ? lockText(r.lockedUntil) : t('sc.wrongMaster', { left: tn('n.tryLeft', r.left) }));
+      setMsg(null);
+      // 0000 opens once: the Master's own PIN first.
+      return setStep(wasDefault ? 'm1' : 'set1');
+    }
+    if (step === 'm1') {
+      setPinText('');
+      if (!isValidSignPin(v)) return setMsg(t('sc.digits', { min: PIN_MIN, max: PIN_MAX }));
+      if (isWeakPin(v)) return setMsg(t('sc.weak'));
+      setFirst(v);
+      setPinText('');
+      setMsg(null);
+      return setStep('m2');
+    }
+    if (step === 'm2') {
+      setPinText('');
+      setFirst('');
+      if (v !== first) {
+        setMsg(t('sc.differ'));
+        return setStep('m1');
+      }
+      await setPin(ADMIN_KEY, t('role.superadmin'), v);
       setMsg(null);
       return setStep('set1');
     }
@@ -259,6 +327,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
       return;
     }
     if (step === 'set1') {
+      setPinText('');
       if (!isValidSignPin(v)) return setMsg(t('sc.digits', { min: PIN_MIN, max: PIN_MAX }));
       if (isWeakPin(v)) return setMsg(t('sc.weak'));
       setFirst(v);
@@ -280,12 +349,16 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
   };
 
   const title =
-    step === 'choose' ? t('sc.how') : step === 'bio' ? t('sc.bioTitle') : step === 'draw' ? t('sc.byHand') : step === 'code' ? t('sc.codeTitle') : step === 'admin' ? t('sc.adminTitle') : step === 'pin' ? t('sc.enterPin') : step === 'set1' ? t('sc.choosePin') : t('sc.repeat');
+    step === 'choose' ? t('sc.how') : step === 'nfc' ? t('sc.nfcTitle') : step === 'bio' ? t('sc.bioTitle') : step === 'draw' ? t('sc.byHand') : step === 'code' ? t('sc.codeTitle') : step === 'admin' ? t('sc.adminTitle') : step === 'm1' ? t('pin.onceTitle') : step === 'm2' ? t('sc.repeat') : step === 'pin' ? t('sc.enterPin') : step === 'set1' ? t('sc.choosePin') : t('sc.repeat');
   const handUnderName = underNow(req?.name);
   const handOk = canDraw && (!sharedTablet || !!handUnderName);
   const hint =
     step === 'choose' && sharedTablet && !handOk
       ? t('sc.handAfter')
+      : step === 'm1'
+      ? t('pin.once')
+      : step === 'm2'
+      ? t('sc.again')
       : step === 'set1'
       ? t('sc.firstHint', { min: PIN_MIN, max: PIN_MAX })
       : step === 'set2'
@@ -298,6 +371,8 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
       ? t('sc.codeHint') + (handOk && bio ? t('sc.orHandBio') : handOk ? t('sc.orHand') : bio ? t('sc.orBio') : '')
       : step === 'pin'
       ? masterDevice ? t('sc.forgot') : t('sc.forgotCode')
+      : step === 'nfc'
+      ? t('sc.nfcHint')
       : null;
 
   return (
@@ -306,7 +381,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
       <Modal visible={!!req} transparent animationType="fade" onRequestClose={() => finish(null)}>
         <View style={styles.backdrop}>
           <View style={[styles.card, step === 'draw' && styles.cardWide]}>
-            {step !== 'draw' ? <MciIcon name={step === 'choose' ? 'draw' : step === 'bio' ? 'fingerprint' : 'dialpad'} size={40} color={COLORS.primary} /> : null}
+            {step !== 'draw' ? <MciIcon name={step === 'choose' ? 'draw' : step === 'bio' ? 'fingerprint' : step === 'nfc' ? 'nfc-variant' : 'dialpad'} size={40} color={COLORS.primary} /> : null}
             <Text style={styles.what}>{req?.what}</Text>
             <Text style={styles.name}>{req?.name}</Text>
             <Text style={styles.title}>{title}</Text>
@@ -322,6 +397,12 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
                     <Text style={styles.choiceText}>{t('sc.byHand')}</Text>
                   </TouchableOpacity>
                 ) : null}
+                {nfcHere && band ? (
+                  <TouchableOpacity style={styles.choice} onPress={() => void tryNfc()}>
+                    <MciIcon name="nfc-variant" size={30} color={COLORS.primary} />
+                    <Text style={styles.choiceText}>{t('sc.nfcBand')}</Text>
+                  </TouchableOpacity>
+                ) : null}
                 {bio ? (
                   <TouchableOpacity style={styles.choice} onPress={() => { setStep('bio'); req && void tryBio(req); }}>
                     <MciIcon name="fingerprint" size={30} color={COLORS.primary} />
@@ -329,6 +410,10 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
                   </TouchableOpacity>
                 ) : null}
               </View>
+            ) : step === 'nfc' ? (
+              <TouchableOpacity style={styles.primary} onPress={() => void tryNfc()}>
+                <Text style={styles.primaryText}>{t('sc.nfcAgain')}</Text>
+              </TouchableOpacity>
             ) : step === 'bio' ? (
               <TouchableOpacity style={styles.primary} onPress={() => req && void tryBio(req)}>
                 <Text style={styles.primaryText}>{t('sc.touch')}</Text>
@@ -364,7 +449,7 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
                   placeholderTextColor={COLORS.textLight}
                 />
                 <TouchableOpacity style={[styles.primary, pin.length < (step === 'code' ? CODE_LENGTH : PIN_MIN) && { opacity: 0.5 }]} disabled={pin.length < (step === 'code' ? CODE_LENGTH : PIN_MIN)} onPress={() => void submit()}>
-                  <Text style={styles.primaryText}>{step === 'set1' || step === 'code' ? t('sc.next') : step === 'admin' ? t('sc.unlock') : t('common.sign')}</Text>
+                  <Text style={styles.primaryText}>{step === 'set1' || step === 'code' || step === 'm1' || step === 'm2' ? t('sc.next') : step === 'admin' ? t('sc.unlock') : t('common.sign')}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -378,11 +463,11 @@ export function SignConfirmProvider({ children }: { children: React.ReactNode })
             <View style={styles.row}>
               {/* Back to the choice: PIN, by hand, fingerprint. */}
               {step !== 'choose' && !req?.handOnly ? (
-                <TouchableOpacity onPress={() => { setMsg(null); setPinText(''); setStep('choose'); }} hitSlop={8}>
+                <TouchableOpacity onPress={() => { leaveNfc(); setMsg(null); setPinText(''); setStep('choose'); }} hitSlop={8}>
                   <Text style={styles.link}>{t('sc.another')}</Text>
                 </TouchableOpacity>
               ) : <View />}
-              <TouchableOpacity onPress={() => finish(null)} hitSlop={8}>
+              <TouchableOpacity onPress={() => { leaveNfc(); finish(null); }} hitSlop={8}>
                 <Text style={[styles.link, { color: COLORS.textLight }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
             </View>

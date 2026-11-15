@@ -42,11 +42,16 @@ export { PIN_MAX, PIN_MIN, isValidSignPin, isWeakPin } from './pinHash';
  * face: Face ID is not a signature (10 Oct 2026).
  */
 export interface SignProof {
-  method: 'biometric' | 'pin' | 'drawn';
+  method: 'biometric' | 'pin' | 'drawn' | 'nfc';
   /** The handwritten signature, for `drawn` (SVG path, 300 × 100 — components/SignaturePad). */
   drawing?: string;
   /** A hand signature on a shared tablet: the officer whose PIN signature it is made under. */
   under?: string;
+  /**
+   * `nfc` (15 Nov 2026): the signer's own wristband tapped on the device — its UID, as on
+   * the vessel's register (types/nfc.ts). Proves the wristband was there, not whose wrist.
+   */
+  tag?: string;
   /** The device it was signed on (firebaseService.getLocalDeviceId). */
   deviceId?: string;
   at: number;
@@ -145,7 +150,12 @@ export async function setPin(personKey: string, name: string, pin: string): Prom
  * Kept like any signing PIN, under its own holder key.
  */
 export const ADMIN_KEY = 'master';
-/** Until the Master changes it, the Master PIN is 0000 (10 Oct 2026). */
+/**
+ * Until the Master changes it, the Master PIN is 0000 (10 Oct 2026) — and it opens ONCE
+ * (15 Nov 2026: "nobody changes the standard PIN, so everyone's is 0000, and knowing it
+ * signs for a person"): whatever 0000 unlocks goes first through choosing the Master's own
+ * PIN (SignConfirm and PinChange, step `m1`), after which 0000 opens nothing.
+ */
 export const DEFAULT_ADMIN_PIN = '0000';
 /** There is always a Master PIN — the default one until it is changed. */
 export const hasAdminPin = async () => true;
@@ -224,11 +234,11 @@ function randomHex(bytes: number): string {
  * hand" (on the screen). All three ways stay open to everyone.
  */
 export function proofShort(p: SignProof | undefined): string {
-  return !p ? '' : p.method === 'biometric' ? 'signed biometrically' : p.method === 'drawn' ? `signed by hand${p.under ? `, under ${p.under}` : ''}` : 'signed by PIN';
+  return !p ? '' : p.method === 'biometric' ? 'signed biometrically' : p.method === 'nfc' ? 'signed with NFC wristband' : p.method === 'drawn' ? `signed by hand${p.under ? `, under ${p.under}` : ''}` : 'signed by PIN';
 }
 
 /** The same as a sentence, for a record's own screen. */
 export function proofText(p: SignProof | undefined): string | null {
   if (!p) return null;
-  return p.method === 'biometric' ? 'Signed biometrically' : p.method === 'drawn' ? `Signed by hand on the screen${p.under ? `, under ${p.under}` : ''}` : 'Signed by PIN';
+  return p.method === 'biometric' ? 'Signed biometrically' : p.method === 'nfc' ? 'Signed with the NFC wristband' : p.method === 'drawn' ? `Signed by hand on the screen${p.under ? `, under ${p.under}` : ''}` : 'Signed by PIN';
 }

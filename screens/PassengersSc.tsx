@@ -43,6 +43,7 @@ import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
 import { t, useT } from '../utils/i18n';
+import { NfcTagRow } from '../components/NfcTagRow';
 
 type Show = 'aboard' | 'expected' | 'left' | 'all';
 const ID_TYPES = ['Passport', 'ID card', 'Driving licence', 'Other'];
@@ -210,6 +211,7 @@ export default function PassengersSc() {
             <TextInput style={[styles.input, { flex: 1, minWidth: 160 }]} value={draft.disembarkPort ?? ''} onChangeText={(v) => set({ disembarkPort: v })} placeholder={t('pax.portOut')} placeholderTextColor={COLORS.textLight} />
           </View>
           <TextInput style={styles.input} value={draft.notes ?? ''} onChangeText={(v) => set({ notes: v })} placeholder={t('pax.notesPh')} placeholderTextColor={COLORS.textLight} />
+          {passengers.some((p) => p.id === draft.id) ? <NfcTagRow kind="person" refId={draft.id} name={draft.name} /> : null}
           {officer ? (
             <>
               <Label>{t('pax.docs')}</Label>

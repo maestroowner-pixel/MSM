@@ -46,7 +46,7 @@ export function exportPatrolDay(date: string, plans: PatrolPlan[], patrols: Patr
   const visits: T = {
     title: 'Checkpoints visited',
     head: ['Round', 'Time', 'Checkpoint', 'How'],
-    rows: done.flatMap((x) => x.done!.visits.map((v) => [`${x.slot} ${x.plan.name}`, hm(v.at), `${v.code} · ${v.name}`, v.how === 'scan' ? 'QR scanned' : 'ID typed'])),
+    rows: done.flatMap((x) => x.done!.visits.map((v) => [`${x.slot} ${x.plan.name}`, hm(v.at), `${v.code} · ${v.name}`, v.how === 'scan' ? 'QR scanned' : v.how === 'nfc' ? 'NFC tag' : 'ID typed'])),
     widths: { 0: 70, 1: 20, 2: 140, 3: 43 },
   };
   return exportPmsHistory('Security rounds', `Security rounds ${date}`, vessel, [{ title: `Security rounds — ${dmy(date)}`, facts, tables: [rounds, visits, ...dutiesTables(plans)] }]);

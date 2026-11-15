@@ -43,7 +43,8 @@ export interface PatrolVisit {
   name: string;
   at: number;
   /** Scanned with the camera, or the ID typed (the label unreadable). */
-  how: 'scan' | 'typed';
+  /** `nfc`: the checkpoint's tag tapped (types/nfc.ts). */
+  how: 'scan' | 'typed' | 'nfc';
 }
 
 export interface Patrol {

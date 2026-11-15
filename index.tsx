@@ -160,6 +160,9 @@ import LetterSc from './screens/LetterSc';
 import OrderBookSc from './screens/OrderBookSc';
 import ChatSc from './screens/ChatSc';
 import GaPlanSc from './screens/GaPlanSc';
+import MusterSc from './screens/MusterSc';
+import NfcPersonSc from './screens/NfcPersonSc';
+import { NfcListener } from './components/NfcListener';
 import OrderEntrySc from './screens/OrderEntrySc';
 import WireLogSc from './screens/WireLogSc';
 import CraneLogSc from './screens/CraneLogSc';
@@ -302,6 +305,8 @@ function TabFade({ children }: { children: React.ReactNode }) {
 const SCREEN_MODULES: Record<string, ModuleKey[]> = {
   Chat: ['chat'],
   GaPlan: ['gaPlan'],
+  Muster: ['muster'],
+  NfcPerson: ['nfc'],
   Emissions: ['emissions'],
   EmPassage: ['emissions'],
   RestPlan: ['restPlan'],
@@ -398,7 +403,7 @@ function MainTabs() {
   // Crew list (FAL Form 5, import) and the crew matrix — Officers and the Master
   // keep them, but everyone may look; the screens say what each rank can do.
   // Chat is for everyone aboard: in the menu whenever the module is on (services/chat).
-  const menuExtras = [...(moduleListed('chat') ? ['Chat'] : []), ...(moduleListed('gaPlan') ? ['GaPlan'] : []), ...(moduleOn('crewCerts') ? ['Crew', 'CrewMatrix', ...(moduleListed('myDocs') ? ['MyDocs'] : [])] : [])];
+  const menuExtras = [...(moduleListed('chat') ? ['Chat'] : []), ...(moduleListed('gaPlan') ? ['GaPlan'] : []), ...(moduleListed('muster') ? ['Muster'] : []), ...(moduleOn('crewCerts') ? ['Crew', 'CrewMatrix', ...(moduleListed('myDocs') ? ['MyDocs'] : [])] : [])];
   const available = useMemo(() => [...tabOrder, ...menuExtras], [tabOrder.join('|'), menuExtras.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
   const navPrefs = useNavPrefs(available);
   const many = tabOrder.length > FEW;
@@ -490,7 +495,7 @@ function MainTabs() {
                   <NavMenuBar
                     {...p}
                     {...navPrefs}
-                    icons={{ ...TAB_ICONS, Crew: 'clipboard-account-outline', CrewMatrix: 'table-account', MyDocs: 'card-account-details-outline', Chat: 'chat-outline', GaPlan: 'floor-plan' }}
+                    icons={{ ...TAB_ICONS, Crew: 'clipboard-account-outline', CrewMatrix: 'table-account', MyDocs: 'card-account-details-outline', Chat: 'chat-outline', GaPlan: 'floor-plan', Muster: 'account-multiple-check-outline' }}
                     labelOf={(r) => MENU_LABEL[r] ?? r}
                   />
                 )
@@ -646,6 +651,8 @@ const linking = {
       MyDocs: 'my-documents',
       Chat: 'chat',
       GaPlan: 'ship-plan',
+      Muster: 'muster',
+      NfcPerson: 'band/:ref',
       Emissions: 'emissions',
       EmPassage: 'em-passage/:id',
       RestPlan: 'watch-plan',
@@ -933,6 +940,8 @@ function Root() {
         <Stack.Screen name="MyDocs" component={gated('MyDocs', MyDocsSc)} options={webHeader(t('my.title'))} />
         <Stack.Screen name="Chat" component={gated('Chat', ChatSc)} options={webHeader(t('chat.title'))} />
         <Stack.Screen name="GaPlan" component={gated('GaPlan', GaPlanSc)} options={webHeader(t('ga.title'))} />
+        <Stack.Screen name="Muster" component={gated('Muster', MusterSc)} options={webHeader(t('mu.title'))} />
+        <Stack.Screen name="NfcPerson" component={gated('NfcPerson', NfcPersonSc)} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Emissions" component={gated('Emissions', EmissionsSc)} options={{ presentation: 'modal' }} />
         <Stack.Screen name="EmPassage" component={gated('EmPassage', EmPassageSc)} options={{ presentation: 'modal' }} />
         <Stack.Screen name="RestPlan" component={gated('RestPlan', RestPlanSc)} options={{ presentation: 'modal' }} />
@@ -1003,6 +1012,8 @@ function Root() {
       {!showSplash && legalAccepted === true ? <UpdatePrompt /> : null}
       {/* Planned clock changes: applied on time, written into the Deck Log (components/ClockKeeper). */}
       <ClockKeeper />
+      {/* A wristband held to the phone opens its person (Android). */}
+      {!showSplash && legalAccepted === true ? <NfcListener navigate={(route, params) => navigationRef.isReady() && (navigationRef as any).navigate(route, params)} /> : null}
     </NavigationContainer>
   );
 }

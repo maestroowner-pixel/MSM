@@ -126,7 +126,7 @@ export function buildRoundReport(flat: EquipmentItem[], trail: Inspection[], rou
   };
 }
 
-const proofShort = (p?: { method?: string }) => (!p ? '' : p.method === 'biometric' ? 'signed biometrically' : p.method === 'drawn' ? 'signed by hand' : 'signed by PIN');
+const proofShort = (p?: { method?: string }) => (!p ? '' : p.method === 'biometric' ? 'signed biometrically' : p.method === 'nfc' ? 'signed with NFC wristband' : p.method === 'drawn' ? 'signed by hand' : 'signed by PIN');
 
 /** The round's final sign-off as one line, for the PDF and the spreadsheet. */
 export function roundSignoffLine(r: InspectionRound): string {

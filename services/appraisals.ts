@@ -328,7 +328,7 @@ const dmyT = (ms: number) => {
   return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 const whoOf = (by: string, rank?: string) => (rank ? `${by} (${rank})` : by);
-const how = (m?: { method?: string }) => (!m ? '' : m.method === 'biometric' ? 'signed biometrically' : m.method === 'drawn' ? 'signed by hand' : 'signed by PIN');
+const how = (m?: { method?: string }) => (!m ? '' : m.method === 'biometric' ? 'signed biometrically' : m.method === 'nfc' ? 'signed with NFC wristband' : m.method === 'drawn' ? 'signed by hand' : 'signed by PIN');
 const STEP_EN: Record<AppraisalStepKind, string> = { appraiser: 'Appraiser', crew: 'Seafarer', refused: 'Seafarer refused to sign', master: 'Master (countersigned)', cancel: 'Cancelled' };
 const STAGE_EN: Record<AppraisalStage, string> = { draft: 'Draft — not signed', crew: 'Awaiting the seafarer\'s signature', master: 'Awaiting the Master\'s countersignature', done: 'Complete', cancelled: 'Cancelled' };
 

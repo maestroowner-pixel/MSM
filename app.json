@@ -80,6 +80,13 @@
       "expo-document-picker",
       "expo-notifications",
       [
+        "react-native-nfc-manager",
+        {
+          "nfcPermission": "Allow ISM AI Pilot to read crew wristbands and checkpoint tags at the gangway, on security rounds and at muster stations.",
+          "includeNdefEntitlement": false
+        }
+      ],
+      [
         "expo-av",
         {
           "microphonePermission": false

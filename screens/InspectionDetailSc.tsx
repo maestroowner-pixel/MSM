@@ -188,7 +188,7 @@ export default function InspectionDetailSc() {
             <Label>{t('wc.signed')}</Label>
             <Row icon="account-check" text={signatureLine(insp.by, insp.byRank)} />
             <Row icon="clock-outline" text={uiDateTime(insp.at)} />
-            {insp.signedWith ? <Row icon={insp.signedWith.method === 'biometric' ? 'fingerprint' : insp.signedWith.method === 'drawn' ? 'draw' : 'dialpad'} text={proofText(insp.signedWith) ?? ''} /> : null}
+            {insp.signedWith ? <Row icon={insp.signedWith.method === 'biometric' ? 'fingerprint' : insp.signedWith.method === 'nfc' ? 'nfc-variant' : insp.signedWith.method === 'drawn' ? 'draw' : 'dialpad'} text={proofText(insp.signedWith) ?? ''} /> : null}
             {insp.verification ? (
               <Row
                 icon={insp.verification.method === 'override' ? 'qrcode-remove' : insp.verification.method === 'group' ? 'checkbox-multiple-marked-outline' : 'qrcode-scan'}

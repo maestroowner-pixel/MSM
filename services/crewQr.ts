@@ -76,3 +76,15 @@ export function parseKeyQr(payload: string): string | null {
   if (s.slice(0, KEY_QR_SCHEME.length).toLowerCase() !== KEY_QR_SCHEME) return null;
   return s.slice(KEY_QR_SCHEME.length).trim() || null;
 }
+
+/** A muster station's tag or sign (types/muster.ts) — tapped or scanned during a muster, it says where the phone is. */
+export const MUSTER_QR_SCHEME = 'msm://muster/';
+export function musterQrPayload(id: string): string {
+  return `${MUSTER_QR_SCHEME}${id}`;
+}
+export function parseMusterQr(payload: string): string | null {
+  const s = payload.trim();
+  if (s.length <= MUSTER_QR_SCHEME.length) return null;
+  if (s.slice(0, MUSTER_QR_SCHEME.length).toLowerCase() !== MUSTER_QR_SCHEME) return null;
+  return s.slice(MUSTER_QR_SCHEME.length).trim() || null;
+}

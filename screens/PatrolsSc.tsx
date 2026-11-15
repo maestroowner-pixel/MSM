@@ -41,6 +41,7 @@ import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
 import { t, tk, tn, useT } from '../utils/i18n';
 import { shipHm } from '../utils/shipTime';
+import { NfcTagRow } from '../components/NfcTagRow';
 
 type Page = 'today' | 'points' | 'plans' | 'reports';
 const hm = (t = Date.now()) => shipHm(t);
@@ -176,7 +177,7 @@ export default function PatrolsSc() {
               <MciIcon name={v ? 'check-circle' : 'map-marker-outline'} size={20} color={v ? COLORS.success : COLORS.textLight} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{`${c.code} · ${c.name}`}</Text>
-                <Text style={styles.sub}>{v ? `${v.how === 'scan' ? t('pat.scanned') : t('pat.typed')} ${hm(v.at)}` : c.location || t('pat.notYet')}</Text>
+                <Text style={styles.sub}>{v ? `${v.how === 'scan' ? t('pat.scanned') : v.how === 'nfc' ? t('nfc.tapped') : t('pat.typed')} ${hm(v.at)}` : c.location || t('pat.notYet')}</Text>
               </View>
               {!v ? (
                 <TouchableOpacity style={styles.small} onPress={() => Alert.alert(c.code, t('pat.unreadableBody'), [{ text: t('common.cancel'), style: 'cancel' }, { text: t('gb.record'), onPress: () => typeId(c.code) }])}>
@@ -303,6 +304,7 @@ function Points({ done, fail }: { done: (w: string | null | void) => void; fail:
       <Text style={styles.sub}>{t('pat.idLabel')}</Text>
       <TextInput style={[styles.input, { width: 160 }]} value={edit.code} onChangeText={(v) => setEdit({ ...edit, code: v })} autoCapitalize="characters" autoCorrect={false} accessibilityLabel={t('pat.cpId')} />
       {taken ? <Text style={[styles.sub, { color: COLORS.danger }]}>{t('pat.idTaken')}</Text> : null}
+      {!isNew ? <NfcTagRow kind="checkpoint" refId={edit.id} name={`${edit.code} · ${edit.name}`} /> : null}
       <View style={styles.row}>
         <TouchableOpacity style={styles.btn} onPress={() => void save()}><Text style={styles.btnText}>{t('common.save')}</Text></TouchableOpacity>
         <TouchableOpacity onPress={() => setEdit(null)}><Text style={styles.link}>{t('common.cancel')}</Text></TouchableOpacity>

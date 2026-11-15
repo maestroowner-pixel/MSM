@@ -444,6 +444,37 @@ await t(true, '…and an observation card', setDoc(R(officer, 'ga_pins', 'obs_o1
 await t(false, 'Crew does not put a card on the plan', setDoc(R(crew, 'ga_pins', 'obs_o2'), { ...GP, id: 'obs_o2', kind: 'obs', ref: 'o2' }));
 await t(false, 'A point of an unknown kind is refused', setDoc(R(officer, 'ga_pins', 'tank_t1'), { ...GP, id: 'tank_t1', kind: 'tank', ref: 't1' }));
 
+// NFC tags (types/nfc.ts): the chip's UID is the id; officers write and revoke, nobody deletes.
+const NT = { id: 'tag_04A1B2C3D4E580', uid: '04A1B2C3D4E580', kind: 'person', ref: 'c1', name: 'Max', issuedAt: 1, issuedBy: 'Chief Officer', updatedAt: 1 };
+await t(false, 'Crew does not hand out a wristband', setDoc(R(crew, 'nfc_tags', NT.id), NT));
+await t(true, 'An officer hands out a wristband', setDoc(R(officer, 'nfc_tags', NT.id), NT));
+await t(true, 'Crew reads the register (a tap is checked on every phone)', getDoc(R(crew, 'nfc_tags', NT.id)));
+await t(false, '…the id is the chip\'s UID', setDoc(R(officer, 'nfc_tags', 'tag_FFFFFFFF'), NT));
+await t(false, '…a UID is hex', setDoc(R(officer, 'nfc_tags', 'tag_ZZ'), { ...NT, id: 'tag_ZZ', uid: 'ZZ' }));
+await t(false, '…a guest\'s name goes up masked', setDoc(R(officer, 'nfc_tags', 'tag_04000000000001'), { ...NT, id: 'tag_04000000000001', uid: '04000000000001', ref: 'pax1', name: 'Ann Lee' }));
+await t(true, '…masked it is taken', setDoc(R(officer, 'nfc_tags', 'tag_04000000000001'), { ...NT, id: 'tag_04000000000001', uid: '04000000000001', ref: 'pax1', name: 'A…e' }));
+await t(true, 'An officer revokes a lost wristband', setDoc(R(officer, 'nfc_tags', NT.id), { ...NT, revokedAt: 2, revokedBy: 'Chief Officer', updatedAt: 2 }));
+await t(false, 'Nobody deletes a tag', deleteDoc(R(master, 'nfc_tags', NT.id)));
+
+// Musters (types/muster.ts): officers keep the stations and start a muster; anyone aboard marks a person once.
+const MS = { id: 'ms1', code: 'MS-1', name: 'Boat deck stbd', order: 0, crewIds: ['c1'], updatedAt: 1 };
+await t(false, 'Crew does not set up a muster station', setDoc(R(crew, 'muster_stations', 'ms1'), MS));
+await t(true, 'An officer sets up a muster station', setDoc(R(officer, 'muster_stations', 'ms1'), MS));
+const MU = { id: 'mu1', kind: 'drill', startedAt: 1, startedBy: 'Chief Officer', pob: [{ id: 'c1', name: 'Max', who: 'crew' }, { id: 'pax1', name: 'A…e', who: 'pax' }], updatedAt: 1 };
+await t(false, 'Crew does not start a muster', setDoc(R(crew, 'musters', 'mu1'), MU));
+await t(true, 'An officer starts a muster', setDoc(R(officer, 'musters', 'mu1'), MU));
+const MK = { id: 'mu1_c1', musterId: 'mu1', personId: 'c1', name: 'Max', stationId: 'ms1', at: 2, via: 'nfc', by: 'Bosun', updatedAt: 2 };
+await t(true, 'Crew marks a person at the station', setDoc(R(crew, 'muster_marks', 'mu1_c1'), MK));
+await t(false, '…once: the first mark stands', setDoc(R(crew, 'muster_marks', 'mu1_c1'), { ...MK, stationId: 'ms2', at: 3, updatedAt: 3 }));
+await t(false, '…the id is the muster and the person', setDoc(R(crew, 'muster_marks', 'mu1_x'), { ...MK, id: 'mu1_x' }));
+await t(false, '…a guest\'s name goes up masked', setDoc(R(crew, 'muster_marks', 'mu1_pax1'), { ...MK, id: 'mu1_pax1', personId: 'pax1', name: 'Ann Lee' }));
+await t(false, '…in a muster that exists', setDoc(R(crew, 'muster_marks', 'mu9_c1'), { ...MK, id: 'mu9_c1', musterId: 'mu9' }));
+await t(false, 'A muster\'s list is not rewritten', setDoc(R(officer, 'musters', 'mu1'), { ...MU, pob: [], updatedAt: 3 }));
+await t(true, 'An officer closes the muster', setDoc(R(officer, 'musters', 'mu1'), { ...MU, closedAt: 4, closedBy: 'Chief Officer', closeNote: 'All accounted for', updatedAt: 4 }));
+await t(false, '…and nobody marks after it closed', setDoc(R(crew, 'muster_marks', 'mu1_pax1'), { ...MK, id: 'mu1_pax1', personId: 'pax1', name: 'A…e' }));
+await t(false, '…nor reopens it', setDoc(R(officer, 'musters', 'mu1'), { ...MU, updatedAt: 5 }));
+await t(false, 'Nobody deletes a muster', deleteDoc(R(master, 'musters', 'mu1')));
+
 // Crane operator's log (types/craneLog.ts): an officer confirms; nothing changes.
 const CRL = { id: 'cl1', itemId: 'k1', crane: { label: 'Crane No. 1', swl: '12 t' }, crewId: 'c1', name: 'Max', date: '2026-11-13', hours: 2.5, lifts: 14, ops: ['cargo'], by: 'Chief Officer', at: 1, createdAt: 1, updatedAt: 1 };
 await t(false, 'Crew cannot confirm crane time', setDoc(R(crew, 'crane_log', 'cl1'), CRL));

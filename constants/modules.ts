@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals' | 'restPlan' | 'daTests' | 'threads' | 'emissions' | 'myDocs' | 'mySdm' | 'chem' | 'wires' | 'quoteLink' | 'craneLog' | 'letters' | 'orderBook' | 'chat' | 'gaPlan';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals' | 'restPlan' | 'daTests' | 'threads' | 'emissions' | 'myDocs' | 'mySdm' | 'chem' | 'wires' | 'quoteLink' | 'craneLog' | 'letters' | 'orderBook' | 'chat' | 'gaPlan' | 'nfc' | 'muster';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -390,6 +390,22 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * `pms` and the yard jobs with `yard`. Needs `npm run deploy:rules` first (ga_sheets, ga_pins).
    */
   gaPlan: false,
+  /**
+   * NFC tags beside the QR (types/nfc.ts, plan item 70, 15 Nov 2026): wristbands for the crew
+   * and guests, stickers on the round's checkpoints and at the muster stations. A tap does
+   * what a scan does — the gangway, a security round, a muster — and a wristband can confirm
+   * its wearer's signature. Phones only (a browser cannot read NFC); needs a build with
+   * react-native-nfc-manager. Needs `npm run deploy:rules` first (nfc_tags).
+   */
+  nfc: false,
+  /**
+   * Muster stations and the boat landing (types/muster.ts, 15 Nov 2026): at an alarm each
+   * person is marked at their station — wristband, crew card or by name — against the persons
+   * on board; at the boat landing each person going into the tender or coming back is marked
+   * (a crossing with the boat's name, so the gangway's count holds). The boat landing needs
+   * `security`. Needs `npm run deploy:rules` first (muster_stations, musters, muster_marks).
+   */
+  muster: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------

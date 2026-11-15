@@ -170,7 +170,7 @@ const dmyT = (ms: number) => {
   return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 const whoOf = (by: string, rank?: string) => (rank ? `${by} (${rank})` : by);
-const how = (m?: { method?: string }) => (!m ? '' : m.method === 'biometric' ? 'signed biometrically' : m.method === 'drawn' ? 'signed by hand' : 'signed by PIN');
+const how = (m?: { method?: string }) => (!m ? '' : m.method === 'biometric' ? 'signed biometrically' : m.method === 'nfc' ? 'signed with NFC wristband' : m.method === 'drawn' ? 'signed by hand' : 'signed by PIN');
 export const OUTCOME_EN: Record<DaOutcome, string> = { negative: 'Negative', pending: 'Awaiting laboratory', positive: 'POSITIVE', refused: 'REFUSED' };
 
 export const reasonEn = (r: DaReason) => DA_REASON_LABEL[r];

@@ -153,7 +153,7 @@ const dmyT = (ms?: number) => {
   return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
 };
 const whoOf = (by?: string, rank?: string) => (by ? (rank ? `${by} (${rank})` : by) : '');
-const how = (m?: { method?: string }) => (!m ? '' : m.method === 'biometric' ? 'signed biometrically' : m.method === 'drawn' ? 'signed by hand' : 'signed by PIN');
+const how = (m?: { method?: string }) => (!m ? '' : m.method === 'biometric' ? 'signed biometrically' : m.method === 'nfc' ? 'signed with NFC wristband' : m.method === 'drawn' ? 'signed by hand' : 'signed by PIN');
 const STATE_EN: Record<InspState, string> = { clean: 'No findings', open: 'Findings open', overdue: 'Finding overdue', closed: 'All findings closed aboard', verified: 'All findings closed and verified by the office' };
 
 export const FINDING_HEAD = ['No.', 'Finding', 'PSC codes', 'Grade', 'Requirement', 'Root cause', 'Actions', 'Status', 'Closed', 'Office'];

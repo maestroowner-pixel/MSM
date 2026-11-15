@@ -62,6 +62,10 @@ import { visit as visitCheckpoint } from '../services/patrolLive';
 import { roomByCode, storeRooms } from '../types/stores';
 import { lockerCode, sopepLockers } from '../types/sopep';
 import { isDoubleScan, nextMove } from '../services/gangway';
+import { useNfcTaps } from '../components/useNfcTaps';
+import { TapResult } from '../services/nfcTags';
+import { markPerson, liveStations } from '../services/muster';
+import { parseMusterQr } from '../services/crewQr';
 import { todayIso } from '../services/pms';
 import { passengerAboard } from '../types/passengers';
 import { useSync } from '../contexts/SyncContext';
@@ -110,7 +114,7 @@ export default function ScanSc() {
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { flat, purchaseOrders, recordScan, crew, crewMoves, appendRow, visitors, saveRow, passengers, storeRoomList, sopepLockers: sopepLockerList, checkpoints, keyList, inspections: trail, templates, rounds, signingPolicy, prefs, setPrefs, addInspection } = useData();
+  const { flat, purchaseOrders, recordScan, crew, crewMoves, appendRow, visitors, saveRow, passengers, storeRoomList, sopepLockers: sopepLockerList, checkpoints, keyList, inspections: trail, templates, rounds, signingPolicy, prefs, setPrefs, addInspection, musters, musterMarks, musterStations } = useData();
   const sync = useSync();
   const confirmSign = useSignConfirm();
   const activeRoundId = useActiveRound();
@@ -118,6 +122,11 @@ export default function ScanSc() {
   const atGangway = ['1', 'true', true, 1].includes(route.params?.gangway);
   /** Opened from a security round: each checkpoint scanned is recorded and the scanner stays open for the next. */
   const onRound = ['1', 'true', true, 1].includes(route.params?.patrol);
+  /** Opened from the boat landing (types/muster.ts): each crossing carries the boat's name. */
+  const boat: string | undefined = atGangway && typeof route.params?.boat === 'string' && route.params.boat.trim() ? route.params.boat.trim() : undefined;
+  /** Opened from a muster station: a crew card or wristband marks the person at this station. */
+  const musterId: string | undefined = typeof route.params?.muster === 'string' ? route.params.muster : undefined;
+  const [stationId, setStationId] = useState<string | undefined>(typeof route.params?.station === 'string' ? route.params.station : undefined);
   /** The last crew card read at the gangway — shown big, then the scanner is ready for the next. */
   const [crewHit, setCrewHit] = useState<{ name: string; text: string; ok: boolean } | null>(null);
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -135,7 +144,7 @@ export default function ScanSc() {
   const locked = useRef(false);
 
   // ---- Quick pass (see the header) ----
-  const quickAllowed = !atGangway && !onRound;
+  const quickAllowed = !atGangway && !onRound && !musterId;
   const [quick, setQuick] = useState(false);
   const [quickPeriod, setQuickPeriod] = useState<InspectionPeriod>(
     () => rounds.find((r) => r.id === activeRoundId && !r.closedAt)?.period as InspectionPeriod ?? 'monthly'
@@ -251,10 +260,16 @@ export default function ScanSc() {
   };
 
   const handle = useCallback(
-    (code: string, via: 'camera' | 'typed') => {
+    (code: string, via: 'camera' | 'typed' | 'nfc') => {
       if (locked.current) return;
       locked.current = true;
-      if (quick) return quickPass(code, via);
+      if (quick) {
+        if (via === 'nfc') {
+          locked.current = false;
+          return;
+        }
+        return quickPass(code, via);
+      }
 
       const hold = (hit: { name: string; text: string; ok: boolean }, ms = 2200) => {
         setCrewHit(hit);
@@ -262,6 +277,37 @@ export default function ScanSc() {
           locked.current = false;
         }, ms);
       };
+
+      // At a muster station (types/muster.ts): a station's own tag or sign says where this
+      // phone is; a crew card or wristband marks its holder here. The first mark stands.
+      if (musterId) {
+        const msId = parseMusterQr(code);
+        if (msId) {
+          const st = liveStations(musterStations).find((x) => x.id === msId);
+          if (!st) return hold({ name: t('mu.station'), text: t('mu.stationGone'), ok: false }, 3000);
+          setStationId(st.id);
+          return hold({ name: `${st.code} · ${st.name}`, text: t('mu.atStation'), ok: true }, 1200);
+        }
+        const pid = parseCrewQr(code);
+        const m = musters.find((x) => x.id === musterId);
+        if (!pid || !m) return hold({ name: t('mu.title'), text: t('mu.notCard'), ok: false }, 2500);
+        if (!stationId) return hold({ name: t('mu.title'), text: t('mu.pickStation'), ok: false }, 3000);
+        const by = sync.me ? personName(sync.me) : !sync.enrolled ? 'Officer' : 'Crew';
+        const r = markPerson(m, musterMarks, pid, stationId, via === 'camera' ? 'qr' : via === 'nfc' ? 'nfc' : 'manual', by, Date.now());
+        const who = m.pob.find((p) => p.id === pid);
+        const shown = crew.find((c) => c.id === pid)?.name ?? passengers.find((p) => p.id === pid)?.name ?? who?.name ?? t('scn.unknownCard');
+        if (r.ok) {
+          void appendRow(storage.MUSTER_MARKS_KEY, r.mark);
+          playSuccessSound();
+          return hold({ name: shown, text: t('mu.marked', { time: shipHm(r.mark.at) }), ok: true }, 1200);
+        }
+        playErrorSound();
+        if (r.why === 'already') {
+          const st = musterStations.find((x) => x.id === r.mark!.stationId);
+          return hold({ name: shown, text: t('mu.already', { station: st ? st.code : '—', time: shipHm(r.mark!.at) }), ok: true }, 2000);
+        }
+        return hold({ name: shown, text: r.why === 'closed' ? t('mu.closed') : t('mu.notOnBoard'), ok: false }, 3000);
+      }
 
       // A purchase order's QR (the order screen, the delivery-box label): the order opens
       // ready to receive — each box checked against its line, the quantity that came.
@@ -287,7 +333,7 @@ export default function ScanSc() {
         : undefined;
       if (cp || parseCheckpointQr(code)) {
         if (!cp) return hold({ name: t('pat.cp'), text: moduleOn('patrols') ? t('scn.notCp') : t('scn.patrolsOff'), ok: false });
-        void visitCheckpoint(cp, via === 'camera' ? 'scan' : 'typed').then((r) => {
+        void visitCheckpoint(cp, via === 'camera' ? 'scan' : via === 'nfc' ? 'nfc' : 'typed').then((r) => {
           if (!r) return hold({ name: `${cp.code} · ${cp.name}`, text: t('scn.noRound'), ok: false }, 3000);
           const at = shipHm(r.live.visits.find((v) => v.checkpointId === cp.id)!.at);
           if (!onRound) return nav.replace('Main', { screen: 'Security', params: { view: 'patrols' } });
@@ -359,9 +405,9 @@ export default function ScanSc() {
         if (!c) return show({ name: t('scn.unknownCard'), text: t('scn.notOnList2'), ok: false });
         if (isDoubleScan(c.id, crewMoves)) return show({ name: c.name, text: t('scn.moment'), ok: true });
         const by = sync.me ? personName(sync.me) : 'Gangway';
-        const m = nextMove(c, crewMoves, by, via === 'camera' ? 'qr' : 'manual');
+        const m = nextMove(c, crewMoves, by, via === 'camera' ? 'qr' : via === 'nfc' ? 'nfc' : 'manual', new Date(), boat);
         void appendRow(storage.CREW_MOVES_KEY, m);
-        show({ name: c.rank ? `${c.name} · ${c.rank}` : c.name, text: `${m.dir === 'ashore' ? t('scn.ashore') : t('scn.backAboard')} · ${m.time}`, ok: true });
+        show({ name: c.rank ? `${c.name} · ${c.rank}` : c.name, text: `${m.dir === 'ashore' ? (boat ? t('mu.boatOut', { boat }) : t('scn.ashore')) : t('scn.backAboard')} · ${m.time}`, ok: true });
         return;
       }
 
@@ -416,8 +462,17 @@ export default function ScanSc() {
       }
       setResult(match);
     },
-    [flat, nav, recordScan, crew, crewMoves, appendRow, visitors, saveRow, sync.me, passengers, storeRoomList, sopepLockerList, quick, quickPass]
+    [flat, nav, recordScan, crew, crewMoves, appendRow, visitors, saveRow, sync.me, passengers, storeRoomList, sopepLockerList, quick, quickPass, musterId, stationId, musters, musterMarks, musterStations, boat]
   );
+
+  // A wristband or tag: checked against the vessel's register, then the scan's own path.
+  const onTap = (r: TapResult) => {
+    if (r.ok) return handle(r.code, 'nfc');
+    playErrorSound();
+    Vibration.vibrate([0, 90, 80, 90]);
+    setCrewHit({ name: r.tag?.name ?? t('nfc.tag'), text: t(`nfc.why.${r.why}`), ok: false });
+  };
+  const taps = useNfcTaps(onTap, t('nfc.holdBand'), !quick);
 
   const again = () => {
     locked.current = false;
@@ -485,9 +540,29 @@ export default function ScanSc() {
       <BackButton onPress={() => goBackOr(nav)} />
       <View style={styles.head}>
         <View style={{ flex: 1 }}>
-          <ScreenTitle title={atGangway ? t('scn.gangwayTitle') : t('scn.title')} subtitle={atGangway ? t('scn.gangwaySub') : t('scn.sub')} />
+          <ScreenTitle
+            title={musterId ? t('mu.title') : boat ? t('mu.landing') : atGangway ? t('scn.gangwayTitle') : t('scn.title')}
+            subtitle={musterId ? (liveStations(musterStations).find((x) => x.id === stationId)?.name ?? t('mu.pickStation')) : boat ? boat : atGangway ? t('scn.gangwaySub') : t('scn.sub')}
+          />
         </View>
       </View>
+
+      {taps.available && !quick ? (
+        <Card style={{ borderLeftWidth: 6, borderLeftColor: taps.listening ? COLORS.success : COLORS.primary }}>
+          <View style={styles.quickHead}>
+            <MciIcon name="nfc-variant" size={28} color={taps.listening ? COLORS.success : COLORS.primary} />
+            <View style={{ flex: 1 }}>
+              <Label>NFC</Label>
+              <Text style={[styles.note, { paddingTop: 0 }]}>{taps.listening ? t('nfc.listening') : t('nfc.tapToStart')}</Text>
+            </View>
+          </View>
+          {taps.needsStart && !taps.listening ? (
+            <TouchableOpacity style={styles.primaryBtn} onPress={() => void taps.start()}>
+              <Text style={styles.primaryBtnText}>{t('nfc.tapBand')}</Text>
+            </TouchableOpacity>
+          ) : null}
+        </Card>
+      ) : null}
 
       {!HAS_CAMERA ? (
         <Card>
@@ -597,7 +672,7 @@ export default function ScanSc() {
 
       {crewHit ? (
         <Card style={{ borderLeftWidth: 6, borderLeftColor: crewHit.ok ? COLORS.success : COLORS.danger }}>
-          <Label>{t('pax.gangway')}</Label>
+          <Label>{musterId ? t('mu.title') : boat ? t('mu.landing') : t('pax.gangway')}</Label>
           <Text style={{ fontSize: SIZES.h3, fontWeight: '900', color: COLORS.textDark }}>{crewHit.name}</Text>
           <Text style={{ fontSize: SIZES.h4, fontWeight: '800', color: crewHit.ok ? COLORS.success : COLORS.danger, marginTop: 4 }}>{crewHit.text}</Text>
           <Text style={styles.note}>{t('scn.ready')}</Text>

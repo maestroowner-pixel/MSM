@@ -43,6 +43,7 @@ import { PickedFile, pickFromLibrary } from '../services/attachments';
 import { moduleOn } from '../constants/modules';
 import { apStage, appraisalDue, sortAppraisals } from '../services/appraisals';
 import { t, tk, useT } from '../utils/i18n';
+import { NfcTagRow } from '../components/NfcTagRow';
 
 export default function CrewMemberSc() {
   useT();
@@ -217,6 +218,7 @@ export default function CrewMemberSc() {
           {F({ label: t('pax.cabin'), value: m.cabin, onChange: (v) => setMember({ cabin: v }), placeholder: t('crew.cabinPh') })}
 
           <View style={styles.card}>
+            {!isNew && moduleOn('nfc') ? <NfcTagRow kind="person" refId={m.id} name={m.name} /> : null}
             <View style={styles.toggleRow}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.title}>{m.onBoard === false ? t('cm.signedOff') : t('pax.onBoard')}</Text>

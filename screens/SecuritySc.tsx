@@ -63,6 +63,7 @@ import PatrolsSc from './PatrolsSc';
 import KeysSc from './KeysSc';
 import { OfficerDocs } from '../components/OfficerDocs';
 import { shipHm } from '../utils/shipTime';
+import { BoatLanding } from '../components/BoatLanding';
 
 type Tab = 'board' | 'log' | 'drills';
 const hhmm = () => shipHm();
@@ -497,6 +498,7 @@ function SecuritySc() {
             ) : null}
           </View>
           {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700' }]}>{`✓ ${saved}`}</Text> : null}
+          <BoatLanding />
 
           {adding ? (
             <Card>
@@ -673,7 +675,7 @@ function SecuritySc() {
           <Label>{t('sec.movesN', { n: bookMoves.length })}</Label>
           {bookMoves.map((m: CrewMove) => (
             <Text key={m.id} style={styles.move}>
-              {`${byMonth ? `${uiDate(m.date)} ` : ''}${m.time}  ${m.name} — ${m.dir === 'ashore' ? t('sec.stAshore') : t('sec.backAboard')} · ${m.via === 'qr' ? t('sec.viaCard') : m.by}`}
+              {`${byMonth ? `${uiDate(m.date)} ` : ''}${m.time}  ${m.name} — ${m.dir === 'ashore' ? t('sec.stAshore') : t('sec.backAboard')} · ${m.via === 'qr' ? t('sec.viaCard') : m.via === 'nfc' ? t('nfc.viaBand') : m.by}${m.boat ? ` · ${m.boat}` : ''}`}
             </Text>
           ))}
           {!bookMoves.length ? <Text style={styles.sub}>{t('sec.noMoves')}</Text> : null}

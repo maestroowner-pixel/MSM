@@ -65,7 +65,13 @@ export interface CrewMove {
   at: number;
   /** Gangway watch / device that recorded it. */
   by: string;
-  via: 'qr' | 'manual';
+  /** `nfc`: the person's wristband tapped (types/nfc.ts, 15 Nov 2026). */
+  via: 'qr' | 'manual' | 'nfc';
+  /**
+   * Marked at the boat landing (types/muster.ts): the tender or boat they left in or came
+   * back in. A crossing like any other, so persons on board still count it.
+   */
+  boat?: string;
   updatedAt: number;
 }
 

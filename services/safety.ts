@@ -47,7 +47,7 @@ const dmyT = (t?: number) => {
   return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
 };
 const who = (by?: string, rank?: string) => (by ? (rank ? `${by} (${rank})` : by) : '');
-const how = (m?: { method?: string }) => (!m ? '' : m.method === 'biometric' ? 'signed biometrically' : m.method === 'drawn' ? 'signed by hand' : 'signed by PIN');
+const how = (m?: { method?: string }) => (!m ? '' : m.method === 'biometric' ? 'signed biometrically' : m.method === 'nfc' ? 'signed with NFC wristband' : m.method === 'drawn' ? 'signed by hand' : 'signed by PIN');
 
 export const NC_HEAD = ['No.', 'Found', 'Grade', 'Source', 'Finding', 'Requirement', 'Root cause', 'Actions', 'Status', 'Closed'];
 export function ncRows(list: NonConformity[], today: string): string[][] {

@@ -58,6 +58,8 @@ import { Chemical } from '../types/chemicals';
 import { Letter } from '../types/correspondence';
 import { NightOrder, OrderAck, StandingOrder } from '../types/orderBook';
 import { GaPin, GaSheet } from '../types/gaPlan';
+import { NfcTag } from '../types/nfc';
+import { Muster, MusterMark, MusterStation } from '../types/muster';
 import { WireEntry } from '../types/wireLog';
 import { CraneEntry, CraneTest } from '../types/craneLog';
 import { Supplier } from '../types/suppliers';
@@ -293,6 +295,12 @@ interface DataContextType {
   /** The ship's plan (types/gaPlan.ts): decks and points, removed ones included. */
   gaSheets: GaSheet[];
   gaPins: GaPin[];
+  /** NFC tags handed out (types/nfc.ts), revoked ones included. */
+  nfcTags: NfcTag[];
+  /** Muster stations, musters, marks (types/muster.ts). */
+  musterStations: MusterStation[];
+  musters: Muster[];
+  musterMarks: MusterMark[];
   /** Rope and wire log (types/wireLog.ts). */
   wireLog: WireEntry[];
   /** Crane operator's log (types/craneLog.ts). */
@@ -516,6 +524,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [orderAcks, setOrderAcks] = useState<OrderAck[]>([]);
   const [gaSheets, setGaSheets] = useState<GaSheet[]>([]);
   const [gaPins, setGaPins] = useState<GaPin[]>([]);
+  const [nfcTags, setNfcTags] = useState<NfcTag[]>([]);
+  const [musterStations, setMusterStations] = useState<MusterStation[]>([]);
+  const [musters, setMusters] = useState<Muster[]>([]);
+  const [musterMarks, setMusterMarks] = useState<MusterMark[]>([]);
   const [wireLog, setWireLog] = useState<WireEntry[]>([]);
   const [craneLog, setCraneLog] = useState<CraneEntry[]>([]);
   const [craneTests, setCraneTests] = useState<CraneTest[]>([]);
@@ -669,6 +681,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _oacks1 = await storage.loadList<OrderAck>(storage.ORDER_ACKS_KEY);
     const _gas1 = await storage.loadList<GaSheet>(storage.GA_SHEETS_KEY);
     const _gap1 = await storage.loadList<GaPin>(storage.GA_PINS_KEY);
+    const _nfc1 = await storage.loadList<NfcTag>(storage.NFC_TAGS_KEY);
+    const _mst1 = await storage.loadList<MusterStation>(storage.MUSTER_STATIONS_KEY);
+    const _mus1 = await storage.loadList<Muster>(storage.MUSTERS_KEY);
+    const _mmk1 = await storage.loadList<MusterMark>(storage.MUSTER_MARKS_KEY);
     const _wire1 = await storage.loadList<WireEntry>(storage.WIRE_LOG_KEY);
     const _crane1 = await storage.loadList<CraneEntry>(storage.CRANE_LOG_KEY);
     const _ctest1 = await storage.loadList<CraneTest>(storage.CRANE_TESTS_KEY);
@@ -797,6 +813,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setOrderAcks(_oacks1);
     setGaSheets(_gas1);
     setGaPins(_gap1);
+    setNfcTags(_nfc1);
+    setMusterStations(_mst1);
+    setMusters(_mus1);
+    setMusterMarks(_mmk1);
     setWireLog(_wire1);
     setCraneLog(_crane1);
     setCraneTests(_ctest1);
@@ -1079,6 +1099,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _oacks2 = await storage.loadList<OrderAck>(storage.ORDER_ACKS_KEY);
     const _gas2 = await storage.loadList<GaSheet>(storage.GA_SHEETS_KEY);
     const _gap2 = await storage.loadList<GaPin>(storage.GA_PINS_KEY);
+    const _nfc2 = await storage.loadList<NfcTag>(storage.NFC_TAGS_KEY);
+    const _mst2 = await storage.loadList<MusterStation>(storage.MUSTER_STATIONS_KEY);
+    const _mus2 = await storage.loadList<Muster>(storage.MUSTERS_KEY);
+    const _mmk2 = await storage.loadList<MusterMark>(storage.MUSTER_MARKS_KEY);
     const _wire2 = await storage.loadList<WireEntry>(storage.WIRE_LOG_KEY);
     const _crane2 = await storage.loadList<CraneEntry>(storage.CRANE_LOG_KEY);
     const _ctest2 = await storage.loadList<CraneTest>(storage.CRANE_TESTS_KEY);
@@ -1197,6 +1221,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setOrderAcks(_oacks2);
     setGaSheets(_gas2);
     setGaPins(_gap2);
+    setNfcTags(_nfc2);
+    setMusterStations(_mst2);
+    setMusters(_mus2);
+    setMusterMarks(_mmk2);
     setWireLog(_wire2);
     setCraneLog(_crane2);
     setCraneTests(_ctest2);
@@ -1590,6 +1618,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         orderAcks,
         gaSheets,
         gaPins,
+        nfcTags,
+        musterStations,
+        musters,
+        musterMarks,
         wireLog,
         craneLog,
         craneTests,

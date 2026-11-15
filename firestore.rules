@@ -1209,6 +1209,48 @@ service cloud.firestore {
                               && request.resource.data.y >= 0 && request.resource.data.y <= 1;
         allow delete: if false;
       }
+      // NFC tags handed out (types/nfc.ts): the chip's UID is the id, so a tap is checked against the
+      // register on every phone. Officers write and revoke; nothing is deleted. A guest's name is masked.
+      match /nfc_tags/{id} {
+        allow read: if reader(v);
+        allow create, update: if isAdmin(v) && request.resource.data.uid is string
+                              && request.resource.data.uid.matches('^[0-9A-F]{8,20}$')
+                              && id == 'tag_' + request.resource.data.uid
+                              && request.resource.data.kind in ['person', 'checkpoint', 'muster']
+                              && request.resource.data.ref is string
+                              && (!(request.resource.data.ref.matches('^pax.*'))
+                                  || string(request.resource.data.get('name', '')).matches('^.(….)?$'));
+        allow delete: if false;
+      }
+      // Musters (types/muster.ts): the stations (officers), one record per alarm — started by an officer,
+      // and the only change is closing it — and one mark per person, written once by anyone aboard while
+      // the muster is open; the first mark stands.
+      match /muster_stations/{id} {
+        allow read: if reader(v);
+        allow create, update: if isAdmin(v) && request.resource.data.id == id && request.resource.data.code is string;
+        allow delete: if false;
+      }
+      match /musters/{id} {
+        allow read: if reader(v);
+        allow create: if isAdmin(v) && request.resource.data.id == id
+                      && request.resource.data.kind in ['drill', 'real']
+                      && request.resource.data.pob is list
+                      && !('closedAt' in request.resource.data);
+        allow update: if isAdmin(v) && !('closedAt' in resource.data) && request.resource.data.closedAt is number
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['closedAt', 'closedBy', 'closeNote', 'updatedAt']);
+        allow delete: if false;
+      }
+      match /muster_marks/{id} {
+        allow read: if reader(v);
+        allow create: if member(v) && request.resource.data.musterId is string && request.resource.data.personId is string
+                      && id == request.resource.data.musterId + '_' + request.resource.data.personId
+                      && request.resource.data.via in ['nfc', 'qr', 'manual']
+                      && (!(request.resource.data.personId.matches('^pax.*'))
+                          || string(request.resource.data.get('name', '')).matches('^.(….)?$'))
+                      && exists(/databases/$(database)/documents/safety_vessels/$(v)/musters/$(request.resource.data.musterId))
+                      && !('closedAt' in get(/databases/$(database)/documents/safety_vessels/$(v)/musters/$(request.resource.data.musterId)).data);
+        allow update, delete: if false;
+      }
       // Rope and wire log (types/wireLog.ts): signed entries, append-only. Anyone aboard records a look,
       // cut and slip, lubrication or a brake test; a renewal (which rewrites the rope on the register) is an officer's.
       match /wire_log/{id} {
