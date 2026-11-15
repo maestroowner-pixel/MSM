@@ -439,6 +439,10 @@ await t(false, '…its id is the record\'s', setDoc(R(officer, 'ga_pins', 'defec
 await t(false, '…and it stays on the picture', setDoc(R(officer, 'ga_pins', 'defect_d1'), { ...GP, x: 1.5, updatedAt: 2 }));
 await t(true, 'An officer moves it', setDoc(R(officer, 'ga_pins', 'defect_d1'), { ...GP, x: 0.75, updatedAt: 3 }));
 await t(false, 'Nobody deletes a point', deleteDoc(R(master, 'ga_pins', 'defect_d1')));
+await t(true, 'An officer puts an extinguisher on the plan', setDoc(R(officer, 'ga_pins', 'equip_e1'), { ...GP, id: 'equip_e1', kind: 'equip', ref: 'e1' }));
+await t(true, '…and an observation card', setDoc(R(officer, 'ga_pins', 'obs_o1'), { ...GP, id: 'obs_o1', kind: 'obs', ref: 'o1' }));
+await t(false, 'Crew does not put a card on the plan', setDoc(R(crew, 'ga_pins', 'obs_o2'), { ...GP, id: 'obs_o2', kind: 'obs', ref: 'o2' }));
+await t(false, 'A point of an unknown kind is refused', setDoc(R(officer, 'ga_pins', 'tank_t1'), { ...GP, id: 'tank_t1', kind: 'tank', ref: 't1' }));
 
 // Crane operator's log (types/craneLog.ts): an officer confirms; nothing changes.
 const CRL = { id: 'cl1', itemId: 'k1', crane: { label: 'Crane No. 1', swl: '12 t' }, crewId: 'c1', name: 'Max', date: '2026-11-13', hours: 2.5, lifts: 14, ops: ['cargo'], by: 'Chief Officer', at: 1, createdAt: 1, updatedAt: 1 };

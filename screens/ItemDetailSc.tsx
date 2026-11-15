@@ -38,7 +38,8 @@ import { duplicateItem } from '../services/duplicateItem';
 import { canAddItem } from '../services/trial';
 import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
 import { useSync } from '../contexts/SyncContext';
-import { roleAtLeast } from '../types/role';
+import { plansPms, roleAtLeast } from '../types/role';
+import { PlanPinLink } from '../components/PlanPinLink';
 import { scanProofFor, signingGate } from '../services/signingPolicy';
 import { t, tk, tn, useT, currentLang, dateLocale } from '../utils/i18n';
 import { shipToday } from '../utils/shipTime';
@@ -61,7 +62,10 @@ const MAX_ATTACHMENTS = 4;
 
 export default function ItemDetailSc() {
   // "Manage ›" opens the Certificates tab, which this device may not show.
-  const certTabShown = useSync().tabs.has('certificates');
+  const sync = useSync();
+  const certTabShown = sync.tabs.has('certificates');
+  // Where the item is kept on the ship's plan: placed by those who keep the plan (the rules say the same).
+  const canPlace = !sync.enrolled || roleAtLeast(sync.role, 'admin') || plansPms(sync.enrolled, sync.role);
   const route = useRoute<any>();
   const nav = useNavigation<any>();
   const COLORS = useTheme();
@@ -459,6 +463,8 @@ export default function ItemDetailSc() {
               />
             </View>
           ) : null}
+
+          {!isNew ? <PlanPinLink kind="equip" refId={draft.id} editable={canPlace} /> : null}
 
           {/* ---- Inspection trail (existing items only) --------------------
               A new item has no history and cannot be inspected until it is

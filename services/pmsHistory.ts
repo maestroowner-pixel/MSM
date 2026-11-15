@@ -37,7 +37,8 @@ export interface PlanPicture {
   /** The picture's size in pixels; the points are 0–1 of it. */
   w: number;
   h: number;
-  marks: { n: number; x: number; y: number; color: string }[];
+  /** `square` for a piece of gear (where it is kept), a circle otherwise. */
+  marks: { n: number; x: number; y: number; color: string; square?: boolean }[];
 }
 
 const dmy = (iso?: string) => (iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}` : '');

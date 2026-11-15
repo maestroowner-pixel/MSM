@@ -1,5 +1,5 @@
 // npm run check:gaplan — the ship's plan: decks, points, colours, numbering, the paper, rules, sync and words.
-import { clampPos, defectStatus, liveSheets, markRows, nextOrder, pinFor, placePin, sheetMarks, sheetProblem, yardStatus, ALL_MARKS } from '../services/gaPlan';
+import { clampPos, defectStatus, itemStatus, liveSheets, markRows, nextOrder, obsStatus, pinFor, placePin, sheetMarks, sheetProblem, usedStatuses, yardStatus, ALL_MARKS } from '../services/gaPlan';
 import { gaPinId } from '../types/gaPlan';
 import { en } from '../constants/i18n/en';
 import { MODULES } from '../constants/modules';
@@ -43,13 +43,32 @@ const pins = [
 // d3 is on main AND upper above — the later (upper) id is the same, so in real data only one exists; drop the duplicate.
 const real = pins.filter((p, i) => pins.findIndex((q) => q.id === p.id) === i);
 const pd = (id: string) => (id === 'pr1' ? '2026-12-01' : '2026-06-01');
-const all = sheetMarks('main', real, defects, jobs, ALL_MARKS, pd);
+const src = { defects, jobs, projectDate: pd };
+const all = sheetMarks('main', real, src, ALL_MARKS);
 ok(all.map((m) => `${m.n}:${m.pin.ref}`).join() === '1:d1,2:d2,3:d3,4:jx,5:j1,6:j2', 'numbered: defects by date, then yard jobs by period and number; cancelled and missing records left out');
-ok(sheetMarks('main', real, defects, jobs, { kinds: ['defect', 'yard'], closed: false }, pd).map((m) => m.pin.ref).join() === 'd1,d3,jx,j1,j2', 'open only: the closed defect drops, the numbers close up');
-ok(sheetMarks('main', real, defects, jobs, { kinds: ['yard'], closed: true, projectId: 'pr1' }, pd).map((m) => `${m.n}:${m.pin.ref}`).join() === '1:j1,2:j2', 'one yard period\'s jobs');
-ok(sheetMarks('main', real, defects, jobs, { kinds: ['defect'], closed: true }, pd).every((m) => m.pin.kind === 'defect'), 'defects only');
-ok(sheetMarks('upper', real, defects, jobs, ALL_MARKS, pd).length === 0, 'a deck shows only its own points');
-ok(sheetMarks('main', real.map((p) => (p.ref === 'd1' ? { ...p, removed: { by: 'A', at: 2 } } : p)), defects, jobs, ALL_MARKS, pd).every((m) => m.pin.ref !== 'd1'), 'a point taken off is not drawn');
+ok(sheetMarks('main', real, src, { kinds: ['defect', 'yard'], closed: false }).map((m) => m.pin.ref).join() === 'd1,d3,jx,j1,j2', 'open only: the closed defect drops, the numbers close up');
+ok(sheetMarks('main', real, src, { kinds: ['yard'], closed: true, projectId: 'pr1' }).map((m) => `${m.n}:${m.pin.ref}`).join() === '1:j1,2:j2', 'one yard period\'s jobs');
+ok(sheetMarks('main', real, src, { kinds: ['defect'], closed: true }).every((m) => m.pin.kind === 'defect'), 'defects only');
+ok(sheetMarks('upper', real, src, ALL_MARKS).length === 0, 'a deck shows only its own points');
+ok(sheetMarks('main', real.map((p) => (p.ref === 'd1' ? { ...p, removed: { by: 'A', at: 2 } } : p)), src, ALL_MARKS).every((m) => m.pin.ref !== 'd1'), 'a point taken off is not drawn');
+
+// Gear and observation cards (15 Nov 2026).
+const I = (id: string, cat: string, name: string, status: any, o: any = {}): any => ({ id, category: cat, cat, group: 'FFE', name, place: 'Galley', due: '2027-01-01', status, ...o });
+const items = [I('e2', 'Fire extinguishers', 'No. 12', 'ok'), I('e1', 'Fire extinguishers', 'No. 2', 'expired'), I('l1', 'Lifebuoys', 'No. 1', 'none', { group: 'LSA' })];
+const O = (id: string, o: any = {}): any => ({ id, date: '2026-11-1' + id.slice(-1), kind: 'unsafe_condition', topic: 'Fire safety', location: 'Galley', what: `card ${id}`, at: 1, updatedAt: 1, ...o });
+const obs = [O('o2'), O('o1', { reviewedAt: 5 })];
+ok(itemStatus(items[0]) === 'ok' && itemStatus(items[1]) === 'expired' && itemStatus(items[2]) === 'nodate' && itemStatus({ status: 'due' }) === 'due', 'gear: expired red, due amber, in date green, no date grey');
+ok(obsStatus(obs[0]) === 'open' && obsStatus(obs[1]) === 'closed', 'a card is open until reviewed');
+const gpins = [...['e2', 'e1', 'l1', 'gone'].map((r) => placePin(undefined, 'equip', r, 'main', 0.5, 0.5, 'A', 1)), ...['o2', 'o1'].map((r) => placePin(undefined, 'obs', r, 'main', 0.5, 0.5, 'A', 1))];
+const src2 = { ...src, items, obs };
+const every = sheetMarks('main', [...real, ...gpins], src2, ALL_MARKS);
+ok(every.map((m) => m.pin.ref).join() === 'd1,d2,d3,jx,j1,j2,e1,e2,l1,o1,o2', 'numbered: work first, then gear by category and number (No. 2 before No. 12), then cards by date; a missing item left out');
+ok(sheetMarks('main', [...real, ...gpins], src2, { kinds: ['equip', 'obs'], closed: false }).map((m) => m.pin.ref).join() === 'e1,e2,l1,o2', 'open only: gear stays whatever its date, the reviewed card drops');
+ok(sheetMarks('main', gpins, src2, { kinds: ['equip'], closed: true, category: 'Lifebuoys' }).map((m) => `${m.n}:${m.pin.ref}`).join() === '1:l1', 'one category of gear');
+ok(sheetMarks('main', gpins, { defects, jobs }, ALL_MARKS).length === 0, 'without the registers, no gear or cards are drawn');
+ok(usedStatuses(sheetMarks('main', gpins, src2, ALL_MARKS)).join() === 'open,closed,expired,ok,nodate', 'the legend lists only the colours on the deck');
+const grow = markRows(sheetMarks('main', gpins, src2, ALL_MARKS));
+ok(grow[0].join('|') === '1|FFE|No. 2|Fire extinguishers · Galley|01.01.2027|Expired' && grow[3].join('|') === '4|Observation|card o1|Unsafe condition · Fire safety · Galley|11.11.2026|Closed', 'gear and cards in the table: group, what, category and place, next date; kind, topic and place');
 
 // Paper.
 const rows = markRows(all);
@@ -69,12 +88,14 @@ ok(/GA_SHEETS_KEY/.test(bk) && /GA_PINS_KEY/.test(bk), 'in the backup');
 const st = readFileSync('services/storage.ts', 'utf8');
 ok(/    GA_SHEETS_KEY,\n    GA_PINS_KEY,/.test(st), 'wiped with the rest on reset');
 
+ok(/<PlanPinLink kind="equip"/.test(readFileSync('screens/ItemDetailSc.tsx', 'utf8')) && /<PlanPinLink kind="obs"/.test(readFileSync('screens/SafetySc.tsx', 'utf8')), 'an item and a card can be put on the plan');
+
 // Words.
-const src = ['screens/GaPlanSc.tsx', 'components/PlanPinLink.tsx', 'screens/YardProjectSc.tsx'].map((f) => readFileSync(f, 'utf8')).join('\n');
-const used = [...src.matchAll(/\bt\('(ga\.[\w.]+)'/g)].map((m) => m[1]);
+const files = ['screens/GaPlanSc.tsx', 'components/PlanPinLink.tsx', 'screens/YardProjectSc.tsx'].map((f) => readFileSync(f, 'utf8')).join('\n');
+const used = [...files.matchAll(/\bt\('(ga\.[\w.]+)'/g)].map((m) => m[1]);
 const missing = [...new Set(used)].filter((k) => !(k in en));
 ok(!missing.length, `every word in English${missing.length ? `: missing ${missing.join(', ')}` : ''}`);
-const dyn = ['ga.need.name', 'ga.need.image', 'ga.kinds.defect', 'ga.kinds.yard', ...['open', 'waiting', 'done', 'closed', 'planned'].map((s) => `ga.st.${s}`)];
+const dyn = ['ga.need.name', 'ga.need.image', ...['defect', 'yard', 'equip', 'obs'].map((k) => `ga.kinds.${k}`), 'ga.kind.defect', 'ga.kind.obs', ...['open', 'waiting', 'done', 'closed', 'planned', 'expired', 'due', 'ok', 'nodate'].map((s) => `ga.st.${s}`)];
 ok(dyn.every((k) => k in en), 'the words built from a value too');
 const manual = readFileSync('constants/manual.ts', 'utf8');
 ok(/title: "Ship's plan \(GA\)"/.test(manual) && /\{ title: "Ship's plan \(GA\)", module: 'gaPlan' \}/.test(manual), 'the manual has the section, gone with the module');

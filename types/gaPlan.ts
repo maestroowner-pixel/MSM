@@ -9,7 +9,9 @@
 //
 // A PIN puts a record on a sheet: x and y are 0–1 of the picture's width and
 // height, so a pin stays put whatever size the picture is drawn at. Pins are
-// their own collection, keyed by the record — `defect_<id>`, `yard_<id>` — and
+// their own collection, keyed by the record — `defect_<id>`, `yard_<id>`,
+// `equip_<id>` (an LSA/FFE item: where it is kept), `obs_<id>` (a safety
+// observation card: where it was seen; 15 Nov 2026) — and
 // NOT a field on the defect or the yard job: an app older than 2.75 rewriting
 // a defect would drop a field it does not know, and the pin with it. One pin
 // per record; moving it rewrites it; taking it off is `removed`, never a delete
@@ -36,14 +38,14 @@ export interface GaSheet {
   updatedAt: number;
 }
 
-export type GaPinKind = 'defect' | 'yard';
-export const GA_PIN_KINDS: GaPinKind[] = ['defect', 'yard'];
+export type GaPinKind = 'defect' | 'yard' | 'equip' | 'obs';
+export const GA_PIN_KINDS: GaPinKind[] = ['defect', 'yard', 'equip', 'obs'];
 
 export interface GaPin {
   /** `<kind>_<record id>` — one pin per record. */
   id: string;
   kind: GaPinKind;
-  /** The PmsDefect or YardJob id. */
+  /** The PmsDefect, YardJob, EquipmentItem or SafetyObservation id. */
   ref: string;
   sheetId: string;
   /** 0–1 across and down the picture. */

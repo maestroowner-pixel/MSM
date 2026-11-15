@@ -1202,7 +1202,7 @@ service cloud.firestore {
       match /ga_pins/{id} {
         allow read: if reader(v);
         allow create, update: if (isAdmin(v) || plans(v)) && request.resource.data.id == id
-                              && request.resource.data.kind in ['defect', 'yard']
+                              && request.resource.data.kind in ['defect', 'yard', 'equip', 'obs']
                               && id == request.resource.data.kind + '_' + request.resource.data.ref
                               && request.resource.data.x is number && request.resource.data.y is number
                               && request.resource.data.x >= 0 && request.resource.data.x <= 1

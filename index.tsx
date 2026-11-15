@@ -398,7 +398,7 @@ function MainTabs() {
   // Crew list (FAL Form 5, import) and the crew matrix — Officers and the Master
   // keep them, but everyone may look; the screens say what each rank can do.
   // Chat is for everyone aboard: in the menu whenever the module is on (services/chat).
-  const menuExtras = [...(moduleListed('chat') ? ['Chat'] : []), ...(moduleListed('gaPlan') && (moduleListed('pms') || moduleListed('yard')) ? ['GaPlan'] : []), ...(moduleOn('crewCerts') ? ['Crew', 'CrewMatrix', ...(moduleListed('myDocs') ? ['MyDocs'] : [])] : [])];
+  const menuExtras = [...(moduleListed('chat') ? ['Chat'] : []), ...(moduleListed('gaPlan') ? ['GaPlan'] : []), ...(moduleOn('crewCerts') ? ['Crew', 'CrewMatrix', ...(moduleListed('myDocs') ? ['MyDocs'] : [])] : [])];
   const available = useMemo(() => [...tabOrder, ...menuExtras], [tabOrder.join('|'), menuExtras.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
   const navPrefs = useNavPrefs(available);
   const many = tabOrder.length > FEW;

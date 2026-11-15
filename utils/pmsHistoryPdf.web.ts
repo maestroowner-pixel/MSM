@@ -60,7 +60,8 @@ export function pmsHistoryPdfBlob(title: string, vesselLine: string, list: Machi
         doc.setFillColor(parseInt(c.slice(0, 2), 16), parseInt(c.slice(2, 4), 16), parseInt(c.slice(4, 6), 16));
         doc.setDrawColor(255, 255, 255);
         doc.setLineWidth(0.4);
-        doc.circle(cx, cy, r, 'FD');
+        if (m.square) doc.roundedRect(cx - r, cy - r, r * 2, r * 2, 0.5, 0.5, 'FD');
+        else doc.circle(cx, cy, r, 'FD');
         doc.setTextColor(255, 255, 255);
         doc.text(String(m.n), cx, cy, { align: 'center', baseline: 'middle' });
       }

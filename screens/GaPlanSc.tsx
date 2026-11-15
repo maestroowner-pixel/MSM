@@ -1,7 +1,8 @@
 // ===================================
 // The ship's plan (GA) — types/gaPlan.ts. A tab per deck; on the deck's
 // picture, the machinery defects and the yard jobs put on it, numbered and
-// coloured by how they stand; filters, zoom, the list, and the deck on paper
+// coloured by how they stand, the LSA/FFE gear where it is kept (squares,
+// coloured by date) and the safety observation cards where they were seen; filters, zoom, the list, and the deck on paper
 // for the yard. An officer (or a planner) adds a deck — a picture of it from
 // the GA plan — and puts a record on it: the record's screen opens this one
 // with `pickKind`/`pickRef`, a tap on the picture places the point. A deck's
@@ -27,7 +28,11 @@ import * as storage from '../services/storage';
 import * as photoQueue from '../services/photoQueue';
 import { ensureLocalPhoto } from '../services/photoStorage';
 import { pickDocument, pickFromLibrary, resolveUri } from '../services/attachments';
-import { MARK_STATUSES, Mark, MarkFilter, STATUS_HEX, clampPos, liveSheets, nextOrder, pinFor, placePin, sheetMarks, sheetProblem } from '../services/gaPlan';
+import { Mark, MarkFilter, PlanItem, PlanSources, STATUS_HEX, clampPos, isGear, liveSheets, nextOrder, pinFor, placePin, sheetMarks, sheetProblem, usedStatuses } from '../services/gaPlan';
+import { CATEGORY_MAP, GROUP_SHORT, catLabel, groupShort } from '../constants/categories';
+import { complianceDate, computeStatus } from '../utils/dates';
+import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
+import { EquipmentItem } from '../types/equipment';
 import { exportGaPlan, shareGaPlan } from '../services/gaPlanReport';
 import { todayIso } from '../services/pms';
 import { onWeb } from '../utils/fileShare';
@@ -40,6 +45,18 @@ import { t, tk, useT } from '../utils/i18n';
 
 const R = 13; // a point's radius on screen
 const ZOOMS = [1, 2, 3];
+
+/** An LSA/FFE item as the plan shows it: its number and type, where it is, its date. Paper takes the English names. */
+function planItem(it: EquipmentItem, paper: boolean): PlanItem {
+  const meta = CATEGORY_MAP[it.category];
+  const no = itemNumber(it);
+  const g = meta?.group ?? 'OTHER';
+  return {
+    id: it.id, category: it.category, cat: paper ? meta?.label ?? it.category : catLabel(meta ?? it.category), group: paper ? GROUP_SHORT[g] : groupShort(g),
+    name: [no ? `No. ${no}` : '', typeWithSize(it)].filter(Boolean).join(' · '),
+    place: itemLocation(it) ?? '', due: complianceDate(it) ?? '', status: computeStatus(it),
+  };
+}
 
 /** The deck's picture on this device: undefined while it is looked for, null when it is not here yet. */
 function usePlanImage(imo: string, sheet?: GaSheet): string | null | undefined {
@@ -78,7 +95,7 @@ export default function GaPlanSc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { gaSheets, gaPins, pmsDefects, yardJobs, pmsProjects, saveRow, saveRows, vessel } = useData();
+  const { gaSheets, gaPins, pmsDefects, yardJobs, pmsProjects, byCategory, observations, saveRow, saveRows, vessel } = useData();
   const sync = useSync();
   const canEdit = !sync.enrolled || roleAtLeast(sync.role, 'admin') || plansPms(sync.enrolled, sync.role);
   const me = sync.me ? personName(sync.me) : t('ga.officer');
@@ -89,17 +106,24 @@ export default function GaPlanSc() {
   const pickKind: GaPinKind | undefined = route.params?.pickKind;
   const pickRef: string | undefined = route.params?.pickRef;
   const picking = canEdit && pickKind && pickRef ? { kind: pickKind, ref: pickRef } : null;
+  const items = useMemo(() => Object.values(byCategory).flat().map((it) => planItem(it, false)), [byCategory]);
   const pickDefect = picking?.kind === 'defect' ? pmsDefects.find((d) => d.id === picking.ref) : undefined;
   const pickJob = picking?.kind === 'yard' ? yardJobs.find((j) => j.id === picking.ref) : undefined;
-  const pickTitle = pickDefect ? `${t('ga.kind.defect')}: ${pickDefect.description}` : pickJob ? `${t('ga.kind.yard')} ${String(pickJob.no).padStart(3, '0')}: ${pickJob.title}` : '';
+  const pickItem = picking?.kind === 'equip' ? items.find((i) => i.id === picking.ref) : undefined;
+  const pickObs = picking?.kind === 'obs' ? observations.find((o) => o.id === picking.ref) : undefined;
+  const pickTitle = pickDefect ? `${t('ga.kind.defect')}: ${pickDefect.description}`
+    : pickJob ? `${t('ga.kind.yard')} ${String(pickJob.no).padStart(3, '0')}: ${pickJob.title}`
+    : pickItem ? `${pickItem.cat}: ${pickItem.name || pickItem.place}`
+    : pickObs ? `${t('ga.kind.obs')}: ${pickObs.what}` : '';
   const ownPin = picking ? pinFor(gaPins, picking.kind, picking.ref) : undefined;
 
-  const kindsOn: GaPinKind[] = [...(moduleOn('pms') ? (['defect'] as const) : []), ...(moduleOn('yard') ? (['yard'] as const) : [])];
+  const kindsOn: GaPinKind[] = [...(moduleOn('pms') ? (['defect'] as const) : []), ...(moduleOn('yard') ? (['yard'] as const) : []), 'equip', ...(moduleOn('qhse') ? (['obs'] as const) : [])];
   const [sheetId, setSheetId] = useState<string | undefined>(route.params?.sheet);
   const sheet = sheets.find((s) => s.id === sheetId) ?? sheets[0];
   const [kinds, setKinds] = useState<GaPinKind[]>(kindsOn);
   const [closed, setClosed] = useState<boolean>(!!route.params?.focus);
   const [projectId, setProjectId] = useState<string>(route.params?.project ?? '');
+  const [category, setCategory] = useState<string>('');
   const [zoom, setZoom] = useState(1);
   const [boxW, setBoxW] = useState(0);
   const [focus, setFocus] = useState<string | undefined>(route.params?.focus);
@@ -120,8 +144,19 @@ export default function GaPlanSc() {
 
   const projects = useMemo(() => [...pmsProjects].filter((p) => yardJobs.some((j) => j.projectId === p.id)).sort((a, b) => b.dueDate.localeCompare(a.dueDate)), [pmsProjects, yardJobs]);
   const projectDate = (id: string) => pmsProjects.find((p) => p.id === id)?.dueDate ?? '';
-  const filter: MarkFilter = { kinds: kinds.filter((k) => kindsOn.includes(k)), closed, projectId: kinds.includes('yard') && projectId ? projectId : undefined };
-  const allMarks = sheet ? sheetMarks(sheet.id, gaPins, pmsDefects, yardJobs, filter, projectDate) : [];
+  // The categories that have gear on the plan, for the filter.
+  const placedCats = useMemo(() => {
+    const placed = new Set(gaPins.filter((p) => p.kind === 'equip' && !p.removed).map((p) => p.ref));
+    const cats = new Map(items.filter((i) => placed.has(i.id)).map((i) => [i.category, i.cat]));
+    return [...cats].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [gaPins, items]);
+  const filter: MarkFilter = {
+    kinds: kinds.filter((k) => kindsOn.includes(k)), closed,
+    projectId: kinds.includes('yard') && projectId ? projectId : undefined,
+    category: kinds.includes('equip') && category ? category : undefined,
+  };
+  const src: PlanSources = { defects: pmsDefects, jobs: yardJobs, items, obs: observations, projectDate };
+  const allMarks = sheet ? sheetMarks(sheet.id, gaPins, src, filter) : [];
   // While a record is being placed its own old point is the draft, not a mark.
   const marks = picking ? allMarks.filter((m) => m.pin.id !== ownPin?.id) : allMarks;
   const focused = marks.find((m) => m.pin.id === focus);
@@ -136,7 +171,14 @@ export default function GaPlanSc() {
     </TouchableOpacity>
   );
   const fail = (e: any) => Alert.alert(t('ga.title'), String(e?.message ?? e));
-  const backToRecord = () => (picking ? goBackOr(nav, picking.kind === 'defect' ? 'PmsDefect' : 'YardJob', { id: picking.ref }) : goBackOr(nav));
+  // Where a record lives: its own screen, an item's under its category, a card in the Safety list (a tab of Main).
+  const recordRoute = (kind: GaPinKind, ref: string): [string, Record<string, any>] => {
+    if (kind === 'defect') return ['PmsDefect', { id: ref }];
+    if (kind === 'yard') return ['YardJob', { id: ref }];
+    if (kind === 'equip') return ['ItemDetail', { category: items.find((i) => i.id === ref)?.category ?? ref.split('_')[0], id: ref }];
+    return ['Main', { screen: 'Safety', params: { obs: ref } }];
+  };
+  const backToRecord = () => (picking ? goBackOr(nav, ...recordRoute(picking.kind, picking.ref)) : goBackOr(nav));
 
   // ---- a point ----
   // Where the tap fell on the picture. A phone gives it as locationX/Y; a browser's click
@@ -254,14 +296,17 @@ export default function GaPlanSc() {
   };
 
   const paper = (all: boolean, share: boolean) => {
-    const list = (all ? sheets : sheet ? [sheet] : []).map((s) => ({ sheet: s, marks: sheetMarks(s.id, gaPins, pmsDefects, yardJobs, filter, projectDate) }));
+    const paperSrc: PlanSources = { ...src, items: Object.values(byCategory).flat().map((it) => planItem(it, true)) };
+    const list = (all ? sheets : sheet ? [sheet] : []).map((s) => ({ sheet: s, marks: sheetMarks(s.id, gaPins, paperSrc, filter) }));
     if (!list.length) return;
     const pName = filter.projectId ? pmsProjects.find((p) => p.id === filter.projectId)?.name : undefined;
-    void (share ? shareGaPlan : exportGaPlan)(vessel, list, filter, pName, today).catch(fail);
+    const cName = filter.category ? CATEGORY_MAP[filter.category]?.label ?? filter.category : undefined;
+    void (share ? shareGaPlan : exportGaPlan)(vessel, list, filter, pName, today, cName).catch(fail);
   };
 
-  const kindLabel = (m: Mark) => (m.pin.kind === 'defect' ? t('ga.kind.defect') : `${t('ga.kind.yard')} ${m.no}`);
-  const open = (pin: GaPin) => nav.navigate(pin.kind === 'defect' ? 'PmsDefect' : 'YardJob', { id: pin.ref });
+  const kindLabel = (m: Mark) => (m.pin.kind === 'yard' ? `${t('ga.kind.yard')} ${m.no}` : m.pin.kind === 'equip' ? m.label : tk(`ga.kind.${m.pin.kind}`));
+  const open = (pin: GaPin) => nav.navigate(...recordRoute(pin.kind, pin.ref));
+  const legend = usedStatuses(marks);
 
   return (
     <Screen scroll>
@@ -344,6 +389,9 @@ export default function GaPlanSc() {
           {!picking && kinds.includes('yard') && projects.length ? (
             <Dropdown caption={t('ga.project')} value={projectId} onChange={setProjectId} options={[{ value: '', label: t('ga.allProjects') }, ...projects.map((p) => ({ value: p.id, label: p.name }))]} style={{ maxWidth: 420, marginBottom: SIZES.sm }} />
           ) : null}
+          {!picking && kinds.includes('equip') && placedCats.length > 1 ? (
+            <Dropdown caption={t('ga.category')} value={category} onChange={setCategory} options={[{ value: '', label: t('ga.allCategories') }, ...placedCats.map(([k, name]) => ({ value: k, label: name }))]} style={{ maxWidth: 420, marginBottom: SIZES.sm }} />
+          ) : null}
 
           {/* The deck */}
           <View onLayout={(e) => setBoxW(e.nativeEvent.layout.width)} style={{ width: '100%' }}>
@@ -364,7 +412,7 @@ export default function GaPlanSc() {
                         onPress={() => setFocus(m.pin.id === focus ? undefined : m.pin.id)}
                         accessibilityLabel={`${m.n} ${m.label} ${m.title}`}
                         style={{
-                          position: 'absolute', left: m.pin.x * planW - R, top: m.pin.y * planH - R, width: R * 2, height: R * 2, borderRadius: R,
+                          position: 'absolute', left: m.pin.x * planW - R, top: m.pin.y * planH - R, width: R * 2, height: R * 2, borderRadius: isGear(m.pin.kind) ? 4 : R,
                           backgroundColor: STATUS_HEX[m.status], borderWidth: m.pin.id === focus ? 3 : 2, borderColor: m.pin.id === focus ? COLORS.text : '#fff',
                           alignItems: 'center', justifyContent: 'center', opacity: picking ? 0.55 : 1, pointerEvents: picking ? 'none' : 'auto',
                         }}
@@ -374,7 +422,7 @@ export default function GaPlanSc() {
                     ))
                   : null}
                 {picking && draft && draft.sheetId === sheet.id && boxW > 0 ? (
-                  <View pointerEvents="none" style={{ position: 'absolute', left: draft.x * planW - R - 3, top: draft.y * planH - R - 3, width: R * 2 + 6, height: R * 2 + 6, borderRadius: R + 3, borderWidth: 4, borderColor: COLORS.primary, backgroundColor: 'rgba(255,255,255,0.6)' }} />
+                  <View pointerEvents="none" style={{ position: 'absolute', left: draft.x * planW - R - 3, top: draft.y * planH - R - 3, width: R * 2 + 6, height: R * 2 + 6, borderRadius: isGear(picking.kind) ? 6 : R + 3, borderWidth: 4, borderColor: COLORS.primary, backgroundColor: 'rgba(255,255,255,0.6)' }} />
                 ) : null}
               </Pressable>
             </ScrollView>
@@ -382,7 +430,7 @@ export default function GaPlanSc() {
 
           {/* Colours */}
           <View style={[styles.chips, { marginTop: SIZES.sm }]}>
-            {MARK_STATUSES.map((s) => (
+            {legend.map((s) => (
               <View key={s} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: SIZES.sm }}>
                 <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: STATUS_HEX[s] }} />
                 <Text style={styles.sub}>{tk(`ga.st.${s}`)}</Text>
@@ -408,7 +456,7 @@ export default function GaPlanSc() {
               {marks.length ? marks.map((m) => (
                 <TouchableOpacity key={m.pin.id} style={styles.item} onPress={() => open(m.pin)}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm }}>
-                    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: STATUS_HEX[m.status], alignItems: 'center', justifyContent: 'center' }}>
+                    <View style={{ width: 22, height: 22, borderRadius: isGear(m.pin.kind) ? 4 : 11, backgroundColor: STATUS_HEX[m.status], alignItems: 'center', justifyContent: 'center' }}>
                       <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{m.n}</Text>
                     </View>
                     <View style={{ flex: 1 }}>

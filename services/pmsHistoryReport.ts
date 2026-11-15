@@ -16,7 +16,7 @@ import { pmsHistoryPdfBlob } from '../utils/pmsHistoryPdf';
 /** A deck of the ship's plan with its numbered points, as large as the page allows. */
 function planSvg(p: PlanPicture): string {
   const r = Math.max(p.w, p.h) * 0.011;
-  const marks = p.marks.map((m) => `<circle cx="${m.x * p.w}" cy="${m.y * p.h}" r="${r}" fill="${esc(m.color)}" stroke="#fff" stroke-width="${r * 0.18}"/><text x="${m.x * p.w}" y="${m.y * p.h}" font-size="${r * 1.15}" font-weight="700" fill="#fff" text-anchor="middle" dominant-baseline="central">${m.n}</text>`).join('');
+  const marks = p.marks.map((m) => (m.square ? `<rect x="${m.x * p.w - r}" y="${m.y * p.h - r}" width="${r * 2}" height="${r * 2}" rx="${r * 0.25}"` : `<circle cx="${m.x * p.w}" cy="${m.y * p.h}" r="${r}"`) + ` fill="${esc(m.color)}" stroke="#fff" stroke-width="${r * 0.18}"/><text x="${m.x * p.w}" y="${m.y * p.h}" font-size="${r * 1.15}" font-weight="700" fill="#fff" text-anchor="middle" dominant-baseline="central">${m.n}</text>`).join('');
   return `<svg viewBox="0 0 ${p.w} ${p.h}" style="display:block;max-width:100%;max-height:120mm;margin:4px 0 6px;border:.5px solid #c8d0db"><image href="${esc(p.image)}" x="0" y="0" width="${p.w}" height="${p.h}"/>${marks}</svg>`;
 }
 

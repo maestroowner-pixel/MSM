@@ -477,7 +477,12 @@ app mirrors. Bundle id `com.kukalab.msm`.
   of `PAGE_EDGE` 2400 px on the long edge by `utils/pdfPage` — web: pdf.js from cdnjs (`pdfText.web.ts`'s loader, needs a connection);
   phones: the LOCAL Expo module `modules/pdf-page` (PDFKit / PdfRenderer, offline; autolinked from `modules/`, needs a native build —
   2.74 and older have no module, `requireOptionalNativeModule` → null → `ga.noPdf`). The page is copied into attachments only on Save
-  (`keepPage`). Web tap
+  (`keepPage`). **Gear and cards** (15 Nov 2026, step 2): pin kinds `equip` (any register item, ItemDetailSc; drawn SQUARE, coloured by
+  `computeStatus` — expired red, due amber, in date green, no date grey; shown whatever the Closed filter) and `obs` (a safety observation
+  card, the open card on SafetySc; red until reviewed). `services/gaPlan.sheetMarks(sheet, pins, PlanSources, filter)` — the screen passes
+  items with translated names, the PDF English ones (`planItem(it, paper)`); filter by category; the legend lists only used colours. A card
+  is opened as `navigate('Main', { screen: 'Safety', params: { obs } })` (Safety is a tab). Rules: `kind in [defect, yard, equip, obs]`.
+  Web tap
   position: RN Web's Pressable click has no locationX, so `clientX` against the ref's box. In .msm, erased on reset. `npm run check:gaplan`;
   rules-test.mjs covers it. `npm run deploy:rules` before the flag.
   **Testing on web**: the opening animation is a full-page `<canvas>` for ~10–15 s and takes the first real click; wait until it is gone.

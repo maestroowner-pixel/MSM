@@ -32,6 +32,7 @@ import { moduleOn } from '../constants/modules';
 import { newLinkToken, readObsToken, saveObsToken } from '../services/firebaseService';
 import { uiDate } from '../utils/dates';
 import { uid } from '../utils/id';
+import { PlanPinLink } from '../components/PlanPinLink';
 import { playSuccessSound } from '../utils/sound';
 import { t, tk, tn, useT } from '../utils/i18n';
 
@@ -53,7 +54,14 @@ export default function SafetySc() {
 
   const [tab, setTab] = useState<'cards' | 'ncs'>(route.params?.view === 'ncs' ? 'ncs' : 'cards');
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [open, setOpen] = useState<string | null>(null);
+  // From the ship's plan a card opens with `obs`.
+  const [open, setOpen] = useState<string | null>(route.params?.obs ?? null);
+  useEffect(() => {
+    if (route.params?.obs) {
+      setTab('cards');
+      setOpen(route.params.obs);
+    }
+  }, [route.params?.obs]);
   const [note, setNote] = useState('');
   const [saved, setSaved] = useState<string | null>(null);
   const [obsQr, setObsQr] = useState<{ token: string; vesselName: string } | null | 'loading'>(canReview && sync.enrolled ? 'loading' : null);
@@ -226,6 +234,7 @@ export default function SafetySc() {
                 {nc ? (
                   <TouchableOpacity onPress={() => nav.navigate('Nc', { id: nc.id })}><Text style={styles.link}>{`→ ${nc.no} ${nc.title}`}</Text></TouchableOpacity>
                 ) : null}
+                <PlanPinLink kind="obs" refId={o.id} editable={canReview && open === o.id} />
                 {open === o.id && canReview ? (
                   <View>
                     {!o.reviewedAt && rev.picker ? <View style={{ marginTop: SIZES.sm }}>{rev.picker}</View> : null}

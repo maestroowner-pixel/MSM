@@ -8347,7 +8347,7 @@ export const en = {
   // The ship's plan (GA), 14 Nov 2026.
   "menu.GaPlan": "Ship's plan",
   "ga.title": "Ship's plan",
-  "ga.subtitle": "Decks of the GA plan with defects and yard jobs on them",
+  "ga.subtitle": "Decks of the GA plan: defects, yard jobs, safety equipment and observations",
   "ga.officer": "Officer",
   "ga.kind.defect": "Defect",
   "ga.kind.yard": "Yard",
@@ -8380,7 +8380,7 @@ export const en = {
   "ga.removeDeck": "Take the deck off the plan",
   "ga.removeHint": "The deck goes off the plan; its points stay with their records and come back if the deck is added again from the backup.",
   "ga.empty": "No decks on the plan yet.",
-  "ga.emptyEdit": "No decks on the plan yet. Add the first: + Deck, a name and its picture from the GA plan. Then open a defect or a yard job and put it on the deck.",
+  "ga.emptyEdit": "No decks on the plan yet. Add the first: + Deck, a name and its picture from the GA plan. Then open a defect, a yard job, a piece of safety equipment or an observation card and put it on the deck.",
   "ga.closedToo": "Closed too",
   "ga.project": "Yard period",
   "ga.allProjects": "All yard periods",
@@ -8400,6 +8400,15 @@ export const en = {
   "ga.earlier": "Earlier",
   "ga.onPlan": "On the plan: {deck}",
   "ga.putOn": "Put on the plan",
+  "ga.kind.obs": "Observation",
+  "ga.kinds.equip": "Safety equipment",
+  "ga.kinds.obs": "Observations",
+  "ga.category": "Category",
+  "ga.allCategories": "All categories",
+  "ga.st.expired": "Expired",
+  "ga.st.due": "Due soon",
+  "ga.st.ok": "In date",
+  "ga.st.nodate": "No date",
 };
 
 export type UiKey = keyof typeof en;
