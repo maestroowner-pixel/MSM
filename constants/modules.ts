@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals' | 'restPlan' | 'daTests' | 'threads' | 'emissions' | 'myDocs' | 'mySdm' | 'chem' | 'wires' | 'quoteLink' | 'craneLog' | 'letters' | 'orderBook' | 'chat';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals' | 'restPlan' | 'daTests' | 'threads' | 'emissions' | 'myDocs' | 'mySdm' | 'chem' | 'wires' | 'quoteLink' | 'craneLog' | 'letters' | 'orderBook' | 'chat' | 'gaPlan';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -383,6 +383,13 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * first (chat_crew, chat_officers, chat_office).
    */
   chat: false,
+  /**
+   * The ship's plan (GA) — a picture per deck, uploaded by an officer, with the machinery
+   * defects and the yard jobs put on it as points coloured by how they stand; a page per
+   * deck on paper for the yard (types/gaPlan.ts, 14 Nov 2026). Shows the defects with
+   * `pms` and the yard jobs with `yard`. Needs `npm run deploy:rules` first (ga_sheets, ga_pins).
+   */
+  gaPlan: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------

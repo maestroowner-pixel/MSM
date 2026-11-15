@@ -548,6 +548,16 @@ const en: ManualContent = {
       ],
     },
     {
+      emoji: '📍',
+      title: "Ship's plan (GA)",
+      body: [
+        "The ship's plan (menu → Equipment & maintenance → Ship's plan) shows where the work is: a picture per deck from the General Arrangement plan, with the machinery defects and the yard jobs on it as numbered points. The colour says how each stands: red open, amber waiting for spares or in progress, blue done and waiting to be accepted, grey planned, green closed.",
+        "An officer, the Master or the superintendent adds a deck: + Deck, its name (Main deck, Tank top…) and its picture — a PNG or JPEG. A PDF page is saved as a picture first (a screenshot of the page will do). Edit deck gives a deck a new name or a new picture, Earlier moves its tab forward, and Take the deck off the plan removes it; its points stay with their records.",
+        "To put a record on the plan, open the defect or the yard job and press Put on the plan: choose the deck, tap where it is (zoom in for a finer point) and Save here. On the record, On the plan: Main deck › opens the deck at its point; Move puts it somewhere else, Take off the plan removes it. Open defects and yard jobs not yet accepted can be placed.",
+        "On the plan, filter by defects and yard jobs, by one yard period, with or without closed ones. Tap a point for what it is and Open the record; the list under the deck has every point by its number. PDF of this deck, Share PDF and PDF of all decks print each deck with its numbered points and a table — number, record, what, machine, date, status — for the yard, the surveyor or the office. A yard period's page opens the plan with only its jobs.",
+      ],
+    },
+    {
       emoji: '🧾',
       title: "Suppliers and quotations",
       body: [
@@ -1483,6 +1493,16 @@ const ru: ManualContent = {
         "Верфь и гарантия (в меню и с экрана ТО) ведёт ремонт или докование от ведомости работ до гарантии. Капитан или суперинтендант открывает стоянку: вид, верфь (из справочника поставщиков или вручную), место, плановые и фактические даты, валюту и бюджет. Проект, открытый в ТО → Проекты, — тот же самый: отложенные на него работы PMS остаются в нём.",
         "Офицеры составляют ведомость: в каждой работе — что сделать, на каком механизме, кто делает (верфь, подрядчик, сервис изготовителя или экипаж), нужен ли класс или флаг, спецификация, цена по котировке и гарантия в месяцах. Открытые дефекты и отложенные на проект работы PMS добавляются в один шаг. Спецификацию можно напечатать в PDF для верфей или отправить в Excel: верфь заполняет колонки Yard price и Yard remarks, не трогая Job ID, а «Цены верфи из Excel» переносит её цены в работы. Работа идёт: в плане → начато → выполнено → принято. Приёмка подписывается с тем, что проверено, окончательной ценой, счётом и фото, и может той же подписью закрыть дефект работы. После приёмки меняются только окончательная цена и счёт. Работу отменяют с причиной, но не удаляют. Проект показывает котировки, окончательные цены и прогноз против бюджета; «Ход работ PDF» — отчёт для владельца.",
         "Принятая работа с гарантией видна в разделе «Гарантия», пока гарантия не кончится (жёлтым за 60 дней). Гарантийная претензия предъявляется верфи, подрядчику или изготовителю — из работы или отдельно, для нового оборудования, с датами гарантии. Она идёт: черновик → отправлена → их ответ (принята, частично, отклонена, с их номером) → закрыта с подписью и итогом: отремонтировано, заменено, компенсировано, отказ или отозвана. PDF претензии — то, что отправляют; если неисправность обнаружена вне гарантии, это сказано. «Реестр гарантий PDF» — всё на гарантии и все претензии.",
+      ],
+    },
+    {
+      emoji: '📍',
+      title: "План судна (GA)",
+      body: [
+        "План судна (меню → Оборудование и ТО → План судна) показывает, где работа: картинка каждой палубы из General Arrangement, на ней дефекты механизмов и работы верфи пронумерованными точками. Цвет — как обстоит дело: красный открыт, жёлтый ждёт запчастей или в работе, синий сделано и ждёт приёмки, серый запланировано, зелёный закрыто.",
+        "Офицер, Мастер или суперинтендант добавляет палубу: + Палуба, название (Главная палуба, Второе дно…) и картинка — PNG или JPEG. Страницу PDF сначала сохраните картинкой (подойдёт снимок экрана). «Название и картинка палубы» меняет название или картинку, «Раньше» сдвигает вкладку вперёд, «Убрать палубу с плана» убирает её; точки остаются у своих записей.",
+        "Чтобы поставить запись на план, откройте дефект или работу верфи и нажмите «Поставить на план»: выберите палубу, нажмите, где это (для точности увеличьте), и «Сохранить здесь». В записи «На плане: Главная палуба ›» открывает палубу на её точке; «Переставить» переносит, «Убрать с плана» снимает. Ставить можно открытые дефекты и ещё не принятые работы верфи.",
+        "На плане — фильтры: дефекты, работы верфи, один период верфи, с закрытыми или без. Нажмите точку — видно, что это, и «Открыть запись»; список под палубой — все точки по номерам. «PDF этой палубы», «Поделиться PDF» и «PDF всех палуб» печатают каждую палубу с пронумерованными точками и таблицей — номер, запись, что, механизм, дата, статус — для верфи, сюрвейера или офиса. Со страницы периода верфи план открывается только с его работами.",
       ],
     },
     {
@@ -2424,6 +2444,16 @@ const es: ManualContent = {
       ],
     },
     {
+      emoji: '📍',
+      title: "Plano del buque (GA)",
+      body: [
+        "El plano del buque (menú → Equipos y mantenimiento → Plano del buque) muestra dónde está el trabajo: una imagen por cubierta del plano de Disposición General, con los defectos de maquinaria y los trabajos de astillero como puntos numerados. El color dice cómo está cada uno: rojo abierto, ámbar en espera de repuestos o en curso, azul hecho y por aceptar, gris planificado, verde cerrado.",
+        "Un oficial, el Capitán o el superintendente añade una cubierta: + Cubierta, su nombre (Cubierta principal, Doble fondo…) y su imagen, PNG o JPEG. Una página PDF se guarda antes como imagen (vale una captura de pantalla). Nombre e imagen de la cubierta cambia el nombre o la imagen, Antes adelanta su pestaña y Quitar la cubierta del plano la retira; sus puntos siguen con sus registros.",
+        "Para poner un registro en el plano, abra el defecto o el trabajo de astillero y pulse Ponerlo en el plano: elija la cubierta, toque dónde está (amplíe para más precisión) y Guardar aquí. En el registro, En el plano: Cubierta principal › abre la cubierta en su punto; Mover lo cambia de sitio, Quitar del plano lo retira. Se pueden colocar defectos abiertos y trabajos aún no aceptados.",
+        "En el plano se filtra por defectos y trabajos de astillero, por un periodo de astillero, con o sin cerrados. Toque un punto para ver qué es y Abrir el registro; la lista bajo la cubierta tiene todos los puntos por número. PDF de esta cubierta, Compartir PDF y PDF de todas las cubiertas imprimen cada cubierta con sus puntos numerados y una tabla — número, registro, qué, máquina, fecha, estado — para el astillero, el inspector o la oficina. La página de un periodo de astillero abre el plano solo con sus trabajos.",
+      ],
+    },
+    {
       emoji: '🧾',
       title: "Proveedores y cotizaciones",
       body: [
@@ -3362,6 +3392,16 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '📍',
+      title: "План судна (GA)",
+      body: [
+        "План судна (меню → Обладнання та ТО → План судна) показує, де робота: зображення кожної палуби з General Arrangement, на ньому дефекти механізмів і роботи верфі пронумерованими точками. Колір — як справи: червоний відкритий, жовтий чекає запчастин або в роботі, синій зроблено й чекає приймання, сірий заплановано, зелений закрито.",
+        "Офіцер, Мастер або суперінтендант додає палубу: + Палуба, назва (Головна палуба, Друге дно…) і зображення — PNG або JPEG. Сторінку PDF спершу збережіть зображенням (підійде знімок екрана). «Назва й зображення палуби» змінює назву або зображення, «Раніше» зсуває вкладку вперед, «Прибрати палубу з плану» прибирає її; точки лишаються у своїх записів.",
+        "Щоб поставити запис на план, відкрийте дефект або роботу верфі й натисніть «Поставити на план»: виберіть палубу, натисніть, де це (для точності збільште), і «Зберегти тут». У записі «На плані: Головна палуба ›» відкриває палубу на її точці; «Переставити» переносить, «Прибрати з плану» знімає. Ставити можна відкриті дефекти й ще не прийняті роботи верфі.",
+        "На плані — фільтри: дефекти, роботи верфі, один період верфі, із закритими чи без. Натисніть точку — видно, що це, і «Відкрити запис»; список під палубою — усі точки за номерами. «PDF цієї палуби», «Поділитися PDF» і «PDF усіх палуб» друкують кожну палубу з пронумерованими точками й таблицею — номер, запис, що, механізм, дата, статус — для верфі, сюрвеєра чи офісу. Зі сторінки періоду верфі план відкривається лише з його роботами.",
+      ],
+    },
+    {
       emoji: '🧾',
       title: "Постачальники та котирування",
       body: [
@@ -4265,6 +4305,16 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '📍',
+      title: "Skipets plan (GA)",
+      body: [
+        "Skipets plan (meny → Utstyr og vedlikehold → Skipets plan) viser hvor arbeidet er: et bilde per dekk fra General Arrangement-planen, med maskinavvik og verftsjobber som nummererte punkter. Fargen sier hvordan hvert står: rødt åpent, gult venter på deler eller pågår, blått utført og venter på godkjenning, grått planlagt, grønt lukket.",
+        "En offiser, kapteinen eller superintendenten legger til et dekk: + Dekk, navnet (Hoveddekk, Tanktopp…) og bildet — PNG eller JPEG. En PDF-side lagres først som bilde (et skjermbilde holder). Navn og bilde av dekket gir nytt navn eller nytt bilde, Tidligere flytter fanen fram, og Ta dekket av planen fjerner det; punktene blir hos sine poster.",
+        "For å sette en post på planen, åpne avviket eller verftsjobben og trykk Sett det på planen: velg dekket, trykk der det er (zoom inn for mer presisjon) og Lagre her. På posten åpner På planen: Hoveddekk › dekket ved punktet; Flytt setter det et annet sted, Ta av planen fjerner det. Åpne avvik og verftsjobber som ikke er godkjent kan plasseres.",
+        "På planen filtrerer du på avvik og verftsjobber, på én verftsperiode, med eller uten lukkede. Trykk et punkt for å se hva det er og Åpne posten; listen under dekket har alle punktene etter nummer. PDF av dette dekket, Del PDF og PDF av alle dekk skriver ut hvert dekk med nummererte punkter og en tabell — nummer, post, hva, maskin, dato, status — for verftet, inspektøren eller kontoret. Siden for en verftsperiode åpner planen med bare dens jobber.",
+      ],
+    },
+    {
       emoji: '🧾',
       title: "Leverandører og tilbud",
       body: [
@@ -5127,6 +5177,16 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '📍',
+      title: "Plano do navio (GA)",
+      body: [
+        "O plano do navio (menu → Equipamentos e manutenção → Plano do navio) mostra onde está o trabalho: uma imagem por convés do plano de Arranjo Geral, com os defeitos de máquinas e os trabalhos de estaleiro como pontos numerados. A cor diz como está cada um: vermelho aberto, âmbar à espera de peças ou em curso, azul feito e por aceitar, cinzento planeado, verde fechado.",
+        "Um oficial, o Comandante ou o superintendente adiciona um convés: + Convés, o nome (Convés principal, Duplo fundo…) e a imagem — PNG ou JPEG. Uma página PDF é guardada primeiro como imagem (uma captura de ecrã serve). Nome e imagem do convés muda o nome ou a imagem, Antes adianta o separador e Tirar o convés do plano retira-o; os pontos ficam com os registos.",
+        "Para colocar um registo no plano, abra o defeito ou o trabalho de estaleiro e prima Colocar no plano: escolha o convés, toque onde está (aumente o zoom para mais precisão) e Guardar aqui. No registo, No plano: Convés principal › abre o convés no seu ponto; Mover muda-o de sítio, Tirar do plano retira-o. Podem ser colocados defeitos abertos e trabalhos ainda não aceites.",
+        "No plano filtra-se por defeitos e trabalhos de estaleiro, por um período de estaleiro, com ou sem fechados. Toque num ponto para ver o que é e Abrir o registo; a lista sob o convés tem todos os pontos por número. PDF deste convés, Partilhar PDF e PDF de todos os conveses imprimem cada convés com os pontos numerados e uma tabela — número, registo, o quê, máquina, data, estado — para o estaleiro, o inspetor ou o escritório. A página de um período de estaleiro abre o plano só com os seus trabalhos.",
+      ],
+    },
+    {
       emoji: '🧾',
       title: "Fornecedores e cotações",
       body: [
@@ -5553,6 +5613,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'Suppliers and quotations', module: 'suppliers' },
   { title: 'Oil analysis', module: 'oil' },
   { title: 'Yard periods and warranty', module: 'yard' },
+  { title: "Ship's plan (GA)", module: 'gaPlan' },
   { title: 'SOPEP', module: 'sopep' },
   { title: 'Board', module: 'board' },
   { title: 'Surveys & audits', module: 'surveys' },

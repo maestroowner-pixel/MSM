@@ -423,6 +423,23 @@ await t(true, 'An officer signs as read', setDoc(R(officer, 'order_acks', 'no1_c
 await t(false, 'A signature never changes', setDoc(R(officer, 'order_acks', 'no1_c1'), { ...OA, at: 6, updatedAt: 6 }));
 await t(false, 'Nobody removes a signature', deleteDoc(R(master, 'order_acks', 'no1_c1')));
 
+// The ship's plan (types/gaPlan.ts): officers put decks and points down, everyone aboard and the office read.
+const GS = { id: 'ga1', name: 'Main deck', order: 1, photos: [{ id: 'ph1', kind: 'photo', uri: 'x', addedAt: 1 }], w: 2000, h: 500, by: 'Max', at: 1, updatedAt: 1 };
+await t(false, 'Crew does not add a deck to the plan', setDoc(R(crew, 'ga_sheets', 'ga1'), GS));
+await t(true, 'An officer adds a deck', setDoc(R(officer, 'ga_sheets', 'ga1'), GS));
+await t(true, 'Crew reads the plan', getDoc(R(crew, 'ga_sheets', 'ga1')));
+await t(true, 'The office reads the plan', getDoc(R(shore, 'ga_sheets', 'ga1')));
+await t(false, 'A deck needs its picture size', setDoc(R(officer, 'ga_sheets', 'ga2'), { ...GS, id: 'ga2', w: 'wide' }));
+await t(true, 'An officer takes a deck off the plan', setDoc(R(officer, 'ga_sheets', 'ga1'), { ...GS, removed: { by: 'Max', at: 2 }, updatedAt: 2 }));
+await t(false, 'Nobody deletes a deck', deleteDoc(R(master, 'ga_sheets', 'ga1')));
+const GP = { id: 'defect_d1', kind: 'defect', ref: 'd1', sheetId: 'ga1', x: 0.25, y: 0.5, by: 'Max', at: 1, updatedAt: 1 };
+await t(false, 'Crew does not put a point on the plan', setDoc(R(crew, 'ga_pins', 'defect_d1'), GP));
+await t(true, 'An officer puts a defect on the plan', setDoc(R(officer, 'ga_pins', 'defect_d1'), GP));
+await t(false, '…its id is the record\'s', setDoc(R(officer, 'ga_pins', 'defect_d2'), { ...GP, id: 'defect_d2' }));
+await t(false, '…and it stays on the picture', setDoc(R(officer, 'ga_pins', 'defect_d1'), { ...GP, x: 1.5, updatedAt: 2 }));
+await t(true, 'An officer moves it', setDoc(R(officer, 'ga_pins', 'defect_d1'), { ...GP, x: 0.75, updatedAt: 3 }));
+await t(false, 'Nobody deletes a point', deleteDoc(R(master, 'ga_pins', 'defect_d1')));
+
 // Crane operator's log (types/craneLog.ts): an officer confirms; nothing changes.
 const CRL = { id: 'cl1', itemId: 'k1', crane: { label: 'Crane No. 1', swl: '12 t' }, crewId: 'c1', name: 'Max', date: '2026-11-13', hours: 2.5, lifts: 14, ops: ['cargo'], by: 'Chief Officer', at: 1, createdAt: 1, updatedAt: 1 };
 await t(false, 'Crew cannot confirm crane time', setDoc(R(crew, 'crane_log', 'cl1'), CRL));

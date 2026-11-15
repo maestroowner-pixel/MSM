@@ -57,6 +57,7 @@ import { EmPassage, EmStatement, EmVessel } from '../types/emissions';
 import { Chemical } from '../types/chemicals';
 import { Letter } from '../types/correspondence';
 import { NightOrder, OrderAck, StandingOrder } from '../types/orderBook';
+import { GaPin, GaSheet } from '../types/gaPlan';
 import { WireEntry } from '../types/wireLog';
 import { CraneEntry, CraneTest } from '../types/craneLog';
 import { Supplier } from '../types/suppliers';
@@ -289,6 +290,9 @@ interface DataContextType {
   nightOrders: NightOrder[];
   standingOrders: StandingOrder[];
   orderAcks: OrderAck[];
+  /** The ship's plan (types/gaPlan.ts): decks and points, removed ones included. */
+  gaSheets: GaSheet[];
+  gaPins: GaPin[];
   /** Rope and wire log (types/wireLog.ts). */
   wireLog: WireEntry[];
   /** Crane operator's log (types/craneLog.ts). */
@@ -510,6 +514,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [nightOrders, setNightOrders] = useState<NightOrder[]>([]);
   const [standingOrders, setStandingOrders] = useState<StandingOrder[]>([]);
   const [orderAcks, setOrderAcks] = useState<OrderAck[]>([]);
+  const [gaSheets, setGaSheets] = useState<GaSheet[]>([]);
+  const [gaPins, setGaPins] = useState<GaPin[]>([]);
   const [wireLog, setWireLog] = useState<WireEntry[]>([]);
   const [craneLog, setCraneLog] = useState<CraneEntry[]>([]);
   const [craneTests, setCraneTests] = useState<CraneTest[]>([]);
@@ -661,6 +667,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _nights1 = await storage.loadList<NightOrder>(storage.NIGHT_ORDERS_KEY);
     const _standing1 = await storage.loadList<StandingOrder>(storage.STANDING_ORDERS_KEY);
     const _oacks1 = await storage.loadList<OrderAck>(storage.ORDER_ACKS_KEY);
+    const _gas1 = await storage.loadList<GaSheet>(storage.GA_SHEETS_KEY);
+    const _gap1 = await storage.loadList<GaPin>(storage.GA_PINS_KEY);
     const _wire1 = await storage.loadList<WireEntry>(storage.WIRE_LOG_KEY);
     const _crane1 = await storage.loadList<CraneEntry>(storage.CRANE_LOG_KEY);
     const _ctest1 = await storage.loadList<CraneTest>(storage.CRANE_TESTS_KEY);
@@ -787,6 +795,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setNightOrders(_nights1);
     setStandingOrders(_standing1);
     setOrderAcks(_oacks1);
+    setGaSheets(_gas1);
+    setGaPins(_gap1);
     setWireLog(_wire1);
     setCraneLog(_crane1);
     setCraneTests(_ctest1);
@@ -1067,6 +1077,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _nights2 = await storage.loadList<NightOrder>(storage.NIGHT_ORDERS_KEY);
     const _standing2 = await storage.loadList<StandingOrder>(storage.STANDING_ORDERS_KEY);
     const _oacks2 = await storage.loadList<OrderAck>(storage.ORDER_ACKS_KEY);
+    const _gas2 = await storage.loadList<GaSheet>(storage.GA_SHEETS_KEY);
+    const _gap2 = await storage.loadList<GaPin>(storage.GA_PINS_KEY);
     const _wire2 = await storage.loadList<WireEntry>(storage.WIRE_LOG_KEY);
     const _crane2 = await storage.loadList<CraneEntry>(storage.CRANE_LOG_KEY);
     const _ctest2 = await storage.loadList<CraneTest>(storage.CRANE_TESTS_KEY);
@@ -1183,6 +1195,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setNightOrders(_nights2);
     setStandingOrders(_standing2);
     setOrderAcks(_oacks2);
+    setGaSheets(_gas2);
+    setGaPins(_gap2);
     setWireLog(_wire2);
     setCraneLog(_crane2);
     setCraneTests(_ctest2);
@@ -1574,6 +1588,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         nightOrders,
         standingOrders,
         orderAcks,
+        gaSheets,
+        gaPins,
         wireLog,
         craneLog,
         craneTests,

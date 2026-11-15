@@ -128,6 +128,8 @@ export interface BackupFile {
   /** Chat (types/chat.ts), a list per channel. */
   chat?: { crew: import('../types/chat').ChatMessage[]; officers: import('../types/chat').ChatMessage[]; office: import('../types/chat').ChatMessage[] };
   orderBook?: { nights: import('../types/orderBook').NightOrder[]; standing: import('../types/orderBook').StandingOrder[]; acks: import('../types/orderBook').OrderAck[] };
+  /** The ship's plan (types/gaPlan.ts); a deck's picture is a photo of the sheet. */
+  gaPlan?: { sheets: import('../types/gaPlan').GaSheet[]; pins: import('../types/gaPlan').GaPin[] };
   /** Rope and wire log (types/wireLog.ts). */
   wireLog?: import('../types/wireLog').WireEntry[];
   /** Crane operator's log (types/craneLog.ts). */
@@ -301,6 +303,7 @@ export async function exportBackup(vessel: VesselInfo | null, password = ''): Pr
   const letters = await storage.loadList<import('../types/correspondence').Letter>(storage.LETTERS_KEY);
   const chat = { crew: await storage.loadList<import('../types/chat').ChatMessage>(storage.CHAT_CREW_KEY), officers: await storage.loadList<import('../types/chat').ChatMessage>(storage.CHAT_OFFICERS_KEY), office: await storage.loadList<import('../types/chat').ChatMessage>(storage.CHAT_OFFICE_KEY) };
   const orderBook = { nights: await storage.loadList<import('../types/orderBook').NightOrder>(storage.NIGHT_ORDERS_KEY), standing: await storage.loadList<import('../types/orderBook').StandingOrder>(storage.STANDING_ORDERS_KEY), acks: await storage.loadList<import('../types/orderBook').OrderAck>(storage.ORDER_ACKS_KEY) };
+  const gaPlan = { sheets: await storage.loadList<import('../types/gaPlan').GaSheet>(storage.GA_SHEETS_KEY), pins: await storage.loadList<import('../types/gaPlan').GaPin>(storage.GA_PINS_KEY) };
   const wireLog = await storage.loadList<import('../types/wireLog').WireEntry>(storage.WIRE_LOG_KEY);
   const craneLog = await storage.loadList<import('../types/craneLog').CraneEntry>(storage.CRANE_LOG_KEY);
   const craneTests = await storage.loadList<import('../types/craneLog').CraneTest>(storage.CRANE_TESTS_KEY);
@@ -372,6 +375,7 @@ export async function exportBackup(vessel: VesselInfo | null, password = ''): Pr
     ...(letters.length ? { letters } : {}),
     ...(orderBook.nights.length || orderBook.standing.length ? { orderBook } : {}),
     ...(chat.crew.length || chat.officers.length || chat.office.length ? { chat } : {}),
+    ...(gaPlan.sheets.length || gaPlan.pins.length ? { gaPlan } : {}),
     ...(wireLog.length ? { wireLog } : {}),
     ...(craneLog.length ? { craneLog } : {}),
     ...(craneTests.length ? { craneTests } : {}),
@@ -656,6 +660,10 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     await storage.saveList(storage.NIGHT_ORDERS_KEY, backup.orderBook.nights);
     await storage.saveList(storage.STANDING_ORDERS_KEY, backup.orderBook.standing);
     await storage.saveList(storage.ORDER_ACKS_KEY, backup.orderBook.acks);
+  }
+  if (backup.gaPlan) {
+    await storage.saveList(storage.GA_SHEETS_KEY, backup.gaPlan.sheets);
+    await storage.saveList(storage.GA_PINS_KEY, backup.gaPlan.pins);
   }
   if (backup.wireLog) await storage.saveList(storage.WIRE_LOG_KEY, backup.wireLog);
   if (backup.craneLog) await storage.saveList(storage.CRANE_LOG_KEY, backup.craneLog);

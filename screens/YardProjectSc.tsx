@@ -12,6 +12,7 @@ import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { BackButton, Card, Label, Screen, ScreenTitle } from '../components/ui';
+import { moduleOn } from '../constants/modules';
 import SimpleDatePicker from '../components/SimpleDatePicker';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
@@ -243,6 +244,11 @@ export default function YardProjectSc() {
       <BackButton onPress={back} />
       <ScreenTitle title={p.name} subtitle={[p.kind ? tk(`yd.kind.${p.kind}`) : t('yd.kind.yard'), tk(`yd.phase.${phase}`)].join(' · ')} help="Yard periods and warranty" />
       {saved ? <Text style={[styles.sub, { color: COLORS.success, fontWeight: '700', marginBottom: SIZES.xs }]}>{`✓ ${saved}`}</Text> : null}
+      {moduleOn('gaPlan') ? (
+        <TouchableOpacity onPress={() => nav.navigate('GaPlan', { project: p.id })} style={{ alignSelf: 'flex-start', marginBottom: SIZES.sm }}>
+          <Text style={styles.link}>{`📍 ${t('ga.title')} ›`}</Text>
+        </TouchableOpacity>
+      ) : null}
 
       <Card>
         <Text style={styles.name}>{[p.yard ?? '', p.place ?? ''].filter(Boolean).join(', ') || t('yd.noYard')}</Text>

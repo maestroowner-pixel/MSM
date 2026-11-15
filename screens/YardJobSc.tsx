@@ -16,6 +16,7 @@ import { BackButton, Card, Label, Screen, ScreenTitle } from '../components/ui';
 import { Dropdown } from '../components/Dropdown';
 import { PhotoPicker } from '../components/PhotoPicker';
 import { EvidencePhoto } from '../components/EvidencePhoto';
+import { PlanPinLink } from '../components/PlanPinLink';
 import { useSignConfirm } from '../components/SignConfirm';
 import { useSigner } from '../components/SignerChoice';
 import { useTheme } from '../contexts/ThemeContext';
@@ -279,6 +280,7 @@ export default function YardJobSc() {
           </TouchableOpacity>
         ) : null}
         {j.photos?.length ? <View style={[styles.row, { gap: SIZES.xs }]}>{j.photos.map((ph) => <EvidencePhoto key={ph.id} vessel={vessel?.imo ?? ''} inspectionId={j.id} photo={ph} />)}</View> : null}
+        <PlanPinLink kind="yard" refId={j.id} editable={keeps && stage !== 'accepted' && stage !== 'cancelled'} />
       </Card>
 
       {open && keeps && !accepting && cancelling == null ? (

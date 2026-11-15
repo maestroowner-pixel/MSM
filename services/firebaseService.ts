@@ -1311,6 +1311,9 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'night_orders', key: storage.NIGHT_ORDERS_KEY, module: 'orderBook', officers: true },
   { sub: 'standing_orders', key: storage.STANDING_ORDERS_KEY, appendOnly: true, module: 'orderBook', officers: true },
   { sub: 'order_acks', key: storage.ORDER_ACKS_KEY, appendOnly: true, module: 'orderBook', officers: true },
+  // The ship's plan: the decks' pictures (a photo each, through the photo queue) and the points on them.
+  { sub: 'ga_sheets', key: storage.GA_SHEETS_KEY, module: 'gaPlan' },
+  { sub: 'ga_pins', key: storage.GA_PINS_KEY, module: 'gaPlan' },
   // Rope and wire log: signed entries, never changed.
   { sub: 'wire_log', key: storage.WIRE_LOG_KEY, appendOnly: true, module: 'wires' },
   // Crane operator's log: signed entries, never changed (a mistake is voided by a new one).

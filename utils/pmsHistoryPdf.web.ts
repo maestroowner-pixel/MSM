@@ -30,6 +30,44 @@ export function pmsHistoryPdfBlob(title: string, vesselLine: string, list: Machi
     const facts: string[] = doc.splitTextToSize(plain(h.facts.join('  -  ')), doc.internal.pageSize.getWidth() - 2 * M);
     doc.text(facts, M, 22);
     let y = 22 + (facts.length - 1) * 3.6 + 4;
+    // A deck of the ship's plan: the picture as large as fits (120 mm high at most), the points numbered on it.
+    for (const p of h.plans ?? []) {
+      const maxW = doc.internal.pageSize.getWidth() - 2 * M;
+      const k = Math.min(maxW / p.w, 120 / p.h);
+      const pw = p.w * k;
+      const ph = p.h * k;
+      if (y + ph > H - 8) {
+        doc.addPage();
+        y = 12;
+      }
+      const fmt = /^data:image\/png/i.test(p.image) ? 'PNG' : 'JPEG';
+      try {
+        // Compressed: a PNG plan goes in as raw pixels otherwise (a 5 KB deck made a 1.9 MB page).
+        doc.addImage(p.image, fmt, M, y, pw, ph, undefined, 'FAST');
+      } catch {
+        /* a picture jsPDF cannot read: the points and the table still print */
+      }
+      doc.setDrawColor(200, 208, 219);
+      doc.setLineWidth(0.15);
+      doc.rect(M, y, pw, ph);
+      const r = 2.2;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      for (const m of p.marks) {
+        const cx = M + m.x * pw;
+        const cy = y + m.y * ph;
+        const c = m.color.replace('#', '');
+        doc.setFillColor(parseInt(c.slice(0, 2), 16), parseInt(c.slice(2, 4), 16), parseInt(c.slice(4, 6), 16));
+        doc.setDrawColor(255, 255, 255);
+        doc.setLineWidth(0.4);
+        doc.circle(cx, cy, r, 'FD');
+        doc.setTextColor(255, 255, 255);
+        doc.text(String(m.n), cx, cy, { align: 'center', baseline: 'middle' });
+      }
+      doc.setTextColor(...navy);
+      doc.setFont('helvetica', 'normal');
+      y += ph + 4;
+    }
     // A table marked `beside` starts level with the one before it, to its right.
     let prev: { y: number; right: number; bottom: number; page: number } | null = null;
     const W = doc.internal.pageSize.getWidth();

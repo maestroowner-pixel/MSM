@@ -454,6 +454,21 @@ app mirrors. Bundle id `com.kukalab.msm`.
   **Prefs before the first load** (same day, DataContext `setPrefs`/`overPrefs`): a screen opened by a link set `chatRead`/`threadRead` before
   prefs were read, and the save of `{...{}, patch}` wiped the file (lastCrewId, other channels' read marks). Until the first load `setPrefs` lays
   the patch over the FILE, a nested map adds to the file's map, and `reload` lays changes not yet on disk over what it read.
+- **Ship's plan (GA)** (14 Nov 2026 — flag `gaPlan`, off; plan item 69): `types/gaPlan.ts`, pure `services/gaPlan.ts` (sheets, marks, colours,
+  numbering, table rows), paper `services/gaPlanReport.ts` (PMS-history PDF: `MachineHistory.plans` — a picture with numbered points before the
+  tables, drawn in both `pmsHistoryReport` HTML (SVG) and `pmsHistoryPdf.web.ts` (jsPDF, image `'FAST'`-compressed: a raw PNG made 1.9 MB)),
+  screen `GaPlanSc` (route `GaPlan` `ship-plan`; params `sheet`, `focus`, `project`, and `pickKind`/`pickRef` for placing; menu: after Yard via
+  `menuExtras` when pms or yard is listed, no Access column), `components/PlanPinLink.tsx` on PmsDefectSc / YardJobSc, a link on YardProjectSc.
+  A SHEET (`ga_sheets`) = one deck: name, order, its picture as ONE photo (photo queue → Storage under the sheet id; a new picture is a new
+  photo id), `w`/`h` in px. A PIN (`ga_pins`) = `<kind>_<record id>`, x/y 0–1 of the picture. **Pins are their own collection, not a field on
+  PmsDefect/YardJob**: 2.74 rewrites a defect whole and would drop an unknown field. Nothing is deleted — a deck or a pin is `removed`.
+  Officers / planners (and a device on no vessel) add decks and place points; open defects and jobs not accepted; everyone reads. Colours:
+  open red, waiting/in progress amber, done-to-accept blue, planned grey, closed green; cancelled jobs not drawn. Pictures only (PNG/JPEG,
+  phones downscale to 1600 px like every photo); a PDF is refused with "save it as a picture" — rendering PDFs needs pdf.js, not done. Web tap
+  position: RN Web's Pressable click has no locationX, so `clientX` against the ref's box. In .msm, erased on reset. `npm run check:gaplan`;
+  rules-test.mjs covers it. `npm run deploy:rules` before the flag.
+  **Testing on web**: the opening animation is a full-page `<canvas>` for ~10–15 s and takes the first real click; wait until it is gone.
+  Saving a file asks for a folder (`showDirectoryPicker`) — headless Opera cannot answer; undefine it to fall back to a download.
 - **Rope and wire log** (7 Nov 2026 — flag `wires`, off; needs `lifting`; plan item 67, UniSea's "Wire Manager"): `types/wireLog.ts`,
   pure `services/wireLog.ts` + rows `services/wireRows.ts` (pure, so check:wirelog can reach them), papers `services/wireReport.ts`
   (PMS-history PDF + Excel Ropes/Log), `components/WireLogCard.tsx` (on ItemDetail), screens `WireEntrySc` (route `WireEntry`
@@ -853,6 +868,10 @@ Android), so **re-test every screen** after a rebuild. (Was `false` originally; 
 home-screen widgets. Earlier sim check: Dashboard/Settings render, 627 imported items, export works.)
 
 ### Native-build gotchas (iOS) — needed after `prebuild`/reinstall
+-1. **"Copy failed" at Distribute App** (14 Nov 2026): Xcode's IPA step runs `/usr/bin/rsync` (openrsync), which starts
+   `rsync` from PATH as its server; Homebrew's rsync 3.4.3 rejects `--extended-attributes`. It happens when Xcode is
+   launched from a shell (`open …xcworkspace`) and inherits /opt/homebrew/bin. Launch Xcode from the Dock, or
+   `env -i HOME=$HOME PATH=/usr/bin:/bin:/usr/sbin:/sbin open -a Xcode …`; the archive itself is fine.
 0. **Xcode 27 refuses pods with a deployment target below 15.0** (SDWebImage 9.0, RNSVG 12.4,
    RevenueCat 13.0, RNCAsyncStorage 13.4 … — "the range of supported deployment target versions
    is 15.0 to 27.0.x"; older Xcodes only warned). `scripts/patch-ios-deployment-target.js`

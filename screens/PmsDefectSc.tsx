@@ -19,6 +19,7 @@ import { defectTitle } from '../services/threads';
 import { PhotoPicker } from '../components/PhotoPicker';
 import SimpleDatePicker from '../components/SimpleDatePicker';
 import { EvidencePhoto } from '../components/EvidencePhoto';
+import { PlanPinLink } from '../components/PlanPinLink';
 import { useSignConfirm } from '../components/SignConfirm';
 import { useSigner } from '../components/SignerChoice';
 import { useTheme } from '../contexts/ThemeContext';
@@ -159,6 +160,7 @@ export default function PmsDefectSc() {
             {existing.photos?.length ? (
               <View style={styles.photos}>{existing.photos.map((p) => <EvidencePhoto key={p.id} vessel={imo} inspectionId={existing.id} photo={p} />)}</View>
             ) : null}
+            <PlanPinLink kind="defect" refId={existing.id} editable={(canClose || canPlan) && !existing.closed} />
           </Card>
           {office && existing.office?.result === 'returned' && !existing.closed ? (
             <Card>

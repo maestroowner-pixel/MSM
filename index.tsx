@@ -159,6 +159,7 @@ import LettersSc from './screens/LettersSc';
 import LetterSc from './screens/LetterSc';
 import OrderBookSc from './screens/OrderBookSc';
 import ChatSc from './screens/ChatSc';
+import GaPlanSc from './screens/GaPlanSc';
 import OrderEntrySc from './screens/OrderEntrySc';
 import WireLogSc from './screens/WireLogSc';
 import CraneLogSc from './screens/CraneLogSc';
@@ -300,6 +301,7 @@ function TabFade({ children }: { children: React.ReactNode }) {
 // device without a vessel, shows the lock (components/Locked).
 const SCREEN_MODULES: Record<string, ModuleKey[]> = {
   Chat: ['chat'],
+  GaPlan: ['gaPlan'],
   Emissions: ['emissions'],
   EmPassage: ['emissions'],
   RestPlan: ['restPlan'],
@@ -396,7 +398,7 @@ function MainTabs() {
   // Crew list (FAL Form 5, import) and the crew matrix — Officers and the Master
   // keep them, but everyone may look; the screens say what each rank can do.
   // Chat is for everyone aboard: in the menu whenever the module is on (services/chat).
-  const menuExtras = [...(moduleListed('chat') ? ['Chat'] : []), ...(moduleOn('crewCerts') ? ['Crew', 'CrewMatrix', ...(moduleListed('myDocs') ? ['MyDocs'] : [])] : [])];
+  const menuExtras = [...(moduleListed('chat') ? ['Chat'] : []), ...(moduleListed('gaPlan') && (moduleListed('pms') || moduleListed('yard')) ? ['GaPlan'] : []), ...(moduleOn('crewCerts') ? ['Crew', 'CrewMatrix', ...(moduleListed('myDocs') ? ['MyDocs'] : [])] : [])];
   const available = useMemo(() => [...tabOrder, ...menuExtras], [tabOrder.join('|'), menuExtras.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
   const navPrefs = useNavPrefs(available);
   const many = tabOrder.length > FEW;
@@ -488,7 +490,7 @@ function MainTabs() {
                   <NavMenuBar
                     {...p}
                     {...navPrefs}
-                    icons={{ ...TAB_ICONS, Crew: 'clipboard-account-outline', CrewMatrix: 'table-account', MyDocs: 'card-account-details-outline', Chat: 'chat-outline' }}
+                    icons={{ ...TAB_ICONS, Crew: 'clipboard-account-outline', CrewMatrix: 'table-account', MyDocs: 'card-account-details-outline', Chat: 'chat-outline', GaPlan: 'floor-plan' }}
                     labelOf={(r) => MENU_LABEL[r] ?? r}
                   />
                 )
@@ -643,6 +645,7 @@ const linking = {
       DaTest: 'da-test/:id',
       MyDocs: 'my-documents',
       Chat: 'chat',
+      GaPlan: 'ship-plan',
       Emissions: 'emissions',
       EmPassage: 'em-passage/:id',
       RestPlan: 'watch-plan',
@@ -929,6 +932,7 @@ function Root() {
         <Stack.Screen name="DaTest" component={gated('DaTest', DaTestSc)} options={{ presentation: 'modal' }} />
         <Stack.Screen name="MyDocs" component={gated('MyDocs', MyDocsSc)} options={webHeader(t('my.title'))} />
         <Stack.Screen name="Chat" component={gated('Chat', ChatSc)} options={webHeader(t('chat.title'))} />
+        <Stack.Screen name="GaPlan" component={gated('GaPlan', GaPlanSc)} options={webHeader(t('ga.title'))} />
         <Stack.Screen name="Emissions" component={gated('Emissions', EmissionsSc)} options={{ presentation: 'modal' }} />
         <Stack.Screen name="EmPassage" component={gated('EmPassage', EmPassageSc)} options={{ presentation: 'modal' }} />
         <Stack.Screen name="RestPlan" component={gated('RestPlan', RestPlanSc)} options={{ presentation: 'modal' }} />

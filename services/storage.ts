@@ -166,6 +166,9 @@ export const LETTERS_KEY = `${PREFIX}letters`;
 export const NIGHT_ORDERS_KEY = `${PREFIX}night_orders`;
 export const STANDING_ORDERS_KEY = `${PREFIX}standing_orders`;
 export const ORDER_ACKS_KEY = `${PREFIX}order_acks`;
+/** The ship's plan (types/gaPlan.ts): deck pictures and the points on them. */
+export const GA_SHEETS_KEY = `${PREFIX}ga_sheets`;
+export const GA_PINS_KEY = `${PREFIX}ga_pins`;
 /** Rope and wire log (types/wireLog.ts), append-only. */
 export const WIRE_LOG_KEY = `${PREFIX}wire_log`;
 /** Crane operator's log (types/craneLog.ts), append-only. */
@@ -967,6 +970,8 @@ export async function resetAllData(): Promise<void> {
     NIGHT_ORDERS_KEY,
     STANDING_ORDERS_KEY,
     ORDER_ACKS_KEY,
+    GA_SHEETS_KEY,
+    GA_PINS_KEY,
     WIRE_LOG_KEY,
     CRANE_LOG_KEY,
     CRANE_TESTS_KEY,

@@ -28,6 +28,16 @@ export interface MachineHistory {
   tables: HistTable[];
   /** Drawings by hand after the tables — an SVG path ("M x y L x y…") in a w × h box (the DP schematic). */
   drawings?: { title: string; path: string; w: number; h: number }[];
+  /** Pictures with numbered points, before the tables — a deck of the ship's plan (services/gaPlanReport.ts). */
+  plans?: PlanPicture[];
+}
+export interface PlanPicture {
+  /** A data: URI (JPEG or PNG). */
+  image: string;
+  /** The picture's size in pixels; the points are 0–1 of it. */
+  w: number;
+  h: number;
+  marks: { n: number; x: number; y: number; color: string }[];
 }
 
 const dmy = (iso?: string) => (iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}` : '');

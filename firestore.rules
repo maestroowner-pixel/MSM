@@ -1190,6 +1190,25 @@ service cloud.firestore {
                       && request.resource.data.by is string;
         allow update, delete: if false;
       }
+      // The ship's plan (types/gaPlan.ts): everyone aboard and the office read it. A deck's picture and the points
+      // on it are put down by the officers and the planners; nothing is deleted — a deck or a point is `removed`.
+      match /ga_sheets/{id} {
+        allow read: if reader(v);
+        allow create, update: if (isAdmin(v) || plans(v)) && request.resource.data.id == id
+                              && request.resource.data.name is string && request.resource.data.w is number
+                              && request.resource.data.h is number && request.resource.data.photos is list;
+        allow delete: if false;
+      }
+      match /ga_pins/{id} {
+        allow read: if reader(v);
+        allow create, update: if (isAdmin(v) || plans(v)) && request.resource.data.id == id
+                              && request.resource.data.kind in ['defect', 'yard']
+                              && id == request.resource.data.kind + '_' + request.resource.data.ref
+                              && request.resource.data.x is number && request.resource.data.y is number
+                              && request.resource.data.x >= 0 && request.resource.data.x <= 1
+                              && request.resource.data.y >= 0 && request.resource.data.y <= 1;
+        allow delete: if false;
+      }
       // Rope and wire log (types/wireLog.ts): signed entries, append-only. Anyone aboard records a look,
       // cut and slip, lubrication or a brake test; a renewal (which rewrites the rope on the register) is an officer's.
       match /wire_log/{id} {
