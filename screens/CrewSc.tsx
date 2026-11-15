@@ -12,8 +12,8 @@
 // because a signature stores the NAME, not a reference to this row.
 // ===================================
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { loadCrewPhotos } from '../services/crewPhotos';
 
@@ -230,10 +230,17 @@ export default function CrewSc() {
     reset();
   };
 
+  // The form is above the list: from a row far down, the pencil changed a form nobody could see
+  // (15 Nov 2026: "the pencil does not work"). Bring it into view and put the cursor in the name.
+  const scrollRef = useRef<ScrollView>(null);
+  const formY = useRef(0);
+  const nameRef = useRef<TextInput>(null);
   const startEdit = (c: CrewMember) => {
     setEditing(c);
     setName(c.name);
     setRank(c.rank ?? '');
+    scrollRef.current?.scrollTo({ y: Math.max(0, formY.current - SIZES.md), animated: true });
+    setTimeout(() => nameRef.current?.focus(), 350);
   };
 
   const toggleActive = (c: CrewMember) => saveCrewMember({ ...c, active: !c.active });
@@ -336,7 +343,7 @@ export default function CrewSc() {
   };
 
   return (
-    <Screen scroll>
+    <Screen scroll scrollRef={scrollRef}>
       <ScreenTitle
         title={crewMgmt ? t('crw.list') : t('cm.crew')}
         subtitle={
@@ -462,9 +469,11 @@ export default function CrewSc() {
       ) : null}
 
       {isMaster ? (
+      <View onLayout={(e) => { formY.current = e.nativeEvent.layout.y; }}>
       <Card>
         <Label>{editing ? t('crw.edit') : t('crw.add')}</Label>
         <TextInput
+          ref={nameRef}
           style={styles.input}
           value={name}
           onChangeText={setName}
@@ -496,6 +505,7 @@ export default function CrewSc() {
           </TouchableOpacity>
         </View>
       </Card>
+      </View>
       ) : null}
 
       {/* Part of the page's own scroll. As a FlatList below the add form it got

@@ -286,7 +286,7 @@ function MenuList({
       ) : null}
       {Platform.OS !== 'web' && !editing && !searching ? <Text style={styles.hint}>{t('nav.barHint')}</Text> : null}
       {/* On a phone the menu is the way in: what is kept comes first (17 Oct 2026). */}
-      {Platform.OS !== 'web' && !editing && !searching ? <FavMenuSection onPicked={onClose} itemStyle={styles.item} textStyle={styles.itemText} headStyle={[styles.groupHead, styles.groupHeadRow]} headRowStyle={styles.groupRow} headIconStyle={styles.groupIcon} /> : null}
+      {Platform.OS !== 'web' && !editing && !searching ? <FavMenuSection onPicked={onClose} itemStyle={styles.favItem} textStyle={styles.itemText} headStyle={[styles.groupHead, styles.groupHeadRow]} headRowStyle={styles.groupRow} headIconStyle={styles.groupIcon} /> : null}
       {visibleGroups.map(({ group, routes }) => {
         const folds = !!group.label && !editing && !searching;
         const shut = folds && !openGroups.includes(group.key);
@@ -294,7 +294,7 @@ function MenuList({
         const here = shut && routes.includes(current);
         const head = (
           <>
-            <View style={styles.groupIcon}><MciIcon name={group.icon ?? 'circle-small'} size={20} color={here ? COLORS.primary : COLORS.textLight} /></View>
+            <View style={styles.groupIcon}><MciIcon name={group.icon ?? 'circle-small'} size={20} color={here ? COLORS.primary : COLORS.text} /></View>
             <Text style={[styles.groupHead, styles.groupHeadRow, here && { color: COLORS.primary }]} numberOfLines={1}>{group.label}</Text>
           </>
         );
@@ -303,10 +303,10 @@ function MenuList({
           {folds ? (
             <TouchableOpacity style={styles.groupRow} onPress={() => toggleGroup(group.key)} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ expanded: !shut }}>
               {head}
-              <MciIcon name={shut ? 'chevron-down' : 'chevron-up'} size={20} color={COLORS.textLight} />
+              <MciIcon name={shut ? 'chevron-right' : 'chevron-down'} size={20} color={COLORS.textLight} />
             </TouchableOpacity>
           ) : group.label ? <View style={styles.groupRow}>{head}</View> : group.key === 'home' ? null : <View style={styles.sep} />}
-          {shut ? null : routes.map((r, i) => {
+          {shut ? null : <View style={group.label ? styles.branch : undefined}>{routes.map((r, i) => {
             // A locked entry (constants/modules moduleLocked) is one row with a lock: its pages are behind it.
             const lock = isLocked(r);
             const shown = lock ? undefined : childrenOf(r)?.filter((k) => (!k.module || moduleOn(k.module)) && sync.pageOn(`${k.route ?? r}:${k.view}`));
@@ -319,22 +319,22 @@ function MenuList({
             // The board on top and Settings at the foot read like the headings between them.
             if (group.key === 'system' || group.key === 'home') return (
               <TouchableOpacity key={r} style={[styles.groupRow, on && !editing && styles.itemOn]} onPress={() => (editing ? undefined : onPick(r))} disabled={editing} activeOpacity={0.7}>
-                <View style={styles.groupIcon}><MciIcon name={icons[r] ?? 'circle-small'} size={20} color={on ? COLORS.primary : COLORS.textLight} /></View>
+                <View style={styles.groupIcon}><MciIcon name={icons[r] ?? 'circle-small'} size={20} color={on ? COLORS.primary : COLORS.text} /></View>
                 <Text style={[styles.groupHead, styles.groupHeadRow, on && { color: COLORS.primary }]} numberOfLines={1}>{labelOf(r)}</Text>
               </TouchableOpacity>
             );
             return (
               <View key={r}>
               {direct ? null : <TouchableOpacity style={[styles.item, on && !editing && styles.itemOn]} onPress={() => (editing ? undefined : kids ? toggle(r) : onPick(r))} disabled={editing} activeOpacity={0.7} accessibilityState={kids ? { expanded } : undefined}>
-                <View style={styles.groupIcon}><MciIcon name={icons[r] ?? 'circle-small'} size={18} color={on || (kids && r === current) ? COLORS.primary : COLORS.textLight} /></View>
-                <Text style={[styles.itemText, (on || (kids && r === current)) && { color: COLORS.primary }]} numberOfLines={1}>{labelOf(r)}</Text>
+                {on && !editing ? <View style={styles.mark} /> : null}
+                <Text style={[styles.itemText, on && styles.itemTextOn, kids && r === current && { color: COLORS.primary }]} numberOfLines={1}>{labelOf(r)}</Text>
                 {MENU_GEAR[r] && !editing && (!MANAGE_ROUTE[r] || sync.canManage(MANAGE_ROUTE[r])) ? (
                   <TouchableOpacity onPress={() => onPick(r, { view: 'manage' })} hitSlop={8} accessibilityRole="button" accessibilityLabel={MENU_GEAR[r]}>
                     <MciIcon name="cog-outline" size={20} color={r === current && currentView === 'manage' ? COLORS.primary : COLORS.textLight} />
                   </TouchableOpacity>
                 ) : null}
                 {lock && !editing ? <MciIcon name="lock-outline" size={16} color={COLORS.textLight} /> : null}
-                {kids && !editing ? <MciIcon name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={COLORS.textLight} /> : null}
+                {kids && !editing ? <MciIcon name={expanded ? 'chevron-down' : 'chevron-right'} size={20} color={COLORS.textLight} /> : null}
                 {editing && routes.length > 1 ? (
                   <View style={{ flexDirection: 'row', gap: SIZES.xs }}>
                     <TouchableOpacity onPress={() => setOrder(moveInGroup(order, r, -1))} disabled={i === 0} hitSlop={6} style={[styles.arrow, i === 0 && { opacity: 0.25 }]} accessibilityLabel={t('nav.moveUp', { name: labelOf(r) })}>
@@ -346,21 +346,23 @@ function MenuList({
                   </View>
                 ) : null}
               </TouchableOpacity>}
-              {expanded
-                ? kids!.map((k, j) => {
+              {expanded ? (
+                <View style={direct ? undefined : styles.subBranch}>
+                  {kids!.map((k) => {
                     const to = k.route ?? r;
                     const kon = to === current && (currentView ?? (k.route ? MENU_CHILDREN[to]?.[0]?.view : kids![0].view)) === k.view;
                     return (
-                      <TouchableOpacity key={`${to}:${k.view}`} style={[styles.item, !direct && styles.child, kon && styles.itemOn]} onPress={() => onPick(to, { view: k.view })} activeOpacity={0.7}>
-                        <View style={styles.groupIcon}><MciIcon name={k.icon} size={direct ? 18 : 16} color={kon ? COLORS.primary : COLORS.textLight} /></View>
-                        <Text style={[styles.itemText, !direct && styles.childText, kon && { color: COLORS.primary }]} numberOfLines={1}>{k.label}</Text>
+                      <TouchableOpacity key={`${to}:${k.view}`} style={[styles.item, kon && styles.itemOn]} onPress={() => onPick(to, { view: k.view })} activeOpacity={0.7}>
+                        {kon ? <View style={styles.mark} /> : null}
+                        <Text style={[styles.itemText, kon && styles.itemTextOn]} numberOfLines={1}>{k.label}</Text>
                       </TouchableOpacity>
                     );
-                  })
-                : null}
+                  })}
+                </View>
+              ) : null}
               </View>
             );
-          })}
+          })}</View>}
         </View>
         );
       })}
@@ -373,16 +375,22 @@ function MenuList({
   );
 }
 
-/** Where a screen under a heading starts: a step in from the heading. */
-const INDENT = SIZES.lg + SIZES.md;
+/** Every row of the menu, heading or not, is set in this size. */
+const ROW_FONT = 15;
+/** A heading's icon column. */
+const ICON_W = 22;
+/** The branch line. */
+const LINE = 1;
+/** The knob on the line beside the screen that is open. */
+const DOT = 11;
+/** A row under a heading: its fill starts this far right of the line, its text this much further. */
+const ITEM_GAP = 6;
+const ITEM_PAD = SIZES.lg + 2;
 
 const ROOM_ICON: Record<StoreKind, string> = { ppe: 'hard-hat', provisions: 'food-apple-outline', general: 'package-variant-closed', flags: 'flag-variant', bridge: 'book-open-variant' };
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
-    // A page under a screen: its icon under the screen's name.
-    child: { paddingLeft: INDENT + 22 + SIZES.md, paddingVertical: 7 },
-    childText: { fontSize: SIZES.small },
     top: {
       position: 'absolute', top: 0, right: 0, flexDirection: 'row', alignItems: 'center', gap: SIZES.sm,
       paddingHorizontal: SIZES.lg, backgroundColor: COLORS.tabBackground,
@@ -416,17 +424,33 @@ const makeStyles = (COLORS: Palette) =>
       fontSize: SIZES.body, color: COLORS.text,
     },
     hint: { fontSize: SIZES.tiny, color: COLORS.textLight, paddingHorizontal: SIZES.lg, marginBottom: SIZES.xs },
-    // Two steps, no more (13 Nov 2026: "the menu looks ragged"): a heading is the larger,
-    // brighter line; a screen under it is smaller, greyer and set in (same day: "move the
-    // sub-menu right, headings and items are the same colour").
-    groupHead: { fontSize: SIZES.body, fontWeight: '700', color: COLORS.textDark, paddingHorizontal: SIZES.lg, marginTop: SIZES.md, marginBottom: 2 },
+    // One size of type everywhere (15 Nov 2026: "the menu is unreadable — same font, but the
+    // hierarchy must show"). The hierarchy is drawn, not shrunk: a heading has its icon and a
+    // chevron; the screens under it hang off a line from that icon, set in to the heading's
+    // text, without icons; the one on screen is filled and marked on the line.
+    groupHead: { fontSize: ROW_FONT, fontWeight: '600', color: COLORS.textDark, paddingHorizontal: SIZES.lg, marginTop: SIZES.md, marginBottom: 2 },
     groupRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: SIZES.lg, paddingRight: SIZES.lg, paddingVertical: 10 },
     // As wide as a row's icon, so the heading starts where the row names do.
-    groupIcon: { width: 22, alignItems: 'center' },
+    groupIcon: { width: ICON_W, alignItems: 'center' },
     groupHeadRow: { flex: 1, paddingLeft: SIZES.md, paddingRight: 0, marginTop: 0, marginBottom: 0 },
     sep: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.borderLight, marginVertical: SIZES.xs, marginHorizontal: SIZES.lg },
-    item: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md, paddingVertical: 8, paddingLeft: INDENT, paddingRight: SIZES.lg },
-    itemOn: { backgroundColor: COLORS.primary + '14' },
-    itemText: { flex: 1, fontSize: 13, fontWeight: '500', color: COLORS.textLight },
+    // The line runs down from the middle of the heading's icon.
+    branch: { marginLeft: SIZES.lg + ICON_W / 2 - 1, borderLeftWidth: LINE, borderLeftColor: COLORS.borderDark, marginBottom: SIZES.xs },
+    // Pages of a screen: a second line under the screen's name.
+    subBranch: { marginLeft: ITEM_GAP + ITEM_PAD + 4, borderLeftWidth: LINE, borderLeftColor: COLORS.borderDark },
+    item: {
+      flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, paddingVertical: 8,
+      marginLeft: ITEM_GAP, paddingLeft: ITEM_PAD, paddingRight: SIZES.md, marginRight: SIZES.sm, borderRadius: SIZES.radiusSm,
+    },
+    // Favourites keep their icons and stand outside the branches.
+    favItem: { flexDirection: 'row', alignItems: 'center', gap: SIZES.md, paddingVertical: 8, paddingLeft: SIZES.lg, paddingRight: SIZES.lg },
+    itemOn: { backgroundColor: COLORS.primary + '1F' },
+    // A knob on the branch line beside the filled row (15 Nov 2026: "a small circle instead of the bar").
+    mark: {
+      position: 'absolute', left: -ITEM_GAP - LINE / 2 - DOT / 2, top: '50%', marginTop: -DOT / 2, width: DOT, height: DOT, borderRadius: DOT / 2,
+      backgroundColor: COLORS.textDark, borderWidth: 2, borderColor: COLORS.cardSolid,
+    },
+    itemText: { flex: 1, fontSize: ROW_FONT, fontWeight: '400', color: COLORS.text },
+    itemTextOn: { color: COLORS.textDark, fontWeight: '600' },
     arrow: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, borderColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
   });

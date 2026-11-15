@@ -195,10 +195,13 @@ export function Screen({
   children,
   scroll = false,
   contentStyle,
+  scrollRef,
 }: {
   children: React.ReactNode;
   scroll?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
+  /** For a screen that brings a part of itself into view (a form opened from far down a list). */
+  scrollRef?: React.Ref<ScrollView>;
 }) {
   const c = useTheme();
   return (
@@ -206,6 +209,7 @@ export function Screen({
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         {scroll ? (
           <ScrollView
+            ref={scrollRef}
             // On react-native-web a ScrollView only scrolls when it's itself
             // height-bounded (flex:1) within a bounded parent; without this the
             // content just overflows and the page can't scroll (esp. on pushed
