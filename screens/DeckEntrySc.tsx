@@ -29,7 +29,9 @@ import {
   currentPeriod, nowTime, todayStr,
 } from '../services/deckLog';
 import * as storage from '../services/storage';
-import { setActiveWatch, clearActiveWatch, drainPendingEvents } from '../services/watchTracker';
+import { setActiveWatch, clearActiveWatch, drainPendingEvents, getActiveWatch } from '../services/watchTracker';
+import { watchEvents, withEvents } from '../services/watchEvents';
+import { CATEGORY_MAP } from '../constants/categories';
 import { uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
@@ -123,7 +125,7 @@ export default function DeckEntrySc() {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { deckLog, saveRow, crew, vessel } = useData();
+  const { deckLog, saveRow, crew, vessel, crewMoves, visitors, passengers, inspections } = useData();
   const sync = useSync();
   const { signer, picker } = useSigner(t('de.watchOfficer'), { forceDropdown: true });
   const confirmSign = useSignConfirm();
@@ -191,17 +193,48 @@ export default function DeckEntrySc() {
   // For a draft opened for editing, reuse its id so we overwrite rather than duplicate.
   const entryIdRef = useRef(existing?.draft ? existing.id : aiLog && entryId && !existing ? entryId : uid());
 
-  // Start / stop active-watch tracking
+  // LIVE (15 Nov 2026): the gangway and the inspections signed from the moment it is switched on go
+  // into this entry when it is signed (services/watchEvents). The watch belongs to this entry's id: a
+  // draft saved while LIVE keeps it and picks it up when opened again; leaving unsaved, or signing, ends it.
+  const [liveSince, setLiveSince] = useState<number | null>(null);
+  const keepWatch = useRef(false);
   useEffect(() => {
+    let gone = false;
+    getActiveWatch().then((w) => {
+      if (!gone && w && w.id === entryIdRef.current) { setAutoTrack(true); setLiveSince(w.startedAt); }
+    }).catch(() => {});
+    return () => {
+      gone = true;
+      if (keepWatch.current) return;
+      getActiveWatch().then((w) => { if (w?.id === entryIdRef.current) clearActiveWatch(); }).catch(() => {});
+    };
+  }, []);
+  const toggleLive = () => {
     if (autoTrack) {
-      setActiveWatch({ id: entryIdRef.current, period, date, startedAt: Date.now() });
+      setAutoTrack(false); setLiveSince(null);
+      clearActiveWatch().catch(() => {});
     } else {
-      clearActiveWatch();
+      const startedAt = Date.now();
+      setAutoTrack(true); setLiveSince(startedAt);
+      setActiveWatch({ id: entryIdRef.current, period: portMode ? 'port' : period, date, startedAt }).catch(() => {});
     }
-  }, [autoTrack, period, date]);
-
-  // Always clear on unmount
-  useEffect(() => () => { clearActiveWatch(); }, []);
+  };
+  // Re-read while the form is open: a crossing on the gangway tablet arrives by sync.
+  const [liveNow, setLiveNow] = useState(Date.now());
+  useEffect(() => {
+    if (!autoTrack) return;
+    const h = setInterval(() => setLiveNow(Date.now()), 30_000);
+    return () => clearInterval(h);
+  }, [autoTrack]);
+  const liveSources = useMemo(() => ({
+    moves: crewMoves, visitors, inspections,
+    passengerIds: new Set(passengers.map((p) => p.id)),
+    catName: (c: string) => CATEGORY_MAP[c as keyof typeof CATEGORY_MAP]?.label ?? c,
+  }), [crewMoves, visitors, passengers, inspections]);
+  const liveEvents = useMemo(
+    () => (autoTrack && liveSince ? watchEvents(liveSince, liveNow, liveSources) : []),
+    [autoTrack, liveSince, liveNow, liveSources],
+  );
 
   // The boxes as the voice draft sees them (components/LogAiPanel): a hemisphere counts only beside its degrees.
   const aiForm: Record<string, string> = {
@@ -256,7 +289,10 @@ export default function DeckEntrySc() {
         what: `Deck log — ${portMode ? 'Port' : PERIOD_LABEL[period]} ${date}`,
       });
       if (!sig) { setSaving(false); return; }
-      const finalRemarks = await drainPendingEvents(remarks.trim());
+      const drained = await drainPendingEvents(remarks.trim());
+      const finalRemarks = autoTrack && liveSince
+        ? withEvents(drained, watchEvents(liveSince, Date.now(), liveSources))
+        : drained;
       const entry: DeckEntry = {
         id: entryIdRef.current,
         date,
@@ -293,6 +329,7 @@ export default function DeckEntrySc() {
         updatedAt: Date.now(),
       };
       await saveRow(storage.DECK_LOG_KEY, entry);
+      if (autoTrack) await clearActiveWatch();
       backToDeckLog();
     } catch (e: any) {
       Alert.alert(t('common.error'), e?.message ?? String(e));
@@ -340,6 +377,7 @@ export default function DeckEntrySc() {
         updatedAt: Date.now(),
       };
       await saveRow(storage.DECK_LOG_KEY, draft);
+      keepWatch.current = autoTrack;
       backToDeckLog();
     } catch (e: any) {
       Alert.alert(t('common.error'), e?.message ?? String(e));
@@ -519,10 +557,10 @@ export default function DeckEntrySc() {
                 {portMode ? t('de.inPort') : t('de.atSea')}
               </Text>
             </TouchableOpacity>
-            {/* Auto-track (at sea only) */}
-            {!portMode && (
-              <TouchableOpacity
-                onPress={() => setAutoTrack((v) => !v)}
+            {/* LIVE: the gangway and inspections go into the entry (at sea and in port) */}
+            <TouchableOpacity
+                onPress={toggleLive}
+                accessibilityLabel={t('de.liveA11y')}
                 activeOpacity={0.7}
                 style={{
                   flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -537,7 +575,6 @@ export default function DeckEntrySc() {
                   {autoTrack ? t('de.live') : t('de.auto')}
                 </Text>
               </TouchableOpacity>
-            )}
           </View>
 
           {aiReady(sync.enrolled) ? (
@@ -740,6 +777,20 @@ export default function DeckEntrySc() {
               </View>
             </View>
           </View>
+
+          {/* ── LIVE: what goes into the entry when it is signed ── */}
+          {autoTrack && liveSince ? (
+            <View style={[styles.logCard, { marginTop: 6, gap: 4 }]}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: COLORS.primary }}>
+                {t('de.liveSince', { time: uiDateTime(liveSince) })}
+              </Text>
+              {liveEvents.length ? liveEvents.map((e, i) => (
+                <Text key={i} style={{ fontSize: 13, color: COLORS.text }}>{e.line}</Text>
+              )) : (
+                <Text style={{ fontSize: 13, color: COLORS.textLight }}>{t('de.liveNone')}</Text>
+              )}
+            </View>
+          ) : null}
 
           {/* ── Signer + Save draft + Sign ── */}
           <View style={[styles.logCard, { marginTop: 6, gap: SIZES.sm }]}>
