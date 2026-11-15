@@ -8,8 +8,8 @@ web-dist/
 *.log
 *.swp
 .DS_Store
-ios/
-android/
+/ios/
+/android/
 # react-native-windows project is generated on the Windows dev machine (see WINDOWS.md)
 windows/
 *.binlog
@@ -35,3 +35,6 @@ functions/node_modules/
 *.aab
 *.apk
 *.ipa
+
+# Local Expo modules: native build output
+modules/*/android/build/

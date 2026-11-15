@@ -5,7 +5,7 @@
 // ===================================
 
 import { Batch, daysTo, expiryState, normExpiry, stockByItem } from './hospital';
-import { StoreItem, StoreKind, StoreMove, StoreRoom, isBuiltinRoom, roomOf, storeItemTitle } from '../types/stores';
+import { StoreItem, StoreKind, StoreMove, StoreRoom, WEAR_LABEL, Wear, isBuiltinRoom, roomOf, storeItemTitle, toWear } from '../types/stores';
 import type { MedMove } from '../types/hospital';
 import { uid } from '../utils/id';
 import type { OrderDept } from '../types/orders';
@@ -17,7 +17,9 @@ export interface StoreStatus {
   onHand: number;
   /** In out-of-date batches. */
   expired: number;
-  /** Usable — on hand and in date. */
+  /** Worn to poor (flag locker) — not serviceable. */
+  poor: number;
+  /** Usable — on hand, in date and not poor. */
   usable: number;
   /** Below the minimum by this much (0 = fine). */
   short: number;
@@ -36,20 +38,29 @@ export function storeStatus(items: StoreItem[], moves: StoreMove[], today: strin
     const batches = stock.get(item.id) ?? [];
     const onHand = batches.reduce((n, b) => n + b.qty, 0);
     const expired = batches.filter((b) => expiryState(today, b.expiry) === 'expired').reduce((n, b) => n + b.qty, 0);
-    const usable = onHand - expired;
+    const poor = batches.filter((b) => b.wear === 'poor' && expiryState(today, b.expiry) !== 'expired').reduce((n, b) => n + b.qty, 0);
+    const usable = onHand - expired - poor;
     const next = batches.map((b) => b.expiry).filter((e): e is string => !!e && e >= today).sort()[0];
     const soon = !!next && daysTo(today, next) <= (item.store === 'provisions' ? 7 : 30);
-    return { item, batches, onHand, expired, usable, short: Math.max(0, item.min - usable), ...(next ? { next } : {}), soon };
+    return { item, batches, onHand, expired, poor, usable, short: Math.max(0, item.min - usable), ...(next ? { next } : {}), soon };
   });
 }
 
 export function storeCounts(rows: StoreStatus[]) {
-  return { items: rows.length, short: rows.filter((r) => r.short > 0).length, out: rows.filter((r) => r.usable <= 0).length, expired: rows.filter((r) => r.expired > 0).length, soon: rows.filter((r) => r.soon).length };
+  return { items: rows.length, short: rows.filter((r) => r.short > 0).length, out: rows.filter((r) => r.usable <= 0).length, expired: rows.filter((r) => r.expired > 0).length, soon: rows.filter((r) => r.soon).length, poor: rows.filter((r) => r.poor > 0).length };
 }
 
-/** The oldest in-date batch first — what is issued. */
+/** The oldest in-date batch first — what is issued; of the same date, good before new; poor only when nothing else is left. */
 export function batchToIssue(batches: Batch[], today: string): Batch | undefined {
-  return batches.filter((b) => b.qty > 0 && expiryState(today, b.expiry) !== 'expired').sort((a, b) => (a.expiry ?? '9999').localeCompare(b.expiry ?? '9999'))[0] ?? batches.find((b) => b.qty > 0);
+  const rank = (b: Batch) => (b.wear === 'good' ? 0 : b.wear === 'new' ? 1 : 0);
+  return batches.filter((b) => b.qty > 0 && b.wear !== 'poor' && expiryState(today, b.expiry) !== 'expired').sort((a, b) => (a.expiry ?? '9999').localeCompare(b.expiry ?? '9999') || rank(a) - rank(b))[0] ?? batches.find((b) => b.qty > 0);
+}
+
+/** What is on hand of each wear — { new: 3, good: 2, poor: 1 }. */
+export function byWear(batches: Batch[]): Record<Wear, number> {
+  const out: Record<Wear, number> = { new: 0, good: 0, poor: 0 };
+  for (const b of batches) out[b.wear ?? 'good'] += b.qty;
+  return out;
 }
 
 /** What each crew member holds from the PPE store: issued less returned, item by item. */
@@ -99,7 +110,7 @@ export function toOrder(rows: StoreStatus[], onOrder: Map<string, number> = new 
 export function storeDept(item: StoreItem): OrderDept {
   if (item.store === 'provisions') return 'galley';
   if (item.store === 'general' && (item.category === 'Engine' || item.category === 'Electrical')) return 'engine';
-  if (item.category === 'Stationery') return 'bridge';
+  if (item.store === 'flags' || item.store === 'bridge' || item.category === 'Stationery') return 'bridge';
   if (item.category === 'Cleaning') return 'accommodation';
   return 'deck';
 }
@@ -108,7 +119,7 @@ export const nextStoreNo = (prefix: string, n: number) => `${prefix}-${String(n)
 
 // ---- Excel ----
 
-export const STORE_HEAD = ['Name ★', 'Category', 'Size', 'Unit', 'Min', 'Location', 'Quantity', 'Expiry'];
+export const STORE_HEAD = ['Name ★', 'Category', 'Size', 'Unit', 'Min', 'Location', 'Quantity', 'Expiry', 'Condition'];
 
 const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ').replace('★', '').trim();
 const ALIASES: Record<string, string[]> = {
@@ -120,9 +131,10 @@ const ALIASES: Record<string, string[]> = {
   location: ['location', 'place', 'shelf', 'where'],
   qty: ['quantity', 'qty', 'on hand', 'stock', 'count'],
   expiry: ['expiry', 'best before', 'bb', 'use by', 'exp', 'expiry date'],
+  wear: ['condition', 'wear', 'state'],
 };
 
-export interface StoreSheetLine { name: string; category?: string; size?: string; unit?: string; min?: number; location?: string; qty?: number; expiry?: string }
+export interface StoreSheetLine { name: string; category?: string; size?: string; unit?: string; min?: number; location?: string; qty?: number; expiry?: string; wear?: Wear }
 
 export function readStoreSheet(rows: unknown[][]): StoreSheetLine[] {
   const find = (head: string[], k: string) => {
@@ -141,7 +153,7 @@ export function readStoreSheet(rows: unknown[][]): StoreSheetLine[] {
     const name = txt(r, 'name');
     if (!name || /^example\b/i.test(name)) continue;
     const exp = at.expiry >= 0 ? r[at.expiry] : undefined;
-    const line: StoreSheetLine = { name: name.replace(/\s+/g, ' '), category: txt(r, 'category'), size: txt(r, 'size'), unit: txt(r, 'unit'), min: num(r, 'min'), location: txt(r, 'location'), qty: num(r, 'qty'), expiry: exp == null || exp === '' ? undefined : normExpiry(exp) };
+    const line: StoreSheetLine = { name: name.replace(/\s+/g, ' '), category: txt(r, 'category'), size: txt(r, 'size'), unit: txt(r, 'unit'), min: num(r, 'min'), location: txt(r, 'location'), qty: num(r, 'qty'), expiry: exp == null || exp === '' ? undefined : normExpiry(exp), wear: toWear(txt(r, 'wear')) };
     out.push(Object.fromEntries(Object.entries(line).filter(([, v]) => v !== undefined)) as unknown as StoreSheetLine);
   }
   return out;
@@ -158,7 +170,7 @@ export function planStoreImport(lines: StoreSheetLine[], items: StoreItem[], roo
   const key = (n: string, s?: string) => `${n.trim().toLowerCase()}|${(s ?? '').trim().toLowerCase()}`;
   const have = new Map(items.filter((i) => !i.deleted && roomOf(i) === roomId).map((i) => [key(i.name, i.size), i]));
   const save: StoreItem[] = [];
-  const counts: { itemId: string; qty: number; expiry?: string }[] = [];
+  const counts: { itemId: string; qty: number; expiry?: string; wear?: Wear }[] = [];
   const added: string[] = [];
   const updated: string[] = [];
   let order = items.length;
@@ -173,7 +185,9 @@ export function planStoreImport(lines: StoreSheetLine[], items: StoreItem[], roo
     save.push(it);
     have.set(key(it.name, it.size), it);
     (old ? updated : added).push(storeItemTitle(it));
-    if (l.qty != null) counts.push({ itemId: it.id, qty: l.qty, ...(l.expiry ? { expiry: l.expiry } : {}) });
+    // A flag locker's lines are one per wear (the sheet it exports): each is counted into its own; no wear there = good.
+    const wear = store === 'flags' || store === 'bridge' ? l.wear ?? 'good' : undefined;
+    if (l.qty != null) counts.push({ itemId: it.id, qty: l.qty, ...(l.expiry ? { expiry: l.expiry } : {}), ...(wear ? { wear } : {}) });
   }
   return { save, counts, added, updated };
 }
@@ -183,15 +197,17 @@ export function storeSheet(rows: StoreStatus[]): unknown[][] {
   const out: unknown[][] = [STORE_HEAD];
   for (const r of rows) {
     const base = [r.item.name, r.item.category ?? '', r.item.size ?? '', r.item.unit, r.item.min, r.item.location ?? ''];
-    if (!r.batches.length) out.push([...base, 0, '']);
-    for (const b of r.batches) out.push([...base, b.qty, b.expiry ?? '']);
+    if (!r.batches.length) out.push([...base, 0, '', '']);
+    for (const b of r.batches) out.push([...base, b.qty, b.expiry ?? '', b.wear ? WEAR_LABEL[b.wear] : '']);
   }
   return out;
 }
 
 const TEMPLATE_EXAMPLE: Record<StoreKind, unknown[]> = {
-  ppe: ['Example: Coveralls', 'Body', 'L', 'pcs', 2, 'Crew store, shelf 2', 4, ''],
-  provisions: ['Example: Pasta, penne 500 g', 'Dry store', '', 'packs', 10, 'Dry store, rack B', 24, '06/27'],
-  general: ['Example: Shackle, galvanised 16 mm', 'Deck', '', 'pcs', 4, 'Shelf 2', 6, ''],
+  ppe: ['Example: Coveralls', 'Body', 'L', 'pcs', 2, 'Crew store, shelf 2', 4, '', ''],
+  provisions: ['Example: Pasta, penne 500 g', 'Dry store', '', 'packs', 10, 'Dry store, rack B', 24, '06/27', ''],
+  general: ['Example: Shackle, galvanised 16 mm', 'Deck', '', 'pcs', 4, 'Shelf 2', 6, '', ''],
+  flags: ['Example: Courtesy flag, Spain', 'Countries', '60 x 90 cm', 'pcs', 1, 'Flag locker, box 3', 2, '', 'Good'],
+  bridge: ['Example: SOLAS, Consolidated Edition', 'IMO publications', '2020 ed.', 'copy', 1, 'Bridge, shelf 1', 1, '', 'Good'],
 };
 export const storeTemplateRows = (store: StoreKind): unknown[][] => [STORE_HEAD, TEMPLATE_EXAMPLE[store]];

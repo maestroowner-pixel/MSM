@@ -472,8 +472,12 @@ app mirrors. Bundle id `com.kukalab.msm`.
   photo id), `w`/`h` in px. A PIN (`ga_pins`) = `<kind>_<record id>`, x/y 0–1 of the picture. **Pins are their own collection, not a field on
   PmsDefect/YardJob**: 2.74 rewrites a defect whole and would drop an unknown field. Nothing is deleted — a deck or a pin is `removed`.
   Officers / planners (and a device on no vessel) add decks and place points; open defects and jobs not accepted; everyone reads. Colours:
-  open red, waiting/in progress amber, done-to-accept blue, planned grey, closed green; cancelled jobs not drawn. Pictures only (PNG/JPEG,
-  phones downscale to 1600 px like every photo); a PDF is refused with "save it as a picture" — rendering PDFs needs pdf.js, not done. Web tap
+  open red, waiting/in progress amber, done-to-accept blue, planned grey, closed green; cancelled jobs not drawn. A picture (PNG/JPEG,
+  phones downscale to 1600 px like every photo) or **a page of a PDF** (15 Nov 2026, "Choose a PDF", ‹ page › to pick it): drawn to a JPEG
+  of `PAGE_EDGE` 2400 px on the long edge by `utils/pdfPage` — web: pdf.js from cdnjs (`pdfText.web.ts`'s loader, needs a connection);
+  phones: the LOCAL Expo module `modules/pdf-page` (PDFKit / PdfRenderer, offline; autolinked from `modules/`, needs a native build —
+  2.74 and older have no module, `requireOptionalNativeModule` → null → `ga.noPdf`). The page is copied into attachments only on Save
+  (`keepPage`). Web tap
   position: RN Web's Pressable click has no locationX, so `clientX` against the ref's box. In .msm, erased on reset. `npm run check:gaplan`;
   rules-test.mjs covers it. `npm run deploy:rules` before the flag.
   **Testing on web**: the opening animation is a full-page `<canvas>` for ~10–15 s and takes the first real click; wait until it is gone.

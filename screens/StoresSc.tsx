@@ -10,6 +10,9 @@
 //   Issue      PPE goes to a crew member, who signs for it on this device (PIN
 //              or by hand); provisions go to the galley.
 //   Crew (PPE) what each person holds, and their PPE record as a PDF.
+//   Flags      the flag locker and the charts & publications count each item
+//              by wear — new, good, poor (types/stores.ts Wear); poor is kept
+//              apart and not serviceable.
 //   Excel      template, import (matched by name and size, quantities counted
 //              in), export; the list to order.
 // ===================================
@@ -27,14 +30,14 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES } from '../theme';
 import { isAboard } from '../types/crew';
-import { PPE_STARTER, STORE_CATEGORIES, StoreItem, StoreKind, StoreMove, StoreMoveKind, StoreRoom, isBuiltinRoom, roomOf, storeItemTitle, storeRooms } from '../types/stores';
+import { BRIDGE_STARTER, FLAGS_STARTER, PPE_STARTER, STORE_CATEGORIES, StoreItem, StoreKind, StoreMove, StoreMoveKind, StoreRoom, WEARS, Wear, isBuiltinRoom, roomOf, storeItemTitle, storeRooms, wearKept } from '../types/stores';
 import { StoreRooms } from '../components/StoreRooms';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { vesselHeader } from '../services/export';
 import { proofShort } from '../services/signature';
 import { Batch, batchLabel, expiryState, mmYY, normExpiry } from '../services/hospital';
-import { StoreStatus, batchToIssue, heldByPerson, planStoreImport, readStoreSheet, storeCounts, storeDept, storeSheet, storeStatus, storeTemplateRows, storeUse, toOrder } from '../services/stores';
+import { StoreStatus, batchToIssue, byWear, heldByPerson, planStoreImport, readStoreSheet, storeCounts, storeDept, storeSheet, storeStatus, storeTemplateRows, storeUse, toOrder } from '../services/stores';
 import { exportDocPdf } from '../services/hospitalReport';
 import { pickSheetRows, saveSheet } from '../services/sheetFiles';
 import { aiReadDocument, aiRenameHeadings } from '../services/aiImport';
@@ -51,13 +54,14 @@ import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from './SafetySc';
 import { t, tk, tn, useT } from '../utils/i18n';
 
-type Show = 'all' | 'short' | 'expired' | 'soon';
-type Act = { kind: StoreMoveKind; qty: string; expiry: string; to: string; note: string; batchKey?: string };
+type Show = 'all' | 'short' | 'expired' | 'soon' | 'poor';
+type Act = { kind: StoreMoveKind; qty: string; expiry: string; to: string; note: string; batchKey?: string; wear?: Wear; byWear?: Record<Wear, string> };
 const MOVE_TEXT: Record<StoreMoveKind, string> = { received: 'Received', issued: 'Issued', returned: 'Returned', disposed: 'Disposed', count: 'Counted' };
 
 const ICONS: Record<string, string> = {
   Body: 'tshirt-crew-outline', Feet: 'shoe-formal', Hands: 'hand-back-left-outline', 'Eyes & face': 'safety-goggles', Head: 'hard-hat', Hearing: 'ear-hearing', Breathing: 'face-mask-outline', 'Fall protection': 'seatbelt', Water: 'lifebuoy',
   'Dry store': 'package-variant', Chilled: 'fridge-outline', Frozen: 'snowflake', Beverages: 'cup-water', Bakery: 'bread-slice-outline', 'Fresh fruit & veg': 'food-apple-outline', 'Cleaning & galley': 'spray-bottle',
+  Letters: 'flag-variant-outline', Numerals: 'numeric', Special: 'flag-triangle', Countries: 'earth', Company: 'flag-outline', 'IMO publications': 'book-open-variant', 'Nautical publications': 'book-open-page-variant-outline', Charts: 'map-outline',
   Deck: 'anchor', 'Ropes & rigging': 'link-variant', Paint: 'format-paint', Engine: 'engine-outline', Electrical: 'flash-outline', Tools: 'wrench-outline', Cleaning: 'spray-bottle', Chemicals: 'flask-outline', Stationery: 'pencil-outline', Other: 'package-variant',
 };
 
@@ -76,6 +80,9 @@ export default function StoresSc() {
   const store: StoreKind = room.kind;
   const ppe = store === 'ppe';
   const general = store === 'general';
+  const flags = store === 'flags';
+  const bridge = store === 'bridge';
+  const wear = wearKept(store);
   const confirmSign = useSignConfirm();
   const sync = useSync();
   const { signer, picker } = useSigner(ppe ? 'ISSUED BY' : 'SIGNING AS');
@@ -112,20 +119,24 @@ export default function StoresSc() {
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   const shown = rows
     .filter((r) => !cat || (r.item.category ?? '') === cat)
-    .filter((r) => show === 'all' || (show === 'short' ? r.short > 0 : show === 'expired' ? r.expired > 0 : r.soon))
+    .filter((r) => show === 'all' || (show === 'short' ? r.short > 0 : show === 'expired' ? r.expired > 0 : show === 'poor' ? r.poor > 0 : r.soon))
     .filter((r) => words.every((w) => `${r.item.name} ${r.item.size ?? ''} ${r.item.category ?? ''} ${r.item.location ?? ''}`.toLowerCase().includes(w)))
     .sort((a, b) => (a.item.category ?? '~').localeCompare(b.item.category ?? '~') || a.item.name.localeCompare(b.item.name) || (a.item.size ?? '').localeCompare(b.item.size ?? '', undefined, { numeric: true }));
   const held = useMemo(() => heldByPerson(items, moves), [items, moves]);
 
   const done = (w: string | null | void) => typeof w === 'string' && setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
   const fail = (e: any) => Alert.alert(room.name, String(e?.message ?? e));
-  const color = (r: StoreStatus) => (r.expired || r.usable <= 0 ? COLORS.danger : r.short || r.soon ? COLORS.warning : COLORS.success);
+  const color = (r: StoreStatus) => (r.expired || r.usable <= 0 ? COLORS.danger : r.short || r.soon || r.poor ? COLORS.warning : COLORS.success);
+  const wearColor = (w: Wear) => (w === 'poor' ? COLORS.danger : w === 'good' ? COLORS.success : COLORS.primary);
+  // A batch as the person reads it: the flag locker's by its wear, the rest by date and lot.
+  const batchText = (b: Batch) => (b.wear ? [b.expiry ? mmYY(b.expiry) : null, tk(`st.wear.${b.wear}`)].filter(Boolean).join(' · ') : batchLabel(b));
 
   // ---- the list ----
   const addStarter = async () => {
     const now = Date.now();
     const out: StoreItem[] = [];
-    for (const s of PPE_STARTER) for (const size of s.sizes ?? [undefined]) out.push({ id: uid('sto'), store, ...own, name: s.name, category: s.category, ...(size ? { size } : {}), unit: s.unit, min: s.min, order: out.length, updatedAt: now });
+    const list: { name: string; category: string; sizes?: string[]; unit: string; min: number }[] = flags ? FLAGS_STARTER : bridge ? BRIDGE_STARTER : PPE_STARTER;
+    for (const s of list) for (const size of s.sizes ?? [undefined]) out.push({ id: uid('sto'), store, ...own, name: s.name, category: s.category, ...(size ? { size } : {}), unit: s.unit, min: s.min, order: out.length, updatedAt: now });
     await saveRows(storage.STORE_ITEMS_KEY, out);
     setSaved(t('st.added', { n: out.length }));
   };
@@ -141,12 +152,14 @@ export default function StoresSc() {
   // ---- moves ----
   const doMove = async (r: StoreStatus) => {
     if (!act) return;
+    if (wear && act.kind === 'count') return countWear(r);
     const qty = Number(act.qty.replace(',', '.'));
     if (!(qty >= 0) || (act.kind !== 'count' && !(qty > 0))) return Alert.alert(tk(`st.move.${act.kind}`), t('mc.howMany'));
     if (!signer) return Alert.alert(t('sign.who'), t('round.chooseName'));
     let expiry = act.expiry.trim() ? normExpiry(act.expiry) : undefined;
     if (act.expiry.trim() && !expiry) return Alert.alert(t('st.bestBefore'), t('st.bbFmt'));
     let batchNo: string | undefined;
+    let moveWear: Wear | undefined;
     if (act.kind === 'issued' || act.kind === 'disposed' || act.kind === 'count') {
       const b = act.batchKey ? r.batches.find((x) => x.key === act.batchKey) : act.kind === 'issued' ? batchToIssue(r.batches, today) : r.batches.length === 1 ? r.batches[0] : undefined;
       if (act.kind !== 'count' && !b) return Alert.alert(tk(`st.move.${act.kind}`), t('st.noneOnHand'));
@@ -154,11 +167,13 @@ export default function StoresSc() {
         if (act.kind !== 'count' && qty > b.qty) return Alert.alert(tk(`st.move.${act.kind}`), t('mi.only', { n: b.qty }));
         expiry = b.expiry;
         batchNo = b.batchNo;
+        moveWear = b.wear;
       }
     }
+    if (wear && act.kind === 'received') moveWear = act.wear ?? 'new';
     const person = ppe && (act.kind === 'issued' || act.kind === 'returned') ? people.find((p) => p.id === act.to) : undefined;
     if (ppe && (act.kind === 'issued' || act.kind === 'returned') && !person) return Alert.alert(tk(`st.move.${act.kind}`), ppe && act.kind === 'issued' ? t('st.whoReceives') : t('st.whoReturns'));
-    const what = `${MOVE_TEXT[act.kind]} — ${storeItemTitle(r.item)} ${qty} ${r.item.unit}${person ? ` · ${person.name}` : ''}`;
+    const what = `${MOVE_TEXT[act.kind]} — ${storeItemTitle(r.item)} ${qty} ${r.item.unit}${moveWear ? ` (${moveWear})` : ''}${person ? ` · ${person.name}` : ''}`;
     const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what });
     if (!sig) return;
     // PPE handed over: the person receiving it signs for it, here.
@@ -166,11 +181,32 @@ export default function StoresSc() {
     if (person && act.kind === 'issued' && !rec) return;
     const now = Date.now();
     const m: StoreMove = {
-      id: uid('stm'), itemId: r.item.id, kind: act.kind, qty, ...(batchNo ? { batchNo } : {}), ...(expiry ? { expiry } : {}), date: today,
+      id: uid('stm'), itemId: r.item.id, kind: act.kind, qty, ...(batchNo ? { batchNo } : {}), ...(expiry ? { expiry } : {}), ...(moveWear ? { wear: moveWear } : {}), date: today,
       ...(person ? { to: person.name, toId: person.id } : {}), ...(rec?.proof ? { toWith: rec.proof } : {}), ...(act.note.trim() ? { note: act.note.trim() } : store === 'provisions' && act.kind === 'issued' ? { note: 'Galley' } : {}),
       by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now,
     };
     await appendRow(storage.STORE_MOVES_KEY, m);
+    setAct(null);
+    playSuccessSound();
+    setSaved(what);
+  };
+
+  // The flag locker counts an item by wear in one go — new, good, poor — and so moves a flag from good to poor.
+  const countWear = async (r: StoreStatus) => {
+    if (!act?.byWear) return;
+    const n = Object.fromEntries(WEARS.map((w) => [w, Number((act.byWear![w] || '0').replace(',', '.'))])) as Record<Wear, number>;
+    if (WEARS.some((w) => !Number.isFinite(n[w]) || n[w] < 0)) return Alert.alert(t('sop.count'), t('sp.everyLine'));
+    if (!signer) return Alert.alert(t('sign.who'), t('round.chooseName'));
+    const what = `Counted — ${storeItemTitle(r.item)}: ${WEARS.map((w) => `${n[w]} ${w}`).join(', ')}`;
+    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what });
+    if (!sig) return;
+    const now = Date.now();
+    const had = byWear(r.batches);
+    const out: StoreMove[] = WEARS.filter((w) => n[w] > 0 || had[w] > 0).map((w) => ({
+      id: uid('stm'), itemId: r.item.id, kind: 'count', qty: n[w], wear: w, date: today, ...(act.note.trim() ? { note: act.note.trim() } : {}),
+      by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now,
+    }));
+    if (out.length) await saveRows(storage.STORE_MOVES_KEY, out);
     setAct(null);
     playSuccessSound();
     setSaved(what);
@@ -211,7 +247,7 @@ export default function StoresSc() {
         await saveRows(storage.STORE_ITEMS_KEY, plan.save);
         const now = Date.now();
         const by = signer?.name ?? 'Import';
-        for (const c of plan.counts) await appendRow(storage.STORE_MOVES_KEY, { id: uid('stm'), itemId: c.itemId, kind: 'count', qty: c.qty, ...(c.expiry ? { expiry: c.expiry } : {}), date: today, note: `Imported from ${picked.name}`, by, at: now, updatedAt: now } as StoreMove);
+        for (const c of plan.counts) await appendRow(storage.STORE_MOVES_KEY, { id: uid('stm'), itemId: c.itemId, kind: 'count', qty: c.qty, ...(c.expiry ? { expiry: c.expiry } : {}), ...(c.wear ? { wear: c.wear } : {}), date: today, note: `Imported from ${picked.name}`, by, at: now, updatedAt: now } as StoreMove);
         playSuccessSound();
         setSaved(`${into.name}: ${plan.added.length} added, ${plan.updated.length} updated, ${plan.counts.length} quantities counted — from “${picked.name}”`);
       };
@@ -257,7 +293,10 @@ export default function StoresSc() {
 
   // ---- stocktake: every batch of what is shown (a category, a search), signed once ----
   const [counting, setCounting] = useState<Record<string, string> | null>(null);
-  const countLines = useMemo(() => shown.flatMap((r): { r: StoreStatus; b?: Batch; key: string }[] => (r.batches.length ? r.batches.map((b) => ({ r, b, key: `${r.item.id}|${b.key}` })) : [{ r, b: undefined, key: `${r.item.id}|` }])), [shown]);
+  // The flag locker: every item three lines — new, good, poor — whatever it held, so a flag gone poor is counted there.
+  const countLines = useMemo(() => shown.flatMap((r): { r: StoreStatus; b?: Batch; key: string; w?: Wear }[] => (wear
+    ? WEARS.map((w) => ({ r, b: r.batches.find((b) => b.wear === w), key: `${r.item.id}|w:${w}`, w }))
+    : r.batches.length ? r.batches.map((b) => ({ r, b, key: `${r.item.id}|${b.key}` })) : [{ r, b: undefined, key: `${r.item.id}|` }])), [shown, wear]);
   const startCount = () => setCounting(Object.fromEntries(countLines.map((l) => [l.key, String(l.b?.qty ?? 0)])));
   const saveCount = async () => {
     if (!counting) return;
@@ -270,7 +309,7 @@ export default function StoresSc() {
     const now = Date.now();
     // Every line counted is recorded — an unchanged count is the evidence it was checked.
     const counted: StoreMove[] = lines.filter((l) => l.n > 0 || l.b).map((l) => ({
-      id: uid('stm'), itemId: l.r.item.id, kind: 'count', qty: l.n, ...(l.b?.batchNo ? { batchNo: l.b.batchNo } : {}), ...(l.b?.expiry ? { expiry: l.b.expiry } : {}), date: today, note: `Stocktake ${where}`,
+      id: uid('stm'), itemId: l.r.item.id, kind: 'count', qty: l.n, ...(l.b?.batchNo ? { batchNo: l.b.batchNo } : {}), ...(l.b?.expiry ? { expiry: l.b.expiry } : {}), ...(l.w ? { wear: l.w } : {}), date: today, note: `Stocktake ${where}`,
       by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now,
     }));
     await saveRows(storage.STORE_MOVES_KEY, counted);
@@ -321,7 +360,7 @@ export default function StoresSc() {
   }
   return (
     <Screen scroll>
-      <ScreenTitle title={title} subtitle={[room.code, room.location, tn('n.item', counts.items), counts.short ? t('st.belowMin', { n: counts.short }) : null, counts.expired ? t('st.outOfDate', { n: counts.expired }) : null, counts.soon ? t('st.expiringN', { n: counts.soon }) : null].filter(Boolean).join(' · ')} help="Stores" />
+      <ScreenTitle title={title} subtitle={[room.code, room.location, tn('n.item', counts.items), counts.short ? t('st.belowMin', { n: counts.short }) : null, counts.poor ? t('st.poorN', { n: counts.poor }) : null, counts.expired ? t('st.outOfDate', { n: counts.expired }) : null, counts.soon ? t('st.expiringN', { n: counts.soon }) : null].filter(Boolean).join(' · ')} help="Stores" />
       {unknownRoom ? <Text style={[styles.sub, { color: COLORS.danger, fontWeight: '700', marginBottom: SIZES.sm }]}>{t('st.unknown')}</Text> : null}
       {ppe ? (
         <View style={styles.chips}>
@@ -353,13 +392,14 @@ export default function StoresSc() {
       ) : (
         <>
           <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.sm, gap: SIZES.xs }]}>
-            <TextInput style={[styles.input, { flex: 2, minWidth: 200, marginTop: 0 }]} value={q} onChangeText={setQ} placeholder={ppe ? t('st.searchPpe') : general ? t('st.searchGen') : t('st.searchProv')} placeholderTextColor={COLORS.textLight} />
-            <Dropdown caption={ppe || general ? t('docs.type') : t('st.section')} value={cat} onChange={setCat} style={{ flex: 1, minWidth: 200 }} options={[{ value: '', label: t('pax.showAll', { n: rows.length }) }, ...cats.map((c) => ({ value: c, label: `${c} · ${rows.filter((r) => r.item.category === c).length}`, icon: ICONS[c] }))]} />
+            <TextInput style={[styles.input, { flex: 2, minWidth: 200, marginTop: 0 }]} value={q} onChangeText={setQ} placeholder={ppe ? t('st.searchPpe') : flags ? t('st.searchFlags') : bridge ? t('st.searchBridge') : general ? t('st.searchGen') : t('st.searchProv')} placeholderTextColor={COLORS.textLight} />
+            <Dropdown caption={store !== 'provisions' ? t('docs.type') : t('st.section')} value={cat} onChange={setCat} style={{ flex: 1, minWidth: 200 }} options={[{ value: '', label: t('pax.showAll', { n: rows.length }) }, ...cats.map((c) => ({ value: c, label: `${c} · ${rows.filter((r) => r.item.category === c).length}`, icon: ICONS[c] }))]} />
             <Dropdown caption={t('pax.show')} value={show} onChange={setShow} style={{ flex: 1, minWidth: 200 }} options={[
               { value: 'all' as Show, label: t('lb.all') },
               { value: 'short' as Show, label: t('st.showShort', { n: counts.short }) },
               { value: 'expired' as Show, label: t('st.showExpired', { n: counts.expired }) },
               { value: 'soon' as Show, label: t('st.showSoon', { n: counts.soon }) },
+              ...(wear ? [{ value: 'poor' as Show, label: t('st.showPoor', { n: counts.poor }) }] : []),
             ]} />
           </View>
           <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.sm }]}>
@@ -382,10 +422,10 @@ export default function StoresSc() {
           {edit ? (
             <Card>
               <Label>{items.some((i) => i.id === edit.id) ? t('def.item') : t('mi.new')}</Label>
-              <TextInput style={styles.input} value={edit.name} onChangeText={(v) => setEdit({ ...edit, name: v })} placeholder={ppe ? t('st.namePpe') : general ? t('st.nameGen') : t('st.nameProv')} placeholderTextColor={COLORS.textLight} autoFocus />
+              <TextInput style={styles.input} value={edit.name} onChangeText={(v) => setEdit({ ...edit, name: v })} placeholder={ppe ? t('st.namePpe') : flags ? t('st.nameFlags') : bridge ? t('st.nameBridge') : general ? t('st.nameGen') : t('st.nameProv')} placeholderTextColor={COLORS.textLight} autoFocus />
               <View style={styles.row}>
-                <Dropdown caption={ppe || general ? t('docs.type') : t('st.section')} value={edit.category ?? ''} onChange={(v: string) => setEdit({ ...edit, category: v || undefined })} options={[{ value: '', label: '—' }, ...cats.map((c) => ({ value: c, label: c, icon: ICONS[c] }))]} style={{ flex: 1, minWidth: 200 }} />
-                {ppe ? <TextInput style={[styles.input, { width: 90, marginTop: 0 }]} value={edit.size ?? ''} onChangeText={(v) => setEdit({ ...edit, size: v })} placeholder={t('st.size')} placeholderTextColor={COLORS.textLight} /> : null}
+                <Dropdown caption={store !== 'provisions' ? t('docs.type') : t('st.section')} value={edit.category ?? ''} onChange={(v: string) => setEdit({ ...edit, category: v || undefined })} options={[{ value: '', label: '—' }, ...cats.map((c) => ({ value: c, label: c, icon: ICONS[c] }))]} style={{ flex: 1, minWidth: 200 }} />
+                {ppe || flags || bridge ? <TextInput style={[styles.input, { width: bridge ? 120 : 90, marginTop: 0 }]} value={edit.size ?? ''} onChangeText={(v) => setEdit({ ...edit, size: v })} placeholder={bridge ? t('st.edition') : t('st.size')} placeholderTextColor={COLORS.textLight} /> : null}
                 <TextInput style={[styles.input, { width: 100, marginTop: 0 }]} value={edit.unit} onChangeText={(v) => setEdit({ ...edit, unit: v })} placeholder={t('st.unit')} placeholderTextColor={COLORS.textLight} />
                 <TextInput style={[styles.input, { width: 110, marginTop: 0 }]} value={String(edit.min)} onChangeText={(v) => setEdit({ ...edit, min: Number(v.replace(',', '.')) || 0 })} keyboardType="number-pad" placeholder={t('st.minimum')} placeholderTextColor={COLORS.textLight} />
               </View>
@@ -401,8 +441,8 @@ export default function StoresSc() {
 
           {!items.length ? (
             <Card>
-              <Text style={styles.sub}>{ppe ? t('st.emptyPpe') : general ? t('st.emptyGen', { name: room.name }) : t('st.emptyProv')}</Text>
-              {ppe ? <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void addStarter()}><Text style={styles.btnText}>{t('st.addPpe')}</Text></TouchableOpacity> : null}
+              <Text style={styles.sub}>{ppe ? t('st.emptyPpe') : flags ? t('st.emptyFlags') : bridge ? t('st.emptyBridge') : general ? t('st.emptyGen', { name: room.name }) : t('st.emptyProv')}</Text>
+              {ppe || flags || bridge ? <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void addStarter()}><Text style={styles.btnText}>{flags ? t('st.addFlags') : bridge ? t('st.addBridge') : t('st.addPpe')}</Text></TouchableOpacity> : null}
             </Card>
           ) : null}
 
@@ -410,11 +450,24 @@ export default function StoresSc() {
             <Card>
               <Label>{`${t('sp.stocktake')} · ${cat || room.name}`}</Label>
               <Text style={styles.sub}>{t('sp.countHint')}</Text>
-              {countLines.map((l) => (
+              {wear ? shown.map((r) => (
+                <View key={r.item.id} style={[styles.row, { alignItems: 'center' }]}>
+                  <View style={{ flex: 1, minWidth: 160 }}>
+                    <Text style={styles.name}>{storeItemTitle(r.item)}</Text>
+                    <Text style={styles.sub}>{[r.item.location, r.item.unit].filter(Boolean).join(' · ')}</Text>
+                  </View>
+                  {WEARS.map((w) => (
+                    <View key={w} style={{ alignItems: 'center' }}>
+                      <Text style={{ fontSize: 10, fontWeight: '800', color: wearColor(w) }}>{tk(`st.wear.${w}`)}</Text>
+                      <TextInput style={[styles.input, { width: 64, marginTop: 0, borderColor: wearColor(w) }]} value={counting[`${r.item.id}|w:${w}`] ?? ''} onChangeText={(v) => setCounting({ ...counting, [`${r.item.id}|w:${w}`]: v })} keyboardType="number-pad" selectTextOnFocus accessibilityLabel={`${storeItemTitle(r.item)} — ${tk(`st.wear.${w}`)}`} />
+                    </View>
+                  ))}
+                </View>
+              )) : countLines.map((l) => (
                 <View key={l.key} style={[styles.row, { alignItems: 'center' }]}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.name}>{storeItemTitle(l.r.item)}</Text>
-                    <Text style={styles.sub}>{[l.b ? batchLabel(l.b) : null, l.r.item.location, l.r.item.unit].filter(Boolean).join(' · ')}</Text>
+                    <Text style={styles.sub}>{[l.b ? batchText(l.b) : null, l.r.item.location, l.r.item.unit].filter(Boolean).join(' · ')}</Text>
                   </View>
                   <TextInput style={[styles.input, { width: 90, marginTop: 0 }]} value={counting[l.key] ?? ''} onChangeText={(v) => setCounting({ ...counting, [l.key]: v })} keyboardType="decimal-pad" selectTextOnFocus />
                 </View>
@@ -444,16 +497,17 @@ export default function StoresSc() {
                     <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 200, minWidth: 0 }}>
                       <Text style={styles.name}>{storeItemTitle(r.item)}</Text>
                       <Text style={styles.sub}>{[r.item.location, t('st.minL', { n: r.item.min, unit: r.item.unit })].filter(Boolean).join(' · ')}</Text>
-                      <Text style={[styles.sub, { color: color(r), fontWeight: '700' }]}>{[t('st.inDate', { n: r.usable, unit: r.item.unit }), r.short ? t('st.belowMin', { n: r.short }) : null, r.expired ? t('st.outOfDate', { n: r.expired }) : r.soon && r.next ? t('crew.expires', { date: uiDate(r.next) }) : null].filter(Boolean).join(' · ')}</Text>
+                      <Text style={[styles.sub, { color: color(r), fontWeight: '700' }]}>{[wear ? t('st.serviceable', { n: r.usable, unit: r.item.unit }) : t('st.inDate', { n: r.usable, unit: r.item.unit }), r.poor ? t('st.poorN', { n: r.poor }) : null, r.short ? t('st.belowMin', { n: r.short }) : null, r.expired ? t('st.outOfDate', { n: r.expired }) : r.soon && r.next ? t('crew.expires', { date: uiDate(r.next) }) : null].filter(Boolean).join(' · ')}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', gap: 4, marginLeft: 'auto' }}>
                       {r.batches.slice(0, 3).map((b) => {
                         const s = expiryState(today, b.expiry);
-                        const c = s === 'expired' ? COLORS.danger : (s === 'soon' || (b.expiry && r.soon && b.expiry === r.next)) ? COLORS.warning : COLORS.success;
+                        const c = s === 'expired' ? COLORS.danger : b.wear ? wearColor(b.wear) : (s === 'soon' || (b.expiry && r.soon && b.expiry === r.next)) ? COLORS.warning : COLORS.success;
                         return (
                           <View key={b.key} style={{ borderWidth: 1, borderColor: c, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, minWidth: 48, alignItems: 'center' }}>
                             <Text style={{ fontSize: SIZES.small, fontWeight: '800', color: c }}>{b.qty}</Text>
                             {b.expiry ? <Text style={{ fontSize: 10, fontWeight: '700', color: c }}>{mmYY(b.expiry)}</Text> : null}
+                            {b.wear ? <Text style={{ fontSize: 10, fontWeight: '700', color: c }}>{tk(`st.wear.${b.wear}`)}</Text> : null}
                           </View>
                         );
                       })}
@@ -464,24 +518,49 @@ export default function StoresSc() {
                 {isOpen ? (
                   <Card>
                     <View style={styles.row}>
-                      {(ppe ? (['received', 'issued', 'returned', 'count', 'disposed'] as StoreMoveKind[]) : (['received', 'issued', 'count', 'disposed'] as StoreMoveKind[])).map((k2) => (
-                        <TouchableOpacity key={k2} style={[styles.small, act?.kind === k2 && { backgroundColor: COLORS.primary }]} onPress={() => { const old = k2 === 'disposed' ? r.batches.find((b) => expiryState(today, b.expiry) === 'expired') : undefined; setAct({ kind: k2, qty: k2 === 'count' ? String(r.onHand) : old ? String(old.qty) : '', expiry: '', to: '', note: old ? 'Out of date' : '', ...(old ? { batchKey: old.key } : {}) }); }}>
-                          <Text style={[styles.smallText, act?.kind === k2 && { color: COLORS.textWhite }]}>{k2 === 'received' ? t('st.receive') : k2 === 'issued' ? (ppe ? t('st.issueCrew') : general ? t('st.issue') : t('st.issueGalley')) : k2 === 'returned' ? t('st.return') : k2 === 'count' ? t('sop.count') : t('mi.dispose')}</Text>
+                      {(ppe ? (['received', 'issued', 'returned', 'count', 'disposed'] as StoreMoveKind[]) : flags ? (['received', 'count', 'disposed'] as StoreMoveKind[]) : (['received', 'issued', 'count', 'disposed'] as StoreMoveKind[])).map((k2) => (
+                        <TouchableOpacity key={k2} style={[styles.small, act?.kind === k2 && { backgroundColor: COLORS.primary }]} onPress={() => {
+                          // Disposing: what is out of date, else what is worn to poor, comes up first.
+                          const expiredB = k2 === 'disposed' ? r.batches.find((b) => expiryState(today, b.expiry) === 'expired') : undefined;
+                          const old = expiredB ?? (k2 === 'disposed' ? r.batches.find((b) => b.wear === 'poor') : undefined);
+                          const had = byWear(r.batches);
+                          setAct({ kind: k2, qty: k2 === 'count' ? String(r.onHand) : old ? String(old.qty) : '', expiry: '', to: '', note: expiredB ? 'Out of date' : old ? 'Worn — poor' : '', ...(old ? { batchKey: old.key } : {}), ...(wear && k2 === 'received' ? { wear: 'new' as Wear } : {}), ...(wear && k2 === 'count' ? { byWear: { new: String(had.new), good: String(had.good), poor: String(had.poor) } } : {}) });
+                        }}>
+                          <Text style={[styles.smallText, act?.kind === k2 && { color: COLORS.textWhite }]}>{k2 === 'received' ? t('st.receive') : k2 === 'issued' ? (ppe ? t('st.issueCrew') : store === 'provisions' ? t('st.issueGalley') : t('st.issue')) : k2 === 'returned' ? t('st.return') : k2 === 'count' ? t('sop.count') : t('mi.dispose')}</Text>
                         </TouchableOpacity>
                       ))}
                       <TouchableOpacity onPress={() => setEdit(r.item)}><Text style={styles.link}>{t('common.edit')}</Text></TouchableOpacity>
                     </View>
                     {act ? (
                       <>
-                        <TextInput style={styles.input} value={act.qty} onChangeText={(v) => setAct({ ...act, qty: v })} keyboardType="decimal-pad" placeholder={t('mi.howMany', { unit: r.item.unit })} placeholderTextColor={COLORS.textLight} autoFocus />
-                        {act.kind === 'received' ? <TextInput style={styles.input} value={act.expiry} onChangeText={(v) => setAct({ ...act, expiry: v })} placeholder={store === 'provisions' ? t('st.bbPh') : t('st.expPh')} placeholderTextColor={COLORS.textLight} /> : null}
-                        {(act.kind === 'disposed' || act.kind === 'count') && r.batches.length > 1 ? (
-                          <Dropdown caption={t('st.batch')} value={act.batchKey ?? ''} onChange={(v: string) => setAct({ ...act, batchKey: v || undefined, ...(act.kind === 'count' ? { qty: String(r.batches.find((b) => b.key === v)?.qty ?? act.qty) } : {}) })} options={[{ value: '', label: act.kind === 'count' ? t('st.newBatch') : t('common.choose') }, ...r.batches.map((b) => ({ value: b.key, label: `${batchLabel(b)} — ${b.qty} ${r.item.unit}` }))]} style={{ marginTop: SIZES.xs }} />
+                        {act.byWear ? (
+                          <View style={[styles.row, { marginTop: SIZES.xs }]}>
+                            {WEARS.map((w) => (
+                              <View key={w} style={{ alignItems: 'center' }}>
+                                <Text style={{ fontSize: 10, fontWeight: '800', color: wearColor(w) }}>{tk(`st.wear.${w}`)}</Text>
+                                <TextInput style={[styles.input, { width: 72, marginTop: 0, borderColor: wearColor(w) }]} value={act.byWear![w]} onChangeText={(v) => setAct({ ...act, byWear: { ...act.byWear!, [w]: v } })} keyboardType="number-pad" selectTextOnFocus accessibilityLabel={tk(`st.wear.${w}`)} />
+                              </View>
+                            ))}
+                          </View>
+                        ) : <TextInput style={styles.input} value={act.qty} onChangeText={(v) => setAct({ ...act, qty: v })} keyboardType="decimal-pad" placeholder={t('mi.howMany', { unit: r.item.unit })} placeholderTextColor={COLORS.textLight} autoFocus />}
+                        {act.byWear ? <Text style={styles.sub}>{t('st.wearHint')}</Text> : null}
+                        {wear && act.kind === 'received' ? (
+                          <View style={[styles.chips, { marginTop: SIZES.xs }]}>
+                            {WEARS.map((w) => (
+                              <TouchableOpacity key={w} style={[styles.chip, act.wear === w && styles.chipOn]} onPress={() => setAct({ ...act, wear: w })} accessibilityRole="radio" accessibilityState={{ selected: act.wear === w }}>
+                                <Text style={[styles.chipText, act.wear === w && styles.chipTextOn]}>{tk(`st.wear.${w}`)}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        ) : null}
+                        {act.kind === 'received' && !wear ? <TextInput style={styles.input} value={act.expiry} onChangeText={(v) => setAct({ ...act, expiry: v })} placeholder={store === 'provisions' ? t('st.bbPh') : t('st.expPh')} placeholderTextColor={COLORS.textLight} /> : null}
+                        {(act.kind === 'disposed' || (act.kind === 'count' && !act.byWear)) && r.batches.length > 1 ? (
+                          <Dropdown caption={t('st.batch')} value={act.batchKey ?? ''} onChange={(v: string) => setAct({ ...act, batchKey: v || undefined, ...(act.kind === 'count' ? { qty: String(r.batches.find((b) => b.key === v)?.qty ?? act.qty) } : {}) })} options={[{ value: '', label: act.kind === 'count' ? t('st.newBatch') : t('common.choose') }, ...r.batches.map((b) => ({ value: b.key, label: `${batchText(b)} — ${b.qty} ${r.item.unit}` }))]} style={{ marginTop: SIZES.xs }} />
                         ) : null}
                         {ppe && (act.kind === 'issued' || act.kind === 'returned') ? (
                           <Dropdown caption={act.kind === 'issued' ? t('st.toCap') : t('st.fromCap')} value={act.to} onChange={(v: string) => setAct({ ...act, to: v })} options={[{ value: '', label: t('common.choose') }, ...people.map((p) => ({ value: p.id, label: p.rank ? `${p.name} · ${p.rank}` : p.name }))]} style={{ marginTop: SIZES.xs }} />
                         ) : null}
-                        <TextInput style={styles.input} value={act.note} onChangeText={(v) => setAct({ ...act, note: v })} placeholder={act.kind === 'received' ? t('st.fromPh') : act.kind === 'disposed' ? t('st.whyPh') : general && act.kind === 'issued' ? t('st.toWhomPh') : t('mo.note')} placeholderTextColor={COLORS.textLight} />
+                        <TextInput style={styles.input} value={act.note} onChangeText={(v) => setAct({ ...act, note: v })} placeholder={act.kind === 'received' ? t('st.fromPh') : act.kind === 'disposed' ? t('st.whyPh') : !ppe && store !== 'provisions' && act.kind === 'issued' ? t('st.toWhomPh') : t('mo.note')} placeholderTextColor={COLORS.textLight} />
                         {picker ? <View style={{ marginTop: SIZES.sm }}>{picker}</View> : null}
                         {ppe && act.kind === 'issued' ? <Text style={styles.sub}>{t('st.crewSigns')}</Text> : null}
                         <View style={styles.row}>
@@ -492,7 +571,7 @@ export default function StoresSc() {
                     ) : null}
                     {last.length ? <Label>{t('st.lastMoves')}</Label> : null}
                     {last.map((m) => (
-                      <Text key={m.id} style={styles.sub}>{`${uiDate(m.date)} · ${MOVE_TEXT[m.kind]} ${m.qty} ${r.item.unit}${m.expiry ? ` · ${mmYY(m.expiry)}` : ''}${m.to ? ` · ${m.to}${m.toWith ? ' (signed for)' : ''}` : ''}${m.note ? ` · ${m.note}` : ''} · ${m.by}`}</Text>
+                      <Text key={m.id} style={styles.sub}>{`${uiDate(m.date)} · ${MOVE_TEXT[m.kind]} ${m.qty} ${r.item.unit}${m.expiry ? ` · ${mmYY(m.expiry)}` : ''}${m.wear ? ` · ${tk(`st.wear.${m.wear}`)}` : ''}${m.to ? ` · ${m.to}${m.toWith ? ' (signed for)' : ''}` : ''}${m.note ? ` · ${m.note}` : ''} · ${m.by}`}</Text>
                     ))}
                   </Card>
                 ) : null}

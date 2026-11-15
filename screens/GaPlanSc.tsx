@@ -4,7 +4,9 @@
 // coloured by how they stand; filters, zoom, the list, and the deck on paper
 // for the yard. An officer (or a planner) adds a deck — a picture of it from
 // the GA plan — and puts a record on it: the record's screen opens this one
-// with `pickKind`/`pickRef`, a tap on the picture places the point.
+// with `pickKind`/`pickRef`, a tap on the picture places the point. A deck's
+// picture can also be a page of the GA plan's PDF, drawn on the device
+// (utils/pdfPage).
 // ===================================
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -29,6 +31,7 @@ import { MARK_STATUSES, Mark, MarkFilter, STATUS_HEX, clampPos, liveSheets, next
 import { exportGaPlan, shareGaPlan } from '../services/gaPlanReport';
 import { todayIso } from '../services/pms';
 import { onWeb } from '../utils/fileShare';
+import { OpenedPdf, keepPage, openPdf } from '../utils/pdfPage';
 import { uid } from '../utils/id';
 import { goBackOr } from '../utils/nav';
 import { playSuccessSound } from '../utils/sound';
@@ -65,6 +68,8 @@ interface SheetDraft {
   photo?: Attachment;
   w: number;
   h: number;
+  /** The picture is page `page` of `pages` of a PDF, drawn here; kept among the attachments on save. */
+  pdf?: { page: number; pages: number; name: string };
 }
 
 export default function GaPlanSc() {
@@ -101,6 +106,8 @@ export default function GaPlanSc() {
   const [draft, setDraft] = useState<{ sheetId: string; x: number; y: number } | null>(null);
   const [editing, setEditing] = useState<SheetDraft | null>(null);
   const [removing, setRemoving] = useState(false);
+  const [drawing, setDrawing] = useState(false);
+  const pdfRef = useRef<OpenedPdf | null>(null);
   const uri = usePlanImage(imo, sheet);
   const planRef = useRef<any>(null);
 
@@ -159,25 +166,64 @@ export default function GaPlanSc() {
   };
 
   // ---- a deck ----
-  const pickPicture = async () => {
-    const f = onWeb ? await pickDocument() : await pickFromLibrary();
-    if (!f) return;
-    if (f.kind !== 'photo') return Alert.alert(t('ga.title'), t('ga.noPdf'));
-    const shown = resolveUri(f.uri) ?? f.uri;
+  const takePicture = (uri: string, name?: string) => {
+    pdfRef.current = null;
     Image.getSize(
-      shown,
-      (w, h) => setEditing((d) => (d ? { ...d, photo: { id: uid('ph'), kind: 'photo', uri: f.uri, ...(f.name ? { name: f.name } : {}), addedAt: Date.now() }, w, h } : d)),
+      resolveUri(uri) ?? uri,
+      (w, h) => setEditing((d) => (d ? { ...d, photo: { id: uid('ph'), kind: 'photo', uri, ...(name ? { name } : {}), addedAt: Date.now() }, w, h, pdf: undefined } : d)),
       () => Alert.alert(t('ga.title'), t('ga.badPicture'))
     );
   };
+  const pickPicture = async () => {
+    const f = await pickFromLibrary();
+    if (f) takePicture(f.uri, f.name);
+  };
+  const showPage = async (doc: OpenedPdf, page: number, name: string) => {
+    setDrawing(true);
+    try {
+      const img = await doc.render(page);
+      pdfRef.current = doc;
+      setEditing((d) => (d ? { ...d, photo: { id: uid('ph'), kind: 'photo', uri: img.uri, name: `${name} · ${page}/${doc.pages}`, addedAt: Date.now() }, w: img.width, h: img.height, pdf: { page, pages: doc.pages, name } } : d));
+    } catch {
+      Alert.alert(t('ga.title'), t('ga.pdfPageFailed'));
+    } finally {
+      setDrawing(false);
+    }
+  };
+  const pickPdf = async () => {
+    const f = await pickDocument();
+    if (!f) return;
+    if (f.kind === 'photo') return takePicture(f.uri, f.name);
+    setDrawing(true);
+    const doc = await openPdf(resolveUri(f.uri) ?? f.uri);
+    setDrawing(false);
+    if (!doc) return Alert.alert(t('ga.title'), onWeb ? t('ga.pdfNotRead') : t('ga.noPdf'));
+    await showPage(doc, 1, (f.name ?? 'PDF').replace(/\.pdf$/i, ''));
+  };
+  const turnPage = (step: number) => {
+    const doc = pdfRef.current;
+    const at = editing?.pdf;
+    if (!doc || !at || drawing) return;
+    const next = at.page + step;
+    if (next < 1 || next > doc.pages) return;
+    void showPage(doc, next, at.name);
+  };
   const saveSheet = async () => {
-    if (!editing) return;
+    if (!editing || drawing) return;
     const prev = editing.id ? gaSheets.find((s) => s.id === editing.id) : undefined;
     const now = Date.now();
+    let photo = editing.photo;
+    if (photo && editing.pdf) {
+      try {
+        photo = { ...photo, uri: await keepPage(photo.uri) };
+      } catch {
+        return Alert.alert(t('ga.title'), t('ga.pdfPageFailed'));
+      }
+    }
     const next: GaSheet = {
       ...(prev ?? { id: uid('ga'), order: nextOrder(gaSheets), by: me, at: now }),
       name: editing.name.trim(),
-      photos: editing.photo ? [editing.photo] : prev?.photos ?? [],
+      photos: photo ? [photo] : prev?.photos ?? [],
       w: editing.photo ? editing.w : prev?.w ?? 0,
       h: editing.photo ? editing.h : prev?.h ?? 0,
       updatedAt: now,
@@ -185,7 +231,8 @@ export default function GaPlanSc() {
     const why = sheetProblem(next);
     if (why) return Alert.alert(t('ga.title'), tk(`ga.need.${why}`));
     await saveRow(storage.GA_SHEETS_KEY, next);
-    if (editing.photo && imo) await photoQueue.enqueueInspection(imo, { id: next.id, photos: [editing.photo] });
+    if (photo && imo) await photoQueue.enqueueInspection(imo, { id: next.id, photos: [photo] });
+    pdfRef.current = null;
     playSuccessSound();
     setSheetId(next.id);
     setEditing(null);
@@ -249,9 +296,17 @@ export default function GaPlanSc() {
           <TextInput style={styles.input} value={editing.name} onChangeText={(v) => setEditing({ ...editing, name: v })} placeholder={t('ga.deckNameEg')} placeholderTextColor={COLORS.textLight} accessibilityLabel={t('ga.deckName')} />
           <Text style={[styles.sub, { marginTop: SIZES.sm }]}>{t('ga.pictureHint')}</Text>
           {editing.photo ? <Image source={{ uri: resolveUri(editing.photo.uri) ?? editing.photo.uri }} style={{ width: 240, height: (240 * editing.h) / Math.max(1, editing.w), maxHeight: 240, marginTop: SIZES.xs, borderRadius: SIZES.radiusMd }} resizeMode="contain" /> : null}
+          {editing.pdf && editing.pdf.pages > 1 ? (
+            <View style={styles.row}>
+              <TouchableOpacity style={styles.small} disabled={drawing || editing.pdf.page <= 1} onPress={() => turnPage(-1)} accessibilityLabel={t('ga.pdfPrev')}><Text style={styles.smallText}>‹</Text></TouchableOpacity>
+              <Text style={styles.sub}>{t('ga.pdfPage', { n: editing.pdf.page, m: editing.pdf.pages })}</Text>
+              <TouchableOpacity style={styles.small} disabled={drawing || editing.pdf.page >= editing.pdf.pages} onPress={() => turnPage(1)} accessibilityLabel={t('ga.pdfNext')}><Text style={styles.smallText}>›</Text></TouchableOpacity>
+            </View>
+          ) : null}
           <View style={styles.row}>
-            <TouchableOpacity style={styles.small} onPress={() => void pickPicture()}><Text style={styles.smallText}>{editing.photo || editing.id ? t('ga.newPicture') : t('ga.choosePicture')}</Text></TouchableOpacity>
-            {editing.photo ? <Text style={styles.sub}>{`${editing.w} × ${editing.h}`}</Text> : null}
+            <TouchableOpacity style={styles.small} disabled={drawing} onPress={() => void pickPicture()}><Text style={styles.smallText}>{editing.photo || editing.id ? t('ga.newPicture') : t('ga.choosePicture')}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.small} disabled={drawing} onPress={() => void pickPdf()}><Text style={styles.smallText}>{t('ga.choosePdf')}</Text></TouchableOpacity>
+            {drawing ? <Text style={styles.sub}>{t('ga.pdfDrawing')}</Text> : editing.photo ? <Text style={styles.sub}>{`${editing.w} × ${editing.h}`}</Text> : null}
           </View>
           <View style={styles.row}>
             <TouchableOpacity style={styles.btn} onPress={() => void saveSheet()}><Text style={styles.btnText}>{t('common.save')}</Text></TouchableOpacity>

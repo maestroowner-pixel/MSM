@@ -11,6 +11,13 @@
 //                 recorded, counted.
 //   General       any other storeroom the vessel adds — bosun's store, engine
 //                 store, cleaning locker: items, minimums, issued and counted.
+//   Flag locker   signal flags (letters, numeral pennants, substitutes), courtesy
+//                 flags of the countries visited, the company's house flag — each
+//                 counted by its wear: new, good, poor (15 Nov 2026). Poor is not
+//                 serviceable: it does not count towards the minimum.
+//   Charts & publications  the bridge's paper IMO publications, nautical
+//                 publications, charts and stationery — by edition and by wear,
+//                 like the flags (15 Nov 2026).
 //
 // The storerooms themselves (15 Oct 2026, as InventoryLens keeps its lockers):
 // the two above are always there; the vessel adds its own from the gear on the
@@ -25,13 +32,35 @@
 
 import type { SignProof } from '../services/signature';
 
-export type StoreKind = 'ppe' | 'provisions' | 'general';
-export const STORE_LABEL: Record<StoreKind, string> = { ppe: 'PPE store', provisions: 'Provisions', general: 'General stores' };
+export type StoreKind = 'ppe' | 'provisions' | 'general' | 'flags' | 'bridge';
+export const STORE_LABEL: Record<StoreKind, string> = { ppe: 'PPE store', provisions: 'Provisions', general: 'General stores', flags: 'Flag locker', bridge: 'Charts & publications' };
 export const STORE_KIND_SUB: Record<StoreKind, string> = {
   ppe: 'Issued to a crew member, who signs for it',
   provisions: 'Best-before dates; issued to the galley',
   general: "Bosun's, engine, cleaning — issued and counted",
+  flags: 'Signal, courtesy and company flags — counted new, good or poor',
+  bridge: 'IMO publications, charts, stationery — by edition and wear',
 };
+
+/**
+ * Wear, counted per piece: what is on hand is split by it as by a batch (a batch
+ * is its expiry, lot and wear). **Ids permanent** — they are on every move.
+ * Poor = not serviceable: kept apart, not counted towards the minimum, to replace.
+ */
+export type Wear = 'new' | 'good' | 'poor';
+export const WEARS: Wear[] = ['new', 'good', 'poor'];
+export const WEAR_LABEL: Record<Wear, string> = { new: 'New', good: 'Good', poor: 'Poor' };
+/** The stores counted by wear. */
+export const wearKept = (kind: StoreKind) => kind === 'flags' || kind === 'bridge';
+/** "poor", "Poor", "P", "worn" → the wear; anything else → undefined. */
+export function toWear(v: unknown): Wear | undefined {
+  const s = String(v ?? '').trim().toLowerCase();
+  if (!s) return undefined;
+  if (s === 'n' || s.startsWith('new')) return 'new';
+  if (s === 'g' || s.startsWith('good') || s === 'ok' || s === 'fair') return 'good';
+  if (s === 'p' || s.startsWith('poor') || s.startsWith('worn') || s.startsWith('bad') || s.startsWith('unserv')) return 'poor';
+  return undefined;
+}
 
 /** A storeroom (see the head of this file). */
 export interface StoreRoom {
@@ -108,6 +137,8 @@ export interface StoreMove {
   /** Units moved; for a count, the quantity counted in that batch. */
   qty: number;
   batchNo?: string;
+  /** Flag locker: the wear of what moved — part of the batch. */
+  wear?: Wear;
   /** yyyy-mm-dd — best before (provisions), or the PPE's own expiry (harness, helmet). */
   expiry?: string;
   date: string;
@@ -127,7 +158,9 @@ export interface StoreMove {
 export const PPE_CATEGORIES = ['Body', 'Feet', 'Hands', 'Eyes & face', 'Head', 'Hearing', 'Breathing', 'Fall protection', 'Water'];
 export const PROVISION_CATEGORIES = ['Dry store', 'Chilled', 'Frozen', 'Beverages', 'Bakery', 'Fresh fruit & veg', 'Cleaning & galley'];
 export const GENERAL_CATEGORIES = ['Deck', 'Ropes & rigging', 'Paint', 'Engine', 'Electrical', 'Tools', 'Cleaning', 'Chemicals', 'Stationery', 'Other'];
-export const STORE_CATEGORIES: Record<StoreKind, string[]> = { ppe: PPE_CATEGORIES, provisions: PROVISION_CATEGORIES, general: GENERAL_CATEGORIES };
+export const FLAG_CATEGORIES = ['Letters', 'Numerals', 'Special', 'Countries', 'Company'];
+export const BRIDGE_CATEGORIES = ['IMO publications', 'Nautical publications', 'Charts', 'Stationery'];
+export const STORE_CATEGORIES: Record<StoreKind, string[]> = { ppe: PPE_CATEGORIES, provisions: PROVISION_CATEGORIES, general: GENERAL_CATEGORIES, flags: FLAG_CATEGORIES, bridge: BRIDGE_CATEGORIES };
 
 /** A typical yacht PPE store — a starting list the vessel edits. Sized items are one line per size. */
 export const PPE_STARTER: { name: string; category: string; sizes?: string[]; unit: string; min: number }[] = [
@@ -149,6 +182,40 @@ export const PPE_STARTER: { name: string; category: string; sizes?: string[]; un
   { name: 'Lanyard with shock absorber', category: 'Fall protection', unit: 'pcs', min: 2 },
   { name: 'Work vest / buoyancy aid (working over the side)', category: 'Water', unit: 'pcs', min: 2 },
   { name: 'High-visibility vest', category: 'Body', unit: 'pcs', min: 4 },
+];
+
+/**
+ * A flag locker as the International Code of Signals has it: 26 letter flags, 10
+ * numeral pennants, three substitutes and the answering pennant, plus the house
+ * flag. Courtesy flags are the vessel's own to add, country by country.
+ */
+const PHONETIC = 'Alfa Bravo Charlie Delta Echo Foxtrot Golf Hotel India Juliett Kilo Lima Mike November Oscar Papa Quebec Romeo Sierra Tango Uniform Victor Whiskey X-ray Yankee Zulu'.split(' ');
+export const FLAGS_STARTER: { name: string; category: string; unit: string; min: number }[] = [
+  ...PHONETIC.map((w) => ({ name: `${w[0]} — ${w}`, category: 'Letters', unit: 'pcs', min: 1 })),
+  ...'1234567890'.split('').map((d) => ({ name: `Numeral pennant ${d}`, category: 'Numerals', unit: 'pcs', min: 1 })),
+  ...['First', 'Second', 'Third'].map((n) => ({ name: `${n} substitute`, category: 'Special', unit: 'pcs', min: 1 })),
+  { name: 'Answering pennant (code)', category: 'Special', unit: 'pcs', min: 1 },
+  { name: 'House flag', category: 'Company', unit: 'pcs', min: 1 },
+];
+
+/**
+ * The paper IMO publications most bridges keep, and the chart table's stationery.
+ * The edition goes in the item's size field ("2020 ed."); charts are the vessel's
+ * own folio, added by number.
+ */
+export const BRIDGE_STARTER: { name: string; category: string; unit: string; min: number }[] = [
+  ...[
+    'SOLAS, Consolidated Edition', 'MARPOL, Consolidated Edition', 'COLREG', 'STCW Convention and Code', 'Load Lines, Consolidated Edition',
+    'ISM Code', 'ISPS Code', 'LSA Code', 'FSS Code', 'FTP Code', 'International Code of Signals', 'IAMSAR Manual, Volume III',
+    'Standard Marine Communication Phrases', "Ships' Routeing",
+  ].map((name) => ({ name, category: 'IMO publications', unit: 'copy', min: 1 })),
+  { name: 'Chart pencils 2B', category: 'Stationery', unit: 'pcs', min: 12 },
+  { name: 'Erasers', category: 'Stationery', unit: 'pcs', min: 6 },
+  { name: 'Ballpoint pens', category: 'Stationery', unit: 'pcs', min: 20 },
+  { name: 'Highlighters', category: 'Stationery', unit: 'pcs', min: 6 },
+  { name: 'Printer paper A4', category: 'Stationery', unit: 'reams', min: 5 },
+  { name: 'Printer toner / ink', category: 'Stationery', unit: 'pcs', min: 2 },
+  { name: 'Notebooks', category: 'Stationery', unit: 'pcs', min: 6 },
 ];
 
 /** "Coveralls · L" */

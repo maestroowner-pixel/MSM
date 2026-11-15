@@ -1,0 +1,9 @@
+{
+  "name": "pdf-page",
+  "version": "1.0.0",
+  "description": "A page of a PDF as a JPEG (PDFKit on iOS, PdfRenderer on Android)",
+  "license": "UNLICENSED",
+  "author": "Kuka Soft",
+  "homepage": "https://ismpilot.com",
+  "main": "index.ts"
+}

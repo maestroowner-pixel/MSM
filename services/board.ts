@@ -659,7 +659,8 @@ export function buildBoard(x: BoardInput): Board {
     if (ppe.short) n.push({ key: 'sto:ppe:short', level: 'amber', who: 'officer', icon: 'hard-hat', route: 'Stores', params: { view: 'ppe' }, title: `${t('b.sto.ppe')} — ${t('b.belowMinX', { x: tn('n.item', ppe.short) })}` });
     if (ppe.expired) n.push({ key: 'sto:ppe:exp', level: 'red', who: 'officer', icon: 'hard-hat', route: 'Stores', params: { view: 'ppe' }, title: `${t('b.sto.ppe')} — ${t('b.pastExpiryX', { x: tn('n.item', ppe.expired) })}`, sub: t('b.sto.ppeSub') });
     // The vessel's general stores (bosun's, engine…): each its own line, to the officers.
-    for (const r of storeRooms(x.storeRoomList ?? []).filter((r) => r.kind === 'general')) {
+    // The flag locker and the charts & publications the same way: what is worn to poor is not serviceable, so it shows as below the minimum.
+    for (const r of storeRooms(x.storeRoomList ?? []).filter((r) => r.kind === 'general' || r.kind === 'flags' || r.kind === 'bridge')) {
       const c = storeCounts(storeStatus(all.filter((i) => roomOf(i) === r.id), x.storeMoves ?? [], x.today));
       const params = { view: r.id };
       if (c.expired) n.push({ key: `sto:${r.id}:exp`, level: 'red', who: 'officer', icon: 'package-variant-closed', route: 'Stores', params, title: `${r.name} — ${t('b.pastExpiryX', { x: tn('n.item', c.expired) })}` });

@@ -13,10 +13,12 @@ export interface Batch {
   key: string;
   batchNo?: string;
   expiry?: string;
+  /** Stores' flag locker only (types/stores.ts Wear) — the medicine chest has none. */
+  wear?: 'new' | 'good' | 'poor';
   qty: number;
 }
 
-export const batchKey = (b: { batchNo?: string; expiry?: string }) => `${(b.batchNo ?? '').trim().toUpperCase()}|${b.expiry ?? ''}`;
+export const batchKey = (b: { batchNo?: string; expiry?: string; wear?: string }) => `${(b.batchNo ?? '').trim().toUpperCase()}|${b.expiry ?? ''}${b.wear ? `|${b.wear}` : ''}`;
 
 const order = (a: MedMove, b: MedMove) => a.at - b.at || a.id.localeCompare(b.id);
 
@@ -26,7 +28,8 @@ export function stockByItem(moves: MedMove[]): Map<string, Batch[]> {
   for (const m of [...moves].sort(order)) {
     const map = per.get(m.itemId) ?? new Map<string, Batch>();
     const k = batchKey(m);
-    const b = map.get(k) ?? { key: k, ...(m.batchNo?.trim() ? { batchNo: m.batchNo.trim() } : {}), ...(m.expiry ? { expiry: m.expiry } : {}), qty: 0 };
+    const wear = (m as { wear?: Batch['wear'] }).wear;
+    const b = map.get(k) ?? { key: k, ...(m.batchNo?.trim() ? { batchNo: m.batchNo.trim() } : {}), ...(m.expiry ? { expiry: m.expiry } : {}), ...(wear ? { wear } : {}), qty: 0 };
     if (m.kind === 'received' || m.kind === 'returned') b.qty += m.qty;
     else if (m.kind === 'issued' || m.kind === 'disposed') b.qty -= m.qty;
     else b.qty = m.qty; // a count sets the batch
@@ -34,7 +37,8 @@ export function stockByItem(moves: MedMove[]): Map<string, Batch[]> {
     per.set(m.itemId, map);
   }
   const out = new Map<string, Batch[]>();
-  for (const [id, map] of per) out.set(id, [...map.values()].filter((b) => b.qty > 0).sort((a, b) => (a.expiry ?? '9999').localeCompare(b.expiry ?? '9999')));
+  const worn = (b: Batch) => (b.wear === 'poor' ? 2 : b.wear === 'good' ? 1 : 0);
+  for (const [id, map] of per) out.set(id, [...map.values()].filter((b) => b.qty > 0).sort((a, b) => (a.expiry ?? '9999').localeCompare(b.expiry ?? '9999') || worn(a) - worn(b)));
   return out;
 }
 

@@ -3,8 +3,9 @@ import { buildBoard, BoardInput } from '../services/board';
 import { passengerFromCloud, passengerToCloud } from '../types/passengers';
 import { planPaxImport, readPaxRows, paxSheet, PAX_HEAD } from '../services/passengerList';
 import { uid } from '../utils/id';
-import { heldByPerson, planStoreImport, readStoreSheet, storeStatus, storeSheet } from '../services/stores';
-import { STORE_CODE_RE, nextRoomCode, roomByCode, roomOf, storeRooms } from '../types/stores';
+import { batchToIssue, heldByPerson, planStoreImport, readStoreSheet, storeCounts, storeDept, storeStatus, storeSheet } from '../services/stores';
+import { batchKey } from '../services/hospital';
+import { BRIDGE_CATEGORIES, BRIDGE_STARTER, FLAGS_STARTER, STORE_CODE_RE, nextRoomCode, roomByCode, roomOf, storeRooms, toWear, wearKept } from '../types/stores';
 import { parseStoreQr, storeQrPayload } from '../services/crewQr';
 import { storeLabelSpecs } from '../services/gangwayLabels';
 
@@ -120,6 +121,32 @@ ok(order.includes('docs') && order.includes('pax') && order.indexOf('pax') < ord
   const sItems = [...items, ...bp.save.map((x) => ({ ...x, min: 10 }))];
   const b2 = buildBoard(base({ on: (k: string) => k === 'stores', storeItems: sItems, storeMoves: moves, storeRoomList: [bosun] }));
   ok(b2.attention.some((x) => x.key === 'sto:str1:short' && (x.params as any)?.view === 'str1' && x.title.startsWith("Bosun's store")), 'board: a general store below the minimum, opening that store');
+
+  // the flag locker and charts & publications: counted by wear, poor not serviceable (15 Nov 2026)
+  const locker: any = { id: 'fl1', code: 'FL', name: 'Flag locker', kind: 'flags', order: 3, updatedAt: 1 };
+  const fItems: any[] = [{ id: 'fA', store: 'flags', roomId: 'fl1', name: 'A — Alfa', category: 'Letters', unit: 'pcs', min: 1, order: 0, updatedAt: 0 }, { id: 'fES', store: 'flags', roomId: 'fl1', name: 'Courtesy flag, Spain', category: 'Countries', unit: 'pcs', min: 2, order: 1, updatedAt: 0 }];
+  const t0 = Date.now();
+  const fMoves = [mv({ itemId: 'fA', kind: 'received', qty: 1, wear: 'new', at: t0 }), mv({ itemId: 'fES', kind: 'received', qty: 3, wear: 'good', at: t0 }),
+    // counted later: one Spanish flag is now poor, the A is worn to poor
+    mv({ itemId: 'fES', kind: 'count', qty: 2, wear: 'good', at: t0 + 5 }), mv({ itemId: 'fES', kind: 'count', qty: 1, wear: 'poor', at: t0 + 5 }),
+    mv({ itemId: 'fA', kind: 'count', qty: 0, wear: 'new', at: t0 + 6 }), mv({ itemId: 'fA', kind: 'count', qty: 1, wear: 'poor', at: t0 + 6 })];
+  const fs = storeStatus(fItems, fMoves, today);
+  const f = (id: string) => fs.find((r) => r.item.id === id)!;
+  ok(f('fES').onHand === 3 && f('fES').poor === 1 && f('fES').usable === 2 && f('fES').short === 0 && f('fES').batches.map((x) => x.wear).join() === 'good,poor', 'flags: counted by wear, a poor one kept apart and not serviceable');
+  ok(f('fA').usable === 0 && f('fA').poor === 1 && f('fA').short === 1 && storeCounts(fs).poor === 2, 'flags: the only A worn to poor — below the minimum, to replace');
+  ok(batchToIssue(f('fES').batches, today)?.wear === 'good' && batchToIssue([{ key: 'p', wear: 'poor', qty: 1 }, { key: 'n', wear: 'new', qty: 1 }, { key: 'g', wear: 'good', qty: 1 }], today)?.wear === 'good', 'issue: good before new, never poor while another is left');
+  ok(toWear('Poor') === 'poor' && toWear('N') === 'new' && toWear('worn out') === 'poor' && toWear('ok') === 'good' && toWear('') === undefined && toWear('blue') === undefined, 'condition read from a sheet');
+  const fl = readStoreSheet([['Name', 'Category', 'Unit', 'Min', 'Quantity', 'Condition'], ['Courtesy flag, Spain', 'Countries', 'pcs', 2, 2, 'Good'], ['Courtesy flag, Spain', 'Countries', 'pcs', 2, 1, 'Poor'], ['Courtesy flag, Italy', 'Countries', 'pcs', 1, 1, '']]);
+  const fp = planStoreImport(fl, fItems, { id: 'fl1', kind: 'flags' });
+  ok(fp.counts.map((c) => `${c.qty}${c.wear}`).join() === '2good,1poor,1good' && fp.added.join() === 'Courtesy flag, Italy', 'flags from Excel: a line per wear counted into it; no condition = good');
+  const out = storeSheet(fs);
+  ok(out[0][8] === 'Condition' && out.some((r) => r[0] === 'Courtesy flag, Spain' && r[6] === 1 && r[8] === 'Poor'), 'flags to Excel: the condition column');
+  const fb = buildBoard(base({ on: (k: string) => k === 'stores', storeItems: fItems, storeMoves: fMoves, storeRoomList: [locker] }));
+  ok(fb.attention.some((x) => x.key === 'sto:fl1:short' && x.title.startsWith('Flag locker')), 'board: a flag worn to poor — the locker below the minimum');
+  ok(FLAGS_STARTER.filter((x) => x.category === 'Letters').length === 26 && FLAGS_STARTER.filter((x) => x.category === 'Numerals').length === 10 && FLAGS_STARTER.filter((x) => x.category === 'Special').length === 4, 'flag set: 26 letters, 10 numeral pennants, 3 substitutes + answering pennant');
+  ok(BRIDGE_STARTER.every((x) => BRIDGE_CATEGORIES.includes(x.category)) && wearKept('bridge') && !wearKept('general') && storeDept({ store: 'bridge', category: 'Charts' } as any) === 'bridge', 'charts & publications: counted by wear, ordered by the bridge');
+  // the medicine chest's batches do not change: no wear, the same key as before
+  ok(batchKey({ batchNo: 'l1', expiry: '2027-01-31' }) === 'L1|2027-01-31' && batchKey({ wear: 'poor' }) === '||poor', 'batch key: unchanged without wear');
 }
 
 // the guest list does not leave the vessel

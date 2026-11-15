@@ -42,8 +42,9 @@ function extOf(name?: string | null, fallback = 'dat'): string {
   return m ? m[1].toLowerCase() : fallback;
 }
 
-/** Copy a source uri into the persistent attachments dir; returns the new uri. */
-async function persist(srcUri: string, ext: string): Promise<string> {
+/** Copy a source uri into the persistent attachments dir; returns the new uri.
+ *  Exported for utils/pdfPage.ts (a rendered PDF page kept as a deck's picture). */
+export async function persist(srcUri: string, ext: string): Promise<string> {
   await ensureDir();
   const dest = `${DIR}${uid('att')}.${ext}`;
   await FileSystem.copyAsync({ from: srcUri, to: dest });

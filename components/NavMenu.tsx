@@ -376,7 +376,7 @@ function MenuList({
 /** Where a screen under a heading starts: a step in from the heading. */
 const INDENT = SIZES.lg + SIZES.md;
 
-const ROOM_ICON: Record<StoreKind, string> = { ppe: 'hard-hat', provisions: 'food-apple-outline', general: 'package-variant-closed' };
+const ROOM_ICON: Record<StoreKind, string> = { ppe: 'hard-hat', provisions: 'food-apple-outline', general: 'package-variant-closed', flags: 'flag-variant', bridge: 'book-open-variant' };
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
