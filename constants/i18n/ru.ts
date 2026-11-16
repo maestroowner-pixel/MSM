@@ -6592,6 +6592,8 @@ export const ru: UiDict = {
   "wc.p.oily_water_separator": "Сепаратор льяльных вод",
   "wc.p.protective_clothing_and_work_permits_enclosed_space_entry_hot_work": "Защитная одежда и наряды-допуски (вход в замкнутые пространства, огневые работы)",
   "wc.p.drug_and_alcohol_policy": "Политика в отношении алкоголя и наркотиков",
+  "wc.p.personal_medication_declared_to_the_master_what_is_taken_and_its_effect_on_duties": "Личные лекарства заявлены капитану — что принимается и как влияет на обязанности",
+  "wc.p.personal_medication_told_to_the_crew_kept_at_hand_at_muster": "Личные лекарства — сообщено экипажу, при себе на сборе",
   "wc.p.immediate_action_on_an_accident_or_medical_emergency_before_further_medical_help": "Немедленные действия при несчастном случае или неотложном медицинском состоянии до дальнейшей помощи",
   "wc.p.closing_and_opening_fire_weathertight_and_watertight_doors_other_than_hull_openings": "Закрытие и открытие противопожарных, непроницаемых и водонепроницаемых дверей (кроме отверстий в корпусе)",
   "wc.p.personal_devices_usb_sticks_phones_tablets_under_the_cyber_security_policy": "Личные устройства — флешки, телефоны, планшеты — по политике кибербезопасности",

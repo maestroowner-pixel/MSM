@@ -6505,6 +6505,8 @@ export const en = {
   "wc.p.oily_water_separator": "Oily water separator",
   "wc.p.protective_clothing_and_work_permits_enclosed_space_entry_hot_work": "Protective clothing and work permits (enclosed space entry, hot work)",
   "wc.p.drug_and_alcohol_policy": "Drug and alcohol policy",
+  "wc.p.personal_medication_declared_to_the_master_what_is_taken_and_its_effect_on_duties": "Personal medication declared to the Master — what is taken and its effect on duties",
+  "wc.p.personal_medication_told_to_the_crew_kept_at_hand_at_muster": "Personal medication — told to the crew, kept at hand at muster",
   "wc.p.immediate_action_on_an_accident_or_medical_emergency_before_further_medical_help": "Immediate action on an accident or medical emergency, before further medical help",
   "wc.p.closing_and_opening_fire_weathertight_and_watertight_doors_other_than_hull_openings": "Closing and opening fire, weathertight and watertight doors (other than hull openings)",
   "wc.p.personal_devices_usb_sticks_phones_tablets_under_the_cyber_security_policy": "Personal devices — USB sticks, phones, tablets — under the cyber security policy",

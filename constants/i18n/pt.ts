@@ -6484,6 +6484,8 @@ export const pt: UiDict = {
   "wc.p.oily_water_separator": "Separador de águas oleosas",
   "wc.p.protective_clothing_and_work_permits_enclosed_space_entry_hot_work": "Vestuário de proteção e autorizações de trabalho (espaços confinados, trabalhos a quente)",
   "wc.p.drug_and_alcohol_policy": "Política de drogas e álcool",
+  "wc.p.personal_medication_declared_to_the_master_what_is_taken_and_its_effect_on_duties": "Medicação pessoal declarada ao Comandante — o que é tomado e o efeito nas funções",
+  "wc.p.personal_medication_told_to_the_crew_kept_at_hand_at_muster": "Medicação pessoal — comunicada à tripulação, à mão na reunião",
   "wc.p.immediate_action_on_an_accident_or_medical_emergency_before_further_medical_help": "Ação imediata perante um acidente ou emergência médica, antes de mais ajuda médica",
   "wc.p.closing_and_opening_fire_weathertight_and_watertight_doors_other_than_hull_openings": "Fecho e abertura de portas corta-fogo, estanques às intempéries e estanques (exceto aberturas do casco)",
   "wc.p.personal_devices_usb_sticks_phones_tablets_under_the_cyber_security_policy": "Dispositivos pessoais — pens USB, telemóveis, tablets — segundo a política de cibersegurança",

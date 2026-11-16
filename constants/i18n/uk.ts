@@ -6592,6 +6592,8 @@ export const uk: UiDict = {
   "wc.p.oily_water_separator": "Сепаратор льяльних вод",
   "wc.p.protective_clothing_and_work_permits_enclosed_space_entry_hot_work": "Захисний одяг і наряди-допуски (вхід до замкнених просторів, вогневі роботи)",
   "wc.p.drug_and_alcohol_policy": "Політика щодо алкоголю та наркотиків",
+  "wc.p.personal_medication_declared_to_the_master_what_is_taken_and_its_effect_on_duties": "Особисті ліки задекларовано капітану — що приймається і як впливає на обов’язки",
+  "wc.p.personal_medication_told_to_the_crew_kept_at_hand_at_muster": "Особисті ліки — повідомлено екіпажу, при собі на збиранні",
   "wc.p.immediate_action_on_an_accident_or_medical_emergency_before_further_medical_help": "Негайні дії при нещасному випадку або невідкладному медичному стані до подальшої допомоги",
   "wc.p.closing_and_opening_fire_weathertight_and_watertight_doors_other_than_hull_openings": "Закриття та відкриття протипожежних, непроникних і водонепроникних дверей (крім отворів у корпусі)",
   "wc.p.personal_devices_usb_sticks_phones_tablets_under_the_cyber_security_policy": "Особисті пристрої — флешки, телефони, планшети — за політикою кібербезпеки",

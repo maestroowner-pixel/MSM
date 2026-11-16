@@ -6484,6 +6484,8 @@ export const no: UiDict = {
   "wc.p.oily_water_separator": "Oljeseparator",
   "wc.p.protective_clothing_and_work_permits_enclosed_space_entry_hot_work": "Verneklær og arbeidstillatelser (lukkede rom, varmt arbeid)",
   "wc.p.drug_and_alcohol_policy": "Rusmiddelpolicy",
+  "wc.p.personal_medication_declared_to_the_master_what_is_taken_and_its_effect_on_duties": "Personlige medisiner meldt til kapteinen — hva som tas og virkning på tjenesten",
+  "wc.p.personal_medication_told_to_the_crew_kept_at_hand_at_muster": "Personlige medisiner — meldt til besetningen, tas med til mønstring",
   "wc.p.immediate_action_on_an_accident_or_medical_emergency_before_further_medical_help": "Strakstiltak ved ulykke eller medisinsk nødsituasjon, før videre medisinsk hjelp",
   "wc.p.closing_and_opening_fire_weathertight_and_watertight_doors_other_than_hull_openings": "Lukking og åpning av branndører, værtette og vanntette dører (unntatt skrogåpninger)",
   "wc.p.personal_devices_usb_sticks_phones_tablets_under_the_cyber_security_policy": "Personlige enheter — minnepinner, telefoner, nettbrett — etter cybersikkerhetspolicyen",
