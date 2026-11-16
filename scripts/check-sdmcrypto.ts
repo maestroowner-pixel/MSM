@@ -22,7 +22,8 @@ const code = async (p: Promise<unknown>) => { try { await p; return 'ok'; } catc
   const file = await encryptSdm(state, pw, rnd);
   ok(isEncryptedSdm(file), 'recognised as encrypted');
   ok(!isEncryptedSdm(state) && !isEncryptedSdm('not json'), 'a plain file and rubbish are not');
-  for (const secret of ['Müller', 'P1', 'O+', 'NOTES', 'Sam', 'firstName']) ok(!file.includes(secret), `nothing readable: ${secret}`);
+  // Only strings of 5+ characters: a 2-letter one (P1, O+) turns up in random base64 every few runs.
+  for (const secret of ['Müller', 'NOTES', 'firstName', 'bloodType', 'bad captain']) ok(!file.includes(secret), `nothing readable: ${secret}`);
   ok((await decryptSdm(file, pw)) === state, 'opens with the password, every character back');
   ok(await code(decryptSdm(file, 'wrong password!')) === 'wrong-password', 'a wrong password is refused');
   const other = await encryptSdm(state, pw, rnd);
