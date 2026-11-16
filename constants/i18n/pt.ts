@@ -8506,5 +8506,17 @@ export const pt: UiDict = {
   "sc.nfcHold": "{name}: aproxime a sua pulseira do telefone",
   "sc.nfcHint": "A sua própria pulseira, a que lhe foi entregue. Prova que a pulseira esteve aqui, por isso traga-a consigo.",
   "sc.nfcAgain": "Ler a pulseira de novo",
-  "sc.nfcOther": "Essa é a pulseira de {name}."
+  "sc.nfcOther": "Essa é a pulseira de {name}.",
+  "ms.title": "Passo a passo",
+  "ms.sub": "Cada ecrã, cada ação",
+  "ms.lead": "Cada ecrã começa por onde está no menu. Por baixo, cada ação é uma cadeia de passos: toque no que está realçado, por essa ordem.",
+  "ms.search": "Procurar uma ação — «wristband», «PDF»…",
+  "ms.found": "{n} encontradas",
+  "ms.actions": "{n} ações",
+  "ms.none": "Nada corresponde. Tente outra palavra.",
+  "ms.perVessel": "ativado para cada navio",
+  "ms.perVesselShort": "por navio",
+  "ms.foot": "Em inglês: o realçado são os nomes em inglês da app. Noutra língua, o lugar e a ordem são os mesmos.",
+  "ms.open": "Passo a passo — cada ecrã, cada ação",
+  "ms.openSub": "Onde está cada ecrã no menu e o que tocar para cada tarefa"
 };

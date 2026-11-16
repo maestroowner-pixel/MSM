@@ -42,6 +42,7 @@ import ImportSc from './screens/ImportSc';
 import ReportsSc from './screens/ReportsSc';
 import SettingsSc from './screens/SettingsSc';
 import ManualSc from './screens/ManualSc';
+import ManualStepsSc from './screens/ManualStepsSc';
 import GettingStartedSc from './screens/GettingStartedSc';
 import LegalSc from './screens/LegalSc';
 import CertificatesSc from './screens/CertificatesSc';
@@ -608,6 +609,7 @@ const linking = {
       ReplaceItem: 'replaced/:id',
       Import: 'import',
       Manual: 'manual',
+      ManualSteps: 'manual/steps',
       GettingStarted: 'getting-started',
       Legal: 'legal/:doc',
       Compressor: 'compressor',
@@ -895,6 +897,7 @@ function Root() {
         <Stack.Screen name="ReplaceItem" component={ReplaceItemSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Import" component={ImportSc} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Manual" component={ManualSc} options={webHeader(t('hdr.manual'))} />
+        <Stack.Screen name="ManualSteps" component={ManualStepsSc} options={webHeader(t('ms.title'), { screen: 'Manual' })} />
         <Stack.Screen name="GettingStarted" component={GettingStartedSc} options={webHeader(t('hdr.gettingStarted'))} />
         <Stack.Screen name="Legal" component={LegalSc} options={webHeader(t('hdr.legal'))} />
         <Stack.Screen name="Compressor" component={CompressorSc} options={webHeader(t('hdr.compressor'), toTab('Settings'))} />

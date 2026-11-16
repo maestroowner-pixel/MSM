@@ -12,6 +12,8 @@ import { SIZES, Palette, APP_CONFIG } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { releasedManual } from '../constants/manual';
 import { manualLang } from '../utils/locale';
+import { useNavigation } from '@react-navigation/native';
+import { t } from '../utils/i18n';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -54,6 +56,7 @@ export default function ManualSc() {
   const COLORS = useTheme();
   const content = useMemo(() => releasedManual(manualLang()), []);
   const [open, setOpen] = useState<number | null>(0);
+  const nav = useNavigation<any>();
 
   const toggle = (i: number) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -63,6 +66,15 @@ export default function ManualSc() {
   return (
     <Screen scroll>
       <ScreenTitle title={content.screenTitle} subtitle={content.screenSubtitle} />
+      {/* The step-by-step manual (screens/ManualStepsSc): every screen's place in the menu and each action as a chain of taps. */}
+      <TouchableOpacity style={[styles.card, styles.header]} activeOpacity={0.7} onPress={() => nav.navigate('ManualSteps')}>
+        <MciIcon name="format-list-numbered" size={22} color={COLORS.primary} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>{t('ms.open')}</Text>
+          <Text style={styles.stepsSub}>{t('ms.openSub')}</Text>
+        </View>
+        <Text style={styles.chevron}>›</Text>
+      </TouchableOpacity>
       {content.sections.map((s, i) => {
         const expanded = open === i;
         return (
@@ -115,6 +127,7 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
   emoji: { fontSize: 22 },
   title: { flex: 1, fontSize: SIZES.h5, fontWeight: '700', color: COLORS.textDark },
   chevron: { fontSize: SIZES.h5, color: COLORS.textLight },
+  stepsSub: { fontSize: SIZES.small, color: COLORS.textLight, marginTop: 2 },
   body: { paddingHorizontal: SIZES.md, paddingBottom: SIZES.md, gap: SIZES.sm, position: 'relative' },
   watermark: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', opacity: 0.12 },
   para: { fontSize: SIZES.body, color: COLORS.text, lineHeight: 20 },

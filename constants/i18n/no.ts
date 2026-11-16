@@ -8506,5 +8506,17 @@ export const no: UiDict = {
   "sc.nfcHold": "{name}: hold armbåndet ditt mot telefonen",
   "sc.nfcHint": "Ditt eget armbånd, det du fikk utlevert. Det viser at armbåndet var her, så ha det på deg.",
   "sc.nfcAgain": "Les armbåndet på nytt",
-  "sc.nfcOther": "Det er armbåndet til {name}."
+  "sc.nfcOther": "Det er armbåndet til {name}.",
+  "ms.title": "Steg for steg",
+  "ms.sub": "Hver skjerm, hver handling",
+  "ms.lead": "Hver skjerm starter med hvor den er i menyen. Under den er hver handling en kjede av steg – trykk på det uthevede, i den rekkefølgen.",
+  "ms.search": "Finn en handling – «wristband», «PDF» …",
+  "ms.found": "{n} funnet",
+  "ms.actions": "{n} handlinger",
+  "ms.none": "Ingen treff. Prøv et annet ord.",
+  "ms.perVessel": "slås på for hvert fartøy",
+  "ms.perVesselShort": "per fartøy",
+  "ms.foot": "På engelsk: det uthevede er appens engelske navn. På et annet språk er plassen og rekkefølgen de samme.",
+  "ms.open": "Steg for steg – hver skjerm, hver handling",
+  "ms.openSub": "Hvor hver skjerm er i menyen, og hva du trykker for å få gjort hver ting"
 };
