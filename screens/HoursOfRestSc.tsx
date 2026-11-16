@@ -75,6 +75,11 @@ export default function HoursOfRestSc() {
   const [savedTo, setSavedTo] = useState<string | null>(null);
   const today = todayIso();
   const [month, setMonth] = useState(today.slice(0, 7));
+  // Last month is offered even with nothing recorded: its forgotten days are filled in, and its PDF signed, early in this one.
+  const prevMonth = (() => {
+    const [y, m] = today.slice(0, 7).split('-').map(Number);
+    return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
+  })();
   const { width } = useWindowDimensions();
   const wide = width >= 900;
 
@@ -151,7 +156,7 @@ export default function HoursOfRestSc() {
         title={`${t('rest.title')} — ${monthName(month)}`}
         subtitle={t('hor.sub')}
         help="Hours of rest"
-        actions={<MonthPicker value={month} onChange={setMonth} months={[...new Set(rest.map((d: any) => String(d.date).slice(0, 7)))]} />}
+        actions={<MonthPicker value={month} onChange={setMonth} months={[...new Set([prevMonth, ...rest.map((d: any) => String(d.date).slice(0, 7))])]} />}
       />
       {canEditCrew ? (
         <TouchableOpacity onPress={() => nav.navigate('CrewMatrix')} style={{ alignSelf: 'flex-end', marginTop: -SIZES.sm, marginBottom: SIZES.sm }} hitSlop={8}>
