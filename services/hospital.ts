@@ -7,7 +7,7 @@
 import { HospitalCategory, IMGS_REFERENCE, MED_SCALE, NURSING_SCALE, ScaleMedicine, ScaleNursing } from '../constants/medScale';
 import { isMasked, maskName } from '../utils/privacy';
 import { dailyRate, meanOfLast } from './sparesNeed';
-import { CheckLine, Issued, LandingReason, MedCheck, MedItem, MedKind, MedMove, MedOrder, MedTreatment } from '../types/hospital';
+import { CheckLine, Draw, Issued, LandingReason, MedCheck, MedItem, MedKind, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 
 export interface Batch {
   key: string;
@@ -93,6 +93,72 @@ export function pickBatch(batches: Batch[], qty: number, today: string): Batch |
   const ok = batches.filter((b) => expiryState(today, b.expiry) !== 'expired');
   return ok.find((b) => b.qty >= qty) ?? ok[0];
 }
+
+/**
+ * What a quantity is given from: the batches in date, earliest expiry first, as
+ * much of each as it holds. Short of stock, the last part is what was not found.
+ */
+export function drawBatches(batches: Batch[], qty: number, today: string): Draw[] {
+  const out: Draw[] = [];
+  let left = qty;
+  for (const b of batches.filter((x) => expiryState(today, x.expiry) !== 'expired')) {
+    if (left <= 0) break;
+    const q = Math.min(b.qty, left);
+    if (q <= 0) continue;
+    out.push({ ...(b.batchNo ? { batchNo: b.batchNo } : {}), ...(b.expiry ? { expiry: b.expiry } : {}), qty: q });
+    left -= q;
+  }
+  if (left > 0) out.push(out.length ? { ...out[out.length - 1], qty: left } : { qty: left });
+  return merge(out);
+}
+
+const merge = (list: Draw[]): Draw[] => {
+  const m = new Map<string, Draw>();
+  for (const d of list) {
+    const k = batchKey(d);
+    const x = m.get(k);
+    m.set(k, x ? { ...x, qty: x.qty + d.qty } : d);
+  }
+  return [...m.values()];
+};
+
+/** The batches a log line was given from (older entries name one). */
+export const issuedDraws = (x: Issued): Draw[] => x.from?.length ? x.from : [{ ...(x.batchNo ? { batchNo: x.batchNo } : {}), ...(x.expiry ? { expiry: x.expiry } : {}), qty: x.qty }];
+
+/** A log line as given: one batch on the line itself, several in `from`. */
+export function issuedFrom(x: Issued, draws: Draw[]): Issued {
+  const { batchNo: _b, expiry: _e, from: _f, ...rest } = x;
+  const first = draws[0];
+  return { ...rest, ...(first?.batchNo ? { batchNo: first.batchNo } : {}), ...(first?.expiry ? { expiry: first.expiry } : {}), ...(draws.length > 1 ? { from: draws } : {}) };
+}
+
+/**
+ * Where a quantity given back goes: into the batches it was given from, the one
+ * taken last first, never more into a batch than came out of it for this entry.
+ */
+export function returnDraws(x: Issued, treatmentId: string, moves: MedMove[], qty: number): Draw[] {
+  const back = new Map<string, number>();
+  for (const m of moves) if (m.treatmentId === treatmentId && m.itemId === x.itemId && m.kind === 'returned') back.set(batchKey(m), (back.get(batchKey(m)) ?? 0) + m.qty);
+  const out: Draw[] = [];
+  let left = qty;
+  for (const d of [...issuedDraws(x)].reverse()) {
+    if (left <= 0) break;
+    const k = batchKey(d);
+    const room = d.qty - (back.get(k) ?? 0);
+    if (room <= 0) continue;
+    const q = Math.min(room, left);
+    out.push({ ...d, qty: q });
+    back.set(k, (back.get(k) ?? 0) + q);
+    left -= q;
+  }
+  return out;
+}
+
+/** "lot A ×3, lot B ×2" — for the reports. */
+export const drawsText = (x: Issued) => {
+  const d = issuedDraws(x);
+  return d.length > 1 ? d.map((y) => `${y.batchNo ?? '—'} ×${y.qty}`).join(', ') : d[0]?.batchNo ?? '';
+};
 
 /** "2027-03" → last day of the month; "2027-03-15" stays; Excel serials and dates too. */
 export function normExpiry(v: unknown): string | undefined {

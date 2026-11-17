@@ -34,7 +34,7 @@ import { Issued, MedFile, MedMove, MedOutcome, MedTreatment, OUTCOME_LABEL, Vita
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { proofShort } from '../services/signature';
-import { chestStatus, issuedText, matchesSearch, nextMedNo, pickBatch, purposeIcon, purposeOf, returnedFor, scaleEntry } from '../services/hospital';
+import { chestStatus, drawBatches, issuedDraws, issuedFrom, issuedText, matchesSearch, nextMedNo, purposeIcon, purposeOf, returnDraws, returnedFor, scaleEntry } from '../services/hospital';
 import { MciIcon } from '../components/MciIcon';
 import { PickedMedFile, keepMedFile, openMedFile, photoMedFile, pickMedFile, sizeText } from '../services/medFiles';
 import { exportTreatmentPdf } from '../services/hospitalReport';
@@ -146,12 +146,12 @@ export default function TreatmentSc() {
       const w = isCd ? await witness.confirm(what) : null;
       if (isCd && !w) return;
       const now = Date.now();
-      // Back into the batch it was given from; the patient's name stays in the log, not on the move.
-      const m: MedMove = {
-        id: uid('mmv'), itemId: x.itemId, kind: 'returned', qty, ...(x.batchNo ? { batchNo: x.batchNo } : {}), ...(x.expiry ? { expiry: x.expiry } : {}), date: today, note: `${t.no} returned unused`, treatmentId: t.id,
+      // Back into the batches it was given from; the patient's name stays in the log, not on the move.
+      const out: MedMove[] = returnDraws(x, t.id, medMoves, qty).map((p) => ({
+        id: uid('mmv'), itemId: x.itemId, kind: 'returned', qty: p.qty, ...(p.batchNo ? { batchNo: p.batchNo } : {}), ...(p.expiry ? { expiry: p.expiry } : {}), date: today, note: `${t.no} returned unused`, treatmentId: t.id,
         by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), ...(w ?? {}), updatedAt: now,
-      };
-      await saveRow(storage.MED_MOVES_KEY, m);
+      }));
+      await saveRows(storage.MED_MOVES_KEY, out);
       setRet(null);
       playSuccessSound();
       setSaved(`${x.name}: ${qty} ${x.unit} back in the chest`);
@@ -252,11 +252,8 @@ export default function TreatmentSc() {
     const w = cdGiven ? await witness.confirm(`${what}: ${d.issued.filter((x) => medItems.find((i) => i.id === x.itemId)?.controlled).map(issuedText).join(', ')}`) : null;
     if (cdGiven && !w) return;
     const now = Date.now();
-    // The batch each medicine came from — the one in date that expires first.
-    const issued: Issued[] = d.issued.map((x) => {
-      const b = pickBatch(status.find((s) => s.item.id === x.itemId)?.batches ?? [], x.qty, today);
-      return { ...x, ...(b?.batchNo ? { batchNo: b.batchNo } : {}), ...(b?.expiry ? { expiry: b.expiry } : {}) };
-    });
+    // The batches each medicine came from — in date, the one that expires first, then the next.
+    const issued: Issued[] = d.issued.map((x) => issuedFrom(x, drawBatches(status.find((s) => s.item.id === x.itemId)?.batches ?? [], x.qty, today)));
     const vit = Object.fromEntries(Object.entries(d.vitals ?? {}).filter(([, val]) => String(val ?? '').trim())) as Vitals;
     const t: MedTreatment = {
       ...d, no, patient, complaint: d.complaint.trim(), issued, ...(Object.keys(vit).length ? { vitals: vit } : { vitals: undefined }),
@@ -268,11 +265,12 @@ export default function TreatmentSc() {
     const out: MedMove[] = [];
     for (const x of issued) {
       const isCd = medItems.find((i) => i.id === x.itemId)?.controlled;
-      const m: MedMove = {
-        id: uid('mmv'), itemId: x.itemId, kind: 'issued', qty: x.qty, ...(x.batchNo ? { batchNo: x.batchNo } : {}), ...(x.expiry ? { expiry: x.expiry } : {}), date: d.date, note: no, treatmentId: clean.id,
-        by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), ...(isCd && w ? w : {}), updatedAt: now,
-      };
-      out.push(m);
+      for (const p of issuedDraws(x)) {
+        out.push({
+          id: uid('mmv'), itemId: x.itemId, kind: 'issued', qty: p.qty, ...(p.batchNo ? { batchNo: p.batchNo } : {}), ...(p.expiry ? { expiry: p.expiry } : {}), date: d.date, note: no, treatmentId: clean.id,
+          by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), ...(isCd && w ? w : {}), updatedAt: now,
+        });
+      }
     }
     await saveRows(storage.MED_MOVES_KEY, out);
     // Files picked before signing go now.

@@ -1,7 +1,7 @@
 // npm run check:hospital — stock by batch, expiry, orders delivered in parts, the inventory, the register, the scale, the Excel list, the board.
 import {
   chestStatus, checkLinesFor, differences, expiryState, followUpsDue, lastControlledCount, nextNo, normExpiry, onOrderByItem, orderOverdue, orderState,
-  pickBatch, planImport, batchLabel, sortChest, purposeOf, earliestExpiry, matchesName, placeText, comparePlace, stockLevel, matchesSearch, purposeIcon, mmYY, readSheet, receivedByLine, registerLines, scaleEntry, scaleItems, stockByItem, toOrder, landingLinesFor, listNoOf, referenceOf, returnedFor, maskName, isMasked, treatmentToCloud, treatmentFromCloud, isLanding, CHECK_KIND_LABEL,
+  pickBatch, drawBatches, issuedDraws, issuedFrom, returnDraws, drawsText, planImport, batchLabel, sortChest, purposeOf, earliestExpiry, matchesName, placeText, comparePlace, stockLevel, matchesSearch, purposeIcon, mmYY, readSheet, receivedByLine, registerLines, scaleEntry, scaleItems, stockByItem, toOrder, landingLinesFor, listNoOf, referenceOf, returnedFor, maskName, isMasked, treatmentToCloud, treatmentFromCloud, isLanding, CHECK_KIND_LABEL,
 } from '../services/hospital';
 import { MED_SCALE, NURSING_SCALE } from '../constants/medScale';
 import { buildBoard } from '../services/board';
@@ -22,6 +22,29 @@ ok(st.onHand === 138 && st.expired === 50 && st.usable === 88 && st.short === 12
 ok(st.next === '2026-11-01' && st.nextState === 'soon', 'next expiry of what is in date — within 30 days');
 ok(expiryState(T, '2026-10-20') === 'soon' && expiryState(T, '2026-10-12') === 'expired' && expiryState(T, undefined) === 'none', 'expiry states');
 ok(pickBatch(b, 5, T)?.batchNo === 'b2', 'medicine given from the batch in date that expires first');
+
+// given across batches: no batch goes below nothing; given back the way it went
+{
+  const two = [M({ itemId: 'd', qty: 3, batchNo: 'A', expiry: '2027-01-31' }), M({ itemId: 'd', qty: 4, batchNo: 'B', expiry: '2028-01-31' }), M({ itemId: 'd', qty: 9, batchNo: 'X', expiry: '2026-01-31' })];
+  const dr = drawBatches(stockByItem(two).get('d')!, 5, T);
+  ok(dr.length === 2 && dr[0].batchNo === 'A' && dr[0].qty === 3 && dr[1].batchNo === 'B' && dr[1].qty === 2, 'short in one batch: 3 from A (expires first), 2 from B; the expired lot untouched');
+  ok(drawBatches(stockByItem(two).get('d')!, 2, T).length === 1, 'one batch enough = one part');
+  const big = [M({ itemId: 'e', qty: 3, batchNo: 'A', expiry: '2027-01-31' }), M({ itemId: 'e', qty: 10, batchNo: 'B', expiry: '2028-01-31' })];
+  ok(drawBatches(stockByItem(big).get('e')!, 5, T).map((x) => `${x.batchNo}${x.qty}`).join() === 'A3,B2', 'the batch expiring first is used up first, even when a later one could cover it all');
+  const line = issuedFrom({ itemId: 'd', name: 'D', qty: 5, unit: 'amp' }, dr);
+  ok(line.batchNo === 'A' && line.from?.length === 2 && issuedDraws(line).length === 2 && drawsText(line) === 'A ×3, B ×2', 'the log line names both batches');
+  ok(!issuedFrom({ itemId: 'd', name: 'D', qty: 2, unit: 'amp' }, [{ batchNo: 'A', qty: 2 }]).from, 'one batch: no list on the line, as before');
+  const out = [...two, ...dr.map((p) => M({ itemId: 'd', kind: 'issued', qty: p.qty, batchNo: p.batchNo, expiry: p.expiry, treatmentId: 't1' }))];
+  const left = stockByItem(out).get('d')!.filter((x) => x.batchNo !== 'X');
+  ok(left.length === 1 && left[0].batchNo === 'B' && left[0].qty === 2, 'chest after: A empty, B 2 — as the register says');
+  ok(registerLines('d', out).pop()!.balance === 2 + 9, 'register balance agrees with the chest');
+  const r1 = returnDraws(line, 't1', out, 3);
+  ok(r1.map((x) => `${x.batchNo}${x.qty}`).join() === 'B2,A1', 'given back 3: into B (taken last) first, then A');
+  const out2 = [...out, ...r1.map((p) => M({ itemId: 'd', kind: 'returned', qty: p.qty, batchNo: p.batchNo, expiry: p.expiry, treatmentId: 't1' }))];
+  ok(returnDraws(line, 't1', out2, 2).map((x) => `${x.batchNo}${x.qty}`).join() === 'A2', 'the rest goes back to A only');
+  const old = { itemId: 'p', name: 'P', qty: 4, unit: 'tab', batchNo: 'b2', expiry: '2026-11-01' };
+  ok(returnDraws(old, 't0', [], 4).map((x) => `${x.batchNo}${x.qty}`).join() === 'b24', 'an older entry with one batch: back into that batch');
+}
 ok(normExpiry('2027-03') === '2027-03-31' && normExpiry('03/2027') === '2027-03-31' && normExpiry('15.04.2027') === '2027-04-15' && normExpiry(46000) === '2025-12-09' && normExpiry('soon') === undefined, 'expiry as written: month alone = its last day; dd.mm.yyyy; Excel serial');
 
 // orders delivered in parts

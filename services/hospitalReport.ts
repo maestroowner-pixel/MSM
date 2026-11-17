@@ -20,7 +20,7 @@ import { VesselInfo } from './storage';
 import { esc, share, vesselHeader } from './export';
 import { exportPmsHistory } from './pmsHistoryReport';
 import { sheetRows } from './pmsImport';
-import { batchLabel, listNoOf, comparePlace, placeText, ItemStatus, MOVE_LABEL, SHEET_HEAD, daysTo, expiryState, issuedText, receivedByLine, registerLines, sheetOf, sortTreatments, toOrder } from './hospital';
+import { batchLabel, listNoOf, comparePlace, placeText, ItemStatus, MOVE_LABEL, SHEET_HEAD, daysTo, drawsText, expiryState, issuedDraws, issuedText, receivedByLine, registerLines, sheetOf, sortTreatments, toOrder } from './hospital';
 import { proofShort } from './signature';
 import { LANDING_REASON_LABEL, MedCheck, MedItem, MedMove, MedOrder, MedTreatment, OUTCOME_LABEL } from '../types/hospital';
 import type { SignProof } from './signature';
@@ -263,7 +263,7 @@ export function treatmentDoc(t: MedTreatment, vessel: VesselInfo | null): MedDoc
       ...(vit.length ? [{ title: 'Vital signs', rows: vit }] : []),
       { title: 'Examination and diagnosis', rows: [['Findings', t.findings ?? '—'], ['Diagnosis', t.diagnosis ?? '—']] },
       { title: 'Treatment', rows: [['Treatment given', t.treatment ?? '—']] },
-      ...(t.issued.length ? [{ title: 'Medicines given', table: { head: ['Medicine', 'Qty', 'Dose', 'Batch', 'Expiry'], rows: t.issued.map((x) => [x.name, `${x.qty} ${x.unit}`, x.dose ?? '', x.batchNo ?? '', x.expiry ?? '']) } }] : []),
+      ...(t.issued.length ? [{ title: 'Medicines given', table: { head: ['Medicine', 'Qty', 'Dose', 'Batch', 'Expiry'], rows: t.issued.map((x) => [x.name, `${x.qty} ${x.unit}`, x.dose ?? '', drawsText(x), [...new Set(issuedDraws(x).map((d) => d.expiry ?? ''))].filter(Boolean).join(', ')]) } }] : []),
       ...(t.tmas ? [{ title: 'Radio medical advice', rows: [['Centre', t.tmas.centre ?? '—'], ['Reference', t.tmas.ref ?? '—'], ['Advice', t.tmas.advice ?? '—']] as [string, string][] }] : []),
       { title: 'Outcome', rows: [['Outcome', OUTCOME_LABEL[t.outcome]], ['Follow-up', t.followUp ?? '—']] },
       { title: 'Signed', rows: [sig('Treated by', t.by, t.byRank, t.signedWith, t.at), ...(t.witness ? [sig('Witness (controlled drug)', t.witness, t.witnessRank, t.witnessWith)] : [])] },

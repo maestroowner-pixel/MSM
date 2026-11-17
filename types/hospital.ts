@@ -208,6 +208,13 @@ export interface Vitals {
   spo2?: string;
 }
 
+/** A part of a quantity, batch by batch. */
+export interface Draw {
+  batchNo?: string;
+  expiry?: string;
+  qty: number;
+}
+
 export interface Issued {
   itemId: string;
   name: string;
@@ -215,6 +222,8 @@ export interface Issued {
   unit: string;
   batchNo?: string;
   expiry?: string;
+  /** Taken from more than one batch: how much from each, earliest expiry first. `batchNo`/`expiry` are the first. */
+  from?: Draw[];
   /** Dose and how given — "1 g orally every 6 h". */
   dose?: string;
 }
