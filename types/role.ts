@@ -211,12 +211,13 @@ export function personName(d: { firstName?: string; lastName?: string }): string
  * device, and a reinstalled phone too; the old record stays, so the Master's
  * tables filled with five "Master Nemo · Web". Grouped by name, rank and kind of
  * device, the one seen last is kept and the rest are its older connections —
- * except this device itself, which is always the one kept in its group.
+ * except this device itself, which is always the one kept in its group. Shore
+ * accounts too (17 Nov 2026), as the server does (functions/devices.js).
  *
  * Returns older id → the id of the connection kept.
  */
 export function olderConnections(devices: EnrolledDevice[], meId?: string): Map<string, string> {
-  const live = devices.filter((d) => d.approved && !d.disabled && d.role !== 'shore');
+  const live = devices.filter((d) => d.approved && !d.disabled);
   const key = (d: EnrolledDevice) => [personName(d).toLowerCase().replace(/\s+/g, ' '), d.role, d.platform ?? ''].join('|');
   const groups = new Map<string, EnrolledDevice[]>();
   for (const d of live) {

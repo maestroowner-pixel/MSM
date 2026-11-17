@@ -528,7 +528,12 @@ async function liveShoreVessels(deviceId, vessels) {
   for (const v of vessels || []) {
     const snap = await db.doc(`${ROOT}/${v}/devices/${deviceId}`).get();
     const d = snap.exists ? snap.data() : null;
-    if (d && d.role === 'shore' && d.approved === true && !d.disabled) live.push(v);
+    if (!d || d.role !== 'shore' || d.approved !== true) continue;
+    // Retired as an older connection (functions/devices.js): this browser is in use
+    // again, so it comes back. Switched off by the Master: it stays out.
+    if (d.disabled && !d.retiredAt) continue;
+    if (d.retiredAt) await snap.ref.set(revive(), { merge: true });
+    live.push(v);
   }
   return live;
 }
@@ -603,7 +608,7 @@ exports.enrolShore = onCall({ region: REGION }, async (req) => {
   // switch off. Approved at once — the Master decided when issuing the invitation.
   const deviceRef = db.doc(`${ROOT}/${vessel}/devices/${deviceId}`);
   const existing = (await deviceRef.get()).data();
-  if (existing?.disabled) throw new HttpsError('permission-denied', 'This account has been switched off by the Master.');
+  if (existing?.disabled && !existing.retiredAt) throw new HttpsError('permission-denied', 'This account has been switched off by the Master.');
   await deviceRef.set(
     {
       id: deviceId,
@@ -615,9 +620,11 @@ exports.enrolShore = onCall({ region: REGION }, async (req) => {
       platform: 'web',
       lastSeenAt: now,
       createdAt: existing?.createdAt ?? now,
+      ...(existing?.retiredAt ? revive() : {}),
     },
     { merge: true }
   );
+  await retireDuplicates(vessel, deviceId).catch((e) => console.warn(`[enrolShore] retiring duplicates on ${vessel}: ${e && e.message ? e.message : e}`));
   const others = (invite.activations || []).filter((a) => a.deviceId !== deviceId);
   await invitesRef.doc(invite.id).set({ activations: [...others, { deviceId, at: now, platform: 'web' }] }, { merge: true });
   await rate.clear();

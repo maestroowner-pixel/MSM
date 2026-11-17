@@ -20,8 +20,8 @@ t('enrolment: the new one is kept, the others go whatever their age', () => {
 t('enrolment touches only its own group', () => {
   assert.deepStrictEqual(ids(retirable([dev('x', 200), dev('y', 300), dev('new', 0, { firstName: 'Jez' })], { keepId: 'new', now: NOW })), []);
 });
-t('different rank, kind of device, shore, waiting or switched off: not grouped', () => {
-  const r = retirable([dev('a', 1), dev('b', 200, { role: 'admin' }), dev('c', 200, { platform: 'android' }), dev('d', 200, { role: 'shore' }), dev('e', 200, { approved: false }), dev('f', 200, { disabled: true })], { now: NOW });
+t('different rank, kind of device, waiting or switched off: not grouped', () => {
+  const r = retirable([dev('a', 1), dev('b', 200, { role: 'admin' }), dev('c', 200, { platform: 'android' }), dev('e', 200, { approved: false }), dev('f', 200, { disabled: true })], { now: NOW });
   assert.deepStrictEqual(ids(r), []);
 });
 t('name compared without case and extra spaces; no name, no grouping', () => {
@@ -35,5 +35,11 @@ t('Marine Hospital Manager on the same phone is another app, not a duplicate', (
   assert.deepStrictEqual(ids(retirable([dev('a', 1), dev('m', 200, { app: 'mhm' })], { now: NOW })), []);
   assert.deepStrictEqual(ids(retirable([dev('a', 1), dev('m', 0, { app: 'mhm' })], { keepId: 'm', now: NOW })), []);
   assert.deepStrictEqual(ids(retirable([dev('m1', 1, { app: 'mhm' }), dev('m2', 200, { app: 'mhm' })], { now: NOW })), ['m2>m1']);
+});
+t('shore: a superintendent\'s older browsers go like anyone\'s', () => {
+  const sup = (id, h, x = {}) => dev(id, h, { firstName: 'Test', lastName: 'Superintendent', role: 'shore', ...x });
+  assert.deepStrictEqual(ids(retirable([sup('s1', 1), sup('s2', 200), sup('s3', 300), dev('a', 1)], { now: NOW })), ['s2>s1', 's3>s1']);
+  assert.deepStrictEqual(ids(retirable([sup('s1', 1), sup('new', 0)], { keepId: 'new', now: NOW })), ['s1>new']);
+  assert.deepStrictEqual(ids(retirable([sup('s1', 200), dev('m', 1, { firstName: 'Test', lastName: 'Superintendent' })], { now: NOW })), []);
 });
 console.log(`check:devices — ${n} passed`);

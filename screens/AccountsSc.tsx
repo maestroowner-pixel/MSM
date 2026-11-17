@@ -13,7 +13,7 @@
 // ===================================
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { Card, Empty, Label, Screen, ScreenTitle } from '../components/ui';
 import { MciIcon } from '../components/MciIcon';
@@ -75,9 +75,11 @@ export default function AccountsSc() {
   const shownTab: Tab = isMaster ? tab : 'devices';
   const [invites, setInvites] = useState<Invite[]>([]);
   const [devices, setDevices] = useState<EnrolledDevice[]>([]);
-  // Connections the server retired as duplicates (functions/devices.js) — out of the list unless asked for.
+  // Connections the server retired as duplicates (functions/devices.js), and those the
+  // Master switched off (17 Nov 2026) — out of the list unless asked for.
   const [showRetired, setShowRetired] = useState(false);
   const retired = useMemo(() => devices.filter((d) => d.disabled && d.retiredAt), [devices]);
+  const switchedOff = useMemo(() => devices.filter((d) => d.disabled && !d.retiredAt), [devices]);
   const older = useMemo(() => olderConnections(devices, me?.id), [devices, me?.id]);
   const [error, setError] = useState<string | null>(null);
   /** This device's own id — it must not be able to remove itself (see below). */
@@ -102,10 +104,13 @@ export default function AccountsSc() {
    * utils/version.ts for why the fleet's own newest is the yardstick rather than
    * some idea of what the stores have released.
    */
+  // Marine Hospital Manager is another app with its own numbers ("MHM 4.4.1"): each
+  // device is measured against its own app's newest, or 2.75 read as behind 4.4.1.
   const newest = useMemo(
-    () => newestVersion([...devices.map((d) => d.appVersion), APP_CONFIG.version]),
+    () => newestVersion([...devices.filter((d) => d.app !== 'mhm').map((d) => d.appVersion), APP_CONFIG.version]),
     [devices]
   );
+  const newestMhm = useMemo(() => newestVersion(devices.filter((d) => d.app === 'mhm').map((d) => d.appVersion)), [devices]);
 
   const [renaming, setRenaming] = useState<EnrolledDevice | null>(null);
   const [sharing, setSharing] = useState<EnrolledDevice | null>(null);
@@ -489,11 +494,16 @@ export default function AccountsSc() {
           </Card>
         ) : null}
         <FlatList
-          data={showRetired ? devices : devices.filter((d) => !(d.disabled && d.retiredAt))}
+          data={showRetired ? devices : devices.filter((d) => !d.disabled)}
           keyExtractor={(d) => d.id}
-          ListFooterComponent={retired.length ? (
+          ListFooterComponent={retired.length || switchedOff.length ? (
             <TouchableOpacity onPress={() => setShowRetired(!showRetired)} style={{ paddingVertical: SIZES.sm }}>
-              <Text style={styles.meta}>{showRetired ? t('acc.hideRetired') : t('acc.showRetired', { conns: tn('n.olderConn', retired.length) })}</Text>
+              {showRetired ? <Text style={styles.meta}>{t('acc.hideRetired')}</Text> : (
+                <>
+                  {retired.length ? <Text style={styles.meta}>{t('acc.showRetired', { conns: tn('n.olderConn', retired.length) })}</Text> : null}
+                  {switchedOff.length ? <Text style={styles.meta}>{t('acc.showOff', { conns: tn('n.olderConn', switchedOff.length) })}</Text> : null}
+                </>
+              )}
             </TouchableOpacity>
           ) : null}
           contentContainerStyle={{ paddingBottom: SIZES.xxxl }}
@@ -534,8 +544,8 @@ export default function AccountsSc() {
                         has: is an old build why they cannot find the round I set
                         up? Amber only when something is behind; a fleet that is
                         current should look quiet. */}
-                    <Text style={[styles.meta, versionStanding(item.appVersion, newest).kind === 'behind' && styles.behind]}>
-                      {verText(versionStanding(item.appVersion, newest))}
+                    <Text style={[styles.meta, versionStanding(item.appVersion, item.app === 'mhm' ? newestMhm : newest).kind === 'behind' && styles.behind]}>
+                      {verText(versionStanding(item.appVersion, item.app === 'mhm' ? newestMhm : newest))}
                     </Text>
                   </View>
                   {!item.approved && !item.disabled ? (
@@ -567,10 +577,10 @@ export default function AccountsSc() {
       {/* Issuing an account (15 Oct 2026: a button and a sheet — the form used to
           sit on top of the lists, and the devices were below the fold). Same
           backdrop-as-sibling arrangement as the rename sheet below. */}
-      <Modal visible={issuing} transparent animationType="slide" onRequestClose={() => setIssuing(false)}>
-        <View style={styles.backdrop}>
+      <Modal visible={issuing} transparent animationType="slide" statusBarTranslucent onRequestClose={() => setIssuing(false)}>
+        <KeyboardAvoidingView style={styles.backdrop} behavior={KB_BEHAVIOR}>
           <Pressable style={StyleSheet.absoluteFill} accessibilityLabel={t('common.close')} onPress={() => setIssuing(false)} />
-          <View style={styles.sheet}>
+          <ScrollView style={styles.sheet} keyboardShouldPersistTaps="handled">
             <Text style={styles.sheetTitle}>{t('acc.issue')}</Text>
             <Text style={styles.note}>{t('acc.issueNote')}</Text>
             <TextInput
@@ -627,8 +637,8 @@ export default function AccountsSc() {
                 <Text style={styles.tabText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Rename. The bridge computer two officers rotate through is not called
@@ -639,9 +649,10 @@ export default function AccountsSc() {
         visible={!!renaming}
         transparent
         animationType="slide"
+        statusBarTranslucent
         onRequestClose={() => setRenaming(null)}
       >
-        <View style={styles.backdrop}>
+        <KeyboardAvoidingView style={styles.backdrop} behavior={KB_BEHAVIOR}>
           {/* THE BACKDROP IS A SIBLING, NOT A PARENT, and that is the fix for a
               bug a vessel reported on 25 Sep 2026: "every time I select the name
               to edit it, the box closes before I can complete the change".
@@ -658,7 +669,7 @@ export default function AccountsSc() {
             accessibilityLabel={t('common.close')}
             onPress={() => setRenaming(null)}
           />
-          <View style={styles.sheet}>
+          <ScrollView style={styles.sheet} keyboardShouldPersistTaps="handled">
             <Text style={styles.sheetTitle}>{t('acc.renameTitle')}</Text>
             <Text style={styles.note}>{t('acc.renameNote')}</Text>
             <TextInput
@@ -719,8 +730,8 @@ export default function AccountsSc() {
                 <Text style={styles.primaryBtnText}>{t('common.save')}</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
       <SignerPicker
         visible={!!sharing}
@@ -736,6 +747,11 @@ export default function AccountsSc() {
     </Screen>
   );
 }
+
+// The sheets rise above the keyboard (17 Nov 2026: "the keyboard covers everything").
+// The app is edge-to-edge on Android, so the window no longer resizes for the
+// keyboard there, and a Modal never did — both platforms pad, the web needs nothing.
+const KB_BEHAVIOR = Platform.OS === 'web' ? undefined : 'padding';
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({
@@ -811,6 +827,7 @@ const makeStyles = (COLORS: Palette) =>
 
     backdrop: { flex: 1, backgroundColor: '#0006', justifyContent: 'flex-end' },
     sheet: {
+      flexGrow: 0,
       backgroundColor: COLORS.cardSolid,
       borderTopLeftRadius: SIZES.radiusLg,
       borderTopRightRadius: SIZES.radiusLg,

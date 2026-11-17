@@ -18,8 +18,10 @@
 // stay away. The Master's own "Switch off" clears `retiredAt` (services/accounts
 // disableDevice), and that one holds.
 //
-// Grouping is the app's: name, rank, kind of device. Shore accounts and anything
-// not approved are left alone.
+// Grouping is the app's: name, rank, kind of device. Anything not approved is left
+// alone. Shore accounts are grouped too (17 Nov 2026: a superintendent's every new
+// browser left a row, eight "Test Superintendent" on one vessel); a retired one
+// comes back the same way, through refreshShore / enrolShore.
 // ===================================
 
 const { onSchedule } = require('firebase-functions/v2/scheduler');
@@ -40,7 +42,7 @@ const seen = (d) => d.lastSeenAt || d.createdAt || 0;
  * Returns [{ id, keep }].
  */
 function retirable(devices, { keepId, now = Date.now(), idleMs = IDLE_MS } = {}) {
-  const live = devices.filter((d) => d.approved === true && !d.disabled && d.role !== 'shore' && personName(d));
+  const live = devices.filter((d) => d.approved === true && !d.disabled && personName(d));
   // Marine Hospital Manager on the same phone is another app, not an older connection.
   const key = (d) => [personName(d).toLowerCase().replace(/\s+/g, ' '), d.role, d.platform || '', d.app || ''].join('|');
   const groups = new Map();
