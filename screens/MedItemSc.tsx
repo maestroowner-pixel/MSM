@@ -24,6 +24,7 @@ import { useSignConfirm } from '../components/SignConfirm';
 import { useSigner } from '../components/SignerChoice';
 import { useWitness } from '../components/WitnessChoice';
 import { MciIcon } from '../components/MciIcon';
+import { MedLabelButtons } from '../components/MedLabelButtons';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
@@ -251,6 +252,8 @@ export default function MedItemSc() {
               </View>
             )
           ) : null}
+
+          {stored ? <MedLabelButtons items={[stored]} /> : null}
 
           {refText || ref.med ? (
             <>

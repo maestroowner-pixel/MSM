@@ -23,6 +23,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Card, Screen, ScreenTitle } from '../components/ui';
 import { Dropdown } from '../components/Dropdown';
 import { MciIcon } from '../components/MciIcon';
+import { MedLabelButtons } from '../components/MedLabelButtons';
 import { useSigner } from '../components/SignerChoice';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
@@ -353,6 +354,7 @@ export default function HospitalSc() {
               <TouchableOpacity onPress={() => void run(t('hos.excelList'), () => exportChestTemplate(rows))}><Text style={styles.link}>{t('hos.excelFill')}</Text></TouchableOpacity>
             </View>
           ) : null}
+          {rows.length ? <MedLabelButtons items={shown.map((r) => r.item)} /> : null}
           {rows.length ? (
             <View style={styles.row}>
               <TouchableOpacity style={styles.btn} onPress={() => void run(t('hos.chest'), () => exportChestPdf(rows, today, vessel))}><Text style={styles.btnText}>{t('hos.invPdf')}</Text></TouchableOpacity>

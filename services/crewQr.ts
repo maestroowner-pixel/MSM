@@ -23,6 +23,22 @@ export function parseSopepQr(payload: string): string | null {
   return s.slice(SOPEP_QR_SCHEME.length).trim() || null;
 }
 
+/**
+ * A line of the medicine chest (types/hospital.ts MedItem) — scanned, it opens the
+ * item. Marine Hospital Manager joined to the vessel prints the same payload with
+ * the same id (17 Nov 2026), so one sticker on a box works in both apps.
+ */
+export const MED_QR_SCHEME = 'msm://med/';
+export function medQrPayload(id: string): string {
+  return `${MED_QR_SCHEME}${id}`;
+}
+export function parseMedQr(payload: string): string | null {
+  const s = payload.trim();
+  if (s.length <= MED_QR_SCHEME.length) return null;
+  if (s.slice(0, MED_QR_SCHEME.length).toLowerCase() !== MED_QR_SCHEME) return null;
+  return s.slice(MED_QR_SCHEME.length).trim() || null;
+}
+
 /** A store's label (types/stores.ts StoreRoom) — scanned, it opens that store's list. */
 export const STORE_QR_SCHEME = 'msm://store/';
 export function storeQrPayload(id: string): string {

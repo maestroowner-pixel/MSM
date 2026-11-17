@@ -13,7 +13,7 @@ import QRCode from 'qrcode';
 
 import { VesselInfo } from './storage';
 import { esc, share } from './export';
-import { checkpointQrPayload, crewQrPayload, keyQrPayload, passQrPayload, sopepQrPayload, storeQrPayload } from './crewQr';
+import { checkpointQrPayload, crewQrPayload, keyQrPayload, medQrPayload, passQrPayload, sopepQrPayload, storeQrPayload } from './crewQr';
 import { CrewMember } from '../types/crew';
 import { onWeb, onWindows } from '../utils/fileShare';
 import { saveFileWeb } from '../utils/webSave';
@@ -150,6 +150,11 @@ export function exportLockerLabels(list: { id: string; name: string; code?: stri
   return exportCards(list.map((l) => ({ name: l.name, sub: [l.code, l.location].filter(Boolean).join(' · '), foot: 'SOPEP LOCKER · scan to see what is inside', qr: sopepQrPayload(l.id) })), vessel, 'SOPEP locker labels');
 }
 
+/** Medicine chest labels — the name, strength and list No., the QR that opens the item (types/hospital.ts MedItem). */
+export function exportMedLabels(list: { id: string; name: string; strength?: string; listNo?: string; location?: string; cabinet?: string; cell?: string }[], vessel: VesselInfo | null) {
+  return exportCards(list.map((i) => ({ name: i.name, sub: [i.strength, i.listNo, [i.location, i.cabinet, i.cell].filter(Boolean).join(' / ')].filter(Boolean).join(' · '), foot: 'HOSPITAL · scan to open the item', qr: medQrPayload(i.id) })), vessel, 'Medicine chest labels');
+}
+
 /** Store labels — the store's name, its ID and place, the QR that opens its list (types/stores.ts StoreRoom). */
 export function exportStoreLabels(list: { id: string; code: string; name: string; location?: string }[], vessel: VesselInfo | null) {
   return exportCards(list.map((r) => ({ name: r.name, sub: [r.code, r.location].filter(Boolean).join(' · '), foot: 'STORE · scan to open its list', qr: storeQrPayload(r.id) })), vessel, 'Store labels');
@@ -175,4 +180,4 @@ export function exportVisitorPasses(count: number, vessel: VesselInfo | null) {
 }
 
 // Label-printer stickers of the same cards: services/gangwayLabels.ts (pure, tested).
-export { GANGWAY_STOCKS, crewCardSpecs, sopepLabelSpecs, storeLabelSpecs, visitorPassSpecs } from './gangwayLabels';
+export { GANGWAY_STOCKS, crewCardSpecs, medLabelSpecs, sopepLabelSpecs, storeLabelSpecs, visitorPassSpecs } from './gangwayLabels';

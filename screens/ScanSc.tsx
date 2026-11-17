@@ -57,7 +57,7 @@ import { CATEGORY_MAP, catLabel } from '../constants/categories';
 import { CheckResult, InspectionPeriod } from '../types/inspection';
 import { itemNumber, typeWithSize } from '../utils/itemText';
 import { playErrorSound, playSuccessSound } from '../utils/sound';
-import { parseCheckpointQr, parseCrewQr, parseKeyQr, parsePassQr, samePass, parseSopepQr, parseStoreQr } from '../services/crewQr';
+import { parseCheckpointQr, parseCrewQr, parseKeyQr, parseMedQr, parsePassQr, samePass, parseSopepQr, parseStoreQr } from '../services/crewQr';
 import { visit as visitCheckpoint } from '../services/patrolLive';
 import { roomByCode, storeRooms } from '../types/stores';
 import { lockerCode, sopepLockers } from '../types/sopep';
@@ -114,7 +114,7 @@ export default function ScanSc() {
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { flat, purchaseOrders, recordScan, crew, crewMoves, appendRow, visitors, saveRow, passengers, storeRoomList, sopepLockers: sopepLockerList, checkpoints, keyList, inspections: trail, templates, rounds, signingPolicy, prefs, setPrefs, addInspection, musters, musterMarks, musterStations } = useData();
+  const { flat, purchaseOrders, recordScan, crew, crewMoves, appendRow, visitors, saveRow, passengers, storeRoomList, sopepLockers: sopepLockerList, checkpoints, keyList, inspections: trail, templates, rounds, signingPolicy, prefs, setPrefs, addInspection, musters, musterMarks, musterStations, medItems } = useData();
   const sync = useSync();
   const confirmSign = useSignConfirm();
   const activeRoundId = useActiveRound();
@@ -356,6 +356,19 @@ export default function ScanSc() {
       if (lockerId) {
         if (moduleOn('sopep')) return nav.replace('Main', { screen: 'Sopep', params: { locker: lockerId } });
         setCrewHit({ name: t('scn.sopepLocker'), text: t('scn.sopepOff'), ok: false });
+        setTimeout(() => {
+          locked.current = false;
+        }, 2500);
+        return;
+      }
+
+      // A medicine chest label (msm://med/<id>) — printed here or by Marine Hospital
+      // Manager joined to the vessel (17 Nov 2026): that item of the chest.
+      const medId = parseMedQr(code);
+      if (medId) {
+        const med = moduleOn('hospital') ? medItems.find((i) => i.id === medId && !i.deleted) : undefined;
+        if (med) return nav.replace('MedItem', { id: med.id });
+        setCrewHit({ name: t('scn.medItem'), text: moduleOn('hospital') ? t('scn.notMed') : t('scn.hospitalOff'), ok: false });
         setTimeout(() => {
           locked.current = false;
         }, 2500);

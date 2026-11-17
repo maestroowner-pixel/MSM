@@ -6,7 +6,7 @@
 // ===================================
 
 import { TsplLabelSpec } from './tspl';
-import { checkpointQrPayload, crewQrPayload, keyQrPayload, passQrPayload, sopepQrPayload, storeQrPayload } from './crewQr';
+import { checkpointQrPayload, crewQrPayload, keyQrPayload, medQrPayload, passQrPayload, sopepQrPayload, storeQrPayload } from './crewQr';
 import { CrewMember } from '../types/crew';
 
 /** The rolls a gangway sticker is worth printing on (sizes as services/qrLabel LABEL_STOCKS). */
@@ -49,6 +49,17 @@ export function storeLabelSpecs(rooms: { id: string; code: string; name: string;
     qrPayload: storeQrPayload(r.id),
     name: r.code,
     lines: [r.name, r.location ?? '', vessel?.vessel_name ?? ''].filter(Boolean),
+  }));
+}
+
+/** Medicine chest labels for the box or the shelf — the name large, strength, list No. and place under it (types/hospital.ts MedItem). */
+export function medLabelSpecs(items: { id: string; name: string; strength?: string; listNo?: string; location?: string; cabinet?: string; cell?: string }[], size: GangwayStock): TsplLabelSpec[] {
+  const st = GANGWAY_STOCK_MM[size];
+  return items.map((i) => ({
+    ...st,
+    qrPayload: medQrPayload(i.id),
+    name: i.name,
+    lines: [i.strength ?? '', i.listNo ?? '', [i.location, i.cabinet, i.cell].filter(Boolean).join(' / ')].filter(Boolean),
   }));
 }
 
