@@ -322,14 +322,15 @@ export default function AccountsSc() {
      */
     const lastMaster =
       d.role === 'superadmin' &&
-      devices.filter((x) => x.role === 'superadmin' && x.approved && !x.disabled).length <= 1;
+      d.app !== 'mhm' &&
+      devices.filter((x) => x.role === 'superadmin' && x.app !== 'mhm' && x.approved && !x.disabled).length <= 1;
 
     const buttons: any[] = [{ text: t('common.close'), style: 'cancel' }];
     if (!d.approved) buttons.push({ text: t('acc.approve'), onPress: () => void accounts.approveDevice(imo, d.id) });
     // The Master's, and only the Master's — with `signAsDevice` on, the name on a
     // device IS the signature it files (firestore.rules says the same).
     if (isMaster) buttons.push({ text: t('acc.rename'), onPress: () => startRename(d) });
-    if (isMaster && d.role !== 'superadmin' && d.role !== 'shore') {
+    if (isMaster && d.role !== 'superadmin' && d.role !== 'shore' && d.app !== 'mhm') {
       buttons.push({ text: d.shared ? t('acc.changeResponsible') : t('acc.makeShared'), onPress: () => setSharing(d) });
       if (d.shared) buttons.push({ text: t('acc.notShared'), onPress: () => void accounts.setDeviceShared(imo, d.id, null) });
     }
@@ -337,7 +338,8 @@ export default function AccountsSc() {
       // A shore account is not a device aboard and a device aboard is not a shore
       // account: neither is turned into the other here (functions/index.js).
       for (const r of ROLE_ORDER) {
-        if (r !== d.role && r !== 'shore' && d.role !== 'shore') {
+        // Marine Hospital Manager is crew or an officer — never the Master (functions/index.js).
+        if (r !== d.role && r !== 'shore' && d.role !== 'shore' && !(d.app === 'mhm' && r === 'superadmin')) {
           buttons.push({ text: t('acc.make', { role: roleName(r) }), onPress: () => void accounts.setDeviceRole(imo, d.id, r) });
         }
       }
@@ -518,6 +520,7 @@ export default function AccountsSc() {
                         item.shared ? t('acc.sharedBy', { name: item.responsible ?? '' }) : null,
                         item.disabled ? (item.retiredAt ? t('acc.retiredAuto') : t('acc.switchedOff')) : item.approved ? t('acc.approvedCap') : t('acc.waiting'),
                         item.platform,
+                        item.app === 'mhm' ? t('acc.mhmApp') : null,
                         item.lastSeenAt ? uiDateTime(item.lastSeenAt) : null,
                         older.has(item.id) ? t('acc.olderConn') : null,
                       ]

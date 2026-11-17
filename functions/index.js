@@ -163,7 +163,7 @@ async function checkRate(vessel, deviceId) {
 // ---- enrol -----------------------------------------------------------------
 
 exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req) => {
-  const { vessel: rawVessel, firstName, lastName, pin, deviceId, platform, appVersion, takeover } =
+  const { vessel: rawVessel, firstName, lastName, pin, deviceId, platform, appVersion, takeover, app } =
     req.data || {};
   const vessel = vesselKey(rawVessel);
 
@@ -198,7 +198,7 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
   // the setup code could already take such a vessel over explicitly.
   const devicesSnap = await db.collection(`${ROOT}/${vessel}/devices`).get();
   const anyMaster = devicesSnap.docs.some(
-    (d) => d.data()?.approved === true && !d.data()?.disabled && d.data()?.role === 'superadmin'
+    (d) => d.data()?.approved === true && !d.data()?.disabled && d.data()?.role === 'superadmin' && d.data()?.app !== 'mhm'
   );
 
   // TAKEOVER. "No approved device left" is not the shape the real failure takes:
@@ -211,12 +211,27 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
   // and only then sends `takeover`. It is still not granted silently: the code
   // is the vessel's own now (setupCode.js), but it is printed on a licence and
   // a licence gets passed around — a takeover should be a decision, not a typo.
-  const setupCode = isSetupCode(pin, vessel, BOOTSTRAP_CODE.value());
+  // MARINE HOSPITAL MANAGER (16 Nov 2026: "make MHM a module of ISMPilot … but
+  // whoever bought MHM must not get into ISMPilot"). It joins on an invitation the
+  // Master issued and on nothing else — never the setup code, never as Master —
+  // and its record and token say `app: 'mhm'`, which the rules read as "the
+  // hospital only" (firestore.rules `mhm`). A record that is MHM once stays MHM.
+  const existing = (await db.doc(`${ROOT}/${vessel}/devices/${deviceId}`).get()).data() || null;
+  const mhm = app === 'mhm' || existing?.app === 'mhm';
+
+  const setupCode = !mhm && isSetupCode(pin, vessel, BOOTSTRAP_CODE.value());
   const wantsTakeover = takeover === true && setupCode;
 
   let invite = null;
 
-  if (invites.empty || !anyMaster || wantsTakeover) {
+  if (mhm) {
+    invite = matchInvite(invites, firstName, lastName, pin);
+    if (!invite) {
+      await rate.fail();
+      logRefusal(invites, deviceId, vessel, firstName, lastName);
+      throw new HttpsError('permission-denied', 'Those details are not recognised.');
+    }
+  } else if (invites.empty || !anyMaster || wantsTakeover) {
     // Nobody has set this vessel up. The bootstrap code stands in for an
     // invitation — and it never left the server.
     if (!setupCode) {
@@ -280,6 +295,8 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
   // record this line reads.
   let role = device?.role || invite?.role || 'user';
   let approved = device?.approved === true;
+  // MHM is at most an officer, and a Master's invitation does not approve it by itself.
+  if (mhm && role === 'superadmin') role = 'admin';
 
   // An invitation that grants MASTER approves its own device. Only a Master can
   // issue one, so the trust decision was already made — deliberately, by a person
@@ -289,13 +306,13 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
   // otherwise queue for an approval only they could grant. Since 7 Nov 2026 such an
   // invitation is good for 48 hours and one device (checked above), so that Master
   // comes back on a new PIN from the other Master, or on the setup code.
-  if (!approved && invite?.role === 'superadmin') approved = true;
+  if (!approved && invite?.role === 'superadmin' && !mhm) approved = true;
 
   // The first device on an unclaimed vessel becomes Master, because there is
   // nobody who could approve it. Claimed in a transaction so two devices setting
   // up at the same moment cannot both win.
   const markerRef = db.doc(`${ROOT}/${vessel}/meta/bootstrap`);
-  const claimed = await db.runTransaction(async (tx) => {
+  const claimed = !mhm && await db.runTransaction(async (tx) => {
     const marker = await tx.get(markerRef);
     // Re-claimable when the vessel has no approved Master left — see the note
     // above `anyMaster`. Otherwise the marker is claimed exactly once.
@@ -332,6 +349,7 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
       position: invite?.position ?? device?.position ?? '',
       role,
       approved,
+      ...(mhm ? { app: 'mhm' } : {}),
       platform: platform ?? device?.platform ?? null,
       appVersion: appVersion ?? null,
       lastSeenAt: now,
@@ -378,6 +396,7 @@ exports.enrol = onCall({ secrets: [BOOTSTRAP_CODE], region: REGION }, async (req
     role,
     approved: true,
     deviceId,
+    ...(mhm ? { app: 'mhm' } : {}),
   });
 
   return {
@@ -453,17 +472,20 @@ exports.refresh = onCall({ region: REGION }, async (req) => {
   if (typeof platform === 'string' && platform) beat.platform = platform;
   await snap.ref.set(beat, { merge: true });
 
+  // An MHM record is at most an officer, whatever was written to it since (see enrol).
+  const role = device.app === 'mhm' && device.role === 'superadmin' ? 'admin' : device.role ?? 'user';
   const token = await admin.auth().createCustomToken(`${vessel}__${deviceId}`, {
     vessel,
-    role: device.role ?? 'user',
+    role,
     approved: true,
     deviceId,
+    ...(device.app === 'mhm' ? { app: 'mhm' } : {}),
   });
 
   return {
     status: 'ok',
     token,
-    role: device.role ?? 'user',
+    role,
     firstName: device.firstName ?? '',
     lastName: device.lastName ?? '',
     position: device.position ?? '',

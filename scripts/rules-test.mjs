@@ -30,6 +30,11 @@ await env.withSecurityRulesDisabled(async (c) => {
   await setDoc(doc(d, 'safety_vessels', V, 'devices', 'devDemoted'), { role: 'user', approved: true, firstName: 'D' });
   await setDoc(doc(d, 'safety_vessels', V, 'devices', 'devPromoted'), { role: 'admin', approved: true, firstName: 'U' });
   await setDoc(doc(d, 'safety_vessels', V, 'devices', 'devShoreOff'), { role: 'shore', approved: true, disabled: true, firstName: 'SO' });
+  // Marine Hospital Manager joined to the vessel (16 Nov 2026) — the hospital only.
+  await setDoc(doc(d, 'safety_vessels', V, 'devices', 'devMhmA'), { role: 'admin', approved: true, firstName: 'Doc', app: 'mhm' });
+  await setDoc(doc(d, 'safety_vessels', V, 'devices', 'devMhmU'), { role: 'user', approved: true, firstName: 'Med', app: 'mhm' });
+  await setDoc(doc(d, 'safety_vessels', V, 'devices', 'devMhmS'), { role: 'superadmin', approved: true, firstName: 'Cap', app: 'mhm' });
+  await setDoc(doc(d, 'safety_vessels', V, 'devices', 'devMhmP'), { role: 'admin', approved: false, firstName: 'Wait', app: 'mhm' });
   await setDoc(doc(d, 'safety_vessels', V, 'crew', 'c1'), { name: 'Jez', active: true });
   await setDoc(doc(d, 'safety_vessels', V, 'crew_private', 'c1'), { id: 'c1', passportNo: 'X' });
   await setDoc(doc(d, 'safety_vessels', V, 'pms_done', 'p1'), { id: 'p1' });
@@ -763,6 +768,47 @@ await t(false, '…and is not an officer before it', setDoc(R(promoted, 'crew', 
 await t(true, 'Superintendent reads the vessel', getDoc(doc(shore, 'safety_vessels', V)));
 await t(false, 'Switched-off superintendent reads nothing', getDoc(doc(shoreOff, 'safety_vessels', V)));
 await t(false, 'A shore token over a crew device record reads nothing', getDoc(doc(shoreCrewRecord, 'safety_vessels', V)));
+
+// ---- Marine Hospital Manager: the hospital, and nothing of ISMPilot (16 Nov 2026) ----
+const mhmA = as('ma', { vessel: V, role: 'admin', approved: true, deviceId: 'devMhmA', app: 'mhm' });
+const mhmU = as('mu', { vessel: V, role: 'user', approved: true, deviceId: 'devMhmU', app: 'mhm' });
+const mhmS = as('ms', { vessel: V, role: 'superadmin', approved: true, deviceId: 'devMhmS', app: 'mhm' });
+const mhmP = as('mp', { vessel: V, role: 'admin', approved: false, deviceId: 'devMhmP', app: 'mhm' });
+// A token without the claim over an MHM record (minted before), and the claim over an ISMPilot record.
+const mhmNoClaim = as('mn', { vessel: V, role: 'admin', approved: true, deviceId: 'devMhmA' });
+const claimOnOfficer = as('mc', { vessel: V, role: 'admin', approved: true, deviceId: 'devA', app: 'mhm' });
+await t(true, 'MHM officer reads the chest', getDoc(R(mhmA, 'med_items', 'm1')));
+await t(true, 'MHM officer adds a medicine', setDoc(R(mhmA, 'med_items', 'mh1'), { id: 'mh1', name: 'Ibuprofen', unit: 'tablets', required: 50, kind: 'medicine', order: 1, updatedAt: 1 }));
+await t(true, 'MHM officer issues from the chest', setDoc(R(mhmA, 'med_moves', 'mhv1'), { id: 'mhv1', itemId: 'm1', kind: 'issued', qty: 2, by: 'Doc', updatedAt: 1 }));
+await t(false, 'MHM move never carries a patient', setDoc(R(mhmA, 'med_moves', 'mhv2'), { id: 'mhv2', itemId: 'm1', kind: 'issued', qty: 2, patient: 'Max', by: 'Doc', updatedAt: 1 }));
+await t(true, 'MHM officer writes the medical log (masked)', setDoc(R(mhmA, 'med_treatments', 'mht1'), { id: 'mht1', no: 'MED-2026-010', patient: 'M…x', complaint: 'Burn', issued: [], outcome: 'fit', by: 'Doc', updatedAt: 1 }));
+await t(false, 'MHM never sends the full name', setDoc(R(mhmA, 'med_treatments', 'mht2'), { id: 'mht2', no: 'MED-2026-011', patient: 'Max Payne', complaint: 'Burn', issued: [], outcome: 'fit', by: 'Doc', updatedAt: 1 }));
+await t(true, 'MHM officer reads the medical log', getDoc(R(mhmA, 'med_treatments', 't1')));
+await t(true, 'MHM officer orders', setDoc(R(mhmA, 'med_orders', 'mho1'), { id: 'mho1', no: 'MO-2026-010', lines: [], by: 'Doc', updatedAt: 1 }));
+await t(true, 'MHM officer signs an inventory', setDoc(R(mhmA, 'med_checks', 'mhc1'), { id: 'mhc1', no: 'INV-2026-010', lines: [], by: 'Doc', updatedAt: 1 }));
+await t(true, 'MHM crew reads the chest', getDoc(R(mhmU, 'med_items', 'm1')));
+await t(false, 'MHM crew cannot read the medical log', getDoc(R(mhmU, 'med_treatments', 't1')));
+await t(false, 'MHM crew cannot move stock', setDoc(R(mhmU, 'med_moves', 'mhv3'), { id: 'mhv3', itemId: 'm1', kind: 'issued', qty: 1, by: 'Med', updatedAt: 1 }));
+await t(false, 'MHM waiting for approval reads nothing', getDoc(R(mhmP, 'med_items', 'm1')));
+await t(false, 'MHM cannot read the register', getDoc(doc(mhmA, 'safety_vessels', V)));
+await t(false, 'MHM cannot write the register', setDoc(doc(mhmA, 'safety_vessels', V), { register: '{"x":1}', registerUpdatedAt: 9 }, { merge: true }));
+await t(false, 'MHM cannot read the crew list', getDoc(R(mhmA, 'crew', 'c1')));
+await t(false, 'MHM cannot read personal details', getDoc(R(mhmA, 'crew_private', 'c1')));
+await t(false, 'MHM cannot read PMS', getDoc(R(mhmA, 'pms_done', 'p1')));
+await t(false, 'MHM cannot read drills', getDoc(R(mhmA, 'drills', 'd1')));
+await t(false, 'MHM cannot list the devices', getDocs(collection(mhmA, 'safety_vessels', V, 'devices')));
+await t(false, 'MHM cannot read invitations', getDoc(R(mhmA, 'invites', 'i1')));
+await t(false, 'MHM cannot update its own record', updateDoc(R(mhmA, 'devices', 'devMhmA'), { platform: 'ios' }));
+await t(false, 'MHM with a Master record is no Master of ISMPilot', updateDoc(R(mhmS, 'devices', 'devU'), { tabs: [] }));
+await t(false, 'MHM record without the claim: still no ISMPilot', getDoc(doc(mhmNoClaim, 'safety_vessels', V)));
+await t(true, '…but the hospital', getDoc(R(mhmNoClaim, 'med_items', 'm1')));
+await t(false, 'The MHM claim over an ISMPilot record reads no ISMPilot', getDoc(doc(claimOnOfficer, 'safety_vessels', V)));
+await t(false, 'Master cannot turn MHM into an ISMPilot device', updateDoc(R(master, 'devices', 'devMhmA'), { app: '' }));
+await t(false, 'Nor drop the field', setDoc(R(master, 'devices', 'devMhmA'), { role: 'admin', approved: true, firstName: 'Doc' }));
+await t(true, 'Master approves and ranks an MHM device', updateDoc(R(master, 'devices', 'devMhmP'), { approved: true, role: 'admin' }));
+await t(false, 'Master cannot make a device record MHM by hand', setDoc(R(master, 'devices', 'devNew'), { role: 'admin', approved: true, app: 'mhm' }));
+await t(false, 'A device cannot mark itself MHM', updateDoc(R(crew, 'devices', 'devU'), { app: 'mhm' }));
+await t(true, 'ISMPilot officer still keeps the chest', setDoc(R(officer, 'med_moves', 'mv9'), { id: 'mv9', itemId: 'm1', kind: 'received', qty: 5, by: 'Jez', updatedAt: 1 }));
 
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);

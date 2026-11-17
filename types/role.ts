@@ -166,6 +166,8 @@ export interface EnrolledDevice {
   disabled?: boolean;
   platform?: string | null;
   appVersion?: string | null;
+  /** 'mhm' — Marine Hospital Manager joined to the vessel: the hospital only, never a Master (firestore.rules `mhm`). */
+  app?: 'mhm';
   lastSeenAt?: number;
   createdAt?: number;
   /**

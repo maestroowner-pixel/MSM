@@ -41,7 +41,8 @@ const seen = (d) => d.lastSeenAt || d.createdAt || 0;
  */
 function retirable(devices, { keepId, now = Date.now(), idleMs = IDLE_MS } = {}) {
   const live = devices.filter((d) => d.approved === true && !d.disabled && d.role !== 'shore' && personName(d));
-  const key = (d) => [personName(d).toLowerCase().replace(/\s+/g, ' '), d.role, d.platform || ''].join('|');
+  // Marine Hospital Manager on the same phone is another app, not an older connection.
+  const key = (d) => [personName(d).toLowerCase().replace(/\s+/g, ' '), d.role, d.platform || '', d.app || ''].join('|');
   const groups = new Map();
   for (const d of live) groups.set(key(d), [...(groups.get(key(d)) || []), d]);
   const out = [];

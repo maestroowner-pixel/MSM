@@ -14,7 +14,7 @@ const env = await initializeTestEnvironment({
 });
 await env.withSecurityRulesDisabled(async (c) => {
   const d = c.firestore();
-  for (const [id, x] of Object.entries({ devU: { role: 'user', approved: true }, devA: { role: 'admin', approved: true }, devOff: { role: 'admin', approved: true, disabled: true }, devDem: { role: 'user', approved: true }, devShore: { role: 'shore', approved: true }, devShoreOff: { role: 'shore', approved: true, disabled: true } }))
+  for (const [id, x] of Object.entries({ devU: { role: 'user', approved: true }, devA: { role: 'admin', approved: true }, devOff: { role: 'admin', approved: true, disabled: true }, devDem: { role: 'user', approved: true }, devShore: { role: 'shore', approved: true }, devShoreOff: { role: 'shore', approved: true, disabled: true }, devMhmA: { role: 'admin', approved: true, app: 'mhm' }, devMhmU: { role: 'user', approved: true, app: 'mhm' } }))
     await setDoc(doc(d, 'safety_vessels', V, 'devices', id), x);
   await uploadString(ref(c.storage(), `safety_vessels/${V}/attachments/o1/a.txt`), 'hi', 'raw', { contentType: 'text/plain' });
   await uploadString(ref(c.storage(), `safety_vessels/${V}/medical/o1/m.pdf`), 'pdf', 'raw', { contentType: 'application/pdf' });
@@ -49,6 +49,14 @@ await t(true, 'superintendent replaces a certificate scan', put(shoreS(), 'o3/c.
 await t(false, 'superintendent may not delete a file', deleteObject(ref(shoreS(), `safety_vessels/${V}/attachments/o3/c.txt`)));
 await t(false, 'demoted officer (record crew) may not overwrite', put(st('d', tok('admin', 'devDem')), 'o3/c.txt', 'fourth'));
 await t(true, 'officer deletes a file', deleteObject(ref(officer(), `safety_vessels/${V}/attachments/o3/c.txt`)));
+// Marine Hospital Manager (16 Nov 2026): the files of the medical log, nothing else.
+const mhm = (role, id) => st(id, { ...tok(role, id), app: 'mhm' });
+await t(true, 'MHM officer reads a medical file', med(mhm('admin', 'devMhmA')));
+await t(true, 'MHM officer adds medical advice', uploadString(ref(mhm('admin', 'devMhmA'), `safety_vessels/${V}/medical/o9/n.pdf`), 'pdf', 'raw', { contentType: 'application/pdf' }));
+await t(false, 'MHM crew reads no medical file', med(mhm('user', 'devMhmU')));
+await t(false, 'MHM reads no attachment', att(mhm('admin', 'devMhmA')));
+await t(false, 'MHM uploads no attachment', uploadString(ref(mhm('admin', 'devMhmA'), `safety_vessels/${V}/attachments/o9/x.txt`), 'x', 'raw', { contentType: 'text/plain' }));
+await t(false, 'The MHM claim over an officer record reads no attachment', att(st('c', { ...tok('admin', 'devA'), app: 'mhm' })));
 await env.cleanup();
 console.log(`\n${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

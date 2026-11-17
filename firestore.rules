@@ -57,12 +57,44 @@ service cloud.firestore {
              && !(d.data.get('disabled', false) == true && !('retiredAt' in d.data));
     }
 
+    /**
+     * Marine Hospital Manager joined to the vessel (16 Nov 2026: "make MHM a module
+     * of ISMPilot … but whoever bought MHM must not get into ISMPilot"). Its record
+     * says `app: 'mhm'`, written by the enrol function and changed by no client —
+     * the Master's included (devices, below). Such a device is never a `member`:
+     * it reads and writes the hospital and nothing else (`medic`).
+     */
+    function mhm(d) {
+      return d.data.get('app', '') == 'mhm';
+    }
+
     /** A device of this vessel, approved, holding a token the function issued. */
     function member(v) {
       return request.auth != null
              && claims().vessel == v
              && claims().approved == true
-             && live(device(v));
+             && claims().get('app', '') != 'mhm'
+             && live(device(v))
+             && !mhm(device(v));
+    }
+
+    /** Marine Hospital Manager on this vessel — the hospital's collections only. */
+    function medic(v) {
+      return request.auth != null
+             && claims().vessel == v
+             && claims().approved == true
+             && live(device(v))
+             && mhm(device(v));
+    }
+
+    /** Hospital: who reads the chest, and who keeps it — the officers of either app. */
+    function medReader(v) {
+      return reader(v) || medic(v);
+    }
+    function medAdmin(v) {
+      return isAdmin(v)
+             || (medic(v) && (claims().role == 'admin' || claims().role == 'superadmin')
+                 && device(v).data.get('role', '') in ['admin', 'superadmin']);
     }
 
     // The rank is the lower of the token's and the record's: a demotion holds at once,
@@ -161,11 +193,14 @@ service cloud.firestore {
                       && !request.resource.data.diff(resource.data).affectedKeys()
                             .hasAny(['role', 'approved', 'disabled', 'secretHash', 'secretSalt',
                                      'firstName', 'lastName', 'position', 'tabs', 'manage', 'hidePages',
-                                     'shared', 'responsible']);
+                                     'shared', 'responsible', 'app']);
 
         // Approving, demoting and switching off are the Master's, and are the
-        // reason a Master exists.
-        allow write: if isSuper(v);
+        // reason a Master exists. `app` is not: a Marine Hospital Manager device
+        // stays one (see `mhm`), so nobody makes it into an ISMPilot device.
+        allow create: if isSuper(v) && !('app' in request.resource.data);
+        allow update: if isSuper(v) && request.resource.data.get('app', '') == resource.data.get('app', '');
+        allow delete: if isSuper(v);
       }
 
       // ---- invitations (the accounts a Master issues) -----------------------
@@ -702,13 +737,13 @@ service cloud.firestore {
       // officers; moves are never changed. The medical log is health data: the
       // Master and the officers only — not the crew, not the shore.
       match /med_items/{id} {
-        allow read: if reader(v);
-        allow create, update: if isAdmin(v);
+        allow read: if medReader(v);
+        allow create, update: if medAdmin(v);
         allow delete: if false;
       }
       match /med_moves/{id} {
-        allow read: if reader(v);
-        allow create: if isAdmin(v) && !('patient' in request.resource.data);
+        allow read: if medReader(v);
+        allow create: if medAdmin(v) && !('patient' in request.resource.data);
         allow update, delete: if false;
       }
       // An entry never changes; the written medical advice may be added to it.
@@ -718,21 +753,21 @@ service cloud.firestore {
         function masked() {
           return request.resource.data.patient is string && request.resource.data.patient.matches('^.(….)?$');
         }
-        allow read: if isAdmin(v);
-        allow create: if isAdmin(v) && masked();
-        allow update: if isAdmin(v) && masked() && onlyChanges(['files', 'patient', 'updatedAt']);
+        allow read: if medAdmin(v);
+        allow create: if medAdmin(v) && masked();
+        allow update: if medAdmin(v) && masked() && onlyChanges(['files', 'patient', 'updatedAt']);
         allow delete: if false;
       }
       // Orders: written and received against by the officers; closed, final.
       match /med_orders/{id} {
-        allow read: if reader(v);
-        allow create: if isAdmin(v) && !('closedAt' in request.resource.data);
-        allow update: if isAdmin(v) && resource.data.get('closedAt', null) == null;
+        allow read: if medReader(v);
+        allow create: if medAdmin(v) && !('closedAt' in request.resource.data);
+        allow update: if medAdmin(v) && resource.data.get('closedAt', null) == null;
         allow delete: if false;
       }
       match /med_checks/{id} {
-        allow read: if reader(v);
-        allow create: if isAdmin(v);
+        allow read: if medReader(v);
+        allow create: if medAdmin(v);
         allow update, delete: if false;
       }
       // Passengers (types/passengers.ts) — confidential: the guest list does not

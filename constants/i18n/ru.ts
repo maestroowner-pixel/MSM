@@ -4670,6 +4670,7 @@ export const ru: UiDict = {
   "acc.approvedCap": "Одобрено",
   "acc.waiting": "Ждёт",
   "acc.olderConn": "Старое подключение",
+  "acc.mhmApp": "Marine Hospital Manager — только госпиталь",
   "acc.verCurrent": "v{v} · актуальная",
   "acc.verBehind": "v{v} · обновить до {newest}",
   "acc.verUnknown": "версия ещё не известна",

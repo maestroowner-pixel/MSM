@@ -4598,6 +4598,7 @@ export const no: UiDict = {
   "acc.approvedCap": "Godkjent",
   "acc.waiting": "Venter",
   "acc.olderConn": "Eldre tilkobling",
+  "acc.mhmApp": "Marine Hospital Manager — kun sykelugar",
   "acc.verCurrent": "v{v} · oppdatert",
   "acc.verBehind": "v{v} · oppdater til {newest}",
   "acc.verUnknown": "versjon ikke rapportert ennå",

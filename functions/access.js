@@ -32,6 +32,9 @@ function isLive(d) {
   return !!d && d.approved === true && !(d.disabled === true && !d.retiredAt);
 }
 
+/** A Marine Hospital Manager install (16 Nov 2026) — the hospital only, never ISMPilot. */
+const isMhm = (d) => !!d && d.app === 'mhm';
+
 /** Switched off by the Master — what `revokeOnSwitchOff` reacts to. */
 const switchedOff = (d) => !!d && d.disabled === true && !d.retiredAt;
 
@@ -44,6 +47,9 @@ async function liveDevice(vessel, deviceId, roles) {
   const snap = await admin.firestore().doc(`${ROOT}/${vessel}/devices/${deviceId}`).get();
   const d = snap.exists ? snap.data() : null;
   if (!isLive(d)) throw new HttpsError('permission-denied', 'This device has been switched off or removed by the Master.');
+  // Marine Hospital Manager keeps the hospital and nothing else (firestore.rules `mhm`):
+  // no callable of ISMPilot answers it.
+  if (isMhm(d)) throw new HttpsError('permission-denied', 'Marine Hospital Manager is connected to the hospital only.');
   if (roles && !roles.includes(d.role)) throw new HttpsError('permission-denied', 'Your account cannot do this.');
   return d;
 }
@@ -165,6 +171,7 @@ async function vesselGuard(vessel) {
 
 module.exports = {
   isLive,
+  isMhm,
   liveDevice,
   liveCaller,
   revokeOnSwitchOff,

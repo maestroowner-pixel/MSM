@@ -54,11 +54,28 @@ service firebase.storage {
              && device(v).data.get('role', '') in ['admin', 'superadmin'];
     }
 
+    /** Marine Hospital Manager (firestore.rules `mhm`, 16 Nov 2026): never a member —
+     *  the files of the medical log and nothing else (`medicOfficer`). */
+    function mhm(d) {
+      return d.data.get('app', '') == 'mhm';
+    }
+
     function member(v) {
       return request.auth != null
              && claims().vessel == v
              && claims().approved == true
-             && live(device(v));
+             && claims().get('app', '') != 'mhm'
+             && live(device(v))
+             && !mhm(device(v));
+    }
+
+    function medicOfficer(v) {
+      return request.auth != null
+             && claims().vessel == v
+             && claims().approved == true
+             && live(device(v))
+             && mhm(device(v))
+             && officer(v);
     }
 
     /** A superintendent's fleet token — see firestore.rules `shore`. */
@@ -135,8 +152,8 @@ service firebase.storage {
     // radio medical advice. Health data: the Master and the officers only, never
     // the crew or the shore, and never replaced.
     match /safety_vessels/{vessel}/medical/{ownerId}/{file} {
-      allow read: if member(vessel) && officer(vessel);
-      allow create: if member(vessel) && officer(vessel)
+      allow read: if (member(vessel) && officer(vessel)) || medicOfficer(vessel);
+      allow create: if ((member(vessel) && officer(vessel)) || medicOfficer(vessel))
                     && resource == null
                     && request.resource.size < 12 * 1024 * 1024
                     && (request.resource.contentType == 'application/pdf' || request.resource.contentType.matches('image/.*'));

@@ -4607,6 +4607,7 @@ export const en = {
   "acc.approvedCap": "Approved",
   "acc.waiting": "Waiting",
   "acc.olderConn": "Older connection",
+  "acc.mhmApp": "Marine Hospital Manager — hospital only",
   "acc.verCurrent": "v{v} · up to date",
   "acc.verBehind": "v{v} · update to {newest}",
   "acc.verUnknown": "version not reported yet",

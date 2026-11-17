@@ -4598,6 +4598,7 @@ export const es: UiDict = {
   "acc.approvedCap": "Aprobado",
   "acc.waiting": "Pendiente",
   "acc.olderConn": "Conexión antigua",
+  "acc.mhmApp": "Marine Hospital Manager — solo hospital",
   "acc.verCurrent": "v{v} · actualizada",
   "acc.verBehind": "v{v} · actualizar a {newest}",
   "acc.verUnknown": "versión aún no comunicada",

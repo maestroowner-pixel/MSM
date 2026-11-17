@@ -31,4 +31,9 @@ t('name compared without case and extra spaces; no name, no grouping', () => {
 t('never seen: falls back to createdAt', () => {
   assert.deepStrictEqual(ids(retirable([dev('a', 1), { ...dev('b', 0), lastSeenAt: undefined, createdAt: NOW - 200 * H }], { now: NOW })), ['b>a']);
 });
+t('Marine Hospital Manager on the same phone is another app, not a duplicate', () => {
+  assert.deepStrictEqual(ids(retirable([dev('a', 1), dev('m', 200, { app: 'mhm' })], { now: NOW })), []);
+  assert.deepStrictEqual(ids(retirable([dev('a', 1), dev('m', 0, { app: 'mhm' })], { keepId: 'm', now: NOW })), []);
+  assert.deepStrictEqual(ids(retirable([dev('m1', 1, { app: 'mhm' }), dev('m2', 200, { app: 'mhm' })], { now: NOW })), ['m2>m1']);
+});
 console.log(`check:devices — ${n} passed`);
