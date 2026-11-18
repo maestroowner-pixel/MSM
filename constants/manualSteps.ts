@@ -7,7 +7,7 @@ export interface StepAct { t: string; steps: string[]; note?: string; who?: Step
 export interface StepScreen { id: string; title: string; path: string[]; who: StepWho; perVessel?: boolean; intro: string; acts: StepAct[] }
 export interface StepGroup { title: string; screens: StepScreen[] }
 
-/** 101 screens, 521 actions. */
+/** 102 screens, 530 actions. */
 export const MANUAL_STEPS: StepGroup[] = [
  {
   "title": "Getting started",
@@ -1717,6 +1717,103 @@ export const MANUAL_STEPS: StepGroup[] = [
        "**Medicine reference** → **Scale A / B / C** or **Equipment**",
        "Required quantity for each category of vessel"
       ]
+     }
+    ]
+   },
+   {
+    "id": "mhm",
+    "title": "Marine Hospital Manager (MHM)",
+    "path": [
+     "MHM",
+     "⚙️ Settings",
+     "⚓ ISMPilot"
+    ],
+    "who": "everyone",
+    "intro": "Marine Hospital Manager is a separate app for the ship’s hospital. On a vessel with ISMPilot it keeps its hospital in ISMPilot: the chest, the medical log, controlled drugs and orders are the same in both apps. For a doctor or medic who does not use ISMPilot — a tablet in the hospital — or a vessel moving from MHM to ISMPilot. MHM sees the hospital only. While connected it works as PRO without a subscription of its own, and its Cloud Sync is off.",
+    "acts": [
+     {
+      "t": "Give the medic an account",
+      "steps": [
+       "**☰** → **Settings** → **Accounts**",
+       "**Issue an account** — the medic’s name, rank aboard, role **Officer** to keep the chest (**Crew** only reads it)",
+       "**Issue** — read the 8-digit PIN out"
+      ],
+      "note": "MHM joins only with an account issued this way — never with the vessel’s joining code.",
+      "who": "master"
+     },
+     {
+      "t": "Connect MHM to the vessel",
+      "steps": [
+       "In MHM: **⚙️ Settings** → **⚓ ISMPilot**",
+       "**Vessel IMO number**, first and last name as the Master wrote them, **PIN**",
+       "**Connect** — it shows **Waiting for the Master**",
+       "After the Master approves → **Check**"
+      ]
+     },
+     {
+      "t": "Approve the MHM device",
+      "steps": [
+       "**☰** → **Settings** → **Accounts** → **Devices**",
+       "The waiting one reads **Marine Hospital Manager — hospital only**",
+       "**Approve**",
+       "To let it keep the chest: tap it → **Make Officer**"
+      ],
+      "note": "An MHM device is never the Master and never opens the rest of ISMPilot. **Switch off** takes its access away at once.",
+      "who": "master"
+     },
+     {
+      "t": "The first time: whose hospital",
+      "steps": [
+       "An MHM with nothing of its own takes the vessel’s chest straight away",
+       "One with its own stock, log or orders asks:",
+       "**Use the vessel’s ISMPilot (recommended)** — the vessel’s chest, log and orders come into MHM; MHM’s own lines and log stay in MHM, and a copy of its lists is kept",
+       "Or **Send this MHM’s hospital to ISMPilot** → **Send** — for a vessel whose hospital in ISMPilot is new: MHM’s stock is counted into the vessel’s, its new lines, finished log entries and open orders are added; lines only the vessel has stay as they are"
+      ],
+      "note": "Sending is for an officer. Log entries cannot be changed in ISMPilot afterwards.",
+      "who": "officers"
+     },
+     {
+      "t": "Work in MHM",
+      "steps": [
+       "**💊 Pharmacy** → a medicine → issue — MHM asks the patient, position, complaint and outcome; a controlled drug — the witness",
+       "It goes into ISMPilot’s **Medical log**, and the chest goes down",
+       "A return, a delivery, an order, a stock correction or a new item go to ISMPilot the same way"
+      ],
+      "note": "The patient’s name stays on the device that wrote it; the vessel’s records show it masked (A…e). A Crew device only reads — MHM refuses before saving.",
+      "who": "officers"
+     },
+     {
+      "t": "Keep it up to date",
+      "steps": [
+       "MHM updates from the vessel when it opens",
+       "**⚙️ Settings** → **⚓ ISMPilot** → **Update now** — what MHM did goes first, then the vessel’s books come back",
+       "**⏳ … change(s) waiting to be sent** — no connection yet; they go with the next update (long-press to discard them)"
+      ]
+     },
+     {
+      "t": "One label for both apps",
+      "steps": [
+       "ISMPilot: **Hospital** → **Register** → **Labels — Xprinter** or **QR labels (PDF)** — or the item → **Label (Xprinter)**",
+       "Or MHM, connected: **📦 Inventory** → the item → **Print label**",
+       "Either app’s scanner opens the item from the label"
+      ]
+     },
+     {
+      "t": "What stays in ISMPilot",
+      "steps": [
+       "Inventories, the controlled drugs count and handover, landing reports",
+       "Changes to an item’s card — required quantity, list No., code",
+       "An entry already sent to the medical log"
+      ],
+      "note": "MHM does not send these; do them in ISMPilot."
+     },
+     {
+      "t": "Disconnect MHM",
+      "steps": [
+       "In MHM: **⚙️ Settings** → **⚓ ISMPilot** → **Disconnect** → **Disconnect**",
+       "MHM keeps the lists as they are and works on its own again"
+      ],
+      "note": "Joining again needs a new PIN from the Master."
      }
     ]
    }
