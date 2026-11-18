@@ -28,6 +28,7 @@ import { signInWithCustomToken } from '@firebase/auth';
 
 import { Role } from '../types/role';
 import * as fb from './firebaseService';
+import { clearSampleData } from './sampleData';
 
 const REGION = 'europe-west1';
 
@@ -95,6 +96,8 @@ export async function enrol(
   takeover = false
 ): Promise<EnrolResult> {
   try {
+    // Sample data never reaches a vessel: it goes before this device can sync (services/sampleData).
+    await clearSampleData();
     const facts = await deviceFacts();
     const res = await callable('enrol')({ vessel, firstName, lastName, pin, takeover, ...facts });
     return await applyReply(res.data, facts.deviceId);

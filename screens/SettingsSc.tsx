@@ -32,6 +32,7 @@ import { ADMIN_KEY, PinHolder, pinHolders, resetPin } from '../services/signatur
 import { usePinChange } from '../components/PinChange';
 import { personName } from '../types/role';
 import { VesselInfo, resetAllData } from '../services/storage';
+import { loadSampleData } from '../services/sampleData';
 import * as fb from '../services/firebaseService';
 import { clearAttachmentsDir } from '../services/attachments';
 import { exportTemplate } from '../services/export';
@@ -283,6 +284,18 @@ export default function SettingsSc() {
    * own workbook — see `templateColumns`.
    */
   const hasLifting = GROUP_ORDER.includes('LIFTING');
+
+  const loadSample = async () => {
+    setBusy(true);
+    try {
+      await loadSampleData();
+      await reload();
+      playSuccessSound();
+      Alert.alert(tr('sample.title'), tr('sample.loaded'));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const backupExport = async () => {
     const password = await backupPassword.ask();
@@ -1033,6 +1046,17 @@ export default function SettingsSc() {
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>
+        {/* A device without a vessel only: sample rows to try the app; the Dashboard clears them (services/sampleData). */}
+        {solo ? (
+          <TouchableOpacity style={styles.linkRow} onPress={() => void loadSample()} disabled={busy}>
+            <IconChip name="flask-outline" size={18} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkTitle}>{tr('sample.load')}</Text>
+              <Text style={styles.linkSub}>{tr('sample.loadSub')}</Text>
+            </View>
+            <Text style={styles.chev}>›</Text>
+          </TouchableOpacity>
+        ) : null}
         <TouchableOpacity style={styles.linkRow} onPress={backupExport} disabled={busy}>
           <IconChip name="content-save" size={18} />
           <View style={{ flex: 1 }}>

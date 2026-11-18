@@ -12,6 +12,7 @@ import { activeDeferral, jobDue } from '../services/pms';
 import { Screen, ScreenTitle, Empty, statusColor, CategoryBadge } from '../components/ui';
 import { TrialBanner } from '../components/TrialBanner';
 import { MasterPinBanner } from '../components/MasterPinBanner';
+import { SampleBanner } from '../components/SampleBanner';
 import { UpdateBanner } from '../components/UpdateBanner';
 import { SIZES, Palette, SCROLLBAR_GUTTER } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
@@ -460,6 +461,7 @@ export default function DashboardSc() {
 
       <TrialBanner />
       <MasterPinBanner />
+      <SampleBanner />
 
       {loading ? null : flat.length === 0 ? (
         <GetStarted onStart={() => nav.navigate('GettingStarted')} />

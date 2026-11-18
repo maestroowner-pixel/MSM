@@ -78,6 +78,7 @@ try {
 } catch {}
 import { CATEGORIES, CATEGORY_MAP } from '../constants/categories';
 import * as storage from '../services/storage';
+import { sampleOnFirstStart } from '../services/sampleData';
 import { SignKeyRec, setKeyRegister } from '../services/seal';
 import type { BookAccess } from '../services/bookAccess';
 import { followerReadings } from '../services/pmsMachines';
@@ -850,8 +851,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const isLocked = useCallback((id: string) => lockedIds.has(id), [lockedIds]);
 
+  // The very first start of a device without a vessel: sample data before the
+  // first read, so the app does not open empty (services/sampleData). Once.
+  const firstStart = useRef<Promise<unknown> | null>(null);
   useEffect(() => {
-    reload();
+    firstStart.current ??= sampleOnFirstStart().catch(() => false);
+    void firstStart.current.then(() => reload());
   }, [reload]);
 
   /**
