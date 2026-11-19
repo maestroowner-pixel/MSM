@@ -1,6 +1,6 @@
 // ===================================
 // The encrypted .sdm file (5 Nov 2026). The same file in three projects: the app
-// (utils/), SDM-Web (utils/, and through it SDM-Desktop) and ISM AI Pilot
+// (utils/), SDM-Web (utils/) and ISM AI Pilot
 // (services/sdmCrypto.ts, which opens these files). Change all three together.
 //
 // A password the seafarer chooses, scrypt, AES-256-GCM (@noble, pure JS, so one

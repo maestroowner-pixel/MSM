@@ -3,7 +3,7 @@
     "name": "ISM AI Pilot",
     "slug": "marine-safety-manager",
     "owner": "osypov_m",
-    "version": "2.75",
+    "version": "2.76",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "msm",
@@ -21,7 +21,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.kukalab.msm",
       "appleTeamId": "LAGTN99698",
-      "buildNumber": "20750",
+      "buildNumber": "20760",
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.kukalab.msm"
@@ -57,7 +57,7 @@
       "package": "com.kukalab.msm",
       "googleServicesFile": "./google-services.json",
       "allowBackup": false,
-      "versionCode": 20750,
+      "versionCode": 20760,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
