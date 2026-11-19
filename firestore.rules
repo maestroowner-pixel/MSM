@@ -1265,7 +1265,7 @@ service cloud.firestore {
         allow create, update: if isAdmin(v) && request.resource.data.uid is string
                               && request.resource.data.uid.matches('^[0-9A-F]{8,20}$')
                               && id == 'tag_' + request.resource.data.uid
-                              && request.resource.data.kind in ['person', 'checkpoint', 'muster']
+                              && request.resource.data.kind in ['person', 'checkpoint', 'muster', 'item']
                               && request.resource.data.ref is string
                               && (!(request.resource.data.ref.matches('^pax.*'))
                                   || string(request.resource.data.get('name', '')).matches('^.(….)?$'));

@@ -150,13 +150,15 @@ export interface Inspection {
 /**
  * `qr-camera` — the label was scanned with the app's own scanner.
  * `qr-link`   — the phone's camera read the label and opened the app on the item.
+ * `nfc`       — the item's NFC tag, on the vessel's register by its UID, was held to
+ *               the phone (types/nfc.ts). 2.76 and older print it as a QR scan.
  * `override`  — the vessel requires a scan, there was none, and a Master signed
  *               anyway with a reason.
  * `group`     — checked by eye with the rest of its check group and signed once
  *               for all of them (services/checkGroups.ts). Each item still gets
  *               its own record; `group` / `groupId` say which signing it was.
  */
-export type VerificationMethod = 'qr-camera' | 'qr-link' | 'override' | 'group';
+export type VerificationMethod = 'qr-camera' | 'qr-link' | 'nfc' | 'override' | 'group';
 
 export interface InspectionVerification {
   method: VerificationMethod;
@@ -179,7 +181,8 @@ export function verificationText(v: InspectionVerification | undefined, time: (m
     const how = v.scannedAt ? ` · group label QR ${time(v.scannedAt)}` : v.reason ? ` · no scan (Master): ${v.reason}` : '';
     return `Group check: ${v.group ?? ''}${v.groupSize ? ` (${v.groupSize} items)` : ''}${how}`;
   }
-  return v.scannedAt ? `QR ${time(v.scannedAt)}` : 'QR';
+  const how = v.method === 'nfc' ? 'NFC' : 'QR';
+  return v.scannedAt ? `${how} ${time(v.scannedAt)}` : how;
 }
 
 /** One checklist question, frozen as the crew member read it. */

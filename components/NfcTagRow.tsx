@@ -1,6 +1,6 @@
 // ===================================
 // A person's wristband, or a place's tag — on the crew member's card, the guest's card,
-// a checkpoint and a muster station (types/nfc.ts).
+// a checkpoint, a muster station and a piece of equipment (types/nfc.ts).
 //
 // Shows the tag in force (the end of its UID, when and by whom it was given). An officer
 // writes one on a phone that reads NFC — the words go on the chip, its UID onto the
@@ -108,6 +108,8 @@ export function NfcTagRow({ kind, refId, name }: { kind: NfcTagKind; refId: stri
                 })
               : t('nfc.none')}
           </Text>
+          {/* Equipment is mostly steel, where an ordinary NTAG sticker is not read at all. */}
+          {kind === 'item' && !tag ? <Text style={styles.sub}>{t('nfc.metalHint')}</Text> : null}
         </View>
       </View>
       <View style={styles.row}>

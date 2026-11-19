@@ -69,7 +69,7 @@ app mirrors. Bundle id `com.kukalab.msm`.
 - **Scan before signing** (`services/signingPolicy.ts`, Sep 2026): a vessel rule (`signingPolicy`
   field on the vessel document, Master-only in firestore.rules, mirrored to `msm:signing_policy`)
   that Crew/Officers may sign only after scanning the item. Proof is IN MEMORY per item, 30 min,
-  recorded only by the in-app camera (`ScanSc`, not the typed code) or the `msm://item` deep link;
+  recorded only by the in-app camera (`ScanSc`, not the typed code), the `msm://item` deep link or the item's registered NFC tag;
   never route params (a web URL could carry them) or storage. Rank is the DEVICE's token role,
   never the picked signer name. A Master (or a device on no vessel) may override with a reason.
   The record carries `verification` {method, scannedAt, reason}; the report prints a Scan column
@@ -530,6 +530,10 @@ app mirrors. Bundle id `com.kukalab.msm`.
   module `nfc`): on board / ashore, the gangway crossing (security, `via: 'nfc'`), card and certificates, what waits for their
   signature (`services/nfcPerson.bandPending`: tonight's night orders and standing orders unsigned, documents to read — keyed by crew
   id, matched by name), Revoke for an officer. A muster tag → Muster. iOS cannot listen in the background (the scanner's Tap a wristband).
+  **Equipment tags** (19 Nov 2026, kind `item`): NfcTagRow on ItemDetail under Print QR label; the chip carries `msm://item/<id>`
+  (payload helpers moved to the pure `services/crewQr.ts`, re-exported by qrLabel). A resolved tap is scan proof
+  (`VerificationMethod` `nfc`, report "NFC"; 2.76 and older print it as QR): ScanSc item match and Quick pass (NFC now listens
+  there too), and NfcListener (Android, anywhere) opens the item. On-metal tags on steel. Rules `kind` includes `item`.
 - **Muster and boat landing** (15 Nov 2026 — flag `muster`, off; plan item 70): `types/muster.ts`, pure `services/muster.ts` (pobList,
   start/close, `markPerson` — first mark stands, someone not in the frozen POB is refused —, `countMuster` per station with the assigned
   missing and "from another station", `musterSheet` → PMS-history PDF), screen `MusterSc` (route `Muster` `muster`; menu Safety after

@@ -460,6 +460,8 @@ await t(false, '…a guest\'s name goes up masked', setDoc(R(officer, 'nfc_tags'
 await t(true, '…masked it is taken', setDoc(R(officer, 'nfc_tags', 'tag_04000000000001'), { ...NT, id: 'tag_04000000000001', uid: '04000000000001', ref: 'pax1', name: 'A…e' }));
 await t(true, 'An officer revokes a lost wristband', setDoc(R(officer, 'nfc_tags', NT.id), { ...NT, revokedAt: 2, revokedBy: 'Chief Officer', updatedAt: 2 }));
 await t(false, 'Nobody deletes a tag', deleteDoc(R(master, 'nfc_tags', NT.id)));
+await t(true, 'An officer tags a piece of equipment', setDoc(R(officer, 'nfc_tags', 'tag_04E0E0E0E0E0E0'), { ...NT, id: 'tag_04E0E0E0E0E0E0', uid: '04E0E0E0E0E0E0', kind: 'item', ref: 'liferafts_1', name: '3 · Liferaft' }));
+await t(false, '…an unknown kind is refused', setDoc(R(officer, 'nfc_tags', 'tag_04E0E0E0E0E0E1'), { ...NT, id: 'tag_04E0E0E0E0E0E1', uid: '04E0E0E0E0E0E1', kind: 'door' }));
 
 // Musters (types/muster.ts): officers keep the stations and start a muster; anyone aboard marks a person once.
 const MS = { id: 'ms1', code: 'MS-1', name: 'Boat deck stbd', order: 0, crewIds: ['c1'], updatedAt: 1 };

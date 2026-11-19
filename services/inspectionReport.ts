@@ -229,11 +229,11 @@ export function photoCount(insp: Inspection): number {
   return (insp.photos ?? []).filter((p) => p.kind === 'photo').length;
 }
 
-/** The short "Scan" cell: QR when the label was scanned, "No scan" for a Master's override. */
+/** The short "Scan" cell: QR (or NFC) when the label was scanned, "No scan" for a Master's override. */
 function scanCell(insp: Inspection): string {
   const v = insp.verification;
   if (!v) return '';
-  return v.method === 'override' ? 'No scan' : v.method === 'group' ? (v.scannedAt ? 'Group QR' : v.reason ? 'Group, no scan' : 'Group') : 'QR';
+  return v.method === 'override' ? 'No scan' : v.method === 'group' ? (v.scannedAt ? 'Group QR' : v.reason ? 'Group, no scan' : 'Group') : v.method === 'nfc' ? 'NFC' : 'QR';
 }
 
 function doneRows(data: ReportData, flat: EquipmentItem[]) {

@@ -5,7 +5,7 @@
 // ===================================
 
 import { NfcTag, NfcTagKind } from '../types/nfc';
-import { checkpointQrPayload, crewQrPayload, musterQrPayload, parseCheckpointQr, parseCrewQr, parseMusterQr } from './crewQr';
+import { checkpointQrPayload, crewQrPayload, itemQrPayload, musterQrPayload, parseCheckpointQr, parseCrewQr, parseItemQr, parseMusterQr } from './crewQr';
 import { isPassengerId } from '../types/passengers';
 import { maskName } from '../utils/privacy';
 
@@ -18,7 +18,7 @@ export const tagId = (uid: string) => `tag_${normUid(uid)}`;
 
 /** The words written on a tag of this kind — the same as its QR. */
 export function payloadFor(kind: NfcTagKind, ref: string): string {
-  return kind === 'person' ? crewQrPayload(ref) : kind === 'checkpoint' ? checkpointQrPayload(ref) : musterQrPayload(ref);
+  return kind === 'person' ? crewQrPayload(ref) : kind === 'checkpoint' ? checkpointQrPayload(ref) : kind === 'item' ? itemQrPayload(ref) : musterQrPayload(ref);
 }
 
 function parsePayload(p: string): { kind: NfcTagKind; ref: string } | null {
@@ -28,6 +28,8 @@ function parsePayload(p: string): { kind: NfcTagKind; ref: string } | null {
   if (cp) return { kind: 'checkpoint', ref: cp };
   const ms = parseMusterQr(p);
   if (ms) return { kind: 'muster', ref: ms };
+  const item = parseItemQr(p);
+  if (item) return { kind: 'item', ref: item };
   return null;
 }
 

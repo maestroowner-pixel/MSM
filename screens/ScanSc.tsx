@@ -94,6 +94,7 @@ const QUICK_PERIODS: InspectionPeriod[] = ['weekly', 'monthly', 'quarterly', 'an
 const QUICK_NOTE = {
   camera: 'Quick pass: label scanned, all lines passed, no checklist opened.',
   typed: 'Quick pass: code typed, all lines passed, no checklist opened.',
+  nfc: 'Quick pass: NFC tag tapped, all lines passed, no checklist opened.',
 };
 /** The camera keeps reading a sticker it is still pointed at; the same code is ignored this long. */
 const SAME_CODE_MS = 4000;
@@ -186,7 +187,7 @@ export default function ScanSc() {
     setQuick(false);
   };
 
-  const quickPass = (code: string, via: 'camera' | 'typed') => {
+  const quickPass = (code: string, via: 'camera' | 'typed' | 'nfc') => {
     const now = Date.now();
     if (via === 'camera' && lastCode.current?.code === code && now - lastCode.current.at < SAME_CODE_MS) {
       locked.current = false;
@@ -225,8 +226,10 @@ export default function ScanSc() {
     }
     // A typed code is not proof the label was in front of the phone — where the vessel
     // requires a scan, only the camera may pass an item with no checklist opened.
-    if (via === 'camera') recordScanProof(item.id, 'qr-camera', now);
-    const proof = via === 'camera' ? { itemId: item.id, at: now, method: 'qr-camera' as const } : null;
+    // A registered tag proves the item was at hand as the camera does; a typed code does not.
+    const method = via === 'camera' ? ('qr-camera' as const) : via === 'nfc' ? ('nfc' as const) : null;
+    if (method) recordScanProof(item.id, method, now);
+    const proof = method ? { itemId: item.id, at: now, method } : null;
     const gate = signingGate(signingPolicy, sync.role, sync.enrolled, proof, item.category);
     if (gate.kind === 'blocked' || gate.kind === 'override') return done({ itemId: item.id, title, text: t('qp.scanNeeded'), ok: false });
 
@@ -263,13 +266,7 @@ export default function ScanSc() {
     (code: string, via: 'camera' | 'typed' | 'nfc') => {
       if (locked.current) return;
       locked.current = true;
-      if (quick) {
-        if (via === 'nfc') {
-          locked.current = false;
-          return;
-        }
-        return quickPass(code, via);
-      }
+      if (quick) return quickPass(code, via);
 
       const hold = (hit: { name: string; text: string; ok: boolean }, ms = 2200) => {
         setCrewHit(hit);
@@ -463,6 +460,8 @@ export default function ScanSc() {
         // A TYPED code is deliberately not proof: the manual field exists for a
         // damaged label, the one case the rule must not wave through.
         if (via === 'camera') recordScanProof(match.item.id, 'qr-camera');
+        // An item's NFC tag counts only once resolveTap found its UID on the register.
+        if (via === 'nfc') recordScanProof(match.item.id, 'nfc');
         // Remember that this label was just scanned on this device — the Dashboard's
         // "Recently scanned" strip reads this trail. Fire-and-forget, and kept off
         // the item itself so it neither bumps updatedAt (which would reorder the
@@ -485,7 +484,7 @@ export default function ScanSc() {
     Vibration.vibrate([0, 90, 80, 90]);
     setCrewHit({ name: r.tag?.name ?? t('nfc.tag'), text: t(`nfc.why.${r.why}`), ok: false });
   };
-  const taps = useNfcTaps(onTap, t('nfc.holdBand'), !quick);
+  const taps = useNfcTaps(onTap, t('nfc.holdBand'));
 
   const again = () => {
     locked.current = false;
@@ -560,7 +559,7 @@ export default function ScanSc() {
         </View>
       </View>
 
-      {taps.available && !quick ? (
+      {taps.available ? (
         <Card style={{ borderLeftWidth: 6, borderLeftColor: taps.listening ? COLORS.success : COLORS.primary }}>
           <View style={styles.quickHead}>
             <MciIcon name="nfc-variant" size={28} color={taps.listening ? COLORS.success : COLORS.primary} />

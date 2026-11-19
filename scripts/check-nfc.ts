@@ -46,6 +46,14 @@ ok(!r5.ok && (r5 as any).why === 'mismatch', 'a registered wristband rewritten t
 const r6 = resolveTap('04FFFFFFFFFF01', 'msm://checkpoint/c1', tags);
 ok(!r6.ok && (r6 as any).why === 'mismatch', '…or rewritten to a place');
 ok(resolveTap('04C0C0C0C0C0C0', 'msm://checkpoint/cp1', tags).ok, 'a checkpoint tag');
+// Equipment (17 Nov 2026): the tag carries the item's label, msm://item/<id>, case of the id kept.
+const eq = issueTag([], '04E0E0E0E0E0E0', 'item', 'liferafts_Ab3', '3 · Liferaft 12p', 'C/O', 400);
+ok(payloadFor('item', 'liferafts_Ab3') === 'msm://item/liferafts_Ab3', 'an equipment tag says what its label says');
+const e1 = resolveTap('04E0E0E0E0E0E0', 'MSM://ITEM/liferafts_Ab3', eq);
+ok(e1.ok && e1.code === 'msm://item/liferafts_Ab3' && e1.tag.kind === 'item', 'an equipment tag: the label\'s own code');
+ok(!resolveTap('04E0E0E0E0E0E0', 'msm://item/liferafts_ab3', eq).ok, '…another id (case counts) is a rewrite');
+ok((resolveTap('04E0E0E0E0E0E0', 'msm://crew/liferafts_Ab3', eq) as any).why === 'mismatch', '…and a person\'s words on it are refused');
+ok(issueTag(eq, '04E1E1E1E1E1E1', 'item', 'liferafts_Ab3', '3 · Liferaft 12p', 'C/O', 401)[1].revokedAt === 401, 'a new tag on the same item revokes the old');
 // A watch or a door card registered as is: a 4-byte UID, no words on the chip.
 const watch = issueTag([], 'a1:b2:c3:d4', 'person', 'c3', 'Tom Hall', 'Chief Officer', 500);
 ok(watch[0].id === 'tag_A1B2C3D4' && resolveTap('A1B2C3D4', null, watch).ok && (resolveTap('a1b2c3d4', null, watch) as any).code === 'msm://crew/c3', 'a watch registered as is (4-byte UID, no words) opens as its person');
@@ -123,6 +131,7 @@ ok(recentBoats([bm, { ...bm, id: 'x', boat: 'tender 1', at: 1 }, { ...bm, id: 'y
 // ---- wiring -------------------------------------------------------------------------
 const rules = readFileSync('firestore.rules', 'utf8');
 ok(/match \/nfc_tags\/\{id\}[\s\S]{0,900}id == 'tag_' \+ request\.resource\.data\.uid[\s\S]{0,600}allow delete: if false/.test(rules), 'rules: a tag is its UID, never deleted');
+ok(/kind in \['person', 'checkpoint', 'muster', 'item'\]/.test(rules), 'rules: equipment tags are allowed');
 ok(/match \/muster_marks\/\{id\}[\s\S]{0,1200}allow update, delete: if false/.test(rules) && /musterId \+ '_' \+ request\.resource\.data\.personId/.test(rules), 'rules: one mark per person per muster, written once');
 ok(/match \/musters\/\{id\}[\s\S]{0,900}affectedKeys\(\)\.hasOnly\(\['closedAt', 'closedBy', 'closeNote', 'updatedAt'\]\)/.test(rules), 'rules: a muster only closes');
 const fb = readFileSync('services/firebaseService.ts', 'utf8');
@@ -165,8 +174,8 @@ ok(JSON.stringify(app.expo.plugins).includes('react-native-nfc-manager'), 'the b
 }
 
 // ---- words --------------------------------------------------------------------------
-const files = ['screens/MusterSc.tsx', 'screens/ScanSc.tsx', 'components/NfcTagRow.tsx', 'components/BoatLanding.tsx', 'components/SignConfirm.tsx', 'components/useNfcTaps.ts', 'screens/PatrolsSc.tsx', 'screens/SecuritySc.tsx', 'screens/NfcPersonSc.tsx', 'components/NfcListener.tsx'].map((f) => readFileSync(f, 'utf8')).join('\n');
-const used = [...new Set([...files.matchAll(/\bt\('((?:nfc|mu|sc|band|scn|b)\.[\w.]+)'/g)].map((m) => m[1]))];
+const files = ['screens/MusterSc.tsx', 'screens/ScanSc.tsx', 'components/NfcTagRow.tsx', 'components/BoatLanding.tsx', 'components/SignConfirm.tsx', 'components/useNfcTaps.ts', 'screens/PatrolsSc.tsx', 'screens/SecuritySc.tsx', 'screens/NfcPersonSc.tsx', 'components/NfcListener.tsx', 'screens/InspectionDetailSc.tsx'].map((f) => readFileSync(f, 'utf8')).join('\n');
+const used = [...new Set([...files.matchAll(/\bt\('((?:nfc|mu|sc|band|scn|b|id)\.[\w.]+)'/g)].map((m) => m[1]))];
 const dyn = ['nfc.why.unknown', 'nfc.why.revoked', 'nfc.why.mismatch', 'mu.who.crew', 'mu.who.pax', 'mu.who.visitor', 'menu.Muster'];
 for (const [lang, dict] of [['en', en], ['es', es], ['no', no], ['pt', pt], ['ru', ru], ['uk', uk]] as const) {
   const missing = [...used, ...dyn].filter((k) => !(k in dict));

@@ -40,6 +40,7 @@ import { itemLocation, itemNumber, typeWithSize } from '../utils/itemText';
 import { useSync } from '../contexts/SyncContext';
 import { plansPms, roleAtLeast } from '../types/role';
 import { PlanPinLink } from '../components/PlanPinLink';
+import { NfcTagRow } from '../components/NfcTagRow';
 import { scanProofFor, signingGate } from '../services/signingPolicy';
 import { t, tk, tn, useT, currentLang, dateLocale } from '../utils/i18n';
 import { shipToday } from '../utils/shipTime';
@@ -750,6 +751,8 @@ export default function ItemDetailSc() {
               <Text style={styles.labelBtnText}>{t('lbl.printOne')}</Text>
             </TouchableOpacity>
           ) : null}
+          {/* The same id on a chip: a tap opens the item and counts as the scan (types/nfc.ts). */}
+          {!isNew ? <NfcTagRow kind="item" refId={draft.id} name={[draft.no, typeWithSize(draft) || (meta ? catLabel(meta) : '')].filter(Boolean).join(' · ')} /> : null}
 
           {!isNew ? (
             <TouchableOpacity style={styles.moveBtn} onPress={onDuplicate}>

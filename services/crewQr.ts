@@ -1,4 +1,27 @@
-// The crew card QR payload — no imports, so tests and any screen can use it.
+// QR payloads (an equipment label, a crew card and the rest) — no imports, so tests and any screen can use them.
+/** The private URI scheme every MSM-printed label carries. Matches app.json. */
+export const QR_SCHEME = 'msm://item/';
+
+/** The QR payload for an item. The id is permanent, so the payload is too. */
+export function itemQrPayload(id: string): string {
+  return `${QR_SCHEME}${id}`;
+}
+
+/**
+ * Read a scanned string back as an item id, or null if it is not one of ours.
+ *
+ * The scheme is matched case-insensitively (a scanner or a QR generator may
+ * normalise it), but the id is returned verbatim — `uid()` mixes base-36 digits
+ * whose case is significant, and lowercasing an id would silently fail to match.
+ */
+export function parseItemQr(payload: string): string | null {
+  const s = payload.trim();
+  if (s.length <= QR_SCHEME.length) return null;
+  if (s.slice(0, QR_SCHEME.length).toLowerCase() !== QR_SCHEME) return null;
+  const id = s.slice(QR_SCHEME.length).trim();
+  return id || null;
+}
+
 /** The QR on a crew card — scanned at the gangway going ashore and coming back. */
 export const CREW_QR_SCHEME = 'msm://crew/';
 export function crewQrPayload(id: string): string {

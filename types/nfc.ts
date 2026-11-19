@@ -2,9 +2,10 @@
 // NFC tags — a second way, beside the QR, to say who or where (plan item 70, 15 Nov 2026).
 //
 // A wristband on a crew member or a guest, a sticker on a round's checkpoint or at a
-// muster station. The tag carries the SAME payload as the QR it stands beside
-// (`msm://crew/<id>`, `msm://checkpoint/<id>`, `msm://muster/<id>`), so everything a
-// scan does a tap does.
+// muster station, an on-metal tag on a piece of equipment (17 Nov 2026: "NFC tags for
+// equipment, an alternative to the QR"). The tag carries the SAME payload as the QR it
+// stands beside (`msm://crew/<id>`, `msm://checkpoint/<id>`, `msm://muster/<id>`,
+// `msm://item/<id>`), so everything a scan does a tap does.
 //
 // WHAT A TAP PROVES. An NTAG215 can be rewritten by any phone, so the words on it prove
 // nothing: anyone could write `msm://crew/<the Master's id>` on a blank sticker. What
@@ -19,7 +20,7 @@
 // deleted — a revoked tag stays on the register with when and by whom.
 // ===================================
 
-export type NfcTagKind = 'person' | 'checkpoint' | 'muster';
+export type NfcTagKind = 'person' | 'checkpoint' | 'muster' | 'item';
 
 export interface NfcTag {
   /** `tag_<uid>` — one record per chip, whatever it is given to. */
@@ -27,7 +28,7 @@ export interface NfcTag {
   /** The chip's serial number, upper-case hex without separators (04A1B2C3D4E580). */
   uid: string;
   kind: NfcTagKind;
-  /** Crew member or passenger id, checkpoint id, muster station id. */
+  /** Crew member or passenger id, checkpoint id, muster station id, equipment item id. */
   ref: string;
   /** Who or what, for the register — a guest's name masked (A…e), like everything of theirs on the cloud. */
   name: string;

@@ -7,7 +7,7 @@ export interface StepAct { t: string; steps: string[]; note?: string; who?: Step
 export interface StepScreen { id: string; title: string; path: string[]; who: StepWho; perVessel?: boolean; intro: string; acts: StepAct[] }
 export interface StepGroup { title: string; screens: StepScreen[] }
 
-/** 102 screens, 531 actions. */
+/** 102 screens, 532 actions. */
 export const MANUAL_STEPS: StepGroup[] = [
  {
   "title": "Getting started",
@@ -978,7 +978,7 @@ export const MANUAL_STEPS: StepGroup[] = [
     ],
     "who": "officers",
     "perVessel": true,
-    "intro": "A wristband carries the same code as the crew card’s QR. Only a tag on the vessel’s register counts — a rewritten one is refused.",
+    "intro": "A wristband carries the same code as the crew card’s QR, an equipment tag the same as the item’s label. Only a tag on the vessel’s register counts — a rewritten one is refused.",
     "acts": [
      {
       "t": "Give a person a wristband",
@@ -1013,6 +1013,15 @@ export const MANUAL_STEPS: StepGroup[] = [
        "**NFC tag** → **Write a tag**",
        "Hold the tag near the phone, then fix it in place"
       ]
+     },
+     {
+      "t": "Tag a piece of equipment",
+      "steps": [
+       "The item → under **Print QR label**: **NFC tag** → **Write a tag**",
+       "Hold an on-metal tag near the phone",
+       "Fix it beside the QR label"
+      ],
+      "note": "A tap opens the item and counts as the label scanned — also in **Quick pass** on a round. On steel an ordinary sticker is not read: use on-metal tags."
      },
      {
       "t": "Use a wristband anywhere in the app (Android)",
