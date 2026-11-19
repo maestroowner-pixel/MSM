@@ -12,6 +12,6 @@ export const readTag = async (_prompt: string, _opts?: { background?: boolean })
 export const claimNfc = (): (() => void) => () => {};
 export const nfcClaimed = () => false;
 export const cancelRead = async (): Promise<void> => {};
-export async function writeTag(_uri: string, _prompt: string): Promise<string> {
+export async function writeTag(_uri: string, _prompt: string, _refuse?: (uid: string) => boolean): Promise<string> {
   throw new Error('nfc');
 }

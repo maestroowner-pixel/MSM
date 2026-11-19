@@ -2,7 +2,7 @@
 // Category items list
 // ===================================
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, useWindowDimensions, Platform, Modal } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Screen, StatusPill, Empty, statusColor, CategoryBadge } from '../components/ui';
@@ -30,6 +30,8 @@ import { t, tk, tn, useT } from '../utils/i18n';
 import { moduleOn } from '../constants/modules';
 import { WIRE_CATEGORIES } from '../services/wireLog';
 import { CRANE_CATEGORIES } from '../services/craneLog';
+import { nfcReady } from '../services/nfcReader';
+import { roleAtLeast } from '../types/role';
 
 type SortBy = 'date' | 'position' | 'name' | 'type' | 'round';
 const SORT_ORDER: SortBy[] = ['position', 'date', 'name', 'type', 'round'];
@@ -98,6 +100,12 @@ export default function CategoryItemsSc() {
   // the occasional label run.
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // NFC tags for the selection, one after another (NfcBatchSc): an officer, on a phone that writes them.
+  const [nfcWrites, setNfcWrites] = useState(false);
+  const nfcOn = moduleOn('nfc') && (!sync.enrolled || roleAtLeast(sync.role, 'admin'));
+  useEffect(() => {
+    if (nfcOn) void nfcReady().then(setNfcWrites);
+  }, [nfcOn]);
   // "Set dates" on the selection — after annual servicing, when thirty items come
   // back with the same dates (asked for 8 Oct 2026). See services/bulkEdit.ts.
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -598,6 +606,20 @@ export default function CategoryItemsSc() {
             <MciIcon name="checkbox-multiple-marked-outline" size={18} color={COLORS.primary} />
             <Text style={[styles.printBtnText, { color: COLORS.primary }]}>{t('gc.groupBtn')}</Text>
           </TouchableOpacity>
+          {nfcOn && nfcWrites ? (
+            <TouchableOpacity
+              style={[styles.printBtn, styles.outlineBtn, selected.size === 0 && { opacity: 0.4 }]}
+              disabled={selected.size === 0}
+              accessibilityLabel={t('nfc.batchBtn')}
+              onPress={() => {
+                const ids = filtered.filter((it) => selected.has(it.id)).map((it) => it.id);
+                stopSelecting();
+                nav.navigate('NfcBatch', { ids });
+              }}
+            >
+              <MciIcon name="nfc-variant" size={18} color={COLORS.primary} />
+            </TouchableOpacity>
+          ) : null}
           <TouchableOpacity
             style={[styles.printBtn, { flex: 1 }, selected.size === 0 && { opacity: 0.4 }]}
             disabled={selected.size === 0}

@@ -85,3 +85,17 @@ export function revokeTag(tag: NfcTag, by: string, now: number): NfcTag {
 
 /** The last characters of a UID, enough to tell two wristbands apart on a screen. */
 export const uidTail = (uid: string) => normUid(uid).slice(-6).replace(/(..)(?=.)/g, '$1:');
+
+/** Who holds this chip now — the tag in force with its UID, if any. */
+export function tagHolder(tags: NfcTag[], uid: string): NfcTag | undefined {
+  const id = tagId(uid);
+  return tags.find((t) => t.id === id && !t.revokedAt);
+}
+
+/**
+ * Writing tags one after another (screens/NfcBatchSc): those still without one, in the
+ * list's order — the ones already tagged and those skipped are passed over.
+ */
+export function batchQueue(ids: string[], tags: NfcTag[], kind: NfcTagKind, skipped: Set<string>): string[] {
+  return ids.filter((id) => !skipped.has(id) && !activeTag(tags, kind, id));
+}

@@ -163,6 +163,7 @@ import ChatSc from './screens/ChatSc';
 import GaPlanSc from './screens/GaPlanSc';
 import MusterSc from './screens/MusterSc';
 import NfcPersonSc from './screens/NfcPersonSc';
+import NfcBatchSc from './screens/NfcBatchSc';
 import { NfcListener } from './components/NfcListener';
 import { ChatNotifier } from './components/ChatNotifier';
 import OrderEntrySc from './screens/OrderEntrySc';
@@ -309,6 +310,7 @@ const SCREEN_MODULES: Record<string, ModuleKey[]> = {
   GaPlan: ['gaPlan'],
   Muster: ['muster'],
   NfcPerson: ['nfc'],
+  NfcBatch: ['nfc'],
   Emissions: ['emissions'],
   EmPassage: ['emissions'],
   RestPlan: ['restPlan'],
@@ -946,6 +948,7 @@ function Root() {
         <Stack.Screen name="GaPlan" component={gated('GaPlan', GaPlanSc)} options={webHeader(t('ga.title'))} />
         <Stack.Screen name="Muster" component={gated('Muster', MusterSc)} options={webHeader(t('mu.title'))} />
         <Stack.Screen name="NfcPerson" component={gated('NfcPerson', NfcPersonSc)} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="NfcBatch" component={gated('NfcBatch', NfcBatchSc)} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Emissions" component={gated('Emissions', EmissionsSc)} options={{ presentation: 'modal' }} />
         <Stack.Screen name="EmPassage" component={gated('EmPassage', EmPassageSc)} options={{ presentation: 'modal' }} />
         <Stack.Screen name="RestPlan" component={gated('RestPlan', RestPlanSc)} options={{ presentation: 'modal' }} />

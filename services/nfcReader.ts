@@ -138,9 +138,11 @@ export async function cancelRead(): Promise<void> {
 
 /**
  * Write `uri` onto the tag held to the phone and return its UID. Throws with a reason a
- * person can act on (not writable, too small, moved away).
+ * person can act on (not writable, too small, moved away). `refuse` sees the UID before
+ * anything is written: a chip it names stays as it was and the write throws `taken`
+ * (the last sticker held to the phone again while writing a row of them).
  */
-export async function writeTag(uri: string, prompt: string): Promise<string> {
+export async function writeTag(uri: string, prompt: string, refuse?: (uid: string) => boolean): Promise<string> {
   const m = nfc();
   if (!m || !(await nfcReady())) throw new Error('nfc');
   if (!(await takeReader(false))) {
@@ -154,6 +156,7 @@ export async function writeTag(uri: string, prompt: string): Promise<string> {
     await m.default.requestTechnology(m.NfcTech.Ndef, { alertMessage: prompt });
     const tag = await m.default.getTag();
     if (!tag?.id) throw new Error('read');
+    if (refuse?.(String(tag.id))) throw new Error('taken');
     const bytes = m.Ndef.encodeMessage([m.Ndef.uriRecord(uri)]);
     await m.default.ndefHandler.writeNdefMessage(bytes);
     if (Platform.OS === 'ios') await m.default.setAlertMessageIOS('✓').catch(() => {});

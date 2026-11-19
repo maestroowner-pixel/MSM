@@ -7,7 +7,7 @@ export interface StepAct { t: string; steps: string[]; note?: string; who?: Step
 export interface StepScreen { id: string; title: string; path: string[]; who: StepWho; perVessel?: boolean; intro: string; acts: StepAct[] }
 export interface StepGroup { title: string; screens: StepScreen[] }
 
-/** 102 screens, 532 actions. */
+/** 102 screens, 533 actions. */
 export const MANUAL_STEPS: StepGroup[] = [
  {
   "title": "Getting started",
@@ -1022,6 +1022,16 @@ export const MANUAL_STEPS: StepGroup[] = [
        "Fix it beside the QR label"
       ],
       "note": "A tap opens the item and counts as the label scanned — also in **Quick pass** on a round. On steel an ordinary sticker is not read: use on-metal tags."
+     },
+     {
+      "t": "Tag a whole category in a row",
+      "steps": [
+       "**Equipment** → the category → long-press an item, tick the rest (or **All**)",
+       "The **NFC** button beside **Print**",
+       "**Start**, then hold each new tag to the phone in turn — the next item comes up by itself",
+       "**Skip** an item you cannot reach; **Stop** to finish later"
+      ],
+      "note": "Items that already have a tag are passed over. A tag already on the register is refused before anything is written to it — take a new one. Officers and the Master, on a phone that reads NFC."
      },
      {
       "t": "Use a wristband anywhere in the app (Android)",
@@ -4392,7 +4402,7 @@ export const MANUAL_STEPS: StepGroup[] = [
        "**Bridge & engine checklists** → **Emergency cards**",
        "**Emergency — fire on board**, **man overboard**, **abandon ship**, **collision**, **grounding**, **flooding**",
        "Tick what is done as it is done, remarks — what worked, what did not",
-       "Sign and save"
+       "**OOW** signs, **Master** confirms (abandon ship: **Master** and **Chief Officer**) → save"
       ]
      },
      {

@@ -1036,6 +1036,7 @@ const EMERGENCY_FIRE: string[] = [
   'Isolate fuel, electrical power and ventilation to the space',
   '@text Remarks (what was done, what worked, what did not)',
   '@sign OOW',
+  '@sign Master',
 ];
 const EMERGENCY_MOB: string[] = [
   '@field Side (port / starboard)',
@@ -1055,6 +1056,7 @@ const EMERGENCY_MOB: string[] = [
   'Return to the position; recover the person; medical team on stand-by',
   '@text Remarks',
   '@sign OOW',
+  '@sign Master',
 ];
 const EMERGENCY_ABANDON: string[] = [
   '@field Reason',
@@ -1075,6 +1077,7 @@ const EMERGENCY_ABANDON: string[] = [
   'Watch for other vessels and aircraft',
   '@text Remarks',
   '@sign Master',
+  '@sign Chief Officer',
 ];
 const EMERGENCY_COLLISION: string[] = [
   '@field Other vessel',

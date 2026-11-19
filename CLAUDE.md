@@ -534,6 +534,11 @@ app mirrors. Bundle id `com.kukalab.msm`.
   (payload helpers moved to the pure `services/crewQr.ts`, re-exported by qrLabel). A resolved tap is scan proof
   (`VerificationMethod` `nfc`, report "NFC"; 2.76 and older print it as QR): ScanSc item match and Quick pass (NFC now listens
   there too), and NfcListener (Android, anywhere) opens the item. On-metal tags on steel. Rules `kind` includes `item`.
+  **In a row** (19 Nov 2026, `screens/NfcBatchSc.tsx`, route `NfcBatch` {ids}, gated `nfc`): the NFC button in CategoryItems'
+  multi-select (officer, phone that writes NFC). `batchQueue` = selected items with no tag, not skipped, in list order; each written
+  tag brings up the next. `writeTag(uri, prompt, refuse)` sees the UID BEFORE writing: a chip already on the register (`tagHolder`)
+  throws `taken` and is left as it was — the last sticker held again would otherwise be rewritten and taken from its item. Skip / Stop;
+  three failures in a row stop the run. The screen claims the reader (`claimNfc`).
 - **Muster and boat landing** (15 Nov 2026 — flag `muster`, off; plan item 70): `types/muster.ts`, pure `services/muster.ts` (pobList,
   start/close, `markPerson` — first mark stands, someone not in the frozen POB is refused —, `countMuster` per station with the assigned
   missing and "from another station", `musterSheet` → PMS-history PDF), screen `MusterSc` (route `Muster` `muster`; menu Safety after

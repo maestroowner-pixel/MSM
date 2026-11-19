@@ -1,6 +1,6 @@
 // npm run check:nfc — NFC tags (the register, what a tap means), musters (the count, the paper), the boat landing,
 // signatures by wristband, rules, sync and words.
-import { activeTag, issueTag, normUid, payloadFor, registerName, resolveTap, revokeTag, tagId, uidTail } from '../services/nfcTags';
+import { activeTag, batchQueue, issueTag, normUid, tagHolder, payloadFor, registerName, resolveTap, revokeTag, tagId, uidTail } from '../services/nfcTags';
 import { closeMuster, countMuster, durationText, liveStations, markPerson, musterSheet, nextStationCode, pobList, runningMuster, startMuster } from '../services/muster';
 import { nextMove, outByBoat, personsOnBoard, recentBoats } from '../services/gangway';
 import { bandPending, bandPerson } from '../services/nfcPerson';
@@ -173,10 +173,25 @@ ok(JSON.stringify(app.expo.plugins).includes('react-native-nfc-manager'), 'the b
   ok(!bandPending(p1, { ...base, docsOn: false }).length && !bandPending({ id: 'pax1', name: 'Ann Lee', who: 'pax' }, base).length, 'documents off: nothing; a guest signs nothing');
 }
 
+// ---- equipment tags in a row (NfcBatchSc) ---------------------------------------------
+{
+  let reg = issueTag([], '04AA000000000A', 'item', 'i2', 'No. 2 · CO2 5 kg', 'C/O', 100);
+  ok(batchQueue(['i1', 'i2', 'i3'], reg, 'item', new Set()).join() === 'i1,i3', 'a row: items already tagged are passed over, the order kept');
+  ok(batchQueue(['i1', 'i2', 'i3'], reg, 'item', new Set(['i1'])).join() === 'i3', '…a skipped one too');
+  ok(tagHolder(reg, '04:aa:00:00:00:00:0a')?.ref === 'i2' && !tagHolder(reg, '04BB000000000B'), 'the chip just written is found by its UID, any spelling; a new one is nobody\'s');
+  reg = [revokeTag(reg[0], 'C/O', 200)];
+  ok(!tagHolder(reg, '04AA000000000A') && batchQueue(['i2'], reg, 'item', new Set()).join() === 'i2', 'revoked: free again, and the item is back in the row');
+  const rd = readFileSync('services/nfcReader.ts', 'utf8');
+  ok(/if \(refuse\?\.\(String\(tag\.id\)\)\) throw new Error\('taken'\);\s*const bytes/.test(rd), 'a chip on the register is refused BEFORE anything is written to it');
+  const sc = readFileSync('screens/NfcBatchSc.tsx', 'utf8');
+  ok(/tagHolder\(tagsRef\.current, u\)/.test(sc) && /claimNfc\(\)/.test(sc), 'the row refuses register chips and keeps the app-wide listener off the reader');
+  ok(/NfcBatch: \['nfc'\]/.test(readFileSync('index.tsx', 'utf8')), 'the row is gated by the module');
+}
+
 // ---- words --------------------------------------------------------------------------
-const files = ['screens/MusterSc.tsx', 'screens/ScanSc.tsx', 'components/NfcTagRow.tsx', 'components/BoatLanding.tsx', 'components/SignConfirm.tsx', 'components/useNfcTaps.ts', 'screens/PatrolsSc.tsx', 'screens/SecuritySc.tsx', 'screens/NfcPersonSc.tsx', 'components/NfcListener.tsx', 'screens/InspectionDetailSc.tsx'].map((f) => readFileSync(f, 'utf8')).join('\n');
+const files = ['screens/MusterSc.tsx', 'screens/ScanSc.tsx', 'components/NfcTagRow.tsx', 'components/BoatLanding.tsx', 'components/SignConfirm.tsx', 'components/useNfcTaps.ts', 'screens/PatrolsSc.tsx', 'screens/SecuritySc.tsx', 'screens/NfcPersonSc.tsx', 'components/NfcListener.tsx', 'screens/InspectionDetailSc.tsx', 'screens/NfcBatchSc.tsx'].map((f) => readFileSync(f, 'utf8')).join('\n');
 const used = [...new Set([...files.matchAll(/\bt\('((?:nfc|mu|sc|band|scn|b|id)\.[\w.]+)'/g)].map((m) => m[1]))];
-const dyn = ['nfc.why.unknown', 'nfc.why.revoked', 'nfc.why.mismatch', 'mu.who.crew', 'mu.who.pax', 'mu.who.visitor', 'menu.Muster'];
+const dyn = ['nfc.batchBtn', 'nfc.why.unknown', 'nfc.why.revoked', 'nfc.why.mismatch', 'mu.who.crew', 'mu.who.pax', 'mu.who.visitor', 'menu.Muster'];
 for (const [lang, dict] of [['en', en], ['es', es], ['no', no], ['pt', pt], ['ru', ru], ['uk', uk]] as const) {
   const missing = [...used, ...dyn].filter((k) => !(k in dict));
   ok(!missing.length, `every word in ${lang}${missing.length ? `: missing ${missing.join(', ')}` : ''}`);
