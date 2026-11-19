@@ -5670,7 +5670,7 @@ export const en = {
   "set.restoreBkSub": "Replace all data from a .msm file",
   "set.modules": "Modules",
   "set.reminders": "Expiry reminders",
-  "set.remindersSub": "Notify 60 / 30 / 7 days before inspection or expiry",
+  "set.remindersSub": "Notify 60 / 30 / 7 days before inspection or expiry, and of chat messages",
   "set.sounds": "Sounds",
   "set.soundsSub": "The ship's bell on launch and the chimes on save, sign and error",
   "set.compLog": "BA Compressor log",

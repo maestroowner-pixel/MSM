@@ -465,8 +465,19 @@ app mirrors. Bundle id `com.kukalab.msm`.
   messages one to one (a channel stays on the vessel's record). `@Office` counts only in the office channel. The office owes an answer for every
   vessel message since it last wrote (`officeOwes` → inbox kind `chat`). The latest `CHAT_PAGE` (60) show, "Earlier messages" adds more. Board:
   a mention is `first` amber per channel, otherwise one blue line per channel with new messages (who: crew → all, others → officer). Read state
-  device-local (`prefs.chatRead`, `chatNotifiedAt`); notification LOCAL after a sync, no push. In .msm, erased with the device. `npm run check:chat`;
+  device-local (`prefs.chatRead`, `chatNotifiedAt`). In .msm, erased with the device. `npm run check:chat`;
   rules-test.mjs covers it. `npm run deploy:rules` before the flag.
+  **Remote push** (19 Nov 2026): `services/pushToken.ts` gives the vessel an Expo push token after connect (`push_tokens/{deviceId}` —
+  only the device writes its own, NOBODY reads: a token is enough to push to the phone; `on` follows Settings → reminders), and
+  `functions/chatPush.js` (`chatPushCrew/Officers/Office`, onDocumentCreated, us-central1) sends to the channel's live devices aboard
+  (`pushesFor`, pure: crew → all, officers/office → admin/superadmin; never shore, MHM, switched off or retired; the writer left out BY
+  NAME — the message has no device id). Body is the channel only ("New message in Officers" / "You were mentioned in …"), never text
+  or names. Through Expo's push service (EAS project `@osypov_m/marine-safety-manager`, APNs key MJL2GLGF78 and FCM V1 service
+  account uploaded there), not FCM/APNs direct: the team's only APNs key was made by Expo and cannot be downloaded. Android needs
+  `google-services.json` (Firebase app `com.kukalab.msm`) and the `chat` notification channel. A phone with a token skips the local
+  background notification (`pushRegistered`); no foreground handler is set, so a push in front shows nothing — the strip does.
+  DeviceNotRegistered tokens are deleted. Web: the tab's own notification, no push. Needs `npm run deploy:rules` + the three functions,
+  and a native build (prebuild for google-services) — older builds simply have no token.
   **Prefs before the first load** (same day, DataContext `setPrefs`/`overPrefs`): a screen opened by a link set `chatRead`/`threadRead` before
   prefs were read, and the save of `{...{}, patch}` wiped the file (lastCrewId, other channels' read marks). Until the first load `setPrefs` lays
   the patch over the FILE, a nested map adds to the file's map, and `reload` lays changes not yet on disk over what it read.

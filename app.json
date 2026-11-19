@@ -2,6 +2,7 @@
   "expo": {
     "name": "ISM AI Pilot",
     "slug": "marine-safety-manager",
+    "owner": "osypov_m",
     "version": "2.75",
     "orientation": "default",
     "icon": "./assets/icon.png",
@@ -54,6 +55,7 @@
     },
     "android": {
       "package": "com.kukalab.msm",
+      "googleServicesFile": "./google-services.json",
       "allowBackup": false,
       "versionCode": 20750,
       "edgeToEdgeEnabled": true,
@@ -152,6 +154,11 @@
           "bluetoothAlwaysPermission": "ISM AI Pilot connects to the label printer over Bluetooth."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "ec1fa9ab-7d78-45af-862f-be8fa282577f"
+      }
+    }
   }
 }

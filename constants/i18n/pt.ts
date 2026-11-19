@@ -5649,7 +5649,7 @@ export const pt: UiDict = {
   "set.restoreBkSub": "Substituir todos os dados a partir de um ficheiro .msm",
   "set.modules": "Módulos",
   "set.reminders": "Lembretes de validade",
-  "set.remindersSub": "Avisar 60 / 30 / 7 dias antes da inspeção ou validade",
+  "set.remindersSub": "Avisar 60 / 30 / 7 dias antes da inspeção ou validade, e das mensagens do chat",
   "set.sounds": "Sons",
   "set.soundsSub": "O sino do navio ao abrir e os avisos ao guardar, assinar e em erros",
   "set.compLog": "Registo do compressor ARICA",

@@ -890,6 +890,11 @@ exports.sendReportNow = require('./emailReport').sendReportNow;
 // Critical equipment: a defect on it, or out of service, mailed to the office at once (critAlert.js, 29 Oct 2026).
 exports.critAlert = require('./critAlert').critAlert;
 
+// Chat: a push to the phones of the channel when a message reaches the cloud (chatPush.js, 19 Nov 2026).
+exports.chatPushCrew = require('./chatPush').chatPushCrew;
+exports.chatPushOfficers = require('./chatPush').chatPushOfficers;
+exports.chatPushOffice = require('./chatPush').chatPushOffice;
+
 // A supplier quotes through a link, no account (quoteLink.js, plan item 48, 8 Nov 2026).
 exports.quoteLinkSend = require('./quoteLink').quoteLinkSend;
 exports.quoteLinkExtend = require('./quoteLink').quoteLinkExtend;

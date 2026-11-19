@@ -44,6 +44,7 @@ import { isSubscribed, onEntitlementChange } from '../services/purchases';
 import { playSuccessSound, playErrorSound } from '../utils/sound';
 import { PolicyPatch, writeSigningPolicy } from '../services/policy';
 import { requestPermission, rescheduleExpiryReminders, cancelAll, notificationsSupported } from '../services/notifications';
+import { registerPush } from '../services/pushToken';
 import { formatDateTime, uiDateTime } from '../utils/dates';
 
 const RESET_PASSWORD = 'Reset all data';
@@ -203,10 +204,18 @@ export default function SettingsSc() {
     setOpen((o) => (o.vessel === !vesselComplete(vessel) ? o : { ...o, vessel: !vesselComplete(vessel) }));
   }, [vessel]);
 
+  // Chat pushes follow the same switch (services/pushToken).
+  const pushFor = async (on: boolean) => {
+    if (!sync.enrolled) return;
+    const v = await fb.currentVesselKey();
+    if (v) await registerPush(v, on);
+  };
+
   const toggleNotifications = async (v: boolean) => {
     if (!v) {
       await setPrefs({ notificationsEnabled: false });
       await cancelAll();
+      void pushFor(false);
       return;
     }
     if (!notificationsSupported()) {
@@ -219,6 +228,7 @@ export default function SettingsSc() {
       return;
     }
     await setPrefs({ notificationsEnabled: true });
+    void pushFor(true);
     const n = await rescheduleExpiryReminders(flat, certificates);
     playSuccessSound();
     Alert.alert(

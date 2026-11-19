@@ -20,6 +20,7 @@ import { useSync } from '../contexts/SyncContext';
 import { moduleOn } from '../constants/modules';
 import { channelsFor, chatToShow, unreadChat } from '../services/chat';
 import { notifyNow } from '../services/notifications';
+import { onPushTap, pushRegistered } from '../services/pushToken';
 import { ChatChannel } from '../types/chat';
 import { personName, roleAtLeast } from '../types/role';
 import { SIZES, Palette } from '../theme';
@@ -102,7 +103,8 @@ export function ChatNotifier({ navigate, current }: { navigate: (route: string, 
     if (hidden()) {
       if (prefs.notificationsEnabled !== false) {
         if (Platform.OS === 'web') webNotify(title, body);
-        else void notifyNow(title, body);
+        // A phone the vessel pushes to hears it from the server (functions/chatPush) — not twice.
+        else if (!pushRegistered()) void notifyNow(title, body);
       }
       return;
     }
@@ -115,6 +117,11 @@ export function ChatNotifier({ navigate, current }: { navigate: (route: string, 
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current);
   }, []);
+
+  // A tap on a chat push (services/pushToken) opens its channel. `navigate` is new on every render.
+  const nav = useRef(navigate);
+  nav.current = navigate;
+  useEffect(() => onPushTap((ch) => nav.current('Chat', { ch })), []);
 
   if (!shown) return null;
   return (

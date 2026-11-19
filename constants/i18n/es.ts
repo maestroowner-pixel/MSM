@@ -5649,7 +5649,7 @@ export const es: UiDict = {
   "set.restoreBkSub": "Sustituir todos los datos desde un archivo .msm",
   "set.modules": "Módulos",
   "set.reminders": "Avisos de vencimiento",
-  "set.remindersSub": "Avisar 60 / 30 / 7 días antes de la inspección o el vencimiento",
+  "set.remindersSub": "Avisar 60 / 30 / 7 días antes de la inspección o el vencimiento, y de los mensajes del chat",
   "set.sounds": "Sonidos",
   "set.soundsSub": "La campana del buque al abrir y los avisos al guardar, firmar y en errores",
   "set.compLog": "Registro del compresor ERA",

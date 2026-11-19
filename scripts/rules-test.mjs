@@ -662,6 +662,15 @@ await t(false, 'A message over the limit is refused', setDoc(R(crew, 'threads', 
 await t(false, 'An unknown record kind is refused', setDoc(R(crew, 'threads', 'th6'), { ...TH, id: 'th6', rec: 'hospital' }));
 await t(false, 'An extra field is refused', setDoc(R(crew, 'threads', 'th7'), { ...TH, id: 'th7', crewId: 'c1' }));
 await t(false, 'The id must be the document', setDoc(R(crew, 'threads', 'th8'), { ...TH, id: 'other' }));
+// Push tokens (services/pushToken): only the device itself writes its own, nobody reads.
+const PT = { token: 'ExponentPushToken[abc]', platform: 'ios', on: true, updatedAt: 1 };
+await t(true, 'A device writes its own push token', setDoc(R(crew, 'push_tokens', 'devU'), PT));
+await t(true, 'A device switches its pushes off', setDoc(R(crew, 'push_tokens', 'devU'), { on: false, updatedAt: 2 }, { merge: true }));
+await t(false, 'Nobody reads a push token', getDoc(R(crew, 'push_tokens', 'devU')));
+await t(false, 'The Master does not read a push token', getDoc(R(master, 'push_tokens', 'devU')));
+await t(false, 'A device does not write another device\'s token', setDoc(R(crew, 'push_tokens', 'devS'), PT));
+await t(false, 'A push token takes no other field', setDoc(R(crew, 'push_tokens', 'devU'), { ...PT, name: 'A' }));
+await t(false, 'A pending device has no push token', setDoc(R(pending, 'push_tokens', 'devP'), PT));
 // Chat (types/chat.ts): a collection per channel, one document per message, never changed.
 const CM = (ch, id, x = {}) => ({ id, ch, text: 'Lunch at 12', by: 'Liam', at: 1, side: 'vessel', ...x });
 await t(true, 'Crew write in the crew channel', setDoc(R(crew, 'chat_crew', 'cc1'), CM('crew', 'cc1')));

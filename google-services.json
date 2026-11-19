@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "353177370508",
+    "firebase_url": "https://marine-safety-manager-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "marine-safety-manager",
+    "storage_bucket": "marine-safety-manager.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:353177370508:android:6041566c2d0f8947f8a0a9",
+        "android_client_info": {
+          "package_name": "com.kukalab.msm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAI2Z3FzxoLA2GT47FPx8d6Kyzmj4yUYw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

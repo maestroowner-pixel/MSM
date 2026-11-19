@@ -5649,7 +5649,7 @@ export const no: UiDict = {
   "set.restoreBkSub": "Erstatt alle data fra en .msm-fil",
   "set.modules": "Moduler",
   "set.reminders": "Påminnelser om utløp",
-  "set.remindersSub": "Varsle 60 / 30 / 7 dager før inspeksjon eller utløp",
+  "set.remindersSub": "Varsle 60 / 30 / 7 dager før inspeksjon eller utløp, og om chatmeldinger",
   "set.sounds": "Lyder",
   "set.soundsSub": "Skipsklokken ved oppstart og lydsignaler ved lagring, signering og feil",
   "set.compLog": "Logg for pusteluftkompressor",

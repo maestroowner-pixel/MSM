@@ -203,6 +203,20 @@ service cloud.firestore {
         allow delete: if isSuper(v);
       }
 
+      // A phone's push token (services/pushToken, functions/chatPush). Only the device
+      // itself writes its own; nobody reads — a token is enough to push to the phone,
+      // and the device list is open to everyone aboard. The function reads it as admin.
+      match /push_tokens/{deviceId} {
+        allow read: if false;
+        allow create, update: if member(v)
+                              && deviceId == claims().deviceId
+                              && request.resource.data.keys().hasOnly(['token', 'platform', 'on', 'updatedAt'])
+                              && request.resource.data.on is bool
+                              && request.resource.data.get('token', '') is string
+                              && request.resource.data.get('token', '').size() <= 200;
+        allow delete: if member(v) && deviceId == claims().deviceId;
+      }
+
       // ---- invitations (the accounts a Master issues) -----------------------
       // Readable only by the Master: the PIN is stored readable so it can be read
       // out again to the person it was issued to, which means anyone who can read

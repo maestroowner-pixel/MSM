@@ -7,7 +7,7 @@ export interface StepAct { t: string; steps: string[]; note?: string; who?: Step
 export interface StepScreen { id: string; title: string; path: string[]; who: StepWho; perVessel?: boolean; intro: string; acts: StepAct[] }
 export interface StepGroup { title: string; screens: StepScreen[] }
 
-/** 102 screens, 530 actions. */
+/** 102 screens, 531 actions. */
 export const MANUAL_STEPS: StepGroup[] = [
  {
   "title": "Getting started",
@@ -5172,7 +5172,7 @@ export const MANUAL_STEPS: StepGroup[] = [
     ],
     "who": "everyone",
     "perVessel": true,
-    "intro": "The vessel’s channels: Crew (everyone aboard), Officers, Office. Messages arrive when the device syncs.",
+    "intro": "The vessel’s channels: Crew (everyone aboard), Officers, Office. A phone hears a new message even when the app is closed.",
     "acts": [
      {
       "t": "Write in a channel",
@@ -5201,6 +5201,15 @@ export const MANUAL_STEPS: StepGroup[] = [
        "The channel → **PDF, last 30 days** or **PDF, all**",
        "**Share PDF**"
       ]
+     },
+     {
+      "t": "Hear new messages",
+      "steps": [
+       "**☰** → **Settings** → **App & notifications** → **Modules**",
+       "**Expiry reminders** — on",
+       "Allow notifications when the phone asks"
+      ],
+      "note": "The phone gets “New message in Officers” even when the app is closed — never the text. A tap opens the channel. The app open — a strip on top of any screen; a red count on Chat. In a browser — the tab’s own notification."
      }
     ]
    }
@@ -5741,7 +5750,7 @@ export const MANUAL_STEPS: StepGroup[] = [
        "**Expiry reminders** — on",
        "Allow notifications when the phone asks"
       ],
-      "note": "60, 30 and 7 days before an inspection or expiry."
+      "note": "60, 30 and 7 days before an inspection or expiry — and new chat messages."
      },
      {
       "t": "Sounds on or off",

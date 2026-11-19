@@ -31,6 +31,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import * as fb from '../services/firebaseService';
 import * as storage from '../services/storage';
+import { registerPush } from '../services/pushToken';
 import { mergeCategories, mergeCrew, mergeInspections, mergeTemplates } from '../services/inspections';
 import { keepLocalPhotos } from '../services/inlinePhotos';
 import NetInfo from '@react-native-community/netinfo';
@@ -572,6 +573,8 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
           void (async () => {
             await adoptVesselLicence(vesselKey).catch(() => {});
             await trial.syncTrialWithAccount(vesselKey).catch(() => {});
+            // Chat pushes (services/pushToken): the token goes to the vessel; reminders off = none.
+            await registerPush(vesselKey, (await storage.loadPrefs()).notificationsEnabled !== false);
           })();
           await pushNow();
           return;
