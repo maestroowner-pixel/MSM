@@ -164,6 +164,7 @@ import GaPlanSc from './screens/GaPlanSc';
 import MusterSc from './screens/MusterSc';
 import NfcPersonSc from './screens/NfcPersonSc';
 import { NfcListener } from './components/NfcListener';
+import { ChatNotifier } from './components/ChatNotifier';
 import OrderEntrySc from './screens/OrderEntrySc';
 import WireLogSc from './screens/WireLogSc';
 import CraneLogSc from './screens/CraneLogSc';
@@ -1016,6 +1017,16 @@ function Root() {
       {/* Planned clock changes: applied on time, written into the Deck Log (components/ClockKeeper). */}
       <ClockKeeper />
       {/* A wristband held to the phone opens its person (Android). */}
+      {/* A chat message that came with the sync: a strip on any screen, or the system's notification (components/ChatNotifier). */}
+      {!showSplash && legalAccepted === true ? (
+        <ChatNotifier
+          navigate={(route, params) => navigationRef.isReady() && (navigationRef as any).navigate(route, params)}
+          current={() => {
+            const r: any = navigationRef.isReady() ? navigationRef.getCurrentRoute() : undefined;
+            return r ? { name: r.name, ch: r.params?.ch ?? r.params?.view } : undefined;
+          }}
+        />
+      ) : null}
       {!showSplash && legalAccepted === true ? <NfcListener navigate={(route, params) => navigationRef.isReady() && (navigationRef as any).navigate(route, params)} /> : null}
     </NavigationContainer>
   );

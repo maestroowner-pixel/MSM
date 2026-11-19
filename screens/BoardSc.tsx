@@ -32,7 +32,6 @@ import { readyCount, useAiJobs } from '../services/aiQueue';
 import { buildBoard, Level } from '../services/board';
 import { notifyNow } from '../services/notifications';
 import { mentionsToNotify } from '../services/threads';
-import { chatToNotify } from '../services/chat';
 import { findMe, myCerts, myChanges } from '../services/myDocs';
 import { aiReady } from '../services/ai';
 import { todayIso } from '../services/pms';
@@ -91,15 +90,7 @@ export default function BoardSc() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.threads, data.prefs?.notificationsEnabled, data.prefs?.threadRead, data.prefs?.threadNotifiedAt, me?.name]);
 
-  // A chat mention that came in with the sync: said once on this device (services/chat).
-  useEffect(() => {
-    if (!moduleOn('chat') || !data.prefs?.notificationsEnabled) return;
-    const fresh = chatToNotify(data.chat, me?.name, data.prefs.chatRead, data.prefs.chatNotifiedAt);
-    if (!fresh.length) return;
-    void data.setPrefs({ chatNotifiedAt: Math.max(...fresh.map((m) => m.at)) });
-    void notifyNow(fresh.length === 1 ? t('b.chat.mention', { by: fresh[0].by }) : t('b.th.mentions', { n: fresh.length }), fresh[0].text.slice(0, 120));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.chat, data.prefs?.notificationsEnabled, data.prefs?.chatRead, data.prefs?.chatNotifiedAt, me?.name]);
+  // Chat: the strip and the system notification are components/ChatNotifier's, on every screen.
 
   // Something changed in this person's documents: said once on this device, and the first day never calls everything new.
   useEffect(() => {

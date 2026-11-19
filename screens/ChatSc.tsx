@@ -8,7 +8,7 @@
 // ===================================
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, Text, TouchableOpacity, View } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 
 import { ThreadPanel } from '../components/RecordThread';
@@ -17,18 +17,29 @@ import { Card, Screen, ScreenTitle } from '../components/ui';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
-import { CHAT_PAGE, channelsFor, chatOf, makeChatMessage, recent, unreadChat } from '../services/chat';
+import { CHAT_PAGE, channelsFor, chatPeople, chatOf, makeChatMessage, recent, unreadChat } from '../services/chat';
 import { exportChat, shareChat } from '../services/chatReport';
 import { OFFICE_TAG } from '../services/threads';
 import * as storage from '../services/storage';
 import { ChatChannel } from '../types/chat';
-import { isAboard } from '../types/crew';
-import { roleAtLeast } from '../types/role';
+import * as accounts from '../services/accounts';
+import { isAboard, isOfficerRank } from '../types/crew';
+import { EnrolledDevice, roleAtLeast } from '../types/role';
 import { makeStyles } from './SafetySc';
 import { t, tk, useT } from '../utils/i18n';
 
 const KEY: Record<ChatChannel, string> = { crew: storage.CHAT_CREW_KEY, officers: storage.CHAT_OFFICERS_KEY, office: storage.CHAT_OFFICE_KEY };
 const MONTH = 30 * 24 * 3600 * 1000;
+
+/** In a browser, the first message sent asks whether replies may show while the tab is hidden (components/ChatNotifier). */
+function askWebNotifications() {
+  try {
+    const N: any = Platform.OS === 'web' && typeof window !== 'undefined' ? (window as any).Notification : null;
+    if (N?.permission === 'default') void N.requestPermission();
+  } catch {
+    /* ignore */
+  }
+}
 
 export default function ChatSc() {
   useT();
@@ -51,7 +62,23 @@ export default function ChatSc() {
 
   const all = useMemo(() => chatOf(chat, ch), [chat, ch]);
   const { shown, earlier } = recent(all, limit);
-  const names = useMemo(() => crew.filter(isAboard).map((c) => c.name), [crew]);
+  // Who is connected to the vessel, to pick from under "Mention" (services/chat `chatPeople`).
+  const imo = (vessel?.imo ?? '').replace(/\D/g, '');
+  const [devices, setDevices] = useState<EnrolledDevice[]>([]);
+  useEffect(() => {
+    if (!sync.enrolled || !imo) return;
+    try {
+      return accounts.watchDevices(imo, setDevices);
+    } catch {
+      return undefined;
+    }
+  }, [sync.enrolled, imo]);
+  const people = useMemo(() => {
+    const aboard = crew.filter((c) => isAboard(c) && (ch === 'crew' || isOfficerRank(c.rank))).map((c) => ({ name: c.name, rank: c.rank }));
+    return chatPeople(devices, aboard, ch);
+  }, [devices, crew, ch]);
+  const names = useMemo(() => people.map((p) => p.name), [people]);
+  const ranks = useMemo(() => Object.fromEntries(people.filter((p) => p.rank).map((p) => [p.name, p.rank as string])), [people]);
   const latest = all.length ? all[all.length - 1].at : 0;
   useEffect(() => {
     if (latest > (prefs?.chatRead?.[ch] ?? 0)) void setPrefs({ chatRead: { ...prefs?.chatRead, [ch]: latest } });
@@ -62,6 +89,7 @@ export default function ChatSc() {
       Alert.alert(t('chat.title'), t('th.chooseName'));
       return false;
     }
+    askWebNotifications();
     await saveRow(KEY[ch], makeChatMessage({ ch, text, by: signer.name, byRank: signer.rank, side: 'vessel' }, names, Date.now()));
     return true;
   };
@@ -84,6 +112,7 @@ export default function ChatSc() {
         <ThreadPanel
           messages={shown}
           tags={ch === 'office' ? [OFFICE_TAG, ...names] : names}
+          tagRanks={ranks}
           onSend={send}
           picker={picker}
           english

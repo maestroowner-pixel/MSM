@@ -23,11 +23,13 @@ const when = (at: number) => {
   return `${p(d.getDate())}.${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`;
 };
 
-export function ThreadPanel({ messages, tags, onSend, picker, english, hint, before }: {
+export function ThreadPanel({ messages, tags, tagRanks, onSend, picker, english, hint, before }: {
   /** A record's discussion or a chat channel (types/chat.ts) — what both have. */
   messages: Pick<ThreadMessage, 'id' | 'text' | 'by' | 'byRank' | 'at' | 'side'>[];
   /** Who can be mentioned here, without the @. */
   tags: string[];
+  /** A rank beside a name in the list — chat's connected people (services/chat `chatPeople`). */
+  tagRanks?: Record<string, string>;
   /** Resolves true when the message went in; false leaves the text in the box. */
   onSend: (text: string) => Promise<boolean>;
   picker?: React.ReactElement | null;
@@ -80,7 +82,7 @@ export function ThreadPanel({ messages, tags, onSend, picker, english, hint, bef
         <View style={styles.tags}>
           {tags.map((n) => (
             <TouchableOpacity key={n} style={styles.tag} onPress={() => setText((x) => `${x}${x && !x.endsWith(' ') ? ' ' : ''}@${n} `)}>
-              <Text style={styles.tagText}>{`@${n}`}</Text>
+              <Text style={styles.tagText}>{tagRanks?.[n] ? `@${n} · ${tagRanks[n]}` : `@${n}`}</Text>
             </TouchableOpacity>
           ))}
         </View>

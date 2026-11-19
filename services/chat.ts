@@ -13,6 +13,7 @@ import { ThreadSide } from '../types/thread';
 import { THREAD_MAX, mentionsIn } from './threads';
 import { uid } from '../utils/id';
 import type { MachineHistory } from './pmsHistory';
+import { EnrolledDevice, ROLE_ORDER, personName, roleAtLeast } from '../types/role';
 
 export const CHAT_CHANNELS: ChatChannel[] = ['crew', 'officers', 'office'];
 /** Where each channel lives in Firestore (rules: firestore.rules). */
@@ -23,6 +24,39 @@ export const CHAT_PAGE = 60;
 /** The channels a device may open: crew for everyone, the other two for officers and the Master. */
 export function channelsFor(officer: boolean): ChatChannel[] {
   return officer ? CHAT_CHANNELS : ['crew'];
+}
+
+export interface ChatPerson {
+  name: string;
+  rank?: string;
+}
+
+/**
+ * Who can be mentioned in a channel (19 Nov 2026): the people connected to the
+ * vessel who read it — approved, not switched off or retired, not a shared
+ * tablet (it signs as whoever uses it) and not Marine Hospital Manager. Crew
+ * reads Crew; Officers and Office are the officers' (the office is `@Office`).
+ * Then the crew list aboard, for those not connected yet. Officers first; one
+ * person on two devices once, as written on the one seen last.
+ */
+export function chatPeople(devices: EnrolledDevice[], aboard: ChatPerson[], ch: ChatChannel): ChatPerson[] {
+  const reads = (d: EnrolledDevice) => (ch === 'crew' ? roleAtLeast(d.role, 'user') : roleAtLeast(d.role, 'admin'));
+  const out: ChatPerson[] = [];
+  const seen = new Set<string>();
+  const add = (p: ChatPerson) => {
+    const k = p.name.trim().toLowerCase().replace(/\s+/g, ' ');
+    if (!k || seen.has(k)) return;
+    seen.add(k);
+    out.push({ name: p.name.trim(), ...(p.rank ? { rank: p.rank } : {}) });
+  };
+  devices
+    .filter((d) => d.approved && !d.disabled && !d.retiredAt && !d.shared && d.app !== 'mhm' && reads(d) && personName(d))
+    .sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role)
+      || personName(a).localeCompare(personName(b), undefined, { sensitivity: 'base' })
+      || (b.lastSeenAt ?? 0) - (a.lastSeenAt ?? 0))
+    .forEach((d) => add({ name: personName(d), rank: d.position }));
+  aboard.forEach(add);
+  return out;
 }
 
 const byTime = (a: ChatMessage, b: ChatMessage) => a.at - b.at || a.id.localeCompare(b.id);
@@ -77,6 +111,33 @@ export function chatMentions(list: ChatMessage[], me: string | undefined, read: 
 /** Mentions not yet notified on this device. */
 export function chatToNotify(list: ChatMessage[], me: string | undefined, read: Partial<Record<ChatChannel, number>> = {}, notifiedAt = 0): ChatMessage[] {
   return chatMentions(list, me, read).filter((m) => m.at > notifiedAt);
+}
+
+/**
+ * What to say on this device now (components/ChatNotifier): messages of its
+ * channels newer than the last said (`notifiedAt`), not opened, not the
+ * person's own, and not in the channel on screen (`open`), newest first; and
+ * the new mark. Never said before (`notifiedAt` undefined): the mark only, so
+ * a device that joins is not shown the whole history. `mark` undefined = keep.
+ */
+export function chatToShow(
+  list: ChatMessage[],
+  channels: ChatChannel[],
+  me: string | undefined,
+  read: Partial<Record<ChatChannel, number>> = {},
+  notifiedAt: number | undefined,
+  open?: ChatChannel
+): { fresh: ChatMessage[]; mark?: number } {
+  const mine = list.filter((m) => channels.includes(m.ch));
+  const latest = mine.reduce((x, m) => Math.max(x, m.at), 0);
+  if (notifiedAt === undefined) return { fresh: [], mark: latest };
+  if (latest <= notifiedAt) return { fresh: [] };
+  const fresh = channels
+    .filter((ch) => ch !== open)
+    .flatMap((ch) => unreadChat(mine, ch, me, read))
+    .filter((m) => m.at > notifiedAt)
+    .sort((a, b) => byTime(b, a));
+  return { fresh, mark: latest };
 }
 
 /**

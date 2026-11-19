@@ -1,6 +1,6 @@
 // npm run check:chat — the chat: channels, a new message, what is unread, what the office owes, paper, the Board, Fleet's inbox, rules and sync.
 import { readFileSync } from 'fs';
-import { CHAT_CHANNELS, CHAT_SUB, channelsFor, chatMentions, chatOf, chatSheet, chatToNotify, makeChatMessage, officeOwes, recent, unreadChat } from '../services/chat';
+import { CHAT_CHANNELS, CHAT_SUB, channelsFor, chatMentions, chatOf, chatSheet, chatPeople, chatToNotify, chatToShow, makeChatMessage, officeOwes, recent, unreadChat } from '../services/chat';
 import { inboxOf } from '../services/officeInbox';
 import { buildBoard } from '../services/board';
 import { en } from '../constants/i18n/en';
@@ -75,6 +75,36 @@ const row = inboxOf(base, parts);
 ok(row.length === 1 && row[0].kind === 'chat' && row[0].tab === 'chat' && row[0].title === 'Need the class report', 'in Waiting for you');
 ok(inboxOf(base, { ...parts, chat: false }).length === 0, 'module off: not in the inbox');
 ok(inboxOf({ ...base, chatOffice: [...base.chatOffice, off({ at: 2, side: 'office' })] }, parts).length === 0, 'answered: off the list');
+
+// Who can be mentioned: connected people who read the channel, then the crew list
+const D = (o: any): any => ({ id: o.firstName, role: 'user', approved: true, ...o });
+const devs = [
+  D({ firstName: 'Liam', lastName: 'Ng', position: 'AB', lastSeenAt: 9 }),
+  D({ firstName: 'Ann', lastName: 'Lee', role: 'superadmin', position: 'Master' }),
+  D({ firstName: 'Bo', lastName: 'Ek', role: 'admin', position: 'C/O' }),
+  D({ firstName: 'liam', lastName: 'ng', platform: 'web', lastSeenAt: 1 }),
+  D({ firstName: 'Off', lastName: 'X', disabled: true }),
+  D({ firstName: 'Old', lastName: 'X', disabled: true, retiredAt: 1 }),
+  D({ firstName: 'Wait', lastName: 'X', approved: false }),
+  D({ firstName: 'Tab', lastName: 'X', shared: true }),
+  D({ firstName: 'Hosp', lastName: 'X', app: 'mhm' }),
+  D({ firstName: 'Supt', lastName: 'X', role: 'shore' }),
+];
+const crewP = chatPeople(devs, [{ name: 'Ann Lee', rank: 'Master' }, { name: 'Tom Cook', rank: 'Cook' }], 'crew');
+ok(crewP.map((p) => p.name).join() === 'Ann Lee,Bo Ek,Liam Ng,Tom Cook', 'crew: connected officers first, once each, then the crew list');
+ok(crewP[0].rank === 'Master', 'crew: rank from the account');
+ok(chatPeople(devs, [], 'officers').map((p) => p.name).join() === 'Ann Lee,Bo Ek', 'officers: officers only, no shore');
+
+// What the strip says
+const S = [C({ at: 1, by: 'Ann' }), C({ at: 5, by: 'Ann' }), C({ at: 6, by: 'Liam' }), C({ at: 7, ch: 'officers', by: 'Bo' }), C({ at: 8, ch: 'office', by: 'Supt', side: 'office' })];
+ok(chatToShow(S, ['crew'], 'Liam', {}, undefined).fresh.length === 0 && chatToShow(S, ['crew'], 'Liam', {}, undefined).mark === 6, 'first run: the mark only');
+ok(chatToShow([], ['crew'], 'Liam', {}, undefined).mark === 0, 'first run, no messages: mark 0, so the first message is said');
+const s1 = chatToShow(S, ['crew'], 'Liam', {}, 2);
+ok(s1.fresh.map((x) => x.at).join() === '5' && s1.mark === 6, 'crew device: newer than the mark, not my own, not the officers\'');
+ok(chatToShow(S, ['crew'], 'Liam', {}, 6).mark === undefined, 'nothing newer: mark kept');
+ok(chatToShow(S, ['crew'], 'Liam', { crew: 5 }, 2).fresh.length === 0, 'opened already: not said');
+const s2 = chatToShow(S, ['crew', 'officers', 'office'], 'Liam', {}, 4, 'crew');
+ok(s2.fresh.map((x) => x.at).join() === '8,7' && s2.mark === 8, 'officer: newest first, the channel on screen left out');
 
 // Rules and sync name the same collections
 const rules = readFileSync('firestore.rules', 'utf8');

@@ -37,6 +37,7 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { ShipClock } from './ShipClock';
 import { FavMenuSection, FavStar } from './Favourites';
 import { MciIcon } from './MciIcon';
+import { UnreadDot, useChatUnread } from './ChatNotifier';
 import { useTheme } from '../contexts/ThemeContext';
 import { APP_CONFIG, SIZES, Palette } from '../theme';
 import { moduleOn } from '../constants/modules';
@@ -113,6 +114,7 @@ export function NavMenuBar(props: Props) {
   const [open, setOpen] = useState(false);
   const { state, navigation, order, icons, labelOf, pinned } = props;
   const t = useT();
+  const unread = useChatUnread();
   const current = state.routes[state.index]?.name;
   const currentView: string | undefined = (state.routes[state.index]?.params as any)?.view;
   const go = (name: string, params?: object) => {
@@ -140,6 +142,7 @@ export function NavMenuBar(props: Props) {
           {!docked ? (
             <TouchableOpacity onPress={() => setOpen(true)} hitSlop={10} style={styles.burger} accessibilityLabel={t('nav.menu')}>
               <MciIcon name="menu" size={26} color={COLORS.tabActive} />
+              <UnreadDot n={unread} style={{ top: -4, right: -8 }} />
             </TouchableOpacity>
           ) : null}
           <MciIcon name={icons[current] ?? 'circle-small'} size={22} color={COLORS.tabActive} />
@@ -155,23 +158,27 @@ export function NavMenuBar(props: Props) {
 
   const onBar = flatGrouped(order).slice(0, ON_BAR);
   const inMenu = !onBar.includes(current);
+  // Chat's unread count: on its own icon when it is on the bar, else on Menu.
   return (
     <>
       <View style={[styles.bottom, { paddingBottom: insets.bottom + 6, height: 60 + insets.bottom }]}>
         {onBar.map((r) => (
-          <BarItem key={r} icon={icons[r]} label={labelOf(r)} on={r === current} onPress={() => go(r)} styles={styles} COLORS={COLORS} />
+          <BarItem key={r} icon={icons[r]} label={labelOf(r)} on={r === current} onPress={() => go(r)} styles={styles} COLORS={COLORS} unread={r === 'Chat' ? unread : 0} />
         ))}
-        <BarItem icon="menu" label={inMenu ? labelOf(current) : t('nav.menu')} on={inMenu} onPress={() => setOpen(true)} styles={styles} COLORS={COLORS} />
+        <BarItem icon="menu" label={inMenu ? labelOf(current) : t('nav.menu')} on={inMenu} onPress={() => setOpen(true)} styles={styles} COLORS={COLORS} unread={onBar.includes('Chat') ? 0 : unread} />
       </View>
       <Drawer open={open} onClose={() => setOpen(false)} styles={styles}>{list}</Drawer>
     </>
   );
 }
 
-function BarItem({ icon, label, on, onPress, styles, COLORS }: { icon: string; label: string; on: boolean; onPress: () => void; styles: any; COLORS: Palette }) {
+function BarItem({ icon, label, on, onPress, styles, COLORS, unread = 0 }: { icon: string; label: string; on: boolean; onPress: () => void; styles: any; COLORS: Palette; unread?: number }) {
   return (
     <TouchableOpacity style={styles.barItem} onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: on }}>
-      <MciIcon name={icon} size={24} color={on ? COLORS.tabActive : COLORS.tabInactive} />
+      <View>
+        <MciIcon name={icon} size={24} color={on ? COLORS.tabActive : COLORS.tabInactive} />
+        <UnreadDot n={unread} />
+      </View>
       <Text style={[styles.barLabel, { color: on ? COLORS.tabActive : COLORS.tabInactive }]} numberOfLines={1}>{label}</Text>
     </TouchableOpacity>
   );
@@ -220,6 +227,7 @@ function MenuList({
   // added with the gear (15 Oct 2026, types/stores.ts StoreRoom).
   const { storeRoomList } = useData();
   const sync = useSync();
+  const unread = useChatUnread();
   const officer = !sync.enrolled || roleAtLeast(sync.role, 'admin');
   const childrenOf = (r: string): MenuChild[] | undefined =>
     r === 'Stores' ? storeRooms(storeRoomList).map((x) => ({ view: x.id, label: x.name, icon: ROOM_ICON[x.kind] })) : MENU_CHILDREN[r]?.filter((k) => officer || !k.officers);
@@ -319,7 +327,7 @@ function MenuList({
             // The board on top and Settings at the foot read like the headings between them.
             if (group.key === 'system' || group.key === 'home') return (
               <TouchableOpacity key={r} style={[styles.groupRow, on && !editing && styles.itemOn]} onPress={() => (editing ? undefined : onPick(r))} disabled={editing} activeOpacity={0.7}>
-                <View style={styles.groupIcon}><MciIcon name={icons[r] ?? 'circle-small'} size={20} color={on ? COLORS.primary : COLORS.text} /></View>
+                <View style={styles.groupIcon}><MciIcon name={icons[r] ?? 'circle-small'} size={20} color={on ? COLORS.primary : COLORS.text} />{r === 'Chat' ? <UnreadDot n={unread} /> : null}</View>
                 <Text style={[styles.groupHead, styles.groupHeadRow, on && { color: COLORS.primary }]} numberOfLines={1}>{labelOf(r)}</Text>
               </TouchableOpacity>
             );
@@ -328,6 +336,7 @@ function MenuList({
               {direct ? null : <TouchableOpacity style={[styles.item, on && !editing && styles.itemOn]} onPress={() => (editing ? undefined : kids ? toggle(r) : onPick(r))} disabled={editing} activeOpacity={0.7} accessibilityState={kids ? { expanded } : undefined}>
                 {on && !editing ? <View style={styles.mark} /> : null}
                 <Text style={[styles.itemText, on && styles.itemTextOn, kids && r === current && { color: COLORS.primary }]} numberOfLines={1}>{labelOf(r)}</Text>
+                {r === 'Chat' && !editing ? <UnreadDot n={unread} style={{ position: 'relative', top: 0, right: 0 }} /> : null}
                 {MENU_GEAR[r] && !editing && (!MANAGE_ROUTE[r] || sync.canManage(MANAGE_ROUTE[r])) ? (
                   <TouchableOpacity onPress={() => onPick(r, { view: 'manage' })} hitSlop={8} accessibilityRole="button" accessibilityLabel={MENU_GEAR[r]}>
                     <MciIcon name="cog-outline" size={20} color={r === current && currentView === 'manage' ? COLORS.primary : COLORS.textLight} />
