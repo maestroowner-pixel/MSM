@@ -107,6 +107,7 @@ import { ModuleKey, moduleOn } from '../constants/modules';
 import * as attachmentStorage from './attachmentStorage';
 import { INLINE_ELSEWHERE, keepLocalPhotos, photosToCloud } from './inlinePhotos';
 import * as trial from './trial';
+import { startAppCheck } from './appCheck';
 import { randomBytes } from './signKeys';
 import { mergeCategories, mergeCrew, mergeInspections, mergeTemplates, unsentInspections } from './inspections';
 import type { SigningPolicy } from './signingPolicy';
@@ -161,6 +162,7 @@ function ensureInit(): { auth: Auth | null; db: Firestore | null } {
     // The DEFAULT app by name: the fleet console starts a second one ('shore',
     // services/shore.ts), and a bare getApp() would throw if that came first.
     app = getApps().some((a) => a.name === '[DEFAULT]') ? getApp() : initializeApp(FIREBASE_CONFIG);
+    startAppCheck(app);
     try {
       // Persist the auth session across app restarts (RN has no default persistence).
       auth = initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });

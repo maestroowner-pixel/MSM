@@ -30,6 +30,7 @@ import { DocAck, IsmDoc } from '../types/docs';
 import { EquipmentItem } from '../types/equipment';
 import { photoPath } from './photoStorage';
 import { cleanModules } from '../constants/modules';
+import { startAppCheck } from './appCheck';
 
 const REGION = 'europe-west1';
 const ROOT = 'safety_vessels';
@@ -40,6 +41,7 @@ let _app: FirebaseApp | null = null;
 function app(): FirebaseApp {
   if (_app) return _app;
   _app = getApps().find((a) => a.name === 'shore') ?? initializeApp(fb.FIREBASE_CONFIG, 'shore');
+  startAppCheck(_app);
   return _app;
 }
 const auth = (): Auth => getAuth(app());
