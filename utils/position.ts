@@ -58,3 +58,51 @@ export function formatPosition(c: Coords): string {
 
 /** A place as kept: the position when there is one, else the port. */
 export const placeText = (position?: string, port?: string) => position?.trim() || port?.trim() || '';
+
+// ─── The position from the Deck log (20 Nov 2026, Panama MMC-193 §4.2.4/4.4.4:
+// the position in a record book entry agrees with the bridge logbook). The
+// Deck log entry nearest the record's date and time (both ship's time), within
+// `withinH` hours, if it has a position. Offered to the officer, never filled
+// in silently: the officer sees which entry and when, and takes it.
+
+/** What a Deck log entry needs for this (types/deckLog DeckEntry). */
+export interface DeckFixSource {
+  date: string;
+  time: string;
+  draft?: boolean;
+  latDeg?: number;
+  latMin?: number;
+  latHem?: 'N' | 'S';
+  lonDeg?: number;
+  lonMin?: number;
+  lonHem?: 'E' | 'W';
+}
+
+export interface DeckFix {
+  position: string;
+  date: string;
+  time: string;
+  /** Minutes from the record's time to the Deck log entry's (negative: before). */
+  minutes: number;
+  draft: boolean;
+}
+
+export function deckFix(entries: DeckFixSource[], date: string, time: string | undefined, withinH = 4): DeckFix | null {
+  // No time, no match: a day has six watches and six positions.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time ?? '')) return null;
+  const at = Date.parse(`${date}T${time}:00Z`);
+  let best: DeckFix | null = null;
+  for (const e of entries) {
+    if (e.latDeg == null || e.latMin == null || e.lonDeg == null || e.lonMin == null) continue;
+    const t2 = Date.parse(`${e.date}T${e.time}:00Z`);
+    if (!Number.isFinite(t2)) continue;
+    const minutes = Math.round((t2 - at) / 60000);
+    if (Math.abs(minutes) > withinH * 60) continue;
+    const position = formatPosition({ latDeg: String(e.latDeg), latMin: String(e.latMin), ns: e.latHem ?? 'N', lonDeg: String(e.lonDeg), lonMin: String(e.lonMin), ew: e.lonHem ?? 'E' });
+    if (!position) continue;
+    // Nearest wins; at the same distance, the earlier; a signed entry over a draft.
+    const better = !best || Math.abs(minutes) < Math.abs(best.minutes) || (Math.abs(minutes) === Math.abs(best.minutes) && (minutes < best.minutes || (best.draft && !e.draft)));
+    if (better) best = { position, date: e.date, time: e.time, minutes, draft: !!e.draft };
+  }
+  return best;
+}

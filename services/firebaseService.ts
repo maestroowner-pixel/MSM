@@ -1316,6 +1316,9 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   // The ship's plan: the decks' pictures (a photo each, through the photo queue) and the points on them.
   { sub: 'ga_sheets', key: storage.GA_SHEETS_KEY, module: 'gaPlan' },
   { sub: 'ga_pins', key: storage.GA_PINS_KEY, module: 'gaPlan' },
+  // IMO signs: the vessel's own places (newest wins, removed — never deleted) and the signed rounds, written once.
+  { sub: 'sign_places', key: storage.SIGN_PLACES_KEY, module: 'imoSigns' },
+  { sub: 'sign_checks', key: storage.SIGN_CHECKS_KEY, appendOnly: true, module: 'imoSigns' },
   // NFC tags handed out, by the chip's UID: officers write, everyone reads (a tap is checked against it on every phone).
   { sub: 'nfc_tags', key: storage.NFC_TAGS_KEY, module: 'nfc' },
   // Musters: the stations, one record per alarm, and one mark per person — written once, the first mark stands.

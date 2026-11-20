@@ -37,8 +37,8 @@ import { uid } from '../utils/id';
 import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from '../screens/SafetySc';
 
-const KINDS: StoreKind[] = ['ppe', 'provisions', 'general', 'flags', 'bridge'];
-const KIND_ICON: Record<StoreKind, string> = { ppe: 'hard-hat', provisions: 'food-apple-outline', general: 'package-variant-closed', flags: 'flag-variant', bridge: 'book-open-variant' };
+const KINDS: StoreKind[] = ['ppe', 'provisions', 'general', 'flags', 'bridge', 'signs'];
+const KIND_ICON: Record<StoreKind, string> = { ppe: 'hard-hat', provisions: 'food-apple-outline', general: 'package-variant-closed', flags: 'flag-variant', bridge: 'book-open-variant', signs: 'sign-direction' };
 
 interface Props {
   /** Open a store's list. */

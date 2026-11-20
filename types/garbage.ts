@@ -43,6 +43,8 @@ export interface GarbageEntry {
   /** yyyy-mm-dd and hh:mm, ship's time. */
   date: string;
   time: string;
+  /** The ship's zone of `date`/`time` ("+02:00"), frozen when signed (utils/shipTime entryZone); since 2.77. */
+  shipOffset?: string;
   /** The first category (older entries: the only one). */
   category: GarbageCategory;
   method: GarbageMethod;

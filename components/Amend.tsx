@@ -20,6 +20,7 @@ import { useData } from '../contexts/DataContext';
 import { SIZES } from '../theme';
 import { Versioned, amended, cancelled, previous } from '../services/versions';
 import { uiDateTime } from '../utils/dates';
+import { entryZone } from '../utils/shipTime';
 import { uid } from '../utils/id';
 import { t, tn, useT } from '../utils/i18n';
 import { playSuccessSound } from '../utils/sound';
@@ -102,6 +103,8 @@ export function useAmend() {
     let next: any = spec.mode === 'edit' ? amended(spec.record, changes, id, reason.trim(), by) : cancelled(spec.record, id, reason.trim(), by);
     // In a record book the new version joins the book's chain where it stands now, and the amender seals it (services/seal).
     const book = SEALED_BOOKS.includes(spec.store);
+    // A new date or time stands in the ship's zone of THAT moment (utils/shipTime entryZone) — frozen before the seal.
+    if (book && spec.mode === 'edit' && (next.date !== spec.record.date || next.time !== spec.record.time) && typeof next.date === 'string') next = { ...next, shipOffset: entryZone(next.date, next.time) };
     next = Object.fromEntries(Object.entries(book ? { ...next, prev: chainHead(versionsOf(spec.store)) } : next).filter(([, v]) => v !== undefined));
     if (book) next = withSeal(next, sig, 'editedWith');
     await appendRow(spec.store, next);

@@ -19,14 +19,14 @@ import { saveFileWeb } from '../utils/webSave';
 import { deliverTrueCopy } from '../utils/trueCopyPdf';
 import { BookNote, awaiting, copyRows, integrityLines, monthIntegrity, verificationLines, verifiedIds } from './verification';
 import type { TrueCopy } from './trueCopy';
+import { entryWhen } from '../utils/shipTime';
 import { masterLine, orbMonthLabel as monthLabel } from './orbReport';
 
-const dmy = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
 export const LOG_HEAD = ['Date', 'Code', 'Record of operations', 'Signature of officer in charge'];
 
 export function logRows(entries: LogEntry[]): string[][] {
   return entries.map((e) => [
-    `${dmy(e.date)}${e.time ? ` ${e.time}` : ''}`,
+    entryWhen(e.date, e.time, e.shipOffset),
     e.code,
     [e.cancelled ? `[DELETED — ${e.editReason ?? ''} (${e.editedBy ?? ''})]` : e.supersedes ? `[Amended — ${e.editReason ?? ''} (${e.editedBy ?? ''})]` : '', e.text].filter(Boolean).join(' '),
     e.byRank ? `${e.by} (${e.byRank})` : e.by,
@@ -69,7 +69,8 @@ export function logCopy(spec: BookSpec, entries: LogEntry[], month: string, vess
     head: LOG_COPY_HEAD,
     rows,
     struck,
-    columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 11, halign: 'center' }, 3: { cellWidth: 40 }, 4: { cellWidth: 32 } },
+    // The code column as wide as the book's longest code (DEPART broke letter by letter in 11 mm).
+    columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: Math.max(11, 3 + 1.9 * Math.max(...Object.keys(spec.codes).map((k) => k.length))), halign: 'center' }, 3: { cellWidth: 40 }, 4: { cellWidth: 32 } },
     verifications: verificationLines(signs.filter((s) => s.month === month)),
     integrity: integrityLines(monthIntegrity(entries, all, signs, month)),
     awaiting: awaiting(entries, verifiedIds(all, signs)).length,

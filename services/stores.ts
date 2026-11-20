@@ -5,7 +5,7 @@
 // ===================================
 
 import { Batch, daysTo, expiryState, normExpiry, stockByItem } from './hospital';
-import { StoreItem, StoreKind, StoreMove, StoreRoom, WEAR_LABEL, Wear, isBuiltinRoom, roomOf, storeItemTitle, toWear } from '../types/stores';
+import { StoreItem, StoreKind, StoreMove, StoreRoom, WEAR_LABEL, Wear, isBuiltinRoom, roomOf, storeItemTitle, toWear, wearKept } from '../types/stores';
 import type { MedMove } from '../types/hospital';
 import { uid } from '../utils/id';
 import type { OrderDept } from '../types/orders';
@@ -186,7 +186,7 @@ export function planStoreImport(lines: StoreSheetLine[], items: StoreItem[], roo
     have.set(key(it.name, it.size), it);
     (old ? updated : added).push(storeItemTitle(it));
     // A flag locker's lines are one per wear (the sheet it exports): each is counted into its own; no wear there = good.
-    const wear = store === 'flags' || store === 'bridge' ? l.wear ?? 'good' : undefined;
+    const wear = wearKept(store) ? l.wear ?? 'good' : undefined;
     if (l.qty != null) counts.push({ itemId: it.id, qty: l.qty, ...(l.expiry ? { expiry: l.expiry } : {}), ...(wear ? { wear } : {}) });
   }
   return { save, counts, added, updated };
@@ -209,5 +209,6 @@ const TEMPLATE_EXAMPLE: Record<StoreKind, unknown[]> = {
   general: ['Example: Shackle, galvanised 16 mm', 'Deck', '', 'pcs', 4, 'Shelf 2', 6, '', ''],
   flags: ['Example: Courtesy flag, Spain', 'Countries', '60 x 90 cm', 'pcs', 1, 'Flag locker, box 3', 2, '', 'Good'],
   bridge: ['Example: SOLAS, Consolidated Edition', 'IMO publications', '2020 ed.', 'copy', 1, 'Bridge, shelf 1', 1, '', 'Good'],
+  signs: ['Example: Fire extinguisher', 'Fire', '150 x 150 mm', 'pcs', 2, "Bosun's store, drawer 2", 3, '', 'New'],
 };
 export const storeTemplateRows = (store: StoreKind): unknown[][] => [STORE_HEAD, TEMPLATE_EXAMPLE[store]];

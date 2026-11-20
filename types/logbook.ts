@@ -25,6 +25,8 @@ export interface LogEntry extends Versioned {
   date: string;
   time?: string;
   code: string;
+  /** The ship's zone of `date`/`time` ("+02:00"), frozen when signed (utils/shipTime entryZone); since 2.77. */
+  shipOffset?: string;
   tank?: string;
   /** m³ */
   quantity?: number;

@@ -7,7 +7,7 @@ export interface StepAct { t: string; steps: string[]; note?: string; who?: Step
 export interface StepScreen { id: string; title: string; path: string[]; who: StepWho; perVessel?: boolean; intro: string; acts: StepAct[] }
 export interface StepGroup { title: string; screens: StepScreen[] }
 
-/** 102 screens, 535 actions. */
+/** 103 screens, 541 actions. */
 export const MANUAL_STEPS: StepGroup[] = [
  {
   "title": "Getting started",
@@ -629,6 +629,70 @@ export const MANUAL_STEPS: StepGroup[] = [
        "Point at the label — the item opens",
        "Damaged label? Type the digits under it"
       ]
+     }
+    ]
+   },
+   {
+    "id": "imosigns",
+    "title": "IMO signs",
+    "path": [
+     "☰ Menu",
+     "Equipment & maintenance",
+     "IMO signs"
+    ],
+    "who": "everyone",
+    "perVessel": true,
+    "intro": "Every place a sign must be posted, worked out from the register: an extinguisher wants its sign at its position, and so do the lifebuoys, liferafts, lifejackets, EEBDs… Several items at one position want one sign. Escape arrows, exits and muster stations the vessel adds itself.",
+    "acts": [
+     {
+      "t": "Look at the signs",
+      "steps": [
+       "**IMO signs** → **Start a round**",
+       "Choose a deck if you go deck by deck",
+       "Each place: **Fine**, **Faded** or **Missing** — several signs at one place: how many",
+       "**All shown are fine** marks the lot; then change the bad ones",
+       "**Sign the round**"
+      ],
+      "note": "Places you do not mark stay as they were."
+     },
+     {
+      "t": "Put up spares from stock",
+      "steps": [
+       "**IMO signs** → **To replace**",
+       "**Fit from stock**",
+       "**Sign** — the spares come off the IMO signs store, the places read fine"
+      ],
+      "note": "Spares are kept in a store of the kind **IMO signs** — see Stores."
+     },
+     {
+      "t": "Order what is missing",
+      "steps": [
+       "**IMO signs** → **To replace**",
+       "**Draft order**",
+       "Check the lines — the sign, photoluminescent, its standard, where it goes",
+       "Supplier, port → send it as any order"
+      ],
+      "note": "It orders what the spares do not cover and what brings the store back to its minimum, less what is already on order. The IMPA code is the supplier’s to fill in.",
+      "who": "officers"
+     },
+     {
+      "t": "Add a sign the register does not know",
+      "steps": [
+       "**IMO signs** → **+ Sign not in the register**",
+       "**Sign** — escape arrow, emergency exit, muster station, no smoking…",
+       "Deck, where ★, how many",
+       "**Save**"
+      ],
+      "who": "officers"
+     },
+     {
+      "t": "No sign is posted at a place",
+      "steps": [
+       "Tap the place",
+       "**No sign is posted here — take off the list**"
+      ],
+      "note": "The equipment stays in the register. **Put back on the list** at the bottom brings such places back.",
+      "who": "officers"
      }
     ]
    },
@@ -2271,7 +2335,7 @@ export const MANUAL_STEPS: StepGroup[] = [
       "t": "Give an inspector a copy",
       "steps": [
        "**PDF** — the true copy of the month",
-       "Or **Signed copy** — a ZIP with the PDF, the records and a manifest sealed by you"
+       "Or **Signed copy** — a ZIP with the PDF, the records (JSON and XML) and a manifest sealed by you"
       ],
       "note": "A signed copy needs your PIN or fingerprint: one signed by hand cannot be sealed. Each verification also keeps the month's signed copy on the device by itself — **Signed copies on this device (…)**."
      },
@@ -2283,6 +2347,16 @@ export const MANUAL_STEPS: StepGroup[] = [
        "One entry: **Print this entry** under it"
       ],
       "note": "One file, numbered “Page n of N” through, each month's verifications under its name.",
+      "who": "everyone"
+     },
+     {
+      "t": "Take the position from the Deck log",
+      "steps": [
+       "**+ New entry** — put in the date and time first",
+       "Under **Position**: **⎘ From the Deck log, … : …** — the Deck log entry nearest that time",
+       "Tap it — the position fills in; check it → sign"
+      ],
+      "note": "Offered when a Deck log entry with a position lies within 4 hours of the entry's time; a draft is said to be one. The book's position then agrees with the Deck log. Each entry signed from 2.77 also keeps the ship's zone of its time: the true copy prints ship's time with the zone and UTC.",
       "who": "everyone"
      },
      {
@@ -3844,14 +3918,14 @@ export const MANUAL_STEPS: StepGroup[] = [
      "the store"
     ],
     "who": "everyone",
-    "intro": "Each store has its own list, an ID and a QR label for its door: PPE store, provisions, general stores, the flag locker, charts & publications. Stock is kept in batches by best-before or, for PPE and flags, by wear — poor is not serviceable and does not count towards the minimum.",
+    "intro": "Each store has its own list, an ID and a QR label for its door: PPE store, provisions, general stores, the flag locker, charts & publications, IMO signs. Stock is kept in batches by best-before or, for flags, publications and IMO signs, by wear — poor is not serviceable and does not count towards the minimum.",
     "acts": [
      {
       "t": "Add a store",
       "steps": [
        "**☰** → the gear beside **Stores** — **Manage stores**",
        "**+ New store**",
-       "**Name ★**, the kind (**PPE store**, **Provisions**, **General stores**, **Flag locker**, **Charts & publications**), where it is, **ID ★**",
+       "**Name ★**, the kind (**PPE store**, **Provisions**, **General stores**, **Flag locker**, **Charts & publications**, **IMO signs**), where it is, **ID ★**",
        "**Save**",
        "**QR label (PDF)** — for its door"
       ],
@@ -3862,7 +3936,7 @@ export const MANUAL_STEPS: StepGroup[] = [
       "t": "Start from a standard list",
       "steps": [
        "Open an empty store",
-       "**Add the typical PPE list**, **Add the signal flag set** or **Add the IMO publications and stationery**",
+       "**Add the typical PPE list**, **Add the signal flag set**, **Add the IMO publications and stationery** or **Add the IMO signs catalogue**",
        "Edit the minimums to the vessel’s needs"
       ]
      },
@@ -4651,7 +4725,7 @@ export const MANUAL_STEPS: StepGroup[] = [
        "**Open** — where the app keeps the proof",
        "The count on top: checked, to put right"
       ],
-      "note": "The marks stay on this device until printed."
+      "note": "The marks stay on this device until printed. **Enclosed space entry — CIC 2027** holds the questions of the Paris MoU campaign of autumn 2027."
      },
      {
       "t": "Give it to the Master",

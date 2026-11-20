@@ -6,6 +6,7 @@ import { bookIntegrity, canonical, chainGaps, chainHead, checkRecord, contentHas
 import { integrityLines, monthIntegrity, signerCell } from '../services/verification';
 import { amended } from '../services/versions';
 import { checkCopy, copyFiles, copyManifest, zipCopy } from '../services/signedCopy';
+import { recordsXml } from '../services/erbXml';
 import { trueCopyDoc } from '../services/trueCopy';
 import { BookAccess, accessLine, integrityDetail, integrityIsNew } from '../services/bookAccess';
 
@@ -84,8 +85,9 @@ ok(pdf.getNumberOfPages() >= 1, 'the true copy still draws with the seal lines')
 void (async () => {
   const pdfBytes = new Uint8Array(pdf.output('arraybuffer'));
   const records = { entries: all, verifications: [v], keys, access: [] };
-  const files = copyFiles('ORB_2026-10.pdf', pdfBytes, records);
-  const m = copyManifest({ book: 'orb', title: 'Oil Record Book — Part I · October 2026', month: '2026-10', vessel: { name: 'MV Test', imo: '1234567' }, exportedAt: T('2026-10-09'), master: { name: 'Master', id: 'device:m1', key: keyIdOf(publicOf(master)) } }, files);
+  const head = { book: 'orb' as const, title: 'Oil Record Book — Part I · October 2026', month: '2026-10', vessel: { name: 'MV Test', imo: '1234567' }, exportedAt: T('2026-10-09'), master: { name: 'Master', id: 'device:m1', key: keyIdOf(publicOf(master)) } };
+  const files = copyFiles('ORB_2026-10.pdf', pdfBytes, records, head);
+  const m = copyManifest(head, files);
   const seal = sealHash(master, contentHash(m), 'person');
   const zip = await zipCopy(files, m, seal, 'uint8array');
   const good = await checkCopy(zip);
@@ -102,6 +104,15 @@ void (async () => {
   ok(!r1.ok && r1.problems.some((p) => /records.json was changed/.test(p)), 'an edited records.json fails');
   const r2 = await tamper((z) => z.file('manifest.json', canonical({ ...m, files: { ...m.files, 'records.json': contentHash({}) } })));
   ok(!r2.ok && r2.problems.some((p) => /manifest was changed/.test(p)), 'a manifest rewritten to match fails on the seal');
+  const xml = new TextDecoder().decode(files['records.xml']);
+  ok(!!m.files['records.xml'], 'the copy lists records.xml in its manifest (MMC-193 §3.3.7c)');
+  ok(/^<\?xml version="1.0" encoding="UTF-8"\?>/.test(xml) && /<entries count="4">/.test(xml) && /<verifications count="1">/.test(xml), 'the XML holds the 4 entry versions and the verification');
+  ok(xml.includes('<text>13. 2 m³ from bilge</text>') && /<at utc="2026-10-02T10:00:00.000Z">\d+<\/at>/.test(xml), 'an entry reads as elements, times with utc beside');
+  ok(/<imo>1234567<\/imo>/.test(xml) && /<book>orb<\/book>/.test(xml), 'the vessel and book head the XML');
+  const odd = recordsXml({ ...head, format: 'ismpilot-erb-copy/1', software: 'x' }, { entries: [{ id: 'a', text: 'A < B & "C"\u0001', extra: { 'PLB (Ser.#)': 'x1', xmlish: 1 }, list: [] }], verifications: [], keys: [], access: [] });
+  ok(odd.includes('<text>A &lt; B &amp; &quot;C&quot;</text>') && odd.includes('<field name="PLB (Ser.#)">x1</field>') && odd.includes('<field name="xmlish">1</field>') && odd.includes('<list/>'), 'text is escaped, a key that is not an XML name is <field name>');
+  const rx = await tamper((z) => z.file('records.xml', xml.replace('13. 2 m³', '1. 2 m³')));
+  ok(!rx.ok && rx.problems.some((p) => /records.xml was changed/.test(p)), 'an edited records.xml fails');
   const r3 = await tamper((z) => z.remove('ORB_2026-10.pdf'));
   ok(!r3.ok && r3.problems.some((p) => /missing/.test(p)), 'a file taken out fails');
   const other = key();

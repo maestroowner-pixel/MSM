@@ -6,15 +6,18 @@
 //
 //   <PositionInput position={pos} port={port} onChange={(pos, port) => …} />
 //   <PositionInput position={pos} onChange={(pos) => …} portAllowed={false} />
+//   <PositionInput … deckAt={{ date, time }} />   offers the Deck log's position then
 // ===================================
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { useTheme } from '../contexts/ThemeContext';
+import { useData } from '../contexts/DataContext';
+import { moduleOn } from '../constants/modules';
 import { t, useT } from '../utils/i18n';
 import { SIZES, Palette } from '../theme';
-import { Coords, EMPTY_COORDS, coordsError, formatPosition, parsePosition } from '../utils/position';
+import { Coords, EMPTY_COORDS, coordsError, deckFix, formatPosition, parsePosition } from '../utils/position';
 
 export function PositionInput({
   position,
@@ -23,6 +26,7 @@ export function PositionInput({
   label,
   portAllowed = true,
   portPlaceholder,
+  deckAt,
 }: {
   position?: string;
   port?: string;
@@ -30,6 +34,8 @@ export function PositionInput({
   label?: string;
   portAllowed?: boolean;
   portPlaceholder?: string;
+  /** The record's ship's date and time: offers the Deck log entry nearest it (utils/position deckFix). */
+  deckAt?: { date: string; time?: string };
 }) {
   const COLORS = useTheme();
   useT();
@@ -63,6 +69,15 @@ export function PositionInput({
       onChange('', port ?? '');
     } else onChange(formatPosition(c), '');
   };
+  const { deckLog } = useData();
+  const fix = useMemo(() => (deckAt && moduleOn('deckLog') ? deckFix(deckLog, deckAt.date, deckAt.time) : null), [deckAt?.date, deckAt?.time, deckLog]);
+  const takeFix = () => {
+    if (!fix) return;
+    setMode('sea');
+    setC(parsePosition(fix.position) ?? EMPTY_COORDS);
+    said.current = fix.position;
+    onChange(fix.position, '');
+  };
   const err = coordsError(c);
   const num = (v: string) => v.replace(/[^\d.,]/g, '');
 
@@ -79,6 +94,16 @@ export function PositionInput({
       ) : (
         <Text style={styles.label}>{label ?? t('pos.position')}</Text>
       )}
+      {fix && fix.position !== formatPosition(c) ? (
+        <TouchableOpacity onPress={takeFix} style={styles.fix} accessibilityRole="button">
+          <Text style={styles.fixText}>
+            {'⎘ ' + t('pos.fromDeck', {
+              when: [deckAt && fix.date !== deckAt.date ? `${fix.date.slice(8, 10)}.${fix.date.slice(5, 7)} ${fix.time}` : fix.time, fix.minutes ? (fix.minutes < 0 ? t('pos.before', { min: -fix.minutes }) : t('pos.after', { min: fix.minutes })) : null, fix.draft ? t('pos.draft') : null].filter(Boolean).join(', '),
+              pos: fix.position,
+            })}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
       {mode === 'sea' ? (
         <>
           <View style={styles.line}>
@@ -129,5 +154,7 @@ const makeStyles = (COLORS: Palette) =>
     hemiTextOn: { color: COLORS.textWhite },
     err: { fontSize: SIZES.small, color: COLORS.danger },
     ok: { fontSize: SIZES.small, color: COLORS.success, fontWeight: '700' },
+    fix: { alignSelf: 'flex-start', borderWidth: 1, borderColor: COLORS.primary, borderRadius: 8, paddingVertical: 5, paddingHorizontal: SIZES.sm },
+    fixText: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.small },
     port: { ...COLORS.glassInput, borderRadius: SIZES.radiusMd, paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm, fontSize: SIZES.body, color: COLORS.text },
   });

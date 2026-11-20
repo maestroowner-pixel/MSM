@@ -58,6 +58,7 @@ import { Chemical } from '../types/chemicals';
 import { Letter } from '../types/correspondence';
 import { NightOrder, OrderAck, StandingOrder } from '../types/orderBook';
 import { GaPin, GaSheet } from '../types/gaPlan';
+import { SignCheck, SignPlace } from '../types/imoSigns';
 import { NfcTag } from '../types/nfc';
 import { Muster, MusterMark, MusterStation } from '../types/muster';
 import { WireEntry } from '../types/wireLog';
@@ -298,6 +299,8 @@ interface DataContextType {
   orderAcks: OrderAck[];
   /** The ship's plan (types/gaPlan.ts): decks and points, removed ones included. */
   gaSheets: GaSheet[];
+  signPlaces: SignPlace[];
+  signChecks: SignCheck[];
   gaPins: GaPin[];
   /** NFC tags handed out (types/nfc.ts), revoked ones included. */
   nfcTags: NfcTag[];
@@ -528,6 +531,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [standingOrders, setStandingOrders] = useState<StandingOrder[]>([]);
   const [orderAcks, setOrderAcks] = useState<OrderAck[]>([]);
   const [gaSheets, setGaSheets] = useState<GaSheet[]>([]);
+  const [signPlaces, setSignPlaces] = useState<SignPlace[]>([]);
+  const [signChecks, setSignChecks] = useState<SignCheck[]>([]);
   const [gaPins, setGaPins] = useState<GaPin[]>([]);
   const [nfcTags, setNfcTags] = useState<NfcTag[]>([]);
   const [musterStations, setMusterStations] = useState<MusterStation[]>([]);
@@ -687,6 +692,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _oacks1 = await storage.loadList<OrderAck>(storage.ORDER_ACKS_KEY);
     const _gas1 = await storage.loadList<GaSheet>(storage.GA_SHEETS_KEY);
     const _gap1 = await storage.loadList<GaPin>(storage.GA_PINS_KEY);
+    const _sgp1 = await storage.loadList<SignPlace>(storage.SIGN_PLACES_KEY);
+    const _sgc1 = await storage.loadList<SignCheck>(storage.SIGN_CHECKS_KEY);
     const _nfc1 = await storage.loadList<NfcTag>(storage.NFC_TAGS_KEY);
     const _mst1 = await storage.loadList<MusterStation>(storage.MUSTER_STATIONS_KEY);
     const _mus1 = await storage.loadList<Muster>(storage.MUSTERS_KEY);
@@ -820,6 +827,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setOrderAcks(_oacks1);
     setGaSheets(_gas1);
     setGaPins(_gap1);
+    setSignPlaces(_sgp1);
+    setSignChecks(_sgc1);
     setNfcTags(_nfc1);
     setMusterStations(_mst1);
     setMusters(_mus1);
@@ -1111,6 +1120,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _oacks2 = await storage.loadList<OrderAck>(storage.ORDER_ACKS_KEY);
     const _gas2 = await storage.loadList<GaSheet>(storage.GA_SHEETS_KEY);
     const _gap2 = await storage.loadList<GaPin>(storage.GA_PINS_KEY);
+    const _sgp2 = await storage.loadList<SignPlace>(storage.SIGN_PLACES_KEY);
+    const _sgc2 = await storage.loadList<SignCheck>(storage.SIGN_CHECKS_KEY);
     const _nfc2 = await storage.loadList<NfcTag>(storage.NFC_TAGS_KEY);
     const _mst2 = await storage.loadList<MusterStation>(storage.MUSTER_STATIONS_KEY);
     const _mus2 = await storage.loadList<Muster>(storage.MUSTERS_KEY);
@@ -1234,6 +1245,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setOrderAcks(_oacks2);
     setGaSheets(_gas2);
     setGaPins(_gap2);
+    setSignPlaces(_sgp2);
+    setSignChecks(_sgc2);
     setNfcTags(_nfc2);
     setMusterStations(_mst2);
     setMusters(_mus2);
@@ -1632,6 +1645,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         orderAcks,
         gaSheets,
         gaPins,
+        signPlaces,
+        signChecks,
         nfcTags,
         musterStations,
         musters,

@@ -550,6 +550,20 @@ app mirrors. Bundle id `com.kukalab.msm`.
   params — typed counts as `manual`) or by pressing the name. **Boat landing**: `components/BoatLanding.tsx` on the gangway page (needs
   `security`): a boat name → ScanSc `gangway=1&boat=…`; the crossing is an ordinary CrewMove with `boat`, so POB holds;
   `outByBoat`/`recentBoats` in services/gangway. `npm run check:nfc`; rules-test.mjs covers it. `npm run deploy:rules` before either flag.
+- **IMO signs** (20 Nov 2026 — flag `imoSigns`, off; "inventory — order IMO signs"): catalogue `services/imoSignCatalogue.ts` (38 signs,
+  **ids permanent**; life-saving/escape IMO A.1116(30), fire ISO 17631, first aid/eye wash/no smoking ISO 7010; no IMPA codes — they depend on
+  size/material), types `types/imoSigns.ts`, pure `services/imoSigns.ts`, screen `ImoSignsSc` (route `ImoSigns` `imo-signs`; menu Equipment &
+  maintenance after Equipment, `menuExtras`). **Places are worked out, not stored**: `signFor(category, item)` (type/size/remarks words: davit raft,
+  lifebuoy light/smoke/line, child/infant jacket, GMDSS sheet by type; none for PLB, harness, detectors, BA bottles) grouped by `placeKey`
+  (sign|deck|position, case/space-blind) — several items at one position = one sign; no position → one per item (`item:<id>`). `sign_places`
+  (officers, newest wins, `removed`): the vessel's own places (sign, deck, position, qty) and `hides` = a worked-out key taken off the list.
+  `sign_checks` APPEND-ONLY (any member): a round's `looks` (key, sign, state ok/poor/missing, `bad` of qty); the latest look per key is the state,
+  a look at another sign at the key does not count; `fitted: true` = spares put up. **Spares** = store kind `signs` (types/stores, by wear like
+  flags; `SIGNS_STARTER` two of `common`, one of the rest, `StoreItem.signId`); `sparesOf` takes every signs-store item of the sign (signId, else
+  name) — spare, minimum and on-order summed. `signNeeds`: fit = min(replace, spare); order = replace − fit + max(0, Σmin − (spare − fit)) −
+  on order (drafts count — sparesNeed.onOrder). Fit from stock: `spareTakes` (new first, never poor) → `issued` moves with the batch's wear +
+  a fitted SignCheck (`fittedLooks`), one signature. Draft order: one deck PO, lines `signOrderLines` (English; `storeItemId` → received into the
+  signs store). Synced, in .msm, erased with the device. `npm run check:imosigns`; rules-test.mjs covers it. `npm run deploy:rules` before the flag.
 - **Rope and wire log** (7 Nov 2026 — flag `wires`, off; needs `lifting`; plan item 67, UniSea's "Wire Manager"): `types/wireLog.ts`,
   pure `services/wireLog.ts` + rows `services/wireRows.ts` (pure, so check:wirelog can reach them), papers `services/wireReport.ts`
   (PMS-history PDF + Excel Ropes/Log), `components/WireLogCard.tsx` (on ItemDetail), screens `WireEntrySc` (route `WireEntry`
@@ -608,6 +622,14 @@ app mirrors. Bundle id `com.kukalab.msm`.
   takes `(month, {notes, only, signs})`; `joinCopies` (services/trueCopy) puts months one after another in one numbered file,
   each month's verifications under its name, empty months named; one entry prints only the verifications that cover it.
   `npm run check:verification`, `check:seal`; rules-test.mjs covers `book_notes`. `npm run deploy:rules` before 2.77 reaches anyone.
+- **Panama gaps P1–P3** (20 Nov 2026, MMC-193; card `/Users/Oxford/MarineSafetyManager/erb-approval/flags/PA.md`, no flag — ships with 2.77):
+  **XML** — the signed copy also holds `records.xml` (pure `services/erbXml.ts`: generic, a field = an element, lists `<item>`, a key that is
+  not an XML name → `<field name>`, ms times carry `utc`), built by `copyFiles(…, m)` and listed in the sealed manifest; older copies without it
+  still check. **Ship's time + UTC** — ORB, Garbage and the LogBookSc books freeze `shipOffset` (utils/shipTime `entryZone`: the zone in force at
+  the entry's date/time, else the device's) BEFORE `withSeal`; an amendment recomputes it only when date or time changed (components/Amend);
+  the copy's date cell is `entryWhen` (three lines: LT, zone, UTC); entries before 2.77 print as written — no zone is guessed for them.
+  **Position from the Deck log** — `PositionInput deckAt={{date, time}}` offers `deckFix` (utils/position: nearest Deck log entry with a position
+  within 4 h, drafts said) as a chip the officer taps; never filled silently. `check:logbooks`, `check:seal` cover all three.
 - **Checklists** (`constants/checklists.ts`): 30 templates keyed `<category>.<period>`, weekly
   and/or monthly, plus a `genericTemplate` fallback so no category can refuse a round. **Line ids
   are permanent** — they are the keys of every stored `results` map, so re-word freely but never

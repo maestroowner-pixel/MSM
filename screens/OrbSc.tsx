@@ -35,7 +35,7 @@ import { PositionInput } from '../components/PositionInput';
 import { parsePosition } from '../utils/position';
 import { playSuccessSound } from '../utils/sound';
 import { t, useT } from '../utils/i18n';
-import { shipHm } from '../utils/shipTime';
+import { entryZone, shipHm } from '../utils/shipTime';
 
 const CODES = Object.keys(ORB_CODE) as OrbCode[];
 const METHODS_FOR: Partial<Record<OrbCode, OrbMethod[]>> = {
@@ -101,7 +101,7 @@ export default function OrbSc() {
     if (!sig) return;
     const now = Date.now();
     const head = chainHead(all);
-    const e: OrbEntry = withSeal({ id: uid('orb'), ...(draft as any), text: preview, by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), byId: signer.key, at: now, ...(head ? { prev: head } : {}), ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now }, sig);
+    const e: OrbEntry = withSeal({ id: uid('orb'), ...(draft as any), shipOffset: entryZone((draft as any).date, (draft as any).time), text: preview, by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), byId: signer.key, at: now, ...(head ? { prev: head } : {}), ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now }, sig);
     await appendRow(storage.ORB_KEY, e);
     setF({ ...blank, time: hhmm() });
     setAdding(false);
@@ -174,6 +174,7 @@ export default function OrbSc() {
               port={parsePosition(f.place) ? '' : f.place}
               onChange={(pos, port) => setF((x) => ({ ...x, place: pos || port }))}
               portPlaceholder={f.code === 'H' ? t('orb.portBunker') : t('ml.port')}
+              deckAt={{ date: f.date, time: f.start || f.time }}
             />
           ) : null}
           <View style={styles.pair}>

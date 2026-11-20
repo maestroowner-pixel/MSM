@@ -28,7 +28,7 @@ import { uid } from '../utils/id';
 import { PositionInput } from '../components/PositionInput';
 import { playSuccessSound } from '../utils/sound';
 import { t, tn, useT } from '../utils/i18n';
-import { shipHm } from '../utils/shipTime';
+import { entryZone, shipHm } from '../utils/shipTime';
 
 const CATS = Object.keys(GARBAGE_CATEGORY) as GarbageCategory[];
 const METHODS = Object.keys(GARBAGE_METHOD) as GarbageMethod[];
@@ -107,7 +107,7 @@ export default function GarbageSc() {
       const now = Date.now();
       const head = chainHead(garbage);
       const e: GarbageEntry = withSeal({
-        id: uid('grb'), date: f.date, time: f.time, category: picked[0], method: f.method, volume, items,
+        id: uid('grb'), date: f.date, time: f.time, shipOffset: entryZone(f.date, f.time), category: picked[0], method: f.method, volume, items,
         ...(f.atSea || f.method === 'sea' ? { position: f.position.trim(), ...(distance != null ? { distanceNm: distance } : {}) } : { port: f.port.trim() }),
         ...(f.comminuted && picked.includes('B') ? { comminuted: true } : {}),
         ...(f.receipt.trim() ? { receiptNo: f.receipt.trim() } : {}),
@@ -199,7 +199,7 @@ export default function GarbageSc() {
           </View>
           {f.atSea || f.method === 'sea' ? (
             <>
-              <PositionInput portAllowed={false} position={f.position} onChange={(pos) => setF((x) => ({ ...x, position: pos }))} />
+              <PositionInput portAllowed={false} position={f.position} onChange={(pos) => setF((x) => ({ ...x, position: pos }))} deckAt={{ date: f.date, time: f.time }} />
               <TextInput style={styles.input} value={f.distance} onChangeText={(v) => setF({ ...f, distance: v })} placeholder={t('gb.nmPh')} placeholderTextColor={COLORS.textLight} keyboardType="decimal-pad" />
             </>
           ) : (

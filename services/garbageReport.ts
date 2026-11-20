@@ -23,6 +23,7 @@ import { saveFileWeb } from '../utils/webSave';
 import { deliverTrueCopy } from '../utils/trueCopyPdf';
 import { BookNote, awaiting, copyRows, integrityLines, monthIntegrity, verificationLines, verifiedIds } from './verification';
 import type { TrueCopy } from './trueCopy';
+import { entryWhen } from '../utils/shipTime';
 
 export const gDmy = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
 export function gMonthLabel(month: string) {
@@ -38,7 +39,7 @@ export function grbRows(entries: GarbageEntry[]): string[][] {
     const items = entryItems(e);
     const sum = items.reduce((n, i) => n + i.volume, 0);
     return [
-    `${gDmy(e.date)} ${e.time}`,
+    entryWhen(e.date, e.time, e.shipOffset),
     placeText(e),
     items.map((i) => `${i.category} — ${GARBAGE_CATEGORY[i.category]}${items.length > 1 ? ` ${v(i.volume)}` : ''}`).join('\n'),
     e.method === 'sea' && !e.cancelled ? v(sum) : '',
@@ -90,7 +91,7 @@ export function grbCopy(all: GarbageEntry[], month: string, vessel: VesselInfo |
     head: GRB_COPY_HEAD,
     rows,
     struck,
-    columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 36 }, 2: { cellWidth: 32 }, 3: { cellWidth: 14, halign: 'right' }, 4: { cellWidth: 18, halign: 'right' }, 5: { cellWidth: 16, halign: 'right' }, 6: { cellWidth: 16, halign: 'right' }, 8: { cellWidth: 38 }, 9: { cellWidth: 32 } },
+    columnStyles: { 0: { cellWidth: 25 }, 1: { cellWidth: 33 }, 2: { cellWidth: 32 }, 3: { cellWidth: 14, halign: 'right' }, 4: { cellWidth: 18, halign: 'right' }, 5: { cellWidth: 16, halign: 'right' }, 6: { cellWidth: 16, halign: 'right' }, 8: { cellWidth: 38 }, 9: { cellWidth: 32 } },
     verifications: verificationLines(signs.filter((s) => s.month === month)),
     integrity: integrityLines(monthIntegrity(entries, all, signs, month)),
     awaiting: awaiting(entries, verifiedIds(all, signs)).length,

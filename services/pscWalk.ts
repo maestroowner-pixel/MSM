@@ -20,7 +20,7 @@ import { ModuleKey } from '../constants/modules';
 
 export const PSC_WALK_KEY = 'msm:psc_walk';
 
-export type PscPlace = 'fire' | 'lsa' | 'deck' | 'bridge' | 'engine' | 'accommodation' | 'papers';
+export type PscPlace = 'fire' | 'lsa' | 'deck' | 'bridge' | 'engine' | 'enclosed' | 'accommodation' | 'papers';
 
 export const PLACE_LABEL: Record<PscPlace, string> = {
   fire: 'Fire safety — throughout the ship',
@@ -28,6 +28,9 @@ export const PLACE_LABEL: Record<PscPlace, string> = {
   deck: 'Open deck — weathertight and emergency',
   bridge: 'Bridge and radio',
   engine: 'Engine room',
+  // Concentrated Inspection Campaign 2027 (Paris MoU, Sep–Nov 2027): a set
+  // questionnaire on top of the usual inspection — a "no" can detain.
+  enclosed: 'Enclosed space entry — CIC 2027',
   accommodation: 'Accommodation, galley and the crew (MLC)',
   papers: 'Papers and the ISM system',
 };
@@ -75,6 +78,12 @@ export const PSC_CHECKS: PscCheck[] = [
   { id: 'engine.orb', place: 'engine', text: 'Oil Record Book complete, each page signed by the Master, figures agreeing with the tanks', ref: 'MARPOL Annex I, reg. 17', route: 'OilRecord', module: 'orb' },
   { id: 'engine.clean', place: 'engine', text: 'No oil leaks or oil-soaked lagging round engines and purifiers; hot surfaces insulated; bilges clean', ref: 'SOLAS II-2/4.2' },
   { id: 'engine.maintenance', place: 'engine', text: 'Planned maintenance up to date; every overdue job has a reason or a deferral', ref: 'ISM Code 10', stat: `${T25}: maintenance of the ship and equipment detainable 104 times`, route: 'Maintenance', module: 'pms' },
+  { id: 'enclosed.list', place: 'enclosed', text: "The ship's enclosed spaces identified and listed; entrances marked and kept closed or guarded against entry without a permit", ref: 'SOLAS XI-1/7; IMO Res. A.1203(33)' },
+  { id: 'enclosed.procedure', place: 'enclosed', text: 'The SMS procedure for entry is aboard and known: who may authorise an entry, who may enter, who stands by — asked, the crew can say it', ref: 'ISM Code 7; IMO Res. A.1203(33)', route: 'Documents', module: 'docs' },
+  { id: 'enclosed.permit', place: 'enclosed', text: 'Every entry made on a permit: the form in use, recent permits complete, with gas readings and the attendant named, and closed when the space was left', ref: 'IMO Res. A.1203(33)', route: 'Permits', module: 'ptw' },
+  { id: 'enclosed.meter', place: 'enclosed', text: 'Portable gas meter for oxygen, flammable gas, H₂S and CO aboard, calibrated and bump-tested, the record kept; the people who enter can use it', ref: 'SOLAS XI-1/7; MSC.1/Circ.1477', route: 'Equipment' },
+  { id: 'enclosed.rescue', place: 'enclosed', text: 'Rescue gear ready to take to an entrance: breathing apparatus, harness and lifeline, a means of lifting a casualty out, stretcher, resuscitator', ref: 'IMO Res. A.1203(33)', route: 'Equipment' },
+  { id: 'enclosed.drill', place: 'enclosed', text: 'Enclosed space entry and rescue drill at least every two months, recorded, in a different space each time and with the rescue gear in use', ref: 'SOLAS III/19.3.6', route: 'Drills', module: 'drills' },
   { id: 'mlc.sea', place: 'accommodation', text: "Seafarers' employment agreements signed, a copy aboard, wages paid as agreed", ref: 'MLC 2.1, 2.2', stat: `${P25}: 1.3% of all deficiencies` },
   { id: 'mlc.rest', place: 'accommodation', text: 'Hours of rest recorded for everyone and within the limits; the table of working arrangements posted', ref: 'MLC 2.3; STCW VIII/1', route: 'HoursOfRest', module: 'rest' },
   { id: 'mlc.medical', place: 'accommodation', text: "Medicine chest stocked to the flag's scale, nothing out of date; the medical guide aboard", ref: 'MLC 4.1', stat: `${P25}: health, medical care and welfare (MLC Title IV) are 10.0% of all deficiencies`, route: 'Hospital', module: 'hospital' },

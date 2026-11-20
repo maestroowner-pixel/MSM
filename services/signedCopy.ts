@@ -9,6 +9,7 @@
 //   records.json          every version of the month's entries, the earlier
 //                         versions they replaced, the Master's verifications,
 //                         the keys that sealed them and the month's access log
+//   records.xml           the same records in XML (services/erbXml; since 2.77)
 //   manifest.json         book, month, vessel, software, who signed it and when,
 //                         and the SHA-256 of each file above
 //   manifest.seal.json    the Master's seal over manifest.json (services/seal)
@@ -26,6 +27,7 @@ import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils';
 import { Integrity, Seal, SignKeyRec, bookIntegrity, canonical, contentHash, keyIdOf, sigValid } from './seal';
 import type { BookAccess, BookKey } from './bookAccess';
 import { SOFTWARE } from './trueCopy';
+import { recordsXml } from './erbXml';
 
 export const COPY_FORMAT = 'ismpilot-erb-copy/1';
 
@@ -54,9 +56,13 @@ export interface CopyRecords {
 
 const hexOf = (b: Uint8Array) => bytesToHex(sha256(b));
 
-/** The files of the copy (before the seal) — `pdf` already drawn. */
-export function copyFiles(pdfName: string, pdf: Uint8Array, records: CopyRecords): Record<string, Uint8Array> {
-  return { [pdfName]: pdf, 'records.json': utf8ToBytes(JSON.stringify(records, null, 1)) };
+/** The files of the copy (before the seal) — `pdf` already drawn; with `m`, the records in XML too. */
+export function copyFiles(pdfName: string, pdf: Uint8Array, records: CopyRecords, m?: Omit<CopyManifest, 'format' | 'software' | 'files'>): Record<string, Uint8Array> {
+  return {
+    [pdfName]: pdf,
+    'records.json': utf8ToBytes(JSON.stringify(records, null, 1)),
+    ...(m ? { 'records.xml': utf8ToBytes(recordsXml({ format: COPY_FORMAT, software: SOFTWARE, ...m }, records)) } : {}),
+  };
 }
 
 export function copyManifest(m: Omit<CopyManifest, 'format' | 'software' | 'files'>, files: Record<string, Uint8Array>): CopyManifest {
@@ -77,7 +83,8 @@ export async function zipCopy<K extends 'uint8array' | 'base64'>(files: Record<s
       `Signed by ${manifest.master.name}${manifest.master.rank ? ` (${manifest.master.rank})` : ''}, ID ${manifest.master.id}, on ${new Date(manifest.exportedAt).toISOString()}, key ${manifest.master.key}.`,
       '',
       'manifest.json lists the SHA-256 of every file here; manifest.seal.json is the Master\'s ECDSA P-256 signature over',
-      'the SHA-256 of manifest.json. records.json holds every record with its own seal. Any change to any file shows.',
+      'the SHA-256 of manifest.json. records.json holds every record with its own seal; records.xml (where present) holds',
+      'the same records in XML. Any change to any file shows.',
       `Check it in ${manifest.software.split(',')[0]}: a record book → Check a copy.`,
     ].join('\n'),
   );

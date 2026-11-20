@@ -37,7 +37,7 @@ export async function buildSignedCopy(
   seal: (manifest: CopyManifest) => Seal,
 ): Promise<{ name: string; base64: string }> {
   const pdf = new Uint8Array(trueCopyDoc({ ...c.copy, printedAt: m.exportedAt }).output('arraybuffer'));
-  const files = copyFiles(c.name, pdf, records);
+  const files = copyFiles(c.name, pdf, records, m);
   const manifest = copyManifest(m, files);
   const s = seal(manifest);
   return { name: c.name.replace(/\.pdf$/i, '') + '_signed-copy.zip', base64: await zipCopy(files, manifest, s, 'base64') };

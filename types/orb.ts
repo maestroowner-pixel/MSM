@@ -41,6 +41,8 @@ export interface OrbEntry extends Versioned {
   date: string;
   time?: string;
   code: OrbCode;
+  /** The ship's zone of `date`/`time` ("+02:00"), frozen when signed (utils/shipTime entryZone); since 2.77. */
+  shipOffset?: string;
   /** Tank(s) concerned. */
   tank?: string;
   /** m³ (or tonnes for H, as `unit`). */

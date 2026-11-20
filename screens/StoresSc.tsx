@@ -30,7 +30,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { SIZES } from '../theme';
 import { isAboard } from '../types/crew';
-import { BRIDGE_STARTER, FLAGS_STARTER, PPE_STARTER, STORE_CATEGORIES, StoreItem, StoreKind, StoreMove, StoreMoveKind, StoreRoom, WEARS, Wear, isBuiltinRoom, roomOf, storeItemTitle, storeRooms, wearKept } from '../types/stores';
+import { BRIDGE_STARTER, FLAGS_STARTER, PPE_STARTER, SIGNS_STARTER, STORE_CATEGORIES, StoreItem, StoreKind, StoreMove, StoreMoveKind, StoreRoom, WEARS, Wear, isBuiltinRoom, roomOf, storeItemTitle, storeRooms, wearKept } from '../types/stores';
 import { StoreRooms } from '../components/StoreRooms';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
@@ -62,6 +62,7 @@ const ICONS: Record<string, string> = {
   Body: 'tshirt-crew-outline', Feet: 'shoe-formal', Hands: 'hand-back-left-outline', 'Eyes & face': 'safety-goggles', Head: 'hard-hat', Hearing: 'ear-hearing', Breathing: 'face-mask-outline', 'Fall protection': 'seatbelt', Water: 'lifebuoy',
   'Dry store': 'package-variant', Chilled: 'fridge-outline', Frozen: 'snowflake', Beverages: 'cup-water', Bakery: 'bread-slice-outline', 'Fresh fruit & veg': 'food-apple-outline', 'Cleaning & galley': 'spray-bottle',
   Letters: 'flag-variant-outline', Numerals: 'numeric', Special: 'flag-triangle', Countries: 'earth', Company: 'flag-outline', 'IMO publications': 'book-open-variant', 'Nautical publications': 'book-open-page-variant-outline', Charts: 'map-outline',
+  'Life-saving': 'lifebuoy', Escape: 'exit-run', Fire: 'fire-extinguisher', Safety: 'medical-bag',
   Deck: 'anchor', 'Ropes & rigging': 'link-variant', Paint: 'format-paint', Engine: 'engine-outline', Electrical: 'flash-outline', Tools: 'wrench-outline', Cleaning: 'spray-bottle', Chemicals: 'flask-outline', Stationery: 'pencil-outline', Other: 'package-variant',
 };
 
@@ -82,6 +83,7 @@ export default function StoresSc() {
   const general = store === 'general';
   const flags = store === 'flags';
   const bridge = store === 'bridge';
+  const signs = store === 'signs';
   const wear = wearKept(store);
   const confirmSign = useSignConfirm();
   const sync = useSync();
@@ -135,8 +137,8 @@ export default function StoresSc() {
   const addStarter = async () => {
     const now = Date.now();
     const out: StoreItem[] = [];
-    const list: { name: string; category: string; sizes?: string[]; unit: string; min: number }[] = flags ? FLAGS_STARTER : bridge ? BRIDGE_STARTER : PPE_STARTER;
-    for (const s of list) for (const size of s.sizes ?? [undefined]) out.push({ id: uid('sto'), store, ...own, name: s.name, category: s.category, ...(size ? { size } : {}), unit: s.unit, min: s.min, order: out.length, updatedAt: now });
+    const list: { name: string; category: string; sizes?: string[]; unit: string; min: number; signId?: string }[] = flags ? FLAGS_STARTER : bridge ? BRIDGE_STARTER : signs ? SIGNS_STARTER : PPE_STARTER;
+    for (const s of list) for (const size of s.sizes ?? [undefined]) out.push({ id: uid('sto'), store, ...own, name: s.name, category: s.category, ...(size ? { size } : {}), ...(s.signId ? { signId: s.signId } : {}), unit: s.unit, min: s.min, order: out.length, updatedAt: now });
     await saveRows(storage.STORE_ITEMS_KEY, out);
     setSaved(t('st.added', { n: out.length }));
   };
@@ -392,7 +394,7 @@ export default function StoresSc() {
       ) : (
         <>
           <View style={[styles.row, { marginTop: 0, marginBottom: SIZES.sm, gap: SIZES.xs }]}>
-            <TextInput style={[styles.input, { flex: 2, minWidth: 200, marginTop: 0 }]} value={q} onChangeText={setQ} placeholder={ppe ? t('st.searchPpe') : flags ? t('st.searchFlags') : bridge ? t('st.searchBridge') : general ? t('st.searchGen') : t('st.searchProv')} placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { flex: 2, minWidth: 200, marginTop: 0 }]} value={q} onChangeText={setQ} placeholder={ppe ? t('st.searchPpe') : flags ? t('st.searchFlags') : bridge ? t('st.searchBridge') : signs ? t('st.searchSigns') : general ? t('st.searchGen') : t('st.searchProv')} placeholderTextColor={COLORS.textLight} />
             <Dropdown caption={store !== 'provisions' ? t('docs.type') : t('st.section')} value={cat} onChange={setCat} style={{ flex: 1, minWidth: 200 }} options={[{ value: '', label: t('pax.showAll', { n: rows.length }) }, ...cats.map((c) => ({ value: c, label: `${c} · ${rows.filter((r) => r.item.category === c).length}`, icon: ICONS[c] }))]} />
             <Dropdown caption={t('pax.show')} value={show} onChange={setShow} style={{ flex: 1, minWidth: 200 }} options={[
               { value: 'all' as Show, label: t('lb.all') },
@@ -422,10 +424,10 @@ export default function StoresSc() {
           {edit ? (
             <Card>
               <Label>{items.some((i) => i.id === edit.id) ? t('def.item') : t('mi.new')}</Label>
-              <TextInput style={styles.input} value={edit.name} onChangeText={(v) => setEdit({ ...edit, name: v })} placeholder={ppe ? t('st.namePpe') : flags ? t('st.nameFlags') : bridge ? t('st.nameBridge') : general ? t('st.nameGen') : t('st.nameProv')} placeholderTextColor={COLORS.textLight} autoFocus />
+              <TextInput style={styles.input} value={edit.name} onChangeText={(v) => setEdit({ ...edit, name: v })} placeholder={ppe ? t('st.namePpe') : flags ? t('st.nameFlags') : bridge ? t('st.nameBridge') : signs ? t('st.nameSigns') : general ? t('st.nameGen') : t('st.nameProv')} placeholderTextColor={COLORS.textLight} autoFocus />
               <View style={styles.row}>
                 <Dropdown caption={store !== 'provisions' ? t('docs.type') : t('st.section')} value={edit.category ?? ''} onChange={(v: string) => setEdit({ ...edit, category: v || undefined })} options={[{ value: '', label: '—' }, ...cats.map((c) => ({ value: c, label: c, icon: ICONS[c] }))]} style={{ flex: 1, minWidth: 200 }} />
-                {ppe || flags || bridge ? <TextInput style={[styles.input, { width: bridge ? 120 : 90, marginTop: 0 }]} value={edit.size ?? ''} onChangeText={(v) => setEdit({ ...edit, size: v })} placeholder={bridge ? t('st.edition') : t('st.size')} placeholderTextColor={COLORS.textLight} /> : null}
+                {ppe || flags || bridge || signs ? <TextInput style={[styles.input, { width: bridge || signs ? 120 : 90, marginTop: 0 }]} value={edit.size ?? ''} onChangeText={(v) => setEdit({ ...edit, size: v })} placeholder={bridge ? t('st.edition') : t('st.size')} placeholderTextColor={COLORS.textLight} /> : null}
                 <TextInput style={[styles.input, { width: 100, marginTop: 0 }]} value={edit.unit} onChangeText={(v) => setEdit({ ...edit, unit: v })} placeholder={t('st.unit')} placeholderTextColor={COLORS.textLight} />
                 <TextInput style={[styles.input, { width: 110, marginTop: 0 }]} value={String(edit.min)} onChangeText={(v) => setEdit({ ...edit, min: Number(v.replace(',', '.')) || 0 })} keyboardType="number-pad" placeholder={t('st.minimum')} placeholderTextColor={COLORS.textLight} />
               </View>
@@ -441,8 +443,8 @@ export default function StoresSc() {
 
           {!items.length ? (
             <Card>
-              <Text style={styles.sub}>{ppe ? t('st.emptyPpe') : flags ? t('st.emptyFlags') : bridge ? t('st.emptyBridge') : general ? t('st.emptyGen', { name: room.name }) : t('st.emptyProv')}</Text>
-              {ppe || flags || bridge ? <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void addStarter()}><Text style={styles.btnText}>{flags ? t('st.addFlags') : bridge ? t('st.addBridge') : t('st.addPpe')}</Text></TouchableOpacity> : null}
+              <Text style={styles.sub}>{ppe ? t('st.emptyPpe') : flags ? t('st.emptyFlags') : bridge ? t('st.emptyBridge') : signs ? t('st.emptySigns') : general ? t('st.emptyGen', { name: room.name }) : t('st.emptyProv')}</Text>
+              {ppe || flags || bridge || signs ? <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={() => void addStarter()}><Text style={styles.btnText}>{flags ? t('st.addFlags') : bridge ? t('st.addBridge') : signs ? t('st.addSigns') : t('st.addPpe')}</Text></TouchableOpacity> : null}
             </Card>
           ) : null}
 

@@ -35,7 +35,7 @@ import { PositionInput } from '../components/PositionInput';
 import { parsePosition } from '../utils/position';
 import { playSuccessSound } from '../utils/sound';
 import { t, tk, useT } from '../utils/i18n';
-import { shipHm } from '../utils/shipTime';
+import { entryZone, shipHm } from '../utils/shipTime';
 
 const STORE: Record<BookKey, { key: string; signs: string }> = {
   sewage: { key: storage.SEWAGE_KEY, signs: storage.SEWAGE_SIGNS_KEY },
@@ -103,7 +103,7 @@ export default function LogBookSc() {
     if (!sig) return;
     const now = Date.now();
     const head = chainHead(all);
-    const e: LogEntry = withSeal({ id: uid(bookKey), book: bookKey, ...(draft as any), text: preview, by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), byId: signer.key, at: now, ...(head ? { prev: head } : {}), ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now }, sig);
+    const e: LogEntry = withSeal({ id: uid(bookKey), book: bookKey, ...(draft as any), shipOffset: entryZone((draft as any).date, (draft as any).time), text: preview, by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), byId: signer.key, at: now, ...(head ? { prev: head } : {}), ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now }, sig);
     await appendRow(store.key, e);
     setF(blank());
     setAdding(false);
@@ -189,10 +189,11 @@ export default function LogBookSc() {
                 position={parsePosition(f.place) ? f.place : ''}
                 port={parsePosition(f.place) ? '' : f.place}
                 onChange={(pos, port) => setF((x) => ({ ...x, place: pos || port }))}
+                deckAt={{ date: f.date, time: f.start || f.time }}
               />
               <Label>{t('log.end')}</Label>
               {has('stop') ? timeRow('stop') : null}
-              <PositionInput label={t('log.placeEnd')} portAllowed={false} position={f.placeEnd} onChange={(pos) => setF((x) => ({ ...x, placeEnd: pos }))} />
+              <PositionInput label={t('log.placeEnd')} portAllowed={false} position={f.placeEnd} onChange={(pos) => setF((x) => ({ ...x, placeEnd: pos }))} deckAt={{ date: f.date, time: f.stop || f.time }} />
             </>
           ) : (
             <>
@@ -202,6 +203,7 @@ export default function LogBookSc() {
                   position={parsePosition(f.place) ? f.place : ''}
                   port={parsePosition(f.place) ? '' : f.place}
                   onChange={(pos, port) => setF((x) => ({ ...x, place: pos || port }))}
+                  deckAt={{ date: f.date, time: f.start || f.time }}
                 />
               ) : null}
               <View style={styles.pair}>

@@ -184,3 +184,25 @@ export const shipHour = (at = Date.now()) => Number(shipStamp(at).slice(11, 13))
 
 /** The instant a record's ship's date and time stand for. */
 export const shipAt = (date: string, hhmm = '00:00') => shipInstantAt(date, hhmm, clockInfo);
+
+// ─── Record book entries in ship's time and UTC (20 Nov 2026, Panama MMC-193
+// §4.x.2: every entry carries ship's time and UTC). An entry's date and time are
+// typed in ship's time; the zone they were in is frozen onto the entry when it
+// is signed (`shipOffset`, before the seal), so a later clock change cannot move
+// it. Entries signed before 2.77 have no zone and print as they were written.
+
+/** The ship's zone a record's date and time stand in — the one in force then, else the device's. */
+export const entryZone = (date: string, hhmm?: string) => {
+  const at = shipAt(date, hhmm || '12:00');
+  return offsetAt(at, clockInfo) ?? deviceOffset(at);
+};
+
+/** "02.10.2026 14:30 LT\n(UTC+02:00)\n12:30 UTC" — three lines for a narrow column; the UTC date said too when it differs. Without a zone or a time: as written. */
+export function entryWhen(date: string, hhmm?: string, shipOffset?: string): string {
+  const dmy = `${date.slice(8, 10)}.${date.slice(5, 7)}.${date.slice(0, 4)}`;
+  const off = offsetMinutes(shipOffset);
+  if (!hhmm || off == null) return hhmm ? `${dmy} ${hhmm}` : dmy;
+  const u = new Date(Date.parse(`${date}T${hhmm}:00Z`) - off * 60000).toISOString();
+  const uDay = u.slice(0, 10) === date ? '' : `${u.slice(8, 10)}.${u.slice(5, 7)} `;
+  return `${dmy} ${hhmm} LT\n(UTC${offsetText(off)})\n${uDay}${u.slice(11, 16)} UTC`;
+}

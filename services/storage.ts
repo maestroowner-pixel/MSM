@@ -173,6 +173,9 @@ export const ORDER_ACKS_KEY = `${PREFIX}order_acks`;
 /** The ship's plan (types/gaPlan.ts): deck pictures and the points on them. */
 export const GA_SHEETS_KEY = `${PREFIX}ga_sheets`;
 export const GA_PINS_KEY = `${PREFIX}ga_pins`;
+/** IMO signs (types/imoSigns.ts): the vessel's own places, and the signed rounds. */
+export const SIGN_PLACES_KEY = `${PREFIX}sign_places`;
+export const SIGN_CHECKS_KEY = `${PREFIX}sign_checks`;
 /** NFC tags handed out (types/nfc.ts), by the chip's UID. */
 export const NFC_TAGS_KEY = `${PREFIX}nfc_tags`;
 /** Muster stations, musters and who was marked where (types/muster.ts). */
@@ -984,6 +987,8 @@ export async function resetAllData(): Promise<void> {
     ORDER_ACKS_KEY,
     GA_SHEETS_KEY,
     GA_PINS_KEY,
+    SIGN_PLACES_KEY,
+    SIGN_CHECKS_KEY,
     NFC_TAGS_KEY,
     MUSTER_STATIONS_KEY,
     MUSTERS_KEY,

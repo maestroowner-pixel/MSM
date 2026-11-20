@@ -489,6 +489,18 @@ await t(false, '…and nobody marks after it closed', setDoc(R(crew, 'muster_mar
 await t(false, '…nor reopens it', setDoc(R(officer, 'musters', 'mu1'), { ...MU, updatedAt: 5 }));
 await t(false, 'Nobody deletes a muster', deleteDoc(R(master, 'musters', 'mu1')));
 
+// IMO signs (types/imoSigns.ts): officers keep the vessel's own places; anyone aboard signs a round, once.
+const SP = { id: 'sp1', sign: 'escape_left', deck: 'Main deck', position: 'Crew corridor', qty: 3, updatedAt: 1 };
+await t(false, 'Crew does not add a sign place', setDoc(R(crew, 'sign_places', 'sp1'), SP));
+await t(true, 'An officer adds a sign place', setDoc(R(officer, 'sign_places', 'sp1'), SP));
+await t(true, '…or takes a worked-out one off the list', setDoc(R(officer, 'sign_places', 'sp2'), { id: 'sp2', hides: 'lifebuoy|main deck|aft', updatedAt: 1 }));
+await t(false, '…but a place is never deleted', deleteDoc(R(master, 'sign_places', 'sp1')));
+const SC = { id: 'sc1', date: '2026-11-20', by: 'Bosun', looks: [{ key: 'extinguisher|main deck|galley', sign: 'extinguisher', qty: 1, state: 'poor', bad: 1 }], at: 1, updatedAt: 1 };
+await t(true, 'Crew signs a round of the signs', setDoc(R(crew, 'sign_checks', 'sc1'), SC));
+await t(false, '…written once', setDoc(R(crew, 'sign_checks', 'sc1'), { ...SC, looks: [{ ...SC.looks[0], state: 'ok' }], updatedAt: 2 }));
+await t(false, '…and not empty', setDoc(R(crew, 'sign_checks', 'sc2'), { ...SC, id: 'sc2', looks: [] }));
+await t(true, 'The office reads the rounds', getDoc(R(shore, 'sign_checks', 'sc1')));
+
 // Crane operator's log (types/craneLog.ts): an officer confirms; nothing changes.
 const CRL = { id: 'cl1', itemId: 'k1', crane: { label: 'Crane No. 1', swl: '12 t' }, crewId: 'c1', name: 'Max', date: '2026-11-13', hours: 2.5, lifts: 14, ops: ['cargo'], by: 'Chief Officer', at: 1, createdAt: 1, updatedAt: 1 };
 await t(false, 'Crew cannot confirm crane time', setDoc(R(crew, 'crane_log', 'cl1'), CRL));

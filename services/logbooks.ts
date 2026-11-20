@@ -180,8 +180,12 @@ const ECAS: Record<string, string> = {
   med: 'Mediterranean Sea',
   arctic: 'Canadian Arctic',
   norw: 'Norwegian Sea',
+  neatl: 'North-East Atlantic',
   other: 'Other (see remarks)',
 };
+// An ECA in force before its 0.10 % S limit applies (MEPC.407(84): North-East
+// Atlantic from 1 Sep 2027, sulphur from 1 Sep 2028) — no sulphur warning yet.
+const SULPHUR_FROM: Record<string, string> = { neatl: '2028-09-01' };
 const ecaOf = (e: Partial<LogEntry>) => (e.method ? `${ECAS[e.method] ?? e.method} ECA` : 'the ECA');
 const tanks = (e: Partial<LogEntry>) => [e.tank, m3(e.quantity)].filter(Boolean).join(' ');
 
@@ -208,6 +212,7 @@ export const FUEL_CHANGE: BookSpec = {
         if (!e.tank || e.quantity == null || !e.place) return 'Tanks, the volume of compliant fuel in them, and the position (reg. 14.6).';
         if (!e.time) return 'Time the changeover was ' + (e.code === 'IN' ? 'completed.' : 'commenced.');
         if (e.code === 'IN' && e.sulphur == null) return 'Sulphur content of the fuel changed to, % m/m.';
+        if (e.code === 'IN' && SULPHUR_FROM[e.method] && (e.date ?? '') < SULPHUR_FROM[e.method]) return null;
         return e.code === 'IN' && e.sulphur! > 0.1 && !e.remarks ? 'Inside an ECA: fuel of at most 0.10 % S (reg. 14.4) — or say why in the remarks (non-availability report).' : null;
       case 'ENTER':
       case 'EXIT':

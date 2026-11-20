@@ -162,6 +162,7 @@ import OrderBookSc from './screens/OrderBookSc';
 import ChatSc from './screens/ChatSc';
 import GaPlanSc from './screens/GaPlanSc';
 import MusterSc from './screens/MusterSc';
+import ImoSignsSc from './screens/ImoSignsSc';
 import NfcPersonSc from './screens/NfcPersonSc';
 import NfcBatchSc from './screens/NfcBatchSc';
 import { NfcListener } from './components/NfcListener';
@@ -309,6 +310,7 @@ const SCREEN_MODULES: Record<string, ModuleKey[]> = {
   Chat: ['chat'],
   GaPlan: ['gaPlan'],
   Muster: ['muster'],
+  ImoSigns: ['imoSigns'],
   NfcPerson: ['nfc'],
   NfcBatch: ['nfc'],
   Emissions: ['emissions'],
@@ -407,7 +409,7 @@ function MainTabs() {
   // Crew list (FAL Form 5, import) and the crew matrix — Officers and the Master
   // keep them, but everyone may look; the screens say what each rank can do.
   // Chat is for everyone aboard: in the menu whenever the module is on (services/chat).
-  const menuExtras = [...(moduleListed('chat') ? ['Chat'] : []), ...(moduleListed('gaPlan') ? ['GaPlan'] : []), ...(moduleListed('muster') ? ['Muster'] : []), ...(moduleOn('crewCerts') ? ['Crew', 'CrewMatrix', ...(moduleListed('myDocs') ? ['MyDocs'] : [])] : [])];
+  const menuExtras = [...(moduleListed('chat') ? ['Chat'] : []), ...(moduleListed('gaPlan') ? ['GaPlan'] : []), ...(moduleListed('muster') ? ['Muster'] : []), ...(moduleListed('imoSigns') ? ['ImoSigns'] : []), ...(moduleOn('crewCerts') ? ['Crew', 'CrewMatrix', ...(moduleListed('myDocs') ? ['MyDocs'] : [])] : [])];
   const available = useMemo(() => [...tabOrder, ...menuExtras], [tabOrder.join('|'), menuExtras.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
   const navPrefs = useNavPrefs(available);
   const many = tabOrder.length > FEW;
@@ -499,7 +501,7 @@ function MainTabs() {
                   <NavMenuBar
                     {...p}
                     {...navPrefs}
-                    icons={{ ...TAB_ICONS, Crew: 'clipboard-account-outline', CrewMatrix: 'table-account', MyDocs: 'card-account-details-outline', Chat: 'chat-outline', GaPlan: 'floor-plan', Muster: 'account-multiple-check-outline' }}
+                    icons={{ ...TAB_ICONS, Crew: 'clipboard-account-outline', CrewMatrix: 'table-account', MyDocs: 'card-account-details-outline', Chat: 'chat-outline', GaPlan: 'floor-plan', Muster: 'account-multiple-check-outline', ImoSigns: 'sign-direction' }}
                     labelOf={(r) => MENU_LABEL[r] ?? r}
                   />
                 )
@@ -657,6 +659,7 @@ const linking = {
       Chat: 'chat',
       GaPlan: 'ship-plan',
       Muster: 'muster',
+      ImoSigns: 'imo-signs',
       NfcPerson: 'band/:ref',
       Emissions: 'emissions',
       EmPassage: 'em-passage/:id',
@@ -947,6 +950,7 @@ function Root() {
         <Stack.Screen name="Chat" component={gated('Chat', ChatSc)} options={webHeader(t('chat.title'))} />
         <Stack.Screen name="GaPlan" component={gated('GaPlan', GaPlanSc)} options={webHeader(t('ga.title'))} />
         <Stack.Screen name="Muster" component={gated('Muster', MusterSc)} options={webHeader(t('mu.title'))} />
+        <Stack.Screen name="ImoSigns" component={gated('ImoSigns', ImoSignsSc)} options={webHeader(t('sg.title'))} />
         <Stack.Screen name="NfcPerson" component={gated('NfcPerson', NfcPersonSc)} options={{ presentation: 'modal' }} />
         <Stack.Screen name="NfcBatch" component={gated('NfcBatch', NfcBatchSc)} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Emissions" component={gated('Emissions', EmissionsSc)} options={{ presentation: 'modal' }} />

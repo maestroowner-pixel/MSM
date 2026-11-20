@@ -23,13 +23,14 @@ import { saveFileWeb } from '../utils/webSave';
 import { deliverTrueCopy } from '../utils/trueCopyPdf';
 import { BookNote, awaiting, copyRows, integrityLines, monthIntegrity, verificationLines, verifiedIds } from './verification';
 import type { TrueCopy } from './trueCopy';
+import { entryWhen } from '../utils/shipTime';
 
 const dmy = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
 export const ORB_HEAD = ['Date', 'Code', 'Item No. / record of operations', 'Signature of officer in charge'];
 
 export function orbRows(entries: OrbEntry[]): string[][] {
   return entries.map((e) => [
-    `${dmy(e.date)}${e.time ? ` ${e.time}` : ''}`,
+    entryWhen(e.date, e.time, e.shipOffset),
     e.code,
     [e.cancelled ? `[DELETED — ${e.editReason ?? ''} (${e.editedBy ?? ''})]` : e.supersedes ? `[Amended — ${e.editReason ?? ''} (${e.editedBy ?? ''})]` : '', e.text].filter(Boolean).join(' '),
     e.byRank ? `${e.by} (${e.byRank})` : e.by,
@@ -77,7 +78,7 @@ export function orbCopy(entries: OrbEntry[], month: string, vessel: VesselInfo |
     head: ORB_COPY_HEAD,
     rows,
     struck,
-    columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 10, halign: 'center' }, 3: { cellWidth: 40 }, 4: { cellWidth: 32 } },
+    columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 10, halign: 'center' }, 3: { cellWidth: 40 }, 4: { cellWidth: 32 } },
     verifications: verificationLines(signs.filter((s) => s.month === month)),
     integrity: integrityLines(monthIntegrity(entries, all, signs, month)),
     awaiting: awaiting(entries, verifiedIds(all, signs)).length,

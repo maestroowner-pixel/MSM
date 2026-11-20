@@ -396,7 +396,7 @@ const DOT = 11;
 const ITEM_GAP = 6;
 const ITEM_PAD = SIZES.lg + 2;
 
-const ROOM_ICON: Record<StoreKind, string> = { ppe: 'hard-hat', provisions: 'food-apple-outline', general: 'package-variant-closed', flags: 'flag-variant', bridge: 'book-open-variant' };
+const ROOM_ICON: Record<StoreKind, string> = { ppe: 'hard-hat', provisions: 'food-apple-outline', general: 'package-variant-closed', flags: 'flag-variant', bridge: 'book-open-variant', signs: 'sign-direction' };
 
 const makeStyles = (COLORS: Palette) =>
   StyleSheet.create({

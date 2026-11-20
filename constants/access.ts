@@ -99,7 +99,7 @@ export function routeLocked(route: string): boolean {
   return !!module && moduleLocked(module);
 }
 /** Menu entries that are stack screens, not tabs (index.tsx menuExtras). */
-const MENU_SCREEN_MODULE: Record<string, ModuleKey> = { Chat: 'chat', MyDocs: 'myDocs', GaPlan: 'gaPlan', Muster: 'muster' };
+const MENU_SCREEN_MODULE: Record<string, ModuleKey> = { Chat: 'chat', MyDocs: 'myDocs', GaPlan: 'gaPlan', Muster: 'muster', ImoSigns: 'imoSigns' };
 
 /**
  * What a device shows. `tabs` is the record's field, `isMaster` its role.

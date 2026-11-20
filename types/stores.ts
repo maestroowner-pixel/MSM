@@ -18,6 +18,10 @@
 //   Charts & publications  the bridge's paper IMO publications, nautical
 //                 publications, charts and stationery — by edition and by wear,
 //                 like the flags (15 Nov 2026).
+//   IMO signs     the spare photoluminescent signs kept to replace a faded or
+//                 missing one — by wear, like the flags (20 Nov 2026). Which
+//                 signs must be posted where comes from the LSA/FFE register
+//                 (services/imoSigns.ts, screens/ImoSignsSc.tsx).
 //
 // The storerooms themselves (15 Oct 2026, as InventoryLens keeps its lockers):
 // the two above are always there; the vessel adds its own from the gear on the
@@ -31,15 +35,17 @@
 // ===================================
 
 import type { SignProof } from '../services/signature';
+import { IMO_SIGNS } from '../services/imoSignCatalogue';
 
-export type StoreKind = 'ppe' | 'provisions' | 'general' | 'flags' | 'bridge';
-export const STORE_LABEL: Record<StoreKind, string> = { ppe: 'PPE store', provisions: 'Provisions', general: 'General stores', flags: 'Flag locker', bridge: 'Charts & publications' };
+export type StoreKind = 'ppe' | 'provisions' | 'general' | 'flags' | 'bridge' | 'signs';
+export const STORE_LABEL: Record<StoreKind, string> = { ppe: 'PPE store', provisions: 'Provisions', general: 'General stores', flags: 'Flag locker', bridge: 'Charts & publications', signs: 'IMO signs' };
 export const STORE_KIND_SUB: Record<StoreKind, string> = {
   ppe: 'Issued to a crew member, who signs for it',
   provisions: 'Best-before dates; issued to the galley',
   general: "Bosun's, engine, cleaning — issued and counted",
   flags: 'Signal, courtesy and company flags — counted new, good or poor',
   bridge: 'IMO publications, charts, stationery — by edition and wear',
+  signs: 'Spare signs to replace a faded or missing one — by wear',
 };
 
 /**
@@ -51,7 +57,7 @@ export type Wear = 'new' | 'good' | 'poor';
 export const WEARS: Wear[] = ['new', 'good', 'poor'];
 export const WEAR_LABEL: Record<Wear, string> = { new: 'New', good: 'Good', poor: 'Poor' };
 /** The stores counted by wear. */
-export const wearKept = (kind: StoreKind) => kind === 'flags' || kind === 'bridge';
+export const wearKept = (kind: StoreKind) => kind === 'flags' || kind === 'bridge' || kind === 'signs';
 /** "poor", "Poor", "P", "worn" → the wear; anything else → undefined. */
 export function toWear(v: unknown): Wear | undefined {
   const s = String(v ?? '').trim().toLowerCase();
@@ -121,6 +127,8 @@ export interface StoreItem {
   unit: string;
   /** Keep at least this many; below it the item goes on the list to order. */
   min: number;
+  /** IMO signs store: which sign of the catalogue (services/imoSignCatalogue) — how a faded or missing sign finds its spare. */
+  signId?: string;
   location?: string;
   notes?: string;
   order: number;
@@ -160,7 +168,8 @@ export const PROVISION_CATEGORIES = ['Dry store', 'Chilled', 'Frozen', 'Beverage
 export const GENERAL_CATEGORIES = ['Deck', 'Ropes & rigging', 'Paint', 'Engine', 'Electrical', 'Tools', 'Cleaning', 'Chemicals', 'Stationery', 'Other'];
 export const FLAG_CATEGORIES = ['Letters', 'Numerals', 'Special', 'Countries', 'Company'];
 export const BRIDGE_CATEGORIES = ['IMO publications', 'Nautical publications', 'Charts', 'Stationery'];
-export const STORE_CATEGORIES: Record<StoreKind, string[]> = { ppe: PPE_CATEGORIES, provisions: PROVISION_CATEGORIES, general: GENERAL_CATEGORIES, flags: FLAG_CATEGORIES, bridge: BRIDGE_CATEGORIES };
+export const SIGN_CATEGORIES = ['Life-saving', 'Escape', 'Fire', 'Safety'];
+export const STORE_CATEGORIES: Record<StoreKind, string[]> = { ppe: PPE_CATEGORIES, provisions: PROVISION_CATEGORIES, general: GENERAL_CATEGORIES, flags: FLAG_CATEGORIES, bridge: BRIDGE_CATEGORIES, signs: SIGN_CATEGORIES };
 
 /** A typical yacht PPE store — a starting list the vessel edits. Sized items are one line per size. */
 export const PPE_STARTER: { name: string; category: string; sizes?: string[]; unit: string; min: number }[] = [
@@ -217,6 +226,15 @@ export const BRIDGE_STARTER: { name: string; category: string; unit: string; min
   { name: 'Printer toner / ink', category: 'Stationery', unit: 'pcs', min: 2 },
   { name: 'Notebooks', category: 'Stationery', unit: 'pcs', min: 6 },
 ];
+
+/**
+ * A spare of each sign in the catalogue — two of the ones every deck has
+ * (lifebuoy, lifejacket, extinguisher, escape arrows), one of the rest. The
+ * vessel deletes what it does not carry and sets its own minimums.
+ */
+export const SIGNS_STARTER: { name: string; category: string; unit: string; min: number; signId: string }[] = IMO_SIGNS.map((s) => ({
+  name: s.name, category: s.group, unit: 'pcs', min: s.common ? 2 : 1, signId: s.id,
+}));
 
 /** "Coveralls · L" */
 export const storeItemTitle = (i: Pick<StoreItem, 'name' | 'size'>) => (i.size ? `${i.name} · ${i.size}` : i.name);

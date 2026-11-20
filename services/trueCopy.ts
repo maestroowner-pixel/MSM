@@ -50,7 +50,7 @@ export interface TrueCopy {
 export const SOFTWARE = `ISM AI Pilot electronic record book, version ${APP.version} (build ${APP.android?.versionCode ?? APP.ios?.buildNumber ?? '-'})`;
 
 // The standard PDF fonts are WinAnsi: keep what they cannot draw from turning into noise.
-const clean = (s: string) => s.replace(/³/g, '3').replace(/²/g, '2').replace(/[−‐]/g, '-').replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
+const clean = (s: string) => s.replace(/³/g, '3').replace(/²/g, '2').replace(/[−‐]/g, '-').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/→/g, '->').replace(/←/g, '<-');
 
 export function trueCopyDoc(c: TrueCopy): any {
   const { jsPDF } = require('jspdf');
