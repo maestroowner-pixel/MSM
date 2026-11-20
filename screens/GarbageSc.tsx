@@ -19,7 +19,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { GARBAGE_CATEGORY, GARBAGE_METHOD, GarbageCategory, GarbageEntry, GarbageMethod } from '../types/garbage';
+import { GARBAGE_CATEGORY, GARBAGE_METHOD, GarbageCategory, GarbageEntry, GarbageMasterSign, GarbageMethod } from '../types/garbage';
 import { currentEntries, entryItems, garbageMonth, itemsText, placeText, previousVersions, seaDischargeProblem } from '../services/garbage';
 import { exportGarbageExcel, exportGarbagePdf, grbCopy } from '../services/garbageReport';
 import { todayIso } from '../services/pms';
@@ -51,7 +51,7 @@ export default function GarbageSc() {
   const [saved, setSaved] = useState<string | null>(null);
 
   const m = useMemo(() => garbageMonth(garbage, month), [garbage, month]);
-  const ver = useVerification({ all: garbage, book: m.entries, signs: garbageSigns, month, prefix: 'grb', what: 'Garbage Record Book', isMaster, signer, picker, save: (x) => signGarbageMonth(x), copy: () => { const c = grbCopy(garbage, month, vessel, garbageSigns); return { copy: c.copy, name: c.fileName }; } });
+  const ver = useVerification({ all: garbage, book: m.entries, signs: garbageSigns, month, prefix: 'grb', what: 'Garbage Record Book', isMaster, signer, picker, save: (x) => signGarbageMonth(x), copy: (mm, o) => { const c = grbCopy(garbage, mm, vessel, (o.signs as GarbageMasterSign[]) ?? garbageSigns, o.notes, o.only); return { copy: c.copy, name: c.fileName }; } });
 
   // ---- new entry ----
   // Several categories in one operation, each with its amount (m³ as typed).
@@ -132,7 +132,7 @@ export default function GarbageSc() {
   const report = async (kind: 'pdf' | 'xlsx') => {
     try {
       void ver.note(kind);
-      const where = kind === 'pdf' ? await exportGarbagePdf(garbage, month, vessel, garbageSigns) : await exportGarbageExcel(garbage, month, vessel, garbageSigns);
+      const where = kind === 'pdf' ? await exportGarbagePdf(garbage, month, vessel, garbageSigns, ver.notes) : await exportGarbageExcel(garbage, month, vessel, garbageSigns);
       if (typeof where === 'string') setSaved(where === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: where }));
     } catch (e: any) {
       Alert.alert(t('gb.book'), String(e?.message ?? e));

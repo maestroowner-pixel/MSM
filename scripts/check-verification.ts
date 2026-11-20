@@ -1,8 +1,8 @@
 // npm run check:verification — the Master's verification of the record books and
 // the certified true copy (services/verification, utils/trueCopyPdf; MEPC.312(74)).
-import { awaiting, copyRows, entryStatus, masterCell, verificationId, verificationLines, verifiedIds, withEarlier } from '../services/verification';
+import { BookNote, awaiting, copyRows, entryStatus, masterCell, noteFor, verificationId, verificationLines, verifiedIds, withEarlier } from '../services/verification';
 import { current } from '../services/versions';
-import { trueCopyDoc } from '../services/trueCopy';
+import { TrueCopy, bookTitle, joinCopies, monthsBetween, periodLabel, trueCopyDoc } from '../services/trueCopy';
 import { buildBoard } from '../services/board';
 
 let fail = 0;
@@ -63,6 +63,36 @@ b = buildBoard({ ...base, orb: [{ ...e2, id: 'fresh', at: nowMs - 3600_000 }], o
 ok(!b.attention.some((x) => x.key === 'orb:verify'), 'an entry made an hour ago is not nagged about yet');
 b = buildBoard({ ...base, role: 'admin', orb: all, orbSigns: [legacy, v2] });
 ok(!b.attention.some((x) => x.key === 'orb:verify'), 'officers do not see the Master’s verification');
+
+// The Master holds entries back with a reason (MEPC.312 §4.3.10, 20 Nov 2026).
+const held: BookNote = { id: 'n1', book: 'orb', month: '2026-10', entries: ['o1b'], reason: 'awaiting the sounding figures', by: 'J. Smith', byRank: 'Master', at: T('2026-10-08'), updatedAt: T('2026-10-08') };
+ok(noteFor('o1b', [held])?.reason === 'awaiting the sounding figures' && !noteFor('o1', [held]), 'the reason belongs to the version held back, not the one before');
+const cell = masterCell(e1b, all, [legacy, v2], false, [held]);
+ok(/re-verification/.test(cell) && /Not verified — J\. Smith \(Master\), 08\.10\.2026 \d\d:\d\d UTC: awaiting the sounding figures/.test(cell), `the Master's column prints the reason: ${cell.replace(/\n/g, ' | ')}`);
+ok(!/Not verified/.test(masterCell(e2, all, [legacy, v2], false, [{ ...held, entries: ['o2'] }])), 'a verified entry prints no reason even if one was given earlier');
+const later: any = { ...e1b, id: 'o1c', supersedes: 'o1b', at: T('2026-10-09') };
+ok(!noteFor('o1c', [held]), 'an amendment of the entry held back needs the Master again');
+b = buildBoard({ ...base, orb: all, orbSigns: [legacy, v2], bookNotes: [held] });
+ok(!b.attention.some((x) => x.key === 'orb:verify'), 'an entry held back with a reason is not nagged about');
+b = buildBoard({ ...base, orb: [...all, later], orbSigns: [legacy, v2], bookNotes: [held] });
+ok(b.attention.some((x) => x.key === 'orb:verify'), 'its amendment is');
+
+// One true copy of several months, the whole book, one entry (§6.3).
+ok(monthsBetween('2026-11', '2027-02').join() === '2026-11,2026-12,2027-01,2027-02', 'months across the new year');
+ok(monthsBetween('2027-02', '2026-11').length === 4 && monthsBetween('2026-10', '2026-10').join() === '2026-10', 'either way round; one month');
+ok(periodLabel(['2026-10']) === 'October 2026' && periodLabel(['2026-10', '2026-11', '2026-12']) === 'October 2026 – December 2026', 'period label');
+ok(bookTitle('Oil Record Book — Part I · October 2026') === 'Oil Record Book — Part I', 'the book title without its month');
+const part = (rows: string[][], ver: string[], awaitingN = 0): TrueCopy => ({ title: 'Oil Record Book — Part I · x', subtitle: 's', vessel: 'MV Test', orientation: 'portrait', head: ['A', 'B'], rows, struck: rows.map(() => false), verifications: ver, integrity: ['Chain of hashes unbroken.'], awaiting: awaitingN });
+const joined = joinCopies('Oil Record Book — Part I · October 2026 – December 2026', [
+  { month: '2026-10', copy: part([['1', 'a'], ['2', 'b']], ['Verified by Master on 03.10.2026']) },
+  { month: '2026-11', copy: part([], []) },
+  { month: '2026-12', copy: part([['3', 'c']], [], 1) },
+]);
+ok(joined.rows.length === 3 && joined.struck.length === 3 && joined.awaiting === 1, 'rows of every month, in order, awaiting counted');
+ok(joined.verifications.includes('October 2026: Verified by Master on 03.10.2026') && joined.verifications.includes('December 2026: Not verified by the Master yet.'), 'each month\'s verification under its name');
+ok(joined.verifications.includes('No entries in November 2026.'), 'an empty month is named, not silently skipped');
+const jraw = String(trueCopyDoc({ ...joined, printedAt: T('2026-12-31') }).output());
+ok(/Page 1 of 1/.test(jraw), 'one file, one page count');
 
 console.log(fail ? `${fail} failed` : 'all passed');
 process.exit(fail ? 1 : 0);

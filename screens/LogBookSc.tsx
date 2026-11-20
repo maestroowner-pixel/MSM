@@ -23,7 +23,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { BookKey, LogEntry, LogField } from '../types/logbook';
+import { BookKey, LogEntry, LogField, LogMonthSign } from '../types/logbook';
 import { BOOKS } from '../services/logbooks';
 import { exportLogExcel, exportLogPdf, logCopy } from '../services/logbookReport';
 import { current } from '../services/versions';
@@ -74,7 +74,7 @@ export default function LogBookSc() {
 
   const all = versionsOf(store.key) as LogEntry[];
   const book = useMemo(() => current(all).filter((e) => e.date.startsWith(month)).sort((a, b) => `${a.date}${a.time ?? ''}`.localeCompare(`${b.date}${b.time ?? ''}`)), [all, month]);
-  const ver = useVerification({ all, book, signs, month, prefix: bookKey, what: `${spec.title} record`, isMaster, signer, picker, save: (x) => appendRow(store.signs, x), copy: () => { const c = logCopy(spec, book, month, vessel, signs, all); return { copy: c.copy, name: c.name }; } });
+  const ver = useVerification({ all, book, signs, month, prefix: bookKey, what: `${spec.title} record`, isMaster, signer, picker, save: (x) => appendRow(store.signs, x), copy: (m, o) => logCopy(spec, current(all).filter((e) => e.date.startsWith(m) && (!o.only || o.only.includes(e.id))).sort((p, q) => `${p.date}${p.time ?? ''}`.localeCompare(`${q.date}${q.time ?? ''}`)), m, vessel, (o.signs as LogMonthSign[]) ?? signs, all, o.notes) });
 
   // ---- the form: text values, numbers parsed for the draft ----
   type Form = { code: string; date: string; time: string; method: string; treated: boolean | null; remarks: string } & Record<Exclude<LogField, 'method' | 'treated'>, string>;
@@ -113,7 +113,7 @@ export default function LogBookSc() {
   const report = async (kind: 'pdf' | 'xlsx') => {
     try {
       void ver.note(kind);
-      const w = kind === 'pdf' ? await exportLogPdf(spec, book, month, vessel, signs, all) : await exportLogExcel(spec, book, month, vessel, signs, all);
+      const w = kind === 'pdf' ? await exportLogPdf(spec, book, month, vessel, signs, all, ver.notes) : await exportLogExcel(spec, book, month, vessel, signs, all);
       if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
       Alert.alert(spec.title, String(e?.message ?? e));

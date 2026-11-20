@@ -23,7 +23,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
-import { ORB_CODE, ORB_METHOD, OrbCode, OrbEntry, OrbMethod } from '../types/orb';
+import { ORB_CODE, ORB_METHOD, OrbCode, OrbEntry, OrbMasterSign, OrbMethod } from '../types/orb';
 import { ORB_FIELDS, orbProblem, orbText } from '../services/orb';
 import { exportOrbExcel, exportOrbPdf, orbCopy } from '../services/orbReport';
 import { current } from '../services/versions';
@@ -65,7 +65,7 @@ export default function OrbSc() {
 
   const all = versionsOf(storage.ORB_KEY) as OrbEntry[];
   const book = useMemo(() => current(all).filter((e) => e.date.startsWith(month)).sort((a, b) => `${a.date}${a.time ?? ''}`.localeCompare(`${b.date}${b.time ?? ''}`)), [all, month]);
-  const ver = useVerification({ all, book, signs: orbSigns, month, prefix: 'orb', what: 'Oil Record Book', isMaster, signer, picker, save: (x) => appendRow(storage.ORB_SIGNS_KEY, x), copy: () => { const c = orbCopy(book, month, vessel, orbSigns, all); return { copy: c.copy, name: c.name }; } });
+  const ver = useVerification({ all, book, signs: orbSigns, month, prefix: 'orb', what: 'Oil Record Book', isMaster, signer, picker, save: (x) => appendRow(storage.ORB_SIGNS_KEY, x), copy: (m, o) => orbCopy(current(all).filter((e) => e.date.startsWith(m) && (!o.only || o.only.includes(e.id))).sort((p, q) => `${p.date}${p.time ?? ''}`.localeCompare(`${q.date}${q.time ?? ''}`)), m, vessel, (o.signs as OrbMasterSign[]) ?? orbSigns, all, o.notes) });
 
   // ---- the form ----
   const blank = { code: 'D' as OrbCode, date: today, time: hhmm(), tank: '', quantity: '', unit: 'm3' as 'm3' | 't', retained: '', method: '' as OrbMethod | '', place: '', start: '', stop: '', grade: '', bdnNo: '', receiptNo: '', remarks: '' };
@@ -111,7 +111,7 @@ export default function OrbSc() {
   const report = async (kind: 'pdf' | 'xlsx') => {
     try {
       void ver.note(kind);
-      const w = kind === 'pdf' ? await exportOrbPdf(book, month, vessel, orbSigns, all) : await exportOrbExcel(book, month, vessel, orbSigns, all);
+      const w = kind === 'pdf' ? await exportOrbPdf(book, month, vessel, orbSigns, all, ver.notes) : await exportOrbExcel(book, month, vessel, orbSigns, all);
       if (typeof w === 'string') setSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w }));
     } catch (e: any) {
       Alert.alert(t('orb.title'), String(e?.message ?? e));

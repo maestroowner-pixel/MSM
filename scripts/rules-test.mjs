@@ -181,6 +181,13 @@ await t(false, 'An ORB entry cannot be changed', updateDoc(R(officer, 'orb', 'o1
 await t(false, 'An Officer cannot amend an ORB entry', setDoc(R(officer, 'orb', 'o2'), { id: 'o2', supersedes: 'o1' }));
 await t(false, 'An Officer cannot sign the ORB month', setDoc(R(officer, 'orb_signs', 'orb_2026-10'), { id: 'orb_2026-10' }));
 await t(true, 'The Master signs the ORB month', setDoc(R(master, 'orb_signs', 'orb_2026-10'), { id: 'orb_2026-10' }));
+await t(false, 'An Officer cannot hold back record book entries', setDoc(R(officer, 'book_notes', 'bn1'), { id: 'bn1', book: 'orb', entries: ['o1'], reason: 'awaiting soundings' }));
+await t(false, 'A reason for holding back has at least 3 characters', setDoc(R(master, 'book_notes', 'bn1'), { id: 'bn1', book: 'orb', entries: ['o1'], reason: 'no' }));
+await t(false, 'A note is filed under its own id', setDoc(R(master, 'book_notes', 'bn1'), { id: 'other', book: 'orb', entries: ['o1'], reason: 'awaiting soundings' }));
+await t(true, 'The Master holds back an entry with a reason', setDoc(R(master, 'book_notes', 'bn1'), { id: 'bn1', book: 'orb', entries: ['o1'], reason: 'awaiting soundings' }));
+await t(false, 'A reason given is never changed', updateDoc(R(master, 'book_notes', 'bn1'), { reason: 'something else' }));
+await t(false, 'A reason given is never deleted', deleteDoc(R(master, 'book_notes', 'bn1')));
+await t(true, 'Crew may read the reasons', getDoc(R(crew, 'book_notes', 'bn1')));
 
 await t(true, 'Officer records a sewage entry', setDoc(R(officer, 'sewage', 's1'), { id: 's1', code: 'STP' }));
 await t(false, 'A ballast entry cannot be amended by an Officer', setDoc(R(officer, 'ballast', 'b2'), { id: 'b2', supersedes: 'b1' }));

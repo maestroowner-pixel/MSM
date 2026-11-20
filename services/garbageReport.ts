@@ -21,7 +21,7 @@ import { GARBAGE_CATEGORY, GarbageEntry, GarbageMasterSign } from '../types/garb
 import { deliverFile, onWeb, onWindows } from '../utils/fileShare';
 import { saveFileWeb } from '../utils/webSave';
 import { deliverTrueCopy } from '../utils/trueCopyPdf';
-import { awaiting, copyRows, integrityLines, monthIntegrity, verificationLines, verifiedIds } from './verification';
+import { BookNote, awaiting, copyRows, integrityLines, monthIntegrity, verificationLines, verifiedIds } from './verification';
 import type { TrueCopy } from './trueCopy';
 
 export const gDmy = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
@@ -55,7 +55,7 @@ export const GRB_HEAD = ['Date / time', 'Position of the ship / port', 'Category
 
 /** The true copy: the book's columns, the officer with ID and time, and the Master's verification. */
 export const GRB_COPY_HEAD = [...GRB_HEAD.slice(0, -1), 'Officer in charge', "Master's verification"];
-export const grbCopyRows = (book: GarbageEntry[], all: GarbageEntry[], signs: GarbageMasterSign[]) => copyRows(book, all, signs, (r) => grbRows([r])[0].slice(0, -1), 7);
+export const grbCopyRows = (book: GarbageEntry[], all: GarbageEntry[], signs: GarbageMasterSign[], notes: BookNote[] = []) => copyRows(book, all, signs, (r) => grbRows([r])[0].slice(0, -1), 7, notes);
 
 export function grbFileName(vessel: VesselInfo | null, month: string, ext: 'pdf' | 'xlsx') {
   const v = (vessel?.vessel_name ?? '').replace(/[\\/:*?"<>|]+/g, ' ').trim();
@@ -78,10 +78,10 @@ function html(entries: GarbageEntry[], month: string, vessel: VesselInfo | null,
 }
 
 /** The month's certified true copy and its file name — the PDF, and the Master's signed copy (services/signedCopy). */
-export function grbCopy(all: GarbageEntry[], month: string, vessel: VesselInfo | null, signs: GarbageMasterSign[]): { copy: TrueCopy; fileName: string } {
-  const entries = garbageMonth(all, month).entries;
+export function grbCopy(all: GarbageEntry[], month: string, vessel: VesselInfo | null, signs: GarbageMasterSign[], notes: BookNote[] = [], only?: string[]): { copy: TrueCopy; fileName: string } {
+  const entries = garbageMonth(all, month).entries.filter((e) => !only || only.includes(e.id));
   const fileName = grbFileName(vessel, month, 'pdf');
-  const { rows, struck } = grbCopyRows(entries, all, signs);
+  const { rows, struck } = grbCopyRows(entries, all, signs, notes);
   const copy = {
     title: `Garbage Record Book — Part I · ${gMonthLabel(month)}`,
     subtitle: `${vesselHeader(vessel)} · MARPOL Annex V · categories A–I`,
@@ -98,9 +98,9 @@ export function grbCopy(all: GarbageEntry[], month: string, vessel: VesselInfo |
   return { copy, fileName };
 }
 
-export async function exportGarbagePdf(all: GarbageEntry[], month: string, vessel: VesselInfo | null, signs: GarbageMasterSign[]): Promise<string | null | void> {
+export async function exportGarbagePdf(all: GarbageEntry[], month: string, vessel: VesselInfo | null, signs: GarbageMasterSign[], notes: BookNote[] = []): Promise<string | null | void> {
   if (onWindows) throw new Error('PDF export is not available on Windows.');
-  const { copy, fileName } = grbCopy(all, month, vessel, signs);
+  const { copy, fileName } = grbCopy(all, month, vessel, signs, notes);
   const entries = garbageMonth(all, month).entries;
   if (onWeb) return deliverTrueCopy(copy, fileName);
   try {

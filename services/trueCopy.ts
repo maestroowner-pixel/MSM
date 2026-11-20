@@ -42,6 +42,8 @@ export interface TrueCopy {
   /** Entries on the page not verified yet, if any — said under the table. */
   awaiting?: number;
   printedAt?: number;
+  /** The table's text when there are no rows (default: no entries this month). */
+  emptyText?: string;
 }
 
 /** The software line every page carries. */
@@ -73,7 +75,7 @@ export function trueCopyDoc(c: TrueCopy): any {
   autoTable(doc, {
     startY: 23,
     head: [c.head.map(clean)],
-    body: c.rows.length ? c.rows.map((r) => r.map(clean)) : [[{ content: 'No entries this month.', colSpan: c.head.length }]],
+    body: c.rows.length ? c.rows.map((r) => r.map(clean)) : [[{ content: c.emptyText ?? 'No entries this month.', colSpan: c.head.length }]],
     styles: { fontSize: 7.5, cellPadding: 1.3, textColor: navy, lineColor: [200, 208, 219], lineWidth: 0.15, overflow: 'linebreak' },
     headStyles: { fillColor: [238, 242, 247], textColor: navy, fontStyle: 'bold', fontSize: 7 },
     columnStyles: c.columnStyles ?? {},
@@ -143,3 +145,71 @@ export function trueCopyDoc(c: TrueCopy): any {
   return doc;
 }
 
+
+// ---- a period, the whole book, one entry (20 Nov 2026, MEPC.312 §6.3: "the specific entry, relevant page,
+// pages or the entirety of the electronic record book") ----------------------------------------------------
+// Each book draws its true copy a month at a time; a longer copy is those months one after the other, in one
+// file, so "Page n of N" counts the whole of what was printed.
+
+/** Every month from `from` to `to` (yyyy-mm), in order; the two given either way round. */
+export function monthsBetween(from: string, to: string): string[] {
+  const [a, b] = from <= to ? [from, to] : [to, from];
+  const out: string[] = [];
+  let [y, m] = a.split('-').map(Number);
+  for (let n = 0; n < 1200; n++) {
+    const k = `${y}-${String(m).padStart(2, '0')}`;
+    out.push(k);
+    if (k >= b) break;
+    m += 1;
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
+  }
+  return out;
+}
+
+const monthWord = (month: string) => {
+  const [y, m] = month.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+};
+
+/** `October 2026` or `October 2026 – March 2027`. */
+export function periodLabel(months: string[]): string {
+  if (!months.length) return '';
+  return months.length === 1 ? monthWord(months[0]) : `${monthWord(months[0])} – ${monthWord(months[months.length - 1])}`;
+}
+
+/**
+ * Months' copies as one. `title` replaces the first month's; each month's verifications and seal check are
+ * said under its name. Months with no entries are left out of the table but named, so the reader sees the
+ * period was complete and nothing was skipped.
+ */
+export function joinCopies(title: string, parts: { month: string; copy: TrueCopy }[]): TrueCopy {
+  if (!parts.length) throw new Error('No months to print.');
+  const first = parts[0].copy;
+  const empty = parts.filter((p) => !p.copy.rows.length).map((p) => monthWord(p.month));
+  const notes: string[] = [];
+  for (const p of parts) {
+    if (!p.copy.rows.length) continue;
+    const head = monthWord(p.month);
+    for (const l of p.copy.verifications.length ? p.copy.verifications : ['Not verified by the Master yet.']) notes.push(`${head}: ${l}`);
+    for (const l of p.copy.integrity ?? []) notes.push(`${head}: ${l}`);
+  }
+  if (empty.length) notes.push(`No entries in ${empty.join(', ')}.`);
+  return {
+    ...first,
+    title,
+    rows: parts.flatMap((p) => p.copy.rows),
+    struck: parts.flatMap((p) => p.copy.struck),
+    verifications: notes,
+    integrity: [],
+    awaiting: parts.reduce((n, p) => n + (p.copy.awaiting ?? 0), 0),
+    emptyText: 'No entries in this period.',
+  };
+}
+
+/** `<book title> · <period>` — a month's title with its month taken off. */
+export function bookTitle(monthTitle: string): string {
+  return monthTitle.replace(/\s·\s[^·]*$/, '');
+}

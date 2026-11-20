@@ -7,6 +7,7 @@ import { integrityLines, monthIntegrity, signerCell } from '../services/verifica
 import { amended } from '../services/versions';
 import { checkCopy, copyFiles, copyManifest, zipCopy } from '../services/signedCopy';
 import { trueCopyDoc } from '../services/trueCopy';
+import { BookAccess, accessLine, integrityDetail, integrityIsNew } from '../services/bookAccess';
 
 let fail = 0;
 const ok = (c: boolean, m: string) => { if (!c) { fail++; console.log('✗', m); } else console.log('✓', m); };
@@ -107,6 +108,17 @@ void (async () => {
   const r4 = await tamper((z) => z.file('manifest.seal.json', JSON.stringify(sealHash(other, contentHash(m), 'person'))));
   ok(!r4.ok && r4.problems.some((p) => /not the Master's key/.test(p)), "a manifest re-signed with another key fails");
   ok(!(await checkCopy(new Uint8Array([1, 2, 3]))).ok, 'not a ZIP → refused');
+
+  // A finding is written once (MEPC.312 §4.1.2), the same on every device.
+  ok(integrityDetail({ bad: [], gaps: [], badVerifications: [] }) === null, 'nothing found → no integrity line');
+  const d1 = integrityDetail({ bad: ['e2', 'e1'], gaps: ['e3'], badVerifications: [] })!;
+  ok(d1 === integrityDetail({ bad: ['e1', 'e2'], gaps: ['e3'], badVerifications: [] }), 'the same finding reads the same in any order');
+  ok(/2 records do not match the seal \(e1, e2\); the record before e3 is missing/.test(d1), `the finding names the records: ${d1}`);
+  const line: BookAccess = { id: 'acc1', book: 'orb', month: '2026-10', what: 'integrity', by: 'Master', detail: d1, at: T('2026-10-09'), updatedAt: T('2026-10-09') };
+  ok(!integrityIsNew([line], 'orb', '2026-10', d1), 'a finding already in the log (any device) is not written again');
+  ok(integrityIsNew([line], 'orb', '2026-11', d1) && integrityIsNew([line], 'grb', '2026-10', d1), 'another month or book is its own line');
+  ok(integrityIsNew([line], 'orb', '2026-10', integrityDetail({ bad: ['e1'], gaps: [], badVerifications: [] })!), 'a different finding is written');
+  ok(/found the records altered: 2 records/.test(accessLine(line, () => 'T')), 'the printed log says what was found');
 
   console.log(fail ? `\n${fail} FAILED` : '\nall seal checks passed');
   process.exit(fail ? 1 : 0);

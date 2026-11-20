@@ -57,6 +57,10 @@ export const ODS_SIGNS_KEY = `${PREFIX}ods_signs`;
 export const SIGN_KEYS_KEY = `${PREFIX}sign_keys`;
 /** Who opened and exported a record book (services/bookAccess) — written once. */
 export const BOOK_ACCESS_KEY = `${PREFIX}book_access`;
+/** The Master's reasons for entries left unverified (services/verification BookNote) — written once. */
+export const BOOK_NOTES_KEY = `${PREFIX}book_notes`;
+/** The Master's signed copies kept in a browser (utils/keptCopies) — device only, never synced. Phones keep files. */
+export const ERB_COPIES_KEY = `${PREFIX}erb_copies`;
 export const SOPEP_ITEMS_KEY = `${PREFIX}sopep_items`;
 export const SOPEP_LOCKERS_KEY = `${PREFIX}sopep_lockers`;
 export const SOPEP_CHECKS_KEY = `${PREFIX}sopep_checks`;
@@ -911,6 +915,8 @@ export async function resetAllData(): Promise<void> {
     ODS_SIGNS_KEY,
     SIGN_KEYS_KEY,
     BOOK_ACCESS_KEY,
+    BOOK_NOTES_KEY,
+    ERB_COPIES_KEY,
     SOPEP_ITEMS_KEY,
     SOPEP_LOCKERS_KEY,
     SOPEP_CHECKS_KEY,

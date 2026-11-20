@@ -48,6 +48,8 @@ export interface CopyRecords {
   verifications: object[];
   keys: SignKeyRec[];
   access: BookAccess[];
+  /** The Master's reasons for entries held back (services/verification BookNote), since 2.77. */
+  notes?: object[];
 }
 
 const hexOf = (b: Uint8Array) => bytesToHex(sha256(b));

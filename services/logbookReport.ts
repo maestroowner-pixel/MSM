@@ -17,7 +17,7 @@ import { LogEntry, LogMonthSign } from '../types/logbook';
 import { deliverFile, onWeb, onWindows } from '../utils/fileShare';
 import { saveFileWeb } from '../utils/webSave';
 import { deliverTrueCopy } from '../utils/trueCopyPdf';
-import { awaiting, copyRows, integrityLines, monthIntegrity, verificationLines, verifiedIds } from './verification';
+import { BookNote, awaiting, copyRows, integrityLines, monthIntegrity, verificationLines, verifiedIds } from './verification';
 import type { TrueCopy } from './trueCopy';
 import { masterLine, orbMonthLabel as monthLabel } from './orbReport';
 
@@ -35,7 +35,7 @@ export function logRows(entries: LogEntry[]): string[][] {
 export { masterLine, monthLabel };
 
 export const LOG_COPY_HEAD = ['Date', 'Code', 'Record of operations', 'Officer in charge', "Master's verification"];
-export const logCopyRows = (book: LogEntry[], all: LogEntry[], signs: LogMonthSign[]) => copyRows(book, all, signs, (r) => logRows([r])[0].slice(0, 3), 2);
+export const logCopyRows = (book: LogEntry[], all: LogEntry[], signs: LogMonthSign[], notes: BookNote[] = []) => copyRows(book, all, signs, (r) => logRows([r])[0].slice(0, 3), 2, notes);
 
 const titleOf = (spec: BookSpec, month: string) => `${spec.subtitle.split(' · ')[0]} · ${monthLabel(month)}`;
 function fileName(spec: BookSpec, vessel: VesselInfo | null, month: string, ext: 'pdf' | 'xlsx') {
@@ -58,9 +58,9 @@ function html(spec: BookSpec, entries: LogEntry[], month: string, vessel: Vessel
 }
 
 /** The month's certified true copy and its file name — the PDF, and the Master's signed copy (services/signedCopy). */
-export function logCopy(spec: BookSpec, entries: LogEntry[], month: string, vessel: VesselInfo | null, signs: LogMonthSign[], all: LogEntry[]): { copy: TrueCopy; name: string } {
+export function logCopy(spec: BookSpec, entries: LogEntry[], month: string, vessel: VesselInfo | null, signs: LogMonthSign[], all: LogEntry[], notes: BookNote[] = []): { copy: TrueCopy; name: string } {
   const name = fileName(spec, vessel, month, 'pdf');
-  const { rows, struck } = logCopyRows(entries, all, signs);
+  const { rows, struck } = logCopyRows(entries, all, signs, notes);
   const copy = {
     title: titleOf(spec, month),
     subtitle: `${vesselHeader(vessel)} · ${spec.subtitle}`,
@@ -77,9 +77,9 @@ export function logCopy(spec: BookSpec, entries: LogEntry[], month: string, vess
   return { copy, name };
 }
 
-export async function exportLogPdf(spec: BookSpec, entries: LogEntry[], month: string, vessel: VesselInfo | null, signs: LogMonthSign[], all: LogEntry[]): Promise<string | null | void> {
+export async function exportLogPdf(spec: BookSpec, entries: LogEntry[], month: string, vessel: VesselInfo | null, signs: LogMonthSign[], all: LogEntry[], notes: BookNote[] = []): Promise<string | null | void> {
   if (onWindows) throw new Error('PDF export is not available on Windows.');
-  const { copy, name } = logCopy(spec, entries, month, vessel, signs, all);
+  const { copy, name } = logCopy(spec, entries, month, vessel, signs, all, notes);
   if (onWeb) return deliverTrueCopy(copy, name);
   try {
     return await deliverTrueCopy(copy, name);

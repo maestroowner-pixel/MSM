@@ -81,6 +81,7 @@ import * as storage from '../services/storage';
 import { sampleOnFirstStart } from '../services/sampleData';
 import { SignKeyRec, setKeyRegister } from '../services/seal';
 import type { BookAccess } from '../services/bookAccess';
+import type { BookNote } from '../services/verification';
 import { followerReadings } from '../services/pmsMachines';
 import * as snapshot from '../services/snapshot';
 import { ScanEntry, loadScanHistory, recordScan as persistScan } from '../services/scanHistory';
@@ -201,6 +202,8 @@ interface DataContextType {
   /** The vessel's signing-key register (services/seal) and who opened / exported a record book (services/bookAccess). */
   signKeys: SignKeyRec[];
   bookAccess: BookAccess[];
+  /** The Master's reasons for entries left unverified (services/verification). */
+  bookNotes: BookNote[];
   garbageSigns: GarbageMasterSign[];
   addGarbage: (e: GarbageEntry) => Promise<void>;
   signGarbageMonth: (s: GarbageMasterSign) => Promise<void>;
@@ -458,6 +461,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [odsSigns, setOdsSigns] = useState<LogMonthSign[]>([]);
   const [signKeys, setSignKeys] = useState<SignKeyRec[]>([]);
   const [bookAccess, setBookAccess] = useState<BookAccess[]>([]);
+  const [bookNotes, setBookNotes] = useState<BookNote[]>([]);
   const [garbageSigns, setGarbageSigns] = useState<GarbageMasterSign[]>([]);
   const [sopepItems, setSopepItems] = useState<SopepItem[]>([]);
   const [sopepLockers, setSopepLockers] = useState<SopepLocker[]>([]);
@@ -617,6 +621,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _odsSigns = await storage.loadList<LogMonthSign>(storage.ODS_SIGNS_KEY);
     const _signKeys = await storage.loadList<SignKeyRec>(storage.SIGN_KEYS_KEY);
     const _bookAccess = await storage.loadList<BookAccess>(storage.BOOK_ACCESS_KEY);
+    const _bookNotes = await storage.loadList<BookNote>(storage.BOOK_NOTES_KEY);
     const _garbageSigns = await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY);
     const _sopepItems = (await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order);
     const _sopepLockers = await storage.loadList<SopepLocker>(storage.SOPEP_LOCKERS_KEY);
@@ -747,6 +752,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSignKeys(_signKeys);
     setKeyRegister(_signKeys);
     setBookAccess(_bookAccess);
+    setBookNotes(_bookNotes);
     setGarbageSigns(_garbageSigns);
     setSopepItems(_sopepItems);
     setSopepLockers(_sopepLockers);
@@ -1039,6 +1045,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _odsSigns = await storage.loadList<LogMonthSign>(storage.ODS_SIGNS_KEY);
     const _signKeys = await storage.loadList<SignKeyRec>(storage.SIGN_KEYS_KEY);
     const _bookAccess = await storage.loadList<BookAccess>(storage.BOOK_ACCESS_KEY);
+    const _bookNotes = await storage.loadList<BookNote>(storage.BOOK_NOTES_KEY);
     const _garbageSigns = await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY);
     const _sopepItems = (await storage.loadList<SopepItem>(storage.SOPEP_ITEMS_KEY)).filter((x) => !x.deleted).sort((a, b) => a.order - b.order);
     const _sopepLockers = await storage.loadList<SopepLocker>(storage.SOPEP_LOCKERS_KEY);
@@ -1159,6 +1166,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSignKeys(_signKeys);
     setKeyRegister(_signKeys);
     setBookAccess(_bookAccess);
+    setBookNotes(_bookNotes);
     setGarbageSigns(_garbageSigns);
     setSopepItems(_sopepItems);
     setSopepLockers(_sopepLockers);
@@ -1554,6 +1562,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         odsSigns,
         signKeys,
         bookAccess,
+        bookNotes,
         garbageSigns,
         addGarbage,
         signGarbageMonth,

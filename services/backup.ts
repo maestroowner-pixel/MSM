@@ -33,6 +33,7 @@ import { GarbageEntry, GarbageMasterSign } from '../types/garbage';
 import { OrbEntry, OrbMasterSign } from '../types/orb';
 import type { SignKeyRec } from './seal';
 import type { BookAccess } from './bookAccess';
+import type { BookNote } from './verification';
 import { ApaEntry, ApaFund, BudgetLine } from '../types/finance';
 import { OilPoint, OilSample } from '../types/oil';
 import { WarrantyClaim, YardJob } from '../types/yard';
@@ -97,6 +98,8 @@ export interface BackupFile {
   /** The record books' key register and access log (services/seal, services/bookAccess) — a seal is checked against the register. */
   signKeys?: SignKeyRec[];
   bookAccess?: BookAccess[];
+  /** The Master's reasons for entries left unverified (services/verification). */
+  bookNotes?: BookNote[];
   /** Inspection rounds. */
   rounds?: InspectionRound[];
   /** Sewage and Ballast Water record books. */
@@ -294,6 +297,7 @@ export async function exportBackup(vessel: VesselInfo | null, password = ''): Pr
   const oil = { points: await storage.loadList<OilPoint>(storage.OIL_POINTS_KEY), samples: await storage.loadList<OilSample>(storage.OIL_SAMPLES_KEY) };
   const yard = { jobs: await storage.loadList<YardJob>(storage.YARD_JOBS_KEY), claims: await storage.loadList<WarrantyClaim>(storage.WARRANTY_CLAIMS_KEY) };
   const bookAccess = await storage.loadList<BookAccess>(storage.BOOK_ACCESS_KEY);
+  const bookNotes = await storage.loadList<BookNote>(storage.BOOK_NOTES_KEY);
   const suppliers = await storage.loadList<Supplier>(storage.SUPPLIERS_KEY);
   const garbage = { entries: await storage.loadList<GarbageEntry>(storage.GARBAGE_KEY), signs: await storage.loadList<GarbageMasterSign>(storage.GARBAGE_SIGNS_KEY) };
   const qhse = { observations: await storage.loadList<SafetyObservation>(storage.OBSERVATIONS_KEY), ncs: await storage.loadList<NonConformity>(storage.NCS_KEY), ext: await storage.loadList<import('../types/extInspection').ExternalInspection>(storage.EXT_INSP_KEY), mocs: await storage.loadList<import('../types/moc').ManagementOfChange>(storage.MOCS_KEY), threads: await storage.loadList<import('../types/thread').ThreadMessage>(storage.THREADS_KEY) };
@@ -358,6 +362,7 @@ export async function exportBackup(vessel: VesselInfo | null, password = ''): Pr
     orb,
     signKeys,
     bookAccess,
+    bookNotes,
     rounds,
     sewage,
     ballast,
@@ -616,7 +621,7 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     await storage.saveList(storage.BUDGET_KEY, backup.finance.budget ?? []);
   }
   // Union, not replace: a key or an access line is never taken away.
-  for (const [key, rows] of [[storage.SIGN_KEYS_KEY, backup.signKeys], [storage.BOOK_ACCESS_KEY, backup.bookAccess]] as const) {
+  for (const [key, rows] of [[storage.SIGN_KEYS_KEY, backup.signKeys], [storage.BOOK_ACCESS_KEY, backup.bookAccess], [storage.BOOK_NOTES_KEY, backup.bookNotes]] as const) {
     if (!rows?.length) continue;
     const have = await storage.loadList<{ id: string }>(key);
     await storage.saveList(key, [...have, ...rows.filter((r) => !have.some((h) => h.id === r.id))]);

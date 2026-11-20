@@ -1365,6 +1365,7 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   // The record books' seals: every signer's public key, and who opened / exported a book (services/seal).
   { sub: 'sign_keys', key: storage.SIGN_KEYS_KEY, appendOnly: true, module: 'signConfirm' },
   { sub: 'book_access', key: storage.BOOK_ACCESS_KEY, appendOnly: true, module: 'signConfirm' },
+  { sub: 'book_notes', key: storage.BOOK_NOTES_KEY, appendOnly: true, module: 'signConfirm' },
   { sub: 'sopep_items', key: storage.SOPEP_ITEMS_KEY, module: 'sopep' },
   { sub: 'sopep_lockers', key: storage.SOPEP_LOCKERS_KEY, module: 'sopep' },
   { sub: 'sopep_checks', key: storage.SOPEP_CHECKS_KEY, appendOnly: true, module: 'sopep' },

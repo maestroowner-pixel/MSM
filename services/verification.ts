@@ -36,6 +36,39 @@ export interface MonthVerification {
   updatedAt: number;
 }
 
+/**
+ * The Master's reason for leaving entries unverified (20 Nov 2026, MEPC.312 §4.3.10:
+ * "entries not verified should be accompanied by comments advising of the reason").
+ * Names the entry VERSIONS held back, like a verification's `covers`: an amendment
+ * is a new version and needs the Master again. One collection for every book
+ * (`book_notes`), written once by the Master, sealed with the same signature as the
+ * verification made beside it.
+ */
+export interface BookNote {
+  id: string;
+  /** services/bookAccess BookKey — `orb`, `grb`, `sewage`, `ballast`, `fuelChange`, `ods`. */
+  book: string;
+  month: string;
+  entries: string[];
+  reason: string;
+  by: string;
+  byRank?: string;
+  byId?: string;
+  at: number;
+  signedWith?: SignProof;
+  updatedAt: number;
+}
+
+/** The latest reason given for this very version, if any. */
+export function noteFor(entryId: string, notes: BookNote[]): BookNote | undefined {
+  return [...notes].sort((a, b) => b.at - a.at).find((n) => n.entries.includes(entryId));
+}
+
+/** `Not verified — Master J. Smith, 20.11.2026 10:00 UTC: awaiting the sounding figures` — printed under the stage. */
+export function noteLine(n: BookNote): string {
+  return `Not verified — ${n.byRank ? `${n.by} (${n.byRank})` : n.by}, ${utcStamp(n.at)}: ${n.reason}`;
+}
+
 /** What `entryStatus` needs of an entry — every book's entry has it. */
 export interface VerifiableEntry {
   id: string;
@@ -149,11 +182,13 @@ export function signerCell(r: Signed): string {
 }
 
 /** The Master's column for one row. */
-export function masterCell(r: VerifiableEntry, all: VerifiableEntry[], signs: MonthVerification[], earlier: boolean): string {
+export function masterCell(r: VerifiableEntry, all: VerifiableEntry[], signs: MonthVerification[], earlier: boolean, notes: BookNote[] = []): string {
   const ids = verifiedIds(all, signs);
   const s = verifiedBy(r, signs);
   if (earlier) return s ? `Superseded · was verified ${utcStamp(s.at)}` : 'Superseded · not verified';
-  return statusLine(entryStatus(r, all, ids), s);
+  const st = entryStatus(r, all, ids);
+  const n = st === 'verified' ? undefined : noteFor(r.id, notes);
+  return n ? `${statusLine(st, s)}\n${noteLine(n)}` : statusLine(st, s);
 }
 
 /** One line per signature of the month. */
@@ -191,13 +226,13 @@ export function integrityLines(it: Integrity): string[] {
  * A true copy's rows: `base` gives a record's own columns, `textCol` is the one
  * an earlier version is labelled in; the officer and the Master's stage follow.
  */
-export function copyRows<E extends VerifiableEntry & Signed>(book: E[], all: E[], signs: MonthVerification[], base: (r: E) => string[], textCol: number): { rows: string[][]; struck: boolean[] } {
+export function copyRows<E extends VerifiableEntry & Signed>(book: E[], all: E[], signs: MonthVerification[], base: (r: E) => string[], textCol: number, notes: BookNote[] = []): { rows: string[][]; struck: boolean[] } {
   const lines = withEarlier(book, all);
   return {
     rows: lines.map(({ r, earlier }) => {
       const row = base(r);
       if (earlier) row[textCol] = `[Earlier version] ${row[textCol]}`.trim();
-      return [...row, signerCell(r), masterCell(r, all, signs, earlier)];
+      return [...row, signerCell(r), masterCell(r, all, signs, earlier, notes)];
     }),
     struck: lines.map(({ r, earlier }) => earlier || !!r.cancelled),
   };

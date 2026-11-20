@@ -7,7 +7,7 @@ export interface StepAct { t: string; steps: string[]; note?: string; who?: Step
 export interface StepScreen { id: string; title: string; path: string[]; who: StepWho; perVessel?: boolean; intro: string; acts: StepAct[] }
 export interface StepGroup { title: string; screens: StepScreen[] }
 
-/** 102 screens, 533 actions. */
+/** 102 screens, 535 actions. */
 export const MANUAL_STEPS: StepGroup[] = [
  {
   "title": "Getting started",
@@ -2250,12 +2250,22 @@ export const MANUAL_STEPS: StepGroup[] = [
       "note": "Each entry shows **Awaiting the Master's verification**, **Amended — awaiting re-verification** or **Verified …**. The crew see **… awaiting the Master's verification** until you sign."
      },
      {
+      "t": "Leave an entry unverified, with the reason",
+      "steps": [
+       "**Hold back** under the entry",
+       "Write why in the box under **Master**",
+       "**Verify … · hold back …** (or **Record the reason for …**) → sign"
+      ],
+      "note": "The reason shows under the entry and prints in the Master's column; the board stops asking about it until the entry is amended."
+     },
+     {
       "t": "See that nothing was altered",
       "steps": [
        "**Master** — the seals line under the verification",
        "**Seals: … all match · chain unbroken** — green",
        "Red names the trouble: an entry not as signed, a missing entry, or a verification that no longer matches"
-      ]
+      ],
+      "note": "The first device to find a broken seal writes it into the access log, once."
      },
      {
       "t": "Give an inspector a copy",
@@ -2263,7 +2273,17 @@ export const MANUAL_STEPS: StepGroup[] = [
        "**PDF** — the true copy of the month",
        "Or **Signed copy** — a ZIP with the PDF, the records and a manifest sealed by you"
       ],
-      "note": "A signed copy needs your PIN or fingerprint: one signed by hand cannot be sealed."
+      "note": "A signed copy needs your PIN or fingerprint: one signed by hand cannot be sealed. Each verification also keeps the month's signed copy on the device by itself — **Signed copies on this device (…)**."
+     },
+     {
+      "t": "Print several months, the whole book or one entry",
+      "steps": [
+       "**True copy** at the bottom — **From** and **to** → **Print these months**",
+       "Or **Whole book**",
+       "One entry: **Print this entry** under it"
+      ],
+      "note": "One file, numbered “Page n of N” through, each month's verifications under its name.",
+      "who": "everyone"
      },
      {
       "t": "Check a copy you were given",

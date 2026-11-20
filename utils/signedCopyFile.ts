@@ -24,13 +24,30 @@ export async function deliverSignedCopy(
   m: Omit<CopyManifest, 'format' | 'software' | 'files'>,
   seal: (manifest: CopyManifest) => Seal,
 ): Promise<string | null | void> {
+  const z = await buildSignedCopy(c, records, m, seal);
+  if (onWeb) return saveFileWeb(new Blob([base64Bytes(z.base64) as BlobPart], { type: 'application/zip' }), z.name, 'reports');
+  await deliverFile(z.name, z.base64, true, 'application/zip');
+}
+
+/** The signed copy's ZIP, not handed anywhere yet — for the share sheet, or kept on the device (utils/keptCopies). */
+export async function buildSignedCopy(
+  c: { copy: TrueCopy; name: string },
+  records: CopyRecords,
+  m: Omit<CopyManifest, 'format' | 'software' | 'files'>,
+  seal: (manifest: CopyManifest) => Seal,
+): Promise<{ name: string; base64: string }> {
   const pdf = new Uint8Array(trueCopyDoc({ ...c.copy, printedAt: m.exportedAt }).output('arraybuffer'));
   const files = copyFiles(c.name, pdf, records);
   const manifest = copyManifest(m, files);
   const s = seal(manifest);
-  const zipName = c.name.replace(/\.pdf$/i, '') + '_signed-copy.zip';
-  if (onWeb) return saveFileWeb(new Blob([(await zipCopy(files, manifest, s, 'uint8array')) as BlobPart], { type: 'application/zip' }), zipName, 'reports');
-  await deliverFile(zipName, await zipCopy(files, manifest, s, 'base64'), true, 'application/zip');
+  return { name: c.name.replace(/\.pdf$/i, '') + '_signed-copy.zip', base64: await zipCopy(files, manifest, s, 'base64') };
+}
+
+export function base64Bytes(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
 }
 
 /** Pick a signed copy and check it. Null: nothing picked. */

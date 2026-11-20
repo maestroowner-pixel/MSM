@@ -594,6 +594,20 @@ app mirrors. Bundle id `com.kukalab.msm`.
   register). **Never add a field to a sealed record after signing** — it breaks the seal; add it
   before `withSeal`. Signed copy = ZIP (PDF + records.json + manifest sealed by the Master);
   "Check a copy" runs `checkCopy`. Rules for `sign_keys`/`book_access` need `npm run deploy:rules`.
+- **Record books for the flag's approval** (20 Nov 2026, RMI under MEPC.312(74); matrix and package in
+  `/Users/Oxford/MarineSafetyManager/erb-approval/`). All in `components/Verification.tsx`:
+  **Hold back** (§4.3.10): the Master leaves chosen waiting entries out of a verification with a reason ≥ 3; one signature
+  writes the verification (covers the rest) and a `BookNote` {book, month, entries = VERSION ids, reason} (services/verification;
+  `book_notes`, append-only, rules: Master creates, reason 3–500, id = doc id). Shown under the entry, printed in the Master's
+  column (`masterCell(…, notes)`); the Board does not ask again for a version with a note (`noteFor`), its amendment it does.
+  **Integrity in the access log** (§4.1.2): `integrityDetail(it)` → a `book_access` line `what: 'integrity'` with `detail`, once
+  per book/month/finding across devices (`integrityIsNew`). **Signed copy kept** (§4.4.2): each verification with a person key
+  also builds the month's signed copy (`buildSignedCopy`) with the NEW verification and keeps it (`utils/keptCopies`: phones
+  `documentDirectory/record-books/`, web `msm:erb_copies` in IndexedDB; one file per verification, never overwritten; listed
+  "Signed copies on this device"). Signed by hand → no person key → nothing kept. **Longer copies** (§6.3): the screens' `copy`
+  takes `(month, {notes, only, signs})`; `joinCopies` (services/trueCopy) puts months one after another in one numbered file,
+  each month's verifications under its name, empty months named; one entry prints only the verifications that cover it.
+  `npm run check:verification`, `check:seal`; rules-test.mjs covers `book_notes`. `npm run deploy:rules` before 2.77 reaches anyone.
 - **Checklists** (`constants/checklists.ts`): 30 templates keyed `<category>.<period>`, weekly
   and/or monthly, plus a `genericTemplate` fallback so no category can refuse a round. **Line ids
   are permanent** — they are the keys of every stored `results` map, so re-word freely but never

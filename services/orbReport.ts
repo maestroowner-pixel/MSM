@@ -21,7 +21,7 @@ import { OrbEntry, OrbMasterSign } from '../types/orb';
 import { deliverFile, onWeb, onWindows } from '../utils/fileShare';
 import { saveFileWeb } from '../utils/webSave';
 import { deliverTrueCopy } from '../utils/trueCopyPdf';
-import { awaiting, copyRows, integrityLines, monthIntegrity, verificationLines, verifiedIds } from './verification';
+import { BookNote, awaiting, copyRows, integrityLines, monthIntegrity, verificationLines, verifiedIds } from './verification';
 import type { TrueCopy } from './trueCopy';
 
 const dmy = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
@@ -38,7 +38,7 @@ export function orbRows(entries: OrbEntry[]): string[][] {
 
 /** The true copy's columns and rows: each entry, then its earlier versions struck. */
 export const ORB_COPY_HEAD = ['Date', 'Code', 'Item No. / record of operations', 'Officer in charge', "Master's verification"];
-export const orbCopyRows = (book: OrbEntry[], all: OrbEntry[], signs: OrbMasterSign[]) => copyRows(book, all, signs, (r) => orbRows([r])[0].slice(0, 3), 2);
+export const orbCopyRows = (book: OrbEntry[], all: OrbEntry[], signs: OrbMasterSign[], notes: BookNote[] = []) => copyRows(book, all, signs, (r) => orbRows([r])[0].slice(0, 3), 2, notes);
 
 export function orbMonthLabel(month: string) {
   const [y, m] = month.split('-').map(Number);
@@ -66,9 +66,9 @@ function html(entries: OrbEntry[], month: string, vessel: VesselInfo | null, sig
 }
 
 /** The month's certified true copy and its file name — the PDF, and the Master's signed copy (services/signedCopy). */
-export function orbCopy(entries: OrbEntry[], month: string, vessel: VesselInfo | null, signs: OrbMasterSign[], all: OrbEntry[]): { copy: TrueCopy; name: string } {
+export function orbCopy(entries: OrbEntry[], month: string, vessel: VesselInfo | null, signs: OrbMasterSign[], all: OrbEntry[], notes: BookNote[] = []): { copy: TrueCopy; name: string } {
   const name = fileName(vessel, month, 'pdf');
-  const { rows, struck } = orbCopyRows(entries, all, signs);
+  const { rows, struck } = orbCopyRows(entries, all, signs, notes);
   const copy = {
     title: `Oil Record Book — Part I · ${orbMonthLabel(month)}`,
     subtitle: `${vesselHeader(vessel)} · Machinery space operations (MARPOL Annex I)`,
@@ -85,9 +85,9 @@ export function orbCopy(entries: OrbEntry[], month: string, vessel: VesselInfo |
   return { copy, name };
 }
 
-export async function exportOrbPdf(entries: OrbEntry[], month: string, vessel: VesselInfo | null, signs: OrbMasterSign[], all: OrbEntry[]): Promise<string | null | void> {
+export async function exportOrbPdf(entries: OrbEntry[], month: string, vessel: VesselInfo | null, signs: OrbMasterSign[], all: OrbEntry[], notes: BookNote[] = []): Promise<string | null | void> {
   if (onWindows) throw new Error('PDF export is not available on Windows.');
-  const { copy, name } = orbCopy(entries, month, vessel, signs, all);
+  const { copy, name } = orbCopy(entries, month, vessel, signs, all, notes);
   if (onWeb) return deliverTrueCopy(copy, name);
   try {
     return await deliverTrueCopy(copy, name);

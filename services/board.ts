@@ -56,7 +56,7 @@ import { meetingDue, openActions } from './meetings';
 import { chestCounts, chestStatus, followUpsDue, isArchived, isLanding, landingLinesFor, lastControlledCount, orderOverdue, orderState, stockLevel } from './hospital';
 import { currentEntries } from './garbage';
 import { current } from './versions';
-import { awaiting, verifiedIds } from './verification';
+import { BookNote, awaiting, noteFor, verifiedIds } from './verification';
 import { awaitsOffice, deferralsToAnswer, ncAwaitsOffice, officeInLoop, rankDefects } from './officeCheck';
 import { emergencyOpen, emergencyRejected, lastCuts, poStage, returnedBy } from './poApproval';
 import { inspStatus } from './extInspections';
@@ -193,6 +193,8 @@ export interface BoardInput {
   fuelChangeSigns?: LogMonthSign[];
   ods?: LogEntry[];
   odsSigns?: LogMonthSign[];
+  /** The Master's reasons for entries held back — those are not asked for again until amended. */
+  bookNotes?: BookNote[];
   sopepItems: SopepItem[];
   sopepChecks: SopepCheck[];
   sopepDrills: SopepDrill[];
@@ -501,7 +503,8 @@ export function buildBoard(x: BoardInput): Board {
 
   // ---- The Master's verification of the record books (MEPC.312 §4.3.10) ----
   // An entry signed more than a day ago and not verified is the Master's to do —
-  // amended ones included, they need verifying again.
+  // amended ones included, they need verifying again. An entry the Master held
+  // back with a reason (BookNote) is not asked for again — its next version is.
   {
     const books = [
       { on: x.on('orb'), key: 'orb', label: t('orb.title'), icon: 'oil', route: 'OilRecord', all: x.orb ?? [], signs: x.orbSigns ?? [] },
@@ -514,7 +517,8 @@ export function buildBoard(x: BoardInput): Board {
     const dayAgo = Date.parse(`${x.now}:00`) - 86_400_000;
     for (const b of books) {
       if (!b.on) continue;
-      const late = awaiting(current(b.all as any[]), verifiedIds(b.all, b.signs)).filter((e) => e.at < dayAgo);
+      const notes = (x.bookNotes ?? []).filter((nn) => nn.book === b.key);
+      const late = awaiting(current(b.all as any[]), verifiedIds(b.all, b.signs)).filter((e) => e.at < dayAgo && !noteFor(e.id, notes));
       if (late.length) n.push({ key: `${b.key}:verify`, level: 'amber', who: 'master', icon: b.icon, route: b.route, params: { month: [...late].sort((p, q) => p.date.localeCompare(q.date))[0].date.slice(0, 7) }, title: t('b.book.unverified', { book: b.label, x: tn('n.entry', late.length) }) });
     }
   }
