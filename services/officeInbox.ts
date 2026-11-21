@@ -32,7 +32,7 @@ import { inspStatus } from './extInspections';
 import { activeDeferral, jobDue } from './pms';
 import { ncState } from './safety';
 import { scopeOf } from '../types/certificate';
-import { computeStatus, statusFromDate } from '../utils/dates';
+import { complianceDate } from '../utils/dates';
 
 /** Which parts of the office loop are on for a vessel: the build's flag or the vessel's own module. */
 export interface OfficeParts {
@@ -178,12 +178,12 @@ export function redOf(v: VesselData, today: string, on: OfficeParts): RedLine[] 
   const jobs = live(v.jobs).filter((j) => byId.has(j.machineId));
   const overdue = jobs.filter((j) => jobDue(j, byId.get(j.machineId), today, activeDeferral(j, v.deferrals ?? [])).status === 'expired');
   if (overdue.length) out.push({ kind: 'pmsOverdue', n: overdue.length, ...named(overdue.map((j) => `${byId.get(j.machineId)!.name} — ${j.title}`)), tab: 'pms' });
-  const certs = v.certificates.filter((c) => statusFromDate(c.expiryDate) === 'expired').sort((a, b) => (a.expiryDate ?? '').localeCompare(b.expiryDate ?? ''));
+  const certs = v.certificates.filter((c) => !!c.expiryDate && c.expiryDate < today).sort((a, b) => (a.expiryDate ?? '').localeCompare(b.expiryDate ?? ''));
   if (certs.length) {
     // A crew certificate is named by its holder too — the office knows who to call.
     out.push({ kind: 'certsExpired', n: certs.length, ...named(certs.map((c) => (scopeOf(c) === 'crew' && c.holderName ? `${c.name} · ${c.holderName}` : c.name))), tab: 'certs' });
   }
-  const items = v.items.filter((it) => computeStatus(it) === 'expired');
+  const items = v.items.filter((it) => { const due = complianceDate(it); return !!due && due < today; });
   if (items.length) out.push({ kind: 'equipmentExpired', n: items.length, names: [], more: 0, tab: 'equipment' });
   return out;
 }
