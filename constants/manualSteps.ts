@@ -7,7 +7,7 @@ export interface StepAct { t: string; steps: string[]; note?: string; who?: Step
 export interface StepScreen { id: string; title: string; path: string[]; who: StepWho; perVessel?: boolean; intro: string; acts: StepAct[] }
 export interface StepGroup { title: string; screens: StepScreen[] }
 
-/** 103 screens, 541 actions. */
+/** 103 screens, 544 actions. */
 export const MANUAL_STEPS: StepGroup[] = [
  {
   "title": "Getting started",
@@ -608,8 +608,27 @@ export const MANUAL_STEPS: StepGroup[] = [
       "steps": [
        "Open the item",
        "**Print label**",
-       "Choose the stock (100×50 or 50×30 mm)",
+       "Choose the stock loaded in the printer — 100×50, 60×40, 50×30, 40×30, 40×40 mm or your own size",
        "**Print**"
+      ]
+     },
+     {
+      "t": "Which printer and labels to buy",
+      "steps": [
+       "Phone or tablet: **Xprinter XP-420B** — Bluetooth, 4-inch, 203 dpi; the app prints to it directly",
+       "Laptop or the web: a label printer with its own driver (e.g. **Xprinter XP-365B**) — the print dialog, page sized to the label",
+       "Labels: direct-thermal, die-cut with a gap, up to 104 mm wide — 50×30 mm for equipment, 100×50 mm for crew cards and passes",
+       "No label printer: an A4 sheet of labels, or a PDF"
+      ],
+      "note": "Wet or outside: synthetic (polypropylene) labels, and keep spares to reprint — the code never changes. Another make of printer: **Save as image (600 dpi)** and print it from that printer’s own app at the label’s size."
+     },
+     {
+      "t": "Set up the Bluetooth printer",
+      "steps": [
+       "Switch the printer on and pair it in the phone’s Bluetooth settings",
+       "Any label → **Print to Xprinter**",
+       "Tap the printer under **Nearby Bluetooth devices** (or **Rescan**)",
+       "It is remembered as **Current printer**; **Forget** to change it"
       ]
      },
      {
@@ -1044,6 +1063,16 @@ export const MANUAL_STEPS: StepGroup[] = [
     "perVessel": true,
     "intro": "A wristband carries the same code as the crew card’s QR, an equipment tag the same as the item’s label. Only a tag on the vessel’s register counts — a rewritten one is refused.",
     "acts": [
+     {
+      "t": "Which tags to buy",
+      "steps": [
+       "Crew and guests: silicone NFC wristbands, **NTAG215**",
+       "Checkpoints and muster stations: NFC stickers, **NTAG213** or **NTAG215**",
+       "Equipment and anything on steel: **on-metal (anti-metal) NTAG215** tags",
+       "Phones: iPhone 7 or later, an Android phone with NFC"
+      ],
+      "note": "Not MIFARE Classic: an iPhone does not read it (Android can take one with **Register as is**). A browser reads no NFC — keep the QR beside every tag."
+     },
      {
       "t": "Give a person a wristband",
       "steps": [
@@ -2465,11 +2494,11 @@ export const MANUAL_STEPS: StepGroup[] = [
       "t": "Fuel oil changeover: an ECA",
       "steps": [
        "**Operation** — changeover completed before entering, **Entered the ECA**, **Left the ECA**, changeover commenced after leaving; EU berth over 2 h and before departure",
-       "**Emission Control Area** — Baltic Sea, North Sea, North American…",
+       "**Emission Control Area** — Baltic Sea, North Sea, North American, US Caribbean, Mediterranean, Canadian Arctic, Norwegian Sea, North-East Atlantic",
        "**Tank(s)**, quantity of compliant fuel, **Sulphur, % m/m**, position",
        "**Sign the entry**"
       ],
-      "note": "Fuel above 0.10 % S signs only with the reason in **Remarks**."
+      "note": "Fuel above 0.10 % S signs only with the reason in **Remarks**. North-East Atlantic: the ECA from 1 Sep 2027, the 0.10 % S limit from 1 Sep 2028 — no warning before that."
      },
      {
       "t": "ODS: a recharge, a leak, a supply",
