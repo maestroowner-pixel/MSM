@@ -1,3 +1,4 @@
+import type { EntryOrigin } from '../services/entryOrigin';
 // ===================================
 // Garbage Record Book, Part I — MARPOL Annex V, form as revised by
 // resolution MEPC.295(71) (in force 1 March 2018).
@@ -38,7 +39,7 @@ export const GARBAGE_METHOD: Record<GarbageMethod, string> = {
   accidental: 'Accidental / exceptional discharge or loss',
 };
 
-export interface GarbageEntry {
+export interface GarbageEntry extends EntryOrigin {
   id: string;
   /** yyyy-mm-dd and hh:mm, ship's time. */
   date: string;

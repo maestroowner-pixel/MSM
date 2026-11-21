@@ -711,6 +711,14 @@ app mirrors. Bundle id `com.kukalab.msm`.
   entry restores it with a line + "Discard the draft"; the screen calls `clear()` right after the entry is written. NOT a record (books are
   append-only and sealed; old builds would read a draft row as signed): device only, never synced, not in .msm, dropped by resetAllData's
   prefix list. `npm run check:bookdraft`.
+- **Late entries and entries from the paper book** (21 Nov 2026, ISO 21745 as read by the flags — "chronological; a late entry marked with the
+  reason"; doc. 03 §6 back from paper; no flag): pure `services/entryOrigin.ts` + `components/EntryOrigin.tsx` on OrbSc, GarbageSc and LogBookSc.
+  `laterEntry(draft, current(all))` = a standing (not cancelled) entry whose operation is LATER, compared as instants (`shipInstant` with each
+  `shipOffset`; no time → end of day for the new one, start for the book's). Late → the reason (≥ 3) is asked, unless **Entered from the paper
+  record book** is on (+ page). Fields `late` (reason), `fromPaper`, `paperPage` on the entry, written INSIDE `withSeal` (never after). The values
+  sit in the form, so the draft keeps them. A Garbage amendment keeps the original's `late` and is not judged again. Printed by `originNote` in
+  `orbRows` / `logRows` / `grbRows` → every PDF, HTML, Excel and true copy ("LATE ENTRY — …", "Entered from the paper record book, page n");
+  older builds ignore the fields. No rules change (these collections have no field list). `npm run check:entryorigin`.
 - **Checklists** (`constants/checklists.ts`): 30 templates keyed `<category>.<period>`, weekly
   and/or monthly, plus a `genericTemplate` fallback so no category can refuse a round. **Line ids
   are permanent** — they are the keys of every stored `results` map, so re-word freely but never

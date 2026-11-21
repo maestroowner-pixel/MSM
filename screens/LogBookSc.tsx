@@ -35,6 +35,8 @@ import { PositionInput } from '../components/PositionInput';
 import { parsePosition } from '../utils/position';
 import { playSuccessSound } from '../utils/sound';
 import { useBookDraft } from '../components/BookDraft';
+import { EntryOriginFields, ORIGIN_BLANK, OriginForm } from '../components/EntryOrigin';
+import { laterEntry, originFields, originNote, originProblem } from '../services/entryOrigin';
 import { t, tk, useT } from '../utils/i18n';
 import { entryZone, shipHm } from '../utils/shipTime';
 
@@ -79,8 +81,8 @@ export default function LogBookSc() {
 
   // ---- the form: text values, numbers parsed for the draft ----
   type Flag = 'method' | 'treated' | 'bwmp';
-  type Form = { code: string; date: string; time: string; method: string; treated: boolean | null; bwmp: boolean | null; remarks: string } & Record<Exclude<LogField, Flag>, string>;
-  const blank = (): Form => ({ code: codes[0], date: today, time: hhmm(), method: '', treated: null, bwmp: null, remarks: '', tank: '', quantity: '', place: '', placeEnd: '', start: '', stop: '', distance: '', speed: '', depth: '', receiptNo: '', sulphur: '', equipment: '', substance: '', mass: '', rob: '', treatment: '', facility: '', area: '' });
+  type Form = { code: string; date: string; time: string; method: string; treated: boolean | null; bwmp: boolean | null; remarks: string } & OriginForm & Record<Exclude<LogField, Flag>, string>;
+  const blank = (): Form => ({ code: codes[0], date: today, time: hhmm(), method: '', treated: null, bwmp: null, remarks: '', tank: '', quantity: '', place: '', placeEnd: '', start: '', stop: '', distance: '', speed: '', depth: '', receiptNo: '', sulphur: '', equipment: '', substance: '', mass: '', rob: '', treatment: '', facility: '', area: '', ...ORIGIN_BLANK });
   const [f, setF] = useState<Form>(blank);
   const bookDraft = useBookDraft({ book: bookKey, open: adding, f, setF, blank });
   const cs = spec.codes[f.code] ?? spec.codes[codes[0]];
@@ -98,7 +100,8 @@ export default function LogBookSc() {
     } else if (f[k].trim()) (draft as any)[k] = f[k].trim();
   }
   if (f.remarks.trim()) draft.remarks = f.remarks.trim();
-  const problem = spec.problem(draft);
+  const later = laterEntry({ date: f.date, time: f.time, shipOffset: entryZone(f.date, f.time) }, current(all));
+  const problem = spec.problem(draft) ?? (originProblem(!!later, f.lateWhy, f.fromPaper) ? t('origin.needWhy') : null);
   const preview = spec.text(draft);
 
   const save = async () => {
@@ -108,7 +111,7 @@ export default function LogBookSc() {
     if (!sig) return;
     const now = Date.now();
     const head = chainHead(all);
-    const e: LogEntry = withSeal({ id: uid(bookKey), book: bookKey, ...(draft as any), shipOffset: entryZone((draft as any).date, (draft as any).time), text: preview, by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), byId: signer.key, at: now, ...(head ? { prev: head } : {}), ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now }, sig);
+    const e: LogEntry = withSeal({ id: uid(bookKey), book: bookKey, ...(draft as any), ...originFields(!!later, f.lateWhy, f.fromPaper, f.paperPage), shipOffset: entryZone((draft as any).date, (draft as any).time), text: preview, by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), byId: signer.key, at: now, ...(head ? { prev: head } : {}), ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now }, sig);
     await appendRow(store.key, e);
     bookDraft.clear();
     setF(blank());
@@ -244,6 +247,7 @@ export default function LogBookSc() {
           {has('area') ? input('area') : null}
           {has('receiptNo') && (f.code !== 'SED' || f.method === 'shore') ? input('receiptNo') : null}
           <TextInput style={[styles.input, { minHeight: 50 }]} value={f.remarks} onChangeText={(v) => setF({ ...f, remarks: v })} placeholder={t('book.remarks')} placeholderTextColor={COLORS.textLight} multiline />
+          <EntryOriginFields later={later} value={f} onChange={(o) => setF({ ...f, ...o })} />
           <Text style={styles.previewLabel}>{t('book.inBook')}</Text>
           <Text style={styles.preview}>{`${printedCode({ book: bookKey, code: f.code })} · ${preview || '—'}`}</Text>
           {problem ? <Text style={styles.problem}>{`⚠ ${problem}`}</Text> : null}
@@ -259,6 +263,7 @@ export default function LogBookSc() {
           <View style={{ flex: 1 }}>
             <Text style={[styles.text, e.cancelled && { textDecorationLine: 'line-through' }]}>{e.text}</Text>
             <Text style={styles.sub}>{`${uiDate(e.date)}${e.time ? ` ${e.time}` : ''} · ${spec.codes[e.code]?.label ?? e.code} · ${e.byRank ? `${e.by} (${e.byRank})` : e.by}`}</Text>
+            {originNote(e) ? <Text style={[styles.sub, { color: COLORS.warning }]}>{originNote(e)}</Text> : null}
             <AmendNote rec={e} all={all} summary={(p) => `${p.code} · ${p.text}`} />
             {ver.stage(e)}
           </View>

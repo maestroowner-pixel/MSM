@@ -1,3 +1,4 @@
+import { originNote } from './entryOrigin';
 // ===================================
 // The Oil Record Book Part I page for a month — PDF (A4 portrait, the book's
 // columns: date, code, item / record of operations, signature of the officer in
@@ -32,7 +33,7 @@ export function orbRows(entries: OrbEntry[]): string[][] {
   return entries.map((e) => [
     entryWhen(e.date, e.time, e.shipOffset),
     e.code,
-    [e.cancelled ? `[DELETED — ${e.editReason ?? ''} (${e.editedBy ?? ''})]` : e.supersedes ? `[Amended — ${e.editReason ?? ''} (${e.editedBy ?? ''})]` : '', e.text].filter(Boolean).join(' '),
+    [e.cancelled ? `[DELETED — ${e.editReason ?? ''} (${e.editedBy ?? ''})]` : e.supersedes ? `[Amended — ${e.editReason ?? ''} (${e.editedBy ?? ''})]` : '', e.text, originNote(e) ? `[${originNote(e)}]` : ''].filter(Boolean).join(' '),
     e.byRank ? `${e.by} (${e.byRank})` : e.by,
   ]);
 }

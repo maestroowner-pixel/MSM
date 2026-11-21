@@ -1,3 +1,4 @@
+import type { EntryOrigin } from '../services/entryOrigin';
 // ===================================
 // Record books kept the same way — one screen, one record shape, a spec per
 // book (services/logbooks.ts). Sewage (MARPOL Annex IV) and Ballast Water
@@ -19,7 +20,7 @@ export type BookKey = 'sewage' | 'ballast' | 'fuelChange' | 'ods';
 /** Every field a book's codes may ask for. */
 export type LogField = 'tank' | 'quantity' | 'method' | 'place' | 'placeEnd' | 'start' | 'stop' | 'distance' | 'speed' | 'depth' | 'treated' | 'receiptNo' | 'sulphur' | 'equipment' | 'substance' | 'mass' | 'rob' | 'bwmp' | 'treatment' | 'facility' | 'area';
 
-export interface LogEntry extends Versioned {
+export interface LogEntry extends Versioned, EntryOrigin {
   id: string;
   book: BookKey;
   date: string;

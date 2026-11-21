@@ -118,7 +118,8 @@
     "check:purchaseai": "rm -rf .check-pai && tsc scripts/check-purchaseai.ts --outDir .check-pai --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-pai/scripts/check-purchaseai.js; s=$?; rm -rf .check-pai; exit $s",
     "check:reset": "rm -rf .check-reset && tsc scripts/check-reset.ts --outDir .check-reset --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck --types node && cp app.json .check-reset/ && node .check-reset/check-reset.js; s=$?; rm -rf .check-reset; exit $s",
     "check:seal": "rm -rf .check-seal && tsc scripts/check-seal.ts --outDir .check-seal --module commonjs --target es2020 --moduleResolution node --esModuleInterop --skipLibCheck --resolveJsonModule --types node && cp app.json .check-seal/ && node .check-seal/scripts/check-seal.js; s=$?; rm -rf .check-seal; exit $s",
-    "check:smsai": "rm -rf .check-sai && tsc scripts/check-smsai.ts --outDir .check-sai --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-sai/ && node .check-sai/scripts/check-smsai.js; s=$?; rm -rf .check-sai; exit $s"
+    "check:smsai": "rm -rf .check-sai && tsc scripts/check-smsai.ts --outDir .check-sai --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && cp app.json .check-sai/ && node .check-sai/scripts/check-smsai.js; s=$?; rm -rf .check-sai; exit $s",
+    "check:entryorigin": "rm -rf .check-eo && tsc scripts/check-entryorigin.ts --outDir .check-eo --module commonjs --target es2019 --moduleResolution node --esModuleInterop --skipLibCheck && node .check-eo/scripts/check-entryorigin.js; s=$?; rm -rf .check-eo; exit $s"
   },
   "keywords": [
     "maritime",

@@ -1,3 +1,4 @@
+import { originNote } from './entryOrigin';
 // ===================================
 // The Garbage Record Book, Part I, for a month — PDF (as the book's page) and
 // Excel. Columns as in the MEPC.295(71) form: date/time, position or port,
@@ -46,7 +47,7 @@ export function grbRows(entries: GarbageEntry[]): string[][] {
     e.method === 'shore' && !e.cancelled ? v(sum) : '',
     e.method === 'incineration' && !e.cancelled ? v(sum) : '',
     e.method === 'accidental' && !e.cancelled ? v(sum) : '',
-    [e.cancelled ? `CANCELLED — ${e.editReason ?? ''} (${e.by})` : e.supersedes ? `Amended — ${e.editReason ?? ''} (${e.by})` : '', e.containerNo ? `Container ${e.containerNo}` : '', e.receiptNo ? `Receipt ${e.receiptNo}` : '', e.comminuted ? 'comminuted' : '', e.remarks ?? ''].filter(Boolean).join('; '),
+    [e.cancelled ? `CANCELLED — ${e.editReason ?? ''} (${e.by})` : e.supersedes ? `Amended — ${e.editReason ?? ''} (${e.by})` : '', e.containerNo ? `Container ${e.containerNo}` : '', e.receiptNo ? `Receipt ${e.receiptNo}` : '', e.comminuted ? 'comminuted' : '', e.remarks ?? '', originNote(e)].filter(Boolean).join('; '),
     e.byRank ? `${e.by} (${e.byRank})` : e.by,
   ];
   });

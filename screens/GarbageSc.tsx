@@ -28,6 +28,9 @@ import { uid } from '../utils/id';
 import { PositionInput } from '../components/PositionInput';
 import { playSuccessSound } from '../utils/sound';
 import { useBookDraft } from '../components/BookDraft';
+import { EntryOriginFields, ORIGIN_BLANK } from '../components/EntryOrigin';
+import { laterEntry, originFields, originNote, originProblem } from '../services/entryOrigin';
+import { current as currentVersions } from '../services/versions';
 import { t, tn, useT } from '../utils/i18n';
 import { entryZone, shipHm } from '../utils/shipTime';
 
@@ -56,7 +59,7 @@ export default function GarbageSc() {
 
   // ---- new entry ----
   // Several categories in one operation, each with its amount (m³ as typed).
-  const blank = { amounts: {} as Partial<Record<GarbageCategory, string>>, method: 'shore' as GarbageMethod, atSea: false, port: '', position: '', distance: '', comminuted: false, receipt: '', container: '', remarks: '', date: today, time: hhmm() };
+  const blank = { amounts: {} as Partial<Record<GarbageCategory, string>>, method: 'shore' as GarbageMethod, atSea: false, port: '', position: '', distance: '', comminuted: false, receipt: '', container: '', remarks: '', date: today, time: hhmm(), ...ORIGIN_BLANK };
   const [f, setF] = useState(blank);
   // Amending an entry: the form opens with it, and the new version must say why.
   const [editing, setEditing] = useState<GarbageEntry | null>(null);
@@ -68,7 +71,7 @@ export default function GarbageSc() {
   const startEdit = (e: GarbageEntry) => {
     const amounts: Partial<Record<GarbageCategory, string>> = {};
     for (const i of entryItems(e)) amounts[i.category] = String(i.volume);
-    setF({ amounts, method: e.method, atSea: !!e.position, port: e.port ?? '', position: e.position ?? '', distance: e.distanceNm != null ? String(e.distanceNm) : '', comminuted: !!e.comminuted, receipt: e.receiptNo ?? '', container: e.containerNo ?? '', remarks: e.remarks ?? '', date: e.date, time: e.time });
+    setF({ amounts, method: e.method, atSea: !!e.position, port: e.port ?? '', position: e.position ?? '', distance: e.distanceNm != null ? String(e.distanceNm) : '', comminuted: !!e.comminuted, receipt: e.receiptNo ?? '', container: e.containerNo ?? '', remarks: e.remarks ?? '', date: e.date, time: e.time, lateWhy: e.late ?? '', fromPaper: !!e.fromPaper, paperPage: e.paperPage ?? '' });
     setEditing(e);
     setReason('');
     setCancelling(null);
@@ -95,8 +98,13 @@ export default function GarbageSc() {
   const distance = f.distance.trim() ? Number(f.distance.replace(',', '.')) : undefined;
   const problem = picked.length ? seaDischargeProblem({ category: picked[0], method: f.method, distanceNm: distance, comminuted: f.comminuted, items }) : null;
 
+  // An amendment keeps the original's late mark; only a new entry is judged against the book.
+  const later = editing ? undefined : laterEntry({ date: f.date, time: f.time, shipOffset: entryZone(f.date, f.time) }, currentVersions(garbage as any) as GarbageEntry[]);
+  const origin = editing ? { ...(editing.late ? { late: editing.late } : {}), ...originFields(false, '', f.fromPaper, f.paperPage) } : originFields(!!later, f.lateWhy, f.fromPaper, f.paperPage);
+
   const save = async () => {
     if (!signer) return Alert.alert(t('sign.who'), t('pd.chooseName'));
+    if (originProblem(!!later, f.lateWhy, f.fromPaper)) return Alert.alert(t('origin.lateT'), t('origin.needWhy'));
     if (!picked.length) return Alert.alert(t('pd.category'), t('gb.tapCats'));
     const noAmount = items.filter((i) => !(i.volume > 0)).map((i) => i.category);
     if (noAmount.length) return Alert.alert(t('gb.amount'), t('gb.enterAmount', { cats: noAmount.join(', ') }));
@@ -116,6 +124,7 @@ export default function GarbageSc() {
         ...(f.receipt.trim() ? { receiptNo: f.receipt.trim() } : {}),
         ...(f.container.trim() ? { containerNo: f.container.trim() } : {}),
         ...(f.remarks.trim() ? { remarks: f.remarks.trim() } : {}),
+        ...origin,
         by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), byId: signer.key, at: now, ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now,
         ...(editing ? { supersedes: editing.id, editReason: reason.trim() } : {}),
         ...(head ? { prev: head } : {}),
@@ -225,6 +234,7 @@ export default function GarbageSc() {
             {f.method === 'shore' ? <TextInput style={[styles.input, { flex: 2 }]} value={f.receipt} onChangeText={(v) => setF({ ...f, receipt: v })} placeholder={t('log.receiptNo')} placeholderTextColor={COLORS.textLight} /> : null}
           </View>
           <TextInput style={styles.input} value={f.remarks} onChangeText={(v) => setF({ ...f, remarks: v })} placeholder={f.method === 'accidental' ? t('gb.accidentPh') : t('book.remarks')} placeholderTextColor={COLORS.textLight} />
+          <EntryOriginFields later={later} value={f} onChange={(o) => setF({ ...f, ...o })} />
           {problem ? <Text style={styles.problem}>{`⚠ ${problem}`}</Text> : null}
           {picker ? (
             <>
@@ -266,6 +276,7 @@ export default function GarbageSc() {
             <View style={{ flex: 1 }}>
               <Text style={[styles.entryTitle, e.cancelled && { textDecorationLine: 'line-through' }]}>{`${itemsText(e, (c) => GARBAGE_CATEGORY[c])} m³ · ${GARBAGE_METHOD[e.method]}`}</Text>
               <Text style={styles.sub}>{[`${uiDate(e.date)} ${e.time}`, placeText(e), e.containerNo ? t('gb.containerL', { n: e.containerNo }) : null, e.receiptNo ? t('gb.receiptL', { n: e.receiptNo }) : null, e.remarks, e.byRank ? `${e.by} (${e.byRank})` : e.by].filter(Boolean).join(' · ')}</Text>
+              {originNote(e) ? <Text style={[styles.sub, { color: COLORS.warning }]}>{originNote(e)}</Text> : null}
               {e.supersedes ? (
                 <TouchableOpacity onPress={() => setOpenHist(openHist === e.id ? null : e.id)}>
                   <Text style={[styles.sub, { color: e.cancelled ? COLORS.danger : COLORS.warning, fontWeight: '700' }]}>

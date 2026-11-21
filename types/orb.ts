@@ -1,3 +1,4 @@
+import type { EntryOrigin } from '../services/entryOrigin';
 // ===================================
 // Oil Record Book, Part I — machinery space operations (MARPOL Annex I,
 // Appendix III; form as amended by MEPC.187(59)). Asked to follow the Garbage
@@ -36,7 +37,7 @@ export const ORB_METHOD: Record<OrbMethod, string> = {
   tank: 'Transferred to another tank',
 };
 
-export interface OrbEntry extends Versioned {
+export interface OrbEntry extends Versioned, EntryOrigin {
   id: string;
   date: string;
   time?: string;

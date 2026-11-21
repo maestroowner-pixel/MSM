@@ -20,6 +20,8 @@ import { useSignConfirm, withSeal } from '../components/SignConfirm';
 import { chainHead } from '../services/seal';
 import { useSigner } from '../components/SignerChoice';
 import { useBookDraft } from '../components/BookDraft';
+import { EntryOriginFields, ORIGIN_BLANK } from '../components/EntryOrigin';
+import { laterEntry, originFields, originNote, originProblem } from '../services/entryOrigin';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
@@ -69,7 +71,7 @@ export default function OrbSc() {
   const ver = useVerification({ all, book, signs: orbSigns, month, prefix: 'orb', what: 'Oil Record Book', isMaster, signer, picker, save: (x) => appendRow(storage.ORB_SIGNS_KEY, x), copy: (m, o) => orbCopy(current(all).filter((e) => e.date.startsWith(m) && (!o.only || o.only.includes(e.id))).sort((p, q) => `${p.date}${p.time ?? ''}`.localeCompare(`${q.date}${q.time ?? ''}`)), m, vessel, (o.signs as OrbMasterSign[]) ?? orbSigns, all, o.notes) });
 
   // ---- the form ----
-  const blank = { code: 'D' as OrbCode, date: today, time: hhmm(), tank: '', quantity: '', unit: 'm3' as 'm3' | 't', retained: '', method: '' as OrbMethod | '', place: '', start: '', stop: '', grade: '', bdnNo: '', receiptNo: '', remarks: '' };
+  const blank = { code: 'D' as OrbCode, date: today, time: hhmm(), tank: '', quantity: '', unit: 'm3' as 'm3' | 't', retained: '', method: '' as OrbMethod | '', place: '', start: '', stop: '', grade: '', bdnNo: '', receiptNo: '', remarks: '', ...ORIGIN_BLANK };
   const [f, setF] = useState(blank);
   const bookDraft = useBookDraft({ book: 'orb', open: adding, f, setF, blank: () => ({ ...blank, time: hhmm() }) });
   const fields = ORB_FIELDS[f.code];
@@ -88,7 +90,8 @@ export default function OrbSc() {
     ...(f.receiptNo.trim() ? { receiptNo: f.receiptNo.trim() } : {}),
     ...(f.remarks.trim() ? { remarks: f.remarks.trim() } : {}),
   };
-  const problem = orbProblem(draft as any);
+  const later = laterEntry({ date: f.date, time: f.time, shipOffset: entryZone(f.date, f.time) }, current(all));
+  const problem = orbProblem(draft as any) ?? (originProblem(!!later, f.lateWhy, f.fromPaper) ? t('origin.needWhy') : null);
   const preview = orbText(draft as any);
 
   // Bunkerings in Fuel this month not yet in the book (matched by BDN or date + litres).
@@ -103,7 +106,7 @@ export default function OrbSc() {
     if (!sig) return;
     const now = Date.now();
     const head = chainHead(all);
-    const e: OrbEntry = withSeal({ id: uid('orb'), ...(draft as any), shipOffset: entryZone((draft as any).date, (draft as any).time), text: preview, by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), byId: signer.key, at: now, ...(head ? { prev: head } : {}), ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now }, sig);
+    const e: OrbEntry = withSeal({ id: uid('orb'), ...(draft as any), ...originFields(!!later, f.lateWhy, f.fromPaper, f.paperPage), shipOffset: entryZone((draft as any).date, (draft as any).time), text: preview, by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), byId: signer.key, at: now, ...(head ? { prev: head } : {}), ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now }, sig);
     await appendRow(storage.ORB_KEY, e);
     bookDraft.clear();
     setF({ ...blank, time: hhmm() });
@@ -191,6 +194,7 @@ export default function OrbSc() {
             {fields.includes('receiptNo') ? T({ k: "receiptNo",  ph: t('log.receiptNo') }) : null}
           </View>
           <TextInput style={[styles.input, { minHeight: 50 }]} value={f.remarks} onChangeText={(v) => setF({ ...f, remarks: v })} placeholder={f.code === 'F' || f.code === 'G' ? t('orb.phWhat') : f.code === 'I' ? t('orb.phRemarkReq') : t('book.remarks')} placeholderTextColor={COLORS.textLight} multiline />
+          <EntryOriginFields later={later} value={f} onChange={(o) => setF({ ...f, ...o })} />
           <Text style={styles.previewLabel}>{t('book.inBook')}</Text>
           <Text style={styles.preview}>{`${f.code} · ${preview || '—'}`}</Text>
           {problem ? <Text style={styles.problem}>{`⚠ ${problem}`}</Text> : null}
@@ -206,6 +210,7 @@ export default function OrbSc() {
           <View style={{ flex: 1 }}>
             <Text style={[styles.text, e.cancelled && { textDecorationLine: 'line-through' }]}>{e.text}</Text>
             <Text style={styles.sub}>{`${uiDate(e.date)}${e.time ? ` ${e.time}` : ''} · ${e.byRank ? `${e.by} (${e.byRank})` : e.by}`}</Text>
+            {originNote(e) ? <Text style={[styles.sub, { color: COLORS.warning }]}>{originNote(e)}</Text> : null}
             <AmendNote rec={e} all={all} summary={(p) => `${p.code} · ${p.text}`} />
             {ver.stage(e)}
           </View>

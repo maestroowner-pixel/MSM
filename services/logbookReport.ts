@@ -1,3 +1,4 @@
+import { originNote } from './entryOrigin';
 // ===================================
 // A month of a record book on the shared screen (Sewage, Ballast water) —
 // PDF (A4 portrait: date, code, record of operations, officer's signature) and
@@ -28,7 +29,7 @@ export function logRows(entries: LogEntry[]): string[][] {
   return entries.map((e) => [
     entryWhen(e.date, e.time, e.shipOffset),
     printedCode(e),
-    [e.cancelled ? `[DELETED — ${e.editReason ?? ''} (${e.editedBy ?? ''})]` : e.supersedes ? `[Amended — ${e.editReason ?? ''} (${e.editedBy ?? ''})]` : '', e.text].filter(Boolean).join(' '),
+    [e.cancelled ? `[DELETED — ${e.editReason ?? ''} (${e.editedBy ?? ''})]` : e.supersedes ? `[Amended — ${e.editReason ?? ''} (${e.editedBy ?? ''})]` : '', e.text, originNote(e) ? `[${originNote(e)}]` : ''].filter(Boolean).join(' '),
     e.byRank ? `${e.by} (${e.byRank})` : e.by,
   ]);
 }
