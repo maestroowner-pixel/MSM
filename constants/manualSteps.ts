@@ -7,7 +7,7 @@ export interface StepAct { t: string; steps: string[]; note?: string; who?: Step
 export interface StepScreen { id: string; title: string; path: string[]; who: StepWho; perVessel?: boolean; intro: string; acts: StepAct[] }
 export interface StepGroup { title: string; screens: StepScreen[] }
 
-/** 104 screens, 554 actions. */
+/** 104 screens, 555 actions. */
 export const MANUAL_STEPS: StepGroup[] = [
  {
   "title": "Getting started",
@@ -2922,6 +2922,17 @@ export const MANUAL_STEPS: StepGroup[] = [
       "who": "officers"
      },
      {
+      "t": "Make the crew roll for the flag",
+      "steps": [
+       "**On board (PDF)** — name, position, Certificate of Competency, place of birth, age, nationality, passport",
+       "or **Crew details (PDF)** — a page per person, with next of kin, embarkation and days aboard",
+       "or **History, 5 years (PDF)** — every trip: port and date of embarkation, place and date of landing",
+       "Sign and stamp the Master’s line if it goes on paper"
+      ],
+      "note": "What Panama asks of an electronic crew roll (MMC-193). The CoC is the person’s certificate named CoC, competency, licence or STCW II/III/IV.",
+      "who": "officers"
+     },
+     {
       "t": "Bring the crew in from a sheet",
       "steps": [
        "**Excel template** — the columns",
@@ -2939,7 +2950,7 @@ export const MANUAL_STEPS: StepGroup[] = [
        "Tap the person",
        "**Photo** — **Take — camera** / **Choose**, **Adjust**",
        "**Rank / position**, **Cabin No.**",
-       "**On board** / **Signed off**, **Signed on**, **Port of embarkation**",
+       "**On board** / **Signed off**, **Signed on**, **Port of embarkation**, **Place of landing** when they leave",
        "**Has the right to sign** — a rating who may sign on a shared tablet",
        "**Personal details (crew list)** — date and place of birth, nationality, passport, seaman’s book, phone, home address, next of kin",
        "**Save**"
@@ -2994,7 +3005,7 @@ export const MANUAL_STEPS: StepGroup[] = [
        "**Sign on** under their name",
        "Their certificates and details are as they left them"
       ],
-      "note": "Signing on again clears the old contract end — set the new one on the card."
+      "note": "Signing on again keeps the trip they finished under **Earlier trips on this vessel** on the card (for the crew roll’s history) and clears the old contract end — set the new one on the card."
      },
      {
       "t": "Add a new joiner",

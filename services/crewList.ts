@@ -21,6 +21,7 @@ import { CrewMember, CrewPrivate, isAboard } from '../types/crew';
 import { parseDateCell } from '../utils/dates';
 import { toCountryCode } from '../constants/countries';
 import { uid } from '../utils/id';
+import { signOnAgain } from './crewRoll';
 
 /** Template columns, in order. ★ = needed. */
 export const CREW_COLUMNS = [
@@ -198,8 +199,11 @@ export function planCrewImport(rows: CrewRow[], crew: CrewMember[], privates: Cr
   for (const r of rows) {
     const had = byName.get(norm(r.name));
     const id = had?.id ?? uid('crew');
+    // Back after leaving: the finished trip is kept before the sheet's dates start a new one.
+    const back = had && (had.onBoard === false || had.signOff) ? signOnAgain(had, r.signOn ?? new Date(now).toISOString().slice(0, 10)) : {};
     const member: CrewMember = {
       ...(had ?? { id, name: r.name, addedAt: now, updatedAt: now, active: true }),
+      ...back,
       ...filled({ rank: r.rank, cabin: r.cabin, signOn: r.signOn, signOnPort: r.signOnPort }),
       name: had?.name ?? r.name,
       active: true,

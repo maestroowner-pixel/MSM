@@ -668,6 +668,16 @@ app mirrors. Bundle id `com.kukalab.msm`.
   the copy's date cell is `entryWhen` (three lines: LT, zone, UTC); entries before 2.77 print as written — no zone is guessed for them.
   **Position from the Deck log** — `PositionInput deckAt={{date, time}}` offers `deckFix` (utils/position: nearest Deck log entry with a position
   within 4 h, drafts said) as a chip the officer taps; never filled silently. `check:logbooks`, `check:seal` cover all three.
+- **Crew roll — Panama gap P4** (21 Nov 2026, MMC-193 §4.3.1; no flag — part of the crew list, ships with 2.78): pure `services/crewRoll.ts`,
+  paper `services/crewRollReport.ts` (PMS-history PDF, shared/saved), three buttons under the crew list (CrewSc): **On board** (name, position,
+  CoC, place of birth, age, nationality, passport), **Crew details** (a page per person: + next of kin name/address, embarkation, days aboard),
+  **History, 5 years** (every trip touching the last five years: embarkation port/date, landing place/date, age at embarkation). A trip =
+  one stay: the current one is still `signOn/signOnPort/signOff` + new `signOffPort`; **every sign-on goes through `signOnAgain`** (CrewMemberSc,
+  CrewMatrixSc, `planCrewImport`), which moves a finished trip into `CrewMember.trips` first — a new sign-on path that sets `signOn` directly
+  overwrites history (check:crewroll greps for it). Lists before 2.78 hold only the latest trip. CoC = the person's crew certificate whose name
+  matches CoC/competency/licence/STCW II–IV/OOW (`cocOf`). Erasing personal details within five years of leaving warns (`recentlyLeft`).
+  Username/password of §4.3.1 = the accounts (invitation + PIN). Web: on a browser with Web Share the PDF goes to the share sheet (headless
+  Opera never answers it — undefine `navigator.share` in tests). `npm run check:crewroll`.
 - **Checklists** (`constants/checklists.ts`): 30 templates keyed `<category>.<period>`, weekly
   and/or monthly, plus a `genericTemplate` fallback so no category can refuse a round. **Line ids
   are permanent** — they are the keys of every stored `results` map, so re-word freely but never

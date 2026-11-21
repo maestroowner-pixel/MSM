@@ -52,10 +52,25 @@ export interface CrewMember {
   signOnPort?: string;
   /** yyyy-mm-dd left the vessel. */
   signOff?: string;
+  /** Place of landing — where they left (the crew roll's history asks for it, MMC-193 §4.3.1). */
+  signOffPort?: string;
+  /** Earlier trips on this vessel, oldest first, kept by signing on again (services/crewRoll `signOnAgain`). */
+  trips?: CrewTrip[];
   /** Has the right to sign though the rank is not an officer's (`maySign`). */
   canSign?: boolean;
   /** yyyy-mm-dd the current contract ends — the end-of-contract appraisal is asked for 30 days before (services/appraisals). */
   contractEnd?: string;
+}
+
+/** One stay aboard: joined, where, left, where, in what position. */
+export interface CrewTrip {
+  /** yyyy-mm-dd */
+  on?: string;
+  onPort?: string;
+  /** yyyy-mm-dd; absent = still aboard (only the current trip, never a kept one). */
+  off?: string;
+  offPort?: string;
+  rank?: string;
 }
 
 /** Aboard and current: who records hours of rest and appears in the matrix. */

@@ -24,6 +24,7 @@ import { useData } from '../contexts/DataContext';
 import { moduleOn } from '../constants/modules';
 import SimpleDatePicker from '../components/SimpleDatePicker';
 import { crewListGaps, crewListRows, planCrewImport } from '../services/crewList';
+import { shareCrewRoll } from '../services/crewRollReport';
 import { exportCrewListPdf, exportCrewSheet, exportCrewTemplate, pickCrewSheet } from '../services/crewListReport';
 import { pickSheetRows } from '../services/sheetFiles';
 import { aiRenameHeadings, rowsToWorkbook } from '../services/aiImport';
@@ -380,6 +381,15 @@ export default function CrewSc() {
             <TouchableOpacity style={styles.listBtnOutline} onPress={() => void importSdm.run()}>
               <Text style={styles.listBtnOutlineText}>{t('crw.sdm')}</Text>
             </TouchableOpacity>
+          </View>
+          <Text style={[styles.meta, { marginTop: SIZES.md }]}>{t('crw.rollHint')}</Text>
+          <View style={styles.listBtns}>
+            {(['onboard', 'details', 'history'] as const).map((k) => (
+              <TouchableOpacity key={k} style={styles.listBtnOutline} onPress={() => void shareCrewRoll(k, { crew, privates: crewPrivate, certs: certificates, today: shipToday() }, vessel).then((w) => { if (typeof w === 'string') setListSaved(w === 'Downloads' ? t('common.savedDownloads') : t('common.savedFolder', { folder: w })); }).catch((e) => Alert.alert(t('crw.roll'), String(e?.message ?? e)))}>
+                <MciIcon name="file-pdf-box" size={16} color={COLORS.primary} />
+                <Text style={styles.listBtnOutlineText}>{t(`crw.roll.${k}`)}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
           {listing ? (
             <View style={{ marginTop: SIZES.md }}>

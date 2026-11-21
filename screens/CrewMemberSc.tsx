@@ -24,6 +24,7 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { CrewMember, CrewPrivate, NextOfKin, isOfficerRank } from '../types/crew';
+import { recentlyLeft, signOnAgain } from '../services/crewRoll';
 import { isCountryCode } from '../constants/countries';
 import { crewIssues, issueSummary } from '../services/crewIssues';
 import { useSdmImport } from '../components/useSdmImport';
@@ -129,13 +130,13 @@ export default function CrewMemberSc() {
   // Plan item 60: the Master, for someone who has left. Their row and signed records stay.
   const canErase = !isNew && m.onBoard === false && (!sync.enrolled || sync.role === 'superadmin');
   const erasePersonal = () =>
-    Alert.alert(t('crew.erase'), t('crew.eraseBody', { name: m.name }), [
+    Alert.alert(t('crew.erase'), t('crew.eraseBody', { name: m.name }) + (recentlyLeft(m, todayIso()) ? `\n\n${t('crew.eraseRoll', { name: m.name })}` : ''), [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('crew.erase'), style: 'destructive', onPress: async () => { await eraseCrewPersonal(id); setP({ id, updatedAt: Date.now() }); Alert.alert(t('crew.erase'), t('crew.eraseDone')); } },
     ]);
 
   const toggleAboard = (on: boolean) =>
-    setMember(on ? { onBoard: true, signOn: todayIso(), signOff: undefined, contractEnd: undefined } : { onBoard: false, signOff: todayIso() });
+    setMember(on ? signOnAgain(m, todayIso()) : { onBoard: false, signOff: todayIso() });
 
   const addCert = () => {
     const c: Certificate = { id: uid('cert'), scope: 'crew', crewId: id, holderName: m.name, name: '', itemIds: [], createdAt: Date.now(), updatedAt: Date.now() };
@@ -247,6 +248,17 @@ export default function CrewMemberSc() {
               </View>
             </View>
             {F({ label: t('crew.portEmb'), value: m.signOnPort, onChange: (v) => setMember({ signOnPort: v }), placeholder: 'Palma de Mallorca' })}
+            {m.onBoard === false ? F({ label: t('crew.portLand'), value: m.signOffPort, onChange: (v) => setMember({ signOffPort: v }), placeholder: 'Barcelona' }) : null}
+            {m.trips?.length ? (
+              <View style={{ marginTop: SIZES.sm }}>
+                <Label>{t('crew.trips')}</Label>
+                {[...m.trips].reverse().map((tr, i) => (
+                  <Text key={`${tr.on ?? ''}${tr.off ?? ''}${i}`} style={styles.sub}>
+                    {[[tr.on ? uiDate(tr.on) : '?', tr.off ? uiDate(tr.off) : ''].join(' – '), [tr.onPort, tr.offPort].filter(Boolean).join(' → '), tr.rank].filter(Boolean).join(' · ')}
+                  </Text>
+                ))}
+              </View>
+            ) : null}
             {apOn ? (
               <View style={{ marginTop: SIZES.sm }}>
                 <SimpleDatePicker label={t('ap.contractEnd')} value={m.contractEnd} onChange={(d) => setMember({ contractEnd: d })} onClear={() => setMember({ contractEnd: undefined })} disabled={!canEdit} />

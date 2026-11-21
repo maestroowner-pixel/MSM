@@ -31,6 +31,7 @@ import { CrewMember, isAboard } from '../types/crew';
 import { roleAtLeast } from '../types/role';
 import { statusFromDate } from '../utils/dates';
 import { todayIso } from '../services/pms';
+import { signOnAgain } from '../services/crewRoll';
 import { uid } from '../utils/id';
 import { crewIssues, worstIssue } from '../services/crewIssues';
 import { t, useT } from '../utils/i18n';
@@ -105,7 +106,7 @@ export default function CrewMatrixSc() {
     nav.navigate('CertificateDetail', { id: null, draft: c });
   };
 
-  const signOn = (p: CrewMember) => saveCrewMember({ ...p, onBoard: true, signOn: todayIso(), signOff: undefined });
+  const signOn = (p: CrewMember) => saveCrewMember({ ...p, ...signOnAgain(p, todayIso()) });
 
   const short = (iso?: string) => (iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(2, 4)}` : t('cm.noExpiry'));
 
