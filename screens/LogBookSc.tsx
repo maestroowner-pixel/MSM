@@ -24,7 +24,7 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { SIZES, Palette } from '../theme';
 import { BookKey, LogEntry, LogField, LogMonthSign } from '../types/logbook';
-import { BOOKS } from '../services/logbooks';
+import { BOOKS, printedCode } from '../services/logbooks';
 import { exportLogExcel, exportLogPdf, logCopy } from '../services/logbookReport';
 import { current } from '../services/versions';
 import * as storage from '../services/storage';
@@ -45,7 +45,7 @@ const STORE: Record<BookKey, { key: string; signs: string }> = {
 };
 const ROUTE_BOOK: Record<string, BookKey> = { Sewage: 'sewage', Ballast: 'ballast', FuelChangeover: 'fuelChange', Ods: 'ods' };
 const SIGNS: Record<BookKey, 'sewageSigns' | 'ballastSigns' | 'fuelChangeSigns' | 'odsSigns'> = { sewage: 'sewageSigns', ballast: 'ballastSigns', fuelChange: 'fuelChangeSigns', ods: 'odsSigns' };
-const NUMERIC: LogField[] = ['quantity', 'distance', 'speed', 'depth', 'sulphur', 'mass'];
+const NUMERIC: LogField[] = ['quantity', 'distance', 'speed', 'depth', 'sulphur', 'mass', 'rob'];
 const hhmm = () => shipHm();
 const num = (v: string) => (v.trim() === '' ? undefined : Number(v.replace(',', '.')));
 
@@ -77,8 +77,9 @@ export default function LogBookSc() {
   const ver = useVerification({ all, book, signs, month, prefix: bookKey, what: `${spec.title} record`, isMaster, signer, picker, save: (x) => appendRow(store.signs, x), copy: (m, o) => logCopy(spec, current(all).filter((e) => e.date.startsWith(m) && (!o.only || o.only.includes(e.id))).sort((p, q) => `${p.date}${p.time ?? ''}`.localeCompare(`${q.date}${q.time ?? ''}`)), m, vessel, (o.signs as LogMonthSign[]) ?? signs, all, o.notes) });
 
   // ---- the form: text values, numbers parsed for the draft ----
-  type Form = { code: string; date: string; time: string; method: string; treated: boolean | null; remarks: string } & Record<Exclude<LogField, 'method' | 'treated'>, string>;
-  const blank = (): Form => ({ code: codes[0], date: today, time: hhmm(), method: '', treated: null, remarks: '', tank: '', quantity: '', place: '', placeEnd: '', start: '', stop: '', distance: '', speed: '', depth: '', receiptNo: '', sulphur: '', equipment: '', substance: '', mass: '' });
+  type Flag = 'method' | 'treated' | 'bwmp';
+  type Form = { code: string; date: string; time: string; method: string; treated: boolean | null; bwmp: boolean | null; remarks: string } & Record<Exclude<LogField, Flag>, string>;
+  const blank = (): Form => ({ code: codes[0], date: today, time: hhmm(), method: '', treated: null, bwmp: null, remarks: '', tank: '', quantity: '', place: '', placeEnd: '', start: '', stop: '', distance: '', speed: '', depth: '', receiptNo: '', sulphur: '', equipment: '', substance: '', mass: '', rob: '', treatment: '', facility: '', area: '' });
   const [f, setF] = useState<Form>(blank);
   const cs = spec.codes[f.code] ?? spec.codes[codes[0]];
   const draft: Partial<LogEntry> & { code: string } = { code: f.code, date: f.date, time: f.time };
@@ -87,6 +88,8 @@ export default function LogBookSc() {
       if (f.method) draft.method = f.method;
     } else if (k === 'treated') {
       if (f.treated != null) draft.treated = f.treated;
+    } else if (k === 'bwmp') {
+      if (f.bwmp != null) draft.bwmp = f.bwmp;
     } else if (NUMERIC.includes(k)) {
       const n = num(f[k]);
       if (n != null && !Number.isNaN(n)) (draft as any)[k] = n;
@@ -99,7 +102,7 @@ export default function LogBookSc() {
   const save = async () => {
     if (!signer) return Alert.alert(t('sign.who'), t('pd.chooseName'));
     if (problem) return Alert.alert(spec.title, problem);
-    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${spec.title} record — ${f.code}` });
+    const sig = await confirmSign({ personKey: signer.key, name: signer.name, ownDevice: signer.own, what: `${spec.title} record — ${printedCode({ book: bookKey, code: f.code })}` });
     if (!sig) return;
     const now = Date.now();
     const head = chainHead(all);
@@ -122,7 +125,7 @@ export default function LogBookSc() {
 
   // A plain function, not a component: a component declared here would remount
   // its TextInput on every keystroke and lose the focus.
-  const input = (k: Exclude<LogField, 'method' | 'treated'>) => (
+  const input = (k: Exclude<LogField, Flag>) => (
     <TextInput key={k} style={styles.input} value={f[k]} onChangeText={(v) => setF({ ...f, [k]: v })} placeholder={tk(`log.${k}`)} placeholderTextColor={COLORS.textLight} keyboardType={NUMERIC.includes(k) ? 'decimal-pad' : undefined} />
   );
   const timeRow = (k: 'start' | 'stop') => (
@@ -154,7 +157,7 @@ export default function LogBookSc() {
       {adding ? (
         <Card>
           <Label>{t('log.operation')}</Label>
-          <View style={styles.chips}>{codes.map((c) => chip(f.code === c, spec.codes[c].label, () => setF({ ...f, code: c, method: '' }), c))}</View>
+          <View style={styles.chips}>{codes.map((c) => chip(f.code === c, spec.codes[c].print ? `${spec.codes[c].print} · ${spec.codes[c].label}` : spec.codes[c].label, () => setF({ ...f, code: c, method: '' }), c))}</View>
           <View style={styles.pair}>
             <TextInput style={styles.input} value={f.date} onChangeText={(v) => setF({ ...f, date: v })} placeholder="yyyy-mm-dd" placeholderTextColor={COLORS.textLight} />
             <TextInput style={styles.input} value={f.time} onChangeText={(v) => setF({ ...f, time: v })} placeholder="hh:mm" placeholderTextColor={COLORS.textLight} />
@@ -171,13 +174,18 @@ export default function LogBookSc() {
             {has('substance') ? input('substance') : null}
             {has('mass') ? input('mass') : null}
           </View>
+          {has('method') && bookKey === 'ballast' && cs.methods && f.code !== 'EXCH' ? <View style={styles.chips}>{Object.entries(cs.methods).map(([k, l]) => chip(f.method === k, l, () => setF({ ...f, method: k }), k))}</View> : null}
+          {has('facility') && (f.code !== 'SED' || f.method === 'shore') ? input('facility') : null}
           {has('tank') ? input('tank') : null}
           <View style={styles.pair}>
             {has('quantity') ? input('quantity') : null}
+            {has('rob') ? input('rob') : null}
             {has('sulphur') ? input('sulphur') : null}
           </View>
-          {bookKey !== 'fuelChange' && has('method') && cs.methods ? <View style={styles.chips}>{Object.entries(cs.methods).map(([k, l]) => chip(f.method === k, l, () => setF({ ...f, method: k }), k))}</View> : null}
+          {bookKey !== 'fuelChange' && (bookKey !== 'ballast' || f.code === 'EXCH') && has('method') && cs.methods ? <View style={styles.chips}>{Object.entries(cs.methods).map(([k, l]) => chip(f.method === k, l, () => setF({ ...f, method: k }), k))}</View> : null}
           {has('treated') ? <View style={styles.chips}>{chip(f.treated === true, t('log.treated'), () => setF({ ...f, treated: true }))}{chip(f.treated === false, t('log.notTreated'), () => setF({ ...f, treated: false }))}</View> : null}
+          {has('bwmp') ? <View style={styles.chips}>{chip(f.bwmp === true, t('log.bwmp'), () => setF({ ...f, bwmp: true }))}{chip(f.bwmp === false, t('log.notBwmp'), () => setF({ ...f, bwmp: false }))}</View> : null}
+          {has('treatment') ? input('treatment') : null}
           {/* An operation at sea with a start and an end: each is a time and a
               position (13 Oct 2026). Otherwise: position or port, and the times. */}
           {has('placeEnd') ? (
@@ -193,7 +201,17 @@ export default function LogBookSc() {
               />
               <Label>{t('log.end')}</Label>
               {has('stop') ? timeRow('stop') : null}
-              <PositionInput label={t('log.placeEnd')} portAllowed={false} position={f.placeEnd} onChange={(pos) => setF((x) => ({ ...x, placeEnd: pos }))} deckAt={{ date: f.date, time: f.stop || f.time }} />
+              {cs.endPort ? (
+                <PositionInput
+                  label={t('log.placeEnd')}
+                  position={parsePosition(f.placeEnd) ? f.placeEnd : ''}
+                  port={parsePosition(f.placeEnd) ? '' : f.placeEnd}
+                  onChange={(pos, port) => setF((x) => ({ ...x, placeEnd: pos || port }))}
+                  deckAt={{ date: f.date, time: f.stop || f.time }}
+                />
+              ) : (
+                <PositionInput label={t('log.placeEnd')} portAllowed={false} position={f.placeEnd} onChange={(pos) => setF((x) => ({ ...x, placeEnd: pos }))} deckAt={{ date: f.date, time: f.stop || f.time }} />
+              )}
             </>
           ) : (
             <>
@@ -212,15 +230,18 @@ export default function LogBookSc() {
               </View>
             </>
           )}
-          <View style={styles.pair}>
-            {has('distance') ? input('distance') : null}
-            {has('speed') ? input('speed') : null}
-            {has('depth') ? input('depth') : null}
-          </View>
-          {has('receiptNo') ? input('receiptNo') : null}
+          {f.code !== 'SED' || f.method !== 'shore' ? (
+            <View style={styles.pair}>
+              {has('distance') && (f.code !== 'SED' || f.method === 'sea') && !f.area.trim() ? input('distance') : null}
+              {has('speed') ? input('speed') : null}
+              {has('depth') && (f.code !== 'SED' || f.method === 'sea') && !(f.code === 'EXCH' && f.area.trim()) ? input('depth') : null}
+            </View>
+          ) : null}
+          {has('area') ? input('area') : null}
+          {has('receiptNo') && (f.code !== 'SED' || f.method === 'shore') ? input('receiptNo') : null}
           <TextInput style={[styles.input, { minHeight: 50 }]} value={f.remarks} onChangeText={(v) => setF({ ...f, remarks: v })} placeholder={t('book.remarks')} placeholderTextColor={COLORS.textLight} multiline />
           <Text style={styles.previewLabel}>{t('book.inBook')}</Text>
-          <Text style={styles.preview}>{`${f.code} · ${preview || '—'}`}</Text>
+          <Text style={styles.preview}>{`${printedCode({ book: bookKey, code: f.code })} · ${preview || '—'}`}</Text>
           {problem ? <Text style={styles.problem}>{`⚠ ${problem}`}</Text> : null}
           {picker ? <><Text style={styles.sub}>{t('book.oic')}</Text>{picker}</> : null}
           <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start', marginTop: SIZES.md }, problem && { opacity: 0.5 }]} onPress={() => void save()}><Text style={styles.btnText}>{t('book.signEntry')}</Text></TouchableOpacity>
@@ -230,7 +251,7 @@ export default function LogBookSc() {
       <Label>{t('book.entries', { n: book.length })}</Label>
       {book.map((e) => (
         <View key={e.id} style={[styles.entry, e.cancelled && { opacity: 0.6 }]}>
-          <View style={styles.code}><Text style={styles.codeText} numberOfLines={1}>{e.code}</Text></View>
+          <View style={styles.code}><Text style={styles.codeText} numberOfLines={1}>{printedCode(e)}</Text></View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.text, e.cancelled && { textDecorationLine: 'line-through' }]}>{e.text}</Text>
             <Text style={styles.sub}>{`${uiDate(e.date)}${e.time ? ` ${e.time}` : ''} · ${spec.codes[e.code]?.label ?? e.code} · ${e.byRank ? `${e.by} (${e.byRank})` : e.by}`}</Text>
@@ -240,8 +261,8 @@ export default function LogBookSc() {
           {!e.cancelled ? (
             <AmendButtons
               isMaster={isMaster}
-              onEdit={() => amend.edit({ store: store.key, record: e, what: `${spec.title} ${e.code}, ${formatDate(e.date)}`, fields: [{ key: 'date', label: t('book.fDate') }, { key: 'time', label: t('book.fTime') }, { key: 'text', label: t('book.fText'), kind: 'multiline' }] })}
-              onDelete={() => amend.remove({ store: store.key, record: e, what: `${spec.title} ${e.code}, ${formatDate(e.date)}` })}
+              onEdit={() => amend.edit({ store: store.key, record: e, what: `${spec.title} ${printedCode(e)}, ${formatDate(e.date)}`, fields: [{ key: 'date', label: t('book.fDate') }, { key: 'time', label: t('book.fTime') }, { key: 'text', label: t('book.fText'), kind: 'multiline' }] })}
+              onDelete={() => amend.remove({ store: store.key, record: e, what: `${spec.title} ${printedCode(e)}, ${formatDate(e.date)}` })}
             />
           ) : null}
         </View>

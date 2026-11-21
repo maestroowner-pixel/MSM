@@ -107,6 +107,12 @@ export interface DeckEntry {
   wxCondition?: string;
 
   // ─── Signature ───────────────────────────────────────────────────────────
+  /**
+   * The ship's zone `date` and `time` stand in ("+02:00"), frozen when the entry is signed
+   * (services/deckLog zoneOnSign, 21 Nov 2026, Panama MMC-193 §4.1.2) — the true copy prints
+   * ship's time and UTC. Entries signed before 2.78 have none and print as written.
+   */
+  shipOffset?: string;
   by: string;
   byRank?: string;
   at: number;

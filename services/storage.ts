@@ -266,6 +266,11 @@ export interface VesselInfo {
   /** Where the vessel lies now — the gangway logbook's port and berth (11 Oct 2026). */
   port?: string;
   berth?: string;
+  /** Gross tonnage, International Ballast Water Management Certificate No. and total ballast water capacity (m³) —
+   *  the cover of the Ballast Water Record Book (BWM Appendix II); printed on its true copy. Optional; since 2.78. */
+  gross_tonnage?: string;
+  ibwm_cert_no?: string;
+  bw_capacity?: string;
   /** Ship's time as an offset from UTC ("+02:00"); unset — the device's own zone (utils/shipTime.ts). */
   ship_utc_offset?: string;
   /** Clock changes, planned and made — the history behind ship's time (utils/shipTime.ts, 25 Oct 2026). */

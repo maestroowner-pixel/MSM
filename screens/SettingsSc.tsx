@@ -246,7 +246,7 @@ export default function SettingsSc() {
   /** Does the form differ from what is stored? What makes Save mean something. */
   const vesselDirty = useMemo(
     () =>
-      (['vessel_name', 'imo', 'flag', 'call_sign', 'mmsi', 'ship_utc_offset'] as (keyof VesselInfo)[]).some(
+      (['vessel_name', 'imo', 'flag', 'call_sign', 'mmsi', 'ship_utc_offset', 'gross_tonnage', 'ibwm_cert_no', 'bw_capacity'] as (keyof VesselInfo)[]).some(
         (k) => String(form[k] ?? '').trim() !== String(vessel?.[k] ?? '').trim()
       ),
     [form, vessel]
@@ -716,6 +716,14 @@ export default function SettingsSc() {
         <FormField label={tr('set.flag')} value={form.flag} onChange={(v) => setForm({ ...form, flag: v })} />
         <FormField label={tr('set.callSign')} value={form.call_sign} onChange={(v) => setForm({ ...form, call_sign: v })} />
         <FormField label="MMSI" value={form.mmsi} onChange={(v) => setForm({ ...form, mmsi: v })} keyboard="number-pad" />
+        {/* The Ballast Water Record Book's cover (BWM Appendix II) — optional, printed on its true copy. */}
+        {moduleOn('ballast') ? (
+          <>
+            <FormField label={tr('set.gt')} value={form.gross_tonnage} onChange={(v) => setForm({ ...form, gross_tonnage: v })} keyboard="number-pad" />
+            <FormField label={tr('set.ibwmCert')} value={form.ibwm_cert_no} onChange={(v) => setForm({ ...form, ibwm_cert_no: v })} />
+            <FormField label={tr('set.bwCapacity')} value={form.bw_capacity} onChange={(v) => setForm({ ...form, bw_capacity: v })} />
+          </>
+        ) : null}
         {/* Ship's time — the reports' header shows it beside UTC (13 Oct 2026). */}
         <View style={{ marginTop: SIZES.sm }}>
           <Dropdown

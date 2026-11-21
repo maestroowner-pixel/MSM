@@ -1,5 +1,5 @@
 import { DeckEntry, Visibility, WatchPeriod, WindDir } from '../types/deckLog';
-import { shipHm, shipHour, shipToday } from '../utils/shipTime';
+import { entryZone, shipHm, shipHour, shipToday } from '../utils/shipTime';
 
 export const PERIOD_LABEL: Record<WatchPeriod, string> = {
   '00-04': '00:00 – 04:00',
@@ -109,4 +109,16 @@ export function currentPeriod(): WatchPeriod {
   if (h < 16) return '12-16';
   if (h < 20) return '16-20';
   return '20-00';
+}
+
+/**
+ * The entry as it is saved, with the ship's zone of its date and time frozen at the signature
+ * (Panama MMC-193 §4.1.2: ship's time and UTC). A draft gets none yet; an entry already signed
+ * is left as it is — the rules let a signed entry take only the Master's review, and a zone
+ * added later would not be the one it was signed in.
+ */
+export function zoneOnSign<T extends { draft?: boolean; shipOffset?: string; date: string; time: string }>(row: T, prev?: { draft?: boolean } | null): T {
+  if (row.draft || row.shipOffset || (prev && !prev.draft)) return row;
+  if (!row.date) return row;
+  return { ...row, shipOffset: entryZone(row.date, row.time) };
 }

@@ -12,7 +12,7 @@ import * as XLSX from 'xlsx';
 
 import { VesselInfo } from './storage';
 import { esc, share, vesselHeader } from './export';
-import { BookSpec } from './logbooks';
+import { BookSpec, cover, printedCode } from './logbooks';
 import { LogEntry, LogMonthSign } from '../types/logbook';
 import { deliverFile, onWeb, onWindows } from '../utils/fileShare';
 import { saveFileWeb } from '../utils/webSave';
@@ -27,7 +27,7 @@ export const LOG_HEAD = ['Date', 'Code', 'Record of operations', 'Signature of o
 export function logRows(entries: LogEntry[]): string[][] {
   return entries.map((e) => [
     entryWhen(e.date, e.time, e.shipOffset),
-    e.code,
+    printedCode(e),
     [e.cancelled ? `[DELETED — ${e.editReason ?? ''} (${e.editedBy ?? ''})]` : e.supersedes ? `[Amended — ${e.editReason ?? ''} (${e.editedBy ?? ''})]` : '', e.text].filter(Boolean).join(' '),
     e.byRank ? `${e.by} (${e.byRank})` : e.by,
   ]);
@@ -63,14 +63,14 @@ export function logCopy(spec: BookSpec, entries: LogEntry[], month: string, vess
   const { rows, struck } = logCopyRows(entries, all, signs, notes);
   const copy = {
     title: titleOf(spec, month),
-    subtitle: `${vesselHeader(vessel)} · ${spec.subtitle}`,
+    subtitle: [`${vesselHeader(vessel)} · ${spec.subtitle}`, cover(spec, vessel)].filter(Boolean).join('\n'),
     vessel: [vessel?.vessel_name, vessel?.imo ? `IMO ${vessel.imo}` : null].filter(Boolean).join(' · ') || 'Vessel',
     orientation: 'portrait' as const,
     head: LOG_COPY_HEAD,
     rows,
     struck,
     // The code column as wide as the book's longest code (DEPART broke letter by letter in 11 mm).
-    columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: Math.max(11, 3 + 1.9 * Math.max(...Object.keys(spec.codes).map((k) => k.length))), halign: 'center' }, 3: { cellWidth: 40 }, 4: { cellWidth: 32 } },
+    columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: Math.max(11, 3 + 1.9 * Math.max(...Object.entries(spec.codes).map(([k, c]) => (c.print ?? k).length))), halign: 'center' }, 3: { cellWidth: 40 }, 4: { cellWidth: 32 } },
     verifications: verificationLines(signs.filter((s) => s.month === month)),
     integrity: integrityLines(monthIntegrity(entries, all, signs, month)),
     awaiting: awaiting(entries, verifiedIds(all, signs)).length,
@@ -99,7 +99,7 @@ export async function exportLogPdf(spec: BookSpec, entries: LogEntry[], month: s
 }
 
 export async function exportLogExcel(spec: BookSpec, entries: LogEntry[], month: string, vessel: VesselInfo | null, signs: LogMonthSign[], all: LogEntry[]): Promise<string | null | void> {
-  const ws = XLSX.utils.aoa_to_sheet([[titleOf(spec, month)], [vesselHeader(vessel)], [], LOG_COPY_HEAD, ...logCopyRows(entries, all, signs).rows, [], ...verificationLines(signs.filter((s) => s.month === month)).map((l) => [l])]);
+  const ws = XLSX.utils.aoa_to_sheet([[titleOf(spec, month)], [vesselHeader(vessel)], ...(cover(spec, vessel) ? [[cover(spec, vessel)]] : []), [], LOG_COPY_HEAD, ...logCopyRows(entries, all, signs).rows, [], ...verificationLines(signs.filter((s) => s.month === month)).map((l) => [l])]);
   ws['!cols'] = [{ wch: 16 }, { wch: 7 }, { wch: 90 }, { wch: 34 }, { wch: 34 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, spec.title);

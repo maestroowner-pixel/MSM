@@ -17,7 +17,7 @@ import type { Versioned } from '../services/versions';
 export type BookKey = 'sewage' | 'ballast' | 'fuelChange' | 'ods';
 
 /** Every field a book's codes may ask for. */
-export type LogField = 'tank' | 'quantity' | 'method' | 'place' | 'placeEnd' | 'start' | 'stop' | 'distance' | 'speed' | 'depth' | 'treated' | 'receiptNo' | 'sulphur' | 'equipment' | 'substance' | 'mass';
+export type LogField = 'tank' | 'quantity' | 'method' | 'place' | 'placeEnd' | 'start' | 'stop' | 'distance' | 'speed' | 'depth' | 'treated' | 'receiptNo' | 'sulphur' | 'equipment' | 'substance' | 'mass' | 'rob' | 'bwmp' | 'treatment' | 'facility' | 'area';
 
 export interface LogEntry extends Versioned {
   id: string;
@@ -54,6 +54,16 @@ export interface LogEntry extends Versioned {
   substance?: string;
   /** kg — ODS are recorded by mass. */
   mass?: number;
+  /** m³ — the final total quantity on board after the operation (BWRB 2025 form, MEPC.369(80)); since 2.78. */
+  rob?: number;
+  /** Conducted in accordance with the approved Ballast Water Management Plan; since 2.78. */
+  bwmp?: boolean;
+  /** The ballast water treatment method, as the officer words it ("BWMS UV", "none — exchange D-1"); since 2.78. */
+  treatment?: string;
+  /** The port-based or reception facility's name; since 2.78. */
+  facility?: string;
+  /** The designated exchange area (BWM reg. B-4.2), instead of distance and depth; since 2.78. */
+  area?: string;
   remarks?: string;
   text: string;
   by: string;

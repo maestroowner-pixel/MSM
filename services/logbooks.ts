@@ -7,9 +7,11 @@
 //   Sewage    MARPOL Annex IV reg. 11: treated by an approved plant — any
 //             distance; comminuted and disinfected — ≥ 3 nm; from the holding
 //             tank untreated — ≥ 12 nm, en route at ≥ 4 knots.
-//   Ballast   BWM Convention, BWRB (Appendix II): uptake, circulation /
-//             treatment, exchange (D-1: ≥ 200 nm and ≥ 200 m deep, else ≥ 50 nm),
-//             discharge, to a reception facility, accidental, BWMS failure.
+//   Ballast   BWM Convention, BWRB (Appendix II as amended by MEPC.369(80), in
+//             force 1 Feb 2025): A uptake, B discharge, C.1 exchange (D-1: ≥ 200 nm
+//             and ≥ 200 m deep, else ≥ 50 nm; or a designated area), C.2 circulation
+//             / in-tank treatment, D reception facility, E accidental, F BWMS
+//             failure, G tank cleaning / sediments, H remarks.
 //   Fuel      MARPOL Annex VI reg. 14.6: the volume of compliant fuel in each
 //   changeover tank, date, time and position when a changeover is completed
 //             before entering an ECA or commenced after leaving one; ECA fuel
@@ -21,11 +23,17 @@
 // ===================================
 
 import { BookKey, LogEntry, LogField } from '../types/logbook';
+import { parsePosition } from '../utils/position';
+import type { VesselInfo } from './storage';
 
 export interface CodeSpec {
   label: string;
   fields: LogField[];
   methods?: Record<string, string>;
+  /** The code as the form prints it (Ballast: the section letter) — the id stays the key. */
+  print?: string;
+  /** The completion location may be a port, not only a position. */
+  endPort?: boolean;
 }
 export interface BookSpec {
   key: BookKey;
@@ -107,70 +115,144 @@ export const SEWAGE: BookSpec = {
   },
 };
 
+// The Ballast Water Record Book as the form reads since 1 Feb 2025 (BWM Appendix II, MEPC.369(80)):
+// sections A–H, each with numbered items. The code ids (UP, DIS…) are PERMANENT — entries made before
+// 2.78 carry them — and `print` is the section letter the book shows and prints.
+const yn = (b?: boolean) => (b == null ? null : b ? 'yes' : 'no');
+const at = (time?: string, place?: string) => [time, place].filter(Boolean).join(' ') || null;
+/** ".1 a; .2 b" — the form's items, skipping the ones not given. */
+const items = (head: string, list: [number, string | false | null | undefined][], remarks?: string) =>
+  join([`${head}: ${list.filter(([, v]) => v).map(([n, v]) => `.${n} ${v}`).join('; ')}`, remarks]);
+const qtyRob = (e: Partial<LogEntry>) => join([m3(e.quantity), e.rob != null && `total on board ${m3(e.rob)}`]).replace('; ', ', ') || null;
+const OPS: Record<string, string> = { up: 'Uptake', dis: 'Discharge', ingress: 'Ingress' };
+
 export const BALLAST: BookSpec = {
   key: 'ballast',
   title: 'Ballast water',
   subtitle: 'Ballast Water Record Book · BWM Convention',
   help: 'Ballast water',
   codes: {
-    UP: { label: 'Ballast water taken on board', fields: ['tank', 'quantity', 'place', 'start', 'stop', 'depth', 'treated'] },
-    CIRC: { label: 'Circulated or treated for ballast water management', fields: ['tank', 'quantity', 'start', 'stop', 'treated'] },
+    UP: { print: 'A', endPort: true, label: 'Taken on board from the aquatic environment (ballasting)', fields: ['place', 'placeEnd', 'start', 'stop', 'depth', 'tank', 'quantity', 'rob', 'bwmp', 'treatment'] },
+    DIS: { print: 'B', endPort: true, label: 'Discharged into the aquatic environment (deballasting)', fields: ['place', 'placeEnd', 'start', 'stop', 'depth', 'tank', 'quantity', 'rob', 'bwmp', 'treatment'] },
     EXCH: {
-      label: 'Ballast water exchange (D-1)',
-      fields: ['tank', 'quantity', 'method', 'place', 'placeEnd', 'start', 'stop', 'distance', 'depth'],
+      print: 'C.1',
+      label: 'Ballast water exchange',
+      fields: ['place', 'placeEnd', 'start', 'stop', 'distance', 'depth', 'area', 'method', 'bwmp', 'tank', 'quantity', 'rob', 'treatment'],
       methods: { seq: 'Sequential', flow: 'Flow-through', dil: 'Dilution' },
     },
-    DIS: { label: 'Ballast water discharged into the sea', fields: ['tank', 'quantity', 'place', 'placeEnd', 'start', 'stop', 'treated'] },
-    SHORE: { label: 'Discharged to a reception facility', fields: ['tank', 'quantity', 'place', 'receiptNo'] },
-    ACC: { label: 'Accidental or other exceptional uptake or discharge', fields: ['tank', 'quantity', 'place'] },
-    BWMS: { label: 'Ballast water management system: failure, back in service', fields: ['start', 'stop'] },
+    CIRC: { print: 'C.2', label: 'Internal circulation for treatment or in-tank treatment', fields: ['start', 'stop', 'tank', 'quantity', 'treatment'] },
+    SHORE: { print: 'D', label: 'Uptake or discharge from / to a port-based or reception facility', fields: ['method', 'facility', 'place', 'start', 'stop', 'tank', 'quantity', 'rob', 'bwmp', 'treatment', 'receiptNo'], methods: { up: 'Uptake', dis: 'Discharge' } },
+    ACC: { print: 'E', label: 'Accidental discharge / ingress or other exceptional uptake or discharge', fields: ['method', 'place', 'start', 'stop', 'tank', 'quantity'], methods: { ingress: 'Ingress', up: 'Uptake', dis: 'Discharge' } },
+    BWMS: { print: 'F', endPort: true, label: 'Failure or inoperability of the ballast water management system', fields: ['method', 'place', 'placeEnd', 'start', 'stop'], methods: { up: 'During uptake', dis: 'During discharge' } },
+    SED: { print: 'G', endPort: true, label: 'Ballast tank cleaning / flushing, removal and disposal of sediments', fields: ['place', 'placeEnd', 'start', 'stop', 'tank', 'method', 'quantity', 'facility', 'receiptNo', 'distance', 'depth'], methods: { shore: 'To a reception facility', sea: 'To the aquatic environment (per BWMP)' } },
+    REM: { print: 'H', label: 'Additional operational procedures and general remarks', fields: [] },
   },
   problem: (e) => {
+    const atSea = (p?: string) => !!p && !!parsePosition(p);
     switch (e.code) {
       case 'UP':
       case 'DIS':
-        return !e.tank || e.quantity == null || !e.place ? 'Tanks, quantity and position / port are needed.' : null;
-      case 'CIRC':
-        return !e.tank || e.quantity == null ? 'Tanks and quantity.' : null;
+        if (!e.start || !e.place || !e.stop || !e.placeEnd) return 'Start and completion — time and port or position.';
+        if ((atSea(e.place) || atSea(e.placeEnd)) && e.depth == null) return 'Minimum depth of water during the operation.';
+        if (!e.tank || e.quantity == null || e.rob == null) return 'Tanks, volume and the final total on board.';
+        if (e.bwmp == null || !e.treatment) return 'Whether per the approved BWMP, and the treatment method.';
+        return null;
       case 'EXCH':
-        if (!e.tank || e.quantity == null || !e.method || !e.place || !e.placeEnd) return 'Tanks, volume, method, and the positions at start and end.';
-        if (e.distance == null || e.depth == null) return 'Distance from the nearest land and the water depth.';
+        if (!e.start || !e.place || !e.stop || !e.placeEnd) return 'Start and completion — time and position.';
+        if (!e.tank || e.quantity == null || e.rob == null || !e.method) return 'Tanks, volume exchanged, the final total on board and the method.';
+        if (e.bwmp == null || !e.treatment) return 'Whether per the BWMP, and the treatment method for the incoming water.';
+        if (e.area) return null; // a designated exchange area (reg. B-4.2): its own limits
+        if (e.distance == null || e.depth == null) return 'Distance from the nearest land and the water depth — or the designated exchange area.';
         if (e.distance < 50) return 'Exchange: at least 50 nm from the nearest land and 200 m deep (D-1).';
         if (e.depth < 200) return 'Exchange: in water at least 200 m deep (D-1).';
         return null;
+      case 'CIRC':
+        return !e.start || !e.stop || !e.tank || e.quantity == null || !e.treatment ? 'Start and completion, tanks, quantity treated and the method.' : null;
       case 'SHORE':
-        return e.quantity == null || !e.place ? 'Quantity and port.' : null;
+        if (!e.method || !e.facility || !e.place || !e.start || !e.stop) return 'Uptake or discharge, the facility and port, start and completion.';
+        if (!e.tank || e.quantity == null || e.rob == null) return 'Tanks, quantity and the final quantity on board.';
+        return e.bwmp == null || !e.treatment ? 'Whether per the approved BWMP, and the onboard treatment method.' : null;
       case 'ACC':
+        if (!e.method || !e.place || !e.start || !e.tank || e.quantity == null) return 'Ingress, uptake or discharge; where, when, tanks and quantity.';
+        return !e.remarks ? 'Describe the circumstances, the reason, any treatment and remarks.' : null;
       case 'BWMS':
-        return !e.remarks ? 'Describe the circumstances and the action taken.' : null;
+        if (!e.start || !e.place || !e.method) return 'Time and port / position of the failure, and the operation it happened in.';
+        return !e.remarks ? 'Describe the issue (e.g. the alarm).' : null;
+      case 'SED':
+        if (!e.start || !e.place || !e.tank || !e.method) return 'Start — time and port / position — the tanks, and where the sediments went.';
+        if (e.method === 'shore') return e.quantity == null || !e.facility ? 'Quantity and the name of the facility.' : null;
+        return e.quantity == null || e.distance == null || e.depth == null ? 'Quantity, distance from the nearest land and the water depth.' : null;
+      case 'REM':
+        return !e.remarks ? 'Write the remarks.' : null;
       default:
         return null;
     }
   },
   text: (e) => {
-    const tr = e.treated == null ? null : e.treated ? 'treated (BWMS)' : 'not treated';
+    // Entries before 2.78 had treated yes/no instead of the method.
+    const tr = e.treatment ?? (e.treated == null ? null : e.treated ? 'treated (BWMS)' : 'not treated');
+    const op = e.method ? OPS[e.method] ?? e.method : null;
     switch (e.code) {
       case 'UP':
-        return join([`Uptake ${m3(e.quantity)} into ${e.tank ?? '…'}`, span(e), e.place, e.depth != null && `depth ${e.depth} m`, tr, e.remarks]);
-      case 'CIRC':
-        return join([`Circulated / treated ${m3(e.quantity)} in ${e.tank}`, span(e), tr, e.remarks]);
+      case 'DIS':
+        return items(e.code === 'UP' ? 'Ballasting' : 'Deballasting', [
+          [1, at(e.start, e.place)],
+          [2, join([at(e.stop, e.placeEnd), e.depth != null && `min. depth ${e.depth} m`]).replace('; ', ', ')],
+          [3, e.tank],
+          [4, qtyRob(e)],
+          [5, yn(e.bwmp) && `per BWMP: ${yn(e.bwmp)}`],
+          [6, tr],
+        ], e.remarks);
       case 'EXCH': {
         const meth = e.method ? BALLAST.codes.EXCH.methods![e.method] ?? e.method : '';
-        return join([`Exchange (${meth}) ${m3(e.quantity)} in ${e.tank}`, span(e), where(e), e.distance != null && `${e.distance} nm from land`, e.depth != null && `depth ${e.depth} m`, e.remarks]);
+        return items(`Exchange (${meth})`, [
+          [1, at(e.start, e.place)],
+          [2, at(e.stop, e.placeEnd)],
+          [3, e.area ? `designated area ${e.area}` : join([e.distance != null && `${e.distance} nm from land`, e.depth != null && `min. depth ${e.depth} m`]).replace('; ', ', ')],
+          [4, join([yn(e.bwmp) && `per BWMP: ${yn(e.bwmp)}`, meth]).replace('; ', ', ')],
+          [5, e.tank],
+          [6, qtyRob(e)],
+          [7, tr],
+        ], e.remarks);
       }
-      case 'DIS':
-        return join([`Discharged ${m3(e.quantity)} from ${e.tank}`, span(e), where(e), tr, e.remarks]);
+      case 'CIRC':
+        return items('Circulation / in-tank treatment', [[1, e.start], [2, e.stop], [3, e.tank], [4, m3(e.quantity)], [5, tr]], e.remarks);
       case 'SHORE':
-        return join([`To reception facility ${m3(e.quantity)}${e.tank ? ` from ${e.tank}` : ''}`, e.place, e.receiptNo && `receipt ${e.receiptNo}`, e.remarks]);
+        return items('Reception facility', [
+          [1, at(e.start, join([e.place, e.facility])) ],
+          [2, e.stop],
+          [3, op],
+          [4, e.tank],
+          [5, qtyRob(e)],
+          [6, yn(e.bwmp) && `per BWMP: ${yn(e.bwmp)}`],
+          [7, tr],
+        ], join([e.receiptNo && `receipt ${e.receiptNo}`, e.remarks]));
       case 'ACC':
-        return join([e.quantity != null && m3(e.quantity), e.tank, e.place, e.remarks]);
+        return items('Accidental / exceptional', [[1, at(e.start, e.place)], [2, e.stop], [3, op], [4, e.tank], [5, m3(e.quantity)], [6, e.remarks]]);
       case 'BWMS':
-        return join([e.start && `failure ${e.start}`, e.stop && `back in service ${e.stop}`, e.remarks]);
+        return items('BWMS failure', [[1, at(e.start, e.place)], [2, op], [3, e.remarks], [4, at(e.stop, e.placeEnd) && `operational ${at(e.stop, e.placeEnd)}`]]);
+      case 'SED': {
+        const to = e.method === 'shore'
+          ? [4, join([m3(e.quantity), e.facility, e.receiptNo && `receipt ${e.receiptNo}`]).replace(/; /g, ', ')] as [number, string]
+          : [5, join([m3(e.quantity), e.distance != null && `${e.distance} nm from land`, e.depth != null && `min. depth ${e.depth} m`]).replace(/; /g, ', ')] as [number, string];
+        return items('Tank cleaning / sediments', [[1, at(e.start, e.place)], [2, at(e.stop, e.placeEnd)], [3, e.tank], to], e.remarks);
+      }
+      case 'REM':
+        return e.remarks ?? '';
       default:
         return e.remarks ?? '';
     }
   },
 };
+
+/** The Ballast Water Record Book's cover (BWM Appendix II): GT, the IBWM Certificate and the total capacity, where set. */
+export const cover = (spec: BookSpec, vessel: Pick<VesselInfo, 'gross_tonnage' | 'ibwm_cert_no' | 'bw_capacity'> | null): string =>
+  spec.key !== 'ballast' || !vessel
+    ? ''
+    : [vessel.gross_tonnage && `GT ${vessel.gross_tonnage}`, vessel.ibwm_cert_no && `IBWM Certificate ${vessel.ibwm_cert_no}`, vessel.bw_capacity && `Total ballast water capacity ${vessel.bw_capacity} m³`, 'Tank diagram: see the Ballast Water Management Plan'].filter(Boolean).join(' · ');
+
+/** The code as the book prints it: the section letter where the form has one (Ballast A–H), else the code. */
+export const printedCode = (e: { book: BookKey; code: string }) => BOOKS[e.book]?.codes[e.code]?.print ?? e.code;
 
 const ECAS: Record<string, string> = {
   baltic: 'Baltic Sea',

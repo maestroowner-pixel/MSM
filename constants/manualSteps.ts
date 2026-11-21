@@ -379,6 +379,16 @@ export const MANUAL_STEPS: StepGroup[] = [
        "Open the day",
        "The share button at the top — a PDF of that page"
       ]
+     },
+     {
+      "t": "Print months or the whole log as one PDF",
+      "steps": [
+       "**☰** → **Logs** → **Deck Log**",
+       "The calendar-range button at the top",
+       "**From** … **to** — the months",
+       "**Print these months**, or **Whole log**"
+      ],
+      "note": "One numbered true copy: ship’s time with the zone and UTC, who signed, the Master’s review. Unsigned drafts are not printed. For a flag or an inspector asking for the bridge logbook."
      }
     ]
    },
@@ -2557,13 +2567,14 @@ export const MANUAL_STEPS: StepGroup[] = [
      {
       "t": "Ballast water: an exchange",
       "steps": [
-       "**Operation** → **Ballast water exchange (D-1)**",
-       "**Sequential**, **Flow-through** or **Dilution**",
-       "**Tank(s)**, **Quantity, m³**, start and end with positions",
-       "**Distance from nearest land, nm**, **Water depth, m**",
+       "**Operation** → **C.1 · Ballast water exchange**",
+       "Start and end — time and position",
+       "**Distance from nearest land, nm**, **Water depth, m** — or **Designated exchange area (B-4.2)**",
+       "**Sequential**, **Flow-through** or **Dilution**; **Per the approved BWMP**",
+       "**Tank(s)**, **Quantity, m³**, **Final total on board, m³**, **Treatment method**",
        "**Sign the entry**"
       ],
-      "note": "At least 50 nm from land and 200 m deep. Uptake, treatment, discharge — mark **Treated (BWMS)** or **Not treated**."
+      "note": "At least 50 nm from land and 200 m deep. The sections carry the letters of the 2025 form (A–H): uptake A and discharge B ask the same — start and completion, the final total on board, per BWMP, the treatment method; G is tank cleaning and sediments, H remarks."
      },
      {
       "t": "Fuel oil changeover: an ECA",

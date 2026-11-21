@@ -678,6 +678,32 @@ app mirrors. Bundle id `com.kukalab.msm`.
   matches CoC/competency/licence/STCW II–IV/OOW (`cocOf`). Erasing personal details within five years of leaving warns (`recentlyLeft`).
   Username/password of §4.3.1 = the accounts (invitation + PIN). Web: on a browser with Web Share the PDF goes to the share sheet (headless
   Opera never answers it — undefine `navigator.share` in tests). `npm run check:crewroll`.
+- **Deck log for Panama §4.1** (21 Nov 2026, MMC-193; no flag — ships with 2.78): **ship's time + UTC** — every Deck log writer goes
+  through DataContext `saveRow`/`saveRows`, which call `zoneOnSign` (services/deckLog): a row that is signed, has no `shipOffset` and was
+  not already signed takes `entryZone(date, time)`. Drafts get none; an entry already signed is never given one later (rules allow only
+  the Master's review on it). Deck entries are NOT sealed, so adding it at save is safe. **True copy** — pure `services/deckLogCopy.ts`
+  (`deckLogCopy(all, from, to, vessel)`, days or months, either way round): signed entries oldest first, When = `entryWhen` (LT, zone,
+  UTC), signer and Master's review with UTC, drafts counted not printed, empty months named; drawn by `trueCopyDoc` (landscape). The day
+  share button, the entry's share and the new period panel (calendar-range icon on DeckLogSc: From/To months, Print these months, Whole
+  log) all go through it — the web now gets a real PDF (it used to save HTML); phones fall back to the old HTML day page if jsPDF fails.
+  §4.1.3 five years: nothing in `deck_log` is ever deleted (no `keepDays`, rules delete false). `npm run check:decklogcopy`.
+- **Ballast Water Record Book — the 2025 form** (21 Nov 2026, MEPC.369(80) in force 1 Feb 2025 + MEPC.372(80) for Panama §4.4.6;
+  no flag — ships with 2.78; matrix `/Users/Oxford/MarineSafetyManager/erb-approval/08-compliance-matrix-MEPC372.md`): `services/logbooks.ts`
+  BALLAST codes keep their **permanent ids** (UP, DIS, EXCH, CIRC, SHORE, ACC, BWMS + new SED, REM) and gain `print` = the form's section
+  letter (A, B, C.1, C.2, D, E, F, G, H) — `printedCode(e)` is what the screen pill, the preview and the true copy's Code column show; an
+  entry made before 2.78 prints under its letter with its old wording. New fields `rob` (final total on board), `bwmp` (per the approved
+  BWMP), `treatment` (method, text — `treated` yes/no is the old field, still read), `facility`, `area` (designated exchange area B-4.2:
+  replaces distance/depth and the D-1 check). `method` doubles as the operation chips for D/E/F (uptake/discharge/ingress) and G's
+  destination (shore/sea). `CodeSpec.endPort`: the completion location may be a port. Lines are written by the form's items
+  (`.1 …; .2 …`). Cover (Appendix II): VesselInfo `gross_tonnage`, `ibwm_cert_no`, `bw_capacity` (Settings → Vessel when `ballast` is on;
+  inside the register blob — no rules change), printed as a second subtitle line by `cover()`; `trueCopyDoc` moves the table down per
+  subtitle line. `npm run check:logbooks`.
+- **The clock's source** (21 Nov 2026, ISO 21745:2019 §4.2.1 — synchronise to a UTC source, show loss of sync and which source; no flag):
+  `services/clockCheck.ts` HEADs `/version.json` (web, same origin) or `https://app.ismpilot.com/version.json` (phones) at start, every
+  30 min and on AppState active, and reads the `Date` header; pure `services/clockSkew.ts` (`skewOf` — only what lies beyond the header's
+  whole second and half the round trip counts, round trip > 5 s ignored; `clockState` synced / off ≥ 10 s / stale > 6 h / unchecked).
+  Shown after the times in `ShipClock` (tap = the full sentence). In memory only — after a restart without a connection it says "not
+  checked". Nothing is corrected: every recorded time is still the device's. `npm run check:clock`.
 - **Checklists** (`constants/checklists.ts`): 30 templates keyed `<category>.<period>`, weekly
   and/or monthly, plus a `genericTemplate` fallback so no category can refuse a round. **Line ids
   are permanent** — they are the keys of every stored `results` map, so re-word freely but never

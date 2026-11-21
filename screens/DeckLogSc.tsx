@@ -17,7 +17,8 @@ import { useData } from '../contexts/DataContext';
 import { SIZES, Palette } from '../theme';
 import { DeckEntry } from '../types/deckLog';
 import { PERIOD_LABEL, positionStr, sortDeckEntries, weatherSummary } from '../services/deckLog';
-import { shareDeckLogPage } from '../services/deckLogReport';
+import { shareDeckLogPage, shareDeckLogPeriod } from '../services/deckLogReport';
+import { MonthPicker } from '../components/MonthPicker';
 import { seedDeckLog, clearDeckLog, seedInspectorVisit } from '../services/deckLogSeed';
 import { t, useT } from '../utils/i18n';
 import { nextChangeSoon } from '../utils/shipTime';
@@ -30,6 +31,11 @@ export default function DeckLogSc() {
   const { deckLog, vessel, saveRows, flat } = useData();
 
   const [selectedDate, setSelectedDate] = useState(todayISO);
+  // The true copy of a run of months or the whole log (Panama MMC-193 §4.1.3).
+  const [showPeriod, setShowPeriod] = useState(false);
+  const month = selectedDate.slice(0, 7);
+  const [from, setFrom] = useState(month);
+  const [to, setTo] = useState(month);
   const soon = nextChangeSoon(vessel);
 
   const sorted = useMemo(() => sortDeckEntries(deckLog), [deckLog]);
@@ -43,6 +49,10 @@ export default function DeckLogSc() {
     for (const e of sorted) m[e.date] = (m[e.date] ?? 0) + 1;
     return m;
   }, [sorted]);
+
+  const logMonths = useMemo(() => [...new Set(sorted.map((e) => e.date.slice(0, 7)))].sort(), [sorted]);
+  const printPeriod = (a: string, b: string) =>
+    shareDeckLogPeriod(sorted, a, b, vessel).catch((e) => Alert.alert(t('common.error'), e?.message ?? String(e)));
 
   const dayEntries = useMemo(
     () => sorted.filter((e) => e.date === selectedDate),
@@ -134,6 +144,19 @@ export default function DeckLogSc() {
                 <MciIcon name="share-outline" size={20} color={COLORS.textLight} />
               </TouchableOpacity>
             )}
+            {sorted.length > 0 && (
+              <TouchableOpacity
+                hitSlop={8}
+                accessibilityLabel={t('book.period')}
+                onPress={() => {
+                  setFrom(month);
+                  setTo(month);
+                  setShowPeriod((v) => !v);
+                }}
+              >
+                <MciIcon name="calendar-range" size={20} color={showPeriod ? COLORS.primary : COLORS.textLight} />
+              </TouchableOpacity>
+            )}
             {__DEV__ && (
               <TouchableOpacity
                 hitSlop={8}
@@ -179,6 +202,27 @@ export default function DeckLogSc() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: SIZES.lg, paddingBottom: SIZES.xs }}>
             <MciIcon name="clock-alert-outline" size={16} color={COLORS.warning} />
             <Text style={{ fontSize: SIZES.small, fontWeight: '700', color: COLORS.warning }}>{t('clk.soon', { time: soon.time, to: soon.change.to })}</Text>
+          </View>
+        ) : null}
+
+        {/* ── One true copy of a run of months, or the whole log ── */}
+        {showPeriod && logMonths.length ? (
+          <View style={{ paddingHorizontal: SIZES.lg, paddingBottom: SIZES.sm }}>
+            <Text style={{ fontSize: SIZES.small, fontWeight: '700', color: COLORS.textDark }}>{t('book.period')}</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SIZES.xs, marginTop: SIZES.xs }}>
+              <Text style={{ fontSize: SIZES.small, color: COLORS.textLight }}>{t('book.from')}</Text>
+              <MonthPicker value={from} onChange={setFrom} months={logMonths} />
+              <Text style={{ fontSize: SIZES.small, color: COLORS.textLight }}>{t('book.to')}</Text>
+              <MonthPicker value={to} onChange={setTo} months={logMonths} />
+            </View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.lg, marginTop: SIZES.xs }}>
+              <TouchableOpacity hitSlop={6} onPress={() => void printPeriod(from, to)}>
+                <Text style={{ color: COLORS.primary, fontWeight: '800' }}>{t('book.printPeriod')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity hitSlop={6} onPress={() => void printPeriod(logMonths[0], logMonths[logMonths.length - 1])}>
+                <Text style={{ color: COLORS.primary, fontWeight: '800' }}>{t('dl.wholeLog')}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ) : null}
 

@@ -37,6 +37,7 @@ import { KeyItem, KeyMove } from '../types/keys';
 import { MedCheck, MedItem, MedMove, MedOrder, MedTreatment } from '../types/hospital';
 import { WatchEntry, WatchTemplate } from '../types/watchLog';
 import { DeckEntry } from '../types/deckLog';
+import { zoneOnSign } from '../services/deckLog';
 import { SignDraft } from '../types/signDraft';
 import { GmdssEntry } from '../types/gmdss';
 import { InternalAudit } from '../types/audit';
@@ -1346,11 +1347,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await loadPms();
   }, [loadPms]);
   const saveRow = useCallback(async (key: string, row: { id: string }) => {
+    // Every Deck log writer comes through here: the ship's zone is frozen as the entry is signed (§4.1.2).
+    if (key === storage.DECK_LOG_KEY) {
+      const prev = (await storage.loadList<DeckEntry>(key)).find((x) => x.id === row.id);
+      row = zoneOnSign(row as DeckEntry, prev);
+    }
     await storage.upsertInList(key, { ...row, updatedAt: Date.now() });
     await loadPms();
   }, [loadPms]);
   const saveRows = useCallback(async (key: string, rows: { id: string }[]) => {
     const now = Date.now();
+    if (key === storage.DECK_LOG_KEY) {
+      const had = new Map((await storage.loadList<DeckEntry>(key)).map((x) => [x.id, x]));
+      rows = rows.map((r) => zoneOnSign(r as DeckEntry, had.get(r.id)));
+    }
     await storage.upsertManyInList(key, rows.map((r) => ({ ...r, updatedAt: (r as any).updatedAt ?? now })));
     await loadPms();
   }, [loadPms]);

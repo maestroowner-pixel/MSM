@@ -70,10 +70,12 @@ export function trueCopyDoc(c: TrueCopy): any {
   doc.text(clean(c.title), M, 14);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.text(clean(c.subtitle), M, 19);
+  // A second subtitle line (the Ballast Water Record Book's cover particulars) pushes the table down.
+  const subs = c.subtitle.split('\n');
+  subs.forEach((line, i) => doc.text(clean(line), M, 19 + i * 3.6));
 
   autoTable(doc, {
-    startY: 23,
+    startY: 23 + (subs.length - 1) * 3.6,
     head: [c.head.map(clean)],
     body: c.rows.length ? c.rows.map((r) => r.map(clean)) : [[{ content: c.emptyText ?? 'No entries this month.', colSpan: c.head.length }]],
     styles: { fontSize: 7.5, cellPadding: 1.3, textColor: navy, lineColor: [200, 208, 219], lineWidth: 0.15, overflow: 'linebreak' },

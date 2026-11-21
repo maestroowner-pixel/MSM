@@ -1,6 +1,8 @@
 // ===================================
-// PDF export for one Deck Watch Log page (one day or one entry).
-// Produces an A4 table page that can be shared or printed.
+// PDF export of the Deck Watch Log: a day, one entry, a run of months or the whole log.
+// Since 21 Nov 2026 the file is the certified true copy (services/deckLogCopy, jsPDF,
+// Panama MMC-193 §4.1) on every platform — the web used to save an HTML page. The old
+// HTML page stays only as a phone's fallback when jsPDF fails.
 // ===================================
 
 import * as Print from 'expo-print';
@@ -9,13 +11,14 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { VesselInfo } from './storage';
 import { esc, share, vesselHeader } from './export';
 import { onWeb, onWindows } from '../utils/fileShare';
-import { saveFileWeb } from '../utils/webSave';
 import { DeckEntry, VISIBILITY_LABEL } from '../types/deckLog';
 import {
   BEAUFORT_LABEL, PERIOD_LABEL, SEA_STATE_LABEL,
   positionStr,
 } from './deckLog';
 import { formatDateTime } from '../utils/dates';
+import { deliverTrueCopy } from '../utils/trueCopyPdf';
+import { deckLogCopy } from './deckLogCopy';
 
 const dmy = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
 
@@ -85,27 +88,36 @@ function buildHtml(entries: DeckEntry[], date: string, vessel: VesselInfo | null
   </body></html>`;
 }
 
+/** One day's page as a true copy. `entries` are the day's (drafts are left out of the copy). */
 export async function shareDeckLogPage(
   entries: DeckEntry[],
   date: string,
   vessel: VesselInfo | null,
 ): Promise<void> {
+  await shareDeckLogPeriod(entries, date, date, vessel);
+}
+
+/** The Deck log from `from` to `to` (days or months) as one numbered true copy. */
+export async function shareDeckLogPeriod(
+  all: DeckEntry[],
+  from: string,
+  to: string,
+  vessel: VesselInfo | null,
+): Promise<void> {
   if (onWindows) throw new Error('PDF is not available on Windows.');
-  const dStr = date.replace(/-/g, '');
-  const vName = (vessel?.vessel_name ?? '').replace(/[\\/:*?"<>|]+/g, ' ').trim();
-  const name = `DeckLog_${dStr}${vName ? `_${vName}` : ''}.pdf`;
-  const html = buildHtml(entries, date, vessel);
+  const { copy, name } = deckLogCopy(all, from, to, vessel);
   if (onWeb) {
-    const htmlName = name.replace(/\.pdf$/, '.html');
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const saved = await saveFileWeb(blob, htmlName, 'reports');
-    if (!saved) {
-      // Fallback: open in new tab for printing
-      const w = window.open('', '_blank');
-      if (w) { w.document.write(html); w.document.close(); w.print(); }
-    }
+    await deliverTrueCopy(copy, name);
     return;
   }
+  try {
+    await deliverTrueCopy(copy, name);
+    return;
+  } catch {
+    // jsPDF failed on this phone: the plain page of one day, without the true-copy footer.
+  }
+  if (from !== to) throw new Error('The PDF could not be made on this device.');
+  const html = buildHtml(all.filter((e) => e.date === from && !e.draft), from, vessel);
   const { uri } = await Print.printToFileAsync({ html, width: 595, height: 842 });
   const dest = `${FileSystem.cacheDirectory}${name}`;
   try {
@@ -119,5 +131,7 @@ export async function shareDeckLogPage(
 
 /** Print a single entry (share sheet). */
 export async function shareDeckEntry(entry: DeckEntry, vessel: VesselInfo | null): Promise<void> {
-  return shareDeckLogPage([entry], entry.date, vessel);
+  if (onWindows) throw new Error('PDF is not available on Windows.');
+  const { copy, name } = deckLogCopy([entry], entry.date, entry.date, vessel);
+  await deliverTrueCopy(copy, name.replace(/\.pdf$/, `_${entry.time.replace(':', '')}.pdf`));
 }
